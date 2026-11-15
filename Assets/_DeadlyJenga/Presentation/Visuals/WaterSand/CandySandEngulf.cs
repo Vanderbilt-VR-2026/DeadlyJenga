@@ -19,6 +19,7 @@ namespace DeadlyJenga.Presentation
         }
 
         const float Distance = .3f, Size = 1.1f;
+        static readonly int SandTexture = Shader.PropertyToID("_SandTex");
         GameObject quad; Material material; Mesh mesh;
         ISandState sand; GameObject sandOwner;
         IDamageable health;
@@ -96,6 +97,7 @@ namespace DeadlyJenga.Presentation
             mesh.triangles = new[] { 0, 2, 1, 1, 2, 3 };
             mesh.bounds = new Bounds(Vector3.zero, new Vector3(Size, Size, .1f));
             material = new Material(shader) { name = "Sand engulf" };
+            material.SetTexture(SandTexture, Resources.Load<Texture2D>("CandyScenery/CatwalksSandGrain"));
             quad = new GameObject("Sand engulf");
             quad.AddComponent<MeshFilter>().sharedMesh = mesh;
             var r = quad.AddComponent<MeshRenderer>();

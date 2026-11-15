@@ -2,7 +2,11 @@
 // One camera-attached quad: grains creep in from the bottom and edges, fall, then pack into solid sand.
 Shader "DeadlyJenga/Sand Engulf"
 {
-    Properties { _Level("Level", Range(0,1)) = 0 }
+    Properties
+    {
+        _Level("Level", Range(0,1)) = 0
+        _SandTex("Sand grains", 2D) = "gray" {}
+    }
     SubShader
     {
         Tags {"RenderPipeline"="UniversalPipeline" "Queue"="Overlay" "RenderType"="Transparent"}
@@ -16,6 +20,9 @@ Shader "DeadlyJenga/Sand Engulf"
             #pragma vertex Vert
             #pragma fragment Frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            TEXTURE2D(_SandTex);
+            SAMPLER(sampler_SandTex);
 
             CBUFFER_START(UnityPerMaterial)
                 float _Level;
@@ -41,40 +48,39 @@ Shader "DeadlyJenga/Sand Engulf"
                 return frac((p.x + p.y) * p.x);
             }
 
-            // Round grain per cell: x = mask, y = random value, z = bump.
-            float3 Grain(float2 uv, float cells, float fall, float seed)
+            float Noise(float2 p)
             {
-                float2 q = uv * cells + float2(0, _Time.y * fall);
-                float2 id = floor(q), f = frac(q) - 0.5;
-                float2 jit = float2(Hash(id + seed), Hash(id + seed + 4.1)) - 0.5;
-                float r = 0.30 + 0.14 * Hash(id + seed + 9.7);
-                float2 d = f - jit * 0.4;
-                float len = length(d);
-                return float3(1 - smoothstep(r - 0.12, r, len), Hash(id + seed + 2.2), 1 - len / r);
+                float2 cell = floor(p);
+                float2 blend = frac(p);
+                blend = blend * blend * (3 - 2 * blend);
+                return lerp(lerp(Hash(cell), Hash(cell + float2(1, 0)), blend.x),
+                            lerp(Hash(cell + float2(0, 1)), Hash(cell + 1), blend.x), blend.y);
             }
 
             half4 Frag(Varyings i) : SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
                 float2 uv = i.uv;
-                float2 c = uv - 0.5;
-                // How buried this pixel is: sand rises from the bottom, and creeps in from the sides.
-                float fill = _Level * 1.45 - uv.y * 0.9 + dot(c, c) * 0.9 - 0.12;
-                fill += (Hash(floor(uv * 6)) - 0.5) * 0.08;
-                float3 far = Grain(uv, 34, 0.15, 1.0), near = Grain(uv, 15, 0.45, 7.0);
-                // Thin fill: loose falling grains. Thick fill: packed sand.
-                float loose = step(far.y * 0.5, fill * 1.1) * far.x * saturate(fill * 4 + 0.15);
-                float chunk = step(near.y * 0.5, fill - 0.05) * near.x * saturate(fill * 3);
-                float packed = smoothstep(0.35, 0.6, fill);
-                float alpha = saturate(max(max(loose, chunk), packed));
-                alpha *= saturate(_Level * 6);
+                float time = _Time.y;
+                float side = (uv.x - 0.5) * 2;
+                float height = lerp(0.20, 0.83, _Level) + 0.28 * smoothstep(0.84, 1, _Level);
+                float ridge = Noise(float2(uv.x * 9, time * 0.37));
+                float fine = Noise(uv * 27 + float2(2.7, time * 0.9));
+                float fill = height - uv.y + side * side * 0.23 + (ridge - 0.5) * 0.16 + (fine - 0.5) * 0.045;
 
-                half3 sugar = half3(0.86, 0.70, 0.46), cinnamon = half3(0.52, 0.28, 0.12), deep = half3(0.30, 0.17, 0.09);
-                half3 grains = lerp(sugar, cinnamon, step(0.72, near.y) * 0.8 + far.y * 0.25);
-                grains *= 0.72 + 0.35 * saturate(near.z * chunk + far.z * loose);
-                half3 color = lerp(grains, deep * (0.85 + far.y * 0.3), packed * saturate(_Level * 1.2));
-                color *= lerp(1, 0.45, saturate((_Level - 0.7) * 3));   // dark as the light is lost
-                return half4(color, alpha);
+                // Loose grains stream down across the edge before the packed sand blocks the view.
+                half3 movingSand = SAMPLE_TEXTURE2D(_SandTex, sampler_SandTex,
+                    uv * 2.7 + float2(0.29 + time * 0.031, 0.16 + time * 0.18)).rgb;
+                half3 settledSand = SAMPLE_TEXTURE2D(_SandTex, sampler_SandTex,
+                    uv * 2.15 + float2(0.13, 0.41 + time * 0.025)).rgb;
+                half grain = dot(movingSand, half3(0.299, 0.587, 0.114));
+                float packed = smoothstep(-0.035, 0.105, fill + (grain - 0.4) * 0.055);
+                float loose = smoothstep(-0.155, 0.025, fill) * smoothstep(0.37, 0.68, grain);
+                float alpha = lerp(loose * 0.78, 1, packed) * smoothstep(0.03, 0.19, _Level);
+
+                half3 color = lerp(movingSand, settledSand, packed);
+                half light = lerp(1, 0.37, smoothstep(0.52, 1, _Level) * lerp(0.58, 1, packed));
+                return half4(color * light, alpha);
             }
             ENDHLSL
         }
