@@ -39,6 +39,8 @@ nav {margin:13px 0}
 .orbit {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px}
 .orbit label {display:grid;gap:4px;font-size:13px}
 .orbit input {width:100%;margin:0;accent-color:#78ddc7}
+.invert-pitch {display:inline-flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}
+.invert-pitch input {accent-color:#78ddc7}
 button,select {background:#253841;color:inherit;border:1px solid #40535a;border-radius:9px;padding:7px 12px;font:inherit}
 button {cursor:pointer} select {flex:1;min-width:125px}
 :focus-visible {outline:3px solid #78ddc7;outline-offset:2px}
@@ -55,6 +57,7 @@ figure {background:#17313e;margin:0;border:1px solid #3b5864;border-radius:18px;
 <select id="environment" aria-label="Lighting and environment"><option value="studio">Studio</option>
 <option value="castle">Castle</option></select>
 <button id="reset">Reset view</button><button id="stop">Stop preview</button>
+<label class="invert-pitch"><input id="invert-pitch" type="checkbox"> Invert up/down</label>
 </nav>
 <div class="orbit" role="group" aria-label="Camera orbit">
 <label>Rotate left/right <input id="yaw" type="range" min="0" max="360" value="155"></label>
@@ -68,6 +71,13 @@ const environment = document.querySelector('#environment');
 const status = document.querySelector('#status'), token = __TOKEN__;
 const guidance = 'Drag left/right or up/down to orbit. Scroll or use + and − to zoom.';
 const yawControl = document.querySelector('#yaw'), pitchControl = document.querySelector('#pitch');
+const invertPitch = document.querySelector('#invert-pitch');
+const invertPref = 'wardrobe.invertPitch';
+try { invertPitch.checked = localStorage.getItem(invertPref) === '1'; } catch {}
+invertPitch.addEventListener('change', () => {
+  try { localStorage.setItem(invertPref, invertPitch.checked ? '1' : '0'); } catch {}
+});
+const pitchDirection = () => invertPitch.checked ? -1 : 1;
 let yaw=155, pitch=9, zoom=1, drag, dirty=true, busy=false, stopped=false, imageUrl;
 const clamp = (v,min,max) => Math.max(min,Math.min(max,v));
 const render = () => { dirty=true; };
@@ -102,7 +112,7 @@ avatar.addEventListener('pointerdown',e => {
 });
 avatar.addEventListener('pointermove',e => {
   if(!drag)return;
-  setOrbit(yaw+(e.clientX-drag.x)*.55,pitch-(e.clientY-drag.y)*.45);
+  setOrbit(yaw+(e.clientX-drag.x)*.55,pitch-(e.clientY-drag.y)*.45*pitchDirection());
   drag={x:e.clientX,y:e.clientY};
 });
 avatar.addEventListener('lostpointercapture',() => {drag=null;});
@@ -112,7 +122,7 @@ avatar.addEventListener('wheel',e => {
 avatar.addEventListener('keydown',e => {
   switch(e.key){
   case 'ArrowLeft':yaw-=10;break; case 'ArrowRight':yaw+=10;break;
-  case 'ArrowUp':pitch+=8;break; case 'ArrowDown':pitch-=8;break;
+  case 'ArrowUp':pitch+=8*pitchDirection();break; case 'ArrowDown':pitch-=8*pitchDirection();break;
   case '+':case '=':zoom=clamp(zoom/1.12,.55,2);break; case '-':zoom=clamp(zoom*1.12,.55,2);break;
   default:return;
   }
