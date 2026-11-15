@@ -69,7 +69,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<TabletButton> tabletActions = new();
         readonly RectTransform[] tabletPages = new RectTransform[4];
         RectTransform legacyDeveloper, tabletNav;
-        Text tabletInputLayout, leftControllerHelp, rightControllerHelp, tabletRoomStatus, tabletLobbyPopulation;
+        Text tabletInputLayout, leftControllerHelp, rightControllerHelp, tabletRoomStatus;
         Text leftInputTitle, rightInputTitle;
         RawImage leftController, rightController;
         TabletPage tabletPage;
@@ -131,9 +131,7 @@ namespace DeadlyJenga.CastlePrototype
             BuildTabletComfort(tabletPages[(int)TabletPage.Comfort]);
             BuildTabletControls(tabletPages[(int)TabletPage.Controls]);
             BuildTabletRoom(tabletPages[(int)TabletPage.Room]);
-            var developerPage = tabletPages[(int)TabletPage.Developer];
-            if (session is ILobbyControls lobby) BuildLobbyDeveloper(developerPage, lobby);
-            else BuildTabletDeveloper(developerPage);
+            BuildTabletDeveloper(tabletPages[(int)TabletPage.Developer]);
 
             OpenPlayerTabletPage(TabletPage.Comfort);
         }
@@ -625,9 +623,10 @@ namespace DeadlyJenga.CastlePrototype
             TabletControl(tabletActions,page,()=>"Copy room code",new(244,-10),new(456,76),()=>{
                 GUIUtility.systemCopyBuffer=MultiplayerPanel.JoinCode(session.Multiplayer);
             },allowed:()=>session.Multiplayer!=null&&!string.IsNullOrEmpty(MultiplayerPanel.JoinCode(session.Multiplayer)));
-            TabletControl(tabletActions,page,()=>session is ILobbyControls?"Join by room code":MultiplayerPanel.LobbyAction(session.Multiplayer),
+            TabletControl(tabletActions,page,()=>InLobbyVisit?"Return to match":
+                session is ILobbyControls?"Join by room code":MultiplayerPanel.LobbyAction(session.Multiplayer),
                 new(-244,-121),new(456,76),TabletRoomTravel,
-                allowed:()=>session is ILobbyControls lobby?lobby.JoinEnabled:MatchRuntime.Current!=null);
+                allowed:()=>session is ILobbyControls lobby?(InLobbyVisit?lobby.CanStart:lobby.JoinEnabled):MatchRuntime.Current!=null);
             TabletControl(tabletActions,page,()=>{
                 var room=session.Multiplayer;
                 if(room==null||!room.CanLeave)return "Leave room";
@@ -640,47 +639,26 @@ namespace DeadlyJenga.CastlePrototype
             },allowed:()=>session.Multiplayer?.CanLeave==true,accent:TabletCoral);
         }
 
+        bool InLobbyVisit => session is ILobbyControls && (session as ILobbyMatchVisitControls)?.VisitingLobby == true;
+
+        internal void ResetLobbyContext()
+        {
+            OpenPlayerTabletPage(DeveloperTabAvailable && tabletPage == TabletPage.Developer
+                ? TabletPage.Developer : TabletPage.Comfort);
+        }
+
         void TabletRoomTravel()
         {
-            if (session is ILobbyControls)
+            if (session is ILobbyControls lobby)
             {
+                if (InLobbyVisit) { lobby.StartOrCancel(); return; }
                 session.SetMenu(false);
                 (session as Component)?.GetComponent<IslandLobbyView>()?.OpenRoomCodeFromTablet();
             }
             else MatchRuntime.Current?.ReturnToLobby();
         }
 
-        void BuildLobbyDeveloper(RectTransform page, ILobbyControls lobby)
-        {
-            TabletText(page,"DEVELOPER",new(0,211),new(960,72),54);
-            TabletControl(tabletActions,page,()=>"Map: "+lobby.MapTitle,new(-249,101),new(478,84),
-                ()=>lobby.CycleMap(1),allowed:()=>lobby.CanConfigure);
-            TabletControl(tabletActions,page,()=>"Mode: "+lobby.ModeTitle,new(249,101),new(478,84),
-                ()=>lobby.CycleMode(1),allowed:()=>lobby.CanConfigure);
-
-            tabletLobbyPopulation = TabletText(page,"",new(0,-14),new(550,68),34);
-            TabletControl(tabletActions,page,()=>"−",new(-342,-14),new(124,72),
-                ()=>AdjustLobbyPopulation(lobby,-1),allowed:()=>lobby.CanConfigure && lobby is ILobbyDetails);
-            TabletControl(tabletActions,page,()=>"+",new(342,-14),new(124,72),
-                ()=>AdjustLobbyPopulation(lobby,1),allowed:()=>lobby.CanConfigure && lobby is ILobbyDetails);
-            TabletControl(tabletActions,page,()=>lobby.StartPending?"Cancel match start":"Start match",
-                new(0,-147),new(640,92),lobby.StartOrCancel,allowed:()=>lobby.CanStart,accent:CandyHudVisuals.Lavender);
-        }
-
-        void AdjustLobbyPopulation(ILobbyControls lobby, int step)
-        {
-            if (!lobby.CanConfigure || lobby is not ILobbyDetails details) return;
-            var setup = details.Setup;
-            if (setup == null) return;
-            int population = Mathf.Clamp(setup.population + step,1,100);
-            if (population == setup.population) return;
-            setup.population = population;
-            details.ConfigureSetup(setup);
-            tabletRefreshAt = 0;
-        }
-
         void BuildTabletDeveloper(RectTransform page)
-
         {
             tabletDeveloperGrid = new GameObject("Developer grid", typeof(RectTransform)).GetComponent<RectTransform>();
             tabletDeveloperGrid.SetParent(page, false);
@@ -694,7 +672,8 @@ namespace DeadlyJenga.CastlePrototype
                 CandyEquipmentView.Outline(EquipmentKind.Blaster),opensDetails:false);
             DeveloperTile(tabletDeveloperGrid,"Bots",1,CandyHudIcon.Survivor,()=>{menuCategory=1;menuSection=-1;});
             // Disasters, Map & Mode and Rebuild live under More tools > Match (Disasters, Maps, Modes, World).
-            DeveloperTile(tabletDeveloperGrid,"Spectate",2,CandyHudIcon.Look,()=>spectatePage=true);
+            DeveloperTile(tabletDeveloperGrid,"Spectate",2,CandyHudIcon.Look,()=>spectatePage=true,
+                ()=>session is not ILobbyControls);
             // Closes the tablet and shows your avatar from outside. V (or Done in VR) returns to first person.
             DeveloperTile(tabletDeveloperGrid,"Third person",3,CandyHudIcon.Survivor,()=>session.Player?.ThirdPerson?.Begin(),
                 ()=>session.Player?.ThirdPerson?.CanInspect==true,opensDetails:false);
@@ -1125,17 +1104,7 @@ namespace DeadlyJenga.CastlePrototype
                     if(!string.IsNullOrWhiteSpace(room?.InvitationFrom))
                         tabletRoomStatus.text+="\nInvite from "+room.InvitationFrom;
                 }
-                if (tabletPage == TabletPage.Developer)
-                {
-                    if (tabletLobbyPopulation)
-                    {
-                        var setup = (session as ILobbyDetails)?.Setup;
-                        tabletLobbyPopulation.text = setup == null ? "Match population unavailable" :
-                            "Match players: " + setup.population + " (humans + bots)";
-                    }
-                    if (tabletWeaponsOpen) RefreshWeaponWheelStats();
-                }
-
+                if (tabletPage == TabletPage.Developer && tabletWeaponsOpen) RefreshWeaponWheelStats();
                 if(tabletPage==TabletPage.Comfort)
                 {
                     UpdateComfortSliderUI();

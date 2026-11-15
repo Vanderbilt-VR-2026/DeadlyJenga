@@ -195,10 +195,17 @@ namespace DeadlyJenga.CastlePrototype
 
         void PointTabletMapPage(Camera camera, bool pressed)
         {
+            var lobby = session as ILobbyControls;
+            var details = session as ILobbyDetails;
             var maps = Demo as IDemoMapControls;
-            vrMapPicker.Update(maps?.Maps, maps?.CurrentMapId);
+            bool chooseMode = lobby != null && menuSection == 0;
+            string selected = chooseMode ? details?.SelectedModeId : details?.SelectedMapId ?? maps?.CurrentMapId;
+            if (!chooseMode) vrMapPicker.Update(details?.Maps ?? maps?.Maps, selected);
             var options = vrMapPicker.Rows;
-            heading.text = "MAP SELECTION\n<size=17><color=#d0b8d8>" + (maps?.MapStatus ?? "Choose a map to preview and launch") + "</color></size>";
+            heading.text = lobby == null
+                ? "MAP SELECTION\n<size=17><color=#d0b8d8>" + (maps?.MapStatus ?? "Choose a map to preview and launch") + "</color></size>"
+                : chooseMode ? "MODE SELECTION" : "MAP SELECTION";
+            bool configure = lobby?.CanConfigure ?? (maps?.CanSelectMap == true);
             var actions = new System.Collections.Generic.List<Action>();
             var names = new System.Collections.Generic.List<string>();
             var enabled = new System.Collections.Generic.List<bool>();
@@ -211,7 +218,19 @@ namespace DeadlyJenga.CastlePrototype
 
             Add("◄ Back to Match", () => { mapPage = false; menuSection = -1; }, icon: CandyHudIcon.Home);
 
-            if (options != null)
+            if (chooseMode && details != null)
+            {
+                var modes = details.Modes;
+                for (int i = mapOffset; i < modes.Count && i < mapOffset + 12; i++)
+                {
+                    var mode = modes[i];
+                    Add((mode.id == selected ? "* " : "") + mode.title, () => lobby.SelectMode(mode.id),
+                        configure && mode.available, CandyHudIcon.Play, mode.description);
+                }
+                if (mapOffset > 0) Add("Previous modes", () => mapOffset = Mathf.Max(0, mapOffset - 12));
+                if (mapOffset + 12 < modes.Count) Add("More modes", () => mapOffset += 12);
+            }
+            else if (options != null)
             {
                 int max = Mathf.Min(12, options.Count - mapOffset);
                 for (int i = 0; i < max; i++)
@@ -219,11 +238,12 @@ namespace DeadlyJenga.CastlePrototype
                     int index = mapOffset + i;
                     var row = options[index];
                     Texture preview = row.map != null ? MapPreviewImages.Get(row.map.id) : null;
-                    bool canSelect = row.map == null || (DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session) && maps.CanSelectMap && row.map.available);
-                    string title = row.map == null ? vrMapPicker.Title(row) : (row.map.id == maps.CurrentMapId ? "★ " : "") + row.map.title;
+                    bool canSelect = row.map == null || (DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session) && configure && row.map.available);
+                    string title = row.map == null ? vrMapPicker.Title(row) : (row.map.id == selected ? "★ " : "") + row.map.title;
                     Add(title, () => {
                         if (row.map == null) { vrMapPicker.Toggle(row); mapOffset = vrMapPicker.HeaderIndex / 12 * 12; }
-                        else maps.SelectMap(row.map.id);
+                        else if (lobby != null) lobby.SelectMap(row.map.id);
+                        else maps?.SelectMap(row.map.id);
                     }, canSelect, CandyHudIcon.Home, row.map?.description ?? "Browse category", preview);
                 }
                 if (mapOffset > 0)
@@ -232,7 +252,9 @@ namespace DeadlyJenga.CastlePrototype
                     Add("More maps", () => mapOffset += 12, icon: CandyHudIcon.Home);
             }
 
-            help.text = "Aim at a map to preview, or trigger to select. Connected players follow the host.";
+            help.text = lobby == null
+                ? "Aim at a map to preview, or trigger to select. Connected players follow the host."
+                : lobby.SetupHint;
             RenderOrganizedMenuGrid(names, actions, enabled, art, captions, pictures, pressed);
         }
 
@@ -247,7 +269,8 @@ namespace DeadlyJenga.CastlePrototype
             var actions=new System.Collections.Generic.List<Action>();var names=new System.Collections.Generic.List<string>();var enabled=new System.Collections.Generic.List<bool>();var art=new System.Collections.Generic.List<CandyHudIcon>();var captions=new System.Collections.Generic.List<string>();var pictures=new System.Collections.Generic.List<Texture>();
             void Add(string name,Action action,bool available=true,CandyHudIcon icon=CandyHudIcon.Key,string caption="",Texture picture=null)
             {names.Add(name);actions.Add(action);enabled.Add(available);art.Add(icon);captions.Add(caption);pictures.Add(picture);}
-            var match=MatchRuntime.Current;
+            var lobby = session as ILobbyControls;
+            var match = lobby == null ? MatchRuntime.Current : null;
             var bots=session.SurvivorBots;
             int humans=Mathf.Max(1,session.Multiplayer?.HumanCount??1);
             bool canBatch=CanCommand&&match?.Authority==true&&bots!=null;
@@ -281,12 +304,20 @@ namespace DeadlyJenga.CastlePrototype
                     else DeadlyJenga.Presentation.GameExperiencePanel.Open(session);
                 },true,CandyHudIcon.Settings,CanCommand?"Testing actions available to permitted players":"Enable testing tools, or inspect host permission / room status.");
                 if(!disasterPreview)disasterPreview=Resources.Load<Texture2D>("LobbyModePictures/disasters");
-                Add("Rebuild Map",()=>session.ResetMap(),session.CanEditWorld,CandyHudIcon.Home,"Rebuild the current map. Host only.",mapPreview);
+                if (lobby == null)
+                    Add("Rebuild Map",()=>session.ResetMap(),session.CanEditWorld,CandyHudIcon.Home,"Rebuild the current map. Host only.",mapPreview);
+                else
+                    Add(InLobbyVisit ? "Return to match" : lobby.StartPending ? "Cancel match start" : "Start match",
+                        lobby.StartOrCancel, lobby.CanStart, CandyHudIcon.Play, lobby.SetupHint);
                 Add("Disasters",()=>{disasterPage=true;disasterSelection=-1;},Demo!=null,CandyHudIcon.Flight,"Preview and tune disasters before launch.",disasterPreview);
                 Add("Give Yourself a Gun",()=>{quickGunPage=true;giveEquipmentPage=true;giveAllEquipment=false;equipmentOffset=0;},
                     CanCommand&&!session.PlayingHand&&match?.Authority==true&&match is IDemoEquipmentControls,CandyHudIcon.Trigger,
                     "Choose a firearm. Your previous item drops at your feet.",DeadlyJenga.Presentation.CandyEquipmentView.Outline(EquipmentKind.Blaster));
-                Add("Bot Population",()=>{batchPage=true;batchTarget=0;},canBatch,CandyHudIcon.Friends,"Preview a large batch before applying.");
+                Add("Bot Population",()=>{
+                    if (lobby == null) { batchPage=true; batchTarget=0; }
+                    else { menuCategory=1; menuSection=0; }
+                }, lobby == null ? canBatch : lobby.CanConfigure && session is ILobbyDetails,
+                    CandyHudIcon.Friends,lobby == null ? "Preview a large batch before applying." : "Set the total players for the next match.");
                 Add(session.PlayingHand?"Become Survivor":"Become Flying Hand",SwitchDemoRole,DemoMode,CandyHudIcon.Hand,"Switch your local demo character.");
                 var hand=session.Player?.gameObject.GetComponent<IBlasterControls>();
                 Add("Game / Demo & Round Setup",()=>DeadlyJenga.Presentation.GameExperiencePanel.Open(session),DeadlyJenga.Presentation.GameExperiencePanel.Resolve(session)!=null,CandyHudIcon.Play,"Profile, readiness and automatic rounds");
@@ -303,7 +334,7 @@ namespace DeadlyJenga.CastlePrototype
                     for(int i=0;i<4;i++)
                     {
                         int index=i;
-                        Add(sections[i]+"   /   "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),icon:DemoMenuSections.Icon(sections[i]),caption:DemoMenuSections.Caption(sections[i]));
+                        Add(sections[i]+"   /   "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),LobbySectionAvailable(sections[i]),DemoMenuSections.Icon(sections[i]),DemoMenuSections.Caption(sections[i]));
                     }
                     Add("Advanced Settings   " + (matchAdvancedExpanded ? "▲" : "▼"), () => matchAdvancedExpanded = !matchAdvancedExpanded, icon: CandyHudIcon.Settings, caption: "Extra options: ground pickups and automatic powerups");
                     if(matchAdvancedExpanded)
@@ -311,13 +342,13 @@ namespace DeadlyJenga.CastlePrototype
                         for(int i=4;i<sections.Length;i++)
                         {
                             int index=i;
-                            Add(sections[i]+"   /   "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),icon:DemoMenuSections.Icon(sections[i]),caption:DemoMenuSections.Caption(sections[i]));
+                            Add(sections[i]+"   /   "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),LobbySectionAvailable(sections[i]),DemoMenuSections.Icon(sections[i]),DemoMenuSections.Caption(sections[i]));
                         }
                     }
                 }
                 else
                 {
-                    for(int i=0;i<sections.Length;i++){int index=i;Add(sections[i]+"   /   "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),icon:DemoMenuSections.Icon(sections[i]),caption:DemoMenuSections.Caption(sections[i]));}
+                    for(int i=0;i<sections.Length;i++){int index=i;Add(sections[i]+"   /   "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),LobbySectionAvailable(sections[i]),DemoMenuSections.Icon(sections[i]),DemoMenuSections.Caption(sections[i]));}
                 }
             }
             else
@@ -337,10 +368,23 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 if(name=="Survivors"||name=="Giant hands")
                 {
-                    bool hand=name=="Giant hands";Add("Spawn one",()=>{if(CanCommand)Demo.Run(hand?DemoCommand.AddHand:DemoCommand.AddSurvivor);},CanCommand);
-                    if(!hand)Add("Fill to target population",()=>{if(CanCommand)Demo.Run(DemoCommand.FillSurvivors);},CanCommand);
-                    Add("Next personality",()=>{if(CanCommand)Demo.Run(hand?DemoCommand.NextHand:DemoCommand.NextSurvivor);},CanCommand);
-                    Add("Clear population",()=>{if(CanCommand)Demo.Run(hand?DemoCommand.ClearHands:DemoCommand.ClearSurvivors);},CanCommand);
+                    bool hand = name == "Giant hands";
+                    if (lobby != null && session is ILobbyDetails details)
+                    {
+                        var setup = details.Setup;
+                        int count = hand ? setup.hands : setup.population;
+                        Add((hand ? "Flying hands" : "Match players (humans + bots)") + ": " + count,
+                            () => { }, false, CandyHudIcon.Friends);
+                        Add("Decrease",()=>AdjustLobbyPopulation(lobby,details,hand,-1),lobby.CanConfigure && count > (hand ? 0 : 1));
+                        Add("Increase",()=>AdjustLobbyPopulation(lobby,details,hand,1),lobby.CanConfigure && count < 100);
+                    }
+                    else
+                    {
+                        Add("Spawn one",()=>{if(CanCommand)Demo.Run(hand?DemoCommand.AddHand:DemoCommand.AddSurvivor);},CanCommand);
+                        if(!hand)Add("Fill to target population",()=>{if(CanCommand)Demo.Run(DemoCommand.FillSurvivors);},CanCommand);
+                        Add("Next personality",()=>{if(CanCommand)Demo.Run(hand?DemoCommand.NextHand:DemoCommand.NextSurvivor);},CanCommand);
+                        Add("Clear population",()=>{if(CanCommand)Demo.Run(hand?DemoCommand.ClearHands:DemoCommand.ClearSurvivors);},CanCommand);
+                    }
                 }
                 if(name=="World")
                 {
@@ -442,11 +486,38 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
+        static void AdjustLobbyPopulation(ILobbyControls lobby, ILobbyDetails details, bool hands, int step)
+        {
+            if (!lobby.CanConfigure) return;
+            var setup = details.Setup;
+            if (setup == null) return;
+            if (hands) setup.hands = Mathf.Clamp(setup.hands + step, 0, 100);
+            else setup.population = Mathf.Clamp(setup.population + step, 1, 100);
+            details.ConfigureSetup(setup);
+        }
+
+        bool LobbySectionAvailable(string section)
+        {
+            if (session is not ILobbyControls) return true;
+            return section switch
+            {
+                "Modes" or "Maps" or "Survivors" or "Giant hands" => session is ILobbyDetails,
+                "Controls" or "Settings" or "Friends" => true,
+                _ => false
+            };
+        }
+
         void OpenMenuSection(int index)
         {
-            menuSection=index;string name=DemoMenuSections.Sections[menuCategory][index];equipmentOffset=0;
+            string name = DemoMenuSections.Sections[menuCategory][index];
+            if (!LobbySectionAvailable(name)) return;
+            if (session is ILobbyControls && name == "Friends") { OpenPlayerTabletPage(TabletPage.Room); return; }
+            menuSection=index;equipmentOffset=0;
             if(name=="Equipment"||name=="Bot equipment"){giveAllEquipment=name=="Bot equipment";giveEquipmentPage=true;}
-            if(name=="Spectate")spectatePage=true;if(name=="Maps")mapPage=true;if(name=="Modes")modePage=modeWheel=true;if(name=="Disasters")disasterPage=true;
+            if(name=="Spectate")spectatePage=true;
+            if(name=="Maps" || name=="Modes" && session is ILobbyControls)mapPage=true;
+            else if(name=="Modes")modePage=modeWheel=true;
+            if(name=="Disasters")disasterPage=true;
             if(name=="Settings"||name=="Voice")comfortPage=true;if(name=="Friends")networkPage=true;if(name=="Powerup spawning")randomPowerupPage=true;
         }
     }
