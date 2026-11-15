@@ -57,8 +57,9 @@ namespace DeadlyJenga.CandyPlayers
                 {
                     Ball(rig,"rabbit cream muzzle",1,Tone.Cream,new Vector3(0,-.065f,.17f),new Vector3(.134f,.102f,.078f));
                     Ball(rig,"rabbit polished nose",1,Tone.Black,new Vector3(0,-.029f,.238f),new Vector3(.049f,.031f,.020f));
-                    FittedPatch(rig,"rabbit cream belly inlay",Tone.Cream,.002f,"rabbit belly",(p,n,bone)=>
-                        p.z>.035f&&n.z>.15f&&Mathf.Pow(p.x/.121f,2)+Mathf.Pow((p.y-.956f)/.218f,2)<1f);
+                    FittedPatch(rig,"rabbit cream belly inlay",Tone.Cream,.003f,"rabbit belly",
+                        (p,n,bone)=>p.z>.012f&&n.z>0&&p.y>.68f&&p.y<1.24f,
+                        p=>new Vector2(p.x/.242f+.5f,(p.y-.956f)/.436f+.5f),RabbitInlay(rig.bodyRenderer.sharedMaterial));
                     FaceEyes(rig,id+" eyes",Tone.Black);
                     return;
                 }
@@ -169,6 +170,36 @@ namespace DeadlyJenga.CandyPlayers
             if(skin==AvatarSkin.CyberSamurai)Hat(rig,"samurai crest",Tone.Red,true);
             if(skin==AvatarSkin.CrystalKnight)Spots(rig,"crystal facets",Tone.Glow,false);
         }
+        static readonly Dictionary<Material,Material> rabbitInlays=new Dictionary<Material,Material>();
+        static Texture2D rabbitMask;
+        static Material RabbitInlay(Material source)
+        {
+            if(rabbitInlays.TryGetValue(source,out var material))return material;
+            if(!rabbitMask)
+            {
+                const int size=128;
+                var pixels=new Color32[size*size];
+                for(int y=0;y<size;y++)for(int x=0;x<size;x++)
+                {
+                    float u=(x+.5f)/size*2-1f,v=(y+.5f)/size*2-1f;
+                    byte opacity=(byte)(255*Mathf.Clamp01((.94f-Mathf.Sqrt(u*u+v*v))*size+.5f));
+                    pixels[y*size+x]=new Color32(255,255,255,opacity);
+                }
+                rabbitMask=new Texture2D(size,size,TextureFormat.RGBA32,true){name="Rabbit belly inlay",wrapMode=TextureWrapMode.Clamp};
+                rabbitMask.SetPixels32(pixels);
+                rabbitMask.Apply(true,true);
+            }
+            material=new Material(source){name="Candy character - rabbit inlay"};
+            material.SetTexture("_BaseMap",rabbitMask);
+            material.SetFloat("_AlphaClip",1f);
+            material.SetFloat("_Cutoff",.5f);
+            material.EnableKeyword("_ALPHATEST_ON");
+            material.SetOverrideTag("RenderType","TransparentCutout");
+            material.renderQueue=(int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+            rabbitInlays.Add(source,material);
+            return material;
+        }
+
         void BuildMoldedClownfish(CandyPlayerRig rig)
         {
             const string id="clownfish molded shell";
@@ -195,9 +226,9 @@ namespace DeadlyJenga.CandyPlayers
             for(int side=-1;side<=1;side+=2)
             {
                 int sideIndex=side;
-                Add(rig,"clownfish rounded fin "+sideIndex,sideIndex<0?2:5,Tone.Primary,b=>
-                    b.Sphere(new Vector3(sideIndex*.095f,.133f,-.031f),new Vector3(.102f,.176f,.032f),
-                        Quaternion.Euler(0,0,-sideIndex*34)));
+                Add(rig,"clownfish rounded fin "+sideIndex,0,Tone.Primary,b=>
+                    b.Sphere(new Vector3(sideIndex*.285f,1.105f,-.075f),new Vector3(.085f,.226f,.043f),
+                        Quaternion.Euler(0,0,sideIndex*60)));
             }
         }
 

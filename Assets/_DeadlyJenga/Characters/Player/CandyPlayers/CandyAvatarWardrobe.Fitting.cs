@@ -31,11 +31,11 @@ namespace DeadlyJenga.CandyPlayers
                 {
                     float t=(float)row/rows,y=Mathf.Lerp(.29f,.84f,t),angle=side*Mathf.PI*2/sides;
                     // A soft flare, with the hem tucked in slightly so the cut edge reads as a rolled hem.
-                    float radius=Mathf.Lerp(.32f,.215f,Mathf.Pow(t,.8f));
+                    float radius=Mathf.Lerp(.32f,candyCorn?.166f:.215f,Mathf.Pow(t,candyCorn?.69f:.8f));
                     if(row==0)radius-=candyCorn?.021f:.012f;
                     if(candyCorn&&row==1)radius-=.004f;
                     float x=Mathf.Cos(angle)*radius;
-                    vertices.Add(new Vector3(x,row==0?y+.012f:y,Mathf.Sin(angle)*radius*.90f));uv.Add(new Vector2((float)side/sides,t));
+                    vertices.Add(new Vector3(x,row==0?y+.012f:y,Mathf.Sin(angle)*radius*(candyCorn?.83f:.90f)));uv.Add(new Vector2((float)side/sides,t));
                     float root=Mathf.SmoothStep(.15f,1,Mathf.InverseLerp(.29f,.74f,y));float mix=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.10f,.10f,x));
                     weights.Add(new BoneWeight{boneIndex0=0,weight0=root,boneIndex1=8,weight1=(1-root)*(1-mix),boneIndex2=11,weight2=(1-root)*mix});
                     if(row==rows||side==sides)continue;int v=row*(sides+1)+side;(candyCorn&&row==1?gold:triangles).AddRange(new[]{v,v+sides+1,v+1,v+1,v+sides+1,v+sides+2});
@@ -62,7 +62,8 @@ namespace DeadlyJenga.CandyPlayers
         }
         // Cuts the part of the body picked by include(position, normal, dominant bone), lifts it along the normals
         // and skins it to the same bones. The result is a thin shell that hugs the body.
-        void FittedPatch(CandyPlayerRig rig,string id,Tone tone,float offset,string kind,System.Func<Vector3,Vector3,int,bool> include)
+        void FittedPatch(CandyPlayerRig rig,string id,Tone tone,float offset,string kind,System.Func<Vector3,Vector3,int,bool> include,
+            System.Func<Vector3,Vector2> map=null,Material material=null)
         {
             var source=rig.bodyRenderer.sharedMesh;if(!source||!source.isReadable)return;bool shared=kind=="jacket"||kind=="trousers"||kind=="vest";string key=source.GetInstanceID()+":patch:"+kind+":"+(shared?"":id)+":"+offset;
             if(!garments.TryGetValue(key,out var mesh))
@@ -70,18 +71,18 @@ namespace DeadlyJenga.CandyPlayers
                 var vertices=source.vertices;var normals=source.normals;var weights=source.boneWeights;var triangles=source.triangles;
                 var ok=new bool[vertices.Length];for(int i=0;i<ok.Length;i++)ok[i]=include(vertices[i],normals[i],weights[i].boneIndex0);
                 var remap=new int[vertices.Length];for(int i=0;i<remap.Length;i++)remap[i]=-1;
-                var outVertices=new List<Vector3>();var outNormals=new List<Vector3>();var outWeights=new List<BoneWeight>();var outTriangles=new List<int>();
+                var outVertices=new List<Vector3>();var outNormals=new List<Vector3>();var outWeights=new List<BoneWeight>();var outTriangles=new List<int>();var outUv=map==null?null:new List<Vector2>();
                 for(int i=0;i<triangles.Length;i+=3)
                 {
                     if(!(ok[triangles[i]]&&ok[triangles[i+1]]&&ok[triangles[i+2]]))continue;
-                    for(int k=0;k<3;k++){int old=triangles[i+k];if(remap[old]<0){remap[old]=outVertices.Count;outVertices.Add(vertices[old]+normals[old]*offset);outNormals.Add(normals[old]);outWeights.Add(weights[old]);}outTriangles.Add(remap[old]);}
+                    for(int k=0;k<3;k++){int old=triangles[i+k];if(remap[old]<0){remap[old]=outVertices.Count;outVertices.Add(vertices[old]+normals[old]*offset);outNormals.Add(normals[old]);outWeights.Add(weights[old]);outUv?.Add(map(vertices[old]));}outTriangles.Add(remap[old]);}
                 }
                 mesh=new Mesh{name="Fitted "+kind+" "+id};mesh.indexFormat=outVertices.Count>65535?UnityEngine.Rendering.IndexFormat.UInt32:UnityEngine.Rendering.IndexFormat.UInt16;
-                mesh.SetVertices(outVertices);mesh.SetNormals(outNormals);mesh.boneWeights=outWeights.ToArray();mesh.bindposes=source.bindposes;mesh.SetTriangles(outTriangles,0);mesh.RecalculateBounds();garments[key]=mesh;
+                mesh.SetVertices(outVertices);mesh.SetNormals(outNormals);if(outUv!=null)mesh.SetUVs(0,outUv);mesh.boneWeights=outWeights.ToArray();mesh.bindposes=source.bindposes;mesh.SetTriangles(outTriangles,0);mesh.RecalculateBounds();garments[key]=mesh;
             }
             if(mesh.vertexCount==0)return;
             if(shared)for(int i=pieces.Count-1;i>=0;i--)if(pieces[i].renderer is SkinnedMeshRenderer old&&old.sharedMesh==mesh){old.gameObject.SetActive(false);Destroy(old.gameObject);pieces.RemoveAt(i);}
-            var go=new GameObject("Visual - "+id);go.transform.SetParent(rig.transform,false);var renderer=go.AddComponent<SkinnedMeshRenderer>();renderer.sharedMesh=mesh;renderer.sharedMaterial=rig.bodyRenderer.sharedMaterial;renderer.bones=rig.bodyRenderer.bones;renderer.rootBone=rig.bodyRenderer.rootBone;renderer.localBounds=rig.bodyRenderer.localBounds;renderer.updateWhenOffscreen=true;pieces.Add(new Piece{renderer=renderer,tone=tone,bone=0});
+            var go=new GameObject("Visual - "+id);go.transform.SetParent(rig.transform,false);var renderer=go.AddComponent<SkinnedMeshRenderer>();renderer.sharedMesh=mesh;renderer.sharedMaterial=material?material:rig.bodyRenderer.sharedMaterial;renderer.bones=rig.bodyRenderer.bones;renderer.rootBone=rig.bodyRenderer.rootBone;renderer.localBounds=rig.bodyRenderer.localBounds;renderer.updateWhenOffscreen=true;pieces.Add(new Piece{renderer=renderer,tone=tone,bone=0});
         }
         // Horizontal bands (belts, stripes, bandages). ranges are pairs of heights: min,max,min,max...
         void Band(CandyPlayerRig rig,string id,Tone tone,float offset,bool limbs,params float[] ranges)

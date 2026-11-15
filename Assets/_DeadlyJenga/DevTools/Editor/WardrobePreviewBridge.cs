@@ -113,9 +113,9 @@ namespace DeadlyJenga.DevTools.Editor
             camera.targetTexture = target;
             pixels = new Texture2D(Size, Size, TextureFormat.RGB24, false);
             sampler = new WardrobeFraming.GeometrySampler();
-            AddLight(new Vector3(-2.2f, 2.8f, 2.4f), new Color(1f, .89f, .78f), 25);
-            AddLight(new Vector3(2.4f, 1.6f, 1.9f), new Color(.66f, .84f, 1f), 15);
-            AddLight(new Vector3(.4f, 2.4f, -1.9f), Color.white, 19);
+            AddLight(new Vector3(-2.2f, 2.8f, 2.4f), new Color(1f, .89f, .78f), 21);
+            AddLight(new Vector3(2.4f, 1.6f, 1.9f), new Color(.66f, .84f, 1f), 11);
+            AddLight(new Vector3(.4f, 2.4f, -1.9f), Color.white, 15);
             File.WriteAllText(Path.Combine(folder, "unity-ready.txt"), Application.unityVersion);
         }
 
@@ -137,7 +137,7 @@ namespace DeadlyJenga.DevTools.Editor
             if (string.IsNullOrEmpty(folder)) return;
             if (File.Exists(Path.Combine(folder, "stop")))
             {
-                EditorApplication.ExitPlaymode();
+                EditorApplication.Exit(0);
                 return;
             }
             if (!rig || !camera) return;
