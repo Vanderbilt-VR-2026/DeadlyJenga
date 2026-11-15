@@ -29,11 +29,13 @@ namespace DeadlyJenga.DevTools.Editor
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Castle Variants")]
-        public static void Run()
+        public static void Run() => Run(Environment.GetCommandLineArgs().Contains("-catwalkRoutes"));
+        public static void RunCatwalkRoutesBatch() => Run(true);
+        static void Run(bool routes)
         {
             var scenes=EditorSceneManager.GetSceneManagerSetup();if(scenes.Any(s=>s.isLoaded&&SceneManager.GetSceneByPath(s.path).isDirty))throw new Exception("Save edited scenes first.");
             SessionState.SetString(Key+"Scenes",JsonUtility.ToJson(new Scenes{scenes=scenes}));SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
-            bool routes=Environment.GetCommandLineArgs().Contains("-catwalkRoutes");
+            SessionState.SetBool(Key+"Routes",routes);
             MatchSetup.FromLobby=routes;MatchSetup.StartLocalSession=false;MatchSetup.ModeId="demo";
             MatchSetup.MapId=routes?"mode-castle-catwalks":"castle";
             if(routes){MatchSetup.BotTarget=1;MatchSetup.HandCount=0;}
@@ -78,7 +80,7 @@ namespace DeadlyJenga.DevTools.Editor
         static void Check(bool pass,string text){File.AppendAllText(Report,(pass?"PASS ":"FAIL ")+text+"\n");if(!pass)throw new Exception(text);checks++;}
         static IEnumerator Guard()
         {
-            var iterator=Environment.GetCommandLineArgs().Contains("-catwalkRoutes")?CatwalkRoutes():Checks();while(true){bool more=false;Exception error=null;try{more=iterator.MoveNext();}catch(Exception e){error=e;}if(error!=null){File.AppendAllText(Report,"FAIL "+error+"\n");break;}if(!more)break;yield return iterator.Current;}
+            var iterator=SessionState.GetBool(Key+"Routes",false)?CatwalkRoutes():Checks();while(true){bool more=false;Exception error=null;try{more=iterator.MoveNext();}catch(Exception e){error=e;}if(error!=null){File.AppendAllText(Report,"FAIL "+error+"\n");break;}if(!more)break;yield return iterator.Current;}
             (iterator as IDisposable)?.Dispose();File.AppendAllText(Report,"COMPLETE checks="+checks+" runtimeErrors="+errors+"\n");if(Application.isBatchMode){SessionState.SetBool(Key,false);SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);EditorApplication.Exit(File.ReadAllText(Report).Contains("FAIL ")||errors>0?1:0);}else EditorApplication.ExitPlaymode();
         }
         sealed class RouteObjectives : IBotObjectives
