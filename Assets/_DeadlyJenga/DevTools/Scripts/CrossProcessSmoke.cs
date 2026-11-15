@@ -541,6 +541,8 @@ namespace DeadlyJenga.CastlePrototype
             File.AppendAllText(Report, $"CONFIG bots={population} vsync={QualitySettings.vSyncCount} cap={Application.targetFrameRate} " +
                 $"resolution={Screen.width}x{Screen.height} gpu={SystemInfo.graphicsDeviceName} api={SystemInfo.graphicsDeviceType}\n");
             yield return new WaitForSecondsRealtime(4);
+            if (host || solo) CheckNearbyCandidates("settled");
+            yield return null; yield return null;
             yield return SampleImpactFrames("before-wave", blocks, before, 8);
 
             if (host)
@@ -579,6 +581,7 @@ namespace DeadlyJenga.CastlePrototype
                     UnityEngine.Profiling.Profiler.logFile = "";
                 }
             }
+            if (host || solo) CheckNearbyCandidates("after-impact");
             Require(world.Bodies.Count == blocks.Length &&
                 world.Bodies.All(body => body && float.IsFinite(body.position.sqrMagnitude)), "World remains finite after the wave");
             if (host)
@@ -586,6 +589,27 @@ namespace DeadlyJenga.CastlePrototype
             else if (!solo)
                 File.WriteAllText(Mark("impact-guest-complete"), "ready");
             if (host || solo) DemoDisasters.StopAll(session);
+        }
+
+        void CheckNearbyCandidates(string phase)
+        {
+            var bots = FindObjectsByType<DeadlyJenga.CastleBots.CastleBotBrain>(FindObjectsSortMode.None);
+            var method = typeof(DeadlyJenga.CastleBots.CastleBotNavigation).GetMethod("CollectNearby",
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var spatial = new List<DeadlyJenga.CastleBots.CastleBotLanding>();
+            var exhaustive = new List<DeadlyJenga.CastleBots.CastleBotLanding>();
+            foreach (int index in new[] { 0, bots.Length / 2, bots.Length - 1 }.Distinct())
+            {
+                if (index < 0 || !bots[index].Motor || !bots[index].Population) continue;
+                method.Invoke(null, new object[] { bots[index], exhaustive, false });
+                method.Invoke(null, new object[] { bots[index], spatial, true });
+                bool same = spatial.Count == exhaustive.Count;
+                for (int i = 0; same && i < spatial.Count; i++)
+                    same = spatial[i].surface == exhaustive[i].surface &&
+                        (spatial[i].local - exhaustive[i].local).sqrMagnitude < .00000001f &&
+                        Mathf.Abs(spatial[i].score - exhaustive[i].score) < .0001f;
+                Require(same, $"Spatial navigation matches exhaustive candidates {phase}: bot={index}, spatial={spatial.Count}, exhaustive={exhaustive.Count}");
+            }
         }
 
         static readonly ProfilerMarker ImpactProbeMarker = new ProfilerMarker("DJ.Test.ImpactProbe");

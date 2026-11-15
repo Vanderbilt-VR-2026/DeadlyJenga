@@ -274,10 +274,46 @@ namespace DeadlyJenga.CastleBots
             }
             return found;
         }
-        public static void Nearby(CastleBotBrain bot,List<CastleBotLanding> candidates)
+        static Collider[] nearbyShapes = new Collider[256];
+        static readonly Dictionary<Rigidbody, int> nearbyOrder = new();
+        static readonly HashSet<Rigidbody> nearbySeen = new();
+        static readonly List<Rigidbody> nearbyBodies = new();
+        static readonly List<Vector3> nearbySamples = new(32);
+        static readonly Unity.Profiling.ProfilerMarker NearbyMarker = new("DJ.Bot.Nearby");
+
+        static IReadOnlyList<Rigidbody> GatherNearbyBodies(IReadOnlyList<Rigidbody> bodies, Vector3 feet, float above, float below)
         {
+            nearbyOrder.Clear(); nearbySeen.Clear(); nearbyBodies.Clear();
+            for (int i = 0; i < bodies.Count; i++) if (bodies[i]) nearbyOrder[bodies[i]] = i;
+            var center = feet + Vector3.up * ((above - below) * .5f);
+            var half = new Vector3(9.05f, (above + below) * .5f + .05f, 9.05f);
+            int count;
+            while (true)
+            {
+                count = Physics.OverlapBoxNonAlloc(center, half, nearbyShapes, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
+                if (count < nearbyShapes.Length) break;
+                // Keep every candidate if an unusually dense map fills the broad-phase buffer.
+                if (nearbyShapes.Length >= 16384) return bodies;
+                System.Array.Resize(ref nearbyShapes, nearbyShapes.Length * 2);
+            }
+            for (int i = 0; i < count; i++)
+            {
+                var body = nearbyShapes[i].attachedRigidbody;
+                if (body && nearbyOrder.ContainsKey(body) && nearbySeen.Add(body)) nearbyBodies.Add(body);
+                nearbyShapes[i] = null;
+            }
+            nearbyBodies.Sort((a, b) => nearbyOrder[a].CompareTo(nearbyOrder[b]));
+            return nearbyBodies;
+        }
+
+        public static void Nearby(CastleBotBrain bot,List<CastleBotLanding> candidates) => CollectNearby(bot, candidates, true);
+        static void CollectNearby(CastleBotBrain bot, List<CastleBotLanding> candidates, bool broadPhase)
+        {
+            using var measurement = NearbyMarker.Auto();
             candidates.Clear();var motor=bot.Motor;var feet=motor.transform.position;
-            var samples=new List<Vector3>(18);
+            var samples=nearbySamples;
+            float maximumDrop = MaximumDrop(motor);
+            float maximumRise = Mathf.Max(motor.jumpHeight + motor.vaultMaxRise - .15f, motor.climbSpeed * motor.climbGripSeconds * .65f);
             var toward=Vector3.ProjectOnPlane(bot.TripDestination-feet,Vector3.up).normalized;
             if(toward.sqrMagnitude<.1f)toward=bot.WanderDirection;
             for(int bearing=0;bearing<5;bearing++)
@@ -288,15 +324,15 @@ namespace DeadlyJenga.CastleBots
                 if(!Ground(probe+Vector3.up*.8f,1.5f,out var terrain))continue;
                 candidates.Add(new CastleBotLanding{surface=terrain.transform,body=terrain.rigidbody,local=terrain.transform.InverseTransformPoint(terrain.point),score=bot.JourneyProgress(terrain.point)-Mathf.Abs(angle)*.01f-bot.Population.ThreatCost(terrain.point)});
             }
-            foreach(var rb in bot.Population.Session.world.Blocks)
+            foreach(var rb in broadPhase ? GatherNearbyBodies(bot.Population.Session.world.Blocks, feet, Mathf.Max(6, maximumRise), maximumDrop + 1) : bot.Population.Session.world.Blocks)
             {
                 if(!rb||!rb.gameObject.activeInHierarchy)continue;
-                if(!BotGeometrySamples.Near(rb,feet,6,MaximumDrop(motor)+1,9))continue;
+                if(!BotGeometrySamples.Near(rb,feet,6,maximumDrop+1,9))continue;
                 BotGeometrySamples.Fill(rb,samples);
                 foreach(var p in samples)
                 {
                     float distance=Vector3.ProjectOnPlane(p-feet,Vector3.up).magnitude,rise=p.y-feet.y;
-                    if(distance<.3f||distance>7||rise>Mathf.Max(motor.jumpHeight+motor.vaultMaxRise-.15f,motor.climbSpeed*motor.climbGripSeconds*.65f)||rise< -MaximumDrop(motor))continue;
+                    if(distance<.3f||distance>7||rise>maximumRise||rise< -maximumDrop)continue;
                     var personality=bot.Personality;
                     float danger=rb.linearVelocity.magnitude*.8f+rb.angularVelocity.magnitude*2;
                     float threat=bot.Population.ThreatCost(p),crowd=bot.Population.Crowding(p,bot);
