@@ -10,7 +10,7 @@ namespace DeadlyJenga.CastlePrototype
         void BuildTVWall()
         {
             EnsureKeyboardArt();
-            var wall=new GameObject("Retro spectator television stack · 3 x 3").transform;
+            var wall=new GameObject("Retro spectator television stack").transform;
             wall.SetParent(transform,false);
             if(lobby is IWorldQuery world&&world.Radius>=30)
             {
@@ -26,10 +26,11 @@ namespace DeadlyJenga.CastlePrototype
             var scaler=displays.gameObject.AddComponent<CanvasScaler>();scaler.dynamicPixelsPerUnit=3.5f;scaler.referencePixelsPerUnit=100;
             var feeds=spectatorWall=wall.gameObject.AddComponent<LobbySpectatorTVWall>();
             Color[] colors={new Color(.98f,.43f,.28f),new Color(.20f,.72f,.64f),new Color(.66f,.43f,.88f)};
-            for(int i=0;i<9;i++)
+            for(int i=0;i<LobbySpectatorTVWall.ChannelCount;i++)
             {
-                float x=(i%3-1)*1.24f,y=.69f+(2-i/3)*.89f;
-                Box(wall,"Retro CRT cabinet "+(i+1),new Vector3(x,y,.02f),new Vector3(1.20f,.84f,.46f),colors[(i+i/3)%3]);
+                int column=i%LobbySpectatorTVWall.Columns,row=i/LobbySpectatorTVWall.Columns;
+                float x=(column-1)*1.24f,y=.69f+(LobbySpectatorTVWall.Rows-1-row)*.89f;
+                Box(wall,"Retro CRT cabinet "+(i+1),new Vector3(x,y,.02f),new Vector3(1.20f,.84f,.46f),colors[(column+row+1)%colors.Length]);
                 Box(wall,"Charcoal screen bezel "+i,new Vector3(x-.055f,y+.045f,-.217f),new Vector3(1.03f,.67f,.035f),new Color(.025f,.035f,.055f));
                 for(int v=0;v<4;v++)Box(wall,"Speaker grille",new Vector3(x+.51f,y-.10f+v*.06f,-.22f),new Vector3(.052f,.018f,.015f),new Color(.12f,.14f,.18f));
                 Ellipsoid(wall,"Tuning knob",new Vector3(x+.51f,y+.23f,-.245f),new Vector3(.09f,.09f,.045f),new Color(.85f,.9f,.94f));
@@ -38,10 +39,10 @@ namespace DeadlyJenga.CastlePrototype
                 var label=Label(displays,"CH "+(i+1)+" · STANDBY",(y-.335f)*1000,42,1100,55);label.rectTransform.anchoredPosition=new Vector2(x*1000,(y-.335f)*1000);label.color=new Color(.88f,1,.96f);
                 feeds.SetChannel(i,image,label);
             }
-            var heading=Label(displays,"LIVE MAYHEM  /  SPECTATOR TV",2920,51,3700,85);heading.fontStyle=FontStyle.Bold;heading.color=new Color(.76f,1,.9f);
-            lobby.AddBlocker(wall, new Vector3(0,1.48f,.03f),new Vector3(3.76f,2.95f,.55f));
+            var heading=Label(displays,"LIVE MAYHEM  /  SPECTATOR TV",2030,51,3700,85);heading.fontStyle=FontStyle.Bold;heading.color=new Color(.76f,1,.9f);
+            lobby.AddBlocker(wall, new Vector3(0,1.03f,.03f),new Vector3(3.76f,2.05f,.55f));
             foreach(var item in wall.GetComponentsInChildren<Transform>(true))item.gameObject.layer=2;
-            var timer=Label(displays,"",3120,55,3700,90);
+            var timer=Label(displays,"",2230,55,3700,90);
             timer.color=new Color(1,.87f,.46f);
             feeds.Initialize(session);
             feeds.SetMatchTimer(timer);

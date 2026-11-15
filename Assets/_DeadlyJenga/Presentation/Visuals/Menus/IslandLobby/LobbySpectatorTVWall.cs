@@ -21,6 +21,9 @@ namespace DeadlyJenga.CastlePrototype
 
     {
 
+        internal const int Columns = 3;
+        internal const int Rows = 2;
+        internal const int ChannelCount = Columns * Rows;
         const int FeedFramesPerSecond = 25;
 
         [Range(128,512)] public int textureWidth=256;
@@ -41,7 +44,7 @@ namespace DeadlyJenga.CastlePrototype
 
         public int ReadyChannels {get{int count=0;foreach(var channel in channels)if(channel?.texture&&channel.screen.texture==channel.texture)count++;return count;}}
 
-        public long TextureBytes=>9L*textureWidth*Mathf.RoundToInt(textureWidth*9f/16)*6;
+        public long TextureBytes=>channels.LongLength*textureWidth*Mathf.RoundToInt(textureWidth*9f/16)*6;
 
         sealed class Channel
 
@@ -53,7 +56,7 @@ namespace DeadlyJenga.CastlePrototype
 
         }
 
-        readonly Channel[] channels=new Channel[9];
+        readonly Channel[] channels=new Channel[ChannelCount];
 
         ISessionInfo viewer;Camera feedCamera;Texture2D standby;
         Text matchTimer;
@@ -212,7 +215,7 @@ namespace DeadlyJenga.CastlePrototype
 
             GeometryUtility.CalculateFrustumPlanes(eye,planes);
 
-            if(!GeometryUtility.TestPlanesAABB(planes,new Bounds(transform.TransformPoint(new Vector3(0,1.5f,0)),new Vector3(3.8f,3.1f,3.8f))))return;
+            if(!GeometryUtility.TestPlanesAABB(planes,new Bounds(transform.TransformPoint(new Vector3(0,1.15f,0)),new Vector3(3.8f,2.3f,3.8f))))return;
 
             double now = Time.unscaledTimeAsDouble;
             double interval = 1.0 / (FeedFramesPerSecond * AssignedChannels);
@@ -247,7 +250,7 @@ namespace DeadlyJenga.CastlePrototype
 
             var runtime=MatchRuntime.Current;var rows=runtime?.Frame.phase==RoundPhase.Playing?runtime.Frame.players:null;AssignedChannels=0;
 
-            for(int i=0;i<9;i++)
+            for(int i=0;i<channels.Length;i++)
 
             {
 
