@@ -48,7 +48,7 @@ namespace DeadlyJenga.CastlePrototype
         NearbyJoinRequest[] requestRows=Array.Empty<NearbyJoinRequest>();
         IslandRoomConnection owner;
         string roomId=Guid.NewGuid().ToString("N"),roomCode="",lastConfiguration="";
-        bool enabledNearby,waiting,permissionRequested;
+        bool enabledNearby,waiting,permissionRequested,scanWhenReady;
         float nextPoll;
         public string PlayerName {get=>NearbyPlayerProfile.Name;set{NearbyPlayerProfile.Name=value;owner.RefreshNearbyPlayerName();}}
         public bool NearbyEnabled
@@ -57,7 +57,7 @@ namespace DeadlyJenga.CastlePrototype
             set
             {
                 enabledNearby=value;PlayerPrefs.SetInt("DeadlyJenga.NearbyBluetooth",value?1:0);PlayerPrefs.Save();lastConfiguration="";
-                if(!value){waiting=false;requestRows=Array.Empty<NearbyJoinRequest>();rooms.Clear();roomRows=Array.Empty<NearbyRoomInfo>();JoinRequestStatus="";NearbyStatus="Bluetooth nearby is off. Room codes still work.";}
+                if(!value){waiting=false;scanWhenReady=false;requestRows=Array.Empty<NearbyJoinRequest>();rooms.Clear();roomRows=Array.Empty<NearbyRoomInfo>();JoinRequestStatus="";NearbyStatus="Bluetooth nearby is off. Room codes still work.";}
                 else EnsurePermission();
             }
         }
@@ -80,7 +80,7 @@ namespace DeadlyJenga.CastlePrototype
             NearbyStatus="Allow Nearby devices to find and share rooms. You can still use room codes.";
             if(permissionRequested)return;permissionRequested=true;
             var callbacks=new UnityEngine.Android.PermissionCallbacks();
-            callbacks.PermissionDenied+=_=>{permissionRequested=false;NearbyStatus="Nearby devices permission denied. Enable it in app permissions, then try again.";enabledNearby=false;};
+            callbacks.PermissionDenied+=_=>{permissionRequested=false;NearbyEnabled=false;NearbyStatus="Nearby devices permission denied. Enable it in app permissions, then try again.";};
             callbacks.PermissionGranted+=_=>{permissionRequested=!permissions.All(UnityEngine.Android.Permission.HasUserAuthorizedPermission);lastConfiguration="";};
             UnityEngine.Android.Permission.RequestUserPermissions(permissions,callbacks);
 #else
@@ -104,10 +104,18 @@ namespace DeadlyJenga.CastlePrototype
         public void RefreshNearby()
         {
             if(!enabledNearby)NearbyEnabled=true;
+            scanWhenReady=true;
             EnsurePermission();
             if(!Ready())return;
 #if UNITY_ANDROID && !UNITY_EDITOR
-            Configure();rooms.Clear();roomRows=Array.Empty<NearbyRoomInfo>();bridge.Call("scan");
+            Configure();ScanReady();
+#endif
+        }
+        void ScanReady()
+        {
+            scanWhenReady=false;rooms.Clear();roomRows=Array.Empty<NearbyRoomInfo>();
+#if UNITY_ANDROID && !UNITY_EDITOR
+            bridge.Call("scan");
 #endif
         }
         public void RequestJoin(string id)
@@ -147,14 +155,15 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Update()
         {
-            if(!owner||!owner.Catalog)return;
+            if(!owner||!owner.Catalog||Time.unscaledTime<nextPoll)return;
+            nextPoll=Time.unscaledTime+.2f;
             try
             {
                 if(enabledNearby&&!Ready()){if(!permissionRequested)EnsurePermission();return;}
                 Configure();
-                if(Time.unscaledTime<nextPoll)return;nextPoll=Time.unscaledTime+.2f;
 #if UNITY_ANDROID && !UNITY_EDITOR
                 if(bridge==null)return;
+                if(scanWhenReady&&enabledNearby)ScanReady();
                 for(int i=0;i<32;i++){string raw=bridge.Call<string>("poll");if(string.IsNullOrEmpty(raw))break;Handle(raw);}
                 var pending=JsonUtility.FromJson<Requests>(bridge.Call<string>("requests"));
                 requestRows=CanAdvertise?(pending?.items??Array.Empty<Request>()).Take(10).Select(r=>new NearbyJoinRequest(r.id,NearbyPlayerProfile.Clean(r.name),r.seconds)).ToArray():Array.Empty<NearbyJoinRequest>();
@@ -167,7 +176,7 @@ namespace DeadlyJenga.CastlePrototype
         void Handle(string raw)
         {
             var message=JsonUtility.FromJson<Event>(raw);
-            if(message.kind=="status")NearbyStatus=message.value;
+            if(message.kind=="status"){if(enabledNearby)NearbyStatus=message.value;}
             else if(message.kind=="join"){JoinRequestStatus=message.value;if(!message.value.StartsWith("Waiting",StringComparison.Ordinal))waiting=false;}
             else if(message.kind=="room")
             {

@@ -21,3 +21,10 @@ Tools/BluetoothPeer builds successfully for Windows .NET 9. Adapter reports cent
 Tools/BluetoothProbe produces a separate diagnostic Android APK using the exact same native bridge. The initial diagnostic APK passed signature verification, all three Bluetooth-permission checks and DEX bridge inclusion; SHA-256 83f50ecfff4a6a68cd0de761aaf69da2e9bbc8b5c8f27c899d25dced61852150, 24,979 bytes. It does not include Unity UI or Photon, and has not run on Quest. Build scripts and one-headset test instructions are repository-visible under Tools.
 
 Full Unity launch was refused by the two-task-editor admission limit. Initial manual job 9c86fb54505c43e98baf05a011ce460f was returned cancelled without an Editor launch. A transient external Unity CLI process also prevented check-in twice; later check-in succeeded without modifying or stopping another task. Full game APK, rendered UI and actual host/guest regression remain pending.
+
+## Permission and menu follow-up
+
+Resume the requested scan after the Android permission dialog, preserve disabled state after denial, and throttle native permission/configuration polling to five times per second. Desktop lobby Wardrobe can now open the name/Room tablet pages. Current source passed offline Core, GameSession, Presentation, GameSession.Editor and Android-defined GameSession compilation. These remain compilation checks, not gameplay tests.
+
+Full APK attempt at dd75740b6f24c36eeac9d932e1b1612aeab9d089 crashed in Unity D3D12 asset import before the validation method ran. Its clean slot was returned; no full game APK was produced. A D3D11 retry is planned for this follow-up revision. Headset validation is deferred at the user's request.
+

@@ -7,6 +7,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CastleWorldMenu
     {
+        internal bool NearbyPanelRequested=>tabletPage==TabletPage.Profile||tabletPage==TabletPage.Nearby||tabletPage==TabletPage.Room;
         Text bluetoothSummary,profileName;
         int bluetoothPage;
         bool showJoinRequests;
