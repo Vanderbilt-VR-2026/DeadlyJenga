@@ -20,12 +20,38 @@ namespace DeadlyJenga.CastlePrototype.Editor
         }
         public static void RunLobbyHandoffBatch()
         {
+            if (Environment.GetCommandLineArgs().Contains("--dj-tycoon-impact") && !Application.isBatchMode)
+                ConfigureImpactGameView();
             string scene = AssetDatabase.FindAssets("Home t:Scene").Select(AssetDatabase.GUIDToAssetPath)
                 .Single(path => Path.GetFileNameWithoutExtension(path) == "Home");
             SessionState.SetBool(LobbyHandoffKey, true);
             EditorApplication.update += PollLobbyHandoff;
             EditorSceneManager.OpenScene(scene);
             EditorApplication.EnterPlaymode();
+        }
+        static void ConfigureImpactGameView()
+        {
+            var assembly = typeof(UnityEditor.Editor).Assembly;
+            var flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            var viewType = assembly.GetType("UnityEditor.GameView");
+            var view = EditorWindow.GetWindow(viewType);
+            var sizesType = assembly.GetType("UnityEditor.GameViewSizes");
+            var singleton = typeof(ScriptableSingleton<>).MakeGenericType(sizesType);
+            var sizes = singleton.GetProperty("instance", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static).GetValue(null);
+            var groupType = assembly.GetType("UnityEditor.GameViewSizeGroupType");
+            var current = sizesType.GetProperty("currentGroupType", flags)?.GetValue(sizes) ?? Enum.Parse(groupType, "Standalone");
+            var group = sizesType.GetMethod("GetGroup").Invoke(sizes, new[] { current });
+            var sizeType = assembly.GetType("UnityEditor.GameViewSize");
+            var kind = assembly.GetType("UnityEditor.GameViewSizeType");
+            var size = Activator.CreateInstance(sizeType, new[] { Enum.Parse(kind, "FixedResolution"), (object)960, 540, "Impact performance 960x540" });
+            group.GetType().GetMethod("AddCustomSize").Invoke(group, new[] { size });
+            int index = (int)group.GetType().GetMethod("GetTotalCount").Invoke(group, null) - 1;
+            var selected = viewType.GetProperty("selectedSizeIndex", flags);
+            SessionState.SetInt(LobbyHandoffKey + "GameViewSize", (int)selected.GetValue(view));
+            selected.SetValue(view, index);
+            viewType.GetMethod("SizeSelectionCallback", flags)?.Invoke(view, new object[] { index, null });
+            view.Show(); view.Focus(); view.Repaint();
+            Debug.Log("Impact Editor GameView targetSize=" + viewType.GetProperty("targetSize", flags)?.GetValue(view));
         }
         static void PollLobbyHandoff()
         {
