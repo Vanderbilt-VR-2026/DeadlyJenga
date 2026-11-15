@@ -16,23 +16,39 @@ namespace DeadlyJenga.DevTools.Editor
     public static class BlockWaterContactChecks
     {
         const string RunKey = nameof(BlockWaterContactChecks);
-        const string SandKey = RunKey + "Sand";
-        static string Report => ProjectPath.Report(SessionState.GetBool(SandKey, false) ? "BlockSandContact.txt" : "BlockWaterContact.txt");
+        const string FixtureKey = RunKey + "Fixture";
+        static string Fixture => SessionState.GetString(FixtureKey, "Water");
+        static string Report => ProjectPath.Report("Block" + Fixture + "Contact.txt");
         static int failures;
 
         static BlockWaterContactChecks() => EditorApplication.playModeStateChanged += OnPlayMode;
 
-        public static void Run() => Begin(false);
-        public static void RunSand() => Begin(true);
+        public static void Run() => Begin("Water");
+        public static void RunSand() => Begin("Sand");
+        public static void RunGameViews() => Begin("GameView");
 
-        static void Begin(bool sand)
+        static void Begin(string fixture)
         {
             if (!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Run in a reserved batch editor.");
 
-            SessionState.SetBool(SandKey, sand);
-            File.WriteAllText(Report, "Unity Play Mode, production Castle block and contact components, isolated contact geometry.\n");
-            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            SessionState.SetString(FixtureKey, fixture);
+            if (fixture == "GameView")
+            {
+                MatchSetup.FromLobby = false;
+                MatchSetup.StartLocalSession = false;
+                MatchSetup.ModeId = "demo";
+                MatchSetup.MapId = "castle";
+                MatchSetup.BotTarget = 0;
+                MatchSetup.HandCount = 0;
+                File.WriteAllText(Report, "Game.unity in desktop Unity Play Mode; controlled role-camera poses and bot drops onto island support.\n");
+                EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+            }
+            else
+            {
+                File.WriteAllText(Report, "Unity Play Mode, production Castle block and contact components, isolated contact geometry.\n");
+                EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            }
             SessionState.SetBool(RunKey, true);
             EditorApplication.EnterPlaymode();
         }
@@ -50,7 +66,12 @@ namespace DeadlyJenga.DevTools.Editor
 
         static IEnumerator Guard()
         {
-            var checks = SessionState.GetBool(SandKey, false) ? SandChecks() : Checks();
+            var checks = Fixture switch
+            {
+                "Sand" => SandChecks(),
+                "GameView" => GameViewChecks(),
+                _ => Checks()
+            };
             while (true)
             {
                 object next;
@@ -69,7 +90,7 @@ namespace DeadlyJenga.DevTools.Editor
 
             Application.logMessageReceived -= RecordError;
             Log($"COMPLETE failures={failures}");
-            SessionState.EraseBool(SandKey);
+            SessionState.EraseString(FixtureKey);
             EditorApplication.Exit(failures == 0 ? 0 : 1);
         }
 
@@ -353,6 +374,165 @@ namespace DeadlyJenga.DevTools.Editor
                 RenderTexture.active = previous;
                 Object.Destroy(pixel);
             }
+        }
+
+        static IEnumerator GameViewChecks()
+        {
+            float deadline = Time.realtimeSinceStartup + 45;
+            while (Time.realtimeSinceStartup < deadline && (!(Services.Session is CastlePlaySession ready) ||
+                   !ready.Player?.ViewCamera || !ready.Hand?.ViewCamera || (Services.World?.Blocks.Count ?? 0) <= 0))
+                yield return null;
+
+            var session = Services.Session as CastlePlaySession;
+            var world = Services.World;
+            if (!session || world is not CastleGenerator map || !session.Player?.ViewCamera || !session.Hand?.ViewCamera)
+                throw new InvalidOperationException("Game.unity did not initialize both roles on CastleGenerator.");
+            var effects = session.GetComponent<CandyWaterSandEffects>();
+            if (!effects) throw new InvalidOperationException("Production water/sand presenter did not attach.");
+            var room = IslandRoomConnection.Instance;
+            Check(room && !room.Connected && RoomGameExperience.Current.Experience == GameExperience.Demo,
+                $"local Demo ready: {world.Blocks.Count} blocks; nominal water {world.WaterHeight(world.Center):F2} m");
+
+            session.SetMenu(false);
+            session.SurvivorBots.AutoFill = false;
+            session.SurvivorBots.Clear();
+            var target = new RenderTexture(64, 64, 24);
+            var marker = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            marker.layer = 28;
+            marker.GetComponent<Collider>().enabled = false;
+            var markerMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            markerMaterial.SetColor("_BaseColor", Color.red);
+            marker.GetComponent<Renderer>().sharedMaterial = markerMaterial;
+
+            var openWater = world.Center + Vector3.right * (world.Radius + 85);
+            var dry = new Vector3(openWater.x, world.WaterHeight(openWater) + .6f, openWater.z);
+            var shallow = new Vector3(openWater.x, world.WaterHeight(openWater) - .35f, openWater.z);
+            var below = world.Center;
+            below.y = world.WaterHeight(below) - 4.5f;
+
+            for (int role = 0; role < 2; role++)
+            {
+                bool hand = role == 1;
+                session.SetRole(hand);
+                session.SetMenu(false);
+                yield return null;
+                var actor = hand ? session.Hand : session.Player;
+                var eye = actor.ViewCamera;
+                string label = hand ? "flying hand" : "survivor";
+                Check(session.PlayingHand == hand && eye && eye.enabled && session.ActiveCamera == eye,
+                    $"{label} owns the real active camera");
+
+                if (!eye || session.ActiveCamera != eye) continue;
+                var savedTexture = eye.targetTexture;
+                int savedMask = eye.cullingMask;
+                var savedPose = new Pose(eye.transform.position, eye.transform.rotation);
+                var follow = hand ? session.HandActor().follow : null;
+                bool followEnabled = follow && follow.enabled;
+                if (follow) follow.enabled = false;
+                eye.targetTexture = target;
+                eye.cullingMask = 1 << marker.layer;
+                marker.transform.SetParent(eye.transform, false);
+                marker.transform.localPosition = Vector3.forward * 2;
+                marker.transform.localRotation = Quaternion.identity;
+
+                var poses = new[] { dry, shallow, below, dry };
+                var colors = new Color[poses.Length];
+                for (int i = 0; i < poses.Length; i++)
+                {
+                    deadline = Time.unscaledTime + .45f;
+                    do
+                    {
+                        eye.transform.SetPositionAndRotation(poses[i], Quaternion.identity);
+                        yield return null;
+                    } while (Time.unscaledTime < deadline);
+                    eye.transform.SetPositionAndRotation(poses[i], Quaternion.identity);
+                    colors[i] = RenderMarker(eye, target);
+                    eye.transform.SetPositionAndRotation(savedPose.position, savedPose.rotation);
+                }
+
+                Check(colors[0].r > .65f && colors[1].r < colors[0].r * .75f && colors[1].b > colors[0].b + .02f,
+                    $"{label} dry and shallow-water samples {colors[0]} / {colors[1]}");
+                Check(colors[2].r < .22f && colors[2].b > .02f, $"{label} cannot see beneath the map {colors[2]}");
+                Check(colors[3].r > colors[0].r * .9f, $"{label} clears the filter after resurfacing {colors[3]}");
+
+                eye.targetTexture = savedTexture;
+                eye.cullingMask = savedMask;
+                if (follow) follow.enabled = followEnabled;
+            }
+            Object.Destroy(marker);
+            Object.Destroy(markerMaterial);
+            Object.Destroy(target);
+            session.SetRole(false);
+            yield return null;
+
+            var rules = session.Modes.Rules.Copy();
+            rules.island = IslandRule.Sink;
+            rules.sinkGraceSeconds = 10;
+            rules.countdownSeconds = 0;
+            rules.automaticDisasters = false;
+            rules.fallDamage = false;
+            session.Modes.Configure(rules);
+            session.Modes.StartRound();
+            session.SurvivorBots.Running = false;
+            var bot = session.Bots()?.SpawnBot();
+            if (!bot || !bot.Motor) throw new InvalidOperationException("Production survivor bot did not spawn.");
+            var motor = bot.Motor;
+            motor.InputSuspended = true;
+            var sand = (ISandState)motor;
+            var visual = motor.GetComponent<IModeActor>()?.Visual;
+            if (!visual) throw new InvalidOperationException("Production bot did not expose an avatar visual.");
+            var shore = FindIslandSupport(map);
+            var safe = world.SafeSpawnPoint();
+
+            for (int trial = 0; trial < 2; trial++)
+            {
+                float duration = trial == 0 ? .4f : 1.15f;
+                motor.Teleport(shore + Vector3.up * .55f, Quaternion.identity);
+                deadline = Time.time + 2.5f;
+                while (!sand.InSand && Time.time < deadline) yield return null;
+                Check(sand.InSand, $"bot reaches sand through real island contact at {shore}");
+                deadline = Time.time + duration;
+                while (Time.time < deadline) yield return null;
+                Check(sand.InSand && sand.SandDepth > 0, $"bot exposes sand state after {duration:F2}s");
+                motor.Teleport(safe, Quaternion.identity);
+                deadline = Time.time + 1;
+                while (sand.InSand && Time.time < deadline) yield return null;
+                yield return null;
+                if (trial == 0) Check(!FindCoat(visual), "short contact leaves no coating");
+            }
+            var coat = FindCoat(visual);
+            Check(coat && coat.GetFloat("_CoatTop") > coat.GetFloat("_CoatBottom") &&
+                  coat.GetFloat("_Coverage") >= .95f, "bot exits sustained sand with a full lower-body coat");
+            yield return new WaitForSeconds(18.5f);
+            Check(coat && coat.GetFloat("_Coverage") > 0 && coat.GetFloat("_Coverage") < .9f,
+                "bot coating is dusting off late in its lifetime");
+            yield return new WaitForSeconds(2f);
+            Check(!FindCoat(visual), "bot coating is removed after about 20 seconds");
+        }
+
+        static Vector3 FindIslandSupport(CastleGenerator map)
+        {
+            var floor = map.foundation ? map.foundation.GetComponent<Collider>() : null;
+            if (!floor) throw new InvalidOperationException("The Castle map has no foundation collider.");
+            var bounds = floor.bounds;
+            int mask = 1 | (1 << Layers.Block) | (1 << Layers.Surface);
+            foreach (float x in new[] { -.86f, .86f, -.72f, .72f })
+            foreach (float z in new[] { -.86f, .86f, -.72f, .72f })
+            {
+                var point = new Vector3(bounds.center.x + bounds.extents.x * x, map.TopHeight + 5,
+                    bounds.center.z + bounds.extents.z * z);
+                if (Physics.Raycast(point, Vector3.down, out var hit, point.y - bounds.min.y + 1,
+                        mask, QueryTriggerInteraction.Ignore) && hit.collider == floor) return hit.point;
+            }
+            throw new InvalidOperationException("No bare island support was found outside the tower.");
+        }
+
+        static Material FindCoat(Transform visual)
+        {
+            foreach (var renderer in visual.GetComponentsInChildren<Renderer>())
+                foreach (var material in renderer.sharedMaterials)
+                    if (material && material.shader && material.shader.name == "DeadlyJenga/Sand Coating") return material;
+            return null;
         }
 
         sealed class HazardFixture : IDisasterState
