@@ -53,3 +53,22 @@ droplets and active whitewater meshes. The sand run observed two sinking blocks
 and five live ripple particles. Frame review confirmed a dry dent with the ocean
 still visible offshore. Fresh role-camera, multiplayer and Quest checks remain
 open for this follow-up.
+
+## Breaking whitewater follow-up
+
+Production source: `996b777f8ec6000645bc114ff7014d0d448b9a59` on
+`codex/marina-whitewater`. The desktop capture loaded that source plus the
+Editor-only fixture at `bdd47ed29b8b2ff11d7e1118358e4ea3d9afd5fe`.
+
+The same Castle Local Demo cameras and controlled releases verified the low
+outward skirt, the taller breaking crests, spray and mist. The ordinary drop
+produced 106 live droplets and 27 mist particles. The fast drop produced 158
+droplets and 36 mist particles. The previous source produced 74 and 112 live
+droplets in the same setups. The fast crest extended past the top of the
+matched view, and the ordinary view captured the full crest. The batch exited
+successfully with both sink sequences recorded.
+
+The capture fixture printed a stale gameplay SHA in its banner. Checked
+admission and the slot Git HEAD verified the exact fixture before launch.
+The change was limited to splash presentation. Quest appearance and
+performance remain unverified.
