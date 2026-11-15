@@ -10,6 +10,7 @@ namespace DeadlyJenga.DevTools.Editor
         static DeathPaintChecks()=>EditorApplication.update+=Poll;
         static void Poll()
         {
+            if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
             string request=ProjectPath.Report("DeathPaint.request");
             if(!File.Exists(request)||File.ReadAllText(request).Trim()!=System.Diagnostics.Process.GetCurrentProcess().Id.ToString()||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
             if(!ValidationRunGate.TryAcquire("DeathPaint"))return;

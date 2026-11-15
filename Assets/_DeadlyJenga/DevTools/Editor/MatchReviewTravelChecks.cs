@@ -33,6 +33,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             EditorApplication.update+=()=>
             {
+                if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 var request=ProjectPath.Report("MatchReviewTravel.request");
                 if(!File.Exists(request)||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 File.Delete(request);Run();

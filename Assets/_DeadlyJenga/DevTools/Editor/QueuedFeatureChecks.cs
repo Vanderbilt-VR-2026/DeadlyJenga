@@ -27,6 +27,7 @@ namespace DeadlyJenga.DevTools.Editor
         static QueuedFeatureChecks()
         {
             EditorApplication.update+=()=>{
+                if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 var request=ProjectPath.Report("QueuedFeatures.request");
                 if(!File.Exists(request)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
                 if(!ValidationRunGate.TryAcquire(Key))return;SessionState.SetBool(Key+"CastleOnly",File.ReadAllText(request).Trim()=="castle");File.Delete(request);Run();

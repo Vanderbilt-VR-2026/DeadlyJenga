@@ -38,6 +38,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             EditorApplication.update+=()=>
             {
+                if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 var request=ProjectPath.Report("HudReadability.request");
                 if(!File.Exists(request)||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 try{File.Delete(request);}catch(IOException){return;}Run();

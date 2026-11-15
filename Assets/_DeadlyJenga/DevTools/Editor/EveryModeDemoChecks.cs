@@ -25,6 +25,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             EditorApplication.update+=()=>
             {
+                if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 string path=ProjectPath.Report("EveryModeDemo.request");
                 if(!File.Exists(path)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
                 string command=File.ReadAllText(path).Trim(),pid=System.Diagnostics.Process.GetCurrentProcess().Id.ToString();
