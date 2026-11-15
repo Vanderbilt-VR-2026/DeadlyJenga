@@ -22,6 +22,27 @@ Run each revision with Unity’s `-batchmode -force-d3d11 -executeMethod DeadlyJ
 - `da62f2419262e216626f866fc58dcdfe02e8e0f3` extends the opt-in DevTools standalone fixture. Use `DeadlyJenga.CastlePrototype.Editor.CrossProcessBuild.RunBatch` with `--dj-tycoon` to build a development player. In a fresh results directory per group, pass `--dj-smoke-dir=<dir>`, `--dj-smoke=<solo|host|guest>` and `--dj-tycoon`. Run solo alone, then start independent host and guest processes. Keep display settings identical. Raw times and workload assertions are written per process. Replica wave observation can lag the authoritative start. The displaced-block report evaluates an instantaneous host sample within a two-second guest observation window and records tolerance agreement.
 - In fresh result directories, pair host and guest with `--dj-nearby-lobby` for discovery, then add `--dj-nearby-invite` for the invite path. The ten-slot Marina cohort means two independent clients plus eight lobby bots. A round with ten human devices needs separate testing.
 - Run the independent migration fixture with `--dj-full-round --dj-migrate-round`. Validate continued phase and timer, result, and lobby return on the promoted host.
-- `36ad212f40bb1a88e4174150e1e0798cec856d9f` adds `DeadlyJenga.DevTools.Editor.DenseWavePerformance.RunTycoonStressBatch` for 52 bots with tsunami, tornado and Planet Killer in sequence. The report is `Logs/Validation/DenseWave-tycoon-stress.txt`.
+- The checked Windows development build of `da62f2419262e216626f866fc58dcdfe02e8e0f3` timed out while compiling a forward shader pass. It produced no verified player. Compare standalone FPS after a successful build. Independent Editor peers can exercise the same flow with `CrossProcessBuild.RunLobbyHandoffBatch` and the same fixture flags.
 
-Integration status is pending MAIN review. Further checks include distinct-map goal pursuit, long Catwalks routes, sand escape, narrow slabs, collapse recovery and headset testing. The build and peer measurements must carry their own tested SHA and results.
+## 52-bot desktop Editor stress
+
+Exact revision `36ad212f40bb1a88e4174150e1e0798cec856d9f` completed `DeadlyJenga.DevTools.Editor.DenseWavePerformance.RunTycoonStressBatch` with zero runtime errors. This is local Play Mode on the actual Tycoon map with voices off. The three disasters start in sequence in the same simulation, so the later windows also include prior damage to the map. The report is `Logs/Validation/DenseWave-tycoon-stress.txt`.
+
+| Window | Frames | Frame p50 / p95 / p99 / max (ms) | Blocks displaced over 1 m |
+| --- | ---: | --- | ---: |
+| 52 bots | 34 | 165.26 / 321.69 / 341.17 / 341.17 | — |
+| Tsunami | 128 | 129.47 / 352.61 / 679.21 / 793.01 | 31 |
+| Tornado | 149 | 129.27 / 184.88 / 292.93 / 357.96 | 7 |
+| Planet Killer | 136 | 137.32 / 227.77 / 310.73 / 636.85 | 6 |
+
+At least 26 bots travelled over one metre by the end of the tsunami window. The spikes exceed a playable frame budget in these Editor samples. The standalone target remains open.
+
+## Catwalks and nearby checks
+
+Actual Catwalks at `edea476590174206f86be9020d4b451aa93c8ff0` reached purple roof to red, red bridge to purple roof, and purple roof to lower purple. The reverse ascent took two jumps and four climbs. Red to green failed in this four-bot sample. Its recovery moved the interim target from the corner to a stage about 20 m along the wall and did not return to the original goal in the window. The fixture returned a failure and recorded zero runtime errors.
+
+The same revision passed `DeadlyJenga.DevTools.Editor.BotPipelineChecks.RunCrossMapBatch` on the structurally different CTF map. With one controlled travel objective and ordinary movement, the bot crossed midfield from approximately (-40, 0.4, -12), travelled 75.45 m, and held within 0.6 m of the target (30, 0.4, 0). It recorded no unexplained idle time and no scored capture. The window used 55 seconds of simulated time at a fixed capture rate, so its timings are for fixture operation.
+
+The two-process Editor invite attempt at `da62f2419262e216626f866fc58dcdfe02e8e0f3` opened a real Fusion Marina room. Admission delayed the guest, and the host timed out before sending the invite. The guest's subsequent scan occurred after that timeout. The readiness guard at `edea476590174206f86be9020d4b451aa93c8ff0` waits for the guest's actual Home session before advertising. The failed peer and Catwalks fixtures exited directly from Play Mode, leaving GDK-generated assets in their leased projects. `5670d21e4509b03671caf10fc72f43d347cb948b` routes their next run through Edit Mode so the registered GDK cleanup runs.
+
+Integration status is pending MAIN review. Further checks include the nearby invitation and discovery rerun, the live ten-slot cohort, host migration, sand escape, narrow slabs, post-collapse goal pursuit and headset testing.
