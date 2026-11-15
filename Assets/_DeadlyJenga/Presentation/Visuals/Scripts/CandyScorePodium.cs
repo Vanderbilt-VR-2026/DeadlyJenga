@@ -400,6 +400,7 @@ namespace DeadlyJenga.Presentation
 
         public void Draw()
         {
+            if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null) return;
             float now = Time.unscaledTime;
             if (!stage || !panel.gameObject.activeInHierarchy || now < nextRender) return;
             nextRender = now + RenderInterval;

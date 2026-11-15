@@ -66,6 +66,7 @@ namespace DeadlyJenga.Presentation
 
         public Texture Get(IMatchRuntime match, MatchPlayerFrame player)
         {
+            if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null) return null;
             if (owner != match)
             {
                 Clear();

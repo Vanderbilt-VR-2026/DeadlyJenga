@@ -1,6 +1,18 @@
 # Tycoon standalone tsunami frame times
 
-Current overhaul status: the +50% goal is not met. Fresh single-run gains remain about +10% (24 bots) and +25–28% (52 bots) against the refreshed original baseline. Replication and ten-human lobby acceptance currently fail. The older results below are retained history, not the current acceptance result.
+Current overhaul status: the +50% goal is not met. Fresh single-run tsunami gains remain about +10% (24 bots) and +25–28% (52 bots) against the refreshed original baseline. Replication acceptance fails. Ten humans now join and migrate through a round, but the clean-log test exposed headless results-rendering errors. The older results below are retained history, not the current acceptance result.
+
+## Native checkpoint 644e3970
+
+Exact source and verified task-branch remote: `644e397068ea6be16c1e96a6a4147b1265ea4bd2`. Native build succeeded; 810 finger-pose and 4,617 deformation position/normal/bounds checks passed. Core and packages are unchanged. No shared-target integration or APK inclusion is claimed.
+
+The 52-bot Planet Killer run with Burst deformation measured 19.99 typical FPS, p95 135.898 ms and worst 205.561 ms, versus the previous 18.39 FPS, p95 212.794 ms and worst 457.949 ms. This is one exploratory comparison, not a repeated acceptance result. All 130 sampled impact frames had moving blocks, and 36 blocks moved more than one metre. The 50% target remains unmet.
+
+Ten independent processes joined the same real Fusion lobby with nine remote avatars each and loaded Game. Following host departure, exactly one replacement authority continued the original timer; all nine remaining clients reached results and returned to the same lobby. Host and the rendered guest exited successfully. Eight headless guests failed the clean-log assertion because results portraits/podiums called Camera.Render without a graphics device. The next candidate skips only those unavailable headless renders; rendered content remains enabled.
+
+A separate 52-bot peer experiment requested reliable streaming at 60 Hz, clamped by the installed Fusion runtime to 32 Hz. Host measured 16.66 FPS and guest 53.81 FPS, but guest world age remained 694.412 ms median and 1694.557 ms maximum. This fails replication freshness. Inspection of the installed socket implementation shows streaming uses a separate channel from GameReliableChannelSendCount, explaining why the earlier capacity experiment did not address streaming throughput. An opt-in native Networked-state probe is the next diagnostic; it does not replace gameplay replication and its FPS cannot be used as a matched production benchmark.
+
+Nearby invite reached a shared real lobby over UDP without a typed code and both peers entered the Play round. Full-round completion is pending. This run also exposed a missing dynamically located particle shader in the player; the next candidate falls back to the existing resource-backed glow material so the effect remains visible.
 
 Historical first checkpoint: the 24-bot Windows player improved from 21.4 to 26.1 typical FPS while the tsunami was moving blocks, a 22% gain across two runs per revision. The 50% goal for this setup was about 32.2 FPS.
 

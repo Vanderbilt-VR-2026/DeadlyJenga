@@ -719,12 +719,14 @@ namespace DeadlyJenga.CastlePrototype
                 text.AppendLine("ReliableDataSendRateBefore="+room.Runner.ReliableDataSendRate);
                 if(rateConfiguredRunner!=room.Runner)
                 {
+                    if(Environment.GetCommandLineArgs().Contains("--dj-native-state-probe")) CastleNativeStateProbe.Configure(room.Runner);
                     var argument=Environment.GetCommandLineArgs().FirstOrDefault(arg=>arg.StartsWith("--dj-reliable-rate=",StringComparison.Ordinal));
                     if(argument!=null&&int.TryParse(argument[19..],out int rate)&&rate>=1&&rate<=60)
                         room.Runner.ReliableDataSendRate=rate;
                     rateConfiguredRunner=room.Runner;
                 }
                 text.AppendLine("ReliableDataSendRate="+room.Runner.ReliableDataSendRate);
+                text.AppendLine($"NativeStateProbe received={CastleNativeStateProbe.Received} gapSum={CastleNativeStateProbe.GapSum:F6} maxGap={CastleNativeStateProbe.MaxGap:F6}");
                 text.AppendLine("ReliableSendCount="+room.Runner.Config.Network.GameReliableChannelSendCount);
                 foreach(var player in room.Runner.ActivePlayers)
                     if(room.Runner.IsServer||player==room.Runner.LocalPlayer)
