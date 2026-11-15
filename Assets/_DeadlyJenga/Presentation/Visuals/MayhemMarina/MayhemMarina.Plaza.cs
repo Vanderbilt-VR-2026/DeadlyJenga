@@ -191,26 +191,24 @@ namespace DeadlyJenga.CandyArt.Marina
             for (int side = -1; side <= 1; side += 2)
             {
                 mesh.Box(At(side * 3.05f, 1.75f, .22f), new Vector3(.34f, 3.5f, .34f), F.DarkWood, .06f, true, turn);
-                mesh.Box(At(side * 3.05f, 3.62f, .22f), new Vector3(.5f, .26f, .5f), F.Brass, .05f, false, turn);
+                mesh.Box(At(side * 3.05f, (3.48f + FameHeaderHeight) * .5f, .22f), new Vector3(.34f, FameHeaderHeight - 3.48f, .34f), F.DarkWood, .06f, false, turn);
+                mesh.Box(At(side * 3.05f, FameHeaderHeight - .36f, .22f), new Vector3(.5f, .26f, .5f), F.Brass, .05f, false, turn);
             }
-            mesh.Box(At(0, 3.98f, .22f), new Vector3(6.6f, .5f, .3f), F.DarkWood, .08f, false, turn);
-            mesh.Box(At(0, 4.26f, .22f), new Vector3(6.8f, .07f, .38f), F.Brass, .02f, false, turn);
+            mesh.Box(At(0, FameHeaderHeight, .22f), new Vector3(6.6f, .5f, .3f), F.DarkWood, .08f, false, turn);
+            mesh.Box(At(0, FameHeaderHeight + .28f, .22f), new Vector3(6.8f, .07f, .38f), F.Brass, .02f, false, turn);
             mesh.Box(At(0, 1.2f, .32f), new Vector3(6.3f, 2.4f, .16f), F.Teal, .08f, true, turn);
+            mesh.Box(At(0, 4.17f, .32f), new Vector3(6.3f, 3.58f, .16f), F.Teal, .08f, false, turn);
             mesh.Box(At(0, .14f, .2f), new Vector3(6.9f, .28f, .9f), F.Stone, .06f, true, turn);
 
             // Winners' steps in front of the board. Solid, so players can hop up for a victory pose.
-            (float x, float h, F finish)[] steps = { (0, .6f, F.Brass), (-1.15f, .4f, F.Metal), (1.15f, .26f, F.Coral) };
-            foreach (var step in steps)
+            F[] finishes = { F.Brass, F.Metal, F.Coral };
+            for (int i = 0; i < FameSteps.Length; i++)
             {
-                mesh.Box(At(step.x, step.h * .5f, -1.45f), new Vector3(1.1f, step.h, 1.0f), F.CandyCream, .09f, true, turn);
-                mesh.Box(At(step.x, step.h + .015f, -1.45f), new Vector3(1.02f, .03f, .92f), step.finish, .02f, false, turn);
+                var step = FameSteps[i];
+                var top = FamePodium + turn * step;
+                mesh.Box(top - Vector3.up * (step.y * .5f), new Vector3(1.1f, step.y, 1.0f), F.CandyCream, .09f, true, turn);
+                mesh.Box(top + Vector3.up * (FameStepCap * .5f), new Vector3(1.02f, FameStepCap, .92f), finishes[i], .02f, false, turn);
             }
-            // A candy trophy on the top step.
-            var cup = At(0, .66f, -1.3f);
-            mesh.Disk(cup, .16f, .06f, F.DarkWood, false, 20);
-            mesh.Beam(cup + Vector3.up * .06f, cup + Vector3.up * .26f, .04f, F.Brass);
-            mesh.Ellipsoid(cup + Vector3.up * .4f, new Vector3(.17f, .16f, .17f), F.Brass, rings: 8, sides: 16);
-            mesh.Ellipsoid(cup + Vector3.up * .62f, Vector3.one * .07f, F.Glow, rings: 6, sides: 10);
             Accent("Hall of fame", At(0, 3.4f, -1.8f), new Color(1, .86f, .62f), 2.6f, 6.5f);
         }
     }
