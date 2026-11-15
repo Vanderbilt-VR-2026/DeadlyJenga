@@ -120,7 +120,7 @@ namespace DeadlyJenga.Modes
 
             void PickupQuery(BotDirectorActor actor,List<BotDirectorTarget> results)
             {
-                var person=Sim.Find(actor.id);if(person==null||person.frame.role=="infected"||owner.simulation.CarriesFlag(actor.id)||actor.body.GetComponent<IEnemyActor>()?.IsEnemy==true)return;
+                var person=Sim.Find(actor.id);if(person==null||person.frame.role=="infected"||owner.simulation.CarriesFlag(actor.id)||OptionalComponent<IEnemyActor>(actor.body)?.IsEnemy==true)return;
                 var current=owner.EquipmentFor(actor.id);var inventory=current.builtIn?current.activePower:current.kind;if(current.roleIssued)return;
                 if(owner.MysteryActive&&owner.mystery.Role(actor.id)==MysteryRole.Murderer)return;
                 if(owner.pickups.Count==0)return;

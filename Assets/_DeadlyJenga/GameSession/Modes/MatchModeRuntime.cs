@@ -116,7 +116,7 @@ namespace DeadlyJenga.Modes
             if(!Authority)return;
             bool fresh=simulation.Find(id)==null;
             var identity=!actor.IsBot&&MatchSetup.FromLobby&&IslandRoomConnection.Instance?IslandRoomConnection.Instance.IdentityFor(id):null;
-            bool enemy=actor.gameObject.GetComponent<IEnemyActor>()?.IsEnemy==true;
+            bool enemy=OptionalComponent<IEnemyActor>(actor.gameObject)?.IsEnemy==true;
             var experience=RoomGameExperience.ForManagedMatch(session);
             bool deferred=experience&&!enemy&&!actor.IsBot&&!experience.IsLaunchedActor(id);
             var p=enemy?simulation.RegisterEnemy(id,new Color(.035f,.045f,.065f)):simulation.Register(id,identity?.color??actor.Color,actor.IsBot,local,deferred);
@@ -315,7 +315,7 @@ namespace DeadlyJenga.Modes
             if(!Authority)return true;
             DropEquipment(id,who.transform.position);
             string killer=null;if(source)actorIds.TryGetValue(source,out killer);
-            if(MysteryActive&&who.GetComponent<IEnemyActor>()?.IsEnemy!=true)
+            if(MysteryActive&&OptionalComponent<IEnemyActor>(who)?.IsEnemy!=true)
             {
                 if(killer!=null)RecordMysteryReplay(killer,id,mystery.Role(killer)==MysteryRole.Murderer);
                 mystery.NaturalDeath(id);
@@ -350,6 +350,11 @@ namespace DeadlyJenga.Modes
                 blocks[c.block].GetComponent<IBlockOwnership>()?.SetOwner(c.owner,color);
             }
         }
+        static T OptionalComponent<T>(GameObject actor) where T : class
+        {
+            return actor && actor.TryGetComponent<T>(out var component) ? component : null;
+        }
+
         public ModeRules RulesFor(GameObject actor)
         {
             if (session && session.VisitingLobby && actor &&
@@ -359,12 +364,12 @@ namespace DeadlyJenga.Modes
             string id=actor&&actorIds.TryGetValue(actor,out var found)?found:null;
             if(id!=null&&ruleCache.TryGetValue(id,out var cached))return cached;
             var rules=Rules.Copy();
-            var enemy=actor?actor.GetComponent<IEnemyActor>():null;
+            var enemy=OptionalComponent<IEnemyActor>(actor);
             if(enemy?.IsEnemy==true){rules.island=IslandRule.Walkable;rules.healthEnabled=true;rules.deathEnabled=true;rules.punchEnabled=true;rules.punchDamage=enemy.HitDamage;rules.punchDistance=2;
                 if(enemy.ArchetypeId=="longhand"){rules.moveScale*=.85f;rules.punchCooldown=1.6f;}
                 if(enemy.ArchetypeId=="gum-brute"){rules.moveScale*=.6f;rules.punchCooldown=2;rules.punchDistance=12;}
             }
-            if(actor&&actor.GetComponent<IEnemyMovement>() is IEnemyMovement enemyMovement&&!enemyMovement.CanClimb)rules.canClimb=rules.canVault=false;
+            if(actor&&OptionalComponent<IEnemyMovement>(actor) is IEnemyMovement enemyMovement&&!enemyMovement.CanClimb)rules.canClimb=rules.canVault=false;
             MatchPlayerFrame f=null;if(Authority)f=simulation.Find(id)?.frame;else foreach(var row in frame.players)if(row.id==id){f=row;break;}
             if(f==null)return rules;
             if(!Authority)rules.fallDamage=false;

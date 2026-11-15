@@ -2,9 +2,13 @@
 
 Current overhaul status: +50% typical FPS is not met, and neither desktop Editor smoothness nor replication freshness is accepted. Source changes are isolated on the task branch; no shared integration or APK claim.
 
+## Objective lookup checkpoint
+
+The a14239fc Editor trace attributes 9.776 ms mean exclusive missing-component diagnostics to bot objective evaluation and 2.164 ms to match updates. The current GameSession/Modes candidate uses TryGetComponent for optional enemy capabilities, caches enemy classification only within each existing objective sample, and hoists the actor infection decision out of the target loop. Visibility, target legality, objective cadence and content are unchanged. Static diff checks passed; exact-build objective contracts and active-impact runtime comparisons are pending. No FPS improvement is claimed for this checkpoint.
+
 ## Checkpoint a7fa560d and native-world experiment
 
-The exact tested source was 7fa560ded398ebefc0c59706ec8498113550dc7. All ten independent Fusion processes passed the round, original-host departure, single replacement authority, original timer continuation, results and lobby return. Host and one guest rendered; eight clients were headless. This is same-machine functional evidence, not ten-rendered-client performance or cross-device evidence.
+The exact tested source was `a7fa560ded398ebefc0c59706ec8498113550dc7`. All ten independent Fusion processes passed the round, original-host departure, single replacement authority, original timer continuation, results and lobby return. Host and one guest rendered; eight clients were headless. This is same-machine functional evidence, not ten-rendered-client performance or cross-device evidence.
 
 Actual rendered Editor Play Mode at 960x540 with 52 bots measured 4.53 typical FPS during tsunami impact (37 moving-block frames, 26 blocks displaced over one metre). Median frame time was 220.701 ms, p95 287.245 ms. The desktop Editor target fails. The standalone figures must not be presented as Editor results.
 
