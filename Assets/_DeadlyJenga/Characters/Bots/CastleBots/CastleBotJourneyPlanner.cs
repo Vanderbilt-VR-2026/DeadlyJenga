@@ -119,7 +119,6 @@ namespace DeadlyJenga.CastleBots
             }
         }
         static readonly List<Vector3> geometryScratch=new(64);
-        static readonly Dictionary<Rigidbody,Matrix4x4> destinationMatrices=new();
         static readonly List<CastleBotLanding> destinationRanks=new(25);
         public static Vector3 ChooseDestination(CastleBotBrain bot,int trip)
         {
@@ -129,14 +128,28 @@ namespace DeadlyJenga.CastleBots
             if (graph.nodes.Count == 0) return feet + bearing * 5;
             float fraction=Mathf.Repeat(bot.Seed*.173f+trip*.618034f,1);
             float targetY=Mathf.Lerp(feet.y,Mathf.Lerp(graph.minY,graph.maxY,fraction),p.verticalVariety);
-            var ranked=destinationRanks;ranked.Clear();destinationMatrices.Clear();
+            var ranked=destinationRanks;
+            ranked.Clear();
+            Rigidbody currentBody = null;
+            Matrix4x4 matrix = default;
+            bool hasSurface = false;
             foreach(var node in graph.nodes)
             {
-                if(!node.body||!node.surface)continue;
-                if(!destinationMatrices.TryGetValue(node.body,out var matrix))destinationMatrices[node.body]=matrix=node.surface.localToWorldMatrix;
-                var point=matrix.MultiplyPoint3x4(node.local);float distance=Vector3.Distance(point,feet);if(distance<3)continue;
+                // AddBodyGeometry emits each body's samples together on the same anchor.
+                if (!ReferenceEquals(node.body, currentBody))
+                {
+                    currentBody = node.body;
+                    hasSurface = currentBody && node.surface;
+                    if (hasSurface) matrix = node.surface.localToWorldMatrix;
+                }
+                if (!hasSurface) continue;
+                var point = matrix.MultiplyPoint3x4(node.local);
+                var offset = point - feet;
+                float distance = offset.magnitude;
+                if (distance < 3) continue;
+                offset.y = 0;
                 var candidate=node;
-                candidate.score=-Mathf.Abs(point.y-targetY)*.45f+Vector3.Dot(Vector3.ProjectOnPlane(point-feet,Vector3.up).normalized,bearing)*2;
+                candidate.score=-Mathf.Abs(point.y-targetY)*.45f+Vector3.Dot(offset.normalized,bearing)*2;
                 float exploration=Mathf.Min(16,distance)*.025f*p.exploration;
                 if(ranked.Count==24&&candidate.score+exploration<ranked[23].score-.0001f)continue;
                 candidate.score-=bot.Population.ThreatCost(point)*(1+p.survivalPriority)+bot.RevisitCost(node.body);
