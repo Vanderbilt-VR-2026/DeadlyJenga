@@ -52,7 +52,7 @@ namespace DeadlyJenga.Presentation
         }
 
         readonly Transform owner;
-        readonly bool retainAssets;
+        readonly bool worldPodium;
         readonly RectTransform panel;
         readonly RawImage image;
         readonly Leader[] leaders = { new Leader(), new Leader(), new Leader() };
@@ -62,10 +62,10 @@ namespace DeadlyJenga.Presentation
         RenderTexture texture;
         float nextRender;
 
-        public CandyScorePodium(Transform owner, Transform parent, Vector2 position, bool retainAssets=false)
+        public CandyScorePodium(Transform owner, Transform parent, Vector2 position)
         {
             this.owner = owner;
-            this.retainAssets=retainAssets;
+
             var card = CandyHudCards.Create((RectTransform)parent, "Scoreboard podium",
                 position, new Vector2(380, 540), 24, TextAnchor.UpperCenter);
             card.text = "TOP THREE";
@@ -98,6 +98,34 @@ namespace DeadlyJenga.Presentation
                 leaders[i].label = Label("Podium player", new Vector2(x, -202), 19);
             }
             panel.gameObject.SetActive(false);
+        }
+
+        public CandyScorePodium(Transform owner)
+        {
+            this.owner = owner;
+            worldPodium = true;
+            stage = owner.gameObject;
+        }
+
+        public void SetWorldPlayers(IMatchRuntime runtime, MatchPlayerFrame[] ranked, Vector3[] steps)
+        {
+            for (int i = 0; i < leaders.Length; i++)
+            {
+                var leader = leaders[i];
+                var player = i < ranked.Length ? ranked[i] : null;
+                if (player != null && leader.id == player.id && leader.model) continue;
+
+                Clear(leader);
+                var visual = player == null ? null : runtime.FindActor(player.id)?.Visual;
+                if (!visual) continue;
+                leader.id = player.id;
+                leader.source = visual;
+                CopyAvatar(leader, i, player.dying || !player.alive);
+                if (!leader.model) continue;
+                leader.model.localPosition = steps[i];
+                leader.model.localRotation = Quaternion.Euler(0, 180 + Columns[i] * 10, 0);
+                leader.model.localScale = Vector3.one * (Mathf.Abs(visual.lossyScale.y) * 1.75f);
+            }
         }
 
         Text Label(string name, Vector2 position, int size)
@@ -170,7 +198,7 @@ namespace DeadlyJenga.Presentation
                     if (visual)
                     {
                         EnsureStage();
-                        CopyAvatar(leader, i);
+                        CopyAvatar(leader, i, player.dying || !player.alive);
                     }
                     nextRender = 0;
                 }
@@ -223,12 +251,13 @@ namespace DeadlyJenga.Presentation
             image.enabled = true;
         }
 
-        void CopyAvatar(Leader leader, int rank)
+        void CopyAvatar(Leader leader, int rank, bool eliminated)
         {
             var source = leader.source;
             var model = new GameObject("Visual - ranked avatar").transform;
             model.SetParent(stage.transform, false);
             leader.model = model;
+            int layer = worldPodium ? owner.gameObject.layer : PreviewLayer;
             var copies = new Dictionary<Transform, Transform> { { source, model } };
             Transform CopyTransform(Transform original)
             {
@@ -236,7 +265,7 @@ namespace DeadlyJenga.Presentation
                 if (copies.TryGetValue(original, out var existing)) return existing;
                 if (!original.IsChildOf(source)) return null;
                 var copy = new GameObject(original.name).transform;
-                copy.gameObject.layer = PreviewLayer;
+                copy.gameObject.layer = layer;
                 copy.SetParent(CopyTransform(original.parent), false);
                 copy.localPosition = original.localPosition;
                 copy.localRotation = original.localRotation;
@@ -246,17 +275,17 @@ namespace DeadlyJenga.Presentation
             }
 
             var properties = new MaterialPropertyBlock();
-            var lighting=retainAssets?Object.FindFirstObjectByType<DeadlyJenga.CandyArt.CandyHazardLighting>():null;
+            var lighting=worldPodium?Object.FindFirstObjectByType<DeadlyJenga.CandyArt.CandyHazardLighting>():null;
             Mesh KeepMesh(Mesh mesh)
             {
-                if(!retainAssets)return mesh;
+                if(!worldPodium)return mesh;
                 if(!leader.meshes.TryGetValue(mesh,out var owned))
                     leader.meshes.Add(mesh,owned=Object.Instantiate(mesh));
                 return owned;
             }
             Material KeepMaterial(Material material)
             {
-                if(!retainAssets||!material)return material;
+                if(!worldPodium||!material)return material;
                 if(lighting)material=lighting.ResolveSourceMaterial(material)??material;
                 if(!leader.materials.TryGetValue(material,out var owned))
                     leader.materials.Add(material,owned=new Material(material));
@@ -265,9 +294,8 @@ namespace DeadlyJenga.Presentation
             var renderers = new List<Renderer>();
             foreach (var original in source.GetComponentsInChildren<Renderer>(true))
             {
-                bool avatarBody = original is SkinnedMeshRenderer && original.name == "Candy body and shared hands";
-                bool avatarHead = original is SkinnedMeshRenderer && original.name == "Candy spherical head" && original.enabled;
-                if ((!avatarBody && !avatarHead && (!original.enabled || original.forceRenderingOff)) ||
+                // World elimination hides the outfit without disabling its equipped renderers.
+                if (!original.enabled || (original.forceRenderingOff && !eliminated) ||
                     !CandyScorePortraits.VisibleInAvatar(original.transform, source)) continue;
                 Renderer copy;
                 if (original is SkinnedMeshRenderer skin && skin.sharedMesh)
@@ -291,7 +319,7 @@ namespace DeadlyJenga.Presentation
                     copy = go.AddComponent<MeshRenderer>();
                 }
                 else continue;
-                copy.gameObject.layer = PreviewLayer;
+                copy.gameObject.layer = layer;
                 copy.sharedMaterials = Array.ConvertAll(original.sharedMaterials,KeepMaterial);
                 properties.Clear();
                 original.GetPropertyBlock(properties);
@@ -308,11 +336,24 @@ namespace DeadlyJenga.Presentation
                     properties.SetFloat("_Recovering", 0);
                 }
                 copy.SetPropertyBlock(properties);
-                copy.shadowCastingMode = ShadowCastingMode.Off;
-                copy.receiveShadows = false;
+                copy.shadowCastingMode = worldPodium ? ShadowCastingMode.On : ShadowCastingMode.Off;
+                copy.receiveShadows = worldPodium;
                 renderers.Add(copy);
             }
+            if (renderers.Count == 0)
+            {
+                Clear(leader);
+                leader.source = source;
+                return;
+            }
+
             RestoreStandingPose(source, copies);
+            if (worldPodium)
+            {
+                PoseStatue(model, rank);
+                return;
+            }
+
             var joints = new List<Joint>();
             foreach (Transform bone in model)
             {
@@ -327,12 +368,6 @@ namespace DeadlyJenga.Presentation
                 }
             }
             leader.joints = joints.ToArray();
-            if (renderers.Count == 0)
-            {
-                Clear(leader);
-                leader.source = source;
-                return;
-            }
 
             var bounds = PreviewBounds(model, renderers);
             float scale = Mathf.Min((rank == 0 ? 1.95f : 1.70f) / Mathf.Max(.1f, bounds.size.y),
@@ -340,6 +375,37 @@ namespace DeadlyJenga.Presentation
             model.localScale = Vector3.one * scale;
             leader.position = new Vector3(-Columns[rank] * 1.08f - bounds.center.x * scale,
                 (rank == 0 ? -.82f : -1.05f) - bounds.min.y * scale, -bounds.center.z * scale);
+        }
+
+        static void PoseStatue(Transform model, int rank)
+        {
+            foreach (string side in new[] { "Left", "Right" })
+            {
+                var shoulder = model.Find(side + " upper arm");
+                var elbow = model.Find(side + " forearm");
+                if (!shoulder || !elbow) continue;
+
+                int direction = side == "Left" ? -1 : 1;
+                bool salute = rank == 1 && direction == 1 || rank == 2 && direction == -1;
+                Vector3 pivot = shoulder.localPosition;
+                Vector3 forearmPivot = elbow.localPosition;
+                var bend = salute ? Quaternion.Euler(-105, 0, 10 * direction)
+                    : Quaternion.Euler(-21, 0, -57 * direction);
+                var upper = Quaternion.Euler(salute ? -21 : 0, 0, (salute ? 13 : 23) * direction);
+                foreach (Transform joint in model)
+                {
+                    if (!joint.name.StartsWith(side + " ", StringComparison.Ordinal)) continue;
+                    int group = DanceGroup(joint.name);
+                    if (group < 0 || group > 1) continue;
+                    if (joint != shoulder)
+                    {
+                        joint.localPosition = forearmPivot + bend * (joint.localPosition - forearmPivot);
+                        joint.localRotation = bend * joint.localRotation;
+                    }
+                    joint.localPosition = pivot + upper * (joint.localPosition - pivot);
+                    joint.localRotation = upper * joint.localRotation;
+                }
+            }
         }
 
         static void RestoreStandingPose(Transform source, Dictionary<Transform, Transform> copies)

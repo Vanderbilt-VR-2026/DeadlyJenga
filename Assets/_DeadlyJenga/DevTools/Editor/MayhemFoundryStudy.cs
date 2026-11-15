@@ -32,6 +32,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             if(SessionState.GetBool(Key,false)&&EditorApplication.isPlaying&&!EditorApplication.isCompiling&&!EditorApplication.isUpdating&&!SessionState.GetBool(Key+"Finishing",false)&&routine==null)
             {StartRunner();return;}
+            if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
             var request=ProjectPath.Report("MayhemFoundry.request");
             if(!File.Exists(request)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
             if(!ValidationRunGate.TryAcquire(Key))return;

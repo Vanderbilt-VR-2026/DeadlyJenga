@@ -22,6 +22,7 @@ namespace DeadlyJenga.DevTools.Editor
         static readonly List<string> report=new List<string>();
         static TikiResortTools()=>EditorApplication.update+=()=>
         {
+            if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
             string request=ProjectPath.Report("Tiki.build.request");
             if(!File.Exists(request)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
             string action=File.ReadAllText(request).Trim();File.Delete(request);try{if(action=="polish")PolishTraversal();else Build();}catch(Exception e){File.WriteAllText(ProjectPath.Report("Tiki-authoring.txt"),"FAIL "+e);Debug.LogException(e);}

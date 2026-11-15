@@ -47,13 +47,23 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         internal bool TabletVisible => shown && worldMenu && worldMenu.isActiveAndEnabled;
+
+        internal static bool LobbyDeveloperAvailable(ISessionInfo info) =>
+            info is ILobbyControls &&
+            DeadlyJenga.Presentation.GameExperiencePanel.Resolve(info)?.Experience == GameExperience.Demo;
+
+        internal void ResetLobbyTablet()
+        {
+            if (worldMenu) worldMenu.ResetLobbyContext();
+        }
+
         void LateUpdate()
         {
             if (session == null || !worldMenu) return;
-            bool lobbyAllows=lobbyView ? !lobbyView.WardrobeOpen :
+            bool lobbyAllows=lobbyView ? !lobbyView.WardrobeOpen && session is not ILobbyControls { CodeFocused: true } :
                 (session as ILobbyMatchVisitControls)?.VisitingLobby!=true && MatchRuntime.Current?.Frame?.phase!=RoundPhase.Results;
             bool vr = session.IsVR;
-            bool show = lobbyAllows && session.MenuOpen && (vr || !lobbyView) &&
+            bool show = lobbyAllows && session.MenuOpen && (vr || !lobbyView || LobbyDeveloperAvailable(session)) &&
                 (vr || !demoHud || !demoHud.StudioOpen) &&
                 !DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session) &&
                 !DeadlyJenga.Presentation.GameExperiencePanel.Showing(session) && !CharacterPicker.Showing(session) &&

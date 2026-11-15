@@ -26,6 +26,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             if(run==null)
             {
+                if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 string request=ProjectPath.Report("FantasyMapValidation.request");
                 if(!File.Exists(request)||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 if(File.ReadAllText(request).Trim()!=System.Diagnostics.Process.GetCurrentProcess().Id.ToString())return;

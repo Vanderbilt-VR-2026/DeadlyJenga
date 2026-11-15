@@ -25,6 +25,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             EditorApplication.update+=()=>
             {
+                if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 string path=ProjectPath.Report("CandyLobbyLayout.request");
                 if(!File.Exists(path)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
                 File.Delete(path);Run();

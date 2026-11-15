@@ -57,6 +57,33 @@ Shader "Candy Tropical/Body Feedback"
                 q+=dot(q,q.yzx+33.33);
                 return frac((q.x+q.y)*q.z);
             }
+            void ImpactPaint(inout half4 result, float2 p)
+            {
+                float2 bearing=_Bearing.xy;
+                float2 freeBearing=float2(-1,.62);
+                bearing=dot(bearing,bearing)>.01 ? bearing : freeBearing;
+                float2 inward=-normalize(bearing);
+                float2 tangent=float2(-inward.y,inward.x);
+                float2 local=p-bearing*.94;
+                float size=lerp(.64,1,_Impact);
+                float2 splat=float2(dot(local,tangent)*1.85,dot(local,inward)*3.1)/size;
+                float2 distorted=splat+float2(.075*sin(splat.y*19),.085*sin(splat.x*22));
+                float shape=1-length(distorted);
+                // Detached droplets extend the impact along the edge.
+                shape=max(shape,.19-length((splat-float2(-1.13,.36))*float2(.8,1)));
+                shape=max(shape,.13-length(splat-float2(1.27,.08)));
+                shape=max(shape,.16-length((splat-float2(.59,.99))*float2(1,.75)));
+                float antialias=max(fwidth(shape),.001);
+                half coat=smoothstep(-antialias,antialias,shape);
+                half bevel=smoothstep(0,.15,shape)*(1-smoothstep(.15,.47,shape));
+                float2 slope=float2(ddx(shape),ddy(shape))/max(fwidth(shape),.001);
+                float3 normal=normalize(float3(-slope*bevel*2.6,1));
+                half glint=pow(saturate(dot(normal,normalize(float3(-.31,.44,1)))),26);
+                half3 baseColor=lerp(_Ink.rgb,half3(1,.32,.66),.38);
+                half3 paint=baseColor*(.66+.48*smoothstep(0,.45,shape));
+                paint+=half3(1,.92,.85)*glint*.85;
+                Layer(result,paint,coat*smoothstep(0,.42,_Impact)*.96);
+            }
             half4 Frag(Varyings i):SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
@@ -86,20 +113,15 @@ Shader "Candy Tropical/Body Feedback"
                     }
                     if (_State.z>.001)
                     {
-                        // Sprint focus: the periphery goes pale and soft, and the view narrows.
-                        float s=_State.z;
-                        float shake=sin(_FeedbackTime*41)*.004+sin(_FeedbackTime*27)*.003;
-                        half narrow=smoothstep(.62-.2*s+shake,1.1,edge);
-                        Layer(result,half3(.88,.97,1),narrow*s*.34);
-                        // Wider, softer halo stands in for blur (no scene grab pass).
-                        Layer(result,half3(.95,1,1),smoothstep(.3,.9,edge+shake)*s*.12);
+                        half sprint = smoothstep(0, 1, _State.z);
+                        half vignette = smoothstep(.70, 1.28, edge) * sprint * .17;
+                        Layer(result, half3(.018, .022, .03), vignette);
                     }
-                    if (_State.y>.001 || _Impact>.001)
+                    if (_State.y>.001)
                     {
                         // Glossy candy-paint splatter: bright shifting colors, wet highlights, drips and sugar sparkle.
                         half4 masks=SAMPLE_TEXTURE2D(_Masks,sampler_Masks,uv);
-                        // A fresh hit splashes extra paint on top of the persistent health coverage.
-                        half damage=saturate(_State.y*1.3+_Impact*.22);
+                        half damage=saturate(_State.y*1.3);
                         half growth=saturate((damage-masks.g)*6);
                         half blob=smoothstep(.02,.06,masks.r);
                         half ink=blob*growth;
@@ -108,12 +130,12 @@ Shader "Candy Tropical/Body Feedback"
                         float column=floor(uv.x*cols);
                         float dripLen=(.04+Grain(float2(column,3))*.16)*saturate(damage*1.4);
                         half dripShape=1-smoothstep(.1,.42,abs(frac(uv.x*cols)-.5)*2);
-                        half above=smoothstep(.02,.06,SAMPLE_TEXTURE2D(_Masks,sampler_Masks,float2(uv.x,saturate(uv.y+dripLen*.55))).r)
-                            *saturate((damage-SAMPLE_TEXTURE2D(_Masks,sampler_Masks,float2(uv.x,saturate(uv.y+dripLen*.55))).g)*6);
+                        half2 dripMask=SAMPLE_TEXTURE2D(_Masks,sampler_Masks,float2(uv.x,saturate(uv.y+dripLen*.55))).rg;
+                        half above=smoothstep(.02,.06,dripMask.r)*saturate((damage-dripMask.g)*6);
                         half drip=above*dripShape*step(.35,Grain(float2(column,9)))*(1-ink);
                         half coat=saturate(ink+drip);
                         // Pretty candy palette around the player's own color.
-                        half hueMix=frac(masks.r*3.1+Grain(floor(uv*float2(5,4)))*.55+_FeedbackTime*.015);
+                        half hueMix=frac(masks.r*3.1+Grain(floor(uv*float2(5,4)))*.55);
                         half3 pink=half3(1,.38,.74), mint=half3(.35,1,.78), sun=half3(1,.88,.35), grape=half3(.66,.45,1);
                         half3 color=lerp(_Ink.rgb,pink,smoothstep(.12,.34,hueMix));
                         color=lerp(color,sun,smoothstep(.34,.52,hueMix));
@@ -134,10 +156,9 @@ Shader "Candy Tropical/Body Feedback"
                         half sparkle=step(.985,Grain(floor(uv*float2(260,150))))*(.5+.5*sin(_FeedbackTime*5+Grain(floor(uv*160))*40));
                         color+=sparkle*ink*half3(1,1,1)*.9;
                         color=lerp(color,half3(.7,1,.85),_Recovery*.2);
-                        Layer(result,color,coat*(.95+_Impact*.05*saturate(dot(p,_Bearing.xy)+.5)));
-                        // A bright candy outline flashes for the first moments after a hit.
-                        Layer(result,half3(1,.9,1),rim*ink*_Impact*.55);
+                        Layer(result,color,coat*.95);
                     }
+                    if (_Impact>.001) ImpactPaint(result,p);
                     Layer(result,half3(.35,1,.76),smoothstep(.88,1.25,edge)*_Recovery*.22);
                     result *= smoothstep(.28, .55, edge);
                 }

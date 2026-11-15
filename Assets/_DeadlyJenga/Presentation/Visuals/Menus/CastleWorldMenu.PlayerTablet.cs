@@ -88,8 +88,10 @@ namespace DeadlyJenga.CastlePrototype
 
         internal const string TabletOpenedPreference = "DeadlyJenga.PlayerTabletOpened";
 
-        bool DeveloperTabAvailable => session is not ILobbyControls && DemoMode &&
-            GameExperiencePanel.Resolve(session)?.Experience != GameExperience.Game;
+        bool DeveloperTabAvailable => session is ILobbyControls
+            ? SessionPresentation.LobbyDeveloperAvailable(session)
+            : DemoMode && GameExperiencePanel.Resolve(session)?.Experience != GameExperience.Game;
+
 
         void BuildPlayerTablet()
         {
@@ -130,6 +132,7 @@ namespace DeadlyJenga.CastlePrototype
             BuildTabletControls(tabletPages[(int)TabletPage.Controls]);
             BuildTabletRoom(tabletPages[(int)TabletPage.Room]);
             BuildTabletDeveloper(tabletPages[(int)TabletPage.Developer]);
+
             OpenPlayerTabletPage(TabletPage.Comfort);
         }
 
@@ -620,9 +623,10 @@ namespace DeadlyJenga.CastlePrototype
             TabletControl(tabletActions,page,()=>"Copy room code",new(244,-10),new(456,76),()=>{
                 GUIUtility.systemCopyBuffer=MultiplayerPanel.JoinCode(session.Multiplayer);
             },allowed:()=>session.Multiplayer!=null&&!string.IsNullOrEmpty(MultiplayerPanel.JoinCode(session.Multiplayer)));
-            TabletControl(tabletActions,page,()=>session is ILobbyControls?"Join by room code":MultiplayerPanel.LobbyAction(session.Multiplayer),
+            TabletControl(tabletActions,page,()=>InLobbyVisit?"Return to match":
+                session is ILobbyControls?"Join by room code":MultiplayerPanel.LobbyAction(session.Multiplayer),
                 new(-244,-121),new(456,76),TabletRoomTravel,
-                allowed:()=>session is ILobbyControls lobby?lobby.JoinEnabled:MatchRuntime.Current!=null);
+                allowed:()=>session is ILobbyControls lobby?(InLobbyVisit?lobby.CanStart:lobby.JoinEnabled):MatchRuntime.Current!=null);
             TabletControl(tabletActions,page,()=>{
                 var room=session.Multiplayer;
                 if(room==null||!room.CanLeave)return "Leave room";
@@ -635,10 +639,19 @@ namespace DeadlyJenga.CastlePrototype
             },allowed:()=>session.Multiplayer?.CanLeave==true,accent:TabletCoral);
         }
 
+        bool InLobbyVisit => session is ILobbyControls && (session as ILobbyMatchVisitControls)?.VisitingLobby == true;
+
+        internal void ResetLobbyContext()
+        {
+            OpenPlayerTabletPage(DeveloperTabAvailable && tabletPage == TabletPage.Developer
+                ? TabletPage.Developer : TabletPage.Comfort);
+        }
+
         void TabletRoomTravel()
         {
-            if (session is ILobbyControls)
+            if (session is ILobbyControls lobby)
             {
+                if (InLobbyVisit) { lobby.StartOrCancel(); return; }
                 session.SetMenu(false);
                 (session as Component)?.GetComponent<IslandLobbyView>()?.OpenRoomCodeFromTablet();
             }
@@ -659,7 +672,8 @@ namespace DeadlyJenga.CastlePrototype
                 CandyEquipmentView.Outline(EquipmentKind.Blaster),opensDetails:false);
             DeveloperTile(tabletDeveloperGrid,"Bots",1,CandyHudIcon.Survivor,()=>{menuCategory=1;menuSection=-1;});
             // Disasters, Map & Mode and Rebuild live under More tools > Match (Disasters, Maps, Modes, World).
-            DeveloperTile(tabletDeveloperGrid,"Spectate",2,CandyHudIcon.Look,()=>spectatePage=true);
+            DeveloperTile(tabletDeveloperGrid,"Spectate",2,CandyHudIcon.Look,()=>spectatePage=true,
+                ()=>session is not ILobbyControls);
             // Closes the tablet and shows your avatar from outside. V (or Done in VR) returns to first person.
             DeveloperTile(tabletDeveloperGrid,"Third person",3,CandyHudIcon.Survivor,()=>session.Player?.ThirdPerson?.Begin(),
                 ()=>session.Player?.ThirdPerson?.CanInspect==true,opensDetails:false);
@@ -1090,10 +1104,7 @@ namespace DeadlyJenga.CastlePrototype
                     if(!string.IsNullOrWhiteSpace(room?.InvitationFrom))
                         tabletRoomStatus.text+="\nInvite from "+room.InvitationFrom;
                 }
-                if(tabletPage==TabletPage.Developer&&tabletWeaponsOpen)
-                {
-                    RefreshWeaponWheelStats();
-                }
+                if (tabletPage == TabletPage.Developer && tabletWeaponsOpen) RefreshWeaponWheelStats();
                 if(tabletPage==TabletPage.Comfort)
                 {
                     UpdateComfortSliderUI();

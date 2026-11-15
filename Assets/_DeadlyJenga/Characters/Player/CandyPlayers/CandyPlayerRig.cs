@@ -112,9 +112,11 @@ namespace DeadlyJenga.CandyPlayers
             if(!pendingPose)return;
             pendingPose=false;ApplyFrame(pendingFrame,pendingGrounded,pendingDelta);
         }
+        static readonly Unity.Profiling.ProfilerMarker AvatarPoseMarker = new("DJ.Avatar.Pose");
         public void ApplyFrame(CandyAvatarFrame frame,bool grounded=true,float deltaTime=0)
         {
             if(composingPose){pendingFrame=frame;pendingGrounded=grounded;pendingDelta+=deltaTime;pendingPose=true;return;}
+            using var measurement = AvatarPoseMarker.Auto();
             if(!bodyRenderer)BuildModel();
             if(colorIndex!=int.MinValue)SetColor(colorIndex);
             float scale=Mathf.Max(.1f,frame.scale);
@@ -195,13 +197,7 @@ namespace DeadlyJenga.CandyPlayers
                 int upper=side==0?2:5;
                 Segment(upper,shoulder,elbow);Segment(upper+1,elbow,wrist,hand.rotation*Vector3.up);
                 bones[upper+2].SetPositionAndRotation(hand.position,hand.rotation);bones[upper+2].localScale=Vector3.one;
-                var skeleton=hand.skeletonTracked?hand.skeleton:CandyHandSkeleton.Rest(side==0,.12f);
-                for(int finger=0;finger<5;finger++)for(int joint=0;joint<3;joint++)
-                {
-                    Vector3 a=hand.position+hand.rotation*(skeleton.Joint(finger*4+joint)*scale);
-                    Vector3 b=hand.position+hand.rotation*(skeleton.Joint(finger*4+joint+1)*scale);
-                    Segment(14+side*15+finger*3+joint,a,b,hand.rotation*Vector3.up);
-                }
+                PoseFingers(side, hand, scale);
             }
             bodyRenderer.localBounds=new Bounds(new Vector3(0,1,0),new Vector3(6,5,6));
             if(downed){bones[0].localRotation=Quaternion.Euler(65,0,0);bones[0].localPosition=new Vector3(0,.05f,.28f);PoseSpineRigid();}

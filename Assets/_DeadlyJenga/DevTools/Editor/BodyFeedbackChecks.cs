@@ -31,11 +31,23 @@ namespace DeadlyJenga.DevTools.Editor
                 if(!EditorApplication.isPlaying||began<=0)return;
                 if(EditorApplication.timeSinceStartup-began<8)return;
                 began=0;
-                try { RunChecks();File.AppendAllText(Report,"COMPLETE assertions passed; runtime/editor errors observed: "+errors+"\n"); }
+                int exitCode = 2;
+                try
+                {
+                    RunChecks();
+                    File.AppendAllText(Report,"COMPLETE assertions passed; runtime/editor errors observed: "+errors+"\n");
+                    if (errors == 0) exitCode = 0;
+                }
                 catch(Exception e){File.AppendAllText(Report,"FAIL "+e+"\n");}
-                finally{Time.timeScale=1;EditorApplication.ExitPlaymode();}
+                finally
+                {
+                    SessionState.SetInt(Key+"ExitCode",exitCode);
+                    Time.timeScale=1;
+                    EditorApplication.ExitPlaymode();
+                }
                 return;
             }
+            if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
             var path=ProjectPath.Report("BodyFeedback.request");
             if(!File.Exists(path)||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
             if(File.ReadAllText(path).Trim()!=System.Diagnostics.Process.GetCurrentProcess().Id.ToString())return;
@@ -51,14 +63,36 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Saved",JsonUtility.ToJson(new Saved{scenes=scenes}));SessionState.SetBool(Key,true);
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
+        public static void RunSandEngulf()
+        {
+            if (!Application.isBatchMode) throw new InvalidOperationException("Use an isolated batch validation checkout");
+            MatchSetup.MapId = "castle";
+            MatchSetup.ModeId = "demo";
+            MatchSetup.BotTarget = 0;
+            MatchSetup.HandCount = 0;
+            MatchSetup.FromLobby = false;
+            MatchSetup.StartLocalSession = false;
+            SessionState.SetBool(Key+"SandOnly",true);
+            Run();
+        }
         static void State(PlayModeStateChange state)
         {
             if(!SessionState.GetBool(Key,false))return;
             if(state==PlayModeStateChange.EnteredPlayMode){began=EditorApplication.timeSinceStartup;errors=0;Application.logMessageReceived+=OnLog;}
             if(state!=PlayModeStateChange.EnteredEditMode)return;
             Application.logMessageReceived-=OnLog;
+            SessionState.SetBool(Key,false);
+            ValidationRunGate.Release(Key);
+            bool sandOnly = SessionState.GetBool(Key+"SandOnly",false);
+            SessionState.SetBool(Key+"SandOnly",false);
+            if (sandOnly && Application.isBatchMode)
+            {
+                File.AppendAllText(Report,"CLEANUP exited Play Mode in the isolated batch editor\n");
+                EditorApplication.Exit(SessionState.GetInt(Key+"ExitCode",2));
+                return;
+            }
             var saved=JsonUtility.FromJson<Saved>(SessionState.GetString(Key+"Saved",""));
-            SessionState.SetBool(Key,false);EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);ValidationRunGate.Release(Key);
+            EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
             File.AppendAllText(Report,"CLEANUP restored Edit Mode scenes\n");
         }
         static void OnLog(string message,string stack,LogType type)
@@ -96,6 +130,11 @@ namespace DeadlyJenga.DevTools.Editor
             var own=match.Frame.players.First(p=>p.id==match.LocalActorId);
             match.Frame.phase=RoundPhase.Playing;match.Rules.healthEnabled=true;
             own.alive=true;own.dying=false;own.role="survivor";own.spectating=null;own.health=1;own.sinking=false;
+            if (SessionState.GetBool(Key+"SandOnly",false))
+            {
+                CheckSandEngulf(session,motor,match,camera);
+                return;
+            }
             Property(motor,"GripRemaining",1f);Property(motor,"SprintRequested",false);Property(motor,"Sprinting",false);
             hud.Present(motor,2);
             Check(Field<Canvas>(hud,"canvas")==null||!Field<Canvas>(hud,"canvas").enabled,"Rested, unhurt player has no overlay draw");
@@ -113,11 +152,18 @@ namespace DeadlyJenga.DevTools.Editor
             Property(motor,"GripRemaining",1f);hud.Present(motor,.1f);Check(hud.Opacity>.5f,"Recovery unwinds fatigue instead of popping off");
             hud.Present(motor,2);Check(!canvas.enabled,"Full stamina finishes recovery and removes overlay");
             Property(motor,"SprintRequested",true);hud.Present(motor,2);
-            Check(Field<Vector4>(hud,"state").z==0,"Sprint armed while stationary does not show speed streaks");
-            Property(motor,"Sprinting",true);hud.Present(motor,2);
-            Check(Field<Vector4>(hud,"state").z==1,"Active sprint shows separate peripheral streaks");
+            Check(Field<Vector4>(hud,"state").z==0,"Sprint armed while stationary produces no vignette");
+            Property(motor,"Sprinting",true);hud.Present(motor,.06f);
+            Check(Field<Vector4>(hud,"state").z is >0 and <1,"Sprint vignette fades in");
+            hud.Present(motor,2);
+            Check(Field<Vector4>(hud,"state").z==1,"Active sprint enables the edge vignette");
             var sprint=Capture(camera,canvas,"03-sprinting.png");Object.Destroy(sprint);
-            Property(motor,"SprintRequested",false);Property(motor,"Sprinting",false);own.health=.22f;hud.Present(motor,2);
+            Check(CenterClear(camera,canvas,"03-sprinting",subtleDarkening:true),
+                "Sprint darkens the edges gently and leaves the center clear in actual shader pixels");
+            Property(motor,"SprintRequested",false);Property(motor,"Sprinting",false);hud.Present(motor,.06f);
+            Check(Field<Vector4>(hud,"state").z is >0 and <1,"Sprint vignette fades out");
+            hud.Present(motor,2);Check(!canvas.enabled,"Stopping sprint removes the vignette");
+            own.health=.22f;hud.Present(motor,2);
             var damage=Capture(camera,canvas,"04-injured.png");
             Check(CenterClear(camera,canvas,"04-injured"),"Low-health ink preserves the aim and navigation center");Object.Destroy(damage);
             var health=motor.GetComponent<CandyHealthFeedback>();hud.Present(motor,10);
@@ -172,6 +218,43 @@ namespace DeadlyJenga.DevTools.Editor
             Object.Destroy(baseline);
             Check(!ShaderUtil.GetShaderMessages(material.shader).Any(m=>m.severity==UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error),"No compiled shader errors");
         }
+        static void CheckSandEngulf(CastlePlaySession session, CastleSurvivor motor, IMatchRuntime match, Camera camera)
+        {
+            var engulf = session.GetComponent<CandySandEngulf>();
+            Check(engulf && session.ActiveCamera == camera, "Classic Castle starts with the production sand effect and survivor camera");
+            motor.SetSinking(true, .8f);
+            Call(engulf,"Present",.4f);
+            var quad = Field<GameObject>(engulf,"quad");
+            Check(quad && quad.activeSelf && quad.transform.parent == camera.transform &&
+                Field<Material>(engulf,"material").shader.isSupported, "Sink state activates the supported grain renderer at the survivor camera");
+
+            session.SetMenu(true);
+            Call(engulf,"Present",.01f);
+            Check(!quad.activeSelf, "Opening the menu immediately clears the sand grains while still sinking");
+
+            session.SetMenu(false);
+            motor.InputSuspended = false;
+            Call(engulf,"Present",.4f);
+            Check(quad.activeSelf, "Returning to the survivor view restores the sand grains");
+
+            camera.enabled = false;
+            Call(engulf,"Present",.01f);
+            Check(!quad.activeSelf, "A disabled survivor camera cannot keep the grains visible");
+            camera.enabled = true;
+            Call(engulf,"Present",.4f);
+            Check(quad.activeSelf, "The restored survivor camera can show grains again");
+
+            match.Frame.phase = RoundPhase.Victory;
+            Call(engulf,"Present",.01f);
+            Check(!quad.activeSelf, "Victory clears the grains without waiting for sink state to reset");
+            match.Frame.phase = RoundPhase.Playing;
+            Call(engulf,"Present",.4f);
+            motor.SetSinking(false);
+            Call(engulf,"Present",.1f);
+            Check(quad.activeSelf, "Escaping sand begins a fade");
+            Call(engulf,"Present",.5f);
+            Check(!quad.activeSelf, "The escape fade finishes and disables the renderer");
+        }
         static Texture2D Capture(Camera camera,Canvas overlay,string name)
         {
             if(overlay){overlay.renderMode=RenderMode.ScreenSpaceCamera;overlay.worldCamera=camera;overlay.planeDistance=camera.nearClipPlane+.1f;Canvas.ForceUpdateCanvases();}
@@ -187,7 +270,7 @@ namespace DeadlyJenga.DevTools.Editor
             {var d=a.GetPixel(x,y)-b.GetPixel(x,y);diff=Mathf.Max(diff,Mathf.Abs(d.r),Mathf.Abs(d.g),Mathf.Abs(d.b));}
             return diff;
         }
-        static bool CenterClear(Camera camera, Canvas overlay, string name)
+        static bool CenterClear(Camera camera, Canvas overlay, string name, bool subtleDarkening=false)
         {
             var clear = camera.clearFlags;
             var mask = camera.cullingMask;
@@ -203,13 +286,17 @@ namespace DeadlyJenga.DevTools.Editor
                 foreach (var node in nodes) node.gameObject.layer = 31;
                 camera.cullingMask = 1 << 31;
                 var isolated = Capture(camera, overlay, name+"-overlay.png");
-                bool visiblePeriphery = false;
-                for (int x = 16; x < isolated.width && !visiblePeriphery; x += 43)
-                for (int y = 16; y < isolated.height && !visiblePeriphery; y += 37)
+                float darkening = 0, brightening = 0;
+                for (int x = 16; x < isolated.width; x += 43)
+                for (int y = 16; y < isolated.height; y += 37)
                 {
                     Color delta = isolated.GetPixel(x,y) - reference.GetPixel(x,y);
-                    visiblePeriphery = Mathf.Max(Mathf.Abs(delta.r),Mathf.Abs(delta.g),Mathf.Abs(delta.b)) > .025f;
+                    darkening = Mathf.Max(darkening,-Mathf.Min(delta.r,delta.g,delta.b));
+                    brightening = Mathf.Max(brightening,Mathf.Max(delta.r,delta.g,delta.b));
                 }
+                bool visiblePeriphery = subtleDarkening
+                    ? darkening is >.025f and <.14f && brightening < .015f
+                    : Mathf.Max(darkening,brightening) > .025f;
                 bool clearCenter = visiblePeriphery && CenterDelta(reference, isolated) < .015f;
                 Object.Destroy(reference);
                 Object.Destroy(isolated);

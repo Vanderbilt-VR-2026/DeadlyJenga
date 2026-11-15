@@ -45,7 +45,25 @@ namespace DeadlyJenga.CandyPlayers
             }
             return hand;
         }
+        static class RestPoses
+        {
+            internal static readonly CandyHandSkeleton Left = BuildRest(true, 0), Right = BuildRest(false, 0);
+            internal static readonly CandyHandSkeleton RelaxedLeft = BuildRest(true, .12f), RelaxedRight = BuildRest(false, .12f);
+        }
+        internal readonly bool SamePose(in CandyHandSkeleton other) =>
+            J0 == other.J0 && J1 == other.J1 && J2 == other.J2 && J3 == other.J3 &&
+            J4 == other.J4 && J5 == other.J5 && J6 == other.J6 && J7 == other.J7 &&
+            J8 == other.J8 && J9 == other.J9 && J10 == other.J10 && J11 == other.J11 &&
+            J12 == other.J12 && J13 == other.J13 && J14 == other.J14 && J15 == other.J15 &&
+            J16 == other.J16 && J17 == other.J17 && J18 == other.J18 && J19 == other.J19;
         public static CandyHandSkeleton Rest(bool left,float curl=0)
+        {
+            curl = Mathf.Clamp01(curl);
+            if (curl == 0) return left ? RestPoses.Left : RestPoses.Right;
+            if (curl == .12f) return left ? RestPoses.RelaxedLeft : RestPoses.RelaxedRight;
+            return BuildRest(left, curl);
+        }
+        static CandyHandSkeleton BuildRest(bool left, float curl)
         {
             var data=new CandyHandSkeleton();float sign=left?1:-1;curl=Mathf.Clamp01(curl);
             for(int finger=0;finger<5;finger++)
