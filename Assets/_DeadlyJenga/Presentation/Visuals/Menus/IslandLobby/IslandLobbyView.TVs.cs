@@ -42,19 +42,19 @@ namespace DeadlyJenga.CastlePrototype
             }
             var heading=Label(displays,"LIVE MAYHEM  /  SPECTATOR TV",2030,51,3700,85);heading.fontStyle=FontStyle.Bold;heading.color=new Color(.76f,1,.9f);
             lobby.AddBlocker(wall, new Vector3(0,1.03f,.03f),new Vector3(3.76f,2.05f,.55f));
-            BuildBroadcastTV(wall, feeds, marina);
+            BuildBroadcastTV(wall, feeds);
             foreach(var item in wall.GetComponentsInChildren<Transform>(true))item.gameObject.layer=2;
             var timer=Label(displays,"",2230,55,3700,90);
             timer.color=new Color(1,.87f,.46f);
             feeds.Initialize(session);
             feeds.SetMatchTimer(timer);
         }
-        void BuildBroadcastTV(Transform wall, LobbySpectatorTVWall feeds, bool marina)
+        void BuildBroadcastTV(Transform wall, LobbySpectatorTVWall feeds)
         {
             var cabinet = new GameObject("Live match broadcast TV").transform;
             cabinet.SetParent(wall, false);
-            cabinet.SetLocalPositionAndRotation(new Vector3(marina ? -3.25f : 3.25f, 0, .1f),
-                Quaternion.Euler(0, marina ? -12 : 12, 0));
+            cabinet.SetLocalPositionAndRotation(new Vector3(3.25f, 0, -.12f),
+                Quaternion.Euler(0, 12, 0));
 
             var charcoal = new Color(.045f, .06f, .085f);
             var mint = new Color(.66f, 1, .87f);
