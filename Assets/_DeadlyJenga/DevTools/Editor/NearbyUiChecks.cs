@@ -89,6 +89,9 @@ namespace DeadlyJenga.DevTools.Editor
             Check(fixture.Scans==1,"Opening Bluetooth page scans once");
             var page=Field<GameObject>(home,"bluetoothPage");
             Check(page.activeInHierarchy,"Home Bluetooth page visible");
+            var pageRect=(RectTransform)page.transform;
+            var buttonRects=page.GetComponentsInChildren<Button>().Select(b=>(RectTransform)b.transform).ToArray();
+            Check(buttonRects.All(r=>pageRect.anchoredPosition.y+r.anchoredPosition.y+r.sizeDelta.y/2<190&&pageRect.anchoredPosition.y+r.anchoredPosition.y-r.sizeDelta.y/2>-334),"Home buttons fit between tagline and input-mode control");
             Click(page.transform,"Evan's Room · 1/10 · Request");Check(fixture.LastRequest=="room-0","Named room selection uses stable room ID");
             Click(page.transform,"NEXT");Call(home,"RefreshBluetooth");Click(page.transform,"Taylor's Room · 5/10 · Request");Check(fixture.LastRequest=="room-4","Pagination selects correct room");
             Click(page.transform,"CANCEL REQUEST");Check(fixture.Cancels==1,"Cancel reaches provider");
