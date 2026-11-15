@@ -27,9 +27,9 @@ namespace DeadlyJenga.CastlePrototype
             var ribbon = lid.GetComponent<MeshRenderer>().sharedMaterial;
             var shell = new UnderneathTreeGiftShell();
 
-            AddRoundPiece(frame, shell, "Bottom", GiftPieceRole.Base, baseThickness * .5f,
+            AddRoundPiece(frame, shell, "Bottom", GiftPieceRole.Base, baseThickness * .5f, Quaternion.identity,
                 RoundMesh(radius, 0f, baseThickness, Mathf.PI * 2f, 24), wrap, radius * radius * baseThickness);
-            var lidCollider = AddRoundPiece(frame, shell, "Lid", GiftPieceRole.Lid, top - floor - lidHeight * .5f,
+            var lidCollider = AddRoundPiece(frame, shell, "Lid", GiftPieceRole.Lid, top - floor - lidHeight * .5f, Quaternion.identity,
                 RoundMesh(lidRadius, 0f, lidHeight, Mathf.PI * 2f, 32), ribbon, lidRadius * lidRadius * lidHeight);
             spawnTops.Add(lidCollider);
 
@@ -39,18 +39,16 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < count; i++)
             {
                 var mesh = RoundMesh(radius, radius - thickness, shellHeight, arc - .003f, 5);
-                var part = AddRoundPiece(frame, shell, "Curved wall " + i, GiftPieceRole.Wall,
-                    baseThickness + .018f + shellHeight * .5f, mesh, wrap,
+                AddRoundPiece(frame, shell, "Curved wall " + i, GiftPieceRole.Wall,
+                    baseThickness + .018f + shellHeight * .5f, Quaternion.Euler(0f, -i * 360f / count, 0f), mesh, wrap,
                     radius * thickness * shellHeight * arc);
-                part.transform.localRotation = Quaternion.Euler(0f, -i * 360f / count, 0f);
-                part.attachedRigidbody.rotation = part.transform.rotation;
             }
         }
 
         Collider AddRoundPiece(Transform parent, UnderneathTreeGiftShell shell, string name, GiftPieceRole role,
-            float y, Mesh mesh, Material material, float volume)
+            float y, Quaternion rotation, Mesh mesh, Material material, float volume)
         {
-            var piece = Child(parent, name, Vector3.up * y, Quaternion.identity);
+            var piece = Child(parent, name, Vector3.up * y, rotation);
             piece.gameObject.layer = Layers.Block;
             var shape = piece.gameObject.AddComponent<MeshCollider>();
             shape.sharedMesh = mesh;

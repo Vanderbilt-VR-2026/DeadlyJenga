@@ -15,7 +15,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         const string MapId = "workshop-under-the-tree";
         static string Report => ProjectPath.Report("UnderneathTreePlay.txt");
         static double deadline;
-        static double nextStep;
+        static float impactFixedTime;
         static int phase;
         static UnderneathTreeMap map;
         static Rigidbody loosePanel, looseDrum;
@@ -78,8 +78,6 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 double now = EditorApplication.timeSinceStartup;
                 if (now > deadline)
                     throw new InvalidOperationException("Runtime check timed out at step " + phase + ".");
-                if (now < nextStep)
-                    return;
                 if (phase == 0)
                 {
                     map = Services.World as UnderneathTreeMap;
@@ -119,11 +117,13 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     looseDrum.GetComponent<IPushable>().Push(Vector3.up * 6.5f, null);
                     Require(cream.All(b => !b.isKinematic) && drum.All(b => !b.isKinematic),
                         "base removal breaks a rectangular gift and a heavy wall impact breaks a round gift");
-                    nextStep = now + 1.0;
+                    impactFixedTime = Time.fixedTime;
                     phase++;
                     return;
                 }
 
+                if (Time.fixedTime - impactFixedTime < .75f)
+                    return;
                 Require(Vector3.Distance(initialPanelPosition, loosePanel.position) > .1f,
                     "released rectangular lid is displaced by PhysX");
                 Require(Vector3.Distance(initialDrumPosition, looseDrum.position) > .1f,
@@ -134,6 +134,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Require(map.Revision > revision && map.Blocks.Count == blockCount && map.Blocks.All(b => b.isKinematic),
                     "normal map reset restores the original intact pieces");
                 Require(PieceOrder().SequenceEqual(originalPieces), "map reset preserves deterministic replica body order");
+                var capturedLid = map.Blocks.Single(b => b.transform.parent.name == "Present 01" && b.name == "Lid");
+                map.SetReplica(true);
+                capturedLid.position += Vector3.up * .4f;
+                map.SetReplica(false);
+                Require(!capturedLid.isKinematic && map.Blocks.Count(b => !b.isKinematic) == 1,
+                    "restoring authority keeps the replica piece displaced by the host loose");
                 CheckJunction();
                 Finish(true);
             }

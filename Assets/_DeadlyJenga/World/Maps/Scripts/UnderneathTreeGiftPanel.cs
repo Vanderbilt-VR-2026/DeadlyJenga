@@ -59,6 +59,8 @@ namespace DeadlyJenga.CastlePrototype
 
         internal GiftPieceRole Role { get; private set; }
         UnderneathTreeGiftShell shell;
+        Vector3 wrappedPosition;
+        Quaternion wrappedRotation;
         bool replica;
 
         internal void SetUp(Rigidbody body, Transform visual, UnderneathTreeGiftShell owner, GiftPieceRole role)
@@ -67,11 +69,22 @@ namespace DeadlyJenga.CastlePrototype
             Visual = visual;
             shell = owner;
             Role = role;
+            wrappedPosition = transform.localPosition;
+            wrappedRotation = transform.localRotation;
             shell.Pieces.Add(this);
         }
 
         public void SetReplica(bool value)
         {
+            // Snapshots carry body poses. Pieces displaced by the former host stay loose when authority returns.
+            if (replica && !value && gameObject.activeSelf)
+            {
+                var parent = transform.parent;
+                var localPosition = parent.InverseTransformPoint(Body.position);
+                var localRotation = Quaternion.Inverse(parent.rotation) * Body.rotation;
+                IsLoose |= (localPosition - wrappedPosition).sqrMagnitude > .035f * .035f ||
+                    Quaternion.Angle(localRotation, wrappedRotation) > .85f;
+            }
             replica = value;
             if (value)
                 Body.collisionDetectionMode = CollisionDetectionMode.Discrete;
