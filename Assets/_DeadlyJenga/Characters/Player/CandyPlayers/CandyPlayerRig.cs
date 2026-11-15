@@ -43,7 +43,8 @@ namespace DeadlyJenga.CandyPlayers
         [SerializeField] Color tint;
         float currentSmoothness;
         int colorIndex=int.MinValue;
-        Vector3 previousFeet;
+        Vector3 previousFeet, previousSupportFeet;
+        Transform previousGaitSupport;
         bool gaitReady;
         float walkPhase, sprintBlend;
         Vector3 strideDirection = Vector3.forward;
@@ -97,6 +98,7 @@ namespace DeadlyJenga.CandyPlayers
             RenderPipelineManager.beginCameraRendering-=BeforeCamera;
             RenderPipelineManager.endCameraRendering-=AfterCamera;
             gaitReady=false;
+            previousGaitSupport=null;
             if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;
             RestoreFirstPersonBody();
             if(attachments)attachments.FirstPerson(this,false);
@@ -154,6 +156,7 @@ namespace DeadlyJenga.CandyPlayers
             float bodyYaw=UpdateBodyYaw(frame,forward);
             transform.SetPositionAndRotation(frame.feet,Quaternion.Euler(0f,bodyYaw,0f));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
             transform.localScale=new Vector3(scale/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
+            var motor = actor as CastleSurvivor;
             float dance = downed ? 0 : frame.danceWeight;
             float headY=transform.InverseTransformPoint(frame.head).y;
             float crouch=Mathf.Clamp(headY/1.6f,.4f,1.25f)*(fit?.bodyHeight??1f);
@@ -164,8 +167,17 @@ namespace DeadlyJenga.CandyPlayers
                 Vector3 displacement = frame.feet - previousFeet;
                 float teleportDistance = BodyTeleportDistance * scale;
                 bool resetGait = !gaitReady || displacement.sqrMagnitude > teleportDistance * teleportDistance;
+                Transform support = grounded && motor && motor.StandingSurface ? motor.StandingSurface.transform : null;
+                if (!resetGait && support && support == previousGaitSupport)
+                {
+                    // The floor can carry a planted survivor without taking a step.
+                    Vector3 carry = support.TransformPoint(previousSupportFeet) - previousFeet;
+                    if (carry.sqrMagnitude < teleportDistance * teleportDistance) displacement -= carry;
+                }
                 Vector3 travel = resetGait ? Vector3.zero : Vector3.ProjectOnPlane(displacement, Vector3.up);
                 previousFeet = frame.feet;
+                previousGaitSupport = support;
+                if (support) previousSupportFeet = support.InverseTransformPoint(frame.feet);
                 gaitReady = true;
                 if (resetGait)
                 {
@@ -189,7 +201,7 @@ namespace DeadlyJenga.CandyPlayers
                 walkPhase = frame.hasGaitPhase ? frame.gaitPhase : Mathf.Repeat(walkPhase + cadence * deltaTime, 2f * Mathf.PI);
             }
             float run = grounded && !downed && dance <= .01f ? sprintBlend : 0f;
-            float landing = grounded && !downed && dance <= .01f ? LandingWeight(actor as CastleSurvivor) : 0f;
+            float landing = grounded && !downed && dance <= .01f ? LandingWeight(motor) : 0f;
             float counterSwing = Mathf.Cos(walkPhase);
             torsoOffset.y -= run * (.038f - .017f * Mathf.Abs(counterSwing));
             float stride=grounded?Mathf.Clamp01(locomotionSpeed/2)*.13f:0;
