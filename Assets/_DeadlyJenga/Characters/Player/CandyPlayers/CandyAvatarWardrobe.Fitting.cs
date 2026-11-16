@@ -10,7 +10,7 @@ namespace DeadlyJenga.CandyPlayers
         void BatchPieces(CandyPlayerRig rig)
         {
             var groups=new Dictionary<string,List<Piece>>();
-            foreach(var p in pieces)if(p.renderer is MeshRenderer){string key=p.bone+":"+p.tone+":"+(p.renderer.sharedMaterial?p.renderer.sharedMaterial.GetInstanceID():0);if(!groups.TryGetValue(key,out var group)){group=new List<Piece>();groups[key]=group;}group.Add(p);}
+            foreach(var p in pieces)if(p.renderer is MeshRenderer){string key=p.bone+":"+p.tone+":"+p.shadeable+":"+(p.renderer.sharedMaterial?p.renderer.sharedMaterial.GetInstanceID():0);if(!groups.TryGetValue(key,out var group)){group=new List<Piece>();groups[key]=group;}group.Add(p);}
             foreach(var pair in groups)
             {
                 var group=pair.Value;if(group.Count<2)continue;string key="wardrobe batch:"+CandyPlayerAvatar.StyleBits(appearance)+":"+(uint)appearance.accessories+":"+pair.Key;

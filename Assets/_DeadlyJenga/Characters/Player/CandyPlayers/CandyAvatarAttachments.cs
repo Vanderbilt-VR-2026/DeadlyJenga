@@ -11,6 +11,7 @@ namespace DeadlyJenga.CandyPlayers
         CandyJaguarAppearance jaguar;
         CandyMushroomAppearance mushroom;
         [SerializeField] MeshRenderer[] renderers;
+        MaterialPropertyBlock tintedProperties;
         public AvatarAppearance Appearance=>appearance;
         public void Apply(CandyPlayerRig rig,AvatarAppearance value)
         {
@@ -25,7 +26,13 @@ namespace DeadlyJenga.CandyPlayers
             if(!jaguar)jaguar=GetComponent<CandyJaguarAppearance>();
             if(!jaguar&&(value.accessories&feline)!=0)jaguar=gameObject.AddComponent<CandyJaguarAppearance>();
             if(jaguar)jaguar.Apply(rig,value.accessories);
-            if(renderers!=null&&appearance.accessories==value.accessories){appearance=value;return;}
+            if(renderers!=null&&appearance.accessories==value.accessories)
+            {
+                bool shadeChanged=appearance.hairShade!=value.hairShade;
+                appearance=value;
+                if(shadeChanged)Tint(rig);
+                return;
+            }
             if(renderers!=null)foreach(var r in renderers)if(r){r.gameObject.SetActive(false);Destroy(r.gameObject);}
             appearance=value;var list=new System.Collections.Generic.List<MeshRenderer>();
             for(int i=0;i<32;i++)
@@ -46,6 +53,13 @@ namespace DeadlyJenga.CandyPlayers
         public void Tint(CandyPlayerRig rig)
         {
             if(renderers==null||!rig.bodyRenderer)return;var properties=new MaterialPropertyBlock();rig.bodyRenderer.GetPropertyBlock(properties);
+            if(appearance.skin==AvatarSkin.Default && appearance.hairShade!=AvatarHairShade.Original)
+            {
+                tintedProperties??=new MaterialPropertyBlock();
+                rig.bodyRenderer.GetPropertyBlock(tintedProperties);
+                tintedProperties.SetColor("_BaseColor",CandyCosmeticShade.PlayerShade(rig.BaseAppearanceColor,appearance.hairShade));
+                properties=tintedProperties;
+            }
             foreach(var r in renderers)if(r){r.sharedMaterial=rig.bodyRenderer.sharedMaterial;r.SetPropertyBlock(properties);}
         }
         public void FirstPerson(CandyPlayerRig rig,bool active)

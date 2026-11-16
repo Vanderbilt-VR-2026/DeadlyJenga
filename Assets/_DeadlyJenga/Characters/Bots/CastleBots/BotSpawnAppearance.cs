@@ -19,6 +19,8 @@ namespace DeadlyJenga.CastleBots
         const AvatarAccessory ClosedHeads = AvatarAccessory.PumpkinHelmet | AvatarAccessory.SkeletonMask;
         const AvatarAccessory FaceExtras = AvatarAccessory.LongNose | AvatarAccessory.StrongJaw;
         const AvatarClothing SportsHelmets = AvatarClothing.HockeyHelmet | AvatarClothing.FootballHelmet;
+        const AvatarClothing ShadeableClothing = SportsHelmets | AvatarClothing.Hoodie |
+            AvatarClothing.BowTie | AvatarClothing.RoyalMantle;
 
         static Catalog catalog;
         static AvatarAppearance[] themedSkins, headgear;
@@ -52,7 +54,14 @@ namespace DeadlyJenga.CastleBots
             }
             if (look.accessories == 0 && look.clothing == 0 && look.hair == 0 && look.eyewear == 0)
                 Add(ref look, PickItem(catalog.outfits));
-            return CandyWardrobeCompatibility.Resolve(CandyPlayerAvatar.SanitizeAppearance(look)).effective;
+            look = CandyWardrobeCompatibility.Resolve(CandyPlayerAvatar.SanitizeAppearance(look)).effective;
+            if (look.hair != AvatarHair.None || look.eyewear != AvatarEyewear.None ||
+                look.accessories != AvatarAccessory.None || (look.clothing & ShadeableClothing) != 0)
+            {
+                look.hairShade = (AvatarHairShade)random.Next(
+                    (int)AvatarHairShade.Dark, (int)AvatarHairShade.Light + 1);
+            }
+            return look;
         }
 
         static void LoadCatalog()
