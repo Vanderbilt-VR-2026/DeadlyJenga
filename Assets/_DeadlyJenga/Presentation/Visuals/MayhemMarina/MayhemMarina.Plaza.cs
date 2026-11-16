@@ -80,7 +80,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Box(p, new Vector3(.86f, .2f, .42f), F.Ivory, .07f, false, Quaternion.Euler(0, a + 90, 0));
             }
             // Low lanterns ring the plaza edge so it reads as a stage at every time of day.
-            float[] posts = { -160f, -60f, 44f, 80f, 140f, 180f };
+            float[] posts = { -160f, 140f, 180f };
             foreach (float a in posts)
                 DeckLight(OnPlaza(a, PlazaRadius - .55f, PlazaTop - PlazaCenter.y));
 

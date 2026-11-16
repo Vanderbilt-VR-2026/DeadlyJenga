@@ -15,7 +15,7 @@ namespace DeadlyJenga.CastlePrototype
             bool marina = lobby is IWorldQuery world && world.Radius >= 30;
             if(marina)
             {
-                wall.SetLocalPositionAndRotation(new Vector3(5.10f,1.31f,-.65f),Quaternion.Euler(0,90,0));
+                wall.SetLocalPositionAndRotation(new Vector3(5.25f,1.31f,-4.80f),Quaternion.Euler(0,90,0));
                 wall.localScale=Vector3.one*.88f;
             }
             else

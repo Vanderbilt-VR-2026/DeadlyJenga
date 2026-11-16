@@ -217,25 +217,30 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void Pavilion()
         {
-            Ramp(new Vector3(0,1.285f,3.55f),new Vector3(0,CinemaFloor,5.05f),9.6f,false);
-            mesh.Box(new Vector3(0,CinemaFloor-.3f,8.475f),new Vector3(15.8f,.6f,6.85f),F.Stone,0,true);
-            for(int side=-1;side<=1;side+=2)
-                mesh.Box(new Vector3(side*6.35f,CinemaFloor-.3f,4.2f),new Vector3(3.1f,.6f,1.7f),F.Stone,0,true);
+            Ramp(new Vector3(0,PlazaTop,CinemaFront-2),new Vector3(0,CinemaFloor,CinemaFront),9.6f,false);
+            float depth=CinemaBack-CinemaFront;
+            float center=(CinemaFront+CinemaBack)*.5f;
+            mesh.Box(new Vector3(0,CinemaFloor-.3f,center),new Vector3(15.8f,.6f,depth),F.Stone,0,true);
+            foreach (float side in new[]{-1f,1f})
+                Rail(new Vector3(side*7.78f,CinemaFloor,CinemaFront+.5f),new Vector3(side*7.78f,CinemaFloor,2.0f));
             WardrobeConnector();
             mesh.Box(new Vector3(0,3.7f,11.65f),new Vector3(15.8f,4.0f,.5f),F.Teal,.2f,true);
-            mesh.CurvedRoof(new Vector3(0,5.95f,7.65f),17.1f,10.1f,2.08f,F.Teal);
-            mesh.Box(new Vector3(0,5.58f,3.71f),new Vector3(5.5f,.95f,.24f),F.DarkWood,.085f);
+            mesh.CurvedRoof(new Vector3(0,5.95f,center),17.1f,depth+2.0f,2.08f,F.Teal);
+            mesh.Box(CinemaSign,new Vector3(5.5f,.95f,.24f),F.DarkWood,.085f);
             for(int side=-1;side<=1;side+=2)
-                mesh.Beam(new Vector3(side*2,5.98f,3.77f),new Vector3(side*2,7.78f,3.77f),.055f,F.Brass);
+                mesh.Beam(CinemaSign+new Vector3(side*2,.4f,.06f),CinemaSign+new Vector3(side*2,2.2f,.06f),.055f,F.Brass);
             for(int side=-1;side<=1;side+=2)
             {
                 float x=side*7.4f;
-                mesh.Box(new Vector3(x,CinemaFloor+.17f,3.9f),new Vector3(.78f,.34f,.78f),F.Stone,.08f,true);
-                mesh.Beam(new Vector3(x,CinemaFloor+.22f,3.9f),new Vector3(x,6.65f,3.9f),.18f,F.DarkWood,true);
-                mesh.Beam(new Vector3(x,5.08f,3.9f),new Vector3(side*6.55f,6.95f,3.9f),.13f,F.DarkWood);
-                Lantern(new Vector3(x,4.4f,3.55f),.16f);
+                float z=CinemaFront+.45f;
+                mesh.Box(new Vector3(x,CinemaFloor+.17f,z),new Vector3(.78f,.34f,.78f),F.Stone,.08f,true);
+                mesh.Beam(new Vector3(x,CinemaFloor+.22f,z),new Vector3(x,6.65f,z),.18f,F.DarkWood,true);
+                mesh.Beam(new Vector3(x,5.08f,z),new Vector3(side*6.55f,6.95f,z),.13f,F.DarkWood);
+                Lantern(new Vector3(x,4.4f,z-.35f),.16f);
             }
             BuildBeachCinema();
+            Lantern(new Vector3(-3.4f,5.46f,2.6f),.21f);
+            Lantern(new Vector3(3.4f,5.46f,2.6f),.21f);
             Lantern(new Vector3(-3.8f,5.35f,8.3f),.22f);
             Lantern(new Vector3(3.8f,5.35f,8.3f),.22f);
         }

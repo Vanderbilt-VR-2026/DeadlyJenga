@@ -14,10 +14,13 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Vector3 PlazaCenter = new(0, 1.31f, -3.6f);
         public const float PlazaRadius = 7.2f;
         public const float CinemaFloor = 1.86f;
-        public static readonly Vector3 CinemaTable = new(0, CinemaFloor + .91f, 6.6f);
+        const float CinemaFront = -2.2f;
+        const float CinemaBack = 11.9f;
+        static readonly Vector3 CinemaSign = new(0, 5.58f, CinemaFront - .25f);
+        public static readonly Vector3 CinemaTable = new(0, CinemaFloor + .91f, 2.75f);
         static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, -90, 0);
         static readonly Quaternion FameTurn = Quaternion.Euler(0, 90, 0);
-        public static readonly Vector3 Wardrobe = new(-5.12f, CinemaFloor + .22f, 7.05f);
+        public static readonly Vector3 Wardrobe = new(-5.12f, CinemaFloor + .22f, 3.25f);
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
         public static readonly Quaternion CodeKeyboardFacing = Quaternion.Euler(61, 0, 0);
@@ -26,9 +29,9 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Vector3 StyleMirror = Wardrobe + StyleStageTurn * new Vector3(0, 1.85f, 1.88f);
         public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;
         // The compact recent-match board sits behind the winners' steps.
-        public static readonly Vector3 FameBoard = new(7.34f, CinemaFloor + 2.9f, 7.4f);
+        public static readonly Vector3 FameBoard = new(7.34f, CinemaFloor + 2.9f, 3.65f);
         public static readonly Quaternion FameFacing = FameTurn;
-        internal static readonly Vector3 FamePodium = new(5.9f, CinemaFloor, 7.4f);
+        internal static readonly Vector3 FamePodium = new(5.9f, CinemaFloor, 3.65f);
         internal static readonly Vector3[] FameSteps = { new(0,.6f,0), new(-1.15f,.4f,0), new(1.15f,.26f,0) };
         internal const float FameStepCap = .03f;
         public bool Built {get;private set;}
@@ -467,7 +470,7 @@ namespace DeadlyJenga.CandyArt.Marina
             Sign("BEACON WALK", BeaconWalkGate + BeaconWalkFacing * Vector3.back * .13f, .048f, cream,
                 BeaconWalkFacing.eulerAngles);
             Sign("LOUNGE  /  POOL  >", new Vector3(6.65f, 2.635f, 3.56f), .032f, cream);
-            Sign("BEACHSIDE CINEMA", new Vector3(0, 5.58f, 3.58f), .051f, cream);
+            Sign("BEACHSIDE CINEMA", CinemaSign + Vector3.back * .13f, .051f, cream);
             var styleBase = new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z);
             Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.72f, 1.95f), .085f, cream, StyleStageTurn.eulerAngles);
 
