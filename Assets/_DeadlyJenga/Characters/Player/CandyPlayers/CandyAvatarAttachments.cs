@@ -23,7 +23,7 @@ namespace DeadlyJenga.CandyPlayers
             if(!wardrobe)wardrobe=GetComponent<CandyAvatarWardrobe>();if(!wardrobe)wardrobe=gameObject.AddComponent<CandyAvatarWardrobe>();
             wardrobe.Apply(rig,value);
             if(!mushroom)mushroom=GetComponent<CandyMushroomAppearance>();
-            bool showMushroom=value.skin==AvatarSkin.MushroomSprite&&!value.poweredArmor;
+            bool showMushroom=value.skin==AvatarSkin.MushroomSprite&&!value.poweredArmor&&!wardrobe.UsesApprovedSkin;
             if(!mushroom&&showMushroom)mushroom=gameObject.AddComponent<CandyMushroomAppearance>();
             if(mushroom)mushroom.Apply(rig,showMushroom,(value.accessories&CandyHeadgearMeshes.ReplacementHeads)!=0);
             const AvatarAccessory feline=AvatarAccessory.PantherHead|AvatarAccessory.PantherClaws|AvatarAccessory.PantherTail;

@@ -176,7 +176,13 @@ namespace DeadlyJenga.DevTools.Editor
             setup.rules.automaticDisasters = false;
             details.ConfigureSetup(setup);
             Check(lobby.SelectMode("demo") && lobby.SelectMap("castle"), "Classic Castle solo demo selected");
-            Check(lobby.GetComponent<MarinaScreen>().Invoke("marina-play"), "Marina Play starts travel");
+            var screen = lobby.GetComponent<MarinaScreen>();
+            // The terminal re-arms on the next neutral frame after the wardrobe closes.
+            deadline = Time.realtimeSinceStartup + 4;
+            bool started = false;
+            while (!(started = screen.Invoke("marina-play")) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            Check(started, "Marina Play starts travel after the wardrobe closes");
             deadline = Time.realtimeSinceStartup + 45;
             while ((!(Services.Session is CastlePlaySession) || !NetworkActors.Alive(Services.Session.Player))
                 && Time.realtimeSinceStartup < deadline) yield return null;

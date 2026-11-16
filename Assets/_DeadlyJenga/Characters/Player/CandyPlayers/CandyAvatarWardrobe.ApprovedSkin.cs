@@ -15,6 +15,7 @@ namespace DeadlyJenga.CandyPlayers
         Material[] baseSkinBodyMaterials, baseSkinHeadMaterials;
         CandyAvatarDetail skinDetail;
         bool baseSkinBodyVisible;
+        internal bool UsesApprovedSkin => approvedOriginal;
 
         bool TryUseApprovedSkin(CandyPlayerRig rig)
         {
