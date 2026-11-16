@@ -28,10 +28,11 @@ namespace DeadlyJenga.DevTools.Editor
             bool terminalAppearance=SessionState.GetBool(Key+"TerminalAppearance",false);
             if(terminalAppearance)
             {
-                CaptureCabinet(lobby,false);CaptureCabinet(lobby,true);
+                CaptureCabinet(lobby,false);yield return null;yield return null;CaptureCabinet(lobby,true);
                 var shell=lobby.GetComponent<MayhemMarina>();
                 File.AppendAllText(Report,"GEOMETRY render="+shell.RenderTriangles+" collision="+shell.CollisionTriangles+"\n");
             }
+            if(SessionState.GetBool(Key+"CabinetOnly",false))yield break;
             var target=((IEnumerable)Field<object>(marina,"targets")).Cast<object>().Single(t=>Field<string>(t,"id")=="marina-play");
             Field<Action>(target,"action")();
             float deadline=Time.realtimeSinceStartup+60;
