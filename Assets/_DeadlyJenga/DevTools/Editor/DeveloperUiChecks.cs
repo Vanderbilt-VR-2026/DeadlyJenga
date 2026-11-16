@@ -27,8 +27,11 @@ namespace DeadlyJenga.DevTools.Editor
         static IEnumerator run;
         [Serializable] sealed class Saved {public SceneSetup[] scenes;}
         static DeveloperUiChecks(){EditorApplication.playModeStateChanged+=State;EditorApplication.update+=Tick;}
-        public static void Run()
+        public static void Run()=>Begin(false);
+        public static void RunDialogs()=>Begin(true);
+        static void Begin(bool dialogs)
         {
+            SessionState.SetBool(Key+"Dialogs",dialogs);
             if(!Application.isBatchMode)throw new Exception("Use an isolated checked batch");
             var scenes=EditorSceneManager.GetSceneManagerSetup();
             if(scenes.Any(s=>s.isLoaded&&(string.IsNullOrEmpty(s.path)||EditorSceneManager.GetSceneByPath(s.path).isDirty)))throw new Exception("Unsaved scenes preserved");
@@ -144,6 +147,8 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(Object.FindObjectsByType<CastleWorldMenu>(FindObjectsSortMode.None).Count(x=>x.gameObject.activeInHierarchy)==1,"Exactly one rendered tablet: "+file);
                 Capture(camera,menu.GetComponent<Canvas>(),file);
             }
+            if(!SessionState.GetBool(Key+"Dialogs",false))
+            {
             Draw();
             var grid=Field<RectTransform>(menu,"tabletDeveloperGrid");
             var tiles=grid.GetComponentsInChildren<Button>();
@@ -219,13 +224,14 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return Shot("32-disaster-"+disaster.ToString("00")+"-tuning.png");
             }
             Back();Back();
-            CharacterPicker.Open(session);yield return null;
+            }
+            CharacterPicker.Open(session);yield return null;yield return null;
             var appearance=Object.FindFirstObjectByType<CharacterPicker>();Check(appearance,"Hand appearance panel opens");
             Capture(camera,Field<Canvas>(appearance,"panel"),"33-hand-appearance.png");Call(appearance,"Close",true);
             yield return null;
             GameExperiencePanel.Open(session);yield return null;
             var experience=session.GetComponent<GameExperiencePanel>();Check(experience,"Round setup panel opens");
-            Capture(camera,Field<Canvas>(experience,"canvas"),"34-round-setup.png");Call(experience,"Close",true);
+            Capture(camera,Field<Canvas>(experience,"canvas"),"34-round-setup.png",Field<RectTransform>(experience,"panel"));Call(experience,"Close",true);
             yield return null;menu.Show(true,camera);Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Developer"));Draw();
             var god=session.Player.gameObject.GetComponent<IDeveloperGodMode>();Check(god?.CanSetGodMode==true,"God Mode permitted in local Demo");
             TabletClick(menu,"God mode");Check(god.GodModeEnabled,"God Mode toggles on");
@@ -252,17 +258,17 @@ namespace DeadlyJenga.DevTools.Editor
             typeof(SessionPresentation).GetField("inputFocused",Flags).SetValue(presentation,true);
             session.SetMenu(false);
         }
-        static void Capture(Camera camera,Canvas canvas,string name)
+        static void Capture(Camera camera,Canvas canvas,string name,RectTransform framingRect=null)
         {
             var mode=canvas.renderMode;var worldCamera=canvas.worldCamera;var distance=canvas.planeDistance;
             var position=camera.transform.position;var rotation=camera.transform.rotation;
             // Frame the real world-locked tablet independently of the player's settling/falling motion.
-            var rect=(RectTransform)canvas.transform;
+            var rect=framingRect?framingRect:(RectTransform)canvas.transform;
             float halfHeight=rect.rect.height*Mathf.Abs(rect.lossyScale.y)*.5f;
             float halfWidth=rect.rect.width*Mathf.Abs(rect.lossyScale.x)*.5f;
             float tangent=Mathf.Tan(camera.fieldOfView*Mathf.Deg2Rad*.5f);
             float framing=Mathf.Max(halfHeight/(tangent*.82f),halfWidth/(tangent*1.6f*.82f));
-            camera.transform.SetPositionAndRotation(canvas.transform.position-canvas.transform.forward*framing,canvas.transform.rotation);
+            camera.transform.SetPositionAndRotation(rect.position-rect.forward*framing,rect.rotation);
             var target=new RenderTexture(1600,1000,24);var pixels=new Texture2D(1600,1000,TextureFormat.RGB24,false);var previous=camera.targetTexture;var active=RenderTexture.active;
             try{if(mode==RenderMode.ScreenSpaceOverlay){canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=camera;canvas.planeDistance=1;}camera.targetTexture=target;Canvas.ForceUpdateCanvases();camera.Render();RenderTexture.active=target;pixels.ReadPixels(new Rect(0,0,1600,1000),0,0);pixels.Apply();File.WriteAllBytes(Path.Combine(Output,name),pixels.EncodeToPNG());}
             finally{camera.transform.SetPositionAndRotation(position,rotation);canvas.renderMode=mode;canvas.worldCamera=worldCamera;canvas.planeDistance=distance;camera.targetTexture=previous;RenderTexture.active=active;target.Release();Object.DestroyImmediate(target);Object.DestroyImmediate(pixels);}
