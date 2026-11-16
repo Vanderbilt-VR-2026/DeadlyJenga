@@ -321,7 +321,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 if(child.name.StartsWith("Cinema title",StringComparison.Ordinal))child.gameObject.SetActive(!visiting);
             matchReturn.gameObject.SetActive(visiting);
             matchReturnTitle.text=MatchEnded?"View results":lobby.CanStart?"Return to match":"Watching match";
-            matchAction.gameObject.SetActive(visiting&&(MatchEnded||Review?.DevelopmentReviewEnabled==true));
+            matchAction.gameObject.SetActive(visiting&&(MatchEnded||Review?.CanEndGame==true));
             matchActionTitle.text=MatchEnded?(CanConfigureNext?"Configure next match":MatchRuntime.Current?.Authority==true?"Finishing round…":"Host sets next match"):
                 Time.unscaledTime<endMatchConfirmUntil?"Confirm end match":"End match";
             if(!visiting||MatchEnded)endMatchConfirmUntil=0;
@@ -349,8 +349,8 @@ namespace DeadlyJenga.CandyArt.Marina
                 playlist?(experience.LocalReady?"READY":"GO"):lobby.StartPending?"Cancel start":"Start match";
             joinTitle.text=visiting?"Room info":"Room code";
             hostTitle.text=visiting?"Room info":lobby.Connected?(lobby.IsHost?"Manage room":"Create room"):"Create room";
-            joinStatus.text=visiting?"Match in progress":lobby.Busy?"Connecting…":lobby.Connected?"In a room":"Find your friends";
-            hostStatus.text=visiting?"Match in progress":lobby.Busy?"Working…":lobby.IsHost&&lobby.Connected?"You are host":lobby.Connected?"Joined as guest":"Host your friends";
+            joinStatus.text=visiting?(MatchEnded?"Match complete":"Match in progress"):lobby.Busy?"Connecting…":lobby.Connected?"In a room":"Find your friends";
+            hostStatus.text=visiting?(MatchEnded?"Match complete":"Match in progress"):lobby.Busy?"Working…":lobby.IsHost&&lobby.Connected?"You are host":lobby.Connected?"Joined as guest":"Host your friends";
             var details=lobby as ILobbyDetails;
             string nextMode=details?.SelectedModeId??"mystery",nextMap=details?.SelectedMapId??"castle";
             if(modeId!=nextMode)
