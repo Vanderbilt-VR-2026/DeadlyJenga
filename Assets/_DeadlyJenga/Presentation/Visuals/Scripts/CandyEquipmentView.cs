@@ -267,7 +267,7 @@ namespace DeadlyJenga.Presentation
                 }
                 status.text=Name(equipment.kind)+mode+ammo+"\n"+controlsHint;
             }
-            else status.text=equipment==null||equipment.kind==EquipmentKind.None?"":Name(equipment.kind)+"   "+Mathf.CeilToInt(equipment.remaining)+"s";
+            else status.text=equipment==null||equipment.kind is EquipmentKind.None or EquipmentKind.Speed or EquipmentKind.Jump?"":Name(equipment.kind)+"   "+Mathf.CeilToInt(equipment.remaining)+"s";
             weaponOutline.sprite=equipment!=null?CandyWeaponIcons.Get(equipment.kind,equipment.shotgun):null;
             weaponOutline.enabled=weaponOutline.sprite;
             status.rectTransform.offsetMin=new Vector2(weaponOutline.enabled?66:10,4);
