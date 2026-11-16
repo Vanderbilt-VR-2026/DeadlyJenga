@@ -178,7 +178,7 @@ namespace DeadlyJenga.Presentation
                 right[i] = MakeRow("Infection standing " + (i + 1), 32 - i * 43);
             }
             title.resizeTextForBestFit=true;title.resizeTextMinSize=20;title.resizeTextMaxSize=30;
-            TerminalUiStyle.Apply(root.transform);
+            DeadlyJenga.CastlePrototype.TerminalUiStyle.Apply(root.transform);
             Draw();
         }
 
