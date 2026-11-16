@@ -12,7 +12,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
     public static class TreeDisasterChecks
     {
         const string Pending="TreeDisasters.Pending", Failed="TreeDisasters.Failed";
-        static readonly string[] Cases={"PowerOutage","EvilSanta","CatAttack","OrnamentShower","PlanetKillerOrnament","Earthquake"};
+        static readonly string[] AllCases={"PowerOutage","EvilSanta","CatAttack","OrnamentShower","PlanetKillerOrnament","Earthquake"};
+        static string[] Cases=>SessionState.GetBool("TreeDisasters.Detail",false)?new[]{"EvilSanta","CatAttack","Earthquake"}:AllCases;
         static string Report=>ProjectPath.Report("TreeDisasters.txt");
         static string Folder=>Path.Combine(Path.GetDirectoryName(Report),"TreeDisasterEvidence");
         static double deadline;
@@ -23,7 +24,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static bool seen,hit,shot;
         static Vector3 firstCat;
         static TestDummy dummy;
-        public static void Run()
+        public static void Run(){SessionState.SetBool("TreeDisasters.Detail",false);Begin();}
+        public static void RunDetail(){SessionState.SetBool("TreeDisasters.Detail",true);Begin();}
+        static void Begin()
         {
             if(!Application.isBatchMode||EditorApplication.isPlayingOrWillChangePlaymode)throw new Exception("Use checked batch editor");
             if(!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))throw new Exception("Missing disaster validator");
@@ -59,7 +62,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 if(stage==0)
                 {
                     Check((world as ISyncedWorld)?.SaveLayout()=="underneath-the-tree-v6-underpass","correct runtime map");
-                    Check(DemoDisasters.Prefabs.Select(p=>p.name).OrderBy(n=>n).SequenceEqual(Cases.OrderBy(n=>n)),"Tree catalog contains exactly the six requested disasters");
+                    Check(DemoDisasters.Prefabs.Select(p=>p.name).OrderBy(n=>n).SequenceEqual(AllCases.OrderBy(n=>n)),"Tree catalog contains exactly the six requested disasters");
                     Capture("00-before");stage=1;ended=Time.time;
                 }
                 if(stage==1&&Time.time-ended>.4f)
@@ -103,16 +106,24 @@ namespace DeadlyJenga.CastlePrototype.Editor
                             hit|=world.Blocks.Count(b=>b&&!b.isKinematic)>0;
                         }
                         if(!shot&&elapsed>2&&(Cases[index]!="CatAttack"||Vector3.Distance(f.points[0].position,world.PlayableBounds.center)<55))
-                        {Capture((index+1).ToString("00")+"-"+Cases[index]);shot=true;}
+                        {
+                            Capture((index+1).ToString("00")+"-"+Cases[index]);
+                            if(Cases[index]=="CatAttack"||Cases[index]=="EvilSanta")
+                            {
+                                var p=f.points[0];var forward=p.velocity.normalized;
+                                Capture(Cases[index]+"-close",p.position+forward*70-Vector3.Cross(Vector3.up,forward)*45+Vector3.up*(Cases[index]=="EvilSanta"?80:55),p.position+Vector3.up*(Cases[index]=="EvilSanta"?65:25));
+                            }
+                            shot=true;
+                        }
                     }
-                    if(index>0)hit|=world.Blocks.Any(b=>b&&!b.isKinematic);
+                    if(Cases[index]!="PowerOutage")hit|=world.Blocks.Any(b=>b&&!b.isKinematic);
                     bool naturallyEnded=!hazard.Active;
                     bool enough=elapsed>(Cases[index]=="Earthquake"?12:Cases[index]=="CatAttack"?30:Cases[index]=="PlanetKillerOrnament"?12:7);
                     if(naturallyEnded||enough)
                     {
                         Check(seen,Cases[index]+" publishes active visual state");
                         if(!hit)Capture("failed-"+Cases[index]);
-                        Check(hit,Cases[index]+(index==0?" switches off room lights":" releases real map rigidbodies"));
+                        Check(hit,Cases[index]+(Cases[index]=="PowerOutage"?" switches off room lights":" releases real map rigidbodies"));
                         if(dummy){Check(dummy.Health<dummy.MaxHealth,"one passing cat damages staged survivor receiver");UnityEngine.Object.Destroy(dummy.gameObject);dummy=null;}
                         if(Cases[index]=="CatAttack")Check(naturallyEnded,"single cat completes its run and ends");
                         hazard.End();Check(state.Capture()==null,Cases[index]+" ends and removes active state");
@@ -121,19 +132,19 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 }
                 if(stage==3&&Time.time-ended>.7f)
                 {
-                    if(index==0)
+                    if(Cases[index]=="PowerOutage")
                     {Check(UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Any(l=>l.name=="Amber lamplight and ceiling bounce"&&l.enabled),"outage restores room lights");Capture("01-outage-restored");}
-                    if(index>0)Capture((index+1).ToString("00")+"-aftermath");
+                    if(Cases[index]!="PowerOutage")Capture((index+1).ToString("00")+"-aftermath");
                     ((IRebuildable)world).Rebuild();index++;ended=Time.time;stage=1;
                 }
             }
             catch(Exception e)
             {File.AppendAllText(Report,"FAIL "+e+"\n");SessionState.SetBool(Failed,true);EditorApplication.ExitPlaymode();}
         }
-        static void Capture(string name)
+        static void Capture(string name,Vector3? eye=null,Vector3? target=null)
         {
             var go=new GameObject("Tree hazard test camera");var camera=go.AddComponent<Camera>();camera.CopyFrom(Services.Session.ActiveCamera);camera.enabled=false;
-            camera.transform.position=new Vector3(38,125,-208);camera.transform.LookAt(new Vector3(-91,35,-94));camera.fieldOfView=75;
+            camera.transform.position=eye??new Vector3(38,125,-208);camera.transform.LookAt(target??new Vector3(-91,35,-94));camera.fieldOfView=eye.HasValue?55:75;
             var rt=new RenderTexture(1280,720,24);var prior=RenderTexture.active;
             try
             {

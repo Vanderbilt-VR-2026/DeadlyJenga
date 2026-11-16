@@ -120,9 +120,11 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     if (!source || source.GetComponent<IHazard>() == null || force.sqrMagnitude < .000001f)
                         return;
-                    if (Time.time - lastStrain > .3f) hazardStrain = 0;
-                    lastStrain = Time.time;
-                    hazardStrain += force.magnitude;
+                    float interval = lastStrain > 0 ? Time.fixedTime - lastStrain : Time.fixedDeltaTime;
+                    if (interval > 3f) { hazardStrain = 0; interval = Time.fixedDeltaTime; }
+                    lastStrain = Time.fixedTime;
+                    // Mobile hazards visit bodies in batches; fatigue represents elapsed shaking time.
+                    hazardStrain += force.magnitude * Mathf.Clamp(interval / Time.fixedDeltaTime, 1f, 64f);
                     float fatigue = 24f + Mathf.Abs(Mathf.Sin(wrappedPosition.x * 3.17f + wrappedPosition.z * 7.31f)) * 72f;
                     if (hazardStrain < fatigue) return;
                     force = force.normalized * 1.5f;
