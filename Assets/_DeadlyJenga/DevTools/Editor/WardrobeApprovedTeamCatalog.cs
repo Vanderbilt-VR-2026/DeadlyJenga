@@ -76,12 +76,20 @@ namespace DeadlyJenga.DevTools.Editor
                     return;
                 }
                 EditorApplication.update -= CaptureWhenReady;
-                Object.Destroy(batch.Pixels);
+                if (!File.Exists(Path.Combine(output,"skin-errors.txt")))
+                {
+                    AssetDatabase.SaveAssets();
+                    var folder = batch.AssetFolder;
+                    var destination = Path.Combine(output, "WardrobeSkins");
+                    Directory.CreateDirectory(destination);
+                    foreach (var file in Directory.GetFiles(folder)) File.Copy(file, Path.Combine(destination, Path.GetFileName(file)));
+                    File.Copy(folder + ".meta", destination + ".meta");
+                }
                 batch=null;
                 if (File.Exists(Path.Combine(output,"skin-errors.txt")))
                     throw new InvalidOperationException("One or more approved skins failed capture.");
-                File.WriteAllText(Path.Combine(output,"catalog-complete.txt"),"57 approved skins, 741 images.");
-                Debug.Log("WARDROBE_APPROVED_TEAM_CATALOG_COMPLETE 741 images.");
+                File.WriteAllText(Path.Combine(output,"catalog-complete.txt"),"57 approved originals plus accepted team variants exported.");
+                Debug.Log("WARDROBE_APPROVED_TEAM_CATALOG_COMPLETE asset export.");
             }
             catch (Exception error)
             {
@@ -113,6 +121,7 @@ namespace DeadlyJenga.DevTools.Editor
             public Texture2D Pixels;
             public List<Recipe> Recipes;
             public int Index;
+            public string AssetFolder;
             public readonly Dictionary<string, Assembly> Assemblies = new Dictionary<string, Assembly>();
         }
 
@@ -140,58 +149,141 @@ namespace DeadlyJenga.DevTools.Editor
             }
             if (recipes.Count != 57 || ModeNames.Colors.Length != 12)
                 throw new InvalidOperationException("Unexpected catalog or team color count.");
-            return new Batch { Output=output, Stage=stage, Pixels=new Texture2D(720,720,TextureFormat.RGB24,false),
-                Recipes=recipes };
+            var catalog = Resources.Load<TextAsset>("WardrobeCatalog");
+            string resources = Path.GetDirectoryName(AssetDatabase.GetAssetPath(catalog)).Replace('\\','/');
+            AssetDatabase.CreateFolder(resources, "WardrobeSkins");
+            string assetFolder = resources + "/WardrobeSkins";
+            return new Batch { Output=output, Stage=stage, AssetFolder=assetFolder, Recipes=recipes };
         }
 
         static void CaptureSkin(Batch batch, Recipe recipe)
         {
-            var rows = new List<string>();
-            if (recipe.Dll == "-")
+            if (recipe.Dll != "-")
             {
-                Bounds frame = default;
-                for (int team=-1; team<ModeNames.Colors.Length; team++)
-                {
-                    Color? color = team < 0 ? null : ModeNames.Colors[team];
-                    var avatar = NewRig(recipe.Skin, batch.Stage.transform);
-                    try
-                    {
-                        using var rabbit = recipe.Skin == AvatarSkin.Rabbit ? new CaramelRabbitPreview() : null;
-                        using var store = recipe.Skin == AvatarSkin.Rabbit ? null : new StoreSkinPreview(color);
-                        if (rabbit != null) rabbit.Apply(avatar,true,color);
-                        else store.Apply(avatar,recipe.Skin);
-                        var measured = (Bounds)Call("Measure",avatar);
-                        if (team < 0) frame=measured;
-                        Color actual = avatar.bodyRenderer.sharedMaterial.GetColor("_BaseColor");
-                        if (color.HasValue && color.Value != actual)
-                            throw new InvalidOperationException($"Accepted palette did not apply to {recipe.Skin}");
-                        Shot(batch,recipe.Skin,team,frame,rows);
-                    }
-                    finally { Remove(avatar); }
-                }
-            }
-            else
-            {
-                var avatar = NewRig(recipe.Skin,batch.Stage.transform);
+                var avatar = NewRig(recipe.Skin, batch.Stage.transform);
                 try
                 {
-                    using var design = ApplyRecordedRecipe(batch, recipe, avatar);
-                    var frame = (Bounds)Call("Measure",avatar);
-                    var surfaces = TeamSurfaces(avatar,recipe.Skin);
-                    if (surfaces.Count == 0) throw new InvalidOperationException($"No team surfaces on {recipe.Skin}");
-                    Shot(batch,recipe.Skin,-1,frame,rows);
-                    var properties = new MaterialPropertyBlock();
-                    for (int team=0; team<ModeNames.Colors.Length; team++)
-                    {
-                        foreach (var item in surfaces) ApplyTint(item,ModeNames.Colors[team],properties);
-                        Shot(batch,recipe.Skin,team,frame,rows);
-                    }
+                    using var look = ApplyRecordedRecipe(batch, recipe, avatar);
+                    Export(batch, avatar, recipe.Skin.ToString());
+                }
+                finally { Remove(avatar); }
+                return;
+            }
+            for (int team = -1; team < ModeNames.Colors.Length; team++)
+            {
+                Color? color = team < 0 ? null : ModeNames.Colors[team];
+                string name = recipe.Skin.ToString();
+                if (color.HasValue) name += "-" + ColorUtility.ToHtmlStringRGB(color.Value);
+                var avatar = NewRig(recipe.Skin, batch.Stage.transform);
+                try
+                {
+                    using var rabbit = recipe.Skin == AvatarSkin.Rabbit ? new CaramelRabbitPreview() : null;
+                    using var store = recipe.Skin == AvatarSkin.Rabbit ? null : new StoreSkinPreview(color);
+                    if (rabbit != null) rabbit.Apply(avatar, true, color);
+                    else store.Apply(avatar, recipe.Skin);
+                    if (color.HasValue && avatar.bodyRenderer.sharedMaterial.GetColor("_BaseColor") != color.Value)
+                        throw new InvalidOperationException("Approved team palette did not apply to " + name);
+                    Export(batch, avatar, name);
                 }
                 finally { Remove(avatar); }
             }
+        }
 
-            File.AppendAllLines(Path.Combine(batch.Output,"catalog.tsv"),rows);
-            Debug.Log($"WARDROBE_CATALOG_SKIN {recipe.Skin} {batch.Index+1}/{batch.Recipes.Count}");
+        static void Export(Batch batch, CandyPlayerRig rig, string id)
+        {
+            var asset = ScriptableObject.CreateInstance<WardrobeSkinAsset>();
+            string path = batch.AssetFolder + "/" + id + ".asset";
+            AssetDatabase.CreateAsset(asset, path);
+            var saved = new Dictionary<Object, Object>();
+            var bones = new Dictionary<Transform, int>();
+            for (int index = 0; index < rig.BoneCount; index++) bones[rig.AppearanceBone(index)] = index;
+            bones[rig.SpineBone] = rig.BoneCount;
+            bones[rig.ChestBone] = rig.BoneCount + 1;
+
+            T Persist<T>(T source) where T : Object
+            {
+                if (!source || AssetDatabase.Contains(source)) return source;
+                if (saved.TryGetValue(source, out var existing)) return (T)existing;
+                var copy = Object.Instantiate(source);
+                copy.name = source.name + " " + saved.Count;
+                saved.Add(source, copy);
+                if (copy is Material material)
+                    foreach (var property in material.GetTexturePropertyNames())
+                        material.SetTexture(property, Persist(material.GetTexture(property)));
+                AssetDatabase.AddObjectToAsset(copy, asset);
+                return copy;
+            }
+
+            Material[] Materials(Renderer renderer)
+            {
+                var materials = renderer.sharedMaterials;
+                var block = new MaterialPropertyBlock();
+                for (int slot = 0; slot < materials.Length; slot++)
+                {
+                    var source = materials[slot];
+                    if (!source) continue;
+                    renderer.GetPropertyBlock(block, slot);
+                    if (block.isEmpty) renderer.GetPropertyBlock(block);
+                    if (block.isEmpty)
+                    {
+                        materials[slot] = Persist(source);
+                        continue;
+                    }
+                    var copy = new Material(source) { name = source.name };
+                    foreach (var property in new[] { "_BaseColor", "_EmissionColor" })
+                        if (block.HasColor(property)) copy.SetColor(property, block.GetColor(property));
+                    foreach (var property in new[] { "_Smoothness", "_Metallic" })
+                        if (block.HasFloat(property)) copy.SetFloat(property, block.GetFloat(property));
+                    materials[slot] = Persist(copy);
+                    Object.Destroy(copy);
+                }
+                return materials;
+            }
+
+            int BoneIndex(Transform bone)
+            {
+                if (!bone || bone == rig.transform) return -1;
+                if (bones.TryGetValue(bone, out var index)) return index;
+                throw new InvalidOperationException("Unbound wardrobe bone " + bone.name);
+            }
+
+            asset.headScale = rig.HeadAnchor.localScale;
+            asset.bodyMesh = Persist(rig.bodyRenderer.sharedMesh);
+            asset.headMesh = Persist(rig.headRenderer.sharedMesh);
+            asset.bodyMaterials = Materials(rig.bodyRenderer);
+            asset.headMaterials = Materials(rig.headRenderer);
+            asset.bodyVisible = rig.bodyRenderer.enabled && !rig.bodyRenderer.forceRenderingOff;
+            asset.headVisible = rig.headRenderer.enabled && !rig.headRenderer.forceRenderingOff;
+            var parts = new List<WardrobeSkinAsset.Part>();
+            foreach (var renderer in rig.GetComponentsInChildren<Renderer>())
+            {
+                if (!renderer.enabled || renderer.forceRenderingOff || renderer == rig.bodyRenderer || renderer == rig.headRenderer) continue;
+                var skinned = renderer as SkinnedMeshRenderer;
+                Mesh mesh = skinned ? skinned.sharedMesh : renderer.GetComponent<MeshFilter>()?.sharedMesh;
+                if (!mesh) continue;
+                var anchor = renderer.transform.parent;
+                while (anchor && anchor != rig.transform && !bones.ContainsKey(anchor)) anchor = anchor.parent;
+                if (!anchor) throw new InvalidOperationException("Unbound wardrobe part " + renderer.name);
+                Matrix4x4 relative = anchor.worldToLocalMatrix * renderer.localToWorldMatrix;
+                parts.Add(new WardrobeSkinAsset.Part
+                {
+                    label = renderer.name,
+                    anchor = BoneIndex(anchor),
+                    position = relative.GetColumn(3),
+                    rotation = relative.rotation,
+                    scale = relative.lossyScale,
+                    mesh = Persist(mesh),
+                    materials = Materials(renderer),
+                    shadows = renderer.shadowCastingMode,
+                    bones = skinned ? Array.ConvertAll(skinned.bones, BoneIndex) : null,
+                    rootBone = skinned ? BoneIndex(skinned.rootBone) : -1,
+                    bounds = skinned ? skinned.localBounds : mesh.bounds
+                });
+            }
+            asset.parts = parts.ToArray();
+            EditorUtility.SetDirty(asset);
+            AssetDatabase.SaveAssetIfDirty(asset);
+            File.AppendAllText(Path.Combine(batch.Output, "skin-assets.txt"), id + ": " + parts.Count + " parts\n");
         }
 
         static CandyPlayerRig NewRig(AvatarSkin skin, Transform stage)
