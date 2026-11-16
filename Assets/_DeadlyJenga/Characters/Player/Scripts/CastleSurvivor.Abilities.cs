@@ -6,8 +6,21 @@ namespace DeadlyJenga.CastlePrototype
 {
     // How the survivor responds to the shared abilities in Core.
     // Teleport(position, rotation) already exists in CastleSurvivor.cs.
-    public sealed partial class CastleSurvivor : IPushable, IDamageable, IAffectable, ITeleportable, IMovementState, IPlayerView, IHazardMotion
+    public sealed partial class CastleSurvivor : IPushable, IDamageable, IAffectable, ITeleportable, IMovementState, IPlayerView, IHazardMotion, IDeveloperGodMode
     {
+        bool developerGodMode;
+        public bool CanSetGodMode => !externallyDriven && ReferenceEquals(Services.Session?.Player,this) &&
+            Services.Session?.Demo?.CanCommand==true && Services.Session.Demo.DemoMode &&
+            MatchRuntime.Current?.Authority==true && MatchRuntime.Current.Rules.mode==GameModeKind.Demo;
+        public bool GodModeEnabled => developerGodMode && CanSetGodMode;
+        public void SetGodMode(bool enabled)
+        {
+            if(enabled&&!CanSetGodMode)return;
+            developerGodMode=enabled;
+            if(enabled)Revive();
+            ClearHoverFlight();ResetClimb(true);Vaulting=false;support=null;
+            verticalSpeed=peakFallSpeed=0;slopeVelocity=iceVelocity=Vector3.zero;
+        }
         [Header("Health")]
         public float maxHealth = 100;
         [Min(0)] public float healthRecoveryDelay = 10;
@@ -39,6 +52,7 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Damage(float amount, GameObject source)
         {
+            if(GodModeEnabled)return;
             if(ParticipationBlocked)return;
             if (eliminated || amount <= 0 || float.IsNaN(amount) || float.IsInfinity(amount)) return;
             health = Mathf.Max(0, Health - amount);
@@ -49,6 +63,7 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Eliminate(GameObject source)
         {
+            if(GodModeEnabled)return;
             if(ParticipationBlocked)return;
             if (eliminated) return;
             ClearSprint();ClearMovementPowerups();

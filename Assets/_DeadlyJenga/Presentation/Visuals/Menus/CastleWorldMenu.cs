@@ -109,6 +109,9 @@ namespace DeadlyJenga.CastlePrototype
             if(!tuningPage)handPhysicsPage=false;
             if(PointNavigation(pressed))return;
             if(PointMapControls(camera,pressed))return;
+            if(developerRoute.Length>0&&!developerChild){PointDeveloperRoute(pressed);return;}
+            if(tabletDeveloperDetails&&mapPage){PointTabletMapPage(camera,pressed);return;}
+            if(spectatePage){PointSpectatePage(camera,pressed);return;}
             if(giveEquipmentPage){PointGiveEquipmentPage(camera,pressed);return;}
             if(randomPowerupPage){PointRandomPowerups(camera,pressed);return;}
             if(powerupPage){PointPowerupPage(camera,pressed);return;}

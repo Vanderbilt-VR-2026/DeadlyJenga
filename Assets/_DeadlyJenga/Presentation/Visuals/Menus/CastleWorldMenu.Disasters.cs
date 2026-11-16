@@ -8,6 +8,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class CastleWorldMenu
     {
         int disasterSelection=-1;
+        bool developerDisasterTuning;
         Slider[] disasterSliders;
         Text[] disasterCaptions;
         BoxCollider[] disasterHits;
@@ -49,12 +50,13 @@ namespace DeadlyJenga.CastlePrototype
                 heading.rectTransform.anchoredPosition=new Vector2(0,232);
                 heading.fontSize=24;
                 ButtonAt(1,Demo.DisasterIsToggle(disasterSelection)?"Toggle on / off":"Launch disaster",175,allowed);
-                for(int i=0;i<definitions.Count&&i<8;i++)
+                ButtonAt(9,(developerDisasterTuning?"Hide":"Show")+" tuning",123);
+                for(int i=0;developerDisasterTuning&&i<definitions.Count&&i<8;i++)
                 {
                     if(definitions[i].whole&&definitions[i].min==0&&definitions[i].max==1)
-                    {switchParameter=i;ButtonAt(11,definitions[i].label+" · "+(values[i]>.5f?"ON":"OFF"),118-i*44,allowed);continue;}
+                    {switchParameter=i;ButtonAt(11,definitions[i].label+" · "+(values[i]>.5f?"ON":"OFF"),70-i*39,allowed);continue;}
                     var slider=disasterSliders[i];var p=definitions[i];syncingDisasterSliders=true;slider.minValue=p.min;slider.maxValue=p.max;slider.wholeNumbers=p.whole;slider.SetValueWithoutNotify(values[i]);syncingDisasterSliders=false;
-                    slider.interactable=allowed;slider.gameObject.SetActive(true);((RectTransform)slider.transform).anchoredPosition=new Vector2(0,118-i*44);UpdateCaption(i,disasterSelection);
+                    slider.interactable=allowed;slider.gameObject.SetActive(true);((RectTransform)slider.transform).anchoredPosition=new Vector2(0,70-i*39);UpdateCaption(i,disasterSelection);
                 }
                 ButtonAt(10,"Stop all disasters",-235,allowed);ButtonAt(12,"◄ Back to disasters",-287);
             }
@@ -66,8 +68,9 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if(!buttons[i].gameObject.activeSelf)continue;
                 bool hover=Hit(targets[i],ray);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover?CandyHudVisuals.Ink:Color.white;
-                if(!hover||!pressed)continue;
+                if(!hover||!pressed||!targets[i].enabled)continue;
                 if(i==0)session.SetMenu(false);
+                else if(i==9)developerDisasterTuning=!developerDisasterTuning;
                 else if(i==10)Demo?.Run(DemoCommand.StopDisasters);
                 else if(i==12)disasterSelection=-1;
                 else if(i==11&&switchParameter>=0)Demo.SetDisasterValue(disasterSelection,switchParameter,Demo.DisasterValues(disasterSelection)[switchParameter]>.5f?0:1);

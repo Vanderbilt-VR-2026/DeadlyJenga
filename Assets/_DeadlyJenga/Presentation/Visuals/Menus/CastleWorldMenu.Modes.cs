@@ -328,50 +328,72 @@ namespace DeadlyJenga.CastlePrototype
                 return;
             }
         }
+        bool developerModeAdvanced;
+        FieldInfo developerModeChoice;
         void PointModePage(Camera camera,bool pressed)
         {
-            var match=MatchRuntime.Current;if(match==null){modePage=modeWheel=false;return;}
-            if(modeWheel){PointModeWheel(match,pressed);return;}
+            var match=MatchRuntime.Current;
+            if(match==null){CloseDeveloperDetails();return;}
+            HideDisasterSliders();
+            if(modeWheelUI)modeWheelUI.SetActive(false);
             var rules=match.Rules;
-            var fields=modeOffset==0?quickModeFields:modeFields;
-            int pageStart=modeOffset==0?0:modeOffset-1;
-            heading.text="MATCH RULES / SCENERY\n"+rules.mode+" · "+match.Frame.phase;
-            HideDisasterSliders();bool canConfigure=match.Authority||(rules.mode==GameModeKind.Demo&&Services.Session?.Demo?.CanCommand==true);
-            for(int i=0;i<buttons.Length;i++){buttons[i].gameObject.SetActive(true);targets[i].enabled=i==0||canConfigure;}
-            labels[0].text="Back to demo";labels[1].text="Start / restart round";labels[2].text="Skin: "+rules.environmentSkin;
-            for(int i=3;i<=9;i++){int index=pageStart+i-3;if(index<fields.Length){var field=fields[index];labels[i].text=ModeSetupPanel.Label(field.Name)+": "+field.GetValue(rules);if(field.Name=="mode"){labels[i].text="Open game mode wheel";targets[i].enabled=match.Authority;}}else buttons[i].gameObject.SetActive(false);}
-            labels[10].text="HUD / standings / tuning";labels[11].text="Temporary team hand power";labels[12].text=modeOffset==0?"Common settings":"Previous settings";labels[13].text=modeOffset==0?"Advanced settings":"More settings";labels[14].text="Sea spirit / tabletop AR";
-            var mystery=match as IMysteryControls;
-            if(mystery?.Active==true){labels[11].text="Special punch: "+(mystery.Personal.specialAttack?"ON":"OFF");labels[14].text="Demo role: "+mystery.Personal.role;targets[11].enabled=true;}
-            targets[10].enabled=targets[12].enabled=targets[13].enabled=targets[14].enabled=true;
-            if(!DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session))
+            bool canConfigure=(match.Authority||(rules.mode==GameModeKind.Demo&&CanCommand))&&GameExperiencePanel.CanEditRawChoices(session);
+            var names=new List<string>();var actions=new List<Action>();var enabled=new List<bool>();
+            var art=new List<CandyHudIcon>();var captions=new List<string>();var pictures=new List<Texture>();
+            void Add(string name,Action action,bool available=true)
+            {names.Add(name);actions.Add(action);enabled.Add(available);art.Add(CandyHudIcon.Settings);captions.Add("");pictures.Add(null);}
+            heading.text="DEVELOPER / MODE";
+            help.text=canConfigure?"Choose a value. Advanced rules stay collapsed until needed.":"Mode rules are read only without host permission.";
+            void Apply(FieldInfo field,object value)
             {
-                heading.text="CURATED GAME PROFILE / READ ONLY";
-                for(int i=0;i<targets.Length;i++)if(i!=0&&i!=10&&i!=12&&i!=13&&!(i==14&&mystery?.Active!=true))targets[i].enabled=false;
+                if(!canConfigure)return;
+                var copy=field.Name=="mode"?ModeDefaults.Create((GameModeKind)value):rules.Copy();
+                field.SetValue(copy,value);match.Configure(copy);developerModeChoice=null;
             }
-            var ray=pointerRay;
-            for(int i=0;i<buttons.Length;i++)
+            if(developerModeChoice!=null)
             {
-                if(!buttons[i].gameObject.activeSelf)continue;bool hover=Hit(targets[i],ray);buttons[i].image.color=!targets[i].enabled?CandyHudVisuals.Ink:hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=!targets[i].enabled?CandyHudVisuals.Muted:hover?CandyHudVisuals.Ink:Color.white;
-                if(!hover||!pressed||!targets[i].enabled)continue;
-                if(mystery?.Active==true&&i==11){mystery.SetSpecialAttack(!mystery.Personal.specialAttack);return;}
-                if(mystery?.Active==true&&i==14){if(match.Authority)mystery.SetDemoRole((MysteryRole)(1+(int)mystery.Personal.role%3));return;}
-                if(i==0){modePage=false;return;}if(i==12){modeOffset=Mathf.Max(0,modeOffset-7);return;}if(i==13){modeOffset=modeOffset==0?1:modeOffset+7>modeFields.Length?0:modeOffset+7;return;}if(i==14){modePage=false;tabletopPage=true;return;}
-                if(i==10){modePage=false;hudPage=true;return;}
-                if(i==11){match.ActivateHandPower(rules.handPowerSeconds);return;}
-                if(i==1){match.StartRound();return;}var copy=rules.Copy();
-                if(i==2)copy.environmentSkin=CandySceneSkins.Names[(DeadlyJenga.Presentation.CandyMatchVisuals.SkinIndex(copy.environmentSkin)+1)%CandySceneSkins.Names.Length];
+                var field=developerModeChoice;
+                Add("Close "+ModeSetupPanel.Label(field.Name)+" choices",()=>developerModeChoice=null);
+                if(field.FieldType.IsEnum)
+                {
+                    foreach(var value in Enum.GetValues(field.FieldType))
+                    {var choice=value;Add(choice.ToString(),()=>Apply(field,choice),canConfigure);}
+                }
                 else
                 {
-                    var f=fields[pageStart+i-3];var type=f.FieldType;
-                    if(f.Name=="mode"){modeWheel=true;return;}
-                    if(type==typeof(bool))f.SetValue(copy,!(bool)f.GetValue(copy));
-                    else if(type.IsEnum){var values=Enum.GetValues(type);var next=values.GetValue((Array.IndexOf(values,f.GetValue(copy))+1)%values.Length);if(f.Name=="mode")copy=ModeDefaults.Create((GameModeKind)next);else f.SetValue(copy,next);}
-                    else if(type==typeof(float)||type==typeof(int)){ModeSetupPanel.Range(f.Name,out float min,out float max);float next=Convert.ToSingle(f.GetValue(copy))+Mathf.Max(type==typeof(int)?1:.1f,(max-min)/20);if(next>max)next=min;if(type==typeof(int))f.SetValue(copy,Mathf.RoundToInt(next));else f.SetValue(copy,next);}
+                    ModeSetupPanel.Range(field.Name,out float min,out float max);
+                    float current=Convert.ToSingle(field.GetValue(rules));
+                    float step=Mathf.Max(field.FieldType==typeof(int)?1:.1f,(max-min)/20);
+                    Add(ModeSetupPanel.Label(field.Name)+": "+current.ToString("0.##"),()=>{},false);
+                    foreach(int direction in new[]{-1,1})
+                    {
+                        int delta=direction;
+                        Add(delta<0?"Decrease":"Increase",()=>{
+                            var copy=match.Rules.Copy();float next=Mathf.Clamp(Convert.ToSingle(field.GetValue(copy))+delta*step,min,max);
+                            if(field.FieldType==typeof(int))field.SetValue(copy,Mathf.RoundToInt(next));else field.SetValue(copy,next);
+                            match.Configure(copy);
+                        },canConfigure);
+                    }
                 }
-                match.Configure(copy);return;
             }
-            help.text="Look + trigger / pinch to cycle a value. More settings reveals all mode options.";
+            else
+            {
+                var fields=developerModeAdvanced?modeFields.Where(f=>!commonModeFields.Contains(f.Name)).ToArray():quickModeFields;
+                int start=developerModeAdvanced?modeOffset:0;
+                for(int i=start;i<Mathf.Min(fields.Length,start+9);i++)
+                {
+                    var field=fields[i];
+                    if(field.FieldType==typeof(string))continue;
+                    Add(ModeSetupPanel.Label(field.Name)+": "+field.GetValue(rules)+(field.FieldType.IsEnum?"  v":""),()=>{
+                        if(field.FieldType==typeof(bool))Apply(field,!(bool)field.GetValue(rules));else developerModeChoice=field;
+                    },canConfigure);
+                }
+                Add((developerModeAdvanced?"Hide":"Show")+" advanced rules",()=>{developerModeAdvanced=!developerModeAdvanced;modeOffset=0;});
+                if(developerModeAdvanced&&modeOffset>0)Add("Previous rules",()=>modeOffset=Mathf.Max(0,modeOffset-9));
+                if(developerModeAdvanced&&modeOffset+9<fields.Length)Add("Next rules",()=>modeOffset+=9);
+                Add("Start / restart round",match.StartRound,canConfigure);
+            }
+            RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);
         }
         void PointHudPage(Camera camera,bool pressed)
         {

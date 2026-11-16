@@ -674,17 +674,19 @@ namespace DeadlyJenga.CastlePrototype
             DeveloperTile(tabletDeveloperGrid,"Weapons",0,CandyHudIcon.Trigger,OpenWeaponWheel,
                 ()=>CanCommand&&MatchRuntime.Current is IDemoEquipmentControls,
                 CandyEquipmentView.Outline(EquipmentKind.Blaster),opensDetails:false);
-            DeveloperTile(tabletDeveloperGrid,"Bots",1,CandyHudIcon.Survivor,()=>{menuCategory=1;menuSection=-1;});
-            // Disasters, Map & Mode and Rebuild live under More tools > Match (Disasters, Maps, Modes, World).
-            DeveloperTile(tabletDeveloperGrid,"Spectate",2,CandyHudIcon.Look,()=>spectatePage=true,
-                ()=>session is not ILobbyControls);
-            // Closes the tablet and shows your avatar from outside. V (or Done in VR) returns to first person.
-            DeveloperTile(tabletDeveloperGrid,"Third person",3,CandyHudIcon.Survivor,()=>session.Player?.ThirdPerson?.Begin(),
+            DeveloperTile(tabletDeveloperGrid,"Bots",1,CandyHudIcon.Survivor,()=>OpenDeveloperRoute("Bots"));
+            DeveloperTile(tabletDeveloperGrid,"Disasters",2,CandyHudIcon.Flight,()=>{ResetPages();disasterPage=true;},()=>Demo!=null);
+            DeveloperTile(tabletDeveloperGrid,"Map",3,CandyHudIcon.Home,()=>{ResetPages();mapPage=true;menuSection=1;});
+            DeveloperTile(tabletDeveloperGrid,"Mode",4,CandyHudIcon.Play,()=>{ResetPages();if(session is ILobbyControls){mapPage=true;menuSection=0;}else modePage=modeWheel=true;});
+            DeveloperTile(tabletDeveloperGrid,"Third person",5,CandyHudIcon.Look,()=>session.Player?.ThirdPerson?.Begin(),
                 ()=>session.Player?.ThirdPerson?.CanInspect==true,opensDetails:false);
-
-            // Last row: one wide cell across both columns for "More tools"
-            TabletControl(tabletActions,tabletDeveloperGrid,()=>"More tools",new Vector2(0,-158),new Vector2(1004,104),
-                ()=>ShowDeveloperDetails(()=>{}),accent:CandyHudVisuals.Lavender,font:39);
+            DeveloperTile(tabletDeveloperGrid,"God mode",6,CandyHudIcon.Survivor,ToggleDeveloperGodMode,
+                ()=>DeveloperGodMode?.CanSetGodMode==true,opensDetails:false,title:()=>"God mode: "+(DeveloperGodMode?.GodModeEnabled==true?"ON":"OFF"));
+            DeveloperTile(tabletDeveloperGrid,"\u00d7 Coming soon",7,CandyHudIcon.Key,()=>{},()=>false,opensDetails:false);
+            DeveloperTile(tabletDeveloperGrid,"\u00d7 Coming soon",8,CandyHudIcon.Key,()=>{},()=>false,opensDetails:false);
+            DeveloperTile(tabletDeveloperGrid,"Rebuild",9,CandyHudIcon.Home,()=>session.ResetMap(),()=>session.CanEditWorld,opensDetails:false);
+            DeveloperTile(tabletDeveloperGrid,"Spectate",10,CandyHudIcon.Look,()=>{ResetPages();spectatePage=true;},()=>session is not ILobbyControls);
+            DeveloperTile(tabletDeveloperGrid,"More tools",11,CandyHudIcon.Settings,()=>OpenDeveloperRoute("More tools"));
 
             BuildTabletWeaponWheel(page);
         }
@@ -961,17 +963,17 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         void DeveloperTile(RectTransform page,string label,int slot,CandyHudIcon icon,Action action,
-            Func<bool> allowed=null,Texture picture=null,bool opensDetails=true)
+            Func<bool> allowed=null,Texture picture=null,bool opensDetails=true,Func<string> title=null)
         {
-            Vector2 position=new(slot%2==0?-257:257,98-slot/2*128);
-            var tile=TabletControl(tabletActions,page,()=>label,position,new(490,104),
-                ()=>{if(opensDetails)ShowDeveloperDetails(action);else action();},allowed:allowed,font:39);
-            tile.Label.rectTransform.anchoredPosition=new Vector2(52,0);
-            tile.Label.rectTransform.sizeDelta=new Vector2(345,88);
+            Vector2 position=new((slot%3-1)*344,122-slot/3*108);
+            var tile=TabletControl(tabletActions,page,title??(()=>label),position,new(326,94),
+                ()=>{if(opensDetails)ShowDeveloperDetails(action);else action();},allowed:allowed,font:27);
+            tile.Label.rectTransform.anchoredPosition=new Vector2(39,0);
+            tile.Label.rectTransform.sizeDelta=new Vector2(234,82);
             var approved=Resources.Load<Texture2D>("PlayerTabletArt/"+label);
             Texture art=approved?approved:picture?picture:CandyHudVisuals.Icon(icon);
-            float scale=Mathf.Min(137f/art.width,90f/art.height);
-            TabletPicture((RectTransform)tile.Button.transform,art,new(-163,0),
+            float scale=Mathf.Min(72f/art.width,72f/art.height);
+            TabletPicture((RectTransform)tile.Button.transform,art,new(-119,0),
                 new(art.width*scale,art.height*scale));
         }
 
@@ -988,6 +990,8 @@ namespace DeadlyJenga.CastlePrototype
 
         void CloseDeveloperDetails()
         {
+            developerRoute="";developerChild=false;
+            ResetPages();
             tabletDeveloperDetails = false;
             disasterPage = false;
             disasterSelection = -1;
@@ -1027,6 +1031,8 @@ namespace DeadlyJenga.CastlePrototype
         void OnDeveloperBackClicked()
         {
             if (!IsDevBackButtonActive()) return;
+            if(modePage&&developerModeChoice!=null){developerModeChoice=null;return;}
+            if(developerRoute.Length>0){if(developerChild){ResetPages();developerChild=false;}else CloseDeveloperDetails();return;}
 
             if (comfortSliderOpen)
             {

@@ -158,6 +158,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             Capsule.excludeLayers=TraversalCollision.Unified?0:1<<Layers.Block;
             RefreshMode();
+            if(developerGodMode&&!CanSetGodMode)SetGodMode(false);
             if(UpdateSpectatorParticipation())return;
             if (IsVR)
             {
@@ -244,6 +245,22 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             else ResetVRJump();
+            if(GodModeEnabled)
+            {
+                verticalSpeed=peakFallSpeed=0;slopeVelocity=iceVelocity=Vector3.zero;
+                Grounded=false;Vaulting=false;support=null;
+                if(!InputSuspended&&vrInputFocused&&viewCamera&&Capsule.enabled)
+                {
+                    // Look where you want to fly. Stick/Shift is a momentary fast speed; release to brake.
+                    float speed=(sprintHeld?18f:3f)*playerScale;
+                    var direction=viewCamera.transform.forward*walking.y+viewCamera.transform.right*walking.x;
+                    if(held)direction+=Vector3.up;
+                    if(!IsVR&&Keyboard.current?.leftCtrlKey.isPressed==true)direction+=Vector3.down;
+                    Capsule.Move(Vector3.ClampMagnitude(direction,1)*speed*Mathf.Min(Time.deltaTime,.05f));
+                    ActionStatus=sprintHeld?"God flight: FAST":"God flight: SLOW";
+                }
+                return;
+            }
             var equipped=equipmentControls?.Equipment;
             bool flyingSuit=!externallyDriven&&equipped?.kind==EquipmentKind.PoweredArmor&&equipped.drawn;
             if(flyingSuit){ResetVRJump();pressed=held=false;walking=Vector2.zero;}

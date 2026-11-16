@@ -1,0 +1,151 @@
+using System;
+using System.Collections;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using DeadlyJenga.Core;
+using DeadlyJenga.Core.Testing;
+using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.Presentation;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.UI;
+using Object=UnityEngine.Object;
+
+namespace DeadlyJenga.DevTools.Editor
+{
+    [InitializeOnLoad]
+    public static class DeveloperUiChecks
+    {
+        const string Key="DeveloperUiChecks",NameKey="DeadlyJenga.PlayerName.v1";
+        static readonly BindingFlags Flags=BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic;
+        static string Output=>Path.GetDirectoryName(ProjectPath.Report("DeveloperUi/report.txt"));
+        static string Report=>Path.Combine(Output,"report.txt");
+        static double started;
+        static int errors;
+        [Serializable] sealed class Saved {public SceneSetup[] scenes;}
+        static DeveloperUiChecks(){EditorApplication.playModeStateChanged+=State;EditorApplication.update+=Tick;}
+        public static void Run()
+        {
+            if(!Application.isBatchMode)throw new Exception("Use an isolated checked batch");
+            var scenes=EditorSceneManager.GetSceneManagerSetup();
+            if(scenes.Any(s=>s.isLoaded&&(string.IsNullOrEmpty(s.path)||EditorSceneManager.GetSceneByPath(s.path).isDirty)))throw new Exception("Unsaved scenes preserved");
+            if(!ValidationRunGate.TryAcquire(Key))throw new Exception("Editor already has a validation owner");
+            Directory.CreateDirectory(Output);
+            File.WriteAllText(Report,"Actual Game scene and production menu, scripted pointer/binding checks. No physical headset or multiplayer proof.\n");
+            SessionState.SetString(Key+"Scenes",JsonUtility.ToJson(new Saved{scenes=scenes}));
+            SessionState.SetBool(Key+"HadName",PlayerPrefs.HasKey(NameKey));
+            SessionState.SetString(Key+"Name",PlayerPrefs.GetString(NameKey,""));
+            SessionState.SetBool(Key,true);SessionState.SetInt(Key+"Exit",2);
+            SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
+            SessionState.SetBool(Key+"FromLobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);
+            MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
+            EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+            EditorApplication.EnterPlaymode();
+        }
+        static void State(PlayModeStateChange state)
+        {
+            if(!SessionState.GetBool(Key,false))return;
+            if(state==PlayModeStateChange.EnteredPlayMode){started=EditorApplication.timeSinceStartup;errors=0;Application.logMessageReceived+=Log;}
+            if(state!=PlayModeStateChange.EnteredEditMode)return;
+            Application.logMessageReceived-=Log;
+            MatchSetup.FromLobby=SessionState.GetBool(Key+"FromLobby");MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local");
+            SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices")));
+            if(SessionState.GetBool(Key+"HadName",false))PlayerPrefs.SetString(NameKey,SessionState.GetString(Key+"Name",""));else PlayerPrefs.DeleteKey(NameKey);
+            PlayerPrefs.Save();
+            try
+            {
+                var saved=JsonUtility.FromJson<Saved>(SessionState.GetString(Key+"Scenes","")).scenes;
+                if(saved.Any(s=>s.isLoaded)&&saved.Count(s=>s.isActive)==1)EditorSceneManager.RestoreSceneManagerSetup(saved);
+                else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+                File.AppendAllText(Report,"CLEANUP restored name preference and initial scene state.\n");
+            }
+            catch(Exception e){File.AppendAllText(Report,"CLEANUP FAIL "+e+"\n");SessionState.SetInt(Key+"Exit",2);}
+            finally{SessionState.SetBool(Key,false);ValidationRunGate.Release(Key);EditorApplication.Exit(SessionState.GetInt(Key+"Exit",2));}
+        }
+        static void Log(string text,string stack,LogType type){if(type is LogType.Error or LogType.Exception or LogType.Assert){errors++;File.AppendAllText(Report,"ERROR "+text+"\n"+stack+"\n");}}
+        static void Tick()
+        {
+            if(!SessionState.GetBool(Key,false)||!EditorApplication.isPlaying||started==0||EditorApplication.timeSinceStartup-started<2)return;
+            if(!(Services.Session is CastlePlaySession ready&&ready.Modes&&Services.World!=null)&&EditorApplication.timeSinceStartup-started<60)return;
+            started=0;
+            try{Checks();Check(errors==0,"No runtime errors during menu checks");SessionState.SetInt(Key+"Exit",0);File.AppendAllText(Report,"COMPLETE UI assertions passed.\n");}
+            catch(Exception e){File.AppendAllText(Report,"FAIL "+e+"\n");}
+            finally{EditorApplication.ExitPlaymode();}
+        }
+        static void Check(bool value,string label){File.AppendAllText(Report,(value?"PASS ":"FAIL ")+label+"\n");if(!value)throw new Exception(label);}
+        static T Field<T>(object obj,string name)=>(T)obj.GetType().GetField(name,Flags).GetValue(obj);
+        static object Call(object obj,string name,params object[] args)=>obj.GetType().GetMethod(name,Flags).Invoke(obj,args);
+        static void Click(Transform root,string text)
+        {
+            var button=root.GetComponentsInChildren<Button>().Single(b=>b.GetComponentInChildren<Text>()?.text==text);
+            Check(button.interactable,"Button available: "+text);button.onClick.Invoke();
+        }
+        static void TabletClick(CastleWorldMenu menu,string prefix)
+        {
+            Call(menu,"PointPlayerTablet",Camera.main,false,false);
+            var entries=((IEnumerable)Field<object>(menu,"tabletActions")).Cast<object>();
+            var entry=entries.First(e=>Field<Button>(e,"Button").gameObject.activeInHierarchy&&Field<Func<string>>(e,"Title")().StartsWith(prefix,StringComparison.Ordinal));
+            Check(Field<Func<bool>>(entry,"Allowed")?.Invoke()!=false,"Tablet command available: "+prefix);
+            Field<Action>(entry,"Select")();Call(menu,"RefreshTabletNearby");Call(menu,"PointPlayerTablet",Camera.main,false,false);
+        }
+        static void Checks()
+        {
+            var session=Services.Session as CastlePlaySession;
+            Check(session&&session.Modes&&Services.World!=null,"Actual Game initializes");
+            session.SurvivorBots.AutoFill=false;
+            GameExperiencePanel.Resolve(session)?.SetExperience(GameExperience.Demo);
+            session.Modes.Configure(ModeDefaults.Create(GameModeKind.Demo));
+            var camera=session.ActiveCamera;Check(camera,"Session camera available");
+            var menu=new GameObject("Developer overhaul validation",typeof(RectTransform)).AddComponent<CastleWorldMenu>();
+            menu.Build(session);menu.Show(true,camera);
+            var pageType=typeof(CastleWorldMenu).GetNestedType("TabletPage",BindingFlags.NonPublic);
+            Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Developer"));
+            void Draw(){Call(menu,"PointPlayerTablet",camera,false,false);Canvas.ForceUpdateCanvases();Physics.SyncTransforms();}
+            void Back(){Call(menu,"OnDeveloperBackClicked");Draw();}
+            void Row(string prefix)
+            {
+                Draw();var labels=Field<Text[]>(menu,"labels");var targets=Field<BoxCollider[]>(menu,"targets");
+                int index=Array.FindIndex(labels,x=>x.gameObject.activeInHierarchy&&x.text.Contains(prefix));
+                Check(index>=0&&targets[index].enabled,"Row available: "+prefix);
+                var target=targets[index];
+                typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,target.bounds.center-camera.transform.position));
+                Call(menu,"PointPlayerTablet",camera,true,false);Draw();
+            }
+            void Shot(string file){Draw();Capture(camera,menu.GetComponent<Canvas>(),file);}
+            Draw();
+            var grid=Field<RectTransform>(menu,"tabletDeveloperGrid");
+            var tiles=grid.GetComponentsInChildren<Button>();
+            Check(tiles.Length==12,"Developer has exactly twelve tiles");
+            Check(tiles.Select(x=>((RectTransform)x.transform).anchoredPosition.x).Distinct().Count()==3,"Three columns");
+            Check(tiles.Select(x=>((RectTransform)x.transform).anchoredPosition.y).Distinct().Count()==4,"Four rows");
+            Check(tiles.Count(x=>!x.interactable)==2,"Exactly two coming-soon tiles disabled in local demo");
+            Shot("01-developer-root.png");
+            TabletClick(menu,"Bots");Shot("02-bots.png");Row("Population presets");Shot("03-bot-presets.png");
+            Row("Bot voices");Shot("04-bot-voices.png");Back();
+            Check(!Field<bool>(menu,"tabletDeveloperDetails"),"Bots Back returns to root");
+            TabletClick(menu,"More tools");Shot("05-more-tools.png");Row("World & pickups");Shot("06-world-tools.png");
+            Row("Ground pickups");Back();Check(Field<string>(menu,"developerRoute")=="More tools"&&!Field<bool>(menu,"developerChild"),"Child Back returns to owning tools page");Back();
+            TabletClick(menu,"Map");Shot("07-maps.png");Row("Filter:");Shot("08-map-filters.png");Row("In development");Shot("09-filtered-maps.png");Back();
+            TabletClick(menu,"Mode");Shot("10-mode.png");Row("advanced rules");Shot("11-advanced-rules.png");Back();
+            TabletClick(menu,"Disasters");Shot("12-disasters.png");
+            typeof(CastleWorldMenu).GetField("disasterSelection",Flags).SetValue(menu,0);
+            Shot("13-disaster-selected.png");Row("Show tuning");Shot("14-disaster-tuning.png");Back();Back();
+            var god=session.Player.gameObject.GetComponent<IDeveloperGodMode>();Check(god?.CanSetGodMode==true,"God Mode permitted in local Demo");
+            TabletClick(menu,"God mode");Check(god.GodModeEnabled,"God Mode toggles on");
+            var damage=session.Player.gameObject.GetComponent<IDamageable>();float health=damage.Health;
+            damage.Damage(100000,menu.gameObject);damage.Eliminate(menu.gameObject);
+            Check(damage.Health==health,"God Mode rejects direct damage and elimination");Shot("15-god-mode.png");
+            TabletClick(menu,"God mode");Check(!god.GodModeEnabled,"God Mode toggles off");
+            Object.DestroyImmediate(menu.gameObject);
+        }
+        static void Capture(Camera camera,Canvas canvas,string name)
+        {
+            var mode=canvas.renderMode;var worldCamera=canvas.worldCamera;var distance=canvas.planeDistance;
+            var target=new RenderTexture(1600,1000,24);var pixels=new Texture2D(1600,1000,TextureFormat.RGB24,false);var previous=camera.targetTexture;var active=RenderTexture.active;
+            try{if(mode==RenderMode.ScreenSpaceOverlay){canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=camera;canvas.planeDistance=1;}camera.targetTexture=target;Canvas.ForceUpdateCanvases();camera.Render();RenderTexture.active=target;pixels.ReadPixels(new Rect(0,0,1600,1000),0,0);pixels.Apply();File.WriteAllBytes(Path.Combine(Output,name),pixels.EncodeToPNG());}
+            finally{canvas.renderMode=mode;canvas.worldCamera=worldCamera;canvas.planeDistance=distance;camera.targetTexture=previous;RenderTexture.active=active;target.Release();Object.DestroyImmediate(target);Object.DestroyImmediate(pixels);}
+        }
+    }
+}
