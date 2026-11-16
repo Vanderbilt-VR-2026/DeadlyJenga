@@ -41,10 +41,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1682020381547342917}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 907b512182024734799ccb53e1e508cc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.BlenderModelMap
+  m_Script: {fileID: 11500000, guid: 9bcf45550e294121bbb741655bc43614, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.UnderneathTreeMap
   model: {fileID: 919132149155446097, guid: 561b5eeec13ebb9478be2bc0435bc194, type: 3}
-  waterHeight: -20
-  spawnHeight: 2.5
-  stepHeight: 1.2
+  room: {fileID: 919132149155446097, guid: ee91085192a042f1826750672868b32a, type: 3}
+  locomotive: {fileID: 919132149155446097, guid: c877249d81da4c9e98167d768a0249f8, type: 3}
+  paper: {fileID: 2100000, guid: 421d09bbbf84401f970f134abec02c11, type: 2}

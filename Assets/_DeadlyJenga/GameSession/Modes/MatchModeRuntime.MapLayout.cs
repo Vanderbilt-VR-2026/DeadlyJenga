@@ -35,7 +35,7 @@ namespace DeadlyJenga.Modes
             for(int attempt=0;attempt<spawns.Length;attempt++)
             {
                 int index=(Mathf.Max(0,ordinal)+attempt)%spawns.Length;
-                var candidate=LayoutPosition(spawns[index]);
+                if(!layout.TrySpawnPosition(Services.World,spawns[index],out var candidate))continue;
                 if(!Physics.Raycast(candidate+Vector3.up*.25f,Vector3.down,.5f,SpawnSupportMask,QueryTriggerInteraction.Ignore)||
                     !SpawnClear(candidate,actorId))continue;
                 point=candidate;
