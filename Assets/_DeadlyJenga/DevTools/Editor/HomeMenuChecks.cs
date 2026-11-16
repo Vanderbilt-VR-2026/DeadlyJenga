@@ -166,11 +166,11 @@ namespace DeadlyJenga.DevTools.Editor
                 home.Demo();
                 yield return Until(() => IslandLobby.Current && Object.FindFirstObjectByType<IslandLobbyView>(),
                     "Developer lobby and wardrobe view load",60);
-                var lobby = IslandLobby.Current;
+                var wardrobeLobby = IslandLobby.Current;
                 var wardrobe = Object.FindFirstObjectByType<IslandLobbyView>();
-                var survivor = lobby.Player.gameObject.GetComponent<CastleSurvivor>();
+                var survivor = wardrobeLobby.Player.gameObject.GetComponent<CastleSurvivor>();
                 survivor.Place(wardrobe.WardrobePosition+Vector3.up*.04f,Quaternion.identity);
-                lobby.SetMenu(false);
+                wardrobeLobby.SetMenu(false);
                 wardrobe.SetWardrobeOpen(true);
                 yield return VerifyWardrobeEscape(wardrobe);
                 yield break;
