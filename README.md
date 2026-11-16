@@ -13,7 +13,7 @@ A multiplayer VR project targeting Meta Quest.
 
 ## Sprint 4
 
-You can find the Sprint 4 folder [here](https://drive.google.com/drive/folders/1dyQeZW_ETOvm708sEPQqw-D0cA2LzSGl?usp=drive_link).
+You can find the Sprint 4 folder [here](https://drive.google.com/drive/folders/1-7OtFqQ_BPubbSu60l3zs0-Rdr1eNa3C?usp=drive_link).
 It contains working APK and demo videos
 
 Sprint 4 highlights
