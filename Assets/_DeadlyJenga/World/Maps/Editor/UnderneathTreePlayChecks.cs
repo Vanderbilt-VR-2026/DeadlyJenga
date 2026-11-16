@@ -328,6 +328,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Shot(camera, "approved-overview", new Vector3(38f, 96f, -208f), new Vector3(-91f, 24f, -94f), 60f, true);
                 Shot(camera, "approved-overhead", new Vector3(-90f, 245f, -135f), new Vector3(-90f, 5f, -110f), 64f);
                 Shot(camera, "approved-player-bridge", new Vector3(-64.3f, 3f, -132.6f), new Vector3(-86f, 25f, -106f), 72f);
+                var shaders = map.Root.GetComponentsInChildren<Renderer>()
+                    .SelectMany(r => r.sharedMaterials).Where(m => m && m.shader && m.shader.name.StartsWith("DeadlyJenga/Christmas"))
+                    .Select(m => m.shader).Distinct();
+                foreach (var shader in shaders)
+                    Require(!ShaderUtil.GetShaderMessages(shader).Any(message => message.severity.ToString() == "Error"),
+                        "rendered Christmas shader compiles: " + shader.name);
                 impactFixedTime = Time.fixedTime;
                 phase = 10;
                 return;

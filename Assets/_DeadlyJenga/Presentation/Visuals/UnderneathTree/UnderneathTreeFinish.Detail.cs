@@ -211,7 +211,14 @@ namespace DeadlyJenga.CandyArt
             obj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             float span = Mathf.Min(size.x, size.z);
             obj.transform.localScale = new Vector3(Mathf.Clamp(span * .28f, .3f, 4.0f),
-                Mathf.Clamp(span * .15f, .2f, 2.0f), Mathf.Clamp(span * .11f, .1f, 1.2f));
+                Mathf.Clamp(span * .15f, .2f, 2.0f), Mathf.Clamp(span * .22f, .2f, 2.4f));
+            var knot = new GameObject("Satin bow knot", typeof(MeshFilter), typeof(MeshRenderer));
+            knot.transform.SetParent(obj.transform, false);
+            knot.transform.localPosition = new Vector3(0f, 0f, -.14f);
+            knot.transform.localScale = new Vector3(.52f, .42f, .50f);
+            if (!roundedWrap) roundedWrap = RoundedWrap(new Bounds(Vector3.zero, Vector3.one));
+            knot.GetComponent<MeshFilter>().sharedMesh = roundedWrap;
+            knot.GetComponent<MeshRenderer>().sharedMaterial = bowMaterial;
             mapDressings.Add(obj);
         }
 

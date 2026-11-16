@@ -183,7 +183,7 @@ namespace DeadlyJenga.CandyArt
 
         void RestoreIndoorSettings()
         {
-            var fill = new Color(.15f, .19f, .29f);
+            var fill = new Color(.21f, .25f, .35f);
             if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Flat &&
                 RenderSettings.ambientLight == fill && Mathf.Approximately(RenderSettings.reflectionIntensity, .68f))
                 return;
@@ -293,15 +293,15 @@ namespace DeadlyJenga.CandyArt
         void BuildLighting()
         {
             key = MakeLight("Amber lamplight and ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .83f, .60f), 1.2f, 0f);
-            key.transform.localRotation = Quaternion.Euler(42f, 58f, 0f);
+                Vector3.zero, new Color(1f, .90f, .75f), 1.65f, 0f);
+            key.transform.localRotation = Quaternion.Euler(42f, -58f, 0f);
             key.shadows = LightShadows.Soft;
             key.shadowStrength = .86f;
             key.shadowBias = .08f;
             key.shadowNormalBias = .2f;
 
             MakeSpot("Moonlight from the front window", new Vector3(10, 65, 70),
-                new Vector3(2, 4, -72), new Color(.16f, .36f, 1f), 16000f, 240f, 83f);
+                new Vector3(-90, 10, -110), new Color(.16f, .36f, 1f), 26000f, 240f, 83f);
             MakeSpot("Hearth bounce", new Vector3(-113, 37, -148),
                 new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 6500f, 240f, 100f);
             MakeLight("Golden light under the tree", LightType.Point,

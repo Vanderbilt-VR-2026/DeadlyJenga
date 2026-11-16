@@ -86,7 +86,7 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 float3 face = abs(input.normalOS);
                 float2 paperUV = face.y >= face.x && face.y >= face.z ? paperPosition.xz :
                     (face.x >= face.z ? paperPosition.zy : paperPosition.xy);
-                output.uv = TRANSFORM_TEX(paperUV / 24.0, _BaseMap);
+                output.uv = paperUV * (_BaseMap_ST.xy / 32.0) + _BaseMap_ST.zw;
                 output.shadowCoord = GetShadowCoord(vertexPosition);
                 output.vertexLighting = VertexLighting(vertexPosition.positionWS, basis.normalWS);
                 output.fog = ComputeFogFactor(vertexPosition.positionCS.z);
