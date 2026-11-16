@@ -164,7 +164,15 @@ namespace DeadlyJenga.DevTools.Editor
                             if (bones[weights[i].boneIndex0] == rig.ChestBone)
                                 neckTop = Mathf.Max(neckTop, renderer.transform.TransformPoint(points[i]).y);
                         float headBottom = head.vertices.Min(v => rig.headRenderer.transform.TransformPoint(v).y);
-                        Check(renderer.enabled && rig.headRenderer.enabled && neckTop >= headBottom,
+                        bool visibleHead = rig.headRenderer.enabled;
+                        if (!approved.headVisible)
+                        {
+                            var headAnchor = WardrobeSkinAsset.FindBone(rig, 1);
+                            visibleHead = approved.parts.Where(part => part.anchor == 1).Any(part =>
+                                headAnchor.GetComponentsInChildren<Renderer>().Any(piece =>
+                                    piece.enabled && piece.gameObject.name == part.label && piece.bounds.size.sqrMagnitude > 0));
+                        }
+                        Check(renderer.enabled && visibleHead && neckTop >= headBottom,
                             $"{skin} team {team + 1}: baked head and chest meet in two-bone skinning ({headBottom:F3} to {neckTop:F3})");
                     }
                 }

@@ -119,9 +119,8 @@ namespace DeadlyJenga.DevTools.Editor
             var status = (Text)typeof(IslandLobbyView).GetField("desktopWardrobeStatus", Instance).GetValue(view);
             Check(status.text.Contains("stay saved"), "Desktop viewer explains hidden items");
             var fitField = typeof(IslandLobbyView).GetField("wardrobeFitDistance", Instance);
-            var fitDeadline = Time.realtimeSinceStartup + 6;
-            while ((float)fitField.GetValue(view) <= 0 && Time.realtimeSinceStartup < fitDeadline)
-                yield return null;
+            // Batch Unity has no focused Game view. Draw the real mirror after the pose settles.
+            typeof(IslandLobbyView).GetMethod("PresentWardrobe", Instance).Invoke(view, new object[] { false });
             var fit = (float)fitField.GetValue(view);
             Check(fit > 0 && fit < 6, $"Mirror fits measured avatar geometry (distance {fit:F2} m)");
             Click(view, "Category 2");
