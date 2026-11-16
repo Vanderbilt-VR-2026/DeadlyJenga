@@ -1,43 +1,35 @@
-## Fine Crystals A revision in progress
+# Fine Crystals A avatar coating
 
-Evan approved Fine Crystals A and the associated elbow repair on November 15, 2026.
-The earlier brown coating candidate below was rejected visually despite passing functional checks.
-This revision replaces its per-pixel 27-cell crystal search with a reproducible, mipmapped
-2048-pixel linear surface map, thin pale crystal coverage and sparse skinned mesh facets.
-The texture represents 64 mm of surface, so nominal image dimensions do not imply visual quality.
-Grain patterns vary per exposure; rest coordinates and blend-shape anchors follow the skin.
-Arm roll now transports through the elbow independently of tracked palm roll. Spine weights
-are sorted for reduced-influence skinning. No Core, package or project-setting changes.
+Fine crystal surface relief and sparse raised, skinned facets replace the rejected brown coating. Each exposure varies coverage and grain coordinates. Timed erosion releases lit mesh grains from posed surfaces, including wrists raised above their original coating height. First-person overlays follow the camera-specific body mesh. Original skin materials are preserved.
 
-Owner: Marina / Fine Crystals A. Target: origin/Evan_Sprint_4 via MAIN.
-Current checks: generator completed, diff whitespace check. Runtime/capture, elbow poses,
-TwoBones, skin matrix, rendering cost and Quest evidence are pending. Not ready for integration.
-Texture source: Docs/Tools/generate_sugar_surface.py (numpy/Pillow, deterministic seed).
+Presentation/Visuals owns coating, material and particles. Characters/Player transports forearm roll through the elbow and sorts spine influences for reduced-influence skinning. No Core, package, project-setting, scene, input or gameplay-rule changes. Texture generation is reproducible with Docs/Tools/generate_sugar_surface.py: a mipmapped 2048-square map representing 64 mm of surface, plus sparse geometry. Capture resolution is not a claim that every grain is geometry.
 
----
+## Identity and integration
 
-# Sticky sugar avatar coating
+- Owner/task: Marina / Fine Crystals A, approved direction and elbow repair November 15, 2026.
+- Source branch: codex/marina-sticky-sugar; remote: https://github.com/Vanderbilt-VR-2026/DeadlyJenga.git.
+- Production candidate, pushed and read back: c46b7d7335c73d90f3b37591b9b67cac63b7ac1c.
+- Target: origin/Evan_Sprint_4 through MAIN; last verified target 1359ca474fb8a0bc86cdd72dca7dab5e3e631a71.
+- Intentional water dependency: 3d6db3d1ceb4cfea9049f970a5defd73859d8d98.
+- Tested fixture: 79251e8bfe181daac04958c64e998a0edd831778. Production Characters and Presentation files match the source candidate; local capture-only DevTools changes are excluded from the production branch.
+- Capture job: 61dc2b3ce9f54ac3b9ddbe78e701dff0, completed; slot 2 returned.
+- Supersedes the rejected brown/plate coating candidates, including 9b429470c25e8ba750c51ed36aa4645d604f13b4.
+- Status: ready for integration review, not integrated or shipped. MAIN must verify current ancestry/equivalence and validate combined changes. This report commit adds evidence only.
 
-Owner: marina coating task. Source branch: codex/marina-sticky-sugar.
-Target: origin/Evan_Sprint_4, verified base 1359ca474fb8a0bc86cdd72dca7dab5e3e631a71.
-Required water integration base: 3d6db3d1ceb4cfea9049f970a5defd73859d8d98.
-Production candidate and verified remote before this report: ea4116c62d2a19ff8b2eb08d55273788e589ad17.
-Exact tested capture fixture: 0d637080ad5464c38d6c3ef30c0f6e6e22687221. Its production files match this candidate; capture-only DevTools changes remain excluded from the production branch.
+## Actual runtime evidence
 
-Presentation/Visuals now uses discrete, randomly rotated angular amber/ivory crystals over warm glaze. Fine procedural detail is filtered at subpixel scale. Each qualifying exposure chooses a new seed and patch height. Coverage erodes during the existing final 2.5 seconds of the 20-second lifetime. Dust uses lit, rotating mesh fragments emitted from actual avatar surface positions. The original contact threshold and gameplay are unchanged.
+[Runtime report](STICKY_SUGAR_COATING_RUNTIME.txt): **45 PASS, zero failures**. [Manifest](STICKY_SUGAR_COATING_CAPTURE.json) records exact revision identities, dimensions and SHA-256 hashes. Unity 6000.3.23f1, D3D11 desktop Play Mode, Castle Game.unity with staged cameras/placement and actual sand contact/timers. Explicit TwoBones skinning passed. Tests are not a headset session.
 
-Independent surface renderers cover every submesh while preserving the original skin materials and property blocks. Readable meshes carry stable rest-space crystal coordinates. Copied skin influences are sorted and normalized. The overlay follows the camera-specific source mesh and visibility, including the local survivor's first-person body. Unreadable imported meshes use object-position coordinates and need their own visual validation. No Core changes or package changes.
+Short contact stays clean, sustained contact coats, and the 20-second lifetime ends with erosion. Default, Penguin and CyberSamurai cases passed; these do not exhaust all skins. Three exposures used different seeds. Six elbow checks across three production-rig poses and both arms retained a minimum 0.0428 m joint-ring width. Isolated raised facets changed 175 actual rendered pixels. Dust-off emitted actual mesh particles (peak 122); the first-person dust still was captured inside its erosion phase. Underwater survivor/flying-hand regression checks also passed.
 
-## Evidence
+| Coated | Dusting off |
+|---|---|
+| ![Actual coated avatar](FineCrystalsA/avatar-fully-coated.png) | ![Actual erosion](FineCrystalsA/avatar-dusting-01.png) |
 
-[Raw runtime report](STICKY_SUGAR_COATING_RUNTIME.txt) records 34 passed checks and zero recorded failures. [Capture manifest](STICKY_SUGAR_COATING_CAPTURE.json) records full revision identities, camera controls, dimensions and PNG hashes. Unity 6000.3.23f1, D3D11 desktop Play Mode, actual Castle game and shore contact. Full-body images are 3840x2880; self-view images are 3840x2160. Original PNGs are retained in the approved capture intake; hashes distinguish them from concepts. The fixed camera and bot placement are fixture controls, and skin cases do not exhaust the catalog.
+[Surface close-up](FineCrystalsA/crystal-closeup.png), [first-person coated](FineCrystalsA/first-person-coated.png), [first-person dusting](FineCrystalsA/first-person-dusting.png), [sampled dust-off video](FineCrystalsA/dust-off.mp4). The video preserves sampled simulation timestamps; it is not a native high-frame-rate recording. Full-body images are 3840x2880; first-person images are 3840x2160. These are runtime captures, not concept renders. The implementation interprets the reference; pixel-identical concept matching is not claimed.
 
-Inspected full coating, timed erosion, Penguin and armored/CyberSamurai appearance, and actual first-person self-view. New exposure seeds were 48.54068, 71.24393 and 38.57365. Short contact remained clean; sustained contact produced full coating; it was removed after 20 seconds. The coat is a procedural visual interpretation of the approved sticky sugar concept, not a claim of pixel-identical image reproduction.
+## Measured cost and remaining limits
 
-## Separate compatibility failure
+Twenty warmed paired 1280x720 camera.Render samples with synchronous one-pixel readback: one avatar bare median 10.397 ms / coated 10.252 ms (negative delta is measurement noise); four frozen visual replicas bare 9.620 ms / coated 10.508 ms, added 0.888 ms. This is an editor rendering sample, not isolated GPU timing, bot-AI/network load or Quest performance acceptance.
 
-Explicit TwoBones testing failed on the clean, uncoated base avatar before sand contact. The upper chest disappears because CandyPlayerRig.Spine.cs assigns upper-chest weights [0,0,1] without descending sort; reduced skinning discards the third influence. The failed report and clean-avatar screenshot are preserved in the intake and routed to the Characters/Player owner via Coordinator. This branch does not change that source avatar. FourBones was explicitly set and restored by the successful fixture, so this pass does not establish TwoBones or Quest support.
-
-## Integration state
-
-Published review candidate only. MAIN owns integration and combined validation. No APK or headset run, stereo/comfort/performance acceptance, exhaustive skin compatibility, or integration acceptance is claimed. The separate base-avatar reduced-weight defect needs its owning fix. Earlier grid/purple and connected-plate visual attempts were superseded after inspecting actual 4K images; failed attempts are retained. No further source changes are required for the captured four-bone desktop candidate, but visual signoff remains with the user.
+No headset, stereo/comfort, APK inclusion or exhaustive skin compatibility is verified. Unreadable imported meshes retain an object-coordinate fallback and need asset-specific review. MAIN integration acceptance remains pending. Visual review can compare the preserved actual evidence with the approved concept without confusing functional checks with subjective fidelity.

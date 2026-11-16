@@ -1,31 +1,54 @@
 {
-  "production": "ea4116c62d2a19ff8b2eb08d55273788e589ad17",
-  "testedFixture": "0d637080ad5464c38d6c3ef30c0f6e6e22687221",
-  "scene": "Game.unity / CastleGenerator / local Demo",
-  "platform": "Unity 6000.3.23f1 desktop D3D11; Android-targeted editor; explicit FourBones skinning",
-  "passes": 34,
-  "failures": 0,
-  "closeupResolution": [
-    3840,
-    2880
+  "source": "c46b7d7335c73d90f3b37591b9b67cac63b7ac1c",
+  "fixture": "79251e8bfe181daac04958c64e998a0edd831778",
+  "job": "61dc2b3ce9f54ac3b9ddbe78e701dff0",
+  "environment": "Unity 6000.3.23f1 D3D11 desktop Play Mode; staged actual Castle Game.unity, TwoBones",
+  "files": [
+    {
+      "file": "FineCrystalsA/avatar-fully-coated.png",
+      "sha256": "a2c74385cebde56d3cafbf4487682d19ea5a4374eea2ad7d839e40f770ea37ac",
+      "dimensions": [
+        3840,
+        2880
+      ]
+    },
+    {
+      "file": "FineCrystalsA/avatar-dusting-01.png",
+      "sha256": "5e039b92c8ec84a2afdb0884a0e5b12cf45a66e7965ee8cce7cba208c9197745",
+      "dimensions": [
+        3840,
+        2880
+      ]
+    },
+    {
+      "file": "FineCrystalsA/crystal-closeup.png",
+      "sha256": "bae7a049a3cb4f5ce5ceb895c3ee6b30ecc5b04d5d30efce93461b2a65d09205",
+      "dimensions": [
+        3840,
+        2880
+      ]
+    },
+    {
+      "file": "FineCrystalsA/first-person-coated.png",
+      "sha256": "80e23934c541800342dc3a08d0ad6d0d47f07eede1bac205e0443e12c5e89618",
+      "dimensions": [
+        3840,
+        2160
+      ]
+    },
+    {
+      "file": "FineCrystalsA/first-person-dusting.png",
+      "sha256": "446670f932f9dfa3f218453132641a6b7fa09e570b824383470d8fe29b33c948",
+      "dimensions": [
+        3840,
+        2160
+      ]
+    },
+    {
+      "file": "FineCrystalsA/dust-off.mp4",
+      "sha256": "4def958f2136f20d0c1b61e7df7ff92e4fb3b1e1991ae6d72ab98d982ac044bb"
+    }
   ],
-  "firstPersonResolution": [
-    3840,
-    2160
-  ],
-  "controls": "Staged bot and observer placement; actual sand contact and timers; local camera aimed down for self view",
-  "sha256": {
-    "avatar-before.png": "84f013dcece43871edc81d84c8995bb6edcd8e4bec6ecefb75926495fdae7428",
-    "avatar-dusting-00.png": "d5ecdc11e5a907bd09570de5fb273abeac5e6191c2ebe2fc3602f5cf560a785b",
-    "avatar-dusting-01.png": "9f67035868c333f13ab38b5289e736cf3e1d4a35cac91600a70e33da03a251c7",
-    "avatar-dusting-02.png": "d393c42b578b0f42c25fe1f08cd8e90a62f3151e2de230787401784ff0352cbb",
-    "avatar-dusting-03.png": "6db8acea81066eaa29dd4d5026837859c15606b43b4588632a698e8843d39272",
-    "avatar-dusting-04.png": "60092c56925bcd12eb9abe28490ef338c3a7cb58e12d7ca751d59fdea113d2ae",
-    "avatar-fully-coated.png": "fcb8be3b73f11bed2408f28a92f9dfaf1b74574df5fb714ade0d067355aa7e58",
-    "first-person-coated.png": "ff64b8c75bbe4f14e5aebbf96d98bb83d8ef24cbd36f58575ea8dd352f1985a6",
-    "first-person-dusting.png": "4dd648f178e512c21d0562942dd1b898cc2873473afd6fa4590c99079bf0e241",
-    "skin-CyberSamurai.png": "2771b2d0b9553e218723c82f36437047e2c685f84047be96e4be68e827b7b46d",
-    "skin-Default.png": "cf02a9c34f5e8edb8830fecc243568004c8120574365cdaa1bc9ec77d899b451",
-    "skin-Penguin.png": "0a482458254b3a5af496584ce04d5f5e37d8044d586bbba8284b13ffeaabce3e"
-  }
+  "passed": 45,
+  "failures": 0
 }
