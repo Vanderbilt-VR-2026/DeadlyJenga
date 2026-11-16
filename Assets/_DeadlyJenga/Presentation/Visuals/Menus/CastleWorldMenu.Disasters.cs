@@ -45,7 +45,7 @@ namespace DeadlyJenga.CastlePrototype
             bool allowed=CanCommand;int switchParameter=-1;
             foreach(var button in buttons)button.gameObject.SetActive(false);
             void ButtonAt(int i,string text,float y,bool enabled=true)
-            {buttons[i].gameObject.SetActive(true);labels[i].text=text;targets[i].enabled=enabled;var r=(RectTransform)buttons[i].transform;r.anchoredPosition=new Vector2(0,y);r.sizeDelta=new Vector2(480,44);targets[i].size=new Vector3(480,44,4);labels[i].rectTransform.anchoredPosition=Vector2.zero;labels[i].rectTransform.sizeDelta=new Vector2(460,44);labels[i].fontSize=22;}
+            {buttons[i].gameObject.SetActive(true);labels[i].text=text;targets[i].enabled=enabled;var r=(RectTransform)buttons[i].transform;r.anchoredPosition=new Vector2(0,y);r.sizeDelta=new Vector2(480,44);targets[i].size=new Vector3(480,44,4);labels[i].rectTransform.anchoredPosition=Vector2.zero;labels[i].rectTransform.sizeDelta=new Vector2(460,44);labels[i].fontSize=22;labels[i].alignment=TextAnchor.MiddleCenter;}
             {
                 var definitions=Demo.DisasterParameters(disasterSelection);var values=Demo.DisasterValues(disasterSelection);
                 heading.text=Demo.DisasterLabel(disasterSelection).ToUpperInvariant()+"\n<size=17><color=#d0b8d8>Settings apply to the next launch</color></size>";

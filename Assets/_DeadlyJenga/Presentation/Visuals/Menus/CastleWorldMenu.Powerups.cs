@@ -78,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
             buttons[index].gameObject.SetActive(true);targets[index].enabled=enabled;
             var row=(RectTransform)buttons[index].transform;row.anchoredPosition3D=new Vector3(position.x,position.y,0);row.sizeDelta=size;row.localScale=Vector3.one;row.localRotation=Quaternion.identity;
             targets[index].size=new Vector3(size.x,size.y,4);
-            labels[index].text=title;labels[index].fontSize=font;labels[index].resizeTextForBestFit=false;
+            labels[index].text=title;labels[index].fontSize=font;labels[index].resizeTextForBestFit=false;labels[index].alignment=TextAnchor.MiddleCenter;
             labels[index].rectTransform.anchoredPosition3D=Vector3.zero;labels[index].rectTransform.sizeDelta=size-new Vector2(14,4);labels[index].rectTransform.localScale=Vector3.one;labels[index].rectTransform.localRotation=Quaternion.identity;
             sectionGlyphs[index].gameObject.SetActive(false);buttons[index].image.color=CandyHudVisuals.Card;
         }
