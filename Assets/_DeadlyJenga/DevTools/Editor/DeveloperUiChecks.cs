@@ -181,14 +181,18 @@ namespace DeadlyJenga.DevTools.Editor
             Call(menu,"PointPlayerTablet",camera,true,false);Draw();
             Check(Field<int>(menu,"disasterSelection")>=0&&!Field<GameObject>(menu,"disasterWheelUI").activeSelf,"Selecting a disaster hides its selector before showing settings");
             yield return Shot("13-disaster-selected.png");Row("Show tuning");yield return Shot("14-disaster-tuning.png");Back();Back();
+            void OpenRoute(string route)
+            {
+                Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Developer"));TabletClick(menu,route);
+            }
             // Capture each expanded tool family without running gameplay commands.
             foreach(string fold in new[]{"hands","behavior","equipment","voices"})
             {
-                Call(menu,"OpenDeveloperRoute","Bots");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,fold);
+                OpenRoute("Bots");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,fold);
                 yield return Shot("24-bots-"+fold+".png");
             }
             Call(menu,"DeveloperVolume","Bot volume",new Action<float>(_=>{}));yield return Shot("25-bot-volume.png");Back();
-            Call(menu,"OpenDeveloperRoute","Bots");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,"equipment");Draw();Row("Everyone loadout");
+            OpenRoute("Bots");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,"equipment");Draw();Row("Everyone loadout");
             for(int category=0;category<3;category++)
             {
                 typeof(CastleWorldMenu).GetField("wheelCategory",Flags).SetValue(menu,category);
@@ -198,10 +202,10 @@ namespace DeadlyJenga.DevTools.Editor
             Back();Back();
             foreach(string fold in new[]{"player","world","round","diagnostics"})
             {
-                Call(menu,"OpenDeveloperRoute","More tools");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,fold);
+                OpenRoute("More tools");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,fold);
                 yield return Shot("27-tools-"+fold+".png");
             }
-            Call(menu,"OpenDeveloperRoute","More tools");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,"player");Draw();
+            OpenRoute("More tools");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,"player");Draw();
             Row("Show hand physics");yield return Shot("28-hand-physics.png");Row("Hide hand physics");
             Row("Sea spirit / tabletop");yield return Shot("29-tabletop.png");Back();
             typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,"world");Draw();
