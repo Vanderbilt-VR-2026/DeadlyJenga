@@ -414,22 +414,22 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < 5; i++)
             {
                 float y = rowYs[i];
-                TabletRule(comfortMainGroup, new Vector2(0, y), new Vector2(990, 60), new Color(.27f, .10f, .30f));
-                TabletText(comfortMainGroup, rowTitles[i], new Vector2(-365, y), new Vector2(240, 50), 24, TextAnchor.MiddleLeft);
+                TabletRule(comfortMainGroup, new Vector2(0, y), new Vector2(990, 60), new Color(.27f, .10f, .30f),true);
+                TabletText(comfortMainGroup, rowTitles[i], new Vector2(-365, y), new Vector2(220, 50), 22, TextAnchor.MiddleLeft);
             }
 
             // Row 0: Play position (Seated, Standing, Auto-detect)
-            TabletControl(tabletActions, comfortMainGroup, () => "Seated", new Vector2(-180, 152), new Vector2(110, 48),
+            TabletControl(tabletActions, comfortMainGroup, () => "Seated", new Vector2(-175, 152), new Vector2(130, 48),
                 () => { PlayerPrefs.SetInt("SurvivorVR.PlayPositionAuto", 0); Settings?.UseStationaryPreset(); },
                 () => Settings != null && !Settings.StandingPlay && PlayerPrefs.GetInt("SurvivorVR.PlayPositionAuto", 1) == 0,
                 () => Settings != null, TabletCoral, font: 22);
 
-            TabletControl(tabletActions, comfortMainGroup, () => "Standing", new Vector2(-60, 152), new Vector2(110, 48),
+            TabletControl(tabletActions, comfortMainGroup, () => "Standing", new Vector2(-30, 152), new Vector2(130, 48),
                 () => { PlayerPrefs.SetInt("SurvivorVR.PlayPositionAuto", 0); Settings?.UseStandingPreset(); },
                 () => Settings?.StandingPlay == true && PlayerPrefs.GetInt("SurvivorVR.PlayPositionAuto", 1) == 0,
                 () => Settings != null, TabletCoral, font: 22);
 
-            TabletControl(tabletActions, comfortMainGroup, () => "Auto", new Vector2(60, 152), new Vector2(110, 48),
+            TabletControl(tabletActions, comfortMainGroup, () => "Auto", new Vector2(115, 152), new Vector2(130, 48),
                 () => {
                     PlayerPrefs.SetInt("SurvivorVR.PlayPositionAuto", 1);
                     PlayerPrefs.Save();
@@ -440,61 +440,61 @@ namespace DeadlyJenga.CastlePrototype
                 () => true, TabletCoral, font: 22);
 
             // Row 1: Dominant hand (Left, Right)
-            TabletControl(tabletActions, comfortMainGroup, () => "Left", new Vector2(-160, 84), new Vector2(135, 48),
+            TabletControl(tabletActions, comfortMainGroup, () => "Left", new Vector2(-165, 84), new Vector2(150, 48),
                 () => SetTabletHand(true), () => DominantLeft, () => session.Player != null, TabletCoral, font: 24);
 
-            TabletControl(tabletActions, comfortMainGroup, () => "Right", new Vector2(-15, 84), new Vector2(135, 48),
+            TabletControl(tabletActions, comfortMainGroup, () => "Right", new Vector2(5, 84), new Vector2(150, 48),
                 () => SetTabletHand(false), () => !DominantLeft, () => session.Player != null, TabletCoral, font: 24);
 
             // Row 2: Sprint mode (Toggle, Hold)
-            TabletControl(tabletActions, comfortMainGroup, () => "Toggle", new Vector2(-160, 16), new Vector2(135, 48),
+            TabletControl(tabletActions, comfortMainGroup, () => "Toggle", new Vector2(-165, 16), new Vector2(150, 48),
                 () => SetTabletSprintHold(false), () => !SprintHold, () => true, TabletCoral, font: 24);
 
-            TabletControl(tabletActions, comfortMainGroup, () => "Hold", new Vector2(-15, 16), new Vector2(135, 48),
+            TabletControl(tabletActions, comfortMainGroup, () => "Hold", new Vector2(5, 16), new Vector2(150, 48),
                 () => SetTabletSprintHold(true), () => SprintHold, () => true, TabletCoral, font: 24);
 
             // Row 3: Climb mode (Toggle, Hold)
-            TabletControl(tabletActions, comfortMainGroup, () => "Toggle", new Vector2(-160, -52), new Vector2(135, 48),
+            TabletControl(tabletActions, comfortMainGroup, () => "Toggle", new Vector2(-165, -52), new Vector2(150, 48),
                 () => SetTabletClimbToggle(true), () => ClimbToggle, () => true, TabletCoral, font: 24);
 
-            TabletControl(tabletActions, comfortMainGroup, () => "Hold", new Vector2(-15, -52), new Vector2(135, 48),
+            TabletControl(tabletActions, comfortMainGroup, () => "Hold", new Vector2(5, -52), new Vector2(150, 48),
                 () => SetTabletClimbToggle(false), () => !ClimbToggle, () => true, TabletCoral, font: 24);
 
             // Row 4: Turn style (seated) (Snap, Smooth)
-            TabletControl(tabletActions, comfortMainGroup, () => "Snap", new Vector2(-160, -122), new Vector2(135, 48),
+            TabletControl(tabletActions, comfortMainGroup, () => "Snap", new Vector2(-165, -122), new Vector2(150, 48),
                 () => SetTabletTurn("Snap"), () => Settings?.TurnLabel == "Snap", () => Settings != null, TabletCoral, font: 24);
 
-            TabletControl(tabletActions, comfortMainGroup, () => "Smooth", new Vector2(-15, -122), new Vector2(135, 48),
+            TabletControl(tabletActions, comfortMainGroup, () => "Smooth", new Vector2(5, -122), new Vector2(150, 48),
                 () => SetTabletTurn("Smooth"), () => Settings?.TurnLabel == "Smooth", () => Settings != null, TabletCoral, font: 24);
 
             // Right side of Rows 0-3: Sub-labels & [Y] [N] options
             // Row 0: Invert stick
-            TabletText(comfortMainGroup, "Invert stick", new Vector2(250, 152), new Vector2(170, 48), 20, TextAnchor.MiddleRight);
-            TabletControl(tabletActions, comfortMainGroup, () => "Y", new Vector2(380, 152), new Vector2(58, 44),
-                () => SetTabletInvertStick(true), () => InvertStick, () => true, TabletPanel, font: 20);
-            TabletControl(tabletActions, comfortMainGroup, () => "N", new Vector2(448, 152), new Vector2(58, 44),
-                () => SetTabletInvertStick(false), () => !InvertStick, () => true, TabletPanel, font: 20);
+            TabletText(comfortMainGroup, "Invert stick", new Vector2(240, 152), new Vector2(110, 48), 18, TextAnchor.MiddleRight);
+            TabletControl(tabletActions, comfortMainGroup, () => "On", new Vector2(350, 152), new Vector2(80, 44),
+                () => SetTabletInvertStick(true), () => InvertStick, () => true, TabletPanel, font: 18);
+            TabletControl(tabletActions, comfortMainGroup, () => "Off", new Vector2(440, 152), new Vector2(80, 44),
+                () => SetTabletInvertStick(false), () => !InvertStick, () => true, TabletPanel, font: 18);
 
             // Row 1: Vignette
-            TabletText(comfortMainGroup, "Vignette", new Vector2(250, 84), new Vector2(170, 48), 20, TextAnchor.MiddleRight);
-            TabletControl(tabletActions, comfortMainGroup, () => "Y", new Vector2(380, 84), new Vector2(58, 44),
-                () => SetTabletVignette(true), () => VignetteEnabled, () => true, TabletPanel, font: 20);
-            TabletControl(tabletActions, comfortMainGroup, () => "N", new Vector2(448, 84), new Vector2(58, 44),
-                () => SetTabletVignette(false), () => !VignetteEnabled, () => true, TabletPanel, font: 20);
+            TabletText(comfortMainGroup, "Vignette", new Vector2(240, 84), new Vector2(110, 48), 18, TextAnchor.MiddleRight);
+            TabletControl(tabletActions, comfortMainGroup, () => "On", new Vector2(350, 84), new Vector2(80, 44),
+                () => SetTabletVignette(true), () => VignetteEnabled, () => true, TabletPanel, font: 18);
+            TabletControl(tabletActions, comfortMainGroup, () => "Off", new Vector2(440, 84), new Vector2(80, 44),
+                () => SetTabletVignette(false), () => !VignetteEnabled, () => true, TabletPanel, font: 18);
 
             // Row 2: Haptics
-            TabletText(comfortMainGroup, "Haptics", new Vector2(250, 16), new Vector2(170, 48), 20, TextAnchor.MiddleRight);
-            TabletControl(tabletActions, comfortMainGroup, () => "Y", new Vector2(380, 16), new Vector2(58, 44),
-                () => SetTabletHaptics(true), () => HapticsEnabled, () => true, TabletPanel, font: 20);
-            TabletControl(tabletActions, comfortMainGroup, () => "N", new Vector2(448, 16), new Vector2(58, 44),
-                () => SetTabletHaptics(false), () => !HapticsEnabled, () => true, TabletPanel, font: 20);
+            TabletText(comfortMainGroup, "Haptics", new Vector2(240, 16), new Vector2(110, 48), 18, TextAnchor.MiddleRight);
+            TabletControl(tabletActions, comfortMainGroup, () => "On", new Vector2(350, 16), new Vector2(80, 44),
+                () => SetTabletHaptics(true), () => HapticsEnabled, () => true, TabletPanel, font: 18);
+            TabletControl(tabletActions, comfortMainGroup, () => "Off", new Vector2(440, 16), new Vector2(80, 44),
+                () => SetTabletHaptics(false), () => !HapticsEnabled, () => true, TabletPanel, font: 18);
 
             // Row 3: Head bob
-            TabletText(comfortMainGroup, "Head bob", new Vector2(250, -52), new Vector2(170, 48), 20, TextAnchor.MiddleRight);
-            TabletControl(tabletActions, comfortMainGroup, () => "Y", new Vector2(380, -52), new Vector2(58, 44),
-                () => SetTabletHeadBob(true), () => HeadBobEnabled, () => true, TabletPanel, font: 20);
-            TabletControl(tabletActions, comfortMainGroup, () => "N", new Vector2(448, -52), new Vector2(58, 44),
-                () => SetTabletHeadBob(false), () => !HeadBobEnabled, () => true, TabletPanel, font: 20);
+            TabletText(comfortMainGroup, "Head bob", new Vector2(240, -52), new Vector2(110, 48), 18, TextAnchor.MiddleRight);
+            TabletControl(tabletActions, comfortMainGroup, () => "On", new Vector2(350, -52), new Vector2(80, 44),
+                () => SetTabletHeadBob(true), () => HeadBobEnabled, () => true, TabletPanel, font: 18);
+            TabletControl(tabletActions, comfortMainGroup, () => "Off", new Vector2(440, -52), new Vector2(80, 44),
+                () => SetTabletHeadBob(false), () => !HeadBobEnabled, () => true, TabletPanel, font: 18);
 
             // Bottom Row (y = -215):
             // Left: Speed / Snap Angle Traversal with stacked ▲ / ▼ buttons to the right
@@ -504,7 +504,7 @@ namespace DeadlyJenga.CastlePrototype
                 new Vector2(-310, -215), new Vector2(300, 64),
                 () => OpenComfortSlider(),
                 allowed: () => Settings != null && Settings.TurnLabel != "PhysicalOnly",
-                accent: TabletCoral, font: 25);
+                accent: TabletCoral, font: 22);
 
             // Stacked directly to the right: ▲ (up) directly above ▼ (down)
             TabletControl(tabletActions, comfortMainGroup, () => "▲", new Vector2(-125, -199), new Vector2(50, 30),
@@ -517,10 +517,10 @@ namespace DeadlyJenga.CastlePrototype
 
             // Right: Recenter height & Reset to default (blue)
             TabletControl(tabletActions, comfortMainGroup, () => "Recenter height", new Vector2(105, -215), new Vector2(230, 64),
-                () => Settings?.RecalibrateSeatedHeight(), allowed: () => Settings != null, accent: TabletCoral, font: 25);
+                () => Settings?.RecalibrateSeatedHeight(), allowed: () => Settings != null, accent: TabletCoral, font: 22);
 
             TabletControl(tabletActions, comfortMainGroup, () => "Reset default", new Vector2(360, -215), new Vector2(210, 64),
-                () => ResetSeatedHeightDefault(), allowed: () => Settings != null, accent: new Color(.18f, .55f, .95f), font: 25);
+                () => ResetSeatedHeightDefault(), allowed: () => Settings != null, accent: new Color(.18f, .55f, .95f), font: 22);
 
             BuildComfortSliderOverlay(page);
         }
@@ -532,7 +532,7 @@ namespace DeadlyJenga.CastlePrototype
             comfortSliderGroup.anchorMin = Vector2.zero; comfortSliderGroup.anchorMax = Vector2.one;
             comfortSliderGroup.sizeDelta = Vector2.zero;
 
-            TabletRule(comfortSliderGroup, Vector2.zero, new Vector2(990, 580), new Color(.12f, .05f, .18f, .98f));
+            TabletRule(comfortSliderGroup, Vector2.zero, new Vector2(990, 580), new Color(.12f, .05f, .18f, .98f),true);
 
             comfortSliderTitle = TabletText(comfortSliderGroup, "TURN SPEED FINE TUNING", new Vector2(0, 215), new Vector2(900, 50), 38);
             comfortSliderValueText = TabletText(comfortSliderGroup, "120°/s", new Vector2(0, 140), new Vector2(700, 68), 58);
@@ -646,25 +646,28 @@ namespace DeadlyJenga.CastlePrototype
 
         void BuildTabletRoom(RectTransform page)
         {
-            TabletText(page,"ROOM",new(0,211),new(960,74),54);
+            TabletText(page,"ROOM",new(0,211),new(960,60),42);
             TabletControl(tabletActions,page,()=>"Nearby requests ("+(NearbyRoomUi.Controls?.JoinRequests.Count??0)+")",new(-244,-220),new(456,66),()=>{showJoinRequests=true;bluetoothPage=0;OpenPlayerTabletPage(TabletPage.Nearby);});
             TabletControl(tabletActions,page,()=>"My player name",new(244,-220),new(456,66),OpenNearbyProfile);
-            tabletRoomStatus=TabletText(page,"",new(0,105),new(945,104),32);
-            TabletControl(tabletActions,page,()=>"Invite nearby",new(-244,-10),new(456,76),
+            TabletRule(page,new(0,125),new(944,94),TabletPanel,true);
+            tabletRoomStatus=TabletText(page,"",new(0,125),new(900,82),26);
+            TabletText(page,"ROOM ACTIONS",new(0,49),new(940,30),19).color=CandyHudVisuals.Muted;
+            TabletText(page,"PLAYER & REQUESTS",new(0,-165),new(940,30),19).color=CandyHudVisuals.Muted;
+            TabletControl(tabletActions,page,()=>"Invite nearby",new(-244,-12),new(456,68),
                 ()=>session.Multiplayer?.InviteNearby(),allowed:()=>session.Multiplayer?.CanInviteNearby==true);
-            TabletControl(tabletActions,page,()=>"Copy room code",new(244,-10),new(456,76),()=>{
+            TabletControl(tabletActions,page,()=>"Copy room code",new(244,-12),new(456,68),()=>{
                 GUIUtility.systemCopyBuffer=MultiplayerPanel.JoinCode(session.Multiplayer);
             },allowed:()=>session.Multiplayer!=null&&!string.IsNullOrEmpty(MultiplayerPanel.JoinCode(session.Multiplayer)));
             TabletControl(tabletActions,page,()=>InLobbyVisit?"Return to match":
                 session is ILobbyControls?"Join by room code":MultiplayerPanel.LobbyAction(session.Multiplayer),
-                new(-244,-121),new(456,76),TabletRoomTravel,
+                new(-244,-94),new(456,68),TabletRoomTravel,
                 allowed:()=>session is ILobbyControls lobby?(InLobbyVisit?lobby.CanStart:lobby.JoinEnabled):MatchRuntime.Current!=null);
             TabletControl(tabletActions,page,()=>{
                 var room=session.Multiplayer;
                 if(room==null||!room.CanLeave)return "Leave room";
                 if(!room.IsClient)return "Leave / transfer host";
                 return roomLeave.Pending(room,MultiplayerPanel.JoinCode(room),Time.unscaledTime)?"Confirm disconnect":"Leave room";
-            },new(244,-121),new(456,76),()=>{
+            },new(244,-94),new(456,68),()=>{
                 var room=session.Multiplayer;
                 if(room!=null&&room.CanLeave&&roomLeave.Select(room,MultiplayerPanel.JoinCode(room),room.IsClient,Time.unscaledTime))
                     room.LeaveSession();
@@ -993,18 +996,18 @@ namespace DeadlyJenga.CastlePrototype
             Vector2 position=new((slot%3-1)*344,122-slot/3*108);
             var tile=TabletControl(tabletActions,page,title??(()=>label),position,new(312,94),
                 ()=>{if(opensDetails)ShowDeveloperDetails(action);else action();},allowed:allowed,font:27);
-            tile.Label.rectTransform.anchoredPosition=new Vector2(39,0);
-            tile.Label.rectTransform.sizeDelta=new Vector2(220,82);
+            tile.Label.rectTransform.anchoredPosition=new Vector2(46,0);
+            tile.Label.rectTransform.sizeDelta=new Vector2(206,82);
             string artName=label switch {"Map"=>"MapMode","Bots"=>"BotsV2","Weapons"=>"WeaponsV2","God mode"=>"GodMode","Third person"=>"ThirdPerson","More tools"=>"MoreTools",_=>label};
             var approved=Resources.Load<Texture2D>("PlayerTabletArt/"+artName);
             Texture art=approved?approved:picture?picture:CandyHudVisuals.Icon(icon);
             float scale=Mathf.Min(72f/art.width,72f/art.height);
-            TabletPicture((RectTransform)tile.Button.transform,art,new(-119,0),
+            TabletPicture((RectTransform)tile.Button.transform,art,new(-105,0),
                 new(art.width*scale,art.height*scale));
             if(label=="More tools")
             {
                 tile.ToolTile=true;tile.Button.image.sprite=ToolTileSprite;tile.Button.image.type=Image.Type.Simple;
-                tile.Label.rectTransform.anchoredPosition=new Vector2(17,0);tile.Label.rectTransform.sizeDelta=new Vector2(184,82);
+                tile.Label.rectTransform.anchoredPosition=new Vector2(29,0);tile.Label.rectTransform.sizeDelta=new Vector2(184,82);
                 var chevron=TabletText((RectTransform)tile.Button.transform,"›",new(133,0),new(32,64),40);
                 chevron.color=CandyHudVisuals.Mint;chevron.raycastTarget=false;
             }
