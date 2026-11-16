@@ -133,12 +133,12 @@ Shader "DeadlyJenga/Sand Coating"
                 SurfaceData surface = (SurfaceData)0;
                 surface.albedo = albedo;
                 surface.specular = half3(.04,.04,.04);
-                surface.smoothness = lerp(.26,.46,resolved);
+                surface.smoothness = lerp(lerp(.26,.42,resolved),.30,input.raised.x);
                 surface.normalTS = half3(0,0,1);
                 surface.occlusion = lerp(.72,1,grains);
                 surface.alpha = alpha;
                 // A restrained diffuse transmission term for the pale, thin crystals.
-                surface.emission = albedo * light.color * .06 * light.shadowAttenuation;
+                surface.emission = albedo * light.color * .15 * light.shadowAttenuation;
                 half3 color = UniversalFragmentPBR(lighting,surface).rgb;
                 return half4(MixFog(color, input.fog), alpha);
             }
