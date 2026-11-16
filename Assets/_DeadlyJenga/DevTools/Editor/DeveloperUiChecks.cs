@@ -35,8 +35,10 @@ namespace DeadlyJenga.DevTools.Editor
         public static void RunMatchVisuals()=>Begin(false,false,true,true);
         public static void RunTerminalAppearance(){Begin(false,false,true,true);SessionState.SetBool(Key+"TerminalAppearance",true);}
         public static void RunCabinetOnly(){RunTerminalAppearance();SessionState.SetBool(Key+"CabinetOnly",true);}
+        public static void RunHostCabinetOnly(){RunCabinetOnly();SessionState.SetBool(Key+"HostCabinetOnly",true);}
         static void Begin(bool dialogs,bool tabs=false,bool lobby=false,bool matchVisuals=false)
         {
+            SessionState.SetBool(Key+"HostCabinetOnly",false);
             SessionState.SetBool(Key+"CabinetOnly",false);
             SessionState.SetBool(Key+"TerminalAppearance",false);
             SessionState.SetBool(Key+"MatchVisuals",matchVisuals);

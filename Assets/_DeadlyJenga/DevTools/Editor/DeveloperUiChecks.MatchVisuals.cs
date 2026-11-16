@@ -28,7 +28,8 @@ namespace DeadlyJenga.DevTools.Editor
             bool terminalAppearance=SessionState.GetBool(Key+"TerminalAppearance",false);
             if(terminalAppearance)
             {
-                CaptureCabinet(lobby,false);yield return null;yield return null;CaptureCabinet(lobby,true);
+                if(!SessionState.GetBool(Key+"HostCabinetOnly",false)){CaptureCabinet(lobby,false);yield return null;yield return null;}
+                CaptureCabinet(lobby,true);
                 var shell=lobby.GetComponent<MayhemMarina>();
                 File.AppendAllText(Report,"GEOMETRY render="+shell.RenderTriangles+" collision="+shell.CollisionTriangles+"\n");
             }
