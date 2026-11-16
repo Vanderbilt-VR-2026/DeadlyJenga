@@ -102,7 +102,7 @@ namespace DeadlyJenga.CandyArt.Marina
         }
 
         // Connect the cinema approach with the waterfront lounge and pool.
-        static readonly Vector3 BeaconWalkStart = new(6.9f, 1.31f, -4.8f);
+        static readonly Vector3 BeaconWalkStart = new(9.25f, 1.31f, -4.55f);
         static readonly Vector3 BeaconWalkEnd = new(11.5f, 1.285f, 2.6f);
         static readonly Quaternion BeaconWalkFacing = Quaternion.LookRotation(
             Vector3.ProjectOnPlane(BeaconWalkEnd - BeaconWalkStart, Vector3.up));
@@ -112,6 +112,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             // A single planar walking surface avoids small joints under the survivor capsule.
             Bridge(BeaconWalkStart, BeaconWalkEnd, 3.65f, 0);
+            mesh.Box(new Vector3(8.47f,1.205f,-5.32f),new Vector3(5.38f,.2f,2.65f),F.Stone,0,true);
             BeaconWalkLanding(BeaconWalkStart, -1.1f);
             BeaconWalkLanding(BeaconWalkEnd, 1.1f);
             for (int side = -1; side <= 1; side += 2)
