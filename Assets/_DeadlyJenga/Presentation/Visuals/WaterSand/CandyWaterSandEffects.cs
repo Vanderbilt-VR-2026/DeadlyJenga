@@ -474,9 +474,12 @@ namespace DeadlyJenga.Presentation
                 {
                     coat.dustNext = Time.time + .06f;
                     if (coat.surfaces.Count == 0) continue;
-                    var surface = coat.surfaces[Random.Range(0, coat.surfaces.Count)];
-                    if (!surface.TrySample(out var position)) continue;
-                    if (position.y > feet + coat.waistOffset || position.y < feet + coat.footOffset) continue;
+                    int start = Random.Range(0, coat.surfaces.Count);
+                    Vector3 position = default;
+                    bool sampled = false;
+                    for (int i = 0; i < coat.surfaces.Count && !sampled; i++)
+                        sampled = coat.surfaces[(start + i) % coat.surfaces.Count].TrySample(out position);
+                    if (!sampled) continue;
                     var emit = new ParticleSystem.EmitParams
                     {
                         position = position,

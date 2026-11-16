@@ -10,6 +10,7 @@ namespace DeadlyJenga.Presentation
         readonly Renderer source, overlay;
         readonly Material material;
         readonly Dictionary<Mesh, Mesh> meshes = new();
+        readonly Dictionary<Mesh, int[]> sheddingVertices = new();
         readonly float span;
         readonly MaterialPropertyBlock properties = new();
         Mesh currentMesh;
@@ -63,6 +64,12 @@ namespace DeadlyJenga.Presentation
                         Mathf.RoundToInt(material.GetFloat("_Seed") * 10000))
                     : Object.Instantiate(mesh);
                 meshes.Add(mesh, surface);
+                var rest = new List<Vector4>();
+                if (surface.isReadable) surface.GetUVs(3, rest);
+                var eligible = new List<int>();
+                for (int i = 0; i < mesh.vertexCount && i < rest.Count; i++)
+                    if (rest[i].w > -.03f && rest[i].w < 1.05f) eligible.Add(i);
+                sheddingVertices[mesh] = eligible.ToArray();
             }
             if (currentMesh != mesh)
             {
@@ -91,6 +98,8 @@ namespace DeadlyJenga.Presentation
         {
             position = default;
             if (!source || !source.enabled || !source.gameObject.activeInHierarchy) return false;
+            var original = source is SkinnedMeshRenderer renderer ? renderer.sharedMesh : source.GetComponent<MeshFilter>()?.sharedMesh;
+            if (!original || !sheddingVertices.TryGetValue(original, out var eligible) || eligible.Length == 0) return false;
             Mesh mesh;
             if (source is SkinnedMeshRenderer skin)
             {
@@ -102,7 +111,7 @@ namespace DeadlyJenga.Presentation
             if (!mesh || !mesh.isReadable) return false;
             mesh.GetVertices(sampleVertices);
             if (sampleVertices.Count == 0) return false;
-            position = source.transform.TransformPoint(sampleVertices[Random.Range(0, sampleVertices.Count)]);
+            position = source.transform.TransformPoint(sampleVertices[eligible[Random.Range(0, eligible.Length)]]);
             return true;
         }
 
