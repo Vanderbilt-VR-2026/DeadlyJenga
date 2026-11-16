@@ -187,7 +187,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Call(menu,"OpenDeveloperRoute","Bots");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,fold);
                 yield return Shot("24-bots-"+fold+".png");
             }
-            Row("Bot volume:");yield return Shot("25-bot-volume.png");Back();
+            Call(menu,"DeveloperVolume","Bot volume",new Action<float>(_=>{}));yield return Shot("25-bot-volume.png");Back();
             Call(menu,"OpenDeveloperRoute","Bots");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,"equipment");Draw();Row("Everyone loadout");
             for(int category=0;category<3;category++)
             {
