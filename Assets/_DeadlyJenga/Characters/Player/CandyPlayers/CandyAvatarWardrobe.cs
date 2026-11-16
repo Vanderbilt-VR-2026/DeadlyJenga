@@ -32,10 +32,8 @@ namespace DeadlyJenga.CandyPlayers
             value = CandyPlayerAvatar.SanitizeAppearance(value);
             value.poweredArmor = equippedArmor;
             value = CandyWardrobeCompatibility.Resolve(value).effective;
-            var sameShade = appearance;
-            sameShade.hairShade = value.hairShade;
             if (built && appearance.accessories == value.accessories &&
-                CandyPlayerAvatar.StyleBits(sameShade) == CandyPlayerAvatar.StyleBits(value))
+                CandyPlayerAvatar.StyleBits(appearance) == CandyPlayerAvatar.StyleBits(value))
             {
                 if (appearance.hairShade != value.hairShade)
                 {

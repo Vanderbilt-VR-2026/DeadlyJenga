@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.CharacterNetwork;
 using DeadlyJenga.CandyArt.Marina;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Core;
@@ -163,8 +164,17 @@ namespace DeadlyJenga.DevTools.Editor
             Click(view, "Category 0");
             Click(view, "Accessory 0");
             Check(avatar.Appearance.Equals(requested), "Selecting Default restores the saved outfit");
-            Check(CandyPlayerAvatar.WithStyle(requested, CandyPlayerAvatar.StyleBits(requested)).Equals(requested),
-                "Appearance style bits round-trip");
+            requested.hairShade = AvatarHairShade.Light;
+            using (var packet = new MemoryStream())
+            using (var writer = new BinaryWriter(packet))
+            using (var reader = new BinaryReader(packet))
+            {
+                CharacterWire.WriteSurvivor(writer, avatar.LastFrame, avatar.Rig.ColorIndex, requested);
+                packet.Position = 0;
+                CharacterWire.ReadSurvivor(reader, out _, out _, out var received, out _);
+                Check(received.Equals(requested), "Current survivor packets retain the selected shade and outfit");
+            }
+            requested.hairShade = AvatarHairShade.Original;
             requested.poweredArmor = true;
             Check(CandyPlayerAvatar.WithStyle(requested, CandyPlayerAvatar.StyleBits(requested)).poweredArmor,
                 "Existing powered armor bit round-trips");
