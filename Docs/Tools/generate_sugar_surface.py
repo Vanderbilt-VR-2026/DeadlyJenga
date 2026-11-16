@@ -7,7 +7,7 @@ size = 2048
 rng = np.random.default_rng(41371)
 height = np.zeros((size, size), np.float32)
 shade = np.zeros_like(height)
-# A 32 mm tile: mostly 0.2-0.6 mm grains, with irregular chipped facets.
+# A 64 mm tile: mostly 0.4-1.2 mm grains, with irregular chipped facets.
 for _ in range(6400):
     x, y = rng.uniform(0, size, 2)
     radius = rng.uniform(7, 22)

@@ -32,7 +32,7 @@ namespace DeadlyJenga.Presentation
                 return new Vector4(scaled.x, scaled.y, scaled.z, (p.y-bottom)/span);
             }
             foreach (var v in original) { rest.Add(Rest(v)); raised.Add(Vector2.zero); }
-            int remaining = 1800;
+            int remaining = 3200;
             var influences = new Dictionary<int,float>();
             BoneWeight Weight(Anchor a)
             {
@@ -69,7 +69,7 @@ namespace DeadlyJenga.Presentation
                     float band=(rest[ia].w+rest[ib].w+rest[ic].w)/3;
                     if(band<-.1f||band>1.2f)continue;
                     float area=Vector3.Cross(transform.TransformVector(b-a),transform.TransformVector(c-a)).magnitude*.5f;
-                    float expected=area*4200;
+                    float expected=area*11000;
                     int count=Math.Min(remaining,Mathf.FloorToInt(expected)+(Next()<expected%1?1:0));
                     for(int g=0;g<count;g++)
                     {
@@ -82,7 +82,7 @@ namespace DeadlyJenga.Presentation
                         tangent=Quaternion.AngleAxis(Next()*360,n)*tangent;
                         Vector3 bitangent=Vector3.Cross(n,tangent);
                         float scale=Mathf.Max(.01f,transform.lossyScale.magnitude/Mathf.Sqrt(3));
-                        float radius=Mathf.Lerp(.00035f,.00085f,Next())/scale;
+                        float radius=Mathf.Lerp(.00045f,.0010f,Next())/scale;
                         var points=new[]{center+n*radius*1.1f,center-n*radius*.12f,
                             center+tangent*radius,center+bitangent*radius*.8f,
                             center-tangent*radius,center-bitangent*radius*.8f};

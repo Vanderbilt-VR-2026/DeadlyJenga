@@ -4,7 +4,7 @@ Evan approved Fine Crystals A and the associated elbow repair on November 15, 20
 The earlier brown coating candidate below was rejected visually despite passing functional checks.
 This revision replaces its per-pixel 27-cell crystal search with a reproducible, mipmapped
 2048-pixel linear surface map, thin pale crystal coverage and sparse skinned mesh facets.
-The texture represents 32 mm of surface, so nominal image dimensions do not imply visual quality.
+The texture represents 64 mm of surface, so nominal image dimensions do not imply visual quality.
 Grain patterns vary per exposure; rest coordinates and blend-shape anchors follow the skin.
 Arm roll now transports through the elbow independently of tracked palm roll. Spine weights
 are sorted for reduced-influence skinning. No Core, package or project-setting changes.
