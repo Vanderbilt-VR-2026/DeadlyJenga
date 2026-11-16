@@ -231,21 +231,28 @@ namespace DeadlyJenga.CandyArt.Marina
             float depth=CinemaBack-CinemaFront;
             float center=(CinemaFront+CinemaBack)*.5f;
             mesh.Box(new Vector3(0,CinemaFloor-.3f,center),new Vector3(15.8f,.6f,depth),F.Stone,0,true);
+            TileLines(new Vector3(0,CinemaFloor+.003f,center),new Vector2(15.22f,depth-.45f));
+            for(int side=-1;side<=1;side+=2)
+            {
+                var trim=new Vector3(side*7.64f,CinemaFloor+.004f,center);
+                mesh.Box(trim,new Vector3(.16f,.007f,depth-.36f),F.CandyMint,.001f);
+                mesh.Box(trim-Vector3.right*(side*.15f),new Vector3(.065f,.007f,depth-.36f),F.Ivory,.001f);
+            }
             foreach (float side in new[]{-1f,1f})
                 Rail(new Vector3(side*7.78f,CinemaFloor,CinemaFront+.5f),new Vector3(side*7.78f,CinemaFloor,2.0f));
             WardrobeConnector();
             mesh.Box(new Vector3(0,3.7f,11.65f),new Vector3(15.8f,4.0f,.5f),F.Teal,.2f,true);
-            mesh.CurvedRoof(new Vector3(0,5.95f,center),17.1f,depth+2.0f,2.08f,F.Teal);
-            mesh.Box(CinemaSign,new Vector3(6.1f,.95f,.24f),F.DarkWood,.085f);
+            mesh.CurvedRoof(new Vector3(0,5.95f,center),17.1f,depth+2.0f,2.08f,F.CandyCoral,striped:true);
+            mesh.Box(CinemaSign,new Vector3(6.1f,.95f,.24f),F.Teal,.085f);
             for(int side=-1;side<=1;side+=2)
-                mesh.Beam(CinemaSign+new Vector3(side*2,.4f,.06f),CinemaSign+new Vector3(side*2,2.2f,.06f),.055f,F.Brass);
+                mesh.Beam(CinemaSign+new Vector3(side*2,.4f,.06f),CinemaSign+new Vector3(side*2,2.30f,.06f),.055f,F.Brass);
             for(int side=-1;side<=1;side+=2)
             {
                 float x=side*7.4f;
                 float z=CinemaFront+.45f;
                 mesh.Box(new Vector3(x,CinemaFloor+.17f,z),new Vector3(.78f,.34f,.78f),F.Stone,.08f,true);
-                mesh.Beam(new Vector3(x,CinemaFloor+.22f,z),new Vector3(x,6.65f,z),.18f,F.DarkWood,true);
-                mesh.Beam(new Vector3(x,5.08f,z),new Vector3(side*6.55f,6.95f,z),.13f,F.DarkWood);
+                mesh.Beam(new Vector3(x,CinemaFloor+.22f,z),new Vector3(x,6.72f,z),.18f,F.Wood,true);
+                mesh.Beam(new Vector3(x,5.08f,z),new Vector3(side*6.55f,7.08f,z),.13f,F.Wood);
                 Lantern(new Vector3(x,4.4f,z-.35f),.16f);
             }
             BuildBeachCinema();
@@ -362,7 +369,7 @@ namespace DeadlyJenga.CandyArt.Marina
             for (int i = 0; i < 9; i++)
                 mesh.Box(new Vector3(-17.8f + i * .68f, floor + 3.36f, 4.75f), new Vector3(.12f, .14f, 3.2f), F.Wood, .03f);
             Sofa(new Vector3(-15, floor, 5.3f), 3.6f, Quaternion.Euler(0, 180, 0));
-            Sofa(new Vector3(-17.1f, floor, 4.1f), 1.6f, Quaternion.Euler(0, 90, 0));
+            Sofa(new Vector3(-17.55f, floor, 4.75f), 1.6f, Quaternion.Euler(0, 90, 0));
             Table(new Vector3(-15, floor, 4.2f), .9f);
             Lantern(new Vector3(-15, floor + 2.75f, 4.75f), .22f);
             foreach (var p in new[] { new Vector3(-18.6f, floor, 3.0f), new Vector3(-11.6f, floor, 3.0f), new Vector3(-18.6f, floor, 12.2f) })
@@ -394,7 +401,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Beam(c+new Vector3(x,1.02f,2.94f),c+new Vector3(x,3.2f,2.94f),.025f,F.Brass);
             }
             mesh.Box(c+new Vector3(5,1.65f,1),new Vector3(.65f,3.3f,4.3f),F.Ivory,.2f,true);
-            mesh.CurvedRoof(c+new Vector3(0,3.5f,.2f),12.2f,7.5f,.68f,F.DarkWood);
+            mesh.CurvedRoof(c+new Vector3(0,3.5f,.2f),12.2f,7.5f,.68f,F.Teal,striped:true);
             for(int side=-1;side<=1;side+=2)
             {
                 mesh.Beam(c+new Vector3(side*4.8f,0,-2),c+new Vector3(side*4.8f,3.7f,-2),.15f,F.Wood,true);
@@ -405,12 +412,12 @@ namespace DeadlyJenga.CandyArt.Marina
             Sofa(c + new Vector3(-3.45f, 0, .65f), 2.5f, Quaternion.Euler(0, -90, 0));
             Table(c + new Vector3(.45f, 0, .05f), 1.18f);
             for(int i=0;i<3;i++)mesh.Box(c+new Vector3(-3.8f,1.1f+i*.55f,2.7f),new Vector3(2,.09f,.55f),F.Wood,.03f);
-            Pot(c+new Vector3(-4.6f,0,1.65f),.42f,.7f,10);
+            Pot(c+new Vector3(-4.55f,0,2.65f),.36f,.7f,10);
             Pot(c+new Vector3(4.5f,0,-2.25f),.5f,.78f,11);
             // The front social island has another curved bank of seating.
-            for(int i=0;i<4;i++)
+            for(int i=0;i<3;i++)
             {
-                float angle=Mathf.Lerp(130,205,i/3f)*Mathf.Deg2Rad;var p=new Vector3(-10+Mathf.Cos(angle)*4.0f,1.33f,-8+Mathf.Sin(angle)*4.0f);
+                float angle=Mathf.Lerp(130,205,i/2f)*Mathf.Deg2Rad;var p=new Vector3(-10+Mathf.Cos(angle)*4.0f,1.33f,-8+Mathf.Sin(angle)*4.0f);
                 Sofa(p,1.35f,Quaternion.Euler(0,90-angle*Mathf.Rad2Deg,0));
             }
         }

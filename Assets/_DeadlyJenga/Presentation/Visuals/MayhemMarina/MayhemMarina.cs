@@ -187,7 +187,7 @@ namespace DeadlyJenga.CandyArt.Marina
             RenderSettings.ambientGroundColor=new Color(.41f,.35f,.30f);
             RenderSettings.ambientIntensity=1;
             var ambient=new SphericalHarmonicsL2();
-            ambient.AddAmbientLight(new Color(.33f,.34f,.35f));
+            ambient.AddAmbientLight(new Color(.48f,.46f,.42f));
             ambient.AddDirectionalLight(Vector3.up,new Color(.59f,.76f,.97f),.47f);
             ambient.AddDirectionalLight(Vector3.forward,new Color(1,.68f,.36f),.21f);
             RenderSettings.ambientProbe=ambient;
@@ -245,13 +245,13 @@ namespace DeadlyJenga.CandyArt.Marina
             var go=new GameObject("Marina warm coastal grading");go.transform.SetParent(visual,false);var volume=go.AddComponent<Volume>();volume.isGlobal=true;volume.priority=3;
             volumeProfile=ScriptableObject.CreateInstance<VolumeProfile>();volume.profile=volumeProfile;
             var tone=volumeProfile.Add<Tonemapping>();tone.mode.Override(TonemappingMode.ACES);
-            var color=volumeProfile.Add<ColorAdjustments>();color.postExposure.Override(0);color.contrast.Override(7);color.saturation.Override(3);
+            var color=volumeProfile.Add<ColorAdjustments>();color.postExposure.Override(.15f);color.contrast.Override(2);color.saturation.Override(7);
             var bloom=volumeProfile.Add<Bloom>();bloom.intensity.Override(.14f);bloom.threshold.Override(1.15f);bloom.scatter.Override(.55f);
             var probeObject=new GameObject("Marina reflection capture");probeObject.transform.SetParent(visual,false);probeObject.transform.localPosition=new Vector3(0,4,3);
             var probe=probeObject.AddComponent<ReflectionProbe>();probe.mode=ReflectionProbeMode.Realtime;probe.refreshMode=ReflectionProbeRefreshMode.ViaScripting;probe.timeSlicingMode=ReflectionProbeTimeSlicingMode.IndividualFaces;probe.resolution=256;probe.size=new Vector3(56,24,65);probe.boxProjection=true;probe.intensity=.8f;probe.nearClipPlane=.3f;probe.farClipPlane=250;probe.clearFlags=ReflectionProbeClearFlags.Skybox;reflection=probe;StartCoroutine(CaptureReflection());
             var amber = new Color(1, .68f, .34f);
             var cool = new Color(.35f, .78f, 1);
-            Accent("Play Pavilion", new Vector3(0, 4.7f, 7), new Color(1,.96f,.91f), 2.4f, 8);
+            Accent("Cinema", new Vector3(0, 5.9f, 4.1f), new Color(1,.90f,.76f), 2.9f, 10);
             Accent("Garden lounge", new Vector3(-15, 3.9f, 4.75f), amber, 2.2f, 5.5f);
             Accent("Waterfront lounge", new Vector3(13.7f, 3.8f, 5.4f), amber, 3.2f, 6.5f);
             Accent("Arrival", new Vector3(-12.5f, 2.45f, -10.25f), amber, 2, 5.5f);
@@ -286,7 +286,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 HideLegacyGround(environment);
                 environment.enabled=false;
                 var sun=environment.sun;
-                if(sun){sun.transform.rotation=Quaternion.LookRotation(-CandyCatwalksCoast.SunDirection);sun.color=new Color(1,.94f,.83f);sun.intensity=1.85f;sun.shadows=LightShadows.Soft;sun.shadowBias=.035f;sun.shadowNormalBias=.25f;}
+                if(sun){sun.transform.rotation=Quaternion.LookRotation(-CandyCatwalksCoast.SunDirection);sun.color=new Color(1,.94f,.83f);sun.intensity=1.65f;sun.shadows=LightShadows.Soft;sun.shadowBias=.035f;sun.shadowNormalBias=.25f;}
             }
             ApplyDaylightAmbient();
             RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Exponential;RenderSettings.fogColor=new Color(.37f,.66f,.83f);RenderSettings.fogDensity=.00045f;
@@ -472,9 +472,9 @@ namespace DeadlyJenga.CandyArt.Marina
             Sign("LOUNGE  /  POOL  >", new Vector3(5.82f, CinemaFloor + 1.35f, -.632f), .025f, cream);
             Sign("BEACHSIDE CINEMA", CinemaSign + Vector3.back * .122f, .048f, cream);
             var styleBase = new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z);
-            Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.72f, 1.95f), .085f, cream, StyleStageTurn.eulerAngles);
+            Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.13f, 1.939f), .055f, cream, StyleStageTurn.eulerAngles);
 
-            Sign("SHOWTIME PLAZA", OnPlaza(-114, 4.7f, PlazaTop - PlazaCenter.y + .012f), .05f,
+            Sign("SHOWTIME PLAZA", OnPlaza(-114, 4.7f, PlazaTop - PlazaCenter.y + .018f), .05f,
                 new Color(.23f, .16f, .10f), new Vector3(90, 66, 0));
             Sign("WATERFRONT LOUNGE", new Vector3(13.7f, 4.42f, 2.49f), .044f, cream);
             Sign("PRACTICE POOL", new Vector3(19, 1.76f, -3.24f), .026f, cream, new Vector3(0, 180, 0));

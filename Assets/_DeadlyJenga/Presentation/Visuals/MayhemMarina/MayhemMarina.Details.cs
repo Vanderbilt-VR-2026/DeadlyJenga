@@ -21,7 +21,7 @@ namespace DeadlyJenga.CandyArt.Marina
             Palm(new Vector3(-3.7f,4.14f,19.9f),5.8f,-.5f,4);Palm(new Vector3(19.5f,1.285f,10),5.9f,-.5f,5);
             Palm(new Vector3(22,1.3f,3),5.3f,.6f,6);Palm(new Vector3(-22,1.3f,-1.5f),4.6f,-.4f,7);
             Palm(new Vector3(20.6f,1.25f,13.5f),5.7f,.45f,8);
-            Vector3[] pots={new(-16,1.285f,2.9f),new(-16.9f,1.285f,12.1f),new(7.4f,CinemaFloor,6.35f),new(9.15f,1.285f,2.25f),new(18.8f,1.285f,2.5f),new(-4.9f,4.14f,16),new(-17.5f,4.14f,14.1f),new(2.8f,4.14f,15.8f),new(-6,4.14f,20.2f)};
+            Vector3[] pots={new(-16,1.285f,2.9f),new(-16.9f,1.285f,12.1f),new(6.85f,CinemaFloor,7.55f),new(8.94f,1.285f,3.7f),new(18.8f,1.285f,2.5f),new(-4.9f,4.14f,16),new(-17.5f,4.14f,14.1f),new(2.8f,4.14f,15.8f),new(-6,4.14f,20.2f)};
             for(int i=0;i<pots.Length;i++)Pot(pots[i],.45f+(i%3)*.07f,.72f+(i%2)*.12f,i+20);
             for(int i=0;i<18;i++)
             {
@@ -71,7 +71,7 @@ namespace DeadlyJenga.CandyArt.Marina
         void Pot(Vector3 p,float radius,float height,int seed)
         {
             mesh.Disk(p,radius*.82f,height*.12f,F.Ivory,false,24);
-            mesh.Ellipsoid(p+Vector3.up*height*.49f,new Vector3(radius,height*.51f,radius),F.Ivory,rings:7,sides:14,solid:true);
+            mesh.Ellipsoid(p+Vector3.up*height*.49f,new Vector3(radius,height*.51f,radius),seed%2==0 ? F.CandyMint : F.Ivory,rings:7,sides:14,solid:true);
             mesh.Disk(p+Vector3.up*(height-.04f),radius*.89f,.06f,F.DarkWood,false,24);
             var rim=new List<Vector3>();for(int i=0;i<=32;i++){float a=i*Mathf.PI/16;rim.Add(p+new Vector3(Mathf.Cos(a)*radius*.89f,height,Mathf.Sin(a)*radius*.89f));}mesh.Tube(rim,.045f,F.Ivory,8);
             Shrub(p+Vector3.up*height,radius*1.5f,seed);

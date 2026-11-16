@@ -39,36 +39,29 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Disk(floor + Vector3.down * 2.2f, PlazaRadius + .3f, 2.07f, F.Rock, true, 72);
             mesh.Disk(floor + Vector3.down * .13f, PlazaRadius, .13f, F.Stone, true, 72);
 
-            // Flush inlays: a candy-tile mosaic medallion, a brass ring and warm wood rays (art only, no collision).
-            mesh.Disk(floor, 1.55f, .006f, F.CandyCream, false, 48);
+            // Flush inlays: a candy-tile mosaic medallion and a brass ring (art only, no collision).
+            var mosaic = floor + Vector3.back * 3.85f;
+            mesh.Disk(mosaic, 1.15f, .010f, F.CandyCream, false, 48);
             F[] tiles = { F.CandyMint, F.CandyCoral, F.CandyLilac, F.CandyCream };
             for (int ring = 0; ring < 3; ring++)
             {
-                float inner = 1.85f + ring * .55f, outer = inner + .48f;
+                float inner = 1.38f + ring * .38f, outer = inner + .32f;
                 int count = 16 + ring * 8;
                 for (int i = 0; i < count; i++)
                 {
                     float from = i * 360f / count + 1.2f, to = (i + 1) * 360f / count - 1.2f;
-                    mesh.ArcSlab(floor, Vector2.one * inner, Vector2.one * outer, .007f, from, to, tiles[(i + ring) % tiles.Length], false, 3);
+                    mesh.ArcSlab(mosaic, Vector2.one * inner, Vector2.one * outer, .010f, from, to, tiles[(i + ring) % tiles.Length], false, 3);
                 }
             }
             // A five-pointed candy star at the very centre.
             for (int i = 0; i < 5; i++)
             {
                 float a = i * 72f;
-                var tip = OnPlaza(a, .95f, PlazaTop - PlazaCenter.y + .009f);
-                mesh.Box((tip + floor) * .5f + Vector3.up * .009f, new Vector3(.32f, .004f, .95f), F.CandyCoral, .002f, false, Quaternion.Euler(0, a, 0));
+                var ray = Quaternion.Euler(0, a, 0) * Vector3.forward * .4f;
+                mesh.Box(mosaic + ray + Vector3.up * .016f, new Vector3(.29f, .004f, .80f), F.CandyCoral, .002f, false, Quaternion.Euler(0, a, 0));
             }
-            mesh.ArcSlab(floor, Vector2.one * 1.55f, Vector2.one * 1.72f, .008f, 0, 360, F.Brass, false, 48);
+            mesh.ArcSlab(mosaic, Vector2.one * 1.15f, Vector2.one * 1.26f, .010f, 0, 360, F.Brass, false, 48);
             mesh.ArcSlab(floor, Vector2.one * (PlazaRadius - .62f), Vector2.one * (PlazaRadius - .48f), .008f, 0, 360, F.Brass, false, 72);
-            for (int i = 0; i < 12; i++)
-            {
-                float a = i * 30f;
-                var from = OnPlaza(a, 1.9f, PlazaTop - PlazaCenter.y + .004f);
-                var to = OnPlaza(a, PlazaRadius - .8f, PlazaTop - PlazaCenter.y + .004f);
-                mesh.Box((from + to) * .5f, new Vector3(.07f, .006f, Vector3.Distance(from, to)),
-                    i % 2 == 0 ? F.Wood : F.DarkWood, .002f, false, Quaternion.Euler(0, a, 0));
-            }
 
             // Rounded masonry copings only where the plaza meets open water.
             for (int i = 0; i < 64; i++)
@@ -119,7 +112,7 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.ArcSlab(At(0, .2f, 0), Vector2.one * 1.12f, Vector2.one * 1.2f, .008f, 0, 360, F.Brass, false, 48);
 
             // Free-standing vanity: carved panel, illuminated oval mirror and a crown arch.
-            mesh.Box(At(0, 1.95f, 2.3f), new Vector3(3.7f, 3.9f, .3f), F.Wood, .16f, true, turn);
+            mesh.Box(At(0, 1.95f, 2.3f), new Vector3(3.7f, 3.9f, .3f), F.Teal, .16f, true, turn);
             mesh.Box(At(0, .12f, 2.3f), new Vector3(4.1f, .24f, .62f), F.DarkWood, .08f, true, turn);
             var crown = new List<Vector3>();
             for (int i = 0; i <= 32; i++)
@@ -128,6 +121,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 crown.Add(At(Mathf.Cos(a) * 1.85f, 3.9f + Mathf.Sin(a) * .62f, 2.18f));
             }
             mesh.Tube(crown, .2f, F.Ivory, 12, true);
+            mesh.Box(At(0, 4.13f, 2.12f), new Vector3(1.80f, .48f, .34f), F.Teal, .11f, false, turn);
             var ring = new List<Vector3>();
             for (int i = 0; i <= 64; i++)
             {
@@ -189,7 +183,7 @@ namespace DeadlyJenga.CandyArt.Marina
             // Compact backing keeps the recent-match board above the podium.
             for (int side = -1; side <= 1; side += 2)
                 mesh.Box(At(side * 2.14f, 1.4f, .22f), new Vector3(.14f, 2.8f, .14f), F.DarkWood, .04f, true, turn);
-            mesh.Box(At(0, 2.9f, .12f), new Vector3(4.48f, 2.38f, .14f), F.Teal, .08f, false, turn);
+            mesh.Box(At(0, 2.9f, .12f), new Vector3(4.48f, 2.38f, .14f), F.CandyMint, .08f, false, turn);
             mesh.Box(At(0, .12f, .2f), new Vector3(4.55f, .24f, .45f), F.Stone, .06f, true, turn);
 
             // Winners' steps in front of the board. Solid, so players can hop up for a victory pose.
