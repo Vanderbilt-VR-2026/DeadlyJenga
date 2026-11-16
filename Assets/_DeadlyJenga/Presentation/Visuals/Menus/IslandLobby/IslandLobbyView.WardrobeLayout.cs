@@ -12,6 +12,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             var root = desktop ? wardrobeDesktop : wardrobePanel;
             var panel = desktop ? (RectTransform)root.Find("Options") : root;
+            bool hasColors = panel.Cast<Transform>().Any(t => t.name.StartsWith("Cosmetic shade ") || t.name.StartsWith("wardrobe-cosmetic-shade-"));
             if (desktop)
             {
                 panel.anchoredPosition = new Vector2(250, 0);
@@ -45,7 +46,8 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < WardrobePageSize; i++)
                 MoveWardrobeControl(panel, desktop ? "Accessory " + i : "wardrobe-" + i,
                     desktop ? (i % 2 == 0 ? -44 : 194) : (i % 2 == 0 ? -110 : 300),
-                    (desktop ? 143 : 174) - i / 2 * (desktop ? 53 : 70),
+                    (hasColors ? (desktop ? 143 : 174) : (desktop ? 214 : 236)) - i / 2 *
+                        (hasColors ? (desktop ? 53 : 70) : (desktop ? 66 : 83)),
                     desktop ? 224 : 390, desktop ? 45 : 59, desktop ? 21 : 28);
 
             MoveWardrobeControl(panel, desktop ? "Previous category" : "wardrobe-clear",
