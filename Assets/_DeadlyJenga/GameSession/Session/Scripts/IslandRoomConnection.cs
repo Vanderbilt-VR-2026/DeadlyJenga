@@ -558,7 +558,9 @@ namespace DeadlyJenga.CastlePrototype
             if(IsHost&&CanConfigure&&lastPublishedPopulation!=MatchSetup.BotTarget)PublishSelection();
             if(Connected&&!IsHost&&Runner.SessionInfo.Properties.TryGetValue("population",out var population))MatchSetup.BotTarget=Mathf.Clamp((int)population,10,100);
             if(Catalog&&Discovery==null&&DiscoveryStatus.Length==0)StartDiscovery();
-            try{Discovery?.Tick(Time.unscaledTime,Connected?Code:"",HumanCount,IsHost&&NearbyRoomOpen&&GetComponent<NearbyRoomService>()?.NearbyEnabled!=true);}catch(Exception e){DiscoveryStatus="Wi-Fi discovery: "+e.Message;Discovery?.Dispose();Discovery=null;}
+            bool usesBluetoothDiscovery = Application.platform == RuntimePlatform.Android &&
+                GetComponent<NearbyRoomService>()?.NearbyEnabled == true;
+            try{Discovery?.Tick(Time.unscaledTime,Connected?Code:"",HumanCount,IsHost&&NearbyRoomOpen&&!usesBluetoothDiscovery);}catch(Exception e){DiscoveryStatus="Wi-Fi discovery: "+e.Message;Discovery?.Dispose();Discovery=null;}
             if(Connected&&Discovery?.Invitation!=null&&Discovery.Invitation.message.code==Code)Discovery.Dismiss();
             if(IsHost&&!Busy&&migrationSnapshot?.IsCompleted!=false&&Time.unscaledTime>=nextMigrationSnapshot)
             {
