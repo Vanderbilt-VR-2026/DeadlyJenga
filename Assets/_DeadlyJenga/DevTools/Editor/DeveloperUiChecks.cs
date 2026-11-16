@@ -121,7 +121,8 @@ namespace DeadlyJenga.DevTools.Editor
             void Row(string prefix)
             {
                 Draw();var labels=Field<Text[]>(menu,"labels");var targets=Field<BoxCollider[]>(menu,"targets");
-                int index=Array.FindIndex(labels,x=>x.gameObject.activeInHierarchy&&x.text.Contains(prefix));
+                int index=Array.FindIndex(labels,x=>x.gameObject.activeInHierarchy&&x.text==prefix);
+                if(index<0)index=Array.FindIndex(labels,x=>x.gameObject.activeInHierarchy&&x.text.Contains(prefix));
                 Check(index>=0&&targets[index].enabled,"Row available: "+prefix);
                 var target=targets[index];
                 typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,target.bounds.center-camera.transform.position));
@@ -140,8 +141,14 @@ namespace DeadlyJenga.DevTools.Editor
             Row("Bot voices");yield return Shot("04-bot-voices.png");Back();
             Check(!Field<bool>(menu,"tabletDeveloperDetails"),"Bots Back returns to root");
             TabletClick(menu,"More tools");yield return Shot("05-more-tools.png");Row("World & pickups");yield return Shot("06-world-tools.png");
-            Row("Ground pickups");Back();Check(Field<string>(menu,"developerRoute")=="More tools"&&!Field<bool>(menu,"developerChild"),"Child Back returns to owning tools page");Back();
-            TabletClick(menu,"Map");yield return Shot("07-maps.png");Row("Filter:");yield return Shot("08-map-filters.png");Row("In development");yield return Shot("09-filtered-maps.png");Back();
+            Row("Ground pickups");Back();Check(Field<string>(menu,"developerRoute")=="More tools"&&!Field<bool>(menu,"developerChild"),"Child Back returns to owning tools page");
+            Row("Automatic powerups");yield return Shot("17-automatic-powerups.png");Row("Show item weights");yield return Shot("18-powerup-weights.png");Back();Back();
+            TabletClick(menu,"Map");yield return Shot("07-maps.png");Row("Filter:");yield return Shot("08-map-filters.png");Row("In development");yield return Shot("09-filtered-maps.png");
+            Row("Search:");yield return Shot("19-map-search.png");Row("A");Row("A");Row("A");Row("Show results");
+            Check(Field<Text[]>(menu,"labels").Any(x=>x.gameObject.activeInHierarchy&&x.text=="No available entries in this filter"),"Search has an explicit empty result state");
+            Row("Search:");Row("Clear");Row("Show results");Back();
+            Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Room"));Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Developer"));
+            Check(Field<string>(menu,"developerRoute")=="","Top-level tabs clear stale developer route");
             TabletClick(menu,"Spectate");yield return Shot("16-spectate.png");Back();
             TabletClick(menu,"Mode");yield return Shot("10-mode.png");Row("advanced rules");yield return Shot("11-advanced-rules.png");Back();
             TabletClick(menu,"Disasters");yield return Shot("12-disasters.png");
@@ -166,6 +173,9 @@ namespace DeadlyJenga.DevTools.Editor
             survivor.Teleport(oldPosition,oldRotation);survivor.InputSuspended=oldPause;
             TabletClick(menu,"God mode");Check(!god.GodModeEnabled,"God Mode toggles off");
             damage.Damage(5,menu.gameObject);Check(damage.Health<health,"Damage works again after disabling God Mode");survivor.Revive();
+            god.SetGodMode(true);session.Modes.Configure(ModeDefaults.Create(GameModeKind.Survival));Call(survivor,"Update");
+            Check(!god.CanSetGodMode&&!god.GodModeEnabled,"Leaving Demo revokes God Mode");
+            session.Modes.Configure(ModeDefaults.Create(GameModeKind.Demo));Check(!god.GodModeEnabled,"Returning to Demo does not silently restore God Mode");
             Object.DestroyImmediate(menu.gameObject);
         }
         static void Capture(Camera camera,Canvas canvas,string name)

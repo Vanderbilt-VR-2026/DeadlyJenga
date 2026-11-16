@@ -354,7 +354,11 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var field=developerModeChoice;
                 Add("Close "+ModeSetupPanel.Label(field.Name)+" choices",()=>developerModeChoice=null);
-                if(field.FieldType.IsEnum)
+                if(field.FieldType==typeof(string))
+                {
+                    foreach(string value in CandySceneSkins.Names){string choice=value;Add(choice,()=>Apply(field,choice),canConfigure);}
+                }
+                else if(field.FieldType.IsEnum)
                 {
                     foreach(var value in Enum.GetValues(field.FieldType))
                     {var choice=value;Add(choice.ToString(),()=>Apply(field,choice),canConfigure);}
@@ -388,6 +392,7 @@ namespace DeadlyJenga.CastlePrototype
                         if(field.FieldType==typeof(bool))Apply(field,!(bool)field.GetValue(rules));else developerModeChoice=field;
                     },canConfigure);
                 }
+                if(!developerModeAdvanced)Add("Scene appearance: "+rules.environmentSkin+"  v",()=>developerModeChoice=modeFields.First(f=>f.Name=="environmentSkin"),canConfigure);
                 Add((developerModeAdvanced?"Hide":"Show")+" advanced rules",()=>{developerModeAdvanced=!developerModeAdvanced;modeOffset=0;});
                 if(developerModeAdvanced&&modeOffset>0)Add("Previous rules",()=>modeOffset=Mathf.Max(0,modeOffset-9));
                 if(developerModeAdvanced&&modeOffset+9<fields.Length)Add("Next rules",()=>modeOffset+=9);

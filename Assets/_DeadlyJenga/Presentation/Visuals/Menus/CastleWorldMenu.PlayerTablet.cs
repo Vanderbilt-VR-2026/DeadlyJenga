@@ -150,6 +150,7 @@ namespace DeadlyJenga.CastlePrototype
             RestoreEquipmentWheelLayout();
             ResetPages();
             menuCategory=menuSection=-1;
+            developerRoute="";developerChild=false;developerVolumeApply=null;
             tabletPage=page;
             tabletDeveloperDetails=false;
             tabletWeaponsOpen=false;
@@ -991,7 +992,8 @@ namespace DeadlyJenga.CastlePrototype
 
         void CloseDeveloperDetails()
         {
-            developerRoute="";developerChild=false;
+            developerRoute="";developerChild=false;developerVolumeApply=null;
+            RestoreEquipmentWheelLayout();
             ResetPages();
             tabletDeveloperDetails = false;
             disasterPage = false;
@@ -1032,8 +1034,12 @@ namespace DeadlyJenga.CastlePrototype
         void OnDeveloperBackClicked()
         {
             if (!IsDevBackButtonActive()) return;
+            if(developerVolumeApply!=null){developerVolumeApply=null;return;}
+            if(randomPowerupPage&&developerPowerupChoice>=0){developerPowerupChoice=-1;return;}
+            if(mapPage&&developerMapSearchOpen){developerMapSearchOpen=false;return;}
+            if(mapPage&&developerMapFiltersOpen){developerMapFiltersOpen=false;return;}
             if(modePage&&developerModeChoice!=null){developerModeChoice=null;return;}
-            if(developerRoute.Length>0){if(developerChild){ResetPages();developerChild=false;}else CloseDeveloperDetails();return;}
+            if(developerRoute.Length>0){if(developerChild){RestoreEquipmentWheelLayout();ResetPages();menuCategory=menuSection=-1;developerChild=false;}else CloseDeveloperDetails();return;}
 
             if (comfortSliderOpen)
             {

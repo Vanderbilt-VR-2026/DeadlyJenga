@@ -7,6 +7,9 @@ namespace DeadlyJenga.CastlePrototype
     {
         string developerRoute="", developerFoldout="";
         bool developerChild,developerPhysics;
+        Action<float> developerVolumeApply;
+        string developerVolumeLabel;
+        void DeveloperVolume(string label,Action<float> apply){developerVolumeLabel=label;developerVolumeApply=apply;}
         IDeveloperGodMode DeveloperGodMode => session.Player?.gameObject.GetComponent<IDeveloperGodMode>();
         void ToggleDeveloperGodMode()
         {
@@ -39,6 +42,14 @@ namespace DeadlyJenga.CastlePrototype
             }
             heading.text="DEVELOPER / "+developerRoute.ToUpperInvariant();
             help.text=CanCommand?"Expand a section for extra controls. Back returns to Developer.":"Shared changes require developer permission from the host.";
+            if(developerVolumeApply!=null)
+            {
+                heading.text=developerRoute.ToUpperInvariant()+" / "+developerVolumeLabel.ToUpperInvariant();
+                Add("Close volume choices",()=>developerVolumeApply=null);
+                foreach(float level in new[]{0f,.25f,.5f,.75f,1f})
+                {float value=level;Add(value.ToString("P0"),()=>{developerVolumeApply(value);developerVolumeApply=null;},icon:CandyHudIcon.Sound);}
+                RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);return;
+            }
             if(developerRoute=="Bots")
             {
                 var lobby=session as ILobbyControls;
@@ -77,11 +88,11 @@ namespace DeadlyJenga.CastlePrototype
                     Add("Survivor: "+Demo?.SurvivorPersonality,()=>Demo.Run(DemoCommand.NextSurvivor),CanCommand);
                     Add("Flying hand: "+Demo?.HandPersonality,()=>Demo.Run(DemoCommand.NextHand),CanCommand);
                 });
-                Fold("equipment","Equipment",()=>Add("Choose bot loadout",()=>DeveloperChild(()=>{giveAllEquipment=true;giveEquipmentPage=true;}),CanCommand&&MatchRuntime.Current is IDemoEquipmentControls,CandyHudIcon.Trigger));
+                Fold("equipment","Equipment",()=>Add("Everyone loadout (bots + players)",()=>DeveloperChild(()=>{giveAllEquipment=true;giveEquipmentPage=true;}),CanCommand&&MatchRuntime.Current is IDemoEquipmentControls,CandyHudIcon.Trigger));
                 Fold("voices","Bot voices",()=>{
                     var social=session.Social;
                     Add("Voices: "+(social?.VoiceEnabled==true?"ON":"OFF"),()=>social.VoiceEnabled=!social.VoiceEnabled,social?.IsHost==true,CandyHudIcon.Sound);
-                    Add("Bot volume: "+(social?.BotVolume??0).ToString("P0"),()=>social.BotVolume=social.BotVolume>=1?0:Mathf.Min(1,social.BotVolume+.25f),social!=null,CandyHudIcon.Sound);
+                    Add("Bot volume: "+(social?.BotVolume??0).ToString("P0"),()=>DeveloperVolume("Bot volume",value=>social.BotVolume=value),social!=null,CandyHudIcon.Sound);
                 });
             }
             else
@@ -116,6 +127,10 @@ namespace DeadlyJenga.CastlePrototype
                 Fold("diagnostics","Diagnostics",()=>{
                     Add(Demo?.Status??"No active demo session",()=>{},false);
                     Add(session.Multiplayer?.Status??"Local play",()=>{},false,CandyHudIcon.Friends);
+                    Add(DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned?"Hide standings":"Show standings",()=>DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned=!DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned);
+                    var audio=DeadlyJenga.CandyAudio.CandyAudioEngine.Instance;
+                    Add("Master volume: "+(audio&&audio.bank?audio.bank.master.ToString("P0"):"Unavailable"),()=>DeveloperVolume("Master volume",value=>audio.bank.master=value),audio&&audio.bank,CandyHudIcon.Sound);
+                    Add("Music volume: "+(audio&&audio.bank?audio.bank.music.ToString("P0"):"Unavailable"),()=>DeveloperVolume("Music volume",value=>audio.bank.music=value),audio&&audio.bank,CandyHudIcon.Sound);
                     var gun=session.Player?.gameObject.GetComponent<IBlasterControls>();
                     Add("Blaster testing: "+(gun?.TestingEnabled==true?"ON":"OFF"),()=>gun.SetTestingEnabled(!gun.TestingEnabled),gun!=null&&CanCommand&&MatchRuntime.Current?.Authority==true,CandyHudIcon.Trigger);
                 });
