@@ -270,6 +270,11 @@ namespace DeadlyJenga.CandyArt
                 return;
             if (panel.parent.parent && panel.parent.parent.name.StartsWith("Rail Gift ", StringComparison.Ordinal))
                 return;
+            var bowSpace = renderer.bounds.center + Vector3.up * (renderer.bounds.extents.y + .6f);
+            foreach (var cover in Physics.OverlapBox(bowSpace, new Vector3(.75f, .5f, .75f),
+                Quaternion.identity, 1 << DeadlyJenga.Core.Layers.Block, QueryTriggerInteraction.Ignore))
+                if (cover.attachedRigidbody && cover.attachedRigidbody.transform.parent != panel.parent.parent)
+                    return;
             var ribbon = panel.parent.Find("Ribbon lengthwise");
             if (!ribbon || !ribbon.TryGetComponent<MeshRenderer>(out var strip) || !strip.sharedMaterial)
                 return;

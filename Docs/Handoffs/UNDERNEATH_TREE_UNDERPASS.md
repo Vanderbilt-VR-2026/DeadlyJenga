@@ -3,13 +3,13 @@
 Owner: underneath-the-tree. Source branch: `codex/underneath-tree-sprint4`.
 Integration target: `origin/Evan_Sprint_4` through its designated integration owner.
 Base: `1359ca474fb8a0bc86cdd72dca7dab5e3e631a71`.
-Gameplay-checked candidate: `ed9a7a0e8a6b219f44569bb89bde0bc683f9f435` (published and remote SHA verified).
-Status: work in progress. Candidate `ed9a7a0e8a6b219f44569bb89bde0bc683f9f435` passed the exact desktop fixture, including actual material texture bindings. Visual fidelity remains below the approved concept; no final art approval claimed. Not integrated or included in an APK.
+Gameplay-checked candidate: `79204e0557a6972b62089c0343869cd256d1f81d` (published and remote SHA verified; exact desktop runtime passed).
+Status: work in progress. The broader collision audit supersedes earlier narrow-clearance acceptance. Visual fidelity remains below the approved concept; no final art approval claimed. Not integrated or included in an APK.
 
 ## Intended result
 
 Map ID `workshop-under-the-tree`, layout `underneath-the-tree-v6-underpass`.
-An irregular raised train circuit rests on presents and passes through the left gift tunnel. A long navy walking bridge connects asymmetric stepped towers above the courtyard. The tree remains outside and close to the loop. Seventy-eight presents provide varied approaches, ledges and upper perches; their shells and sixteen rail sections are registered climbable physics bodies.
+An irregular raised train circuit rests on presents and passes through the left gift tunnel. A long navy walking bridge connects asymmetric stepped towers above the courtyard. The tree remains outside and close to the loop. Eighty-two presents provide varied approaches, ledges and upper perches; their shells and sixteen eight-rung rail sections are registered climbable physics bodies. Bodies remain kinematic while intact and become dynamic on impact or bearing loss; they are not freely simulated stacks at rest.
 
 World/Maps owns the layout, physical shells, support-loss propagation and train path. Presentation/Visuals owns rounded wrapping, bows, foil, fabric, tree, room finishes and lighting. No Core changes, package changes or saved project-setting changes are required. The room uses a temporary copy of a map-owned URP profile (active-pipeline fallback) for room-scale shadow coverage and HDR, restoring the prior quality pipeline on teardown.
 
@@ -29,3 +29,11 @@ Run `DeadlyJenga.CastlePrototype.Editor.UnderneathTreePlayChecks.RunApproved` in
 - `ed9a7a0e8a6b219f44569bb89bde0bc683f9f435`: quality pass adds eight supported upper parcels (488 registered climbable bodies), fuller sculpted bows, braided wool geometry, crisp alpha-cutout fir foliage, damask albedo/normal, cushion seam deformation, tailored shade, walnut drawer table and richer bulb colors. Exact desktop fixture passed material bindings, shader compilation, full rail sweep, train movement, support-collapse displacement and deterministic reset. Actual hero and player-height renders inspected. Palette classification error found in intermediate `e95cf284` was fixed in `c8bd7b07`. Generated texture sources are 1254-square assets with provenance; captures are 3840x2160, not a claim that every texture is native 4K. Final visual approval is pending.
 
 The user explicitly deferred headset performance work while the image match is developed. Quest 3 rendering/performance, human VR route playthrough, two-player destruction sync, central integration and APK inclusion remain unverified. This is not a publish-ready claim.
+
+## Full-room and collision refinement
+
+`a5ea0f2d3930f2e0375ef1237b8c1ba6e862ee93` replaces the broad invisible railway deck with actual rail and rung colliders and adds reverse-room, reverse-pile, east/west and player-height captures. Its physical penetration check found six intersections on four presents. These were corrected; a subsequent train clearance check caught an overhanging upper parcel. A temporary capture-code CS0103 in `c5eb6ae2` was corrected in `c117b9c2`.
+
+`4c3878f8cadf144b3f9c9518e9e2b2e65b1020fc` passed rail penetration, train corridor/motion, bridge and rail support release, direct eight-rung rail release, shader compilation and reset. Its new diagnostic ALSO found widespread inter-gift shell overlaps. That result is not whole-map collision acceptance. Reverse captures exposed stretched duplicate wall finishes, which this revision replaces on all four sides. It adds warm terrace/blue window light, softer couch patterning, bridge-end terraces and tapered hearth flames.
+
+`79204e0557a6972b62089c0343869cd256d1f81d` separates the overlapping approach steps and upper shelves and shortens/narrows rail-bearing presents. The fixture now requires zero inter-gift penetrations above 0.1 world units as well as rail penetrations below 0.035. The exact desktop fixture passed both penetration checks, train clearance/motion, climbing registration, shader compilation, support-loss displacement, direct eight-rung detachment and deterministic reset. Ten intact camera views and one destruction view were captured. Capture evidence is staged desktop Game.unity, not headset playthrough. A following visual-only refinement suppresses bows buried by upper parcels; it does not change colliders or physics.
