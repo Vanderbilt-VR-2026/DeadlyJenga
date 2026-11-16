@@ -44,7 +44,7 @@ namespace DeadlyJenga.CandyArt.Marina
         RectTransform canvas,mainFace,joinFace,hostFace;
         Text modeTitle,mapTitle,playTitle,joinTitle,hostTitle,focusDescription,mainHeading,playerCountLabel;
         Text liveStandings,liveActivity,liveHazards;
-        readonly Text[] standingRows=new Text[5],activityRows=new Text[5],hazardRows=new Text[4];
+        readonly Text[] standingRows=new Text[5],standingStats=new Text[5],activityRows=new Text[5],activityDetails=new Text[5],hazardRows=new Text[4];
         readonly RawImage[] standingHeads=new RawImage[5],victimHeads=new RawImage[5],killerHeads=new RawImage[5],hazardArt=new RawImage[4];
         Text modeMissing,mapMissing,joinStatus,hostStatus,marquee;
         RectTransform modeCard,mapCard;
@@ -125,9 +125,9 @@ namespace DeadlyJenga.CandyArt.Marina
             var styleBtn=Button("marina-style",new Vector2(263,-111),new Vector2(122,34),ProjectionInk,()=>detail?.Invoke("settings"),()=>true);
             playerCountLabel=ActionText("10 PLAYERS",new Vector2(113,32),17,styleBtn);
 
-            liveStandings=LiveColumn(new Vector2(-170,20),new Vector2(313,126));
-            liveActivity=LiveColumn(new Vector2(169,20),new Vector2(313,126));
-            liveHazards=LiveColumn(new Vector2(0,-76),new Vector2(648,46));
+            liveStandings=LiveColumn(new Vector2(-170,0),new Vector2(313,166));
+            liveActivity=LiveColumn(new Vector2(169,0),new Vector2(313,166));
+            liveHazards=LiveColumn(new Vector2(0,-116),new Vector2(648,43));
             BuildLiveRows();
 
             joinFace=CabinetFace("Lavender Join display",false);
@@ -348,22 +348,30 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             liveStandings.text="STANDINGS";
             liveActivity.text="RECENT ELIMINATIONS";
+            liveStandings.color=Mint;liveActivity.color=Mint;liveHazards.fontSize=12;liveHazards.color=Mint;
             for(int i=0;i<standingRows.Length;i++)
             {
-                float y=32-i*19;
-                standingHeads[i]=LiveImage(liveStandings.transform,new Vector2(-145,y),new Vector2(18,18));
-                standingRows[i]=Text("",new Vector2(13,y),new Vector2(285,19),15,liveStandings.transform);
-                standingRows[i].alignment=TextAnchor.MiddleLeft;
+                float y=43-i*28;
+                var rowColor=new Color(.13f,.045f,.18f,.55f);
+                Panel("Standing row backing",liveStandings.transform,new Vector2(0,y),new Vector2(313,26),rowColor).transform.SetAsFirstSibling();
+                Panel("Activity row backing",liveActivity.transform,new Vector2(0,y),new Vector2(313,26),rowColor).transform.SetAsFirstSibling();
+                standingHeads[i]=LiveImage(liveStandings.transform,new Vector2(-141,y),new Vector2(22,22));
+                standingRows[i]=Text("",new Vector2(17,y+6),new Vector2(275,18),14,liveStandings.transform);
+                standingStats[i]=Text("",new Vector2(17,y-9),new Vector2(275,14),11,liveStandings.transform);
+                standingRows[i].alignment=standingStats[i].alignment=TextAnchor.MiddleLeft;
+                standingStats[i].color=new Color(.82f,.76f,.87f);
                 killerHeads[i]=LiveImage(liveActivity.transform,new Vector2(-145,y),new Vector2(18,18));
                 victimHeads[i]=LiveImage(liveActivity.transform,new Vector2(-124,y),new Vector2(18,18));
-                activityRows[i]=Text("",new Vector2(25,y),new Vector2(259,19),15,liveActivity.transform);
-                activityRows[i].alignment=TextAnchor.MiddleLeft;
+                activityRows[i]=Text("",new Vector2(25,y+6),new Vector2(259,18),14,liveActivity.transform);
+                activityDetails[i]=Text("",new Vector2(25,y-9),new Vector2(259,14),11,liveActivity.transform);
+                activityRows[i].alignment=activityDetails[i].alignment=TextAnchor.MiddleLeft;
+                activityDetails[i].color=new Color(.82f,.76f,.87f);
             }
             for(int i=0;i<hazardRows.Length;i++)
             {
                 float x=-318+i*162;
-                hazardArt[i]=LiveImage(liveHazards.transform,new Vector2(x+25,-4),new Vector2(48,30));
-                hazardRows[i]=Text("",new Vector2(x+105,-4),new Vector2(105,32),14,liveHazards.transform);
+                hazardArt[i]=LiveImage(liveHazards.transform,new Vector2(x+20,-7),new Vector2(36,24));
+                hazardRows[i]=Text("",new Vector2(x+100,-7),new Vector2(118,28),12,liveHazards.transform);
                 hazardRows[i].alignment=TextAnchor.MiddleLeft;
             }
         }
@@ -402,12 +410,14 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 var standing=i<standings.Length?standings[i]:null;
                 SetLiveImage(standingHeads[i],Portrait(standing));
-                standingRows[i].text=standing==null?"":$"{i+1}. {Name(standing)}  {CandyResultsHud.RankStats(standing,frame.rules.mode,false)}";
+                standingRows[i].text=standing==null?"":$"{i+1}. {Name(standing)}";
+                standingStats[i].text=standing==null?"":CandyResultsHud.RankStats(standing,frame.rules.mode,false);
                 var killer=i<eliminations.Length?Player(eliminations[i].killer):null;
                 var victim=i<eliminations.Length?Player(eliminations[i].victim):null;
                 SetLiveImage(killerHeads[i],Portrait(killer));
                 SetLiveImage(victimHeads[i],Portrait(victim));
-                activityRows[i].text=i>=eliminations.Length?"":killer==null?Name(victim)+" fell":Name(killer)+" > "+Name(victim);
+                activityRows[i].text=i>=eliminations.Length?"":Name(killer??victim);
+                activityDetails[i].text=i>=eliminations.Length?"":killer==null?"Eliminated":"Eliminated "+Name(victim);
             }
             int slot=0;
             foreach(var source in Tracked.Waves)
