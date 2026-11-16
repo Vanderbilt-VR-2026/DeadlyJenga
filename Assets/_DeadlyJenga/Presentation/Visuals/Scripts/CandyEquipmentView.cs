@@ -22,7 +22,7 @@ namespace DeadlyJenga.Presentation
         readonly Dictionary<int,PickupVisual> pickups=new Dictionary<int,PickupVisual>();
         readonly HashSet<int> visible=new HashSet<int>();
         readonly List<int> removedPickups=new List<int>();
-        Canvas canvas;Text status,swapNotice,receiptNotice;Image weaponOutline;Camera eye;bool vr;
+        Canvas canvas;Text status,receiptNotice;Image weaponOutline;Camera eye;bool vr;
         readonly CandyEquipmentActionCursor actionCursor=new CandyEquipmentActionCursor();
         IMatchRuntime actionMatch;
         System.Action<EquipmentActionFrame> onEquipmentAction;
@@ -128,7 +128,14 @@ namespace DeadlyJenga.Presentation
 
         public static string SwapInputHint(ISessionInfo session)
         {
-            if (session?.IsVR != true) return SwapInputHint(false, false, false);
+            if (session?.IsVR != true)
+            {
+                var pad = Gamepad.current;
+                int mode = PlayerPrefs.GetInt("DeadlyJenga.PreferredControlMode", 0);
+                return pad != null && pad.enabled && mode is 0 or 4
+                    ? "E / " + pad.buttonWest.displayName
+                    : "E";
+            }
             PhysicalControllers(out bool left, out bool right);
             var fingers=session.Player?.gameObject.GetComponent<IFingerTips>();
             bool hasBareHand=fingers!=null&&(!left&&fingers.TryIndexTip(true,out _)||
@@ -139,7 +146,7 @@ namespace DeadlyJenga.Presentation
 
         internal static string SwapInputHint(bool vr, bool left, bool right)
         {
-            if (!vr) return "E  Interact";
+            if (!vr) return "E";
             if (!left && !right) return "Track a hand or controller to pick up";
             return "Reach and squeeze grip";
         }
@@ -175,25 +182,13 @@ namespace DeadlyJenga.Presentation
             return null;
         }
 
-        internal static string SwapMessage(EquipmentState current, EquipmentPickup next, string input)
-        {
-            var oldKind = current == null ? EquipmentKind.None :
-                current.activePower != EquipmentKind.None ? current.activePower : current.kind;
-            bool swap = current != null && oldKind != EquipmentKind.None &&
-                (!current.builtIn || current.activePower != EquipmentKind.None);
-            string action = swap ? "Swap" : "Pick up";
-            if (input == "E  Interact") input = "E  " + action;
-            else input = action + " · " + input;
-            string ammo = next.rounds >= 0 ? "   ·   " + next.rounds + " rounds" : "";
-            return "<size=22>" + Name(next.kind) + "</size>" + ammo + "\n" + input +
-                (swap ? "\nLeaves " + Name(oldKind) + " here" : "");
-        }
         void Update()
         {
             var match=MatchRuntime.Current;var session=Services.Session;
             if(match?.Frame==null||session==null)
             {
                 if(canvas)canvas.enabled=false;
+                HidePickupTag();
                 if(pickups.Count>0)ClearPickupViews();
                 actionMatch=null;
                 return;
@@ -202,11 +197,8 @@ namespace DeadlyJenga.Presentation
             if(!canvas)
             {
                 var go=new GameObject("Equipment HUD",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();canvas.sortingOrder=35;
-                status=CandyHudCards.Create(go.GetComponent<RectTransform>(),"Equipment and swap",new Vector2(272,-217),new Vector2(360,75),16,TextAnchor.MiddleCenter);
-                swapNotice=CandyHudCards.Create(go.GetComponent<RectTransform>(),"Focused equipment pickup",
-                    new Vector2(0,-159),new Vector2(530,92),17,TextAnchor.MiddleCenter);
-                swapNotice.supportRichText=true;
-                CandyHudCards.Badge(swapNotice);
+                status=CandyHudCards.Create(go.GetComponent<RectTransform>(),"Equipped item",new Vector2(272,-217),new Vector2(360,75),16,TextAnchor.MiddleCenter);
+
                 receiptNotice=CandyHudCards.Create(go.GetComponent<RectTransform>(),"Equipment receipt",
                     new Vector2(0,-89),new Vector2(530,42),16,TextAnchor.MiddleCenter);
                 CandyHudCards.Badge(receiptNotice);
@@ -227,20 +219,10 @@ namespace DeadlyJenga.Presentation
             bool showReceipt=!string.IsNullOrEmpty(receipt)&&Time.unscaledTime<receiptUntil;
             canvas.enabled=eye&&!session.MenuOpen&&!EmoteWheel.IsOpen&&!CandyMatchHud.Expanded&&!visiting&&!watching&&
                 ((!session.PlayingHand&&equipment!=null)||showReceipt);
-            bool showPickup=canvas.enabled&&!session.PlayingHand&&pending!=null;
-            if(showPickup)
-            {
-                string input = SwapInputHint(session);
-                if (vr && equipment?.drawn == true && !equipment.builtIn && equipment.kind != EquipmentKind.Dagger)
-                {
-                    bool bothHandsBusy = EquipmentSpecifications.Get(equipment.kind).twoHanded ||
-                        equipment.kind is EquipmentKind.DualUzi or EquipmentKind.Chainsaw or EquipmentKind.LaserClaws;
-                    input = bothHandsBusy ? "Holster, then reach and grab" : "Use your free hand or holster first";
-                }
-                swapNotice.text=SwapMessage(equipment,pending,input);
-                CandyHudCards.Tint(swapNotice,CandyHudVisuals.Mint,.62f);
-            }
-            CandyHudCards.Visible(swapNotice,showPickup);
+            bool showPickup = canvas.enabled && eye.isActiveAndEnabled && !session.PlayingHand &&
+                session.Player?.InputSuspended == false && match.Frame.phase == RoundPhase.Playing && pending != null;
+            bool showPickupTag = showPickup && PresentPickupTag(session, equipment, pending);
+            if (!showPickupTag) HidePickupTag();
             if(showReceipt)
             {
                 receiptNotice.text=receipt;
@@ -279,7 +261,7 @@ namespace DeadlyJenga.Presentation
                         PhysicalControllers(out bool leftController, out bool rightController);
                         modeInput = leftController != rightController ? "Grip + A/X" : "Off trigger";
                     }
-                    string action = equipment.shotgun ? (vr ? "Trigger bolt � Grip look aim" : "Click bolt") : (vr ? "Swing" : "Click swing");
+                    string action = equipment.shotgun ? (vr ? "Trigger bolt � Grip look aim" : "Click bolt") : (vr ? "Swing" : "Click swing");
                     controlsHint = action + "   " + modeInput + " mode";
                 }
                 status.text=Name(equipment.kind)+mode+ammo+"\n"+controlsHint;
@@ -306,7 +288,8 @@ namespace DeadlyJenga.Presentation
                     pickups[pickup.id]=view;
                 }
                 UpdatePickupModel(view);
-                ShowPickup(view,pickup,eye,showPickup&&pickup.id==pendingId);
+                bool focused = showPickup && pickup.id == pendingId;
+                ShowPickup(view,pickup,eye,focused,focused && showPickupTag);
             }
             removedPickups.Clear();
             foreach(var pair in pickups)
@@ -324,9 +307,12 @@ namespace DeadlyJenga.Presentation
             pickups.Clear();
         }
 
+        void OnDisable() => HidePickupTag();
+
         void OnDestroy()
         {
             if(canvas)Destroy(canvas.gameObject);
+            if(pickupTag)Destroy(pickupTag.gameObject);
             ClearPickupViews();
             if(pickupMarkerMaterial)Destroy(pickupMarkerMaterial);
         }
