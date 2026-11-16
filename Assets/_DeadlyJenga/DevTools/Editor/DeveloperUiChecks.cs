@@ -19,6 +19,7 @@ namespace DeadlyJenga.DevTools.Editor
     public static class DeveloperUiChecks
     {
         const string Key="DeveloperUiChecks",NameKey="DeadlyJenga.PlayerName.v1";
+        static readonly string[] ComfortKeys = { "SurvivorVR.InvertLookY", "SurvivorVR.Vignette", "SurvivorVR.Haptics", "SurvivorVR.HeadBob" };
         static readonly BindingFlags Flags=BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic;
         static string Output=>Path.GetDirectoryName(ProjectPath.Report("DeveloperUi/report.txt"));
         static string Report=>Path.Combine(Output,"report.txt");
@@ -41,6 +42,11 @@ namespace DeadlyJenga.DevTools.Editor
             Directory.CreateDirectory(Output);
             File.WriteAllText(Report,"Actual Game scene and production menu, scripted pointer/binding checks. Capture camera temporarily frames the world-locked tablet for readability; these are not headset eye-placement measurements. No physical headset or multiplayer proof.\n");
             SessionState.SetString(Key+"Scenes",JsonUtility.ToJson(new Saved{scenes=scenes}));
+            foreach (string pref in ComfortKeys)
+            {
+                SessionState.SetBool(Key + pref + "Exists", PlayerPrefs.HasKey(pref));
+                SessionState.SetInt(Key + pref, PlayerPrefs.GetInt(pref));
+            }
             SessionState.SetBool(Key+"HadName",PlayerPrefs.HasKey(NameKey));
             SessionState.SetString(Key+"Name",PlayerPrefs.GetString(NameKey,""));
             SessionState.SetBool(Key,true);SessionState.SetInt(Key+"Exit",2);
@@ -59,6 +65,9 @@ namespace DeadlyJenga.DevTools.Editor
             MatchSetup.FromLobby=SessionState.GetBool(Key+"FromLobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);
             SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));
             if(SessionState.GetBool(Key+"HadName",false))PlayerPrefs.SetString(NameKey,SessionState.GetString(Key+"Name",""));else PlayerPrefs.DeleteKey(NameKey);
+            foreach (string pref in ComfortKeys)
+                if (SessionState.GetBool(Key + pref + "Exists", false)) PlayerPrefs.SetInt(pref, SessionState.GetInt(Key + pref, 0));
+                else PlayerPrefs.DeleteKey(pref);
             PlayerPrefs.Save();
             try
             {
@@ -151,7 +160,39 @@ namespace DeadlyJenga.DevTools.Editor
             }
             if(SessionState.GetBool(Key+"Tabs",false))
             {
-                Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Comfort"));yield return Shot("35-movement-settings.png");
+                Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Comfort")); Draw();
+                var comfort = Field<RectTransform>(menu, "comfortMainGroup");
+                var movementIcons = comfort.GetComponentsInChildren<RawImage>().Where(x => x.name.StartsWith("Movement icon ")).ToArray();
+                Check(movementIcons.Length == 9 && movementIcons.All(x => x.texture && !x.raycastTarget), "Nine loaded movement icons do not intercept input");
+                Check(movementIcons.All(x => x.texture.width >= 1024), "Movement atlas retains high-resolution source");
+                string[] toggles = { "Invert stick", "Vignette", "Haptics", "Head bob" };
+                for (int i = 0; i < toggles.Length; i++)
+                {
+                    var button = comfort.GetComponentsInChildren<Button>().Single(x => x.name == toggles[i] + " toggle");
+                    var entry = ((IEnumerable)Field<object>(menu, "tabletActions")).Cast<object>().Single(e => Field<Button>(e,"Button") == button);
+                    bool initial = Field<Func<bool>>(entry, "Selected")();
+                    try
+                    {
+                        for (int click = 0; click < 2; click++)
+                        {
+                            var target = Field<BoxCollider>(entry,"Target");
+                            typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,target.bounds.center-camera.transform.position));
+                            Call(menu,"PointPlayerTablet",camera,true,false); Draw();
+                            bool expected = click == 0 ? !initial : initial;
+                            Check(Field<Func<bool>>(entry,"Selected")() == expected, toggles[i] + " pointer toggles state " + click);
+                            Check(PlayerPrefs.GetInt(ComfortKeys[i]) == (expected ? 1 : 0), toggles[i] + " persists state " + click);
+                            Check(Field<Text>(entry,"Label").text == (expected ? "✓ On" : "Off"), toggles[i] + " shows current state " + click);
+                        }
+                    }
+                    finally
+                    {
+                        if (SessionState.GetBool(Key + ComfortKeys[i] + "Exists", false)) PlayerPrefs.SetInt(ComfortKeys[i], SessionState.GetInt(Key + ComfortKeys[i],0));
+                        else PlayerPrefs.DeleteKey(ComfortKeys[i]);
+                        PlayerPrefs.Save();
+                    }
+                }
+                typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position, -camera.transform.forward));
+                yield return Shot("35-movement-settings.png");
                 Call(menu,"OpenComfortSlider");yield return Shot("36-turn-tuning.png");Call(menu,"CloseComfortSlider");
                 Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Room"));yield return Shot("37-room.png");
                 Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Developer"));yield return Shot("38-developer-alignment.png");
