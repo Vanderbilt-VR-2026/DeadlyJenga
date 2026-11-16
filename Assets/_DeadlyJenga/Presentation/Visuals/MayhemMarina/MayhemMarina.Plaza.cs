@@ -136,35 +136,35 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Ellipsoid(At(Mathf.Cos(a) * 1.4f, 2.07f + Mathf.Sin(a) * 1.91f, 1.86f), Vector3.one * .06f, F.Glow, rings: 5, sides: 8);
             }
 
-            // Angled clothing rails and hat shelves either side keep the stage open toward the plaza.
-            for (int side = -1; side <= 1; side += 2)
+            // Keep the cabinet and clothing rack on opposite sides of the mirror.
             {
-                var rack = turn * Quaternion.Euler(0, side * -38, 0);
-                Vector3 R(float x, float y, float z) => At(side * 2.35f, 0, 1.15f) + rack * new Vector3(x, y, z);
-                mesh.Beam(R(-.75f, 0, 0), R(-.75f, 2.05f, 0), .045f, F.Brass, true);
-                mesh.Beam(R(.75f, 0, 0), R(.75f, 2.05f, 0), .045f, F.Brass, true);
+                var rack = turn * Quaternion.Euler(0, -38, 0);
+                Vector3 R(float x, float y, float z) => At(2.35f, 0, 1.15f) + rack * new Vector3(x, y, z);
+                mesh.Beam(R(-.75f, 0, 0), R(-.75f, 2.29f, 0), .045f, F.Brass, true);
+                mesh.Beam(R(.75f, 0, 0), R(.75f, 2.29f, 0), .045f, F.Brass, true);
                 mesh.Beam(R(-.78f, 1.98f, 0), R(.78f, 1.98f, 0), .03f, F.Brass);
                 mesh.Box(R(0, .08f, 0), new Vector3(1.7f, .16f, .55f), F.DarkWood, .05f, false, rack);
                 for (int j = 0; j < 4; j++)
                 {
-                    var color = (j + (side > 0 ? 1 : 0)) % 2 == 0 ? F.MintFabric : F.CoralFabric;
+                    var color = (j + 1) % 2 == 0 ? F.MintFabric : F.CoralFabric;
                     var p = R((j - 1.5f) * .36f, 1.38f, 0);
                     mesh.Box(p, new Vector3(.3f, .85f, .12f), color, .06f, false, rack);
                     mesh.Box(p + rack * new Vector3(-.18f, .24f, 0), new Vector3(.16f, .5f, .12f), color, .05f, false, rack * Quaternion.Euler(0, 0, -14));
                     mesh.Box(p + rack * new Vector3(.18f, .24f, 0), new Vector3(.16f, .5f, .12f), color, .05f, false, rack * Quaternion.Euler(0, 0, 14));
                 }
+                mesh.Box(R(0, 2.25f, .05f), new Vector3(1.67f, .10f, .58f), F.Wood, .025f, false, rack);
                 for (int j = 0; j < 3; j++)
                 {
                     var hat = R((j - 1) * .5f, 2.3f, .05f);
                     mesh.Disk(hat, .22f, .05f, F.Metal, false, 20);
                     mesh.Disk(hat + Vector3.up * .05f, .14f, .26f, (F)((int)F.Red + (j + 1) % 3), false, 20);
                 }
-                Pot(At(side * 2.05f, 0, 2.55f), .42f, .78f, 30 + side);
+                Pot(At(2.05f, 0, 2.55f), .42f, .78f, 31);
             }
 
             // Frame and feet behind the wardrobe screen, as in the original shop.
             var frame = StyleScreen + StyleScreenFacing * Vector3.forward * .12f;
-            mesh.Box(frame, new Vector3(2.48f, 2.91f, .16f), F.DarkWood, .09f, true, StyleScreenFacing);
+            mesh.Box(frame, new Vector3(2.48f, 2.91f, .16f), F.Teal, .09f, true, StyleScreenFacing);
             for (int side = -1; side <= 1; side += 2)
             {
                 var foot = frame + StyleScreenFacing * Vector3.right * (side * .95f);

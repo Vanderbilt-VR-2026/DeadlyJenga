@@ -24,7 +24,7 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
         public static readonly Quaternion CodeKeyboardFacing = Quaternion.Euler(61, 0, 0);
-        public static readonly Vector3 StyleScreen = Wardrobe + StyleStageTurn * new Vector3(-2.10f, 1.4f, .43f);
+        public static readonly Vector3 StyleScreen = Wardrobe + StyleStageTurn * new Vector3(-2.72f, 1.4f, .43f);
         public static readonly Quaternion StyleScreenFacing = StyleStageTurn;
         public static readonly Vector3 StyleMirror = Wardrobe + StyleStageTurn * new Vector3(0, 1.85f, 1.88f);
         public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;

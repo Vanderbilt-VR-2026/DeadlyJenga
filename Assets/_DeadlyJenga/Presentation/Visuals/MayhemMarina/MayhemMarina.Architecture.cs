@@ -170,7 +170,7 @@ namespace DeadlyJenga.CandyArt.Marina
         void TileLines(Vector3 center,Vector2 area)
         {
             for(float x=-area.x*.5f+.8f;x<area.x*.5f;x+=1.55f)mesh.Box(center+Vector3.right*x,new Vector3(.013f,.006f,area.y),F.Ivory,.001f);
-            for(float z=-area.y*.5f+.7f;z<area.y*.5f;z+=1.55f)mesh.Box(center+Vector3.forward*z,new Vector3(area.x,.006f,.013f),F.Ivory,.001f);
+            for(float z=-area.y*.5f+.7f;z<area.y*.5f;z+=1.55f)mesh.Box(center+Vector3.forward*z+Vector3.up*.002f,new Vector3(area.x,.006f,.013f),F.Ivory,.001f);
         }
         void Bridge(Vector3 from,Vector3 to,float width,float arch,bool rightSideEntry=false)
         {
@@ -245,14 +245,14 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.CurvedRoof(new Vector3(0,5.95f,center),17.1f,depth+2.0f,2.08f,F.CandyCoral,striped:true);
             mesh.Box(CinemaSign,new Vector3(6.1f,.95f,.24f),F.Teal,.085f);
             for(int side=-1;side<=1;side+=2)
-                mesh.Beam(CinemaSign+new Vector3(side*2,.4f,.06f),CinemaSign+new Vector3(side*2,2.30f,.06f),.055f,F.Brass);
+                mesh.Beam(CinemaSign+new Vector3(side*2,.4f,.06f),CinemaSign+new Vector3(side*2,2.19f,.06f),.055f,F.Brass);
             for(int side=-1;side<=1;side+=2)
             {
                 float x=side*7.4f;
                 float z=CinemaFront+.45f;
                 mesh.Box(new Vector3(x,CinemaFloor+.17f,z),new Vector3(.78f,.34f,.78f),F.Stone,.08f,true);
                 mesh.Beam(new Vector3(x,CinemaFloor+.22f,z),new Vector3(x,6.72f,z),.18f,F.Wood,true);
-                mesh.Beam(new Vector3(x,5.08f,z),new Vector3(side*6.55f,7.08f,z),.13f,F.Wood);
+                mesh.Beam(new Vector3(x,5.08f,z),new Vector3(side*6.55f,7.0f,z),.13f,F.Wood);
                 Lantern(new Vector3(x,4.4f,z-.35f),.16f);
             }
             BuildBeachCinema();
@@ -368,9 +368,9 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Beam(new Vector3(-18.1f, floor + 3.2f, side == 0 ? 3.6f : 5.9f), new Vector3(-11.9f, floor + 3.2f, side == 0 ? 3.6f : 5.9f), .14f, F.Wood);
             for (int i = 0; i < 9; i++)
                 mesh.Box(new Vector3(-17.8f + i * .68f, floor + 3.36f, 4.75f), new Vector3(.12f, .14f, 3.2f), F.Wood, .03f);
-            Sofa(new Vector3(-15, floor, 5.3f), 3.6f, Quaternion.Euler(0, 180, 0));
-            Sofa(new Vector3(-17.55f, floor, 4.75f), 1.6f, Quaternion.Euler(0, 90, 0));
-            Table(new Vector3(-15, floor, 4.2f), .9f);
+            Sofa(new Vector3(-15, floor, 5.3f), 3.6f, Quaternion.identity);
+            Sofa(new Vector3(-17.55f, floor, 4.75f), 1.6f, Quaternion.Euler(0, -90, 0));
+            Table(new Vector3(-14.75f, floor, 3.60f), .72f);
             Lantern(new Vector3(-15, floor + 2.75f, 4.75f), .22f);
             foreach (var p in new[] { new Vector3(-18.6f, floor, 3.0f), new Vector3(-11.6f, floor, 3.0f), new Vector3(-18.6f, floor, 12.2f) })
                 Pot(p, .5f, .85f, (int)(p.x * 7 + p.z));
@@ -410,7 +410,8 @@ namespace DeadlyJenga.CandyArt.Marina
             Sofa(c+new Vector3(0,0,1.7f),5.7f,Quaternion.identity);
             Sofa(c + new Vector3(3.6f, 0, .05f), 2.5f, Quaternion.Euler(0, 90, 0));
             Sofa(c + new Vector3(-3.45f, 0, .65f), 2.5f, Quaternion.Euler(0, -90, 0));
-            Table(c + new Vector3(.45f, 0, .05f), 1.18f);
+            Table(c + new Vector3(.45f, 0, -.52f), 1.06f);
+            TileLines(new Vector3(13.7f,1.292f,6.0f),new Vector2(9.4f,5.4f));
             for(int i=0;i<3;i++)mesh.Box(c+new Vector3(-3.8f,1.1f+i*.55f,2.7f),new Vector3(2,.09f,.55f),F.Wood,.03f);
             Pot(c+new Vector3(-4.55f,0,2.65f),.36f,.7f,10);
             Pot(c+new Vector3(4.5f,0,-2.25f),.5f,.78f,11);
@@ -440,7 +441,7 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Disk(p+Vector3.up*.08f,radius*.63f,.45f,F.Wood,true,28);mesh.Disk(p+Vector3.up*.53f,radius,.15f,F.Wood,true,40);
             for(int i=0;i<3;i++)
             {
-                float a=i*Mathf.PI*2/3;var c=p+new Vector3(Mathf.Cos(a)*radius*.5f,.73f,Mathf.Sin(a)*radius*.5f);
+                float a=i*Mathf.PI*2/3;var c=p+new Vector3(Mathf.Cos(a)*radius*.5f,.68f,Mathf.Sin(a)*radius*.5f);
                 mesh.Disk(c,.1f,.16f,F.Ivory,false,12);
             }
         }
