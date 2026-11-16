@@ -321,7 +321,7 @@ namespace DeadlyJenga.Presentation
             canvas.sortingOrder = 80;
             portraits = CandyScorePortraits.For(gameObject);
             var panel = Panel("Results panel", root.transform, new Vector2(1220, 680), Vector2.zero, Ink).transform;
-            podium = new CandyScorePodium(transform, panel, new Vector2(405, -22));
+            podium = new CandyScorePodium(transform, panel, new Vector2(405, -5));
             title = Label("Winner", panel, new Vector2(1120, 48), new Vector2(0, 300), 34);
             title.resizeTextForBestFit=true;title.resizeTextMinSize=24;title.resizeTextMaxSize=34;
             summary = Label("Mode and local rank", panel, new Vector2(982, 26), new Vector2(0, 260), 19);

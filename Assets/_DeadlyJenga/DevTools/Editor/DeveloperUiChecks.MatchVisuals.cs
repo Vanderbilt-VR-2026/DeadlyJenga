@@ -88,26 +88,29 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void CaptureMatchCanvas(CastlePlaySession session,string name)
         {
-            var camera=session.ActiveCamera;var previous=camera.targetTexture;var clear=camera.clearFlags;int mask=camera.cullingMask;
-            var canvases=session.GetComponentsInChildren<Canvas>(true).Where(c=>c.enabled&&c.gameObject.activeInHierarchy).ToArray();
-            var modes=canvases.Select(c=>c.renderMode).ToArray();var cameras=canvases.Select(c=>c.worldCamera).ToArray();var planes=canvases.Select(c=>c.planeDistance).ToArray();
-            var objects=canvases.SelectMany(c=>c.GetComponentsInChildren<Transform>(true)).Select(t=>t.gameObject).Distinct().ToArray();var layers=objects.Select(o=>o.layer).ToArray();
-            var rt=new RenderTexture(1600,900,24);var old=RenderTexture.active;Texture2D pixels=null;
-            var data=camera.GetUniversalAdditionalCameraData();bool post=data.renderPostProcessing;
+            var canvas=name.StartsWith("63")||name.StartsWith("64")
+                ?Field<Canvas>(session.GetComponent<CandyResultsHud>(),"canvas")
+                :Field<Canvas>(session.GetComponent<CandyMatchHud>(),"canvas");
+            var rect=(RectTransform)canvas.transform;
+            var mode=canvas.renderMode;var camera=canvas.worldCamera;var parent=rect.parent;
+            var position=rect.localPosition;var rotation=rect.localRotation;var scale=rect.localScale;
+            var size=rect.sizeDelta;var min=rect.anchorMin;var max=rect.anchorMax;
+            var scaler=canvas.GetComponent<CanvasScaler>();bool scaling=scaler&&scaler.enabled;
             try
             {
-                camera.targetTexture=rt;
-                foreach(var c in canvases){c.renderMode=RenderMode.ScreenSpaceCamera;c.worldCamera=camera;c.planeDistance=camera.nearClipPlane+.01f;}
-                foreach(var o in objects)o.layer=31;
-                Canvas.ForceUpdateCanvases();camera.cullingMask=mask&~(1<<31);camera.Render();
-                camera.cullingMask=1<<31;camera.clearFlags=CameraClearFlags.Depth;data.renderPostProcessing=false;camera.Render();
-                RenderTexture.active=rt;pixels=new Texture2D(1600,900,TextureFormat.RGB24,false);pixels.ReadPixels(new Rect(0,0,1600,900),0,0);pixels.Apply();File.WriteAllBytes(Path.Combine(Output,name),pixels.EncodeToPNG());
+                if(scaler)scaler.enabled=false;
+                canvas.renderMode=RenderMode.WorldSpace;rect.SetParent(null,false);
+                rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);rect.sizeDelta=new Vector2(1280,720);
+                rect.position=new Vector3(0,200,0);rect.rotation=Quaternion.identity;rect.localScale=Vector3.one*.001f;
+                Canvas.ForceUpdateCanvases();CaptureTerminal(rect,name);
+                File.AppendAllText(Report,"CAPTURE "+name+" uses a temporary inspection camera over the production canvas; layout restored afterward.\n");
             }
             finally
             {
-                for(int i=0;i<canvases.Length;i++){canvases[i].renderMode=modes[i];canvases[i].worldCamera=cameras[i];canvases[i].planeDistance=planes[i];}
-                for(int i=0;i<objects.Length;i++)objects[i].layer=layers[i];
-                camera.targetTexture=previous;camera.clearFlags=clear;camera.cullingMask=mask;data.renderPostProcessing=post;RenderTexture.active=old;rt.Release();Object.Destroy(rt);Object.Destroy(pixels);
+                rect.SetParent(parent,false);canvas.renderMode=mode;canvas.worldCamera=camera;
+                rect.anchorMin=min;rect.anchorMax=max;rect.sizeDelta=size;
+                rect.localPosition=position;rect.localRotation=rotation;rect.localScale=scale;
+                if(scaler)scaler.enabled=scaling;
             }
         }
     }
