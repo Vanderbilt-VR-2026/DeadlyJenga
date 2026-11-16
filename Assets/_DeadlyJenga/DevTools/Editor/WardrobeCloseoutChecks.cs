@@ -112,6 +112,7 @@ namespace DeadlyJenga.DevTools.Editor
             string saved = PlayerPrefs.GetString(Style);
             lobby.SetMenu(false);
             lobby.Player.Place(view.WardrobePosition, Quaternion.identity);
+            bool inputWasSuspended = lobby.Player.InputSuspended;
             view.SetWardrobeOpen(true);
             for (int frame = 0; frame < 4; frame++) yield return null;
             Check(view.WardrobeOpen, "Wardrobe opens at the Marina boutique");
@@ -189,7 +190,7 @@ namespace DeadlyJenga.DevTools.Editor
             setup.rules.automaticDisasters = false;
             details.ConfigureSetup(setup);
             Check(lobby.SelectMode("demo") && lobby.SelectMap("castle"), "Classic Castle solo demo selected");
-            Check(!lobby.Player.InputSuspended, "Closing the wardrobe restores movement input");
+            Check(lobby.Player.InputSuspended == inputWasSuspended, "Closing the wardrobe restores the prior input state");
             // The terminal intentionally rejects pointers when the Game view is unfocused.
             Check(lobby.CanStart, "The actual Marina is ready for solo departure");
             lobby.StartOrCancel();
