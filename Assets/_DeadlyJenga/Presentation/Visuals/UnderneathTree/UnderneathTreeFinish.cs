@@ -312,6 +312,8 @@ namespace DeadlyJenga.CandyArt
                 new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 6500f, 240f, 100f);
             MakeLight("Golden light under the tree", LightType.Point,
                 new Vector3(-25, 28, -38), new Color(1f, .71f, .40f), 2200f, 110f);
+            MakeSpot("Warm tree canopy bounce", new Vector3(-80f, 67f, -109f),
+                new Vector3(-37f, 80f, -35.7f), new Color(1f, .86f, .64f), 5000f, 150f, 75f);
             MakeSpot("Warm fill across the junction", new Vector3(18, 30, -5),
                 new Vector3(10, 2, -69), new Color(1f, .76f, .51f), 4600f, 160f, 86f);
             MakeLight("Floor lamp", LightType.Point,

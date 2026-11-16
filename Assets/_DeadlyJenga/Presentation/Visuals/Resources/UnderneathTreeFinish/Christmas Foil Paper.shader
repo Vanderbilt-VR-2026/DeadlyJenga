@@ -86,7 +86,7 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 float3 face = abs(input.normalOS);
                 float2 paperUV = face.y >= face.x && face.y >= face.z ? paperPosition.xz :
                     (face.x >= face.z ? paperPosition.zy : paperPosition.xy);
-                output.uv = paperUV * (_BaseMap_ST.xy / 32.0) + _BaseMap_ST.zw;
+                output.uv = paperUV * (_BaseMap_ST.xy / 64.0) + _BaseMap_ST.zw;
                 output.shadowCoord = GetShadowCoord(vertexPosition);
                 output.vertexLighting = VertexLighting(vertexPosition.positionWS, basis.normalWS);
                 output.fog = ComputeFogFactor(vertexPosition.positionCS.z);
@@ -115,7 +115,7 @@ Shader "DeadlyJenga/Christmas Foil Paper"
 
                 SurfaceData surface = (SurfaceData)0;
                 half3 paper = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).rgb;
-                half foil = saturate((paper.r - paper.b) * 12.0h);
+                half foil = smoothstep(0.035h, 0.25h, paper.r - paper.b);
                 surface.albedo = lerp(_BaseColor.rgb * (0.90h + 0.10h * paper.g), _FoilColor.rgb, foil);
                 surface.metallic = foil * 0.65h;
                 surface.alpha = 1;

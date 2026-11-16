@@ -136,7 +136,7 @@ namespace DeadlyJenga.CandyArt
             {
                 float tint = Mathf.Lerp(.76f, 1.2f, i / (float)(boards.Length - 1));
                 var varnish = Surface("Polished walnut board " + i, "Walnut Grain",
-                    new Color(.75f * tint, .57f * tint, .43f * tint), .58f, new Vector2(.86f, 1.05f), 0f, .35f);
+                    new Color(.50f * tint, .48f * tint, .46f * tint), .46f, new Vector2(.86f, 1.05f), 0f, .35f);
                 Combined("Staggered hardwood boards " + i, boards[i], varnish, ShadowCastingMode.Off);
             }
         }
