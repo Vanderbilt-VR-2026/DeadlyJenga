@@ -33,94 +33,88 @@ namespace DeadlyJenga.CastlePrototype
                 !panel || !panel.gameObject.activeInHierarchy || panel.IsLoose;
         }
 
+        static readonly Vector3 CourseRight = new Vector3(.66f, 0f, .751266f);
+        static readonly Vector3 CourseBack = new Vector3(-.751266f, 0f, .66f);
+        static Vector3 CoursePoint(float u, float v, float height = 0f) =>
+            new Vector3(-62f, height, -80f) + CourseRight * u + CourseBack * v;
+
         void BuildGiftRoutes()
         {
-            var cream = ColoredPaper("Ivory botanical gift wrap", new Color(.88f, .72f, .53f), .33f);
-            var navy = ColoredPaper("Midnight snowflake gift wrap", new Color(.16f, .24f, .44f), .36f);
-            var green = ColoredPaper("Pine sprig gift wrap", new Color(.15f, .30f, .20f), .34f);
-            var red = ColoredPaper("Cranberry berry gift wrap", new Color(.65f, .105f, .155f), .35f);
-            var orange = ColoredPaper("Ochre gift wrap", new Color(.78f, .42f, .14f), .35f);
-            var ivory = ColoredPaper("Ivory ribbon", new Color(.89f, .79f, .63f), .61f);
-            var gold = ColoredPaper("Amber ribbon", new Color(.80f, .48f, .19f), .61f);
-            var berry = ColoredPaper("Crimson ribbon", new Color(.64f, .06f, .12f), .61f);
+            var cream = ColoredPaper("Ivory snowflake gift wrap", new Color(.96f, .84f, .64f), .38f);
+            var navy = ColoredPaper("Sapphire snowflake gift wrap", new Color(.035f, .16f, .65f), .42f);
+            var green = ColoredPaper("Emerald snowflake gift wrap", new Color(.035f, .40f, .20f), .39f);
+            var red = ColoredPaper("Ruby snowflake gift wrap", new Color(.80f, .025f, .065f), .4f);
+            var gold = ColoredPaper("Gold ribbon", new Color(.95f, .63f, .18f), .67f);
+            var ivory = ColoredPaper("Ivory ribbon", new Color(.98f, .89f, .72f), .62f);
+            var berry = ColoredPaper("Crimson ribbon", new Color(.8f, .025f, .06f), .63f);
+            float yaw = Mathf.Atan2(CourseBack.x, CourseBack.z) * Mathf.Rad2Deg;
 
-            UnderneathTreeGiftPanel Parcel(string label, float x, float z, float width, float height,
-                float depth, float yaw, Material wrap, Material ribbon, UnderneathTreeGiftPanel on = null)
+            UnderneathTreeGiftPanel Parcel(string name, float u, float v, float w, float h, float d,
+                Material wrap, Material ribbon, float turn = 0f, UnderneathTreeGiftPanel on = null)
             {
-                var floor = new Vector3(x, 0f, z);
-                floor.y = on
-                    ? transform.InverseTransformPoint(on.transform.position).y +
-                      on.GetComponent<BoxCollider>().size.y * .5f + .012f
-                    : GiftFloor(floor) + .012f;
-                var lid = BoxGift(label, floor + Vector3.up * (height * .5f), new Vector3(width, height, depth),
-                    Quaternion.Euler(0f, yaw, 0f), wrap, ribbon, false);
-                if (on)
-                    giftBearings.Add(new GiftBearing(GiftBase(lid), on, null));
+                var pos = CoursePoint(u, v);
+                float floor = on ? transform.InverseTransformPoint(on.transform.position).y +
+                    on.GetComponent<BoxCollider>().size.y * .5f : GiftFloor(pos);
+                var lid = BoxGift(name, pos + Vector3.up * (floor + .012f + h * .5f),
+                    new Vector3(w, h, d), Quaternion.Euler(0f, yaw + turn, 0f), wrap, ribbon);
+                if (on) giftBearings.Add(new GiftBearing(GiftBase(lid), on, null));
                 return lid;
             }
 
-            Parcel("Sofa Approach / Navy Step", -105f, -149f, 5.8f, 1.25f, 4f, 21f, navy, ivory);
-            Parcel("Sofa Approach / Cream Step", -108.3f, -144.7f, 5.4f, 2.65f, 5.2f, -9f, cream, berry);
-            Parcel("Sofa Approach / Green Climb", -111.6f, -139.7f, 5.1f, 4.75f, 5.1f, 12f, green, gold);
+            // Two asymmetric shoulders share their lower terraces with the railway.
+            var left = Parcel("Gift Bridge / Pine Bearing", -28f, -9f, 15f, 16f, 18f, green, gold);
+            var right = Parcel("Gift Bridge / Cranberry Bearing", 27f, -9f, 15f, 16f, 18f, red, ivory);
+            float seat = Mathf.Max(left.transform.position.y + left.GetComponent<BoxCollider>().size.y * .5f,
+                right.transform.position.y + right.GetComponent<BoxCollider>().size.y * .5f);
+            var span = BoxGift("Gift Bridge / Navy Span", CoursePoint(-.5f, -9f, seat + 1.6f),
+                new Vector3(69f, 3.2f, 10f), Quaternion.Euler(0f, yaw, 0f), navy, ivory);
+            giftBearings.Add(new GiftBearing(GiftBase(span), left, right));
 
-            var back = Parcel("Tree-side Stack / Ochre Base", -101f, -24f, 9.8f, 2.05f, 6.5f, -5f, orange, ivory);
-            Parcel("Tree-side Stack / Green Perch", -102f, -24.8f, 4.4f, 2.0f, 4.2f, 9f, green, gold, back);
-            Parcel("Tree-side Stack / Red Shelf", -97.8f, -20.7f, 5.5f, 1.35f, 3.9f, 22f, red, ivory);
+            var l1 = Parcel("Left Summit / Broad Cream", -29f, 4f, 20f, 9f, 16f, cream, berry, -3f);
+            var l2 = Parcel("Left Summit / Ruby Shoulder", -30f, 4f, 16f, 8f, 13f, red, gold, 4f, l1);
+            var l3 = Parcel("Left Summit / Emerald Shelf", -32f, 5f, 12f, 6f, 10f, green, ivory, -5f, l2);
+            Parcel("Left Summit / Ivory Crown", -33f, 6f, 9f, 8f, 8f, cream, gold, 7f, l3);
+            Parcel("Left Summit / Side Foothold", -20f, 4f, 7f, 4f, 10f, navy, ivory, 5f, l1);
+            Parcel("Left Summit / Rear Entry", -25f, 16f, 13f, 3f, 8f, green, gold, -6f);
+            Parcel("Left Summit / Rear Step", -28f, 12f, 10f, 6f, 8f, red, ivory, 4f);
+            Parcel("Left Summit / Front Entry", -23f, -22f, 15f, 3f, 8f, cream, berry, 3f);
+            Parcel("Left Summit / Front Step", -27f, -18f, 11f, 7f, 8f, navy, ivory, -4f);
+            Parcel("Left Summit / Front Shelf", -31f, -15f, 8f, 11f, 7f, red, gold);
 
-            Parcel("Bridge Junction / Low Step", -18.8f, -48.4f, 4.8f, 1.75f, 4.0f, 18f, green, gold);
+            var r1 = Parcel("Right Summit / Sapphire Base", 29f, 6f, 19f, 8f, 17f, navy, ivory, 2f);
+            var r2 = Parcel("Right Summit / Cream Shelf", 31f, 7f, 14f, 6f, 12f, cream, berry, -5f, r1);
+            var r3 = Parcel("Right Summit / Ruby Perch", 32f, 8f, 10f, 7f, 9f, red, gold, 6f, r2);
+            Parcel("Right Summit / Sapphire Crown", 34f, 9f, 8f, 7f, 7f, navy, berry, -5f, r3);
+            Parcel("Right Summit / Emerald Foothold", 21f, 5f, 7f, 4f, 9f, green, gold, 4f, r1);
+            Parcel("Right Summit / Rear Entry", 25f, 19f, 12f, 3f, 8f, cream, berry, 8f);
+            Parcel("Right Summit / Rear Step", 29f, 15f, 10f, 5f, 8f, green, ivory, -4f);
+            Parcel("Right Summit / Front Entry", 21f, -23f, 14f, 2.5f, 8f, red, gold, -5f);
+            Parcel("Right Summit / Front Step", 26f, -19f, 12f, 6f, 8f, green, ivory, 3f);
+            Parcel("Right Summit / Front Shelf", 30f, -15f, 8f, 10f, 7f, cream, berry);
 
-            var front = Parcel("Skirt Landing / Green Base", -6.6f, -117.0f, 9.2f, 1.9f, 6.5f, 13f, green, gold);
-            var tread = Parcel("Skirt Landing / Navy Tread", -7.3f, -115.9f, 7.6f, 1.4f, 5.5f, 5f, navy, ivory, front);
-            Parcel("Skirt Landing / Red Perch", -8f, -114.8f, 4.4f, 1.8f, 3.8f, -9f, red, gold, tread);
-            Parcel("Skirt Landing / Cream Catch", -.1f, -121.7f, 8.8f, 1.3f, 5.6f, 19f, cream, berry);
-
-            // Across the rug, the navy parcel has a real bearing gift at each end.
-            var left = new Vector3(8.5f, 0f, -88f);
-            var right = new Vector3(23.5f, 0f, -53f);
-            var axis = (right - left).normalized;
-            var across = Vector3.Cross(Vector3.up, axis);
-            float yaw = Mathf.Atan2(axis.x, axis.z) * Mathf.Rad2Deg;
-
-            UnderneathTreeGiftPanel BridgeGift(string label, Vector3 pos, float width, float topHeight,
-                float depth, float turn, Material wrap, Material ribbon)
-            {
-                float height = topHeight - GiftFloor(pos) - .012f;
-                return Parcel("Gift Bridge / " + label, pos.x, pos.z, width, height, depth, yaw + turn, wrap, ribbon);
-            }
-
-            const float seat = 9.25f;
-            var leftLid = BridgeGift("Pine Bearing", left, 9.3f, seat, 9.3f, 0f, green, gold);
-            var rightLid = BridgeGift("Cranberry Bearing", right, 9.7f, seat, 10.7f, 0f, red, ivory);
-            var midpoint = (left + right) * .5f;
-            const float spanHeight = 2.25f;
-            var span = BoxGift("Gift Bridge / Navy Span",
-                midpoint + Vector3.up * (seat + .014f + spanHeight * .5f),
-                new Vector3(8.9f, spanHeight, Vector3.Distance(left, right) + 7.8f),
-                Quaternion.Euler(0f, yaw, 0f), navy, ivory, false);
-            giftBearings.Add(new GiftBearing(GiftBase(span), leftLid, rightLid));
-
-            var leftShelf = left + across * 8.3f - axis * 1.4f;
-            var leftStep = leftShelf - axis * 6.1f + across * 1f;
-            var leftEntry = leftStep - axis * 6.9f + across * 1.8f;
-            BridgeGift("Cream Landing", leftEntry, 9.7f, 2.05f, 8.1f, -14f, cream, berry);
-            BridgeGift("Red Tread", leftStep, 8.1f, 4.25f, 7.0f, 7f, red, gold);
-            BridgeGift("Pine Step", leftShelf, 7.15f, 6.9f, 6.6f, -8f, green, ivory);
-
-            var rightShelf = right + across * 9.15f + axis * .7f;
-            var rightStep = rightShelf + axis * 6.25f + across * .75f;
-            var rightEntry = rightStep + axis * 6.8f - across * .6f;
-            BridgeGift("Ochre Entry", rightEntry, 8.3f, 2.15f, 7.0f, 11f, orange, ivory);
-            BridgeGift("Green Tread", rightStep, 8.8f, 4.3f, 7.8f, -9f, green, gold);
-            var shelf = BridgeGift("Red Shelf", rightShelf, 7.2f, 7.1f, 7.3f, 1f, red, ivory);
-            var perch = rightShelf - axis * .65f;
-            Parcel("Gift Bridge / Gold Lookout", perch.x, perch.z, 4.8f, 2.1f, 4.5f, yaw - 17f,
-                orange, berry, shelf);
-
+            // The train passes between these two piers, below a real breakaway gift lintel.
+            var outer = Parcel("Train Tunnel / Outer Pier", -50f, -7f, 6f, 13f, 12f, cream, gold);
+            var inner = Parcel("Train Tunnel / Inner Pier", -35f, -7f, 5f, 13f, 12f, red, gold);
+            var tunnel = BoxGift("Train Tunnel / Gold Lintel", CoursePoint(-42.5f, -7f, 15f),
+                new Vector3(21f, 2.8f, 13f), Quaternion.Euler(0f, yaw, 0f), cream, gold);
+            giftBearings.Add(new GiftBearing(GiftBase(tunnel), outer, inner));
+            Parcel("Tunnel / Green Shoulder", -50f, 4f, 8f, 6f, 9f, green, ivory);
+            Parcel("Tunnel / Navy Approach", -52f, -19f, 10f, 3f, 9f, navy, ivory, 6f);
+            Parcel("Tunnel / Cream Step", -51f, -13f, 8f, 6f, 8f, cream, berry);
+            Parcel("Tunnel / Ruby Cap", -49f, -6f, 6f, 4f, 7f, red, gold, 0f, tunnel);
+            Parcel("Outer Right / Ruby Landing", 49f, -7f, 9f, 7f, 12f, red, gold);
+            Parcel("Outer Right / Cream Entry", 50f, -20f, 11f, 3f, 8f, cream, berry, -7f);
+            Parcel("Outer Right / Green Step", 50f, -14f, 9f, 5f, 7f, green, ivory, 4f);
+            Parcel("Courtyard / Navy Hop", -5f, -20f, 8f, 2f, 6f, navy, ivory, 8f);
+            Parcel("Courtyard / Green Hop", 7f, 2f, 7f, 3f, 7f, green, gold, -9f);
+            Parcel("Courtyard / Ruby Hop", -9f, 7f, 8f, 4f, 6f, red, gold, 4f);
+            Parcel("Entrance / Cream Catch", 0f, -39f, 13f, 2f, 8f, cream, berry, -5f);
+            Parcel("Entrance / Green Step", 7f, -35f, 10f, 3.5f, 7f, green, ivory, 3f);
             var trunk = Child(built, "Fir trunk collision", new Vector3(-37f, 17f, -35.7f), Quaternion.identity);
             trunk.gameObject.layer = Layers.Surface;
-            var trunkShape = trunk.gameObject.AddComponent<CapsuleCollider>();
-            trunkShape.radius = 4.65f;
-            trunkShape.height = 34f;
+            var shape = trunk.gameObject.AddComponent<CapsuleCollider>();
+            shape.radius = 4.65f;
+            shape.height = 34f;
         }
 
         UnderneathTreeGiftPanel GiftBase(UnderneathTreeGiftPanel lid) =>

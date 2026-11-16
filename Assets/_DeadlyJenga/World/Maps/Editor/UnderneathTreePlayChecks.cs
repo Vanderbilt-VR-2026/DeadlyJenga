@@ -67,7 +67,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
             ("28-first-person-ribbon-ramp", new Vector3(3.8f, 7f, -33.4f), new Vector3(3.8f, 11.1f, -46.9f), 72f),
         };
 
-        public static void Run() => Begin(false);
+        public static void Run() { SessionState.SetBool("TreeApproved", false); Begin(false); }
+
+        public static void RunApproved() { SessionState.SetBool("TreeApproved", true); Begin(false); }
 
         public static void RunReferences() => Begin(true);
 
@@ -133,6 +135,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 double now = EditorApplication.timeSinceStartup;
                 if (now > deadline)
                     throw new InvalidOperationException("Runtime check timed out at step " + phase + ".");
+                if (SessionState.GetBool("TreeApproved", false))
+                {
+                    CheckApproved(now);
+                    return;
+                }
                 if (phase == 0)
                 {
                     map = Services.World as UnderneathTreeMap;
@@ -272,6 +279,65 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Debug.LogException(error);
                 Finish(false);
             }
+        }
+
+        static void CheckApproved(double now)
+        {
+            if (phase == 0)
+            {
+                map = Services.World as UnderneathTreeMap;
+                var camera = Services.Session?.Player?.ViewCamera;
+                if (!map || !camera || Time.frameCount < 20) return;
+                if (double.IsPositiveInfinity(renderReady)) renderReady = now + 3;
+                if (now < renderReady) return;
+                File.AppendAllText(Report, "ASSEMBLY " + typeof(UnderneathTreeMap).Assembly.ManifestModule.ModuleVersionId + "\n");
+                Require(map.SaveLayout() == "underneath-the-tree-v6-underpass", "approved underpass layout loaded");
+                Require(map.Blocks.All(b => b && b.isKinematic && b.useGravity), "all gift pieces and rails intact with gravity configured");
+                Require(map.Blocks.All(b => b.GetComponent<IClimbable>()?.CanClimb == true), "all registered gift and track bodies climbable");
+                blockCount = map.Blocks.Count;
+                revision = map.Revision;
+                originalPieces = PieceOrder();
+                File.AppendAllText(Report, "BODIES " + blockCount + " RENDERERS " + map.Root.GetComponentsInChildren<Renderer>().Length + "\n");
+                bridgeLid = map.Blocks.Single(b => b.name == "Lid" && b.transform.parent.name == "Gift Bridge / Navy Span");
+                var bridgeBase = map.Blocks.Single(b => b.name == "Bottom" && b.transform.parent.name == "Gift Bridge / Navy Span");
+                var baseCollider = bridgeBase.GetComponent<BoxCollider>();
+                Require(baseCollider.bounds.min.y > 14f, "navy bridge has tall ground passage");
+                var tunnel = map.Blocks.Single(b => b.name == "Bottom" && b.transform.parent.name == "Train Tunnel / Gold Lintel");
+                Require(tunnel.GetComponent<BoxCollider>().bounds.min.y > 13f, "train tunnel lintel clears railway elevation");
+                railBodies = map.Blocks.Where(b => b.name.StartsWith("Gift-supported rail ")).ToArray();
+                Require(railBodies.Length == 16 && railBodies.All(b => b.GetComponentsInChildren<BoxCollider>().All(c => WorkingDeck(c,b))),
+                    "sixteen supported breakaway rail sections have valid climbable colliders");
+                var train = map.GetComponentInChildren<UnderneathTreeTrain>();
+                Require(train, "train uses the new continuous course");
+                initialTrainPosition = train.transform.position;
+                Require(Physics.Raycast(map.SafeSpawnPoint() + Vector3.up * .3f, Vector3.down, out _, 1f, 1 << Layers.Block),
+                    "spawn has a physical gift landing");
+                Shot(camera, "approved-overview", new Vector3(44.175f, 81f, -158.15f), new Vector3(-58f, 15f, -68f), 64f, true);
+                Shot(camera, "approved-overhead", new Vector3(-60f, 145f, -100f), new Vector3(-62f, 5f, -80f), 64f);
+                Shot(camera, "approved-player-bridge", new Vector3(-35f, 2.5f, -112f), new Vector3(-60f, 13f, -75f), 72f);
+                initialBridgePosition = bridgeLid.position;
+                hitRail = railBodies[0];
+                initialRailPosition = hitRail.position;
+                map.Blocks.Single(b => b.name == "Bottom" && b.transform.parent.name == "Gift Bridge / Pine Bearing")
+                    .GetComponent<IPushable>().Push(Vector3.left * 6f, null);
+                map.Blocks.Single(b => b.name == "Bottom" && b.transform.parent.name == "Rail Gift 1")
+                    .GetComponent<IPushable>().Push(Vector3.left * 6f, null);
+                impactFixedTime = Time.fixedTime;
+                phase = 1;
+                return;
+            }
+            if (Time.fixedTime - impactFixedTime < 1f) return;
+            Require(!bridgeLid.isKinematic && Vector3.Distance(initialBridgePosition, bridgeLid.position) > .2f,
+                "removing bridge support releases and moves the navy span through PhysX");
+            Require(!hitRail.isKinematic && Vector3.Distance(initialRailPosition, hitRail.position) > .2f,
+                "removing rail gift releases and moves its track section");
+            Require(Vector3.Distance(initialTrainPosition, map.GetComponentInChildren<UnderneathTreeTrain>().transform.position) > .1f,
+                "train advances along intact course");
+            Services.Session.ResetMap();
+            Require(map.Revision > revision && map.Blocks.Count == blockCount && map.Blocks.All(b => b.isKinematic),
+                "reset restores approved layout intact");
+            Require(PieceOrder().SequenceEqual(originalPieces), "reset preserves deterministic network body order");
+            Finish(true);
         }
 
         static void Shot(Camera camera, string id, Vector3 eye, Vector3 target, float fieldOfView, bool ultraHd = false)

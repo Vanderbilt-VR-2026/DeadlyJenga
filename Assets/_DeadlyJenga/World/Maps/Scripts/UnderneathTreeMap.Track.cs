@@ -10,6 +10,75 @@ namespace DeadlyJenga.CastlePrototype
         const float RailBedOffset = .64f;
         const float RailBedThickness = .36f;
 
+        void BuildApprovedTrack()
+        {
+            const int samples = 128, perSection = 8;
+            const float height = 6.5f;
+            var course = new Vector3[samples];
+            for (int i = 0; i < samples; i++)
+            {
+                float t = i * Mathf.PI * 2f / samples;
+                float u = 43f * Mathf.Cos(t) + 1.3f * Mathf.Sin(3f * t);
+                float v = 29f * Mathf.Sin(t) + 1.2f * Mathf.Sin(2f * t);
+                course[i] = CoursePoint(u, v, height);
+            }
+            var colors = new[] { new Color(.82f, .035f, .07f), new Color(.035f, .38f, .19f),
+                new Color(.97f, .84f, .63f), new Color(.04f, .17f, .64f) };
+            var wraps = new Material[4];
+            for (int i = 0; i < wraps.Length; i++)
+                wraps[i] = ColoredPaper("Rail " + i + " snowflake gift wrap", colors[i], .4f);
+            var ribbon = ColoredPaper("Gold ribbon", new Color(.93f, .62f, .18f), .65f);
+            var metal = ColoredPaper("Track Rail polished brass", new Color(.75f, .57f, .3f), .8f);
+            var wood = ColoredPaper("Track Tie Dark Wood", new Color(.22f, .10f, .035f), .4f);
+            var cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+            var root = Child(built, "Train Loop", Vector3.zero, Quaternion.identity);
+            var ballast = new UnderneathTreeGiftPanel[samples];
+            for (int first = 0; first < samples; first += perSection)
+            {
+                int mid = first + perSection / 2;
+                var anchor = course[mid];
+                var direction = Quaternion.LookRotation(course[(mid + 1) % samples] - course[mid - 1]);
+                float top = height - RailBedOffset - RailBedThickness * .5f;
+                float bottom = GiftFloor(anchor);
+                var bearing = BoxGift("Rail Gift " + (first / perSection + 1),
+                    new Vector3(anchor.x, (bottom + top) * .5f, anchor.z),
+                    new Vector3(8f, top - bottom, Vector3.Distance(course[first], course[(first + perSection) % samples]) + 1.7f),
+                    direction, wraps[(first / perSection) % 4], ribbon);
+                var section = Child(root, "Gift-supported rail " + (first / perSection + 1), anchor, Quaternion.identity);
+                var rails = new List<CombineInstance>();
+                var ties = new List<CombineInstance>();
+                for (int i = first; i < first + perSection; i++)
+                {
+                    var a = course[i];
+                    var b = course[(i + 1) % samples];
+                    var rotation = Quaternion.LookRotation(b - a);
+                    var center = (a + b) * .5f - anchor;
+                    var deck = Child(section, "Rail deck", center - Vector3.up * RailBedOffset, rotation);
+                    AddBox(deck, new Vector3(4.25f, RailBedThickness, Vector3.Distance(a, b) + .06f), true);
+                    foreach (float sign in new[] { -1f, 1f })
+                        rails.Add(new CombineInstance { mesh = cube, transform = Matrix4x4.TRS(
+                            center + rotation * Vector3.right * (sign * 1.32f), rotation,
+                            new Vector3(.19f, .28f, Vector3.Distance(a, b) + .08f)) });
+                    ties.Add(new CombineInstance { mesh = cube, transform = Matrix4x4.TRS(
+                        center - Vector3.up * .25f, rotation, new Vector3(3.7f, .20f, .43f)) });
+                    ballast[i] = null;
+                }
+                var visual = Child(section, "Rail Visual", Vector3.zero, Quaternion.identity);
+                JoinRailDetail(visual, "Track Rail", rails, metal);
+                JoinRailDetail(visual, "Track Tie", ties, wood);
+                RegisterPanel(section.gameObject, visual, new UnderneathTreeGiftShell(), GiftPieceRole.Rail, 48f);
+                var panel = section.GetComponent<UnderneathTreeGiftPanel>();
+                giftBearings.Add(new GiftBearing(panel, bearing, null));
+                for (int i = first; i < first + perSection; i++) ballast[i] = panel;
+            }
+            if (locomotive)
+            {
+                var train = Instantiate(locomotive, root);
+                train.name = "Tinplate Christmas Train";
+                train.AddComponent<UnderneathTreeTrain>().SetUp(course, ballast);
+            }
+        }
+
         void BuildTrack(List<Vector3> course, Dictionary<string, MeshFilter> originals)
         {
             if (course.Count < 3)

@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class UnderneathTreeMap : MonoBehaviour, IWorldQuery, ISyncedWorld,
         IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        const string Layout = "underneath-the-tree-v5";
+        const string Layout = "underneath-the-tree-v6-underpass";
 
         [SerializeField] GameObject model = null, room = null, locomotive = null;
         [SerializeField] Material paper = null;
@@ -109,36 +109,17 @@ namespace DeadlyJenga.CastlePrototype
                     AddMeshSurface(filter);
             }
 
+            // The imported model supplies the room and rug; the approved course owns every gift.
             foreach (var pair in gifts)
-            {
-                var parts = pair.Value;
-                var box = parts.Find(filter => filter.name.EndsWith(" box", StringComparison.Ordinal));
-                var drum = parts.Find(filter => filter.name.EndsWith(" drum", StringComparison.Ordinal));
-                var lid = parts.Find(filter => filter.name.EndsWith(" lid", StringComparison.Ordinal));
-                var ribbon = parts.Find(filter => filter.name.Contains("ribbon A"));
-                if (pair.Key is "Present 200" or "Present 201" or "Present 205" or "Present 208" or "Present 210" or "Present 212")
-                {
-                    foreach (var part in parts)
-                        part.gameObject.SetActive(false);
-                    continue;
-                }
-                if (box)
-                    BuildPaperPanels(box, box.GetComponent<Renderer>().sharedMaterial,
-                        ribbon ? ribbon.GetComponent<Renderer>().sharedMaterial : null);
-                else if (drum && lid)
-                    BuildRoundGift(drum, lid);
-                else
-                    throw new InvalidOperationException("Incomplete gift shell: " + pair.Key);
-                foreach (var part in parts)
+                foreach (var part in pair.Value)
                     part.gameObject.SetActive(false);
-            }
-
-            BuildJunction();
+            foreach (var filter in filters)
+                if (filter.name.StartsWith("Track ", StringComparison.Ordinal))
+                    filter.gameObject.SetActive(false);
             BuildGiftRoutes();
             Physics.SyncTransforms();
-            BuildTrack(rail, byName);
-            BuildApproach(rail);
-            fallbackSpawn = new Vector3(6.3f, 1f, -35.7f);
+            BuildApprovedTrack();
+            fallbackSpawn = CoursePoint(0f, -41f, 2f);
             playArea.Expand(new Vector3(8f, 12f, 8f));
             Physics.SyncTransforms();
             BuildSkirtStitching();
