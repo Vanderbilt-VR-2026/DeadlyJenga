@@ -34,7 +34,7 @@ namespace DeadlyJenga.DevTools.Editor
             if(scenes.Any(s=>s.isLoaded&&(string.IsNullOrEmpty(s.path)||EditorSceneManager.GetSceneByPath(s.path).isDirty)))throw new Exception("Unsaved scenes preserved");
             if(!ValidationRunGate.TryAcquire(Key))throw new Exception("Editor already has a validation owner");
             Directory.CreateDirectory(Output);
-            File.WriteAllText(Report,"Actual Game scene and production menu, scripted pointer/binding checks. No physical headset or multiplayer proof.\n");
+            File.WriteAllText(Report,"Actual Game scene and production menu, scripted pointer/binding checks. Capture camera temporarily frames the world-locked tablet for readability; these are not headset eye-placement measurements. No physical headset or multiplayer proof.\n");
             SessionState.SetString(Key+"Scenes",JsonUtility.ToJson(new Saved{scenes=scenes}));
             SessionState.SetBool(Key+"HadName",PlayerPrefs.HasKey(NameKey));
             SessionState.SetString(Key+"Name",PlayerPrefs.GetString(NameKey,""));
@@ -201,9 +201,17 @@ namespace DeadlyJenga.DevTools.Editor
         static void Capture(Camera camera,Canvas canvas,string name)
         {
             var mode=canvas.renderMode;var worldCamera=canvas.worldCamera;var distance=canvas.planeDistance;
+            var position=camera.transform.position;var rotation=camera.transform.rotation;
+            // Frame the real world-locked tablet independently of the player's settling/falling motion.
+            var rect=(RectTransform)canvas.transform;
+            float halfHeight=rect.rect.height*Mathf.Abs(rect.lossyScale.y)*.5f;
+            float halfWidth=rect.rect.width*Mathf.Abs(rect.lossyScale.x)*.5f;
+            float tangent=Mathf.Tan(camera.fieldOfView*Mathf.Deg2Rad*.5f);
+            float framing=Mathf.Max(halfHeight/(tangent*.82f),halfWidth/(tangent*1.6f*.82f));
+            camera.transform.SetPositionAndRotation(canvas.transform.position-canvas.transform.forward*framing,canvas.transform.rotation);
             var target=new RenderTexture(1600,1000,24);var pixels=new Texture2D(1600,1000,TextureFormat.RGB24,false);var previous=camera.targetTexture;var active=RenderTexture.active;
             try{if(mode==RenderMode.ScreenSpaceOverlay){canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=camera;canvas.planeDistance=1;}camera.targetTexture=target;Canvas.ForceUpdateCanvases();camera.Render();RenderTexture.active=target;pixels.ReadPixels(new Rect(0,0,1600,1000),0,0);pixels.Apply();File.WriteAllBytes(Path.Combine(Output,name),pixels.EncodeToPNG());}
-            finally{canvas.renderMode=mode;canvas.worldCamera=worldCamera;canvas.planeDistance=distance;camera.targetTexture=previous;RenderTexture.active=active;target.Release();Object.DestroyImmediate(target);Object.DestroyImmediate(pixels);}
+            finally{camera.transform.SetPositionAndRotation(position,rotation);canvas.renderMode=mode;canvas.worldCamera=worldCamera;canvas.planeDistance=distance;camera.targetTexture=previous;RenderTexture.active=active;target.Release();Object.DestroyImmediate(target);Object.DestroyImmediate(pixels);}
         }
     }
 }
