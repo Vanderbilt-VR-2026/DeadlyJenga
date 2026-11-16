@@ -3,7 +3,7 @@
 Owner: underneath-the-tree. Source branch: `codex/underneath-tree-sprint4`.
 Integration target: `origin/Evan_Sprint_4` through its designated integration owner.
 Base: `1359ca474fb8a0bc86cdd72dca7dab5e3e631a71`.
-Gameplay-checked candidate: `79204e0557a6972b62089c0343869cd256d1f81d` (published and remote SHA verified; exact desktop runtime passed).
+Gameplay-checked candidate: `cf6288c57c8ece233240aefefce5e243d78d61dd` (published and remote SHA verified; exact desktop runtime passed).
 Status: work in progress. The broader collision audit supersedes earlier narrow-clearance acceptance. Visual fidelity remains below the approved concept; no final art approval claimed. Not integrated or included in an APK.
 
 ## Intended result
@@ -37,3 +37,5 @@ The user explicitly deferred headset performance work while the image match is d
 `4c3878f8cadf144b3f9c9518e9e2b2e65b1020fc` passed rail penetration, train corridor/motion, bridge and rail support release, direct eight-rung rail release, shader compilation and reset. Its new diagnostic ALSO found widespread inter-gift shell overlaps. That result is not whole-map collision acceptance. Reverse captures exposed stretched duplicate wall finishes, which this revision replaces on all four sides. It adds warm terrace/blue window light, softer couch patterning, bridge-end terraces and tapered hearth flames.
 
 `79204e0557a6972b62089c0343869cd256d1f81d` separates the overlapping approach steps and upper shelves and shortens/narrows rail-bearing presents. The fixture now requires zero inter-gift penetrations above 0.1 world units as well as rail penetrations below 0.035. The exact desktop fixture passed both penetration checks, train clearance/motion, climbing registration, shader compilation, support-loss displacement, direct eight-rung detachment and deterministic reset. Ten intact camera views and one destruction view were captured. Capture evidence is staged desktop Game.unity, not headset playthrough. A following visual-only refinement suppresses bows buried by upper parcels; it does not change colliders or physics.
+
+`cf6288c57c8ece233240aefefce5e243d78d61dd` passed the same complete fixture after buried-bow cleanup, with 512 registered climbable bodies. Actual overview, reverse, side, overhead, player-height and release frames were inspected. Remaining visible gaps include tree silhouette and foliage quality, fireplace detail, floor appearance, room proportions and the overall reference lighting/material fidelity. This is a checked improvement candidate, not final art acceptance or a publish-ready map. Reproduce via the fixture named above; no private tooling is required to understand its assertions.
