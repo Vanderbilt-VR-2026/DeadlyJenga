@@ -12,7 +12,7 @@ namespace DeadlyJenga.CastlePrototype
             candyJoinCodeFrame=CandyPanel(candyJoinContent,"Room code frame",0,185,1020,200,CandyInk).gameObject;
             candyJoinCodeFrame.transform.SetAsFirstSibling();
             var caption=CandyReadout(candyJoinContent,"Room code caption","ROOM CODE",-320,260,350,30,23);caption.fontStyle=FontStyle.Normal;caption.alignment=TextAnchor.MiddleLeft;
-            candyJoinStatus=CandyReadout(candyJoinContent,"Join connection status","READY TO JOIN",245,294,480,38,23);candyJoinStatus.color=CandyMint;
+            candyJoinStatus=CandyReadout(candyJoinContent,"Join connection status","READY TO JOIN",-200,300,550,38,23);candyJoinStatus.color=CandyMint;
             var code=CandyPlace("code",-145,185,690,96);code.faceColor=CandyInk;code.label.enabled=false;code.selected=()=>lobby.CodeFocused;
             for (int i = 0; i < 12; i++)
             {
