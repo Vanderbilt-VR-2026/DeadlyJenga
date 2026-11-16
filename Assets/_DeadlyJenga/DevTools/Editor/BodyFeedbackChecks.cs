@@ -68,12 +68,13 @@ namespace DeadlyJenga.DevTools.Editor
         public static void RunSandEngulf() => RunFocused("SandOnly");
         public static void RunSprintCapture() => RunFocused("SprintOnly");
         public static void RunTorso() => RunFocused("TorsoOnly");
+        public static void RunTeamSkinTorso() => RunFocused("TeamSkinTorso");
 
         static void RunFocused(string scope)
         {
             if (!Application.isBatchMode) throw new InvalidOperationException("Use an isolated batch validation checkout");
             MatchSetup.MapId = "castle";
-            MatchSetup.ModeId = "demo";
+            MatchSetup.ModeId = scope == "TeamSkinTorso" ? "teamtickets" : "demo";
             MatchSetup.BotTarget = 0;
             MatchSetup.HandCount = 0;
             MatchSetup.FromLobby = false;
@@ -90,10 +91,11 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetBool(Key,false);
             ValidationRunGate.Release(Key);
             bool focused = SessionState.GetBool(Key+"SandOnly",false) || SessionState.GetBool(Key+"SprintOnly",false) ||
-                SessionState.GetBool(Key+"TorsoOnly",false);
+                SessionState.GetBool(Key+"TorsoOnly",false) || SessionState.GetBool(Key+"TeamSkinTorso",false);
             SessionState.SetBool(Key+"SandOnly",false);
             SessionState.SetBool(Key+"SprintOnly",false);
             SessionState.SetBool(Key+"TorsoOnly",false);
+            SessionState.SetBool(Key+"TeamSkinTorso",false);
             if (focused && Application.isBatchMode)
             {
                 File.AppendAllText(Report,"CLEANUP exited Play Mode in the isolated batch editor\n");
@@ -117,11 +119,67 @@ namespace DeadlyJenga.DevTools.Editor
         static T Field<T>(object obj,string name)=>(T)obj.GetType().GetField(name,Flags).GetValue(obj);
         static void Property(object obj,string name,object value)=>obj.GetType().GetProperty(name,Flags).SetValue(obj,value);
         static object Call(object obj,string name,params object[] args)=>obj.GetType().GetMethod(name,Flags).Invoke(obj,args);
+        static void CheckTeamSkinTorso(CastleSurvivor motor)
+        {
+            var avatar = motor.GetComponent<CandyPlayerAvatar>();
+            Check(avatar && avatar.Rig, "The actual team match creates a skinned avatar");
+            Check(MatchRuntime.Current?.RulesFor(motor.gameObject)?.mode == GameModeKind.TeamTickets,
+                "The wardrobe check is running in Team PvP");
+            var rig = avatar.Rig;
+            var actor = (IModeActor)motor;
+            var original = avatar.Appearance;
+            var originalTeam = actor.Team;
+            var originalColor = actor.Color;
+            var body = new Mesh();
+            var head = new Mesh();
+            var skinQuality = rig.bodyRenderer.quality;
+            try
+            {
+                rig.bodyRenderer.quality = SkinQuality.Bone2;
+                var colors = new[] { Color.red, Color.blue };
+                var skins = new[] { AvatarSkin.Rabbit, AvatarSkin.Dragon, AvatarSkin.Clownfish, AvatarSkin.CandyCorn };
+                for (int team = 0; team < colors.Length; team++)
+                {
+                    actor.SetIdentity(actor.ActorId, actor.DisplayName, team, colors[team]);
+                    foreach (var skin in skins)
+                    {
+                        avatar.ApplyAppearance(new AvatarAppearance { skin = skin });
+                        avatar.RefreshNow();
+                        var renderer = rig.bodyRenderer;
+                        renderer.BakeMesh(body);
+                        rig.headRenderer.BakeMesh(head);
+                        var points = body.vertices;
+                        var weights = renderer.sharedMesh.boneWeights;
+                        var bones = renderer.bones;
+                        float neckTop = float.NegativeInfinity;
+                        for (int i = 0; i < points.Length; i++)
+                            if (bones[weights[i].boneIndex0] == rig.ChestBone)
+                                neckTop = Mathf.Max(neckTop, renderer.transform.TransformPoint(points[i]).y);
+                        float headBottom = head.vertices.Min(v => rig.headRenderer.transform.TransformPoint(v).y);
+                        Check(renderer.enabled && rig.headRenderer.enabled && neckTop >= headBottom,
+                            $"{skin} team {team + 1}: baked head and chest meet in two-bone skinning ({headBottom:F3} to {neckTop:F3})");
+                    }
+                }
+            }
+            finally
+            {
+                rig.bodyRenderer.quality = skinQuality;
+                actor.SetIdentity(actor.ActorId, actor.DisplayName, originalTeam, originalColor);
+                avatar.ApplyAppearance(original);
+                Object.Destroy(body);
+                Object.Destroy(head);
+            }
+        }
         static void RunChecks()
         {
             var session=Object.FindFirstObjectByType<CastlePlaySession>();
             Check(session&&session.Player!=null,"Actual Game scene creates its local player");
             var motor=session.Player.gameObject.GetComponent<CastleSurvivor>();
+            if (SessionState.GetBool(Key+"TeamSkinTorso",false))
+            {
+                CheckTeamSkinTorso(motor);
+                return;
+            }
             if (SessionState.GetBool(Key+"TorsoOnly",false))
             {
                 var rig = motor.GetComponentInChildren<CandyPlayerRig>(true);
