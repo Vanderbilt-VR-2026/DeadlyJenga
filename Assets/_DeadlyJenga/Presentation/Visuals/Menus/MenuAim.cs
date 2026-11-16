@@ -166,8 +166,8 @@ namespace DeadlyJenga.Presentation
                 beam.sharedMaterial = beamMaterial;
                 beam.useWorldSpace = true;
                 beam.positionCount = 2;
-                beam.startWidth = .006f;
-                beam.endWidth = .003f;
+                beam.startWidth = .008f;
+                beam.endWidth = .006f;
                 beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 beam.receiveShadows = false;
                 beam.sortingOrder = PointerSortOrder;

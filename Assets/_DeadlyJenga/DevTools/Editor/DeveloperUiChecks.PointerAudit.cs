@@ -107,9 +107,13 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     Canvas.ForceUpdateCanvases();camera.Render();RenderTexture.active=target;pixels.ReadPixels(new Rect(0,0,640,400),0,0);pixels.Apply();
                     File.WriteAllBytes(Path.Combine(Output,file),pixels.EncodeToPNG());
-                    return pixels.GetPixels().Count(c=>c.g>.65f&&c.r<.65f&&c.b>.3f);
+                    var colors=pixels.GetPixels();
+                    int covered=0;
+                    for(int x=140;x<500;x++)
+                        if(Enumerable.Range(198,5).Any(y=>{var c=colors[y*640+x];return c.g>.65f&&c.r<.65f&&c.b>.3f;}))covered++;
+                    return covered;
                 }
-                Check(Render("90-beam-over-geometry-and-ui.png")>80,"Rendered beam stays visible behind opaque geometry and foreground UI");
+                Check(Render("90-beam-over-geometry-and-ui.png")>=350,"Rendered beam stays visible behind opaque geometry and foreground UI");
                 args[4]=false;Aim("PresentBeam",args);
                 Check(!beam.enabled&&Render("91-beam-hidden.png")==0,"Hidden beam leaves no rendered pixels");
                 args[4]=true;root.SetActive(false);Aim("PresentBeam",args);Check(!beam.enabled,"Inactive owner cannot leave a visible beam");root.SetActive(true);

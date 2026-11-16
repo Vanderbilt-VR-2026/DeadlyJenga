@@ -159,6 +159,12 @@ namespace DeadlyJenga.DevTools.Editor
             Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Developer"));
             void Draw(){Call(menu,"PointPlayerTablet",camera,false,false);Canvas.ForceUpdateCanvases();Physics.SyncTransforms();}
             void Back(){Call(menu,"OnDeveloperBackClicked");Draw();}
+            Ray AimAt(Vector3 target)
+            {
+                // The scripted route test is independent of the player settling after scene entry.
+                var origin=menu.transform.position-menu.transform.forward*1.5f;
+                return new Ray(origin,target-origin);
+            }
             void Row(string prefix)
             {
                 Draw();var labels=Field<Text[]>(menu,"labels");var targets=Field<BoxCollider[]>(menu,"targets");
@@ -168,14 +174,14 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     var key=((IEnumerable)Field<object>(menu,"developerSearchKeys")).Cast<object>().Single(e=>Field<Func<string>>(e,"Title")()==prefix);
                     var hit=Field<BoxCollider>(key,"Target");
-                    typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,hit.bounds.center-camera.transform.position));
+                    typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,AimAt(hit.bounds.center));
                     Call(menu,"PointPlayerTablet",camera,true,false);Draw();return;
                 }
                 if(index<0||!targets[index].enabled)
                     File.AppendAllText(Report,"ROW DIAGNOSTIC "+prefix+"; canCommand="+session.Demo.CanCommand+"; settings="+(session.Player is ISurvivorSettings)+"; fold="+Field<string>(menu,"developerFoldout")+"; route="+Field<string>(menu,"developerRoute")+"; rows="+string.Join(" | ",labels.Where(x=>x.gameObject.activeInHierarchy).Select(x=>x.text))+"\n");
                 Check(index>=0&&targets[index].enabled,"Row available: "+prefix);
                 var target=targets[index];
-                typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,target.bounds.center-camera.transform.position));
+                typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,AimAt(target.bounds.center));
                 Call(menu,"PointPlayerTablet",camera,true,false);Draw();
             }
             IEnumerator Shot(string file)
@@ -202,7 +208,7 @@ namespace DeadlyJenga.DevTools.Editor
                         for (int click = 0; click < 2; click++)
                         {
                             var target = Field<BoxCollider>(entry,"Target");
-                            typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,target.bounds.center-camera.transform.position));
+                            typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,AimAt(target.bounds.center));
                             Call(menu,"PointPlayerTablet",camera,true,false); Draw();
                             bool expected = click == 0 ? !initial : initial;
                             Check(Field<Func<bool>>(entry,"Selected")() == expected, toggles[i] + " pointer toggles state " + click);
@@ -236,7 +242,7 @@ namespace DeadlyJenga.DevTools.Editor
             yield return Shot("01-developer-root.png");
             var toolsTile=((IEnumerable)Field<object>(menu,"tabletActions")).Cast<object>().Single(e=>Field<Func<string>>(e,"Title")()=="More tools");
             var toolsTarget=Field<BoxCollider>(toolsTile,"Target");
-            typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,toolsTarget.bounds.center-camera.transform.position));
+            typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,AimAt(toolsTarget.bounds.center));
             yield return Shot("23-more-tools-hover.png");
             Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Controls"));yield return Shot("22-controls.png");
             Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Developer"));
@@ -265,7 +271,7 @@ namespace DeadlyJenga.DevTools.Editor
             var card=((IEnumerable)Field<object>(menu,"disasterCards")).Cast<object>().First();
             Check(Field<Image>(card,"cardImage").material==Field<Text>(menu,"heading").material,"Lazy-created disaster cards share the foreground menu material");
             var cardTarget=Field<BoxCollider>(card,"cardTarget");
-            typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,cardTarget.bounds.center-camera.transform.position));
+            typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,AimAt(cardTarget.bounds.center));
             Call(menu,"PointPlayerTablet",camera,true,false);Draw();
             Check(Field<int>(menu,"disasterSelection")>=0&&!Field<GameObject>(menu,"disasterWheelUI").activeSelf,"Selecting a disaster hides its selector before showing settings");
             yield return Shot("13-disaster-selected.png");Row("Show tuning");yield return Shot("14-disaster-tuning.png");Back();Back();
