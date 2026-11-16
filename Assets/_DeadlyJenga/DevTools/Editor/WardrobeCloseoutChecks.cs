@@ -153,6 +153,9 @@ namespace DeadlyJenga.DevTools.Editor
             var nativeSkin = Resources.Load<WardrobeSkinAsset>("WardrobeSkins/" + covered.skin);
             Check(nativeSkin && avatar.Rig.bodyRenderer.sharedMesh == nativeSkin.bodyMesh,
                 "The live survivor equips the approved native Diver geometry");
+            avatar.Rig.SetColor(avatar.Rig.ColorIndex + 1);
+            Check(avatar.Rig.bodyRenderer.sharedMaterials.SequenceEqual(nativeSkin.bodyMaterials),
+                "Changing player color preserves every approved Diver material");
             var resolution = avatar.EvaluateAppearance(covered);
             Check(resolution.hiddenHair && resolution.hiddenClothing == AvatarClothing.PufferVest &&
                 resolution.effective.eyewear == AvatarEyewear.None && avatar.Appearance.Equals(covered),

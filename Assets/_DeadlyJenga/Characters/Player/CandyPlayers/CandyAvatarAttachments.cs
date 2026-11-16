@@ -13,6 +13,7 @@ namespace DeadlyJenga.CandyPlayers
         MaterialPropertyBlock cosmeticTint;
         [SerializeField] MeshRenderer[] renderers;
         public AvatarAppearance Appearance=>appearance;
+        internal bool UsesApprovedSkin => wardrobe && wardrobe.UsesApprovedSkin;
         public void Apply(CandyPlayerRig rig,AvatarAppearance value)
         {
             bool equippedArmor=value.poweredArmor;

@@ -70,7 +70,12 @@ namespace DeadlyJenga.CandyPlayers
             hasTint=true;tint=color;
             if(currentColor==color)return;
             colorProperties??=new MaterialPropertyBlock();colorProperties.SetColor("_BaseColor",color);colorProperties.SetFloat("_Smoothness",style?style.smoothness:.78f);
-            bodyRenderer.SetPropertyBlock(colorProperties);headRenderer.SetPropertyBlock(colorProperties);currentColor=color;
+            if (attachments?.UsesApprovedSkin != true)
+            {
+                bodyRenderer.SetPropertyBlock(colorProperties);
+                headRenderer.SetPropertyBlock(colorProperties);
+            }
+            currentColor=color;
             if(attachments)attachments.Tint(this);
         }
         public Transform RightPalm=>bones[7];
@@ -127,9 +132,14 @@ namespace DeadlyJenga.CandyPlayers
             if(!style)return;var color=hasTint?tint:style.ColorAt(index);
             if(index==colorIndex&&currentMaterial==style.material&&currentColor==color&&currentSmoothness==style.smoothness)return;
             colorProperties??=new MaterialPropertyBlock();
-            bodyRenderer.sharedMaterial=style.material;headRenderer.sharedMaterial=style.material;
             colorProperties.SetColor("_BaseColor",color);colorProperties.SetFloat("_Smoothness",style.smoothness);
-            bodyRenderer.SetPropertyBlock(colorProperties);headRenderer.SetPropertyBlock(colorProperties);
+            if (attachments?.UsesApprovedSkin != true)
+            {
+                bodyRenderer.sharedMaterial = style.material;
+                headRenderer.sharedMaterial = style.material;
+                bodyRenderer.SetPropertyBlock(colorProperties);
+                headRenderer.SetPropertyBlock(colorProperties);
+            }
             colorIndex=index;currentMaterial=style.material;currentColor=color;currentSmoothness=style.smoothness;
             if(attachments)attachments.Tint(this);
         }

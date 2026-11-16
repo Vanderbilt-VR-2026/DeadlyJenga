@@ -108,7 +108,13 @@ namespace DeadlyJenga.CandyPlayers
             // Each renderer keeps one vertex layout for its entire lifetime.
             current.GetPropertyBlock(properties);
             next.SetPropertyBlock(properties);
-            next.sharedMaterials = current.sharedMaterials;
+            var materials = current.sharedMaterials;
+            next.sharedMaterials = materials;
+            for (int index = 0; index < materials.Length; index++)
+            {
+                current.GetPropertyBlock(properties, index);
+                next.SetPropertyBlock(properties, index);
+            }
             next.shadowCastingMode = current.shadowCastingMode;
             next.receiveShadows = current.receiveShadows;
             next.renderingLayerMask = current.renderingLayerMask;
