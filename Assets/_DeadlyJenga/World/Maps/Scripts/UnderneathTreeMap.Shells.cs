@@ -6,6 +6,30 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class UnderneathTreeMap
     {
+        UnderneathTreeGiftPanel RoundParcel(string name, Vector3 floor, float radius, float height,
+            Material wrap, Material ribbon)
+        {
+            var frame = Child(built, name, floor, Quaternion.identity);
+            var shell = new UnderneathTreeGiftShell();
+            const float thickness = .35f;
+            AddRoundPiece(frame, shell, "Bottom", GiftPieceRole.Base, thickness * .5f, Quaternion.identity,
+                RoundMesh(radius, 0f, thickness, Mathf.PI * 2f, 24), wrap, radius * radius * thickness);
+            var lid = AddRoundPiece(frame, shell, "Lid", GiftPieceRole.Lid, height - thickness * .5f,
+                Quaternion.identity, RoundMesh(radius + .12f, 0f, thickness, Mathf.PI * 2f, 32), wrap,
+                radius * radius * thickness);
+            VisualBox(lid.transform, "Ribbon across", Vector3.up * (thickness * .5f + .01f),
+                new Vector3(radius * 1.96f, .02f, radius * .23f), ribbon);
+            VisualBox(lid.transform, "Ribbon lengthwise", Vector3.up * (thickness * .5f + .025f),
+                new Vector3(radius * .23f, .02f, radius * 1.96f), ribbon);
+            for (int i = 0; i < 8; i++)
+                AddRoundPiece(frame, shell, "Curved wall " + i, GiftPieceRole.Wall, height * .5f,
+                    Quaternion.Euler(0, -i * 45f, 0), RoundMesh(radius, radius - thickness,
+                        height - thickness * 2f - .03f, Mathf.PI / 4f - .003f, 5), wrap, radius * height * thickness);
+            spawnTops.Add(lid);
+            playArea.Encapsulate(lid.bounds);
+            return lid.GetComponent<UnderneathTreeGiftPanel>();
+        }
+
         void BuildRoundGift(MeshFilter drum, MeshFilter lid)
         {
             var drumBounds = drum.sharedMesh.bounds;

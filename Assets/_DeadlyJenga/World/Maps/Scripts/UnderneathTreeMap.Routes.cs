@@ -73,7 +73,10 @@ namespace DeadlyJenga.CastlePrototype
             var l1 = Parcel("Left Summit / Broad Cream", -29f, 4f, 20f, 9f, 16f, cream, berry, -3f);
             var l2 = Parcel("Left Summit / Ruby Shoulder", -30f, 4f, 16f, 8f, 13f, red, gold, 4f, l1);
             var l3 = Parcel("Left Summit / Emerald Shelf", -32f, 5f, 12f, 6f, 10f, green, ivory, -5f, l2);
-            Parcel("Left Summit / Ivory Crown", -33f, 6f, 9f, 8f, 8f, cream, gold, 7f, l3);
+            var crown = RoundParcel("Left Summit / Ivory Crown", CoursePoint(-33f, 6f,
+                transform.InverseTransformPoint(l3.transform.position).y + l3.GetComponent<BoxCollider>().size.y * .5f + .012f),
+                4.7f, 8f, cream, gold);
+            giftBearings.Add(new GiftBearing(GiftBase(crown), l3, null));
             Parcel("Left Summit / Side Foothold", -20f, 4f, 7f, 4f, 10f, navy, ivory, 5f, l1);
             Parcel("Left Summit / Rear Entry", -25f, 16f, 13f, 3f, 8f, green, gold, -6f);
             Parcel("Left Summit / Rear Step", -28f, 12f, 10f, 6f, 8f, red, ivory, 4f);

@@ -180,7 +180,7 @@ namespace DeadlyJenga.CandyArt
         void AddGiftBow(MeshRenderer renderer)
         {
             var panel = renderer.transform;
-            if (renderer.name != "Visual" || !panel.parent || panel.parent.name != "Lid")
+            if ((renderer.name != "Visual" && renderer.name != "Curved wrapping") || !panel.parent || panel.parent.name != "Lid")
                 return;
             if (panel.parent.parent && panel.parent.parent.name.StartsWith("Rail Gift ", StringComparison.Ordinal))
                 return;
@@ -202,9 +202,12 @@ namespace DeadlyJenga.CandyArt
             var skin = obj.GetComponent<MeshRenderer>();
             skin.sharedMaterial = bowMaterial;
             skin.shadowCastingMode = ShadowCastingMode.TwoSided;
-            var size = panel.localScale;
+            var size = renderer.name == "Curved wrapping"
+                ? panel.GetComponent<MeshFilter>().sharedMesh.bounds.size : panel.localScale;
             obj.transform.SetParent(panel.parent, false);
-            obj.transform.localPosition = new Vector3(.26f * size.x, .5f * size.y + .046f, -.23f * size.z);
+            obj.transform.localPosition = renderer.name == "Curved wrapping"
+                ? new Vector3(0f, .5f * size.y + .046f, 0f)
+                : new Vector3(.26f * size.x, .5f * size.y + .046f, -.23f * size.z);
             obj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             float span = Mathf.Min(size.x, size.z);
             obj.transform.localScale = new Vector3(Mathf.Clamp(span * .17f, .22f, 1.55f),

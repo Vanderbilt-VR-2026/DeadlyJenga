@@ -79,6 +79,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 throw new InvalidOperationException("Run this check in a checked batch editor.");
             if (!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))
                 throw new InvalidOperationException("Disaster validation menu is unavailable.");
+            SessionState.SetBool("TreePriorAsync", ShaderUtil.allowAsyncCompilation);
+            ShaderUtil.allowAsyncCompilation = false;
             SessionState.SetBool(References, references);
             File.WriteAllText(Report, references
                 ? "Underneath the Tree, intact solo Demo reference angles\n"
@@ -316,7 +318,17 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 initialTrainPosition = train.transform.position;
                 Require(Physics.Raycast(map.SafeSpawnPoint() + Vector3.up * .3f, Vector3.down, out _, 1f, 1 << Layers.Block),
                     "spawn has a physical gift landing");
-                Shot(camera, "approved-overview", new Vector3(62f, 115f, -235f), new Vector3(-91f, 24f, -94f), 64f, true);
+                File.AppendAllText(Report, "CAMERA far=" + camera.farClipPlane + " near=" + camera.nearClipPlane + " mask=" + camera.cullingMask + "\n");
+                foreach (var renderer in map.Root.GetComponentsInChildren<Renderer>())
+                {
+                    if (renderer.name != "Visual" && !renderer.name.Contains("wall") && !renderer.name.Contains("Wall") &&
+                        !renderer.name.Contains("Fir needle") && !renderer.name.Contains("sofa") && !renderer.name.Contains("Sofa")) continue;
+                    var filter = renderer.GetComponent<MeshFilter>();
+                    File.AppendAllText(Report, "DRAW " + renderer.transform.parent.name + "/" + renderer.name + " enabled=" + renderer.enabled +
+                        " bounds=" + renderer.bounds + " material=" + renderer.sharedMaterial?.name + " shader=" + renderer.sharedMaterial?.shader.name +
+                        " vertices=" + (filter && filter.sharedMesh ? filter.sharedMesh.vertexCount : 0) + "\n");
+                }
+                Shot(camera, "approved-overview", new Vector3(38f, 96f, -208f), new Vector3(-91f, 24f, -94f), 60f, true);
                 Shot(camera, "approved-overhead", new Vector3(-90f, 245f, -135f), new Vector3(-90f, 5f, -110f), 64f);
                 Shot(camera, "approved-player-bridge", new Vector3(-47f, 3f, -166f), new Vector3(-90f, 25f, -110f), 72f);
                 impactFixedTime = Time.fixedTime;
@@ -377,8 +389,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 camera.fieldOfView = fieldOfView;
                 // Keep cold shader variants from dropping dressings out of the first view.
                 ShaderUtil.allowAsyncCompilation = false;
-                if (id == "christmas-room" || id == "01-room-overview")
-                    camera.Render();
+                camera.Render();
                 camera.Render();
                 RenderTexture.active = render;
                 image.ReadPixels(new Rect(0f, 0f, width, height), 0, 0);
@@ -497,6 +508,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static void Finish(bool passed)
         {
             EditorApplication.update -= Check;
+            ShaderUtil.allowAsyncCompilation = SessionState.GetBool("TreePriorAsync", true);
             SessionState.SetBool(Failed, !passed);
             File.AppendAllText(Report, passed ? "PASSED\n" : "FAILED\n");
             EditorApplication.ExitPlaymode();
