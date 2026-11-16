@@ -74,7 +74,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             if (!Application.isBatchMode) throw new InvalidOperationException("Use an isolated batch validation checkout");
             MatchSetup.MapId = "castle";
-            MatchSetup.ModeId = scope == "TeamSkinTorso" ? "teamtickets" : "demo";
+            MatchSetup.ModeId = "demo";
             MatchSetup.BotTarget = 0;
             MatchSetup.HandCount = 0;
             MatchSetup.FromLobby = false;
@@ -123,6 +123,9 @@ namespace DeadlyJenga.DevTools.Editor
         {
             var avatar = motor.GetComponent<CandyPlayerAvatar>();
             Check(avatar && avatar.Rig, "The actual team match creates a skinned avatar");
+            var session = Object.FindFirstObjectByType<CastlePlaySession>();
+            Check(session && session.Modes && session.Modes.Authority, "The live Development match owns its mode rules");
+            session.Modes.Configure(MatchSetup.DefaultModeRules(GameModeKind.TeamTickets, MatchSetup.SelectedMap));
             Check(MatchRuntime.Current?.RulesFor(motor.gameObject)?.mode == GameModeKind.TeamTickets,
                 "The wardrobe check is running in Team PvP");
             var rig = avatar.Rig;
