@@ -266,8 +266,8 @@ namespace DeadlyJenga.CandyArt
 
         void BuildHearth()
         {
-            var amber = Glow("Amber fireglass", new Color(1f, .24f, .036f), 3.2f);
-            var center = Glow("Yellow flame", new Color(1f, .56f, .10f), 4.3f);
+            var amber = Glow("Amber fireglass", new Color(1f, .12f, .012f), 1.8f);
+            var center = Glow("Yellow flame", new Color(1f, .39f, .035f), 2.7f);
             var log = Surface("Charred birch", "Mahogany", new Color(.14f, .071f, .039f), .33f, new Vector2(3, 2));
             var rand = new System.Random(2114);
             for (int i = 0; i < 7; i++)
@@ -284,6 +284,22 @@ namespace DeadlyJenga.CandyArt
                 var flame = Primitive("Hearth flame", PrimitiveType.Sphere, pos,
                     new Vector3(Range(rand, 2.4f, 4.9f), height, Range(rand, 1.5f, 2.6f)),
                     i % 3 == 0 ? center : amber);
+                var flameMesh = Instantiate(flame.GetComponent<MeshFilter>().sharedMesh);
+                var flameVertices = flameMesh.vertices;
+                for (int v = 0; v < flameVertices.Length; v++)
+                {
+                    var point = flameVertices[v];
+                    float rise = point.y + .5f;
+                    float taper = Mathf.Lerp(1.05f, .12f, rise * rise);
+                    point.x = point.x * taper + Mathf.Sin(rise * 4f + i) * rise * .18f;
+                    point.z *= taper;
+                    flameVertices[v] = point;
+                }
+                flameMesh.vertices = flameVertices;
+                flameMesh.RecalculateNormals();
+                flameMesh.RecalculateBounds();
+                meshes.Add(flameMesh);
+                flame.GetComponent<MeshFilter>().sharedMesh = flameMesh;
                 flame.localRotation = Quaternion.Euler(0f, 0f, Range(rand, -16f, 16f));
                 flame.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
             }

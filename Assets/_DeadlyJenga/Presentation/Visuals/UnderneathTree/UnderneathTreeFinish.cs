@@ -220,7 +220,8 @@ namespace DeadlyJenga.CandyArt
                     name.StartsWith("Tree Ornament", StringComparison.Ordinal) ||
                     name.StartsWith("Tree Wire", StringComparison.Ordinal) || name == "Fireplace Fire" ||
                     name.StartsWith("Wood Planks", StringComparison.Ordinal) || name == "Tree Skirt rim" ||
-                    name.StartsWith("Sofa", StringComparison.Ordinal) || name == "Lamp Shade" || name == "Side Table")
+                    name.StartsWith("Sofa", StringComparison.Ordinal) || name == "Lamp Shade" || name == "Side Table" ||
+                    name.StartsWith("Room Wall", StringComparison.Ordinal))
                 {
                     Hide(renderer);
                     continue;

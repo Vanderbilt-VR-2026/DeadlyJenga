@@ -356,6 +356,23 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 }
                 foreach (string collision in penetrations) File.AppendAllText(Report, "RAIL PENETRATION " + collision + "\n");
                 Require(penetrations.Count == 0, "physical rails and rungs do not penetrate presents");
+                var giftContacts = new System.Collections.Generic.HashSet<string>();
+                foreach (var body in map.Blocks.Where(b => !railBodies.Contains(b)))
+                foreach (var shape in body.GetComponents<Collider>())
+                foreach (var other in Physics.OverlapBox(shape.bounds.center, shape.bounds.extents, Quaternion.identity,
+                    1 << Layers.Block, QueryTriggerInteraction.Ignore))
+                {
+                    var otherBody = other.attachedRigidbody;
+                    if (!otherBody || railBodies.Contains(otherBody) || body.transform.parent == otherBody.transform.parent) continue;
+                    if (Physics.ComputePenetration(shape, shape.transform.position, shape.transform.rotation,
+                        other, other.transform.position, other.transform.rotation, out _, out float depth) && depth > .10f)
+                    {
+                        var pair = new[] { body.transform.parent.name, otherBody.transform.parent.name };
+                        System.Array.Sort(pair, StringComparer.Ordinal);
+                        giftContacts.Add(string.Join(" / ", pair));
+                    }
+                }
+                foreach (string collision in giftContacts) File.AppendAllText(Report, "GIFT PENETRATION " + collision + "\n");
                 var shaders = map.Root.GetComponentsInChildren<Renderer>()
                     .SelectMany(r => r.sharedMaterials).Where(m => m && m.shader && m.shader.name.StartsWith("DeadlyJenga/Christmas"))
                     .Select(m => m.shader).Distinct();

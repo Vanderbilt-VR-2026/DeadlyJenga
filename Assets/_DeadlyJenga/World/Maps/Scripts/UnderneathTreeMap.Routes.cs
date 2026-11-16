@@ -75,7 +75,7 @@ namespace DeadlyJenga.CastlePrototype
             Parcel("Bridge Terrace / Right Emerald", 28f, -9f, 6f, 4f, 6f, green, ivory, -3f, bridgeRight);
 
             var l1 = Parcel("Left Summit / Broad Cream", -26f, 6f, 15f, 9f, 12f, cream, berry, -3f);
-            var l2 = Parcel("Left Summit / Ruby Shoulder", -29f, 7f, 15f, 8f, 12f, red, gold, 4f, l1);
+            var l2 = Parcel("Left Summit / Ruby Shoulder", -27.5f, 7f, 14f, 8f, 12f, red, gold, 4f, l1);
             var l3 = Parcel("Left Summit / Emerald Shelf", -30f, 7f, 11f, 6f, 10f, green, ivory, -5f, l2);
             var crown = RoundParcel("Left Summit / Ivory Crown", CoursePoint(-31f, 7f,
                 transform.InverseTransformPoint(l3.transform.position).y + l3.GetComponent<BoxCollider>().size.y * .5f + .012f),
