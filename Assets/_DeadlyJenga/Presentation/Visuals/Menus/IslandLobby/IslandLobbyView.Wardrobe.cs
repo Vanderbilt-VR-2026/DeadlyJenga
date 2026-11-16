@@ -35,31 +35,38 @@ namespace DeadlyJenga.CastlePrototype
         int wardrobeCategory,wardrobePage;
         int WardrobePages=>(wardrobeItems[wardrobeCategory].Length+WardrobePageSize-1)/WardrobePageSize;
 
+        [Serializable]
+        sealed class WardrobeCatalog
+        {
+            public AvatarAppearance[] skins, hair, headgear, eyewear, outfits, back, extras;
+        }
+
         static WardrobeItem[][] BuildWardrobeItems()
         {
-            WardrobeItem Accessory(AvatarAccessory item)=>new WardrobeItem(PrettyName(item.ToString()),accessory:item);
-            WardrobeItem Clothing(AvatarClothing item)=>new WardrobeItem(PrettyName(item.ToString()),clothing:item);
+            var asset = Resources.Load<TextAsset>("WardrobeCatalog");
+            var catalog = (asset ? JsonUtility.FromJson<WardrobeCatalog>(asset.text) : null) ?? new WardrobeCatalog();
+            WardrobeItem[] Items(AvatarAppearance[] group, WardrobeSlot slot) =>
+                (group ?? Array.Empty<AvatarAppearance>()).Select(item =>
+                {
+                    if (item.accessories != 0)
+                        return new WardrobeItem(PrettyName(item.accessories.ToString()), accessory:item.accessories);
+                    if (item.clothing != 0)
+                        return new WardrobeItem(PrettyName(item.clothing.ToString()), clothing:item.clothing);
+                    if (slot == WardrobeSlot.Skin)
+                        return new WardrobeItem(PrettyName(item.skin.ToString()), style:(int)item.skin);
+                    if (slot == WardrobeSlot.Hair)
+                        return new WardrobeItem(PrettyName(item.hair.ToString()), style:(int)item.hair);
+                    return new WardrobeItem(PrettyName(item.eyewear.ToString()), style:(int)item.eyewear);
+                }).ToArray();
             return new[]
             {
-                Enum.GetValues(typeof(AvatarSkin)).Cast<AvatarSkin>().Select(item=>new WardrobeItem(PrettyName(item.ToString()),style:(int)item)).ToArray(),
-                Enum.GetValues(typeof(AvatarHair)).Cast<AvatarHair>().Where(item=>item!=AvatarHair.None)
-                    .Select(item=>new WardrobeItem(PrettyName(item.ToString()),style:(int)item)).Append(Accessory(AvatarAccessory.Mohawk)).ToArray(),
-                new[]{AvatarAccessory.TopHat,AvatarAccessory.Crown,AvatarAccessory.Beanie,AvatarAccessory.CowboyHat,AvatarAccessory.PirateHat,
-                    AvatarAccessory.ChefHat,AvatarAccessory.VikingHelmet,AvatarAccessory.PartyHat,AvatarAccessory.PropellerCap,AvatarAccessory.FlowerCrown,
-                    AvatarAccessory.PumpkinHelmet,AvatarAccessory.SkeletonMask,AvatarAccessory.PantherHead,AvatarAccessory.RabbitEars,AvatarAccessory.CatEars,
-                    AvatarAccessory.AntAntennae,AvatarAccessory.UnicornHorn,AvatarAccessory.DevilHorns,AvatarAccessory.Broccoli,AvatarAccessory.Halo,
-                    AvatarAccessory.Headphones,AvatarAccessory.RobotAntenna}.Select(Accessory)
-                    .Concat(new[]{Clothing(AvatarClothing.HockeyHelmet),Clothing(AvatarClothing.FootballHelmet)}).ToArray(),
-                // These are the distinct models. The remaining names reuse Round or Visor geometry.
-                new[]{AvatarEyewear.Round,AvatarEyewear.Square,AvatarEyewear.Aviator,AvatarEyewear.CatEye,AvatarEyewear.Visor,
-                    AvatarEyewear.Monocle,AvatarEyewear.Star,AvatarEyewear.Heart,AvatarEyewear.CyberEye,AvatarEyewear.Shutter}
-                    .Select(item=>new WardrobeItem(PrettyName(item.ToString()),style:(int)item)).Append(Accessory(AvatarAccessory.Glasses)).ToArray(),
-                new[]{AvatarClothing.MonkRobe,AvatarClothing.Diaper,AvatarClothing.FootballPads,AvatarClothing.GrassSkirt,AvatarClothing.Tuxedo,
-                    AvatarClothing.Hoodie,AvatarClothing.BomberJacket,AvatarClothing.SailorShirt,AvatarClothing.Overalls,AvatarClothing.PufferVest}
-                    .Select(Clothing).ToArray(),
-                new[]{AvatarAccessory.Cape,AvatarAccessory.ButterflyWings,AvatarAccessory.AngelWings,AvatarAccessory.DragonWings}
-                    .Select(Accessory).Append(Clothing(AvatarClothing.RoyalMantle)).ToArray(),
-                new[]{Accessory(AvatarAccessory.LongNose),Accessory(AvatarAccessory.StrongJaw),Clothing(AvatarClothing.BowTie)}
+                Items(catalog.skins,WardrobeSlot.Skin),
+                Items(catalog.hair,WardrobeSlot.Hair),
+                Items(catalog.headgear,WardrobeSlot.Headgear),
+                Items(catalog.eyewear,WardrobeSlot.Eyewear),
+                Items(catalog.outfits,WardrobeSlot.Outfit),
+                Items(catalog.back,WardrobeSlot.Back),
+                Items(catalog.extras,WardrobeSlot.Extras)
             };
         }
 
