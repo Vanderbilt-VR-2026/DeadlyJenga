@@ -101,7 +101,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     int mask = (1 << Layers.Surface) | (1 << Layers.Block) | 1;
                     foreach (var local in layout.freeSpawns)
                     {
-                        var p = root.TransformPoint(local);
+                        if (!layout.TrySpawnPosition(world, local, out var p)) throw new Exception("No nearby ground for " + local);
                         if (!Physics.Raycast(p + Vector3.up * .25f, Vector3.down, out var hit, .5f, mask, QueryTriggerInteraction.Ignore) || hit.normal.y < .9f)
                             throw new Exception("Missing spawn floor at " + p.ToString("F3"));
                         if (Physics.CheckCapsule(p + Vector3.up * .4f, p + Vector3.up * 1.65f, .32f, mask, QueryTriggerInteraction.Ignore))
@@ -112,7 +112,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     {
                         var p = mode.SpawnPoint(team, 0, "survivor");
                         var candidates = Mode == "teamtickets" ? layout.teams[team].spawns : layout.freeSpawns;
-                        Check(candidates.Any(v => Vector3.Distance(root.TransformPoint(v), p) < .01f), "spawn resolver uses authored group " + team);
+                        Check(candidates.Any(v => layout.TrySpawnPosition(world, v, out var resolved) && Vector3.Distance(resolved, p) < .01f), "spawn resolver uses authored group " + team);
                     }
                     if (Mode == "teamtickets")
                         Check(mode.Frame.players.Where(p => p.alive).Select(p => p.team).Distinct().Count() >= 2, "live participants assigned opposing teams");

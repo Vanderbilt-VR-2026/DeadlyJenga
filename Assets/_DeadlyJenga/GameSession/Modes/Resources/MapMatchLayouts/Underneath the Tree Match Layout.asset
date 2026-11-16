@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Underneath the Tree Match Layout
   m_EditorClassIdentifier: DeadlyJenga.GameSession::DeadlyJenga.Modes.MapMatchLayout
   layoutSignature: underneath-the-tree-v6-underpass
+  groundSpawns: 1
   freeSpawns:
   - {x: -192.7500, y: 0.6200, z: -107.7500}
   - {x: 12.7500, y: 0.6200, z: -112.2500}
