@@ -353,8 +353,8 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 float y=43-i*28;
                 var rowColor=new Color(.13f,.045f,.18f,.55f);
-                Panel("Standing row backing",liveStandings.transform,new Vector2(0,y),new Vector2(313,26),rowColor).transform.SetAsFirstSibling();
-                Panel("Activity row backing",liveActivity.transform,new Vector2(0,y),new Vector2(313,26),rowColor).transform.SetAsFirstSibling();
+                Panel("Standing row backing",liveStandings.rectTransform,new Vector2(0,y),new Vector2(313,26),rowColor).transform.SetAsFirstSibling();
+                Panel("Activity row backing",liveActivity.rectTransform,new Vector2(0,y),new Vector2(313,26),rowColor).transform.SetAsFirstSibling();
                 standingHeads[i]=LiveImage(liveStandings.transform,new Vector2(-141,y),new Vector2(22,22));
                 standingRows[i]=Text("",new Vector2(17,y+6),new Vector2(275,18),14,liveStandings.transform);
                 standingStats[i]=Text("",new Vector2(17,y-9),new Vector2(275,14),11,liveStandings.transform);
