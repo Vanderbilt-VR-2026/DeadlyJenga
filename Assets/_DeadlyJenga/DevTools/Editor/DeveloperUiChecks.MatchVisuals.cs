@@ -7,6 +7,7 @@ using DeadlyJenga.Core;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.CandyArt.Marina;
 using DeadlyJenga.Presentation;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Rendering.Universal;
@@ -24,6 +25,13 @@ namespace DeadlyJenga.DevTools.Editor
             lobby.SelectMap("castle");lobby.SelectMode("demo");
             var marina=lobby.GetComponent<MarinaScreen>();
             Check(marina&&lobby.CanStart,"Current front terminal can start a match");
+            bool terminalAppearance=SessionState.GetBool(Key+"TerminalAppearance",false);
+            if(terminalAppearance)
+            {
+                CaptureCabinet(lobby,false);CaptureCabinet(lobby,true);
+                var shell=lobby.GetComponent<MayhemMarina>();
+                File.AppendAllText(Report,"GEOMETRY render="+shell.RenderTriangles+" collision="+shell.CollisionTriangles+"\n");
+            }
             var target=((IEnumerable)Field<object>(marina,"targets")).Cast<object>().Single(t=>Field<string>(t,"id")=="marina-play");
             Field<Action>(target,"action")();
             float deadline=Time.realtimeSinceStartup+60;
@@ -80,6 +88,20 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(feedCards.SelectMany(g=>g.GetComponentsInChildren<Text>()).Any(t=>t.name=="Elimination victim"&&t.text=="YOU"),"Local death visibly names YOU as victim");
                 Call(hud,"Update");
                 Check(Field<Canvas>(hud,"canvas").GetComponentsInChildren<CanvasGroup>().Count(g=>g.name=="Elimination feed"&&g.gameObject.activeInHierarchy)==4,"Repeated snapshot does not duplicate feed cards");
+                if(terminalAppearance)
+                {
+                    frame.remaining=183;frame.disasterWarning="Tsunami";frame.disasterWarningRemaining=12;Publish();
+                    session.VisitLobby();deadline=Time.realtimeSinceStartup+45;
+                    while(!session.VisitingLobby&&Time.realtimeSinceStartup<deadline)yield return null;
+                    Check(session.VisitingLobby,"Actual VisitLobby route opened during play");
+                    yield return null;
+                    var visit=IslandLobby.Persistent.GetComponent<MarinaScreen>();Call(visit,"Refresh");
+                    CaptureTerminal(Field<RectTransform>(visit,"mainFace"),"72-live-match-terminal.png");
+                    Check(Field<Text>(visit,"mainHeading").text.StartsWith("LIVE MATCH"),"In-play terminal displays live match state");
+                    session.ReturnToMatch();yield return null;
+                    Check(!session.VisitingLobby,"Return to match restores play");
+                    frame.disasterWarning="";frame.disasterWarningRemaining=0;
+                }
                 frame.phase=RoundPhase.Results;frame.winner="A Very Long Player Name For Layout Review";Publish();
                 deadline=Time.realtimeSinceStartup+12;
                 while((!Field<Canvas>(results,"canvas")||!Field<Canvas>(results,"canvas").gameObject.activeInHierarchy)&&Time.realtimeSinceStartup<deadline)yield return null;
@@ -94,6 +116,16 @@ namespace DeadlyJenga.DevTools.Editor
             var returned=Services.Session as IslandLobby;Check(returned,"Results return route reaches Lobby");
             var hall=returned.GetComponent<LobbyLastRoundBoard>();Check(hall,"Current lobby has last-round board");
             yield return null;CaptureTerminal(hall.GetComponentsInChildren<Canvas>().First(c=>c.name=="Last match billboard").GetComponent<RectTransform>(),"65-last-round-board.png");
+        }
+
+        static void CaptureCabinet(IslandLobby lobby,bool host)
+        {
+            var go=new GameObject("Cabinet inspection bounds",typeof(RectTransform));
+            var frame=go.GetComponent<RectTransform>();frame.SetParent(lobby.transform,false);
+            frame.localPosition=new Vector3(host?4.87f:-4.87f,3.25f,10.90f);
+            frame.localRotation=Quaternion.Euler(0,host?18:-18,0);frame.sizeDelta=new Vector2(3.2f,3.55f);
+            try {CaptureTerminal(frame,host?"71-host-cabinet.png":"70-join-cabinet.png");}
+            finally {Object.Destroy(go);}
         }
 
         static void CaptureMatchCanvas(CastlePlaySession session,string name)
