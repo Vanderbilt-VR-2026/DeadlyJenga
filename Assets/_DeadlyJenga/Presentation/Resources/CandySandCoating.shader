@@ -79,7 +79,7 @@ Shader "DeadlyJenga/Sand Coating"
             {
                 float3 q = mul(float3x3(.36,.48,-.8, -.8,.6,0, .48,.64,.6), p) * frequency;
                 float3 cell = floor(q), local = frac(q);
-                float nearest = 10, second = 10, shade = 0;
+                float nearest = 10, shade = 0;
                 [unroll] for (int z = -1; z <= 1; z++)
                 [unroll] for (int y = -1; y <= 1; y++)
                 [unroll] for (int x = -1; x <= 1; x++)
@@ -88,18 +88,21 @@ Shader "DeadlyJenga/Sand Coating"
                     float3 id = cell + offset;
                     float3 random = float3(Hash(id + 1.1), Hash(id + 7.3), Hash(id + 17.7));
                     float3 d = offset + random - local;
-                    float distanceSquared = dot(d,d);
-                    if (distanceSquared < nearest)
-                    {
-                        second = nearest; nearest = distanceSquared; shade = random.y;
-                    }
-                    else second = min(second, distanceSquared);
+                    float angle = random.z * 6.283185;
+                    float sn, cs; sincos(angle, sn, cs);
+                    d.xy = float2(cs*d.x - sn*d.y, sn*d.x + cs*d.y);
+                    float3 a = abs(d) * lerp(float3(.8,1.2,1), float3(1.25,.85,1.1), random.x);
+                    float facet = max(max(a.x, a.y), a.z);
+                    facet = max(facet, (a.x + a.y + a.z) * .52);
+                    facet /= lerp(.29, .49, random.z);
+                    if (facet < nearest) { nearest = facet; shade = random.y; }
                 }
                 float footprint = max(length(ddx(q)), length(ddy(q)));
                 float resolved = 1 - smoothstep(.45, 1.5, footprint);
-                float ridge = sqrt(second) - sqrt(nearest);
-                float mask = smoothstep(.015, .13 + footprint * .08, ridge);
-                return float4(lerp(.70, mask, resolved), ridge * resolved, shade, resolved);
+                float edge = max(.08, footprint * .7);
+                float mask = 1 - smoothstep(.86 - edge, 1 + edge, nearest);
+                float height = max(0, 1 - nearest) * mask;
+                return float4(lerp(.60, mask, resolved), height * resolved, shade, resolved);
             }
 
             half4 Frag(Varyings input) : SV_Target
@@ -111,13 +114,13 @@ Shader "DeadlyJenga/Sand Coating"
                 float patches = Noise(p * float3(27, 6, 27) + 3.1) * .65 + Noise(p * 43) * .35;
                 float density = saturate((edge - t) * 4) * smoothstep(.16, .67, patches);
                 float erosion = (1 - _Coverage) * .66;
-                float boundary = density - erosion - .17 - Noise(p * 145) * .16;
+                float boundary = density - erosion - .17 - Noise(p * 145) * .23 + (Noise(p * 410) - .5) * .17;
                 float aa = max(fwidth(boundary), .012);
                 float coverage = smoothstep(-aa, aa, boundary) * smoothstep(-.07, -.03, t);
                 clip(coverage - .015);
-                float4 crystal = Crystal(p, 440);
+                float4 crystal = Crystal(p, 380);
                 float grains = crystal.x;
-                float height = crystal.y * .0018;
+                float height = crystal.y * .0009;
                 float3 n = normalize(input.normalWS);
                 float3 dx = ddx(input.positionWS), dy = ddy(input.positionWS);
                 float3 rx = cross(dy, n), ry = cross(n, dx);
@@ -126,7 +129,7 @@ Shader "DeadlyJenga/Sand Coating"
                 n = normalize(n - gradient * .65);
                 half3 amber = half3(.48, .245, .075);
                 half3 ivory = half3(.95, .79, .48);
-                half3 albedo = lerp(amber, ivory, saturate(grains * .48 + crystal.z * .24));
+                half3 albedo = lerp(amber, ivory, saturate(grains * .70 + crystal.z * .15));
                 Light light = GetMainLight();
                 float ndl = saturate(dot(n, light.direction));
                 half3 color = albedo * (SampleSH(n) + light.color * (.18 + ndl * .82));
