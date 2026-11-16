@@ -32,8 +32,10 @@ namespace DeadlyJenga.DevTools.Editor
         public static void RunDialogs()=>Begin(true);
         public static void RunTabletTabs()=>Begin(false,true);
         public static void RunLobbyTerminals()=>Begin(false,false,true);
-        static void Begin(bool dialogs,bool tabs=false,bool lobby=false)
+        public static void RunMatchVisuals()=>Begin(false,false,true,true);
+        static void Begin(bool dialogs,bool tabs=false,bool lobby=false,bool matchVisuals=false)
         {
+            SessionState.SetBool(Key+"MatchVisuals",matchVisuals);
             SessionState.SetBool(Key+"LobbyTerminals",lobby);
             SessionState.SetBool(Key+"Dialogs",dialogs);
             SessionState.SetBool(Key+"Tabs",tabs);
@@ -87,7 +89,8 @@ namespace DeadlyJenga.DevTools.Editor
             if(!SessionState.GetBool(Key,false)||!EditorApplication.isPlaying||started==0||EditorApplication.timeSinceStartup-started<8)return;
             if(!SessionState.GetBool(Key+"LobbyTerminals",false)&&!(Services.Session is CastlePlaySession ready&&ready.Modes&&Services.World!=null)&&EditorApplication.timeSinceStartup-started<60)return;
             started=0;
-            run=SessionState.GetBool(Key+"LobbyTerminals",false)?LobbyTerminalChecks():Checks();new GameObject("Developer UI check driver").AddComponent<TidalCheckDriver>().StartCoroutine(Drive());
+            run=SessionState.GetBool(Key+"MatchVisuals",false)?MatchVisualChecks():SessionState.GetBool(Key+"LobbyTerminals",false)?LobbyTerminalChecks():Checks();
+            var driver=new GameObject("Developer UI check driver");Object.DontDestroyOnLoad(driver);driver.AddComponent<TidalCheckDriver>().StartCoroutine(Drive());
         }
         static IEnumerator Drive()
         {
