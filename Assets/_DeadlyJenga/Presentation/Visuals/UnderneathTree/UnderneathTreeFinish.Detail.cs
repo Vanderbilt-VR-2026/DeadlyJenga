@@ -39,8 +39,8 @@ namespace DeadlyJenga.CandyArt
 
         void BuildSofa()
         {
-            var velvet = Fabric("Deep red patterned upholstery", "Red Velvet",
-                new Color(.92f, .65f, .68f), new Vector2(2.1f, 2.3f), .14f, .48f);
+            var velvet = Fabric("Deep red damask upholstery", "Crimson Damask",
+                new Color(1f, .91f, .91f), new Vector2(1.5f, 1.5f), .32f, .38f);
             var lining = Fabric("Dark red velvet sofa frame", "Velour Scan",
                 new Color(.57f, .43f, .43f), new Vector2(3.0f, 3.3f), .07f, .4f);
             var piping = Fabric("Red velvet seam piping", "Velour Scan",
@@ -196,7 +196,7 @@ namespace DeadlyJenga.CandyArt
                     previous = point;
                 }
             }
-            var wool = Fabric("Braided ivory wool", "Fleece Scan", new Color(.95f, .87f, .74f),
+            var wool = Fabric("Braided ivory wool", "Fleece Scan", new Color(1.35f, 1.35f, 1.30f),
                 new Vector2(1f, 1f), .24f, .65f);
             AddMesh("Interwoven ivory rug border", braid.Build(), wool, ShadowCastingMode.On);
         }
@@ -230,8 +230,8 @@ namespace DeadlyJenga.CandyArt
                 ? panel.GetComponent<MeshFilter>().sharedMesh.bounds.size : panel.localScale;
             obj.transform.SetParent(panel.parent, false);
             obj.transform.localPosition = renderer.name == "Curved wrapping"
-                ? new Vector3(0f, .5f * size.y + .046f, 0f)
-                : new Vector3(0f, .5f * size.y + .046f, 0f);
+                ? new Vector3(0f, .5f * size.y + .11f, 0f)
+                : new Vector3(0f, .5f * size.y + .11f, 0f);
             obj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             float span = Mathf.Min(size.x, size.z);
             obj.transform.localScale = new Vector3(Mathf.Clamp(span * .31f, .3f, 4.8f),
@@ -264,7 +264,7 @@ namespace DeadlyJenga.CandyArt
                     Vector3 center = loop
                         ? new Vector3(sign * 1.52f * arc, .28f * Mathf.Sin(t * Mathf.PI * 2f), -.85f * arc - .28f * Mathf.Sin(t * Mathf.PI * 2f))
                         : new Vector3(sign * (.07f + .95f * t), -1.65f * t, -.07f - .32f * arc);
-                    float width = loop ? Mathf.Lerp(.13f, .48f, arc) : Mathf.Lerp(.14f, .31f, t);
+                    float width = loop ? Mathf.Lerp(.24f, .72f, arc) : Mathf.Lerp(.18f, .37f, t);
                     for (int j = 0; j <= across; j++)
                     {
                         float u = j / (float)across, edge = u * 2f - 1f;

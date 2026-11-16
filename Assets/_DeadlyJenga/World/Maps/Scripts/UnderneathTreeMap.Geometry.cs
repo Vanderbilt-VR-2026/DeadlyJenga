@@ -131,10 +131,10 @@ namespace DeadlyJenga.CastlePrototype
                 float width = ribbonWidth > 0f ? ribbonWidth : Mathf.Min(size.x, size.z) * .135f;
                 if (facing.y != 0f)
                 {
-                    VisualBox(piece, "Ribbon across", new Vector3(0f, size.y * .5f + .007f, 0f),
-                        new Vector3(size.x, .014f, width), ribbon);
-                    VisualBox(piece, "Ribbon lengthwise", new Vector3(0f, size.y * .5f + .014f, 0f),
-                        new Vector3(width, .014f, size.z), ribbon);
+                    VisualBox(piece, "Ribbon across", new Vector3(0f, size.y * .5f + .03f, 0f),
+                        new Vector3(size.x, .04f, width), ribbon);
+                    VisualBox(piece, "Ribbon lengthwise", new Vector3(0f, size.y * .5f + .07f, 0f),
+                        new Vector3(width, .04f, size.z), ribbon);
                 }
                 else if (facing.x != 0f)
                     VisualBox(piece, "Ribbon", facing * (size.x * .5f + .007f),

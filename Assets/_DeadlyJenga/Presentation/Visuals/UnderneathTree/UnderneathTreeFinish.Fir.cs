@@ -24,8 +24,8 @@ namespace DeadlyJenga.CandyArt
         {
             var bark = Surface("Fir bark", "Pine Scan", new Color(.78f, .68f, .53f),
                 .15f, new Vector2(2f, 1.25f), 0f, .76f);
-            var forest = FirFoliage("Fir needles in shade", new Color(.61f, .76f, .59f));
-            var crown = FirFoliage("Fir needles in light", new Color(.84f, .94f, .74f));
+            var forest = FirFoliage("Fir needles in shade", new Color(.88f, 1f, .88f));
+            var crown = FirFoliage("Fir needles in light", new Color(1f, 1f, .90f));
             var trunkAnchor = world.Root.Find("Underneath the Tree Layout/Fir trunk collision");
             var treeCenter = trunkAnchor ? Vector3.ProjectOnPlane(art.InverseTransformPoint(trunkAnchor.position), Vector3.up) :
                 new Vector3(-37f, 0f, -35.7f);
@@ -115,15 +115,12 @@ namespace DeadlyJenga.CandyArt
 
         static readonly Rect[] FirTiles =
         {
-            new Rect(.178f, .676f, .257f, .297f),
-            new Rect(.644f, .631f, .335f, .350f),
-            new Rect(.298f, .215f, .357f, .376f),
-            new Rect(.615f, .160f, .371f, .407f)
+            new Rect(0f, 0f, 1f, 1f)
         };
 
         Material FirFoliage(string name, Color tint)
         {
-            var material = Surface(name, "Fir Twig Atlas", tint, .16f, Vector2.one);
+            var material = Surface(name, "Noble Fir Sprig", tint, .24f, Vector2.one);
             material.SetFloat("_AlphaClip", 1f);
             material.SetFloat("_Cutoff", .36f);
             material.SetFloat("_Cull", 0f);

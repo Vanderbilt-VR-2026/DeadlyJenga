@@ -69,6 +69,11 @@ namespace DeadlyJenga.CandyArt
                     var direction = (frame - core).normalized;
                     float u = cuts[col], v = cuts[row];
                     float volume = loft * Mathf.Max(0f, 1f - 4f * u * u) * Mathf.Max(0f, 1f - 4f * v * v);
+                    if (loft > 0f)
+                    {
+                        float seamPull = Mathf.Exp(-Mathf.Pow((Mathf.Abs(u) - .34f) / .11f, 2f));
+                        volume *= 1f - .35f * seamPull * Mathf.Pow(Mathf.Sin(v * 27f + u * 9f), 2f);
+                    }
                     vertices.Add(source.center + Vector3.Scale(core + direction * radius + normal * volume, weights));
                     var inflated = direction + (along * u + up * v) * (volume * 5.4f);
                     normals.Add(new Vector3(inflated.x / weights.x, inflated.y / weights.y, inflated.z / weights.z).normalized);
@@ -86,6 +91,7 @@ namespace DeadlyJenga.CandyArt
             mesh.SetNormals(normals);
             mesh.SetUVs(0, uv);
             mesh.SetTriangles(triangles, 0);
+            if (loft > 0f) mesh.RecalculateNormals();
             mesh.RecalculateTangents();
             meshes.Add(mesh);
             return mesh;
