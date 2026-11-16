@@ -41,6 +41,7 @@ namespace DeadlyJenga.Presentation
         CandyScorePodium podium;
         Text standingsFooter;
         Text menuHint;
+        string standingsControl;
         float nextBoardPageAt;
         void OnDisable(){Expanded=false;podium?.Hide();}
         public static bool ScoreboardPinned;
@@ -246,7 +247,7 @@ namespace DeadlyJenga.Presentation
             bool watching=spectator?.Spectating==true;
             bool results=match.Frame.phase==RoundPhase.Results;
             bool wasExpanded=Expanded;
-            bool heldBoard=vr?VrStandingsHeld(out _):Keyboard.current?.f2Key.isPressed==true;
+            bool heldBoard=vr?VrStandingsHeld(out standingsControl):Keyboard.current?.f2Key.isPressed==true;
             Expanded=!watching&&!results&&!session.MenuOpen&&!EmoteWheel.IsOpen&&(ScoreboardPinned||heldBoard);
             if(Expanded&&!wasExpanded)
             {
