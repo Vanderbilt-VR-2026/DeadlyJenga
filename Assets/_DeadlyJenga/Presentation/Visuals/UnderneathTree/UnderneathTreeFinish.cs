@@ -318,6 +318,8 @@ namespace DeadlyJenga.CandyArt
                 new Vector3(10, 2, -69), new Color(1f, .76f, .51f), 4600f, 160f, 86f);
             MakeLight("Floor lamp", LightType.Point,
                 new Vector3(-203, 59, -12), new Color(1f, .70f, .39f), 12000f, 150f);
+            MakeSpot("Soft lamplight on velvet", new Vector3(-145f, 68f, -145f),
+                new Vector3(-215f, 30f, -105f), new Color(1f, .78f, .62f), 3500f, 150f, 90f);
 
             var reflections = new GameObject("Christmas Room Reflections");
             reflections.transform.SetParent(art, false);

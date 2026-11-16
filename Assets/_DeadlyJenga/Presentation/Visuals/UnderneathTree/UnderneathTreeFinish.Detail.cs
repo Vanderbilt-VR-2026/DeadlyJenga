@@ -13,6 +13,7 @@ namespace DeadlyJenga.CandyArt
         {
             BuildFloorboards();
             BuildFleece();
+            BuildBraidedRugEdge();
             BuildSofa();
         }
 
@@ -177,6 +178,29 @@ namespace DeadlyJenga.CandyArt
             AddMesh("Rolled ivory skirt edge", mesh, trim, ShadowCastingMode.TwoSided);
         }
 
+        void BuildBraidedRugEdge()
+        {
+            var braid = new FirMesh();
+            const int samples = 1536;
+            for (int strand = 0; strand < 3; strand++)
+            {
+                Vector3 previous = default;
+                for (int i = 0; i <= samples; i++)
+                {
+                    float angle = i * Mathf.PI * 2f / samples;
+                    float twist = angle * 160f + strand * Mathf.PI * 2f / 3f;
+                    float radius = 115.15f + 2.45f * Mathf.Cos(twist);
+                    var point = new Vector3(-90f + Mathf.Cos(angle) * radius,
+                        Mathf.Max(.36f, 1.3f + 1.15f * Mathf.Sin(twist)), -110f + Mathf.Sin(angle) * radius);
+                    if (i > 0) braid.Tube(previous, point, .44f, .44f, 6);
+                    previous = point;
+                }
+            }
+            var wool = Fabric("Braided ivory wool", "Fleece Scan", new Color(.95f, .87f, .74f),
+                new Vector2(1f, 1f), .24f, .65f);
+            AddMesh("Interwoven ivory rug border", braid.Build(), wool, ShadowCastingMode.On);
+        }
+
         void AddGiftBow(MeshRenderer renderer)
         {
             var panel = renderer.transform;
@@ -210,8 +234,8 @@ namespace DeadlyJenga.CandyArt
                 : new Vector3(0f, .5f * size.y + .046f, 0f);
             obj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             float span = Mathf.Min(size.x, size.z);
-            obj.transform.localScale = new Vector3(Mathf.Clamp(span * .28f, .3f, 4.0f),
-                Mathf.Clamp(span * .15f, .2f, 2.0f), Mathf.Clamp(span * .22f, .2f, 2.4f));
+            obj.transform.localScale = new Vector3(Mathf.Clamp(span * .31f, .3f, 4.8f),
+                Mathf.Clamp(span * .23f, .2f, 3.0f), Mathf.Clamp(span * .30f, .2f, 3.6f));
             var knot = new GameObject("Satin bow knot", typeof(MeshFilter), typeof(MeshRenderer));
             knot.transform.SetParent(obj.transform, false);
             knot.transform.localPosition = new Vector3(0f, 0f, -.14f);
@@ -224,7 +248,7 @@ namespace DeadlyJenga.CandyArt
 
         static Mesh RibbonMesh()
         {
-            const int steps = 32, across = 5;
+            const int steps = 48, across = 8;
             var v = new List<Vector3>();
             var uv = new List<Vector2>();
             var faces = new List<int>();
@@ -238,8 +262,8 @@ namespace DeadlyJenga.CandyArt
                     float t = i / (float)steps;
                     float arc = Mathf.Sin(t * Mathf.PI);
                     Vector3 center = loop
-                        ? new Vector3(sign * 1.52f * arc, .2f * arc, -.53f * arc - .22f * Mathf.Sin(t * Mathf.PI * 2f))
-                        : new Vector3(sign * (.07f + .9f * t), -1.42f * t, -.14f - .42f * arc);
+                        ? new Vector3(sign * 1.52f * arc, .28f * Mathf.Sin(t * Mathf.PI * 2f), -.85f * arc - .28f * Mathf.Sin(t * Mathf.PI * 2f))
+                        : new Vector3(sign * (.07f + .95f * t), -1.65f * t, -.07f - .32f * arc);
                     float width = loop ? Mathf.Lerp(.13f, .48f, arc) : Mathf.Lerp(.14f, .31f, t);
                     for (int j = 0; j <= across; j++)
                     {

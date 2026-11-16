@@ -332,6 +332,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     "spawn has a physical gift landing");
                 File.AppendAllText(Report, "CAMERA far=" + camera.farClipPlane + " near=" + camera.nearClipPlane + " mask=" + camera.cullingMask + "\n");
                 Shot(camera, "approved-overview", new Vector3(38f, 96f, -208f), new Vector3(-91f, 24f, -94f), 60f, true);
+                Shot(camera, "approved-hero", new Vector3(40f, 78f, -215f), new Vector3(-95f, 23f, -105f), 55f, true);
                 Shot(camera, "approved-overhead", new Vector3(-90f, 155f, -111f), new Vector3(-90f, 5f, -110f), 80f);
                 Shot(camera, "approved-player-bridge", new Vector3(-64.3f, 3f, -132.6f), new Vector3(-86f, 25f, -106f), 72f);
                 var shaders = map.Root.GetComponentsInChildren<Renderer>()
