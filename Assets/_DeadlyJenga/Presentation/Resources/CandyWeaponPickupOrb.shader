@@ -6,6 +6,8 @@ Shader "Candy Tropical/Weapon Pickup Orb"
         _Lime ("Lower glow", Color) = (.63, 1, .37, 1)
         _Opacity ("Shell strength", Range(0, 1)) = .75
         _Layer ("Shell phase", Float) = 0
+        _Flow ("Powerup flow direction and speed", Vector) = (0,0,0,0)
+        _Facets ("Powerup taper", Range(0, 1)) = 0
     }
 
     SubShader
@@ -27,7 +29,8 @@ Shader "Candy Tropical/Weapon Pickup Orb"
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _Mint, _Lime;
-                float _Opacity, _Layer;
+                float4 _Flow;
+                float _Opacity, _Layer, _Facets;
             CBUFFER_END
 
             struct Attributes
@@ -51,7 +54,16 @@ Shader "Candy Tropical/Weapon Pickup Orb"
                 Varyings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
-                output.positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                float3 local = input.positionOS.xyz;
+                if (_Facets > 0)
+                {
+                    float radial = max(length(local.xz), .025);
+                    float taper = saturate((.5 - abs(local.y)) / radial);
+                    float2 direction = local.xz / radial;
+                    float ridge = .83 + .17 * abs(direction.x * direction.x - direction.y * direction.y);
+                    local.xz *= lerp(1, taper * ridge, _Facets);
+                }
+                output.positionWS = TransformObjectToWorld(local);
                 output.positionCS = TransformWorldToHClip(output.positionWS);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.positionOS = input.positionOS.xyz;
@@ -75,6 +87,14 @@ Shader "Candy Tropical/Weapon Pickup Orb"
                 half glint = pow(saturate(dot(normal, glintDir)), 36) * (1 - _Layer * .48);
                 tint = lerp(tint, half3(.94, 1, .92), saturate(.62 * glint + .14 * innerHalo));
                 half alpha = _Opacity * (.03 + (.48 * rim + .17 * innerHalo) * fade + .34 * glint);
+                if (_Flow.w > 0)
+                {
+                    float cycle = frac(dot(local, _Flow.xyz) * 1.8 - _Time.y * _Flow.w + _Layer * .14);
+                    half wave = 1 - smoothstep(.02, .18, abs(cycle - .5));
+                    half charge = wave * (.27 + .73 * rim);
+                    tint = lerp(tint, half3(.92, 1, .96), charge * .62);
+                    alpha = saturate(alpha + _Opacity * (.045 + .36 * charge));
+                }
                 return half4(tint, alpha);
             }
             ENDHLSL

@@ -6,7 +6,42 @@ namespace DeadlyJenga.Presentation
 {
     public sealed partial class CandyEquipmentView
     {
-        static Material pickupCloud;static Mesh pickupCloudMesh;
+        readonly struct PowerupLook
+        {
+            public readonly Color Upper, Lower;
+            public readonly Vector3 Dimensions;
+            public readonly Vector4 Flow;
+            public readonly float Clearance, Lift, Facets;
+
+            public PowerupLook(Color upper, Color lower, Vector3 dimensions, Vector4 flow,
+                float clearance, float lift, float facets)
+            {
+                Upper = upper;
+                Lower = lower;
+                Dimensions = dimensions;
+                Flow = flow;
+                Clearance = clearance;
+                Lift = lift;
+                Facets = facets;
+            }
+        }
+
+        static readonly PowerupLook SpeedLook = new(
+            new Color(.28f, 1f, .54f), new Color(.83f, 1f, .18f),
+            new Vector3(.88f, .36f, .46f), new Vector4(1, 0, .32f, 2.8f), .23f, .11f, 0);
+        static readonly PowerupLook JumpLook = new(
+            new Color(.92f, .56f, 1f), new Color(.61f, .27f, 1f),
+            new Vector3(.49f, .84f, .49f), new Vector4(0, 1, 0, 1.48f), .42f, .29f, .82f);
+        static readonly PowerupLook HandLook = new(
+            new Color(.48f, .95f, 1f), new Color(.10f, .59f, 1f),
+            new Vector3(.70f, .58f, .70f), new Vector4(.54f, .39f, .72f, .95f), .35f, .19f, 0);
+
+        static PowerupLook GetPowerupLook(EquipmentKind kind) => kind switch
+        {
+            EquipmentKind.Speed => SpeedLook,
+            EquipmentKind.Jump => JumpLook,
+            _ => HandLook
+        };
         static readonly Color DroppedColor = new Color(1f,.65f,.19f);
         static readonly Color ReadyColor = new Color(.25f,.90f,1f);
         static readonly Color FocusColor = new Color(.65f,1f,.43f);
@@ -17,6 +52,8 @@ namespace DeadlyJenga.Presentation
         RawImage pickupTagPanel, pickupTagPointer, pickupTagKeycap;
         Text pickupTagName, pickupTagAction, pickupTagKey, pickupTagSwap;
         Material pickupGlass, pickupKey, pickupPointer;
+        Color defaultTagGlass, defaultTagMint, defaultTagLime;
+        EquipmentKind styledTag = (EquipmentKind)(-1);
         const float TagWidth = 310f;
         const float TagHeight = 94f;
         const float DetailHeight = 26f;
@@ -39,6 +76,9 @@ namespace DeadlyJenga.Presentation
             var font = Resources.Load<Font>("Fonts/Fredoka-Bold");
             if (!font) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
+            defaultTagGlass = style.GetColor("_Glass");
+            defaultTagMint = style.GetColor("_Mint");
+            defaultTagLime = style.GetColor("_Lime");
             pickupPointer = new Material(style) { name = "Pickup hologram pointer" };
             pickupPointer.SetFloat("_Shape", 2);
             pickupGlass = new Material(style) { name = "Pickup hologram glass" };
@@ -123,10 +163,13 @@ namespace DeadlyJenga.Presentation
             pickupTag.transform.SetPositionAndRotation(position, eye.transform.rotation);
             pickupTag.transform.localScale = Vector3.one * scale;
 
+            SetPickupTagPalette(pickup.kind);
             pickupTagName.text = Name(pickup.kind).ToUpperInvariant();
             string action = swap ? "Swap" : "Pick up";
             string input = SwapInputHint(session);
-            SetPickupTagAction(input, action, swap, needsHolster, bothHandsBusy);
+            bool power = EquipmentSpecifications.Get(pickup.kind).power;
+            var ink = power ? GetPowerupLook(pickup.kind).Upper : PickupInk;
+            SetPickupTagAction(input, action, swap, needsHolster, bothHandsBusy, ink);
 
             string detail = swap ? "Leaves " + Name(oldKind).ToUpperInvariant() + " here" : "";
             if (pickup.rounds >= 0)
@@ -141,9 +184,27 @@ namespace DeadlyJenga.Presentation
             return true;
         }
 
-        void SetPickupTagAction(string input, string action, bool swap, bool needsHolster, bool bothHandsBusy)
+        void SetPickupTagPalette(EquipmentKind kind)
         {
-            var tint = swap ? SwapInk : PickupInk;
+            if (styledTag == kind) return;
+            styledTag = kind;
+            bool power = EquipmentSpecifications.Get(kind).power;
+            var look = GetPowerupLook(kind);
+            var mint = power ? look.Upper : defaultTagMint;
+            var lime = power ? look.Lower : defaultTagLime;
+            var glass = power ? new Color(lime.r * .33f, lime.g * .33f, lime.b * .33f, defaultTagGlass.a) :
+                defaultTagGlass;
+            pickupGlass.SetColor("_Glass", glass);
+            pickupGlass.SetColor("_Mint", mint);
+            pickupGlass.SetColor("_Lime", lime);
+            pickupPointer.SetColor("_Mint", mint);
+            pickupPointer.SetColor("_Lime", lime);
+            pickupKey.SetColor("_Lime", lime);
+        }
+
+        void SetPickupTagAction(string input, string action, bool swap, bool needsHolster, bool bothHandsBusy, Color ink)
+        {
+            var tint = swap ? SwapInk : ink;
             pickupTagAction.color = tint;
             pickupTagAction.text = bothHandsBusy ? "Holster to swap" : needsHolster ? action + " · Use free hand" :
                 vr ? action + " · " + input : "· " + action.ToUpperInvariant();
@@ -178,8 +239,6 @@ namespace DeadlyJenga.Presentation
         {
             var root=new GameObject("Visual - "+Name(kind)+" pickup").transform;
             root.SetParent(transform,false);
-            if(kind==EquipmentKind.Speed||kind==EquipmentKind.Jump||kind==EquipmentKind.FlyingHand)
-                BuildPickupCloud(root,kind==EquipmentKind.Jump?FocusColor:ReadyColor);
             var anchor=new GameObject("Pickup nameplate").transform;
             anchor.SetParent(root,false);
             anchor.localPosition=Vector3.up*.44f;
@@ -199,6 +258,8 @@ namespace DeadlyJenga.Presentation
                 }
             }
             var view=new PickupVisual{root=root,label=label,labelShadow=shadow,kind=kind,dropped=dropped};
+            if (EquipmentSpecifications.Get(kind).power)
+                BuildPowerupOrb(view);
             if(pickupMarkerMaterial)
             {
                 view.ring=PickupLine(root,"Pickup ground ring",32,true);
@@ -253,7 +314,10 @@ namespace DeadlyJenga.Presentation
             if(!pickup.station&&!ready)view.dropped=true;
             view.root.position=pickup.position;
             float distance=eye?(eye.transform.position-pickup.position).sqrMagnitude:float.PositiveInfinity;
-            var tint=focused?FocusColor:view.dropped?DroppedColor:ReadyColor;
+            bool power = EquipmentSpecifications.Get(view.kind).power;
+            var look = GetPowerupLook(view.kind);
+            var tint = power ? (focused ? Color.Lerp(look.Upper, Color.white, .25f) : look.Lower) :
+                focused ? FocusColor : view.dropped ? DroppedColor : ReadyColor;
             if(view.ring)
             {
                 view.ring.enabled=!resting&&distance<18*18;
@@ -267,24 +331,42 @@ namespace DeadlyJenga.Presentation
                 view.beam.startColor=new Color(tint.r,tint.g,tint.b,focused?.70f:view.dropped?.52f:.30f);
                 view.beam.endColor=new Color(tint.r,tint.g,tint.b,0);
             }
-            if(view.model)
+            if (view.model || view.orb)
             {
-                view.model.gameObject.SetActive(!resting);
-                float settle=view.dropped&&!ready?Mathf.Clamp01((pickup.availableIn-.72f)/.28f):0;
-                float bob=.025f*Mathf.Sin(Time.unscaledTime*2.4f+pickup.id*.27f);
-                float lift = view.orb ? view.orbRadius - .14f : 0;
-                view.model.localPosition = Vector3.up * (lift + bob + .38f * settle * settle);
+                float settle = view.dropped && !ready ? Mathf.Clamp01((pickup.availableIn - .72f) / .28f) : 0;
+                float time = Time.unscaledTime;
+                float bob = .025f * Mathf.Sin(time * 2.4f + pickup.id * .27f);
+                float lift = power ? look.Lift : view.orb ? view.orbRadius - .14f : 0;
+                var position = Vector3.up * (lift + bob + .38f * settle * settle);
+                if (view.model)
+                {
+                    view.model.gameObject.SetActive(!resting);
+                    view.model.localPosition = position;
+                    view.model.localRotation = view.usesPickupIcon && eye
+                        ? Quaternion.Inverse(view.root.rotation) * eye.transform.rotation
+                        : Quaternion.Euler(9 + settle * 45, time * 19 + pickup.id * 41, settle * 25);
+                }
                 if (view.orb)
                 {
                     view.orb.gameObject.SetActive(!resting && distance < 24 * 24);
-                    view.orb.localPosition = view.model.localPosition;
-                    float turn = Time.unscaledTime * 17 + pickup.id * 41;
-                    view.outerOrb.localRotation = Quaternion.Euler(15, turn, 8);
-                    view.innerOrb.localRotation = Quaternion.Euler(-26, -turn * .63f, 34);
+                    view.orb.localPosition = position;
+                    float turn = time * 17 + pickup.id * 41;
+                    if (view.kind == EquipmentKind.Speed)
+                    {
+                        var facing = eye ? Vector3.ProjectOnPlane(eye.transform.forward, Vector3.up) : Vector3.forward;
+                        if (facing.sqrMagnitude > .01f)
+                            view.orb.rotation = Quaternion.LookRotation(facing);
+                        view.outerOrb.localRotation = Quaternion.Euler(0, 0, 12);
+                        view.innerOrb.localRotation = Quaternion.Euler(0, 0, -8);
+                    }
+                    else
+                    {
+                        bool vertical = view.kind == EquipmentKind.Jump;
+                        view.outerOrb.localRotation = vertical ? Quaternion.Euler(0, turn, 0) : Quaternion.Euler(15, turn, 8);
+                        view.innerOrb.localRotation = vertical ? Quaternion.Euler(0, -turn * .63f, 0) :
+                            Quaternion.Euler(-26, -turn * .63f, 34);
+                    }
                 }
-                view.model.localRotation = view.usesPickupIcon && eye
-                    ? Quaternion.Inverse(view.root.rotation) * eye.transform.rotation
-                    : Quaternion.Euler(9 + settle * 45, Time.unscaledTime * 19 + pickup.id * 41, settle * 25);
             }
             bool hasTag = focused && PresentPickupTag(session, current, pickup, view);
             bool showLabel=eye&&!hasTag&&(focused||distance<3.5f*3.5f);
@@ -306,12 +388,12 @@ namespace DeadlyJenga.Presentation
             return hasTag;
         }
 
-        void BuildWeaponOrb(PickupVisual view, float modelRadius)
+        bool EnsureOrbAssets()
         {
             if (!weaponOrbMaterial)
             {
                 var shader = Resources.Load<Shader>("CandyWeaponPickupOrb");
-                if (!shader) return;
+                if (!shader) return false;
                 weaponOrbMaterial = new Material(shader) { name = "Layered weapon pickup glow" };
             }
 
@@ -335,19 +417,39 @@ namespace DeadlyJenga.Presentation
                 weaponOrbMesh.RecalculateBounds();
             }
 
+            return true;
+        }
+
+        void BuildWeaponOrb(PickupVisual view, float modelRadius)
+        {
+            if (!EnsureOrbAssets()) return;
             view.orbRadius = Mathf.Max(.42f, (modelRadius + .025f) / .82f);
             view.orb = new GameObject("Layered weapon pickup orb").transform;
             view.orb.SetParent(view.root, false);
-            view.outerOrb = CreateOrbShell(view.orb, "Outer pickup shell", view.orbRadius * 2, .78f, 0);
-            view.innerOrb = CreateOrbShell(view.orb, "Inner pickup shell", view.orbRadius * 1.79f, .66f, 1);
+            view.outerOrb = CreateOrbShell(view.orb, "Outer pickup shell", Vector3.one * (view.orbRadius * 2), .78f, 0);
+            view.innerOrb = CreateOrbShell(view.orb, "Inner pickup shell", Vector3.one * (view.orbRadius * 1.79f), .66f, 1);
             view.innerOrb.localPosition = new Vector3(.014f, -.012f, .009f);
         }
 
-        Transform CreateOrbShell(Transform parent, string name, float diameter, float opacity, float layer)
+        void BuildPowerupOrb(PickupVisual view)
+        {
+            if (!EnsureOrbAssets()) return;
+            var look = GetPowerupLook(view.kind);
+            view.orbRadius = look.Clearance;
+            view.orb = new GameObject(Name(view.kind) + " pickup aura").transform;
+            view.orb.SetParent(view.root, false);
+            view.outerOrb = CreateOrbShell(view.orb, "Outer powerup shell", look.Dimensions, .96f, 0, look);
+            view.innerOrb = CreateOrbShell(view.orb, "Inner powerup shell", look.Dimensions * .81f, .80f, 1, look);
+            if (view.kind == EquipmentKind.Speed)
+                view.innerOrb.localPosition = new Vector3(-.09f, -.035f, .02f);
+        }
+
+        Transform CreateOrbShell(Transform parent, string name, Vector3 dimensions, float opacity, float layer,
+            PowerupLook? style = null)
         {
             var shell = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
             shell.transform.SetParent(parent, false);
-            shell.transform.localScale = Vector3.one * diameter;
+            shell.transform.localScale = dimensions;
             shell.GetComponent<MeshFilter>().sharedMesh = weaponOrbMesh;
             var renderer = shell.GetComponent<MeshRenderer>();
             renderer.sharedMaterial = weaponOrbMaterial;
@@ -356,25 +458,17 @@ namespace DeadlyJenga.Presentation
             var properties = new MaterialPropertyBlock();
             properties.SetFloat("_Opacity", opacity);
             properties.SetFloat("_Layer", layer);
+            if (style is PowerupLook look)
+            {
+                properties.SetColor("_Mint", look.Upper);
+                properties.SetColor("_Lime", look.Lower);
+                properties.SetVector("_Flow", look.Flow);
+                properties.SetFloat("_Facets", look.Facets);
+            }
             renderer.SetPropertyBlock(properties);
             return shell.transform;
         }
 
-        void BuildPickupCloud(Transform root,Color color)
-        {
-            if(!pickupCloud){pickupCloud=new Material(Shader.Find("DeadlyJenga/Pickup Cloud"));pickupCloud.SetColor("_BaseColor",Color.white);}
-            if(!pickupCloudMesh)
-            {
-                var source=Resources.GetBuiltinResource<Mesh>("Sphere.fbx");pickupCloudMesh=Instantiate(source);var v=pickupCloudMesh.vertices;var bounds=source.bounds;
-                for(int i=0;i<v.Length;i++){var p=(v[i]-bounds.center)/bounds.extents.magnitude;float noise=1+.13f*Mathf.Sin(p.x*17+p.z*11)*Mathf.Cos(p.y*13-p.x*8);v[i]=(v[i]-bounds.center)*noise/Mathf.Max(.001f,bounds.size.x);}
-                pickupCloudMesh.vertices=v;pickupCloudMesh.RecalculateNormals();pickupCloudMesh.RecalculateBounds();
-            }
-            for(int i=0;i<2;i++)
-            {
-                var cloud=new GameObject("Translucent static pickup cloud",typeof(MeshFilter),typeof(MeshRenderer));cloud.transform.SetParent(root,false);cloud.transform.localScale=Vector3.one*(i==0?.63f:.57f);cloud.transform.localRotation=Quaternion.Euler(i*31,i*67,i*19);
-                cloud.GetComponent<MeshFilter>().sharedMesh=pickupCloudMesh;var renderer=cloud.GetComponent<MeshRenderer>();renderer.sharedMaterial=pickupCloud;renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;var block=new MaterialPropertyBlock();block.SetColor("_BaseColor",new Color(color.r,color.g,color.b,.12f));renderer.SetPropertyBlock(block);
-            }
-        }
         void UpdatePickupModel(PickupVisual view)
         {
             if(!view.model&&EquipmentModelData.Parts.TryGetValue(view.kind,out var parts))
