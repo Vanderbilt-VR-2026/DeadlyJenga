@@ -348,14 +348,16 @@ namespace DeadlyJenga.CandyArt
                 new Vector3(-95f, 18f, -110f), new Color(1f, .81f, .60f), 8500f, 185f, 110f);
             MakeSpot("Hearth bounce", new Vector3(-113, 37, -148),
                 new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 6500f, 240f, 100f);
-            MakeLight("Golden light under the tree", LightType.Point,
-                new Vector3(-25, 28, -38), new Color(1f, .71f, .40f), 2200f, 110f);
+            MakeLight("Golden light in the tree", LightType.Point,
+                new Vector3(-37, 60, -50), new Color(1f, .71f, .40f), 7000f, 130f);
+            MakeLight("Glow in the train tunnel", LightType.Point,
+                new Vector3(-150, 16, -128), new Color(1f, .68f, .28f), 2600f, 38f);
             MakeSpot("Warm tree canopy bounce", new Vector3(-80f, 67f, -109f),
                 new Vector3(-37f, 80f, -35.7f), new Color(1f, .86f, .64f), 5000f, 150f, 75f);
             MakeSpot("Warm fill across the junction", new Vector3(18, 30, -5),
                 new Vector3(10, 2, -69), new Color(1f, .76f, .51f), 4600f, 160f, 86f);
             MakeLight("Floor lamp", LightType.Point,
-                new Vector3(-88, 59, 54), new Color(1f, .70f, .39f), 12000f, 150f);
+                new Vector3(-88, 59, 54), new Color(1f, .70f, .39f), 16000f, 170f);
             MakeSpot("Soft lamplight on velvet", new Vector3(-145f, 68f, -145f),
                 new Vector3(-215f, 30f, -105f), new Color(1f, .78f, .62f), 3500f, 150f, 90f);
 

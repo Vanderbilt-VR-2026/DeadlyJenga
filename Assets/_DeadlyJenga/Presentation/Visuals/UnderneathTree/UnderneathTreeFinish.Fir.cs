@@ -24,8 +24,8 @@ namespace DeadlyJenga.CandyArt
         {
             var bark = Surface("Fir bark", "Pine Scan", new Color(.78f, .68f, .53f),
                 .15f, new Vector2(2f, 1.25f), 0f, .76f);
-            var forest = FirFoliage("Fir needles in shade", new Color(.88f, 1f, .88f));
-            var crown = FirFoliage("Fir needles in light", new Color(1f, 1f, .90f));
+            var forest = FirFoliage("Fir needles in shade", new Color(1.0f, 1.3f, .92f));
+            var crown = FirFoliage("Fir needles in light", new Color(1.4f, 1.65f, 1.12f));
             var trunkAnchor = world.Root.Find("Underneath the Tree Layout/Fir trunk collision");
             var treeCenter = trunkAnchor ? Vector3.ProjectOnPlane(art.InverseTransformPoint(trunkAnchor.position), Vector3.up) :
                 new Vector3(-37f, 0f, -35.7f);

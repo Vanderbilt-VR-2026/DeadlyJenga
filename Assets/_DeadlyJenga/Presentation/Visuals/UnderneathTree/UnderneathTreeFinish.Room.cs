@@ -51,7 +51,8 @@ namespace DeadlyJenga.CandyArt
             var material = new Material(shader) { name = label, color = color, enableInstancing = true };
             material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Gold Snowflake Foil"));
             material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Paper Normal"));
-            material.SetTextureScale("_BaseMap", new Vector2(1.5f, 1.5f));
+            // Several snowflakes across each face, like the approved picture.
+            material.SetTextureScale("_BaseMap", new Vector2(2.6f, 2.6f));
             material.SetFloat("_BumpScale", .16f);
             material.SetFloat("_Smoothness", .5f);
             material.SetFloat("_Sheen", 0f);
@@ -118,12 +119,12 @@ namespace DeadlyJenga.CandyArt
             if (name.Contains("gift wrap") || name.Contains("gift Wrap") || name.Contains("Mulberry"))
                 return FoilPaper(name + " paper", color);
             if (name.StartsWith("Felt"))
-                return Fabric("Cranberry tufted tree skirt", "Cranberry Rug Weave", Color.white,
+                return Fabric("Cranberry tufted tree skirt", "Cranberry Rug Weave", new Color(1.3f, .92f, .95f),
                     new Vector2(12f, 12f), .12f, .65f);
             if (name.StartsWith("Fluff"))
                 return Surface("Ivory fleece", "Woven", new Color(.84f, .75f, .63f), .25f, new Vector2(10, 8), 0f, 1f);
             if (objectName.StartsWith("Wood Planks") || name.Contains("Mahogany"))
-                return Surface("French polished walnut", "Walnut Grain", new Color(.72f, .50f, .33f), .59f, new Vector2(2.2f, 6.1f), 0f, .42f);
+                return Surface("French polished walnut", "Walnut Grain", new Color(.40f, .23f, .15f), .86f, new Vector2(2.2f, 6.1f), 0f, .42f);
             if (name.Contains("Wallpap"))
                 return WallCover();
             if (name == "Brick")

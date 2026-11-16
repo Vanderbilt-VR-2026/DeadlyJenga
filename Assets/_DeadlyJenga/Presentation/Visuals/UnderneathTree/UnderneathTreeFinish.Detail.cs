@@ -331,8 +331,8 @@ namespace DeadlyJenga.CandyArt
                 : new Vector3(0f, .5f * size.y + .11f, 0f);
             obj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             float span = Mathf.Min(size.x, size.z);
-            obj.transform.localScale = new Vector3(Mathf.Clamp(span * .31f, .3f, 4.8f),
-                Mathf.Clamp(span * .23f, .2f, 3.0f), Mathf.Clamp(span * .30f, .2f, 3.6f));
+            obj.transform.localScale = new Vector3(Mathf.Clamp(span * .39f, .4f, 6.0f),
+                Mathf.Clamp(span * .29f, .25f, 3.8f), Mathf.Clamp(span * .375f, .25f, 4.5f));
             var knot = new GameObject("Satin bow knot", typeof(MeshFilter), typeof(MeshRenderer));
             knot.transform.SetParent(obj.transform, false);
             knot.transform.localPosition = new Vector3(0f, 0f, -.14f);
