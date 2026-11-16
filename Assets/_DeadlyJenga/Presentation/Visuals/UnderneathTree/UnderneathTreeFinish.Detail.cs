@@ -210,7 +210,7 @@ namespace DeadlyJenga.CandyArt
             var vertices = new List<Vector3>();
             var uv = new List<Vector2>();
             var triangles = new List<int>();
-            var center = new Vector3(-90f, .56f, -110f);
+            var center = new Vector3(RugCentreX, .56f, RugCentreZ);
 
             for (int i = 0; i <= around; i++)
             {
@@ -220,7 +220,7 @@ namespace DeadlyJenga.CandyArt
                 for (int j = 0; j <= cross; j++)
                 {
                     float v = j / (float)cross, spin = v * Mathf.PI * 2f;
-                    var position = center + outward * (115.15f + .31f * Mathf.Sin(angle * 11f) + (2.77f + .19f * Mathf.Cos(angle * 96f + spin * 3f)) * Mathf.Cos(spin)) +
+                    var position = center + outward * (RugEdge + .31f * Mathf.Sin(angle * 11f) + (2.77f + .19f * Mathf.Cos(angle * 96f + spin * 3f)) * Mathf.Cos(spin)) +
                         Vector3.up * Mathf.Max(.04f, .40f + Mathf.Sin(spin) * (1.06f + .16f * Mathf.Cos(angle * 19f)));
                     vertices.Add(position);
                     uv.Add(new Vector2(u, v));
@@ -240,6 +240,9 @@ namespace DeadlyJenga.CandyArt
             AddMesh("Rolled ivory skirt edge", mesh, trim, ShadowCastingMode.TwoSided);
         }
 
+        // The rug the map builds: centre and edge radius in room units.
+        const float RugCentreX = -74f, RugCentreZ = -77.7f, RugEdge = 125.4f;
+
         void BuildBraidedRugEdge()
         {
             var braid = new FirMesh();
@@ -251,9 +254,9 @@ namespace DeadlyJenga.CandyArt
                 {
                     float angle = i * Mathf.PI * 2f / samples;
                     float twist = angle * 160f + strand * Mathf.PI * 2f / 3f;
-                    float radius = 115.15f + 2.45f * Mathf.Cos(twist);
-                    var point = new Vector3(-90f + Mathf.Cos(angle) * radius,
-                        Mathf.Max(.36f, 1.3f + 1.15f * Mathf.Sin(twist)), -110f + Mathf.Sin(angle) * radius);
+                    float radius = RugEdge + 2.45f * Mathf.Cos(twist);
+                    var point = new Vector3(RugCentreX + Mathf.Cos(angle) * radius,
+                        Mathf.Max(.36f, 1.3f + 1.15f * Mathf.Sin(twist)), RugCentreZ + Mathf.Sin(angle) * radius);
                     if (i > 0) braid.Tube(previous, point, .44f, .44f, 6);
                     previous = point;
                 }
