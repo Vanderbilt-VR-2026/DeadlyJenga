@@ -72,6 +72,9 @@ namespace DeadlyJenga.CandyArt
                         var axis = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
                         var side = Vector3.Cross(Vector3.up, axis);
                         float length = reach * Range(random, .86f, 1.12f);
+                        // Keep the lowest boughs clear of the nearby summit and rail route.
+                        if (tier < 5 && Vector3.Dot(axis, new Vector3(-.58f, 0f, -.81f)) > .25f)
+                            length *= .58f;
                         var root = treeCenter + Vector3.up * (y + Range(random, -1.4f, 1.4f));
                         var bend = root + axis * (length * .47f) + Vector3.down * (.08f * length);
                         var end = root + axis * length + Vector3.down * (.135f * length) + side * Range(random, -2.5f, 2.5f);

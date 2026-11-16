@@ -11,13 +11,14 @@ namespace DeadlyJenga.CastlePrototype
         UnderneathTreeGiftPanel[] track;
         float progress;
 
-        internal void SetUp(Vector3[] course, UnderneathTreeGiftPanel[] sections)
+        internal void SetUp(Vector3[] course, UnderneathTreeGiftPanel[] sections, float startFraction = 0f)
         {
             path = course;
             track = sections;
             distance = new float[course.Length + 1];
             for (int i = 0; i < course.Length; i++)
                 distance[i + 1] = distance[i] + Vector3.Distance(course[i], course[(i + 1) % course.Length]);
+            progress = Mathf.Repeat(startFraction, 1f) * distance[distance.Length - 1];
             PoseTrain();
         }
 

@@ -32,7 +32,7 @@ namespace DeadlyJenga.CandyArt
             for (int i = 0; i < vertices.Length; i++)
             {
                 var point = art.InverseTransformPoint(filter.transform.TransformPoint(vertices[i]));
-                coordinates[i] = new Vector2((point.x + 195f) / 240f, (point.z + 215f) / 240f);
+                coordinates[i] = new Vector2((point.x + 205f) / 230f, (point.z + 225f) / 230f);
             }
             mesh.uv = coordinates;
             mesh.RecalculateTangents();

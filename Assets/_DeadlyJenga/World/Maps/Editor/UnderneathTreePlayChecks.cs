@@ -313,6 +313,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 railBodies = map.Blocks.Where(b => b.name.StartsWith("Gift-supported rail ")).ToArray();
                 Require(railBodies.Length == 16 && railBodies.All(b => b.GetComponentsInChildren<BoxCollider>().All(c => WorkingDeck(c,b))),
                     "sixteen supported breakaway rail sections have valid climbable colliders");
+                var clearanceHits = railBodies.SelectMany(b => b.GetComponentsInChildren<BoxCollider>())
+                    .SelectMany(deck => Physics.OverlapBox(deck.bounds.center + Vector3.up * 4.7f,
+                        new Vector3(2.2f, 2.2f, .6f), deck.transform.rotation, 1 << Layers.Block, QueryTriggerInteraction.Ignore))
+                    .Where(c => c.attachedRigidbody && !railBodies.Contains(c.attachedRigidbody)).Distinct().ToArray();
+                Require(clearanceHits.Length == 0, "train clearance above every rail sample: " +
+                    string.Join(", ", clearanceHits.Select(c => c.transform.parent.name + "/" + c.name)));
                 var train = map.GetComponentInChildren<UnderneathTreeTrain>();
                 Require(train, "train uses the new continuous course");
                 initialTrainPosition = train.transform.position;

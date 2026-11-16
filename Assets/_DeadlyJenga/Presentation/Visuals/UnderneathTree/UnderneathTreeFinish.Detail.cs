@@ -147,7 +147,7 @@ namespace DeadlyJenga.CandyArt
             var vertices = new List<Vector3>();
             var uv = new List<Vector2>();
             var triangles = new List<int>();
-            var center = new Vector3(-75f, .56f, -95f);
+            var center = new Vector3(-90f, .56f, -110f);
 
             for (int i = 0; i <= around; i++)
             {
@@ -157,7 +157,7 @@ namespace DeadlyJenga.CandyArt
                 for (int j = 0; j <= cross; j++)
                 {
                     float v = j / (float)cross, spin = v * Mathf.PI * 2f;
-                    var position = center + outward * (120.15f + .31f * Mathf.Sin(angle * 11f) + (2.77f + .19f * Mathf.Cos(angle * 96f + spin * 3f)) * Mathf.Cos(spin)) +
+                    var position = center + outward * (115.15f + .31f * Mathf.Sin(angle * 11f) + (2.77f + .19f * Mathf.Cos(angle * 96f + spin * 3f)) * Mathf.Cos(spin)) +
                         Vector3.up * Mathf.Max(.04f, .40f + Mathf.Sin(spin) * (1.06f + .16f * Mathf.Cos(angle * 19f)));
                     vertices.Add(position);
                     uv.Add(new Vector2(u, v));

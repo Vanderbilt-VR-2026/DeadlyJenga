@@ -15,8 +15,8 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < points.Length; i++)
             {
                 var point = transform.InverseTransformPoint(filter.transform.TransformPoint(points[i]));
-                point.x = -75f + (point.x + 35f) * 1.5f;
-                point.z = -95f + (point.z + 35f) * 1.5f;
+                point.x = -90f + (point.x + 35f) * 1.4375f;
+                point.z = -110f + (point.z + 35f) * 1.4375f;
                 points[i] = filter.transform.InverseTransformPoint(transform.TransformPoint(point));
             }
             mesh.vertices = points;

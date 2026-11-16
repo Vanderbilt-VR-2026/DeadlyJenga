@@ -62,18 +62,18 @@ namespace DeadlyJenga.CastlePrototype
             }
 
             // Two asymmetric shoulders share their lower terraces with the railway.
-            var left = Parcel("Gift Bridge / Pine Bearing", -28f, -9f, 15f, 16f, 18f, green, gold);
-            var right = Parcel("Gift Bridge / Cranberry Bearing", 27f, -9f, 15f, 16f, 18f, red, ivory);
+            var left = Parcel("Gift Bridge / Pine Bearing", -25f, -8f, 12f, 16f, 14f, green, gold);
+            var right = Parcel("Gift Bridge / Cranberry Bearing", 25f, -8f, 12f, 16f, 14f, red, ivory);
             float seat = Mathf.Max(transform.InverseTransformPoint(left.transform.position).y + left.GetComponent<BoxCollider>().size.y * .5f,
                 transform.InverseTransformPoint(right.transform.position).y + right.GetComponent<BoxCollider>().size.y * .5f);
             var span = BoxGift("Gift Bridge / Navy Span", CoursePoint(-.5f, -9f, seat + 1.6f),
                 new Vector3(69f, 3.2f, 10f), Quaternion.Euler(0f, yaw, 0f), navy, ivory);
             giftBearings.Add(new GiftBearing(GiftBase(span), left, right));
 
-            var l1 = Parcel("Left Summit / Broad Cream", -29f, 4f, 20f, 9f, 16f, cream, berry, -3f);
-            var l2 = Parcel("Left Summit / Ruby Shoulder", -30f, 4f, 16f, 8f, 13f, red, gold, 4f, l1);
-            var l3 = Parcel("Left Summit / Emerald Shelf", -32f, 5f, 12f, 6f, 10f, green, ivory, -5f, l2);
-            var crown = RoundParcel("Left Summit / Ivory Crown", CoursePoint(-33f, 6f,
+            var l1 = Parcel("Left Summit / Broad Cream", -27f, 7f, 17f, 9f, 14f, cream, berry, -3f);
+            var l2 = Parcel("Left Summit / Ruby Shoulder", -29f, 7f, 15f, 8f, 12f, red, gold, 4f, l1);
+            var l3 = Parcel("Left Summit / Emerald Shelf", -30f, 7f, 11f, 6f, 10f, green, ivory, -5f, l2);
+            var crown = RoundParcel("Left Summit / Ivory Crown", CoursePoint(-31f, 7f,
                 transform.InverseTransformPoint(l3.transform.position).y + l3.GetComponent<BoxCollider>().size.y * .5f + .012f),
                 4.7f, 8f, cream, gold);
             giftBearings.Add(new GiftBearing(GiftBase(crown), l3, null));
@@ -84,10 +84,10 @@ namespace DeadlyJenga.CastlePrototype
             Parcel("Left Summit / Front Step", -27f, -18f, 11f, 7f, 8f, navy, ivory, -4f);
             Parcel("Left Summit / Front Shelf", -31f, -15f, 8f, 11f, 7f, red, gold);
 
-            var r1 = Parcel("Right Summit / Sapphire Base", 29f, 6f, 19f, 8f, 17f, navy, ivory, 2f);
-            var r2 = Parcel("Right Summit / Cream Shelf", 31f, 7f, 14f, 6f, 12f, cream, berry, -5f, r1);
-            var r3 = Parcel("Right Summit / Ruby Perch", 32f, 8f, 10f, 7f, 9f, red, gold, 6f, r2);
-            Parcel("Right Summit / Sapphire Crown", 34f, 9f, 8f, 7f, 7f, navy, berry, -5f, r3);
+            var r1 = Parcel("Right Summit / Sapphire Base", 27f, 5f, 17f, 8f, 15f, navy, ivory, 2f);
+            var r2 = Parcel("Right Summit / Cream Shelf", 29f, 6f, 13f, 6f, 12f, cream, berry, -5f, r1);
+            var r3 = Parcel("Right Summit / Ruby Perch", 30f, 7f, 10f, 7f, 9f, red, gold, 6f, r2);
+            Parcel("Right Summit / Sapphire Crown", 31f, 8f, 8f, 7f, 7f, navy, berry, -5f, r3);
             Parcel("Right Summit / Emerald Foothold", 21f, 5f, 7f, 4f, 9f, green, gold, 4f, r1);
             Parcel("Right Summit / Rear Entry", 25f, 19f, 12f, 3f, 8f, cream, berry, 8f);
             Parcel("Right Summit / Rear Step", 29f, 15f, 10f, 5f, 8f, green, ivory, -4f);
