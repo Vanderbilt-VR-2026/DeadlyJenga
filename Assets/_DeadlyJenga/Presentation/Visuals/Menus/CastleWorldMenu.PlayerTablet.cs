@@ -21,6 +21,31 @@ namespace DeadlyJenga.CastlePrototype
             public Func<bool> Selected, Allowed;
             public Color Accent;
             public Vector2 BasePosition;
+            public bool ToolTile;
+        }
+
+        static Sprite toolTileSprite;
+        static Sprite ToolTileSprite
+        {
+            get
+            {
+                if(toolTileSprite)return toolTileSprite;
+                const int width=160,height=48;const float radius=10;
+                var texture=new Texture2D(width,height,TextureFormat.RGBA32,false){name="Raised tools tile",wrapMode=TextureWrapMode.Clamp};
+                var pixels=new Color32[width*height];
+                for(int y=0;y<height;y++)for(int x=0;x<width;x++)
+                {
+                    var q=new Vector2(Mathf.Abs(x+.5f-width*.5f)-(width*.5f-radius),Mathf.Abs(y+.5f-height*.5f)-(height*.5f-radius));
+                    float edge=new Vector2(Mathf.Max(q.x,0),Mathf.Max(q.y,0)).magnitude+Mathf.Min(Mathf.Max(q.x,q.y),0)-radius;
+                    float t=(float)y/(height-1);
+                    var color=Color.Lerp(new Color(.25f,.07f,.36f),new Color(.46f,.16f,.58f),t);
+                    if(edge>-3)color=Color.Lerp(color,new Color(.75f,.48f,.88f),Mathf.Clamp01((edge+3)/2)*Mathf.Lerp(.4f,.8f,t));
+                    color.a=Mathf.Clamp01(-edge);pixels[y*width+x]=color;
+                }
+                texture.SetPixels32(pixels);texture.Apply(false,true);
+                toolTileSprite=Sprite.Create(texture,new Rect(0,0,width,height),new Vector2(.5f,.5f),100);
+                return toolTileSprite;
+            }
         }
 
         static Sprite juicyCircleSprite;
@@ -972,12 +997,19 @@ namespace DeadlyJenga.CastlePrototype
                 ()=>{if(opensDetails)ShowDeveloperDetails(action);else action();},allowed:allowed,font:27);
             tile.Label.rectTransform.anchoredPosition=new Vector2(39,0);
             tile.Label.rectTransform.sizeDelta=new Vector2(220,82);
-            string artName=label switch {"Map"=>"MapMode","Bots"=>"BotsV2","Weapons"=>"WeaponsV2","God mode"=>"GodMode","Third person"=>"ThirdPerson",_=>label};
+            string artName=label switch {"Map"=>"MapMode","Bots"=>"BotsV2","Weapons"=>"WeaponsV2","God mode"=>"GodMode","Third person"=>"ThirdPerson","More tools"=>"MoreTools",_=>label};
             var approved=Resources.Load<Texture2D>("PlayerTabletArt/"+artName);
             Texture art=approved?approved:picture?picture:CandyHudVisuals.Icon(icon);
             float scale=Mathf.Min(72f/art.width,72f/art.height);
             TabletPicture((RectTransform)tile.Button.transform,art,new(-119,0),
                 new(art.width*scale,art.height*scale));
+            if(label=="More tools")
+            {
+                tile.ToolTile=true;tile.Button.image.sprite=ToolTileSprite;tile.Button.image.type=Image.Type.Simple;
+                tile.Label.rectTransform.anchoredPosition=new Vector2(17,0);tile.Label.rectTransform.sizeDelta=new Vector2(184,82);
+                var chevron=TabletText((RectTransform)tile.Button.transform,"›",new(133,0),new(32,64),40);
+                chevron.color=CandyHudVisuals.Mint;chevron.raycastTarget=false;
+            }
         }
 
         void ShowDeveloperDetails(Action action)
@@ -1166,10 +1198,15 @@ namespace DeadlyJenga.CastlePrototype
                 else
                 {
                     control.Focus.effectDistance=new Vector2(3,-3);
-                    control.Focus.effectColor=hover?CandyHudVisuals.Mint:Color.clear;
+                    control.Focus.effectColor=hover?CandyHudVisuals.Mint:control.ToolTile?new Color(.65f,.38f,.8f,.55f):Color.clear;
                 }
 
-                if(juicyClose)
+                if(control.ToolTile)
+                {
+                    control.Button.image.color=hover?new Color(1.12f,1.12f,1.12f,1):Color.white;
+                    control.Label.color=TabletCream;
+                }
+                else if(juicyClose)
                 {
                     control.Button.image.color=hover?new Color(1.18f,1.18f,1.18f,1f):Color.white;
                     control.Label.color=Color.white;
