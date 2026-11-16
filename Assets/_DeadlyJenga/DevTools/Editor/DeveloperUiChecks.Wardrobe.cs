@@ -17,8 +17,8 @@ namespace DeadlyJenga.DevTools.Editor
             var camera = player.ViewCamera;
             var paused = player.InputSuspended;
             player.Place(view.WardrobePosition, Quaternion.identity);
-            for (int i = 0; i < 120 && !view.WardrobeOpen; i++) yield return null;
-            Check(view.WardrobeOpen, "Walking into wardrobe opens desktop UI");
+            for (int i = 0; i < 120 && !view.WardrobeOpen; i++) { Call(view, "UpdateWardrobe"); yield return null; }
+            Check(view.WardrobeOpen, "Production proximity check opens desktop UI at the wardrobe");
             Check(player.InputSuspended && player.ViewCamera == camera, "Preview preserves player camera and suspends movement");
             yield return new WaitForSeconds(.5f);
             var desktop = Field<RectTransform>(view, "wardrobeDesktop");
@@ -38,6 +38,7 @@ namespace DeadlyJenga.DevTools.Editor
             desktop.gameObject.SetActive(false);
             panel.gameObject.SetActive(true);
             Call(view, "RefreshWardrobeLabels");
+            view.Point(new Ray(panel.position - panel.forward * 2, panel.forward), false);
             Canvas.ForceUpdateCanvases();
             yield return null;
             CaptureWardrobeCanvas(panel, "wardrobe-vr-layout.png", false);
