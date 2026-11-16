@@ -305,6 +305,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     "production Christmas finishing layer is attached and enabled after event reset");
                 File.AppendAllText(Report, "BODIES " + blockCount + " RENDERERS " + map.Root.GetComponentsInChildren<Renderer>().Length + "\n");
                 bridgeLid = map.Blocks.Single(b => b.name == "Lid" && b.transform.parent.name == "Gift Bridge / Navy Span");
+                var bridgePaper = bridgeLid.transform.Find("Visual").GetComponent<Renderer>().sharedMaterial;
+                var paperTexture = bridgePaper.GetTexture("_BaseMap");
+                File.AppendAllText(Report, "BRIDGE MATERIAL " + bridgePaper.name + " SHADER " + bridgePaper.shader.name + " TEXTURE " + (paperTexture ? paperTexture.name : "missing") + "\n");
+                Require(paperTexture && paperTexture.name == "Gold Snowflake Foil", "bridge uses approved fine foil texture");
+                var rug = map.Root.GetComponentsInChildren<Renderer>().First(r => r.name.Contains("kill floor"));
+                var rugTexture = rug.sharedMaterial.GetTexture("_BaseMap");
+                File.AppendAllText(Report, "RUG MATERIAL " + rug.sharedMaterial.name + " TEXTURE " + (rugTexture ? rugTexture.name : "missing") + "\n");
+                Require(rugTexture && rugTexture.name == "Cranberry Rug Weave", "rug uses chunky cranberry wool texture");
                 var bridgeBase = map.Blocks.Single(b => b.name == "Bottom" && b.transform.parent.name == "Gift Bridge / Navy Span");
                 var baseCollider = bridgeBase.GetComponent<BoxCollider>();
                 Require(baseCollider.bounds.min.y > 14f, "navy bridge has tall ground passage");
