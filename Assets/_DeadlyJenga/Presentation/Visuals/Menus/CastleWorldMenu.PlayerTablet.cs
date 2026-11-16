@@ -688,6 +688,7 @@ namespace DeadlyJenga.CastlePrototype
             DeveloperTile(tabletDeveloperGrid,"Spectate",10,CandyHudIcon.Look,()=>{ResetPages();spectatePage=true;},()=>session is not ILobbyControls);
             DeveloperTile(tabletDeveloperGrid,"More tools",11,CandyHudIcon.Settings,()=>OpenDeveloperRoute("More tools"));
 
+            TabletText(tabletDeveloperGrid,"God flight: look + move / hold sprint for fast / release to brake",new(0,-278),new(990,32),19);
             BuildTabletWeaponWheel(page);
         }
 

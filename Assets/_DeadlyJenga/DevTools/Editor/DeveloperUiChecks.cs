@@ -50,8 +50,8 @@ namespace DeadlyJenga.DevTools.Editor
             if(state==PlayModeStateChange.EnteredPlayMode){started=EditorApplication.timeSinceStartup;errors=0;Application.logMessageReceived+=Log;}
             if(state!=PlayModeStateChange.EnteredEditMode)return;
             Application.logMessageReceived-=Log;
-            MatchSetup.FromLobby=SessionState.GetBool(Key+"FromLobby");MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local");
-            SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices")));
+            MatchSetup.FromLobby=SessionState.GetBool(Key+"FromLobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);
+            SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));
             if(SessionState.GetBool(Key+"HadName",false))PlayerPrefs.SetString(NameKey,SessionState.GetString(Key+"Name",""));else PlayerPrefs.DeleteKey(NameKey);
             PlayerPrefs.Save();
             try

@@ -301,7 +301,9 @@ namespace DeadlyJenga.CastlePrototype
         bool matchAdvancedExpanded;
 
         int developerMapFilter;
-        bool developerMapFiltersOpen;
+        bool developerMapFiltersOpen,developerMapSearchOpen;
+        string developerMapSearch="";
+        int developerKeyboardPage;
         void PointTabletMapPage(Camera camera, bool pressed)
         {
             var lobby=session as ILobbyControls;var details=session as ILobbyDetails;var maps=Demo as IDemoMapControls;
@@ -310,7 +312,8 @@ namespace DeadlyJenga.CastlePrototype
             var source=chooseMode?details?.Modes:details?.Maps??maps?.Maps;
             var options=new System.Collections.Generic.List<LobbyOption>();
             if(source!=null)foreach(var option in source)
-                if(chooseMode||developerMapFilter==0||(int)MapCategoryPicker.GetMainTab(option)==developerMapFilter-1)options.Add(option);
+                if((chooseMode||developerMapFilter==0||(int)MapCategoryPicker.GetMainTab(option)==developerMapFilter-1)&&
+                    (chooseMode||string.IsNullOrEmpty(developerMapSearch)||option.title.IndexOf(developerMapSearch,StringComparison.OrdinalIgnoreCase)>=0))options.Add(option);
             var names=new System.Collections.Generic.List<string>();var actions=new System.Collections.Generic.List<Action>();
             var enabled=new System.Collections.Generic.List<bool>();var art=new System.Collections.Generic.List<CandyHudIcon>();
             var captions=new System.Collections.Generic.List<string>();var pictures=new System.Collections.Generic.List<Texture>();
@@ -318,6 +321,21 @@ namespace DeadlyJenga.CastlePrototype
             {names.Add(label);actions.Add(action);enabled.Add(available);art.Add(chooseMode?CandyHudIcon.Play:CandyHudIcon.Home);captions.Add(caption);pictures.Add(picture);}
             heading.text=chooseMode?"DEVELOPER / MODE":"DEVELOPER / MAP";
             string[] filters={"All maps","Play approved","In development","Archive"};
+            if(!chooseMode&&developerMapSearchOpen)
+            {
+                Add("Search: "+developerMapSearch,()=>{},false);
+                const string keys="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                for(int i=developerKeyboardPage*9;i<Mathf.Min(keys.Length,(developerKeyboardPage+1)*9);i++)
+                {char key=keys[i];Add(key.ToString(),()=>{developerMapSearch+=key;mapOffset=0;});}
+                Add("Next keys",()=>developerKeyboardPage=(developerKeyboardPage+1)%4);
+                Add("Space",()=>developerMapSearch+=" ");
+                Add("Delete",()=>{if(developerMapSearch.Length>0)developerMapSearch=developerMapSearch.Substring(0,developerMapSearch.Length-1);mapOffset=0;});
+                Add("Clear",()=>{developerMapSearch="";mapOffset=0;});
+                Add("Show results",()=>developerMapSearchOpen=false);
+                help.text="Search map names with the same pointer controls as the menu.";
+                RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);return;
+            }
+            if(!chooseMode)Add("Search: "+(developerMapSearch.Length==0?"all names":developerMapSearch),()=>{developerMapSearchOpen=true;developerMapFiltersOpen=false;});
             if(!chooseMode)Add("Filter: "+filters[developerMapFilter]+"  v",()=>developerMapFiltersOpen=!developerMapFiltersOpen);
             if(!chooseMode&&developerMapFiltersOpen)
             {
