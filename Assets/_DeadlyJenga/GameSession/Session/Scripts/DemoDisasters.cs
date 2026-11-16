@@ -75,7 +75,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(!catalog)
                     catalog=catalogRequest?.isDone==true?catalogRequest.asset as HazardCatalog:
                         Resources.Load<HazardCatalog>("DisasterCatalog");
-                return catalog && catalog.prefabs != null ? catalog.prefabs : Array.Empty<GameObject>();
+                return MapDisasterProfile.Filter(catalog && catalog.prefabs != null ? catalog.prefabs : Array.Empty<GameObject>());
             }
         }
 

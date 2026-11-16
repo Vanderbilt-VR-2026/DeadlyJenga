@@ -42,6 +42,7 @@ namespace DeadlyJenga.CandyArt
         Volume volume;
         VolumeProfile grade;
         bool neutralView;
+        readonly Dictionary<Material, Color> outageEmission = new Dictionary<Material, Color>();
         RenderPipelineAsset previousPipeline;
         UniversalRenderPipelineAsset roomPipeline;
 
@@ -131,6 +132,17 @@ namespace DeadlyJenga.CandyArt
                     blackout = true;
                     break;
                 }
+            }
+            foreach (var material in materials)
+            {
+                if (!material || !material.HasProperty("_EmissionColor")) continue;
+                if (blackout && !outageEmission.ContainsKey(material))
+                {outageEmission[material] = material.GetColor("_EmissionColor");material.SetColor("_EmissionColor", Color.black);}
+            }
+            if (!blackout && outageEmission.Count > 0)
+            {
+                foreach (var item in outageEmission) if (item.Key) item.Key.SetColor("_EmissionColor", item.Value);
+                outageEmission.Clear();
             }
             bool externalLighting = viewUnderFloor || blackout;
             if (!externalLighting)

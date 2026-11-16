@@ -74,6 +74,7 @@ namespace DeadlyJenga.CastlePrototype
         Vector3 wrappedPosition;
         Quaternion wrappedRotation;
         bool replica;
+        float hazardStrain, lastStrain;
 
         internal bool IsAtWrappedPose()
         {
@@ -116,7 +117,16 @@ namespace DeadlyJenga.CastlePrototype
             if (!IsLoose)
             {
                 if (force.sqrMagnitude < 1.4f * 1.4f)
-                    return;
+                {
+                    if (!source || source.GetComponent<IHazard>() == null || force.sqrMagnitude < .000001f)
+                        return;
+                    if (Time.time - lastStrain > .3f) hazardStrain = 0;
+                    lastStrain = Time.time;
+                    hazardStrain += force.magnitude;
+                    float fatigue = 24f + Mathf.Abs(Mathf.Sin(wrappedPosition.x * 3.17f + wrappedPosition.z * 7.31f)) * 72f;
+                    if (hazardStrain < fatigue) return;
+                    force = force.normalized * 1.5f;
+                }
                 Release(force);
                 shell.OnPanelReleased(this, force);
             }
