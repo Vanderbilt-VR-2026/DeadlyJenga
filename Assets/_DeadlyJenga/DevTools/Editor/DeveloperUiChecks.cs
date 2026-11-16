@@ -181,6 +181,40 @@ namespace DeadlyJenga.DevTools.Editor
             Call(menu,"PointPlayerTablet",camera,true,false);Draw();
             Check(Field<int>(menu,"disasterSelection")>=0&&!Field<GameObject>(menu,"disasterWheelUI").activeSelf,"Selecting a disaster hides its selector before showing settings");
             yield return Shot("13-disaster-selected.png");Row("Show tuning");yield return Shot("14-disaster-tuning.png");Back();Back();
+            // Capture each expanded tool family without running gameplay commands.
+            foreach(string fold in new[]{"hands","behavior","equipment","voices"})
+            {
+                Call(menu,"OpenDeveloperRoute","Bots");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,fold);
+                yield return Shot("24-bots-"+fold+".png");
+            }
+            Row("Bot volume:");yield return Shot("25-bot-volume.png");Back();
+            Call(menu,"OpenDeveloperRoute","Bots");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,"equipment");Draw();Row("Everyone loadout");
+            for(int category=0;category<3;category++)
+            {
+                typeof(CastleWorldMenu).GetField("wheelCategory",Flags).SetValue(menu,category);
+                typeof(CastleWorldMenu).GetField("equipmentOffset",Flags).SetValue(menu,0);
+                yield return Shot("26-equipment-"+category+".png");
+            }
+            Back();Back();
+            foreach(string fold in new[]{"player","world","round","diagnostics"})
+            {
+                Call(menu,"OpenDeveloperRoute","More tools");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,fold);
+                yield return Shot("27-tools-"+fold+".png");
+            }
+            Call(menu,"OpenDeveloperRoute","More tools");typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,"player");Draw();
+            Row("Show hand physics");yield return Shot("28-hand-physics.png");Row("Hide hand physics");
+            Row("Sea spirit / tabletop");yield return Shot("29-tabletop.png");Back();
+            typeof(CastleWorldMenu).GetField("developerFoldout",Flags).SetValue(menu,"world");Draw();
+            Row("Ground pickups");yield return Shot("30-ground-pickups.png");Back();
+            Row("Wildlife & enemies");yield return Shot("31-wildlife.png");Back();Back();
+            TabletClick(menu,"Disasters");
+            for(int disaster=0;disaster<session.Demo.DisasterCount;disaster++)
+            {
+                typeof(CastleWorldMenu).GetField("disasterSelection",Flags).SetValue(menu,disaster);
+                typeof(CastleWorldMenu).GetField("developerDisasterTuning",Flags).SetValue(menu,true);
+                yield return Shot("32-disaster-"+disaster.ToString("00")+"-tuning.png");
+            }
+            Back();Back();
             var god=session.Player.gameObject.GetComponent<IDeveloperGodMode>();Check(god?.CanSetGodMode==true,"God Mode permitted in local Demo");
             TabletClick(menu,"God mode");Check(god.GodModeEnabled,"God Mode toggles on");
             var damage=session.Player.gameObject.GetComponent<IDamageable>();float health=damage.Health;
