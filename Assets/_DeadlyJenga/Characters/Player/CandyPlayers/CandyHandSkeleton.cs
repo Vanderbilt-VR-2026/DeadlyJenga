@@ -93,7 +93,7 @@ namespace DeadlyJenga.CandyPlayers
         public Quaternion headRotation;
         public float scale;
         public bool seated;
-        internal bool sprinting, hasGaitPhase;
+        internal bool sprinting, airborne, hasGaitPhase;
         internal float gaitPhase;
         public float danceWeight;
         public Vector3 danceLeftFoot, danceRightFoot, danceTorsoEuler;
