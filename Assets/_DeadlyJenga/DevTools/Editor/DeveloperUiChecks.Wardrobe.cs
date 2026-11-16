@@ -24,6 +24,8 @@ namespace DeadlyJenga.DevTools.Editor
             Check(view.WardrobeOpen, "Production proximity check opens desktop UI at the wardrobe");
             Check(player.InputSuspended && player.ViewCamera == camera, "Preview preserves player camera and suspends movement");
             yield return new WaitForSeconds(.5f);
+            for (int i = 0; i < 4; i++) { Call(view, "UpdateWardrobe"); yield return null; }
+            CheckWardrobePreview(Field<RenderTexture>(view, "wardrobeTexture"));
             var desktop = Field<RectTransform>(view, "wardrobeDesktop");
             CheckWardrobeTargets(desktop, Field<System.Collections.Generic.List<System.Tuple<RectTransform,System.Action>>>(view, "wardrobeButtons")
                 .Select(b => b.Item1).Where(r => r.gameObject.activeInHierarchy).ToArray());
@@ -44,7 +46,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(view.WardrobeOpen && player.IsVR, "Actual VR wardrobe branch opens in desktop fixture");
             var panel = Field<RectTransform>(view, "wardrobePanel");
             Call(view, "RefreshWardrobeLabels");
-            view.Point(new Ray(panel.position - panel.forward * 2, panel.forward), false);
+            view.Point(new Ray(panel.position - panel.forward * 2, -panel.forward), false);
             Canvas.ForceUpdateCanvases();
             yield return null;
             CaptureWardrobeCanvas(panel, "wardrobe-vr-layout.png", false);
@@ -56,6 +58,22 @@ namespace DeadlyJenga.DevTools.Editor
             Check(avatar.Appearance.Equals(look), "First reset click only asks for confirmation");
             view.SetWardrobeOpen(false);
             Check(!view.WardrobeOpen && player.InputSuspended == paused && player.ViewCamera == camera, "Close restores movement and original camera");
+        }
+
+        static void CheckWardrobePreview(RenderTexture texture)
+        {
+            var previous = RenderTexture.active;
+            var pixels = new Texture2D(texture.width, texture.height, TextureFormat.RGB24, false);
+            try
+            {
+                RenderTexture.active = texture;
+                pixels.ReadPixels(new Rect(0, 0, texture.width, texture.height), 0, 0);pixels.Apply();
+                var colors = pixels.GetPixels32();var background = colors[0];int visible = 0;
+                foreach (var color in colors)
+                    if (Mathf.Abs(color.r-background.r)+Mathf.Abs(color.g-background.g)+Mathf.Abs(color.b-background.b)>45) visible++;
+                Check(visible > colors.Length / 100, "Character preview contains rendered avatar geometry");
+            }
+            finally { RenderTexture.active = previous;Object.Destroy(pixels); }
         }
 
         static void CheckWardrobeTargets(RectTransform root, RectTransform[] controls)

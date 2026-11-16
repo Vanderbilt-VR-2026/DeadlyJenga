@@ -19,7 +19,7 @@ namespace DeadlyJenga.CastlePrototype
                 panel.sizeDelta = new Vector2(720, 760);
                 PlaceWardrobeRect(wardrobePreview, -370, 32, 440, 440);
                 var rotate = wardrobePreview.Find("Mirror rotation") as RectTransform;
-                if (rotate) rotate.anchoredPosition = new Vector2(0, -185);
+                if (rotate) rotate.gameObject.SetActive(false);
                 WardrobeCaption(root, "Preview hint", "Drag your character to rotate", -370, -218, 450, 38, 20);
                 DesktopButton(root, "Reset view", -268, -370, 210, 44, ResetWardrobeView, "Reset view");
                 DesktopButton(root, "Player name", -328, -370, 420, 54, () =>
