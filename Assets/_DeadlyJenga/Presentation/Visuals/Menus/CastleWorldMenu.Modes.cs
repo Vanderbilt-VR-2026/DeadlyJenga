@@ -139,14 +139,18 @@ namespace DeadlyJenga.CastlePrototype
 
             for (int i = 0; i < count; i++)
             {
-                float angle = (90f - i * (360f / count)) * Mathf.Deg2Rad;
-                Vector2 cardPos = new Vector2(Mathf.Cos(angle) * 415f, -45f + Mathf.Sin(angle) * 205f);
-                var card = CreateWheelCard(disasterWheelUI.transform, cardPos, new Vector2(164, 136), new Vector2(56, -50), new Vector2(36, 24));
+                Vector2 cardPos = new Vector2((i % 3 - 1) * 320f, 150f - (i / 3) * 112f);
+                var card = CreateWheelCard(disasterWheelUI.transform, cardPos, new Vector2(300, 102), new Vector2(70, -29), new Vector2(64, 28));
+                card.picture.rectTransform.sizeDelta = new Vector2(100, 76);
+                card.picture.rectTransform.anchoredPosition = new Vector2(-91, 0);
+                card.title.rectTransform.sizeDelta = new Vector2(174, 44);
+                card.title.rectTransform.anchoredPosition = new Vector2(54, 17);
+                card.title.fontSize = 17;
                 disasterCards.Add(card);
             }
 
-            disasterStopBtn = CreateWheelCenterButton(disasterWheelUI.transform, "STOP ALL DISASTERS", new Vector2(0, -22), new Vector2(250, 46), 17, out disasterStopTarget);
-            disasterBackBtn = CreateWheelCenterButton(disasterWheelUI.transform, "◄ BACK", new Vector2(0, -74), new Vector2(160, 40), 16, out disasterBackTarget);
+            disasterStopBtn = CreateWheelCenterButton(disasterWheelUI.transform, "STOP ALL DISASTERS", new Vector2(-180, -280), new Vector2(320, 44), 17, out disasterStopTarget);
+            disasterBackBtn = CreateWheelCenterButton(disasterWheelUI.transform, "◄ BACK", new Vector2(180, -280), new Vector2(320, 44), 17, out disasterBackTarget);
             MenuAim.PresentInForeground(disasterWheelUI.transform);
         }
 
@@ -159,6 +163,10 @@ namespace DeadlyJenga.CastlePrototype
             scaffoldButton.gameObject.SetActive(false);
             foreach (var b in buttons) b.gameObject.SetActive(false);
             heading.text = "NATURAL DISASTERS\n<size=17><color=#d0b8d8>Click disaster for settings  ·  ▶ to launch immediately</color></size>";
+            heading.rectTransform.anchoredPosition = new Vector2(0, 232);
+            help.rectTransform.anchoredPosition = new Vector2(0, -330);
+            help.rectTransform.sizeDelta = new Vector2(950, 30);
+            help.fontSize = 17;
             help.text = CanCommand ? "Point at a disaster to configure its sliders, or ▶ to trigger it directly." : "The host controls disasters.";
 
             var ray = pointerRay;
@@ -198,6 +206,7 @@ namespace DeadlyJenga.CastlePrototype
 
             bool stopHover = Hit(disasterStopTarget, ray);
             disasterStopBtn.image.color = stopHover ? CandyHudVisuals.Mint : TabletPanel;
+            disasterStopBtn.GetComponentInChildren<Text>().color = stopHover ? CandyHudVisuals.Ink : Color.white;
             if (stopHover && pressed)
             {
                 Demo?.Run(DemoCommand.StopDisasters);
@@ -207,6 +216,7 @@ namespace DeadlyJenga.CastlePrototype
 
             bool backHover = Hit(disasterBackTarget, ray);
             disasterBackBtn.image.color = backHover ? CandyHudVisuals.Mint : TabletPanel;
+            disasterBackBtn.GetComponentInChildren<Text>().color = backHover ? CandyHudVisuals.Ink : Color.white;
             if (backHover && pressed)
             {
                 disasterWheelUI.SetActive(false);
