@@ -29,9 +29,11 @@ namespace DeadlyJenga.DevTools.Editor
         static DeveloperUiChecks(){EditorApplication.playModeStateChanged+=State;EditorApplication.update+=Tick;}
         public static void Run()=>Begin(false);
         public static void RunDialogs()=>Begin(true);
-        static void Begin(bool dialogs)
+        public static void RunTabletTabs()=>Begin(false,true);
+        static void Begin(bool dialogs,bool tabs=false)
         {
             SessionState.SetBool(Key+"Dialogs",dialogs);
+            SessionState.SetBool(Key+"Tabs",tabs);
             if(!Application.isBatchMode)throw new Exception("Use an isolated checked batch");
             var scenes=EditorSceneManager.GetSceneManagerSetup();
             if(scenes.Any(s=>s.isLoaded&&(string.IsNullOrEmpty(s.path)||EditorSceneManager.GetSceneByPath(s.path).isDirty)))throw new Exception("Unsaved scenes preserved");
@@ -146,6 +148,14 @@ namespace DeadlyJenga.DevTools.Editor
                 Draw();yield return null;Draw();yield return null;
                 Check(Object.FindObjectsByType<CastleWorldMenu>(FindObjectsSortMode.None).Count(x=>x.gameObject.activeInHierarchy)==1,"Exactly one rendered tablet: "+file);
                 Capture(camera,menu.GetComponent<Canvas>(),file);
+            }
+            if(SessionState.GetBool(Key+"Tabs",false))
+            {
+                Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Comfort"));yield return Shot("35-movement-settings.png");
+                Call(menu,"OpenComfortSlider");yield return Shot("36-turn-tuning.png");Call(menu,"CloseComfortSlider");
+                Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Room"));yield return Shot("37-room.png");
+                Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Developer"));yield return Shot("38-developer-alignment.png");
+                typeof(SessionPresentation).GetField("inputFocused",Flags).SetValue(presentation,true);session.SetMenu(false);yield break;
             }
             if(!SessionState.GetBool(Key+"Dialogs",false))
             {
