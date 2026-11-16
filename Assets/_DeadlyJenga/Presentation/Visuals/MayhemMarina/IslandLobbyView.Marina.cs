@@ -39,6 +39,8 @@ namespace DeadlyJenga.CastlePrototype
             var detailCenter = new Vector3(0, 3.85f, 10.88f);
             MountMarinaScreen(joinStation, MarinaScreen.CabinetScreen(false), Quaternion.identity, 1.69f, 1.55f);
             MountMarinaScreen(hostStation, MarinaScreen.CabinetScreen(true), Quaternion.identity, 1.69f, 1.55f);
+            foreach (var child in joinStation.GetComponentsInChildren<Transform>(true))
+                if (child.name.StartsWith("CRT ", System.StringComparison.Ordinal)) child.gameObject.SetActive(false);
             BuildMarinaRoomScreens();
             MountMarinaScreen(setupStation, detailCenter, Quaternion.identity, 6.4f, 2.95f);
             MountMarinaScreen(wardrobePanel, MayhemMarina.StyleScreen, MayhemMarina.StyleScreenFacing, 2.55f, 2.75f);
@@ -142,7 +144,7 @@ namespace DeadlyJenga.CastlePrototype
             RoomButton(marinaHostScreen,"marina-host-options",()=>RequestId!=null?"!":"…",
                 460,322,76,66,linkArt,Color.white,()=>{marinaHostOptions=true;UpdateMarinaRoomScreens();},
                 ()=>lobby.Connected&&!lobby.Busy,40,true);
-            RoomButton(candyHostContent,"marina-host-summary",()=>"Room code",355,294,230,44,linkArt,
+            RoomButton(candyHostContent,"marina-host-summary",()=>"Room code",355,-385,230,44,linkArt,
                 Color.white,()=>{marinaHostOptions=false;UpdateMarinaRoomScreens();},()=>true,29,true).visible=
                 ()=>marinaHostOptions&&lobby.Connected&&!lobby.Busy;
 
@@ -383,8 +385,8 @@ namespace DeadlyJenga.CastlePrototype
                     case CabinetSurface.Neon:
                     case CabinetSurface.Rim:
                         float line=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(2,5,Mathf.Abs(d)));
-                        float glow=finish==CabinetSurface.Neon?.58f*Mathf.Exp(-Mathf.Abs(d)*.12f):0;
-                        bool captionGap=finish==CabinetSurface.Neon&&v>.76f&&Mathf.Abs(point.x)<171;
+                        float glow=0;
+                        bool captionGap=false;
                         coverage=captionGap?0:Mathf.Max(line,glow);
                         shade=.83f+line*.17f;
                         break;

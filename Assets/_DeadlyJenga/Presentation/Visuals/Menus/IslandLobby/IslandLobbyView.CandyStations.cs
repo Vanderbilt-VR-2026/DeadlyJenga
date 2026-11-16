@@ -43,10 +43,15 @@ namespace DeadlyJenga.CastlePrototype
         float copiedHostCodeUntil;
         void BuildCandyHost()
         {
-            var status=CandyPanel(candyHostContent,"Room status",0,294,420,44,CandyFace);status.SetAsFirstSibling();
-            roomCount.rectTransform.anchoredPosition=new Vector2(0,294);roomCount.rectTransform.sizeDelta=new Vector2(400,38);
+            var status=CandyPanel(candyHostContent,"Room status",250,294,460,44,CandyFace);status.SetAsFirstSibling();
+            roomCount.rectTransform.anchoredPosition=new Vector2(250,294);roomCount.rectTransform.sizeDelta=new Vector2(440,38);
+            lobbyPortrait.rectTransform.anchoredPosition=new Vector2(-450,294);
+            lobbyPortrait.rectTransform.sizeDelta=new Vector2(52,52);
+            lobbyPortraitName.rectTransform.anchoredPosition=new Vector2(-245,294);
+            lobbyPortraitName.rectTransform.sizeDelta=new Vector2(320,44);
+            lobbyPortraitName.fontSize=24;lobbyPortraitName.resizeTextMaxSize=24;
             roomCount.fontSize=23;roomCount.resizeTextMaxSize=23;roomCount.resizeTextMinSize=21;roomCount.color=CandyMint;
-            var create=CandyPlace("host",0,190,1000,110);CandyPrimary(create);create.title=()=>"CREATE ROOM";CandyText(create,25,17,820,55,40);
+            var create=CandyPlace("host",0,190,1000,110);CandyPrimary(create);create.title=()=>"CREATE ROOM";create.visible=()=>!lobby.Connected;CandyText(create,25,17,820,55,40);
             create.description=CandyReadout((RectTransform)create.button.transform,"Create room subtitle","Get a code. Bring your friends.",25,-30,820,30,24);
             CandyChoiceIcon(create,LobbyTerminalGlyph.Symbol.Plus,-430,0,47);
             var code=CandyPanel(candyHostContent,"Connected room code",0,185,1000,140,CandyInk);code.SetAsFirstSibling();candyHostCodeFrame=code.gameObject;
@@ -76,7 +81,7 @@ namespace DeadlyJenga.CastlePrototype
                 var line=CandyReadout(help,"Hosting step",steps[i],-115,26-i*54,560,44,24);line.alignment=TextAnchor.MiddleLeft;
             }
             var art=Picture(help,"Friends illustration",345,-4,240,190);SetPicture(art,ModePicture("teamtickets"),240,190);
-            hostHint.rectTransform.anchoredPosition=new Vector2(0,-405);hostHint.rectTransform.sizeDelta=new Vector2(1000,46);
+            hostHint.rectTransform.anchoredPosition=new Vector2(-140,-405);hostHint.rectTransform.sizeDelta=new Vector2(700,46);
             hostHint.fontSize=20;hostHint.resizeTextMaxSize=20;hostHint.resizeTextMinSize=18;hostHint.color=CandyMuted;
         }
         // MAP + MODE layout on a 1900 x 880 canvas (x -950..950, y -440..440).
