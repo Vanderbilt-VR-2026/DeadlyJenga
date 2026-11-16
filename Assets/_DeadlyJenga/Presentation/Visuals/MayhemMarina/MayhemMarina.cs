@@ -469,7 +469,7 @@ namespace DeadlyJenga.CandyArt.Marina
             Sign("SOLO  /  E OR GRIP", new Vector3(-22.7f, 2.46f, -24.115f), .024f, cream, new Vector3(0, 180, 0));
             Sign("BEACON WALK", BeaconWalkGate + BeaconWalkFacing * Vector3.back * .13f, .048f, cream,
                 BeaconWalkFacing.eulerAngles);
-            Sign("LOUNGE  /  POOL  >", new Vector3(5.82f, CinemaFloor + 1.35f, -.64f), .032f, cream);
+            Sign("LOUNGE  /  POOL  >", new Vector3(5.82f, CinemaFloor + 1.35f, -.632f), .025f, cream);
             Sign("BEACHSIDE CINEMA", CinemaSign + Vector3.back * .122f, .048f, cream);
             var styleBase = new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z);
             Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.72f, 1.95f), .085f, cream, StyleStageTurn.eulerAngles);
