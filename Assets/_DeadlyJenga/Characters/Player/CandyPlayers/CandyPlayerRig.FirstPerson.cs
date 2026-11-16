@@ -42,7 +42,7 @@ namespace DeadlyJenga.CandyPlayers
             => TorsoShare(weight.boneIndex0,weight.weight0)+TorsoShare(weight.boneIndex1,weight.weight1)
                 +TorsoShare(weight.boneIndex2,weight.weight2)+TorsoShare(weight.boneIndex3,weight.weight3)>.99f;
         // Pelvis, spine and chest together make the torso.
-        static float TorsoShare(int bone,float weight)=>bone==0||bone==SpineBoneIndex||bone==ChestBoneIndex?weight:0;
+        static float TorsoShare(int bone,float weight)=>IsTorsoSkinBone(bone)?weight:0;
         void RestoreFirstPersonBody()
         {
             if(renderedBody && bodyRenderer) bodyRenderer.sharedMesh=renderedBody;

@@ -133,6 +133,19 @@ namespace DeadlyJenga.DevTools.Editor
                     "Fully chest-weighted vertices keep the chest as their first influence");
                 Check(weights.All(w => w.weight0 + w.weight1 > 0),
                     "Every body vertex retains a nonzero influence under two-bone skinning");
+                var avatar = motor.GetComponent<CandyPlayerAvatar>();
+                Check(avatar, "The live survivor exposes its wardrobe");
+                var original = avatar.Appearance;
+                try
+                {
+                    avatar.ApplyAppearance(new AvatarAppearance { clothing = AvatarClothing.FootballPads });
+                    avatar.RefreshNow();
+                    var pads = rig.GetComponentsInChildren<SkinnedMeshRenderer>()
+                        .FirstOrDefault(renderer => renderer.name == "Visual - football chest pads");
+                    Check(pads && pads.sharedMesh && pads.sharedMesh.boneWeights.Any(w => w.boneIndex0 == chest && w.weight0 > .99f),
+                        "Equipped football pads include the upper chest after torso weight ordering");
+                }
+                finally { avatar.ApplyAppearance(original); }
                 return;
             }
             var hud=motor.GetComponent<CandyStaminaHud>();

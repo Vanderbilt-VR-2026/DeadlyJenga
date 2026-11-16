@@ -61,7 +61,12 @@ namespace DeadlyJenga.CandyPlayers
             if(!garments.TryGetValue(key,out var mesh))
             {
                 var vertices=source.vertices;var normals=source.normals;var weights=source.boneWeights;var triangles=source.triangles;
-                var ok=new bool[vertices.Length];for(int i=0;i<ok.Length;i++)ok[i]=include(vertices[i],normals[i],weights[i].boneIndex0);
+                var ok = new bool[vertices.Length];
+                for (int i = 0; i < ok.Length; i++)
+                {
+                    int bone = weights[i].boneIndex0;
+                    ok[i] = include(vertices[i], normals[i], CandyPlayerRig.IsTorsoSkinBone(bone) ? 0 : bone);
+                }
                 var remap=new int[vertices.Length];for(int i=0;i<remap.Length;i++)remap[i]=-1;
                 var outVertices=new List<Vector3>();var outNormals=new List<Vector3>();var outWeights=new List<BoneWeight>();var outTriangles=new List<int>();
                 for(int i=0;i<triangles.Length;i+=3)
@@ -98,7 +103,7 @@ namespace DeadlyJenga.CandyPlayers
             float best=-9;int pick=-1;
             for(int i=0;i<vertices.Length;i++)
             {
-                if(weights[i].boneIndex0!=0||Mathf.Abs(vertices[i].y-y)>.05f)continue;
+                if(!CandyPlayerRig.IsTorsoSkinBone(weights[i].boneIndex0)||Mathf.Abs(vertices[i].y-y)>.05f)continue;
                 float score=Vector3.Dot(normals[i],dir)-Mathf.Abs(vertices[i].y-y)*3;if(score>best){best=score;pick=i;}
             }
             if(pick<0)return new Vector3(Mathf.Cos(angle)*.19f,y,Mathf.Sin(angle)*.15f);

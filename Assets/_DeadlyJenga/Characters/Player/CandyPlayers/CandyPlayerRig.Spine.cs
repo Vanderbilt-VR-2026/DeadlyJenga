@@ -9,6 +9,7 @@ namespace DeadlyJenga.CandyPlayers
     public sealed partial class CandyPlayerRig
     {
         const int SpineBoneIndex = 44, ChestBoneIndex = 45, SkinBoneCount = 46;
+        internal static bool IsTorsoSkinBone(int bone) => bone == 0 || bone == SpineBoneIndex || bone == ChestBoneIndex;
         const string SpineName = "Candy spine", ChestName = "Candy chest";
         static readonly Dictionary<Mesh, Mesh> spineMeshes = new();
         Transform spine, chest;
