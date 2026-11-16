@@ -22,7 +22,8 @@ namespace DeadlyJenga.DevTools.Editor
         static readonly HashSet<AvatarSkin> Skins = new HashSet<AvatarSkin>
         {
             AvatarSkin.Default, AvatarSkin.Rabbit, AvatarSkin.Clownfish, AvatarSkin.CandyCorn,
-            AvatarSkin.Fox, AvatarSkin.Penguin, AvatarSkin.Gingerbread, AvatarSkin.Astronaut
+            AvatarSkin.Fox, AvatarSkin.Penguin, AvatarSkin.Gingerbread, AvatarSkin.Astronaut,
+            AvatarSkin.Axolotl, AvatarSkin.Dragon
         };
 
         [Serializable]
@@ -34,6 +35,7 @@ namespace DeadlyJenga.DevTools.Editor
             public float yaw;
             public float pitch;
             public float zoom;
+            public bool compare;
         }
 
         static string folder, lastId;
@@ -41,7 +43,13 @@ namespace DeadlyJenga.DevTools.Editor
         static CandyPlayerRig rig;
         static Camera camera;
         static RenderTexture target;
-        static Texture2D pixels;
+        static Texture2D pixels, comparisonPixels;
+        static CandyPlayerRig caramelRig, refinedRig;
+        static CaramelRabbitPreview caramel, refined;
+        static Bounds caramelBounds, refinedBounds, storeBounds;
+        static CandyPlayerRig storeRig;
+        static StoreSkinPreview store;
+        static AvatarSkin? storeSkin;
         static AvatarSkin? activeSkin;
         static bool castleReady;
         static Vector3 castleStage;
@@ -173,16 +181,21 @@ namespace DeadlyJenga.DevTools.Editor
                 !Guid.TryParseExact(request.id, "N", out _) ||
                 !Enum.TryParse(request.skin, out AvatarSkin skin) || !Skins.Contains(skin) ||
                 (request.environment != "studio" && request.environment != "castle") ||
+                (request.compare && (request.environment != "castle" ||
+                    (skin != AvatarSkin.Rabbit && !StoreSkinPreview.Catalog.Contains(skin)))) ||
                 !Finite(request.yaw) || !Finite(request.pitch) || !Finite(request.zoom)) return;
             try
             {
                 bool castle = request.environment == "castle";
                 if (!castleReady && !TryPrepareCastle()) return;
                 lastId = request.id;
-                Render(skin, castle, request.yaw, request.pitch, request.zoom);
                 string complete = Path.Combine(folder, "frame-" + request.id + ".png");
+                if (File.Exists(complete)) return;
+                var frame = request.compare
+                    ? RenderComparison(skin, request.yaw, request.pitch, request.zoom)
+                    : RenderSkin(skin, castle, request.yaw, request.pitch, request.zoom);
                 string temporary = complete + ".tmp";
-                File.WriteAllBytes(temporary, pixels.EncodeToPNG());
+                File.WriteAllBytes(temporary, frame.EncodeToPNG());
                 File.Move(temporary, complete);
             }
             catch (Exception error)
@@ -231,6 +244,9 @@ namespace DeadlyJenga.DevTools.Editor
             camera.GetUniversalAdditionalCameraData().volumeLayerMask = cameraData.volumeLayerMask;
             HideActor(session.Player);
             HideActor(session.Hand);
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+                if (canvas.renderMode == RenderMode.WorldSpace && canvas.name == "Headset player tablet")
+                    canvas.gameObject.SetActive(false);
             if (session.TryGetComponent<CandyEquipmentView>(out var equipment)) Object.Destroy(equipment);
             if (session.SurvivorBots != null)
             {
@@ -261,38 +277,167 @@ namespace DeadlyJenga.DevTools.Editor
                 renderer.forceRenderingOff = true;
         }
 
-        static void Render(AvatarSkin skin, bool castle, float yaw, float pitch, float zoom)
+        static void Pose(CandyPlayerRig avatar)
         {
-            Vector3 stage = castleStage;
-            Quaternion facing = castleFacing;
-            if (skin != activeSkin)
+            avatar.ApplyFrame(new CandyAvatarFrame
             {
-                rig.SetAppearance(new AvatarAppearance { skin = skin });
-                rig.ApplyFrame(new CandyAvatarFrame
-                {
-                    feet = stage, head = stage + Vector3.up * 1.6f,
-                    headRotation = facing, scale = 1,
-                    left = Hand(stage, facing, true), right = Hand(stage, facing, false)
-                });
-                Renderers.Clear();
-                rig.GetComponentsInChildren(false, Renderers);
-                foreach (var renderer in Renderers) renderer.gameObject.layer = PreviewLayer;
-                sampler.Refresh(Renderers);
-                var envelope = new Bounds(stage + Vector3.up * .95f, new Vector3(.85f, 1.95f, .62f));
-                if (sampler.TryBounds(Renderers, out bounds, out _)) bounds.Encapsulate(envelope);
-                else bounds = envelope;
-                activeSkin = skin;
+                feet = castleStage, head = castleStage + Vector3.up * 1.6f,
+                headRotation = castleFacing, scale = 1,
+                left = Hand(castleStage, castleFacing, true), right = Hand(castleStage, castleFacing, false)
+            });
+        }
+
+        static Bounds Measure(CandyPlayerRig avatar)
+        {
+            Renderers.Clear();
+            avatar.GetComponentsInChildren(false, Renderers);
+            foreach (var renderer in Renderers) renderer.gameObject.layer = PreviewLayer;
+            sampler.Refresh(Renderers);
+            var envelope = new Bounds(castleStage + Vector3.up * .95f, new Vector3(.85f, 1.95f, .62f));
+            if (!sampler.TryBounds(Renderers, out var measured, out _)) return envelope;
+            measured.Encapsulate(envelope);
+            return measured;
+        }
+
+        static void PrepareSkin(AvatarSkin skin)
+        {
+            if (skin == activeSkin) return;
+            rig.SetAppearance(new AvatarAppearance { skin = skin });
+            Pose(rig);
+            bounds = Measure(rig);
+            activeSkin = skin;
+        }
+
+        static Texture2D RenderSkin(AvatarSkin skin, bool castle, float yaw, float pitch, float zoom)
+        {
+            PrepareSkin(skin);
+            PlaceCamera(bounds, castle, yaw, pitch, zoom);
+            RenderView(pixels, castle, 0);
+            pixels.Apply();
+            return pixels;
+        }
+
+        static CandyPlayerRig CreateCaramel(bool polish, out CaramelRabbitPreview appearance, out Bounds frame)
+        {
+            var prefab = Resources.Load<CandyPlayerRig>("CandyPlayerVisual");
+            var avatar = Object.Instantiate(prefab, root.transform);
+            avatar.SetColor(0);
+            if (avatar.TryGetComponent<CandyAvatarDetail>(out var detail)) detail.enabled = false;
+            avatar.SetAppearance(new AvatarAppearance { skin = AvatarSkin.Rabbit });
+            Pose(avatar);
+            appearance = new CaramelRabbitPreview();
+            appearance.Apply(avatar, polish);
+            frame = Measure(avatar);
+            avatar.gameObject.SetActive(false);
+            return avatar;
+        }
+
+        static void PrepareCaramel()
+        {
+            if (caramelRig) return;
+            caramelRig = CreateCaramel(false, out caramel, out caramelBounds);
+            refinedRig = CreateCaramel(true, out refined, out refinedBounds);
+        }
+
+        static void PrepareStoreSkin(AvatarSkin skin)
+        {
+            if (storeRig && storeSkin == skin) return;
+            ClearStoreSkin();
+            var prefab = Resources.Load<CandyPlayerRig>("CandyPlayerVisual");
+            storeRig = Object.Instantiate(prefab, root.transform);
+            storeRig.SetColor(0);
+            if (storeRig.TryGetComponent<CandyAvatarDetail>(out var detail)) detail.enabled = false;
+            storeRig.SetAppearance(new AvatarAppearance { skin = skin });
+            Pose(storeRig);
+            store = new StoreSkinPreview();
+            store.Apply(storeRig, skin);
+            storeBounds = Measure(storeRig);
+            storeRig.gameObject.SetActive(false);
+            storeSkin = skin;
+        }
+
+        static void ClearStoreSkin()
+        {
+            store?.Dispose();
+            store = null;
+            storeSkin = null;
+            if (storeRig) Object.Destroy(storeRig.gameObject);
+            storeRig = null;
+        }
+
+        static Texture2D RenderComparison(AvatarSkin skin, float yaw, float pitch, float zoom)
+        {
+            if (!comparisonPixels) comparisonPixels = new Texture2D(Size * 2, Size, TextureFormat.RGB24, false);
+            if (skin == AvatarSkin.Rabbit)
+            {
+                PrepareCaramel();
+                var combined = caramelBounds;
+                combined.Encapsulate(refinedBounds);
+                return RenderPair(caramelRig, refinedRig, combined, yaw, pitch, zoom);
             }
 
-            Quaternion orbit = facing * Quaternion.Euler(Mathf.Clamp(pitch, castle ? -6 : -55, 70), yaw, 0);
+            PrepareSkin(skin);
+            PrepareStoreSkin(skin);
+            var frame = bounds;
+            frame.Encapsulate(storeBounds);
+            return RenderPair(rig, storeRig, frame, yaw, pitch, zoom);
+        }
+
+        static Texture2D RenderPair(CandyPlayerRig before, CandyPlayerRig after, Bounds frame,
+            float yaw, float pitch, float zoom)
+        {
+            PlaceCamera(frame, true, yaw, pitch, zoom);
+            rig.gameObject.SetActive(false);
+            try
+            {
+                before.gameObject.SetActive(true);
+                RenderView(comparisonPixels, true, 0);
+                before.gameObject.SetActive(false);
+                after.gameObject.SetActive(true);
+                RenderView(comparisonPixels, true, Size);
+            }
+            finally
+            {
+                before.gameObject.SetActive(false);
+                after.gameObject.SetActive(false);
+                rig.gameObject.SetActive(true);
+            }
+            comparisonPixels.Apply();
+            return comparisonPixels;
+        }
+
+        static Texture2D RenderRabbitShowcase(float phase)
+        {
+            PrepareCaramel();
+            PlaceCamera(refinedBounds, true, 155f, 9f, .96f);
+            rig.gameObject.SetActive(false);
+            try
+            {
+                refinedRig.gameObject.SetActive(true);
+                refined.ShowcasePose(phase);
+                RenderView(pixels, true, 0);
+                pixels.Apply();
+                return pixels;
+            }
+            finally
+            {
+                refined.ShowcasePose(0f);
+                refinedRig.gameObject.SetActive(false);
+                rig.gameObject.SetActive(true);
+            }
+        }
+
+        static void PlaceCamera(Bounds frame, bool castle, float yaw, float pitch, float zoom)
+        {
+            Quaternion orbit = castleFacing * Quaternion.Euler(Mathf.Clamp(pitch, castle ? -6 : -55, 70), yaw, 0);
             camera.cullingMask = castle ? castleMask : 1 << PreviewLayer;
             camera.clearFlags = castle ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
             camera.farClipPlane = castle ? 1500 : 25;
             camera.GetUniversalAdditionalCameraData().renderPostProcessing = castle && castlePostProcessing;
             foreach (var light in StudioLights) light.enabled = !castle;
-            Vector3 pivot = bounds.center;
+            Vector3 pivot = frame.center;
             camera.transform.rotation = orbit;
-            float fit = WardrobeFraming.RequiredDistance(bounds, pivot, orbit, camera.fieldOfView, 1,
+            float fit = WardrobeFraming.RequiredDistance(frame, pivot, orbit, camera.fieldOfView, 1,
                 camera.nearClipPlane, out float near);
             Vector3 back = orbit * Vector3.back;
             float distance = Mathf.Max(near, fit * Mathf.Clamp(zoom, .55f, 2f));
@@ -300,6 +445,10 @@ namespace DeadlyJenga.DevTools.Editor
                     (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore))
                 distance = Mathf.Max(near, barrier.distance - .06f);
             camera.transform.position = pivot + back * distance;
+        }
+
+        static void RenderView(Texture2D destination, bool castle, int x)
+        {
             var previous = RenderTexture.active;
             bool fog = RenderSettings.fog;
             if (!castle)
@@ -312,8 +461,7 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 camera.Render();
                 RenderTexture.active = target;
-                pixels.ReadPixels(new Rect(0, 0, Size, Size), 0, 0);
-                pixels.Apply();
+                destination.ReadPixels(new Rect(0, 0, Size, Size), x, 0, false);
             }
             finally
             {
@@ -346,6 +494,12 @@ namespace DeadlyJenga.DevTools.Editor
             if (camera) camera.targetTexture = null;
             if (target) { target.Release(); Object.Destroy(target); }
             if (pixels) Object.Destroy(pixels);
+            if (comparisonPixels) Object.Destroy(comparisonPixels);
+            ClearStoreSkin();
+            caramel?.Dispose();
+            refined?.Dispose();
+            caramel = refined = null;
+            caramelRig = refinedRig = null;
             if (root) Object.Destroy(root);
             activeSkin = null;
             castleReady = false;

@@ -10,13 +10,16 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 SKIN_GROUPS = {
-    "Redesigned": {"Rabbit": "Rabbit", "Clownfish": "Clownfish", "CandyCorn": "Candy Corn"},
-    "Comparison": {
-        "Default": "Default", "Fox": "Fox", "Penguin": "Penguin",
+    "Rabbit": {"Rabbit": "Rabbit"},
+    "Store previews": {
+        "Fox": "Fox", "Penguin": "Penguin", "Axolotl": "Axolotl", "Dragon": "Dragon",
+        "Clownfish": "Clownfish", "CandyCorn": "Candy Corn",
         "Gingerbread": "Gingerbread", "Astronaut": "Astronaut",
     },
+    "Reference": {"Default": "Default"},
 }
 SKINS = {skin for group in SKIN_GROUPS.values() for skin in group}
+COMPARISONS = {*SKIN_GROUPS["Rabbit"], *SKIN_GROUPS["Store previews"]}
 SKIN_OPTIONS = "".join(
     f'<optgroup label="{group}">' +
     "".join(f'<option value="{skin}">{label}</option>' for skin, label in options.items()) +
@@ -36,6 +39,14 @@ header,nav {display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 header {justify-content:space-between}
 h1 {margin:0;font-size:clamp(22px,5vw,34px);letter-spacing:-.04em}
 nav {margin:13px 0}
+.compare-toggle {display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:14px}
+.compare-toggle input {accent-color:#78ddc7}
+.compare-labels {display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 6px;text-align:center;font-size:13px}
+.compare-labels[hidden] {display:none}
+figure.comparison #avatar {aspect-ratio:2}
+.showcase {margin-top:12px}
+.showcase summary {cursor:pointer;padding:9px 12px;border:1px solid #40535a;border-radius:9px}
+.showcase video {display:block;width:100%;max-height:360px;margin-top:8px;border-radius:12px}
 .orbit {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px}
 .orbit label {display:grid;gap:4px;font-size:13px}
 .orbit input {width:100%;margin:0;accent-color:#78ddc7}
@@ -58,16 +69,21 @@ figure {background:#17313e;margin:0;border:1px solid #3b5864;border-radius:18px;
 <option value="castle">Castle</option></select>
 <button id="reset">Reset view</button><button id="stop">Stop preview</button>
 <label class="invert-pitch"><input id="invert-pitch" type="checkbox"> Invert up/down</label>
+<label class="compare-toggle"><input id="compare" type="checkbox"> Compare before/after</label>
 </nav>
 <div class="orbit" role="group" aria-label="Camera orbit">
 <label>Rotate left/right <input id="yaw" type="range" min="0" max="360" value="155"></label>
 <label>Tilt up/down <input id="pitch" type="range" min="-55" max="70" value="9"></label>
 </div>
+<div class="compare-labels" id="compare-labels" hidden><span id="before-label">Current skin</span><span>Store polish</span></div>
 <figure><img id="avatar" tabindex="0" draggable="false" alt="Unity wardrobe preview"></figure>
 <p id="status" role="status">Starting Unity…</p>
+__SHOWCASE__
 <script>
 const skin = document.querySelector('#skin'), avatar = document.querySelector('#avatar');
 const environment = document.querySelector('#environment');
+const compare = document.querySelector('#compare'), compareLabels = document.querySelector('#compare-labels');
+const beforeLabel = document.querySelector('#before-label'), comparisons = __COMPARISONS__;
 const status = document.querySelector('#status'), token = __TOKEN__;
 const guidance = 'Drag left/right or up/down to orbit. Scroll or use + and − to zoom.';
 const yawControl = document.querySelector('#yaw'), pitchControl = document.querySelector('#pitch');
@@ -96,12 +112,19 @@ setInterval(async () => {
   if (busy || !dirty || stopped) return;
   busy=true; dirty=false;
   try {
+    const comparing=compare.checked;
     const selection=skin.value;
-    const response=await request('/frame',JSON.stringify({skin:selection,environment:environment.value,yaw,pitch,zoom}));
+    const scene=comparing ? 'castle' : environment.value;
+    const response=await request('/frame',JSON.stringify({skin:selection,environment:scene,compare:comparing,yaw,pitch,zoom}));
     if (!response.ok) {status.textContent=await response.text(); dirty=response.status===503; return;}
     const next=URL.createObjectURL(await response.blob());
     if (imageUrl) URL.revokeObjectURL(imageUrl);
-    imageUrl=next; avatar.src=next; avatar.alt=selection+' rendered by Unity';
+    imageUrl=next;
+    avatar.parentElement.classList.toggle('comparison',comparing);
+    compareLabels.hidden=!comparing;
+    beforeLabel.textContent=selection==='Rabbit' ? 'Caramel v1' : 'Current skin';
+    avatar.src=next;
+    avatar.alt=comparing ? selection+' before and after store polish in Castle' : selection+' rendered by Unity';
     status.textContent=guidance;
   } catch {status.textContent='The Unity preview disconnected.';}
   finally {busy=false;}
@@ -128,10 +151,29 @@ avatar.addEventListener('keydown',e => {
   }
   e.preventDefault(); setOrbit(yaw,pitch);
 });
-skin.addEventListener('change',render);
-environment.addEventListener('change',() => {
-  pitchControl.min=environment.value==='castle' ? -6 : -55;
+skin.addEventListener('change',() => {
+  if (compare.checked && !comparisons.includes(skin.value)) {
+    compare.checked=false;
+    environment.value=singleEnvironment;
+  }
+  updateEnvironment();
+});
+function updateEnvironment() {
+  compare.disabled=!comparisons.includes(skin.value);
+  environment.disabled=compare.checked;
+  pitchControl.min=compare.checked || environment.value==='castle' ? -6 : -55;
   setOrbit(yaw,pitch);
+}
+environment.addEventListener('change',updateEnvironment);
+let singleEnvironment;
+compare.addEventListener('change',() => {
+  if (compare.checked) {
+    singleEnvironment=environment.value;
+    environment.value='castle';
+  } else if (singleEnvironment) {
+    environment.value=singleEnvironment;
+  }
+  updateEnvironment();
 });
 document.querySelector('#reset').onclick=()=>{zoom=1;setOrbit(155,9);};
 document.querySelector('#stop').onclick=async e=>{
@@ -141,6 +183,18 @@ document.querySelector('#stop').onclick=async e=>{
 };
 </script></html>
 """
+
+
+SHOWCASE = {
+    "/rabbit-hero.png": ("rabbit-hero.png", "image/png"),
+    "/rabbit-ear-tilt.webm": ("rabbit-ear-tilt.webm", "video/webm"),
+}
+SHOWCASE_HTML = """<details class="showcase">
+<summary>Caramel Rabbit store preview</summary>
+<video controls playsinline preload="none" poster="/rabbit-hero.png" aria-label="Caramel Rabbit head tilt and ear flick">
+<source src="/rabbit-ear-tilt.webm" type="video/webm">
+</video>
+</details>"""
 
 
 def write_json(path, data):
@@ -155,8 +209,12 @@ class PreviewServer(ThreadingHTTPServer):
         self.folder = folder
         self.host = f"127.0.0.1:{self.server_port}"
         self.token = secrets.token_urlsafe(24)
+        self.showcase = folder / "rabbit-showcase"
+        has_showcase = all((self.showcase / name).is_file() for name, _ in SHOWCASE.values())
         self.page = (PAGE.replace("__REVISION__", revision[:10])
+                     .replace("__SHOWCASE__", SHOWCASE_HTML if has_showcase else "")
                      .replace("__SKINS__", SKIN_OPTIONS)
+                     .replace("__COMPARISONS__", json.dumps(sorted(COMPARISONS)))
                      .replace("__TOKEN__", json.dumps(self.token)))
         self.render_lock = threading.Lock()
 
@@ -164,7 +222,7 @@ class PreviewServer(ThreadingHTTPServer):
 class Request(BaseHTTPRequestHandler):
     def setup(self):
         super().setup()
-        self.connection.settimeout(8)
+        self.connection.settimeout(12)
 
     def reply(self, status, body, mime="text/plain; charset=utf-8"):
         if isinstance(body, str):
@@ -175,7 +233,7 @@ class Request(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Content-Security-Policy",
-                         "default-src 'none'; img-src blob:; connect-src 'self'; "
+                         "default-src 'none'; img-src 'self' blob:; media-src 'self'; connect-src 'self'; "
                          "script-src 'unsafe-inline'; style-src 'unsafe-inline'; frame-ancestors 'none'")
         self.end_headers()
         try:
@@ -188,6 +246,12 @@ class Request(BaseHTTPRequestHandler):
             self.reply(403, "Use the local preview URL.")
         elif self.path == "/":
             self.reply(200, self.server.page, "text/html; charset=utf-8")
+        elif self.path in SHOWCASE:
+            name, mime = SHOWCASE[self.path]
+            try:
+                self.reply(200, (self.server.showcase / name).read_bytes(), mime)
+            except FileNotFoundError:
+                self.reply(404, "Store preview is unavailable.")
         else:
             self.reply(404, "Preview path not found.")
 
@@ -213,7 +277,10 @@ class Request(BaseHTTPRequestHandler):
             orbit = {key: float(data[key]) for key in ("yaw", "pitch", "zoom")}
             skin = data["skin"]
             environment = data.get("environment", "studio")
-            if skin not in SKINS or environment not in ("studio", "castle") or not all(math.isfinite(v) for v in orbit.values()):
+            compare = data.get("compare", False)
+            if (skin not in SKINS or environment not in ("studio", "castle") or
+                    not isinstance(compare, bool) or compare and (skin not in COMPARISONS or environment != "castle") or
+                    not all(math.isfinite(v) for v in orbit.values())):
                 raise ValueError()
         except (ValueError, KeyError, TypeError, TimeoutError):
             self.reply(400, "Invalid skin or orbit.")
@@ -232,8 +299,8 @@ class Request(BaseHTTPRequestHandler):
         try:
             request_id = uuid.uuid4().hex
             output = folder / f"frame-{request_id}.png"
-            write_json(folder / "orbit.json", {"id": request_id, "skin": skin, "environment": environment, **orbit})
-            deadline = time.monotonic() + 5
+            write_json(folder / "orbit.json", {"id": request_id, "skin": skin, "environment": environment, "compare": compare, **orbit})
+            deadline = time.monotonic() + (9 if compare else 5)
             while time.monotonic() < deadline and not output.exists() and not (folder / "unity-error.txt").exists():
                 time.sleep(.025)
             if output.exists():
