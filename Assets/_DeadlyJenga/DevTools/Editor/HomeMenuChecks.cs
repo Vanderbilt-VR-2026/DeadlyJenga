@@ -11,6 +11,8 @@ using Fusion;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using Object=UnityEngine.Object;
 using LogType=UnityEngine.LogType;
@@ -201,9 +203,20 @@ namespace DeadlyJenga.DevTools.Editor
                 var forward=Vector3.ProjectOnPlane(eye.transform.forward,Vector3.up).normalized;
                 Require(Vector3.Dot((panel.position-eye.transform.position).normalized,forward)>.92f,"Wardrobe aligns to the eye line when opened sideways");
                 Require(lobbyView.InvokeChoice("wardrobe-open")&&!lobbyView.WardrobeOpen&&survivor.InputSuspended==oldInput,"Wardrobe Done restores input");
+                IslandLobby.Current.SetMenu(false);
                 lobbyView.SetWardrobeOpen(true);
                 Require(lobbyView.WardrobeOpen,"Wardrobe can re-enter");
-                lobbyView.SetWardrobeOpen(false);
+                var keyboard=InputSystem.AddDevice<Keyboard>();
+                try
+                {
+                    keyboard.MakeCurrent();
+                    InputSystem.QueueStateEvent(keyboard,new KeyboardState(UnityEngine.InputSystem.Key.Escape));
+                    yield return null;
+                    yield return null;
+                    Require(!lobbyView.WardrobeOpen&&!IslandLobby.Current.MenuOpen&&!survivor.InputSuspended,
+                        "Pressing Escape exits the wardrobe without opening the lobby menu or suspending movement");
+                }
+                finally{InputSystem.RemoveDevice(keyboard);}
             }
 
             IslandLobby.Current.SelectMap("castle");

@@ -140,12 +140,18 @@ namespace DeadlyJenga.CastlePrototype
             }
             else if (outside||feet.y<-.9f) PlaceLocalLobbyArrival();
             var keyboard=Keyboard.current;
-            if(menu.WasPressedThisFrame()||keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame||Player.MenuPressed)
+            bool inspectingAvatar = Player.InputSuspended &&
+                Player.gameObject.GetComponent<IAvatarShowcase>()?.Showcasing == true;
+            if (!inspectingAvatar)
             {
-                if (codeFocused) UnfocusCode();
-                else SetMenu(!MenuOpen);
+                if (menu.WasPressedThisFrame() || keyboard?.escapeKey.wasPressedThisFrame == true || Player.MenuPressed)
+                {
+                    if (codeFocused) UnfocusCode();
+                    else SetMenu(!MenuOpen);
+                }
+                if (!Player.IsVR && !MenuOpen && Cursor.lockState != CursorLockMode.Locked && !Application.isBatchMode)
+                    SetMenu(true);
             }
-            if(!Player.IsVR&&!MenuOpen&&Cursor.lockState!=CursorLockMode.Locked&&!Application.isBatchMode)SetMenu(true);
             if(VisitOwner){RefreshVisitingBots();return;}
             HomeSession.ConsumeLobbyEntry(this);
             TickMarinaLocalArrival();
