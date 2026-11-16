@@ -343,7 +343,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Shot(camera, "east-side", new Vector3(55f, 48f, -85f), new Vector3(-90f, 24f, -110f), 70f);
                 Shot(camera, "west-side", new Vector3(-235f, 45f, -115f), new Vector3(-90f, 22f, -110f), 70f);
                 Shot(camera, "rear-player", new Vector3(-145f, 4f, -62f), new Vector3(-90f, 12f, -150f), 80f);
-                Shot(camera, "front-room", new Vector3(-90f, 32f, -125f), new Vector3(25f, 55f, -245f), 85f);
+                Shot(camera, "front-room", new Vector3(-80f, 65f, -175f), new Vector3(-90f, 55f, -260f), 85f);
                 var penetrations = new System.Collections.Generic.HashSet<string>();
                 foreach (var shape in railBodies.SelectMany(b => b.GetComponentsInChildren<BoxCollider>()))
                 foreach (var other in Physics.OverlapBox(shape.bounds.center, shape.bounds.extents, Quaternion.identity,

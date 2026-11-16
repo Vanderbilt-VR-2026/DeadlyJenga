@@ -86,7 +86,7 @@ namespace DeadlyJenga.CastlePrototype
             Parcel("Left Summit / Sapphire Upper Ledge", -23f, 7f, 3f, 4.5f, 7f, navy, ivory, 0f, l2);
             Parcel("Left Summit / Side Foothold", -20f, 4f, 7f, 4f, 10f, navy, ivory, 5f, l1);
             Parcel("Left Summit / Rear Entry", -25f, 16f, 13f, 3f, 8f, green, gold, -6f);
-            Parcel("Left Summit / Rear Step", -28f, 12f, 10f, 6f, 8f, red, ivory, 4f);
+            Parcel("Left Summit / Rear Step", -28f, 12f, 10f, 5.5f, 8f, red, ivory, 4f);
             Parcel("Left Summit / Front Entry", -23f, -22f, 15f, 3f, 8f, cream, berry, 3f);
             Parcel("Left Summit / Front Step", -23f, -16f, 9f, 6f, 6f, navy, ivory, -4f);
             Parcel("Left Summit / Front Shelf", -27.5f, -14f, 7f, 11f, 6f, red, gold);
@@ -102,7 +102,7 @@ namespace DeadlyJenga.CastlePrototype
             Parcel("Right Summit / Rear Entry", 25f, 19f, 12f, 3f, 8f, cream, berry, 8f);
             Parcel("Right Summit / Rear Step", 29f, 15f, 10f, 5f, 8f, green, ivory, -4f);
             Parcel("Right Summit / Front Entry", 21f, -23f, 14f, 2.5f, 8f, red, gold, -5f);
-            Parcel("Right Summit / Front Step", 26f, -19f, 12f, 6f, 8f, green, ivory, 3f);
+            Parcel("Right Summit / Front Step", 26f, -19f, 12f, 5.5f, 8f, green, ivory, 3f);
             Parcel("Right Summit / Front Shelf", 27.5f, -14f, 7f, 10f, 6f, cream, berry);
 
             // Broad side terraces give each summit a second, less direct climbing route.
@@ -125,7 +125,7 @@ namespace DeadlyJenga.CastlePrototype
 
             // The train passes between these two piers, below a real breakaway gift lintel.
             var outer = Parcel("Train Tunnel / Outer Pier", -50f, -7f, 6f, 13f, 12f, cream, gold);
-            var inner = Parcel("Train Tunnel / Inner Pier", -35f, -7f, 5f, 13f, 12f, red, gold);
+            var inner = Parcel("Train Tunnel / Inner Pier", -33f, -7f, 5f, 13f, 12f, red, gold);
             var tunnel = BoxGift("Train Tunnel / Gold Lintel", CoursePoint(-42.5f, -7f, 15f),
                 new Vector3(21f, 2.8f, 13f), Quaternion.Euler(0f, yaw, 0f), cream, gold);
             giftBearings.Add(new GiftBearing(GiftBase(tunnel), outer, inner));
@@ -135,7 +135,7 @@ namespace DeadlyJenga.CastlePrototype
             Parcel("Tunnel / Ruby Cap", -49f, -6f, 6f, 4f, 7f, red, gold, 0f, tunnel);
             var tunnelStack = Parcel("Tunnel / Emerald Upper Parcel", -41f, -6f, 7f, 5f, 8f, green, ivory, -4f, tunnel);
             Parcel("Tunnel / Ivory Upper Parcel", -42f, -6f, 5f, 4f, 6f, cream, berry, 5f, tunnelStack);
-            Parcel("Outer Right / Ruby Landing", 49f, -7f, 9f, 7f, 12f, red, gold);
+            Parcel("Outer Right / Ruby Landing", 51f, -7f, 9f, 7f, 12f, red, gold);
             Parcel("Outer Right / Cream Entry", 50f, -20f, 11f, 3f, 8f, cream, berry, -7f);
             Parcel("Outer Right / Green Step", 50f, -14f, 9f, 5f, 7f, green, ivory, 4f);
             Parcel("Courtyard / Navy Hop", -5f, -20f, 8f, 2f, 6f, navy, ivory, 8f);
