@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class CastleSurvivor : IPushable, IDamageable, IAffectable, ITeleportable, IMovementState, IPlayerView, IHazardMotion, IDeveloperGodMode
     {
         bool developerGodMode;
-        public bool CanSetGodMode => !externallyDriven && ReferenceEquals(Services.Session?.Player,this) &&
+        public bool CanSetGodMode => isActiveAndEnabled && !externallyDriven && Services.Session?.PlayingHand==false && ReferenceEquals(Services.Session?.Player,this) &&
             Services.Session?.Demo?.CanCommand==true && Services.Session.Demo.DemoMode &&
             MatchRuntime.Current?.Authority==true && MatchRuntime.Current.Rules.mode==GameModeKind.Demo;
         public bool GodModeEnabled => developerGodMode && CanSetGodMode;

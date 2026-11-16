@@ -112,8 +112,11 @@ namespace DeadlyJenga.DevTools.Editor
             GameExperiencePanel.Resolve(session)?.SetExperience(GameExperience.Demo);
             session.Modes.Configure(ModeDefaults.Create(GameModeKind.Demo));
             var camera=session.ActiveCamera;Check(camera,"Session camera available");
-            var menu=new GameObject("Developer overhaul validation",typeof(RectTransform)).AddComponent<CastleWorldMenu>();
-            menu.Build(session);menu.Show(true,camera);
+            var presentation=session.GetComponent<SessionPresentation>();Check(presentation,"Production session presentation exists");
+            session.SetMenu(true);yield return null;
+            var menu=Field<CastleWorldMenu>(presentation,"worldMenu");Check(menu,"Use the actual game tablet, not an overlapping duplicate");
+            typeof(SessionPresentation).GetField("inputFocused",Flags).SetValue(presentation,false);
+            menu.Show(true,camera);
             var pageType=typeof(CastleWorldMenu).GetNestedType("TabletPage",BindingFlags.NonPublic);
             Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Developer"));
             void Draw(){Call(menu,"PointPlayerTablet",camera,false,false);Canvas.ForceUpdateCanvases();Physics.SyncTransforms();}
@@ -128,7 +131,12 @@ namespace DeadlyJenga.DevTools.Editor
                 typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,target.bounds.center-camera.transform.position));
                 Call(menu,"PointPlayerTablet",camera,true,false);Draw();
             }
-            IEnumerator Shot(string file){Draw();yield return null;Draw();yield return null;Capture(camera,menu.GetComponent<Canvas>(),file);}
+            IEnumerator Shot(string file)
+            {
+                Draw();yield return null;Draw();yield return null;
+                Check(Object.FindObjectsByType<CastleWorldMenu>(FindObjectsSortMode.None).Count(x=>x.gameObject.activeInHierarchy)==1,"Exactly one rendered tablet: "+file);
+                Capture(camera,menu.GetComponent<Canvas>(),file);
+            }
             Draw();
             var grid=Field<RectTransform>(menu,"tabletDeveloperGrid");
             var tiles=grid.GetComponentsInChildren<Button>();
@@ -176,7 +184,8 @@ namespace DeadlyJenga.DevTools.Editor
             god.SetGodMode(true);session.Modes.Configure(ModeDefaults.Create(GameModeKind.Survival));Call(survivor,"Update");
             Check(!god.CanSetGodMode&&!god.GodModeEnabled,"Leaving Demo revokes God Mode");
             session.Modes.Configure(ModeDefaults.Create(GameModeKind.Demo));Check(!god.GodModeEnabled,"Returning to Demo does not silently restore God Mode");
-            Object.DestroyImmediate(menu.gameObject);
+            typeof(SessionPresentation).GetField("inputFocused",Flags).SetValue(presentation,true);
+            session.SetMenu(false);
         }
         static void Capture(Camera camera,Canvas canvas,string name)
         {
