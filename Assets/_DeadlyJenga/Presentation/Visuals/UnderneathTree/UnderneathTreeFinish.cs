@@ -43,7 +43,7 @@ namespace DeadlyJenga.CandyArt
         VolumeProfile grade;
         bool neutralView;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         static void Register()
         {
             GameEvents.SessionStarted -= OnSessionStarted;
@@ -158,7 +158,7 @@ namespace DeadlyJenga.CandyArt
                 roomReflected = true;
                 roomProbe.RenderProbe();
             }
-            if (Application.platform != RuntimePlatform.Android && Services.Session?.ActiveCamera is Camera active &&
+            if (Services.Session?.ActiveCamera is Camera active &&
                 active.TryGetComponent<UniversalAdditionalCameraData>(out var data))
             {
                 if (!cameras.ContainsKey(data))
@@ -289,8 +289,6 @@ namespace DeadlyJenga.CandyArt
             MakeLight("Floor lamp", LightType.Point,
                 new Vector3(-203, 59, -12), new Color(1f, .70f, .39f), 850f, 120f);
 
-            if (Application.platform == RuntimePlatform.Android)
-                return;
             var reflections = new GameObject("Christmas Room Reflections");
             reflections.transform.SetParent(art, false);
             reflections.transform.localPosition = new Vector3(-39f, 36f, -65f);
@@ -298,7 +296,7 @@ namespace DeadlyJenga.CandyArt
             roomProbe.mode = ReflectionProbeMode.Realtime;
             roomProbe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
             roomProbe.timeSlicingMode = ReflectionProbeTimeSlicingMode.IndividualFaces;
-            roomProbe.resolution = 128;
+            roomProbe.resolution = 64;
             roomProbe.size = new Vector3(220f, 135f, 200f);
             roomProbe.boxProjection = true;
             roomProbe.intensity = .85f;

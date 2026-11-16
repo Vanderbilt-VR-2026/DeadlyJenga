@@ -64,8 +64,8 @@ namespace DeadlyJenga.CastlePrototype
             // Two asymmetric shoulders share their lower terraces with the railway.
             var left = Parcel("Gift Bridge / Pine Bearing", -28f, -9f, 15f, 16f, 18f, green, gold);
             var right = Parcel("Gift Bridge / Cranberry Bearing", 27f, -9f, 15f, 16f, 18f, red, ivory);
-            float seat = Mathf.Max(left.transform.position.y + left.GetComponent<BoxCollider>().size.y * .5f,
-                right.transform.position.y + right.GetComponent<BoxCollider>().size.y * .5f);
+            float seat = Mathf.Max(transform.InverseTransformPoint(left.transform.position).y + left.GetComponent<BoxCollider>().size.y * .5f,
+                transform.InverseTransformPoint(right.transform.position).y + right.GetComponent<BoxCollider>().size.y * .5f);
             var span = BoxGift("Gift Bridge / Navy Span", CoursePoint(-.5f, -9f, seat + 1.6f),
                 new Vector3(69f, 3.2f, 10f), Quaternion.Euler(0f, yaw, 0f), navy, ivory);
             giftBearings.Add(new GiftBearing(GiftBase(span), left, right));

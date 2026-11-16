@@ -1,12 +1,47 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class UnderneathTreeMap
     {
+        void ResizeApprovedRug(MeshFilter filter)
+        {
+            var mesh = Instantiate(filter.sharedMesh);
+            mesh.name = "Approved room rug footprint";
+            var points = mesh.vertices;
+            for (int i = 0; i < points.Length; i++)
+            {
+                var point = transform.InverseTransformPoint(filter.transform.TransformPoint(points[i]));
+                point.x = -75f + (point.x + 35f) * 1.5f;
+                point.z = -95f + (point.z + 35f) * 1.5f;
+                points[i] = filter.transform.InverseTransformPoint(transform.TransformPoint(point));
+            }
+            mesh.vertices = points;
+            mesh.RecalculateBounds();
+            filter.sharedMesh = mesh;
+            generatedMeshes.Add(mesh);
+        }
+
+        void ScaleApprovedCourse(Transform imported)
+        {
+            var course = Child(built, "Approved Gift Course", new Vector3(-62f, 0f, -80f), Quaternion.identity);
+            var frames = new List<Transform>();
+            foreach (Transform node in built)
+                if (node != course && node != imported && !node.name.EndsWith("(Clone)") && node.name != "Fir trunk collision")
+                    frames.Add(node);
+            foreach (var frame in frames) frame.SetParent(course, true);
+            course.localPosition = new Vector3(-90f, -.486f, -110f);
+            course.localScale = Vector3.one * 1.9f;
+            Physics.SyncTransforms();
+            foreach (var body in bodies)
+                foreach (var shape in body.GetComponentsInChildren<Collider>())
+                    playArea.Encapsulate(shape.bounds);
+        }
+
         void BuildJunction()
         {
             var orientation = Quaternion.LookRotation(new Vector3(-.270f, 0f, .963f));
@@ -45,7 +80,7 @@ namespace DeadlyJenga.CastlePrototype
 
         static float GiftFloor(Vector3 center)
         {
-            Vector2 fromTree = new Vector2(center.x + 35f, center.z + 35f);
+            Vector2 fromTree = new Vector2(center.x + 62f, center.z + 75f);
             return fromTree.sqrMagnitude < 77f * 77f ? .54f : .02f;
         }
 
@@ -67,7 +102,7 @@ namespace DeadlyJenga.CastlePrototype
                 new Vector3(size.x, thick, size.z), wrap, null, Vector3.zero);
             var top = AddPanel(frame, shell, "Lid", GiftPieceRole.Lid, Vector3.up * ((size.y - thick) * .5f),
                 new Vector3(size.x, thick, size.z), wrap, ribbon, Vector3.up);
-            if (label == "Present 206")
+            if (label == "Present 206" || label == "Entrance / Cream Catch")
                 spawnTops.Insert(0, top);
             else if (spawn)
                 spawnTops.Add(top);

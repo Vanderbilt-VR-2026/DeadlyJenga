@@ -297,6 +297,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 blockCount = map.Blocks.Count;
                 revision = map.Revision;
                 originalPieces = PieceOrder();
+                var finish = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
+                    .FirstOrDefault(b => b.GetType().Name == "UnderneathTreeFinish");
+                Require(finish && finish.isActiveAndEnabled && map.Root.Find("Christmas Eve Art and Lighting"),
+                    "production Christmas finishing layer is attached and enabled after event reset");
                 File.AppendAllText(Report, "BODIES " + blockCount + " RENDERERS " + map.Root.GetComponentsInChildren<Renderer>().Length + "\n");
                 bridgeLid = map.Blocks.Single(b => b.name == "Lid" && b.transform.parent.name == "Gift Bridge / Navy Span");
                 var bridgeBase = map.Blocks.Single(b => b.name == "Bottom" && b.transform.parent.name == "Gift Bridge / Navy Span");
@@ -312,9 +316,18 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 initialTrainPosition = train.transform.position;
                 Require(Physics.Raycast(map.SafeSpawnPoint() + Vector3.up * .3f, Vector3.down, out _, 1f, 1 << Layers.Block),
                     "spawn has a physical gift landing");
-                Shot(camera, "approved-overview", new Vector3(44.175f, 81f, -158.15f), new Vector3(-58f, 15f, -68f), 64f, true);
-                Shot(camera, "approved-overhead", new Vector3(-60f, 145f, -100f), new Vector3(-62f, 5f, -80f), 64f);
-                Shot(camera, "approved-player-bridge", new Vector3(-35f, 2.5f, -112f), new Vector3(-60f, 13f, -75f), 72f);
+                Shot(camera, "approved-overview", new Vector3(62f, 115f, -235f), new Vector3(-91f, 24f, -94f), 64f, true);
+                Shot(camera, "approved-overhead", new Vector3(-90f, 245f, -135f), new Vector3(-90f, 5f, -110f), 64f);
+                Shot(camera, "approved-player-bridge", new Vector3(-47f, 3f, -166f), new Vector3(-90f, 25f, -110f), 72f);
+                impactFixedTime = Time.fixedTime;
+                phase = 10;
+                return;
+            }
+            if (phase == 10)
+            {
+                if (Time.fixedTime - impactFixedTime < 1f) return;
+                Require(Vector3.Distance(initialTrainPosition, map.GetComponentInChildren<UnderneathTreeTrain>().transform.position) > .1f,
+                    "train advances on the intact course before support removal");
                 initialBridgePosition = bridgeLid.position;
                 hitRail = railBodies[0];
                 initialRailPosition = hitRail.position;
@@ -331,8 +344,6 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 "removing bridge support releases and moves the navy span through PhysX");
             Require(!hitRail.isKinematic && Vector3.Distance(initialRailPosition, hitRail.position) > .2f,
                 "removing rail gift releases and moves its track section");
-            Require(Vector3.Distance(initialTrainPosition, map.GetComponentInChildren<UnderneathTreeTrain>().transform.position) > .1f,
-                "train advances along intact course");
             Services.Session.ResetMap();
             Require(map.Revision > revision && map.Blocks.Count == blockCount && map.Blocks.All(b => b.isKinematic),
                 "reset restores approved layout intact");

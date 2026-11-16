@@ -104,7 +104,10 @@ namespace DeadlyJenga.CastlePrototype
                     playArea.Encapsulate(filter.GetComponent<Renderer>().bounds);
                 }
                 else if (name.Contains("kill floor"))
+                {
+                    ResizeApprovedRug(filter);
                     skirt = AddMeshSurface(filter);
+                }
                 else if (name.StartsWith("Wood Planks", StringComparison.Ordinal) || name == "Tree Skirt rim")
                     AddMeshSurface(filter);
             }
@@ -114,11 +117,12 @@ namespace DeadlyJenga.CastlePrototype
                 foreach (var part in pair.Value)
                     part.gameObject.SetActive(false);
             foreach (var filter in filters)
-                if (filter.name.StartsWith("Track ", StringComparison.Ordinal))
+                if (filter.name.StartsWith("Track ", StringComparison.Ordinal) || filter.name.StartsWith("Gap present", StringComparison.Ordinal))
                     filter.gameObject.SetActive(false);
             BuildGiftRoutes();
             Physics.SyncTransforms();
             BuildApprovedTrack();
+            ScaleApprovedCourse(layout.transform);
             fallbackSpawn = CoursePoint(0f, -41f, 2f);
             playArea.Expand(new Vector3(8f, 12f, 8f));
             Physics.SyncTransforms();

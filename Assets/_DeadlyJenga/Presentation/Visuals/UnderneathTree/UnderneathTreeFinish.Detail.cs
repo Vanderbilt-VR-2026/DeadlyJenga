@@ -147,7 +147,7 @@ namespace DeadlyJenga.CandyArt
             var vertices = new List<Vector3>();
             var uv = new List<Vector2>();
             var triangles = new List<int>();
-            var center = new Vector3(-35f, .56f, -35f);
+            var center = new Vector3(-75f, .56f, -95f);
 
             for (int i = 0; i <= around; i++)
             {
@@ -157,7 +157,7 @@ namespace DeadlyJenga.CandyArt
                 for (int j = 0; j <= cross; j++)
                 {
                     float v = j / (float)cross, spin = v * Mathf.PI * 2f;
-                    var position = center + outward * (80.15f + .31f * Mathf.Sin(angle * 11f) + 2.77f * Mathf.Cos(spin)) +
+                    var position = center + outward * (120.15f + .31f * Mathf.Sin(angle * 11f) + 2.77f * Mathf.Cos(spin)) +
                         Vector3.up * Mathf.Max(.04f, .40f + Mathf.Sin(spin) * (1.06f + .16f * Mathf.Cos(angle * 19f)));
                     vertices.Add(position);
                     uv.Add(new Vector2(u, v));
@@ -181,6 +181,8 @@ namespace DeadlyJenga.CandyArt
         {
             var panel = renderer.transform;
             if (renderer.name != "Visual" || !panel.parent || panel.parent.name != "Lid")
+                return;
+            if (panel.parent.parent && panel.parent.parent.name.StartsWith("Rail Gift ", StringComparison.Ordinal))
                 return;
             var ribbon = panel.parent.Find("Ribbon lengthwise");
             if (!ribbon || !ribbon.TryGetComponent<MeshRenderer>(out var strip) || !strip.sharedMaterial)

@@ -39,6 +39,24 @@ namespace DeadlyJenga.CandyArt
             return material;
         }
 
+        Material FoilPaper(string label, Color color)
+        {
+            if (finishes.TryGetValue(label, out var cached)) return cached;
+            var shader = Resources.Load<Shader>(ResourcePath + "Christmas Foil Paper");
+            if (!shader) return Surface(label, "Winter Print", color, .4f, new Vector2(1.5f, 1.5f));
+            var material = new Material(shader) { name = label, color = color, enableInstancing = true };
+            material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Winter Print"));
+            material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Paper Normal"));
+            material.SetTextureScale("_BaseMap", new Vector2(1.5f, 1.5f));
+            material.SetFloat("_BumpScale", .16f);
+            material.SetFloat("_Smoothness", .36f);
+            material.SetFloat("_Sheen", 0f);
+            material.SetColor("_FoilColor", new Color(.95f, .65f, .22f));
+            materials.Add(material);
+            finishes.Add(label, material);
+            return material;
+        }
+
         Material Glow(string label, Color color, float brightness)
         {
             var material = Surface(label, null, color, .58f, Vector2.one);
@@ -94,8 +112,7 @@ namespace DeadlyJenga.CandyArt
                 return Surface("Satin " + name, "Woven", color, .69f, new Vector2(2, 3), gold ? .25f : .06f, .42f);
             }
             if (name.Contains("gift wrap") || name.Contains("gift Wrap") || name.Contains("Mulberry"))
-                return Surface(name + " paper", name.Contains("snowflake") ? "Winter Print" : "Botanical Paper",
-                    color, .37f, new Vector2(1.75f, 1.75f), 0f, .48f);
+                return FoilPaper(name + " paper", color);
             if (name.StartsWith("Felt"))
                 return Fabric("Cranberry tufted tree skirt", "Fleece Scan", new Color(.65f, .115f, .153f),
                     new Vector2(28f, 28f), .13f, .53f);
