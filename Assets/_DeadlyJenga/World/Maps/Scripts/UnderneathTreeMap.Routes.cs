@@ -95,6 +95,24 @@ namespace DeadlyJenga.CastlePrototype
             Parcel("Right Summit / Front Step", 26f, -19f, 12f, 6f, 8f, green, ivory, 3f);
             Parcel("Right Summit / Front Shelf", 30f, -15f, 8f, 10f, 7f, cream, berry);
 
+            // Broad side terraces give each summit a second, less direct climbing route.
+            var ls = Parcel("Left Terrace / Emerald Foundation", -47f, 14f, 9f, 8f, 10f, green, ivory, -4f);
+            var ls2 = Parcel("Left Terrace / Ruby Shelf", -47f, 14f, 8f, 5f, 9f, red, gold, 6f, ls);
+            Parcel("Left Terrace / Cream Perch", -47f, 14f, 7f, 5f, 7f, cream, berry, -3f, ls2);
+            Parcel("Left Terrace / Navy Toe", -52f, 25f, 8f, 3f, 8f, navy, ivory, 7f);
+            Parcel("Left Terrace / Cream Stair", -43f, 25f, 8f, 5.5f, 8f, cream, gold, -3f);
+            Parcel("Left Terrace / Ruby Rear", -34f, 25f, 8f, 8f, 8f, red, gold, 4f);
+            var rs = Parcel("Right Terrace / Ruby Foundation", 52f, 15f, 9f, 7f, 10f, red, gold, 4f);
+            var rs2 = Parcel("Right Terrace / Emerald Shelf", 52f, 15f, 8f, 5f, 9f, green, ivory, -5f, rs);
+            Parcel("Right Terrace / Ivory Perch", 52f, 15f, 7f, 5f, 7f, cream, berry, 5f, rs2);
+            Parcel("Right Terrace / Navy Toe", 51f, 27f, 8f, 2.5f, 8f, navy, gold, -4f);
+            Parcel("Right Terrace / Cream Stair", 42f, 27f, 8f, 4.5f, 8f, cream, berry, 6f);
+            Parcel("Right Terrace / Green Rear", 33f, 27f, 8f, 7f, 8f, green, ivory, -3f);
+            Parcel("Bridge Approach / Left Low", -15f, -15f, 9f, 3f, 9f, red, gold, 5f);
+            Parcel("Bridge Approach / Left Mid", -19f, -10f, 7f, 7f, 8f, cream, berry, -4f);
+            Parcel("Bridge Approach / Right Low", 14f, -16f, 9f, 3f, 8f, green, ivory, -6f);
+            Parcel("Bridge Approach / Right Mid", 18f, -10f, 7f, 7f, 8f, navy, gold, 4f);
+
             // The train passes between these two piers, below a real breakaway gift lintel.
             var outer = Parcel("Train Tunnel / Outer Pier", -50f, -7f, 6f, 13f, 12f, cream, gold);
             var inner = Parcel("Train Tunnel / Inner Pier", -35f, -7f, 5f, 13f, 12f, red, gold);

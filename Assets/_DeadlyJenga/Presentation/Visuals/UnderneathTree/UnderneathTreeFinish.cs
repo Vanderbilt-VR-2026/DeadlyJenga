@@ -42,6 +42,8 @@ namespace DeadlyJenga.CandyArt
         Volume volume;
         VolumeProfile grade;
         bool neutralView;
+        RenderPipelineAsset previousPipeline;
+        UniversalRenderPipelineAsset roomPipeline;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         static void Register()
@@ -89,6 +91,18 @@ namespace DeadlyJenga.CandyArt
             BuildRoom();
             BuildFir();
             BuildRoomDetails();
+            if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset pipeline)
+            {
+                previousPipeline = QualitySettings.renderPipeline;
+                roomPipeline = Instantiate(pipeline);
+                roomPipeline.name = "Christmas room rendering (runtime only)";
+                roomPipeline.hideFlags = HideFlags.HideAndDontSave;
+                roomPipeline.shadowDistance = 340f;
+                roomPipeline.shadowCascadeCount = Application.platform == RuntimePlatform.Android ? 2 : 4;
+                roomPipeline.mainLightShadowmapResolution = 2048;
+                roomPipeline.supportsHDR = true;
+                QualitySettings.renderPipeline = roomPipeline;
+            }
             BuildLighting();
             RestoreIndoorSettings();
             RefreshWorldArt();
@@ -169,7 +183,7 @@ namespace DeadlyJenga.CandyArt
 
         void RestoreIndoorSettings()
         {
-            var fill = new Color(.25f, .29f, .39f);
+            var fill = new Color(.15f, .19f, .29f);
             if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Flat &&
                 RenderSettings.ambientLight == fill && Mathf.Approximately(RenderSettings.reflectionIntensity, .68f))
                 return;
@@ -218,6 +232,7 @@ namespace DeadlyJenga.CandyArt
                 }
                 ApplyFinish(renderer);
                 SoftenGiftEdges(renderer);
+                MapRugTexture(renderer);
                 AddGiftBow(renderer);
             }
         }
@@ -227,6 +242,11 @@ namespace DeadlyJenga.CandyArt
             if (!captured)
                 return;
             captured = false;
+            if (roomPipeline)
+            {
+                if (QualitySettings.renderPipeline == roomPipeline) QualitySettings.renderPipeline = previousPipeline;
+                Destroy(roomPipeline);
+            }
             foreach (var item in shadowCasting)
                 if (item.Key)
                     item.Key.shadowCastingMode = item.Value;
@@ -273,21 +293,23 @@ namespace DeadlyJenga.CandyArt
         void BuildLighting()
         {
             key = MakeLight("Amber lamplight and ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .83f, .60f), 1.65f, 0f);
+                Vector3.zero, new Color(1f, .83f, .60f), 1.2f, 0f);
             key.transform.localRotation = Quaternion.Euler(42f, 58f, 0f);
             key.shadows = LightShadows.Soft;
-            key.shadowStrength = .76f;
+            key.shadowStrength = .86f;
+            key.shadowBias = .08f;
+            key.shadowNormalBias = .2f;
 
             MakeSpot("Moonlight from the front window", new Vector3(10, 65, 70),
-                new Vector3(2, 4, -72), new Color(.16f, .36f, 1f), 1900f, 194f, 83f);
+                new Vector3(2, 4, -72), new Color(.16f, .36f, 1f), 16000f, 240f, 83f);
             MakeSpot("Hearth bounce", new Vector3(-113, 37, -148),
-                new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 620f, 220f, 100f);
+                new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 6500f, 240f, 100f);
             MakeLight("Golden light under the tree", LightType.Point,
-                new Vector3(-25, 28, -38), new Color(1f, .71f, .40f), 178f, 80f);
+                new Vector3(-25, 28, -38), new Color(1f, .71f, .40f), 2200f, 110f);
             MakeSpot("Warm fill across the junction", new Vector3(18, 30, -5),
-                new Vector3(10, 2, -69), new Color(1f, .76f, .51f), 430f, 112f, 86f);
+                new Vector3(10, 2, -69), new Color(1f, .76f, .51f), 4600f, 160f, 86f);
             MakeLight("Floor lamp", LightType.Point,
-                new Vector3(-203, 59, -12), new Color(1f, .70f, .39f), 850f, 120f);
+                new Vector3(-203, 59, -12), new Color(1f, .70f, .39f), 12000f, 150f);
 
             var reflections = new GameObject("Christmas Room Reflections");
             reflections.transform.SetParent(art, false);

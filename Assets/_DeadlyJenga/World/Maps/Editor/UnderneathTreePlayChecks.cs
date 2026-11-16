@@ -319,29 +319,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Require(Physics.Raycast(map.SafeSpawnPoint() + Vector3.up * .3f, Vector3.down, out _, 1f, 1 << Layers.Block),
                     "spawn has a physical gift landing");
                 File.AppendAllText(Report, "CAMERA far=" + camera.farClipPlane + " near=" + camera.nearClipPlane + " mask=" + camera.cullingMask + "\n");
-                foreach (var renderer in map.Root.GetComponentsInChildren<Renderer>())
-                {
-                    if (renderer.name != "Visual" && !renderer.name.Contains("wall") && !renderer.name.Contains("Wall") &&
-                        !renderer.name.Contains("Fir needle") && !renderer.name.Contains("sofa") && !renderer.name.Contains("Sofa")) continue;
-                    var filter = renderer.GetComponent<MeshFilter>();
-                    File.AppendAllText(Report, "DRAW " + renderer.transform.parent.name + "/" + renderer.name + " enabled=" + renderer.enabled +
-                        " forcedOff=" + renderer.forceRenderingOff + " active=" + renderer.gameObject.activeInHierarchy + " layer=" + renderer.gameObject.layer + " bounds=" + renderer.bounds + " material=" + renderer.sharedMaterial?.name + " shader=" + renderer.sharedMaterial?.shader.name +
-                        " vertices=" + (filter && filter.sharedMesh ? filter.sharedMesh.vertexCount : 0) + "\n");
-                }
                 Shot(camera, "approved-overview", new Vector3(38f, 96f, -208f), new Vector3(-91f, 24f, -94f), 60f, true);
                 Shot(camera, "approved-overhead", new Vector3(-90f, 245f, -135f), new Vector3(-90f, 5f, -110f), 64f);
-                Shot(camera, "approved-player-bridge", new Vector3(-47f, 3f, -166f), new Vector3(-90f, 25f, -110f), 72f);
-                var art = map.Root.Find("Christmas Eve Art and Lighting");
-                var all = UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
-                var states = all.Select(r => r.enabled).ToArray();
-                File.AppendAllText(Report, "SCENE maps=" + UnityEngine.Object.FindObjectsByType<UnderneathTreeMap>(FindObjectsSortMode.None).Length + " art=" + art.gameObject.activeInHierarchy + " scale=" + art.lossyScale + "\n");
-                try
-                {
-                    foreach (var r in all)
-                        if (!r.transform.IsChildOf(art)) r.enabled = false;
-                    Shot(camera, "diagnostic-art-only", new Vector3(38f, 96f, -208f), new Vector3(-91f, 24f, -94f), 60f);
-                }
-                finally { for (int i = 0; i < all.Length; i++) if (all[i]) all[i].enabled = states[i]; }
+                Shot(camera, "approved-player-bridge", new Vector3(-64.3f, 3f, -132.6f), new Vector3(-86f, 25f, -106f), 72f);
                 impactFixedTime = Time.fixedTime;
                 phase = 10;
                 return;

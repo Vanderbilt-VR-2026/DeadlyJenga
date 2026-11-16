@@ -64,7 +64,7 @@ namespace DeadlyJenga.CandyArt
                     float t = tier / (float)(whorls - 1);
                     float y = 42f + t * 91f;
                     float reach = Mathf.Lerp(43f, 2.8f, Mathf.Pow(t, .86f));
-                    int count = tier >= 14 ? 7 : 12;
+                    int count = tier >= 14 ? 10 : 17;
                     float phase = tier * .462f + .26f;
                     for (int i = 0; i < count; i++)
                     {
@@ -80,12 +80,12 @@ namespace DeadlyJenga.CandyArt
                         stems.Tube(bend, end, girth * .6f, .08f, 6);
                         if (tier < 13)
                             tips.Add(new FirTip(Vector3.Lerp(bend, end, .90f), tier, i));
-                        int brushCount = mobile ? 7 : 13;
+                        int brushCount = mobile ? 10 : 15;
                         for (int j = 0; j < brushCount; j++)
                         {
                             float v = (.92f * j / (brushCount - 1)) + .08f;
                             var basePoint = v < .47f ? Vector3.Lerp(root, bend, v / .47f) : Vector3.Lerp(bend, end, (v - .47f) / .53f);
-                            float span = Mathf.Max(1.1f, length * (.21f - .125f * v));
+                            float span = Mathf.Max(1.1f, length * (.26f - .135f * v));
                             for (int sign = -1; sign <= 1; sign += 2)
                             {
                                 var shoot = basePoint + side * (sign * span * Range(random, .85f, 1.38f)) +

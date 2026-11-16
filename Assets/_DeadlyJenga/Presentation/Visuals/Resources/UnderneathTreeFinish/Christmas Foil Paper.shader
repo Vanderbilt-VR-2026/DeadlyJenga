@@ -79,7 +79,14 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 output.positionWS = vertexPosition.positionWS;
                 output.normalWS = basis.normalWS;
                 output.tangentWS = half4(basis.tangentWS, input.tangentOS.w * GetOddNegativeScale());
-                output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
+                // Keep foil motifs the same size on broad lids and thin side panels.
+                float4x4 model = GetObjectToWorldMatrix();
+                float3 scale = float3(length(model._m00_m10_m20), length(model._m01_m11_m21), length(model._m02_m12_m22));
+                float3 paperPosition = input.positionOS.xyz * scale;
+                float3 face = abs(input.normalOS);
+                float2 paperUV = face.y >= face.x && face.y >= face.z ? paperPosition.xz :
+                    (face.x >= face.z ? paperPosition.zy : paperPosition.xy);
+                output.uv = TRANSFORM_TEX(paperUV / 24.0, _BaseMap);
                 output.shadowCoord = GetShadowCoord(vertexPosition);
                 output.vertexLighting = VertexLighting(vertexPosition.positionWS, basis.normalWS);
                 output.fog = ComputeFogFactor(vertexPosition.positionCS.z);

@@ -22,6 +22,24 @@ namespace DeadlyJenga.CandyArt
             filter.sharedMesh = generated ? roundedWrap : RoundedWrap(source.bounds);
         }
 
+        void MapRugTexture(MeshRenderer renderer)
+        {
+            if (!renderer.name.Contains("kill floor") || !renderer.TryGetComponent<MeshFilter>(out var filter)) return;
+            var mesh = Instantiate(filter.sharedMesh);
+            originalMeshes[filter] = filter.sharedMesh;
+            var vertices = mesh.vertices;
+            var coordinates = new Vector2[vertices.Length];
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                var point = art.InverseTransformPoint(filter.transform.TransformPoint(vertices[i]));
+                coordinates[i] = new Vector2((point.x + 195f) / 240f, (point.z + 215f) / 240f);
+            }
+            mesh.uv = coordinates;
+            mesh.RecalculateTangents();
+            meshes.Add(mesh);
+            filter.sharedMesh = mesh;
+        }
+
         Mesh RoundedWrap(Bounds source, float radius = .027f, float loft = 0f)
         {
             float inner = .5f - radius;

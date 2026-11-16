@@ -27,7 +27,7 @@ namespace DeadlyJenga.CandyArt
 
             var material = new Material(shader) { name = label, color = tint };
             material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + tile));
-            material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + tile + " Normal"));
+            material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + (tile == "Red Velvet" ? "Woven" : tile) + " Normal"));
             material.SetTextureScale("_BaseMap", repeat);
             material.SetFloat("_BumpScale", bump);
             material.SetFloat("_Sheen", sheen);
@@ -38,8 +38,8 @@ namespace DeadlyJenga.CandyArt
 
         void BuildSofa()
         {
-            var velvet = Fabric("Deep red scanned upholstery", "Velour Scan",
-                new Color(.84f, .67f, .69f), new Vector2(2.1f, 2.3f), .14f, .48f);
+            var velvet = Fabric("Deep red patterned upholstery", "Red Velvet",
+                new Color(.92f, .65f, .68f), new Vector2(2.1f, 2.3f), .14f, .48f);
             var lining = Fabric("Dark red velvet sofa frame", "Velour Scan",
                 new Color(.57f, .43f, .43f), new Vector2(3.0f, 3.3f), .07f, .4f);
             var piping = Fabric("Red velvet seam piping", "Velour Scan",
@@ -143,7 +143,7 @@ namespace DeadlyJenga.CandyArt
 
         void BuildFleece()
         {
-            const int around = 192, cross = 14;
+            const int around = 384, cross = 14;
             var vertices = new List<Vector3>();
             var uv = new List<Vector2>();
             var triangles = new List<int>();
@@ -157,7 +157,7 @@ namespace DeadlyJenga.CandyArt
                 for (int j = 0; j <= cross; j++)
                 {
                     float v = j / (float)cross, spin = v * Mathf.PI * 2f;
-                    var position = center + outward * (120.15f + .31f * Mathf.Sin(angle * 11f) + 2.77f * Mathf.Cos(spin)) +
+                    var position = center + outward * (120.15f + .31f * Mathf.Sin(angle * 11f) + (2.77f + .19f * Mathf.Cos(angle * 96f + spin * 3f)) * Mathf.Cos(spin)) +
                         Vector3.up * Mathf.Max(.04f, .40f + Mathf.Sin(spin) * (1.06f + .16f * Mathf.Cos(angle * 19f)));
                     vertices.Add(position);
                     uv.Add(new Vector2(u, v));
@@ -168,8 +168,8 @@ namespace DeadlyJenga.CandyArt
                     triangles.Add(b); triangles.Add(a + 1); triangles.Add(b + 1);
                 }
             }
-            var trim = Fabric("Ivory scanned fleece edging", "Fleece Scan", new Color(1f, .97f, .88f),
-                new Vector2(56f, 1.22f), .16f, .73f);
+            var trim = Fabric("Ivory scanned fleece edging", "Fleece Scan", new Color(1.15f, 1.15f, 1.10f),
+                new Vector2(36f, 1.22f), .16f, .73f);
             var mesh = new Mesh { name = "Rolled fleece", vertices = vertices.ToArray(),
                 uv = uv.ToArray(), triangles = triangles.ToArray() };
             mesh.RecalculateNormals();
@@ -207,11 +207,11 @@ namespace DeadlyJenga.CandyArt
             obj.transform.SetParent(panel.parent, false);
             obj.transform.localPosition = renderer.name == "Curved wrapping"
                 ? new Vector3(0f, .5f * size.y + .046f, 0f)
-                : new Vector3(.26f * size.x, .5f * size.y + .046f, -.23f * size.z);
+                : new Vector3(0f, .5f * size.y + .046f, 0f);
             obj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             float span = Mathf.Min(size.x, size.z);
-            obj.transform.localScale = new Vector3(Mathf.Clamp(span * .17f, .22f, 1.55f),
-                Mathf.Clamp(span * .093f, .16f, .85f), Mathf.Clamp(span * .04f, .06f, .24f));
+            obj.transform.localScale = new Vector3(Mathf.Clamp(span * .28f, .3f, 4.0f),
+                Mathf.Clamp(span * .15f, .2f, 2.0f), Mathf.Clamp(span * .11f, .1f, 1.2f));
             mapDressings.Add(obj);
         }
 
