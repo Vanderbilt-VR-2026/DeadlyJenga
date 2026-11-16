@@ -189,13 +189,10 @@ namespace DeadlyJenga.DevTools.Editor
             setup.rules.automaticDisasters = false;
             details.ConfigureSetup(setup);
             Check(lobby.SelectMode("demo") && lobby.SelectMap("castle"), "Classic Castle solo demo selected");
-            var screen = lobby.GetComponent<MarinaScreen>();
-            // The terminal re-arms on the next neutral frame after the wardrobe closes.
-            deadline = Time.realtimeSinceStartup + 4;
-            bool started = false;
-            while (!(started = screen.Invoke("marina-play")) && Time.realtimeSinceStartup < deadline)
-                yield return null;
-            Check(started, "Marina Play starts travel after the wardrobe closes");
+            Check(!lobby.Player.InputSuspended, "Closing the wardrobe restores movement input");
+            // The terminal intentionally rejects pointers when the Game view is unfocused.
+            Check(lobby.CanStart, "The actual Marina is ready for solo departure");
+            lobby.StartOrCancel();
             deadline = Time.realtimeSinceStartup + 45;
             while ((!(Services.Session is CastlePlaySession) || !NetworkActors.Alive(Services.Session.Player))
                 && Time.realtimeSinceStartup < deadline) yield return null;
