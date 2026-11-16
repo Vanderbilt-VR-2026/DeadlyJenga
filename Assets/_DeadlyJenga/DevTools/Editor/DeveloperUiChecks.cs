@@ -24,6 +24,7 @@ namespace DeadlyJenga.DevTools.Editor
         static string Report=>Path.Combine(Output,"report.txt");
         static double started;
         static int errors;
+        static IEnumerator run;
         [Serializable] sealed class Saved {public SceneSetup[] scenes;}
         static DeveloperUiChecks(){EditorApplication.playModeStateChanged+=State;EditorApplication.update+=Tick;}
         public static void Run()
@@ -67,12 +68,25 @@ namespace DeadlyJenga.DevTools.Editor
         static void Log(string text,string stack,LogType type){if(type is LogType.Error or LogType.Exception or LogType.Assert){errors++;File.AppendAllText(Report,"ERROR "+text+"\n"+stack+"\n");}}
         static void Tick()
         {
-            if(!SessionState.GetBool(Key,false)||!EditorApplication.isPlaying||started==0||EditorApplication.timeSinceStartup-started<2)return;
+            if(!SessionState.GetBool(Key,false)||!EditorApplication.isPlaying||started==0||EditorApplication.timeSinceStartup-started<8)return;
             if(!(Services.Session is CastlePlaySession ready&&ready.Modes&&Services.World!=null)&&EditorApplication.timeSinceStartup-started<60)return;
             started=0;
-            try{Checks();Check(errors==0,"No runtime errors during menu checks");SessionState.SetInt(Key+"Exit",0);File.AppendAllText(Report,"COMPLETE UI assertions passed.\n");}
-            catch(Exception e){File.AppendAllText(Report,"FAIL "+e+"\n");}
-            finally{EditorApplication.ExitPlaymode();}
+            run=Checks();new GameObject("Developer UI check driver").AddComponent<TidalCheckDriver>().StartCoroutine(Drive());
+        }
+        static IEnumerator Drive()
+        {
+            bool failed=false;
+            while(run!=null)
+            {
+                object step;
+                try{if(!run.MoveNext())break;step=run.Current;}
+                catch(Exception e){failed=true;File.AppendAllText(Report,"FAIL "+e+"\n");break;}
+                yield return step;
+            }
+            (run as IDisposable)?.Dispose();run=null;
+            if(!failed&&errors==0){SessionState.SetInt(Key+"Exit",0);File.AppendAllText(Report,"COMPLETE UI assertions passed with no runtime errors.\n");}
+            else File.AppendAllText(Report,"FAILED runtime errors="+errors+"\n");
+            EditorApplication.ExitPlaymode();
         }
         static void Check(bool value,string label){File.AppendAllText(Report,(value?"PASS ":"FAIL ")+label+"\n");if(!value)throw new Exception(label);}
         static T Field<T>(object obj,string name)=>(T)obj.GetType().GetField(name,Flags).GetValue(obj);
@@ -90,7 +104,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(Field<Func<bool>>(entry,"Allowed")?.Invoke()!=false,"Tablet command available: "+prefix);
             Field<Action>(entry,"Select")();Call(menu,"RefreshTabletNearby");Call(menu,"PointPlayerTablet",Camera.main,false,false);
         }
-        static void Checks()
+        static IEnumerator Checks()
         {
             var session=Services.Session as CastlePlaySession;
             Check(session&&session.Modes&&Services.World!=null,"Actual Game initializes");
@@ -113,7 +127,7 @@ namespace DeadlyJenga.DevTools.Editor
                 typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,target.bounds.center-camera.transform.position));
                 Call(menu,"PointPlayerTablet",camera,true,false);Draw();
             }
-            void Shot(string file){Draw();Capture(camera,menu.GetComponent<Canvas>(),file);}
+            IEnumerator Shot(string file){Draw();yield return null;Draw();yield return null;Capture(camera,menu.GetComponent<Canvas>(),file);}
             Draw();
             var grid=Field<RectTransform>(menu,"tabletDeveloperGrid");
             var tiles=grid.GetComponentsInChildren<Button>();
@@ -121,23 +135,23 @@ namespace DeadlyJenga.DevTools.Editor
             Check(tiles.Select(x=>((RectTransform)x.transform).anchoredPosition.x).Distinct().Count()==3,"Three columns");
             Check(tiles.Select(x=>((RectTransform)x.transform).anchoredPosition.y).Distinct().Count()==4,"Four rows");
             Check(tiles.Count(x=>!x.interactable)==2,"Exactly two coming-soon tiles disabled in local demo");
-            Shot("01-developer-root.png");
-            TabletClick(menu,"Bots");Shot("02-bots.png");Row("Population presets");Shot("03-bot-presets.png");
-            Row("Bot voices");Shot("04-bot-voices.png");Back();
+            yield return Shot("01-developer-root.png");
+            TabletClick(menu,"Bots");yield return Shot("02-bots.png");Row("Population presets");yield return Shot("03-bot-presets.png");
+            Row("Bot voices");yield return Shot("04-bot-voices.png");Back();
             Check(!Field<bool>(menu,"tabletDeveloperDetails"),"Bots Back returns to root");
-            TabletClick(menu,"More tools");Shot("05-more-tools.png");Row("World & pickups");Shot("06-world-tools.png");
+            TabletClick(menu,"More tools");yield return Shot("05-more-tools.png");Row("World & pickups");yield return Shot("06-world-tools.png");
             Row("Ground pickups");Back();Check(Field<string>(menu,"developerRoute")=="More tools"&&!Field<bool>(menu,"developerChild"),"Child Back returns to owning tools page");Back();
-            TabletClick(menu,"Map");Shot("07-maps.png");Row("Filter:");Shot("08-map-filters.png");Row("In development");Shot("09-filtered-maps.png");Back();
-            TabletClick(menu,"Spectate");Shot("16-spectate.png");Back();
-            TabletClick(menu,"Mode");Shot("10-mode.png");Row("advanced rules");Shot("11-advanced-rules.png");Back();
-            TabletClick(menu,"Disasters");Shot("12-disasters.png");
+            TabletClick(menu,"Map");yield return Shot("07-maps.png");Row("Filter:");yield return Shot("08-map-filters.png");Row("In development");yield return Shot("09-filtered-maps.png");Back();
+            TabletClick(menu,"Spectate");yield return Shot("16-spectate.png");Back();
+            TabletClick(menu,"Mode");yield return Shot("10-mode.png");Row("advanced rules");yield return Shot("11-advanced-rules.png");Back();
+            TabletClick(menu,"Disasters");yield return Shot("12-disasters.png");
             typeof(CastleWorldMenu).GetField("disasterSelection",Flags).SetValue(menu,0);
-            Shot("13-disaster-selected.png");Row("Show tuning");Shot("14-disaster-tuning.png");Back();Back();
+            yield return Shot("13-disaster-selected.png");Row("Show tuning");yield return Shot("14-disaster-tuning.png");Back();Back();
             var god=session.Player.gameObject.GetComponent<IDeveloperGodMode>();Check(god?.CanSetGodMode==true,"God Mode permitted in local Demo");
             TabletClick(menu,"God mode");Check(god.GodModeEnabled,"God Mode toggles on");
             var damage=session.Player.gameObject.GetComponent<IDamageable>();float health=damage.Health;
             damage.Damage(100000,menu.gameObject);damage.Eliminate(menu.gameObject);
-            Check(damage.Health==health,"God Mode rejects direct damage and elimination");Shot("15-god-mode.png");
+            Check(damage.Health==health,"God Mode rejects direct damage and elimination");yield return Shot("15-god-mode.png");
             var survivor=(CastleSurvivor)session.Player;
             var oldPosition=survivor.transform.position;var oldRotation=survivor.transform.rotation;bool oldPause=survivor.InputSuspended;
             survivor.InputSuspended=false;survivor.Teleport(oldPosition+Vector3.up*100,oldRotation);
