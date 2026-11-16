@@ -11,6 +11,8 @@ namespace DeadlyJenga.Presentation
         static readonly Color ReadyColor = new Color(.25f,.90f,1f);
         static readonly Color FocusColor = new Color(.65f,1f,.43f);
         Material pickupMarkerMaterial;
+        Material weaponOrbMaterial;
+        Mesh weaponOrbMesh;
         Canvas pickupTag;
         RawImage pickupTagPanel, pickupTagPointer, pickupTagKeycap;
         Text pickupTagName, pickupTagAction, pickupTagKey, pickupTagSwap;
@@ -81,7 +83,7 @@ namespace DeadlyJenga.Presentation
             return label;
         }
 
-        bool PresentPickupTag(ISessionInfo session, EquipmentState current, EquipmentPickup pickup)
+        bool PresentPickupTag(ISessionInfo session, EquipmentState current, EquipmentPickup pickup, PickupVisual view)
         {
             var point = pickup.position;
             var depth = eye.WorldToViewportPoint(point);
@@ -103,10 +105,15 @@ namespace DeadlyJenga.Presentation
             bool showDetails = swap || pickup.rounds >= 0;
             float extra = showDetails ? DetailHeight : 0;
             var position = point + eye.transform.up * (rise + extra * scale);
+            if (view.orb)
+            {
+                float clearance = view.orbRadius + .04f + (TagHeight * .5f + 18 + extra) * scale;
+                position = view.orb.position + eye.transform.up * clearance;
+            }
             var viewport = eye.WorldToViewportPoint(position);
             float halfWidth = TagWidth * scale / (2 * viewHeight * eye.aspect);
             float shift = Mathf.Clamp(viewport.x, halfWidth + .015f, .985f - halfWidth) - viewport.x;
-            if (viewport.y + TagHeight * scale / (2 * viewHeight) > .99f ||
+            if (viewport.y + TagHeight * scale / (2 * viewHeight) > 1.02f ||
                 Mathf.Abs(shift) > halfWidth * .77f) return false;
 
             if (!pickupTag && !BuildPickupTag()) return false;
@@ -239,7 +246,7 @@ namespace DeadlyJenga.Presentation
             return line;
         }
 
-        void ShowPickup(PickupVisual view,EquipmentPickup pickup,Camera eye,bool focused,bool hasTag)
+        bool ShowPickup(PickupVisual view, EquipmentPickup pickup, ISessionInfo session, EquipmentState current, bool focused)
         {
             bool ready=pickup.availableIn<=0;
             bool resting=pickup.station&&!ready;
@@ -254,7 +261,7 @@ namespace DeadlyJenga.Presentation
                 float width=focused?.041f:view.dropped?.029f:.022f;
                 view.ring.startWidth=view.ring.endWidth=width;
                 view.ring.startColor=view.ring.endColor=tint;
-                view.beam.enabled=!resting&&distance<16*16;
+                view.beam.enabled=!view.orb&&!resting&&distance<16*16;
                 view.beam.startWidth=focused?.12f:view.dropped?.095f:.055f;
                 view.beam.endWidth=.014f;
                 view.beam.startColor=new Color(tint.r,tint.g,tint.b,focused?.70f:view.dropped?.52f:.30f);
@@ -265,13 +272,27 @@ namespace DeadlyJenga.Presentation
                 view.model.gameObject.SetActive(!resting);
                 float settle=view.dropped&&!ready?Mathf.Clamp01((pickup.availableIn-.72f)/.28f):0;
                 float bob=.025f*Mathf.Sin(Time.unscaledTime*2.4f+pickup.id*.27f);
-                view.model.localPosition=Vector3.up*(bob+.38f*settle*settle);
+                float lift = view.orb ? view.orbRadius - .14f : 0;
+                view.model.localPosition = Vector3.up * (lift + bob + .38f * settle * settle);
+                if (view.orb)
+                {
+                    view.orb.gameObject.SetActive(!resting && distance < 24 * 24);
+                    view.orb.localPosition = view.model.localPosition;
+                    float turn = Time.unscaledTime * 17 + pickup.id * 41;
+                    view.outerOrb.localRotation = Quaternion.Euler(15, turn, 8);
+                    view.innerOrb.localRotation = Quaternion.Euler(-26, -turn * .63f, 34);
+                }
                 view.model.localRotation=Quaternion.Euler(9+settle*45,Time.unscaledTime*19+pickup.id*41,settle*25);
             }
+            bool hasTag = focused && PresentPickupTag(session, current, pickup, view);
             bool showLabel=eye&&!hasTag&&(focused||distance<3.5f*3.5f);
             var anchor=view.label.transform.parent;
             anchor.gameObject.SetActive(showLabel);
-            if(!showLabel)return;
+            if(!showLabel)return hasTag;
+            if (view.orb && !resting)
+                anchor.localPosition = view.orb.localPosition + Vector3.up * (view.orbRadius + .035f);
+            else
+                anchor.localPosition = Vector3.up * .44f;
             var facing=anchor.position-eye.transform.position;
             if(facing.sqrMagnitude>.0001f)anchor.rotation=Quaternion.LookRotation(facing);
             string detail=resting?"Ready in "+Mathf.CeilToInt(pickup.availableIn)+"s":
@@ -280,6 +301,61 @@ namespace DeadlyJenga.Presentation
             string label=Name(pickup.kind)+(detail.Length>0?"\n"+detail:"");
             if(view.label.text!=label)view.label.text=view.labelShadow.text=label;
             view.label.color=resting?new Color(.70f,.74f,.79f):Color.Lerp(tint,Color.white,.30f);
+            return hasTag;
+        }
+
+        void BuildWeaponOrb(PickupVisual view, float modelRadius)
+        {
+            if (!weaponOrbMaterial)
+            {
+                var shader = Resources.Load<Shader>("CandyWeaponPickupOrb");
+                if (!shader) return;
+                weaponOrbMaterial = new Material(shader) { name = "Layered weapon pickup glow" };
+            }
+
+            if (!weaponOrbMesh)
+            {
+                var sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
+                weaponOrbMesh = Instantiate(sphere);
+                weaponOrbMesh.name = "Scalloped pickup sphere";
+                var vertices = weaponOrbMesh.vertices;
+                var center = weaponOrbMesh.bounds.center;
+                for (int index = 0; index < vertices.Length; index++)
+                {
+                    var direction = (vertices[index] - center).normalized;
+                    float scallop = Mathf.Sin(direction.x * 16 + direction.y * 6) *
+                        Mathf.Sin(direction.z * 13 - direction.y * 7);
+                    float swell = Mathf.Sin(direction.y * 9 + direction.z * 4);
+                    vertices[index] = direction * (.48f + .014f * scallop + .006f * swell);
+                }
+                weaponOrbMesh.vertices = vertices;
+                weaponOrbMesh.RecalculateNormals();
+                weaponOrbMesh.RecalculateBounds();
+            }
+
+            view.orbRadius = Mathf.Max(.42f, modelRadius + .105f);
+            view.orb = new GameObject("Layered weapon pickup orb").transform;
+            view.orb.SetParent(view.root, false);
+            view.outerOrb = CreateOrbShell(view.orb, "Outer pickup shell", view.orbRadius * 2, .78f, 0);
+            view.innerOrb = CreateOrbShell(view.orb, "Inner pickup shell", view.orbRadius * 1.79f, .66f, 1);
+            view.innerOrb.localPosition = new Vector3(.014f, -.012f, .009f);
+        }
+
+        Transform CreateOrbShell(Transform parent, string name, float diameter, float opacity, float layer)
+        {
+            var shell = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
+            shell.transform.SetParent(parent, false);
+            shell.transform.localScale = Vector3.one * diameter;
+            shell.GetComponent<MeshFilter>().sharedMesh = weaponOrbMesh;
+            var renderer = shell.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = weaponOrbMaterial;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            var properties = new MaterialPropertyBlock();
+            properties.SetFloat("_Opacity", opacity);
+            properties.SetFloat("_Layer", layer);
+            renderer.SetPropertyBlock(properties);
+            return shell.transform;
         }
 
         void BuildPickupCloud(Transform root,Color color)
@@ -309,7 +385,19 @@ namespace DeadlyJenga.Presentation
                     var renderer=go.GetComponent<MeshRenderer>();renderer.sharedMaterial=part.material;var block=new MaterialPropertyBlock();block.SetColor("_BaseColor",part.color);renderer.SetPropertyBlock(block);renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
                     var b=renderer.bounds;if(first){bounds=b;first=false;}else bounds.Encapsulate(b);
                 }
-                if(!first){float scale=.52f/Mathf.Max(.1f,Mathf.Max(bounds.size.x,Mathf.Max(bounds.size.y,bounds.size.z)));var center=view.model.InverseTransformPoint(bounds.center);var content=new GameObject("Centered model geometry").transform;var children=new System.Collections.Generic.List<Transform>();foreach(Transform child in view.model)children.Add(child);content.SetParent(view.model,false);foreach(var child in children)child.SetParent(content,false);content.localPosition=-center;view.model.localScale=Vector3.one*scale;view.model.localPosition=Vector3.zero;}
+                if (!first)
+                {
+                    float scale = .52f / Mathf.Max(.1f, bounds.size.x, bounds.size.y, bounds.size.z);
+                    var center = view.model.InverseTransformPoint(bounds.center);
+                    var content = new GameObject("Centered model geometry").transform;
+                    content.SetParent(view.model, false);
+                    while (view.model.childCount > 1)
+                        view.model.GetChild(0).SetParent(content, false);
+                    content.localPosition = -center;
+                    view.model.localScale = Vector3.one * scale;
+                    if (view.kind != EquipmentKind.None && !EquipmentSpecifications.Get(view.kind).power)
+                        BuildWeaponOrb(view, bounds.extents.magnitude * scale);
+                }
             }
         }
     }

@@ -13,7 +13,8 @@ namespace DeadlyJenga.Presentation
     {
         sealed class PickupVisual
         {
-            public Transform root, model;
+            public Transform root, model, orb, innerOrb, outerOrb;
+            public float orbRadius;
             public TextMesh label, labelShadow;
             public LineRenderer ring, beam;
             public EquipmentKind kind;
@@ -221,8 +222,7 @@ namespace DeadlyJenga.Presentation
                 ((!session.PlayingHand&&equipment!=null)||showReceipt);
             bool showPickup = canvas.enabled && eye.isActiveAndEnabled && !session.PlayingHand &&
                 session.Player?.InputSuspended == false && match.Frame.phase == RoundPhase.Playing && pending != null;
-            bool showPickupTag = showPickup && PresentPickupTag(session, equipment, pending);
-            if (!showPickupTag) HidePickupTag();
+            bool showPickupTag = false;
             if(showReceipt)
             {
                 receiptNotice.text=receipt;
@@ -289,8 +289,9 @@ namespace DeadlyJenga.Presentation
                 }
                 UpdatePickupModel(view);
                 bool focused = showPickup && pickup.id == pendingId;
-                ShowPickup(view,pickup,eye,focused,focused && showPickupTag);
+                showPickupTag |= ShowPickup(view,pickup,session,equipment,focused);
             }
+            if (!showPickupTag) HidePickupTag();
             removedPickups.Clear();
             foreach(var pair in pickups)
                 if(!visible.Contains(pair.Key))
@@ -315,6 +316,8 @@ namespace DeadlyJenga.Presentation
             DestroyPickupTag();
             ClearPickupViews();
             if(pickupMarkerMaterial)Destroy(pickupMarkerMaterial);
+            if (weaponOrbMaterial) Destroy(weaponOrbMaterial);
+            if (weaponOrbMesh) Destroy(weaponOrbMesh);
         }
     }
 }
