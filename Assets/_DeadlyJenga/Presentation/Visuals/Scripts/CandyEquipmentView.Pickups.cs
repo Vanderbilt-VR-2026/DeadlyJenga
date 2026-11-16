@@ -353,9 +353,9 @@ namespace DeadlyJenga.Presentation
                     float turn = time * 17 + pickup.id * 41;
                     if (view.kind == EquipmentKind.Speed)
                     {
-                        var facing = eye ? Vector3.ProjectOnPlane(eye.transform.forward, Vector3.up) : Vector3.forward;
-                        if (facing.sqrMagnitude > .01f)
-                            view.orb.rotation = Quaternion.LookRotation(facing);
+                        var horizontalView = eye ? Vector3.ProjectOnPlane(eye.transform.forward, Vector3.up) : Vector3.forward;
+                        if (horizontalView.sqrMagnitude > .01f)
+                            view.orb.rotation = Quaternion.LookRotation(horizontalView);
                         view.outerOrb.localRotation = Quaternion.Euler(0, 0, 12);
                         view.innerOrb.localRotation = Quaternion.Euler(0, 0, -8);
                     }
