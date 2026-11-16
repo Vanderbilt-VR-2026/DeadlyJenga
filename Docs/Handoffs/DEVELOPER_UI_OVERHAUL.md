@@ -15,8 +15,16 @@ God Mode is default off and currently restricted to the local authoritative play
 ## Validation
 
 Focused entry point: DeadlyJenga.DevTools.Editor.DeveloperUiChecks.Run. It opens the actual Game scene with Castle/demo configuration, operates production menu bindings and scripted pointer rays, captures rendered PNGs, checks navigation and God Mode protection, and restores scene/setup state.
-First candidate 02e5203d647f87db2ed4b96393ae939a5a121008 compiled production assemblies but failed test-harness compilation (missing SessionState default arguments). Corrected in ae07d3b215a42868f862b28527eb38b583468c36. Runtime evidence pending; no headset, guest, APK or integration claim.
+Tested source and verified remote candidate: 4f23338e1f43d042910d93412ee03bb8894d7835. Windows Standalone desktop Play Mode job 6c50e04fbc9c406ab816ae315785406f passed all 65 assertions with zero runtime errors and restored initial scene/preferences. It produced 20 full-resolution PNGs. The capture camera temporarily frames the actual world-locked production tablet; these are staged inspection views, not headset eye-placement measurements. Earlier duplicate-tablet and clipped captures are superseded.
+
+Checks cover twelve tiles, three columns/four rows, two disabled placeholders, actual page bindings and pointer targets, child Back, top-tab route reset, map search empty/reset states, disaster selector hiding, damage/elimination protection, actual character flight fast/slow distance ratio above five, braking, paused movement, damage restoration and permission revocation. No broad disaster performance claim is made.
+
+Reproduce with the explicit fixture entry point above in a Windows Standalone editor. Output: Logs/Validation/DeveloperUi/report.txt and 01-developer-root.png through 20-stamina.png (numbered captures). The final report ends COMPLETE UI assertions passed with no runtime errors and CLEANUP restored name preference and initial scene state. git diff --check also passed.
+
+An earlier Android-target editor run at e4e3d7f0fcd23d3b2e0e2885c9d9912706b24919 passed UI assertions but failed the runtime error gate with repeated First two bone weights should have non-zero sum errors. Windows runs did not reproduce this; platform/slot correlation is not a proven cause. Android/Quest rendering remains unresolved. Physical controller interaction, headset comfort/fit, multiplayer guests, APK inclusion and combined target integration are not validated here.
 
 UI is Presentation/Visuals; flight/health is Characters/Player; world elimination guard is GameSession/Modes; the approved contract is Core/Session. DevTools owns the explicit fixture. No scene, package, project setting, or existing asset moves.
 
-Status: checkpoint, not merge-ready. Final screenshots and exact runtime result must be recorded before handoff.
+Review: Core PR #172 (core/developer-god-mode), implementation PR #173 (codex/developer-ui-overhaul). The implementation PR is intentionally stacked on the exact approved Core branch; that branch depends on the Bluetooth/name candidate above. Intended final target remains origin/Evan_Sprint_4, last tested baseline 1359ca474fb8a0bc86cdd72dca7dab5e3e631a71. No shared target merge or APK build performed. Documentation-only descendants of the tested source do not change the tested runtime code.
+
+Status: desktop implementation and rendered review complete; draft retained for integration/platform follow-up. Next action: designated integrator reviews the dependency stack, validates the combined target, and schedules Quest interaction/rendering validation. No additional Core approval is needed for this exact contract.
