@@ -3,7 +3,7 @@ Shader "Candy Tropical/Pickup Hologram"
     Properties
     {
         [PerRendererData] _MainTex ("UI Texture", 2D) = "white" {}
-        _Glass ("Glass tint", Color) = (.033,.36,.27,.62)
+        _Glass ("Glass tint", Color) = (.025,.30,.22,.72)
         _Mint ("Mint bevel", Color) = (.29,1,.71,1)
         _Lime ("Lime bevel", Color) = (.77,1,.34,1)
         _Amber ("Swap key", Color) = (1,.67,.16,1)
@@ -95,8 +95,8 @@ Shader "Candy Tropical/Pickup Hologram"
                 float distance = RoundedBox(local, halfSize, radius);
                 float aa = max(fwidth(distance), .005);
                 float coverage = 1 - smoothstep(-aa, aa, distance);
-                float bevel = Streak(distance + .034, .036);
-                float rim = Streak(distance + .014, .012);
+                float bevel = Streak(distance + .038, .046);
+                float rim = Streak(distance + .014, .016);
                 float innerRim = Streak(distance + .08, .015);
 
                 float3 rimColor = lerp(_Mint.rgb, _Lime.rgb, smoothstep(.18, .88, uv.y));

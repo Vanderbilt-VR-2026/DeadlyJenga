@@ -16,15 +16,15 @@ namespace DeadlyJenga.Presentation
         Text pickupTagName, pickupTagAction, pickupTagKey, pickupTagSwap;
         Material pickupGlass, pickupKey, pickupPointer;
         const float TagWidth = 310f;
-        const float TagHeight = 90f;
+        const float TagHeight = 94f;
         const float DetailHeight = 26f;
         static readonly Color PickupInk = new Color32(96, 255, 154, 255);
         static readonly Color SwapInk = new Color32(255, 217, 127, 255);
 
         bool BuildPickupTag()
         {
-            var shader = Resources.Load<Shader>("CandyPickupHologram");
-            if (!shader) return false;
+            var style = Resources.Load<Material>("CandyPickupHologramStyle");
+            if (!style) return false;
 
             var root = new GameObject("Focused pickup tag", typeof(RectTransform), typeof(Canvas));
             root.transform.SetParent(transform, false);
@@ -33,21 +33,22 @@ namespace DeadlyJenga.Presentation
             pickupTag.sortingOrder = 36;
 
             var rect = (RectTransform)root.transform;
+            rect.sizeDelta = new Vector2(TagWidth, TagHeight);
             var font = Resources.Load<Font>("Fonts/Fredoka-Bold");
             if (!font) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
-            pickupPointer = new Material(shader) { name = "Pickup hologram pointer" };
+            pickupPointer = new Material(style) { name = "Pickup hologram pointer" };
             pickupPointer.SetFloat("_Shape", 2);
-            pickupGlass = new Material(shader) { name = "Pickup hologram glass" };
-            pickupKey = new Material(shader) { name = "Pickup hologram keycap" };
+            pickupGlass = new Material(style) { name = "Pickup hologram glass" };
+            pickupKey = new Material(style) { name = "Pickup hologram keycap" };
             pickupKey.SetFloat("_Shape", 1);
 
             pickupTagPointer = TagSurface(rect, "Glass pointer", new Vector2(36, 22), pickupPointer);
             pickupTagPanel = TagSurface(rect, "Glass panel", new Vector2(TagWidth, TagHeight), pickupGlass);
             pickupTagKeycap = TagSurface(rect, "Gummy keycap", new Vector2(42, 34), pickupKey);
-            pickupTagName = TagText(rect, font, "Item name", 26, 18, Color.white);
-            pickupTagAction = TagText(rect, font, "Pickup action", 24, -17, PickupInk);
-            pickupTagKey = TagText(rect, font, "Input key", 22, -17, Color.white);
+            pickupTagName = TagText(rect, font, "Item name", 29, 18, Color.white);
+            pickupTagAction = TagText(rect, font, "Pickup action", 27, -17, PickupInk);
+            pickupTagKey = TagText(rect, font, "Input key", 23, -17, Color.white);
             pickupTagSwap = TagText(rect, font, "Item details", 16, -46, SwapInk);
             return true;
         }
@@ -99,7 +100,9 @@ namespace DeadlyJenga.Presentation
                 2 * depth.z / Mathf.Abs(eye.projectionMatrix.m11);
             float scale = vr ? .00105f : Mathf.Clamp(viewHeight * .39f / TagWidth, .00075f, .004f);
             float rise = vr ? .23f : Mathf.Max(.21f, viewHeight * .15f);
-            var position = point + eye.transform.up * rise;
+            bool showDetails = swap || pickup.rounds >= 0;
+            float extra = showDetails ? DetailHeight : 0;
+            var position = point + eye.transform.up * (rise + extra * scale);
             var viewport = eye.WorldToViewportPoint(position);
             float halfWidth = TagWidth * scale / (2 * viewHeight * eye.aspect);
             float shift = Mathf.Clamp(viewport.x, halfWidth + .015f, .985f - halfWidth) - viewport.x;
@@ -121,9 +124,8 @@ namespace DeadlyJenga.Presentation
             string detail = swap ? "Leaves " + Name(oldKind).ToUpperInvariant() + " here" : "";
             if (pickup.rounds >= 0)
                 detail += (swap ? "  ·  " : "") + pickup.rounds + " rounds";
-            pickupTagSwap.enabled = detail.Length > 0;
+            pickupTagSwap.enabled = showDetails;
             pickupTagSwap.text = detail;
-            float extra = pickupTagSwap.enabled ? DetailHeight : 0;
             pickupTagPanel.rectTransform.sizeDelta = new Vector2(TagWidth, TagHeight + extra);
             pickupTagPanel.rectTransform.anchoredPosition = new Vector2(0, -extra * .5f);
             pickupGlass.SetFloat("_Aspect", TagWidth / (TagHeight + extra));
