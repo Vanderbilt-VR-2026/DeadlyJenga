@@ -1256,12 +1256,14 @@ namespace DeadlyJenga.CastlePrototype
                 :left||right?(left?"Left":"Right")+" controller"+(tracked?" + tracked hand":""):
                 tracked?"Hand tracking":"Waiting for tracking";
             leftInputTitle.text="LEFT HAND"; rightInputTitle.text="RIGHT HAND";
-            leftController.enabled=left;
-            rightController.enabled=right;
+            bool reference=!left&&!right&&!tracked;
+            leftController.enabled=left||reference;
+            rightController.enabled=right||reference;
+            if(reference)tabletInputLayout.text="Controller reference · waiting for tracking";
             leftController.texture=CandyHudVisuals.ControllerDiagram(left==DominantLeft?3:1,true);
             rightController.texture=CandyHudVisuals.ControllerDiagram(!DominantLeft?3:1,false);
-            leftControllerHelp.text=TabletControllerHelp(true,left,right,tracked);
-            rightControllerHelp.text=TabletControllerHelp(false,right,left,tracked);
+            leftControllerHelp.text=TabletControllerHelp(true,left||reference,right||reference,tracked);
+            rightControllerHelp.text=TabletControllerHelp(false,right||reference,left||reference,tracked);
         }
 
         string TabletControllerHelp(bool left,bool present,bool other,bool tracked)
