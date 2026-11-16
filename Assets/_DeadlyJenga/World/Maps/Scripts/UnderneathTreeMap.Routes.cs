@@ -62,8 +62,8 @@ namespace DeadlyJenga.CastlePrototype
             }
 
             // Two asymmetric shoulders share their lower terraces with the railway.
-            var left = Parcel("Gift Bridge / Pine Bearing", -25f, -8f, 12f, 16f, 14f, green, gold);
-            var right = Parcel("Gift Bridge / Cranberry Bearing", 25f, -8f, 12f, 16f, 14f, red, ivory);
+            var left = Parcel("Gift Bridge / Pine Bearing", -25f, -8f, 10f, 16f, 6f, green, gold);
+            var right = Parcel("Gift Bridge / Cranberry Bearing", 25f, -8f, 10f, 16f, 6f, red, ivory);
             float seat = Mathf.Max(transform.InverseTransformPoint(left.transform.position).y + left.GetComponent<BoxCollider>().size.y * .5f,
                 transform.InverseTransformPoint(right.transform.position).y + right.GetComponent<BoxCollider>().size.y * .5f);
             var span = BoxGift("Gift Bridge / Navy Span", CoursePoint(-.5f, -9f, seat + 1.6f),
@@ -74,54 +74,54 @@ namespace DeadlyJenga.CastlePrototype
             var bridgeRight = Parcel("Bridge Terrace / Right Cream", 25f, -9f, 12f, 3.5f, 8f, cream, gold, 2f, span);
             Parcel("Bridge Terrace / Right Emerald", 28f, -9f, 6f, 4f, 6f, green, ivory, -3f, bridgeRight);
 
-            var l1 = Parcel("Left Summit / Broad Cream", -26f, 6f, 15f, 9f, 12f, cream, berry, -3f);
-            var l2 = Parcel("Left Summit / Ruby Shoulder", -27.5f, 7f, 14f, 8f, 12f, red, gold, 4f, l1);
-            var l3 = Parcel("Left Summit / Emerald Shelf", -30f, 7f, 11f, 6f, 10f, green, ivory, -5f, l2);
+            var l1 = Parcel("Left Summit / Broad Cream", -26f, 6f, 14f, 9f, 12f, cream, berry, -3f);
+            var l2 = Parcel("Left Summit / Ruby Shoulder", -28f, 7f, 10f, 8f, 8f, red, gold, 4f, l1);
+            var l3 = Parcel("Left Summit / Emerald Shelf", -29.5f, 7f, 9f, 6f, 8f, green, ivory, -5f, l2);
             var crown = RoundParcel("Left Summit / Ivory Crown", CoursePoint(-31f, 7f,
                 transform.InverseTransformPoint(l3.transform.position).y + l3.GetComponent<BoxCollider>().size.y * .5f + .012f),
                 4.7f, 8f, cream, gold);
             giftBearings.Add(new GiftBearing(GiftBase(crown), l3, null));
             Parcel("Left Summit / Cream Front Parcel", -30f, 1f, 5f, 4f, 3f, cream, berry, -2f, l1);
             Parcel("Left Summit / Ruby Front Parcel", -23.5f, 1f, 5f, 5.5f, 3f, red, gold, 2f, l1);
-            Parcel("Left Summit / Sapphire Upper Ledge", -23f, 7f, 3f, 4.5f, 7f, navy, ivory, 0f, l2);
-            Parcel("Left Summit / Side Foothold", -20f, 4f, 7f, 4f, 10f, navy, ivory, 5f, l1);
-            Parcel("Left Summit / Rear Entry", -25f, 16f, 13f, 3f, 8f, green, gold, -6f);
-            Parcel("Left Summit / Rear Step", -28f, 12f, 10f, 5.5f, 8f, red, ivory, 4f);
-            Parcel("Left Summit / Front Entry", -23f, -22f, 15f, 3f, 8f, cream, berry, 3f);
-            Parcel("Left Summit / Front Step", -23f, -16f, 9f, 6f, 6f, navy, ivory, -4f);
-            Parcel("Left Summit / Front Shelf", -27.5f, -14f, 7f, 11f, 6f, red, gold);
+            Parcel("Left Summit / Sapphire Upper Ledge", -22.5f, 7f, 3f, 4.5f, 7f, navy, ivory, 0f, l2);
+            Parcel("Left Summit / Side Foothold", -20f, 8f, 4f, 4f, 6f, navy, ivory, 5f, l1);
+            Parcel("Left Summit / Rear Entry", -19f, 19f, 8f, 3f, 3f, green, gold, -6f);
+            Parcel("Left Summit / Rear Step", -25f, 15f, 8f, 5.5f, 4f, red, ivory, 4f);
+            Parcel("Left Summit / Front Entry", -22f, -17f, 7f, 3f, 3f, cream, berry, 3f);
+            Parcel("Left Summit / Front Step", -23f, -12.9f, 7f, 6f, 3f, navy, ivory, -4f);
+            Parcel("Left Summit / Front Shelf", -28.8f, -15.8f, 3.5f, 11f, 4f, red, gold);
 
             var r1 = Parcel("Right Summit / Sapphire Base", 27f, 5f, 17f, 8f, 15f, navy, ivory, 2f);
-            var r2 = Parcel("Right Summit / Cream Shelf", 29f, 6f, 13f, 6f, 12f, cream, berry, -5f, r1);
+            var r2 = Parcel("Right Summit / Cream Shelf", 29f, 6f, 13f, 6f, 9f, cream, berry, -5f, r1);
             var r3 = Parcel("Right Summit / Ruby Perch", 30f, 7f, 10f, 7f, 9f, red, gold, 6f, r2);
             Parcel("Right Summit / Sapphire Crown", 31f, 8f, 8f, 7f, 7f, navy, berry, -5f, r3);
             Parcel("Right Summit / Ruby Front Parcel", 24f, -1f, 5f, 4f, 3f, red, gold, 0f, r1);
             Parcel("Right Summit / Cream Front Parcel", 30f, -1f, 5f, 3f, 3f, cream, berry, -2f, r1);
-            Parcel("Right Summit / Emerald Upper Ledge", 24f, 6f, 3f, 5f, 7f, green, ivory, 0f, r2);
-            Parcel("Right Summit / Emerald Foothold", 21f, 5f, 7f, 4f, 9f, green, gold, 4f, r1);
-            Parcel("Right Summit / Rear Entry", 25f, 19f, 12f, 3f, 8f, cream, berry, 8f);
-            Parcel("Right Summit / Rear Step", 29f, 15f, 10f, 5f, 8f, green, ivory, -4f);
-            Parcel("Right Summit / Front Entry", 21f, -23f, 14f, 2.5f, 8f, red, gold, -5f);
-            Parcel("Right Summit / Front Step", 26f, -19f, 12f, 5.5f, 8f, green, ivory, 3f);
-            Parcel("Right Summit / Front Shelf", 27.5f, -14f, 7f, 10f, 6f, cream, berry);
+            Parcel("Right Summit / Emerald Upper Ledge", 23f, 6f, 2f, 5f, 7f, green, ivory, 0f, r2);
+            Parcel("Right Summit / Emerald Foothold", 20f, 5f, 3f, 4f, 8f, green, gold, 4f, r1);
+            Parcel("Right Summit / Rear Entry", 19f, 21f, 8f, 3f, 3f, cream, berry, 8f);
+            Parcel("Right Summit / Rear Step", 26f, 16.5f, 8f, 5f, 4f, green, ivory, -4f);
+            Parcel("Right Summit / Front Entry", 22f, -17f, 7f, 2.5f, 3f, red, gold, -5f);
+            Parcel("Right Summit / Front Step", 23f, -12.9f, 7f, 5.5f, 3f, green, ivory, 3f);
+            Parcel("Right Summit / Front Shelf", 28.8f, -15.8f, 3.5f, 10f, 4f, cream, berry);
 
             // Broad side terraces give each summit a second, less direct climbing route.
-            var ls = Parcel("Left Terrace / Emerald Foundation", -47f, 14f, 9f, 8f, 10f, green, ivory, -4f);
-            var ls2 = Parcel("Left Terrace / Ruby Shelf", -47f, 14f, 8f, 5f, 9f, red, gold, 6f, ls);
-            Parcel("Left Terrace / Cream Perch", -47f, 14f, 7f, 5f, 7f, cream, berry, -3f, ls2);
+            var ls = Parcel("Left Terrace / Emerald Foundation", -48f, 14f, 9f, 8f, 10f, green, ivory, -4f);
+            var ls2 = Parcel("Left Terrace / Ruby Shelf", -48f, 14f, 8f, 5f, 9f, red, gold, 6f, ls);
+            Parcel("Left Terrace / Cream Perch", -48f, 14f, 7f, 5f, 7f, cream, berry, -3f, ls2);
             Parcel("Left Terrace / Navy Toe", -52f, 25f, 8f, 3f, 8f, navy, ivory, 7f);
             Parcel("Left Terrace / Cream Stair", -43f, 25f, 8f, 5.5f, 8f, cream, gold, -3f);
-            Parcel("Left Terrace / Ruby Rear", -34f, 25f, 8f, 8f, 8f, red, gold, 4f);
+            Parcel("Left Terrace / Ruby Rear", -35.5f, 29f, 6f, 8f, 6f, red, gold, 4f);
             var rs = Parcel("Right Terrace / Ruby Foundation", 52f, 15f, 9f, 7f, 10f, red, gold, 4f);
             var rs2 = Parcel("Right Terrace / Emerald Shelf", 52f, 15f, 8f, 5f, 9f, green, ivory, -5f, rs);
             Parcel("Right Terrace / Ivory Perch", 52f, 15f, 7f, 5f, 7f, cream, berry, 5f, rs2);
             Parcel("Right Terrace / Navy Toe", 51f, 27f, 8f, 2.5f, 8f, navy, gold, -4f);
             Parcel("Right Terrace / Cream Stair", 42f, 27f, 8f, 4.5f, 8f, cream, berry, 6f);
-            Parcel("Right Terrace / Green Rear", 34.5f, 28f, 6f, 7f, 6f, green, ivory, -3f);
-            Parcel("Bridge Approach / Left Low", -15f, -15f, 9f, 3f, 9f, red, gold, 5f);
-            Parcel("Bridge Approach / Left Mid", -19f, -10f, 7f, 7f, 8f, cream, berry, -4f);
-            Parcel("Bridge Approach / Right Low", 14f, -16f, 9f, 3f, 8f, green, ivory, -6f);
-            Parcel("Bridge Approach / Right Mid", 18f, -10f, 7f, 7f, 8f, navy, gold, 4f);
+            Parcel("Right Terrace / Green Rear", 34.5f, 29f, 6f, 7f, 6f, green, ivory, -3f);
+            Parcel("Bridge Approach / Left Low", -13f, -15f, 7f, 3f, 9f, red, gold, 5f);
+            Parcel("Bridge Approach / Left Mid", -16f, -7f, 5f, 7f, 5f, cream, berry, -4f);
+            Parcel("Bridge Approach / Right Low", 13.5f, -16f, 8f, 3f, 8f, green, ivory, -6f);
+            Parcel("Bridge Approach / Right Mid", 16f, -8f, 5f, 7f, 5f, navy, gold, 4f);
 
             // The train passes between these two piers, below a real breakaway gift lintel.
             var outer = Parcel("Train Tunnel / Outer Pier", -50f, -7f, 6f, 13f, 12f, cream, gold);
@@ -130,19 +130,19 @@ namespace DeadlyJenga.CastlePrototype
                 new Vector3(21f, 2.8f, 13f), Quaternion.Euler(0f, yaw, 0f), cream, gold);
             giftBearings.Add(new GiftBearing(GiftBase(tunnel), outer, inner));
             Parcel("Tunnel / Green Shoulder", -50f, 4f, 8f, 6f, 9f, green, ivory);
-            Parcel("Tunnel / Navy Approach", -52f, -19f, 10f, 3f, 9f, navy, ivory, 6f);
-            Parcel("Tunnel / Cream Step", -51f, -13f, 8f, 6f, 8f, cream, berry);
+            Parcel("Tunnel / Navy Approach", -52f, -25f, 10f, 3f, 6f, navy, ivory, 6f);
+            Parcel("Tunnel / Cream Step", -51f, -18f, 8f, 6f, 4f, cream, berry);
             Parcel("Tunnel / Ruby Cap", -49f, -6f, 6f, 4f, 7f, red, gold, 0f, tunnel);
             var tunnelStack = Parcel("Tunnel / Emerald Upper Parcel", -41f, -6f, 7f, 5f, 8f, green, ivory, -4f, tunnel);
             Parcel("Tunnel / Ivory Upper Parcel", -42f, -6f, 5f, 4f, 6f, cream, berry, 5f, tunnelStack);
             Parcel("Outer Right / Ruby Landing", 51f, -7f, 9f, 7f, 12f, red, gold);
-            Parcel("Outer Right / Cream Entry", 50f, -20f, 11f, 3f, 8f, cream, berry, -7f);
-            Parcel("Outer Right / Green Step", 50f, -14f, 9f, 5f, 7f, green, ivory, 4f);
+            Parcel("Outer Right / Cream Entry", 52f, -24f, 11f, 3f, 6f, cream, berry, -7f);
+            Parcel("Outer Right / Green Step", 52f, -17f, 9f, 5f, 4f, green, ivory, 4f);
             Parcel("Courtyard / Navy Hop", -5f, -20f, 8f, 2f, 6f, navy, ivory, 8f);
             Parcel("Courtyard / Green Hop", 7f, 2f, 7f, 3f, 7f, green, gold, -9f);
             Parcel("Courtyard / Ruby Hop", -9f, 7f, 8f, 4f, 6f, red, gold, 4f);
             Parcel("Entrance / Cream Catch", 0f, -39f, 13f, 2f, 8f, cream, berry, -5f);
-            Parcel("Entrance / Green Step", 7f, -35f, 10f, 3.5f, 7f, green, ivory, 3f);
+            Parcel("Entrance / Green Step", 11f, -34f, 7.5f, 3.5f, 2f, green, ivory, 3f);
             var trunk = Child(built, "Fir trunk collision", new Vector3(-37f, 17f, -35.7f), Quaternion.identity);
             trunk.gameObject.layer = Layers.Surface;
             var shape = trunk.gameObject.AddComponent<CapsuleCollider>();

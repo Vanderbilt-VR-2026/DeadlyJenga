@@ -42,7 +42,7 @@ namespace DeadlyJenga.CastlePrototype
                 float bottom = GiftFloor(anchor);
                 var bearing = BoxGift("Rail Gift " + (first / perSection + 1),
                     new Vector3(anchor.x, (bottom + top) * .5f, anchor.z),
-                    new Vector3(8f, top - bottom, Vector3.Distance(course[first], course[(first + perSection) % samples]) + 1.7f),
+                    new Vector3(5f, top - bottom, Vector3.Distance(course[first], course[(first + perSection) % samples]) - 1.8f),
                     direction, wraps[(first / perSection) % 4], ribbon);
                 var section = Child(root, "Gift-supported rail " + (first / perSection + 1), anchor, Quaternion.identity);
                 var rails = new List<CombineInstance>();

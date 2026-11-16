@@ -373,6 +373,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     }
                 }
                 foreach (string collision in giftContacts) File.AppendAllText(Report, "GIFT PENETRATION " + collision + "\n");
+                Require(giftContacts.Count == 0, "separate present shells do not penetrate one another");
                 var shaders = map.Root.GetComponentsInChildren<Renderer>()
                     .SelectMany(r => r.sharedMaterials).Where(m => m && m.shader && m.shader.name.StartsWith("DeadlyJenga/Christmas"))
                     .Select(m => m.shader).Distinct();
