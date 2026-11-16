@@ -212,12 +212,13 @@ namespace DeadlyJenga.CastlePrototype
             return label;
         }
 
-        void TabletRule(RectTransform parent,Vector2 p,Vector2 size,Color color)
+        void TabletRule(RectTransform parent,Vector2 p,Vector2 size,Color color,bool sliced=false)
         {
             var image=PointerImage("Candy tablet trim",size);
             image.rectTransform.SetParent(parent,false);
             image.rectTransform.anchoredPosition=p;
             image.color=color;
+            if(sliced){image.type=Image.Type.Sliced;image.pixelsPerUnitMultiplier=.44f;}
         }
 
         TabletButton TabletControl(List<TabletButton> controls,RectTransform parent,Func<string> title,Vector2 p,
@@ -617,8 +618,8 @@ namespace DeadlyJenga.CastlePrototype
             TabletText(page,"CONTROLS",new(0,211),new(960,60),42);
             tabletInputLayout=TabletText(page,"",new(0,157),new(900,38),23);
             tabletInputLayout.color=CandyHudVisuals.Muted;
-            TabletRule(page,new(-245,-35),new(466,330),TabletPanel);
-            TabletRule(page,new(245,-35),new(466,330),TabletPanel);
+            TabletRule(page,new(-245,-35),new(466,330),TabletPanel,true);
+            TabletRule(page,new(245,-35),new(466,330),TabletPanel,true);
             leftInputTitle=TabletText(page,"LEFT HAND",new(-245,89),new(420,38),27);
             rightInputTitle=TabletText(page,"RIGHT HAND",new(245,89),new(420,38),27);
             leftController=TabletPicture(page,CandyHudVisuals.ControllerDiagram(0,true),new(-245,-10),new(125,126));
@@ -733,6 +734,7 @@ namespace DeadlyJenga.CastlePrototype
             EquipmentKind.NeedleDrill => "Drill",
             EquipmentKind.SheriffHammer => "Sheriff",
             EquipmentKind.StockPistol => "Pistol",
+            EquipmentKind.DualUzi => "Spiker Uzis",
             EquipmentKind.DualRifle => "Rifle",
             EquipmentKind.RocketLauncher => "Rocket",
             EquipmentKind.GrenadeLauncher => "Grenade",
@@ -769,7 +771,6 @@ namespace DeadlyJenga.CastlePrototype
                 var kind = rangedItems[i];
                 Vector2 pos = new Vector2(-402 + (i % 2) * 184, 154 - (i / 2) * 74);
                 string name = CleanWeaponSlotName(kind);
-                if(name.StartsWith("DUAL ALIEN"))name="Spiker Uzis";
                 int cur = slotIdx++;
                 var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => name,
                     pos, new Vector2(176, 66), () => SelectWeaponKind(kind),
@@ -797,7 +798,6 @@ namespace DeadlyJenga.CastlePrototype
                 var kind = meleeItems[i];
                 Vector2 pos = new Vector2(-26 + (i % 2) * 184, 154 - (i / 2) * 74);
                 string name = CleanWeaponSlotName(kind);
-                if(name.StartsWith("DUAL ALIEN"))name="Spiker Uzis";
                 int cur = slotIdx++;
                 var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => name,
                     pos, new Vector2(176, 66), () => SelectWeaponKind(kind),

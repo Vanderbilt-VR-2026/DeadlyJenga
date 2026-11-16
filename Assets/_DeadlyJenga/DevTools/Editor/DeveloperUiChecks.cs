@@ -163,7 +163,13 @@ namespace DeadlyJenga.DevTools.Editor
             yield return Shot("23-more-tools-hover.png");
             Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Controls"));yield return Shot("22-controls.png");
             Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Developer"));
-            TabletClick(menu,"Weapons");yield return Shot("21-weapons.png");Back();
+            TabletClick(menu,"Weapons");yield return Shot("21-weapons.png");
+            foreach(var slot in ((IEnumerable)Field<object>(menu,"tabletWheelSlotButtons")).Cast<object>())
+            {
+                string title=Field<Func<string>>(slot,"Title")();string rendered=Field<Text>(slot,"Label").text;
+                Check(rendered==title||rendered=="✓ "+title,"Weapon label matches command: "+title+" / "+rendered);
+            }
+            Back();
             TabletClick(menu,"Bots");yield return Shot("02-bots.png");Row("Population presets");yield return Shot("03-bot-presets.png");
             Row("Bot voices");yield return Shot("04-bot-voices.png");Back();
             Check(!Field<bool>(menu,"tabletDeveloperDetails"),"Bots Back returns to root");
