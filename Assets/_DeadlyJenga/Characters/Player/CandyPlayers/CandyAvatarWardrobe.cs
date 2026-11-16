@@ -174,6 +174,7 @@ namespace DeadlyJenga.CandyPlayers
                 if(hair==AvatarHair.Afro||hair==AvatarHair.Curls){for(int i=0;i<18;i++){float a=i*2.4f;b.Sphere(new Vector3(Mathf.Cos(a)*.21f,.13f+(i%3)*.055f,Mathf.Sin(a)*.20f),Vector3.one*(hair==AvatarHair.Afro?.115f:.065f));}}
                 if(hair==AvatarHair.Bob||hair==AvatarHair.LongWaves||hair==AvatarHair.Braids){for(int s=-1;s<=1;s+=2)for(int i=0;i<(hair==AvatarHair.LongWaves?7:4);i++)b.Sphere(new Vector3(s*(.21f+(hair==AvatarHair.LongWaves?Mathf.Sin(i*1.5f)*.025f:0)),.12f-i*.075f,-.055f),new Vector3(.065f,.08f,.17f));}
                 if(hair==AvatarHair.Ponytail||hair==AvatarHair.TwinTails||hair==AvatarHair.Braids){for(int s=-1;s<=1;s+=2){float x=hair==AvatarHair.Ponytail?0:s*.23f;b.Sphere(new Vector3(x,.035f,-.23f),new Vector3(.07f,.21f,.08f));b.Sphere(new Vector3(x,.20f,-.22f),Vector3.one*.04f);if(x==0)break;}}
+                if(hair==AvatarHair.TwinTails)CandyAccessoryMeshes.TwinTailRoots(b);
                 if(hair==AvatarHair.Bun)b.Sphere(new Vector3(0,.31f,-.07f),Vector3.one*.11f);
                 if(hair==AvatarHair.SidePart)b.Sphere(new Vector3(-.08f,.23f,.07f),new Vector3(.16f,.085f,.14f));
             });
@@ -203,20 +204,6 @@ namespace DeadlyJenga.CandyPlayers
             const int steps=5;var previous=from.normalized*shell;
             for(int i=1;i<=steps;i++){var next=Vector3.Lerp(from,to,i/(float)steps).normalized*shell;b.Beam(previous,next,radius);previous=next;}
         }
-        // Pushes a point out to the hockey helmet's surface, so its cage hugs the shell instead of floating.
-        static Vector3 OnHockeyHelmet(Vector3 point,float outside)
-        {
-            var center=new Vector3(0,.13f,-.05f);var axes=new Vector3(.245f,.15f,.232f);
-            var d=point-center;var scaled=new Vector3(d.x/axes.x,d.y/axes.y,d.z/axes.z);
-            float length=scaled.magnitude;
-            return length<1e-5f?point:center+d*(outside/length);
-        }
-        // CageBar for the hockey helmet: every step is projected onto the helmet ellipsoid.
-        static void HockeyCageBar(CandyAccessoryMeshes.Builder b,Vector3 from,Vector3 to,float radius,float outside)
-        {
-            const int steps=5;var previous=OnHockeyHelmet(from,outside);
-            for(int i=1;i<=steps;i++){var next=OnHockeyHelmet(Vector3.Lerp(from,to,i/(float)steps),outside);b.Beam(previous,next,radius);previous=next;}
-        }
         void BuildClothes(CandyPlayerRig rig)
         {
             var clothes=appearance.clothing;
@@ -241,10 +228,7 @@ namespace DeadlyJenga.CandyPlayers
             {
                 Ball(rig,"hockey helmet shell",1,Tone.Primary,new Vector3(0,.13f,-.05f),new Vector3(.245f,.15f,.232f));
                 Add(rig,"hockey helmet vents",1,Tone.Dark,b=>{for(int s=-1;s<=1;s+=2)for(int i=0;i<3;i++)b.Box(new Vector3(s*(.09f+i*.035f),.265f,-.04f),new Vector3(.016f,.02f,.10f));});
-                Add(rig,"hockey wire cage",1,Tone.Silver,b=>{
-                    for(int i=-2;i<=2;i++){float x=i*.075f;HockeyCageBar(b,new Vector3(x,.07f,.30f),new Vector3(x*1.1f,-.19f,.26f),.008f,1.035f);}
-                    for(int i=0;i<3;i++){float y=.04f-i*.08f;HockeyCageBar(b,new Vector3(-.30f,y,.20f),new Vector3(.30f,y,.20f),.008f,1.035f);}
-                });
+                Add(rig,"hockey wire cage",1,Tone.Silver,CandyAccessoryMeshes.HockeyCage);
             }
             if((clothes&AvatarClothing.FootballHelmet)!=0)
             {
@@ -295,12 +279,12 @@ namespace DeadlyJenga.CandyPlayers
             if((clothes&AvatarClothing.SailorShirt)!=0)
             {
                 Jacket(rig,"sailor shirt",Tone.White);
-                FittedPatch(rig,"sailor collar",Tone.Blue,.034f,"collar",(p,n,bone)=>bone==0&&p.y>1.02f&&p.y<1.31f&&(n.z>.05f&&Mathf.Abs(p.x)<(p.y-1.02f)*.9f+.03f||n.z<-.05f&&p.y>1.14f));
+                Add(rig,"sailor collar",0,Tone.Blue,CandyAccessoryMeshes.SailorCollar);
             }
             if((clothes&AvatarClothing.Overalls)!=0)
             {
                 Pants(rig,"denim overalls",Tone.Blue);
-                FittedPatch(rig,"overall bib",Tone.Blue,.03f,"bib",(p,n,bone)=>bone==0&&(n.z>.1f&&Mathf.Pow(p.x/.14f,2)+Mathf.Pow((p.y-.93f)/.18f,2)<1f||Mathf.Abs(p.x)>.07f&&Mathf.Abs(p.x)<.125f&&p.y>1.10f&&p.y<1.34f));
+                Add(rig,"overall bib",0,Tone.Blue,CandyAccessoryMeshes.OverallBib);
                 for(int sd=-1;sd<=1;sd+=2)Ball(rig,"overall button "+sd,0,Tone.Yellow,new Vector3(sd*.10f,1.05f,SurfacePoint(rig,Mathf.PI*.5f,1.05f,out _).z+.045f),Vector3.one*.022f);
             }
             if((clothes&AvatarClothing.PufferVest)!=0)

@@ -97,6 +97,7 @@ namespace DeadlyJenga.CandyPlayers
                     b.Sphere(new Vector3(0,.17f,0),new Vector3(.23f,.11f,.22f));b.Beam(new Vector3(0,.22f,0),new Vector3(0,.33f,0),.02f);b.Sphere(new Vector3(0,.345f,0),Vector3.one*.03f);
                     for(int s=0;s<2;s++)b.Sphere(new Vector3(0,.36f,0),new Vector3(.25f,.012f,.045f),Quaternion.Euler(0,s*90+22,0));break;
                 case AvatarAccessory.FlowerCrown:
+                    b.Ring(new Vector3(0,.149f,0),.197f,.025f,Quaternion.Euler(90,0,0));
                     for(int i=0;i<8;i++){float a=i*Mathf.PI/4;var c=new Vector3(Mathf.Cos(a)*.215f,.15f,Mathf.Sin(a)*.215f);var n=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));b.Sphere(c,Vector3.one*.026f);for(int petal=0;petal<5;petal++){float t=petal*Mathf.PI*.4f;b.Sphere(c+n*.012f+Vector3.up*Mathf.Cos(t)*.04f+Vector3.Cross(n,Vector3.up)*Mathf.Sin(t)*.04f,Vector3.one*.026f);}}break;
                 case AvatarAccessory.RobotAntenna:b.Beam(new Vector3(0,.18f,0),new Vector3(0,.46f,0),.018f);b.Sphere(new Vector3(0,.46f,0),Vector3.one*.058f);b.Sphere(new Vector3(0,.19f,0),new Vector3(.06f,.035f,.06f));break;
                 case AvatarAccessory.ButterflyWings:case AvatarAccessory.AngelWings:case AvatarAccessory.DragonWings:Wings(b,option);break;
@@ -119,12 +120,17 @@ namespace DeadlyJenga.CandyPlayers
                 float s=side;var shoulder=new Vector3(s*.11f,1.22f,-.16f);
                 if(style==AvatarAccessory.ButterflyWings)
                 {
-                    b.Sphere(new Vector3(s*.40f,1.31f,-.27f),new Vector3(.30f,.22f,.022f),Quaternion.Euler(0,s*-18,s*-20));
-                    b.Sphere(new Vector3(s*.30f,.90f,-.25f),new Vector3(.20f,.17f,.022f),Quaternion.Euler(0,s*-14,s*28));
-                    b.Sphere(new Vector3(s*.43f,1.33f,-.285f),new Vector3(.07f,.07f,.026f),Quaternion.Euler(0,s*-18,0));
+                    b.Sphere(new Vector3(s*.13f,1.11f,-.145f),new Vector3(.115f,.127f,.064f));
+                    var upperCenter=new Vector3(s*.34f,1.29f,-.22f);
+                    var upperRotation=Quaternion.Euler(0,s*-15,s*-20);
+                    b.Sphere(upperCenter,new Vector3(.31f,.227f,.031f),upperRotation);
+                    b.Sphere(new Vector3(s*.27f,.996f,-.20f),new Vector3(.225f,.186f,.030f),Quaternion.Euler(0,s*-12,s*28));
+                    b.Sphere(upperCenter+upperRotation*new Vector3(s*.087f,.032f,-.027f),new Vector3(.065f,.065f,.014f),upperRotation);
                 }
                 else if(style==AvatarAccessory.AngelWings)
                 {
+                    b.Beam(new Vector3(s*.111f,1.179f,-.100f),new Vector3(s*.260f,1.163f,-.191f),.059f);
+                    b.Sphere(new Vector3(s*.212f,1.153f,-.172f),new Vector3(.105f,.102f,.059f),Quaternion.Euler(0,0,s*18));
                     for(int row=0;row<3;row++)for(int f=0;f<5;f++)
                     {
                         float t=f/4f,angle=Mathf.Lerp(-8f,-62f,t)*s;float length=Mathf.Lerp(.20f,.34f,t)*(1+row*.22f);
@@ -142,6 +148,65 @@ namespace DeadlyJenga.CandyPlayers
                     b.Pillow(wrist,wrist+Vector3.up*.002f,f0,tip,.022f,0,0,5,6);b.Pillow(wrist,wrist+Vector3.up*.002f,f1,f0,.022f,0,0,5,6);b.Pillow(wrist,wrist+Vector3.up*.002f,f2,f1,.022f,0,0,5,6);b.Pillow(shoulder,wrist,body,f2,.022f,0,0,5,6);
                 }
             }
+        }
+
+        internal static void HockeyCage(Builder builder)
+        {
+            Vector3 Point(float angle,float y)
+            {
+                float width=Mathf.Lerp(.186f,.224f,Mathf.InverseLerp(-.18f,.09f,y));
+                return new Vector3(Mathf.Sin(angle)*width,y,Mathf.Cos(angle)*.271f);
+            }
+            const float bar=.009f;
+            for(int row=0;row<4;row++)
+            {
+                float y=.065f-row*.071f;
+                for(int segment=0;segment<14;segment++)
+                    builder.Beam(Point(Mathf.Lerp(-1.29f,1.29f,segment/14f),y),
+                        Point(Mathf.Lerp(-1.29f,1.29f,(segment+1)/14f),y),bar);
+            }
+            for(int barIndex=-3;barIndex<=3;barIndex++)
+            {
+                float angle=barIndex*.43f;
+                builder.Beam(Point(angle,.065f),Point(angle,-.148f),bar);
+            }
+            for(int side=-1;side<=1;side+=2)
+            {
+                builder.Beam(Point(side*1.29f,.065f),new Vector3(side*.223f,.107f,.048f),.013f);
+                builder.Beam(Point(side*1.29f,-.148f),new Vector3(side*.222f,.003f,.004f),.012f);
+            }
+        }
+
+        internal static void TwinTailRoots(Builder builder)
+        {
+            for(int side=-1;side<=1;side+=2)
+                builder.Cone(new Vector3(side*.147f,.144f,-.120f),
+                    new Vector3(side*.230f,.167f,-.222f),.053f,.040f,16);
+        }
+
+        internal static void OverallBib(Builder builder)
+        {
+            builder.Pillow(new Vector3(-.125f,1.076f,.172f),new Vector3(.125f,1.076f,.172f),
+                new Vector3(-.137f,.739f,.157f),new Vector3(.137f,.739f,.157f),.058f,-.041f,0f);
+            for(int side=-1;side<=1;side+=2)
+            {
+                var front=new Vector3(side*.105f,1.063f,.179f);
+                var top=new Vector3(side*.105f,1.317f,.038f);
+                var back=new Vector3(side*.087f,1.048f,-.148f);
+                var lower=new Vector3(side*.092f,.810f,-.163f);
+                builder.Beam(front,new Vector3(side*.116f,1.242f,.150f),.027f);
+                builder.Beam(new Vector3(side*.116f,1.242f,.150f),top,.028f);
+                builder.Beam(top,back,.025f);
+                builder.Beam(back,lower,.026f);
+            }
+        }
+
+        internal static void SailorCollar(Builder builder)
+        {
+            builder.Pillow(new Vector3(-.151f,1.289f,.103f),new Vector3(.151f,1.289f,.103f),
+                new Vector3(-.014f,1.069f,.195f),new Vector3(.014f,1.069f,.195f),.054f,.020f,0f);
+            builder.Pillow(new Vector3(-.150f,1.300f,-.135f),new Vector3(.150f,1.300f,-.135f),
+                new Vector3(-.156f,1.134f,-.199f),new Vector3(.156f,1.134f,-.199f),.041f,.022f,0f);
         }
 
         internal sealed class Builder
