@@ -29,6 +29,7 @@ namespace DeadlyJenga.DevTools.Editor
         [Serializable] sealed class Saved {public SceneSetup[] scenes;}
         static DeveloperUiChecks(){EditorApplication.playModeStateChanged+=State;EditorApplication.update+=Tick;}
         public static void Run()=>Begin(false);
+        public static void RunTerminalRoundFlow(){Begin(false,false,true);PlayerPrefs.SetInt("DeadlyJenga.PreferredControlMode",0);SessionState.SetBool(Key+"TerminalRoundFlow",true);}
         public static void RunWardrobeLayout(){Begin(false,false,true);PlayerPrefs.SetInt("DeadlyJenga.PreferredControlMode",0);SessionState.SetBool(Key+"WardrobeLayout",true);}
         public static void RunDialogs()=>Begin(true);
         public static void RunTabletTabs()=>Begin(false,true);
@@ -39,6 +40,7 @@ namespace DeadlyJenga.DevTools.Editor
         public static void RunHostCabinetOnly(){RunCabinetOnly();SessionState.SetBool(Key+"HostCabinetOnly",true);}
         static void Begin(bool dialogs,bool tabs=false,bool lobby=false,bool matchVisuals=false)
         {
+            SessionState.SetBool(Key+"TerminalRoundFlow",false);
             SessionState.SetBool(Key+"WardrobeLayout",false);
             SessionState.SetBool(Key+"HostCabinetOnly",false);
             SessionState.SetBool(Key+"CabinetOnly",false);
@@ -104,7 +106,7 @@ namespace DeadlyJenga.DevTools.Editor
             if(!SessionState.GetBool(Key,false)||!EditorApplication.isPlaying||started==0||EditorApplication.timeSinceStartup-started<8)return;
             if(!SessionState.GetBool(Key+"LobbyTerminals",false)&&!(Services.Session is CastlePlaySession ready&&ready.Modes&&Services.World!=null)&&EditorApplication.timeSinceStartup-started<60)return;
             started=0;
-            run=SessionState.GetBool(Key+"WardrobeLayout",false)?WardrobeLayoutChecks():SessionState.GetBool(Key+"MatchVisuals",false)?MatchVisualChecks():SessionState.GetBool(Key+"LobbyTerminals",false)?LobbyTerminalChecks():Checks();
+            run=SessionState.GetBool(Key+"TerminalRoundFlow",false)?TerminalRoundFlowChecks():SessionState.GetBool(Key+"WardrobeLayout",false)?WardrobeLayoutChecks():SessionState.GetBool(Key+"MatchVisuals",false)?MatchVisualChecks():SessionState.GetBool(Key+"LobbyTerminals",false)?LobbyTerminalChecks():Checks();
             var driver=new GameObject("Developer UI check driver");Object.DontDestroyOnLoad(driver);driver.AddComponent<TidalCheckDriver>().StartCoroutine(Drive());
         }
         static IEnumerator Drive()

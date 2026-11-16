@@ -44,6 +44,12 @@ namespace DeadlyJenga.CandyArt.Marina
         RectTransform canvas,mainFace,joinFace,hostFace;
         Text modeTitle,mapTitle,playTitle,joinTitle,hostTitle,focusDescription,mainHeading,playerCountLabel;
         Text liveStandings,liveActivity,liveHazards;
+        Text matchReturnTitle,matchActionTitle,matchSummary;
+        RectTransform matchReturn,matchAction;
+        float endMatchConfirmUntil;
+        IMatchReviewControls Review=>MatchRuntime.Current as IMatchReviewControls;
+        bool MatchEnded=>MatchRuntime.Current?.Frame?.phase is RoundPhase.Victory or RoundPhase.Results;
+        bool CanConfigureNext=>MatchRuntime.Current?.Authority==true&&MatchRuntime.Current.Frame.phase==RoundPhase.Results;
         readonly Text[] standingRows=new Text[5],standingStats=new Text[5],activityRows=new Text[5],activityDetails=new Text[5],hazardRows=new Text[4];
         readonly RawImage[] standingHeads=new RawImage[5],victimHeads=new RawImage[5],killerHeads=new RawImage[5],hazardArt=new RawImage[4];
         Text modeMissing,mapMissing,joinStatus,hostStatus,marquee;
@@ -129,6 +135,13 @@ namespace DeadlyJenga.CandyArt.Marina
             liveActivity=LiveColumn(new Vector2(169,0),new Vector2(313,166));
             liveHazards=LiveColumn(new Vector2(0,-116),new Vector2(648,43));
             BuildLiveRows();
+            matchReturn=Button("marina-return-match",new Vector2(88,113),new Vector2(146,34),ProjectionInk,
+                ()=> (lobby as ILobbyMatchVisitControls)?.ReturnToMatch(),()=>lobby.CanStart);
+            matchReturnTitle=ActionText("Return to match",new Vector2(138,30),16,matchReturn);
+            matchAction=Button("marina-match-action",new Vector2(251,113),new Vector2(146,34),Coral,MatchAction,
+                ()=>MatchEnded?CanConfigureNext:Review?.CanEndGame==true);
+            matchActionTitle=ActionText("End match",new Vector2(138,30),16,matchAction);
+            matchSummary=Text("",new Vector2(0,-116),new Vector2(648,43),16,mainFace);
 
             joinFace=CabinetFace("Lavender Join display",false);
             hostFace=CabinetFace("Mint Host display",true);
@@ -301,6 +314,17 @@ namespace DeadlyJenga.CandyArt.Marina
             launchSummary.text=lobby.ModeTitle+"  ·  "+lobby.MapTitle;
             playlistStatus.gameObject.SetActive((playlist||countdown)&&!visiting);
             RefreshLiveMatch(visiting);
+            mainHeading.rectTransform.anchoredPosition=new Vector2(visiting?-170:0,113);
+            mainHeading.rectTransform.sizeDelta=new Vector2(visiting?300:635,54);
+            mainHeading.fontSize=visiting?28:40;
+            foreach(Transform child in mainFace)
+                if(child.name.StartsWith("Cinema title",StringComparison.Ordinal))child.gameObject.SetActive(!visiting);
+            matchReturn.gameObject.SetActive(visiting);
+            matchReturnTitle.text=MatchEnded?"View results":lobby.CanStart?"Return to match":"Watching match";
+            matchAction.gameObject.SetActive(visiting&&(MatchEnded||Review?.DevelopmentReviewEnabled==true));
+            matchActionTitle.text=MatchEnded?(CanConfigureNext?"Configure next match":MatchRuntime.Current?.Authority==true?"Finishing round…":"Host sets next match"):
+                Time.unscaledTime<endMatchConfirmUntil?"Confirm end match":"End match";
+            if(!visiting||MatchEnded)endMatchConfirmUntil=0;
             int seconds=countdown?countdownSeconds:Mathf.Max(0,Mathf.CeilToInt(experience?.CountdownSeconds??0));
             int humans=Mathf.Max(1,session?.Multiplayer?.HumanCount??1);
             playlistStatus.text=visiting?"Live match on the spectator TVs":countdown?
@@ -393,12 +417,24 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             liveStandings.gameObject.SetActive(visible);
             liveActivity.gameObject.SetActive(visible);
-            liveHazards.gameObject.SetActive(visible);
+            liveHazards.gameObject.SetActive(visible&&!MatchEnded);
+            matchSummary.gameObject.SetActive(visible&&MatchEnded);
             var match=MatchRuntime.Current;
             var frame=visible?match?.Frame:null;
             if(frame==null)return;
             int seconds=Mathf.Max(0,Mathf.CeilToInt(frame.remaining));
-            mainHeading.text=$"LIVE MATCH    {seconds/60:00}:{seconds%60:00}";
+            mainHeading.text=frame.phase switch
+            {
+                RoundPhase.Waiting=>"BETWEEN ROUNDS",
+                RoundPhase.Countdown=>"ROUND STARTING",
+                RoundPhase.Victory=>"ROUND COMPLETE",
+                RoundPhase.Results=>"MATCH RESULTS",
+                _=>$"LIVE MATCH  {seconds/60:00}:{seconds%60:00}"
+            };
+            liveStandings.text=MatchEnded?"FINAL STANDINGS":"STANDINGS";
+            matchSummary.text="Winner: "+CandyHudContent.Safe(string.IsNullOrWhiteSpace(frame.winner)?"No winner":frame.winner,48)+
+                (CanConfigureNext?"\nChoose Configure next match to pick a map, mode and settings.":
+                    frame.phase==RoundPhase.Victory?"\nFinal results are coming up.":"\nView results, or wait for the host to configure the next match.");
             var owner=match as Component;
             var portraits=owner?CandyScorePortraits.For(owner.gameObject):null;
             Texture Portrait(MatchPlayerFrame player)=>player==null?null:portraits?.Get(match,player);
@@ -419,6 +455,8 @@ namespace DeadlyJenga.CandyArt.Marina
                 activityRows[i].text=i>=eliminations.Length?"":Name(killer??victim);
                 activityDetails[i].text=i>=eliminations.Length?"":killer==null?"Eliminated":"Eliminated "+Name(victim);
             }
+            if(eliminations.Length==0)activityRows[0].text="No eliminations yet";
+            if(standings.Length==0)standingRows[0].text="Waiting for players";
             int slot=0;
             foreach(var source in Tracked.Waves)
             {
@@ -440,6 +478,18 @@ namespace DeadlyJenga.CandyArt.Marina
                 SetLiveImage(hazardArt[slot],null);
                 hazardRows[slot].text="";
             }
+        }
+        void MatchAction()
+        {
+            if(MatchEnded)
+            {
+                if(CanConfigureNext)MatchRuntime.Current.ReturnToLobby();
+                return;
+            }
+            if(Review?.CanEndGame!=true)return;
+            if(Time.unscaledTime<endMatchConfirmUntil){endMatchConfirmUntil=0;Review.EndGame();}
+            else endMatchConfirmUntil=Time.unscaledTime+5;
+            Refresh();
         }
         void SetHazard(int slot,string kind,string title,float warning)
         {
