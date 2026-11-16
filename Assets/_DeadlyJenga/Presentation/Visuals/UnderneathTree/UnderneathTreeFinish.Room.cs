@@ -153,7 +153,7 @@ namespace DeadlyJenga.CandyArt
             new Color(.18f, .27f, .51f), new Color(.75f, .46f, .18f), new Color(.33f, .49f, .44f)
         };
 
-        Material WallCover() => Surface("Cobalt botanical wallcovering", "Wallpaper", new Color(.055f, .12f, .36f),
+        Material WallCover() => Surface("Cobalt botanical wallcovering", "Botanical Paper", new Color(.08f, .17f, .52f),
             .28f, new Vector2(13, 5), 0f, .38f);
 
         void BuildRoom()

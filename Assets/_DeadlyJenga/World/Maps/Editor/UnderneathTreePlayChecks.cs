@@ -317,8 +317,6 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     .SelectMany(deck => Physics.OverlapBox(deck.bounds.center + Vector3.up * 4.7f,
                         new Vector3(2.2f, 2.2f, .6f), deck.transform.rotation, 1 << Layers.Block, QueryTriggerInteraction.Ignore))
                     .Where(c => c.attachedRigidbody && !railBodies.Contains(c.attachedRigidbody)).Distinct().ToArray();
-                Require(clearanceHits.Length == 0, "train clearance above every rail sample: " +
-                    string.Join(", ", clearanceHits.Select(c => c.transform.parent.name + "/" + c.name)));
                 var train = map.GetComponentInChildren<UnderneathTreeTrain>();
                 Require(train, "train uses the new continuous course");
                 initialTrainPosition = train.transform.position;
@@ -334,6 +332,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 foreach (var shader in shaders)
                     Require(!ShaderUtil.GetShaderMessages(shader).Any(message => message.severity.ToString() == "Error"),
                         "rendered Christmas shader compiles: " + shader.name);
+                Require(clearanceHits.Length == 0, "train clearance above every rail sample: " +
+                    string.Join(", ", clearanceHits.Select(c => c.transform.parent.name + "/" + c.name)));
                 impactFixedTime = Time.fixedTime;
                 phase = 10;
                 return;

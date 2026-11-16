@@ -130,16 +130,16 @@ namespace DeadlyJenga.CastlePrototype
                 float width = Mathf.Min(size.x, size.z) * .135f;
                 if (facing.y != 0f)
                 {
-                    VisualBox(piece, "Ribbon across", new Vector3(0f, size.y * .5f + .007f, -.23f * size.z),
+                    VisualBox(piece, "Ribbon across", new Vector3(0f, size.y * .5f + .007f, 0f),
                         new Vector3(size.x, .014f, width), ribbon);
-                    VisualBox(piece, "Ribbon lengthwise", new Vector3(.26f * size.x, size.y * .5f + .014f, 0f),
+                    VisualBox(piece, "Ribbon lengthwise", new Vector3(0f, size.y * .5f + .014f, 0f),
                         new Vector3(width, .014f, size.z), ribbon);
                 }
                 else if (facing.x != 0f)
-                    VisualBox(piece, "Ribbon", facing * (size.x * .5f + .007f) - Vector3.forward * (size.z * .23f),
+                    VisualBox(piece, "Ribbon", facing * (size.x * .5f + .007f),
                         new Vector3(.014f, size.y, size.z * .18f), ribbon);
                 else
-                    VisualBox(piece, "Ribbon", facing * (size.z * .5f + .007f) + Vector3.right * (size.x * .33f),
+                    VisualBox(piece, "Ribbon", facing * (size.z * .5f + .007f),
                         new Vector3(size.x * .18f, size.y, .014f), ribbon);
             }
             RegisterPanel(piece.gameObject, visual.transform, shell, role, size.x * size.y * size.z);

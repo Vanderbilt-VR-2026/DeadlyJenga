@@ -70,7 +70,7 @@ namespace DeadlyJenga.CastlePrototype
                 new Vector3(69f, 3.2f, 10f), Quaternion.Euler(0f, yaw, 0f), navy, ivory);
             giftBearings.Add(new GiftBearing(GiftBase(span), left, right));
 
-            var l1 = Parcel("Left Summit / Broad Cream", -27f, 7f, 17f, 9f, 14f, cream, berry, -3f);
+            var l1 = Parcel("Left Summit / Broad Cream", -26f, 6f, 15f, 9f, 12f, cream, berry, -3f);
             var l2 = Parcel("Left Summit / Ruby Shoulder", -29f, 7f, 15f, 8f, 12f, red, gold, 4f, l1);
             var l3 = Parcel("Left Summit / Emerald Shelf", -30f, 7f, 11f, 6f, 10f, green, ivory, -5f, l2);
             var crown = RoundParcel("Left Summit / Ivory Crown", CoursePoint(-31f, 7f,
@@ -81,8 +81,8 @@ namespace DeadlyJenga.CastlePrototype
             Parcel("Left Summit / Rear Entry", -25f, 16f, 13f, 3f, 8f, green, gold, -6f);
             Parcel("Left Summit / Rear Step", -28f, 12f, 10f, 6f, 8f, red, ivory, 4f);
             Parcel("Left Summit / Front Entry", -23f, -22f, 15f, 3f, 8f, cream, berry, 3f);
-            Parcel("Left Summit / Front Step", -27f, -18f, 11f, 7f, 8f, navy, ivory, -4f);
-            Parcel("Left Summit / Front Shelf", -31f, -15f, 8f, 11f, 7f, red, gold);
+            Parcel("Left Summit / Front Step", -23f, -16f, 9f, 6f, 6f, navy, ivory, -4f);
+            Parcel("Left Summit / Front Shelf", -27.5f, -14f, 7f, 11f, 6f, red, gold);
 
             var r1 = Parcel("Right Summit / Sapphire Base", 27f, 5f, 17f, 8f, 15f, navy, ivory, 2f);
             var r2 = Parcel("Right Summit / Cream Shelf", 29f, 6f, 13f, 6f, 12f, cream, berry, -5f, r1);
@@ -93,7 +93,7 @@ namespace DeadlyJenga.CastlePrototype
             Parcel("Right Summit / Rear Step", 29f, 15f, 10f, 5f, 8f, green, ivory, -4f);
             Parcel("Right Summit / Front Entry", 21f, -23f, 14f, 2.5f, 8f, red, gold, -5f);
             Parcel("Right Summit / Front Step", 26f, -19f, 12f, 6f, 8f, green, ivory, 3f);
-            Parcel("Right Summit / Front Shelf", 30f, -15f, 8f, 10f, 7f, cream, berry);
+            Parcel("Right Summit / Front Shelf", 27.5f, -14f, 7f, 10f, 6f, cream, berry);
 
             // Broad side terraces give each summit a second, less direct climbing route.
             var ls = Parcel("Left Terrace / Emerald Foundation", -47f, 14f, 9f, 8f, 10f, green, ivory, -4f);
@@ -107,7 +107,7 @@ namespace DeadlyJenga.CastlePrototype
             Parcel("Right Terrace / Ivory Perch", 52f, 15f, 7f, 5f, 7f, cream, berry, 5f, rs2);
             Parcel("Right Terrace / Navy Toe", 51f, 27f, 8f, 2.5f, 8f, navy, gold, -4f);
             Parcel("Right Terrace / Cream Stair", 42f, 27f, 8f, 4.5f, 8f, cream, berry, 6f);
-            Parcel("Right Terrace / Green Rear", 33f, 27f, 8f, 7f, 8f, green, ivory, -3f);
+            Parcel("Right Terrace / Green Rear", 34.5f, 28f, 6f, 7f, 6f, green, ivory, -3f);
             Parcel("Bridge Approach / Left Low", -15f, -15f, 9f, 3f, 9f, red, gold, 5f);
             Parcel("Bridge Approach / Left Mid", -19f, -10f, 7f, 7f, 8f, cream, berry, -4f);
             Parcel("Bridge Approach / Right Low", 14f, -16f, 9f, 3f, 8f, green, ivory, -6f);

@@ -164,7 +164,7 @@ namespace DeadlyJenga.CandyArt
                 {
                     Vector3 center = tip.position + Vector3.down * Range(random, 2.35f, 3.55f);
                     float diameter = Range(random, 2.0f, 3.8f);
-                    ornaments[(tint + i) % 4].Add(Part(sphere, center, Vector3.one * diameter));
+                    ornaments[random.Next(ornaments.Length)].Add(Part(sphere, center, Vector3.one * diameter));
                     beadCaps.Add(Part(sphere, center + Vector3.up * (diameter * .48f), new Vector3(.75f, .60f, .75f)));
                     wire.Tube(tip.position, center + Vector3.up * (diameter * .48f), .049f, .046f, 4);
                 }

@@ -313,13 +313,13 @@ namespace DeadlyJenga.CandyArt
 
             var reflections = new GameObject("Christmas Room Reflections");
             reflections.transform.SetParent(art, false);
-            reflections.transform.localPosition = new Vector3(-39f, 36f, -65f);
+            reflections.transform.localPosition = new Vector3(-90f, 55f, -105f);
             roomProbe = reflections.AddComponent<ReflectionProbe>();
             roomProbe.mode = ReflectionProbeMode.Realtime;
             roomProbe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
             roomProbe.timeSlicingMode = ReflectionProbeTimeSlicingMode.IndividualFaces;
-            roomProbe.resolution = 64;
-            roomProbe.size = new Vector3(220f, 135f, 200f);
+            roomProbe.resolution = 128;
+            roomProbe.size = new Vector3(340f, 180f, 340f);
             roomProbe.boxProjection = true;
             roomProbe.intensity = .85f;
 
