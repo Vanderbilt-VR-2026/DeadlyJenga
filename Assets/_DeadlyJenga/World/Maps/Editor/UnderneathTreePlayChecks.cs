@@ -222,6 +222,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 camera.fieldOfView = fieldOfView;
                 // Keep cold shader variants from dropping dressings out of the first view.
                 ShaderUtil.allowAsyncCompilation = false;
+                if (id == "christmas-room")
+                    camera.Render();
                 camera.Render();
                 RenderTexture.active = render;
                 image.ReadPixels(new Rect(0f, 0f, width, height), 0, 0);
