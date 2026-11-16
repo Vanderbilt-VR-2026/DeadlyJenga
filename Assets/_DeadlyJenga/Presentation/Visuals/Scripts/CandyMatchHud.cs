@@ -446,15 +446,21 @@ namespace DeadlyJenga.Presentation
                 portrait.rectTransform.anchoredPosition = new Vector2(-303, 0);
                 var initial = Label("Portrait initial", new Vector2(70, 70), Vector2.zero, TextAnchor.MiddleCenter, 34);
                 initial.transform.SetParent(icon.transform, false);
-                var name = Label("Player name", new Vector2(631, 34), new Vector2(56, 14), TextAnchor.MiddleLeft, 28);
+                var name = Label("Player name", new Vector2(626, 34), new Vector2(58, 15), TextAnchor.MiddleLeft, 28);
                 name.transform.SetParent(go.transform, false); name.supportRichText = false;
                 name.horizontalOverflow = HorizontalWrapMode.Overflow;
-                var stats = Label("Public mode stats", new Vector2(631, 26), new Vector2(56, -18), TextAnchor.MiddleLeft, 19);
+                var stats = Label("Public mode stats", new Vector2(626, 26), new Vector2(58, -19), TextAnchor.MiddleLeft, 19);
                 stats.transform.SetParent(go.transform, false); stats.supportRichText = false;
                 standingsRows[i] = new StandingsRow { card = card, rank = rank, name = name, stats = stats, portrait = portrait, initial = initial };
             }
             standingsFooter = Label("Standings page and controls", new Vector2(776, 54), new Vector2(-202, -284), TextAnchor.MiddleCenter, 18);
             standingsFooter.transform.SetParent(parent, false); standingsFooter.color = CandyHudCards.Ink;
+            foreach(var label in parent.GetComponentsInChildren<Text>(true))
+            {
+                label.font=Resources.Load<Font>("Fonts/Fredoka-Bold") ?? label.font;label.fontStyle=FontStyle.Normal;
+                foreach(var shadow in label.GetComponents<Shadow>())shadow.enabled=false;
+            }
+            TerminalUiStyle.Apply(parent);
         }
 
         void UpdateBoard(MatchFrame f, MatchPlayerFrame own)

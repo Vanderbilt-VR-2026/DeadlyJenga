@@ -63,7 +63,7 @@ namespace DeadlyJenga.CastlePrototype
             bool lobbyAllows=lobbyView ? !lobbyView.WardrobeOpen && session is not ILobbyControls { CodeFocused: true } :
                 (session as ILobbyMatchVisitControls)?.VisitingLobby!=true && MatchRuntime.Current?.Frame?.phase!=RoundPhase.Results;
             bool vr = session.IsVR;
-            bool show = lobbyAllows && session.MenuOpen && (vr || !lobbyView || LobbyDeveloperAvailable(session)) &&
+            bool show = lobbyAllows && session.MenuOpen && (vr || !lobbyView || LobbyDeveloperAvailable(session) || worldMenu.NearbyPanelRequested) &&
                 (vr || !demoHud || !demoHud.StudioOpen) &&
                 !DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session) &&
                 !DeadlyJenga.Presentation.GameExperiencePanel.Showing(session) && !CharacterPicker.Showing(session) &&

@@ -5,6 +5,175 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CastleWorldMenu
     {
+        string developerRoute="", developerFoldout="";
+        bool developerChild,developerPhysics;
+        Action<float> developerVolumeApply;
+        string developerVolumeLabel;
+        void DeveloperVolume(string label,Action<float> apply){developerVolumeLabel=label;developerVolumeApply=apply;}
+        IDeveloperGodMode DeveloperGodMode => session.Player?.gameObject.GetComponent<IDeveloperGodMode>();
+        void ToggleDeveloperGodMode()
+        {
+            var god=DeveloperGodMode;
+            if(god?.CanSetGodMode==true)god.SetGodMode(!god.GodModeEnabled);
+        }
+        void OpenDeveloperRoute(string route)
+        {
+            ResetPages();developerRoute=route;developerChild=false;
+        }
+        void DeveloperChild(Action open)
+        {
+            ResetPages();menuCategory=menuSection=-1;developerChild=true;open();
+        }
+        void PointDeveloperRoute(bool pressed)
+        {
+            HideDisasterSliders();scaffoldButton.gameObject.SetActive(false);
+            var names=new System.Collections.Generic.List<string>();
+            var actions=new System.Collections.Generic.List<Action>();
+            var enabled=new System.Collections.Generic.List<bool>();
+            var art=new System.Collections.Generic.List<CandyHudIcon>();
+            var captions=new System.Collections.Generic.List<string>();
+            var pictures=new System.Collections.Generic.List<Texture>();
+            void Add(string label,Action action,bool available=true,CandyHudIcon icon=CandyHudIcon.Settings,string caption="")
+            {names.Add(label);actions.Add(action);enabled.Add(available);art.Add(icon);captions.Add(caption);pictures.Add(null);}
+            void Fold(string key,string label,Action contents)
+            {
+                Add((developerFoldout==key?"▼ ":"▶ ")+label,()=>developerFoldout=developerFoldout==key?"":key);
+                if(developerFoldout==key)contents();
+            }
+            heading.text="DEVELOPER / "+developerRoute.ToUpperInvariant();
+            help.text=CanCommand?"Expand a section for extra controls. Back returns to Developer.":"Shared changes require developer permission from the host.";
+            if(developerVolumeApply!=null)
+            {
+                heading.text=developerRoute.ToUpperInvariant()+" / "+developerVolumeLabel.ToUpperInvariant();
+                Add("Close volume choices",()=>developerVolumeApply=null);
+                foreach(float level in new[]{0f,.25f,.5f,.75f,1f})
+                {float value=level;Add(value.ToString("P0"),()=>{developerVolumeApply(value);developerVolumeApply=null;},icon:CandyHudIcon.Sound);}
+                RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);return;
+            }
+            if(developerRoute=="Bots")
+            {
+                var lobby=session as ILobbyControls;
+                if(lobby!=null&&session is ILobbyDetails details)
+                {
+                    Add("Players: "+details.Setup.population+" / Hands: "+details.Setup.hands,()=>{},false,CandyHudIcon.Friends);
+                    Add("- Player",()=>AdjustLobbyPopulation(lobby,details,false,-1),lobby.CanConfigure&&details.Setup.population>1);
+                    Add("+ Player",()=>AdjustLobbyPopulation(lobby,details,false,1),lobby.CanConfigure&&details.Setup.population<100);
+                }
+                else
+                {
+                    Add("Survivors: "+(Demo?.SurvivorCount??0)+" / Hands: "+(Demo?.HandCount??0),()=>{},false,CandyHudIcon.Friends);
+                    Add("Add survivor",()=>Demo.Run(DemoCommand.AddSurvivor),CanCommand);
+                    Add("Clear survivors",()=>Demo.Run(DemoCommand.ClearSurvivors),CanCommand);
+                }
+                Fold("batch","Population presets",()=>{
+                    foreach(int value in new[]{10,24,52,100})
+                    {
+                        int target=value;
+                        Add("Fill to "+target+" total players",()=>{session.SurvivorBots.TargetPopulation=target;Demo.Run(DemoCommand.FillSurvivors);},lobby==null&&CanCommand&&session.SurvivorBots!=null);
+                    }
+                });
+                Fold("hands","Flying hands",()=>{
+                    if(lobby!=null&&session is ILobbyDetails d)
+                    {
+                        Add("- Hand",()=>AdjustLobbyPopulation(lobby,d,true,-1),lobby.CanConfigure&&d.Setup.hands>0);
+                        Add("+ Hand",()=>AdjustLobbyPopulation(lobby,d,true,1),lobby.CanConfigure&&d.Setup.hands<100);
+                    }
+                    else
+                    {
+                        Add("Add flying hand",()=>Demo.Run(DemoCommand.AddHand),CanCommand);
+                        Add("Clear flying hands",()=>Demo.Run(DemoCommand.ClearHands),CanCommand);
+                    }
+                });
+                Fold("behavior","Behavior",()=>{
+                    Add("Survivor: "+Demo?.SurvivorPersonality,()=>Demo.Run(DemoCommand.NextSurvivor),CanCommand);
+                    Add("Flying hand: "+Demo?.HandPersonality,()=>Demo.Run(DemoCommand.NextHand),CanCommand);
+                });
+                Fold("equipment","Equipment",()=>Add("Everyone loadout (bots + players)",()=>DeveloperChild(()=>{giveAllEquipment=true;giveEquipmentPage=true;}),CanCommand&&MatchRuntime.Current is IDemoEquipmentControls,CandyHudIcon.Trigger));
+                Fold("voices","Bot voices",()=>{
+                    var social=session.Social;
+                    Add("Voices: "+(social?.VoiceEnabled==true?"ON":"OFF"),()=>social.VoiceEnabled=!social.VoiceEnabled,social?.IsHost==true,CandyHudIcon.Sound);
+                    Add("Bot volume: "+(social?.BotVolume??0).ToString("P0"),()=>DeveloperVolume("Bot volume",value=>social.BotVolume=value),social!=null,CandyHudIcon.Sound);
+                });
+            }
+            else
+            {
+                Fold("player","Player debug",()=>{
+                    Add(session.PlayingHand?"Become survivor":"Become flying hand",SwitchDemoRole,DemoMode,CandyHudIcon.Hand);
+                    Add("Hand appearance",()=>CharacterPicker.Open(session),HandLooks.Names.Length>0,CandyHudIcon.Hand);
+                    Add((developerPhysics?"Hide":"Show")+" hand physics",()=>developerPhysics=!developerPhysics,Settings!=null);
+                    if(developerPhysics&&Settings!=null)
+                    {
+                        float force=Settings.CurrentRules.handPhysics?.forceNewtons??1200;
+                        float friction=Settings.CurrentRules.handPhysics?.friction??2;
+                        Add("Force: "+force.ToString("0")+" N / friction: "+friction.ToString("0.0"),()=>{},false);
+                        Add("Force -100 N",()=>SurvivorSettingsPanel.SetHandPhysics(Settings,force-100,friction,CanCommand,Demo.ApplyStaminaRules),CanCommand);
+                        Add("Force +100 N",()=>SurvivorSettingsPanel.SetHandPhysics(Settings,force+100,friction,CanCommand,Demo.ApplyStaminaRules),CanCommand);
+                        Add("Friction -0.1",()=>SurvivorSettingsPanel.SetHandPhysics(Settings,force,Mathf.Max(0,friction-.1f),CanCommand,Demo.ApplyStaminaRules),CanCommand);
+                        Add("Friction +0.1",()=>SurvivorSettingsPanel.SetHandPhysics(Settings,force,Mathf.Min(2,friction+.1f),CanCommand,Demo.ApplyStaminaRules),CanCommand);
+                    }
+                    Add("Host stamina tuning",()=>DeveloperChild(()=>tuningPage=true),Settings!=null&&CanCommand);
+                    Add("Sea spirit / tabletop",()=>DeveloperChild(()=>tabletopPage=true),MatchRuntime.Current!=null);
+                });
+                Fold("world","World & pickups",()=>{
+                    Add("Ground pickups",()=>DeveloperChild(()=>{menuCategory=2;menuSection=4;}),CanCommand&&MatchRuntime.Current is IEquipmentRuntime,CandyHudIcon.Trigger);
+                    Add("Automatic powerups",()=>DeveloperChild(()=>randomPowerupPage=true),CanCommand);
+                    Add("Wildlife & enemies",()=>DeveloperChild(()=>{menuCategory=1;menuSection=3;}),CanCommand&&session.SurvivorBots is IEnemyPopulation,CandyHudIcon.Friends);
+                    if(Demo is IBuildUpControls build&&build.Available)Add("Deliver scaffold tier",build.AdvanceStage,build.CanAdvance);
+                });
+                Fold("round","Round controls",()=>{
+                    Add("Round setup",()=>DeadlyJenga.Presentation.GameExperiencePanel.Open(session),DeadlyJenga.Presentation.GameExperiencePanel.Resolve(session)!=null,CandyHudIcon.Play);
+                    var match=MatchRuntime.Current;
+                    Add("Temporary team hand power",()=>match.ActivateHandPower(match.Rules.handPowerSeconds),CanCommand&&match?.Authority==true,CandyHudIcon.Hand);
+                    if(match is IMysteryControls mystery&&mystery.Active)
+                    {
+                        Add("Mystery demo role: "+mystery.Personal.role,()=>mystery.SetDemoRole((MysteryRole)(1+(int)mystery.Personal.role%3)),match.Authority&&CanCommand);
+                        Add("Special attack: "+(mystery.Personal.specialAttack?"ON":"OFF"),()=>mystery.SetSpecialAttack(!mystery.Personal.specialAttack),CanCommand);
+                    }
+                    var review=MatchRuntime.Current as IMatchReviewControls;
+                    Add("End round",()=>review.EndGame(),review?.CanEndGame==true,CandyHudIcon.Play);
+                });
+                Fold("diagnostics","Diagnostics",()=>{
+                    Add(Demo?.Status??"No active demo session",()=>{},false);
+                    Add(session.Multiplayer?.Status??"Local play",()=>{},false,CandyHudIcon.Friends);
+                    Add(DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned?"Hide standings":"Show standings",()=>DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned=!DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned);
+                    var audio=DeadlyJenga.CandyAudio.CandyAudioEngine.Instance;
+                    Add("Master volume: "+(audio&&audio.bank?audio.bank.master.ToString("P0"):"Unavailable"),()=>DeveloperVolume("Master volume",value=>audio.bank.master=value),audio&&audio.bank,CandyHudIcon.Sound);
+                    Add("Music volume: "+(audio&&audio.bank?audio.bank.music.ToString("P0"):"Unavailable"),()=>DeveloperVolume("Music volume",value=>audio.bank.music=value),audio&&audio.bank,CandyHudIcon.Sound);
+                    var hints=(session as Component)?.GetComponent<CandyDemoHud>();
+                    if(hints)Add("Control prompts: "+hints.hintMode,()=>hints.hintMode=(CandyDemoHud.HintMode)(((int)hints.hintMode+1)%3));
+                    var gun=session.Player?.gameObject.GetComponent<IBlasterControls>();
+                    Add("Blaster testing: "+(gun?.TestingEnabled==true?"ON":"OFF"),()=>gun.SetTestingEnabled(!gun.TestingEnabled),gun!=null&&CanCommand&&MatchRuntime.Current?.Authority==true,CandyHudIcon.Trigger);
+                });
+            }
+            RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);
+        }
+
+        void PointDeveloperStamina(bool pressed)
+        {
+            HideDisasterSliders();scaffoldButton.gameObject.SetActive(false);
+            var names=new System.Collections.Generic.List<string>();var actions=new System.Collections.Generic.List<Action>();
+            var enabled=new System.Collections.Generic.List<bool>();var art=new System.Collections.Generic.List<CandyHudIcon>();
+            var captions=new System.Collections.Generic.List<string>();var pictures=new System.Collections.Generic.List<Texture>();
+            var rules=Settings.CurrentRules;
+            void Add(string label,Action change)
+            {
+                names.Add(label);actions.Add(()=>{if(!CanCommand)return;change();Settings.ApplyMatchRules(rules);Demo.ApplyStaminaRules(Settings.SaveStaminaRules());});
+                enabled.Add(CanCommand);art.Add(CandyHudIcon.Settings);captions.Add("");pictures.Add(null);
+            }
+            heading.text="PLAYER DEBUG / HOST STAMINA";
+            Add("Grip duration: "+rules.gripSeconds.ToString("0.0")+"s (+)",()=>rules.gripSeconds=Mathf.Min(20,rules.gripSeconds+.5f));
+            Add("Grip duration (-)",()=>rules.gripSeconds=Mathf.Max(.5f,rules.gripSeconds-.5f));
+            Add("Drain rate: "+rules.drainRate.ToString("0.00"),()=>rules.drainRate=Cycle(rules.drainRate,new[]{0f,.25f,.5f,1f,2f,4f}));
+            Add("Recovery rate: "+rules.recoveryRate.ToString("0.00"),()=>rules.recoveryRate=Cycle(rules.recoveryRate,new[]{0f,.1f,.25f,.5f,1f,2f}));
+            Add("Recovery delay: "+rules.recoveryDelay.ToString("0.00"),()=>rules.recoveryDelay=Cycle(rules.recoveryDelay,new[]{0f,.25f,.5f,1f,2f,5f}));
+            Add("Drain curve: "+rules.drainCurve,()=>rules.drainCurve=MatchOptions.Next(MatchOptions.Curves,rules.drainCurve));
+            Add("Recovery curve: "+rules.recoveryCurve,()=>rules.recoveryCurve=MatchOptions.Next(MatchOptions.Curves,rules.recoveryCurve));
+            Add("Drain degree: "+rules.drainDegree.ToString("0.0"),()=>rules.drainDegree=rules.drainDegree>=6?1:rules.drainDegree+.5f);
+            Add("Recovery degree: "+rules.recoveryDegree.ToString("0.0"),()=>rules.recoveryDegree=rules.recoveryDegree>=6?1:rules.recoveryDegree+.5f);
+            help.text="Host rules apply to the shared match. Select a value to step through its range.";
+            RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);
+        }
+
         int menuCategory=-1,menuSection=-1,equipmentOffset;
         bool batchPage,quickGunPage;
         int batchTarget;
@@ -166,23 +335,24 @@ namespace DeadlyJenga.CastlePrototype
         }
         void SetRowPreview(int i,Texture image, bool twoCols = false, float btnW = 980f)
         {
-            if(!image)return;
+            if(!image){mapThumbnails[i].gameObject.SetActive(false);return;}
             var preview=mapThumbnails[i];preview.texture=image;preview.gameObject.SetActive(true);
+            sectionGlyphs[i].gameObject.SetActive(false);
             if (twoCols)
             {
                 float fit=Mathf.Min(80f/image.width,42f/image.height);
                 preview.rectTransform.sizeDelta=new Vector2(image.width*fit,image.height*fit);
                 preview.rectTransform.anchoredPosition=new Vector2(-btnW*0.5f+50f,0);
-                labels[i].rectTransform.sizeDelta=new Vector2(btnW-120f,46);
-                labels[i].rectTransform.anchoredPosition=new Vector2(25f,0);
+                labels[i].rectTransform.sizeDelta=new Vector2(btnW-140f,46);
+                labels[i].rectTransform.anchoredPosition=new Vector2(50f,0);
             }
             else
             {
-                float fit=Mathf.Min(120f/image.width,68f/image.height);
+                float fit=Mathf.Min(108f/image.width,48f/image.height);
                 preview.rectTransform.sizeDelta=new Vector2(image.width*fit,image.height*fit);
                 preview.rectTransform.anchoredPosition=new Vector2(-btnW*0.5f+75f,0);
                 labels[i].rectTransform.sizeDelta=new Vector2(btnW-200f,60);
-                labels[i].rectTransform.anchoredPosition=new Vector2(40f,0);
+                labels[i].rectTransform.anchoredPosition=new Vector2(70f,0);
             }
         }
         void SwitchDemoRole()
@@ -193,69 +363,81 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool matchAdvancedExpanded;
 
+        int developerMapFilter;
+        bool developerMapFiltersOpen,developerMapSearchOpen;
+        string developerMapSearch="";
+        RectTransform developerMapKeyboard;
+        UnityEngine.UI.Text developerSearchText;
+        readonly System.Collections.Generic.List<TabletButton> developerSearchKeys=new System.Collections.Generic.List<TabletButton>();
+        void PointDeveloperSearch(bool pressed)
+        {
+            if(!developerMapKeyboard)
+            {
+                developerMapKeyboard=new GameObject("Map search keyboard",typeof(RectTransform)).GetComponent<RectTransform>();
+                developerMapKeyboard.SetParent(legacyDeveloper,false);
+                developerSearchText=TabletText(developerMapKeyboard,"",new Vector2(0,176),new Vector2(960,52),30);
+                string[] rows={"1234567890","QWERTYUIOP","ASDFGHJKL","ZXCVBNM"};
+                for(int row=0;row<rows.Length;row++)for(int column=0;column<rows[row].Length;column++)
+                {
+                    char key=rows[row][column];float x=(column-(rows[row].Length-1)*.5f)*92;
+                    TabletControl(developerSearchKeys,developerMapKeyboard,()=>key.ToString(),new Vector2(x,110-row*66),new Vector2(82,56),()=>{if(developerMapSearch.Length<40)developerMapSearch+=key;mapOffset=0;},font:30);
+                }
+                TabletControl(developerSearchKeys,developerMapKeyboard,()=>"Space",new Vector2(-320,-180),new Vector2(260,58),()=>{if(developerMapSearch.Length<40)developerMapSearch+=" ";mapOffset=0;},font:25);
+                TabletControl(developerSearchKeys,developerMapKeyboard,()=>"Delete",new Vector2(-90,-180),new Vector2(140,58),()=>{if(developerMapSearch.Length>0)developerMapSearch=developerMapSearch.Substring(0,developerMapSearch.Length-1);mapOffset=0;},font:25);
+                TabletControl(developerSearchKeys,developerMapKeyboard,()=>"Clear",new Vector2(90,-180),new Vector2(140,58),()=>{developerMapSearch="";mapOffset=0;},font:25);
+                TabletControl(developerSearchKeys,developerMapKeyboard,()=>"Show results",new Vector2(320,-180),new Vector2(260,58),()=>developerMapSearchOpen=false,font:25);
+                DeadlyJenga.Presentation.MenuAim.PresentInForeground(developerMapKeyboard);
+            }
+            developerMapKeyboard.gameObject.SetActive(true);
+            foreach(var button in buttons)button.gameObject.SetActive(false);
+            developerSearchText.text="Search: "+developerMapSearch+"_";
+            heading.text="MAP / SEARCH";heading.rectTransform.anchoredPosition=new Vector2(0,240);heading.fontSize=28;
+            help.text="Type a map name, then show results.";help.rectTransform.anchoredPosition=new Vector2(0,-320);
+            PointTabletButtons(developerSearchKeys,pressed);
+        }
         void PointTabletMapPage(Camera camera, bool pressed)
         {
-            var lobby = session as ILobbyControls;
-            var details = session as ILobbyDetails;
-            var maps = Demo as IDemoMapControls;
-            bool chooseMode = lobby != null && menuSection == 0;
-            string selected = chooseMode ? details?.SelectedModeId : details?.SelectedMapId ?? maps?.CurrentMapId;
-            if (!chooseMode) vrMapPicker.Update(details?.Maps ?? maps?.Maps, selected);
-            var options = vrMapPicker.Rows;
-            heading.text = lobby == null
-                ? "MAP SELECTION\n<size=17><color=#d0b8d8>" + (maps?.MapStatus ?? "Choose a map to preview and launch") + "</color></size>"
-                : chooseMode ? "MODE SELECTION" : "MAP SELECTION";
-            bool configure = lobby?.CanConfigure ?? (maps?.CanSelectMap == true);
-            var actions = new System.Collections.Generic.List<Action>();
-            var names = new System.Collections.Generic.List<string>();
-            var enabled = new System.Collections.Generic.List<bool>();
-            var art = new System.Collections.Generic.List<CandyHudIcon>();
-            var captions = new System.Collections.Generic.List<string>();
-            var pictures = new System.Collections.Generic.List<Texture>();
-
-            void Add(string name, Action action, bool available = true, CandyHudIcon icon = CandyHudIcon.Key, string caption = "", Texture picture = null)
-            { names.Add(name); actions.Add(action); enabled.Add(available); art.Add(icon); captions.Add(caption); pictures.Add(picture); }
-
-            Add("◄ Back to Match", () => { mapPage = false; menuSection = -1; }, icon: CandyHudIcon.Home);
-
-            if (chooseMode && details != null)
+            var lobby=session as ILobbyControls;var details=session as ILobbyDetails;var maps=Demo as IDemoMapControls;
+            bool chooseMode=lobby!=null&&menuSection==0;
+            string selected=chooseMode?details?.SelectedModeId:details?.SelectedMapId??maps?.CurrentMapId;
+            var source=chooseMode?details?.Modes:details?.Maps??maps?.Maps;
+            var options=new System.Collections.Generic.List<LobbyOption>();
+            if(source!=null)foreach(var option in source)
+                if((chooseMode||developerMapFilter==0||(int)MapCategoryPicker.GetMainTab(option)==developerMapFilter-1)&&
+                    (chooseMode||string.IsNullOrEmpty(developerMapSearch)||option.title.IndexOf(developerMapSearch,StringComparison.OrdinalIgnoreCase)>=0))options.Add(option);
+            var names=new System.Collections.Generic.List<string>();var actions=new System.Collections.Generic.List<Action>();
+            var enabled=new System.Collections.Generic.List<bool>();var art=new System.Collections.Generic.List<CandyHudIcon>();
+            var captions=new System.Collections.Generic.List<string>();var pictures=new System.Collections.Generic.List<Texture>();
+            void Add(string label,Action action,bool available=true,Texture picture=null,string caption="")
+            {names.Add(label);actions.Add(action);enabled.Add(available);art.Add(chooseMode?CandyHudIcon.Play:CandyHudIcon.Home);captions.Add(caption);pictures.Add(picture);}
+            heading.text=chooseMode?"DEVELOPER / MODE":"DEVELOPER / MAP";
+            string[] filters={"All maps","Play approved","In development","Archive"};
+            if(!chooseMode&&developerMapSearchOpen){PointDeveloperSearch(pressed);return;}
+            if(developerMapKeyboard)developerMapKeyboard.gameObject.SetActive(false);
+            if(!chooseMode)Add("Search: "+(developerMapSearch.Length==0?"all names":developerMapSearch),()=>{developerMapSearchOpen=true;developerMapFiltersOpen=false;});
+            if(!chooseMode)Add("Filter: "+filters[developerMapFilter]+"  v",()=>developerMapFiltersOpen=!developerMapFiltersOpen);
+            if(!chooseMode&&developerMapFiltersOpen)
             {
-                var modes = details.Modes;
-                for (int i = mapOffset; i < modes.Count && i < mapOffset + 12; i++)
-                {
-                    var mode = modes[i];
-                    Add((mode.id == selected ? "* " : "") + mode.title, () => lobby.SelectMode(mode.id),
-                        configure && mode.available, CandyHudIcon.Play, mode.description);
-                }
-                if (mapOffset > 0) Add("Previous modes", () => mapOffset = Mathf.Max(0, mapOffset - 12));
-                if (mapOffset + 12 < modes.Count) Add("More modes", () => mapOffset += 12);
+                for(int i=0;i<filters.Length;i++){int filter=i;Add(filters[i],()=>{developerMapFilter=filter;developerMapFiltersOpen=false;mapOffset=0;});}
             }
-            else if (options != null)
+            else
             {
-                int max = Mathf.Min(12, options.Count - mapOffset);
-                for (int i = 0; i < max; i++)
+                const int pageSize=10;
+                mapOffset=Mathf.Clamp(mapOffset,0,Mathf.Max(0,(options.Count-1)/pageSize*pageSize));
+                if(options.Count==0)Add("No available entries in this filter",()=>{},false);
+                for(int i=mapOffset;i<Mathf.Min(options.Count,mapOffset+pageSize);i++)
                 {
-                    int index = mapOffset + i;
-                    var row = options[index];
-                    Texture preview = row.map != null ? MapPreviewImages.Get(row.map.id) : null;
-                    bool canSelect = row.map == null || (DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session) && configure && row.map.available);
-                    string title = row.map == null ? vrMapPicker.Title(row) : (row.map.id == selected ? "★ " : "") + row.map.title;
-                    Add(title, () => {
-                        if (row.map == null) { vrMapPicker.Toggle(row); mapOffset = vrMapPicker.HeaderIndex / 12 * 12; }
-                        else if (lobby != null) lobby.SelectMap(row.map.id);
-                        else maps?.SelectMap(row.map.id);
-                    }, canSelect, CandyHudIcon.Home, row.map?.description ?? "Browse category", preview);
+                    var option=options[i];
+                    Add((option.id==selected?"Selected: ":"")+option.title,()=>{
+                        if(chooseMode)lobby.SelectMode(option.id);else if(lobby!=null)lobby.SelectMap(option.id);else maps.SelectMap(option.id);
+                    },(lobby?.CanConfigure??maps?.CanSelectMap==true)&&option.available&&DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session),
+                    chooseMode?null:MapPreviewImages.Get(option.id),option.description);
                 }
-                if (mapOffset > 0)
-                    Add("Previous maps", () => mapOffset = Mathf.Max(0, mapOffset - 12), icon: CandyHudIcon.Home);
-                if (mapOffset + 12 < options.Count)
-                    Add("More maps", () => mapOffset += 12, icon: CandyHudIcon.Home);
+                if(mapOffset>0)Add("Previous",()=>mapOffset-=pageSize);
+                if(mapOffset+pageSize<options.Count)Add("Next",()=>mapOffset+=pageSize);
             }
-
-            help.text = lobby == null
-                ? "Aim at a map to preview, or trigger to select. Connected players follow the host."
-                : lobby.SetupHint;
-            RenderOrganizedMenuGrid(names, actions, enabled, art, captions, pictures, pressed);
+            help.text=chooseMode?"Select the mode for the next match.":"Selecting a map rebuilds the world. Connected players follow the host.";
+            RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);
         }
 
         void PointOrganizedMenu(Camera camera,bool pressed)
@@ -353,7 +535,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             else
             {
-                string name=DemoMenuSections.Sections[menuCategory][menuSection];heading.text=DemoMenuSections.Tabs[menuCategory]+" / "+name;Add("Back to "+DemoMenuSections.Tabs[menuCategory],()=>menuSection=-1,icon:CandyHudIcon.Home);
+                string name=DemoMenuSections.Sections[menuCategory][menuSection];heading.text=DemoMenuSections.Tabs[menuCategory]+" / "+name;Add(developerChild?"Back to "+developerRoute:"Back to "+DemoMenuSections.Tabs[menuCategory],()=>{if(developerChild){ResetPages();developerChild=false;}else menuSection=-1;},icon:CandyHudIcon.Home);
                 if(name=="Character")
                 {
                     Add(session.PlayingHand?"Become Survivor":"Become Flying Hand",SwitchDemoRole,DemoMode,CandyHudIcon.Hand,"Switch your local demo character.");
@@ -428,7 +610,7 @@ namespace DeadlyJenga.CastlePrototype
                 heading.rectTransform.sizeDelta = new Vector2(900, 50);
                 heading.fontSize = 28;
                 heading.fontStyle = FontStyle.Bold;
-                heading.color = CandyHudVisuals.Mint;
+                heading.color = TabletCream;
             }
             if (help != null)
             {
@@ -440,11 +622,10 @@ namespace DeadlyJenga.CastlePrototype
             int total = names.Count;
             bool twoCols = total > 6;
             int rowsPerCol = twoCols ? (total + 1) / 2 : total;
-            float btnW = twoCols ? 495f : 980f;
-            float btnH = twoCols ? Mathf.Min(58f, (460f / Mathf.Max(1, rowsPerCol)) - 8f) : Mathf.Clamp(440f / total - 12f, 74f, 88f);
+            float btnW = twoCols ? 472f : 944f;
+            float btnH = Mathf.Min(68f, 456f / Mathf.Max(1, rowsPerCol) - 12f);
             float rowHeight = twoCols ? btnH + 10f : btnH + 12f;
-            float verticalCenter = -45f;
-            float startY = verticalCenter + (rowsPerCol - 1) * rowHeight * 0.5f;
+            float startY = 164f - btnH * .5f;
 
             for(int i=0;i<buttons.Length;i++)
             {
@@ -465,22 +646,25 @@ namespace DeadlyJenga.CastlePrototype
                 labels[i].text=names[i];
                 labels[i].fontSize = twoCols ? (btnH < 50 ? 17 : 20) : (total <= 5 ? 26 : 22);
                 labels[i].fontStyle = FontStyle.Bold;
-                labels[i].alignment = twoCols ? TextAnchor.MiddleCenter : TextAnchor.MiddleLeft;
-                labels[i].rectTransform.sizeDelta = new Vector2(twoCols ? btnW - 80 : btnW - 130, btnH);
-                labels[i].rectTransform.anchoredPosition = new Vector2(twoCols ? 25 : 55, 0);
+                labels[i].alignment = TextAnchor.MiddleLeft;
+                labels[i].resizeTextForBestFit = false;
+                bool hasIcon=art[i]!=CandyHudIcon.Settings;
+                labels[i].rectTransform.sizeDelta = new Vector2(btnW - (hasIcon?92:40), btnH - 8);
+                labels[i].rectTransform.anchoredPosition = new Vector2(hasIcon?24:0, 0);
 
                 if(sectionGlyphs[i])
                 {
-                    sectionGlyphs[i].gameObject.SetActive(true);
+                    sectionGlyphs[i].gameObject.SetActive(art[i] != CandyHudIcon.Settings);
                     sectionGlyphs[i].texture=CandyHudVisuals.Icon(art[i]);
-                    sectionGlyphs[i].rectTransform.sizeDelta = twoCols ? new Vector2(30, 30) : new Vector2(46, 46);
-                    sectionGlyphs[i].rectTransform.anchoredPosition = new Vector2(-btnW * 0.5f + (twoCols ? 28 : 42), 0);
+                    sectionGlyphs[i].rectTransform.sizeDelta = new Vector2(32, 32);
+                    sectionGlyphs[i].rectTransform.anchoredPosition = new Vector2(-btnW * 0.5f + 30, 0);
                 }
                 SetRowPreview(i,pictures[i],twoCols,btnW);
 
                 bool hover=targets[i].enabled&&Hit(targets[i],ray);
-                buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;
-                labels[i].color=hover?CandyHudVisuals.Ink:enabled[i]?Color.white:CandyHudVisuals.Muted;
+                bool fold=names[i].StartsWith("▶")||names[i].StartsWith("▼");
+                buttons[i].image.color=hover?CandyHudVisuals.Mint:fold?new Color(.32f,.14f,.42f):enabled[i]?CandyHudVisuals.Card:new Color(.21f,.12f,.28f);
+                labels[i].color=hover?CandyHudVisuals.Ink:enabled[i]?TabletCream:CandyHudVisuals.Muted;
                 if(hover&&!string.IsNullOrEmpty(captions[i]))help.text=captions[i];
                 if(hover&&pressed){actions[i]();break;}
             }

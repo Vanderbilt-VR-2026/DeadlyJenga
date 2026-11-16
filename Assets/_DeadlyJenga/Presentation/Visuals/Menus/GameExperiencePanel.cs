@@ -99,14 +99,14 @@ namespace DeadlyJenga.Presentation
             panel.SetParent(root.transform,false);panel.sizeDelta=new Vector2(820,760);
             var background=panel.GetComponent<Image>();background.sprite=CandyHudVisuals.Pill;background.type=Image.Type.Sliced;
             background.color=CandyHudVisuals.Ink;background.raycastTarget=false;
-            Label("GAME / DEMO",new Vector2(0,335),new Vector2(750,48),32);
-            profile=Label("",new Vector2(0,279),new Vector2(750,68),25);
-            status=Label("",new Vector2(0,210),new Vector2(750,60),23);
+            Label("ROUND SETUP",new Vector2(0,335),new Vector2(750,48),32);
+            profile=Label("",new Vector2(0,279),new Vector2(750,68),23);
+            status=Label("",new Vector2(0,210),new Vector2(750,60),21);
             var preview=new GameObject("Selected map",typeof(RectTransform),typeof(RawImage));
             preview.transform.SetParent(panel,false);mapImage=preview.GetComponent<RawImage>();mapImage.raycastTarget=false;
             mapImage.rectTransform.anchoredPosition=new Vector2(-190,108);mapImage.rectTransform.sizeDelta=new Vector2(330,130);
             mapName=Label("",new Vector2(-190,27),new Vector2(348,32),22);
-            readiness=Label("",new Vector2(190,98),new Vector2(348,150),23);
+            readiness=Label("",new Vector2(190,98),new Vector2(348,150),21);
             Add(new Vector2(-190,-30),()=>"GAME"+(controls.Experience==GameExperience.Game?" / selected":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Game));
             Add(new Vector2(190,-30),()=>"DEMO"+(controls.Experience==GameExperience.Demo?" / selected":""),()=>CanChooseExperience(controls)||CanEnableDemo(controls),()=>controls.SetExperience(GameExperience.Demo));
             Add(new Vector2(-190,-118),()=>"Automatic rounds: "+(controls.AutomaticRounds?"ON":"OFF"),()=>controls.CanConfigureExperience,()=>controls.SetAutomaticRounds(!controls.AutomaticRounds));
@@ -125,8 +125,8 @@ namespace DeadlyJenga.Presentation
         Text Label(string value,Vector2 position,Vector2 size,int font)
         {
             var go=new GameObject("Experience label",typeof(RectTransform),typeof(Text));go.transform.SetParent(panel,false);
-            var text=go.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.text=value;text.fontSize=font;text.color=Color.white;text.alignment=TextAnchor.MiddleCenter;
+            var text=go.GetComponent<Text>();text.font=Resources.Load<Font>("Fonts/Fredoka-Bold")??Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.text=value;text.fontSize=font;text.color=new Color(1f,.96f,.79f);text.alignment=TextAnchor.MiddleCenter;
             text.supportRichText=false;text.raycastTarget=false;
             text.rectTransform.anchoredPosition=position;text.rectTransform.sizeDelta=size;return text;
         }
@@ -136,7 +136,7 @@ namespace DeadlyJenga.Presentation
             var rect=go.GetComponent<RectTransform>();rect.anchoredPosition=position;rect.sizeDelta=new Vector2(352,72);
             var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;
             image.color=CandyHudVisuals.Card;image.raycastTarget=false;
-            var caption=Label("",Vector2.zero,new Vector2(330,68),24);caption.transform.SetParent(rect,false);
+            var caption=Label("",Vector2.zero,new Vector2(320,62),21);caption.transform.SetParent(rect,false);
             buttons.Add(rect);captions.Add(caption);titles.Add(title);available.Add(allowed);actions.Add(action);
         }
         bool DuringRound=>controls.GamePhase==RoomGamePhase.Playing||controls.GamePhase==RoomGamePhase.Results;

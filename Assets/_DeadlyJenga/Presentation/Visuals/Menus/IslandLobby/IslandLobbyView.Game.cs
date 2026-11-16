@@ -371,6 +371,8 @@ namespace DeadlyJenga.CastlePrototype
             if (browserBridge && setupPage != "maps") browserBridge.gameObject.SetActive(false);
             gameHint.text=setupPage=="maps"||setupPage=="modes"?(setupPage=="maps"?"2 - CHOOSE MAP":"1 - CHOOSE GAME MODE")+"  -  "+(pickerOffset/PageSize+1)+" / "+PickerPages:setupPage=="settings"?"DEMO / MODE SETTINGS":
                 GameExperiencePanel.Resolve(session)?.Experience==GameExperience.Game?lobby.SetupHint:"";
+            gameHint.rectTransform.anchoredPosition = main ? new Vector2(580,-185) : new Vector2(0,320);
+            gameHint.rectTransform.sizeDelta = main ? new Vector2(620,48) : new Vector2(1000,30);
             gameHint.gameObject.SetActive(!main||!string.IsNullOrEmpty(gameHint.text));
         }
         void PreviewMapChoice(string choiceId)

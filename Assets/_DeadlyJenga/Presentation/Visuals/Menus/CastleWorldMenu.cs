@@ -60,9 +60,9 @@ namespace DeadlyJenga.CastlePrototype
         Slider CreateDisasterSlider(string name,out Text caption,out BoxCollider hit)
         {
             var root=new GameObject(name,typeof(RectTransform),typeof(Slider),typeof(BoxCollider));root.transform.SetParent(menuBody?menuBody:transform,false);
-            var rect=root.GetComponent<RectTransform>();rect.sizeDelta=new Vector2(500,48);hit=root.GetComponent<BoxCollider>();hit.size=new Vector3(500,48,4);hit.isTrigger=true;
-            caption=Text(name,new Vector2(0,14),new Vector2(500,30),19);caption.transform.SetParent(root.transform,false);caption.rectTransform.anchoredPosition=new Vector2(0,14);
-            var bar=new GameObject("Track",typeof(RectTransform),typeof(Image));bar.transform.SetParent(root.transform,false);var track=bar.GetComponent<Image>();track.sprite=CandyHudVisuals.Pill;track.type=Image.Type.Sliced;track.color=CandyHudVisuals.Card;track.rectTransform.sizeDelta=new Vector2(500,9);track.rectTransform.anchoredPosition=new Vector2(0,-13);
+            var rect=root.GetComponent<RectTransform>();rect.sizeDelta=new Vector2(420,48);hit=root.GetComponent<BoxCollider>();hit.size=new Vector3(420,48,4);hit.isTrigger=true;
+            caption=Text(name,new Vector2(0,14),new Vector2(420,30),19);caption.transform.SetParent(root.transform,false);caption.rectTransform.anchoredPosition=new Vector2(0,14);
+            var bar=new GameObject("Track",typeof(RectTransform),typeof(Image));bar.transform.SetParent(root.transform,false);var track=bar.GetComponent<Image>();track.sprite=CandyHudVisuals.Pill;track.type=Image.Type.Sliced;track.color=CandyHudVisuals.Card;track.rectTransform.sizeDelta=new Vector2(420,9);track.rectTransform.anchoredPosition=new Vector2(0,-13);
             var fill=new GameObject("Fill",typeof(RectTransform),typeof(Image));fill.transform.SetParent(bar.transform,false);var ink=fill.GetComponent<Image>();ink.color=CandyHudVisuals.Mint;ink.sprite=CandyHudVisuals.Pill;ink.type=Image.Type.Sliced;ink.rectTransform.sizeDelta=Vector2.zero;ink.rectTransform.anchorMin=Vector2.zero;ink.rectTransform.anchorMax=Vector2.one;
             var thumb=new GameObject("Handle",typeof(RectTransform),typeof(Image));thumb.transform.SetParent(bar.transform,false);var knob=thumb.GetComponent<Image>();knob.sprite=CandyHudVisuals.Pill;knob.color=Color.white;knob.rectTransform.sizeDelta=new Vector2(22,22);
             var slider=root.GetComponent<Slider>();slider.minValue=0;slider.maxValue=1;slider.fillRect=ink.rectTransform;slider.handleRect=knob.rectTransform;slider.targetGraphic=knob;
@@ -71,7 +71,7 @@ namespace DeadlyJenga.CastlePrototype
         bool PointWaveSlider(Ray ray,Slider slider,BoxCollider collider,bool pressed)
         {
             if(!slider.gameObject.activeSelf||!slider.interactable||!Hit(collider,ray,out var point))return false;
-            if(pressed){float t=Mathf.InverseLerp(-250,250,slider.transform.InverseTransformPoint(point).x);slider.value=Mathf.Lerp(slider.minValue,slider.maxValue,t);}
+            if(pressed){float t=Mathf.InverseLerp(-210,210,slider.transform.InverseTransformPoint(point).x);slider.value=Mathf.Lerp(slider.minValue,slider.maxValue,t);}
             help.text="Next launch only  /  aim along the slider and hold trigger / pinch to adjust";return true;
         }
         Text Text(string value, Vector2 position, Vector2 size, int fontSize)
@@ -98,18 +98,24 @@ namespace DeadlyJenga.CastlePrototype
         }
         void PointPage(Camera camera, bool pressed,bool held)
         {
+            if(developerMapKeyboard)developerMapKeyboard.gameObject.SetActive(mapPage&&developerMapSearchOpen);
             connectionTile.Refresh(session.Multiplayer);
             exitLabel.text=MultiplayerPanel.LobbyAction(session.Multiplayer);
             if(sectionGlyphsActive)
             {
                 sectionGlyphsActive=false;
                 for(int i=0;i<sectionGlyphs.Length;i++)
-                    sectionGlyphs[i].texture=CandyHudVisuals.Icon(i<icons.Length?icons[i]:CandyHudIcon.Settings);
+                    {sectionGlyphs[i].texture=CandyHudVisuals.Icon(i<icons.Length?icons[i]:CandyHudIcon.Settings);sectionGlyphs[i].gameObject.SetActive(false);}
             }
             if(!tuningPage)handPhysicsPage=false;
             if(PointNavigation(pressed))return;
             if(PointMapControls(camera,pressed))return;
+            if(developerChild&&!giveEquipmentPage&&!randomPowerupPage&&!powerupPage&&!tabletopPage&&!tuningPage&&menuSection<0)developerChild=false;
+            if(developerRoute.Length>0&&!developerChild){PointDeveloperRoute(pressed);return;}
+            if(tabletDeveloperDetails&&mapPage){PointTabletMapPage(camera,pressed);return;}
+            if(spectatePage){PointSpectatePage(camera,pressed);return;}
             if(giveEquipmentPage){PointGiveEquipmentPage(camera,pressed);return;}
+            if(tuningPage&&developerChild){PointDeveloperStamina(pressed);return;}
             if(randomPowerupPage){PointRandomPowerups(camera,pressed);return;}
             if(powerupPage){PointPowerupPage(camera,pressed);return;}
             PointScaffold(camera,pressed);

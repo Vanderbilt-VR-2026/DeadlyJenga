@@ -139,14 +139,24 @@ namespace DeadlyJenga.CastlePrototype
 
             for (int i = 0; i < count; i++)
             {
-                float angle = (90f - i * (360f / count)) * Mathf.Deg2Rad;
-                Vector2 cardPos = new Vector2(Mathf.Cos(angle) * 415f, -45f + Mathf.Sin(angle) * 205f);
-                var card = CreateWheelCard(disasterWheelUI.transform, cardPos, new Vector2(164, 136), new Vector2(56, -50), new Vector2(36, 24));
+                Vector2 cardPos = new Vector2((i % 3 - 1) * 320f, 150f - (i / 3) * 112f);
+                var card = CreateWheelCard(disasterWheelUI.transform, cardPos, new Vector2(300, 102), new Vector2(64, -28), new Vector2(132, 32));
+                card.picture.rectTransform.sizeDelta = new Vector2(100, 76);
+                card.picture.rectTransform.anchoredPosition = new Vector2(-91, 0);
+                card.title.rectTransform.sizeDelta = new Vector2(174, 44);
+                card.title.rectTransform.anchoredPosition = new Vector2(54, 17);
+                card.title.fontSize = 19;
+                card.title.resizeTextForBestFit = false;
+                card.title.color = TabletCream;
+                card.playLabel.text = "▶ Launch";
+                card.playLabel.fontSize = 15;
+                card.playLabel.resizeTextForBestFit = false;
                 disasterCards.Add(card);
             }
 
-            disasterStopBtn = CreateWheelCenterButton(disasterWheelUI.transform, "STOP ALL DISASTERS", new Vector2(0, -22), new Vector2(250, 46), 17, out disasterStopTarget);
-            disasterBackBtn = CreateWheelCenterButton(disasterWheelUI.transform, "◄ BACK", new Vector2(0, -74), new Vector2(160, 40), 16, out disasterBackTarget);
+            disasterStopBtn = CreateWheelCenterButton(disasterWheelUI.transform, "STOP ALL DISASTERS", new Vector2(-180, -280), new Vector2(320, 44), 17, out disasterStopTarget);
+            disasterBackBtn = CreateWheelCenterButton(disasterWheelUI.transform, "◄ BACK", new Vector2(180, -280), new Vector2(320, 44), 17, out disasterBackTarget);
+            MenuAim.PresentInForeground(disasterWheelUI.transform);
         }
 
         void PointDisasterWheel(bool pressed)
@@ -158,6 +168,10 @@ namespace DeadlyJenga.CastlePrototype
             scaffoldButton.gameObject.SetActive(false);
             foreach (var b in buttons) b.gameObject.SetActive(false);
             heading.text = "NATURAL DISASTERS\n<size=17><color=#d0b8d8>Click disaster for settings  ·  ▶ to launch immediately</color></size>";
+            heading.rectTransform.anchoredPosition = new Vector2(0, 232);
+            help.rectTransform.anchoredPosition = new Vector2(0, -330);
+            help.rectTransform.sizeDelta = new Vector2(950, 30);
+            help.fontSize = 17;
             help.text = CanCommand ? "Point at a disaster to configure its sliders, or ▶ to trigger it directly." : "The host controls disasters.";
 
             var ray = pointerRay;
@@ -178,7 +192,7 @@ namespace DeadlyJenga.CastlePrototype
                 card.playImage.color = playHover ? CandyHudVisuals.Mint : new Color(0.24f, 0.12f, 0.32f);
                 card.playLabel.color = playHover ? CandyHudVisuals.Ink : CandyHudVisuals.Mint;
 
-                if (cardHover && pressed)
+                if (cardHover && !playHover && pressed)
                 {
                     disasterWheelUI.SetActive(false);
                     disasterSelection = i;
@@ -197,6 +211,7 @@ namespace DeadlyJenga.CastlePrototype
 
             bool stopHover = Hit(disasterStopTarget, ray);
             disasterStopBtn.image.color = stopHover ? CandyHudVisuals.Mint : TabletPanel;
+            disasterStopBtn.GetComponentInChildren<Text>().color = stopHover ? CandyHudVisuals.Ink : Color.white;
             if (stopHover && pressed)
             {
                 Demo?.Run(DemoCommand.StopDisasters);
@@ -206,6 +221,7 @@ namespace DeadlyJenga.CastlePrototype
 
             bool backHover = Hit(disasterBackTarget, ray);
             disasterBackBtn.image.color = backHover ? CandyHudVisuals.Mint : TabletPanel;
+            disasterBackBtn.GetComponentInChildren<Text>().color = backHover ? CandyHudVisuals.Ink : Color.white;
             if (backHover && pressed)
             {
                 disasterWheelUI.SetActive(false);
@@ -328,50 +344,77 @@ namespace DeadlyJenga.CastlePrototype
                 return;
             }
         }
+        bool developerModeAdvanced;
+        FieldInfo developerModeChoice;
         void PointModePage(Camera camera,bool pressed)
         {
-            var match=MatchRuntime.Current;if(match==null){modePage=modeWheel=false;return;}
-            if(modeWheel){PointModeWheel(match,pressed);return;}
+            var match=MatchRuntime.Current;
+            if(match==null){CloseDeveloperDetails();return;}
+            HideDisasterSliders();
+            if(modeWheelUI)modeWheelUI.SetActive(false);
             var rules=match.Rules;
-            var fields=modeOffset==0?quickModeFields:modeFields;
-            int pageStart=modeOffset==0?0:modeOffset-1;
-            heading.text="MATCH RULES / SCENERY\n"+rules.mode+" · "+match.Frame.phase;
-            HideDisasterSliders();bool canConfigure=match.Authority||(rules.mode==GameModeKind.Demo&&Services.Session?.Demo?.CanCommand==true);
-            for(int i=0;i<buttons.Length;i++){buttons[i].gameObject.SetActive(true);targets[i].enabled=i==0||canConfigure;}
-            labels[0].text="Back to demo";labels[1].text="Start / restart round";labels[2].text="Skin: "+rules.environmentSkin;
-            for(int i=3;i<=9;i++){int index=pageStart+i-3;if(index<fields.Length){var field=fields[index];labels[i].text=ModeSetupPanel.Label(field.Name)+": "+field.GetValue(rules);if(field.Name=="mode"){labels[i].text="Open game mode wheel";targets[i].enabled=match.Authority;}}else buttons[i].gameObject.SetActive(false);}
-            labels[10].text="HUD / standings / tuning";labels[11].text="Temporary team hand power";labels[12].text=modeOffset==0?"Common settings":"Previous settings";labels[13].text=modeOffset==0?"Advanced settings":"More settings";labels[14].text="Sea spirit / tabletop AR";
-            var mystery=match as IMysteryControls;
-            if(mystery?.Active==true){labels[11].text="Special punch: "+(mystery.Personal.specialAttack?"ON":"OFF");labels[14].text="Demo role: "+mystery.Personal.role;targets[11].enabled=true;}
-            targets[10].enabled=targets[12].enabled=targets[13].enabled=targets[14].enabled=true;
-            if(!DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session))
+            bool canConfigure=(match.Authority||(rules.mode==GameModeKind.Demo&&CanCommand))&&GameExperiencePanel.CanEditRawChoices(session);
+            var names=new List<string>();var actions=new List<Action>();var enabled=new List<bool>();
+            var art=new List<CandyHudIcon>();var captions=new List<string>();var pictures=new List<Texture>();
+            void Add(string name,Action action,bool available=true)
+            {names.Add(name);actions.Add(action);enabled.Add(available);art.Add(CandyHudIcon.Settings);captions.Add("");pictures.Add(null);}
+            heading.text="DEVELOPER / MODE";
+            help.text=canConfigure?"Choose a value. Advanced rules stay collapsed until needed.":"Mode rules are read only without host permission.";
+            void Apply(FieldInfo field,object value)
             {
-                heading.text="CURATED GAME PROFILE / READ ONLY";
-                for(int i=0;i<targets.Length;i++)if(i!=0&&i!=10&&i!=12&&i!=13&&!(i==14&&mystery?.Active!=true))targets[i].enabled=false;
+                if(!canConfigure)return;
+                var copy=field.Name=="mode"?ModeDefaults.Create((GameModeKind)value):rules.Copy();
+                field.SetValue(copy,value);match.Configure(copy);developerModeChoice=null;
             }
-            var ray=pointerRay;
-            for(int i=0;i<buttons.Length;i++)
+            if(developerModeChoice!=null)
             {
-                if(!buttons[i].gameObject.activeSelf)continue;bool hover=Hit(targets[i],ray);buttons[i].image.color=!targets[i].enabled?CandyHudVisuals.Ink:hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=!targets[i].enabled?CandyHudVisuals.Muted:hover?CandyHudVisuals.Ink:Color.white;
-                if(!hover||!pressed||!targets[i].enabled)continue;
-                if(mystery?.Active==true&&i==11){mystery.SetSpecialAttack(!mystery.Personal.specialAttack);return;}
-                if(mystery?.Active==true&&i==14){if(match.Authority)mystery.SetDemoRole((MysteryRole)(1+(int)mystery.Personal.role%3));return;}
-                if(i==0){modePage=false;return;}if(i==12){modeOffset=Mathf.Max(0,modeOffset-7);return;}if(i==13){modeOffset=modeOffset==0?1:modeOffset+7>modeFields.Length?0:modeOffset+7;return;}if(i==14){modePage=false;tabletopPage=true;return;}
-                if(i==10){modePage=false;hudPage=true;return;}
-                if(i==11){match.ActivateHandPower(rules.handPowerSeconds);return;}
-                if(i==1){match.StartRound();return;}var copy=rules.Copy();
-                if(i==2)copy.environmentSkin=CandySceneSkins.Names[(DeadlyJenga.Presentation.CandyMatchVisuals.SkinIndex(copy.environmentSkin)+1)%CandySceneSkins.Names.Length];
+                var field=developerModeChoice;
+                Add("Close "+ModeSetupPanel.Label(field.Name)+" choices",()=>developerModeChoice=null);
+                if(field.FieldType==typeof(string))
+                {
+                    foreach(string value in CandySceneSkins.Names){string choice=value;Add(choice,()=>Apply(field,choice),canConfigure);}
+                }
+                else if(field.FieldType.IsEnum)
+                {
+                    foreach(var value in Enum.GetValues(field.FieldType))
+                    {var choice=value;Add(choice.ToString(),()=>Apply(field,choice),canConfigure);}
+                }
                 else
                 {
-                    var f=fields[pageStart+i-3];var type=f.FieldType;
-                    if(f.Name=="mode"){modeWheel=true;return;}
-                    if(type==typeof(bool))f.SetValue(copy,!(bool)f.GetValue(copy));
-                    else if(type.IsEnum){var values=Enum.GetValues(type);var next=values.GetValue((Array.IndexOf(values,f.GetValue(copy))+1)%values.Length);if(f.Name=="mode")copy=ModeDefaults.Create((GameModeKind)next);else f.SetValue(copy,next);}
-                    else if(type==typeof(float)||type==typeof(int)){ModeSetupPanel.Range(f.Name,out float min,out float max);float next=Convert.ToSingle(f.GetValue(copy))+Mathf.Max(type==typeof(int)?1:.1f,(max-min)/20);if(next>max)next=min;if(type==typeof(int))f.SetValue(copy,Mathf.RoundToInt(next));else f.SetValue(copy,next);}
+                    ModeSetupPanel.Range(field.Name,out float min,out float max);
+                    float current=Convert.ToSingle(field.GetValue(rules));
+                    float step=Mathf.Max(field.FieldType==typeof(int)?1:.1f,(max-min)/20);
+                    Add(ModeSetupPanel.Label(field.Name)+": "+current.ToString("0.##"),()=>{},false);
+                    foreach(int direction in new[]{-1,1})
+                    {
+                        int delta=direction;
+                        Add(delta<0?"Decrease":"Increase",()=>{
+                            var copy=match.Rules.Copy();float next=Mathf.Clamp(Convert.ToSingle(field.GetValue(copy))+delta*step,min,max);
+                            if(field.FieldType==typeof(int))field.SetValue(copy,Mathf.RoundToInt(next));else field.SetValue(copy,next);
+                            match.Configure(copy);
+                        },canConfigure);
+                    }
                 }
-                match.Configure(copy);return;
             }
-            help.text="Look + trigger / pinch to cycle a value. More settings reveals all mode options.";
+            else
+            {
+                var fields=developerModeAdvanced?modeFields.Where(f=>!commonModeFields.Contains(f.Name)).ToArray():quickModeFields;
+                int start=developerModeAdvanced?modeOffset:0;
+                for(int i=start;i<Mathf.Min(fields.Length,start+9);i++)
+                {
+                    var field=fields[i];
+                    if(field.FieldType==typeof(string))continue;
+                    Add(ModeSetupPanel.Label(field.Name)+": "+field.GetValue(rules)+(field.FieldType.IsEnum?"  v":""),()=>{
+                        if(field.FieldType==typeof(bool))Apply(field,!(bool)field.GetValue(rules));else developerModeChoice=field;
+                    },canConfigure);
+                }
+                if(!developerModeAdvanced)Add("Scene appearance: "+rules.environmentSkin+"  v",()=>developerModeChoice=modeFields.First(f=>f.Name=="environmentSkin"),canConfigure);
+                Add((developerModeAdvanced?"Hide":"Show")+" advanced rules",()=>{developerModeAdvanced=!developerModeAdvanced;modeOffset=0;});
+                if(developerModeAdvanced&&modeOffset>0)Add("Previous rules",()=>modeOffset=Mathf.Max(0,modeOffset-9));
+                if(developerModeAdvanced&&modeOffset+9<fields.Length)Add("Next rules",()=>modeOffset+=9);
+                Add("Start / restart round",match.StartRound,canConfigure);
+            }
+            RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);
         }
         void PointHudPage(Camera camera,bool pressed)
         {

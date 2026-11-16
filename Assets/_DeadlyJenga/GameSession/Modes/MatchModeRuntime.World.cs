@@ -218,6 +218,7 @@ namespace DeadlyJenga.Modes
         }
         void EliminateActor(IModeActor actor,MatchSoundCue cause)
         {
+            if(actor.gameObject.GetComponent<IDeveloperGodMode>()?.GodModeEnabled==true)return;
             if(actorIds.TryGetValue(actor.gameObject,out string id)){var p=simulation.Find(id);if(p!=null){p.frame.health=0;simulation.Kill(id,null,cause);}}
             if(actor.gameObject.TryGetComponent<IDamageable>(out var damageable))damageable.Eliminate(gameObject);
         }

@@ -110,7 +110,7 @@ namespace DeadlyJenga.CastlePrototype
             RestoreRememberedComfort();
         }
         void OnEnable() { if(!externallyDriven){move.Enable(); turn.Enable(); jump.Enable();} modeReady = false; Tracked.Movers.Add(this);UpdateSpectatorParticipation(); }
-        void OnDisable() { ReleaseTrackingSystems();RestoreSpectatorParticipation();ClearSprint();ClearMovementPowerups(); move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false);ResetVRJump(); Tracked.Movers.Remove(this); }
+        void OnDisable() { developerGodMode=false;ReleaseTrackingSystems();RestoreSpectatorParticipation();ClearSprint();ClearMovementPowerups(); move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false);ResetVRJump(); Tracked.Movers.Remove(this); }
         void OnDestroy() { if(tracker)tracker.enabled=false;foreach(var action in headActions)action.Dispose();move.Dispose(); turn.Dispose(); jump.Dispose(); }
 
         public void RefreshMode()
@@ -158,6 +158,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             Capsule.excludeLayers=TraversalCollision.Unified?0:1<<Layers.Block;
             RefreshMode();
+            if(developerGodMode&&!CanSetGodMode)SetGodMode(false);
             if(UpdateSpectatorParticipation())return;
             if (IsVR)
             {
@@ -244,6 +245,11 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             else ResetVRJump();
+            if(GodModeEnabled)
+            {
+                MoveDeveloperFlight(walking,held,sprintHeld,Time.deltaTime);
+                return;
+            }
             var equipped=equipmentControls?.Equipment;
             bool flyingSuit=!externallyDriven&&equipped?.kind==EquipmentKind.PoweredArmor&&equipped.drawn;
             if(flyingSuit){ResetVRJump();pressed=held=false;walking=Vector2.zero;}

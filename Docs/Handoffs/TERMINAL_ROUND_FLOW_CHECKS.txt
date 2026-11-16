@@ -1,0 +1,53 @@
+Actual Game scene and production menu, scripted pointer/binding checks. Capture camera temporarily frames the world-locked tablet for readability; these are not headset eye-placement measurements. No physical headset or multiplayer proof.
+PASS Actual Marina lobby initializes
+PASS Developer lobby accepts initial map and mode
+PASS Terminal action visible: marina-play
+PASS Terminal action allowed: marina-play
+PASS Actual terminal launches a playable developer match
+PASS Real developer policy authorizes End Match and lobby visit
+PASS Actual VisitLobby opens during the running match
+PASS Running terminal shows live phase
+PASS Terminal action visible: marina-match-action
+PASS Terminal action allowed: marina-match-action
+PASS First End Match click preserves the running round
+PASS End Match asks for confirmation
+PASS Terminal action visible: marina-match-action
+PASS Terminal action allowed: marina-match-action
+PASS Confirmed terminal command ends the actual round
+PASS Victory does not retain a live-match heading
+PASS Actual simulation advances from victory to results
+PASS Results heading replaces live timer
+PASS Terminal identifies final standings
+PASS Result summary replaces active-disaster strip
+PASS Real end command preserves post-game report
+PASS Guest-view fixture cannot configure the host's next match
+PASS Guest-view fixture explains host ownership
+PASS Terminal action visible: marina-match-action
+PASS Terminal action allowed: marina-match-action
+PASS Configure Next Match returns to editable lobby setup
+PASS Terminal action visible: marina-modes
+PASS Terminal action allowed: marina-modes
+PASS Mode picker remains reachable after a match ends
+PASS New match can select a different mode
+PASS Terminal action visible: marina-maps
+PASS Terminal action allowed: marina-maps
+PASS Map picker remains reachable after a match ends
+PASS New match can select a different map: MapDrafterEvan1
+PASS Terminal action visible: marina-settings
+PASS Terminal action allowed: marina-settings
+PASS Match settings remain reachable after a match ends
+PASS New match population setting is retained
+PASS New-match terminal exposes map and mode cards
+PASS Terminal action visible: marina-play
+PASS Terminal action allowed: marina-play
+PASS Terminal starts the newly configured match
+PASS New match receives the selected map
+PASS New match receives the configured countdown
+PASS Lobby terminal can be visited between rounds
+PASS Actual new round is counting down during terminal review
+PASS Between-round terminal shows actual countdown phase
+PASS Terminal action visible: marina-return-match
+PASS Terminal action allowed: marina-return-match
+PASS Terminal Return to Match restores play
+COMPLETE UI assertions passed with no runtime errors.
+CLEANUP restored name preference and initial scene state.
