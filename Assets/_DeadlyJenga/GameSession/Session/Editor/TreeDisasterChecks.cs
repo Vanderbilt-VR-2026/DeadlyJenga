@@ -27,6 +27,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         {
             if(!Application.isBatchMode||EditorApplication.isPlayingOrWillChangePlaymode)throw new Exception("Use checked batch editor");
             if(!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))throw new Exception("Missing disaster validator");
+            if(!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Test Disaster Map Contract"))throw new Exception("Missing map contract checks");
             Directory.CreateDirectory(Folder);File.WriteAllText(Report,"Actual Game.unity Tree disaster checks; staged receiver and cameras.\n");
             SessionState.SetBool(Pending,true);SessionState.SetBool(Failed,true);
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
@@ -104,11 +105,13 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         if(!shot&&elapsed>2&&(Cases[index]!="CatAttack"||Vector3.Distance(f.points[0].position,world.PlayableBounds.center)<55))
                         {Capture((index+1).ToString("00")+"-"+Cases[index]);shot=true;}
                     }
+                    if(index>0)hit|=world.Blocks.Any(b=>b&&!b.isKinematic);
                     bool naturallyEnded=!hazard.Active;
                     bool enough=elapsed>(Cases[index]=="Earthquake"?12:Cases[index]=="CatAttack"?30:Cases[index]=="PlanetKillerOrnament"?12:7);
                     if(naturallyEnded||enough)
                     {
                         Check(seen,Cases[index]+" publishes active visual state");
+                        if(!hit)Capture("failed-"+Cases[index]);
                         Check(hit,Cases[index]+(index==0?" switches off room lights":" releases real map rigidbodies"));
                         if(dummy){Check(dummy.Health<dummy.MaxHealth,"one passing cat damages staged survivor receiver");UnityEngine.Object.Destroy(dummy.gameObject);dummy=null;}
                         if(Cases[index]=="CatAttack")Check(naturallyEnded,"single cat completes its run and ends");

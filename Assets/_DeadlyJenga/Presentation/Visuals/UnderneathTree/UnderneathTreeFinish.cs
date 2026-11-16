@@ -35,7 +35,7 @@ namespace DeadlyJenga.CandyArt
         float previousReflection;
         float refreshAt;
         int revision = -1;
-        Light key;
+        Light key, outageMoon;
         ReflectionProbe roomProbe;
         bool roomReflected;
         Mesh roundedWrap;
@@ -144,6 +144,23 @@ namespace DeadlyJenga.CandyArt
                 foreach (var item in outageEmission) if (item.Key) item.Key.SetColor("_EmissionColor", item.Value);
                 outageEmission.Clear();
             }
+            if (blackout)
+            {
+                if (!outageMoon)
+                {
+                    var moon = new GameObject("Outage moon through window");moon.transform.SetParent(art, false);
+                    moon.transform.rotation = Quaternion.Euler(38f, -65f, 0f);
+                    outageMoon = moon.AddComponent<Light>();outageMoon.type = LightType.Directional;
+                    outageMoon.color = new Color(.28f, .46f, 1f);outageMoon.intensity = .38f;
+                    outageMoon.shadows = LightShadows.None;
+                }
+                RenderSettings.fog = false;RenderSettings.skybox = null;
+                RenderSettings.ambientMode = AmbientMode.Flat;
+                var moonFill = new Color(.025f, .035f, .065f);RenderSettings.ambientLight = moonFill;
+                var moonProbe = new SphericalHarmonicsL2();moonProbe.AddAmbientLight(moonFill);RenderSettings.ambientProbe = moonProbe;
+                RenderSettings.reflectionIntensity = .12f;
+            }
+            if (outageMoon) outageMoon.enabled = blackout;
             bool externalLighting = viewUnderFloor || blackout;
             if (!externalLighting)
                 RestoreIndoorSettings();

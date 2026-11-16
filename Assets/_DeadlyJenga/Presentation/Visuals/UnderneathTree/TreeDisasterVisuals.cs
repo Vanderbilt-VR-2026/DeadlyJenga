@@ -22,7 +22,7 @@ namespace DeadlyJenga.CandyArt
         readonly List<string> stale=new List<string>();
         readonly List<Material> owned=new List<Material>();
         Mesh sphere,cylinder,cone;
-        Material fur,dark,cream,pink,eye,black,red,gold,blue;
+        Material fur,dark,cream,pink,eye,black,red,gold,blue,velvet;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         static void Register(){GameEvents.SessionStarted-=Attach;GameEvents.SessionStarted+=Attach;}
         static void Attach(GameObject session)
@@ -37,6 +37,9 @@ namespace DeadlyJenga.CandyArt
             eye=Mat("Amber eyes",new Color(.72f,.72f,.12f),.7f);
             black=Mat("Boots belt and pupils",new Color(.018f,.012f,.009f),.45f);
             red=Mat("Santa velvet and ruby ornaments",new Color(.62f,.018f,.032f),.5f,.15f);
+            velvet=Mat("Santa woven velvet",new Color(.48f,.012f,.025f),.18f);
+            var cloth=Resources.Load<Texture2D>("UnderneathTreeFinish/Woven Normal");
+            if(cloth){velvet.SetTexture("_BumpMap",cloth);velvet.SetFloat("_BumpScale",.4f);velvet.SetTextureScale("_BumpMap",Vector2.one*5);velvet.EnableKeyword("_NORMALMAP");}
             gold=Mat("Ornament gold",new Color(.95f,.59f,.13f),.78f,.8f);
             blue=Mat("Sapphire ornaments",new Color(.018f,.14f,.66f),.8f,.45f);
         }
@@ -91,7 +94,7 @@ namespace DeadlyJenga.CandyArt
         Look Santa()
         {
             var look=new Look{root=Root("Tree Disaster / EvilSanta")};var r=look.root;
-            Part(r,"Heavy red coat",new Vector3(0,39,0),new Vector3(41,49,31),red);
+            Part(r,"Heavy red coat",new Vector3(0,39,0),new Vector3(41,49,31),velvet);
             Part(r,"Coat hem fur",new Vector3(0,20,0),new Vector3(42,7,32),cream);
             Part(r,"Black belt",new Vector3(0,35,1),new Vector3(42,8,32),black);
             Part(r,"Gold buckle",new Vector3(0,35,17),new Vector3(8,8,3),gold);
@@ -106,12 +109,12 @@ namespace DeadlyJenga.CandyArt
                 Part(r,"Dark pupil",new Vector3(side*5,73,12),new Vector3(1.3f,2,1),black);
                 var brow=Part(r,"Angled white brow",new Vector3(side*5,76,12),new Vector3(9,3,3),cream);brow.localRotation=Quaternion.Euler(0,0,side*22);
                 Part(r,"Moustache",new Vector3(side*5,65,15),new Vector3(12,5,7),cream);
-                look.arms.Add(Part(r,"Reaching red sleeve",Vector3.zero,Vector3.one,red,cylinder));
+                look.arms.Add(Part(r,"Reaching red sleeve",Vector3.zero,Vector3.one,velvet,cylinder));
                 look.hands.Add(Part(r,"Grabbing mitten",Vector3.zero,Vector3.one*9,cream));
             }
             Part(r,"Nose",new Vector3(0,69,15),new Vector3(5,6,6),pink);
             Part(r,"Hat fur brim",new Vector3(0,81,0),new Vector3(28,6,25),cream);
-            var hat=Part(r,"Red pointed hat",new Vector3(0,94,0),new Vector3(25,28,23),red,cone);hat.localRotation=Quaternion.Euler(0,0,-12);
+            var hat=Part(r,"Red pointed hat",new Vector3(0,94,0),new Vector3(25,28,23),velvet,cone);hat.localRotation=Quaternion.Euler(0,0,-12);
             Part(r,"Hat pompom",new Vector3(6,107,0),Vector3.one*8,cream);
             for(int j=0;j<7;j++)Part(r,"Beard curls",new Vector3((j-3)*3,52+Mathf.Abs(j-3)*2,17),new Vector3(5,10,5),cream);
             return look;

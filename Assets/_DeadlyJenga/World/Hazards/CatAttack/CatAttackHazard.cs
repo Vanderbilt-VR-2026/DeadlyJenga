@@ -9,7 +9,7 @@ namespace DeadlyJenga.World.Hazards
         float travel,speed;
         protected override void Setup()
         {
-            direction=new Vector3(.66f,0,.751266f);
+            direction=new Vector3(.66f,0,-.751266f);
             float reach=Mathf.Abs(direction.x)*area.extents.x+Mathf.Abs(direction.z)*area.extents.z+45;
             var middle=area.center;middle.y=Ground(middle);
             from=middle-direction*reach;to=middle+direction*reach;
@@ -23,7 +23,7 @@ namespace DeadlyJenga.World.Hazards
             if(t>=1){End();return;}
             var p=Vector3.Lerp(from,to,t);p.y=Ground(p);
             points[0]=new DisasterPoint{id=1,position=p,velocity=direction*speed,size=1,life=travel-Elapsed};
-            Impact(p+Vector3.up*15,new Vector3(11,15,24),Quaternion.LookRotation(direction),direction*V(0)+Vector3.up*3);
+            Impact(p+Vector3.up*22,new Vector3(11,22,29),Quaternion.LookRotation(direction),(direction+Vector3.up*.25f)*V(0));
         }
     }
 }

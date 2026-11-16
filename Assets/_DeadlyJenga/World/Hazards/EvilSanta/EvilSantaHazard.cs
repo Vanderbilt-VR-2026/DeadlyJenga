@@ -11,7 +11,7 @@ namespace DeadlyJenga.World.Hazards
         readonly int[] cycles={-1,-1};
         protected override void Setup()
         {
-            anchor=area.center+Vector3.back*(area.extents.z*.85f);anchor.y=Ground(anchor);
+            anchor=area.center+Vector3.forward*(area.extents.z*.85f);anchor.y=Ground(anchor);
             forward=Vector3.ProjectOnPlane(area.center-anchor,Vector3.up).normalized;
             points=new DisasterPoint[3];points[0]=new DisasterPoint{id=1,position=anchor,velocity=forward,size=1};
             for(int i=0;i<2;i++){cycles[i]=-1;held[i]=null;targets[i]=Home(i);points[i+1]=new DisasterPoint{id=i+2,position=Home(i),size=7};}
@@ -37,11 +37,11 @@ namespace DeadlyJenga.World.Hazards
                 else if(i==0)
                 {
                     p=Vector3.Lerp(target,home,Mathf.SmoothStep(0,1,(t-2)/3));
-                    if(held[i]&&t<5)
+                    if(held[i]&&t<5&&V(0)>0)
                     {
                         var push=held[i].GetComponent<IPushable>();
-                        if(push!=null)push.Push(held[i].isKinematic?Vector3.up*2:
-                            Vector3.ClampMagnitude((p-held[i].worldCenterOfMass)*2-held[i].linearVelocity,12)*dt*4,gameObject);
+                        if(push!=null)push.Push(held[i].isKinematic?Vector3.up*2*strength:
+                            Vector3.ClampMagnitude((p-held[i].worldCenterOfMass)*2-held[i].linearVelocity,12)*dt*4*strength,gameObject);
                     }
                 }
                 else
