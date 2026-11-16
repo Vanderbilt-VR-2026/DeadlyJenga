@@ -213,17 +213,19 @@ namespace DeadlyJenga.CandyArt
 
         void RestoreIndoorSettings()
         {
-            var fill = new Color(.27f, .30f, .39f);
-            if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Flat &&
-                RenderSettings.ambientLight == fill && Mathf.Approximately(RenderSettings.reflectionIntensity, .68f))
+            // Warm from above, blue from the sides, red bounce off the rug.
+            var sky = new Color(.46f, .44f, .58f);
+            var sides = new Color(.30f, .34f, .62f);
+            var rug = new Color(.34f, .12f, .14f);
+            if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Trilight &&
+                RenderSettings.ambientSkyColor == sky && Mathf.Approximately(RenderSettings.reflectionIntensity, .68f))
                 return;
             RenderSettings.skybox = null;
             RenderSettings.fog = false;
-            RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = fill;
-            var probe = new SphericalHarmonicsL2();
-            probe.AddAmbientLight(fill);
-            RenderSettings.ambientProbe = probe;
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = sky;
+            RenderSettings.ambientEquatorColor = sides;
+            RenderSettings.ambientGroundColor = rug;
             RenderSettings.reflectionIntensity = .68f;
         }
 
@@ -324,16 +326,18 @@ namespace DeadlyJenga.CandyArt
         void BuildLighting()
         {
             key = MakeLight("Amber lamplight and ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .90f, .75f), 1.4f, 0f);
-            key.transform.localRotation = Quaternion.Euler(68f, -58f, 0f);
+                Vector3.zero, new Color(1f, .90f, .76f), 2.3f, 0f);
+            // Shines from the fireplace side so the gift faces seen in the approved picture are lit.
+            key.transform.localRotation = Quaternion.Euler(46f, 18f, 0f);
             key.shadows = LightShadows.Soft;
-            key.shadowStrength = .65f;
+            key.shadowStrength = .78f;
             key.shadowBias = .08f;
             key.shadowNormalBias = .2f;
 
             var bounce = MakeLight("Soft blue room bounce", LightType.Directional, Vector3.zero,
-                new Color(.55f, .65f, 1f), .35f, 0f);
-            bounce.transform.localRotation = Quaternion.Euler(40f, 130f, 0f);
+                new Color(.40f, .58f, 1f), 1.0f, 0f);
+            // Blue light from the side window gives the gifts a cool edge.
+            bounce.transform.localRotation = Quaternion.Euler(30f, 262f, 0f);
             practicalLights.Add(bounce);
 
             MakeSpot("Moonlight from the front window", new Vector3(10, 65, 70),
@@ -351,7 +355,7 @@ namespace DeadlyJenga.CandyArt
             MakeSpot("Warm fill across the junction", new Vector3(18, 30, -5),
                 new Vector3(10, 2, -69), new Color(1f, .76f, .51f), 4600f, 160f, 86f);
             MakeLight("Floor lamp", LightType.Point,
-                new Vector3(-203, 59, -12), new Color(1f, .70f, .39f), 12000f, 150f);
+                new Vector3(-88, 59, 54), new Color(1f, .70f, .39f), 12000f, 150f);
             MakeSpot("Soft lamplight on velvet", new Vector3(-145f, 68f, -145f),
                 new Vector3(-215f, 30f, -105f), new Color(1f, .78f, .62f), 3500f, 150f, 90f);
 
@@ -377,13 +381,13 @@ namespace DeadlyJenga.CandyArt
             var tone = grade.Add<Tonemapping>(true);
             tone.mode.Override(TonemappingMode.ACES);
             var bloom = grade.Add<Bloom>(true);
-            bloom.threshold.Override(1.04f);
-            bloom.intensity.Override(.42f);
-            bloom.scatter.Override(.62f);
+            bloom.threshold.Override(.95f);
+            bloom.intensity.Override(.9f);
+            bloom.scatter.Override(.7f);
             var color = grade.Add<ColorAdjustments>(true);
-            color.postExposure.Override(.42f);
-            color.contrast.Override(7f);
-            color.saturation.Override(5f);
+            color.postExposure.Override(.85f);
+            color.contrast.Override(16f);
+            color.saturation.Override(26f);
         }
 
         Light MakeLight(string label, LightType type, Vector3 position, Color color, float power, float range)

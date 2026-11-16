@@ -14,8 +14,25 @@ namespace DeadlyJenga.CandyArt
             BuildFloorboards();
             BuildFleece();
             BuildBraidedRugEdge();
+            // The approved picture has the sofa against the north wall, with the lamp table beside it.
+            int first = art.childCount;
             BuildSofa();
+            Restage("Velvet sofa", first, new Vector3(-216f, 0f, -109f), new Vector3(-158f, 0f, 38f), 96f);
+            first = art.childCount;
             BuildLampAndTable();
+            Restage("Lamp table", first, new Vector3(-215f, 0f, -11f), new Vector3(-88f, 0f, 54f), 0f);
+        }
+
+        // Gathers the pieces just built under one pivot and moves them as a group.
+        void Restage(string label, int first, Vector3 from, Vector3 to, float turn)
+        {
+            var pivot = new GameObject(label).transform;
+            pivot.SetParent(art, false);
+            pivot.localPosition = from;
+            for (int i = art.childCount - 2; i >= first; i--)
+                art.GetChild(i).SetParent(pivot, true);
+            pivot.localPosition = to;
+            pivot.localRotation = Quaternion.Euler(0f, turn, 0f);
         }
 
         void BuildLampAndTable()
@@ -31,10 +48,20 @@ namespace DeadlyJenga.CandyArt
             foreach (var source in originals)
             {
                 if (source.transform.IsChildOf(art)) continue;
-                if (source.name != "Lamp Shade" && source.name != "Side Table") continue;
+                // The block-out calls its lampshade "Cone".
+                if (source.name != "Lamp Shade" && source.name != "Cone" && source.name != "Lamp Base" &&
+                    source.name != "Side Table") continue;
                 var center = art.InverseTransformPoint(source.bounds.center);
                 var size = source.bounds.size / art.lossyScale.x;
                 Hide(source);
+                if (source.name == "Lamp Base")
+                {
+                    Primitive("Turned brass lamp base", PrimitiveType.Cylinder, center,
+                        new Vector3(size.x * .55f, size.y * .5f, size.z * .55f), brass);
+                    Primitive("Brass lamp foot", PrimitiveType.Sphere, center - Vector3.up * size.y * .42f,
+                        new Vector3(size.x * 1.1f, size.y * .22f, size.z * 1.1f), brass);
+                    continue;
+                }
                 if (source.name == "Side Table")
                 {
                     RoundedDetail("Walnut tabletop", center + Vector3.up * size.y * .46f,

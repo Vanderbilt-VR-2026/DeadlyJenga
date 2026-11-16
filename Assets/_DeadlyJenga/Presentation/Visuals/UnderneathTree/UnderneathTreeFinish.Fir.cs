@@ -138,8 +138,8 @@ namespace DeadlyJenga.CandyArt
         {
             var bulbColors = new[] { new Color(1f, .45f, .035f), new Color(1f, .005f, .005f),
                 new Color(.01f, .85f, .65f), new Color(.015f, .10f, 1f) };
-            var ornamentColors = new[] { new Color(.67f, .105f, .135f), new Color(.89f, .59f, .22f),
-                new Color(.18f, .34f, .54f), new Color(.75f, .69f, .61f) };
+            var ornamentColors = new[] { new Color(.78f, .05f, .08f), new Color(.95f, .62f, .20f),
+                new Color(.07f, .20f, .78f), new Color(.82f, .79f, .76f) };
             var sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
             var ornaments = new List<CombineInstance>[4];
             var bulbs = new List<CombineInstance>[4];
@@ -153,16 +153,17 @@ namespace DeadlyJenga.CandyArt
             for (int i = 0; i < tips.Count; i++)
             {
                 var tip = tips[i];
-                var bulb = tip.position + Vector3.down * Range(random, .65f, 1.25f);
+                var bulb = tip.position + Vector3.down * Range(random, 1.1f, 1.9f);
                 var tint = (tip.tier + tip.ordinal * 3) % bulbs.Length;
-                bulbs[tint].Add(Part(sphere, bulb, new Vector3(.51f, .91f, .51f) * Range(random, .78f, 1.18f)));
-                beadCaps.Add(Part(sphere, bulb + Vector3.up * .65f, new Vector3(.50f, .45f, .50f)));
+                // Bulbs and baubles are sized to read from across the room, like the approved picture.
+                bulbs[tint].Add(Part(sphere, bulb, new Vector3(1.5f, 2.1f, 1.5f) * Range(random, .85f, 1.2f)));
+                beadCaps.Add(Part(sphere, bulb + Vector3.up * 1.2f, new Vector3(.9f, .7f, .9f)));
                 if ((tip.ordinal + tip.tier) % 3 == 0)
                 {
-                    Vector3 center = tip.position + Vector3.down * Range(random, 2.35f, 3.55f);
-                    float diameter = Range(random, 2.0f, 3.8f);
+                    Vector3 center = tip.position + Vector3.down * Range(random, 3.2f, 4.6f);
+                    float diameter = Range(random, 3.4f, 5.4f);
                     ornaments[random.Next(ornaments.Length)].Add(Part(sphere, center, Vector3.one * diameter));
-                    beadCaps.Add(Part(sphere, center + Vector3.up * (diameter * .48f), new Vector3(.75f, .60f, .75f)));
+                    beadCaps.Add(Part(sphere, center + Vector3.up * (diameter * .48f), new Vector3(1.0f, .8f, 1.0f)));
                     wire.Tube(tip.position, center + Vector3.up * (diameter * .48f), .049f, .046f, 4);
                 }
                 if (i + 1 < tips.Count && tips[i + 1].tier == tip.tier)
@@ -176,11 +177,11 @@ namespace DeadlyJenga.CandyArt
 
             for (int i = 0; i < 4; i++)
             {
-                var glass = Surface("Lacquered glass ornament " + i, null, ornamentColors[i], .92f,
-                    Vector2.one, .49f, 0f);
+                var glass = Surface("Lacquered glass ornament " + i, null, ornamentColors[i], .94f,
+                    Vector2.one, .80f, 0f);
                 Combined("Glass baubles " + i, ornaments[i], glass, ShadowCastingMode.On);
                 Combined("Vintage colored bulbs " + i, bulbs[i],
-                    Glow("Colored enamel bulb " + i, bulbColors[i], 8f), ShadowCastingMode.Off);
+                    Glow("Colored enamel bulb " + i, bulbColors[i], 16f), ShadowCastingMode.Off);
             }
             Combined("Gold ornament fittings", beadCaps,
                 Surface("Brass ornament fittings", "Paper", new Color(.78f, .54f, .24f), .70f, Vector2.one, .52f),

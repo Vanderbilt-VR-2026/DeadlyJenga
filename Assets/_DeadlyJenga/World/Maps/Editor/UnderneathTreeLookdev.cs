@@ -17,17 +17,17 @@ namespace DeadlyJenga.CastlePrototype.Editor
         public static readonly (string name, Vector3 eye, Vector3 target, float fov)[] Views =
         {
             ("hero", new Vector3(-77.2f, 105.8f, -367.3f), new Vector3(-77.2f, .5f, -43.1f), 26.2f),
-            ("overhead", new Vector3(-74f, 330f, -100f), new Vector3(-74f, 0f, -99f), 40f),
+            ("overhead", new Vector3(-74f, 170f, -100f), new Vector3(-74f, 0f, -99f), 80f),
             ("turned-around", new Vector3(-60f, 70f, 60f), new Vector3(-80f, 15f, -150f), 62f),
             ("from-window", new Vector3(70f, 60f, -120f), new Vector3(-90f, 15f, -105f), 62f),
             ("from-sofa", new Vector3(-235f, 55f, -110f), new Vector3(-74f, 15f, -110f), 62f),
-            ("player-courtyard", new Vector3(-70f, 2.6f, -136f), new Vector3(-76f, 16f, -112f), 75f),
-            ("player-front", new Vector3(-58f, 2.6f, -205f), new Vector3(-80f, 14f, -150f), 70f),
-            ("player-bridge", new Vector3(-74f, 24.6f, -116f), new Vector3(-120f, 28f, -112f), 75f),
-            ("player-tunnel", new Vector3(-128f, 3f, -160f), new Vector3(-146f, 12f, -128f), 70f),
-            ("player-back", new Vector3(-80f, 2.6f, -20f), new Vector3(-74f, 14f, -80f), 72f),
-            ("player-left", new Vector3(-192f, 2.6f, -112f), new Vector3(-150f, 16f, -112f), 72f),
-            ("player-right", new Vector3(38f, 2.6f, -118f), new Vector3(-10f, 14f, -106f), 72f)
+            ("player-courtyard", new Vector3(-81.6f, 3f, -153.7f), new Vector3(-112f, 19.5f, -110f), 75f),
+            ("player-front", new Vector3(-93f, 3f, -194.5f), new Vector3(-74f, 15.7f, -129f), 70f),
+            ("player-bridge", new Vector3(-89.2f, 25.6f, -115.7f), new Vector3(-150f, 36f, -115.7f), 75f),
+            ("player-tunnel", new Vector3(-131f, 15.4f, -149.9f), new Vector3(-151.9f, 15.7f, -119.5f), 70f),
+            ("player-back", new Vector3(-89.2f, 3f, -15f), new Vector3(-74f, 15.7f, -91f), 72f),
+            ("player-left", new Vector3(-188f, 3f, -110f), new Vector3(-153.8f, 27f, -110f), 72f),
+            ("player-right", new Vector3(40f, 3f, -117.6f), new Vector3(-24.6f, 23.3f, -92.9f), 72f)
         };
 
         [MenuItem("Tools/Deadly Jenga/Underneath the Tree/Open Lookdev")]
