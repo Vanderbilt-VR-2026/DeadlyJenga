@@ -420,6 +420,7 @@ namespace DeadlyJenga.CastlePrototype
             var rect=go.GetComponent<RectTransform>();rect.sizeDelta=new Vector2(width,height);rect.anchoredPosition=new Vector2(x,y);
             var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=CandyHudVisuals.Card;
             Label(rect,title,0,23,width-8,height-6);
+            var feedback=go.AddComponent<Outline>();feedback.effectDistance=new Vector2(3,-3);feedback.effectColor=CandyHudVisuals.Mint;feedback.enabled=false;
             wardrobeButtons.Add(Tuple.Create(rect,action));
             return rect;
         }
@@ -529,7 +530,9 @@ namespace DeadlyJenga.CastlePrototype
                     if(!wardrobePadCursor)wardrobePadCursor=MenuAim.CreateReticle(wardrobeDesktop);
                     MenuGamepad.PresentPointer(wardrobePadCursor,localPoint);
                 }
-                if(pad?MenuGamepad.Pressed:mouse.leftButton.wasPressedThisFrame)
+                bool pressed=pad?MenuGamepad.Pressed:mouse.leftButton.wasPressedThisFrame;
+                PaintWardrobePointer(point,pressed);
+                if(pressed)
                 {
                     desktopWardrobeDrag=wardrobePreview&&RectTransformUtility.RectangleContainsScreenPoint(wardrobePreview,point,null);
                     if(!desktopWardrobeDrag)
@@ -547,6 +550,20 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(wardrobeOpen)PresentWardrobe();
             return true;
+        }
+
+        void PaintWardrobePointer(Vector2 point,bool pressed)
+        {
+            foreach(var button in wardrobeButtons)
+            {
+                var rect=button.Item1;
+                if(!rect)continue;
+                var rim=rect.GetComponent<Outline>();
+                if(!rim)continue;
+                bool hover=rect.gameObject.activeInHierarchy&&RectTransformUtility.RectangleContainsScreenPoint(rect,point,null);
+                rim.enabled=hover;
+                rim.effectColor=pressed?CandyHudVisuals.Peach:CandyHudVisuals.Mint;
+            }
         }
 
         float WardrobePanelHit(Ray ray,float range)
@@ -686,7 +703,7 @@ namespace DeadlyJenga.CastlePrototype
             wardrobeOrbit.Reset((Player?.ViewCamera?Player.ViewCamera.transform.eulerAngles.y:0)+180,2.15f);
         }
 
-        void OnDisable()=>SetWardrobeOpen(false);
+        void OnDisable(){SetWardrobeOpen(false);if(lobbyAimBeam)lobbyAimBeam.enabled=false;if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);}
 
         void DisposeWardrobe()
 

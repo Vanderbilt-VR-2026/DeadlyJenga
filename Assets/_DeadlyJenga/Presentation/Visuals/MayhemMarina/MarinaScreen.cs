@@ -17,7 +17,7 @@ namespace DeadlyJenga.CandyArt.Marina
         readonly List<Target> targets=new();
         ILobbyControls lobby;ISessionInfo session;Action<string> detail;
         bool requireRelease=true,inputFocused=true;
-        bool ModalBlocked=>session?.IsVR==true&&session.MenuOpen||MenuAim.InputConsumed||!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
+        bool ModalBlocked=>GetComponent<IslandLobbyView>()?.WardrobeOpen==true||session?.MenuOpen==true&&(session.IsVR||SessionPresentation.LobbyDeveloperAvailable(session))||MenuAim.InputConsumed||!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
         static readonly Color Plum=new(.12f,.055f,.19f);
         static readonly Color Cream=new(1,.96f,.83f);
         static readonly Color ProjectionInk=new(.29f,.12f,.30f);
@@ -36,7 +36,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 aimCanvas = root.GetComponent<Canvas>();
                 aimCanvas.renderMode = RenderMode.WorldSpace;
                 aimCanvas.overrideSorting = true;
-                aimCanvas.sortingOrder = 999;
+                aimCanvas.sortingOrder = MenuAim.PointerSortOrder+1;
                 aimDot = MenuAim.CreateReticle(root.transform);
                 MenuAim.PresentInForeground(root.transform);
             }
@@ -632,7 +632,7 @@ namespace DeadlyJenga.CandyArt.Marina
             }
             else if (aimDot) aimDot.gameObject.SetActive(false);
             MenuAim.PresentBeam(ref aimBeam, transform, ray, point - ray.direction * .012f,
-                trackedPointer && hitFace && nearest != null, actionable);
+                player.IsVR && trackedPointer && hitFace, actionable);
             if (pressed && !requireRelease && nearest != null) Activate(nearest, pointerDevice);
         }
         Target PickTarget(Ray ray, float range)
@@ -684,7 +684,7 @@ namespace DeadlyJenga.CandyArt.Marina
             focusDescription.text=description.Length>150?description.Substring(0,147)+"...":description;
         }
         void OnEnable(){requireRelease=true;select?.Enable();leftSelect?.Enable();}
-        void OnApplicationFocus(bool focused){inputFocused=focused;requireRelease=true;}
+        void OnApplicationFocus(bool focused){inputFocused=focused;requireRelease=true;if(!focused){if(aimBeam)aimBeam.enabled=false;if(aimDot)aimDot.gameObject.SetActive(false);}}
         void OnDisable(){if(aimBeam)aimBeam.enabled=false;select?.Disable();leftSelect?.Disable();if(aimDot)aimDot.gameObject.SetActive(false);}
         void OnDestroy(){select?.Dispose();leftSelect?.Dispose();if(canvas)Destroy(canvas.gameObject);if(projectionBackdrop)Destroy(projectionBackdrop);}
     }

@@ -90,7 +90,7 @@ namespace DeadlyJenga.CastlePrototype
                 lobbyAimCanvas=root.GetComponent<Canvas>();
                 lobbyAimCanvas.renderMode=RenderMode.WorldSpace;
                 lobbyAimCanvas.overrideSorting=true;
-                lobbyAimCanvas.sortingOrder=999;
+                lobbyAimCanvas.sortingOrder=MenuAim.PointerSortOrder+1;
                 lobbyAimDot=MenuAim.CreateReticle(root.transform);
                 MenuAim.PresentInForeground(root.transform);
             }
@@ -126,6 +126,7 @@ namespace DeadlyJenga.CastlePrototype
         void OnApplicationFocus(bool focused)
         {
             inputFocused = focused;
+            if(!focused){if(lobbyAimBeam)lobbyAimBeam.enabled=false;if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);}
             terminalRequireRelease = true;
             wardrobeDragDevice = 0;
             draggingKeyboard=false;

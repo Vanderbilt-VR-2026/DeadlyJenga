@@ -356,8 +356,9 @@ namespace DeadlyJenga.Presentation
                 {
                     ray=MenuAim.ResolveSelect(eye,transform,preferred,leftPointSelect,rightPointSelect,false,out pressed,out tracked);
                 }
-                var plane=new Plane(frame.forward,frame.position);
-                if(Vector3.Dot(ray.direction,frame.forward)<=.01f||!plane.Raycast(ray,out float distance)||distance>8){ClearHomeAim();return;}
+
+                if(!MenuAim.TryPoint(ray,frame,8,out _,out var hit)){ClearHomeAim();return;}
+                float distance=Vector3.Distance(ray.origin,hit);
                 pointer.gameObject.SetActive(true);pointer.position=ray.GetPoint(distance);
                 foreach(var button in buttons)
                 {
@@ -562,7 +563,7 @@ namespace DeadlyJenga.Presentation
             }
             selectReady=false;UpdateInputModeText();
         }
-        void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused){selectReady=false;if(pointer)pointer.gameObject.SetActive(false);}}
+        void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused){selectReady=false;ClearHomeAim();}}
         void OnDestroy()
         {
             leftPointSelect?.Dispose();rightPointSelect?.Dispose();

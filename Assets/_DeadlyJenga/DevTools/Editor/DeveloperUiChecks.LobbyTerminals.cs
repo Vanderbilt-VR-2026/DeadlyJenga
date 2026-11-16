@@ -150,6 +150,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void CaptureTerminal(RectTransform screen,string filename)
         {
+            if(UnityEditor.SessionState.GetBool(Key+"PointerAudit",false))return;
             var go=new GameObject("Terminal inspection camera");var camera=go.AddComponent<Camera>();
             camera.enabled=false;camera.fieldOfView=40;camera.stereoTargetEye=StereoTargetEyeMask.None;
             camera.GetUniversalAdditionalCameraData().allowXRRendering=false;
