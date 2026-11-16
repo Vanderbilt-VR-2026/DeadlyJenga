@@ -220,7 +220,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
             Back();Back();
             CharacterPicker.Open(session);yield return null;
-            var appearance=session.GetComponent<CharacterPicker>();Check(appearance,"Hand appearance panel opens");
+            var appearance=Object.FindFirstObjectByType<CharacterPicker>();Check(appearance,"Hand appearance panel opens");
             Capture(camera,Field<Canvas>(appearance,"panel"),"33-hand-appearance.png");Call(appearance,"Close",true);
             yield return null;
             GameExperiencePanel.Open(session);yield return null;
