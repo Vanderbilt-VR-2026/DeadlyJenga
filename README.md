@@ -20,10 +20,6 @@ Sprint 4 highlights
 
 Sprint 4 adds a waterfront lobby, new maps and modes, a much bigger wardrobe, and a clearer path from opening the game to playing with friends. It also gives the game a stronger visual identity, from candy-glazed towers and tropical reefs to disaster effects, weapon handling, and animated match results.
 
-| Mayhem Marina | Tycoon | Expanded wardrobe |
-| :--- | :--- | :--- |
-| A beach resort with live spectating | A destructible candy waterpark | 57 skins and 48 team-color variants |
-
 **Jump to** | [Marina](#mayhem-marina-and-multiplayer-lobbies) | [Maps and modes](#maps-and-game-modes) | [Disasters](#worlds-and-disasters) | [Combat and bots](#movement-combat-and-bots) | [HUD and wardrobe](#hud-wardrobe-and-results) | [Performance](#performance-and-engineering)
 
 ### Mayhem Marina and multiplayer lobbies
