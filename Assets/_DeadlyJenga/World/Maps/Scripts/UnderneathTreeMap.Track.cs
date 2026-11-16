@@ -38,7 +38,7 @@ namespace DeadlyJenga.CastlePrototype
                 int mid = first + perSection / 2;
                 var anchor = course[mid];
                 var direction = Quaternion.LookRotation(course[(mid + 1) % samples] - course[mid - 1]);
-                float top = height - RailBedOffset - RailBedThickness * .5f;
+                float top = height - .35f;
                 float bottom = GiftFloor(anchor);
                 var bearing = BoxGift("Rail Gift " + (first / perSection + 1),
                     new Vector3(anchor.x, (bottom + top) * .5f, anchor.z),
@@ -53,12 +53,16 @@ namespace DeadlyJenga.CastlePrototype
                     var b = course[(i + 1) % samples];
                     var rotation = Quaternion.LookRotation(b - a);
                     var center = (a + b) * .5f - anchor;
-                    var deck = Child(section, "Rail deck", center - Vector3.up * RailBedOffset, rotation);
-                    AddBox(deck, new Vector3(4.25f, RailBedThickness, Vector3.Distance(a, b) + .06f), true);
+                    var tie = Child(section, "Rail tie", center - Vector3.up * .25f, rotation);
+                    AddBox(tie, new Vector3(3.7f, .20f, .43f), true);
                     foreach (float sign in new[] { -1f, 1f })
+                    {
+                        var railShape = Child(section, "Rail running surface", center + rotation * Vector3.right * (sign * 1.32f), rotation);
+                        AddBox(railShape, new Vector3(.19f, .28f, Mathf.Max(.1f, Vector3.Distance(a, b) - .16f)), true);
                         rails.Add(new CombineInstance { mesh = cube, transform = Matrix4x4.TRS(
                             center + rotation * Vector3.right * (sign * 1.32f), rotation,
-                            new Vector3(.19f, .28f, Vector3.Distance(a, b) + .08f)) });
+                            new Vector3(.19f, .28f, Vector3.Distance(a, b) + .02f)) });
+                    }
                     ties.Add(new CombineInstance { mesh = cube, transform = Matrix4x4.TRS(
                         center - Vector3.up * .25f, rotation, new Vector3(3.7f, .20f, .43f)) });
                     ballast[i] = null;

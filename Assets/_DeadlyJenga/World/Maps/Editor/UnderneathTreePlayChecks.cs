@@ -321,7 +321,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 railBodies = map.Blocks.Where(b => b.name.StartsWith("Gift-supported rail ")).ToArray();
                 Require(railBodies.Length == 16 && railBodies.All(b => b.GetComponentsInChildren<BoxCollider>().All(c => WorkingDeck(c,b))),
                     "sixteen supported breakaway rail sections have valid climbable colliders");
+                Require(railBodies.All(b => b.GetComponentsInChildren<BoxCollider>().Count(c => c.name == "Rail tie") == 8),
+                    "each detachable rigid section contains eight physical rungs");
                 var clearanceHits = railBodies.SelectMany(b => b.GetComponentsInChildren<BoxCollider>())
+                    .Where(deck => deck.name == "Rail tie")
                     .SelectMany(deck => Physics.OverlapBox(deck.bounds.center + Vector3.up * 4.7f,
                         new Vector3(2.2f, 2.2f, .6f), deck.transform.rotation, 1 << Layers.Block, QueryTriggerInteraction.Ignore))
                     .Where(c => c.attachedRigidbody && !railBodies.Contains(c.attachedRigidbody)).Distinct().ToArray();
@@ -335,6 +338,24 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Shot(camera, "approved-hero", new Vector3(40f, 78f, -215f), new Vector3(-95f, 23f, -105f), 55f, true);
                 Shot(camera, "approved-overhead", new Vector3(-90f, 155f, -111f), new Vector3(-90f, 5f, -110f), 80f);
                 Shot(camera, "approved-player-bridge", new Vector3(-64.3f, 3f, -132.6f), new Vector3(-86f, 25f, -106f), 72f);
+                Shot(camera, "reverse-room", new Vector3(-160f, 72f, -35f), new Vector3(-82f, 32f, -155f), 72f);
+                Shot(camera, "reverse-piles", new Vector3(-175f, 48f, -15f), new Vector3(-100f, 20f, -115f), 65f);
+                Shot(camera, "east-side", new Vector3(55f, 48f, -85f), new Vector3(-90f, 24f, -110f), 70f);
+                Shot(camera, "west-side", new Vector3(-235f, 45f, -115f), new Vector3(-90f, 22f, -110f), 70f);
+                Shot(camera, "rear-player", new Vector3(-145f, 4f, -62f), new Vector3(-90f, 12f, -150f), 80f);
+                Shot(camera, "front-room", new Vector3(-90f, 32f, -125f), new Vector3(25f, 55f, -245f), 85f);
+                var penetrations = new System.Collections.Generic.HashSet<string>();
+                foreach (var shape in railBodies.SelectMany(b => b.GetComponentsInChildren<BoxCollider>()))
+                foreach (var other in Physics.OverlapBox(shape.bounds.center, shape.bounds.extents, Quaternion.identity,
+                    1 << Layers.Block, QueryTriggerInteraction.Ignore))
+                {
+                    if (!other.attachedRigidbody || railBodies.Contains(other.attachedRigidbody)) continue;
+                    if (Physics.ComputePenetration(shape, shape.transform.position, shape.transform.rotation,
+                        other, other.transform.position, other.transform.rotation, out _, out float depth) && depth > .035f)
+                        penetrations.Add(shape.attachedRigidbody.name + " into " + other.transform.parent.name + "/" + other.name);
+                }
+                foreach (string collision in penetrations) File.AppendAllText(Report, "RAIL PENETRATION " + collision + "\n");
+                Require(penetrations.Count == 0, "physical rails and rungs do not penetrate presents");
                 var shaders = map.Root.GetComponentsInChildren<Renderer>()
                     .SelectMany(r => r.sharedMaterials).Where(m => m && m.shader && m.shader.name.StartsWith("DeadlyJenga/Christmas"))
                     .Select(m => m.shader).Distinct();
