@@ -93,7 +93,7 @@ Shader "Candy Tropical/Weapon Pickup Orb"
                     half wave = 1 - smoothstep(.02, .18, abs(cycle - .5));
                     half charge = wave * (.27 + .73 * rim);
                     tint = lerp(tint, half3(.92, 1, .96), charge * .62);
-                    alpha = saturate(alpha + _Opacity * (.045 + .36 * charge));
+                    alpha = saturate(alpha + _Opacity * (.092 + .46 * charge));
                 }
                 return half4(tint, alpha);
             }
