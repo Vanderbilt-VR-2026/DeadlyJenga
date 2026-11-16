@@ -19,7 +19,7 @@ namespace DeadlyJenga.DevTools.Editor
     public static partial class DeveloperUiChecks
     {
         const string Key="DeveloperUiChecks",NameKey="DeadlyJenga.PlayerName.v1";
-        static readonly string[] ComfortKeys = { "SurvivorVR.InvertLookY", "SurvivorVR.Vignette", "SurvivorVR.Haptics", "SurvivorVR.HeadBob" };
+        static readonly string[] ComfortKeys = { "SurvivorVR.InvertLookY", "SurvivorVR.Vignette", "SurvivorVR.Haptics", "SurvivorVR.HeadBob", "DeadlyJenga.PreferredControlMode" };
         static readonly BindingFlags Flags=BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic;
         static string Output=>Path.GetDirectoryName(ProjectPath.Report("DeveloperUi/report.txt"));
         static string Report=>Path.Combine(Output,"report.txt");
@@ -29,7 +29,7 @@ namespace DeadlyJenga.DevTools.Editor
         [Serializable] sealed class Saved {public SceneSetup[] scenes;}
         static DeveloperUiChecks(){EditorApplication.playModeStateChanged+=State;EditorApplication.update+=Tick;}
         public static void Run()=>Begin(false);
-        public static void RunWardrobeLayout(){Begin(false,false,true);SessionState.SetBool(Key+"WardrobeLayout",true);}
+        public static void RunWardrobeLayout(){Begin(false,false,true);PlayerPrefs.SetInt("DeadlyJenga.PreferredControlMode",0);SessionState.SetBool(Key+"WardrobeLayout",true);}
         public static void RunDialogs()=>Begin(true);
         public static void RunTabletTabs()=>Begin(false,true);
         public static void RunLobbyTerminals()=>Begin(false,false,true);
