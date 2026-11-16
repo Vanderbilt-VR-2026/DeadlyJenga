@@ -54,7 +54,7 @@ namespace DeadlyJenga.Presentation
         {
             var floor = new GameObject("Showtime Plaza live match miniature");
             floor.transform.SetParent(lobby, false);
-            floor.transform.localPosition = MayhemMarina.PlazaCenter + new Vector3(0, .012f, -2.35f);
+            floor.transform.localPosition = MayhemMarina.PlazaCenter + new Vector3(0, .96f, -.65f);
             var display = floor.AddComponent<LobbyLiveMap>();
             display.Build(viewer);
         }
@@ -72,7 +72,16 @@ namespace DeadlyJenga.Presentation
             surface = new Material(unlit) { color = new Color(.035f, .32f, .42f) };
             markers = new Material(unlit);
 
-            var rim = MakeMesh("Floor map base", cube, border);
+            var tabletop = MakeMesh("Live map table", cube, border);
+            tabletop.transform.localPosition = Vector3.down * .045f;
+            tabletop.transform.localScale = new Vector3(2.12f, .12f, 2.12f);
+            var pedestal = MakeMesh("Live map table pedestal", cube, border);
+            pedestal.transform.localPosition = Vector3.down * .49f;
+            pedestal.transform.localScale = new Vector3(.65f, .84f, .65f);
+            var tableCollider = tabletop.gameObject.AddComponent<BoxCollider>();
+            tableCollider.size = Vector3.one;
+
+            var rim = MakeMesh("Table map base", cube, border);
             rim.transform.localPosition = Vector3.up * .021f;
             rim.transform.localScale = new Vector3(BaseWidth, .042f, BaseWidth);
             var inset = MakeMesh("Miniature water", cube, surface);

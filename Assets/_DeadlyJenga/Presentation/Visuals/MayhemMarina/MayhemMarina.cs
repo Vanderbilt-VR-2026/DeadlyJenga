@@ -11,12 +11,12 @@ namespace DeadlyJenga.CandyArt.Marina
     {
         public static readonly Vector3 Arrival=new(-10,1.36f,-8);
         // Showtime Plaza: one open deck between the arrival island and the cinema.
-        // The wardrobe stage and the Hall of Fame face each other across it.
+        // The wardrobe and recent-match podium face the central meeting area.
         public static readonly Vector3 PlazaCenter = new(0, 1.31f, -3.6f);
         public const float PlazaRadius = 7.2f;
         static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, -58, 0);
         static readonly Quaternion FameTurn = Quaternion.Euler(0, 58, 0);
-        public static readonly Vector3 Wardrobe = PlazaCenter + StyleStageTurn * new Vector3(0, .22f, 4.3f);
+        public static readonly Vector3 Wardrobe = PlazaCenter + StyleStageTurn * new Vector3(0, .22f, 3.8f);
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
         public static readonly Quaternion CodeKeyboardFacing = Quaternion.Euler(61, 0, 0);
@@ -24,13 +24,12 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Quaternion StyleScreenFacing = StyleStageTurn * Quaternion.Euler(0, 65, 0);
         public static readonly Vector3 StyleMirror = Wardrobe + StyleStageTurn * new Vector3(0, 1.85f, 1.88f);
         public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;
-        // The last-match board stands at the far side of the Hall of Fame, readable from the plaza.
-        public static readonly Vector3 FameBoard = PlazaCenter + FameTurn * new Vector3(0, 4.37f, 5.85f);
+        // The compact recent-match board sits behind the winners' steps.
+        public static readonly Vector3 FameBoard = PlazaCenter + FameTurn * new Vector3(0, 3.15f, 4.85f);
         public static readonly Quaternion FameFacing = FameTurn;
-        internal static readonly Vector3 FamePodium = PlazaCenter + FameTurn * new Vector3(0, 0, 4.4f);
+        internal static readonly Vector3 FamePodium = PlazaCenter + FameTurn * new Vector3(0, 0, 3.4f);
         internal static readonly Vector3[] FameSteps = { new(0,.6f,0), new(-1.15f,.4f,0), new(1.15f,.26f,0) };
         internal const float FameStepCap = .03f;
-        const float FameHeaderHeight = 5.70f;
         public bool Built {get;private set;}
         public int RenderTriangles=>mesh?.RenderTriangles??0;
         public int CollisionTriangles=>mesh?.CollisionTriangles??0;
@@ -471,7 +470,7 @@ namespace DeadlyJenga.CandyArt.Marina
             var styleBase = new Vector3(Wardrobe.x, PlazaTop, Wardrobe.z);
             Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.72f, 1.95f), .085f, cream, StyleStageTurn.eulerAngles);
             var fameBase = new Vector3(FameBoard.x, PlazaTop, FameBoard.z);
-            Sign("HALL OF FAME", fameBase + FameTurn * new Vector3(0, FameHeaderHeight, .04f), .05f, cream, FameTurn.eulerAngles);
+
             Sign("SHOWTIME PLAZA", OnPlaza(-114, 4.7f, PlazaTop - PlazaCenter.y + .012f), .05f,
                 new Color(.23f, .16f, .10f), new Vector3(90, 66, 0));
             Sign("WATERFRONT LOUNGE", new Vector3(13.7f, 4.42f, 2.49f), .044f, cream);

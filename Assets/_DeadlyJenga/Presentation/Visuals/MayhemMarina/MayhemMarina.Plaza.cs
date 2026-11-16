@@ -187,18 +187,11 @@ namespace DeadlyJenga.CandyArt.Marina
             var baseAt = new Vector3(FameBoard.x, PlazaTop, FameBoard.z);
             Vector3 At(float x, float y, float z) => baseAt + turn * new Vector3(x, y, z);
 
-            // Backdrop for the board: two dark posts, a brass-capped header and a low plinth.
+            // Compact backing keeps the recent-match board above the podium.
             for (int side = -1; side <= 1; side += 2)
-            {
-                mesh.Box(At(side * 3.05f, 1.75f, .22f), new Vector3(.34f, 3.5f, .34f), F.DarkWood, .06f, true, turn);
-                mesh.Box(At(side * 3.05f, (3.48f + FameHeaderHeight) * .5f, .22f), new Vector3(.34f, FameHeaderHeight - 3.48f, .34f), F.DarkWood, .06f, false, turn);
-                mesh.Box(At(side * 3.05f, FameHeaderHeight - .36f, .22f), new Vector3(.5f, .26f, .5f), F.Brass, .05f, false, turn);
-            }
-            mesh.Box(At(0, FameHeaderHeight, .22f), new Vector3(6.6f, .5f, .3f), F.DarkWood, .08f, false, turn);
-            mesh.Box(At(0, FameHeaderHeight + .28f, .22f), new Vector3(6.8f, .07f, .38f), F.Brass, .02f, false, turn);
-            mesh.Box(At(0, 1.2f, .32f), new Vector3(6.3f, 2.4f, .16f), F.Teal, .08f, true, turn);
-            mesh.Box(At(0, 3.895f, .32f), new Vector3(6.3f, 3.03f, .16f), F.Teal, .08f, false, turn);
-            mesh.Box(At(0, .14f, .2f), new Vector3(6.9f, .28f, .9f), F.Stone, .06f, true, turn);
+                mesh.Box(At(side * 2.9f, 1.55f, .22f), new Vector3(.18f, 3.1f, .18f), F.DarkWood, .04f, true, turn);
+            mesh.Box(At(0, 3.15f, .28f), new Vector3(6.0f, 3.0f, .14f), F.Teal, .08f, false, turn);
+            mesh.Box(At(0, .12f, .2f), new Vector3(6.2f, .24f, .65f), F.Stone, .06f, true, turn);
 
             // Winners' steps in front of the board. Solid, so players can hop up for a victory pose.
             F[] finishes = { F.Brass, F.Metal, F.Coral };
@@ -209,7 +202,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Box(top - Vector3.up * (step.y * .5f), new Vector3(1.1f, step.y, 1.0f), F.CandyCream, .09f, true, turn);
                 mesh.Box(top + Vector3.up * (FameStepCap * .5f), new Vector3(1.02f, FameStepCap, .92f), finishes[i], .02f, false, turn);
             }
-            Accent("Hall of fame", At(0, 3.4f, -1.8f), new Color(1, .86f, .62f), 2.6f, 6.5f);
+            Accent("Recent match", At(0, 3.1f, -1.8f), new Color(1, .86f, .62f), 2.6f, 6.5f);
         }
     }
 }
