@@ -40,7 +40,7 @@ namespace DeadlyJenga.Presentation
         readonly InputAction selectRight=MenuAim.SelectAction("Results right select",false);
         LineRenderer resultsBeam;
         Image resultsReticle;
-        bool releaseResultsSelect;
+        bool releaseResultsSelect,inputFocused=true;
 
         void OnEnable(){selectLeft.Enable();selectRight.Enable();}
 
@@ -147,6 +147,7 @@ namespace DeadlyJenga.Presentation
             labels[1].text = MultiplayerPanel.LobbyAction(session.Multiplayer).ToUpperInvariant();
             string code = MultiplayerPanel.JoinCode(session.Multiplayer);
             roomCode.text = code.Length > 0 ? "JOIN CODE   " + code + (wasVr ? "" : "   ·   COPY") : "";
+            if(!inputFocused||MenuAim.InputConsumed){releaseResultsSelect=true;return;}
             var mouse = Mouse.current;
             bool pad=MenuGamepad.UsingPointer;
             Vector2 screen=pad?MenuGamepad.Position:mouse?.position.ReadValue()??Vector2.zero;
@@ -178,6 +179,7 @@ namespace DeadlyJenga.Presentation
                     pressed=false;
                 }
                 if(MenuAim.InputConsumed)pressed=false;
+                PresentResultsPointer(ray,tracked,false);
             }
             for (int i = 0; i < targets.Length; i++)
             {
@@ -193,10 +195,7 @@ namespace DeadlyJenga.Presentation
                 labels[i].color = enabled ? (i == 0 ? Mint : Color.white) : new Color(.69f, .65f, .76f);
                 if(hovered&&wasVr)
                 {
-                    var plane=new Plane(canvas.transform.forward,canvas.transform.position);
-                    Vector3 point=plane.Raycast(ray,out float distance)?ray.GetPoint(distance):hit.point;
-                    MenuAim.Present(resultsReticle,point,true,true);
-                    MenuAim.PresentBeam(ref resultsBeam,transform,ray,point-ray.direction*.006f,true,true);
+                    PresentResultsPointer(ray,tracked,true);
                 }
                 if (hovered && (wasVr ? pressed : desktopPressed))
                 {
@@ -205,6 +204,16 @@ namespace DeadlyJenga.Presentation
                     break;
                 }
             }
+        }
+
+        void PresentResultsPointer(Ray ray,bool tracked,bool actionable)
+        {
+            bool show=wasVr&&tracked&&inputFocused&&canvas&&canvas.gameObject.activeInHierarchy&&!MenuAim.InputConsumed;
+            Vector3 point=default;
+            show=show&&MenuAim.TryPoint(ray,(RectTransform)canvas.transform,4,out _,out point);
+            if(show&&!resultsReticle)resultsReticle=MenuAim.CreateReticle(canvas.transform);
+            MenuAim.Present(resultsReticle,point,show,actionable);
+            MenuAim.PresentBeam(ref resultsBeam,transform,ray,point-ray.direction*.006f,show,actionable);
         }
 
         int PageSize => split ? SplitPage : FullPage;
@@ -410,6 +419,8 @@ namespace DeadlyJenga.Presentation
             label.rectTransform.anchoredPosition = position;
             return label;
         }
+
+        void OnApplicationFocus(bool focused){inputFocused=focused;releaseResultsSelect=true;if(!focused){if(resultsBeam)resultsBeam.enabled=false;if(resultsReticle)resultsReticle.gameObject.SetActive(false);}}
 
         void OnDisable() { selectLeft.Disable();selectRight.Disable();if(resultsBeam)resultsBeam.enabled=false;visible = false; podium?.Hide(); if (canvas) canvas.gameObject.SetActive(false); }
         void OnDestroy() { selectLeft.Dispose();selectRight.Dispose();podium?.Dispose(); if (canvas) Destroy(canvas.gameObject); }

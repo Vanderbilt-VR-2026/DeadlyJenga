@@ -563,6 +563,7 @@ namespace DeadlyJenga.Presentation
             }
             selectReady=false;UpdateInputModeText();
         }
+        void OnDisable(){ClearHomeAim();selectReady=false;}
         void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused){selectReady=false;ClearHomeAim();}}
         void OnDestroy()
         {

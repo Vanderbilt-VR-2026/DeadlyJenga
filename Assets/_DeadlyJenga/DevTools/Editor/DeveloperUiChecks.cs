@@ -171,6 +171,8 @@ namespace DeadlyJenga.DevTools.Editor
                     typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,hit.bounds.center-camera.transform.position));
                     Call(menu,"PointPlayerTablet",camera,true,false);Draw();return;
                 }
+                if(index<0||!targets[index].enabled)
+                    File.AppendAllText(Report,"ROW DIAGNOSTIC "+prefix+"; canCommand="+session.Demo.CanCommand+"; settings="+(session.Player is ISurvivorSettings)+"; fold="+Field<string>(menu,"developerFoldout")+"; route="+Field<string>(menu,"developerRoute")+"; rows="+string.Join(" | ",labels.Where(x=>x.gameObject.activeInHierarchy).Select(x=>x.text))+"\n");
                 Check(index>=0&&targets[index].enabled,"Row available: "+prefix);
                 var target=targets[index];
                 typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,target.bounds.center-camera.transform.position));

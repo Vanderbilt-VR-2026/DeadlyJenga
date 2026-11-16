@@ -59,6 +59,8 @@ namespace DeadlyJenga.CastlePrototype
             if(!focused)ResetPointer();
         }
 
+        void OnDisable(){ResetPointer();desktopSelect?.Disable();}
+
         void ResetPointer()
         {
             startedAim=false;requireRelease=true;focus=pressedTarget=null;tabletPointerDevice=-1;tabletWasHeld=false;

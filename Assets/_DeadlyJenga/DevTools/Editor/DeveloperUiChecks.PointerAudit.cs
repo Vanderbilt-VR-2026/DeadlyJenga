@@ -44,6 +44,7 @@ namespace DeadlyJenga.DevTools.Editor
             setup.population=1;setup.hands=0;setup.rules.automaticDisasters=false;((ILobbyDetails)lobby).ConfigureSetup(setup);
             lobby.StartOrCancel();
             yield return TerminalUntil(()=>Services.Session is CastlePlaySession s&&s.Modes&&s.Player!=null,"Pointer audit enters actual match");
+            yield return TerminalUntil(()=>Services.Session.Demo?.CanCommand==true&&Services.Session.Player?.ViewCamera,"Actual developer command permission is ready");
             sequence=Checks();while(sequence.MoveNext())yield return sequence.Current;
             SessionState.SetBool(Key+"Tabs",true);
             sequence=Checks();while(sequence.MoveNext())yield return sequence.Current;
@@ -63,6 +64,21 @@ namespace DeadlyJenga.DevTools.Editor
             Call(menu,"SetInputFocused",true);
             typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(ray.origin,-ray.direction));Call(menu,"PresentPointer");
             Check(!Field<Image>(menu,"pointerDot").gameObject.activeSelf,"Tablet reticle clears when pointing away");
+            var results=session.GetComponent<CandyResultsHud>();
+            if(!Field<Canvas>(results,"canvas"))Call(results,"Build");
+            var resultCanvas=Field<Canvas>(results,"canvas");
+            resultCanvas.gameObject.SetActive(true);typeof(CandyResultsHud).GetField("wasVr",Flags).SetValue(results,true);
+            var resultRect=(RectTransform)resultCanvas.transform;
+            var resultRay=new Ray(resultRect.position-resultRect.forward,resultRect.forward);
+            Call(results,"PresentResultsPointer",resultRay,true,false);
+            Check(Field<LineRenderer>(results,"resultsBeam").enabled,"Staged tracked results pointer remains visible over panel background");
+            Call(results,"PresentResultsPointer",resultRay,false,false);
+            Check(!Field<LineRenderer>(results,"resultsBeam").enabled,"Results beam clears on tracking loss");
+            Call(results,"PresentResultsPointer",resultRay,true,true);Call(results,"OnApplicationFocus",false);
+            Check(!Field<LineRenderer>(results,"resultsBeam").enabled&&!Field<Image>(results,"resultsReticle").gameObject.activeSelf,"Results focus loss immediately clears beam and reticle");
+            Call(results,"OnApplicationFocus",true);resultCanvas.gameObject.SetActive(false);Call(results,"PresentResultsPointer",resultRay,true,true);
+            Check(!Field<LineRenderer>(results,"resultsBeam").enabled,"Hidden results panel cannot display a beam");
+            typeof(CandyResultsHud).GetField("wasVr",Flags).SetValue(results,false);
             menu.Show(false,camera);
             Check(!Field<Image>(menu,"pointerDot").gameObject.activeSelf,"Closing tablet clears pointer");
         }
