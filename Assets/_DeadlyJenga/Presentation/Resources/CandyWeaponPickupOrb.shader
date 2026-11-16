@@ -2,7 +2,7 @@ Shader "Candy Tropical/Weapon Pickup Orb"
 {
     Properties
     {
-        _Mint ("Upper glow", Color) = (.22, .91, .76, 1)
+        _Mint ("Upper glow", Color) = (.29, .96, .80, 1)
         _Lime ("Lower glow", Color) = (.63, 1, .37, 1)
         _Opacity ("Shell strength", Range(0, 1)) = .75
         _Layer ("Shell phase", Float) = 0
@@ -68,13 +68,13 @@ Shader "Candy Tropical/Weapon Pickup Orb"
                 half innerHalo = pow(1 - facing, 4.5);
                 float3 local = input.positionOS;
                 half ripple = .5 + .5 * sin(12 * local.y + 8 * local.z + _Time.y * .52 + _Layer * 2);
-                half fade = .68 + .32 * ripple;
+                half fade = .78 + .22 * ripple;
                 half upper = smoothstep(-.28, .29, local.y);
                 half3 tint = lerp(_Lime.rgb, _Mint.rgb, upper);
                 half3 glintDir = normalize(view + half3(-.48, .64, -.19));
                 half glint = pow(saturate(dot(normal, glintDir)), 36) * (1 - _Layer * .48);
                 tint = lerp(tint, half3(.94, 1, .92), saturate(.62 * glint + .14 * innerHalo));
-                half alpha = _Opacity * (.031 + (.36 * rim + .14 * innerHalo) * fade + .24 * glint);
+                half alpha = _Opacity * (.03 + (.48 * rim + .17 * innerHalo) * fade + .34 * glint);
                 return half4(tint, alpha);
             }
             ENDHLSL

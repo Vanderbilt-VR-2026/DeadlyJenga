@@ -15,6 +15,7 @@ namespace DeadlyJenga.Presentation
         {
             public Transform root, model, orb, innerOrb, outerOrb;
             public float orbRadius;
+            public bool usesPickupIcon;
             public TextMesh label, labelShadow;
             public LineRenderer ring, beam;
             public EquipmentKind kind;

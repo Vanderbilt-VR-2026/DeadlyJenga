@@ -282,7 +282,9 @@ namespace DeadlyJenga.Presentation
                     view.outerOrb.localRotation = Quaternion.Euler(15, turn, 8);
                     view.innerOrb.localRotation = Quaternion.Euler(-26, -turn * .63f, 34);
                 }
-                view.model.localRotation=Quaternion.Euler(9+settle*45,Time.unscaledTime*19+pickup.id*41,settle*25);
+                view.model.localRotation = view.usesPickupIcon && eye
+                    ? Quaternion.Inverse(view.root.rotation) * eye.transform.rotation
+                    : Quaternion.Euler(9 + settle * 45, Time.unscaledTime * 19 + pickup.id * 41, settle * 25);
             }
             bool hasTag = focused && PresentPickupTag(session, current, pickup, view);
             bool showLabel=eye&&!hasTag&&(focused||distance<3.5f*3.5f);
@@ -333,7 +335,7 @@ namespace DeadlyJenga.Presentation
                 weaponOrbMesh.RecalculateBounds();
             }
 
-            view.orbRadius = Mathf.Max(.42f, modelRadius + .105f);
+            view.orbRadius = Mathf.Max(.42f, (modelRadius + .025f) / .82f);
             view.orb = new GameObject("Layered weapon pickup orb").transform;
             view.orb.SetParent(view.root, false);
             view.outerOrb = CreateOrbShell(view.orb, "Outer pickup shell", view.orbRadius * 2, .78f, 0);
@@ -397,6 +399,19 @@ namespace DeadlyJenga.Presentation
                     view.model.localScale = Vector3.one * scale;
                     if (view.kind != EquipmentKind.None && !EquipmentSpecifications.Get(view.kind).power)
                         BuildWeaponOrb(view, bounds.extents.magnitude * scale);
+                }
+                else if (view.kind != EquipmentKind.None && !EquipmentSpecifications.Get(view.kind).power)
+                {
+                    var icon = CandyWeaponIcons.Get(view.kind);
+                    if (icon)
+                    {
+                        var renderer = view.model.gameObject.AddComponent<SpriteRenderer>();
+                        renderer.sprite = icon;
+                        renderer.color = new Color(1f, .94f, .78f);
+                        view.model.localScale = Vector3.one * (.39f / Mathf.Max(icon.bounds.size.x, icon.bounds.size.y));
+                        view.usesPickupIcon = true;
+                    }
+                    BuildWeaponOrb(view, .26f);
                 }
             }
         }
