@@ -125,13 +125,14 @@ namespace DeadlyJenga.CandyPlayers
         }
 
         // Lean, hip and shoulder counter-rotation and breathing, shared between the three torso bones.
-        void PoseTorso(CandyAvatarFrame frame, Vector3 offset, float crouch, float width, float run, float dance, bool moving)
+        void PoseTorso(CandyAvatarFrame frame, Vector3 offset, float crouch, float width, float run, float dance, bool moving, float landing)
         {
             float gait = moving ? Mathf.InverseLerp(.12f, 4f, locomotionSpeed) : 0f;
             float counter = Mathf.Cos(walkPhase);
             // Pitch and roll follow the stride direction. The body leans a little when walking and more when running.
             float lean = run * 14f + gait * (1f - run) * 3f;
-            float pitch = lean * strideDirection.z, roll = -(run * 13f + gait * (1f - run) * 2f) * strideDirection.x;
+            float pitch = lean * strideDirection.z + landing * 16f;
+            float roll = -(run * 13f + gait * (1f - run) * 2f) * strideDirection.x;
             // Hips and shoulders twist against each other, in time with the arm swing.
             float twist = Mathf.Lerp(3.5f, 9f, run) * gait * counter;
             float breath = Mathf.Sin(Time.time * 1.7f + breathSeed) * (1f - gait * .7f);

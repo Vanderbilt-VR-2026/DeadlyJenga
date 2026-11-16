@@ -38,7 +38,8 @@ namespace DeadlyJenga.CandyPlayers
         // The stance foot travels back at floor height. The swing foot lifts and returns.
         Vector3 FootLocal(float sign, float phase, float stride, float run, out float footPitch)
         {
-            Vector3 footLocal = new(sign * .12f, AnkleHeight + Mathf.Max(0, Mathf.Sin(phase)) * stride * .55f, Mathf.Cos(phase) * stride + .025f);
+            var walkStep = new Vector3(strideDirection.x * .65f, 0, strideDirection.z) * (Mathf.Cos(phase) * stride);
+            Vector3 footLocal = new Vector3(sign * .12f, AnkleHeight + Mathf.Max(0, Mathf.Sin(phase)) * stride * .55f, .025f) + walkStep;
             footPitch = 0f;
             if (run > .001f)
             {
