@@ -14,6 +14,9 @@ namespace DeadlyJenga.DevTools.Editor
             Check(IslandLobby.Current && Services.Session?.Player != null, "Actual Marina lobby initializes");
             var view = Object.FindFirstObjectByType<IslandLobbyView>();
             var player = Services.Session.Player;
+            var motor = player.gameObject.GetComponent<CastleSurvivor>();
+            motor.controlMode = FlyingHand.ControlMode.Desktop; motor.RefreshMode();
+            Check(!player.IsVR, "Fixture explicitly selects desktop input");
             var camera = player.ViewCamera;
             var paused = player.InputSuspended;
             player.Place(view.WardrobePosition, Quaternion.identity);
@@ -34,9 +37,12 @@ namespace DeadlyJenga.DevTools.Editor
             Check(Field<int>(view, "wardrobePage") == 1, "Next page opens remaining headgear");
             Call(view, "SetWardrobeCategory", 0);
             Check(Field<int>(view, "wardrobePage") == 0, "Category switch resets pagination");
+            view.SetWardrobeOpen(false);
+            motor.controlMode = FlyingHand.ControlMode.VR; motor.RefreshMode();
+            player.Place(view.WardrobePosition, Quaternion.identity);
+            view.SetWardrobeOpen(true);
+            Check(view.WardrobeOpen && player.IsVR, "Actual VR wardrobe branch opens in desktop fixture");
             var panel = Field<RectTransform>(view, "wardrobePanel");
-            desktop.gameObject.SetActive(false);
-            panel.gameObject.SetActive(true);
             Call(view, "RefreshWardrobeLabels");
             view.Point(new Ray(panel.position - panel.forward * 2, panel.forward), false);
             Canvas.ForceUpdateCanvases();
