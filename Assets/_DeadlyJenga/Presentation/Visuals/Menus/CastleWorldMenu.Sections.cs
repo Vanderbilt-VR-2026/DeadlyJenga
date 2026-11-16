@@ -6,7 +6,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class CastleWorldMenu
     {
         string developerRoute="", developerFoldout="";
-        bool developerChild;
+        bool developerChild,developerPhysics;
         IDeveloperGodMode DeveloperGodMode => session.Player?.gameObject.GetComponent<IDeveloperGodMode>();
         void ToggleDeveloperGodMode()
         {
@@ -19,7 +19,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void DeveloperChild(Action open)
         {
-            ResetPages();developerChild=true;open();
+            ResetPages();menuCategory=menuSection=-1;developerChild=true;open();
         }
         void PointDeveloperRoute(bool pressed)
         {
@@ -89,7 +89,18 @@ namespace DeadlyJenga.CastlePrototype
                 Fold("player","Player debug",()=>{
                     Add(session.PlayingHand?"Become survivor":"Become flying hand",SwitchDemoRole,DemoMode,CandyHudIcon.Hand);
                     Add("Hand appearance",()=>CharacterPicker.Open(session),HandLooks.Names.Length>0,CandyHudIcon.Hand);
-                    Add("Physics overrides",()=>DeveloperChild(()=>{tuningPage=handPhysicsPage=true;}),Settings!=null);
+                    Add((developerPhysics?"Hide":"Show")+" hand physics",()=>developerPhysics=!developerPhysics,Settings!=null);
+                    if(developerPhysics&&Settings!=null)
+                    {
+                        float force=Settings.CurrentRules.handPhysics?.forceNewtons??1200;
+                        float friction=Settings.CurrentRules.handPhysics?.friction??2;
+                        Add("Force: "+force.ToString("0")+" N / friction: "+friction.ToString("0.0"),()=>{},false);
+                        Add("Force -100 N",()=>SurvivorSettingsPanel.SetHandPhysics(Settings,force-100,friction,CanCommand,Demo.ApplyStaminaRules),CanCommand);
+                        Add("Force +100 N",()=>SurvivorSettingsPanel.SetHandPhysics(Settings,force+100,friction,CanCommand,Demo.ApplyStaminaRules),CanCommand);
+                        Add("Friction -0.1",()=>SurvivorSettingsPanel.SetHandPhysics(Settings,force,Mathf.Max(0,friction-.1f),CanCommand,Demo.ApplyStaminaRules),CanCommand);
+                        Add("Friction +0.1",()=>SurvivorSettingsPanel.SetHandPhysics(Settings,force,Mathf.Min(2,friction+.1f),CanCommand,Demo.ApplyStaminaRules),CanCommand);
+                    }
+                    Add("Sea spirit / tabletop",()=>DeveloperChild(()=>tabletopPage=true),MatchRuntime.Current!=null);
                 });
                 Fold("world","World & pickups",()=>{
                     Add("Ground pickups",()=>DeveloperChild(()=>{menuCategory=2;menuSection=4;}),CanCommand&&MatchRuntime.Current is IEquipmentRuntime,CandyHudIcon.Trigger);

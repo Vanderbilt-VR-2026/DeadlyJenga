@@ -21,6 +21,21 @@ namespace DeadlyJenga.CastlePrototype
             ClearHoverFlight();ResetClimb(true);Vaulting=false;support=null;
             verticalSpeed=peakFallSpeed=0;slopeVelocity=iceVelocity=Vector3.zero;
         }
+        void MoveDeveloperFlight(Vector2 walking,bool rise,bool fast,float seconds)
+        {
+            if(!GodModeEnabled)return;
+            verticalSpeed=peakFallSpeed=0;slopeVelocity=iceVelocity=Vector3.zero;
+            Grounded=false;Vaulting=false;support=null;
+            if(InputSuspended||!vrInputFocused||!viewCamera||!Capsule.enabled||!float.IsFinite(seconds)||seconds<=0)return;
+            // Look where you want to fly. Hold sprint for fast travel; release the movement input to brake.
+            float speed=(fast?18f:3f)*playerScale;
+            var direction=viewCamera.transform.forward*walking.y+viewCamera.transform.right*walking.x;
+            if(rise)direction+=Vector3.up;
+            if(!IsVR&&UnityEngine.InputSystem.Keyboard.current?.leftCtrlKey.isPressed==true)direction+=Vector3.down;
+            Capsule.Move(Vector3.ClampMagnitude(direction,1)*speed*Mathf.Min(seconds,.05f));
+            ActionStatus=fast?"God flight: FAST":"God flight: SLOW";
+        }
+
         [Header("Health")]
         public float maxHealth = 100;
         [Min(0)] public float healthRecoveryDelay = 10;

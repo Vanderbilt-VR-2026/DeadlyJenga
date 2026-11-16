@@ -128,6 +128,7 @@ namespace DeadlyJenga.DevTools.Editor
             TabletClick(menu,"More tools");Shot("05-more-tools.png");Row("World & pickups");Shot("06-world-tools.png");
             Row("Ground pickups");Back();Check(Field<string>(menu,"developerRoute")=="More tools"&&!Field<bool>(menu,"developerChild"),"Child Back returns to owning tools page");Back();
             TabletClick(menu,"Map");Shot("07-maps.png");Row("Filter:");Shot("08-map-filters.png");Row("In development");Shot("09-filtered-maps.png");Back();
+            TabletClick(menu,"Spectate");Shot("16-spectate.png");Back();
             TabletClick(menu,"Mode");Shot("10-mode.png");Row("advanced rules");Shot("11-advanced-rules.png");Back();
             TabletClick(menu,"Disasters");Shot("12-disasters.png");
             typeof(CastleWorldMenu).GetField("disasterSelection",Flags).SetValue(menu,0);
@@ -137,7 +138,20 @@ namespace DeadlyJenga.DevTools.Editor
             var damage=session.Player.gameObject.GetComponent<IDamageable>();float health=damage.Health;
             damage.Damage(100000,menu.gameObject);damage.Eliminate(menu.gameObject);
             Check(damage.Health==health,"God Mode rejects direct damage and elimination");Shot("15-god-mode.png");
+            var survivor=(CastleSurvivor)session.Player;
+            var oldPosition=survivor.transform.position;var oldRotation=survivor.transform.rotation;bool oldPause=survivor.InputSuspended;
+            survivor.InputSuspended=false;survivor.Teleport(oldPosition+Vector3.up*100,oldRotation);
+            Vector3 start=survivor.transform.position;
+            Call(survivor,"MoveDeveloperFlight",Vector2.up,false,false,.05f);float slow=Vector3.Distance(start,survivor.transform.position);
+            start=survivor.transform.position;Call(survivor,"MoveDeveloperFlight",Vector2.up,false,true,.05f);float fast=Vector3.Distance(start,survivor.transform.position);
+            Check(slow>.01f&&fast>slow*5,"Actual character flight: fast travels over five times slow distance");
+            start=survivor.transform.position;Call(survivor,"MoveDeveloperFlight",Vector2.zero,false,false,.05f);
+            Check(Vector3.Distance(start,survivor.transform.position)<.001f,"Flight brakes when movement released");
+            survivor.InputSuspended=true;start=survivor.transform.position;Call(survivor,"MoveDeveloperFlight",Vector2.up,false,true,.05f);
+            Check(Vector3.Distance(start,survivor.transform.position)<.001f,"Menu input pause prevents flight movement");
+            survivor.Teleport(oldPosition,oldRotation);survivor.InputSuspended=oldPause;
             TabletClick(menu,"God mode");Check(!god.GodModeEnabled,"God Mode toggles off");
+            damage.Damage(5,menu.gameObject);Check(damage.Health<health,"Damage works again after disabling God Mode");survivor.Revive();
             Object.DestroyImmediate(menu.gameObject);
         }
         static void Capture(Camera camera,Canvas canvas,string name)
