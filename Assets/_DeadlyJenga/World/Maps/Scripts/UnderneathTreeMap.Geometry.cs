@@ -181,13 +181,15 @@ namespace DeadlyJenga.CastlePrototype
             Vector3 center = (start + end) * .5f - direction * Vector3.up * .19f;
             var walkway = Child(parent, label, center, direction);
             var dimensions = new Vector3(width, .38f, delta.magnitude + .22f);
-            AddBox(walkway, dimensions, false);
-            AddBody(walkway.gameObject);
-            VisualBox(walkway, "Deck", Vector3.zero, dimensions, wrap);
+            AddBox(walkway, dimensions, true);
+            var visual = Child(walkway, "Visual", Vector3.zero, Quaternion.identity);
+            VisualBox(visual, "Deck", Vector3.zero, dimensions, wrap);
             foreach (float sign in new[] { -1f, 1f })
-                VisualBox(walkway, "Edge stitching",
+                VisualBox(visual, "Edge stitching",
                     new Vector3(sign * (width * .5f - .08f), .194f, 0f),
                     new Vector3(.07f, .012f, dimensions.z), ribbon);
+            RegisterPanel(walkway.gameObject, visual, new UnderneathTreeGiftShell(),
+                GiftPieceRole.Walkway, dimensions.x * dimensions.y * dimensions.z);
             playArea.Encapsulate(transform.TransformPoint(end));
         }
     }

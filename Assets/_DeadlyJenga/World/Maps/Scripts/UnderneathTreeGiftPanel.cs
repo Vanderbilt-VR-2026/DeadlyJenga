@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    internal enum GiftPieceRole { Base, Wall, Lid, Rail }
+    internal enum GiftPieceRole { Base, Wall, Lid, Rail, Walkway }
 
     // Wrapping holds the shell in place until damage reaches a structural piece.
     internal sealed class UnderneathTreeGiftShell

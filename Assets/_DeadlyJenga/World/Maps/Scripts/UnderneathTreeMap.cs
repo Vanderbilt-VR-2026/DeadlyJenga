@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class UnderneathTreeMap : MonoBehaviour, IWorldQuery, ISyncedWorld,
         IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        const string Layout = "underneath-the-tree-v4";
+        const string Layout = "underneath-the-tree-v5";
 
         [SerializeField] GameObject model = null, room = null, locomotive = null;
         [SerializeField] Material paper = null;

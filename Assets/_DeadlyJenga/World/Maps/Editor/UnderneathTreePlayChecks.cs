@@ -30,6 +30,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static Rigidbody bridgeLid;
         static Rigidbody[] railBodies;
         static Vector3 initialBridgePosition;
+        static Rigidbody hitRail, hitWalkway;
+        static Vector3 initialRailPosition, initialWalkwayPosition;
         static int referenceIndex;
 
         // High views cover the room perimeter, then the routes and their supports.
@@ -157,7 +159,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     blockCount = map.Blocks.Count;
                     revision = map.Revision;
                     railBodies = map.Blocks.Where(body => body.name.StartsWith("Gift-supported rail ", StringComparison.Ordinal)).ToArray();
-                    var gifts = map.Blocks.Except(railBodies).GroupBy(body => body.transform.parent.name)
+                    var walkways = map.Blocks.Where(body => body.transform.parent.name == "Present Walk to the Train Loop").ToArray();
+                    var gifts = map.Blocks.Except(railBodies).Except(walkways).GroupBy(body => body.transform.parent.name)
                         .ToDictionary(group => group.Key, group => group.ToArray());
                     originalPieces = PieceOrder();
                     Require(gifts.Count >= 30 && map.Blocks.All(b => b && b.isKinematic && b.useGravity),
@@ -173,6 +176,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         "normal spawn is above the movable junction approach lid");
                     CheckJunction();
                     CheckRoutes(gifts);
+                    Require(walkways.Length == 3 && walkways.All(body =>
+                        WorkingDeck(body.GetComponent<BoxCollider>(), body)), "all three ribbon routes have physical, climbable decks");
+                    hitRail = railBodies[railBodies.Length / 2];
+                    hitWalkway = walkways.Single(body => body.name == "Ribbon approach");
                     var train = map.GetComponentInChildren<UnderneathTreeTrain>();
                     Require(train, "tinplate train imported");
                     initialTrainPosition = train.transform.position;
@@ -214,14 +221,29 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         "released curved wall is displaced by PhysX");
                     Require(Vector3.Distance(initialTrainPosition, map.GetComponentInChildren<UnderneathTreeTrain>().transform.position) > .2f,
                         "train advances on the track during Play Mode");
+                    initialRailPosition = hitRail.position;
+                    initialWalkwayPosition = hitWalkway.position;
+                    hitRail.GetComponentInChildren<BoxCollider>().GetComponentInParent<IPushable>().Push(Vector3.up * 6f, null);
+                    hitWalkway.GetComponent<BoxCollider>().GetComponentInParent<IPushable>().Push(Vector3.up * 6f, null);
+                    phase = 2;
+                    impactFixedTime = Time.fixedTime;
+                    return;
+                }
+                if (phase == 2)
+                {
+                    Require(!hitRail.isKinematic && Vector3.Distance(initialRailPosition, hitRail.position) > .2f,
+                        "a direct hit on a rail deck releases and moves its rigidbody");
+                    Require(!hitWalkway.isKinematic && Vector3.Distance(initialWalkwayPosition, hitWalkway.position) > .2f,
+                        "a direct hit on a ribbon ramp releases and moves its rigidbody");
                     bridgeLid = map.Blocks.Single(body => body.name == "Lid" && body.transform.parent.name == "Gift Bridge / Navy Span");
                     initialBridgePosition = bridgeLid.position;
+                    railBodies = railBodies.Where(body => body.isKinematic).ToArray();
                     map.Blocks.Single(body => body.name == "Bottom" && body.transform.parent.name == "Gift Bridge / Pine Bearing")
                         .GetComponent<IPushable>().Push(Vector3.left * 6f, null);
                     foreach (var bearing in map.Blocks.Where(body => body.name == "Bottom" &&
                         body.transform.parent.name.StartsWith("Rail Gift ", StringComparison.Ordinal)))
                         bearing.GetComponent<IPushable>().Push(Vector3.left * 6f, null);
-                    phase = 2;
+                    phase = 3;
                     impactFixedTime = Time.fixedTime;
                     return;
                 }
@@ -343,7 +365,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     parts.All(body => body.GetComponent<IClimbable>()?.CanClimb == true),
                     name + " has climbable physics pieces");
             }
-            Require(railBodies.Length > 5 && map.Root.Find("Underneath the Tree Layout/Independent railway trestles") == null,
+            Require(railBodies.Length > 5 && railBodies.All(body =>
+            {
+                var decks = body.GetComponentsInChildren<BoxCollider>();
+                return decks.Length > 0 && decks.All(deck => WorkingDeck(deck, body));
+            }) && map.Root.Find("Underneath the Tree Layout/Independent railway trestles") == null,
                 "the toy train has breakaway sections and no independent trestles");
             var trunk = map.Root.Find("Underneath the Tree Layout/Fir trunk collision");
             Require(trunk && railBodies.SelectMany(body => body.GetComponentsInChildren<BoxCollider>())
@@ -361,6 +387,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Require(!Physics.Raycast(floor - span.transform.right * 4f, span.transform.right, 8f, 1 << Layers.Block),
                 "the floor-level bridge passage is open");
         }
+
+        static bool WorkingDeck(BoxCollider deck, Rigidbody body) =>
+            deck && deck.enabled && deck.attachedRigidbody == body && deck.gameObject.layer == Layers.Block &&
+            deck.GetComponentInParent<IPushable>() != null && Climbables.TryGet(deck, out var climbable) && climbable.CanClimb;
 
         static string[] PieceOrder() => map.Blocks.Select(body => body.transform.parent.name + "/" + body.name).ToArray();
 
