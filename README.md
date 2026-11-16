@@ -11,93 +11,47 @@
 
 A multiplayer VR project targeting Meta Quest.
 
-## Sprint 3
+## Sprint 4
 
-You can find the Sprint 3 folder [here](https://drive.google.com/drive/folders/1_7nJXGaH6qDPWy1Jsvq3VEvNlQzg7mHt?usp=drive_link).
-It contains working APK, demo videos, as well as more details regarding the information below.
+You can find the Sprint 4 folder [here](https://drive.google.com/drive/folders/1dyQeZW_ETOvm708sEPQqw-D0cA2LzSGl?usp=drive_link).
+It contains working APK and demo videos
 
-## Design:
-- We decided that the startup combination of a professional homescreen followed by immedietly loading into a lobby gave the ease of a minigame while still feeling like an official platform.  Instantly loading into the lobby made the game feel unserious and overbearing, but we did not want to much "slowdown" (many menus with choices etc.) from getting into the main experience which is geared towards quick fun.  By using HD photos on the homescreen we instill that "real game" feeling, and by next loading into a disney-resort like lobby we get right into that upbeat fun type of atmosphere, which we feel is important since loading right into such a hectic game can be overwhelming.
-- As for controls, we tried to find a way to universally use hand tracking of the dominant hand and a joystick for the other.  This is mainly because playing as a flying hand requires this (otherwise flying around and hand sync could not occur altogether) and we did not want players to have to change how their setup throughout gameplay.  This has had some consequences for more odd scenarios like using weapons and rapidly switching from climbing/vaulting/jumping and walking as a play.
-- We have made bright blue glowing edges around nearby ledges that can be vaulted.  They appear from far away but give that indication that makes a player feel more confident that the game will recognize their vault attempt.  The only objects players might be interacting with to get them in their hands are weapons, but we felt it would be smoother to have them just work on the usual mechanic where walking into them grants them to you.  This is because our game is very fast paced and so stopping to manually grab a powerup/gadget felt out of place.
-- While consistently debugging and testing VR controls remains a big weakspot relative to our humongous content creation, we suspect significant work is going to be put into making this experience less nauseating for users given the amount of jumps and 360 turns the game requires.  The entire control setup may need to change as a result.
-
-##  These are the significant implemented additions and changes in Sprint 3:
-- Home screen: Added a separate starting menu before the lobby, with local play, hosting, joining and demo entry.
-- Home music: Added the trimmed, looping Shorebreak track, which stops when leaving Home.
-- New default lobby: Built Mayhem Marina, with a coastal clubhouse, social spaces and integrated lobby functions; preserved the previous lobby as a backup.
-- Lobby music: Added Ready Set Splash as the looping lobby track.
-- Lobby population: Added offline bot autofill, with bots removed when entering hosted multiplayer.
-- Lobby terminals: Redesigned the join, host and game-setup terminals, including larger controls, revised screen placement and decorative arcade controls.
-- Lobby flow: Added lobby visits, match resuming and persistent lobby/session handling; fixed problems starting another game after returning.
-- Character viewing: Added smooth third-person orbit and zoom, including wardrobe inspection, idle poses and occasional emotes.
-- Demo menu: Reorganized controls into Personal, Bot, Game and Misc, with subcategories, equipment filters and improved readability.
-- Demo permissions: Expanded in-game testing controls for equipment, bots, disasters, maps and other settings.
-- Bulk equipment grants: Added giving equipment to everyone for the current life or immediately plus every respawn.
-- Map browsing: Added categorized map selection, more linked screenshots and previews.
-- Mode browsing: Added illustrated mode choices, descriptions, PvP/Survival grouping and two-column presentation.
-- Mode-to-map filtering: Added the compatibility framework so map choices can respond to the selected mode.
-- Game modes: Added playable rules for Disaster Survival, King of the Hill, Color/Block Control, Capture the Flag, Infection, Last Team Standing and Murder Mystery.
-- Mode configuration: Added per-mode combat, movement, scoring, population, respawn and disaster settings.
-- Scoring and results: Reworked live statistics and post-game criteria to emphasize meaningful objectives rather than displaying survival time everywhere.
-- HUD: Expanded mode-specific information, including clearer CTF flag states, objectives, standings and Murder Mystery information.
-- Murder Mystery evidence: Added or expanded body discovery, reporting, footprints, sheriff succession and role-specific interactions.
-- Murder Mystery reactions: Bots can respond to seeing a drawn murder weapon, rather than needing to witness a kill first.
-- Murder Mystery replays: Added bounded ten-second murderer-perspective history for kill-cams and round-end playback, including sheriff/murderer split views when applicable.
-- Body persistence: Fixed investigated cases of corpses disappearing or passing through map floors, and improved footprint compatibility.
-- Bot behavior framework: Separated shared movement/survival execution from mode-specific objectives.
-- Modular objectives: Added data-driven objectives, queries, conditions, assignment checks and execution contracts to reduce bot rewrites for new modes.
-- Bot navigation: Expanded walking, jumping, climbing, vaulting, route planning, stuck detection and recovery.
-- Bot combat: Added broader pursuit, melee, ranged aiming, cover checks, weapon switching and pickup behavior.
-- Bot equipment handling: Added support for the expanded arsenal, including ballistic grenades, charged attacks and temporary powers.
-- Bot optimization: Added geometry caching, navigation reuse, reduced duplicate checks and combined avatar-pose work.
-- Bot expression: Expanded to approximately 70 contextual emotes, including suspicion, fear, investigation, celebration and social reactions.
-- Bot appearance: Added randomized cosmetic customization.
-- Enemy NPC framework: Added enemy identities, configurable spawning, perimeter placement and separate damage settings.
-- Jaguar enemies: Added big-cat appearance, claws, quadrupedal movement, attack posing, movement tuning and sound reactions.
-- Mushroom enemies: Added short mushroom enemies with enhanced jumping, no climbing and projectile attacks.
-- Additional enemies: Added Longhand and Gum Brute enemy types.
-- Enemy health/death presentation: Added specialized damage-fill and death effects, including the big-cat hairball effect.
-- Wildlife framework: Added spawnable wildlife and tame/companion controls.
-- Avatar customization: Added a wardrobe system that modifies the existing avatar rather than replacing its gameplay body.
-- Skins: Added dozens of animal, monster, holiday, food and fantasy styles—including penguin, snowman, fox, panda, dragon, astronaut and candy-themed characters.
-- Team-aware appearances: Added palettes that adapt skins to team colors while retaining recognizable secondary details.
-- Accessories: Added hats, horns, ears, wings, capes, noses, glasses and other attachments.
-- Hair and eyewear: Added multiple dedicated hairstyle and glasses selections.
-- Clothing: Added robes, sports equipment, skirts, tuxedos, jackets and other clothing overlays.
-- Customizer navigation: Expanded category navigation to accommodate the larger wardrobe.
-- Cosmetic corrections: Improved clothing fit, skeleton-head behavior and the enclosed jack-o’-lantern appearance.
-- Powered armor: Added an armor overlay with palm and foot emitters, flight and hand-fired plasma.
-- Initial weapon system: Added the alien plasma blaster, murderer sword, sheriff revolver, convertible rifle/shotgun and giant boxing glove.
-- Expanded firearms: Added rocket launcher, dual alien spike guns, chain gun, electric grenade launcher, wrist laser, needle drill and stocked automatic/burst pistol.
-- Expanded melee: Added saw-wheel staff, barbed bat, chainsaw, laser claws, flaming marshmallow, laser axe and dagger.
-- Weapon mechanics: Added magazines, reloads, cooldowns, spin-up, charging, continuous fire, burst fire, splash damage and different melee swing timings.
-- Weapon aiming: Added aim assistance, enemy-sensitive reticles, more generous firearm hit areas and revised rifle/shotgun optics.
-- Convertible rifle: Added the rotating two-barrel carriage, alternate optics, animated switching and two-handed aiming.
-- Weapon presentation: Added first-person and external models, thigh holsters, back slings, visible projectiles and expanded materials/effects.
-- Inventory rules: Added one-weapon limits, swap prompts, displaced-item drops and equipment drops on death.
-- Pickups: Added weighted random spawning, lifetimes, limits and translucent pickup clouds containing actual item previews.
-- Default PvP dagger: Added a mode-controlled fallback melee weapon.
-- Temporary flying hand: Added a timed transformation powerup with player identity/color and safe return placement.
-- Weapon audio: Added firing, handling, mode-switch, impact, reload and explosion sound suites.
-- Player feedback: Added revised candy/plastic pain, death and healing sounds, plus peripheral damage and recovery effects.
-- Death animation: Reworked death into full-size ragdolling followed by gradual melting, puddling and drying.
-- First-person visibility: Improved downward viewing and body-obstruction handling.
-- Traversal fixes: Addressed jumping, vaulting, island sinking and map-specific movement restrictions.
-- Powered flight controls: Added more stable hover-style flight and keyboard height controls.
-- Map library: Added numerous independently selectable maps beyond the original castle.
-- Castle variants: Added longer-block castles, larger tower gaps, catwalk layouts and alternate central support structures.
-- Social/environment maps: Added Amber Cantina, the waterfront tiki resort, Breakwater Village and a blank island.
-- Sparse structure maps: Added crown, terrace, viaduct and hollow-keep designs, their larger variants and Festival of Giants.
-- Festival City: Added interconnected landmark structures and several experimental geometry/collision variants.
-- Structure exhibitions: Added large-island collections of experimental structures and twenty tower designs.
-- Epic interconnected maps: Added ten large layouts, then woven-in lower structures and routes to create more varied heights and spaces.
-- Megablock Tower: Added the large rectangular tower with navigable interiors.
-- Fantasy maps: Added Honeycomb Hive, Cloud Carnival and Candy Glass Above Clouds.
-- Fantasy environment art: Added dedicated sky panoramas, themed materials, textures, lighting, rounded visual edges and baked reflections.
-- Map documentation: Added actual Unity screenshots, cinematic galleries, destruction captures and design comparisons.
-- Disasters: Expanded the map-aware disaster framework and its registered hazard collection.
-- Low gravity: Changed the anti-gravity behavior toward slow falling rather than simply floating upward.
+Deadly Jenga — Sprint 4 highlights
+Sprint 4 adds a waterfront lobby, new maps and modes, a much bigger wardrobe, and a clearer path from opening the game to playing with friends. It also gives the game a stronger visual identity, from candy-glazed towers and tropical reefs to disaster effects, weapon handling, and animated match results.
+Play, party up, and explore the Marina
+- Two ways to start. Play Mode gives players a simple GO button and a rotating playlist. Developer Mode opens the full map, mode, bot, equipment, and disaster controls.
+- Less downtime between rounds. Play Mode brings the group back to Marina between matches, reveals the upcoming round, and gives everyone a countdown before heading back in. Eliminated players can return to the lobby and follow the live match.
+- Mayhem Marina became a beach resort. The rebuilt lobby has an open Showtime Plaza, a covered Beachside Cinema, a connected Beacon Walk, waterfront decks, a practice tower, jet skis, target activities, wildlife, and passing cruise ships.
+- The main gathering area has more to do. The Beachside Cinema now brings together the live 3D tower on a table, the wardrobe, the physical results podium, and the Last Match board. The deck was expanded to give each attraction room and keep the walking routes clear.
+- Watch the match from the lobby. Spectator TVs let you follow individual players and open a view full-screen. The lobby also has a rotating broadcast, live standings, a kill feed, and active or incoming disaster information.
+- Hosting and joining got clearer. The physical Join and Host cabinets have distinct screens, readable room codes, a floating keyboard, and clearer hover and press feedback. Nearby discovery supports desktop Wi‑Fi and adds Android Bluetooth room requests with host approval.
+- Better continuity for groups. Sprint 4 improves how guests follow the host into matches, how rooms recover when the host changes, and how the game handles stale invites or a failed connection. Arrival and departure beacons are back around the player, with a white transition while the destination loads.
+New places and ways to play
+- Tycoon turns Castle Catwalks into a destructible candy waterpark. A tall central tower, winding slides, ramps, bridges, and splash decks give players different ways to climb, cross the map, and escape a collapse.
+- Ninja Temple and Shadow Lantern add a Japanese-inspired arena and a lantern-scoring mode with gong mechanics.
+- Skyline Exchange expands rooftop parkour across six connected districts, with pier-supported structures and towers that can collapse under disasters.
+- More map variety. Sprint 4 also brings in Crown Courtyards and Harbor Exchange and adds an In Development tab for workshop maps. Underneath the Tree, Vanderbilt, and Can’t Catch Me are available as work-in-progress layouts.
+- Disaster Survival and three-team PvP got their own pacing. Survival keeps health enabled and weapons out. Three-team matches add periodic disasters and retain the sinking floor. Spawns have more separation, and Catwalks routes got fixes for players and bots trying to move between towers.
+Better-looking worlds and bigger disasters
+- The Candy Castles got a new coastline. Rounded sandbars ramp into clear turquoise shallows with underwater light, coral, fish, and foam. Offshore swells, nearby 3D islands, and a layered distant island chain give the ocean depth from ground level and the tops of towers.
+- Blocks look more like glossy candy. The castle blocks use a clearer glaze and stronger colors, with highlights and reflections tuned for gameplay distance. Burning blocks get curled flames, darker smoke, and visible blistered scars.
+- Water and sand react to the match. Blocks splash and sink, sand caves in around impacts, and the view changes as players go underwater or sink into quicksand. Survivors can still climb or vault out when they find a grip.
+- Disasters have more distinct looks and behavior. Tornadoes form offshore, weave across the island, kick up spray, and dissipate. Tsunamis have moving currents, bubbles, a view from inside the wave, and physical contact with blocks. The Kraken grabs and drags blocks under, with its own spatial sounds.
+- Darkness, rain, and warnings are easier to read. Lights Out keeps surface detail as the scene falls into darkness and leaves the lobby lit. Acid rain is thicker, earthquake effects travel across the map, and illustrated warnings announce what’s coming. Planet Killer, Vampire, and Icey returned to the rotation.
+Movement, combat, and multiplayer
+- Movement feels more deliberate. Default stamina doubled, sprinting no longer drains it, and sprinting, landings, jumps, and climbing received new poses and feedback. Climb and vault fixes help when towers move or disasters shake them.
+- VR tracking and comfort got a pass. Seated and standing transitions keep the avatar more upright. Seated stick pitch is off by default and can be enabled in Comfort. Controller ownership holds through brief tracking dropouts, and desktop hands sit higher in view with a more relaxed pose.
+- Flying hands and Iron Suits are easier to control. In hybrid flying-hand mode, clicking the movement stick lets it turn the hand and camera. Grip is stickier and less forceful. Iron Suits can stay airborne while a menu is open.
+- Weapons feel more physical. Aiming raises the actual gun and optic. Grip alignment, reloads, recoil, muzzle flashes, casings, and sprint carry got attention across the arsenal. The minigun has an underhand carry, Stormbreaker has a two-handed stance, and melee swings and confirmed hits have more weapon-specific motion.
+- Loot is easier to spot and pick up. Dropped weapons sit in readable pickup orbs, prompts follow the gear you’re looking at, and powerups have distinct colors and effects when picked up or activated.
+- Bots fight, navigate, and dress with more variety. They make more situational weapon choices, aim with some fallibility, and use improved routes through Catwalks. They pull cosmetics from the player wardrobe and choose applicable Dark, Match, or Light shades. Bot voice and social simulation are off by default.
+- Multiplayer and busy rounds do less repeated work. Guest motion updates can supersede old poses, network traffic is batched, and the game reuses more bot navigation, avatar, and tsunami calculations. This targets the recurring stalls seen in heavily populated matches.
+Interface, avatars, and results
+- A clearer tablet for PC and VR. The tablet is held in the off hand and pointed at with the dominant hand. Comfort, Controls, Room, and Developer pages are easier to find. Larger labels, illustrated cards, search, selection wheels, and stronger reticles make it easier to aim at and select the right thing.
+- Less clutter during gameplay. First-run hints clear as you look, move, and jump. Health and stamina feedback stays near the edges of the view, damage shows its direction, and portraits and names are larger in the activity feed and standings.
+- A much bigger wardrobe. The game now includes 57 approved skins and 48 team-color variants, plus reworked hair, headgear, outfits, and accessories. The mirror frames the actual avatar. Full skins can cover accessories while keeping the player’s saved outfit ready to restore.
+- Avatars hold up better in motion. Sprint 4 improves spine and chest movement, planted feet, hands and fingers, and how clothing fits the torso. Team-color skins keep their head and chest geometry, and health effects preserve individual material finishes.
+- Round endings have more personality. A GAME OVER animation leads into the scoreboard. Podium avatars retain their outfits, winners celebrate, and losing players get disappointed reactions. The last match is also visible back at the Marina.
 - Water disasters: Expanded tsunami and water-kaiju visuals, splashes and wet/shiny surface effects.
 - Storm presentation: Added revised tornado, storm, mist and tsunami effects and audio.
 - Shared collision optimization: Reduced overhead from survivor collision copies through shared bodies, fewer transform updates and batched synchronization.
