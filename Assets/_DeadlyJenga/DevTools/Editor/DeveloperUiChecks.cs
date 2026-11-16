@@ -29,6 +29,7 @@ namespace DeadlyJenga.DevTools.Editor
         [Serializable] sealed class Saved {public SceneSetup[] scenes;}
         static DeveloperUiChecks(){EditorApplication.playModeStateChanged+=State;EditorApplication.update+=Tick;}
         public static void Run()=>Begin(false);
+        public static void RunWardrobeLayout(){Begin(false,false,true);SessionState.SetBool(Key+"WardrobeLayout",true);}
         public static void RunDialogs()=>Begin(true);
         public static void RunTabletTabs()=>Begin(false,true);
         public static void RunLobbyTerminals()=>Begin(false,false,true);
@@ -38,6 +39,7 @@ namespace DeadlyJenga.DevTools.Editor
         public static void RunHostCabinetOnly(){RunCabinetOnly();SessionState.SetBool(Key+"HostCabinetOnly",true);}
         static void Begin(bool dialogs,bool tabs=false,bool lobby=false,bool matchVisuals=false)
         {
+            SessionState.SetBool(Key+"WardrobeLayout",false);
             SessionState.SetBool(Key+"HostCabinetOnly",false);
             SessionState.SetBool(Key+"CabinetOnly",false);
             SessionState.SetBool(Key+"TerminalAppearance",false);
@@ -59,6 +61,10 @@ namespace DeadlyJenga.DevTools.Editor
             }
             SessionState.SetBool(Key+"HadName",PlayerPrefs.HasKey(NameKey));
             SessionState.SetString(Key+"Name",PlayerPrefs.GetString(NameKey,""));
+            SessionState.SetBool(Key+"HadStyle",PlayerPrefs.HasKey("CandyAvatar.Style.v2"));
+            SessionState.SetString(Key+"Style",PlayerPrefs.GetString("CandyAvatar.Style.v2",""));
+            SessionState.SetBool(Key+"HadAccessories",PlayerPrefs.HasKey("CandyAvatar.Accessories.v1"));
+            SessionState.SetInt(Key+"Accessories",PlayerPrefs.GetInt("CandyAvatar.Accessories.v1",0));
             SessionState.SetBool(Key,true);SessionState.SetInt(Key+"Exit",2);
             SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"FromLobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);
@@ -79,6 +85,9 @@ namespace DeadlyJenga.DevTools.Editor
                 if (SessionState.GetBool(Key + pref + "Exists", false)) PlayerPrefs.SetInt(pref, SessionState.GetInt(Key + pref, 0));
                 else PlayerPrefs.DeleteKey(pref);
             PlayerPrefs.Save();
+            if(SessionState.GetBool(Key+"HadStyle",false))PlayerPrefs.SetString("CandyAvatar.Style.v2",SessionState.GetString(Key+"Style",""));else PlayerPrefs.DeleteKey("CandyAvatar.Style.v2");
+            if(SessionState.GetBool(Key+"HadAccessories",false))PlayerPrefs.SetInt("CandyAvatar.Accessories.v1",SessionState.GetInt(Key+"Accessories",0));else PlayerPrefs.DeleteKey("CandyAvatar.Accessories.v1");
+            PlayerPrefs.Save();
             try
             {
                 var saved=JsonUtility.FromJson<Saved>(SessionState.GetString(Key+"Scenes","")).scenes;
@@ -95,7 +104,7 @@ namespace DeadlyJenga.DevTools.Editor
             if(!SessionState.GetBool(Key,false)||!EditorApplication.isPlaying||started==0||EditorApplication.timeSinceStartup-started<8)return;
             if(!SessionState.GetBool(Key+"LobbyTerminals",false)&&!(Services.Session is CastlePlaySession ready&&ready.Modes&&Services.World!=null)&&EditorApplication.timeSinceStartup-started<60)return;
             started=0;
-            run=SessionState.GetBool(Key+"MatchVisuals",false)?MatchVisualChecks():SessionState.GetBool(Key+"LobbyTerminals",false)?LobbyTerminalChecks():Checks();
+            run=SessionState.GetBool(Key+"WardrobeLayout",false)?WardrobeLayoutChecks():SessionState.GetBool(Key+"MatchVisuals",false)?MatchVisualChecks():SessionState.GetBool(Key+"LobbyTerminals",false)?LobbyTerminalChecks():Checks();
             var driver=new GameObject("Developer UI check driver");Object.DontDestroyOnLoad(driver);driver.AddComponent<TidalCheckDriver>().StartCoroutine(Drive());
         }
         static IEnumerator Drive()
