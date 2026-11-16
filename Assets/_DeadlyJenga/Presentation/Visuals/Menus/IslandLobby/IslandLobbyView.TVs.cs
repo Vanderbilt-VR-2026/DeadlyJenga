@@ -15,7 +15,7 @@ namespace DeadlyJenga.CastlePrototype
             bool marina = lobby is IWorldQuery world && world.Radius >= 30;
             if(marina)
             {
-                wall.SetLocalPositionAndRotation(new Vector3(5.25f,1.31f,-4.80f),Quaternion.Euler(0,90,0));
+                wall.SetLocalPositionAndRotation(new Vector3(5.00f,1.31f,-6.32f),Quaternion.Euler(0,90,0));
                 wall.localScale=Vector3.one*.88f;
             }
             else
@@ -54,7 +54,7 @@ namespace DeadlyJenga.CastlePrototype
             var cabinet = new GameObject("Live match broadcast TV").transform;
             cabinet.SetParent(wall, false);
             // Both displays face the open side of the plaza.
-            var position = marina ? new Vector3(3.25f, 0, -1.45f) : new Vector3(3.25f, 0, -.12f);
+            var position = marina ? new Vector3(2.08f, 0, -1.45f) : new Vector3(3.25f, 0, -.12f);
             cabinet.SetLocalPositionAndRotation(position, Quaternion.Euler(0, 12, 0));
 
             var charcoal = new Color(.045f, .06f, .085f);

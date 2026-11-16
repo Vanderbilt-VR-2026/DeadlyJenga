@@ -101,9 +101,9 @@ namespace DeadlyJenga.CandyArt.Marina
             DirectionBoard(new Vector3(-22.7f, 1.24f, -24.2f), Quaternion.Euler(0, 180, 0), 2.8f);
         }
 
-        // Starts on the plaza's east edge (clear of the Hall of Fame) and leads to the lounge and pool.
+        // Connect the cinema approach with the waterfront lounge and pool.
         static readonly Vector3 BeaconWalkStart = new(6.9f, 1.31f, -4.8f);
-        static readonly Vector3 BeaconWalkEnd = new(11.5f, 1.285f, 1.95f);
+        static readonly Vector3 BeaconWalkEnd = new(11.5f, 1.285f, 2.6f);
         static readonly Quaternion BeaconWalkFacing = Quaternion.LookRotation(
             Vector3.ProjectOnPlane(BeaconWalkEnd - BeaconWalkStart, Vector3.up));
         Vector3 BeaconWalkGate => BeaconWalkStart + BeaconWalkFacing * new Vector3(0, 3.16f, .65f);
@@ -112,6 +112,8 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             // A single planar walking surface avoids small joints under the survivor capsule.
             Bridge(BeaconWalkStart, BeaconWalkEnd, 3.65f, 0);
+            BeaconWalkLanding(BeaconWalkStart, -1.1f);
+            BeaconWalkLanding(BeaconWalkEnd, 1.1f);
             for (int side = -1; side <= 1; side += 2)
             {
                 var edge = BeaconWalkFacing * Vector3.right * (side * 1.93f);
@@ -122,6 +124,12 @@ namespace DeadlyJenga.CandyArt.Marina
             }
             mesh.Box(BeaconWalkGate, new Vector3(4.12f, .62f, .23f), F.DarkWood, .07f, false, BeaconWalkFacing);
             mesh.Box(BeaconWalkGate + Vector3.up * .34f, new Vector3(4.28f, .08f, .33f), F.Brass, .025f, false, BeaconWalkFacing);
+        }
+
+        void BeaconWalkLanding(Vector3 edge, float offset)
+        {
+            var center=edge+BeaconWalkFacing*Vector3.forward*offset-Vector3.up*.10f;
+            mesh.Box(center,new Vector3(3.9f,.20f,2.25f),F.Stone,0,true,BeaconWalkFacing);
         }
 
         void DirectionBoard(Vector3 basePosition, Quaternion facing, float width)
@@ -142,7 +150,7 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Box(new Vector3(19, 1.45f, -3.34f), new Vector3(.14f, .64f, .14f), F.DarkWood, .024f);
             mesh.Box(new Vector3(19, 1.76f, -3.34f), new Vector3(2.28f, .42f, .18f), F.DarkWood, .05f);
             mesh.Box(new Vector3(-10, 1.340f, -10.1f), new Vector3(5.1f, .018f, .8f), F.Ivory, .008f);
-            DirectionBoard(new Vector3(6.65f, 1.285f, 3.64f), Quaternion.identity, 2.55f);
+            DirectionBoard(new Vector3(5.82f, CinemaFloor, -.56f), Quaternion.identity, 2.55f);
         }
         void LightingFixtures()
         {
@@ -218,6 +226,7 @@ namespace DeadlyJenga.CandyArt.Marina
         void Pavilion()
         {
             Ramp(new Vector3(0,PlazaTop,CinemaFront-2),new Vector3(0,CinemaFloor,CinemaFront),9.6f,false);
+            Ramp(new Vector3(5.98f,PlazaTop,CinemaFront-1.9f),new Vector3(5.98f,CinemaFloor,CinemaFront),2.15f,false);
             float depth=CinemaBack-CinemaFront;
             float center=(CinemaFront+CinemaBack)*.5f;
             mesh.Box(new Vector3(0,CinemaFloor-.3f,center),new Vector3(15.8f,.6f,depth),F.Stone,0,true);
@@ -226,7 +235,7 @@ namespace DeadlyJenga.CandyArt.Marina
             WardrobeConnector();
             mesh.Box(new Vector3(0,3.7f,11.65f),new Vector3(15.8f,4.0f,.5f),F.Teal,.2f,true);
             mesh.CurvedRoof(new Vector3(0,5.95f,center),17.1f,depth+2.0f,2.08f,F.Teal);
-            mesh.Box(CinemaSign,new Vector3(5.5f,.95f,.24f),F.DarkWood,.085f);
+            mesh.Box(CinemaSign,new Vector3(6.1f,.95f,.24f),F.DarkWood,.085f);
             for(int side=-1;side<=1;side+=2)
                 mesh.Beam(CinemaSign+new Vector3(side*2,.4f,.06f),CinemaSign+new Vector3(side*2,2.2f,.06f),.055f,F.Brass);
             for(int side=-1;side<=1;side+=2)

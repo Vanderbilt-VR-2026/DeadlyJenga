@@ -4,8 +4,7 @@ using F=DeadlyJenga.CandyArt.Marina.MarinaFinish;
 
 namespace DeadlyJenga.CandyArt.Marina
 {
-    // Showtime Plaza: the open heart of the Marina. Players arrive straight onto it, see the play
-    // screen ahead, the wardrobe stage on the left and the Hall of Fame on the right.
+    // Showtime Plaza leads into the covered cinema and out to the waterfront.
     public sealed partial class MayhemMarina
     {
         const float PlazaTop = 1.31f;
