@@ -223,16 +223,16 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Box(new Vector3(side*6.35f,CinemaFloor-.3f,4.2f),new Vector3(3.1f,.6f,1.7f),F.Stone,0,true);
             WardrobeConnector();
             mesh.Box(new Vector3(0,3.7f,11.65f),new Vector3(15.8f,4.0f,.5f),F.Teal,.2f,true);
-            mesh.CurvedRoof(new Vector3(0,5.5f,7.65f),17.1f,10.1f,2.08f,F.Teal);
+            mesh.CurvedRoof(new Vector3(0,5.95f,7.65f),17.1f,10.1f,2.08f,F.Teal);
             mesh.Box(new Vector3(0,5.58f,3.71f),new Vector3(5.5f,.95f,.24f),F.DarkWood,.085f);
             for(int side=-1;side<=1;side+=2)
-                mesh.Beam(new Vector3(side*2,5.98f,3.77f),new Vector3(side*2,6.73f,3.77f),.055f,F.Brass);
+                mesh.Beam(new Vector3(side*2,5.98f,3.77f),new Vector3(side*2,7.78f,3.77f),.055f,F.Brass);
             for(int side=-1;side<=1;side+=2)
             {
                 float x=side*7.4f;
                 mesh.Box(new Vector3(x,CinemaFloor+.17f,3.9f),new Vector3(.78f,.34f,.78f),F.Stone,.08f,true);
-                mesh.Beam(new Vector3(x,CinemaFloor+.22f,3.9f),new Vector3(x,6.1f,3.9f),.18f,F.DarkWood,true);
-                mesh.Beam(new Vector3(x,5.08f,3.9f),new Vector3(side*6.55f,6.42f,3.9f),.13f,F.DarkWood);
+                mesh.Beam(new Vector3(x,CinemaFloor+.22f,3.9f),new Vector3(x,6.65f,3.9f),.18f,F.DarkWood,true);
+                mesh.Beam(new Vector3(x,5.08f,3.9f),new Vector3(side*6.55f,6.95f,3.9f),.13f,F.DarkWood);
                 Lantern(new Vector3(x,4.4f,3.55f),.16f);
             }
             BuildBeachCinema();

@@ -90,7 +90,7 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 float a0 = posts[p], a1 = posts[(p + 1) % posts.Length];
                 if (a1 <= a0) a1 += 360;
-                if (a1 - a0 > 110) continue;
+                if (a1 - a0 > 110 || (a0 < 0 && a1 > 0)) continue;
                 var from = OnPlaza(a0, PlazaRadius - .55f, PlazaTop - PlazaCenter.y + 3.1f);
                 var to = OnPlaza(a1, PlazaRadius - .55f, PlazaTop - PlazaCenter.y + 3.1f);
                 var rope = new List<Vector3>();

@@ -21,7 +21,7 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
         public static readonly Quaternion CodeKeyboardFacing = Quaternion.Euler(61, 0, 0);
-        public static readonly Vector3 StyleScreen = Wardrobe + StyleStageTurn * new Vector3(-2.10f, 1.4f, 1.64f);
+        public static readonly Vector3 StyleScreen = Wardrobe + StyleStageTurn * new Vector3(-2.10f, 1.4f, .43f);
         public static readonly Quaternion StyleScreenFacing = StyleStageTurn;
         public static readonly Vector3 StyleMirror = Wardrobe + StyleStageTurn * new Vector3(0, 1.85f, 1.88f);
         public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;
@@ -467,7 +467,7 @@ namespace DeadlyJenga.CandyArt.Marina
             Sign("BEACON WALK", BeaconWalkGate + BeaconWalkFacing * Vector3.back * .13f, .048f, cream,
                 BeaconWalkFacing.eulerAngles);
             Sign("LOUNGE  /  POOL  >", new Vector3(6.65f, 2.635f, 3.56f), .032f, cream);
-            Sign("BEACHSIDE CINEMA", new Vector3(0, 5.58f, 3.58f), .062f, cream);
+            Sign("BEACHSIDE CINEMA", new Vector3(0, 5.58f, 3.58f), .051f, cream);
             var styleBase = new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z);
             Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.72f, 1.95f), .085f, cream, StyleStageTurn.eulerAngles);
 
