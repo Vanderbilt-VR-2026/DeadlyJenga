@@ -22,6 +22,8 @@ namespace DeadlyJenga.DevTools.Editor
             Check(player.InputSuspended && player.ViewCamera == camera, "Preview preserves player camera and suspends movement");
             yield return new WaitForSeconds(.5f);
             var desktop = Field<RectTransform>(view, "wardrobeDesktop");
+            CheckWardrobeTargets(desktop, Field<System.Collections.Generic.List<System.Tuple<RectTransform,System.Action>>>(view, "wardrobeButtons")
+                .Select(b => b.Item1).Where(r => r.gameObject.activeInHierarchy).ToArray());
             CaptureWardrobeCanvas(desktop, "wardrobe-desktop.png", true);
             yield return null;
             Call(view, "SetWardrobeCategory", 2);
@@ -39,9 +41,29 @@ namespace DeadlyJenga.DevTools.Editor
             Canvas.ForceUpdateCanvases();
             yield return null;
             CaptureWardrobeCanvas(panel, "wardrobe-vr-layout.png", false);
+            CheckWardrobeTargets(panel, panel.GetComponentsInChildren<Button>().Select(b => (RectTransform)b.transform).ToArray());
             Check(panel.GetComponentsInChildren<BoxCollider>(true).All(c => c.isTrigger), "VR selection targets remain triggers");
+            var avatar = player.gameObject.GetComponent<IAvatarAppearance>();
+            var look = avatar.Appearance;
+            Call(view, "ConfirmWardrobeReset");
+            Check(avatar.Appearance.Equals(look), "First reset click only asks for confirmation");
             view.SetWardrobeOpen(false);
             Check(!view.WardrobeOpen && player.InputSuspended == paused && player.ViewCamera == camera, "Close restores movement and original camera");
+        }
+
+        static void CheckWardrobeTargets(RectTransform root, RectTransform[] controls)
+        {
+            var rectangles = controls.Select(control =>
+            {
+                var corners = new Vector3[4]; control.GetWorldCorners(corners);
+                var a = root.InverseTransformPoint(corners[0]); var b = root.InverseTransformPoint(corners[2]);
+                return Rect.MinMaxRect(a.x, a.y, b.x, b.y);
+            }).ToArray();
+            for (int i = 0; i < rectangles.Length; i++)
+            {
+                for (int j = i + 1; j < rectangles.Length; j++)
+                    Check(!rectangles[i].Overlaps(rectangles[j]), "Separate targets: " + controls[i].name + " / " + controls[j].name);
+            }
         }
 
         static void CaptureWardrobeCanvas(RectTransform root, string filename, bool desktop)

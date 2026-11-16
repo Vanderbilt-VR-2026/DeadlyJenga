@@ -325,7 +325,7 @@ namespace DeadlyJenga.CastlePrototype
 
                 wardrobePlayer=Player;wardrobePaused=Player.InputSuspended;wardrobeCursor=Cursor.lockState;wardrobeCursorVisible=Cursor.visible;ResetWardrobeView();
 
-                wardrobeOpen=true;wardrobeVisited=true;wardrobeLastCategory=-1;Player.InputSuspended=true;
+                wardrobeOpen=true;wardrobeVisited=true;wardrobeLastCategory=-1;wardrobeResetUntil=0;Player.InputSuspended=true;
 
                 wardrobeShowcase=Player.gameObject.GetComponent<IAvatarShowcase>();
 
