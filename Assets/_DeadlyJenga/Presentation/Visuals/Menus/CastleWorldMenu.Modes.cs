@@ -187,7 +187,7 @@ namespace DeadlyJenga.CastlePrototype
                 card.playImage.color = playHover ? CandyHudVisuals.Mint : new Color(0.24f, 0.12f, 0.32f);
                 card.playLabel.color = playHover ? CandyHudVisuals.Ink : CandyHudVisuals.Mint;
 
-                if (cardHover && pressed)
+                if (cardHover && !playHover && pressed)
                 {
                     disasterWheelUI.SetActive(false);
                     disasterSelection = i;
