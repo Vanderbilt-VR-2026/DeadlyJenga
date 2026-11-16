@@ -325,12 +325,23 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         !renderer.name.Contains("Fir needle") && !renderer.name.Contains("sofa") && !renderer.name.Contains("Sofa")) continue;
                     var filter = renderer.GetComponent<MeshFilter>();
                     File.AppendAllText(Report, "DRAW " + renderer.transform.parent.name + "/" + renderer.name + " enabled=" + renderer.enabled +
-                        " bounds=" + renderer.bounds + " material=" + renderer.sharedMaterial?.name + " shader=" + renderer.sharedMaterial?.shader.name +
+                        " forcedOff=" + renderer.forceRenderingOff + " active=" + renderer.gameObject.activeInHierarchy + " layer=" + renderer.gameObject.layer + " bounds=" + renderer.bounds + " material=" + renderer.sharedMaterial?.name + " shader=" + renderer.sharedMaterial?.shader.name +
                         " vertices=" + (filter && filter.sharedMesh ? filter.sharedMesh.vertexCount : 0) + "\n");
                 }
                 Shot(camera, "approved-overview", new Vector3(38f, 96f, -208f), new Vector3(-91f, 24f, -94f), 60f, true);
                 Shot(camera, "approved-overhead", new Vector3(-90f, 245f, -135f), new Vector3(-90f, 5f, -110f), 64f);
                 Shot(camera, "approved-player-bridge", new Vector3(-47f, 3f, -166f), new Vector3(-90f, 25f, -110f), 72f);
+                var art = map.Root.Find("Christmas Eve Art and Lighting");
+                var all = UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+                var states = all.Select(r => r.enabled).ToArray();
+                File.AppendAllText(Report, "SCENE maps=" + UnityEngine.Object.FindObjectsByType<UnderneathTreeMap>(FindObjectsSortMode.None).Length + " art=" + art.gameObject.activeInHierarchy + " scale=" + art.lossyScale + "\n");
+                try
+                {
+                    foreach (var r in all)
+                        if (!r.transform.IsChildOf(art)) r.enabled = false;
+                    Shot(camera, "diagnostic-art-only", new Vector3(38f, 96f, -208f), new Vector3(-91f, 24f, -94f), 60f);
+                }
+                finally { for (int i = 0; i < all.Length; i++) if (all[i]) all[i].enabled = states[i]; }
                 impactFixedTime = Time.fixedTime;
                 phase = 10;
                 return;
