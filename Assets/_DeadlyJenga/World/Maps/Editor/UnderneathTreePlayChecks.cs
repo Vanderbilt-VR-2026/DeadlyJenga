@@ -12,6 +12,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
     {
         const string Pending = "UnderneathTreePlayChecks.Pending";
         const string Failed = "UnderneathTreePlayChecks.Failed";
+        const string References = "UnderneathTreePlayChecks.References";
         const string MapId = "workshop-under-the-tree";
         static string Report => ProjectPath.Report("UnderneathTreePlay.txt");
         static double deadline;
@@ -29,14 +30,55 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static Rigidbody bridgeLid;
         static Rigidbody[] railBodies;
         static Vector3 initialBridgePosition;
+        static int referenceIndex;
 
-        public static void Run()
+        // High views cover the room perimeter, then the routes and their supports.
+        static readonly (string name, Vector3 eye, Vector3 target, float fov)[] ReferenceViews =
+        {
+            ("01-room-overview", new Vector3(44.175f, 81f, -158.15f), new Vector3(-58f, 11f, -68f), 64f),
+            ("02-reverse-three-quarter", new Vector3(-143f, 76f, 19f), new Vector3(-31f, 12f, -72f), 71f),
+            ("03-overhead-layout", new Vector3(-31f, 155f, -113f), new Vector3(-43f, 4f, -62f), 64f),
+            ("04-sofa-side", new Vector3(-165f, 60f, -112f), new Vector3(-42f, 12f, -58f), 69f),
+            ("05-window-side", new Vector3(45f, 61f, 24f), new Vector3(-50f, 14f, -68f), 72f),
+            ("06-front-along-rug", new Vector3(-28f, 46f, -158f), new Vector3(-37f, 10f, -61f), 67f),
+            ("07-rear-along-rug", new Vector3(-71f, 68f, 33f), new Vector3(-39f, 10f, -77f), 69f),
+            ("08-sofa-end-diagonal", new Vector3(-150f, 52f, -155f), new Vector3(-30f, 15f, -59f), 65f),
+            ("09-window-end-diagonal", new Vector3(63f, 54f, -10f), new Vector3(-49f, 11f, -79f), 65f),
+            ("10-low-room-wide", new Vector3(63f, 34f, -148f), new Vector3(-54f, 16f, -58f), 68f),
+            ("11-tree-and-window", new Vector3(-115f, 53f, -125f), new Vector3(-27f, 53f, -20f), 62f),
+            ("12-track-from-left", new Vector3(-132f, 50f, -85f), new Vector3(-62f, 10f, -74f), 62f),
+            ("13-track-from-front", new Vector3(-60f, 51f, -124f), new Vector3(-66f, 12f, -56f), 61f),
+            ("14-track-and-trunk", new Vector3(-110f, 37f, -29f), new Vector3(-56f, 8f, -51f), 61f),
+            ("15-bridge-approach", new Vector3(64f, 27f, -109f), new Vector3(16f, 5.8f, -70.5f), 55f),
+            ("16-bridge-reverse", new Vector3(-32f, 24f, -62f), new Vector3(17f, 6f, -70f), 59f),
+            ("17-bridge-top-and-stairs", new Vector3(37f, 50f, -81f), new Vector3(20f, 4f, -73f), 57f),
+            ("18-rug-edge-stacks", new Vector3(14f, 22f, -144f), new Vector3(-7f, 3f, -116f), 58f),
+            ("19-sofa-side-stacks", new Vector3(-83f, 17f, -168f), new Vector3(-108f, 3f, -144f), 59f),
+            ("20-tree-side-stacks", new Vector3(-124f, 18f, -6f), new Vector3(-100f, 4f, -24f), 59f),
+            ("21-first-person-spawn", new Vector3(6.98f, 6.62f, -27.46f), new Vector3(6f, 4f, -19.5f), 72f),
+            ("22-first-person-cream-drop", new Vector3(4.2f, 6.53f, -24.8f), new Vector3(4.9f, 4.05f, -20f), 72f),
+            ("23-first-person-green-climb", new Vector3(5.15f, 5.7f, -20.45f), new Vector3(7.8f, 6.22f, -18.95f), 73f),
+            ("24-first-person-tunnel", new Vector3(31.5f, 2.05f, -77.15f), new Vector3(10f, 3.25f, -67.9f), 72f),
+            ("25-first-person-bridge-stairs", new Vector3(23f, 1.72f, -107f), new Vector3(15f, 7f, -86f), 72f),
+            ("26-first-person-bridge-deck", new Vector3(12f, 13.2f, -80f), new Vector3(24f, 11.55f, -52f), 68f),
+            ("27-first-person-rug-step", new Vector3(-.1f, 2.92f, -121.7f), new Vector3(-7.3f, 4.7f, -115.9f), 74f),
+            ("28-first-person-ribbon-ramp", new Vector3(3.8f, 7f, -33.4f), new Vector3(3.8f, 11.1f, -46.9f), 72f),
+        };
+
+        public static void Run() => Begin(false);
+
+        public static void RunReferences() => Begin(true);
+
+        static void Begin(bool references)
         {
             if (!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Run this check in a checked batch editor.");
             if (!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))
                 throw new InvalidOperationException("Disaster validation menu is unavailable.");
-            File.WriteAllText(Report, "Underneath the Tree, clean solo Game.unity load and runtime checks\n");
+            SessionState.SetBool(References, references);
+            File.WriteAllText(Report, references
+                ? "Underneath the Tree, intact solo Demo reference angles\n"
+                : "Underneath the Tree, clean solo Game.unity load and runtime checks\n");
             SessionState.SetString("UnderneathTree.CaptureDirectory", "UnderneathTree-" + Guid.NewGuid().ToString("N"));
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
             SessionState.SetBool(Pending, true);
@@ -66,9 +108,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 {
                     SelectMap();
                     phase = 0;
+                    referenceIndex = 0;
                     renderReady = double.PositiveInfinity;
                     captureDirectory = SessionState.GetString("UnderneathTree.CaptureDirectory", "UnderneathTree");
-                    deadline = EditorApplication.timeSinceStartup + 135;
+                    deadline = EditorApplication.timeSinceStartup + (SessionState.GetBool(References, false) ? 480 : 135);
                     EditorApplication.update += Check;
                 }
                 else if (state == PlayModeStateChange.EnteredEditMode)
@@ -98,6 +141,19 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         renderReady = now + 1.7;
                     if (now < renderReady)
                         return;
+                    if (SessionState.GetBool(References, false))
+                    {
+                        if (Services.Session.Demo == null)
+                            return;
+                        if (referenceIndex == 0)
+                            Require(map.Blocks.Count > 300 && map.Blocks.All(body => body && body.isKinematic),
+                                "local Demo has an intact gift and rail layout");
+                        var view = ReferenceViews[referenceIndex];
+                        Shot(player.ViewCamera, view.name, view.eye, view.target, view.fov, true);
+                        if (++referenceIndex == ReferenceViews.Length)
+                            Finish(true);
+                        return;
+                    }
                     blockCount = map.Blocks.Count;
                     revision = map.Revision;
                     railBodies = map.Blocks.Where(body => body.name.StartsWith("Gift-supported rail ", StringComparison.Ordinal)).ToArray();
@@ -222,7 +278,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 camera.fieldOfView = fieldOfView;
                 // Keep cold shader variants from dropping dressings out of the first view.
                 ShaderUtil.allowAsyncCompilation = false;
-                if (id == "christmas-room")
+                if (id == "christmas-room" || id == "01-room-overview")
                     camera.Render();
                 camera.Render();
                 RenderTexture.active = render;
