@@ -79,6 +79,11 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 Call(view,"OpenMarinaDetail",page);yield return null;
                 Shot(setup,"46-"+page+".png");
+                if(page=="maps")
+                {
+                    Check(view.InvokeChoice("map-tab-0"), "Map category opens through production command");
+                    yield return null; Shot(setup,"46-map-list.png");
+                }
             }
             var original=Field<ILobbyControls>(view,"lobby");
             var fixtureType=typeof(LobbyTerminalDesignChecks).GetNestedType("FixtureLobby",BindingFlags.NonPublic);

@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
                     SpriteMeshType.FullRect, new Vector4(40,40,40,40));
             }
             foreach (var image in root.GetComponentsInChildren<Image>(true))
-                if (image.sprite == DeadlyJenga.Presentation.CandyHudVisuals.Pill)
+                if (image.sprite == CandyHudVisuals.Pill)
                 {
                     image.sprite = pill; image.type = Image.Type.Sliced;
                     image.pixelsPerUnitMultiplier *= 4;

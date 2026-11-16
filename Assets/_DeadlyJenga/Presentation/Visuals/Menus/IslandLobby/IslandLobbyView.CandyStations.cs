@@ -82,7 +82,7 @@ namespace DeadlyJenga.CastlePrototype
         // MAP + MODE layout on a 1900 x 880 canvas (x -950..950, y -440..440).
         const float SummaryPictureWidth = 490, SummaryPictureHeight = 290, ModeCardPicture = 112;
         const float MapPreviewWidth = 900, MapPreviewHeight = 470, MapThumbSize = 76;
-        const float MapRowTop = 150, MapRowStep = 95, SettingFillWidth = 1240;
+        const float MapRowTop = 135, MapRowStep = 90, SettingFillWidth = 1240;
         const float ListX = -520, ListWidth = 760;
         void BuildCandySetup()
         {
