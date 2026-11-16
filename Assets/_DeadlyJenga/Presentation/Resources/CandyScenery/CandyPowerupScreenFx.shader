@@ -56,27 +56,35 @@ Shader "Candy Tropical/Powerup Screen Effects"
             float4 SpeedChase(float2 uv)
             {
                 float x = uv.x - .5;
-                float bottom = 1 - smoothstep(.064, .10, uv.y);
-                float bed = SoftLine(uv.y - .005, .024) * saturate(1 - abs(x) / .42);
+                float bottom = 1 - smoothstep(.073, .10, uv.y);
+                float bed = SoftLine(uv.y - .004, .028) * saturate(1 - abs(x) / .42);
                 float core = 0;
-                float glow = .17 * bed;
-                [unroll] for (int lane = 0; lane < 5; lane++)
+                float wake = .35 * bed * bed;
+                float echo = 0;
+                [unroll] for (int pulse = 0; pulse < 4; pulse++)
                 {
-                    float phase = frac(_Phase * .8 + lane * .2);
-                    float forward = 1 - pow(1 - phase, 2.25);
-                    float lateral = x / lerp(.415, .18, forward);
+                    float phase = frac(_Phase * .8 + pulse * .25);
+                    float forward = 1 - pow(1 - phase, 2);
+                    float lateral = x / lerp(.423, .17, forward);
                     float taper = saturate(1 - lateral * lateral);
-                    float sway = sin(6.283185 * (_Phase * .8 + lane * .23));
-                    float crest = -.019 + .11 * forward + .010 * taper + .0035 * lateral * sway;
-                    float energy = taper * taper * smoothstep(0, .13, phase) * pow(1 - phase, 1.35);
+                    float beat = 6.283185 * (_Phase * .8 + pulse * .23);
+                    float crest = -.020 + .114 * forward + .010 * taper +
+                        .004 * taper * sin(3.2 * lateral - beat);
+                    float energy = taper * taper * smoothstep(0, .13, phase) * pow(1 - phase, .91);
                     float distance = uv.y - crest;
-                    core += SoftLine(distance, lerp(.0042, .0016, forward)) * energy;
-                    glow += SoftLine(distance + .003, lerp(.017, .007, forward)) * energy;
+                    float width = lerp(.0060, .0024, forward);
+                    float ripple = .78 + .22 * cos(9 * lateral + beat);
+                    core += SoftLine(distance, width) * energy * ripple;
+                    wake += SoftLine(distance + .006, width * 3.1) * energy;
+                    echo += SoftLine(distance + .012 * (1 - .6 * forward), width * .55) * energy;
                 }
 
-                float alpha = min(.78, (core * .86 + glow * .45) * bottom) * _Boosts.x;
-                float3 tint = lerp(float3(.02,.88,.09), float3(.38,1,.34), saturate(core));
-                return float4(tint * alpha, alpha);
+                float strength = bottom * _Boosts.x;
+                float glow = saturate(.52 * wake + .28 * echo);
+                float flare = saturate(core * 1.50);
+                float alpha = min(.90, glow + flare * .75) * strength;
+                float3 color = lerp(float3(.016,.87,.10), float3(.65,1,.48), flare);
+                return float4(color * alpha, alpha);
             }
 
             float4 JumpAscent(float2 uv)
@@ -84,39 +92,42 @@ Shader "Candy Tropical/Powerup Screen Effects"
                 float right = step(.5, uv.x);
                 float edge = min(uv.x, 1 - uv.x);
                 float bend = .017 + .059 * uv.y * uv.y;
-                float side = edge - bend;
-                float verticalFade = smoothstep(0,.10,uv.y) * (1 - smoothstep(.91,1,uv.y));
-                float edgeFade = 1 - smoothstep(.079,.135,edge);
+                float verticalFade = smoothstep(0,.085,uv.y) * (1 - smoothstep(.94,1,uv.y));
+                float edgeFade = 1 - smoothstep(.084,.135,edge);
                 float core = 0;
-                float fringe = 0;
-                float trail = 0;
-                float filament = 0;
-                float cool = 0;
-                float warm = 0;
+                float trail = SoftLine(edge - bend,.021) * .20;
+                float violet = 0;
+                float cyan = 0;
+                float pink = 0;
                 [unroll] for (int pulse = 0; pulse < 3; pulse++)
                 {
                     float phase = frac(_Phase * .65 + pulse / 3.0 + right * .20);
-                    float tip = lerp(.09,1.10,phase);
-                    float down = tip - uv.y;
-                    float follow = saturate(down / .20);
-                    float spread = .024 * pow(follow,.86);
-                    float profile = smoothstep(-.025,.012,down) * (1 - smoothstep(.05,.20,down));
-                    float shimmer = smoothstep(0,.13,phase) * (1 - smoothstep(.78,1,phase));
+                    float down = lerp(.06,1.11,phase) - uv.y;
+                    float age = saturate(down / .24);
+                    float wake = smoothstep(-.012,.035,down) * (1 - smoothstep(.10,.40,down));
+                    float shimmer = smoothstep(0,.09,phase) * (1 - smoothstep(.86,1,phase));
+                    float twist = sin(20 * down + phase * 6.283185 + pulse * 2.1);
+                    float local = edge - bend + (.008 + .009 * twist) * age;
+                    float wing = abs(local) - .027 * pow(age,.85);
+                    float head = smoothstep(-.008,.012,down) * (1 - smoothstep(.045,.215,down));
+                    float width = lerp(.0049,.0024,age);
 
-                    // Two tapered strands meet at the tip of each rising pulse.
-                    float wing = abs(side + .007 * follow) - spread;
-                    core += SoftLine(wing,.0028) * profile * shimmer;
-                    fringe += SoftLine(wing + sign(side) * .006,.0046) * profile * shimmer;
-                    float afterglow = smoothstep(-.035,.020,down) * (1 - smoothstep(.03,.34,down));
-                    trail += SoftLine(side + .006 * follow,.025) * afterglow * shimmer;
+                    // The arrowhead splits into three strands that trail down the same arc.
+                    core += SoftLine(wing,width) * head * shimmer;
+                    trail += SoftLine(local,.030) * wake * shimmer;
+                    violet += SoftLine(local,.0070) * wake * shimmer;
+                    cyan += SoftLine(local - .013 * age,.0047) * wake * shimmer;
+                    pink += SoftLine(local + .015 * age,.0045) * wake * shimmer;
                 }
 
-                float opacity = verticalFade * edgeFade * _Boosts.y;
-                float alpha = min(.72, .56 * core + .21 * fringe + .21 * trail) * opacity;
-                float3 violet = lerp(float3(.30,.07,.70),float3(.74,.65,1),saturate(core));
-                float3 prismatic = lerp(float3(.44,.71,1),float3(.98,.25,.80),step(0,side));
-                float3 tint = lerp(violet,prismatic,saturate(fringe * .52));
-                return float4(tint * alpha, alpha);
+                float strength = verticalFade * edgeFade * _Boosts.y;
+                float glow = saturate(.40 * trail + .34 * violet);
+                float flare = saturate(core * 1.35);
+                float alpha = min(.91, glow + .69 * flare + .19 * (cyan + pink)) * strength;
+                float3 color = lerp(float3(.43,.065,.93), float3(.89,.80,1), flare);
+                color = lerp(color, float3(.30,.92,1), saturate(cyan) * (1 - flare) * .70);
+                color = lerp(color, float3(1,.23,.77), saturate(pink) * (1 - flare) * .68);
+                return float4(color * alpha, alpha);
             }
 
             half4 Frag(Varyings input) : SV_Target
