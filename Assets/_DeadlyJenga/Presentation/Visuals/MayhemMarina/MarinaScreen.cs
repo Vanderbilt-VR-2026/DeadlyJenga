@@ -254,7 +254,7 @@ namespace DeadlyJenga.CandyArt.Marina
             t.font=Resources.Load<Font>("Fonts/Fredoka-Bold") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             t.text=value;t.fontSize=font;t.fontStyle=FontStyle.Normal;t.alignment=TextAnchor.MiddleCenter;t.color=new Color(1,.97f,.89f);t.raycastTarget=false;t.rectTransform.anchoredPosition=p;t.rectTransform.sizeDelta=size;return t;
         }
-        Text playlistStatus;
+        Text playlistStatus, launchSummary;
         Image playlistStatusBacking;
         void Refresh()
         {
@@ -267,6 +267,7 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 playlistStatusBacking=Panel("Play status backing",mainFace,new Vector2(0,-78),new Vector2(350,25),ProjectionInk);
                 playlistStatus=Text("",new Vector2(0,-78),new Vector2(340,25),17,mainFace);
+                launchSummary=Text("",new Vector2(0,-65),new Vector2(640,30),20,mainFace);
             }
             int countdownSeconds = 0;
             bool countdown = false;
@@ -287,30 +288,32 @@ namespace DeadlyJenga.CandyArt.Marina
                 }
             }
 
-            mainHeading.text=visiting?"SPECTATOR LOBBY":countdown?$"MATCH STARTING IN {countdownSeconds}...":playlist?"PLAY READY":"MATCH OPTIONS";
+            mainHeading.text=visiting?"SPECTATOR LOBBY":countdown?"MATCH STARTING":playlist?"PLAY READY":"MATCH OPTIONS";
             marquee.gameObject.SetActive(false);
             playlistStatusBacking.gameObject.SetActive((playlist||countdown)&&!visiting);
             playlistStatusBacking.color=countdown?Coral:ProjectionInk;
-            playlistStatusBacking.rectTransform.anchoredPosition=new Vector2(0,countdown?68:-78);
-            playlistStatusBacking.rectTransform.sizeDelta=new Vector2(countdown?236:350,countdown?41:25);
+            playlistStatusBacking.rectTransform.anchoredPosition=new Vector2(0,countdown?15:-78);
+            playlistStatusBacking.rectTransform.sizeDelta=new Vector2(countdown?150:350,countdown?108:25);
             playlistStatus.rectTransform.anchoredPosition=playlistStatusBacking.rectTransform.anchoredPosition;
             playlistStatus.rectTransform.sizeDelta=playlistStatusBacking.rectTransform.sizeDelta;
-            playlistStatus.fontSize=countdown?30:17;
+            playlistStatus.fontSize=countdown?68:17;
+            launchSummary.gameObject.SetActive(countdown&&!visiting);
+            launchSummary.text=lobby.ModeTitle+"  ·  "+lobby.MapTitle;
             playlistStatus.gameObject.SetActive((playlist||countdown)&&!visiting);
             RefreshLiveMatch(visiting);
             int seconds=countdown?countdownSeconds:Mathf.Max(0,Mathf.CeilToInt(experience?.CountdownSeconds??0));
             int humans=Mathf.Max(1,session?.Multiplayer?.HumanCount??1);
             playlistStatus.text=visiting?"Live match on the spectator TVs":countdown?
-                $"{seconds}s":
+                $"{seconds}":
                 lobby.Connected?$"ROOM {lobby.HostCode}    |    {humans} / {Mathf.Max(10,humans)}":
                 "LOCAL PLAY";
             int totalPlayers=(lobby as ILobbyDetails)?.Setup?.population??MatchChoices.BotTarget;
             if(totalPlayers<=0)totalPlayers=10;
             if(playerCountLabel)playerCountLabel.text=$"{totalPlayers} PLAYERS";
-            modeCard.gameObject.SetActive(!visiting&&(!playlist||countdown));
-            mapCard.gameObject.SetActive(!visiting);
-            modeCard.anchoredPosition=new Vector2(-169,countdown?-41:12);
-            mapCard.anchoredPosition=new Vector2(playlist&&!countdown?0:169,countdown?-41:12);
+            modeCard.gameObject.SetActive(!visiting&&!playlist&&!countdown);
+            mapCard.gameObject.SetActive(!visiting&&!countdown);
+            modeCard.anchoredPosition=new Vector2(-169,12);
+            mapCard.anchoredPosition=new Vector2(playlist?0:169,12);
             foreach(var target in targets)
             {
                 if(target.id is "marina-settings" or "marina-style")

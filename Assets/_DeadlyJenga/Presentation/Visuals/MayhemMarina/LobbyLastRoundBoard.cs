@@ -39,7 +39,7 @@ namespace DeadlyJenga.Presentation
 
         sealed class Row
         {
-            public Text text, initial;
+            public Text text, stats, initial;
             public RawImage portrait;
         }
 
@@ -145,13 +145,16 @@ namespace DeadlyJenga.Presentation
             root.transform.SetLocalPositionAndRotation(MayhemMarina.FameBoard, MayhemMarina.FameFacing);
             root.transform.localScale = Vector3.one * .0045f;
             root.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
-            ((RectTransform)root.transform).sizeDelta = new Vector2(940, 430);
-            var border = CandyResultsHud.Panel("Billboard frame", root.transform, new Vector2(940, 430), Vector2.zero, Mint);
-            var panel = CandyResultsHud.Panel("Scoreboard screen", border.transform, new Vector2(922, 412), Vector2.zero, Ink).transform;
+            ((RectTransform)root.transform).sizeDelta = new Vector2(940, 480);
+            var border = CandyResultsHud.Panel("Billboard frame", root.transform, new Vector2(940, 480), Vector2.zero, Mint);
+            var panel = CandyResultsHud.Panel("Scoreboard screen", border.transform, new Vector2(922, 462), Vector2.zero, Ink).transform;
             Text Label(string name, float y, int size) => CandyResultsHud.Label(name, panel, new Vector2(890, 42), new Vector2(0, y), size);
             Row MakeRow(string name, float y)
             {
-                var text = Label(name, y, 23);
+                var text = Label(name, y + 10, 21);
+                text.rectTransform.sizeDelta=new Vector2(890,26);
+                var stats=Label(name+" stats",y-13,16);stats.rectTransform.sizeDelta=new Vector2(890,20);
+                stats.alignment=TextAnchor.MiddleLeft;stats.color=new Color(.76f,.88f,.89f);
                 text.alignment = TextAnchor.MiddleLeft;
                 var image = new GameObject(name + " headshot", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
                 image.transform.SetParent(panel, false);
@@ -159,21 +162,23 @@ namespace DeadlyJenga.Presentation
                 image.rectTransform.anchoredPosition = new Vector2(0, y);
                 image.raycastTarget = false;
                 var initial = CandyResultsHud.Label("Initial", image.transform, new Vector2(33, 33), Vector2.zero, 21);
-                return new Row { text = text, portrait = image, initial = initial };
+                return new Row { text = text, stats=stats, portrait = image, initial = initial };
             }
 
-            Label("Last match", 177, 29).text = "LAST MATCH";
-            title = Label("Winner", 133, 32);
+            Label("Last match", 205, 25).text = "LAST MATCH";
+            title = Label("Winner", 160, 30);
             title.color = Mint;
-            details = Label("Mode", 96, 21);
-            heading = Label("Standings", 59, 20);
-            infectionHeading = Label("Infection standings", 59, 20);
-            footer = Label("Page", -180, 18);
+            details = Label("Mode", 121, 20);
+            heading = Label("Standings", 78, 19);
+            infectionHeading = Label("Infection standings", 78, 19);
+            footer = Label("Page", -207, 17);
             for (int i = 0; i < PageSize; i++)
             {
-                left[i] = MakeRow("Standing " + (i + 1), 19 - i * 37);
-                right[i] = MakeRow("Infection standing " + (i + 1), 19 - i * 37);
+                left[i] = MakeRow("Standing " + (i + 1), 32 - i * 43);
+                right[i] = MakeRow("Infection standing " + (i + 1), 32 - i * 43);
             }
+            title.resizeTextForBestFit=true;title.resizeTextMinSize=20;title.resizeTextMaxSize=30;
+            TerminalUiStyle.Apply(root.transform);
             Draw();
         }
 
@@ -215,7 +220,7 @@ namespace DeadlyJenga.Presentation
             SetColumn(heading, split ? -225 : 0, split ? 430 : 870);
             SetColumn(infectionHeading, 225, 430);
             DrawRows();
-            footer.text = Pages > 1 ? $"{page + 1} / {Pages}" : "";
+            footer.text = latest==null?"Your last completed match appears here":$"PAGE {page + 1} / {Pages}"+(Pages>1?"  ·  Changes every 7 seconds":"");
         }
 
         void DrawRows()
@@ -233,10 +238,12 @@ namespace DeadlyJenga.Presentation
         static void SetRow(Row row, Standing[] standings, int index, float x, float width)
         {
             var entry = standings != null && index < standings.Length ? standings[index] : null;
-            row.text.text = entry?.text ?? "";
+            row.text.text = entry==null?"":$"{index+1}.  {CandyHudContent.Safe(entry.player.name,36)}";
+            row.stats.text=entry==null?"":entry.text.Substring(entry.text.IndexOf("·",System.StringComparison.Ordinal)+1).Trim();
             row.portrait.gameObject.SetActive(entry != null);
             float leftEdge = x - width * .5f;
             SetColumn(row.text, x + 23, width - 46);
+            SetColumn(row.stats,x+23,width-46);
             var rect = row.portrait.rectTransform;
             rect.anchoredPosition = new Vector2(leftEdge + 17, rect.anchoredPosition.y);
             if (entry == null) { row.portrait.texture = null; return; }
