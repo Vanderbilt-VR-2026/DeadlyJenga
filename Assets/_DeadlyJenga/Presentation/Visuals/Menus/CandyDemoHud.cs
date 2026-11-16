@@ -82,7 +82,6 @@ namespace DeadlyJenga.CastlePrototype
                 return;
             }
             if(!studio)studio=FindFirstObjectByType<CandyAudioStudio>();
-            if(studio)studio.ShowLauncher=false;
             if(!session.MenuOpen&&lastMenu)MultiplayerPanel.ClearLeaveConfirmation();
             if(session.MenuOpen&&!lastMenu){selection=0;desktopWheelSection=null;}
             lastMenu=session.MenuOpen;
@@ -552,7 +551,7 @@ namespace DeadlyJenga.CastlePrototype
             Note(550,session.IsVR?"PICKUP: Look at the weapon, reach and squeeze grip or pinch. Swapping drops the item in your slot.":
                 "PICKUP: Aim at the weapon and press E. Swapping drops the item in your slot. Delete drops it directly.");
             var hints=Hints();for(int i=0;i<hints.Length;i++){Panel(new Rect(8,221+i*107,824,94),CandyHudVisuals.Card);Icon(new Rect(25,244+i*107,44,44),hints[i].icon,CandyHudVisuals.Mint);GUI.Label(new Rect(88,233+i*107,720,32),hints[i].key,heading);GUI.Label(new Rect(88,272+i*107,720,38),hints[i].text,body);}
-            Note(609,!session.IsVR?"MENU: Esc opens / closes. Click a card, or use arrow keys + Enter. Mouse wheel scrolls. Use Character to switch roles. F8 opens Sound Studio.":"MENU: bare left Y or native menu opens / closes. Right-only: Grip + B opens; B closes. Left thumb + middle also toggles. Aim at a button and press its controller trigger, or use the selecting pinch.");
+            Note(609,!session.IsVR?"MENU: Esc opens / closes. Click a card, or use arrow keys + Enter. Mouse wheel scrolls. Use Character to switch roles.":"MENU: bare left Y or native menu opens / closes. Right-only: Grip + B opens; B closes. Left thumb + middle also toggles. Aim at a button and press its controller trigger, or use the selecting pinch.");
             Note(704,"SURVIVOR: jump, then press jump again by a ledge to vault. Hold jump by a wall to catch it; move to climb or shimmy; release to drop. Rest on secure ground to recover grip. AIM: dominant grip (VR) / RMB (desktop) raises gun / sight; release lowers it.");
             Note(807,"GIANT HAND: desktop WASD flies, Q lowers, E rises, mouse steers. In VR, the movement stick flies. With one controller, hold the stick click and tilt to turn or look. Trigger rises; grip lowers. With bare hands, pinch the spare hand and move it from its starting position to steer; release to stop.");
             Note(919,"SURVIVOR SPRINT: click the movement stick or tap Left Shift to toggle while grounded. Jumping or climbing ends sprint. Single-controller weapon mode: Grip + X / A; two controllers: support trigger. Grip + stick click opens emotes. Delete or Drop drops equipment. STANDINGS: with two controllers, hold bare look-stick click, or pin via menu. VR pages cycle every 5s.");
@@ -866,7 +865,7 @@ namespace DeadlyJenga.CastlePrototype
             hintGroup.alpha=Mathf.MoveTowards(hintGroup.alpha,opacity,Time.unscaledDeltaTime*5);
             hintCanvas.enabled=hintGroup.alpha>.001f;
         }
-        void OnDisable(){if(hintCanvas)hintCanvas.enabled=false;if(studio)studio.ShowLauncher=true;}
-        void OnDestroy(){if(hintCanvas)Destroy(hintCanvas.gameObject);if(themed)Destroy(themed);if(studio)studio.ShowLauncher=true;}
+        void OnDisable(){if(hintCanvas)hintCanvas.enabled=false;}
+        void OnDestroy(){if(hintCanvas)Destroy(hintCanvas.gameObject);if(themed)Destroy(themed);}
     }
 }
