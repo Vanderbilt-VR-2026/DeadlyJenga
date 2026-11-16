@@ -112,7 +112,7 @@ namespace DeadlyJenga.CandyArt
                 bool gold = name.Contains("Gold") || name.Contains("gold");
                 if (gold)
                     color = new Color(.85f, .55f, .18f);
-                return Surface("Satin " + name, "Woven", color, .69f, new Vector2(2, 3), gold ? .25f : .06f, .42f);
+                return Surface("Satin " + name, "Woven", color, .52f, new Vector2(2, 3), gold ? .25f : 0f, .18f);
             }
             if (name.Contains("gift wrap") || name.Contains("gift Wrap") || name.Contains("Mulberry"))
                 return FoilPaper(name + " paper", color);

@@ -8,6 +8,8 @@ Shader "DeadlyJenga/Christmas Fabric"
         _BumpScale("Normal Strength", Range(0,2)) = 0.65
         _Sheen("Fiber Sheen", Range(0,1)) = 0.12
         _Smoothness("Pile Smoothness", Range(0,1)) = 0.18
+        _TextureContrast("Weave Contrast", Range(0,1)) = 1
+        _TextureMidpoint("Weave Midpoint", Color) = (0.5,0.5,0.5,1)
         [HideInInspector] _Cutoff("Cutout Threshold", Float) = 0.5
         [HideInInspector] _Cull("Cull", Float) = 2
         [HideInInspector] _ZWrite("Depth Write", Float) = 1
@@ -44,6 +46,8 @@ Shader "DeadlyJenga/Christmas Fabric"
                 half _BumpScale;
                 half _Sheen;
                 half _Smoothness;
+                half _TextureContrast;
+                half4 _TextureMidpoint;
             CBUFFER_END
 
             struct FabricAttributes
@@ -107,7 +111,8 @@ Shader "DeadlyJenga/Christmas Fabric"
                 data.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
 
                 SurfaceData surface = (SurfaceData)0;
-                surface.albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).rgb * _BaseColor.rgb;
+                surface.albedo = lerp(_TextureMidpoint.rgb, SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).rgb,
+                    _TextureContrast) * _BaseColor.rgb;
                 surface.alpha = 1;
                 surface.smoothness = _Smoothness;
                 surface.occlusion = 1;

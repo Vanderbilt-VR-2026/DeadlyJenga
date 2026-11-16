@@ -136,8 +136,8 @@ namespace DeadlyJenga.CandyArt
 
         void DressFir(List<FirTip> tips, System.Random random)
         {
-            var bulbColors = new[] { new Color(1, .75f, .36f), new Color(.99f, .10f, .04f),
-                new Color(.86f, .97f, 1f), new Color(.27f, .53f, 1f) };
+            var bulbColors = new[] { new Color(1f, .45f, .035f), new Color(1f, .005f, .005f),
+                new Color(.01f, .85f, .65f), new Color(.015f, .10f, 1f) };
             var ornamentColors = new[] { new Color(.67f, .105f, .135f), new Color(.89f, .59f, .22f),
                 new Color(.18f, .34f, .54f), new Color(.75f, .69f, .61f) };
             var sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
@@ -180,7 +180,7 @@ namespace DeadlyJenga.CandyArt
                     Vector2.one, .49f, 0f);
                 Combined("Glass baubles " + i, ornaments[i], glass, ShadowCastingMode.On);
                 Combined("Vintage colored bulbs " + i, bulbs[i],
-                    Glow("Colored enamel bulb " + i, bulbColors[i], 4.5f), ShadowCastingMode.Off);
+                    Glow("Colored enamel bulb " + i, bulbColors[i], 8f), ShadowCastingMode.Off);
             }
             Combined("Gold ornament fittings", beadCaps,
                 Surface("Brass ornament fittings", "Paper", new Color(.78f, .54f, .24f), .70f, Vector2.one, .52f),
