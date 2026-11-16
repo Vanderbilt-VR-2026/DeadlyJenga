@@ -1,0 +1,52 @@
+Game.unity in desktop Unity Play Mode; controlled role-camera poses and bot drops onto island support.
+Final coating visual comparison uses explicit FourBones skin quality. TwoBones baseline avatar failure is retained separately; no headset assertion.
+PASS local Demo ready: 568 blocks; nominal water 0.08 m
+PASS survivor owns the real active camera: playingHand=False, active=View Camera, enabled=True
+PROBE survivor-0: expected=(100.16, 0.68, 0.00), eye=(100.16, 0.68, 0.00), depth=-0.600, active=True, sampledEye=True, wet=0, concealed=0, dippedFor=0, inSand=False, menu=True, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PROBE survivor-1: expected=(100.16, -0.27, 0.00), eye=(100.16, -0.27, 0.00), depth=0.350, active=True, sampledEye=True, wet=1, concealed=0, dippedFor=0.5701295, inSand=False, menu=True, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PROBE survivor-2: expected=(0.00, -4.42, 0.00), eye=(0.00, -4.42, 0.00), depth=4.500, active=True, sampledEye=True, wet=1, concealed=1, dippedFor=0, inSand=False, menu=True, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PROBE survivor-3: expected=(100.16, 0.68, 0.00), eye=(100.16, 0.68, 0.00), depth=-0.600, active=True, sampledEye=True, wet=0, concealed=0, dippedFor=0, inSand=False, menu=True, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PASS survivor dry reference renders the red marker RGBA(1.000, 0.000, 0.000, 1.000)
+PASS survivor dry and shallow-water samples RGBA(1.000, 0.000, 0.000, 1.000) / RGBA(0.278, 0.341, 0.357, 1.000)
+PASS survivor cannot see beneath the map RGBA(0.110, 0.314, 0.329, 1.000)
+PASS survivor clears the filter after resurfacing RGBA(1.000, 0.000, 0.000, 1.000)
+PASS flying hand owns the real active camera: playingHand=True, active=View Camera, enabled=True
+PROBE hand-0: expected=(100.16, 0.68, 0.00), eye=(100.16, 0.68, 0.00), depth=-0.600, active=True, sampledEye=True, wet=0, concealed=0, dippedFor=0, inSand=False, menu=True, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PROBE hand-1: expected=(100.16, -0.27, 0.00), eye=(100.16, -0.27, 0.00), depth=0.350, active=True, sampledEye=True, wet=1, concealed=0, dippedFor=0.5776079, inSand=False, menu=True, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PROBE hand-2: expected=(0.00, -4.42, 0.00), eye=(0.00, -4.42, 0.00), depth=4.500, active=True, sampledEye=True, wet=1, concealed=1, dippedFor=0, inSand=False, menu=True, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PROBE hand-3: expected=(100.16, 0.68, 0.00), eye=(100.16, 0.68, 0.00), depth=-0.600, active=True, sampledEye=True, wet=0, concealed=0, dippedFor=0, inSand=False, menu=True, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PASS flying hand dry reference renders the red marker RGBA(1.000, 0.000, 0.000, 1.000)
+PASS flying hand dry and shallow-water samples RGBA(1.000, 0.000, 0.000, 1.000) / RGBA(0.278, 0.329, 0.345, 1.000)
+PASS flying hand cannot see beneath the map RGBA(0.106, 0.310, 0.325, 1.000)
+PASS flying hand clears the filter after resurfacing RGBA(1.000, 0.000, 0.000, 1.000)
+Coating capture before: bot=(4.44, 59.85, 4.44), observer=(10.16, 35.98, 12.16), camera=(5.58, 60.51, 6.50), FOV=30; cobalt blue default bot appearance
+PASS survivor drops 12 m onto actual sand; clearance 12.72 to 0.73 m, eye offset 0.80 m, feet (-12.36, 0.01, -12.36), intended support (-12.36, 0.00, -12.36)
+PASS bot reaches sand through real island contact at (-12.36, 0.00, -12.36)
+PASS bot maintains short sand contact: observed 0.378s, presenter sampled 0.378s, depth 0.022
+PASS bot settles clear of sand after short contact: grounded=True, inSand=False, feet=(4.44, 59.87, 4.44), safe=(4.44, 60.08, 4.44)
+PASS short contact leaves no coating
+PASS bot reaches sand through real island contact at (-12.36, 0.00, -12.36)
+PASS bot maintains sustained sand contact: observed 1.374s, presenter sampled 1.374s, depth 0.134
+PASS bot settles clear of sand after sustained contact: grounded=True, inSand=False, feet=(4.44, 59.88, 4.44), safe=(4.44, 60.08, 4.44)
+PASS bot exits sustained sand with a full lower-body coat: material=True, appliedAt=10.003
+Coating capture full: bot=(4.44, 59.88, 4.44), age=0.215, coverage=1.000
+PASS bot coating is dusting off at age 18.52s, coverage=0.592
+Coating capture dusting 0: bot=(4.44, 59.88, 4.44), age=18.519, coverage=0.592
+Coating capture dusting 1: bot=(4.44, 59.88, 4.44), age=18.853, coverage=0.459
+Coating capture dusting 2: bot=(4.44, 59.88, 4.44), age=19.186, coverage=0.326
+Coating capture dusting 3: bot=(4.44, 59.88, 4.44), age=19.519, coverage=0.192
+Coating capture dusting 4: bot=(4.44, 59.88, 4.44), age=19.853, coverage=0.059
+PASS bot coating is removed at age 20.50s
+PASS Default reaches actual sand
+PASS Default has full coating
+PASS Default exposure seed 48.54068 differs from NaN
+PASS Penguin reaches actual sand
+PASS Penguin has full coating
+PASS Penguin exposure seed 71.24393 differs from 48.54068
+PASS CyberSamurai reaches actual sand
+PASS CyberSamurai has full coating
+PASS CyberSamurai exposure seed 38.57365 differs from 71.24393
+PASS local survivor reaches real sand for first-person coating
+PASS local survivor has self-view coating
+PASS normal match view hands off to an above-water camera during survival immersion
+COMPLETE failures=0

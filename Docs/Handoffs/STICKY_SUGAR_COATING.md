@@ -1,16 +1,25 @@
 # Sticky sugar avatar coating
 
-Owner: marina coating task. Target: origin/Evan_Sprint_4, verified at 1359ca474fb8a0bc86cdd72dca7dab5e3e631a71.
-Source branch: codex/marina-sticky-sugar.
-Base and required water integration: 3d6db3d1ceb4cfea9049f970a5defd73859d8d98.
-Production candidate and verified remote: 8228288c18b116e4a663c3e45d5e0024ec6a2568.
+Owner: marina coating task. Source branch: codex/marina-sticky-sugar.
+Target: origin/Evan_Sprint_4, verified base 1359ca474fb8a0bc86cdd72dca7dab5e3e631a71.
+Required water integration base: 3d6db3d1ceb4cfea9049f970a5defd73859d8d98.
+Production candidate and verified remote before this report: ea4116c62d2a19ff8b2eb08d55273788e589ad17.
+Exact tested capture fixture: 0d637080ad5464c38d6c3ef30c0f6e6e22687221. Its production files match this candidate; capture-only DevTools changes remain excluded from the production branch.
 
-Status: checkpoint, not ready for integration. The user approved implementing the sticky sugar paintover. Actual Unity appearance and compilation remain unverified. A capture launcher declined admission because existing task editors were contending for throughput. No runtime result is implied by the source checkpoint.
+Presentation/Visuals now uses discrete, randomly rotated angular amber/ivory crystals over warm glaze. Fine procedural detail is filtered at subpixel scale. Each qualifying exposure chooses a new seed and patch height. Coverage erodes during the existing final 2.5 seconds of the 20-second lifetime. Dust uses lit, rotating mesh fragments emitted from actual avatar surface positions. The original contact threshold and gameplay are unchanged.
 
-Presentation/Visuals changes replace large round grains with fine faceted amber/ivory detail and a translucent glaze. Derivatives filter subpixel crystals. A fresh seed changes patches on each qualifying exposure. Existing contact threshold, 20-second coat lifetime and final 2.5-second erosion stay unchanged. Dust uses small lit mesh crystals, gravity and rotation, sampled from avatar mesh positions.
+Independent surface renderers cover every submesh while preserving the original skin materials and property blocks. Readable meshes carry stable rest-space crystal coordinates. Copied skin influences are sorted and normalized. The overlay follows the camera-specific source mesh and visibility, including the local survivor's first-person body. Unreadable imported meshes use object-position coordinates and need their own visual validation. No Core changes or package changes.
 
-CandySugarSurface supplies a separate surface renderer for every submesh, preserves skin materials/property blocks and mirrors the source mesh selected by the avatar's first-person camera callback. Readable meshes receive stable rest-space crystal coordinates. Unreadable imported meshes use the shader's object-position fallback and require separate visual validation. No Core changes, gameplay changes, package changes or persistent appearance changes are introduced by production code.
+## Evidence
 
-Capture-only local revision cc0197db698845506b75a9650eda025b6fee459c extends the prior actual Castle shore-contact fixture. It is excluded from the production branch. Requested evidence is 3840x2880 matched before/full/dust frames, repeat exposure, Penguin and CyberSamurai skins, and 3840x2160 local survivor self-view. Staged cameras and bot placement must be identified as fixture controls. Source checks passed git diff --check only. Runtime, motion stability, all-skin compatibility, Quest rendering/performance and APK inclusion are pending.
+[Raw runtime report](STICKY_SUGAR_COATING_RUNTIME.txt) records 34 passed checks and zero recorded failures. [Capture manifest](STICKY_SUGAR_COATING_CAPTURE.json) records full revision identities, camera controls, dimensions and PNG hashes. Unity 6000.3.23f1, D3D11 desktop Play Mode, actual Castle game and shore contact. Full-body images are 3840x2880; self-view images are 3840x2160. Original PNGs are retained in the approved capture intake; hashes distinguish them from concepts. The fixed camera and bot placement are fixture controls, and skin cases do not exhaust the catalog.
 
-Next: run the exact checked capture, inspect every frame, correct any shader/mesh/first-person defects, and report actual tested revision before integration. MAIN alone integrates into the target. Do not apply the capture-only branch or treat the earlier coating behavior pass as acceptance of this visual change.
+Inspected full coating, timed erosion, Penguin and armored/CyberSamurai appearance, and actual first-person self-view. New exposure seeds were 48.54068, 71.24393 and 38.57365. Short contact remained clean; sustained contact produced full coating; it was removed after 20 seconds. The coat is a procedural visual interpretation of the approved sticky sugar concept, not a claim of pixel-identical image reproduction.
+
+## Separate compatibility failure
+
+Explicit TwoBones testing failed on the clean, uncoated base avatar before sand contact. The upper chest disappears because CandyPlayerRig.Spine.cs assigns upper-chest weights [0,0,1] without descending sort; reduced skinning discards the third influence. The failed report and clean-avatar screenshot are preserved in the intake and routed to the Characters/Player owner via Coordinator. This branch does not change that source avatar. FourBones was explicitly set and restored by the successful fixture, so this pass does not establish TwoBones or Quest support.
+
+## Integration state
+
+Published review candidate only. MAIN owns integration and combined validation. No APK or headset run, stereo/comfort/performance acceptance, exhaustive skin compatibility, or integration acceptance is claimed. The separate base-avatar reduced-weight defect needs its owning fix. Earlier grid/purple and connected-plate visual attempts were superseded after inspecting actual 4K images; failed attempts are retained. No further source changes are required for the captured four-bone desktop candidate, but visual signoff remains with the user.

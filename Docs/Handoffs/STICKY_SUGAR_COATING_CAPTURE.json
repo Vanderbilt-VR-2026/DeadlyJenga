@@ -1,0 +1,31 @@
+{
+  "production": "ea4116c62d2a19ff8b2eb08d55273788e589ad17",
+  "testedFixture": "0d637080ad5464c38d6c3ef30c0f6e6e22687221",
+  "scene": "Game.unity / CastleGenerator / local Demo",
+  "platform": "Unity 6000.3.23f1 desktop D3D11; Android-targeted editor; explicit FourBones skinning",
+  "passes": 34,
+  "failures": 0,
+  "closeupResolution": [
+    3840,
+    2880
+  ],
+  "firstPersonResolution": [
+    3840,
+    2160
+  ],
+  "controls": "Staged bot and observer placement; actual sand contact and timers; local camera aimed down for self view",
+  "sha256": {
+    "avatar-before.png": "84f013dcece43871edc81d84c8995bb6edcd8e4bec6ecefb75926495fdae7428",
+    "avatar-dusting-00.png": "d5ecdc11e5a907bd09570de5fb273abeac5e6191c2ebe2fc3602f5cf560a785b",
+    "avatar-dusting-01.png": "9f67035868c333f13ab38b5289e736cf3e1d4a35cac91600a70e33da03a251c7",
+    "avatar-dusting-02.png": "d393c42b578b0f42c25fe1f08cd8e90a62f3151e2de230787401784ff0352cbb",
+    "avatar-dusting-03.png": "6db8acea81066eaa29dd4d5026837859c15606b43b4588632a698e8843d39272",
+    "avatar-dusting-04.png": "60092c56925bcd12eb9abe28490ef338c3a7cb58e12d7ca751d59fdea113d2ae",
+    "avatar-fully-coated.png": "fcb8be3b73f11bed2408f28a92f9dfaf1b74574df5fb714ade0d067355aa7e58",
+    "first-person-coated.png": "ff64b8c75bbe4f14e5aebbf96d98bb83d8ef24cbd36f58575ea8dd352f1985a6",
+    "first-person-dusting.png": "4dd648f178e512c21d0562942dd1b898cc2873473afd6fa4590c99079bf0e241",
+    "skin-CyberSamurai.png": "2771b2d0b9553e218723c82f36437047e2c685f84047be96e4be68e827b7b46d",
+    "skin-Default.png": "cf02a9c34f5e8edb8830fecc243568004c8120574365cdaa1bc9ec77d899b451",
+    "skin-Penguin.png": "0a482458254b3a5af496584ce04d5f5e37d8044d586bbba8284b13ffeaabce3e"
+  }
+}
