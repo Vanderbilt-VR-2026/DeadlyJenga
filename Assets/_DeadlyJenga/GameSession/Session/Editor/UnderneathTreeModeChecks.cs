@@ -99,14 +99,16 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     Physics.SyncTransforms();
                     var root = ((ISyncedWorld)world).Root;
                     int mask = (1 << Layers.Surface) | (1 << Layers.Block) | 1;
+                    var problems = new System.Collections.Generic.List<string>();
                     foreach (var local in layout.freeSpawns)
                     {
-                        if (!layout.TrySpawnPosition(world, local, out var p)) throw new Exception("No nearby ground for " + local);
+                        if (!layout.TrySpawnPosition(world, local, out var p)) { problems.Add("No nearby ground for " + local); continue; }
                         if (!Physics.Raycast(p + Vector3.up * .25f, Vector3.down, out var hit, .5f, mask, QueryTriggerInteraction.Ignore) || hit.normal.y < .9f)
-                            throw new Exception("Missing spawn floor at " + p.ToString("F3"));
+                            problems.Add("Missing spawn floor at " + p.ToString("F3"));
                         if (Physics.CheckCapsule(p + Vector3.up * .4f, p + Vector3.up * 1.65f, .32f, mask, QueryTriggerInteraction.Ignore))
-                            throw new Exception("Blocked spawn at " + p.ToString("F3"));
+                            problems.Add("Blocked spawn at " + p.ToString("F3"));
                     }
+                    if (problems.Count > 0) throw new Exception(string.Join("\n", problems));
                     Check(layout.teams.Length == 8 && layout.freeSpawns.Length == 128, "128 supported clear authored spawns across eight groups");
                     for (int team = 0; team < mode.Rules.teamCount; team++)
                     {
