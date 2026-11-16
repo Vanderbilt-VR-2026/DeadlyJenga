@@ -27,12 +27,11 @@ namespace DeadlyJenga.CandyPlayers
         }
         public static Mesh Get(AvatarAccessory option)
         {
+            if (option == AvatarAccessory.Mohawk) return CandyHairMeshes.Mohawk();
             if(cache.TryGetValue(option,out var mesh)&&mesh)return mesh;
             var b=new Builder{Soft=true};
             switch(option)
             {
-                case AvatarAccessory.Mohawk:
-                    for(int i=0;i<7;i++){float z=-.17f+i*.052f;b.Cone(new Vector3(0,.15f,z),new Vector3(0,.37f-Mathf.Abs(z)*.5f,z),.05f,0,12);}break;
                 case AvatarAccessory.Glasses:
                     for(int s=-1;s<=1;s+=2){b.Ring(new Vector3(s*.105f,.025f,.205f),.082f,.016f,Quaternion.identity);b.Beam(new Vector3(s*.18f,.03f,.19f),new Vector3(s*.218f,.03f,-.07f),.013f);}
                     b.Beam(new Vector3(-.03f,.03f,.232f),new Vector3(.03f,.03f,.232f),.013f);break;
@@ -177,12 +176,6 @@ namespace DeadlyJenga.CandyPlayers
             }
         }
 
-        internal static void TwinTailRoots(Builder builder)
-        {
-            for(int side=-1;side<=1;side+=2)
-                builder.Cone(new Vector3(side*.147f,.144f,-.120f),
-                    new Vector3(side*.230f,.167f,-.222f),.053f,.040f,16);
-        }
 
         internal static void OverallBib(Builder builder)
         {
@@ -224,30 +217,85 @@ namespace DeadlyJenga.CandyPlayers
                 for(int y=0;y<=rings;y++)for(int x=0;x<=sides;x++){float t=Mathf.PI*y/rings,a=Mathf.PI*2*x/sides;vertices.Add(center+q*Vector3.Scale(radii,new Vector3(Mathf.Sin(t)*Mathf.Cos(a),Mathf.Cos(t),Mathf.Sin(t)*Mathf.Sin(a))));}
                 for(int y=0;y<rings;y++)for(int x=0;x<sides;x++){int a=start+y*(sides+1)+x;Quad(a,a+1,a+sides+2,a+sides+1);}
             }
+
+            public void Surface(System.Func<float,float,Vector3> point, int rows, int columns)
+            {
+                int start = vertices.Count;
+                for (int row = 0; row <= rows; row++)
+                for (int col = 0; col <= columns; col++)
+                {
+                    int index = vertices.Count;
+                    vertices.Add(point(col / (float)columns * Mathf.PI * 2f, row / (float)rows));
+                    if (row < rows && col < columns)
+                        Quad(index,index+1,index+columns+2,index+columns+1);
+                }
+            }
+
+            public void Tube(System.Func<float,Vector3> point, System.Func<float,float> radius, int rings=24, int sides=10)
+            {
+                int start = vertices.Count;
+                Vector3 normal = Vector3.zero;
+                for (int ring = 0; ring <= rings; ring++)
+                {
+                    float t = ring / (float)rings;
+                    Vector3 center = point(t);
+                    Vector3 axis = (point(Mathf.Min(1f,t+.002f))-point(Mathf.Max(0f,t-.002f))).normalized;
+                    normal = Vector3.ProjectOnPlane(normal,axis).normalized;
+                    if (normal.sqrMagnitude < .01f)
+                        normal = Vector3.ProjectOnPlane(Mathf.Abs(axis.y) < .85f ? Vector3.up : Vector3.right,axis).normalized;
+                    Vector3 tangent = Vector3.Cross(axis,normal);
+                    for (int side = 0; side <= sides; side++)
+                    {
+                        float angle = side / (float)sides * Mathf.PI * 2f;
+                        int i = vertices.Count;
+                        vertices.Add(center + radius(t) * (normal * Mathf.Cos(angle) + tangent * Mathf.Sin(angle)));
+                        if (ring < rings && side < sides) Quad(i,i+1,i+sides+2,i+sides+1);
+                    }
+                }
+
+                int end = start + rings * (sides + 1);
+                int cap = vertices.Count;
+                vertices.Add(point(0f));
+                vertices.Add(point(1f));
+                for (int side = 0; side < sides; side++)
+                {
+                    triangles.Add(cap); triangles.Add(start+side+1); triangles.Add(start+side);
+                    triangles.Add(cap+1); triangles.Add(end+side); triangles.Add(end+side+1);
+                }
+            }
             List<Vector3> pumpkinNormals;
-            public void CarvedPumpkin()
+            public void CarvedPumpkin(bool helmet = false)
             {
                 pumpkinNormals=new List<Vector3>();
                 var holes=new List<Vector2[]> {
                     new[]{new Vector2(.04f,.075f),new Vector2(.20f,.13f),new Vector2(.165f,.015f)},
                     new[]{new Vector2(-.04f,.075f),new Vector2(-.20f,.13f),new Vector2(-.165f,.015f)}
                 };
+                if (helmet)
+                {
+                    holes.Clear();
+                    for (int side = -1; side <= 1; side += 2)
+                        holes.Add(new[]{ new Vector2(side*.099f,.132f), new Vector2(side*.159f,.035f),
+                            new Vector2(side*.042f,.036f) });
+                    holes.Add(new[]{ new Vector2(0,.026f), new Vector2(-.029f,-.036f),
+                        new Vector2(.029f,-.036f) });
+                }
                 float[] x={-.21f,-.16f,-.11f,-.055f,0,.055f,.11f,.16f,.21f};
                 float[] top={-.065f,-.095f,-.065f,-.10f,-.07f,-.10f,-.065f,-.095f,-.065f};
                 float[] bottom={-.065f,-.17f,-.14f,-.19f,-.15f,-.19f,-.14f,-.17f,-.065f};
                 for(int i=0;i<x.Length-1;i++)holes.Add(new[]{new Vector2(x[i],top[i]),new Vector2(x[i+1],top[i+1]),new Vector2(x[i+1],bottom[i+1]),new Vector2(x[i],bottom[i])});
                 foreach(var hole in holes)
                 {float area=0;for(int i=0;i<hole.Length;i++)area+=Cross(hole[i],hole[(i+1)%hole.Length]);if(area<0)System.Array.Reverse(hole);}
-                const int rows=24,cols=64;
+                int rows=helmet?18:24,cols=helmet?48:64;
                 Vector3 Point(int y,int column)
                 {
-                    float t=Mathf.PI*y/rows,a=Mathf.PI*2*column/cols,r=1+.045f*Mathf.Cos(a*10);
+                    float t=Mathf.PI*y/rows,a=Mathf.PI*2*column/cols,r=1+(helmet?.069f:.045f)*Mathf.Cos(a*10);
                     return new Vector3(Mathf.Sin(t)*Mathf.Cos(a)*.31f*r,Mathf.Cos(t)*.29f,Mathf.Sin(t)*Mathf.Sin(a)*.285f*r);
                 }
                 for(int y=0;y<rows;y++)for(int column=0;column<cols;column++)
                 {
                     var a=Point(y,column);var b=Point(y,column+1);var c=Point(y+1,column+1);var d=Point(y+1,column);
-                    PumpkinPatch(new List<Vector3>{a,b,c},holes);PumpkinPatch(new List<Vector3>{a,c,d},holes);
+                    PumpkinPatch(new List<Vector3>{a,b,c},holes,helmet);PumpkinPatch(new List<Vector3>{a,c,d},holes,helmet);
                 }
             }
             static float Cross(Vector2 a,Vector2 b)=>a.x*b.y-a.y*b.x;
@@ -263,11 +311,31 @@ namespace DeadlyJenga.CandyPlayers
                 }
                 return result;
             }
-            void PumpkinPatch(List<Vector3> triangle,List<Vector2[]> holes)
+            static bool Overlap(List<Vector3> triangle, Vector2[] hole)
+            {
+                Vector2 low = triangle[0], high = low;
+                foreach (var p in triangle)
+                {
+                    low = Vector2.Min(low,p);
+                    high = Vector2.Max(high,p);
+                }
+
+                Vector2 cutLow = hole[0], cutHigh = cutLow;
+                foreach (var p in hole)
+                {
+                    cutLow = Vector2.Min(cutLow,p);
+                    cutHigh = Vector2.Max(cutHigh,p);
+                }
+
+                return low.x <= cutHigh.x && high.x >= cutLow.x && low.y <= cutHigh.y && high.y >= cutLow.y;
+            }
+
+            void PumpkinPatch(List<Vector3> triangle,List<Vector2[]> holes,bool helmet)
             {
                 var pieces=new List<List<Vector3>>{triangle};
                 if((triangle[0].z+triangle[1].z+triangle[2].z)/3>.12f)foreach(var hole in holes)
                 {
+                    if (helmet && !Overlap(triangle,hole)) continue;
                     var outside=new List<List<Vector3>>();
                     foreach(var piece in pieces)
                     {

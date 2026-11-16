@@ -10,10 +10,12 @@ namespace DeadlyJenga.CandyPlayers
         void BatchPieces(CandyPlayerRig rig)
         {
             var groups=new Dictionary<string,List<Piece>>();
-            foreach(var p in pieces)if(p.renderer is MeshRenderer){string key=p.bone+":"+p.tone+":"+p.shadeable+":"+(p.renderer.sharedMaterial?p.renderer.sharedMaterial.GetInstanceID():0);if(!groups.TryGetValue(key,out var group)){group=new List<Piece>();groups[key]=group;}group.Add(p);}
+            var geometry = appearance;
+            geometry.hairShade = DeadlyJenga.Core.AvatarHairShade.Original;
+            foreach(var p in pieces)if(!p.headgear&&p.renderer is MeshRenderer&&p.materialIndex<0){string key=p.bone+":"+p.tone+":"+p.molded+":"+p.cosmeticShade+":"+(p.renderer.sharedMaterial?p.renderer.sharedMaterial.GetInstanceID():0);if(!groups.TryGetValue(key,out var group)){group=new List<Piece>();groups[key]=group;}group.Add(p);}
             foreach(var pair in groups)
             {
-                var group=pair.Value;if(group.Count<2)continue;string key="wardrobe batch:"+CandyPlayerAvatar.StyleBits(appearance)+":"+(uint)appearance.accessories+":"+pair.Key;
+                var group=pair.Value;if(group.Count<2)continue;string key="wardrobe batch:"+CandyPlayerAvatar.StyleBits(geometry)+":"+(uint)appearance.accessories+":"+pair.Key;
                 if(!meshes.TryGetValue(key,out var mesh)){var combine=new CombineInstance[group.Count];for(int i=0;i<group.Count;i++)combine[i]=new CombineInstance{mesh=group[i].renderer.GetComponent<MeshFilter>().sharedMesh,transform=Matrix4x4.identity};mesh=new Mesh{name=key};mesh.CombineMeshes(combine,true,false);meshes[key]=mesh;}
                 group[0].renderer.GetComponent<MeshFilter>().sharedMesh=mesh;
                 for(int i=1;i<group.Count;i++){group[i].renderer.gameObject.SetActive(false);Destroy(group[i].renderer.gameObject);pieces.Remove(group[i]);}
@@ -45,14 +47,15 @@ namespace DeadlyJenga.CandyPlayers
             }
             var go=new GameObject("Visual - "+id);go.transform.SetParent(rig.transform,false);var renderer=go.AddComponent<SkinnedMeshRenderer>();renderer.sharedMesh=mesh;renderer.sharedMaterial=rig.bodyRenderer.sharedMaterial;renderer.bones=rig.bodyRenderer.bones;renderer.rootBone=rig.bodyRenderer.rootBone;renderer.localBounds=rig.bodyRenderer.localBounds;renderer.updateWhenOffscreen=true;pieces.Add(new Piece{renderer=renderer,tone=tone,bone=0});
         }
-        void FittedGarment(CandyPlayerRig rig,string id,Tone tone,bool pants)
+        void FittedGarment(CandyPlayerRig rig,string id,Tone tone,bool pants,bool cosmeticShade=false)
         {
             bool vest=id=="puffer vest";
-            FittedPatch(rig,id,tone,pants?.016f:.022f,pants?"trousers":vest?"vest":"jacket",(p,n,bone)=>pants?bone>=8&&bone<=13||bone==0&&p.y<.77f:bone==0&&p.y>.73f||!vest&&(bone==2||bone==3||bone==5||bone==6));
+            FittedPatch(rig,id,tone,pants?.016f:.022f,pants?"trousers":vest?"vest":"jacket",(p,n,bone)=>pants?bone>=8&&bone<=13||bone==0&&p.y<.77f:bone==0&&p.y>.73f||!vest&&(bone==2||bone==3||bone==5||bone==6),cosmeticShade:cosmeticShade);
         }
         // Cuts the part of the body picked by include(position, normal, dominant bone), lifts it along the normals
         // and skins it to the same bones. The result is a thin shell that hugs the body.
-        void FittedPatch(CandyPlayerRig rig,string id,Tone tone,float offset,string kind,System.Func<Vector3,Vector3,int,bool> include)
+        void FittedPatch(CandyPlayerRig rig,string id,Tone tone,float offset,string kind,System.Func<Vector3,Vector3,int,bool> include,
+            System.Func<Vector3,Vector2> map=null,Material material=null,bool cosmeticShade=false)
         {
             var source=rig.bodyRenderer.sharedMesh;if(!source||!source.isReadable)return;bool shared=kind=="jacket"||kind=="trousers"||kind=="vest";string key=source.GetInstanceID()+":patch:"+kind+":"+(shared?"":id)+":"+offset;
             if(!garments.TryGetValue(key,out var mesh))
@@ -71,7 +74,7 @@ namespace DeadlyJenga.CandyPlayers
             }
             if(mesh.vertexCount==0)return;
             if(shared)for(int i=pieces.Count-1;i>=0;i--)if(pieces[i].renderer is SkinnedMeshRenderer old&&old.sharedMesh==mesh){old.gameObject.SetActive(false);Destroy(old.gameObject);pieces.RemoveAt(i);}
-            var go=new GameObject("Visual - "+id);go.transform.SetParent(rig.transform,false);var renderer=go.AddComponent<SkinnedMeshRenderer>();renderer.sharedMesh=mesh;renderer.sharedMaterial=rig.bodyRenderer.sharedMaterial;renderer.bones=rig.bodyRenderer.bones;renderer.rootBone=rig.bodyRenderer.rootBone;renderer.localBounds=rig.bodyRenderer.localBounds;renderer.updateWhenOffscreen=true;pieces.Add(new Piece{renderer=renderer,tone=tone,bone=0});
+            var go=new GameObject("Visual - "+id);go.transform.SetParent(rig.transform,false);var renderer=go.AddComponent<SkinnedMeshRenderer>();renderer.sharedMesh=mesh;renderer.sharedMaterial=material?material:rig.bodyRenderer.sharedMaterial;renderer.bones=rig.bodyRenderer.bones;renderer.rootBone=rig.bodyRenderer.rootBone;renderer.localBounds=rig.bodyRenderer.localBounds;renderer.updateWhenOffscreen=true;pieces.Add(new Piece{renderer=renderer,tone=tone,bone=0,cosmeticShade=cosmeticShade});
         }
         // Horizontal bands (belts, stripes, bandages). ranges are pairs of heights: min,max,min,max...
         void Band(CandyPlayerRig rig,string id,Tone tone,float offset,bool limbs,params float[] ranges)

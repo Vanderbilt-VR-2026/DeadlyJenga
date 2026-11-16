@@ -134,7 +134,6 @@
     {"clothing":4},
     {"clothing":32},
     {"clothing":64},
-    {"clothing":128},
     {"clothing":512},
     {"clothing":1024},
     {"clothing":2048},
@@ -150,6 +149,7 @@
   "extras": [
     {"accessories":1024},
     {"accessories":2048},
-    {"clothing":256}
+    {"clothing":256},
+    {"clothing":128}
   ]
 }

@@ -9,7 +9,7 @@ namespace DeadlyJenga.CandyPlayers
     public sealed partial class CandyAvatarWardrobe : MonoBehaviour
     {
         enum Tone { Primary, Dark, White, Black, Orange, Yellow, Blue, Purple, Red, Brown, Silver, Glow, Armor, Hair, Green, Cream }
-        sealed class Piece { public Renderer renderer; public Tone tone; public int bone; public bool armor, shadeable; }
+        sealed class Piece { public Renderer renderer; public Tone tone; public int bone; public bool armor, molded, headgear, cosmeticShade; public Color finish; public int materialIndex=-1; }
         readonly List<Piece> pieces=new List<Piece>();
         static readonly Dictionary<Material,Material> emitterMaterials=new Dictionary<Material,Material>();
         static readonly Dictionary<string,Mesh> meshes=new Dictionary<string,Mesh>();
@@ -18,7 +18,8 @@ namespace DeadlyJenga.CandyPlayers
         bool built;
         Mesh originalBody;
         static readonly Dictionary<Mesh,Mesh> snowBodies=new Dictionary<Mesh,Mesh>();
-        Color lastTeam, lastCosmeticBasis;
+        Color lastTeam;
+        Color lastPlayerColor;
         bool lastTeamed;
         public Transform LeftPalmEmitter {get;private set;}
         public Transform RightPalmEmitter {get;private set;}
@@ -27,13 +28,21 @@ namespace DeadlyJenga.CandyPlayers
 
         public void Apply(CandyPlayerRig rig,AvatarAppearance value)
         {
-            value=CandyWardrobeCompatibility.Resolve(CandyPlayerAvatar.SanitizeAppearance(value)).effective;
-            if(built&&appearance.accessories==value.accessories&&CandyPlayerAvatar.StyleBits(appearance)==CandyPlayerAvatar.StyleBits(value))
+            bool equippedArmor = value.poweredArmor;
+            value = CandyPlayerAvatar.SanitizeAppearance(value);
+            value.poweredArmor = equippedArmor;
+            value = CandyWardrobeCompatibility.Resolve(value).effective;
+            var sameShade = appearance;
+            sameShade.hairShade = value.hairShade;
+            if (built && appearance.accessories == value.accessories &&
+                CandyPlayerAvatar.StyleBits(sameShade) == CandyPlayerAvatar.StyleBits(value))
             {
-                if(appearance.hairShade==value.hairShade)return;
-                appearance=value;
-                lastTeam=new Color(-1,-1,-1);
-                RefreshPalette(rig);
+                if (appearance.hairShade != value.hairShade)
+                {
+                    appearance = value;
+                    lastTeam = new Color(-1f,-1f,-1f);
+                    RefreshPalette(rig);
+                }
                 return;
             }
             foreach(var p in pieces)if(p.renderer){p.renderer.gameObject.SetActive(false);Destroy(p.renderer.gameObject);}
@@ -44,24 +53,14 @@ namespace DeadlyJenga.CandyPlayers
             rig.bodyRenderer.sharedMesh=value.skin==AvatarSkin.Snowman&&!value.poweredArmor?SnowBody(originalBody):originalBody;
             if(value.poweredArmor)BuildArmor(rig);
             else {BuildSkin(rig);BuildExpandedSkin(rig);}
-            int firstCosmetic=pieces.Count;
-            BuildHair(rig);BuildGlasses(rig);
-            for(int i=firstCosmetic;i<pieces.Count;i++)pieces[i].shadeable=true;
-            firstCosmetic=pieces.Count;
-            BuildClothes(rig);BuildExpandedClothes(rig);
-            if((value.accessories&AvatarAccessory.PumpkinHelmet)!=0)Pumpkin(rig,"accessory pumpkin",Tone.Primary);
-            for(int i=firstCosmetic;i<pieces.Count;i++)
-            {
-                var piece=pieces[i];
-                string name=piece.renderer.gameObject.name;
-                piece.shadeable=name.StartsWith("Visual - hoodie",System.StringComparison.Ordinal) ||
-                    name=="Visual - hockey helmet shell" || name=="Visual - football helmet crown" ||
-                    name.StartsWith("Visual - football ear guard",System.StringComparison.Ordinal) ||
-                    (name=="Visual - bow tie" && (value.clothing&AvatarClothing.BowTie)!=0) ||
-                    name.StartsWith("Visual - royal velvet mantle",System.StringComparison.Ordinal) ||
-                    (name.StartsWith("Visual - accessory pumpkin",System.StringComparison.Ordinal) && piece.tone==Tone.Primary);
-            }
-            if((value.accessories&AvatarAccessory.PumpkinHelmet)!=0)Pumpkin(rig,"accessory pumpkin",Tone.Primary);
+            BuildHair(rig);
+            int eyewearStart = pieces.Count;
+            BuildGlasses(rig);
+            ShadePiecesSince(eyewearStart);
+            BuildClothes(rig);
+            BuildExpandedClothes(rig);
+            foreach (var (accessory, design) in CandyHeadgearMeshes.Accessories)
+                if ((value.accessories & accessory) != 0) AddHeadgear(rig, design);
             BatchPieces(rig);
             lastTeam=new Color(-1,-1,-1);RefreshPalette(rig);
         }
@@ -150,7 +149,25 @@ namespace DeadlyJenga.CandyPlayers
         void LongNose(CandyPlayerRig rig,string id)=>Add(rig,id,1,Tone.Primary,b=>b.Cone(new Vector3(0,-.02f,.19f),new Vector3(0,-.06f,.38f),.043f,.012f,12));
         void Jacket(CandyPlayerRig rig,string id,Tone tone)=>FittedGarment(rig,id,tone,false);
         void Robe(CandyPlayerRig rig,string id,Tone tone){FittedGarment(rig,id+" tunic",tone,false);FittedSkirt(rig,id+" skirt",tone);}
-        void BuildHair(CandyPlayerRig rig){if(appearance.hair!=0)Hair(rig,appearance.hair);}
+        void BuildHair(CandyPlayerRig rig)
+        {
+            if (appearance.hair == AvatarHair.None) return;
+            var fallback = rig.bodyRenderer.sharedMaterial;
+            AddHairMesh(rig, "hair " + appearance.hair, CandyHairMeshes.Get(appearance.hair),
+                CandyHairMeshes.Glaze(fallback), Tone.Hair);
+            var ties = CandyHairMeshes.Ties(appearance.hair);
+            if (ties) AddHairMesh(rig, "hair ties", ties, CandyHairMeshes.TieGlaze(fallback), Tone.Red);
+        }
+
+        void AddHairMesh(CandyPlayerRig rig, string name, Mesh mesh, Material material, Tone tone)
+        {
+            var go = new GameObject("Visual - " + name, typeof(MeshFilter), typeof(MeshRenderer));
+            go.transform.SetParent(rig.HeadAnchor, false);
+            go.GetComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = go.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            pieces.Add(new Piece { renderer = renderer, tone = tone, bone = 1 });
+        }
         void Hair(CandyPlayerRig rig,AvatarHair hair)
         {
             Add(rig,"hair "+hair,1,Tone.Hair,b=>{
@@ -174,21 +191,51 @@ namespace DeadlyJenga.CandyPlayers
                 if(hair==AvatarHair.Afro||hair==AvatarHair.Curls){for(int i=0;i<18;i++){float a=i*2.4f;b.Sphere(new Vector3(Mathf.Cos(a)*.21f,.13f+(i%3)*.055f,Mathf.Sin(a)*.20f),Vector3.one*(hair==AvatarHair.Afro?.115f:.065f));}}
                 if(hair==AvatarHair.Bob||hair==AvatarHair.LongWaves||hair==AvatarHair.Braids){for(int s=-1;s<=1;s+=2)for(int i=0;i<(hair==AvatarHair.LongWaves?7:4);i++)b.Sphere(new Vector3(s*(.21f+(hair==AvatarHair.LongWaves?Mathf.Sin(i*1.5f)*.025f:0)),.12f-i*.075f,-.055f),new Vector3(.065f,.08f,.17f));}
                 if(hair==AvatarHair.Ponytail||hair==AvatarHair.TwinTails||hair==AvatarHair.Braids){for(int s=-1;s<=1;s+=2){float x=hair==AvatarHair.Ponytail?0:s*.23f;b.Sphere(new Vector3(x,.035f,-.23f),new Vector3(.07f,.21f,.08f));b.Sphere(new Vector3(x,.20f,-.22f),Vector3.one*.04f);if(x==0)break;}}
-                if(hair==AvatarHair.TwinTails)CandyAccessoryMeshes.TwinTailRoots(b);
                 if(hair==AvatarHair.Bun)b.Sphere(new Vector3(0,.31f,-.07f),Vector3.one*.11f);
                 if(hair==AvatarHair.SidePart)b.Sphere(new Vector3(-.08f,.23f,.07f),new Vector3(.16f,.085f,.14f));
             });
         }
+        void ShadePiecesSince(int first)
+        {
+            for (int i = first; i < pieces.Count; i++)
+                if (!pieces[i].headgear) pieces[i].cosmeticShade = true;
+        }
+
+        void AddHeadgear(CandyPlayerRig rig, CandyHeadgearMeshes.Item item, int bone = 1, float zOffset = 0f,
+            bool useCosmeticShade = true)
+        {
+            foreach (var (mesh, finish) in CandyHeadgearMeshes.Get(item))
+            {
+                var part = new GameObject("Visual - " + item, typeof(MeshFilter), typeof(MeshRenderer));
+                part.transform.SetParent(rig.AppearanceBone(bone), false);
+                part.transform.localPosition = new Vector3(0, 0, zOffset);
+                part.GetComponent<MeshFilter>().sharedMesh = mesh;
+                var renderer = part.GetComponent<MeshRenderer>();
+                renderer.sharedMaterial = CandyHairMeshes.Glaze(rig.bodyRenderer.sharedMaterial);
+                pieces.Add(new Piece
+                {
+                    renderer = renderer, bone = bone, headgear = true, finish = finish,
+                    cosmeticShade = useCosmeticShade && CandyHeadgearMeshes.UsesCosmeticShade(item, finish)
+                });
+            }
+        }
+
         void BuildGlasses(CandyPlayerRig rig)
         {
             if(appearance.eyewear==0)return;var kind=appearance.eyewear;
-            if(kind==AvatarEyewear.Visor||kind==AvatarEyewear.VRVisor||kind==AvatarEyewear.SkiGoggles)
+            if (kind == AvatarEyewear.Visor || kind == AvatarEyewear.CyberEye)
+            {
+                AddHeadgear(rig, kind == AvatarEyewear.Visor ? CandyHeadgearMeshes.Item.Visor :
+                    CandyHeadgearMeshes.Item.CyberEye);
+                return;
+            }
+            if(kind==AvatarEyewear.VRVisor||kind==AvatarEyewear.SkiGoggles)
             {
                 Add(rig,"visor frame",1,Tone.Dark,b=>{for(int i=0;i<12;i++){float a=Mathf.Lerp(-.95f,.95f,i/12f),next=Mathf.Lerp(-.95f,.95f,(i+1)/12f);foreach(float y in new[]{-.045f,.09f})b.Beam(new Vector3(Mathf.Sin(a)*.235f,y,Mathf.Cos(a)*.235f),new Vector3(Mathf.Sin(next)*.235f,y,Mathf.Cos(next)*.235f),.01f);}});
                 Add(rig,"panoramic visor lens",1,Tone.Blue,b=>{for(int i=0;i<12;i++){float a=Mathf.Lerp(-.95f,.95f,i/12f),next=Mathf.Lerp(-.95f,.95f,(i+1)/12f);var from=new Vector3(Mathf.Sin(a)*.235f,0,Mathf.Cos(a)*.235f);var to=new Vector3(Mathf.Sin(next)*.235f,0,Mathf.Cos(next)*.235f);b.Wedge(from+Vector3.up*.085f,to+Vector3.up*.085f,from-Vector3.up*.04f,to-Vector3.up*.04f,.008f);}});
                 return;
             }
-            Add(rig,"eyewear "+kind,1,Tone.Dark,b=>{for(int s=-1;s<=1;s+=2){if((kind==AvatarEyewear.Monocle||kind==AvatarEyewear.CyberEye)&&s==-1)continue;var c=new Vector3(s*.10f,.03f,.223f);
+            Add(rig,"eyewear "+kind,1,Tone.Dark,b=>{for(int s=-1;s<=1;s+=2){if(kind==AvatarEyewear.Monocle&&s==-1)continue;var c=new Vector3(s*.10f,.03f,.223f);
                 if(kind==AvatarEyewear.Square){b.Box(c+Vector3.up*.055f,new Vector3(.15f,.015f,.025f));b.Box(c-Vector3.up*.055f,new Vector3(.15f,.015f,.025f));for(int edge=-1;edge<=1;edge+=2)b.Box(c+Vector3.right*edge*.07f,new Vector3(.015f,.12f,.025f));}
                 else if(kind==AvatarEyewear.Heart){for(int i=0;i<24;i++){float a=i*Mathf.PI/12,aa=(i+1)*Mathf.PI/12;Vector3 Heart(float t)=>new Vector3(Mathf.Pow(Mathf.Sin(t),3)*.075f,(13*Mathf.Cos(t)-5*Mathf.Cos(2*t)-2*Mathf.Cos(3*t)-Mathf.Cos(4*t))*.005f,0);b.Beam(c+Heart(a),c+Heart(aa),.008f);}}
                 else if(kind==AvatarEyewear.Shutter){for(int slat=-2;slat<=2;slat++)b.Beam(c+new Vector3(-.065f,slat*.022f,0),c+new Vector3(.065f,slat*.022f,0),.006f);}
@@ -197,12 +244,6 @@ namespace DeadlyJenga.CandyPlayers
                 b.Beam(new Vector3(s*.17f,.04f,.21f),new Vector3(s*.22f,.04f,-.06f),.01f);}
                 if(kind!=AvatarEyewear.Monocle)b.Beam(new Vector3(-.03f,.04f,.24f),new Vector3(.03f,.04f,.24f),.01f);
             });
-        }
-        // A curved bar that follows the head instead of floating in a flat plane (cages and face guards).
-        static void CageBar(CandyAccessoryMeshes.Builder b,Vector3 from,Vector3 to,float radius,float shell)
-        {
-            const int steps=5;var previous=from.normalized*shell;
-            for(int i=1;i<=steps;i++){var next=Vector3.Lerp(from,to,i/(float)steps).normalized*shell;b.Beam(previous,next,radius);previous=next;}
         }
         void BuildClothes(CandyPlayerRig rig)
         {
@@ -224,22 +265,10 @@ namespace DeadlyJenga.CandyPlayers
                 FittedPatch(rig,"football chest pads",Tone.Silver,.045f,"pads",(p,n,bone)=>bone==0&&p.y>.96f&&p.y<1.31f);
                 for(int s=0;s<2;s++)Ball(rig,"football shoulder pad "+s,s==0?2:5,Tone.White,new Vector3(0,.035f,0),new Vector3(.125f,.105f,.125f));
             }
-            if((clothes&AvatarClothing.HockeyHelmet)!=0)
-            {
-                Ball(rig,"hockey helmet shell",1,Tone.Primary,new Vector3(0,.13f,-.05f),new Vector3(.245f,.15f,.232f));
-                Add(rig,"hockey helmet vents",1,Tone.Dark,b=>{for(int s=-1;s<=1;s+=2)for(int i=0;i<3;i++)b.Box(new Vector3(s*(.09f+i*.035f),.265f,-.04f),new Vector3(.016f,.02f,.10f));});
-                Add(rig,"hockey wire cage",1,Tone.Silver,CandyAccessoryMeshes.HockeyCage);
-            }
-            if((clothes&AvatarClothing.FootballHelmet)!=0)
-            {
-                Ball(rig,"football helmet crown",1,Tone.Primary,new Vector3(0,.12f,-.075f),new Vector3(.27f,.19f,.24f));
-                for(int side=-1;side<=1;side+=2){Ball(rig,"football ear guard "+side,1,Tone.Primary,new Vector3(side*.23f,-.02f,-.025f),new Vector3(.052f,.15f,.13f));Ball(rig,"football ear port "+side,1,Tone.Dark,new Vector3(side*.275f,-.015f,.005f),new Vector3(.007f,.035f,.035f));}
-                Add(rig,"football helmet stripe",1,Tone.White,b=>b.Cone(new Vector3(0,.30f,.15f),new Vector3(0,.30f,-.30f),.03f,.03f,10));
-                Add(rig,"football face bars",1,Tone.Silver,b=>{
-                    for(int i=0;i<2;i++){float y=-.05f-i*.08f;CageBar(b,new Vector3(-.30f,y,.22f),new Vector3(.30f,y,.22f),.013f,.255f);}
-                    for(int side=-1;side<=1;side+=2){CageBar(b,new Vector3(side*.22f,.02f,.17f),new Vector3(side*.12f,-.17f,.27f),.013f,.255f);CageBar(b,new Vector3(side*.07f,-.03f,.27f),new Vector3(side*.07f,-.17f,.27f),.011f,.255f);}
-                });
-            }
+            if ((clothes & AvatarClothing.HockeyHelmet) != 0)
+                AddHeadgear(rig, CandyHeadgearMeshes.Item.HockeyHelmet);
+            if ((clothes & AvatarClothing.FootballHelmet) != 0)
+                AddHeadgear(rig, CandyHeadgearMeshes.Item.FootballHelmet);
             if((clothes&AvatarClothing.GrassSkirt)!=0)Add(rig,"grass skirt",0,Tone.Green,b=>{
                 for(int row=0;row<2;row++)for(int i=0;i<20;i++)
                 {
@@ -255,18 +284,27 @@ namespace DeadlyJenga.CandyPlayers
                 FittedPatch(rig,"tux shirt",Tone.White,.032f,"shirt",(p,n,bone)=>bone==0&&n.z>.2f&&Mathf.Abs(p.x)<.075f&&p.y>.93f&&p.y<1.30f);
                 Pants(rig,"tux pants",Tone.Dark);
             }
-            if((clothes&(AvatarClothing.Tuxedo|AvatarClothing.BowTie))!=0)
+            if ((clothes & (AvatarClothing.Tuxedo | AvatarClothing.BowTie)) != 0)
             {
-                var anchor=SurfacePoint(rig,Mathf.PI*.5f,1.25f,out var normal);float z=anchor.z+((clothes&AvatarClothing.Tuxedo)!=0?.05f:.03f);
-                Add(rig,"bow tie",0,Tone.Red,b=>{for(int sd=-1;sd<=1;sd+=2)b.Sphere(new Vector3(sd*.055f,1.25f,z),new Vector3(.055f,.04f,.03f),Quaternion.Euler(0,0,sd*-14));b.Sphere(new Vector3(0,1.25f,z+.006f),new Vector3(.028f,.03f,.028f));});
+                var anchor = SurfacePoint(rig, Mathf.PI * .5f, 1.25f, out _);
+                float offset = anchor.z + ((clothes & AvatarClothing.Tuxedo) != 0 ? .05f : .03f) - .17f;
+                AddHeadgear(rig, CandyHeadgearMeshes.Item.BowTie, 0, offset, (clothes & AvatarClothing.BowTie) != 0);
             }
-            if((clothes&AvatarClothing.Hoodie)!=0)
-            {
-                Jacket(rig,"hoodie",Tone.Primary);
-                Add(rig,"hoodie hood",1,Tone.Primary,b=>{b.Sphere(new Vector3(0,.02f,-.13f),new Vector3(.275f,.28f,.215f));b.Ring(new Vector3(0,-.17f,-.01f),.20f,.055f,Quaternion.Euler(90,0,0),new Vector2(1,.94f));});
-                Band(rig,"hoodie hem ribbing",Tone.Primary,.05f,false,.76f,.80f);
-            }
+            if ((clothes & AvatarClothing.Hoodie) != 0) BuildHoodie(rig);
         }
+
+        void BuildHoodie(CandyPlayerRig rig)
+        {
+            FittedGarment(rig,"hoodie",Tone.Purple,false,cosmeticShade:true);
+            int start = pieces.Count;
+            Band(rig,"hoodie hem",Tone.Purple,.041f,false,.73f,.80f);
+            Add(rig,"hoodie folded hood",0,Tone.Purple,CandyHoodieVisuals.FoldedHood);
+            Add(rig,"hoodie kangaroo pocket",0,Tone.Purple,CandyHoodieVisuals.Pocket);
+            ShadePiecesSince(start);
+            Add(rig,"hoodie lining and pocket openings",0,Tone.Dark,CandyHoodieVisuals.Lining);
+            Add(rig,"hoodie drawstrings",0,Tone.Cream,CandyHoodieVisuals.Drawstrings);
+        }
+
         void BuildExpandedClothes(CandyPlayerRig rig)
         {
             var clothes=appearance.clothing;
@@ -294,7 +332,9 @@ namespace DeadlyJenga.CandyPlayers
             }
             if((clothes&AvatarClothing.RoyalMantle)!=0)
             {
+                int mantleStart = pieces.Count;
                 Cape(rig,"royal velvet mantle",Tone.Purple,false);
+                ShadePiecesSince(mantleStart);
                 Add(rig,"royal white collar",0,Tone.White,b=>{b.Ring(new Vector3(0,1.29f,0),.215f,.055f,Quaternion.Euler(90,0,0),new Vector2(1,.84f));});
             }
         }
@@ -430,13 +470,49 @@ namespace DeadlyJenga.CandyPlayers
             var actor=rig.GetComponentInParent<IModeActor>();var rules=actor!=null?MatchRuntime.Current?.RulesFor(actor.gameObject):null;
             bool teamed=actor!=null&&actor.Team>=0&&rules!=null&&(rules.mode==GameModeKind.CaptureFlag||rules.mode==GameModeKind.TeamTickets||rules.mode==GameModeKind.BlockControl);
             Color primary=teamed?actor.Color:appearance.skin>AvatarSkin.Vampire?ExpandedSkinColor(appearance.skin):appearance.skin==AvatarSkin.Snowman||appearance.skin==AvatarSkin.Vampire?Color.white:appearance.skin==AvatarSkin.Frankenstein||appearance.skin==AvatarSkin.Witch?new Color(.34f,.73f,.30f):appearance.skin==AvatarSkin.Penguin||appearance.skin==AvatarSkin.JackOLantern?new Color(.025f,.03f,.05f):rig.BaseAppearanceColor;
-            var cosmeticBasis=rig.BaseAppearanceColor;
-            if(primary==lastTeam&&teamed==lastTeamed&&cosmeticBasis==lastCosmeticBasis)return;
-            lastTeam=primary;lastTeamed=teamed;lastCosmeticBasis=cosmeticBasis;
-            bool useShade=appearance.skin==AvatarSkin.Default && appearance.hairShade!=AvatarHairShade.Original;
-            var cosmeticShade=useShade?CandyCosmeticShade.PlayerShade(cosmeticBasis,appearance.hairShade):default;
+            var playerColor = rig.BaseAppearanceColor;
+            if(primary==lastTeam&&teamed==lastTeamed&&playerColor==lastPlayerColor)return;
+            lastTeam=primary;lastTeamed=teamed;lastPlayerColor=playerColor;
+            bool useShade = appearance.skin == AvatarSkin.Default && appearance.hairShade != AvatarHairShade.Original;
+            Color shade = useShade ? CandyCosmeticShade.PlayerShade(playerColor, appearance.hairShade) : default;
             rig.ApplyBodyPalette(teamed&&appearance.skin==AvatarSkin.Penguin?primary*.10f:primary);
-            foreach(var p in pieces)if(p.renderer){p.renderer.GetPropertyBlock(properties);var color=p.armor?ArmorColor(p.tone,primary,teamed):Color.clear;if(color==Color.clear)color=useShade&&p.shadeable?cosmeticShade:ColorFor(p.tone,primary,teamed);properties.SetColor("_BaseColor",color);properties.SetFloat("_Metallic",p.armor?p.renderer.sharedMaterial.GetFloat("_Metallic"):p.tone==Tone.Armor?.75f:p.tone==Tone.Silver?.85f:0);properties.SetFloat("_Smoothness",p.armor?p.renderer.sharedMaterial.GetFloat("_Smoothness"):p.tone==Tone.Armor||p.tone==Tone.Silver?.88f:.52f);properties.SetColor("_EmissionColor",p.tone==Tone.Glow?color*2:Color.black);p.renderer.SetPropertyBlock(properties);}
+            foreach(var p in pieces)
+            {
+                if(!p.renderer)continue;
+                var material=p.renderer.sharedMaterial;
+                if (p.headgear)
+                {
+                    Color finish = useShade && p.cosmeticShade ? shade : p.finish == Color.clear ? primary : p.finish;
+                    CandyHeadgearMeshes.ApplyFinish(p.renderer, properties, finish);
+                    continue;
+                }
+                if (CandyHairMeshes.IsHairMaterial(material))
+                {
+                    if (useShade) CandyHairMeshes.ApplyShade(p.renderer, properties, shade);
+                    else if (appearance.skin == AvatarSkin.RagDoll || appearance.skin == AvatarSkin.Santa ||
+                        appearance.skin == AvatarSkin.MrsClaus)
+                    {
+                        properties.Clear();
+                        properties.SetColor("_BaseColor", ColorFor(Tone.Hair, primary, teamed));
+                        p.renderer.SetPropertyBlock(properties);
+                    }
+                    else p.renderer.SetPropertyBlock(null);
+                    continue;
+                }
+                if (CandyHairMeshes.IsTieMaterial(material)) continue;
+                if(p.materialIndex<0)p.renderer.GetPropertyBlock(properties);
+                else p.renderer.GetPropertyBlock(properties,p.materialIndex);
+                var color=useShade&&p.cosmeticShade?shade:p.armor?ArmorColor(p.tone,primary,teamed):Color.clear;
+                if(color==Color.clear)color=ColorFor(p.tone,primary,teamed);
+                float smoothness=p.molded?(rig.style?rig.style.smoothness:.78f):
+                    p.tone==Tone.Armor||p.tone==Tone.Silver?.88f:.52f;
+                properties.SetColor("_BaseColor",color);
+                properties.SetFloat("_Metallic",p.armor?material.GetFloat("_Metallic"):p.tone==Tone.Armor?.75f:p.tone==Tone.Silver?.85f:0);
+                properties.SetFloat("_Smoothness",p.armor?material.GetFloat("_Smoothness"):smoothness);
+                properties.SetColor("_EmissionColor",p.tone==Tone.Glow?color*2:Color.black);
+                if(p.materialIndex<0)p.renderer.SetPropertyBlock(properties);
+                else p.renderer.SetPropertyBlock(properties,p.materialIndex);
+            }
         }
         Color ColorFor(Tone tone,Color primary,bool teamed)
         {

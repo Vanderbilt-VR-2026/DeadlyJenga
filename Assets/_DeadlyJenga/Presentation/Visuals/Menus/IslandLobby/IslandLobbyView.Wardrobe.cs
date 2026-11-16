@@ -21,6 +21,9 @@ namespace DeadlyJenga.CastlePrototype
         const int WardrobePageSize=12;
         static readonly string[] wardrobeCategories={"Skin","Hair","Headgear","Eyewear","Outfit","Back","Extras"};
         enum WardrobeSlot { Skin, Hair, Headgear, Eyewear, Outfit, Back, Extras }
+        static readonly string[] cosmeticShadeLabels = { "Original", "Dark", "Match", "Light" };
+        Text wardrobeCosmeticShadeLabel, desktopCosmeticShadeLabel;
+        readonly RectTransform[] desktopCosmeticShadeButtons = new RectTransform[cosmeticShadeLabels.Length];
         readonly struct WardrobeItem
         {
             public readonly string name;
@@ -160,6 +163,17 @@ namespace DeadlyJenga.CastlePrototype
                 tab.selected=()=>wardrobeCategory==selected;
                 CandyStyle(tab);
             }
+            wardrobeCosmeticShadeLabel=Label(wardrobePanel,"Cosmetic shade",211,21,168,34);
+            wardrobeCosmeticShadeLabel.rectTransform.anchoredPosition=new Vector2(-419,211);
+            for(int i=0;i<cosmeticShadeLabels.Length;i++)
+            {
+                var shade=(AvatarHairShade)i;
+                string label=cosmeticShadeLabels[i];
+                var choice=Add(wardrobePanel,"wardrobe-cosmetic-shade-"+i,()=>label,211,
+                    ()=>SetCosmeticShade(shade),()=>wardrobeOpen,(i-1.5f)*163,153,34,CanChooseCosmeticShade);
+                choice.selected=()=>wardrobeAvatar?.Appearance.hairShade==shade;
+                CandyStyle(choice);
+            }
             for(int i=0;i<WardrobePageSize;i++)
             {
                 int item=i;
@@ -168,8 +182,8 @@ namespace DeadlyJenga.CastlePrototype
                 choice.selected=()=>HasWardrobeItem(item)&&IsEquipped(wardrobeResolution.effective,(WardrobeSlot)wardrobeCategory,ItemAt(item));
                 CandyStyle(choice);
             }
-            CandyStyle(Add(wardrobePanel,"wardrobe-clear",()=>"Previous",-240,()=>ChangeWardrobePage(-1),()=>wardrobePage>0,-263,250,48,()=>WardrobePages>1));
-            CandyStyle(Add(wardrobePanel,"wardrobe-reset",()=>"Next",-240,()=>ChangeWardrobePage(1),()=>wardrobePage+1<WardrobePages,263,250,48,()=>WardrobePages>1));
+            CandyStyle(Add(wardrobePanel,"wardrobe-clear",()=>"Previous",-240,()=>ChangeWardrobePage(-1),()=>wardrobePage>0,-263,250,48,()=>CanChooseWardrobeItems()&&WardrobePages>1));
+            CandyStyle(Add(wardrobePanel,"wardrobe-reset",()=>"Next",-240,()=>ChangeWardrobePage(1),()=>wardrobePage+1<WardrobePages,263,250,48,()=>CanChooseWardrobeItems()&&WardrobePages>1));
             wardrobePageLabel=Label(wardrobePanel,"",-240,23,240,48);
             CandyStyle(Add(wardrobePanel,"wardrobe-player-name",()=>"Player name: "+(DeadlyJenga.Presentation.NearbyRoomUi.Controls?.PlayerName??"Player"),-315,()=>{SetWardrobeOpen(false);DeadlyJenga.Presentation.NearbyRoomUi.OpenProfile();},()=>wardrobeOpen,0,1032,56));
             wardrobeStatus=Label(wardrobePanel,"",-309,24,1020,62);
@@ -202,7 +216,9 @@ namespace DeadlyJenga.CastlePrototype
         IAvatarAppearance AppearanceTarget()=>Player?.gameObject.GetComponent<IAvatarAppearance>()??Player?.gameObject.GetComponentInChildren<IAvatarAppearance>();
 
         Text wardrobePageLabel;
-        bool HasWardrobeItem(int slot)=>wardrobeAvatar!=null&&wardrobePage*WardrobePageSize+slot<wardrobeItems[wardrobeCategory].Length;
+        bool CanChooseWardrobeItems() => wardrobeAvatar != null &&
+            ((WardrobeSlot)wardrobeCategory == WardrobeSlot.Skin || wardrobeAvatar.Appearance.skin == AvatarSkin.Default);
+        bool HasWardrobeItem(int slot)=>CanChooseWardrobeItems()&&wardrobePage*WardrobePageSize+slot<wardrobeItems[wardrobeCategory].Length;
         WardrobeItem ItemAt(int slot)=>wardrobeItems[wardrobeCategory][wardrobePage*WardrobePageSize+slot];
         string ItemName(int index)
         {
@@ -231,29 +247,10 @@ namespace DeadlyJenga.CastlePrototype
             AvatarEyewear.SafetyGoggles or AvatarEyewear.RoundSunglasses or AvatarEyewear.HalfMoon=>AvatarEyewear.Round,
             _=>eyewear
         };
-        const AvatarAccessory Horns=AvatarAccessory.UnicornHorn|AvatarAccessory.DevilHorns;
-        const AvatarAccessory Antennae=AvatarAccessory.AntAntennae|AvatarAccessory.RobotAntenna;
-        const AvatarAccessory Ears=AvatarAccessory.RabbitEars|AvatarAccessory.CatEars;
-
-        static bool SharesWardrobeSlot(WardrobeSlot slot,WardrobeItem first,WardrobeItem second)
-        {
-            if(slot==WardrobeSlot.Extras)return first.accessory==second.accessory;
-            if(slot!=WardrobeSlot.Headgear)return true;
-            return Group(first)==Group(second);
-
-            static AvatarAccessory Group(WardrobeItem item)
-            {
-                if((item.accessory&Horns)!=0)return Horns;
-                if((item.accessory&Antennae)!=0)return Antennae;
-                if((item.accessory&Ears)!=0)return Ears;
-                if(item.accessory==AvatarAccessory.Halo||item.accessory==AvatarAccessory.Headphones)return item.accessory;
-                return AvatarAccessory.None;
-            }
-        }
-
         static AvatarAppearance SetItem(AvatarAppearance value,WardrobeSlot slot,WardrobeItem item,bool equip)
         {
             if(slot==WardrobeSlot.Skin){value.skin=(AvatarSkin)item.style;return value;}
+            if (value.skin != AvatarSkin.Default) return value;
             if(!equip)
             {
                 value.accessories&=~item.accessory;
@@ -265,10 +262,16 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(slot==WardrobeSlot.Hair)value.hair=AvatarHair.None;
             if(slot==WardrobeSlot.Eyewear)value.eyewear=AvatarEyewear.None;
-            if(slot==WardrobeSlot.Outfit)value.poweredArmor=false;
+            const AvatarClothing otherOuterLayers = AvatarClothing.MonkRobe | AvatarClothing.Tuxedo |
+                AvatarClothing.BomberJacket | AvatarClothing.SailorShirt | AvatarClothing.PufferVest;
+            if (item.clothing == AvatarClothing.Hoodie) value.clothing &= ~otherOuterLayers;
+            if (slot == WardrobeSlot.Outfit)
+            {
+                value.poweredArmor = false;
+                if ((item.clothing & otherOuterLayers) != 0) value.clothing &= ~AvatarClothing.Hoodie;
+            }
             foreach(var other in wardrobeItems[(int)slot])
             {
-                if(!SharesWardrobeSlot(slot,item,other))continue;
                 value.accessories&=~other.accessory;
                 value.clothing&=~other.clothing;
             }
@@ -280,7 +283,7 @@ namespace DeadlyJenga.CastlePrototype
             return value;
         }
         void SetWardrobeCategory(int category){wardrobeCategory=category;wardrobePage=0;RefreshWardrobeLabels();}
-        void ChangeWardrobePage(int delta){wardrobePage=Mathf.Clamp(wardrobePage+delta,0,WardrobePages-1);RefreshWardrobeLabels();}
+        void ChangeWardrobePage(int delta){if(!CanChooseWardrobeItems())return;wardrobePage=Mathf.Clamp(wardrobePage+delta,0,WardrobePages-1);RefreshWardrobeLabels();}
         bool ChooseWardrobeEntry(int index)
         {
             if(!wardrobeOpen||index<0||index>=WardrobePageSize||!HasWardrobeItem(index))return false;
@@ -293,9 +296,21 @@ namespace DeadlyJenga.CastlePrototype
             wardrobeAvatar.ApplyAppearance(SetItem(value,slot,item,!IsEquipped(value,slot,item)));
             RefreshWardrobeLabels();
         }
+
+        bool CanChooseCosmeticShade() => wardrobeAvatar != null && wardrobeAvatar.Appearance.skin == AvatarSkin.Default;
+
+        void SetCosmeticShade(AvatarHairShade shade)
+        {
+            if (!wardrobeOpen || !CanChooseCosmeticShade()) return;
+            var look = wardrobeAvatar.Appearance;
+            if (look.hairShade == shade) return;
+            look.hairShade = shade;
+            wardrobeAvatar.ApplyAppearance(look);
+            RefreshWardrobeLabels();
+        }
         public bool ToggleAccessory(int index)
         {
-            if(!wardrobeOpen||wardrobeAvatar==null||index<0||index>=12)return false;
+            if(!wardrobeOpen||!CanChooseCosmeticShade()||index<0||index>=12)return false;
             var accessory=(AvatarAccessory)(1u<<index);
             for(int i=0;i<wardrobeItems.Length;i++)
             {
@@ -398,10 +413,18 @@ namespace DeadlyJenga.CastlePrototype
                 int category=i;
                 DesktopButton(panel,wardrobeCategories[i],242,(i-3)*82,79,46,()=>SetWardrobeCategory(category),"Category "+i);
             }
+            desktopCosmeticShadeLabel=Label(panel,"Cosmetic shade",202,15,102,30);
+            desktopCosmeticShadeLabel.rectTransform.anchoredPosition=new Vector2(-240,202);
+            for(int i=0;i<cosmeticShadeLabels.Length;i++)
+            {
+                var shade=(AvatarHairShade)i;
+                desktopCosmeticShadeButtons[i]=DesktopButton(panel,cosmeticShadeLabels[i],202,-137+i*108,102,32,
+                    ()=>SetCosmeticShade(shade),"Cosmetic shade "+i);
+            }
             for(int i=0;i<WardrobePageSize;i++)
             {
                 int item=i;
-                DesktopButton(panel,ItemName(i),173-i/2*59,i%2==0?-145:145,277,51,()=>ChooseWardrobeEntry(item),"Accessory "+i);
+                DesktopButton(panel,ItemName(i),155-i/2*56,i%2==0?-145:145,277,49,()=>ChooseWardrobeEntry(item),"Accessory "+i);
             }
             DesktopButton(panel,"Previous",-192,-145,180,46,()=>ChangeWardrobePage(-1),"Previous category");
             DesktopButton(panel,"Next",-192,145,180,46,()=>ChangeWardrobePage(1),"Next category");
@@ -437,9 +460,12 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(wardrobeAvatar==null)return;
             RefreshWardrobeLayout();
-            string page=WardrobePages>1?$"{wardrobePage+1} / {WardrobePages}":"";
+            bool showItems=CanChooseWardrobeItems();
+            string page=showItems&&WardrobePages>1?$"{wardrobePage+1} / {WardrobePages}":"";
             wardrobePageLabel.text=page;
             var current=wardrobeAvatar.Appearance;
+            bool showCosmeticShade=CanChooseCosmeticShade();
+            wardrobeCosmeticShadeLabel.gameObject.SetActive(showCosmeticShade);
             if(wardrobeLastCategory==wardrobeCategory&&wardrobeLastPage==wardrobePage&&wardrobeLastAppearance.Equals(current))return;
             if(wardrobeLastCategory<0||!wardrobeLastAppearance.Equals(current))InvalidateWardrobeGeometry();
             wardrobeLastCategory=wardrobeCategory;wardrobeLastPage=wardrobePage;wardrobeLastAppearance=current;
@@ -447,13 +473,20 @@ namespace DeadlyJenga.CastlePrototype
                 ??new AvatarWardrobeResolution{effective=current};
             bool hasHiddenItems=wardrobeResolution.hiddenHair||wardrobeResolution.hiddenAccessories!=0||
                 wardrobeResolution.hiddenClothing!=0||wardrobeResolution.effective.eyewear!=current.eyewear;
-            wardrobeStatus.text=hasHiddenItems?wardrobeResolution.reason:"";
+            wardrobeStatus.text=hasHiddenItems||current.skin!=AvatarSkin.Default?wardrobeResolution.reason:"";
             if(!wardrobeDesktop)return;
+            desktopCosmeticShadeLabel.gameObject.SetActive(showCosmeticShade);
+            for(int i=0;i<desktopCosmeticShadeButtons.Length;i++)
+            {
+                var button=desktopCosmeticShadeButtons[i];
+                button.gameObject.SetActive(showCosmeticShade);
+                if(showCosmeticShade)Paint(button,(AvatarHairShade)i==current.hairShade);
+            }
             desktopWardrobeStatus.text=wardrobeStatus.text;
             var options=wardrobeDesktop.Find("Options");
             desktopPageLabel.text=page;
-            options.Find("Previous category").gameObject.SetActive(wardrobePage>0);
-            options.Find("Next category").gameObject.SetActive(wardrobePage+1<WardrobePages);
+            options.Find("Previous category").gameObject.SetActive(showItems&&wardrobePage>0);
+            options.Find("Next category").gameObject.SetActive(showItems&&wardrobePage+1<WardrobePages);
             for(int i=0;i<wardrobeCategories.Length;i++)Paint(options.Find("Category "+i),wardrobeCategory==i);
             for(int i=0;i<WardrobePageSize;i++)
             {

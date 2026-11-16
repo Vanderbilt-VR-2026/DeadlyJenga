@@ -10,8 +10,8 @@ namespace DeadlyJenga.CandyPlayers
         CandyAvatarWardrobe wardrobe;
         CandyJaguarAppearance jaguar;
         CandyMushroomAppearance mushroom;
+        MaterialPropertyBlock cosmeticTint;
         [SerializeField] MeshRenderer[] renderers;
-        MaterialPropertyBlock tintedProperties;
         public AvatarAppearance Appearance=>appearance;
         public void Apply(CandyPlayerRig rig,AvatarAppearance value)
         {
@@ -19,13 +19,13 @@ namespace DeadlyJenga.CandyPlayers
             value=CandyPlayerAvatar.SanitizeAppearance(value);
             value.poweredArmor=equippedArmor;
             value=CandyWardrobeCompatibility.Resolve(value).effective;
-            if(rig.headRenderer)rig.headRenderer.enabled=(value.accessories&AvatarAccessory.SkeletonMask)==0;
+            if(rig.headRenderer)rig.headRenderer.enabled=(value.accessories&CandyHeadgearMeshes.SculptedHeads)==0;
             if(!wardrobe)wardrobe=GetComponent<CandyAvatarWardrobe>();if(!wardrobe)wardrobe=gameObject.AddComponent<CandyAvatarWardrobe>();
             wardrobe.Apply(rig,value);
             if(!mushroom)mushroom=GetComponent<CandyMushroomAppearance>();
             bool showMushroom=value.skin==AvatarSkin.MushroomSprite&&!value.poweredArmor;
             if(!mushroom&&showMushroom)mushroom=gameObject.AddComponent<CandyMushroomAppearance>();
-            if(mushroom)mushroom.Apply(rig,showMushroom,(value.accessories&AvatarAccessory.SkeletonMask)!=0);
+            if(mushroom)mushroom.Apply(rig,showMushroom,(value.accessories&CandyHeadgearMeshes.ReplacementHeads)!=0);
             const AvatarAccessory feline=AvatarAccessory.PantherHead|AvatarAccessory.PantherClaws|AvatarAccessory.PantherTail;
             if(!jaguar)jaguar=GetComponent<CandyJaguarAppearance>();
             if(!jaguar&&(value.accessories&feline)!=0)jaguar=gameObject.AddComponent<CandyJaguarAppearance>();
@@ -42,7 +42,7 @@ namespace DeadlyJenga.CandyPlayers
             for(int i=0;i<32;i++)
             {
                 var option=(AvatarAccessory)(1u<<i);if((value.accessories&option)==0)continue;
-                if((option&feline)!=0||option==AvatarAccessory.PumpkinHelmet)continue;
+                if((option&(feline|CandyHeadgearMeshes.RemodeledAttachments))!=0)continue;
                 if(option==AvatarAccessory.PantherClaws){Add(option,rig.LeftPalm);Add(option,rig.RightPalm);}
                 else Add(option,option==AvatarAccessory.Cape||option==AvatarAccessory.PantherTail||option==AvatarAccessory.AngelWings||option==AvatarAccessory.ButterflyWings||option==AvatarAccessory.DragonWings?rig.BodyAnchor:rig.HeadAnchor);
             }
@@ -56,15 +56,34 @@ namespace DeadlyJenga.CandyPlayers
         public void RefreshPalette(CandyPlayerRig rig){if(wardrobe)wardrobe.RefreshPalette(rig);}
         public void Tint(CandyPlayerRig rig)
         {
-            if(renderers==null||!rig.bodyRenderer)return;var properties=new MaterialPropertyBlock();rig.bodyRenderer.GetPropertyBlock(properties);
-            if(appearance.skin==AvatarSkin.Default && appearance.hairShade!=AvatarHairShade.Original)
+            if (!rig.bodyRenderer) return;
+            if (wardrobe) wardrobe.RefreshPalette(rig);
+            bool useShade = appearance.skin == AvatarSkin.Default && appearance.hairShade != AvatarHairShade.Original;
+            Color shade = useShade ? CandyCosmeticShade.PlayerShade(rig.BaseAppearanceColor,appearance.hairShade) : default;
+            if (jaguar) jaguar.Tint(useShade ? shade : (Color?)null);
+            if (renderers == null) return;
+            var original = new MaterialPropertyBlock();
+            rig.bodyRenderer.GetPropertyBlock(original);
+            foreach (var renderer in renderers)
             {
-                tintedProperties??=new MaterialPropertyBlock();
-                rig.bodyRenderer.GetPropertyBlock(tintedProperties);
-                tintedProperties.SetColor("_BaseColor",CandyCosmeticShade.PlayerShade(rig.BaseAppearanceColor,appearance.hairShade));
-                properties=tintedProperties;
+                if (!renderer) continue;
+                if (renderer.name == "Attachment - Mohawk")
+                {
+                    renderer.sharedMaterial = CandyHairMeshes.Glaze(rig.bodyRenderer.sharedMaterial);
+                    if (useShade) CandyHairMeshes.ApplyShade(renderer, cosmeticTint ??= new MaterialPropertyBlock(),shade);
+                    else renderer.SetPropertyBlock(null);
+                    continue;
+                }
+                renderer.sharedMaterial = rig.bodyRenderer.sharedMaterial;
+                renderer.SetPropertyBlock(original);
+                if (useShade)
+                {
+                    cosmeticTint ??= new MaterialPropertyBlock();
+                    renderer.GetPropertyBlock(cosmeticTint);
+                    cosmeticTint.SetColor("_BaseColor",shade);
+                    renderer.SetPropertyBlock(cosmeticTint);
+                }
             }
-            foreach(var r in renderers)if(r){r.sharedMaterial=rig.bodyRenderer.sharedMaterial;r.SetPropertyBlock(properties);}
         }
         public void FirstPerson(CandyPlayerRig rig,bool active)
         {
