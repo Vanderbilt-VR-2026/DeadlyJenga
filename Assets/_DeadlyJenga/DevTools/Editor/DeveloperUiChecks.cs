@@ -215,6 +215,14 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return Shot("32-disaster-"+disaster.ToString("00")+"-tuning.png");
             }
             Back();Back();
+            CharacterPicker.Open(session);yield return null;
+            var appearance=session.GetComponent<CharacterPicker>();Check(appearance,"Hand appearance panel opens");
+            Capture(camera,Field<Canvas>(appearance,"panel"),"33-hand-appearance.png");Call(appearance,"Close",true);
+            yield return null;
+            GameExperiencePanel.Open(session);yield return null;
+            var experience=session.GetComponent<GameExperiencePanel>();Check(experience,"Round setup panel opens");
+            Capture(camera,Field<Canvas>(experience,"canvas"),"34-round-setup.png");Call(experience,"Close",true);
+            yield return null;menu.Show(true,camera);Call(menu,"OpenPlayerTabletPage",Enum.Parse(pageType,"Developer"));Draw();
             var god=session.Player.gameObject.GetComponent<IDeveloperGodMode>();Check(god?.CanSetGodMode==true,"God Mode permitted in local Demo");
             TabletClick(menu,"God mode");Check(god.GodModeEnabled,"God Mode toggles on");
             var damage=session.Player.gameObject.GetComponent<IDamageable>();float health=damage.Health;
