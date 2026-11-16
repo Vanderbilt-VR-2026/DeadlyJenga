@@ -140,12 +140,15 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < count; i++)
             {
                 Vector2 cardPos = new Vector2((i % 3 - 1) * 320f, 150f - (i / 3) * 112f);
-                var card = CreateWheelCard(disasterWheelUI.transform, cardPos, new Vector2(300, 102), new Vector2(70, -29), new Vector2(64, 28));
+                var card = CreateWheelCard(disasterWheelUI.transform, cardPos, new Vector2(300, 102), new Vector2(64, -28), new Vector2(132, 32));
                 card.picture.rectTransform.sizeDelta = new Vector2(100, 76);
                 card.picture.rectTransform.anchoredPosition = new Vector2(-91, 0);
                 card.title.rectTransform.sizeDelta = new Vector2(174, 44);
                 card.title.rectTransform.anchoredPosition = new Vector2(54, 17);
-                card.title.fontSize = 17;
+                card.title.fontSize = 19;
+                card.title.color = TabletCream;
+                card.playLabel.text = "▶ Launch";
+                card.playLabel.fontSize = 15;
                 disasterCards.Add(card);
             }
 

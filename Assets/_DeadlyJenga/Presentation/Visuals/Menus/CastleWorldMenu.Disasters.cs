@@ -50,15 +50,17 @@ namespace DeadlyJenga.CastlePrototype
                 var definitions=Demo.DisasterParameters(disasterSelection);var values=Demo.DisasterValues(disasterSelection);
                 heading.text=Demo.DisasterLabel(disasterSelection).ToUpperInvariant()+"\n<size=17><color=#d0b8d8>Settings apply to the next launch</color></size>";
                 heading.rectTransform.anchoredPosition=new Vector2(0,232);
-                heading.fontSize=24;
+                heading.fontSize=28;
+                heading.rectTransform.sizeDelta=new Vector2(900,64);
+                heading.color=TabletCream;
                 ButtonAt(1,Demo.DisasterIsToggle(disasterSelection)?"Toggle on / off":"Launch disaster",175,allowed);
                 ButtonAt(9,(developerDisasterTuning?"Hide":"Show")+" tuning",123);
                 for(int i=0;developerDisasterTuning&&i<definitions.Count&&i<8;i++)
                 {
                     if(definitions[i].whole&&definitions[i].min==0&&definitions[i].max==1)
-                    {switchParameter=i;ButtonAt(11,definitions[i].label+" · "+(values[i]>.5f?"ON":"OFF"),70-i*39,allowed);continue;}
+                    {switchParameter=i;ButtonAt(11,definitions[i].label+" · "+(values[i]>.5f?"ON":"OFF"),60-(i/2)*74,allowed);((RectTransform)buttons[11].transform).anchoredPosition=new Vector2(i%2==0?-245:245,60-(i/2)*74);continue;}
                     var slider=disasterSliders[i];var p=definitions[i];syncingDisasterSliders=true;slider.minValue=p.min;slider.maxValue=p.max;slider.wholeNumbers=p.whole;slider.SetValueWithoutNotify(values[i]);syncingDisasterSliders=false;
-                    slider.interactable=allowed;slider.gameObject.SetActive(true);((RectTransform)slider.transform).anchoredPosition=new Vector2(0,70-i*39);UpdateCaption(i,disasterSelection);
+                    slider.interactable=allowed;slider.gameObject.SetActive(true);((RectTransform)slider.transform).anchoredPosition=new Vector2(i%2==0?-245:245,60-(i/2)*74);UpdateCaption(i,disasterSelection);
                 }
                 ButtonAt(10,"Stop all disasters",-235,allowed);ButtonAt(12,"◄ Back to disasters",-287);
             }
@@ -69,7 +71,7 @@ namespace DeadlyJenga.CastlePrototype
             for(int i=0;i<buttons.Length;i++)
             {
                 if(!buttons[i].gameObject.activeSelf)continue;
-                bool hover=Hit(targets[i],ray);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover?CandyHudVisuals.Ink:Color.white;
+                bool hover=Hit(targets[i],ray);buttons[i].image.color=hover?CandyHudVisuals.Lavender:i==1?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover||i==1?CandyHudVisuals.Ink:TabletCream;
                 if(!hover||!pressed||!targets[i].enabled)continue;
                 if(i==0)session.SetMenu(false);
                 else if(i==9)developerDisasterTuning=!developerDisasterTuning;

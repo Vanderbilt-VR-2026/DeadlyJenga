@@ -614,18 +614,19 @@ namespace DeadlyJenga.CastlePrototype
 
         void BuildTabletControls(RectTransform page)
         {
-            TabletText(page,"HOW TO PLAY",new(0,211),new(960,70),54);
-            TabletRule(page,new(0,143),new(685,47),TabletCream);
-            tabletInputLayout=TabletText(page,"",new(0,143),new(650,44),25);
-            tabletInputLayout.color=TabletPlum;
-            leftInputTitle=TabletText(page,"LEFT HAND",new(-245,83),new(360,38),30);
-            rightInputTitle=TabletText(page,"RIGHT HAND",new(245,83),new(360,38),30);
-            leftController=TabletPicture(page,CandyHudVisuals.ControllerDiagram(0,true),new(-245,-28),new(158,175));
-            rightController=TabletPicture(page,CandyHudVisuals.ControllerDiagram(0,false),new(245,-28),new(158,175));
-            leftControllerHelp=TabletText(page,"",new(-245,-164),new(460,94),29);
-            rightControllerHelp=TabletText(page,"",new(245,-164),new(460,94),29);
+            TabletText(page,"CONTROLS",new(0,211),new(960,60),42);
+            tabletInputLayout=TabletText(page,"",new(0,157),new(900,38),23);
+            tabletInputLayout.color=CandyHudVisuals.Muted;
+            TabletRule(page,new(-245,-35),new(466,330),TabletPanel);
+            TabletRule(page,new(245,-35),new(466,330),TabletPanel);
+            leftInputTitle=TabletText(page,"LEFT HAND",new(-245,89),new(420,38),27);
+            rightInputTitle=TabletText(page,"RIGHT HAND",new(245,89),new(420,38),27);
+            leftController=TabletPicture(page,CandyHudVisuals.ControllerDiagram(0,true),new(-245,-10),new(125,126));
+            rightController=TabletPicture(page,CandyHudVisuals.ControllerDiagram(0,false),new(245,-10),new(125,126));
+            leftControllerHelp=TabletText(page,"",new(-245,-125),new(426,106),24);
+            rightControllerHelp=TabletText(page,"",new(245,-125),new(426,106),24);
             if (session is not ILobbyControls)
-                TabletControl(tabletActions,page,()=>"Replay quick tutorial",new(0,-271),new(480,63),()=>{
+                TabletControl(tabletActions,page,()=>"Replay quick tutorial",new(0,-251),new(480,58),()=>{
                     (session as Component)?.GetComponent<CandyDemoHud>()?.ReplayIntro();
                     session.SetMenu(false);
                 },accent:TabletCream);
@@ -748,9 +749,9 @@ namespace DeadlyJenga.CastlePrototype
             tabletDeveloperWeapons.anchoredPosition = Vector2.zero;
             tabletDeveloperWeapons.gameObject.SetActive(false);
 
-            TabletText(tabletDeveloperWeapons, "RANGED WEAPONS", new Vector2(-320, 205), new Vector2(280, 36), 22);
-            TabletText(tabletDeveloperWeapons, "MELEE WEAPONS", new Vector2(75, 205), new Vector2(280, 36), 22);
-            TabletText(tabletDeveloperWeapons, "POWERUPS", new Vector2(420, 205), new Vector2(200, 36), 22);
+            TabletText(tabletDeveloperWeapons, "RANGED WEAPONS", new Vector2(-310, 218), new Vector2(280, 36), 22);
+            TabletText(tabletDeveloperWeapons, "MELEE WEAPONS", new Vector2(65, 218), new Vector2(280, 36), 22);
+            TabletText(tabletDeveloperWeapons, "POWERUPS", new Vector2(420, 218), new Vector2(200, 36), 22);
 
             var rangedItems = WheelGroups[0];
             var meleeItems = WheelGroups[1];
@@ -761,60 +762,57 @@ namespace DeadlyJenga.CastlePrototype
             tabletWheelSlotPictures = new RawImage[totalSlots];
             int slotIdx = 0;
 
-            // Ranged Wheel (8 slots, radius 125 around (-320, 10))
-            Vector2 rangedCenter = new Vector2(-320, 10);
+            // Keep the existing three groups visible with readable, aligned choices.
+            Vector2 rangedCenter = new Vector2(420, -218);
             for (int i = 0; i < rangedItems.Length; i++)
             {
                 var kind = rangedItems[i];
-                float angle = (i * (360f / rangedItems.Length) + 90f) * Mathf.Deg2Rad;
-                Vector2 pos = rangedCenter + new Vector2(Mathf.Cos(angle) * 125f, Mathf.Sin(angle) * 125f);
+                Vector2 pos = new Vector2(-402 + (i % 2) * 184, 154 - (i / 2) * 74);
                 string name = CleanWeaponSlotName(kind);
+                if(name.StartsWith("DUAL ALIEN"))name="Spiker Uzis";
                 int cur = slotIdx++;
                 var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => name,
-                    pos, new Vector2(96, 60), () => SelectWeaponKind(kind),
-                    selected: () => tabletWeaponSelected == kind, font: 12);
+                    pos, new Vector2(176, 66), () => SelectWeaponKind(kind),
+                    selected: () => tabletWeaponSelected == kind, font: 16);
                 slot.Label.resizeTextForBestFit = true;
-                slot.Label.resizeTextMinSize = 9;
-                slot.Label.resizeTextMaxSize = 12;
-                slot.Label.rectTransform.anchoredPosition = new Vector2(0, -18);
-                slot.Label.rectTransform.sizeDelta = new Vector2(92, 20);
-                var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(0, 11), new Vector2(62, 32));
+                slot.Label.resizeTextMinSize = 15;
+                slot.Label.resizeTextMaxSize = 16;
+                slot.Label.rectTransform.anchoredPosition = new Vector2(28, 0);
+                slot.Label.rectTransform.sizeDelta = new Vector2(112, 56);
+                var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(-57, 0), new Vector2(52, 46));
                 tabletWheelSlotButtons[cur] = slot;
                 tabletWheelSlotPictures[cur] = pic;
                 SetPictureSprite(pic, CandyWeaponIcons.Get(kind), kind);
             }
 
-            // Target Toggle in Center of Ranged Wheel
-            TabletControl(tabletActions, tabletDeveloperWeapons, () => tabletGiveAll ? "TARGET:\nALL" : "TARGET:\nME",
-                rangedCenter, new Vector2(104, 52), () => {
+            TabletControl(tabletActions, tabletDeveloperWeapons, () => tabletGiveAll ? "Target: everyone" : "Target: myself",
+                rangedCenter, new Vector2(210, 40), () => {
                     tabletGiveAll = !tabletGiveAll;
                     if (!tabletGiveAll) tabletRepeat = false;
-                }, font: 13, accent: TabletPanel);
+                }, font: 17, accent: TabletPanel);
 
-            // Melee Wheel (11 slots, radius 150 around (75, 10))
-            Vector2 meleeCenter = new Vector2(75, 10);
+            Vector2 meleeCenter = new Vector2(-430, -214);
             for (int i = 0; i < meleeItems.Length; i++)
             {
                 var kind = meleeItems[i];
-                float angle = (i * (360f / meleeItems.Length) + 90f) * Mathf.Deg2Rad;
-                Vector2 pos = meleeCenter + new Vector2(Mathf.Cos(angle) * 150f, Mathf.Sin(angle) * 150f);
+                Vector2 pos = new Vector2(-26 + (i % 2) * 184, 154 - (i / 2) * 74);
                 string name = CleanWeaponSlotName(kind);
+                if(name.StartsWith("DUAL ALIEN"))name="Spiker Uzis";
                 int cur = slotIdx++;
                 var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => name,
-                    pos, new Vector2(94, 56), () => SelectWeaponKind(kind),
-                    selected: () => tabletWeaponSelected == kind, font: 11);
+                    pos, new Vector2(176, 66), () => SelectWeaponKind(kind),
+                    selected: () => tabletWeaponSelected == kind, font: 16);
                 slot.Label.resizeTextForBestFit = true;
-                slot.Label.resizeTextMinSize = 9;
-                slot.Label.resizeTextMaxSize = 11;
-                slot.Label.rectTransform.anchoredPosition = new Vector2(0, -17);
-                slot.Label.rectTransform.sizeDelta = new Vector2(90, 18);
-                var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(0, 10), new Vector2(58, 28));
+                slot.Label.resizeTextMinSize = 15;
+                slot.Label.resizeTextMaxSize = 16;
+                slot.Label.rectTransform.anchoredPosition = new Vector2(28, 0);
+                slot.Label.rectTransform.sizeDelta = new Vector2(112, 56);
+                var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(-57, 0), new Vector2(52, 46));
                 tabletWheelSlotButtons[cur] = slot;
                 tabletWheelSlotPictures[cur] = pic;
                 SetPictureSprite(pic, CandyWeaponIcons.Get(kind), kind);
             }
 
-            // Center Preview in Melee Wheel
             var centerBtn = TabletControl(tabletActions, tabletDeveloperWeapons, () => "",
                 meleeCenter, new Vector2(96, 60), GiveSelectedWeapon, font: 11, accent: TabletPanel);
             tabletCenterWeaponPicture = TabletPicture((RectTransform)centerBtn.Button.transform, null, Vector2.zero, new Vector2(80, 48));
@@ -847,12 +845,12 @@ namespace DeadlyJenga.CastlePrototype
                 allowed: CanToggleHolster, font: 17, accent: TabletCoral);
 
             // Selection info & stats
-            tabletSelectedWeaponTitle = TabletText(tabletDeveloperWeapons, "", new Vector2(-120, -195), new Vector2(340, 30), 20);
-            tabletSelectedWeaponStats = TabletText(tabletDeveloperWeapons, "", new Vector2(-120, -225), new Vector2(340, 30), 15);
+            tabletSelectedWeaponTitle = TabletText(tabletDeveloperWeapons, "", new Vector2(-95, -202), new Vector2(540, 30), 20);
+            tabletSelectedWeaponStats = TabletText(tabletDeveloperWeapons, "", new Vector2(-95, -230), new Vector2(540, 30), 15);
 
             // Bottom Merged Row: Back to Developer Tools
             TabletControl(tabletActions, tabletDeveloperWeapons, () => "◄ Back to Developer Tools",
-                new Vector2(0, -270), new Vector2(980, 48), CloseWeaponWheel, accent: TabletPanel, font: 24);
+                new Vector2(0, -287), new Vector2(980, 48), CloseWeaponWheel, accent: TabletPanel, font: 24);
         }
 
         void SelectWeaponKind(EquipmentKind kind)

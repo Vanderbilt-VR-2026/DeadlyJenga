@@ -82,10 +82,10 @@ namespace DeadlyJenga.CastlePrototype
             var image=root.AddComponent<Image>();
             image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=CandyHudVisuals.Ink;image.raycastTarget=false;
             Label("HAND APPEARANCE",new Vector2(0,107),new Vector2(480,44),27);
-            nameLabel=Label("",new Vector2(0,32),new Vector2(332,62),32);
+            nameLabel=Label("",new Vector2(0,32),new Vector2(332,62),28);
             Add("Previous",new Vector2(-210,32),new Vector2(68,72),"<",()=>Pick(-1));
             Add("Next",new Vector2(210,32),new Vector2(68,72),">",()=>Pick(1));
-            Label("Choose a look for your flying hand",new Vector2(0,-34),new Vector2(474,40),20).color=CandyHudVisuals.Muted;
+            Label("Choose a look for your flying hand",new Vector2(0,-34),new Vector2(474,40),18).color=CandyHudVisuals.Muted;
             Add("Recenter",new Vector2(-123,-103),new Vector2(226,62),"Recenter",Anchor);
             Add("Close",new Vector2(123,-103),new Vector2(226,62),"Done",()=>Close(true));
             aimDot=DeadlyJenga.Presentation.MenuAim.CreateReticle(panel.transform);
@@ -98,8 +98,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             var rect=new GameObject("Appearance label",typeof(RectTransform),typeof(Text)).GetComponent<RectTransform>();
             rect.SetParent(panel.transform,false);rect.anchoredPosition=position;rect.sizeDelta=size;
-            var text=rect.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.text=value;text.fontSize=fontSize;text.alignment=TextAnchor.MiddleCenter;text.color=Color.white;text.raycastTarget=false;
+            var text=rect.GetComponent<Text>();text.font=Resources.Load<Font>("Fonts/Fredoka-Bold")??Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.text=value;text.fontSize=fontSize;text.alignment=TextAnchor.MiddleCenter;text.color=new Color(1f,.96f,.79f);text.raycastTarget=false;
             return text;
         }
         void Add(string name,Vector2 position,Vector2 size,string title,Action action)
@@ -107,7 +107,7 @@ namespace DeadlyJenga.CastlePrototype
             var rect=new GameObject(name,typeof(RectTransform),typeof(Image)).GetComponent<RectTransform>();
             rect.SetParent(panel.transform,false);rect.anchoredPosition=position;rect.sizeDelta=size;
             var image=rect.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=CandyHudVisuals.Card;image.raycastTarget=false;
-            var text=Label(title,Vector2.zero,size-new Vector2(10,4),26);text.transform.SetParent(rect,false);
+            var text=Label(title,Vector2.zero,size-new Vector2(24,8),23);text.transform.SetParent(rect,false);
             buttons.Add(rect);actions.Add(action);
         }
         void Pick(int step)

@@ -609,7 +609,7 @@ namespace DeadlyJenga.CastlePrototype
                 heading.rectTransform.sizeDelta = new Vector2(900, 50);
                 heading.fontSize = 28;
                 heading.fontStyle = FontStyle.Bold;
-                heading.color = CandyHudVisuals.Mint;
+                heading.color = TabletCream;
             }
             if (help != null)
             {
@@ -621,11 +621,10 @@ namespace DeadlyJenga.CastlePrototype
             int total = names.Count;
             bool twoCols = total > 6;
             int rowsPerCol = twoCols ? (total + 1) / 2 : total;
-            float btnW = twoCols ? 480f : 980f;
-            float btnH = twoCols ? Mathf.Min(58f, (460f / Mathf.Max(1, rowsPerCol)) - 8f) : Mathf.Clamp(440f / Mathf.Max(1,total) - 12f, 74f, 88f);
+            float btnW = twoCols ? 472f : 944f;
+            float btnH = Mathf.Min(68f, 456f / Mathf.Max(1, rowsPerCol) - 12f);
             float rowHeight = twoCols ? btnH + 10f : btnH + 12f;
-            float verticalCenter = -45f;
-            float startY = verticalCenter + (rowsPerCol - 1) * rowHeight * 0.5f;
+            float startY = 164f - btnH * .5f;
 
             for(int i=0;i<buttons.Length;i++)
             {
@@ -646,22 +645,24 @@ namespace DeadlyJenga.CastlePrototype
                 labels[i].text=names[i];
                 labels[i].fontSize = twoCols ? (btnH < 50 ? 17 : 20) : (total <= 5 ? 26 : 22);
                 labels[i].fontStyle = FontStyle.Bold;
-                labels[i].alignment = twoCols ? TextAnchor.MiddleCenter : TextAnchor.MiddleLeft;
-                labels[i].rectTransform.sizeDelta = new Vector2(twoCols ? btnW - 80 : btnW - 130, btnH);
-                labels[i].rectTransform.anchoredPosition = new Vector2(twoCols ? 25 : 55, 0);
+                labels[i].alignment = TextAnchor.MiddleLeft;
+                labels[i].resizeTextForBestFit = false;
+                labels[i].rectTransform.sizeDelta = new Vector2(btnW - 92, btnH - 8);
+                labels[i].rectTransform.anchoredPosition = new Vector2(24, 0);
 
                 if(sectionGlyphs[i])
                 {
-                    sectionGlyphs[i].gameObject.SetActive(true);
+                    sectionGlyphs[i].gameObject.SetActive(art[i] != CandyHudIcon.Settings);
                     sectionGlyphs[i].texture=CandyHudVisuals.Icon(art[i]);
-                    sectionGlyphs[i].rectTransform.sizeDelta = twoCols ? new Vector2(30, 30) : new Vector2(46, 46);
-                    sectionGlyphs[i].rectTransform.anchoredPosition = new Vector2(-btnW * 0.5f + (twoCols ? 28 : 42), 0);
+                    sectionGlyphs[i].rectTransform.sizeDelta = new Vector2(32, 32);
+                    sectionGlyphs[i].rectTransform.anchoredPosition = new Vector2(-btnW * 0.5f + 30, 0);
                 }
                 SetRowPreview(i,pictures[i],twoCols,btnW);
 
                 bool hover=targets[i].enabled&&Hit(targets[i],ray);
-                buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;
-                labels[i].color=hover?CandyHudVisuals.Ink:enabled[i]?Color.white:CandyHudVisuals.Muted;
+                bool fold=names[i].StartsWith("▶")||names[i].StartsWith("▼");
+                buttons[i].image.color=hover?CandyHudVisuals.Mint:fold?new Color(.32f,.14f,.42f):enabled[i]?CandyHudVisuals.Card:new Color(.21f,.12f,.28f);
+                labels[i].color=hover?CandyHudVisuals.Ink:enabled[i]?TabletCream:CandyHudVisuals.Muted;
                 if(hover&&!string.IsNullOrEmpty(captions[i]))help.text=captions[i];
                 if(hover&&pressed){actions[i]();break;}
             }
