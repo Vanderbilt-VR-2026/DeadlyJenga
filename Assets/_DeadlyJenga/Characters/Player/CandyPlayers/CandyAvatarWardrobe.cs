@@ -45,11 +45,17 @@ namespace DeadlyJenga.CandyPlayers
                 }
                 return;
             }
+            ClearApprovedSkin(rig);
             foreach(var p in pieces)if(p.renderer){p.renderer.gameObject.SetActive(false);Destroy(p.renderer.gameObject);}
             foreach(var t in new[]{LeftPalmEmitter,RightPalmEmitter,LeftSoleEmitter,RightSoleEmitter})if(t)Destroy(t.gameObject);
             LeftPalmEmitter=RightPalmEmitter=LeftSoleEmitter=RightSoleEmitter=null;
             pieces.Clear();appearance=value;built=true;
             if(!originalBody)originalBody=rig.bodyRenderer.sharedMesh;
+            if (TryUseApprovedSkin(rig))
+            {
+                RefreshPalette(rig);
+                return;
+            }
             rig.bodyRenderer.sharedMesh=value.skin==AvatarSkin.Snowman&&!value.poweredArmor?SnowBody(originalBody):originalBody;
             if(value.poweredArmor)BuildArmor(rig);
             else {BuildSkin(rig);BuildExpandedSkin(rig);}
@@ -469,6 +475,11 @@ namespace DeadlyJenga.CandyPlayers
             properties??=new MaterialPropertyBlock();
             var actor=rig.GetComponentInParent<IModeActor>();var rules=actor!=null?MatchRuntime.Current?.RulesFor(actor.gameObject):null;
             bool teamed=actor!=null&&actor.Team>=0&&rules!=null&&(rules.mode==GameModeKind.CaptureFlag||rules.mode==GameModeKind.TeamTickets||rules.mode==GameModeKind.BlockControl);
+            if (approvedOriginal)
+            {
+                RefreshApprovedSkin(rig, teamed ? actor.Color : (Color?)null);
+                return;
+            }
             Color primary=teamed?actor.Color:appearance.skin>AvatarSkin.Vampire?ExpandedSkinColor(appearance.skin):appearance.skin==AvatarSkin.Snowman||appearance.skin==AvatarSkin.Vampire?Color.white:appearance.skin==AvatarSkin.Frankenstein||appearance.skin==AvatarSkin.Witch?new Color(.34f,.73f,.30f):appearance.skin==AvatarSkin.Penguin||appearance.skin==AvatarSkin.JackOLantern?new Color(.025f,.03f,.05f):rig.BaseAppearanceColor;
             var playerColor = rig.BaseAppearanceColor;
             if(primary==lastTeam&&teamed==lastTeamed&&playerColor==lastPlayerColor)return;
@@ -529,6 +540,9 @@ namespace DeadlyJenga.CandyPlayers
                 case Tone.Silver:return new Color(.55f,.64f,.70f);case Tone.Glow:return new Color(.20f,.87f,1);case Tone.Armor:return teamed||appearance.skin>=AvatarSkin.Astronaut&&!appearance.poweredArmor?primary:new Color(.95f,.20f,.035f);default:return primary;}
         }
         public void FirstPerson(CandyPlayerRig rig,bool active)
-        {foreach(var p in pieces)if(p.renderer)p.renderer.shadowCastingMode=active&&(p.bone==0||p.bone==1)?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;}
+        {
+            SetApprovedSkinFirstPerson(active);
+            foreach(var p in pieces)if(p.renderer)p.renderer.shadowCastingMode=active&&(p.bone==0||p.bone==1)?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;
+        }
     }
 }

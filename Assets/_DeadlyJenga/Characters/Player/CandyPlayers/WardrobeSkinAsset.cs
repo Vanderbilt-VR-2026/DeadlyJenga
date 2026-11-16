@@ -4,6 +4,7 @@ using UnityEngine.Rendering;
 
 namespace DeadlyJenga.CandyPlayers
 {
+    [PreferBinarySerialization]
     public sealed class WardrobeSkinAsset : ScriptableObject
     {
         [Serializable]
