@@ -126,6 +126,13 @@ namespace DeadlyJenga.DevTools.Editor
                 Draw();var labels=Field<Text[]>(menu,"labels");var targets=Field<BoxCollider[]>(menu,"targets");
                 int index=Array.FindIndex(labels,x=>x.gameObject.activeInHierarchy&&x.text==prefix);
                 if(index<0)index=Array.FindIndex(labels,x=>x.gameObject.activeInHierarchy&&x.text.Contains(prefix));
+                if(index<0&&Field<bool>(menu,"developerMapSearchOpen"))
+                {
+                    var key=((IEnumerable)Field<object>(menu,"developerSearchKeys")).Cast<object>().Single(e=>Field<Func<string>>(e,"Title")()==prefix);
+                    var hit=Field<BoxCollider>(key,"Target");
+                    typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,hit.bounds.center-camera.transform.position));
+                    Call(menu,"PointPlayerTablet",camera,true,false);Draw();return;
+                }
                 Check(index>=0&&targets[index].enabled,"Row available: "+prefix);
                 var target=targets[index];
                 typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,target.bounds.center-camera.transform.position));

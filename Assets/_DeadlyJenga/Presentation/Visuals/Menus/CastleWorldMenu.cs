@@ -98,6 +98,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void PointPage(Camera camera, bool pressed,bool held)
         {
+            if(developerMapKeyboard)developerMapKeyboard.gameObject.SetActive(mapPage&&developerMapSearchOpen);
             connectionTile.Refresh(session.Multiplayer);
             exitLabel.text=MultiplayerPanel.LobbyAction(session.Multiplayer);
             if(sectionGlyphsActive)
