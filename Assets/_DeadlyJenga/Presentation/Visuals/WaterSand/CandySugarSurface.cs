@@ -58,45 +58,10 @@ namespace DeadlyJenga.Presentation
             if (!mesh) { overlay.enabled = false; return; }
             if (!meshes.TryGetValue(mesh, out var surface))
             {
-                surface = Object.Instantiate(mesh);
-                surface.name = mesh.name + " sugar surface";
-                if (mesh.isReadable)
-                {
-                    var rest = new List<Vector4>(mesh.vertexCount);
-                    foreach (var vertex in mesh.vertices)
-                    {
-                        var p = source.transform.TransformPoint(vertex);
-                        var scaled = Vector3.Scale(vertex, source.transform.lossyScale);
-                        rest.Add(new Vector4(scaled.x, scaled.y, scaled.z, (p.y - material.GetFloat("_CoatBottom")) / span));
-                    }
-                    // Rebuilding vertex streams also rebuilds Unity's reduced-weight skin data.
-                    // Put the strongest influences first for two-weight mobile quality levels.
-                    var weights = mesh.boneWeights;
-                    if (weights.Length == mesh.vertexCount)
-                    {
-                        var values = new float[4]; var indices = new int[4];
-                        for (int v = 0; v < weights.Length; v++)
-                        {
-                            var w = weights[v];
-                            values[0] = w.weight0; values[1] = w.weight1; values[2] = w.weight2; values[3] = w.weight3;
-                            indices[0] = w.boneIndex0; indices[1] = w.boneIndex1; indices[2] = w.boneIndex2; indices[3] = w.boneIndex3;
-                            for (int a = 0; a < 3; a++)
-                            for (int b = a + 1; b < 4; b++)
-                                if (values[b] > values[a])
-                                {
-                                    (values[a], values[b]) = (values[b], values[a]);
-                                    (indices[a], indices[b]) = (indices[b], indices[a]);
-                                }
-                            float total = values[0] + values[1] + values[2] + values[3];
-                            if (total <= 0) { values[0] = 1; indices[0] = 0; total = 1; }
-                            weights[v] = new BoneWeight {
-                                weight0 = values[0]/total, weight1 = values[1]/total, weight2 = values[2]/total, weight3 = values[3]/total,
-                                boneIndex0 = indices[0], boneIndex1 = indices[1], boneIndex2 = indices[2], boneIndex3 = indices[3] };
-                        }
-                        surface.boneWeights = weights;
-                    }
-                    surface.SetUVs(3, rest);
-                }
+                surface = mesh.isReadable
+                    ? CandySugarMesh.Build(mesh, source.transform, material.GetFloat("_CoatBottom"), span,
+                        Mathf.RoundToInt(material.GetFloat("_Seed") * 10000))
+                    : Object.Instantiate(mesh);
                 meshes.Add(mesh, surface);
             }
             if (currentMesh != mesh)

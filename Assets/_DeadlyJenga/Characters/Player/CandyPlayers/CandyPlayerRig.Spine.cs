@@ -74,12 +74,29 @@ namespace DeadlyJenga.CandyPlayers
                 float y = vertices[i].y;
                 float toSpine = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.70f, .92f, y));
                 float toChest = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.96f, 1.16f, y));
-                weights[i] = new BoneWeight
+                var ordered = new BoneWeight
                 {
                     boneIndex0 = 0, weight0 = 1 - toSpine,
                     boneIndex1 = SpineBoneIndex, weight1 = toSpine * (1 - toChest),
                     boneIndex2 = ChestBoneIndex, weight2 = toSpine * toChest
                 };
+                // Unity truncates influences in mobile quality modes; strongest must come first.
+                if (ordered.weight1 > ordered.weight0)
+                {
+                    (ordered.weight0, ordered.weight1) = (ordered.weight1, ordered.weight0);
+                    (ordered.boneIndex0, ordered.boneIndex1) = (ordered.boneIndex1, ordered.boneIndex0);
+                }
+                if (ordered.weight2 > ordered.weight0)
+                {
+                    (ordered.weight0, ordered.weight2) = (ordered.weight2, ordered.weight0);
+                    (ordered.boneIndex0, ordered.boneIndex2) = (ordered.boneIndex2, ordered.boneIndex0);
+                }
+                if (ordered.weight2 > ordered.weight1)
+                {
+                    (ordered.weight1, ordered.weight2) = (ordered.weight2, ordered.weight1);
+                    (ordered.boneIndex1, ordered.boneIndex2) = (ordered.boneIndex2, ordered.boneIndex1);
+                }
+                weights[i] = ordered;
             }
             var mesh = Object.Instantiate(source);
             mesh.name = source.name + " (spine)";

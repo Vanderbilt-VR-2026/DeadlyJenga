@@ -9,6 +9,7 @@ Shader "DeadlyJenga/Sand Coating"
         _CoatTop("Coat top (world Y)", Float) = 1
         _Coverage("Coverage", Range(0,1)) = 1
         _Seed("Seed", Float) = 0
+        _CrystalMap("Fine crystal slopes and coverage", 2D) = "white" {}
         _HasRest("Rest surface coordinates", Float) = 0
     }
     SubShader
@@ -26,6 +27,8 @@ Shader "DeadlyJenga/Sand Coating"
             #pragma fragment Frag
             #pragma multi_compile_instancing
             #pragma multi_compile_fog
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -33,14 +36,16 @@ Shader "DeadlyJenga/Sand Coating"
                 float _CoatBottom, _CoatTop, _Coverage, _Seed, _HasRest;
             CBUFFER_END
 
+            TEXTURE2D(_CrystalMap); SAMPLER(sampler_CrystalMap);
+
             struct Attributes
             {
-                float4 positionOS : POSITION; float3 normalOS : NORMAL; float4 rest : TEXCOORD3;
+                float4 positionOS : POSITION; float3 normalOS : NORMAL; float4 rest : TEXCOORD3; float2 raised : TEXCOORD4;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
             struct Varyings
             {
-                float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; float3 normalWS : TEXCOORD1; half fog : TEXCOORD2; float4 rest : TEXCOORD3;
+                float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; float3 normalWS : TEXCOORD1; half fog : TEXCOORD2; float4 rest : TEXCOORD3; float2 raised : TEXCOORD4;
                 UNITY_VERTEX_INPUT_INSTANCE_ID UNITY_VERTEX_OUTPUT_STEREO
             };
 
@@ -66,43 +71,13 @@ Shader "DeadlyJenga/Sand Coating"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
                 float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
                 // Sit the grains a hair above the body so they never z-fight with it.
-                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz) + normalWS * 0.00065;
+                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz) + normalWS * 0.00018;
+                output.raised = input.raised;
                 output.rest = lerp(float4(input.positionOS.xyz, (positionWS.y - _CoatBottom) / max(.05, _CoatTop - _CoatBottom)), input.rest, _HasRest);
                 output.positionWS = positionWS; output.normalWS = normalWS;
                 output.positionCS = TransformWorldToHClip(positionWS);
                 output.fog = ComputeFogFactor(output.positionCS.z);
                 return output;
-            }
-
-            // Irregular faceted crystals. Derivatives average detail smaller than a pixel.
-            float4 Crystal(float3 p, float frequency)
-            {
-                float3 q = mul(float3x3(.36,.48,-.8, -.8,.6,0, .48,.64,.6), p) * frequency;
-                float3 cell = floor(q), local = frac(q);
-                float nearest = 10, shade = 0;
-                [unroll] for (int z = -1; z <= 1; z++)
-                [unroll] for (int y = -1; y <= 1; y++)
-                [unroll] for (int x = -1; x <= 1; x++)
-                {
-                    float3 offset = float3(x,y,z);
-                    float3 id = cell + offset;
-                    float3 random = float3(Hash(id + 1.1), Hash(id + 7.3), Hash(id + 17.7));
-                    float3 d = offset + random - local;
-                    float angle = random.z * 6.283185;
-                    float sn, cs; sincos(angle, sn, cs);
-                    d.xy = float2(cs*d.x - sn*d.y, sn*d.x + cs*d.y);
-                    float3 a = abs(d) * lerp(float3(.8,1.2,1), float3(1.25,.85,1.1), random.x);
-                    float facet = max(max(a.x, a.y), a.z);
-                    facet = max(facet, (a.x + a.y + a.z) * .52);
-                    facet /= lerp(.29, .49, random.z);
-                    if (facet < nearest) { nearest = facet; shade = random.y; }
-                }
-                float footprint = max(length(ddx(q)), length(ddy(q)));
-                float resolved = 1 - smoothstep(.45, 1.5, footprint);
-                float edge = max(.08, footprint * .7);
-                float mask = 1 - smoothstep(.86 - edge, 1 + edge, nearest);
-                float height = max(0, 1 - nearest) * mask;
-                return float4(lerp(.60, mask, resolved), height * resolved, shade, resolved);
             }
 
             half4 Frag(Varyings input) : SV_Target
@@ -118,27 +93,40 @@ Shader "DeadlyJenga/Sand Coating"
                 float aa = max(fwidth(boundary), .012);
                 float coverage = smoothstep(-aa, aa, boundary) * smoothstep(-.07, -.03, t);
                 clip(coverage - .015);
-                float4 crystal = Crystal(p, 380);
-                float grains = crystal.x;
-                float height = crystal.y * .0009;
+                // A physical 32 mm tile, blended in rest space so grains follow the skin.
+                float3 restNormal = normalize(cross(ddx(input.rest.xyz), ddy(input.rest.xyz)));
+                float3 weights = pow(abs(restNormal), 4);
+                weights /= max(.0001, weights.x + weights.y + weights.z);
+                float3 uv = p * 31.25;
+                float4 cx = SAMPLE_TEXTURE2D(_CrystalMap, sampler_CrystalMap, uv.yz);
+                float4 cy = SAMPLE_TEXTURE2D(_CrystalMap, sampler_CrystalMap, uv.zx);
+                float4 cz = SAMPLE_TEXTURE2D(_CrystalMap, sampler_CrystalMap, uv.xy);
+                float4 crystal = cx * weights.x + cy * weights.y + cz * weights.z;
+                float3 slope = float3(0,cx.r*2-1,cx.g*2-1)*weights.x
+                    + float3(cy.g*2-1,0,cy.r*2-1)*weights.y
+                    + float3(cz.r*2-1,cz.g*2-1,0)*weights.z;
                 float3 n = normalize(input.normalWS);
                 float3 dx = ddx(input.positionWS), dy = ddy(input.positionWS);
-                float3 rx = cross(dy, n), ry = cross(n, dx);
-                float determinant = dot(dx, rx);
-                float3 gradient = (ddx(height) * rx + ddy(height) * ry) / (abs(determinant) + 1e-10) * sign(determinant);
-                n = normalize(n - gradient * .65);
-                half3 amber = half3(.48, .245, .075);
-                half3 ivory = half3(.95, .79, .48);
-                half3 albedo = lerp(amber, ivory, saturate(grains * .70 + crystal.z * .15));
-                Light light = GetMainLight();
-                float ndl = saturate(dot(n, light.direction));
-                half3 color = albedo * (SampleSH(n) + light.color * (.18 + ndl * .82));
+                float3 rx = cross(dy,n), ry = cross(n,dx);
+                float determinant = dot(dx,rx);
+                float dhx = dot(slope,ddx(input.rest.xyz)), dhy = dot(slope,ddy(input.rest.xyz));
+                float3 gradient = (dhx*rx + dhy*ry) / (abs(determinant)+1e-10)*sign(determinant);
+                n = normalize(n + gradient * 1.65 * (1-input.raised.x));
+                float grains = lerp(crystal.a,1,input.raised.x);
+                half3 albedo = lerp(half3(.64,.51,.34),half3(.96,.91,.78),crystal.b);
+                albedo = lerp(albedo,half3(.88,.81,.65),input.raised.x);
+                Light light = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
+                float ndl = saturate(dot(n,light.direction));
+                float occlusion = lerp(.63,1,grains);
+                half3 color = albedo * (SampleSH(n)*occlusion + light.color * ndl * light.shadowAttenuation);
                 float3 view = normalize(GetWorldSpaceViewDir(input.positionWS));
-                float nh = saturate(dot(n, normalize(view + light.direction)));
-                float glint = pow(nh, 72) * grains * crystal.w;
-                float glaze = pow(nh, 28) * .2;
-                color += light.color * (glint * .65 + glaze);
-                float alpha = coverage * .985;
+                float nh = saturate(dot(n,normalize(view+light.direction)));
+                float footprint = max(length(ddx(uv)),length(ddy(uv)));
+                float resolved = 1-smoothstep(.02,.12,footprint);
+                // Broaden tiny highlights as grains become smaller than a pixel.
+                color += light.color * pow(nh,lerp(12,48,resolved)) * lerp(.10,.34,resolved);
+                color += albedo * light.color * pow(saturate(dot(-view,light.direction)),3) * .06;
+                float alpha = coverage * lerp(.22,.97,grains);
                 return half4(MixFog(color, input.fog), alpha);
             }
             ENDHLSL

@@ -481,11 +481,16 @@ namespace DeadlyJenga.Presentation
                     {
                         position = position,
                         velocity = new Vector3(Random.Range(-.08f, .08f), Random.Range(-.18f, -.04f), Random.Range(-.08f, .08f)),
-                        startSize = Random.Range(.0015f, .0045f), startLifetime = Random.Range(.45f, .85f),
+                        startSize = Random.Range(.0005f, .0015f), startLifetime = Random.Range(.45f, .85f),
                         rotation3D = Random.insideUnitSphere * 180,
-                        startColor = Color.Lerp(new Color(.67f, .40f, .16f), new Color(1f, .90f, .68f), Random.value)
+                        startColor = Color.Lerp(new Color(.78f, .69f, .53f), new Color(1f, .96f, .86f), Random.value)
                     };
-                    sugar.Emit(emit, Random.Range(3, 7));
+                    sugar.Emit(emit, Random.Range(6, 11));
+                    emit.startSize = Random.Range(.018f, .04f);
+                    emit.startLifetime = Random.Range(.25f, .45f);
+                    emit.startColor = new Color(.93f, .88f, .76f, .10f);
+                    emit.velocity *= .35f;
+                    dust.Emit(emit, 1);
 
                 }
             }
@@ -511,6 +516,7 @@ namespace DeadlyJenga.Presentation
             if (bodies.Count == 0) return;
             coat.material = new Material(coatShader) { name = "Sticky sugar coating" };
             coat.material.SetFloat("_Seed", Random.value * 100);
+            coat.material.SetTexture("_CrystalMap", Resources.Load<Texture2D>("CandyFineSugar"));
             float feet = coat.owner.transform.position.y;
             coat.footOffset = low - feet - .05f;
             coat.waistOffset = low - feet + (high - low) * Random.Range(.44f, .52f);

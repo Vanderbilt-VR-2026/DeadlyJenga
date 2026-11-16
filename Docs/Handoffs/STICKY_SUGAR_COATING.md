@@ -1,3 +1,21 @@
+## Fine Crystals A revision in progress
+
+Evan approved Fine Crystals A and the associated elbow repair on November 15, 2026.
+The earlier brown coating candidate below was rejected visually despite passing functional checks.
+This revision replaces its per-pixel 27-cell crystal search with a reproducible, mipmapped
+2048-pixel linear surface map, thin pale crystal coverage and sparse skinned mesh facets.
+The texture represents 32 mm of surface, so nominal image dimensions do not imply visual quality.
+Grain patterns vary per exposure; rest coordinates and blend-shape anchors follow the skin.
+Arm roll now transports through the elbow independently of tracked palm roll. Spine weights
+are sorted for reduced-influence skinning. No Core, package or project-setting changes.
+
+Owner: Marina / Fine Crystals A. Target: origin/Evan_Sprint_4 via MAIN.
+Current checks: generator completed, diff whitespace check. Runtime/capture, elbow poses,
+TwoBones, skin matrix, rendering cost and Quest evidence are pending. Not ready for integration.
+Texture source: Docs/Tools/generate_sugar_surface.py (numpy/Pillow, deterministic seed).
+
+---
+
 # Sticky sugar avatar coating
 
 Owner: marina coating task. Source branch: codex/marina-sticky-sugar.
