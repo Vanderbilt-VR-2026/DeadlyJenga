@@ -15,6 +15,63 @@ namespace DeadlyJenga.CandyArt
             BuildFleece();
             BuildBraidedRugEdge();
             BuildSofa();
+            BuildLampAndTable();
+        }
+
+        void BuildLampAndTable()
+        {
+            var walnut = Surface("Side table walnut", "Walnut Grain", new Color(.45f, .36f, .28f),
+                .40f, new Vector2(.8f, 1.5f), 0f, .28f);
+            var brass = Surface("Turned lamp brass", null, new Color(.72f, .48f, .19f), .72f, Vector2.one, .65f);
+            var linen = Surface("Warm linen lampshade", "Woven", new Color(1f, .82f, .56f), .18f, new Vector2(12f, 3f), 0f, .32f);
+            linen.SetColor("_EmissionColor", new Color(.35f, .19f, .06f));
+            linen.EnableKeyword("_EMISSION");
+            linen.SetFloat("_Cull", 0f);
+            var originals = world.Root.GetComponentsInChildren<MeshRenderer>();
+            foreach (var source in originals)
+            {
+                if (source.transform.IsChildOf(art)) continue;
+                if (source.name != "Lamp Shade" && source.name != "Side Table") continue;
+                var center = art.InverseTransformPoint(source.bounds.center);
+                var size = source.bounds.size / art.lossyScale.x;
+                Hide(source);
+                if (source.name == "Side Table")
+                {
+                    RoundedDetail("Walnut tabletop", center + Vector3.up * size.y * .46f,
+                        new Vector3(size.x, size.y * .08f, size.z), .035f, walnut);
+                    RoundedDetail("Walnut drawer cabinet", center + Vector3.up * size.y * .23f,
+                        new Vector3(size.x * .93f, size.y * .37f, size.z * .93f), .025f, walnut);
+                    foreach (int x in new[] { -1, 1 })
+                    foreach (int z in new[] { -1, 1 })
+                        RoundedDetail("Tapered walnut leg", center + new Vector3(x * size.x * .39f, -size.y * .23f, z * size.z * .39f),
+                            new Vector3(size.x * .10f, size.y * .55f, size.z * .10f), .10f, walnut);
+                    Primitive("Brass drawer pull", PrimitiveType.Sphere,
+                        center + new Vector3(size.x * .48f, size.y * .23f, 0f), Vector3.one * 1.1f, brass);
+                    continue;
+                }
+                var vertices = new List<Vector3>();
+                var uv = new List<Vector2>();
+                var triangles = new List<int>();
+                const int sides = 96;
+                float radius = Mathf.Max(size.x, size.z) * .5f;
+                for (int i = 0; i <= sides; i++)
+                {
+                    float u = i / (float)sides, angle = u * Mathf.PI * 2f;
+                    var radial = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+                    float pleat = 1f + .013f * Mathf.Cos(angle * 48f);
+                    vertices.Add(center + radial * (radius * pleat) - Vector3.up * size.y * .5f);
+                    vertices.Add(center + radial * (radius * .59f * pleat) + Vector3.up * size.y * .5f);
+                    uv.Add(new Vector2(u, 0f)); uv.Add(new Vector2(u, 1f));
+                    if (i == sides) continue;
+                    int a = i * 2;
+                    triangles.Add(a); triangles.Add(a + 1); triangles.Add(a + 2);
+                    triangles.Add(a + 2); triangles.Add(a + 1); triangles.Add(a + 3);
+                }
+                var mesh = new Mesh { name = "Pleated linen shade" };
+                mesh.SetVertices(vertices); mesh.SetUVs(0, uv); mesh.SetTriangles(triangles, 0);
+                mesh.RecalculateNormals(); mesh.RecalculateTangents();
+                AddMesh("Tailored linen lampshade", mesh, linen, ShadowCastingMode.Off);
+            }
         }
 
         Material Fabric(string label, string tile, Color tint, Vector2 repeat, float sheen, float bump)
