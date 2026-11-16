@@ -110,7 +110,8 @@ namespace DeadlyJenga.DevTools.Editor
         static IEnumerator Until(Func<bool> ready,string label)
         {float end=Time.realtimeSinceStartup+30;while(!ready()&&Time.realtimeSinceStartup<end)yield return null;Check(ready(),label);}
         static Text TextOf(Component view,string name)=>(Text)Field(view,name);
-        static Text[] CardTexts(CastlePlaySession session)=>session.GetComponentsInChildren<Canvas>(true).Where(c=>c.enabled&&c.gameObject.activeInHierarchy&&(c.name=="Visual - match telemetry"||c.name=="Visual - mystery clues")).SelectMany(c=>c.GetComponentsInChildren<Text>(false)).Where(t=>t.transform.parent.GetComponent<Image>()&&t.transform.parent.parent==t.canvas.transform&&!string.IsNullOrEmpty(t.text)).Distinct().ToArray();
+        static Text[] CardTexts(CastlePlaySession session)=>session.GetComponentsInChildren<Canvas>(true).Where(c=>c.enabled&&c.gameObject.activeInHierarchy&&(c.name=="Visual - match telemetry"||c.name=="Visual - mystery clues")).SelectMany(c=>c.GetComponentsInChildren<Text>(false)).Where(t=>t.transform.parent.GetComponent<Image>()&&t.transform.parent.parent==t.canvas.transform&&!string.IsNullOrEmpty(t.text)&&t.name!="Elimination action"&&t.name!="Elimination victim").Distinct().ToArray();
+        static string FeedText(Text label)=>string.Join(" ",label.transform.parent.GetComponentsInChildren<Text>().Select(t=>t.text));
         static Rect CardRect(Text text){var r=(RectTransform)text.transform.parent;return new Rect(r.anchoredPosition-r.sizeDelta/2,r.sizeDelta);}
         static void Fit(CastlePlaySession session,string stage)
         {
@@ -325,7 +326,7 @@ namespace DeadlyJenga.DevTools.Editor
                 new EliminationFrame{sequence=2,victim=fixture.Frame.players[1].id}};
             Refresh(session);
             var feed=CardTexts(session).Where(label=>label.transform.parent.name=="Elimination feed").ToArray();
-            Check(feed.Length==2&&feed.Any(label=>label.text.Contains("›  YOU"))&&
+            Check(feed.Length==2&&feed.Any(label=>FeedText(label).Contains("ELIMINATED YOU"))&&
                 feed.Any(label=>label.text.Contains("was eliminated")),"Visible feed shows an exact pair and an environmental elimination");
             Render(session,"Hud-Elimination-Feed");
             fixture.Frame=JsonUtility.FromJson<MatchFrame>(JsonUtility.ToJson(fixture.Frame));
@@ -333,7 +334,7 @@ namespace DeadlyJenga.DevTools.Editor
             fixture.Frame.eliminations=new[]{new EliminationFrame{sequence=1,victim=fixture.LocalActorId,killer=fixture.Frame.players[2].id}};
             Refresh(session);
             feed=CardTexts(session).Where(label=>label.transform.parent.name=="Elimination feed").ToArray();
-            Check(feed.Length==1&&feed[0].text.Contains("Explorer 3")&&feed[0].text.Contains("YOU"),"Consumer accepts first kill after a missed empty reset snapshot");
+            Check(feed.Length==1&&FeedText(feed[0]).Contains("Explorer 3")&&FeedText(feed[0]).Contains("YOU"),"Consumer accepts first kill after a missed empty reset snapshot");
             fixture.Frame=JsonUtility.FromJson<MatchFrame>(JsonUtility.ToJson(fixture.Frame));
             Refresh(session);
             Check(CardTexts(session).Count(label=>label.transform.parent.name=="Elimination feed")==1,"Repeated authoritative sequence is displayed once");
@@ -402,7 +403,7 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return null;
                 Refresh(session);
                 Check(CardTexts(session).Any(label=>label.transform.parent.name=="Elimination feed"&&
-                    label.text.Contains("YOU")&&label.text.Contains("›")),"Actual authoritative pair reaches the visible feed");
+                    FeedText(label).Contains("YOU")&&FeedText(label).Contains("ELIMINATED")),"Actual authoritative pair reaches the visible feed");
                 Render(session,"Hud-Elimination-ActualAuthority");
                 var display=new Fixture(mode)
                 {

@@ -80,8 +80,8 @@ namespace DeadlyJenga.Presentation
             image = go.GetComponent<RawImage>();
             image.raycastTarget = false;
             image.enabled = false;
-            image.rectTransform.sizeDelta = new Vector2(354, 354);
-            image.rectTransform.anchoredPosition = new Vector2(0, 28);
+            image.rectTransform.sizeDelta = new Vector2(310, 310);
+            image.rectTransform.anchoredPosition = new Vector2(0, 12);
             for (int i = 0; i < leaders.Length; i++)
             {
                 float x = Columns[i] * 118;

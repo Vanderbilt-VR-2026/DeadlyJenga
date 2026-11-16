@@ -20,7 +20,7 @@ namespace DeadlyJenga.Presentation
         {
             public CanvasGroup group;
             public MatchPlayerFrame shownVictim, shownKiller;
-            public Text message, action, victimInitial, killerInitial;
+            public Text message, action, victimName, victimInitial, killerInitial;
             public RawImage victimPortrait, killerPortrait;
         }
 
@@ -51,11 +51,13 @@ namespace DeadlyJenga.Presentation
                 text.lineSpacing=.9f;
                 var action=CandyResultsHud.Label("Elimination action",panel.transform,new Vector2(282,18),new Vector2(53,0),13);
                 action.alignment=TextAnchor.MiddleLeft;action.color=CandyHudCards.Accent;
+                var victimName=CandyResultsHud.Label("Elimination victim",panel.transform,new Vector2(282,26),new Vector2(53,-24),22);
+                victimName.alignment=TextAnchor.MiddleLeft;victimName.color=text.color;
                 var victim = Portrait(panel.transform, text.font, -170, out var victimInitial);
                 var killer = Portrait(panel.transform, text.font, -170, out var killerInitial);
                 rows[i] = new Row
                 {
-                    group = group, message = text, action=action, victimPortrait = victim, victimInitial = victimInitial,
+                    group = group, message = text, action=action, victimName=victimName, victimPortrait = victim, victimInitial = victimInitial,
                     killerPortrait = killer, killerInitial = killerInitial
                 };
                 panel.SetActive(false);
@@ -74,7 +76,7 @@ namespace DeadlyJenga.Presentation
             letter.transform.SetParent(icon.transform, false);
             initial = letter.GetComponent<Text>();
             initial.font = font;
-            initial.fontStyle = FontStyle.Bold;
+            initial.fontStyle = FontStyle.Normal;
             initial.alignment = TextAnchor.MiddleCenter;
             initial.color = Color.white;
             initial.fontSize = 34;
@@ -138,8 +140,9 @@ namespace DeadlyJenga.Presentation
                 bool paired = notice.killer != null;
                 row.group.alpha = Mathf.Clamp01((notice.expires - now) / Fade);
                 row.victimPortrait.rectTransform.anchoredPosition = new Vector2(paired ? -120 : -170, 0);
-                row.message.rectTransform.offsetMin = new Vector2(paired ? 118 : 68, 5);
-                row.message.rectTransform.offsetMax = new Vector2(-12, -5);
+                row.message.rectTransform.offsetMin = new Vector2(paired ? 118 : 68, paired ? 48 : 5);
+                row.message.rectTransform.offsetMax = new Vector2(-12, paired ? -8 : -5);
+                row.victimName.gameObject.SetActive(paired);
                 if (row.shownVictim != notice.victim || row.shownKiller != notice.killer)
                 {
                     row.shownVictim = notice.victim;
@@ -148,8 +151,7 @@ namespace DeadlyJenga.Presentation
                     string first = row.message.text;
                     if (paired)
                     {
-                        portraits.SetName(row.message, Name(notice.victim, match.LocalActorId));
-                        row.message.text = first + "\n\n" + row.message.text;
+                        portraits.SetName(row.victimName, Name(notice.victim, match.LocalActorId));
                     }
                     else row.message.text = first + "\nwas eliminated";
                     row.action.text=paired?"ELIMINATED":"";

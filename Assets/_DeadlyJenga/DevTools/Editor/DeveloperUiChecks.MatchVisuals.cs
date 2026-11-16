@@ -70,6 +70,16 @@ namespace DeadlyJenga.DevTools.Editor
                 frame=JsonUtility.FromJson<MatchFrame>(JsonUtility.ToJson(frame));
                 frame.eliminations=new[]{new EliminationFrame{sequence=1,killer=frame.players[1].id,victim=original.LocalActorId},new EliminationFrame{sequence=2,killer=original.LocalActorId,victim=frame.players[2].id},new EliminationFrame{sequence=3,victim=frame.players[3].id},new EliminationFrame{sequence=4,killer=frame.players[4].id,victim=frame.players[5].id}};
                 Publish();yield return null;Shot("62-elimination-feed.png");
+                var feedCards=Field<Canvas>(hud,"canvas").GetComponentsInChildren<CanvasGroup>().Where(g=>g.name=="Elimination feed"&&g.gameObject.activeInHierarchy).ToArray();
+                Check(feedCards.Length==4,"Four distinct elimination cards visible");
+                foreach(var card in feedCards)
+                {
+                    var labels=card.GetComponentsInChildren<Text>().Where(t=>t.name=="Elimination victim"||t.name=="Elimination action").ToArray();
+                    foreach(var label in labels)Check(label.preferredHeight<=label.rectTransform.rect.height+1,"Feed label fits: "+label.name);
+                }
+                Check(feedCards.SelectMany(g=>g.GetComponentsInChildren<Text>()).Any(t=>t.name=="Elimination victim"&&t.text=="YOU"),"Local death visibly names YOU as victim");
+                Call(hud,"Update");
+                Check(Field<Canvas>(hud,"canvas").GetComponentsInChildren<CanvasGroup>().Count(g=>g.name=="Elimination feed"&&g.gameObject.activeInHierarchy)==4,"Repeated snapshot does not duplicate feed cards");
                 frame.phase=RoundPhase.Results;frame.winner="A Very Long Player Name For Layout Review";Publish();
                 deadline=Time.realtimeSinceStartup+12;
                 while((!Field<Canvas>(results,"canvas")||!Field<Canvas>(results,"canvas").gameObject.activeInHierarchy)&&Time.realtimeSinceStartup<deadline)yield return null;
