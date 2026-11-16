@@ -118,7 +118,11 @@ namespace DeadlyJenga.DevTools.Editor
                 "Opening does not normalize or rewrite the desired outfit");
             var status = (Text)typeof(IslandLobbyView).GetField("desktopWardrobeStatus", Instance).GetValue(view);
             Check(status.text.Contains("stay saved"), "Desktop viewer explains hidden items");
-            var fit = (float)typeof(IslandLobbyView).GetField("wardrobeFitDistance", Instance).GetValue(view);
+            var fitField = typeof(IslandLobbyView).GetField("wardrobeFitDistance", Instance);
+            var fitDeadline = Time.realtimeSinceStartup + 6;
+            while ((float)fitField.GetValue(view) <= 0 && Time.realtimeSinceStartup < fitDeadline)
+                yield return null;
+            var fit = (float)fitField.GetValue(view);
             Check(fit > 0 && fit < 6, $"Mirror fits measured avatar geometry (distance {fit:F2} m)");
             Click(view, "Category 2");
             Click(view, "Accessory 0");
@@ -129,22 +133,27 @@ namespace DeadlyJenga.DevTools.Editor
             Check(avatar.EvaluateAppearance(avatar.Appearance).effective.hair == AvatarHair.Afro,
                 "Removing Beanie restores the saved Afro");
             Click(view, "Accessory 3");
-            Check((avatar.Appearance.accessories & (AvatarAccessory.CowboyHat | AvatarAccessory.DevilHorns)) ==
-                (AvatarAccessory.CowboyHat | AvatarAccessory.DevilHorns), "Hat selection keeps the saved horns");
+            Check(avatar.Appearance.accessories == AvatarAccessory.CowboyHat,
+                "Selecting a new hat replaces other items in its category");
+            Click(view, "Cosmetic shade 3");
+            Check(avatar.Appearance.hairShade == AvatarHairShade.Light, "Shade selection applies through the live wardrobe");
 
             requested = new AvatarAppearance
             {
-                accessories = AvatarAccessory.DevilHorns | AvatarAccessory.AntAntennae,
+                accessories = AvatarAccessory.DevilHorns,
                 clothing = AvatarClothing.PufferVest,
                 hair = AvatarHair.Ponytail,
                 eyewear = AvatarEyewear.Round
             };
             avatar.ApplyAppearance(requested);
             Check(avatar.EvaluateAppearance(requested).effective.Equals(requested),
-                "Ponytail, Devil Horns, Ant Antennae, Round eyewear and vest coexist in the resolver");
+                "Different wardrobe categories coexist in the resolver");
             var covered = requested;
             covered.skin = AvatarSkin.DeepSeaDiver;
             avatar.ApplyAppearance(covered);
+            var nativeSkin = Resources.Load<WardrobeSkinAsset>("WardrobeSkins/" + covered.skin);
+            Check(nativeSkin && avatar.Rig.bodyRenderer.sharedMesh == nativeSkin.bodyMesh,
+                "The live survivor equips the approved native Diver geometry");
             var resolution = avatar.EvaluateAppearance(covered);
             Check(resolution.hiddenHair && resolution.hiddenClothing == AvatarClothing.PufferVest &&
                 resolution.effective.eyewear == AvatarEyewear.None && avatar.Appearance.Equals(covered),

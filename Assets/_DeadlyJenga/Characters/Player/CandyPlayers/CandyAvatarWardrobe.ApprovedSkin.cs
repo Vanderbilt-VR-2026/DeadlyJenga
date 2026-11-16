@@ -13,7 +13,7 @@ namespace DeadlyJenga.CandyPlayers
         Color appliedAvatarColor;
         Mesh baseSkinHead;
         Material[] baseSkinBodyMaterials, baseSkinHeadMaterials;
-        Vector3 baseSkinHeadScale;
+        CandyAvatarDetail skinDetail;
         bool baseSkinBodyVisible;
 
         bool TryUseApprovedSkin(CandyPlayerRig rig)
@@ -21,10 +21,10 @@ namespace DeadlyJenga.CandyPlayers
             if (appearance.skin == AvatarSkin.Default || appearance.poweredArmor) return false;
             approvedOriginal = Resources.Load<WardrobeSkinAsset>("WardrobeSkins/" + appearance.skin);
             if (!approvedOriginal) return false;
-            baseSkinHead = rig.headRenderer.sharedMesh;
+            skinDetail = rig.GetComponent<CandyAvatarDetail>();
+            baseSkinHead = skinDetail ? skinDetail.FullHeadMesh : rig.headRenderer.sharedMesh;
             baseSkinBodyMaterials = rig.bodyRenderer.sharedMaterials;
             baseSkinHeadMaterials = rig.headRenderer.sharedMaterials;
-            baseSkinHeadScale = rig.HeadAnchor.localScale;
             baseSkinBodyVisible = rig.bodyRenderer.enabled;
             return true;
         }
@@ -38,7 +38,8 @@ namespace DeadlyJenga.CandyPlayers
             rig.bodyRenderer.sharedMaterials = baseSkinBodyMaterials;
             rig.headRenderer.sharedMaterials = baseSkinHeadMaterials;
             rig.headRenderer.sharedMesh = baseSkinHead;
-            rig.HeadAnchor.localScale = baseSkinHeadScale;
+            rig.SetWardrobeHeadScale(Vector3.one);
+            if (skinDetail) skinDetail.SetWardrobeMeshes(originalBody, baseSkinHead);
             rig.bodyRenderer.enabled = baseSkinBodyVisible;
             approvedOriginal = null;
             appliedSkin = null;
@@ -78,7 +79,8 @@ namespace DeadlyJenga.CandyPlayers
                     rig.headRenderer.sharedMesh = skin.headMesh ? skin.headMesh : baseSkinHead;
                     rig.bodyRenderer.sharedMaterials = skin.bodyMaterials;
                     rig.headRenderer.sharedMaterials = skin.headMaterials;
-                    rig.HeadAnchor.localScale = skin.headScale;
+                    rig.SetWardrobeHeadScale(skin.headScale);
+                    if (skinDetail) skinDetail.SetWardrobeMeshes(rig.bodyRenderer.sharedMesh, rig.headRenderer.sharedMesh);
                     foreach (var part in skin.parts)
                     {
                         var piece = new GameObject(part.label);

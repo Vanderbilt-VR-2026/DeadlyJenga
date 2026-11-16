@@ -53,6 +53,12 @@ namespace DeadlyJenga.CandyPlayers
         public Transform HeadAnchor=>bones[1];
         public Transform BodyAnchor=>bones[0];
         CandyAvatarAttachments attachments;
+        Vector3 wardrobeHeadScale = Vector3.one;
+        internal void SetWardrobeHeadScale(Vector3 scale)
+        {
+            wardrobeHeadScale = scale;
+            HeadAnchor.localScale = scale * (calibration?.headSize ?? 1f);
+        }
         public void SetAppearance(AvatarAppearance appearance)
         {
             if(!attachments)attachments=GetComponent<CandyAvatarAttachments>();
@@ -215,7 +221,7 @@ namespace DeadlyJenga.CandyPlayers
             PoseTorso(frame, torsoOffset, crouch, width, run, dance, grounded && !downed, landing);
             var headOffset=frame.headRotation*((style?style.headCenterOffset:new Vector3(0,0,-.08f))+(fit?.headOffset??Vector3.zero))+Vector3.down*.14f;
             bones[1].SetPositionAndRotation(frame.head+headOffset*scale,frame.headRotation);
-            bones[1].localScale=Vector3.one*(fit?.headSize??1f);
+            bones[1].localScale=wardrobeHeadScale*(fit?.headSize??1f);
             if(attachments)attachments.RefreshPalette(this);
             for(int side=0;side<2;side++)
             {

@@ -139,7 +139,7 @@ namespace DeadlyJenga.DevTools.Editor
             try
             {
                 rig.bodyRenderer.quality = SkinQuality.Bone2;
-                var colors = new[] { Color.red, Color.blue };
+                var colors = DeadlyJenga.Modes.ModeNames.Colors.Take(2).ToArray();
                 var skins = new[] { AvatarSkin.Rabbit, AvatarSkin.Dragon, AvatarSkin.Clownfish, AvatarSkin.CandyCorn };
                 for (int team = 0; team < colors.Length; team++)
                 {
@@ -149,6 +149,11 @@ namespace DeadlyJenga.DevTools.Editor
                         avatar.ApplyAppearance(new AvatarAppearance { skin = skin });
                         avatar.RefreshNow();
                         var renderer = rig.bodyRenderer;
+                        string finish = ColorUtility.ToHtmlStringRGB(colors[team]);
+                        var approved = Resources.Load<WardrobeSkinAsset>("WardrobeSkins/" + skin + "-" + finish);
+                        Check(approved && renderer.sharedMesh == approved.bodyMesh &&
+                            renderer.sharedMaterial == approved.bodyMaterials[0],
+                            $"{skin} loads the approved team mesh and material for {finish}");
                         renderer.BakeMesh(body);
                         rig.headRenderer.BakeMesh(head);
                         var points = body.vertices;
