@@ -32,6 +32,10 @@ namespace DeadlyJenga.CastlePrototype
             }
             marina=gameObject.AddComponent<MayhemMarina>();marina.Build(lobby,Environment);
             LobbyLiveMap.Attach(transform, session);
+            lobby.AddBlocker(marina.transform, MayhemMarina.CinemaTable + Vector3.down * .045f,
+                new Vector3(2.12f, .12f, 2.12f));
+            lobby.AddBlocker(marina.transform, MayhemMarina.CinemaTable + Vector3.down * .49f,
+                new Vector3(.65f, .84f, .65f));
             foreach(float x in new[]{-4.87f,4.87f})
                 lobby.AddBlocker(marina.transform,new Vector3(x,3.08f,11.13f),new Vector3(2.08f,2.48f,.96f));
             wardrobeCenter=MayhemMarina.Wardrobe;

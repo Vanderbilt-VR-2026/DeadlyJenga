@@ -112,7 +112,7 @@ namespace DeadlyJenga.CandyArt.Marina
         void StyleStage()
         {
             var turn = StyleStageTurn;
-            Vector3 At(float x, float y, float z) => new Vector3(Wardrobe.x, PlazaTop, Wardrobe.z) + turn * new Vector3(x, y, z);
+            Vector3 At(float x, float y, float z) => new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z) + turn * new Vector3(x, y, z);
 
             // Raised runway disk with a glowing rim; the wardrobe places the player on it.
             mesh.Disk(At(0, 0, 0), 1.35f, .2f, F.Stone, true, 48);
@@ -175,7 +175,7 @@ namespace DeadlyJenga.CandyArt.Marina
             for (int side = -1; side <= 1; side += 2)
             {
                 var foot = frame + StyleScreenFacing * Vector3.right * (side * .95f);
-                foot.y = PlazaTop + .3f;
+                foot.y = CinemaFloor + .3f;
                 mesh.Box(foot, new Vector3(.16f, .6f, .2f), F.Brass, .035f, true, StyleScreenFacing);
             }
             Accent("Style stage", At(0, 3.2f, .4f), new Color(1, .79f, .61f), 3, 6);
@@ -184,14 +184,14 @@ namespace DeadlyJenga.CandyArt.Marina
         void HallOfFame()
         {
             var turn = FameTurn;
-            var baseAt = new Vector3(FameBoard.x, PlazaTop, FameBoard.z);
+            var baseAt = new Vector3(FameBoard.x, CinemaFloor, FameBoard.z);
             Vector3 At(float x, float y, float z) => baseAt + turn * new Vector3(x, y, z);
 
             // Compact backing keeps the recent-match board above the podium.
             for (int side = -1; side <= 1; side += 2)
-                mesh.Box(At(side * 2.9f, 1.55f, .22f), new Vector3(.18f, 3.1f, .18f), F.DarkWood, .04f, true, turn);
-            mesh.Box(At(0, 3.15f, .28f), new Vector3(6.0f, 3.0f, .14f), F.Teal, .08f, false, turn);
-            mesh.Box(At(0, .12f, .2f), new Vector3(6.2f, .24f, .65f), F.Stone, .06f, true, turn);
+                mesh.Box(At(side * 2.14f, 1.4f, .22f), new Vector3(.14f, 2.8f, .14f), F.DarkWood, .04f, true, turn);
+            mesh.Box(At(0, 2.9f, .12f), new Vector3(4.48f, 2.38f, .14f), F.Teal, .08f, false, turn);
+            mesh.Box(At(0, .12f, .2f), new Vector3(4.55f, .24f, .45f), F.Stone, .06f, true, turn);
 
             // Winners' steps in front of the board. Solid, so players can hop up for a victory pose.
             F[] finishes = { F.Brass, F.Metal, F.Coral };

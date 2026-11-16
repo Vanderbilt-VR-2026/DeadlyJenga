@@ -11,23 +11,24 @@ namespace DeadlyJenga.CandyArt.Marina
     {
         public static readonly Vector3 Arrival=new(-10,1.36f,-8);
         // Showtime Plaza: one open deck between the arrival island and the cinema.
-        // The wardrobe and recent-match podium face the central meeting area.
         public static readonly Vector3 PlazaCenter = new(0, 1.31f, -3.6f);
         public const float PlazaRadius = 7.2f;
-        static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, -58, 0);
-        static readonly Quaternion FameTurn = Quaternion.Euler(0, 58, 0);
-        public static readonly Vector3 Wardrobe = PlazaCenter + StyleStageTurn * new Vector3(0, .22f, 3.8f);
+        public const float CinemaFloor = 1.86f;
+        public static readonly Vector3 CinemaTable = new(0, CinemaFloor + .91f, 6.6f);
+        static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, -90, 0);
+        static readonly Quaternion FameTurn = Quaternion.Euler(0, 90, 0);
+        public static readonly Vector3 Wardrobe = new(-5.12f, CinemaFloor + .22f, 7.05f);
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
         public static readonly Quaternion CodeKeyboardFacing = Quaternion.Euler(61, 0, 0);
-        public static readonly Vector3 StyleScreen = Wardrobe + StyleStageTurn * new Vector3(2.3f, 1.5f, 1.02f);
-        public static readonly Quaternion StyleScreenFacing = StyleStageTurn * Quaternion.Euler(0, 65, 0);
+        public static readonly Vector3 StyleScreen = Wardrobe + StyleStageTurn * new Vector3(-2.10f, 1.4f, 1.64f);
+        public static readonly Quaternion StyleScreenFacing = StyleStageTurn;
         public static readonly Vector3 StyleMirror = Wardrobe + StyleStageTurn * new Vector3(0, 1.85f, 1.88f);
         public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;
         // The compact recent-match board sits behind the winners' steps.
-        public static readonly Vector3 FameBoard = PlazaCenter + FameTurn * new Vector3(0, 3.15f, 4.85f);
+        public static readonly Vector3 FameBoard = new(7.34f, CinemaFloor + 2.9f, 7.4f);
         public static readonly Quaternion FameFacing = FameTurn;
-        internal static readonly Vector3 FamePodium = PlazaCenter + FameTurn * new Vector3(0, 0, 3.4f);
+        internal static readonly Vector3 FamePodium = new(5.9f, CinemaFloor, 7.4f);
         internal static readonly Vector3[] FameSteps = { new(0,.6f,0), new(-1.15f,.4f,0), new(1.15f,.26f,0) };
         internal const float FameStepCap = .03f;
         public bool Built {get;private set;}
@@ -212,7 +213,7 @@ namespace DeadlyJenga.CandyArt.Marina
             Mark("Play interaction",new Vector3(0,1.285f,3.4f));Mark("Lounge",new Vector3(13,1.28f,5));
             Mark("Beacon Walk", Vector3.Lerp(BeaconWalkStart, BeaconWalkEnd, .5f));
             Mark("Pool",new Vector3(17,.3f,-8));Mark("Roof terrace",new Vector3(-12,4.05f,17));
-            Mark("Showtime plaza",PlazaCenter);Mark("Hall of fame",FameBoard);
+            Mark("Showtime plaza",PlazaCenter);Mark("Last match",FameBoard);
             Mark("Overview camera",new Vector3(-29,18,-39));Mark("Arrival camera",new Vector3(-11,3.1f,-8.9f));
             Built=true;
         }
@@ -467,9 +468,8 @@ namespace DeadlyJenga.CandyArt.Marina
                 BeaconWalkFacing.eulerAngles);
             Sign("LOUNGE  /  POOL  >", new Vector3(6.65f, 2.635f, 3.56f), .032f, cream);
             Sign("BEACHSIDE CINEMA", new Vector3(0, 5.58f, 3.58f), .062f, cream);
-            var styleBase = new Vector3(Wardrobe.x, PlazaTop, Wardrobe.z);
+            var styleBase = new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z);
             Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.72f, 1.95f), .085f, cream, StyleStageTurn.eulerAngles);
-            var fameBase = new Vector3(FameBoard.x, PlazaTop, FameBoard.z);
 
             Sign("SHOWTIME PLAZA", OnPlaza(-114, 4.7f, PlazaTop - PlazaCenter.y + .012f), .05f,
                 new Color(.23f, .16f, .10f), new Vector3(90, 66, 0));

@@ -213,7 +213,7 @@ namespace DeadlyJenga.Presentation
             displayed = latest;
             nextPage = Time.unscaledTime + 7;
             bool split = latest?.infections != null;
-            title.text = latest?.headline ?? "Win a match to claim the Hall of Fame";
+            title.text = latest?.headline ?? "No completed match yet";
             details.text = latest?.mode ?? "";
             heading.text = latest == null ? "" : split ? "LONGEST SURVIVORS" : "FINAL STANDINGS";
             infectionHeading.text = split ? "SURVIVORS INFECTED" : "";

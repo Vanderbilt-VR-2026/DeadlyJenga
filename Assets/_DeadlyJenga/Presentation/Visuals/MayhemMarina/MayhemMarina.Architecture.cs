@@ -217,32 +217,23 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void Pavilion()
         {
-            Ramp(new Vector3(0,1.285f,3.85f),new Vector3(0,1.86f,5.05f),9.2f,false);
-            // Keep the raised platform outside the west passage, where the ramp meets it flush.
-            mesh.Box(new Vector3(.6f,1.56f,8.45f),new Vector3(11.8f,.6f,6.9f),F.Stone,0,true);
-            mesh.Box(new Vector3(-5.9f,1.56f,5.5f),new Vector3(1.2f,.6f,1.0f),F.Stone,0,true);
-            mesh.Box(new Vector3(-5.9f,1.56f,10.55f),new Vector3(1.2f,.6f,2.7f),F.Stone,0,true);
-            WardrobeConnector();
-            mesh.Box(new Vector3(0,3.7f,11.65f),new Vector3(13.3f,4.0f,.5f),F.Teal,.2f,true);
-            mesh.Box(new Vector3(6.55f,3.1f,9.0f),new Vector3(1.5f,3.9f,5.1f),F.Ivory,.4f,true);
+            Ramp(new Vector3(0,1.285f,3.55f),new Vector3(0,CinemaFloor,5.05f),9.6f,false);
+            mesh.Box(new Vector3(0,CinemaFloor-.3f,8.475f),new Vector3(15.8f,.6f,6.85f),F.Stone,0,true);
             for(int side=-1;side<=1;side+=2)
-            {
-                for(int n=0;n<4;n++)mesh.Box(new Vector3(side*5.7f,1.64f+n*.61f,5.05f),new Vector3(1.0f,.58f,1),n==0?F.Red:n==1?F.Green:F.Purple,.11f,true,Quaternion.Euler(0,n%2*90,0));
-                mesh.Beam(new Vector3(side*5.7f,3.95f,5.1f),new Vector3(side*5.7f,5.0f,5.1f),.14f,F.Wood,true);
-                mesh.Beam(new Vector3(side*5.7f,4.65f,5.1f),new Vector3(side*4.4f,5.7f,5.1f),.12f,F.Wood);
-                Lantern(new Vector3(side*4.2f,4.75f,5.1f),.2f);
-            }
-            mesh.CurvedRoof(new Vector3(0,4.8f,8.3f),15.6f,9.1f,2.15f,F.Teal);
+                mesh.Box(new Vector3(side*6.35f,CinemaFloor-.3f,4.2f),new Vector3(3.1f,.6f,1.7f),F.Stone,0,true);
+            WardrobeConnector();
+            mesh.Box(new Vector3(0,3.7f,11.65f),new Vector3(15.8f,4.0f,.5f),F.Teal,.2f,true);
+            mesh.CurvedRoof(new Vector3(0,5.5f,7.65f),17.1f,10.1f,2.08f,F.Teal);
             mesh.Box(new Vector3(0,5.58f,3.71f),new Vector3(5.5f,.95f,.24f),F.DarkWood,.085f);
             for(int side=-1;side<=1;side+=2)
                 mesh.Beam(new Vector3(side*2,5.98f,3.77f),new Vector3(side*2,6.73f,3.77f),.055f,F.Brass);
             for(int side=-1;side<=1;side+=2)
             {
-                float x=side*6.75f;
-                mesh.Box(new Vector3(x,1.46f,4.65f),new Vector3(.94f,.34f,.94f),F.Stone,.08f,true);
-                mesh.Beam(new Vector3(x,1.55f,4.65f),new Vector3(x,5.55f,4.65f),.18f,F.DarkWood,true);
-                mesh.Beam(new Vector3(x,4.72f,4.65f),new Vector3(side*5.92f,5.65f,4.65f),.13f,F.DarkWood);
-                Lantern(new Vector3(x,3.42f,4.23f),.16f);
+                float x=side*7.4f;
+                mesh.Box(new Vector3(x,CinemaFloor+.17f,3.9f),new Vector3(.78f,.34f,.78f),F.Stone,.08f,true);
+                mesh.Beam(new Vector3(x,CinemaFloor+.22f,3.9f),new Vector3(x,6.1f,3.9f),.18f,F.DarkWood,true);
+                mesh.Beam(new Vector3(x,5.08f,3.9f),new Vector3(side*6.55f,6.42f,3.9f),.13f,F.DarkWood);
+                Lantern(new Vector3(x,4.4f,3.55f),.16f);
             }
             BuildBeachCinema();
             Lantern(new Vector3(-3.8f,5.35f,8.3f),.22f);
@@ -336,7 +327,7 @@ namespace DeadlyJenga.CandyArt.Marina
         void WardrobeConnector()
         {
             var from=new Vector3(-10,1.285f,7.6f);
-            var to=new Vector3(-5.3f,1.86f,7.6f);
+            var to=new Vector3(-7.9f,CinemaFloor,7.6f);
             var rotation=Quaternion.LookRotation((to-from).normalized);
             // Offset along the slab normal, so its top meets both existing flat landings exactly.
             mesh.Box((from+to)*.5f-rotation*Vector3.up*.11f,new Vector3(3.2f,.22f,Vector3.Distance(from,to)),F.Stone,0,true,rotation);
