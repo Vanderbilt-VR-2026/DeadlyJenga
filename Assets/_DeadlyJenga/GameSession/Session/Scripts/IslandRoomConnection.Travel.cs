@@ -25,15 +25,15 @@ namespace DeadlyJenga.CastlePrototype
                 if(lobby&&lobby.MatchResident&&!FindFirstObjectByType<CastlePlaySession>())lobby.ResumeAfterMatch();
             });
         }
-        bool BeginSceneDeparture(int scene,bool networked,string destination,Action failed=null,Func<bool> stillCurrent=null)
+        bool BeginSceneDeparture(int scene,bool networked,string destination,Action failed=null,Func<bool> stillCurrent=null,bool immediate=false)
         {
             if(Departing||networked&&!IsHost)return false;
             try
             {
-                ReceiveDeparture(DepartureSeconds);
+                ReceiveDeparture(DepartureSeconds,animate:!immediate);
                 if(networked)foreach(var player in Runner.ActivePlayers)
                     if(player!=Runner.LocalPlayer)Runner.SendReliableDataToPlayer(player,ReliableKey.FromInts(DepartureChannel,1,departureSequence,generation),BitConverter.GetBytes(DepartureSeconds));
-                StartCoroutine(LoadAfterDeparture(scene,networked,destination,generation,departureSequence,failed,stillCurrent));
+                StartCoroutine(LoadAfterDeparture(scene,networked,destination,generation,departureSequence,failed,stillCurrent,immediate));
                 return true;
             }
             catch(Exception error)
@@ -42,10 +42,11 @@ namespace DeadlyJenga.CastlePrototype
                 CancelDeparture();failed?.Invoke();return false;
             }
         }
-        void ReceiveDeparture(float seconds)
+        void ReceiveDeparture(float seconds,bool animate=true)
         {
             if(Departing)return;
             departureSequence++;Departing=true;LaunchPending=true;
+            if(!animate)return;
             IslandLobby.Current?.PrepareMarinaArrivalCue();
             IslandLobby.Current?.BeginDeparture(seconds);
             GameEvents.RaiseDepartureStarted(seconds);
@@ -89,9 +90,9 @@ namespace DeadlyJenga.CastlePrototype
             remoteDepartureKnown=remoteDepartureActive=true;
             remoteDepartureSequence=sequence;remoteDepartureGeneration=hostGeneration;
         }
-        IEnumerator LoadAfterDeparture(int scene,bool networked,string destination,int connectionGeneration,int sequence,Action failed,Func<bool> stillCurrent)
+        IEnumerator LoadAfterDeparture(int scene,bool networked,string destination,int connectionGeneration,int sequence,Action failed,Func<bool> stillCurrent,bool immediate)
         {
-            yield return new WaitForSecondsRealtime(DepartureSeconds);
+            if(!immediate)yield return new WaitForSecondsRealtime(DepartureSeconds);
             if(sequence!=departureSequence)yield break;
             if(connectionGeneration!=generation||!Departing||networked&&!IsHost||stillCurrent!=null&&!stillCurrent())
             {CancelDeparture();yield break;}

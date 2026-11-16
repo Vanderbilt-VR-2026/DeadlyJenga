@@ -9,20 +9,24 @@ namespace DeadlyJenga.Modes
         MapMatchLayout authoredLayout;
         IWorldQuery layoutWorld;
         int layoutRevision=-1;
-        MapMatchLayout AuthoredLayout()
+        MapMatchLayout AuthoredLayout(bool openingSpawns=false)
         {
             var world=Services.World;int revision=(world as ISyncedWorld)?.Revision??0;
-            if(ReferenceEquals(world,layoutWorld)&&revision==layoutRevision)return authoredLayout;
-            layoutWorld=world;layoutRevision=revision;authoredLayout=null;
-            Physics.SyncTransforms();
-            availableLayouts??=Resources.LoadAll<MapMatchLayout>("MapMatchLayouts");
-            foreach(var candidate in availableLayouts)if(candidate&&candidate.Matches(world)){authoredLayout=candidate;break;}
+            if(!ReferenceEquals(world,layoutWorld)||revision!=layoutRevision)
+            {
+                layoutWorld=world;layoutRevision=revision;authoredLayout=null;
+                Physics.SyncTransforms();
+                availableLayouts??=Resources.LoadAll<MapMatchLayout>("MapMatchLayouts");
+                foreach(var candidate in availableLayouts)if(candidate&&candidate.Matches(world)){authoredLayout=candidate;break;}
+            }
+            if(authoredLayout&&authoredLayout.playOpeningOnly&&(!openingSpawns||!InPlayPlaylist||
+                simulation.Phase!=RoundPhase.Countdown||Rules.mode is not (GameModeKind.Survival or GameModeKind.TeamTickets)))return null;
             return authoredLayout;
         }
         Vector3 LayoutPosition(Vector3 local)=>((ISyncedWorld)Services.World).Root.TransformPoint(local);
         bool TryLayoutSpawn(int team,int ordinal,string role,string actorId,out Vector3 point)
         {
-            point=default;var layout=AuthoredLayout();if(!layout)return false;
+            point=default;var layout=AuthoredLayout(openingSpawns:true);if(!layout)return false;
             var spawns=layout.freeSpawns;
             if(Rules.spawn==SpawnRule.TeamPoles||role=="infected")
             {
@@ -36,6 +40,7 @@ namespace DeadlyJenga.Modes
             {
                 int index=(Mathf.Max(0,ordinal)+attempt)%spawns.Length;
                 var candidate=LayoutPosition(spawns[index]);
+                if(layout.playOpeningOnly&&candidate.y<=Services.World.WaterHeight(candidate)+.02f)continue;
                 if(!Physics.Raycast(candidate+Vector3.up*.25f,Vector3.down,.5f,SpawnSupportMask,QueryTriggerInteraction.Ignore)||
                     !SpawnClear(candidate,actorId))continue;
                 point=candidate;

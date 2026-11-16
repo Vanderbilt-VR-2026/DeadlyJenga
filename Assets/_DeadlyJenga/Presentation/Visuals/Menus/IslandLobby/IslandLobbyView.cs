@@ -79,6 +79,11 @@ namespace DeadlyJenga.CastlePrototype
         }
         Image lobbyAimDot;
         Canvas lobbyAimCanvas;
+        Canvas nextMatchCanvas;
+        Text nextMatchLabel;
+        Camera nextMatchCamera;
+        bool nextMatchVr;
+        int nextMatchSeconds=-1;
         LineRenderer lobbyAimBeam;
         bool trackedLobbyPointer;
         void EnsureLobbyAimCanvas()
@@ -140,6 +145,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void Update()
         {
+            UpdateNextMatchHud();
             if (lobbyAimBeam) lobbyAimBeam.enabled = false;
             if (lobbyAimDot) lobbyAimDot.gameObject.SetActive(false);
             trackedLobbyPointer = false;
@@ -206,6 +212,42 @@ namespace DeadlyJenga.CastlePrototype
             }
             Point(ray,pressed,pointerHeld,pointerDevice);
             UpdateStations();
+        }
+
+        void UpdateNextMatchHud()
+        {
+            var experience=session as IGameExperienceControls;
+            var view=session?.ActiveCamera;
+            bool show=view&&ReferenceEquals(Services.Session,session)&&experience?.AutomaticRounds==true&&
+                experience.GamePhase==RoomGamePhase.Selected&&experience.CountdownSeconds>0&&
+                experience.ProfileId?.StartsWith("play:",StringComparison.Ordinal)==true;
+            if(!show)
+            {
+                if(nextMatchCanvas)nextMatchCanvas.enabled=false;
+                return;
+            }
+            if(!nextMatchCanvas)
+            {
+                var hud=new GameObject("Next match HUD",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));
+                hud.transform.SetParent(transform,false);
+                nextMatchCanvas=hud.GetComponent<Canvas>();
+                nextMatchCanvas.sortingOrder=26;
+                nextMatchLabel=CandyHudCards.Create((RectTransform)hud.transform,"Next match",
+                    new Vector2(0,334),new Vector2(270,40),18,TextAnchor.MiddleCenter);
+                CandyHudCards.Badge(nextMatchLabel);
+                CandyHudCards.Tint(nextMatchLabel,CandyHudVisuals.Mint,.45f);
+            }
+            if(nextMatchCamera!=view||nextMatchVr!=session.IsVR)
+            {
+                nextMatchCamera=view;
+                nextMatchVr=session.IsVR;
+                CandyHudLayout.Configure(nextMatchCanvas,transform,view,nextMatchVr);
+            }
+            nextMatchCanvas.enabled=true;
+            int seconds=Mathf.CeilToInt(experience.CountdownSeconds);
+            if(seconds==nextMatchSeconds)return;
+            nextMatchSeconds=seconds;
+            nextMatchLabel.text="NEXT MATCH IN "+seconds+" S";
         }
         readonly RoomLeaveConfirmation terminalLeave=new RoomLeaveConfirmation();
         bool ConfirmingTerminalLeave=>lobby.Connected&&!lobby.IsHost&&!lobby.Busy&&terminalLeave.Pending(lobby,lobby.HostCode,Time.unscaledTime);
@@ -338,6 +380,7 @@ namespace DeadlyJenga.CastlePrototype
         void OnDestroy()
         {
             GameEvents.Emoted-=LobbyResidenceChanged;
+            if(nextMatchCanvas)Destroy(nextMatchCanvas.gameObject);
             if(lobbySun)Destroy(lobbySun.gameObject);
             DisposeMayhemMarina();
             DisposeWardrobe();

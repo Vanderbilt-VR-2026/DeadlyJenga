@@ -10,6 +10,7 @@ namespace DeadlyJenga.Modes
         readonly ModeDisasterClock disasters=new ModeDisasterClock();
         readonly System.Random disasterRandom=new System.Random();
         const float SurvivalDisasterDuration=60;
+        const float TeamDisasterDuration=18;
         readonly List<(IHazard hazard,float end)> timedDisasters=new List<(IHazard,float)>();
         readonly List<GameObject> disasterChoices=new List<GameObject>();
         readonly List<GameObject> freshDisasters=new List<GameObject>();
@@ -17,8 +18,9 @@ namespace DeadlyJenga.Modes
         readonly HashSet<HazardType> runningDisasters=new HashSet<HazardType>();
         string lastDisaster="";
 
-        bool PlayDisasters=>RoomGameExperience.ForManagedMatch(session)?.PlayerPlaylist==true;
+        bool InPlayPlaylist=>RoomGameExperience.ForManagedMatch(session)?.PlayerPlaylist==true;
         static bool StructuralDisaster(string key)=>key.Contains("earthquake")||key.Contains("tornado")||key.Contains("tsunami");
+        static bool PausedRotationDisaster(string id)=>id=="Vampire"||id=="Icey";
 
         void ResetDisasterRotation()
         {
@@ -30,12 +32,12 @@ namespace DeadlyJenga.Modes
             disasterChoices.Clear();freshDisasters.Clear();runningDisasters.Clear();
             foreach(var component in session.GetComponentsInChildren<MonoBehaviour>())
                 if(component is IHazard active&&active.Active)runningDisasters.Add(active.Type);
-            bool play=PlayDisasters;
+            bool play=InPlayPlaylist;
             bool opening=play&&simulation.Elapsed<60;
             bool freshActive=false;
             foreach(var prefab in DemoDisasters.Prefabs)
             {
-                if(!prefab||!(prefab.GetComponent<IHazard>() is IMapHazard definition)||
+                if(!prefab||PausedRotationDisaster(prefab.name)||!(prefab.GetComponent<IHazard>() is IMapHazard definition)||
                     !definition.TryValidate(Services.World,out _))continue;
                 string key=prefab.name.ToLowerInvariant();
                 if(opening&&!StructuralDisaster(key))continue;
@@ -55,11 +57,12 @@ namespace DeadlyJenga.Modes
         }
         bool LaunchScheduled(string id)
         {
+            if(PausedRotationDisaster(id))return false;
             GameObject prefab=null;foreach(var candidate in DemoDisasters.Prefabs)if(candidate&&candidate.name==id){prefab=candidate;break;}
             if(!prefab||!(prefab.GetComponent<IHazard>() is IMapHazard definition))return false;
             foreach(var component in session.GetComponentsInChildren<MonoBehaviour>())
                 if(component is IHazard active&&active.Active&&active.Type==definition.Type)return false;
-            bool play=PlayDisasters;
+            bool play=InPlayPlaylist;
             bool structural=StructuralDisaster(prefab.name.ToLowerInvariant());
             var parameters=DemoDisasters.Parameters(prefab);var values=new float[parameters.Count];
             for(int i=0;i<values.Length;i++)
@@ -72,13 +75,15 @@ namespace DeadlyJenga.Modes
                     string parameter=parameters[i].id.ToLowerInvariant();
                     float scale=play&&structural&&!parameter.Contains("damage")?.85f:.55f;
                     if(parameter.Contains("force")||parameter.Contains("pull")||parameter.Contains("damage"))values[i]=parameters[i].Clamp(values[i]*scale);
-                    if(parameter=="duration")values[i]=parameters[i].Clamp(Mathf.Min(values[i],18));
+                    if(parameter=="duration")values[i]=parameters[i].Clamp(Mathf.Min(values[i],TeamDisasterDuration));
                 }
             }
             bool started=DemoDisasters.ExecuteForMode(session,id,values,out var hazard);
             if(started&&hazard!=null)
             {
-                if(Rules.mode==GameModeKind.Survival||prefab.GetComponent<IDemoHazard>()?.Toggle==true)
+                if(play&&Rules.mode==GameModeKind.TeamTickets)
+                    timedDisasters.Add((hazard,simulation.Elapsed+TeamDisasterDuration));
+                else if(Rules.mode==GameModeKind.Survival||prefab.GetComponent<IDemoHazard>()?.Toggle==true)
                     timedDisasters.Add((hazard,simulation.Elapsed+SurvivalDisasterDuration));
                 playedDisasters.Add(id);lastDisaster=id;
             }
