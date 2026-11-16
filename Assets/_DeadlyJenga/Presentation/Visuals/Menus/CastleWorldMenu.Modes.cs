@@ -146,9 +146,11 @@ namespace DeadlyJenga.CastlePrototype
                 card.title.rectTransform.sizeDelta = new Vector2(174, 44);
                 card.title.rectTransform.anchoredPosition = new Vector2(54, 17);
                 card.title.fontSize = 19;
+                card.title.resizeTextForBestFit = false;
                 card.title.color = TabletCream;
                 card.playLabel.text = "▶ Launch";
                 card.playLabel.fontSize = 15;
+                card.playLabel.resizeTextForBestFit = false;
                 disasterCards.Add(card);
             }
 
