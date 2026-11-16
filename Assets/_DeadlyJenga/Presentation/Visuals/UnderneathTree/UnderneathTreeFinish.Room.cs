@@ -45,7 +45,7 @@ namespace DeadlyJenga.CandyArt
             var shader = Resources.Load<Shader>(ResourcePath + "Christmas Foil Paper");
             if (!shader) return Surface(label, "Winter Print", color, .4f, new Vector2(1.5f, 1.5f));
             var material = new Material(shader) { name = label, color = color, enableInstancing = true };
-            material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Winter Print"));
+            material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Gold Snowflake Foil"));
             material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Paper Normal"));
             material.SetTextureScale("_BaseMap", new Vector2(1.5f, 1.5f));
             material.SetFloat("_BumpScale", .16f);

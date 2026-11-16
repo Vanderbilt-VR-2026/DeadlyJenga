@@ -94,12 +94,13 @@ namespace DeadlyJenga.CandyArt
             if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset pipeline)
             {
                 previousPipeline = QualitySettings.renderPipeline;
-                roomPipeline = Instantiate(pipeline);
+                var roomProfile = Resources.Load<UniversalRenderPipelineAsset>(ResourcePath + "Room Rendering");
+                roomPipeline = Instantiate(roomProfile ? roomProfile : pipeline);
                 roomPipeline.name = "Christmas room rendering (runtime only)";
                 roomPipeline.hideFlags = HideFlags.HideAndDontSave;
                 roomPipeline.shadowDistance = 340f;
                 roomPipeline.shadowCascadeCount = Application.platform == RuntimePlatform.Android ? 2 : 4;
-                roomPipeline.mainLightShadowmapResolution = 2048;
+                roomPipeline.mainLightShadowmapResolution = Application.platform == RuntimePlatform.Android ? 2048 : 4096;
                 roomPipeline.supportsHDR = true;
                 QualitySettings.renderPipeline = roomPipeline;
             }
@@ -183,7 +184,7 @@ namespace DeadlyJenga.CandyArt
 
         void RestoreIndoorSettings()
         {
-            var fill = new Color(.21f, .25f, .35f);
+            var fill = new Color(.27f, .30f, .39f);
             if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Flat &&
                 RenderSettings.ambientLight == fill && Mathf.Approximately(RenderSettings.reflectionIntensity, .68f))
                 return;
@@ -293,12 +294,17 @@ namespace DeadlyJenga.CandyArt
         void BuildLighting()
         {
             key = MakeLight("Amber lamplight and ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .90f, .75f), 1.65f, 0f);
-            key.transform.localRotation = Quaternion.Euler(42f, -58f, 0f);
+                Vector3.zero, new Color(1f, .90f, .75f), 1.4f, 0f);
+            key.transform.localRotation = Quaternion.Euler(68f, -58f, 0f);
             key.shadows = LightShadows.Soft;
-            key.shadowStrength = .86f;
+            key.shadowStrength = .65f;
             key.shadowBias = .08f;
             key.shadowNormalBias = .2f;
+
+            var bounce = MakeLight("Soft blue room bounce", LightType.Directional, Vector3.zero,
+                new Color(.55f, .65f, 1f), .35f, 0f);
+            bounce.transform.localRotation = Quaternion.Euler(40f, 130f, 0f);
+            practicalLights.Add(bounce);
 
             MakeSpot("Moonlight from the front window", new Vector3(10, 65, 70),
                 new Vector3(-90, 10, -110), new Color(.16f, .36f, 1f), 26000f, 240f, 83f);
@@ -334,7 +340,7 @@ namespace DeadlyJenga.CandyArt
             tone.mode.Override(TonemappingMode.ACES);
             var bloom = grade.Add<Bloom>(true);
             bloom.threshold.Override(1.04f);
-            bloom.intensity.Override(.27f);
+            bloom.intensity.Override(.42f);
             bloom.scatter.Override(.62f);
             var color = grade.Add<ColorAdjustments>(true);
             color.postExposure.Override(.14f);

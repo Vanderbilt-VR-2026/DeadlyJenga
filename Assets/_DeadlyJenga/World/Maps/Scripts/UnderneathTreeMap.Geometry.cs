@@ -93,6 +93,7 @@ namespace DeadlyJenga.CastlePrototype
             var frame = Child(built, label, center, orientation);
             var shell = new UnderneathTreeGiftShell();
             const float joint = .016f;
+            float ribbonWidth = Mathf.Min(size.x, size.z) * .135f;
             float thick = Mathf.Clamp(Mathf.Min(size.x, size.y, size.z) * .085f, .2f, .57f);
             float insideY = size.y - 2f * (thick + joint);
             float insideX = size.x - 2f * (thick + joint);
@@ -100,7 +101,7 @@ namespace DeadlyJenga.CastlePrototype
             AddPanel(frame, shell, "Bottom", GiftPieceRole.Base, Vector3.down * ((size.y - thick) * .5f),
                 new Vector3(size.x, thick, size.z), wrap, null, Vector3.zero);
             var top = AddPanel(frame, shell, "Lid", GiftPieceRole.Lid, Vector3.up * ((size.y - thick) * .5f),
-                new Vector3(size.x, thick, size.z), wrap, ribbon, Vector3.up);
+                new Vector3(size.x, thick, size.z), wrap, ribbon, Vector3.up, ribbonWidth);
             if (label == "Present 206" || label == "Entrance / Cream Catch")
                 spawnTops.Insert(0, top);
             else if (spawn)
@@ -110,24 +111,24 @@ namespace DeadlyJenga.CastlePrototype
             {
                 AddPanel(frame, shell, sign < 0 ? "Left" : "Right", GiftPieceRole.Wall,
                     Vector3.right * (sign * (size.x - thick) * .5f),
-                    new Vector3(thick, insideY, size.z), wrap, ribbon, Vector3.right * sign);
+                    new Vector3(thick, insideY, size.z), wrap, ribbon, Vector3.right * sign, ribbonWidth);
                 AddPanel(frame, shell, sign < 0 ? "Front" : "Back", GiftPieceRole.Wall,
                     Vector3.forward * (sign * (size.z - thick) * .5f),
-                    new Vector3(insideX, insideY, thick), wrap, ribbon, Vector3.forward * sign);
+                    new Vector3(insideX, insideY, thick), wrap, ribbon, Vector3.forward * sign, ribbonWidth);
             }
             playArea.Encapsulate(top.bounds);
             return top.GetComponent<UnderneathTreeGiftPanel>();
         }
 
         Collider AddPanel(Transform gift, UnderneathTreeGiftShell shell, string label, GiftPieceRole role,
-            Vector3 offset, Vector3 size, Material wrap, Material ribbon, Vector3 facing)
+            Vector3 offset, Vector3 size, Material wrap, Material ribbon, Vector3 facing, float ribbonWidth = 0f)
         {
             var piece = Child(gift, label, offset, Quaternion.identity);
             var collider = AddBox(piece, size, true);
             var visual = VisualBox(piece, "Visual", Vector3.zero, size, wrap);
             if (ribbon)
             {
-                float width = Mathf.Min(size.x, size.z) * .135f;
+                float width = ribbonWidth > 0f ? ribbonWidth : Mathf.Min(size.x, size.z) * .135f;
                 if (facing.y != 0f)
                 {
                     VisualBox(piece, "Ribbon across", new Vector3(0f, size.y * .5f + .007f, 0f),
@@ -137,10 +138,10 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 else if (facing.x != 0f)
                     VisualBox(piece, "Ribbon", facing * (size.x * .5f + .007f),
-                        new Vector3(.014f, size.y, size.z * .18f), ribbon);
+                        new Vector3(.014f, size.y, width), ribbon);
                 else
                     VisualBox(piece, "Ribbon", facing * (size.z * .5f + .007f),
-                        new Vector3(size.x * .18f, size.y, .014f), ribbon);
+                        new Vector3(width, size.y, .014f), ribbon);
             }
             RegisterPanel(piece.gameObject, visual.transform, shell, role, size.x * size.y * size.z);
             return collider;
