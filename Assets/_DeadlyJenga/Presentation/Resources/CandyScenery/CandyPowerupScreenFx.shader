@@ -53,25 +53,26 @@ Shader "Candy Tropical/Powerup Screen Effects"
                 return exp2(-1.44 * q * q);
             }
 
-            float4 SpeedChase(float2 uv)
+            float4 SpeedChase(float along, float depth, float phaseOffset)
             {
-                float x = uv.x - .5;
-                float bottom = 1 - smoothstep(.073, .10, uv.y);
-                float bed = SoftLine(uv.y - .004, .028) * saturate(1 - abs(x) / .42);
+                float x = along - .5;
+                float edgeFade = 1 - smoothstep(.073, .10, depth);
+                float bed = SoftLine(depth - .004, .028) * saturate(1 - abs(x) / .42);
                 float core = 0;
                 float wake = .35 * bed * bed;
                 float echo = 0;
+                float clock = _Phase * .8 + phaseOffset;
                 [unroll] for (int pulse = 0; pulse < 4; pulse++)
                 {
-                    float phase = frac(_Phase * .8 + pulse * .25);
+                    float phase = frac(clock + pulse * .25);
                     float forward = 1 - pow(1 - phase, 2);
                     float lateral = x / lerp(.423, .17, forward);
                     float taper = saturate(1 - lateral * lateral);
-                    float beat = 6.283185 * (_Phase * .8 + pulse * .23);
+                    float beat = 6.283185 * (clock + pulse * .23);
                     float crest = -.020 + .114 * forward + .010 * taper +
                         .004 * taper * sin(3.2 * lateral - beat);
                     float energy = taper * taper * smoothstep(0, .13, phase) * pow(1 - phase, .91);
-                    float distance = uv.y - crest;
+                    float distance = depth - crest;
                     float width = lerp(.0060, .0024, forward);
                     float ripple = .78 + .22 * cos(9 * lateral + beat);
                     core += SoftLine(distance, width) * energy * ripple;
@@ -79,12 +80,28 @@ Shader "Candy Tropical/Powerup Screen Effects"
                     echo += SoftLine(distance + .012 * (1 - .6 * forward), width * .55) * energy;
                 }
 
-                float strength = bottom * _Boosts.x;
+                float strength = edgeFade * _Boosts.x;
                 float glow = saturate(.52 * wake + .28 * echo);
                 float flare = saturate(core * 1.50);
                 float alpha = min(.90, glow + flare * .75) * strength;
                 float3 color = lerp(float3(.016,.87,.10), float3(.65,1,.48), flare);
                 return float4(color * alpha, alpha);
+            }
+
+            float4 SpeedPeriphery(float2 uv)
+            {
+                float horizontalDepth = min(uv.y, 1 - uv.y);
+                float verticalDepth = min(uv.x, 1 - uv.x) * 1.5;
+
+                // Map the closest edge to a shared chase, with no stacked glow in the corners.
+                bool horizontal = horizontalDepth <= verticalDepth;
+                float depth = min(horizontalDepth, verticalDepth);
+                float along = horizontal ? uv.x : uv.y;
+                float phase = horizontal ? (uv.y < .5 ? 0 : .10) : (uv.x < .5 ? .06 : .17);
+                float4 result = 0;
+                if (depth < .10 && abs(along - .5) < .43)
+                    result = SpeedChase(along, depth, phase);
+                return result;
             }
 
             float4 JumpAscent(float2 uv)
@@ -136,7 +153,7 @@ Shader "Candy Tropical/Powerup Screen Effects"
                 float2 uv = input.screen.xy / input.screen.w;
                 float4 speed = 0;
                 float4 jump = 0;
-                if (_Boosts.x > 0 && uv.y < .10 && abs(uv.x - .5) < .43) speed = SpeedChase(uv);
+                if (_Boosts.x > 0) speed = SpeedPeriphery(uv);
                 if (_Boosts.y > 0 && min(uv.x,1 - uv.x) < .135) jump = JumpAscent(uv);
                 return jump + speed * (1 - jump.a);
             }
