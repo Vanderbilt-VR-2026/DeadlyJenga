@@ -43,6 +43,8 @@ namespace DeadlyJenga.DevTools.Editor
             var session=Services.Session as CastlePlaySession;
             Check(session&&session.Modes,"Terminal launch travels to actual Game");
             session.SetMenu(false);session.SurvivorBots.AutoFill=false;
+            float settle=Time.realtimeSinceStartup+3;while(Time.realtimeSinceStartup<settle)yield return null;
+            session.SetMenu(false);
             var original=MatchRuntime.Current;
             var fixtureType=typeof(HudReadabilityChecks).GetNestedType("Fixture",BindingFlags.NonPublic);
             var fixture=(IMatchRuntime)Activator.CreateInstance(fixtureType,BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic,null,new object[]{original},null);
@@ -52,7 +54,14 @@ namespace DeadlyJenga.DevTools.Editor
             frame.eliminations=Array.Empty<EliminationFrame>();frame.eliminationEpoch="visual-review";
             var hud=session.GetComponent<CandyMatchHud>();var results=session.GetComponent<CandyResultsHud>();
             void Publish(){frame.revision++;fixtureType.GetProperty("Frame").SetValue(fixture,frame);MatchRuntime.Current=fixture;}
-            void Shot(string name){Call(hud,"Update");Call(results,"Update");CaptureMatchCanvas(session,name);}
+            void Shot(string name)
+            {
+                if(frame.phase!=RoundPhase.Results)session.SetMenu(false);
+                Call(hud,"Update");Call(results,"Update");
+                if(name.StartsWith("61")||name.StartsWith("62"))
+                    Check(Field<Canvas>(hud,"canvas").enabled,"Gameplay HUD visible for "+name+"; menu="+session.MenuOpen+"; spectating="+(session.Demo as ISpectatorControls)?.Spectating);
+                CaptureMatchCanvas(session,name);
+            }
             try
             {
                 Publish();yield return null;
