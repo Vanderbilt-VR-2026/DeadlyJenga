@@ -15,6 +15,7 @@ namespace DeadlyJenga.Modes
         }
         [Tooltip("Exact ISyncedWorld layout token. Geometry changes must update both assets.")]
         public string layoutSignature;
+        public bool playOpeningOnly;
         public Vector3[] freeSpawns=Array.Empty<Vector3>();
         public TeamArea[] teams=Array.Empty<TeamArea>();
         public Vector3 hill;
