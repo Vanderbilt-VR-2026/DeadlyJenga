@@ -84,7 +84,8 @@ namespace DeadlyJenga.DevTools.Editor
             Call(view,"CloseSetupPage");
             TerminalAction(screen,"marina-maps");
             Check(Field<string>(view,"setupPage")=="maps","Map picker remains reachable after a match ends");
-            Check(lobby.SelectMap("mode-hill"),"New match can select a different map");
+            var nextMap=((ILobbyDetails)lobby).Maps.First(m=>m.id!="castle");
+            Check(lobby.SelectMap(nextMap.id),"New match can select a different map: "+nextMap.id);
             Call(view,"CloseSetupPage");
             TerminalAction(screen,"marina-settings");
             Check(Field<string>(view,"setupPage")=="settings","Match settings remain reachable after a match ends");
@@ -98,7 +99,7 @@ namespace DeadlyJenga.DevTools.Editor
             TerminalAction(screen,"marina-play");
             yield return TerminalUntil(()=>Services.Session is CastlePlaySession s&&s.Modes&&s.Modes.Rules.mode==GameModeKind.KingOfHill,"Terminal starts the newly configured match");
             session=(CastlePlaySession)Services.Session;match=session.Modes;session.SetMenu(false);
-            Check(MatchSetup.MapId=="mode-hill","New match receives the selected map");
+            Check(MatchSetup.MapId==nextMap.id,"New match receives the selected map");
             Check(match.Rules.countdownSeconds==12,"New match receives the configured countdown");
             session.VisitLobby();yield return TerminalUntil(()=>session.VisitingLobby,"Lobby terminal can be visited between rounds");
             screen=IslandLobby.Persistent.GetComponent<MarinaScreen>();Call(screen,"Refresh");
