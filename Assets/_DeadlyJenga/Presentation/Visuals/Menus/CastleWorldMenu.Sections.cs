@@ -337,21 +337,22 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!image){mapThumbnails[i].gameObject.SetActive(false);return;}
             var preview=mapThumbnails[i];preview.texture=image;preview.gameObject.SetActive(true);
+            sectionGlyphs[i].gameObject.SetActive(false);
             if (twoCols)
             {
                 float fit=Mathf.Min(80f/image.width,42f/image.height);
                 preview.rectTransform.sizeDelta=new Vector2(image.width*fit,image.height*fit);
                 preview.rectTransform.anchoredPosition=new Vector2(-btnW*0.5f+50f,0);
-                labels[i].rectTransform.sizeDelta=new Vector2(btnW-120f,46);
-                labels[i].rectTransform.anchoredPosition=new Vector2(25f,0);
+                labels[i].rectTransform.sizeDelta=new Vector2(btnW-140f,46);
+                labels[i].rectTransform.anchoredPosition=new Vector2(50f,0);
             }
             else
             {
-                float fit=Mathf.Min(120f/image.width,68f/image.height);
+                float fit=Mathf.Min(108f/image.width,48f/image.height);
                 preview.rectTransform.sizeDelta=new Vector2(image.width*fit,image.height*fit);
                 preview.rectTransform.anchoredPosition=new Vector2(-btnW*0.5f+75f,0);
                 labels[i].rectTransform.sizeDelta=new Vector2(btnW-200f,60);
-                labels[i].rectTransform.anchoredPosition=new Vector2(40f,0);
+                labels[i].rectTransform.anchoredPosition=new Vector2(70f,0);
             }
         }
         void SwitchDemoRole()
@@ -647,8 +648,9 @@ namespace DeadlyJenga.CastlePrototype
                 labels[i].fontStyle = FontStyle.Bold;
                 labels[i].alignment = TextAnchor.MiddleLeft;
                 labels[i].resizeTextForBestFit = false;
-                labels[i].rectTransform.sizeDelta = new Vector2(btnW - 92, btnH - 8);
-                labels[i].rectTransform.anchoredPosition = new Vector2(24, 0);
+                bool hasIcon=art[i]!=CandyHudIcon.Settings;
+                labels[i].rectTransform.sizeDelta = new Vector2(btnW - (hasIcon?92:40), btnH - 8);
+                labels[i].rectTransform.anchoredPosition = new Vector2(hasIcon?24:0, 0);
 
                 if(sectionGlyphs[i])
                 {
