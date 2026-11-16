@@ -140,18 +140,32 @@ namespace DeadlyJenga.DevTools.Editor
         static IEnumerator VerifyWardrobeEscape(IslandLobbyView wardrobe)
         {
             Require(wardrobe.WardrobeOpen,"Wardrobe is ready to receive Escape");
+            var settings = InputSystem.settings;
+            var background = settings.backgroundBehavior;
+            var routing = settings.editorInputBehaviorInPlayMode;
+            settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
             var keyboard=InputSystem.AddDevice<Keyboard>();
             try
             {
+                InputSystem.QueueStateEvent(keyboard,new KeyboardState());
+                yield return null;
+                yield return null;
                 keyboard.MakeCurrent();
                 InputSystem.QueueStateEvent(keyboard,new KeyboardState(UnityEngine.InputSystem.Key.Escape));
+                yield return Until(() => keyboard.escapeKey.isPressed,"The editor forwards the synthetic Escape to the game",5);
                 yield return Until(() => !wardrobe.WardrobeOpen,"Escape closes the wardrobe",5);
                 yield return null;
                 var lobby = IslandLobby.Current;
                 Require(!lobby.MenuOpen&&!lobby.Player.InputSuspended,
                     "Escape does not also open the lobby menu or suspend movement");
             }
-            finally{InputSystem.RemoveDevice(keyboard);}
+            finally
+            {
+                InputSystem.RemoveDevice(keyboard);
+                settings.editorInputBehaviorInPlayMode = routing;
+                settings.backgroundBehavior = background;
+            }
         }
         static IEnumerator Validate()
         {
