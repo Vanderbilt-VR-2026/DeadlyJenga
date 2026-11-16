@@ -12,56 +12,70 @@ namespace DeadlyJenga.Presentation
         static readonly Color FocusColor = new Color(.65f,1f,.43f);
         Material pickupMarkerMaterial;
         Canvas pickupTag;
-        Image pickupTagPointer, pickupTagPanel, pickupTagAccent;
-        Text pickupTagName, pickupTagAction, pickupTagSwap;
-        const float TagWidth = 310;
+        RawImage pickupTagPanel, pickupTagPointer, pickupTagKeycap;
+        Text pickupTagName, pickupTagAction, pickupTagKey, pickupTagSwap;
+        Material pickupGlass, pickupKey, pickupPointer;
+        const float TagWidth = 310f;
+        const float TagHeight = 90f;
+        const float DetailHeight = 26f;
+        static readonly Color PickupInk = new Color32(96, 255, 154, 255);
+        static readonly Color SwapInk = new Color32(255, 217, 127, 255);
 
-        void BuildPickupTag()
+        bool BuildPickupTag()
         {
-            var root = new GameObject("Focused pickup tag",typeof(RectTransform),typeof(Canvas));
-            root.transform.SetParent(transform,false);
+            var shader = Resources.Load<Shader>("CandyPickupHologram");
+            if (!shader) return false;
+
+            var root = new GameObject("Focused pickup tag", typeof(RectTransform), typeof(Canvas));
+            root.transform.SetParent(transform, false);
             pickupTag = root.GetComponent<Canvas>();
             pickupTag.renderMode = RenderMode.WorldSpace;
             pickupTag.sortingOrder = 36;
 
             var rect = (RectTransform)root.transform;
-            pickupTagPointer = TagImage(rect,"Tag pointer",new Vector2(14,14),CandyHudVisuals.Panel);
-            pickupTagPointer.rectTransform.localRotation = Quaternion.Euler(0,0,45);
-            pickupTagPanel = TagImage(rect,"Candy tag",new Vector2(TagWidth,78),CandyHudVisuals.Panel);
-            pickupTagAccent = TagImage(rect,"Action highlight",new Vector2(286,22),new Color(.17f,.32f,.27f));
-            pickupTagAccent.rectTransform.anchoredPosition = new Vector2(0,-18);
-            pickupTagName = TagText(rect,"Item name",23,17,Color.white);
-            pickupTagAction = TagText(rect,"Pickup input",17,-18,CandyHudVisuals.Mint);
-            pickupTagSwap = TagText(rect,"Item left behind",16,-48,CandyHudVisuals.Peach);
+            var font = Resources.Load<Font>("Fonts/Fredoka-Bold");
+            if (!font) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            pickupPointer = new Material(shader) { name = "Pickup hologram pointer" };
+            pickupPointer.SetFloat("_Shape", 2);
+            pickupGlass = new Material(shader) { name = "Pickup hologram glass" };
+            pickupKey = new Material(shader) { name = "Pickup hologram keycap" };
+            pickupKey.SetFloat("_Shape", 1);
+
+            pickupTagPointer = TagSurface(rect, "Glass pointer", new Vector2(36, 22), pickupPointer);
+            pickupTagPanel = TagSurface(rect, "Glass panel", new Vector2(TagWidth, TagHeight), pickupGlass);
+            pickupTagKeycap = TagSurface(rect, "Gummy keycap", new Vector2(42, 34), pickupKey);
+            pickupTagName = TagText(rect, font, "Item name", 26, 18, Color.white);
+            pickupTagAction = TagText(rect, font, "Pickup action", 24, -17, PickupInk);
+            pickupTagKey = TagText(rect, font, "Input key", 22, -17, Color.white);
+            pickupTagSwap = TagText(rect, font, "Item details", 16, -46, SwapInk);
+            return true;
         }
 
-        static Image TagImage(RectTransform parent, string name, Vector2 size, Color color)
+        static RawImage TagSurface(RectTransform parent, string name, Vector2 size, Material material)
         {
-            var image = new GameObject(name,typeof(RectTransform),typeof(Image)).GetComponent<Image>();
-            image.transform.SetParent(parent,false);
-            image.rectTransform.sizeDelta = size;
-            image.color = color;
-            image.sprite = CandyHudVisuals.Pill;
-            image.type = Image.Type.Sliced;
-            image.raycastTarget = false;
-            return image;
+            var surface = new GameObject(name, typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+            surface.transform.SetParent(parent, false);
+            surface.rectTransform.sizeDelta = size;
+            surface.material = material;
+            surface.raycastTarget = false;
+            return surface;
         }
 
-        static Text TagText(RectTransform parent, string name, int size, float y, Color color)
+        static Text TagText(RectTransform parent, Font font, string name, int size, float y, Color color)
         {
-            var label = new GameObject(name,typeof(RectTransform),typeof(Text)).GetComponent<Text>();
-            label.transform.SetParent(parent,false);
-            label.rectTransform.sizeDelta = new Vector2(282,26);
-            label.rectTransform.anchoredPosition = new Vector2(0,y);
-            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var label = new GameObject(name, typeof(RectTransform), typeof(Text)).GetComponent<Text>();
+            label.transform.SetParent(parent, false);
+            label.rectTransform.sizeDelta = new Vector2(TagWidth - 30, 34);
+            label.rectTransform.anchoredPosition = new Vector2(0, y);
+            label.font = font;
             label.fontSize = size;
-            label.fontStyle = FontStyle.Bold;
             label.alignment = TextAnchor.MiddleCenter;
             label.color = color;
             label.raycastTarget = false;
             label.supportRichText = false;
             label.resizeTextForBestFit = true;
-            label.resizeTextMinSize = size-4;
+            label.resizeTextMinSize = 12;
             label.resizeTextMaxSize = size;
             return label;
         }
@@ -70,7 +84,7 @@ namespace DeadlyJenga.Presentation
         {
             var point = pickup.position;
             var depth = eye.WorldToViewportPoint(point);
-            if (depth.z < eye.nearClipPlane+.12f || depth.x < -.08f || depth.x > 1.08f ||
+            if (depth.z < eye.nearClipPlane + .12f || depth.x < -.08f || depth.x > 1.08f ||
                 depth.y < -.1f || depth.y > 1.06f) return false;
 
             var oldKind = current == null ? EquipmentKind.None : current.activePower != EquipmentKind.None ? current.activePower :
@@ -80,55 +94,75 @@ namespace DeadlyJenga.Presentation
             bool bothHandsBusy = needsHolster && (EquipmentSpecifications.Get(current.kind).twoHanded ||
                 current.kind is EquipmentKind.DualUzi or EquipmentKind.Chainsaw or EquipmentKind.LaserClaws);
 
-            // The tag follows the pickup's depth. Pick the side with more room and keep it off the item.
-            float scale = vr ? .00105f : Mathf.Clamp(depth.z*.0011f,.00065f,.0022f);
-            float side = depth.x < .62f ? 1f : -1f;
-            float horizontal = .13f + TagWidth*.5f*scale;
-            var right = eye.transform.right;
-            var up = eye.transform.up;
-            var position = point + right*(horizontal*side) + up*.15f;
-            var tagViewport = eye.WorldToViewportPoint(position);
-            if (tagViewport.x < .12f || tagViewport.x > .88f)
-            {
-                side = -side;
-                position = point + right*(horizontal*side) + up*.15f;
-                tagViewport = eye.WorldToViewportPoint(position);
-                if (tagViewport.x < .09f || tagViewport.x > .91f) return false;
-            }
-            if (tagViewport.y > .89f) position -= up*.26f;
-            else if (tagViewport.y < .13f) position += up*.23f;
+            // Use the target's depth so the panel stays in the world. Its desktop size tracks the view angle.
+            float viewHeight = eye.orthographic ? 2 * eye.orthographicSize :
+                2 * depth.z / Mathf.Abs(eye.projectionMatrix.m11);
+            float scale = vr ? .00105f : Mathf.Clamp(viewHeight * .39f / TagWidth, .00075f, .004f);
+            float rise = vr ? .23f : Mathf.Max(.21f, viewHeight * .15f);
+            var position = point + eye.transform.up * rise;
+            var viewport = eye.WorldToViewportPoint(position);
+            float halfWidth = TagWidth * scale / (2 * viewHeight * eye.aspect);
+            float shift = Mathf.Clamp(viewport.x, halfWidth + .015f, .985f - halfWidth) - viewport.x;
+            if (viewport.y + TagHeight * scale / (2 * viewHeight) > .99f ||
+                Mathf.Abs(shift) > halfWidth * .77f) return false;
 
-            if (!pickupTag) BuildPickupTag();
+            if (!pickupTag && !BuildPickupTag()) return false;
+            position += eye.transform.right * (shift * viewHeight * eye.aspect);
             pickupTag.enabled = true;
             pickupTag.worldCamera = eye;
-            pickupTag.transform.SetPositionAndRotation(position,eye.transform.rotation);
-            pickupTag.transform.localScale = Vector3.one*scale;
-            pickupTagPointer.rectTransform.anchoredPosition = new Vector2(-side*(TagWidth*.5f-2),0);
+            pickupTag.transform.SetPositionAndRotation(position, eye.transform.rotation);
+            pickupTag.transform.localScale = Vector3.one * scale;
 
-            var itemName = Name(pickup.kind);
-            pickupTagName.text = pickup.rounds < 0 ? itemName : itemName+" · "+pickup.rounds+" rounds";
-            var action = swap ? "Swap" : "Pick up";
-            var input = SwapInputHint(session);
-            pickupTagAction.text = bothHandsBusy ? "Holster to swap" : needsHolster ? action+" · Use free hand" :
-                vr ? action+" · "+input : input+" · "+action;
-            pickupTagAction.color = swap ? CandyHudVisuals.Peach : CandyHudVisuals.Mint;
-            pickupTagAccent.color = swap ? new Color(.39f,.24f,.21f) : new Color(.17f,.32f,.27f);
-            pickupTagSwap.enabled = swap;
-            pickupTagSwap.text = swap ? "Leaves "+Name(oldKind)+" here" : "";
-            SetPickupTagHeight(swap);
+            pickupTagName.text = Name(pickup.kind).ToUpperInvariant();
+            string action = swap ? "Swap" : "Pick up";
+            string input = SwapInputHint(session);
+            SetPickupTagAction(input, action, swap, needsHolster, bothHandsBusy);
+
+            string detail = swap ? "Leaves " + Name(oldKind).ToUpperInvariant() + " here" : "";
+            if (pickup.rounds >= 0)
+                detail += (swap ? "  ·  " : "") + pickup.rounds + " rounds";
+            pickupTagSwap.enabled = detail.Length > 0;
+            pickupTagSwap.text = detail;
+            float extra = pickupTagSwap.enabled ? DetailHeight : 0;
+            pickupTagPanel.rectTransform.sizeDelta = new Vector2(TagWidth, TagHeight + extra);
+            pickupTagPanel.rectTransform.anchoredPosition = new Vector2(0, -extra * .5f);
+            pickupGlass.SetFloat("_Aspect", TagWidth / (TagHeight + extra));
+            pickupTagPointer.rectTransform.anchoredPosition =
+                new Vector2(-shift * viewHeight * eye.aspect / scale, -TagHeight * .5f - extra - 7);
             return true;
         }
 
-        void SetPickupTagHeight(bool swap)
+        void SetPickupTagAction(string input, string action, bool swap, bool needsHolster, bool bothHandsBusy)
         {
-            var panel = pickupTagPanel.rectTransform;
-            panel.sizeDelta = new Vector2(TagWidth,swap?108:78);
-            panel.anchoredPosition = new Vector2(0,swap?-12:0);
+            var tint = swap ? SwapInk : PickupInk;
+            pickupTagAction.color = tint;
+            pickupTagAction.text = bothHandsBusy ? "Holster to swap" : needsHolster ? action + " · Use free hand" :
+                vr ? action + " · " + input : "· " + action.ToUpperInvariant();
+            pickupTagKeycap.enabled = pickupTagKey.enabled = !vr;
+            pickupTagKey.text = vr ? "" : input;
+            float keyWidth = vr ? 0 : Mathf.Max(42, pickupTagKey.preferredWidth + 14);
+            float actionWidth = vr ? TagWidth - 30 : pickupTagAction.preferredWidth + 4;
+            pickupTagKeycap.rectTransform.sizeDelta = new Vector2(keyWidth, 34);
+            pickupTagKeycap.rectTransform.anchoredPosition = new Vector2(-actionWidth * .5f - 4, -17);
+            pickupTagKey.rectTransform.anchoredPosition = pickupTagKeycap.rectTransform.anchoredPosition;
+            pickupTagKey.rectTransform.sizeDelta = new Vector2(keyWidth, 34);
+            pickupKey.SetFloat("_Aspect", keyWidth / 34);
+            pickupKey.SetFloat("_Swap", swap ? 1 : 0);
+            pickupTagAction.rectTransform.sizeDelta = new Vector2(actionWidth, 34);
+            pickupTagAction.rectTransform.anchoredPosition = new Vector2(vr ? 0 : keyWidth * .5f + 4, -17);
         }
 
         void HidePickupTag()
         {
             if (pickupTag) pickupTag.enabled = false;
+        }
+
+        void DestroyPickupTag()
+        {
+            if (pickupTag) Destroy(pickupTag.gameObject);
+            if (pickupGlass) Destroy(pickupGlass);
+            if (pickupKey) Destroy(pickupKey);
+            if (pickupPointer) Destroy(pickupPointer);
         }
 
         PickupVisual CreatePickup(EquipmentKind kind,bool dropped)

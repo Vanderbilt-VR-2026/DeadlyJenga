@@ -312,7 +312,7 @@ namespace DeadlyJenga.Presentation
         void OnDestroy()
         {
             if(canvas)Destroy(canvas.gameObject);
-            if(pickupTag)Destroy(pickupTag.gameObject);
+            DestroyPickupTag();
             ClearPickupViews();
             if(pickupMarkerMaterial)Destroy(pickupMarkerMaterial);
         }
