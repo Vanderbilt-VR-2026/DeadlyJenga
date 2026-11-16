@@ -168,6 +168,7 @@ namespace DeadlyJenga.DevTools.Editor
             TabletClick(menu,"Mode");yield return Shot("10-mode.png");Row("advanced rules");yield return Shot("11-advanced-rules.png");Back();
             TabletClick(menu,"Disasters");yield return Shot("12-disasters.png");
             var card=((IEnumerable)Field<object>(menu,"disasterCards")).Cast<object>().First();
+            Check(Field<Image>(card,"cardImage").material==Field<Text>(menu,"heading").material,"Lazy-created disaster cards share the foreground menu material");
             var cardTarget=Field<BoxCollider>(card,"cardTarget");
             typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,cardTarget.bounds.center-camera.transform.position));
             Call(menu,"PointPlayerTablet",camera,true,false);Draw();

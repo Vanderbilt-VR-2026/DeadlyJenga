@@ -147,6 +147,7 @@ namespace DeadlyJenga.CastlePrototype
 
             disasterStopBtn = CreateWheelCenterButton(disasterWheelUI.transform, "STOP ALL DISASTERS", new Vector2(0, -22), new Vector2(250, 46), 17, out disasterStopTarget);
             disasterBackBtn = CreateWheelCenterButton(disasterWheelUI.transform, "◄ BACK", new Vector2(0, -74), new Vector2(160, 40), 16, out disasterBackTarget);
+            MenuAim.PresentInForeground(disasterWheelUI.transform);
         }
 
         void PointDisasterWheel(bool pressed)
