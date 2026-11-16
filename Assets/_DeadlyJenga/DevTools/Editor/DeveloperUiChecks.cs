@@ -150,7 +150,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(!Field<bool>(menu,"tabletDeveloperDetails"),"Bots Back returns to root");
             TabletClick(menu,"More tools");yield return Shot("05-more-tools.png");Row("World & pickups");yield return Shot("06-world-tools.png");
             Row("Ground pickups");Back();Check(Field<string>(menu,"developerRoute")=="More tools"&&!Field<bool>(menu,"developerChild"),"Child Back returns to owning tools page");
-            Row("Automatic powerups");yield return Shot("17-automatic-powerups.png");Row("Show item weights");yield return Shot("18-powerup-weights.png");Back();Back();
+            Row("Automatic powerups");yield return Shot("17-automatic-powerups.png");Row("Show item weights");yield return Shot("18-powerup-weights.png");Back();Row("Player debug");Row("Host stamina tuning");yield return Shot("20-stamina.png");Back();Back();
             TabletClick(menu,"Map");yield return Shot("07-maps.png");Row("Filter:");yield return Shot("08-map-filters.png");Row("In development");yield return Shot("09-filtered-maps.png");
             Row("Search:");yield return Shot("19-map-search.png");Row("A");Row("A");Row("A");Row("Show results");
             Check(Field<Text[]>(menu,"labels").Any(x=>x.gameObject.activeInHierarchy&&x.text=="No available entries in this filter"),"Search has an explicit empty result state");
@@ -160,7 +160,11 @@ namespace DeadlyJenga.DevTools.Editor
             TabletClick(menu,"Spectate");yield return Shot("16-spectate.png");Back();
             TabletClick(menu,"Mode");yield return Shot("10-mode.png");Row("advanced rules");yield return Shot("11-advanced-rules.png");Back();
             TabletClick(menu,"Disasters");yield return Shot("12-disasters.png");
-            typeof(CastleWorldMenu).GetField("disasterSelection",Flags).SetValue(menu,0);
+            var card=((IEnumerable)Field<object>(menu,"disasterCards")).Cast<object>().First();
+            var cardTarget=Field<BoxCollider>(card,"cardTarget");
+            typeof(CastleWorldMenu).GetField("pointerRay",Flags).SetValue(menu,new Ray(camera.transform.position,cardTarget.bounds.center-camera.transform.position));
+            Call(menu,"PointPlayerTablet",camera,true,false);Draw();
+            Check(Field<int>(menu,"disasterSelection")>=0&&!Field<GameObject>(menu,"disasterWheelUI").activeSelf,"Selecting a disaster hides its selector before showing settings");
             yield return Shot("13-disaster-selected.png");Row("Show tuning");yield return Shot("14-disaster-tuning.png");Back();Back();
             var god=session.Player.gameObject.GetComponent<IDeveloperGodMode>();Check(god?.CanSetGodMode==true,"God Mode permitted in local Demo");
             TabletClick(menu,"God mode");Check(god.GodModeEnabled,"God Mode toggles on");

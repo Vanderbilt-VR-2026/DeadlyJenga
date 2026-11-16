@@ -39,11 +39,13 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(disasterSelection>=0&&(Demo==null||disasterSelection>=Demo.DisasterCount))disasterSelection=-1;
             if(disasterSelection<0){PointDisasterWheel(pressed);return;}
+            if(disasterWheelUI)disasterWheelUI.SetActive(false);
             EnsureDisasterSliders();HideDisasterSliders();
+            help.rectTransform.anchoredPosition=new Vector2(0,-330);help.rectTransform.sizeDelta=new Vector2(950,30);help.fontSize=17;
             bool allowed=CanCommand;int switchParameter=-1;
             foreach(var button in buttons)button.gameObject.SetActive(false);
             void ButtonAt(int i,string text,float y,bool enabled=true)
-            {buttons[i].gameObject.SetActive(true);labels[i].text=text;targets[i].enabled=enabled;var r=(RectTransform)buttons[i].transform;r.anchoredPosition=new Vector2(0,y);r.sizeDelta=new Vector2(480,44);targets[i].size=new Vector3(480,44,4);}
+            {buttons[i].gameObject.SetActive(true);labels[i].text=text;targets[i].enabled=enabled;var r=(RectTransform)buttons[i].transform;r.anchoredPosition=new Vector2(0,y);r.sizeDelta=new Vector2(480,44);targets[i].size=new Vector3(480,44,4);labels[i].rectTransform.anchoredPosition=Vector2.zero;labels[i].rectTransform.sizeDelta=new Vector2(460,44);labels[i].fontSize=22;}
             {
                 var definitions=Demo.DisasterParameters(disasterSelection);var values=Demo.DisasterValues(disasterSelection);
                 heading.text=Demo.DisasterLabel(disasterSelection).ToUpperInvariant()+"\n<size=17><color=#d0b8d8>Settings apply to the next launch</color></size>";

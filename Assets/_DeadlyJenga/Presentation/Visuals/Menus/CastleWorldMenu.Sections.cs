@@ -111,6 +111,7 @@ namespace DeadlyJenga.CastlePrototype
                         Add("Friction -0.1",()=>SurvivorSettingsPanel.SetHandPhysics(Settings,force,Mathf.Max(0,friction-.1f),CanCommand,Demo.ApplyStaminaRules),CanCommand);
                         Add("Friction +0.1",()=>SurvivorSettingsPanel.SetHandPhysics(Settings,force,Mathf.Min(2,friction+.1f),CanCommand,Demo.ApplyStaminaRules),CanCommand);
                     }
+                    Add("Host stamina tuning",()=>DeveloperChild(()=>tuningPage=true),Settings!=null&&CanCommand);
                     Add("Sea spirit / tabletop",()=>DeveloperChild(()=>tabletopPage=true),MatchRuntime.Current!=null);
                 });
                 Fold("world","World & pickups",()=>{
@@ -121,6 +122,13 @@ namespace DeadlyJenga.CastlePrototype
                 });
                 Fold("round","Round controls",()=>{
                     Add("Round setup",()=>DeadlyJenga.Presentation.GameExperiencePanel.Open(session),DeadlyJenga.Presentation.GameExperiencePanel.Resolve(session)!=null,CandyHudIcon.Play);
+                    var match=MatchRuntime.Current;
+                    Add("Temporary team hand power",()=>match.ActivateHandPower(match.Rules.handPowerSeconds),CanCommand&&match?.Authority==true,CandyHudIcon.Hand);
+                    if(match is IMysteryControls mystery&&mystery.Active)
+                    {
+                        Add("Mystery demo role: "+mystery.Personal.role,()=>mystery.SetDemoRole((MysteryRole)(1+(int)mystery.Personal.role%3)),match.Authority&&CanCommand);
+                        Add("Special attack: "+(mystery.Personal.specialAttack?"ON":"OFF"),()=>mystery.SetSpecialAttack(!mystery.Personal.specialAttack),CanCommand);
+                    }
                     var review=MatchRuntime.Current as IMatchReviewControls;
                     Add("End round",()=>review.EndGame(),review?.CanEndGame==true,CandyHudIcon.Play);
                 });
@@ -131,10 +139,38 @@ namespace DeadlyJenga.CastlePrototype
                     var audio=DeadlyJenga.CandyAudio.CandyAudioEngine.Instance;
                     Add("Master volume: "+(audio&&audio.bank?audio.bank.master.ToString("P0"):"Unavailable"),()=>DeveloperVolume("Master volume",value=>audio.bank.master=value),audio&&audio.bank,CandyHudIcon.Sound);
                     Add("Music volume: "+(audio&&audio.bank?audio.bank.music.ToString("P0"):"Unavailable"),()=>DeveloperVolume("Music volume",value=>audio.bank.music=value),audio&&audio.bank,CandyHudIcon.Sound);
+                    var hints=(session as Component)?.GetComponent<CandyDemoHud>();
+                    if(hints)Add("Control prompts: "+hints.hintMode,()=>hints.hintMode=(CandyDemoHud.HintMode)(((int)hints.hintMode+1)%3));
                     var gun=session.Player?.gameObject.GetComponent<IBlasterControls>();
                     Add("Blaster testing: "+(gun?.TestingEnabled==true?"ON":"OFF"),()=>gun.SetTestingEnabled(!gun.TestingEnabled),gun!=null&&CanCommand&&MatchRuntime.Current?.Authority==true,CandyHudIcon.Trigger);
                 });
             }
+            RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);
+        }
+
+        void PointDeveloperStamina(bool pressed)
+        {
+            HideDisasterSliders();scaffoldButton.gameObject.SetActive(false);
+            var names=new System.Collections.Generic.List<string>();var actions=new System.Collections.Generic.List<Action>();
+            var enabled=new System.Collections.Generic.List<bool>();var art=new System.Collections.Generic.List<CandyHudIcon>();
+            var captions=new System.Collections.Generic.List<string>();var pictures=new System.Collections.Generic.List<Texture>();
+            var rules=Settings.CurrentRules;
+            void Add(string label,Action change)
+            {
+                names.Add(label);actions.Add(()=>{if(!CanCommand)return;change();Settings.ApplyMatchRules(rules);Demo.ApplyStaminaRules(Settings.SaveStaminaRules());});
+                enabled.Add(CanCommand);art.Add(CandyHudIcon.Settings);captions.Add("");pictures.Add(null);
+            }
+            heading.text="PLAYER DEBUG / HOST STAMINA";
+            Add("Grip duration: "+rules.gripSeconds.ToString("0.0")+"s (+)",()=>rules.gripSeconds=Mathf.Min(20,rules.gripSeconds+.5f));
+            Add("Grip duration (-)",()=>rules.gripSeconds=Mathf.Max(.5f,rules.gripSeconds-.5f));
+            Add("Drain rate: "+rules.drainRate.ToString("0.00"),()=>rules.drainRate=Cycle(rules.drainRate,new[]{0f,.25f,.5f,1f,2f,4f}));
+            Add("Recovery rate: "+rules.recoveryRate.ToString("0.00"),()=>rules.recoveryRate=Cycle(rules.recoveryRate,new[]{0f,.1f,.25f,.5f,1f,2f}));
+            Add("Recovery delay: "+rules.recoveryDelay.ToString("0.00"),()=>rules.recoveryDelay=Cycle(rules.recoveryDelay,new[]{0f,.25f,.5f,1f,2f,5f}));
+            Add("Drain curve: "+rules.drainCurve,()=>rules.drainCurve=MatchOptions.Next(MatchOptions.Curves,rules.drainCurve));
+            Add("Recovery curve: "+rules.recoveryCurve,()=>rules.recoveryCurve=MatchOptions.Next(MatchOptions.Curves,rules.recoveryCurve));
+            Add("Drain degree: "+rules.drainDegree.ToString("0.0"),()=>rules.drainDegree=rules.drainDegree>=6?1:rules.drainDegree+.5f);
+            Add("Recovery degree: "+rules.recoveryDegree.ToString("0.0"),()=>rules.recoveryDegree=rules.recoveryDegree>=6?1:rules.recoveryDegree+.5f);
+            help.text="Host rules apply to the shared match. Select a value to step through its range.";
             RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);
         }
 
@@ -569,7 +605,7 @@ namespace DeadlyJenga.CastlePrototype
             int total = names.Count;
             bool twoCols = total > 6;
             int rowsPerCol = twoCols ? (total + 1) / 2 : total;
-            float btnW = twoCols ? 495f : 980f;
+            float btnW = twoCols ? 480f : 980f;
             float btnH = twoCols ? Mathf.Min(58f, (460f / Mathf.Max(1, rowsPerCol)) - 8f) : Mathf.Clamp(440f / Mathf.Max(1,total) - 12f, 74f, 88f);
             float rowHeight = twoCols ? btnH + 10f : btnH + 12f;
             float verticalCenter = -45f;

@@ -968,10 +968,10 @@ namespace DeadlyJenga.CastlePrototype
             Func<bool> allowed=null,Texture picture=null,bool opensDetails=true,Func<string> title=null)
         {
             Vector2 position=new((slot%3-1)*344,122-slot/3*108);
-            var tile=TabletControl(tabletActions,page,title??(()=>label),position,new(326,94),
+            var tile=TabletControl(tabletActions,page,title??(()=>label),position,new(312,94),
                 ()=>{if(opensDetails)ShowDeveloperDetails(action);else action();},allowed:allowed,font:27);
             tile.Label.rectTransform.anchoredPosition=new Vector2(39,0);
-            tile.Label.rectTransform.sizeDelta=new Vector2(234,82);
+            tile.Label.rectTransform.sizeDelta=new Vector2(220,82);
             var approved=Resources.Load<Texture2D>("PlayerTabletArt/"+label);
             Texture art=approved?approved:picture?picture:CandyHudVisuals.Icon(icon);
             float scale=Mathf.Min(72f/art.width,72f/art.height);

@@ -104,7 +104,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 sectionGlyphsActive=false;
                 for(int i=0;i<sectionGlyphs.Length;i++)
-                    sectionGlyphs[i].texture=CandyHudVisuals.Icon(i<icons.Length?icons[i]:CandyHudIcon.Settings);
+                    {sectionGlyphs[i].texture=CandyHudVisuals.Icon(i<icons.Length?icons[i]:CandyHudIcon.Settings);sectionGlyphs[i].gameObject.SetActive(false);}
             }
             if(!tuningPage)handPhysicsPage=false;
             if(PointNavigation(pressed))return;
@@ -114,6 +114,7 @@ namespace DeadlyJenga.CastlePrototype
             if(tabletDeveloperDetails&&mapPage){PointTabletMapPage(camera,pressed);return;}
             if(spectatePage){PointSpectatePage(camera,pressed);return;}
             if(giveEquipmentPage){PointGiveEquipmentPage(camera,pressed);return;}
+            if(tuningPage&&developerChild){PointDeveloperStamina(pressed);return;}
             if(randomPowerupPage){PointRandomPowerups(camera,pressed);return;}
             if(powerupPage){PointPowerupPage(camera,pressed);return;}
             PointScaffold(camera,pressed);
