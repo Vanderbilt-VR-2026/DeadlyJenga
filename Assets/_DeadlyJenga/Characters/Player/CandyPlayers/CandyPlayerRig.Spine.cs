@@ -74,11 +74,18 @@ namespace DeadlyJenga.CandyPlayers
                 float y = vertices[i].y;
                 float toSpine = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.70f, .92f, y));
                 float toChest = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.96f, 1.16f, y));
+                var pelvis = (bone: 0, weight: 1 - toSpine);
+                var waist = (bone: SpineBoneIndex, weight: toSpine * (1 - toChest));
+                var ribs = (bone: ChestBoneIndex, weight: toSpine * toChest);
+                // Reduced skinning reads the strongest influences from the first slots.
+                if (pelvis.weight < waist.weight) (pelvis, waist) = (waist, pelvis);
+                if (waist.weight < ribs.weight) (waist, ribs) = (ribs, waist);
+                if (pelvis.weight < waist.weight) (pelvis, waist) = (waist, pelvis);
                 weights[i] = new BoneWeight
                 {
-                    boneIndex0 = 0, weight0 = 1 - toSpine,
-                    boneIndex1 = SpineBoneIndex, weight1 = toSpine * (1 - toChest),
-                    boneIndex2 = ChestBoneIndex, weight2 = toSpine * toChest
+                    boneIndex0 = pelvis.bone, weight0 = pelvis.weight,
+                    boneIndex1 = waist.bone, weight1 = waist.weight,
+                    boneIndex2 = ribs.bone, weight2 = ribs.weight
                 };
             }
             var mesh = Object.Instantiate(source);
