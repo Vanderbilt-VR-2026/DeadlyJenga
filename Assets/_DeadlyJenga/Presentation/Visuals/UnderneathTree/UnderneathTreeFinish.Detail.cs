@@ -91,7 +91,7 @@ namespace DeadlyJenga.CandyArt
             material.SetFloat("_Sheen", sheen);
             if (tile == "Crimson Damask")
             {
-                material.SetFloat("_TextureContrast", .55f);
+                material.SetFloat("_TextureContrast", .20f);
                 material.SetColor("_TextureMidpoint", new Color(.15f, .007f, .012f));
             }
             materials.Add(material);

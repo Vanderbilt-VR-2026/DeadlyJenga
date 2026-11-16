@@ -380,6 +380,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     .GetComponent<IPushable>().Push(Vector3.left * 6f, null);
                 map.Blocks.Single(b => b.name == "Bottom" && b.transform.parent.name == "Rail Gift 1")
                     .GetComponent<IPushable>().Push(Vector3.left * 6f, null);
+                railBodies[8].GetComponent<IPushable>().Push(Vector3.up * 4f, null);
                 impactFixedTime = Time.fixedTime;
                 phase = 1;
                 return;
@@ -389,6 +390,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 "removing bridge support releases and moves the navy span through PhysX");
             Require(!hitRail.isKinematic && Vector3.Distance(initialRailPosition, hitRail.position) > .2f,
                 "removing rail gift releases and moves its track section");
+            Require(!railBodies[8].isKinematic && railBodies[8].GetComponentsInChildren<BoxCollider>().Count(c => c.name == "Rail tie") == 8,
+                "direct impact detaches one complete eight-rung rail section");
+            Shot(camera, "rail-and-bridge-release", new Vector3(38f, 96f, -208f), new Vector3(-91f, 24f, -94f), 60f);
             Services.Session.ResetMap();
             Require(map.Revision > revision && map.Blocks.Count == blockCount && map.Blocks.All(b => b.isKinematic),
                 "reset restores approved layout intact");

@@ -185,6 +185,18 @@ namespace DeadlyJenga.CandyArt
             Box("West chair rail", new Vector3(-254.7f, 16.7f, -92f), new Vector3(2.5f, 1.9f, 343f), casing);
             Box("North crown", new Vector3(-88f, 172.3f, z - 3.2f), new Vector3(343f, 5.2f, 4.3f), casing);
             Box("West crown", new Vector3(-254.5f, 172.3f, -92f), new Vector3(4.3f, 5.2f, 343f), casing);
+            Wall("South botanical wall", -260f, 85f, 0f, 177f, -264f, plaster);
+            Box("South oak wainscot", new Vector3(-88f, 8f, -261f), new Vector3(343f, 16f, 2f), wood);
+            Box("South chair rail", new Vector3(-88f, 16.7f, -260f), new Vector3(343f, 1.9f, 2.5f), casing);
+            Box("South crown", new Vector3(-88f, 172.3f, -260f), new Vector3(343f, 5.2f, 4.3f), casing);
+            // Keep the existing east window aperture clear from both sides.
+            Box("East wall south bay", new Vector3(86f, 88.5f, -223.5f), new Vector3(3f, 177f, 81f), plaster);
+            Box("East wall north bay", new Vector3(86f, 88.5f, 0f), new Vector3(3f, 177f, 154f), plaster);
+            Box("East window lower bay", new Vector3(86f, 27.8f, -130f), new Vector3(3f, 55.6f, 106f), plaster);
+            Box("East window upper bay", new Vector3(86f, 159.3f, -130f), new Vector3(3f, 35.4f, 106f), plaster);
+            Box("East oak wainscot", new Vector3(83f, 8f, -92f), new Vector3(2f, 16f, 343f), wood);
+            Box("East chair rail", new Vector3(82f, 16.7f, -92f), new Vector3(2.5f, 1.9f, 343f), casing);
+            Box("East crown", new Vector3(82f, 172.3f, -92f), new Vector3(4.3f, 5.2f, 343f), casing);
             Box("Window header", new Vector3(2.5f, head, z - 2f), new Vector3(81f, 3.4f, 5.2f), casing);
             Box("Window sill", new Vector3(2.5f, sill, z - 3f), new Vector3(81f, 3.4f, 7.4f), casing);
             foreach (float x in new[] { left, right, 2.5f })

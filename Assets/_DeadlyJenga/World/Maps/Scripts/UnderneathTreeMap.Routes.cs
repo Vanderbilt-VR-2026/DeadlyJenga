@@ -69,6 +69,10 @@ namespace DeadlyJenga.CastlePrototype
             var span = BoxGift("Gift Bridge / Navy Span", CoursePoint(-.5f, -9f, seat + 1.6f),
                 new Vector3(69f, 3.2f, 10f), Quaternion.Euler(0f, yaw, 0f), navy, ivory);
             giftBearings.Add(new GiftBearing(GiftBase(span), left, right));
+            var bridgeLeft = Parcel("Bridge Terrace / Left Ruby", -26f, -9f, 12f, 4f, 8f, red, gold, -2f, span);
+            Parcel("Bridge Terrace / Left Cream", -28f, -9f, 7f, 3.5f, 6f, cream, berry, 3f, bridgeLeft);
+            var bridgeRight = Parcel("Bridge Terrace / Right Cream", 25f, -9f, 12f, 3.5f, 8f, cream, gold, 2f, span);
+            Parcel("Bridge Terrace / Right Emerald", 28f, -9f, 6f, 4f, 6f, green, ivory, -3f, bridgeRight);
 
             var l1 = Parcel("Left Summit / Broad Cream", -26f, 6f, 15f, 9f, 12f, cream, berry, -3f);
             var l2 = Parcel("Left Summit / Ruby Shoulder", -29f, 7f, 15f, 8f, 12f, red, gold, 4f, l1);

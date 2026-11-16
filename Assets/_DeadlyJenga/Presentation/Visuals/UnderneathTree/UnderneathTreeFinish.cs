@@ -308,6 +308,10 @@ namespace DeadlyJenga.CandyArt
 
             MakeSpot("Moonlight from the front window", new Vector3(10, 65, 70),
                 new Vector3(-90, 10, -110), new Color(.16f, .36f, 1f), 26000f, 240f, 83f);
+            MakeSpot("Blue evening light through side window", new Vector3(78f, 98f, -130f),
+                new Vector3(-75f, 15f, -125f), new Color(.08f, .27f, 1f), 18000f, 260f, 95f);
+            MakeSpot("Warm reflected light across gift terraces", new Vector3(-95f, 100f, -190f),
+                new Vector3(-95f, 18f, -110f), new Color(1f, .81f, .60f), 8500f, 185f, 110f);
             MakeSpot("Hearth bounce", new Vector3(-113, 37, -148),
                 new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 6500f, 240f, 100f);
             MakeLight("Golden light under the tree", LightType.Point,
@@ -347,7 +351,7 @@ namespace DeadlyJenga.CandyArt
             bloom.intensity.Override(.42f);
             bloom.scatter.Override(.62f);
             var color = grade.Add<ColorAdjustments>(true);
-            color.postExposure.Override(.14f);
+            color.postExposure.Override(.42f);
             color.contrast.Override(7f);
             color.saturation.Override(5f);
         }
