@@ -20,6 +20,8 @@ Sprint 4 highlights
 
 Sprint 4 adds a waterfront lobby, new maps and modes, a much bigger wardrobe, and a clearer path from opening the game to playing with friends. It also gives the game a stronger visual identity, from candy-glazed towers and tropical reefs to disaster effects, weapon handling, and animated match results.
 
+However, biggest polish accomplishment BY FAR is we can run 100 bots on the Quest 3 with an active tsunami knocking over all the towers and still have a high frame rate!
+
 **Jump to** | [Marina](#mayhem-marina-and-multiplayer-lobbies) | [Maps and modes](#maps-and-game-modes) | [Disasters](#worlds-and-disasters) | [Combat and bots](#movement-combat-and-bots) | [HUD and wardrobe](#hud-wardrobe-and-results) | [Performance](#performance-and-engineering)
 
 ### Mayhem Marina and multiplayer lobbies
