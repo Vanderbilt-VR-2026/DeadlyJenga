@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using DeadlyJenga.Core;
+using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Presentation;
 using UnityEditor;
@@ -66,6 +67,7 @@ namespace DeadlyJenga.DevTools.Editor
         }
         public static void RunSandEngulf() => RunFocused("SandOnly");
         public static void RunSprintCapture() => RunFocused("SprintOnly");
+        public static void RunTorso() => RunFocused("TorsoOnly");
 
         static void RunFocused(string scope)
         {
@@ -87,9 +89,11 @@ namespace DeadlyJenga.DevTools.Editor
             Application.logMessageReceived-=OnLog;
             SessionState.SetBool(Key,false);
             ValidationRunGate.Release(Key);
-            bool focused = SessionState.GetBool(Key+"SandOnly",false) || SessionState.GetBool(Key+"SprintOnly",false);
+            bool focused = SessionState.GetBool(Key+"SandOnly",false) || SessionState.GetBool(Key+"SprintOnly",false) ||
+                SessionState.GetBool(Key+"TorsoOnly",false);
             SessionState.SetBool(Key+"SandOnly",false);
             SessionState.SetBool(Key+"SprintOnly",false);
+            SessionState.SetBool(Key+"TorsoOnly",false);
             if (focused && Application.isBatchMode)
             {
                 File.AppendAllText(Report,"CLEANUP exited Play Mode in the isolated batch editor\n");
@@ -118,6 +122,19 @@ namespace DeadlyJenga.DevTools.Editor
             var session=Object.FindFirstObjectByType<CastlePlaySession>();
             Check(session&&session.Player!=null,"Actual Game scene creates its local player");
             var motor=session.Player.gameObject.GetComponent<CastleSurvivor>();
+            if (SessionState.GetBool(Key+"TorsoOnly",false))
+            {
+                var rig = motor.GetComponentInChildren<CandyPlayerRig>(true);
+                Check(rig && rig.bodyRenderer && rig.ChestBone, "The live survivor has a skinned chest");
+                int chest = Array.IndexOf(rig.bodyRenderer.bones, rig.ChestBone);
+                Check(chest >= 0, "The chest bone is bound to the body renderer");
+                var weights = rig.bodyRenderer.sharedMesh.boneWeights;
+                Check(weights.Any(w => w.boneIndex0 == chest && w.weight0 > .99f),
+                    "Fully chest-weighted vertices keep the chest as their first influence");
+                Check(weights.All(w => w.weight0 + w.weight1 > 0),
+                    "Every body vertex retains a nonzero influence under two-bone skinning");
+                return;
+            }
             var hud=motor.GetComponent<CandyStaminaHud>();
             var match=MatchRuntime.Current;
             Check(hud&&match?.Frame!=null,"Production session attaches shared body HUD and match runtime");
