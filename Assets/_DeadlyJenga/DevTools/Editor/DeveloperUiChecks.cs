@@ -152,6 +152,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(tiles.Select(x=>((RectTransform)x.transform).anchoredPosition.y).Distinct().Count()==4,"Four rows");
             Check(tiles.Count(x=>!x.interactable)==2,"Exactly two coming-soon tiles disabled in local demo");
             yield return Shot("01-developer-root.png");
+            TabletClick(menu,"Weapons");yield return Shot("21-weapons.png");Back();
             TabletClick(menu,"Bots");yield return Shot("02-bots.png");Row("Population presets");yield return Shot("03-bot-presets.png");
             Row("Bot voices");yield return Shot("04-bot-voices.png");Back();
             Check(!Field<bool>(menu,"tabletDeveloperDetails"),"Bots Back returns to root");

@@ -972,7 +972,7 @@ namespace DeadlyJenga.CastlePrototype
                 ()=>{if(opensDetails)ShowDeveloperDetails(action);else action();},allowed:allowed,font:27);
             tile.Label.rectTransform.anchoredPosition=new Vector2(39,0);
             tile.Label.rectTransform.sizeDelta=new Vector2(220,82);
-            var approved=Resources.Load<Texture2D>("PlayerTabletArt/"+label);
+            var approved=Resources.Load<Texture2D>("PlayerTabletArt/"+(label=="Map"?"MapMode":label));
             Texture art=approved?approved:picture?picture:CandyHudVisuals.Icon(icon);
             float scale=Mathf.Min(72f/art.width,72f/art.height);
             TabletPicture((RectTransform)tile.Button.transform,art,new(-119,0),
