@@ -90,11 +90,13 @@ Shader "DeadlyJenga/Sand Coating"
                 float density = saturate((edge - t) * 4) * smoothstep(.16, .67, patches);
                 float erosion = (1 - _Coverage) * .66;
                 float boundary = density - erosion - .17 - Noise(p * 145) * .23 + (Noise(p * 410) - .5) * .17;
-                float aa = max(fwidth(boundary), .012);
+                float aa = max(fwidth(boundary), .045);
                 float coverage = smoothstep(-aa, aa, boundary) * smoothstep(-.07, -.03, t);
                 clip(coverage - .015);
                 // A physical 64 mm tile, blended in rest space so grains follow the skin.
-                float3 restNormal = normalize(cross(ddx(input.rest.xyz), ddy(input.rest.xyz)));
+                float3 restCross = cross(ddx(input.rest.xyz), ddy(input.rest.xyz));
+                // A raised facet shares one anchor; its rest derivatives are deliberately zero.
+                float3 restNormal = restCross * rsqrt(max(dot(restCross, restCross), 1e-20));
                 float3 weights = pow(abs(restNormal), 4);
                 weights /= max(.0001, weights.x + weights.y + weights.z);
                 float3 uv = p * 15.625;
@@ -116,17 +118,28 @@ Shader "DeadlyJenga/Sand Coating"
                 half3 albedo = lerp(half3(.50,.43,.32),half3(.92,.85,.70),crystal.b);
                 albedo = lerp(albedo,half3(.88,.81,.65),input.raised.x);
                 Light light = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
-                float ndl = saturate(dot(n,light.direction));
-                float occlusion = lerp(.63,1,grains);
-                half3 color = albedo * (SampleSH(n)*occlusion + light.color * (.12+ndl*.88) * light.shadowAttenuation);
-                float3 view = normalize(GetWorldSpaceViewDir(input.positionWS));
-                float nh = saturate(dot(n,normalize(view+light.direction)));
                 float footprint = max(length(ddx(uv)),length(ddy(uv)));
                 float resolved = 1-smoothstep(.02,.12,footprint);
-                // Broaden tiny highlights as grains become smaller than a pixel.
-                color += light.color * pow(nh,lerp(12,48,resolved)) * lerp(.10,.34,resolved);
-                color += albedo * light.color * pow(saturate(dot(-view,light.direction)),3) * .06;
                 float alpha = coverage * lerp(.87,.995,grains);
+                InputData lighting = (InputData)0;
+                lighting.positionWS = input.positionWS;
+                lighting.positionCS = input.positionCS;
+                lighting.normalWS = n;
+                lighting.viewDirectionWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
+                lighting.shadowCoord = TransformWorldToShadowCoord(input.positionWS);
+                lighting.bakedGI = SampleSH(n);
+                lighting.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
+                lighting.shadowMask = half4(1,1,1,1);
+                SurfaceData surface = (SurfaceData)0;
+                surface.albedo = albedo;
+                surface.specular = half3(.04,.04,.04);
+                surface.smoothness = lerp(.26,.46,resolved);
+                surface.normalTS = half3(0,0,1);
+                surface.occlusion = lerp(.72,1,grains);
+                surface.alpha = alpha;
+                // A restrained diffuse transmission term for the pale, thin crystals.
+                surface.emission = albedo * light.color * .06 * light.shadowAttenuation;
+                half3 color = UniversalFragmentPBR(lighting,surface).rgb;
                 return half4(MixFog(color, input.fog), alpha);
             }
             ENDHLSL
