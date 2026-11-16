@@ -11,15 +11,15 @@ namespace DeadlyJenga.CastlePrototype
             foreach(var t in candyJoinContent.GetComponentsInChildren<Text>())if(t.text=="OR")t.gameObject.SetActive(false);
             candyJoinCodeFrame=CandyPanel(candyJoinContent,"Room code frame",0,185,1020,200,CandyInk).gameObject;
             candyJoinCodeFrame.transform.SetAsFirstSibling();
-            var caption=CandyReadout(candyJoinContent,"Room code caption","ROOM CODE",-320,260,350,30,23);caption.fontStyle=FontStyle.Bold;caption.alignment=TextAnchor.MiddleLeft;
-            candyJoinStatus=CandyReadout(candyJoinContent,"Join connection status","READY TO JOIN",0,294,500,38,23);candyJoinStatus.color=CandyMint;
+            var caption=CandyReadout(candyJoinContent,"Room code caption","ROOM CODE",-320,260,350,30,23);caption.fontStyle=FontStyle.Normal;caption.alignment=TextAnchor.MiddleLeft;
+            candyJoinStatus=CandyReadout(candyJoinContent,"Join connection status","READY TO JOIN",245,294,480,38,23);candyJoinStatus.color=CandyMint;
             var code=CandyPlace("code",-145,185,690,96);code.faceColor=CandyInk;code.label.enabled=false;code.selected=()=>lobby.CodeFocused;
             for (int i = 0; i < 12; i++)
             {
                 var slot = CandyPanel((RectTransform)code.button.transform, "Code character " + i,
                     (i - 5.5f) * 54, 0, 48, 76, new Color(.12f, .09f, .20f));
                 var letter = CandyReadout(slot, "Character", "", 0, 0, 44, 66, 34);
-                letter.fontStyle = FontStyle.Bold;
+                letter.fontStyle = FontStyle.Normal;
                 candyCodeLetters.Add(letter);
             }
             var join=CandyPlace("join",380,185,250,96);CandyPrimary(join);join.title=()=>"JOIN ROOM";CandyText(join,0,0,226,80,30);
@@ -49,30 +49,30 @@ namespace DeadlyJenga.CastlePrototype
             var create=CandyPlace("host",0,190,1000,110);CandyPrimary(create);create.title=()=>"CREATE ROOM";CandyText(create,25,17,820,55,40);
             create.description=CandyReadout((RectTransform)create.button.transform,"Create room subtitle","Get a code. Bring your friends.",25,-30,820,30,24);
             CandyChoiceIcon(create,LobbyTerminalGlyph.Symbol.Plus,-430,0,47);
-            var code=CandyPanel(candyHostContent,"Connected room code",0,143,1000,150,CandyInk);code.SetAsFirstSibling();candyHostCodeFrame=code.gameObject;
+            var code=CandyPanel(candyHostContent,"Connected room code",0,185,1000,140,CandyInk);code.SetAsFirstSibling();candyHostCodeFrame=code.gameObject;
             CandyReadout(code,"Code label","ROOM CODE",0,47,900,39,27).color=CandyMuted;
-            hostCode.rectTransform.anchoredPosition=new Vector2(0,119);hostCode.rectTransform.sizeDelta=new Vector2(940,82);hostCode.fontSize=66;hostCode.resizeTextMaxSize=66;hostCode.resizeTextMinSize=42;hostCode.fontStyle=FontStyle.Bold;hostCode.color=CandyCream;
+            hostCode.rectTransform.anchoredPosition=new Vector2(0,168);hostCode.rectTransform.sizeDelta=new Vector2(940,74);hostCode.fontSize=66;hostCode.resizeTextMaxSize=66;hostCode.resizeTextMinSize=42;hostCode.fontStyle=FontStyle.Normal;hostCode.color=CandyCream;
             var copy=CandyAdd(candyHostContent,"copy-code",()=>Time.unscaledTime<copiedHostCodeUntil?"COPIED":"COPY CODE",
-                0,-9,1000,90,()=>{GUIUtility.systemCopyBuffer=lobby.HostCode;copiedHostCodeUntil=Time.unscaledTime+1.5f;},
+                0,60,1000,72,()=>{GUIUtility.systemCopyBuffer=lobby.HostCode;copiedHostCodeUntil=Time.unscaledTime+1.5f;},
                 ()=>lobby.Connected&&!string.IsNullOrEmpty(lobby.HostCode),()=>lobby.Connected&&!string.IsNullOrEmpty(lobby.HostCode));
-            CandyPrimary(copy);CandyChoiceIcon(copy,LobbyTerminalGlyph.Symbol.Plus,-377,0,42);CandyText(copy,0,0,760,72,38);
+            CandyPrimary(copy);CandyChoiceIcon(copy,LobbyTerminalGlyph.Symbol.Plus,-377,0,42);CandyText(copy,0,0,760,62,32);
             var region=CandyPlace("region",0,98,1000,45);region.title=()=>"REGION:  "+lobby.Region.ToUpperInvariant()+(lobby.CanHost?"     CHANGE":"");
             region.visible=()=>!lobby.Connected;CandyChoiceIcon(region,LobbyTerminalGlyph.Symbol.Globe,-440,0,34);CandyText(region,25,0,850,54,26);
-            var invite=CandyPlace("invite-all",0,-117,1000,86);CandyChoiceIcon(invite,LobbyTerminalGlyph.Symbol.People,-377,0,42);CandyText(invite,0,0,760,70,36);
-            CandyPlace("request-host",0,-212,1000,52);CandyPlace("shared-controls",0,-212,1000,52);
-            CandyPlace("abandon-host",0,-278,1000,52);
-            requestLabel.rectTransform.anchoredPosition=new Vector2(-100,-270);requestLabel.rectTransform.sizeDelta=new Vector2(760,58);
+            var invite=CandyPlace("invite-all",0,-30,1000,72);CandyChoiceIcon(invite,LobbyTerminalGlyph.Symbol.People,-377,0,42);CandyText(invite,0,0,760,62,32);invite.visible=()=>lobby.Connected;
+            CandyPlace("request-host",0,-115,1000,54);CandyPlace("shared-controls",0,-115,1000,54);
+            CandyPlace("abandon-host",0,-320,1000,54);
+            requestLabel.rectTransform.anchoredPosition=new Vector2(-95,-185);requestLabel.rectTransform.sizeDelta=new Vector2(760,46);
             requestLabel.fontSize=24;requestLabel.resizeTextMaxSize=24;requestLabel.color=CandyCream;
-            CandyPlace("request-next",420,-270,180,50);CandyPlace("request-accept",-255,-335,490,58);CandyPlace("request-deny",255,-335,490,58);
+            CandyPlace("request-next",415,-185,160,48);CandyPlace("request-accept",-255,-250,490,54);CandyPlace("request-deny",255,-250,490,54);
             CandyPrimary(CandyChoice("request-accept"));
-            candyJoinedNote=CandyReadout(candyHostContent,"Connected instructions","Share the code above.\nChoose your mode and map at the next terminal.",0,-350,980,72,23);candyJoinedNote.color=CandyMuted;
-            var help=CandyPanel(candyHostContent,"How hosting works",0,-205,1000,230,CandyFace);help.SetAsFirstSibling();candyHostHelp=help.gameObject;
-            CandyReadout(help,"Help heading","HOW IT WORKS",-130,82,680,38,30).fontStyle=FontStyle.Bold;
+            candyJoinedNote=CandyReadout(candyHostContent,"Connected instructions","Share the code above.\nChoose your mode and map at the next terminal.",0,-225,980,110,23);candyJoinedNote.color=CandyMuted;
+            var help=CandyPanel(candyHostContent,"How hosting works",0,-170,1000,260,CandyFace);help.SetAsFirstSibling();candyHostHelp=help.gameObject;
+            CandyReadout(help,"Help heading","HOW IT WORKS",-130,82,680,38,30).fontStyle=FontStyle.Normal;
             string[] steps={"Create your room","Share your join code","Pick a mode and start next door"};
             for(int i=0;i<steps.Length;i++)
             {
                 var badge=CandyPanel(help,"Step "+(i+1),-430,26-i*54,44,44,CandyLavender);
-                CandyReadout(badge,"Step number",(i+1).ToString(),0,0,36,38,24).fontStyle=FontStyle.Bold;
+                CandyReadout(badge,"Step number",(i+1).ToString(),0,0,36,38,24).fontStyle=FontStyle.Normal;
                 var line=CandyReadout(help,"Hosting step",steps[i],-115,26-i*54,560,44,24);line.alignment=TextAnchor.MiddleLeft;
             }
             var art=Picture(help,"Friends illustration",345,-4,240,190);SetPicture(art,ModePicture("teamtickets"),240,190);
@@ -106,10 +106,10 @@ namespace DeadlyJenga.CastlePrototype
             modeCaption.fontSize=mapCaption.fontSize=30;modeCaption.resizeTextMaxSize=mapCaption.resizeTextMaxSize=30;
             modeCaption.text="1  MODE";mapCaption.text="2  MAP";modeCaption.color=CandyMint;mapCaption.color=CandyPeach;
             const float rightX=580,rightWidth=660;
-            var population=CandyPlace("player-target",rightX,240,rightWidth,96);population.title=()=>"PLAYERS";
-            CandyText(population,-150,0,190,70,32,TextAnchor.MiddleLeft);CandyChoiceIcon(population,LobbyTerminalGlyph.Symbol.People,-285,0,40);
-            var value=CandyPanel((RectTransform)population.button.transform,"Population value",20,0,140,72,CandyInk);
-            candyPlayerValue=CandyReadout(value,"Player count","10",0,0,130,64,38);candyPlayerValue.fontStyle=FontStyle.Bold;
+            var population=CandyPlace("player-target",rightX-110,240,440,96);population.title=()=>"PLAYERS";
+            CandyText(population,-85,0,170,70,30,TextAnchor.MiddleLeft);CandyChoiceIcon(population,LobbyTerminalGlyph.Symbol.People,-190,0,32);
+            var value=CandyPanel((RectTransform)population.button.transform,"Population value",105,0,115,72,CandyInk);
+            candyPlayerValue=CandyReadout(value,"Player count","10",0,0,105,64,38);candyPlayerValue.fontStyle=FontStyle.Normal;
             var minus=CandyAdd(candySetupContent,"population-minus",()=>"-",rightX+160,240,90,84,()=>AdjustCandyPopulation(-1),()=>lobby.CanConfigure&&Details!=null,()=>setupPage=="main");
             var plus=CandyAdd(candySetupContent,"population-plus",()=>"+",rightX+265,240,90,84,()=>AdjustCandyPopulation(1),()=>lobby.CanConfigure&&Details!=null,()=>setupPage=="main");
             minus.faceColor=plus.faceColor=CandyPeach;minus.edgeColor=plus.edgeColor=CandyPeach;
@@ -131,7 +131,7 @@ namespace DeadlyJenga.CastlePrototype
             // Map page: list on the left, large preview on the right.
             mapBreadcrumb = CandyReadout(candySetupContent, "Map breadcrumb", "MAP CATEGORIES", ListX, 270, ListWidth, 40, 30);
             mapBreadcrumb.color = new Color(.68f, .58f, .80f);
-            mapBreadcrumb.fontStyle = FontStyle.Bold;
+            mapBreadcrumb.fontStyle = FontStyle.Normal;
             mapBreadcrumb.alignment = TextAnchor.MiddleLeft;
             for (int i = 0; i < 3; i++)
             {
@@ -181,10 +181,10 @@ namespace DeadlyJenga.CastlePrototype
             mapBrowserRightFrame = rightFrame;
             browserMapPreview = Picture(rightFrame, "Large map browser preview", 0, 70, MapPreviewWidth, MapPreviewHeight);
             browserMapName = CandyReadout(rightFrame, "Previewed map name", "", 0, -200, 900, 50, 40);
-            browserMapName.fontStyle = FontStyle.Bold;
+            browserMapName.fontStyle = FontStyle.Normal;
             browserMapName.color = CandyMint;
             browserMapCategory = CandyReadout(rightFrame, "Previewed map category", "", 0, -245, 900, 34, 26);
-            browserMapCategory.fontStyle = FontStyle.Bold;
+            browserMapCategory.fontStyle = FontStyle.Normal;
             browserMapCategory.color = CandyPeach;
             browserMapDescription = CandyReadout(rightFrame, "Previewed map description", "", 0, -288, 900, 46, 24);
             browserMapDescription.color = CandyCream;
@@ -222,7 +222,7 @@ namespace DeadlyJenga.CastlePrototype
             pvpCategory.rectTransform.anchoredPosition=new Vector2(-470,285);survivalCategory.rectTransform.anchoredPosition=new Vector2(470,285);
             pvpCategory.rectTransform.sizeDelta=survivalCategory.rectTransform.sizeDelta=new Vector2(860,44);pvpCategory.color=CandyPeach;survivalCategory.color=CandyMint;
             pvpCategory.fontSize=survivalCategory.fontSize=34;pvpCategory.resizeTextMaxSize=survivalCategory.resizeTextMaxSize=34;
-            pvpCategory.fontStyle=survivalCategory.fontStyle=FontStyle.Bold;
+            pvpCategory.fontStyle=survivalCategory.fontStyle=FontStyle.Normal;
             for(int i=0;i<8;i++)
             {
                 int slot=i;var card=CandyPlace("mode-card-"+i,i<4?-470:470,200-(i%4)*138,860,126);

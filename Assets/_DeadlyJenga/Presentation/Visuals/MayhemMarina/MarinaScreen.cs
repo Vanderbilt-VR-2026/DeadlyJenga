@@ -149,7 +149,7 @@ namespace DeadlyJenga.CandyArt.Marina
             focusPanel.gameObject.SetActive(false);
             select=MenuAim.SelectAction("Marina right select",false);select.Enable();
             leftSelect=MenuAim.SelectAction("Marina left select",true);leftSelect.Enable();
-            EnsureAimCanvas();Refresh();
+            EnsureAimCanvas();Refresh();TerminalUiStyle.Apply(canvas);
         }
         void BuildProjectedBackdrop()
         {
@@ -252,7 +252,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             var go=new GameObject("Marina label · "+value,typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var t=go.GetComponent<Text>();
             t.font=Resources.Load<Font>("Fonts/Fredoka-Bold") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            t.text=value;t.fontSize=font;t.fontStyle=FontStyle.Bold;t.alignment=TextAnchor.MiddleCenter;t.color=new Color(1,.97f,.89f);t.raycastTarget=false;t.rectTransform.anchoredPosition=p;t.rectTransform.sizeDelta=size;return t;
+            t.text=value;t.fontSize=font;t.fontStyle=FontStyle.Normal;t.alignment=TextAnchor.MiddleCenter;t.color=new Color(1,.97f,.89f);t.raycastTarget=false;t.rectTransform.anchoredPosition=p;t.rectTransform.sizeDelta=size;return t;
         }
         Text playlistStatus;
         Image playlistStatusBacking;
@@ -463,8 +463,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             bool pressed = allowed && Time.unscaledTime < target.pressedUntil;
             bool readOnlyPreview = target.id is "marina-maps" or "marina-modes";
-            float scale = pressed ? .96f : hover && (allowed || readOnlyPreview) ? (readOnlyPreview ? 1.075f : 1.035f) : 1f;
-            target.face.rectTransform.localScale = Vector3.one * scale;
+            target.face.rectTransform.localScale = Vector3.one;
             allowed |= readOnlyPreview;
             target.face.color = !allowed ? Color.Lerp(target.color, Plum, .70f) :
                 pressed ? Color.Lerp(target.color, Mint, .70f) :
@@ -473,16 +472,16 @@ namespace DeadlyJenga.CandyArt.Marina
             float outline = hover || pressed ? 1 : 0;
             if (readOnlyPreview && hover)
             {
-                target.outline.effectDistance = new Vector2(8, -8);
+                target.outline.effectDistance = new Vector2(2, -2);
                 target.outline.effectColor = new Color(.35f, 1f, .85f, 1f);
-                target.glow.effectDistance = new Vector2(0, -12);
+                target.glow.effectDistance = Vector2.zero;
                 target.glow.effectColor = new Color(.35f, 1f, .85f, .75f);
             }
             else
             {
-                target.outline.effectDistance = new Vector2(4, -4);
+                target.outline.effectDistance = new Vector2(1.5f, -1.5f);
                 target.outline.effectColor = new Color(rim.r, rim.g, rim.b, outline);
-                target.glow.effectDistance = new Vector2(0, -8);
+                target.glow.effectDistance = Vector2.zero;
                 target.glow.effectColor = new Color(rim.r, rim.g, rim.b, outline * (pressed ? .85f : .50f));
             }
             if(target.actionLabel)

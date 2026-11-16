@@ -16,7 +16,7 @@ using Object=UnityEngine.Object;
 namespace DeadlyJenga.DevTools.Editor
 {
     [InitializeOnLoad]
-    public static class DeveloperUiChecks
+    public static partial class DeveloperUiChecks
     {
         const string Key="DeveloperUiChecks",NameKey="DeadlyJenga.PlayerName.v1";
         static readonly string[] ComfortKeys = { "SurvivorVR.InvertLookY", "SurvivorVR.Vignette", "SurvivorVR.Haptics", "SurvivorVR.HeadBob" };
@@ -31,8 +31,10 @@ namespace DeadlyJenga.DevTools.Editor
         public static void Run()=>Begin(false);
         public static void RunDialogs()=>Begin(true);
         public static void RunTabletTabs()=>Begin(false,true);
-        static void Begin(bool dialogs,bool tabs=false)
+        public static void RunLobbyTerminals()=>Begin(false,false,true);
+        static void Begin(bool dialogs,bool tabs=false,bool lobby=false)
         {
+            SessionState.SetBool(Key+"LobbyTerminals",lobby);
             SessionState.SetBool(Key+"Dialogs",dialogs);
             SessionState.SetBool(Key+"Tabs",tabs);
             if(!Application.isBatchMode)throw new Exception("Use an isolated checked batch");
@@ -53,7 +55,7 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"FromLobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
-            EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+            EditorSceneManager.OpenScene(ProjectPath.Find(lobby ? "Lobby.unity" : "Game.unity"));
             EditorApplication.EnterPlaymode();
         }
         static void State(PlayModeStateChange state)
@@ -83,9 +85,9 @@ namespace DeadlyJenga.DevTools.Editor
         static void Tick()
         {
             if(!SessionState.GetBool(Key,false)||!EditorApplication.isPlaying||started==0||EditorApplication.timeSinceStartup-started<8)return;
-            if(!(Services.Session is CastlePlaySession ready&&ready.Modes&&Services.World!=null)&&EditorApplication.timeSinceStartup-started<60)return;
+            if(!SessionState.GetBool(Key+"LobbyTerminals",false)&&!(Services.Session is CastlePlaySession ready&&ready.Modes&&Services.World!=null)&&EditorApplication.timeSinceStartup-started<60)return;
             started=0;
-            run=Checks();new GameObject("Developer UI check driver").AddComponent<TidalCheckDriver>().StartCoroutine(Drive());
+            run=SessionState.GetBool(Key+"LobbyTerminals",false)?LobbyTerminalChecks():Checks();new GameObject("Developer UI check driver").AddComponent<TidalCheckDriver>().StartCoroutine(Drive());
         }
         static IEnumerator Drive()
         {
