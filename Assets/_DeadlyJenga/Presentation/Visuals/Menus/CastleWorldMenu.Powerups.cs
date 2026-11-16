@@ -131,7 +131,7 @@ namespace DeadlyJenga.CastlePrototype
             WheelRow(8,new Vector2(350,125),new Vector2(250,46),"Target: "+(giveAllEquipment?"EVERYONE":"MYSELF"),host&&everyone!=null,18);
             WheelRow(9,new Vector2(350,73),new Vector2(250,46),giveAllEquipment?repeatEquipment?"NOW + EVERY RESPAWN":"THIS LIFE ONLY":"SELF / THIS LIFE ONLY",host&&everyone!=null&&giveAllEquipment&&wheelSelected!=EquipmentKind.FlyingHand,17);
             WheelRow(10,new Vector2(350,-140),new Vector2(250,46),"Stop everyone respawn grants",host&&everyone!=null&&everyone.RespawnEquipment!=EquipmentKind.None,18);
-            WheelRow(11,new Vector2(0,177),new Vector2(540,40),"Category: "+WheelCategories[wheelCategory]+" / change",true,20);
+            WheelRow(11,new Vector2(0,188),new Vector2(540,36),"Category: "+WheelCategories[wheelCategory]+" / change",true,20);
             WheelRow(12,new Vector2(-315,-150),new Vector2(250,46),"< PREVIOUS",equipmentOffset>0,17);
             WheelRow(13,new Vector2(-35,-150),new Vector2(250,46),"NEXT >",equipmentOffset+6<items.Length,17);
             WheelRow(14,new Vector2(0,-266),new Vector2(300,46),"BACK / "+(equipmentOffset/6+1)+" OF "+pageCount,true,17);
