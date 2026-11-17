@@ -1,10 +1,13 @@
 """Builds the three map-sized, walk-in, collapsible toy buildings for Underneath the Tree:
-a doll mansion, a superhero base and a wizard tower. Each is one FBX whose parts are separate
-objects named "Piece ..." so the game gives every part its own body. Every part is a simple solid
-shape (the game wraps a collision shape round each one); parts sit on each other with a small gap.
-Scale: players are 0.85 units tall and step up 1.2, so storeys are 4.5, doors 2.6 wide and
-stairs rise 1.0 a step.
-Run: blender -b -P toysets.py -- <output folder> [preview.png]
+a doll mansion, a superhero base and a wizard tower, styled like children's play sets with one
+side left open so you can see and play inside.
+
+Each building is one FBX. Its parts are separate objects named "Piece ..." and the game gives each
+one its own body, so every part must be a simple solid shape. Decoration (windows, trim, rugs,
+screens, books) is attached to a piece as a child named "Detail ...": it moves with that piece but
+has no collision, so it costs nothing in physics. Furniture big enough to climb on is a piece.
+Scale: players are 0.85 units tall and step up 1.2, so storeys are 4.5, doors 2.6 wide and stairs
+rise 1.0 a step. Run: blender -b -P toysets.py -- <output folder> [preview.png]
 Generic designs, no brands."""
 import bpy, bmesh, math, sys, os
 
@@ -18,7 +21,10 @@ PAINT = {
     "Toy Yellow": (1., .78, .08), "Toy White": (.92, .92, .9), "Toy Gold": (1., .68, .2),
     "Toy Silver": (.75, .77, .8), "Toy Pink": (1., .45, .65), "Toy Purple": (.35, .1, .6),
     "Toy Gray": (.3, .31, .33), "Toy Glass": (.6, .85, 1.), "Toy Cream": (.96, .9, .78),
-    "Toy Wood": (.6, .38, .2),
+    "Toy Wood": (.6, .38, .2), "Toy Green": (.05, .55, .12), "Toy Black": (.02, .02, .025),
+    "Toy Teal": (.0, .55, .55), "Toy Orange": (1., .4, .05), "Toy Brown": (.35, .18, .08),
+    # Glowing paints (the game makes these emit light).
+    "Toy Window Glow": (1., .78, .45), "Toy Screen Glow": (.2, .9, 1.), "Toy Magic Glow": (.75, .3, 1.),
 }
 GAP = .04
 STOREY, SLAB, WALL = 4.5, .5, .6
@@ -28,12 +34,15 @@ pieces = []
 def paint(name):
     m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     m.use_nodes = True
-    next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED").inputs["Base Color"].default_value = (*PAINT[name], 1)
+    bsdf = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+    bsdf.inputs["Base Color"].default_value = (*PAINT[name], 1)
+    if "Glow" in name:
+        bsdf.inputs["Emission Color"].default_value = (*PAINT[name], 1)
+        bsdf.inputs["Emission Strength"].default_value = 3.0
     m.diffuse_color = (*PAINT[name], 1)
     return m
 
-def part(name, kind, loc, size, mat, yaw=0.0, tilt=(0, 0), seg=32):
-    """One separately falling part. Its turn stays on the object so its shape stays tight."""
+def shape(kind, size, seg=32):
     ops = bpy.ops.mesh
     if kind == "box": ops.primitive_cube_add(size=1)
     elif kind == "cyl": ops.primitive_cylinder_add(vertices=seg, radius=.5, depth=1)
@@ -44,11 +53,28 @@ def part(name, kind, loc, size, mat, yaw=0.0, tilt=(0, 0), seg=32):
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     if kind != "box":
         bpy.ops.object.shade_smooth()
+    return o
+
+def place(o, loc, mat, yaw=0.0, tilt=(0, 0)):
     o.location = loc
     o.rotation_euler = (math.radians(tilt[0]), math.radians(tilt[1]), math.radians(yaw))
     o.data.materials.append(paint(mat))
+    return o
+
+def part(name, kind, loc, size, mat, yaw=0.0, tilt=(0, 0), seg=32):
+    """A separately falling part. Its turn stays on the object so its collision shape stays tight."""
+    o = place(shape(kind, size, seg), loc, mat, yaw, tilt)
     o.name = "Piece %03d %s" % (len(pieces) + 1, name)
     pieces.append(o)
+    return o
+
+def detail(owner, name, kind, loc, size, mat, yaw=0.0, tilt=(0, 0), seg=24):
+    """Decoration fixed to a piece: it moves with it but has no collision."""
+    o = place(shape(kind, size, seg), loc, mat, yaw, tilt)
+    o.name = "Detail %s" % name
+    bpy.context.view_layer.update()
+    o.parent = owner
+    o.matrix_parent_inverse = owner.matrix_world.inverted()
     return o
 
 def wedge(name, z, height, r, a0, a1, mat):
@@ -75,27 +101,38 @@ def export(name):
     bpy.ops.object.select_all(action="DESELECT")
     for p in pieces:
         p.select_set(True)
+        for c in p.children:
+            c.select_set(True)
     bpy.ops.export_scene.fbx(filepath=os.path.join(out, name + ".fbx"), use_selection=True,
         axis_forward="-Z", axis_up="Y", apply_scale_options="FBX_SCALE_ALL", bake_space_transform=True)
     done, pieces = list(pieces), []
     return done
 
+# ---------- walls and rooms
+
 def wall_x(label, x0, x1, y, z, h, door, mat, door_w=DOOR_W):
-    """Wall running along x. With a door it is two parts with a full-height opening between."""
+    """Wall along x; with a door it is two parts with a full-height opening between. Returns the parts."""
     if not door:
-        part(label, "box", ((x0 + x1) / 2, y, z + h / 2), (x1 - x0 - GAP, WALL, h), mat)
-        return
+        return [part(label, "box", ((x0 + x1) / 2, y, z + h / 2), (x1 - x0 - GAP, WALL, h), mat)]
     mid = (x0 + x1) / 2
-    part(label + " left", "box", ((x0 + mid - door_w / 2) / 2, y, z + h / 2), (mid - door_w / 2 - x0 - GAP, WALL, h), mat)
-    part(label + " right", "box", ((mid + door_w / 2 + x1) / 2, y, z + h / 2), (x1 - mid - door_w / 2 - GAP, WALL, h), mat)
+    return [part(label + " left", "box", ((x0 + mid - door_w / 2) / 2, y, z + h / 2), (mid - door_w / 2 - x0 - GAP, WALL, h), mat),
+            part(label + " right", "box", ((mid + door_w / 2 + x1) / 2, y, z + h / 2), (x1 - mid - door_w / 2 - GAP, WALL, h), mat)]
 
 def wall_y(label, x, y0, y1, z, h, door, mat):
     if not door:
-        part(label, "box", (x, (y0 + y1) / 2, z + h / 2), (WALL, y1 - y0 - GAP, h), mat)
-        return
+        return [part(label, "box", (x, (y0 + y1) / 2, z + h / 2), (WALL, y1 - y0 - GAP, h), mat)]
     mid = (y0 + y1) / 2
-    part(label + " near", "box", (x, (y0 + mid - DOOR_W / 2) / 2, z + h / 2), (WALL, mid - DOOR_W / 2 - y0 - GAP, h), mat)
-    part(label + " far", "box", (x, (mid + DOOR_W / 2 + y1) / 2, z + h / 2), (WALL, y1 - mid - DOOR_W / 2 - GAP, h), mat)
+    return [part(label + " near", "box", (x, (y0 + mid - DOOR_W / 2) / 2, z + h / 2), (WALL, mid - DOOR_W / 2 - y0 - GAP, h), mat),
+            part(label + " far", "box", (x, (mid + DOOR_W / 2 + y1) / 2, z + h / 2), (WALL, y1 - mid - DOOR_W / 2 - GAP, h), mat)]
+
+def window(owner, x, y, z, normal, frame="Toy White", glass="Toy Window Glow", w=2.6, h=2.6, yaw=0.0):
+    """A painted-on window: a frame with a glowing pane, on the outside face of a wall."""
+    nx, ny = normal
+    off = WALL / 2 + .06
+    yaw = yaw if yaw else (0 if ny else 90)
+    detail(owner, "window frame", "box", (x + nx * off, y + ny * off, z), (w + .5, .12, h + .5), frame, yaw=yaw)
+    detail(owner, "window pane", "box", (x + nx * (off + .07), y + ny * (off + .07), z), (w, .06, h), glass, yaw=yaw)
+    detail(owner, "window bar", "box", (x + nx * (off + .12), y + ny * (off + .12), z), (w, .05, .18), frame, yaw=yaw)
 
 def stair_flight(label, x, y, z, along_x, mat, steps=5, run=1.6, width=3.0):
     """Solid stepped blocks standing on the floor, each 1.0 taller than the last."""
@@ -106,90 +143,248 @@ def stair_flight(label, x, y, z, along_x, mat, steps=5, run=1.6, width=3.0):
         size = (run - GAP, width, h) if along_x else (width, run - GAP, h)
         part("%s step %d" % (label, k + 1), "box", loc, size, mat)
 
-def grid_building(prefix, ox, oy, cols, rows, cell, floors, wall_mat, floor_mat, front_doors, back_doors=(),
-                  stair_cell=(0, 0), roof_access=False, front_door_w=DOOR_W, z0=0.0, base=True):
-    """A building on a grid of square rooms: walls on every room edge, doorways between all rooms,
-    one stair room per floor going up, floor tiles over every room except above the stairs."""
+def grid_building(prefix, ox, oy, cols, rows, cell, floors, outer, inner, floor_mat, back_doors=(),
+                  stair_cell=(0, 0), roof_access=False, z0=0.0, base=True, open_front=True,
+                  furnish=None, windows_on=True, side_doors=()):
+    """A play-set building on a grid of square rooms. The front (y0 side) is left open so you can
+    see in. Doorways join every room; one stair room per floor goes up; floors cover every room
+    except above the stairs. furnish(level, i, j, cx, cy, z) can add furniture to each room."""
     W, D = cols * cell, rows * cell
     x0, y0 = ox - W / 2, oy - D / 2
     z = z0
     if base:
-        part(prefix + " ground slab", "box", (ox, oy, z + SLAB / 2), (W + 1, D + 1, SLAB), floor_mat)
+        slab = part(prefix + " ground slab", "box", (ox, oy, z + SLAB / 2), (W + 1, D + 1, SLAB), floor_mat)
         z += SLAB + GAP
     for level in range(floors):
-        mat = wall_mat(level) if callable(wall_mat) else wall_mat
+        wall_out = outer(level) if callable(outer) else outer
         for j in range(rows + 1):
             for i in range(cols):
                 outside = j in (0, rows)
-                door = (not outside) or (level == 0 and ((j == 0 and i in front_doors) or (j == rows and i in back_doors)))
-                width = front_door_w if (level == 0 and j == 0 and i in front_doors) else DOOR_W
-                wall_x("%s L%d wall x%d-%d" % (prefix, level, i, j), x0 + i * cell, x0 + (i + 1) * cell,
-                       y0 + j * cell, z, STOREY, door, mat, width)
+                if j == 0 and open_front:
+                    continue
+                door = (not outside) or (level == 0 and j == rows and i in back_doors)
+                walls = wall_x("%s L%d wall x%d-%d" % (prefix, level, i, j), x0 + i * cell, x0 + (i + 1) * cell,
+                               y0 + j * cell, z, STOREY, door, wall_out if outside else inner)
+                if outside and windows_on and not door:
+                    window(walls[0], x0 + (i + .5) * cell, y0 + j * cell, z + STOREY * .55, (0, 1 if j else -1))
         for i in range(cols + 1):
             for j in range(rows):
                 outside = i in (0, cols)
-                wall_y("%s L%d wall y%d-%d" % (prefix, level, i, j), x0 + i * cell,
-                       y0 + j * cell + WALL / 2 + GAP, y0 + (j + 1) * cell - WALL / 2 - GAP, z, STOREY, not outside, mat)
+                door = (not outside) or (level == 0 and (i, j) in side_doors)
+                walls = wall_y("%s L%d wall y%d-%d" % (prefix, level, i, j), x0 + i * cell,
+                               y0 + j * cell + WALL / 2 + GAP, y0 + (j + 1) * cell - WALL / 2 - GAP, z, STOREY, door,
+                               wall_out if outside else inner)
+                if outside and windows_on and not door:
+                    window(walls[0], x0 + i * cell, y0 + (j + .5) * cell, z + STOREY * .55, (1 if i else -1, 0))
         going_up = level < floors - 1 or roof_access
         sc, sr = stair_cell
         if going_up:
             stair_flight("%s L%d stair" % (prefix, level), x0 + sc * cell + WALL + .3, y0 + sr * cell + cell / 2,
                          z, True, "Toy Wood")
+        if furnish:
+            for i in range(cols):
+                for j in range(rows):
+                    if going_up and (i, j) == (sc, sr):
+                        continue
+                    furnish(level, i, j, x0 + (i + .5) * cell, y0 + (j + .5) * cell, z)
         z += STOREY + GAP
         for i in range(cols):
             for j in range(rows):
                 if going_up and (i, j) == (sc, sr):
                     continue
-                part("%s L%d floor %d-%d" % (prefix, level, i, j), "box",
-                     (x0 + (i + .5) * cell, y0 + (j + .5) * cell, z + SLAB / 2),
-                     (cell - GAP + (WALL if i in (0, cols - 1) else 0) * 0, cell - GAP, SLAB), floor_mat)
+                tile = part("%s L%d floor %d-%d" % (prefix, level, i, j), "box",
+                            (x0 + (i + .5) * cell, y0 + (j + .5) * cell, z + SLAB / 2), (cell - GAP, cell - GAP, SLAB), floor_mat)
+                # Trim band along the open edge so the floors read as storeys of a toy set.
+                if j == 0 and open_front:
+                    detail(tile, "floor edge trim", "box", (x0 + (i + .5) * cell, y0 - .1, z + SLAB / 2), (cell, .3, SLAB + .2), "Toy White")
         z += SLAB + GAP
     return z, (x0, y0, W, D)
 
+def rug(owner, cx, cy, z, w, d, mat):
+    detail(owner, "rug", "box", (cx, cy, z + .05), (w, d, .08), mat)
+
 sets = {}
 
-# ---------------- Doll mansion: three floors of six rooms, pitched pink roof, chimneys.
-top, (x0, y0, W, D) = grid_building("mansion", 0, 0, 3, 2, 15, 3,
-    lambda level: "Toy Pink", "Toy White", front_doors=(1,), back_doors=(1,), stair_cell=(0, 1))
+# ======================= Doll mansion =======================
+CELL = 15
+def mansion_room(level, i, j, cx, cy, z):
+    kind = [["living", "kitchen", "dining"], ["hall", "music", "library"]][j][i] if level == 0 else \
+           [["bedroom", "bathroom", "nursery"], ["bedroom2", "dressing", "playroom"]][j][i] if level == 1 else \
+           [["attic", "studio", "attic2"], ["sunroom", "closet", "games"]][j][i]
+    back = cy + CELL / 2 - 3.2     # against the back wall of the room
+    if kind in ("living", "sunroom"):
+        sofa = part("mansion sofa", "box", (cx, back, z + .9), (7, 2.6, 1.8), "Toy Pink")
+        detail(sofa, "sofa back", "box", (cx, back + 1.1, z + 2.2), (7, .6, 1.4), "Toy Pink")
+        for s in (-1, 1):
+            detail(sofa, "sofa arm", "box", (cx + s * 3.3, back, z + 1.9), (.7, 2.6, .9), "Toy Pink")
+            detail(sofa, "cushion", "box", (cx + s * 1.6, back - .1, z + 2.0), (2.6, 1.6, .4), "Toy White")
+        rug(sofa, cx, cy - 1, z, 8, 6, "Toy Purple")
+        detail(sofa, "coffee table", "box", (cx, cy - 1, z + .6), (3.5, 2, .4), "Toy White")
+        detail(sofa, "tv", "box", (cx, cy - CELL / 2 + 2.5, z + 2.4), (4, .3, 2.4), "Toy Screen Glow")
+    elif kind == "kitchen":
+        counter = part("mansion counter", "box", (cx, back + .4, z + 1.2), (9, 2.2, 2.4), "Toy White")
+        detail(counter, "counter top", "box", (cx, back + .4, z + 2.45), (9.2, 2.4, .2), "Toy Pink")
+        detail(counter, "stove", "box", (cx - 2.5, back + .4, z + 2.6), (2, 1.6, .1), "Toy Black")
+        detail(counter, "fridge", "box", (cx + 5.6, back + .2, z + 2.0), (2.2, 2.4, 4.0), "Toy White")
+        detail(counter, "fridge handle", "box", (cx + 5.0, back - 1.05, z + 2.4), (.2, .1, 1.4), "Toy Silver")
+    elif kind == "dining":
+        table = part("mansion dining table", "box", (cx, cy, z + 1.0), (6, 3.5, 2.0), "Toy Wood")
+        for s in (-1, 1):
+            for k in (-1.8, 0, 1.8):
+                detail(table, "chair", "box", (cx + k, cy + s * 2.5, z + .8), (1.2, 1.2, 1.6), "Toy Pink")
+        detail(table, "cake", "cyl", (cx, cy, z + 2.4), (1.4, 1.4, .8), "Toy White")
+    elif kind in ("bedroom", "bedroom2"):
+        bed = part("mansion bed", "box", (cx, back - .6, z + .8), (5, 6, 1.6), "Toy White")
+        detail(bed, "headboard", "box", (cx, back + 2.5, z + 2.2), (5.4, .5, 2.8), "Toy Pink")
+        detail(bed, "blanket", "box", (cx, back - 1.4, z + 1.65), (5.1, 4.2, .2), "Toy Purple" if level == 1 else "Toy Pink")
+        detail(bed, "pillow", "box", (cx, back + 1.4, z + 1.8), (3.6, 1.2, .5), "Toy White")
+        detail(bed, "wardrobe", "box", (cx + 5.4, back + .8, z + 2.6), (2.4, 2, 5.0 - .2), "Toy White")
+    elif kind == "bathroom":
+        tub = part("mansion bathtub", "box", (cx, back, z + .9), (6, 3, 1.8), "Toy White")
+        detail(tub, "water", "box", (cx, back, z + 1.82), (5.4, 2.4, .05), "Toy Glass")
+        detail(tub, "mirror", "box", (cx + 4, back + 2.6, z + 3), (2.2, .2, 2.4), "Toy Silver")
+    elif kind in ("nursery", "playroom", "games"):
+        toybox = part("mansion toy box", "box", (cx, back, z + 1.0), (4, 2.6, 2.0), "Toy Yellow")
+        detail(toybox, "lid", "box", (cx, back, z + 2.1), (4.2, 2.8, .2), "Toy Red")
+        for k, c in enumerate(["Toy Red", "Toy Blue", "Toy Green", "Toy Yellow"]):
+            detail(toybox, "block", "box", (cx - 3 + k * 1.6, cy - 1, z + .6), (1.2, 1.2, 1.2), c, yaw=k * 17)
+        rug(toybox, cx, cy - 1, z, 7, 6, "Toy Teal")
+    elif kind in ("music",):
+        piano = part("mansion piano", "box", (cx, back, z + 1.6), (6, 2.6, 3.2), "Toy Black")
+        detail(piano, "keys", "box", (cx, back - 1.5, z + 2.1), (5.4, .6, .2), "Toy White")
+        detail(piano, "stool", "cyl", (cx, back - 3.2, z + .7), (1.4, 1.4, 1.4), "Toy Pink")
+    elif kind in ("library", "studio", "dressing", "closet"):
+        shelf = part("mansion shelf", "box", (cx, back + 1, z + 2.2), (8, 1.4, 4.4), "Toy Wood")
+        for r in range(3):
+            for k in range(8):
+                c = ["Toy Red", "Toy Blue", "Toy Green", "Toy Yellow", "Toy Purple"][(k + r) % 5]
+                detail(shelf, "book" if kind == "library" else "dress", "box",
+                       (cx - 3.4 + k * .95, back + .25, z + 1.0 + r * 1.4), (.6, .5, 1.0), c)
+    elif kind in ("attic", "attic2"):
+        chest = part("mansion chest", "box", (cx, back, z + .9), (4, 2.4, 1.8), "Toy Wood")
+        detail(chest, "chest band", "box", (cx, back - 1.25, z + .9), (4.1, .1, .3), "Toy Gold")
+        rug(chest, cx, cy, z, 6, 5, "Toy Cream")
+    elif kind == "hall":
+        pass
+
+top, (x0, y0, W, D) = grid_building("mansion", 0, 0, 3, 2, CELL, 3, "Toy Pink", "Toy Cream", "Toy White",
+    back_doors=(1,), side_doors=((0, 1),), stair_cell=(0, 1), furnish=mansion_room)
+ridge = top + (D / 2) * math.tan(math.radians(28))
 for s in (-1, 1):
-    part("mansion roof half", "box", (0, s * D / 4, top + D / 4 * math.tan(math.radians(28)) / 2 + .3),
-         (W + 2, D / 2 / math.cos(math.radians(28)) + 1, .6), "Toy Pink", tilt=(s * -28, 0))
+    roof = part("mansion roof half", "box", (0, s * D / 4, top + (D / 4) * math.tan(math.radians(28)) + .3),
+                (W + 2, D / 2 / math.cos(math.radians(28)) + 1, .6), "Toy Pink", tilt=(s * -28, 0))
+    for k in range(4):   # roof tile stripes
+        t = (k + .5) / 4
+        detail(roof, "roof stripe", "box", (0, s * D / 2 * t, top + D / 2 * (1 - t) * math.tan(math.radians(28)) + .65),
+               (W + 2.1, .4, .1), "Toy White", tilt=(s * -28, 0))
+roof_trim = part("mansion roof ridge", "box", (0, 0, ridge + .9), (W + 2.4, 1.0, .6), "Toy White")
 for x in (-W / 3, W / 3):
-    part("mansion chimney", "box", (x, D / 4, top + 4.2), (2.4, 2.4, 8.4), "Toy White")
-for x in (-W / 2 + 7.5, W / 2 - 7.5):
-    part("mansion porch column", "cyl", (x, y0 - 3, SLAB + GAP + STOREY / 2), (1.2, 1.2, STOREY), "Toy White")
+    ch = part("mansion chimney", "box", (x, D / 4, top + 4.2), (2.4, 2.4, 8.4), "Toy White")
+    detail(ch, "chimney cap", "box", (x, D / 4, top + 8.5), (2.9, 2.9, .4), "Toy Pink")
+# Front porch: columns under the open front of the first floor.
+for x in (-W / 2 + 1, W / 2 - 1):
+    col = part("mansion porch column", "cyl", (x, y0 + 1, SLAB + GAP + STOREY / 2), (1.2, 1.2, STOREY), "Toy White")
+    detail(col, "column cap", "box", (x, y0 + 1, SLAB + STOREY - .1), (1.6, 1.6, .3), "Toy Gold")
 sets["Toy Doll Mansion"] = export("Toy Doll Mansion")
 
-# ---------------- Superhero base: two floors with a wide garage door, stairs to the roof deck,
-# and a three-storey red tower standing on the roof.
-top, (x0, y0, W, D) = grid_building("hero", 0, 0, 3, 2, 15, 2,
-    lambda level: "Toy Blue" if level == 0 else "Toy Navy", "Toy Gray", front_doors=(0, 2), stair_cell=(1, 1),
-    roof_access=True, front_door_w=8)
-# Roof rails, then the tower in one corner of the roof (it starts on the roof tiles).
-ttop, _ = grid_building("hero tower", x0 + 7.5 + 15, y0 + 7.5, 1, 1, 15, 3,
-    "Toy Red", "Toy Gray", front_doors=(0,), stair_cell=(0, 0), z0=top, base=False)
-part("hero emblem", "cyl", (x0 + 22.5, y0 - .35, top + STOREY * 2.2), (6, 6, .3), "Toy Yellow", tilt=(90, 0), seg=6)
-part("hero radar mast", "cyl", (x0 + 22.5, y0 + 7.5, ttop + 1.5), (.8, .8, 3.0), "Toy Silver")
-part("hero radar dish", "cyl", (x0 + 22.5, y0 + 7.5, ttop + 3.0 + GAP + .4), (7, 7, .6), "Toy Silver", tilt=(25, 0))
+# ======================= Superhero base =======================
+def hero_room(level, i, j, cx, cy, z):
+    back = cy + CELL / 2 - 3.2
+    kind = [["garage", "garage2", "workshop"], ["gym", "stairs", "cells"]][j][i] if level == 0 else \
+           [["command", "briefing", "armory"], ["bunks", "stairs", "lab"]][j][i]
+    if kind in ("garage", "garage2"):
+        car = part("hero car", "box", (cx, cy + 1, z + 1.2), (5, 9, 2.4), "Toy Black" if kind == "garage" else "Toy Red")
+        detail(car, "car cabin", "box", (cx, cy + 2, z + 2.9), (4, 3.6, 1.2), "Toy Screen Glow")
+        detail(car, "car fin", "box", (cx, cy + 5, z + 3.2), (.4, 2, 1.6), "Toy Yellow")
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                detail(car, "wheel", "cyl", (cx + sx * 2.6, cy + 1 + sy * 3, z + .9), (1.8, 1.8, .8), "Toy Gray", tilt=(0, 90))
+        detail(car, "garage stripe", "box", (cx, cy - 5.5, z + .03), (6, .5, .06), "Toy Yellow")
+    elif kind == "workshop":
+        bench = part("hero workbench", "box", (cx, back, z + 1.3), (8, 2.4, 2.6), "Toy Gray")
+        for k in range(4):
+            detail(bench, "tool", "box", (cx - 3 + k * 2, back + .3, z + 2.9), (.3, .3, 1.2), "Toy Silver")
+        detail(bench, "spare mask", "ball", (cx + 3, back - .2, z + 3.2), (1.2, 1.0, 1.2), "Toy Blue")
+    elif kind == "gym":
+        weights = part("hero weights rack", "box", (cx, back, z + 1.0), (6, 2, 2.0), "Toy Gray")
+        for s in (-1, 1):
+            detail(weights, "weight plate", "cyl", (cx + s * 2.6, back - 1.2, z + 2.4), (1.6, 1.6, .4), "Toy Black", tilt=(90, 0))
+        detail(weights, "bar", "cyl", (cx, back - 1.2, z + 2.4), (.3, .3, 5.6), "Toy Silver", tilt=(0, 90))
+        rug(weights, cx, cy - 1, z, 7, 6, "Toy Blue")
+    elif kind == "cells":
+        cell = part("hero cell block", "box", (cx, back, z + .4), (7, 3, .8), "Toy Gray")
+        for k in range(8):
+            detail(cell, "bar", "cyl", (cx - 3.2 + k * .9, back - 1.4, z + 2.6), (.2, .2, 3.6), "Toy Silver")
+    elif kind == "command":
+        desk = part("hero console", "box", (cx, back, z + 1.1), (9, 2.6, 2.2), "Toy Navy")
+        for k in range(3):
+            detail(desk, "screen", "box", (cx - 3 + k * 3, back + 1.6, z + 3.4), (2.6, .2, 1.8), "Toy Screen Glow")
+        detail(desk, "buttons", "box", (cx, back - 1, z + 2.25), (7, .4, .1), "Toy Red")
+        detail(desk, "chair", "cyl", (cx, back - 3, z + .8), (1.6, 1.6, 1.6), "Toy Red")
+    elif kind == "briefing":
+        table = part("hero round table", "cyl", (cx, cy, z + 1.0), (6, 6, 2.0), "Toy Navy", seg=24)
+        detail(table, "hologram", "cyl", (cx, cy, z + 2.6), (2.4, 2.4, 1.2), "Toy Screen Glow")
+        detail(table, "emblem", "cyl", (cx, cy, z + 2.02), (4, 4, .05), "Toy Yellow", seg=6)
+    elif kind == "armory":
+        rack = part("hero armory rack", "box", (cx, back + .8, z + 2.0), (8, 1.4, 4.0), "Toy Gray")
+        for k in range(3):
+            detail(rack, "shield", "cyl", (cx - 2.6 + k * 2.6, back, z + 2.4), (2.0, 2.0, .2), ["Toy Red", "Toy Blue", "Toy Yellow"][k], tilt=(90, 0))
+    elif kind == "bunks":
+        bunk = part("hero bunk", "box", (cx, back, z + 1.0), (6, 3, 2.0), "Toy Gray")
+        detail(bunk, "top bunk", "box", (cx, back, z + 3.2), (6, 3, .4), "Toy Gray")
+        detail(bunk, "blanket", "box", (cx, back, z + 2.05), (5.6, 2.6, .15), "Toy Red")
+    elif kind == "lab":
+        lab = part("hero lab bench", "box", (cx, back, z + 1.2), (7, 2.4, 2.4), "Toy White")
+        for k in range(4):
+            detail(lab, "flask", "cyl", (cx - 2.4 + k * 1.6, back, z + 2.9), (.7, .7, 1.0), ["Toy Screen Glow", "Toy Magic Glow", "Toy Green", "Toy Orange"][k])
+
+top, (x0, y0, W, D) = grid_building("hero", 0, 0, 3, 2, CELL, 2, lambda level: "Toy Blue" if level == 0 else "Toy Navy",
+    "Toy Gray", "Toy Gray", back_doors=(0, 2), stair_cell=(1, 1), roof_access=True, furnish=hero_room)
+# Helipad on the roof tile in front of the tower.
+ttop, _ = grid_building("hero tower", x0 + 7.5 + 15, y0 + 7.5 + 15, 1, 1, 15, 3, "Toy Red", "Toy Red", "Toy Gray",
+    back_doors=(), side_doors=((0, 0),), stair_cell=(0, 0), z0=top, base=False, open_front=True)
+pad = part("hero helipad", "cyl", (x0 + 7.5, y0 + 7.5, top + .15), (11, 11, .3), "Toy Gray", seg=32)
+detail(pad, "helipad ring", "cyl", (x0 + 7.5, y0 + 7.5, top + .32), (10, 10, .05), "Toy Yellow", seg=32)
+detail(pad, "helipad centre", "cyl", (x0 + 7.5, y0 + 7.5, top + .35), (8, 8, .05), "Toy Gray", seg=32)
+for dx in (-1.2, 1.2):
+    detail(pad, "H bar", "box", (x0 + 7.5 + dx, y0 + 7.5, top + .38), (.6, 4, .05), "Toy Yellow")
+detail(pad, "H cross", "box", (x0 + 7.5, y0 + 7.5, top + .38), (2.4, .6, .05), "Toy Yellow")
+mast = part("hero radar mast", "cyl", (x0 + 22.5, y0 + 22.5, ttop + 1.5), (.8, .8, 3.0), "Toy Silver")
+dish = part("hero radar dish", "cyl", (x0 + 22.5, y0 + 22.5, ttop + 3.0 + GAP + .4), (7, 7, .6), "Toy Silver", tilt=(25, 0))
+detail(dish, "dish light", "ball", (x0 + 22.5, y0 + 22.5, ttop + 4.4), (.8, .8, .8), "Toy Red")
+sign = part("hero emblem sign", "cyl", (x0 + 22.5, y0 + 22.5 + 7.8, top + STOREY * 2.2), (7, 7, .4), "Toy Yellow", tilt=(90, 0), seg=6)
+detail(sign, "emblem star", "cyl", (x0 + 22.5, y0 + 22.5 + 8.05, top + STOREY * 2.2), (3.6, 3.6, .1), "Toy Red", tilt=(90, 0), seg=5)
 sets["Toy Superhero Base"] = export("Toy Superhero Base")
 
-# ---------------- Wizard tower: five round floors, inside stairs, battlements and a cone roof.
+# ======================= Wizard tower =======================
 R, PANELS, WEDGES = 12.0, 12, 8
-z = 0
+OPEN = range(7, 12)          # panels left out on the open side (they face the viewer once placed)
 part("tower ground slab", "cyl", (0, 0, SLAB / 2), (2 * R + 2, 2 * R + 2, SLAB), "Toy Gray", seg=48)
 z = SLAB + GAP
 width = 2 * R * math.tan(math.pi / PANELS) - GAP * 3
 for level in range(5):
     mat = "Toy Gray" if level < 2 else "Toy Purple"
     for k in range(PANELS):
-        if level == 0 and k == 9:          # doorway on the ground floor
+        if k in OPEN:
             continue
         a = k * 360 / PANELS
         r = math.radians(a)
-        part("tower L%d wall %d" % (level, k), "box", (math.cos(r) * R, math.sin(r) * R, z + STOREY / 2),
-             (WALL, width, STOREY), mat, yaw=a)
-    # Stairs climb outward along one direction, turning a quarter each floor.
-    stair = level * 90.0
+        wall = part("tower L%d wall %d" % (level, k), "box", (math.cos(r) * R, math.sin(r) * R, z + STOREY / 2),
+                    (WALL, width, STOREY), mat, yaw=a)
+        # Arched window outside, bookshelf inside.
+        if k % 2 == 0:
+            window(wall, math.cos(r) * R, math.sin(r) * R, z + STOREY * .55, (math.cos(r), math.sin(r)),
+                   frame="Toy Gold", glass="Toy Magic Glow", w=1.6, h=2.6, yaw=a + 90)
+        else:
+            ir = R - WALL / 2 - .5
+            shelf_c = (math.cos(r) * ir, math.sin(r) * ir)
+            detail(wall, "bookshelf", "box", (shelf_c[0], shelf_c[1], z + 1.8), (.9, width - .6, 3.6), "Toy Wood", yaw=a)
+            for row in range(3):
+                detail(wall, "books", "box", (shelf_c[0] - math.cos(r) * .2, shelf_c[1] - math.sin(r) * .2, z + .8 + row * 1.1),
+                       (.6, width - 1.0, .8), ["Toy Red", "Toy Blue", "Toy Green"][row], yaw=a)
+        detail(wall, "stone band", "box", (math.cos(r) * (R + .35), math.sin(r) * (R + .35), z + STOREY - .2),
+               (.15, width, .35), "Toy Gold", yaw=a)
+    stair = level * 90.0 + 45.0
     if level < 4:
         sr = math.radians(stair)
         for k in range(5):
@@ -197,33 +392,66 @@ for level in range(5):
             d = 3.2 + 1.6 * (k + .5)
             part("tower L%d step %d" % (level, k + 1), "box", (math.cos(sr) * d, math.sin(sr) * d, z + h / 2),
                  (1.6 - GAP, 3.4, h), "Toy Wood", yaw=stair)
+    # Room furniture opposite the stairs.
+    fa = math.radians(stair + 180)
+    fx, fy = math.cos(fa) * 6, math.sin(fa) * 6
+    if level == 0:
+        pot = part("tower cauldron", "cyl", (fx, fy, z + 1.2), (3.6, 3.6, 2.4), "Toy Black", seg=24)
+        detail(pot, "brew", "cyl", (fx, fy, z + 2.42), (3.0, 3.0, .1), "Toy Magic Glow", seg=24)
+        for k in range(3):
+            detail(pot, "bubble", "ball", (fx + k * .5 - .5, fy, z + 2.8 + k * .3), (.5, .5, .5), "Toy Magic Glow")
+    elif level == 1:
+        desk = part("tower potion table", "box", (fx, fy, z + 1.2), (5, 2.6, 2.4), "Toy Wood", yaw=stair)
+        for k in range(4):
+            detail(desk, "potion", "cyl", (fx + math.cos(fa + 1.57) * (k - 1.5) * 1.1, fy + math.sin(fa + 1.57) * (k - 1.5) * 1.1, z + 2.9),
+                   (.6, .6, 1.0), ["Toy Magic Glow", "Toy Screen Glow", "Toy Green", "Toy Red"][k])
+    elif level == 2:
+        bed = part("tower bed", "box", (fx, fy, z + .8), (5, 3.4, 1.6), "Toy Purple", yaw=stair)
+        detail(bed, "star blanket", "box", (fx, fy, z + 1.65), (4.6, 3.0, .15), "Toy Navy", yaw=stair)
+        detail(bed, "moon pillow", "cyl", (fx, fy, z + 1.9), (1.4, 1.4, .5), "Toy Yellow")
+    elif level == 3:
+        orb = part("tower orb stand", "cyl", (fx, fy, z + 1.2), (1.6, 1.6, 2.4), "Toy Gold", seg=16)
+        detail(orb, "crystal ball", "ball", (fx, fy, z + 3.2), (2.2, 2.2, 2.2), "Toy Magic Glow")
+    else:
+        scope = part("tower telescope stand", "cyl", (fx, fy, z + 1.4), (1.2, 1.2, 2.8), "Toy Wood", seg=16)
+        detail(scope, "telescope", "cyl", (fx, fy, z + 3.4), (1.0, 1.0, 4.4), "Toy Gold", tilt=(0, 60))
     z += STOREY + GAP
     for k in range(WEDGES):
         a0, a1 = k * math.tau / WEDGES, (k + 1) * math.tau / WEDGES
         mid = math.degrees((a0 + a1) / 2)
-        if level < 4 and abs((mid - stair + 180) % 360 - 180) < 50:
+        if level < 4 and abs((mid - stair + 180) % 360 - 180) < 30:
             continue                       # leave a hole above the stairs
         wedge("tower L%d floor %d" % (level, k), z, SLAB, R + .5, a0 + .004, a1 - .004,
               "Toy Gray" if level < 4 else "Toy Purple")
     z += SLAB + GAP
 for k in range(12):
+    if k in OPEN:
+        continue
     a = math.radians(k * 30 + 15)
     part("tower battlement %d" % k, "box", (math.cos(a) * (R - .2), math.sin(a) * (R - .2), z + 1.0),
          (1.6, 2.4, 2.0), "Toy Gray", yaw=k * 30 + 15)
-part("tower roof", "cone", (0, 0, z + 9), (2 * R - 4, 2 * R - 4, 18), "Toy Blue", seg=48)
-part("tower star", "ball", (0, 0, z + 18 + GAP + 1.4), (2.8, 2.8, 2.8), "Toy Yellow")
+roofp = part("tower roof", "cone", (0, 0, z + 9), (2 * R - 4, 2 * R - 4, 18), "Toy Blue", seg=48)
+for k in range(10):
+    a = k * .9
+    hgt = 2 + k * 1.4
+    rr = (R - 2) * (1 - hgt / 18) + .2
+    detail(roofp, "roof star", "ball", (math.cos(a) * rr, math.sin(a) * rr, z + hgt), (.7, .7, .7), "Toy Yellow")
+moon = part("tower star", "ball", (0, 0, z + 18 + GAP + 1.4), (2.8, 2.8, 2.8), "Toy Yellow")
+detail(moon, "flag pole", "cyl", (0, 0, z + 21.6), (.2, .2, 2.0), "Toy Gold")
+detail(moon, "flag", "box", (.9, 0, z + 22.2), (1.6, .1, 1.0), "Toy Purple")
 sets["Toy Wizard Tower"] = export("Toy Wizard Tower")
 
 print("SETS", {k: len(v) for k, v in sets.items()})
 
 if preview:
-    off = {"Toy Wizard Tower": -60, "Toy Superhero Base": 0, "Toy Doll Mansion": 60}
+    off = {"Toy Wizard Tower": -62, "Toy Superhero Base": 0, "Toy Doll Mansion": 62}
     for name, ps in sets.items():
         for p in ps:
-            p.location.x += off[name]
-    bpy.ops.object.light_add(type="SUN", rotation=(math.radians(50), 0, math.radians(30)))
+            if not p.parent:
+                p.location.x += off[name]
+    bpy.ops.object.light_add(type="SUN", rotation=(math.radians(55), 0, math.radians(-20)))
     bpy.context.active_object.data.energy = 3
-    bpy.ops.object.camera_add(location=(0, -150, 80), rotation=(math.radians(64), 0, 0))
+    bpy.ops.object.camera_add(location=(0, -140, 70), rotation=(math.radians(66), 0, 0))
     bpy.context.scene.camera = bpy.context.active_object
     w = bpy.data.worlds.new("w"); w.color = (.15, .15, .2); bpy.context.scene.world = w
     for engine in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"):
@@ -232,6 +460,6 @@ if preview:
             break
         except TypeError:
             pass
-    bpy.context.scene.render.resolution_x, bpy.context.scene.render.resolution_y = 1600, 900
+    bpy.context.scene.render.resolution_x, bpy.context.scene.render.resolution_y = 1800, 900
     bpy.context.scene.render.filepath = preview
     bpy.ops.render.render(write_still=True)

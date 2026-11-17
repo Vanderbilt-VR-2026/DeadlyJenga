@@ -307,7 +307,7 @@ namespace DeadlyJenga.CandyArt
                     var light = glow.AddComponent<Light>();
                     light.type = LightType.Point;
                     light.color = new Color(1f, .78f, .5f);
-                    light.intensity = 450f;
+                    light.intensity = 220f;
                     light.range = Mathf.Max(box.extents.x, box.extents.z) * 1.3f;
                     practicalLights.Add(light);
                 }
