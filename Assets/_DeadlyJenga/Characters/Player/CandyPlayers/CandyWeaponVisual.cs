@@ -26,13 +26,17 @@ namespace DeadlyJenga.CandyPlayers
             palm=ShaftPalm(ShaftRadius(kind));
             switch(kind)
             {
+                case EquipmentKind.LaserAxe:
+                    mount=Quaternion.Euler(0,side*90,0);
+                    return true;
                 case EquipmentKind.MurderSword:
                 case EquipmentKind.SawStaff:
                 case EquipmentKind.BarbedBat:
-                case EquipmentKind.LaserAxe:
                 case EquipmentKind.Dagger:
                 case EquipmentKind.FlamingMarshmallow:
-                    mount=Quaternion.Euler(0,side*90,0);
+                    // Roll the hand around the handle: palm faces inward and knuckles outward
+                    // (a handshake grip) instead of the wrist bending outward.
+                    mount=Quaternion.Euler(0,side*90,0)*Quaternion.Euler(0,0,-side*90);
                     return true;
                 default:
                     mount=Quaternion.identity;
