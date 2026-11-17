@@ -47,7 +47,7 @@ namespace DeadlyJenga.CandyArt
             if (color.b > color.r * 2f && color.b > color.g) color = new Color(.035f, .13f, .62f);
             else if (color.g > color.r * 2f && color.g > color.b) color = new Color(.03f, .40f, .15f);
             else if (color.r > color.g * 3f) color = new Color(.80f, .03f, .07f);
-            else color = new Color(1f, .88f, .68f);
+            else color = new Color(.98f, .80f, .56f);
             var material = new Material(shader) { name = label, color = color, enableInstancing = true };
             material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Gold Snowflake Foil"));
             material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Paper Normal"));
@@ -113,8 +113,11 @@ namespace DeadlyJenga.CandyArt
             {
                 bool gold = name.Contains("Gold") || name.Contains("gold");
                 if (gold)
-                    color = new Color(.85f, .55f, .18f);
-                return Surface("Satin " + name, "Woven", color, .52f, new Vector2(2, 3), gold ? .25f : 0f, .18f);
+                    color = new Color(1f, .66f, .17f);
+                var satin = Surface("Satin " + name, null, color, .74f, Vector2.one, gold ? .25f : 0f);
+                satin.SetColor("_EmissionColor", color * .10f);
+                satin.EnableKeyword("_EMISSION");
+                return satin;
             }
             if (name.Contains("gift wrap") || name.Contains("gift Wrap") || name.Contains("Mulberry"))
                 return FoilPaper(name + " paper", color);

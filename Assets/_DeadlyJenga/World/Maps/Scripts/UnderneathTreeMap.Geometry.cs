@@ -100,7 +100,7 @@ namespace DeadlyJenga.CastlePrototype
             var frame = Child(built, label, center, orientation);
             var shell = new UnderneathTreeGiftShell();
             const float joint = .016f;
-            float ribbonWidth = Mathf.Min(size.x, size.z) * .135f;
+            float ribbonWidth = Mathf.Min(size.x, size.z) * .17f;
             float thick = Mathf.Clamp(Mathf.Min(size.x, size.y, size.z) * .085f, .2f, .57f);
             float insideY = size.y - 2f * (thick + joint);
             float insideX = size.x - 2f * (thick + joint);
@@ -135,7 +135,7 @@ namespace DeadlyJenga.CastlePrototype
             var visual = VisualBox(piece, "Visual", Vector3.zero, size, wrap);
             if (ribbon)
             {
-                float width = ribbonWidth > 0f ? ribbonWidth : Mathf.Min(size.x, size.z) * .135f;
+                float width = ribbonWidth > 0f ? ribbonWidth : Mathf.Min(size.x, size.z) * .17f;
                 if (facing.y != 0f)
                 {
                     VisualBox(piece, "Ribbon across", new Vector3(0f, size.y * .5f + .03f, 0f),

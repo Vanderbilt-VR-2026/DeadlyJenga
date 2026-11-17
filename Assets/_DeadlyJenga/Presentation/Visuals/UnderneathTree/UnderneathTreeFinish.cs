@@ -214,9 +214,9 @@ namespace DeadlyJenga.CandyArt
         void RestoreIndoorSettings()
         {
             // Warm from above, blue from the sides, red bounce off the rug.
-            var sky = new Color(.46f, .44f, .58f);
-            var sides = new Color(.30f, .34f, .62f);
-            var rug = new Color(.34f, .12f, .14f);
+            var sky = new Color(.30f, .30f, .44f);
+            var sides = new Color(.20f, .24f, .50f);
+            var rug = new Color(.26f, .09f, .10f);
             if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Trilight &&
                 RenderSettings.ambientSkyColor == sky && Mathf.Approximately(RenderSettings.reflectionIntensity, .68f))
                 return;
@@ -326,7 +326,7 @@ namespace DeadlyJenga.CandyArt
         void BuildLighting()
         {
             key = MakeLight("Amber lamplight and ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .90f, .76f), 2.3f, 0f);
+                Vector3.zero, new Color(1f, .80f, .56f), 2.6f, 0f);
             // Shines from the fireplace side so the gift faces seen in the approved picture are lit.
             key.transform.localRotation = Quaternion.Euler(46f, 18f, 0f);
             key.shadows = LightShadows.Soft;
@@ -387,8 +387,8 @@ namespace DeadlyJenga.CandyArt
             bloom.intensity.Override(.9f);
             bloom.scatter.Override(.7f);
             var color = grade.Add<ColorAdjustments>(true);
-            color.postExposure.Override(.85f);
-            color.contrast.Override(16f);
+            color.postExposure.Override(.65f);
+            color.contrast.Override(24f);
             color.saturation.Override(26f);
         }
 

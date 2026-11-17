@@ -309,15 +309,19 @@ namespace DeadlyJenga.CandyArt
             if (!ribbon || !ribbon.TryGetComponent<MeshRenderer>(out var strip) || !strip.sharedMaterial)
                 return;
             if (!giftBow)
+                giftBow = Resources.Load<Mesh>(ResourcePath + "Gift Bow");
+            if (!giftBow)
             {
                 giftBow = RibbonMesh();
                 meshes.Add(giftBow);
             }
 
             var finish = ChooseFinish(strip.name, strip.sharedMaterial) ?? strip.sharedMaterial;
-            var bowMaterial = Surface("Bow " + finish.name, "Woven", finish.color, .72f,
-                new Vector2(3f, 2f), .1f, .25f);
+            var bowMaterial = Surface("Bow " + finish.name, null, finish.color * 1.2f, .80f, Vector2.one, .2f);
             bowMaterial.SetFloat("_Cull", 0f);
+            // A little of its own colour keeps the shaded side of the satin from turning brown.
+            bowMaterial.SetColor("_EmissionColor", finish.color * .16f);
+            bowMaterial.EnableKeyword("_EMISSION");
             var obj = new GameObject("Hand-tied satin bow", typeof(MeshFilter), typeof(MeshRenderer));
             obj.GetComponent<MeshFilter>().sharedMesh = giftBow;
             var skin = obj.GetComponent<MeshRenderer>();
@@ -326,20 +330,12 @@ namespace DeadlyJenga.CandyArt
             var size = renderer.name == "Curved wrapping"
                 ? panel.GetComponent<MeshFilter>().sharedMesh.bounds.size : panel.localScale;
             obj.transform.SetParent(panel.parent, false);
-            obj.transform.localPosition = renderer.name == "Curved wrapping"
-                ? new Vector3(0f, .5f * size.y + .11f, 0f)
-                : new Vector3(0f, .5f * size.y + .11f, 0f);
-            obj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            obj.transform.localPosition = new Vector3(0f, .5f * size.y + .08f, 0f);
+            // The model is about 2.6 wide; turn each bow a little so no two sit the same way.
             float span = Mathf.Min(size.x, size.z);
-            obj.transform.localScale = new Vector3(Mathf.Clamp(span * .39f, .4f, 6.0f),
-                Mathf.Clamp(span * .29f, .25f, 3.8f), Mathf.Clamp(span * .375f, .25f, 4.5f));
-            var knot = new GameObject("Satin bow knot", typeof(MeshFilter), typeof(MeshRenderer));
-            knot.transform.SetParent(obj.transform, false);
-            knot.transform.localPosition = new Vector3(0f, 0f, -.14f);
-            knot.transform.localScale = new Vector3(.52f, .42f, .50f);
-            if (!roundedWrap) roundedWrap = RoundedWrap(new Bounds(Vector3.zero, Vector3.one));
-            knot.GetComponent<MeshFilter>().sharedMesh = roundedWrap;
-            knot.GetComponent<MeshRenderer>().sharedMaterial = bowMaterial;
+            float turn = (Mathf.Abs(panel.position.x * 7.3f + panel.position.z * 3.1f) % 50f) - 25f;
+            obj.transform.localRotation = Quaternion.Euler(0f, turn + (size.x < size.z ? 90f : 0f), 0f);
+            obj.transform.localScale = Vector3.one * Mathf.Clamp(span * .30f, .6f, 3.6f);
             mapDressings.Add(obj);
         }
 
