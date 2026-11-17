@@ -1,23 +1,26 @@
 ﻿{
     "schema_version":  1,
-    "task_id":  "bridge-5d78c0e55929",
-    "commit_sha":  "5d78c0e559296ef17226293aa8be163ad85edabd",
+    "task_id":  "bridge-aedaa5338d98",
+    "commit_sha":  "aedaa5338d98c01afff6d460df9c84600689407f",
     "branch":  "ci/unity-test-pipeline",
     "platform":  "PlayMode",
     "unity_version":  "6000.3.23f1",
     "runner":  "SEVAAN-HP-LAPTO",
     "runner_status":  "completed",
-    "test_status":  "passed",
-    "failure_kind":  null,
+    "test_status":  "failed",
+    "failure_kind":  "assertion_failure",
     "message":  null,
-    "unity_exit_code":  0,
-    "tests_total":  13,
+    "unity_exit_code":  2,
+    "tests_total":  14,
     "tests_passed":  13,
-    "tests_failed":  0,
+    "tests_failed":  1,
     "tests_skipped":  0,
-    "duration_seconds":  604,
+    "duration_seconds":  481,
     "failed_tests":  [
-
+                         {
+                             "name":  "DeadlyJenga.Tests.DeliberateFailureTest.PipelineReportsThisFailure",
+                             "message":  "Deliberate failure to check the test bridge.\n  Expected: 2\n  But was:  3"
+                         }
                      ],
     "log_excerpt":  [
 
