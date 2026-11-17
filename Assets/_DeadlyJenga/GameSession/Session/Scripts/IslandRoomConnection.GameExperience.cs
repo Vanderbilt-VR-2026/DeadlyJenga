@@ -119,7 +119,7 @@ namespace DeadlyJenga.CastlePrototype
             MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.MapId=profile.mapId;MatchSetup.ModeId=profile.modeId;
             var owner=Runner;
             if(!BeginSceneDeparture(index,Connected,"map",failed,()=>ReferenceEquals(Runner,owner)&&
-                ExperienceOperation(operation,attempt,GameFlowEffect.LoadGame,true)))return false;
+                ExperienceOperation(operation,attempt,GameFlowEffect.LoadGame,true),immediate:!Connected&&state.playerPlaylist))return false;
             ExperienceRememberDispatch(operation,attempt);return true;
         }
 

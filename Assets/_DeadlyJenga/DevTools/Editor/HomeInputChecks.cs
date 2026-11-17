@@ -41,6 +41,7 @@ namespace DeadlyJenga.DevTools.Editor
         static double deadline;
         static Gamepad pad;
         static Mouse mouse;
+        static InputDevice[] isolatedDevices;
         static InputSettings savedInput;
         static InputSettings.BackgroundBehavior savedBackground;
         static InputSettings.EditorInputBehaviorInPlayMode savedRouting;
@@ -71,6 +72,9 @@ namespace DeadlyJenga.DevTools.Editor
             (run as IDisposable)?.Dispose();run=null;
             if(pad!=null&&pad.added)InputSystem.RemoveDevice(pad);pad=null;
             if(mouse!=null&&mouse.added)InputSystem.RemoveDevice(mouse);mouse=null;
+            if(isolatedDevices!=null)
+                foreach(var device in isolatedDevices)if(device.added)InputSystem.EnableDevice(device);
+            isolatedDevices=null;
             if(motorObject)Object.Destroy(motorObject);if(floor)Object.Destroy(floor);
             if(savedInput){savedInput.backgroundBehavior=savedBackground;savedInput.editorInputBehaviorInPlayMode=savedRouting;}
             savedInput=null;
@@ -115,6 +119,10 @@ namespace DeadlyJenga.DevTools.Editor
             savedInput.backgroundBehavior=InputSettings.BackgroundBehavior.IgnoreFocus;
             savedInput.editorInputBehaviorInPlayMode=InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
             Check(InputSystem.LoadLayout("CandyGamepadDpad").type==typeof(UnityEngine.InputSystem.Controls.DpadControl),"Gamepad D-pad is isolated from the installed OpenXR layout collision");
+            foreach(var nativePad in Gamepad.all)
+                File.AppendAllText(Report,$"Connected gamepad: {nativePad.displayName}; layout={nativePad.layout}; D-pad={nativePad.dpad.layout}\n");
+            isolatedDevices=InputSystem.devices.Where(device=>device.enabled && (device is Gamepad || device is Mouse)).ToArray();
+            foreach(var device in isolatedDevices)InputSystem.DisableDevice(device);
             pad=InputSystem.AddDevice<Gamepad>();
             var probe=home.gameObject.AddComponent<HomeGamepadProbe>();
             InputSystem.QueueStateEvent(pad,new GamepadState());yield return null;yield return null;
@@ -214,12 +222,16 @@ namespace DeadlyJenga.DevTools.Editor
             InputSystem.QueueStateEvent(pad,new GamepadState{rightTrigger=1,leftTrigger=1}.WithButton(GamepadButton.South));
             yield return null;yield return null;
             Check(probe.fire&&probe.aim&&probe.jump,"Triggers and bottom button reach fire, aim and jump inputs");
+            var removedPad=pad;
             InputSystem.RemoveDevice(pad);pad=null;yield return null;yield return null;
-            Check(DesktopGamepad.Current==null&&probe.move==Vector2.zero&&!probe.fire&&!probe.jump,"Unplugging releases movement and held buttons");
-            foreach(var layout in new[]{"XInputController","DualShockGamepad","SwitchProControllerHID"})
+            Check(!removedPad.added&&DesktopGamepad.Current==null&&probe.move==Vector2.zero&&!probe.fire&&!probe.jump,
+                "Unplugging releases movement and held buttons");
+            foreach(var layout in new[]{"XInputControllerWindows","XInputController","DualShock4GamepadHID","SwitchProControllerHID"})
             {
                 if(!InputSystem.ListLayouts().Contains(layout)){File.AppendAllText(Report,"UNAVAILABLE layout "+layout+"\n");continue;}
-                pad=InputSystem.AddDevice(layout) as Gamepad;Check(pad!=null&&DesktopGamepad.Current==pad,"Recognized native layout "+layout);
+                pad=InputSystem.AddDevice(layout) as Gamepad;
+                Check(pad!=null&&pad.dpad.layout=="CandyGamepadDpad"&&DesktopGamepad.Current==pad,
+                    "Recognized native layout and D-pad "+layout);
                 InputSystem.RemoveDevice(pad);pad=null;
             }
         }

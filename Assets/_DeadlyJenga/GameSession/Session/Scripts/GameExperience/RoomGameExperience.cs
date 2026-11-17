@@ -132,7 +132,13 @@ namespace DeadlyJenga.CastlePrototype
         public void CancelGameStart()=>Submit("cancel");
         public void RetryGameTransition()=>Submit("retry");
         public void RequestStart()=>Submit("start");
-        internal void Go(){if(CanGo)SetReady(true);}
+        internal void Go()
+        {
+            if(!CanGo)return;
+            if(room.Connected){SetReady(true);return;}
+            var profile=NextProfile();
+            if(profile!=null)StartPlayerFirstRound(profile.id);
+        }
         public void RequestRematch()=>Submit("rematch");
         public void RequestReturn()=>Submit("return");
 

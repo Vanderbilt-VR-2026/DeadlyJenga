@@ -567,11 +567,12 @@ namespace DeadlyJenga.CandyArt.Marina
             if(!AnyFaceVisible||ModalBlocked||!NetworkActors.Alive(session?.Player)||!session.Player.gameObject.activeInHierarchy){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);if(focusPanel)focusPanel.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
             var player=session?.Player;if(!NetworkActors.Alive(player)||!player.ViewCamera){aimDot.gameObject.SetActive(false);return;}
             var mouse=Mouse.current;var keyboard=Keyboard.current;
+            bool gamepadInteract = !player.IsVR && MenuGamepad.InteractPressed;
             bool held=player.IsVR ? select.IsPressed() || leftSelect.IsPressed() || player.SelectHeld :
-                !lobby.CodeFocused && keyboard?.eKey.isPressed==true || mouse?.leftButton.isPressed==true;
+                !lobby.CodeFocused && keyboard?.eKey.isPressed==true || mouse?.leftButton.isPressed==true || MenuGamepad.InteractHeld;
             if(requireRelease&&!held)requireRelease=false;
             bool pressed=player.IsVR ? player.SelectPressed :
-                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true;
+                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true || gamepadInteract;
             int pointerDevice = 0;
             var camera=player.ViewCamera;
             Ray ray;
@@ -597,7 +598,8 @@ namespace DeadlyJenga.CandyArt.Marina
                 }
             }
             else
-                ray=session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
+                ray=session.MenuOpen&&mouse!=null&&!gamepadInteract
+                    ?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
             float screenRange = 11;
             if (Physics.Raycast(ray, out var obstruction, screenRange, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
                 screenRange = Mathf.Min(screenRange,obstruction.distance+.05f);

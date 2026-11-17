@@ -195,30 +195,22 @@ namespace DeadlyJenga.DevTools.Editor
             var provider=RoomGameExperience.Current;
             var flowField=typeof(RoomGameExperience).GetField("flow",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
             bool survival=System.Environment.GetCommandLineArgs().Contains("-playRotationSurvival");
-            if(survival)
             {
-                // Change only the test room seed so the normal random selector exercises Survival.
+                // Pin the test room seed so each run exercises its intended profile.
                 var profileIndex=typeof(RoomGameExperience).GetMethod("ProfileIndex",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
                 var snapshot=((RoomGameFlow)flowField.GetValue(provider)).State;
                 for(int i=0;i<64;i++)
                 {
-                    snapshot.roomId="survival-fixture-"+i;
-                    if((int)profileIndex.Invoke(null,new object[]{snapshot.roomId,0,2})==0)break;
+                    snapshot.roomId="play-rotation-fixture-"+i;
+                    if((int)profileIndex.Invoke(null,new object[]{snapshot.roomId,0,2})==(survival?0:1))break;
                 }
                 flowField.SetValue(provider,new RoomGameFlow(snapshot));
             }
             lobby.StartOrCancel();
-            Check(lobby.GamePhase==RoomGamePhase.Selected&&lobby.CountdownSeconds>29&&lobby.CountdownSeconds<=30,
-                "GO starts a thirty-second countdown before loading");
+            Check(lobby.GamePhase==RoomGamePhase.LoadingGame,"Local GO enters loading without a countdown");
             Check(lobby.ProfileId is "play:survival/mode-castle-catwalks" or "play:teamtickets/mode-castle-catwalks","The first selection uses the two Candy Castle profiles");
-            if(survival)
-            {
-                Check(lobby.ProfileId=="play:survival/mode-castle-catwalks","The controlled room seed exercises Disaster Survival");
-                var flow=(RoomGameFlow)flowField.GetValue(provider);
-                for(int i=0;i<7;i++)flow.Tick(flow.State.authorityTerm,5,true,true);
-            }
             int size=lobby.MaximumPopulation;
-            Check(size==(lobby.ProfileId=="play:survival/mode-castle-catwalks"?25:30),"The selected profile fills the intended population");
+            Check(size==(survival?25:32),"The selected profile fills the intended population");
             deadline=Time.realtimeSinceStartup+110;
             CastlePlaySession game=null;
             while(Time.realtimeSinceStartup<deadline)
@@ -229,7 +221,13 @@ namespace DeadlyJenga.DevTools.Editor
             }
             Check(game&&game.Modes&&game.Modes.Frame.phase==RoundPhase.Playing,"The Play lobby launches an actual match");
             Check(game.Modes.Frame.players.Count(player=>player.alive)==size,"The match waits for its full real actor cohort");
-            if(size==30) Check(game.Modes.Frame.teams.Length==3,"Team PvP uses three teams");
+            if(!survival)
+            {
+                Check(game.Modes.Frame.teams.Length==4,"Team PvP uses four teams");
+                var rules=game.Modes.Frame.rules;
+                Check(rules.disasterMinInterval==30&&rules.disasterMaxInterval==30&&rules.disasterLateInterval==30,
+                    "Team PvP keeps a thirty-second disaster cadence");
+            }
             if(size==25)
             {
                 Check(game.Modes.Frame.rules.healthEnabled,"Disaster Survival always enables health");

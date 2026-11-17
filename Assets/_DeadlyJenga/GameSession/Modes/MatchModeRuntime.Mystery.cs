@@ -42,7 +42,8 @@ namespace DeadlyJenga.Modes
             rolePreferences[LocalActorId]=MysteryChoices.RequestedRole;
             mystery=new MysterySimulation(Rules.mystery,UnityEngine.Random.Range(1,int.MaxValue));
             mystery.DisasterChosen+=id=>DemoDisasters.ExecuteForMode(session,id);
-            mystery.Start(simulation.Participants.Where(p=>p.present).Select(p=>p.frame.id),DemoDisasters.Prefabs.Select(p=>p.name),rolePreferences);
+            var hazards=DemoDisasters.Prefabs.Where(p=>p&&!PausedRotationDisaster(p.name)).Select(p=>p.name);
+            mystery.Start(simulation.Participants.Where(p=>p.present).Select(p=>p.frame.id),hazards,rolePreferences);
         }
         void TickMystery(float seconds)
         {
