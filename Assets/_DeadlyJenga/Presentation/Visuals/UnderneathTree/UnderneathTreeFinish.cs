@@ -276,6 +276,42 @@ namespace DeadlyJenga.CandyArt
                 MapRugTexture(renderer);
                 AddGiftBow(renderer);
             }
+            LightToyBuildings();
+        }
+
+        // Big walk-in toy buildings get warm lights inside, like a dollhouse left on at night,
+        // so their rooms can be seen and played in. Found by name and size only.
+        readonly HashSet<int> litBuildings = new HashSet<int>();
+
+        void LightToyBuildings()
+        {
+            foreach (Transform child in world.Root.GetComponentsInChildren<Transform>())
+            {
+                if (!child.name.StartsWith("Toy ", StringComparison.Ordinal) || litBuildings.Contains(child.GetInstanceID()))
+                    continue;
+                var renderers = child.GetComponentsInChildren<MeshRenderer>();
+                if (renderers.Length < 40)
+                    continue;
+                var box = renderers[0].bounds;
+                foreach (var r in renderers)
+                    box.Encapsulate(r.bounds);
+                if (box.size.x < 20f && box.size.z < 20f)
+                    continue;
+                litBuildings.Add(child.GetInstanceID());
+                int floors = Mathf.Clamp(Mathf.RoundToInt(box.size.y / 9f), 1, 4);
+                for (int i = 0; i < floors; i++)
+                {
+                    var glow = new GameObject(child.name + " room light");
+                    glow.transform.position = new Vector3(box.center.x, box.min.y + 3f + i * (box.size.y - 6f) / Mathf.Max(1, floors - 1), box.center.z);
+                    glow.transform.SetParent(art, true);
+                    var light = glow.AddComponent<Light>();
+                    light.type = LightType.Point;
+                    light.color = new Color(1f, .78f, .5f);
+                    light.intensity = 450f;
+                    light.range = Mathf.Max(box.extents.x, box.extents.z) * 1.3f;
+                    practicalLights.Add(light);
+                }
+            }
         }
 
         // Decorations hung just under the map's own ceiling (the string of lights along the walls)

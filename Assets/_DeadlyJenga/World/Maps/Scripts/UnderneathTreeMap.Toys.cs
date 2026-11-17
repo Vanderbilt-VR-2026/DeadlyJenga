@@ -65,17 +65,70 @@ namespace DeadlyJenga.CastlePrototype
                 bottom = Mathf.Min(bottom, shape.bounds.min.y);
             toy.transform.position += Vector3.up * (standOn.y - bottom + .02f);
 
-            var scaled = Vector3.Scale(size.size, toy.transform.lossyScale);
-            var shell = new UnderneathTreeGiftShell();
-            var visual = toy.transform.Find("Visual");
-            RegisterPanel(toy.gameObject, visual ? visual : toy.transform, shell, GiftPieceRole.Base,
-                scaled.x * scaled.y * scaled.z * toy.weight);
-            var panel = toy.GetComponent<UnderneathTreeGiftPanel>();
-            if (support)
-                giftBearings.Add(new GiftBearing(panel, support, null));
+            var pieces = toy.Pieces();
+            if (pieces.Count > 0)
+                RegisterToySet(toy, pieces, support, bottom);
+            else
+            {
+                var scaled = Vector3.Scale(size.size, toy.transform.lossyScale);
+                var shell = new UnderneathTreeGiftShell();
+                var visual = toy.transform.Find("Visual");
+                RegisterPanel(toy.gameObject, visual ? visual : toy.transform, shell, GiftPieceRole.Base,
+                    scaled.x * scaled.y * scaled.z * toy.weight);
+                var panel = toy.GetComponent<UnderneathTreeGiftPanel>();
+                if (support)
+                    giftBearings.Add(new GiftBearing(panel, support, null));
+            }
             foreach (var shape in toy.GetComponentsInChildren<Collider>())
                 playArea.Encapsulate(shape.bounds);
-            WarnIfClipping(toy, support);
+            if (pieces.Count == 0)
+                WarnIfClipping(toy, support);
+        }
+
+        // Every part of a set is its own body in one shell: a hard hit or losing a ground-floor part
+        // brings the whole set down, and parts resting on others drop when those go.
+        void RegisterToySet(UnderneathTreeToy toy, System.Collections.Generic.List<Transform> pieces,
+            UnderneathTreeGiftPanel support, float oldBottom)
+        {
+            var shell = new UnderneathTreeGiftShell();
+            float floor = float.MaxValue;
+            foreach (var piece in pieces)
+                if (piece.TryGetComponent<Collider>(out var shape))
+                    floor = Mathf.Min(floor, shape.bounds.min.y);
+            var registered = new System.Collections.Generic.List<UnderneathTreeGiftPanel>();
+            foreach (var piece in pieces)
+            {
+                if (!piece.TryGetComponent<Collider>(out var shape))
+                    continue;
+                var box = shape.bounds;
+                bool ground = box.min.y < floor + .3f;
+                RegisterPanel(piece.gameObject, piece, shell, ground ? GiftPieceRole.Base : GiftPieceRole.Wall,
+                    box.size.x * box.size.y * box.size.z * toy.weight * .5f);
+                var panel = piece.GetComponent<UnderneathTreeGiftPanel>();
+                registered.Add(panel);
+                if (ground && support)
+                    giftBearings.Add(new GiftBearing(panel, support, null));
+            }
+            // Parts sitting on other parts fall when what holds them up is gone.
+            foreach (var upper in registered)
+            {
+                var top = upper.GetComponent<Collider>().bounds;
+                if (top.min.y < floor + .3f)
+                    continue;
+                UnderneathTreeGiftPanel first = null, second = null;
+                foreach (var lower in registered)
+                {
+                    if (lower == upper)
+                        continue;
+                    var under = lower.GetComponent<Collider>().bounds;
+                    if (Mathf.Abs(under.max.y - top.min.y) > .35f || under.max.x < top.min.x || under.min.x > top.max.x ||
+                        under.max.z < top.min.z || under.min.z > top.max.z)
+                        continue;
+                    if (!first) first = lower; else if (!second) second = lower;
+                }
+                if (first)
+                    giftBearings.Add(new GiftBearing(upper, first, second));
+            }
         }
 
         // A toy placed into a neighbouring gift would be shoved out at the first touch; say so.

@@ -357,8 +357,12 @@ namespace DeadlyJenga.CandyArt
                 return;
             if (panel.parent.parent && panel.parent.parent.name.StartsWith("Rail Gift ", StringComparison.Ordinal))
                 return;
-            var bowSpace = renderer.bounds.center + Vector3.up * (renderer.bounds.extents.y + .6f);
-            foreach (var cover in Physics.OverlapBox(bowSpace, new Vector3(.75f, .5f, .75f),
+            // Check the whole space the bow will fill (it grows with the gift), not just the middle.
+            var lidSize = renderer.name == "Curved wrapping"
+                ? panel.GetComponent<MeshFilter>().sharedMesh.bounds.size : panel.localScale;
+            float bowSize = Mathf.Clamp(Mathf.Min(lidSize.x, lidSize.z) * .30f, .6f, 3.6f) * panel.parent.lossyScale.x;
+            var bowSpace = renderer.bounds.center + Vector3.up * (renderer.bounds.extents.y + bowSize * .8f);
+            foreach (var cover in Physics.OverlapBox(bowSpace, new Vector3(1.4f, .7f, 1.4f) * bowSize,
                 Quaternion.identity, 1 << DeadlyJenga.Core.Layers.Block, QueryTriggerInteraction.Ignore))
                 if (cover.attachedRigidbody && cover.attachedRigidbody.transform.parent != panel.parent.parent)
                     return;

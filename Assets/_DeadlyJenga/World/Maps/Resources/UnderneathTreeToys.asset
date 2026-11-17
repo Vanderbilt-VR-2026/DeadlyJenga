@@ -200,6 +200,21 @@ MonoBehaviour:
     size: 1
   - toy: {fileID: 7829361929983409884, guid: 097c11bc3c3a75d4c93ec3064ec2d874, type: 3}
     onGift: 
-    spot: {x: 22, y: -56}
+    spot: {x: -14, y: -52}
     turn: 78
+    size: 1
+  - toy: {fileID: 54931438865327476, guid: 274a389c70f0ba841a62207a6bcb0dac, type: 3}
+    onGift: 
+    spot: {x: -79.47, y: -55.26}
+    turn: 180
+    size: 1
+  - toy: {fileID: 750279764824631886, guid: 91a0d6c9b53ad1648b249d3037dc94b3, type: 3}
+    onGift: 
+    spot: {x: 20.53, y: -64.21}
+    turn: 180
+    size: 1
+  - toy: {fileID: 559965727098735266, guid: 3f4d9b69a3042ca43958e263b5d3e316, type: 3}
+    onGift: 
+    spot: {x: 57.37, y: -64.21}
+    turn: 180
     size: 1
