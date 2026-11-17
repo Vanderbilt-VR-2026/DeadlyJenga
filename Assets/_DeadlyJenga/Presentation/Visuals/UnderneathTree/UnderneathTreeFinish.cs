@@ -326,7 +326,7 @@ namespace DeadlyJenga.CandyArt
         void BuildLighting()
         {
             key = MakeLight("Amber lamplight and ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .80f, .56f), 2.6f, 0f);
+                Vector3.zero, new Color(1f, .80f, .56f), 1.45f, 0f);
             // Shines from the fireplace side so the gift faces seen in the approved picture are lit.
             key.transform.localRotation = Quaternion.Euler(46f, 18f, 0f);
             key.shadows = LightShadows.Soft;
@@ -335,13 +335,13 @@ namespace DeadlyJenga.CandyArt
             key.shadowNormalBias = .2f;
 
             var bounce = MakeLight("Soft blue room bounce", LightType.Directional, Vector3.zero,
-                new Color(.40f, .58f, 1f), 1.0f, 0f);
+                new Color(.40f, .58f, 1f), .75f, 0f);
             // Blue light from the side window gives the gifts a cool edge.
             bounce.transform.localRotation = Quaternion.Euler(30f, 262f, 0f);
             practicalLights.Add(bounce);
 
             MakeSpot("Moonlight from the front window", new Vector3(10, 65, 70),
-                new Vector3(-90, 10, -110), new Color(.16f, .36f, 1f), 26000f, 240f, 83f);
+                new Vector3(-90, 10, -110), new Color(.16f, .36f, 1f), 15000f, 240f, 83f);
             MakeSpot("Blue evening light through side window", new Vector3(78f, 98f, -130f),
                 new Vector3(-75f, 15f, -125f), new Color(.08f, .27f, 1f), 18000f, 260f, 95f);
             MakeSpot("Warm reflected light across gift terraces", new Vector3(-95f, 100f, -190f),

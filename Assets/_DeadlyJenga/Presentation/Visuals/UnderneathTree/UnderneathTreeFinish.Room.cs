@@ -52,7 +52,7 @@ namespace DeadlyJenga.CandyArt
             material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Gold Snowflake Foil"));
             material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Paper Normal"));
             // Several snowflakes across each face, like the approved picture.
-            material.SetTextureScale("_BaseMap", new Vector2(2.6f, 2.6f));
+            material.SetTextureScale("_BaseMap", new Vector2(1.6f, 1.6f));
             material.SetFloat("_BumpScale", .16f);
             material.SetFloat("_Smoothness", .5f);
             material.SetFloat("_Sheen", 0f);

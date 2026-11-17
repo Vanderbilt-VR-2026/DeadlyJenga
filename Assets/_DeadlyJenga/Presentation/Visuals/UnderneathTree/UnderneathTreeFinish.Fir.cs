@@ -137,9 +137,9 @@ namespace DeadlyJenga.CandyArt
         void DressFir(List<FirTip> tips, System.Random random)
         {
             var bulbColors = new[] { new Color(1f, .45f, .035f), new Color(1f, .005f, .005f),
-                new Color(.01f, .85f, .65f), new Color(.015f, .10f, 1f) };
+                new Color(1f, .78f, .22f), new Color(.03f, .75f, .12f) };
             var ornamentColors = new[] { new Color(.78f, .05f, .08f), new Color(.95f, .62f, .20f),
-                new Color(.07f, .20f, .78f), new Color(.95f, .80f, .52f) };
+                new Color(.07f, .20f, .78f), new Color(.70f, .04f, .10f) };
             var sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
             var ornaments = new List<CombineInstance>[4];
             var bulbs = new List<CombineInstance>[4];
@@ -178,8 +178,8 @@ namespace DeadlyJenga.CandyArt
             for (int i = 0; i < 4; i++)
             {
                 var glass = Surface("Lacquered glass ornament " + i, null, ornamentColors[i], .92f,
-                    Vector2.one, .3f, 0f);
-                glass.SetColor("_EmissionColor", ornamentColors[i] * .05f);
+                    Vector2.one, .45f, 0f);
+                glass.SetColor("_EmissionColor", ornamentColors[i] * .03f);
                 glass.EnableKeyword("_EMISSION");
                 Combined("Glass baubles " + i, ornaments[i], glass, ShadowCastingMode.On);
                 Combined("Vintage colored bulbs " + i, bulbs[i],
