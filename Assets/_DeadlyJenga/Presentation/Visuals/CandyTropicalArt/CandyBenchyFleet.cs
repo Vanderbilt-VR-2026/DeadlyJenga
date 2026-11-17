@@ -4,8 +4,10 @@ using UnityEngine.Rendering;
 
 namespace DeadlyJenga.CandyArt
 {
-    // Distant toy tug boats (classic 3D-printer test-boat shape) sailing around the Castle/Tycoon coast.
-    // Glossy candy white body with red trim. Visual only: no colliders, built from primitives once.
+    // Distant #3DBenchy toy boats (3DBenchy.com, CC0 public domain) sailing around the Castle/Tycoon coast.
+    // Glossy candy white body with red trim. Visual only: no colliders.
+    // Meshes come from the official two-colour Dualprint STLs, simplified in Blender and stored as
+    // Resources/CandyScenery/BenchyWhite.bytes and BenchyRed.bytes (vertex count, triangle count, positions, indices).
     internal sealed class CandyBenchyFleet
     {
         sealed class Boat { public Transform root; public float radius, angle, speed, bob; public bool clockwise; }
@@ -13,6 +15,7 @@ namespace DeadlyJenga.CandyArt
         readonly GameObject root;
         readonly List<Boat> boats = new();
         readonly Material white, red, dark;
+        readonly Mesh whiteMesh, redMesh;
 
         public CandyBenchyFleet(Transform parent)
         {
@@ -23,6 +26,8 @@ namespace DeadlyJenga.CandyArt
             white = Candy(lit, new Color(.97f, .96f, .95f));
             red = Candy(lit, new Color(.86f, .06f, .09f));
             dark = Candy(lit, new Color(.08f, .1f, .14f));
+            whiteMesh = LoadMesh("BenchyWhite");
+            redMesh = LoadMesh("BenchyRed");
             // Far rings only, so boats never come near the island or its reefs.
             (float radius, float scale, float speed, float start, bool clockwise)[] fleet =
             {
@@ -31,7 +36,7 @@ namespace DeadlyJenga.CandyArt
             int i = 0;
             foreach (var f in fleet)
             {
-                var boat = Build("Toy boat " + (++i), f.scale);
+                var boat = whiteMesh && redMesh ? BuildBenchy("Toy boat " + (++i), f.scale * 2.8f) : Build("Toy boat " + (++i), f.scale);
                 boat.SetParent(root.transform, false);
                 boats.Add(new Boat { root = boat, radius = f.radius, angle = f.start * Mathf.Deg2Rad, speed = f.speed, bob = i * 1.7f, clockwise = f.clockwise });
             }
@@ -44,6 +49,42 @@ namespace DeadlyJenga.CandyArt
             m.SetFloat("_Smoothness", .94f);
             m.SetFloat("_Metallic", .02f);
             return m;
+        }
+
+        static Mesh LoadMesh(string name)
+        {
+            var asset = Resources.Load<TextAsset>("CandyScenery/" + name);
+            if (!asset) return null;
+            var data = asset.bytes;
+            int vertexCount = System.BitConverter.ToInt32(data, 0), triangleCount = System.BitConverter.ToInt32(data, 4), at = 8;
+            var vertices = new Vector3[vertexCount];
+            for (int i = 0; i < vertexCount; i++, at += 12)
+                vertices[i] = new Vector3(System.BitConverter.ToSingle(data, at), System.BitConverter.ToSingle(data, at + 4), System.BitConverter.ToSingle(data, at + 8));
+            var triangles = new int[triangleCount * 3];
+            for (int i = 0; i < triangles.Length; i++, at += 4) triangles[i] = System.BitConverter.ToInt32(data, at);
+            var mesh = new Mesh { name = name, vertices = vertices, triangles = triangles };
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        // length = boat length in metres (the stored mesh is one unit long, bow along +Z, keel at y = 0).
+        Transform BuildBenchy(string name, float length)
+        {
+            var boat = new GameObject(name).transform;
+            foreach (var (mesh, material) in new[] { (whiteMesh, white), (redMesh, red) })
+            {
+                var part = new GameObject(name + " " + mesh.name);
+                part.transform.SetParent(boat, false);
+                part.transform.localPosition = Vector3.down * length * .12f; // sit the hull a little into the water
+                part.transform.localScale = Vector3.one * length;
+                part.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var r = part.AddComponent<MeshRenderer>();
+                r.sharedMaterial = material;
+                r.shadowCastingMode = ShadowCastingMode.Off;
+                r.receiveShadows = false;
+            }
+            return boat;
         }
 
         Transform Build(string name, float s)
@@ -106,6 +147,8 @@ namespace DeadlyJenga.CandyArt
         {
             if (root) Object.Destroy(root);
             Object.Destroy(white); Object.Destroy(red); Object.Destroy(dark);
+            if (whiteMesh) Object.Destroy(whiteMesh);
+            if (redMesh) Object.Destroy(redMesh);
         }
     }
 }
