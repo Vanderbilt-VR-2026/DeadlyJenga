@@ -111,21 +111,24 @@ namespace DeadlyJenga.CandyArt
                     var point = (outward + Vector3.up * (.25f + .5f * Mathf.Abs(Mathf.Sin(count * 12.9898f))) +
                         Vector3.Cross(Vector3.up, outward) * Mathf.Sin(count * 78.233f) * .6f).normalized;
                     var turn = Quaternion.FromToRotation(Vector3.up, point);
-                    const float length = 2.3f;
+                    const float length = 3.6f;
                     var socket = position - point * (length * .5f);
                     bulbs[tint].Add(new CombineInstance { mesh = glassBulb,
                         transform = Matrix4x4.TRS(socket, turn, Vector3.one * length) });
                     sockets.Add(new CombineInstance { mesh = cylinder,
-                        transform = Matrix4x4.TRS(socket - point * .22f, turn, new Vector3(.62f, .3f, .62f)) });
-                    // A small bright heart like a filament, and a soft glow round the glass.
-                    halos.Add(position, 4.5f, .5f, bulbColors[tint] * 2.6f);
+                        transform = Matrix4x4.TRS(socket - point * .3f, turn, new Vector3(.8f, .42f, .8f)) });
+                    // A tiny hot filament inside the glass, and a wide soft glow so the string
+                    // still reads as lit from across the room.
+                    halos.Add(position, 1.5f, 1f, Color.Lerp(bulbColors[tint], Color.white, .45f) * 2.2f);
+                    halos.Add(position, 10f, 0f, bulbColors[tint] * 1.5f);
                 }
                 else
                     halos.Add(position, 1.4f, 1f, new Color(1f, .78f, .42f) * 2.2f);
             }
             for (int i = 0; i < bulbs.Length; i++)
             {
-                var glass = Glow("Colored enamel bulb " + i, bulbColors[i], 3.2f);
+                // Deep coloured glass that glows a little, rather than a white-hot blob.
+                var glass = Glow("Colored enamel bulb " + i, bulbColors[i] * .8f, 1.3f);
                 glass.SetFloat("_Smoothness", .92f);
                 Combined("Vintage colored bulbs " + i, bulbs[i], glass, ShadowCastingMode.Off);
             }
@@ -150,7 +153,7 @@ namespace DeadlyJenga.CandyArt
             for (int r = 0; r <= rings; r++)
             {
                 float t = r / (float)rings;
-                float radius = .23f * Mathf.Sin(Mathf.PI * Mathf.Pow(t, .62f)) + .05f * (1f - t);
+                float radius = .19f * Mathf.Sin(Mathf.PI * Mathf.Pow(t, .58f)) + .05f * (1f - t);
                 for (int i = 0; i < sides; i++)
                 {
                     float angle = i * Mathf.PI * 2f / sides;
