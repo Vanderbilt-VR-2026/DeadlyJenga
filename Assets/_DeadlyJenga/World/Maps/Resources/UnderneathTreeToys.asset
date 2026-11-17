@@ -19,14 +19,14 @@ MonoBehaviour:
     turn: 251
     size: 1
   - toy: {fileID: 6164360786163205444, guid: d6631bbe70fecb948af64aa85a476ebd, type: 3}
-    onGift: Left Foot / Ruby Rear
-    spot: {x: 0, y: 0}
-    turn: 91
+    onGift: Gift Bridge / Navy Span
+    spot: {x: -14.736842, y: -2.368421}
+    turn: 192
     size: 1
   - toy: {fileID: 1602188058459572555, guid: 42231d3e9ec24754985357d0c866b6cc, type: 3}
-    onGift: Courtyard / Navy Hop
-    spot: {x: 0, y: 0}
-    turn: 10
+    onGift: Gift Bridge / Navy Span
+    spot: {x: -11.052631, y: 2.368421}
+    turn: 169
     size: 1
   - toy: {fileID: 649518479217282165, guid: 82f6416b073efe1459a9cd02e6c535a7, type: 3}
     onGift: Back Row / Gift 1
@@ -59,9 +59,9 @@ MonoBehaviour:
     turn: 190
     size: 1
   - toy: {fileID: 7829361929983409884, guid: 097c11bc3c3a75d4c93ec3064ec2d874, type: 3}
-    onGift: Back Row / Gift 5
-    spot: {x: 0, y: 0}
-    turn: 357
+    onGift: Gift Bridge / Navy Span
+    spot: {x: -7.631579, y: -2.368421}
+    turn: 178
     size: 1
   - toy: {fileID: 9143828556797602523, guid: 148df1e759d96ee4ea00169218cbf2fc, type: 3}
     onGift: Left Stair / High Ruby
@@ -69,19 +69,19 @@ MonoBehaviour:
     turn: 283
     size: 1
   - toy: {fileID: 7702402830450647701, guid: 83c6501f75dfff447b773872ecf31c5f, type: 3}
-    onGift: Back Row / Gift 3
-    spot: {x: 0, y: 0}
-    turn: 303
+    onGift: Gift Bridge / Navy Span
+    spot: {x: -4.2105265, y: 2.368421}
+    turn: 187
     size: 1
   - toy: {fileID: 6282307098151379123, guid: a57f367d298acbd468a3d708ecadc073, type: 3}
-    onGift: Courtyard / Green Hop
-    spot: {x: 0, y: 0}
-    turn: 273
+    onGift: Gift Bridge / Navy Span
+    spot: {x: 4.2105265, y: -2.368421}
+    turn: 155
     size: 1
   - toy: {fileID: 4728215414278081841, guid: a516fee5279e1cf44ae32d13f1039cf5, type: 3}
-    onGift: Right Foot / Cream Rear
-    spot: {x: 0, y: 0}
-    turn: 281
+    onGift: Gift Bridge / Navy Span
+    spot: {x: 7.631579, y: 2.368421}
+    turn: 164
     size: 1
   - toy: {fileID: 3099684020500228054, guid: bf73872e2608fec49a5e689e7c1a685f, type: 3}
     onGift: Left Foot / Navy Toe
@@ -99,9 +99,9 @@ MonoBehaviour:
     turn: 288
     size: 1
   - toy: {fileID: 7403626382996524768, guid: 75b26686067064a4c8fd5373f6aaec36, type: 3}
-    onGift: Back Row / Gift 6
-    spot: {x: 0, y: 0}
-    turn: 178
+    onGift: Gift Bridge / Navy Span
+    spot: {x: 11.052631, y: -2.368421}
+    turn: 150
     size: 1
   - toy: {fileID: 3134497801041466161, guid: fe3cb26559af1a84f9f2aff521ff8d0e, type: 3}
     onGift: Left Foot / Ruby Step
@@ -114,9 +114,9 @@ MonoBehaviour:
     turn: 230
     size: 1
   - toy: {fileID: 8008739919567049213, guid: f1e4191f06fd0694f94355c58e6492fd, type: 3}
-    onGift: Entrance / Navy Step
-    spot: {x: 0, y: 0}
-    turn: 209
+    onGift: Gift Bridge / Navy Span
+    spot: {x: 14.736842, y: 2.368421}
+    turn: 201
     size: 1
   - toy: {fileID: 2960294657127619358, guid: 2d6083e43da99c341b2e7f984d2e63d5, type: 3}
     onGift: Courtyard / Green Rear
@@ -138,11 +138,6 @@ MonoBehaviour:
     spot: {x: 0, y: 0}
     turn: 272
     size: 1
-  - toy: {fileID: 7980909311340846467, guid: 9614c65534294a34fad06cffc4dae5f5, type: 3}
-    onGift: Left Summit / Cream Rear
-    spot: {x: 0, y: 0}
-    turn: 153
-    size: 1
   - toy: {fileID: 8871076207922618297, guid: e691db3ec588b4d4590e187bb50e8079, type: 3}
     onGift: Right Foot / Navy Toe
     spot: {x: 0, y: 0}
@@ -162,11 +157,6 @@ MonoBehaviour:
     onGift: Left Foot / Cream Step
     spot: {x: 0, y: 0}
     turn: 232
-    size: 1
-  - toy: {fileID: 7829361929983409884, guid: 097c11bc3c3a75d4c93ec3064ec2d874, type: 3}
-    onGift: Left Summit / Ruby Front
-    spot: {x: 0, y: 0}
-    turn: 154
     size: 1
   - toy: {fileID: 9143828556797602523, guid: 148df1e759d96ee4ea00169218cbf2fc, type: 3}
     onGift: Entrance / Green Step
@@ -204,9 +194,9 @@ MonoBehaviour:
     turn: 78
     size: 1
   - toy: {fileID: 54931438865327476, guid: 274a389c70f0ba841a62207a6bcb0dac, type: 3}
-    onGift: 
-    spot: {x: -79.47, y: -55.26}
-    turn: 0
+    onGift: Left Summit / Wizard Cap
+    spot: {x: 0, y: 0}
+    turn: 90
     size: 1
   - toy: {fileID: 750279764824631886, guid: 91a0d6c9b53ad1648b249d3037dc94b3, type: 3}
     onGift: 

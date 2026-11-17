@@ -64,7 +64,7 @@ namespace DeadlyJenga.CastlePrototype
             new GiftSpec("Left Tower / Lintel 3", -37.342f, 8f, 13.4f, 26.661f, 3f, 8.2f, 0f, "red", "gold", on: "Left Tower / Outer Pier 3 / Cap", on2: "Left Tower / Inner Pier 3 / Cap"),
             new GiftSpec("Left Summit / Broad Cream", -42.5f, -2.5f, 16.4f, 13f, 4.4f, 8f, -0.022f, "cream", "berry", on: "Left Tower / Lintel 2"),
             new GiftSpec("Left Summit / Ruby Shoulder", -41.9f, -1.7f, 20.8f, 9.6f, 3.6f, 9f, 1.663f, "red", "ivory", on: "Left Summit / Broad Cream"),
-            new GiftSpec("Left Summit / Ivory Crown", -41.8f, -1.6f, 24.4f, 7.6f, 6.2f, 7.6f, 0f, "cream", "gold", on: "Left Summit / Ruby Shoulder", round: true),
+            new GiftSpec("Left Summit / Wizard Cap", -41.9f, -1.7f, 24.4f, 15.8f, 2.1f, 15.8f, 0f, "red", "gold", on: "Left Summit / Ruby Shoulder"),
             new GiftSpec("Left Summit / Emerald Front", -44.6f, -10.3f, 16.4f, 8.4f, 4.2f, 5f, 4f, "green", "gold", on: "Train Tunnel / Gold Lintel"),
             new GiftSpec("Left Summit / Ruby Front", -35.4f, -10.2f, 16.4f, 5f, 2.6f, 5f, -6f, "red", "gold", on: "Train Tunnel / Gold Lintel"),
             new GiftSpec("Left Summit / Sapphire Rear", -43f, 8.3f, 16.4f, 10f, 3.8f, 6f, -3f, "navy", "ivory", on: "Left Tower / Lintel 3"),

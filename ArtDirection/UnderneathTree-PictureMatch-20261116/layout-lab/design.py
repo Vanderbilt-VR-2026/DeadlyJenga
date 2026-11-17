@@ -73,8 +73,9 @@ stack("Left Summit", -42.5, -2.5, [
     ("Broad Cream", 13.0, 4.4, 8.0, "cream", 0, 0),
     ("Ruby Shoulder", 9.6, 3.6, 9.0, "red", .6, .8),
     ], on="Left Tower / Lintel 2")
-L.add("Left Summit / Ivory Crown", -41.8, -1.6, 7.6, 6.2, 7.6, "cream", "gold",
-      on="Left Summit / Ruby Shoulder", shape="round")
+# A wide flat cap on top of the summit: the wizard tower toy stands on it (see the toy layout).
+L.add("Left Summit / Wizard Cap", -41.9, -1.7, 15.8, 2.1, 15.8, "red", "gold",
+      on="Left Summit / Ruby Shoulder", bow=False)
 L.add("Left Summit / Emerald Front", -44.6, -10.3, 8.4, 4.2, 5.0, "green", "gold", turn=4, on="Left Tower / Lintel 1")
 L.add("Left Summit / Ruby Front", -35.4, -10.2, 5.0, 2.6, 5.0, "red", "gold", turn=-6, on="Left Tower / Lintel 1")
 L.add("Left Summit / Sapphire Rear", -43.0, 8.3, 10.0, 3.8, 6.0, "navy", "ivory", turn=-3, on="Left Tower / Lintel 3")
