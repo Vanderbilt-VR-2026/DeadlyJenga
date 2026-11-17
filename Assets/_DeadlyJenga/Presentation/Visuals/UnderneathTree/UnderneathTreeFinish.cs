@@ -393,12 +393,16 @@ namespace DeadlyJenga.CandyArt
             // The same four colours as the bulbs: red, yellow, green, blue.
             var bulbGlow = new[] { new Color(1f, .08f, .05f), new Color(1f, .70f, .12f),
                 new Color(.08f, 1f, .20f), new Color(.08f, .32f, 1f) };
+            // Twelve lights spiral up the outside of the tree from the gifts to the top, so the
+            // colour lands on the presents below and on the branches all the way up.
             for (int i = 0; i < 12; i++)
             {
-                float angle = (i * 30f + 10f) * Mathf.Deg2Rad;
-                float reach = i % 2 == 0 ? 50f : 64f;
-                var place = new Vector3(-37f + Mathf.Cos(angle) * reach, 14f + i * 37 % 20, -35.7f + Mathf.Sin(angle) * reach);
-                MakeLight("Tree bulb glow " + i, LightType.Point, place, bulbGlow[i % bulbGlow.Length], 3500f, 75f);
+                float height = 12f + i * 15f;
+                float spread = Mathf.Lerp(78f, 18f, height / 200f);
+                float angle = (i * 137.5f + 10f) * Mathf.Deg2Rad;
+                var place = new Vector3(-37f + Mathf.Cos(angle) * spread, height, -35.7f + Mathf.Sin(angle) * spread);
+                MakeLight("Tree bulb glow " + i, LightType.Point, place, bulbGlow[i % bulbGlow.Length],
+                    height < 60f ? 6000f : 3000f, height < 60f ? 95f : 55f);
             }
 
             var reflections = new GameObject("Christmas Room Reflections");

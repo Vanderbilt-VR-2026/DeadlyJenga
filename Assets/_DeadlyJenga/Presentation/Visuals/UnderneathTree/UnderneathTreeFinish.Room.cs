@@ -66,6 +66,8 @@ namespace DeadlyJenga.CandyArt
             material.SetFloat("_Foil", cream ? .45f : .55f);
             material.SetFloat("_Crinkle", .8f);
             material.SetFloat("_CrinkleSize", 1.8f);
+            material.SetFloat("_EdgeCrinkle", 1.5f);
+            material.SetFloat("_Tuck", .55f);
             return material;
         }
 

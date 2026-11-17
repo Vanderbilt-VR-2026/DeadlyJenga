@@ -24,6 +24,9 @@ Shader "DeadlyJenga/Christmas Foil Paper"
         _Foil("Foil Shine", Range(0,3)) = 0
         _Crinkle("Foil Crinkle", Range(0,3)) = 0
         _CrinkleSize("Crinkle Size", Range(0.2,4)) = 1
+        // Extra creases where the paper is folded over the box edges, and the paper tucked under at the base.
+        _EdgeCrinkle("Crinkle Along Edges", Range(0,4)) = 0
+        _Tuck("Paper Tucked Under At The Base", Range(0,1)) = 0
         // Paper colour that shows even in shadow; the power-cut code turns it off.
         [HDR] _EmissionColor("Colour Kept In Shadow", Color) = (0,0,0,1)
         [HideInInspector] _Cutoff("Cutout Threshold", Float) = 0.5
@@ -80,6 +83,8 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 half _Foil;
                 half _Crinkle;
                 half _CrinkleSize;
+                half _EdgeCrinkle;
+                half _Tuck;
             CBUFFER_END
 
             // Gentle waves and creases in the film, as a sideways tilt at each point of the paper.
@@ -138,6 +143,8 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 float2 uv : TEXCOORD3;
                 float2 paper : TEXCOORD7;
                 half rise : TEXCOORD8;
+                // Where this point is on its face of the box, 0 to 1 each way.
+                float2 face : TEXCOORD9;
                 half3 vertexLighting : TEXCOORD4;
                 half fog : TEXCOORD5;
                 float4 shadowCoord : TEXCOORD6;
@@ -164,6 +171,7 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                     (face.x >= face.z ? paperPosition.zy : paperPosition.xy);
                 output.uv = paperUV * (_BaseMap_ST.xy / 64.0) + _BaseMap_ST.zw;
                 output.paper = paperUV;
+                output.face = input.uv;
                 // 0 at the bottom of the box, 1 at the top (box models are one unit tall).
                 output.rise = saturate(input.positionOS.y + 0.5);
                 output.shadowCoord = GetShadowCoord(vertexPosition);
@@ -181,7 +189,15 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 half3 bitangent = cross(n, tangent) * input.tangentWS.w;
                 // The paper's fine texture repeats much smaller than the snowflake print.
                 half3 pattern = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.paper * 0.11), _BumpScale);
-                pattern.xy -= CrinkleTilt(input.paper) * _Crinkle;
+                // How close this point is to the edge of its face (1 right at the fold, 0 in the middle).
+                float2 fromEdge = min(input.face, 1.0 - input.face);
+                half nearEdge = 1.0h - smoothstep(0.0h, 0.16h, min(fromEdge.x, fromEdge.y));
+                // Small sharp creases running in from the fold, like paper pulled round a corner.
+                float2 foldDir = fromEdge.x < fromEdge.y ? float2(0, 1) : float2(1, 0);
+                float creasePos = dot(input.paper, foldDir) * 0.9 + sin(dot(input.paper, foldDir.yx) * 0.7) * 1.3;
+                half crease = (smoothstep(0.35, 0.5, frac(creasePos)) - smoothstep(0.5, 0.65, frac(creasePos)));
+                pattern.xy -= CrinkleTilt(input.paper) * _Crinkle * (1.0h + 2.0h * nearEdge * _EdgeCrinkle);
+                pattern.xy += foldDir * crease * nearEdge * _EdgeCrinkle * 0.35h;
                 half3 normal = NormalizeNormalPerPixel(TransformTangentToWorld(pattern, half3x3(tangent, bitangent, n)));
 
                 InputData inputData = (InputData)0;
@@ -220,6 +236,9 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 // Sides get softly darker toward the floor, as if the boxes shade each other.
                 half side = 1.0h - abs(n.y);
                 result.rgb *= 1.0h - _BaseShade * side * (1.0h - input.rise) * (1.0h - input.rise);
+                // The bottom edge darkens as if the paper folds under, so the line where a box
+                // sits on another reads as a tucked fold rather than a gap.
+                result.rgb *= 1.0h - _Tuck * side * (1.0h - smoothstep(0.0h, 0.07h, input.rise));
 
                 // Folded edges catch the light (the model's edges are slightly rounded).
                 half3 bend = fwidth(n);
