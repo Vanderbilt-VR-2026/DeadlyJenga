@@ -101,18 +101,19 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 return tilt * 0.05;
             }
 
-            // The room as the foil sees it: warm lamp glow and cool window glow in turn around
-            // the walls, and a soft glow from the ceiling. Cheaper and brighter than a real reflection.
+            // The room as the foil sees it: glows in the colours of the tree's bulbs, changing as you
+            // look around the walls, and a soft warm glow from above. Cheaper and brighter than a real reflection.
             half3 RoomShine(half3 bounce, half3 warm)
             {
-                half around = sin(atan2(bounce.z, bounce.x) * 3.0h + bounce.y * 2.0h);
+                half turn = atan2(bounce.z, bounce.x);
+                half around = sin(turn * 3.0h + bounce.y * 2.0h);
                 half height = saturate(bounce.y * 1.4h + 0.3h) * (1.0h - smoothstep(0.7h, 1.0h, bounce.y));
+                // Red, gold, green, teal, blue and pink in turn.
+                half3 bulb = saturate(0.5h + 0.75h * cos(turn * 2.0h + half3(0.0h, 2.1h, 4.2h)));
                 // Each glow has a soft body and a thin bright heart, which is what makes foil streak.
-                half lamp = smoothstep(0.35h, 1.0h, around);
-                half window = smoothstep(0.35h, 1.0h, -around);
-                half3 walls = warm * (lamp * 0.7h + pow(lamp, 6.0h) * 1.6h) +
-                    half3(0.55h, 0.70h, 1.0h) * (window * 0.35h + pow(window, 6.0h) * 0.9h);
-                return walls * height + warm * (smoothstep(0.55h, 1.0h, bounce.y) * 0.35h);
+                half glow = smoothstep(0.3h, 1.0h, abs(around));
+                half3 walls = lerp(bulb, warm, 0.25h) * (glow * 0.7h + pow(glow, 6.0h) * 1.4h);
+                return walls * height + warm * (smoothstep(0.55h, 1.0h, bounce.y) * 0.25h);
             }
 
             struct FabricAttributes

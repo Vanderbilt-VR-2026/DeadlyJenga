@@ -334,7 +334,7 @@ namespace DeadlyJenga.CandyArt
         void BuildLighting()
         {
             key = MakeLight("Amber lamplight and ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .70f, .42f), .20f, 0f);
+                Vector3.zero, new Color(1f, .70f, .42f), .08f, 0f);
             // Shines from the fireplace side so the gift faces seen in the approved picture are lit.
             key.transform.localRotation = Quaternion.Euler(46f, 18f, 0f);
             key.shadows = LightShadows.Soft;
@@ -343,7 +343,7 @@ namespace DeadlyJenga.CandyArt
             key.shadowNormalBias = .2f;
 
             var bounce = MakeLight("Soft blue room bounce", LightType.Directional, Vector3.zero,
-                new Color(.18f, .38f, 1f), .22f, 0f);
+                new Color(.18f, .38f, 1f), .12f, 0f);
             // Blue light from the side window gives the gifts a cool edge.
             bounce.transform.localRotation = Quaternion.Euler(30f, 262f, 0f);
             practicalLights.Add(bounce);
@@ -354,7 +354,7 @@ namespace DeadlyJenga.CandyArt
             MakeSpot("Moonlight through the side window", new Vector3(82f, 95f, -130f),
                 new Vector3(20f, 0f, -130f), new Color(.12f, .30f, 1f), 12000f, 170f, 95f);
             MakeSpot("Hearth bounce", new Vector3(-113, 37, -148),
-                new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 4500f, 240f, 100f);
+                new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 2500f, 240f, 100f);
             MakeLight("Glow in the train tunnel", LightType.Point,
                 new Vector3(-150, 16, -128), new Color(1f, .68f, .28f), 2600f, 38f);
             // The lamp lights what is near it: the wall, the table and the end of the sofa.
@@ -364,7 +364,7 @@ namespace DeadlyJenga.CandyArt
             // The tree is the room's main light. A warm heart, then a ring of coloured lights
             // low and just outside the branches, so they tint the gifts and rug rather than the tree.
             MakeLight("Golden light in the tree", LightType.Point,
-                new Vector3(-37, 60, -50), new Color(1f, .66f, .36f), 2000f, 150f);
+                new Vector3(-37, 60, -50), new Color(1f, .66f, .36f), 1200f, 150f);
             MakeSpot("Warm tree canopy bounce", new Vector3(-80f, 67f, -109f),
                 new Vector3(-37f, 80f, -35.7f), new Color(1f, .86f, .64f), 1200f, 150f, 75f);
             var bulbGlow = new[] { new Color(1f, .12f, .10f), new Color(1f, .62f, .18f), new Color(.10f, .90f, .65f),
@@ -374,7 +374,7 @@ namespace DeadlyJenga.CandyArt
                 float angle = (i * 36f + 10f) * Mathf.Deg2Rad;
                 float reach = i % 2 == 0 ? 52f : 78f;
                 var place = new Vector3(-37f + Mathf.Cos(angle) * reach, 10f + i * 37 % 24, -35.7f + Mathf.Sin(angle) * reach);
-                MakeLight("Tree bulb glow " + i, LightType.Point, place, bulbGlow[i % bulbGlow.Length], 4200f, 120f);
+                MakeLight("Tree bulb glow " + i, LightType.Point, place, bulbGlow[i % bulbGlow.Length], 9000f, 170f);
             }
 
             var reflections = new GameObject("Christmas Room Reflections");
