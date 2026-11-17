@@ -99,6 +99,8 @@ namespace DeadlyJenga.World.Hazards
             if(!Active)return;
             capturedAt=-1;
             if(Services.Session is IWorldAuthority authority&&!authority.HasWorldAuthority){End();return;}
+            // A map change (for example returning to the lobby) ends this disaster instead of moving it to the new world.
+            if(world==null||!ReferenceEquals(Services.World,world)){End();return;}
             float dt=Time.fixedDeltaTime;age+=dt;
             if(!Toggle&&Kind!="PlanetKillerMeteor"&&Kind!="Fire"&&age>=V("warning")+V("duration")){End();return;}
             if(age<V("warning"))return;

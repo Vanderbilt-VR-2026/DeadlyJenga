@@ -73,6 +73,7 @@ namespace DeadlyJenga.CandyArt
         void EndVampireLighting()
         {
             exposure=0;
+            EndVampireGrade();
             if(!vampireLighting)return;
             vampireLighting=false;
             if(vampireApplied)

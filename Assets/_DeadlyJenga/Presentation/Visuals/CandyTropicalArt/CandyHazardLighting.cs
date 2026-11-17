@@ -174,10 +174,10 @@ namespace DeadlyJenga.CandyArt
             BeginVampireLighting();if(sun)sun.transform.rotation=Quaternion.LookRotation(-direction,Mathf.Abs(direction.y)>.99f?Vector3.forward:Vector3.up);
             var sky=RenderSettings.skybox;if(vampireSky!=sky)RestoreVampireSun();
             if(sky&&sky.HasProperty("_SunDirection")){var current=sky.GetVector("_SunDirection");if(!vampireSky||current!=writtenSunDirection)originalSunDirection=current;vampireSky=sky;sky.SetVector("_SunDirection",direction);writtenSunDirection=sky.GetVector("_SunDirection");}
-            exposure=0;DrawVampireShade(view);
+            exposure=0;DrawVampireShade(view);UpdateVampireGrade(frame,view);
         }
         void RestoreVampireSun(){if(vampireSky&&vampireSky.GetVector("_SunDirection")==writtenSunDirection)vampireSky.SetVector("_SunDirection",originalSunDirection);vampireSky=null;}
         void OnDisable(){EndVampireLighting();RestoreVampireSun();EndOutage();Shader.SetGlobalFloat("_CandyHeat",0);}
-        void OnDestroy(){OnDisable();DestroyVampireShade();foreach(var material in neon.Values)if(material)Destroy(material);if(darkSky)Destroy(darkSky);}
+        void OnDestroy(){OnDisable();DestroyVampireShade();DestroyVampireGrade();foreach(var material in neon.Values)if(material)Destroy(material);if(darkSky)Destroy(darkSky);}
     }
 }

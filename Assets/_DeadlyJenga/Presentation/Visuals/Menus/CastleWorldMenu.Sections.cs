@@ -35,8 +35,10 @@ namespace DeadlyJenga.CastlePrototype
             var pictures=new System.Collections.Generic.List<Texture>();
             void Add(string label,Action action,bool available=true,CandyHudIcon icon=CandyHudIcon.Settings,string caption="")
             {names.Add(label);actions.Add(action);enabled.Add(available);art.Add(icon);captions.Add(caption);pictures.Add(null);}
+            bool searching=developerRoute=="Search";
             void Fold(string key,string label,Action contents)
             {
+                if(searching){contents();return;}
                 Add((developerFoldout==key?"▼ ":"▶ ")+label,()=>developerFoldout=developerFoldout==key?"":key);
                 if(developerFoldout==key)contents();
             }
@@ -50,7 +52,7 @@ namespace DeadlyJenga.CastlePrototype
                 {float value=level;Add(value.ToString("P0"),()=>{developerVolumeApply(value);developerVolumeApply=null;},icon:CandyHudIcon.Sound);}
                 RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);return;
             }
-            if(developerRoute=="Bots")
+            if(developerRoute=="Bots"||searching)
             {
                 var lobby=session as ILobbyControls;
                 if(lobby!=null&&session is ILobbyDetails details)
@@ -95,7 +97,7 @@ namespace DeadlyJenga.CastlePrototype
                     Add("Bot volume: "+(social?.BotVolume??0).ToString("P0"),()=>DeveloperVolume("Bot volume",value=>social.BotVolume=value),social!=null,CandyHudIcon.Sound);
                 });
             }
-            else
+            if(developerRoute!="Bots")
             {
                 Fold("player","Player debug",()=>{
                     Add(session.PlayingHand?"Become survivor":"Become flying hand",SwitchDemoRole,DemoMode,CandyHudIcon.Hand);
@@ -145,6 +147,7 @@ namespace DeadlyJenga.CastlePrototype
                     Add("Blaster testing: "+(gun?.TestingEnabled==true?"ON":"OFF"),()=>gun.SetTestingEnabled(!gun.TestingEnabled),gun!=null&&CanCommand&&MatchRuntime.Current?.Authority==true,CandyHudIcon.Trigger);
                 });
             }
+            if(searching)FilterToolSearch(names,actions,enabled,art,captions,pictures);
             RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);
         }
 

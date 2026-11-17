@@ -80,8 +80,13 @@ namespace DeadlyJenga.CandyArt
                 {
                     if(iceOriginals.ContainsKey(renderer))continue;
                     var original=new MaterialPropertyBlock();renderer.GetPropertyBlock(original);iceOriginals.Add(renderer,original);
-                    renderer.GetPropertyBlock(block);block.SetFloat("_Smoothness",.98f);
-                    var material=renderer.sharedMaterial;Color color=material&&material.HasProperty("_BaseColor")?material.GetColor("_BaseColor"):Color.white;
+                    renderer.GetPropertyBlock(block);block.SetFloat("_Smoothness",.98f);block.SetFloat("_Glossiness",.98f);
+                    var material=renderer.sharedMaterial;
+                    Color color=material&&material.HasProperty("_BaseColor")?material.GetColor("_BaseColor"):material&&material.HasProperty("_Color")?material.GetColor("_Color"):Color.white;
+                    // Frosted look: wash the candy color toward pale glacier blue.
+                    var frost=Color.Lerp(color,new Color(.72f,.9f,1f,color.a),.62f);
+                    block.SetColor("_BaseColor",frost);block.SetColor("_Color",frost);
+                    if(material&&material.HasProperty("_EmissionColor"))block.SetColor("_EmissionColor",new Color(.05f,.12f,.18f));
                     renderer.SetPropertyBlock(block);
                 }
             }

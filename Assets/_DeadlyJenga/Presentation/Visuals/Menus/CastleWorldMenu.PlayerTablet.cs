@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CastleWorldMenu
     {
-        enum TabletPage { Comfort, Controls, Room, Developer, Nearby, Profile }
+        enum TabletPage { Comfort, Controls, Room, Developer, Nearby, Profile, ToolSearch }
         sealed class TabletButton
         {
             public Button Button;
@@ -92,7 +92,7 @@ namespace DeadlyJenga.CastlePrototype
         static readonly Color JuicyRed = new(.92f,.12f,.18f);
         readonly List<TabletButton> tabletTabs = new();
         readonly List<TabletButton> tabletActions = new();
-        readonly RectTransform[] tabletPages = new RectTransform[6];
+        readonly RectTransform[] tabletPages = new RectTransform[7];
         RectTransform legacyDeveloper, tabletNav;
         Text tabletInputLayout, leftControllerHelp, rightControllerHelp, tabletRoomStatus;
         Text leftInputTitle, rightInputTitle;
@@ -158,6 +158,7 @@ namespace DeadlyJenga.CastlePrototype
             BuildTabletRoom(tabletPages[(int)TabletPage.Room]);
             BuildTabletNearby(tabletPages[(int)TabletPage.Nearby]);
             BuildTabletProfile(tabletPages[(int)TabletPage.Profile]);
+            BuildTabletToolSearch(tabletPages[(int)TabletPage.ToolSearch]);
             BuildTabletDeveloper(tabletPages[(int)TabletPage.Developer]);
 
             OpenPlayerTabletPage(TabletPage.Comfort);
@@ -728,6 +729,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void BuildTabletDeveloper(RectTransform page)
         {
+            developerTiles.Clear();
             tabletDeveloperGrid = new GameObject("Developer grid", typeof(RectTransform)).GetComponent<RectTransform>();
             tabletDeveloperGrid.SetParent(page, false);
             tabletDeveloperGrid.anchoredPosition = Vector2.zero;
@@ -746,8 +748,9 @@ namespace DeadlyJenga.CastlePrototype
                 ()=>session.Player?.ThirdPerson?.CanInspect==true,opensDetails:false);
             DeveloperTile(tabletDeveloperGrid,"God mode",6,CandyHudIcon.Survivor,ToggleDeveloperGodMode,
                 ()=>DeveloperGodMode?.CanSetGodMode==true,opensDetails:false,title:()=>"God mode: "+(DeveloperGodMode?.GodModeEnabled==true?"ON":"OFF"));
-            DeveloperTile(tabletDeveloperGrid,"\u00d7 Coming soon",7,CandyHudIcon.Key,()=>{},()=>false,opensDetails:false);
-            DeveloperTile(tabletDeveloperGrid,"\u00d7 Coming soon",8,CandyHudIcon.Key,()=>{},()=>false,opensDetails:false);
+            DeveloperTile(tabletDeveloperGrid,"Become Hand",7,CandyHudIcon.Hand,SwitchDemoRole,()=>DemoMode,opensDetails:false,
+                title:()=>session.PlayingHand?"Become Survivor":"Become Hand");
+            DeveloperTile(tabletDeveloperGrid,"Search tools",8,CandyHudIcon.Help,OpenToolSearch,opensDetails:false);
             DeveloperTile(tabletDeveloperGrid,"Rebuild",9,CandyHudIcon.Home,()=>session.ResetMap(),()=>session.CanEditWorld,opensDetails:false);
             DeveloperTile(tabletDeveloperGrid,"Spectate",10,CandyHudIcon.Look,()=>{ResetPages();spectatePage=true;},()=>session is not ILobbyControls);
             DeveloperTile(tabletDeveloperGrid,"More tools",11,CandyHudIcon.Settings,()=>OpenDeveloperRoute("More tools"));
@@ -1031,7 +1034,8 @@ namespace DeadlyJenga.CastlePrototype
                 ()=>{if(opensDetails)ShowDeveloperDetails(action);else action();},allowed:allowed,font:27);
             tile.Label.rectTransform.anchoredPosition=new Vector2(46,0);
             tile.Label.rectTransform.sizeDelta=new Vector2(206,82);
-            string artName=label switch {"Map"=>"MapMode","Bots"=>"BotsV2","Weapons"=>"WeaponsV2","God mode"=>"GodMode","Third person"=>"ThirdPerson","More tools"=>"MoreTools",_=>label};
+            developerTiles.Add((label,action,allowed,opensDetails,title));
+            string artName=label switch {"Become Hand"=>"BecomeHand","Search tools"=>"SearchTools","Map"=>"MapMode","Bots"=>"BotsV2","Weapons"=>"WeaponsV2","God mode"=>"GodMode","Third person"=>"ThirdPerson","More tools"=>"MoreTools",_=>label};
             var approved=Resources.Load<Texture2D>("PlayerTabletArt/"+artName);
             Texture art=approved?approved:picture?picture:CandyHudVisuals.Icon(icon);
             float scale=Mathf.Min(72f/art.width,72f/art.height);
@@ -1181,6 +1185,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 tabletRefreshAt=Time.unscaledTime+.2f;
                 RefreshTabletNearby();
+                RefreshToolSearch();
                 if(tabletPage==TabletPage.Controls) RefreshTabletControls(camera);
                 if(tabletPage==TabletPage.Room)
                 {

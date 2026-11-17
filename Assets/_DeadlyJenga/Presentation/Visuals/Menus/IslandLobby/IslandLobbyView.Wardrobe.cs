@@ -359,6 +359,7 @@ namespace DeadlyJenga.CastlePrototype
 
                 wardrobePanel.gameObject.SetActive(Player.IsVR);
                 fallbackWardrobeMirror.gameObject.SetActive(Player.IsVR&&!marinaMirror);
+                if(Player.IsVR)PlaceVrWardrobe();
                 RefreshWardrobeLabels();
                 PresentWardrobe();
 
@@ -437,6 +438,25 @@ namespace DeadlyJenga.CastlePrototype
             PolishWardrobeLayout(true);
         }
 
+        // VR: put the mirror straight ahead and the controls just beside it, both facing the player,
+        // so choosing items and checking the result need only a small glance instead of a neck turn.
+        void PlaceVrWardrobe()
+        {
+            var eye=Player.ViewCamera;if(!eye||!wardrobePanel)return;
+            var head=eye.transform.position;
+            var mirror=WardrobeMirror;
+            var ahead=mirror&&marinaMirror?mirror.position-head:eye.transform.forward;
+            ahead.y=0;if(ahead.sqrMagnitude<.0001f)ahead=Vector3.forward;ahead.Normalize();
+            if(!marinaMirror&&fallbackWardrobeMirror)
+            {
+                var mirrorPoint=head+Quaternion.Euler(0,-14,0)*ahead*1.55f+Vector3.down*.1f;
+                fallbackWardrobeMirror.SetPositionAndRotation(mirrorPoint,Quaternion.LookRotation(mirrorPoint-head));
+            }
+            var side=Quaternion.Euler(0,30,0)*ahead;
+            var panelPoint=head+side*1.3f+Vector3.down*.28f;
+            wardrobePanel.SetPositionAndRotation(panelPoint,Quaternion.LookRotation(panelPoint-head));
+            wardrobePanel.localScale=Vector3.one*.00105f;
+        }
         void BuildMirrorRotateIcon(RectTransform mirror,float y,float size)
         {
             var badge=CandyPanel(mirror,"Mirror rotation",0,y-size*.1f,size,size*.65f,CandyHudVisuals.Ink);
