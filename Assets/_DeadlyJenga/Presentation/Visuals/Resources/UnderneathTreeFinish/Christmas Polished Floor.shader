@@ -7,7 +7,7 @@ Shader "DeadlyJenga/Christmas Polished Floor"
         [MainTexture] _BaseMap("Wood Grain", 2D) = "white" {}
         [MainColor] _BaseColor("Wood Tint", Color) = (1,1,1,1)
         [Normal] _BumpMap("Grain Normal", 2D) = "bump" {}
-        _BumpScale("Grain Relief", Range(0,1)) = 0.2
+        _BumpScale("Grain Relief", Range(0,1)) = 0.08
         _Smoothness("Varnish Smoothness", Range(0,1)) = 0.8
         _Mirror("Reflection Strength", Range(0,4)) = 2.6
         _MirrorFacing("Reflection When Looking Down", Range(0,1)) = 0.22
@@ -23,7 +23,7 @@ Shader "DeadlyJenga/Christmas Polished Floor"
         _GlowBWash("Glow B Wash", Vector) = (0,0,100,0)
         [HDR] _GlowBColor("Glow B Colour", Color) = (0,0,0,1)
         _GlowPower("Glow Power (0 in a power cut)", Range(0,1)) = 1
-        _Glint("Glint Strength", Range(0,8)) = 3
+        _Glint("Glint Strength", Range(0,8)) = 1.5
     }
     SubShader
     {
