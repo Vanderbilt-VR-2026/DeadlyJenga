@@ -216,13 +216,13 @@ namespace DeadlyJenga.CandyArt
                 varnish.SetFloat("_Mirror", 1.3f);
                 varnish.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Walnut Grain"));
                 varnish.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Mahogany Normal"));
-                // Amber lamplight by the sofa, blue window light on the other side.
+                // Amber on the boards beside the lamp, blue on the boards inside the side window.
                 // Lamp = where the glint comes from; wash = centre on the floor (x, z) and size.
-                varnish.SetVector("_GlowALamp", new Vector4(-219f, 40f, -109f, 0f));
-                varnish.SetVector("_GlowAWash", new Vector4(-195f, -170f, 85f, 0f));
+                varnish.SetVector("_GlowALamp", new Vector4(-88f, 59f, 54f, 0f));
+                varnish.SetVector("_GlowAWash", new Vector4(-100f, 62f, 60f, 0f));
                 varnish.SetColor("_GlowAColor", new Color(1f, .42f, .08f) * 1.5f);
-                varnish.SetVector("_GlowBLamp", new Vector4(70f, 40f, -116f, 0f));
-                varnish.SetVector("_GlowBWash", new Vector4(45f, -170f, 85f, 0f));
+                varnish.SetVector("_GlowBLamp", new Vector4(84f, 95f, -130f, 0f));
+                varnish.SetVector("_GlowBWash", new Vector4(55f, -135f, 80f, 0f));
                 varnish.SetColor("_GlowBColor", new Color(.06f, .22f, 1f) * 3.2f);
                 materials.Add(varnish);
                 floorVarnish = varnish;

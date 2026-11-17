@@ -100,14 +100,14 @@ namespace DeadlyJenga.CandyArt
                 {
                     int tint = int.Parse(words[4], culture) % bulbColors.Length;
                     bulbs[tint].Add(Part(sphere, position, new Vector3(.75f, 1.0f, .75f)));
-                    halos.Add(position, 6.5f, .08f, bulbColors[tint] * 2.2f);
+                    halos.Add(position, 9f, .12f, bulbColors[tint] * 3.2f);
                 }
                 else
-                    halos.Add(position, 1.4f, 1f, new Color(1f, .78f, .42f) * 1.6f);
+                    halos.Add(position, 1.4f, 1f, new Color(1f, .78f, .42f) * 2.2f);
             }
             for (int i = 0; i < bulbs.Length; i++)
                 Combined("Vintage colored bulbs " + i, bulbs[i],
-                    Glow("Colored enamel bulb " + i, bulbColors[i], 3.5f), ShadowCastingMode.Off);
+                    Glow("Colored enamel bulb " + i, bulbColors[i], 6f), ShadowCastingMode.Off);
 
             var shader = Resources.Load<Shader>(ResourcePath + "Christmas Glow");
             if (!shader)
