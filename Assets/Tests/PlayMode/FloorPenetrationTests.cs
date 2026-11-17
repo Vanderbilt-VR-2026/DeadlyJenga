@@ -52,6 +52,10 @@ namespace DeadlyJenga.Tests.PlayMode
             float floorTopY = floorCollider.bounds.max.y;
             float blockBottomY = blockCollider.bounds.min.y;
 
+            // DELIBERATE TEST FAILURE FOR PIPELINE & ANTIGRAVITY VERIFICATION
+            Assert.Less(blockBottomY, -100.0f,
+                $"DELIBERATE FAILURE: Block did not tunnel through floor! Expected bottom Y < -100.0, but block settled safely at Y = {blockBottomY:F4} on floor top Y = {floorTopY:F4}");
+
             Assert.GreaterOrEqual(blockBottomY, floorTopY - 0.05f,
                 $"Block penetrated floor! Block bottom Y: {blockBottomY:F4}, Floor top Y: {floorTopY:F4}");
 
