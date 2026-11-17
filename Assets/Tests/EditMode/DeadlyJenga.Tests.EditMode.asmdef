@@ -1,0 +1,19 @@
+{
+    "name": "DeadlyJenga.Tests.EditMode",
+    "rootNamespace": "DeadlyJenga.Tests.EditMode",
+    "references": [
+        "DeadlyJenga.Core"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": []
+}

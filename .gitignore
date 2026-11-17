@@ -123,3 +123,6 @@ __MACOSX/
 CLAUDE.local.md
 .cursor/
 .codex/
+
+TestResults/
+
