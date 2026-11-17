@@ -55,6 +55,16 @@ namespace DeadlyJenga.World.Hazards
             var from=Quaternion.Euler(0,Random.Range(0f,360f),0)*new Vector3(1,Random.Range(.8f,2.5f),0).normalized;
             float distance=area.size.magnitude+diameter*2+45;
             var start=target+from*distance;
+            if(FallingOrnaments)
+            {
+                // Falling decorations start inside the room, above an actual present.
+                var candidates=new List<Rigidbody>();
+                foreach(var body in world.Blocks)if(body&&body.gameObject.activeInHierarchy&&body.isKinematic)candidates.Add(body);
+                if(candidates.Count>0)target=candidates[Random.Range(0,candidates.Count)].worldCenterOfMass;
+                float ceiling=area.max.y+diameter+12;
+                start=new Vector3(target.x,ceiling,target.z);
+                distance=Vector3.Distance(start,target);
+            }
             meteors.Add(new DisasterPoint{id=++meteorId,position=start,velocity=(target-start).normalized*(planet?28:45),size=diameter,life=distance/(planet?28:45)+4});
         }
         void MeteorImpact(Vector3 point,DisasterPoint meteor)

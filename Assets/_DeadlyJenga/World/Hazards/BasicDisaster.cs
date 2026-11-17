@@ -9,6 +9,8 @@ namespace DeadlyJenga.World.Hazards
     public abstract partial class BasicDisaster : MapHazard, IDemoHazard, IDisasterState
     {
         protected abstract string Kind { get; }
+        protected virtual string FrameKind => Kind;
+        protected virtual bool FallingOrnaments => false;
         DisasterParameter[] parameters;
         float[] values;
         protected IWorldQuery world;
@@ -34,7 +36,7 @@ namespace DeadlyJenga.World.Hazards
             for(int i=0;i<input.Length;i++)if(float.IsNaN(input[i])||float.IsInfinity(input[i]))throw new ArgumentException("Disaster settings must be finite.");
             values=new float[input.Length];for(int i=0;i<input.Length;i++)values[i]=parameters[i].Clamp(input[i]);
         }
-        DisasterParameter[] MakeParameters()
+        protected virtual DisasterParameter[] MakeParameters()
         {
             var p=new List<DisasterParameter>();
             switch(Kind)
@@ -405,7 +407,7 @@ namespace DeadlyJenga.World.Hazards
             if(!Active)return null;
             if(capturedAt==Time.frameCount&&cached!=null)return cached;
             capturedAt=Time.frameCount;
-            return cached=new DisasterFrame{sampledAt=Time.time,kind=Kind,label=Kind=="AntiGravity"?"Low Gravity":Type?Type.name:Kind,center=Kind=="Tornado"?TornadoCenter:area.center,size=area.size,age=age,warning=Mathf.Max(0,V("warning")-age),remaining=Kind=="Fire"?FireRemaining():Toggle||Kind=="PlanetKillerMeteor"?-1:Mathf.Max(0,V("duration")+V("warning")-age),values=values,points=Kind=="Tornado"?new[]{new DisasterPoint{position=TornadoCenter,velocity=tornadoVelocity}}:meteors.ToArray(),blocks=burning.ToArray(),burns=Kind=="Fire"?CaptureBurns():null};
+            return cached=new DisasterFrame{sampledAt=Time.time,kind=FrameKind,label=Kind=="AntiGravity"?"Low Gravity":Type?Type.name:Kind,center=Kind=="Tornado"?TornadoCenter:area.center,size=area.size,age=age,warning=Mathf.Max(0,V("warning")-age),remaining=Kind=="Fire"?FireRemaining():Toggle||Kind=="PlanetKillerMeteor"?-1:Mathf.Max(0,V("duration")+V("warning")-age),values=values,points=Kind=="Tornado"?new[]{new DisasterPoint{position=TornadoCenter,velocity=tornadoVelocity}}:meteors.ToArray(),blocks=burning.ToArray(),burns=Kind=="Fire"?CaptureBurns():null};
         }
         protected override void EndHazard()
         {

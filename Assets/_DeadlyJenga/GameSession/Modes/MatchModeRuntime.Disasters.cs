@@ -19,7 +19,8 @@ namespace DeadlyJenga.Modes
         string lastDisaster="";
 
         bool InPlayPlaylist=>RoomGameExperience.ForManagedMatch(session)?.PlayerPlaylist==true;
-        static bool StructuralDisaster(string key)=>key.Contains("earthquake")||key.Contains("tornado")||key.Contains("tsunami");
+        bool PlayDisasters=>InPlayPlaylist;
+        static bool StructuralDisaster(string key)=>key.Contains("earthquake")||key.Contains("tornado")||key.Contains("tsunami")||key.Contains("catattack")||key.Contains("evilsanta");
         static bool PausedRotationDisaster(string id)=>id=="Vampire"||id=="Icey";
 
         void ResetDisasterRotation()
@@ -42,7 +43,7 @@ namespace DeadlyJenga.Modes
                 string key=prefab.name.ToLowerInvariant();
                 if(opening&&!StructuralDisaster(key))continue;
                 if(play&&ModeSimulation.TeamMode(Rules.mode)&&simulation.Elapsed<180&&
-                    (key.Contains("fire")||key.Contains("meteor")||key.Contains("acid")||key.Contains("antigravity")))continue;
+                    (key.Contains("fire")||key.Contains("meteor")||key.Contains("ornament")||key.Contains("acid")||key.Contains("antigravity")))continue;
 
                 bool fresh=!playedDisasters.Contains(prefab.name);
                 if(runningDisasters.Contains(definition.Type)){freshActive|=fresh;continue;}
