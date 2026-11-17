@@ -321,6 +321,8 @@ namespace DeadlyJenga.CandyArt
                 Destroy(material);
             foreach (var mesh in meshes)
                 Destroy(mesh);
+            if (firPalette)
+                Destroy(firPalette);
         }
 
         void BuildLighting()
@@ -349,7 +351,7 @@ namespace DeadlyJenga.CandyArt
             MakeSpot("Hearth bounce", new Vector3(-113, 37, -148),
                 new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 6500f, 240f, 100f);
             MakeLight("Golden light in the tree", LightType.Point,
-                new Vector3(-37, 60, -50), new Color(1f, .71f, .40f), 7000f, 130f);
+                new Vector3(-37, 60, -50), new Color(1f, .71f, .40f), 4500f, 130f);
             MakeLight("Glow in the train tunnel", LightType.Point,
                 new Vector3(-150, 16, -128), new Color(1f, .68f, .28f), 2600f, 38f);
             MakeSpot("Warm tree canopy bounce", new Vector3(-80f, 67f, -109f),

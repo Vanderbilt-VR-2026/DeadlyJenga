@@ -7,116 +7,57 @@ namespace DeadlyJenga.CandyArt
 {
     public sealed partial class UnderneathTreeFinish
     {
-        readonly struct FirTip
-        {
-            public readonly Vector3 position;
-            public readonly int tier, ordinal;
+        Texture2D firPalette;
 
-            public FirTip(Vector3 position, int tier, int ordinal)
-            {
-                this.position = position;
-                this.tier = tier;
-                this.ordinal = ordinal;
-            }
-        }
-
+        // The tree is a model built in Blender (ArtDirection/.../models/fir.py), one mesh per material.
         void BuildFir()
         {
-            var bark = Surface("Fir bark", "Pine Scan", new Color(.78f, .68f, .53f),
-                .15f, new Vector2(2f, 1.25f), 0f, .76f);
-            var forest = FirFoliage("Fir needles in shade", new Color(1.0f, 1.3f, .92f));
-            var crown = FirFoliage("Fir needles in light", new Color(1.4f, 1.65f, 1.12f));
             var trunkAnchor = world.Root.Find("Underneath the Tree Layout/Fir trunk collision");
             var treeCenter = trunkAnchor ? Vector3.ProjectOnPlane(art.InverseTransformPoint(trunkAnchor.position), Vector3.up) :
                 new Vector3(-37f, 0f, -35.7f);
-            var random = new System.Random(241215);
-            var stems = new FirMesh();
-            for (int y = 0; y < 8; y++)
-            {
-                float low = y / 8f;
-                float high = (y + 1) / 8f;
-                var a = treeCenter + new Vector3(Mathf.Sin(low * 3.5f) * 1.45f, low * 138f, Mathf.Sin(low * 6f));
-                var b = treeCenter + new Vector3(Mathf.Sin(high * 3.5f) * 1.45f, high * 138f, Mathf.Sin(high * 6f));
-                stems.Tube(a, b, Mathf.Lerp(4.6f, .2f, low), Mathf.Lerp(4.6f, .2f, high), 24);
-            }
 
-            for (int i = 0; i < 11; i++)
-            {
-                float angle = i * Mathf.PI * 2f / 11f + Range(random, -.15f, .15f);
-                var radial = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
-                float length = Range(random, 5.2f, 6.25f);
-                var start = treeCenter + Vector3.up * 3.6f + radial * 2.8f;
-                var joint = treeCenter + Vector3.up * 1.12f + radial * (length - 1.3f);
-                var end = treeCenter + Vector3.up * .56f + radial * length;
-                stems.Tube(start, joint, Range(random, .62f, 1.46f), .58f, 10);
-                stems.Tube(joint, end, .58f, .055f, 10);
-            }
+            AddModel("Fir trunk and branches", "Fir Trunk", treeCenter, ShadowCastingMode.On,
+                Surface("Fir bark", "Pine Scan", new Color(.72f, .47f, .30f), .15f, new Vector2(1f, 1f), 0f, .9f));
+            AddModel("Fir needle boughs", "Fir Boughs Shade", treeCenter, ShadowCastingMode.TwoSided,
+                FirFoliage("Fir needles in shade", new Color(.42f, .70f, .40f)));
+            AddModel("Fir highlights", "Fir Boughs Light", treeCenter, ShadowCastingMode.TwoSided,
+                FirFoliage("Fir needles in light", new Color(.75f, 1.05f, .55f)));
+            AddModel("Fir shadowed heart", "Fir Core", treeCenter, ShadowCastingMode.On,
+                Surface("Fir shadowed heart", null, new Color(.03f, .10f, .045f), .05f, Vector2.one));
 
-            const int whorls = 17;
-            bool mobile = Application.platform == RuntimePlatform.Android;
-            var tips = new List<FirTip>();
-            for (int band = 0; band < 4; band++)
-            {
-                var shaded = new FirMesh();
-                var bright = new FirMesh();
-                for (int tier = band * 5; tier < Mathf.Min(whorls, (band + 1) * 5); tier++)
-                {
-                    float t = tier / (float)(whorls - 1);
-                    float y = 42f + t * 91f;
-                    float reach = Mathf.Lerp(43f, 2.8f, Mathf.Pow(t, .86f));
-                    int count = tier >= 14 ? 10 : 17;
-                    float phase = tier * .462f + .26f;
-                    for (int i = 0; i < count; i++)
-                    {
-                        float angle = phase + i * Mathf.PI * 2f / count + Range(random, -.115f, .115f);
-                        var axis = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
-                        var side = Vector3.Cross(Vector3.up, axis);
-                        float length = reach * Range(random, .86f, 1.12f);
-                        // Keep the lowest boughs clear of the nearby summit and rail route.
-                        if (tier < 5 && Vector3.Dot(axis, new Vector3(-.58f, 0f, -.81f)) > .25f)
-                            length *= .58f;
-                        var root = treeCenter + Vector3.up * (y + Range(random, -1.4f, 1.4f));
-                        var bend = root + axis * (length * .47f) + Vector3.down * (.08f * length);
-                        var end = root + axis * length + Vector3.down * (.135f * length) + side * Range(random, -2.5f, 2.5f);
-                        float girth = Mathf.Max(.09f, length * .025f);
-                        stems.Tube(root, bend, girth, girth * .6f, 7);
-                        stems.Tube(bend, end, girth * .6f, .08f, 6);
-                        if (tier < 13)
-                            tips.Add(new FirTip(Vector3.Lerp(bend, end, .90f), tier, i));
-                        int brushCount = mobile ? 10 : 15;
-                        for (int j = 0; j < brushCount; j++)
-                        {
-                            float v = (.92f * j / (brushCount - 1)) + .08f;
-                            var basePoint = v < .47f ? Vector3.Lerp(root, bend, v / .47f) : Vector3.Lerp(bend, end, (v - .47f) / .53f);
-                            float span = Mathf.Max(1.1f, length * (.26f - .135f * v));
-                            for (int sign = -1; sign <= 1; sign += 2)
-                            {
-                                var shoot = basePoint + side * (sign * span * Range(random, .85f, 1.38f)) +
-                                    axis * (span * Range(random, .82f, 1.55f)) + Vector3.up * (span * Range(random, -.45f, .38f));
-                                var fill = (j + i + sign) % 4 == 0 ? bright : shaded;
-                                var needled = shoot - basePoint;
-                                var twigSide = Vector3.Cross(Vector3.up, needled).normalized;
-                                int tile = (j + i + tier + sign + 4) % FirTiles.Length;
-                                fill.Twig(basePoint, shoot, twigSide + Vector3.up * Range(random, -.45f, .55f),
-                                    span * Range(random, .7f, 1.03f), FirTiles[tile]);
-                                if (!mobile || j % 2 == 0)
-                                    shaded.Twig(basePoint + Vector3.up * .17f, shoot + Vector3.up * (span * .18f),
-                                        Vector3.up + twigSide * .45f, span * .53f, FirTiles[(tile + 1) % FirTiles.Length]);
-                            }
-                        }
-                    }
-                }
-                AddMesh("Fir needle boughs " + band, shaded.Build(), forest, ShadowCastingMode.TwoSided);
-                AddMesh("Fir highlights " + band, bright.Build(), crown, ShadowCastingMode.TwoSided);
-            }
-            AddMesh("Fir trunk and branches", stems.Build(), bark, ShadowCastingMode.On);
-            DressFir(tips, random);
+            // One glass material for every bauble: the model's UVs pick a colour from this strip.
+            firPalette = new Texture2D(4, 1, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
+            firPalette.SetPixels(new[] { new Color(.95f, .60f, .16f), new Color(.80f, .03f, .06f),
+                new Color(.05f, .16f, .80f), new Color(.86f, .56f, .52f) });
+            firPalette.Apply();
+            var glass = Surface("Lacquered glass ornament", null, Color.white, .94f, Vector2.one, .55f, 0f);
+            glass.SetTexture("_BaseMap", firPalette);
+            // A little self-colour keeps the glass from going black where the room reflection is dark.
+            glass.SetTexture("_EmissionMap", firPalette);
+            glass.SetColor("_EmissionColor", new Color(.10f, .10f, .10f));
+            glass.EnableKeyword("_EMISSION");
+            AddModel("Glass baubles", "Fir Baubles", treeCenter, ShadowCastingMode.On, glass);
+            AddModel("Gold ornament fittings", "Fir Brass", treeCenter, ShadowCastingMode.Off,
+                Surface("Brass ornament fittings", null, new Color(.95f, .66f, .26f), .82f, Vector2.one, .85f));
+            AddModel("Fir light strings", "Fir Wire", treeCenter, ShadowCastingMode.Off,
+                Surface("Green vintage light cable", null, new Color(.02f, .05f, .025f), .3f, Vector2.one));
+            LightFir(treeCenter);
         }
 
-        static readonly Rect[] FirTiles =
+        void AddModel(string label, string model, Vector3 position, ShadowCastingMode shadows, Material material)
         {
-            new Rect(0f, 0f, 1f, 1f)
-        };
+            var mesh = Resources.Load<Mesh>(ResourcePath + model);
+            if (!mesh)
+                return;
+            // Model meshes are project files, so they are not added to the list of meshes to destroy.
+            var obj = new GameObject(label);
+            obj.transform.SetParent(art, false);
+            obj.transform.localPosition = position;
+            obj.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = obj.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = shadows;
+        }
 
         Material FirFoliage(string name, Color tint)
         {
@@ -134,63 +75,85 @@ namespace DeadlyJenga.CandyArt
             return material;
         }
 
-        void DressFir(List<FirTip> tips, System.Random random)
+        // Bulbs and sparkles come from "Fir Lights": one line each, "B x y z colour" or "S x y z 0".
+        void LightFir(Vector3 treeCenter)
         {
-            var bulbColors = new[] { new Color(1f, .45f, .035f), new Color(1f, .005f, .005f),
-                new Color(1f, .78f, .22f), new Color(.03f, .75f, .12f) };
-            var ornamentColors = new[] { new Color(.78f, .05f, .08f), new Color(.95f, .62f, .20f),
-                new Color(.07f, .20f, .78f), new Color(.70f, .04f, .10f) };
+            var list = Resources.Load<TextAsset>(ResourcePath + "Fir Lights");
+            if (!list)
+                return;
+            var bulbColors = new[] { new Color(1f, .07f, .04f), new Color(1f, .70f, .22f),
+                new Color(.04f, .85f, .62f), new Color(1f, .36f, .04f) };
             var sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
-            var ornaments = new List<CombineInstance>[4];
-            var bulbs = new List<CombineInstance>[4];
-            for (int i = 0; i < 4; i++)
-            {
-                ornaments[i] = new List<CombineInstance>();
+            var bulbs = new List<CombineInstance>[bulbColors.Length];
+            for (int i = 0; i < bulbs.Length; i++)
                 bulbs[i] = new List<CombineInstance>();
-            }
-            var beadCaps = new List<CombineInstance>();
-            var wire = new FirMesh();
-            for (int i = 0; i < tips.Count; i++)
+            var halos = new HaloMesh();
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+            foreach (var line in list.text.Split('\n'))
             {
-                var tip = tips[i];
-                var bulb = tip.position + Vector3.down * Range(random, 1.1f, 1.9f);
-                var tint = (tip.tier + tip.ordinal * 3) % bulbs.Length;
-                // Bulbs and baubles are sized to read from across the room, like the approved picture.
-                bulbs[tint].Add(Part(sphere, bulb, new Vector3(1.5f, 2.1f, 1.5f) * Range(random, .85f, 1.2f)));
-                beadCaps.Add(Part(sphere, bulb + Vector3.up * 1.2f, new Vector3(.9f, .7f, .9f)));
-                if ((tip.ordinal + tip.tier) % 3 == 0)
+                var words = line.Trim().Split(' ');
+                if (words.Length < 5)
+                    continue;
+                var position = treeCenter + new Vector3(float.Parse(words[1], culture),
+                    float.Parse(words[2], culture), float.Parse(words[3], culture));
+                if (words[0] == "B")
                 {
-                    Vector3 center = tip.position + Vector3.down * Range(random, 3.2f, 4.6f);
-                    float diameter = Range(random, 2.6f, 3.8f);
-                    ornaments[random.Next(ornaments.Length)].Add(Part(sphere, center, Vector3.one * diameter));
-                    beadCaps.Add(Part(sphere, center + Vector3.up * (diameter * .48f), new Vector3(1.0f, .8f, 1.0f)));
-                    wire.Tube(tip.position, center + Vector3.up * (diameter * .48f), .049f, .046f, 4);
+                    int tint = int.Parse(words[4], culture) % bulbColors.Length;
+                    bulbs[tint].Add(Part(sphere, position, new Vector3(.75f, 1.0f, .75f)));
+                    halos.Add(position, 6.5f, .08f, bulbColors[tint] * 2.2f);
                 }
-                if (i + 1 < tips.Count && tips[i + 1].tier == tip.tier)
+                else
+                    halos.Add(position, 1.4f, 1f, new Color(1f, .78f, .42f) * 1.6f);
+            }
+            for (int i = 0; i < bulbs.Length; i++)
+                Combined("Vintage colored bulbs " + i, bulbs[i],
+                    Glow("Colored enamel bulb " + i, bulbColors[i], 3.5f), ShadowCastingMode.Off);
+
+            var shader = Resources.Load<Shader>(ResourcePath + "Christmas Glow");
+            if (!shader)
+                return;
+            var glow = new Material(shader) { name = "Fir light halos" };
+            materials.Add(glow);
+            AddMesh("Fir light halos", halos.Build(), glow, ShadowCastingMode.Off).receiveShadows = false;
+        }
+
+        // Each halo is four corners at the light's own position; the shader spreads them to face the camera.
+        sealed class HaloMesh
+        {
+            readonly List<Vector3> vertices = new List<Vector3>();
+            readonly List<Vector2> corners = new List<Vector2>();
+            readonly List<Vector2> sizes = new List<Vector2>();
+            readonly List<Color> colors = new List<Color>();
+            readonly List<int> faces = new List<int>();
+
+            // core = how much of a hot white centre the halo has (0 to 1).
+            public void Add(Vector3 position, float size, float core, Color color)
+            {
+                int first = vertices.Count;
+                for (int i = 0; i < 4; i++)
                 {
-                    var next = tips[i + 1].position;
-                    var sag = (tip.position + next) * .5f + Vector3.down * Mathf.Min(1.8f, Vector3.Distance(tip.position, next) * .105f);
-                    wire.Tube(tip.position, sag, .075f, .075f, 4);
-                    wire.Tube(sag, next, .075f, .075f, 4);
+                    vertices.Add(position);
+                    corners.Add(new Vector2(i == 1 || i == 2 ? 1f : 0f, i >= 2 ? 1f : 0f));
+                    sizes.Add(new Vector2(size, core));
+                    colors.Add(color);
                 }
+                faces.Add(first); faces.Add(first + 1); faces.Add(first + 2);
+                faces.Add(first); faces.Add(first + 2); faces.Add(first + 3);
             }
 
-            for (int i = 0; i < 4; i++)
+            public Mesh Build()
             {
-                var glass = Surface("Lacquered glass ornament " + i, null, ornamentColors[i], .92f,
-                    Vector2.one, .45f, 0f);
-                glass.SetColor("_EmissionColor", ornamentColors[i] * .03f);
-                glass.EnableKeyword("_EMISSION");
-                Combined("Glass baubles " + i, ornaments[i], glass, ShadowCastingMode.On);
-                Combined("Vintage colored bulbs " + i, bulbs[i],
-                    Glow("Colored enamel bulb " + i, bulbColors[i], 16f), ShadowCastingMode.Off);
+                var mesh = new Mesh { name = "Fir light halos", indexFormat = IndexFormat.UInt32 };
+                mesh.SetVertices(vertices);
+                mesh.SetUVs(0, corners);
+                mesh.SetUVs(1, sizes);
+                mesh.SetColors(colors);
+                mesh.SetTriangles(faces, 0);
+                var bounds = mesh.bounds;
+                bounds.Expand(12f);
+                mesh.bounds = bounds;
+                return mesh;
             }
-            Combined("Gold ornament fittings", beadCaps,
-                Surface("Brass ornament fittings", "Paper", new Color(.78f, .54f, .24f), .70f, Vector2.one, .52f),
-                ShadowCastingMode.Off);
-            AddMesh("Fir light strings", wire.Build(),
-                Surface("Green vintage light cable", null, new Color(.08f, .099f, .067f), .43f, Vector2.one),
-                ShadowCastingMode.Off);
         }
 
         static CombineInstance Part(Mesh mesh, Vector3 center, Vector3 size) => new CombineInstance
