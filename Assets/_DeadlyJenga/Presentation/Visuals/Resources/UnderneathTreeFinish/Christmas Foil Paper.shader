@@ -108,8 +108,12 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 half turn = atan2(bounce.z, bounce.x);
                 half around = sin(turn * 3.0h + bounce.y * 2.0h);
                 half height = saturate(bounce.y * 1.4h + 0.3h) * (1.0h - smoothstep(0.7h, 1.0h, bounce.y));
-                // Red, gold, green, teal, blue and pink in turn.
-                half3 bulb = saturate(0.5h + 0.75h * cos(turn * 2.0h + half3(0.0h, 2.1h, 4.2h)));
+                // Red, yellow, green and blue in turn round the room, like the bulbs on the tree.
+                half spot = frac(turn / 6.2832h + 0.5h) * 4.0h;
+                half3 bulb = half3(1.0h, 0.08h, 0.05h) * saturate(1.0h - min(abs(spot), abs(spot - 4.0h))) +
+                    half3(1.0h, 0.70h, 0.12h) * saturate(1.0h - abs(spot - 1.0h)) +
+                    half3(0.08h, 1.0h, 0.20h) * saturate(1.0h - abs(spot - 2.0h)) +
+                    half3(0.08h, 0.32h, 1.0h) * saturate(1.0h - abs(spot - 3.0h));
                 // Each glow has a soft body and a thin bright heart, which is what makes foil streak.
                 half glow = smoothstep(0.3h, 1.0h, abs(around));
                 half3 walls = lerp(bulb, warm, 0.25h) * (glow * 0.7h + pow(glow, 6.0h) * 1.4h);

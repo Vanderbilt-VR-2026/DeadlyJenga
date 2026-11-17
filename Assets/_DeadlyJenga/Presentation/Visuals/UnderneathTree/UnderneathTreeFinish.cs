@@ -353,10 +353,8 @@ namespace DeadlyJenga.CandyArt
                 new Vector3(2.5f, 0f, 10f), new Color(.16f, .36f, 1f), 9000f, 150f, 95f);
             MakeSpot("Moonlight through the side window", new Vector3(82f, 95f, -130f),
                 new Vector3(20f, 0f, -130f), new Color(.12f, .30f, 1f), 12000f, 170f, 95f);
-            MakeSpot("Hearth bounce", new Vector3(-113, 37, -148),
-                new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 2500f, 240f, 100f);
             MakeLight("Glow in the train tunnel", LightType.Point,
-                new Vector3(-150, 16, -128), new Color(1f, .68f, .28f), 2600f, 38f);
+                new Vector3(-150, 16, -128), new Color(1f, .68f, .28f), 700f, 38f);
             // The lamp lights what is near it: the wall, the table and the end of the sofa.
             MakeLight("Floor lamp", LightType.Point,
                 new Vector3(-88, 59, 54), new Color(1f, .70f, .39f), 9000f, 120f);
@@ -364,14 +362,15 @@ namespace DeadlyJenga.CandyArt
             // The tree is the room's main light. A warm heart, then a ring of coloured lights
             // low and just outside the branches, so they tint the gifts and rug rather than the tree.
             MakeLight("Golden light in the tree", LightType.Point,
-                new Vector3(-37, 60, -50), new Color(1f, .66f, .36f), 1200f, 150f);
+                new Vector3(-37, 60, -50), new Color(1f, .66f, .36f), 600f, 150f);
             MakeSpot("Warm tree canopy bounce", new Vector3(-80f, 67f, -109f),
                 new Vector3(-37f, 80f, -35.7f), new Color(1f, .86f, .64f), 1200f, 150f, 75f);
-            var bulbGlow = new[] { new Color(1f, .12f, .10f), new Color(1f, .62f, .18f), new Color(.10f, .90f, .65f),
-                new Color(.15f, .35f, 1f), new Color(1f, .25f, .55f), new Color(1f, .40f, .06f), new Color(.25f, 1f, .30f) };
-            for (int i = 0; i < 10; i++)
+            // The same four colours as the bulbs: red, yellow, green, blue.
+            var bulbGlow = new[] { new Color(1f, .08f, .05f), new Color(1f, .70f, .12f),
+                new Color(.08f, 1f, .20f), new Color(.08f, .32f, 1f) };
+            for (int i = 0; i < 12; i++)
             {
-                float angle = (i * 36f + 10f) * Mathf.Deg2Rad;
+                float angle = (i * 30f + 10f) * Mathf.Deg2Rad;
                 float reach = i % 2 == 0 ? 52f : 78f;
                 var place = new Vector3(-37f + Mathf.Cos(angle) * reach, 10f + i * 37 % 24, -35.7f + Mathf.Sin(angle) * reach);
                 MakeLight("Tree bulb glow " + i, LightType.Point, place, bulbGlow[i % bulbGlow.Length], 9000f, 170f);

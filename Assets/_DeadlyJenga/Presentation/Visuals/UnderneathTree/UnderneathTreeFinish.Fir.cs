@@ -81,33 +81,56 @@ namespace DeadlyJenga.CandyArt
             var list = Resources.Load<TextAsset>(ResourcePath + "Fir Lights");
             if (!list)
                 return;
-            var bulbColors = new[] { new Color(1f, .07f, .04f), new Color(1f, .70f, .22f),
-                new Color(.04f, .85f, .62f), new Color(1f, .36f, .04f) };
-            var sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
+            // Classic string lights: red, yellow, green, blue.
+            var bulbColors = new[] { new Color(1f, .06f, .04f), new Color(1f, .68f, .12f),
+                new Color(.06f, .85f, .18f), new Color(.08f, .32f, 1f) };
+            var glassBulb = BulbMesh();
+            meshes.Add(glassBulb);
+            var cylinder = Resources.GetBuiltinResource<Mesh>("Cylinder.fbx");
             var bulbs = new List<CombineInstance>[bulbColors.Length];
             for (int i = 0; i < bulbs.Length; i++)
                 bulbs[i] = new List<CombineInstance>();
+            var sockets = new List<CombineInstance>();
             var halos = new HaloMesh();
             var culture = System.Globalization.CultureInfo.InvariantCulture;
+            int count = 0;
             foreach (var line in list.text.Split('\n'))
             {
                 var words = line.Trim().Split(' ');
                 if (words.Length < 5)
                     continue;
-                var position = treeCenter + new Vector3(float.Parse(words[1], culture),
+                var offset = new Vector3(float.Parse(words[1], culture),
                     float.Parse(words[2], culture), float.Parse(words[3], culture));
+                var position = treeCenter + offset;
                 if (words[0] == "B")
                 {
                     int tint = int.Parse(words[4], culture) % bulbColors.Length;
-                    bulbs[tint].Add(Part(sphere, position, new Vector3(.75f, 1.0f, .75f)));
-                    halos.Add(position, 9f, .12f, bulbColors[tint] * 3.2f);
+                    // Each bulb points out from the trunk and a little up, never quite the same way twice.
+                    count++;
+                    var outward = new Vector3(offset.x, 0f, offset.z).normalized;
+                    var point = (outward + Vector3.up * (.25f + .5f * Mathf.Abs(Mathf.Sin(count * 12.9898f))) +
+                        Vector3.Cross(Vector3.up, outward) * Mathf.Sin(count * 78.233f) * .6f).normalized;
+                    var turn = Quaternion.FromToRotation(Vector3.up, point);
+                    const float length = 2.3f;
+                    var socket = position - point * (length * .5f);
+                    bulbs[tint].Add(new CombineInstance { mesh = glassBulb,
+                        transform = Matrix4x4.TRS(socket, turn, Vector3.one * length) });
+                    sockets.Add(new CombineInstance { mesh = cylinder,
+                        transform = Matrix4x4.TRS(socket - point * .22f, turn, new Vector3(.62f, .3f, .62f)) });
+                    // A small bright heart like a filament, and a soft glow round the glass.
+                    halos.Add(position, 4.5f, .5f, bulbColors[tint] * 2.6f);
                 }
                 else
                     halos.Add(position, 1.4f, 1f, new Color(1f, .78f, .42f) * 2.2f);
             }
             for (int i = 0; i < bulbs.Length; i++)
-                Combined("Vintage colored bulbs " + i, bulbs[i],
-                    Glow("Colored enamel bulb " + i, bulbColors[i], 6f), ShadowCastingMode.Off);
+            {
+                var glass = Glow("Colored enamel bulb " + i, bulbColors[i], 3.2f);
+                glass.SetFloat("_Smoothness", .92f);
+                Combined("Vintage colored bulbs " + i, bulbs[i], glass, ShadowCastingMode.Off);
+            }
+            Combined("Bulb sockets", sockets,
+                Surface("Green vintage light cable", null, new Color(.02f, .05f, .025f), .3f, Vector2.one), ShadowCastingMode.Off);
 
             var shader = Resources.Load<Shader>(ResourcePath + "Christmas Glow");
             if (!shader)
@@ -115,6 +138,35 @@ namespace DeadlyJenga.CandyArt
             var glow = new Material(shader) { name = "Fir light halos" };
             materials.Add(glow);
             AddMesh("Fir light halos", halos.Build(), glow, ShadowCastingMode.Off).receiveShadows = false;
+        }
+
+        // A classic pointed glass bulb, one unit long, standing on its socket end: round at the
+        // bottom, widest about a third of the way up, drawn in to a soft point.
+        static Mesh BulbMesh()
+        {
+            const int rings = 9, sides = 10;
+            var vertices = new List<Vector3>();
+            var faces = new List<int>();
+            for (int r = 0; r <= rings; r++)
+            {
+                float t = r / (float)rings;
+                float radius = .23f * Mathf.Sin(Mathf.PI * Mathf.Pow(t, .62f)) + .05f * (1f - t);
+                for (int i = 0; i < sides; i++)
+                {
+                    float angle = i * Mathf.PI * 2f / sides;
+                    vertices.Add(new Vector3(Mathf.Cos(angle) * radius, t, Mathf.Sin(angle) * radius));
+                    if (r == rings)
+                        continue;
+                    int a = r * sides + i, b = r * sides + (i + 1) % sides;
+                    faces.Add(a); faces.Add(a + sides); faces.Add(b);
+                    faces.Add(b); faces.Add(a + sides); faces.Add(b + sides);
+                }
+            }
+            var mesh = new Mesh { name = "Pointed glass bulb" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(faces, 0);
+            mesh.RecalculateNormals();
+            return mesh;
         }
 
         // Each halo is four corners at the light's own position; the shader spreads them to face the camera.
