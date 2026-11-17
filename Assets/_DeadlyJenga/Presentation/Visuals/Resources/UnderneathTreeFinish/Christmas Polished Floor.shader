@@ -14,6 +14,16 @@ Shader "DeadlyJenga/Christmas Polished Floor"
         _Stretch("Streak Length", Range(0,0.4)) = 0.16
         _Blur("Reflection Blur", Range(0,1)) = 0.18
         _Seam("Gap Between Boards", Range(0.01,0.5)) = 0.24
+        // Two coloured glows on the floor (lamplight and window light).
+        // Lamp = where the light sits (xyz). Wash = centre on the floor (x, z) and its size.
+        _GlowALamp("Glow A Lamp", Vector) = (0,40,0,0)
+        _GlowAWash("Glow A Wash", Vector) = (0,0,100,0)
+        [HDR] _GlowAColor("Glow A Colour", Color) = (0,0,0,1)
+        _GlowBLamp("Glow B Lamp", Vector) = (0,40,0,0)
+        _GlowBWash("Glow B Wash", Vector) = (0,0,100,0)
+        [HDR] _GlowBColor("Glow B Colour", Color) = (0,0,0,1)
+        _GlowPower("Glow Power (0 in a power cut)", Range(0,1)) = 1
+        _Glint("Glint Strength", Range(0,8)) = 3
     }
     SubShader
     {
@@ -49,7 +59,31 @@ Shader "DeadlyJenga/Christmas Polished Floor"
                 half _Stretch;
                 half _Blur;
                 half _Seam;
+                float4 _GlowALamp;
+                float4 _GlowAWash;
+                half4 _GlowAColor;
+                float4 _GlowBLamp;
+                float4 _GlowBWash;
+                half4 _GlowBColor;
+                half _GlowPower;
+                half _Glint;
             CBUFFER_END
+
+            // One coloured glow: a soft wash of light on the wood plus a bright glint
+            // that stretches toward whoever is looking, like light on real varnish.
+            half3 FloorGlow(float4 lamp, float4 wash, half3 color, float3 position, half3 normal, half3 view,
+                half3 wood, half seam)
+            {
+                float2 away = position.xz - wash.xy;
+                half pool = exp(-dot(away, away) / (wash.z * wash.z));
+                float3 toLamp = lamp.xyz - position;
+                half3 halfway = normalize(normalize(toLamp) + view);
+                half facing = saturate(dot(normal, halfway));
+                half reach = 1.0h / (1.0h + dot(toLamp, toLamp) / (wash.z * wash.z * 1.5h));
+                half glint = (pow(facing, 600.0h) * 5.0h + pow(facing, 110.0h) * 0.8h) * reach;
+                // The varnish itself carries some of the colour, so blue light still shows on warm wood.
+                return color * (pool * (wood * 2.2h + 0.045h * seam) + glint * _Glint * seam);
+            }
 
             struct FloorAttributes
             {
@@ -143,6 +177,10 @@ Shader "DeadlyJenga/Christmas Polished Floor"
                 // Varnish over dark wood takes a little of the wood's colour.
                 half3 warmth = lerp(half3(1, 1, 1), saturate(wood * 1.6h), 0.3h);
                 result.rgb += mirror * warmth * strength;
+                half3 woodTint = surface.albedo;
+                result.rgb += _GlowPower * (
+                    FloorGlow(_GlowALamp, _GlowAWash, _GlowAColor.rgb, input.positionWS, normal, view, woodTint, seam) +
+                    FloorGlow(_GlowBLamp, _GlowBWash, _GlowBColor.rgb, input.positionWS, normal, view, woodTint, seam));
                 result.rgb = MixFog(result.rgb, input.fog);
                 return result;
             }

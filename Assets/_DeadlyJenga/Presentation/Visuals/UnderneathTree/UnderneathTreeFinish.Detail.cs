@@ -129,11 +129,11 @@ namespace DeadlyJenga.CandyArt
         void BuildSofa()
         {
             var velvet = Fabric("Deep red damask upholstery", "Crimson Damask",
-                new Color(1f, .91f, .91f), new Vector2(1.5f, 1.5f), .32f, .38f);
+                new Color(1.5f, .80f, .85f), new Vector2(1.5f, 1.5f), .32f, .38f);
             var lining = Fabric("Dark red velvet sofa frame", "Velour Scan",
-                new Color(.57f, .43f, .43f), new Vector2(3.0f, 3.3f), .07f, .4f);
+                new Color(.90f, .42f, .46f), new Vector2(3.0f, 3.3f), .07f, .4f);
             var piping = Fabric("Red velvet seam piping", "Velour Scan",
-                new Color(.74f, .53f, .52f), Vector2.one, .21f, .2f);
+                new Color(1.05f, .50f, .52f), Vector2.one, .21f, .2f);
             var walnut = Surface("Carved sofa feet", "Walnut Grain", new Color(.40f, .29f, .22f),
                 .40f, new Vector2(1.1f, 1.6f), 0f, .28f);
             RoundedDetail("Velvet sofa plinth", new Vector3(-216f, 13f, -109f),
@@ -212,10 +212,19 @@ namespace DeadlyJenga.CandyArt
             var shader = Resources.Load<Shader>(ResourcePath + "Christmas Polished Floor");
             if (shader)
             {
-                varnish = new Material(shader) { name = "Polished walnut floor", color = new Color(.44f, .28f, .23f) };
+                varnish = new Material(shader) { name = "Polished walnut floor", color = new Color(.30f, .20f, .19f) };
                 varnish.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Walnut Grain"));
                 varnish.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Mahogany Normal"));
+                // Amber lamplight by the sofa, blue window light on the other side.
+                // Lamp = where the glint comes from; wash = centre on the floor (x, z) and size.
+                varnish.SetVector("_GlowALamp", new Vector4(-219f, 40f, -109f, 0f));
+                varnish.SetVector("_GlowAWash", new Vector4(-195f, -170f, 115f, 0f));
+                varnish.SetColor("_GlowAColor", new Color(1f, .42f, .08f) * 3.2f);
+                varnish.SetVector("_GlowBLamp", new Vector4(70f, 40f, -116f, 0f));
+                varnish.SetVector("_GlowBWash", new Vector4(45f, -170f, 115f, 0f));
+                varnish.SetColor("_GlowBColor", new Color(.06f, .22f, 1f) * 7f);
                 materials.Add(varnish);
+                floorVarnish = varnish;
             }
             else
                 varnish = Surface("Polished walnut floor", "Walnut Grain", new Color(.44f, .28f, .23f), .74f,
@@ -367,7 +376,7 @@ namespace DeadlyJenga.CandyArt
             var bowMaterial = Surface("Bow " + finish.name, null, finish.color * 1.15f, .86f, Vector2.one, .3f);
             bowMaterial.SetFloat("_Cull", 0f);
             // A little of its own colour keeps the shaded side of the satin from turning brown.
-            bowMaterial.SetColor("_EmissionColor", finish.color * .20f);
+            bowMaterial.SetColor("_EmissionColor", finish.color * .35f);
             bowMaterial.EnableKeyword("_EMISSION");
             var obj = new GameObject("Hand-tied satin bow", typeof(MeshFilter), typeof(MeshRenderer));
             obj.GetComponent<MeshFilter>().sharedMesh = giftBow;

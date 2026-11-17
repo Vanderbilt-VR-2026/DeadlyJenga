@@ -43,20 +43,24 @@ namespace DeadlyJenga.CandyArt
         {
             if (finishes.TryGetValue(label, out var cached)) return cached;
             // Deep jewel colours, like the approved picture.
-            if (color.b > color.r * 2f && color.b > color.g) color = new Color(.02f, .075f, .46f);
-            else if (color.g > color.r * 2f && color.g > color.b) color = new Color(.012f, .26f, .075f);
-            else if (color.r > color.g * 3f) color = new Color(.58f, .008f, .032f);
-            else color = new Color(.86f, .61f, .37f);
-            var material = Lacquer(label, color, .5f, 0f, 1f, .07f);
+            if (color.b > color.r * 2f && color.b > color.g) color = new Color(.015f, .07f, .52f);
+            else if (color.g > color.r * 2f && color.g > color.b) color = new Color(.01f, .30f, .08f);
+            else if (color.r > color.g * 3f) color = new Color(.70f, .004f, .03f);
+            else color = new Color(1f, .70f, .40f);
+            var material = Lacquer(label, color, .5f, 0f, 1f, .22f);
             material.SetFloat("_CoatSmoothness", .74f);
             if (!material.HasProperty("_Coat")) return material;
             material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Gold Snowflake Foil"));
             material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Paper Normal"));
             // Several snowflakes across each face, like the approved picture.
             material.SetTextureScale("_BaseMap", new Vector2(2f, 2f));
-            material.SetFloat("_BumpScale", .16f);
+            material.SetFloat("_BumpScale", .4f);
+            material.SetFloat("_Sparkle", 1.3f);
+            material.SetFloat("_SparkleSize", .2f);
             material.SetColor("_FoilColor", new Color(1f, .66f, .18f));
-            material.SetFloat("_FoilGlow", .25f);
+            material.SetFloat("_FoilGlow", .5f);
+            material.SetFloat("_TopLight", .5f);
+            material.SetColor("_GlossColor", new Color(1f, .74f, .46f) * .7f);
             return material;
         }
 
@@ -73,6 +77,8 @@ namespace DeadlyJenga.CandyArt
             material.SetFloat("_Coat", coat);
             material.SetFloat("_CoatSmoothness", .78f);
             material.SetColor("_GlossColor", new Color(1f, .74f, .46f) * .45f);
+            material.SetFloat("_EdgeLight", .5f);
+            material.SetFloat("_TopLight", .35f);
             material.SetFloat("_Sheen", 0f);
             material.SetFloat("_BumpScale", 0f);
             material.SetColor("_EmissionColor", new Color(glow, glow, glow));
@@ -138,12 +144,12 @@ namespace DeadlyJenga.CandyArt
                 else if (color.r > color.g * 3f)
                     color = new Color(.55f, .008f, .03f);
                 bool metal = color.g > .4f;
-                return Lacquer("Satin " + name, color, .72f, metal ? .45f : 0f, .7f, .08f);
+                return Lacquer("Satin " + name, color, .72f, metal ? .45f : 0f, .7f, .22f);
             }
             if (name.Contains("gift wrap") || name.Contains("gift Wrap") || name.Contains("Mulberry"))
                 return FoilPaper(name + " paper", color);
             if (name.StartsWith("Felt"))
-                return Fabric("Cranberry tufted tree skirt", "Cranberry Rug Weave", new Color(1.3f, .92f, .95f),
+                return Fabric("Cranberry tufted tree skirt", "Cranberry Rug Weave", new Color(1.25f, .72f, .84f),
                     new Vector2(12f, 12f), .12f, .65f);
             if (name.StartsWith("Fluff"))
                 return Surface("Ivory fleece", "Woven", new Color(.84f, .75f, .63f), .25f, new Vector2(10, 8), 0f, 1f);
@@ -182,7 +188,7 @@ namespace DeadlyJenga.CandyArt
             new Color(.18f, .27f, .51f), new Color(.75f, .46f, .18f), new Color(.33f, .49f, .44f)
         };
 
-        Material WallCover() => Surface("Cobalt botanical wallcovering", "Botanical Paper", new Color(.08f, .17f, .52f),
+        Material WallCover() => Surface("Cobalt botanical wallcovering", "Botanical Paper", new Color(.06f, .15f, .70f),
             .28f, new Vector2(13, 5), 0f, .38f);
 
         void BuildRoom()
