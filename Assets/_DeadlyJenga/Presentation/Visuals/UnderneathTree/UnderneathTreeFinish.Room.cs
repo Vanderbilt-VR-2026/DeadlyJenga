@@ -199,6 +199,9 @@ namespace DeadlyJenga.CandyArt
         Material WallCover() => Surface("Cobalt botanical wallcovering", "Botanical Paper", new Color(.06f, .15f, .70f),
             .28f, new Vector2(13, 5), 0f, .38f);
 
+        // Height of the room's ceiling in map units (the map's own ceiling model sits at 177).
+        const float RoomTop = 245f;
+
         void BuildRoom()
         {
             var plaster = WallCover();
@@ -213,30 +216,34 @@ namespace DeadlyJenga.CandyArt
             const float right = 39f;
             const float sill = 22f;
             const float head = 78f;
-            Wall("North wall left bay", -260f, left, 0f, 177f, z, plaster);
-            Wall("North wall right bay", right, 82f, 0f, 177f, z, plaster);
-            Wall("North wall overhead", left, right, head, 177f, z, plaster);
+            Wall("North wall left bay", -260f, left, 0f, RoomTop, z, plaster);
+            Wall("North wall right bay", right, 82f, 0f, RoomTop, z, plaster);
+            Wall("North wall overhead", left, right, head, RoomTop, z, plaster);
             Wall("North wall below window", left, right, 0f, sill, z, plaster);
-            Box("West wall", new Vector3(-258f, 88.5f, -92f), new Vector3(3.0f, 177f, 343f), plaster)
+            Box("West wall", new Vector3(-258f, RoomTop * .5f, -92f), new Vector3(3.0f, RoomTop, 343f), plaster)
                 .GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
             Box("West oak wainscot", new Vector3(-255.7f, 8f, -92f), new Vector3(2f, 16f, 343f), wood);
             Box("North oak wainscot", new Vector3(-88f, 7.8f, z - 2.2f), new Vector3(343f, 15.6f, 2f), wood);
             Box("North chair rail", new Vector3(-88f, 16.7f, z - 3.0f), new Vector3(343f, 1.9f, 2.5f), casing);
             Box("West chair rail", new Vector3(-254.7f, 16.7f, -92f), new Vector3(2.5f, 1.9f, 343f), casing);
-            Box("North crown", new Vector3(-88f, 172.3f, z - 3.2f), new Vector3(343f, 5.2f, 4.3f), casing);
-            Box("West crown", new Vector3(-254.5f, 172.3f, -92f), new Vector3(4.3f, 5.2f, 343f), casing);
-            Wall("South botanical wall", -260f, 85f, 0f, 177f, -264f, plaster);
+            Box("North crown", new Vector3(-88f, RoomTop - 4.7f, z - 3.2f), new Vector3(343f, 5.2f, 4.3f), casing);
+            Box("West crown", new Vector3(-254.5f, RoomTop - 4.7f, -92f), new Vector3(4.3f, 5.2f, 343f), casing);
+            // The map's own ceiling is hidden; this one sits higher so the room feels tall.
+            Box("Plaster ceiling", new Vector3(-88f, RoomTop + 1.5f, -92f), new Vector3(350f, 3f, 350f),
+                Surface("Plaster ceiling", "Wallpaper", new Color(.72f, .62f, .53f), .17f, new Vector2(5, 5)))
+                .GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+            Wall("South botanical wall", -260f, 85f, 0f, RoomTop, -264f, plaster);
             Box("South oak wainscot", new Vector3(-88f, 8f, -261f), new Vector3(343f, 16f, 2f), wood);
             Box("South chair rail", new Vector3(-88f, 16.7f, -260f), new Vector3(343f, 1.9f, 2.5f), casing);
-            Box("South crown", new Vector3(-88f, 172.3f, -260f), new Vector3(343f, 5.2f, 4.3f), casing);
+            Box("South crown", new Vector3(-88f, RoomTop - 4.7f, -260f), new Vector3(343f, 5.2f, 4.3f), casing);
             // Keep the existing east window aperture clear from both sides.
-            Box("East wall south bay", new Vector3(86f, 88.5f, -223.5f), new Vector3(3f, 177f, 81f), plaster);
-            Box("East wall north bay", new Vector3(86f, 88.5f, 0f), new Vector3(3f, 177f, 154f), plaster);
+            Box("East wall south bay", new Vector3(86f, RoomTop * .5f, -223.5f), new Vector3(3f, RoomTop, 81f), plaster);
+            Box("East wall north bay", new Vector3(86f, RoomTop * .5f, 0f), new Vector3(3f, RoomTop, 154f), plaster);
             Box("East window lower bay", new Vector3(86f, 27.8f, -130f), new Vector3(3f, 55.6f, 106f), plaster);
-            Box("East window upper bay", new Vector3(86f, 159.3f, -130f), new Vector3(3f, 35.4f, 106f), plaster);
+            Box("East window upper bay", new Vector3(86f, (141.6f + RoomTop) * .5f, -130f), new Vector3(3f, RoomTop - 141.6f, 106f), plaster);
             Box("East oak wainscot", new Vector3(83f, 8f, -92f), new Vector3(2f, 16f, 343f), wood);
             Box("East chair rail", new Vector3(82f, 16.7f, -92f), new Vector3(2.5f, 1.9f, 343f), casing);
-            Box("East crown", new Vector3(82f, 172.3f, -92f), new Vector3(4.3f, 5.2f, 343f), casing);
+            Box("East crown", new Vector3(82f, RoomTop - 4.7f, -92f), new Vector3(4.3f, 5.2f, 343f), casing);
             Box("Window header", new Vector3(2.5f, head, z - 2f), new Vector3(81f, 3.4f, 5.2f), casing);
             Box("Window sill", new Vector3(2.5f, sill, z - 3f), new Vector3(81f, 3.4f, 7.4f), casing);
             foreach (float x in new[] { left, right, 2.5f })

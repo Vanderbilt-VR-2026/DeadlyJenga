@@ -9,6 +9,9 @@ namespace DeadlyJenga.CandyArt
     {
         Texture2D firPalette;
 
+        // The Blender tree is drawn this much bigger, growing up and out from the trunk base.
+        const float FirScale = 1.45f;
+
         // The tree is a model built in Blender (ArtDirection/.../models/fir.py), one mesh per material.
         void BuildFir()
         {
@@ -53,6 +56,7 @@ namespace DeadlyJenga.CandyArt
             var obj = new GameObject(label);
             obj.transform.SetParent(art, false);
             obj.transform.localPosition = position;
+            obj.transform.localScale = Vector3.one * FirScale;
             obj.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = obj.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = material;
@@ -100,7 +104,7 @@ namespace DeadlyJenga.CandyArt
                 if (words.Length < 5)
                     continue;
                 var offset = new Vector3(float.Parse(words[1], culture),
-                    float.Parse(words[2], culture), float.Parse(words[3], culture));
+                    float.Parse(words[2], culture), float.Parse(words[3], culture)) * FirScale;
                 var position = treeCenter + offset;
                 if (words[0] == "B")
                 {

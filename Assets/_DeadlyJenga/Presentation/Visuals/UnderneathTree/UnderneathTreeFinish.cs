@@ -258,7 +258,7 @@ namespace DeadlyJenga.CandyArt
                     name.StartsWith("Tree Wire", StringComparison.Ordinal) || name == "Fireplace Fire" ||
                     name.StartsWith("Wood Planks", StringComparison.Ordinal) || name == "Tree Skirt rim" ||
                     name.StartsWith("Sofa", StringComparison.Ordinal) || name == "Lamp Shade" || name == "Side Table" ||
-                    name.StartsWith("Room Wall", StringComparison.Ordinal))
+                    name.StartsWith("Room Wall", StringComparison.Ordinal) || name == "Room Ceiling")
                 {
                     Hide(renderer);
                     continue;
@@ -269,11 +269,37 @@ namespace DeadlyJenga.CandyArt
                         shadowCasting.Add(renderer, renderer.shadowCastingMode);
                     renderer.shadowCastingMode = ShadowCastingMode.Off;
                 }
+                if (RaiseToCeiling(renderer))
+                    continue;
                 ApplyFinish(renderer);
                 SoftenGiftEdges(renderer);
                 MapRugTexture(renderer);
                 AddGiftBow(renderer);
             }
+        }
+
+        // Decorations hung just under the map's own ceiling (the string of lights along the walls)
+        // are shown as copies moved up to the taller ceiling instead.
+        bool RaiseToCeiling(MeshRenderer renderer)
+        {
+            // Already copied on an earlier refresh.
+            if (hidden.ContainsKey(renderer))
+                return renderer.name.StartsWith("Sphere", StringComparison.Ordinal) || !renderer.enabled;
+            var box = renderer.bounds;
+            if (box.min.y < 150f || box.max.y > 177f || box.max.x > 86f || box.min.z < -266f || renderer.GetComponentInParent<Rigidbody>())
+                return false;
+            if (!renderer.TryGetComponent<MeshFilter>(out var filter) || !filter.sharedMesh)
+                return false;
+            Hide(renderer);
+            var copy = new GameObject(renderer.name + " (raised)");
+            copy.transform.SetParent(art, true);
+            copy.transform.SetPositionAndRotation(renderer.transform.position + Vector3.up * (RoomTop - 177f), renderer.transform.rotation);
+            copy.transform.localScale = renderer.transform.lossyScale;
+            copy.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
+            var shown = copy.AddComponent<MeshRenderer>();
+            shown.sharedMaterials = renderer.sharedMaterials;
+            shown.shadowCastingMode = ShadowCastingMode.Off;
+            return true;
         }
 
         void OnDisable()
@@ -377,14 +403,14 @@ namespace DeadlyJenga.CandyArt
 
             var reflections = new GameObject("Christmas Room Reflections");
             reflections.transform.SetParent(art, false);
-            reflections.transform.localPosition = new Vector3(-90f, 55f, -105f);
+            reflections.transform.localPosition = new Vector3(-90f, 70f, -105f);
             roomProbe = reflections.AddComponent<ReflectionProbe>();
             roomProbe.mode = ReflectionProbeMode.Realtime;
             roomProbe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
             roomProbe.timeSlicingMode = ReflectionProbeTimeSlicingMode.IndividualFaces;
             roomProbe.resolution = 256;
             roomProbe.hdr = true;
-            roomProbe.size = new Vector3(340f, 180f, 340f);
+            roomProbe.size = new Vector3(340f, RoomTop + 10f, 340f);
             roomProbe.boxProjection = true;
             roomProbe.intensity = .85f;
 
