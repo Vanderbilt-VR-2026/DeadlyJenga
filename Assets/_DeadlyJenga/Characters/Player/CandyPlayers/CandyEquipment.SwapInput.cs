@@ -56,11 +56,9 @@ namespace DeadlyJenga.CandyPlayers
             bool vr = motor.IsVR;
             bool fireHeld = PickupFireHeld();
             bool weaponInHand = current.drawn && !current.builtIn && current.kind != EquipmentKind.Dagger;
-            bool bothHandsBusy = weaponInHand && (EquipmentSpecifications.Get(current.kind).twoHanded ||
-                current.kind is EquipmentKind.DualUzi or EquipmentKind.Chainsaw or EquipmentKind.LaserClaws);
-            // Aim and support grips belong to the drawn weapon. A free hand can still pick up loot.
-            var leftPoint = PickupHand(true, vr, !fireHeld && (!weaponInHand || !left && !bothHandsBusy), ref leftGrabUntil);
-            var rightPoint = PickupHand(false, vr, !fireHeld && (!weaponInHand || left && !bothHandsBusy), ref rightGrabUntil);
+            // The weapon hand keeps its grip. The other hand (even a support grip) can squeeze loot to swap.
+            var leftPoint = PickupHand(true, vr, !fireHeld && (!weaponInHand || !left), ref leftGrabUntil);
+            var rightPoint = PickupHand(false, vr, !fireHeld && (!weaponInHand || left), ref rightGrabUntil);
             float now = Time.unscaledTime;
             bool leftGrab = leftGrabUntil > now;
             bool rightGrab = rightGrabUntil > now;
