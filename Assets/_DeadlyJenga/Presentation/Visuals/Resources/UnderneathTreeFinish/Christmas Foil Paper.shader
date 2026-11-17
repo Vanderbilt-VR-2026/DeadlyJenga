@@ -19,6 +19,7 @@ Shader "DeadlyJenga/Christmas Foil Paper"
         _SparkleSize("Glitter Fleck Size", Range(0.02,1)) = 0.14
         _EdgeLight("Light Caught On Edges", Range(0,3)) = 0
         _TopLight("Extra Light On Top Faces", Range(0,1)) = 0
+        _BaseShade("Shade Toward The Bottom Of Each Box", Range(0,1)) = 0
         // Paper colour that shows even in shadow; the power-cut code turns it off.
         [HDR] _EmissionColor("Colour Kept In Shadow", Color) = (0,0,0,1)
         [HideInInspector] _Cutoff("Cutout Threshold", Float) = 0.5
@@ -71,6 +72,7 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 half _SparkleSize;
                 half _EdgeLight;
                 half _TopLight;
+                half _BaseShade;
             CBUFFER_END
 
             struct FabricAttributes
@@ -90,6 +92,7 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 half4 tangentWS : TEXCOORD2;
                 float2 uv : TEXCOORD3;
                 float2 paper : TEXCOORD7;
+                half rise : TEXCOORD8;
                 half3 vertexLighting : TEXCOORD4;
                 half fog : TEXCOORD5;
                 float4 shadowCoord : TEXCOORD6;
@@ -116,6 +119,8 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                     (face.x >= face.z ? paperPosition.zy : paperPosition.xy);
                 output.uv = paperUV * (_BaseMap_ST.xy / 64.0) + _BaseMap_ST.zw;
                 output.paper = paperUV;
+                // 0 at the bottom of the box, 1 at the top (box models are one unit tall).
+                output.rise = saturate(input.positionOS.y + 0.5);
                 output.shadowCoord = GetShadowCoord(vertexPosition);
                 output.vertexLighting = VertexLighting(vertexPosition.positionWS, basis.normalWS);
                 output.fog = ComputeFogFactor(vertexPosition.positionCS.z);
@@ -164,6 +169,10 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 result.rgb += lint * key.color * key.shadowAttenuation * (grazing * grazing * forwardScatter * _Sheen);
                 // Brighter tops, deeper undersides: gives each box a clear lit side.
                 result.rgb *= 1.0h + _TopLight * (n.y * 0.5h - 0.12h);
+
+                // Sides get softly darker toward the floor, as if the boxes shade each other.
+                half side = 1.0h - abs(n.y);
+                result.rgb *= 1.0h - _BaseShade * side * (1.0h - input.rise) * (1.0h - input.rise);
 
                 // Folded edges catch the light (the model's edges are slightly rounded).
                 half3 bend = fwidth(n);

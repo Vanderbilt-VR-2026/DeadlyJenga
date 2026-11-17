@@ -46,20 +46,23 @@ namespace DeadlyJenga.CandyArt
             if (color.b > color.r * 2f && color.b > color.g) color = new Color(.015f, .07f, .52f);
             else if (color.g > color.r * 2f && color.g > color.b) color = new Color(.01f, .30f, .08f);
             else if (color.r > color.g * 3f) color = new Color(.70f, .004f, .03f);
-            else color = new Color(1f, .70f, .40f);
-            var material = Lacquer(label, color, .5f, 0f, 1f, .22f);
+            else color = new Color(.92f, .64f, .38f);
+            // Cream paper is already bright, so it keeps less of its own glow than the jewel colours.
+            bool cream = color.g > .5f;
+            var material = Lacquer(label, color, .5f, 0f, 1f, cream ? .12f : .18f);
             material.SetFloat("_CoatSmoothness", .74f);
             if (!material.HasProperty("_Coat")) return material;
             material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Gold Snowflake Foil"));
             material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Paper Normal"));
-            // Several snowflakes across each face, like the approved picture.
-            material.SetTextureScale("_BaseMap", new Vector2(2f, 2f));
+            // A few big snowflakes on each face, like the approved picture.
+            material.SetTextureScale("_BaseMap", new Vector2(1.3f, 1.3f));
+            material.SetFloat("_BaseShade", .55f);
             material.SetFloat("_BumpScale", .4f);
-            material.SetFloat("_Sparkle", 1.3f);
+            material.SetFloat("_Sparkle", 1f);
             material.SetFloat("_SparkleSize", .2f);
-            material.SetColor("_FoilColor", new Color(1f, .66f, .18f));
-            material.SetFloat("_FoilGlow", .5f);
-            material.SetFloat("_TopLight", .5f);
+            material.SetColor("_FoilColor", new Color(1f, .68f, .16f));
+            material.SetFloat("_FoilGlow", .7f);
+            material.SetFloat("_TopLight", cream ? .28f : .4f);
             material.SetColor("_GlossColor", new Color(1f, .74f, .46f) * .7f);
             return material;
         }

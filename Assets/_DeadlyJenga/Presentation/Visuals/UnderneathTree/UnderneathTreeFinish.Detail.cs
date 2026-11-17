@@ -373,10 +373,14 @@ namespace DeadlyJenga.CandyArt
             }
 
             var finish = ChooseFinish(strip.name, strip.sharedMaterial) ?? strip.sharedMaterial;
-            var bowMaterial = Surface("Bow " + finish.name, null, finish.color * 1.15f, .86f, Vector2.one, .3f);
+            // Solid satin: deep gold for gold and ivory ribbon, deep red for red.
+            bool redBow = finish.color.g < .2f;
+            var bowColor = redBow ? new Color(.62f, .01f, .03f) :
+                finish.color.g > .6f ? new Color(.92f, .58f, .14f) : new Color(.88f, .46f, .05f);
+            var bowMaterial = Surface("Bow " + finish.name, null, bowColor, .72f, Vector2.one, redBow ? .05f : .35f);
             bowMaterial.SetFloat("_Cull", 0f);
             // A little of its own colour keeps the shaded side of the satin from turning brown.
-            bowMaterial.SetColor("_EmissionColor", finish.color * .35f);
+            bowMaterial.SetColor("_EmissionColor", bowColor * .12f);
             bowMaterial.EnableKeyword("_EMISSION");
             var obj = new GameObject("Hand-tied satin bow", typeof(MeshFilter), typeof(MeshRenderer));
             obj.GetComponent<MeshFilter>().sharedMesh = giftBow;
@@ -391,7 +395,7 @@ namespace DeadlyJenga.CandyArt
             float span = Mathf.Min(size.x, size.z);
             float turn = (Mathf.Abs(panel.position.x * 7.3f + panel.position.z * 3.1f) % 50f) - 25f;
             obj.transform.localRotation = Quaternion.Euler(0f, turn + (size.x < size.z ? 90f : 0f), 0f);
-            obj.transform.localScale = Vector3.one * Mathf.Clamp(span * .30f, .6f, 3.6f);
+            obj.transform.localScale = Vector3.one * Mathf.Clamp(span * .40f, .8f, 5f);
             mapDressings.Add(obj);
         }
 
