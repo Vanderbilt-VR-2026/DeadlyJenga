@@ -360,20 +360,19 @@ namespace DeadlyJenga.CandyArt
                 new Vector3(-88, 59, 54), new Color(1f, .70f, .39f), 9000f, 120f);
 
             // The tree is the room's main light. A warm heart, then a ring of coloured lights
-            // low and just outside the branches, so they tint the gifts and rug rather than the tree.
+            // low and just outside the branches. Short reach, so each tints only the gifts beside it
+            // instead of all of them adding up to one orange pool on the rug.
             MakeLight("Golden light in the tree", LightType.Point,
                 new Vector3(-37, 60, -50), new Color(1f, .66f, .36f), 600f, 150f);
-            MakeSpot("Warm tree canopy bounce", new Vector3(-80f, 67f, -109f),
-                new Vector3(-37f, 80f, -35.7f), new Color(1f, .86f, .64f), 1200f, 150f, 75f);
             // The same four colours as the bulbs: red, yellow, green, blue.
             var bulbGlow = new[] { new Color(1f, .08f, .05f), new Color(1f, .70f, .12f),
                 new Color(.08f, 1f, .20f), new Color(.08f, .32f, 1f) };
             for (int i = 0; i < 12; i++)
             {
                 float angle = (i * 30f + 10f) * Mathf.Deg2Rad;
-                float reach = i % 2 == 0 ? 52f : 78f;
-                var place = new Vector3(-37f + Mathf.Cos(angle) * reach, 10f + i * 37 % 24, -35.7f + Mathf.Sin(angle) * reach);
-                MakeLight("Tree bulb glow " + i, LightType.Point, place, bulbGlow[i % bulbGlow.Length], 9000f, 170f);
+                float reach = i % 2 == 0 ? 50f : 64f;
+                var place = new Vector3(-37f + Mathf.Cos(angle) * reach, 14f + i * 37 % 20, -35.7f + Mathf.Sin(angle) * reach);
+                MakeLight("Tree bulb glow " + i, LightType.Point, place, bulbGlow[i % bulbGlow.Length], 3500f, 75f);
             }
 
             var reflections = new GameObject("Christmas Room Reflections");
