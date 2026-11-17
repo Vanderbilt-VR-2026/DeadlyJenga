@@ -2,7 +2,7 @@
 .SYNOPSIS
     Invokes Antigravity Desktop via AgentAPI to diagnose DeadlyJenga test failures.
 .DESCRIPTION
-    Reads test-summary.json, formats a structured diagnostic request, invokes agentapi.bat,
+    Reads test-summary.json, formats a structured diagnostic request, invokes language_server.exe agentapi,
     monitors the agent's transcript until completion, extracts the root-cause analysis and
     recommended fix, and incorporates the diagnostic report into test-summary.json and markdown reports.
 #>
@@ -12,6 +12,7 @@ param(
     [string]$SummaryJsonPath,
     [string]$OutputMarkdownPath = "",
     [int]$TimeoutSeconds = 180,
+    [string]$LanguageServerExe = "C:\Users\evanp\AppData\Local\Programs\antigravity\resources\bin\language_server.exe",
     [string]$AgentApiBat = "C:\Users\evanp\.gemini\antigravity\bin\agentapi.bat"
 )
 
@@ -29,20 +30,14 @@ if ($summary.summary.failed -eq 0 -and $summary.summary.status -eq "PASS") {
     exit 0
 }
 
-if (-not (Test-Path $AgentApiBat)) {
-    Write-Warning "AgentAPI batch file not found at '$AgentApiBat'. Skipping AI diagnostic."
-    exit 0
-}
-
 Write-Host "=================================================="
 Write-Host " Launching Antigravity Diagnostic Agent..."
 Write-Host "=================================================="
 
-# Build prompt
+# Build detailed technical prompt
 $sb = [System.Text.StringBuilder]::new()
 [void]$sb.AppendLine("You are an expert Unity engine and C# gameplay engineer diagnosing an automated test failure in DeadlyJenga.")
-[void]$sb.AppendLine("Repository: Vanderbilt-VR-2026/DeadlyJenga")
-[void]$sb.AppendLine("Engine: Unity 6000.3.23f1")
+[void]$sb.AppendLine("Repository: Vanderbilt-VR-2026/DeadlyJenga (Unity 6000.3.23f1)")
 [void]$sb.AppendLine("Branch: " + $summary.branch)
 [void]$sb.AppendLine("Commit: " + $summary.commitSha)
 [void]$sb.AppendLine("")
@@ -73,35 +68,53 @@ foreach ($f in $summary.failures) {
     [void]$sb.AppendLine("")
 }
 
-[void]$sb.AppendLine("Please analyze this failure and provide:")
-[void]$sb.AppendLine("1. Root cause analysis: Why did this test fail?")
-[void]$sb.AppendLine("2. Impacted files and methods: What exact source files are responsible?")
-[void]$sb.AppendLine("3. Concrete fix: Provide the exact C# code correction so ChatGPT or the developer can immediately implement it.")
-[void]$sb.AppendLine("Keep your response structured, concise, and directly actionable.")
+[void]$sb.AppendLine("Please provide a concise, technical diagnosis formatted in Markdown:")
+[void]$sb.AppendLine("### Root Cause Analysis")
+[void]$sb.AppendLine("Explain exactly what caused the failure based on the assertion message and stack trace.")
+[void]$sb.AppendLine("")
+[void]$sb.AppendLine("### Affected Files & Methods")
+[void]$sb.AppendLine("List the specific C# files and line numbers.")
+[void]$sb.AppendLine("")
+[void]$sb.AppendLine("### Recommended Fix")
+[void]$sb.AppendLine("Provide the exact code change required so ChatGPT or the developer can immediately implement it.")
 
 $prompt = $sb.ToString()
-
-# Execute agentapi.bat new-conversation
 $titleSha = if ($summary.commitSha) { $summary.commitSha.Substring(0, [Math]::Min(7, $summary.commitSha.Length)) } else { "Run" }
-$titleArg = "--title=DeadlyJenga Test Diagnostic - " + $titleSha
-$sanitizedPrompt = $prompt.Replace('"', '\"')
-
-$agentOutput = & $AgentApiBat "new-conversation" $titleArg $sanitizedPrompt 2>&1 | Out-String
-
-Write-Host "AgentAPI Response:"
-Write-Host $agentOutput
+$title = "DeadlyJenga Test Diagnostic ($titleSha)"
 
 $convId = $null
-if ($agentOutput -match "Conversation opened:\s*([a-f0-9\-]+)") {
-    $convId = $matches[1].Trim()
+
+if (Test-Path $LanguageServerExe) {
+    Write-Host "Invoking language_server.exe agentapi directly..."
+    $rawOutput = & $LanguageServerExe "agentapi" "new-conversation" ("--title=" + $title) $prompt 2>&1 | Out-String
+    try {
+        $json = $rawOutput | ConvertFrom-Json
+        $convId = $json.response.newConversation.conversationId
+    } catch {
+        if ($rawOutput -match '"conversationId":\s*"([^"]+)"') {
+            $convId = $matches[1].Trim()
+        }
+    }
+} elseif (Test-Path $AgentApiBat) {
+    Write-Host "Invoking agentapi.bat fallback..."
+    $flatPrompt = ($prompt -replace "`r", "") -replace "`n", " "
+    $rawOutput = & $AgentApiBat "new-conversation" ("--title=" + $title) $flatPrompt 2>&1 | Out-String
+    if ($rawOutput -match '"conversationId":\s*"([^"]+)"') {
+        $convId = $matches[1].Trim()
+    } elseif ($rawOutput -match "Conversation opened:\s*([a-f0-9\-]+)") {
+        $convId = $matches[1].Trim()
+    }
+} else {
+    Write-Warning "Neither language_server.exe nor agentapi.bat found. Skipping diagnostic."
+    exit 0
 }
 
 if (-not $convId) {
-    Write-Warning "Could not parse conversation ID from AgentAPI output."
+    Write-Warning "Failed to obtain conversation ID from Antigravity agent output:`n$rawOutput"
     exit 1
 }
 
-Write-Host "Diagnosing with Antigravity Conversation: $convId"
+Write-Host "Antigravity Agent Session opened: $convId"
 $appData = [System.Environment]::GetFolderPath('UserProfile')
 $transcriptPath = Join-Path $appData ".gemini\antigravity\brain\$convId\.system_generated\logs\transcript.jsonl"
 
