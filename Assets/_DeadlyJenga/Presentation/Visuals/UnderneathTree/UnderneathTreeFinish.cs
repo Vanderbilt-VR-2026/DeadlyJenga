@@ -306,9 +306,10 @@ namespace DeadlyJenga.CandyArt
                     glow.transform.SetParent(art, true);
                     var light = glow.AddComponent<Light>();
                     light.type = LightType.Point;
-                    light.color = new Color(1f, .78f, .5f);
-                    light.intensity = 220f;
-                    light.range = Mathf.Max(box.extents.x, box.extents.z) * 1.3f;
+                    // Soft and warm, like a night light: enough to see the rooms, not to wash them out.
+                    light.color = new Color(1f, .72f, .45f);
+                    light.intensity = 90f;
+                    light.range = Mathf.Max(box.extents.x, box.extents.z) * 1.1f;
                     practicalLights.Add(light);
                 }
             }

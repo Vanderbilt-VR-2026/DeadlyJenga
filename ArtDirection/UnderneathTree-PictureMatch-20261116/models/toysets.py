@@ -188,6 +188,16 @@ def grid_building(prefix, ox, oy, cols, rows, cell, floors, outer, inner, floor_
                         continue
                     furnish(level, i, j, x0 + (i + .5) * cell, y0 + (j + .5) * cell, z)
         z += STOREY + GAP
+        if going_up:
+            # Floor round the stair hole: strips either side of the flight and past its top step,
+            # so there is somewhere to stand at every level (needed in one-room towers).
+            cx0, cy0 = x0 + sc * cell, y0 + sr * cell
+            hole_x1 = cx0 + WALL + .3 + 5 * 1.6 + .6
+            mid = cy0 + cell / 2
+            for (ax, bx, ay, by) in ((cx0, cx0 + cell, cy0, mid - 2.1), (cx0, cx0 + cell, mid + 2.1, cy0 + cell),
+                                     (hole_x1, cx0 + cell, mid - 2.1, mid + 2.1)):
+                part("%s L%d landing" % (prefix, level), "box", ((ax + bx) / 2, (ay + by) / 2, z + SLAB / 2),
+                     (bx - ax - GAP, by - ay - GAP, SLAB), floor_mat)
         for i in range(cols):
             for j in range(rows):
                 if going_up and (i, j) == (sc, sr):
