@@ -20,6 +20,10 @@ Shader "DeadlyJenga/Christmas Foil Paper"
         _EdgeLight("Light Caught On Edges", Range(0,3)) = 0
         _TopLight("Extra Light On Top Faces", Range(0,1)) = 0
         _BaseShade("Shade Toward The Bottom Of Each Box", Range(0,1)) = 0
+        // Foil film: how strongly the wrap mirrors the room's lamps, and how crinkled it is.
+        _Foil("Foil Shine", Range(0,3)) = 0
+        _Crinkle("Foil Crinkle", Range(0,3)) = 0
+        _CrinkleSize("Crinkle Size", Range(0.2,4)) = 1
         // Paper colour that shows even in shadow; the power-cut code turns it off.
         [HDR] _EmissionColor("Colour Kept In Shadow", Color) = (0,0,0,1)
         [HideInInspector] _Cutoff("Cutout Threshold", Float) = 0.5
@@ -73,7 +77,43 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 half _EdgeLight;
                 half _TopLight;
                 half _BaseShade;
+                half _Foil;
+                half _Crinkle;
+                half _CrinkleSize;
             CBUFFER_END
+
+            // Gentle waves and creases in the film, as a sideways tilt at each point of the paper.
+            float2 CrinkleTilt(float2 p)
+            {
+                p /= _CrinkleSize;
+                float2 tilt = 0;
+                float2 d1 = float2(0.86, 0.50), d2 = float2(-0.34, 0.94), d3 = float2(0.64, -0.77),
+                       d4 = float2(-0.98, -0.17), d5 = float2(0.17, 0.98);
+                float bend = sin(dot(p, float2(0.21, 0.13))) * 2.0 + sin(dot(p, float2(-0.11, 0.27)) + 1.7) * 2.0;
+                tilt += d1 * cos(dot(p, d1) * 0.45 + bend);
+                tilt += d2 * cos(dot(p, d2) * 0.80 + bend * 1.3 + 2.1);
+                tilt += d3 * cos(dot(p, d3) * 1.30 - bend + 4.0) * 0.8;
+                tilt += d4 * cos(dot(p, d4) * 2.10 + bend * 0.7 + 0.6) * 0.6;
+                tilt += d5 * cos(dot(p, d5) * 3.40 - bend * 1.6 + 5.2) * 0.4;
+                // A few sharp folds, like film that has been pulled tight over a corner.
+                float fold = dot(p, float2(0.55, 0.83)) * 0.33 + bend * 0.25;
+                tilt += float2(0.55, 0.83) * (smoothstep(0.42, 0.5, frac(fold)) - smoothstep(0.5, 0.58, frac(fold))) * 2.2;
+                return tilt * 0.05;
+            }
+
+            // The room as the foil sees it: warm lamp glow and cool window glow in turn around
+            // the walls, and a soft glow from the ceiling. Cheaper and brighter than a real reflection.
+            half3 RoomShine(half3 bounce, half3 warm)
+            {
+                half around = sin(atan2(bounce.z, bounce.x) * 3.0h + bounce.y * 2.0h);
+                half height = saturate(bounce.y * 1.4h + 0.3h) * (1.0h - smoothstep(0.7h, 1.0h, bounce.y));
+                // Each glow has a soft body and a thin bright heart, which is what makes foil streak.
+                half lamp = smoothstep(0.35h, 1.0h, around);
+                half window = smoothstep(0.35h, 1.0h, -around);
+                half3 walls = warm * (lamp * 0.7h + pow(lamp, 6.0h) * 1.6h) +
+                    half3(0.55h, 0.70h, 1.0h) * (window * 0.35h + pow(window, 6.0h) * 0.9h);
+                return walls * height + warm * (smoothstep(0.55h, 1.0h, bounce.y) * 0.35h);
+            }
 
             struct FabricAttributes
             {
@@ -127,14 +167,16 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 return output;
             }
 
-            half4 FabricFragment(FabricVaryings input) : SV_Target
+            half4 FabricFragment(FabricVaryings input, bool frontFace : SV_IsFrontFace) : SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-                half3 n = normalize(input.normalWS);
+                // Bows are seen from both sides, so the back of a loop faces the other way.
+                half3 n = normalize(input.normalWS) * (frontFace ? 1.0h : -1.0h);
                 half3 tangent = normalize(input.tangentWS.xyz);
                 half3 bitangent = cross(n, tangent) * input.tangentWS.w;
                 // The paper's fine texture repeats much smaller than the snowflake print.
                 half3 pattern = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.paper * 0.11), _BumpScale);
+                pattern.xy -= CrinkleTilt(input.paper) * _Crinkle;
                 half3 normal = NormalizeNormalPerPixel(TransformTangentToWorld(pattern, half3x3(tangent, bitangent, n)));
 
                 InputData inputData = (InputData)0;
@@ -192,14 +234,13 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 result.rgb += lerp(half3(1.0h, 0.9h, 0.7h), _FoilColor.rgb, 0.4h) * (flash * _Sparkle) * step(0.0001h, _EmissionColor.g) *
                     (0.35h + key.shadowAttenuation * 0.65h);
 
-                // Lamps and tree lights sit low around the room, so the lacquer shines most
-                // where its reflection points just above the horizon.
+                // Foil shine: the film mirrors the room, tinted by its own colour so it stays rich
+                // rather than turning silver. Looking across a face, the mirror gets whiter.
                 half3 bounce = reflect(-inputData.viewDirectionWS, normal);
-                half band = smoothstep(-0.12h, 0.22h, bounce.y) * (1.0h - smoothstep(0.4h, 0.95h, bounce.y));
-                half across = 0.06h + 0.94h * grazing * grazing * grazing;
-                // Mostly tinted by the paper, so the shine keeps the colour rich instead of milky.
-                half3 shine = _GlossColor.rgb * lerp(half3(1, 1, 1), saturate(surface.albedo * 2.5h), 0.65h);
-                result.rgb += shine * (band * across * _Coat) * step(0.0001h, _EmissionColor.g);
+                half across = grazing * grazing * grazing;
+                half3 tint = lerp(saturate(surface.albedo * 3.0h + 0.03h), half3(1, 1, 1), 0.06h + 0.4h * across);
+                result.rgb += RoomShine(bounce, _GlossColor.rgb) * tint * (_Foil * lerp(1.0h, 1.6h, foil)) *
+                    step(0.0001h, _EmissionColor.g);
                 result.rgb = MixFog(result.rgb, input.fog);
                 return result;
             }

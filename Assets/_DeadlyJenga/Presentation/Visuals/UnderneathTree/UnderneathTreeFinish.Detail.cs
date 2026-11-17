@@ -377,11 +377,12 @@ namespace DeadlyJenga.CandyArt
             bool redBow = finish.color.g < .2f;
             var bowColor = redBow ? new Color(.62f, .01f, .03f) :
                 finish.color.g > .6f ? new Color(.92f, .58f, .14f) : new Color(.88f, .46f, .05f);
-            var bowMaterial = Surface("Bow " + finish.name, null, bowColor, .72f, Vector2.one, redBow ? .05f : .35f);
+            // Same foil as the ribbon, drawn on both sides of each loop.
+            var bowMaterial = Lacquer("Bow " + finish.name, bowColor, .8f, redBow ? .55f : .7f, .35f, .14f);
             bowMaterial.SetFloat("_Cull", 0f);
-            // A little of its own colour keeps the shaded side of the satin from turning brown.
-            bowMaterial.SetColor("_EmissionColor", bowColor * .12f);
-            bowMaterial.EnableKeyword("_EMISSION");
+            bowMaterial.SetFloat("_Foil", 1.1f);
+            bowMaterial.SetFloat("_TopLight", 0f);
+            bowMaterial.SetFloat("_EdgeLight", 0f);
             var obj = new GameObject("Hand-tied satin bow", typeof(MeshFilter), typeof(MeshRenderer));
             obj.GetComponent<MeshFilter>().sharedMesh = giftBow;
             var skin = obj.GetComponent<MeshRenderer>();

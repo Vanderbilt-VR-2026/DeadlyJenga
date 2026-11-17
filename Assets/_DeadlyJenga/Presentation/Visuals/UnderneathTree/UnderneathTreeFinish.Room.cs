@@ -46,24 +46,26 @@ namespace DeadlyJenga.CandyArt
             if (color.b > color.r * 2f && color.b > color.g) color = new Color(.015f, .07f, .52f);
             else if (color.g > color.r * 2f && color.g > color.b) color = new Color(.01f, .30f, .08f);
             else if (color.r > color.g * 3f) color = new Color(.70f, .004f, .03f);
-            else color = new Color(.92f, .64f, .38f);
-            // Cream paper is already bright, so it keeps less of its own glow than the jewel colours.
+            else color = new Color(1f, .80f, .55f);
+            // Foil film, not paper: part mirror, glossy, slightly crinkled.
+            // Cream is already bright, so it is less mirror-like and keeps less of its own glow.
             bool cream = color.g > .5f;
-            var material = Lacquer(label, color, .5f, 0f, 1f, cream ? .12f : .18f);
-            material.SetFloat("_CoatSmoothness", .74f);
+            var material = Lacquer(label, color, .74f, cream ? .3f : .55f, .35f, cream ? .12f : .16f);
             if (!material.HasProperty("_Coat")) return material;
+            material.SetFloat("_CoatSmoothness", .85f);
             material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Gold Snowflake Foil"));
             material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Paper Normal"));
             // A few big snowflakes on each face, like the approved picture.
             material.SetTextureScale("_BaseMap", new Vector2(1.3f, 1.3f));
             material.SetFloat("_BaseShade", .55f);
-            material.SetFloat("_BumpScale", .4f);
-            material.SetFloat("_Sparkle", 1f);
-            material.SetFloat("_SparkleSize", .2f);
+            material.SetFloat("_BumpScale", .12f);
             material.SetColor("_FoilColor", new Color(1f, .68f, .16f));
             material.SetFloat("_FoilGlow", .7f);
-            material.SetFloat("_TopLight", cream ? .28f : .4f);
-            material.SetColor("_GlossColor", new Color(1f, .74f, .46f) * .7f);
+            material.SetFloat("_TopLight", .2f);
+            material.SetFloat("_EdgeLight", .35f);
+            material.SetFloat("_Foil", cream ? .8f : 1f);
+            material.SetFloat("_Crinkle", .8f);
+            material.SetFloat("_CrinkleSize", 1.8f);
             return material;
         }
 
@@ -79,7 +81,8 @@ namespace DeadlyJenga.CandyArt
             material.SetFloat("_Metallic", metallic);
             material.SetFloat("_Coat", coat);
             material.SetFloat("_CoatSmoothness", .78f);
-            material.SetColor("_GlossColor", new Color(1f, .74f, .46f) * .45f);
+            // The colour of the lamp glow the foil mirrors.
+            material.SetColor("_GlossColor", new Color(1f, .80f, .58f));
             material.SetFloat("_EdgeLight", .5f);
             material.SetFloat("_TopLight", .35f);
             material.SetFloat("_Sheen", 0f);
@@ -146,8 +149,10 @@ namespace DeadlyJenga.CandyArt
                     color = new Color(.95f, .66f, .22f);
                 else if (color.r > color.g * 3f)
                     color = new Color(.55f, .008f, .03f);
-                bool metal = color.g > .4f;
-                return Lacquer("Satin " + name, color, .72f, metal ? .45f : 0f, .7f, .22f);
+                var satin = Lacquer("Satin " + name, color, .8f, .7f, .35f, .16f);
+                satin.SetFloat("_Foil", 1.1f);
+                satin.SetFloat("_Crinkle", .4f);
+                return satin;
             }
             if (name.Contains("gift wrap") || name.Contains("gift Wrap") || name.Contains("Mulberry"))
                 return FoilPaper(name + " paper", color);
