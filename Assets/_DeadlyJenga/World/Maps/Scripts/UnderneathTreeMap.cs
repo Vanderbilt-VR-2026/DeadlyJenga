@@ -123,6 +123,7 @@ namespace DeadlyJenga.CastlePrototype
             Physics.SyncTransforms();
             BuildApprovedTrack();
             ScaleApprovedCourse(layout.transform);
+            BuildToys();
             playArea.Expand(new Vector3(8f, 12f, 8f));
             Physics.SyncTransforms();
             BuildSkirtStitching();
