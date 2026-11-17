@@ -1,0 +1,29 @@
+﻿{
+    "schema_version":  1,
+    "task_id":  "bridge-4ba73be995eb",
+    "commit_sha":  "4ba73be995eb8faf2fb57be6cace612c0badfe15",
+    "branch":  "ci/unity-test-pipeline",
+    "platform":  "PlayMode",
+    "unity_version":  "6000.3.23f1",
+    "runner":  "SEVAAN-HP-LAPTO",
+    "runner_status":  "completed",
+    "test_status":  "passed",
+    "failure_kind":  null,
+    "message":  null,
+    "unity_exit_code":  0,
+    "tests_total":  13,
+    "tests_passed":  13,
+    "tests_failed":  0,
+    "tests_skipped":  0,
+    "duration_seconds":  602,
+    "failed_tests":  [
+
+                     ],
+    "log_excerpt":  [
+
+                    ],
+    "artifacts":  {
+                      "test_results":  "results.xml",
+                      "editor_log":  "unity.log"
+                  }
+}

@@ -1,49 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<test-run id="2" testcasecount="14" result="Failed(Child)" total="14" passed="13" failed="1" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-17 23:00:44Z" end-time="2026-11-17 23:01:19Z" duration="35.2047526">
-  <test-suite type="TestSuite" id="1026" name="DeadlyJenga" fullname="DeadlyJenga" runstate="Runnable" testcasecount="14" result="Failed" site="Child" start-time="2026-11-17 23:00:44Z" end-time="2026-11-17 23:01:19Z" duration="35.204753" total="14" passed="13" failed="1" inconclusive="0" skipped="0" asserts="0">
+<test-run id="2" testcasecount="13" result="Passed" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-17 23:12:20Z" end-time="2026-11-17 23:13:00Z" duration="40.0809828">
+  <test-suite type="TestSuite" id="1024" name="DeadlyJenga" fullname="DeadlyJenga" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-11-17 23:12:20Z" end-time="2026-11-17 23:13:00Z" duration="40.080983" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
     <properties>
       <property name="platform" value="PlayMode" />
     </properties>
-    <failure>
-      <message><![CDATA[One or more child tests had errors]]></message>
-    </failure>
-    <test-suite type="Assembly" id="1020" name="DeadlyJenga.DevTools.Tests.dll" fullname="C:/DeadlyJengaCI/repo/Library/ScriptAssemblies/DeadlyJenga.DevTools.Tests.dll" runstate="Runnable" testcasecount="14" result="Failed" site="Child" start-time="2026-11-17 23:00:44Z" end-time="2026-11-17 23:01:19Z" duration="35.161650" total="14" passed="13" failed="1" inconclusive="0" skipped="0" asserts="0">
+    <test-suite type="Assembly" id="1018" name="DeadlyJenga.DevTools.Tests.dll" fullname="C:/DeadlyJengaCI/repo/Library/ScriptAssemblies/DeadlyJenga.DevTools.Tests.dll" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-11-17 23:12:20Z" end-time="2026-11-17 23:13:00Z" duration="40.019748" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
       <properties>
-        <property name="_PID" value="65996" />
+        <property name="_PID" value="46712" />
         <property name="_APPDOMAIN" value="Unity Child Domain" />
         <property name="platform" value="PlayMode" />
         <property name="EditorOnly" value="False" />
       </properties>
-      <failure>
-        <message><![CDATA[One or more child tests had errors]]></message>
-      </failure>
-      <test-suite type="TestSuite" id="1021" name="DeadlyJenga" fullname="DeadlyJenga" runstate="Runnable" testcasecount="14" result="Failed" site="Child" start-time="2026-11-17 23:00:44Z" end-time="2026-11-17 23:01:19Z" duration="35.139052" total="14" passed="13" failed="1" inconclusive="0" skipped="0" asserts="0">
+      <test-suite type="TestSuite" id="1019" name="DeadlyJenga" fullname="DeadlyJenga" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-11-17 23:12:20Z" end-time="2026-11-17 23:13:00Z" duration="39.991230" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
         <properties />
-        <failure>
-          <message><![CDATA[One or more child tests had errors]]></message>
-        </failure>
-        <test-suite type="TestSuite" id="1022" name="Tests" fullname="DeadlyJenga.Tests" runstate="Runnable" testcasecount="14" result="Failed" site="Child" start-time="2026-11-17 23:00:44Z" end-time="2026-11-17 23:01:19Z" duration="35.101866" total="14" passed="13" failed="1" inconclusive="0" skipped="0" asserts="0">
+        <test-suite type="TestSuite" id="1020" name="Tests" fullname="DeadlyJenga.Tests" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-11-17 23:12:20Z" end-time="2026-11-17 23:13:00Z" duration="39.942585" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
           <properties />
-          <failure>
-            <message><![CDATA[One or more child tests had errors]]></message>
-          </failure>
-          <test-suite type="TestFixture" id="1001" name="CastleBlockTests" fullname="DeadlyJenga.Tests.CastleBlockTests" classname="DeadlyJenga.Tests.CastleBlockTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-11-17 23:00:44Z" end-time="2026-11-17 23:00:49Z" duration="4.384923" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <test-suite type="TestFixture" id="1001" name="CastleBlockTests" fullname="DeadlyJenga.Tests.CastleBlockTests" classname="DeadlyJenga.Tests.CastleBlockTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-11-17 23:12:20Z" end-time="2026-11-17 23:12:25Z" duration="4.823764" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
             <properties />
-            <test-case id="1002" name="BlockUsesBlockLayerAndIsClimbable" fullname="DeadlyJenga.Tests.CastleBlockTests.BlockUsesBlockLayerAndIsClimbable" methodname="BlockUsesBlockLayerAndIsClimbable" classname="DeadlyJenga.Tests.CastleBlockTests" runstate="Runnable" seed="212086706" result="Passed" start-time="2026-11-17 23:00:44Z" end-time="2026-11-17 23:00:45Z" duration="0.140987" asserts="0">
+            <test-case id="1002" name="BlockUsesBlockLayerAndIsClimbable" fullname="DeadlyJenga.Tests.CastleBlockTests.BlockUsesBlockLayerAndIsClimbable" methodname="BlockUsesBlockLayerAndIsClimbable" classname="DeadlyJenga.Tests.CastleBlockTests" runstate="Runnable" seed="1554116033" result="Passed" start-time="2026-11-17 23:12:20Z" end-time="2026-11-17 23:12:21Z" duration="0.161704" asserts="0">
               <properties>
                 <property name="_JOINTYPE" value="UnityCombinatorial" />
                 <property name="retryIteration" value="0" />
                 <property name="repeatIteration" value="0" />
               </properties>
             </test-case>
-            <test-case id="1004" name="DroppedBlockRestsOnFloor" fullname="DeadlyJenga.Tests.CastleBlockTests.DroppedBlockRestsOnFloor" methodname="DroppedBlockRestsOnFloor" classname="DeadlyJenga.Tests.CastleBlockTests" runstate="Runnable" seed="1451366511" result="Passed" start-time="2026-11-17 23:00:45Z" end-time="2026-11-17 23:00:49Z" duration="4.076041" asserts="0">
+            <test-case id="1004" name="DroppedBlockRestsOnFloor" fullname="DeadlyJenga.Tests.CastleBlockTests.DroppedBlockRestsOnFloor" methodname="DroppedBlockRestsOnFloor" classname="DeadlyJenga.Tests.CastleBlockTests" runstate="Runnable" seed="29131311" result="Passed" start-time="2026-11-17 23:12:21Z" end-time="2026-11-17 23:12:25Z" duration="4.385511" asserts="0">
               <properties>
                 <property name="_JOINTYPE" value="UnityCombinatorial" />
                 <property name="retryIteration" value="0" />
                 <property name="repeatIteration" value="0" />
               </properties>
             </test-case>
-            <test-case id="1003" name="PushAppliesVelocityChangeAndRaisesEvent" fullname="DeadlyJenga.Tests.CastleBlockTests.PushAppliesVelocityChangeAndRaisesEvent" methodname="PushAppliesVelocityChangeAndRaisesEvent" classname="DeadlyJenga.Tests.CastleBlockTests" runstate="Runnable" seed="1560043941" result="Passed" start-time="2026-11-17 23:00:49Z" end-time="2026-11-17 23:00:49Z" duration="0.107323" asserts="0">
+            <test-case id="1003" name="PushAppliesVelocityChangeAndRaisesEvent" fullname="DeadlyJenga.Tests.CastleBlockTests.PushAppliesVelocityChangeAndRaisesEvent" methodname="PushAppliesVelocityChangeAndRaisesEvent" classname="DeadlyJenga.Tests.CastleBlockTests" runstate="Runnable" seed="1271898307" result="Passed" start-time="2026-11-17 23:12:25Z" end-time="2026-11-17 23:12:25Z" duration="0.196415" asserts="0">
               <properties>
                 <property name="_JOINTYPE" value="UnityCombinatorial" />
                 <property name="retryIteration" value="0" />
@@ -51,39 +39,19 @@
               </properties>
             </test-case>
           </test-suite>
-          <test-suite type="TestFixture" id="1005" name="DeliberateFailureTest" fullname="DeadlyJenga.Tests.DeliberateFailureTest" classname="DeadlyJenga.Tests.DeliberateFailureTest" runstate="Runnable" testcasecount="1" result="Failed" site="Child" start-time="2026-11-17 23:00:49Z" end-time="2026-11-17 23:00:49Z" duration="0.045527" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+          <test-suite type="TestFixture" id="1005" name="PhysicsSmokeTests" fullname="DeadlyJenga.Tests.PhysicsSmokeTests" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" testcasecount="10" result="Passed" start-time="2026-11-17 23:12:25Z" end-time="2026-11-17 23:13:00Z" duration="35.078551" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
             <properties />
-            <failure>
-              <message><![CDATA[One or more child tests had errors]]></message>
-            </failure>
-            <test-case id="1006" name="PipelineReportsThisFailure" fullname="DeadlyJenga.Tests.DeliberateFailureTest.PipelineReportsThisFailure" methodname="PipelineReportsThisFailure" classname="DeadlyJenga.Tests.DeliberateFailureTest" runstate="Runnable" seed="666074194" result="Failed" start-time="2026-11-17 23:00:49Z" end-time="2026-11-17 23:00:49Z" duration="0.018762" asserts="0">
-              <properties>
-                <property name="retryIteration" value="0" />
-                <property name="repeatIteration" value="0" />
-              </properties>
-              <failure>
-                <message><![CDATA[  Deliberate failure to check the test bridge.
-  Expected: 2
-  But was:  3
-]]></message>
-                <stack-trace><![CDATA[at DeadlyJenga.Tests.DeliberateFailureTest.PipelineReportsThisFailure () [0x00000] in C:\DeadlyJengaCI\repo\Assets\_DeadlyJenga\DevTools\Tests\DeliberateFailureTest.cs:11
-]]></stack-trace>
-              </failure>
-            </test-case>
-          </test-suite>
-          <test-suite type="TestFixture" id="1007" name="PhysicsSmokeTests" fullname="DeadlyJenga.Tests.PhysicsSmokeTests" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" testcasecount="10" result="Passed" start-time="2026-11-17 23:00:49Z" end-time="2026-11-17 23:01:19Z" duration="30.637258" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
-            <properties />
-            <test-suite type="ParameterizedMethod" id="1013" name="FallingBoxDoesNotPenetrateFloor" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.FallingBoxDoesNotPenetrateFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-11-17 23:00:49Z" end-time="2026-11-17 23:01:05Z" duration="16.265379" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <test-suite type="ParameterizedMethod" id="1011" name="FallingBoxDoesNotPenetrateFloor" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.FallingBoxDoesNotPenetrateFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-11-17 23:12:25Z" end-time="2026-11-17 23:12:45Z" duration="19.397572" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
               <properties>
                 <property name="_JOINTYPE" value="UnityCombinatorial" />
               </properties>
-              <test-case id="1009" name="FallingBoxDoesNotPenetrateFloor(System.Object[])" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.FallingBoxDoesNotPenetrateFloor(System.Object[])" methodname="FallingBoxDoesNotPenetrateFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="1068912139" result="Passed" start-time="2026-11-17 23:00:49Z" end-time="2026-11-17 23:00:53Z" duration="4.080372" asserts="0">
+              <test-case id="1007" name="FallingBoxDoesNotPenetrateFloor(System.Object[])" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.FallingBoxDoesNotPenetrateFloor(System.Object[])" methodname="FallingBoxDoesNotPenetrateFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="2059480683" result="Passed" start-time="2026-11-17 23:12:25Z" end-time="2026-11-17 23:12:30Z" duration="4.919717" asserts="0">
                 <properties>
                   <property name="retryIteration" value="0" />
                   <property name="repeatIteration" value="0" />
                 </properties>
               </test-case>
-              <test-case id="1010" name="FallingBoxDoesNotPenetrateFloor(System.Object[])" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.FallingBoxDoesNotPenetrateFloor(System.Object[])" methodname="FallingBoxDoesNotPenetrateFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="1062693652" result="Passed" start-time="2026-11-17 23:00:53Z" end-time="2026-11-17 23:00:57Z" duration="4.048883" asserts="0">
+              <test-case id="1008" name="FallingBoxDoesNotPenetrateFloor(System.Object[])" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.FallingBoxDoesNotPenetrateFloor(System.Object[])" methodname="FallingBoxDoesNotPenetrateFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="677078957" result="Passed" start-time="2026-11-17 23:12:30Z" end-time="2026-11-17 23:12:34Z" duration="4.135377" asserts="0">
                 <properties>
                   <property name="childIndex" value="2" />
                   <property name="childIndex" value="2" />
@@ -92,7 +60,7 @@
                   <property name="repeatIteration" value="0" />
                 </properties>
               </test-case>
-              <test-case id="1011" name="FallingBoxDoesNotPenetrateFloor(System.Object[])" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.FallingBoxDoesNotPenetrateFloor(System.Object[])" methodname="FallingBoxDoesNotPenetrateFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="185869714" result="Passed" start-time="2026-11-17 23:00:57Z" end-time="2026-11-17 23:01:01Z" duration="4.038839" asserts="0">
+              <test-case id="1009" name="FallingBoxDoesNotPenetrateFloor(System.Object[])" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.FallingBoxDoesNotPenetrateFloor(System.Object[])" methodname="FallingBoxDoesNotPenetrateFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="874072106" result="Passed" start-time="2026-11-17 23:12:34Z" end-time="2026-11-17 23:12:39Z" duration="4.553906" asserts="0">
                 <properties>
                   <property name="childIndex" value="3" />
                   <property name="childIndex" value="3" />
@@ -101,7 +69,7 @@
                   <property name="repeatIteration" value="0" />
                 </properties>
               </test-case>
-              <test-case id="1012" name="FallingBoxDoesNotPenetrateFloor(System.Object[])" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.FallingBoxDoesNotPenetrateFloor(System.Object[])" methodname="FallingBoxDoesNotPenetrateFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="1916630483" result="Passed" start-time="2026-11-17 23:01:01Z" end-time="2026-11-17 23:01:05Z" duration="4.064980" asserts="0">
+              <test-case id="1010" name="FallingBoxDoesNotPenetrateFloor(System.Object[])" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.FallingBoxDoesNotPenetrateFloor(System.Object[])" methodname="FallingBoxDoesNotPenetrateFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="2031040607" result="Passed" start-time="2026-11-17 23:12:39Z" end-time="2026-11-17 23:12:45Z" duration="5.730397" asserts="0">
                 <properties>
                   <property name="childIndex" value="4" />
                   <property name="childIndex" value="4" />
@@ -111,44 +79,44 @@
                 </properties>
               </test-case>
             </test-suite>
-            <test-case id="1019" name="FrozenAxisDoesNotMove" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.FrozenAxisDoesNotMove" methodname="FrozenAxisDoesNotMove" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="1249504263" result="Passed" start-time="2026-11-17 23:01:05Z" end-time="2026-11-17 23:01:06Z" duration="1.091454" asserts="0">
+            <test-case id="1017" name="FrozenAxisDoesNotMove" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.FrozenAxisDoesNotMove" methodname="FrozenAxisDoesNotMove" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="228308713" result="Passed" start-time="2026-11-17 23:12:45Z" end-time="2026-11-17 23:12:46Z" duration="1.400492" asserts="0">
               <properties>
                 <property name="_JOINTYPE" value="UnityCombinatorial" />
                 <property name="retryIteration" value="0" />
                 <property name="repeatIteration" value="0" />
               </properties>
             </test-case>
-            <test-suite type="ParameterizedMethod" id="1017" name="HeavyAndLightBoxesBothRestOnFloor" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.HeavyAndLightBoxesBothRestOnFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-11-17 23:01:06Z" end-time="2026-11-17 23:01:15Z" duration="9.189234" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <test-suite type="ParameterizedMethod" id="1015" name="HeavyAndLightBoxesBothRestOnFloor" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.HeavyAndLightBoxesBothRestOnFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-11-17 23:12:46Z" end-time="2026-11-17 23:12:56Z" duration="10.120052" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
               <properties>
                 <property name="_JOINTYPE" value="UnityCombinatorial" />
               </properties>
-              <test-case id="1014" name="HeavyAndLightBoxesBothRestOnFloor(0.1f)" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.HeavyAndLightBoxesBothRestOnFloor(0.1f)" methodname="HeavyAndLightBoxesBothRestOnFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="199420836" result="Passed" start-time="2026-11-17 23:01:06Z" end-time="2026-11-17 23:01:09Z" duration="3.067222" asserts="0">
+              <test-case id="1012" name="HeavyAndLightBoxesBothRestOnFloor(0.1f)" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.HeavyAndLightBoxesBothRestOnFloor(0.1f)" methodname="HeavyAndLightBoxesBothRestOnFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="1084112631" result="Passed" start-time="2026-11-17 23:12:46Z" end-time="2026-11-17 23:12:50Z" duration="3.484276" asserts="0">
                 <properties>
                   <property name="retryIteration" value="0" />
                   <property name="repeatIteration" value="0" />
                 </properties>
               </test-case>
-              <test-case id="1015" name="HeavyAndLightBoxesBothRestOnFloor(1.0f)" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.HeavyAndLightBoxesBothRestOnFloor(1.0f)" methodname="HeavyAndLightBoxesBothRestOnFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="1987995420" result="Passed" start-time="2026-11-17 23:01:09Z" end-time="2026-11-17 23:01:12Z" duration="3.048795" asserts="0">
+              <test-case id="1013" name="HeavyAndLightBoxesBothRestOnFloor(1.0f)" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.HeavyAndLightBoxesBothRestOnFloor(1.0f)" methodname="HeavyAndLightBoxesBothRestOnFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="993414772" result="Passed" start-time="2026-11-17 23:12:50Z" end-time="2026-11-17 23:12:53Z" duration="3.229036" asserts="0">
                 <properties>
                   <property name="retryIteration" value="0" />
                   <property name="repeatIteration" value="0" />
                 </properties>
               </test-case>
-              <test-case id="1016" name="HeavyAndLightBoxesBothRestOnFloor(50.0f)" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.HeavyAndLightBoxesBothRestOnFloor(50.0f)" methodname="HeavyAndLightBoxesBothRestOnFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="1507236056" result="Passed" start-time="2026-11-17 23:01:12Z" end-time="2026-11-17 23:01:15Z" duration="3.057381" asserts="0">
+              <test-case id="1014" name="HeavyAndLightBoxesBothRestOnFloor(50.0f)" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.HeavyAndLightBoxesBothRestOnFloor(50.0f)" methodname="HeavyAndLightBoxesBothRestOnFloor" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="178898278" result="Passed" start-time="2026-11-17 23:12:53Z" end-time="2026-11-17 23:12:56Z" duration="3.374485" asserts="0">
                 <properties>
                   <property name="retryIteration" value="0" />
                   <property name="repeatIteration" value="0" />
                 </properties>
               </test-case>
             </test-suite>
-            <test-case id="1018" name="StackOfThreeBlocksStaysStanding" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.StackOfThreeBlocksStaysStanding" methodname="StackOfThreeBlocksStaysStanding" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="870175378" result="Passed" start-time="2026-11-17 23:01:15Z" end-time="2026-11-17 23:01:19Z" duration="4.055063" asserts="0">
+            <test-case id="1016" name="StackOfThreeBlocksStaysStanding" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.StackOfThreeBlocksStaysStanding" methodname="StackOfThreeBlocksStaysStanding" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="612415306" result="Passed" start-time="2026-11-17 23:12:56Z" end-time="2026-11-17 23:13:00Z" duration="4.079948" asserts="0">
               <properties>
                 <property name="_JOINTYPE" value="UnityCombinatorial" />
                 <property name="retryIteration" value="0" />
                 <property name="repeatIteration" value="0" />
               </properties>
             </test-case>
-            <test-case id="1008" name="TestFrameworkRuns" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.TestFrameworkRuns" methodname="TestFrameworkRuns" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="2004396656" result="Passed" start-time="2026-11-17 23:01:19Z" end-time="2026-11-17 23:01:19Z" duration="0.000722" asserts="0">
+            <test-case id="1006" name="TestFrameworkRuns" fullname="DeadlyJenga.Tests.PhysicsSmokeTests.TestFrameworkRuns" methodname="TestFrameworkRuns" classname="DeadlyJenga.Tests.PhysicsSmokeTests" runstate="Runnable" seed="356814261" result="Passed" start-time="2026-11-17 23:13:00Z" end-time="2026-11-17 23:13:00Z" duration="0.006422" asserts="0">
               <properties>
                 <property name="retryIteration" value="0" />
                 <property name="repeatIteration" value="0" />
