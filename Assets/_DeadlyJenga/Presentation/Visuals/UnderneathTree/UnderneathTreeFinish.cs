@@ -218,12 +218,13 @@ namespace DeadlyJenga.CandyArt
 
         void RestoreIndoorSettings()
         {
-            // Warm from above, blue from the sides, red bounce off the rug.
-            var sky = new Color(.26f, .24f, .46f);
-            var sides = new Color(.11f, .17f, .58f);
-            var rug = new Color(.36f, .07f, .09f);
+            // The middle of the night: only a little blue from the windows and red off the rug,
+            // so the tree lights, the lamp and the moonlight do the lighting.
+            var sky = new Color(.045f, .05f, .11f);
+            var sides = new Color(.03f, .05f, .16f);
+            var rug = new Color(.07f, .015f, .02f);
             if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Trilight &&
-                RenderSettings.ambientSkyColor == sky && Mathf.Approximately(RenderSettings.reflectionIntensity, .68f))
+                RenderSettings.ambientSkyColor == sky && Mathf.Approximately(RenderSettings.reflectionIntensity, .4f))
                 return;
             RenderSettings.skybox = null;
             RenderSettings.fog = false;
@@ -231,7 +232,7 @@ namespace DeadlyJenga.CandyArt
             RenderSettings.ambientSkyColor = sky;
             RenderSettings.ambientEquatorColor = sides;
             RenderSettings.ambientGroundColor = rug;
-            RenderSettings.reflectionIntensity = .68f;
+            RenderSettings.reflectionIntensity = .4f;
         }
 
         void Hide(Renderer renderer)
@@ -333,7 +334,7 @@ namespace DeadlyJenga.CandyArt
         void BuildLighting()
         {
             key = MakeLight("Amber lamplight and ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .74f, .44f), 1.6f, 0f);
+                Vector3.zero, new Color(1f, .70f, .42f), .20f, 0f);
             // Shines from the fireplace side so the gift faces seen in the approved picture are lit.
             key.transform.localRotation = Quaternion.Euler(46f, 18f, 0f);
             key.shadows = LightShadows.Soft;
@@ -342,7 +343,7 @@ namespace DeadlyJenga.CandyArt
             key.shadowNormalBias = .2f;
 
             var bounce = MakeLight("Soft blue room bounce", LightType.Directional, Vector3.zero,
-                new Color(.18f, .38f, 1f), 1.15f, 0f);
+                new Color(.18f, .38f, 1f), .22f, 0f);
             // Blue light from the side window gives the gifts a cool edge.
             bounce.transform.localRotation = Quaternion.Euler(30f, 262f, 0f);
             practicalLights.Add(bounce);
@@ -352,21 +353,26 @@ namespace DeadlyJenga.CandyArt
             MakeSpot("Blue evening light through side window", new Vector3(78f, 98f, -130f),
                 new Vector3(-75f, 15f, -125f), new Color(.08f, .27f, 1f), 18000f, 260f, 95f);
             MakeSpot("Warm reflected light across gift terraces", new Vector3(-95f, 100f, -190f),
-                new Vector3(-95f, 18f, -110f), new Color(1f, .81f, .60f), 8500f, 185f, 110f);
+                new Vector3(-95f, 18f, -110f), new Color(1f, .81f, .60f), 1200f, 185f, 110f);
             MakeSpot("Hearth bounce", new Vector3(-113, 37, -148),
-                new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 6500f, 240f, 100f);
+                new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 4500f, 240f, 100f);
             MakeLight("Golden light in the tree", LightType.Point,
-                new Vector3(-37, 60, -50), new Color(1f, .71f, .40f), 4500f, 130f);
+                new Vector3(-37, 60, -50), new Color(1f, .66f, .36f), 11000f, 150f);
+            // Coloured spill from the tree's bulbs onto the gifts nearest it.
+            MakeLight("Red bulb glow under the tree", LightType.Point,
+                new Vector3(-62f, 24f, -62f), new Color(1f, .22f, .28f), 2500f, 90f);
+            MakeLight("Teal bulb glow under the tree", LightType.Point,
+                new Vector3(-14f, 28f, -56f), new Color(.2f, .9f, .7f), 2000f, 90f);
             MakeLight("Glow in the train tunnel", LightType.Point,
                 new Vector3(-150, 16, -128), new Color(1f, .68f, .28f), 2600f, 38f);
             MakeSpot("Warm tree canopy bounce", new Vector3(-80f, 67f, -109f),
-                new Vector3(-37f, 80f, -35.7f), new Color(1f, .86f, .64f), 5000f, 150f, 75f);
+                new Vector3(-37f, 80f, -35.7f), new Color(1f, .86f, .64f), 3000f, 150f, 75f);
             MakeSpot("Warm fill across the junction", new Vector3(18, 30, -5),
-                new Vector3(10, 2, -69), new Color(1f, .76f, .51f), 4600f, 160f, 86f);
+                new Vector3(10, 2, -69), new Color(1f, .76f, .51f), 1500f, 160f, 86f);
             MakeLight("Floor lamp", LightType.Point,
-                new Vector3(-88, 59, 54), new Color(1f, .70f, .39f), 16000f, 170f);
+                new Vector3(-88, 59, 54), new Color(1f, .70f, .39f), 10000f, 170f);
             MakeSpot("Soft lamplight on velvet", new Vector3(-145f, 68f, -145f),
-                new Vector3(-215f, 30f, -105f), new Color(1f, .70f, .48f), 9000f, 170f, 100f);
+                new Vector3(-215f, 30f, -105f), new Color(1f, .70f, .48f), 2200f, 170f, 100f);
 
             var reflections = new GameObject("Christmas Room Reflections");
             reflections.transform.SetParent(art, false);
@@ -392,11 +398,11 @@ namespace DeadlyJenga.CandyArt
             tone.mode.Override(TonemappingMode.ACES);
             var bloom = grade.Add<Bloom>(true);
             bloom.threshold.Override(.9f);
-            bloom.intensity.Override(1.15f);
+            bloom.intensity.Override(1.35f);
             bloom.scatter.Override(.72f);
             var color = grade.Add<ColorAdjustments>(true);
-            color.postExposure.Override(.55f);
-            color.contrast.Override(26f);
+            color.postExposure.Override(.1f);
+            color.contrast.Override(30f);
             color.saturation.Override(38f);
             // Storybook grade: blue in the shadows, gold in the highlights.
             var split = grade.Add<SplitToning>(true);
@@ -404,7 +410,7 @@ namespace DeadlyJenga.CandyArt
             split.highlights.Override(new Color(1f, .80f, .50f));
             split.balance.Override(-10f);
             var edges = grade.Add<Vignette>(true);
-            edges.intensity.Override(.22f);
+            edges.intensity.Override(.32f);
             edges.smoothness.Override(.5f);
         }
 

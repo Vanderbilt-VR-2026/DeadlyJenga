@@ -50,7 +50,7 @@ namespace DeadlyJenga.CandyArt
             // Foil film, not paper: part mirror, glossy, slightly crinkled.
             // Cream is already bright, so it is less mirror-like and keeps less of its own glow.
             bool cream = color.g > .5f;
-            var material = Lacquer(label, color, .74f, cream ? .3f : .55f, .35f, cream ? .12f : .16f);
+            var material = Lacquer(label, color, .74f, cream ? .3f : .55f, .35f, cream ? .05f : .07f);
             if (!material.HasProperty("_Coat")) return material;
             material.SetFloat("_CoatSmoothness", .85f);
             material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Gold Snowflake Foil"));
@@ -63,7 +63,7 @@ namespace DeadlyJenga.CandyArt
             material.SetFloat("_FoilGlow", .7f);
             material.SetFloat("_TopLight", .2f);
             material.SetFloat("_EdgeLight", .35f);
-            material.SetFloat("_Foil", cream ? .8f : 1f);
+            material.SetFloat("_Foil", cream ? .45f : .55f);
             material.SetFloat("_Crinkle", .8f);
             material.SetFloat("_CrinkleSize", 1.8f);
             return material;
@@ -149,8 +149,8 @@ namespace DeadlyJenga.CandyArt
                     color = new Color(.95f, .66f, .22f);
                 else if (color.r > color.g * 3f)
                     color = new Color(.55f, .008f, .03f);
-                var satin = Lacquer("Satin " + name, color, .8f, .7f, .35f, .16f);
-                satin.SetFloat("_Foil", 1.1f);
+                var satin = Lacquer("Satin " + name, color, .8f, .7f, .35f, .08f);
+                satin.SetFloat("_Foil", .6f);
                 satin.SetFloat("_Crinkle", .4f);
                 return satin;
             }

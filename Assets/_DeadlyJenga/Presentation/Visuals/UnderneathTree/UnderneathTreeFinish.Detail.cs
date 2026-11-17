@@ -212,17 +212,18 @@ namespace DeadlyJenga.CandyArt
             var shader = Resources.Load<Shader>(ResourcePath + "Christmas Polished Floor");
             if (shader)
             {
-                varnish = new Material(shader) { name = "Polished walnut floor", color = new Color(.30f, .20f, .19f) };
+                varnish = new Material(shader) { name = "Polished walnut floor", color = new Color(.24f, .15f, .14f) };
+                varnish.SetFloat("_Mirror", 1.3f);
                 varnish.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Walnut Grain"));
                 varnish.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Mahogany Normal"));
                 // Amber lamplight by the sofa, blue window light on the other side.
                 // Lamp = where the glint comes from; wash = centre on the floor (x, z) and size.
                 varnish.SetVector("_GlowALamp", new Vector4(-219f, 40f, -109f, 0f));
-                varnish.SetVector("_GlowAWash", new Vector4(-195f, -170f, 115f, 0f));
-                varnish.SetColor("_GlowAColor", new Color(1f, .42f, .08f) * 3.2f);
+                varnish.SetVector("_GlowAWash", new Vector4(-195f, -170f, 85f, 0f));
+                varnish.SetColor("_GlowAColor", new Color(1f, .42f, .08f) * 1.5f);
                 varnish.SetVector("_GlowBLamp", new Vector4(70f, 40f, -116f, 0f));
-                varnish.SetVector("_GlowBWash", new Vector4(45f, -170f, 115f, 0f));
-                varnish.SetColor("_GlowBColor", new Color(.06f, .22f, 1f) * 7f);
+                varnish.SetVector("_GlowBWash", new Vector4(45f, -170f, 85f, 0f));
+                varnish.SetColor("_GlowBColor", new Color(.06f, .22f, 1f) * 3.2f);
                 materials.Add(varnish);
                 floorVarnish = varnish;
             }
@@ -378,9 +379,9 @@ namespace DeadlyJenga.CandyArt
             var bowColor = redBow ? new Color(.62f, .01f, .03f) :
                 finish.color.g > .6f ? new Color(.92f, .58f, .14f) : new Color(.88f, .46f, .05f);
             // Same foil as the ribbon, drawn on both sides of each loop.
-            var bowMaterial = Lacquer("Bow " + finish.name, bowColor, .8f, redBow ? .55f : .7f, .35f, .14f);
+            var bowMaterial = Lacquer("Bow " + finish.name, bowColor, .8f, redBow ? .55f : .7f, .35f, .07f);
             bowMaterial.SetFloat("_Cull", 0f);
-            bowMaterial.SetFloat("_Foil", 1.1f);
+            bowMaterial.SetFloat("_Foil", .6f);
             bowMaterial.SetFloat("_TopLight", 0f);
             bowMaterial.SetFloat("_EdgeLight", 0f);
             var obj = new GameObject("Hand-tied satin bow", typeof(MeshFilter), typeof(MeshRenderer));
