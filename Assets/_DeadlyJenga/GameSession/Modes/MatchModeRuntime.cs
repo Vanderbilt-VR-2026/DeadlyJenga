@@ -119,7 +119,7 @@ namespace DeadlyJenga.Modes
             bool enemy=actor.gameObject.GetComponent<IEnemyActor>()?.IsEnemy==true;
             var experience=RoomGameExperience.ForManagedMatch(session);
             bool deferred=experience&&!enemy&&!actor.IsBot&&!experience.IsLaunchedActor(id);
-            var p=enemy?simulation.RegisterEnemy(id,new Color(.035f,.045f,.065f)):simulation.Register(id,identity?.color??actor.Color,actor.IsBot,local,deferred);
+            var p=enemy?simulation.RegisterEnemy(id,new Color(.035f,.045f,.065f)):simulation.Register(id,identity?.color??(actor.IsBot&&fresh?NextBotColor():actor.Color),actor.IsBot,local,deferred);
             if(!deferred&&!enemy&&p!=null&&p.frame.alive&&MysteryActive&&mystery.Role(id)==MysteryRole.Random)mystery.RegisterLate(id);
             if(fresh&&identity!=null)simulation.PreserveIdentity(id,identity.noun);
             if(p!=null)actor.SetIdentity(id,p.frame.name,p.frame.team,p.frame.color);
@@ -395,5 +395,14 @@ namespace DeadlyJenga.Modes
         }
         static string ModeId(GameModeKind mode)
         {switch(mode){case GameModeKind.Survival:return "survival";case GameModeKind.KingOfHill:return "hill";case GameModeKind.BlockControl:return "blockcontrol";case GameModeKind.CaptureFlag:return "ctf";case GameModeKind.Infection:return "infection";case GameModeKind.TeamTickets:return "teamtickets";case GameModeKind.MurderMystery:return "mystery";case GameModeKind.Ninja:return "ninja";default:return "demo";}}
+        // Bots start on their avatar's first color (red). Give each new bot the least-used survivor color instead.
+        Color NextBotColor()
+        {
+            var colors=ModeNames.Colors;var used=new int[colors.Length];
+            foreach(var p in simulation.Participants)
+                for(int i=0;i<colors.Length;i++)if(((Vector4)p.frame.survivorColor-(Vector4)colors[i]).sqrMagnitude<.001f){used[i]++;break;}
+            int best=0;for(int i=1;i<colors.Length;i++)if(used[i]<used[best])best=i;
+            return colors[best];
+        }
     }
 }

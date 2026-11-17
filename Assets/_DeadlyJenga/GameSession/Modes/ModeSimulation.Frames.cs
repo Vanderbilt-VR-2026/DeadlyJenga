@@ -97,7 +97,7 @@ namespace DeadlyJenga.Modes
         bool CanSpectate(Participant viewer,Participant target)
         {
             if(!target.present||!target.frame.alive||target==viewer)return false;
-            if(!TeamMode(Rules.mode)||viewer.frame.team==target.frame.team)return true;
+            if(!TeamMode(Rules)||viewer.frame.team==target.frame.team)return true;
             foreach(var p in players.Values)if(p.present&&p.frame.alive&&p.frame.team==viewer.frame.team)return false;
             return true;
         }

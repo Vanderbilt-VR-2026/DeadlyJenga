@@ -472,7 +472,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             properties??=new MaterialPropertyBlock();
             var actor=rig.GetComponentInParent<IModeActor>();var rules=actor!=null?MatchRuntime.Current?.RulesFor(actor.gameObject):null;
-            bool teamed=actor!=null&&actor.Team>=0&&rules!=null&&(rules.mode==GameModeKind.CaptureFlag||rules.mode==GameModeKind.TeamTickets||rules.mode==GameModeKind.BlockControl);
+            bool teamed=actor!=null&&actor.Team>=0&&rules!=null&&(rules.mode==GameModeKind.Demo&&rules.teamCount>=2||rules.mode==GameModeKind.CaptureFlag||rules.mode==GameModeKind.TeamTickets||rules.mode==GameModeKind.BlockControl);
             if (approvedOriginal)
             {
                 RefreshApprovedSkin(rig, teamed ? actor.Color : (Color?)null);

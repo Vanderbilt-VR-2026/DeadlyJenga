@@ -551,7 +551,7 @@ namespace DeadlyJenga.Presentation
         void Nameplates(MatchFrame f,string local)
         {
             active.Clear();if(!camera)return;int shown=0;
-            bool teamMode=f.rules.mode==GameModeKind.BlockControl||f.rules.mode==GameModeKind.CaptureFlag||f.rules.mode==GameModeKind.TeamTickets;
+            bool teamMode=f.rules.mode==GameModeKind.BlockControl||f.rules.mode==GameModeKind.CaptureFlag||f.rules.mode==GameModeKind.TeamTickets||f.rules.mode==GameModeKind.Demo&&f.rules.teamCount>=2;
             bool competitive=!teamMode&&f.rules.mode!=GameModeKind.Demo&&f.rules.punchEnabled;
             foreach(var p in f.players)
             {

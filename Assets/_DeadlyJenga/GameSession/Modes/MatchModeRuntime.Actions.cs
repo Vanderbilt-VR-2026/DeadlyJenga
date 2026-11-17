@@ -185,7 +185,7 @@ namespace DeadlyJenga.Modes
         }
         int ParticipantOrdinal(ModeSimulation.Participant target)
         {
-            int n=0;foreach(var p in simulation.Participants){if(p==target)break;if(!ModeSimulation.TeamMode(Rules.mode)||p.frame.team==target?.frame.team)n++;}return n;
+            int n=0;foreach(var p in simulation.Participants){if(p==target)break;if(!ModeSimulation.TeamMode(Rules)||p.frame.team==target?.frame.team)n++;}return n;
         }
         bool localTimedHand;
         Pose? remoteHandReturn;
