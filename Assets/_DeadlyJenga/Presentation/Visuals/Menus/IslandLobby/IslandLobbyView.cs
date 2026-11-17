@@ -226,7 +226,7 @@ namespace DeadlyJenga.CastlePrototype
             var experience=session as IGameExperienceControls;
             var view=session?.ActiveCamera;
             bool show=view&&ReferenceEquals(Services.Session,session)&&experience?.AutomaticRounds==true&&
-                experience.GamePhase==RoomGamePhase.Selected&&experience.CountdownSeconds>0&&
+                experience.GamePhase==RoomGamePhase.Selected&&experience.CountdownSeconds>0&&experience.CountdownSeconds<=25f&&
                 experience.ProfileId?.StartsWith("play:",StringComparison.Ordinal)==true;
             if(!show)
             {
