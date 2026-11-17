@@ -9,6 +9,14 @@ Shader "DeadlyJenga/Christmas Foil Paper"
         _Sheen("Fiber Sheen", Range(0,1)) = 0.0
         _FoilColor("Gold Snowflake Foil", Color) = (0.95,0.64,0.20,1)
         _Smoothness("Pile Smoothness", Range(0,1)) = 0.18
+        _Metallic("Paper Metallic", Range(0,1)) = 0
+        _Coat("Lacquer Coat", Range(0,1)) = 0
+        _CoatSmoothness("Lacquer Smoothness", Range(0,1)) = 0.9
+        _FoilGlow("Foil Self Glow", Range(0,2)) = 0
+        // Warm room light the lacquer picks up when you look across a face.
+        [HDR] _GlossColor("Room Light On Lacquer", Color) = (0,0,0,1)
+        // Paper colour that shows even in shadow; the power-cut code turns it off.
+        [HDR] _EmissionColor("Colour Kept In Shadow", Color) = (0,0,0,1)
         [HideInInspector] _Cutoff("Cutout Threshold", Float) = 0.5
         [HideInInspector] _Cull("Cull", Float) = 2
         [HideInInspector] _ZWrite("Depth Write", Float) = 1
@@ -29,10 +37,15 @@ Shader "DeadlyJenga/Christmas Foil Paper"
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
+            #pragma multi_compile_fragment _ _REFLECTION_PROBE_BOX_PROJECTION
+            #pragma multi_compile_fragment _ _REFLECTION_PROBE_ATLAS
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
             #pragma target 3.5
+            // The glossy lacquer layer over the paper.
+            #define _CLEARCOAT 1
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/SurfaceInput.hlsl"
@@ -44,6 +57,12 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 half _BumpScale;
                 half _Sheen;
                 half _Smoothness;
+                half _Metallic;
+                half _Coat;
+                half _CoatSmoothness;
+                half _FoilGlow;
+                half4 _EmissionColor;
+                half4 _GlossColor;
             CBUFFER_END
 
             struct FabricAttributes
@@ -102,33 +121,44 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 half3 pattern = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.uv), _BumpScale);
                 half3 normal = NormalizeNormalPerPixel(TransformTangentToWorld(pattern, half3x3(tangent, bitangent, n)));
 
-                InputData data = (InputData)0;
-                data.positionWS = input.positionWS;
-                data.positionCS = input.positionCS;
-                data.normalWS = normal;
-                data.viewDirectionWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
-                data.shadowCoord = input.shadowCoord;
-                data.vertexLighting = input.vertexLighting;
-                data.bakedGI = SampleSH(normal);
-                data.shadowMask = half4(1, 1, 1, 1);
-                data.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
+                InputData inputData = (InputData)0;
+                inputData.positionWS = input.positionWS;
+                inputData.positionCS = input.positionCS;
+                inputData.normalWS = normal;
+                inputData.viewDirectionWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
+                inputData.shadowCoord = input.shadowCoord;
+                inputData.vertexLighting = input.vertexLighting;
+                inputData.bakedGI = SampleSH(normal);
+                inputData.shadowMask = half4(1, 1, 1, 1);
+                inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
 
                 SurfaceData surface = (SurfaceData)0;
                 half3 paper = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).rgb;
                 half foil = smoothstep(0.035h, 0.25h, paper.r - paper.b);
                 surface.albedo = lerp(_BaseColor.rgb * (0.90h + 0.10h * paper.g), _FoilColor.rgb, foil);
-                surface.metallic = foil * 0.65h;
+                surface.metallic = lerp(_Metallic, 0.8h, foil);
                 surface.alpha = 1;
-                surface.smoothness = lerp(_Smoothness, 0.76h, foil);
+                surface.smoothness = lerp(_Smoothness, 0.84h, foil);
+                surface.clearCoatMask = _Coat;
+                surface.clearCoatSmoothness = _CoatSmoothness;
+                surface.emission = surface.albedo * lerp(_EmissionColor.rgb, _FoilGlow * step(0.0001h, _EmissionColor.g), foil);
                 surface.occlusion = 1;
                 surface.normalTS = pattern;
-                half4 result = UniversalFragmentPBR(data, surface);
+                half4 result = UniversalFragmentPBR(inputData, surface);
 
-                Light key = GetMainLight(data.shadowCoord);
-                half grazing = 1.0h - saturate(dot(n, data.viewDirectionWS));
+                Light key = GetMainLight(inputData.shadowCoord);
+                half grazing = 1.0h - saturate(dot(n, inputData.viewDirectionWS));
                 half forwardScatter = saturate(dot(normal, key.direction) * 0.6h + 0.25h);
                 half3 lint = lerp(surface.albedo, half3(0.85h, 0.72h, 0.58h), 0.36h);
                 result.rgb += lint * key.color * key.shadowAttenuation * (grazing * grazing * forwardScatter * _Sheen);
+                // Lamps and tree lights sit low around the room, so the lacquer shines most
+                // where its reflection points just above the horizon.
+                half3 bounce = reflect(-inputData.viewDirectionWS, normal);
+                half band = smoothstep(-0.12h, 0.22h, bounce.y) * (1.0h - smoothstep(0.4h, 0.95h, bounce.y));
+                half across = 0.06h + 0.94h * grazing * grazing * grazing;
+                // Mostly tinted by the paper, so the shine keeps the colour rich instead of milky.
+                half3 shine = _GlossColor.rgb * lerp(half3(1, 1, 1), saturate(surface.albedo * 2.5h), 0.65h);
+                result.rgb += shine * (band * across * _Coat) * step(0.0001h, _EmissionColor.g);
                 result.rgb = MixFog(result.rgb, input.fog);
                 return result;
             }

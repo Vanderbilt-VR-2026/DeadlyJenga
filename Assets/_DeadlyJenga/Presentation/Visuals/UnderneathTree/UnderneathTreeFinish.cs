@@ -103,6 +103,8 @@ namespace DeadlyJenga.CandyArt
                 roomPipeline.shadowCascadeCount = Application.platform == RuntimePlatform.Android ? 2 : 4;
                 roomPipeline.mainLightShadowmapResolution = Application.platform == RuntimePlatform.Android ? 2048 : 4096;
                 roomPipeline.supportsHDR = true;
+                // Enough lamps per object for the floor to catch the ones nearest it.
+                roomPipeline.maxAdditionalLightsCount = 8;
                 QualitySettings.renderPipeline = roomPipeline;
             }
             BuildLighting();
@@ -360,6 +362,12 @@ namespace DeadlyJenga.CandyArt
                 new Vector3(10, 2, -69), new Color(1f, .76f, .51f), 4600f, 160f, 86f);
             MakeLight("Floor lamp", LightType.Point,
                 new Vector3(-88, 59, 54), new Color(1f, .70f, .39f), 16000f, 170f);
+            // Low lamps on the far side of the bare boards: seen from the play area,
+            // their light streaks across the varnish toward you.
+            MakeLight("Lamplight glinting on the floor", LightType.Point,
+                new Vector3(-185f, 34f, -150f), new Color(1f, .62f, .32f), 6500f, 170f);
+            MakeLight("Window light glinting on the floor", LightType.Point,
+                new Vector3(62f, 40f, -150f), new Color(.20f, .42f, 1f), 8000f, 170f);
             MakeSpot("Soft lamplight on velvet", new Vector3(-145f, 68f, -145f),
                 new Vector3(-215f, 30f, -105f), new Color(1f, .78f, .62f), 3500f, 150f, 90f);
 
@@ -370,7 +378,8 @@ namespace DeadlyJenga.CandyArt
             roomProbe.mode = ReflectionProbeMode.Realtime;
             roomProbe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
             roomProbe.timeSlicingMode = ReflectionProbeTimeSlicingMode.IndividualFaces;
-            roomProbe.resolution = 128;
+            roomProbe.resolution = 256;
+            roomProbe.hdr = true;
             roomProbe.size = new Vector3(340f, 180f, 340f);
             roomProbe.boxProjection = true;
             roomProbe.intensity = .85f;
@@ -389,7 +398,7 @@ namespace DeadlyJenga.CandyArt
             bloom.intensity.Override(.9f);
             bloom.scatter.Override(.7f);
             var color = grade.Add<ColorAdjustments>(true);
-            color.postExposure.Override(.65f);
+            color.postExposure.Override(.55f);
             color.contrast.Override(24f);
             color.saturation.Override(26f);
         }

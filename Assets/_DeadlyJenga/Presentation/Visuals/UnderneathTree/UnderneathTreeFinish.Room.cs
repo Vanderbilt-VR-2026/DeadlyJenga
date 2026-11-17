@@ -42,21 +42,40 @@ namespace DeadlyJenga.CandyArt
         Material FoilPaper(string label, Color color)
         {
             if (finishes.TryGetValue(label, out var cached)) return cached;
-            var shader = Resources.Load<Shader>(ResourcePath + "Christmas Foil Paper");
-            if (!shader) return Surface(label, "Winter Print", color, .4f, new Vector2(1.5f, 1.5f));
-            if (color.b > color.r * 2f && color.b > color.g) color = new Color(.035f, .13f, .62f);
-            else if (color.g > color.r * 2f && color.g > color.b) color = new Color(.03f, .40f, .15f);
-            else if (color.r > color.g * 3f) color = new Color(.80f, .03f, .07f);
-            else color = new Color(.98f, .80f, .56f);
-            var material = new Material(shader) { name = label, color = color, enableInstancing = true };
+            // Deep jewel colours, like the approved picture.
+            if (color.b > color.r * 2f && color.b > color.g) color = new Color(.02f, .075f, .46f);
+            else if (color.g > color.r * 2f && color.g > color.b) color = new Color(.012f, .26f, .075f);
+            else if (color.r > color.g * 3f) color = new Color(.58f, .008f, .032f);
+            else color = new Color(.86f, .61f, .37f);
+            var material = Lacquer(label, color, .5f, 0f, 1f, .07f);
+            material.SetFloat("_CoatSmoothness", .74f);
+            if (!material.HasProperty("_Coat")) return material;
             material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Gold Snowflake Foil"));
             material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Paper Normal"));
             // Several snowflakes across each face, like the approved picture.
-            material.SetTextureScale("_BaseMap", new Vector2(1.6f, 1.6f));
+            material.SetTextureScale("_BaseMap", new Vector2(2f, 2f));
             material.SetFloat("_BumpScale", .16f);
-            material.SetFloat("_Smoothness", .5f);
+            material.SetColor("_FoilColor", new Color(1f, .66f, .18f));
+            material.SetFloat("_FoilGlow", .25f);
+            return material;
+        }
+
+        // Glossy coated paper or satin: a colour under a clear shiny layer.
+        // glow = how much of its own colour it keeps in shadow, so it never goes grey.
+        Material Lacquer(string label, Color color, float smoothness, float metallic, float coat, float glow)
+        {
+            if (finishes.TryGetValue(label, out var cached)) return cached;
+            var shader = Resources.Load<Shader>(ResourcePath + "Christmas Foil Paper");
+            if (!shader) return Surface(label, null, color, smoothness, Vector2.one, metallic);
+            var material = new Material(shader) { name = label, color = color, enableInstancing = true };
+            material.SetFloat("_Smoothness", smoothness);
+            material.SetFloat("_Metallic", metallic);
+            material.SetFloat("_Coat", coat);
+            material.SetFloat("_CoatSmoothness", .78f);
+            material.SetColor("_GlossColor", new Color(1f, .74f, .46f) * .45f);
             material.SetFloat("_Sheen", 0f);
-            material.SetColor("_FoilColor", new Color(1f, .72f, .24f));
+            material.SetFloat("_BumpScale", 0f);
+            material.SetColor("_EmissionColor", new Color(glow, glow, glow));
             materials.Add(material);
             finishes.Add(label, material);
             return material;
@@ -111,13 +130,15 @@ namespace DeadlyJenga.CandyArt
             }
             if (name.Contains("ribbon") || name.Contains("Ribbon") || name.Contains("Satin"))
             {
-                bool gold = name.Contains("Gold") || name.Contains("gold");
-                if (gold)
-                    color = new Color(1f, .66f, .17f);
-                var satin = Surface("Satin " + name, null, color, .74f, Vector2.one, gold ? .25f : 0f);
-                satin.SetColor("_EmissionColor", color * .10f);
-                satin.EnableKeyword("_EMISSION");
-                return satin;
+                // The approved picture only has gold and red ribbon, so ivory becomes pale gold.
+                if (name.Contains("Gold") || name.Contains("gold"))
+                    color = new Color(.95f, .52f, .08f);
+                else if (name.Contains("Ivory"))
+                    color = new Color(.95f, .66f, .22f);
+                else if (color.r > color.g * 3f)
+                    color = new Color(.55f, .008f, .03f);
+                bool metal = color.g > .4f;
+                return Lacquer("Satin " + name, color, .72f, metal ? .45f : 0f, .7f, .08f);
             }
             if (name.Contains("gift wrap") || name.Contains("gift Wrap") || name.Contains("Mulberry"))
                 return FoilPaper(name + " paper", color);

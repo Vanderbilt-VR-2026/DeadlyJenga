@@ -204,31 +204,78 @@ namespace DeadlyJenga.CandyArt
             return detail;
         }
 
+        // Flat staggered boards. Each board leans a hair differently, so the reflection
+        // breaks from board to board like a real floor.
         void BuildFloorboards()
         {
+            Material varnish;
+            var shader = Resources.Load<Shader>(ResourcePath + "Christmas Polished Floor");
+            if (shader)
+            {
+                varnish = new Material(shader) { name = "Polished walnut floor", color = new Color(.44f, .28f, .23f) };
+                varnish.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Walnut Grain"));
+                varnish.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Mahogany Normal"));
+                materials.Add(varnish);
+            }
+            else
+                varnish = Surface("Polished walnut floor", "Walnut Grain", new Color(.44f, .28f, .23f), .74f,
+                    new Vector2(.86f, 1.05f), 0f, .35f);
+
+            // Unity lights each mesh with only its few nearest lamps,
+            // so the floor is cut into tiles that each find their own.
+            var tiles = new Dictionary<int, FloorTile>();
             var random = new System.Random(2419);
-            var boards = new List<CombineInstance>[5];
-            var cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
-            for (int i = 0; i < boards.Length; i++)
-                boards[i] = new List<CombineInstance>();
+            const float width = 7.9f;
             for (int row = 0; row < 43; row++)
             {
-                float x = -254.1f + row * 7.9f;
+                float x = -254.1f + row * width - width * .5f;
                 for (float z = -260f; z < 76.8f;)
                 {
                     float length = Mathf.Min(77f - z, Range(random, 23f, 42f));
-                    boards[random.Next(boards.Length)].Add(Part(cube,
-                        new Vector3(x, .008f, z + length * .5f), new Vector3(7.82f, .051f, length - .12f)));
+                    float shade = Range(random, .72f, 1.18f);
+                    var tint = new Color(shade, shade * Range(random, .94f, 1.04f), shade * Range(random, .90f, 1.05f));
+                    var lean = new Vector3(Range(random, -.006f, .006f), 1f, Range(random, -.004f, .004f)).normalized;
+                    float u = Range(random, 0f, 1f), v = Range(random, 0f, 1f);
+                    int key = row / 7 * 100 + Mathf.FloorToInt((z + length * .5f + 260f) / 56f);
+                    if (!tiles.TryGetValue(key, out var tile))
+                        tiles.Add(key, tile = new FloorTile());
+                    int first = tile.vertices.Count;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        float across = i == 1 || i == 2 ? 1f : 0f, along = i >= 2 ? 1f : 0f;
+                        tile.vertices.Add(new Vector3(x + across * width, .034f, z + along * length));
+                        tile.normals.Add(lean);
+                        // The grain runs along the board; each board starts at a different place in the picture.
+                        tile.grain.Add(new Vector2(u + across * .21f, v + along * length / 46f));
+                        tile.board.Add(new Vector4(across * width, along * length, width, length));
+                        tile.tints.Add(tint);
+                    }
+                    tile.faces.Add(first); tile.faces.Add(first + 3); tile.faces.Add(first + 2);
+                    tile.faces.Add(first); tile.faces.Add(first + 2); tile.faces.Add(first + 1);
                     z += length;
                 }
             }
-            for (int i = 0; i < boards.Length; i++)
+            foreach (var tile in tiles.Values)
             {
-                float tint = Mathf.Lerp(.76f, 1.2f, i / (float)(boards.Length - 1));
-                var varnish = Surface("Polished walnut board " + i, "Walnut Grain",
-                    new Color(.50f * tint, .48f * tint, .46f * tint), .46f, new Vector2(.86f, 1.05f), 0f, .35f);
-                Combined("Staggered hardwood boards " + i, boards[i], varnish, ShadowCastingMode.Off);
+                var mesh = new Mesh { name = "Staggered hardwood boards" };
+                mesh.SetVertices(tile.vertices);
+                mesh.SetNormals(tile.normals);
+                mesh.SetUVs(0, tile.grain);
+                mesh.SetUVs(1, tile.board);
+                mesh.SetColors(tile.tints);
+                mesh.SetTriangles(tile.faces, 0);
+                AddMesh("Staggered hardwood boards", mesh, varnish, ShadowCastingMode.Off);
             }
+        }
+
+        sealed class FloorTile
+        {
+            public readonly List<Vector3> vertices = new List<Vector3>();
+            public readonly List<Vector3> normals = new List<Vector3>();
+            public readonly List<Vector2> grain = new List<Vector2>();
+            public readonly List<Vector4> board = new List<Vector4>();
+            public readonly List<Color> tints = new List<Color>();
+            public readonly List<int> faces = new List<int>();
         }
 
         void BuildFleece()
@@ -317,10 +364,10 @@ namespace DeadlyJenga.CandyArt
             }
 
             var finish = ChooseFinish(strip.name, strip.sharedMaterial) ?? strip.sharedMaterial;
-            var bowMaterial = Surface("Bow " + finish.name, null, finish.color * 1.2f, .80f, Vector2.one, .2f);
+            var bowMaterial = Surface("Bow " + finish.name, null, finish.color * 1.15f, .86f, Vector2.one, .3f);
             bowMaterial.SetFloat("_Cull", 0f);
             // A little of its own colour keeps the shaded side of the satin from turning brown.
-            bowMaterial.SetColor("_EmissionColor", finish.color * .16f);
+            bowMaterial.SetColor("_EmissionColor", finish.color * .20f);
             bowMaterial.EnableKeyword("_EMISSION");
             var obj = new GameObject("Hand-tied satin bow", typeof(MeshFilter), typeof(MeshRenderer));
             obj.GetComponent<MeshFilter>().sharedMesh = giftBow;
