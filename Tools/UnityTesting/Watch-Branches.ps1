@@ -17,7 +17,9 @@ param(
     [int] $TimeoutMinutes = 120,
     [switch] $Once
 )
-$ErrorActionPreference = 'Stop'
+# Continue: git writes progress to stderr, which PowerShell 5.1 would treat as an error.
+# Failures are caught through exit codes instead.
+$ErrorActionPreference = 'Continue'
 $repo = Join-Path $Root 'repo'
 $resultsRepo = Join-Path $Root 'results'
 $stateFile = Join-Path $Root 'state.json'
@@ -31,7 +33,7 @@ function Log($text) {
 }
 function Git([string] $dir) {
     # Runs git with the remaining arguments; throws on failure.
-    $out = & git -C $dir @args 2>&1
+    $out = & git.exe -C $dir @args 2>&1
     if ($LASTEXITCODE -ne 0) { throw "git $($args -join ' ') failed: $out" }
     $out
 }
@@ -49,13 +51,15 @@ function Save-State($state) { $state | ConvertTo-Json | Set-Content -Encoding ut
 function Ensure-ResultsRepo {
     if (Test-Path (Join-Path $resultsRepo '.git')) { return }
     Git $repo worktree prune | Out-Null
-    $remote = & git -C $repo ls-remote --heads origin $resultsBranch
+    $remote = & git.exe -C $repo ls-remote --heads origin $resultsBranch
     if ($remote) {
         Git $repo fetch origin "+refs/heads/${resultsBranch}:refs/remotes/origin/$resultsBranch" | Out-Null
         Git $repo worktree add --force -B $resultsBranch $resultsRepo "origin/$resultsBranch" | Out-Null
     } else {
-        Git $repo worktree add --detach $resultsRepo | Out-Null
+        # --no-checkout: the results branch holds only reports, never the game files.
+        Git $repo worktree add --no-checkout --detach $resultsRepo | Out-Null
         Git $resultsRepo switch --orphan $resultsBranch | Out-Null
+        Git $resultsRepo rm -r -q --cached --ignore-unmatch . | Out-Null
         Set-Content -Encoding utf8 (Join-Path $resultsRepo 'README.md') @"
 # Unity test results
 
@@ -74,15 +78,15 @@ function Publish($branch, $sha, $dir) {
     $safe = $branch -replace '[^A-Za-z0-9._-]', '__'
     $target = Join-Path $resultsRepo "results\$safe"
     New-Item -ItemType Directory -Force (Join-Path $target 'history') | Out-Null
-    Copy-Item (Join-Path $dir 'results.json') (Join-Path $target 'latest.json') -Force
-    Copy-Item (Join-Path $dir 'results.json') (Join-Path $target "history\$sha.json") -Force
-    Copy-Item (Join-Path $dir 'report.md') (Join-Path $target 'latest.md') -Force
+    Copy-Item (Join-Path $dir 'results.json') (Join-Path $target 'latest.json') -Force -ErrorAction Stop
+    Copy-Item (Join-Path $dir 'results.json') (Join-Path $target "history\$sha.json") -Force -ErrorAction Stop
+    Copy-Item (Join-Path $dir 'report.md') (Join-Path $target 'latest.md') -Force -ErrorAction Stop
     if (Test-Path (Join-Path $dir 'results.xml')) { Copy-Item (Join-Path $dir 'results.xml') (Join-Path $target 'latest.xml') -Force }
     $r = Get-Content (Join-Path $dir 'results.json') -Raw | ConvertFrom-Json
     for ($try = 1; $try -le 4; $try++) {
         try {
             Git $resultsRepo add -A | Out-Null
-            & git -C $resultsRepo diff --cached --quiet
+            & git.exe -C $resultsRepo diff --cached --quiet
             if ($LASTEXITCODE -ne 0) {
                 Git $resultsRepo commit -q -m "Unity tests $($r.test_status) for $branch @ $($sha.Substring(0,8))" | Out-Null
             }
@@ -91,7 +95,7 @@ function Publish($branch, $sha, $dir) {
             return
         } catch {
             Log "push attempt $try failed: $($_.Exception.Message)"
-            & git -C $resultsRepo pull -q --rebase origin $resultsBranch 2>&1 | Out-Null
+            & git.exe -C $resultsRepo pull -q --rebase origin $resultsBranch 2>&1 | Out-Null
             Start-Sleep (15 * $try)
         }
     }
@@ -110,7 +114,7 @@ function Test-Commit($branch, $sha) {
     $code = $LASTEXITCODE
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $bin 'Publish-TestSummary.ps1') -ResultsDir $dir
     # Unity may touch settings files while importing; drop that so the next checkout is clean.
-    & git -C $repo checkout -q --force -- . 2>&1 | Out-Null
+    & git.exe -C $repo checkout -q --force -- . 2>&1 | Out-Null
     Publish $branch $sha $dir
     $code
 }
@@ -121,7 +125,7 @@ function Cycle {
     $refs = @(); foreach ($p in $Patterns) { $refs += "+refs/heads/${p}:refs/remotes/origin/$p" }
     Git $repo fetch -q --prune origin @refs | Out-Null
     $heads = foreach ($p in $Patterns) {
-        & git -C $repo for-each-ref --format='%(refname:lstrip=3) %(objectname)' "refs/remotes/origin/$($p.TrimEnd('*'))"
+        & git.exe -C $repo for-each-ref --format='%(refname:lstrip=3) %(objectname)' "refs/remotes/origin/$($p.TrimEnd('*'))"
     }
     foreach ($line in $heads) {
         if (-not $line) { continue }
