@@ -45,6 +45,44 @@ namespace DeadlyJenga.CandyArt
             AddModel("Fir light strings", "Fir Wire", treeCenter, ShadowCastingMode.Off,
                 Surface("Green vintage light cable", null, new Color(.02f, .05f, .025f), .3f, Vector2.one));
             LightFir(treeCenter);
+            TopStar(treeCenter);
+        }
+
+        // A glowing gold star on the very top, facing into the room (the photos all have one).
+        void TopStar(Vector3 treeCenter)
+        {
+            // The model already has a small brass star on the leader, 1.5 above the trunk top
+            // (fir.py), facing along z. This one sits over it, a little bigger, and glows.
+            var trunk = Resources.Load<Mesh>(ResourcePath + "Fir Trunk");
+            if (!trunk)
+                return;
+            float centre = (trunk.bounds.max.y + 1.5f) * FirScale;
+            const float outer = 10.5f, inner = 4.3f, depth = 2.4f;
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            // Each point of the star is two flat triangles per face, sharing a raised centre.
+            for (int face = -1; face <= 1; face += 2)
+            for (int i = 0; i < 10; i++)
+            {
+                float a0 = i * Mathf.PI / 5f, a1 = (i + 1) * Mathf.PI / 5f;
+                float r0 = i % 2 == 0 ? outer : inner, r1 = i % 2 == 0 ? inner : outer;
+                int start = vertices.Count;
+                vertices.Add(new Vector3(0f, 0f, face * depth));
+                vertices.Add(new Vector3(Mathf.Sin(a0) * r0, Mathf.Cos(a0) * r0, 0f));
+                vertices.Add(new Vector3(Mathf.Sin(a1) * r1, Mathf.Cos(a1) * r1, 0f));
+                if (face < 0) { triangles.Add(start); triangles.Add(start + 1); triangles.Add(start + 2); }
+                else { triangles.Add(start); triangles.Add(start + 2); triangles.Add(start + 1); }
+            }
+            var mesh = new Mesh { name = "Tree top star" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            var gold = Glow("Tree star gold", new Color(1f, .80f, .38f), 3.2f);
+            gold.SetFloat("_Metallic", .6f);
+            var star = AddMesh("Tree top star", mesh, gold, ShadowCastingMode.Off).transform;
+            star.localPosition = treeCenter + Vector3.up * centre;
+            MakeLight("Tree star glow", LightType.Point, star.localPosition + new Vector3(-4f, 0f, -6f),
+                new Color(1f, .82f, .5f), 2500f, 70f);
         }
 
         void AddModel(string label, string model, Vector3 position, ShadowCastingMode shadows, Material material)

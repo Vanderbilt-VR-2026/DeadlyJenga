@@ -221,7 +221,6 @@ namespace DeadlyJenga.CandyArt
                 .49f, new Vector2(10, 3f), 0f, .4f);
             var casing = Surface("Cream window casing", "Paper", new Color(.79f, .68f, .54f),
                 .48f, new Vector2(2, 2));
-            var stone = Surface("Fieldstone chimney", "Brick", new Color(.62f, .56f, .52f), .22f, new Vector2(4, 9), 0f, .9f);
             var beam = Surface("Dark timber", "Walnut Grain", new Color(.30f, .19f, .12f), .35f, new Vector2(1, 6));
 
             WallAlongX("North wall", RoomNorth, RoomWest, RoomEast, WindowWest, WindowEast, WindowSill, WindowHead, plaster);
@@ -256,13 +255,8 @@ namespace DeadlyJenga.CandyArt
             NightWindow("Upper window snow", new Vector3((WindowWest + WindowEast) * .5f, (160f + WindowHead) * .5f, RoomNorth + 1.3f),
                 new Vector2(WindowEast - WindowWest, WindowHead - 160f), Quaternion.identity);
 
-            // Stone fireplace and chimney on the east wall.
-            Box("Stone chimney", new Vector3(RoomEast - 14f, RoomTop * .5f, HearthZ), new Vector3(26f, RoomTop, 150f), stone);
-            Box("Stone hearth", new Vector3(RoomEast - 34f, 3f, HearthZ), new Vector3(38f, 6f, 170f), stone);
-            Box("Oak mantel", new Vector3(RoomEast - 32f, 92f, HearthZ), new Vector3(16f, 7f, 166f), beam);
-            Box("Firebox", new Vector3(RoomEast - 27.5f, 30f, HearthZ), new Vector3(2f, 52f, 70f),
-                Surface("Sooty firebox", null, new Color(.05f, .03f, .02f), .1f, Vector2.one));
-            BuildHearth();
+            // Stone fireplace on the east wall (see UnderneathTreeFinish.Fireplace.cs).
+            BuildFireplace();
 
             // Two-storey west side: a loft balcony on posts, stairs up along the south wall.
             Box("Loft floor", new Vector3((RoomWest + LoftEdge) * .5f, LoftHeight + 4f, midZ), new Vector3(LoftEdge - RoomWest, 8f, spanZ), wood);
@@ -394,47 +388,6 @@ namespace DeadlyJenga.CandyArt
             mesh.RecalculateNormals();
             mesh.RecalculateTangents();
             AddMesh(label, mesh, material, ShadowCastingMode.TwoSided);
-        }
-
-        void BuildHearth()
-        {
-            var amber = Glow("Amber fireglass", new Color(1f, .12f, .012f), 1.8f);
-            var center = Glow("Yellow flame", new Color(1f, .39f, .035f), 2.7f);
-            var log = Surface("Charred birch", "Mahogany", new Color(.14f, .071f, .039f), .33f, new Vector2(3, 2));
-            var rand = new System.Random(2114);
-            for (int i = 0; i < 7; i++)
-            {
-                var timber = Primitive("Hearth log", PrimitiveType.Cylinder,
-                    new Vector3(RoomEast - 40f + (i % 2) * 3.4f, 8f + (i % 3) * 1.7f, HearthZ - 20f + i * 5.8f),
-                    new Vector3(3.1f, 8.4f, 3.1f), log);
-                timber.localRotation = Quaternion.Euler(18f, 20f * i, 71f);
-            }
-            for (int i = 0; i < 16; i++)
-            {
-                var pos = new Vector3(RoomEast - Range(rand, 36f, 41f), Range(rand, 10f, 16f), HearthZ - 20f + Range(rand, 0f, 39f));
-                float height = Range(rand, 5.2f, 11f);
-                var flame = Primitive("Hearth flame", PrimitiveType.Sphere, pos,
-                    new Vector3(Range(rand, 2.4f, 4.9f), height, Range(rand, 1.5f, 2.6f)),
-                    i % 3 == 0 ? center : amber);
-                var flameMesh = Instantiate(flame.GetComponent<MeshFilter>().sharedMesh);
-                var flameVertices = flameMesh.vertices;
-                for (int v = 0; v < flameVertices.Length; v++)
-                {
-                    var point = flameVertices[v];
-                    float rise = point.y + .5f;
-                    float taper = Mathf.Lerp(1.05f, .12f, rise * rise);
-                    point.x = point.x * taper + Mathf.Sin(rise * 4f + i) * rise * .18f;
-                    point.z *= taper;
-                    flameVertices[v] = point;
-                }
-                flameMesh.vertices = flameVertices;
-                flameMesh.RecalculateNormals();
-                flameMesh.RecalculateBounds();
-                meshes.Add(flameMesh);
-                flame.GetComponent<MeshFilter>().sharedMesh = flameMesh;
-                flame.localRotation = Quaternion.Euler(0f, 0f, Range(rand, -16f, 16f));
-                flame.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
-            }
         }
 
         Transform Box(string label, Vector3 position, Vector3 size, Material material) =>

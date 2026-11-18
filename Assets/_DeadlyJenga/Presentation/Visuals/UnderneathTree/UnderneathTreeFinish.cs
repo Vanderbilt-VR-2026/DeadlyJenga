@@ -124,6 +124,7 @@ namespace DeadlyJenga.CandyArt
             }
             if (world.Revision != revision)
                 RefreshWorldArt();
+            AnimateFire();
 
             bool viewUnderFloor = Services.Session?.ActiveCamera is Camera view && view.transform.position.y < -1.7f;
             bool blackout = false;
@@ -255,7 +256,7 @@ namespace DeadlyJenga.CandyArt
                 if (name.StartsWith("Tree Tier", StringComparison.Ordinal) || name == "Tree Trunk" ||
                     name.StartsWith("Tree Light", StringComparison.Ordinal) ||
                     name.StartsWith("Tree Ornament", StringComparison.Ordinal) ||
-                    name.StartsWith("Tree Wire", StringComparison.Ordinal) || name == "Fireplace Fire" ||
+                    name.StartsWith("Tree Wire", StringComparison.Ordinal) || name == "Fireplace Fire" || name == "Tree Star" ||
                     name.StartsWith("Wood Planks", StringComparison.Ordinal) || name == "Tree Skirt rim" ||
                     name.StartsWith("Sofa", StringComparison.Ordinal) || name == "Lamp Shade" || name == "Side Table" ||
                     name.StartsWith("Room Wall", StringComparison.Ordinal) || name == "Room Ceiling" ||
@@ -410,6 +411,8 @@ namespace DeadlyJenga.CandyArt
                 Destroy(mesh);
             if (firPalette)
                 Destroy(firPalette);
+            if (stoneTexture)
+                Destroy(stoneTexture);
         }
 
         void BuildLighting()
@@ -435,8 +438,8 @@ namespace DeadlyJenga.CandyArt
             MakeSpot("Moonlight by the tree", new Vector3(-130f, 200f, 54f),
                 new Vector3(-110f, 0f, -60f), new Color(.12f, .30f, 1f), 20000f, 300f, 70f);
             // Fire on the east wall, then lit doorways and a lamp up on the loft.
-            MakeLight("Fireplace glow", LightType.Point, new Vector3(RoomEast - 60f, 28f, HearthZ),
-                new Color(1f, .45f, .14f), 30000f, 260f);
+            fireLight = MakeLight("Fireplace glow", LightType.Point, new Vector3(BreastFront - 18f, 34f, HearthZ),
+                new Color(1f, .45f, .14f), 14000f, 230f);
             MakeLight("Hallway light", LightType.Point, new Vector3((HallWest + HallEast) * .5f, 90f, RoomSouth - 60f),
                 new Color(1f, .66f, .36f), 8000f, 170f);
             MakeLight("Kitchen light", LightType.Point, new Vector3(RoomWest - 60f, 110f, (ArchSouth + ArchNorth) * .5f),
