@@ -41,7 +41,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             string file = SetPath(setId);
             if (!File.Exists(file)) return null;
-            var set = JsonUtility.FromJson<StudioSet>(File.ReadAllText(file));
+            StudioSet set;
+            // A damaged file (cut short, or with merge conflict marks) must not stop the window from opening.
+            try { set = JsonUtility.FromJson<StudioSet>(File.ReadAllText(file)); }
+            catch (Exception error)
+            {
+                Debug.LogWarning($"Trailer Studio could not read the Set file {file}: {error.Message}");
+                return null;
+            }
             if (set != null) set.id = setId;
             return set;
         }
@@ -51,8 +58,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (string.IsNullOrEmpty(set.id)) set.id = NewId(set.title);
             Directory.CreateDirectory(SetsFolder);
             File.WriteAllText(SetPath(set.id), JsonUtility.ToJson(set, true));
-            // Tell Unity about the new file, but never in the middle of a Play Mode run.
-            if (InProject && !EditorApplication.isPlayingOrWillChangePlaymode) AssetDatabase.Refresh();
+            // Tell Unity about the file, but never in the middle of a Play Mode run. Only this file:
+            // a full refresh after every edit (each slider release) scans the whole project.
+            if (InProject && !EditorApplication.isPlayingOrWillChangePlaymode) AssetDatabase.ImportAsset(SetPath(set.id));
         }
 
         public static StudioSet Create(string title)
