@@ -116,6 +116,8 @@ namespace DeadlyJenga.CandyArt
             var walnut = Surface("Clock walnut", "Walnut Grain", new Color(.30f, .17f, .10f), .7f, new Vector2(1f, 3f), 0f, .3f);
             var gilt = Surface("Clock brass", null, new Color(.85f, .62f, .25f), .85f, Vector2.one, .9f);
             var mat = Surface("Photo mat", "Paper", new Color(.94f, .91f, .84f), .3f, Vector2.one);
+            mat.SetColor("_EmissionColor", new Color(.12f, .11f, .09f));
+            mat.EnableKeyword("_EMISSION");
             // Faded family snapshots: soft warm colors, no faces.
             var tints = new[] { new Color(.62f, .48f, .36f), new Color(.38f, .45f, .55f), new Color(.70f, .55f, .40f), new Color(.45f, .52f, .40f), new Color(.66f, .40f, .38f) };
             var frames = new[] { (z: -400f, y: 150f, w: 34f, h: 26f), (z: -355f, y: 172f, w: 24f, h: 30f), (z: -320f, y: 142f, w: 30f, h: 22f),
@@ -127,8 +129,11 @@ namespace DeadlyJenga.CandyArt
                 var frame = i % 2 == 0 ? walnut : gilt;
                 Box("Photo frame", new Vector3(wall - 1f, f.y, f.z), new Vector3(1.6f, f.h + 4f, f.w + 4f), frame);
                 Box("Photo mat", new Vector3(wall - 1.9f, f.y, f.z), new Vector3(.3f, f.h, f.w), mat);
-                Box("Photo", new Vector3(wall - 2.1f, f.y, f.z), new Vector3(.3f, f.h * .7f, f.w * .7f),
-                    Surface("Family photo " + i, "Paper", tints[i], .3f, Vector2.one));
+                var photo = Surface("Family photo " + i, "Paper", tints[i], .3f, Vector2.one);
+                // A little self-light so the photos read in the dim corner, like glossy prints.
+                photo.SetColor("_EmissionColor", tints[i] * .35f);
+                photo.EnableKeyword("_EMISSION");
+                Box("Photo", new Vector3(wall - 2.1f, f.y, f.z), new Vector3(.3f, f.h * .7f, f.w * .7f), photo);
             }
         }
 

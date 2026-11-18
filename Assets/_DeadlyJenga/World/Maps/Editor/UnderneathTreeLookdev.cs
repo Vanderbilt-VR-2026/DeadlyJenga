@@ -60,11 +60,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
             ("room-stockings", new Vector3(-210f, 85f, -350f), new Vector3(-310f, 82f, -350f), 45f),
             ("room-kitchen", new Vector3(-200f, 80f, -110f), new Vector3(-540f, 60f, -110f), 55f),
             ("room-front-entry", new Vector3(-200f, 90f, -540f), new Vector3(-540f, 70f, -545f), 60f),
-            ("room-piano-clock", new Vector3(-150f, 90f, -120f), new Vector3(-320f, 70f, 20f), 65f),
+            ("room-piano-clock", new Vector3(-210f, 80f, -200f), new Vector3(-320f, 75f, 20f), 60f),
             ("room-photos", new Vector3(-200f, 140f, -340f), new Vector3(58f, 140f, -340f), 60f),
             ("room-pet-bed", new Vector3(-200f, 40f, -440f), new Vector3(-262f, 5f, -500f), 50f),
             ("room-south-window", new Vector3(-145f, 80f, -330f), new Vector3(-145f, 95f, -600f), 72f),
-            ("room-overview", new Vector3(40f, 270f, -590f), new Vector3(-250f, 60f, -100f), 85f)
+            ("room-overview", new Vector3(30f, 225f, -585f), new Vector3(-250f, 40f, -100f), 85f)
         };
 
         const string BatchKey = "UnderneathTreeLookdev.Batch";
