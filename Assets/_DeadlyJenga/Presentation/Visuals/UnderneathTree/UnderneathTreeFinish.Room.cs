@@ -206,11 +206,11 @@ namespace DeadlyJenga.CandyArt
         // south and west. Map units; the map root is the origin.
         // The ceiling sits where the old tall window used to end.
         const float RoomTop = 290f;
-        // The west wall (opposite the fireplace) sits closer in, 520 from the east wall.
-        const float RoomWest = -460f, RoomEast = 60f, RoomSouth = -600f, RoomNorth = 58f;
+        // The west wall (opposite the fireplace) sits closer in, 410 from the east wall.
+        const float RoomWest = -350f, RoomEast = 60f, RoomSouth = -600f, RoomNorth = 58f;
         // Openings: tall window wall behind the tree, hallway in the south wall,
         // archway to the kitchen in the west wall, under the loft.
-        const float WindowWest = -380f, WindowEast = -240f, WindowSill = 40f, WindowHead = 172f;
+        const float WindowWest = -270f, WindowEast = -130f, WindowSill = 40f, WindowHead = 172f;
         const float HallWest = -210f, HallEast = -140f, HallHeight = 150f;
         const float ArchSouth = -170f, ArchNorth = -50f, ArchHeight = 170f;
         // Fireplace on the east wall, south of the rug.
@@ -266,6 +266,12 @@ namespace DeadlyJenga.CandyArt
             Box("Hallway end", new Vector3((HallWest + HallEast) * .5f, HallHeight * .5f, RoomSouth - 140f), new Vector3(HallEast - HallWest + 20f, HallHeight, 3f), glow);
             Box("Kitchen floor", new Vector3(RoomWest - 90f, -.2f, (ArchSouth + ArchNorth) * .5f), new Vector3(180f, .4f, ArchNorth - ArchSouth + 60f), wood);
             Box("Kitchen wall", new Vector3(RoomWest - 180f, ArchHeight * .5f, (ArchSouth + ArchNorth) * .5f), new Vector3(3f, ArchHeight, ArchNorth - ArchSouth + 60f), glow);
+            // Side walls and ceilings close both little rooms, so nothing outside shows through.
+            float kitchenZ = (ArchSouth + ArchNorth) * .5f, kitchenDepth = ArchNorth - ArchSouth + 60f;
+            foreach (float z in new[] { ArchSouth - 30f, ArchNorth + 30f })
+                Box("Kitchen side wall", new Vector3(RoomWest - 90f, ArchHeight * .5f + 10f, z), new Vector3(180f, ArchHeight + 20f, 3f), plaster);
+            Box("Kitchen ceiling", new Vector3(RoomWest - 90f, ArchHeight + 20f, kitchenZ), new Vector3(184f, 3f, kitchenDepth + 4f), plaster);
+            Box("Hallway ceiling", new Vector3((HallWest + HallEast) * .5f, HallHeight + 1.5f, RoomSouth - 70f), new Vector3(HallEast - HallWest + 24f, 3f, 144f), plaster);
 
             // Bookshelves and a piano by the window.
             var rand = new System.Random(77);

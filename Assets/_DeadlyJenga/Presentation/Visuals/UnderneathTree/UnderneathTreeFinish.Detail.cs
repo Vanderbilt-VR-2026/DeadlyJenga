@@ -17,16 +17,17 @@ namespace DeadlyJenga.CandyArt
             // The sofa faces the fireplace on the east wall, with the lamp table at its south end.
             int first = art.childCount;
             BuildSofa();
-            Restage("Velvet sofa", first, new Vector3(-216f, 0f, -109f), new Vector3(-150f, 0f, HearthZ), 0f);
+            // A big family sofa: the model is drawn a third bigger than it was built.
+            Restage("Velvet sofa", first, new Vector3(-216f, 0f, -109f), new Vector3(-150f, 0f, HearthZ), 0f, 1.35f);
             first = art.childCount;
             BuildLampAndTable();
             Restage("Lamp table", first, new Vector3(-215f, 0f, -11f), LampPlace, 0f);
         }
 
-        static readonly Vector3 LampPlace = new Vector3(-150f, 0f, HearthZ - 105f);
+        static readonly Vector3 LampPlace = new Vector3(-150f, 0f, HearthZ - 135f);
 
         // Gathers the pieces just built under one pivot and moves them as a group.
-        void Restage(string label, int first, Vector3 from, Vector3 to, float turn)
+        void Restage(string label, int first, Vector3 from, Vector3 to, float turn, float scale = 1f)
         {
             var pivot = new GameObject(label).transform;
             pivot.SetParent(art, false);
@@ -35,6 +36,7 @@ namespace DeadlyJenga.CandyArt
                 art.GetChild(i).SetParent(pivot, true);
             pivot.localPosition = to;
             pivot.localRotation = Quaternion.Euler(0f, turn, 0f);
+            pivot.localScale = Vector3.one * scale;
         }
 
         void BuildLampAndTable()
