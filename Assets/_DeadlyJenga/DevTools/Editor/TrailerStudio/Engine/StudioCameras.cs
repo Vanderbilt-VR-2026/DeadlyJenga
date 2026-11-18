@@ -119,7 +119,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             float focal = key.focal, focus = key.focus;
             var subject = string.IsNullOrEmpty(camera.subject) ? default : StudioActorPoses.At(tape, camera.subject, tapeTime - Mathf.Max(0, camera.lag), set.fps);
             var subjectNow = string.IsNullOrEmpty(camera.subject) ? default : StudioActorPoses.At(tape, camera.subject, tapeTime, set.fps);
+            // The aim trails a little behind the actor (lag), but never by more than half a metre,
+            // so a falling or thrown actor stays in the picture.
+            Vector3 Trail(Vector3 now, Vector3 late) => Vector3.MoveTowards(now, late, .5f);
             Vector3 aim = subject.found ? subject.feet + camera.aimOffset : position + rotation * Vector3.forward * 5;
+            if (subject.found && subjectNow.found) aim = Trail(subjectNow.feet, subject.feet) + camera.aimOffset;
 
             switch (camera.behavior)
             {
@@ -128,20 +132,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     break;
                 case "ride":
                     // The keys are offsets from the actor instead of places on the map.
-                    if (subject.found) { position = subject.feet + key.position; rotation = Quaternion.LookRotation(aim - position) * Quaternion.Euler(0, 0, rotation.eulerAngles.z); }
+                    if (subjectNow.found) { position = subjectNow.feet + key.position; rotation = Quaternion.LookRotation(aim - position) * Quaternion.Euler(0, 0, rotation.eulerAngles.z); }
                     break;
                 case "twoShot":
                     var other = string.IsNullOrEmpty(camera.second) ? default : StudioActorPoses.At(tape, camera.second, tapeTime - Mathf.Max(0, camera.lag), set.fps);
-                    if (subject.found && other.found)
+                    var otherNow = string.IsNullOrEmpty(camera.second) ? default : StudioActorPoses.At(tape, camera.second, tapeTime, set.fps);
+                    if (subject.found && other.found && otherNow.found)
                     {
-                        Vector3 otherAim = other.feet + camera.aimOffset;
-                        aim = (aim + otherAim) * .5f;
-                        rotation = Quaternion.LookRotation(aim - position);
+                        Vector3 otherAim = Trail(otherNow.feet, other.feet) + camera.aimOffset;
                         // Widen the lens until both fit, with some room around them.
-                        float apart = Vector3.Angle(subject.feet + camera.aimOffset - position, otherAim - position);
+                        float apart = Vector3.Angle(aim - position, otherAim - position);
                         float aspect = set.render.width / (float)Mathf.Max(1, set.render.height);
                         float needed = Mathf.Clamp(apart / Mathf.Min(1, aspect) * 1.5f + 8, 8, 110);
                         focal = Mathf.Min(focal, FocalFor(needed, camera.sensorHeight));
+                        aim = (aim + otherAim) * .5f;
+                        rotation = Quaternion.LookRotation(aim - position);
                     }
                     break;
                 case "orbit":
@@ -149,7 +154,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     {
                         Vector3 arm = key.position;
                         float angle = camera.orbitSpeed * (cameraTime - camera.start);
-                        position = subject.feet + Quaternion.Euler(0, angle, 0) * arm;
+                        position = subjectNow.feet + Quaternion.Euler(0, angle, 0) * arm;
                         rotation = Quaternion.LookRotation(aim - position);
                     }
                     break;

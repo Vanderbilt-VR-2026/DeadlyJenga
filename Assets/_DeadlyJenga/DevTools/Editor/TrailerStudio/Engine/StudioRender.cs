@@ -187,6 +187,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     var times = StudioCameras.Timeline(shot, set, settings.fps, sub);
                     int frames = times.Count / sub;
                     var done = new Finished { camera = shot.name, cameraId = shot.id, folder = folder, fps = settings.fps, width = width, height = height };
+                    if (times.Count > 0)
+                    {
+                        // Two throw-away pictures of the first frame: a camera's very first render can differ
+                        // slightly (shadows and effects settling), and the shot's first frame must not.
+                        StudioRun.ShowExact(times[0].tape * set.fps);
+                        var first = StudioCameras.Evaluate(shot, set, stage.tape, stage.anchor, times[0].tape, times[0].camera);
+                        StudioCameras.Apply(camera, first);
+                        ApplyLook(profile, shot, first);
+                        camera.targetTexture = target;
+                        camera.Render(); yield return 0;
+                        camera.Render(); yield return 0;
+                    }
                     for (int n = 0; n < frames && !cancel; n++)
                     {
                         if (sum != null) Array.Clear(sum, 0, sum.Length);

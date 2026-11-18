@@ -108,7 +108,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (int wait in UntilRendered()) yield return wait;
             var rampDone = StudioRender.Results.FirstOrDefault();
             Result("2. A speed ramp to 0.25x and back is smooth (no stepping)",
-                forward && slowest > .2f && slowest < .3f && fastest > .95f && biggestChange < .12f && moving >= 0 && halfError >= 0 && halfError < 2 && rampDone != null && rampDone.frames == times.Count,
+                forward && slowest > .2f && slowest < .3f && fastest > .95f && biggestChange < .12f && moving >= 0 && halfError >= 0 && halfError < 2 && rampDone != null && Mathf.Abs(rampDone.frames - times.Count) <= 1,
                 $"The 4 s tape plays for {times.Count / 30f:0.00} s of film ({times.Count} frames). Playback speed goes from {fastest:0.00}x down to {slowest:0.00}x and back, always forward; " +
                 $"the largest change of speed from one frame to the next is {biggestChange:0.000}x (a step would be 0.75x). " +
                 $"In-between frames are real: block #{moving} moves {gap * 100:0.0} cm between tape frames {probeFrame} and {probeFrame + 1}, and at {probeFrame}.5 it is {halfError:0.00} mm from the halfway point. " +

@@ -365,7 +365,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var block = stage.blocks[chosen];
                 var blockBounds = block.GetComponentInChildren<Collider>().bounds;
                 // Stand on the stage spot itself: by definition that is on top of this block.
-                var rider = set.AddMark(StudioRole.Survivor, new Vector3(0, .02f, -.6f));
+                // The stage spot is the top of a small block, so the rider stands exactly on it (not beside it on the roof).
+                var rider = set.AddMark(StudioRole.Survivor, new Vector3(0, .02f, 0));
                 rider.actor = "Rider"; rider.color = 5;
                 StudioLibrary.Save(set);
                 StudioRun.Refresh();
