@@ -120,8 +120,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         public void LoadSet(string id)
         {
+            // A selection belongs to its Set: another Set may have a mark with the same id.
+            if ((id ?? "") != setId) { selection = null; selectionKind = selectionId = ""; }
             setId = id ?? "";
             loadedSet = string.IsNullOrEmpty(setId) ? null : StudioLibrary.Load(setId);
+            if (loadedSet == null && setId.Length > 0) Say($"The Set \"{setId}\" could not be read. The Console says why.");
             offlineTape = null;
             if (loadedSet != null)
             {
@@ -147,8 +150,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (Set == null) return;
             BeginEdit(label);
-            change();
-            EndEdit(structural);
+            // Even when the change fails half way, save what it did and keep undo in step with the Set.
+            try { change(); }
+            finally { EndEdit(structural); }
         }
 
         // For drags: BeginEdit once, change the Set freely while dragging, EndEdit on release.
@@ -217,14 +221,42 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             shownSignature = Signature();
             RefreshTopBar();
             cast.Rebuild();
-            modePanel.Clear();
-            Mode?.Build(modePanel, context);
-            inspector.Clear();
-            var chosen = StudioExtensions.Inspectors.FirstOrDefault(i => i.Handles(selection, context));
-            if (chosen != null) chosen.Build(inspector, selection, context);
+            BuildSide();
             timeline.Rebuild();
             viewport.Rebuild();
             RefreshTransport();
+        }
+
+        // The tab's panel and the inspector. One that fails says so in place, and the rest of the window still draws.
+        int sideFrame = -1, seenFrame = -1;
+        double settleAt;
+        void BuildSide()
+        {
+            sideFrame = Frame;
+            modePanel.Clear();
+            try { Mode?.Build(modePanel, context); }
+            catch (Exception error) { Debug.LogException(error); modePanel.Add(StudioUi.Warning("This tab could not be drawn: " + error.Message)); }
+            inspector.Clear();
+            try { StudioExtensions.Inspectors.FirstOrDefault(i => i.Handles(selection, context))?.Build(inspector, selection, context); }
+            catch (Exception error) { Debug.LogException(error); inspector.Add(StudioUi.Warning("The inspector could not be drawn: " + error.Message)); }
+        }
+
+        // Buttons such as "Key here (00:03.00)" show the playhead's time. Scrubbing does not rebuild the
+        // panels, so they are rebuilt once the playhead has stopped moving for a moment.
+        void RefreshSideWhenSettled()
+        {
+            if (Frame == sideFrame || StudioRun.State == StudioState.Running || StudioRun.State == StudioState.Opening) return;
+            if (Frame != seenFrame) { seenFrame = Frame; settleAt = EditorApplication.timeSinceStartup + .25; return; }
+            if (EditorApplication.timeSinceStartup < settleAt || Typing() || root.panel?.GetCapturingElement(PointerId.mousePointerId) != null) return;
+            BuildSide();
+        }
+
+        // True while someone types in a text field of this window.
+        bool Typing()
+        {
+            for (var element = root.panel?.focusController?.focusedElement as VisualElement; element != null; element = element.parent)
+                if (element.ClassListContains("unity-base-text-field")) return true;
+            return false;
         }
 
         // Changes when takes or tracks change, so the window knows to redraw its lists.
@@ -259,6 +291,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (root == null) return;
             if (StudioRun.StageOpen) viewport.Tick();
             if (runChanged || StudioRun.State != shownState) { runChanged = false; OnRunChanged(); }
+            RefreshSideWhenSettled();
         }
 
         void RefreshTopBar()
@@ -420,9 +453,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (palette.HandleKey(e)) return;
             // Do not steal keys while someone types in a field.
-            var focused = root.panel?.focusController?.focusedElement as VisualElement;
-            for (var element = focused; element != null; element = element.parent)
-                if (element.ClassListContains("unity-base-text-field")) return;
+            if (Typing()) return;
 
             bool used = true;
             if (e.keyCode == KeyCode.K && (e.ctrlKey || e.commandKey)) palette.ShowCommands();
@@ -494,7 +525,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             RebuildAll();
         }
 
-        void DeleteSelection()
+        // Delete key and the inspectors' delete buttons: remove the selected thing and what pointed at it.
+        public void DeleteSelection()
         {
             if (selection is StudioMark mark) Edit("Delete " + mark.actor, () =>
             {
@@ -509,9 +541,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 selection = null; selectionKind = "";
             }, true);
-            else if (selection is StudioCue cue) Edit("Delete cue", () => { Set.cues.Remove(cue); selection = null; selectionKind = ""; }, false);
+            else if (selection is StudioCue cue) Edit("Delete cue", () => { RemoveCue(Set, cue); selection = null; selectionKind = ""; }, false);
             else if (selection is StudioCameraTrack camera) Edit("Delete camera", () => { Set.cameras.Remove(camera); selection = null; selectionKind = ""; }, false);
             else if (selection is StudioOverride layer) Edit("Delete override", () => { Set.overrides.Remove(layer); selection = null; selectionKind = ""; }, false);
+        }
+
+        // A cue that waited for this one would never run (the run only starts unlinked cues by the clock).
+        // It runs at its own time instead, which is what its inspector then shows.
+        public static void RemoveCue(StudioSet set, StudioCue cue)
+        {
+            set.cues.Remove(cue);
+            foreach (var other in set.cues)
+                if (other.link == cue.id) { other.link = ""; other.linkOnHit = false; }
         }
 
         // ---- Set menu ----
