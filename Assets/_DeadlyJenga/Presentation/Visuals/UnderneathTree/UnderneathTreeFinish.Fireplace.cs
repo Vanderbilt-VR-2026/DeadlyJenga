@@ -64,6 +64,8 @@ namespace DeadlyJenga.CandyArt
 
             BuildGarland();
             BuildStockings();
+            StockingNames();
+            SantaTreats();
             BuildCandles();
             BuildWreath(new Vector3(BreastFront - 3f, 158f, HearthZ), 22f);
             foreach (float z in new[] { HearthZ - 62f, HearthZ + 62f })
@@ -173,6 +175,16 @@ namespace DeadlyJenga.CandyArt
             foreach (int side in new[] { -1, 1 })
                 for (float t = 0f; t <= 1f; t += .025f)
                     path.Add(new Vector3(x + t * 9f, MantelTop - t * 78f, HearthZ + side * (80f + Mathf.Sin(t * Mathf.PI) * 6f + t * 4f)));
+            GarlandAlong("Garland", path, rand, Vector3.left);
+            MakeLight("Garland glow", LightType.Point, new Vector3(BreastFront - 25f, MantelTop, HearthZ), new Color(1f, .74f, .40f), 2500f, 70f);
+        }
+
+        // Fir sprigs, warm fairy lights and a few baubles along a path. outward = toward the room.
+        void GarlandAlong(string label, List<Vector3> path, System.Random rand, Vector3 outward)
+        {
+            var sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
+            var quad = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
+            var core = new Batch(); var sprigs = new Batch(); var bulbs = new Batch(); var berries = new Batch(); var gold = new Batch();
             int n = 0;
             foreach (var p in path)
             {
@@ -184,16 +196,15 @@ namespace DeadlyJenga.CandyArt
                 }
                 for (int k = 0; k < 2; k++)
                     bulbs.Add(sphere, p + Jitter(rand, 4.2f), Quaternion.identity, Vector3.one * .75f);
-                if (n % 9 == 0) berries.Add(sphere, p + Jitter(rand, 3f) + Vector3.left * 2f, Quaternion.identity, Vector3.one * 2.2f);
-                if (n % 13 == 6) gold.Add(sphere, p + Jitter(rand, 3f) + Vector3.left * 2f, Quaternion.identity, Vector3.one * 2.6f);
+                if (n % 9 == 0) berries.Add(sphere, p + Jitter(rand, 3f) + outward * 2f, Quaternion.identity, Vector3.one * 2.2f);
+                if (n % 13 == 6) gold.Add(sphere, p + Jitter(rand, 3f) + outward * 2f, Quaternion.identity, Vector3.one * 2.6f);
                 n++;
             }
-            Draw("Garland core", core, Surface("Garland shadow", null, new Color(.02f, .06f, .03f), .05f, Vector2.one), ShadowCastingMode.Off);
-            Draw("Garland fir sprigs", sprigs, FirFoliage("Garland fir needles", new Color(.45f, .72f, .40f)), ShadowCastingMode.On);
-            Draw("Garland fairy lights", bulbs, Glow("Warm fairy light", new Color(1f, .80f, .48f), 7f), ShadowCastingMode.Off);
-            Draw("Garland red baubles", berries, Lacquer("Garland red glass", new Color(.75f, .02f, .05f), .92f, .4f, .8f, .08f), ShadowCastingMode.Off);
-            Draw("Garland gold baubles", gold, Lacquer("Garland gold glass", new Color(.95f, .62f, .15f), .9f, .85f, .6f, .05f), ShadowCastingMode.Off);
-            MakeLight("Garland glow", LightType.Point, new Vector3(BreastFront - 25f, MantelTop, HearthZ), new Color(1f, .74f, .40f), 2500f, 70f);
+            Draw(label + " core", core, Surface("Garland shadow", null, new Color(.02f, .06f, .03f), .05f, Vector2.one), ShadowCastingMode.Off);
+            Draw(label + " fir sprigs", sprigs, FirFoliage("Garland fir needles", new Color(.45f, .72f, .40f)), ShadowCastingMode.On);
+            Draw(label + " fairy lights", bulbs, Glow("Warm fairy light", new Color(1f, .80f, .48f), 7f), ShadowCastingMode.Off);
+            Draw(label + " red baubles", berries, Lacquer("Garland red glass", new Color(.75f, .02f, .05f), .92f, .4f, .8f, .08f), ShadowCastingMode.Off);
+            Draw(label + " gold baubles", gold, Lacquer("Garland gold glass", new Color(.95f, .62f, .15f), .9f, .85f, .6f, .05f), ShadowCastingMode.Off);
         }
 
         void BuildStockings()
@@ -445,6 +456,9 @@ namespace DeadlyJenga.CandyArt
                 var euler = flame.localEulerAngles;
                 flame.localEulerAngles = new Vector3(sway * 18f, euler.y, euler.z);
             }
+            foreach (var (swing, amplitude) in swings)
+                if (swing)
+                    swing.localRotation = Quaternion.Euler(0f, 0f, amplitude * Mathf.Sin(t * Mathf.PI));
             if (fireLight)
                 fireLight.intensity = 14000f * (.78f + Mathf.PerlinNoise(t * 4.3f, 1.7f) * .44f);
         }

@@ -376,7 +376,7 @@ namespace DeadlyJenga.CandyArt
             renderer.receiveShadows = false;
         }
 
-        void Curtain(string label, float x, float top, float z, Material material)
+        void Curtain(string label, float x, float top, float z, Material material, float height = 86f, float width = 1f)
         {
             const int columns = 36, rows = 10;
             var vertices = new Vector3[(columns + 1) * (rows + 1)];
@@ -388,8 +388,8 @@ namespace DeadlyJenga.CandyArt
             {
                 float u = c / (float)columns, v = r / (float)rows;
                 float wave = Mathf.Sin(u * Mathf.PI * 12 + .34f * v);
-                vertices[index] = new Vector3(x + (u - .5f) * Mathf.Lerp(19, 25, v),
-                    top - v * (86f - wave * .9f), z + wave * Mathf.Lerp(1.28f, 2.15f, v));
+                vertices[index] = new Vector3(x + (u - .5f) * Mathf.Lerp(19, 25, v) * width,
+                    top - v * (height - wave * .9f), z + wave * Mathf.Lerp(1.28f, 2.15f, v) * width);
                 uv[index++] = new Vector2(u, 1f - v);
             }
             index = 0;

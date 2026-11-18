@@ -22,6 +22,7 @@ namespace DeadlyJenga.CandyArt
             first = art.childCount;
             BuildLampAndTable();
             Restage("Lamp table", first, new Vector3(-215f, 0f, -11f), LampPlace, 0f);
+            BuildHomeyDetails();
         }
 
         static readonly Vector3 LampPlace = new Vector3(RoomEast - 19f, 0f, SofaZ + 140f);

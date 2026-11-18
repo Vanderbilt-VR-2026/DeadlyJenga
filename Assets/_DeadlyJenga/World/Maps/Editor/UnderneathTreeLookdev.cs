@@ -80,8 +80,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 camera.targetTexture = render;
                 camera.aspect = (float)width / height;
                 camera.fieldOfView = fov;
-                // A camera outside the room starts drawing past the south wall and its fireplace.
-                camera.nearClipPlane = eye.z < -262f ? (-225f - eye.z) * 1.06f : .05f;
+                // A camera outside the room starts drawing past the south wall. The family room's
+                // south wall is at z -600 (it was -262 when the room was small).
+                camera.nearClipPlane = eye.z < -602f ? (-590f - eye.z) * 1.06f : .05f;
                 camera.farClipPlane = 1500f;
                 ShaderUtil.allowAsyncCompilation = false;
                 camera.Render();
