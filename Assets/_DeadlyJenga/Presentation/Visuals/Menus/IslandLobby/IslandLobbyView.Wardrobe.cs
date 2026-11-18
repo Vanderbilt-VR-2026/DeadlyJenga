@@ -181,6 +181,7 @@ namespace DeadlyJenga.CastlePrototype
                     ()=>ChooseWardrobeEntry(item),()=>wardrobeOpen,i%2==0?-263:263,506,56,()=>HasWardrobeItem(item));
                 choice.selected=()=>HasWardrobeItem(item)&&IsEquipped(wardrobeResolution.effective,(WardrobeSlot)wardrobeCategory,ItemAt(item));
                 CandyStyle(choice);
+                wardrobeItemButtons[i]=choice.button.transform;
             }
             CandyStyle(Add(wardrobePanel,"wardrobe-clear",()=>"Previous",-240,()=>ChangeWardrobePage(-1),()=>wardrobePage>0,-263,250,48,()=>CanChooseWardrobeItems()&&WardrobePages>1));
             CandyStyle(Add(wardrobePanel,"wardrobe-reset",()=>"Next",-240,()=>ChangeWardrobePage(1),()=>wardrobePage+1<WardrobePages,263,250,48,()=>CanChooseWardrobeItems()&&WardrobePages>1));
@@ -489,6 +490,7 @@ namespace DeadlyJenga.CastlePrototype
             if(wardrobeLastCategory==wardrobeCategory&&wardrobeLastPage==wardrobePage&&wardrobeLastAppearance.Equals(current))return;
             if(wardrobeLastCategory<0||!wardrobeLastAppearance.Equals(current))InvalidateWardrobeGeometry();
             wardrobeLastCategory=wardrobeCategory;wardrobeLastPage=wardrobePage;wardrobeLastAppearance=current;
+            RefreshWardrobeThumbs();
             wardrobeResolution=(wardrobeAvatar as IAvatarWardrobePreview)?.EvaluateAppearance(current)
                 ??new AvatarWardrobeResolution{effective=current};
             bool hasHiddenItems=wardrobeResolution.hiddenHair||wardrobeResolution.hiddenAccessories!=0||
