@@ -121,7 +121,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             float fromTime = running.fromFrame / (float)stage.Fps;
             foreach (var cue in stage.set.cues)
             {
-                if (cue.at * stage.Fps < running.fromFrame) continue;   // cues before the branch already happened on the tape
+                // Cues before the branch already happened on the tape. A cue exactly on the branch frame has not
+                // (the recording fires it on the first new frame), so it is varied too. Same tolerance as the recording.
+                if (cue.at < fromTime - .0001f) continue;
                 cue.jitter = cue.action == PushCue.Id || cue.action == "collapse" ? Spread(running.forceJitter) : 0;
                 moved.Add((cue, cue.at));
                 if (string.IsNullOrEmpty(cue.link)) cue.at = Mathf.Clamp(cue.at + Spread(running.timeJitter), fromTime, stage.set.length - .05f);

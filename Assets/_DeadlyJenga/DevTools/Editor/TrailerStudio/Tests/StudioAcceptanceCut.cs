@@ -38,6 +38,48 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (loose.Count < 2) { Result("Setup: two loose blocks near the stage spot", false, "The map has fewer than two loose blocks near the stage spot."); yield break; }
             int hero = loose[0], other = loose[1];
 
+            // ---- A cue exactly on the branch frame fires in the branch, and the frames up to it stay the old take's ----
+            StudioRun.Record(WorldPass(stage, "Calm baseline"));
+            foreach (int wait in UntilHeld()) yield return wait;
+            var calm = worldTrack.ActiveTake;
+            int branchFrame = Mathf.RoundToInt(1.5f * fps);
+            var onFrame = new StudioCue { at = branchFrame / (float)fps, action = PushCue.Id, blocks = new List<int> { hero }, direction = new Vector3(1, .3f, 0), strength = 6 };
+            set.cues.Add(onFrame);
+            StudioLibrary.Save(set);
+            StudioRun.Record(WorldPass(stage, "Branch on the cue's frame", branchFrame));
+            foreach (int wait in UntilHeld()) yield return wait;
+            var branched = worldTrack.ActiveTake;
+            var log = StudioRun.CueLog.ToList();
+            int same = 0;
+            for (int f = 0; f <= branchFrame && f < calm.frames.Count && f < branched.frames.Count; f++)
+            {
+                if (!calm.frames[f].SequenceEqual(branched.frames[f])) break;
+                same++;
+            }
+            WorldTrack.Positions(calm, calm.End - 1, out var calmEnd, out _);
+            WorldTrack.Positions(branched, branched.End - 1, out var pushedEnd, out var pushedOn);
+            float heroMoved = pushedOn[hero] ? Vector3.Distance(calmEnd[hero], pushedEnd[hero]) : 99;
+            int differs = WorldTrack.FirstDifference(calm, branched, 5);
+            Result("Cut 1. A push placed exactly on the branch frame fires in the branch; frames up to the branch frame are the old take's",
+                branched != calm && log.Any(l => l.Contains("push")) && same == branchFrame + 1 && heroMoved > .3f && differs > branchFrame && differs <= branchFrame + 4,
+                $"Cue at {onFrame.at:0.000} s = frame {branchFrame}, branch at frame {branchFrame}. Cue log: {string.Join("; ", log)}. Frames 0 to {branchFrame}: {same} of {branchFrame + 1} byte-for-byte the old take's. " +
+                $"The pushed block ended {heroMoved:0.00} m from where it rests in the calm take; the takes first differ by more than 5 mm at frame {differs}.");
+
+            // ---- The same cue with a variation run from that frame: it is varied and fires ----
+            float originalAt = onFrame.at, originalStrength = onFrame.strength;
+            StudioVariations.Start(new StudioVariations.Settings { runs = 1, fromFrame = branchFrame, forceJitter = .3f, timeJitter = .1f, seed = 11 });
+            foreach (int wait in UntilVariationsDone()) yield return wait;
+            var tried = StudioVariations.Results(tape, StudioVariations.LastGroup).FirstOrDefault();
+            var recipe = tried == null ? null : StudioVariations.RecipeOf(tried);
+            var saved = recipe?.cues.FirstOrDefault(c => c.id == onFrame.id);
+            var variedLog = StudioRun.CueLog.ToList();
+            Result("Cut 2. A variation run from the branch frame varies the cue sitting exactly on that frame, and it fires",
+                saved != null && saved.at >= branchFrame / (float)fps - .0001f && Mathf.Abs(saved.strength - originalStrength) > .001f && variedLog.Any(l => l.Contains("push"))
+                    && onFrame.at == originalAt && onFrame.strength == originalStrength && onFrame.jitter == 0,
+                saved == null ? "No recipe with this cue was kept." :
+                $"Recipe: the cue ran at {saved.at:0.000} s (not before the branch at {branchFrame / (float)fps:0.000} s) with strength {saved.strength:0.00} instead of {originalStrength:0.00}. Cue log of the try: {string.Join("; ", variedLog)}. " +
+                $"After the run the Set's cue is back to {onFrame.at:0.000} s, strength {onFrame.strength:0.00}, jitter {onFrame.jitter}.");
+
             // ---- A variation from a fresh map, put back into the Set and recorded again as the whole set ----
             set.cues.Clear();
             set.cues.Add(new StudioCue { at = 1, action = PushCue.Id, blocks = new List<int> { hero }, direction = new Vector3(1, .3f, 0), strength = 6 });
