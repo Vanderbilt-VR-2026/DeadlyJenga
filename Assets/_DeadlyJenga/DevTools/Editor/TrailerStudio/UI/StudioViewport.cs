@@ -180,6 +180,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         void LookThroughCamera()
         {
             var set = context.Set; var stage = context.Stage;
+            // Looking through a shot camera belongs to the Shoot tab. Other tabs need the free view to orbit and drag marks.
+            if (ShootMode.LookThrough.Length > 0 && !(context.window.Mode is ShootMode)) ShootMode.LookThrough = "";
             var camera = set == null || ShootMode.LookThrough.Length == 0 ? null : set.cameras.Find(c => c.id == ShootMode.LookThrough);
             if (camera == null || stage == null || StudioHandheld.Recording || StudioRender.Running)
             {
@@ -273,6 +275,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (e.button != 0) { panning = true; return; }
             // The current mode may have its own way of using the viewport (picking blocks, aiming arrows, placing cameras).
             tool = context.window.Mode as IStudioViewportTool;
+            // "Add survivor" was pressed in the Set tab, then another tab was opened: do not place it from there.
+            if (Placing.HasValue && !(context.window.Mode is SetMode)) Placing = null;
             if (tool != null && StudioRun.State == StudioState.Held && tool.Down(e, this, context)) { toolActive = true; return; }
             if (Placing.HasValue && StudioRun.State == StudioState.Held)
             {
