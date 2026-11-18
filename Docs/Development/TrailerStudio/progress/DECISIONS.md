@@ -280,3 +280,29 @@ any of them at review.
 53. **Every Set edit is its own undo step.** `Undo.IncrementCurrentGroup`
     before each recorded edit; Unity otherwise merges edits that happen
     without a mouse or key event in between.
+
+## After the first review (Fable 5.2 chat)
+54. **The walk cycle comes from the tape.** The actor player walks through
+    a take once, keeps the avatar's walk state after every frame
+    (`CandyPlayerRig.Gait`, a Characters addition), and restores the right
+    one before showing any frame with the tape's own time step. Played,
+    scrubbed and rendered frames then agree. With an override layer active
+    the step is measured from where the previous frame was really shown.
+55. **The stage has its own ears.** A separate listener object follows the
+    director's camera, and sits at head height on the stage spot while the
+    cut's sound is recorded. The game's sound engine measures distance from
+    the session's camera and mutes itself when the Game view loses focus,
+    so the Studio keeps the parked cameras at the ears and tells the engine
+    it has focus (`SendMessage("OnApplicationFocus", true)`).
+56. **An idle stage is capped at the Set's frame rate** (at least 30).
+    Renders lift the cap while they run.
+57. **"Rides a played-back block" cannot be met today.** The live game does
+    not carry a standing survivor on a moving block (see
+    `CROSS-BOX-CHANGES.md`, wanted changes). The Studio's test checks that
+    playback treats a live survivor exactly as the live physics did, and the
+    results say plainly that this is not the spec line.
+58. **The cut's sound is recorded with the live world.** Block impacts
+    only exist while real physics runs, so a whole fixed-clock recording
+    with nobody performing records the mix and stems as it goes. Replaying
+    the tape for sound is kept as a fallback that cannot hear impacts.
+    This replaces the plan in decision 43.

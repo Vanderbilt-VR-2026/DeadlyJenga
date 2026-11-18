@@ -1,6 +1,6 @@
 # Phase 5 results: cameras and finishing
 
-Run through the coordinator: job `3acc1d19` on commit `a9df875d`, batch
+Run through the coordinator: job `8e01579f` on commit `54403bcd`, batch
 editor, map `sparse-viaduct-study`. Method
 `StudioAcceptance.RunPhase5`. Full report: [evidence/phase5/report.md](evidence/phase5/report.md).
 
@@ -28,16 +28,32 @@ has used the window by hand yet.
   it. Fixed in `76c85dca`; decision 51.
 - The stage had no active audio listener, so the recorded sound was eight
   silent files and test 4 still passed. Fixed in `957f70f4`; the test now
-  fails on silence (`a9df875d`).
+  fails on silence and on a silent World stem.
+- Review finding A1: recorded actors' legs did not move in renders or while
+  scrubbing. Fixed in `8753dd61` and `fdac5f12`; decision 54. Phase 4 has the
+  test for it.
 
-## Open defect: impact sounds are missing from the recorded sound
+## Sound: how it works now (was an open defect)
 
-After the listener fix the mix has signal (loudest sample 1727 of 32767),
-but it is only the Music stem. The World, Character, Ambience and other
-stems are still all zeros, although the tape has a collapse at 1.0 s and the
-sound-events track replays block hits (`Tracks/AudioEventTrack.cs`). Not
-investigated further. It may be the batch editor, the replay, or the stem
-routing in Theatre's audio capture, which the Studio reuses.
+The first handoff said the recorded sound had music only. The cause, found
+with the reviewer's help: the game plays ordinary block impacts straight
+from physics collisions (`CandyBlockAudio`) and never announces them, and
+played-back blocks do not collide. Replaying a tape can therefore never
+contain them (the tape held 0 block hits).
+
+Now a whole fixed-clock recording with nobody performing records the game
+mix and its stems while the real physics runs, heard from head height on
+the stage spot. Measured on this run: mix loudest sample 16885 of 32767,
+World stem (block impacts) 15642. Before the fix the World stem was 0.
+
+Limits, by design for now:
+- A take performed by a person in real time is not recorded this way (the
+  capture would take the sound away from their speakers), so footsteps and
+  weapon sounds of performed actors are not in the cut's sound.
+- A branch re-records the world from the branch point; its new impacts are
+  not in the sound until the whole Set is recorded again.
+- "Record the tape's sound" in the Shoot tab replays the tape instead. It
+  hears music, disasters and announced sound events only.
 
 ## Not covered
 - MP4 and ProRes output (needs `ffmpeg`); only PNG sequences were rendered.

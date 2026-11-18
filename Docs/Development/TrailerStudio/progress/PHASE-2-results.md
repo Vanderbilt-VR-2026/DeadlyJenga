@@ -1,6 +1,6 @@
 # Phase 2 results: performance passes
 
-Run through the coordinator: job `8f98160f` on commit `a9df875d` (first passed as job `5c1a12cd` on `28ca15e1`; the numbers below are from that run, the linked report is the latest), batch
+Run through the coordinator: job `b6481fd9` on commit `54403bcd` (first passed as job `5c1a12cd` on `28ca15e1`; the numbers below are from that run, the linked report is the latest), batch
 editor, map `sparse-viaduct-study`. Method
 `StudioAcceptance.RunPhase2`. Full report: [evidence/phase2/report.md](evidence/phase2/report.md).
 
@@ -12,6 +12,7 @@ editor, map `sparse-viaduct-study`. Method
 | 4 | A pass in the headset records head and hands; wrist panel works | Partly | Head and both hands are stored separately in each frame; the wrist panel's keys work. **Not run in the XR simulator or a headset** (the batch editor has no XR session). |
 | 5 | Live-physics pass re-records the world; old takes get a stale badge | Pass | The two worlds first differ at frame 76; the Studio reported frame 76 and flagged 12 tracks. |
 | - | Comp from two takes | Pass | Source takes untouched. |
+| - | A recorded hand plays back (added after review) | Pass | The hand bot's take was drawn on 179 of 180 frames; recorded path 13.8 m, hand on screen travelled 13.8 m. |
 | - | Slow-motion performing | Pass | Same jump height at half world speed; takes stored at real speed. Climbing in slow motion not exercised. |
 | - | Runtime errors | Pass | None. |
 
