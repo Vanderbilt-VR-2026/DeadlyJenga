@@ -11,6 +11,10 @@ namespace DeadlyJenga.CandyArt
 
         // The Blender tree is drawn this much bigger, growing up and out from the trunk base.
         const float FirScale = 1.45f;
+        // ...and stretched taller than it is wide, so it stands well up toward the ceiling
+        // without spreading further over the course.
+        const float FirHeight = 1.85f;
+        static readonly Vector3 FirSize = new Vector3(FirScale, FirHeight, FirScale);
 
         // The tree is a model built in Blender (ArtDirection/.../models/fir.py), one mesh per material.
         void BuildFir()
@@ -56,7 +60,7 @@ namespace DeadlyJenga.CandyArt
             var trunk = Resources.Load<Mesh>(ResourcePath + "Fir Trunk");
             if (!trunk)
                 return;
-            float centre = (trunk.bounds.max.y + 1.5f) * FirScale;
+            float centre = (trunk.bounds.max.y + 1.5f) * FirHeight;
             const float outer = 10.5f, inner = 4.3f, depth = 2.4f;
             var vertices = new List<Vector3>();
             var triangles = new List<int>();
@@ -77,12 +81,13 @@ namespace DeadlyJenga.CandyArt
             mesh.SetVertices(vertices);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateNormals();
-            var gold = Glow("Tree star gold", new Color(1f, .80f, .38f), 3.2f);
+            // Rich yellow gold; not so bright that the glow washes it out to white.
+            var gold = Glow("Tree star gold", new Color(1f, .74f, .06f), 1.5f);
             gold.SetFloat("_Metallic", .6f);
             var star = AddMesh("Tree top star", mesh, gold, ShadowCastingMode.Off).transform;
             star.localPosition = treeCenter + Vector3.up * centre;
             MakeLight("Tree star glow", LightType.Point, star.localPosition + new Vector3(-4f, 0f, -6f),
-                new Color(1f, .82f, .5f), 2500f, 70f);
+                new Color(1f, .78f, .25f), 2500f, 70f);
         }
 
         void AddModel(string label, string model, Vector3 position, ShadowCastingMode shadows, Material material)
@@ -94,7 +99,7 @@ namespace DeadlyJenga.CandyArt
             var obj = new GameObject(label);
             obj.transform.SetParent(art, false);
             obj.transform.localPosition = position;
-            obj.transform.localScale = Vector3.one * FirScale;
+            obj.transform.localScale = FirSize;
             obj.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = obj.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = material;
@@ -142,7 +147,8 @@ namespace DeadlyJenga.CandyArt
                 if (words.Length < 5)
                     continue;
                 var offset = new Vector3(float.Parse(words[1], culture),
-                    float.Parse(words[2], culture), float.Parse(words[3], culture)) * FirScale;
+                    float.Parse(words[2], culture), float.Parse(words[3], culture));
+                offset = Vector3.Scale(offset, FirSize);
                 var position = treeCenter + offset;
                 if (words[0] == "B")
                 {

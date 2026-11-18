@@ -434,7 +434,7 @@ namespace DeadlyJenga.CandyArt
                 new Color(1f, .66f, .36f), 8000f, 170f);
             MakeLight("Kitchen light", LightType.Point, new Vector3(RoomWest - 60f, 110f, (ArchSouth + ArchNorth) * .5f),
                 new Color(1f, .70f, .40f), 9000f, 200f);
-            MakeLight("Loft lamp", LightType.Point, new Vector3(RoomWest + 50f, LoftHeight + 60f, -200f),
+            MakeLight("Bookcase lamp", LightType.Point, new Vector3(RoomWest + 60f, 120f, -330f),
                 new Color(1f, .68f, .38f), 9000f, 220f);
             MakeLight("Glow in the train tunnel", LightType.Point,
                 new Vector3(-150, 16, -128), new Color(1f, .68f, .28f), 700f, 38f);
@@ -446,7 +446,7 @@ namespace DeadlyJenga.CandyArt
             // low and just outside the branches. Short reach, so each tints only the gifts beside it
             // instead of all of them adding up to one orange pool on the rug.
             MakeLight("Golden light in the tree", LightType.Point,
-                new Vector3(-37, 60, -50), new Color(1f, .66f, .36f), 600f, 150f);
+                new Vector3(-37, 75, -50), new Color(1f, .66f, .36f), 600f, 170f);
             // The same four colours as the bulbs: red, yellow, green, blue.
             var bulbGlow = new[] { new Color(1f, .08f, .05f), new Color(1f, .70f, .12f),
                 new Color(.08f, 1f, .20f), new Color(.08f, .32f, 1f) };
@@ -454,8 +454,8 @@ namespace DeadlyJenga.CandyArt
             // colour lands on the presents below and on the branches all the way up.
             for (int i = 0; i < 12; i++)
             {
-                float height = 12f + i * 15f;
-                float spread = Mathf.Lerp(78f, 18f, height / 200f);
+                float height = (12f + i * 15f) * FirHeight / FirScale;
+                float spread = Mathf.Lerp(78f, 18f, height / (200f * FirHeight / FirScale));
                 float angle = (i * 137.5f + 10f) * Mathf.Deg2Rad;
                 var place = new Vector3(-37f + Mathf.Cos(angle) * spread, height, -35.7f + Mathf.Sin(angle) * spread);
                 MakeLight("Tree bulb glow " + i, LightType.Point, place, bulbGlow[i % bulbGlow.Length],

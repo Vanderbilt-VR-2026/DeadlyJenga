@@ -206,8 +206,8 @@ namespace DeadlyJenga.CandyArt
         // south and west. Map units; the map root is the origin.
         // The ceiling sits where the old tall window used to end.
         const float RoomTop = 290f;
-        const float RoomWest = -640f, RoomEast = 60f, RoomSouth = -600f, RoomNorth = 58f;
-        const float LoftHeight = 200f, LoftEdge = -520f;
+        // The west wall (opposite the fireplace) sits closer in, 520 from the east wall.
+        const float RoomWest = -460f, RoomEast = 60f, RoomSouth = -600f, RoomNorth = 58f;
         // Openings: tall window wall behind the tree, hallway in the south wall,
         // archway to the kitchen in the west wall, under the loft.
         const float WindowWest = -380f, WindowEast = -240f, WindowSill = 40f, WindowHead = 172f;
@@ -258,26 +258,6 @@ namespace DeadlyJenga.CandyArt
             // Stone fireplace on the east wall (see UnderneathTreeFinish.Fireplace.cs).
             BuildFireplace();
 
-            // Two-storey west side: a loft balcony on posts, stairs up along the south wall.
-            Box("Loft floor", new Vector3((RoomWest + LoftEdge) * .5f, LoftHeight + 4f, midZ), new Vector3(LoftEdge - RoomWest, 8f, spanZ), wood);
-            Box("Loft rail", new Vector3(LoftEdge, LoftHeight + 24f, midZ + 30f), new Vector3(3f, 3f, spanZ - 60f), beam);
-            for (float z = RoomSouth + 90f; z < RoomNorth; z += 22f)
-                Box("Loft baluster", new Vector3(LoftEdge, LoftHeight + 16f, z), new Vector3(1.6f, 16f, 1.6f), beam);
-            for (float z = RoomSouth + 120f; z < RoomNorth - 20f; z += 160f)
-                Box("Loft post", new Vector3(LoftEdge, LoftHeight * .5f, z), new Vector3(8f, LoftHeight, 8f), beam);
-            const int steps = 20;
-            float stairFoot = -290f, stairDepth = 50f;
-            for (int i = 0; i < steps; i++)
-            {
-                float run = (stairFoot - LoftEdge) / steps;
-                float rise = LoftHeight * (i + 1) / steps;
-                Box("Stair step", new Vector3(stairFoot - run * (i + .5f), rise * .5f, RoomSouth + stairDepth * .5f + 2f),
-                    new Vector3(run, rise, stairDepth), wood);
-            }
-            Box("Stair rail", new Vector3((stairFoot + LoftEdge) * .5f, LoftHeight * .5f + 30f, RoomSouth + stairDepth + 2f),
-                new Vector3(Mathf.Sqrt((stairFoot - LoftEdge) * (stairFoot - LoftEdge) + LoftHeight * LoftHeight), 3f, 3f), beam)
-                .localRotation = Quaternion.Euler(0f, 0f, -Mathf.Atan2(LoftHeight, stairFoot - LoftEdge) * Mathf.Rad2Deg);
-
             // Rooms beyond the openings: just a lit glimpse, the player never goes there.
             var glow = Glow("Warm room beyond", new Color(1f, .62f, .32f), .9f);
             Box("Hallway floor", new Vector3((HallWest + HallEast) * .5f, -.2f, RoomSouth - 70f), new Vector3(HallEast - HallWest + 20f, .4f, 140f), wood);
@@ -300,8 +280,8 @@ namespace DeadlyJenga.CandyArt
                     z += thick;
                 }
             var lacquer = Lacquer("Piano black", new Color(.02f, .015f, .015f), .9f, 0f, .8f, 0f);
-            Box("Upright piano", new Vector3(-430f, 45f, RoomNorth - 22f), new Vector3(110f, 90f, 36f), lacquer);
-            Box("Piano bench", new Vector3(-430f, 18f, RoomNorth - 70f), new Vector3(60f, 36f, 26f), lacquer);
+            Box("Upright piano", new Vector3(RoomWest + 75f, 45f, RoomNorth - 22f), new Vector3(110f, 90f, 36f), lacquer);
+            Box("Piano bench", new Vector3(RoomWest + 75f, 18f, RoomNorth - 70f), new Vector3(60f, 36f, 26f), lacquer);
         }
 
         // A wall running east-west at z, with one opening from x0 to x1 between heights low and high.
