@@ -142,8 +142,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             // ---- Test 4: the cut exports as FCPXML and EDL ----
             string audioFile = "";
+            // What the game's sound engine did while the tape's sound was recorded (for the report).
+            var soundEngine = DeadlyJenga.CandyAudio.CandyAudioEngine.Instance;
+            int playedBefore = soundEngine ? soundEngine.Played : 0, culledBefore = soundEngine ? soundEngine.Culled : 0;
+            var soundTake = tape.tracks.FirstOrDefault(x => x.type == "audio-events")?.ActiveTake;
+            int hitsOnTape = soundTake == null ? 0 : soundTake.frames.Where(f => f != null && f.Length > 0)
+                .Sum(f => System.Text.RegularExpressions.Regex.Matches(System.Text.Encoding.UTF8.GetString(f), "\"kind\":0").Count);
             StudioRender.RecordAudio(file => audioFile = file);
             foreach (int wait in UntilHeld()) yield return wait;
+            string soundNote = !soundEngine ? "The game's sound engine was not in the scene."
+                : $"Sound engine: {hitsOnTape} block hits on the tape; {soundEngine.Played - playedBefore} sounds started and {soundEngine.Culled - culledBefore} skipped while recording; " +
+                  $"it listens from \"{(soundEngine.Listener ? soundEngine.Listener.name : "nothing")}\"" +
+                  (soundEngine.Listener ? $" {Vector3.Distance(soundEngine.Listener.position, stage.anchor):0.0} m from the stage spot" : "") + $"; application focused: {Application.isFocused}.";
             yield return 0;
             set.cuts.Clear();
             set.cuts.Add(new StudioCut { camera = set.cameras[0].id, from = 0, to = 1.5f });
@@ -195,6 +205,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 $"FCPXML is well-formed XML with {clips} shots on the main storyline, {transitions} cross dissolve, game sound under all {soundClips} shots, sequence length {duration}; " +
                 $"all {assets} media files it points at exist ({missing} missing). EDL has {edlEvents} events. The tape's sound was recorded: {audioBytes / 1024} KB with {stems} stems; loudest sample {loudest} of 32767{(loudest == 0 ? " (SILENT: nothing was heard on the stage)" : "")}; block impacts (World stem) loudest sample {worldLoudest}{(worldLoudest == 0 ? " (SILENT)" : "")}. " +
                 $"Notes from the exporter: {(problems.Count == 0 ? "none" : string.Join("; ", problems))}. " +
+                soundNote + " " +
                 "NOT run: importing the file into DaVinci Resolve or Premiere. That needs one of those apps and a person; the files are in render-1/.");
 
             StudioLibrary.Save(set);
