@@ -81,9 +81,18 @@ change, use a new type id (for example `world2`) and keep reading the old one.
 | `effects` | `effects` | string weapons JSON (blaster, projectiles, actions, equipment, epoch, sequence), then particle samples (same bytes as Theatre v4) |
 | `audio-events` | `audio-events` | UTF-8 JSON list of sounds (kind, position, velocity, strength, cue), or empty |
 
-Reserved for later phases (use these ids so chats do not collide):
-`camera` (Phase 5), `cues-run` and `branch` (Phase 3), `actor-edit`
-(Phase 4).
+Later phases ended up needing no new track types: branches and variation
+runs are ordinary `world` takes with notes in `take.meta`, cameras live in
+the Set, and motion edits are ordinary actor takes. The id `camera` stays
+reserved in case camera moves are ever recorded per frame.
+
+Notes kept in the free `meta` strings (all JSON, all optional):
+
+| Where | Class | Holds |
+|-------|-------|-------|
+| `track.meta` of an actor track | `StudioTrackNotes` | ghost look, walk-through, stale frame |
+| `take.meta` of an actor take | (in `StudioTakes`) | id of the world take it was performed against |
+| `take.meta` of a world take | `StudioBranch.WorldNote` | block count, parent take, branch frame, label, variation group, scores |
 
 ## 2. Track types: `IStudioTrackType`
 
@@ -165,7 +174,24 @@ small buttons, the Advanced fold) and `StudioFields` (text, number, slider,
 choice, enum, switch: all undoable). Colors and spacing are tokens at the top
 of `UI/TrailerStudio.uss`; do not hard-code colors in C#.
 
-## 6. Set data
+## 6. Changing a recorded pose on its way to the screen: `IActorFrameFilter`
+
+Code: `Tracks/ActorTrack.cs` (interface), `Engine/StudioOverrides.cs` (the
+one built-in filter). A filter gets the opened-up actor frame
+(`ActorFrame`: feet, head, hands, outfit, equipment) for one actor at one
+tape time and may change it. The take is never touched. `Wants` must be a
+quick check, so actors with nothing layered on them are not decoded every
+frame. Phase 4's look-ats, reaches, poses, reactions, emotes and outfit
+changes all go through this.
+
+## 7. Using the viewport your own way: `IStudioViewportTool`
+
+A mode class can also implement `IStudioViewportTool`. `Down` returns true
+to take a drag (pick blocks, aim an arrow, bend a path); returning false
+leaves the viewport's own orbit and mark dragging in charge.
+`DirectMode` and `PolishMode` are the examples.
+
+## 8. Set data
 
 `Data/StudioSet.cs` is JSON through Unity's `JsonUtility`. Adding a field is
 safe (old files load with the default). Do not rename or remove fields.

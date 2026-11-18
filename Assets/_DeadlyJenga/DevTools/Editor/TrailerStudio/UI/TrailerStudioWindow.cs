@@ -450,6 +450,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         public void ShowMode(string title) { modeTitle = title; RebuildAll(); }
 
+        // Open the command palette (true) or the shortcut sheet (false), and close either.
+        public void ShowPalette(bool commands) { if (commands) palette.ShowCommands(); else palette.ShowShortcuts(); }
+        public void ClosePalette() => palette.Close();
+
         // Number keys pick a take of the selected track (or the selected actor's track).
         void PickTake(int index)
         {

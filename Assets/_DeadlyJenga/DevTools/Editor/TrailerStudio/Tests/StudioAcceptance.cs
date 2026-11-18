@@ -153,7 +153,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             text.Append($"\nFailures: {Failures}\n");
             File.WriteAllText(Path.Combine(Folder, "report.md"), text.ToString());
             Debug.Log("[TrailerStudio acceptance] finished with " + Failures + " failures. Report: " + Path.Combine(Folder, "report.md"));
-            if (Application.isBatchMode) EditorApplication.Exit(Failures == 0 ? 0 : 1);
+            // Close the editor when it was started just for this run (batch mode, or -executeMethod on the command line).
+            bool startedForThis = Environment.GetCommandLineArgs().Any(a => a.Contains("StudioAcceptance.Run"));
+            if (Application.isBatchMode || startedForThis) EditorApplication.Exit(Failures == 0 ? 0 : 1);
         }
 
         static StudioSet MakeSet()
