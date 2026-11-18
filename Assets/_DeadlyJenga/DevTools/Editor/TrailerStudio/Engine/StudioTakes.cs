@@ -145,6 +145,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public float timeSpread = .8f;    // people start up to this many seconds earlier or later
             public bool mirror = true, outfits = true;
             public int seed = 1;
+            // With the stage open: the height of the ground at a spot (stage space), or null where there is nothing to stand on.
+            // People are only placed where there is ground, and start standing on it.
+            public Func<Vector3, float?> ground;
         }
 
         // Crowd: turn a few performed takes into a group. Each person is a clone of one of the sources with
@@ -174,6 +177,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     float angle = Next() * Mathf.PI * 2, distance = Mathf.Sqrt(Next()) * reach;
                     place = source.position + new Vector3(Mathf.Cos(angle) * distance, 0, Mathf.Sin(angle) * distance);
                     found = taken.All(p => Vector3.Distance(p, place) >= options.spacing);
+                    if (found && options.ground != null)
+                    {
+                        float? height = options.ground(place);
+                        // Not over a drop, and not up on something much higher or lower than the performer stood on.
+                        if (!height.HasValue || Mathf.Abs(height.Value - source.position.y) > 1.2f) found = false;
+                        else place.y = height.Value;
+                    }
                     if (attempt % 40 == 39) { reach *= 1.3f; nudged++; }
                 }
                 if (!found) notes.Add($"Person {i + 1} could not find a free spot; they overlap someone.");

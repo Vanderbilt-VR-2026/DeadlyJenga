@@ -94,7 +94,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 $"Ada, Ben and Cy each performed a {set.length:0} s take. Ada walked {Vector3.Distance(originalPath[0], originalPath[originalPath.Count - 1]):0.00} m.");
 
             // ---- Test 4 first (it needs the three untouched takes): a 20-person crowd from 3 takes ----
-            var crowd = StudioTakes.Crowd(set, tape, performers.ToList(), new StudioTakes.CrowdOptions { count = 20, radius = 5, spacing = .9f, timeSpread = .8f, seed = 11 }, out var crowdNotes);
+            var crowd = StudioTakes.Crowd(set, tape, performers.ToList(), new StudioTakes.CrowdOptions { count = 20, radius = 5, spacing = .9f, timeSpread = .8f, seed = 11, ground = stage.GroundAt }, out var crowdNotes);
+            int floating = crowd.Count(m => !stage.GroundAt(m.position + Vector3.up * .1f).HasValue);
             StudioLibrary.Save(set); StudioRun.SaveTape(); StudioRun.Refresh();
             float closest = float.MaxValue;
             for (int a = 0; a < set.marks.Count; a++)
@@ -131,10 +132,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (int wait in UntilHeld()) yield return wait;
             StudioRun.FrameShown -= CountCrowd;
             Result("4. A 20-person crowd from 3 performed takes, with no two people in step",
-                crowd.Count == 20 && closest >= .88f && inStep == 0 && shownMost >= 20,
+                crowd.Count == 20 && closest >= .88f && inStep == 0 && shownMost >= 20 && floating == 0,
                 $"{crowd.Count} people made from Ada's, Ben's and Cy's takes ({outfits} different outfits). Closest two start {closest:0.00} m apart (asked for 0.90). " +
                 $"Comparing every pair's speed frame by frame: {inStep} pairs move in step; the most alike pair still differs by {nearest:0.00} m/s on average. " +
-                $"{shownMost} actors on screen at once in playback. Notes: {(crowdNotes.Count == 0 ? "none" : string.Join(" ", crowdNotes))} Pictures: crowd/.");
+                $"{shownMost} actors on screen at once in playback. People placed with nothing under their feet: {floating}. Notes: {(crowdNotes.Count == 0 ? "none" : string.Join(" ", crowdNotes))} Pictures: crowd/.");
             // Take the crowd away again so the next tests are easy to see.
             set.marks.RemoveAll(m => m.actor.StartsWith("Crowd "));
             foreach (var mark in crowd) { var t = tape.Find(mark.id); if (t != null) t.mode = TrackMode.Muted; }

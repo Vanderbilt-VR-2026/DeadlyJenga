@@ -221,6 +221,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 {
                     List<string> notes = null; int made = 0;
                     crowd.seed = set.marks.Count * 17 + 3;
+                    // With the stage open, people are only put where there is ground to stand on.
+                    var open = StudioRun.State == StudioState.Held ? context.Stage : null;
+                    crowd.ground = open == null ? (Func<Vector3, float?>)null : open.GroundAt;
                     context.Edit("Make crowd", () => made = StudioTakes.Crowd(set, tape, performed, crowd, out notes).Count, true);
                     context.window.TapeChanged();
                     context.Say($"Made a crowd of {made}. " + string.Join(" ", notes));

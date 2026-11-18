@@ -62,6 +62,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return false;
         }
 
+        // For the crowd tool: the ground height under a stage-space spot, or null over a drop.
+        public float? GroundAt(Vector3 stagePoint)
+        {
+            Vector3 point = ToWorld(stagePoint);
+            int mask = (1 << Layers.Block) | (1 << Layers.Surface) | 1;
+            if (!Physics.Raycast(point + Vector3.up * 1.2f, Vector3.down, out var hit, 3f, mask, QueryTriggerInteraction.Ignore)) return null;
+            return ToStage(hit.point).y;
+        }
+
         // Plain-language warning for a mark's spot, or empty when it is fine.
         public string MarkWarning(StudioMark mark)
         {
