@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -107,6 +107,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             SaveJob();
             State = StudioState.Opening;
             Status = "Opening the stage…";
+            Debug.Log("[TrailerStudio] opening stage for " + set.id + " in " + scene);
             try { EditorSceneManager.OpenScene(scene); EditorApplication.EnterPlaymode(); }
             catch { job = null; SaveJob(); State = StudioState.Closed; throw; }
             Notify();
@@ -121,6 +122,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         static void PlayModeChanged(PlayModeStateChange change)
         {
+            Debug.Log($"[TrailerStudio] play mode {change}; job {(job == null ? "none" : job.setId)}; state {State}");
             if (job == null) return;
             if (change == PlayModeStateChange.EnteredPlayMode)
             {
@@ -161,6 +163,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // Something went wrong: stop the run, keep the stage open if it exists, and say what happened.
         static void Fail(string message)
         {
+            Debug.LogWarning("[TrailerStudio] " + message);
             Status = message;
             running = false; Recording = false;
             DisposeRecorders();
@@ -225,6 +228,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             StudioDriverEarly.Ensure();
             Hold(0);
             Status = "Stage is open.";
+            Debug.Log($"[TrailerStudio] stage open: {set.map}, {Stage.blocks.Length} blocks, anchor {Stage.anchor}");
         }
 
         public static StudioTape LoadOrCreateTape(StudioSet set, StudioStage stage)

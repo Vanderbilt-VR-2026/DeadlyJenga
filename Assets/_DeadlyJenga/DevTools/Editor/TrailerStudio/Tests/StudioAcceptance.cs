@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -86,9 +86,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         if (routine == null)
                         {
                             if (StudioRun.State == StudioState.Held) routine = StageTests();
-                            else if (!EditorApplication.isPlayingOrWillChangePlaymode && StudioRun.State == StudioState.Closed)
-                                throw new InvalidOperationException("The stage did not open: " + StudioRun.Status);
-                            else if (EditorApplication.timeSinceStartup > Deadline) throw new TimeoutException("The stage never finished opening.");
+                            else if (EditorApplication.timeSinceStartup > Deadline)
+                                throw new TimeoutException($"The stage never finished opening. State {StudioRun.State}, playing {EditorApplication.isPlaying}, status: {StudioRun.Status}");
                             return;
                         }
                         if (Advance()) return;
