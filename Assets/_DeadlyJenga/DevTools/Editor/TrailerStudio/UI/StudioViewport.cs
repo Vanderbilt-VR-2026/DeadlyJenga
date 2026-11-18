@@ -122,7 +122,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Fit();
             image.image = StudioCamera.Image;
             help.text = Placing.HasValue ? "Click where the new mark should stand.  Esc cancels." :
-                "Drag: orbit   Right-drag: slide   Wheel: zoom   Drag a mark: move   Shift+drag a mark: turn";
+                "Drag: orbit  |  Right-drag: slide  |  Wheel: zoom  |  Drag a mark: move  |  Shift+drag a mark: turn";
             BuildHandles();
             Tick();
         }

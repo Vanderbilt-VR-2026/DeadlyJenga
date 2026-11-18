@@ -44,8 +44,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (!set.marks.Any(m => m.role != StudioRole.Hand)) host.Add(Quiet("Place a mark to add your first actor."));
 
             Group("Cameras");
+            foreach (var camera in set.cameras) host.Add(Row(camera.name, StudioColors.For(camera.color), null, null));
             foreach (var shot in set.shots) host.Add(Row(shot.name, StudioColors.Camera, null, null));
-            host.Add(Quiet(set.shots.Count == 0 ? "Cameras are added last, in the Shoot mode." : "Kept from Theatre for the Shoot mode."));
+            if (set.cameras.Count == 0) host.Add(Quiet(set.shots.Count == 0 ? "Cameras are added last, in the Shoot mode." : "Kept from Theatre for the Shoot mode."));
         }
 
         void Group(string title)

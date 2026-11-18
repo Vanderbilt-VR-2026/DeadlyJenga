@@ -84,7 +84,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var look = StudioUi.Small(through ? "Looking" : "Look", () => { LookThrough = through ? "" : captured.id; if (!through) context.Select(captured); else { StudioCamera.Place(); context.Rebuild(); } },
                     "Show the viewport through this camera.");
                 look.EnableInClassList("ts-small--on", through);
-                var row = StudioUi.Row(StudioUi.Dot(StudioColors.For(camera.color)), name, new Label($"{camera.keys.Count} keys  ") { style = { color = new Color(.6f, .6f, .66f), fontSize = 11 } }, look);
+                var row = StudioUi.Row(StudioUi.Dot(StudioColors.For(camera.color)), name, new Label(camera.keys.Count == 1 ? "1 key  " : $"{camera.keys.Count} keys  ") { style = { color = new Color(.6f, .6f, .66f), fontSize = 11 } }, look);
                 row.AddToClassList("ts-item");
                 row.EnableInClassList("ts-item--selected", ReferenceEquals(camera, context.Selection));
                 row.RegisterCallback<ClickEvent>(_ => context.Select(captured));

@@ -155,6 +155,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public void BeginEdit(string label)
         {
             if (!undo) SyncUndo();
+            // Each edit is its own undo step, also when two edits happen without a click in between.
+            Undo.IncrementCurrentGroup();
             Undo.RecordObject(undo, label);
         }
 

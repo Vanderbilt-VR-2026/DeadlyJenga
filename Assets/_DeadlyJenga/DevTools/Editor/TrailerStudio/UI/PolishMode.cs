@@ -107,7 +107,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             VisualElement Line(string label, VisualElement field, string button, Action click, string tooltip)
             {
-                field.style.flexGrow = 1;
+                field.style.flexGrow = 1; field.style.flexShrink = 1; field.style.minWidth = 0;
                 var run = StudioUi.Small(button, click, tooltip);
                 run.style.minWidth = 66;
                 return StudioUi.Row(field, run);
@@ -121,7 +121,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var soft = new SliderInt("Smoothing", 1, 10) { value = smooth, showInputField = true };
             soft.RegisterValueChangedCallback(e => smooth = e.newValue);
             panel.Add(Line("Smoothing", soft, "Smooth", () => Edit("Smoothed", () => StudioMotionEdit.Smooth(track, from, to, smooth)), "Remove jitter from the range."));
-            var move = new Vector3Field("Move by (m)") { value = nudge };
+            var move = new Vector3Field("Move (m)") { value = nudge };
+            move.labelElement.style.minWidth = 56;
             move.RegisterValueChangedCallback(e => nudge = e.newValue);
             panel.Add(Line("Move", move, "Offset", () => Edit("Moved", () => StudioMotionEdit.Offset(track, from, to, nudge, Mathf.RoundToInt(fps * .4f))), "Shift the range in space, eased in and out."));
             var trim = StudioUi.Small("Trim to the range", () => Edit("Trimmed", () => StudioMotionEdit.Trim(track, from, to)));
