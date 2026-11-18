@@ -30,6 +30,10 @@ namespace DeadlyJenga.CandyArt.Marina
             var fleet = new GameObject("Marina cruise ships");
             fleet.transform.SetParent(visual, false);
             fleet.AddComponent<MarinaCruiseShips>().Build(visual.Find("Marina ocean"), OceanLevel);
+            var sea = new GameObject("Marina sea life");
+            sea.transform.SetParent(visual, false);
+            sea.transform.localPosition = Vector3.up * OceanLevel;
+            sea.AddComponent<CandySeaLife>().Build(110, 150, true, visual.Find("Marina ocean"));
         }
 
         void ShowtimePlaza()

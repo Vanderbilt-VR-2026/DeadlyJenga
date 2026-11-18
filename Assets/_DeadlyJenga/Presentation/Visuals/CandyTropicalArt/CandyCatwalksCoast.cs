@@ -81,6 +81,7 @@ namespace DeadlyJenga.CandyArt
             BuildHorizon(random);
             BuildRay();
             boats=new CandyBenchyFleet(root.transform);
+            root.AddComponent<CandySeaLife>().Build(70,95);
         }
 
         internal void SetWaterProperties(MaterialPropertyBlock properties)
