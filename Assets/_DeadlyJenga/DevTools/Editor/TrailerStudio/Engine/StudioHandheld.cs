@@ -92,7 +92,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Quaternion turn = controller.deviceRotation.ReadValue();
             position = rig.trackingOrigin.TransformPoint(local);
             rotation = rig.trackingOrigin.rotation * turn;
-            var stick = controller.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("thumbstick");
+            // Quest controllers call the stick "thumbstick"; the PC-simulated controllers call it "primary2DAxis".
+            var stick = controller.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("thumbstick") ??
+                controller.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis");
             if (stick != null) focal = Mathf.Clamp(focal * (1 + stick.ReadValue().y * Time.unscaledDeltaTime * .9f), 10, 200);
             return true;
         }
