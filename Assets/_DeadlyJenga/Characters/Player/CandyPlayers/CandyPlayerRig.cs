@@ -97,7 +97,7 @@ namespace DeadlyJenga.CandyPlayers
                 gait.strideDirection = new Vector3(Mathf.Sin(heading), 0f, Mathf.Cos(heading));
             }
             float cadence = Mathf.Lerp(6f, 11f, Mathf.InverseLerp(.12f, 4f, gait.locomotionSpeed)) + gait.sprintBlend * 3.8f;
-            gait.walkPhase = Mathf.Repeat(gait.walkPhase + cadence * deltaTime, 2f * Mathf.PI);
+            gait.walkPhase = frame.hasGaitPhase ? frame.gaitPhase : Mathf.Repeat(gait.walkPhase + cadence * deltaTime, 2f * Mathf.PI);
             return gait;
         }
         public Transform LeftPalm=>bones[4];
