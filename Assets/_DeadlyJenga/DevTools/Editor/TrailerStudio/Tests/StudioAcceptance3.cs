@@ -80,14 +80,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 int torn = moves.Count(m => m >= 0);
                 // Where did the tornado come in? Read its first recorded position from the hazard track.
                 float entrySide = -1;
-                foreach (var data in hazards?.frames ?? new List<byte[]>())
+                var bounds = stage.world.PlayableBounds;
+                for (int f = 0; f < frames && hazards != null; f++)
                 {
-                    if (data == null || data.Length == 0) continue;
-                    var match = System.Text.RegularExpressions.Regex.Match(System.Text.Encoding.UTF8.GetString(data), "\"center\":\\{\"x\":([-0-9.eE]+),\"y\":([-0-9.eE]+),\"z\":([-0-9.eE]+)");
-                    if (!match.Success) continue;
-                    float x = float.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) - stage.world.Center.x;
-                    float z = float.Parse(match.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture) - stage.world.Center.z;
-                    entrySide = Mathf.Repeat(Mathf.Atan2(z, x) * Mathf.Rad2Deg, 360);
+                    if (!HazardTrack.CenterAt(hazards, f, out var funnel)) continue;
+                    entrySide = Mathf.Repeat(Mathf.Atan2(funnel.z - bounds.center.z, funnel.x - bounds.center.x) * Mathf.Rad2Deg, 360);
                     break;
                 }
                 bool fromRightSide = entrySide >= 0 && Mathf.Abs(Mathf.DeltaAngle(entrySide, 90)) < 12;
@@ -125,9 +122,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             StudioLibrary.Save(set);
             StudioRun.Refresh();
             frames = set.Frames;
+            // Thirty blocks in one neighbourhood: the ones nearest the stage spot, nearest first.
             var loose = Enumerable.Range(0, stage.blocks.Length).Where(i => stage.blocks[i] && stage.blocks[i].gameObject.activeSelf)
-                .OrderByDescending(i => stage.blocks[i].position.y).Take(60).OrderBy(i => stage.blocks[i].position.x).Take(30).ToList();
-            var ripple = new StudioCue { at = .5f, action = PushCue.Id, blocks = loose, direction = new Vector3(0, .15f, 1), strength = 5, ripple = .12f };
+                .OrderBy(i => (stage.blocks[i].position - stage.anchor).sqrMagnitude).Take(30).ToList();
+            var ripple = new StudioCue { at = .5f, action = PushCue.Id, blocks = loose, direction = new Vector3(0, .15f, 1), strength = 5, ripple = .15f };
             set.cues.Add(ripple);
             StudioLibrary.Save(set);
             void ShootWave(int frame) { if (frame % 4 == 0) StudioCamera.SavePng(Path.Combine(Folder, "ripple", $"{frame / 4:D05}.png")); }

@@ -90,6 +90,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public bool mirror;
             public float jitter;                                // 0 = exact copy; 1 = up to half a metre and a third of a second of difference
             public int seed = 1;
+            public bool dress;                                  // true = wear 'look' and 'color' instead of the source's outfit
+            public DeadlyJenga.Core.AvatarAppearance look;
+            public int color = -1;
         }
 
         // Clone: copy an actor's active take onto a new actor, moved, turned, delayed or mirrored.
@@ -109,6 +112,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             mark.yaw = source.yaw + options.turn;
             mark.color = (source.color + set.marks.Count) % 8;
             mark.customLook = source.customLook; mark.appearance = source.appearance; mark.equipment = source.equipment;
+            if (options.dress) { mark.customLook = true; mark.appearance = options.look; }
+            if (options.color >= 0) mark.color = options.color % 8;
 
             var first = ActorFrame.Read(from.type, take.frames.FirstOrDefault(f => ActorFrame.Read(from.type, f).visible) ?? take.frames[0]);
             Vector3 pivot = first.Position;
@@ -130,6 +135,70 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             track.takes.Add(copy);
             track.active = track.takes.Count - 1;
             return mark;
+        }
+
+        public sealed class CrowdOptions
+        {
+            public int count = 20;
+            public float radius = 5;          // how far from the performers the crowd spreads, in metres
+            public float spacing = .9f;       // closest two people may start to each other
+            public float timeSpread = .8f;    // people start up to this many seconds earlier or later
+            public bool mirror = true, outfits = true;
+            public int seed = 1;
+        }
+
+        // Crowd: turn a few performed takes into a group. Each person is a clone of one of the sources with
+        // their own place, timing, facing, mirroring and outfit, so no two move in step.
+        public static List<StudioMark> Crowd(StudioSet set, StudioTape tape, List<StudioMark> sources, CrowdOptions options, out List<string> notes)
+        {
+            notes = new List<string>();
+            sources = sources.Where(s => tape.Find(s.id)?.ActiveTake != null).ToList();
+            if (sources.Count == 0) throw new InvalidOperationException("Pick at least one actor that has a take.");
+            var random = new System.Random(options.seed);
+            float Next() => (float)random.NextDouble();
+            var made = new List<StudioMark>();
+            var taken = set.marks.Select(m => m.position).ToList();
+            // People copied from the same take get evenly spread delays, so their steps never line up.
+            int perSource = Mathf.CeilToInt(options.count / (float)sources.Count);
+            float step = Mathf.Max(.17f, 2 * options.timeSpread / Mathf.Max(1, perSource));
+            var used = new int[sources.Count];
+            int nudged = 0;
+            for (int i = 0; i < options.count; i++)
+            {
+                int pick = i % sources.Count;
+                var source = sources[pick];
+                // Find a free spot: far enough from everyone already placed. Widen the search if it is crowded.
+                Vector3 place = source.position; float reach = options.radius; bool found = false;
+                for (int attempt = 0; attempt < 200 && !found; attempt++)
+                {
+                    float angle = Next() * Mathf.PI * 2, distance = Mathf.Sqrt(Next()) * reach;
+                    place = source.position + new Vector3(Mathf.Cos(angle) * distance, 0, Mathf.Sin(angle) * distance);
+                    found = taken.All(p => Vector3.Distance(p, place) >= options.spacing);
+                    if (attempt % 40 == 39) { reach *= 1.3f; nudged++; }
+                }
+                if (!found) notes.Add($"Person {i + 1} could not find a free spot; they overlap someone.");
+                taken.Add(place);
+                int slot = used[pick]++;
+                float delay = (slot - (perSource - 1) * .5f) * step + (Next() - .5f) * .05f;
+                var look = new DeadlyJenga.Core.AvatarAppearance();
+                if (options.outfits)
+                {
+                    T Any<T>() where T : Enum { var values = (T[])Enum.GetValues(typeof(T)); return values[random.Next(values.Length)]; }
+                    look.skin = Any<DeadlyJenga.Core.AvatarSkin>(); look.hair = Any<DeadlyJenga.Core.AvatarHair>();
+                    look.eyewear = Any<DeadlyJenga.Core.AvatarEyewear>(); look.hairShade = Any<DeadlyJenga.Core.AvatarHairShade>();
+                    look.clothing = Any<DeadlyJenga.Core.AvatarClothing>();
+                }
+                var clone = Clone(set, tape, source, new CloneOptions
+                {
+                    offset = place - source.position, turn = (Next() - .5f) * 50, delay = delay, mirror = options.mirror && i % 2 == 1,
+                    jitter = 0, seed = options.seed * 131 + i, dress = options.outfits, look = look, color = random.Next(8)
+                });
+                clone.actor = "Crowd " + (made.Count + 1);
+                tape.Find(clone.id).name = clone.actor;
+                made.Add(clone);
+            }
+            if (nudged > 0) notes.Add("The area was tight, so some people were placed a little farther out.");
+            return made;
         }
 
         // After the world was recorded again: flag every actor take that was performed against an older world,

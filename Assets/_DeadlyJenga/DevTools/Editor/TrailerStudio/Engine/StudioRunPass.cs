@@ -210,6 +210,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         static void ShowFrame(int frame, bool playing)
         {
+            // Hit pause (Phase 4): playback holds a contact for a few frames. Recording is never affected.
+            if (!Recording) frame = StudioOverrides.Held(Stage.set, frame);
             foreach (var player in players) player.Show(frame, playing);
             foreach (var player in players) player.AfterShow();
         }
@@ -268,8 +270,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     // Physics runs before a frame is recorded, so the first new frame is the one after the branch frame.
                     pass.from = pass.branchFrom + 1; pass.preRoll = 0; pass.punchIn = false;
                     DemoDisasters.StopAll(stage.session);
-                    StudioBranch.StartFromTape(stage, oldWorld, pass.branchFrom);
-                    UnityEngine.Random.InitState(pass.seed >= 0 ? pass.seed : set.seed);
+                    // Until the tape rolls the world stays exactly on the branch frame (kinematic), so nothing drifts.
+                    stage.Synced?.SetReplica(true);
+                    using (var hold = StudioTrackTypes.Get(WorldTrack.Id).CreatePlayer(stage, stage.tape.FindType(WorldTrack.Id), oldWorld)) hold.Show(pass.branchFrom, false);
                 }
                 else if (pass.liveWorld)
                 {
@@ -348,6 +351,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (pass.liveWorld) pendingCues.AddRange(set.cues.Where(c => string.IsNullOrEmpty(c.link) && c.at >= startFrame / (float)stage.Fps - .0001f).OrderBy(c => c.at));
                 StudioDirector.Begin(stage, startFrame / (float)stage.Fps);
 
+                if (branch)
+                {
+                    // Hand the blocks to physics at the last possible moment, with the tape's pose and speed.
+                    StudioBranch.StartFromTape(stage, oldWorld, pass.branchFrom);
+                    UnityEngine.Random.InitState(pass.seed >= 0 ? pass.seed : set.seed);
+                }
                 Begin(startFrame, to, clock, pass.speed, null);
                 recordFrom = pass.from; capturedTo = pass.from - 1;
                 Recording = true;

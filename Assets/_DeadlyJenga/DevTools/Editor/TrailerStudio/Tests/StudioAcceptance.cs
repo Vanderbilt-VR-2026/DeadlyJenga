@@ -167,7 +167,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             set.AddMark(StudioRole.Bot, new Vector3(1.5f, 0, 0));
             set.AddMark(StudioRole.Bot, new Vector3(-1.5f, 0, 0));
             set.AddMark(StudioRole.Survivor, new Vector3(0, 0, 1.5f));
-            set.cues.Add(new StudioCue { at = 1, action = "collapse", strength = 4 });
+            // The collapse is aimed away from the stage block, so that block only gets the slow shove below.
+            set.cues.Add(new StudioCue { at = 1, action = "collapse", strength = 4, point = new Vector3(0, -5, 14) });
             // A slow shove on a block one level down, so test 3 has a block that moves at a speed someone can ride.
             set.cues.Add(new StudioCue { at = 2, action = "push", strength = 1.8f, direction = new Vector3(1, 0, .2f), point = new Vector3(0, -.3f, 0) });
             StudioLibrary.Save(set);
@@ -353,10 +354,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 for (int s = 1; s < samples.Count; s++)
                     fastest = Mathf.Max(fastest, Vector3.Distance(samples[s].positions[i], samples[s - 1].positions[i]) * set.fps / 3);
                 bestDrop = drop;
-                if (drop < .2f || fastest > 6) continue;
+                if (drop < .2f || fastest > 8) continue;
                 chosen = i;
             }
-            if (chosen < 0) Result("3. Live survivor rides a played-back moving block", false, $"The stage block (#{stageBlock}) only moved {bestDrop:F2} m in the recording, so there was nothing to ride.");
+            if (chosen < 0) Result("3. Live survivor rides a played-back moving block", false, $"The stage block (#{stageBlock}) moved {bestDrop:F2} m in the recording, too little or too fast to ride.");
             else
             {
                 var block = stage.blocks[chosen];

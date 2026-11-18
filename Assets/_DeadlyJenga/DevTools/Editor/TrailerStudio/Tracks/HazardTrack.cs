@@ -28,6 +28,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public DisasterFrame[] disasters = Array.Empty<DisasterFrame>();
         }
 
+        // Where the disaster is on a recorded frame (a tornado's funnel, a wave's front). False when none is active.
+        public static bool CenterAt(StudioTake take, int frame, out Vector3 centre)
+        {
+            centre = default;
+            if (take == null || !take.Covers(frame)) return false;
+            byte[] data = take.frames[frame - take.start];
+            if (data == null || data.Length == 0) return false;
+            var sample = JsonUtility.FromJson<Frame>(Encoding.UTF8.GetString(data));
+            if (sample == null) return false;
+            var disaster = (sample.disasters ?? Array.Empty<DisasterFrame>()).FirstOrDefault(d => d != null && d.warning <= 0) ?? (sample.disasters ?? Array.Empty<DisasterFrame>()).FirstOrDefault(d => d != null);
+            if (disaster != null) { centre = disaster.center; return true; }
+            if (sample.wave.active) { centre = sample.wave.center; return true; }
+            return false;
+        }
+
         // A frame that only holds a wave (used to convert old Theatre tapes).
         public static byte[] Pack(WaveFrame wave) =>
             wave.active ? Encoding.UTF8.GetBytes(JsonUtility.ToJson(new Frame { wave = wave })) : Array.Empty<byte>();
