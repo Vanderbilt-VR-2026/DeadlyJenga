@@ -224,6 +224,9 @@ namespace DeadlyJenga.HandValidation
                     float radius = new Vector2(local.x, local.z).magnitude;
                     // The middle of each finger bone. Joints are allowed to crease; the middle must stay full.
                     if (local.y < length * .3f || local.y > length * .7f || radius < .003f) continue;
+                    // The thumb's first bone is the ball of the thumb. It is meant to merge into the palm, so it has no
+                    // free-standing middle to measure; its skin is covered by the roll and gap checks instead.
+                    if (i == 1) continue;
                     ids.Add(v); radii.Add(radius);
                 }
                 middle[i] = ids.ToArray(); restRadius[i] = radii.ToArray();

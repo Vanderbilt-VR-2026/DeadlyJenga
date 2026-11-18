@@ -419,10 +419,11 @@ namespace DeadlyJenga.CandyPhysicsHands
         // Firm both ways. A finger can be stopped short of where tracking wants it (that is touching and gripping),
         // but nothing can fold it further closed than the tracked pose, just as nothing can bend it backwards.
         // Without this a hand pressed down hard crumpled onto its own curled fingers.
-        const float FoldMarginDegrees=18;
-        readonly float[] curlLimit=new float[16];
+        // Done as a stop torque between the two bones. (Changing a joint's limits while it runs disturbed the joints.)
+        const float FoldMarginDegrees=18,FoldStopStiffness=6000,FoldStopDamping=120,FoldStopMost=2500;
         void HoldFingerShape()
         {
+            Quaternion palmTurn=bodies[0].rotation;Vector3 hinge=palmTurn*Vector3.right;
             for(int f=1;f<5;f++)
             {
                 Vector3 first=Target.skeleton.Joint(f*4+1)-Target.skeleton.Joint(f*4);
@@ -431,14 +432,17 @@ namespace DeadlyJenga.CandyPhysicsHands
                 float before=0;
                 for(int j=0;j<3;j++)
                 {
-                    int i=1+f*3+j;
+                    int i=1+f*3+j,parent=j==0?0:i-1;
                     Vector3 bone=Target.skeleton.Joint(f*4+j+1)-Target.skeleton.Joint(f*4+j);
                     float total=bone.sqrMagnitude>1e-10f?Mathf.Atan2(-bone.y,Vector3.Dot(bone.normalized,along))*Mathf.Rad2Deg:before;
-                    float bend=Mathf.DeltaAngle(before,total);before=total;
-                    float limit=Mathf.Clamp(bend+FoldMarginDegrees,FoldMarginDegrees,FingerCurlDegrees);
-                    if(Mathf.Abs(limit-curlLimit[i])<1.5f)continue;
-                    curlLimit[i]=limit;
-                    joints[i-1].highAngularXLimit=new SoftJointLimit{limit=limit};
+                    float wanted=Mathf.DeltaAngle(before,total);before=total;
+                    Vector3 from=j==0?palmTurn*Vector3.forward:bodies[parent].rotation*Vector3.up;
+                    float actual=Vector3.SignedAngle(from,bodies[i].rotation*Vector3.up,hinge);
+                    float over=actual-(wanted+FoldMarginDegrees);
+                    if(over<=0)continue;
+                    float closing=Vector3.Dot(bodies[i].angularVelocity-bodies[parent].angularVelocity,hinge);
+                    float stop=Mathf.Min(FoldStopMost,Mathf.Max(0,over*Mathf.Deg2Rad*FoldStopStiffness+closing*FoldStopDamping))*Strength;
+                    bodies[i].AddTorque(-hinge*stop,ForceMode.Force);bodies[parent].AddTorque(hinge*stop,ForceMode.Force);
                 }
             }
         }
