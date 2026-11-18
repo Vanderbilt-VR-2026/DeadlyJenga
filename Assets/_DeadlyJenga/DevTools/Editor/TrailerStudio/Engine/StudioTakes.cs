@@ -160,7 +160,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var taken = set.marks.Select(m => m.position).ToList();
             // People copied from the same take get evenly spread delays, so their steps never line up.
             int perSource = Mathf.CeilToInt(options.count / (float)sources.Count);
-            float step = Mathf.Max(.17f, 2 * options.timeSpread / Mathf.Max(1, perSource));
+            float step = Mathf.Max(.17f, options.timeSpread / Mathf.Max(1, (perSource + 1) / 2));
             var used = new int[sources.Count];
             int nudged = 0;
             for (int i = 0; i < options.count; i++)
@@ -179,7 +179,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (!found) notes.Add($"Person {i + 1} could not find a free spot; they overlap someone.");
                 taken.Add(place);
                 int slot = used[pick]++;
-                float delay = (slot - (perSource - 1) * .5f) * step + (Next() - .5f) * .05f;
+                // Never zero: one step later, one step earlier, two steps later... so nobody matches the performer either.
+                float delay = (slot / 2 + 1) * step * (slot % 2 == 0 ? 1 : -1) + (Next() - .5f) * .04f;
                 var look = new DeadlyJenga.Core.AvatarAppearance();
                 if (options.outfits)
                 {

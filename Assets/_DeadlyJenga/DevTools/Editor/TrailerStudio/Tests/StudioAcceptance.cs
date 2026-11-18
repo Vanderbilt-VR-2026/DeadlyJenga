@@ -172,7 +172,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // The collapse is aimed away from the stage block, so that block only gets the slow shove below.
             set.cues.Add(new StudioCue { at = 1, action = "collapse", strength = 4, point = new Vector3(0, -5, 14) });
             // A slow shove on a block one level down, so test 3 has a block that moves at a speed someone can ride.
-            set.cues.Add(new StudioCue { at = 2, action = "push", strength = 1.8f, direction = new Vector3(1, 0, .2f), point = new Vector3(0, -.3f, 0) });
+            set.cues.Add(new StudioCue { at = 2, action = "push", strength = 3.6f, direction = new Vector3(1, .12f, .2f), point = new Vector3(0, -.3f, 0) });
             StudioLibrary.Save(set);
             return set;
         }
