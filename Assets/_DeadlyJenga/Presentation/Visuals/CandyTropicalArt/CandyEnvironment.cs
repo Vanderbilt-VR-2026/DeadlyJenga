@@ -15,6 +15,8 @@ namespace DeadlyJenga.CandyArt
         MaterialPropertyBlock properties;
         DeadlyJenga.Core.IWorldQuery activeWorld;
         bool openWater,coastReady;
+        CandySeaLife seaLife;
+        object seaLifeWorld;
         IWorldQuery arrivalReadyWorld;
         int arrivalReadyFrame = -1;
 
@@ -75,6 +77,24 @@ namespace DeadlyJenga.CandyArt
             catwalksCoast?.Animate();
         }
 
+        // Gulls, dolphins and the whale for whichever map is active. Built once per map, sized to its radius,
+        // and hidden with the ocean (indoor maps hide their water).
+        void RefreshSeaLife(DeadlyJenga.Core.IWorldQuery world,Vector3 origin,float waterLevel)
+        {
+            if(!Application.isPlaying||world==null||WorldOverride!=null)return;
+            if(!ReferenceEquals(seaLifeWorld,world)||!seaLife)
+            {
+                if(seaLife)Destroy(seaLife.gameObject);
+                seaLifeWorld=world;
+                var go=new GameObject("Sea life · visual only");
+                go.transform.SetParent(transform,false);
+                seaLife=go.AddComponent<CandySeaLife>();
+                float radius=Mathf.Max(12,world.Radius);
+                seaLife.Build(Mathf.Max(28,radius*1.7f),radius*2.3f+25,false,waterRenderer.transform);
+            }
+            seaLife.transform.position=new Vector3(origin.x,waterLevel,origin.z);
+        }
+
         public void Refresh()
         {
             if(!profile || !waterRenderer || !sandRenderer) return;
@@ -109,6 +129,7 @@ namespace DeadlyJenga.CandyArt
             float waterLevel=world!=null?world.WaterHeight(origin):origin.y+profile.waterHeight;
             waterRenderer.transform.localPosition=new Vector3(0,waterLevel-origin.y,0);
             waterRenderer.transform.localScale=new Vector3(profile.oceanSize,1,profile.oceanSize);
+            RefreshSeaLife(world,origin,waterLevel);
             var ocean=waterRenderer.GetComponent<CandyOceanSurface>();
             if(ocean)
             {

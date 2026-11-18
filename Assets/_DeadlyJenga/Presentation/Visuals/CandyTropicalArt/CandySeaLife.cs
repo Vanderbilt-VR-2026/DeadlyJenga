@@ -137,7 +137,7 @@ namespace DeadlyJenga.CandyArt
 
         void Update()
         {
-            bool visible = !hideWith || hideWith.gameObject.activeInHierarchy;
+            bool visible = !hideWith || hideWith.gameObject.activeInHierarchy && (!hideWith.TryGetComponent<Renderer>(out var water) || water.enabled);
             if (visible != shown)
             {
                 shown = visible;
