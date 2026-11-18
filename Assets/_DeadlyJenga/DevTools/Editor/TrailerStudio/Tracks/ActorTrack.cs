@@ -219,7 +219,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 catch (System.Exception error)
                 {
                     failed = true;
-                    track.badge = "Could not play: " + error.Message;
+                    StudioBadges.Set(track, StudioBadges.CouldNotPlay, error.Message);
                     Debug.LogWarning($"Trailer Studio: {track.name} could not be played back. {error.Message}");
                 }
             }

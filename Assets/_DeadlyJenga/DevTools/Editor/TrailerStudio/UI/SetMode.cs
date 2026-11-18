@@ -299,10 +299,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var track = (StudioTrack)selection;
             panel.Add(new Label(track.name) { style = { unityFontStyleAndWeight = FontStyle.Bold, fontSize = 14 } });
-            if (!string.IsNullOrEmpty(track.badge))
+            // Each warning on its own, with its own clear button (a track can be stale and retimed at once).
+            foreach (string part in StudioBadges.Parts(track))
             {
-                panel.Add(StudioUi.Warning(track.badge));
-                panel.Add(StudioUi.Small("Accept and clear this warning", () => { track.badge = ""; context.window.TapeChanged(); }));
+                string kind = StudioBadges.KindOf(part), captured = part;
+                panel.Add(StudioUi.Warning(part));
+                panel.Add(StudioUi.Small("Accept and clear this warning", () =>
+                {
+                    if (kind == StudioBadges.Stale) StudioTakes.AcceptStale(context.Tape, track);
+                    else track.badge = string.Join("\n", StudioBadges.Parts(track).Where(p => p != captured));
+                    context.window.TapeChanged();
+                }));
             }
             if (StudioTrackTypes.Get(track.type) == null)
                 panel.Add(StudioUi.Hint($"This build of the Studio does not know \"{track.type}\" tracks. The data is kept untouched."));
