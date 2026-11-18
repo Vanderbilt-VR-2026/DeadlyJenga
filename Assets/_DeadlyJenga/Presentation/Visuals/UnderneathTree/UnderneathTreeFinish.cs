@@ -332,7 +332,7 @@ namespace DeadlyJenga.CandyArt
         }
 
         // Decorations hung just under the map's own ceiling (the string of lights along the walls)
-        // are shown as copies moved up to the taller ceiling instead.
+        // hung on the old small room's walls, which are gone, so they stay hidden.
         bool RaiseToCeiling(MeshRenderer renderer)
         {
             // Already copied on an earlier refresh.
@@ -344,17 +344,6 @@ namespace DeadlyJenga.CandyArt
             if (!renderer.TryGetComponent<MeshFilter>(out var filter) || !filter.sharedMesh)
                 return false;
             Hide(renderer);
-            // They hung along the old small room's walls, which are gone; leave them hidden for now.
-            if (RoomTop > 300f)
-                return true;
-            var copy = new GameObject(renderer.name + " (raised)");
-            copy.transform.SetParent(art, true);
-            copy.transform.SetPositionAndRotation(renderer.transform.position + Vector3.up * (RoomTop - 177f), renderer.transform.rotation);
-            copy.transform.localScale = renderer.transform.lossyScale;
-            copy.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
-            var shown = copy.AddComponent<MeshRenderer>();
-            shown.sharedMaterials = renderer.sharedMaterials;
-            shown.shadowCastingMode = ShadowCastingMode.Off;
             return true;
         }
 
@@ -433,10 +422,11 @@ namespace DeadlyJenga.CandyArt
             practicalLights.Add(bounce);
 
             // Moonlight falls in through each window onto the floor just inside it.
-            MakeSpot("Moonlight through the tall window", new Vector3(-280f, 220f, 54f),
-                new Vector3(-280f, 0f, -90f), new Color(.16f, .36f, 1f), 30000f, 330f, 80f);
-            MakeSpot("Moonlight by the tree", new Vector3(-130f, 200f, 54f),
-                new Vector3(-110f, 0f, -60f), new Color(.12f, .30f, 1f), 20000f, 300f, 70f);
+            float windowX = (WindowWest + WindowEast) * .5f;
+            MakeSpot("Moonlight through the window", new Vector3(windowX, WindowHead, 54f),
+                new Vector3(windowX, 0f, -80f), new Color(.16f, .36f, 1f), 24000f, 300f, 70f);
+            MakeSpot("Moonlight across the room", new Vector3(windowX + 40f, WindowHead - 10f, 54f),
+                new Vector3(windowX + 70f, 0f, -50f), new Color(.12f, .30f, 1f), 14000f, 280f, 60f);
             // Fire on the east wall, then lit doorways and a lamp up on the loft.
             fireLight = MakeLight("Fireplace glow", LightType.Point, new Vector3(BreastFront - 18f, 34f, HearthZ),
                 new Color(1f, .45f, .14f), 14000f, 230f);

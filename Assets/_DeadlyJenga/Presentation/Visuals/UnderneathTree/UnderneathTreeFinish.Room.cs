@@ -204,16 +204,17 @@ namespace DeadlyJenga.CandyArt
 
         // The family room: the tree stands in the north-east corner, the room opens out to the
         // south and west. Map units; the map root is the origin.
-        const float RoomTop = 400f;
+        // The ceiling sits where the old tall window used to end.
+        const float RoomTop = 290f;
         const float RoomWest = -640f, RoomEast = 60f, RoomSouth = -600f, RoomNorth = 58f;
         const float LoftHeight = 200f, LoftEdge = -520f;
         // Openings: tall window wall behind the tree, hallway in the south wall,
         // archway to the kitchen in the west wall, under the loft.
-        const float WindowWest = -360f, WindowEast = -80f, WindowSill = 25f, WindowHead = 290f;
+        const float WindowWest = -380f, WindowEast = -240f, WindowSill = 40f, WindowHead = 172f;
         const float HallWest = -210f, HallEast = -140f, HallHeight = 150f;
         const float ArchSouth = -170f, ArchNorth = -50f, ArchHeight = 170f;
         // Fireplace on the east wall, south of the rug.
-        const float HearthZ = -290f;
+        const float HearthZ = -350f;
 
         void BuildRoom()
         {
@@ -245,10 +246,10 @@ namespace DeadlyJenga.CandyArt
             for (float x = RoomWest + 90f; x < RoomEast; x += 120f)
                 Box("Ceiling beam", new Vector3(x, RoomTop - 9f, midZ), new Vector3(14f, 18f, spanZ), beam);
 
-            // Tall snowy window wall behind the tree.
+            // Snowy window along the north wall, a little way from the tree.
             Box("Window header", new Vector3((WindowWest + WindowEast) * .5f, WindowHead, RoomNorth - 2f), new Vector3(WindowEast - WindowWest + 6f, 5f, 6f), casing);
             Box("Window sill", new Vector3((WindowWest + WindowEast) * .5f, WindowSill, RoomNorth - 3f), new Vector3(WindowEast - WindowWest + 6f, 4f, 9f), casing);
-            Box("Window transom", new Vector3((WindowWest + WindowEast) * .5f, 160f, RoomNorth - 2f), new Vector3(WindowEast - WindowWest, 3f, 5f), casing);
+            Box("Window transom", new Vector3((WindowWest + WindowEast) * .5f, (WindowSill + WindowHead) * .5f, RoomNorth - 2f), new Vector3(WindowEast - WindowWest, 3f, 5f), casing);
             for (float x = WindowWest; x <= WindowEast + .1f; x += (WindowEast - WindowWest) / 4f)
                 Box("Window mullion", new Vector3(x, (WindowSill + WindowHead) * .5f, RoomNorth - 2f), new Vector3(3f, WindowHead - WindowSill, 5f), casing);
             // A real 3-D snowy night outside instead of a photo (UnderneathTreeFinish.Outside.cs).

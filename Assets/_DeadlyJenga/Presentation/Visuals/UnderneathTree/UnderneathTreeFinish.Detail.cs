@@ -223,8 +223,8 @@ namespace DeadlyJenga.CandyArt
                 varnish.SetVector("_GlowALamp", new Vector4(LampPlace.x, 59f, LampPlace.z, 0f));
                 varnish.SetVector("_GlowAWash", new Vector4(LampPlace.x + 12f, LampPlace.z + 8f, 60f, 0f));
                 varnish.SetColor("_GlowAColor", new Color(1f, .42f, .08f) * 1.5f);
-                varnish.SetVector("_GlowBLamp", new Vector4(-280f, 220f, 54f, 0f));
-                varnish.SetVector("_GlowBWash", new Vector4(-260f, -20f, 120f, 0f));
+                varnish.SetVector("_GlowBLamp", new Vector4((WindowWest + WindowEast) * .5f, WindowHead, 54f, 0f));
+                varnish.SetVector("_GlowBWash", new Vector4((WindowWest + WindowEast) * .5f, -10f, 80f, 0f));
                 varnish.SetColor("_GlowBColor", new Color(.06f, .22f, 1f) * 3.2f);
                 materials.Add(varnish);
                 floorVarnish = varnish;
