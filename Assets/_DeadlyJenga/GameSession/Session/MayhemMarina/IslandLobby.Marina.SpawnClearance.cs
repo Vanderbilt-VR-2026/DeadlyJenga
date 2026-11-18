@@ -116,11 +116,15 @@ namespace DeadlyJenga.CastlePrototype
             if(!marinaArrivalCuePrepared)return;
             marinaArrivalAnnounced=marinaArrivalBeforeDeparture;marinaArrivalCuePrepared=false;
         }
+        static bool firstLobbyLandingDone;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void ResetFirstLanding()=>firstLobbyLandingDone=false;
         void AnnounceMarinaArrival()
         {
             if(marinaArrivalAnnounced||MatchResident||VisitOwner||!ReferenceEquals(Services.Session,this)||
                 !NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
             marinaArrivalAnnounced=true;marinaArrivalCuePrepared=false;
+            // The first time the lobby loads, land in the white beam like a map arrival; later returns keep the light cue.
+            if(!firstLobbyLandingDone){firstLobbyLandingDone=true;GameEvents.RaiseEmoted(gameObject,"TravelArrived");return;}
             GameEvents.RaiseEmoted(Player.gameObject,"PlayerArrival");
         }
         internal bool ApplyReservedMarinaSpawn(P.Pose pose)

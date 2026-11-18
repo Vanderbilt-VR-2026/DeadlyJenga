@@ -3,6 +3,8 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
+    // The white-beam landing: the local player drops onto their spawn inside the summoning beam.
+    // Runs for match sessions and, on the first arrival of the app, for the island lobby.
     [DefaultExecutionOrder(300)]
     public sealed class PlayerSpawnArrival : MonoBehaviour
     {
@@ -10,6 +12,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly RaycastHit[] hits=new RaycastHit[64];
         readonly Collider[] overlaps=new Collider[64];
         CastlePlaySession session;
+        ISessionInfo info;
         IPlayableCharacter player;
         ITeleportable teleport;
         bool pending,used,active;
@@ -23,15 +26,15 @@ namespace DeadlyJenga.CastlePrototype
         public float Progress=>Mathf.Clamp01(elapsed/Mathf.Max(.01f,seconds));
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        static void Listen(){GameEvents.SessionStarted-=Attach;GameEvents.SessionStarted+=Attach;}
+        static void Listen(){GameEvents.SessionStarted-=Attach;GameEvents.SessionStarted+=Attach;GameEvents.LobbyStarted-=Attach;GameEvents.LobbyStarted+=Attach;}
         static void Attach(GameObject root)
-        {if(root&&root.GetComponent<CastlePlaySession>()&&!root.GetComponent<PlayerSpawnArrival>())root.AddComponent<PlayerSpawnArrival>();}
-        void Awake(){session=GetComponent<CastlePlaySession>();}
+        {if(root&&(root.GetComponent<CastlePlaySession>()||root.GetComponent<IslandLobby>())&&!root.GetComponent<PlayerSpawnArrival>())root.AddComponent<PlayerSpawnArrival>();}
+        void Awake(){session=GetComponent<CastlePlaySession>();info=GetComponent<ISessionInfo>();}
         void OnEnable(){GameEvents.Emoted+=Emoted;}
         void OnDisable()
         {
             GameEvents.Emoted-=Emoted;
-            if(active&&session&&ReferenceEquals(Services.Session,session)&&NetworkActors.Alive(player))Finish();
+            if(active&&info!=null&&ReferenceEquals(Services.Session,info)&&NetworkActors.Alive(player))Finish();
             else active=false;
         }
         void Emoted(GameObject who,string cue)
@@ -39,8 +42,8 @@ namespace DeadlyJenga.CastlePrototype
         void Begin()
         {
             pending=false;used=true;
-            if(!session||session.PlayingHand||!NetworkActors.Alive(session.Player))return;
-            player=session.Player;teleport=player.gameObject.GetComponent<ITeleportable>();
+            if(info==null||info.PlayingHand||!NetworkActors.Alive(info.Player))return;
+            player=info.Player;teleport=player.gameObject.GetComponent<ITeleportable>();
             if(!player.gameObject.activeInHierarchy||(player.gameObject.GetComponent<IDamageable>()?.Health??1)<=0)return;
             var state=player.gameObject.GetComponent<IMovementState>();
             radius=Mathf.Max(.2f,.32f*(state?.Scale??1));height=Mathf.Max(radius*2,state?.Height??1.8f);capsuleOffset=Vector3.zero;
@@ -61,7 +64,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(pending){Begin();return;}
             if(!active)return;
-            if(!NetworkActors.Alive(player)||session.PlayingHand||(player.gameObject.GetComponent<IDamageable>()?.Health??1)<=0){Finish();return;}
+            if(!NetworkActors.Alive(player)||info.PlayingHand||(player.gameObject.GetComponent<IDamageable>()?.Health??1)<=0){Finish();return;}
             var displacement=player.transform.position-previous;
             if(Vector3.ProjectOnPlane(displacement,Vector3.up).sqrMagnitude>1||Mathf.Abs(displacement.y)>3){Finish();return;}
             player.InputSuspended=true;
@@ -87,6 +90,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!active)return;active=false;
             if(NetworkActors.Alive(player))GameEvents.RaiseEmoted(player.gameObject,"SpawnArrivalSettled");
             if(session&&ReferenceEquals(Services.Session,session))session.ReleaseArrivalInput();
+            else if(!session&&NetworkActors.Alive(player))player.InputSuspended=false; // lobby: hand control straight back
         }
         int Mask=>(1<<Layers.Block)|(1<<Layers.Surface)|(1<<Layers.Survivor)|1;
         void Capsule(Vector3 feet,out Vector3 bottom,out Vector3 top)

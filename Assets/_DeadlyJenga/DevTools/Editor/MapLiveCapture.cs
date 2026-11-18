@@ -244,7 +244,15 @@ namespace DeadlyJenga.DevTools.Editor
                 r.bounds.size.sqrMagnitude > .001f && r.bounds.size.magnitude < reach * 2.2f &&
                 Vector2.Distance(new Vector2(r.bounds.center.x, r.bounds.center.z), new Vector2(world.Center.x, world.Center.z)) < reach).ToArray() : Array.Empty<Renderer>();
             Bounds bounds;
-            if (renderers.Length > 0) { bounds = renderers[0].bounds; foreach (var r in renderers.Skip(1)) bounds.Encapsulate(r.bounds); }
+            // Best subject: the map's own blocks (the tower/town players play on).
+            var blockBounds = world.Blocks.Where(b => b).SelectMany(b => b.GetComponentsInChildren<Renderer>(false)).Where(r => r.enabled).Select(r => r.bounds).ToList();
+            if (blockBounds.Count >= 4)
+            {
+                bounds = blockBounds[0];
+                foreach (var b in blockBounds.Skip(1)) bounds.Encapsulate(b);
+                bounds.Expand(new Vector3(4, 2, 4));
+            }
+            else if (renderers.Length > 0) { bounds = renderers[0].bounds; foreach (var r in renderers.Skip(1)) bounds.Encapsulate(r.bounds); }
             else bounds = new Bounds(world.Center + Vector3.up * world.TopHeight * .5f, new Vector3(world.Radius * 2, Mathf.Max(4, world.TopHeight), world.Radius * 2));
 
             var game = session.ActiveCamera;

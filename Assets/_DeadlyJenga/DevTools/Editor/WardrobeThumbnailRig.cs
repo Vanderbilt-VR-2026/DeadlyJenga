@@ -28,6 +28,8 @@ namespace DeadlyJenga.DevTools.Editor
     //     [-clipSeconds 4] [-clipFps 30]
     //     [-thumbGallery C:/temp/folder]    gallery folder (default Logs/Captures/...)
     //     [-open]                           open the gallery page in the browser afterwards
+    //     [-thumbCandidates]                render to Logs/WardrobeCandidates instead, for side-by-side review
+    //                                       (Tools > Deadly Jenga > Wardrobe Thumbnails > Review Candidates)
     // Every run writes a gallery: manifest.json, contact-sheet.png and index.html.
     // Everything runs locally in Unity; nothing is uploaded or sent anywhere.
     [InitializeOnLoad]
@@ -39,7 +41,7 @@ namespace DeadlyJenga.DevTools.Editor
         // Transparent by default so the wardrobe's own candy card shows behind the item.
         static readonly Color Backdrop = new Color(0, 0, 0, 0);
 
-        [Serializable] sealed class Request { public string item = "", output = "", clip = "", gallery = ""; public int color = -1, fps = 30; public float seconds = 4; public bool missingOnly, batch, open; }
+        [Serializable] sealed class Request { public string item = "", output = "", clip = "", gallery = ""; public int color = -1, fps = 30; public float seconds = 4; public bool missingOnly, batch, open, candidates; }
         [Serializable] sealed class Catalog { public AvatarAppearance[] skins, hair, headgear, eyewear, outfits, back, extras; }
         sealed class Job { public int slot; public AvatarAppearance entry; public int color; public string path; }
 
@@ -60,6 +62,15 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem("Tools/Deadly Jenga/Wardrobe Thumbnails/Render All")]
         static void RenderAll() => Start(new Request { open = CaptureOutput.OpenByDefault });
 
+        [MenuItem("Tools/Deadly Jenga/Wardrobe Thumbnails/Render Candidates for Review")]
+        static void RenderCandidates() => Start(new Request { candidates = true });
+
+        internal static void RenderCandidates(string item) => Start(new Request { candidates = true, item = item ?? "" });
+
+        // Candidates are rendered here, never over the wardrobe's pictures, until accepted in the review window.
+        internal static string CandidateFolder => Path.GetFullPath(Path.Combine("Logs", "WardrobeCandidates"));
+        internal static string LiveFolder => ProjectFolder();
+
         [MenuItem("Tools/Deadly Jenga/Wardrobe Thumbnails/Render Missing")]
         static void RenderMissing() => Start(new Request { missingOnly = true, open = CaptureOutput.OpenByDefault });
 
@@ -70,6 +81,7 @@ namespace DeadlyJenga.DevTools.Editor
             var r = new Request { batch = true, missingOnly = args.Contains("-thumbMissing"), item = Arg("-thumbItem") ?? "", output = Arg("-thumbOut") ?? "" };
             if (int.TryParse(Arg("-thumbColor"), out int c)) r.color = c;
             r.open = args.Contains("-open");
+            r.candidates = args.Contains("-thumbCandidates");
             r.clip = (Arg("-thumbClip") ?? "").ToLowerInvariant();
             r.gallery = Arg("-thumbGallery") ?? "";
             if (float.TryParse(Arg("-clipSeconds"), out float sec)) r.seconds = Mathf.Clamp(sec, 1, 30);
@@ -100,11 +112,14 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 SessionState.EraseString(RequestKey);
                 var r = JsonUtility.FromJson<Request>(json);
-                if (string.IsNullOrEmpty(r.output)) { AssetDatabase.Refresh(); ConfigureImports(); }
+                if (string.IsNullOrEmpty(r.output) && !r.candidates) { AssetDatabase.Refresh(); ConfigureImports(); }
+                if (r.candidates && !r.batch) WardrobeThumbnailReview.Open();
                 Debug.Log($"Wardrobe thumbnails: wrote {written} picture(s).");
                 if (r.batch) EditorApplication.Exit(written > 0 || jobs.Count == 0 ? 0 : 2);
             }
         }
+
+        internal static void ImportAccepted() { AssetDatabase.Refresh(); ConfigureImports(); WardrobeThumbnailLibrary.ClearCache(); }
 
         static string ProjectFolder()
         {
@@ -154,7 +169,7 @@ namespace DeadlyJenga.DevTools.Editor
             galleryOut = new CaptureOutput("Wardrobe" + (request.item.Length > 0 ? " " + request.item.Replace('/', ' ') : ""),
                 request.gallery.Length > 0 ? request.gallery : null);
             var groups = new[] { catalog.skins, catalog.hair, catalog.headgear, catalog.eyewear, catalog.outfits, catalog.back, catalog.extras };
-            string folder = ProjectFolder();
+            string folder = request.candidates ? CandidateFolder : ProjectFolder();
             for (int slot = 0; slot < groups.Length; slot++)
                 foreach (var entry in groups[slot] ?? Array.Empty<AvatarAppearance>())
                 {
@@ -173,7 +188,7 @@ namespace DeadlyJenga.DevTools.Editor
                     if (request.output.Length > 0 && jobs.Count > 0) break;
                 }
             if (request.item.Length > 0 && jobs.Count == 0) Debug.LogError("No wardrobe item named " + request.item + " (use Slot/Item, e.g. Headgear/CowboyHat).");
-            if (request.output.Length == 0)
+            if (request.output.Length == 0 && !request.candidates)
             {
                 Directory.CreateDirectory(folder);
                 var manifest = new WardrobeThumbnailLibrary.Manifest { colors = bodyColors, size = Size, backdrop = "transparent" };
