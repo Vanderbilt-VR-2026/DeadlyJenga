@@ -10,7 +10,7 @@ namespace DeadlyJenga.CandyPhysicsHands
         public CandyHandMode Mode {get;private set;}
         public float Strength {get;private set;}
         public bool Initialized {get;private set;}
-        float missing, stable, recovery;
+        float missing, stable;
         CandyHandMode candidate;
         public static bool IsValidPose(CandyHandPose raw)
         {
@@ -23,7 +23,8 @@ namespace DeadlyJenga.CandyPhysicsHands
         {
             dt=Mathf.Clamp(dt,0,.05f);
             if(!IsValidPose(raw)){raw.tracked=false;source=CandyHandMode.Inactive;}
-            if(raw.tracked&&raw.skeletonTracked)raw.skeleton=CandyHandPoseLimits.LimitFlexion(raw.skeleton);
+            // Every source drives the same glove: its own knuckles and bone lengths, bent within range.
+            if(raw.tracked)raw.skeleton=CandyHandPoseLimits.Fit(raw.skeleton,left);
             if(source==CandyHandMode.Inactive||!raw.tracked)
             {
                 missing+=dt;stable=0;candidate=CandyHandMode.Inactive;
@@ -35,20 +36,25 @@ namespace DeadlyJenga.CandyPhysicsHands
                     Pose=p;
                 }
                 if(Strength<=0)Mode=CandyHandMode.Inactive;
-                recovery=0;return;
+                return;
             }
-            if(candidate!=source){candidate=source;stable=0;recovery=0;}
+            if(candidate!=source){candidate=source;stable=0;}
             stable+=dt;
-            if(stable<settings.stableTime){Strength=0;return;}
-            bool sourceChanged=Mode!=source;
-            missing=0;Mode=source;recovery+=dt;Strength=Mathf.Clamp01(recovery/Mathf.Max(.001f,settings.recoveryTime));
+            if(stable<settings.stableTime)
+            {
+                // A hand that is still showing holds its pose while the new source settles. It never blinks out.
+                if(!Initialized||Mode==CandyHandMode.Inactive)Strength=0;
+                return;
+            }
+            // Strength only ever ramps, so switching between controller and tracked hand keeps the grip and the picture.
+            missing=0;Mode=source;Strength=Mathf.MoveTowards(Strength,1,dt/Mathf.Max(.001f,settings.recoveryTime));
             if(!Initialized){Pose=raw;Initialized=true;return;}
             var next=Pose;float distance=Vector3.Distance(next.position,raw.position);
             // Faster response on intentional movement; limited target speed on recovery spikes.
             float response=1-Mathf.Exp(-dt/Mathf.Lerp(settings.jitterTime,.006f,Mathf.Clamp01(distance/.08f)));
             next.position=Vector3.MoveTowards(next.position,Vector3.Lerp(next.position,raw.position,response),settings.maxTargetSpeed*dt);
             next.rotation=Quaternion.RotateTowards(next.rotation,Quaternion.Slerp(next.rotation,raw.rotation,response),settings.maxTargetAngularSpeed*dt);
-            next.skeleton=sourceChanged?raw.skeleton:CandyHandPoseLimits.Blend(next.skeleton,raw.skeleton,response);
+            next.skeleton=CandyHandPoseLimits.Blend(next.skeleton,raw.skeleton,response);
             next.tracked=true;next.skeletonTracked=raw.skeletonTracked;Pose=next;
         }
     }
@@ -58,6 +64,26 @@ namespace DeadlyJenga.CandyPhysicsHands
     {
         // Rest and desktop poses bend about 30 degrees per joint. Anything past this folds into a wire.
         public const float MaximumBendDegrees=100f;
+
+        // Puts tracked finger directions onto the candy hand's own knuckles and bone lengths.
+        // A real hand is longer than the glove. Used as-is, its joints sat off the palm and the skin stretched to reach them.
+        public static CandyHandSkeleton Fit(CandyHandSkeleton tracked,bool left)
+        {
+            var rest=CandyHandSkeleton.Rest(left);var result=rest;
+            for(int f=0;f<5;f++)
+            {
+                Vector3 at=rest.Joint(f*4);
+                for(int j=0;j<3;j++)
+                {
+                    int i=f*4+j;
+                    Vector3 restBone=rest.Joint(i+1)-rest.Joint(i);
+                    Vector3 bone=tracked.Joint(i+1)-tracked.Joint(i);
+                    at+=(bone.sqrMagnitude>1e-8f?bone.normalized:restBone.normalized)*restBone.magnitude;
+                    result.SetJoint(i+1,at);
+                }
+            }
+            return LimitFlexion(result);
+        }
 
         // Blends each finger from its base. Bone lengths stay fixed, so a half-way pose never shrinks a finger.
         public static CandyHandSkeleton Blend(CandyHandSkeleton from,CandyHandSkeleton to,float t)

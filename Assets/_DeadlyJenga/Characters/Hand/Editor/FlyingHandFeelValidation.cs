@@ -1,0 +1,570 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.CandyPhysicsHands;
+using FlyingHand;
+using DeadlyJenga.Core;
+using Object = UnityEngine.Object;
+
+namespace DeadlyJenga.HandValidation
+{
+    // How the flying hand looks and feels: whole fingers in every input mode, firm contact, real grip.
+    // Runs only when asked (menu or -executeMethod). Uses the real prefab in an empty scene; saves nothing.
+    // The tracked hand is a fixture (ICandyHandPoseSource) with real-hand proportions, not a headset.
+    [InitializeOnLoad]
+    public static class FlyingHandFeelValidation
+    {
+        const string Key = "FlyingHandFeelValidation";
+        static readonly Stack<IEnumerator> work = new Stack<IEnumerator>();
+        static string Report => ProjectPath.Report("FlyingHandFeel.txt");
+        static FlyingHandFeelValidation() { EditorApplication.playModeStateChanged += Changed; }
+
+        [MenuItem("Tools/Deadly Jenga/Validate Flying Hand Feel")]
+        public static void Run()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Start in Edit Mode.");
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            File.WriteAllText(Report, "Flying hand look and feel checks\n");
+            SessionState.SetInt(Key + "Failures", 0); SessionState.SetInt(Key + "Checks", 0);
+            SessionState.SetInt(Key, 1);
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            EditorApplication.EnterPlaymode();
+        }
+        static void Changed(PlayModeStateChange state)
+        {
+            if (SessionState.GetInt(Key, 0) == 0) return;
+            if (state == PlayModeStateChange.EnteredPlayMode)
+            {
+                Application.logMessageReceived += Log;
+                work.Push(All());
+                EditorApplication.update += Tick;
+            }
+            if (state != PlayModeStateChange.EnteredEditMode) return;
+            Application.logMessageReceived -= Log;
+            int failures = SessionState.GetInt(Key + "Failures", 0);
+            if (SessionState.GetInt(Key + "Checks", 0) == 0) { failures++; Line("FAIL: Play Mode ended before any checks ran."); }
+            SessionState.SetInt(Key, 0);
+            Line(failures > 0 ? "FAILED (" + failures + ")" : "COMPLETE: editor checks passed; Quest hardware not tested.");
+            if (Application.isBatchMode) EditorApplication.Exit(failures > 0 ? 1 : 0);
+        }
+        static void Line(string text) => File.AppendAllText(Report, text + "\n");
+        static void Fail() => SessionState.SetInt(Key + "Failures", SessionState.GetInt(Key + "Failures", 0) + 1);
+        static void Log(string message, string stack, LogType type)
+        {
+            if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert) return;
+            Fail(); Line("FAIL Unity: " + message + "\n" + stack);
+        }
+        static void Tick()
+        {
+            try
+            {
+                if (work.Count == 0) { EditorApplication.update -= Tick; EditorApplication.ExitPlaymode(); return; }
+                if (watching) Sample();
+                var next = work.Peek();
+                if (!next.MoveNext()) { work.Pop(); return; }
+                if (next.Current is IEnumerator nested) work.Push(nested);
+            }
+            catch (Exception e) { Fail(); Line("FAIL " + e); work.Clear(); }
+        }
+        // A failed check is recorded and the run continues, so one report shows everything.
+        static void Check(bool condition, string message)
+        {
+            SessionState.SetInt(Key + "Checks", SessionState.GetInt(Key + "Checks", 0) + 1);
+            if (!condition) Fail();
+            Line((condition ? "PASS " : "FAIL ") + message);
+        }
+        static IEnumerator Wait(float seconds)
+        {
+            float end = Time.time + seconds;
+            while (Time.time < end) yield return null;
+        }
+
+        sealed class Poses : ICandyHandPoseSource
+        {
+            public CandyHandPose pose = new CandyHandPose
+            {
+                tracked = true, skeletonTracked = true, position = new Vector3(.2f, 1.2f, .4f),
+                rotation = Quaternion.identity, skeleton = CandyHandSkeleton.Rest(false)
+            };
+            public bool TryGetPose(out CandyHandPose value) { value = pose; return pose.tracked; }
+        }
+
+        // ---------- emulated tracked hand ----------
+        // curls: degrees each finger joint bends toward the palm (finger 0 = thumb). splay: degrees fingers fan out.
+        // Proportions copy a real hand (longer than the glove, knuckles further from the wrist) on purpose.
+        static CandyHandSkeleton Tracked(bool left, float[][] curls, float splay = 0, float lean = 0)
+        {
+            var rest = CandyHandSkeleton.Rest(left); var result = rest; float sign = left ? 1 : -1;
+            for (int f = 0; f < 5; f++)
+            {
+                Vector3 at = rest.Joint(f * 4) * 1.15f + (f == 0 ? Vector3.zero : Vector3.forward * .04f);
+                result.SetJoint(f * 4, at);
+                float total = 0;
+                for (int j = 0; j < 3; j++)
+                {
+                    Vector3 bone = rest.Joint(f * 4 + j + 1) - rest.Joint(f * 4 + j);
+                    total += curls[f][j];
+                    Quaternion bend = f == 0
+                        ? Quaternion.AngleAxis(sign * total * .6f, Vector3.forward) * Quaternion.AngleAxis(total * .5f, Vector3.right)
+                        : Quaternion.AngleAxis(sign * (f - 2.5f) * splay, Vector3.up) * Quaternion.AngleAxis(total, Vector3.right) * Quaternion.AngleAxis(lean, Vector3.right);
+                    at += bend * bone * 1.3f;
+                    result.SetJoint(f * 4 + j + 1, at);
+                }
+            }
+            return result;
+        }
+        static float[][] Curls(Func<int, float[]> perFinger)
+        { var c = new float[5][]; for (int f = 0; f < 5; f++) c[f] = perFinger(f); return c; }
+        static readonly float[] Straight = { 0, 0, 0 }, Closed = { 80, 100, 60 }, Half = { 35, 45, 30 }, ThumbIn = { 30, 30, 30 };
+        static CandyHandSkeleton Open(bool left) => Tracked(left, Curls(f => Straight));
+        static CandyHandSkeleton Fist(bool left) => Tracked(left, Curls(f => f == 0 ? ThumbIn : Closed));
+        static CandyHandSkeleton Point(bool left) => Tracked(left, Curls(f => f == 0 ? ThumbIn : f == 1 ? Straight : Closed));
+        static CandyHandSkeleton Peace(bool left) => Tracked(left, Curls(f => f == 0 ? ThumbIn : f <= 2 ? Straight : Closed), 6);
+        static CandyHandSkeleton Spread(bool left) => Tracked(left, Curls(f => Straight), 14);
+        static CandyHandSkeleton Claw(bool left) => Tracked(left, Curls(f => f == 0 ? new float[] { 10, 20, 20 } : Half), 6);
+        static CandyHandSkeleton Lerp(CandyHandSkeleton a, CandyHandSkeleton b, float t)
+        { var r = a; for (int i = 0; i < 20; i++) r.SetJoint(i, Vector3.Lerp(a.Joint(i), b.Joint(i), t)); return r; }
+
+        // Wraps a block lying under the palm: fingers down its far side, thumb down its near side.
+        static CandyHandSkeleton Grasp(bool left, bool pinchOnly)
+        {
+            var rest = CandyHandSkeleton.Rest(left); var result = rest;
+            for (int f = 0; f < 5; f++)
+            {
+                Vector3 at = rest.Joint(f * 4);
+                for (int j = 0; j < 3; j++)
+                {
+                    float length = (rest.Joint(f * 4 + j + 1) - rest.Joint(f * 4 + j)).magnitude;
+                    Vector3 direction = f == 0 ? new Vector3(0, -1, .25f + j * .1f)
+                        : pinchOnly && f > 1 ? Vector3.forward
+                        : new Vector3(0, -1, -.1f - j * .2f);
+                    at += direction.normalized * length;
+                    result.SetJoint(f * 4 + j + 1, at);
+                }
+            }
+            return result;
+        }
+
+        // ---------- what the drawn hand actually looks like ----------
+        static CandyPhysicalHand watched; static bool watching;
+        static Mesh watchedMesh; static Vector3[] vertices; static BoneWeight[] weights; static Matrix4x4[] binds;
+        static int[][] middle; static float[][] restRadius;
+        static float worstGirth, worstRoll, worstGap, worstBackBend, worstStep; static bool everHidden; static Vector3 lastPalm; static bool hasLastPalm;
+        static void Watch(CandyPhysicalHand hand)
+        {
+            watched = hand; watching = hand; worstGirth = 1; worstRoll = worstGap = worstBackBend = worstStep = 0; everHidden = false; hasLastPalm = false;
+            if (!hand) return;
+            var mesh = hand.skin.sharedMesh;
+            if (mesh == watchedMesh) return;
+            watchedMesh = mesh; vertices = mesh.vertices; weights = mesh.boneWeights; binds = mesh.bindposes;
+            var bones = hand.skin.bones; middle = new int[16][]; restRadius = new float[16][];
+            for (int i = 1; i < 16; i++)
+            {
+                int bone = Array.IndexOf(bones, hand.visualBones[i]);
+                int f = (i - 1) / 3, j = (i - 1) % 3; var rest = CandyHandSkeleton.Rest(hand.left);
+                float length = hand.visualReferenceLengths != null && hand.visualReferenceLengths.Length == 15 ? hand.visualReferenceLengths[i - 1] : (rest.Joint(f * 4 + j + 1) - rest.Joint(f * 4 + j)).magnitude;
+                var ids = new List<int>(); var radii = new List<float>();
+                for (int v = 0; v < vertices.Length; v++)
+                {
+                    var w = weights[v];
+                    if (w.boneIndex0 != bone || w.weight0 < .5f) continue;
+                    Vector3 local = binds[bone].MultiplyPoint3x4(vertices[v]);
+                    float radius = new Vector2(local.x, local.z).magnitude;
+                    // The middle of each finger bone. Joints are allowed to crease; the middle must stay full.
+                    if (local.y < length * .3f || local.y > length * .7f || radius < .003f) continue;
+                    ids.Add(v); radii.Add(radius);
+                }
+                middle[i] = ids.ToArray(); restRadius[i] = radii.ToArray();
+            }
+        }
+        static readonly Matrix4x4[] skinning = new Matrix4x4[64];
+        static void Sample()
+        {
+            var hand = watched; if (!hand || !hand.gameObject.activeInHierarchy) { if (hand) everHidden = true; return; }
+            if (!hand.skin.enabled) everHidden = true;
+            var bones = hand.skin.bones;
+            for (int b = 0; b < bones.Length && b < skinning.Length; b++) skinning[b] = bones[b] ? bones[b].localToWorldMatrix * binds[b] : Matrix4x4.identity;
+            var radii = new List<float>();
+            for (int i = 1; i < 16; i++)
+            {
+                var toBone = hand.visualBones[i].worldToLocalMatrix; radii.Clear();
+                for (int n = 0; n < middle[i].Length; n++)
+                {
+                    int v = middle[i][n]; var w = weights[v]; Vector3 p = Vector3.zero;
+                    p += skinning[w.boneIndex0].MultiplyPoint3x4(vertices[v]) * w.weight0;
+                    if (w.weight1 > 0) p += skinning[w.boneIndex1].MultiplyPoint3x4(vertices[v]) * w.weight1;
+                    if (w.weight2 > 0) p += skinning[w.boneIndex2].MultiplyPoint3x4(vertices[v]) * w.weight2;
+                    if (w.weight3 > 0) p += skinning[w.boneIndex3].MultiplyPoint3x4(vertices[v]) * w.weight3;
+                    Vector3 local = toBone.MultiplyPoint3x4(p);
+                    radii.Add(new Vector2(local.x, local.z).magnitude / restRadius[i][n]);
+                }
+                if (radii.Count > 8) { radii.Sort(); worstGirth = Mathf.Min(worstGirth, radii[radii.Count / 20]); }
+                // Roll between neighbouring bones pinches skin; a gap between them stretches it.
+                int j = (i - 1) % 3; var parent = hand.visualBones[j == 0 ? 0 : i - 1]; var bone = hand.visualBones[i];
+                if (j > 0)
+                {
+                    Quaternion relative = Quaternion.Inverse(parent.rotation) * bone.rotation;
+                    Vector3 twistAxis = new Vector3(relative.x, relative.y, relative.z); float along = twistAxis.y;
+                    float roll = Mathf.Abs(Mathf.DeltaAngle(0, 2 * Mathf.Atan2(along, relative.w) * Mathf.Rad2Deg));
+                    worstRoll = Mathf.Max(worstRoll, roll);
+                    float length = (parent.localScale.y / hand.GeometrySize) * ReferenceLength(hand, i - 1) * hand.GeometrySize;
+                    worstGap = Mathf.Max(worstGap, Vector3.Distance(parent.position + parent.up * length, bone.position) / hand.GeometrySize);
+                }
+                if (i > 3)
+                {
+                    Vector3 direction = Quaternion.Inverse(hand.visualBones[0].rotation) * bone.up;
+                    if (j == 0) worstBackBend = Mathf.Max(worstBackBend, Mathf.Atan2(direction.y, Mathf.Max(.0001f, direction.z)) * Mathf.Rad2Deg);
+                }
+            }
+            Vector3 palm = hand.visualBones[0].position;
+            if (hasLastPalm) worstStep = Mathf.Max(worstStep, Vector3.Distance(palm, lastPalm));
+            lastPalm = palm; hasLastPalm = true;
+        }
+        static float ReferenceLength(CandyPhysicalHand hand, int i)
+        {
+            var rest = CandyHandSkeleton.Rest(hand.left); int f = (i - 1) / 3, j = (i - 1) % 3;
+            return hand.visualReferenceLengths != null && hand.visualReferenceLengths.Length == 15 ? hand.visualReferenceLengths[i - 1] : (rest.Joint(f * 4 + j + 1) - rest.Joint(f * 4 + j)).magnitude;
+        }
+        static void Judge(string what, bool expectVisible = true)
+        {
+            Line($"LOOK {what}: thinnest finger middle={worstGirth:P0} of rest, roll between bones={worstRoll:F1} deg, gap between bones={worstGap * 1000:F2} mm (hand scale 1), largest palm step={worstStep:F2} m, hidden={everHidden}");
+            Check(worstGirth > .8f, what + ": finger middles keep their thickness (" + worstGirth.ToString("P0") + ")");
+            Check(worstRoll < 3, what + ": no roll between neighbouring finger bones (" + worstRoll.ToString("F1") + " deg)");
+            Check(worstGap < .0005f, what + ": finger bones stay joined end to end");
+            if (expectVisible) Check(!everHidden, what + ": the hand never blinks out");
+            Watch(watched);
+        }
+        static float FingerError(CandyPhysicalHand hand, CandyHandSkeleton wanted)
+        {
+            float worst = 0; var fitted = CandyHandPoseLimits.Fit(wanted, hand.left);
+            for (int f = 0; f < 5; f++) for (int j = 0; j < 3; j++)
+            {
+                Vector3 want = hand.visualBones[0].rotation * (fitted.Joint(f * 4 + j + 1) - fitted.Joint(f * 4 + j)).normalized;
+                worst = Mathf.Max(worst, Vector3.Angle(want, hand.visualBones[1 + f * 3 + j].up));
+            }
+            return worst;
+        }
+        static float PhysicalFingerError(CandyPhysicalHand hand, CandyHandSkeleton wanted)
+        {
+            float worst = 0; var fitted = CandyHandPoseLimits.Fit(wanted, hand.left);
+            for (int f = 1; f < 5; f++) for (int j = 0; j < 3; j++)
+            {
+                Vector3 want = hand.bodies[0].rotation * (fitted.Joint(f * 4 + j + 1) - fitted.Joint(f * 4 + j)).normalized;
+                worst = Mathf.Max(worst, Vector3.Angle(want, hand.bodies[1 + f * 3 + j].transform.up));
+            }
+            return worst;
+        }
+
+        static void Shot(CandyPhysicalHand hand, string name, Vector3 from)
+        {
+            if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null) { Line("SKIP screenshot (no graphics): " + name); return; }
+            float size = hand.GeometrySize; var palm = hand.visualBones[0];
+            var cameraObject = new GameObject("Hand evidence camera"); var camera = cameraObject.AddComponent<Camera>(); camera.enabled = false;
+            Vector3 focus = palm.position + palm.rotation * new Vector3(0, 0, .05f) * size;
+            camera.transform.position = focus + from * size; camera.transform.LookAt(focus);
+            camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = new Color(.14f, .18f, .23f); camera.fieldOfView = 40; camera.farClipPlane = 500;
+            var lightObject = new GameObject("Hand evidence light"); var light = lightObject.AddComponent<Light>(); light.type = LightType.Directional; light.intensity = 1.1f; light.transform.rotation = Quaternion.LookRotation(focus - camera.transform.position + Vector3.down * size * .1f);
+            var rt = new RenderTexture(900, 700, 24); var old = RenderTexture.active; Texture2D pixels = null;
+            try
+            {
+                camera.targetTexture = rt; camera.Render(); RenderTexture.active = rt; pixels = new Texture2D(900, 700, TextureFormat.RGB24, false);
+                pixels.ReadPixels(new Rect(0, 0, 900, 700), 0, 0); pixels.Apply(); File.WriteAllBytes(ProjectPath.Report("HandFeel-" + name + ".png"), pixels.EncodeToPNG());
+            }
+            finally { RenderTexture.active = old; camera.targetTexture = null; Object.Destroy(rt); if (pixels) Object.Destroy(pixels); Object.Destroy(cameraObject); Object.Destroy(lightObject); }
+        }
+
+        // ---------- the run ----------
+        static CastleHandActor actor; static FlyingHandController motor; static CandyFlyingHandBridge bridge; static Poses input;
+        static IEnumerator Spawn(Vector3 at)
+        {
+            if (actor) { Object.Destroy(actor.gameObject); yield return Wait(.2f); }
+            var prefab = AssetDatabase.LoadAssetAtPath<CastleHandActor>(ProjectPath.Find("CastleFlyingHand.prefab"));
+            actor = Object.Instantiate(prefab); motor = actor.motor;
+            motor.captureDesktopCursor = false; motor.ControlModeOverride = ControlMode.VR; motor.RefreshControlMode();
+            actor.Place(at, Quaternion.identity);
+            bridge = actor.GetComponent<CandyFlyingHandBridge>();
+            // The same default rules a solo session confirms (1200 N, friction 2).
+            var profile = HandDriveProfile.For(actor.gameObject); profile.Apply(null); bridge.PhysicsProfile = profile;
+            input = new Poses(); input.pose.skeleton = Open(false); bridge.PoseSource = input;
+            yield return Wait(1);
+            Watch(bridge.PhysicalHand);
+        }
+        static IEnumerator All()
+        {
+            yield return Spawn(new Vector3(0, 20, 0)); var hand = bridge.PhysicalHand;
+            input.pose.skeleton = Fist(false); yield return Wait(1.5f);
+            float fist = PhysicalFingerError(hand, Fist(false));
+            Check(hand && hand.IsInteractive && bridge.Mode == CandyHandMode.HandTracking, "Emulated hand tracking drives the real flying-hand prefab");
+            Check(hand.skin.sharedMesh.isReadable, "Skin mesh can be measured");
+            Check(fist < 25, "Physical fingers close into a full fist inside their joint limits (" + fist.ToString("F1") + " deg off)");
+            input.pose.skeleton = Open(false); yield return Wait(.8f);
+            Watch(hand);
+
+            yield return TrackedPoses(hand);
+            yield return FastMotion(hand);
+            yield return UpsideDown(hand);
+            yield return ControllerMode(hand);
+            yield return Switching(hand);
+            yield return WallPress(hand);
+            yield return Grip(new Vector3(80, 20, 0), false);
+            float fullHold = lastHold; bool fullLift = lastLift;
+            yield return Grip(new Vector3(160, 20, 0), true);
+            Check(fullLift, "A full-hand grasp lifts a 40 kg castle-sized block straight up by friction alone");
+            Line($"GRIP hold strength: full hand={fullHold:F0} N extra pull, thumb+index pinch={lastHold:F0} N (pinch lifted={lastLift})");
+            Check(fullHold > lastHold * 1.3f, "A full-hand grasp holds clearly more than a thumb-and-index pinch");
+            yield return DesktopPoses();
+            if (actor) Object.Destroy(actor.gameObject);
+            yield return Wait(.2f);
+        }
+        static IEnumerator TrackedPoses(CandyPhysicalHand hand)
+        {
+            var poses = new (string name, CandyHandSkeleton pose)[] { ("open", Open(false)), ("fist", Fist(false)), ("point", Point(false)), ("peace", Peace(false)), ("spread", Spread(false)), ("claw", Claw(false)) };
+            foreach (var p in poses)
+            {
+                input.pose.skeleton = p.pose; yield return Wait(.9f);
+                float error = FingerError(hand, p.pose);
+                Check(error < 6, "Tracked " + p.name + ": drawn fingers match the tracked finger directions (" + error.ToString("F1") + " deg off)");
+                Shot(hand, "tracked-" + p.name, new Vector3(.16f, .2f, -.12f));
+                if (p.name == "fist") Shot(hand, "tracked-fist-under", new Vector3(-.1f, -.22f, .16f));
+            }
+            Judge("Tracked poses and the blends between them");
+            input.pose.skeleton = Open(false); yield return Wait(.5f);
+        }
+        static IEnumerator FastMotion(CandyPhysicalHand hand)
+        {
+            Vector3 home = input.pose.position; float start = Time.time; bool shot = false;
+            while (Time.time - start < 3)
+            {
+                float t = Time.time - start;
+                // A fast wave: about 1.5 m/s of real wrist speed, 30 m/s for the giant hand, while opening and closing.
+                input.pose.position = home + new Vector3(Mathf.Sin(t * 9) * .16f, Mathf.Sin(t * 7) * .08f, Mathf.Cos(t * 5) * .08f);
+                input.pose.rotation = Quaternion.Euler(Mathf.Sin(t * 6) * 50, Mathf.Sin(t * 4) * 40, Mathf.Sin(t * 8) * 70);
+                input.pose.skeleton = Lerp(Open(false), Fist(false), .5f + .5f * Mathf.Sin(t * 11));
+                if (!shot && t > 1.3f) { shot = true; Shot(hand, "fast-motion", new Vector3(.18f, .2f, -.16f)); }
+                yield return null;
+            }
+            input.pose.position = home; input.pose.rotation = Quaternion.identity; input.pose.skeleton = Open(false);
+            Judge("Fast waving while opening and closing");
+            yield return Wait(.8f);
+        }
+        static IEnumerator UpsideDown(CandyPhysicalHand hand)
+        {
+            var turns = new (string name, Quaternion turn)[] { ("rolled palm-up", Quaternion.Euler(0, 0, 180)), ("pitched over backwards", Quaternion.Euler(-170, 0, 0)), ("pointing straight down", Quaternion.Euler(90, 0, 0)), ("rolled and yawed", Quaternion.Euler(20, 160, 150)) };
+            input.pose.skeleton = Claw(false);
+            foreach (var t in turns)
+            {
+                // Turn there the way a wrist does, not in one frame.
+                Quaternion from = input.pose.rotation; float start = Time.time;
+                while (Time.time - start < .6f) { input.pose.rotation = Quaternion.Slerp(from, t.turn, (Time.time - start) / .6f); yield return null; }
+                input.pose.rotation = t.turn; yield return Wait(.9f);
+                float off = Quaternion.Angle(hand.bodies[0].rotation, motor.transform.rotation * t.turn);
+                Check(off < 8, "Hand turns fully to " + t.name + " (" + off.ToString("F1") + " deg off)");
+                Check(FingerError(hand, Claw(false)) < 6, "Fingers keep the tracked pose while " + t.name);
+                Shot(hand, "turned-" + t.name.Replace(' ', '-'), new Vector3(.16f, .2f, -.12f));
+            }
+            Judge("Turning upside down and back");
+            input.pose.rotation = Quaternion.identity; input.pose.skeleton = Open(false); yield return Wait(1);
+        }
+        static IEnumerator ControllerMode(CandyPhysicalHand hand)
+        {
+            input.pose.skeletonTracked = false;
+            foreach (var (grip, trigger) in new[] { (0f, 0f), (1f, 0f), (0f, 1f), (1f, 1f) })
+            {
+                input.pose.skeleton = CandyHandSkeleton.ControllerGrip(false, grip, trigger); yield return Wait(.7f);
+                Shot(hand, $"controller-grip{grip:F0}-trigger{trigger:F0}", new Vector3(.16f, .2f, -.12f));
+            }
+            Check(bridge.Mode == CandyHandMode.Controller && hand.IsInteractive, "Controller input drives the same physical hand");
+            Judge("Controller grip and trigger poses");
+            input.pose.skeletonTracked = true; input.pose.skeleton = Open(false); yield return Wait(.8f);
+            Watch(hand);
+        }
+        static IEnumerator Switching(CandyPhysicalHand hand)
+        {
+            var trackedPose = input.pose;
+            var controller = trackedPose; controller.skeletonTracked = false; controller.skeleton = CandyHandSkeleton.ControllerGrip(false, 1, .2f);
+            // A controller held somewhere completely different, pointing another way.
+            controller.position += new Vector3(.3f, .12f, -.25f); controller.rotation = Quaternion.Euler(50, 100, -70);
+            Watch(hand); Vector3 before = hand.Target.position;
+            input.pose = controller; yield return null; yield return null;
+            float jump = Vector3.Distance(before, hand.Target.position);
+            yield return Wait(1.2f);
+            Check(bridge.Mode == CandyHandMode.Controller, "Hand tracking to controller: the controller takes over");
+            Check(jump < 1, "Hand tracking to controller: the hand does not leap to the controller's place (" + jump.ToString("F2") + " m)");
+            Check(Quaternion.Angle(hand.bodies[0].rotation, motor.transform.rotation * controller.rotation) < 10, "Hand tracking to controller: the hand turns to the controller's angle");
+            Check(worstStep < 1.2f, "Hand tracking to controller: palm moves smoothly (largest step " + worstStep.ToString("F2") + " m)");
+            Check(hand.IsInteractive, "Hand tracking to controller: contacts stay on (a held block is not dropped)");
+            Judge("Switch from hand tracking to a controller held elsewhere");
+            before = hand.Target.position; input.pose = trackedPose; input.pose.skeleton = Fist(false); yield return null; yield return null;
+            jump = Vector3.Distance(before, hand.Target.position);
+            yield return Wait(1.2f);
+            Check(bridge.Mode == CandyHandMode.HandTracking && jump < 1, "Controller to hand tracking: takes over without a leap (" + jump.ToString("F2") + " m)");
+            Check(FingerError(hand, Fist(false)) < 6, "Controller to hand tracking: fingers arrive at the tracked pose");
+            Check(worstStep < 1.2f, "Controller to hand tracking: palm moves smoothly (largest step " + worstStep.ToString("F2") + " m)");
+            Judge("Switch from a controller back to hand tracking");
+            // Put the controller down, pause, raise a hand: a short gap with nothing tracked.
+            input.pose = controller; yield return Wait(1);
+            Watch(hand);
+            input.pose.tracked = false; yield return Wait(.2f);
+            input.pose = trackedPose; input.pose.skeleton = Peace(false); yield return Wait(1.2f);
+            Check(bridge.Mode == CandyHandMode.HandTracking && hand.IsInteractive, "Controller, short gap, hand tracking: recovers");
+            Check(worstStep < 1.2f, "Controller, short gap, hand tracking: palm moves smoothly (largest step " + worstStep.ToString("F2") + " m)");
+            Judge("Switch across a short tracking gap");
+            input.pose = trackedPose; input.pose.skeleton = Open(false); yield return Wait(1);
+        }
+        static IEnumerator WallPress(CandyPhysicalHand hand)
+        {
+            float size = hand.GeometrySize; Vector3 palm = hand.bodies[0].position;
+            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube); wall.name = "Hand feel wall";
+            float face = palm.z + .13f * size; // just beyond the fingertips
+            wall.transform.position = new Vector3(palm.x, palm.y, face + 1); wall.transform.localScale = new Vector3(14, 14, 2);
+            Vector3 home = input.pose.position; Watch(hand);
+            // Fingertips first. Push the tracked hand a little past the wall, then much further.
+            float reach = 0; for (int i = 1; i < 16; i++) reach = Mathf.Max(reach, hand.bodies[i].position.z + hand.bodies[i].transform.up.z * ReferenceLength(hand, i) * size);
+            float touch = (face - reach) / size;
+            input.pose.position = home + Vector3.forward * (touch + .005f); yield return Wait(1.5f);
+            float pushNear = hand.AppliedLinearForceNewtons, gapNear = hand.Target.position.z - hand.bodies[0].position.z;
+            input.pose.position = home + Vector3.forward * (touch + .02f); yield return Wait(1.5f);
+            float pushMid = hand.AppliedLinearForceNewtons, gapMid = hand.Target.position.z - hand.bodies[0].position.z;
+            Shot(hand, "wall-fingertips", new Vector3(.22f, .12f, -.02f));
+            input.pose.position = home + Vector3.forward * (touch + .2f);
+            for (int n = 0; n < 6; n++) { yield return Wait(.25f); Line($"WALL far press t={n * .25f + .25f:F2}s target z={hand.Target.position.z:F2} palm z={hand.bodies[0].position.z:F2} carrier z={motor.Body.position.z:F2} push={hand.AppliedLinearForceNewtons:F0} N interactive={hand.IsInteractive} strength={hand.Strength:F2}"); }
+            float pushFar = hand.AppliedLinearForceNewtons, gapFar = hand.Target.position.z - hand.bodies[0].position.z;
+            float deepest = 0;
+            for (int i = 1; i < 16; i++) deepest = Mathf.Max(deepest, hand.bodies[i].position.z + hand.bodies[i].transform.up.z * ReferenceLength(hand, i) * size - face);
+            Line($"WALL fingertips: gap {gapNear:F2} m -> push {pushNear:F0} N; gap {gapMid:F2} m -> push {pushMid:F0} N; gap {gapFar:F2} m -> push {pushFar:F0} N (budget 1200); deepest finger point {deepest:F2} m past the face; back-bend {worstBackBend:F1} deg");
+            Check(gapMid > gapNear + .05f, "Wall: the hand stops at the wall while tracking keeps going");
+            Check(deepest < .25f, "Wall: no finger goes through the wall (deepest " + deepest.ToString("F2") + " m)");
+            Check(pushMid > pushNear * 1.3f && pushFar >= pushMid * .98f, "Wall: the further tracking runs past the wall, the harder the hand pushes (" + pushNear.ToString("F0") + ", " + pushMid.ToString("F0") + ", " + pushFar.ToString("F0") + " N)");
+            Check(pushFar <= 1210, "Wall: the push never exceeds the hand's strength rule (" + pushFar.ToString("F0") + " of 1200 N)");
+            Check(worstBackBend < 25, "Wall: fingers stay firm instead of folding backwards (" + worstBackBend.ToString("F1") + " deg)");
+            Judge("Open hand pressed fingertips-first into a wall");
+            input.pose.position = home; yield return Wait(1);
+            // Knuckles first.
+            input.pose.skeleton = Fist(false); yield return Wait(.8f); Watch(hand);
+            input.pose.position = home + Vector3.forward * .2f; yield return Wait(1.5f);
+            Shot(hand, "wall-fist", new Vector3(.22f, .12f, -.02f));
+            Judge("Fist pressed into a wall");
+            input.pose.position = home; input.pose.skeleton = Open(false); yield return Wait(1);
+            Object.Destroy(wall);
+            // Flat hand pressed down onto a floor.
+            palm = hand.bodies[0].position;
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube); floor.name = "Hand feel floor";
+            floor.transform.position = palm + Vector3.down * (.03f * size + 1) + Vector3.forward * .04f * size; floor.transform.localScale = new Vector3(14, 2, 14);
+            Watch(hand);
+            input.pose.position = home + Vector3.down * .12f; yield return Wait(1.5f);
+            float sunk = floor.transform.position.y + 1 - hand.bodies[0].position.y;
+            Shot(hand, "floor-flat", new Vector3(.2f, .14f, -.1f));
+            Check(sunk < 0, "Floor: the palm rests on the floor instead of sinking in");
+            Check(FingerError(hand, Open(false)) < 20, "Floor: fingers lie flat on the floor (" + FingerError(hand, Open(false)).ToString("F1") + " deg off the tracked open hand)");
+            Judge("Flat hand pressed onto a floor");
+            // Claw pressed down: fingertips land first and must hold their shape.
+            input.pose.position = home; input.pose.skeleton = Claw(false); yield return Wait(1); Watch(hand);
+            input.pose.position = home + Vector3.down * .12f; yield return Wait(1.5f);
+            Shot(hand, "floor-claw", new Vector3(.2f, .14f, -.1f));
+            Judge("Claw pressed onto a floor");
+            input.pose.position = home; input.pose.skeleton = Open(false); yield return Wait(1);
+            Object.Destroy(floor);
+        }
+        static float lastHold; static bool lastLift;
+        // Fingers hang down and open wide, ready to come down around a block.
+        static CandyHandSkeleton Reach(bool left, bool pinchOnly)
+        {
+            var rest = CandyHandSkeleton.Rest(left); var result = rest;
+            for (int f = 0; f < 5; f++)
+            {
+                Vector3 at = rest.Joint(f * 4);
+                for (int j = 0; j < 3; j++)
+                {
+                    float length = (rest.Joint(f * 4 + j + 1) - rest.Joint(f * 4 + j)).magnitude;
+                    Vector3 direction = f == 0 ? new Vector3(0, -1, -.6f) : pinchOnly && f > 1 ? Vector3.forward : new Vector3(0, -1, .45f);
+                    at += direction.normalized * length;
+                    result.SetJoint(f * 4 + j + 1, at);
+                }
+            }
+            return result;
+        }
+        static IEnumerator Move(Vector3 to, float seconds)
+        {
+            Vector3 from = input.pose.position; float start = Time.time;
+            while (Time.time - start < seconds) { input.pose.position = Vector3.Lerp(from, to, (Time.time - start) / seconds); yield return null; }
+            input.pose.position = to;
+        }
+        static IEnumerator Grip(Vector3 at, bool pinch)
+        {
+            yield return Spawn(at);
+            var hand = bridge.PhysicalHand; string name = pinch ? "Pinch" : "Full grasp"; lastHold = 0; lastLift = false;
+            Vector3 home = input.pose.position;
+            // Open the hand for a grab and wait above the block's place.
+            input.pose.skeleton = Reach(false, pinch); yield return Wait(1);
+            Vector3 wrist = hand.bodies[0].position;
+            // A castle-sized 40 kg plank on a thin stand, with castle friction, 1.5 m below the palm.
+            var material = new PhysicsMaterial("Castle friction (test copy)") { staticFriction = .65f, dynamicFriction = .55f, frictionCombine = PhysicsMaterialCombine.Average };
+            var block = GameObject.CreatePrimitive(PrimitiveType.Cube); block.name = "Hand feel block"; block.layer = Layers.Block;
+            block.transform.localScale = new Vector3(2.4f, .8f, .6f); block.transform.position = wrist + new Vector3(0, -.87f - 1.5f, .62f);
+            block.GetComponent<Collider>().sharedMaterial = material;
+            var body = block.AddComponent<Rigidbody>(); body.mass = 40;
+            var stand = GameObject.CreatePrimitive(PrimitiveType.Cube); stand.name = "Hand feel stand";
+            stand.transform.localScale = new Vector3(1.2f, 3, .2f); stand.transform.position = block.transform.position + Vector3.down * 1.9f;
+            yield return Wait(.6f);
+            Vector3 rested = body.position; Watch(hand);
+            // Come down over it, close, then lift straight up.
+            yield return Move(home + Vector3.down * .075f, 2); yield return Wait(.5f);
+            Shot(hand, (pinch ? "pinch" : "grasp") + "-over", new Vector3(.2f, .1f, -.14f));
+            var open = Reach(false, pinch); var grasp = Grasp(false, pinch); float start = Time.time;
+            while (Time.time - start < .8f) { input.pose.skeleton = Lerp(open, grasp, (Time.time - start) / .8f); yield return null; }
+            input.pose.skeleton = grasp; yield return Wait(.8f);
+            float nudged = Vector3.Distance(body.position, rested);
+            Shot(hand, (pinch ? "pinch" : "grasp") + "-closed", new Vector3(.2f, .1f, -.14f));
+            Shot(hand, (pinch ? "pinch" : "grasp") + "-closed-front", new Vector3(.02f, -.05f, .3f));
+            float handBefore = hand.bodies[0].position.y;
+            yield return Move(home + Vector3.up * .1f, 3); yield return Wait(1.5f);
+            float rise = body.position.y - rested.y, handRise = hand.bodies[0].position.y - handBefore;
+            lastLift = rise > 2.5f && Mathf.Abs(rise - handRise) < .8f;
+            Shot(hand, (pinch ? "pinch" : "grasp") + "-lifted", new Vector3(.3f, -.06f, -.12f));
+            Line($"GRIP {name}: closing moved the block {nudged:F2} m; block rose {rise:F2} m while the hand rose {handRise:F2} m; push {hand.AppliedLinearForceNewtons:F0} N; lifted={lastLift}");
+            if (lastLift)
+            {
+                // Pull the block down harder and harder until it slips out. That pull is the grip strength.
+                float pull = 0; Vector3 offset = body.position - hand.bodies[0].position;
+                var puller = block.AddComponent<ConstantForce>();
+                while (pull < 6000)
+                {
+                    pull += 400 * Time.deltaTime; puller.force = Vector3.down * pull;
+                    if ((body.position - hand.bodies[0].position - offset).magnitude > .7f) break;
+                    yield return null;
+                }
+                lastHold = pull;
+                Shot(hand, (pinch ? "pinch" : "grasp") + "-slipped", new Vector3(.2f, .1f, -.14f));
+            }
+            Judge(name + " on a block, lift and slip");
+            Object.Destroy(block); Object.Destroy(stand); Object.Destroy(material);
+        }
+        static IEnumerator DesktopPoses()
+        {
+            if (actor) { Object.Destroy(actor.gameObject); yield return Wait(.2f); }
+            var prefab = AssetDatabase.LoadAssetAtPath<CastleHandActor>(ProjectPath.Find("CastleFlyingHand.prefab"));
+            actor = Object.Instantiate(prefab); motor = actor.motor;
+            motor.captureDesktopCursor = false; motor.ControlModeOverride = ControlMode.Desktop; motor.RefreshControlMode();
+            actor.Place(new Vector3(240, 20, 0), Quaternion.identity);
+            bridge = actor.GetComponent<CandyFlyingHandBridge>();
+            var profile = HandDriveProfile.For(actor.gameObject); profile.Apply(null); bridge.PhysicsProfile = profile;
+            yield return Wait(1);
+            var hand = bridge.PhysicalHand;
+            Check(hand && bridge.Mode == CandyHandMode.Desktop, "Keyboard and mouse mode builds the same hand");
+            if (!hand) yield break;
+            Watch(hand);
+            foreach (DesktopHandPose pose in Enum.GetValues(typeof(DesktopHandPose)))
+            {
+                bridge.SelectDesktopPose(pose); yield return Wait(.9f);
+                Shot(hand, "desktop-" + pose.ToString().ToLowerInvariant(), new Vector3(.16f, .2f, -.12f));
+            }
+            Judge("Keyboard poses (pointer, cup, fist, flat, peace, spread)");
+        }
+    }
+}

@@ -349,7 +349,7 @@ namespace DeadlyJenga.DevTools.Editor
                     var physical=bridge.PhysicalHand;float angle=0;
                     for(int f=0;f<5;f++)for(int j=0;j<3;j++)
                     {
-                        int joint=f*4+j;var rotation=DeadlyJenga.CandyPhysicsHands.CandyPhysicalHand.SegmentRotation(physical.Target.rotation*(skeleton.Joint(joint+1)-skeleton.Joint(joint)),physical.Target.rotation*Vector3.up);
+                        int joint=f*4+j;var rotation=physical.Target.rotation*DeadlyJenga.CandyPhysicsHands.CandyPhysicalHand.FingerRotation(skeleton,physical.left,f,j);
                         angle=Mathf.Max(angle,Quaternion.Angle(physical.bodies[1+f*3+j].rotation,rotation));
                     }
                     File.AppendAllText(Report,$"PHYSICAL {key} maximum finger angle error={angle:F1} interactive={physical.IsInteractive}\n");

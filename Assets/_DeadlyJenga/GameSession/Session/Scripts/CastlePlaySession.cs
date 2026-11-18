@@ -98,6 +98,9 @@ namespace DeadlyJenga.CastlePrototype
         {
             IslandLobby.Persistent?.ParkForMatch();
             Services.Session = this;
+            // A slow frame may catch up with at most four physics steps. Without this cap one heavy
+            // moment makes the next frame run 16 steps, which is slower still, and the game freezes.
+            Time.maximumDeltaTime = Mathf.Min(Time.maximumDeltaTime, Time.fixedDeltaTime * 4);
             arrivalPending=true;travelInputHeld=MatchSetup.FromLobby;
             GameEvents.Eliminated += OnEliminated;
             MatchSetup.ApplyMap();

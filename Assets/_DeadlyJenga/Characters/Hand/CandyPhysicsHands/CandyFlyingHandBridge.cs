@@ -85,6 +85,7 @@ namespace DeadlyJenga.CandyPhysicsHands
         bool[] colliderEnabled,rendererEnabled;
         Vector3 trackingAnchor;
         bool anchored;
+        CandyHandMode anchoredMode;
         float selectedMissing,alternateStable;
         bool preferenceInitialized,lastPreference;
         float preferredClearSince=-1,nextPreferredClearCheck;
@@ -149,7 +150,7 @@ namespace DeadlyJenga.CandyPhysicsHands
                     if(physical)
                     {
                         var rest=physical.Target;rest.position=physical.bodies[0].position;rest.rotation=physical.bodies[0].rotation;
-                        rest.skeleton=alternate.skeleton;rest.skeletonTracked=alternate.skeletonTracked;
+                        rest.skeleton=alternate.skeletonTracked?CandyHandPoseLimits.Fit(alternate.skeleton,useLeftHand):alternate.skeleton;rest.skeletonTracked=alternate.skeletonTracked;
                         physical.SetInteractive(false);physical.left=useLeftHand;physical.RebuildInactive(rest);
                         trackedGeometry=alternate.skeletonTracked;
                     }
@@ -180,7 +181,18 @@ namespace DeadlyJenga.CandyPhysicsHands
                         raw.position=origin.InverseTransformPoint(raw.position);
                         raw.rotation=Quaternion.Inverse(origin.rotation)*raw.rotation;
                     }
-                    if(!anchored){trackingAnchor=raw.position;anchored=true;}
+                    if(!anchored||anchoredMode!=mode)
+                    {
+                        trackingAnchor=raw.position;
+                        // A hand that is still on screen stays where it is when the input source changes
+                        // (controller to tracked hand or back), even if the two report very different places.
+                        if(transition.Initialized&&transition.Mode!=CandyHandMode.Inactive&&transition.Strength>0)
+                        {
+                            Vector3 offset=Quaternion.Inverse(actor.motor.transform.rotation)*(transition.Pose.position-actor.motor.transform.position)/Mathf.Max(.001f,settings.size);
+                            trackingAnchor=raw.position-Vector3.ClampMagnitude(offset,.5f);
+                        }
+                        anchored=true;anchoredMode=mode;
+                    }
                     raw.position=actor.motor.transform.position+actor.motor.transform.rotation*((raw.position-trackingAnchor)*settings.size);
                     raw.rotation=actor.motor.transform.rotation*raw.rotation;
                 }
@@ -194,18 +206,17 @@ namespace DeadlyJenga.CandyPhysicsHands
             // Wrist movement must stay visible relative to the observer.
             actor.follow.target=actor.motor.transform;
             actor.follow.positionTarget=physical.bodies[0].transform;actor.follow.compactHandView=true;
-            if(trackedGeometry!=needsTrackedGeometry&&raw.tracked&&transition.Mode==mode)
-            {
-                physical.SetInteractive(false);
-                var calibration=transition.Pose;calibration.skeleton=raw.skeleton;
-                physical.RebuildInactive(calibration);trackedGeometry=needsTrackedGeometry;
-            }
+            // Tracked hands and controllers drive the same glove, so a source change never rebuilds it or drops a held block.
+            trackedGeometry=needsTrackedGeometry;
             physical.Profile=PhysicsProfile;physical.RequiresProfile=true;
             actor.motor.ContactRulesConfirmed=PhysicsProfile&&PhysicsProfile.Confirmed;
             actor.motor.ContactForceNewtons=PhysicsProfile?PhysicsProfile.ForceNewtons:0;
             actor.motor.RequiresContactProfile=true;
             actor.motor.ContactTargetOffset=transition.Pose.position-actor.motor.Body.position;
-            actor.motor.MaximumContactLead=Mathf.Clamp(settings.size*.01f,.02f,.5f);
+            // How far the tracked hand may run ahead of a blocked physical hand. That gap is what sets the push:
+            // force grows with it, so it must be able to grow until the hand's full strength is reached.
+            float fullStrengthGap=PhysicsProfile?PhysicsProfile.ForceNewtons/Mathf.Max(1,settings.positionSpring):0;
+            actor.motor.MaximumContactLead=Mathf.Clamp(Mathf.Max(settings.size*.01f,fullStrengthGap*1.5f),.02f,1f);
             physical.gameObject.SetActive(true);physical.SetTarget(transition.Pose,transition.Strength);
             physical.NetworkPreview=NetworkPreview;
             if(NetworkPreview&&pendingAuthoritativeBones!=null&&Time.unscaledTime-authoritativeAt<.5f&&!physical.HasFreshAuthoritativePreview)
