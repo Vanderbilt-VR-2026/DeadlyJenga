@@ -11,7 +11,7 @@ namespace DeadlyJenga.CharacterNetwork
     // Someone else's flying hand on this machine. On the host it is a real physics hand that
     // touches the castle, and its actual bones are sent on to everyone else. Elsewhere it just
     // shows the host's palm and finger poses.
-    public sealed class HandNetworkView : MonoBehaviour, INetworkActorView, ISeaSpiritView, IFlyingState
+    public sealed class HandNetworkView : MonoBehaviour, INetworkActorView, INetworkActorSnap, ISeaSpiritView, IFlyingState
     {
         public CandyPhysicalHand Hand { get; private set; }
         public Vector3 Velocity=>Hand&&Hand.bodies.Length>0?Hand.bodies[0].linearVelocity:Vector3.zero;
@@ -95,6 +95,15 @@ namespace DeadlyJenga.CharacterNetwork
         {
             suspended = true;if(seaLeft)seaLeft.Suspend();if(seaRight)seaRight.Suspend();
             if (Hand) { Hand.SetTarget(Hand.Target, 0); Hand.SetInteractive(false); }
+        }
+
+        // Replay tools: put the shown bones exactly on the last state instead of easing toward it.
+        public void SnapToState()
+        {
+            if (seaActive) { if (seaLeft) seaLeft.SnapToState(); if (seaRight) seaRight.SnapToState(); return; }
+            if (!hasTarget || !Hand || context.host || bones.Length != 16) return;
+            for (int i = 0; i < 16; i++)
+                Hand.bodies[i].transform.SetPositionAndRotation(bones[i].position, bones[i].rotation);
         }
 
         public void Render(float dt)

@@ -22,6 +22,13 @@ namespace DeadlyJenga.Core
         void Suspend();                    // the owner stopped sending for a moment
     }
 
+    // Optional, for replay tools: a copy that can land exactly on the state it last read,
+    // instead of easing toward it (the easing hides network lag, which a recording does not have).
+    public interface INetworkActorSnap
+    {
+        void SnapToState();
+    }
+
     // A local hand on a joined machine shows its own movement right away while the host decides contact.
     public interface INetworkPreview
     {
