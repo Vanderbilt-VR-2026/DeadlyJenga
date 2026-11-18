@@ -12,6 +12,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     {
         public struct Pose { public bool found; public Vector3 feet, head; public Quaternion headRotation; }
 
+        // True while an override is asking where another actor is, so two actors looking at each other
+        // do not ask about each other forever.
+        static bool insideOverride;
+
         public static Pose At(StudioTape tape, string markId, float time, int fps)
         {
             var track = tape?.Find(markId);
@@ -19,15 +23,23 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (take == null || take.frames.Count == 0) return default;
             float exact = Mathf.Clamp(time * fps, take.start, take.End - 1);
             int a = Mathf.FloorToInt(exact), b = Mathf.Min(a + 1, take.End - 1);
-            var first = ActorFrame.Read(track.type, take.frames[a - take.start]);
-            var second = a == b ? first : ActorFrame.Read(track.type, take.frames[b - take.start]);
-            if (!first.visible) return default;
-            float u = second.visible ? exact - a : 0;
-            if (first.isHand)
-                return new Pose { found = true, feet = Vector3.Lerp(first.target.position, second.target.position, u), head = Vector3.Lerp(first.target.position, second.target.position, u),
-                    headRotation = Quaternion.Slerp(first.target.rotation, second.target.rotation, u) };
-            return new Pose { found = true, feet = Vector3.Lerp(first.body.feet, second.body.feet, u), head = Vector3.Lerp(first.body.head, second.body.head, u),
-                headRotation = Quaternion.Slerp(first.body.headRotation, second.body.headRotation, u) };
+            var pose = ActorFrame.Read(track.type, take.frames[a - take.start]);
+            if (!pose.visible) return default;
+            if (a != b)
+            {
+                var next = ActorFrame.Read(track.type, take.frames[b - take.start]);
+                if (next.visible) pose = ActorFrame.Blend(pose, next, exact - a);
+            }
+            // Where the actor is really shown: with its override layers (knockbacks, falls, look-ats) applied.
+            var stage = StudioRun.Stage;
+            if (stage != null && stage.tape == tape && !insideOverride)
+            {
+                insideOverride = true;
+                try { foreach (var filter in ActorFrameFilters.For(stage, track)) filter.Apply(stage, track, time, pose); }
+                finally { insideOverride = false; }
+            }
+            if (pose.isHand) return new Pose { found = true, feet = pose.target.position, head = pose.target.position, headRotation = pose.target.rotation };
+            return new Pose { found = true, feet = pose.body.feet, head = pose.body.head, headRotation = pose.body.headRotation };
         }
     }
 
@@ -150,7 +162,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
                     break;
                 case "orbit":
-                    if (subject.found)
+                    if (subjectNow.found)
                     {
                         Vector3 arm = key.position;
                         float angle = camera.orbitSpeed * (cameraTime - camera.start);
@@ -188,7 +200,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 // Handheld shake from smooth noise of tape time, so every replay shakes the same way.
                 float amount = camera.noiseStrength * key.shake;
-                float t = cameraTime * noise.rate, seed = camera.id.GetHashCode() % 97;
+                // The shake's own starting point, from the camera's id (a plain sum, so it never changes between Unity versions).
+                int idSum = 0;
+                foreach (char letter in camera.id) idSum = (idSum * 31 + letter) % 97;
+                float t = cameraTime * noise.rate, seed = idSum;
                 Vector3 N(float offset) => new Vector3(Mathf.PerlinNoise(t, seed + offset) - .5f, Mathf.PerlinNoise(t + 31.7f, seed + offset + 5) - .5f, Mathf.PerlinNoise(t + 63.1f, seed + offset + 11) - .5f) * 2;
                 position += rotation * (N(0) * noise.move * amount);
                 rotation *= Quaternion.Euler(N(40) * noise.turn * amount);

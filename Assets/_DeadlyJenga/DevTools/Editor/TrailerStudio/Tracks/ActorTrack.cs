@@ -124,15 +124,26 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // state after every frame, and hands the right one back before showing any frame.
             CandyPlayerRig.GaitState[] gaitAfter;
 
-            void BuildGait(SurvivorNetworkView walker)
+            // Finished takes do not change, so the walk states are worked out once per take and kept
+            // for as long as the take is in memory (players are rebuilt often; takes are not).
+            static readonly System.Runtime.CompilerServices.ConditionalWeakTable<StudioTake, CandyPlayerRig.GaitState[]> gaitCache =
+                new System.Runtime.CompilerServices.ConditionalWeakTable<StudioTake, CandyPlayerRig.GaitState[]>();
+
+            void BuildGait()
             {
+                if (gaitCache.TryGetValue(take, out gaitAfter) && gaitAfter.Length == take.frames.Count) return;
                 gaitAfter = new CandyPlayerRig.GaitState[take.frames.Count];
                 float step = 1f / stage.Fps;
+                var gait = default(CandyPlayerRig.GaitState);
                 for (int i = 0; i < take.frames.Count; i++)
                 {
-                    var before = i > 0 ? gaitAfter[i - 1] : default;
-                    gaitAfter[i] = Pose(take.frames[i], step, walker, before, out _) ? walker.Gait : before;
+                    // Only the numbers are needed here: no avatar is posed and no game event is raised.
+                    var pose = ActorFrame.Read(track.type, take.frames[i]);
+                    if (pose.visible) gait = CandyPlayerRig.StepGait(gait, pose.body, step);
+                    gaitAfter[i] = gait;
                 }
+                gaitCache.Remove(take);
+                gaitCache.Add(take, gaitAfter);
             }
 
             // Put the copy on one packed frame. False if the actor is hidden on that frame.
@@ -188,7 +199,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     float step = walker != null ? 1f / stage.Fps : running ? Time.deltaTime : 0;
                     if (walker != null)
                     {
-                        if (gaitAfter == null || gaitAfter.Length != take.frames.Count) BuildGait(walker);
+                        if (gaitAfter == null || gaitAfter.Length != take.frames.Count) BuildGait();
                         int from = between ? index : index - 1;      // the tape frame the walk continues from
                         if (from >= 0) gait = gaitAfter[from];
                         if (between) step *= part;

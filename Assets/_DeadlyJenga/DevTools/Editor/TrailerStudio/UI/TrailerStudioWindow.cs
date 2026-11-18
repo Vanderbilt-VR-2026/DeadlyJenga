@@ -65,13 +65,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         void OnEnable()
         {
             context = new StudioContext { window = this };
-            StudioRun.Changed += OnRunChanged;
+            StudioRun.Changed += OnRunSignal;
             Undo.undoRedoPerformed += OnUndoRedo;
         }
 
         void OnDisable()
         {
-            StudioRun.Changed -= OnRunChanged;
+            StudioRun.Changed -= OnRunSignal;
             Undo.undoRedoPerformed -= OnUndoRedo;
         }
 
@@ -230,6 +230,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // Changes when takes or tracks change, so the window knows to redraw its lists.
         string Signature() => Tape == null ? "" : string.Join(",", Tape.tracks.Select(t => t.id + ":" + t.takes.Count + ":" + t.active + ":" + t.badge));
 
+        // The run reports changes from inside the game loop, on frames that are being recorded. Rebuilding
+        // the window there would cost time on those frames, so the change is only noted and Pulse does the work.
+        bool runChanged;
+        void OnRunSignal() => runChanged = true;
+
         void OnRunChanged()
         {
             if (root == null) return;
@@ -253,7 +258,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (root == null) return;
             if (StudioRun.StageOpen) viewport.Tick();
-            if (StudioRun.State != shownState) OnRunChanged();
+            if (runChanged || StudioRun.State != shownState) { runChanged = false; OnRunChanged(); }
         }
 
         void RefreshTopBar()
@@ -485,7 +490,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         void DeleteSelection()
         {
-            if (selection is StudioMark mark) Edit("Delete " + mark.actor, () => { Set.marks.Remove(mark); selection = null; selectionKind = ""; }, true);
+            if (selection is StudioMark mark) Edit("Delete " + mark.actor, () =>
+            {
+                Set.marks.Remove(mark);
+                // Take away what pointed at this actor. Its takes stay on the tape, and come back if the delete is undone.
+                Set.overrides.RemoveAll(o => o.actor == mark.id);
+                foreach (var camera in Set.cameras)
+                {
+                    if (camera.subject == mark.id) { camera.subject = ""; if (camera.behavior != "twoShot") camera.behavior = ""; }
+                    if (camera.second == mark.id) camera.second = "";
+                    if (camera.behavior == "twoShot" && (camera.subject == "" || camera.second == "")) camera.behavior = "";
+                }
+                selection = null; selectionKind = "";
+            }, true);
             else if (selection is StudioCue cue) Edit("Delete cue", () => { Set.cues.Remove(cue); selection = null; selectionKind = ""; }, false);
             else if (selection is StudioCameraTrack camera) Edit("Delete camera", () => { Set.cameras.Remove(camera); selection = null; selectionKind = ""; }, false);
             else if (selection is StudioOverride layer) Edit("Delete override", () => { Set.overrides.Remove(layer); selection = null; selectionKind = ""; }, false);

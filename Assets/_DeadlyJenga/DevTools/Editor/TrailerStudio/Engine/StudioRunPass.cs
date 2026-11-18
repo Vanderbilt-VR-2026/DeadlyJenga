@@ -96,6 +96,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             frame = Mathf.Clamp(frame, 0, Stage.Frames - 1);
             int whole = Mathf.FloorToInt(frame);
             float part = frame - whole;
+            // Hit pause: inside one, renders hold the pause's first frame just as playback does.
+            int held = StudioOverrides.Held(Stage.set, whole);
+            if (held != whole) { whole = held; part = 0; }
             Frame = whole;
             foreach (var player in players) player.ShowBetween(whole, part, false);
             foreach (var player in players) player.AfterShow();
@@ -437,6 +440,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 // Sound. Blocks only make impact sounds while real physics runs (the game plays them straight
                 // from collisions), so the mix is recorded here, together with the world. Only on a whole
                 // fixed-clock recording with nobody performing: the capture takes the sound away from the speakers.
+                LastRecordingHasSound = false;
                 if (pass.liveWorld && clock && performer == null && !branch && startFrame == 0) StartLiveSound(stage);
                 Begin(startFrame, to, clock, pass.speed, null);
                 recordFrom = pass.from; capturedTo = pass.from - 1;
@@ -445,7 +449,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Notify();
                 Debug.Log($"[TrailerStudio] {pass.label}: rolling from frame {startFrame} to {to}, {recorders.Count} recorders, fixed clock {clock}");
                 foreach (int wait in WaitForRun()) yield return wait;
-                EndLiveSound(true);
+                EndLiveSound(!stopAsked);    // a stopped recording keeps the sound that was there before
 
                 // Keep every take, even a bad one. The newest becomes the active take.
                 Recording = false;
@@ -476,6 +480,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if ((active.track.type == SurvivorTrack.Id || active.track.type == HandTrack.Id) && active.take.frames.Count > 0)
                         active.take.meta = StudioTakes.WorldMeta(world?.id ?? "");
                 if (newWorld != null) StudioTakes.MarkStale(stage.tape, newWorld, stage.Fps, recorders.Select(r => r.track.id).ToList());
+                // The sound belongs to the world take it was recorded with.
+                if (LastRecordingHasSound && newWorld != null) StudioRender.KeepAudioFile(set.id, newWorld.id);
+                else StudioRender.DropAudioFile(set.id);
                 DisposeRecorders();
                 if (pass.liveWorld) DemoDisasters.StopAll(stage.session);
                 StudioDirector.End();

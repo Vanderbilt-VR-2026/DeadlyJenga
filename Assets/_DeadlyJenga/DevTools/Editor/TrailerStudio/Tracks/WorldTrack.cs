@@ -123,15 +123,23 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         }
 
         // Where every block is on one tape frame of a take (decoded from the take's start). active[i] is false for hidden or lost blocks.
+        // Decoding a frame means decoding every frame before it. Callers usually ask for frames in
+        // order (or the same frame again), so the last answer is kept and continued from.
+        static StudioTake cachedTake;
+        static int cachedIndex = -1, cachedCount;
+        static Sample[] cachedState;
+
         public static bool Positions(StudioTake take, int frame, out Vector3[] positions, out bool[] active)
         {
             int blocks = string.IsNullOrEmpty(take.meta) ? 0 : JsonUtility.FromJson<TakeMeta>(take.meta)?.blocks ?? 0;
             positions = new Vector3[blocks]; active = new bool[blocks];
             if (blocks == 0 || take.frames.Count == 0) return false;
-            var state = new Sample[blocks];
             int last = Mathf.Clamp(frame, take.start, take.End - 1) - take.start;
-            for (int i = 0; i <= last; i++) if (take.frames[i] != null && take.frames[i].Length > 0) DecodeInto(take.frames[i], state);
-            for (int i = 0; i < blocks; i++) { active[i] = (state[i].flags & Active) != 0; positions[i] = state[i].Position; }
+            bool goOn = cachedTake == take && cachedState != null && cachedState.Length == blocks && cachedCount == take.frames.Count && cachedIndex <= last;
+            if (!goOn) { cachedTake = take; cachedState = new Sample[blocks]; cachedIndex = -1; cachedCount = take.frames.Count; }
+            for (int i = cachedIndex + 1; i <= last; i++) if (take.frames[i] != null && take.frames[i].Length > 0) DecodeInto(take.frames[i], cachedState);
+            cachedIndex = last;
+            for (int i = 0; i < blocks; i++) { active[i] = (cachedState[i].flags & Active) != 0; positions[i] = cachedState[i].Position; }
             return true;
         }
 

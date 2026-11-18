@@ -72,7 +72,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             for (int i = 0; i < stretched; i++) frames.Add(Sample(track, source, Mathf.Min(from + i * speed, to - 1)).Write());
             for (int f = to; f < source.End; f++) frames.Add(source.frames[f - source.start]);
             if (source.start + frames.Count > setFrames) frames.RemoveRange(setFrames - source.start, source.start + frames.Count - setFrames);
-            return Finish(track, source, frames, source.start, speed < 1 ? "Slowed part" : "Sped-up part");
+            var retimed = Finish(track, source, frames, source.start, speed < 1 ? "Slowed part" : "Sped-up part");
+            // Everything after the range now happens at a different time than the world it was performed against.
+            if (to < source.End) track.badge = $"Retimed: after {to / (float)Mathf.Max(1, StudioRun.Stage != null ? StudioRun.Stage.Fps : 30):0.0} s this take no longer lines up with the world.";
+            return retimed;
         }
 
         // Smooth: average each pose with its neighbours to remove jitter. window = frames on each side.
@@ -170,11 +173,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (!pose.visible) { planted = null; continue; }
                 StudioRun.Scrub(f);
                 Vector3 feet = pose.body.feet;
-                // Standing still (moving less than 2 cm a frame): keep the feet exactly where they first stopped.
+                // Standing still (slower than 10 cm a second): keep the feet exactly where they first stopped.
                 var before = f > source.start ? Read(track, source, f - 1) : pose;
-                bool still = before.visible && Vector3.ProjectOnPlane(before.body.feet - feet, Vector3.up).magnitude < .02f;
+                float fps = StudioRun.Stage != null ? StudioRun.Stage.Fps : 30;
+                Vector3 moved = before.visible ? feet - before.body.feet : Vector3.zero;
+                bool still = before.visible && Vector3.ProjectOnPlane(moved, Vector3.up).magnitude * fps < .1f;
+                // In the air (rising or falling faster than 40 cm a second): a jump or a drop, leave it alone.
+                bool inAir = Mathf.Abs(moved.y) * fps > .4f;
                 if (still && planted.HasValue) feet = new Vector3(planted.Value.x, feet.y, planted.Value.z);
-                if (Physics.Raycast(feet + Vector3.up * .7f, Vector3.down, out var hit, 1.4f, mask, QueryTriggerInteraction.Ignore) && Mathf.Abs(hit.point.y - feet.y) < .6f)
+                if (!inAir && Physics.Raycast(feet + Vector3.up * .7f, Vector3.down, out var hit, 1.0f, mask, QueryTriggerInteraction.Ignore) && Mathf.Abs(hit.point.y - feet.y) < .25f)
                     feet.y = hit.point.y;
                 planted = still ? (planted ?? feet) : (Vector3?)null;
                 Vector3 move = feet - pose.body.feet;

@@ -55,7 +55,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
                     break;
                 case "pose": Pose(frame, layer.crouch, layer.lean, layer.flinch, layer.armRaise, weight); break;
-                case "reaction": React(layer, time, frame, anchor); break;
+                case "reaction":
+                    // A fall or death holds its pose until told otherwise: a later reaction on the same actor (a get-up) takes over.
+                    bool stays = layer.name == "death" || layer.name == "fall";
+                    if (stays && set.overrides.Any(o => o != layer && o.kind == "reaction" && !o.muted && o.actor == layer.actor && o.Start > layer.Start && o.Start <= time)) break;
+                    React(layer, time, frame, anchor);
+                    break;
                 case "emote":
                     int emote = Array.IndexOf(Emotes.Survivor, layer.name);
                     if (emote >= 0) frame.color = (frame.color & ~0xFF0000) | ((emote + 1) << 16);
@@ -222,10 +227,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     Vector3 axis = Vector3.Cross(Vector3.up, push);
                     Vector3 pivot = body.feet + Vector3.up * (standing * .35f);
                     Quaternion turn = Quaternion.AngleAxis(360 * Mathf.SmoothStep(0, 1, u) * (back > .99f ? 1 : back), axis);
-                    body.head = Vector3.Lerp(body.head, pivot + turn * (Vector3.up * standing * .45f), roll > 0 ? 1 : 0);
-                    body.headRotation = turn * body.headRotation;
-                    body.left.position = pivot + turn * (facing * new Vector3(-.3f, .1f, .1f) * size);
-                    body.right.position = pivot + turn * (facing * new Vector3(.3f, .1f, .1f) * size);
+                    // Ease into and out of the rolled-up pose over the first and last sixth, so nothing pops.
+                    float curl = Mathf.SmoothStep(0, 1, Mathf.Clamp01(Mathf.Min(u, 1 - u) * 6)) * Mathf.Clamp01(back);
+                    body.head = Vector3.Lerp(body.head, pivot + turn * (Vector3.up * standing * .45f), curl);
+                    body.headRotation = Quaternion.Slerp(body.headRotation, turn * body.headRotation, curl);
+                    body.left.position = Vector3.Lerp(body.left.position, pivot + turn * (facing * new Vector3(-.3f, .1f, .1f) * size), curl);
+                    body.right.position = Vector3.Lerp(body.right.position, pivot + turn * (facing * new Vector3(.3f, .1f, .1f) * size), curl);
                     break;
                 }
                 case "getUp":

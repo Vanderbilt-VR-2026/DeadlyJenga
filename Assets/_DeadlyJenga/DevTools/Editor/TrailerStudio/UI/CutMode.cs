@@ -112,7 +112,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (string.IsNullOrEmpty(folder)) { panel.Add(StudioUi.Hint("Render the cameras in the Shoot tab first. The export points at those files.")); return; }
             panel.Add(StudioUi.Hint("Using the render in " + Path.GetFileName(folder) + "."));
             string audio = StudioRender.AudioFile(set.id);
-            if (!File.Exists(audio)) panel.Add(StudioUi.Hint("No game sound recorded yet (Shoot tab, \"Record the tape's sound\"). The cut will export without it."));
+            if (!File.Exists(audio)) panel.Add(StudioUi.Hint("No game sound recorded yet. Record the whole set (that records its sound too), or use \"Record the tape's sound\" in the Shoot tab. The cut will export without it."));
+            else
+            {
+                // The sound was recorded with one take of the world. Say so when a different one is active now.
+                string soundTake = StudioRender.AudioTakeId(set.id);
+                string activeTake = context.Stage?.tape.FindType(WorldTrack.Id)?.ActiveTake?.id ?? "";
+                if (soundTake.Length > 0 && activeTake.Length > 0 && soundTake != activeTake)
+                    panel.Add(StudioUi.Hint("Careful: the game sound was recorded with a different take of the world than the one that is active now, so impacts may not match the picture. Record the whole set again, or switch the world back."));
+            }
             string captured = folder;
             var export = StudioUi.Big("Export for Resolve or Premiere", () =>
             {

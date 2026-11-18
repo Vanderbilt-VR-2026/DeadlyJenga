@@ -74,9 +74,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // ---- Quality and look, only while rendering ----
 
+        // The settings a cinema render raises, as they were before. Kept in SessionState as well, so a
+        // script reload or a stopped Play Mode in the middle of a render can still put them back.
+        [Serializable] sealed class OldQuality { public int level, msaa, antiAliasing, maxLod; public float shadows, lod, urpShadows; public bool urp; }
+        const string RaisedKey = "TrailerStudio.RenderRaised";
         static bool raised;
-        static int oldLevel, oldMsaa, oldAntiAliasing;
-        static float oldShadows, oldLod, oldUrpShadows, oldScale;
+        static OldQuality old;
+        static float oldScale;
         static Camera camera;
         static GameObject volumeHost;
         static VolumeProfile profile;
@@ -87,31 +91,47 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             oldScale = Time.timeScale;
             if (!settings.cinema || raised) return;
             raised = true;
-            oldLevel = QualitySettings.GetQualityLevel();
+            old = new OldQuality { level = QualitySettings.GetQualityLevel() };
             // The highest quality level the project defines (its PC tier), without changing which one is saved.
             QualitySettings.SetQualityLevel(QualitySettings.names.Length - 1, true);
-            oldShadows = QualitySettings.shadowDistance; oldLod = QualitySettings.lodBias; oldAntiAliasing = QualitySettings.antiAliasing;
-            QualitySettings.lodBias = Mathf.Max(oldLod, 4);
+            old.shadows = QualitySettings.shadowDistance; old.lod = QualitySettings.lodBias; old.antiAliasing = QualitySettings.antiAliasing;
+            old.maxLod = QualitySettings.maximumLODLevel;
+            var urp = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+            if (urp) { old.urp = true; old.msaa = urp.msaaSampleCount; old.urpShadows = urp.shadowDistance; }
+            SessionState.SetString(RaisedKey, JsonUtility.ToJson(old));
+            QualitySettings.lodBias = Mathf.Max(old.lod, 4);
             QualitySettings.maximumLODLevel = 0;
-            if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp)
+            if (urp)
             {
-                oldMsaa = urp.msaaSampleCount; oldUrpShadows = urp.shadowDistance;
                 urp.msaaSampleCount = 8;
-                urp.shadowDistance = Mathf.Max(oldUrpShadows, 180);
+                urp.shadowDistance = Mathf.Max(old.urpShadows, 180);
             }
+        }
+
+        static void LowerQuality(OldQuality was)
+        {
+            if (was.urp && GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp) { urp.msaaSampleCount = was.msaa; urp.shadowDistance = was.urpShadows; }
+            QualitySettings.lodBias = was.lod; QualitySettings.shadowDistance = was.shadows; QualitySettings.antiAliasing = was.antiAliasing;
+            QualitySettings.maximumLODLevel = was.maxLod;
+            QualitySettings.SetQualityLevel(was.level, true);
+            SessionState.EraseString(RaisedKey);
+        }
+
+        // After a script reload the "raised" flag above is gone. If a render was cut short, undo it now.
+        [InitializeOnLoadMethod]
+        static void LowerQualityAfterReload()
+        {
+            string saved = SessionState.GetString(RaisedKey, "");
+            if (saved.Length == 0 || raised) return;
+            try { LowerQuality(JsonUtility.FromJson<OldQuality>(saved)); }
+            catch (Exception error) { Debug.LogException(error); SessionState.EraseString(RaisedKey); }
         }
 
         static void Restore()
         {
             Time.captureDeltaTime = 0;
             if (StudioRun.State == StudioState.Held) { Time.timeScale = 0; Time.captureFramerate = StudioRun.Stage != null ? StudioRun.Stage.Fps : 0; }
-            if (raised)
-            {
-                if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp) { urp.msaaSampleCount = oldMsaa; urp.shadowDistance = oldUrpShadows; }
-                QualitySettings.lodBias = oldLod; QualitySettings.shadowDistance = oldShadows; QualitySettings.antiAliasing = oldAntiAliasing;
-                QualitySettings.SetQualityLevel(oldLevel, true);
-                raised = false;
-            }
+            if (raised) { LowerQuality(old); raised = false; }
             if (camera) Object.Destroy(camera.gameObject);
             if (volumeHost) Object.Destroy(volumeHost);
             if (profile) Object.Destroy(profile);
@@ -186,7 +206,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 {
                     if (cancel) break;
                     var watch = Stopwatch.StartNew();
-                    string folder = Path.Combine(root, Safe(shot.name));
+                    string folder = Path.Combine(root, ShotFolder(shot));
                     Directory.CreateDirectory(folder);
                     var times = StudioCameras.Timeline(shot, set, settings.fps, sub);
                     int frames = times.Count / sub;
@@ -251,7 +271,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                             else
                             {
                                 var bytes = writer.GetRawTextureData<byte>();
-                                for (int i = 0; i < sum.Length; i++) bytes[i] = (byte)Mathf.Clamp(Mathf.RoundToInt(sum[i] * scale * 255), 0, 255);
+                                // The summed values are linear light; a PNG holds display (gamma) values. Alpha stays as it is.
+                                bool linear = QualitySettings.activeColorSpace == ColorSpace.Linear;
+                                for (int i = 0; i < sum.Length; i++)
+                                {
+                                    float value = sum[i] * scale;
+                                    if (linear && (i & 3) != 3) value = Mathf.LinearToGammaSpace(value);
+                                    bytes[i] = (byte)Mathf.Clamp(Mathf.RoundToInt(value * 255), 0, 255);
+                                }
                                 writer.Apply(false);
                                 File.WriteAllBytes(file, writer.EncodeToPNG());
                             }
@@ -283,6 +310,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                             while (process != null && !process.HasExited && timer.Elapsed.TotalMinutes < 10) { Progress = "Encoding " + shot.name; yield return 0; }
                             if (process != null && process.HasExited && process.ExitCode == 0 && File.Exists(movie)) done.movie = movie;
                             else done.error = "FFmpeg could not make the movie; the image sequence is complete.";
+                            if (process != null && !process.HasExited) { try { process.Kill(); } catch (Exception) { } }
                             process?.Dispose();
                         }
                         else if (settings.format != "png") done.error = "FFmpeg was not found, so only the image sequence was written.";
@@ -306,6 +334,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public int frames, fps, width, height, subFrames;
             public float tapeStart, tapeEnd;
         }
+
+        // Two cameras may share a name (or differ only in punctuation), so the folder carries the camera's id too.
+        public static string ShotFolder(StudioCameraTrack shot) => Safe(shot.name) + "-" + shot.id;
 
         public static string Safe(string name)
         {
@@ -331,15 +362,43 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // ---- Sound for the tape ----
 
-        // Start a fresh sound file (and stems) for a Set. Whoever calls this feeds it a frame at a time.
+        // New sound is recorded into its own folder first, so a stopped or failed recording never
+        // destroys the sound that was already there.
+        static string AudioFolder(string setId) => Path.GetDirectoryName(AudioFile(setId));
+        static string NewAudioFolder(string setId) => Path.Combine(AudioFolder(setId), "recording");
+
         internal static TheatreAudioCapture OpenAudioFile(string setId)
         {
-            string file = AudioFile(setId);
-            Directory.CreateDirectory(Path.GetDirectoryName(file));
+            string folder = NewAudioFolder(setId);
+            if (Directory.Exists(folder)) Directory.Delete(folder, true);
+            Directory.CreateDirectory(folder);
+            return new TheatreAudioCapture(Path.Combine(folder, "tape.wav"));
+        }
+
+        // The new sound is complete: put it in place of the old one, and note which world take it was made from.
+        internal static void KeepAudioFile(string setId, string worldTakeId)
+        {
+            string folder = NewAudioFolder(setId), file = AudioFile(setId), stems = Path.Combine(AudioFolder(setId), "stems");
+            if (!File.Exists(Path.Combine(folder, "tape.wav"))) return;
             if (File.Exists(file)) File.Delete(file);
-            string stems = Path.Combine(Path.GetDirectoryName(file), "stems");
             if (Directory.Exists(stems)) Directory.Delete(stems, true);
-            return new TheatreAudioCapture(file);
+            File.Move(Path.Combine(folder, "tape.wav"), file);
+            if (Directory.Exists(Path.Combine(folder, "stems"))) Directory.Move(Path.Combine(folder, "stems"), stems);
+            File.WriteAllText(Path.Combine(AudioFolder(setId), "tape.take.txt"), worldTakeId ?? "");
+            Directory.Delete(folder, true);
+        }
+
+        internal static void DropAudioFile(string setId)
+        {
+            string folder = NewAudioFolder(setId);
+            try { if (Directory.Exists(folder)) Directory.Delete(folder, true); } catch (Exception error) { Debug.LogException(error); }
+        }
+
+        // The world take the saved sound was recorded with ("" if unknown or there is no sound).
+        public static string AudioTakeId(string setId)
+        {
+            string note = Path.Combine(AudioFolder(setId), "tape.take.txt");
+            return File.Exists(note) ? File.ReadAllText(note).Trim() : "";
         }
 
         // A whole-set recording already records its sound, with real block impacts. This is the fallback
@@ -358,10 +417,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             void Each(int frame) { capture.CaptureFrame(); frames++; }
             void Done()
             {
-                if (StudioRun.State != StudioState.Held) return;
+                if (StudioRun.State == StudioState.Running) return;     // still playing
                 StudioRun.FrameShown -= Each; StudioRun.Changed -= Done;
                 StudioCamera.EarsAt = null;
-                try { capture.Complete(frames, stage.Fps); } finally { capture.Dispose(); }
+                // Finished properly only if the same stage is holding still again; a closed stage throws the sound away.
+                bool whole = StudioRun.State == StudioState.Held && StudioRun.Stage == stage && frames > 0;
+                try { if (whole) capture.Complete(frames, stage.Fps); } finally { capture.Dispose(); }
+                if (!whole) { DropAudioFile(stage.set.id); return; }
+                KeepAudioFile(stage.set.id, stage.tape.FindType(WorldTrack.Id)?.ActiveTake?.id);
                 finished?.Invoke(file);
             }
             StudioRun.FrameShown += Each;

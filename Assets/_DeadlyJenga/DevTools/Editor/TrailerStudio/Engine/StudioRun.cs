@@ -267,6 +267,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static void Teardown()
         {
             running = false; Recording = false; routine = null;
+            EndLiveSound(false);
             DisposeRecorders();
             DisposePlayers();
             StudioCamera.Destroy();

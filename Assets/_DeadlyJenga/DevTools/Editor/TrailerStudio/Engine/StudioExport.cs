@@ -32,11 +32,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 var camera = set.cameras.FirstOrDefault(c => c.id == cut.camera);
                 if (camera == null) { problems.Add("A piece of the cut points at a camera that no longer exists."); continue; }
-                string folder = Path.Combine(renderFolder, StudioRender.Safe(camera.name));
+                string folder = Path.Combine(renderFolder, StudioRender.ShotFolder(camera));
                 string record = Path.Combine(folder, "shot.json");
                 if (!File.Exists(record)) { problems.Add($"\"{camera.name}\" has not been rendered into this folder yet."); continue; }
                 var shot = JsonUtility.FromJson<StudioRender.ShotRecord>(File.ReadAllText(record));
                 string movie = Directory.GetFiles(folder, "*.mov").Concat(Directory.GetFiles(folder, "*.mp4")).FirstOrDefault();
+                if (movie == null && !problems.Any(p => p.StartsWith("Pictures only")))
+                    problems.Add("Pictures only: no movie file was rendered (that needs FFmpeg), so each shot points at its first picture. Most editors import that as one still. Import the shot folders as image sequences, or render as MP4 or ProRes.");
+                if ((camera.speeds.Count > 0 || (camera.freezeAt >= camera.start && camera.freezeFor > 0)) && !problems.Any(p => p.Contains(camera.name + "\" has a speed change")))
+                    problems.Add($"\"{camera.name}\" has a speed change or a freeze. The game sound under it is placed at real speed, so it will not stay in sync with the picture.");
                 int first = Mathf.Clamp(Mathf.RoundToInt(cut.from * shot.fps), 0, Mathf.Max(0, shot.frames - 1));
                 int count = Mathf.Clamp(Mathf.RoundToInt((cut.to - cut.from) * shot.fps), 1, shot.frames - first);
                 pieces.Add(new Piece { cut = cut, shot = shot, media = movie ?? Path.Combine(folder, "00000." + (shot.format == "exr" ? "exr" : "png")),

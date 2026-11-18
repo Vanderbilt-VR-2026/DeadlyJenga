@@ -114,6 +114,32 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 $"In-between frames are real: block #{moving} moves {gap * 100:0.0} cm between tape frames {probeFrame} and {probeFrame + 1}, and at {probeFrame}.5 it is {halfError:0.00} mm from the halfway point. " +
                 $"Rendered with 4 in-between frames per picture for motion blur: {rampDone?.frames ?? 0} pictures. Pictures: render-ramp/.");
 
+            // ---- Motion blur must not change how bright the picture is ----
+            // The same still frame (before the collapse) rendered plain and with 2 in-between frames.
+            float Brightness(string file)
+            {
+                var picture = new Texture2D(2, 2);
+                try
+                {
+                    if (!File.Exists(file) || !picture.LoadImage(File.ReadAllBytes(file))) return -1;
+                    float sum = 0; var pixels = picture.GetPixels32();
+                    foreach (var c in pixels) sum += (c.r + c.g + c.b) / 3f;
+                    return sum / Mathf.Max(1, pixels.Length);
+                }
+                finally { UnityEngine.Object.DestroyImmediate(picture); }
+            }
+            var wide = set.cameras.First(c => c.name == "Wide");
+            var renderWas = set.render;
+            set.render = new StudioRenderSettings { width = 320, height = 180, fps = 15, subFrames = 2, format = "png", cinema = false, freezeAmbient = true };
+            string blurFolder = Path.Combine(Folder, "render-blur");
+            StudioRender.Start(new[] { wide }, set.render, blurFolder);
+            foreach (int wait in UntilRendered()) yield return wait;
+            float plain = Brightness(Path.Combine(firstResults.First(r => r.cameraId == wide.id).folder, "00000.png"));
+            float blurred = Brightness(Path.Combine(StudioRender.Results.FirstOrDefault(r => r.cameraId == wide.id)?.folder ?? "", "00000.png"));
+            Result("A blurred render is as bright as a plain one", plain > 0 && blurred > 0 && Mathf.Abs(plain - blurred) < plain * .03f,
+                $"Average brightness of the first Wide frame: {plain:0.0} of 255 with no in-between frames, {blurred:0.0} with 2.");
+            set.render = renderWas;
+
             // ---- Test 3: a handheld camera take becomes an editable track ----
             var handheld = new StudioCameraTrack { name = "Handheld", color = 6 };
             set.cameras.Add(handheld);
