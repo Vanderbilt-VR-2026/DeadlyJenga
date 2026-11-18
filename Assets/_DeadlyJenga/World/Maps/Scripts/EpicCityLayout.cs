@@ -32,8 +32,8 @@ namespace DeadlyJenga.CastlePrototype
     // Coordinates, stairs and bearing seats are physical geometry. Road markings are separate art.
     public static partial class EpicCityLayout
     {
-        public static readonly string[] Names={"Tideway Metropolis","Double-Loop Exchange","Caldera Switchback City","Broken Crown Capital","Harbor Loom","Lantern Ravine","Canopy Borough","Bookfall Boulevard","Three Hearts City","The Rising Spine","Candy Plaza Wheel","Candy Canyon","Candy Plaza Canyon"};
-        public static readonly string[] Ids={"epic-tideway","epic-double-loop","epic-caldera","epic-broken-crown","epic-harbor-loom","epic-lantern-ravine","epic-canopy-borough","epic-bookfall","epic-three-hearts","epic-rising-spine","epic-candy-plaza-wheel","epic-candy-canyon","epic-candy-plaza-canyon"};
+        public static readonly string[] Names={"Tideway Metropolis","Double-Loop Exchange","Caldera Switchback City","Broken Crown Capital","Harbor Loom","Lantern Ravine","Canopy Borough","Bookfall Boulevard","Three Hearts City","The Rising Spine","Candy Plaza Wheel","Candy Canyon","Candy Plaza Canyon","Candy Mechanism City"};
+        public static readonly string[] Ids={"epic-tideway","epic-double-loop","epic-caldera","epic-broken-crown","epic-harbor-loom","epic-lantern-ravine","epic-canopy-borough","epic-bookfall","epic-three-hearts","epic-rising-spine","epic-candy-plaza-wheel","epic-candy-canyon","epic-candy-plaza-canyon","epic-candy-mechanism-city"};
         public static EpicCityPlan Build(int design)
         {
             if(design<0||design>=Names.Length)throw new ArgumentOutOfRangeException(nameof(design));

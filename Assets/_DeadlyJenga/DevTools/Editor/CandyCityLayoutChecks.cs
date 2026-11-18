@@ -22,6 +22,7 @@ namespace DeadlyJenga.DevTools.Editor
             (EpicCityLayout.PlazaWheelDesign, "epic-candy-plaza-wheel"),
             (EpicCityLayout.CandyCanyonDesign, "epic-candy-canyon"),
             (EpicCityLayout.PlazaCanyonDesign, "epic-candy-plaza-canyon"),
+            (EpicCityLayout.MechanismCityDesign, "epic-candy-mechanism-city"),
         };
 
         [Serializable] sealed class Shape { public int module; public Vector3 center, size; public Quaternion rotation; public int finish; public Vector3[] vertices; }
@@ -54,6 +55,7 @@ namespace DeadlyJenga.DevTools.Editor
                                       $"{plan.routes.Count - groundOnly} bridges built, {groundOnly} links fell back to ground, island {plan.halfSize.x * 2:0}x{plan.halfSize.y * 2:0} m, top {b.max.y:0.0} m");
                     if (groundOnly > 0) report.AppendLine("  ground fallbacks: " + string.Join("; ", plan.routes.Where(r => r.name.StartsWith("Ground street", StringComparison.Ordinal)).Select(r => r.name)));
                     failed += SettleAndPull(design, id, report);
+                    if (design == EpicCityLayout.MechanismCityDesign) failed += Mechanisms(id, report);
                 }
             }
             catch (Exception e) { report.AppendLine("ERROR " + e); failed++; Debug.LogException(e); }
@@ -87,6 +89,61 @@ namespace DeadlyJenga.DevTools.Editor
             return e;
         }
 
+        // Fires each transplanted mechanism the way the Hand would (pull a piece away, or shove it) and measures the result.
+        static readonly (string trigger, string watch, bool remove, Vector3 shove)[] Triggers =
+        {
+            ("Loose arch keystone", "Vault terrace deck", true, default),
+            ("Removable drop shoe", "Two-floor dropping cassette", true, default),
+            ("Wing receiving foot", "Hinged inhabited book wing", true, default),
+            ("Removable heel counterweight", "Counterweighted bascule leaf", true, default),
+            ("Removable support", "Falling route", true, default),
+            // Shoves are in the piece's own frame: plate pushed sideways at its end, roof along its slide, screen near its top.
+            ("Pivot route plate", "Pivot route plate", false, new Vector3(0, 0, 25)),
+            ("Moving roof", "Moving roof", false, new Vector3(25, 0, 0)),
+            ("Screen west", "Screen west", false, new Vector3(25, 0, 0)),
+        };
+
+        static int Mechanisms(string id, StringBuilder report)
+        {
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var go = Object.Instantiate(Resources.Load<GameObject>("ModeMaps/Mode_" + id));
+            var mode = Physics.simulationMode;
+            int problems = 0;
+            try
+            {
+                var map = go.GetComponent<EpicCityMap>(); map.Rebuild();
+                Physics.simulationMode = SimulationMode.Script;
+                for (int i = 0; i < 300; i++) Physics.Simulate(.02f);
+                var bodies = map.Blocks.ToList();
+                string Purpose(Rigidbody r) => r.GetComponent<MayhemStructuralMember>().Purpose;
+                report.AppendLine($"  mechanisms ({bodies.Count(b => b.GetComponent<HingeJoint>())} hinges):");
+                foreach (var (trigger, watch, remove, shove) in Triggers)
+                {
+                    var t = bodies.FirstOrDefault(b => b && b.gameObject.activeSelf && Purpose(b) == trigger);
+                    var w = t ? bodies.Where(b => b && b.gameObject.activeSelf && Purpose(b) == watch).OrderBy(b => Vector3.Distance(b.position, t.position)).FirstOrDefault() : null;
+                    if (!t || !w) { report.AppendLine($"    MISSING {trigger} / {watch}"); problems++; continue; }
+                    var p0 = w.position; var r0 = w.rotation;
+                    if (remove) t.gameObject.SetActive(false);
+                    // A hard Hand shove for 1 s in the piece's frame, then the other way if nothing moved.
+                    else
+                    {
+                        var offset = trigger == "Pivot route plate" ? new Vector3(3.5f, 0, 0) : trigger.StartsWith("Screen", StringComparison.Ordinal) ? new Vector3(0, 1.5f, 0) : Vector3.zero;
+                        for (int pass = 0; pass < 2; pass++)
+                        {
+                            float sign = pass == 0 ? 1 : -1;
+                            for (int i = 0; i < 50; i++) { t.AddForceAtPosition(t.transform.TransformDirection(shove) * sign * t.mass, t.transform.TransformPoint(offset), ForceMode.Force); t.WakeUp(); Physics.Simulate(.02f); }
+                            if (Vector3.Distance(w.position, p0) > .2f || Quaternion.Angle(r0, w.rotation) > 3) break;
+                        }
+                    }
+                    for (int i = 0; i < 200; i++) Physics.Simulate(.02f);
+                    report.AppendLine($"    {(remove ? "pulled" : "shoved")} '{trigger}': '{watch}' moved {Vector3.Distance(w.position, p0):0.00} m, turned {Quaternion.Angle(r0, w.rotation):0.0} deg");
+                }
+            }
+            catch (Exception e) { report.AppendLine("    ERROR " + e.Message); problems++; }
+            finally { Physics.simulationMode = mode; Object.DestroyImmediate(go); }
+            return problems;
+        }
+
         // Builds the real map in an empty scene, lets it settle, then shoves one middle floor of the tallest tower.
         static int SettleAndPull(int design, string id, StringBuilder report)
         {
@@ -107,7 +164,7 @@ namespace DeadlyJenga.DevTools.Editor
                 int moved = drift.Count(d => d > .25f), asleep = bodies.Count(b => b.IsSleeping());
                 report.AppendLine($"  settle 10 s: max drift {drift.Max():0.00} m, {moved} bodies moved > .25 m, {asleep}/{bodies.Count} asleep");
                 int problems = moved > bodies.Count / 20 ? 1 : 0;
-                if (problems > 0) foreach (var i in Enumerable.Range(0, bodies.Count).Where(i => drift[i] > .25f).Take(8)) report.AppendLine("    drifted: " + bodies[i].name + $" {drift[i]:0.00} m");
+                foreach (var i in Enumerable.Range(0, bodies.Count).Where(i => drift[i] > .25f).Take(8)) report.AppendLine("    drifted: " + bodies[i].name + $" {drift[i]:0.00} m");
 
                 // Pull test: drag the tallest Jenga tower's middle floor sideways at 4 m/s for 5 s (a sustained Hand pull).
                 string Purpose(Rigidbody r) => r.GetComponent<MayhemStructuralMember>().Purpose;

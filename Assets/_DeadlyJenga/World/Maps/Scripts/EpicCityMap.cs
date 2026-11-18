@@ -7,7 +7,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed class EpicCityMap : MonoBehaviour,IWorldQuery,IMapFootprint,ISyncedWorld,IRebuildable,ITraversalCollisionWorld
     {
-        [Range(0,12)] public int design;
+        [Range(0,13)] public int design;
         public Material[] palette;
         public PhysicsMaterial friction;
         public Transform foundation;
@@ -20,6 +20,7 @@ namespace DeadlyJenga.CastlePrototype
         EpicCityPlan plan;
         public EpicCityPlan Plan=>plan??=EpicCityLayout.Build(design);
         readonly List<Rigidbody> bodies=new();
+        readonly HashSet<Rigidbody> anchoredBodies=new();
         readonly List<MayhemModule> modules=new();
         readonly Collider[] clearance=new Collider[24];
         readonly Dictionary<int,float> submerged=new();
@@ -67,7 +68,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             plan=EpicCityLayout.Build(design);var layout=plan.modules;
             if(generated){generated.gameObject.SetActive(false);if(Application.isPlaying)Destroy(generated.gameObject);else DestroyImmediate(generated.gameObject);}
-            modules.Clear();modules.AddRange(layout);bodies.Clear();submerged.Clear();spawnCursor=cleanupCursor=0;
+            modules.Clear();modules.AddRange(layout);bodies.Clear();anchoredBodies.Clear();submerged.Clear();spawnCursor=cleanupCursor=0;
             authored=MayhemStructureLayout.Bounds(layout);
             generated=new GameObject("Connected city physical sections").transform;generated.SetParent(transform,false);
             if(palette==null||palette.Length<4)
@@ -79,18 +80,32 @@ namespace DeadlyJenga.CastlePrototype
                 go.transform.SetParent(generated,false);go.transform.localPosition=m.position;go.transform.localRotation=m.rotation*m.shapes[0].rotation;
                 var rb=go.AddComponent<Rigidbody>();rb.solverIterations=solverIterations;rb.solverVelocityIterations=velocityIterations;
                 rb.interpolation=replica?RigidbodyInterpolation.None:RigidbodyInterpolation.Interpolate;
-                rb.useGravity=true;rb.isKinematic=replica;rb.sleepThreshold=.01f;rb.maxDepenetrationVelocity=3;
+                rb.useGravity=!m.anchored;rb.isKinematic=replica||m.anchored;rb.sleepThreshold=.01f;rb.maxDepenetrationVelocity=3;
+                if(m.anchored){anchoredBodies.Add(rb);rb.interpolation=RigidbodyInterpolation.None;}
                 go.AddComponent<MayhemStructuralMember>().Build(m,palette,friction);
                 go.AddComponent<TowerSectionWaterLoad>().Initialize(m,rb.mass,Mathf.Abs(transform.lossyScale.x),waterReferenceArea,minimumWaterResistance);
                 bodies.Add(rb);lookup.Add(m,rb);
             }
-            foreach(var m in layout)if(m.hingeSupport!=null)
+            foreach(var m in layout)if(m.hingeSupport!=null||m.hingeToWorld)
             {
-                var rb=lookup[m];var joint=rb.gameObject.AddComponent<HingeJoint>();joint.connectedBody=lookup[m.hingeSupport];joint.autoConfigureConnectedAnchor=false;
-                var pivot=transform.TransformPoint(m.pivot);joint.anchor=rb.transform.InverseTransformPoint(pivot);joint.connectedAnchor=joint.connectedBody.transform.InverseTransformPoint(pivot);
-                joint.axis=rb.transform.InverseTransformDirection(transform.rotation*m.rotation*Vector3.forward);joint.useLimits=true;
-                joint.limits=new JointLimits{min=-80,max=80,bounciness=0,contactDistance=1};joint.enableCollision=true;
+                var rb=lookup[m];var joint=rb.gameObject.AddComponent<HingeJoint>();joint.autoConfigureConnectedAnchor=false;
+                if(m.hingeSupport!=null)joint.connectedBody=lookup[m.hingeSupport];
+                var pivot=transform.TransformPoint(m.pivot);joint.anchor=rb.transform.InverseTransformPoint(pivot);joint.connectedAnchor=joint.connectedBody?joint.connectedBody.transform.InverseTransformPoint(pivot):pivot;
+                joint.axis=rb.transform.InverseTransformDirection(transform.rotation*m.rotation*m.hingeAxis);joint.useLimits=true;
+                joint.limits=new JointLimits{min=m.hingeMin,max=m.hingeMax,bounciness=0,contactDistance=1};joint.enableCollision=m.hingeCollide;
             }
+            foreach(var m in layout)if(m.slideSupport!=null&&lookup.ContainsKey(m.slideSupport))
+            {
+                var rb=lookup[m];var frame=lookup[m.slideSupport];var joint=rb.gameObject.AddComponent<ConfigurableJoint>();joint.connectedBody=frame;joint.autoConfigureConnectedAnchor=false;
+                joint.anchor=Vector3.zero;joint.connectedAnchor=frame.transform.InverseTransformPoint(rb.position);
+                var axis=transform.rotation*m.rotation*m.slideAxis;var up=transform.rotation*m.rotation*Vector3.up;
+                joint.axis=rb.transform.InverseTransformDirection(axis);joint.secondaryAxis=rb.transform.InverseTransformDirection(up);
+                joint.xMotion=ConfigurableJointMotion.Limited;joint.yMotion=joint.zMotion=ConfigurableJointMotion.Locked;
+                joint.angularXMotion=joint.angularYMotion=joint.angularZMotion=ConfigurableJointMotion.Locked;
+                joint.linearLimit=new SoftJointLimit{limit=m.slideLimit*Mathf.Abs(transform.lossyScale.x),contactDistance=.02f};joint.enableCollision=false;
+            }
+            foreach(var m in layout)foreach(var other in m.ignore)if(lookup.TryGetValue(other,out var o))
+                foreach(var a in lookup[m].GetComponentsInChildren<Collider>())foreach(var b in o.GetComponentsInChildren<Collider>())Physics.IgnoreCollision(a,b);
             if(!foundation){foundation=new GameObject("Continuous city island ground").transform;foundation.SetParent(transform,false);}
             bool revisedGround=design==1||EpicCityLayout.IsCompactCandyCity(design);
             if(revisedGround||!islandCollision){if(runtimeGround)Destroy(runtimeGround);runtimeGround=EpicCityTerrain.Create(Plan);}
@@ -152,7 +167,7 @@ namespace DeadlyJenga.CastlePrototype
         public void SetReplica(bool value)
         {
             replica=value;
-            foreach(var body in bodies)if(body){body.collisionDetectionMode=CollisionDetectionMode.Discrete;body.isKinematic=value;body.interpolation=value?RigidbodyInterpolation.None:RigidbodyInterpolation.Interpolate;}
+            foreach(var body in bodies)if(body){bool still=value||anchoredBodies.Contains(body);body.collisionDetectionMode=CollisionDetectionMode.Discrete;body.isKinematic=still;body.interpolation=still?RigidbodyInterpolation.None:RigidbodyInterpolation.Interpolate;}
         }
         void FixedUpdate()
         {
