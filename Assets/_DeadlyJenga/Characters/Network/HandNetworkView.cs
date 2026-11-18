@@ -103,7 +103,12 @@ namespace DeadlyJenga.CharacterNetwork
             if (seaActive) { if (seaLeft) seaLeft.SnapToState(); if (seaRight) seaRight.SnapToState(); return; }
             if (!hasTarget || !Hand || context.host || bones.Length != 16) return;
             for (int i = 0; i < 16; i++)
-                Hand.bodies[i].transform.SetPositionAndRotation(bones[i].position, bones[i].rotation);
+            {
+                // Set the physics body and what is drawn, so a later Render does not pull the old pose back.
+                var body = Hand.bodies[i];
+                body.position = bones[i].position; body.rotation = bones[i].rotation;
+                body.transform.SetPositionAndRotation(bones[i].position, bones[i].rotation);
+            }
         }
 
         public void Render(float dt)
