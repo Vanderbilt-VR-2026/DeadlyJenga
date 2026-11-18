@@ -263,3 +263,20 @@ any of them at review.
     import poses the live avatar class, not the playback copy), voice lines
     on a track, and eye direction (the avatar has no eye control in its
     network state).
+## Testing and polish (after all five phases were written)
+50. **Camera lag is capped at half a metre.** Follow, ride, orbit and
+    two-shot cameras aim where the actor was `lag` seconds ago, for a softer
+    move. With a plain delay a falling actor left the picture, so the aim
+    never trails more than 0.5 m, and ride and orbit sit on the actor's
+    current spot.
+51. **A render settles the scene first.** Each shot draws its first frame
+    12 times before saving anything, so the first saved pictures do not
+    depend on what was on screen before the render (cloth, hair, effects).
+52. **"Rides a played-back block" is judged against the live game.** The
+    Phase 1 test re-records the Set's survivor against playback and compares
+    the path with the same survivor's take from the live recording. The
+    question is "does playback carry a live survivor the way the real
+    physics did", not "how far should a survivor be carried".
+53. **Every Set edit is its own undo step.** `Undo.IncrementCurrentGroup`
+    before each recorded edit; Unity otherwise merges edits that happen
+    without a mouse or key event in between.

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE fcpxml>
+<fcpxml version="1.9">
+  <resources>
+    <format id="r1" name="FFVideoFormat180p15" frameDuration="1/15s" width="320" height="180"/>
+    <asset id="a1" name="Wide" start="0s" duration="60/15s" hasVideo="1" format="r1">
+      <media-rep kind="original-media" src="file:///C:/Users/evanp/Documents/Codex/Projects/deadlyjenga-unity-pool/slot-06/Logs/Validation/TrailerStudio-Phase5/render-1/Wide/Wide.mp4"/>
+    </asset>
+    <asset id="a2" name="Follow Ada" start="0s" duration="60/15s" hasVideo="1" format="r1">
+      <media-rep kind="original-media" src="file:///C:/Users/evanp/Documents/Codex/Projects/deadlyjenga-unity-pool/slot-06/Logs/Validation/TrailerStudio-Phase5/render-1/Follow-Ada/Follow-Ada.mp4"/>
+    </asset>
+    <asset id="a3" name="Two shot" start="0s" duration="60/15s" hasVideo="1" format="r1">
+      <media-rep kind="original-media" src="file:///C:/Users/evanp/Documents/Codex/Projects/deadlyjenga-unity-pool/slot-06/Logs/Validation/TrailerStudio-Phase5/render-1/Two-shot/Two-shot.mp4"/>
+    </asset>
+    <asset id="s1" name="Game sound" start="0s" hasAudio="1" audioSources="1" audioChannels="2">
+      <media-rep kind="original-media" src="file:///C:/Users/evanp/Documents/Codex/Projects/deadlyjenga-unity-pool/slot-06/Recordings/TrailerStudio/acceptance-phase5/audio/tape.wav"/>
+    </asset>
+  </resources>
+  <library>
+    <event name="Trailer Studio">
+      <project name="Acceptance cut">
+        <sequence format="r1" duration="74/15s" tcStart="0s" tcFormat="NDF">
+          <spine>
+            <asset-clip ref="a1" name="Wide" offset="0s" start="0s" duration="22/15s" format="r1">
+              <asset-clip ref="s1" lane="-1" name="Game sound" offset="0s" start="0s" duration="22/15s"/>
+            </asset-clip>
+            <transition name="Cross Dissolve" offset="19/15s" duration="6/15s"/>
+            <asset-clip ref="a2" name="Follow Ada" offset="22/15s" start="15/15s" duration="22/15s" format="r1">
+              <asset-clip ref="s1" lane="-1" name="Game sound" offset="15/15s" start="15/15s" duration="22/15s"/>
+            </asset-clip>
+            <asset-clip ref="a3" name="Two shot" offset="44/15s" start="30/15s" duration="30/15s" format="r1">
+              <asset-clip ref="s1" lane="-1" name="Game sound" offset="30/15s" start="30/15s" duration="30/15s"/>
+            </asset-clip>
+          </spine>
+        </sequence>
+      </project>
+    </event>
+  </library>
+</fcpxml>

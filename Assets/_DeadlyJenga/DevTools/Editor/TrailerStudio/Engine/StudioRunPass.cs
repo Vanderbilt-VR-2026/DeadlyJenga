@@ -479,6 +479,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         internal static void FrameStart()
         {
+            // The game switches listeners off when it changes roles. Keep one set of ears on:
+            // the director's camera, unless someone is performing (then the player's own).
+            if (Stage != null) StudioCamera.Listen(Stage.performer.Length == 0);
             if (!running || Stage == null) return;
             if (runStart < 0) { runStart = Time.time; Frame = firstFrame; }
             else if (fixedClock) Frame++;

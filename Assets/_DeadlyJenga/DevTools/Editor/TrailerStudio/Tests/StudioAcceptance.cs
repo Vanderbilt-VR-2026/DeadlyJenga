@@ -241,6 +241,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 old.WriteFrame(); oldFrames++;
             }
 
+            // Aim the slow shove at the block the survivor mark stands on, so test 3 has someone on a moving block.
+            var riderMark = set.marks.First(m => m.role == StudioRole.Survivor);
+            var shove = set.cues.First(c => c.action == "push");
+            if (Physics.Raycast(stage.ToWorld(riderMark.position) + Vector3.up * 1.5f, Vector3.down, out var under, 20, 1 << Layers.Block, QueryTriggerInteraction.Ignore) && under.rigidbody)
+            {
+                int index = Array.IndexOf(stage.blocks, under.rigidbody);
+                if (index >= 0) { shove.blocks.Clear(); shove.blocks.Add(index); StudioLibrary.Save(set); }
+            }
+
             StudioRun.FrameShown += WhileRecording;
             StudioRun.RecordWholeSet();
             foreach (int wait in UntilHeld()) yield return wait;
@@ -342,7 +351,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // ---- Test 3: a live survivor on a falling block, while the world plays back ----
             // The push cue shoves the block the stage sits on (the one nearest the stage spot). Ride that one.
             int chosen = -1; float bestDrop = 0;
-            int stageBlock = Enumerable.Range(0, stage.blocks.Length).Where(i => stage.blocks[i] && stage.blocks[i].gameObject.activeSelf)
+            int stageBlock = set.cues.First(c => c.action == "push").blocks.Count > 0 ? set.cues.First(c => c.action == "push").blocks[0] : Enumerable.Range(0, stage.blocks.Length).Where(i => stage.blocks[i] && stage.blocks[i].gameObject.activeSelf)
                 .OrderBy(i => (stage.blocks[i].position - stage.ToWorld(new Vector3(0, -.3f, 0))).sqrMagnitude).First();
             StudioCamera.Resize(640, 360);
             var samples = new List<Snapshot>();
