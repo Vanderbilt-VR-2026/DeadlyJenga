@@ -31,7 +31,14 @@ namespace DeadlyJenga.CandyPlayers
                 int index = 14 + side * 15 + finger * 3 + joint;
                 Vector3 start = hand.position + hand.rotation * (skeleton.Joint(finger * 4 + joint) * scale);
                 Vector3 end = hand.position + hand.rotation * (skeleton.Joint(finger * 4 + joint + 1) * scale);
-                Segment(index, start, end, hand.rotation * Vector3.up);
+                // Each bone only bends from its rest pose and keeps its parent's roll (see FingerRotation). Taking roll from
+                // the palm direction flips it half a turn once a finger curls past 90 degrees, which pinches the skin flat.
+                Vector3 delta = end - start;
+                bones[index].SetPositionAndRotation(start, delta.sqrMagnitude > .0000001f
+                    ? hand.rotation * DeadlyJenga.CandyPhysicsHands.CandyPhysicalHand.FingerRotation(skeleton, side == 0, finger, joint)
+                    : transform.rotation);
+                float rigScale = Mathf.Max(.001f, transform.lossyScale.y);
+                bones[index].localScale = new Vector3(1, Mathf.Max(.001f, delta.magnitude) / (Mathf.Max(.001f, lengths[index]) * rigScale), 1);
                 // Degenerate tracked joints use the body orientation, which can change independently.
                 if ((end - start).sqrMagnitude <= .0000001f) fingerPoseReady[side] = false;
             }

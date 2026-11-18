@@ -84,7 +84,10 @@ namespace DeadlyJenga.CandyPlayers
                 result.skeleton=CandyHandSkeleton.ControllerGrip(isLeft,Analog("grip"),Analog("trigger"));
                 return result;
             }
-            if(HybridXRInput.ControllerOwner(isLeft)!=null)
+            // The controller was just put down. Its side keeps the controller layout for a moment (see ControllerOwner),
+            // but if the bare hand is already tracked, show that hand now instead of a hand frozen where the controller was.
+            bool handing=HybridXRInput.ControllerOwner(isLeft)!=null;
+            if(handing&&!(poseSource==null&&subsystem!=null&&subsystem.running&&(isLeft?subsystem.leftHand:subsystem.rightHand).isTracked))
                 return previous.tracked&&!previous.skeletonTracked ? previous : result;
             if(poseSource!=null)
                 return poseSource.TryGetPose(out var pose) ? pose : default;
@@ -110,6 +113,7 @@ namespace DeadlyJenga.CandyPlayers
                             for(int i=0;i<20;i++)result.skeleton.SetJoint(i,Quaternion.Inverse(basis)*result.skeleton.Joint(i));
                             result.rotation=wrist.rotation*basis;
                         }
+                        HybridXRInput.NoteHandTracked(isLeft);
                         return result;
                     }
                     // An incomplete skeleton must not become a stale active physics target.
