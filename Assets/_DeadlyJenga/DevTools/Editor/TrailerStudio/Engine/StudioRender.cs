@@ -163,6 +163,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // ---- The render itself ----
 
+        const int WarmUpFrames = 12;
+
         static IEnumerator<int> Routine(StudioStage stage, List<StudioCameraTrack> shots, StudioRenderSettings settings, string root)
         {
             var set = stage.set;
@@ -189,15 +191,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     var done = new Finished { camera = shot.name, cameraId = shot.id, folder = folder, fps = settings.fps, width = width, height = height };
                     if (times.Count > 0)
                     {
-                        // Two throw-away pictures of the first frame: a camera's very first render can differ
-                        // slightly (shadows and effects settling), and the shot's first frame must not.
-                        StudioRun.ShowExact(times[0].tape * set.fps);
+                        // Throw-away pictures of the first frame. Whatever was on screen before the render
+                        // (a different tape time, moving cloth and hair, effects) needs a few frames to settle,
+                        // and the shot's first saved frames must not depend on it.
+                        if (settings.freezeAmbient) Time.timeScale = 0;
                         var first = StudioCameras.Evaluate(shot, set, stage.tape, stage.anchor, times[0].tape, times[0].camera);
-                        StudioCameras.Apply(camera, first);
-                        ApplyLook(profile, shot, first);
                         camera.targetTexture = target;
-                        camera.Render(); yield return 0;
-                        camera.Render(); yield return 0;
+                        for (int warm = 0; warm < WarmUpFrames && !cancel; warm++)
+                        {
+                            StudioRun.ShowExact(times[0].tape * set.fps);
+                            StudioCameras.Apply(camera, first);
+                            ApplyLook(profile, shot, first);
+                            camera.Render();
+                            yield return 0;
+                        }
                     }
                     for (int n = 0; n < frames && !cancel; n++)
                     {

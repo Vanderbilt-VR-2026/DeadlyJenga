@@ -153,6 +153,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Take("12-shortcuts");
             window.ClosePalette();
 
+            // Sound needs exactly one set of ears on the stage.
+            var ears = UnityEngine.Object.FindObjectsByType<AudioListener>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            Result("One audio listener on the stage", ears.Count(e => e.isActiveAndEnabled) == 1,
+                string.Join("; ", ears.Select(e => $"{e.name}: enabled {e.enabled}, active {e.gameObject.activeInHierarchy}")));
+
             // Undo really undoes a Set edit.
             int marksBefore = set.marks.Count;
             context.Edit("Add survivor", () => set.AddMark(StudioRole.Survivor, new Vector3(2, 0, 2)), true);

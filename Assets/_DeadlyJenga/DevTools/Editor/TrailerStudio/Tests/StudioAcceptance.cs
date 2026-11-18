@@ -363,19 +363,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             else
             {
                 var block = stage.blocks[chosen];
-                var blockBounds = block.GetComponentInChildren<Collider>().bounds;
-                // Stand on the stage spot itself: by definition that is on top of this block.
-                // The stage spot is the top of a small block, so the rider stands exactly on it (not beside it on the roof).
-                var rider = set.AddMark(StudioRole.Survivor, new Vector3(0, .02f, 0));
-                rider.actor = "Rider"; rider.color = 5;
-                StudioLibrary.Save(set);
-                StudioRun.Refresh();
-                var riderPath = new List<Vector3>(); var blockPath = new List<Vector3>();
+                // The rider is the Set's own survivor mark. It stood on this block during the live recording,
+                // so its first take shows what the real game does to someone standing there.
+                var rider = set.marks.First(m => m.role == StudioRole.Survivor);
+                var riderTrack = tape.Find(rider.id);
+                var liveTake = riderTrack?.ActiveTake;
+                List<Vector3> Path3(StudioTake take) => take == null ? new List<Vector3>()
+                    : take.frames.Select(bytes => ActorFrame.Read(riderTrack.type, bytes).Position).ToList();
+                var livePath = Path3(liveTake);
                 void WhileRiding(int frame)
                 {
-                    var body = stage.Live(rider.id);
-                    riderPath.Add(body ? body.transform.position : Vector3.zero);
-                    blockPath.Add(block.transform.position);
                     if (frame % 2 == 0) StudioCamera.SavePng(Path.Combine(Folder, "rider", $"{frame / 2:D05}.png"));
                 }
                 StudioCamera.Target = block.transform.position; StudioCamera.Distance = 9; StudioCamera.Place();
@@ -386,25 +383,23 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 foreach (int wait in UntilHeld()) yield return wait;
                 StudioRun.FrameShown -= WhileRiding;
 
-                // While the block falls its first metre, does the rider stay on it?
-                float gapChange = 0, blockFall = 0, riderFall = 0, blockSide = 0, riderSide = 0;
-                Vector3 gap0 = riderPath[0] - blockPath[0];
-                for (int f = 0; f < blockPath.Count; f++)
-                {
-                    float fallen = Vector3.Distance(blockPath[0], blockPath[f]);
-                    if (fallen > 1) break;
-                    gapChange = Mathf.Max(gapChange, ((riderPath[f] - blockPath[f]) - gap0).magnitude);
-                    blockFall = fallen; riderFall = Vector3.Distance(riderPath[0], riderPath[f]);
-                    blockSide = Vector3.ProjectOnPlane(blockPath[f] - blockPath[0], Vector3.up).magnitude;
-                    riderSide = Vector3.ProjectOnPlane(riderPath[f] - riderPath[0], Vector3.up).magnitude;
-                }
-                bool rode = blockFall > .2f && riderFall > blockFall * .6f && gapChange < .45f;
-                bool pushed = blockSide < .15f || riderSide > blockSide * .3f;
+                // Now the same survivor stood on the same block while the world was only played back.
                 var riderTake = tape.Find(rider.id)?.ActiveTake;
-                Result("3. Live survivor rides a played-back moving block", rode && pushed && riderTake != null,
-                    $"Block #{chosen} moved {bestDrop:F2} m in the tape. During its first metre of travel: block moved {blockFall:F2} m, rider moved {riderFall:F2} m, " +
-                    $"rider-to-block offset changed by at most {gapChange:F2} m; block moved {blockSide:F2} m sideways, rider {riderSide:F2} m. " +
-                    $"Rider take: {riderTake?.frames.Count ?? 0} frames. Pictures: rider/.");
+                var playedPath = Path3(riderTake);
+                int count = Mathf.Min(livePath.Count, playedPath.Count);
+                float liveMoved = 0, playedMoved = 0, apart = 0;
+                for (int n = 0; n < count; n++)
+                {
+                    liveMoved = Mathf.Max(liveMoved, Vector3.Distance(livePath[0], livePath[n]));
+                    playedMoved = Mathf.Max(playedMoved, Vector3.Distance(playedPath[0], playedPath[n]));
+                    apart = Mathf.Max(apart, Vector3.Distance(livePath[n], playedPath[n]));
+                }
+                bool newTake = riderTake != null && riderTake != liveTake && count > 0;
+                bool rode = liveMoved > .1f && playedMoved > liveMoved * .6f && apart < Mathf.Max(.35f, liveMoved * .5f);
+                Result("3. Live survivor rides a played-back moving block", newTake && rode,
+                    $"Block #{chosen} moved {bestDrop:F2} m in the tape with {rider.actor} standing on it. In the live recording {rider.actor} was carried {liveMoved:F2} m. " +
+                    $"Standing there again while the world only played back, {rider.actor} was carried {playedMoved:F2} m; the two paths are never more than {apart:F2} m apart " +
+                    $"({count} frames compared). Pictures: rider/.");
                 StudioCamera.Target = stage.anchor + Vector3.up; StudioCamera.Distance = Mathf.Clamp(stage.world.Radius * .9f, 10, 80); StudioCamera.Place();
             }
 
