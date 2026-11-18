@@ -149,12 +149,55 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (Stage == null) return;
             try
             {
+                EndLiveSound(false);
                 DisposeRecorders();
                 if (liveWorld) DemoDisasters.StopAll(Stage.session);
                 StudioDirector.End();
                 StudioCast.ClearLive(Stage);
             }
             catch (Exception error) { Debug.LogException(error); }
+        }
+
+        // ---- Sound recorded with the live world ----
+
+        static TheatreAudioCapture liveSound;
+        static int liveSoundFrames;
+        public static bool LastRecordingHasSound { get; private set; }
+
+        static void StartLiveSound(StudioStage stage)
+        {
+            EndLiveSound(false);
+            try
+            {
+                liveSound = StudioRender.OpenAudioFile(stage.set.id);
+                liveSoundFrames = 0;
+                StudioCamera.EarsAt = stage.anchor + Vector3.up * 1.6f;   // heard from head height on the stage spot
+                FrameShown += LiveSoundFrame;
+            }
+            catch (Exception error)
+            {
+                liveSound = null;
+                Debug.LogWarning("[TrailerStudio] The sound could not be recorded with this take: " + error.Message);
+            }
+        }
+
+        static void LiveSoundFrame(int frame)
+        {
+            if (liveSound == null) return;
+            try { liveSound.CaptureFrame(); liveSoundFrames++; }
+            catch (Exception error) { Debug.LogWarning("[TrailerStudio] Sound recording stopped: " + error.Message); EndLiveSound(false); }
+        }
+
+        static void EndLiveSound(bool keep)
+        {
+            if (liveSound == null) return;
+            FrameShown -= LiveSoundFrame;
+            StudioCamera.EarsAt = null;
+            var capture = liveSound; liveSound = null;
+            try { if (keep && Stage != null) capture.Complete(liveSoundFrames, Stage.Fps); }
+            catch (Exception error) { Debug.LogException(error); keep = false; }
+            finally { capture.Dispose(); }
+            LastRecordingHasSound = keep && liveSoundFrames > 0;
         }
 
         // ---- Holding still ----
@@ -391,6 +434,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     StudioBranch.StartFromTape(stage, oldWorld, pass.branchFrom);
                     UnityEngine.Random.InitState(pass.seed >= 0 ? pass.seed : set.seed);
                 }
+                // Sound. Blocks only make impact sounds while real physics runs (the game plays them straight
+                // from collisions), so the mix is recorded here, together with the world. Only on a whole
+                // fixed-clock recording with nobody performing: the capture takes the sound away from the speakers.
+                if (pass.liveWorld && clock && performer == null && !branch && startFrame == 0) StartLiveSound(stage);
                 Begin(startFrame, to, clock, pass.speed, null);
                 recordFrom = pass.from; capturedTo = pass.from - 1;
                 Recording = true;
@@ -398,6 +445,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Notify();
                 Debug.Log($"[TrailerStudio] {pass.label}: rolling from frame {startFrame} to {to}, {recorders.Count} recorders, fixed clock {clock}");
                 foreach (int wait in WaitForRun()) yield return wait;
+                EndLiveSound(true);
 
                 // Keep every take, even a bad one. The newest becomes the active take.
                 Recording = false;

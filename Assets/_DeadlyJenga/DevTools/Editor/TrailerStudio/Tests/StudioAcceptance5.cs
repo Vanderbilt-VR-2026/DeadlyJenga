@@ -141,19 +141,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 "NOT covered here: reading a real VR controller and the in-headset viewfinder, and flying with mouse and keyboard; both need a person.");
 
             // ---- Test 4: the cut exports as FCPXML and EDL ----
-            string audioFile = "";
-            // What the game's sound engine did while the tape's sound was recorded (for the report).
+            // The tape's sound was recorded together with the live world (the whole-set recording in the setup),
+            // because block impacts only sound while real physics runs.
+            string audioFile = StudioRender.AudioFile(set.id);
             var soundEngine = DeadlyJenga.CandyAudio.CandyAudioEngine.Instance;
-            int playedBefore = soundEngine ? soundEngine.Played : 0, culledBefore = soundEngine ? soundEngine.Culled : 0;
-            var soundTake = tape.tracks.FirstOrDefault(x => x.type == "audio-events")?.ActiveTake;
-            int hitsOnTape = soundTake == null ? 0 : soundTake.frames.Where(f => f != null && f.Length > 0)
-                .Sum(f => System.Text.RegularExpressions.Regex.Matches(System.Text.Encoding.UTF8.GetString(f), "\"kind\":0").Count);
-            StudioRender.RecordAudio(file => audioFile = file);
-            foreach (int wait in UntilHeld()) yield return wait;
-            string soundNote = !soundEngine ? "The game's sound engine was not in the scene."
-                : $"Sound engine: {hitsOnTape} block hits on the tape; {soundEngine.Played - playedBefore} sounds started and {soundEngine.Culled - culledBefore} skipped while recording; " +
-                  $"it listens from \"{(soundEngine.Listener ? soundEngine.Listener.name : "nothing")}\"" +
-                  (soundEngine.Listener ? $" {Vector3.Distance(soundEngine.Listener.position, stage.anchor):0.0} m from the stage spot" : "") + $"; application focused: {Application.isFocused}.";
+            string soundNote = "This sound was recorded during the live whole-set recording, not during a playback. " +
+                (!soundEngine ? "The game's sound engine was not in the scene." : $"Application focused: {Application.isFocused}.");
             yield return 0;
             set.cuts.Clear();
             set.cuts.Add(new StudioCut { camera = set.cameras[0].id, from = 0, to = 1.5f });

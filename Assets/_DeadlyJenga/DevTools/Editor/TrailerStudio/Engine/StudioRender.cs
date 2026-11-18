@@ -331,6 +331,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // ---- Sound for the tape ----
 
+        // Start a fresh sound file (and stems) for a Set. Whoever calls this feeds it a frame at a time.
+        internal static TheatreAudioCapture OpenAudioFile(string setId)
+        {
+            string file = AudioFile(setId);
+            Directory.CreateDirectory(Path.GetDirectoryName(file));
+            if (File.Exists(file)) File.Delete(file);
+            string stems = Path.Combine(Path.GetDirectoryName(file), "stems");
+            if (Directory.Exists(stems)) Directory.Delete(stems, true);
+            return new TheatreAudioCapture(file);
+        }
+
+        // A whole-set recording already records its sound, with real block impacts. This is the fallback
+        // for a tape that has none: it can only hear music, disasters and recorded sound events, because
+        // played-back blocks do not really collide.
         // Plays the whole tape once at the fixed clock and records the game mix and its stems.
         // Sounds come from the tape's sound events and the disasters' own audio, heard from head height at the stage spot.
         public static void RecordAudio(Action<string> finished = null)
@@ -338,11 +352,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (StudioRun.State != StudioState.Held) throw new InvalidOperationException("Open the stage, and wait for any run to finish.");
             var stage = StudioRun.Stage;
             string file = AudioFile(stage.set.id);
-            Directory.CreateDirectory(Path.GetDirectoryName(file));
-            if (File.Exists(file)) File.Delete(file);
-            string stems = Path.Combine(Path.GetDirectoryName(file), "stems");
-            if (Directory.Exists(stems)) Directory.Delete(stems, true);
-            var capture = new TheatreAudioCapture(file);
+            var capture = OpenAudioFile(stage.set.id);
             StudioCamera.EarsAt = stage.anchor + Vector3.up * 1.6f;
             int frames = 0;
             void Each(int frame) { capture.CaptureFrame(); frames++; }
