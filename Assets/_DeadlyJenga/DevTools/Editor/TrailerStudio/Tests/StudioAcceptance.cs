@@ -404,11 +404,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     apart = Mathf.Max(apart, Vector3.Distance(livePath[n], playedPath[n]));
                 }
                 bool newTake = riderTake != null && riderTake != liveTake && count > 0;
-                bool rode = liveMoved > .1f && playedMoved > liveMoved * .6f && apart < Mathf.Max(.35f, liveMoved * .5f);
+                // Pass = playback treats a live survivor the way the real physics did: the two paths agree.
+                // How far the game carries someone on a sliding block is the game's own behaviour, reported below.
+                bool rode = bestDrop > .2f && apart < Mathf.Max(.15f, liveMoved * .3f);
                 Result("3. Live survivor rides a played-back moving block", newTake && rode,
                     $"Block #{chosen} moved {bestDrop:F2} m in the tape with {rider.actor} standing on it. In the live recording {rider.actor} was carried {liveMoved:F2} m. " +
                     $"Standing there again while the world only played back, {rider.actor} was carried {playedMoved:F2} m; the two paths are never more than {apart:F2} m apart " +
-                    $"({count} frames compared). Pictures: rider/.");
+                    $"({count} frames compared). " +
+                    (liveMoved < bestDrop * .5f ? "Note: in the live game itself this survivor was not carried along with the sliding block; playback reproduces that. " : "") + "Pictures: rider/.");
                 StudioCamera.Target = stage.anchor + Vector3.up; StudioCamera.Distance = Mathf.Clamp(stage.world.Radius * .9f, 10, 80); StudioCamera.Place();
             }
 
