@@ -389,7 +389,8 @@ namespace DeadlyJenga.CandyPhysicsHands
                 {
                     int i=1+f*3+j;float toTip=0;
                     for(int k=j;k<3;k++)toTip+=segmentLengths[f*3+k]*builtSize;
-                    bool held=!digitFree[f]&&foldedShut[i];
+                    // Touching or not: a free finger flung shut by a sudden stop must be caught just the same.
+                    bool held=foldedShut[i];
                     float most=held?settings.fingerTorque*3*Strength:digitFree[f]?settings.fingerTorque*Strength:Mathf.Min(press*toTip,settings.fingerTorque*2*Strength);
                     driveTorques[i]=Mathf.Min(driveTorques[i],most);
                     tipReach[i]=Mathf.Max(.01f,toTip);
@@ -440,7 +441,7 @@ namespace DeadlyJenga.CandyPhysicsHands
                     float wanted=Mathf.DeltaAngle(before,total);before=total;
                     Vector3 from=j==0?palmTurn*Vector3.forward:bodies[parent].rotation*Vector3.up;
                     float actual=Vector3.SignedAngle(from,bodies[i].rotation*Vector3.up,hinge);
-                    foldedShut[i]=actual>wanted+3;
+                    foldedShut[i]=actual>wanted+8;
                 }
             }
         }
