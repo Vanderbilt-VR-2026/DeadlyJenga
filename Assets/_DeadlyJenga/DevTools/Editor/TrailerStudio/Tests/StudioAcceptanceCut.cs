@@ -30,6 +30,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             BadgeTests();
             CueIdTests();
             OldRecipeTests();
+            ExportFormatTests();
             yield return 0;
 
             // Two loose blocks near the stage spot, pushed in different directions.
@@ -228,5 +229,257 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 applied && untouched && refused.Contains("no longer fit"), $"Matching count: \"{fits}\". One cue more: \"{refused}\" and nothing changed: {untouched}.");
         }
 
+        // ---- The export, checked against the formats without an editor ----
+
+        // A render folder made by hand (shot records, empty movie files, real WAV headers), so every
+        // dissolve case can be written and checked in a second.
+        static void ExportFormatTests()
+        {
+            string root = Path.Combine(Folder, "export");
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+            var set = new StudioSet { title = "Format check", fps = 30, length = 6 };
+            string[] names = { "Wide", "Close", "Top" };
+            foreach (string name in names)
+            {
+                var camera = new StudioCameraTrack { name = name };
+                set.cameras.Add(camera);
+                string folder = Path.Combine(root, StudioRender.ShotFolder(camera));
+                Directory.CreateDirectory(folder);
+                File.WriteAllText(Path.Combine(folder, "shot.json"), JsonUtility.ToJson(new StudioRender.ShotRecord { name = name, id = camera.id, format = "mp4", frames = 90, fps = 30, width = 1920, height = 1080 }));
+                File.WriteAllBytes(Path.Combine(folder, name + ".mp4"), new byte[0]);
+            }
+            string sound = Path.Combine(root, "tape.wav"), music = Path.Combine(root, "music.wav");
+            WriteSilence(sound, 48000, 2, 48000 * 6 + 7);   // 6 s and 7 samples: a length that is not whole frames
+            WriteSilence(music, 44100, 2, 44100 * 2);        // shorter than the cut
+            set.music = music;
+            // Wide 0-2 s; Close from 1 s with a 0.5 s dissolve (enough frames both sides); Top from 0 s with a dissolve (no frames before its in point).
+            set.cuts.Add(new StudioCut { camera = set.cameras[0].id, from = 0, to = 2 });
+            set.cuts.Add(new StudioCut { camera = set.cameras[1].id, from = 1, to = 2, dissolve = .5f });
+            set.cuts.Add(new StudioCut { camera = set.cameras[2].id, from = 0, to = 1.5f, dissolve = .4f });
+            List<string> problems = null, edlProblems = null;
+            string xmlFile = "", edlFile = "", error = "";
+            try
+            {
+                xmlFile = StudioExport.WriteFcpxml(set, root, sound, out problems);
+                edlFile = StudioExport.WriteEdl(set, root, out edlProblems);
+            }
+            catch (Exception e) { error = e.Message; }
+            var xmlFaults = error == "" ? CheckFcpxml(xmlFile) : new List<string> { error };
+            var edlFaults = error == "" ? CheckEdl(edlFile, out _) : new List<string> { error };
+            string[] edl = error == "" ? File.ReadAllLines(edlFile) : new string[0];
+            // The expected dissolve pair, worked out by hand: Wide ends 7 frames early (0:00:01:23), the zero-length
+            // cut line sits there, and Close comes in 7 frames before its in point (0:00:00:23) with D 015.
+            string cutLine = "002  AX       V     C        00:00:01:23 00:00:01:23 00:00:01:23 00:00:01:23";
+            string dissolveLine = "002  AX       V     D    015 00:00:00:23 00:00:02:00 00:00:01:23 00:00:03:00";
+            bool pair = edl.Contains(cutLine) && edl.Contains(dissolveLine);
+            bool shortened = problems != null && problems.Any(p => p.Contains("\"Top\"") && p.Contains("straight cut"));
+            string xml = error == "" ? File.ReadAllText(xmlFile) : "";
+            bool audio = xml.Contains("duration=\"288007/48000s\"") && xml.Contains("audioRate=\"48000\"") && xml.Contains("duration=\"2s\" audioRate=\"44100\"") && xml.Contains("name=\"FFVideoFormat1080p30\"");
+            bool musicClamped = xml.Contains("name=\"Music\" offset=\"0s\" start=\"0s\" duration=\"2s\"");
+            Result("Cut 5. FCPXML and EDL written from a hand-made render folder pass the format checks (two-line dissolve, audio lengths, a dissolve with no spare frames becomes a cut)",
+                error == "" && xmlFaults.Count == 0 && edlFaults.Count == 0 && pair && shortened && audio && musicClamped,
+                (error != "" ? "Export failed: " + error + ". " : "") +
+                $"FCPXML structure check against the FCPXML DTD rules: {(xmlFaults.Count == 0 ? "no faults" : string.Join("; ", xmlFaults))}. EDL check: {(edlFaults.Count == 0 ? "no faults" : string.Join("; ", edlFaults))}. " +
+                $"Dissolve pair as expected: {pair}. Audio assets carry their WAV length and rate, video format named FFVideoFormat1080p30: {audio}; music clip clamped to its 2 s file: {musicClamped}. " +
+                $"Exporter notes: {string.Join(" / ", (problems ?? new List<string>()).Concat(edlProblems ?? new List<string>()).Distinct())}. Files: export/.");
+        }
+
+        static void WriteSilence(string file, int rate, int channels, int samples)
+        {
+            using (var w = new BinaryWriter(File.Create(file)))
+            {
+                int data = samples * channels * 2;
+                w.Write(Encoding.ASCII.GetBytes("RIFF")); w.Write(36 + data); w.Write(Encoding.ASCII.GetBytes("WAVE"));
+                w.Write(Encoding.ASCII.GetBytes("fmt ")); w.Write(16); w.Write((short)1); w.Write((short)channels); w.Write(rate);
+                w.Write(rate * channels * 2); w.Write((short)(channels * 2)); w.Write((short)16);
+                w.Write(Encoding.ASCII.GetBytes("data")); w.Write(data); w.Write(new byte[data]);
+            }
+        }
+
+        // FCPXML: the element and attribute rules of Apple's FCPXML DTD for every element the Studio writes
+        // (allowed children and their order, required and allowed attributes, ids and references, time values),
+        // and the timing rules an editor applies on import (clips back to back, transitions inside media handles).
+        static readonly Dictionary<string, string[]> FcpAttributes = new Dictionary<string, string[]>
+        {
+            ["fcpxml"] = new[] { "version" },
+            ["resources"] = new string[0], ["library"] = new[] { "location", "colorProcessing" },
+            ["event"] = new[] { "name", "uid" }, ["project"] = new[] { "name", "uid", "id", "modDate" },
+            ["format"] = new[] { "id", "name", "frameDuration", "fieldOrder", "width", "height", "paspH", "paspV", "colorSpace", "projection", "stereoscopic" },
+            ["asset"] = new[] { "id", "name", "uid", "start", "duration", "hasVideo", "format", "hasAudio", "videoSources", "audioSources", "audioChannels", "audioRate",
+                "customLUTOverride", "colorSpaceOverride", "projectionOverride", "stereoscopicOverride", "auxVideoFlags" },
+            ["media-rep"] = new[] { "kind", "sig", "src", "suggestedFilename" },
+            ["sequence"] = new[] { "format", "duration", "tcStart", "tcFormat", "audioLayout", "audioRate", "renderFormat", "keywords" },
+            ["spine"] = new[] { "lane", "offset", "name", "format" },
+            ["asset-clip"] = new[] { "ref", "lane", "offset", "name", "start", "duration", "enabled", "srcEnable", "audioStart", "audioDuration", "format", "tcStart", "tcFormat", "modDate", "audioRole", "videoRole" },
+            ["transition"] = new[] { "name", "offset", "duration" },
+        };
+        static readonly Dictionary<string, string[]> FcpRequired = new Dictionary<string, string[]>
+        {
+            ["fcpxml"] = new[] { "version" }, ["format"] = new[] { "id" }, ["asset"] = new[] { "id" }, ["media-rep"] = new[] { "src" },
+            ["sequence"] = new[] { "format" }, ["asset-clip"] = new[] { "ref" }, ["transition"] = new[] { "duration" },
+        };
+        // Children allowed in each element, in the order the DTD puts them (only elements the Studio writes).
+        static readonly Dictionary<string, string[]> FcpChildren = new Dictionary<string, string[]>
+        {
+            ["fcpxml"] = new[] { "resources", "library" }, ["resources"] = new[] { "asset|effect|format|media|locator" },
+            ["library"] = new[] { "event|smart-collection" }, ["event"] = new[] { "project|asset-clip|clip" }, ["project"] = new[] { "sequence" },
+            ["asset"] = new[] { "media-rep", "metadata" }, ["media-rep"] = new string[0], ["format"] = new string[0],
+            ["sequence"] = new[] { "note", "spine", "metadata" }, ["spine"] = new[] { "asset-clip|clip|gap|transition|audio|video" },
+            ["asset-clip"] = new[] { "note", "asset-clip|audio|video|clip|spine", "marker", "filter-video", "filter-audio", "metadata" },
+            ["transition"] = new[] { "filter-video", "filter-audio", "marker", "metadata" },
+        };
+
+        static readonly Regex FcpTime = new Regex(@"^(0|\d+|\d+/\d+)s$");
+
+        static long Frames(string time, int fps)
+        {
+            var m = Regex.Match(time ?? "", @"^(\d+)(?:/(\d+))?s$");
+            if (!m.Success) return long.MinValue;
+            long top = long.Parse(m.Groups[1].Value); long bottom = m.Groups[2].Success ? long.Parse(m.Groups[2].Value) : 1;
+            return top * fps % bottom == 0 ? top * fps / bottom : long.MinValue;   // not a whole frame
+        }
+
+        public static List<string> CheckFcpxml(string file)
+        {
+            var faults = new List<string>();
+            var document = new XmlDocument { XmlResolver = null };
+            using (var reader = XmlReader.Create(file, new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore }))
+                document.Load(reader);
+            if (!File.ReadAllText(file).Contains("<!DOCTYPE fcpxml>")) faults.Add("no <!DOCTYPE fcpxml>");
+            var root = document.DocumentElement;
+            if (root?.Name != "fcpxml" || root.GetAttribute("version") != "1.9") faults.Add("root must be <fcpxml version=\"1.9\">");
+            var ids = new Dictionary<string, XmlElement>();
+            foreach (XmlElement e in document.SelectNodes("//*"))
+            {
+                if (!FcpAttributes.TryGetValue(e.Name, out var allowed)) { faults.Add($"<{e.Name}> is not an element the check knows"); continue; }
+                foreach (XmlAttribute a in e.Attributes)
+                {
+                    if (!allowed.Contains(a.Name)) faults.Add($"<{e.Name}> has attribute {a.Name}, which the DTD does not allow");
+                    if ((a.Name == "offset" || a.Name == "start" || a.Name == "duration" || a.Name == "frameDuration" || a.Name == "tcStart") && !FcpTime.IsMatch(a.Value))
+                        faults.Add($"<{e.Name} {a.Name}=\"{a.Value}\"> is not an FCPXML time");
+                }
+                if (FcpRequired.TryGetValue(e.Name, out var required))
+                    foreach (string r in required) if (!e.HasAttribute(r)) faults.Add($"<{e.Name}> is missing required attribute {r}");
+                if (e.HasAttribute("id") && (e.Name == "format" || e.Name == "asset"))
+                {
+                    if (ids.ContainsKey(e.GetAttribute("id"))) faults.Add("duplicate id " + e.GetAttribute("id"));
+                    ids[e.GetAttribute("id")] = e;
+                }
+                if (e.Name == "media-rep" && e.HasAttribute("kind") && e.GetAttribute("kind") != "original-media" && e.GetAttribute("kind") != "proxy-media") faults.Add("media-rep kind " + e.GetAttribute("kind"));
+                if (e.Name == "sequence" && e.HasAttribute("audioRate") && !new[] { "32k", "44.1k", "48k", "88.2k", "96k", "176.4k", "192k" }.Contains(e.GetAttribute("audioRate"))) faults.Add("sequence audioRate " + e.GetAttribute("audioRate"));
+                if ((e.Name == "sequence" || e.Name == "asset-clip") && e.HasAttribute("tcFormat") && e.GetAttribute("tcFormat") != "DF" && e.GetAttribute("tcFormat") != "NDF") faults.Add("tcFormat " + e.GetAttribute("tcFormat"));
+                if (e.Name == "asset-clip" && e.ParentNode.Name == "asset-clip" && (e.GetAttribute("lane") == "" || e.GetAttribute("lane") == "0")) faults.Add("an anchored asset-clip needs a lane other than 0");
+                // Children: allowed, and in the DTD's order.
+                if (FcpChildren.TryGetValue(e.Name, out var order))
+                {
+                    int at = 0;
+                    foreach (XmlNode child in e.ChildNodes)
+                    {
+                        if (!(child is XmlElement c)) continue;
+                        int slot = Array.FindIndex(order, o => o.Split('|').Contains(c.Name));
+                        if (slot < 0) faults.Add($"<{c.Name}> may not be inside <{e.Name}>");
+                        else if (slot < at) faults.Add($"<{c.Name}> comes too late inside <{e.Name}>");
+                        else at = slot;
+                    }
+                }
+                if (e.Name == "asset" && e.SelectNodes("media-rep").Count == 0) faults.Add("an asset needs at least one media-rep");
+                if (e.Name == "project" && e.SelectNodes("sequence").Count != 1) faults.Add("a project holds exactly one sequence");
+            }
+            foreach (XmlElement e in document.SelectNodes("//*[@ref or @format]"))
+                foreach (string name in new[] { "ref", "format" })
+                    if (e.HasAttribute(name) && !ids.ContainsKey(e.GetAttribute(name))) faults.Add($"<{e.Name} {name}=\"{e.GetAttribute(name)}\"> points at nothing");
+            if (faults.Count > 0) return faults;
+
+            // Timing, as an editor reads it.
+            var format = (XmlElement)document.SelectSingleNode("//resources/format");
+            int fps = (int)Math.Round(1.0 / ParseSeconds(format.GetAttribute("frameDuration")));
+            var sequence = (XmlElement)document.SelectSingleNode("//sequence");
+            long expectedOffset = 0;
+            XmlElement previous = null, pendingTransition = null;
+            foreach (XmlElement item in sequence.SelectSingleNode("spine").ChildNodes.OfType<XmlElement>())
+            {
+                if (item.Name == "transition")
+                {
+                    if (previous == null) faults.Add("a transition before the first clip");
+                    pendingTransition = item; continue;
+                }
+                long offset = Frames(item.GetAttribute("offset"), fps), start = Frames(item.GetAttribute("start"), fps), duration = Frames(item.GetAttribute("duration"), fps);
+                if (offset != expectedOffset) faults.Add($"clip \"{item.GetAttribute("name")}\" starts at frame {offset}, expected {expectedOffset} (clips on the storyline are back to back)");
+                var asset = ids[item.GetAttribute("ref")];
+                long assetLength = Frames(asset.GetAttribute("duration"), fps);
+                if (start < 0 || duration <= 0 || assetLength >= 0 && start + duration > assetLength) faults.Add($"clip \"{item.GetAttribute("name")}\" uses frames {start} to {start + duration} of a {assetLength}-frame asset");
+                if (pendingTransition != null)
+                {
+                    long tOffset = Frames(pendingTransition.GetAttribute("offset"), fps), tLength = Frames(pendingTransition.GetAttribute("duration"), fps);
+                    long head = offset - tOffset, tail = tLength - head;
+                    long prevStart = Frames(previous.GetAttribute("start"), fps), prevLength = Frames(previous.GetAttribute("duration"), fps);
+                    long prevAsset = Frames(ids[previous.GetAttribute("ref")].GetAttribute("duration"), fps);
+                    if (head < 0 || tail < 0) faults.Add("a transition that does not straddle the edit point");
+                    if (start - head < 0) faults.Add($"the dissolve into \"{item.GetAttribute("name")}\" needs {head} frames before its in point; there are {start}");
+                    if (prevStart + prevLength + tail > prevAsset) faults.Add($"the dissolve out of \"{previous.GetAttribute("name")}\" needs {tail} frames after its out point");
+                    pendingTransition = null;
+                }
+                // Connected sound: inside its own asset.
+                foreach (XmlElement child in item.SelectNodes("asset-clip"))
+                {
+                    var audioAsset = ids[child.GetAttribute("ref")];
+                    double end = ParseSeconds(child.GetAttribute("start")) + ParseSeconds(child.GetAttribute("duration"));
+                    if (audioAsset.HasAttribute("duration") && end > ParseSeconds(audioAsset.GetAttribute("duration")) + 1e-6)
+                        faults.Add($"\"{child.GetAttribute("name")}\" under \"{item.GetAttribute("name")}\" runs past the end of its file");
+                    if (!audioAsset.HasAttribute("duration")) faults.Add($"audio asset \"{audioAsset.GetAttribute("name")}\" has no duration");
+                    if (Frames(child.GetAttribute("offset"), fps) < start) faults.Add($"\"{child.GetAttribute("name")}\" is anchored before its parent's start");
+                }
+                expectedOffset = offset + duration;
+                previous = item;
+            }
+            if (Frames(sequence.GetAttribute("duration"), fps) != expectedOffset) faults.Add($"the sequence is {sequence.GetAttribute("duration")} but its clips add up to {expectedOffset} frames");
+            return faults;
+        }
+
+        static double ParseSeconds(string time)
+        {
+            var m = Regex.Match(time ?? "", @"^(\d+)(?:/(\d+))?s$");
+            return m.Success ? double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) / (m.Groups[2].Success ? double.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture) : 1) : double.NaN;
+        }
+
+        // CMX 3600: TITLE and FCM lines, event lines in the standard field order, record times back to back,
+        // source and record lengths equal, and a dissolve written as a zero-length cut line followed by the
+        // D line with the same event number. 'events' = how many event numbers the list has.
+        static readonly Regex EdlLine = new Regex(@"^(\d{3})  (\S{1,8}) +(V|A|A2|AA|AA/V|B) +(C|D|W\d{3}) +(\d{3})? *(\d\d:\d\d:\d\d:\d\d) (\d\d:\d\d:\d\d:\d\d) (\d\d:\d\d:\d\d:\d\d) (\d\d:\d\d:\d\d:\d\d)$");
+
+        public static List<string> CheckEdl(string file, out int events)
+        {
+            var faults = new List<string>();
+            var lines = File.ReadAllLines(file);
+            events = 0;
+            if (lines.Length < 2 || !lines[0].StartsWith("TITLE: ")) faults.Add("the first line must be TITLE:");
+            if (!lines.Any(l => l == "FCM: NON-DROP FRAME" || l == "FCM: DROP FRAME")) faults.Add("no FCM line");
+            int fps = 30;
+            var numbers = new HashSet<string>();
+            long recordAt = -1;
+            string[] last = null;
+            foreach (string line in lines)
+            {
+                if (line.Length == 0 || !char.IsDigit(line[0])) { if (line.Length > 0 && !line.StartsWith("*") && !line.StartsWith("TITLE:") && !line.StartsWith("FCM:")) faults.Add("unknown line: " + line); continue; }
+                var m = EdlLine.Match(line);
+                if (!m.Success) { faults.Add("not a CMX 3600 event line: " + line); continue; }
+                long Tc(int group) { var p = m.Groups[group].Value.Split(':').Select(int.Parse).ToArray(); return ((p[0] * 60L + p[1]) * 60 + p[2]) * fps + p[3]; }
+                long sIn = Tc(6), sOut = Tc(7), rIn = Tc(8), rOut = Tc(9);
+                if (sOut - sIn != rOut - rIn) faults.Add("source and record lengths differ: " + line);
+                if (recordAt >= 0 && rIn != recordAt) faults.Add($"record time jumps from {recordAt} to {rIn}: " + line);
+                string kind = m.Groups[4].Value;
+                if (kind == "D")
+                {
+                    if (!m.Groups[5].Success) faults.Add("a dissolve without its length: " + line);
+                    if (last == null || last[0] != m.Groups[1].Value || last[1] != "C" || last[2] != "0") faults.Add("a D line must follow a zero-length C line with the same event number: " + line);
+                }
+                else if (m.Groups[5].Success) faults.Add("a cut with a length field: " + line);
+                numbers.Add(m.Groups[1].Value);
+                recordAt = rOut;
+                last = new[] { m.Groups[1].Value, kind, (rOut - rIn).ToString() };
+            }
+            events = numbers.Count;
+            return faults;
+        }
     }
 }

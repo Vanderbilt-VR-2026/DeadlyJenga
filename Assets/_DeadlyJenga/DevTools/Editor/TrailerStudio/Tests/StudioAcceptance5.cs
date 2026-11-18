@@ -217,12 +217,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 byte[] wav = File.ReadAllBytes(worldStem);
                 for (int i = 44; i + 1 < wav.Length; i += 2) worldLoudest = Mathf.Max(worldLoudest, Mathf.Abs((short)(wav[i] | (wav[i + 1] << 8))));
             }
-            int edlEvents = File.Exists(edlFile) ? File.ReadAllLines(edlFile).Count(l => l.Length > 3 && char.IsDigit(l[0]) && char.IsDigit(l[2])) : 0;
-            Result("4. The cut exports as FCPXML and EDL with shots and sound in place (opening it in Resolve was NOT done)",
-                exportNote == "" && clips == 3 && missing == 0 && assets >= 4 && soundClips == 3 && transitions == 1 && edlEvents == 3 && audioBytes > 10000 && loudest > 0 && worldLoudest > 0,
+            // A dissolve is two EDL lines with one event number, so count event numbers, not lines.
+            int edlEvents = 0;
+            var xmlFaults = File.Exists(xmlFile) ? CheckFcpxml(xmlFile) : new List<string> { "no FCPXML file" };
+            var edlFaults = File.Exists(edlFile) ? CheckEdl(edlFile, out edlEvents) : new List<string> { "no EDL file" };
+            int edlLines = File.Exists(edlFile) ? File.ReadAllLines(edlFile).Count(l => l.Length > 3 && char.IsDigit(l[0]) && char.IsDigit(l[2])) : 0;
+            Result("4. The cut exports as FCPXML and EDL with shots and sound in place, and both pass the format checks (opening them in Resolve was NOT done)",
+                exportNote == "" && clips == 3 && missing == 0 && assets >= 4 && soundClips == 3 && transitions == 1 && edlEvents == 3 && edlLines == 4 && xmlFaults.Count == 0 && edlFaults.Count == 0
+                    && audioBytes > 10000 && loudest > 0 && worldLoudest > 0,
                 (exportNote != "" ? "Export failed: " + exportNote + ". " : "") +
                 $"FCPXML is well-formed XML with {clips} shots on the main storyline, {transitions} cross dissolve, game sound under all {soundClips} shots, sequence length {duration}; " +
-                $"all {assets} media files it points at exist ({missing} missing). EDL has {edlEvents} events. The tape's sound was recorded: {audioBytes / 1024} KB with {stems} stems; loudest sample {loudest} of 32767{(loudest == 0 ? " (SILENT: nothing was heard on the stage)" : "")}; block impacts (World stem) loudest sample {worldLoudest}{(worldLoudest == 0 ? " (SILENT)" : "")}. " +
+                $"all {assets} media files it points at exist ({missing} missing). FCPXML structure and timing check: {(xmlFaults.Count == 0 ? "no faults" : string.Join("; ", xmlFaults))}. " +
+                $"EDL has {edlEvents} events on {edlLines} lines (the dissolve is a cut line and a D line); CMX 3600 check: {(edlFaults.Count == 0 ? "no faults" : string.Join("; ", edlFaults))}. " +
+                $"The tape's sound was recorded: {audioBytes / 1024} KB with {stems} stems; loudest sample {loudest} of 32767{(loudest == 0 ? " (SILENT: nothing was heard on the stage)" : "")}; block impacts (World stem) loudest sample {worldLoudest}{(worldLoudest == 0 ? " (SILENT)" : "")}. " +
                 $"Notes from the exporter: {(problems.Count == 0 ? "none" : string.Join("; ", problems))}. " +
                 soundNote + " " +
                 "NOT run: importing the file into DaVinci Resolve or Premiere. That needs one of those apps and a person; the files are in render-1/.");
