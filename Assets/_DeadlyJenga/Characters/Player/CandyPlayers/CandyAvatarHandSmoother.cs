@@ -6,13 +6,13 @@ namespace DeadlyJenga.CandyPlayers
     // Keeps the local VR player's own hands looking like hands whatever tracking does.
     // - Fingers are read as joint angles (CandyHandShape), so impossible shapes cannot be drawn, jitter is smoothed and
     //   no joint moves faster than a finger can.
-    // - When the source changes (controller, tracked hand, or nothing) the hand glides to the new place over a quarter
-    //   of a second instead of jumping, then follows it exactly again: no lag is added while a source is steady.
+    // - When the source changes (controller, tracked hand, or nothing) the hand glides to the new place over about
+    //   a third of a second instead of jumping, then follows it exactly again: no lag is added while a source is steady.
     // - A hand that drops out for a moment stays where it was, relative to the head, before fading to the idle pose.
     sealed class CandyAvatarHandSmoother
     {
         public const int None = 0, Controller = 1, TrackedHand = 2;
-        const float GlideSeconds = .25f, HoldSeconds = .2f;
+        const float GlideSeconds = .4f, GlideEase = .12f, HoldSeconds = .2f;
         CandyHandShape shape; bool ready; int kind = -1, frame = -1; float glide = 1, lostAt = -1;
         CandyHandPose shown, cached; Vector3 heldPosition; Quaternion heldRotation = Quaternion.identity; CandyHandSkeleton heldSkeleton;
 
@@ -43,7 +43,8 @@ namespace DeadlyJenga.CandyPlayers
             var result = target; result.skeleton = shape.ToSkeleton(left);
             if (glide < 1)
             {
-                float catchUp = Mathf.Lerp(1 - Mathf.Exp(-dt / .05f), 1, glide * glide);
+                // Ease toward the new source; the pull tightens until, at the end of the glide, the hand is exactly on it.
+                float catchUp = Mathf.Lerp(1 - Mathf.Exp(-dt / GlideEase), 1, glide * glide * glide);
                 result.position = Vector3.Lerp(shown.position, target.position, catchUp);
                 result.rotation = Quaternion.Slerp(shown.rotation, target.rotation, catchUp);
             }
