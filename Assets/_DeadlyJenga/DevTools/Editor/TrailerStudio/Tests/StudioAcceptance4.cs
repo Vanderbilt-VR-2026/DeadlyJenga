@@ -144,6 +144,34 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // ---- Test 1: retime one second of a walk to half speed; feet do not slide ----
             int from = Mathf.RoundToInt(.8f * fps), to = from + fps;
             var before = new FootWatch(); var after = new FootWatch();
+
+            // ---- Legs when frames are shown one at a time (scrubbing and renders) ----
+            // Where the avatar's two feet are, measured from its own body, on the frame now shown.
+            Vector3[] FootPose()
+            {
+                if (!stage.playback.TryGetValue(ada.id, out var shown) || !shown) return null;
+                var feet = shown.GetComponentsInChildren<Transform>(true).Where(x => x.name.ToLowerInvariant().Contains("foot")).Take(2).ToArray();
+                return feet.Length < 2 ? null : feet.Select(x => shown.transform.InverseTransformPoint(x.position)).ToArray();
+            }
+            float FeetApart(Vector3[] a, Vector3[] b) => a == null || b == null ? -1 : Mathf.Max(Vector3.Distance(a[0], b[0]), Vector3.Distance(a[1], b[1]));
+            StudioRun.ShowExact(from + 5); yield return 0;
+            var earlyFeet = FootPose();
+            StudioRun.ShowExact(from + 12); yield return 0;
+            var laterFeet = FootPose();
+            // The same frame reached by playing up to it, and by jumping to it from far away.
+            StudioRun.Play(from - 5, from + 12, false);
+            foreach (int wait in UntilHeld()) yield return wait;
+            var playedFeet = FootPose();
+            StudioRun.ShowExact(from + 60); yield return 0;
+            StudioRun.ShowExact(from + 12); yield return 0;
+            var jumpedFeet = FootPose();
+            float legsMoved = FeetApart(earlyFeet, laterFeet), playedGap = FeetApart(laterFeet, playedFeet), jumpedGap = FeetApart(laterFeet, jumpedFeet);
+            Result("Legs move when frames are shown one at a time, and a frame looks the same however it is reached",
+                legsMoved > .02f && playedGap >= 0 && playedGap < .03f && jumpedGap >= 0 && jumpedGap < .03f,
+                legsMoved < 0 ? "The avatar's feet could not be found, so this was not measured."
+                    : $"Ada walking, shown frame by frame the way a render does: between tape frames {from + 5} and {from + 12} her feet moved {legsMoved * 100:0.0} cm relative to her body. " +
+                      $"Frame {from + 12} reached by playing up to it differs by {playedGap * 100:0.0} cm; reached by jumping back from frame {from + 60}, by {jumpedGap * 100:0.0} cm. " +
+                      "(Body turning and landing bends still follow game time, so small differences are expected.)");
             void WatchBefore(int frame) { if (frame >= from && frame < to) before.Sample(stage.playback.TryGetValue(ada.id, out var o) ? o : null, fps); }
             StudioRun.FrameShown += WatchBefore;
             StudioRun.Play(from - 5, to + 2, false);
@@ -177,7 +205,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             bool feetMeasured = before.Slide >= 0 && after.Slide >= 0;
             Result("1. Retime 1 s of a walk to half speed; feet do not slide",
                 slowed.frames.Count == Mathf.Min(frames, original.frames.Count + fps) && matchError < .01f && Mathf.Abs(newStep - oldStep * .5f) < oldStep * .12f + .02f &&
-                (!feetMeasured || after.Slide <= before.Slide * 1.25f + .12f) && groundChecks > 0 && offGround < .03f && adaTrack.takes.Contains(original),
+                feetMeasured && after.Slide <= before.Slide * .75f && groundChecks > 0 && offGround < .03f && adaTrack.takes.Contains(original),
                 $"Frames {from} to {to} of Ada's take now last {2 * fps} frames ({slowed.frames.Count} frames in the new take; the old take is still on the track). " +
                 $"Every slowed pose matches the original performance (largest difference {matchError * 1000:0.0} mm); body speed went from {oldStep:0.00} to {newStep:0.00} m/s. " +
                 (feetMeasured ? $"Planted-foot slide along the ground, measured on the avatar's own foot bones ({before.found}) during playback: {before.Slide:0.00} m/s before the edit (body {before.Body:0.00} m/s), {after.Slide:0.00} m/s after it (body {after.Body:0.00} m/s). "

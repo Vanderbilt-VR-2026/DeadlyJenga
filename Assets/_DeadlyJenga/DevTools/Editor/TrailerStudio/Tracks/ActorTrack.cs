@@ -1,5 +1,6 @@
 using System.IO;
 using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.CharacterNetwork;
 using DeadlyJenga.Core;
 using UnityEngine;
 
@@ -38,17 +39,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             position = default;
             if (frame == null || frame.Length < 8) return false;
-            using (var r = new BinaryReader(new MemoryStream(frame)))
+            try
             {
-                if (!r.ReadBoolean()) return false;
-                int length = r.ReadInt32();
-                // Survivor state starts with the feet. Hand state starts with: left, size, two flags, then the position.
-                int skip = typeId == HandTrack.Id ? 7 : 0;
-                if (length < skip + 12) return false;
-                r.BaseStream.Position += skip;
-                position = NetWire.ReadVector(r);
-                return true;
+                var pose = ActorFrame.Read(typeId, frame);
+                position = pose.Position;
+                return pose.visible;
             }
+            catch (System.Exception) { return false; }
         }
 
         // One actor frame: is it visible, its own state bytes, its health and its equipment.
@@ -121,6 +118,48 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             public override void Show(int frame, bool running) => ShowBetween(frame, 0, running);
 
+            // The avatar works its walk cycle out from one frame to the next (how far the feet moved, how
+            // far through a step it is). Left alone, the legs would depend on what was shown before, and
+            // would stand still in a render. So the Studio walks through the take once, keeps the walk
+            // state after every frame, and hands the right one back before showing any frame.
+            CandyPlayerRig.GaitState[] gaitAfter;
+
+            void BuildGait(SurvivorNetworkView walker)
+            {
+                gaitAfter = new CandyPlayerRig.GaitState[take.frames.Count];
+                float step = 1f / stage.Fps;
+                for (int i = 0; i < take.frames.Count; i++)
+                {
+                    var before = i > 0 ? gaitAfter[i - 1] : default;
+                    gaitAfter[i] = Pose(take.frames[i], step, walker, before, out _) ? walker.Gait : before;
+                }
+            }
+
+            // Put the copy on one packed frame. False if the actor is hidden on that frame.
+            bool Pose(byte[] data, float step, SurvivorNetworkView walker, CandyPlayerRig.GaitState gait, out string equipment)
+            {
+                using (var r = new BinaryReader(new MemoryStream(data)))
+                {
+                    bool active = r.ReadBoolean();
+                    byte[] state = r.ReadBytes(r.ReadInt32());
+                    r.ReadSingle();
+                    equipment = r.ReadString();
+                    root.SetActive(active);
+                    if (!active) return false;
+                    using (var inner = new BinaryReader(new MemoryStream(state))) view.ReadState(inner, true);
+                    // The copy normally eases toward new poses to hide network lag. A recording has no lag,
+                    // so it is told to land exactly on the recorded pose.
+                    if (view is INetworkActorSnap snap)
+                    {
+                        snap.SnapToState();
+                        if (walker != null) walker.Gait = gait;
+                        view.Render(step);
+                    }
+                    else view.Render(1000f);
+                    return true;
+                }
+            }
+
             // part = how far between this frame and the next (slow motion and renders ask for in-between poses).
             public override void ShowBetween(int frame, float part, bool running)
             {
@@ -128,7 +167,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (!take.Covers(frame)) { root.SetActive(false); return; }
                 try
                 {
-                    byte[] data = take.frames[frame - take.start];
+                    int index = frame - take.start;
+                    byte[] data = take.frames[index];
                     float time = (frame + part) / stage.Fps;
                     // Only open the frame up when something needs to change it: an in-between pose, or an override.
                     bool between = part > .001f && take.Covers(frame + 1);
@@ -137,26 +177,33 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if (between || filters.Count > 0)
                     {
                         pose = ActorFrame.Read(track.type, data);
-                        if (between) pose = ActorFrame.Blend(pose, ActorFrame.Read(track.type, take.frames[frame + 1 - take.start]), part);
+                        if (between) pose = ActorFrame.Blend(pose, ActorFrame.Read(track.type, take.frames[index + 1]), part);
                         foreach (var filter in filters) filter.Apply(stage, track, time, pose);
                         data = pose.Write();
                     }
-                    using (var r = new BinaryReader(new MemoryStream(data)))
+
+                    // Survivors: the walk state from just before this moment, and the tape time since then.
+                    var walker = view as SurvivorNetworkView;
+                    var gait = default(CandyPlayerRig.GaitState);
+                    float step = walker != null ? 1f / stage.Fps : running ? Time.deltaTime : 0;
+                    if (walker != null)
                     {
-                        bool active = r.ReadBoolean();
-                        byte[] state = r.ReadBytes(r.ReadInt32());
-                        r.ReadSingle();
-                        string equipment = r.ReadString();
-                        root.SetActive(active);
-                        if (!active) { weapon?.Hide(); return; }
-                        using (var inner = new BinaryReader(new MemoryStream(state))) view.ReadState(inner, true);
-                        // The copy normally eases toward new poses to hide network lag. A recording has no lag,
-                        // so it is told to land exactly on the recorded pose.
-                        if (view is INetworkActorSnap snap) { snap.SnapToState(); view.Render(running ? Time.deltaTime : 0); }
-                        else view.Render(1000f);
-                        ShowWeapon(equipment, pose, data);
-                        if (stage.recording) look.Apply(root, StudioTrackNotes.Of(track), StudioColors.For(stage.set.Mark(track.id)?.color ?? 0));
+                        if (gaitAfter == null || gaitAfter.Length != take.frames.Count) BuildGait(walker);
+                        int from = between ? index : index - 1;      // the tape frame the walk continues from
+                        if (from >= 0) gait = gaitAfter[from];
+                        if (between) step *= part;
+                        if (from >= 0 && filters.Count > 0 && gait.ready)
+                        {
+                            // An override may have moved that frame too; measure the step from where it was really shown.
+                            var last = ActorFrame.Read(track.type, take.frames[from]);
+                            foreach (var filter in filters) filter.Apply(stage, track, (take.start + from) / (float)stage.Fps, last);
+                            if (last.visible) gait.previousFeet = last.body.feet;
+                        }
                     }
+
+                    if (!Pose(data, step, walker, gait, out string equipment)) { weapon?.Hide(); return; }
+                    ShowWeapon(equipment, pose, data);
+                    if (stage.recording) look.Apply(root, StudioTrackNotes.Of(track), StudioColors.For(stage.set.Mark(track.id)?.color ?? 0));
                 }
                 catch (System.Exception error)
                 {

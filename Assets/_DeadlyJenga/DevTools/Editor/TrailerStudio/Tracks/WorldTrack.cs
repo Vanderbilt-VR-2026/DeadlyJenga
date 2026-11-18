@@ -235,7 +235,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 for (int i = 0; i < blocks.Length; i++)
                 {
                     var body = blocks[i];
-                    if (!body || (now[i].flags & Destroyed) != 0) continue;
+                    if (!body) continue;
+                    // Gone on the tape but back on a freshly built map: keep it hidden.
+                    if ((now[i].flags & Destroyed) != 0) { if (body.gameObject.activeSelf) body.gameObject.SetActive(false); continue; }
                     bool active = (now[i].flags & Active) != 0;
                     if (body.gameObject.activeSelf != active) body.gameObject.SetActive(active);
                     if (!active) continue;
@@ -255,7 +257,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 for (int i = 0; i < blocks.Length; i++)
                 {
                     var body = blocks[i];
-                    if (!body || (now[i].flags & Destroyed) != 0) continue;
+                    if (!body) continue;
+                    // Gone on the tape but back on a freshly built map: keep it hidden.
+                    if ((now[i].flags & Destroyed) != 0) { if (body.gameObject.activeSelf) body.gameObject.SetActive(false); continue; }
                     bool active = (now[i].flags & Active) != 0;
                     if (body.gameObject.activeSelf != active) body.gameObject.SetActive(active);
                     if (active) body.transform.SetPositionAndRotation(now[i].Position, TapePack.UnpackRotation(now[i].rotation));
@@ -292,7 +296,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 for (int i = 0; i < blocks.Length; i++)
                 {
                     var body = blocks[i];
-                    if (!body || (now[i].flags & Destroyed) != 0) continue;
+                    if (!body) continue;
+                    // Gone on the tape but back on a freshly built map: keep it hidden.
+                    if ((now[i].flags & Destroyed) != 0) { if (body.gameObject.activeSelf) body.gameObject.SetActive(false); continue; }
                     bool active = (now[i].flags & Active) != 0;
                     if (body.gameObject.activeSelf == active) continue;
                     body.gameObject.SetActive(active);

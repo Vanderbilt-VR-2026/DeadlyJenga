@@ -178,6 +178,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Status = message;
             running = false; Recording = false;
             DisposeRecorders();
+            AbandonRun(currentPass != null && currentPass.liveWorld);
             if (Stage == null)
             {
                 if (job != null) { job.failure = message; SaveJob(); }

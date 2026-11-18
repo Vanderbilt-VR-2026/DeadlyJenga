@@ -50,8 +50,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public override byte[] Capture(int frame, bool key)
             {
                 if (heard.Count == 0) return Array.Empty<byte>();
-                // Keep the loudest few when a collapse makes hundreds of hits in one frame.
-                if (heard.Count > 64) heard.RemoveRange(64, heard.Count - 64);
+                // A collapse can make hundreds of hits in one frame. Keep match sounds and the 64 loudest hits.
+                if (heard.Count > 64)
+                {
+                    heard.Sort((a, b) => (b.kind == 0 ? b.strength : float.MaxValue).CompareTo(a.kind == 0 ? a.strength : float.MaxValue));
+                    heard.RemoveRange(64, heard.Count - 64);
+                }
                 byte[] bytes = Encoding.UTF8.GetBytes(JsonUtility.ToJson(new Frame { sounds = heard.ToArray() }));
                 heard.Clear();
                 return bytes;
@@ -75,23 +79,29 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public override void Show(int frame, bool running)
             {
                 // Sounds only play while the tape runs forward, never while scrubbing.
-                if (!running || frame == last || !take.Covers(frame)) { last = frame; return; }
+                if (!running || frame == last) { last = frame; return; }
+                // A slow editor skips tape frames in real-time playback. Their sounds still have to be heard,
+                // so play every frame since the last one shown (but not a whole jump's worth).
+                int first = frame > last && frame - last <= 15 ? last + 1 : frame;
                 last = frame;
+                replaying = true;
+                try { for (int f = first; f <= frame; f++) Play(f); }
+                finally { replaying = false; }
+            }
+
+            void Play(int frame)
+            {
+                if (!take.Covers(frame)) return;
                 byte[] data = take.frames[frame - take.start];
                 if (data == null || data.Length == 0) return;
                 var sample = JsonUtility.FromJson<Frame>(Encoding.UTF8.GetString(data));
                 if (sample?.sounds == null) return;
-                replaying = true;
-                try
+                foreach (var sound in sample.sounds)
                 {
-                    foreach (var sound in sample.sounds)
-                    {
-                        if (sound.kind == 0) GameEvents.RaiseBlockHit(sound.position, sound.strength);
-                        else if (sound.kind == 1) GameEvents.RaiseMatchSound((MatchSoundCue)sound.cue, sound.position);
-                        // Block-broken effects need the block object itself, so they are stored but not replayed yet.
-                    }
+                    if (sound.kind == 0) GameEvents.RaiseBlockHit(sound.position, sound.strength);
+                    else if (sound.kind == 1) GameEvents.RaiseMatchSound((MatchSoundCue)sound.cue, sound.position);
+                    // Block-broken effects need the block object itself, so they are stored but not replayed yet.
                 }
-                finally { replaying = false; }
             }
         }
     }

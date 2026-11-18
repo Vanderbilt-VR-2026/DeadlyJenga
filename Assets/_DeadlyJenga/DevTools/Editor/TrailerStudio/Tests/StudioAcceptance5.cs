@@ -180,12 +180,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 byte[] wav = File.ReadAllBytes(audioFile);
                 for (int i = 44; i + 1 < wav.Length; i += 2) loudest = Mathf.Max(loudest, Mathf.Abs((short)(wav[i] | (wav[i + 1] << 8))));
             }
+            // The collapse must be heard too, not only the music: the World stem holds block impacts.
+            int worldLoudest = 0;
+            string worldStem = audioBytes > 44 ? Path.Combine(Path.GetDirectoryName(audioFile), "stems", "World.wav") : "";
+            if (File.Exists(worldStem))
+            {
+                byte[] wav = File.ReadAllBytes(worldStem);
+                for (int i = 44; i + 1 < wav.Length; i += 2) worldLoudest = Mathf.Max(worldLoudest, Mathf.Abs((short)(wav[i] | (wav[i + 1] << 8))));
+            }
             int edlEvents = File.Exists(edlFile) ? File.ReadAllLines(edlFile).Count(l => l.Length > 3 && char.IsDigit(l[0]) && char.IsDigit(l[2])) : 0;
             Result("4. The cut exports as FCPXML and EDL with shots and sound in place (opening it in Resolve was NOT done)",
-                exportNote == "" && clips == 3 && missing == 0 && assets >= 4 && soundClips == 3 && transitions == 1 && edlEvents == 3 && audioBytes > 10000 && loudest > 0,
+                exportNote == "" && clips == 3 && missing == 0 && assets >= 4 && soundClips == 3 && transitions == 1 && edlEvents == 3 && audioBytes > 10000 && loudest > 0 && worldLoudest > 0,
                 (exportNote != "" ? "Export failed: " + exportNote + ". " : "") +
                 $"FCPXML is well-formed XML with {clips} shots on the main storyline, {transitions} cross dissolve, game sound under all {soundClips} shots, sequence length {duration}; " +
-                $"all {assets} media files it points at exist ({missing} missing). EDL has {edlEvents} events. The tape's sound was recorded: {audioBytes / 1024} KB with {stems} stems; loudest sample {loudest} of 32767{(loudest == 0 ? " (SILENT: nothing was heard on the stage)" : "")}. " +
+                $"all {assets} media files it points at exist ({missing} missing). EDL has {edlEvents} events. The tape's sound was recorded: {audioBytes / 1024} KB with {stems} stems; loudest sample {loudest} of 32767{(loudest == 0 ? " (SILENT: nothing was heard on the stage)" : "")}; block impacts (World stem) loudest sample {worldLoudest}{(worldLoudest == 0 ? " (SILENT)" : "")}. " +
                 $"Notes from the exporter: {(problems.Count == 0 ? "none" : string.Join("; ", problems))}. " +
                 "NOT run: importing the file into DaVinci Resolve or Premiere. That needs one of those apps and a person; the files are in render-1/.");
 

@@ -142,6 +142,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // In VR the headset sets the frame timing, so the fixed clock is never used there.
         static bool MustBeRealTime => Stage != null && Stage.session && Stage.session.IsVR;
 
+        // A run ended early (stopped in the countdown, or it failed): take away what it had already put
+        // on the stage, so no bot, stand-in or disaster is left next to the played-back copies.
+        static void AbandonRun(bool liveWorld)
+        {
+            if (Stage == null) return;
+            try
+            {
+                DisposeRecorders();
+                if (liveWorld) DemoDisasters.StopAll(Stage.session);
+                StudioDirector.End();
+                StudioCast.ClearLive(Stage);
+            }
+            catch (Exception error) { Debug.LogException(error); }
+        }
+
         // ---- Holding still ----
 
         static void Hold(int frame)
@@ -150,6 +165,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             StudioPaths.Clear();
             Stage.physicalPlayback = false; Stage.recording = false;
             SetClock(Stage.Fps, !MustBeRealTime, 0);          // time stands still while held
+            // An idle stage must not draw as fast as the graphics card allows (other editors share this PC).
+            if (!MustBeRealTime) Application.targetFrameRate = Mathf.Max(30, Stage.Fps);
+            RestoreInterpolation();
             BuildPlayers(Stage.performer.Length > 0 ? new[] { Stage.performer } : null, true);
             State = StudioState.Held;
             Frame = Mathf.Clamp(frame, 0, Stage.Frames - 1);
@@ -190,8 +208,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             Stage.Synced?.SetReplica(kinematic);
             if (!kinematic || !Stage.physicalPlayback) return;
-            // Smooth what the live player sees between physics steps.
-            foreach (var body in Stage.blocks) if (body) body.interpolation = RigidbodyInterpolation.Interpolate;
+            // Smooth what the live player sees between physics steps. The old setting comes back in Hold.
+            foreach (var body in Stage.blocks)
+            {
+                if (!body) continue;
+                if (!oldInterpolation.ContainsKey(body)) oldInterpolation[body] = body.interpolation;
+                body.interpolation = RigidbodyInterpolation.Interpolate;
+            }
+        }
+
+        static readonly Dictionary<Rigidbody, RigidbodyInterpolation> oldInterpolation = new Dictionary<Rigidbody, RigidbodyInterpolation>();
+
+        static void RestoreInterpolation()
+        {
+            foreach (var old in oldInterpolation) if (old.Key) old.Key.interpolation = old.Value;
+            oldInterpolation.Clear();
         }
 
         static void DisposePlayers()
@@ -264,6 +295,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
                 StudioTake oldWorld = stage.tape.FindType(WorldTrack.Id)?.ActiveTake;
                 bool branch = pass.liveWorld && pass.branchFrom > 0 && oldWorld != null && oldWorld.Covers(pass.branchFrom) && oldWorld.Covers(pass.branchFrom - 1);
+                if (pass.liveWorld && pass.branchFrom > 0 && !branch)
+                    Debug.LogWarning($"[TrailerStudio] {pass.label}: the world take does not reach frame {pass.branchFrom}, so this is a full re-record from a fresh map, not a branch.");
+                bool branchRefused = pass.liveWorld && pass.branchFrom > 0 && !branch;
                 if (branch)
                 {
                     // Branch: the tape stays as it is before this frame; physics takes over from the tape's pose and speed.
@@ -332,7 +366,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         yield return 0;
                     }
                     Countdown = 0;
-                    if (stopAsked) break;
+                    if (stopAsked) { AbandonRun(pass.liveWorld); break; }
                 }
                 if (performer != null) StudioCast.SuspendInput(stage, leadTake != null);
 
@@ -403,7 +437,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 SaveTape();
                 loops++;
                 Status = $"{pass.label}: recorded {kept} tracks, {Mathf.Max(0, capturedTo - pass.from + 1)} frames" + (loops > 1 ? $" (loop {loops})" : "") +
-                    $". Tape is {StudioTape.Size(new System.IO.FileInfo(stage.tape.path).Length)}.";
+                    $". Tape is {StudioTape.Size(new System.IO.FileInfo(stage.tape.path).Length)}." +
+                    (branchRefused ? " Note: the old world take did not reach the branch point, so the whole world was re-recorded from a fresh map." : "");
                 Debug.Log("[TrailerStudio] " + Status);
                 // Loop record: go again with a new take until someone presses stop.
                 if (!pass.loop || stopAsked) break;
@@ -481,7 +516,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             // The game switches listeners off when it changes roles. Keep one set of ears on:
             // the director's camera, unless someone is performing (then the player's own).
-            if (Stage != null) StudioCamera.Listen(Stage.performer.Length == 0);
+            if (Stage != null)
+            {
+                StudioCamera.Listen(Stage.performer.Length == 0);
+                if (Stage.performer.Length == 0) StudioCamera.PlaceEars(Stage);
+            }
             if (!running || Stage == null) return;
             if (runStart < 0) { runStart = Time.time; Frame = firstFrame; }
             else if (fixedClock) Frame++;

@@ -275,6 +275,30 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 $"Comparing the two runs block by block, they first differ by more than 12 mm at frame {expected}; the Studio reported frame {reported}. " +
                 $"Ada's badge: \"{adaTrack.badge}\". Tracks flagged stale: {tape.tracks.Count(t => StudioTrackNotes.Of(t).staleFrame >= 0)}.");
 
+            // ---- The recorded hand plays back ----
+            int handShown = 0; float shownTravel = 0, tapeTravel = 0; Vector3? lastShown = null, lastTape = null;
+            void WatchHand(int frame)
+            {
+                if (handTake == null || !handTake.Covers(frame)) return;
+                var pose = ActorFrame.Read(HandTrack.Id, handTake.frames[frame - handTake.start]);
+                if (!pose.visible) return;
+                if (lastTape.HasValue) tapeTravel += Vector3.Distance(lastTape.Value, pose.Position);
+                lastTape = pose.Position;
+                if (!stage.playback.TryGetValue(hand.id, out var shown) || !shown || !shown.activeSelf) return;
+                var skin = shown.GetComponentsInChildren<Renderer>().FirstOrDefault(r => r.enabled);
+                if (!skin) return;
+                handShown++;
+                if (lastShown.HasValue) shownTravel += Vector3.Distance(lastShown.Value, skin.bounds.center);
+                lastShown = skin.bounds.center;
+            }
+            StudioRun.FrameShown += WatchHand;
+            StudioRun.Play(0, -1, false);
+            foreach (int wait in UntilHeld()) yield return wait;
+            StudioRun.FrameShown -= WatchHand;
+            Result("A recorded hand plays back", handTake != null && handShown >= handTake.frames.Count * .9f && tapeTravel > 1 && shownTravel > tapeTravel * .5f && shownTravel < tapeTravel * 2f,
+                $"The hand bot's take was played back: the hand was drawn on {handShown} of {handTake?.frames.Count ?? 0} frames. Its recorded path is {tapeTravel:F1} m long; the hand on screen travelled {shownTravel:F1} m " +
+                "(measured at the middle of what was drawn, so the two numbers are close but not equal).");
+
             // ---- Slow motion: the same jump at full and half speed ----
             var heights = new float[2]; var lengths = new int[2];
             for (int run2 = 0; run2 < 2; run2++)

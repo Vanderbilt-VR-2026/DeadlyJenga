@@ -178,6 +178,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var reader = new Texture2D(width, height, exr || sub > 1 ? TextureFormat.RGBAFloat : TextureFormat.RGB24, false, exr);
             var writer = sub > 1 && !exr ? new Texture2D(width, height, TextureFormat.RGBA32, false) : null;
             float[] sum = sub > 1 ? new float[width * height * 4] : null;
+            int idleRate = Application.targetFrameRate;
+            Application.targetFrameRate = -1;   // the idle stage is capped; a render goes as fast as it can
             try
             {
                 foreach (var shot in shots)
@@ -293,6 +295,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 camera.targetTexture = null;
                 Object.Destroy(target); Object.Destroy(reader); if (writer) Object.Destroy(writer);
                 Restore();
+                Application.targetFrameRate = idleRate;
                 if (StudioRun.State == StudioState.Held) StudioRun.Scrub(StudioRun.Frame);
             }
         }
@@ -329,7 +332,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // ---- Sound for the tape ----
 
         // Plays the whole tape once at the fixed clock and records the game mix and its stems.
-        // Sounds come from the tape's sound events and the disasters' own audio, heard from the stage spot.
+        // Sounds come from the tape's sound events and the disasters' own audio, heard from head height at the stage spot.
         public static void RecordAudio(Action<string> finished = null)
         {
             if (StudioRun.State != StudioState.Held) throw new InvalidOperationException("Open the stage, and wait for any run to finish.");
@@ -340,12 +343,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             string stems = Path.Combine(Path.GetDirectoryName(file), "stems");
             if (Directory.Exists(stems)) Directory.Delete(stems, true);
             var capture = new TheatreAudioCapture(file);
+            StudioCamera.EarsAt = stage.anchor + Vector3.up * 1.6f;
             int frames = 0;
             void Each(int frame) { capture.CaptureFrame(); frames++; }
             void Done()
             {
                 if (StudioRun.State != StudioState.Held) return;
                 StudioRun.FrameShown -= Each; StudioRun.Changed -= Done;
+                StudioCamera.EarsAt = null;
                 try { capture.Complete(frames, stage.Fps); } finally { capture.Dispose(); }
                 finished?.Invoke(file);
             }

@@ -1,4 +1,7 @@
+using System.Collections.Generic;
 using System.IO;
+using DeadlyJenga.CandyAudio;
+using DeadlyJenga.Core;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
@@ -13,6 +16,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static Vector3 Target;             // world point the camera circles
         public static float Yaw = 35, Pitch = 22, Distance = 22;
 
+        // The stage's ears. They follow the director's camera, or sit at EarsAt while the cut's sound is recorded.
+        static AudioListener ears;
+        public static Vector3? EarsAt;
+        // Parked rig cameras the Studio moved, and where they were, so performing gets them back untouched.
+        static readonly Dictionary<Transform, Pose> movedCameras = new Dictionary<Transform, Pose>();
+
         public static void Create(StudioStage stage)
         {
             Destroy();
@@ -24,7 +33,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var data = Camera.GetUniversalAdditionalCameraData();
             data.allowXRRendering = false;
             data.renderPostProcessing = true;
-            rig.AddComponent<AudioListener>();
+            var listener = new GameObject("Trailer Studio ears");
+            Object.DontDestroyOnLoad(listener);
+            ears = listener.AddComponent<AudioListener>();
             Resize(960, 540);
             Target = stage.anchor + Vector3.up;
             Distance = Mathf.Clamp(stage.world.Radius * .9f, 10, 80);
@@ -44,8 +55,37 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // Only one set of ears at a time: the director's camera, or the performer's own head.
         public static void Listen(bool on)
         {
-            var ears = Camera ? Camera.GetComponent<AudioListener>() : null;
             if (ears) ears.enabled = on;
+            if (!on) RestoreCameras();
+        }
+
+        // Called every frame while nobody performs. The game's sound engine does not use the AudioListener
+        // to decide what is close enough to play: it measures from the session's camera, even when that
+        // rig is parked. So the parked cameras are kept where the ears are. The engine also fades every
+        // sound out while the Game view is not the focused window, which it never is while you work in
+        // the Studio window, so it is told it has focus.
+        public static void PlaceEars(StudioStage stage)
+        {
+            if (!ears || !Camera) return;
+            Vector3 position = EarsAt ?? Camera.transform.position;
+            Quaternion rotation = Camera.transform.rotation;
+            ears.transform.SetPositionAndRotation(position, rotation);
+            foreach (var rig in new[] { stage.session.Player, stage.session.Hand })
+            {
+                if (!NetworkActors.Alive(rig) || !rig.ViewCamera || rig.gameObject.activeInHierarchy) continue;
+                var view = rig.ViewCamera.transform;
+                if (!movedCameras.ContainsKey(view)) movedCameras[view] = new Pose(view.localPosition, view.localRotation);
+                view.SetPositionAndRotation(position, rotation);
+            }
+            var engine = CandyAudioEngine.Instance;
+            if (engine) engine.SendMessage("OnApplicationFocus", true, SendMessageOptions.DontRequireReceiver);
+        }
+
+        static void RestoreCameras()
+        {
+            foreach (var moved in movedCameras)
+                if (moved.Key) { moved.Key.localPosition = moved.Value.position; moved.Key.localRotation = moved.Value.rotation; }
+            movedCameras.Clear();
         }
 
         public static void Orbit(float yaw, float pitch)
@@ -97,7 +137,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (Camera) { Camera.targetTexture = null; Object.Destroy(Camera.gameObject); }
             if (Image) Object.DestroyImmediate(Image);
-            Camera = null; Image = null;
+            if (ears) Object.Destroy(ears.gameObject);
+            RestoreCameras();
+            Camera = null; Image = null; ears = null; EarsAt = null;
         }
     }
 }
