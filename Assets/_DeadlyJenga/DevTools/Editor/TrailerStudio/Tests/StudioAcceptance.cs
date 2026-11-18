@@ -14,11 +14,12 @@ using Object = UnityEngine.Object;
 
 namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 {
-    // Phase 1 acceptance tests, run from the command line:
-    //   -executeMethod DeadlyJenga.DevTools.Editor.TrailerStudio.StudioAcceptance.RunPhase1
-    // The report and pictures go to Logs/Validation/TrailerStudio-Phase1/. The editor closes itself when done.
+    // Acceptance tests, run from the command line, one suite per phase:
+    //   -executeMethod DeadlyJenga.DevTools.Editor.TrailerStudio.StudioAcceptance.RunPhase1   (RunPhase2, ...)
+    // The report and pictures go to Logs/Validation/TrailerStudio-<suite>/. The editor closes itself when done.
+    // This file holds the harness and the Phase 1 tests; later phases add a file each (StudioAcceptance2.cs...).
     [InitializeOnLoad]
-    public static class StudioAcceptance
+    public static partial class StudioAcceptance
     {
         const string Key = "DeadlyJenga.TrailerStudio.Acceptance";
         const string Map = "sparse-viaduct-study";
@@ -33,7 +34,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static int lastTick = -1, exceptions;
         static readonly List<string> errorLines = new List<string>();
 
-        public static string Folder => Path.Combine(StudioLibrary.ProjectRoot, "Logs", "Validation", "TrailerStudio-Phase1");
+        static string Suite { get => SessionState.GetString(Key + ".Suite", "Phase1"); set => SessionState.SetString(Key + ".Suite", value); }
+        public static string Folder => Path.Combine(StudioLibrary.ProjectRoot, "Logs", "Validation", "TrailerStudio-" + Suite);
 
         static StudioAcceptance()
         {
@@ -46,8 +48,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Application.logMessageReceived -= Log; Application.logMessageReceived += Log;
         }
 
-        public static void RunPhase1()
+        public static void RunPhase1() => Begin("Phase1");
+        public static void RunPhase2() => Begin("Phase2");
+        public static void RunPhase3() => Begin("Phase3");
+        public static void RunPhase4() => Begin("Phase4");
+        public static void RunPhase5() => Begin("Phase5");
+
+        static void Begin(string suite)
         {
+            Suite = suite;
             if (Directory.Exists(Folder)) Directory.Delete(Folder, true);
             Directory.CreateDirectory(Folder);
             Lines = ""; Failures = 0; Step = 1;
@@ -79,19 +88,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 {
                     case 1:
                         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-                        StudioRun.OpenStage(MakeSet());
+                        StudioLibrary.SetsFolderOverride = Path.Combine(Folder, "sets");   // test Sets never go into Assets
+                        StudioRun.OpenStage(Suite == "Phase1" ? MakeSet() : MakeSuiteSet(Suite));
                         Step = 2; Deadline = EditorApplication.timeSinceStartup + 600;
                         break;
                     case 2:
                         if (routine == null)
                         {
-                            if (StudioRun.State == StudioState.Held) routine = StageTests();
+                            if (StudioRun.State == StudioState.Held) routine = Suite == "Phase1" ? StageTests() : SuiteTests(Suite);
                             else if (EditorApplication.timeSinceStartup > Deadline)
                                 throw new TimeoutException($"The stage never finished opening. State {StudioRun.State}, playing {EditorApplication.isPlaying}, status: {StudioRun.Status}");
                             return;
                         }
                         if (Advance()) return;
-                        Step = 3;
+                        Step = Suite == "Phase1" ? 3 : 5;   // only Phase 1 also checks the plain game afterwards
                         StudioRun.CloseStage();
                         break;
                     case 3:
@@ -108,7 +118,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         EditorApplication.ExitPlaymode();
                         break;
                     case 5:
-                        if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+                        if (EditorApplication.isPlayingOrWillChangePlaymode || StudioRun.State != StudioState.Closed && EditorApplication.isPlaying) return;
                         Finish();
                         break;
                 }
@@ -137,7 +147,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             StudioLibrary.SetsFolderOverride = "";
             StudioExamples.Enabled = false;
             EditorApplication.update -= Tick;
-            var text = new StringBuilder("# Trailer Studio Phase 1 acceptance run\n\n");
+            var text = new StringBuilder("# Trailer Studio " + Suite + " acceptance run\n\n");
             text.Append($"Date: {DateTime.Now:yyyy-MM-dd HH:mm}  \nUnity: {Application.unityVersion}  \nMap: {Map}\n\n");
             text.Append("| Test | Result | Detail |\n|------|--------|--------|\n").Append(Lines);
             text.Append($"\nFailures: {Failures}\n");

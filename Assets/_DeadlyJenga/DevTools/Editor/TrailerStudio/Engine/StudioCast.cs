@@ -68,8 +68,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (mark.customLook) avatar.ApplyAppearance(mark.appearance);
             if (!brain)
             {
+                // No brain and no input: the survivor's own movement code still runs, so it stands and obeys gravity.
                 var mind = body.GetComponent<CastleBotBrain>();
                 if (mind) mind.enabled = false;
+                motor.InputDriver = null;
                 standIns.Add(motor);
             }
             GiveEquipment(stage, body, mark);
@@ -98,13 +100,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (!given) Debug.LogWarning($"Trailer Studio: could not give {mark.equipment} to {mark.actor}.");
         }
 
-        // Stand-ins have no brain to move them, so the Studio runs their normal movement with no input.
+        // Keep stand-ins brainless even if the bot system hands their body a driver again.
         public static void SimulateStandIns(StudioStage stage)
         {
             for (int i = standIns.Count - 1; i >= 0; i--)
             {
                 if (!standIns[i]) { standIns.RemoveAt(i); continue; }
-                if (standIns[i].isActiveAndEnabled && Time.deltaTime > 0) standIns[i].Simulate(Vector2.zero, false, Time.deltaTime);
+                if (standIns[i].InputDriver != null) standIns[i].InputDriver = null;
             }
         }
 
