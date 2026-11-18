@@ -30,18 +30,27 @@ namespace DeadlyJenga.DevTools.Editor
     //     [-mapOut C:/temp/castle.png]  write here instead (a folder when several pictures are made)
     //     [-mapMissing]               skip maps that already have a lobby picture
     //     [-mapSize 1600x1100]        picture size in pixels
+    //     [-mapClip orbit|arc|dolly|pan|crane]  also record a short MP4 with a moving camera (needs ffmpeg)
+    //     [-clipSeconds 6] [-clipFps 30] [-clipSize 1280x720]
+    //     [-open]                     open the gallery page in the browser afterwards
+    // Every run also writes a gallery folder (Logs/Captures/...) with manifest.json, contact-sheet.png and index.html.
     public static class MapPictureRig
     {
         static readonly string[] AllViews = { "hero", "top", "front", "close" };
 
         [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Render All (lobby pictures)")]
-        static void RenderAll() => Run(null, new[] { "hero" }, null, false, 1600, 1100);
+        static void RenderAll() => Run(null, new[] { "hero" }, null, false, 1600, 1100, null, CaptureOutput.OpenByDefault);
 
         [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Render Missing (lobby pictures)")]
-        static void RenderMissing() => Run(null, new[] { "hero" }, null, true, 1600, 1100);
+        static void RenderMissing() => Run(null, new[] { "hero" }, null, true, 1600, 1100, null, CaptureOutput.OpenByDefault);
 
         [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Render All Views (to Logs)")]
-        static void RenderAllViews() => Run(null, AllViews, null, false, 1600, 1100);
+        static void RenderAllViews() => Run(null, AllViews, null, false, 1600, 1100, null, CaptureOutput.OpenByDefault);
+
+        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Record Orbit Clips (all maps)")]
+        static void RecordOrbits() => Run(null, Array.Empty<string>(), null, false, 1600, 1100, new ClipRequest { mode = "orbit" }, CaptureOutput.OpenByDefault);
+
+        public sealed class ClipRequest { public string mode = "orbit"; public float seconds = 6; public int fps = 30, width = 1280, height = 720; }
 
         public static void Batch()
         {
@@ -52,13 +61,24 @@ namespace DeadlyJenga.DevTools.Editor
             var size = Arg("-mapSize")?.Split('x');
             if (size != null && size.Length == 2 && int.TryParse(size[0], out int w) && int.TryParse(size[1], out int h)) { width = w; height = h; }
             int made = 0;
-            try { made = Run(Arg("-mapId"), view == "all" ? AllViews : new[] { view }, Arg("-mapOut"), args.Contains("-mapMissing"), width, height); }
+            ClipRequest clip = null;
+            if (Arg("-mapClip") != null)
+            {
+                clip = new ClipRequest { mode = Arg("-mapClip").ToLowerInvariant() };
+                if (float.TryParse(Arg("-clipSeconds"), out float sec)) clip.seconds = Mathf.Clamp(sec, 1, 60);
+                if (int.TryParse(Arg("-clipFps"), out int fps)) clip.fps = Mathf.Clamp(fps, 10, 60);
+                var cs = Arg("-clipSize")?.Split('x');
+                if (cs != null && cs.Length == 2 && int.TryParse(cs[0], out int cw) && int.TryParse(cs[1], out int ch)) { clip.width = cw; clip.height = ch; }
+            }
+            var views = Arg("-mapView") == null && clip != null ? Array.Empty<string>() : view == "all" ? AllViews : new[] { view };
+            try { made = Run(Arg("-mapId"), views, Arg("-mapOut"), args.Contains("-mapMissing"), width, height, clip, args.Contains("-open")); }
             catch (Exception e) { Debug.LogException(e); }
             EditorApplication.Exit(made > 0 ? 0 : 2);
         }
 
-        public static int Run(string onlyMap, string[] views, string output, bool missingOnly, int width, int height)
+        public static int Run(string onlyMap, string[] views, string output, bool missingOnly, int width, int height, ClipRequest clip = null, bool open = false)
         {
+            if (clip != null && !CameraPath.Modes.Contains(clip.mode)) throw new ArgumentException("Unknown clip " + clip.mode + " (" + string.Join(", ", CameraPath.Modes) + ").");
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
             foreach (var v in views) if (!AllViews.Contains(v)) throw new ArgumentException("Unknown view " + v + " (hero, top, front, close).");
             var source = Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog");
@@ -70,7 +90,9 @@ namespace DeadlyJenga.DevTools.Editor
 
             string lobbyFolder = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(ProjectPath.FolderOf("CandyEnvironment.cs").TrimEnd('/'))), "Resources", "LobbyPreviews");
             string logFolder = Path.Combine("Logs", "MapPictures");
-            bool single = maps.Length == 1 && views.Length == 1;
+            bool single = maps.Length == 1 && views.Length == 1 && clip == null;
+            var gallery = new CaptureOutput("Map pictures" + (string.IsNullOrEmpty(onlyMap) ? "" : " " + onlyMap),
+                !string.IsNullOrEmpty(output) && !Path.HasExtension(output) ? output : null);
             int made = 0;
             var oldWorld = Services.World;
             try
@@ -84,9 +106,9 @@ namespace DeadlyJenga.DevTools.Editor
                         : view == "hero" ? lobbyPath : Path.Combine(logFolder, map.id + "-" + view + ".png")).ToArray();
                     try
                     {
-                        Capture(map, catalog, views, paths, width, height);
-                        made += paths.Length;
-                        foreach (var path in paths) Debug.Log("Map picture: " + path);
+                        Capture(map, catalog, views, paths, width, height, clip, gallery);
+                        made += paths.Length + (clip != null ? 1 : 0);
+                        for (int i = 0; i < paths.Length; i++) gallery.Add(paths[i], map.id + " · " + views[i], "image", width, height);
                     }
                     catch (Exception e) { Debug.LogError("Map picture failed for " + map.id + ": " + e); }
                     finally { Services.World = oldWorld; }
@@ -94,11 +116,12 @@ namespace DeadlyJenga.DevTools.Editor
             }
             finally { Services.World = oldWorld; Object.DestroyImmediate(catalog); }
             if (string.IsNullOrEmpty(output)) AssetDatabase.Refresh();
+            gallery.Finish(open);
             Debug.Log("Map pictures: wrote " + made + ".");
             return made;
         }
 
-        static void Capture(IslandLobbyCatalog.Map map, IslandLobbyCatalog catalog, string[] views, string[] paths, int width, int height)
+        static void Capture(IslandLobbyCatalog.Map map, IslandLobbyCatalog catalog, string[] views, string[] paths, int width, int height, ClipRequest clip, CaptureOutput gallery)
         {
             var scene = map.mapPrefab ? EditorSceneManager.NewPreviewScene() : EditorSceneManager.OpenPreviewScene(map.scenePath);
             try
@@ -182,8 +205,38 @@ namespace DeadlyJenga.DevTools.Editor
                     RenderTexture.ReleaseTemporary(target);
                     Object.DestroyImmediate(image);
                 }
+                if (clip != null) RecordClip(camera, map.id, bounds, clip, gallery);
             }
             finally { EditorSceneManager.ClosePreviewScene(scene); }
+        }
+
+        static void RecordClip(Camera camera, string id, Bounds bounds, ClipRequest clip, CaptureOutput gallery)
+        {
+            Place(camera, "hero", bounds, clip.width / (float)clip.height);
+            var start = camera.transform.position - bounds.center;
+            string frames = gallery.PathFor(id + "-" + clip.mode + "-frames");
+            Directory.CreateDirectory(frames);
+            int count = Mathf.Max(2, Mathf.RoundToInt(clip.seconds * clip.fps));
+            var target = RenderTexture.GetTemporary(clip.width, clip.height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default, 4);
+            var image = new Texture2D(clip.width, clip.height, TextureFormat.RGB24, false);
+            var previous = RenderTexture.active;
+            try
+            {
+                for (int f = 0; f < count; f++)
+                {
+                    CameraPath.Evaluate(clip.mode, f / (float)(count - 1), bounds.center, start.magnitude, start, out var position, out var rotation);
+                    camera.transform.SetPositionAndRotation(position, rotation);
+                    camera.targetTexture = target;
+                    camera.Render();
+                    RenderTexture.active = target;
+                    image.ReadPixels(new Rect(0, 0, clip.width, clip.height), 0, 0);
+                    image.Apply();
+                    File.WriteAllBytes(Path.Combine(frames, $"frame_{f:0000}.png"), image.EncodeToPNG());
+                }
+            }
+            finally { RenderTexture.active = previous; camera.targetTexture = null; RenderTexture.ReleaseTemporary(target); Object.DestroyImmediate(image); }
+            string mp4 = gallery.PathFor(id + "-" + clip.mode + ".mp4");
+            if (CaptureOutput.EncodeClip(frames, clip.fps, mp4)) gallery.Add(mp4, id + " · " + clip.mode + " clip", "video", clip.width, clip.height);
         }
 
         // Frame the whole map so its bounding sphere fits the picture.

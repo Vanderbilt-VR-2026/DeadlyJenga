@@ -24,6 +24,11 @@ namespace DeadlyJenga.DevTools.Editor
     //     [-thumbColor 3]                   only this body colour index
     //     [-thumbOut C:/temp/hat.png]       write a single picture here instead of into the project
     //     [-thumbMissing]                   skip pictures that already exist
+    //     [-thumbClip orbit|arc|dolly|pan|crane]  also record a short MP4 per picture (best with -thumbItem; needs ffmpeg)
+    //     [-clipSeconds 4] [-clipFps 30]
+    //     [-thumbGallery C:/temp/folder]    gallery folder (default Logs/Captures/...)
+    //     [-open]                           open the gallery page in the browser afterwards
+    // Every run writes a gallery: manifest.json, contact-sheet.png and index.html.
     // Everything runs locally in Unity; nothing is uploaded or sent anywhere.
     [InitializeOnLoad]
     public static class WardrobeThumbnailRig
@@ -34,7 +39,7 @@ namespace DeadlyJenga.DevTools.Editor
         // Transparent by default so the wardrobe's own candy card shows behind the item.
         static readonly Color Backdrop = new Color(0, 0, 0, 0);
 
-        [Serializable] sealed class Request { public string item = "", output = ""; public int color = -1; public bool missingOnly, batch; }
+        [Serializable] sealed class Request { public string item = "", output = "", clip = "", gallery = ""; public int color = -1, fps = 30; public float seconds = 4; public bool missingOnly, batch, open; }
         [Serializable] sealed class Catalog { public AvatarAppearance[] skins, hair, headgear, eyewear, outfits, back, extras; }
         sealed class Job { public int slot; public AvatarAppearance entry; public int color; public string path; }
 
@@ -47,14 +52,16 @@ namespace DeadlyJenga.DevTools.Editor
         static RenderTexture target;
         static Texture2D pixels;
         static Color[] bodyColors;
+        static CaptureOutput galleryOut;
+        static Vector3 lastFocus;
 
         static WardrobeThumbnailRig() { EditorApplication.playModeStateChanged += OnPlayMode; }
 
         [MenuItem("Tools/Deadly Jenga/Wardrobe Thumbnails/Render All")]
-        static void RenderAll() => Start(new Request());
+        static void RenderAll() => Start(new Request { open = CaptureOutput.OpenByDefault });
 
         [MenuItem("Tools/Deadly Jenga/Wardrobe Thumbnails/Render Missing")]
-        static void RenderMissing() => Start(new Request { missingOnly = true });
+        static void RenderMissing() => Start(new Request { missingOnly = true, open = CaptureOutput.OpenByDefault });
 
         public static void Batch()
         {
@@ -62,6 +69,11 @@ namespace DeadlyJenga.DevTools.Editor
             string Arg(string name) { int i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
             var r = new Request { batch = true, missingOnly = args.Contains("-thumbMissing"), item = Arg("-thumbItem") ?? "", output = Arg("-thumbOut") ?? "" };
             if (int.TryParse(Arg("-thumbColor"), out int c)) r.color = c;
+            r.open = args.Contains("-open");
+            r.clip = (Arg("-thumbClip") ?? "").ToLowerInvariant();
+            r.gallery = Arg("-thumbGallery") ?? "";
+            if (float.TryParse(Arg("-clipSeconds"), out float sec)) r.seconds = Mathf.Clamp(sec, 1, 30);
+            if (int.TryParse(Arg("-clipFps"), out int fps)) r.fps = Mathf.Clamp(fps, 10, 60);
             Start(r);
         }
 
@@ -138,6 +150,9 @@ namespace DeadlyJenga.DevTools.Editor
             RenderSettings.ambientLight = new Color(.45f, .45f, .5f);
 
             jobs.Clear(); jobIndex = 0; written = 0; waitFrames = 0;
+            if (request.clip.Length > 0 && !CameraPath.Modes.Contains(request.clip)) throw new ArgumentException("Unknown clip " + request.clip);
+            galleryOut = new CaptureOutput("Wardrobe" + (request.item.Length > 0 ? " " + request.item.Replace('/', ' ') : ""),
+                request.gallery.Length > 0 ? request.gallery : null);
             var groups = new[] { catalog.skins, catalog.hair, catalog.headgear, catalog.eyewear, catalog.outfits, catalog.back, catalog.extras };
             string folder = ProjectFolder();
             for (int slot = 0; slot < groups.Length; slot++)
@@ -196,6 +211,9 @@ namespace DeadlyJenga.DevTools.Editor
                 Frame(job.slot);
                 Directory.CreateDirectory(Path.GetDirectoryName(job.path));
                 File.WriteAllBytes(job.path, Capture().EncodeToPNG());
+                string label = WardrobeThumbnailLibrary.Slots[job.slot] + " · " + WardrobeThumbnailLibrary.ItemKey(job.slot, job.entry) + (job.slot == 0 ? "" : " · colour " + job.color);
+                galleryOut.Add(job.path, label, "image", Size, Size);
+                if (request.clip.Length > 0) RecordClip(job, label);
                 written++;
                 jobIndex++;
                 if (jobIndex % 25 == 0) Debug.Log($"Wardrobe thumbnails: {jobIndex}/{jobs.Count}");
@@ -245,6 +263,7 @@ namespace DeadlyJenga.DevTools.Editor
             var rotation = Quaternion.Euler(pitch, 180f + yaw, 0);
             float radius = focus.extents.magnitude;
             float distance = radius / Mathf.Sin(camera.fieldOfView * .5f * Mathf.Deg2Rad) * (head ? 1.08f : .95f);
+            lastFocus = focus.center;
             camera.transform.position = focus.center - rotation * Vector3.forward * distance;
             camera.transform.rotation = rotation;
         }
@@ -260,9 +279,48 @@ namespace DeadlyJenga.DevTools.Editor
             return pixels;
         }
 
+        static void RecordClip(Job job, string label)
+        {
+            const int ClipSize = 720;
+            var start = camera.transform.position - lastFocus;
+            string name = Path.GetFileNameWithoutExtension(job.path) + "-" + request.clip;
+            string frames = galleryOut.PathFor(name + "-frames");
+            Directory.CreateDirectory(frames);
+            var rt = new RenderTexture(ClipSize, ClipSize, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
+            var image = new Texture2D(ClipSize, ClipSize, TextureFormat.RGB24, false);
+            var oldColor = camera.backgroundColor;
+            camera.backgroundColor = new Color(.11f, .08f, .19f, 1); // video has no transparency
+            int count = Mathf.Max(2, Mathf.RoundToInt(request.seconds * request.fps));
+            var previous = RenderTexture.active;
+            try
+            {
+                camera.targetTexture = rt;
+                for (int f = 0; f < count; f++)
+                {
+                    CameraPath.Evaluate(request.clip, f / (float)(count - 1), lastFocus, start.magnitude, start, out var position, out var rotation);
+                    camera.transform.SetPositionAndRotation(position, rotation);
+                    camera.Render();
+                    RenderTexture.active = rt;
+                    image.ReadPixels(new Rect(0, 0, ClipSize, ClipSize), 0, 0);
+                    image.Apply();
+                    File.WriteAllBytes(Path.Combine(frames, $"frame_{f:0000}.png"), image.EncodeToPNG());
+                }
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                camera.targetTexture = target;
+                camera.backgroundColor = oldColor;
+                rt.Release(); Object.Destroy(rt); Object.Destroy(image);
+            }
+            string mp4 = galleryOut.PathFor(name + ".mp4");
+            if (CaptureOutput.EncodeClip(frames, request.fps, mp4)) galleryOut.Add(mp4, label + " · " + request.clip + " clip", "video", ClipSize, ClipSize);
+        }
+
         static void Finish()
         {
             EditorApplication.update -= Tick;
+            galleryOut?.Finish(request.open);
             if (camera) camera.targetTexture = null;
             if (target) target.Release();
             EditorApplication.ExitPlaymode();
