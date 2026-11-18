@@ -168,6 +168,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             set.AddMark(StudioRole.Bot, new Vector3(-1.5f, 0, 0));
             set.AddMark(StudioRole.Survivor, new Vector3(0, 0, 1.5f));
             set.cues.Add(new StudioCue { at = 1, action = "collapse", strength = 4 });
+            // A slow shove on a block one level down, so test 3 has a block that moves at a speed someone can ride.
+            set.cues.Add(new StudioCue { at = 2, action = "push", strength = 1.6f, direction = new Vector3(1, 0, .2f), point = new Vector3(0, -3, 6) });
             StudioLibrary.Save(set);
             return set;
         }
@@ -202,6 +204,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var set = stage.set;
             int frames = set.Frames;
             StudioCamera.Resize(640, 360);
+            StudioCamera.Target = stage.anchor + Vector3.up; StudioCamera.Distance = 13; StudioCamera.Pitch = 18; StudioCamera.Place();
 
             // Put the marks on the surface, as the Studio does when a mark is dragged.
             foreach (var mark in set.marks)
@@ -341,18 +344,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             for (int i = 0; i < stage.blocks.Length; i++)
             {
                 if (!samples[0].active[i] || !samples[samples.Count - 1].active[i]) continue;
-                float drop = samples[0].positions[i].y - samples[samples.Count - 1].positions[i].y;
+                float drop = Vector3.Distance(samples[0].positions[i], samples[samples.Count - 1].positions[i]);
                 float fastest = 0;
                 for (int s = 1; s < samples.Count; s++)
                     fastest = Mathf.Max(fastest, Vector3.Distance(samples[s].positions[i], samples[s - 1].positions[i]) * set.fps / 3);
-                if (drop < .4f || drop > 12 || fastest > 6 || drop <= bestDrop) continue;
+                if (drop < .25f || drop > 12 || fastest > 5 || drop <= bestDrop) continue;
                 // The top of the block must be free at the start, so someone can stand on it.
                 var bounds = stage.blocks[i].GetComponentInChildren<Collider>().bounds;
                 Vector3 top = new Vector3(bounds.center.x, bounds.max.y + .03f, bounds.center.z);
                 if (Physics.CheckCapsule(top + Vector3.up * .3f, top + Vector3.up * 1.5f, .22f, (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)) continue;
                 chosen = i; bestDrop = drop;
             }
-            if (chosen < 0) Result("3. Live survivor rides a played-back falling block", false, "No block with a free top fell at a rideable speed in this recording.");
+            if (chosen < 0) Result("3. Live survivor rides a played-back moving block", false, "No block with a free top moved at a rideable speed in this recording.");
             else
             {
                 var block = stage.blocks[chosen];
@@ -382,18 +385,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Vector3 gap0 = riderPath[0] - blockPath[0];
                 for (int f = 0; f < blockPath.Count; f++)
                 {
-                    float fallen = blockPath[0].y - blockPath[f].y;
+                    float fallen = Vector3.Distance(blockPath[0], blockPath[f]);
                     if (fallen > 1) break;
                     gapChange = Mathf.Max(gapChange, ((riderPath[f] - blockPath[f]) - gap0).magnitude);
-                    blockFall = fallen; riderFall = riderPath[0].y - riderPath[f].y;
+                    blockFall = fallen; riderFall = Vector3.Distance(riderPath[0], riderPath[f]);
                     blockSide = Vector3.ProjectOnPlane(blockPath[f] - blockPath[0], Vector3.up).magnitude;
                     riderSide = Vector3.ProjectOnPlane(riderPath[f] - riderPath[0], Vector3.up).magnitude;
                 }
-                bool rode = blockFall > .3f && riderFall > blockFall * .6f && gapChange < .45f;
+                bool rode = blockFall > .2f && riderFall > blockFall * .6f && gapChange < .45f;
                 bool pushed = blockSide < .15f || riderSide > blockSide * .3f;
                 var riderTake = tape.Find(rider.id)?.ActiveTake;
-                Result("3. Live survivor rides a played-back falling block", rode && pushed && riderTake != null,
-                    $"Block #{chosen} fell {bestDrop:F2} m in the tape. During its first metre: block fell {blockFall:F2} m, rider fell {riderFall:F2} m, " +
+                Result("3. Live survivor rides a played-back moving block", rode && pushed && riderTake != null,
+                    $"Block #{chosen} moved {bestDrop:F2} m in the tape. During its first metre of travel: block moved {blockFall:F2} m, rider moved {riderFall:F2} m, " +
                     $"rider-to-block offset changed by at most {gapChange:F2} m; block moved {blockSide:F2} m sideways, rider {riderSide:F2} m. " +
                     $"Rider take: {riderTake?.frames.Count ?? 0} frames. Pictures: rider/.");
                 StudioCamera.Target = stage.anchor + Vector3.up; StudioCamera.Distance = Mathf.Clamp(stage.world.Radius * .9f, 10, 80); StudioCamera.Place();

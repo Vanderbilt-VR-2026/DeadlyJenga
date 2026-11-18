@@ -126,7 +126,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             public override void Show(int frame, bool running)
             {
-                if (!take.Covers(frame)) return;
+                if (!take.Covers(frame) || take.frames[frame - take.start].Length == 0) return;
                 using (var r = new BinaryReader(new MemoryStream(take.frames[frame - take.start])))
                 {
                     string json = r.ReadString();

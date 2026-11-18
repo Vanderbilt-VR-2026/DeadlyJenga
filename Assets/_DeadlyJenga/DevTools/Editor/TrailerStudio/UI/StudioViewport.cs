@@ -28,6 +28,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             painter.BeginPath(); painter.Arc(p, radius, 0, 360); painter.Fill();
         }
 
+        // A rectangle in viewport pixels (for box selection).
+        public void ScreenBox(Rect box, Color color)
+        {
+            painter.strokeColor = color; painter.lineWidth = 1.5f;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(box.xMin, box.yMin)); painter.LineTo(new Vector2(box.xMax, box.yMin));
+            painter.LineTo(new Vector2(box.xMax, box.yMax)); painter.LineTo(new Vector2(box.xMin, box.yMax));
+            painter.ClosePath(); painter.Stroke();
+        }
+
         public void Path(IReadOnlyList<Vector3> points, Color color, float width = 2)
         {
             for (int i = 1; i < points.Count; i++) Line(points[i - 1], points[i], color, width);
@@ -46,6 +56,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         readonly Dictionary<string, VisualElement> handles = new Dictionary<string, VisualElement>();
         VisualElement empty;
         string dragging;                  // mark id being dragged
+        IStudioViewportTool tool;
+        bool toolActive;
         bool orbiting, panning, moved;
         Vector2 last;
 
@@ -189,19 +201,31 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return true;
         }
 
-        Ray ToRay(Vector2 local)
+        public Ray ToRay(Vector2 local)
         {
             var rect = PictureRect();
             return Camera.ViewportPointToRay(new Vector3((local.x - rect.x) / rect.width, 1 - (local.y - rect.y) / rect.height, 0));
         }
 
-        bool Surface(Vector2 local, out Vector3 point)
+        public bool Surface(Vector2 local, out Vector3 point)
         {
             int mask = (1 << Layers.Block) | (1 << Layers.Surface) | 1;
             if (Physics.Raycast(ToRay(local), out var hit, 2000, mask, QueryTriggerInteraction.Ignore)) { point = hit.point; return true; }
             point = default;
             return false;
         }
+
+        // The block under a point of the picture, as an index into the map's block list (-1 = none).
+        public int BlockAt(Vector2 local)
+        {
+            var stage = context.Stage;
+            if (stage == null || !Camera) return -1;
+            if (!Physics.Raycast(ToRay(local), out var hit, 2000, 1 << Layers.Block, QueryTriggerInteraction.Ignore)) return -1;
+            var body = hit.rigidbody ? hit.rigidbody : hit.collider.GetComponentInParent<Rigidbody>();
+            return body ? System.Array.IndexOf(stage.blocks, body) : -1;
+        }
+
+        public VisualElement Host => host;
 
         StudioMark MarkAt(Vector2 local)
         {
@@ -225,6 +249,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             host.CapturePointer(e.pointerId);
             last = e.localPosition; moved = false;
             if (e.button != 0) { panning = true; return; }
+            // The current mode may have its own way of using the viewport (picking blocks, aiming arrows, placing cameras).
+            tool = context.window.Mode as IStudioViewportTool;
+            if (tool != null && StudioRun.State == StudioState.Held && tool.Down(e, this, context)) { toolActive = true; return; }
             if (Placing.HasValue && StudioRun.State == StudioState.Held)
             {
                 var role = Placing.Value; Placing = null;
@@ -252,6 +279,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Vector2 delta = (Vector2)e.localPosition - last;
             last = e.localPosition;
             if (delta.sqrMagnitude > 0) moved = true;
+            if (toolActive) { tool.Move(e, this, context); Tick(); return; }
             if (orbiting) StudioCamera.Orbit(delta.x * .35f, delta.y * .25f);
             else if (panning) StudioCamera.Pan(delta);
             else if (dragging != null)
@@ -279,6 +307,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         void Up(PointerUpEvent e)
         {
             if (host.HasPointerCapture(e.pointerId)) host.ReleasePointer(e.pointerId);
+            if (toolActive) { toolActive = false; tool.Up(e, this, context); orbiting = panning = false; return; }
             if (dragging != null)
             {
                 dragging = null;

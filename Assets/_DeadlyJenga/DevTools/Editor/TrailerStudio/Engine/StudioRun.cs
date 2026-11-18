@@ -31,6 +31,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool punchIn;              // keep the performer's old take up to 'from' and record from there
         public bool loop;                 // record again and again, a new take each time, until stopped
         public bool paths = true;         // draw the other actors' paths on the floor for the performer
+        public int branchFrom = -1;       // keep the world tape before this frame and simulate from it (-1 = start from a fresh map)
+        public string note = "";          // saved with the world take (branch and variation labels)
+        public int seed = -1;             // random seed for this run (-1 = the Set's seed)
     }
 
     // The Studio's engine. It opens a Set as a running scene ("the stage"), then records, plays and scrubs it.
@@ -230,6 +233,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Stage.RefreshBlocks();
             Stage.anchor = StudioStage.FindAnchor(world, set);
             ApplyStartState(Stage);
+            StudioEnvironment.Apply(set);
             Stage.tape = LoadOrCreateTape(set, Stage);
             StudioCast.Park(Stage);
             StudioCamera.Create(Stage);
@@ -264,6 +268,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             DisposePlayers();
             StudioCamera.Destroy();
             StudioDrivers.Destroy();
+            StudioEnvironment.Restore();
+            StudioDirector.End();
             RestoreClock();
             Stage = null;
             State = StudioState.Closed;

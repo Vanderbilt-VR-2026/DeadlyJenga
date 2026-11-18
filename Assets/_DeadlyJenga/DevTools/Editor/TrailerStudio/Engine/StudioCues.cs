@@ -61,8 +61,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public string Label => "Disaster";
         public string Run(StudioStage stage, StudioCue cue)
         {
-            if (!DemoDisasters.Execute(stage.session, cue.hazard)) throw new InvalidOperationException("The disaster did not start: " + cue.hazard);
-            return cue.hazard;
+            // A disaster's own settings (strength, size, speed, heading...) travel as a list of numbers, in the order it lists them.
+            var prefab = DemoDisasters.Prefabs.FirstOrDefault(p => p && p.name == cue.hazard);
+            int wanted = prefab ? DemoDisasters.Parameters(prefab).Count : 0;
+            float[] values = cue.values != null && cue.values.Length == wanted && wanted > 0 ? cue.values : null;
+            if (!DemoDisasters.Execute(stage.session, cue.hazard, values: values)) throw new InvalidOperationException("The disaster did not start: " + cue.hazard);
+            if (cue.duration > 0 && prefab)
+            {
+                // End it after the chosen time, without stopping other disasters.
+                var type = prefab.GetComponent<IHazard>()?.Type;
+                StudioDirector.At(StudioDirector.Now + cue.duration, () =>
+                {
+                    foreach (var hazard in stage.session.GetComponentsInChildren<MonoBehaviour>().OfType<IHazard>())
+                        if (hazard.Active && hazard.Type == type) hazard.End();
+                });
+            }
+            return cue.hazard + (values != null ? " with its own settings" : "") + (cue.duration > 0 ? $" for {cue.duration:0.#} s" : "");
         }
     }
 

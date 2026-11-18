@@ -80,9 +80,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (mapIds != null) return;
             mapIds = new List<string>(); mapNames = new List<string>();
-            var catalog = SpectatorRecordingPlan.Catalog();
+            // In Play Mode the game's own connection object can exist without a catalog, so read the asset directly.
+            var source = Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog");
+            if (!source) return;
+            var catalog = UnityEngine.Object.Instantiate(source);
             try
             {
+                catalog.EnsureModeMaps();
                 foreach (var map in catalog.maps.Where(SpectatorRecordingPlan.MapAvailable)) { mapIds.Add(map.id); mapNames.Add(map.title + "  (" + map.id + ")"); }
             }
             finally { UnityEngine.Object.DestroyImmediate(catalog); }
@@ -178,7 +182,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             startFrame.tooltip = "Tape frame of the other Set to start from. Use a large number for its last frame.";
             startFrame.SetEnabled(closed && !string.IsNullOrEmpty(set.startFromSet));
 
-            var sky = StudioUi.Hint("Time of day and weather: this game's maps have no time-of-day or weather control yet, so the Studio keeps each map's own look.");
+            // Time of day and weather: the Studio moves the scene's own sun and fog while the stage is open.
+            var ownTime = StudioFields.Switch(context, "Set time of day", set.timeOfDay >= 0, v => set.timeOfDay = v ? 12 : -1, true);
+            var hour = StudioFields.Slide(context, "Hour", Mathf.Max(0, set.timeOfDay), 0, 24, v => { set.timeOfDay = v; if (context.StageOpen) StudioEnvironment.Apply(set); });
+            hour.SetEnabled(set.timeOfDay >= 0);
+            var weather = StudioFields.Choice(context, "Weather", StudioEnvironment.Weathers, Mathf.Max(0, StudioEnvironment.Weathers.IndexOf(set.weather)),
+                i => set.weather = i <= 0 ? "" : StudioEnvironment.Weathers[i], true);
+            var sky = StudioUi.Hint("The Studio moves the map's sun and fog itself. A sky that paints its own sun or clouds will not follow, and water level cannot be changed.");
             panel.Add(StudioUi.Advanced(
                 start, startFrame,
                 StudioFields.Whole(context, "Random seed", set.seed, v => set.seed = v),
@@ -186,7 +196,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 StudioFields.Switch(context, "Fixed stage spot", set.useMapAnchor, v => set.useMapAnchor = v),
                 StudioFields.Point(context, "Spot from map centre", set.mapAnchor, v => set.mapAnchor = v),
                 StudioFields.Point(context, "Stage nudge", set.stageOffset, v => set.stageOffset = v),
-                sky));
+                ownTime, hour, weather, sky));
         }
     }
 
@@ -270,7 +280,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 panel.Add(StudioFields.Slide(context, "Speed", cue.strength, 1, 30, v => cue.strength = v));
                 panel.Add(StudioUi.Hint("Height 0 lets the Studio pick a wave that reaches the stage."));
             }
-            panel.Add(StudioUi.Hint("Cues run when the world is recorded live. Record the whole Set again after changing one."));
+            DirectCueFields.Add(panel, cue, context);
+            panel.Add(StudioUi.Hint("Cues run when the world is recorded live. Record the world again, or branch, after changing one."));
             panel.Add(StudioUi.Small("Delete cue", () =>
             {
                 context.Edit("Delete cue", () => set.cues.Remove(cue));

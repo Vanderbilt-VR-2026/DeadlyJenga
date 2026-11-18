@@ -35,6 +35,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             switch (suite)
             {
                 case "Phase2": return Phase2Tests();
+                case "Phase3": return Phase3Tests();
                 default: throw new InvalidOperationException("There is no test suite called " + suite);
             }
         }

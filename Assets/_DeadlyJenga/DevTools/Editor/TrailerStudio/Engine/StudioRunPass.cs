@@ -93,6 +93,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (State != StudioState.Held || Stage == null) return;
             foreach (var type in StudioTrackTypes.All) type.EnsureTracks(Stage.set, Stage.tape);
+            StudioEnvironment.Apply(Stage.set);
             Hold(Frame);
         }
 
@@ -247,7 +248,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 SetClock(stage.Fps, !MustBeRealTime, 1);
 
                 StudioTake oldWorld = stage.tape.FindType(WorldTrack.Id)?.ActiveTake;
-                if (pass.liveWorld)
+                bool branch = pass.liveWorld && pass.branchFrom > 0 && oldWorld != null && oldWorld.Covers(pass.branchFrom) && oldWorld.Covers(pass.branchFrom - 1);
+                if (branch)
+                {
+                    // Branch: the tape stays as it is before this frame; physics takes over from the tape's pose and speed.
+                    pass.from = pass.branchFrom; pass.preRoll = 0; pass.punchIn = false;
+                    DemoDisasters.StopAll(stage.session);
+                    StudioBranch.StartFromTape(stage, oldWorld, pass.branchFrom);
+                    UnityEngine.Random.InitState(pass.seed >= 0 ? pass.seed : set.seed);
+                }
+                else if (pass.liveWorld)
                 {
                     // A fresh map, so every take of the world starts from the same blocks.
                     DemoDisasters.StopAll(stage.session);
@@ -259,7 +269,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     SetWorldKinematic(false);
                     ApplyStartState(stage);
                     StudioCast.Park(stage);
-                    UnityEngine.Random.InitState(set.seed);
+                    UnityEngine.Random.InitState(pass.seed >= 0 ? pass.seed : set.seed);
                     for (int n = 0; n < Mathf.CeilToInt(set.warmup * set.fps); n++) yield return 0;
                 }
 
@@ -274,7 +284,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 else if (stage.performer.Length > 0) StudioCast.LeaveBody(stage);
                 stage.recording = true;
                 stage.physicalPlayback = !pass.liveWorld && stage.live.Count > 0;
-                BuildPlayers(pass.record, true);
+                BuildPlayers(pass.record, !branch);
                 StudioPaths.Show(stage, pass);
 
                 // Punch-in: follow the performer's old take up to the punch frame, then hand over control.
@@ -320,7 +330,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         take = new StudioTake { start = pass.from, keyEvery = recorder.KeyEvery } });
                 }
                 pendingCues.Clear();
-                if (pass.liveWorld) pendingCues.AddRange(set.cues.Where(c => c.at >= startFrame / (float)stage.Fps - .0001f).OrderBy(c => c.at));
+                // Cues that wait for another cue (chain reactions) are started by the director, not by the clock.
+                if (pass.liveWorld) pendingCues.AddRange(set.cues.Where(c => string.IsNullOrEmpty(c.link) && c.at >= startFrame / (float)stage.Fps - .0001f).OrderBy(c => c.at));
+                StudioDirector.Begin(stage, startFrame / (float)stage.Fps);
 
                 Begin(startFrame, to, clock, pass.speed, null);
                 recordFrom = pass.from; capturedTo = pass.from - 1;
@@ -334,14 +346,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Recording = false;
                 int kept = 0;
                 StudioTake newWorld = null;
+                long stamp = DateTime.UtcNow.Ticks;   // every take of this pass carries the same time, so they can be switched together
                 foreach (var active in recorders)
                 {
                     if (active.take.frames.Count == 0) continue;
                     var take = active.take;
                     take.meta = active.recorder.Meta;
+                    if (branch) StudioBranch.KeepEarlierFrames(active.track, take, pass);
                     bool actor = active.track.type == SurvivorTrack.Id || active.track.type == HandTrack.Id;
                     if (actor && leadTake != null && active.track.id == pass.performer)
                         StudioTakes.JoinAfterPunch(active.track.type, leadTake, take, Mathf.RoundToInt(JoinBlendSeconds * stage.Fps));
+                    take.created = stamp;
                     take.name = "Take " + (active.track.takes.Count + 1);
                     active.track.takes.Add(take);
                     active.track.active = active.track.takes.Count - 1;
@@ -358,6 +373,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (newWorld != null) StudioTakes.MarkStale(stage.tape, newWorld, stage.Fps, recorders.Select(r => r.track.id).ToList());
                 DisposeRecorders();
                 if (pass.liveWorld) DemoDisasters.StopAll(stage.session);
+                StudioDirector.End();
+                if (newWorld != null) StudioBranch.Describe(stage, newWorld, oldWorld, pass, branch);
                 StudioCast.ClearLive(stage);
                 stage.tape.header.frames = stage.Frames;
                 SaveTape();
@@ -433,6 +450,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (!running || runStart < 0 || Stage == null) return;
             float time = firstFrame / (float)Stage.Fps + (Time.fixedTime - runStart);
             foreach (var player in players) player.FixedStep(time);
+            if (Recording && currentPass != null && currentPass.liveWorld) StudioDirector.FixedTick(Stage, CueLog);
         }
 
         internal static void FrameStart()
@@ -448,7 +466,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 var cue = pendingCues[0];
                 pendingCues.RemoveAt(0);
+                StudioDirector.Tick(Stage, time, CueLog);   // the director's clock must be at this cue's time
                 CueLog.Add($"{time:F3}s {StudioCues.Run(Stage, cue)}");
+                StudioDirector.Triggered(Stage, cue, CueLog);
+            }
+            if (Recording && currentPass != null)
+            {
+                if (currentPass.liveWorld) StudioDirector.Tick(Stage, time, CueLog);
+                // Slow-time cues: only while performing in real time (a fixed clock has no speed to change).
+                if (!fixedClock) Time.timeScale = Mathf.Clamp(currentPass.speed, .05f, 4) * StudioDirector.SlowFactor(time);
             }
             ShowFrame(Frame, true);
             StudioCast.SimulateStandIns(Stage);
@@ -472,7 +498,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     foreach (var active in recorders)
                     {
                         int index = frame - active.take.start;
-                        active.take.frames.Add(active.recorder.Capture(frame, index % active.take.keyEvery == 0));
+                        active.take.frames.Add(active.recorder.Capture(frame, index == 0 || frame % active.take.keyEvery == 0));
                     }
                 capturedTo = Frame;
             }

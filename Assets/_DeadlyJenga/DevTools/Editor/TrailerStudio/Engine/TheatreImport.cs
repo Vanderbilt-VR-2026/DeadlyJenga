@@ -117,7 +117,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         Vector3 position = NetWire.ReadVector(r);
                         encoder.Set(b, WorldTrack.Active, position, NetWire.ReadRotation(r));
                     }
-                    world.frames.Add(encoder.Frame(frame % world.keyEvery == 0));
+                    world.frames.Add(encoder.Frame(frame % world.keyEvery == 0));   // take starts at tape frame 0
                     for (int i = 0; i < cast; i++)
                     {
                         CharacterWire.ReadSurvivor(r, out CandyAvatarFrame pose, out int color);

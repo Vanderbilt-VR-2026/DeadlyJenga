@@ -32,6 +32,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float strength = 9, heading, height;
         public Vector3 point;             // metres from the stage anchor, for cues that are aimed
         public bool optional, lethal;
+        // Phase 3: directing the world.
+        public List<int> blocks = new List<int>();   // which blocks an aimed cue acts on (index in the map's block list)
+        public Vector3 direction = Vector3.right;    // which way a push goes
+        public float spin;                // turns per second given to pushed blocks
+        public float duration;            // how long a disaster, guide or slow-time range lasts (0 = until it ends by itself)
+        public float ripple;              // seconds of delay per metre from the first block, for a wave of pushes
+        public string link = "";          // id of the cue that sets this one off (empty = it runs at its own time)
+        public bool linkOnHit;            // true = runs when the linked cue's first block hits something
+        public float radius = 3;          // reach of a guide, in metres
+        public float[] values = new float[0];   // a disaster's own settings, in the order the disaster lists them
+        public float jitter;              // set by variation runs: this cue's strength is multiplied by (1 + jitter)
     }
 
     // A camera shot. Phase 1 only keeps these (imported from Theatre); Phase 5 edits them.

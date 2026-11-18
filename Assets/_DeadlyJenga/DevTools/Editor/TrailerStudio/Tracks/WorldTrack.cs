@@ -122,6 +122,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return -1;
         }
 
+        // Where every block is on one tape frame of a take (decoded from the take's start). active[i] is false for hidden or lost blocks.
+        public static bool Positions(StudioTake take, int frame, out Vector3[] positions, out bool[] active)
+        {
+            int blocks = string.IsNullOrEmpty(take.meta) ? 0 : JsonUtility.FromJson<TakeMeta>(take.meta)?.blocks ?? 0;
+            positions = new Vector3[blocks]; active = new bool[blocks];
+            if (blocks == 0 || take.frames.Count == 0) return false;
+            var state = new Sample[blocks];
+            int last = Mathf.Clamp(frame, take.start, take.End - 1) - take.start;
+            for (int i = 0; i <= last; i++) if (take.frames[i] != null && take.frames[i].Length > 0) DecodeInto(take.frames[i], state);
+            for (int i = 0; i < blocks; i++) { active[i] = (state[i].flags & Active) != 0; positions[i] = state[i].Position; }
+            return true;
+        }
+
         static void DecodeInto(byte[] frame, Sample[] state)
         {
             using (var r = new BinaryReader(new MemoryStream(frame)))
@@ -189,7 +202,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (index != decoded + 1 || decoded < 0)
                 {
                     // Jump: start from the key frame at or before the wanted one.
-                    int key = index - index % Mathf.Max(1, take.keyEvery);
+                    // Key frames sit on whole multiples of keyEvery in tape frames (and on the take's first frame).
+                    int tapeFrame = take.start + index;
+                    int key = Mathf.Max(0, tapeFrame - tapeFrame % Mathf.Max(1, take.keyEvery) - take.start);
                     decoded = -1; hasBefore = false;
                     for (int i = key; i < index; i++) Decode(i);
                 }

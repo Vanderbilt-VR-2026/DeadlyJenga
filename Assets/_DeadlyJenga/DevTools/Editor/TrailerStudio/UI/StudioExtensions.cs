@@ -22,6 +22,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         bool TryGetRecord(StudioContext context, out string label, out Action start);
     }
 
+    // A mode can also implement this to use the viewport its own way (pick blocks, aim arrows, place cameras).
+    // Down returns true to take the drag; otherwise the viewport does its usual orbit and mark dragging.
+    public interface IStudioViewportTool
+    {
+        bool Down(PointerDownEvent e, StudioViewport viewport, StudioContext context);
+        void Move(PointerMoveEvent e, StudioViewport viewport, StudioContext context);
+        void Up(PointerUpEvent e, StudioViewport viewport, StudioContext context);
+    }
+
     // The settings shown for the selected thing (a mark, a cue, a track...).
     public interface IStudioInspector
     {
