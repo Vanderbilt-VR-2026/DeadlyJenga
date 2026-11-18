@@ -1,6 +1,6 @@
 # Phase 3 results: world direction
 
-Run through the coordinator: job `4309fa48` on commit `3c323f74`, batch
+Run through the coordinator: job `8ea4a2a3` on commit `a9df875d` (first passed as job `4309fa48` on `3c323f74`; the numbers below are from that run, the linked report is the latest), batch
 editor, map `sparse-viaduct-study`. Method
 `StudioAcceptance.RunPhase3`. Full report: [evidence/phase3/report.md](evidence/phase3/report.md).
 

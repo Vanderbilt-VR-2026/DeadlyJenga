@@ -1,6 +1,6 @@
 # Phase 4 results: performance polish
 
-Run through the coordinator: job `6ee21374` on commit `3c323f74`, batch
+Run through the coordinator: job `5e281a94` on commit `a9df875d` (first passed as job `6ee21374` on `3c323f74`; the numbers below are from that run, the linked report is the latest), batch
 editor, map `sparse-viaduct-study`. Method
 `StudioAcceptance.RunPhase4`. Full report: [evidence/phase4/report.md](evidence/phase4/report.md).
 
@@ -21,9 +21,6 @@ slowing the take slows the steps with it. Someone should watch
 a retimed walk and judge it by eye.
 
 ## Not covered
-- The crowd run was on `3c323f74`. The later change that keeps crowd
-  members on ground (`04d5aca3`) has compiled and is covered by the same
-  test, but that test has not been rerun since.
 - Nothing here was seen in a headset.
 
 ## Look at

@@ -8,7 +8,7 @@ Nothing is merged. This file is the handoff record AGENTS.md asks for.
 | Source branch | `claude/trailer-studio-a` on `origin` (Vanderbilt-VR-2026/DeadlyJenga) |
 | Target branch | `Evan_Sprint_4` (not merged; merges cleanly with `25e76440`, checked with `git merge-tree`) |
 | Base | `73339768bafdba50b5e42d9e7ced5e7c1c87a3e0` |
-| Candidate | CANDIDATE_SHA |
+| Candidate | Code: `a9df875d6246ab4d359dbf678c877621aac8c4b6` (every test below ran on it). The branch tip adds documentation only. |
 | Scope | DevTools (editor + runtime `TrailerStudio` folders), two small cross-box commits, docs under `Docs/Development/TrailerStudio/` |
 | Depends on | nothing outside this branch |
 | Approval | none yet. Evan pre-approved cross-box changes in the builder prompt; each is still his to keep or drop. |
@@ -38,7 +38,20 @@ added. No scene or prefab saved.
 
 ## Test results (actual, through the coordinator)
 
-RESULTS_TABLE
+All suites were run on the same code commit, `a9df875d`, each as its own
+coordinator job in a batch editor (owner `claude-builder-prompt`).
+
+| Suite | Job | Result | Honest caveats |
+|-------|-----|--------|----------------|
+| Phase 1 | `a8ee9313` | 0 failures | The "rides a moving block" test passes because playback matches the live game, but in both the survivor was **not** carried by the sliding block. See `PHASE-1-results.md`. |
+| Phase 2 | `8f98160f` | 0 failures | Headset test covered only as data and wrist-panel logic, no XR session. Scripted performer never climbed. |
+| Phase 3 | `8ea4a2a3` | 0 failures | Tornado particles are not replayed exactly; blocks and hazard state are. |
+| Phase 4 | `5e281a94` | 0 failures | The foot-slide number follows body speed; it does not prove planted feet stay still. |
+| Phase 5 | `3acc1d19` | 0 failures | Handheld camera fed by script, not a controller. FCPXML not opened in Resolve. **Open defect:** recorded sound has music only; impact sounds are missing. See `PHASE-5-results.md`. |
+| Window tour | `20f26f19` on `957f70f4` | 0 failures | Interactive editor, scripted. UI code is unchanged between `957f70f4` and `a9df875d` (only test files changed). |
+
+Read a job with `coordinator.py job --owner claude-builder-prompt --id <id>`;
+its Unity log is under the pool's `runs/<id>/`.
 
 Per-phase detail: `PHASE-1-results.md` to `PHASE-5-results.md`. Pictures and
 reports: `evidence/`.
@@ -73,7 +86,9 @@ or eye direction in Phase 4.
 
 Things I would check first, because I am least sure of them:
 1. `Tracks/WorldTrack.cs` physical playback (`FixedStep`) and the rider
-   result in `PHASE-1-results.md`.
+   finding in `PHASE-1-results.md`: why is a standing survivor not carried
+   by a sliding block, live or in playback?
+   Also the missing impact sounds in `PHASE-5-results.md`.
 2. `Engine/StudioRunPass.cs` `RecordRoutine`: punch-in, branch and stale
    marking share one routine and it is the longest method in the Studio.
 3. The two cross-box commits: is anything in multiplayer affected?
