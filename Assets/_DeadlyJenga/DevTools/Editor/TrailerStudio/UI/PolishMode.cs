@@ -148,9 +148,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             // Layers
             panel.Add(StudioUi.Heading("LAYERS ON TOP"));
-            float now = context.Frame / (float)fps;
             panel.Add(StudioUi.Big("+  Add a layer at " + StudioUi.Time(context.Frame, fps), () =>
             {
+                // The playhead at the moment of the click (scrubbing does not rebuild this panel).
+                float now = context.Frame / (float)fps;
                 var menu = new GenericMenu();
                 for (int i = 0; i < StudioOverrides.Kinds.Count; i++)
                 {
