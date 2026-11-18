@@ -102,7 +102,6 @@ stack("Right Summit", 25.6, 9.8, [
     ("Sapphire Crown", 6.4, 4.6, 6.2, "navy", 1.2, 1.4)], turn=4)
 L.add("Right Stair / Low Green", 21.4, -13.4, 7.0, 3.0, 6.0, "green", "ivory", turn=-8)
 L.add("Right Stair / Cream One", 29.6, -5.0, 6.4, 5.6, 6.4, "cream", "gold", turn=3)
-L.add("Right Stair / Cream Two", 15.8, 9.0, 4.4, 11.6, 7.0, "cream", "berry", turn=-3)
 L.add("Bridge Terrace / Right Cream", 22.6, BZ, 8.0, 3.0, 7.6, "cream", "gold", turn=2, on="Gift Bridge / Navy Span")
 stack("Right Terrace", 53.0, 2.0, [
     ("Ruby Foundation", 8.0, 7.6, 10.0, "red", 0, 0),
@@ -118,9 +117,6 @@ L.add("Right Foot / Cream Rear", 43.0, 27.4, 6.4, 3.0, 5.6, "cream", "gold", tur
 L.add("Courtyard / Ruby Hop", -12.0, -14.6, 6.4, 3.4, 5.4, "red", "gold", turn=10)
 L.add("Courtyard / Green Hop", 6.0, -16.0, 7.6, 2.4, 5.0, "green", "gold", turn=-7)
 L.add("Courtyard / Cream Hop", 13.6, -9.6, 5.0, 4.6, 4.6, "cream", "berry", turn=14)
-L.add("Courtyard / Navy Hop", -8.0, 9.0, 7.0, 3.0, 6.0, "navy", "ivory", turn=-9)
-L.add("Courtyard / Ruby Rear", 6.6, 12.0, 6.0, 5.0, 5.6, "red", "ivory", turn=6)
-L.add("Courtyard / Green Rear", -1.0, 17.6, 6.6, 2.6, 5.0, "green", "gold", turn=-4)
 back = [(-21.0, 39.0, 7.0, 5.6, 6.0, "red", 6), (-13.0, 40.6, 7.4, 4.0, 6.0, "green", -4),
         (-5.0, 41.0, 6.4, 6.6, 6.0, "red", 3), (2.6, 41.0, 7.0, 4.4, 6.0, "cream", -5),
         (10.6, 39.6, 6.6, 5.4, 6.0, "navy", 4), (-31.5, 33.4, 6.0, 3.6, 5.6, "cream", 30)]
@@ -131,10 +127,27 @@ L.add("Back Row / Top Cream", 2.8, 41.0, 4.6, 3.0, 4.4, "cream", "berry", turn=-
 
 # --- 6. Front apron: the low gifts players start from --------------------------------------
 L.add("Entrance / Cream Catch", 9.0, -40.6, 9.0, 2.2, 6.0, "cream", "berry", turn=-6)
-L.add("Entrance / Ruby Step", 13.6, -41.0, 6.0, 2.2, 4.6, "red", "gold", turn=4, on="Entrance / Cream Catch")
 L.add("Entrance / Green Step", -0.6, -43.0, 5.6, 3.0, 4.4, "green", "ivory", turn=12)
 L.add("Entrance / Navy Step", -20.0, -39.0, 6.6, 3.4, 5.0, "navy", "ivory", turn=22)
-L.add("Entrance / Cream Side", 29.0, -34.6, 6.4, 4.0, 5.0, "cream", "gold", turn=-30)
+
+# --- 7. Big presents the toy buildings stand on (see the toy layout) ---------------------
+# Doll mansion: outside the front-right of the loop, on a wide present joined to the track
+# present there, at track height, so the mansion's open side looks onto the passing train.
+r14 = L.by_name["Rail Gift 14"]
+t = math.radians(r14["turn"])
+out = (math.cos(t), -math.sin(t))
+if out[0] * r14["x"] + out[1] * r14["z"] < 0:
+    out = (-out[0], -out[1])
+MANSION_ACROSS, MANSION_ALONG = 21.3, 26.0
+reach = 3.8 + .25 + MANSION_ACROSS / 2
+L.add("Mansion Deck", r14["x"] + out[0] * reach, r14["z"] + out[1] * reach, MANSION_ACROSS, BED_H,
+      MANSION_ALONG, "cream", "gold", turn=r14["turn"], bow=False)
+# Superhero base: inside the loop beside the north track present, open side facing the track.
+# Lower than the track so the base's tower stays under the tree's lowest branches.
+HERO_ACROSS, HERO_ALONG = 18.0, 25.0
+r4 = L.by_name["Rail Gift 4"]
+L.add("Hero Deck", r4["x"] - .8, r4["z"] - 3.8 - 2.5 - HERO_ACROSS / 2, HERO_ALONG, 3.0, HERO_ACROSS,
+      "navy", "gold", bow=False)
 
 props = [
     dict(name="trunk", x=20.5, z=39.8, y=0, w=9, d=9, h=30, rgb=(.25, .13, .06)),

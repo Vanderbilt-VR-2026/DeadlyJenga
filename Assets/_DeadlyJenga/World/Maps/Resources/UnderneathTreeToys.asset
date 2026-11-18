@@ -94,9 +94,9 @@ MonoBehaviour:
     turn: 24
     size: 1
   - toy: {fileID: 2323369708668659240, guid: 0acb41f271079a645888c340cec2474b, type: 3}
-    onGift: Courtyard / Ruby Rear
+    onGift: Courtyard / Green Hop
     spot: {x: 0, y: 0}
-    turn: 288
+    turn: 200
     size: 1
   - toy: {fileID: 7403626382996524768, guid: 75b26686067064a4c8fd5373f6aaec36, type: 3}
     onGift: Gift Bridge / Navy Span
@@ -119,9 +119,9 @@ MonoBehaviour:
     turn: 201
     size: 1
   - toy: {fileID: 2960294657127619358, guid: 2d6083e43da99c341b2e7f984d2e63d5, type: 3}
-    onGift: Courtyard / Green Rear
+    onGift: Right Stair / Cream One
     spot: {x: 0, y: 0}
-    turn: 138
+    turn: 150
     size: 1
   - toy: {fileID: 6164360786163205444, guid: d6631bbe70fecb948af64aa85a476ebd, type: 3}
     onGift: Left Foot / Cream Side
@@ -129,12 +129,12 @@ MonoBehaviour:
     turn: 8
     size: 1
   - toy: {fileID: 1602188058459572555, guid: 42231d3e9ec24754985357d0c866b6cc, type: 3}
-    onGift: Entrance / Cream Side
-    spot: {x: 0, y: 0}
+    onGift: Mansion Deck
+    spot: {x: -8.8, y: -10}
     turn: 353
     size: 1
   - toy: {fileID: 649518479217282165, guid: 82f6416b073efe1459a9cd02e6c535a7, type: 3}
-    onGift: Right Stair / Cream Two
+    onGift: Courtyard / Cream Hop
     spot: {x: 0, y: 0}
     turn: 272
     size: 1
@@ -149,8 +149,8 @@ MonoBehaviour:
     turn: 254
     size: 1
   - toy: {fileID: 2388935080759976299, guid: 74ab777f3abd30042ba0fc40503dea33, type: 3}
-    onGift: Entrance / Ruby Step
-    spot: {x: 0, y: 0}
+    onGift: Mansion Deck
+    spot: {x: -8.8, y: 10}
     turn: 326
     size: 1
   - toy: {fileID: 3098899839952779867, guid: c848d9be2ca8b7c4db6e8b13884d5176, type: 3}
@@ -180,7 +180,7 @@ MonoBehaviour:
     size: 1
   - toy: {fileID: 7702402830450647701, guid: 83c6501f75dfff447b773872ecf31c5f, type: 3}
     onGift: 
-    spot: {x: 36, y: -38}
+    spot: {x: -30, y: -50}
     turn: 306
     size: 1
   - toy: {fileID: 2323369708668659240, guid: 0acb41f271079a645888c340cec2474b, type: 3}
@@ -199,12 +199,12 @@ MonoBehaviour:
     turn: 90
     size: 1
   - toy: {fileID: 750279764824631886, guid: 91a0d6c9b53ad1648b249d3037dc94b3, type: 3}
-    onGift: 
-    spot: {x: 20.53, y: -64.21}
+    onGift: Hero Deck
+    spot: {x: 0, y: -0.5}
     turn: 0
     size: 1
   - toy: {fileID: 559965727098735266, guid: 3f4d9b69a3042ca43958e263b5d3e316, type: 3}
-    onGift: 
-    spot: {x: 57.37, y: -64.21}
-    turn: 0
+    onGift: Mansion Deck
+    spot: {x: 1.5, y: 0}
+    turn: 270
     size: 1

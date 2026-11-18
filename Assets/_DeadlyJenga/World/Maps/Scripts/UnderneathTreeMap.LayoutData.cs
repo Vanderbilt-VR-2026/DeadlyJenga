@@ -86,7 +86,6 @@ namespace DeadlyJenga.CastlePrototype
             new GiftSpec("Right Summit / Sapphire Crown", 26.8f, 11.2f, 17.4f, 6.4f, 4.6f, 6.2f, 1.491f, "navy", "ivory", on: "Right Summit / Ruby Perch"),
             new GiftSpec("Right Stair / Low Green", 21.4f, -13.4f, 0f, 7f, 3f, 6f, -8f, "green", "ivory"),
             new GiftSpec("Right Stair / Cream One", 29.6f, -5f, 0f, 6.4f, 5.6f, 6.4f, 3f, "cream", "gold"),
-            new GiftSpec("Right Stair / Cream Two", 15.8f, 9f, 0f, 4.4f, 11.6f, 7f, -3f, "cream", "berry"),
             new GiftSpec("Bridge Terrace / Right Cream", 22.6f, -3f, 11.8f, 8f, 3f, 7.6f, 2f, "cream", "gold", on: "Gift Bridge / Navy Span"),
             new GiftSpec("Right Terrace / Ruby Foundation", 53f, 2f, 0f, 8f, 7.6f, 10f, -1.849f, "red", "ivory"),
             new GiftSpec("Right Terrace / Emerald Shelf", 53f, 2.6f, 7.6f, 7f, 4.6f, 8f, -0.623f, "green", "ivory", on: "Right Terrace / Ruby Foundation"),
@@ -99,9 +98,6 @@ namespace DeadlyJenga.CastlePrototype
             new GiftSpec("Courtyard / Ruby Hop", -12f, -14.6f, 0f, 6.4f, 3.4f, 5.4f, 10f, "red", "gold"),
             new GiftSpec("Courtyard / Green Hop", 6f, -16f, 0f, 7.6f, 2.4f, 5f, -7f, "green", "gold"),
             new GiftSpec("Courtyard / Cream Hop", 13.6f, -9.6f, 0f, 5f, 4.6f, 4.6f, 14f, "cream", "berry"),
-            new GiftSpec("Courtyard / Navy Hop", -8f, 9f, 0f, 7f, 3f, 6f, -9f, "navy", "ivory"),
-            new GiftSpec("Courtyard / Ruby Rear", 6.6f, 12f, 0f, 6f, 5f, 5.6f, 6f, "red", "ivory"),
-            new GiftSpec("Courtyard / Green Rear", -1f, 17.6f, 0f, 6.6f, 2.6f, 5f, -4f, "green", "gold"),
             new GiftSpec("Back Row / Gift 1", -21f, 39f, 0f, 7f, 5.6f, 6f, 6f, "red", "gold"),
             new GiftSpec("Back Row / Gift 2", -13f, 40.6f, 0f, 7.4f, 4f, 6f, -4f, "green", "ivory"),
             new GiftSpec("Back Row / Gift 3", -5f, 41f, 0f, 6.4f, 6.6f, 6f, 3f, "red", "gold"),
@@ -111,10 +107,10 @@ namespace DeadlyJenga.CastlePrototype
             new GiftSpec("Back Row / Top Green", -12.6f, 40.6f, 4f, 5f, 3.4f, 4.6f, 8f, "green", "gold", on: "Back Row / Gift 2"),
             new GiftSpec("Back Row / Top Cream", 2.8f, 41f, 4.4f, 4.6f, 3f, 4.4f, -10f, "cream", "berry", on: "Back Row / Gift 4"),
             new GiftSpec("Entrance / Cream Catch", 9f, -40.6f, 0f, 9f, 2.2f, 6f, -6f, "cream", "berry"),
-            new GiftSpec("Entrance / Ruby Step", 13.6f, -41f, 2.2f, 6f, 2.2f, 4.6f, 4f, "red", "gold", on: "Entrance / Cream Catch"),
             new GiftSpec("Entrance / Green Step", -0.6f, -43f, 0f, 5.6f, 3f, 4.4f, 12f, "green", "ivory"),
             new GiftSpec("Entrance / Navy Step", -20f, -39f, 0f, 6.6f, 3.4f, 5f, 22f, "navy", "ivory"),
-            new GiftSpec("Entrance / Cream Side", 29f, -34.6f, 0f, 6.4f, 4f, 5f, -30f, "cream", "gold"),
+            new GiftSpec("Mansion Deck", 29.356f, -39.223f, 0f, 21.3f, 6.15f, 26f, 62.052f, "cream", "gold"),
+            new GiftSpec("Hero Deck", 5.868f, 15.165f, 0f, 25f, 3f, 18f, 0f, "navy", "gold"),
         };
 
         // Centre line of the rails, one point per rung.
