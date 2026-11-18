@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using DeadlyJenga.Core;
 using UnityEngine;
 
@@ -85,50 +86,91 @@ namespace DeadlyJenga.CastlePrototype
                 WarnIfClipping(toy, support);
         }
 
+        readonly List<ToyHold> toyHolds = new List<ToyHold>();
+
+        // A part of a set and the parts under it. It drops once what is left no longer holds its middle.
+        sealed class ToyHold
+        {
+            public UnderneathTreeGiftPanel load;
+            public Vector2 centre;
+            public readonly List<UnderneathTreeGiftPanel> under = new List<UnderneathTreeGiftPanel>();
+            public readonly List<Rect> areas = new List<Rect>();
+            readonly List<Rect> left = new List<Rect>();
+
+            public void Check()
+            {
+                if (!load || load.IsLoose)
+                    return;
+                left.Clear();
+                for (int i = 0; i < under.Count; i++)
+                    if (under[i] && under[i].gameObject.activeInHierarchy && !under[i].IsLoose)
+                        left.Add(areas[i]);
+                if (left.Count < areas.Count && !UnderneathTreeToy.StillHeld(centre, left))
+                    load.Push(Vector3.down * 1.5f, null);
+            }
+        }
+
         // Every part of a set is its own body in one shell: a hard hit or losing a ground-floor part
         // brings the whole set down, and parts resting on others drop when those go.
-        void RegisterToySet(UnderneathTreeToy toy, System.Collections.Generic.List<Transform> pieces,
+        // The parts are stacked first (Settle), so floors can change size or thickness in the model
+        // without the set bursting apart or floating.
+        void RegisterToySet(UnderneathTreeToy toy, List<Transform> pieces,
             UnderneathTreeGiftPanel support, float oldBottom)
         {
+            var settled = toy.Settle(pieces);
+            toy.IgnoreOverlaps(pieces);
             var shell = new UnderneathTreeGiftShell();
-            float floor = float.MaxValue;
-            foreach (var piece in pieces)
-                if (piece.TryGetComponent<Collider>(out var shape))
-                    floor = Mathf.Min(floor, shape.bounds.min.y);
-            var registered = new System.Collections.Generic.List<UnderneathTreeGiftPanel>();
-            foreach (var piece in pieces)
+            var panelOf = new Dictionary<Transform, UnderneathTreeGiftPanel>();
+            var registered = new List<Rigidbody>();
+            foreach (var part in settled)
             {
-                if (!piece.TryGetComponent<Collider>(out var shape))
+                if (!part.piece.TryGetComponent<Collider>(out var shape))
                     continue;
                 var box = shape.bounds;
-                bool ground = box.min.y < floor + .3f;
-                RegisterPanel(piece.gameObject, piece, shell, ground ? GiftPieceRole.Base : GiftPieceRole.Wall,
+                RegisterPanel(part.piece.gameObject, part.piece, shell,
+                    part.onGround ? GiftPieceRole.Base : GiftPieceRole.Wall,
                     box.size.x * box.size.y * box.size.z * toy.weight * .5f);
-                var panel = piece.GetComponent<UnderneathTreeGiftPanel>();
-                registered.Add(panel);
-                if (ground && support)
+                var panel = part.piece.GetComponent<UnderneathTreeGiftPanel>();
+                panelOf[part.piece] = panel;
+                registered.Add(panel.Body);
+                // Tall stacks need more solver passes than one gift, or the storeys sink into each other.
+                panel.Body.solverIterations = UnderneathTreeToy.StackSolverIterations;
+                panel.Body.solverVelocityIterations = 4;
+                // Thin parts (slabs, landings) check ahead for contacts so they never sink through.
+                if (Mathf.Min(box.size.x, Mathf.Min(box.size.y, box.size.z)) < .6f)
+                    panel.Body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+                if (part.onGround && support)
                     giftBearings.Add(new GiftBearing(panel, support, null));
+                if (part.floating)
+                    Debug.LogWarning(part.piece.name + " in " + toy.name + " has nothing under it to rest on.", part.piece);
             }
-            // Parts sitting on other parts fall when what holds them up is gone.
-            foreach (var upper in registered)
+            // Big mass gaps between touching parts make physics jittery: keep every part within 10x.
+            float heaviest = 0f;
+            foreach (var body in registered)
+                heaviest = Mathf.Max(heaviest, body.mass);
+            foreach (var body in registered)
+                body.mass = Mathf.Max(body.mass, heaviest * .1f);
+
+            foreach (var part in settled)
             {
-                var top = upper.GetComponent<Collider>().bounds;
-                if (top.min.y < floor + .3f)
+                if (part.under.Count == 0 || !panelOf.TryGetValue(part.piece, out var load))
                     continue;
-                UnderneathTreeGiftPanel first = null, second = null;
-                foreach (var lower in registered)
-                {
-                    if (lower == upper)
-                        continue;
-                    var under = lower.GetComponent<Collider>().bounds;
-                    if (Mathf.Abs(under.max.y - top.min.y) > .35f || under.max.x < top.min.x || under.min.x > top.max.x ||
-                        under.max.z < top.min.z || under.min.z > top.max.z)
-                        continue;
-                    if (!first) first = lower; else if (!second) second = lower;
-                }
-                if (first)
-                    giftBearings.Add(new GiftBearing(upper, first, second));
+                var hold = new ToyHold { load = load, centre = part.centre };
+                for (int i = 0; i < part.under.Count; i++)
+                    if (panelOf.TryGetValue(part.under[i], out var below))
+                    {
+                        hold.under.Add(below);
+                        hold.areas.Add(part.areas[i]);
+                    }
+                if (hold.under.Count > 0)
+                    toyHolds.Add(hold);
             }
+        }
+
+        void CheckToyHolds()
+        {
+            foreach (var hold in toyHolds)
+                hold.Check();
         }
 
         // A toy placed into a neighbouring gift would be shoved out at the first touch; say so.

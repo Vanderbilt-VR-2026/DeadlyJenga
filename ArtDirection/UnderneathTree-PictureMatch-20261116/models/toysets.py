@@ -6,6 +6,11 @@ Each building is one FBX. Its parts are separate objects named "Piece ..." and t
 one its own body, so every part must be a simple solid shape. Decoration (windows, trim, rugs,
 screens, books) is attached to a piece as a child named "Detail ...": it moves with that piece but
 has no collision, so it costs nothing in physics. Furniture big enough to climb on is a piece.
+Every piece must rest on a piece below it (nothing hangs off a wall or balances on a point): the
+game stacks the pieces onto each other when it builds them, so floors can be made thicker, thinner
+or bigger here without the building bursting apart, but a piece with nothing under it still falls.
+After changing this file, re-export and run Tools > Deadly Jenga > Underneath the Tree > Check Toy
+Building Stability in Unity: it frees every piece and reports any that slide, tip or float.
 Scale: players are 0.85 units tall and step up 1.2, so storeys are 4.5, doors 2.6 wide and stairs
 rise 1.0 a step. Run: blender -b -P toysets.py -- <output folder> [preview.png]
 Generic designs, no brands."""
@@ -96,6 +101,26 @@ def wedge(name, z, height, r, a0, a1, mat):
     pieces.append(o)
     return o
 
+def ring_piece(name, z, height, r0, r1, a0, a1, mat):
+    """A short curved strip of floor between two radii (solid and convex because it is short)."""
+    mesh = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    pts = [(math.cos(a) * r0, math.sin(a) * r0) for a in (a1, a0)] + [(math.cos(a) * r1, math.sin(a) * r1) for a in (a0, a1)]
+    bottom = [bm.verts.new((x, y, -height / 2)) for x, y in pts]
+    top = [bm.verts.new((x, y, height / 2)) for x, y in pts]
+    bm.faces.new(bottom[::-1]); bm.faces.new(top)
+    for i in range(len(pts)):
+        j = (i + 1) % len(pts)
+        bm.faces.new((bottom[i], bottom[j], top[j], top[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh); bm.free()
+    o = bpy.data.objects.new("Piece %03d %s" % (len(pieces) + 1, name), mesh)
+    bpy.context.collection.objects.link(o)
+    o.location = (0, 0, z + height / 2)
+    o.data.materials.append(paint(mat))
+    pieces.append(o)
+    return o
+
 def export(name):
     global pieces
     bpy.ops.object.select_all(action="DESELECT")
@@ -134,12 +159,20 @@ def window(owner, x, y, z, normal, frame="Toy White", glass="Toy Window Glow", w
     detail(owner, "window pane", "box", (x + nx * (off + .07), y + ny * (off + .07), z), (w, .06, h), glass, yaw=yaw)
     detail(owner, "window bar", "box", (x + nx * (off + .12), y + ny * (off + .12), z), (w, .05, .18), frame, yaw=yaw)
 
+flights = {}   # where earlier stair flights stand, so a flight above one can stand on it
+
 def stair_flight(label, x, y, z, along_x, mat, steps=5, run=1.6, width=3.0):
-    """Solid stepped blocks standing on the floor, each 1.0 taller than the last."""
+    """Solid stepped blocks, each 1.0 taller than the last. Upper floors leave a hole over the flight
+    below, so a flight above another one is built as columns standing on the steps under it
+    (nothing in a set may hang in the air: every part rests on something)."""
+    below = flights.get((round(x, 2), round(y, 2)))
+    flights[(round(x, 2), round(y, 2))] = z
     for k in range(steps):
-        h = 1.0 * (k + 1) - GAP
+        top = z + 1.0 * (k + 1) - GAP
+        bottom = below + 1.0 * (k + 1) if below is not None else z
+        h = top - bottom
         off = run * (k + .5)
-        loc = (x + off, y, z + h / 2) if along_x else (x, y + off, z + h / 2)
+        loc = (x + off, y, bottom + h / 2) if along_x else (x, y + off, bottom + h / 2)
         size = (run - GAP, width, h) if along_x else (width, run - GAP, h)
         part("%s step %d" % (label, k + 1), "box", loc, size, mat)
 
@@ -198,6 +231,9 @@ def grid_building(prefix, ox, oy, cols, rows, cell, floors, outer, inner, floor_
                                      (hole_x1, cx0 + cell, mid - 2.1, mid + 2.1)):
                 part("%s L%d landing" % (prefix, level), "box", ((ax + bx) / 2, (ay + by) / 2, z + SLAB / 2),
                      (bx - ax - GAP, by - ay - GAP, SLAB), floor_mat)
+            # The strip past the top step has a wall under its far end only; a post holds the near end.
+            part("%s L%d landing post" % (prefix, level), "box", (hole_x1 + .6, mid, z - (STOREY + GAP) / 2 - GAP / 2),
+                 (.8, .8, STOREY - GAP), "Toy White")
         for i in range(cols):
             for j in range(rows):
                 if going_up and (i, j) == (sc, sr):
@@ -280,14 +316,32 @@ def mansion_room(level, i, j, cx, cy, z):
 top, (x0, y0, W, D) = grid_building("mansion", 0, 0, 3, 2, CELL, 3, "Toy Pink", "Toy Cream", "Toy White",
     back_doors=(1,), side_doors=((0, 1),), stair_cell=(0, 1), furnish=mansion_room)
 ridge = top + (D / 2) * math.tan(math.radians(28))
+# The roof is one solid gable-shaped part sitting flat on the top floor, so it cannot slide off;
+# the pink slopes, tiles and ridge are decoration on it.
+mesh = bpy.data.meshes.new("mansion roof")
+bm = bmesh.new()
+hx, hy, rh = (W + 2) / 2, D / 2 + .5, (D / 2 + .5) * math.tan(math.radians(28))
+ends = []
+for x in (-hx, hx):
+    ends.append([bm.verts.new((x, -hy, 0)), bm.verts.new((x, hy, 0)), bm.verts.new((x, 0, rh))])
+bm.faces.new(ends[0][::-1]); bm.faces.new(ends[1])
+for i in range(3):
+    j = (i + 1) % 3
+    bm.faces.new((ends[0][i], ends[0][j], ends[1][j], ends[1][i]))
+bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+bm.to_mesh(mesh); bm.free()
+roof_block = bpy.data.objects.new("Piece %03d mansion roof" % (len(pieces) + 1), mesh)
+bpy.context.collection.objects.link(roof_block)
+roof_block.location = (0, 0, top)
+roof_block.data.materials.append(paint("Toy Pink"))
+pieces.append(roof_block)
+ridge = top + rh
 for s in (-1, 1):
-    roof = part("mansion roof half", "box", (0, s * D / 4, top + (D / 4) * math.tan(math.radians(28)) + .3),
-                (W + 2, D / 2 / math.cos(math.radians(28)) + 1, .6), "Toy Pink", tilt=(s * -28, 0))
     for k in range(4):   # roof tile stripes
         t = (k + .5) / 4
-        detail(roof, "roof stripe", "box", (0, s * D / 2 * t, top + D / 2 * (1 - t) * math.tan(math.radians(28)) + .65),
+        detail(roof_block, "roof stripe", "box", (0, s * hy * t, top + hy * (1 - t) * math.tan(math.radians(28)) + .08),
                (W + 2.1, .4, .1), "Toy White", tilt=(s * -28, 0))
-roof_trim = part("mansion roof ridge", "box", (0, 0, ridge + .9), (W + 2.4, 1.0, .6), "Toy White")
+detail(roof_block, "roof ridge", "box", (0, 0, ridge), (W + 2.4, 1.0, .6), "Toy White")
 for x in (-W / 3, W / 3):
     ch = part("mansion chimney", "box", (x, D / 4, top + 4.2), (2.4, 2.4, 8.4), "Toy White")
     detail(ch, "chimney cap", "box", (x, D / 4, top + 8.5), (2.9, 2.9, .4), "Toy Pink")
@@ -359,10 +413,11 @@ detail(pad, "helipad centre", "cyl", (x0 + 7.5, y0 + 7.5, top + .35), (8, 8, .05
 for dx in (-1.2, 1.2):
     detail(pad, "H bar", "box", (x0 + 7.5 + dx, y0 + 7.5, top + .38), (.6, 4, .05), "Toy Yellow")
 detail(pad, "H cross", "box", (x0 + 7.5, y0 + 7.5, top + .38), (2.4, .6, .05), "Toy Yellow")
-mast = part("hero radar mast", "cyl", (x0 + 22.5, y0 + 22.5, ttop + 1.5), (.8, .8, 3.0), "Toy Silver")
-dish = part("hero radar dish", "cyl", (x0 + 22.5, y0 + 22.5, ttop + 3.0 + GAP + .4), (7, 7, .6), "Toy Silver", tilt=(25, 0))
+mast = part("hero radar mast", "box", (x0 + 22.5, y0 + 22.5, ttop + 1.5), (1.6, 1.6, 3.0), "Toy Silver")
+dish = detail(mast, "radar dish", "cyl", (x0 + 22.5, y0 + 22.5, ttop + 3.0 + GAP + .4), (7, 7, .6), "Toy Silver", tilt=(25, 0))
 detail(dish, "dish light", "ball", (x0 + 22.5, y0 + 22.5, ttop + 4.4), (.8, .8, .8), "Toy Red")
-sign = part("hero emblem sign", "cyl", (x0 + 22.5, y0 + 22.5 + 7.8, top + STOREY * 2.2), (7, 7, .4), "Toy Yellow", tilt=(90, 0), seg=6)
+sign = detail(bpy.data.objects[next(n for n in bpy.data.objects.keys() if n.endswith("hero tower L1 wall x0-1"))],
+    "emblem sign", "cyl", (x0 + 22.5, y0 + 22.5 + 7.8, top + STOREY * 2.2), (7, 7, .4), "Toy Yellow", tilt=(90, 0), seg=6)
 detail(sign, "emblem star", "cyl", (x0 + 22.5, y0 + 22.5 + 8.05, top + STOREY * 2.2), (3.6, 3.6, .1), "Toy Red", tilt=(90, 0), seg=5)
 sets["Toy Superhero Base"] = export("Toy Superhero Base")
 
@@ -371,6 +426,8 @@ R, PANELS, WEDGES = 12.0, 12, 8
 OPEN = range(7, 12)          # panels left out on the open side (they face the viewer once placed)
 part("tower ground slab", "cyl", (0, 0, SLAB / 2), (2 * R + 2, 2 * R + 2, SLAB), "Toy Gray", seg=48)
 z = SLAB + GAP
+floor_top = {}       # top of the last floor slice built at each slice position
+pillar_below = {}    # slice positions with a pillar under their edge
 width = 2 * R * math.tan(math.pi / PANELS) - GAP * 3
 for level in range(5):
     mat = "Toy Gray" if level < 2 else "Toy Purple"
@@ -399,11 +456,11 @@ for level in range(5):
         sr = math.radians(stair)
         for k in range(5):
             h = 1.0 * (k + 1) - GAP
-            d = 3.2 + 1.6 * (k + .5)
+            d = 3.0 + 1.55 * (k + .5)      # ends short of the rim round the stair hole
             part("tower L%d step %d" % (level, k + 1), "box", (math.cos(sr) * d, math.sin(sr) * d, z + h / 2),
-                 (1.6 - GAP, 3.4, h), "Toy Wood", yaw=stair)
+                 (1.55 - GAP, 3.4, h), "Toy Wood", yaw=stair)
     # Room furniture opposite the stairs.
-    fa = math.radians(stair + 180)
+    fa = math.radians(stair + 180 + 12)    # off the seam between two floor slices
     fx, fy = math.cos(fa) * 6, math.sin(fa) * 6
     if level == 0:
         pot = part("tower cauldron", "cyl", (fx, fy, z + 1.2), (3.6, 3.6, 2.4), "Toy Black", seg=24)
@@ -423,16 +480,56 @@ for level in range(5):
         orb = part("tower orb stand", "cyl", (fx, fy, z + 1.2), (1.6, 1.6, 2.4), "Toy Gold", seg=16)
         detail(orb, "crystal ball", "ball", (fx, fy, z + 3.2), (2.2, 2.2, 2.2), "Toy Magic Glow")
     else:
-        scope = part("tower telescope stand", "cyl", (fx, fy, z + 1.4), (1.2, 1.2, 2.8), "Toy Wood", seg=16)
+        scope = part("tower telescope stand", "cyl", (fx, fy, z + 1.4), (2.0, 2.0, 2.8), "Toy Wood", seg=16)
         detail(scope, "telescope", "cyl", (fx, fy, z + 3.4), (1.0, 1.0, 4.4), "Toy Gold", tilt=(0, 60))
+    # Floors are pie slices: a column in the middle and the walls round the edge hold each one up.
+    floor_z = z + STOREY + GAP
+    part("tower L%d centre column" % level, "cyl", (0, 0, z + STOREY / 2), (2.8, 2.8, STOREY), "Toy Gold", seg=24)
+    # Slices on the open side have no wall under their edge: a pillar goes down to the nearest floor.
+    for k in range(WEDGES):
+        a0, a1 = k * math.tau / WEDGES, (k + 1) * math.tau / WEDGES
+        mid = (a0 + a1) / 2
+        # A wall must sit under the middle of the slice's edge, not just at one corner of it.
+        walls_under = [p for p in range(PANELS) if p not in OPEN and
+                       abs((math.degrees(mid) - p * 360 / PANELS + 180) % 360 - 180) < 16]
+        hole = level < 4 and abs((math.degrees(mid) - stair + 180) % 360 - 180) < 30
+        pillar_below[k] = not walls_under
+        if not walls_under:
+            bottom = floor_top.get(k, SLAB + GAP)
+            h = floor_z - GAP - bottom
+            part("tower L%d pillar %d" % (level, k), "cyl", (math.cos(mid) * (R - 1.2), math.sin(mid) * (R - 1.2), bottom + h / 2),
+                 (1.2, 1.2, h), "Toy Gold", seg=16)
     z += STOREY + GAP
     for k in range(WEDGES):
         a0, a1 = k * math.tau / WEDGES, (k + 1) * math.tau / WEDGES
-        mid = math.degrees((a0 + a1) / 2)
+        mid_r = (a0 + a1) / 2
+        mid = math.degrees(mid_r)
         if level < 4 and abs((mid - stair + 180) % 360 - 180) < 30:
-            continue                       # leave a hole above the stairs
-        wedge("tower L%d floor %d" % (level, k), z, SLAB, R + .5, a0 + .004, a1 - .004,
+            # A hole above the stairs, but keep a rim round the edge for the walls above to stand on
+            # (in short pieces so each stays a solid, nearly straight shape).
+            for part_k in range(3):
+                b0 = a0 + (a1 - a0) * part_k / 3
+                b1 = a0 + (a1 - a0) * (part_k + 1) / 3
+                piece_mid = math.degrees((b0 + b1) / 2)
+                # Only where it sits mostly over a wall (the open side has none above, so needs no rim).
+                if not any(abs((piece_mid - p * 360 / PANELS + 180) % 360 - 180) < 10 for p in range(PANELS) if p not in OPEN):
+                    continue
+                # Centred over the wall line so its weight sits on the wall, not past it.
+                ring_piece("tower L%d rim %d-%d" % (level, k, part_k), z, SLAB, R - 1.0, R + 1.3, b0 + .004, b1 - .004,
+                           "Toy Gray" if level < 4 else "Toy Purple")
+            # On the open side a pillar stands under this slice's edge: give the pillar above a pad
+            # to stand on, so every pillar is one storey tall and keeps pace if floors change.
+            if pillar_below.get(k):
+                pr = R - 1.2
+                pad = part("tower L%d pillar pad %d" % (level, k), "box",
+                           (math.cos(mid_r) * pr, math.sin(mid_r) * pr, z + SLAB / 2), (2.0, 2.0, SLAB),
+                           "Toy Gray" if level < 4 else "Toy Purple", yaw=math.degrees(mid_r))
+                floor_top[k] = z + SLAB + GAP
+            continue
+        # Reaches past the walls' outer corners so every wall stands fully on a floor (a ledge outside).
+        wedge("tower L%d floor %d" % (level, k), z, SLAB, R + 1.3, a0 + .004, a1 - .004,
               "Toy Gray" if level < 4 else "Toy Purple")
+        floor_top[k] = z + SLAB + GAP
     z += SLAB + GAP
 for k in range(12):
     if k in OPEN:
@@ -446,7 +543,7 @@ for k in range(10):
     hgt = 2 + k * 1.4
     rr = (R - 2) * (1 - hgt / 18) + .2
     detail(roofp, "roof star", "ball", (math.cos(a) * rr, math.sin(a) * rr, z + hgt), (.7, .7, .7), "Toy Yellow")
-moon = part("tower star", "ball", (0, 0, z + 18 + GAP + 1.4), (2.8, 2.8, 2.8), "Toy Yellow")
+moon = detail(roofp, "tower star", "ball", (0, 0, z + 18 + GAP + 1.4), (2.8, 2.8, 2.8), "Toy Yellow")
 detail(moon, "flag pole", "cyl", (0, 0, z + 21.6), (.2, .2, 2.0), "Toy Gold")
 detail(moon, "flag", "box", (.9, 0, z + 22.2), (1.6, .1, 1.0), "Toy Purple")
 sets["Toy Wizard Tower"] = export("Toy Wizard Tower")

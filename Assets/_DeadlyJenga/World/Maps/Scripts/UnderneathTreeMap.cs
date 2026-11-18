@@ -144,6 +144,7 @@ namespace DeadlyJenga.CastlePrototype
             bodies.Clear();
             panels.Clear();
             giftBearings.Clear();
+            toyHolds.Clear();
             foreach (var mesh in generatedMeshes)
                 Release(mesh);
             generatedMeshes.Clear();
@@ -206,6 +207,7 @@ namespace DeadlyJenga.CastlePrototype
                 return;
             foreach (var bearing in giftBearings)
                 bearing.Check();
+            CheckToyHolds();
             if (Time.time < nextDebrisCleanup)
                 return;
             nextDebrisCleanup = Time.time + .8f;
