@@ -68,6 +68,38 @@ namespace DeadlyJenga.CandyPlayers
                 walkPhase = value.walkPhase; sprintBlend = value.sprintBlend; locomotionSpeed = value.locomotionSpeed;
             }
         }
+        // One step of the walk cycle on its own, with no avatar and no side effects. Replay tools use it to
+        // work out the walk state for every frame of a recording. It is the same sum as the block in
+        // ApplyFrame below (without the moving-floor part): if you change one, change the other.
+        public static GaitState StepGait(GaitState gait, CandyAvatarFrame frame, float deltaTime)
+        {
+            if (deltaTime <= 0f) return gait;
+            Vector3 feet = frame.feet;
+            Quaternion facing = Quaternion.Euler(0f, frame.headRotation.eulerAngles.y, 0f);   // the body faces where the head looks
+            float scale = Mathf.Max(.1f, frame.scale);
+            bool sprinting = frame.sprinting, grounded = !frame.airborne;
+            if (gait.strideDirection.sqrMagnitude < .0001f) gait.strideDirection = Vector3.forward;
+            Vector3 displacement = feet - gait.previousFeet;
+            float teleportDistance = BodyTeleportDistance * scale;
+            bool reset = !gait.ready || displacement.sqrMagnitude > teleportDistance * teleportDistance;
+            Vector3 travel = reset ? Vector3.zero : Vector3.ProjectOnPlane(displacement, Vector3.up);
+            gait.previousFeet = feet; gait.ready = true;
+            if (reset) { gait.sprintBlend = 0f; gait.strideDirection = Vector3.forward; }
+            gait.locomotionSpeed = travel.magnitude / (deltaTime * scale);
+            float runTarget = sprinting && grounded ? Mathf.InverseLerp(.3f, 2.4f, gait.locomotionSpeed) : 0f;
+            gait.sprintBlend = Mathf.MoveTowards(gait.sprintBlend, runTarget, deltaTime * 6f);
+            if (travel.sqrMagnitude > .00001f)
+            {
+                Vector3 targetDirection = Quaternion.Inverse(facing) * travel.normalized;
+                float oldHeading = Mathf.Atan2(gait.strideDirection.x, gait.strideDirection.z) * Mathf.Rad2Deg;
+                float targetHeading = Mathf.Atan2(targetDirection.x, targetDirection.z) * Mathf.Rad2Deg;
+                float heading = Mathf.LerpAngle(oldHeading, targetHeading, 1f - Mathf.Exp(-12f * deltaTime)) * Mathf.Deg2Rad;
+                gait.strideDirection = new Vector3(Mathf.Sin(heading), 0f, Mathf.Cos(heading));
+            }
+            float cadence = Mathf.Lerp(6f, 11f, Mathf.InverseLerp(.12f, 4f, gait.locomotionSpeed)) + gait.sprintBlend * 3.8f;
+            gait.walkPhase = Mathf.Repeat(gait.walkPhase + cadence * deltaTime, 2f * Mathf.PI);
+            return gait;
+        }
         public Transform LeftPalm=>bones[4];
         public Transform HeadAnchor=>bones[1];
         public Transform BodyAnchor=>bones[0];
