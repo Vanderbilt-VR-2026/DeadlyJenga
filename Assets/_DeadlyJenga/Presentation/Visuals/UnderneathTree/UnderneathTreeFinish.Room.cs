@@ -216,6 +216,10 @@ namespace DeadlyJenga.CandyArt
         const float ArchSouth = -170f, ArchNorth = -50f, ArchHeight = 170f;
         // Fireplace on the east wall, south of the rug.
         const float HearthZ = -350f;
+        // West wall furniture: the big sofa backs onto the wall facing the fire, and the bookcase
+        // stands between the sofa's north end and the kitchen archway.
+        const float SofaZ = HearthZ - 30f;
+        const float BookcaseZ = -213f, BookcaseWidth = 80f;
 
         void BuildRoom()
         {
@@ -280,9 +284,9 @@ namespace DeadlyJenga.CandyArt
 
             // Bookshelves and a piano by the window.
             var rand = new System.Random(77);
-            Box("Bookcase", new Vector3(RoomWest + 20f, 90f, -330f), new Vector3(34f, 180f, 130f), beam);
+            Box("Bookcase", new Vector3(RoomWest + 20f, 90f, BookcaseZ), new Vector3(34f, 180f, BookcaseWidth), beam);
             for (int shelf = 0; shelf < 5; shelf++)
-                for (float z = -390f; z < -272f;)
+                for (float z = BookcaseZ - BookcaseWidth * .5f + 4f; z < BookcaseZ + BookcaseWidth * .5f - 12f;)
                 {
                     float thick = Range(rand, 4f, 8f), tall = Range(rand, 18f, 28f);
                     var book = Surface("Book cloth " + (shelf * 7 + (int)z) % 5, "Woven",

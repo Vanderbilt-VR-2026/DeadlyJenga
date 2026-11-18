@@ -434,7 +434,7 @@ namespace DeadlyJenga.CandyArt
                 new Vector3((SouthWindowWest + SouthWindowEast) * .5f, 0f, RoomSouth + 150f), new Color(.16f, .36f, 1f), 26000f, 300f, 80f);
             MakeLight("Kitchen light", LightType.Point, new Vector3(RoomWest - 60f, 110f, (ArchSouth + ArchNorth) * .5f),
                 new Color(1f, .70f, .40f), 9000f, 200f);
-            MakeLight("Bookcase lamp", LightType.Point, new Vector3(RoomWest + 60f, 120f, -330f),
+            MakeLight("Bookcase lamp", LightType.Point, new Vector3(RoomWest + 60f, 120f, BookcaseZ),
                 new Color(1f, .68f, .38f), 9000f, 220f);
             MakeLight("Glow in the train tunnel", LightType.Point,
                 new Vector3(-150, 16, -128), new Color(1f, .68f, .28f), 700f, 38f);

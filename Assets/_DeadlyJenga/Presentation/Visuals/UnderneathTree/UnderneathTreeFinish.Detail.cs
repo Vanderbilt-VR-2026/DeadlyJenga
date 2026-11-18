@@ -17,14 +17,14 @@ namespace DeadlyJenga.CandyArt
             // The sofa faces the fireplace on the east wall, with the lamp table at its south end.
             int first = art.childCount;
             BuildSofa();
-            // A big family sofa: the model is drawn a third bigger than it was built.
-            Restage("Velvet sofa", first, new Vector3(-216f, 0f, -109f), new Vector3(-150f, 0f, HearthZ), 0f, 1.35f);
+            // A big family sofa (1.6x the model), its back against the west wall, facing the fire.
+            Restage("Velvet sofa", first, new Vector3(-216f, 0f, -109f), new Vector3(RoomWest + 60f, 0f, SofaZ), 0f, 1.6f);
             first = art.childCount;
             BuildLampAndTable();
             Restage("Lamp table", first, new Vector3(-215f, 0f, -11f), LampPlace, 0f);
         }
 
-        static readonly Vector3 LampPlace = new Vector3(-150f, 0f, HearthZ - 135f);
+        static readonly Vector3 LampPlace = new Vector3(RoomWest + 30f, 0f, SofaZ - 150f);
 
         // Gathers the pieces just built under one pivot and moves them as a group.
         void Restage(string label, int first, Vector3 from, Vector3 to, float turn, float scale = 1f)
