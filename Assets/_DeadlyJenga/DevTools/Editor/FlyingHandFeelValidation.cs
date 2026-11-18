@@ -50,7 +50,7 @@ namespace DeadlyJenga.HandValidation
                 EditorApplication.update += Tick;
             }
             if (state != PlayModeStateChange.EnteredEditMode) return;
-            Application.logMessageReceived -= Log;
+            Application.logMessageReceived -= Log; RestoreInput();
             int failures = SessionState.GetInt(Key + "Failures", 0);
             if (SessionState.GetInt(Key + "Checks", 0) == 0) { failures++; Line("FAIL: Play Mode ended before any checks ran."); }
             SessionState.SetInt(Key, 0);
@@ -106,6 +106,23 @@ namespace DeadlyJenga.HandValidation
         // Which hand: the right one, unless the player's saved preference makes the game use the left in XR.
         static bool L, xr;
         static float Tolerance => xr ? 12 : 6;
+        // A batch editor never has focus, and the Input System switches devices off without it. Emulated controllers
+        // are devices, so let them work unfocused for this run only. Nothing is saved; the old values are put back.
+        static bool focusChanged; static UnityEngine.InputSystem.InputSettings.BackgroundBehavior oldBackground; static UnityEngine.InputSystem.InputSettings.EditorInputBehaviorInPlayMode oldEditorInput;
+        static void AllowUnfocusedInput()
+        {
+            if (focusChanged) return;
+            var settings = UnityEngine.InputSystem.InputSystem.settings;
+            oldBackground = settings.backgroundBehavior; oldEditorInput = settings.editorInputBehaviorInPlayMode; focusChanged = true;
+            settings.backgroundBehavior = UnityEngine.InputSystem.InputSettings.BackgroundBehavior.IgnoreFocus;
+            settings.editorInputBehaviorInPlayMode = UnityEngine.InputSystem.InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+        }
+        static void RestoreInput()
+        {
+            if (!focusChanged) return;
+            var settings = UnityEngine.InputSystem.InputSystem.settings;
+            settings.backgroundBehavior = oldBackground; settings.editorInputBehaviorInPlayMode = oldEditorInput; focusChanged = false;
+        }
         // Emulated XR: every frame, report the commanded hand through the simulated devices.
         static void Pump()
         {
@@ -342,7 +359,7 @@ namespace DeadlyJenga.HandValidation
             var profile = HandDriveProfile.For(actor.gameObject); profile.Apply(null); bridge.PhysicsProfile = profile;
             xr = throughXR; L = xr && PlayerPrefs.GetInt("CandyBlaster.LeftHanded", 0) != 0;
             input = new Poses(); input.pose.skeleton = Open(L);
-            if (xr) { PcSimulatedVR.Create(); SimulatedTrackedHands.Create(); Pump(); }
+            if (xr) { AllowUnfocusedInput(); PcSimulatedVR.Create(); SimulatedTrackedHands.Create(); Pump(); }
             else bridge.PoseSource = input;
             yield return Wait(1);
             Watch(bridge.PhysicalHand);
@@ -385,7 +402,7 @@ namespace DeadlyJenga.HandValidation
                 yield return Switching(hand);
                 yield return Chaos(hand);
             }
-            xr = false;
+            xr = false; RestoreInput();
             if (PcSimulatedVR.Instance) Object.Destroy(PcSimulatedVR.Instance.gameObject);
             if (SimulatedTrackedHands.Instance) Object.Destroy(SimulatedTrackedHands.Instance.gameObject);
             if (actor) Object.Destroy(actor.gameObject);
@@ -514,17 +531,35 @@ namespace DeadlyJenga.HandValidation
             }
             JudgeShape("Crazy fingers (new shape every frame)"); Judge("Crazy fingers (new shape every frame)");
 
-            // 2. Joint soup: every joint somewhere random near the hand, as when tracking loses the plot.
+            // 2. Joint soup: every finger bone pointing somewhere random (backwards, sideways, through the palm),
+            //    with believable bone lengths so the game cannot simply reject the frame.
             input.pose = calm; yield return Wait(.3f); Watch(hand); start = Time.time;
             while (Time.time - start < 3)
             {
                 var soup = Open(L);
-                for (int i = 0; i < 20; i++) soup.SetJoint(i, new Vector3(R() - .5f, R() - .5f, R() - .2f) * .16f);
+                for (int f = 0; f < 5; f++)
+                {
+                    Vector3 at = soup.Joint(f * 4) + new Vector3(R() - .5f, R() - .5f, R() - .5f) * .02f; soup.SetJoint(f * 4, at);
+                    for (int j = 0; j < 3; j++) { at += UnityEngine.Random.onUnitSphere * (.02f + R() * .03f); soup.SetJoint(f * 4 + j + 1, at); }
+                }
                 input.pose.skeleton = soup;
                 if (Time.time - start > 1.5f && Time.time - start < 1.6f) Shot(hand, "chaos-joint-soup", new Vector3(.16f, .2f, -.12f));
                 yield return null;
             }
             JudgeShape("Joint soup (random joint positions every frame)"); Judge("Joint soup (random joint positions every frame)");
+
+            // 2b. Rubbish the game can recognise (bones centimetres too long or all on one point) counts as lost tracking:
+            //     the hand may fade while it lasts, and must come straight back.
+            input.pose = calm; input.pose.skeleton = Fist(L); yield return Wait(.6f); Watch(hand); start = Time.time;
+            while (Time.time - start < 1.5f)
+            {
+                var junk = Open(L);
+                for (int i = 0; i < 20; i++) junk.SetJoint(i, new Vector3(R() - .5f, R() - .5f, R() - .5f) * .6f);
+                input.pose.skeleton = junk; yield return null;
+            }
+            JudgeShape("Rejected rubbish frames"); Judge("Rejected rubbish frames", false);
+            input.pose.skeleton = Fist(L); yield return Wait(xr ? 1.2f : .8f);
+            Check(hand.IsInteractive && FingerError(hand, Fist(L)) < Tolerance, "After rubbish frames the hand comes back to the tracked fist");
 
             // 3. Poison: not-a-number, infinity, everything at the wrist, everything a metre away. XR only: a skeleton cannot hold these.
             if (xr)
@@ -544,9 +579,14 @@ namespace DeadlyJenga.HandValidation
                 Check(FingerError(hand, Fist(L)) < Tolerance, "After poisoned joints the hand returns to the tracked fist");
             }
 
-            // 4. Flicker: tracking drops out on random frames (about half of them) while holding a fist.
+            // 4. Flicker: tracking keeps cutting out for 20 to 70 ms at a time (about half the time) while holding a fist.
             input.pose = calm; input.pose.skeleton = Fist(L); yield return Wait(.8f); Watch(hand); start = Time.time;
-            while (Time.time - start < 3) { input.pose.tracked = R() > .5f; yield return null; }
+            float until = 0; bool seen = true;
+            while (Time.time - start < 3)
+            {
+                if (Time.time >= until) { seen = !seen; until = Time.time + .02f + R() * .05f; }
+                input.pose.tracked = seen; yield return null;
+            }
             input.pose.tracked = true;
             Check(lowestStrength > .9f, "Flickering tracking: the hand keeps its strength (lowest " + lowestStrength.ToString("F2") + ")");
             Check(hand.IsInteractive, "Flickering tracking: contacts stay on");
@@ -579,9 +619,9 @@ namespace DeadlyJenga.HandValidation
             // Fingertips first. Push the tracked hand a little past the wall, then much further.
             float reach = 0; for (int i = 1; i < 16; i++) reach = Mathf.Max(reach, hand.bodies[i].position.z + hand.bodies[i].transform.up.z * ReferenceLength(hand, i) * size);
             float touch = (face - reach) / size;
-            input.pose.position = home + Vector3.forward * (touch + .005f); yield return Wait(1.5f);
+            input.pose.position = home + Vector3.forward * (touch + .01f); yield return Wait(1.5f);
             float pushNear = hand.AppliedLinearForceNewtons, gapNear = hand.Target.position.z - hand.bodies[0].position.z;
-            input.pose.position = home + Vector3.forward * (touch + .02f); yield return Wait(1.5f);
+            input.pose.position = home + Vector3.forward * (touch + .025f); yield return Wait(1.5f);
             float pushMid = hand.AppliedLinearForceNewtons, gapMid = hand.Target.position.z - hand.bodies[0].position.z;
             Shot(hand, "wall-fingertips", new Vector3(.22f, .12f, -.02f));
             input.pose.position = home + Vector3.forward * (touch + .2f);

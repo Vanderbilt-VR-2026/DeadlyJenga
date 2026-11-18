@@ -83,7 +83,7 @@ namespace DeadlyJenga.CandyPhysicsHands
                 bool finger=w.weight0>0&&w.boneIndex0>=1&&w.boneIndex0<=15||w.weight1>0&&w.boneIndex1>=1&&w.boneIndex1<=15||
                     w.weight2>0&&w.boneIndex2>=1&&w.boneIndex2<=15||w.weight3>0&&w.boneIndex3>=1&&w.boneIndex3<=15;
                 if(!finger)continue;
-                float a=w.weight0*w.weight0*w.weight0,b=w.weight1*w.weight1*w.weight1,c=w.weight2*w.weight2*w.weight2,d=w.weight3*w.weight3*w.weight3;
+                float a=Mathf.Pow(w.weight0,4),b=Mathf.Pow(w.weight1,4),c=Mathf.Pow(w.weight2,4),d=Mathf.Pow(w.weight3,4);
                 float total=a+b+c+d;if(total<=0)continue;
                 w.weight0=a/total;w.weight1=b/total;w.weight2=c/total;w.weight3=d/total;weights[i]=w;
             }
@@ -334,9 +334,11 @@ namespace DeadlyJenga.CandyPhysicsHands
                 var rb=bodies[i];Desired(i==0?Target:onPalm,i,out var p,out var q);
                 rb.maxLinearVelocity=RequiresProfile?Mathf.Min(settings.maxSpeed,12):settings.maxSpeed;
                 float denominator=1+dt*settings.positionDamping/rb.mass+dt*dt*settings.positionSpring/rb.mass;
-                driveForces[i]=i==0||!JointDrivenFingers?Vector3.ClampMagnitude(
+                // Only the palm is pulled toward a place. A finger is held on by its joint, so pulling it as well
+                // just fights that joint and spends the hand's strength on nothing. Fingers are turned, not pulled.
+                driveForces[i]=i==0?Vector3.ClampMagnitude(
                     ((p-rb.position)*settings.positionSpring-rb.linearVelocity*settings.positionDamping)/denominator,
-                    (i==0?settings.palmForce:settings.fingerForce)*Strength):Vector3.zero;
+                    settings.palmForce*Strength):Vector3.zero;
                 if(i>0)
                 {
                     int parent=(i-1)%3==0?0:i-1;
@@ -346,7 +348,7 @@ namespace DeadlyJenga.CandyPhysicsHands
                     // A finger asks for torque by how far it is from its pose: resting fingers leave the
                     // strength budget to whatever is actually pushing, and a blocked finger pushes harder.
                     float off=Quaternion.Angle(Quaternion.Inverse(bodies[parent].rotation)*rb.rotation,relative)*Mathf.Deg2Rad;
-                    driveTorques[i]=Mathf.Min(settings.fingerTorque,settings.fingerTorque*.1f+settings.rotationSpring*(JointDrivenFingers?6:1)*off)*Strength;
+                    driveTorques[i]=Mathf.Min(settings.fingerTorque,settings.fingerTorque*.1f+settings.rotationSpring*6*off)*Strength;
                 }
                 else
                 {
@@ -375,8 +377,8 @@ namespace DeadlyJenga.CandyPhysicsHands
                 if(i==0)bodies[0].AddTorque(palmTorque*scale,ForceMode.Force);
                 else joints[i-1].slerpDrive=new JointDrive
                 {
-                    positionSpring=torque>0?settings.rotationSpring*(JointDrivenFingers?6:1):0,
-                    positionDamper=torque>0?settings.rotationDamping*(JointDrivenFingers?2.5f:1):0,
+                    positionSpring=torque>0?settings.rotationSpring*6:0,
+                    positionDamper=torque>0?settings.rotationDamping*2.5f:0,
                     maximumForce=torque
                 };
             }
