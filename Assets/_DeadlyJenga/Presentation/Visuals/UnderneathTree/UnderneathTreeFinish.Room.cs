@@ -214,6 +214,9 @@ namespace DeadlyJenga.CandyArt
         // The wide window centred on the south wall: same height, twice-plus as wide.
         const float SouthWindowWest = (RoomWest + RoomEast) * .5f - 135f, SouthWindowEast = (RoomWest + RoomEast) * .5f + 135f;
         const float ArchSouth = -170f, ArchNorth = -50f, ArchHeight = 170f;
+        // Cased opening to the front entry (door, coats, the bottom of the stairs) at the south end
+        // of the west wall.
+        const float FoyerSouth = -585f, FoyerNorth = -495f, FoyerHeight = 150f;
         // Fireplace on the east wall, south of the rug.
         const float HearthZ = -350f;
         // The fireplace is on the west wall; the big sofa backs onto the east wall facing it,
@@ -234,7 +237,8 @@ namespace DeadlyJenga.CandyArt
 
             WallAlongX("North wall", RoomNorth, RoomWest, RoomEast, WindowWest, WindowEast, WindowSill, WindowHead, plaster);
             WallAlongX("South wall", RoomSouth, RoomWest, RoomEast, SouthWindowWest, SouthWindowEast, WindowSill, WindowHead, plaster);
-            WallAlongZ("West wall", RoomWest, RoomSouth, RoomNorth, ArchSouth, ArchNorth, 0f, ArchHeight, plaster);
+            WallAlongZ("West wall", RoomWest, RoomSouth, ArchSouth - 1f, FoyerSouth, FoyerNorth, 0f, FoyerHeight, plaster);
+            WallAlongZ("West wall", RoomWest, ArchSouth - 1f, RoomNorth, ArchSouth, ArchNorth, 0f, ArchHeight, plaster);
             WallAlongZ("East wall", RoomEast, RoomSouth, RoomNorth, 0f, 0f, 0f, 0f, plaster);
             float midX = (RoomWest + RoomEast) * .5f, midZ = (RoomSouth + RoomNorth) * .5f;
             float spanX = RoomEast - RoomWest, spanZ = RoomNorth - RoomSouth;
@@ -282,16 +286,9 @@ namespace DeadlyJenga.CandyArt
             fireplace.localRotation = Quaternion.Euler(0f, 180f, 0f);
 
             // Rooms beyond the openings: just a lit glimpse, the player never goes there.
-            var glow = Glow("Warm room beyond", new Color(1f, .62f, .32f), .9f);
-            Box("Kitchen floor", new Vector3(RoomWest - 90f, -.2f, (ArchSouth + ArchNorth) * .5f), new Vector3(180f, .4f, ArchNorth - ArchSouth + 60f), wood);
-            Box("Kitchen wall", new Vector3(RoomWest - 180f, ArchHeight * .5f, (ArchSouth + ArchNorth) * .5f), new Vector3(3f, ArchHeight, ArchNorth - ArchSouth + 60f), glow);
-            // Side walls and ceilings close both little rooms, so nothing outside shows through.
-            float kitchenZ = (ArchSouth + ArchNorth) * .5f, kitchenDepth = ArchNorth - ArchSouth + 60f;
-            foreach (float z in new[] { ArchSouth - 30f, ArchNorth + 30f })
-                Box("Kitchen side wall", new Vector3(RoomWest - 90f, ArchHeight * .5f + 10f, z), new Vector3(180f, ArchHeight + 20f, 3f), plaster);
-            Box("Kitchen ceiling", new Vector3(RoomWest - 90f, ArchHeight + 20f, kitchenZ), new Vector3(184f, 3f, kitchenDepth + 4f), plaster);
+            // The kitchen and front entry beyond the west wall are built in UnderneathTreeFinish.HouseRooms.cs.
 
-            // Bookshelves and a piano by the window.
+            // Bookshelves (the piano is in UnderneathTreeFinish.Decor.cs).
             var rand = new System.Random(77);
             Box("Bookcase", new Vector3(RoomEast - 20f, 90f, BookcaseZ), new Vector3(34f, 180f, BookcaseWidth), beam);
             for (int shelf = 0; shelf < 5; shelf++)
@@ -303,9 +300,6 @@ namespace DeadlyJenga.CandyArt
                     Box("Book", new Vector3(RoomEast - 38f, 12f + shelf * 34f + tall * .5f, z + thick * .5f), new Vector3(4f, tall, thick - .6f), book);
                     z += thick;
                 }
-            var lacquer = Lacquer("Piano black", new Color(.02f, .015f, .015f), .9f, 0f, .8f, 0f);
-            Box("Upright piano", new Vector3(RoomWest + 75f, 45f, RoomNorth - 22f), new Vector3(110f, 90f, 36f), lacquer);
-            Box("Piano bench", new Vector3(RoomWest + 75f, 18f, RoomNorth - 70f), new Vector3(60f, 36f, 26f), lacquer);
         }
 
         // A wall running east-west at z, with one opening from x0 to x1 between heights low and high.

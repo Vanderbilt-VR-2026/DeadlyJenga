@@ -52,6 +52,79 @@ namespace DeadlyJenga.CastlePrototype.Editor
             MatchChoices.HandCount = 0;
         }
 
+        // Family room views, for the unattended capture job below.
+        public static readonly (string name, Vector3 eye, Vector3 target, float fov)[] FamilyRoomViews =
+        {
+            ("room-tree-corner", new Vector3(-250f, 90f, -300f), new Vector3(-40f, 120f, -30f), 70f),
+            ("room-sitting", new Vector3(-40f, 120f, -350f), new Vector3(-300f, 30f, -350f), 72f),
+            ("room-stockings", new Vector3(-210f, 85f, -350f), new Vector3(-310f, 82f, -350f), 45f),
+            ("room-kitchen", new Vector3(-200f, 80f, -110f), new Vector3(-540f, 60f, -110f), 55f),
+            ("room-front-entry", new Vector3(-200f, 90f, -540f), new Vector3(-540f, 70f, -545f), 60f),
+            ("room-piano-clock", new Vector3(-150f, 90f, -120f), new Vector3(-320f, 70f, 20f), 65f),
+            ("room-photos", new Vector3(-200f, 140f, -340f), new Vector3(58f, 140f, -340f), 60f),
+            ("room-pet-bed", new Vector3(-200f, 40f, -440f), new Vector3(-262f, 5f, -500f), 50f),
+            ("room-south-window", new Vector3(-145f, 80f, -330f), new Vector3(-145f, 95f, -600f), 72f),
+            ("room-overview", new Vector3(40f, 270f, -590f), new Vector3(-250f, 60f, -100f), 85f)
+        };
+
+        const string BatchKey = "UnderneathTreeLookdev.Batch";
+        const string BatchStarted = "UnderneathTreeLookdev.BatchStarted";
+        const string BatchPlaying = "UnderneathTreeLookdev.BatchPlaying";
+        public const string BatchFolder = "Logs/TreeLookdev/batch";
+
+        // Unattended capture for a coordinator job (-executeMethod): opens the map in Play Mode,
+        // waits for it to build, saves every family room view to Logs/TreeLookdev/batch, then quits.
+        // Exit code 0 = pictures written; 2 = timed out.
+        public static void BatchCaptureFamilyRoom()
+        {
+            SessionState.SetBool(BatchKey, true);
+            SessionState.SetFloat(BatchStarted, (float)EditorApplication.timeSinceStartup);
+            SessionState.SetFloat(BatchPlaying, 0f);
+            EditorApplication.update += BatchStep;
+            Open();
+        }
+
+        // Entering Play Mode reloads scripts, so the wait picks up again afterwards.
+        [InitializeOnLoadMethod]
+        static void ResumeBatch()
+        {
+            if (SessionState.GetBool(BatchKey, false))
+                EditorApplication.update += BatchStep;
+        }
+
+        static void BatchStep()
+        {
+            double now = EditorApplication.timeSinceStartup;
+            if (now - SessionState.GetFloat(BatchStarted, (float)now) > 900f)
+            {
+                FinishBatch(2);
+                return;
+            }
+            if (!EditorApplication.isPlaying || !(Services.Session?.Player?.ViewCamera))
+                return;
+            float playing = SessionState.GetFloat(BatchPlaying, 0f);
+            if (playing <= 0f)
+            {
+                SessionState.SetFloat(BatchPlaying, (float)now);
+                return;
+            }
+            // Give the map, its art and the fire a few seconds to build and settle.
+            if (now - playing < 15f)
+                return;
+            Directory.CreateDirectory(BatchFolder);
+            foreach (var view in FamilyRoomViews)
+                Shoot(Path.Combine(BatchFolder, view.name + ".png"), view.eye, view.target, view.fov);
+            File.WriteAllText(Path.Combine(BatchFolder, "done.txt"), System.DateTime.Now.ToString("s"));
+            FinishBatch(0);
+        }
+
+        static void FinishBatch(int code)
+        {
+            EditorApplication.update -= BatchStep;
+            SessionState.EraseBool(BatchKey);
+            EditorApplication.Exit(code);
+        }
+
         // Saves every fixed view into the folder. Returns how many pictures were written.
         public static int ShootAll(string folder, int width = 1600, int height = 900)
         {

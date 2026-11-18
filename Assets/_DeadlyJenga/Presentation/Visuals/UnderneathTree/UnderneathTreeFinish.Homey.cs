@@ -6,7 +6,8 @@ namespace DeadlyJenga.CandyArt
 {
     // The little stories that make the room feel lived in on Christmas Eve: a sitting area by
     // the fire, Santa's cookies and milk, a present left half wrapped, a dressed-up south
-    // window and a grandfather clock at two minutes to midnight. Scenery only (no collision).
+    // window and a grandfather clock at two minutes to midnight (placed in BuildDecor).
+    // Scenery only (no collision).
     public sealed partial class UnderneathTreeFinish
     {
         readonly List<(Transform swing, float amplitude)> swings = new List<(Transform, float)>();
@@ -19,7 +20,9 @@ namespace DeadlyJenga.CandyArt
             BuildSittingArea();
             BuildLateWrapping();
             DressSouthWindow();
-            BuildGrandfatherClock(new Vector3(RoomWest + 18f, 0f, RoomSouth + 28f), 90f);
+            BuildHouseRooms();
+            BuildDecor();
+            BuildRoomSounds();
         }
 
         // Puts a piece built by the helpers (which place things under the art root) under a pivot.

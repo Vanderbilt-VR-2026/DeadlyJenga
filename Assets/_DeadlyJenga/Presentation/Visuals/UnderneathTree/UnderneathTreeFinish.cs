@@ -402,6 +402,9 @@ namespace DeadlyJenga.CandyArt
                 Destroy(firPalette);
             if (stoneTexture)
                 Destroy(stoneTexture);
+            foreach (var clip in clips)
+                if (clip)
+                    Destroy(clip);
         }
 
         void BuildLighting()
