@@ -428,7 +428,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 pendingCues.Clear();
                 // Cues that wait for another cue (chain reactions) are started by the director, not by the clock.
-                if (pass.liveWorld) pendingCues.AddRange(set.cues.Where(c => string.IsNullOrEmpty(c.link) && c.at >= startFrame / (float)stage.Fps - .0001f).OrderBy(c => c.at));
+                // A branch starts recording one frame after the branch frame, but a cue placed exactly on the
+                // branch frame (scrub there, add a push, branch) has not happened yet and must still fire.
+                float cuesFrom = (branch ? pass.branchFrom : startFrame) / (float)stage.Fps;
+                if (pass.liveWorld) pendingCues.AddRange(set.cues.Where(c => string.IsNullOrEmpty(c.link) && c.at >= cuesFrom - .0001f).OrderBy(c => c.at));
                 StudioDirector.Begin(stage, startFrame / (float)stage.Fps);
 
                 if (branch)

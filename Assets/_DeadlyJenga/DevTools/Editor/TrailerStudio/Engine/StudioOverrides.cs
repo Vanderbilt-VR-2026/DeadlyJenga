@@ -56,9 +56,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     break;
                 case "pose": Pose(frame, layer.crouch, layer.lean, layer.flinch, layer.armRaise, weight); break;
                 case "reaction":
-                    // A fall or death holds its pose until told otherwise: a later reaction on the same actor (a get-up) takes over.
+                    // A fall or death holds its pose until a later get-up on the same actor takes over.
+                    // (Any other reaction placed after it plays on top of the lying pose.)
                     bool stays = layer.name == "death" || layer.name == "fall";
-                    if (stays && set.overrides.Any(o => o != layer && o.kind == "reaction" && !o.muted && o.actor == layer.actor && o.Start > layer.Start && o.Start <= time)) break;
+                    if (stays && set.overrides.Any(o => o != layer && o.kind == "reaction" && o.name == "getUp" && !o.muted && o.actor == layer.actor && o.Start > layer.Start && o.Start <= time)) break;
                     React(layer, time, frame, anchor);
                     break;
                 case "emote":

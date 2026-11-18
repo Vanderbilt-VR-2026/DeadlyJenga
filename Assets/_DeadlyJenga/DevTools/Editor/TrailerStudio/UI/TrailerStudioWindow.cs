@@ -474,6 +474,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public void SetActiveTake(StudioTrack track, int index)
         {
             track.active = index;
+            if (Tape != null && Set != null)
+            {
+                // The world's take brings the hazard, effect and sound takes of the same run with it.
+                if (track.type == WorldTrack.Id && track.ActiveTake != null) StudioVariations.Activate(Tape, track.ActiveTake);
+                StudioTakes.CheckStale(Tape, Set.fps);
+            }
             TapeChanged();
         }
 

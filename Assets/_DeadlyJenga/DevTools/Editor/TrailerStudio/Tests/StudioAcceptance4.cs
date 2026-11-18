@@ -250,7 +250,67 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 $"Just before the hit Ben is on his take ({Vector3.Distance(atHit, spot) * 1000:0.0} mm off). Half a second after it he has been thrown {thrown:0.00} m, " +
                 $"in the direction the block was moving (alignment {along:0.00}, 1 = exactly). At the end of the reaction he is back on his take ({returned * 1000:0.0} mm off). " +
                 "The take itself was not changed. Pictures: knockback/.");
+
+            // ---- Cameras and look-ats must see Ben where the knockback puts him, not where his take has him ----
+            float midKnock = found + .5f;
+            var seen = StudioActorPoses.At(tape, ben.id, midKnock, fps);
+            StudioRun.ShowExact(midKnock * fps); yield return 0;
+            Vector3 drawn = stage.playback.TryGetValue(ben.id, out var benCopy) && benCopy ? benCopy.transform.position : Vector3.zero;
+            Result("Cameras see an actor where its overrides put it", seen.found && Vector3.Distance(seen.feet, spot) > .5f && Vector3.Distance(seen.feet, drawn) < .01f,
+                $"In the middle of the knockback, the pose cameras aim at is {Vector3.Distance(seen.feet, spot):0.00} m from Ben's recorded spot and {Vector3.Distance(seen.feet, drawn) * 100:0.0} cm from where he is drawn.");
+
+            // ---- A hit pause holds the picture in a render too ----
+            int pauseFrom = pushFrame + 5;
+            var pause = new StudioOverride { kind = "hitPause", from = pauseFrom / (float)fps, to = (pauseFrom + 10) / (float)fps };
+            set.overrides.Add(pause);
+            StudioRun.Scrub(pauseFrom); yield return 0;
+            Vector3 heldAt = stage.blocks[hero].transform.position;
+            StudioRun.ShowExact(pauseFrom + 5.5f); yield return 0;
+            float duringPause = Vector3.Distance(heldAt, stage.blocks[hero].transform.position);
+            StudioRun.ShowExact(pauseFrom + 10.5f); yield return 0;
+            float afterPause = Vector3.Distance(heldAt, stage.blocks[hero].transform.position);
+            Result("A hit pause holds the picture when frames are shown the way a render shows them", duringPause < .0001f && afterPause > .01f,
+                $"Pause from frame {pauseFrom} for 10 frames. Block #{hero} shown at frame {pauseFrom + 5.5f:0.0}: {duringPause * 1000:0.00} mm from where the pause began. At frame {pauseFrom + 10.5f:0.0}: {afterPause * 100:0.0} cm.");
             set.overrides.Clear();
+
+            // ---- A fall holds until a get-up, and the get-up really gets up ----
+            set.overrides.Add(new StudioOverride { actor = ben.id, kind = "reaction", name = "fall", from = 1, to = 2 });
+            set.overrides.Add(new StudioOverride { actor = ben.id, kind = "reaction", name = "getUp", from = 3, to = 4 });
+            var upright = ActorFrame.Read(benTrack.type, pose);
+            float fullHeight = upright.body.head.y - upright.body.feet.y;
+            ActorFrame Layered(float time)
+            {
+                var frame = ActorFrame.Read(benTrack.type, pose);
+                foreach (var filter in ActorFrameFilters.For(stage, benTrack)) filter.Apply(stage, benTrack, time, frame);
+                return frame;
+            }
+            var lying = Layered(2.5f); var risen = Layered(4.5f);
+            float lyingHeight = lying.body.head.y - lying.body.feet.y, risenOff = Vector3.Distance(risen.body.head, upright.body.head);
+            Result("A fall holds its pose until a get-up, and the get-up ends standing", lyingHeight < fullHeight * .4f && risenOff < .01f,
+                $"Standing head height {fullHeight:0.00} m. Between the fall and the get-up (2.5 s) the head is {lyingHeight:0.00} m above the feet. After the get-up (4.5 s) the head is {risenOff * 1000:0.0} mm from the standing pose.");
+            set.overrides.Clear();
+
+            // ---- Lock feet leaves a hop alone and pulls a hover down ----
+            var grounded = ActorFrame.Read(adaTrack.type, original.frames[0]);
+            float groundY = grounded.body.feet.y;
+            var hopTake = new StudioTake { start = 0, keyEvery = 1, meta = original.meta, name = "Hop then hover (test)" };
+            for (int f = 0; f < 30; f++)
+            {
+                float lift = f >= 4 && f < 14 ? .3f * Mathf.Sin(Mathf.PI * (f - 4) / 10f) : f >= 14 && f < 28 ? .1f : 0;
+                var frame = ActorFrame.Read(adaTrack.type, original.frames[0]);
+                frame.Transform(frame.body.feet, Quaternion.identity, Vector3.up * lift, false, Vector3.right);
+                hopTake.frames.Add(frame.Write());
+            }
+            int adaWas = adaTrack.active;
+            adaTrack.takes.Add(hopTake); adaTrack.active = adaTrack.takes.Count - 1;
+            var hopLocked = StudioMotionEdit.LockFeet(stage, adaTrack, 0, 30);
+            float hopTop = 0, hoverOff = 0;
+            for (int f = 4; f < 14; f++) hopTop = Mathf.Max(hopTop, ActorFrame.Read(adaTrack.type, hopLocked.frames[f]).body.feet.y - groundY);
+            for (int f = 16; f < 28; f++) hoverOff = Mathf.Max(hoverOff, Mathf.Abs(ActorFrame.Read(adaTrack.type, hopLocked.frames[f]).body.feet.y - groundY));
+            adaTrack.takes.Remove(hopLocked); adaTrack.takes.Remove(hopTake); adaTrack.active = Mathf.Min(adaWas, adaTrack.takes.Count - 1);
+            StudioRun.Refresh();
+            Result("Lock feet leaves a hop alone and pulls a hover down to the ground", hopTop > .25f && hoverOff < .01f,
+                $"A made-up take: a 0.30 m hop, then 14 frames hovering 0.10 m up. After Lock feet the hop still reaches {hopTop:0.00} m, and the hovering frames are within {hoverOff * 1000:0.0} mm of the ground.");
 
             // ---- Test 3: five actors look at the incoming tornado ----
             string tornado = SetLists.Hazards.FirstOrDefault(h => h.ToLowerInvariant().Contains("tornado"));

@@ -26,6 +26,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool liveWorld;            // the world is simulated (and can be recorded) instead of played back
         public float speed = 1;           // world speed while performing (slow motion: .5 or .25)
         public string performer = "";     // mark id the local player performs (empty = nobody)
+        public string recipe = "";        // variation runs: what was changed for this try (kept with the world take)
         public int preRoll;               // tape frames played before recording starts, so the performer can get moving
         public float countdown;           // seconds of 3-2-1 before the tape rolls
         public bool punchIn;              // keep the performer's old take up to 'from' and record from there
@@ -267,6 +268,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static void Teardown()
         {
             running = false; Recording = false; routine = null;
+            StudioVariations.Abandon();
             EndLiveSound(false);
             DisposeRecorders();
             DisposePlayers();

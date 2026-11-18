@@ -131,6 +131,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (!frame.isHand) { frame.color = (frame.color & ~0xFF) | (mark.color & 0xFF); if (mark.customLook) frame.look = mark.appearance; }
                 copy.frames.Add(frame.Write());
             }
+            // A copy that starts later or ends earlier than its source would pop in or out. Hold its first
+            // pose before it starts and its last pose after it ends, so it is there for as long as the source.
+            if (copy.frames.Count > 0)
+            {
+                int wantStart = Mathf.Max(0, take.start), wantEnd = Mathf.Min(set.Frames, take.End);
+                if (copy.start > wantStart)
+                {
+                    copy.frames.InsertRange(0, Enumerable.Repeat(copy.frames[0], copy.start - wantStart));
+                    copy.start = wantStart;
+                }
+                while (copy.start + copy.frames.Count < wantEnd) copy.frames.Add(copy.frames[copy.frames.Count - 1]);
+            }
             var track = tape.GetOrAdd(mark.id, from.type, mark.actor);
             track.takes.Add(copy);
             track.active = track.takes.Count - 1;
@@ -233,6 +245,31 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (frame < 0) { take.meta = WorldMeta(newWorld.id); continue; }   // same world after all
                 StudioTrackNotes.Update(track, n => n.staleFrame = frame);
                 track.badge = $"Stale: the world was re-recorded and first differs at {frame / (float)fps:0.00} s (frame {frame}). Keep it, re-record it, or punch in from there.";
+            }
+        }
+
+        // An active take changed (the world's, or an actor's): work out again which actor takes no longer
+        // match the active world, and clear the badge on those that do.
+        public static void CheckStale(StudioTape tape, int fps)
+        {
+            var worldTrack = tape?.FindType(WorldTrack.Id);
+            var world = worldTrack?.ActiveTake;
+            if (world == null) return;
+            var differences = new Dictionary<string, int>();
+            foreach (var track in tape.tracks.Where(IsActor))
+            {
+                var take = track.ActiveTake;
+                string against = take == null ? "" : WorldOf(take);
+                int frame = -1;
+                if (against.Length > 0 && against != world.id && !differences.TryGetValue(against, out frame))
+                {
+                    var old = worldTrack.takes.FirstOrDefault(t => t.id == against);
+                    frame = old == null ? 0 : WorldTrack.FirstDifference(old, world, 10);
+                    differences[against] = frame;
+                }
+                StudioTrackNotes.Update(track, n => n.staleFrame = frame);
+                if (frame >= 0) track.badge = $"Stale: performed against a different world, which first differs at {frame / (float)fps:0.00} s (frame {frame}). Keep it, re-record it, or punch in from there.";
+                else if ((track.badge ?? "").StartsWith("Stale")) track.badge = "";
             }
         }
 

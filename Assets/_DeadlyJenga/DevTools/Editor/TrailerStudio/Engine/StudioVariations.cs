@@ -124,11 +124,44 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 moved.Add((cue, cue.at));
                 if (string.IsNullOrEmpty(cue.link)) cue.at = Mathf.Clamp(cue.at + Spread(running.timeJitter), running.fromFrame / (float)stage.Fps, stage.set.length - .05f);
             }
-            var pass = new StudioPass { label = $"Variation {Done + 1} of {Total}", liveWorld = true, fixedClock = true,
+            var recipe = new Recipe();
+            foreach (var cue in stage.set.cues) { recipe.at.Add(cue.at); recipe.jitter.Add(cue.jitter); }
+            var pass = new StudioPass { label = $"Variation {Done + 1} of {Total}", liveWorld = true, fixedClock = true, recipe = JsonUtility.ToJson(recipe),
                 branchFrom = running.fromFrame > 0 ? running.fromFrame : -1, seed = running.seed * 1000 + Done, note = $"Variation {Done + 1}" };
             foreach (var track in stage.tape.tracks)
                 if (!track.locked && track.type != SurvivorTrack.Id && track.type != HandTrack.Id && StudioTrackTypes.Get(track.type) != null) pass.record.Add(track.id);
             StudioRun.Record(pass);
+        }
+
+        // The stage closed in the middle of a variation run: forget the run and put the Set's cues back.
+        public static void Abandon()
+        {
+            Restore();
+            Total = 0; Done = 0; running = null; RunningGroup = "";
+        }
+
+        // What a variation changed, kept with its take so a chosen one can be made again.
+        [Serializable] public sealed class Recipe { public List<float> at = new List<float>(), jitter = new List<float>(); }
+
+        public static Recipe RecipeOf(StudioTake take)
+        {
+            string saved = StudioBranch.NoteOf(take).recipe;
+            if (string.IsNullOrEmpty(saved)) return null;
+            try { return JsonUtility.FromJson<Recipe>(saved); } catch { return null; }
+        }
+
+        // Write a variation's cue times and strengths into the Set, so "Record whole set" makes that collapse again.
+        public static bool ApplyRecipe(StudioSet set, StudioTake take)
+        {
+            var recipe = RecipeOf(take);
+            if (recipe == null || recipe.at.Count != set.cues.Count || recipe.jitter.Count != set.cues.Count) return false;
+            for (int i = 0; i < set.cues.Count; i++)
+            {
+                set.cues[i].at = recipe.at[i];
+                set.cues[i].strength *= 1 + recipe.jitter[i];
+                set.cues[i].jitter = 0;
+            }
+            return true;
         }
 
         // Put cue times and strengths back the way the person set them.

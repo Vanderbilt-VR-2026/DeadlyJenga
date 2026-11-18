@@ -18,6 +18,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public int branchFrame = -1;
             public string label = "";
             public string group = "";     // variation runs share a group id
+            public string recipe = "";    // a variation's cue times and strengths (StudioVariations.Recipe as JSON)
             public int fallen;            // scores, filled in when the take is made
             public float travelled, targetDistance = -1;
             public bool inZone;
@@ -90,6 +91,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             note.blocks = stage.blocks.Length;
             if (branched && parent != null) { note.parent = parent.id; note.branchFrame = pass.branchFrom; }
             note.label = pass.note;
+            note.recipe = pass.recipe ?? "";
             var score = StudioVariations.Score(stage, fresh);
             note.fallen = score.fallen; note.travelled = score.travelled; note.targetDistance = score.targetDistance; note.inZone = score.inZone;
             if (!string.IsNullOrEmpty(StudioVariations.RunningGroup)) note.group = StudioVariations.RunningGroup;

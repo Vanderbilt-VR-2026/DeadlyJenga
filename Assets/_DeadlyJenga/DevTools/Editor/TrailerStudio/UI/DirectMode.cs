@@ -281,12 +281,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var use = StudioUi.Small(active ? "Active" : "Use this", () =>
                 {
                     StudioVariations.Activate(tape, captured);
-                    StudioTakes.MarkStale(tape, captured, set.fps, new List<string>());
+                    StudioTakes.CheckStale(tape, set.fps);
                     context.window.TapeChanged();
                 }, "Make this the world everyone plays against.");
                 use.EnableInClassList("ts-small--on", active);
                 var name = new Label(take.name); name.AddToClassList("ts-item-name");
                 card.Add(StudioUi.Row(name, use));
+                if (StudioVariations.RecipeOf(take) != null)
+                    card.Add(StudioUi.Small("Put its cue timings in the Set", () => context.Edit("Use variation timings", () =>
+                    {
+                        if (!StudioVariations.ApplyRecipe(set, captured)) context.Say("The Set's cues have changed since this variation was made, so its timings no longer fit.");
+                    }), "This try moved and strengthened the cues a little. Write those values into the Set, so recording the whole set makes this collapse again."));
                 string detail = note.branchFrame >= 0 ? $"Branched at {StudioUi.Time(note.branchFrame, set.fps)}. " : "";
                 if (scores || note.fallen > 0)
                     detail += $"{note.fallen} blocks fell, {note.travelled:0} m of movement" + (note.targetDistance >= 0 ? $", target block {note.targetDistance:0.00} m from the spot" + (note.inZone ? " (in the zone)" : "") : "") + ".";
