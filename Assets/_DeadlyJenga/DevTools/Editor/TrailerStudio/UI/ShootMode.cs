@@ -97,7 +97,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             int aspect = ClosestAspect(render);
             var lines = new List<string> { "720", "1080", "1440", "2160 (4K)" };
             int[] lineValues = { 720, 1080, 1440, 2160 };
-            int line = Mathf.Max(0, Array.IndexOf(lineValues, Mathf.Min(render.width, render.height) >= 2160 || Mathf.Max(render.width, render.height) >= 3840 ? 2160 : aspect == 1 || aspect == 2 ? Mathf.Min(render.width, render.height) : aspect == 3 ? Mathf.RoundToInt(render.width * 9f / 16) : render.height));
+            // Which size step is this? The one whose width and height are closest to the Set's.
+            int line = 0; float nearest = float.MaxValue;
+            for (int i = 0; i < lineValues.Length; i++)
+            {
+                var candidate = StudioAspects.Size(aspect, lineValues[i]);
+                float off = Mathf.Abs(candidate.x - render.width) + Mathf.Abs(candidate.y - render.height);
+                if (off < nearest) { nearest = off; line = i; }
+            }
             void Size(int newAspect, int newLine)
             {
                 var size = StudioAspects.Size(newAspect, lineValues[Mathf.Clamp(newLine, 0, 3)]);
