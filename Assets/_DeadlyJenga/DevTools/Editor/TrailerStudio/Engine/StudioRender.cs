@@ -271,14 +271,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                             else
                             {
                                 var bytes = writer.GetRawTextureData<byte>();
-                                // The summed values are linear light; a PNG holds display (gamma) values. Alpha stays as it is.
-                                bool linear = QualitySettings.activeColorSpace == ColorSpace.Linear;
-                                for (int i = 0; i < sum.Length; i++)
-                                {
-                                    float value = sum[i] * scale;
-                                    if (linear && (i & 3) != 3) value = Mathf.LinearToGammaSpace(value);
-                                    bytes[i] = (byte)Mathf.Clamp(Mathf.RoundToInt(value * 255), 0, 255);
-                                }
+                                // The values read back are already display (gamma) values, the same as an unblurred
+                                // picture's, so the average is written as it is. (Checked by the Phase 5 brightness test.)
+                                for (int i = 0; i < sum.Length; i++) bytes[i] = (byte)Mathf.Clamp(Mathf.RoundToInt(sum[i] * scale * 255), 0, 255);
                                 writer.Apply(false);
                                 File.WriteAllBytes(file, writer.EncodeToPNG());
                             }
@@ -370,7 +365,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         internal static TheatreAudioCapture OpenAudioFile(string setId)
         {
             string folder = NewAudioFolder(setId);
-            if (Directory.Exists(folder)) Directory.Delete(folder, true);
+            if (Directory.Exists(folder)) Patiently(() => Directory.Delete(folder, true));
             Directory.CreateDirectory(folder);
             return new TheatreAudioCapture(Path.Combine(folder, "tape.wav"));
         }
@@ -380,18 +375,39 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             string folder = NewAudioFolder(setId), file = AudioFile(setId), stems = Path.Combine(AudioFolder(setId), "stems");
             if (!File.Exists(Path.Combine(folder, "tape.wav"))) return;
-            if (File.Exists(file)) File.Delete(file);
-            if (Directory.Exists(stems)) Directory.Delete(stems, true);
-            File.Move(Path.Combine(folder, "tape.wav"), file);
-            if (Directory.Exists(Path.Combine(folder, "stems"))) Directory.Move(Path.Combine(folder, "stems"), stems);
-            File.WriteAllText(Path.Combine(AudioFolder(setId), "tape.take.txt"), worldTakeId ?? "");
-            Directory.Delete(folder, true);
+            try
+            {
+                // File by file, each with a few tries: Windows can hold a file for a moment right after it is closed.
+                MoveFile(Path.Combine(folder, "tape.wav"), file);
+                Directory.CreateDirectory(stems);
+                foreach (string old in Directory.GetFiles(stems)) Patiently(() => File.Delete(old));
+                if (Directory.Exists(Path.Combine(folder, "stems")))
+                    foreach (string stem in Directory.GetFiles(Path.Combine(folder, "stems"))) MoveFile(stem, Path.Combine(stems, Path.GetFileName(stem)));
+                File.WriteAllText(Path.Combine(AudioFolder(setId), "tape.take.txt"), worldTakeId ?? "");
+            }
+            catch (Exception error) { Debug.LogWarning("[TrailerStudio] The new sound could not be put in place: " + error.Message); }
+            DropAudioFile(setId);
+        }
+
+        static void MoveFile(string from, string to)
+        {
+            Patiently(() => { if (File.Exists(to)) File.Delete(to); File.Move(from, to); });
+        }
+
+        static void Patiently(Action work)
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                try { work(); return; }
+                catch (Exception error) when ((error is IOException || error is UnauthorizedAccessException) && attempt < 8) { System.Threading.Thread.Sleep(120); }
+            }
         }
 
         internal static void DropAudioFile(string setId)
         {
             string folder = NewAudioFolder(setId);
-            try { if (Directory.Exists(folder)) Directory.Delete(folder, true); } catch (Exception error) { Debug.LogException(error); }
+            try { if (Directory.Exists(folder)) Patiently(() => Directory.Delete(folder, true)); }
+            catch (Exception error) { Debug.LogWarning("[TrailerStudio] A leftover sound folder could not be removed: " + error.Message); }
         }
 
         // The world take the saved sound was recorded with ("" if unknown or there is no sound).
