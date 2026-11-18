@@ -217,6 +217,9 @@ namespace DeadlyJenga.CandyPhysicsHands
         // Share of the hand's strength one finger (or the thumb) can use. Grip adds up finger by finger:
         // a thumb-and-index pinch holds less than a whole hand.
         public const float FingerStrengthShare=.12f,ThumbStrengthShare=.25f;
+        // How quickly a blocked finger's push builds as tracking closes further than the finger can go.
+        // At this stiffness a finger reaches its full share when tracking is about ten degrees past it.
+        const float FingerStiffness=16;
         // Same knuckles and bone lengths, fingers pointing as they do at rest.
         CandyHandSkeleton Straightened(CandyHandSkeleton skeleton)
         {
@@ -357,7 +360,7 @@ namespace DeadlyJenga.CandyPhysicsHands
                     // A finger asks for torque by how far it is from its pose: resting fingers leave the
                     // strength budget to whatever is actually pushing, and a blocked finger pushes harder.
                     float off=Quaternion.Angle(Quaternion.Inverse(bodies[parent].rotation)*rb.rotation,relative)*Mathf.Deg2Rad;
-                    driveTorques[i]=(settings.fingerTorque*.1f+settings.rotationSpring*6*off)*Strength;
+                    driveTorques[i]=(settings.fingerTorque*.1f+settings.rotationSpring*FingerStiffness*off)*Strength;
                 }
                 else
                 {
@@ -406,7 +409,7 @@ namespace DeadlyJenga.CandyPhysicsHands
                 if(i==0){torque=driveTorques[0];bodies[0].AddTorque(palmTorque,ForceMode.Force);}
                 else joints[i-1].slerpDrive=new JointDrive
                 {
-                    positionSpring=torque>0?settings.rotationSpring*6:0,
+                    positionSpring=torque>0?settings.rotationSpring*FingerStiffness:0,
                     positionDamper=torque>0?settings.rotationDamping*3:0,
                     maximumForce=torque
                 };
