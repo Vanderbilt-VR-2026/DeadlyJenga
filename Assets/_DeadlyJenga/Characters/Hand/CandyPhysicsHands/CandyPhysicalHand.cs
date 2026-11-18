@@ -178,8 +178,10 @@ namespace DeadlyJenga.CandyPhysicsHands
                     // Firm fingers: they curl toward the palm but cannot bend backwards, fold sideways or roll.
                     // Pressing a fingertip on a block then pushes on the whole hand instead of folding the finger.
                     bool thumb=i<=3,knuckle=j==0;
-                    joint.angularXMotion=joint.angularZMotion=ConfigurableJointMotion.Limited;
-                    joint.angularYMotion=ConfigurableJointMotion.Locked;
+                    // All three stay "Limited". Locking any one of them silently switches off the joint's drive
+                    // (the slerp drive needs every turning axis unlocked), and the fingers then just flop.
+                    joint.angularXMotion=joint.angularYMotion=joint.angularZMotion=ConfigurableJointMotion.Limited;
+                    joint.angularYLimit=new SoftJointLimit{limit=3};
                     joint.lowAngularXLimit=new SoftJointLimit{limit=thumb?-70:-FingerBackBendDegrees};
                     joint.highAngularXLimit=new SoftJointLimit{limit=thumb?70:FingerCurlDegrees};
                     joint.angularZLimit=new SoftJointLimit{limit=thumb?45:knuckle?25:6};

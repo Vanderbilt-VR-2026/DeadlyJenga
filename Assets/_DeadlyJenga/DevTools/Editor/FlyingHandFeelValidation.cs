@@ -373,6 +373,8 @@ namespace DeadlyJenga.HandValidation
             Check(hand.skin.sharedMesh.isReadable, "Skin mesh can be measured");
             Check(fist < 25, "Physical fingers close into a full fist inside their joint limits (" + fist.ToString("F1") + " deg off)");
             input.pose.skeleton = Open(L); yield return Wait(.8f);
+            float reopened = PhysicalFingerError(hand, Open(L));
+            Check(reopened < 25, "Physical fingers open flat again after the fist (" + reopened.ToString("F1") + " deg off)");
             Watch(hand);
 
             yield return TrackedPoses(hand);
