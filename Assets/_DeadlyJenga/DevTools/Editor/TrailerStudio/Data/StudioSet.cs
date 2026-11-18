@@ -1,0 +1,112 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using DeadlyJenga.Core;
+using UnityEngine;
+
+namespace DeadlyJenga.DevTools.Editor.TrailerStudio
+{
+    public enum StudioRole { Survivor = 0, Hand = 1, Bot = 2 }
+
+    // A spawn point for one actor. Positions are in metres from the stage anchor.
+    [Serializable] public sealed class StudioMark
+    {
+        public string id = "";            // also the actor's track id on the tape
+        public string actor = "Actor";    // the name shown in the Studio
+        public StudioRole role = StudioRole.Survivor;
+        public int color;                 // index into the avatar colors, and the Studio's color for this actor
+        public Vector3 position;
+        public float yaw;                 // facing, degrees
+        public bool customLook;           // false = the bot's usual random outfit
+        public AvatarAppearance appearance;
+        public string equipment = "";     // an EquipmentKind name, or empty
+    }
+
+    // Something the world does at a time: a collapse, a disaster...
+    [Serializable] public sealed class StudioCue
+    {
+        public string id = Guid.NewGuid().ToString("N").Substring(0, 8);
+        public float at;
+        public string action = "collapse";
+        public string actor = "", target = "", hazard = "", weapon = "";
+        public float strength = 9, heading, height;
+        public Vector3 point;             // metres from the stage anchor, for cues that are aimed
+        public bool optional, lethal;
+    }
+
+    // A camera shot. Phase 1 only keeps these (imported from Theatre); Phase 5 edits them.
+    [Serializable] public sealed class StudioShot
+    {
+        public string name = "Shot", subject = "", second = "";
+        public float start, duration = 2, fov = 52, roll;
+        public bool avoidWalls, autoFocus, firstPerson;
+        public Vector3 from = new Vector3(6, 3, -8), to = new Vector3(6, 3, -8), look;
+    }
+
+    // A saved scene setup: map, time, marks, cues. Saved as JSON by StudioLibrary.
+    [Serializable] public sealed class StudioSet
+    {
+        public string id = "", title = "Untitled set", notes = "";
+        public string map = "castle";
+        public int fps = 30, seed = 148;
+        public float length = 10, warmup = .75f;
+        public bool useMapAnchor;         // false = the stage sits on the highest block near the middle of the map
+        public Vector3 mapAnchor, stageOffset;
+        public float timeOfDay = -1;      // hours, -1 = whatever the map uses
+        public string weather = "";       // empty = whatever the map uses
+        public string startFromSet = "";  // empty = start as the map loads
+        public int startFromFrame;
+        public string thumbnail = "";
+        public List<StudioMark> marks = new List<StudioMark>();
+        public List<StudioCue> cues = new List<StudioCue>();
+        public List<StudioShot> shots = new List<StudioShot>();
+        public List<string> shotNotes = new List<string>();
+
+        public int Frames => Mathf.Max(1, Mathf.RoundToInt(length * fps));
+        public StudioMark Mark(string markId) => marks.FirstOrDefault(m => m.id == markId);
+
+        public StudioMark AddMark(StudioRole role, Vector3 position)
+        {
+            string label = role == StudioRole.Hand ? "Hand" : role == StudioRole.Bot ? "Bot" : "Survivor";
+            int number = marks.Count(m => m.role == role) + 1;
+            var mark = new StudioMark { role = role, position = position, color = marks.Count % 8, actor = label + " " + number };
+            mark.id = UniqueId(label.ToLowerInvariant() + "-" + number);
+            marks.Add(mark);
+            return mark;
+        }
+
+        public string UniqueId(string wanted)
+        {
+            string id = wanted;
+            for (int n = 2; marks.Any(m => m.id == id); n++) id = wanted + "-" + n;
+            return id;
+        }
+
+        // Plain-language problems, shown in the Set mode before a run.
+        public List<string> Problems()
+        {
+            var problems = new List<string>();
+            if (string.IsNullOrWhiteSpace(map)) problems.Add("Pick a map.");
+            if (fps < 12 || fps > 60) problems.Add("Frame rate must be 12 to 60.");
+            if (length < .5f || length > 120) problems.Add("Length must be half a second to two minutes.");
+            if (marks.Select(m => m.id).Distinct().Count() != marks.Count) problems.Add("Two marks share an id.");
+            foreach (var cue in cues) if (cue.at < 0 || cue.at >= length) problems.Add($"Cue \"{cue.action}\" is outside the set's length.");
+            return problems;
+        }
+
+        public StudioSet Clone() => JsonUtility.FromJson<StudioSet>(JsonUtility.ToJson(this));
+    }
+
+    // One color per actor, used everywhere the actor appears (list, timeline, marks, paths).
+    public static class StudioColors
+    {
+        static readonly Color[] Palette =
+        {
+            new Color(1f, .42f, .47f), new Color(.34f, .72f, 1f), new Color(.45f, .85f, .52f), new Color(1f, .78f, .32f),
+            new Color(.72f, .55f, 1f), new Color(1f, .58f, .82f), new Color(.38f, .86f, .84f), new Color(.95f, .62f, .38f)
+        };
+        public static Color For(int index) => Palette[((index % Palette.Length) + Palette.Length) % Palette.Length];
+        public static readonly Color World = new Color(.62f, .66f, .74f), Hazard = new Color(.98f, .55f, .30f),
+            Effects = new Color(.80f, .72f, .98f), Audio = new Color(.55f, .82f, .70f), Camera = new Color(.95f, .92f, .62f);
+    }
+}

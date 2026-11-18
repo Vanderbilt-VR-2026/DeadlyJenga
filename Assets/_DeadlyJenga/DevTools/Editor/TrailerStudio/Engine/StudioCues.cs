@@ -1,0 +1,100 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.Core;
+using DeadlyJenga.World.Hazards;
+using UnityEngine;
+using Object = UnityEngine.Object;
+
+namespace DeadlyJenga.DevTools.Editor.TrailerStudio
+{
+    // A kind of cue. To add one, implement this in a new file; the Studio finds it by itself.
+    public interface IStudioCueType
+    {
+        string Action { get; }            // saved in the Set
+        string Label { get; }             // shown in the Studio
+        // Do it through the real gameplay path. Return a short note for the cue log; throw if gameplay refused.
+        string Run(StudioStage stage, StudioCue cue);
+    }
+
+    public static class StudioCues
+    {
+        static List<IStudioCueType> all;
+        public static IReadOnlyList<IStudioCueType> All => all ??= StudioRegistry.Create<IStudioCueType>().OrderBy(c => c.Label).ToList();
+        public static IStudioCueType Get(string action) => All.FirstOrDefault(c => c.Action == action);
+
+        public static string Run(StudioStage stage, StudioCue cue)
+        {
+            var type = Get(cue.action);
+            if (type == null) return cue.action + ": not run (the Studio has no cue of this kind yet)";
+            try { return cue.action + " " + type.Run(stage, cue); }
+            catch (Exception error) { return cue.action + ": REJECTED. " + error.Message; }
+        }
+    }
+
+    // Shove the dynamic blocks nearest a point, so a structure starts to fall.
+    public sealed class CollapseCue : IStudioCueType
+    {
+        public string Action => "collapse";
+        public string Label => "Collapse";
+        public string Run(StudioStage stage, StudioCue cue)
+        {
+            Vector3 centre = stage.ToWorld(cue.point);
+            int count = 0;
+            foreach (var body in stage.world.Blocks.Where(b => b && b.gameObject.activeInHierarchy && !b.isKinematic)
+                .OrderBy(b => (b.position - centre).sqrMagnitude).Take(10))
+            {
+                var outward = Vector3.ProjectOnPlane(body.position - centre, Vector3.up);
+                body.AddForce((outward.normalized + Vector3.right * .75f + Vector3.up * .12f) * Mathf.Clamp(cue.strength, .1f, 30), ForceMode.VelocityChange);
+                count++;
+            }
+            if (count == 0) throw new InvalidOperationException("No loose blocks near the cue.");
+            return $"pushed {count} blocks";
+        }
+    }
+
+    // Start a production disaster by its prefab id.
+    public sealed class HazardCue : IStudioCueType
+    {
+        public string Action => "hazard";
+        public string Label => "Disaster";
+        public string Run(StudioStage stage, StudioCue cue)
+        {
+            if (!DemoDisasters.Execute(stage.session, cue.hazard)) throw new InvalidOperationException("The disaster did not start: " + cue.hazard);
+            return cue.hazard;
+        }
+    }
+
+    // The production tsunami with a chosen heading and height.
+    public sealed class TsunamiCue : IStudioCueType
+    {
+        public string Action => "tsunami";
+        public string Label => "Tsunami";
+        public string Run(StudioStage stage, StudioCue cue)
+        {
+            var prefab = DemoDisasters.Prefabs.FirstOrDefault(p => p && p.GetComponent<TsunamiHazard>());
+            if (!prefab) throw new InvalidOperationException("The tsunami prefab is missing.");
+            var wave = Object.Instantiate(prefab, stage.session.transform).GetComponent<TsunamiHazard>();
+            wave.randomDirection = false; wave.approachHeading = cue.heading;
+            wave.offshoreDistance = 0; wave.warningTime = 0; wave.riseTime = .8f;
+            wave.approachSpeed = cue.strength > 0 ? Mathf.Clamp(cue.strength, 1, 30) : 30;
+            wave.height = cue.height > 0 ? cue.height : Mathf.Clamp(stage.anchor.y - stage.world.WaterHeight(stage.anchor) + 8, 18, 100);
+            wave.affectPlayers = false;
+            wave.Begin();
+            if (!wave.Active) throw new InvalidOperationException("The tsunami did not start.");
+            return $"heading {wave.approachHeading:F0}, height {wave.height:F0} m";
+        }
+    }
+
+    public sealed class StopHazardsCue : IStudioCueType
+    {
+        public string Action => "stopHazards";
+        public string Label => "Stop disasters";
+        public string Run(StudioStage stage, StudioCue cue)
+        {
+            DemoDisasters.StopAll(stage.session);
+            return "";
+        }
+    }
+}
