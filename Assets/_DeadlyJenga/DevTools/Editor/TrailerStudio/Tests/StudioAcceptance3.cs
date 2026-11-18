@@ -225,6 +225,25 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 $"distances from the mark, best first: {string.Join(", ", scores.Take(8).Select(s => s.targetDistance.ToString("0.00")))} m… {scores.Count(s => s.inZone)} tries landed within 1 m. " +
                 $"The run left the original world active until one was picked: {restored}. The best try was then made the active world with one call. {thumbs} tries have thumbnails.");
 
+            // ---- Test 2b: the best try's recipe goes back into the Set by cue id, then the whole set is recorded again ----
+            if (best == null) Result("2b. The best try's cue timings go back into the Set by cue id", false, "There was no best try.");
+            else
+            {
+                bool copyOk = RecipeOnCopy(set, best, out string copyNote);
+                string applied = StudioVariations.ApplyRecipe(set, best);
+                StudioLibrary.Save(set);
+                StudioRun.RecordWholeSet();
+                foreach (int wait in UntilHeld()) yield return wait;
+                var again = worldTrack.ActiveTake;
+                FinalDistance(best, again, out float worst, out float mean, out int count);
+                // These tries branched at 1.4 s from the baseline take, so a whole-set recording from a fresh map is
+                // only expected to come close. The distance is reported, not judged (the Cut suite judges a fresh-map try).
+                Result("2b. The best try's cue timings go back into the Set by cue id (the re-recorded distance is reported, not judged)",
+                    copyOk && again != best && count > 0,
+                    copyNote + $" On the Set: \"{applied}\" Recording the whole set again from a fresh map: over {count} blocks its last frame is on average {mean * 100:0.0} cm and at most {worst * 100:0.0} cm " +
+                    $"from the best try's last frame. The try started from the baseline take's pose at 1.4 s, not from a fresh map, so these are not expected to match exactly.");
+            }
+
             Result("Runtime errors during the Studio tests", exceptions == 0, exceptions == 0 && errorLines.Count == 0 ? "None." : $"{exceptions} exceptions. First messages: {string.Join(" // ", errorLines)}");
             StudioRun.SaveTape();
         }
