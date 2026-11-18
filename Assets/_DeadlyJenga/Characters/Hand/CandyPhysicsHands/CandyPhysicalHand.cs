@@ -182,10 +182,11 @@ namespace DeadlyJenga.CandyPhysicsHands
                     // All three stay "Limited". Locking any one of them silently switches off the joint's drive
                     // (the slerp drive needs every turning axis unlocked), and the fingers then just flop.
                     joint.angularXMotion=joint.angularYMotion=joint.angularZMotion=ConfigurableJointMotion.Limited;
-                    joint.angularYLimit=new SoftJointLimit{limit=3};
-                    joint.lowAngularXLimit=new SoftJointLimit{limit=thumb?-70:-FingerBackBendDegrees};
-                    joint.highAngularXLimit=new SoftJointLimit{limit=thumb?70:FingerCurlDegrees};
-                    joint.angularZLimit=new SoftJointLimit{limit=thumb?45:knuckle?25:6};
+                    // The thumb's base swings every way (that is how it gets across the palm to oppose the fingers).
+                    joint.angularYLimit=new SoftJointLimit{limit=thumb?(knuckle?70:15):3};
+                    joint.lowAngularXLimit=new SoftJointLimit{limit=thumb?-90:-FingerBackBendDegrees};
+                    joint.highAngularXLimit=new SoftJointLimit{limit=thumb?90:FingerCurlDegrees};
+                    joint.angularZLimit=new SoftJointLimit{limit=thumb?(knuckle?70:25):knuckle?25:6};
                 }
                 joint.enableCollision=false;joint.enablePreprocessing=true;joint.projectionMode=JointProjectionMode.None;
                 joint.rotationDriveMode=RotationDriveMode.Slerp;joint.configuredInWorldSpace=false;joints[i-1]=joint;
@@ -364,7 +365,12 @@ namespace DeadlyJenga.CandyPhysicsHands
                     driveTorques[0]=palmTorque.magnitude;
                 }
             }
-            requestedEffort=driveForces[0].magnitude+driveTorques[0]/DriveLever(0);
+            // Holding its own angle is not pushing: the palm's turning strength is its own allowance (the hand's
+            // strength at the palm's edge) instead of being taken out of the push. A hand that spends everything on
+            // pressing would otherwise tip over on its fingers.
+            float turnAllowance=float.IsInfinity(forceBudget)?float.PositiveInfinity:forceBudget*Strength*DriveLever(0);
+            if(driveTorques[0]>turnAllowance){palmTorque*=turnAllowance/driveTorques[0];driveTorques[0]=turnAllowance;}
+            requestedEffort=driveForces[0].magnitude;
             for(int f=0;f<5;f++)
             {
                 // A finger touching nothing only moves itself. That costs none of the hand's strength, so it may
@@ -395,9 +401,9 @@ namespace DeadlyJenga.CandyPhysicsHands
                 bodies[i].AddForce(force,ForceMode.Force);
                 MaximumAppliedForce=Mathf.Max(MaximumAppliedForce,force.magnitude);
                 AppliedLinearForceNewtons+=force.magnitude;
-                AppliedTorqueNewtonMetres+=torque;
-                if(!free)AppliedDriveEffortNewtons+=force.magnitude+torque/(i==0?DriveLever(0):tipReach[i]*3);
-                if(i==0)bodies[0].AddTorque(palmTorque*scale,ForceMode.Force);
+                if(i>0)AppliedTorqueNewtonMetres+=torque;
+                if(!free)AppliedDriveEffortNewtons+=force.magnitude+(i==0?0:torque/(tipReach[i]*3));
+                if(i==0){torque=driveTorques[0];bodies[0].AddTorque(palmTorque,ForceMode.Force);}
                 else joints[i-1].slerpDrive=new JointDrive
                 {
                     positionSpring=torque>0?settings.rotationSpring*6:0,

@@ -85,6 +85,7 @@ namespace DeadlyJenga.CandyPhysicsHands
         bool[] colliderEnabled,rendererEnabled;
         Vector3 trackingAnchor;
         bool anchored;
+        Vector3 lastCarrier;bool hasLastCarrier;
         CandyHandMode anchoredMode;
         float selectedMissing,alternateStable;
         bool preferenceInitialized,lastPreference;
@@ -197,6 +198,9 @@ namespace DeadlyJenga.CandyPhysicsHands
                     raw.rotation=actor.motor.transform.rotation*raw.rotation;
                 }
             }
+            Vector3 carrier=actor.motor.transform.position;
+            if(hasLastCarrier)transition.Shift(carrier-lastCarrier);
+            lastCarrier=carrier;hasLastCarrier=true;
             transition.Step(raw,mode,useLeftHand,Time.unscaledDeltaTime,settings);
             if(!transition.Initialized)return;
             if(transition.Mode==CandyHandMode.Inactive&&transition.Strength<=0)
@@ -265,7 +269,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             pendingAuthoritativeBones=null;authoritativeAt=-100;
             actor.motor.ContactPalm=null;
             if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);Destroy(physical.gameObject);physical=null;}
-            transition=new CandyHandTransition();trackedGeometry=false;anchored=false;
+            transition=new CandyHandTransition();trackedGeometry=false;anchored=false;hasLastCarrier=false;
         }
         // Hand design: the player's pick, or a random one for an AI hand.
         int botLook=-1;

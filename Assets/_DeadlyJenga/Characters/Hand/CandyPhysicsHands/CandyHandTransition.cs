@@ -16,6 +16,10 @@ namespace DeadlyJenga.CandyPhysicsHands
         public Vector3[] BoneDirections=>shapeReady?shape.Directions(bonesOut):null;
         readonly Vector3[] bonesOut=new Vector3[15];
         CandyHandMode candidate;
+        // The hand's carrier moved (flying, or being held back at a wall). The pose rides with it, so smoothing only
+        // ever applies to what the player's own hand did. Without this the pose lagged behind every carrier move
+        // and the carrier then backed away from its own stale target.
+        public void Shift(Vector3 delta){if(!Initialized)return;var p=Pose;p.position+=delta;Pose=p;}
         public static bool IsValidPose(CandyHandPose raw)
         {
             bool Finite(float f)=>!float.IsNaN(f)&&!float.IsInfinity(f);
@@ -77,7 +81,7 @@ namespace DeadlyJenga.CandyPhysicsHands
         float c10,c11,c12,c20,c21,c22,c30,c31,c32,c40,c41,c42;
         Vector3 thumb0,thumb1,thumb2;
         const float FanLimit=28,KnuckleBack=20,KnuckleCurl=90,MiddleCurl=105,TipCurl=80,JointBack=5;
-        const float ThumbCone=75,ThumbBend=85;
+        const float ThumbCone=105,ThumbBend=90;
         // No finger joint moves faster than this, so one bad tracking frame cannot snap a finger.
         const float CurlDegreesPerSecond=2500,FanDegreesPerSecond=700,ThumbDegreesPerSecond=1800;
 
