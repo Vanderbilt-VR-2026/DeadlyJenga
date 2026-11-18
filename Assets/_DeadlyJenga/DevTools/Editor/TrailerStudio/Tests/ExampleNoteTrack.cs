@@ -16,7 +16,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         public static string LastShown = "";   // what playback showed last (the acceptance test reads this)
 
-        public void EnsureTracks(StudioSet set, StudioTape tape) => tape.GetOrAdd("example-note", Id, "Example notes");
+        // Only while examples are on (Ctrl+K, "Show example extensions"), so real tapes stay clean.
+        public void EnsureTracks(StudioSet set, StudioTape tape)
+        {
+            if (StudioExamples.Enabled) tape.GetOrAdd("example-note", Id, "Example notes");
+        }
         public StudioRecorder CreateRecorder(StudioStage stage, StudioTrack track) => new Recorder(stage);
         public StudioPlayer CreatePlayer(StudioStage stage, StudioTrack track, StudioTake take) => new Player(take);
 

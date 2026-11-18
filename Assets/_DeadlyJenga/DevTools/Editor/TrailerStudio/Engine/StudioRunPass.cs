@@ -176,6 +176,31 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (var player in players) player.AfterShow();
         }
 
+        // "Start where a previous moment ended": pose the live blocks like a frame of another Set's tape.
+        static void ApplyStartState(StudioStage stage)
+        {
+            var set = stage.set;
+            if (string.IsNullOrEmpty(set.startFromSet)) return;
+            try
+            {
+                string file = StudioLibrary.TapePath(set.startFromSet);
+                if (!StudioTape.IsTape(file)) throw new InvalidOperationException("that Set has no tape yet");
+                var other = StudioTape.Load(file, new[] { WorldTrack.Id });
+                var track = other.FindType(WorldTrack.Id);
+                var take = track?.ActiveTake;
+                if (take == null) throw new InvalidOperationException("that Set has no world take yet");
+                using (var player = StudioTrackTypes.Get(WorldTrack.Id).CreatePlayer(stage, track, take))
+                    player.Show(Mathf.Clamp(set.startFromFrame, take.start, take.End - 1), false);
+                foreach (var body in stage.blocks)
+                    if (body && !body.isKinematic) { body.linearVelocity = Vector3.zero; body.angularVelocity = Vector3.zero; }
+            }
+            catch (Exception error)
+            {
+                Status = $"Could not start from \"{set.startFromSet}\": {error.Message}. The map starts as it loads.";
+                Debug.LogWarning("Trailer Studio: " + Status);
+            }
+        }
+
         // ---- Recording ----
 
         static IEnumerator<int> RecordRoutine(StudioPass pass)
@@ -199,6 +224,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 stage.RefreshBlocks();
                 stage.tape.header.blocks = stage.blocks.Length;
                 SetWorldKinematic(false);
+                ApplyStartState(stage);
                 StudioCast.Park(stage);
                 UnityEngine.Random.InitState(set.seed);
                 for (int n = 0; n < Mathf.CeilToInt(set.warmup * set.fps); n++) yield return 0;

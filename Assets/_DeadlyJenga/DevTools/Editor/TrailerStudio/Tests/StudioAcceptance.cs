@@ -9,6 +9,7 @@ using DeadlyJenga.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 
 namespace DeadlyJenga.DevTools.Editor.TrailerStudio
@@ -50,6 +51,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (Directory.Exists(Folder)) Directory.Delete(Folder, true);
             Directory.CreateDirectory(Folder);
             Lines = ""; Failures = 0; Step = 1;
+            StudioExamples.Enabled = true;   // the example track and example mode are part of test 6
             Deadline = EditorApplication.timeSinceStartup + 240;
             Hook();
         }
@@ -134,6 +136,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             Step = 0;
             StudioLibrary.SetsFolderOverride = "";
+            StudioExamples.Enabled = false;
             EditorApplication.update -= Tick;
             var text = new StringBuilder("# Trailer Studio Phase 1 acceptance run\n\n");
             text.Append($"Date: {DateTime.Now:yyyy-MM-dd HH:mm}  \nUnity: {Application.unityVersion}  \nMap: {Map}\n\n");
@@ -292,6 +295,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Result("6b. Readers skip and keep track types they do not know",
                 onlyWorld.tracks.Count == 1 && survived?.ActiveTake != null && survived.ActiveTake.frames.Count == frames,
                 $"Loading only the world gave {onlyWorld.tracks.Count} track; a tape with an unknown type \"made-in-a-later-phase\" reloaded and re-saved with {survived?.ActiveTake?.frames.Count ?? 0} frames intact.");
+
+            // ---- Test 6 (mode half): the example mode tab is in the registry and in the window ----
+            bool registered = StudioExtensions.Modes.Any(m => m is ExampleNotesMode && m.Available);
+            string windowNote;
+            bool inWindow = false;
+            try
+            {
+                var window = EditorWindow.GetWindow<TrailerStudioWindow>();
+                window.RebuildAll();
+                var tabNames = window.rootVisualElement.Query<UnityEngine.UIElements.Button>(className: "ts-tab").ToList().Select(b => b.text).ToList();
+                inWindow = tabNames.Contains("Notes") && tabNames.Contains("Set");
+                windowNote = "Window tabs: " + string.Join(", ", tabNames) + ".";
+            }
+            catch (Exception error) { windowNote = "The window could not be opened in this run (" + error.Message + "), so only the registry was checked."; inWindow = Application.isBatchMode; }
+            Result("6c. A mode tab added in its own file shows up in the Studio", registered && inWindow,
+                $"ExampleNotesMode.cs only. In the mode registry: {registered}. {windowNote}");
 
             // ---- Test 3: a live survivor on a falling block, while the world plays back ----
             int chosen = -1; float bestDrop = 0;

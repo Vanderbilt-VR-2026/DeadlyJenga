@@ -218,6 +218,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Stage = new StudioStage { session = session, world = world, set = set };
             Stage.RefreshBlocks();
             Stage.anchor = StudioStage.FindAnchor(world, set);
+            ApplyStartState(Stage);
             Stage.tape = LoadOrCreateTape(set, Stage);
             StudioCast.Park(Stage);
             StudioCamera.Create(Stage);

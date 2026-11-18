@@ -35,7 +35,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 if (i == largest) continue;
                 float unit = Mathf.Clamp01((v[i] * sign / Range + 1) * .5f);
-                packed = (packed << 15) | (ulong)Mathf.RoundToInt(unit * Steps);
+                packed = (packed << 15) | (uint)Mathf.RoundToInt(unit * Steps);
             }
             return packed;
         }
