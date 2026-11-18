@@ -374,7 +374,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             float turnAllowance=float.IsInfinity(forceBudget)?float.PositiveInfinity:forceBudget*Strength*DriveLever(0);
             if(driveTorques[0]>turnAllowance){palmTorque*=turnAllowance/driveTorques[0];driveTorques[0]=turnAllowance;}
             requestedEffort=driveForces[0].magnitude;
-            if(!JointDrivenFingers)HoldFingerShape();
+            if(!JointDrivenFingers)FindFoldedJoints();
             for(int f=0;f<5;f++)
             {
                 // A finger touching nothing only moves itself. That costs none of the hand's strength, so it may
@@ -389,10 +389,11 @@ namespace DeadlyJenga.CandyPhysicsHands
                 {
                     int i=1+f*3+j;float toTip=0;
                     for(int k=j;k<3;k++)toTip+=segmentLengths[f*3+k]*builtSize;
-                    float most=digitFree[f]?settings.fingerTorque*Strength:Mathf.Min(press*toTip,settings.fingerTorque*2*Strength);
+                    bool held=!digitFree[f]&&foldedShut[i];
+                    float most=held?settings.fingerTorque*3*Strength:digitFree[f]?settings.fingerTorque*Strength:Mathf.Min(press*toTip,settings.fingerTorque*2*Strength);
                     driveTorques[i]=Mathf.Min(driveTorques[i],most);
                     tipReach[i]=Mathf.Max(.01f,toTip);
-                    effort=Mathf.Max(effort,driveTorques[i]/tipReach[i]);
+                    if(!held)effort=Mathf.Max(effort,driveTorques[i]/tipReach[i]);
                 }
                 if(!digitFree[f])requestedEffort+=effort;
             }
@@ -400,7 +401,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             for(int i=0;i<bodies.Length;i++)
             {
                 Vector3 force=driveForces[i]*scale;
-                bool free=i>0&&digitFree[(i-1)/3];
+                bool free=i>0&&(digitFree[(i-1)/3]||foldedShut[i]);
                 float torque=driveTorques[i]*(free?1:scale);
                 bodies[i].AddForce(force,ForceMode.Force);
                 MaximumAppliedForce=Mathf.Max(MaximumAppliedForce,force.magnitude);
@@ -417,11 +418,12 @@ namespace DeadlyJenga.CandyPhysicsHands
             }
         }
         // Firm both ways. A finger can be stopped short of where tracking wants it (that is touching and gripping),
-        // but nothing can fold it further closed than the tracked pose, just as nothing can bend it backwards.
-        // Without this a hand pressed down hard crumpled onto its own curled fingers.
-        // Done as a stop torque between the two bones. (Changing a joint's limits while it runs disturbed the joints.)
-        const float FoldMarginDegrees=18,FoldStopStiffness=6000,FoldStopDamping=120,FoldStopMost=2500;
-        void HoldFingerShape()
+        // but it resists being folded further closed than the tracked pose with its full structure, the same way its
+        // joint stops it bending backwards. Without this a hand pressed down hard crumpled onto its own curled fingers.
+        // This only marks which joints are being folded shut; the joint's own drive (which the solver keeps stable)
+        // then holds them with a larger allowance that is not taken from the hand's strength.
+        readonly bool[] foldedShut=new bool[16];
+        void FindFoldedJoints()
         {
             Quaternion palmTurn=bodies[0].rotation;Vector3 hinge=palmTurn*Vector3.right;
             for(int f=1;f<5;f++)
@@ -438,11 +440,7 @@ namespace DeadlyJenga.CandyPhysicsHands
                     float wanted=Mathf.DeltaAngle(before,total);before=total;
                     Vector3 from=j==0?palmTurn*Vector3.forward:bodies[parent].rotation*Vector3.up;
                     float actual=Vector3.SignedAngle(from,bodies[i].rotation*Vector3.up,hinge);
-                    float over=actual-(wanted+FoldMarginDegrees);
-                    if(over<=0)continue;
-                    float closing=Vector3.Dot(bodies[i].angularVelocity-bodies[parent].angularVelocity,hinge);
-                    float stop=Mathf.Min(FoldStopMost,Mathf.Max(0,over*Mathf.Deg2Rad*FoldStopStiffness+closing*FoldStopDamping))*Strength;
-                    bodies[i].AddTorque(-hinge*stop,ForceMode.Force);bodies[parent].AddTorque(hinge*stop,ForceMode.Force);
+                    foldedShut[i]=actual>wanted+3;
                 }
             }
         }
