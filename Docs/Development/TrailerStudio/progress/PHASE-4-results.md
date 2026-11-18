@@ -1,6 +1,6 @@
 # Phase 4 results: performance polish
 
-Run through the coordinator: job `46fece34` on commit `54403bcd` (first passed as job `6ee21374` on `3c323f74`; the numbers below are from that run, the linked report is the latest), batch
+Run through the coordinator: job `90544549` on commit `97cdb6c0` (first passed as job `6ee21374` on `3c323f74`; the numbers below are from that run, the linked report is the latest), batch
 editor, map `sparse-viaduct-study`. Method
 `StudioAcceptance.RunPhase4`. Full report: [evidence/phase4/report.md](evidence/phase4/report.md).
 
@@ -10,7 +10,7 @@ editor, map `sparse-viaduct-study`. Method
 | 2 | A recorded block hits an actor and triggers a knockback | Pass | Thrown 1.25 m in the block's direction (alignment 0.96), back on the take at the end (0.0 mm off). The take was not changed. |
 | 3 | Look-at override on 5 actors toward the tornado | Pass | 5 of 5 turned toward it, up to the 85 degree neck limit. |
 | 4 | 20-person crowd from 3 takes, no two in step | Pass | 20 outfits, closest pair 1.06 m apart, 0 pairs move in step. |
-| - | Legs move when frames are shown one at a time, and a frame looks the same however it is reached (added after review) | Pass | Shown frame by frame like a render, the feet moved 7.3 cm between two frames. The same frame reached by playing up to it or by jumping to it: 0.0 cm apart. |
+| - | Legs move when frames are shown one at a time, and a frame looks the same however it is reached (added after review) | Pass | Shown frame by frame like a render, the feet moved 8.6 cm between two frames. The same frame reached by playing up to it or by jumping to it: 0.0 cm apart. |
 | - | Runtime errors | Pass | None. |
 
 ## Caveat on test 1 (feet)

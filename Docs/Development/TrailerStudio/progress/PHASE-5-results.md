@@ -1,6 +1,6 @@
 # Phase 5 results: cameras and finishing
 
-Run through the coordinator: job `8e01579f` on commit `54403bcd`, batch
+Run through the coordinator: job `d84b65eb` on commit `97cdb6c0`, batch
 editor, map `sparse-viaduct-study`. Method
 `StudioAcceptance.RunPhase5`. Full report: [evidence/phase5/report.md](evidence/phase5/report.md).
 
@@ -10,6 +10,7 @@ editor, map `sparse-viaduct-study`. Method
 | 2 | Speed ramp to 0.25x and back is smooth | Pass | Largest change of speed between two frames 0.037x (a step would be 0.75x). In-between frames are real positions (0.00 mm from the halfway point). |
 | 3 | A VR handheld camera take records and plays back as an editable track | Partly | A camera pose fed in every frame became 19 keys that play back within 1.0 cm of the performed path and can be edited. **Not run with a real VR controller, the in-headset viewfinder or the desktop fly camera.** |
 | 4 | FCPXML opens in DaVinci Resolve with shots and audio in place | Partly | The file is well-formed, has 3 shots, 1 dissolve and sound under all shots, and every file it points at exists. **Not opened in Resolve or Premiere.** |
+| - | A blurred render is as bright as a plain one (added after review) | Pass | Average brightness of the same frame: 120.2 of 255 plain, 120.2 with 2 in-between frames. |
 | - | Runtime errors | Pass | None. |
 
 ## Window tour (the Studio window on screen)
@@ -43,8 +44,12 @@ contain them (the tape held 0 block hits).
 
 Now a whole fixed-clock recording with nobody performing records the game
 mix and its stems while the real physics runs, heard from head height on
-the stage spot. Measured on this run: mix loudest sample 16885 of 32767,
-World stem (block impacts) 15642. Before the fix the World stem was 0.
+the stage spot. Measured on this run: mix loudest sample 14447 of 32767,
+World stem (block impacts) 15099. Before the fix the World stem was 0.
+
+New sound is recorded into its own folder and only replaces the old sound
+when the recording finished. A note beside it says which world take it was
+recorded with, and the Cut tab warns when a different one is active.
 
 Limits, by design for now:
 - A take performed by a person in real time is not recorded this way (the
@@ -56,6 +61,12 @@ Limits, by design for now:
   hears music, disasters and announced sound events only.
 
 ## Not covered
+- The EDL writes a dissolve as one event and the FCPXML sound assets carry
+  no duration (review round 2, C6 and C7). Unchanged, because no editor was
+  available to check what it accepts.
+- Cameras now follow overridden actors and renders hold hit pauses (review
+  round 2, B1 and B2). Both were fixed by reading the code; no test covers
+  them yet.
 - MP4 and ProRes output (needs `ffmpeg`); only PNG sequences were rendered.
 - EXR output and the cinema quality preset were not rendered in a test.
 - Anything in a headset.

@@ -306,3 +306,24 @@ any of them at review.
     with nobody performing records the mix and stems as it goes. Replaying
     the tape for sound is kept as a fallback that cannot hear impacts.
     This replaces the plan in decision 43.
+
+## After the second review
+59. **Walk states come from a pure function and are kept per take.**
+    `CandyPlayerRig.StepGait` (Characters addition) works from the take's
+    numbers, so building a player poses no avatar and raises no event. The
+    states are built from the take as recorded: an override that moves an
+    actor changes where the feet go, not how fast the legs step.
+60. **Sound is swapped in only when complete, and remembers its world
+    take.** New sound is recorded into `audio/recording/`; `tape.take.txt`
+    holds the world take's id and the Cut tab warns on a mismatch.
+61. **Render folders are `<name>-<camera id>`**, so two cameras with the
+    same name never share one.
+62. **Cameras and look-ats see overridden poses.** `StudioActorPoses.At`
+    applies the actor's override layers (one level deep, so two actors
+    looking at each other cannot loop).
+63. **A cinema render's old quality values are also kept in SessionState**
+    and put back after a script reload. The render still changes values on
+    the project's render pipeline asset while it runs; it never saves them.
+64. **Not changed after review, on purpose:** the EDL writes a dissolve as
+    one event and the FCPXML sound assets carry no duration. Neither has
+    been opened in an editor; both are listed as untested.

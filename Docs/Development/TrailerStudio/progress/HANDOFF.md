@@ -8,7 +8,7 @@ Nothing is merged. This file is the handoff record AGENTS.md asks for.
 | Source branch | `claude/trailer-studio-a` on `origin` (Vanderbilt-VR-2026/DeadlyJenga) |
 | Target branch | `Evan_Sprint_4` (not merged; merges cleanly with `25e76440`, checked with `git merge-tree`) |
 | Base | `73339768bafdba50b5e42d9e7ced5e7c1c87a3e0` |
-| Candidate | Code: `54403bcdc26b6a9d7ab71d249f95da6432c8b14d` (every phase suite below ran on it). The branch tip adds documentation only. |
+| Candidate | Code: `97cdb6c09e285f5aab41c0da2b6b01363916860f`. The branch tip adds documentation only. |
 | Scope | DevTools (editor + runtime `TrailerStudio` folders), two small cross-box commits, docs under `Docs/Development/TrailerStudio/` |
 | Depends on | nothing outside this branch |
 | Approval | none yet. Evan pre-approved cross-box changes in the builder prompt; each is still his to keep or drop. |
@@ -22,7 +22,7 @@ Nothing is merged. This file is the handoff record AGENTS.md asks for.
 - Open it in Unity: menu **Tools > Deadly Jenga > Trailer Studio**. User guide:
   `Assets/_DeadlyJenga/DevTools/Editor/TrailerStudio/TrailerStudio.md`.
 - Plans, decisions and results: this folder. Start with `DECISIONS.md`
-  (58 short entries) and `EXTENSION-POINTS.md`.
+  (64 short entries) and `EXTENSION-POINTS.md`.
 
 ## Changes outside DevTools (for Evan to keep or drop)
 
@@ -34,23 +34,26 @@ Full table with consequences: [CROSS-BOX-CHANGES.md](CROSS-BOX-CHANGES.md).
 | `aa5331a4` | Core `IDirectedHazard`, implemented by `BasicDisaster` (World). Lets a cue choose which side a tornado comes from. Null keeps the game's random choice. |
 | `8753dd61` | Characters `CandyPlayerRig.Gait` and `SurvivorNetworkView.Gait`: save and restore the walk cycle, so rendered and scrubbed actors walk. |
 | `05c5a153` | Characters `HandNetworkView.SnapToState` also sets the physics bodies. |
+| `c419d1fd` | Characters `CandyPlayerRig.StepGait`: the walk cycle's step as a pure function (a copy of the sum in `ApplyFrame`, which is unchanged). |
 
 Both only add. No ProjectSettings, Packages or `Assets/XR` change. No package
 added. No scene or prefab saved.
 
 ## Test results (actual, through the coordinator)
 
-All suites were run on the same code commit, `54403bcd`, each as its own
-coordinator job in a batch editor (owner `claude-builder-prompt`).
+Each suite ran as its own coordinator job in a batch editor (owner
+`claude-builder-prompt`). Phases 1, 2, 4 and 5 ran on `97cdb6c0`. Phase 3
+ran on `f925b683`; the only code change between the two is in
+`Engine/StudioRender.cs`, which Phase 3 does not use.
 
 | Suite | Job | Result | Honest caveats |
 |-------|-----|--------|----------------|
-| Phase 1 | `2f523285` | 0 failures | Spec test 3 ("rides a moving block") is **not met**: the live game does not carry a standing survivor, and playback reproduces that. See `PHASE-1-results.md`. |
-| Phase 2 | `b6481fd9` | 0 failures | Headset test covered only as data and wrist-panel logic, no XR session. Scripted performer never climbed. |
-| Phase 3 | `54c148db` | 0 failures | Tornado particles are not replayed exactly; blocks and hazard state are. |
-| Phase 4 | `46fece34` | 0 failures | The foot-slide number follows body speed; it does not prove planted feet stay still. |
-| Phase 5 | `8e01579f` | 0 failures | Handheld camera fed by script, not a controller. FCPXML not opened in Resolve. |
-| Window tour | `20f26f19` on `957f70f4` | 0 failures | Interactive editor, scripted. **Not rerun after the review fixes** (they changed the engine, not the window's layout). |
+| Phase 1 | `d2481953` | 0 failures | Spec test 3 ("rides a moving block") is **not met**: the live game does not carry a standing survivor, and playback reproduces that. See `PHASE-1-results.md`. |
+| Phase 2 | `536e66f1` | 0 failures | Headset test covered only as data and wrist-panel logic, no XR session. Scripted performer never climbed. |
+| Phase 3 | `e18cc5c7` | 0 failures | Tornado particles are not replayed exactly; blocks and hazard state are. |
+| Phase 4 | `90544549` | 0 failures | The foot-slide number follows body speed; it does not prove planted feet stay still. |
+| Phase 5 | `d84b65eb` | 0 failures | Handheld camera fed by script, not a controller. FCPXML not opened in Resolve. |
+| Window tour | `20f26f19` on `957f70f4` | 0 failures | Interactive editor, scripted. **Not rerun after either review.** Round 2 changed when the window refreshes (B8) and what deleting a mark removes (C11). |
 
 Read a job with `coordinator.py job --owner claude-builder-prompt --id <id>`;
 its Unity log is under the pool's `runs/<id>/`.
@@ -69,6 +72,20 @@ its Unity log is under the pool's `runs/<id>/`.
 
 Per-phase detail: `PHASE-1-results.md` to `PHASE-5-results.md`. Pictures and
 reports: `evidence/`.
+
+## Review round 2 (Fable 5.2 chat) and what was done
+
+| Finding | Done |
+|---------|------|
+| A1 walk-state build was slow and raised emote events | Fixed: `c419d1fd` (Characters addition `StepGait`) and `f925b683`. |
+| A2, A3, A4 live sound could be lost, mismatched or left open | Fixed in `f925b683` and `97cdb6c0`. |
+| B1 hit pause missing in renders, B2 cameras ignore overrides | Fixed in `f925b683`. No test covers them yet. |
+| B3 render leaves quality settings changed after a crash | Old values kept in SessionState and restored after a reload. The render still changes the pipeline asset's values in memory while it runs. |
+| B4 lock feet, B5 fall then get up, B6 slow contact search, B7 shared render folders, B8 window work in the game loop | Fixed in `f925b683`. |
+| C2, C3, C4, C5, C8, C9, C11, C12 | Fixed in `f925b683`. |
+| C10 blurred renders darker? | Checked with a new test: they were already equal. A conversion added on suspicion made them brighter and was removed in `97cdb6c0`. |
+| C1 emotes on game time | Listed as wanted from Characters. |
+| C6, C7 export details | Not changed; untested without an editor. |
 
 ## What was NOT tested
 
