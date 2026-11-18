@@ -30,6 +30,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             void Place(StudioRole role)
             {
+                // While the tape runs (or the stage is still opening) the cast is in use: wait for it to hold still.
+                if (StudioRun.Busy) { context.Say("Wait until the stage holds still, then add the mark."); return; }
                 if (!held)
                 {
                     // Stage closed: add the mark near the middle; it can be dragged into place later.
@@ -127,6 +129,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             panel.Add(map);
             var length = StudioFields.Number(context, "Length (s)", set.length, v => set.length = Mathf.Clamp(v, .5f, 120));
             var rates = new List<string> { "24", "25", "30", "50", "60" };
+            // An imported Set can have another rate (Theatre allowed 12 to 60); show it rather than a wrong one.
+            if (!rates.Contains(set.fps.ToString())) rates.Insert(0, set.fps.ToString());
             var rate = StudioFields.Choice(context, "Frame rate", rates, rates.IndexOf(set.fps.ToString()), i => { if (i >= 0) set.fps = int.Parse(rates[i]); });
             bool recorded = context.Tape != null && context.Tape.tracks.Any(t => t.takes.Count > 0);
             rate.SetEnabled(closed && !recorded);
@@ -239,11 +243,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var track = context.Tape?.Find(mark.id);
             if (track != null && track.takes.Count > 0) TrackInspector.Takes(panel, track, context);
             else panel.Add(StudioUi.Hint(mark.role == StudioRole.Hand ? "The hand is recorded in the Perform mode." : "Not recorded yet."));
-            panel.Add(StudioUi.Small("Delete mark", () =>
-            {
-                context.Edit("Delete " + mark.actor, () => set.marks.Remove(mark), true);
-                context.Select(null);
-            }, "The actor's takes stay on the tape."));
+            // Same as the Delete key: also takes away the actor's layers and the cameras' references to it.
+            panel.Add(StudioUi.Small("Delete mark", context.window.DeleteSelection, "The actor's takes stay on the tape."));
         }
     }
 
@@ -282,11 +283,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             DirectCueFields.Add(panel, cue, context);
             panel.Add(StudioUi.Hint("Cues run when the world is recorded live. Record the world again, or branch, after changing one."));
-            panel.Add(StudioUi.Small("Delete cue", () =>
-            {
-                context.Edit("Delete cue", () => set.cues.Remove(cue));
-                context.Select(null);
-            }));
+            // Same as the Delete key: cues that waited for this one go back to their own time.
+            panel.Add(StudioUi.Small("Delete cue", context.window.DeleteSelection));
         }
     }
 
