@@ -374,6 +374,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             float turnAllowance=float.IsInfinity(forceBudget)?float.PositiveInfinity:forceBudget*Strength*DriveLever(0);
             if(driveTorques[0]>turnAllowance){palmTorque*=turnAllowance/driveTorques[0];driveTorques[0]=turnAllowance;}
             requestedEffort=driveForces[0].magnitude;
+            if(!JointDrivenFingers)HoldFingerShape();
             for(int f=0;f<5;f++)
             {
                 // A finger touching nothing only moves itself. That costs none of the hand's strength, so it may
@@ -413,6 +414,32 @@ namespace DeadlyJenga.CandyPhysicsHands
                     positionDamper=torque>0?settings.rotationDamping*3:0,
                     maximumForce=torque
                 };
+            }
+        }
+        // Firm both ways. A finger can be stopped short of where tracking wants it (that is touching and gripping),
+        // but nothing can fold it further closed than the tracked pose, just as nothing can bend it backwards.
+        // Without this a hand pressed down hard crumpled onto its own curled fingers.
+        const float FoldMarginDegrees=18;
+        readonly float[] curlLimit=new float[16];
+        void HoldFingerShape()
+        {
+            for(int f=1;f<5;f++)
+            {
+                Vector3 first=Target.skeleton.Joint(f*4+1)-Target.skeleton.Joint(f*4);
+                float flat=new Vector2(first.x,first.z).magnitude;
+                Vector3 along=flat>1e-5f&&first.z>0?new Vector3(first.x,0,first.z)/flat:Vector3.forward;
+                float before=0;
+                for(int j=0;j<3;j++)
+                {
+                    int i=1+f*3+j;
+                    Vector3 bone=Target.skeleton.Joint(f*4+j+1)-Target.skeleton.Joint(f*4+j);
+                    float total=bone.sqrMagnitude>1e-10f?Mathf.Atan2(-bone.y,Vector3.Dot(bone.normalized,along))*Mathf.Rad2Deg:before;
+                    float bend=Mathf.DeltaAngle(before,total);before=total;
+                    float limit=Mathf.Clamp(bend+FoldMarginDegrees,FoldMarginDegrees,FingerCurlDegrees);
+                    if(Mathf.Abs(limit-curlLimit[i])<1.5f)continue;
+                    curlLimit[i]=limit;
+                    joints[i-1].highAngularXLimit=new SoftJointLimit{limit=limit};
+                }
             }
         }
         readonly RaycastHit[] previewSweep=new RaycastHit[64];

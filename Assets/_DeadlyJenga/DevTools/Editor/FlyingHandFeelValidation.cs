@@ -196,6 +196,7 @@ namespace DeadlyJenga.HandValidation
         static CandyPhysicalHand watched; static bool watching;
         static Mesh watchedMesh; static Vector3[] vertices; static BoneWeight[] weights; static Matrix4x4[] binds;
         static int[][] middle; static float[][] restRadius;
+        static int thinnestBone;
         static float worstGirth, worstRoll, worstGap, worstBackBend, worstStep; static bool everHidden; static Vector3 lastPalm; static bool hasLastPalm;
         // Is the drawn hand a shape a hand can make? Sideways lean out of the finger's plane, joints bent backwards,
         // how fast a joint moved, and whether anything became not-a-number.
@@ -249,7 +250,7 @@ namespace DeadlyJenga.HandValidation
                     Vector3 local = toBone.MultiplyPoint3x4(p);
                     radii.Add(new Vector2(local.x, local.z).magnitude / restRadius[i][n]);
                 }
-                if (radii.Count > 8) { radii.Sort(); worstGirth = Mathf.Min(worstGirth, radii[radii.Count / 20]); }
+                if (radii.Count > 8) { radii.Sort(); if (radii[radii.Count / 20] < worstGirth) { worstGirth = radii[radii.Count / 20]; thinnestBone = i; } }
                 // Roll between neighbouring bones pinches skin; a gap between them stretches it.
                 int j = (i - 1) % 3; var parent = hand.visualBones[j == 0 ? 0 : i - 1]; var bone = hand.visualBones[i];
                 if (j > 0)
@@ -299,7 +300,7 @@ namespace DeadlyJenga.HandValidation
         }
         static void Judge(string what, bool expectVisible = true)
         {
-            Line($"LOOK {what}: thinnest finger middle={worstGirth:P0} of rest, roll between bones={worstRoll:F1} deg, gap between bones={worstGap * 1000:F2} mm (hand scale 1), largest palm step={worstStep:F2} m, hidden={everHidden}");
+            Line($"LOOK {what}: thinnest finger middle={worstGirth:P0} of rest (finger {(thinnestBone - 1) / 3} bone {(thinnestBone - 1) % 3}), roll between bones={worstRoll:F1} deg, gap between bones={worstGap * 1000:F2} mm (hand scale 1), largest palm step={worstStep:F2} m, hidden={everHidden}");
             Check(worstGirth > .8f, what + ": finger middles keep their thickness (" + worstGirth.ToString("P0") + ")");
             Check(worstRoll < 3, what + ": no roll between neighbouring finger bones (" + worstRoll.ToString("F1") + " deg)");
             Check(worstGap < .0005f, what + ": finger bones stay joined end to end");
