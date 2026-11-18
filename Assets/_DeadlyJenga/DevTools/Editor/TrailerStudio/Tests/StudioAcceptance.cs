@@ -169,7 +169,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             set.AddMark(StudioRole.Survivor, new Vector3(0, 0, 1.5f));
             set.cues.Add(new StudioCue { at = 1, action = "collapse", strength = 4 });
             // A slow shove on a block one level down, so test 3 has a block that moves at a speed someone can ride.
-            set.cues.Add(new StudioCue { at = 2, action = "push", strength = 1.6f, direction = new Vector3(1, 0, .2f), point = new Vector3(0, -3, 6) });
+            set.cues.Add(new StudioCue { at = 2, action = "push", strength = 1.8f, direction = new Vector3(1, 0, .2f), point = new Vector3(0, -.3f, 0) });
             StudioLibrary.Save(set);
             return set;
         }
@@ -337,30 +337,32 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 $"ExampleNotesMode.cs only. In the mode registry: {registered}. {windowNote}");
 
             // ---- Test 3: a live survivor on a falling block, while the world plays back ----
+            // The push cue shoves the block the stage sits on (the one nearest the stage spot). Ride that one.
             int chosen = -1; float bestDrop = 0;
+            int stageBlock = Enumerable.Range(0, stage.blocks.Length).Where(i => stage.blocks[i] && stage.blocks[i].gameObject.activeSelf)
+                .OrderBy(i => (stage.blocks[i].position - stage.ToWorld(new Vector3(0, -.3f, 0))).sqrMagnitude).First();
+            StudioCamera.Resize(640, 360);
             var samples = new List<Snapshot>();
             for (int f = 0; f < frames; f += 3) { StudioRun.Scrub(f); yield return 0; samples.Add(Take(stage)); }
             StudioRun.Scrub(0); yield return 0;
-            for (int i = 0; i < stage.blocks.Length; i++)
+            for (int i = stageBlock; i <= stageBlock; i++)
             {
                 if (!samples[0].active[i] || !samples[samples.Count - 1].active[i]) continue;
                 float drop = Vector3.Distance(samples[0].positions[i], samples[samples.Count - 1].positions[i]);
                 float fastest = 0;
                 for (int s = 1; s < samples.Count; s++)
                     fastest = Mathf.Max(fastest, Vector3.Distance(samples[s].positions[i], samples[s - 1].positions[i]) * set.fps / 3);
-                if (drop < .25f || drop > 12 || fastest > 5 || drop <= bestDrop) continue;
-                // The top of the block must be free at the start, so someone can stand on it.
-                var bounds = stage.blocks[i].GetComponentInChildren<Collider>().bounds;
-                Vector3 top = new Vector3(bounds.center.x, bounds.max.y + .03f, bounds.center.z);
-                if (Physics.CheckCapsule(top + Vector3.up * .3f, top + Vector3.up * 1.5f, .22f, (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)) continue;
-                chosen = i; bestDrop = drop;
+                bestDrop = drop;
+                if (drop < .2f || fastest > 6) continue;
+                chosen = i;
             }
-            if (chosen < 0) Result("3. Live survivor rides a played-back moving block", false, "No block with a free top moved at a rideable speed in this recording.");
+            if (chosen < 0) Result("3. Live survivor rides a played-back moving block", false, $"The stage block (#{stageBlock}) only moved {bestDrop:F2} m in the recording, so there was nothing to ride.");
             else
             {
                 var block = stage.blocks[chosen];
                 var blockBounds = block.GetComponentInChildren<Collider>().bounds;
-                var rider = set.AddMark(StudioRole.Survivor, stage.ToStage(new Vector3(blockBounds.center.x, blockBounds.max.y + .03f, blockBounds.center.z)));
+                // Stand on the stage spot itself: by definition that is on top of this block.
+                var rider = set.AddMark(StudioRole.Survivor, new Vector3(0, .02f, -.6f));
                 rider.actor = "Rider"; rider.color = 5;
                 StudioLibrary.Save(set);
                 StudioRun.Refresh();

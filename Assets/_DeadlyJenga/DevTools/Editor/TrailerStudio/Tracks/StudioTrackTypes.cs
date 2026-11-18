@@ -38,6 +38,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     {
         // Show this exact tape frame. running = the tape is playing (false while scrubbing or paused).
         public abstract void Show(int frame, bool running);
+        // Show a moment between this frame and the next (part 0 to 1). Used for slow motion and renders.
+        // Types that cannot blend just show the nearer frame.
+        public virtual void ShowBetween(int frame, float part, bool running) => Show(part >= .5f ? frame + 1 : frame, running);
         // Called every physics step while playing. time is tape time in seconds.
         public virtual void FixedStep(float time) { }
         // Called after every track has shown the frame.

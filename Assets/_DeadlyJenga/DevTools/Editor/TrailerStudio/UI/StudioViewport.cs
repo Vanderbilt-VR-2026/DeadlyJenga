@@ -38,6 +38,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             painter.ClosePath(); painter.Stroke();
         }
 
+        // The part of the viewport the picture covers, in viewport pixels.
+        public Rect Picture => viewport.PictureRect();
+
         public void Path(IReadOnlyList<Vector3> points, Color color, float width = 2)
         {
             for (int i = 1; i < points.Count; i++) Line(points[i - 1], points[i], color, width);
@@ -91,7 +94,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (!StudioRun.StageOpen) return;
             // Draw at the panel's size, but not larger than 720p to keep the editor quick.
-            float width = Mathf.Max(64, host.resolvedStyle.width), height = Mathf.Max(64, host.resolvedStyle.height);
+            // Not laid out yet (or no real window, as in batch runs): leave the picture size alone.
+            if (float.IsNaN(host.resolvedStyle.width) || host.resolvedStyle.width < 120 || host.resolvedStyle.height < 80) return;
+            float width = host.resolvedStyle.width, height = host.resolvedStyle.height;
             float scale = Mathf.Min(1, 1280f / width, 720f / height);
             StudioCamera.Resize(Mathf.RoundToInt(width * scale), Mathf.RoundToInt(height * scale));
         }
@@ -147,6 +152,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public void Tick()
         {
             if (!StudioRun.StageOpen || !Camera) return;
+            LookThroughCamera();
             if (image.image != StudioCamera.Image) image.image = StudioCamera.Image;
             image.MarkDirtyRepaint();
             lines.MarkDirtyRepaint();
@@ -169,6 +175,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
         }
 
+        // In the Shoot tab the viewport can show what a shot camera sees instead of the director's free view.
+        bool lookedThrough;
+        void LookThroughCamera()
+        {
+            var set = context.Set; var stage = context.Stage;
+            var camera = set == null || ShootMode.LookThrough.Length == 0 ? null : set.cameras.Find(c => c.id == ShootMode.LookThrough);
+            if (camera == null || stage == null || StudioHandheld.Recording || StudioRender.Running)
+            {
+                if (lookedThrough && !StudioHandheld.Recording) { lookedThrough = false; StudioCamera.Camera.fieldOfView = 60; StudioCamera.Place(); }
+                return;
+            }
+            lookedThrough = true;
+            float time = context.Frame / (float)set.fps;
+            StudioCameras.Apply(Camera, StudioCameras.Evaluate(camera, set, stage.tape, stage.anchor, time, time));
+        }
+
         void DrawOverlays(MeshGenerationContext mesh)
         {
             if (!StudioRun.StageOpen || !Camera) return;
@@ -180,7 +202,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // ---- Picture <-> world ----
 
         // The rectangle the picture really covers inside the panel (it keeps its shape).
-        Rect PictureRect()
+        internal Rect PictureRect()
         {
             float width = host.resolvedStyle.width, height = host.resolvedStyle.height;
             var texture = StudioCamera.Image;
@@ -280,6 +302,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             last = e.localPosition;
             if (delta.sqrMagnitude > 0) moved = true;
             if (toolActive) { tool.Move(e, this, context); Tick(); return; }
+            if (lookedThrough) return;   // the shot camera decides the view; press Looking again to look around
             if (orbiting) StudioCamera.Orbit(delta.x * .35f, delta.y * .25f);
             else if (panning) StudioCamera.Pan(delta);
             else if (dragging != null)

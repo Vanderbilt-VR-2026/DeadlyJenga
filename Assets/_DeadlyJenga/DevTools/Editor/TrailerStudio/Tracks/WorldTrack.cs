@@ -203,7 +203,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 {
                     // Jump: start from the key frame at or before the wanted one.
                     // Key frames sit on whole multiples of keyEvery in tape frames (and on the take's first frame).
-                    int tapeFrame = take.start + index;
+                    // Start one frame early, so the frame before the wanted one is known too (for blending).
+                    int tapeFrame = take.start + Mathf.Max(0, index - 1);
                     int key = Mathf.Max(0, tapeFrame - tapeFrame % Mathf.Max(1, take.keyEvery) - take.start);
                     decoded = -1; hasBefore = false;
                     for (int i = key; i < index; i++) Decode(i);
@@ -223,6 +224,27 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         if (key || (bits[i >> 3] & (1 << (i & 7))) != 0) now[i] = Read(r, now[i]);
                 }
                 decoded = index;
+            }
+
+            // A moment between two frames: every block part of the way from one pose to the next.
+            public override void ShowBetween(int frame, float part, bool running)
+            {
+                if (part <= .001f || !take.Covers(frame + 1) || running && stage.physicalPlayback) { Show(frame, running); return; }
+                Seek(frame + 1);
+                if (!hasBefore) { Show(frame + 1, running); return; }
+                for (int i = 0; i < blocks.Length; i++)
+                {
+                    var body = blocks[i];
+                    if (!body || (now[i].flags & Destroyed) != 0) continue;
+                    bool active = (now[i].flags & Active) != 0;
+                    if (body.gameObject.activeSelf != active) body.gameObject.SetActive(active);
+                    if (!active) continue;
+                    bool blend = (before[i].flags & Active) != 0;
+                    body.transform.SetPositionAndRotation(
+                        blend ? Vector3.Lerp(before[i].Position, now[i].Position, part) : now[i].Position,
+                        blend ? Quaternion.Slerp(TapePack.UnpackRotation(before[i].rotation), TapePack.UnpackRotation(now[i].rotation), part) : TapePack.UnpackRotation(now[i].rotation));
+                }
+                Physics.SyncTransforms();
             }
 
             // Exact playback: put every block exactly where the tape says. Used when nothing live shares the scene.

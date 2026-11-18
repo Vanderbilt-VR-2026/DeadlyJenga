@@ -53,6 +53,29 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (var track in tape.tracks.Where(t => StudioTrackTypes.Get(t.type) == null))
                 rows.Add(Row(track.name + " (" + track.type + ")", Color.gray, track, lane => DrawTakes(lane, track, Color.gray)));
             rows.Add(CueRow());
+            // Cameras: the shot's range as a bar, its keys as ticks. Click the name to select the camera.
+            foreach (var camera in set.cameras)
+            {
+                var captured = camera;
+                Color color = StudioColors.For(camera.color);
+                rows.Add(Row(camera.name, color, camera, lane =>
+                {
+                    Bar(lane, captured.start * set.fps, captured.End(set) * set.fps, color, ReferenceEquals(captured, context.Selection) ? .55f : .3f, 7, 7);
+                    foreach (var key in captured.keys) Bar(lane, key.time * set.fps - .2f, key.time * set.fps + .2f, Color.white, .9f, 4, 4);
+                    foreach (var mark in captured.speeds) Bar(lane, mark.time * set.fps - .2f, mark.time * set.fps + .2f, StudioColors.Hazard, .9f, 9, 9);
+                }));
+            }
+            // Layers on top of takes (Phase 4): one row per actor that has any.
+            foreach (var group in set.overrides.GroupBy(o => o.actor))
+            {
+                var mark = set.Mark(group.Key);
+                Color color = mark != null ? StudioColors.For(mark.color) : Color.gray;
+                var layers = group.ToList();
+                rows.Add(Row((mark?.actor ?? "?") + " layers", color, layers[0], lane =>
+                {
+                    foreach (var layer in layers) Bar(lane, layer.Start * set.fps, layer.Stop * set.fps, color, layer.muted ? .2f : .6f, 8, 8);
+                }));
+            }
             foreach (var shot in set.shots)
                 rows.Add(Row(shot.name, StudioColors.Camera, null, lane =>
                     Bar(lane, shot.start * set.fps, (shot.start + shot.duration) * set.fps, StudioColors.Camera, .35f, 5, 6)));

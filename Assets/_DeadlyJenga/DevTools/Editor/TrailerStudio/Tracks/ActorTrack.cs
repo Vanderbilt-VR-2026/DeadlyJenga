@@ -1,4 +1,5 @@
 using System.IO;
+using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.Core;
 using UnityEngine;
 
@@ -101,6 +102,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             readonly GameObject root;
             readonly INetworkActorView view;
             readonly StudioGhostLook look = new StudioGhostLook();
+            CandyWeaponVisual weapon;
             bool failed;
 
             public Player(StudioStage stage, StudioTrack track, StudioTake take, string kind)
@@ -117,24 +119,42 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 stage.playback[track.id] = root;
             }
 
-            public override void Show(int frame, bool running)
+            public override void Show(int frame, bool running) => ShowBetween(frame, 0, running);
+
+            // part = how far between this frame and the next (slow motion and renders ask for in-between poses).
+            public override void ShowBetween(int frame, float part, bool running)
             {
                 if (view == null || failed) return;
                 if (!take.Covers(frame)) { root.SetActive(false); return; }
-                byte[] data = take.frames[frame - take.start];
                 try
                 {
+                    byte[] data = take.frames[frame - take.start];
+                    float time = (frame + part) / stage.Fps;
+                    // Only open the frame up when something needs to change it: an in-between pose, or an override.
+                    bool between = part > .001f && take.Covers(frame + 1);
+                    var filters = ActorFrameFilters.For(stage, track);
+                    ActorFrame pose = null;
+                    if (between || filters.Count > 0)
+                    {
+                        pose = ActorFrame.Read(track.type, data);
+                        if (between) pose = ActorFrame.Blend(pose, ActorFrame.Read(track.type, take.frames[frame + 1 - take.start]), part);
+                        foreach (var filter in filters) filter.Apply(stage, track, time, pose);
+                        data = pose.Write();
+                    }
                     using (var r = new BinaryReader(new MemoryStream(data)))
                     {
                         bool active = r.ReadBoolean();
                         byte[] state = r.ReadBytes(r.ReadInt32());
+                        r.ReadSingle();
+                        string equipment = r.ReadString();
                         root.SetActive(active);
-                        if (!active) return;
+                        if (!active) { weapon?.Hide(); return; }
                         using (var inner = new BinaryReader(new MemoryStream(state))) view.ReadState(inner, true);
                         // The copy normally eases toward new poses to hide network lag. A recording has no lag,
                         // so it is told to land exactly on the recorded pose.
                         if (view is INetworkActorSnap snap) { snap.SnapToState(); view.Render(running ? Time.deltaTime : 0); }
                         else view.Render(1000f);
+                        ShowWeapon(equipment, pose, data);
                         if (stage.recording) look.Apply(root, StudioTrackNotes.Of(track), StudioColors.For(stage.set.Mark(track.id)?.color ?? 0));
                     }
                 }
@@ -146,15 +166,58 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
             }
 
+            // The copy asks the live match what its actor holds, and a recorded actor is not in the match.
+            // So the Studio draws the recorded weapon itself, with the game's own weapon model code.
+            void ShowWeapon(string equipmentJson, ActorFrame pose, byte[] data)
+            {
+                if (track.type != SurvivorTrack.Id) return;
+                var state = string.IsNullOrEmpty(equipmentJson) ? null : JsonUtility.FromJson<EquipmentState>(equipmentJson);
+                if (state == null || state.kind < EquipmentKind.Blaster || !state.drawn) { weapon?.Hide(); return; }
+                if (weapon == null)
+                {
+                    var rig = root.GetComponentInChildren<CandyPlayerRig>();
+                    if (!rig) return;
+                    weapon = new CandyWeaponVisual(root.transform, rig.style ? rig.style.material : null);
+                }
+                pose ??= ActorFrame.Read(track.type, data);
+                weapon.Present(state, pose.body, true);
+            }
+
             public override void Dispose()
             {
                 stage.playback.Remove(track.id);
                 look.Dispose();
+                weapon?.Hide();
                 if (root) Object.Destroy(root);
             }
         }
     }
 
+    // Changes a recorded actor frame just before it is shown (look-ats, reaches, poses, reactions...).
+    // Implement this in a new file; the Studio finds it by itself. The take underneath is never changed.
+    public interface IActorFrameFilter
+    {
+        int Order { get; }
+        // Quick check, so actors with nothing layered on them are not opened up every frame.
+        bool Wants(StudioStage stage, StudioTrack track);
+        void Apply(StudioStage stage, StudioTrack track, float time, ActorFrame frame);
+    }
+
+    public static class ActorFrameFilters
+    {
+        static System.Collections.Generic.List<IActorFrameFilter> all;
+        static readonly System.Collections.Generic.List<IActorFrameFilter> none = new System.Collections.Generic.List<IActorFrameFilter>();
+
+        public static System.Collections.Generic.List<IActorFrameFilter> For(StudioStage stage, StudioTrack track)
+        {
+            all ??= System.Linq.Enumerable.ToList(System.Linq.Enumerable.OrderBy(StudioRegistry.Create<IActorFrameFilter>(), f => f.Order));
+            if (all.Count == 0) return none;
+            System.Collections.Generic.List<IActorFrameFilter> wanted = null;
+            foreach (var filter in all)
+                if (filter.Wants(stage, track)) (wanted ??= new System.Collections.Generic.List<IActorFrameFilter>()).Add(filter);
+            return wanted ?? none;
+        }
+    }
     public sealed class SurvivorTrack : ActorTrack
     {
         public const string Id = "survivor";

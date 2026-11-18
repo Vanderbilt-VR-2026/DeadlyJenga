@@ -65,7 +65,23 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var prefab = DemoDisasters.Prefabs.FirstOrDefault(p => p && p.name == cue.hazard);
             int wanted = prefab ? DemoDisasters.Parameters(prefab).Count : 0;
             float[] values = cue.values != null && cue.values.Length == wanted && wanted > 0 ? cue.values : null;
-            if (!DemoDisasters.Execute(stage.session, cue.hazard, values: values)) throw new InvalidOperationException("The disaster did not start: " + cue.hazard);
+            bool directed = cue.aimed && prefab && prefab.GetComponent<IDirectedHazard>() != null;
+            if (directed)
+            {
+                // The game starts disasters with a random direction. To set the direction, the Studio starts this
+                // one itself, the same way the game's own start code does, with the heading set first.
+                if (!(prefab.GetComponent<IHazard>() is IMapHazard definition) || !definition.TryValidate(stage.world, out string problem))
+                    throw new InvalidOperationException("This map cannot run " + cue.hazard + ".");
+                var instance = Object.Instantiate(prefab, stage.world.PlayableBounds.center, Quaternion.identity);
+                instance.transform.SetParent(stage.session.transform, true);
+                instance.GetComponent<IDirectedHazard>().Heading = cue.heading;
+                if (values != null) instance.GetComponent<IDemoHazard>()?.Configure(values);
+                var started = instance.GetComponent<IHazard>();
+                started.Begin();
+                if (!started.Active) { Object.Destroy(instance); throw new InvalidOperationException("The disaster did not start: " + cue.hazard); }
+                instance.AddComponent<DemoDisasterLifetime>();
+            }
+            else if (!DemoDisasters.Execute(stage.session, cue.hazard, values: values)) throw new InvalidOperationException("The disaster did not start: " + cue.hazard);
             if (cue.duration > 0 && prefab)
             {
                 // End it after the chosen time, without stopping other disasters.
@@ -76,7 +92,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         if (hazard.Active && hazard.Type == type) hazard.End();
                 });
             }
-            return cue.hazard + (values != null ? " with its own settings" : "") + (cue.duration > 0 ? $" for {cue.duration:0.#} s" : "");
+            return cue.hazard + (directed ? $" from heading {cue.heading:0}" : "") + (values != null ? " with its own settings" : "") + (cue.duration > 0 ? $" for {cue.duration:0.#} s" : "");
         }
     }
 

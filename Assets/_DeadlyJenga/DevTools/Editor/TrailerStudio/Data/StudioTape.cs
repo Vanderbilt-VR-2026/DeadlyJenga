@@ -102,8 +102,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
             }
             // Never lose a take: only replace the old file once the new one is complete.
-            if (File.Exists(file)) File.Replace(temporary, file, null);
-            else File.Move(temporary, file);
+            // Another program (a virus scanner, a backup) can hold the old file for a moment: try a few times.
+            for (int attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    if (File.Exists(file)) File.Replace(temporary, file, null);
+                    else File.Move(temporary, file);
+                    break;
+                }
+                catch (IOException) when (attempt < 8) { System.Threading.Thread.Sleep(150); }
+            }
             path = file;
         }
 

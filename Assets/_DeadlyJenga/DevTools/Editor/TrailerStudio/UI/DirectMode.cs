@@ -358,6 +358,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
                 }
                 else panel.Add(StudioUi.Hint("This disaster has no settings of its own."));
+                if (prefab && prefab.GetComponent<IDirectedHazard>() != null)
+                {
+                    panel.Add(StudioFields.Switch(context, "Choose where it comes from", cue.aimed, v => cue.aimed = v));
+                    if (cue.aimed) panel.Add(StudioFields.Slide(context, "Comes from (degrees)", cue.heading, 0, 360, v => cue.heading = v));
+                    else panel.Add(StudioUi.Hint("It arrives from a random side, like in the game."));
+                }
                 panel.Add(StudioFields.Slide(context, "Ends after (s)", cue.duration, 0, 30, v => cue.duration = v));
                 panel.Add(StudioUi.Hint("0 lets the disaster end by itself."));
             }
@@ -423,6 +429,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     Vector3 tip = DirectMode.ArrowTip(stage, cue);
                     painter.Line(centre, tip, color, selected ? 3 : 2);
                     painter.Dot(tip, color, selected ? 7 : 4);
+                }
+                if (cue.action == "hazard" && cue.aimed || cue.action == "tsunami")
+                {
+                    // An arrow from the side the disaster comes from, toward the middle of the map.
+                    float angle = cue.heading * Mathf.Deg2Rad;
+                    Vector3 from = stage.world.Center + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * (stage.world.Radius + 6);
+                    from.y = stage.anchor.y;
+                    Vector3 to = new Vector3(stage.world.Center.x, stage.anchor.y, stage.world.Center.z);
+                    Vector3 head = Vector3.Lerp(from, to, .45f);
+                    painter.Line(from, head, color, selected ? 3 : 2);
+                    painter.Dot(head, color, selected ? 7 : 4);
                 }
                 if (cue.action == GuideCue.Id)
                 {

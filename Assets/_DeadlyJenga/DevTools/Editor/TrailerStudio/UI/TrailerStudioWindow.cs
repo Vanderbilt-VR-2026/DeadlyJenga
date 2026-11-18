@@ -188,8 +188,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public void Select(object thing)
         {
             selection = thing;
-            selectionKind = thing is StudioMark ? "mark" : thing is StudioCue ? "cue" : thing is StudioTrack ? "track" : "";
-            selectionId = thing is StudioMark mark ? mark.id : thing is StudioCue cue ? cue.id : thing is StudioTrack track ? track.id : "";
+            selectionKind = thing is StudioMark ? "mark" : thing is StudioCue ? "cue" : thing is StudioTrack ? "track" : thing is StudioCameraTrack ? "camera" : thing is StudioOverride ? "override" : "";
+            selectionId = thing is StudioMark mark ? mark.id : thing is StudioCue cue ? cue.id : thing is StudioTrack track ? track.id
+                : thing is StudioCameraTrack camera ? camera.id : thing is StudioOverride layer ? layer.id : "";
             RebuildAll();
         }
 
@@ -197,6 +198,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             selection = selectionKind == "mark" ? Set?.Mark(selectionId)
                 : selectionKind == "cue" ? Set?.cues.FirstOrDefault(c => c.id == selectionId)
+                : selectionKind == "camera" ? Set?.cameras.FirstOrDefault(c => c.id == selectionId)
+                : selectionKind == "override" ? Set?.overrides.FirstOrDefault(o => o.id == selectionId)
                 : selectionKind == "track" ? (object)Tape?.Find(selectionId) : null;
         }
 
@@ -300,6 +303,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var drift = StudioRun.LastDrift;
             if (drift != null && drift.samples > 0 && StudioRun.StageOpen)
                 Chip(drift.Passed ? "No drift" : "Drifted", drift.Passed ? "good" : "warn", drift.ToString());
+            if (StudioRender.Running) Chip(StudioRender.Progress, "", "Rendering in the background. The window stays usable.");
+            if (StudioVariations.Running) Chip($"Variations {StudioVariations.Done}/{StudioVariations.Total}", "", "Variation runs are queued one after another.");
             if (StudioRun.RealTimeWarning && StudioRun.StageOpen) Chip("Slower than real time", "warn", "The last playback could not keep up on this machine. Renders are still exact.");
             int problems = Set?.Problems().Count ?? 0;
             if (problems > 0) Chip(problems + (problems == 1 ? " problem" : " problems"), "warn", string.Join("\n", Set.Problems()));
@@ -476,6 +481,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (selection is StudioMark mark) Edit("Delete " + mark.actor, () => { Set.marks.Remove(mark); selection = null; selectionKind = ""; }, true);
             else if (selection is StudioCue cue) Edit("Delete cue", () => { Set.cues.Remove(cue); selection = null; selectionKind = ""; }, false);
+            else if (selection is StudioCameraTrack camera) Edit("Delete camera", () => { Set.cameras.Remove(camera); selection = null; selectionKind = ""; }, false);
+            else if (selection is StudioOverride layer) Edit("Delete override", () => { Set.overrides.Remove(layer); selection = null; selectionKind = ""; }, false);
         }
 
         // ---- Set menu ----

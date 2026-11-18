@@ -40,7 +40,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var tape = stage.tape;
             int fps = set.fps;
             set.marks.Clear(); set.cues.Clear();
-            set.length = 5;
+            set.length = 9;
             StudioLibrary.Save(set);
             StudioRun.Refresh();
             int frames = set.Frames;
@@ -55,12 +55,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 var prefab = DemoDisasters.Prefabs.First(p => p && p.name == tornado);
                 var parameters = DemoDisasters.Parameters(prefab);
-                var cue = new StudioCue { at = .3f, action = "hazard", hazard = tornado, values = DirectCueFields.Defaults(tornado) };
+                var cue = new StudioCue { at = .2f, action = "hazard", hazard = tornado, values = DirectCueFields.Defaults(tornado), aimed = true, heading = 90 };
                 var settings = new List<string>();
                 for (int i = 0; i < parameters.Count; i++)
                 {
                     string name = (parameters[i].id + " " + parameters[i].label).ToLowerInvariant();
-                    if (name.Contains("head") || name.Contains("direction") || name.Contains("angle")) cue.values[i] = parameters[i].Clamp(90);
+                    // Make it arrive quickly and hit hard, so a short tape shows it tearing through.
+                    if (name.Contains("warning")) cue.values[i] = parameters[i].min;
+                    if (name.Contains("duration")) cue.values[i] = parameters[i].Clamp(9);
+                    if (name.Contains("ferocity") || parameters[i].id == "force") cue.values[i] = parameters[i].max;
                     settings.Add($"{parameters[i].label}={cue.values[i]:0.##}{parameters[i].unit}");
                 }
                 set.cues.Add(cue);
@@ -75,6 +78,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 int hazardFrames = hazards?.frames.Count(f => f != null && f.Length > 0) ?? 0;
                 var moves = FirstMoves(take, frames);
                 int torn = moves.Count(m => m >= 0);
+                // Where did the tornado come in? Read its first recorded position from the hazard track.
+                float entrySide = -1;
+                foreach (var data in hazards?.frames ?? new List<byte[]>())
+                {
+                    if (data == null || data.Length == 0) continue;
+                    var match = System.Text.RegularExpressions.Regex.Match(System.Text.Encoding.UTF8.GetString(data), "\"center\":\\{\"x\":([-0-9.eE]+),\"y\":([-0-9.eE]+),\"z\":([-0-9.eE]+)");
+                    if (!match.Success) continue;
+                    float x = float.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) - stage.world.Center.x;
+                    float z = float.Parse(match.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture) - stage.world.Center.z;
+                    entrySide = Mathf.Repeat(Mathf.Atan2(z, x) * Mathf.Rad2Deg, 360);
+                    break;
+                }
+                bool fromRightSide = entrySide >= 0 && Mathf.Abs(Mathf.DeltaAngle(entrySide, 90)) < 12;
                 var drifts = new List<StudioDrift>();
                 var pictures = new List<long>[2];
                 for (int run = 0; run < 2; run++)
@@ -95,15 +111,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     drifts.Add(StudioRun.LastDrift);
                 }
                 Result("1. A tornado cue with a set heading tears through the tower; playback is identical every time",
-                    hazardFrames > fps && torn > 0 && drifts.All(d => d != null && d.Passed && d.samples > 0),
+                    hazardFrames > fps && torn > 0 && fromRightSide && drifts.All(d => d != null && d.Passed && d.samples > 0),
                     $"Disaster \"{tornado}\" with {(settings.Count > 0 ? string.Join(", ", settings) : "no settings of its own")}. Cue log: {string.Join("; ", StudioRun.CueLog)}. " +
                     $"The hazard track holds {hazardFrames} frames of disaster state; {torn} of {stage.blocks.Length} blocks were moved. " +
+                    $"Asked to come from heading 90 (the +Z side); its first recorded position was {entrySide:0} degrees around the map centre. " +
                     $"Two playbacks: {drifts[0]} / {drifts[1]} Blocks and disaster state come from the same tape both times; " +
                     $"the saved pictures' sizes were {(pictures[0].SequenceEqual(pictures[1]) ? "the same" : "not byte-identical (the disaster's particles are drawn fresh each time)")}. Pictures: tornado-live/, tornado-playback-1/, tornado-playback-2/.");
             }
 
             // ---- Test 4: a ripple push across 30 blocks looks like a wave ----
             set.cues.Clear();
+            set.length = 5;
+            StudioLibrary.Save(set);
+            StudioRun.Refresh();
+            frames = set.Frames;
             var loose = Enumerable.Range(0, stage.blocks.Length).Where(i => stage.blocks[i] && stage.blocks[i].gameObject.activeSelf)
                 .OrderByDescending(i => stage.blocks[i].position.y).Take(60).OrderBy(i => stage.blocks[i].position.x).Take(30).ToList();
             var ripple = new StudioCue { at = .5f, action = PushCue.Id, blocks = loose, direction = new Vector3(0, .15f, 1), strength = 5, ripple = .12f };
@@ -143,7 +164,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var branched = worldTrack.ActiveTake;
             bool sameBefore = branched != before && branched.start == before.start && branched.frames.Count == frames;
             int sameFrames = 0;
-            for (int f = 0; f < branchFrame && sameBefore; f++)
+            for (int f = 0; f <= branchFrame && sameBefore; f++)
             {
                 if (!before.frames[f].SequenceEqual(branched.frames[f])) { sameBefore = false; break; }
                 sameFrames++;
@@ -156,11 +177,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             WorldTrack.Positions(before, branchFrame, out var oldAt, out _);
             float jump = 0;
             for (int i = 0; i < atBranch.Length; i++) if (onBefore[i] && onAt[i]) jump = Mathf.Max(jump, Vector3.Distance(atBranch[i], oldAt[i]));
+            WorldTrack.Positions(branched, branchFrame + 1, out var firstNew, out var onNew);
+            float step = 0;
+            for (int i = 0; i < atBranch.Length; i++) if (onAt[i] && onNew[i]) step = Mathf.Max(step, Vector3.Distance(firstNew[i], atBranch[i]));
             Result("3. Branch at 3 s with one changed push; the frames before 3 s are unchanged",
-                sameBefore && sameFrames == branchFrame && differs >= branchFrame && note.parent == before.id && note.branchFrame == branchFrame && worldTrack.takes.Contains(before),
-                $"New take \"{branched.name}\": {branched.frames.Count} frames. Frames 0 to {branchFrame - 1} are byte-for-byte the old take's ({sameFrames} checked). " +
+                sameBefore && sameFrames == branchFrame + 1 && differs > branchFrame && jump < .001f && step < .6f && note.parent == before.id && note.branchFrame == branchFrame && worldTrack.takes.Contains(before),
+                $"New take \"{branched.name}\": {branched.frames.Count} frames. Frames 0 to {branchFrame} are byte-for-byte the old take's ({sameFrames} checked). " +
                 $"The two takes first differ by more than 5 mm at frame {differs} (the new push is at 3.3 s = frame {Mathf.RoundToInt(3.3f * fps)}). " +
-                $"At the branch frame itself the largest block offset from the old tape is {jump * 1000:0.0} mm. Parent recorded: {note.parent == before.id}; the old take is still on the tape; cue log: {string.Join("; ", StudioRun.CueLog)}.");
+                $"At the branch frame the largest block offset from the old tape is {jump * 1000:0.0} mm, and the largest move into the first new frame is {step * 100:0.0} cm (no pop at the hand-over). Parent recorded: {note.parent == before.id}; the old take is still on the tape; cue log: {string.Join("; ", StudioRun.CueLog)}.");
 
             // ---- Test 2: push a block so it lands within 1 m of a spot, found with a variation run of 20 ----
             set.cues.Clear();

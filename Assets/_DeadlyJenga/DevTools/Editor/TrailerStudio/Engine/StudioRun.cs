@@ -221,6 +221,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             rules.deathEnabled = false;
             session.Modes.Configure(rules);
             session.Modes.StartRound();
+            // No random weapon and power-up bubbles on a film set. Marks can still start with equipment.
+            session.Modes.ConfigurePowerupSpawns(new PowerupSpawnSettings { enabled = false });
             if (session.Social != null) session.Social.VoiceEnabled = false;
             for (int n = 0; n < Mathf.CeilToInt(set.warmup * set.fps) + 3; n++) yield return 0;
             if (selected.mapPrefab && ReferenceEquals(Services.World, previousWorld) ||

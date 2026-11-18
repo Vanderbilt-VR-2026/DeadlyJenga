@@ -88,6 +88,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Notify();
         }
 
+        // Show a moment between two tape frames (4.5 = halfway from frame 4 to frame 5). The stage must be holding still.
+        // Slow motion and renders use this, so any playback speed works after recording.
+        public static void ShowExact(float frame)
+        {
+            if (State != StudioState.Held || Stage == null) return;
+            frame = Mathf.Clamp(frame, 0, Stage.Frames - 1);
+            int whole = Mathf.FloorToInt(frame);
+            float part = frame - whole;
+            Frame = whole;
+            foreach (var player in players) player.ShowBetween(whole, part, false);
+            foreach (var player in players) player.AfterShow();
+        }
+
         // The Set or the tape's tracks changed (mute, solo, active take...): rebuild what is shown.
         public static void Refresh()
         {
@@ -252,7 +265,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (branch)
                 {
                     // Branch: the tape stays as it is before this frame; physics takes over from the tape's pose and speed.
-                    pass.from = pass.branchFrom; pass.preRoll = 0; pass.punchIn = false;
+                    // Physics runs before a frame is recorded, so the first new frame is the one after the branch frame.
+                    pass.from = pass.branchFrom + 1; pass.preRoll = 0; pass.punchIn = false;
                     DemoDisasters.StopAll(stage.session);
                     StudioBranch.StartFromTape(stage, oldWorld, pass.branchFrom);
                     UnityEngine.Random.InitState(pass.seed >= 0 ? pass.seed : set.seed);
@@ -399,7 +413,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var stage = Stage;
             to = to < 0 ? stage.Frames - 1 : Mathf.Min(to, stage.Frames - 1);
             StudioCast.ClearLive(stage);
-            StudioCast.LeaveBody(stage);
+            // In the headset the person stays in their body while the tape plays (they may be filming it by hand).
+            if (!MustBeRealTime) StudioCast.LeaveBody(stage);
             stage.physicalPlayback = false;
             BuildPlayers(null);
             var report = new StudioDrift();

@@ -43,6 +43,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float radius = 3;          // reach of a guide, in metres
         public float[] values = new float[0];   // a disaster's own settings, in the order the disaster lists them
         public float jitter;              // set by variation runs: this cue's strength is multiplied by (1 + jitter)
+        public bool aimed;                // a disaster that arrives from a side comes from 'heading' instead of a random side
     }
 
     // A camera shot. Phase 1 only keeps these (imported from Theatre); Phase 5 edits them.
@@ -73,6 +74,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public List<StudioCue> cues = new List<StudioCue>();
         public List<StudioShot> shots = new List<StudioShot>();
         public List<string> shotNotes = new List<string>();
+        // Phase 5: cameras and the cut.
+        public List<StudioCameraTrack> cameras = new List<StudioCameraTrack>();
+        public List<StudioCut> cuts = new List<StudioCut>();
+        public StudioRenderSettings render = new StudioRenderSettings();
+        public string music = "";         // path of a music bed (wav or mp3), or empty
+        public float bpm = 120, beatOffset; // beat markers for snapping cuts
+        // Phase 4: overrides, reactions and extras layered on recorded takes.
+        public List<StudioOverride> overrides = new List<StudioOverride>();
 
         public int Frames => Mathf.Max(1, Mathf.RoundToInt(length * fps));
         public StudioMark Mark(string markId) => marks.FirstOrDefault(m => m.id == markId);
