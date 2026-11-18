@@ -18,6 +18,13 @@ editor, map `sparse-viaduct-study`. Method
   3.3 s, so no test places a cue on the branch frame itself.
 - A variation now keeps the cue times and strengths it used, and its take
   card can write them into the Set. Not exercised by a test.
+- A cue exactly on the branch frame fires on the first new frame of the
+  branch. That is one tape frame later than the same cue fires in a
+  whole-set recording. Expected; not a bug to chase.
+- "Put its cue timings in the Set" matches cues by their place in the list
+  and only checks the count. If cues were reordered or swapped since the
+  variation ran, the timings land on the wrong cues without a message, and
+  pressing it twice strengthens the cues twice. Known and not fixed.
 - The tornado's blocks and disaster state replay exactly, but its particles
   are drawn fresh each time, so two playbacks' pictures are not
   byte-identical.

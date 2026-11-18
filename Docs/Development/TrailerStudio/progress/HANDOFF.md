@@ -109,6 +109,17 @@ are fixed and tested; the remaining risk is in the window by hand, in VR,
 and in an editor opening the FCPXML. None of that needs another reading
 pass."
 
+## What the review covered
+
+The Fable 5.2 chat closed its review at tip `39752776` with nothing further
+found. In its words: three reading passes over the tape, tracks, run loop,
+render, export, cameras, overrides, motion edit, takes, branch and
+variations, plus the window shell and the cross-box commits. It did **not**
+read the timeline, viewport, the tab files beyond the calls they make, the
+director, handheld camera, wrist panel or Theatre import, and it ran
+nothing in Unity. Every pass and fail number here comes from the builder
+chat's own coordinator runs.
+
 ## What was NOT tested
 
 - **Nothing in a headset or the XR simulator.** Performing in VR, the wrist
