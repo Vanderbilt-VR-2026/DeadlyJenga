@@ -372,7 +372,14 @@ namespace DeadlyJenga.HandValidation
             Check(hand && hand.IsInteractive && bridge.Mode == CandyHandMode.HandTracking, "Emulated hand tracking drives the real flying-hand prefab");
             Check(hand.skin.sharedMesh.isReadable, "Skin mesh can be measured");
             Check(fist < 25, "Physical fingers close into a full fist inside their joint limits (" + fist.ToString("F1") + " deg off)");
-            input.pose.skeleton = Open(L); yield return Wait(.8f);
+            input.pose.skeleton = Open(L);
+            // Watch the physical index finger reopen, joint by joint.
+            for (int n = 0; n < 8; n++)
+            {
+                yield return Wait(.1f); string bends = "";
+                for (int j = 0; j < 3; j++) bends += Vector3.Angle(hand.bodies[j == 0 ? 0 : 4 + j - 1].transform.rotation * (j == 0 ? Vector3.forward : Vector3.up), hand.bodies[4 + j].transform.up).ToString("F0") + " ";
+                Line($"REOPEN t={n * .1f + .1f:F1}s index joint bends {bends}(want 0 0 0), finger torque in use {hand.AppliedTorqueNewtonMetres:F0} N m, palm off target {Quaternion.Angle(hand.bodies[0].rotation, hand.Target.rotation):F1} deg");
+            }
             float reopened = PhysicalFingerError(hand, Open(L));
             Check(reopened < 25, "Physical fingers open flat again after the fist (" + reopened.ToString("F1") + " deg off)");
             Watch(hand);

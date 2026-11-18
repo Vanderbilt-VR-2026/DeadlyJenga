@@ -21,6 +21,7 @@ namespace DeadlyJenga.CandyPhysicsHands
         public bool RequiresProfile {get;set;}
         readonly Vector3[] driveForces=new Vector3[16];
         readonly bool[] digitFree=new bool[5];
+        readonly float[] tipReach=new float[16];
         readonly float[] driveTorques=new float[16];
         Vector3 palmTorque;
         readonly Pose[] authoritativePreview=new Pose[16];
@@ -349,13 +350,13 @@ namespace DeadlyJenga.CandyPhysicsHands
                 if(i>0)
                 {
                     int parent=(i-1)%3==0?0:i-1;
-                    Desired(Target,parent,out _,out var parentRotation);
+                    Desired(onPalm,parent,out _,out var parentRotation);
                     Quaternion relative=Quaternion.Inverse(parentRotation)*q;
                     joints[i-1].targetRotation=Quaternion.Inverse(relative)*referenceRelative[i-1];
                     // A finger asks for torque by how far it is from its pose: resting fingers leave the
                     // strength budget to whatever is actually pushing, and a blocked finger pushes harder.
                     float off=Quaternion.Angle(Quaternion.Inverse(bodies[parent].rotation)*rb.rotation,relative)*Mathf.Deg2Rad;
-                    driveTorques[i]=Mathf.Min(settings.fingerTorque,settings.fingerTorque*.1f+settings.rotationSpring*6*off)*Strength;
+                    driveTorques[i]=(settings.fingerTorque*.1f+settings.rotationSpring*6*off)*Strength;
                 }
                 else
                 {
@@ -363,20 +364,28 @@ namespace DeadlyJenga.CandyPhysicsHands
                     driveTorques[0]=palmTorque.magnitude;
                 }
             }
+            requestedEffort=driveForces[0].magnitude+driveTorques[0]/DriveLever(0);
             for(int f=0;f<5;f++)
             {
-                float asked=0;
-                for(int j=0;j<3;j++){int i=1+f*3+j;asked+=driveForces[i].magnitude+driveTorques[i]/DriveLever(i);}
                 // A finger touching nothing only moves itself. That costs none of the hand's strength, so it may
                 // move as fast as a finger does. The strength rule applies to what the hand does to other things.
                 bool touching=false;
                 for(int j=0;j<3;j++)touching|=touches[1+f*3+j]&&Time.fixedTime-touches[1+f*3+j].At<.15f;
                 digitFree[f]=!touching&&forceBudget>0;
-                if(digitFree[f])continue;
-                float most=forceBudget*(f==0?ThumbStrengthShare:FingerStrengthShare)*Strength;
-                if(asked>most&&asked>0)for(int j=0;j<3;j++){int i=1+f*3+j;driveForces[i]*=most/asked;driveTorques[i]*=most/asked;}
+                // A touching finger's strength is what it can press with at its tip: its share of the hand's
+                // strength. Each joint may turn hard enough to deliver that at the fingertip, and no harder.
+                float press=forceBudget*(f==0?ThumbStrengthShare:FingerStrengthShare)*Strength,effort=0;
+                for(int j=0;j<3;j++)
+                {
+                    int i=1+f*3+j;float toTip=0;
+                    for(int k=j;k<3;k++)toTip+=segmentLengths[f*3+k]*builtSize;
+                    float most=digitFree[f]?settings.fingerTorque*Strength:Mathf.Min(press*toTip,settings.fingerTorque*2*Strength);
+                    driveTorques[i]=Mathf.Min(driveTorques[i],most);
+                    tipReach[i]=Mathf.Max(.01f,toTip);
+                    effort=Mathf.Max(effort,driveTorques[i]/tipReach[i]);
+                }
+                if(!digitFree[f])requestedEffort+=effort;
             }
-            for(int i=0;i<bodies.Length;i++)if(i==0||!digitFree[(i-1)/3])requestedEffort+=driveForces[i].magnitude+driveTorques[i]/DriveLever(i);
             float scale=requestedEffort>0?Mathf.Min(1,forceBudget*Strength/requestedEffort):0;
             for(int i=0;i<bodies.Length;i++)
             {
@@ -387,12 +396,12 @@ namespace DeadlyJenga.CandyPhysicsHands
                 MaximumAppliedForce=Mathf.Max(MaximumAppliedForce,force.magnitude);
                 AppliedLinearForceNewtons+=force.magnitude;
                 AppliedTorqueNewtonMetres+=torque;
-                if(!free)AppliedDriveEffortNewtons+=force.magnitude+torque/DriveLever(i);
+                if(!free)AppliedDriveEffortNewtons+=force.magnitude+torque/(i==0?DriveLever(0):tipReach[i]*3);
                 if(i==0)bodies[0].AddTorque(palmTorque*scale,ForceMode.Force);
                 else joints[i-1].slerpDrive=new JointDrive
                 {
                     positionSpring=torque>0?settings.rotationSpring*6:0,
-                    positionDamper=torque>0?settings.rotationDamping:0,
+                    positionDamper=torque>0?settings.rotationDamping*3:0,
                     maximumForce=torque
                 };
             }
