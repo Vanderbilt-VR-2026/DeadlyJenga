@@ -38,23 +38,26 @@ namespace DeadlyJenga.DevTools.Editor
     {
         internal static readonly string[] AllViews = { "hero", "top", "front", "close" };
 
-        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Render All (lobby pictures)")]
+        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Quick: Render All (lobby pictures)")]
         static void RenderAll() => Run(null, new[] { "hero" }, null, false, 1600, 1100, null, CaptureOutput.OpenByDefault);
 
-        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Render Missing (lobby pictures)")]
+        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Quick: Render Missing (lobby pictures)")]
         static void RenderMissing() => Run(null, new[] { "hero" }, null, true, 1600, 1100, null, CaptureOutput.OpenByDefault);
 
-        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Render All Views (to Logs)")]
+        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Quick: Render All Views (to Logs)")]
         static void RenderAllViews() => Run(null, AllViews, null, false, 1600, 1100, null, CaptureOutput.OpenByDefault);
 
-        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Record Orbit Clips (all maps)")]
+        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Quick: Record Orbit Clips (all maps)")]
         static void RecordOrbits() => Run(null, Array.Empty<string>(), null, false, 1600, 1100, new ClipRequest { mode = "orbit" }, CaptureOutput.OpenByDefault);
 
         public sealed class ClipRequest { public string mode = "orbit"; public float seconds = 6; public int fps = 30, width = 1280, height = 720; }
 
+        // One entry point for both rigs: add -full for the live in-game capture (MapLiveCapture),
+        // or -lobby for the live lobby survey. Without them this is the quick preview-scene capture.
         public static void Batch()
         {
             var args = Environment.GetCommandLineArgs();
+            if (args.Contains("-full") || args.Contains("-lobby")) { MapLiveCapture.Batch(); return; }
             string Arg(string name) { int i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
             string view = (Arg("-mapView") ?? "hero").ToLowerInvariant();
             int width = 1600, height = 1100;

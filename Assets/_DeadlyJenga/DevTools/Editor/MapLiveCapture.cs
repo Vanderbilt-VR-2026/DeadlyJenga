@@ -17,7 +17,8 @@ namespace DeadlyJenga.DevTools.Editor
     // Castle coast with boats and sea life). The player, HUD and bots are hidden, then the same views and
     // clips as MapPictureRig are taken. Nothing is saved to any scene; everything stays on this computer.
     //
-    // Editor: Tools > Deadly Jenga > Maps > Map Pictures > Live: Render All / Live: All Views + Orbit.
+    // Editor: Tools > Deadly Jenga > Maps > Map Pictures > Full: ... (Quick: ... is the fast preview-scene rig).
+    // CLI tip: MapPictureRig.Batch with -full (or -lobby) runs this same capture.
     // CLI (needs graphics; on this laptop add -force-d3d11):
     //   Unity -batchmode -projectPath <project> -executeMethod DeadlyJenga.DevTools.Editor.MapLiveCapture.Batch
     //     same options as MapPictureRig: -mapId, -mapView hero|top|front|close|all, -mapOut, -mapMissing,
@@ -52,13 +53,16 @@ namespace DeadlyJenga.DevTools.Editor
 
         static MapLiveCapture() { EditorApplication.playModeStateChanged += OnState; }
 
-        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Live: Render All (lobby pictures)")]
+        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Full: Render All (lobby pictures)")]
         static void RenderAll() => Begin(new Job { open = CaptureOutput.OpenByDefault }, null, false);
 
-        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Live: Lobby Survey (many cameras)")]
+        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Full: Render Missing (lobby pictures)")]
+        static void RenderMissing() => Begin(new Job { open = CaptureOutput.OpenByDefault }, null, true);
+
+        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Full: Lobby Survey (many cameras)")]
         static void LobbySurvey() => BeginLobby(new Job { lobby = true, open = CaptureOutput.OpenByDefault });
 
-        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Live: All Views + Orbit (to Logs)")]
+        [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Full: All Views + Orbit (to Logs)")]
         static void RenderEverything() => Begin(new Job { views = MapPictureRig.AllViews, clip = "orbit", output = Path.GetFullPath(Path.Combine("Logs", "Captures", DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-live-maps")), open = CaptureOutput.OpenByDefault }, null, false);
 
         public static void Batch()
