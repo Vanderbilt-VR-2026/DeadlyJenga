@@ -201,8 +201,18 @@ namespace DeadlyJenga.CandyArt
         Material WallCover() => Surface("Cobalt botanical wallcovering", "Botanical Paper", new Color(.06f, .15f, .70f),
             .28f, new Vector2(13, 5), 0f, .38f);
 
-        // Height of the room's ceiling in map units (the map's own ceiling model sits at 177).
-        const float RoomTop = 245f;
+        // The family room: the tree stands in the north-east corner, the room opens out to the
+        // south and west. Map units; the map root is the origin.
+        const float RoomTop = 400f;
+        const float RoomWest = -640f, RoomEast = 60f, RoomSouth = -600f, RoomNorth = 58f;
+        const float LoftHeight = 200f, LoftEdge = -520f;
+        // Openings: tall window wall behind the tree, hallway in the south wall,
+        // archway to the kitchen in the west wall, under the loft.
+        const float WindowWest = -360f, WindowEast = -80f, WindowSill = 25f, WindowHead = 290f;
+        const float HallWest = -210f, HallEast = -140f, HallHeight = 150f;
+        const float ArchSouth = -170f, ArchNorth = -50f, ArchHeight = 170f;
+        // Fireplace on the east wall, south of the rug.
+        const float HearthZ = -290f;
 
         void BuildRoom()
         {
@@ -211,52 +221,125 @@ namespace DeadlyJenga.CandyArt
                 .49f, new Vector2(10, 3f), 0f, .4f);
             var casing = Surface("Cream window casing", "Paper", new Color(.79f, .68f, .54f),
                 .48f, new Vector2(2, 2));
-            var curtain = Surface("Cranberry velvet curtain", "Woven", new Color(.48f, .075f, .106f),
-                .29f, new Vector2(7, 9));
-            const float z = 77f;
-            const float left = -34f;
-            const float right = 39f;
-            const float sill = 22f;
-            const float head = 78f;
-            Wall("North wall left bay", -260f, left, 0f, RoomTop, z, plaster);
-            Wall("North wall right bay", right, 82f, 0f, RoomTop, z, plaster);
-            Wall("North wall overhead", left, right, head, RoomTop, z, plaster);
-            Wall("North wall below window", left, right, 0f, sill, z, plaster);
-            Box("West wall", new Vector3(-258f, RoomTop * .5f, -92f), new Vector3(3.0f, RoomTop, 343f), plaster)
+            var stone = Surface("Fieldstone chimney", "Brick", new Color(.62f, .56f, .52f), .22f, new Vector2(4, 9), 0f, .9f);
+            var beam = Surface("Dark timber", "Walnut Grain", new Color(.30f, .19f, .12f), .35f, new Vector2(1, 6));
+
+            WallAlongX("North wall", RoomNorth, RoomWest, RoomEast, WindowWest, WindowEast, WindowSill, WindowHead, plaster);
+            WallAlongX("South wall", RoomSouth, RoomWest, RoomEast, HallWest, HallEast, 0f, HallHeight, plaster);
+            WallAlongZ("West wall", RoomWest, RoomSouth, RoomNorth, ArchSouth, ArchNorth, 0f, ArchHeight, plaster);
+            WallAlongZ("East wall", RoomEast, RoomSouth, RoomNorth, 0f, 0f, 0f, 0f, plaster);
+            float midX = (RoomWest + RoomEast) * .5f, midZ = (RoomSouth + RoomNorth) * .5f;
+            float spanX = RoomEast - RoomWest, spanZ = RoomNorth - RoomSouth;
+            foreach (var side in new[] { (RoomNorth - 2.2f, true), (RoomSouth + 2.2f, true), (RoomWest + 2.2f, false), (RoomEast - 2.2f, false) })
+            {
+                var at = side.Item2 ? new Vector3(midX, 0f, side.Item1) : new Vector3(side.Item1, 0f, midZ);
+                var length = side.Item2 ? new Vector3(spanX, 0f, 2f) : new Vector3(2f, 0f, spanZ);
+                Box("Oak wainscot", at + Vector3.up * 8f, length + Vector3.up * 16f, wood);
+                Box("Chair rail", at + Vector3.up * 16.7f, length * 1.0f + Vector3.up * 1.9f + (side.Item2 ? Vector3.forward : Vector3.right) * .5f, casing);
+                Box("Crown", at + Vector3.up * (RoomTop - 4.7f), length + Vector3.up * 5.2f + (side.Item2 ? Vector3.forward : Vector3.right) * 2.3f, casing);
+            }
+            Box("Plaster ceiling", new Vector3(midX, RoomTop + 1.5f, midZ), new Vector3(spanX + 8f, 3f, spanZ + 8f),
+                Surface("Plaster ceiling", "Wallpaper", new Color(.72f, .62f, .53f), .17f, new Vector2(8, 8)))
                 .GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
-            Box("West oak wainscot", new Vector3(-255.7f, 8f, -92f), new Vector3(2f, 16f, 343f), wood);
-            Box("North oak wainscot", new Vector3(-88f, 7.8f, z - 2.2f), new Vector3(343f, 15.6f, 2f), wood);
-            Box("North chair rail", new Vector3(-88f, 16.7f, z - 3.0f), new Vector3(343f, 1.9f, 2.5f), casing);
-            Box("West chair rail", new Vector3(-254.7f, 16.7f, -92f), new Vector3(2.5f, 1.9f, 343f), casing);
-            Box("North crown", new Vector3(-88f, RoomTop - 4.7f, z - 3.2f), new Vector3(343f, 5.2f, 4.3f), casing);
-            Box("West crown", new Vector3(-254.5f, RoomTop - 4.7f, -92f), new Vector3(4.3f, 5.2f, 343f), casing);
-            // The map's own ceiling is hidden; this one sits higher so the room feels tall.
-            Box("Plaster ceiling", new Vector3(-88f, RoomTop + 1.5f, -92f), new Vector3(350f, 3f, 350f),
-                Surface("Plaster ceiling", "Wallpaper", new Color(.72f, .62f, .53f), .17f, new Vector2(5, 5)))
-                .GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
-            Wall("South botanical wall", -260f, 85f, 0f, RoomTop, -264f, plaster);
-            Box("South oak wainscot", new Vector3(-88f, 8f, -261f), new Vector3(343f, 16f, 2f), wood);
-            Box("South chair rail", new Vector3(-88f, 16.7f, -260f), new Vector3(343f, 1.9f, 2.5f), casing);
-            Box("South crown", new Vector3(-88f, RoomTop - 4.7f, -260f), new Vector3(343f, 5.2f, 4.3f), casing);
-            // Keep the existing east window aperture clear from both sides.
-            Box("East wall south bay", new Vector3(86f, RoomTop * .5f, -223.5f), new Vector3(3f, RoomTop, 81f), plaster);
-            Box("East wall north bay", new Vector3(86f, RoomTop * .5f, 0f), new Vector3(3f, RoomTop, 154f), plaster);
-            Box("East window lower bay", new Vector3(86f, 27.8f, -130f), new Vector3(3f, 55.6f, 106f), plaster);
-            Box("East window upper bay", new Vector3(86f, (141.6f + RoomTop) * .5f, -130f), new Vector3(3f, RoomTop - 141.6f, 106f), plaster);
-            Box("East oak wainscot", new Vector3(83f, 8f, -92f), new Vector3(2f, 16f, 343f), wood);
-            Box("East chair rail", new Vector3(82f, 16.7f, -92f), new Vector3(2.5f, 1.9f, 343f), casing);
-            Box("East crown", new Vector3(82f, RoomTop - 4.7f, -92f), new Vector3(4.3f, 5.2f, 343f), casing);
-            Box("Window header", new Vector3(2.5f, head, z - 2f), new Vector3(81f, 3.4f, 5.2f), casing);
-            Box("Window sill", new Vector3(2.5f, sill, z - 3f), new Vector3(81f, 3.4f, 7.4f), casing);
-            foreach (float x in new[] { left, right, 2.5f })
-                Box("Window mullion", new Vector3(x, 50f, z - 2f), new Vector3(2.3f, 55f, 4.3f), casing);
-            Box("Window meeting rail", new Vector3(2.5f, 52f, z - 2f), new Vector3(73f, 2.0f, 4.5f), casing);
-            Box("Curtain rod", new Vector3(2.5f, 87f, z - 10.3f), new Vector3(111f, 1.2f, 1.4f), wood);
-            Curtain("Left drape", -47f, 87f, z - 10.5f, curtain);
-            Curtain("Right drape", 52f, 87f, z - 10.5f, curtain);
-            NightWindow("Front window snow", new Vector3(2.5f, 50f, z + 1.3f), new Vector2(74, 57), Quaternion.identity);
-            NightWindow("Side window snow", new Vector3(84.5f, 98.6f, -130f), new Vector2(106, 86), Quaternion.Euler(0f, 90f, 0f));
+            // Timber beams across the tall ceiling, like a lodge great room.
+            for (float x = RoomWest + 90f; x < RoomEast; x += 120f)
+                Box("Ceiling beam", new Vector3(x, RoomTop - 9f, midZ), new Vector3(14f, 18f, spanZ), beam);
+
+            // Tall snowy window wall behind the tree.
+            Box("Window header", new Vector3((WindowWest + WindowEast) * .5f, WindowHead, RoomNorth - 2f), new Vector3(WindowEast - WindowWest + 6f, 5f, 6f), casing);
+            Box("Window sill", new Vector3((WindowWest + WindowEast) * .5f, WindowSill, RoomNorth - 3f), new Vector3(WindowEast - WindowWest + 6f, 4f, 9f), casing);
+            Box("Window transom", new Vector3((WindowWest + WindowEast) * .5f, 160f, RoomNorth - 2f), new Vector3(WindowEast - WindowWest, 3f, 5f), casing);
+            for (float x = WindowWest; x <= WindowEast + .1f; x += (WindowEast - WindowWest) / 4f)
+                Box("Window mullion", new Vector3(x, (WindowSill + WindowHead) * .5f, RoomNorth - 2f), new Vector3(3f, WindowHead - WindowSill, 5f), casing);
+            NightWindow("Lower window snow", new Vector3((WindowWest + WindowEast) * .5f, (WindowSill + 160f) * .5f, RoomNorth + 1.3f),
+                new Vector2(WindowEast - WindowWest, 160f - WindowSill), Quaternion.identity);
+            NightWindow("Upper window snow", new Vector3((WindowWest + WindowEast) * .5f, (160f + WindowHead) * .5f, RoomNorth + 1.3f),
+                new Vector2(WindowEast - WindowWest, WindowHead - 160f), Quaternion.identity);
+
+            // Stone fireplace and chimney on the east wall.
+            Box("Stone chimney", new Vector3(RoomEast - 14f, RoomTop * .5f, HearthZ), new Vector3(26f, RoomTop, 150f), stone);
+            Box("Stone hearth", new Vector3(RoomEast - 34f, 3f, HearthZ), new Vector3(38f, 6f, 170f), stone);
+            Box("Oak mantel", new Vector3(RoomEast - 32f, 92f, HearthZ), new Vector3(16f, 7f, 166f), beam);
+            Box("Firebox", new Vector3(RoomEast - 27.5f, 30f, HearthZ), new Vector3(2f, 52f, 70f),
+                Surface("Sooty firebox", null, new Color(.05f, .03f, .02f), .1f, Vector2.one));
             BuildHearth();
+
+            // Two-storey west side: a loft balcony on posts, stairs up along the south wall.
+            Box("Loft floor", new Vector3((RoomWest + LoftEdge) * .5f, LoftHeight + 4f, midZ), new Vector3(LoftEdge - RoomWest, 8f, spanZ), wood);
+            Box("Loft rail", new Vector3(LoftEdge, LoftHeight + 24f, midZ + 30f), new Vector3(3f, 3f, spanZ - 60f), beam);
+            for (float z = RoomSouth + 90f; z < RoomNorth; z += 22f)
+                Box("Loft baluster", new Vector3(LoftEdge, LoftHeight + 16f, z), new Vector3(1.6f, 16f, 1.6f), beam);
+            for (float z = RoomSouth + 120f; z < RoomNorth - 20f; z += 160f)
+                Box("Loft post", new Vector3(LoftEdge, LoftHeight * .5f, z), new Vector3(8f, LoftHeight, 8f), beam);
+            const int steps = 20;
+            float stairFoot = -290f, stairDepth = 50f;
+            for (int i = 0; i < steps; i++)
+            {
+                float run = (stairFoot - LoftEdge) / steps;
+                float rise = LoftHeight * (i + 1) / steps;
+                Box("Stair step", new Vector3(stairFoot - run * (i + .5f), rise * .5f, RoomSouth + stairDepth * .5f + 2f),
+                    new Vector3(run, rise, stairDepth), wood);
+            }
+            Box("Stair rail", new Vector3((stairFoot + LoftEdge) * .5f, LoftHeight * .5f + 30f, RoomSouth + stairDepth + 2f),
+                new Vector3(Mathf.Sqrt((stairFoot - LoftEdge) * (stairFoot - LoftEdge) + LoftHeight * LoftHeight), 3f, 3f), beam)
+                .localRotation = Quaternion.Euler(0f, 0f, -Mathf.Atan2(LoftHeight, stairFoot - LoftEdge) * Mathf.Rad2Deg);
+
+            // Rooms beyond the openings: just a lit glimpse, the player never goes there.
+            var glow = Glow("Warm room beyond", new Color(1f, .62f, .32f), .9f);
+            Box("Hallway floor", new Vector3((HallWest + HallEast) * .5f, -.2f, RoomSouth - 70f), new Vector3(HallEast - HallWest + 20f, .4f, 140f), wood);
+            Box("Hallway wall", new Vector3(HallWest - 10f, HallHeight * .5f, RoomSouth - 70f), new Vector3(3f, HallHeight, 140f), plaster);
+            Box("Hallway wall", new Vector3(HallEast + 10f, HallHeight * .5f, RoomSouth - 70f), new Vector3(3f, HallHeight, 140f), plaster);
+            Box("Hallway end", new Vector3((HallWest + HallEast) * .5f, HallHeight * .5f, RoomSouth - 140f), new Vector3(HallEast - HallWest + 20f, HallHeight, 3f), glow);
+            Box("Kitchen floor", new Vector3(RoomWest - 90f, -.2f, (ArchSouth + ArchNorth) * .5f), new Vector3(180f, .4f, ArchNorth - ArchSouth + 60f), wood);
+            Box("Kitchen wall", new Vector3(RoomWest - 180f, ArchHeight * .5f, (ArchSouth + ArchNorth) * .5f), new Vector3(3f, ArchHeight, ArchNorth - ArchSouth + 60f), glow);
+
+            // Bookshelves and a piano by the window.
+            var rand = new System.Random(77);
+            Box("Bookcase", new Vector3(RoomWest + 20f, 90f, -330f), new Vector3(34f, 180f, 130f), beam);
+            for (int shelf = 0; shelf < 5; shelf++)
+                for (float z = -390f; z < -272f;)
+                {
+                    float thick = Range(rand, 4f, 8f), tall = Range(rand, 18f, 28f);
+                    var book = Surface("Book cloth " + (shelf * 7 + (int)z) % 5, "Woven",
+                        Color.HSVToRGB(Range(rand, 0f, 1f) < .5f ? .0f : .35f, .6f, Range(rand, .25f, .6f)), .3f, Vector2.one);
+                    Box("Book", new Vector3(RoomWest + 38f, 12f + shelf * 34f + tall * .5f, z + thick * .5f), new Vector3(4f, tall, thick - .6f), book);
+                    z += thick;
+                }
+            var lacquer = Lacquer("Piano black", new Color(.02f, .015f, .015f), .9f, 0f, .8f, 0f);
+            Box("Upright piano", new Vector3(-430f, 45f, RoomNorth - 22f), new Vector3(110f, 90f, 36f), lacquer);
+            Box("Piano bench", new Vector3(-430f, 18f, RoomNorth - 70f), new Vector3(60f, 36f, 26f), lacquer);
+        }
+
+        // A wall running east-west at z, with one opening from x0 to x1 between heights low and high.
+        void WallAlongX(string label, float z, float west, float east, float x0, float x1, float low, float high, Material material)
+        {
+            if (x1 <= x0)
+            {
+                Wall(label, west, east, 0f, RoomTop, z, material);
+                return;
+            }
+            Wall(label, west, x0, 0f, RoomTop, z, material);
+            Wall(label, x1, east, 0f, RoomTop, z, material);
+            Wall(label + " over opening", x0, x1, high, RoomTop, z, material);
+            if (low > 0f)
+                Wall(label + " under opening", x0, x1, 0f, low, z, material);
+        }
+
+        void WallAlongZ(string label, float x, float south, float north, float z0, float z1, float low, float high, Material material)
+        {
+            void Side(string name, float a, float b, float bottom, float top) =>
+                Box(name, new Vector3(x, (bottom + top) * .5f, (a + b) * .5f), new Vector3(3f, top - bottom, b - a), material)
+                    .GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+            if (z1 <= z0)
+            {
+                Side(label, south, north, 0f, RoomTop);
+                return;
+            }
+            Side(label, south, z0, 0f, RoomTop);
+            Side(label, z1, north, 0f, RoomTop);
+            Side(label + " over opening", z0, z1, high, RoomTop);
+            if (low > 0f)
+                Side(label + " under opening", z0, z1, 0f, low);
         }
 
         void Wall(string label, float left, float right, float low, float high, float depth, Material material)
@@ -322,13 +405,13 @@ namespace DeadlyJenga.CandyArt
             for (int i = 0; i < 7; i++)
             {
                 var timber = Primitive("Hearth log", PrimitiveType.Cylinder,
-                    new Vector3(-168f + i * 5.8f, 8f + (i % 3) * 1.7f, -240f + (i % 2) * 3.4f),
+                    new Vector3(RoomEast - 40f + (i % 2) * 3.4f, 8f + (i % 3) * 1.7f, HearthZ - 20f + i * 5.8f),
                     new Vector3(3.1f, 8.4f, 3.1f), log);
                 timber.localRotation = Quaternion.Euler(18f, 20f * i, 71f);
             }
             for (int i = 0; i < 16; i++)
             {
-                var pos = new Vector3(-168f + Range(rand, 0f, 39f), Range(rand, 10f, 16f), Range(rand, -241f, -236f));
+                var pos = new Vector3(RoomEast - Range(rand, 36f, 41f), Range(rand, 10f, 16f), HearthZ - 20f + Range(rand, 0f, 39f));
                 float height = Range(rand, 5.2f, 11f);
                 var flame = Primitive("Hearth flame", PrimitiveType.Sphere, pos,
                     new Vector3(Range(rand, 2.4f, 4.9f), height, Range(rand, 1.5f, 2.6f)),

@@ -258,7 +258,8 @@ namespace DeadlyJenga.CandyArt
                     name.StartsWith("Tree Wire", StringComparison.Ordinal) || name == "Fireplace Fire" ||
                     name.StartsWith("Wood Planks", StringComparison.Ordinal) || name == "Tree Skirt rim" ||
                     name.StartsWith("Sofa", StringComparison.Ordinal) || name == "Lamp Shade" || name == "Side Table" ||
-                    name.StartsWith("Room Wall", StringComparison.Ordinal) || name == "Room Ceiling")
+                    name.StartsWith("Room Wall", StringComparison.Ordinal) || name == "Room Ceiling" ||
+                    OldRoomDressing(renderer))
                 {
                     Hide(renderer);
                     continue;
@@ -315,6 +316,20 @@ namespace DeadlyJenga.CandyArt
             }
         }
 
+        // The block-out's fireplace, garland, pictures and window sat on the old small room's walls.
+        // The family room builds its own, so these would float in the middle of it.
+        static bool OldRoomDressing(MeshRenderer renderer)
+        {
+            string name = renderer.name;
+            // The old mantel's garland bulbs are plain "Sphere" pieces at mantel height.
+            if (name.StartsWith("Sphere", StringComparison.Ordinal))
+                return renderer.bounds.max.y < 100f && renderer.bounds.size.x < 6f;
+            return name.StartsWith("Fireplace", StringComparison.Ordinal) || name.StartsWith("Garland", StringComparison.Ordinal) ||
+            name.StartsWith("Stocking", StringComparison.Ordinal) || name.StartsWith("Picture", StringComparison.Ordinal) ||
+            name.StartsWith("Room Baseboard", StringComparison.Ordinal) || name.StartsWith("Window Frame", StringComparison.Ordinal) ||
+            name.StartsWith("Window Mullion", StringComparison.Ordinal);
+        }
+
         // Decorations hung just under the map's own ceiling (the string of lights along the walls)
         // are shown as copies moved up to the taller ceiling instead.
         bool RaiseToCeiling(MeshRenderer renderer)
@@ -328,6 +343,9 @@ namespace DeadlyJenga.CandyArt
             if (!renderer.TryGetComponent<MeshFilter>(out var filter) || !filter.sharedMesh)
                 return false;
             Hide(renderer);
+            // They hung along the old small room's walls, which are gone; leave them hidden for now.
+            if (RoomTop > 300f)
+                return true;
             var copy = new GameObject(renderer.name + " (raised)");
             copy.transform.SetParent(art, true);
             copy.transform.SetPositionAndRotation(renderer.transform.position + Vector3.up * (RoomTop - 177f), renderer.transform.rotation);
@@ -412,15 +430,24 @@ namespace DeadlyJenga.CandyArt
             practicalLights.Add(bounce);
 
             // Moonlight falls in through each window onto the floor just inside it.
-            MakeSpot("Moonlight through the front window", new Vector3(2.5f, 55f, 74f),
-                new Vector3(2.5f, 0f, 10f), new Color(.16f, .36f, 1f), 9000f, 150f, 95f);
-            MakeSpot("Moonlight through the side window", new Vector3(82f, 95f, -130f),
-                new Vector3(20f, 0f, -130f), new Color(.12f, .30f, 1f), 12000f, 170f, 95f);
+            MakeSpot("Moonlight through the tall window", new Vector3(-280f, 220f, 54f),
+                new Vector3(-280f, 0f, -90f), new Color(.16f, .36f, 1f), 30000f, 330f, 80f);
+            MakeSpot("Moonlight by the tree", new Vector3(-130f, 200f, 54f),
+                new Vector3(-110f, 0f, -60f), new Color(.12f, .30f, 1f), 20000f, 300f, 70f);
+            // Fire on the east wall, then lit doorways and a lamp up on the loft.
+            MakeLight("Fireplace glow", LightType.Point, new Vector3(RoomEast - 60f, 28f, HearthZ),
+                new Color(1f, .45f, .14f), 30000f, 260f);
+            MakeLight("Hallway light", LightType.Point, new Vector3((HallWest + HallEast) * .5f, 90f, RoomSouth - 60f),
+                new Color(1f, .66f, .36f), 8000f, 170f);
+            MakeLight("Kitchen light", LightType.Point, new Vector3(RoomWest - 60f, 110f, (ArchSouth + ArchNorth) * .5f),
+                new Color(1f, .70f, .40f), 9000f, 200f);
+            MakeLight("Loft lamp", LightType.Point, new Vector3(RoomWest + 50f, LoftHeight + 60f, -200f),
+                new Color(1f, .68f, .38f), 9000f, 220f);
             MakeLight("Glow in the train tunnel", LightType.Point,
                 new Vector3(-150, 16, -128), new Color(1f, .68f, .28f), 700f, 38f);
             // The lamp lights what is near it: the wall, the table and the end of the sofa.
             MakeLight("Floor lamp", LightType.Point,
-                new Vector3(-88, 59, 54), new Color(1f, .70f, .39f), 9000f, 120f);
+                LampPlace + Vector3.up * 59f, new Color(1f, .70f, .39f), 9000f, 120f);
 
             // The tree is the room's main light. A warm heart, then a ring of coloured lights
             // low and just outside the branches. Short reach, so each tints only the gifts beside it
@@ -444,14 +471,14 @@ namespace DeadlyJenga.CandyArt
 
             var reflections = new GameObject("Christmas Room Reflections");
             reflections.transform.SetParent(art, false);
-            reflections.transform.localPosition = new Vector3(-90f, 70f, -105f);
+            reflections.transform.localPosition = new Vector3((RoomWest + RoomEast) * .5f, 90f, (RoomSouth + RoomNorth) * .5f);
             roomProbe = reflections.AddComponent<ReflectionProbe>();
             roomProbe.mode = ReflectionProbeMode.Realtime;
             roomProbe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
             roomProbe.timeSlicingMode = ReflectionProbeTimeSlicingMode.IndividualFaces;
             roomProbe.resolution = 256;
             roomProbe.hdr = true;
-            roomProbe.size = new Vector3(340f, RoomTop + 10f, 340f);
+            roomProbe.size = new Vector3(RoomEast - RoomWest + 10f, RoomTop + 10f, RoomNorth - RoomSouth + 10f);
             roomProbe.boxProjection = true;
             roomProbe.intensity = .85f;
 

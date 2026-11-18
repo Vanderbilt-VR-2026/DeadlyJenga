@@ -112,6 +112,8 @@ namespace DeadlyJenga.CastlePrototype
                     AddMeshSurface(filter);
             }
 
+            AddFamilyRoomFloor();
+
             // The imported model supplies the room and rug; the approved course owns every gift.
             foreach (var pair in gifts)
                 foreach (var part in pair.Value)
@@ -175,6 +177,20 @@ namespace DeadlyJenga.CastlePrototype
             var collider = go.AddComponent<MeshCollider>();
             collider.sharedMesh = filter.sharedMesh;
             return collider;
+        }
+
+        // The block-out's floor boards only cover the old small room. The family room is bigger
+        // (tree in its north-east corner), so a flat floor under the whole room catches anyone
+        // who falls off the course. Its top is level with the boards.
+        static readonly Bounds FamilyRoom = new Bounds(new Vector3(-290f, -1f, -271f), new Vector3(700f, 2f, 658f));
+
+        void AddFamilyRoomFloor()
+        {
+            var floor = new GameObject("Family room floor") { layer = Layers.Surface };
+            floor.transform.SetParent(built, false);
+            var box = floor.AddComponent<BoxCollider>();
+            box.center = FamilyRoom.center;
+            box.size = FamilyRoom.size;
         }
 
         static Rigidbody AddBody(GameObject go)

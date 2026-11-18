@@ -14,14 +14,16 @@ namespace DeadlyJenga.CandyArt
             BuildFloorboards();
             BuildFleece();
             BuildBraidedRugEdge();
-            // The approved picture has the sofa against the north wall, with the lamp table beside it.
+            // The sofa faces the fireplace on the east wall, with the lamp table at its south end.
             int first = art.childCount;
             BuildSofa();
-            Restage("Velvet sofa", first, new Vector3(-216f, 0f, -109f), new Vector3(-158f, 0f, 38f), 96f);
+            Restage("Velvet sofa", first, new Vector3(-216f, 0f, -109f), new Vector3(-150f, 0f, HearthZ), 0f);
             first = art.childCount;
             BuildLampAndTable();
-            Restage("Lamp table", first, new Vector3(-215f, 0f, -11f), new Vector3(-88f, 0f, 54f), 0f);
+            Restage("Lamp table", first, new Vector3(-215f, 0f, -11f), LampPlace, 0f);
         }
+
+        static readonly Vector3 LampPlace = new Vector3(-150f, 0f, HearthZ - 105f);
 
         // Gathers the pieces just built under one pivot and moves them as a group.
         void Restage(string label, int first, Vector3 from, Vector3 to, float turn)
@@ -218,11 +220,11 @@ namespace DeadlyJenga.CandyArt
                 varnish.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Mahogany Normal"));
                 // Amber on the boards beside the lamp, blue on the boards inside the side window.
                 // Lamp = where the glint comes from; wash = centre on the floor (x, z) and size.
-                varnish.SetVector("_GlowALamp", new Vector4(-88f, 59f, 54f, 0f));
-                varnish.SetVector("_GlowAWash", new Vector4(-100f, 62f, 60f, 0f));
+                varnish.SetVector("_GlowALamp", new Vector4(LampPlace.x, 59f, LampPlace.z, 0f));
+                varnish.SetVector("_GlowAWash", new Vector4(LampPlace.x + 12f, LampPlace.z + 8f, 60f, 0f));
                 varnish.SetColor("_GlowAColor", new Color(1f, .42f, .08f) * 1.5f);
-                varnish.SetVector("_GlowBLamp", new Vector4(84f, 95f, -130f, 0f));
-                varnish.SetVector("_GlowBWash", new Vector4(55f, -135f, 80f, 0f));
+                varnish.SetVector("_GlowBLamp", new Vector4(-280f, 220f, 54f, 0f));
+                varnish.SetVector("_GlowBWash", new Vector4(-260f, -20f, 120f, 0f));
                 varnish.SetColor("_GlowBColor", new Color(.06f, .22f, 1f) * 3.2f);
                 materials.Add(varnish);
                 floorVarnish = varnish;
@@ -236,17 +238,19 @@ namespace DeadlyJenga.CandyArt
             var tiles = new Dictionary<int, FloorTile>();
             var random = new System.Random(2419);
             const float width = 7.9f;
-            for (int row = 0; row < 43; row++)
+            int rows = Mathf.CeilToInt((RoomEast - RoomWest) / width);
+            for (int row = 0; row < rows; row++)
             {
-                float x = -254.1f + row * width - width * .5f;
-                for (float z = -260f; z < 76.8f;)
+                float x = RoomWest + row * width;
+                for (float z = RoomSouth; z < RoomNorth - .2f;)
                 {
-                    float length = Mathf.Min(77f - z, Range(random, 23f, 42f));
+                    float length = Mathf.Min(RoomNorth - z, Range(random, 23f, 42f));
                     float shade = Range(random, .72f, 1.18f);
                     var tint = new Color(shade, shade * Range(random, .94f, 1.04f), shade * Range(random, .90f, 1.05f));
                     var lean = new Vector3(Range(random, -.006f, .006f), 1f, Range(random, -.004f, .004f)).normalized;
                     float u = Range(random, 0f, 1f), v = Range(random, 0f, 1f);
-                    int key = row / 7 * 100 + Mathf.FloorToInt((z + length * .5f + 260f) / 56f);
+                    // Big tiles: enough for nearby lamps, without hundreds of floor meshes.
+                    int key = row / 11 * 100 + Mathf.FloorToInt((z + length * .5f - RoomSouth) / 85f);
                     if (!tiles.TryGetValue(key, out var tile))
                         tiles.Add(key, tile = new FloorTile());
                     int first = tile.vertices.Count;
