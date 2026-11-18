@@ -141,6 +141,9 @@ namespace DeadlyJenga.CharacterNetwork
             if(collisionBody.center!=center)collisionBody.center=center;
         }
 
+        // Replay tools: the avatar's walk-cycle memory (see CandyPlayerRig.Gait).
+        public CandyPlayerRig.GaitState Gait { get => rig ? rig.Gait : default; set { if (rig) rig.Gait = value; } }
+
         // Replay tools: skip the easing and stand exactly where the last state says.
         public void SnapToState() { if (hasTarget) { frame = target; UpdateCollisionPose(); } }
 

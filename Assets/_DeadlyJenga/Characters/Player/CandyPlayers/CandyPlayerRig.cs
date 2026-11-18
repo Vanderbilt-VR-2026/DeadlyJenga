@@ -49,6 +49,25 @@ namespace DeadlyJenga.CandyPlayers
         float walkPhase, sprintBlend;
         Vector3 strideDirection = Vector3.forward;
         float locomotionSpeed;
+        // Everything the walk cycle remembers between frames. Replay tools save and restore it,
+        // so a recorded walk looks the same whether it is played, scrubbed or rendered.
+        public struct GaitState
+        {
+            public Vector3 previousFeet, strideDirection;
+            public float walkPhase, sprintBlend, locomotionSpeed;
+            public bool ready;
+        }
+        public GaitState Gait
+        {
+            get => new GaitState { previousFeet = previousFeet, strideDirection = strideDirection, walkPhase = walkPhase,
+                sprintBlend = sprintBlend, locomotionSpeed = locomotionSpeed, ready = gaitReady };
+            set
+            {
+                previousFeet = value.previousFeet; previousGaitSupport = null; gaitReady = value.ready;
+                strideDirection = value.strideDirection.sqrMagnitude > .0001f ? value.strideDirection : Vector3.forward;
+                walkPhase = value.walkPhase; sprintBlend = value.sprintBlend; locomotionSpeed = value.locomotionSpeed;
+            }
+        }
         public Transform LeftPalm=>bones[4];
         public Transform HeadAnchor=>bones[1];
         public Transform BodyAnchor=>bones[0];
