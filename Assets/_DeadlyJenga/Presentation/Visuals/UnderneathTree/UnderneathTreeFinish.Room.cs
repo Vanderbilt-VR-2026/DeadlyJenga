@@ -211,7 +211,8 @@ namespace DeadlyJenga.CandyArt
         // Openings: tall window wall behind the tree, hallway in the south wall,
         // archway to the kitchen in the west wall, under the loft.
         const float WindowWest = -270f, WindowEast = -130f, WindowSill = 40f, WindowHead = 172f;
-        const float HallWest = -210f, HallEast = -140f, HallHeight = 150f;
+        // The wide window centred on the south wall: same height, twice-plus as wide.
+        const float SouthWindowWest = (RoomWest + RoomEast) * .5f - 135f, SouthWindowEast = (RoomWest + RoomEast) * .5f + 135f;
         const float ArchSouth = -170f, ArchNorth = -50f, ArchHeight = 170f;
         // Fireplace on the east wall, south of the rug.
         const float HearthZ = -350f;
@@ -226,7 +227,7 @@ namespace DeadlyJenga.CandyArt
             var beam = Surface("Dark timber", "Walnut Grain", new Color(.30f, .19f, .12f), .35f, new Vector2(1, 6));
 
             WallAlongX("North wall", RoomNorth, RoomWest, RoomEast, WindowWest, WindowEast, WindowSill, WindowHead, plaster);
-            WallAlongX("South wall", RoomSouth, RoomWest, RoomEast, HallWest, HallEast, 0f, HallHeight, plaster);
+            WallAlongX("South wall", RoomSouth, RoomWest, RoomEast, SouthWindowWest, SouthWindowEast, WindowSill, WindowHead, plaster);
             WallAlongZ("West wall", RoomWest, RoomSouth, RoomNorth, ArchSouth, ArchNorth, 0f, ArchHeight, plaster);
             WallAlongZ("East wall", RoomEast, RoomSouth, RoomNorth, 0f, 0f, 0f, 0f, plaster);
             float midX = (RoomWest + RoomEast) * .5f, midZ = (RoomSouth + RoomNorth) * .5f;
@@ -247,23 +248,28 @@ namespace DeadlyJenga.CandyArt
                 Box("Ceiling beam", new Vector3(x, RoomTop - 9f, midZ), new Vector3(14f, 18f, spanZ), beam);
 
             // Snowy window along the north wall, a little way from the tree.
-            Box("Window header", new Vector3((WindowWest + WindowEast) * .5f, WindowHead, RoomNorth - 2f), new Vector3(WindowEast - WindowWest + 6f, 5f, 6f), casing);
-            Box("Window sill", new Vector3((WindowWest + WindowEast) * .5f, WindowSill, RoomNorth - 3f), new Vector3(WindowEast - WindowWest + 6f, 4f, 9f), casing);
-            Box("Window transom", new Vector3((WindowWest + WindowEast) * .5f, (WindowSill + WindowHead) * .5f, RoomNorth - 2f), new Vector3(WindowEast - WindowWest, 3f, 5f), casing);
-            for (float x = WindowWest; x <= WindowEast + .1f; x += (WindowEast - WindowWest) / 4f)
-                Box("Window mullion", new Vector3(x, (WindowSill + WindowHead) * .5f, RoomNorth - 2f), new Vector3(3f, WindowHead - WindowSill, 5f), casing);
-            // A real 3-D snowy night outside instead of a photo (UnderneathTreeFinish.Outside.cs).
-            BuildOutdoorView();
+            WindowFrame(WindowWest, WindowEast, RoomNorth, -1f, 4, casing);
+            WindowFrame(SouthWindowWest, SouthWindowEast, RoomSouth, 1f, 6, casing);
+            BuildOutdoorView(WindowWest, WindowEast, 1931);
+            // The south window gets its own snowy scene: built the same way, then turned to face
+            // south and pressed to a little over half its depth, so it stays within the cameras' reach.
+            int firstOutside = art.childCount;
+            float southMid = (SouthWindowWest + SouthWindowEast) * .5f;
+            BuildOutdoorView(SouthWindowWest, SouthWindowEast, 4417);
+            var south = new GameObject("Outside the south window").transform;
+            south.SetParent(art, false);
+            south.localPosition = new Vector3(southMid, 0f, RoomNorth);
+            for (int i = art.childCount - 2; i >= firstOutside; i--)
+                art.GetChild(i).SetParent(south, true);
+            south.localPosition = new Vector3(southMid, 0f, RoomSouth);
+            south.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            south.localScale = new Vector3(1f, 1f, .55f);
 
             // Stone fireplace on the east wall (see UnderneathTreeFinish.Fireplace.cs).
             BuildFireplace();
 
             // Rooms beyond the openings: just a lit glimpse, the player never goes there.
             var glow = Glow("Warm room beyond", new Color(1f, .62f, .32f), .9f);
-            Box("Hallway floor", new Vector3((HallWest + HallEast) * .5f, -.2f, RoomSouth - 70f), new Vector3(HallEast - HallWest + 20f, .4f, 140f), wood);
-            Box("Hallway wall", new Vector3(HallWest - 10f, HallHeight * .5f, RoomSouth - 70f), new Vector3(3f, HallHeight, 140f), plaster);
-            Box("Hallway wall", new Vector3(HallEast + 10f, HallHeight * .5f, RoomSouth - 70f), new Vector3(3f, HallHeight, 140f), plaster);
-            Box("Hallway end", new Vector3((HallWest + HallEast) * .5f, HallHeight * .5f, RoomSouth - 140f), new Vector3(HallEast - HallWest + 20f, HallHeight, 3f), glow);
             Box("Kitchen floor", new Vector3(RoomWest - 90f, -.2f, (ArchSouth + ArchNorth) * .5f), new Vector3(180f, .4f, ArchNorth - ArchSouth + 60f), wood);
             Box("Kitchen wall", new Vector3(RoomWest - 180f, ArchHeight * .5f, (ArchSouth + ArchNorth) * .5f), new Vector3(3f, ArchHeight, ArchNorth - ArchSouth + 60f), glow);
             // Side walls and ceilings close both little rooms, so nothing outside shows through.
@@ -271,7 +277,6 @@ namespace DeadlyJenga.CandyArt
             foreach (float z in new[] { ArchSouth - 30f, ArchNorth + 30f })
                 Box("Kitchen side wall", new Vector3(RoomWest - 90f, ArchHeight * .5f + 10f, z), new Vector3(180f, ArchHeight + 20f, 3f), plaster);
             Box("Kitchen ceiling", new Vector3(RoomWest - 90f, ArchHeight + 20f, kitchenZ), new Vector3(184f, 3f, kitchenDepth + 4f), plaster);
-            Box("Hallway ceiling", new Vector3((HallWest + HallEast) * .5f, HallHeight + 1.5f, RoomSouth - 70f), new Vector3(HallEast - HallWest + 24f, 3f, 144f), plaster);
 
             // Bookshelves and a piano by the window.
             var rand = new System.Random(77);
@@ -291,6 +296,19 @@ namespace DeadlyJenga.CandyArt
         }
 
         // A wall running east-west at z, with one opening from x0 to x1 between heights low and high.
+        // Header, sill, transom and mullions for a window in an east-west wall at z.
+        // inward = which way the room is (-1 for the north wall, +1 for the south wall).
+        void WindowFrame(float west, float east, float z, float inward, int panes, Material casing)
+        {
+            float mid = (west + east) * .5f, width = east - west;
+            Box("Window header", new Vector3(mid, WindowHead, z + inward * 2f), new Vector3(width + 6f, 5f, 6f), casing);
+            Box("Window sill", new Vector3(mid, WindowSill, z + inward * 3f), new Vector3(width + 6f, 4f, 9f), casing);
+            Box("Window transom", new Vector3(mid, (WindowSill + WindowHead) * .5f, z + inward * 2f), new Vector3(width, 3f, 5f), casing);
+            for (int i = 0; i <= panes; i++)
+                Box("Window mullion", new Vector3(west + width * i / panes, (WindowSill + WindowHead) * .5f, z + inward * 2f),
+                    new Vector3(3f, WindowHead - WindowSill, 5f), casing);
+        }
+
         void WallAlongX(string label, float z, float west, float east, float x0, float x1, float low, float high, Material material)
         {
             if (x1 <= x0)

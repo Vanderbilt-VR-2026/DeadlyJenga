@@ -12,9 +12,11 @@ namespace DeadlyJenga.CandyArt
     {
         const float GroundOutside = -12f;
 
-        void BuildOutdoorView()
+        // Built as if outside the north wall; the south window's view is the same kind of scene
+        // turned round (see BuildRoom). west/east = the window's edges.
+        void BuildOutdoorView(float west, float east, int seed)
         {
-            var rand = new System.Random(1931);
+            var rand = new System.Random(seed);
             var snow = Surface("Moonlit snow", "Paper", new Color(.80f, .86f, .96f), .35f, new Vector2(30, 30), 0f, .2f);
             snow.SetColor("_EmissionColor", new Color(.16f, .21f, .34f));
             snow.EnableKeyword("_EMISSION");
@@ -29,14 +31,14 @@ namespace DeadlyJenga.CandyArt
             var sky = Glow("Night sky", new Color(.012f, .025f, .07f), 1f);
             var horizon = Glow("Night horizon glow", new Color(.05f, .08f, .18f), 1f);
 
-            float midX = (WindowWest + WindowEast) * .5f;
+            float midX = (west + east) * .5f;
             // Window reveal: the wall's thickness, so the opening reads as a real hole.
             var casing = Surface("Cream window casing", "Paper", new Color(.79f, .68f, .54f), .48f, new Vector2(2, 2));
-            foreach (float x in new[] { WindowWest - 3f, WindowEast + 3f })
+            foreach (float x in new[] { west - 3f, east + 3f })
                 Box("Window reveal", new Vector3(x, (WindowSill + WindowHead) * .5f, RoomNorth + 7f), new Vector3(3f, WindowHead - WindowSill, 14f), casing);
-            Box("Window reveal top", new Vector3(midX, WindowHead + 1.5f, RoomNorth + 7f), new Vector3(WindowEast - WindowWest + 6f, 3f, 14f), casing);
-            Box("Window outer sill", new Vector3(midX, WindowSill - 2f, RoomNorth + 9f), new Vector3(WindowEast - WindowWest + 10f, 3f, 18f), casing);
-            Box("Snow on the sill", new Vector3(midX, WindowSill + 1f, RoomNorth + 13f), new Vector3(WindowEast - WindowWest, 3f, 9f), snow);
+            Box("Window reveal top", new Vector3(midX, WindowHead + 1.5f, RoomNorth + 7f), new Vector3(east - west + 6f, 3f, 14f), casing);
+            Box("Window outer sill", new Vector3(midX, WindowSill - 2f, RoomNorth + 9f), new Vector3(east - west + 10f, 3f, 18f), casing);
+            Box("Snow on the sill", new Vector3(midX, WindowSill + 1f, RoomNorth + 13f), new Vector3(east - west, 3f, 9f), snow);
 
             // Ground and soft drifts; low hills further off.
             var sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
@@ -46,6 +48,8 @@ namespace DeadlyJenga.CandyArt
             {
                 var at = new Vector3(Range(rand, -800f, 400f), GroundOutside, Range(rand, 80f, 520f));
                 float w = Range(rand, 50f, 140f);
+                // Keep every drift clear of the house wall so none pokes up through the room's floor.
+                at.z = Mathf.Max(at.z, RoomNorth + 8f + w * .5f);
                 drifts.Add(sphere, at, Quaternion.Euler(0f, Range(rand, 0f, 180f), 0f), new Vector3(w, Range(rand, 10f, 28f), w * Range(rand, .5f, 1f)));
             }
             for (int i = 0; i < 6; i++)
@@ -125,7 +129,7 @@ namespace DeadlyJenga.CandyArt
             Primitive("Moon", PrimitiveType.Sphere, new Vector3(midX - 100f, 470f, 620f), Vector3.one * 46f,
                 Glow("Moon", new Color(1f, .97f, .86f), 2.4f)).GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
 
-            BuildSnowfall(new Vector3(midX, 320f, 240f), new Vector3(800f, 10f, 340f));
+            BuildSnowfall(new Vector3(midX, 320f, 250f), new Vector3(800f, 10f, 320f));
         }
 
         // A plain cone, one unit high and one unit in radius, standing on its base.
@@ -166,6 +170,8 @@ namespace DeadlyJenga.CandyArt
             main.maxParticles = 900;
             main.prewarm = true;
             main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            // Follow the parent's squash too (the south view is pressed shallower), so the snow stays outside.
+            main.scalingMode = ParticleSystemScalingMode.Hierarchy;
             var velocity = snowfall.velocityOverLifetime;
             velocity.enabled = true;
             velocity.space = ParticleSystemSimulationSpace.Local;
