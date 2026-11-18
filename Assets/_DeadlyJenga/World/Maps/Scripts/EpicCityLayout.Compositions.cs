@@ -14,6 +14,12 @@ namespace DeadlyJenga.CastlePrototype
                     Loop(b,new[]{0,1,2,5,7,6,3});b.Link(3,4);b.Link(1,4);b.Link(4,5);b.Link(4,7,24.8f);break;
                 case 1:
                     b.HarborExchange();break;
+                case PlazaWheelDesign:
+                    b.PlazaWheel();break;
+                case CandyCanyonDesign:
+                    b.CandyCanyon();break;
+                case PlazaCanyonDesign:
+                    b.PlazaCanyon();break;
                 case 2:
                     b.Site("Cathedral",-65,-110,2,name:"Bowl entry arcade");b.Site("Parking",55,-105,1,name:"Low bowl terraces");
                     b.Site("Parking",120,-15,2,0,4,"East switchback");b.Site("Office",105,90,3,0,12,"High east crown");b.Site("Lantern",0,115,3,0,8,"Bowl lantern");

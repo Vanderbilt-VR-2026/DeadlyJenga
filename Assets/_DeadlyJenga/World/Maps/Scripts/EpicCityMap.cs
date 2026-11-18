@@ -7,7 +7,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed class EpicCityMap : MonoBehaviour,IWorldQuery,IMapFootprint,ISyncedWorld,IRebuildable,ITraversalCollisionWorld
     {
-        [Range(0,9)] public int design;
+        [Range(0,12)] public int design;
         public Material[] palette;
         public PhysicsMaterial friction;
         public Transform foundation;
@@ -39,7 +39,8 @@ namespace DeadlyJenga.CastlePrototype
         public Vector3 Center=>transform.position;
         public float TopHeight=>PlayableBounds.max.y;
         public float Radius=>new Vector2(PlayableBounds.extents.x,PlayableBounds.extents.z).magnitude;
-        public float StepHeight=>design==1?.8f:3.5f;
+        // Compact candy cities keep the normal jump so floors need stairs or climbing.
+        public float StepHeight=>design==1||EpicCityLayout.IsCompactCandyCity(design)?.8f:3.5f;
         public int FootprintVersion=>design==1?19201:9200+design;
         public float FootprintHalfSize=>Mathf.Max(Plan.halfSize.x,Plan.halfSize.y);
         public Bounds PlayableBounds
@@ -91,7 +92,7 @@ namespace DeadlyJenga.CastlePrototype
                 joint.limits=new JointLimits{min=-80,max=80,bounciness=0,contactDistance=1};joint.enableCollision=true;
             }
             if(!foundation){foundation=new GameObject("Continuous city island ground").transform;foundation.SetParent(transform,false);}
-            bool revisedGround=design==1;
+            bool revisedGround=design==1||EpicCityLayout.IsCompactCandyCity(design);
             if(revisedGround||!islandCollision){if(runtimeGround)Destroy(runtimeGround);runtimeGround=EpicCityTerrain.Create(Plan);}
             if(foundation)
             {
@@ -144,7 +145,7 @@ namespace DeadlyJenga.CastlePrototype
             if(text==null||!text.StartsWith(Prefix,StringComparison.Ordinal)||!Finite(origin.position)||!Finite(scale)||scale.x<=0||Mathf.Abs(scale.x-scale.y)>.001f||Mathf.Abs(scale.x-scale.z)>.001f)return false;
             float q=Quaternion.Dot(origin.rotation,origin.rotation);if(float.IsNaN(q)||float.IsInfinity(q)||Mathf.Abs(q-1)>.001f)return false;
             State state;try{state=JsonUtility.FromJson<State>(text.Substring(Prefix.Length));}catch(ArgumentException){return false;}
-            if(state==null||state.design<0||state.design>9||state.version!=(state.design==1?2:1)||EpicCityLayout.Build(state.design).modules.Count!=expectedBlocks)return false;
+            if(state==null||state.design<0||state.design>=EpicCityLayout.Names.Length||state.version!=(state.design==1?2:1)||EpicCityLayout.Build(state.design).modules.Count!=expectedBlocks)return false;
             design=state.design;transform.SetPositionAndRotation(origin.position,origin.rotation);transform.localScale=scale;Rebuild();return true;
         }
         static bool Finite(Vector3 p)=>!(float.IsNaN(p.x)||float.IsNaN(p.y)||float.IsNaN(p.z)||float.IsInfinity(p.x)||float.IsInfinity(p.y)||float.IsInfinity(p.z));

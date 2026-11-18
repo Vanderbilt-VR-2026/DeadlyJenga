@@ -89,6 +89,12 @@ namespace DeadlyJenga.DevTools.Editor
             Begin(j, Arg("-mapId"), args.Contains("-mapMissing"));
         }
 
+        // Scripted batch entry: capture just these maps (all views) into one gallery folder, then exit.
+        public static void BatchMaps(ICollection<string> ids, string output)
+        {
+            Begin(new Job { batch = true, output = output, views = MapPictureRig.AllViews }, null, false, ids);
+        }
+
         static void Size(string text, ref int w, ref int h)
         {
             var p = text?.Split('x');
@@ -106,7 +112,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Debug.LogWarning("Map capture: the editor is on the Android build target; some map shaders look flat here. Switch to Windows (or run with -buildTarget Win64) for true-to-game pictures.");
         }
 
-        static void Begin(Job j, string onlyMap, bool missingOnly)
+        static void Begin(Job j, string onlyMap, bool missingOnly, ICollection<string> onlyMaps = null)
         {
             WarnIfAndroid();
             if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogError("Stop Play Mode first."); return; }
@@ -116,6 +122,7 @@ namespace DeadlyJenga.DevTools.Editor
             foreach (var map in catalog.maps)
             {
                 if (!string.IsNullOrEmpty(onlyMap) && map.id != onlyMap) continue;
+                if (onlyMaps != null && !onlyMaps.Contains(map.id)) continue;
                 if (missingOnly && File.Exists(Path.Combine(LobbyFolder(), map.id + ".png"))) continue;
                 j.maps.Add(map.id);
                 j.modes.Add(string.IsNullOrEmpty(map.recommendedMode) ? "demo" : map.recommendedMode);
