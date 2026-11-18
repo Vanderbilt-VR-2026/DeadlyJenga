@@ -360,6 +360,14 @@ MonoBehaviour:
     recommendedMode: demo
     walkableIsland: 1
     supportedModes: []
+  - id: epic-candy-glass-city
+    title: Candy Glass City
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 4900549641561135372, guid: 4698795eba1f48b5ab77b46f1189e350, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
   - id: megablock-tower
     title: Megablock Tower
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity

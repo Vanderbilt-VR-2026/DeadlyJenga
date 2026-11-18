@@ -18,6 +18,10 @@ namespace DeadlyJenga.Presentation
         public Material groundMaterial, cloudMaterial, goldMaterial, pinkMaterial, blueMaterial, darkMaterial, skyMaterial;
         public Renderer ground;
         public float halfWidth=190, halfDepth=185;
+        // Candy Glass City: dresses the glass blocks as a candy city (frames, lit windows, roofs, streets).
+        public bool candyCity;
+        public Material cityCandyMaterial, cityGlowMaterial;
+        public Material[] cityGlassMaterials;
         readonly List<Mesh> ownedMeshes=new();
         readonly List<GameObject> ownedObjects=new();
         readonly Dictionary<Renderer,Material[]> originals=new();
@@ -41,9 +45,11 @@ namespace DeadlyJenga.Presentation
             if(!environment&&Time.unscaledTime>retry){retry=Time.unscaledTime+1;BindEnvironment();}
             if(environment){if(environment.waterRenderer)environment.waterRenderer.forceRenderingOff=true;if(environment.sandRenderer)environment.sandRenderer.forceRenderingOff=true;}
             UpdateLighting();
+            if(City)AnimateCity();
             if(world.Revision!=revision&&Services.World.Blocks.Count>0)
             {
                 ClearBodyArt();revision=world.Revision;
+                if(City)BeginCityPass();
                 int count=0;
                 foreach(var body in Services.World.Blocks)
                 {
@@ -55,12 +61,15 @@ namespace DeadlyJenga.Presentation
                         if(renderer.name=="Fantasy decorations")continue;
                         if(!originals.ContainsKey(renderer))originals[renderer]=renderer.sharedMaterials;
                         var replacement=new Material[renderer.sharedMaterials.Length];
-                        for(int i=0;i<replacement.Length;i++)replacement[i]=blockMaterials[i%blockMaterials.Length];
+                        var cityGlass=City?CityGlass(body):null;
+                        for(int i=0;i<replacement.Length;i++)replacement[i]=cityGlass?cityGlass:blockMaterials[i%blockMaterials.Length];
                         renderer.sharedMaterials=replacement;
                         SoftenEdges(renderer,body);
                     }
-                    if(theme!=FantasyMapTheme.CandyGlass)Decorate(body,visual,count++);
+                    if(City)DecorateCity(body,visual);
+                    else if(theme!=FantasyMapTheme.CandyGlass)Decorate(body,visual,count++);
                 }
+                if(City)FinishCityPass();
             }
         }
         void Activate()
@@ -77,6 +86,7 @@ namespace DeadlyJenga.Presentation
             if(ground){originals[ground]=ground.sharedMaterials;ground.sharedMaterial=groundMaterial;}
             if(theme==FantasyMapTheme.Honeycomb){if(!texturedEnvironmentSky)BuildHive();}else BuildCloud();
             if(theme==FantasyMapTheme.Carnival&&!texturedCarnivalSky)BuildCarnival();
+            if(City)BuildCityBackdrop();
         }
         void BindEnvironment()
         {
@@ -120,7 +130,7 @@ namespace DeadlyJenga.Presentation
             RenderSettings.skybox=oldSky;RenderSettings.ambientMode=oldAmbientMode;
             RenderSettings.ambientSkyColor=oldAmbientSky;RenderSettings.ambientEquatorColor=oldAmbientEquator;
             RenderSettings.ambientGroundColor=oldAmbientGround;RenderSettings.ambientIntensity=oldAmbientIntensity;
-            active=false;revision=-1;environment=null;sceneSkins=null;
+            active=false;revision=-1;environment=null;sceneSkins=null;cityBuilt=false;cabins.Clear();
         }
         static void Release(Object item){if(!item)return;if(Application.isPlaying)Destroy(item);else DestroyImmediate(item);}
         GameObject Model(string name,ArtMesh builder,Transform parent,Material[] materials,bool body=false)
