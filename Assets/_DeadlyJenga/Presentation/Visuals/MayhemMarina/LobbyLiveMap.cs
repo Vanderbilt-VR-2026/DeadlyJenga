@@ -17,7 +17,7 @@ namespace DeadlyJenga.Presentation
         const float MarkerSize = .044f;
         // The plinth: a square frustum from the floor up to the map, with rounded corners
         // and a slope that curves over into the flat top.
-        internal const float PlinthHeight = .91f;
+        internal const float PlinthHeight = .5f;
         internal const float PlinthBase = 2.56f;
         internal const float PlinthTop = 2.24f;
         const float PlinthRoundOver = .16f;
