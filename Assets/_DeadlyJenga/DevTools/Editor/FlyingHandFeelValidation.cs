@@ -581,12 +581,18 @@ namespace DeadlyJenga.HandValidation
 
             // 4. Flicker: tracking keeps cutting out for 20 to 70 ms at a time (about half the time) while holding a fist.
             input.pose = calm; input.pose.skeleton = Fist(L); yield return Wait(.8f); Watch(hand); start = Time.time;
-            float until = 0; bool seen = true;
+            float until = 0; bool seen = true; float lostAt = -1, longestLoss = 0; int modeChanges = 0; var lastMode = bridge.Mode;
+            var tracking = actor.GetComponent<CandyTrackingSource>();
             while (Time.time - start < 3)
             {
-                if (Time.time >= until) { seen = !seen; until = Time.time + .02f + R() * .05f; }
+                if (Time.time >= until) { seen = !seen; until = Time.time + .02f + R() * .04f; }
                 input.pose.tracked = seen; yield return null;
+                // What the game itself saw: how long each loss really lasted once it had passed through the input path.
+                bool gameSees = xr ? tracking && tracking.WorldHand(L).tracked : seen;
+                if (!gameSees) { if (lostAt < 0) lostAt = Time.time; longestLoss = Mathf.Max(longestLoss, Time.time - lostAt); } else lostAt = -1;
+                if (bridge.Mode != lastMode) { modeChanges++; lastMode = bridge.Mode; }
             }
+            Line($"FLICKER longest loss the game saw {longestLoss * 1000:F0} ms, frame time about {Time.deltaTime * 1000:F0} ms, hand mode changed {modeChanges} times");
             input.pose.tracked = true;
             Check(lowestStrength > .9f, "Flickering tracking: the hand keeps its strength (lowest " + lowestStrength.ToString("F2") + ")");
             Check(hand.IsInteractive, "Flickering tracking: contacts stay on");

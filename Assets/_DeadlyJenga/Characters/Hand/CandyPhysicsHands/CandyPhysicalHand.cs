@@ -20,6 +20,7 @@ namespace DeadlyJenga.CandyPhysicsHands
         public HandDriveProfile Profile {get;set;}
         public bool RequiresProfile {get;set;}
         readonly Vector3[] driveForces=new Vector3[16];
+        readonly bool[] digitFree=new bool[5];
         readonly float[] driveTorques=new float[16];
         Vector3 palmTorque;
         readonly Pose[] authoritativePreview=new Pose[16];
@@ -333,11 +334,15 @@ namespace DeadlyJenga.CandyPhysicsHands
             {
                 var rb=bodies[i];Desired(i==0?Target:onPalm,i,out var p,out var q);
                 rb.maxLinearVelocity=RequiresProfile?Mathf.Min(settings.maxSpeed,12):settings.maxSpeed;
-                float denominator=1+dt*settings.positionDamping/rb.mass+dt*dt*settings.positionSpring/rb.mass;
+                // The palm carries the whole hand, so damp it for the whole hand's mass. Damped for the palm alone,
+                // the hand wobbled around its target and bounced off whatever it pressed on.
+                float carried=0;if(i==0)foreach(var part in bodies)carried+=part.mass;
+                float palmDamping=Mathf.Max(settings.positionDamping,1.8f*Mathf.Sqrt(settings.positionSpring*Mathf.Max(carried,rb.mass)));
+                float denominator=1+dt*palmDamping/Mathf.Max(carried,rb.mass)+dt*dt*settings.positionSpring/Mathf.Max(carried,rb.mass);
                 // Only the palm is pulled toward a place. A finger is held on by its joint, so pulling it as well
                 // just fights that joint and spends the hand's strength on nothing. Fingers are turned, not pulled.
                 driveForces[i]=i==0?Vector3.ClampMagnitude(
-                    ((p-rb.position)*settings.positionSpring-rb.linearVelocity*settings.positionDamping)/denominator,
+                    ((p-rb.position)*settings.positionSpring-rb.linearVelocity*palmDamping)/denominator,
                     settings.palmForce*Strength):Vector3.zero;
                 if(i>0)
                 {
@@ -360,25 +365,32 @@ namespace DeadlyJenga.CandyPhysicsHands
             {
                 float asked=0;
                 for(int j=0;j<3;j++){int i=1+f*3+j;asked+=driveForces[i].magnitude+driveTorques[i]/DriveLever(i);}
+                // A finger touching nothing only moves itself. That costs none of the hand's strength, so it may
+                // move as fast as a finger does. The strength rule applies to what the hand does to other things.
+                bool touching=false;
+                for(int j=0;j<3;j++)touching|=touches[1+f*3+j]&&Time.fixedTime-touches[1+f*3+j].At<.15f;
+                digitFree[f]=!touching&&forceBudget>0;
+                if(digitFree[f])continue;
                 float most=forceBudget*(f==0?ThumbStrengthShare:FingerStrengthShare)*Strength;
                 if(asked>most&&asked>0)for(int j=0;j<3;j++){int i=1+f*3+j;driveForces[i]*=most/asked;driveTorques[i]*=most/asked;}
             }
-            for(int i=0;i<bodies.Length;i++)requestedEffort+=driveForces[i].magnitude+driveTorques[i]/DriveLever(i);
+            for(int i=0;i<bodies.Length;i++)if(i==0||!digitFree[(i-1)/3])requestedEffort+=driveForces[i].magnitude+driveTorques[i]/DriveLever(i);
             float scale=requestedEffort>0?Mathf.Min(1,forceBudget*Strength/requestedEffort):0;
             for(int i=0;i<bodies.Length;i++)
             {
                 Vector3 force=driveForces[i]*scale;
-                float torque=driveTorques[i]*scale;
+                bool free=i>0&&digitFree[(i-1)/3];
+                float torque=driveTorques[i]*(free?1:scale);
                 bodies[i].AddForce(force,ForceMode.Force);
                 MaximumAppliedForce=Mathf.Max(MaximumAppliedForce,force.magnitude);
                 AppliedLinearForceNewtons+=force.magnitude;
                 AppliedTorqueNewtonMetres+=torque;
-                AppliedDriveEffortNewtons+=force.magnitude+torque/DriveLever(i);
+                if(!free)AppliedDriveEffortNewtons+=force.magnitude+torque/DriveLever(i);
                 if(i==0)bodies[0].AddTorque(palmTorque*scale,ForceMode.Force);
                 else joints[i-1].slerpDrive=new JointDrive
                 {
                     positionSpring=torque>0?settings.rotationSpring*6:0,
-                    positionDamper=torque>0?settings.rotationDamping*2.5f:0,
+                    positionDamper=torque>0?settings.rotationDamping:0,
                     maximumForce=torque
                 };
             }
