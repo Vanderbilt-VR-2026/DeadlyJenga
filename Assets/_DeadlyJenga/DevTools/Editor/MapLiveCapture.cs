@@ -98,8 +98,17 @@ namespace DeadlyJenga.DevTools.Editor
         static string LobbyFolder() =>
             Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(ProjectPath.FolderOf("CandyEnvironment.cs").TrimEnd('/'))), "Resources", "LobbyPreviews");
 
+        // In a Windows editor set to the Android target, some map shaders (Ninja Temple blocks) draw as flat,
+        // unlit colours. Pictures match the game best with the Windows target.
+        static void WarnIfAndroid()
+        {
+            if (EditorUserBuildSettings.activeBuildTarget == BuildTarget.Android)
+                Debug.LogWarning("Map capture: the editor is on the Android build target; some map shaders look flat here. Switch to Windows (or run with -buildTarget Win64) for true-to-game pictures.");
+        }
+
         static void Begin(Job j, string onlyMap, bool missingOnly)
         {
+            WarnIfAndroid();
             if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogError("Stop Play Mode first."); return; }
             if (j.clip.Length > 0 && !CameraPath.Modes.Contains(j.clip)) { Debug.LogError("Unknown clip " + j.clip); if (j.batch) EditorApplication.Exit(2); return; }
             var catalog = Object.Instantiate(Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog"));
@@ -123,6 +132,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void BeginLobby(Job j)
         {
+            WarnIfAndroid();
             if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogError("Stop Play Mode first."); return; }
             j.maps.Add("lobby"); j.modes.Add("");
             j.gallery = !string.IsNullOrEmpty(j.output) ? Path.GetFullPath(j.output)
