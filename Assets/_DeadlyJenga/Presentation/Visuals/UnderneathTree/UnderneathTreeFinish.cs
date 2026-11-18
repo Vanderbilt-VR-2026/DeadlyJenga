@@ -428,13 +428,13 @@ namespace DeadlyJenga.CandyArt
             MakeSpot("Moonlight across the room", new Vector3(windowX + 40f, WindowHead - 10f, 54f),
                 new Vector3(windowX + 70f, 0f, -50f), new Color(.12f, .30f, 1f), 14000f, 280f, 60f);
             // Fire on the east wall, then lit doorways and a lamp up on the loft.
-            fireLight = MakeLight("Fireplace glow", LightType.Point, new Vector3(BreastFront - 18f, 34f, HearthZ),
+            fireLight = MakeLight("Fireplace glow", LightType.Point, new Vector3(2f * FireplaceTurnX - (BreastFront - 18f), 34f, HearthZ),
                 new Color(1f, .45f, .14f), 14000f, 230f);
             MakeSpot("Moonlight through the south window", new Vector3((SouthWindowWest + SouthWindowEast) * .5f, WindowHead, RoomSouth + 4f),
                 new Vector3((SouthWindowWest + SouthWindowEast) * .5f, 0f, RoomSouth + 150f), new Color(.16f, .36f, 1f), 26000f, 300f, 80f);
             MakeLight("Kitchen light", LightType.Point, new Vector3(RoomWest - 60f, 110f, (ArchSouth + ArchNorth) * .5f),
                 new Color(1f, .70f, .40f), 9000f, 200f);
-            MakeLight("Bookcase lamp", LightType.Point, new Vector3(RoomWest + 60f, 120f, BookcaseZ),
+            MakeLight("Bookcase lamp", LightType.Point, new Vector3(RoomEast - 60f, 120f, BookcaseZ),
                 new Color(1f, .68f, .38f), 9000f, 220f);
             MakeLight("Glow in the train tunnel", LightType.Point,
                 new Vector3(-150, 16, -128), new Color(1f, .68f, .28f), 700f, 38f);

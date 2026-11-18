@@ -216,10 +216,12 @@ namespace DeadlyJenga.CandyArt
         const float ArchSouth = -170f, ArchNorth = -50f, ArchHeight = 170f;
         // Fireplace on the east wall, south of the rug.
         const float HearthZ = -350f;
-        // West wall furniture: the big sofa backs onto the wall facing the fire, and the bookcase
-        // stands between the sofa's north end and the kitchen archway.
-        const float SofaZ = HearthZ - 30f;
-        const float BookcaseZ = -213f, BookcaseWidth = 80f;
+        // The fireplace is on the west wall; the big sofa backs onto the east wall facing it,
+        // with the bookcase at the sofa's far end from the tree and the lamp table at the near end.
+        // Turning the fireplace round about this x moves it from the east wall to the west wall.
+        const float FireplaceTurnX = (RoomWest + RoomEast) * .5f;
+        const float SofaZ = -340f;
+        const float BookcaseZ = -533f, BookcaseWidth = 130f;
 
         void BuildRoom()
         {
@@ -270,7 +272,14 @@ namespace DeadlyJenga.CandyArt
             south.localScale = new Vector3(1f, 1f, .55f);
 
             // Stone fireplace on the east wall (see UnderneathTreeFinish.Fireplace.cs).
+            int firstFireplace = art.childCount;
             BuildFireplace();
+            var fireplace = new GameObject("Fireplace on the west wall").transform;
+            fireplace.SetParent(art, false);
+            fireplace.localPosition = new Vector3(FireplaceTurnX, 0f, HearthZ);
+            for (int i = art.childCount - 2; i >= firstFireplace; i--)
+                art.GetChild(i).SetParent(fireplace, true);
+            fireplace.localRotation = Quaternion.Euler(0f, 180f, 0f);
 
             // Rooms beyond the openings: just a lit glimpse, the player never goes there.
             var glow = Glow("Warm room beyond", new Color(1f, .62f, .32f), .9f);
@@ -284,14 +293,14 @@ namespace DeadlyJenga.CandyArt
 
             // Bookshelves and a piano by the window.
             var rand = new System.Random(77);
-            Box("Bookcase", new Vector3(RoomWest + 20f, 90f, BookcaseZ), new Vector3(34f, 180f, BookcaseWidth), beam);
+            Box("Bookcase", new Vector3(RoomEast - 20f, 90f, BookcaseZ), new Vector3(34f, 180f, BookcaseWidth), beam);
             for (int shelf = 0; shelf < 5; shelf++)
                 for (float z = BookcaseZ - BookcaseWidth * .5f + 4f; z < BookcaseZ + BookcaseWidth * .5f - 12f;)
                 {
                     float thick = Range(rand, 4f, 8f), tall = Range(rand, 18f, 28f);
                     var book = Surface("Book cloth " + (shelf * 7 + (int)z) % 5, "Woven",
                         Color.HSVToRGB(Range(rand, 0f, 1f) < .5f ? .0f : .35f, .6f, Range(rand, .25f, .6f)), .3f, Vector2.one);
-                    Box("Book", new Vector3(RoomWest + 38f, 12f + shelf * 34f + tall * .5f, z + thick * .5f), new Vector3(4f, tall, thick - .6f), book);
+                    Box("Book", new Vector3(RoomEast - 38f, 12f + shelf * 34f + tall * .5f, z + thick * .5f), new Vector3(4f, tall, thick - .6f), book);
                     z += thick;
                 }
             var lacquer = Lacquer("Piano black", new Color(.02f, .015f, .015f), .9f, 0f, .8f, 0f);

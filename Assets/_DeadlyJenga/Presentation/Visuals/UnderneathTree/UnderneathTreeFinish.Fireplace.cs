@@ -13,7 +13,9 @@ namespace DeadlyJenga.CandyArt
         Light fireLight;
         readonly List<(Transform flame, Vector3 scale, float phase)> flames = new List<(Transform, Vector3, float)>();
 
-        const float BreastFront = 36f;            // x of the stone face (the east wall's inside face is 58.5)
+        // The fireplace is built against the east wall (inside face 58.5) and then turned round
+        // onto the west wall in BuildRoom. BreastFront = x of the stone face as built.
+        const float BreastFront = 18f;
         const float BreastHalf = 85f;             // half the breast's width along the wall
         const float HearthTop = 14f;              // raised hearth height = floor of the firebox
         const float OpeningHalf = 36f, OpeningTop = 74f;
@@ -40,9 +42,9 @@ namespace DeadlyJenga.CandyArt
             StoneBlock("Chimney breast over fire", new Vector3(midX, (OpeningTop + RoomTop) * .5f, HearthZ),
                 new Vector3(depth, RoomTop - OpeningTop, z1 - z0), stone);
             // Long raised hearth you could sit on, wider than the breast (bottom-left photo).
-            StoneBlock("Raised hearth", new Vector3((6f + BreastFront) * .5f, HearthTop * .5f - 1f, HearthZ),
-                new Vector3(BreastFront - 6f, HearthTop - 2f, 230f), stone);
-            Box("Hearth cap", new Vector3((4f + BreastFront) * .5f + .5f, HearthTop - 1f, HearthZ), new Vector3(BreastFront - 3f, 2.4f, 234f), capStone);
+            StoneBlock("Raised hearth", new Vector3(BreastFront - 15f, HearthTop * .5f - 1f, HearthZ),
+                new Vector3(30f, HearthTop - 2f, 230f), stone);
+            Box("Hearth cap", new Vector3(BreastFront - 15.5f, HearthTop - 1f, HearthZ), new Vector3(33f, 2.4f, 234f), capStone);
 
             // Firebox: sooty brick inside, black iron frame around the opening.
             Box("Firebox back", new Vector3(back - 2f, (HearthTop + OpeningTop) * .5f, HearthZ), new Vector3(2f, OpeningTop - HearthTop, z1 - z0), soot);
@@ -65,11 +67,11 @@ namespace DeadlyJenga.CandyArt
             BuildCandles();
             BuildWreath(new Vector3(BreastFront - 3f, 158f, HearthZ), 22f);
             foreach (float z in new[] { HearthZ - 62f, HearthZ + 62f })
-                Poinsettia(new Vector3(20f, HearthTop, z));
+                Poinsettia(new Vector3(BreastFront - 16f, HearthTop, z));
             var wrap = Surface("Hearth gift wrap", "Winter Print", new Color(.70f, .07f, .09f), .45f, new Vector2(1.4f, 1.4f));
             var ribbon = Lacquer("Hearth gift ribbon", new Color(.95f, .55f, .10f), .8f, .7f, .3f, .05f);
-            HearthGift(new Vector3(20f, HearthTop, HearthZ + 92f), new Vector3(14f, 11f, 14f), 12f, wrap, ribbon);
-            HearthGift(new Vector3(18f, HearthTop + 11f, HearthZ + 93f), new Vector3(9f, 7f, 9f), -20f, wrap, ribbon);
+            HearthGift(new Vector3(BreastFront - 16f, HearthTop, HearthZ + 92f), new Vector3(14f, 11f, 14f), 12f, wrap, ribbon);
+            HearthGift(new Vector3(BreastFront - 18f, HearthTop + 11f, HearthZ + 93f), new Vector3(9f, 7f, 9f), -20f, wrap, ribbon);
             BuildFire(midX);
         }
 
