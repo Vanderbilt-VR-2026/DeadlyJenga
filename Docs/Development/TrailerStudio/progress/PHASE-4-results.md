@@ -1,6 +1,6 @@
 # Phase 4 results: performance polish
 
-Run through the coordinator: job `90544549` on commit `97cdb6c0` (first passed as job `6ee21374` on `3c323f74`; the numbers below are from that run, the linked report is the latest), batch
+Run through the coordinator: job `52d89f82` on commit `47fa54e6` (first passed as job `6ee21374` on `3c323f74`; the numbers below are from that run, the linked report is the latest), batch
 editor, map `sparse-viaduct-study`. Method
 `StudioAcceptance.RunPhase4`. Full report: [evidence/phase4/report.md](evidence/phase4/report.md).
 
@@ -11,6 +11,10 @@ editor, map `sparse-viaduct-study`. Method
 | 3 | Look-at override on 5 actors toward the tornado | Pass | 5 of 5 turned toward it, up to the 85 degree neck limit. |
 | 4 | 20-person crowd from 3 takes, no two in step | Pass | 20 outfits, closest pair 1.06 m apart, 0 pairs move in step. |
 | - | Legs move when frames are shown one at a time, and a frame looks the same however it is reached (added after review) | Pass | Shown frame by frame like a render, the feet moved 8.6 cm between two frames. The same frame reached by playing up to it or by jumping to it: 0.0 cm apart. |
+| - | Cameras see an actor where its overrides put it (added after review) | Pass | Mid-knockback the pose cameras aim at is 1.25 m from the recorded spot and 0.0 cm from where the actor is drawn. |
+| - | A hit pause holds when frames are shown as a render shows them (added after review) | Pass | 0.00 mm of block movement inside the pause, 205 cm after it. |
+| - | A fall holds until a get-up, and the get-up ends standing (added after review) | Pass | Head 0.11 m above the feet while down (standing: 0.80 m); 0.0 mm from the standing pose after the get-up. |
+| - | Lock feet leaves a hop alone and pulls a hover down (added after review) | Pass | A 0.30 m hop still reaches 0.30 m; frames hovering 0.10 m up end within 7.5 mm of the ground. |
 | - | Runtime errors | Pass | None. |
 
 ## Caveat on test 1 (feet)
@@ -32,4 +36,4 @@ retimed walk and judge it by eye.
   [knockback-00066.png](evidence/phase4/knockback-00066.png).
 - [look-at-005.png](evidence/phase4/look-at-005.png) and
   [look-at-030.png](evidence/phase4/look-at-030.png).
-- [crowd-00020.png](evidence/phase4/crowd-00020.png).
+- [crowd-00000.png](evidence/phase4/crowd-00000.png): the whole crowd is there from the first frame (delayed copies hold their first pose) and [crowd-00020.png](evidence/phase4/crowd-00020.png).

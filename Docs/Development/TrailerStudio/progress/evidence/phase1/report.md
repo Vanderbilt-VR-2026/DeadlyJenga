@@ -1,13 +1,13 @@
 # Trailer Studio Phase1 acceptance run
 
-Date: 2026-11-18 14:32  
+Date: 2026-11-18 14:51  
 Unity: 6000.3.23f1  
 Map: sparse-viaduct-study
 
 | Test | Result | Detail |
 |------|--------|--------|
 | Set built | PASS | sparse-viaduct-study: 145 blocks, 3 marks, collapse cue at 1.0 s, 180 frames at 30 fps. Mark warnings: Bot 1=ok, Bot 2=ok, Survivor 1=ok |
-| 1a. Record the Set | PASS | World take 180/180 frames; actor takes 180/180/180; tape file 209 KB (1.2 MB before compression). Cues: 1.000s collapse pushed 10 blocks; 2.000s push 1 blocks at 3.6 m/s |
+| 1a. Record the Set | PASS | World take 180/180 frames; actor takes 180/180/180; tape file 210 KB (1.2 MB before compression). Cues: 1.000s collapse pushed 10 blocks; 2.000s push 1 blocks at 3.6 m/s |
 | 1b. The collapse was recorded | PASS | 11 of 145 blocks moved more than 10 cm between the first and last frame. |
 | 1c. Playback 1 of 3, drift check | PASS | Drift check: 26070 samples, worst 0.000 mm and 0.0000 degrees. OK. |
 | 1c. Playback 2 of 3, drift check | PASS | Drift check: 26070 samples, worst 0.000 mm and 0.0000 degrees. OK. |

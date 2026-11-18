@@ -1,6 +1,6 @@
 # Trailer Studio Phase4 acceptance run
 
-Date: 2026-11-18 14:29  
+Date: 2026-11-18 14:45  
 Unity: 6000.3.23f1  
 Map: sparse-viaduct-study
 
@@ -11,7 +11,11 @@ Map: sparse-viaduct-study
 | Legs move when frames are shown one at a time, and a frame looks the same however it is reached | PASS | Ada walking, shown frame by frame the way a render does: between tape frames 29 and 36 her feet moved 8.6 cm relative to her body. Frame 36 reached by playing up to it differs by 0.0 cm; reached by jumping back from frame 84, by 0.0 cm. (Body turning and landing bends still follow game time, so small differences are expected.) |
 | 1. Retime 1 s of a walk to half speed; feet do not slide | PASS | Frames 24 to 54 of Ada's take now last 60 frames (180 frames in the new take; the old take is still on the track). Every slowed pose matches the original performance (largest difference 0.0 mm); body speed went from 1.61 to 0.80 m/s. Planted-foot slide along the ground, measured on the avatar's own foot bones (Left foot, Rounded candy foot) during playback: 1.57 m/s before the edit (body 1.61 m/s), 0.78 m/s after it (body 0.79 m/s). After "Lock feet", the feet are within 0.0 mm of the surface on 10 checked frames. Pictures: retime/. |
 | 2. A recorded block hits an actor and triggers a knockback that blends back into the take | PASS | Block #59 was pushed at 1.0 s; Ben stands in its path. Ben: block #59 reaches them at 1.40 s moving 6.0 m/s. (The block is at Ben's spot at 1.50 s.) Just before the hit Ben is on his take (0.0 mm off). Half a second after it he has been thrown 1.25 m, in the direction the block was moving (alignment 0.96, 1 = exactly). At the end of the reaction he is back on his take (0.0 mm off). The take itself was not changed. Pictures: knockback/. |
-| 3. A look-at override on 5 actors toward the incoming tornado | PASS | Tornado "Tornado" from heading 90, recorded on the hazard track. At 3.0 s, angle between each head and the tornado, before -> with the layer: Ada 125° -> 40°, Ben 56° -> 0°, Cy 111° -> 26°, Cy clone 1 101° -> 16°, Cy clone 2 151° -> 66°. 5 of 5 turned toward it; 5 of 5 look straight at it or as far as a neck turns (85°). The takes underneath are unchanged. Pictures: look-at/. |
+| Cameras see an actor where its overrides put it | PASS | In the middle of the knockback, the pose cameras aim at is 1.25 m from Ben's recorded spot and 0.0 cm from where he is drawn. |
+| A hit pause holds the picture when frames are shown the way a render shows them | PASS | Pause from frame 35 for 10 frames. Block #59 shown at frame 40.5: 0.00 mm from where the pause began. At frame 45.5: 205.0 cm. |
+| A fall holds its pose until a get-up, and the get-up ends standing | PASS | Standing head height 0.80 m. Between the fall and the get-up (2.5 s) the head is 0.11 m above the feet. After the get-up (4.5 s) the head is 0.0 mm from the standing pose. |
+| Lock feet leaves a hop alone and pulls a hover down to the ground | PASS | A made-up take: a 0.30 m hop, then 14 frames hovering 0.10 m up. After Lock feet the hop still reaches 0.30 m, and the hovering frames are within 7.5 mm of the ground. |
+| 3. A look-at override on 5 actors toward the incoming tornado | PASS | Tornado "Tornado" from heading 90, recorded on the hazard track. At 3.0 s, angle between each head and the tornado, before -> with the layer: Ada 99° -> 14°, Ben 18° -> 0°, Cy 111° -> 26°, Cy clone 1 108° -> 23°, Cy clone 2 127° -> 42°. 5 of 5 turned toward it; 5 of 5 look straight at it or as far as a neck turns (85°). The takes underneath are unchanged. Pictures: look-at/. |
 | Runtime errors during the Studio tests | PASS | None. |
 
 Failures: 0

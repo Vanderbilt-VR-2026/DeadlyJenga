@@ -8,7 +8,7 @@ Nothing is merged. This file is the handoff record AGENTS.md asks for.
 | Source branch | `claude/trailer-studio-a` on `origin` (Vanderbilt-VR-2026/DeadlyJenga) |
 | Target branch | `Evan_Sprint_4` (not merged; merges cleanly with `25e76440`, checked with `git merge-tree`) |
 | Base | `73339768bafdba50b5e42d9e7ced5e7c1c87a3e0` |
-| Candidate | Code: `97cdb6c09e285f5aab41c0da2b6b01363916860f`. The branch tip adds documentation only. |
+| Candidate | Code: `47fa54e649d6e43ed1f3818fc587c4b4bfb6abd5`. The branch tip adds documentation only. |
 | Scope | DevTools (editor + runtime `TrailerStudio` folders), two small cross-box commits, docs under `Docs/Development/TrailerStudio/` |
 | Depends on | nothing outside this branch |
 | Approval | none yet. Evan pre-approved cross-box changes in the builder prompt; each is still his to keep or drop. |
@@ -22,7 +22,7 @@ Nothing is merged. This file is the handoff record AGENTS.md asks for.
 - Open it in Unity: menu **Tools > Deadly Jenga > Trailer Studio**. User guide:
   `Assets/_DeadlyJenga/DevTools/Editor/TrailerStudio/TrailerStudio.md`.
 - Plans, decisions and results: this folder. Start with `DECISIONS.md`
-  (64 short entries) and `EXTENSION-POINTS.md`.
+  (65 short entries) and `EXTENSION-POINTS.md`.
 
 ## Changes outside DevTools (for Evan to keep or drop)
 
@@ -35,25 +35,25 @@ Full table with consequences: [CROSS-BOX-CHANGES.md](CROSS-BOX-CHANGES.md).
 | `8753dd61` | Characters `CandyPlayerRig.Gait` and `SurvivorNetworkView.Gait`: save and restore the walk cycle, so rendered and scrubbed actors walk. |
 | `05c5a153` | Characters `HandNetworkView.SnapToState` also sets the physics bodies. |
 | `c419d1fd` | Characters `CandyPlayerRig.StepGait`: the walk cycle's step as a pure function (a copy of the sum in `ApplyFrame`, which is unchanged). |
+| `c737b172` | Characters: `StepGait` uses a frame's recorded walk phase when it has one, like `ApplyFrame`. |
 
 Both only add. No ProjectSettings, Packages or `Assets/XR` change. No package
 added. No scene or prefab saved.
 
 ## Test results (actual, through the coordinator)
 
-Each suite ran as its own coordinator job in a batch editor (owner
-`claude-builder-prompt`). Phases 1, 2, 4 and 5 ran on `97cdb6c0`. Phase 3
-ran on `f925b683`; the only code change between the two is in
-`Engine/StudioRender.cs`, which Phase 3 does not use.
+Every suite ran on the same code commit, `47fa54e6`, each as its own
+coordinator job (owner `claude-builder-prompt`); the phases in a batch
+editor, the window tour in an interactive one.
 
 | Suite | Job | Result | Honest caveats |
 |-------|-----|--------|----------------|
-| Phase 1 | `d2481953` | 0 failures | Spec test 3 ("rides a moving block") is **not met**: the live game does not carry a standing survivor, and playback reproduces that. See `PHASE-1-results.md`. |
-| Phase 2 | `536e66f1` | 0 failures | Headset test covered only as data and wrist-panel logic, no XR session. Scripted performer never climbed. |
-| Phase 3 | `e18cc5c7` | 0 failures | Tornado particles are not replayed exactly; blocks and hazard state are. |
-| Phase 4 | `90544549` | 0 failures | The foot-slide number follows body speed; it does not prove planted feet stay still. |
-| Phase 5 | `d84b65eb` | 0 failures | Handheld camera fed by script, not a controller. FCPXML not opened in Resolve. |
-| Window tour | `20f26f19` on `957f70f4` | 0 failures | Interactive editor, scripted. **Not rerun after either review.** Round 2 changed when the window refreshes (B8) and what deleting a mark removes (C11). |
+| Phase 1 | `133a871c` | 0 failures | Spec test 3 ("rides a moving block") is **not met**: the live game does not carry a standing survivor, and playback reproduces that. See `PHASE-1-results.md`. |
+| Phase 2 | `a73b1036` | 0 failures | Headset test covered only as data and wrist-panel logic, no XR session. Scripted performer never climbed. |
+| Phase 3 | `d00573e3` | 0 failures | Tornado particles are not replayed exactly; blocks and hazard state are. No test puts a cue exactly on the branch frame. |
+| Phase 4 | `52d89f82` | 0 failures | The foot-slide number follows body speed; it does not prove planted feet stay still. |
+| Phase 5 | `5bdecbe7` | 0 failures | Handheld camera fed by script, not a controller. FCPXML not opened in Resolve. |
+| Window tour | `d0acc8e3` | 0 failures | Scripted: every tab opened and used, 12 screenshots, undo and redo, one audio listener. No person has used the window by hand. |
 
 Read a job with `coordinator.py job --owner claude-builder-prompt --id <id>`;
 its Unity log is under the pool's `runs/<id>/`.
@@ -86,6 +86,28 @@ reports: `evidence/`.
 | C10 blurred renders darker? | Checked with a new test: they were already equal. A conversion added on suspicion made them brighter and was removed in `97cdb6c0`. |
 | C1 emotes on game time | Listed as wanted from Characters. |
 | C6, C7 export details | Not changed; untested without an editor. |
+
+## Review round 3 (Fable 5.2 chat) and what was done
+
+| Finding | Done |
+|---------|------|
+| `StepGait` ignored a recorded walk phase | Fixed: `c737b172` (Characters). |
+| Any later reaction ended a fall | Only a get-up does now. |
+| B1 cue on the branch frame never fired | Fixed. No test for it. |
+| B2 stale badges only updated on recording | `StudioTakes.CheckStale` runs on every take switch. |
+| B3 number keys switched the world take alone | They bring the hazard, effect and sound takes of that run. |
+| B4 crowd people popped in and out | Copies hold their first and last pose. |
+| B5 closing the stage left a variation run "running" | Fixed. |
+| B6 a chosen variation could not be made again | Each variation keeps its cue times and strengths; its card can write them into the Set. |
+| B7 empty frames after a branch | Checked: the hazard, effects and sound players all accept an empty frame; the world take always reaches the branch point. No change. |
+| B8 one badge text per track | Not changed (low). |
+| Tests for round 2's B1, B2, B4, B5 | Added to Phase 4; all pass. |
+
+The reviewer's summary after three rounds: "the engine (tape, playback,
+recording, render) has now been read end to end and its faults found so far
+are fixed and tested; the remaining risk is in the window by hand, in VR,
+and in an editor opening the FCPXML. None of that needs another reading
+pass."
 
 ## What was NOT tested
 

@@ -1,6 +1,6 @@
 # Phase 3 results: world direction
 
-Run through the coordinator: job `e18cc5c7` on commit `f925b683` (first passed as job `4309fa48` on `3c323f74`; the numbers below are from that run, the linked report is the latest), batch
+Run through the coordinator: job `d00573e3` on commit `47fa54e6` (first passed as job `4309fa48` on `3c323f74`; the numbers below are from that run, the linked report is the latest), batch
 editor, map `sparse-viaduct-study`. Method
 `StudioAcceptance.RunPhase3`. Full report: [evidence/phase3/report.md](evidence/phase3/report.md).
 
@@ -13,6 +13,11 @@ editor, map `sparse-viaduct-study`. Method
 | - | Runtime errors | Pass | None. |
 
 ## Honest notes
+- A cue placed exactly on the branch frame used to be dropped by a branch
+  (review round 3). Fixed by reading the code; test 3's changed push is at
+  3.3 s, so no test places a cue on the branch frame itself.
+- A variation now keeps the cue times and strengths it used, and its take
+  card can write them into the Set. Not exercised by a test.
 - The tornado's blocks and disaster state replay exactly, but its particles
   are drawn fresh each time, so two playbacks' pictures are not
   byte-identical.

@@ -1,6 +1,6 @@
 # Phase 5 results: cameras and finishing
 
-Run through the coordinator: job `d84b65eb` on commit `97cdb6c0`, batch
+Run through the coordinator: job `5bdecbe7` on commit `47fa54e6`, batch
 editor, map `sparse-viaduct-study`. Method
 `StudioAcceptance.RunPhase5`. Full report: [evidence/phase5/report.md](evidence/phase5/report.md).
 
@@ -64,9 +64,8 @@ Limits, by design for now:
 - The EDL writes a dissolve as one event and the FCPXML sound assets carry
   no duration (review round 2, C6 and C7). Unchanged, because no editor was
   available to check what it accepts.
-- Cameras now follow overridden actors and renders hold hit pauses (review
-  round 2, B1 and B2). Both were fixed by reading the code; no test covers
-  them yet.
+- Cameras following overridden actors and renders holding hit pauses
+  (review round 2, B1 and B2) are tested in Phase 4.
 - MP4 and ProRes output (needs `ffmpeg`); only PNG sequences were rendered.
 - EXR output and the cinema quality preset were not rendered in a test.
 - Anything in a headset.

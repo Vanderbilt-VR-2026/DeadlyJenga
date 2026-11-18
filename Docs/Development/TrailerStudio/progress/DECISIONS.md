@@ -327,3 +327,11 @@ any of them at review.
 64. **Not changed after review, on purpose:** the EDL writes a dissolve as
     one event and the FCPXML sound assets carry no duration. Neither has
     been opened in an editor; both are listed as untested.
+
+## After the third review
+65. **Takes are switched as a run, and badges follow.** Making a world take
+    active (card, number key or "Use") also switches the hazard, effect and
+    sound takes recorded with it, and every take switch re-checks which
+    actor takes are stale. A variation remembers the cue times and
+    strengths it used. Crowd copies hold their first and last pose instead
+    of appearing late or leaving early.
