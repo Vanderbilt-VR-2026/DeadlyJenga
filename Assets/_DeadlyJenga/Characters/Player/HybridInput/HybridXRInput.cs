@@ -54,9 +54,9 @@ namespace DeadlyJenga.CandyPlayers
         // controller is really picked up (moved, or anything on it pressed). A controller lying on a desk comes back
         // into tracking whenever the headset loses the bare hand for a moment, for example when the player looks up;
         // taking that as "two controllers" flipped the whole control scheme and rebased the view.
-        struct BareHand { public bool playing; public XRController waiting; public Vector3 seenAt; }
+        struct BareHand { public bool playing; public XRController waiting; public Vector3 seenAt; public Quaternion seenTurn; }
         static BareHand leftBare, rightBare;
-        const float PickUpMove = .06f;
+        const float PickUpMove = .04f, PickUpTurn = 10f;
         public static void NoteHandTracked(bool left) { if (left) leftBare.playing = true; else rightBare.playing = true; }
         public static bool PlayingBareHanded(bool left) => left ? leftBare.playing : rightBare.playing;
         static bool PickedUp(bool left, XRController controller)
@@ -64,11 +64,16 @@ namespace DeadlyJenga.CandyPlayers
             ref var side = ref (left ? ref leftBare : ref rightBare);
             if (!side.playing) return true;
             Vector3 at = controller.devicePosition.ReadValue();
-            if (side.waiting != controller) { side.waiting = controller; side.seenAt = at; }
+            Quaternion turn = controller.deviceRotation.ReadValue();
+            if (side.waiting != controller) { side.waiting = controller; side.seenAt = at; side.seenTurn = turn; }
             float Axis(string name) => controller.TryGetChildControl<AxisControl>(name)?.ReadValue() ?? 0;
             bool Button(string name) => controller.TryGetChildControl<ButtonControl>(name)?.isPressed == true;
-            bool used = (at - side.seenAt).sqrMagnitude > PickUpMove * PickUpMove || Axis("trigger") > .15f || Axis("grip") > .15f ||
-                Stick(controller).sqrMagnitude > .06f || Button("primaryButton") || Button("secondaryButton") || MoveClickHeld(controller);
+            // A held controller moves, turns, or has a finger resting on it. One lying on a desk does none of these.
+            bool used = (at - side.seenAt).sqrMagnitude > PickUpMove * PickUpMove || Quaternion.Angle(turn, side.seenTurn) > PickUpTurn ||
+                Axis("trigger") > .15f || Axis("grip") > .15f || Stick(controller).sqrMagnitude > .06f ||
+                Button("primaryButton") || Button("secondaryButton") || MoveClickHeld(controller) ||
+                Button("primaryTouched") || Button("secondaryTouched") || Button("thumbstickTouched") || Button("triggerTouched") || Button("thumbrestTouched") ||
+                Button("primaryTouch") || Button("secondaryTouch") || Button("primary2DAxisTouch");
             if (!used) return false;
             side.playing = false; side.waiting = null;
             return true;

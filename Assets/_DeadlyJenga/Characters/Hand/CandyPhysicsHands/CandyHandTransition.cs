@@ -81,7 +81,7 @@ namespace DeadlyJenga.CandyPhysicsHands
         float c10,c11,c12,c20,c21,c22,c30,c31,c32,c40,c41,c42;
         Vector3 thumb0,thumb1,thumb2;
         const float FanLimit=28,KnuckleBack=20,KnuckleCurl=88,MiddleCurl=102,TipCurl=72,JointBack=5;
-        const float ThumbCone=95,ThumbBend=55;
+        const float ThumbCone=95,ThumbBend=48;
         // No finger joint moves faster than this, so one bad tracking frame cannot snap a finger.
         const float CurlDegreesPerSecond=2500,FanDegreesPerSecond=700,ThumbDegreesPerSecond=1800;
 
