@@ -69,28 +69,35 @@ namespace DeadlyJenga.CandyPlayers
             }
         }
         // One step of the walk cycle on its own, with no avatar and no side effects. Replay tools use it to
-        // work out the walk state for every frame of a recording. It is the same sum as the block in
-        // ApplyFrame below (without the moving-floor part): if you change one, change the other.
+        // work out the walk state for every frame of a recording. ApplyFrame uses the same sum (AdvanceGait).
         public static GaitState StepGait(GaitState gait, CandyAvatarFrame frame, float deltaTime)
         {
             if (deltaTime <= 0f) return gait;
-            Vector3 feet = frame.feet;
             Quaternion facing = Quaternion.Euler(0f, frame.headRotation.eulerAngles.y, 0f);   // the body faces where the head looks
-            float scale = Mathf.Max(.1f, frame.scale);
-            bool sprinting = frame.sprinting, grounded = !frame.airborne;
             if (gait.strideDirection.sqrMagnitude < .0001f) gait.strideDirection = Vector3.forward;
-            Vector3 displacement = feet - gait.previousFeet;
+            AdvanceGait(ref gait, frame, Vector3.zero, facing, null, frame.sprinting && !frame.airborne, deltaTime);
+            return gait;
+        }
+
+        // The walk-cycle sum. carry = how far a moving floor moved the feet (it is not a step).
+        // The stride direction is measured in facingSpace when given, otherwise in the facing rotation.
+        static void AdvanceGait(ref GaitState gait, in CandyAvatarFrame frame, Vector3 carry, Quaternion facing,
+            Transform facingSpace, bool mayRun, float deltaTime)
+        {
+            float scale = Mathf.Max(.1f, frame.scale);
+            Vector3 displacement = frame.feet - gait.previousFeet;
             float teleportDistance = BodyTeleportDistance * scale;
             bool reset = !gait.ready || displacement.sqrMagnitude > teleportDistance * teleportDistance;
-            Vector3 travel = reset ? Vector3.zero : Vector3.ProjectOnPlane(displacement, Vector3.up);
-            gait.previousFeet = feet; gait.ready = true;
+            Vector3 travel = reset ? Vector3.zero : Vector3.ProjectOnPlane(displacement - carry, Vector3.up);
+            gait.previousFeet = frame.feet; gait.ready = true;
             if (reset) { gait.sprintBlend = 0f; gait.strideDirection = Vector3.forward; }
             gait.locomotionSpeed = travel.magnitude / (deltaTime * scale);
-            float runTarget = sprinting && grounded ? Mathf.InverseLerp(.3f, 2.4f, gait.locomotionSpeed) : 0f;
+            float runTarget = mayRun ? Mathf.InverseLerp(.3f, 2.4f, gait.locomotionSpeed) : 0f;
             gait.sprintBlend = Mathf.MoveTowards(gait.sprintBlend, runTarget, deltaTime * 6f);
             if (travel.sqrMagnitude > .00001f)
             {
-                Vector3 targetDirection = Quaternion.Inverse(facing) * travel.normalized;
+                Vector3 targetDirection = facingSpace ? facingSpace.InverseTransformDirection(travel.normalized) : Quaternion.Inverse(facing) * travel.normalized;
+                // Interpolate the heading so opposite directions cannot cancel or stall.
                 float oldHeading = Mathf.Atan2(gait.strideDirection.x, gait.strideDirection.z) * Mathf.Rad2Deg;
                 float targetHeading = Mathf.Atan2(targetDirection.x, targetDirection.z) * Mathf.Rad2Deg;
                 float heading = Mathf.LerpAngle(oldHeading, targetHeading, 1f - Mathf.Exp(-12f * deltaTime)) * Mathf.Deg2Rad;
@@ -98,7 +105,6 @@ namespace DeadlyJenga.CandyPlayers
             }
             float cadence = Mathf.Lerp(6f, 11f, Mathf.InverseLerp(.12f, 4f, gait.locomotionSpeed)) + gait.sprintBlend * 3.8f;
             gait.walkPhase = frame.hasGaitPhase ? frame.gaitPhase : Mathf.Repeat(gait.walkPhase + cadence * deltaTime, 2f * Mathf.PI);
-            return gait;
         }
         public Transform LeftPalm=>bones[4];
         public Transform HeadAnchor=>bones[1];
@@ -233,41 +239,22 @@ namespace DeadlyJenga.CandyPlayers
             Vector3 torsoOffset=fit?.bodyOffset??Vector3.zero;
             if(deltaTime>0f)
             {
-                Vector3 displacement = frame.feet - previousFeet;
                 float teleportDistance = BodyTeleportDistance * scale;
-                bool resetGait = !gaitReady || displacement.sqrMagnitude > teleportDistance * teleportDistance;
                 Transform support = grounded && motor && motor.StandingSurface ? motor.StandingSurface.transform : null;
-                if (!resetGait && support && support == previousGaitSupport)
+                Vector3 carry = Vector3.zero;
+                if (gaitReady && support && support == previousGaitSupport)
                 {
                     // The floor can carry a planted survivor without taking a step.
-                    Vector3 carry = support.TransformPoint(previousSupportFeet) - previousFeet;
-                    if (carry.sqrMagnitude < teleportDistance * teleportDistance) displacement -= carry;
+                    carry = support.TransformPoint(previousSupportFeet) - previousFeet;
+                    if (carry.sqrMagnitude >= teleportDistance * teleportDistance) carry = Vector3.zero;
                 }
-                Vector3 travel = resetGait ? Vector3.zero : Vector3.ProjectOnPlane(displacement, Vector3.up);
-                previousFeet = frame.feet;
                 previousGaitSupport = support;
                 if (support) previousSupportFeet = support.InverseTransformPoint(frame.feet);
-                gaitReady = true;
-                if (resetGait)
-                {
-                    sprintBlend = 0f;
-                    strideDirection = Vector3.forward;
-                }
-                locomotionSpeed = travel.magnitude / (deltaTime * scale);
-                bool running = frame.sprinting && grounded && !downed && dance <= .01f;
-                float runTarget = running ? Mathf.InverseLerp(.3f, 2.4f, locomotionSpeed) : 0f;
-                sprintBlend = Mathf.MoveTowards(sprintBlend, runTarget, deltaTime * 6f);
-                if (travel.sqrMagnitude > .00001f)
-                {
-                    Vector3 targetDirection = transform.InverseTransformDirection(travel.normalized);
-                    // Interpolate the heading so opposite directions cannot cancel or stall.
-                    float oldHeading = Mathf.Atan2(strideDirection.x, strideDirection.z) * Mathf.Rad2Deg;
-                    float targetHeading = Mathf.Atan2(targetDirection.x, targetDirection.z) * Mathf.Rad2Deg;
-                    float heading = Mathf.LerpAngle(oldHeading, targetHeading, 1f - Mathf.Exp(-12f * deltaTime)) * Mathf.Deg2Rad;
-                    strideDirection = new Vector3(Mathf.Sin(heading), 0f, Mathf.Cos(heading));
-                }
-                float cadence = Mathf.Lerp(6f, 11f, Mathf.InverseLerp(.12f, 4f, locomotionSpeed)) + sprintBlend * 3.8f;
-                walkPhase = frame.hasGaitPhase ? frame.gaitPhase : Mathf.Repeat(walkPhase + cadence * deltaTime, 2f * Mathf.PI);
+                // The body turns with the rig itself, so the stride is measured in the rig's own space.
+                var gait = Gait;
+                AdvanceGait(ref gait, frame, carry, Quaternion.identity, transform, frame.sprinting && grounded && !downed && dance <= .01f, deltaTime);
+                previousFeet = gait.previousFeet; gaitReady = gait.ready; strideDirection = gait.strideDirection;
+                walkPhase = gait.walkPhase; sprintBlend = gait.sprintBlend; locomotionSpeed = gait.locomotionSpeed;
             }
             float run = grounded && !downed && dance <= .01f ? sprintBlend : 0f;
             float landing = grounded && !downed && dance <= .01f ? LandingWeight(motor) : 0f;
