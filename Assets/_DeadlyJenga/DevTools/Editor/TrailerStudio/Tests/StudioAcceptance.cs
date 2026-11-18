@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -174,6 +174,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         static bool Held => StudioRun.State == StudioState.Held;
 
+        // Wait for the current run to finish, but never for more than five real minutes.
+        static IEnumerable<int> UntilHeld()
+        {
+            float started = Time.realtimeSinceStartup;
+            while (!Held)
+            {
+                if (StudioRun.State == StudioState.Closed) throw new InvalidOperationException("The stage closed during a test: " + StudioRun.Status);
+                if (Time.realtimeSinceStartup - started > 300) throw new TimeoutException("A run did not finish in five minutes: " + StudioRun.Status);
+                yield return 0;
+            }
+        }
+
         static IEnumerator<int> StageTests()
         {
             var stage = StudioRun.Stage;
@@ -215,7 +227,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             StudioRun.FrameShown += WhileRecording;
             StudioRun.RecordWholeSet();
-            while (!Held) yield return 0;
+            foreach (int wait in UntilHeld()) yield return wait;
             StudioRun.FrameShown -= WhileRecording;
             old?.Dispose();
 
@@ -245,7 +257,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 StudioRun.FrameShown += WhilePlaying;
                 StudioRun.Play(0, -1, false);
-                while (!Held) yield return 0;
+                foreach (int wait in UntilHeld()) yield return wait;
                 StudioRun.FrameShown -= WhilePlaying;
                 var drift = StudioRun.LastDrift;
                 Result($"1c. Playback {run} of 3, drift check", drift != null && drift.samples > 0 && drift.Passed, drift?.ToString() ?? "No drift report.");
@@ -352,7 +364,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var pass = new StudioPass { label = "Rider", liveWorld = false, fixedClock = true };
                 pass.record.Add(rider.id);
                 StudioRun.Record(pass);
-                while (!Held) yield return 0;
+                foreach (int wait in UntilHeld()) yield return wait;
                 StudioRun.FrameShown -= WhileRiding;
 
                 // While the block falls its first metre, does the rider stay on it?
@@ -386,7 +398,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 StudioRun.UseTape(converted);
                 StudioRun.Play(0, -1, false);
-                while (!Held) yield return 0;
+                foreach (int wait in UntilHeld()) yield return wait;
                 var drift = StudioRun.LastDrift;
                 StudioRun.Scrub(frames / 2); yield return 0;
                 int shown = castIds.Count(id => stage.playback.TryGetValue(id, out var body) && body && body.activeSelf);
@@ -470,7 +482,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             while ((!(session = Object.FindFirstObjectByType<CastlePlaySession>()) || Services.World == null) && watch.Elapsed.TotalSeconds < 90) yield return 0;
             bool started = session && Services.World != null && Services.World.Blocks.Count > 0;
             for (int n = 0; n < 240 && started; n++) yield return 0;
-            bool studioAbsent = StudioRun.State == StudioState.Closed && !Object.FindFirstObjectByType<StudioDriverEarly>() && StudioCamera.Camera == null;
+            bool studioAbsent = StudioRun.State == StudioState.Closed && !StudioDrivers.Alive && StudioCamera.Camera == null;
             bool playerThere = started && NetworkActors.Alive(session.Player) && session.Player.gameObject.activeInHierarchy;
             Result("5. Game.unity still plays solo with the Studio closed", started && studioAbsent && playerThere && exceptions == 0,
                 started ? $"Session and map started ({Services.World.Blocks.Count} blocks), local survivor active: {playerThere}, ran 240 frames, no Studio objects in the scene: {studioAbsent}, " +

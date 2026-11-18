@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -24,7 +24,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool fixedClock = true;    // true = exactly one tape frame per rendered frame (repeatable, may not be real time)
         public int from, to = -1;         // tape frames; to = -1 means the end of the Set
         public bool liveWorld;            // the world is simulated (and can be recorded) instead of played back
-        public float speed = 1;           // world speed while performing (Phase 2 slow motion)
+        public float speed = 1;           // world speed while performing (slow motion: .5 or .25)
+        public string performer = "";     // mark id the local player performs (empty = nobody)
+        public int preRoll;               // tape frames played before recording starts, so the performer can get moving
+        public float countdown;           // seconds of 3-2-1 before the tape rolls
+        public bool punchIn;              // keep the performer's old take up to 'from' and record from there
+        public bool loop;                 // record again and again, a new take each time, until stopped
+        public bool paths = true;         // draw the other actors' paths on the floor for the performer
     }
 
     // The Studio's engine. It opens a Set as a running scene ("the stage"), then records, plays and scrubs it.
@@ -130,7 +136,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 State = StudioState.Opening;
                 routine = OpenRoutine();
             }
-            if (change == PlayModeStateChange.ExitingPlayMode) Teardown();
+            // Unity Version Control can cancel a Play Mode entry and start it again a moment later.
+            // That shows up as an "exiting" event before Play Mode was ever entered; it is not the stage closing.
+            if (change == PlayModeStateChange.ExitingPlayMode && job.entered) Teardown();
             if (change == PlayModeStateChange.EnteredEditMode && job.entered)
             {
                 var finished = job; job = null; SaveJob();
@@ -225,7 +233,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Stage.tape = LoadOrCreateTape(set, Stage);
             StudioCast.Park(Stage);
             StudioCamera.Create(Stage);
-            StudioDriverEarly.Ensure();
+            StudioDrivers.Ensure();
             Hold(0);
             Status = "Stage is open.";
             Debug.Log($"[TrailerStudio] stage open: {set.map}, {Stage.blocks.Length} blocks, anchor {Stage.anchor}");
@@ -255,6 +263,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             DisposeRecorders();
             DisposePlayers();
             StudioCamera.Destroy();
+            StudioDrivers.Destroy();
             RestoreClock();
             Stage = null;
             State = StudioState.Closed;

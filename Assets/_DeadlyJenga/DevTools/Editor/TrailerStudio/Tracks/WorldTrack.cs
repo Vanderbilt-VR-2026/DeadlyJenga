@@ -95,6 +95,44 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
         }
 
+        // The first tape frame where two world takes put any block more than "millimetres" apart
+        // (or one has a block the other lost). -1 = they never differ.
+        public static int FirstDifference(StudioTake a, StudioTake b, float millimetres)
+        {
+            int Count(StudioTake take) => string.IsNullOrEmpty(take.meta) ? 0 : JsonUtility.FromJson<TakeMeta>(take.meta)?.blocks ?? 0;
+            int blocks = Count(a);
+            if (blocks == 0 || blocks != Count(b)) return Mathf.Max(a.start, b.start);
+            var first = new Sample[blocks]; var second = new Sample[blocks];
+            int from = Mathf.Max(a.start, b.start), to = Mathf.Min(a.End, b.End);
+            // Both takes are decoded forward from their own start, one frame at a time.
+            for (int f = a.start; f < from; f++) DecodeInto(a.frames[f - a.start], first);
+            for (int f = b.start; f < from; f++) DecodeInto(b.frames[f - b.start], second);
+            int limit = Mathf.RoundToInt(millimetres);
+            for (int f = from; f < to; f++)
+            {
+                DecodeInto(a.frames[f - a.start], first);
+                DecodeInto(b.frames[f - b.start], second);
+                for (int i = 0; i < blocks; i++)
+                {
+                    bool on = (first[i].flags & Active) != 0;
+                    if (on != ((second[i].flags & Active) != 0)) return f;
+                    if (on && (Mathf.Abs(first[i].x - second[i].x) > limit || Mathf.Abs(first[i].y - second[i].y) > limit || Mathf.Abs(first[i].z - second[i].z) > limit)) return f;
+                }
+            }
+            return -1;
+        }
+
+        static void DecodeInto(byte[] frame, Sample[] state)
+        {
+            using (var r = new BinaryReader(new MemoryStream(frame)))
+            {
+                bool key = r.ReadBoolean();
+                byte[] bits = key ? null : r.ReadBytes((state.Length + 7) / 8);
+                for (int i = 0; i < state.Length; i++)
+                    if (key || (bits[i >> 3] & (1 << (i & 7))) != 0) state[i] = Read(r, state[i]);
+            }
+        }
+
         sealed class Recorder : StudioRecorder
         {
             readonly Rigidbody[] blocks;

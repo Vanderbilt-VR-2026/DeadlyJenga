@@ -17,6 +17,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             Destroy();
             var rig = new GameObject("Trailer Studio viewport camera");
+            Object.DontDestroyOnLoad(rig);
             Camera = rig.AddComponent<Camera>();
             Camera.nearClipPlane = .08f; Camera.farClipPlane = 1600;
             Camera.clearFlags = CameraClearFlags.Skybox; Camera.allowHDR = true;
@@ -38,6 +39,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (Image) Object.DestroyImmediate(Image);
             Image = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32) { name = "Trailer Studio viewport", hideFlags = HideFlags.HideAndDontSave };
             if (Camera) Camera.targetTexture = Image;
+        }
+
+        // Only one set of ears at a time: the director's camera, or the performer's own head.
+        public static void Listen(bool on)
+        {
+            var ears = Camera ? Camera.GetComponent<AudioListener>() : null;
+            if (ears) ears.enabled = on;
         }
 
         public static void Orbit(float yaw, float pitch)

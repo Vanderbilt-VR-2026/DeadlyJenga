@@ -25,7 +25,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public StudioRecorder CreateRecorder(StudioStage stage, StudioTrack track)
         {
             var body = stage.Live(track.id);
-            var actor = body ? body.GetComponent<INetworkActor>() : null;
+            var actor = body ? body.GetComponentInChildren<INetworkActor>(true) : null;
             return actor == null ? null : new Recorder(body, actor, track.id);
         }
 
@@ -100,6 +100,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             readonly StudioTake take;
             readonly GameObject root;
             readonly INetworkActorView view;
+            readonly StudioGhostLook look = new StudioGhostLook();
             bool failed;
 
             public Player(StudioStage stage, StudioTrack track, StudioTake take, string kind)
@@ -130,9 +131,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         root.SetActive(active);
                         if (!active) return;
                         using (var inner = new BinaryReader(new MemoryStream(state))) view.ReadState(inner, true);
-                        // The copy normally eases toward new poses to hide network lag. A long time step makes it
-                        // land exactly on the recorded pose instead.
-                        view.Render(1000f);
+                        // The copy normally eases toward new poses to hide network lag. A recording has no lag,
+                        // so it is told to land exactly on the recorded pose.
+                        if (view is INetworkActorSnap snap) { snap.SnapToState(); view.Render(running ? Time.deltaTime : 0); }
+                        else view.Render(1000f);
+                        if (stage.recording) look.Apply(root, StudioTrackNotes.Of(track), StudioColors.For(stage.set.Mark(track.id)?.color ?? 0));
                     }
                 }
                 catch (System.Exception error)
@@ -146,6 +149,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public override void Dispose()
             {
                 stage.playback.Remove(track.id);
+                look.Dispose();
                 if (root) Object.Destroy(root);
             }
         }

@@ -20,14 +20,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static readonly List<StudioPlayer> players = new List<StudioPlayer>();
         static readonly List<ActiveRecorder> recorders = new List<ActiveRecorder>();
         static readonly List<StudioCue> pendingCues = new List<StudioCue>();
-        static bool running, fixedClock;
-        static int firstFrame, lastFrame, capturedTo;
+        static bool running, fixedClock, stopAsked;
+        static int firstFrame, lastFrame, capturedTo, recordFrom;
         static float runStart = -1;
         static StudioDrift drift;
+        static StudioPass currentPass;
+        static StudioTake leadTake;      // the performer's old take, followed until the punch-in frame
 
         public static bool RealTimeWarning { get; private set; }   // the last real-time run could not keep up
         public static int FirstFrame => firstFrame;
         public static int LastFrame => lastFrame;
+        public static float Countdown { get; private set; }        // seconds left before recording starts (0 = none)
+        public static StudioPass Pass => State == StudioState.Running ? currentPass : null;
+        public static bool LeadIn => running && Recording && Frame < recordFrom;   // tape is rolling but not recording yet
+        public static StudioPass LastPass { get; private set; }
 
         // ---- Public controls ----
 
@@ -50,6 +56,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (track != null && track.locked) throw new InvalidOperationException(track.name + " is locked. Unlock it to record.");
             }
             State = StudioState.Running;
+            stopAsked = false;
+            LastPass = pass;
             routine = RecordRoutine(pass);
             Notify();
         }
@@ -59,13 +67,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             RequireHeld();
             State = StudioState.Running;
+            stopAsked = false;
             routine = PlayRoutine(from, to, realTime, speed);
             Notify();
         }
 
         public static void Stop()
         {
-            if (State == StudioState.Running) running = false;
+            if (State != StudioState.Running) return;
+            stopAsked = true;
+            running = false;
+            Countdown = 0;
         }
 
         public static void Scrub(int frame)
@@ -99,27 +111,39 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Hold(0);
         }
 
+        // Step out of the actor you were playing, back to the director's view.
+        public static void LeaveBody()
+        {
+            RequireHeld();
+            StudioCast.LeaveBody(Stage);
+            Hold(Frame);
+        }
+
         static void RequireHeld()
         {
             if (State != StudioState.Held || Stage == null)
                 throw new InvalidOperationException(State == StudioState.Closed ? "Open the stage first." : "Wait for the current run to finish.");
         }
 
+        // In VR the headset sets the frame timing, so the fixed clock is never used there.
+        static bool MustBeRealTime => Stage != null && Stage.session && Stage.session.IsVR;
+
         // ---- Holding still ----
 
         static void Hold(int frame)
         {
-            running = false; Recording = false;
+            running = false; Recording = false; Countdown = 0;
+            StudioPaths.Clear();
             Stage.physicalPlayback = false; Stage.recording = false;
-            SetClock(Stage.Fps, true, 0);          // time stands still while held
-            BuildPlayers(null);
+            SetClock(Stage.Fps, !MustBeRealTime, 0);          // time stands still while held
+            BuildPlayers(Stage.performer.Length > 0 ? new[] { Stage.performer } : null, true);
             State = StudioState.Held;
             Frame = Mathf.Clamp(frame, 0, Stage.Frames - 1);
             ShowFrame(Frame, false);
             Notify();
         }
 
-        static void BuildPlayers(ICollection<string> except)
+        static void BuildPlayers(ICollection<string> except, bool setWorld = false)
         {
             DisposePlayers();
             var tape = Stage.tape;
@@ -144,7 +168,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         Debug.LogWarning($"Trailer Studio: {track.name} could not be played. {error.Message}");
                     }
                 }
-            if (!worldPlayed && except == null) SetWorldKinematic(false);
+            if (!worldPlayed && (except == null || setWorld)) SetWorldKinematic(false);
         }
 
         // The map's own multiplayer "replica" switch: kinematic blocks that something else moves.
@@ -203,78 +227,151 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // ---- Recording ----
 
+        const float PunchLeadSeconds = 2, JoinBlendSeconds = .2f;
+
         static IEnumerator<int> RecordRoutine(StudioPass pass)
         {
             var stage = Stage;
             var set = stage.set;
+            currentPass = pass;
             int to = pass.to < 0 ? stage.Frames - 1 : Mathf.Min(pass.to, stage.Frames - 1);
-            Status = pass.label + ": getting ready…";
-            DisposePlayers();
-            StudioCast.ClearLive(stage);
-            CueLog.Clear();
-            SetClock(stage.Fps, true, 1);
+            bool clock = pass.fixedClock && !MustBeRealTime;
+            int loops = 0;
 
-            if (pass.liveWorld)
+            while (true)
             {
-                // A fresh map, so every take of the world starts from the same blocks.
-                DemoDisasters.StopAll(stage.session);
-                stage.session.ResetMap();
-                for (int n = 0; n < 3; n++) yield return 0;
-                stage.world = Services.World;
-                stage.RefreshBlocks();
-                stage.tape.header.blocks = stage.blocks.Length;
-                SetWorldKinematic(false);
-                ApplyStartState(stage);
-                StudioCast.Park(stage);
-                UnityEngine.Random.InitState(set.seed);
-                for (int n = 0; n < Mathf.CeilToInt(set.warmup * set.fps); n++) yield return 0;
+                Status = pass.label + ": getting ready…";
+                DisposePlayers();
+                StudioCast.ClearLive(stage);
+                CueLog.Clear();
+                SetClock(stage.Fps, !MustBeRealTime, 1);
+
+                StudioTake oldWorld = stage.tape.FindType(WorldTrack.Id)?.ActiveTake;
+                if (pass.liveWorld)
+                {
+                    // A fresh map, so every take of the world starts from the same blocks.
+                    DemoDisasters.StopAll(stage.session);
+                    stage.session.ResetMap();
+                    for (int n = 0; n < 3; n++) yield return 0;
+                    stage.world = Services.World;
+                    stage.RefreshBlocks();
+                    stage.tape.header.blocks = stage.blocks.Length;
+                    SetWorldKinematic(false);
+                    ApplyStartState(stage);
+                    StudioCast.Park(stage);
+                    UnityEngine.Random.InitState(set.seed);
+                    for (int n = 0; n < Mathf.CeilToInt(set.warmup * set.fps); n++) yield return 0;
+                }
+
+                // Who is live: bots and stand-ins for recorded marks, and the performer in the local player's body.
+                // Whatever the map did while rebuilding, the Studio's own clock and camera must exist.
+                StudioDrivers.Ensure();
+                if (!StudioCamera.Camera) StudioCamera.Create(stage);
+                StudioCast.SpawnLive(stage, pass);
+                Debug.Log($"[TrailerStudio] {pass.label}: {stage.blocks.Length} blocks, {stage.live.Count} live, live world {pass.liveWorld}");
+                var performer = string.IsNullOrEmpty(pass.performer) ? null : set.Mark(pass.performer);
+                if (performer != null) StudioCast.Perform(stage, performer);
+                else if (stage.performer.Length > 0) StudioCast.LeaveBody(stage);
+                stage.recording = true;
+                stage.physicalPlayback = !pass.liveWorld && stage.live.Count > 0;
+                BuildPlayers(pass.record, true);
+                StudioPaths.Show(stage, pass);
+
+                // Punch-in: follow the performer's old take up to the punch frame, then hand over control.
+                leadTake = null;
+                int lead = Mathf.Max(0, pass.preRoll);
+                if (pass.punchIn && performer != null)
+                {
+                    leadTake = stage.tape.Find(performer.id)?.ActiveTake;
+                    if (leadTake == null || !leadTake.Covers(Mathf.Max(0, pass.from - 1))) leadTake = null;
+                    else lead = Mathf.Max(lead, Mathf.RoundToInt(PunchLeadSeconds * stage.Fps));
+                }
+                int startFrame = Mathf.Max(0, pass.from - lead);
+                ShowFrame(startFrame, false);
+                if (leadTake != null) StudioCast.Follow(stage, performer, leadTake, startFrame);
+                else if (performer != null) StudioCast.PlaceOnMark(stage, performer);
+                yield return 0;   // let new characters finish their first frame
+
+                // 3, 2, 1: time stands still while the performer gets ready.
+                if (pass.countdown > 0 && performer != null)
+                {
+                    SetClock(stage.Fps, false, 0);
+                    StudioCast.SuspendInput(stage, true);
+                    float end = Time.unscaledTime + pass.countdown;
+                    while (Time.unscaledTime < end && !stopAsked)
+                    {
+                        Countdown = end - Time.unscaledTime;
+                        Notify();
+                        yield return 0;
+                    }
+                    Countdown = 0;
+                    if (stopAsked) break;
+                }
+                if (performer != null) StudioCast.SuspendInput(stage, leadTake != null);
+
+                DisposeRecorders();
+                foreach (string id in pass.record)
+                {
+                    var track = stage.tape.Find(id);
+                    var type = track == null ? null : StudioTrackTypes.Get(track.type);
+                    var recorder = type?.CreateRecorder(stage, track);
+                    if (recorder == null) continue;
+                    recorders.Add(new ActiveRecorder { track = track, recorder = recorder,
+                        take = new StudioTake { start = pass.from, keyEvery = recorder.KeyEvery } });
+                }
+                pendingCues.Clear();
+                if (pass.liveWorld) pendingCues.AddRange(set.cues.Where(c => c.at >= startFrame / (float)stage.Fps - .0001f).OrderBy(c => c.at));
+
+                Begin(startFrame, to, clock, pass.speed, null);
+                recordFrom = pass.from; capturedTo = pass.from - 1;
+                Recording = true;
+                Status = pass.label + ": recording.";
+                Notify();
+                Debug.Log($"[TrailerStudio] {pass.label}: rolling from frame {startFrame} to {to}, {recorders.Count} recorders, fixed clock {clock}");
+                foreach (int wait in WaitForRun()) yield return wait;
+
+                // Keep every take, even a bad one. The newest becomes the active take.
+                Recording = false;
+                int kept = 0;
+                StudioTake newWorld = null;
+                foreach (var active in recorders)
+                {
+                    if (active.take.frames.Count == 0) continue;
+                    var take = active.take;
+                    take.meta = active.recorder.Meta;
+                    bool actor = active.track.type == SurvivorTrack.Id || active.track.type == HandTrack.Id;
+                    if (actor && leadTake != null && active.track.id == pass.performer)
+                        StudioTakes.JoinAfterPunch(active.track.type, leadTake, take, Mathf.RoundToInt(JoinBlendSeconds * stage.Fps));
+                    take.name = "Take " + (active.track.takes.Count + 1);
+                    active.track.takes.Add(take);
+                    active.track.active = active.track.takes.Count - 1;
+                    active.track.badge = "";
+                    StudioTrackNotes.Update(active.track, n => n.staleFrame = -1);
+                    if (active.track.type == WorldTrack.Id) newWorld = take;
+                    kept++;
+                }
+                // Remember which world each actor take was performed against, and flag takes the new world made stale.
+                var world = newWorld ?? oldWorld;
+                foreach (var active in recorders)
+                    if ((active.track.type == SurvivorTrack.Id || active.track.type == HandTrack.Id) && active.take.frames.Count > 0)
+                        active.take.meta = StudioTakes.WorldMeta(world?.id ?? "");
+                if (newWorld != null) StudioTakes.MarkStale(stage.tape, newWorld, stage.Fps, recorders.Select(r => r.track.id).ToList());
+                DisposeRecorders();
+                if (pass.liveWorld) DemoDisasters.StopAll(stage.session);
+                StudioCast.ClearLive(stage);
+                stage.tape.header.frames = stage.Frames;
+                SaveTape();
+                loops++;
+                Status = $"{pass.label}: recorded {kept} tracks, {Mathf.Max(0, capturedTo - pass.from + 1)} frames" + (loops > 1 ? $" (loop {loops})" : "") +
+                    $". Tape is {StudioTape.Size(new System.IO.FileInfo(stage.tape.path).Length)}.";
+                Debug.Log("[TrailerStudio] " + Status);
+                // Loop record: go again with a new take until someone presses stop.
+                if (!pass.loop || stopAsked) break;
             }
-
-            StudioCast.SpawnLive(stage, pass);
-            stage.recording = true;
-            stage.physicalPlayback = !pass.liveWorld && stage.live.Count > 0;
-            BuildPlayers(pass.record);
-            yield return 0;   // let new characters finish their first frame
-
-            DisposeRecorders();
-            foreach (string id in pass.record)
-            {
-                var track = stage.tape.Find(id);
-                var type = track == null ? null : StudioTrackTypes.Get(track.type);
-                var recorder = type?.CreateRecorder(stage, track);
-                if (recorder == null) continue;
-                recorders.Add(new ActiveRecorder { track = track, recorder = recorder,
-                    take = new StudioTake { start = pass.from, keyEvery = recorder.KeyEvery } });
-            }
-            pendingCues.Clear();
-            if (pass.liveWorld) pendingCues.AddRange(set.cues.OrderBy(c => c.at));
-
-            Begin(pass.from, to, pass.fixedClock, pass.speed, null);
-            Recording = true;
-            Status = pass.label + ": recording.";
-            Notify();
-            while (running) yield return 0;
-
-            // Keep every take, even a bad one. The newest becomes the active take.
-            Recording = false;
-            int kept = 0;
-            foreach (var active in recorders)
-            {
-                if (active.take.frames.Count == 0) continue;
-                active.take.meta = active.recorder.Meta;
-                active.take.name = "Take " + (active.track.takes.Count + 1);
-                active.track.takes.Add(active.take);
-                active.track.active = active.track.takes.Count - 1;
-                active.track.badge = "";
-                kept++;
-            }
-            DisposeRecorders();
-            if (pass.liveWorld) DemoDisasters.StopAll(stage.session);
-            StudioCast.ClearLive(stage);
-            stage.tape.header.frames = stage.Frames;
-            SaveTape();
+            leadTake = null;
+            string done = Status;
             Hold(pass.from);
-            Status = $"{pass.label}: recorded {kept} tracks, {capturedTo - pass.from + 1} frames. Tape is {StudioTape.Size(new System.IO.FileInfo(stage.tape.path).Length)}.";
+            Status = done;
             Notify();
         }
 
@@ -285,14 +382,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var stage = Stage;
             to = to < 0 ? stage.Frames - 1 : Mathf.Min(to, stage.Frames - 1);
             StudioCast.ClearLive(stage);
+            StudioCast.LeaveBody(stage);
             stage.physicalPlayback = false;
             BuildPlayers(null);
             var report = new StudioDrift();
-            Begin(from, to, !realTime, speed, report);
+            Begin(from, to, !realTime && !MustBeRealTime, speed, report);
+            recordFrom = from;
             Status = "Playing.";
             Notify();
             var watch = System.Diagnostics.Stopwatch.StartNew();
-            while (running) yield return 0;
+            foreach (int wait in WaitForRun()) yield return wait;
             LastDrift = report;
             // Honest status: say when a real-time playback could not keep up.
             float expected = (Frame - from + 1) / (float)stage.Fps / Mathf.Max(.01f, speed);
@@ -303,9 +402,23 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Notify();
         }
 
+        // Wait for the frame loop to finish. If the tape stops moving for 20 real seconds, say why instead of hanging.
+        static IEnumerable<int> WaitForRun()
+        {
+            int seen = Frame; float since = Time.realtimeSinceStartup;
+            while (running)
+            {
+                if (Frame != seen || Countdown > 0) { seen = Frame; since = Time.realtimeSinceStartup; }
+                else if (Time.realtimeSinceStartup - since > 20)
+                    throw new TimeoutException($"The tape stopped at frame {Frame}. Driver alive: {StudioDrivers.Alive}, " +
+                        $"time scale {Time.timeScale}, started {runStart >= 0}, editor paused {UnityEditor.EditorApplication.isPaused}.");
+                yield return 0;
+            }
+        }
+
         static void Begin(int from, int to, bool useFixedClock, float speed, StudioDrift report)
         {
-            firstFrame = from; lastFrame = to; capturedTo = from - 1;
+            firstFrame = from; lastFrame = to; capturedTo = from - 1; recordFrom = from;
             fixedClock = useFixedClock; drift = report;
             runStart = -1;
             Frame = from;
@@ -339,15 +452,23 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             ShowFrame(Frame, true);
             StudioCast.SimulateStandIns(Stage);
+
+            // Punch-in lead: the performer rides along their old take, then gets control at the punch frame.
+            if (leadTake != null && currentPass != null && Recording)
+            {
+                var mark = Stage.set.Mark(currentPass.performer);
+                if (mark != null && Frame < recordFrom) StudioCast.Follow(Stage, mark, leadTake, Frame);
+                else { StudioCast.SuspendInput(Stage, false); }
+            }
         }
 
         internal static void FrameEnd()
         {
             if (!running || Stage == null || runStart < 0) return;
-            if (Recording)
+            if (Recording && Frame >= recordFrom)
             {
                 // In real time a slow rendered frame can span several tape frames; fill each one.
-                for (int frame = capturedTo + 1; frame <= Frame; frame++)
+                for (int frame = Mathf.Max(capturedTo + 1, recordFrom); frame <= Frame; frame++)
                     foreach (var active in recorders)
                     {
                         int index = frame - active.take.start;

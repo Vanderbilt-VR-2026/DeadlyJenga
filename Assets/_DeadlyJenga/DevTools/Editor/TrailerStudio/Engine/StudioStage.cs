@@ -18,6 +18,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public Rigidbody[] blocks = new Rigidbody[0];
         public bool physicalPlayback;             // true while something live shares the scene with playback
         public bool recording;
+        public string performer = "";             // mark id the local player is playing right now (empty = nobody)
 
         // Live characters by mark id (bots, or the local player while performing).
         public readonly Dictionary<string, GameObject> live = new Dictionary<string, GameObject>();

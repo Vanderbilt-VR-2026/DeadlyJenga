@@ -57,6 +57,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public string startFromSet = "";  // empty = start as the map loads
         public int startFromFrame;
         public string thumbnail = "";
+        public bool handBot;              // true = hand marks are flown by the game's hand bot instead of performed
         public List<StudioMark> marks = new List<StudioMark>();
         public List<StudioCue> cues = new List<StudioCue>();
         public List<StudioShot> shots = new List<StudioShot>();
