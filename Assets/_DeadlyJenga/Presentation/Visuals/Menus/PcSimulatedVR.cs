@@ -36,6 +36,8 @@ namespace DeadlyJenga.Presentation
         public bool TestJump, TestSprint, TestTrigger, TestGrip;
         // A controller that is put down stops being tracked (the game then looks for a tracked hand).
         public bool TestLeftUntracked, TestRightUntracked;
+        // A simulated controller counts as held (a thumb resting on its stick) unless a script says it is lying somewhere.
+        public bool TestLeftResting, TestRightResting;
         // Exact controller poses in tracking space, and analog trigger/grip (0..1), when a script sets them.
         public Pose? TestLeftPose, TestRightPose;
         public float TestLeftTrigger = -1, TestLeftGrip = -1, TestRightTrigger = -1, TestRightGrip = -1;
@@ -153,12 +155,13 @@ namespace DeadlyJenga.Presentation
                 isTracked = !TestRightUntracked, trackingState = TestRightUntracked ? 0 : 3, batteryLevel = 1f,
             };
             l = l.WithButton(ControllerButton.Primary2DAxisClick, TestSprint || Held(kb?.leftShiftKey))
-                 .WithButton(ControllerButton.Primary2DAxisTouch, stick != Vector2.zero)
+                 .WithButton(ControllerButton.Primary2DAxisTouch, stick != Vector2.zero || !TestLeftResting)
                  .WithButton(ControllerButton.PrimaryButton, Held(kb?.zKey))
                  .WithButton(ControllerButton.SecondaryButton, Held(kb?.xKey))
                  .WithButton(ControllerButton.MenuButton, Held(kb?.mKey))
                  .WithButton(ControllerButton.UserPresence, true);
-            r = r.WithButton(ControllerButton.PrimaryButton, TestJump || Held(kb?.spaceKey))
+            r = r.WithButton(ControllerButton.Primary2DAxisTouch, !TestRightResting)
+                 .WithButton(ControllerButton.PrimaryButton, TestJump || Held(kb?.spaceKey))
                  .WithButton(ControllerButton.SecondaryButton, Held(kb?.fKey))
                  .WithButton(ControllerButton.UserPresence, true);
 

@@ -109,7 +109,7 @@ namespace DeadlyJenga.DevTools.Editor
         // ---------- what each emulated hand is doing ----------
         sealed class Side
         {
-            public bool controllerTracked, handTracked;
+            public bool controllerTracked, handTracked, resting;   // resting: the controller is lying somewhere, not held
             public Pose controller, wrist;          // tracking space
             public float grip, trigger;
             public CandyHandSkeleton joints;        // wrist-local, real-hand proportions
@@ -121,6 +121,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             var vr = PcSimulatedVR.Instance; var hands = SimulatedTrackedHands.Instance;
             if (!vr || !hands) return;
+            vr.TestLeftResting = leftSide.resting; vr.TestRightResting = rightSide.resting;
             vr.TestLeftUntracked = !leftSide.controllerTracked; vr.TestLeftPose = leftSide.controller; vr.TestLeftGrip = leftSide.grip; vr.TestLeftTrigger = leftSide.trigger;
             vr.TestRightUntracked = !rightSide.controllerTracked; vr.TestRightPose = rightSide.controller; vr.TestRightGrip = rightSide.grip; vr.TestRightTrigger = rightSide.trigger;
             if (leftSide.rawJoints != null) hands.Set(true, leftSide.handTracked, leftSide.wrist, leftSide.rawJoints); else hands.Set(true, leftSide.handTracked, leftSide.wrist, leftSide.joints);
@@ -265,7 +266,7 @@ namespace DeadlyJenga.DevTools.Editor
 
             // 2. Put the right controller down and use the bare hand: dual joystick becomes joystick plus hand.
             Vector3 desk = RightHome + new Vector3(.15f, -.35f, .1f);
-            rightSide.grip = rightSide.trigger = 0; rightSide.controller = new Pose(desk, Quaternion.Euler(0, 40, 90));
+            rightSide.grip = rightSide.trigger = 0; rightSide.controller = new Pose(desk, Quaternion.Euler(0, 40, 90)); rightSide.resting = true;
             yield return Wait(.3f);
             Watch();
             rightSide.controllerTracked = false; rightSide.handTracked = true;
@@ -345,7 +346,7 @@ namespace DeadlyJenga.DevTools.Editor
             Judge("Bare hand found again");
 
             // 5. Really pick the controller back up: it moves in the hand.
-            rightSide.handTracked = false; rightSide.controllerTracked = true; yield return Wait(.2f);
+            rightSide.handTracked = false; rightSide.controllerTracked = true; rightSide.resting = false; yield return Wait(.2f);
             start = Time.time;
             while (Time.time - start < .6f) { rightSide.controller = new Pose(Vector3.Lerp(desk, RightHome, (Time.time - start) / .6f), Quaternion.Slerp(Quaternion.Euler(0, 40, 90), Quaternion.identity, (Time.time - start) / .6f)); yield return null; }
             rightSide.controller = new Pose(RightHome, Quaternion.identity);
