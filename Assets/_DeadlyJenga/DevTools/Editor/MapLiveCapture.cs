@@ -42,7 +42,7 @@ namespace DeadlyJenga.DevTools.Editor
             public string output = "", gallery = "", clip = "";
             public float seconds = 6, settle = 6;
             public int fps = 30, clipWidth = 1280, clipHeight = 720, width = 1600, height = 1100;
-            public bool open, batch, written, lobby;
+            public bool open, batch, written, lobby, diagnose;
             public int spots = 40;
             public List<string> failed = new();
         }
@@ -71,6 +71,7 @@ namespace DeadlyJenga.DevTools.Editor
             string Arg(string name) { int i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
             var j = new Job { batch = true, open = args.Contains("-open"), output = Arg("-mapOut") ?? "", clip = (Arg("-mapClip") ?? "").ToLowerInvariant() };
             string view = (Arg("-mapView") ?? (j.clip.Length > 0 ? "none" : "hero")).ToLowerInvariant();
+            j.diagnose = args.Contains("-diagnose");
             j.views = view == "all" ? MapPictureRig.AllViews : view == "none" ? Array.Empty<string>() : new[] { view };
             if (float.TryParse(Arg("-settle"), out float settle)) j.settle = Mathf.Clamp(settle, 1, 60);
             if (float.TryParse(Arg("-clipSeconds"), out float sec)) j.seconds = Mathf.Clamp(sec, 1, 60);
@@ -232,6 +233,8 @@ namespace DeadlyJenga.DevTools.Editor
                 foreach (var r in actor.gameObject.GetComponentsInChildren<Renderer>(true)) r.forceRenderingOff = true;
             }
             foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) canvas.enabled = false;
+            var tablet = GameObject.Find("Headset player tablet");
+            if (tablet) tablet.SetActive(false);
         }
 
         static void Shoot(string id, IWorldQuery world, ISessionInfo session)
@@ -255,7 +258,9 @@ namespace DeadlyJenga.DevTools.Editor
             else if (renderers.Length > 0) { bounds = renderers[0].bounds; foreach (var r in renderers.Skip(1)) bounds.Encapsulate(r.bounds); }
             else bounds = new Bounds(world.Center + Vector3.up * world.TopHeight * .5f, new Vector3(world.Radius * 2, Mathf.Max(4, world.TopHeight), world.Radius * 2));
 
+            bounds = ClampToPlayArea(bounds, world);
             var game = session.ActiveCamera;
+            if (job.diagnose) Diagnose(id, world, root, renderers, bounds, game);
             var camera = new GameObject("Live map picture camera", typeof(Camera)).GetComponent<Camera>();
             try
             {
@@ -269,6 +274,7 @@ namespace DeadlyJenga.DevTools.Editor
                 data.allowXRRendering = false;
                 if (game) { var g = game.GetUniversalAdditionalCameraData(); data.renderPostProcessing = g.renderPostProcessing; data.volumeLayerMask = g.volumeLayerMask; }
 
+                fogFocus = bounds.center; fogRadius = bounds.extents.magnitude;
                 string lobby = Path.Combine(LobbyFolder(), id + ".png");
                 bool single = job.maps.Count == 1 && job.views.Length == 1 && job.clip.Length == 0 && Path.HasExtension(job.output);
                 foreach (var view in job.views)
@@ -299,6 +305,52 @@ namespace DeadlyJenga.DevTools.Editor
             finally { Object.Destroy(camera.gameObject); }
         }
 
+        // Big ground plates, snowfall and backdrops can be far larger than where people play.
+        // Keep the frame inside the map's playable radius (flat maps such as Christmas Town especially).
+        static Bounds ClampToPlayArea(Bounds bounds, IWorldQuery world)
+        {
+            if (world == null || world.Radius <= 0) return bounds;
+            float half = world.Radius * 1.1f;
+            var c = world.Center;
+            float minY = Mathf.Max(bounds.min.y, world.WaterHeight(c) - 1), maxY = Mathf.Min(bounds.max.y, c.y + Mathf.Max(world.TopHeight, 4) + world.Radius * .6f);
+            if (maxY <= minY) maxY = minY + 4;
+            float hx = Mathf.Min(bounds.extents.x, half), hz = Mathf.Min(bounds.extents.z, half);
+            var clamped = new Bounds();
+            clamped.SetMinMax(new Vector3(c.x - hx, minY, c.z - hz), new Vector3(c.x + hx, maxY, c.z + hz));
+            return clamped;
+        }
+
+        // -diagnose: write what was actually loaded and a frame through the game's own camera, for comparison.
+        static void Diagnose(string id, IWorldQuery world, Transform root, Renderer[] kept, Bounds bounds, Camera game)
+        {
+            var all = Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"map {id}: world {world.GetType().Name} on '{root?.name}' scene '{root?.gameObject.scene.name}' center {world.Center} radius {world.Radius} top {world.TopHeight} water {world.WaterHeight(world.Center)}");
+            sb.AppendLine($"blocks {world.Blocks.Count}; renderers under map {(root ? root.GetComponentsInChildren<Renderer>(false).Length : 0)}; kept for framing {kept.Length}; scene renderers {all.Length}");
+            sb.AppendLine($"framed bounds center {bounds.center} size {bounds.size}");
+            foreach (var big in all.Where(r => r.enabled).OrderByDescending(r => r.bounds.size.magnitude).Take(8))
+                sb.AppendLine($"  big renderer '{big.name}' parent '{big.transform.parent?.name}' size {big.bounds.size} at {big.bounds.center} layer {big.gameObject.layer}");
+            var roots = root ? root.gameObject.scene.GetRootGameObjects() : Array.Empty<GameObject>();
+            sb.AppendLine("scene roots: " + string.Join(", ", roots.Select(g => g.name + (g.activeInHierarchy ? "" : "(off)"))));
+            if (game)
+            {
+                var d = game.GetUniversalAdditionalCameraData();
+                sb.AppendLine($"game camera '{game.name}' pos {game.transform.position} fwd {game.transform.forward} mask {game.cullingMask} clear {game.clearFlags} far {game.farClipPlane} post {d.renderPostProcessing} type {d.renderType}");
+                string path = Path.Combine(job.gallery, id + "-gamecamera.png");
+                var rt = RenderTexture.GetTemporary(1280, 720, 24);
+                var old = game.targetTexture; game.targetTexture = rt; game.Render(); game.targetTexture = old;
+                var prev = RenderTexture.active; RenderTexture.active = rt;
+                var img = new Texture2D(1280, 720, TextureFormat.RGB24, false); img.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0); img.Apply();
+                RenderTexture.active = prev; RenderTexture.ReleaseTemporary(rt);
+                Directory.CreateDirectory(job.gallery); File.WriteAllBytes(path, img.EncodeToPNG()); Object.Destroy(img);
+                sb.AppendLine("game camera frame: " + path);
+            }
+            sb.AppendLine($"lights on: {Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Count(l => l.enabled)}; ambient {RenderSettings.ambientMode} {RenderSettings.ambientSkyColor}; skybox {RenderSettings.skybox?.name}");
+            Directory.CreateDirectory(job.gallery);
+            File.WriteAllText(Path.Combine(job.gallery, id + "-diagnose.txt"), sb.ToString());
+            Debug.Log("MAP DIAGNOSE " + sb);
+        }
+
         static Camera MakeCamera(ISessionInfo session)
         {
             var game = session.ActiveCamera;
@@ -327,6 +379,7 @@ namespace DeadlyJenga.DevTools.Editor
             var bounds = new Bounds(middle, Vector3.one * Mathf.Max(20, worldRadius * 2));
             foreach (var r in renderers) bounds.Encapsulate(r.bounds);
             var camera = MakeCamera(session);
+            fogFocus = bounds.center; fogRadius = bounds.extents.magnitude;
             float aspect = job.width / (float)job.height;
             int shot = 0;
             void Take(Vector3 position, Vector3 lookAt, string label, float fov)
@@ -423,7 +476,36 @@ namespace DeadlyJenga.DevTools.Editor
             finally { Object.Destroy(camera.gameObject); }
         }
 
+        // Subject the shot is about (set before each Render); fog is pushed just past it for the picture.
+        static Vector3 fogFocus; static float fogRadius;
+        static readonly int NinjaFog = Shader.PropertyToID("_NinjaFogParams");
+
         static void Render(Camera camera, int width, int height, string path)
+        {
+            bool fog = RenderSettings.fog; var mode = RenderSettings.fogMode;
+            float start = RenderSettings.fogStartDistance, end = RenderSettings.fogEndDistance, density = RenderSettings.fogDensity;
+            if (fog && fogRadius > 0)
+            {
+                float d = Vector3.Distance(camera.transform.position, fogFocus);
+                if (mode == FogMode.Linear) { if (end < d + fogRadius * 1.5f) { RenderSettings.fogStartDistance = Mathf.Max(start, d - fogRadius * .2f); RenderSettings.fogEndDistance = d + fogRadius * 3f; } }
+                else RenderSettings.fogDensity = Mathf.Min(density, 1.2f / (d + fogRadius));
+            }
+            // Maps with their own shader fog (Ninja Temple) keep start/end in a global; push it out the same way.
+            var customFog = Shader.GetGlobalVector(NinjaFog);
+            if (fogRadius > 0 && customFog.y > customFog.x && customFog.x > 0)
+            {
+                float d = Vector3.Distance(camera.transform.position, fogFocus);
+                Shader.SetGlobalVector(NinjaFog, new Vector4(Mathf.Max(customFog.x, d - fogRadius * .2f), Mathf.Max(customFog.y, d + fogRadius * 3f), customFog.z, customFog.w));
+            }
+            try { RenderNow(camera, width, height, path); }
+            finally
+            {
+                RenderSettings.fogStartDistance = start; RenderSettings.fogEndDistance = end; RenderSettings.fogDensity = density;
+                Shader.SetGlobalVector(NinjaFog, customFog);
+            }
+        }
+
+        static void RenderNow(Camera camera, int width, int height, string path)
         {
             var target = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default, 4);
             var image = new Texture2D(width, height, TextureFormat.RGB24, false);
