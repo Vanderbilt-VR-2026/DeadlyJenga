@@ -198,8 +198,9 @@ namespace DeadlyJenga.CandyArt
             new Color(.18f, .27f, .51f), new Color(.75f, .46f, .18f), new Color(.33f, .49f, .44f)
         };
 
-        Material WallCover() => Surface("Cobalt botanical wallcovering", "Botanical Paper", new Color(.06f, .15f, .70f),
-            .28f, new Vector2(13, 5), 0f, .38f);
+        // Warm cream walls, like the family rooms in Evan's photos.
+        Material WallCover() => Surface("Cream botanical wallcovering", "Botanical Paper", new Color(.96f, .87f, .70f),
+            .22f, new Vector2(13, 5), 0f, .3f);
 
         // The family room: the tree stands in the north-east corner, the room opens out to the
         // south and west. Map units; the map root is the origin.
@@ -250,10 +251,8 @@ namespace DeadlyJenga.CandyArt
             Box("Window transom", new Vector3((WindowWest + WindowEast) * .5f, 160f, RoomNorth - 2f), new Vector3(WindowEast - WindowWest, 3f, 5f), casing);
             for (float x = WindowWest; x <= WindowEast + .1f; x += (WindowEast - WindowWest) / 4f)
                 Box("Window mullion", new Vector3(x, (WindowSill + WindowHead) * .5f, RoomNorth - 2f), new Vector3(3f, WindowHead - WindowSill, 5f), casing);
-            NightWindow("Lower window snow", new Vector3((WindowWest + WindowEast) * .5f, (WindowSill + 160f) * .5f, RoomNorth + 1.3f),
-                new Vector2(WindowEast - WindowWest, 160f - WindowSill), Quaternion.identity);
-            NightWindow("Upper window snow", new Vector3((WindowWest + WindowEast) * .5f, (160f + WindowHead) * .5f, RoomNorth + 1.3f),
-                new Vector2(WindowEast - WindowWest, WindowHead - 160f), Quaternion.identity);
+            // A real 3-D snowy night outside instead of a photo (UnderneathTreeFinish.Outside.cs).
+            BuildOutdoorView();
 
             // Stone fireplace on the east wall (see UnderneathTreeFinish.Fireplace.cs).
             BuildFireplace();

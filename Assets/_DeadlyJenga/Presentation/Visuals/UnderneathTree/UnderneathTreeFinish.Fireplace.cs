@@ -325,42 +325,75 @@ namespace DeadlyJenga.CandyArt
                 var t = Primitive("Fire log", PrimitiveType.Cylinder, log.Item1, new Vector3(log.Item3, log.Item4 * .5f, log.Item3), log.Item5);
                 t.localRotation = Quaternion.Euler(log.Item2);
             }
-            var tiers = new[] {
-                (Glow("Deep orange flame", new Color(1f, .18f, .02f), 2.4f), 9, 13f, 22f, 4.5f),
-                (Glow("Orange flame", new Color(1f, .42f, .05f), 3.4f), 11, 9f, 16f, 3.4f),
-                (Glow("Yellow flame core", new Color(1f, .78f, .30f), 5f), 9, 5f, 10f, 2.4f),
-            };
-            var rand = new System.Random(2114);
-            int index = 0;
-            foreach (var tier in tiers)
-                for (int i = 0; i < tier.Item2; i++)
-                {
-                    var pos = new Vector3(midX + Range(rand, -3f, 3f), floor + 9f + Range(rand, 0f, 3f), HearthZ + Range(rand, -19f, 19f));
-                    float height = Range(rand, tier.Item3, tier.Item4);
-                    var flame = Primitive("Hearth flame", PrimitiveType.Sphere, pos + Vector3.up * height * .45f,
-                        new Vector3(tier.Item5 * .8f, height, tier.Item5 * Range(rand, .9f, 1.6f)), tier.Item1);
-                    var mesh = Object.Instantiate(flame.GetComponent<MeshFilter>().sharedMesh);
-                    var v = mesh.vertices;
-                    for (int k = 0; k < v.Length; k++)
-                    {
-                        var p = v[k];
-                        float rise = p.y + .5f;
-                        float taper = Mathf.Lerp(1.05f, .06f, rise * rise);
-                        p.z = p.z * taper + Mathf.Sin(rise * 4f + index) * rise * .2f;
-                        p.x *= taper;
-                        v[k] = p;
-                    }
-                    mesh.vertices = v;
-                    mesh.RecalculateNormals();
-                    mesh.RecalculateBounds();
-                    meshes.Add(mesh);
-                    flame.GetComponent<MeshFilter>().sharedMesh = mesh;
-                    flame.localRotation = Quaternion.Euler(Range(rand, -14f, 14f), 0f, 0f);
-                    flame.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
-                    flames.Add((flame, flame.localScale, index * 1.7f));
-                    index++;
-                }
+            // Flames are many soft glowing tongues that rise, lick and fade, drawn by a small
+            // additive shader, so the fire has depth from every side (and in each VR eye).
+            var flameShader = Resources.Load<Shader>(ResourcePath + "Christmas Flame");
+            if (flameShader)
+            {
+                var bed = new Vector3(midX + 1f, floor + 14f, HearthZ);
+                // Big outer flames: orange to deep red.
+                FlameLayer("Fire outer flames", flameShader, bed, new Vector3(9f, 1f, 34f), 85f, .65f, 1.2f, 19f, 30f, 6f, 12f, 1.3f,
+                    new Color(1f, .62f, .18f), new Color(1f, .28f, .04f), new Color(.6f, .05f, .01f));
+                // Bright yellow-white core low on the logs.
+                FlameLayer("Fire hot core", flameShader, bed + Vector3.down * 2f, new Vector3(6f, 1f, 26f), 70f, .35f, .6f, 8f, 13f, 4f, 8f, 1.8f,
+                    new Color(1f, .95f, .70f), new Color(1f, .72f, .26f), new Color(1f, .30f, .05f));
+                // A dim orange haze behind, so the fire fills the box with light.
+                FlameLayer("Fire glow haze", flameShader, bed + Vector3.right * 4f, new Vector3(4f, 1f, 30f), 10f, 1.0f, 1.6f, 26f, 36f, 3f, 6f, .35f,
+                    new Color(1f, .40f, .08f), new Color(.9f, .22f, .03f), new Color(.3f, .03f, .0f));
+            }
             BuildSparks(new Vector3(midX, floor + 14f, HearthZ));
+        }
+
+        void FlameLayer(string label, Shader shader, Vector3 at, Vector3 area, float rate, float lifeMin, float lifeMax,
+            float sizeMin, float sizeMax, float speedMin, float speedMax, float strength, Color young, Color middle, Color old)
+        {
+            var obj = new GameObject(label);
+            obj.transform.SetParent(art, false);
+            obj.transform.localPosition = at;
+            var fire = obj.AddComponent<ParticleSystem>();
+            fire.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = fire.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(lifeMin, lifeMax);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(speedMin, speedMax);
+            main.startSize = new ParticleSystem.MinMaxCurve(sizeMin, sizeMax);
+            main.startRotation = new ParticleSystem.MinMaxCurve(-.15f, .15f);
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.maxParticles = Mathf.CeilToInt(rate * lifeMax) + 8;
+            main.prewarm = true;
+            main.loop = true;
+            var emission = fire.emission;
+            emission.rateOverTime = rate;
+            var shape = fire.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            // Upright flame cards follow the system's own up, so the system stays level and only
+            // the emitter is aimed up. In the turned shape, y runs along the room's -z.
+            shape.rotation = new Vector3(-90f, 0f, 0f);
+            shape.scale = new Vector3(area.x, area.z, area.y);
+            var noise = fire.noise;
+            noise.enabled = true;
+            noise.strength = 3.5f;
+            noise.frequency = 1.4f;
+            noise.scrollSpeed = 1.2f;
+            var size = fire.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+                new Keyframe(0f, .55f), new Keyframe(.25f, 1f), new Keyframe(1f, .25f)));
+            var tint = fire.colorOverLifetime;
+            tint.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(young, 0f), new GradientColorKey(middle, .45f), new GradientColorKey(old, 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, .12f), new GradientAlphaKey(.8f, .6f), new GradientAlphaKey(0f, 1f) });
+            tint.color = gradient;
+            var material = new Material(shader) { name = label };
+            material.SetFloat("_Strength", strength);
+            materials.Add(material);
+            var renderer = obj.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.VerticalBillboard;
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            fire.Play();
         }
 
         void BuildSparks(Vector3 at)
