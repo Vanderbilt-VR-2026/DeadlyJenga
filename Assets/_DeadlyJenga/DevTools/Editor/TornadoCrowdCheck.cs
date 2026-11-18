@@ -108,7 +108,8 @@ namespace DeadlyJenga.DevTools.Editor
             if (frame % 10 == 0)
             {
                 mostGhosts = Mathf.Max(mostGhosts, Object.FindObjectsByType<CandyMelt>(FindObjectsSortMode.None).Length);
-                if (crowd != null) fewestAlive = Mathf.Min(fewestAlive, crowd.Members.Count());
+                // Members lists every bot, dead or not, so count the ones with health left.
+                if (crowd != null) fewestAlive = Mathf.Min(fewestAlive, crowd.Members.Count(m => m && m.GetComponent<IDamageable>() is IDamageable life && life.Health > 0));
             }
         }
         static void End(string what)

@@ -126,6 +126,15 @@ namespace DeadlyJenga.DevTools.Editor
             if (leftSide.rawJoints != null) hands.Set(true, leftSide.handTracked, leftSide.wrist, leftSide.rawJoints); else hands.Set(true, leftSide.handTracked, leftSide.wrist, leftSide.joints);
             if (rightSide.rawJoints != null) hands.Set(false, rightSide.handTracked, rightSide.wrist, rightSide.rawJoints); else hands.Set(false, rightSide.handTracked, rightSide.wrist, rightSide.joints);
         }
+        // Every XR controller the Input System has, and what the game makes of each side.
+        static void Devices(string when)
+        {
+            string text = "";
+            foreach (var device in UnityEngine.InputSystem.InputSystem.devices)
+                if (device is UnityEngine.InputSystem.XR.XRController controller)
+                    text += $" [{controller.name} usages={string.Join("/", controller.usages)} enabled={controller.enabled} tracked={controller.isTracked.isPressed} at={controller.devicePosition.ReadValue():F2}]";
+            Line($"DEVICES {when}:{text}; game sees left controller={HybridXRInput.ControllerTracked(true)} right controller={HybridXRInput.ControllerTracked(false)}; playing bare-handed left={HybridXRInput.PlayingBareHanded(true)} right={HybridXRInput.PlayingBareHanded(false)}");
+        }
         // Two controllers in use, as the game sees it.
         static bool Both() => HybridXRInput.ControllerTracked(true) && HybridXRInput.ControllerTracked(false);
         static CandyHandSkeleton Shape(bool left, DesktopHandPose pose, float clench = 0) =>
@@ -229,8 +238,12 @@ namespace DeadlyJenga.DevTools.Editor
             avatar = survivor.GetComponent<CandyPlayerAvatar>(); view = session.ActiveCamera;
             Check(survivor.IsVR && avatar && avatar.Rig && avatar.Rig.bodyRenderer, "The survivor is in VR with its avatar");
             if (!survivor.IsVR || !avatar || !avatar.Rig) yield break;
-            bones = avatar.Rig.bodyRenderer.bones;
-            Check(bones.Length == 44 && Both(), "Both emulated controllers are seen (dual joystick mode)");
+            // The rig's own bone list (palms at 4 and 7, fingers from 14). The renderer's list is not in that order.
+            bones = (Transform[])typeof(CandyPlayerRig).GetField("bones", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(avatar.Rig);
+            Line($"SETUP rig bones {bones.Length}; palm bones '{bones[4].name}' and '{bones[7].name}'; first right finger bone '{bones[14 + 15].name}'");
+            Devices("at start");
+            Check(bones.Length >= 44, "The avatar rig has its hand bones");
+            Check(Both(), "Both emulated controllers are seen (dual joystick mode)");
             var tracking = survivor.GetComponent<CandyTrackingSource>();
             var random = new System.Random(20261118); float R() => (float)random.NextDouble();
 
@@ -316,6 +329,7 @@ namespace DeadlyJenga.DevTools.Editor
             while (Time.time - start < .6f) { rightSide.controller = new Pose(Vector3.Lerp(desk, RightHome, (Time.time - start) / .6f), Quaternion.Slerp(Quaternion.Euler(0, 40, 90), Quaternion.identity, (Time.time - start) / .6f)); yield return null; }
             rightSide.controller = new Pose(RightHome, Quaternion.identity);
             yield return Wait(1.2f);
+            Devices("after picking the controller back up");
             Check(Both(), "Controller picked back up (moved): two-controller mode returns");
             Judge("Picking the controller back up", .25f);
 
@@ -336,14 +350,15 @@ namespace DeadlyJenga.DevTools.Editor
             // 7. Still quick afterwards? Flat to fist on the bare hand, timed by the drawn index finger.
             rightSide.controllerTracked = false; rightSide.handTracked = true; rightSide.wrist = new Pose(RightHome, Quaternion.identity); rightSide.joints = Shape(false, DesktopHandPose.Flat); rightSide.grip = 0;
             yield return Wait(1.5f);
-            rightSide.joints = Shape(false, DesktopHandPose.Fist); start = Time.time; float took = -1;
+            rightSide.joints = Shape(false, DesktopHandPose.Fist); start = Time.time; float took = -1, most = 0;
             while (Time.time - start < 1)
             {
                 yield return null;
                 float curl = Vector3.Angle(bones[7].rotation * Vector3.forward, bones[14 + 15 + 3 + 2].up);
+                most = Mathf.Max(most, curl);
                 if (curl > 150) { took = Time.time - start; break; }
             }
-            Line("QUICK flat to fist drawn in " + (took < 0 ? "more than 1.00" : took.ToString("F3")) + " s");
+            Line("QUICK flat to fist drawn in " + (took < 0 ? "more than 1.00" : took.ToString("F3")) + " s; index fingertip reached " + most.ToString("F0") + " deg from the palm's forward");
             Check(took >= 0 && took < .25f, "A real quick fist still arrives within a quarter of a second (" + took.ToString("F3") + " s)");
             Shot("7-fist");
             watching = false;
