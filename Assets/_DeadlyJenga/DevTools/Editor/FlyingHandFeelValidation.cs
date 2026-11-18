@@ -10,13 +10,17 @@ using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.CandyPhysicsHands;
 using FlyingHand;
 using DeadlyJenga.Core;
+using DeadlyJenga.DevTools;
+using DeadlyJenga.Presentation;
 using Object = UnityEngine.Object;
 
 namespace DeadlyJenga.HandValidation
 {
     // How the flying hand looks and feels: whole fingers in every input mode, firm contact, real grip.
     // Runs only when asked (menu or -executeMethod). Uses the real prefab in an empty scene; saves nothing.
-    // The tracked hand is a fixture (ICandyHandPoseSource) with real-hand proportions, not a headset.
+    // It runs twice. First with a fixture that hands poses straight to the hand (ICandyHandPoseSource), which allows
+    // exact numbers for contact and grip. Then through emulated XR: PcSimulatedVR's controllers and
+    // SimulatedTrackedHands' XR Hands joints, read by the game exactly as it reads a Quest. Still not a headset.
     [InitializeOnLoad]
     public static class FlyingHandFeelValidation
     {
@@ -65,6 +69,7 @@ namespace DeadlyJenga.HandValidation
             try
             {
                 if (work.Count == 0) { EditorApplication.update -= Tick; EditorApplication.ExitPlaymode(); return; }
+                if (xr) Pump();
                 if (watching) Sample();
                 var next = work.Peek();
                 if (!next.MoveNext()) { work.Pop(); return; }
@@ -90,9 +95,28 @@ namespace DeadlyJenga.HandValidation
             public CandyHandPose pose = new CandyHandPose
             {
                 tracked = true, skeletonTracked = true, position = new Vector3(.2f, 1.2f, .4f),
-                rotation = Quaternion.identity, skeleton = CandyHandSkeleton.Rest(false)
+                rotation = Quaternion.identity, skeleton = CandyHandSkeleton.Rest(L)
             };
             public bool TryGetPose(out CandyHandPose value) { value = pose; return pose.tracked; }
+            // Controller squeeze, for the emulated XR controller (the fixture carries it in the skeleton).
+            public float grip, trigger;
+            // XR only: joints to report instead of the skeleton, however broken.
+            public Vector3[] rawJoints;
+        }
+        // Which hand: the right one, unless the player's saved preference makes the game use the left in XR.
+        static bool L, xr;
+        static float Tolerance => xr ? 12 : 6;
+        // Emulated XR: every frame, report the commanded hand through the simulated devices.
+        static void Pump()
+        {
+            var vr = PcSimulatedVR.Instance; var hands = SimulatedTrackedHands.Instance;
+            if (!vr || !hands || input == null) return;
+            var p = input.pose; bool hand = p.tracked && p.skeletonTracked, controller = p.tracked && !p.skeletonTracked;
+            var wrist = new Pose(p.position, p.rotation);
+            if (L) { vr.TestLeftUntracked = !controller; vr.TestLeftPose = wrist; vr.TestLeftGrip = input.grip; vr.TestLeftTrigger = input.trigger; vr.TestRightUntracked = true; }
+            else { vr.TestRightUntracked = !controller; vr.TestRightPose = wrist; vr.TestRightGrip = input.grip; vr.TestRightTrigger = input.trigger; vr.TestLeftUntracked = true; }
+            if (input.rawJoints != null) hands.Set(L, hand, wrist, input.rawJoints); else hands.Set(L, hand, wrist, p.skeleton);
+            hands.Set(!L, false, Pose.identity, CandyHandSkeleton.Rest(!L));
         }
 
         // ---------- emulated tracked hand ----------
@@ -156,9 +180,13 @@ namespace DeadlyJenga.HandValidation
         static Mesh watchedMesh; static Vector3[] vertices; static BoneWeight[] weights; static Matrix4x4[] binds;
         static int[][] middle; static float[][] restRadius;
         static float worstGirth, worstRoll, worstGap, worstBackBend, worstStep; static bool everHidden; static Vector3 lastPalm; static bool hasLastPalm;
+        // Is the drawn hand a shape a hand can make? Sideways lean out of the finger's plane, joints bent backwards,
+        // how fast a joint moved, and whether anything became not-a-number.
+        static float worstSide, worstJointBack, worstJointRate, lowestStrength; static bool sawNaN; static readonly float[] lastBend = new float[16]; static bool hasLastBend;
         static void Watch(CandyPhysicalHand hand)
         {
             watched = hand; watching = hand; worstGirth = 1; worstRoll = worstGap = worstBackBend = worstStep = 0; everHidden = false; hasLastPalm = false;
+            worstSide = worstJointBack = worstJointRate = 0; lowestStrength = 1; sawNaN = false; hasLastBend = false;
             if (!hand) return;
             var mesh = hand.skin.sharedMesh;
             if (mesh == watchedMesh) return;
@@ -222,6 +250,27 @@ namespace DeadlyJenga.HandValidation
                     if (j == 0) worstBackBend = Mathf.Max(worstBackBend, Mathf.Atan2(direction.y, Mathf.Max(.0001f, direction.z)) * Mathf.Rad2Deg);
                 }
             }
+            lowestStrength = Mathf.Min(lowestStrength, hand.Strength);
+            Quaternion fromPalm = Quaternion.Inverse(hand.visualBones[0].rotation);
+            for (int f = 1; f < 5; f++)
+            {
+                Vector3 knuckle = fromPalm * hand.visualBones[1 + f * 3].up;
+                float flat = new Vector2(knuckle.x, knuckle.z).magnitude;
+                Vector3 along = flat > .3f ? new Vector3(knuckle.x, 0, knuckle.z) / flat : Vector3.forward;
+                Vector3 across = Vector3.Cross(Vector3.up, along);
+                Vector3 parent = Vector3.zero;
+                for (int j = 0; j < 3; j++)
+                {
+                    int i = 1 + f * 3 + j; Vector3 d = fromPalm * hand.visualBones[i].up;
+                    if (float.IsNaN(d.x) || float.IsNaN(hand.visualBones[i].position.x)) sawNaN = true;
+                    if (flat > .3f && j > 0) worstSide = Mathf.Max(worstSide, Mathf.Asin(Mathf.Clamp(Mathf.Abs(Vector3.Dot(d, across)), 0, 1)) * Mathf.Rad2Deg);
+                    float bend = j == 0 ? Mathf.Atan2(-d.y, Vector3.Dot(d, along)) * Mathf.Rad2Deg : Vector3.SignedAngle(parent, d, across);
+                    if (j > 0) worstJointBack = Mathf.Max(worstJointBack, -bend);
+                    if (hasLastBend && Time.deltaTime > 0) worstJointRate = Mathf.Max(worstJointRate, Mathf.Abs(Mathf.DeltaAngle(lastBend[i], bend)) / Time.deltaTime);
+                    lastBend[i] = bend; parent = d;
+                }
+            }
+            hasLastBend = true;
             Vector3 palm = hand.visualBones[0].position;
             if (hasLastPalm) worstStep = Mathf.Max(worstStep, Vector3.Distance(palm, lastPalm));
             lastPalm = palm; hasLastPalm = true;
@@ -274,14 +323,14 @@ namespace DeadlyJenga.HandValidation
             try
             {
                 camera.targetTexture = rt; camera.Render(); RenderTexture.active = rt; pixels = new Texture2D(900, 700, TextureFormat.RGB24, false);
-                pixels.ReadPixels(new Rect(0, 0, 900, 700), 0, 0); pixels.Apply(); File.WriteAllBytes(ProjectPath.Report("HandFeel-" + name + ".png"), pixels.EncodeToPNG());
+                pixels.ReadPixels(new Rect(0, 0, 900, 700), 0, 0); pixels.Apply(); File.WriteAllBytes(ProjectPath.Report("HandFeel-" + (xr ? "xr-" : "") + name + ".png"), pixels.EncodeToPNG());
             }
             finally { RenderTexture.active = old; camera.targetTexture = null; Object.Destroy(rt); if (pixels) Object.Destroy(pixels); Object.Destroy(cameraObject); Object.Destroy(lightObject); }
         }
 
         // ---------- the run ----------
         static CastleHandActor actor; static FlyingHandController motor; static CandyFlyingHandBridge bridge; static Poses input;
-        static IEnumerator Spawn(Vector3 at)
+        static IEnumerator Spawn(Vector3 at, bool throughXR = false)
         {
             if (actor) { Object.Destroy(actor.gameObject); yield return Wait(.2f); }
             var prefab = AssetDatabase.LoadAssetAtPath<CastleHandActor>(ProjectPath.Find("CastleFlyingHand.prefab"));
@@ -291,19 +340,22 @@ namespace DeadlyJenga.HandValidation
             bridge = actor.GetComponent<CandyFlyingHandBridge>();
             // The same default rules a solo session confirms (1200 N, friction 2).
             var profile = HandDriveProfile.For(actor.gameObject); profile.Apply(null); bridge.PhysicsProfile = profile;
-            input = new Poses(); input.pose.skeleton = Open(false); bridge.PoseSource = input;
+            xr = throughXR; L = xr && PlayerPrefs.GetInt("CandyBlaster.LeftHanded", 0) != 0;
+            input = new Poses(); input.pose.skeleton = Open(L);
+            if (xr) { PcSimulatedVR.Create(); SimulatedTrackedHands.Create(); Pump(); }
+            else bridge.PoseSource = input;
             yield return Wait(1);
             Watch(bridge.PhysicalHand);
         }
         static IEnumerator All()
         {
             yield return Spawn(new Vector3(0, 20, 0)); var hand = bridge.PhysicalHand;
-            input.pose.skeleton = Fist(false); yield return Wait(1.5f);
-            float fist = PhysicalFingerError(hand, Fist(false));
+            input.pose.skeleton = Fist(L); yield return Wait(1.5f);
+            float fist = PhysicalFingerError(hand, Fist(L));
             Check(hand && hand.IsInteractive && bridge.Mode == CandyHandMode.HandTracking, "Emulated hand tracking drives the real flying-hand prefab");
             Check(hand.skin.sharedMesh.isReadable, "Skin mesh can be measured");
             Check(fist < 25, "Physical fingers close into a full fist inside their joint limits (" + fist.ToString("F1") + " deg off)");
-            input.pose.skeleton = Open(false); yield return Wait(.8f);
+            input.pose.skeleton = Open(L); yield return Wait(.8f);
             Watch(hand);
 
             yield return TrackedPoses(hand);
@@ -311,6 +363,7 @@ namespace DeadlyJenga.HandValidation
             yield return UpsideDown(hand);
             yield return ControllerMode(hand);
             yield return Switching(hand);
+            yield return Chaos(hand);
             yield return WallPress(hand);
             yield return Grip(new Vector3(80, 20, 0), false);
             float fullHold = lastHold; bool fullLift = lastLift;
@@ -319,22 +372,38 @@ namespace DeadlyJenga.HandValidation
             Line($"GRIP hold strength: full hand={fullHold:F0} N extra pull, thumb+index pinch={lastHold:F0} N (pinch lifted={lastLift})");
             Check(fullHold > lastHold * 1.3f, "A full-hand grasp holds clearly more than a thumb-and-index pinch");
             yield return DesktopPoses();
+
+            Line("---- Emulated XR: simulated controllers and XR Hands joints, read by the game's own XR input code ----");
+            yield return Spawn(new Vector3(320, 20, 0), true); hand = bridge.PhysicalHand;
+            Check(hand && hand.IsInteractive && bridge.Mode == CandyHandMode.HandTracking && bridge.PoseSource == null, "XR: an emulated tracked hand reaches the flying hand through XR Hands");
+            if (hand && hand.IsInteractive)
+            {
+                yield return TrackedPoses(hand);
+                yield return FastMotion(hand);
+                yield return UpsideDown(hand);
+                yield return ControllerMode(hand);
+                yield return Switching(hand);
+                yield return Chaos(hand);
+            }
+            xr = false;
+            if (PcSimulatedVR.Instance) Object.Destroy(PcSimulatedVR.Instance.gameObject);
+            if (SimulatedTrackedHands.Instance) Object.Destroy(SimulatedTrackedHands.Instance.gameObject);
             if (actor) Object.Destroy(actor.gameObject);
             yield return Wait(.2f);
         }
         static IEnumerator TrackedPoses(CandyPhysicalHand hand)
         {
-            var poses = new (string name, CandyHandSkeleton pose)[] { ("open", Open(false)), ("fist", Fist(false)), ("point", Point(false)), ("peace", Peace(false)), ("spread", Spread(false)), ("claw", Claw(false)) };
+            var poses = new (string name, CandyHandSkeleton pose)[] { ("open", Open(L)), ("fist", Fist(L)), ("point", Point(L)), ("peace", Peace(L)), ("spread", Spread(L)), ("claw", Claw(L)) };
             foreach (var p in poses)
             {
                 input.pose.skeleton = p.pose; yield return Wait(.9f);
                 float error = FingerError(hand, p.pose);
-                Check(error < 6, "Tracked " + p.name + ": drawn fingers match the tracked finger directions (" + error.ToString("F1") + " deg off)");
+                Check(error < Tolerance, "Tracked " + p.name + ": drawn fingers match the tracked finger directions (" + error.ToString("F1") + " deg off)");
                 Shot(hand, "tracked-" + p.name, new Vector3(.16f, .2f, -.12f));
                 if (p.name == "fist") Shot(hand, "tracked-fist-under", new Vector3(-.1f, -.22f, .16f));
             }
             Judge("Tracked poses and the blends between them");
-            input.pose.skeleton = Open(false); yield return Wait(.5f);
+            input.pose.skeleton = Open(L); yield return Wait(.5f);
         }
         static IEnumerator FastMotion(CandyPhysicalHand hand)
         {
@@ -345,49 +414,51 @@ namespace DeadlyJenga.HandValidation
                 // A fast wave: about 1.5 m/s of real wrist speed, 30 m/s for the giant hand, while opening and closing.
                 input.pose.position = home + new Vector3(Mathf.Sin(t * 9) * .16f, Mathf.Sin(t * 7) * .08f, Mathf.Cos(t * 5) * .08f);
                 input.pose.rotation = Quaternion.Euler(Mathf.Sin(t * 6) * 50, Mathf.Sin(t * 4) * 40, Mathf.Sin(t * 8) * 70);
-                input.pose.skeleton = Lerp(Open(false), Fist(false), .5f + .5f * Mathf.Sin(t * 11));
+                input.pose.skeleton = Lerp(Open(L), Fist(L), .5f + .5f * Mathf.Sin(t * 11));
                 if (!shot && t > 1.3f) { shot = true; Shot(hand, "fast-motion", new Vector3(.18f, .2f, -.16f)); }
                 yield return null;
             }
-            input.pose.position = home; input.pose.rotation = Quaternion.identity; input.pose.skeleton = Open(false);
+            input.pose.position = home; input.pose.rotation = Quaternion.identity; input.pose.skeleton = Open(L);
             Judge("Fast waving while opening and closing");
             yield return Wait(.8f);
         }
         static IEnumerator UpsideDown(CandyPhysicalHand hand)
         {
             var turns = new (string name, Quaternion turn)[] { ("rolled palm-up", Quaternion.Euler(0, 0, 180)), ("pitched over backwards", Quaternion.Euler(-170, 0, 0)), ("pointing straight down", Quaternion.Euler(90, 0, 0)), ("rolled and yawed", Quaternion.Euler(20, 160, 150)) };
-            input.pose.skeleton = Claw(false);
+            input.pose.skeleton = Claw(L);
             foreach (var t in turns)
             {
                 // Turn there the way a wrist does, not in one frame.
                 Quaternion from = input.pose.rotation; float start = Time.time;
                 while (Time.time - start < .6f) { input.pose.rotation = Quaternion.Slerp(from, t.turn, (Time.time - start) / .6f); yield return null; }
                 input.pose.rotation = t.turn; yield return Wait(.9f);
-                float off = Quaternion.Angle(hand.bodies[0].rotation, motor.transform.rotation * t.turn);
+                float off = Quaternion.Angle(hand.bodies[0].rotation, hand.Target.rotation);
+                float asked = Quaternion.Angle(hand.Target.rotation, motor.transform.rotation * t.turn);
                 Check(off < 8, "Hand turns fully to " + t.name + " (" + off.ToString("F1") + " deg off)");
-                Check(FingerError(hand, Claw(false)) < 6, "Fingers keep the tracked pose while " + t.name);
+                Check(asked < (xr ? 20 : 2), "Tracking asks for " + t.name + " as commanded (" + asked.ToString("F1") + " deg off)");
+                Check(FingerError(hand, Claw(L)) < Tolerance, "Fingers keep the tracked pose while " + t.name);
                 Shot(hand, "turned-" + t.name.Replace(' ', '-'), new Vector3(.16f, .2f, -.12f));
             }
             Judge("Turning upside down and back");
-            input.pose.rotation = Quaternion.identity; input.pose.skeleton = Open(false); yield return Wait(1);
+            input.pose.rotation = Quaternion.identity; input.pose.skeleton = Open(L); yield return Wait(1);
         }
         static IEnumerator ControllerMode(CandyPhysicalHand hand)
         {
             input.pose.skeletonTracked = false;
             foreach (var (grip, trigger) in new[] { (0f, 0f), (1f, 0f), (0f, 1f), (1f, 1f) })
             {
-                input.pose.skeleton = CandyHandSkeleton.ControllerGrip(false, grip, trigger); yield return Wait(.7f);
+                input.pose.skeleton = CandyHandSkeleton.ControllerGrip(L, grip, trigger); input.grip = grip; input.trigger = trigger; yield return Wait(.7f);
                 Shot(hand, $"controller-grip{grip:F0}-trigger{trigger:F0}", new Vector3(.16f, .2f, -.12f));
             }
             Check(bridge.Mode == CandyHandMode.Controller && hand.IsInteractive, "Controller input drives the same physical hand");
             Judge("Controller grip and trigger poses");
-            input.pose.skeletonTracked = true; input.pose.skeleton = Open(false); yield return Wait(.8f);
+            input.pose.skeletonTracked = true; input.pose.skeleton = Open(L); yield return Wait(.8f);
             Watch(hand);
         }
         static IEnumerator Switching(CandyPhysicalHand hand)
         {
             var trackedPose = input.pose;
-            var controller = trackedPose; controller.skeletonTracked = false; controller.skeleton = CandyHandSkeleton.ControllerGrip(false, 1, .2f);
+            var controller = trackedPose; controller.skeletonTracked = false; controller.skeleton = CandyHandSkeleton.ControllerGrip(L, 1, .2f); input.grip = 1; input.trigger = .2f;
             // A controller held somewhere completely different, pointing another way.
             controller.position += new Vector3(.3f, .12f, -.25f); controller.rotation = Quaternion.Euler(50, 100, -70);
             Watch(hand); Vector3 before = hand.Target.position;
@@ -396,26 +467,107 @@ namespace DeadlyJenga.HandValidation
             yield return Wait(1.2f);
             Check(bridge.Mode == CandyHandMode.Controller, "Hand tracking to controller: the controller takes over");
             Check(jump < 1, "Hand tracking to controller: the hand does not leap to the controller's place (" + jump.ToString("F2") + " m)");
-            Check(Quaternion.Angle(hand.bodies[0].rotation, motor.transform.rotation * controller.rotation) < 10, "Hand tracking to controller: the hand turns to the controller's angle");
+            Check(Quaternion.Angle(hand.bodies[0].rotation, hand.Target.rotation) < 10, "Hand tracking to controller: the hand turns to the controller's angle");
             Check(worstStep < 1.2f, "Hand tracking to controller: palm moves smoothly (largest step " + worstStep.ToString("F2") + " m)");
             Check(hand.IsInteractive, "Hand tracking to controller: contacts stay on (a held block is not dropped)");
             Judge("Switch from hand tracking to a controller held elsewhere");
-            before = hand.Target.position; input.pose = trackedPose; input.pose.skeleton = Fist(false); yield return null; yield return null;
+            before = hand.Target.position; input.pose = trackedPose; input.pose.skeleton = Fist(L); yield return null; yield return null;
             jump = Vector3.Distance(before, hand.Target.position);
             yield return Wait(1.2f);
             Check(bridge.Mode == CandyHandMode.HandTracking && jump < 1, "Controller to hand tracking: takes over without a leap (" + jump.ToString("F2") + " m)");
-            Check(FingerError(hand, Fist(false)) < 6, "Controller to hand tracking: fingers arrive at the tracked pose");
+            Check(FingerError(hand, Fist(L)) < Tolerance, "Controller to hand tracking: fingers arrive at the tracked pose");
             Check(worstStep < 1.2f, "Controller to hand tracking: palm moves smoothly (largest step " + worstStep.ToString("F2") + " m)");
             Judge("Switch from a controller back to hand tracking");
             // Put the controller down, pause, raise a hand: a short gap with nothing tracked.
             input.pose = controller; yield return Wait(1);
             Watch(hand);
             input.pose.tracked = false; yield return Wait(.2f);
-            input.pose = trackedPose; input.pose.skeleton = Peace(false); yield return Wait(1.2f);
+            input.pose = trackedPose; input.pose.skeleton = Peace(L); yield return Wait(1.2f);
             Check(bridge.Mode == CandyHandMode.HandTracking && hand.IsInteractive, "Controller, short gap, hand tracking: recovers");
             Check(worstStep < 1.2f, "Controller, short gap, hand tracking: palm moves smoothly (largest step " + worstStep.ToString("F2") + " m)");
             Judge("Switch across a short tracking gap");
-            input.pose = trackedPose; input.pose.skeleton = Open(false); yield return Wait(1);
+            input.pose = trackedPose; input.pose.skeleton = Open(L); yield return Wait(1);
+        }
+        // Someone trying to break the hand, and tracking that breaks by itself.
+        static void JudgeShape(string what)
+        {
+            Line($"SHAPE {what}: sideways lean {worstSide:F1} deg, joint bent backwards {worstJointBack:F1} deg, fastest joint {worstJointRate:F0} deg/s, lowest strength {lowestStrength:F2}, NaN={sawNaN}");
+            Check(!sawNaN, what + ": nothing in the drawn hand became not-a-number");
+            Check(worstSide < 3, what + ": fingers only curl in their own plane (" + worstSide.ToString("F1") + " deg sideways)");
+            Check(worstJointBack < 8, what + ": no finger joint bends backwards (" + worstJointBack.ToString("F1") + " deg)");
+            Check(worstJointRate < 3200, what + ": no finger joint moves faster than a finger can (" + worstJointRate.ToString("F0") + " deg/s)");
+        }
+        static IEnumerator Chaos(CandyPhysicalHand hand)
+        {
+            var random = new System.Random(20261118); float R() => (float)random.NextDouble();
+            var shapes = new[] { Open(L), Fist(L), Point(L), Peace(L), Spread(L), Claw(L) };
+            var calm = input.pose; calm.skeleton = Open(L); calm.rotation = Quaternion.identity;
+
+            // 1. Crazy fingers: an unrelated hand shape and a twitching wrist every single frame.
+            input.pose = calm; yield return Wait(.5f); Watch(hand); float start = Time.time;
+            while (Time.time - start < 3)
+            {
+                input.pose.skeleton = shapes[random.Next(shapes.Length)];
+                input.pose.rotation = Quaternion.Euler(R() * 50 - 25, R() * 50 - 25, R() * 50 - 25);
+                if (Time.time - start > 1.5f && Time.time - start < 1.6f) Shot(hand, "chaos-crazy-fingers", new Vector3(.16f, .2f, -.12f));
+                yield return null;
+            }
+            JudgeShape("Crazy fingers (new shape every frame)"); Judge("Crazy fingers (new shape every frame)");
+
+            // 2. Joint soup: every joint somewhere random near the hand, as when tracking loses the plot.
+            input.pose = calm; yield return Wait(.3f); Watch(hand); start = Time.time;
+            while (Time.time - start < 3)
+            {
+                var soup = Open(L);
+                for (int i = 0; i < 20; i++) soup.SetJoint(i, new Vector3(R() - .5f, R() - .5f, R() - .2f) * .16f);
+                input.pose.skeleton = soup;
+                if (Time.time - start > 1.5f && Time.time - start < 1.6f) Shot(hand, "chaos-joint-soup", new Vector3(.16f, .2f, -.12f));
+                yield return null;
+            }
+            JudgeShape("Joint soup (random joint positions every frame)"); Judge("Joint soup (random joint positions every frame)");
+
+            // 3. Poison: not-a-number, infinity, everything at the wrist, everything a metre away. XR only: a skeleton cannot hold these.
+            if (xr)
+            {
+                input.pose = calm; input.pose.skeleton = Fist(L); yield return Wait(.6f); Watch(hand); start = Time.time; int kind = 0;
+                var poison = new Vector3[20];
+                while (Time.time - start < 2)
+                {
+                    for (int i = 0; i < 20; i++)
+                        poison[i] = kind % 4 == 0 ? new Vector3(float.NaN, 0, 0) : kind % 4 == 1 ? Vector3.positiveInfinity : kind % 4 == 2 ? Vector3.zero : new Vector3(1, 1, 1) * (1 + i);
+                    input.rawJoints = poison; kind++;
+                    yield return null;
+                }
+                input.rawJoints = null;
+                JudgeShape("Poisoned joints (NaN, infinity, zero, far away)"); Judge("Poisoned joints (NaN, infinity, zero, far away)", false);
+                yield return Wait(.6f);
+                Check(FingerError(hand, Fist(L)) < Tolerance, "After poisoned joints the hand returns to the tracked fist");
+            }
+
+            // 4. Flicker: tracking drops out on random frames (about half of them) while holding a fist.
+            input.pose = calm; input.pose.skeleton = Fist(L); yield return Wait(.8f); Watch(hand); start = Time.time;
+            while (Time.time - start < 3) { input.pose.tracked = R() > .5f; yield return null; }
+            input.pose.tracked = true;
+            Check(lowestStrength > .9f, "Flickering tracking: the hand keeps its strength (lowest " + lowestStrength.ToString("F2") + ")");
+            Check(hand.IsInteractive, "Flickering tracking: contacts stay on");
+            Judge("Flickering tracking (half the frames lost)");
+
+            // 5. Ping-pong: controller and tracked hand swap ten times a second, in different places.
+            var controller = calm; controller.skeletonTracked = false; controller.skeleton = CandyHandSkeleton.ControllerGrip(L, 1, 0); input.grip = 1; input.trigger = 0;
+            controller.position += new Vector3(.2f, .1f, -.15f); controller.rotation = Quaternion.Euler(30, 80, -50);
+            var tracked = calm; tracked.skeleton = Peace(L);
+            input.pose = tracked; yield return Wait(.6f); Watch(hand); start = Time.time;
+            while (Time.time - start < 3) { input.pose = Mathf.FloorToInt((Time.time - start) * 10) % 2 == 0 ? controller : tracked; yield return null; }
+            Check(worstStep < 1.2f, "Rapid source swapping: palm never jumps (largest step " + worstStep.ToString("F2") + " m)");
+            JudgeShape("Rapid swapping between controller and tracked hand"); Judge("Rapid swapping between controller and tracked hand");
+
+            // 6. After all that, is the hand still quick? Open to fist, timed.
+            input.pose = calm; yield return Wait(xr ? 1.2f : .6f);
+            input.pose.skeleton = Fist(L); start = Time.time; float took = -1;
+            while (Time.time - start < 1) { yield return null; if (FingerError(hand, Fist(L)) < Tolerance + 4) { took = Time.time - start; break; } }
+            Line("QUICK open to fist drawn in " + (took < 0 ? "more than 1.00" : took.ToString("F3")) + " s");
+            Check(took >= 0 && took < .2f, "A real quick fist still arrives within a fifth of a second (" + took.ToString("F3") + " s)");
+            input.pose = calm; yield return Wait(.6f); Watch(hand);
         }
         static IEnumerator WallPress(CandyPhysicalHand hand)
         {
@@ -446,11 +598,11 @@ namespace DeadlyJenga.HandValidation
             Judge("Open hand pressed fingertips-first into a wall");
             input.pose.position = home; yield return Wait(1);
             // Knuckles first.
-            input.pose.skeleton = Fist(false); yield return Wait(.8f); Watch(hand);
+            input.pose.skeleton = Fist(L); yield return Wait(.8f); Watch(hand);
             input.pose.position = home + Vector3.forward * .2f; yield return Wait(1.5f);
             Shot(hand, "wall-fist", new Vector3(.22f, .12f, -.02f));
             Judge("Fist pressed into a wall");
-            input.pose.position = home; input.pose.skeleton = Open(false); yield return Wait(1);
+            input.pose.position = home; input.pose.skeleton = Open(L); yield return Wait(1);
             Object.Destroy(wall);
             // Flat hand pressed down onto a floor.
             palm = hand.bodies[0].position;
@@ -461,14 +613,14 @@ namespace DeadlyJenga.HandValidation
             float sunk = floor.transform.position.y + 1 - hand.bodies[0].position.y;
             Shot(hand, "floor-flat", new Vector3(.2f, .14f, -.1f));
             Check(sunk < 0, "Floor: the palm rests on the floor instead of sinking in");
-            Check(FingerError(hand, Open(false)) < 20, "Floor: fingers lie flat on the floor (" + FingerError(hand, Open(false)).ToString("F1") + " deg off the tracked open hand)");
+            Check(FingerError(hand, Open(L)) < 20, "Floor: fingers lie flat on the floor (" + FingerError(hand, Open(L)).ToString("F1") + " deg off the tracked open hand)");
             Judge("Flat hand pressed onto a floor");
             // Claw pressed down: fingertips land first and must hold their shape.
-            input.pose.position = home; input.pose.skeleton = Claw(false); yield return Wait(1); Watch(hand);
+            input.pose.position = home; input.pose.skeleton = Claw(L); yield return Wait(1); Watch(hand);
             input.pose.position = home + Vector3.down * .12f; yield return Wait(1.5f);
             Shot(hand, "floor-claw", new Vector3(.2f, .14f, -.1f));
             Judge("Claw pressed onto a floor");
-            input.pose.position = home; input.pose.skeleton = Open(false); yield return Wait(1);
+            input.pose.position = home; input.pose.skeleton = Open(L); yield return Wait(1);
             Object.Destroy(floor);
         }
         static float lastHold; static bool lastLift;
@@ -501,7 +653,7 @@ namespace DeadlyJenga.HandValidation
             var hand = bridge.PhysicalHand; string name = pinch ? "Pinch" : "Full grasp"; lastHold = 0; lastLift = false;
             Vector3 home = input.pose.position;
             // Open the hand for a grab and wait above the block's place.
-            input.pose.skeleton = Reach(false, pinch); yield return Wait(1);
+            input.pose.skeleton = Reach(L, pinch); yield return Wait(1);
             Vector3 wrist = hand.bodies[0].position;
             // A castle-sized 40 kg plank on a thin stand, with castle friction, 1.5 m below the palm.
             var material = new PhysicsMaterial("Castle friction (test copy)") { staticFriction = .65f, dynamicFriction = .55f, frictionCombine = PhysicsMaterialCombine.Average };
@@ -516,7 +668,7 @@ namespace DeadlyJenga.HandValidation
             // Come down over it, close, then lift straight up.
             yield return Move(home + Vector3.down * .075f, 2); yield return Wait(.5f);
             Shot(hand, (pinch ? "pinch" : "grasp") + "-over", new Vector3(.2f, .1f, -.14f));
-            var open = Reach(false, pinch); var grasp = Grasp(false, pinch); float start = Time.time;
+            var open = Reach(L, pinch); var grasp = Grasp(L, pinch); float start = Time.time;
             while (Time.time - start < .8f) { input.pose.skeleton = Lerp(open, grasp, (Time.time - start) / .8f); yield return null; }
             input.pose.skeleton = grasp; yield return Wait(.8f);
             float nudged = Vector3.Distance(body.position, rested);

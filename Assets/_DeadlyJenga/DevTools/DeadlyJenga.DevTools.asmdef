@@ -9,6 +9,7 @@
         "HandDemo.Runtime",
         "Unity.InputSystem",
         "Unity.XR.CoreUtils",
+        "Unity.XR.Hands",
         "Fusion.Unity"
     ],
     "autoReferenced": false

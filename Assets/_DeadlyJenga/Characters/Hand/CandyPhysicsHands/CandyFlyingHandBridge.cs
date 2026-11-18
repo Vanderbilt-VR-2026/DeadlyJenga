@@ -217,7 +217,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             // force grows with it, so it must be able to grow until the hand's full strength is reached.
             float fullStrengthGap=PhysicsProfile?PhysicsProfile.ForceNewtons/Mathf.Max(1,settings.positionSpring):0;
             actor.motor.MaximumContactLead=Mathf.Clamp(Mathf.Max(settings.size*.01f,fullStrengthGap*1.5f),.02f,1f);
-            physical.gameObject.SetActive(true);physical.SetTarget(transition.Pose,transition.Strength);
+            physical.gameObject.SetActive(true);physical.SetTarget(transition.Pose,transition.Strength,transition.BoneDirections);
             physical.NetworkPreview=NetworkPreview;
             if(NetworkPreview&&pendingAuthoritativeBones!=null&&Time.unscaledTime-authoritativeAt<.5f&&!physical.HasFreshAuthoritativePreview)
                 physical.ReceiveAuthoritativePreview(pendingAuthoritativeBones,authoritativeAt);

@@ -123,7 +123,12 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(friction){if(Application.isPlaying)Destroy(friction);else DestroyImmediate(friction);}
             Build(pose);
         }
-        public void SetTarget(CandyHandPose target,float strength){Target=target;Strength=Mathf.Clamp01(strength);}
+        public void SetTarget(CandyHandPose target,float strength){SetTarget(target,strength,null);}
+        // exactBones: the 15 finger bone directions in palm space at full precision, when the caller has them.
+        // The skeleton in a pose is stored to 1 mm, which makes slowly moving fingers shiver if drawn from it.
+        public void SetTarget(CandyHandPose target,float strength,Vector3[] exactBones)
+        {Target=target;Strength=Mathf.Clamp01(strength);if(exactBones!=null&&exactBones.Length==15){System.Array.Copy(exactBones,exactTargetBones,15);hasExactBones=true;}else hasExactBones=false;}
+        readonly Vector3[] exactTargetBones=new Vector3[15];bool hasExactBones;
         public void Build(CandyHandPose initial)
         {
             builtSize=settings.size;Target=initial;contacts=new Collider[16];bodies=new Rigidbody[16];segmentLengths=new float[15];joints=new ConfigurableJoint[15];referenceRelative=new Quaternion[15];
@@ -559,7 +564,7 @@ namespace DeadlyJenga.CandyPhysicsHands
                 {
                     int i=1+f*3+j,joint=f*4+j;
                     Vector3 restBone=rest.Joint(joint+1)-rest.Joint(joint);
-                    Vector3 tracked=Target.skeleton.Joint(joint+1)-Target.skeleton.Joint(joint);
+                    Vector3 tracked=hasExactBones?exactTargetBones[f*3+j]:Target.skeleton.Joint(joint+1)-Target.skeleton.Joint(joint);
                     Vector3 physical=fromPalm*bodies[i].transform.up;
                     Vector3 bone=tracked.sqrMagnitude>1e-10f?Vector3.Slerp(tracked.normalized,physical,fingerContact[f]):physical;
                     if(bone.sqrMagnitude<1e-6f)bone=restBone;
