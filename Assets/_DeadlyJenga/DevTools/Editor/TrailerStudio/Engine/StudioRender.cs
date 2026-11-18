@@ -36,7 +36,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static bool hooked, cancel;
 
         public static string RendersFolder(string setId) => Path.Combine(StudioLibrary.TapeFolder(setId), "renders");
-        public static string AudioFile(string setId) => Path.Combine(StudioLibrary.TapeFolder(setId), "audio", "tape.wav");
 
         public static void Start(IEnumerable<StudioCameraTrack> cameras, StudioRenderSettings settings, string folder = null)
         {
@@ -357,10 +356,69 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // ---- Sound for the tape ----
 
-        // New sound is recorded into its own folder first, so a stopped or failed recording never
+        // Every world take keeps its own sound: audio/takes/<world take id>/tape.wav, with its stems in stems/.
+        // A performed take keeps what the performer heard: audio/performed/<actor take id>.wav (one mix, no stems).
+        // Tapes from before this kept one file, audio/tape.wav, with tape.take.txt naming its world take.
+        // That file is still used when the active world take has no sound of its own.
+        // New sound is recorded into a folder of its own first, so a stopped or failed recording never
         // destroys the sound that was already there.
-        static string AudioFolder(string setId) => Path.GetDirectoryName(AudioFile(setId));
+        static string AudioFolder(string setId) => Path.Combine(StudioLibrary.TapeFolder(setId), "audio");
         static string NewAudioFolder(string setId) => Path.Combine(AudioFolder(setId), "recording");
+        public static string LegacyAudioFile(string setId) => Path.Combine(AudioFolder(setId), "tape.wav");
+        public static string TakeAudioFile(string setId, string worldTakeId) => Path.Combine(AudioFolder(setId), "takes", worldTakeId ?? "", "tape.wav");
+        public static string PerformedAudioFile(string setId, string actorTakeId) => Path.Combine(AudioFolder(setId), "performed", (actorTakeId ?? "") + ".wav");
+        static string NewPerformedFile(string setId) => Path.Combine(AudioFolder(setId), "performed", "recording.wav");
+
+        // The sound of the active world take. Falls back to the old single file (which may belong to another take: see AudioTakeId).
+        public static string AudioFile(string setId)
+        {
+            string own = TakeAudioFile(setId, ActiveWorldTakeId(setId));
+            return ActiveWorldTakeId(setId).Length > 0 && File.Exists(own) ? own : LegacyAudioFile(setId);
+        }
+
+        // The world take the sound AudioFile points at was recorded with ("" if unknown or there is no sound).
+        public static string AudioTakeId(string setId)
+        {
+            string active = ActiveWorldTakeId(setId);
+            if (active.Length > 0 && File.Exists(TakeAudioFile(setId, active))) return active;
+            return LegacyTakeId(setId);
+        }
+
+        static string LegacyTakeId(string setId)
+        {
+            string note = Path.Combine(AudioFolder(setId), "tape.take.txt");
+            return File.Exists(LegacyAudioFile(setId)) && File.Exists(note) ? File.ReadAllText(note).Trim() : "";
+        }
+
+        // The sound file a world take owns: its own, or the old single file if that was made from this take. "" = none.
+        public static string SoundOfWorldTake(string setId, string worldTakeId)
+        {
+            if (string.IsNullOrEmpty(worldTakeId)) return "";
+            string own = TakeAudioFile(setId, worldTakeId);
+            if (File.Exists(own)) return own;
+            return LegacyTakeId(setId) == worldTakeId ? LegacyAudioFile(setId) : "";
+        }
+
+        // The active world take of a Set: from the open stage, or read from the Set's tape file.
+        static string cachedTape = ""; static DateTime cachedTime; static string cachedId = "";
+        public static string ActiveWorldTakeId(string setId)
+        {
+            var stage = StudioRun.Stage;
+            if (stage != null && stage.set != null && stage.set.id == setId) return stage.tape?.FindType(WorldTrack.Id)?.ActiveTake?.id ?? "";
+            string file = StudioLibrary.TapePath(setId);
+            try
+            {
+                if (!StudioTape.IsTape(file)) return "";
+                var time = File.GetLastWriteTimeUtc(file);
+                if (cachedTape != file || cachedTime != time)
+                {
+                    cachedId = StudioTape.Load(file, new[] { WorldTrack.Id }).FindType(WorldTrack.Id)?.ActiveTake?.id ?? "";
+                    cachedTape = file; cachedTime = time;
+                }
+                return cachedId;
+            }
+            catch (Exception error) { Debug.LogWarning("[TrailerStudio] Could not read the tape to find its world take: " + error.Message); return ""; }
+        }
 
         internal static TheatreAudioCapture OpenAudioFile(string setId)
         {
@@ -370,23 +428,118 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return new TheatreAudioCapture(Path.Combine(folder, "tape.wav"));
         }
 
-        // The new sound is complete: put it in place of the old one, and note which world take it was made from.
+        // The new sound is complete: it becomes this world take's sound. Without a take id it goes to the old single file.
         internal static void KeepAudioFile(string setId, string worldTakeId)
         {
-            string folder = NewAudioFolder(setId), file = AudioFile(setId), stems = Path.Combine(AudioFolder(setId), "stems");
+            string folder = NewAudioFolder(setId);
             if (!File.Exists(Path.Combine(folder, "tape.wav"))) return;
+            bool legacy = string.IsNullOrEmpty(worldTakeId);
+            string file = legacy ? LegacyAudioFile(setId) : TakeAudioFile(setId, worldTakeId);
+            string stems = Path.Combine(Path.GetDirectoryName(file), "stems");
             try
             {
                 // File by file, each with a few tries: Windows can hold a file for a moment right after it is closed.
+                Directory.CreateDirectory(Path.GetDirectoryName(file));
                 MoveFile(Path.Combine(folder, "tape.wav"), file);
                 Directory.CreateDirectory(stems);
                 foreach (string old in Directory.GetFiles(stems)) Patiently(() => File.Delete(old));
                 if (Directory.Exists(Path.Combine(folder, "stems")))
                     foreach (string stem in Directory.GetFiles(Path.Combine(folder, "stems"))) MoveFile(stem, Path.Combine(stems, Path.GetFileName(stem)));
-                File.WriteAllText(Path.Combine(AudioFolder(setId), "tape.take.txt"), worldTakeId ?? "");
+                if (legacy) File.WriteAllText(Path.Combine(AudioFolder(setId), "tape.take.txt"), "");
             }
             catch (Exception error) { Debug.LogWarning("[TrailerStudio] The new sound could not be put in place: " + error.Message); }
             DropAudioFile(setId);
+        }
+
+        // A branch recorded sound from the branch on. The new take's sound is the old take's sound up to
+        // firstNewFrame, then the new recording, for the mix and every stem. Returns a note ("" = all fine).
+        internal static string KeepBranchAudio(string setId, string oldWorldTakeId, string newWorldTakeId, int firstNewFrame, int totalFrames, int fps)
+        {
+            string folder = NewAudioFolder(setId), recorded = Path.Combine(folder, "tape.wav");
+            if (!File.Exists(recorded) || string.IsNullOrEmpty(newWorldTakeId)) { DropAudioFile(setId); return "no new sound was recorded"; }
+            string note = "";
+            try
+            {
+                string oldFile = SoundOfWorldTake(setId, oldWorldTakeId);
+                string file = TakeAudioFile(setId, newWorldTakeId);
+                string oldStems = oldFile.Length > 0 ? Path.Combine(Path.GetDirectoryName(oldFile), "stems") : "";
+                string stems = Path.Combine(Path.GetDirectoryName(file), "stems");
+                if (Directory.Exists(stems)) foreach (string old in Directory.GetFiles(stems)) Patiently(() => File.Delete(old));
+                note = StudioWave.Splice(oldFile, recorded, firstNewFrame, firstNewFrame, totalFrames, fps, file);
+                if (Directory.Exists(Path.Combine(folder, "stems")))
+                    foreach (string stem in Directory.GetFiles(Path.Combine(folder, "stems"), "*.wav"))
+                    {
+                        string name = Path.GetFileName(stem);
+                        StudioWave.Splice(oldStems.Length > 0 ? Path.Combine(oldStems, name) : "", stem, firstNewFrame, firstNewFrame, totalFrames, fps, Path.Combine(stems, name));
+                    }
+                if (note.Length > 0) note = "Sound: " + note + " (the take branched from had no sound of its own).";
+            }
+            catch (Exception error) { note = "Sound: the branch's sound could not be joined: " + error.Message; Debug.LogWarning("[TrailerStudio] " + note); }
+            DropAudioFile(setId);
+            return note;
+        }
+
+        // ---- Performed takes: what the performer heard ----
+
+        internal static string OpenPerformedFile(string setId)
+        {
+            DropPerformedFile(setId);
+            string file = NewPerformedFile(setId);
+            Directory.CreateDirectory(Path.GetDirectoryName(file));
+            return file;
+        }
+
+        // The performed sound becomes this actor take's sound. After a punch-in, the part before the punch
+        // comes from the take that was punched into (if it had sound). Returns a note ("" = all fine).
+        internal static string KeepPerformedFile(string setId, string actorTakeId, string leadTakeId, int punchFrame, int totalFrames, int fps)
+        {
+            string recorded = NewPerformedFile(setId);
+            if (!File.Exists(recorded) || string.IsNullOrEmpty(actorTakeId)) { DropPerformedFile(setId); return ""; }
+            string note = "";
+            string file = PerformedAudioFile(setId, actorTakeId);
+            try
+            {
+                string lead = string.IsNullOrEmpty(leadTakeId) ? "" : PerformedAudioFile(setId, leadTakeId);
+                if (lead.Length > 0 && punchFrame > 0)
+                {
+                    note = StudioWave.Splice(lead, recorded, 0, punchFrame, totalFrames, fps, file);
+                    if (note.Length > 0) note = "Sound: before the punch-in " + note + ".";
+                }
+                else MoveFile(recorded, file);
+            }
+            catch (Exception error) { note = "Sound: the performed sound could not be kept: " + error.Message; Debug.LogWarning("[TrailerStudio] " + note); }
+            DropPerformedFile(setId);
+            return note;
+        }
+
+        internal static void DropPerformedFile(string setId)
+        {
+            string file = NewPerformedFile(setId);
+            try { if (File.Exists(file)) Patiently(() => File.Delete(file)); }
+            catch (Exception error) { Debug.LogWarning("[TrailerStudio] A leftover performed sound could not be removed: " + error.Message); }
+        }
+
+        // Takes erased for good ("Empty the trash") leave their sound behind; remove sound whose take is gone.
+        // Only for the Set's own tape file, so an imported or alternate tape never removes the real tape's sound.
+        internal static void PruneAudio(string setId, StudioTape tape)
+        {
+            if (tape == null || string.IsNullOrEmpty(tape.path)) return;
+            try
+            {
+                if (!string.Equals(Path.GetFullPath(tape.path), Path.GetFullPath(StudioLibrary.TapePath(setId)), StringComparison.OrdinalIgnoreCase)) return;
+                var ids = new HashSet<string>(tape.tracks.SelectMany(t => t.takes).Select(t => t.id));
+                string takes = Path.Combine(AudioFolder(setId), "takes"), performed = Path.Combine(AudioFolder(setId), "performed");
+                if (Directory.Exists(takes))
+                    foreach (string folder in Directory.GetDirectories(takes))
+                        if (!ids.Contains(Path.GetFileName(folder))) Patiently(() => Directory.Delete(folder, true));
+                if (Directory.Exists(performed))
+                    foreach (string file in Directory.GetFiles(performed, "*.wav"))
+                    {
+                        string id = Path.GetFileNameWithoutExtension(file);
+                        if (id != "recording" && !ids.Contains(id)) Patiently(() => File.Delete(file));
+                    }
+            }
+            catch (Exception error) { Debug.LogWarning("[TrailerStudio] Old sound files could not be tidied: " + error.Message); }
         }
 
         static void MoveFile(string from, string to)
@@ -410,13 +563,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             catch (Exception error) { Debug.LogWarning("[TrailerStudio] A leftover sound folder could not be removed: " + error.Message); }
         }
 
-        // The world take the saved sound was recorded with ("" if unknown or there is no sound).
-        public static string AudioTakeId(string setId)
-        {
-            string note = Path.Combine(AudioFolder(setId), "tape.take.txt");
-            return File.Exists(note) ? File.ReadAllText(note).Trim() : "";
-        }
-
         // A whole-set recording already records its sound, with real block impacts. This is the fallback
         // for a tape that has none: it can only hear music, disasters and recorded sound events, because
         // played-back blocks do not really collide.
@@ -426,7 +572,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (StudioRun.State != StudioState.Held) throw new InvalidOperationException("Open the stage, and wait for any run to finish.");
             var stage = StudioRun.Stage;
-            string file = AudioFile(stage.set.id);
             var capture = OpenAudioFile(stage.set.id);
             StudioCamera.EarsAt = stage.anchor + Vector3.up * 1.6f;
             int frames = 0;
@@ -441,7 +586,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 try { if (whole) capture.Complete(frames, stage.Fps); } finally { capture.Dispose(); }
                 if (!whole) { DropAudioFile(stage.set.id); return; }
                 KeepAudioFile(stage.set.id, stage.tape.FindType(WorldTrack.Id)?.ActiveTake?.id);
-                finished?.Invoke(file);
+                finished?.Invoke(AudioFile(stage.set.id));
             }
             StudioRun.FrameShown += Each;
             StudioRun.Play(0, -1, false);
