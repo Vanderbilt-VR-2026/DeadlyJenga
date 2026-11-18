@@ -36,7 +36,7 @@ namespace DeadlyJenga.DevTools.Editor
     // Every run also writes a gallery folder (Logs/Captures/...) with manifest.json, contact-sheet.png and index.html.
     public static class MapPictureRig
     {
-        static readonly string[] AllViews = { "hero", "top", "front", "close" };
+        internal static readonly string[] AllViews = { "hero", "top", "front", "close" };
 
         [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Render All (lobby pictures)")]
         static void RenderAll() => Run(null, new[] { "hero" }, null, false, 1600, 1100, null, CaptureOutput.OpenByDefault);
@@ -240,7 +240,7 @@ namespace DeadlyJenga.DevTools.Editor
         }
 
         // Frame the whole map so its bounding sphere fits the picture.
-        static void Place(Camera camera, string view, Bounds bounds, float aspect)
+        internal static void Place(Camera camera, string view, Bounds bounds, float aspect)
         {
             float radius = Mathf.Max(bounds.extents.magnitude, 8f);
             float halfFov = camera.fieldOfView * .5f * Mathf.Deg2Rad;

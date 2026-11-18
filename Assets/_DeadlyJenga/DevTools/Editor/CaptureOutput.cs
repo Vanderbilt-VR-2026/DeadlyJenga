@@ -35,7 +35,17 @@ namespace DeadlyJenga.DevTools.Editor
             string safe = new string(title.Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray()).Trim('-');
             Folder = Path.GetFullPath(folder ?? Path.Combine("Logs", "Captures", DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + safe));
             Directory.CreateDirectory(Folder);
+            // Re-opening a folder (for example after Unity reloads between maps) keeps what was already listed.
+            string existing = PathFor("manifest.json");
+            if (File.Exists(existing))
+            {
+                var previous = JsonUtility.FromJson<Manifest>(File.ReadAllText(existing));
+                if (previous?.items != null) manifest.items.AddRange(previous.items);
+            }
         }
+
+        // Saves the list now (without the contact sheet or gallery), so a later run can carry on.
+        public void SaveManifest() => File.WriteAllText(PathFor("manifest.json"), JsonUtility.ToJson(manifest, true));
 
         public string PathFor(string fileName) => Path.Combine(Folder, fileName);
 
