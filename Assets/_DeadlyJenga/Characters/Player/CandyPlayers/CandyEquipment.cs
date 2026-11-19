@@ -131,11 +131,19 @@ namespace DeadlyJenga.CandyPlayers
                 return weapon;
             bool melee = EquipmentSpecifications.Get(kind).melee && !(kind == EquipmentKind.Chainsaw && state.shotgun);
             Quaternion adjusted = weapon.rotation;
-            if (melee && kind != EquipmentKind.MurderSword && kind != EquipmentKind.BoxingGlove && kind != EquipmentKind.LaserClaws)
+            if (melee && kind != EquipmentKind.Chainsaw && kind != EquipmentKind.MurderSword && kind != EquipmentKind.BoxingGlove && kind != EquipmentKind.LaserClaws)
                 adjusted *= Quaternion.Euler(0, 0, 90f);
-            adjusted *= Quaternion.Euler(avatar.vrGunRotation);
+            var angles = avatar.vrGunRotation;
+            if (melee && kind != EquipmentKind.MurderSword) angles.y = 0;
+            adjusted *= Quaternion.Euler(angles);
             // Turn about the wrist so adjusting the sights keeps the grip in the hand.
             weapon.position = tracked.position + adjusted * Quaternion.Inverse(weapon.rotation) * (weapon.position - tracked.position);
+            if (melee && kind != EquipmentKind.MurderSword &&
+                CandyWeaponVisual.MeleeMount(kind, handLeft, out var palm, out var mount))
+            {
+                palm *= CandyWeaponVisual.ModelScale(kind, Scale);
+                weapon.position += tracked.rotation * palm - adjusted * Quaternion.Inverse(mount) * palm;
+            }
             weapon.rotation = adjusted;
             return weapon;
         }
@@ -158,7 +166,9 @@ namespace DeadlyJenga.CandyPlayers
                         // Stormbreaker has its own shaft, support and lightning aim solver.
                         aim = avatar.tracking.TryControllerAim(left, out var pointer)
                             ? pointer : new Pose(primary.position, primary.rotation);
-                        aim.rotation *= Quaternion.Euler(avatar.vrGunRotation);
+                        var angles = avatar.vrGunRotation;
+                        if (!carried.shotgun) angles.y = 0;
+                        aim.rotation *= Quaternion.Euler(angles);
                     }
                     else if ((UsesSupportGrip || kind == EquipmentKind.Chainsaw) &&
                         (grip?.IsPressed() == true || avatar.tracking.IsHybrid &&
@@ -501,7 +511,7 @@ namespace DeadlyJenga.CandyPlayers
                 var other=state.leftHanded?frame.right:frame.left;
                 if(other.tracked)
                 {
-                    other.rotation *= Quaternion.Euler(avatar.vrGunRotation);
+                    other.rotation *= Quaternion.Euler(avatar.vrGunRotation.x, 0, avatar.vrGunRotation.z);
                     other.skeleton=CandyHandSkeleton.Rest(!state.leftHanded,.96f);
                     other.skeletonTracked=true;
                     if(state.leftHanded)frame.right=other;else frame.left=other;
@@ -611,6 +621,8 @@ namespace DeadlyJenga.CandyPlayers
                         palm *= CandyWeaponVisual.ModelScale(state.kind, frameScale);
                         hand.position += hand.rotation * palm - rotation * palm;
                     }
+                    if (state.kind != EquipmentKind.MurderSword && left == state.leftHanded)
+                        hand.position = tracked.position;
                     hand.rotation = rotation;
                 }
                 bool usesBothHands = state.kind is EquipmentKind.LaserAxe or EquipmentKind.Chainsaw or EquipmentKind.LaserClaws;

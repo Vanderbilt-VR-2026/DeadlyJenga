@@ -36,9 +36,11 @@ namespace DeadlyJenga.CastlePrototype
         [Min(.1f)] public float vrClimbAcceleration=10f;
         readonly Vector3[] previousGripPosition = new Vector3[2];
         readonly Vector3[] pullVelocity = new Vector3[2];
-        [Min(0)] public float vrReleaseMultiplier = 6f;
-        [Min(0)] public float vrReleaseSpeedLimit = 14f;
+        [Min(0)] public float vrReleaseMultiplier = 1.6f;
+        [Min(0)] public float vrReleaseSpeedLimit = 5f;
 
+        int drivingGrip = -1;
+        readonly float[] gripPressUntil = new float[2];
         bool ManualVRClimb => IsVR && !externallyDriven;
         readonly Collider[] gripContacts = new Collider[32];
         readonly Collider[] heldFaces = new Collider[2];
@@ -85,8 +87,7 @@ namespace DeadlyJenga.CastlePrototype
             bool allowed = Alive && climbingEnabled && !CarryingFlag && modeRules?.canClimb != false &&
                 !Vaulting && !InputSuspended && vrInputFocused && !trackingRebase && candyTracking;
             var equipment = GetComponent<CandyEquipment>()?.Equipment;
-            int grips = 0;
-            int releases = 0;
+            int previousDriver = drivingGrip;
             Vector3 releaseVelocity = Vector3.zero;
             Vector3 correction = Vector3.zero;
             for (int side = 0; side < 2; side++)
@@ -110,60 +111,73 @@ namespace DeadlyJenga.CastlePrototype
                         pullVelocity[side] = continuous
                             ? Vector3.Lerp(pullVelocity[side], delta / dt, 1f - Mathf.Exp(-dt / .05f))
                             : Vector3.zero;
-                        if (!held && heldFaces[side].enabled && heldFaces[side].gameObject.activeInHierarchy)
+                        if (!held && side == previousDriver && heldFaces[side].enabled && heldFaces[side].gameObject.activeInHierarchy)
                         {
                             var origin = candyTracking.trackingOrigin;
-                            releaseVelocity += (origin ? origin.rotation : transform.rotation) * pullVelocity[side];
-                            releases++;
+                            releaseVelocity = (origin ? origin.rotation : transform.rotation) * pullVelocity[side];
                         }
                     }
                 }
                 if (!held || !allowed || !hand.tracked || !CanUseClimbHand(equipment, left))
                 {
+                    gripPressUntil[side] = float.NegativeInfinity;
                     heldFaces[side] = null;
                     continue;
                 }
-                if (pressed && climbCooldown <= 0 && climbStun <= 0 && (Climbing || GripRemaining >= .12f))
+                if (pressed) gripPressUntil[side] = Time.time + .12f;
+                if (!heldFaces[side] && Time.time < gripPressUntil[side] && climbCooldown <= 0 && climbStun <= 0 && (Climbing || GripRemaining >= .12f))
                 {
                     heldFaces[side] = FindGrip(hand.position);
                     if (heldFaces[side])
                     {
+                        drivingGrip = side;
+                        gripPressUntil[side] = float.NegativeInfinity;
                         previousGripPosition[side] = HybridXRInput.Controller(left).devicePosition.ReadValue();
                         pullVelocity[side] = Vector3.zero;
                         localGrip[side] = heldFaces[side].transform.InverseTransformPoint(hand.position);
                     }
                 }
-                var face = heldFaces[side];
-                if (!face || !face.enabled || !face.gameObject.activeInHierarchy ||
-                    !Climbables.TryGet(face, out var block) || !AllowsGrip(block))
-                {
-                    heldFaces[side] = null;
-                    continue;
-                }
-                Vector3 anchor = face.transform.TransformPoint(localGrip[side]);
-                bool newSupport = climbCollider != face;
-                climbCollider = face;
-                climbBlock = block;
-                climbBody = block.Body;
-                climbPointVelocity = climbBody ? climbBody.GetPointVelocity(anchor) : Vector3.zero;
-                if (UnsafeClimb(climbPointVelocity, dt, newSupport) || Vector3.Distance(anchor, hand.position) > .55f * playerScale)
-                {
-                    heldFaces[side] = null;
-                    continue;
-                }
-                climbLastVelocity = climbPointVelocity;
-                climbLastRotation = block.Anchor.rotation;
-                correction += anchor - hand.position;
-                grips++;
             }
-            if (grips == 0)
+            // The newest grip drives the body. Rebase the other hand when it takes over.
+            for (int attempt = 0; drivingGrip >= 0 && attempt < 2; attempt++)
+            {
+                int side = drivingGrip;
+                var face = heldFaces[side];
+                if (face && face.enabled && face.gameObject.activeInHierarchy &&
+                    Climbables.TryGet(face, out var block) && AllowsGrip(block))
+                {
+                    var hand = candyTracking.WorldHand(side == 0);
+                    if (attempt > 0)
+                    {
+                        localGrip[side] = face.transform.InverseTransformPoint(hand.position);
+                        pullVelocity[side] = Vector3.zero;
+                    }
+                    Vector3 anchor = face.transform.TransformPoint(localGrip[side]);
+                    bool newSupport = climbCollider != face;
+                    climbCollider = face;
+                    climbBlock = block;
+                    climbBody = block.Body;
+                    climbPointVelocity = climbBody ? climbBody.GetPointVelocity(anchor) : Vector3.zero;
+                    correction = anchor - hand.position;
+                    if (!UnsafeClimb(climbPointVelocity, dt, newSupport) && correction.magnitude <= .55f * playerScale &&
+                        (attempt == 0 || Vector3.Distance(face.ClosestPoint(hand.position), hand.position) <= .15f * playerScale))
+                    {
+                        climbLastVelocity = climbPointVelocity;
+                        climbLastRotation = block.Anchor.rotation;
+                        break;
+                    }
+                }
+                heldFaces[side] = null;
+                drivingGrip = heldFaces[1-side] ? 1-side : -1;
+            }
+            if (drivingGrip < 0)
             {
                 if (Climbing)
                 {
                     ReleaseClimb("Released grip", false);
-                    if (releases > 0 && releaseVelocity.y / releases >= .65f)
+                    if (releaseVelocity.y > 0f)
                     {
-                        Vector3 launch = Vector3.ClampMagnitude(releaseVelocity * (vrReleaseMultiplier / releases), vrReleaseSpeedLimit);
+                        Vector3 launch = Vector3.ClampMagnitude(releaseVelocity * vrReleaseMultiplier, vrReleaseSpeedLimit);
                         verticalSpeed += launch.y;
                         slopeVelocity += Vector3.ProjectOnPlane(launch, Vector3.up);
                         climbCooldown = 0;
@@ -181,7 +195,7 @@ namespace DeadlyJenga.CastlePrototype
             climbGroundRest = 0;
             climbElapsed += dt;
             ClearSprint();
-            Capsule.Move(Vector3.ClampMagnitude(correction / grips, 6f * playerScale * dt));
+            Capsule.Move(Vector3.ClampMagnitude(correction, 6f * playerScale * dt));
             if (!Climbing) return false;
             if (!PowerupUnlimitedStamina)
                 GripRemaining = 1 - CastleStaminaCurve.Advance(1 - GripRemaining,
@@ -201,6 +215,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void ResetClimb(bool refill)
         {
+            drivingGrip = -1;
             heldFaces[0] = heldFaces[1] = null;
             Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;toggleClimbActive=false;
             vrClimbVelocity=Vector3.zero;
@@ -258,6 +273,7 @@ namespace DeadlyJenga.CastlePrototype
         void ReleaseClimb(string reason,bool forced)
         {
             Vector3 inherited=Vector3.ClampMagnitude(climbPointVelocity,12);
+            drivingGrip = -1;
             heldFaces[0] = heldFaces[1] = null;
             Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;Grounded=false;support=null;toggleClimbActive=false;
             verticalSpeed=Mathf.Clamp(inherited.y,-10,8);slopeVelocity=Vector3.ProjectOnPlane(inherited,Vector3.up)+climbNormal*(forced?1.8f:.65f);
