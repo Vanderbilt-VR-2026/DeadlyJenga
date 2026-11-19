@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-578872
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 0ead86cbe5dd3554786b0424b747f81f, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 578872
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: "Shot \xB7 alternate"
+    atlasFile: atlas.png
+    atlasSha256: eaca5dae8422c7ae22bbb600fcb276f7c74ae0f6b7c38972fd095d920a519d5e
+    gifFile: preview.gif
+    gifSha256: faf7a5c6e75c7afcbc624242d50b47ced57bb47733686cb9257eaab080db5f23
+    sourceSha256: ab6302ef0be3831168c58171d1074ccd1cb18dae06881b7c99e7502308de8c22
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Dual Uzi in the acting player's hands
+    action: Weapon attack / swing / discharge (inspect this weapon's caller; a melee
+      Shot is not a bullet)
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: "Observed gameplay lifecycle firing Shot \xB7 alternate"
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

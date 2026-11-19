@@ -14,16 +14,33 @@ namespace DeadlyJenga.Presentation
         void Update()
         {
             if((Services.Session as ILobbyMatchVisitControls)?.VisitingLobby==true){if(canvas)canvas.enabled=false;return;}
-            var session=Services.Session;var player=session?.Player;if(player==null)return;var equipment=player.gameObject.GetComponent<IEquipmentControls>()?.Equipment;
+            var session=Services.Session;var player=session?.Player;if(player==null){if(canvas)canvas.enabled=false;return;}var equipment=player.gameObject.GetComponent<IEquipmentControls>()?.Equipment;
             if(!sights)sights=GetComponent<CandyGunSights>();
             bool active=equipment?.drawn==true&&CandyGunSights.SupportsAim(equipment)&&
                 !session.MenuOpen&&!session.PlayingHand&&!player.InputSuspended&&!(sights&&sights.DrawsScopeOverlay);
-            if(!canvas){var go=new GameObject("Weapon reticle",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();canvas.sortingOrder=34;var text=new GameObject("Precision / spread reticle",typeof(RectTransform),typeof(Text));text.transform.SetParent(go.transform,false);glyph=text.GetComponent<Text>();glyph.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;glyph.alignment=TextAnchor.MiddleCenter;glyph.raycastTarget=false;glyph.rectTransform.sizeDelta=new Vector2(48,48);}
+            if(!canvas){var go=new GameObject("Weapon reticle",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();canvas.sortingOrder=34;var text=new GameObject("Precision / spread reticle",typeof(RectTransform),typeof(Text));text.transform.SetParent(go.transform,false);glyph=text.GetComponent<Text>();glyph.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");glyph.alignment=TextAnchor.MiddleCenter;glyph.raycastTarget=false;glyph.rectTransform.sizeDelta=new Vector2(48,48);}
             if(camera!=session.ActiveCamera||vr!=session.IsVR){camera=session.ActiveCamera;vr=session.IsVR;CandyHudLayout.Configure(canvas,transform,camera,vr);}canvas.enabled=active;if(!active||!camera)return;
             bool spread=equipment.kind==EquipmentKind.RocketLauncher||equipment.kind==EquipmentKind.GrenadeLauncher||equipment.kind==EquipmentKind.Blaster||equipment.kind==EquipmentKind.PoweredArmor||equipment.kind==EquipmentKind.ChainGun||equipment.kind==EquipmentKind.DualUzi||equipment.kind==EquipmentKind.DualRifle&&equipment.shotgun||equipment.kind==EquipmentKind.StockPistol&&!equipment.shotgun;
             glyph.text=spread?"○":"+";glyph.fontSize=sights&&sights.Aiming?(spread?28:23):(spread?36:27);
             var aim=player.gameObject.GetComponent<IWeaponAim>()?.WeaponAim??new Pose(camera.transform.position,camera.transform.rotation);
-            if(vr){var point=aim.position+aim.rotation*Vector3.forward*3;glyph.transform.position=point;glyph.transform.rotation=Quaternion.LookRotation(point-camera.transform.position);glyph.rectTransform.localScale=Vector3.one;}
+            if (vr)
+            {
+                // Keep the glyph on the stereo HUD plane even when the aim point is behind cover.
+                var eye = camera.transform;
+                var target = aim.position + aim.rotation * Vector3.forward * 12;
+                var line = new Ray(eye.position, target - eye.position);
+                var plane = new Plane(eye.forward, canvas.transform.position);
+                bool onHud = plane.Raycast(line, out float depth);
+                var rect = (RectTransform)canvas.transform;
+                var local = onHud ? rect.InverseTransformPoint(line.GetPoint(depth)) : Vector3.zero;
+                glyph.enabled = onHud && rect.rect.Contains(local);
+                glyph.rectTransform.anchoredPosition = local;
+            }
+            else
+            {
+                glyph.enabled = true;
+                glyph.rectTransform.anchoredPosition = Vector2.zero;
+            }
             if(Time.unscaledTime>=nextQuery)
             {
                 nextQuery=Time.unscaledTime+.08f;color=Color.white;int count=Physics.RaycastNonAlloc(aim.position,aim.rotation*Vector3.forward,hits,90,(1<<Layers.Block)|(1<<Layers.Surface)|(1<<Layers.Survivor)|1,QueryTriggerInteraction.Collide);float nearest=90;IModeActor target=null;var self=player.gameObject.GetComponent<IModeActor>();

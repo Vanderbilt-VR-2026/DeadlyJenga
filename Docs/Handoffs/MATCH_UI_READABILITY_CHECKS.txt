@@ -1,0 +1,26 @@
+Actual Game scene and production menu, scripted pointer/binding checks. Capture camera temporarily frames the world-locked tablet for readability; these are not headset eye-placement measurements. No physical headset or multiplayer proof.
+PASS Actual lobby initialized
+PASS Current front terminal can start a match
+PASS Terminal launch travels to actual Game
+PASS Gameplay HUD visible for 61-live-standings.png; menu=False; spectating=False
+CAPTURE 61-live-standings.png uses a temporary inspection camera over the production canvas; layout restored afterward.
+PASS Gameplay HUD visible for 62-elimination-feed.png; menu=False; spectating=False
+CAPTURE 62-elimination-feed.png uses a temporary inspection camera over the production canvas; layout restored afterward.
+PASS Four distinct elimination cards visible
+PASS Feed label fits: Elimination action
+PASS Feed label fits: Elimination victim
+PASS Feed label fits: Elimination action
+PASS Feed label fits: Elimination action
+PASS Feed label fits: Elimination victim
+PASS Feed label fits: Elimination action
+PASS Feed label fits: Elimination victim
+PASS Local death visibly names YOU as victim
+PASS Repeated snapshot does not duplicate feed cards
+PASS Results visible after real game-over presentation delay
+CAPTURE 63-results.png uses a temporary inspection camera over the production canvas; layout restored afterward.
+CAPTURE 64-results-infection.png uses a temporary inspection camera over the production canvas; layout restored afterward.
+EVIDENCE 61-64 use explicit long-name/ranking/elimination snapshot fixtures over actual Game presentation. No live peer claim.
+PASS Results return route reaches Lobby
+PASS Current lobby has last-round board
+COMPLETE UI assertions passed with no runtime errors.
+CLEANUP restored name preference and initial scene state.

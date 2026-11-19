@@ -1,3 +1,4 @@
+using DeadlyJenga.Core;
 using DeadlyJenga.DevTools.Editor;
 using System;
 using System.Collections;
@@ -51,7 +52,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Assert(CastleStaminaCurve.Advance(.25f,2,curve,degree)==1,curve+" degree "+degree+" reaches full in finite time.");
             }
             Assert(CastleStaminaCurve.Advance(.43f,0,StaminaCurve.Exponential,4)==.43f,"Changing curves while idle never changes current stamina.");
-            Assert(CandyStaminaHud.TargetOpacity(true,.4f,false)==1&&CandyStaminaHud.TargetOpacity(false,.4f,false)==.46f&&CandyStaminaHud.TargetOpacity(false,1,false)==0,"HUD is opaque while climbing, translucent until full, then hidden.");
+            Assert(Mathf.Abs(CandyStaminaHud.TargetOpacity(true,.4f,false)-.648f)<.001f&&Mathf.Abs(CandyStaminaHud.TargetOpacity(false,.4f,false)-.648f)<.001f&&CandyStaminaHud.TargetOpacity(false,1,false)==0,"Peripheral fatigue follows missing stamina, then disappears at full.");
             Assert(CandyStaminaHud.TargetOpacity(true,.4f,true)==0,"Suspended/hidden view hides the HUD.");
             Assert(CandyBreathing.State(true,.4f)==CandySound.BreathExertion&&CandyBreathing.State(false,.4f)==CandySound.BreathRecovery&&CandyBreathing.State(false,0)==CandySound.BreathExhausted&&CandyBreathing.State(false,1)==null,"Breathing follows climbing, recovery, exhaustion and silence at full.");
             foreach(var sound in CandyBreathing.Sounds)
@@ -61,7 +62,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             }
             var session=Object.FindFirstObjectByType<CastlePlaySession>();session.SetMenu(true);
             var staging=new GameObject("Stamina test staging");staging.SetActive(false);
-            var motor=Object.Instantiate(session.survivorPrefab,staging.transform).GetComponent<CastleSurvivor>();motor.externallyDriven=true;motor.enabled=false;
+            var motor=Object.Instantiate(session.survivorPrefab,staging.transform).GetComponent<CastleSurvivor>();motor.externallyDriven=false;motor.enabled=false;
             foreach(var camera in motor.GetComponentsInChildren<Camera>(true))camera.enabled=false;
             foreach(var listener in motor.GetComponentsInChildren<AudioListener>(true))listener.enabled=false;
             staging.SetActive(true);motor.RefreshMode();
@@ -83,21 +84,21 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Assert(motor.GripRemaining==start,"Airborne release never regenerates stamina.");
             // Render an actual latched survivor with the actual HUD, not a static UI mockup.
             Setup();Tick(110,Vector2.zero,true);motor.InputDriver=new Hold();motor.enabled=true;
-            session.enabled=false;session.Survivor().viewCamera.enabled=false;motor.viewCamera.enabled=true;motor.InputSuspended=false;
+            session.SetMenu(false);session.enabled=false;var hudSession=Services.Session;Services.Session=null;session.Survivor().viewCamera.enabled=false;motor.viewCamera.enabled=true;motor.InputSuspended=false;
             var hud=motor.gameObject.AddComponent<CandyStaminaHud>();hud.Present(motor,1);Canvas.ForceUpdateCanvases();
-            yield return Application.isBatchMode?null:new WaitForEndOfFrame();hud.Present(motor,1);Assert(hud.Opacity==1,"Actual desktop Canvas appears at full opacity during real climbing.");
+            yield return Application.isBatchMode?null:new WaitForEndOfFrame();hud.Present(motor,1);Assert(Mathf.Abs(hud.Opacity-CandyStaminaHud.TargetOpacity(true,motor.Stamina,false))<.01f,"Actual peripheral fatigue follows real climbing stamina.");
             if(!Application.isBatchMode)ScreenCapture.CaptureScreenshot("ArtDirection/StaminaClimbing.png");yield return null;yield return Application.isBatchMode?null:new WaitForEndOfFrame();
             motor.InputDriver=null;motor.enabled=false;motor.climbRecoveryPerSecond=.12f;
             var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.transform.position=motor.transform.position-Vector3.up*.5f;floor.transform.localScale=new Vector3(20,.5f,20);Physics.SyncTransforms();
             Tick(80,Vector2.zero,false);Assert(motor.StaminaRecovering,"Secure footing enables the actual recovery state after the rest delay.");
             motor.enabled=true;hud.Present(motor,1);
-            yield return Application.isBatchMode?null:new WaitForEndOfFrame();Assert(Mathf.Abs(hud.Opacity-.46f)<.001f,"Actual Canvas turns translucent during recovery.");if(!Application.isBatchMode)ScreenCapture.CaptureScreenshot("ArtDirection/StaminaRecovery.png");yield return null;
+            yield return Application.isBatchMode?null:new WaitForEndOfFrame();Assert(Mathf.Abs(hud.Opacity-CandyStaminaHud.TargetOpacity(false,motor.Stamina,false))<.05f,"Peripheral fatigue recedes during recovery.");if(!Application.isBatchMode)ScreenCapture.CaptureScreenshot("ArtDirection/StaminaRecovery.png");yield return null;
             motor.enabled=false;motor.climbRecoveryPerSecond=0;start=motor.GripRemaining;Tick(120,Vector2.zero,false);
             Assert(motor.GripRemaining==start,"Live zero recovery rate prevents regeneration on secure footing.");
             motor.climbRecoveryPerSecond=.65f;motor.climbRecoveryCurve=StaminaCurve.Exponential;motor.climbRecoveryDegree=3;Tick(150,Vector2.zero,false);
             Assert(motor.GripRemaining==1,"Live exponential recovery reaches full on secure footing.");
             motor.enabled=true;hud.Present(motor,1);Assert(hud.Opacity==0,"Actual Canvas disappears once full.");Object.Destroy(floor);
-            motor.enabled=false;motor.viewCamera.enabled=false;session.Survivor().viewCamera.enabled=true;session.enabled=true;
+            motor.enabled=false;motor.viewCamera.enabled=false;session.Survivor().viewCamera.enabled=true;session.enabled=true;Services.Session=hudSession;
             var engine=CandyAudioEngine.Instance;int voices=engine.GetComponentsInChildren<AudioSource>().Length;
             foreach(var sound in CandyBreathing.Sounds)
             {

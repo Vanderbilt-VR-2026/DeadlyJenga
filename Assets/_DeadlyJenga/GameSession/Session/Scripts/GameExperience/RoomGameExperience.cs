@@ -56,7 +56,16 @@ namespace DeadlyJenga.CastlePrototype
         }
         internal IslandRoomConnection Room=>room;
         internal bool IsAuthority=>room&&(!room.Connected||room.IsHost);
-        bool WaitingForRoster=>room&&room.Connected&&room.Runner&&room.Runner.ActivePlayers.Any()&&room.GameExperienceRosterIds.Length==0;
+        bool WaitingForRoster=>IsAuthority&&room&&room.Connected&&room.Runner&&room.Runner.ActivePlayers.Any()&&room.GameExperienceRosterIds.Length==0;
+        internal bool PlayerPlaylist=>State?.playerPlaylist==true;
+        internal bool OpenDevelopment=>State?.openDevelopment==true&&DevelopmentAllowed;
+        internal bool CanChooseFirstRound=>PlayerPlaylist&&!TransportRecovering&&State.round==0&&State.phase==GameFlowPhase.Idle;
+        internal bool IsRotatingLobby=>PlayerPlaylist&&LobbyVisible;
+        internal bool CanGo => PlayerPlaylist && LobbyVisible && room && !room.Busy && !room.Departing &&
+            !TransportRecovering && !WaitingForRoster && State.round==0 &&
+            State.phase is GameFlowPhase.Idle or GameFlowPhase.Selected or GameFlowPhase.WaitingReady &&
+            Array.IndexOf(State.humanIds,room.GameExperienceLocalId)>=0 &&
+            (room.LocalIsLobbyHost&&State.phase==GameFlowPhase.Idle || !LocalReady);
         internal bool DevelopmentAllowed=>Experience==GameExperience.Demo&&!TransportRecovering;
         GameFlowState State
         {
@@ -70,7 +79,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         internal CuratedGameProfile CurrentProfile=>FindProfile(State?.profileId);
         public GameExperience Experience=>State==null||State.demo?GameExperience.Demo:GameExperience.Game;
-        public bool CanConfigureExperience=>room&&room.LocalIsLobbyHost&&!room.Busy&&!TransportRecovering&&!WaitingForRoster&&
+        public bool CanConfigureExperience=>!PlayerPlaylist&&!OpenDevelopment&&room&&room.LocalIsLobbyHost&&!room.Busy&&!TransportRecovering&&!WaitingForRoster&&
             State!=null&&(State.phase==GameFlowPhase.Playing||State.phase==GameFlowPhase.Results||LobbyVisible)&&(State.pending==GameFlowEffect.None||State.pending==GameFlowEffect.ChooseProfile);
         public bool AutomaticRounds=>State?.automatic??false;
         public RoomGamePhase GamePhase=>(RoomGamePhase)(int)(State?.phase??GameFlowPhase.Idle);
@@ -78,8 +87,9 @@ namespace DeadlyJenga.CastlePrototype
         public float CountdownSeconds=>(float)(State?.remaining??0);
         public int MinimumPopulation=>CurrentProfile?.minimumPopulation??0;
         public int MaximumPopulation=>CurrentProfile?.maximumPopulation??0;
-        public bool LocalReady=>State!=null&&Array.IndexOf(State.automatic&&(State.phase==GameFlowPhase.Playing||State.phase==GameFlowPhase.Results)?State.playlistIds:State.readyIds,room.GameExperienceLocalId)>=0;
-        public int ReadyCount=>State?.readyIds.Length??0;
+        public bool LocalReady=>PlayerPlaylist?Array.IndexOf(State.playlistIds,room.GameExperienceLocalId)>=0:
+            State!=null&&Array.IndexOf(State.automatic&&(State.phase==GameFlowPhase.Playing||State.phase==GameFlowPhase.Results)?State.playlistIds:State.readyIds,room.GameExperienceLocalId)>=0;
+        public int ReadyCount=>PlayerPlaylist?State.playlistIds.Length:State?.readyIds.Length??0;
         public int RequiredReadyCount=>State?.humanIds.Length??0;
         public bool CanCancelGameStart=>CanConfigureExperience&&Experience==GameExperience.Game&&State.phase!=GameFlowPhase.Playing&&State.phase!=GameFlowPhase.Results;
         public bool CanRetryGameTransition=>room&&room.LocalIsLobbyHost&&!room.Busy&&!TransportRecovering&&State?.phase==GameFlowPhase.Failed&&State.pending!=GameFlowEffect.None&&State.attempts<3;
@@ -90,14 +100,25 @@ namespace DeadlyJenga.CastlePrototype
                 var state=State;if(state==null)return "Preparing room";
                 if(!string.IsNullOrEmpty(TransportStatus))return TransportStatus;
                 if(TransportRecovering)return "Restoring room authority; waiting for verified checkpoints.";
-                if(WaitingForRoster)return "Waiting for connected player identities before changing the room.";
-                if(state.demo)return "Demo · development controls available to permitted players.";
                 if(state.phase==GameFlowPhase.Failed)return sceneSelectionError.Length>0?sceneSelectionError:state.error;
+                if(WaitingForRoster)return "Waiting for connected player identities before changing the room.";
+                if(state.demo)return OpenDevelopment?"Developer lobby · all members have development controls.":"Demo · development controls available to permitted players.";
+                if(state.playerPlaylist)
+                {
+                    if(state.phase==GameFlowPhase.Idle)return "Press GO when you are ready to play.";
+                    if(state.phase==GameFlowPhase.WaitingReady&&state.round==0)return $"Waiting for GO · {ReadyCount}/{RequiredReadyCount} ready";
+                    if(state.phase==GameFlowPhase.Choosing)return "Choosing the next game…";
+                    if(state.phase==GameFlowPhase.Results)return "Returning the group to the lobby in "+Mathf.CeilToInt(CountdownSeconds)+" s.";
+                    if(state.phase==GameFlowPhase.Selected||state.phase==GameFlowPhase.WaitingReady)
+                        return "NEXT  "+room.Catalog.modes[room.ModeIndex].title+" · "+room.Catalog.maps[room.MapIndex].title+
+                            "  |  "+Mathf.CeilToInt(CountdownSeconds)+" s";
+                    return state.phase==GameFlowPhase.Playing?"Round in progress.":"Loading the next scene…";
+                }
                 if((state.phase==GameFlowPhase.LoadingGame||state.phase==GameFlowPhase.Playing||state.phase==GameFlowPhase.Results)&&!string.IsNullOrEmpty(MatchStatus))return MatchStatus;
                 return "PROTOTYPE · unvalidated · no disasters · "+state.phase+" · "+ReadyCount+"/"+RequiredReadyCount+" ready";
             }
         }
-        public string GameActionHint=>Experience==GameExperience.Demo?"Host: switch to Game for the prototype playlist.":
+        public string GameActionHint=>PlayerPlaylist?"Everyone in the room travels together. Leave the room to stop joining its rotation.":Experience==GameExperience.Demo?"Host: switch to Game for the prototype playlist.":
             State?.phase==GameFlowPhase.Results?"Next Round keeps admitted players. New guests ready in the lobby; Return keeps the room.":
             AutomaticRounds?"Ready joins continuous rounds until you unready or leave. New guests must ready.":"Ready for this selection, then the host starts. Results: Next Round rematches; Return keeps the room.";
         void Submit(string verb,string value="",bool ready=false)
@@ -111,6 +132,7 @@ namespace DeadlyJenga.CastlePrototype
         public void CancelGameStart()=>Submit("cancel");
         public void RetryGameTransition()=>Submit("retry");
         public void RequestStart()=>Submit("start");
+        internal void Go(){if(CanGo)SetReady(true);}
         public void RequestRematch()=>Submit("rematch");
         public void RequestReturn()=>Submit("return");
 
@@ -121,7 +143,8 @@ namespace DeadlyJenga.CastlePrototype
             {
                 RoomGameFlow.Validate(snapshot);
                 // An over-capacity late roster must still receive state and be able to return/recover.
-                if(snapshot.profileId.Length>0&&!ProfileAvailable(snapshot.profileId,1))return false;
+                if(snapshot.profileId.Length>0&&
+                    (!ProfileAvailable(snapshot.profileId,1)||IsPlayProfile(FindProfile(snapshot.profileId))!=snapshot.playerPlaylist))return false;
                 if(!snapshot.demo&&snapshot.profileId.Length>0)
                 {
                     var profile=FindProfile(snapshot.profileId);
@@ -137,24 +160,81 @@ namespace DeadlyJenga.CastlePrototype
             dispatched="";lastTick=Time.realtimeSinceStartupAsDouble;
         }
         internal void CommitFlow()=>TransportPublish();
+        internal bool PrepareStandaloneDemo(bool openDevelopment=false)
+        {
+            if(!room||room.Connected||room.Busy||room.Migrating||room.RoomSceneBusy||room.Departing||room.SwitchingMap)return false;
+            TransportDisconnected();
+            returningBots.Clear();
+            flow=new RoomGameFlow(new GameFlowState{roomId=Guid.NewGuid().ToString("N"),authorityTerm=1,demo=true,openDevelopment=openDevelopment});
+            dispatched="";sceneSelectionError="";lastTick=Time.realtimeSinceStartupAsDouble;
+            return true;
+        }
+        string preparedHomeRoom="";
+        bool preparedHomeAutomatic;
+        int preparedHomeSelection;
+        internal bool PrepareHomeLobbyEntry(bool automatic)
+        {
+            if(!PrepareStandaloneDemo())return false;
+            flow=new RoomGameFlow(new GameFlowState{roomId=Guid.NewGuid().ToString("N"),authorityTerm=1,playerPlaylist=true,
+                timings=new GameFlowTimings{selection=30,sceneTimeout=75}});
+            if(automatic&&!flow.Configure(State.authorityTerm,false,true))return false;
+            preparedHomeRoom=State.roomId;preparedHomeAutomatic=automatic;preparedHomeSelection=State.selectionVersion;
+            return true;
+        }
+        internal bool ConsumeHomeLobbyEntry(IslandLobby lobby,bool automatic,Fusion.NetworkRunner expectedRunner)
+        {
+            if(preparedHomeRoom.Length==0||preparedHomeRoom!=State.roomId||preparedHomeAutomatic!=automatic||
+                !ReferenceEquals(expectedRunner,room.Runner)||(ReferenceEquals(expectedRunner,null)?room.Connected:!room.Connected||!room.HostSelected)||
+                State.demo||State.automatic!=automatic||State.selectionVersion!=preparedHomeSelection||
+                State.phase!=(automatic?GameFlowPhase.Choosing:GameFlowPhase.Idle)||State.pending!=GameFlowEffect.None||
+                !lobby||!ReferenceEquals(lobby,IslandLobby.Current)||!LobbyVisible||!IsAuthority||!room.LocalIsLobbyHost||
+                room.Busy||room.Migrating||room.SwitchingMap||TransportRecovering||WaitingForRoster)return false;
+            var roster=room.GameExperienceRosterIds;
+            if(roster.Length==0)return false;
+            if(flow.SetRoster(State.authorityTerm,roster))CommitFlow();
+            preparedHomeRoom="";
+            if(!automatic)EnsureFirstRoundSelection();
+            CommitFlow();
+            return true;
+        }
         internal void ResetRoomFlow()
         {
             bool game=flow!=null&&!State.demo;
+            bool open=State?.openDevelopment==true;
             bool loadedMatch=UnityEngine.Object.FindFirstObjectByType<CastlePlaySession>();
-            flow=new RoomGameFlow(new GameFlowState{roomId=Guid.NewGuid().ToString("N"),authorityTerm=1,demo=!game});
+            flow=new RoomGameFlow(new GameFlowState{roomId=Guid.NewGuid().ToString("N"),authorityTerm=1,demo=!game,openDevelopment=open,
+                playerPlaylist=PlayerPlaylist,timings=new GameFlowTimings{selection=PlayerPlaylist?30:8,sceneTimeout=PlayerPlaylist?75:25}});
             if(game&&loadedMatch)flow.ReturnToLobby(1);
             dispatched="";sceneSelectionError="";lastTick=Time.realtimeSinceStartupAsDouble;
         }
         void UpdateRoster()
         {
-            if(IsAuthority&&flow.SetRoster(State.authorityTerm,room.GameExperienceRosterIds))CommitFlow();
+            if(IsAuthority&&room!=null&&flow!=null&&State!=null&&flow.SetRoster(State.authorityTerm,room.GameExperienceRosterIds))CommitFlow();
         }
         internal void HandleAuthoritativeCommand(string sender,GameExperienceCommand command)
         {
             var s=State;
+            bool firstGo=s?.playerPlaylist==true&&s.round==0&&command?.verb=="ready";
             if(!IsAuthority||TransportRecovering||room.Busy||WaitingForRoster||command==null||s==null||command.authorityTerm!=s.authorityTerm||
-                command.selectionVersion!=s.selectionVersion||command.rosterVersion!=s.rosterVersion||command.round!=s.round||Array.IndexOf(s.humanIds,sender)<0)return;
+                !firstGo&&command.selectionVersion!=s.selectionVersion||command.rosterVersion!=s.rosterVersion||command.round!=s.round||Array.IndexOf(s.humanIds,sender)<0)return;
             bool leader=room.GameExperienceIsLeader(sender),changed=false;
+            if (s.playerPlaylist && command.verb=="ready")
+            {
+                if (!LobbyVisible || !command.ready || s.round!=0 ||
+                    s.phase is not (GameFlowPhase.Idle or GameFlowPhase.Selected or GameFlowPhase.WaitingReady)) return;
+                changed=flow.EnrollPlaylist(s.authorityTerm,sender,true);
+                if (leader && s.phase==GameFlowPhase.Idle)
+                {
+                    flow.SetAutomatic(s.authorityTerm,true);
+                    SelectNext();
+                    changed=true;
+                }
+                if (changed) CommitFlow();
+                return;
+            }
+            if((s.playerPlaylist||s.openDevelopment)&&
+                (command.verb=="experience"||command.verb=="automatic"||command.verb=="cancel"||command.verb=="ready"))return;
+            if(s.playerPlaylist&&command.verb=="rematch")return;
             if(command.verb=="ready"&&!s.demo)
             {
                 if(s.automatic&&!command.ready&&(s.phase==GameFlowPhase.Playing||s.phase==GameFlowPhase.Results))
@@ -163,15 +243,22 @@ namespace DeadlyJenga.CastlePrototype
                 if(s.automatic)changed=flow.EnrollPlaylist(s.authorityTerm,sender,command.ready);
                 changed=flow.SetReady(s.authorityTerm,sender,s.selectionVersion,s.rosterVersion,command.ready)||changed;
             }
-            else if(leader&&command.verb=="experience"&&LobbyVisible)
+            else if(leader&&command.verb=="experience"&&(LobbyVisible||command.value=="demo"&&ActiveMatchVisible))
             {
-                changed=flow.Configure(s.authorityTerm,command.value=="demo",false);
+                changed=command.value=="demo"&&!LobbyVisible?flow.EnableDemo(s.authorityTerm):flow.Configure(s.authorityTerm,command.value=="demo",false);
+                if(changed&&!s.demo&&State.demo&&Services.Session is CastlePlaySession active&&active.Modes)
+                    active.Modes.ReleaseCuratedDeferralsForDemo();
                 if(changed&&!State.demo)SelectNext();
             }
             else if(leader&&command.verb=="automatic"&&(LobbyVisible||s.phase==GameFlowPhase.Playing||s.phase==GameFlowPhase.Results))
             {
                 changed=flow.SetAutomatic(s.authorityTerm,command.ready);
                 if(changed&&command.ready&&State.phase!=GameFlowPhase.Playing&&State.phase!=GameFlowPhase.Results)flow.Configure(s.authorityTerm,false,true);
+            }
+            else if(leader&&command.verb=="start"&&s.playerPlaylist)
+            {
+                if(LobbyVisible)StartPlayerFirstRound("play:"+room.Catalog.modes[room.ModeIndex].id+"/"+room.Catalog.maps[room.MapIndex].id);
+                return;
             }
             else if(leader&&command.verb=="start")changed=flow.RequestStart(s.authorityTerm,s.selectionVersion,s.rosterVersion);
             else if(leader&&command.verb=="cancel")changed=flow.Cancel(s.authorityTerm);
@@ -187,9 +274,10 @@ namespace DeadlyJenga.CastlePrototype
             TickDeferredParticipants();
             if(!IsAuthority||TransportRecovering||room.Busy||WaitingForRoster){lastTick=Time.realtimeSinceStartupAsDouble;return;}
             EnsureProfiles();UpdateRoster();
+            if(CanChooseFirstRound&&LobbyVisible)EnsureFirstRoundSelection();
             if(State.phase==GameFlowPhase.LoadingGame||State.phase==GameFlowPhase.Playing||State.phase==GameFlowPhase.Results||State.phase==GameFlowPhase.Failed&&State.pending==GameFlowEffect.LoadGame)TickMatch(Time.unscaledTime);
             var s=State;
-            if(!s.demo&&s.automatic&&(s.phase==GameFlowPhase.Selected||s.phase==GameFlowPhase.WaitingReady))
+            if(!s.demo&&!s.playerPlaylist&&s.automatic&&(s.phase==GameFlowPhase.Selected||s.phase==GameFlowPhase.WaitingReady))
                 foreach(var id in s.playlistIds)if(Array.IndexOf(s.readyIds,id)<0&&flow.SetReady(s.authorityTerm,id,s.selectionVersion,s.rosterVersion,true))CommitFlow();
             double now=Time.realtimeSinceStartupAsDouble,elapsed=Math.Max(0,now-lastTick);lastTick=now;
             while(elapsed>0)
@@ -199,6 +287,9 @@ namespace DeadlyJenga.CastlePrototype
             }
             ReconcileLobbyCompletion();DispatchOutbox();
         }
+        bool ActiveMatchVisible=>Services.Session is CastlePlaySession active&&!active.VisitingLobby&&
+            NetworkActors.Alive(active.Player)&&NetworkActors.Alive(active.Hand)&&active.ActiveCamera&&
+            !room.RoomSceneBusy&&!room.Departing&&!room.SwitchingMap&&!room.Migrating;
         bool LobbyVisible=>IslandLobby.Current&&!IslandLobby.Current.VisitingLobby&&ReferenceEquals(Services.Session,IslandLobby.Current)&&NetworkActors.Alive(IslandLobby.Current.Player)&&IslandLobby.Current.ActiveCamera&&!room.RoomSceneBusy&&!room.Departing;
         internal bool ApplySelectedProfile()
         {
@@ -216,7 +307,11 @@ namespace DeadlyJenga.CastlePrototype
         void ReconcileLobbyCompletion()
         {
             var s=State;
-            if(s.pending==GameFlowEffect.ReturnLobby&&LobbyVisible&&flow.SceneCompleted(s.authorityTerm,s.operationId,GameFlowEffect.ReturnLobby))CommitFlow();
+            if(s.pending==GameFlowEffect.ReturnLobby&&LobbyVisible&&flow.SceneCompleted(s.authorityTerm,s.operationId,GameFlowEffect.ReturnLobby))
+            {
+                CommitFlow();
+                if(!State.automatic&&!PlayerPlaylist)SelectNext();
+            }
         }
         void DispatchOutbox()
         {
@@ -236,7 +331,11 @@ namespace DeadlyJenga.CastlePrototype
                 if(TryPrepareRematch(profile)){return;}
                 if(!room.ExperienceSelect(profile,ProfileRules(profile))||!room.ExperienceLoadGame(profile,s.operationId,s.attempts,Failed))Failed();
             }
-            else if(s.pending==GameFlowEffect.ReturnLobby&&!room.ExperienceReturnLobby(s.operationId,s.attempts,Failed))Failed();
+            else if(s.pending==GameFlowEffect.ReturnLobby)
+            {
+                if(s.playerPlaylist&&match)RememberReturningBots();
+                if(!room.ExperienceReturnLobby(s.operationId,s.attempts,Failed))Failed();
+            }
         }
         internal void MatchLoadCompleted()
         {

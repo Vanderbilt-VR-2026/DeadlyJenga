@@ -14,26 +14,42 @@ namespace DeadlyJenga.Wildlife
         float nextThink,nextStep,nextPose,vertical,phase,travel,stuckAt;
         Vector3 lastPosition;
         uint random;
+        float sizeScale=1,visualBaseY;
+        float stridePhase,visualMotion,lastPoseAt;
         public string Species {get;private set;}
         public bool Tame => FollowTarget;
         public Transform FollowTarget {get;private set;}
         public float DistanceTravelled {get;private set;}
         public int Decisions {get;private set;}
         public bool Hovering => Species=="ray";
+        internal static float BodyRadius(string species) => species=="crab"?.38f:.27f;
+        internal static float BodyHeight(string species) => species=="fox"?1.14f:species=="otter"||species=="monkey"?1.0f:species=="jaguar"||species=="penguin"?.92f:.72f;
         public void Initialize(IslandWildlife owner,string species,int seed)
         {
+            sizeScale=owner.BodyScale;
             population=owner;Species=species;random=(uint)(seed*7919+1);phase=Next()*20;
             home=goal=lastPosition=transform.position;
             var child=new GameObject("Visual");visual=child.transform;visual.SetParent(transform,false);
-            model=child.AddComponent<IslandAnimalModel>();model.Build(species);
+            model=child.AddComponent<IslandAnimalModel>();model.Build(species);visual.localScale=Vector3.one*sizeScale;
+            if(sizeScale<1)
+            {
+                float bottom=float.PositiveInfinity;
+                foreach(var renderer in model.GetComponentsInChildren<Renderer>())bottom=Mathf.Min(bottom,transform.InverseTransformPoint(renderer.bounds.min).y);
+                if(!float.IsInfinity(bottom)&&!float.IsNaN(bottom))visualBaseY=-bottom;
+                visual.localPosition=Vector3.up*visualBaseY;
+            }
             gameObject.layer=2;
-            controller=gameObject.AddComponent<CharacterController>();controller.radius=species=="crab"?.38f:.27f;
-            controller.height=species=="fox"?1.14f:species=="otter"||species=="monkey"?1.0f:species=="jaguar"||species=="penguin"?.92f:.72f;controller.center=Vector3.up*(controller.height*.5f);
+            controller=gameObject.AddComponent<CharacterController>();controller.radius=BodyRadius(species)*sizeScale;
+            controller.height=BodyHeight(species)*sizeScale;
+            if(sizeScale<1)controller.height=Mathf.Max(controller.height,controller.radius*2);
+            controller.center=Vector3.up*(controller.height*.5f);
             controller.includeLayers=IslandWildlife.GroundMask;controller.layerOverridePriority=100;
-            controller.skinWidth=.025f;controller.stepOffset=.15f;controller.slopeLimit=48;controller.minMoveDistance=0;
+            controller.skinWidth=.025f*sizeScale;controller.stepOffset=.15f*sizeScale;controller.slopeLimit=48;controller.minMoveDistance=0;
             // Wildlife is non-blocking to players. Its controller only sweeps against the map.
             int survivor=Layers.Survivor;controller.excludeLayers=(1<<2)|(survivor>=0?1<<survivor:0);
             nextThink=Time.unscaledTime+Next()*.3f;nextStep=Time.unscaledTime;
+            lastPoseAt=Time.unscaledTime;
+            stridePhase=phase;
         }
         public void SetCompanion(Transform target){FollowTarget=target;home=transform.position;nextThink=0;}
         float Next(){random^=random<<13;random^=random>>17;random^=random<<5;return (random&0xffffff)/16777216f;}
@@ -51,10 +67,15 @@ namespace DeadlyJenga.Wildlife
             }
             if(now>=nextPose&&distance<65)
             {
-                nextPose=now+(distance>30?.12f:.033f);model.Animate(now+phase,travel);
-                float bob=Hovering?.5f+Mathf.Sin(now*2+phase)*.09f:Species=="frog"?Mathf.Max(0,Mathf.Sin(now*7+phase))*.10f*travel:Mathf.Sin(now*5+phase)*.012f*travel;
-                visual.localPosition=Vector3.up*bob;
-                visual.localRotation=Species=="penguin"?Quaternion.Euler(0,0,Mathf.Sin(now*7+phase)*travel*7):Quaternion.identity;
+                float dt=Mathf.Min(.15f,now-lastPoseAt);
+                lastPoseAt=now;
+                nextPose=now+(distance>30?.12f:.033f);
+                visualMotion=Mathf.MoveTowards(visualMotion,travel,dt*6);
+                stridePhase=Mathf.Repeat(stridePhase+dt*model.StrideRate*visualMotion,Mathf.PI*2);
+                float lift=Species=="frog"&&!controller.isGrounded?Mathf.Clamp(vertical/3.5f,-1,1):0;
+                model.Animate(now+phase,stridePhase,visualMotion,lift,out float bob,out Vector3 tilt);
+                visual.localPosition=Vector3.up*(visualBaseY+bob*sizeScale);
+                visual.localRotation=Quaternion.Euler(tilt);
             }
             if(transform.position.y<(population.World?.Center.y??0)-20)Destroy(gameObject);
         }
@@ -64,15 +85,15 @@ namespace DeadlyJenga.Wildlife
             if(FollowTarget)
             {
                 var delta=FollowTarget.position-transform.position;delta.y=0;
-                if(delta.sqrMagnitude>9)
+                if(delta.sqrMagnitude>9*sizeScale*sizeScale)
                 {
-                    Vector3 desired=FollowTarget.position-delta.normalized*1.8f;
+                    Vector3 desired=FollowTarget.position-delta.normalized*(1.8f*sizeScale);
                     if(population.TryGround(desired,FollowTarget.position.y+1,5,out var floor))goal=floor;
                 }
                 else goal=transform.position;
                 return;
             }
-            if((goal-transform.position).sqrMagnitude>.7f&&Time.unscaledTime-stuckAt<3)return;
+            if((goal-transform.position).sqrMagnitude>.7f*sizeScale*sizeScale&&Time.unscaledTime-stuckAt<3)return;
             if(Next()<.25f){goal=transform.position;return;}
             for(int i=0;i<6;i++)
             {
@@ -82,7 +103,7 @@ namespace DeadlyJenga.Wildlife
                 if(population.TryGround(candidate,transform.position.y+1,3,out var p))
                 {
                     var delta=p-transform.position;delta.y=0;
-                    if(delta.sqrMagnitude>.1f&&!Physics.SphereCast(transform.position+Vector3.up*.4f,.20f,delta.normalized,out _,delta.magnitude,IslandWildlife.GroundMask,QueryTriggerInteraction.Ignore)){goal=p;break;}
+                    if(delta.sqrMagnitude>.1f*sizeScale*sizeScale&&!Physics.SphereCast(transform.position+Vector3.up*(.4f*sizeScale),.20f*sizeScale,delta.normalized,out _,delta.magnitude,IslandWildlife.GroundMask,QueryTriggerInteraction.Ignore)){goal=p;break;}
                 }
             }
             stuckAt=Time.unscaledTime;
@@ -90,7 +111,7 @@ namespace DeadlyJenga.Wildlife
         void Move(float dt,float now)
         {
             var direction=goal-transform.position;direction.y=0;
-            bool go=direction.sqrMagnitude>.10f;
+            bool go=direction.sqrMagnitude>.10f*sizeScale*sizeScale;
             if(go)
             {
                 direction.Normalize();
@@ -106,7 +127,7 @@ namespace DeadlyJenga.Wildlife
             var flags=controller.Move(motion*dt);
             if((flags&CollisionFlags.Sides)!=0){goal=transform.position;nextThink=now+.15f;}
             var delta=transform.position-lastPosition;delta.y=0;DistanceTravelled+=delta.magnitude;lastPosition=transform.position;
-            travel=Mathf.Lerp(travel,go?1:0,.35f);
+            travel=Mathf.Clamp01(delta.magnitude/Mathf.Max(.001f,speed*dt));
         }
     }
 }

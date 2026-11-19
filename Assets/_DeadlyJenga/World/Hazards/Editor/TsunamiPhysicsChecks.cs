@@ -33,22 +33,43 @@ namespace DeadlyJenga.World.Hazards.Editor
                 world.playableBounds = new Bounds(new Vector3(0, 3, 0), new Vector3(20, 6, 20));
                 var normal = CreateProbe(root.transform, 1);
                 var resistant = CreateProbe(root.transform, 2);
+                var longBlock = CreateBlock(root.transform, "Long block", new Vector3(0, 1, 0), new Vector3(1, 1, 14));
+                var compound = CreateBlock(root.transform, "Compound block", new Vector3(4, 1, 0), Vector3.one);
+                var tower = new GameObject("Upper dry piece");
+                tower.layer = Layers.Block;
+                tower.transform.SetParent(compound.transform, false);
+                tower.transform.localPosition = Vector3.up * 3;
+                tower.AddComponent<BoxCollider>().size = new Vector3(1, 5, 1);
+                var lowerOnly = CreateBlock(root.transform, "Identical lower piece", new Vector3(-4, 1, 0), Vector3.one);
                 var catalog = Resources.Load<HazardCatalog>("DisasterCatalog");
                 var prefab = Array.Find(catalog.prefabs, item => item.GetComponent<TsunamiHazard>());
                 instance = UnityEngine.Object.Instantiate(prefab);
                 var hazard = instance.GetComponent<TsunamiHazard>();
-                hazard.randomDirection = false; hazard.approachHeading = 0; hazard.height = 5; hazard.depth = 6;
+                hazard.randomDirection = false;
+                hazard.approachHeading = 0;
+                hazard.Begin();
+                float leadingEdge = hazard.Wave.center.z - hazard.Wave.depth * .5f;
+                Require(hazard.offshoreDistance >= 150 &&
+                    Mathf.Abs(leadingEdge - world.PlayableBounds.max.z - hazard.offshoreDistance) < .01f,
+                    "The authored front must start at least 150m past the map's near edge.");
+                hazard.End();
+                hazard.height = 5; hazard.depth = 6;
                 hazard.offshoreDistance = 4; hazard.warningTime = .1f; hazard.riseTime = .5f;
                 hazard.approachSpeed = 8; hazard.recessionDistance = 2; hazard.fallTime = .5f;
                 Physics.SyncTransforms();
                 var step = typeof(TsunamiHazard).GetMethod("FixedUpdate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 hazard.Begin();
-                bool checkedResistance = false;
+                bool checkedResistance = false, edgeHit = false;
                 for (int tick = 0; tick < 1000 && hazard.Active; tick++)
                 {
-                    int before = normal.calls;
+                    int before = normal.calls, beforeCompound = compound.calls, beforeLong = longBlock.calls;
                     step.Invoke(hazard, null);
                     Require(normal.calls - before <= 1, "Multiple colliders applied duplicate forces.");
+                    Require(compound.calls - beforeCompound <= 1, "Compound block received duplicate forces.");
+                    Require((compound.velocity - lowerOnly.velocity).sqrMagnitude < .00001f,
+                        "A mostly dry upper collider reduced the force on a submerged base.");
+                    if (longBlock.calls > beforeLong && float.IsNegativeInfinity(TsunamiHazard.SurfaceHeight(hazard.Wave, longBlock.transform.position)))
+                        edgeHit = true;
                     Require(normal.velocity.magnitude <= hazard.maximumCarriedSpeed + .001f, "Carried-speed cap exceeded.");
                     if (!checkedResistance && normal.calls > 0 && resistant.calls > 0)
                     {
@@ -58,13 +79,19 @@ namespace DeadlyJenga.World.Hazards.Editor
                 }
                 Require(!hazard.Active && !Tracked.Waves.Contains(hazard), "Timed wave did not end and unregister.");
                 Require(normal.calls > 0 && checkedResistance, "The wave never affected the probes.");
+                Require(edgeHit && longBlock.calls > 0 && lowerOnly.calls > 0, "The wave missed an overlapping end of a long block.");
                 normal.calls = 0; hazard.affectPlayers = false;
                 hazard.Begin();
                 for (int tick = 0; tick < 1000 && hazard.Active; tick++) step.Invoke(hazard, null);
                 Require(normal.calls == 0, "Affected-target filter ignored Players = off.");
                 hazard.Begin(); hazard.End();
                 Require(!hazard.Active && !Tracked.Waves.Contains(hazard), "Stop/retrigger leaked an active wave.");
-                Debug.Log("Tsunami force checks passed: lifecycle, duplicate colliders, resistance, speed cap, target filter and stop/retrigger.");
+                hazard.Configure(hazard.approachSpeed, 0);
+                hazard.Begin();
+                int calls = longBlock.calls;
+                for (int tick = 0; tick < 1000 && hazard.Active; tick++) step.Invoke(hazard, null);
+                Require(longBlock.calls == calls && hazard.LastTargetCount == 0, "Zero-force waves must skip target processing.");
+                Debug.Log("Tsunami force checks passed: offshore start, long block edge, compound submersion, duplicate colliders, resistance, speed cap, target filter and stop/retrigger.");
             }
             finally
             {
@@ -72,6 +99,15 @@ namespace DeadlyJenga.World.Hazards.Editor
                 UnityEngine.Object.DestroyImmediate(root);
                 Services.World = oldWorld; Services.Session = oldSession;
             }
+        }
+        static TsunamiProbe CreateBlock(Transform root, string name, Vector3 position, Vector3 size)
+        {
+            var block = new GameObject(name);
+            block.layer = Layers.Block;
+            block.transform.SetParent(root, false);
+            block.transform.localPosition = position;
+            block.AddComponent<BoxCollider>().size = size;
+            return block.AddComponent<TsunamiProbe>();
         }
         static TsunamiProbe CreateProbe(Transform root, float resistance)
         {

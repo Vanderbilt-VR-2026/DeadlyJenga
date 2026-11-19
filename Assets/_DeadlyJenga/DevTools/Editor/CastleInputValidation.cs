@@ -168,7 +168,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 if(xrOnly)
                 {
                     InputSystem.QueueDeltaStateEvent(right.secondaryButton,0f);session.SetRole(false);p.RefreshMode();session.SetMenu(false);
-                    var inspection=CandyThirdPersonInspection.For(session);var originalCamera=p.ViewCamera;inspection.Begin();yield return null;
+                    var inspection=session.Player?.ThirdPerson;var originalCamera=p.ViewCamera;inspection.Begin();yield return null;
                     Check("VR inspection preserves the tracked camera and suspends player input",inspection.Inspecting&&originalCamera.enabled&&p.InputSuspended);inspection.End();
                     yield return ModeCriteriaChecks.CheckClosedMenuInputPlay();
                     Check("Closed-menu controller context actions remain interactive",true);

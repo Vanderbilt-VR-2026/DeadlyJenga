@@ -9,6 +9,7 @@ namespace DeadlyJenga.CastlePrototype
         public CastleSettings settings = new CastleSettings();
         public GameObject blockPrefab;
         public Material cornerMaterial, wallMaterial, keepMaterial;
+        [SerializeField] Material goldMaterial, aquaMaterial;
         public Transform foundation;
         public bool generateOnStart = true;
         [Tooltip("Keep this map empty when rebuilding or synchronizing its layout.")]
@@ -19,6 +20,7 @@ namespace DeadlyJenga.CastlePrototype
         [Tooltip("Experimental shared groups for naturally sleeping blocks. Disabled by default: current Editor measurements regress overall frame time.")]
         public bool groupRestingBlocks;
         [Min(1)] public int physicsGroupThreshold = 1500;
+        MagneticStructure tycoonSupports;
         public CastlePhysicsGroups PhysicsGroups { get; private set; }
         [Header("Debris cleanup")]
         public bool sinkDisplacedDebris = true, shatterHeavyImpacts = true;
@@ -40,24 +42,59 @@ namespace DeadlyJenga.CastlePrototype
         [Tooltip("Optional playable area. Use an enabled trigger BoxCollider. Otherwise the castle layout supplies the area.")]
         public BoxCollider playableArea;
         readonly Collider[] fallen = new Collider[256];
+        readonly Collider[] curatedSpawnClearance = new Collider[24];
+        static readonly Vector3[] CuratedSpawns = {
+            new(-36,.48f,-12),new(36,.48f,12),new(-36,.48f,12),new(36,.48f,-12),
+            new(-36,.48f,-26),new(36,.48f,26),new(0,.48f,-28),new(0,.48f,28)
+        };
+        int curatedSpawnCursor;
+        bool CuratedCtf => !magneticMap && !environmentOnly && settings.layoutPreset == "ctf";
         float nextKillCheck;
         int debrisCursor;
         readonly Dictionary<int,float> submergedSince=new Dictionary<int,float>();
+        readonly Dictionary<int,(float linear,float angular)> dryDamping=new Dictionary<int,(float,float)>();
+        readonly List<int> retiredSubmerged=new List<int>();
+        readonly Dictionary<int,float> fullySubmergedSince=new Dictionary<int,float>();
+        // Water slows a block so it sinks and tumbles like it would in real water, then it is retired deep down.
+        const float WaterLinearDrag=3.2f, WaterAngularDrag=2.2f, RetireDepth=3f, RetireSeconds=9f;
         void RetireSubmergedBlocks()
         {
             if(Services.Session is IWorldAuthority authority&&!authority.HasWorldAuthority)return;
-            int count=Mathf.Min(Bodies.Count,Mathf.Max(32,Mathf.CeilToInt(Bodies.Count/8f)));
-            for(int n=0;n<count;n++)
+            for(int i=0;i<Bodies.Count;i++)
             {
-                int i=debrisCursor++%Bodies.Count;var body=Bodies[i];
-                if(!body||!body.gameObject.activeSelf)continue;
-                var collider=body.GetComponent<Collider>();
-                if(!collider||collider.bounds.max.y>WaterHeight(body.position)-.15f){submergedSince.Remove(i);continue;}
-                if(!submergedSince.TryGetValue(i,out float began)){submergedSince[i]=Time.time;continue;}
-                if(Time.time-began<2)continue;
-                body.gameObject.SetActive(false);submergedSince.Remove(i);
+                var body=Bodies[i];
+                if(!body||!body.gameObject.activeSelf||body.isKinematic)continue;
+                bool tracked=submergedSince.ContainsKey(i);
+                if(!tracked&&body.IsSleeping())continue;
+                float water=WaterHeight(body.position);
+                bool wet=body.worldCenterOfMass.y<water;
+                if(wet&&!tracked)
+                {
+                    submergedSince[i]=Time.time;dryDamping[i]=(body.linearDamping,body.angularDamping);
+                    body.linearDamping=WaterLinearDrag;body.angularDamping=WaterAngularDrag;
+                }
+                else if(!wet&&tracked)
+                {
+                    if(dryDamping.TryGetValue(i,out var dry)){body.linearDamping=dry.linear;body.angularDamping=dry.angular;}
+                    submergedSince.Remove(i);dryDamping.Remove(i);
+                }
             }
-            if(debrisCursor>100000000)debrisCursor=0;
+            retiredSubmerged.Clear();
+            foreach(var entry in submergedSince)
+            {
+                var body=entry.Key<Bodies.Count?Bodies[entry.Key]:null;
+                if(!body||!body.gameObject.activeSelf){retiredSubmerged.Add(entry.Key);continue;}
+                // Only blocks fully under water are retired; one resting half-in at the shore is left alone.
+                var collider=body.GetComponent<Collider>();
+                float water=WaterHeight(body.position);
+                if(!collider||collider.bounds.max.y>water-.15f){fullySubmergedSince.Remove(entry.Key);continue;}
+                if(!fullySubmergedSince.TryGetValue(entry.Key,out float since)){fullySubmergedSince[entry.Key]=Time.time;continue;}
+                bool deep=collider.bounds.max.y<water-RetireDepth;
+                if(!deep&&Time.time-since<RetireSeconds)continue;
+                if(dryDamping.TryGetValue(entry.Key,out var dry)){body.linearDamping=dry.linear;body.angularDamping=dry.angular;}
+                body.gameObject.SetActive(false);retiredSubmerged.Add(entry.Key);
+            }
+            foreach(int i in retiredSubmerged){submergedSince.Remove(i);dryDamping.Remove(i);fullySubmergedSince.Remove(i);}
         }
 
         void Start() { if (generateOnStart) Rebuild(); }
@@ -71,9 +108,9 @@ namespace DeadlyJenga.CastlePrototype
 
         public IReadOnlyList<Rigidbody> Blocks => Bodies;
         public Vector3 Center => transform.position;
-        public float TopHeight => magneticMap ? transform.TransformPoint(new Vector3(0, 28, 0)).y : environmentOnly ? SafeSpawnPoint().y : transform.position.y + CastleLayout.HeightCourses(settings) * settings.blockSize.y;
-        public float Radius => magneticMap ? 18 * Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.z)) : CastleLayout.Footprint(settings) * .5f;
-        public float StepHeight => settings.blockSize.y;
+        public float TopHeight => magneticMap ? transform.TransformPoint(new Vector3(0, 28, 0)).y : environmentOnly ? SafeSpawnPoint().y : CuratedCtf ? transform.TransformPoint(Vector3.up * ModeMapLayout.CuratedCtfTop).y : transform.position.y + CastleLayout.HeightCourses(settings) * settings.blockSize.y;
+        public float Radius => magneticMap ? 18 * Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.z)) : CuratedCtf ? ModeMapLayout.Size(settings).magnitude * .5f * Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.z)) : CastleLayout.Footprint(settings) * .5f;
+        public float StepHeight => CuratedCtf ? ModeMapLayout.CuratedCtfGroundY : settings.blockSize.y;
         public Bounds PlayableBounds
         {
             get
@@ -81,7 +118,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (playableArea)
                     return playableArea.isTrigger ? playableArea.bounds : new Bounds();
                 var footprint = magneticMap ? Vector2.one*40 : CastleLayout.FootprintSize(settings)+Vector2.one*4;
-                float height = magneticMap ? 30 : CastleLayout.HeightCourses(settings) * settings.blockSize.y;
+                float height = magneticMap ? 30 : CuratedCtf ? ModeMapLayout.CuratedCtfTop : CastleLayout.HeightCourses(settings) * settings.blockSize.y;
                 var bounds = new Bounds(transform.TransformPoint(Vector3.zero), Vector3.zero);
                 for (int x = -1; x <= 1; x += 2)
                 for (int y = 0; y <= 1; y++)
@@ -100,7 +137,13 @@ namespace DeadlyJenga.CastlePrototype
 
         // ISyncedWorld (Revision is declared above)
         public Transform Root => transform;
-        public string SaveLayout() => magneticMap ? magneticMap.Save() : JsonUtility.ToJson(settings);
+        const string CuratedCtfPrefix = "castle-ctf-v2:";
+        public string SaveLayout()
+        {
+            if (magneticMap) return magneticMap.Save();
+            string json = JsonUtility.ToJson(settings);
+            return settings.layoutPreset == "ctf" ? CuratedCtfPrefix + json : json;
+        }
         public bool LoadLayout(string layout, int expectedBlocks, Pose origin, Vector3 scale)
         {
             if (magneticMap)
@@ -111,9 +154,16 @@ namespace DeadlyJenga.CastlePrototype
                 Rebuild(); magneticMap.Structure.Restore(state.broken);
                 return true;
             }
-            var incoming = JsonUtility.FromJson<CastleSettings>(layout);
-            if (incoming != null) CastleLayout.Validate(incoming);
-            if (incoming == null || (environmentOnly ? 0 : CastleLayout.Build(incoming).Count) != expectedBlocks) return false;
+            bool curated = layout != null && layout.StartsWith(CuratedCtfPrefix, System.StringComparison.Ordinal);
+            CastleSettings incoming;
+            try
+            {
+                incoming = JsonUtility.FromJson<CastleSettings>(curated ? layout.Substring(CuratedCtfPrefix.Length) : layout);
+                if (incoming != null) CastleLayout.Validate(incoming);
+            }
+            catch (System.ArgumentException) { return false; }
+            if (incoming == null || (incoming.layoutPreset == "ctf") != curated ||
+                (environmentOnly ? 0 : CastleLayout.Build(incoming).Count) != expectedBlocks) return false;
             settings = incoming;
             transform.SetPositionAndRotation(origin.position, origin.rotation);
             transform.localScale = scale;
@@ -133,6 +183,7 @@ namespace DeadlyJenga.CastlePrototype
                 body.interpolation = replica ? RigidbodyInterpolation.None : RigidbodyInterpolation.Interpolate;
             }
             if (Debris) Debris.SetReplica(replica);
+            if (tycoonSupports) tycoonSupports.SetReplica(replica);
         }
 
         // IMapFootprint: the bottom course of the castle, for the sand around it
@@ -167,6 +218,21 @@ namespace DeadlyJenga.CastlePrototype
         public Vector3 SafeSpawnPoint()
         {
             Physics.SyncTransforms();
+            if (CuratedCtf)
+            {
+                var physics = gameObject.scene.GetPhysicsScene();
+                for (int n = 0; n < CuratedSpawns.Length; n++)
+                {
+                    var start = transform.TransformPoint(CuratedSpawns[curatedSpawnCursor++ % CuratedSpawns.Length]);
+                    if (!physics.Raycast(start + Vector3.up, Vector3.down, out var hit, 3,
+                        (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore) || hit.normal.y < .8f) continue;
+                    var feet = hit.point + Vector3.up * .08f;
+                    if (physics.OverlapCapsule(feet + Vector3.up * .2f, feet + Vector3.up * .95f, .18f,
+                        curatedSpawnClearance, (1 << Layers.Block) | (1 << Layers.Surface) | (1 << Layers.Survivor) | 1,
+                        QueryTriggerInteraction.Ignore) == 0) return feet;
+                }
+                throw new System.InvalidOperationException("No supported clear courtyard spawn remains.");
+            }
             Collider best = null; float highest = float.NegativeInfinity;
             foreach (var body in Bodies)
             {
@@ -199,6 +265,7 @@ namespace DeadlyJenga.CastlePrototype
         public void Rebuild()
         {
             Revision++;
+            curatedSpawnCursor = 0;
             CastleLayout.Validate(settings);
             var layout = environmentOnly || magneticMap ? new List<CastlePlacement>() : CastleLayout.Build(settings);
             if (!environmentOnly && !magneticMap && (!blockPrefab || !blockPrefab.GetComponent<Rigidbody>() || !blockPrefab.GetComponent<BoxCollider>()))
@@ -209,8 +276,8 @@ namespace DeadlyJenga.CastlePrototype
                 generatedRoot.gameObject.SetActive(false);
                 if (Application.isPlaying) Destroy(generatedRoot.gameObject); else DestroyImmediate(generatedRoot.gameObject);
             }
-            PhysicsGroups=null;Debris=null;
-            Bodies.Clear();submergedSince.Clear();debrisCursor=0;
+            PhysicsGroups=null;Debris=null;tycoonSupports=null;
+            Bodies.Clear();submergedSince.Clear();dryDamping.Clear();fullySubmergedSince.Clear();debrisCursor=0;
             generatedRoot = new GameObject("Generated Castle Blocks").transform;
             generatedRoot.SetParent(transform, false);
             if (magneticMap)
@@ -239,31 +306,50 @@ namespace DeadlyJenga.CastlePrototype
                 var block = go.GetComponent<CastleBlock>();
                 if (block)
                 {
-                    block.sectionMaterial = p.Section == CastleSection.Corner ? cornerMaterial :
-                        p.Section == CastleSection.Keep ? keepMaterial : wallMaterial;
-                    block.RefreshAppearance(); block.SyncSurface();
+                    block.sectionMaterial = p.Section switch
+                    {
+                        CastleSection.Corner => cornerMaterial,
+                        CastleSection.Keep => keepMaterial,
+                        CastleSection.Gold => goldMaterial ? goldMaterial : wallMaterial,
+                        CastleSection.Aqua => aquaMaterial ? aquaMaterial : cornerMaterial,
+                        _ => wallMaterial
+                    };
+                    if(p.DeckProfile.Finish == TycoonDeckFinish.Plain || !block.visualRoot)
+                    {
+                        block.RefreshAppearance();
+                    }
+                    else
+                    {
+                        foreach(Transform child in block.visualRoot) child.gameObject.SetActive(false);
+                        block.appearance=null;
+                        var mesh=new GameObject("Molded deck");
+                        mesh.transform.SetParent(block.visualRoot,false);
+                        mesh.AddComponent<TycoonDeckVisual>().Build(p.DeckProfile,block.sectionMaterial,aquaMaterial,p.BlockSize(settings));
+                    }
+                    block.SyncSurface();
                 }
                 var size=p.BlockSize(settings);
                 float volumeRatio=size.x*size.y*size.z/(settings.blockSize.x*settings.blockSize.y*settings.blockSize.z);
                 body.mass = Mathf.Max(1, mass*volumeRatio);
                 // Ninety loose courses need more contact iterations than the standard castle.
-                // Touching blocks are solved together at the highest count, so keep these low for Quest.
                 bool tallKeep=settings.structureVariant==CastleStructure.FourKeeps&&p.Section==CastleSection.Keep;
-                body.solverIterations = settings.cathedral ? 24 : tallKeep ? 18 : 10;
-                body.solverVelocityIterations = settings.cathedral ? 4 : tallKeep ? 4 : 2;
+                body.solverIterations = settings.cathedral ? 80 : tallKeep ? 60 : 20;
+                body.solverVelocityIterations = settings.cathedral ? 20 : tallKeep ? 16 : 8;
                 body.sleepThreshold = .005f;
                 Bodies.Add(body);
             }
             Physics.SyncTransforms();
-            if (Application.isPlaying && groupRestingBlocks && Bodies.Count>=physicsGroupThreshold)
+            if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)
+                tycoonSupports = TycoonSupports.Build(generatedRoot, Bodies);
+            if (Application.isPlaying && !tycoonSupports && groupRestingBlocks && Bodies.Count>=physicsGroupThreshold)
             {
                 PhysicsGroups=generatedRoot.gameObject.AddComponent<CastlePhysicsGroups>();
                 PhysicsGroups.Initialize(Bodies);
             }
-            if(Application.isPlaying && Bodies.Count>0 && (sinkDisplacedDebris || shatterHeavyImpacts))
+            if(Application.isPlaying && Bodies.Count>0 && sinkDisplacedDebris)
             {
                 Debris=generatedRoot.gameObject.AddComponent<CastleDebris>();
-                Debris.SinkDebris=sinkDisplacedDebris;Debris.ShatterOnImpact=shatterHeavyImpacts;
+                Debris.SinkDebris=sinkDisplacedDebris;Debris.ShatterOnImpact=false;
                 Debris.SinkSpeed=debrisSinkSpeed;Debris.ImpactSpeed=shatterImpactSpeed;
                 Debris.VisualFastDebris=visualFastDebris;Debris.VisualSpeed=visualDebrisSpeed;Debris.AccelerationThreshold=visualDebrisAcceleration;
                 Debris.Initialize(Bodies,PhysicsGroups);

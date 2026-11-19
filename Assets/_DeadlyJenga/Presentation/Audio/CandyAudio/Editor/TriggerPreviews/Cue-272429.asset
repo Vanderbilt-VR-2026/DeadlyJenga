@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-272429
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: b0d0e4f8afeb286489935ba2fc897148, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 272429
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Impact
+    atlasFile: atlas.png
+    atlasSha256: fce0f7c14ccbaa7dbadfcdb7ca1eafa41f7aff84408d47c935f00db6d986e5a8
+    gifFile: preview.gif
+    gifSha256: 7a9593cbc381734456fbdb5734613bccb4f5f66df10747d061cf784071efddba
+    sourceSha256: b5b5480599f486cbddcb8ab63a8012c52cd1786e703e7e9db7397989ebba18e7
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Flaming Marshmallow in the acting player's hands
+    action: Impact with Flaming Marshmallow
+    target: The exact victim, block or surface contacted by this weapon/projectile
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Impact
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

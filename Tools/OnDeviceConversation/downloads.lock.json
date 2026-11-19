@@ -30,9 +30,9 @@
     "sha256": "9c559283e8498d3fe95913c79ca1cb454bb26281ac2b102b41306c7d752765d9"
   },
   {
-    "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kitten-nano-en-v0_2-fp16.tar.bz2",
-    "file": "kitten-nano-en-v0_2-fp16.tar.bz2",
-    "sha256": "0345a8a2f4a710cb8f7912c9a731ded8b3e1e69b33a871efa95c2e64651518fe"
+    "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/sherpa-onnx-pocket-tts-int8-2026-01-26.tar.bz2",
+    "file": "sherpa-onnx-pocket-tts-int8-2026-01-26.tar.bz2",
+    "sha256": "2f3b88823cbbb9bf0b2477ec8ae7b3fec417b3a87b6bb5f256dba66f2ad967cb"
   },
   {
     "url": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/23749fefcc72300e3a2ad315e1317431b06b590a/Qwen3-0.6B-Q8_0.gguf",
@@ -43,5 +43,45 @@
     "url": "https://ziglang.org/download/0.15.2/zig-x86_64-windows-0.15.2.zip",
     "file": "zig-x86_64-windows-0.15.2.zip",
     "sha256": "3a0ed1e8799a2f8ce2a6e6290a9ff22e6906f8227865911fb7ddedc3cc14cb0c"
+  },
+  {
+    "url": "https://huggingface.co/kyutai/tts-voices/resolve/323332d33f997de8394f24a193e1a76df720e01a/alba-mackenna/casual.wav",
+    "file": "pocket-alba.wav",
+    "sha256": "46264e83cb99115c3d210260e029117566d9c64f20266d10daa78107759ede3e"
+  },
+  {
+    "url": "https://huggingface.co/kyutai/tts-voices/resolve/323332d33f997de8394f24a193e1a76df720e01a/voice-donations/Selfie.wav",
+    "file": "pocket-marius.wav",
+    "sha256": "076968c3122520f3412eb7090e8c1c3f75fe57be1e24a2f96465583d84c71e16"
+  },
+  {
+    "url": "https://huggingface.co/kyutai/tts-voices/resolve/323332d33f997de8394f24a193e1a76df720e01a/voice-zero/caro_davy.wav",
+    "file": "pocket-caro.wav",
+    "sha256": "40c692c005a0268a7a5b6ebae348077d3dca6a86eb6b12bd36e343bbcd71b5f6"
+  },
+  {
+    "url": "https://huggingface.co/kyutai/tts-voices/resolve/323332d33f997de8394f24a193e1a76df720e01a/voice-donations/Butter.wav",
+    "file": "pocket-javert.wav",
+    "sha256": "b889e080eec3efa824bddaf875b4f531d75464f88128d08941ae648d9d3ade70"
+  },
+  {
+    "url": "https://huggingface.co/kyutai/tts-voices/resolve/323332d33f997de8394f24a193e1a76df720e01a/vctk/p228_023_enhanced.wav",
+    "file": "pocket-anna.wav",
+    "sha256": "0a6de25cf12bf1540beb85979f306a92be81fecc051c547c5395e7e5237a3856"
+  },
+  {
+    "url": "https://huggingface.co/kyutai/tts-voices/resolve/323332d33f997de8394f24a193e1a76df720e01a/vctk/p259_023_enhanced.wav",
+    "file": "pocket-paul.wav",
+    "sha256": "7aba504fe0b3b16478b69eb27ce6007e3cb42b0c1915b5f1c6a6024ae37d679b"
+  },
+  {
+    "url": "https://huggingface.co/kyutai/tts-voices/resolve/323332d33f997de8394f24a193e1a76df720e01a/vctk/p229_023_enhanced.wav",
+    "file": "pocket-vera.wav",
+    "sha256": "309cf91a895830f15842b398f69a4962cb1f7e0bfab10e25dd27838e826c204b"
+  },
+  {
+    "url": "https://huggingface.co/kyutai/tts-voices/resolve/323332d33f997de8394f24a193e1a76df720e01a/voice-zero/stuart_bell.wav",
+    "file": "pocket-stuart.wav",
+    "sha256": "00c7baeb2fb7a8c1c6198e045b5e853a7ccc04002a51a09b4be3dd7c96994f73"
   }
 ]

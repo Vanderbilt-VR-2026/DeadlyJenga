@@ -11,7 +11,7 @@ namespace DeadlyJenga.Session.Editor
     {
         public override void PrepareForBuild(BuildPlayerContext context)
         {
-            string pack=Path.GetFullPath(Path.Combine(Application.dataPath,"../Tools/OnDeviceConversation/.models/pack"));
+            string pack=Path.GetFullPath(Path.Combine(Application.dataPath,"../Tools/OnDeviceConversation/.models/pocket"));
             if(File.Exists(Path.Combine(pack,"manifest.json")))context.AddAdditionalPathToStreamingAssets(pack,"CastleConversation");
             else Debug.LogWarning("On-device conversations omitted: run Tools/OnDeviceConversation/prepare.py before building to include the model pack. All other game features remain available.");
         }

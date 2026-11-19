@@ -55,9 +55,8 @@ namespace DeadlyJenga.CastlePrototype
         int connectAttempt, selectedIndex, hostRevision = -1;
         float nextBeacon, nextState, nextPose, requestedAt, lastRequest, worldAt, lastWorldAt;
         P.Snapshot targetWorld;
-        bool worldSettled;
-        readonly List<int> moving = new List<int>();
-        float worldInterval = .1f;   // smoothed time between world updates; blocks glide across it
+        P.Pose[] previousBlocks;
+        bool worldInterpolationComplete;
         INetworkPreview localPreview;
         string displayName;
         bool oldRunInBackground;
@@ -98,7 +97,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         public bool WaitingForWorld => IsClient && !receivedWorld;
         public int HumanCount => 1 + (fusionMode ? fusionActors.Count : connections.Count(c => c.id != null));
-        public string Status { get; private set; } = "Starting local discovery…";
+        public string Status { get; private set; } = "Starting local discoveryÃ¢â‚¬Â¦";
         public int NearbyCount => Choices().Count;
         public string SelectedName => Selected()?.info.name ?? "No local demos found";
         public string PendingLabel
@@ -116,7 +115,7 @@ namespace DeadlyJenga.CastlePrototype
             session = owner; localPreview = session.Hand.gameObject.GetComponent<INetworkPreview>();
             displayName = SystemInfo.deviceName;
             if (string.IsNullOrWhiteSpace(displayName)) displayName = "Demo";
-            displayName = displayName.Substring(0, Math.Min(24, displayName.Length)) + " · " + id.Substring(0, 4);
+            displayName = displayName.Substring(0, Math.Min(24, displayName.Length)) + " Ã‚Â· " + id.Substring(0, 4);
             oldRunInBackground = Application.runInBackground; Application.runInBackground = true;
             try
             {
@@ -131,7 +130,7 @@ namespace DeadlyJenga.CastlePrototype
                     multicastLock.Call("setReferenceCounted", false); multicastLock.Call("acquire");
                 }
 #endif
-                Status = "Local demo ready · same Wi-Fi · " + displayName;
+                Status = "Local demo ready Ã‚Â· same Wi-Fi Ã‚Â· " + displayName;
             }
             catch (Exception e) { Status = "Local networking: " + e.Message; Debug.LogWarning(Status, this); }
         }
@@ -141,7 +140,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             session = owner; id = playerID; fusionMode = true; fusionClient = client;
             localPreview = session.Hand.gameObject.GetComponent<INetworkPreview>();
-            Status = client ? "Waiting for host castle…" : "Hosting castle through Fusion";
+            Status = client ? "Waiting for host castleÃ¢â‚¬Â¦" : "Hosting castle through Fusion";
             if (client)
             {
                 StopBots();
@@ -166,7 +165,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if(targetWorld!=null)for(int i=0;i<World.Blocks.Count;i++)if(World.Blocks[i]){World.Blocks[i].position=targetWorld.blocks[i].position;World.Blocks[i].rotation=targetWorld.blocks[i].rotation;}
                 Synced?.SetReplica(false);
-                for(int i=0;i<World.Blocks.Count;i++)if(World.Blocks[i]&&migrationVelocity!=null&&i<migrationVelocity.Length){World.Blocks[i].linearVelocity=migrationVelocity[i];if(migrationAngular!=null)World.Blocks[i].angularVelocity=migrationAngular[i];}
+                for(int i=0;i<World.Blocks.Count;i++)if(World.Blocks[i]&&!World.Blocks[i].isKinematic&&migrationVelocity!=null&&i<migrationVelocity.Length){World.Blocks[i].linearVelocity=migrationVelocity[i];if(migrationAngular!=null)World.Blocks[i].angularVelocity=migrationAngular[i];}
                 if(localPreview!=null)localPreview.NetworkPreview=false;
                 var bots=session.SurvivorBots;var handBots=session.HandBots;
                 if(bots!=null){bool fill=bots.AutoFill;bots.Clear();bots.AutoFill=fill;bots.Running=true;bots.TargetPopulation=Mathf.Max(10,bots.TargetPopulation);bots.SelectPreset(survivorPreset);}
@@ -186,7 +185,7 @@ namespace DeadlyJenga.CastlePrototype
                 receivedWorld=false;targetWorld=null;
             }
             else {Synced?.SetReplica(true);if(localPreview!=null)localPreview.NetworkPreview=true;}
-            Status=client?"Host reassigned · reconnecting castle":"You are the new castle host";
+            Status=client?"Host reassigned Ã‚Â· reconnecting castle":"You are the new castle host";
         }
         public byte[] FusionWelcome(string playerID)
         {
@@ -203,31 +202,22 @@ namespace DeadlyJenga.CastlePrototype
             ReceiveWelcome(data);
         }
         public byte[] FusionCaptureWorld() => P.EncodeWorld(CaptureWorld());
-        public P.Snapshot FusionCaptureSnapshot() => CaptureWorld();
-        public byte[] FusionEncodeWorldFor(P.Snapshot snapshot, P.WorldBaseline baseline) => P.EncodeWorldFor(snapshot, baseline);
-        // One small packet per character, so live movement fits in a single unreliable message.
-        public void FusionCaptureLivePoseParts(List<byte[]> parts)
-        {
-            parts.Clear();
-            parts.Add(EncodePosePart(LocalActor()));
-            foreach (var pair in fusionActors) parts.Add(EncodePosePart(Rebroadcast(pair.Key, pair.Value)));
-        }
-        static byte[] EncodePosePart(P.Actor actor) => P.Encode(P.Player, writer => { writer.Write(1); P.Write(writer, actor); });
         public byte[] FusionCapturePlayer() => P.Encode(P.Player, w => P.Write(w, LocalActor()));
-        public byte[] FusionCaptureLivePoses()
+        public P.Actor[] FusionCaptureLiveActors()
         {
-            var actors = new List<P.Actor> { LocalActor() };
-            foreach (var pair in fusionActors) actors.Add(Rebroadcast(pair.Key, pair.Value));
-            return P.Encode(P.Player, writer =>
-            {
-                writer.Write(actors.Count);
-                foreach (var actor in actors) P.Write(writer, actor);
-            });
+            var actors=new List<P.Actor>{LocalActor()};
+            foreach(var pair in fusionActors)actors.Add(Rebroadcast(pair.Key,pair.Value));
+            return actors.ToArray();
         }
+        public static byte[] FusionEncodeLivePosesFor(P.Actor[] actors,string recipient)
+        {
+            var selected=actors.Where(actor=>actor.id!=recipient||actor.kind!=NetworkKinds.Survivor).ToArray();
+            return P.Encode(P.Player,writer=>{writer.Write(selected.Length);foreach(var actor in selected)P.Write(writer,actor);});
+        }
+        public byte[] FusionCaptureLivePoses()=>FusionEncodeLivePosesFor(FusionCaptureLiveActors(),null);
         public void FusionApplyWorld(byte[] data)
         {
-            var snapshot=P.IsWorldDelta(data)?P.DecodeWorldDelta(data,targetWorld):P.DecodeWorld(data);float dt=Time.unscaledTime-lastWorldAt;
-            if(receivedWorld&&dt>.01f&&dt<1){worldJitter=Mathf.Lerp(worldJitter,Mathf.Abs(dt-worldInterval),.2f);worldInterval=Mathf.Lerp(worldInterval,dt,.2f);}
+            var snapshot=P.DecodeWorld(data);float dt=Time.unscaledTime-lastWorldAt;
             if(targetWorld!=null&&targetWorld.revision==snapshot.revision&&targetWorld.blocks.Length==snapshot.blocks.Length&&dt>.01f&&dt<1)
             {migrationVelocity=new Vector3[snapshot.blocks.Length];migrationAngular=new Vector3[snapshot.blocks.Length];for(int i=0;i<snapshot.blocks.Length;i++)
                 {migrationVelocity[i]=Vector3.ClampMagnitude((snapshot.blocks[i].position-targetWorld.blocks[i].position)/dt,60);
@@ -284,7 +274,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (IsClient || connecting || HumanCount > 1) { Status = "Leave the current session before joining another demo."; return; }
             requested = peer; requestedAt = Time.unscaledTime; lastRequest = -100;
-            Status = "Requesting to join " + peer.info.name + "…";
+            Status = "Requesting to join " + peer.info.name + "Ã¢â‚¬Â¦";
         }
         public void InviteSelected()
         {
@@ -352,7 +342,7 @@ namespace DeadlyJenga.CastlePrototype
                     if (error != null) { Status = "Could not join: " + error; requested = null; return; }
                     host = link; lastWorldAt = Time.unscaledTime;
                     host.Send(P.Encode(P.Hello, w => { w.Write(P.Version); w.Write(id); w.Write(requestedToken); }));
-                    Status = "Joining " + peer.info.name + " · receiving current demo…";
+                    Status = "Joining " + peer.info.name + " Ã‚Â· receiving current demoÃ¢â‚¬Â¦";
                 }));
                 return;
             }
@@ -405,7 +395,7 @@ namespace DeadlyJenga.CastlePrototype
                     for(int n=0;n<32&&host.Audio.TryDequeue(out var audio);n++)SocialReceived?.Invoke("host",audio);
                     var state = welcomed ? host.TakeState() : null;
                     if (state != null) ApplyWorld(P.DecodeWorld(state));
-                    if (host.Closed || now - lastWorldAt > 12) Leave("Host disconnected · continuing locally from the last received state.");
+                    if (host.Closed || now - lastWorldAt > 12) Leave("Host disconnected Ã‚Â· continuing locally from the last received state.");
                 }
                 catch (Exception e) { Leave("Join ended: " + e.Message); }
             }
@@ -433,7 +423,7 @@ namespace DeadlyJenga.CastlePrototype
                         c.actor = InitialActor(peerID, survivor, spawn);
                         c.link.Send(P.Encode(P.Welcome, w => { w.Write(!survivor); P.Write(w, spawn); }));
                         c.link.Send(P.EncodeWorld(CaptureWorld()), true);
-                        Status = "Hosting " + HumanCount + " humans · live local demo";
+                        Status = "Hosting " + HumanCount + " humans Ã‚Â· live local demo";
                         // Humans do not consume the demo's ten-slot bot budget.
                     }
                     for(int n=0;n<32&&c.link.Audio.TryDequeue(out var audio);n++)if(c.id!=null)SocialReceived?.Invoke(c.id,audio);
@@ -474,7 +464,7 @@ namespace DeadlyJenga.CastlePrototype
         public bool TrySpawn(out P.Pose spawn)
         {
             Physics.SyncTransforms();
-            var sites = World.Blocks.Where(b => b && b.gameObject.activeInHierarchy && b.position.y > 0 && !b.isKinematic && b.linearVelocity.sqrMagnitude < 1 && Vector3.Dot(b.rotation * Vector3.up, Vector3.up) > .97f).OrderByDescending(b => b.position.y);
+            var sites = World.Blocks.Where(b => b && b.gameObject.activeInHierarchy && b.position.y > 0 && (b.isKinematic || b.linearVelocity.sqrMagnitude < 1) && Vector3.Dot(b.rotation * Vector3.up, Vector3.up) > .97f).OrderByDescending(b => b.position.y);
             foreach (var rb in sites)
             {
                 for (int lane = -1; lane <= 1; lane++)
@@ -588,18 +578,23 @@ namespace DeadlyJenga.CastlePrototype
                     throw new InvalidDataException("Demo layouts do not match");
                 hostRevision = s.revision;
                 w.SetReplica(true);
+                previousBlocks = new P.Pose[World.Blocks.Count];
             }
             var blocks = World.Blocks;
             if (blocks.Count != s.blocks.Length) throw new InvalidDataException("Demo block count changed unexpectedly");
             for (int i = 0; i < blocks.Count; i++)
             {
                 var b = blocks[i];
-                if (b.gameObject.activeSelf != s.active[i]) b.gameObject.SetActive(s.active[i]);
-                if (rebuild) { b.position = s.blocks[i].position; b.rotation = s.blocks[i].rotation; }
+                if (rebuild)
+                {
+                    b.position = s.blocks[i].position;
+                    b.rotation = s.blocks[i].rotation;
+                }
+                previousBlocks[i] = rebuild ? s.blocks[i] : new P.Pose(b.position, b.rotation);
+                b.gameObject.SetActive(s.active[i]);
             }
-            if (rebuild) { worldSamples.Clear(); moving.Clear(); segmentFrom = segmentTo = null; }
-            PushWorldSample(s.blocks);
-            targetWorld = s; worldAt = lastWorldAt = Time.unscaledTime; worldSettled = false;
+            targetWorld = s; worldAt = lastWorldAt = Time.unscaledTime;
+            worldInterpolationComplete = rebuild;
             var present = new HashSet<string>();
             foreach(var actor in s.actors)
             {
@@ -616,53 +611,24 @@ namespace DeadlyJenga.CastlePrototype
                 session.SetRoleForMode(spawnHand);
                 if (spawnHand) session.Hand.Place(spawnPose.position, spawnPose.rotation);
                 else session.Player.Place(spawnPose.position, spawnPose.rotation);
-                Status = spawnHand ? "Joined as flying hand · no safe survivor spawn remained" : "Joined as survivor · live local demo";
+                Status = spawnHand ? "Joined as flying hand Ã‚Â· no safe survivor spawn remained" : "Joined as survivor Ã‚Â· live local demo";
                 requested = null; session.SetMenu(false);
             }
         }
-        // World updates reach clients unevenly (each one waits for the previous to be acknowledged).
-        // Blocks are drawn a short, adaptive delay in the past and interpolated between buffered updates,
-        // so motion stays continuous instead of gliding to each update and stopping until the next.
-        sealed class WorldSample { public float time; public P.Pose[] blocks; }
-        readonly List<WorldSample> worldSamples = new List<WorldSample>();
-        WorldSample segmentFrom, segmentTo;
-        float worldJitter;
-        void PushWorldSample(P.Pose[] blocks)
-        {
-            float now = Time.unscaledTime;
-            var last = worldSamples.Count > 0 ? worldSamples[worldSamples.Count - 1] : null;
-            if (last != null && now - last.time < .001f) { last.blocks = blocks; return; }
-            if (last != null && now - last.time > 1.5f) { worldSamples.Clear(); worldSamples.Add(new WorldSample { time = now - .001f, blocks = last.blocks }); }
-            worldSamples.Add(new WorldSample { time = now, blocks = blocks });
-            if (worldSamples.Count > 8) worldSamples.RemoveAt(0);
-        }
-        float WorldDelay => Mathf.Clamp(worldInterval * 1.15f + worldJitter * 2f, .06f, .45f);
         void InterpolateWorld()
         {
-            if (worldSamples.Count == 0) return;
-            float at = Time.unscaledTime - WorldDelay;
-            while (worldSamples.Count > 2 && worldSamples[1].time <= at) worldSamples.RemoveAt(0);
-            var from = worldSamples[0];
-            var to = worldSamples.Count > 1 && at > from.time ? worldSamples[1] : from;
-            var blocks = World.Blocks;
-            if (!ReferenceEquals(from, segmentFrom) || !ReferenceEquals(to, segmentTo))
+            if (targetWorld == null || worldInterpolationComplete) return;
+            float t = Mathf.Clamp01((Time.unscaledTime - worldAt) * 15);
+            for (int i = 0; i < targetWorld.blocks.Length; i++)
             {
-                // Blocks that were gliding land exactly on the new segment's start before it begins.
-                foreach (int i in moving) if (i < blocks.Count && blocks[i]) { blocks[i].position = from.blocks[i].position; blocks[i].rotation = from.blocks[i].rotation; }
-                moving.Clear();
-                if (!ReferenceEquals(from, to))
-                    for (int i = 0; i < blocks.Count && i < from.blocks.Length && i < to.blocks.Length; i++)
-                        if (from.blocks[i].position != to.blocks[i].position || from.blocks[i].rotation != to.blocks[i].rotation) moving.Add(i);
-                segmentFrom = from; segmentTo = to;
+                var previous = previousBlocks[i];
+                var target = targetWorld.blocks[i];
+                if (previous.position.Equals(target.position) && previous.rotation.Equals(target.rotation)) continue;
+                var body = World.Blocks[i];
+                body.position = Vector3.Lerp(previous.position, target.position, t);
+                body.rotation = Quaternion.Slerp(previous.rotation, target.rotation, t);
             }
-            if (moving.Count == 0) return;
-            float u = ReferenceEquals(from, to) ? 1 : Mathf.Clamp01(Mathf.InverseLerp(from.time, to.time, at));
-            foreach (int i in moving)
-            {
-                var b = blocks[i]; if (!b) continue;
-                b.position = Vector3.Lerp(from.blocks[i].position, to.blocks[i].position, u);
-                b.rotation = Quaternion.Slerp(from.blocks[i].rotation, to.blocks[i].rotation, u);
-            }
+            worldInterpolationComplete = t >= 1;
         }
         void ApplyOwnHandFeedback(P.Actor actor)
         {
@@ -693,7 +659,7 @@ namespace DeadlyJenga.CastlePrototype
         public void LeaveSession()
         {
             if (fusionMode) { GetComponent<CastleFusionSession>().Leave(); return; }
-            Leave("Local session ended · continuing this demo locally.");
+            Leave("Local session ended Ã‚Â· continuing this demo locally.");
         }
         void Leave(string reason)
         {
@@ -732,13 +698,9 @@ namespace DeadlyJenga.CastlePrototype
                 return !string.IsNullOrEmpty(inviteStatus) ? inviteStatus : Room.DiscoveryNotice;
             }
         }
-        public bool CanToggleSharedControls => Room && Room.Connected && Room.LocalIsLobbyHost && SessionDevelopmentPolicy.CanRequestLocal(session);
+        public bool CanToggleSharedControls => Room && Room.CanConfigure && !Room.Migrating && !Room.RoomSceneBusy && !Room.SwitchingMap && ((IDevelopmentExperienceSource)Room).DevelopmentExperience;
         public bool SharedControls => Room && Room.SharedDemoControls;
-        public void ToggleSharedControls()
-        {
-            if(CanToggleSharedControls)
-                CastleDemoCommands.Run(session,CastleDemoAction.SharedControls,Room.SharedDemoControls?"off":"on");
-        }
+        public void ToggleSharedControls() { if (CanToggleSharedControls) Room.SetSharedControls(!Room.SharedDemoControls); }
         public bool CanInviteNearby => Room && Room.Connected&&!Room.Busy;
         public void InviteNearby() { if (CanInviteNearby) Room.InviteNearby(); }
         public string InvitationFrom => Room && Room.Discovery?.Invitation != null ? Room.Discovery.Invitation.message.name : "";

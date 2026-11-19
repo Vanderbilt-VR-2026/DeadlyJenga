@@ -12,6 +12,30 @@ namespace DeadlyJenga.CastlePrototype
     {
         static readonly FieldInfo[] fields=typeof(ModeRules).GetFields(BindingFlags.Public|BindingFlags.Instance).Where(f=>f.Name!="carryingFlag"&&f.Name!="sinking"&&f.Name!="sinkProgress"&&f.Name!="downed"&&f.Name!="mystery").ToArray();
         static int ruleGroup;
+        internal const int ChoiceWheelSize = 8;
+        internal static readonly GameModeKind[] WheelModes = (GameModeKind[])Enum.GetValues(typeof(GameModeKind));
+        static readonly Texture2D[] modeWheelPictures = new Texture2D[WheelModes.Length];
+        static readonly bool[] checkedModePicture = new bool[WheelModes.Length];
+
+        internal static Vector2 WheelDirection(int index)
+        {
+            float angle = index * (Mathf.PI * 2f / ChoiceWheelSize);
+            return new Vector2(Mathf.Sin(angle), Mathf.Cos(angle));
+        }
+
+        internal static Texture2D WheelModePicture(GameModeKind mode)
+        {
+            int index = Array.IndexOf(WheelModes, mode);
+            if (index < 0) return null;
+            if (checkedModePicture[index]) return modeWheelPictures[index];
+            checkedModePicture[index] = true;
+            string id = mode switch
+            {
+                GameModeKind.CaptureFlag => "ctf", GameModeKind.KingOfHill => "hill",
+                GameModeKind.MurderMystery => "mystery", _ => mode.ToString().ToLowerInvariant()
+            };
+            return modeWheelPictures[index] = Resources.Load<Texture2D>("LobbyModePictures/" + id);
+        }
         static readonly string[] groups={"Round / scoring","Combat / health","Movement / traversal","World / disasters"};
         static int Group(string name)
         {
@@ -24,9 +48,7 @@ namespace DeadlyJenga.CastlePrototype
         public static void Draw()
         {
             var match=MatchRuntime.Current;if(match==null){GUILayout.Label("Match rules are starting...");return;}
-            var copy=match.Rules.Copy();
-            bool was=GUI.enabled, canConfigure=match.Authority||Services.Session?.Demo?.CanCommand==true;
-            GUI.enabled=was&&canConfigure;
+            var copy=match.Rules.Copy();bool was=GUI.enabled;GUI.enabled=was&&(match.Authority||(Services.Session?.Demo?.CanCommand==true&&copy.mode==GameModeKind.Demo));
             if(GUILayout.Button("Start / restart round"))match.StartRound();
             GUILayout.Label("Mode: "+copy.mode+"  ·  "+match.Frame.phase);
             GUI.enabled=was;
@@ -59,11 +81,10 @@ namespace DeadlyJenga.CastlePrototype
                 {float value=Convert.ToSingle(f.GetValue(tune));GUILayout.Label(Label(f.Name)+"  "+value.ToString("0.##"));float min=f.Name=="sheriffMistakes"?1:0,max=f.Name.Contains("Distance")||f.Name=="trailRadius"?5:f.Name=="sheriffMistakes"?10:180;float next=GUILayout.HorizontalSlider(value,min,max);if(f.FieldType==typeof(int))f.SetValue(tune,Mathf.RoundToInt(next));else f.SetValue(tune,next);}
                 if(old!=JsonUtility.ToJson(tune))mystery.ConfigureMystery(tune);
             }
-            GUI.enabled=was&&canConfigure;
+            GUI.enabled=was&&match.Authority;
             GUILayout.Label("Live HUD prioritizes the mode objective. Full standings stay available on demand; final results include contributions.");
             if(GUILayout.Button("Restore recommended defaults for this mode"))copy=ModeDefaults.Create(copy.mode);
-            if(GUILayout.Button("Next game mode"))copy=ModeDefaults.Create((GameModeKind)(((int)copy.mode+1)%Enum.GetValues(typeof(GameModeKind)).Length));
-            GUI.enabled=was&&canConfigure;
+            GUI.enabled=was&&(match.Authority||(Services.Session?.Demo?.CanCommand==true&&copy.mode==GameModeKind.Demo));
             if(GUILayout.Button("Scene skin: "+CandySceneSkins.Names[CandyMatchVisualsSkin(copy.environmentSkin)]))copy.environmentSkin=CandySceneSkins.Names[(CandyMatchVisualsSkin(copy.environmentSkin)+1)%CandySceneSkins.Names.Length];
             if(GUILayout.Button("Temporary team hand power"))match.ActivateHandPower(copy.handPowerSeconds);
             GUI.enabled=was&&(match.Authority||Services.Session?.Demo?.CanCommand==true);
@@ -75,7 +96,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(GUILayout.Button("Recenter sea spirit"))spirit.RecenterSeaSpirit();
             }
             DeadlyJenga.Presentation.CandyTabletop.Draw();
-            GUI.enabled=was&&canConfigure;
+            GUI.enabled=was&&(match.Authority||(Services.Session?.Demo?.CanCommand==true&&copy.mode==GameModeKind.Demo));
             GUILayout.Label("Rule changes apply to this session. Start a new round after changing team or mode setup.");
             string before=JsonUtility.ToJson(match.Rules);
             bool islandEffects=GUILayout.Toggle(copy.island!=IslandRule.Walkable,"Island effects (sinking, slowing or island death)");

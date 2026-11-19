@@ -20,7 +20,7 @@ namespace DeadlyJenga.CastleBots
 
         void UpdateObjectives()
         {
-            if(BotObjectives.Current==null){ClearObjective();return;}
+            if(Population.Session.lobbyWorld!=null||BotObjectives.Current==null){ClearObjective();return;}
             if(!Motor.Grounded||Motor.Climbing||Motor.Vaulting)return;
             if(Time.time<nextObjective)return;
             nextObjective=Time.time+.4f+Mathf.Repeat(Seed,.3f);
@@ -72,7 +72,7 @@ namespace DeadlyJenga.CastleBots
                 if(recovering&&(Vector3.Distance(transform.position,recoveryPoint)<1||Time.time>recoveryUntil))
                 {ResumeTransit(choice.position);}
                 var recoveryTarget=recovering?recoveryPoint:choice.position;
-                if(CastleBotNavigation.ShouldStageAscent(transform.position,recoveryTarget,recovering&&!transitAscending)&&(Time.time-objectiveProgressAt>8||Motor.HasWalkableIsland&&Motor.StandingSurface&&Motor.StandingSurface.gameObject.layer==0)&&Time.time>=nextRecovery)
+                if(CastleBotNavigation.ShouldStageAscent(transform.position,recoveryTarget,recovering&&!transitAscending)&&(Time.time-objectiveProgressAt>12&&!hasGoal||Motor.HasWalkableIsland&&Motor.StandingSurface&&Motor.StandingSurface.gameObject.layer==0)&&Time.time>=nextRecovery)
                 {
                     nextRecovery=Time.time+8;
                     if(CastleBotJourneyPlanner.RecoveryStage(this,recoveryTarget,recoveryStops,out var staging))

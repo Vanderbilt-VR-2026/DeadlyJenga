@@ -20,10 +20,20 @@ namespace DeadlyJenga.Modes
             {
                 if(!body||!body.gameObject.activeInHierarchy||body.linearVelocity.sqrMagnitude>9)continue;
                 var collider=body.GetComponent<Collider>();if(!collider)continue;
-                var bounds=collider.bounds;var ray=new Ray(new Vector3(bounds.center.x,bounds.max.y+.5f,bounds.center.z),Vector3.down);
-                if(!collider.Raycast(ray,out var hit,bounds.size.y+1)||hit.normal.y<=.65f||hit.point.y<=world.WaterHeight(hit.point)+.2f)continue;
-                if(Physics.CheckCapsule(hit.point+Vector3.up*.38f,hit.point+Vector3.up*1.55f,.3f,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))continue;
-                supportCandidates.Add(hit.point+Vector3.up*.05f);
+                var bounds=collider.bounds;
+                int samples=Mathf.Max(bounds.size.x,bounds.size.z)>5?5:1;
+                for(int i=0;i<samples;i++)
+                {
+                    var probe=bounds.center;
+                    probe.y=bounds.max.y+.5f;
+                    if(i==1||i==2)probe.x+=bounds.extents.x*(i==1?-.65f:.65f);
+                    if(i==3||i==4)probe.z+=bounds.extents.z*(i==3?-.65f:.65f);
+                    if(!collider.Raycast(new Ray(probe,Vector3.down),out var hit,bounds.size.y+1)||
+                        hit.normal.y<=.65f||hit.point.y<=world.WaterHeight(hit.point)+.2f)continue;
+                    if(Physics.CheckCapsule(hit.point+Vector3.up*.38f,hit.point+Vector3.up*1.55f,.3f,
+                        (1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))continue;
+                    supportCandidates.Add(hit.point+Vector3.up*.05f);
+                }
             }
             supportCandidates.Sort((a,b)=>b.y.CompareTo(a.y));
             foreach(var p in supportCandidates)

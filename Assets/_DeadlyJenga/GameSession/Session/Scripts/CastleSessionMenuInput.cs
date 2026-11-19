@@ -74,8 +74,8 @@ namespace DeadlyJenga.CastlePrototype
                 (MenuOpen||!leftGrip)&&leftSecondary?.wasPressedThisFrame==true||
                 left==null&&(MenuOpen||rightGrip)&&rightSecondary?.wasPressedThisFrame==true||
                 Active.MenuPressed:
-                keyboard?.escapeKey.wasPressedThisFrame==true;
-            bool opticalMenuHeld=IsVR&&(Active is IMenuInputState gesture?gesture.MenuHeld:Active.MenuPressed);
+                keyboard?.escapeKey.wasPressedThisFrame==true||Active.MenuPressed;
+            bool opticalMenuHeld=(Active is IMenuInputState gesture?gesture.MenuHeld:Active.MenuPressed);
             bool menuHeld=nativeHeld||leftMenuHeld||rightMenuHeld||escapeHeld||opticalMenuHeld;
             if(menuInputArmed&&requested)SetMenu(!MenuOpen);
             else if(!menuHeld)menuInputArmed=true;
@@ -128,7 +128,9 @@ namespace DeadlyJenga.CastlePrototype
             if(IsVR)return ControllerActionHeld(left)||ControllerActionHeld(right)||Active.SelectHeld;
             var keyboard=Keyboard.current;
             var mouse=Mouse.current;
-            return mouse?.leftButton.isPressed==true||mouse?.rightButton.isPressed==true||
+            int mode=PlayerPrefs.GetInt("DeadlyJenga.PreferredControlMode",0);
+            var pad=mode==0||mode==4?Gamepad.current:null;
+            return Active.SelectHeld||pad!=null&&(pad.rightTrigger.isPressed||pad.leftTrigger.isPressed||pad.buttonNorth.isPressed||pad.leftShoulder.isPressed||pad.rightShoulder.isPressed)||mouse?.leftButton.isPressed==true||mouse?.rightButton.isPressed==true||
                 keyboard?.vKey.isPressed==true||keyboard?.rKey.isPressed==true||
                 keyboard?.eKey.isPressed==true||keyboard?.nKey.isPressed==true||
                 keyboard?.deleteKey.isPressed==true;

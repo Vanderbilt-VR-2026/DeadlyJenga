@@ -231,7 +231,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         }
         static void Schedules()
         {
-            var r=ModeSimulation.Defaults(GameModeKind.Survival);var clock=new ModeDisasterClock(5);clock.Reset(r,0);float warningAt=-1,first=-1,last=-1;int launched=0;
+            var r=ModeSimulation.Defaults(GameModeKind.KingOfHill);r.automaticDisasters=true;var clock=new ModeDisasterClock(5);clock.Reset(r,0);float warningAt=-1,first=-1,last=-1;int launched=0;
             for(int t=0;t<1800;t++)
             {
                 clock.Tick(r,t,0,()=>"hazard",id=>{if(first<0)first=t;last=t;launched++;return true;});
@@ -242,6 +242,32 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Check(launched>=15&&last>1700,"Full 30-minute simulation continues bounded late-round disaster pacing");
             int blocked=0;clock.Reset(r,0);for(int t=0;t<500;t++)clock.Tick(r,t,2,()=>"hazard",id=>{blocked++;return true;});Check(blocked==0,"Concurrent disaster cap prevents additional launches");
             r.mode=GameModeKind.Demo;clock.Reset(r,0);for(int t=0;t<500;t++)clock.Tick(r,t,0,()=>"hazard",id=>{blocked++;return true;});Check(blocked==0,"Demo never auto-launches disasters");
+
+            var survival=ModeSimulation.Defaults(GameModeKind.Survival);
+            var starts=new List<int>();var warnings=new List<int>();var activeUntil=new List<int>();
+            clock.Reset(survival,0);
+            for(int t=0;t<=140;t++)
+            {
+                activeUntil.RemoveAll(end=>end<=t);
+                bool hadWarning=clock.Pending.Length>0;
+                clock.Tick(survival,t,activeUntil.Count,()=>"hazard",id=>{starts.Add(t);activeUntil.Add(t+60);return true;});
+                if(!hadWarning&&clock.Pending.Length>0)warnings.Add(t);
+            }
+            Check(string.Join(",",starts)=="20,50,80,110,140","Survival activates at 20 seconds and then every 30 seconds with two overlapping hazards");
+            Check(string.Join(",",warnings)=="12,42,72,102,132","Survival warnings lead activation even when two hazards are currently active");
+
+            var teams=ModeSimulation.Defaults(GameModeKind.TeamTickets);
+            teams.automaticDisasters=true;teams.maxConcurrentDisasters=1;
+            teams.disasterMinInterval=teams.disasterMaxInterval=teams.disasterLateInterval=60;
+            starts.Clear();warnings.Clear();clock.Reset(teams,0);
+            for(int t=0;t<=180;t++)
+            {
+                bool hadWarning=clock.Pending.Length>0;
+                clock.Tick(teams,t,0,()=>"hazard",id=>{starts.Add(t);return true;});
+                if(!hadWarning&&clock.Pending.Length>0)warnings.Add(t);
+            }
+            Check(string.Join(",",starts)=="60,120,180","Team hazards launch every 60 seconds, including the first");
+            Check(string.Join(",",warnings)=="52,112,172","Team warnings start eight seconds before each activation");
         }
         static void Performance()
         {

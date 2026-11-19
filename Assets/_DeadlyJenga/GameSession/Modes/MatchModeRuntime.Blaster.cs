@@ -65,14 +65,14 @@ namespace DeadlyJenga.Modes
             for(int i=plasma.Count-1;i>=0;i--)
             {
                 var shot=plasma[i];float distance=PlasmaSpeed*Mathf.Min(dt,shot.life);shot.life-=dt;
-                int overlaps=Physics.OverlapSphereNonAlloc(shot.position,PlasmaRadius,plasmaOverlaps,mask,QueryTriggerInteraction.Collide);bool touching=false;
+                int overlaps=Physics.OverlapSphereNonAlloc(shot.position,PlasmaRadius,plasmaOverlaps,mask,QueryTriggerInteraction.Collide);bool touching=false;IModeActor direct=null;Vector3 contact=default;
                 for(int h=0;h<overlaps;h++)
                 {
                     var collider=plasmaOverlaps[h];var actor=collider.GetComponentInParent<IModeActor>();
                     if(actor!=null&&actor.ActorId==shot.owner||collider.isTrigger&&actor==null)continue;
-                    touching=true;break;
+                    touching=true;direct=actor;contact=collider.ClosestPoint(shot.position);break;
                 }
-                if(touching){ExplodePlasma(shot,shot.position);plasma.RemoveAt(i);continue;}
+                if(touching){ExplodePlasma(shot,shot.position,direct,contact);plasma.RemoveAt(i);continue;}
                 if(overlaps==plasmaOverlaps.Length){plasma.RemoveAt(i);continue;}
                 int count=Physics.SphereCastNonAlloc(shot.position,PlasmaRadius,shot.direction,plasmaHits,distance,mask,QueryTriggerInteraction.Collide);
                 if(count==plasmaHits.Length){plasma.RemoveAt(i);continue;}
@@ -81,15 +81,15 @@ namespace DeadlyJenga.Modes
                 {
                     var hit=plasmaHits[h];var actor=hit.collider.GetComponentInParent<IModeActor>();
                     if(actor!=null&&actor.ActorId==shot.owner||hit.collider.isTrigger&&actor==null)continue;
-                    if(hit.distance<nearest){nearest=hit.distance;point=hit.point+hit.normal*.04f;collided=true;}
+                    if(hit.distance<nearest){nearest=hit.distance;point=hit.point+hit.normal*.04f;collided=true;direct=actor;contact=hit.point;}
                 }
-                if(collided){ExplodePlasma(shot,point);plasma.RemoveAt(i);}
+                if(collided){ExplodePlasma(shot,point,direct,contact);plasma.RemoveAt(i);}
                 else if(shot.life<=0)plasma.RemoveAt(i);
                 else shot.position+=shot.direction*distance;
             }
             frame.blaster=CaptureBlaster();
         }
-        void ExplodePlasma(Shot shot,Vector3 point)
+        void ExplodePlasma(Shot shot,Vector3 point,IModeActor direct,Vector3 impact)
         {
             if(plasmaImpacts.Count>=64)plasmaImpacts.RemoveAt(0);plasmaImpacts.Add(new PlasmaImpactFrame{id=shot.id,position=point,remaining=.4f});
             AnnounceEquipment(shot.owner,new EquipmentState{kind=EquipmentKind.Blaster},EquipmentAction.Impact,point);
@@ -102,8 +102,7 @@ namespace DeadlyJenga.Modes
                 if(!Rules.friendlyFire&&source.Team>=0&&source.Team==target.Team&&pair.Key!=shot.owner)continue;
                 float falloff=Mathf.Lerp(1,.25f,Mathf.Clamp01(distance/BlastRadius));float damage=35*falloff;
                 var push=(Vector3.ProjectOnPlane(delta,Vector3.up).normalized*4+Vector3.up)*falloff;
-                if(target.IsLocal||target.IsBot){target.gameObject.GetComponent<IPushable>()?.Push(push,source.gameObject);target.gameObject.GetComponent<IDamageable>()?.Damage(damage,source.gameObject);}
-                else{RecordRemoteDamage(pair.Key,damage,shot.owner);RemoteImpact?.Invoke(pair.Key,push,damage);}
+                ApplyCombatImpact(source,target,damage,push,target==direct?impact:contact,true);
             }
             plasmaBlocks.Clear();var blocks=Services.World?.Blocks;if(blocks==null)return;
             foreach(var body in blocks)if(body&&(body.worldCenterOfMass-point).sqrMagnitude<BlastRadius*BlastRadius&&plasmaBlocks.Add(body))

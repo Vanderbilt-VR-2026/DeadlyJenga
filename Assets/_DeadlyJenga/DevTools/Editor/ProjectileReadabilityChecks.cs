@@ -34,8 +34,14 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static IEnumerator Wait(float seconds)
         {
-            float limit=Time.realtimeSinceStartup+seconds;
-            while(Time.realtimeSinceStartup<limit)yield return null;
+            float start=Time.time,wallStart=Time.realtimeSinceStartup;
+            float limit=start+seconds,deadline=wallStart+Mathf.Max(30,seconds*40);
+            int frame=Time.frameCount;
+            while(Time.time<limit&&Time.realtimeSinceStartup<deadline)yield return null;
+            File.AppendAllText(Report,"CLOCK requested="+seconds+" simulated="+(Time.time-start)+
+                " wall="+(Time.realtimeSinceStartup-wallStart)+" frames="+(Time.frameCount-frame)+
+                " scale="+Time.timeScale+" captureDelta="+Time.captureDeltaTime+"\n");
+            Require(Time.time>=limit,"Requested simulation time advances before checking feedback");
         }
 
         static IEnumerator HoldShots(CastlePlaySession session,IHeldEquipmentRuntime trigger,
@@ -66,6 +72,26 @@ namespace DeadlyJenga.DevTools.Editor
             Require(effects.ActiveMarks==0,"Previous mode marks cleared before the next attack");
         }
 
+        static void RequireTargetHit(EquipmentActionFrame shot,Rigidbody target,string label)
+        {
+            var colliders=target.GetComponentsInChildren<Collider>();
+            Require(shot.endpoints!=null&&shot.endpoints.Length>0&&colliders.Length>0,label+" has endpoints and target colliders");
+            float gap=shot.endpoints.Min(point=>colliders.Min(collider=>
+                Vector3.Distance(collider.ClosestPoint(point),point)));
+            File.AppendAllText(Report,"TARGET sequence="+shot.id+" kind="+shot.kind+" shotgun="+shot.shotgun+
+                " endpoints="+shot.endpoints.Length+" targetGap="+gap+"\n");
+            Require(gap<.15f,label+" reaches the controlled target");
+        }
+
+        static void RequireLiving(CastlePlaySession session,CastleSurvivor player,string label)
+        {
+            var participant=session.Modes.Frame.players.FirstOrDefault(p=>p.id==player.ActorId);
+            File.AppendAllText(Report,"LIFE "+label+" actorAlive="+player.Alive+" health="+player.Health+
+                " phase="+session.Modes.Frame.phase+" participant="+JsonUtility.ToJson(participant)+"\n");
+            Require(player.Alive&&player.Health>0&&participant!=null&&participant.alive&&!participant.dying&&
+                session.Modes.Frame.phase==RoundPhase.Playing,"Living participant "+label);
+        }
+
         static IEnumerator MultiViewCheck()
         {
             var root=new GameObject("Projectile multiview eligibility fixture");
@@ -92,7 +118,10 @@ namespace DeadlyJenga.DevTools.Editor
             finally{first.targetTexture=second.targetTexture=null;target.Release();Object.Destroy(target);Object.Destroy(root);}
         }
 
-        public static IEnumerator Run(CastlePlaySession session)
+        public static IEnumerator Run(CastlePlaySession session)=>Run(session,false);
+        public static IEnumerator RunLegacyHitscan(CastlePlaySession session)=>Run(session,true);
+
+        static IEnumerator Run(CastlePlaySession session,bool legacyOnly)
         {
             File.WriteAllText(Report,"Actual existing Game session; controlled weapon/target fixtures. Run as native coroutine.\n");
             Require(session&&session.Modes&&Services.World!=null,"Real session, mode runtime and map are ready");
@@ -114,21 +143,50 @@ namespace DeadlyJenga.DevTools.Editor
             Require(held!=null,"Normal held-trigger interface is available");
             var stage=new GameObject("Projectile readability fixture");
             Rigidbody target=null;
+            void Damaged(GameObject who,float amount)
+            {
+                if(who!=player.gameObject)return;
+                File.AppendAllText(Report,"PLAYER DAMAGE amount="+amount+" health="+player.Health+
+                    " frame="+Time.frameCount+" position="+player.transform.position+"\n"+Environment.StackTrace+"\n");
+            }
+            void Eliminated(GameObject who,GameObject source)
+            {
+                if(who!=player.gameObject)return;
+                File.AppendAllText(Report,"PLAYER ELIMINATED source="+(source?source.name:"null")+
+                    " frame="+Time.frameCount+" position="+player.transform.position+"\n"+Environment.StackTrace+"\n");
+            }
+            GameEvents.Damaged+=Damaged;GameEvents.Eliminated+=Eliminated;
             try
             {
                 session.SetMenu(false);session.SurvivorBots.AutoFill=false;session.SurvivorBots.Clear();session.HandBots.Clear();
+                var world=Services.World;
+                var killField=world.GetType().GetField("oceanKillHeight",Private);
+                File.AppendAllText(Report,"WORLD type="+world.GetType().FullName+" bounds="+world.PlayableBounds+
+                    " top="+world.TopHeight+" fixtureWater="+world.WaterHeight(new Vector3(180,20,174))+
+                    " oceanKill="+(killField?.GetValue(world)?.ToString()??"unexposed")+"\n");
+                RequireLiving(session,player,"before fixture placement");
                 var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.name="Projectile fixture floor";
                 floor.transform.SetParent(stage.transform);floor.layer=Layers.Surface;
                 floor.transform.position=new Vector3(180,19,180);floor.transform.localScale=new Vector3(18,2,24);
-                player.Place(new Vector3(180,20.05f,174),Quaternion.identity);player.InputSuspended=true;
+                var platform=floor.AddComponent<Rigidbody>();platform.isKinematic=true;
+                player.Teleport(new Vector3(180,20.05f,174),Quaternion.identity);player.InputSuspended=true;
+                yield return Until(()=>player.Grounded&&player.StandingBody==platform,
+                    "Actual player stands on the physical fixture platform",30);
+                var fixtureRules=session.Modes.RulesFor(player.gameObject);
+                File.AppendAllText(Report,"FIXTURE SUPPORT body="+player.StandingBody.name+
+                    " islandRule="+fixtureRules.island+" sinkGrace="+fixtureRules.sinkGraceSeconds+
+                    " deathEnabled="+fixtureRules.deathEnabled+"\n");
+                Require(fixtureRules.deathEnabled,"Death remains enabled while testing physical platform support");
+                RequireLiving(session,player,"on physical fixture platform");
                 var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(ProjectPath.Find("CastleBlock.prefab"));
                 Require(prefab,"Production block prefab found by name");
 
-                foreach(var kind in new[]{
+                var kinds=legacyOnly?new[]{EquipmentKind.DualRifle,EquipmentKind.SheriffHammer}:new[]{
                     EquipmentKind.DualRifle,EquipmentKind.SheriffHammer,EquipmentKind.Blaster,EquipmentKind.PoweredArmor,
                     EquipmentKind.RocketLauncher,EquipmentKind.DualUzi,EquipmentKind.ChainGun,EquipmentKind.GrenadeLauncher,
                     EquipmentKind.WristLaser,EquipmentKind.NeedleDrill,EquipmentKind.StockPistol,
-                    EquipmentKind.Chainsaw,EquipmentKind.LaserAxe})
+                    EquipmentKind.Chainsaw,EquipmentKind.LaserAxe};
+                foreach(var kind in kinds)
                 {
                     if(target)Object.Destroy(target.gameObject);
                     var block=Object.Instantiate(prefab,stage.transform);block.name="Moving impact target "+kind;
@@ -152,21 +210,39 @@ namespace DeadlyJenga.DevTools.Editor
                     yield return Until(()=>session.Modes.Frame.equipmentSequence>sequence&&
                         session.Modes.Frame.equipmentActions.Any(a=>a.kind==kind&&a.action==EquipmentAction.Shot),
                         "Authoritative shot announced "+kind,8);
+                    if(legacyOnly)RequireTargetHit(session.Modes.Frame.equipmentActions.Last(a=>
+                        a.id>sequence&&a.kind==kind&&a.action==EquipmentAction.Shot),target,"Primary "+kind+" endpoint");
                     // Allow genuine projectile travel/ballistic arc, plus one impact-observer frame.
                     yield return Wait(kind==EquipmentKind.RocketLauncher?1.1f:kind==EquipmentKind.GrenadeLauncher?1.2f:.75f);
+                    RequireLiving(session,player,"after primary "+kind);
                     Require(effects.ActiveMarks<=96,"Impact population remains bounded for "+kind);
                     Require(effects.ActiveMarks>0,"A real surface hit creates a temporary mark for "+kind);
                     if(kind==EquipmentKind.SheriffHammer||kind==EquipmentKind.StockPistol)
                     {
-                        Require(inventory.RequestEquipment(true,false,true),"Alternate ranged mode "+kind);
-                        yield return Wait(EquipmentSpecifications.Get(kind).cooldown+.08f);
+                        var beforeMode=player.GetComponent<IEquipmentControls>().Equipment;
+                        var localFrame=session.Modes.Frame.players.FirstOrDefault(p=>p.id==player.ActorId);
+                        File.AppendAllText(Report,"MODE ELIGIBILITY frame="+Time.frameCount+" gameTime="+Time.time+
+                            " phase="+session.Modes.Frame.phase+" actor="+player.ActorId+" alive="+player.Alive+
+                            " health="+player.Health+" position="+player.transform.position+" view="+player.ViewPose.position+
+                            " grounded="+player.Grounded+" climbing="+player.Climbing+" vaulting="+player.Vaulting+
+                            " currentRuntime="+ReferenceEquals(MatchRuntime.Current,session.Modes)+
+                            " carryingFlag="+session.Modes.Frame.flags.Any(f=>f.carrier==player.ActorId)+
+                            " equipment="+JsonUtility.ToJson(beforeMode)+" participant="+JsonUtility.ToJson(localFrame)+"\n");
+                        bool modeAccepted=inventory.RequestEquipment(true,false,true);
+                        File.AppendAllText(Report,"MODE RESULT accepted="+modeAccepted+"\n");
+                        Require(modeAccepted,"Alternate ranged mode "+kind);
+                        yield return Wait(Mathf.Max(.45f,EquipmentSpecifications.Get(kind).cooldown)+.08f);
                         yield return ClearMarks(effects);
                         int alternateSequence=session.Modes.Frame.equipmentSequence;
+                        var alternateMuzzle=player.ViewPose.position+Vector3.forward*.7f;
+                        firingPose=new Pose(alternateMuzzle,Quaternion.LookRotation(target.worldCenterOfMass-alternateMuzzle));
                         if(kind==EquipmentKind.StockPistol)yield return HoldShots(session,held,kind,firingPose,3);
                         else Require(inventory.RequestEquipmentAttack(firingPose),"Sheriff shotgun accepted");
                         yield return Until(()=>session.Modes.Frame.equipmentActions.Any(a=>
                             a.id>alternateSequence&&a.kind==kind&&a.action==EquipmentAction.Shot),
                             "New alternate-mode shot announced "+kind,8);
+                        if(legacyOnly)RequireTargetHit(session.Modes.Frame.equipmentActions.Last(a=>
+                            a.id>alternateSequence&&a.kind==kind&&a.action==EquipmentAction.Shot),target,"Alternate "+kind+" endpoint");
                         yield return Wait(.4f);
                         Require(effects.ActiveMarks>0&&effects.ActiveMarks<=96,"New alternate-mode hit creates bounded impacts "+kind);
                     }
@@ -196,11 +272,15 @@ namespace DeadlyJenga.DevTools.Editor
                         yield return Wait(.8f);
                         yield return ClearMarks(effects);
                         int shotgunSequence=session.Modes.Frame.equipmentSequence;
-                        var shotgunPose=new Pose(muzzle,Quaternion.LookRotation(target.worldCenterOfMass-muzzle));
+                        var shotgunMuzzle=player.ViewPose.position+Vector3.forward*.7f;
+                        var shotgunPose=new Pose(shotgunMuzzle,Quaternion.LookRotation(target.worldCenterOfMass-shotgunMuzzle));
                         Require(inventory.RequestEquipmentAttack(shotgunPose),"Normal shotgun shot accepted");
                         yield return Until(()=>session.Modes.Frame.equipmentActions.Any(a=>
                             a.id>shotgunSequence&&a.kind==kind&&a.action==EquipmentAction.Shot),
                             "New rifle shotgun shot announced",8);
+                        var shot=session.Modes.Frame.equipmentActions.Last(a=>
+                            a.id>shotgunSequence&&a.kind==kind&&a.action==EquipmentAction.Shot);
+                        RequireTargetHit(shot,target,"Shotgun endpoint");
                         yield return Wait(.5f);
                         Require(effects.ActiveMarks>0&&effects.ActiveMarks<=96,"New shotgun spread creates bounded surface marks");
                     }
@@ -213,8 +293,9 @@ namespace DeadlyJenga.DevTools.Editor
             }
             finally
             {
+                GameEvents.Damaged-=Damaged;GameEvents.Eliminated-=Eliminated;
                 held.RequestEquipmentTrigger(false,player.ViewPose);
-                player.Place(oldPosition,oldRotation);player.InputSuspended=oldSuspended;
+                player.Teleport(oldPosition,oldRotation);player.InputSuspended=oldSuspended;
                 inventory.RequestEquipment(false,false,false);
                 Object.Destroy(stage);
             }

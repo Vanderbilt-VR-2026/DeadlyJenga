@@ -3,11 +3,20 @@ using UnityEngine;
 
 namespace DeadlyJenga.Core
 {
+    public enum MatchSoundCue : byte
+    {
+        HitConfirm, KillConfirm, PersonalHit, PersonalShot, NearbyHit, NearbyShot,
+        PlayerDeath, IslandDeath, DrowningDeath, NearbyDeath
+    }
+
     // Announcements. Whoever causes something raises it; whoever cares listens.
     public static class GameEvents
     {
         public static event Action<Vector3, float> BlockHit;                  // position, strength
         public static event Action<GameObject, Vector3> Pushed;               // who, force
+        // The match delivers only the cue selected for this listener, at its original position.
+        public static event Action<MatchSoundCue, Vector3> MatchSound;
+        public static void RaiseMatchSound(MatchSoundCue cue, Vector3 position) => MatchSound?.Invoke(cue, position);
         public static event Action<GameObject, float> Damaged;                // who, amount
         public static event Action<GameObject, GameObject> Eliminated;        // who, source
         public static event Action<GameObject, EffectType> EffectStarted;     // who, effect
@@ -51,6 +60,7 @@ namespace DeadlyJenga.Core
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void Reset()
         {
+            MatchSound = null;
             BlockHit = null; Pushed = null; Damaged = null; Eliminated = null;
             EffectStarted = null; EffectEnded = null; HazardStarted = null; HazardEnded = null;
             RoundStarted = null; RoundEnded = null; Emoted = null; SessionStarted = null; LobbyStarted = null;

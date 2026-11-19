@@ -1,6 +1,6 @@
 Shader "Candy Tropical/Storm Mist"
 {
-    Properties { _BaseColor("Condensation",Color)=(.64,.72,.78,.48) _CloudTexture("Cloud detail",2D)="white"{} _UseCloudTexture("Textured cloud",Float)=0 _Streamed("Streaming ribbon",Float)=0 _Lightning("Lightning filament",Float)=0 }
+    Properties { _BaseColor("Condensation",Color)=(.64,.72,.78,.48) _CloudTexture("Cloud detail",2D)="white"{} _UseCloudTexture("Textured cloud",Float)=0 _Streamed("Streaming ribbon",Float)=0 _Lightning("Lightning filament",Float)=0 _SeaFoam("Surface foam",Float)=0 }
     SubShader
     {
         Tags {"RenderPipeline"="UniversalPipeline" "Queue"="Transparent+100" "RenderType"="Transparent"}
@@ -13,7 +13,7 @@ Shader "Candy Tropical/Storm Mist"
             #pragma multi_compile_instancing
             #pragma multi_compile_fog
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            float4 _BaseColor; float _UseCloudTexture,_Streamed,_Lightning;
+            float4 _BaseColor; float _UseCloudTexture,_Streamed,_Lightning,_SeaFoam;
             TEXTURE2D(_CloudTexture); SAMPLER(sampler_CloudTexture);
             struct A {float4 positionOS:POSITION;float2 uv:TEXCOORD0;UNITY_VERTEX_INPUT_INSTANCE_ID};
             struct V {float4 positionCS:SV_POSITION;float2 uv:TEXCOORD0;float3 world:TEXCOORD1;float fog:TEXCOORD2;UNITY_VERTEX_OUTPUT_STEREO};
@@ -23,6 +23,17 @@ Shader "Candy Tropical/Storm Mist"
             half4 frag(V i):SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+                if(_SeaFoam>.5)
+                {
+                    float2 p=i.uv*2-1;
+                    float r=length(p);
+                    float drift=_Time.y*.65;
+                    float patch=noise(p*12+float2(drift,-drift));
+                    float ripple=pow(.5+.5*sin(r*36-drift*5+patch*2.6),5);
+                    float edge=smoothstep(.07,.25,r)*(1-smoothstep(.64,.98,r));
+                    float foam=edge*smoothstep(.32,.75,patch)*(.18+.82*ripple);
+                    return half4(MixFog(_BaseColor.rgb,i.fog),foam*_BaseColor.a);
+                }
                 if(_Lightning>.5)
                 {
                     float x=abs(i.uv.x-.5)*2,core=exp(-x*x*70),halo=exp(-x*x*8);

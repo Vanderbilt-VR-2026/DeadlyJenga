@@ -92,9 +92,13 @@ namespace DeadlyJenga.Presentation
                             if(seen)e.Play(CandySound.KrakenSubmerge,p.velocity,.7f,armOwner); break;
                     }
                 }
-                // The sweep accelerates across the tower; cue the impact near the middle.
-                if(arm==KrakenVisual.KrakenArmState.Slamming && p.life>=.63f && soundedSlam.Add(p.id))
+                if(arm==KrakenVisual.KrakenArmState.Slamming && !soundedSlam.Contains(p.id) &&
+                    (p.life>=.68f || p.life>=.15f && Physics.CheckSphere(p.position,4.5f,
+                        (1<<Layers.Block)|(1<<Layers.Survivor),QueryTriggerInteraction.Collide)))
+                {
+                    soundedSlam.Add(p.id);
                     e.Play(CandySound.KrakenSlam,p.position,1,armOwner);
+                }
             }
         }
     }

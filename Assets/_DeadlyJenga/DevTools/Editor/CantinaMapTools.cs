@@ -25,6 +25,7 @@ namespace DeadlyJenga.DevTools.Editor
         static readonly List<string> checks=new List<string>();
         static CantinaMapTools()=>EditorApplication.update+=()=>
         {
+            if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
             string request=ProjectPath.Report("Cantina.build.request");
             if(!File.Exists(request)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
             string command=File.ReadAllText(request).Trim();File.Delete(request);

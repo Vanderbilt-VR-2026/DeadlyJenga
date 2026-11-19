@@ -13,7 +13,6 @@ namespace DeadlyJenga.CandyAudio
     {
         const float W=1280,H=800;
         public bool IsOpen {get;private set;}
-        public bool ShowLauncher {get;set;}=true;
         public CandyAudioBank SessionBank=>working;
         public bool IsPreviewPlaying=>preview&&preview.isPlaying;
         CandyAudioBank original,working;CandyAudioEngine engine;ISessionInfo session;
@@ -30,9 +29,16 @@ namespace DeadlyJenga.CandyAudio
         [Serializable] sealed class Preset {public int version=1;public float master,world,characters,ambience,music,ui;public TakeSettings[] sounds;}
         string PresetPath=>Path.Combine(Application.persistentDataPath,"CandyAudio","studio-preset.json");
         void Awake(){engine=GetComponent<CandyAudioEngine>();var speaker=new GameObject("Studio audition (one voice)");speaker.transform.SetParent(transform,false);preview=speaker.AddComponent<AudioSource>();preview.playOnAwake=false;preview.priority=24;preview.dopplerLevel=0;preview.rolloffMode=AudioRolloffMode.Linear;}
+        static bool CanAuthor()
+        {
+            var active = Services.Session;
+            return active == null || !active.IsVR && active.Multiplayer?.IsClient != true &&
+                DeadlyJenga.Presentation.GameExperiencePanel.Resolve(active)?.Experience != GameExperience.Game;
+        }
+
         public void Open()
         {
-            if(!CanAuthor||!engine||!engine.bank)return;
+            if(!CanAuthor()||!engine||!engine.bank)return;
             if(!working){original=engine.bank;working=Instantiate(original);working.name=original.name+" (studio session)";IncludeFallbacks(working);engine.Configure(working);}
             session=Services.Session;previousMenu=session!=null&&session.MenuOpen;if(session!=null)session.SetMenu(true);
             GatherClips();IsOpen=true;status="Session copy • preview freely, then save a preset if you like it.";
@@ -57,12 +63,12 @@ namespace DeadlyJenga.CandyAudio
         public void Close()
         {
             preview.Stop();selected=null;library=false;IsOpen=false;if(engine)engine.auditionDucking=1;
-            if(session!=null)session.SetMenu(previousMenu);
+            if(session!=null&&ReferenceEquals(session,Services.Session))session.SetMenu(previousMenu);
+            session=null;
         }
-        bool CanAuthor=>Services.Session==null||!Services.Session.IsVR&&DeadlyJenga.Presentation.MenuAccess.HostTools(Services.Session);
         void Update()
         {
-            if(!CanAuthor){if(IsOpen)Close();return;}
+            if(!CanAuthor()){if(IsOpen)Close();return;}
             var keyboard=Keyboard.current;
             if(keyboard!=null&&keyboard.f8Key.wasPressedThisFrame){if(IsOpen)Close();else Open();}
             if(!IsOpen)return;
@@ -176,10 +182,9 @@ namespace DeadlyJenga.CandyAudio
         };
         void OnGUI()
         {
-            if(!CanAuthor||!engine||!engine.bank||!IsOpen&&!ShowLauncher)return;Styles();var matrix=GUI.matrix;int depth=GUI.depth;Color old=GUI.color,bg=GUI.backgroundColor;
+            if(!IsOpen||!CanAuthor()||!engine||!engine.bank)return;Styles();var matrix=GUI.matrix;int depth=GUI.depth;Color old=GUI.color,bg=GUI.backgroundColor;
             float scale=Mathf.Min(Screen.width/W,Screen.height/H);GUI.matrix=Matrix4x4.TRS(new Vector3((Screen.width-W*scale)/2,(Screen.height-H*scale)/2),Quaternion.identity,Vector3.one*scale);GUI.depth=-1000;
-            if(!IsOpen){if(Btn(new Rect(W-204,15,188,39),"Sound studio  •  F8",Mint))Open();}
-            else GUI.ModalWindow(GetInstanceID(),new Rect(20,18,W-40,H-36),DrawWindow,GUIContent.none,GUIStyle.none);
+            GUI.ModalWindow(GetInstanceID(),new Rect(20,18,W-40,H-36),DrawWindow,GUIContent.none,GUIStyle.none);
             GUI.matrix=matrix;GUI.depth=depth;GUI.color=old;GUI.backgroundColor=bg;
         }
         void DrawWindow(int id)
@@ -279,7 +284,7 @@ namespace DeadlyJenga.CandyAudio
         {
             if(stylesReady)return;stylesReady=true;rounded=new Texture2D(32,32,TextureFormat.RGBA32,false);rounded.hideFlags=HideFlags.HideAndDontSave;
             for(int y=0;y<32;y++)for(int x=0;x<32;x++){float dx=Mathf.Max(8-x,x-23),dy=Mathf.Max(8-y,y-23);rounded.SetPixel(x,y,new Color(1,1,1,dx>0&&dy>0?Mathf.Clamp01(8.5f-Mathf.Sqrt(dx*dx+dy*dy)):1));}rounded.Apply();
-            var font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
+            var font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             title=new GUIStyle(GUI.skin.label){font=font,fontSize=27,fontStyle=FontStyle.Bold,normal={textColor=Color.white}};
             heading=new GUIStyle(title){fontSize=17};body=new GUIStyle(GUI.skin.label){font=font,fontSize=15,wordWrap=true,alignment=TextAnchor.MiddleLeft,normal={textColor=Color.white}};
             small=new GUIStyle(body){fontSize=12,normal={textColor=Muted}};

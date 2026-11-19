@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-69
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: e2f56f7051a81d240b5a512346ca12fb, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 69
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Weapon Sword
+    atlasFile: atlas.png
+    atlasSha256: b663c69a4594e530dc41533ee1e617b78b42c938ac76dcbbd2b522f117baa9fa
+    gifFile: preview.gif
+    gifSha256: e5ef0818a16ca9498f3634d1044980a46608a210c29e62a1f2b794bd59b1265b
+    sourceSha256: b8d22ee6d8b67ebcdc5472d8e4a24b169e4c8579da60b8e95a59d37047b7c640
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Weapon Sword
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Weapon Sword
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

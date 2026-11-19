@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastlePrototype;
+using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.XR;
 using UnityEngine.UI;
 
@@ -15,6 +17,8 @@ namespace DeadlyJenga.Presentation
         IGameExperienceControls controls;
         ILobbyControls lobby;
         Canvas canvas;
+        Image aimDot;
+        LineRenderer aimBeam;
         RectTransform panel;
         Text profile,status,readiness,mapName,actionHint;
         RawImage mapImage;
@@ -23,8 +27,9 @@ namespace DeadlyJenga.Presentation
         readonly List<Func<string>> titles=new();
         readonly List<Func<bool>> available=new();
         readonly List<Action> actions=new();
+        InputAction leftSelect,rightSelect;
         Camera eye;
-        bool open,returnToMenu,openingVr,openingHand,selectReady;
+        bool open,returnToMenu,openingVr,openingHand,selectReady,lobbyPoseSet,inputFocused=true;
         int openingInput,closedFrame=-1;
         float refreshAt;
         string mapId;
@@ -35,7 +40,14 @@ namespace DeadlyJenga.Presentation
             if(session is Component&&!host)return null;
             return session as IGameExperienceControls??(host?host.GetComponent<IGameExperienceControls>():null);
         }
-        public static bool CanEditRawChoices(ISessionInfo session)=>Resolve(session)?.Experience!=GameExperience.Game;
+        public static bool CanEditRawChoices(ISessionInfo session)
+        {
+            var experience=Resolve(session);
+            return experience?.Experience!=GameExperience.Game||
+                session is ILobbyControls lobby&&lobby.CanConfigure&&experience.GamePhase==RoomGamePhase.Idle;
+        }
+        public static bool CanEnableDemo(IGameExperienceControls value)
+            =>value!=null&&value.Experience!=GameExperience.Demo&&value.CanConfigureExperience&&value.GamePhase!=RoomGamePhase.LoadingGame&&value.GamePhase!=RoomGamePhase.LoadingLobby;
         public static bool CanChooseExperience(IGameExperienceControls value)
         {
             if(value==null||!value.CanConfigureExperience)return false;
@@ -64,15 +76,16 @@ namespace DeadlyJenga.Presentation
             owner=session;controls=Resolve(session);
             lobby=session as ILobbyControls??(session as Component)?.GetComponent<ILobbyControls>();
             if(!canvas)Build();
+            leftSelect.Enable();rightSelect.Enable();
             eye=session.ActiveCamera;openingVr=session.IsVR;openingHand=session.PlayingHand;
-            openingInput=InputSignature();returnToMenu=session.MenuOpen;selectReady=false;open=true;
+            lobbyPoseSet=false;openingInput=InputSignature();returnToMenu=session.MenuOpen;selectReady=false;open=true;
             session.SetMenu(true);
             canvas.gameObject.SetActive(true);
             canvas.renderMode=openingVr?RenderMode.WorldSpace:RenderMode.ScreenSpaceOverlay;
             canvas.worldCamera=openingVr?eye:null;
             panel.localScale=openingVr?Vector3.one*.00165f:Vector3.one;
-            if(openingVr)Anchor();else{panel.localRotation=Quaternion.identity;panel.anchoredPosition=Vector2.zero;}
-            MenuAppear.Attach(panel.gameObject);
+            if(openingVr){MenuAim.PresentInForeground(panel);Anchor();}
+            else{panel.localRotation=Quaternion.identity;panel.anchoredPosition=Vector2.zero;}
             refreshAt=0;Refresh();
         }
         void Build()
@@ -86,31 +99,34 @@ namespace DeadlyJenga.Presentation
             panel.SetParent(root.transform,false);panel.sizeDelta=new Vector2(820,760);
             var background=panel.GetComponent<Image>();background.sprite=CandyHudVisuals.Pill;background.type=Image.Type.Sliced;
             background.color=CandyHudVisuals.Ink;background.raycastTarget=false;
-            Label("Round",new Vector2(0,335),new Vector2(750,48),32);
-            profile=Label("",new Vector2(0,279),new Vector2(750,68),25);
-            status=Label("",new Vector2(0,210),new Vector2(750,60),23);
+            Label("ROUND SETUP",new Vector2(0,335),new Vector2(750,48),32);
+            profile=Label("",new Vector2(0,279),new Vector2(750,68),23);
+            status=Label("",new Vector2(0,210),new Vector2(750,60),21);
             var preview=new GameObject("Selected map",typeof(RectTransform),typeof(RawImage));
             preview.transform.SetParent(panel,false);mapImage=preview.GetComponent<RawImage>();mapImage.raycastTarget=false;
             mapImage.rectTransform.anchoredPosition=new Vector2(-190,108);mapImage.rectTransform.sizeDelta=new Vector2(330,130);
             mapName=Label("",new Vector2(-190,27),new Vector2(348,32),22);
-            readiness=Label("",new Vector2(190,98),new Vector2(348,150),23);
-            Add(new Vector2(-190,-30),()=>"Match"+(controls.Experience==GameExperience.Game?" ✓":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Game));
-            Add(new Vector2(190,-30),()=>"Sandbox"+(controls.Experience==GameExperience.Demo?" ✓":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Demo));
-            Add(new Vector2(-190,-118),()=>"Automatic rounds: "+(controls.AutomaticRounds?"On":"Off"),()=>controls.CanConfigureExperience,()=>controls.SetAutomaticRounds(!controls.AutomaticRounds));
-            Add(new Vector2(190,-118),()=>DuringRound?"Leave auto rounds":controls.LocalReady?"Not ready":"Ready",
+            readiness=Label("",new Vector2(190,98),new Vector2(348,150),21);
+            Add(new Vector2(-190,-30),()=>"GAME"+(controls.Experience==GameExperience.Game?" / selected":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Game));
+            Add(new Vector2(190,-30),()=>"DEMO"+(controls.Experience==GameExperience.Demo?" / selected":""),()=>CanChooseExperience(controls)||CanEnableDemo(controls),()=>controls.SetExperience(GameExperience.Demo));
+            Add(new Vector2(-190,-118),()=>"Automatic rounds: "+(controls.AutomaticRounds?"ON":"OFF"),()=>controls.CanConfigureExperience,()=>controls.SetAutomaticRounds(!controls.AutomaticRounds));
+            Add(new Vector2(190,-118),()=>DuringRound?"Leave automatic playlist":controls.LocalReady?"Unready / leave playlist":"Ready / join playlist",
                 ()=>controls.GamePhase==RoomGamePhase.Selected||controls.GamePhase==RoomGamePhase.WaitingReady||DuringRound&&controls.AutomaticRounds&&controls.LocalReady,()=>controls.SetReady(!controls.LocalReady));
             Add(new Vector2(-190,-206),()=>"Cancel start",()=>controls.CanCancelGameStart,()=>controls.CancelGameStart());
-            Add(new Vector2(190,-206),()=>"Retry start",()=>controls.CanRetryGameTransition,()=>controls.RetryGameTransition());
+            Add(new Vector2(190,-206),()=>"Retry transition",()=>controls.CanRetryGameTransition,()=>controls.RetryGameTransition());
             actionHint=Label("",new Vector2(0,-353),new Vector2(748,46),19);
             Add(new Vector2(-190,-294),()=>"Recenter panel",()=>openingVr,Anchor);
             Add(new Vector2(190,-294),()=>"Back",()=>true,()=>Close(true));
+            aimDot=MenuAim.CreateReticle(panel);
+            leftSelect=MenuAim.SelectAction("Experience left select",true);
+            rightSelect=MenuAim.SelectAction("Experience right select",false);
             root.SetActive(false);
         }
         Text Label(string value,Vector2 position,Vector2 size,int font)
         {
             var go=new GameObject("Experience label",typeof(RectTransform),typeof(Text));go.transform.SetParent(panel,false);
-            var text=go.GetComponent<Text>();text.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
-            text.text=value;text.fontSize=font;text.color=Color.white;text.alignment=TextAnchor.MiddleCenter;
+            var text=go.GetComponent<Text>();text.font=Resources.Load<Font>("Fonts/Fredoka-Bold")??Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.text=value;text.fontSize=font;text.color=new Color(1f,.96f,.79f);text.alignment=TextAnchor.MiddleCenter;
             text.supportRichText=false;text.raycastTarget=false;
             text.rectTransform.anchoredPosition=position;text.rectTransform.sizeDelta=size;return text;
         }
@@ -120,7 +136,7 @@ namespace DeadlyJenga.Presentation
             var rect=go.GetComponent<RectTransform>();rect.anchoredPosition=position;rect.sizeDelta=new Vector2(352,72);
             var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;
             image.color=CandyHudVisuals.Card;image.raycastTarget=false;
-            var caption=Label("",Vector2.zero,new Vector2(330,68),24);caption.transform.SetParent(rect,false);
+            var caption=Label("",Vector2.zero,new Vector2(320,62),21);caption.transform.SetParent(rect,false);
             buttons.Add(rect);captions.Add(caption);titles.Add(title);available.Add(allowed);actions.Add(action);
         }
         bool DuringRound=>controls.GamePhase==RoomGamePhase.Playing||controls.GamePhase==RoomGamePhase.Results;
@@ -128,11 +144,11 @@ namespace DeadlyJenga.Presentation
         {
             refreshAt=Time.unscaledTime+.2f;
             profile.text=controls.Experience==GameExperience.Game
-                ?"Match · Preset rules":"Sandbox · Custom rules";
+                ?"GAME / CURATED PROFILE\n"+controls.ProfileId:"DEMO / MANUAL CONTROLS";
             status.text=controls.GameStatus;actionHint.text=controls.GameActionHint;
             string countdown=controls.CountdownSeconds>0?"\nCountdown: "+Mathf.CeilToInt(controls.CountdownSeconds)+" s":"";
             readiness.text=controls.ReadyCount+" / "+controls.RequiredReadyCount+" ready"+
-                "\nPlayers "+controls.MinimumPopulation+" - "+controls.MaximumPopulation+countdown;
+                "\nPopulation "+controls.MinimumPopulation+" - "+controls.MaximumPopulation+countdown;
             for(int i=0;i<captions.Count;i++)captions[i].text=titles[i]();
             var details=lobby as ILobbyDetails;string next=details?.SelectedMapId;
             if(next!=mapId)
@@ -145,7 +161,7 @@ namespace DeadlyJenga.Presentation
                 }
             }
             mapImage.gameObject.SetActive(mapImage.texture);
-            mapName.text=lobby?.MapTitle??"";
+            mapName.text=lobby?.MapTitle??"Map preview: lobby only";
         }
         void Anchor()
         {
@@ -157,46 +173,54 @@ namespace DeadlyJenga.Presentation
         void Close(bool restore)
         {
             if(!open)return;
-            var session=owner;open=false;closedFrame=Time.frameCount;selectReady=false;owner=null;controls=null;eye=null;
+            var session=owner;MenuAim.Consume();open=false;closedFrame=Time.frameCount;selectReady=false;owner=null;controls=null;eye=null;
+            leftSelect?.Disable();rightSelect?.Disable();
             if(canvas)canvas.gameObject.SetActive(false);
             if(restore&&ReferenceEquals(Services.Session,session))session.SetMenu(returnToMenu);
         }
         void Update()
         {
             if(!open)return;
-            if(!ReferenceEquals(Services.Session,owner)||!owner.MenuOpen||!ReferenceEquals(Resolve(owner),controls))
+            if(aimBeam)aimBeam.enabled=false;
+            if(aimDot)aimDot.gameObject.SetActive(false);
+            if(!ReferenceEquals(Services.Session,owner)||!owner.MenuOpen||owner.ActiveCamera!=eye||owner.IsVR!=openingVr||
+                owner.PlayingHand!=openingHand||!ReferenceEquals(Resolve(owner),controls))
             {Close(false);return;}
-            if(!owner.ActiveCamera||owner.IsVR!=openingVr||owner.PlayingHand!=openingHand)
-            {Close(true);return;}
-            if(owner.ActiveCamera!=eye)
+            if(!inputFocused||MenuAim.InputConsumed)return;
+            if((Keyboard.current?.escapeKey.wasPressedThisFrame==true||MenuGamepad.Cancel)){Close(true);return;}
+            int input = InputSignature();
+            if (input != openingInput)
             {
-                eye=owner.ActiveCamera;
-                if(openingVr){canvas.worldCamera=eye;Anchor();}
-                selectReady=false;
+                openingInput = input;
+                selectReady = false;
             }
-            int inputSignature=InputSignature();
-            if(inputSignature!=openingInput){openingInput=inputSignature;selectReady=false;}
+            if(openingVr)MenuAim.PlaceTablet(panel,eye,owner,owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,ref lobbyPoseSet);
             if(Time.unscaledTime>=refreshAt)Refresh();
+            bool held=owner.MenuSelectHeld||owner.Player?.SelectHeld==true||leftSelect.IsPressed()||rightSelect.IsPressed()||Mouse.current?.leftButton.isPressed==true;
             for(int i=0;i<buttons.Count;i++){buttons[i].GetComponent<Image>().color=available[i]()?CandyHudVisuals.Card:CandyHudVisuals.Ink;captions[i].color=available[i]()?Color.white:CandyHudVisuals.Muted;}
+            if(!selectReady){if(!held)selectReady=true;return;}
             Vector2 point;bool pressed;
             if(openingVr)
             {
-                var trackingCamera=MenuPointer.TrackingCamera(owner,eye);
-                bool aimed=MenuPointer.OnPanel(eye,trackingCamera,panel,owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,out point,out pressed);
-                if(!selectReady){selectReady=!MenuPointer.TriggerHeld(trackingCamera);return;}
-                if(!aimed)return;
+                bool left=owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+                var ray=MenuAim.ResolveSelect(eye,eye.transform.parent,left,leftSelect,rightSelect,
+                    owner.MenuSelectPressed||owner.Player?.SelectPressed==true,out pressed,out bool tracked);
+                if(!MenuAim.TryPoint(ray,panel,4,out point,out var hit))return;
+                MenuAim.Present(aimDot,hit,true,false);
+                MenuAim.PresentBeam(ref aimBeam,panel,ray,hit-ray.direction*.015f,tracked,false);
             }
             else
             {
-                if(!selectReady){selectReady=Mouse.current?.leftButton.isPressed!=true;return;}
-                if(Mouse.current==null||!RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,Mouse.current.position.ReadValue(),null,out point))return;
-                pressed=Mouse.current.leftButton.wasPressedThisFrame;
+                if(Mouse.current==null&&MenuGamepad.Current==null||!RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,MenuGamepad.UsingPointer?MenuGamepad.Position:Mouse.current!=null?Mouse.current.position.ReadValue():MenuGamepad.Position,null,out point))return;
+                MenuGamepad.PresentPointer(aimDot,point);
+                pressed=MenuGamepad.UsingPointer?MenuGamepad.Pressed:Mouse.current?.leftButton.wasPressedThisFrame==true;
             }
             for(int i=0;i<buttons.Count;i++)
             {
                 if(!available[i]()||!buttons[i].rect.Contains(point-buttons[i].anchoredPosition))continue;
                 buttons[i].GetComponent<Image>().color=CandyHudVisuals.Mint;captions[i].color=CandyHudVisuals.Ink;
-                if(pressed){selectReady=false;actions[i]();if(this&&open&&canvas&&ReferenceEquals(Services.Session,owner)&&ReferenceEquals(Resolve(owner),controls))Refresh();}return;
+                if(openingVr&&aimDot.gameObject.activeSelf)aimDot.color=CandyHudVisuals.Mint;
+                if(pressed){MenuAim.Consume();selectReady=false;actions[i]();if(this&&open&&canvas&&ReferenceEquals(Services.Session,owner)&&ReferenceEquals(Resolve(owner),controls))Refresh();}return;
             }
         }
         int InputSignature()
@@ -209,9 +233,9 @@ namespace DeadlyJenga.Presentation
                     signature=unchecked(signature*397^device.deviceId);
             return signature;
         }
-        void OnApplicationFocus(bool focused){if(!focused)Close(false);}
-        void OnDisable()=>Close(false);
-        void OnDestroy(){Close(false);if(canvas)Destroy(canvas.gameObject);}
+        void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused)selectReady=false;}
+        void OnDisable(){Close(false);leftSelect?.Disable();rightSelect?.Disable();}
+        void OnDestroy(){Close(false);leftSelect?.Dispose();rightSelect?.Dispose();if(canvas)Destroy(canvas.gameObject);}
     }
 }
 

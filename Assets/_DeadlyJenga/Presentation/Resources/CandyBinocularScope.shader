@@ -3,10 +3,10 @@ Shader "DeadlyJenga/BinocularScope"
     Properties { _BaseMap ("Scope view", 2D) = "black" {} }
     SubShader
     {
-        Tags { "RenderPipeline"="UniversalPipeline" "Queue"="Overlay" "RenderType"="Opaque" }
+        Tags { "RenderPipeline"="UniversalPipeline" "Queue"="Geometry+10" "RenderType"="Opaque" }
         Pass
         {
-            ZWrite Off ZTest Always Cull Off
+            ZWrite On ZTest LEqual Cull Off
             HLSLPROGRAM
             #pragma vertex Vert
             #pragma fragment Frag
@@ -27,9 +27,10 @@ Shader "DeadlyJenga/BinocularScope"
             half4 Frag(Varyings input):SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-                float2 p=input.uv-.5;
+                // Both eyes see the same image at the physical lens surface.
+                float2 p=input.uv*2-1;
                 half4 color=SAMPLE_TEXTURE2D(_BaseMap,sampler_BaseMap,input.uv);
-                float reticle=step(abs(p.x),.0015)+step(abs(p.y),.0015);
+                float reticle=step(abs(p.x),.003)+step(abs(p.y),.003);
                 color.rgb=lerp(color.rgb,half3(.08,.8,.5),saturate(reticle)*.8);
                 color.a=1;
                 return color;

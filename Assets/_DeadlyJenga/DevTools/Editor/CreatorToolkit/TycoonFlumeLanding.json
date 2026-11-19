@@ -1,0 +1,224 @@
+{
+  "title": "Tycoon Flume Landing",
+  "map": "mode-tycoon",
+  "fps": 24,
+  "width": 1280,
+  "height": 720,
+  "seed": 148,
+  "warmup": 0.75,
+  "ffmpeg": "ffmpeg",
+  "useMapAnchor": true,
+  "mapAnchor": {
+    "x": -43,
+    "y": 6.04,
+    "z": -27.5
+  },
+  "cast": [
+    {
+      "id": "rider",
+      "color": 0,
+      "start": {
+        "x": 0,
+        "y": 0.6,
+        "z": 2.9
+      },
+      "performance": [
+        {
+          "at": 0,
+          "feet": {
+            "x": 0,
+            "y": 0.6,
+            "z": 2.9
+          },
+          "yaw": 180,
+          "height": 1.35,
+          "pitch": 12,
+          "left": {
+            "x": -0.41,
+            "y": 1.05,
+            "z": 0.2
+          },
+          "right": {
+            "x": 0.4,
+            "y": 1.05,
+            "z": 0.24
+          },
+          "leftCurl": 0.6,
+          "rightCurl": 0.55
+        },
+        {
+          "at": 0.35,
+          "feet": {
+            "x": 0,
+            "y": 0.25,
+            "z": 1.7
+          },
+          "yaw": 180,
+          "height": 1.25,
+          "pitch": 13,
+          "left": {
+            "x": -0.45,
+            "y": 0.98,
+            "z": 0.32
+          },
+          "right": {
+            "x": 0.44,
+            "y": 0.96,
+            "z": 0.36
+          },
+          "leftCurl": 0.6,
+          "rightCurl": 0.55
+        },
+        {
+          "at": 0.72,
+          "feet": {
+            "x": 0,
+            "y": 0.12,
+            "z": 0.6
+          },
+          "yaw": 185,
+          "height": 1.04,
+          "pitch": 20,
+          "left": {
+            "x": -0.43,
+            "y": 0.77,
+            "z": 0.45
+          },
+          "right": {
+            "x": 0.34,
+            "y": 0.83,
+            "z": 0.45
+          },
+          "leftCurl": 0.6,
+          "rightCurl": 0.55
+        },
+        {
+          "at": 0.99,
+          "feet": {
+            "x": -0.12,
+            "y": 0,
+            "z": -0.15
+          },
+          "yaw": 197,
+          "height": 1.0,
+          "pitch": 17,
+          "left": {
+            "x": -0.35,
+            "y": 0.71,
+            "z": 0.47
+          },
+          "right": {
+            "x": 0.48,
+            "y": 0.75,
+            "z": 0.25
+          },
+          "leftCurl": 0.6,
+          "rightCurl": 0.55
+        },
+        {
+          "at": 1.32,
+          "feet": {
+            "x": -0.15,
+            "y": 0,
+            "z": -0.53
+          },
+          "yaw": 224,
+          "height": 1.48,
+          "pitch": -8,
+          "left": {
+            "x": -0.29,
+            "y": 1.16,
+            "z": 0.23
+          },
+          "right": {
+            "x": 0.35,
+            "y": 1.05,
+            "z": 0.48
+          },
+          "leftCurl": 0.6,
+          "rightCurl": 0.55
+        },
+        {
+          "at": 2.1,
+          "feet": {
+            "x": -0.15,
+            "y": 0,
+            "z": -0.53
+          },
+          "yaw": 245,
+          "height": 1.57,
+          "pitch": -12,
+          "left": {
+            "x": -0.27,
+            "y": 1.05,
+            "z": 0.18
+          },
+          "right": {
+            "x": 0.3,
+            "y": 1.32,
+            "z": 0.46
+          },
+          "leftCurl": 0.6,
+          "rightCurl": 0.55
+        }
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "name": "West flume reveal",
+      "start": 0,
+      "duration": 1.35,
+      "fov": 59,
+      "from": {
+        "x": -15,
+        "y": 9,
+        "z": -10
+      },
+      "to": {
+        "x": -10,
+        "y": 6,
+        "z": -8
+      },
+      "look": {
+        "x": 1,
+        "y": 4,
+        "z": 4
+      }
+    },
+    {
+      "name": "Landing recovery",
+      "subject": "rider",
+      "start": 0.62,
+      "duration": 1.48,
+      "fov": 48,
+      "from": {
+        "x": -3,
+        "y": 1.4,
+        "z": -3.4
+      },
+      "to": {
+        "x": -2,
+        "y": 1.65,
+        "z": -2.8
+      },
+      "look": {
+        "x": 0,
+        "y": 0.9,
+        "z": 0
+      }
+    }
+  ],
+  "edit": [
+    {
+      "shot": 0,
+      "from": 0,
+      "duration": 0.75
+    },
+    {
+      "shot": 1,
+      "from": 0.13,
+      "duration": 1.35
+    }
+  ]
+}

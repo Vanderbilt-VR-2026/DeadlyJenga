@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-911
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 9712b73f5d4e0164a8c4c4ce9756b651, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 911
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: beetle
+    atlasFile: atlas.png
+    atlasSha256: 9c95fc072b621747631c67aa2ef15ea48656f5ea31677effe770d3ea031d6ed8
+    gifFile: preview.gif
+    gifSha256: 5582aa9513c5d26c0087599a88eba80529bd26a15b178044fe37ac6783a7aca6
+    sourceSha256: 1618935597fb7bcf29d487290cea58c7411445d7f6339372fd4a1cc4171f6a8e
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Wildlife beetle companion
+    action: call
+    target: Environment / local listener
+    listenerRole: Local player camera / ear
+    triggerEvidence: Observed gameplay lifecycle firing beetle
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

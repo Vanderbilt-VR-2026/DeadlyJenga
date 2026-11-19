@@ -76,6 +76,7 @@ namespace DeadlyJenga.DevTools.Editor
             string navigation=ProjectPath.Report("CityNavigation.request");
             if(File.Exists(navigation)&&!EditorApplication.isCompiling&&!EditorApplication.isUpdating&&!EditorApplication.isPlayingOrWillChangePlaymode)
             {File.Delete(navigation);CheckCityNavigation();}
+            if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
             string request=ProjectPath.Report("SparseStructures.request");
             if(!File.Exists(request)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
             string phase=File.ReadAllText(request).Trim();File.Delete(request);

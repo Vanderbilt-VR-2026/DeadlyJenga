@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-216100
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: b4494fc7ebef2154495df14f441b4af0, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 216100
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: "Shot \xB7 primary"
+    atlasFile: atlas.png
+    atlasSha256: 5a780d5525b825f9b4a2008278972b0c19ec7751bba88eb78d63e04749e91616
+    gifFile: preview.gif
+    gifSha256: 1900ba2022987e22b9ea05999508cd0a3753c84c58417a391cb09b33c18f7966
+    sourceSha256: 66ef3fa558b7c527055dedff650bb164b05a48b5c635aef16fec99684e905487
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Sheriff Hammer in the acting player's hands
+    action: Weapon attack / swing / discharge (inspect this weapon's caller; a melee
+      Shot is not a bullet)
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: "Observed gameplay lifecycle firing Shot \xB7 primary"
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

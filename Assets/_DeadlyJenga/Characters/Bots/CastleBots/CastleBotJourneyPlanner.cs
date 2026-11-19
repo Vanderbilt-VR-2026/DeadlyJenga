@@ -12,6 +12,7 @@ namespace DeadlyJenga.CastleBots
     {
         static readonly ProfilerMarker DJBotDestinationMarker = new ProfilerMarker("DJ.BotDestination");
         static readonly ProfilerMarker DJBotGeometryMarker = new ProfilerMarker("DJ.BotGeometry");
+        static readonly ProfilerMarker NeighborsMarker = new("DJ.Bot.Neighbors");
         sealed class Snapshot
         {
             public IWorldQuery generator;
@@ -21,58 +22,135 @@ namespace DeadlyJenga.CastleBots
             public readonly List<CastleBotLanding> nodes=new List<CastleBotLanding>();
             public readonly Dictionary<Vector3Int,List<int>> cells=new Dictionary<Vector3Int,List<int>>();
         }
-        static Snapshot shared;
+        const int DenseGeometrySize = 256;
+        const int GeometryBodiesPerFrame = 48;
+        static Snapshot shared, pending;
+        static int geometryCursor, lastGeometryFrame = -1;
+        static bool checkingGeometry;
         static Vector3Int Cell(Vector3 p)=>new Vector3Int(Mathf.FloorToInt(p.x/3),Mathf.FloorToInt(p.y/3),Mathf.FloorToInt(p.z/3));
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetGeometry()
+        {
+            shared = pending = null;
+            geometryCursor = 0;
+            lastGeometryFrame = -1;
+        }
+
         static Snapshot Geometry(IWorldQuery generator)
         {
+            var blocks = generator.Blocks;
+            var first = blocks.Count > 0 ? blocks[0] : null;
+            if (shared == null || !ReferenceEquals(shared.generator, generator) || shared.first != first)
+            {
+                shared = new Snapshot { generator = generator, first = first, at = float.NegativeInfinity };
+                pending = null;
+            }
+            if (pending == null && Time.time - shared.at >= 1)
+            {
+                pending = new Snapshot { generator = generator, first = first };
+                checkingGeometry = shared.bodies.Count == blocks.Count;
+                geometryCursor = 0;
+            }
+            AdvanceGeometry(generator);
+            return shared;
+        }
+
+        // Continue even when no bot asks for a new route on this frame.
+        internal static void AdvanceGeometry(IWorldQuery generator)
+        {
+            if (pending == null || !ReferenceEquals(pending.generator, generator)) return;
+            var bodies = generator.Blocks;
+            if (bodies.Count > 0 && pending.first != bodies[0] || geometryCursor > bodies.Count)
+            {
+                pending = null;
+                return;
+            }
+            bool dense = bodies.Count >= DenseGeometrySize;
+            if (dense && lastGeometryFrame == Time.frameCount) return;
+            lastGeometryFrame = Time.frameCount;
             using var measurement = DJBotGeometryMarker.Auto();
-            var first=generator.Blocks.Count>0?generator.Blocks[0]:null;
-            if(shared!=null&&shared.generator==generator&&shared.first==first&&Time.time-shared.at<1)return shared;
-            bool same=shared!=null&&shared.generator==generator&&shared.first==first&&shared.bodies.Count==generator.Blocks.Count;
-            var samples=geometryScratch;
-            for(int i=0;i<generator.Blocks.Count;i++)
+            int limit = dense ? GeometryBodiesPerFrame : int.MaxValue;
+            for (int work = 0; work < limit && geometryCursor < bodies.Count; work++)
             {
-                var rb=generator.Blocks[i];bool included=rb&&rb.gameObject.activeInHierarchy&&(rb.isKinematic||rb.linearVelocity.sqrMagnitude<=1.44f);
-                if(included)BotGeometrySamples.Fill(rb,samples);
-                if(same){var old=shared.bodies[i];if(old.body!=rb||old.included!=included||included&&old.version!=BotGeometrySamples.Version(rb))same=false;}
-            }
-            if(same){shared.at=Time.time;return shared;}
-            var graph=new Snapshot{generator=generator,first=first,at=Time.time};
-            foreach(var rb in generator.Blocks)
-            {
-                bool included=rb&&rb.gameObject.activeInHierarchy&&(rb.isKinematic||rb.linearVelocity.sqrMagnitude<=1.44f);
-                graph.bodies.Add((rb,rb?BotGeometrySamples.Version(rb):0,included));
-                if(!included)continue;
-                BotGeometrySamples.Fill(rb,samples);
-                var anchor=rb.transform;var inverse=anchor.worldToLocalMatrix;
-                foreach(var p in samples)
+                var body = bodies[geometryCursor];
+                bool included = body && body.gameObject.activeInHierarchy &&
+                    (body.isKinematic || body.linearVelocity.sqrMagnitude <= 1.44f);
+                if (included) BotGeometrySamples.Fill(body, geometryScratch);
+                int version = body ? BotGeometrySamples.Version(body) : 0;
+                if (checkingGeometry)
                 {
-                    var local=inverse.MultiplyPoint3x4(p);
-                    int id=graph.nodes.Count;graph.nodes.Add(new CastleBotLanding{surface=anchor,body=rb,local=local});
-                    var cell=Cell(p);if(!graph.cells.TryGetValue(cell,out var list))graph.cells[cell]=list=new List<int>();list.Add(id);
-                    graph.minY=Mathf.Min(graph.minY,p.y);graph.maxY=Mathf.Max(graph.maxY,p.y);
+                    if (geometryCursor >= shared.bodies.Count ||
+                        shared.bodies[geometryCursor] != (body, version, included))
+                    {
+                        checkingGeometry = false;
+                        geometryCursor = 0;
+                        continue;
+                    }
                 }
+                else
+                {
+                    pending.bodies.Add((body, version, included));
+                    if (included) AddBodyGeometry(pending, body);
+                }
+                geometryCursor++;
             }
-            shared=graph;return graph;
+            if (geometryCursor != bodies.Count) return;
+            if (!checkingGeometry) shared = pending;
+            shared.at = Time.time;
+            pending = null;
+        }
+
+        static void AddBodyGeometry(Snapshot graph, Rigidbody body)
+        {
+            var anchor = body.transform;
+            var inverse = anchor.worldToLocalMatrix;
+            foreach (var point in geometryScratch)
+            {
+                int id = graph.nodes.Count;
+                graph.nodes.Add(new CastleBotLanding
+                {
+                    surface = anchor, body = body, local = inverse.MultiplyPoint3x4(point)
+                });
+                var cell = Cell(point);
+                if (!graph.cells.TryGetValue(cell, out var list)) graph.cells[cell] = list = new List<int>();
+                list.Add(id);
+                graph.minY = Mathf.Min(graph.minY, point.y);
+                graph.maxY = Mathf.Max(graph.maxY, point.y);
+            }
         }
         static readonly List<Vector3> geometryScratch=new(64);
-        static readonly Dictionary<Rigidbody,Matrix4x4> destinationMatrices=new();
         static readonly List<CastleBotLanding> destinationRanks=new(25);
         public static Vector3 ChooseDestination(CastleBotBrain bot,int trip)
         {
             using var measurement = DJBotDestinationMarker.Auto();
             var graph=Geometry(bot.Population.Session.world);var p=bot.Personality;var feet=bot.transform.position;
+            Vector3 bearing=Quaternion.Euler(0,trip*137.508f,0)*bot.WanderDirection;
+            if (graph.nodes.Count == 0) return feet + bearing * 5;
             float fraction=Mathf.Repeat(bot.Seed*.173f+trip*.618034f,1);
             float targetY=Mathf.Lerp(feet.y,Mathf.Lerp(graph.minY,graph.maxY,fraction),p.verticalVariety);
-            Vector3 bearing=Quaternion.Euler(0,trip*137.508f,0)*bot.WanderDirection;
-            var ranked=destinationRanks;ranked.Clear();destinationMatrices.Clear();
+            var ranked=destinationRanks;
+            ranked.Clear();
+            Rigidbody currentBody = null;
+            Matrix4x4 matrix = default;
+            bool hasSurface = false;
             foreach(var node in graph.nodes)
             {
-                if(!node.body||!node.surface)continue;
-                if(!destinationMatrices.TryGetValue(node.body,out var matrix))destinationMatrices[node.body]=matrix=node.surface.localToWorldMatrix;
-                var point=matrix.MultiplyPoint3x4(node.local);float distance=Vector3.Distance(point,feet);if(distance<3)continue;
+                // AddBodyGeometry emits each body's samples together on the same anchor.
+                if (!ReferenceEquals(node.body, currentBody))
+                {
+                    currentBody = node.body;
+                    hasSurface = currentBody && node.surface;
+                    if (hasSurface) matrix = node.surface.localToWorldMatrix;
+                }
+                if (!hasSurface) continue;
+                var point = matrix.MultiplyPoint3x4(node.local);
+                var offset = point - feet;
+                float distance = offset.magnitude;
+                if (distance < 3) continue;
+                offset.y = 0;
                 var candidate=node;
-                candidate.score=-Mathf.Abs(point.y-targetY)*.45f+Vector3.Dot(Vector3.ProjectOnPlane(point-feet,Vector3.up).normalized,bearing)*2;
+                candidate.score=-Mathf.Abs(point.y-targetY)*.45f+Vector3.Dot(offset.normalized,bearing)*2;
                 float exploration=Mathf.Min(16,distance)*.025f*p.exploration;
                 if(ranked.Count==24&&candidate.score+exploration<ranked[23].score-.0001f)continue;
                 candidate.score-=bot.Population.ThreatCost(point)*(1+p.survivalPriority)+bot.RevisitCost(node.body);
@@ -162,15 +240,17 @@ namespace DeadlyJenga.CastleBots
         {
             stage=default;approach=default;traversal=CastleBotRoute.Walk;
             var graph=Geometry(bot.Population.Session.world);var feet=bot.transform.position;
-            if(bot.Motor.HasWalkableIsland)
+            var toward=Vector3.ProjectOnPlane(destination-feet,Vector3.up).normalized;
+            if(toward.sqrMagnitude>.01f&&feet.y-destination.y<8)
             {
-                var toward=Vector3.ProjectOnPlane(destination-feet,Vector3.up).normalized;
                 for(int bearing=0;bearing<5;bearing++)for(int length=0;length<4;length++)
                 {
                     float angle=bearing==0?0:(bearing%2==0?1:-1)*((bearing+1)/2)*40;
                     var direction=Quaternion.Euler(0,angle,0)*toward;
                     var probe=feet+direction*(3+length*2);
                     if(!CastleBotNavigation.Ground(probe+Vector3.up*.4f,CastleBotNavigation.MaximumDrop(bot.Motor)+.5f,out var floor))continue;
+                    if(!bot.Motor.HasWalkableIsland&&floor.collider.gameObject.layer!=Layers.Block&&
+                        !Climbables.TryGet(floor.collider,out _))continue;
                     float drop=feet.y-floor.point.y;
                     if(drop<.5f||drop>CastleBotNavigation.MaximumDrop(bot.Motor)||!CastleBotNavigation.Room(bot.Motor,floor.point+Vector3.up*.04f))continue;
                     for(int launch=0;launch<4;launch++)
@@ -183,40 +263,63 @@ namespace DeadlyJenga.CastleBots
                 }
             }
             var lower=new List<CastleBotLanding>();
+            float maximumDrop=CastleBotNavigation.MaximumDrop(bot.Motor,true);
             foreach(var node in graph.nodes)
             {
                 var p=node.Point;float drop=feet.y-p.y;
-                if(drop<.6f||drop>CastleBotNavigation.MaximumDrop(bot.Motor)||Vector3.ProjectOnPlane(p-feet,Vector3.up).sqrMagnitude>20*20)continue;
-                var candidate=node;candidate.score=Vector3.ProjectOnPlane(p-destination,Vector3.up).magnitude*.3f+Vector3.Distance(feet,p)*.1f+drop*.1f;
+                if(drop<.6f||drop>maximumDrop||p.y<destination.y-8||
+                    Vector3.ProjectOnPlane(p-feet,Vector3.up).sqrMagnitude>20*20)continue;
+                var candidate=node;candidate.score=Vector3.Distance(p,destination)*.7f+Vector3.Distance(feet,p)*.1f;
                 lower.Add(candidate);
             }
             lower.Sort((a,b)=>a.score.CompareTo(b.score));
-            int inspected=0,links=0;
-            foreach(var candidate in lower)
+            var launchPoints=new List<Vector3>{feet};
+            var feetCell=Cell(feet);
+            for(int x=-3;x<=3;x++)for(int y=-1;y<=1;y++)for(int z=-3;z<=3;z++)
             {
-                if(inspected++>1024||links>=32)break;
-                var end=candidate.Point;
-                if(!BotTraversalCache.Landing(bot.Motor,end))continue;
-                var cell=Cell(end);
-                for(int x=-2;x<=2;x++)for(int y=0;y<=4;y++)for(int z=-2;z<=2;z++)
+                if(!graph.cells.TryGetValue(feetCell+new Vector3Int(x,y,z),out var nodes))continue;
+                foreach(int index in nodes)
                 {
-                    if(!graph.cells.TryGetValue(cell+new Vector3Int(x,y,z),out var nodes))continue;
-                    foreach(int index in nodes)
-                    {
-                        var start=graph.nodes[index].Point;
-                        if(Mathf.Abs(start.y-feet.y)>.2f||Vector3.ProjectOnPlane(start-end,Vector3.up).sqrMagnitude>49||!BotTraversalCache.Landing(bot.Motor,start))continue;
-                        if(!CastleBotNavigation.Walkable(bot.Motor,feet,start)&&!bot.Population.WalkingRoutes.TryWaypoint(bot,start,out _))continue;
-                        if(++links>32){bot.RecoveryDiagnostics="departure: link limit; lower="+lower.Count+" inspected="+inspected;return false;}
-                        if(!BotTraversalCache.TryLink(bot.Motor,start,end,out var route,out _))continue;
-                        stage=end;approach=start;traversal=route;bot.RecoveryDiagnostics="departure: "+start+" -> "+end+" inspected="+inspected+" links="+links;return true;
-                    }
+                    var p=graph.nodes[index].Point;
+                    if(Mathf.Abs(p.y-feet.y)>.25f||(p-feet).sqrMagnitude>64||(p-feet).sqrMagnitude<.06f)continue;
+                    launchPoints.Add(p);
                 }
             }
-            bot.RecoveryDiagnostics="departure: no route; lower="+lower.Count+" inspected="+inspected+" links="+links;
+            int links=0;
+            var inspected=new List<Vector3>(12);
+            int candidatesChecked=0;
+            foreach(var candidate in lower)
+            {
+                if(links>=48||inspected.Count>=24||candidatesChecked++>=384)break;
+                var end=candidate.Point;
+                if(inspected.Exists(point=>(point-end).sqrMagnitude<.8f)||
+                    !BotTraversalCache.Landing(bot.Motor,end))continue;
+                inspected.Add(end);
+                float fall=feet.y-end.y;
+                float range=Mathf.Min(14,bot.Motor.EffectiveWalkSpeed*(Mathf.Sqrt(2*fall/bot.Motor.gravity)+.48f));
+                launchPoints.Sort((a,b)=>LaunchScore(a).CompareTo(LaunchScore(b)));
+                float LaunchScore(Vector3 point)=>Vector3.ProjectOnPlane(point-end,Vector3.up).sqrMagnitude+(point-feet).sqrMagnitude*.28f;
+                int forLanding=0;
+                foreach(var start in launchPoints)
+                {
+                    if(Vector3.ProjectOnPlane(start-end,Vector3.up).sqrMagnitude>range*range)continue;
+                    if(start!=feet&&(!BotTraversalCache.Landing(bot.Motor,start)||
+                        !CastleBotNavigation.Walkable(bot.Motor,feet,start)))continue;
+                    links++;
+                    if(BotTraversalCache.TryLink(bot.Motor,start,end,out var route,out _))
+                    {
+                        stage=end;approach=start;traversal=route;
+                        bot.RecoveryDiagnostics="departure: "+start+" -> "+end+" via "+route;
+                        return true;
+                    }
+                    if(++forLanding>=6||links>=48)break;
+                }
+            }
+            bot.RecoveryDiagnostics="departure: no route; lower="+lower.Count+" inspected="+inspected.Count+" links="+links;
             return false;
         }
         struct SearchNode {public float cost;public int parent;public CastleBotRoute route;}
-        struct Candidate {public int id;public float priority;}
+        struct Candidate {public int id;public float priority,distanceSquared;}
         readonly CastleBotBrain bot;
         readonly Snapshot graph;
         readonly Vector3 start,destination;
@@ -250,19 +353,22 @@ namespace DeadlyJenga.CastleBots
         }
         void Neighbors(int id)
         {
+            using var measurement=NeighborsMarker.Auto();
             neighbors.Clear();neighborCursor=0;var p=Point(id);var cell=Cell(p);
             float v=Mathf.Sqrt(2*bot.Motor.gravity*bot.Motor.jumpHeight);
             float range=Mathf.Clamp(bot.Motor.EffectiveWalkSpeed*v*2/bot.Motor.gravity+bot.Motor.vaultReach,2,7);
             int cells=Mathf.CeilToInt(range/3);
-            for(int x=-cells;x<=cells;x++)for(int y=-Mathf.CeilToInt(CastleBotNavigation.MaximumDrop(bot.Motor)/3);y<=2;y++)for(int z=-cells;z<=cells;z++)
+            float maximumDrop=CastleBotNavigation.MaximumDrop(bot.Motor);
+            float maximumRise=Mathf.Max(.1f+bot.Motor.jumpHeight+bot.Motor.vaultMaxRise,bot.Motor.climbSpeed*bot.Motor.climbGripSeconds*.65f);
+            for(int x=-cells;x<=cells;x++)for(int y=-Mathf.CeilToInt(maximumDrop/3);y<=2;y++)for(int z=-cells;z<=cells;z++)
             {
                 if(!graph.cells.TryGetValue(cell+new Vector3Int(x,y,z),out var list))continue;
                 foreach(int next in list)
                 {
                     if(next==id||closed.Contains(next))continue;var point=graph.nodes[next].Point;var delta=point-p;
-                    if(delta.y>Mathf.Max(.1f+bot.Motor.jumpHeight+bot.Motor.vaultMaxRise,bot.Motor.climbSpeed*bot.Motor.climbGripSeconds*.65f)||delta.y< -CastleBotNavigation.MaximumDrop(bot.Motor)||Vector3.ProjectOnPlane(delta,Vector3.up).sqrMagnitude>range*range||delta.sqrMagnitude<.08f)continue;
+                    if(delta.y>maximumRise||delta.y< -maximumDrop||Vector3.ProjectOnPlane(delta,Vector3.up).sqrMagnitude>range*range||delta.sqrMagnitude<.08f)continue;
                     float priority=Heuristic(point)+delta.magnitude*.1f+bot.RevisitCost(graph.nodes[next].body)*.2f;
-                    neighbors.Add(new Candidate{id=next,priority=priority});
+                    neighbors.Add(new Candidate{id=next,priority=priority,distanceSquared=delta.sqrMagnitude});
                 }
             }
             neighbors.Sort((a,b)=>a.priority.CompareTo(b.priority));
@@ -270,7 +376,7 @@ namespace DeadlyJenga.CastleBots
             // Otherwise a required sideways/backwards step would be pruned at every corner.
             if(neighbors.Count>48)
             {
-                var local=new List<Candidate>(neighbors);local.Sort((a,b)=>(Point(a.id)-p).sqrMagnitude.CompareTo((Point(b.id)-p).sqrMagnitude));
+                var local=new List<Candidate>(neighbors);local.Sort((a,b)=>a.distanceSquared.CompareTo(b.distanceSquared));
                 neighbors.RemoveRange(36,neighbors.Count-36);
                 for(int i=0;i<12;i++)if(!neighbors.Exists(n=>n.id==local[i].id))neighbors.Add(local[i]);
             }

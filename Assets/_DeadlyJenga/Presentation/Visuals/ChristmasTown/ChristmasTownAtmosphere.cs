@@ -66,7 +66,7 @@ namespace DeadlyJenga.CandyArt
             if(Time.unscaledTime>=nextFind)
             {
                 nextFind=Time.unscaledTime+.5f;
-                foreach(var environment in FindObjectsByType<CandyEnvironment>(FindObjectsSortMode.None))
+                if(CandyEnvironment.ForMap(this) is CandyEnvironment environment && environment)
                 {
                     Hide(environment.sandRenderer);Hide(environment.waterRenderer);
                     if(!environments.Exists(s=>s.environment==environment))

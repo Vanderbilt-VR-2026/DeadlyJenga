@@ -14,6 +14,8 @@ namespace DeadlyJenga.CastlePrototype
     public sealed class IslandDiscovery : IDisposable
     {
         public const int Port = 47738;
+        const float InviteLifetime=60, InviteReceiptLifetime=90;
+        const int MaxInviteReceipts=2048;
         static readonly IPAddress MulticastGroup = IPAddress.Parse("239.255.77.38");
         [Serializable] public sealed class Message
         {
@@ -22,7 +24,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         public sealed class Entry { public Message message; public IPEndPoint endpoint; public float seen; }
         readonly Dictionary<string,Entry> entries=new Dictionary<string,Entry>();
-        readonly Dictionary<string,(string invitation,float seen)> lastInvite=new Dictionary<string,(string,float)>();
+        readonly Dictionary<(string sender,string invitation),float> inviteReceipts=new Dictionary<(string,string),float>();
         readonly UdpClient listener, sender;
         readonly HashSet<IPAddress> multicastInterfaces = new HashSet<IPAddress>();
         readonly int port;
@@ -146,14 +148,14 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Tick(float now,string code,int count,bool hosting)
         {
-            currentRoom=code??"";
+            SetCurrentRoom(code);
             advertisedCode=hosting?currentRoom:"";
             advertisedCount=count;
             if (now >= nextExpiry)
             {
                 nextExpiry = now + 1;
                 foreach (var id in entries.Where(p=>now-p.Value.seen>5).Select(p=>p.Key).ToArray()) entries.Remove(id);
-                foreach (var id in lastInvite.Where(p=>now-p.Value.seen>30).Select(p=>p.Key).ToArray()) lastInvite.Remove(id);
+                foreach (var id in inviteReceipts.Where(p=>now-p.Value>InviteReceiptLifetime).Select(p=>p.Key).ToArray()) inviteReceipts.Remove(id);
             }
             if(now>invitationUntil || Invitation?.message.code == currentRoom) Invitation=null;
             if (now >= nextRefresh || scanRequested)
@@ -208,6 +210,7 @@ namespace DeadlyJenga.CastlePrototype
             try{m=JsonUtility.FromJson<Message>(Encoding.UTF8.GetString(bytes));}catch{return false;}
             if(m==null||m.product!="DeadlyJenga-Islands"||m.version!=version||m.sender==Id||m.sender==null||m.sender.Length!=32||m.name==null||m.name.Length>32||m.count<0||m.count>10)return false;
             if(m.kind!="presence"&&m.kind!="invite"&&m.kind!="scan")return false;
+            if(m.kind=="invite"&&!string.IsNullOrEmpty(m.invitation)&&!Guid.TryParseExact(m.invitation,"N",out _))return false;
             if(!string.IsNullOrEmpty(m.code)&&!IslandRoomAddress.TryParse(m.code,"us",out _,out _))return false;
             if(m.kind=="scan")
             {
@@ -221,14 +224,24 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(entries.Count>=64&&!entries.ContainsKey(m.sender))return false;
             var entry=new Entry{message=m,endpoint=endpoint,seen=now};
-            if(m.kind=="presence")entries[m.sender]=entry;
+            if(m.kind=="presence")
+            {
+                entries[m.sender]=entry;
+                if(Invitation?.message.sender==m.sender&&Invitation.message.code!=(m.room??""))Invitation=null;
+            }
             else if(!string.IsNullOrEmpty(m.code)&&m.code!=currentRoom&&(m.target==Id||m.target=="*"))
             {
-                if(lastInvite.TryGetValue(m.sender,out var last)&&
-                    (string.IsNullOrEmpty(m.invitation)?now-last.seen<10:last.invitation==m.invitation))return true;
-                lastInvite[m.sender]=(m.invitation,now);
+                var receipt=(m.sender,m.invitation??"");
+                bool known=inviteReceipts.TryGetValue(receipt,out float seen);
+                if(known&&now-seen<(string.IsNullOrEmpty(m.invitation)?10:InviteReceiptLifetime))return true;
+                if(!known&&inviteReceipts.Count>=MaxInviteReceipts)
+                {
+                    Status="Nearby invite history is busy. Enter a room code or retry shortly.";
+                    return false;
+                }
+                inviteReceipts[receipt]=now;
                 Invitation=entry;
-                invitationUntil=now+60;
+                invitationUntil=now+InviteLifetime;
             }
             return true;
         }
@@ -277,8 +290,9 @@ namespace DeadlyJenga.CastlePrototype
         public void InviteAll(string code,int count)
         {
             float now=Time.unscaledTime;
-            if(now<nextInvite||!IslandRoomAddress.TryParse(code,"us",out _,out _))return;
-            currentRoom=code;
+            if(!IslandRoomAddress.TryParse(code,"us",out _,out _))return;
+            SetCurrentRoom(code);
+            if(now<nextInvite)return;
             nextInvite=now+5;
             LastInviteRecipients=0;
             var invitation=Guid.NewGuid().ToString("N");
@@ -296,6 +310,13 @@ namespace DeadlyJenga.CastlePrototype
             inviteRepeats=3;inviteAgain=now+.7f;
             InviteStatus=sent?"Invite sent on this local network. Room code: "+code:
                 "Could not send an invite on this network. Share room code "+code+".";
+        }
+        void SetCurrentRoom(string code)
+        {
+            code=code??"";
+            if(currentRoom==code)return;
+            currentRoom=code;Invitation=null;invitationUntil=0;
+            repeatedInvite=null;inviteRepeats=0;InviteStatus="";nextInvite=0;nextBeacon=0;
         }
         public void Dismiss()=>Invitation=null;
         public void Dispose(){listener.Dispose();sender.Dispose();}

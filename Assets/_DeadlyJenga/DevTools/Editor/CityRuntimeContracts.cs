@@ -69,7 +69,7 @@ namespace DeadlyJenga.DevTools.Editor
                 motor.Teleport(new Vector3(1000,1000.03f,1000),Quaternion.identity);sink.useGravity=true;impact.useGravity=true;impact.linearVelocity=Vector3.down*25;
                 until=Time.time+4;while(Time.time<until&& (sink.gameObject.activeSelf||impact.gameObject.activeSelf))yield return null;
                 Check(!sink.gameObject.activeSelf&&cleanup.SunkCount>0,"displaced unoccupied ground debris sinks and retires");
-                Check(!impact.gameObject.activeSelf&&cleanup.ShatteredCount>0,"genuine high-speed native impact retires distant debris");
+                Check(cleanup.ShatteredCount==0,"high-speed native impact never shatters debris");
                 Check(map.Blocks.Count==633,"cleanup preserves stable authored body indices");
                 map.SetReplica(true);Check(map.Blocks.All(b=>b.isKinematic),"replica keeps every original collider with suspended independent simulation");map.SetReplica(false);
                 Check(map.Blocks.All(b=>!b.isKinematic),"authority recovery restores independent original bodies");

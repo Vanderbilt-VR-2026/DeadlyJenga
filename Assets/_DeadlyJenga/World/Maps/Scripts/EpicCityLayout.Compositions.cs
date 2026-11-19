@@ -13,10 +13,7 @@ namespace DeadlyJenga.CastlePrototype
                     b.Site("Parking",-75,100,2,name:"High street decks");b.Site("Gateway",65,100,4,name:"Gateway headland");
                     Loop(b,new[]{0,1,2,5,7,6,3});b.Link(3,4);b.Link(1,4);b.Link(4,5);b.Link(4,7,24.8f);break;
                 case 1:
-                    b.Site("Parking",-120,-65,2,name:"Seaward arcade");b.Site("Hotel",-110,35,2,name:"Low court hotel");b.Site("Lantern",-35,90,3,name:"West lantern");
-                    b.Site("Office",15,-45,3,name:"Exchange south");b.Site("Office",15,50,4,name:"Exchange north");b.Site("Court",115,35,3,90,name:"Inland court");
-                    b.Site("Foundry",115,-70,2,name:"Market hall");b.Site("Parking",-35,-120,1,name:"Beach walk");
-                    Loop(b,new[]{0,1,2,4,3,7});Loop(b,new[]{3,4,5,6});b.Link(0,3);b.Link(2,5,24.8f);break;
+                    b.HarborExchange();break;
                 case 2:
                     b.Site("Cathedral",-65,-110,2,name:"Bowl entry arcade");b.Site("Parking",55,-105,1,name:"Low bowl terraces");
                     b.Site("Parking",120,-15,2,0,4,"East switchback");b.Site("Office",105,90,3,0,12,"High east crown");b.Site("Lantern",0,115,3,0,8,"Bowl lantern");
@@ -60,5 +57,55 @@ namespace DeadlyJenga.CastlePrototype
         }
         static void Loop(Builder b,int[] order)
         {for(int i=0;i<order.Length;i++)b.Link(order[i],order[(i+1)%order.Length]);}
+
+        sealed partial class Builder
+        {
+            public void HarborExchange()
+            {
+                ExchangePavilion("Seaward arcade",-36,-20,false);
+                ExchangePavilion("Low court hotel",-36,20,true);
+                ExchangePavilion("Exchange south",0,-20,true);
+                ExchangePavilion("Exchange north",0,20,false);
+                ExchangePavilion("Inland court",36,20,true);
+                ExchangePavilion("Market hall",36,-20,false);
+                ExchangeLoop(new[]{0,1,3,2});ExchangeLoop(new[]{2,3,4,5});
+                ExchangeCrossing(0,1);ExchangeCrossing(2,3);
+            }
+            void ExchangePavilion(string name,float x,float z,bool enclosed)
+            {
+                district=plan.sites.Count;
+                var site=new EpicCitySite{kind="Exchange pavilion",name=name,position=new Vector3(x,.35f,z),width=18,depth=16,tiers=1};
+                plan.sites.Add(site);int first=plan.modules.Count;
+                Base(site,18,16);
+                var bearing=plan.modules[plan.modules.Count-1];
+                foreach(int side in new[]{-1,1})
+                    Part(bearing,new Vector3(0,0,side*8.75f),new Vector3(5,.8f,.5f),3);
+                var hall=Cassette(site.position+Vector3.up*.8f,18,16,1,0,name+" inhabited section",enclosed);
+                if(enclosed)
+                    foreach(int side in new[]{-1,1})
+                        Part(hall,new Vector3(side*5.5f,2,6.8f),new Vector3(6,4,1.2f),3);
+                site.members.AddRange(plan.modules.GetRange(first,plan.modules.Count-first));
+                site.bounds=MayhemStructureLayout.Bounds(site.members);
+                site.ports.Add(site.position+Vector3.up*4.8f);
+                // Ground arrivals stay outside the bearing raft and its sloped entries.
+                plan.spawnPoints.Add(site.position+new Vector3(0,.1f,-16));
+            }
+            void ExchangeLoop(int[] order)
+            {
+                for(int n=0;n<order.Length;n++)
+                {
+                    int a=order[n],b=order[(n+1)%order.Length];
+                    plan.routes.Add(new EpicCityRoute{name="Ground street: "+plan.sites[a].name+" to "+plan.sites[b].name,from=a,to=b,a=plan.sites[a].position,b=plan.sites[b].position});
+                }
+            }
+            void ExchangeCrossing(int from,int to)
+            {
+                var a=plan.sites[from];var b=plan.sites[to];district=from;
+                var first=a.position+new Vector3(0,4.8f,6.8f);
+                var last=b.position+new Vector3(0,4.8f,-6.8f);
+                Bridge(first,last,4,"Optional exchange upper crossing");
+                plan.routes.Add(new EpicCityRoute{name="Upper crossing: "+a.name+" to "+b.name,from=from,to=to,a=first,b=last});
+            }
+        }
     }
 }

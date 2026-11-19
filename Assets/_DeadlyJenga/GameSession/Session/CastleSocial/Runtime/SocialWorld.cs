@@ -12,15 +12,25 @@ namespace DeadlyJenga.CastleSocial
     [Serializable] public sealed class SocialNotice
     {public string kind,id,actor,name,text,topic;public SocialIdentity identity;public bool speaking;public double at;}
     [DefaultExecutionOrder(300)]
-    public sealed class SocialWorld : MonoBehaviour, IVoiceMix
+    public sealed partial class SocialWorld : MonoBehaviour, IVoiceMix
     {
+        // AI bot voices and the social simulation are switched off. Even muted, they cost CPU, memory and
+        // network every frame, so sessions and lobbies don't create them at all. Bots keep their names and
+        // personalities (those come from the match and bot presets). Launch with --dj-ai-voices to test them.
+        // Read once: the network loops check this every frame and must not allocate.
+        public static readonly bool AiVoicesEnabled = Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-ai-voices") >= 0;
+        // Network voice-packet pumps and receivers skip all work while voices are off.
+        internal static bool RuntimeEnabled => AiVoicesEnabled;
+
         public CastlePlaySession Session {get;private set;}
         public IslandLobby Lobby {get;private set;}
+        public ISessionInfo Owner=>Lobby?(ISessionInfo)Lobby:Session;
+        public ISurvivorBotPopulation SurvivorPopulation=>Owner?.SurvivorBots;
         IslandRoomConnection lobbyRoom;
         public SocialSettings Settings {get;private set;}
         public SocialConfiguration Config=>Settings.configuration;
         public SocialDirector Director {get;private set;}
-        public bool IsAuthority=>Lobby?Lobby.Room.IsHost:Session&&(!Session.Network||!Session.Network.IsClient);
+        public bool IsAuthority=>Lobby?(!Lobby.Room.Connected&&!Lobby.Room.Busy&&!Lobby.Room.Departing||Lobby.Room.IsHost):Session&&(!Session.Network||!Session.Network.IsClient);
         readonly string standaloneId="local:"+Guid.NewGuid().ToString("N");
         public string LocalParticipantId=>Lobby?(Lobby.Room.Connected?Lobby.Room.Runner.LocalPlayer.ToString():standaloneId):Session&&Session.Network?Session.Network.LocalParticipantId:standaloneId;
         public readonly List<SocialBotAgent> Agents=new List<SocialBotAgent>();
@@ -44,6 +54,7 @@ namespace DeadlyJenga.CastleSocial
             if(session.Network){session.Network.SocialReceived+=Receive;session.Network.ParticipantLeft+=Left;}
             if(!ApplyConfiguration()){Settings.ResetDefaults();ApplyConfiguration();}
             OnDevice=gameObject.AddComponent<OnDeviceConversation>();OnDevice.Initialize(this);
+            SubscribeToObservations();
             gameObject.AddComponent<SocialDemonstrationRecorder>().Initialize(this);
         }
         public void Initialize(IslandLobby lobby)
@@ -53,10 +64,16 @@ namespace DeadlyJenga.CastleSocial
             Playback=VoicePlayback.Create(gameObject,this);
             Speech=gameObject.AddComponent<SocialSpeechClient>();Speech.Initialize(this);
             MicrophoneInput=gameObject.AddComponent<SocialMicrophone>();MicrophoneInput.Initialize(this);
-            Director=new SocialDirector(Config,new List<SocialIdentity>());
+            if(!ApplyConfiguration()){Settings.ResetDefaults();Settings.mode=SocialOperatingMode.Offline;Settings.microphoneEnabled=false;ApplyConfiguration();}
             lobbyRoom=lobby.Room;lobbyRoom.SocialReceived+=Receive;lobbyRoom.ParticipantLeft+=Left;
         }
-        public void ResetLobbyAudio(){MicrophoneInput.StopCapture();Playback.Clear();sequences.Clear();rates.Clear();lastVoice.Clear();}
+        public void ResetLobbyAudio()
+        {
+            MicrophoneInput?.StopCapture();Speech?.CancelAll();
+            foreach(var agent in Agents)if(agent&&agent.State!=null)Director?.Cancel(agent.State.identity.id);
+            Playback?.Clear();sequences.Clear();rates.Clear();lastVoice.Clear();
+        }
+        void OnDisable(){if(Lobby)ResetLobbyAudio();}
         void SendPacket(byte[] bytes,string except=null)
         {if(Lobby)Lobby.Room.SendSocial(bytes,except);else if(Session&&Session.Network)Session.Network.SendSocial(bytes,except);}
         public bool ApplyConfiguration()
@@ -65,7 +82,8 @@ namespace DeadlyJenga.CastleSocial
             {
                 Config.Validate();if(Config.maxPopulation<Agents.Count)throw new ArgumentException("Clear some survivors before lowering population capacity below the current live count.");var generated=SocialPopulation.Generate(Config,Config.maxPopulation);
                 foreach(var agent in Agents.ToArray())if(agent)Speech.Cancel(agent.State.identity.id);
-                pool=generated;Director=new SocialDirector(Config,pool);Director.Speak+=OnSpeech;Director.Perception=Perceive;nextIdentity=0;
+                pool=generated;IEnumerable<SocialIdentity> initial=Lobby?Enumerable.Empty<SocialIdentity>():pool;
+                Director=new SocialDirector(Config,initial);Director.Speak+=OnSpeech;Director.Perception=Perceive;nextIdentity=0;
                 foreach(var agent in Agents)if(agent)Bind(agent,agent.Bot);
                 lastValid=JsonUtility.FromJson<SocialConfiguration>(JsonUtility.ToJson(Config));LastError="";return true;
             }
@@ -74,12 +92,18 @@ namespace DeadlyJenga.CastleSocial
         void Bind(SocialBotAgent agent,ISocialBot bot)
         {
             if(pool==null||nextIdentity>=pool.Count)return;var identity=pool[nextIdentity++];
-            if(!Director.bots.TryGetValue(identity.id,out var state))Director.bots[identity.id]=state=new SocialState{identity=identity};
+            if(!Director.bots.TryGetValue(identity.id,out var state))
+            {
+                Director.bots[identity.id]=state=new SocialState{identity=identity};
+                if(Lobby&&identity.group>=0)foreach(var other in Director.bots.Values)
+                    if(other!=state&&other.identity.group==identity.group){state.relationships[other.identity.id]=Config.sharedHistory;other.relationships[identity.id]=Config.sharedHistory;}
+            }
+            if(Settings.mode==SocialOperatingMode.BundledVoices)identity.vocal.pitch=1;
             agent.Initialize(this,bot,state);Publish(SocialEventKind.Greeting,identity.id,.6);
         }
         void Update()
         {
-            if(!Session||Director==null)return;
+            if((!Session&&!Lobby)||Director==null)return;
             bool authority=IsAuthority;
             if(authority!=lastAuthority)
             {Speech.CancelAll();Playback.Clear();sequences.Clear();lastVoice.Clear();rates.Clear();Participants.Clear();lastAuthority=authority;if(authority)ApplyConfiguration();}
@@ -87,7 +111,7 @@ namespace DeadlyJenga.CastleSocial
             if(Time.unscaledTime>=nextScan)
             {
                 nextScan=Time.unscaledTime+.25f;Agents.RemoveAll(a=>!a);
-                foreach(var bot in Session.SurvivorBots?.Members??Array.Empty<GameObject>())
+                foreach(var bot in SurvivorPopulation?.Members??Array.Empty<GameObject>())
                 {
                     if(!bot||bot.GetComponent<SocialBotAgent>()||Agents.Count>=Config.maxPopulation)continue;
                     // Recycle a free stable identity, never overwrite a live player's.
@@ -98,23 +122,75 @@ namespace DeadlyJenga.CastleSocial
             }
             foreach(var id in lastVoice.Where(p=>Time.unscaledTime-p.Value>.35f).Select(p=>p.Key).ToArray()){Director.HumanActivity(id,false,Time.unscaledTime);lastVoice.Remove(id);}
             if(Time.unscaledTime>=nextTick)
-            {nextTick=Time.unscaledTime+Config.tickSeconds;if(Config.enableBots)Director.Tick(Time.unscaledTime);}
-            if(Time.unscaledTime>=nextThreat)
             {
-                nextThreat=Time.unscaledTime+1;int moving=0;float strongest=0;
-                foreach(var body in Services.World?.Blocks??System.Array.Empty<Rigidbody>())if(body&&body.gameObject.activeInHierarchy){float speed=body.linearVelocity.magnitude;if(speed>3)moving++;strongest=Mathf.Max(strongest,speed);}
-                if(moving>12)Publish(SocialEventKind.Collapse,"tower",Mathf.Clamp01(moving/50f));else if(moving>2&&strongest>3)Publish(SocialEventKind.Wobble,"tower",.55);
+                nextTick=Time.unscaledTime+Config.tickSeconds;
+                Director.UseBundledVoiceLines=Speech.UsesBundledVoices;
+                Director.ReplayScriptedBotLines=!OnDevice||!OnDevice.Requested;
+                if(Config.enableBots)Director.Tick(Time.unscaledTime);
             }
+            if(Session&&Agents.Count>0)ScanTowerThreat();
             if(Time.unscaledTime>=nextMetadata&&Agents.Count>0)
             {
                 nextMetadata=Time.unscaledTime+.15f;metadataIndex%=Agents.Count;var a=Agents[metadataIndex++];
                 if(a){var notice=new SocialNotice{kind="identity",id=a.State.identity.id,actor=a.NetworkId,name=a.State.identity.name,identity=a.State.identity};Participants[notice.id]=notice;SendNotice(notice);}
             }
         }
+        const int ThreatBlocksPerFrame=64;
+        IWorldQuery threatWorld;
+        int threatIndex, movingBlocks, nearbyBlocks;
+        float strongestBlock;
+        Vector3 threatAnchor;
+        Rigidbody threatBody;
+        bool scanningThreat;
+
+        void ScanTowerThreat()
+        {
+            var world=Services.World;
+            if(world==null)return;
+            if(!ReferenceEquals(threatWorld,world))
+            {
+                threatWorld=world;
+                scanningThreat=false;
+                nextThreat=0;
+            }
+            if(!scanningThreat)
+            {
+                if(Time.unscaledTime<nextThreat)return;
+                nextThreat=Time.unscaledTime+1;
+                threatIndex=movingBlocks=nearbyBlocks=0;
+                strongestBlock=0;
+                threatBody=null;
+                scanningThreat=true;
+            }
+
+            var blocks=world.Blocks;
+            int end=Mathf.Min(threatIndex+ThreatBlocksPerFrame,blocks.Count);
+            for(;threatIndex<end;threatIndex++)
+            {
+                var body=blocks[threatIndex];
+                if(!body||!body.gameObject.activeInHierarchy||body.IsSleeping())continue;
+                float speed=body.linearVelocity.magnitude;
+                strongestBlock=Mathf.Max(strongestBlock,speed);
+                if(speed<=3)continue;
+                if(movingBlocks++==0){threatAnchor=body.position;threatBody=body;}
+                if((body.position-threatAnchor).sqrMagnitude<=36)nearbyBlocks++;
+            }
+            if(threatIndex<blocks.Count)return;
+            scanningThreat=false;
+            if(ContextualSpeech)
+            {
+                ObserveMatchFrame();
+                if(nearbyBlocks>=3&&threatBody)ObserveNearby(nearbyBlocks>=8?SocialEventKind.Collapse:SocialEventKind.Wobble,threatAnchor,
+                    "several tower blocks shifted together",nearbyBlocks>=8?"blocks crashing":null,threatBody.gameObject,3);
+            }
+            else if(movingBlocks>12)Publish(SocialEventKind.Collapse,"tower",Mathf.Clamp01(movingBlocks/50f));
+            else if(movingBlocks>2&&strongestBlock>3)Publish(SocialEventKind.Wobble,"tower",.55);
+        }
+
         double Perceive(string bot,SocialEvent e)
         {
             var agent=Agents.FirstOrDefault(a=>a&&a.State.identity.id==bot);if(!agent)return 0;
-            if(e.speaker=="tower")return Session.SurvivorBots.ThreatCost(agent.transform.position)>.2f?1:.4;
+            if(e.speaker=="tower")return SurvivorPopulation?.ThreatCost(agent.transform.position)>.2f?1:.4;
             if(TryPosition(e.speaker,out var target))
             {
                 float distance=Vector3.Distance(target,agent.transform.position);if(distance>40)return .05;
@@ -123,16 +199,28 @@ namespace DeadlyJenga.CastleSocial
             }
             return e.human?.65:1;
         }
-        public SocialBotAgent NearestFriend(SocialBotAgent self)=>Agents.Where(a=>a&&a!=self&&a.State.identity.group==self.State.identity.group&&!a.Bot.Respawning).OrderBy(a=>(a.transform.position-self.transform.position).sqrMagnitude).FirstOrDefault();
+        public SocialBotAgent NearestFriend(SocialBotAgent self)=>Agents.Where(a=>a&&a!=self&&a.State!=null&&NetworkActors.Alive(a.Bot)&&a.gameObject.activeInHierarchy&&a.State.identity.group==self.State.identity.group&&!a.Bot.Respawning).OrderBy(a=>(a.transform.position-self.transform.position).sqrMagnitude).FirstOrDefault();
         public bool TryPosition(string id,out Vector3 point)
         {
+            var a=Agents.FirstOrDefault(x=>x&&x.State!=null&&x.State.identity.id==id);if(a){point=a.transform.position+Vector3.up*.7f;return true;}
             if(Lobby)return Lobby.TryPeerPosition(id,out point);
-            var a=Agents.FirstOrDefault(x=>x&&x.State.identity.id==id);if(a){point=a.transform.position+Vector3.up*.7f;return true;}
+            if(!Session){point=default;return false;}
             if(id==LocalParticipantId&&NetworkActors.Alive(Session.Player)){point=Session.Player.ViewCamera.transform.position;return true;}
             if(Session.Network&&Session.Network.TryParticipantPosition(Participants.TryGetValue(id??"",out var n)?n.actor:id,out point))return true;point=default;return false;
         }
         public void Publish(SocialEventKind kind,string speaker,double salience=1,string text=null,string recipient=null)
-        {if(!IsAuthority||Director==null)return;if(kind==SocialEventKind.Collapse||kind==SocialEventKind.Wobble||kind==SocialEventKind.NearMiss)salience*=.5+Config.chaos;Director.Publish(new SocialEvent{id="game:"+(++eventSerial),kind=kind,speaker=speaker,recipient=recipient,salience=salience,text=text,time=Time.unscaledTime,human=kind==SocialEventKind.HumanSpeech,topic=recipient??"castle"});}
+        {
+            if(!IsAuthority||Director==null)return;
+            if(ContextualSpeech && TryPosition(speaker,out var at))
+            {
+                if(kind==SocialEventKind.NearMiss) {ObserveNearby(kind,at,"someone suddenly dropped below a ledge",null,null,2);return;}
+                if(kind==SocialEventKind.Success) {ObserveNearby(kind,at,"someone vaulted onto a ledge",null,null,2);return;}
+                // The authoritative elimination event includes the actual actor and location.
+                if(kind==SocialEventKind.Elimination)return;
+            }
+            if(kind==SocialEventKind.Collapse||kind==SocialEventKind.Wobble||kind==SocialEventKind.NearMiss)salience*=.5+Config.chaos;
+            Director.Publish(new SocialEvent{id="game:"+(++eventSerial),kind=kind,speaker=speaker,recipient=recipient,salience=salience,text=text,time=Time.unscaledTime,human=kind==SocialEventKind.HumanSpeech,topic=recipient??"castle"});
+        }
         public void HumanTranscript(string speaker,string text,string utterance,bool final)
         {
             if(!IsAuthority)return;
@@ -140,9 +228,22 @@ namespace DeadlyJenga.CastleSocial
             string recipient=null;
             if(OnDevice&&OnDevice.Requested)
             {
-                var addressed=Agents.FirstOrDefault(a=>a&&text.IndexOf(a.State.identity.name,StringComparison.OrdinalIgnoreCase)>=0);
-                if(!addressed&&TryPosition(speaker,out var from))addressed=Agents.Where(a=>a&&!a.State.muted).OrderBy(a=>(a.transform.position-from).sqrMagnitude).FirstOrDefault();
-                if(addressed)
+                if(string.IsNullOrWhiteSpace(text)||!TryPosition(speaker,out var from))return;
+                SocialBotAgent addressed=null;
+                bool question=MatchBanter.IsQuestion(text);
+                bool named=false;
+                float nearest=VoiceHearingRange*VoiceHearingRange;
+                foreach(var agent in Agents)
+                {
+                    if(!CanTalk(agent))continue;
+                    float distance=(agent.transform.position-from).sqrMagnitude;
+                    if(distance>VoiceHearingRange*VoiceHearingRange)continue;
+                    bool callsThisBot=MatchBanter.ContainsWords(text,agent.State.identity.name);
+                    if((!callsThisBot&&(!question||named))||
+                        (callsThisBot==named&&distance>=nearest))continue;
+                    addressed=agent;named=callsThisBot;nearest=distance;
+                }
+                if(addressed&&(named||!Agents.Any(a=>a&&a.State!=null&&MatchBanter.ContainsWords(text,a.State.identity.name))))
                 {
                     recipient=addressed.State.identity.id;addressed.State.focus=speaker;
                     addressed.State.Remember(new SocialEvent{id="human:"+speaker+":"+utterance,speaker=speaker,text=text,human=true,kind=SocialEventKind.HumanSpeech,time=Time.unscaledTime},Config.memoryLimit,Config.retainHumanText);
@@ -155,9 +256,12 @@ namespace DeadlyJenga.CastleSocial
         void OnSpeech(SocialSpeech intent)
         {
             if(!Director.bots.TryGetValue(intent.botId,out var state))return;
+            var agent=Agents.FirstOrDefault(a=>a&&a.State==state);
+            if(Speech.UsesBundledVoices&&(!agent||!agent.isActiveAndEnabled))
+            {Director.AudioFinished(intent.botId);return;}
             if(!OnDevice||!OnDevice.Requested){Caption=state.identity.name+" [AI]: "+intent.text;SendNotice(new SocialNotice{kind="caption",id=intent.botId,text=intent.text,name=state.identity.name,topic=intent.topic});}
             Speech.Speak(intent,state.identity);
-            var agent=Agents.FirstOrDefault(a=>a&&a.State==state);if(agent&&NetworkActors.Alive(agent.Bot))agent.Bot.PlayEmote(state.emotion.fear>.6?SocialEmote.Scared:SocialEmote.Friendly);
+            if(agent&&NetworkActors.Alive(agent.Bot))agent.Bot.PlayEmote(state.emotion.fear>.6?SocialEmote.Scared:SocialEmote.Friendly);
         }
         public void SpokenText(string id,string text)
         {
@@ -213,11 +317,11 @@ namespace DeadlyJenga.CastleSocial
         void Left(string id){Director?.RemoveHuman(id);Speech.ForgetHuman(id);Playback.Remove(id);sequences.Remove(id);lastVoice.Remove(id);rates.Remove(id);}
         public void Detach(SocialBotAgent agent)
         {
-            Agents.Remove(agent);if(agent.State==null)return;var id=agent.State.identity.id;Director?.Remove(id);Speech?.Cancel(id);Playback?.Remove(id);Participants.Remove(id);if(IsAuthority)SendNotice(new SocialNotice{kind="removed",id=id});
+            Agents.Remove(agent);if(agent.State==null)return;var id=agent.State.identity.id;Director?.Remove(id);Speech?.Cancel(id);OnDevice?.ForgetBot(id);Playback?.Remove(id);Participants.Remove(id);if(IsAuthority)SendNotice(new SocialNotice{kind="removed",id=id});
         }
         public void Mute(string id,bool muted){if(Director.bots.TryGetValue(id,out var b)){b.muted=muted;if(muted){Director.Cancel(id);Speech.Cancel(id);}}Playback.Mute(id,muted);}
         void OnDestroy()
-        {if(Session&&Session.Network){Session.Network.SocialReceived-=Receive;Session.Network.ParticipantLeft-=Left;}if(lobbyRoom){lobbyRoom.SocialReceived-=Receive;lobbyRoom.ParticipantLeft-=Left;}if(Settings)Destroy(Settings);}
+        {UnsubscribeFromObservations();if(Session&&Session.Network){Session.Network.SocialReceived-=Receive;Session.Network.ParticipantLeft-=Left;}if(lobbyRoom){lobbyRoom.SocialReceived-=Receive;lobbyRoom.ParticipantLeft-=Left;}if(Settings)Destroy(Settings);}
         // IVoiceMix: how loud and where each voice plays.
         public float Gain(string speaker)
         {if(!Settings)return 0;bool bot=speaker!=null&&speaker.StartsWith("social:",StringComparison.Ordinal);return bot?(Config.enableVoice?Settings.botVolume:0):Settings.humanVolume;}

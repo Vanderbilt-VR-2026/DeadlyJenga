@@ -43,6 +43,8 @@ namespace DeadlyJenga.Presentation
         public int ConstraintCount {get;private set;}
         public bool Settled=>support&&quiet>.25f;
         public float GroundHeight {get;private set;}
+        public Collider SupportCollider {get;private set;}
+        public Vector3 SupportPoint => supportWorld;
 
         public VisualDeathRagdoll(Transform visual,Bounds bounds)
         {
@@ -206,7 +208,10 @@ namespace DeadlyJenga.Presentation
             return hit.collider.GetComponentInParent<IModeActor>()==null&&hit.collider.GetComponentInParent<IMovementState>()==null;
         }
         void RememberSupport(RaycastHit hit)
-        {support=hit.collider.transform;supportLocal=support.InverseTransformPoint(hit.point);supportWorld=hit.point;GroundHeight=hit.point.y;}
+        {
+            SupportCollider=hit.collider;
+            support=hit.collider.transform;supportLocal=support.InverseTransformPoint(hit.point);supportWorld=hit.point;GroundHeight=hit.point.y;
+        }
         Vector3 Point(int index,Vector3 origin)=>poses[index].MultiplyPoint3x4(origin);
         void Weighted(Skin skin,int vertex,int bone,float weight,ref Vector3 p,ref Vector3 n)
         {

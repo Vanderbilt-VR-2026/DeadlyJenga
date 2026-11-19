@@ -9,6 +9,8 @@ namespace DeadlyJenga.CastleBots
         public bool jump;
         // Optional traversal intent: existing bots keep their current jump/vault behaviour.
         public bool climbHeld;
+        public bool suitFlight;
+        public Vector3 suitVelocity;
     }
     // The same CharacterController motor consumes human input or this input, never both.
     public interface ICastleSurvivorDriver

@@ -6,8 +6,36 @@ namespace DeadlyJenga.CastlePrototype
 {
     // How the survivor responds to the shared abilities in Core.
     // Teleport(position, rotation) already exists in CastleSurvivor.cs.
-    public sealed partial class CastleSurvivor : IPushable, IDamageable, IAffectable, ITeleportable, IMovementState, IPlayerView, IHazardMotion
+    public sealed partial class CastleSurvivor : IPushable, IDamageable, IAffectable, ITeleportable, IMovementState, IPlayerView, IHazardMotion, IDeveloperGodMode
     {
+        bool developerGodMode;
+        public bool CanSetGodMode => isActiveAndEnabled && !externallyDriven && Services.Session?.PlayingHand==false && ReferenceEquals(Services.Session?.Player,this) &&
+            Services.Session?.Demo?.CanCommand==true && Services.Session.Demo.DemoMode &&
+            MatchRuntime.Current?.Authority==true && MatchRuntime.Current.Rules.mode==GameModeKind.Demo;
+        public bool GodModeEnabled => developerGodMode && CanSetGodMode;
+        public void SetGodMode(bool enabled)
+        {
+            if(enabled&&!CanSetGodMode)return;
+            developerGodMode=enabled;
+            if(enabled)Revive();
+            ClearHoverFlight();ResetClimb(true);Vaulting=false;support=null;
+            verticalSpeed=peakFallSpeed=0;slopeVelocity=iceVelocity=Vector3.zero;
+        }
+        void MoveDeveloperFlight(Vector2 walking,bool rise,bool fast,float seconds)
+        {
+            if(!GodModeEnabled)return;
+            verticalSpeed=peakFallSpeed=0;slopeVelocity=iceVelocity=Vector3.zero;
+            Grounded=false;Vaulting=false;support=null;
+            if(InputSuspended||!vrInputFocused||!viewCamera||!Capsule.enabled||!float.IsFinite(seconds)||seconds<=0)return;
+            // Look where you want to fly. Hold sprint for fast travel; release the movement input to brake.
+            float speed=(fast?18f:3f)*playerScale;
+            var direction=viewCamera.transform.forward*walking.y+viewCamera.transform.right*walking.x;
+            if(rise)direction+=Vector3.up;
+            if(!IsVR&&UnityEngine.InputSystem.Keyboard.current?.leftCtrlKey.isPressed==true)direction+=Vector3.down;
+            Capsule.Move(Vector3.ClampMagnitude(direction,1)*speed*Mathf.Min(seconds,.05f));
+            ActionStatus=fast?"God flight: FAST":"God flight: SLOW";
+        }
+
         [Header("Health")]
         public float maxHealth = 100;
         [Min(0)] public float healthRecoveryDelay = 10;
@@ -25,12 +53,21 @@ namespace DeadlyJenga.CastlePrototype
         public void Push(Vector3 force, GameObject source)
         {
             if(ParticipationBlocked)return;
-            ApplyTraversalImpulse(force);
+            if(force.sqrMagnitude<=1.21f&&source&&source.TryGetComponent<IDisasterState>(out _))
+            {
+                if(!Climbing&&!Vaulting)
+                {
+                    slopeVelocity+=Vector3.ProjectOnPlane(force,Vector3.up);
+                    verticalSpeed+=force.y;
+                }
+            }
+            else ApplyTraversalImpulse(force);
             GameEvents.RaisePushed(gameObject, force);
         }
 
         public void Damage(float amount, GameObject source)
         {
+            if(GodModeEnabled)return;
             if(ParticipationBlocked)return;
             if (eliminated || amount <= 0 || float.IsNaN(amount) || float.IsInfinity(amount)) return;
             health = Mathf.Max(0, Health - amount);
@@ -41,6 +78,7 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Eliminate(GameObject source)
         {
+            if(GodModeEnabled)return;
             if(ParticipationBlocked)return;
             if (eliminated) return;
             ClearSprint();ClearMovementPowerups();

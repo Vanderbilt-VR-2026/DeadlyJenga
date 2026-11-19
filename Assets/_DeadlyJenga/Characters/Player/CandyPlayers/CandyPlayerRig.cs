@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using DeadlyJenga.Core;
+using DeadlyJenga.CastlePrototype;
 
 namespace DeadlyJenga.CandyPlayers
 {
@@ -10,8 +11,29 @@ namespace DeadlyJenga.CandyPlayers
         public CandyPlayerStyle style;
         public SkinnedMeshRenderer bodyRenderer,headRenderer;
         public Camera ownerCamera;
+        // Retained for compatibility. Comfort mode does not change the avatar stance.
         public bool SeatedVisual {get;set;}
         public CandyAvatarCalibration calibration;
+
+        internal static CandyAvatarFrame UprightTrackingPose(CandyAvatarFrame frame)
+        {
+            // The headset can change height independently of the avatar's standing proportions.
+            frame.head.y = frame.feet.y + 1.6f * Mathf.Max(.1f, frame.scale);
+            return frame;
+        }
+        static float LandingWeight(CastleSurvivor motor)
+        {
+            if (!motor || !motor.Grounded) return 0;
+            float elapsed = Time.time - motor.LandedAt;
+            const float absorb = .07f;
+            float strength = Mathf.InverseLerp(2.25f, 10f, motor.LandingSpeed);
+            float recover = Mathf.Lerp(.20f, .36f, strength);
+            if (elapsed >= recover || elapsed < 0) return 0;
+            float bend = elapsed < absorb
+                ? Mathf.SmoothStep(0, 1, elapsed / absorb)
+                : Mathf.SmoothStep(1, 0, (elapsed - absorb) / (recover - absorb));
+            return bend * Mathf.Lerp(.18f, 1f, strength);
+        }
         [SerializeField] Transform[] bones;
         [SerializeField] float[] lengths;
         MaterialPropertyBlock colorProperties;
@@ -21,13 +43,22 @@ namespace DeadlyJenga.CandyPlayers
         [SerializeField] Color tint;
         float currentSmoothness;
         int colorIndex=int.MinValue;
-        Vector3 previousFeet;
-        float walkPhase;
+        Vector3 previousFeet, previousSupportFeet;
+        Transform previousGaitSupport;
+        bool gaitReady;
+        float walkPhase, sprintBlend;
+        Vector3 strideDirection = Vector3.forward;
         float locomotionSpeed;
         public Transform LeftPalm=>bones[4];
         public Transform HeadAnchor=>bones[1];
         public Transform BodyAnchor=>bones[0];
         CandyAvatarAttachments attachments;
+        Vector3 wardrobeHeadScale = Vector3.one;
+        internal void SetWardrobeHeadScale(Vector3 scale)
+        {
+            wardrobeHeadScale = scale;
+            HeadAnchor.localScale = scale * (calibration?.headSize ?? 1f);
+        }
         public void SetAppearance(AvatarAppearance appearance)
         {
             if(!attachments)attachments=GetComponent<CandyAvatarAttachments>();
@@ -39,7 +70,12 @@ namespace DeadlyJenga.CandyPlayers
             hasTint=true;tint=color;
             if(currentColor==color)return;
             colorProperties??=new MaterialPropertyBlock();colorProperties.SetColor("_BaseColor",color);colorProperties.SetFloat("_Smoothness",style?style.smoothness:.78f);
-            bodyRenderer.SetPropertyBlock(colorProperties);headRenderer.SetPropertyBlock(colorProperties);currentColor=color;
+            if (attachments?.UsesApprovedSkin != true)
+            {
+                bodyRenderer.SetPropertyBlock(colorProperties);
+                headRenderer.SetPropertyBlock(colorProperties);
+            }
+            currentColor=color;
             if(attachments)attachments.Tint(this);
         }
         public Transform RightPalm=>bones[7];
@@ -50,14 +86,34 @@ namespace DeadlyJenga.CandyPlayers
         public int BoneCount=>bones?.Length??0;
         public IMysteryBody CreateMysteryBody()
         {
-            var copy=Instantiate(this);copy.name="Candy mystery body";copy.ownerCamera=null;copy.enabled=false;
+            var copy=Instantiate(this);copy.name="Candy mystery body";copy.ownerCamera=null;copy.enabled=false;copy.SnapSpineToTorso();
             copy.bodyRenderer.enabled=copy.headRenderer.enabled=true;copy.bodyRenderer.SetPropertyBlock(colorProperties);copy.headRenderer.SetPropertyBlock(colorProperties);
-            var copiedAttachments=copy.GetComponent<CandyAvatarAttachments>();if(copiedAttachments){copiedAttachments.Tint(copy);if((copiedAttachments.Appearance.accessories&AvatarAccessory.SkeletonMask)!=0)copy.headRenderer.enabled=false;}
+            var copiedAttachments=copy.GetComponent<CandyAvatarAttachments>();if(copiedAttachments){copiedAttachments.Tint(copy);if((copiedAttachments.Appearance.accessories&CandyHeadgearMeshes.SculptedHeads)!=0)copy.headRenderer.enabled=false;}
             var corpse=copy.gameObject.AddComponent<CandyMysteryBody>();corpse.Initialize(copy.bones,copy.lengths);copy.gameObject.SetActive(true);return corpse;
         }
-        void Awake(){if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();if(Application.isPlaying&&bodyRenderer)bodyRenderer.sharedMesh=CandySmoothHandMesh.SeparateDigitWeights(bodyRenderer.sharedMesh,14,10);if(Application.isPlaying&&!GetComponent<CandyAvatarDetail>())gameObject.AddComponent<CandyAvatarDetail>();}
+        void Awake()
+        {
+            if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();
+            if(bodyRenderer)
+            {
+                var mesh=bodyRenderer.sharedMesh;
+                if(Application.isPlaying)mesh=CandySmoothHandMesh.SeparateDigitWeights(mesh,14,10);
+                bodyRenderer.sharedMesh=BlendWristMesh(mesh);
+                EnsureSpine();
+            }
+            if(Application.isPlaying&&!GetComponent<CandyAvatarDetail>())gameObject.AddComponent<CandyAvatarDetail>();
+        }
         void OnEnable(){RenderPipelineManager.beginCameraRendering+=BeforeCamera;RenderPipelineManager.endCameraRendering+=AfterCamera;}
-        void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;RestoreFirstPersonBody();if(attachments)attachments.FirstPerson(this,false);}
+        void OnDisable()
+        {
+            RenderPipelineManager.beginCameraRendering-=BeforeCamera;
+            RenderPipelineManager.endCameraRendering-=AfterCamera;
+            gaitReady=false;
+            previousGaitSupport=null;
+            if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;
+            RestoreFirstPersonBody();
+            if(attachments)attachments.FirstPerson(this,false);
+        }
         bool firstPersonOverride;
         void BeforeCamera(ScriptableRenderContext context,Camera camera)
         {
@@ -76,9 +132,14 @@ namespace DeadlyJenga.CandyPlayers
             if(!style)return;var color=hasTint?tint:style.ColorAt(index);
             if(index==colorIndex&&currentMaterial==style.material&&currentColor==color&&currentSmoothness==style.smoothness)return;
             colorProperties??=new MaterialPropertyBlock();
-            bodyRenderer.sharedMaterial=style.material;headRenderer.sharedMaterial=style.material;
             colorProperties.SetColor("_BaseColor",color);colorProperties.SetFloat("_Smoothness",style.smoothness);
-            bodyRenderer.SetPropertyBlock(colorProperties);headRenderer.SetPropertyBlock(colorProperties);
+            if (attachments?.UsesApprovedSkin != true)
+            {
+                bodyRenderer.sharedMaterial = style.material;
+                headRenderer.sharedMaterial = style.material;
+                bodyRenderer.SetPropertyBlock(colorProperties);
+                headRenderer.SetPropertyBlock(colorProperties);
+            }
             colorIndex=index;currentMaterial=style.material;currentColor=color;currentSmoothness=style.smoothness;
             if(attachments)attachments.Tint(this);
         }
@@ -92,9 +153,11 @@ namespace DeadlyJenga.CandyPlayers
             if(!pendingPose)return;
             pendingPose=false;ApplyFrame(pendingFrame,pendingGrounded,pendingDelta);
         }
+        static readonly Unity.Profiling.ProfilerMarker AvatarPoseMarker = new("DJ.Avatar.Pose");
         public void ApplyFrame(CandyAvatarFrame frame,bool grounded=true,float deltaTime=0)
         {
             if(composingPose){pendingFrame=frame;pendingGrounded=grounded;pendingDelta+=deltaTime;pendingPose=true;return;}
+            using var measurement = AvatarPoseMarker.Auto();
             if(!bodyRenderer)BuildModel();
             if(colorIndex!=int.MinValue)SetColor(colorIndex);
             float scale=Mathf.Max(.1f,frame.scale);
@@ -108,62 +171,131 @@ namespace DeadlyJenga.CandyPlayers
             var fit=calibration;
             // Tracking and equipment already provide the shared hand anchors used by weapons and remote views.
             Vector3 forward=Vector3.ProjectOnPlane(frame.headRotation*Vector3.forward,Vector3.up).normalized;
-            if(forward.sqrMagnitude<.01f)forward=transform.forward;
-            transform.SetPositionAndRotation(frame.feet,Quaternion.LookRotation(forward));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
+            float bodyYaw=UpdateBodyYaw(frame,forward);
+            transform.SetPositionAndRotation(frame.feet,Quaternion.Euler(0f,bodyYaw,0f));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
             transform.localScale=new Vector3(scale/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
+            var motor = actor as CastleSurvivor;
             float dance = downed ? 0 : frame.danceWeight;
-            bool seated = (SeatedVisual || frame.seated) && !downed && dance <= 0;
-            if(seated)frame.head.y=frame.feet.y+1.27f*scale;
             float headY=transform.InverseTransformPoint(frame.head).y;
             float crouch=Mathf.Clamp(headY/1.6f,.4f,1.25f)*(fit?.bodyHeight??1f);
             float width=fit?.shoulderWidth??1f;
             Vector3 torsoOffset=fit?.bodyOffset??Vector3.zero;
-            Quaternion torsoTilt = Quaternion.Euler(frame.danceTorsoEuler * dance);
-            Vector3 waist = Vector3.up * (.67f * crouch);
-            torsoOffset += waist - torsoTilt * waist;
-            bones[0].localPosition=torsoOffset;bones[0].localRotation=torsoTilt;bones[0].localScale=new Vector3(width,crouch,1);
+            if(deltaTime>0f)
+            {
+                Vector3 displacement = frame.feet - previousFeet;
+                float teleportDistance = BodyTeleportDistance * scale;
+                bool resetGait = !gaitReady || displacement.sqrMagnitude > teleportDistance * teleportDistance;
+                Transform support = grounded && motor && motor.StandingSurface ? motor.StandingSurface.transform : null;
+                if (!resetGait && support && support == previousGaitSupport)
+                {
+                    // The floor can carry a planted survivor without taking a step.
+                    Vector3 carry = support.TransformPoint(previousSupportFeet) - previousFeet;
+                    if (carry.sqrMagnitude < teleportDistance * teleportDistance) displacement -= carry;
+                }
+                Vector3 travel = resetGait ? Vector3.zero : Vector3.ProjectOnPlane(displacement, Vector3.up);
+                previousFeet = frame.feet;
+                previousGaitSupport = support;
+                if (support) previousSupportFeet = support.InverseTransformPoint(frame.feet);
+                gaitReady = true;
+                if (resetGait)
+                {
+                    sprintBlend = 0f;
+                    strideDirection = Vector3.forward;
+                }
+                locomotionSpeed = travel.magnitude / (deltaTime * scale);
+                bool running = frame.sprinting && grounded && !downed && dance <= .01f;
+                float runTarget = running ? Mathf.InverseLerp(.3f, 2.4f, locomotionSpeed) : 0f;
+                sprintBlend = Mathf.MoveTowards(sprintBlend, runTarget, deltaTime * 6f);
+                if (travel.sqrMagnitude > .00001f)
+                {
+                    Vector3 targetDirection = transform.InverseTransformDirection(travel.normalized);
+                    // Interpolate the heading so opposite directions cannot cancel or stall.
+                    float oldHeading = Mathf.Atan2(strideDirection.x, strideDirection.z) * Mathf.Rad2Deg;
+                    float targetHeading = Mathf.Atan2(targetDirection.x, targetDirection.z) * Mathf.Rad2Deg;
+                    float heading = Mathf.LerpAngle(oldHeading, targetHeading, 1f - Mathf.Exp(-12f * deltaTime)) * Mathf.Deg2Rad;
+                    strideDirection = new Vector3(Mathf.Sin(heading), 0f, Mathf.Cos(heading));
+                }
+                float cadence = Mathf.Lerp(6f, 11f, Mathf.InverseLerp(.12f, 4f, locomotionSpeed)) + sprintBlend * 3.8f;
+                walkPhase = frame.hasGaitPhase ? frame.gaitPhase : Mathf.Repeat(walkPhase + cadence * deltaTime, 2f * Mathf.PI);
+            }
+            float run = grounded && !downed && dance <= .01f ? sprintBlend : 0f;
+            float landing = grounded && !downed && dance <= .01f ? LandingWeight(motor) : 0f;
+            float counterSwing = Mathf.Cos(walkPhase);
+            torsoOffset.y -= run * (.038f - .017f * Mathf.Abs(counterSwing));
+            float stride=grounded?Mathf.Clamp01(locomotionSpeed/2)*.13f:0;
+            float dropTarget=PlanFeet(grounded&&!downed&&dance<=.01f,scale,stride,run);
+            groundDrop=Application.isPlaying?Mathf.Lerp(groundDrop,dropTarget,1f-Mathf.Exp(-14f*Time.deltaTime)):dropTarget;
+            torsoOffset.y+=groundDrop/scale;
+            torsoOffset.y -= landing * .16f;
+            torsoOffset.z -= landing * .055f;
+            PoseTorso(frame, torsoOffset, crouch, width, run, dance, grounded && !downed, landing);
             var headOffset=frame.headRotation*((style?style.headCenterOffset:new Vector3(0,0,-.08f))+(fit?.headOffset??Vector3.zero))+Vector3.down*.14f;
             bones[1].SetPositionAndRotation(frame.head+headOffset*scale,frame.headRotation);
-            bones[1].localScale=Vector3.one*(fit?.headSize??1f);
+            bones[1].localScale=wardrobeHeadScale*(fit?.headSize??1f);
             if(attachments)attachments.RefreshPalette(this);
-            if(deltaTime>0){locomotionSpeed=Vector3.ProjectOnPlane(frame.feet-previousFeet,Vector3.up).magnitude/deltaTime;previousFeet=frame.feet;walkPhase+=Mathf.Min(locomotionSpeed,6)*deltaTime*6;}
-            float speed=locomotionSpeed;
-            float stride=grounded?Mathf.Clamp01(speed/2)*.13f:0;
             for(int side=0;side<2;side++)
             {
-                float sign=side==0?-1:1,phase=walkPhase+(side==0?0:Mathf.PI);
-                Vector3 hip=transform.TransformPoint(torsoOffset+torsoTilt*new Vector3(sign*.105f*width,.67f*crouch,0));
-                Vector3 foot=transform.TransformPoint(new Vector3(sign*.12f,.075f+Mathf.Max(0,Mathf.Sin(phase))*stride*.55f,Mathf.Cos(phase)*stride+.025f));
-                if(seated)foot=transform.TransformPoint(new Vector3(sign*.13f,.08f+Mathf.Max(0,Mathf.Sin(phase))*stride*.4f,.29f+Mathf.Cos(phase)*stride*.75f));
-                else if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
+                float sign=side==0?-1:1;
+                Vector3 hip=transform.TransformPoint(pelvisPosition+pelvisRotation*new Vector3(sign*.105f*width,.67f*crouch,0));
+                Vector3 footLocal = feetLocal[side];
+                float footPitch = feetPitch[side];
+                Vector3 foot=transform.TransformPoint(footLocal);
+                if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
                 if (dance > 0)
                     foot = Vector3.Lerp(foot, transform.TransformPoint(side == 0 ? frame.danceLeftFoot : frame.danceRightFoot), dance);
+                if (feetWeight[side] > 0f)
+                    foot = Vector3.Lerp(foot, feetTarget[side], feetWeight[side]);
                 int thigh=side==0?8:11;
                 Vector3 knee=SolveJoint(hip,foot,.31f*scale,.31f*scale,transform.forward+Vector3.down*.1f);
                 Segment(thigh,hip,knee);Segment(thigh+1,knee,foot);
-                bones[thigh+2].SetPositionAndRotation(foot,transform.rotation);bones[thigh+2].localScale=Vector3.one;
+                bones[thigh+2].SetPositionAndRotation(foot,feetTilt[side]*transform.rotation*Quaternion.Euler(footPitch,0f,0f));bones[thigh+2].localScale=Vector3.one;
                 var hand=side==0?frame.left:frame.right;
-                Quaternion torsoRotation=bones[0].localRotation;
-                Vector3 handLocal=Quaternion.Inverse(torsoRotation)*(transform.InverseTransformPoint(hand.position)-torsoOffset);
+                Quaternion torsoRotation=chestRotation;
+                Vector3 handLocal=Quaternion.Inverse(torsoRotation)*(transform.InverseTransformPoint(hand.position)-chestPosition);
                 float across=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.12f*width,.18f*width,-sign*handLocal.x));
                 float ahead=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.03f,.25f,handLocal.z));
                 // The shoulder rolls forward on a reach across the chest. The tracked wrist stays fixed.
-                Vector3 shoulder=transform.TransformPoint(torsoOffset+torsoRotation*new Vector3(sign*.21f*width,1.255f*crouch,.12f*across*ahead));
-                Vector3 elbowPole=transform.TransformDirection(torsoRotation*(Vector3.right*sign+Vector3.forward*Mathf.Clamp(handLocal.z*2,-.45f,.75f)+Vector3.down*.25f));
-                Vector3 elbow=SolveJoint(shoulder,hand.position,.29f*scale,.27f*scale,elbowPole);
+                Vector3 shoulder=transform.TransformPoint(chestPosition+torsoRotation*new Vector3(sign*.21f*width,1.255f*crouch,.12f*across*ahead));
+                // Seat the forearm inside the back of the palm, without moving the tracked grip.
+                Vector3 wrist=hand.position-hand.rotation*Vector3.forward*(.022f*scale);
+                Vector3 elbowPole=ElbowPole(wrist-shoulder,transform.TransformDirection(torsoRotation*(Vector3.right*sign)),transform.TransformDirection(torsoRotation*Vector3.down));
+                Vector3 elbow=SolveJoint(shoulder,wrist,.29f*scale,.27f*scale,elbowPole);
                 int upper=side==0?2:5;
-                Segment(upper,shoulder,elbow);Segment(upper+1,elbow,hand.position);
+                Segment(upper,shoulder,elbow);Segment(upper+1,elbow,wrist,hand.rotation*Vector3.up);
                 bones[upper+2].SetPositionAndRotation(hand.position,hand.rotation);bones[upper+2].localScale=Vector3.one;
-                var skeleton=hand.skeletonTracked?hand.skeleton:CandyHandSkeleton.Rest(side==0,.12f);
-                for(int finger=0;finger<5;finger++)for(int joint=0;joint<3;joint++)
-                {
-                    Vector3 a=hand.position+hand.rotation*(skeleton.Joint(finger*4+joint)*scale);
-                    Vector3 b=hand.position+hand.rotation*(skeleton.Joint(finger*4+joint+1)*scale);
-                    Segment(14+side*15+finger*3+joint,a,b,hand.rotation*Vector3.up);
-                }
+                PoseFingers(side, hand, scale);
             }
             bodyRenderer.localBounds=new Bounds(new Vector3(0,1,0),new Vector3(6,5,6));
-            if(downed){bones[0].localRotation=Quaternion.Euler(65,0,0);bones[0].localPosition=new Vector3(0,.05f,.28f);}
+            if(downed){bones[0].localRotation=Quaternion.Euler(65,0,0);bones[0].localPosition=new Vector3(0,.05f,.28f);PoseSpineRigid();}
+        }
+        // The body turns after the head: it waits while the head stays within HeadYawLead degrees,
+        // then turns at BodyTurnSpeed. Once the head has been still for a moment, the body catches up.
+        const float HeadYawLead=35f,BodyTurnSpeed=180f,BodySettleSpeed=90f,BodySettleDelay=.6f,BodyTeleportDistance=1.5f;
+        float bodyYaw,lastHeadYaw,settleTime;
+        bool bodyYawReady;
+        int bodyYawFrame=-1;
+        Vector3 bodyYawFeet;
+        float UpdateBodyYaw(CandyAvatarFrame frame,Vector3 forward)
+        {
+            float headYaw=forward.sqrMagnitude<.01f?bodyYaw:Mathf.Atan2(forward.x,forward.z)*Mathf.Rad2Deg;
+            // Teleports and recentering snap the body so it never swings through the old direction.
+            if(!bodyYawReady||Vector3.Distance(frame.feet,bodyYawFeet)>BodyTeleportDistance*Mathf.Max(.1f,frame.scale))
+            {
+                bodyYaw=lastHeadYaw=headYaw;settleTime=0;bodyYawReady=true;
+            }
+            bodyYawFeet=frame.feet;
+            // Several pose calls can run in one frame; only the first one moves the body.
+            if(bodyYawFrame==Time.frameCount)return bodyYaw;
+            bodyYawFrame=Time.frameCount;
+            float dt=Mathf.Min(Time.deltaTime,.05f);
+            settleTime=Mathf.Abs(Mathf.DeltaAngle(lastHeadYaw,headYaw))>.5f?0f:settleTime+dt;
+            lastHeadYaw=headYaw;
+            float lead=Mathf.DeltaAngle(bodyYaw,headYaw);
+            float target=headYaw-Mathf.Clamp(lead,-HeadYawLead,HeadYawLead);
+            float speed=BodyTurnSpeed;
+            if(settleTime>BodySettleDelay){target=headYaw;speed=BodySettleSpeed;}
+            bodyYaw=Mathf.MoveTowardsAngle(bodyYaw,target,speed*dt);
+            return bodyYaw;
         }
         static Quaternion Orientation(Vector3 delta,Vector3 normal)
         {
@@ -180,9 +312,21 @@ namespace DeadlyJenga.CandyPlayers
             float scale=Mathf.Max(.001f,transform.lossyScale.y);
             bones[index].localScale=new Vector3(1,Mathf.Max(.001f,delta.magnitude)/(Mathf.Max(.001f,lengths[index])*scale),1);
         }
+        // The elbow points down and out from the torso. It stays that way when the hand is high or low.
+        // If the reach lines up with the pole, fall back to other body directions so the elbow never flips.
+        static Vector3 ElbowPole(Vector3 reach,Vector3 outward,Vector3 down)
+        {
+            Vector3 direction=reach.normalized;
+            Vector3 pole=Vector3.ProjectOnPlane(outward+down*.8f,direction);
+            if(pole.sqrMagnitude<.04f)pole=Vector3.ProjectOnPlane(down,direction);
+            if(pole.sqrMagnitude<.04f)pole=Vector3.ProjectOnPlane(outward,direction);
+            return pole.normalized;
+        }
         static Vector3 SolveJoint(Vector3 a,Vector3 b,float l1,float l2,Vector3 pole)
         {
             Vector3 delta=b-a;float distance=Mathf.Max(.0001f,delta.magnitude);Vector3 direction=delta/distance;
+            // A hand almost on the shoulder would fold the arm into a wire. Keep a small minimum reach.
+            distance=Mathf.Max(distance,Mathf.Abs(l1-l2)+.02f);
             float stretch=Mathf.Max(1,distance/(l1+l2)*1.001f);l1*=stretch;l2*=stretch;
             float along=Mathf.Clamp((l1*l1-l2*l2+distance*distance)/(2*distance),0,l1);
             float bend=Mathf.Sqrt(Mathf.Max(0,l1*l1-along*along));

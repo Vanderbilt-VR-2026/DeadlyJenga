@@ -8,6 +8,7 @@ namespace DeadlyJenga.DevTools.Editor
     {
         static EditorRefreshRequest()=>EditorApplication.update+=()=>
         {
+            if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
             var request=ProjectPath.Report("EditorRefreshMain.request");
             if(!File.Exists(request)||File.ReadAllText(request).Trim()!=System.Diagnostics.Process.GetCurrentProcess().Id.ToString()||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
             File.Delete(request);

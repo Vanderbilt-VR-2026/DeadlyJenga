@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace DeadlyJenga.CastleSocial
 {
-    public enum SocialEventKind { Greeting,HumanSpeech,BotSpeech,Wobble,Collapse,NearMiss,Elimination,Success,Collision,Joke,Victory,Silence,Betrayal }
+    public enum SocialEventKind { Greeting,HumanSpeech,BotSpeech,Wobble,Collapse,NearMiss,Elimination,Success,Collision,Joke,Victory,Silence,Betrayal,Damage,Hazard,Round,Combat,Equipment,Objective,Effect,Rewind }
     [Serializable] public sealed class SocialEvent
     {public string id,speaker,recipient,topic="castle",text;public SocialEventKind kind;public double time,salience=1;public int depth;public bool human;}
     [Serializable] public sealed class SocialEmotion
@@ -40,13 +40,14 @@ namespace DeadlyJenga.CastleSocial
         public IEnumerable<SocialMemory> Recall(string subject,double now,int count=3)=>memories.OrderByDescending(m=>m.salience*Math.Exp(-(now-m.time)/90)+(m.subject==subject?.5:0)).Take(count);
     }
     public sealed class SocialSpeech
-    {public long token;public string botId,eventId,recipient,topic,text,context;public double due,expires,duration;public bool interjection;public int depth;}
+    {public long token;public string botId,eventId,recipient,topic,text,context;public double due,expires,duration;public bool interjection;public int depth;internal ObservedSpeech observation;}
     public sealed class SocialDirector
     {
         public readonly SocialConfiguration config;
         public readonly Dictionary<string,SocialState> bots=new Dictionary<string,SocialState>();
         readonly Random random;readonly Queue<SocialEvent> events=new Queue<SocialEvent>();readonly HashSet<string> seen=new HashSet<string>();readonly Queue<string> seenOrder=new Queue<string>();
         readonly List<SocialSpeech> pending=new List<SocialSpeech>();readonly Dictionary<string,double> active=new Dictionary<string,double>();readonly Dictionary<string,double> humanActivity=new Dictionary<string,double>();
+        readonly DialogueRecency bundledRecency=new DialogueRecency();
         readonly Dictionary<string,HashSet<string>> signatures=new Dictionary<string,HashSet<string>>();
         long serial;double nextAmbient,lastTick;public int Dropped {get;private set;}public int Scheduled=>pending.Count;public int Speaking=>active.Count;public int Events=>events.Count;
         public readonly Queue<string> diagnostics=new Queue<string>();
@@ -55,6 +56,8 @@ namespace DeadlyJenga.CastleSocial
         public void AudioPlaying(string id,double until){if(bots.ContainsKey(id))active[id]=until;}
         public void AudioFinished(string id){active.Remove(id);}
         public Func<string,SocialEvent,double> Perception;
+        internal bool UseBundledVoiceLines { get; set; }
+        internal bool ReplayScriptedBotLines { get; set; } = true;
         public SocialDirector(SocialConfiguration c,IEnumerable<SocialIdentity> population)
         {
             c.Validate();config=c;random=new Random(c.seed^0x18217);
@@ -79,7 +82,7 @@ namespace DeadlyJenga.CastleSocial
         public void RemoveHuman(string id){humanActivity.Remove(id);foreach(var b in bots.Values)b.relationships.Remove(id);}
         public void Cancel(string botId)
         {pending.RemoveAll(p=>p.botId==botId);active.Remove(botId);}
-        public void Remove(string botId){Cancel(botId);bots.Remove(botId);foreach(var b in bots.Values)b.relationships.Remove(botId);}
+        public void Remove(string botId){Cancel(botId);bots.Remove(botId);bundledRecency.Remove(botId);foreach(var b in bots.Values)b.relationships.Remove(botId);}
         public void Tick(double now)
         {
             double dt=Math.Max(0,Math.Min(1,now-lastTick));lastTick=now;
@@ -99,8 +102,10 @@ namespace DeadlyJenga.CastleSocial
                 // At most one full statement per topic; independent groups may overlap.
                 if(pending.Take(i).Any(q=>q.topic==p.topic&&q.due<=now)||active.Count>0&&!p.interjection&&random.NextDouble()>config.overlap){i++;continue;}
                 pending.RemoveAt(i);b.lastSpoke=now;b.nextSpeech=now+config.minCooldown+random.NextDouble()*(config.maxCooldown-config.minCooldown);b.utterances++;b.cluster=p.topic;
-                active[p.botId]=now+p.duration;Log(b.identity.name+": "+p.text);Speak?.Invoke(p);
-                if(p.depth<1&&random.NextDouble()<config.respondBot)Publish(new SocialEvent{id="reply:"+p.token,kind=SocialEventKind.BotSpeech,speaker=p.botId,topic=p.topic,text=p.text,time=now+Math.Min(1,p.duration),salience=.5,depth=p.depth+1});
+                active[p.botId]=now+p.duration;
+                if(UseBundledVoiceLines)bundledRecency.Remember(p.botId,p.text,(float)now,true);
+                Log(b.identity.name+": "+p.text);Speak?.Invoke(p);
+                if(ReplayScriptedBotLines&&p.depth<1&&random.NextDouble()<config.respondBot)Publish(new SocialEvent{id="reply:"+p.token,kind=SocialEventKind.BotSpeech,speaker=p.botId,topic=p.topic,text=p.text,time=now+Math.Min(1,p.duration),salience=.5,depth=p.depth+1});
             }
         }
         void Process(SocialEvent e,double now)
@@ -128,17 +133,43 @@ namespace DeadlyJenga.CastleSocial
             foreach(var bid in bids.OrderByDescending(x=>x.Value).Take(slots))
             {
                 if(pending.Count>=config.maxSpeechQueue){Dropped++;break;}
-                var b=bid.Key;string text=SocialText.Reaction(e,b,config,random);
-                if(!used.Add(text))continue;
-                if(!signatures.TryGetValue(b.identity.id,out var recent))signatures[b.identity.id]=recent=new HashSet<string>();
-                if(recent.Contains(text))continue;if(recent.Count>16)recent.Clear();recent.Add(text);
-                bool backchannel=e.human&&humanActivity.Count>0&&random.NextDouble()<config.interjections;
-                if(backchannel)text=new[]{"Yeah.","Wait.","Oh no.","Right."}[random.Next(4)];
+                var b=bid.Key;
+                string text;
+                bool backchannel;
+                if(UseBundledVoiceLines)
+                {
+                    backchannel=e.human&&humanActivity.Count>0&&random.NextDouble()<config.interjections;
+                    var recent=bundledRecency.Snapshot(b.identity.id,(float)now,true);
+                    text=null;
+                    for(int attempt=0;attempt<6;attempt++)
+                    {
+                        string option=backchannel?Backchannels[random.Next(Backchannels.Length)]:
+                            SocialText.Reaction(e,b,config,random,false);
+                        if(used.Contains(option)||pending.Any(p=>p.text==option)||DialogueRecency.Repeats(option,recent,false))
+                            continue;
+                        text=option;
+                        used.Add(text);
+                        break;
+                    }
+                    if(text==null)continue;
+                }
+                else
+                {
+                    text=SocialText.Reaction(e,b,config,random,true);
+                    if(!used.Add(text))continue;
+                    if(!signatures.TryGetValue(b.identity.id,out var recent))signatures[b.identity.id]=recent=new HashSet<string>();
+                    if(recent.Contains(text))continue;
+                    if(recent.Count>16)recent.Clear();
+                    recent.Add(text);
+                    backchannel=e.human&&humanActivity.Count>0&&random.NextDouble()<config.interjections;
+                    if(backchannel)text=Backchannels[random.Next(Backchannels.Length)];
+                }
                 double delay=.18+.8*b.identity.Behavior(config,"delay",1-b.identity.Trait("impulsiveness"))+.15*random.NextDouble();
                 string topic=!e.human&&b.identity.group>=0&&(e.kind==SocialEventKind.Greeting||e.kind==SocialEventKind.Silence)?"friends:"+b.identity.group:string.IsNullOrEmpty(e.topic)?"castle":e.topic;
                 pending.Add(new SocialSpeech{token=++serial,botId=b.identity.id,eventId=e.id,recipient=e.speaker,topic=topic,text=text,context=SocialText.Clean(e.kind+": "+e.text,350),due=now+delay,expires=now+config.eventLifetime,duration=backchannel?.5:Math.Max(.8,Math.Min(4,text.Length/16.0)),interjection=backchannel,depth=e.depth});
             }
         }
+        static readonly string[] Backchannels={"Yeah.","Wait.","Oh no.","Right."};
         void Log(string line){diagnostics.Enqueue(line);while(diagnostics.Count>40)diagnostics.Dequeue();}
     }
     public static class SocialText
@@ -153,7 +184,8 @@ namespace DeadlyJenga.CastleSocial
             foreach(var word in new[]{"system prompt","ignore previous","api_key","kill yourself","racial slur","[system]","password"})if(lower.Contains(word))return "Let's focus on the tower.";
             if(!profanity)foreach(var word in new[]{"fuck","shit","bitch"})if(lower.Contains(word))return "Oh, come on!";return text;
         }
-        public static string Reaction(SocialEvent e,SocialState b,SocialConfiguration c,Random r)
+        public static string Reaction(SocialEvent e,SocialState b,SocialConfiguration c,Random r)=>Reaction(e,b,c,r,true);
+        internal static string Reaction(SocialEvent e,SocialState b,SocialConfiguration c,Random r,bool decorate)
         {
             string Pick(params string[] x)=>x[r.Next(x.Length)];
             string opener=c.slang>r.NextDouble()?Pick("Okay, ","Bro, ","Wait, ","Honestly, ","Yo, "):"";
@@ -162,23 +194,24 @@ namespace DeadlyJenga.CastleSocial
             switch(e.kind)
             {
                 case SocialEventKind.Collapse:case SocialEventKind.NearMiss:case SocialEventKind.Wobble:
-                    line=playful?Pick("the floor just unsubscribed!","that block has places to be.","who ordered express demolition?","gravity is absolutely showing off.","this is not the staircase I signed up for.","the island is collecting rent."):
+                    line=playful?Pick("Wait, the floor moved!","Oh, that block is gone.","Wait, was that our floor?","Okay, I liked that floor.","I was about to step there.","Yeah, I am not jumping that."):
                         b.emotion.fear>.5?Pick("move, move, move!","that side is going!","I'm getting off this edge!","watch the blocks above you!","find a stable ledge!"):Pick("take the other side!","let it settle first.","we can cross after that falls.","hold on to the next ledge.");break;
-                case SocialEventKind.Greeting:line=Pick("hey, you made it!","welcome to the world's worst elevator.","hey! There's room over here.","good timing. The floor is still here.","what's up?","you taking the high route?");break;
-                case SocialEventKind.Elimination:line=playful?Pick("a very committed shortcut.","ten out of ten landing. Wrong island though.","we are calling that a tactical descent."):Pick("rough landing. You'll get the next one.","I nearly went with you.","that support moved right under you.");break;
+                case SocialEventKind.Greeting:line=Pick("hey, you made it!","Hey, you coming up?","hey! There's room over here.","good timing. The floor is still here.","what's up?","you taking the high route?");break;
+                case SocialEventKind.Elimination:line=playful?Pick("Oh no.","I thought we were done there.","That was so close."):Pick("rough landing. You'll get the next one.","I nearly went with you.","that support moved right under you.");break;
                 case SocialEventKind.Success:case SocialEventKind.Victory:line=Pick("that was clean!","you actually made that jump!","nice one!","that's the route!","I thought we were done there.");break;
                 case SocialEventKind.HumanSpeech:
                     string t=(e.text??"").ToLowerInvariant();
-                    line=t.Contains("where")||t.Contains("how")?Pick("try the next ledge when it stops moving.","I'd take the stable side, then vault up.","wait for the hand to pass first."):
+                    line=t.Contains("where")||t.Contains("how")?Pick("Which ledge do you mean?","Wait, where are you?","I don't know from here."):
                         t.Contains("hello")||t.Contains("hey")?Pick("hey! Watch your step.","hey, welcome up here!","what's up? We're still standing."):
-                        t.Contains("?")?Pick("not sure yet. Give that block a second.","yeah, but watch the support underneath.","I'd try it from the other side."):Pick("yeah, I saw that.","same. I thought that was it.","that's what I was watching too.","let's see if this side holds.");break;
-                case SocialEventKind.BotSpeech:line=b.Relationship(e.speaker)>.3?Pick("you said that last time too.","I'm right behind you. Probably.","this is why we can't have nice towers.","okay, I trust you. Slightly."):Pick("fair point.","I'm trying the other ledge.","let's not test gravity twice.","I'll watch this side.");break;
-                case SocialEventKind.Betrayal:line=c.trashTalk>r.NextDouble()?Pick("you're paying for the next tower.","I saw that. Very subtle.","interesting definition of teamwork."):Pick("careful, I'm standing here!","give me a second to move.");break;
+                        t.Contains("?")?Pick("not sure yet. Give that block a second.","yeah, but watch the support underneath.","I'd try it from the other side."):Pick("Oh, gotcha.","Wait, what happened?","Hang on, say that again?","let's see if this side holds.");break;
+                case SocialEventKind.BotSpeech:line=b.Relationship(e.speaker)>.3?Pick("you said that last time too.","I'm right behind you. Probably.","Wait, what do you mean?","okay, I trust you. Slightly."):Pick("fair point.","I'm trying the other ledge.","let's not test gravity twice.","I'll watch this side.");break;
+                case SocialEventKind.Betrayal:line=c.trashTalk>r.NextDouble()?Pick("you're paying for the next tower.","Wait, what do you mean?","Okay, give me a little room."):Pick("careful, I'm standing here!","give me a second to move.");break;
                 case SocialEventKind.Collision:line=Pick("excuse me!","little crowded up here.","one at a time on this ledge.");break;
                 case SocialEventKind.Joke:line=Pick("okay, that got me.","terrible joke. Keep going.","I can't climb and laugh at the same time.");break;
-                default:line=Pick("I'm checking the next tower.","anyone taking the high route?","this ledge is suspiciously comfortable.","I give this floor about twelve seconds.","we should probably keep moving.","does anyone else hear that hand?");break;
+                default:line=Pick("I'm checking the next tower.","anyone taking the high route?","I'm good here for a sec.","Give me a sec, I'm lining this up.","we should probably keep moving.","does anyone else hear that hand?");break;
             }
             if((e.kind==SocialEventKind.Collapse||e.kind==SocialEventKind.NearMiss)&&r.NextDouble()<c.screaming*b.emotion.fear)line=Pick("WAIT WAIT WAIT!","NO, NOT THAT BLOCK!","MOVE MOVE MOVE!");
+            if(!decorate)return Safe(line,c.allowProfanity);
             if(c.verbosity<.2f)opener="";
             if(c.verbosity>.7f&&r.NextDouble()<.3)line+=" "+Pick("I'm watching the next support.","Give me a second to get across.","We still have a route up.");
             return Safe(opener+line,c.allowProfanity);

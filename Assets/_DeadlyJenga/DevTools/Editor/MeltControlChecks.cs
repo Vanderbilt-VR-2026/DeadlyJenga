@@ -29,11 +29,11 @@ namespace DeadlyJenga.DevTools.Editor
                 // A batch editor cannot acquire desktop mouse capture. The session correctly reopens
                 // its menu in that case, so use its real stationary VR mirror for this frame check.
                 if(batchMirror){motor.controlMode=ControlMode.VR;motor.RefreshMode();yield return null;}
-                var inspection=CandyThirdPersonInspection.For(session);session.SetMenu(false);
+                var inspection=session.Player?.ThirdPerson;session.SetMenu(false);
                 check(inspection.CanInspect,"Inspection fixture is a living demo survivor with no spectator override");
                 inspection.Begin();yield return null;
                 check(inspection.Inspecting&&player.InputSuspended,batchMirror?"Synthetic VR mirror opens while preserving the stationary player (batch has no desktop mouse capture)":"Third person opens while preserving the stationary player");
-                check(inspection.InspectionCamera&&!inspection.InspectionCamera.GetComponent<AudioListener>(),"Inspection uses a separate camera without a duplicate audio listener");
+                check(CandyThirdPersonInspection.Current.InspectionCamera&&!CandyThirdPersonInspection.Current.InspectionCamera.GetComponent<AudioListener>(),"Inspection uses a separate camera without a duplicate audio listener");
                 inspection.End();
                 if(batchMirror){motor.controlMode=savedMode;motor.RefreshMode();yield return null;}
                 var existing=Object.FindObjectsByType<CandyMelt>(FindObjectsSortMode.None);
@@ -79,7 +79,7 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 if(melt)Object.Destroy(melt.gameObject);
                 for(int i=0;i<original.Length;i++)if(original[i])original[i].forceRenderingOff=hidden[i];
-                CandyThirdPersonInspection.For(session)?.End();
+                session.Player?.ThirdPerson?.End();
                 if(batchMirror&&motor){motor.controlMode=savedMode;motor.RefreshMode();}
                 session.SetMenu(menu);player.InputSuspended=suspended;
             }

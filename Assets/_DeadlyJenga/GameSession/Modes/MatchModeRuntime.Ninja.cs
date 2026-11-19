@@ -11,6 +11,10 @@ namespace DeadlyJenga.Modes
         System.Random lanternRandom = new System.Random(4271);
         bool lanternOpening = true;
 
+        const int LanternSolidMask=(1<<Layers.Block)|(1<<Layers.Surface)|1;
+        static bool LanternPathClear(Vector3 from,Vector3 to) =>
+            !Physics.Linecast(from,to,LanternSolidMask,QueryTriggerInteraction.Ignore);
+
         bool GongSurge => Authority ? simulation != null && simulation.GongActive : frame.lantern != null && frame.lantern.gongRemaining > 0;
 
         void TickLanternWorld()
@@ -18,6 +22,7 @@ namespace DeadlyJenga.Modes
             if (!Authority || simulation == null || Rules.mode != GameModeKind.Ninja) return;
             if (simulation.Phase != RoundPhase.Playing && simulation.Phase != RoundPhase.Countdown) { lanternOpening = true; return; }
             var world = Services.World; if (world == null) return;
+            simulation.LanternPathClear ??= LanternPathClear;
             if (simulation.LanternNeedsPerch) { simulation.PerchLantern(LanternPerch(simulation.Lantern.position, lanternOpening)); lanternOpening = false; return; }
             var l = simulation.Lantern; if (!string.IsNullOrEmpty(l.carrier)) return;
             var p = l.position; var bounds = world.PlayableBounds;
@@ -32,15 +37,15 @@ namespace DeadlyJenga.Modes
         Vector3 LanternPerch(Vector3 from, bool opening)
         {
             var world = Services.World; lanternPerches.Clear();
-            float top = world.TopHeight, water = world.WaterHeight(world.Center); var bounds = world.PlayableBounds;
+            float water = world.WaterHeight(world.Center); var bounds = world.PlayableBounds;
             int ground = 0;
             for (int i = 0; i < 24; i++)
             {
                 float a = (float)lanternRandom.NextDouble() * Mathf.PI * 2, r = opening ? .3f : .25f + (float)lanternRandom.NextDouble() * .6f;
                 var probe = new Vector3(world.Center.x + Mathf.Sin(a) * bounds.extents.x * r, bounds.max.y + 5, world.Center.z + Mathf.Cos(a) * bounds.extents.z * r);
                 if (!Physics.Raycast(probe, Vector3.down, out var hit, bounds.size.y + 40, (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore)) continue;
-                if (hit.collider.gameObject.layer != 0 || hit.normal.y < .9f || hit.point.y < water + .2f || hit.point.y > bounds.min.y + 1.5f) continue;
-                if (Physics.CheckCapsule(hit.point + Vector3.up * .5f, hit.point + Vector3.up * 1.8f, .6f, (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore)) continue;
+                if (hit.rigidbody || hit.normal.y < .9f || hit.point.y < water + .2f || hit.point.y > bounds.min.y + 1.5f) continue;
+                if (Physics.CheckCapsule(hit.point + Vector3.up * .64f, hit.point + Vector3.up * 1.35f, .58f, (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore)) continue;
                 lanternPerches.Add(hit.point + Vector3.up * .95f); ground++;
             }
             if (!opening) foreach (var body in world.Blocks)
@@ -54,7 +59,8 @@ namespace DeadlyJenga.Modes
                 for (int i = 0; i < n; i++) if (lanternHits[i].distance < nearest) { nearest = lanternHits[i].distance; first = lanternHits[i].rigidbody; }
                 if (first != body) continue;
                 var edge = new Vector3(b.center.x + Mathf.Sign(b.center.x - world.Center.x + .01f) * (b.extents.x - .9f), b.max.y + .75f, b.center.z + Mathf.Sign(b.center.z - world.Center.z + .01f) * (b.extents.z - .9f));
-                lanternPerches.Add(Physics.CheckCapsule(edge + Vector3.up * .2f, edge + Vector3.up * 1.2f, .4f, (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore) ? new Vector3(b.center.x, b.max.y + .75f, b.center.z) : edge);
+                if (!Physics.CheckCapsule(edge + Vector3.up * .52f, edge + Vector3.up * 1.38f, .46f,
+                    LanternSolidMask, QueryTriggerInteraction.Ignore)) lanternPerches.Add(edge);
             }
             if (lanternPerches.Count == 0) return world.SafeSpawnPoint() + Vector3.up * .75f;
             bool high = !opening && lanternPerches.Count > ground && lanternRandom.NextDouble() < .4;
@@ -89,6 +95,7 @@ namespace DeadlyJenga.Modes
                 foreach (var point in owner.supportCandidates)
                 {
                     var delta = point - actor.position; if (delta.y > 8 || delta.y < -8 || delta.sqrMagnitude > 28 * 28 || delta.sqrMagnitude < 9) continue;
+                    if ((owner.session.SurvivorBots?.ThreatCost(point) ?? 0) >= 1) continue;
                     float safest = 40; foreach (var h in knownHostiles) safest = Mathf.Min(safest, Vector3.Distance(h.position, point));
                     Rank(new BotDirectorTarget { id = PointId(point), position = point, radius = .7f, utility = Mathf.Clamp((safest - delta.magnitude * .35f) * .25f, -9, 9) }, 4);
                 }

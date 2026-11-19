@@ -2,6 +2,13 @@ using System.Collections.Generic;
 
 namespace DeadlyJenga.Core
 {
+    public interface IDeveloperGodMode
+    {
+        bool GodModeEnabled { get; }
+        bool CanSetGodMode { get; }
+        void SetGodMode(bool enabled);
+    }
+
     public interface ISpectatorControls
     {
         bool CanSpectate { get; }

@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 
 namespace DeadlyJenga.CandyArt.Marina
 {
-    public enum MarinaFinish { Ivory, Stone, Wood, DarkWood, Coral, Teal, Red, Green, Purple, Leaf, LeafLight, Sand, Rock, Metal, Brass, Glow, CreamFabric, MintFabric, CoralFabric, Glass }
+    public enum MarinaFinish { Ivory, Stone, Wood, DarkWood, Coral, Teal, Red, Green, Purple, Leaf, LeafLight, Sand, Rock, Metal, Brass, Glow, CreamFabric, MintFabric, CoralFabric, Glass, CandyCream, CandyCoral, CandyLilac, CandyMint, CandyGrape, CanopyLining }
 
     // Static art is combined by finish. The lobby receives a separate simplified solid mesh.
     public sealed class MarinaMesh : IDisposable
@@ -100,6 +100,9 @@ namespace DeadlyJenga.CandyArt.Marina
                 if(i==segments-1)Q(o1,i1,o1+up,i1+up,(i1-i0).normalized);
             }
         }
+        public void WalkStrip(Vector3 from,Vector3 to,Vector3 halfWidth)
+        {Quad(collision,from-halfWidth,to-halfWidth,from+halfWidth,to+halfWidth,Vector3.up);}
+
         public void Disk(Vector3 center,float radius,float height,MarinaFinish finish,bool solid=true,int sides=48)
         {ArcSlab(center,Vector2.zero,Vector2.one*radius,height,0,360,finish,solid,sides);}
         public void Tube(IList<Vector3> points,float radius,MarinaFinish finish,int sides=10,bool solid=false,float endRadius=-1)
@@ -134,9 +137,18 @@ namespace DeadlyJenga.CandyArt.Marina
                 Vector3 n=(Vector3.up-direction*.2f).normalized;
                 b.Vertex(p-side*w,n,new Vector2(0,t));b.Vertex(p+Vector3.up*w*.16f,n,new Vector2(.5f,t));b.Vertex(p+side*w,n,new Vector2(1,t));
             }
-            for(int i=0;i<6;i++)for(int j=0;j<2;j++){int a=start+i*3+j;b.Triangle(a,a+1,a+3,Vector3.up);b.Triangle(a+1,a+4,a+3,Vector3.up);b.indices.Add(a+3);b.indices.Add(a+1);b.indices.Add(a);b.indices.Add(a+3);b.indices.Add(a+4);b.indices.Add(a+1);}
+            // Give leaf undersides their own normals and winding so palms remain full from below.
+            int backOffset=b.vertices.Count-start;
+            for(int i=0;i<backOffset;i++)b.Vertex(b.vertices[start+i],-b.normals[start+i],b.uv[start+i]);
+            for(int i=0;i<6;i++)for(int j=0;j<2;j++)
+            {
+                int a=start+i*3+j;
+                b.Triangle(a,a+1,a+3,Vector3.up);b.Triangle(a+1,a+4,a+3,Vector3.up);
+                a+=backOffset;
+                b.Triangle(a,a+1,a+3,Vector3.down);b.Triangle(a+1,a+4,a+3,Vector3.down);
+            }
         }
-        public void CurvedRoof(Vector3 center,float width,float depth,float rise,MarinaFinish finish)
+        public void CurvedRoof(Vector3 center,float width,float depth,float rise,MarinaFinish finish, bool striped = false)
         {
             var b=Get(finish);const int nx=40,nz=12;int start=b.vertices.Count;
             Vector3 P(float x,float z)=>center+new Vector3(x*width*.5f,rise*Mathf.Pow(Mathf.Max(0,1-x*x),.62f)-.12f*z*z,z*depth*.5f);
@@ -146,7 +158,24 @@ namespace DeadlyJenga.CandyArt.Marina
                 var dx=P(Mathf.Clamp(x+.002f,-1,1),z)-P(Mathf.Clamp(x-.002f,-1,1),z);var dz=P(x,z+.002f)-P(x,z-.002f);
                 b.Vertex(p,Vector3.Cross(dz,dx).normalized,new Vector2(ix/(float)nx*3,iz/(float)nz*2));
             }
-            for(int z=0;z<nz;z++)for(int x=0;x<nx;x++){int i=start+z*(nx+1)+x;b.Triangle(i,i+1,i+nx+1,Vector3.up);b.Triangle(i+1,i+nx+2,i+nx+1,Vector3.up);Quad(collision,b.vertices[i],b.vertices[i+1],b.vertices[i+nx+1],b.vertices[i+nx+2],Vector3.up);Quad(collision,b.vertices[i]-Vector3.up*.14f,b.vertices[i+1]-Vector3.up*.14f,b.vertices[i+nx+1]-Vector3.up*.14f,b.vertices[i+nx+2]-Vector3.up*.14f,Vector3.down);Quad(Get(MarinaFinish.Ivory),b.vertices[i]-Vector3.up*.14f,b.vertices[i+1]-Vector3.up*.14f,b.vertices[i+nx+1]-Vector3.up*.14f,b.vertices[i+nx+2]-Vector3.up*.14f,Vector3.down);}
+            var lining=Get(MarinaFinish.CanopyLining);
+            for(int z=0;z<nz;z++)for(int x=0;x<nx;x++)
+            {
+                int i=start+z*(nx+1)+x;
+                var a=b.vertices[i];var right=b.vertices[i+1];
+                var back=b.vertices[i+nx+1];var far=b.vertices[i+nx+2];
+                if(striped && x/5%2==1)
+                    Quad(Get(MarinaFinish.CandyCream),a,right,back,far,b.normals[i]);
+                else
+                {
+                    b.Triangle(i,i+1,i+nx+1,Vector3.up);
+                    b.Triangle(i+1,i+nx+2,i+nx+1,Vector3.up);
+                }
+                Quad(collision,a,right,back,far,Vector3.up);
+                var drop=Vector3.up*.14f;
+                Quad(collision,a-drop,right-drop,back-drop,far-drop,Vector3.down);
+                Quad(lining,a-drop,right-drop,back-drop,far-drop,Vector3.down);
+            }
             for(int side=-1;side<=1;side+=2)
             {
                 var line=new List<Vector3>();
@@ -164,13 +193,17 @@ namespace DeadlyJenga.CandyArt.Marina
                 Tube(line,.018f,MarinaFinish.Ivory,6);
             }
         }
-        public void Flush(Transform root)
+        public void Flush(Transform root,float waterHeight)
         {
             foreach(var entry in batches)
             {
                 var mesh=Make(entry.Value,"Marina ÃƒÆ’Ã¢â‚¬Å¡· "+entry.Key);meshes.Add(mesh);RenderTriangles+=mesh.triangles.Length/3;
                 var go=new GameObject(mesh.name,typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(root,false);go.GetComponent<MeshFilter>().sharedMesh=mesh;
-                var material=MaterialFor(entry.Key);materials.Add(material);go.GetComponent<MeshRenderer>().sharedMaterial=material;
+                var material=MaterialFor(entry.Key);materials.Add(material);
+                var renderer=go.GetComponent<MeshRenderer>();
+                renderer.sharedMaterial=material;
+                if(entry.Key==MarinaFinish.Sand&&material.HasProperty("_WaterHeight"))
+                    material.SetFloat("_WaterHeight",waterHeight);
             }
             CollisionMesh=Make(collision,"Marina walkable architecture");meshes.Add(CollisionMesh);batches.Clear();
         }
@@ -178,12 +211,47 @@ namespace DeadlyJenga.CandyArt.Marina
         {var m=new Mesh{name=name,indexFormat=IndexFormat.UInt32};m.SetVertices(b.vertices);m.SetNormals(b.normals);m.SetUVs(0,b.uv);m.SetTriangles(b.indices,0);m.RecalculateBounds();return m;}
         public static Material MaterialFor(MarinaFinish finish)
         {
-            Color[] colors={new(1,.91f,.77f),new(1,.91f,.81f),Color.white,new(.32f,.13f,.047f),new(1,.25f,.32f),new(.10f,.47f,.44f),new(.95f,.045f,.06f),new(.075f,.79f,.29f),new(.57f,.12f,.85f),new(.075f,.28f,.09f),new(.22f,.52f,.095f),new(.80f,.63f,.40f),new(.53f,.49f,.42f),new(.10f,.16f,.19f),new(.69f,.40f,.12f),new(1,.74f,.34f),new(.93f,.77f,.56f),new(.35f,.66f,.58f),new(.95f,.37f,.32f),new(.15f,.56f,.64f,.19f)};
-            var m=new Material(Shader.Find("Universal Render Pipeline/Lit")){name="Marina "+finish,enableInstancing=true};m.SetColor("_BaseColor",colors[(int)finish]);
-            float gloss=finish==MarinaFinish.Coral||finish==MarinaFinish.Red||finish==MarinaFinish.Green||finish==MarinaFinish.Purple ? .78f:finish==MarinaFinish.Wood ? .48f:finish==MarinaFinish.Stone ? .72f:finish>=MarinaFinish.CreamFabric ? .16f:.32f;
-            m.SetFloat("_Smoothness",gloss);m.SetFloat("_Metallic",finish==MarinaFinish.Metal||finish==MarinaFinish.Brass ? .72f:.02f);
-            if(finish==MarinaFinish.Wood||finish==MarinaFinish.DarkWood)m.SetTexture("_BaseMap",Resources.Load<Texture2D>("MayhemMarina/MarinaWood"));
-            if(finish==MarinaFinish.Stone||finish==MarinaFinish.Ivory)m.SetTexture("_BaseMap",Resources.Load<Texture2D>("MayhemMarina/MarinaStone"));
+            Color[] colors={new(1,.94f,.81f),new(.93f,.80f,.63f),new(.83f,.51f,.28f),new(.51f,.31f,.19f),new(1,.25f,.32f),new(.10f,.47f,.44f),new(.95f,.045f,.06f),new(.075f,.79f,.29f),new(.57f,.12f,.85f),new(.12f,.43f,.17f),new(.43f,.68f,.19f),new(.80f,.63f,.40f),new(.64f,.57f,.46f),new(.10f,.16f,.19f),new(.69f,.40f,.12f),new(1,.74f,.34f),new(1,.89f,.70f),new(.28f,.77f,.68f),new(.98f,.41f,.43f),new(.15f,.56f,.64f,.19f),new(1,.95f,.84f),new(1,.33f,.38f),new(.68f,.48f,.92f),new(.29f,.85f,.69f),new(.12f,.055f,.19f),new(1,.94f,.79f)};
+            var sandShader=finish==MarinaFinish.Sand?Shader.Find("Candy Tropical/Sand"):null;
+            var m=new Material(sandShader?sandShader:Shader.Find("Universal Render Pipeline/Lit"))
+                {name="Marina "+finish,enableInstancing=true};
+            m.SetColor("_BaseColor",colors[(int)finish]);
+            if(sandShader)
+            {
+                m.SetFloat("_CatwalksCoast",1);
+                m.SetFloat("_CoastDayWater",1);
+                var grain=Resources.Load<Texture2D>("CandyScenery/CatwalksSandGrain");
+                var caustics=Resources.Load<Texture2D>("CandyScenery/CatwalksRefractedLight");
+                m.SetFloat("_CoastHasGrain",grain?1:0);
+                if(grain)m.SetTexture("_CoastSandGrain",grain);
+                if(caustics)m.SetTexture("_CoastCaustics",caustics);
+                return m;
+            }
+            float gloss=finish switch
+            {
+                MarinaFinish.CanopyLining => .23f,
+                MarinaFinish.Red or MarinaFinish.Green or MarinaFinish.Purple => .74f,
+                MarinaFinish.Stone => .29f,
+                MarinaFinish.Wood => .48f,
+                MarinaFinish.CandyCream or MarinaFinish.CandyCoral or MarinaFinish.CandyLilac
+                    or MarinaFinish.CandyMint or MarinaFinish.CandyGrape => .70f,
+                MarinaFinish.CreamFabric or MarinaFinish.MintFabric or MarinaFinish.CoralFabric => .24f,
+                _ => .46f,
+            };
+            m.SetFloat("_Smoothness",gloss);
+            m.SetFloat("_Metallic",finish is MarinaFinish.Metal or MarinaFinish.Brass ? .42f : 0f);
+            if(finish is MarinaFinish.CanopyLining or MarinaFinish.Leaf or MarinaFinish.LeafLight)
+            {
+                m.EnableKeyword("_EMISSION");
+                m.SetColor("_EmissionColor",colors[(int)finish].linear *
+                    (finish==MarinaFinish.CanopyLining ? .24f : .085f));
+            }
+            if(finish>=MarinaFinish.CandyCream && finish<MarinaFinish.CandyGrape)
+            {
+                m.EnableKeyword("_EMISSION");
+                float tintFloor=finish is MarinaFinish.CandyLilac or MarinaFinish.CandyMint ? .42f : .075f;
+                m.SetColor("_EmissionColor",colors[(int)finish]*tintFloor);
+            }
             if(finish==MarinaFinish.Glass)
             {
                 m.SetFloat("_Surface",1);m.SetFloat("_ZWrite",0);m.SetFloat("_SrcBlend",(float)BlendMode.SrcAlpha);m.SetFloat("_DstBlend",(float)BlendMode.OneMinusSrcAlpha);m.SetFloat("_Smoothness",.88f);m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");m.SetOverrideTag("RenderType","Transparent");m.renderQueue=3000;

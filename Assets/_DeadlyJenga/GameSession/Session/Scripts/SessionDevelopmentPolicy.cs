@@ -25,8 +25,8 @@ namespace DeadlyJenga.CastlePrototype
             object room = IslandRoomConnection.Instance;
             if (room is IDevelopmentExperienceSource experience)
                 return experience.DevelopmentExperience;
-            // Compatibility for the current standalone Demo scene until the room adapter is installed.
-            return MatchSetup.ModeId == "demo";
+            // Missing experience ownership must not enable development controls.
+            return false;
         }
         public static bool CanRequestLocal(CastlePlaySession session)
             => StableRoom && DemoEnabled(session) && (!session.Network || session.Network.CanEditWorld);

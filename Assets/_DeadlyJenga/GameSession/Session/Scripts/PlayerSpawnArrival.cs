@@ -50,7 +50,9 @@ namespace DeadlyJenga.CastlePrototype
                 capsuleOffset=Vector3.ProjectOnPlane(head,Vector3.up);height=Mathf.Max(height,head.y+.2f);
             }
             Destination=player.transform.position;rotation=player.transform.rotation;
-            DropHeight=AvailableDrop(Destination);seconds=DropHeight>0?Mathf.Lerp(.85f,DropSeconds,DropHeight/DropMeters):.75f;
+            DropHeight=AvailableDrop(Destination);
+            if(DropHeight<.25f)DropHeight=0;
+            seconds=DropHeight>0?Mathf.Lerp(.85f,DropSeconds,DropHeight/DropMeters):1.15f;
             started=lastTick=Time.unscaledTime;elapsed=0;active=true;player.InputSuspended=true;
             Move(Destination+Vector3.up*DropHeight);
             GameEvents.RaiseEmoted(player.gameObject,"SpawnArrival");
@@ -65,6 +67,7 @@ namespace DeadlyJenga.CastlePrototype
             player.InputSuspended=true;
             float now=Time.unscaledTime;elapsed+=Mathf.Clamp(now-lastTick,0,.05f);lastTick=now;
             float p=Progress;
+            if(DropHeight==0){if(p>=1)Finish();return;}
             var next=Destination+Vector3.up*(DropHeight*(1-p*p));
             float distance=previous.y-next.y;
             if(distance>.0001f&&Closest(previous,Vector3.down,distance,out var contact))
@@ -83,13 +86,13 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!active)return;active=false;
             if(NetworkActors.Alive(player))GameEvents.RaiseEmoted(player.gameObject,"SpawnArrivalSettled");
-            if(session&&ReferenceEquals(Services.Session,session))session.SetMenu(session.MenuOpen);
+            if(session&&ReferenceEquals(Services.Session,session))session.ReleaseArrivalInput();
         }
-        int Mask=>(1<<Layers.Block)|(1<<Layers.Surface)|1;
+        int Mask=>(1<<Layers.Block)|(1<<Layers.Surface)|(1<<Layers.Survivor)|1;
         void Capsule(Vector3 feet,out Vector3 bottom,out Vector3 top)
         {bottom=feet+capsuleOffset+Vector3.up*(radius+.06f);top=feet+capsuleOffset+Vector3.up*Mathf.Max(radius+.06f,height-radius+.06f);}
         bool Solid(Collider collider)
-        {return collider&&!collider.transform.IsChildOf(player.transform)&&collider.GetComponentInParent<IModeActor>()==null;}
+        {return collider&&!collider.transform.IsChildOf(player.transform);}
         bool Occupied(Vector3 feet)
         {
             Capsule(feet,out var bottom,out var top);

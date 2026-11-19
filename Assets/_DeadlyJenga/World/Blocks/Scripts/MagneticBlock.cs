@@ -12,7 +12,8 @@ namespace DeadlyJenga.CastlePrototype
         public int Index { get; internal set; }
         public bool Broken { get; internal set; }
         public bool Supported { get; internal set; }
-        public float MaxHealth => strength == 1 ? 3 : strength == 2 ? 8 : 20;
+        public float breakawayResistance;
+        public float MaxHealth => breakawayResistance > 0 ? breakawayResistance : strength == 1 ? 3 : strength == 2 ? 8 : 20;
         public float Health => Broken ? 0 : Mathf.Max(0, MaxHealth - damage);
         float damage;
         CastleBlock block;
@@ -20,20 +21,31 @@ namespace DeadlyJenga.CastlePrototype
 
         void Awake() { block = GetComponent<CastleBlock>(); block.RegisterMagnet(this); }
 
+        void OnDisable()
+        {
+            if (Supported && Structure && Structure.isActiveAndEnabled && Structure.BatchesBreakaway)
+                Structure.Break(this);
+        }
+
         public bool TryPush(Vector3 velocity)
         {
             if (!Structure) return false;
             if (Structure.Replica) return true;
-            if (!Supported) return false;
+            if (!Supported && !Body.isKinematic) return false;
+            if (!Supported && !Structure.BatchesBreakaway) return false;
             Damage(velocity.magnitude, null);
-            if (!Supported) Body.AddForce(velocity, ForceMode.VelocityChange);
+            if (!Supported)
+            {
+                if (Structure.BatchesBreakaway) Structure.AddReleaseVelocity(this, velocity);
+                else Body.AddForce(velocity, ForceMode.VelocityChange);
+            }
             return true;
         }
         public void Damage(float amount, GameObject source)
         {
             if (!Structure || Structure.Replica || Broken || !Supported || amount <= 0 || float.IsNaN(amount)) return;
             damage += amount;
-            GameEvents.RaiseDamaged(gameObject, amount);
+            if (!Structure.BatchesBreakaway || damage >= MaxHealth) GameEvents.RaiseDamaged(gameObject, amount);
             if (damage >= MaxHealth) Structure.Break(this);
         }
         public void Eliminate(GameObject source) => Damage(MaxHealth, source);
@@ -44,6 +56,7 @@ namespace DeadlyJenga.CastlePrototype
         void ApplyContact(Collision collision)
         {
             if (!Supported || !collision.rigidbody || collision.rigidbody.isKinematic) return;
+            if (Structure.BatchesBreakaway && collision.relativeVelocity.sqrMagnitude < 4f) return;
             // Convert contact impulse to the same velocity-change units used by IPushable.
             Damage(collision.impulse.magnitude / Mathf.Max(1, Body.mass), collision.gameObject);
         }

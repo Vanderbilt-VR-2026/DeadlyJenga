@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-906636
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 6c0179832076af94e84708f313947408, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 906636
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Drop
+    atlasFile: atlas.png
+    atlasSha256: ff6ff090b5be7bd6a581ae5f7c3e20b060be53a154d0b2abd19d2a10178e12a5
+    gifFile: preview.gif
+    gifSha256: 93f27b5af36d52b882d2c78e021707e1b228ada85e74d761126ffe39522371ec
+    sourceSha256: d1bb28c94702ef2948156a00cd7c6415fbabbad73300c8070dd2f177f3d0f6a3
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Laser Claws in the acting player's hands
+    action: Drop with Laser Claws
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Drop
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

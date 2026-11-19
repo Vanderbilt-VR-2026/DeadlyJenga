@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-135
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: bf2d6fb339c978b439b6a5e4fdc3fb0a, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 135
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Rewind Release
+    atlasFile: atlas.png
+    atlasSha256: a2f2d051de1a93e29a8f5a4286a969e3bd4a676af4aec142137935cb5c1f3e27
+    gifFile: preview.gif
+    gifSha256: ac4c55164fcf6c8d6d980e9b5bc7707ece7cf05e600206052a5067c5de0e32c3
+    sourceSha256: c4aafeef2f069c7d0be2bc2587f269bc9e245e47530f0f233860e1e19477be53
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Rewind Release
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed disaster gameplay lifecycle firing Rewind Release
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

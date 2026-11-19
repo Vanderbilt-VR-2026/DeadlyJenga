@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-92
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: c0fbbe2ae56bd8e4bafa452d4145fb55, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 92
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Kraken Grip
+    atlasFile: atlas.png
+    atlasSha256: 9c6af858ab932cca187da9cb5644e25911edd3f82a936291b75411e4f8d2fd9a
+    gifFile: preview.gif
+    gifSha256: 12d4e088b36ccf5343a91f77ee5faa528e6f6e342090a88f601a17991dfdf2be
+    sourceSha256: b85fb6528a4e33a2442189ce534124ee93e025c39afd59676f122e4ffd009827
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The specific Kraken body or tentacle performing this phase
+    action: Tentacle closes around and holds its target
+    target: Water or the exact tower/block/player the arm is acting upon
+    listenerRole: Nearby survivor hearing spatial Kraken audio
+    triggerEvidence: Observed disaster gameplay lifecycle firing Kraken Grip
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

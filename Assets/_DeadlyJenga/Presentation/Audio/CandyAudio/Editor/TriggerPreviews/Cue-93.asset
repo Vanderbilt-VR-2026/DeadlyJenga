@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-93
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: cc93ab477ef05384fa15985fc6876c98, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 93
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Kraken Drag
+    atlasFile: atlas.png
+    atlasSha256: 74bb46016d0eb3decf7c3c63451404db9347cf792aa1e4f40418efa67b7c1c54
+    gifFile: preview.gif
+    gifSha256: b144bf4c03dcc9eaad64d4bdbb9c6f1402b2fede89880b68c438209b7d8edc14
+    sourceSha256: 615aabbda5009303f63c2853f7d91a313002373fd949ad890061ec1ce897848a
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The specific Kraken body or tentacle performing this phase
+    action: Tentacle pulls its held target away
+    target: Water or the exact tower/block/player the arm is acting upon
+    listenerRole: Nearby survivor hearing spatial Kraken audio
+    triggerEvidence: Observed disaster gameplay lifecycle firing Kraken Drag
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

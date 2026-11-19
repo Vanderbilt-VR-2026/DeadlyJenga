@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-99
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: a2253711f6db7d540bf1b9d729d18f75, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 99
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Wave Surface Breath
+    atlasFile: atlas.png
+    atlasSha256: 6242881557e9a499665907ba7c006cfa462b4f3b969c75c5c7b6f30904e0700c
+    gifFile: preview.gif
+    gifSha256: 3aafb149a310e25c3a19d862333f497226ba085d0e15496a0114bd91648dcf0f
+    sourceSha256: b700ef01adb5d4a563ba2f3df053ae2938e4797f4b93e970985fef9110b529ae
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Wave Surface Breath
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed disaster gameplay lifecycle firing Wave Surface Breath
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

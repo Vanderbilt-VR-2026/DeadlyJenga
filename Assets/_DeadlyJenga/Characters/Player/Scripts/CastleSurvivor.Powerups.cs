@@ -12,6 +12,6 @@ namespace DeadlyJenga.CastlePrototype
         public float PowerupSpeedMultiplier=>Has(SpeedEffect)?2:1;
         public float EffectiveJumpHeight=>jumpHeight*(Has(JumpEffect)?3:1);
         public bool PowerupUnlimitedStamina=>Has(SpeedEffect)||Has(JumpEffect);
-        void ClearMovementPowerups(){Remove(SpeedEffect);Remove(JumpEffect);}
+        void ClearMovementPowerups(){Remove(SpeedEffect);Remove(JumpEffect);ClearHoverFlight();}
     }
 }

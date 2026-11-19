@@ -10,7 +10,7 @@ namespace DeadlyJenga.CastlePrototype
         { public string id="castle", title="Candy Castle", scenePath; public GameObject mapPrefab; public int recommendedPlayers=10; public string recommendedMode="demo"; public bool walkableIsland; public string[] supportedModes=Array.Empty<string>();
             public bool SupportsMode(string modeId)=>supportedModes==null||supportedModes.Length==0||Array.IndexOf(supportedModes,modeId)>=0; }
         [Serializable] public sealed class Mode
-        { public string id="demo", title="Sandbox", description="Full sandbox controls, AI survivors and giant hands."; public bool available=true; }
+        { public string id="demo", title="Demo", description="Full sandbox controls, AI survivors and giant hands."; public bool available=true; }
         [Tooltip("The survivor prefab (any component on it that implements IPlayableCharacter).")] public MonoBehaviour survivorPrefab;
         [Tooltip("The island's ocean, sand and sky (Presentation's environment prefab).")] public MonoBehaviour environmentPrefab;
         [Tooltip("Art profile for the island; empty uses the environment prefab's.")] public ScriptableObject art;
@@ -33,8 +33,9 @@ namespace DeadlyJenga.CastlePrototype
             var list=new System.Collections.Generic.List<Map>(maps??Array.Empty<Map>());
             string scene=Array.Find(maps??Array.Empty<Map>(),m=>m!=null&&!string.IsNullOrEmpty(m.scenePath))?.scenePath;
             AddMap(list,"castle-gaps","Candy Castle · Long Blocks and Gaps","demo",10,scene);
-            AddMap(list,"castle-catwalks","Candy Castle � Catwalks","demo",10,scene);
-            AddMap(list,"castle-four-keeps","Candy Castle � Four Keeps","demo",10,scene);
+            AddMap(list,"castle-catwalks","Candy Castle · Catwalks","demo",10,scene);
+            AddMap(list,"tycoon","Tycoon","demo",10,scene);
+            AddMap(list,"castle-four-keeps","Candy Castle · Four Keeps","demo",10,scene);
             AddMap(list,"ctf","Lollipop Fortresses","ctf",12,scene);
             AddMap(list,"infection","Infection Spire","infection",12,scene);
             AddMap(list,"survival","Storm Cathedral","survival",12,scene);
@@ -52,7 +53,7 @@ namespace DeadlyJenga.CastlePrototype
             if(tiki!=null)tiki.supportedModes=new[]{"demo"};
             AddMap(list,"ninja-temple","Moonlit Shinobi Temple","ninja",8,scene,true);
             var ninja=list.Find(m=>m.id=="mode-ninja-temple");
-            if(ninja!=null)ninja.supportedModes=new[]{"ninja","hill","survival","infection","demo"};
+            if(ninja!=null){ninja.recommendedMode="ninja";ninja.supportedModes=new[]{"ninja","hill","survival","infection","demo"};}
             maps=list.ToArray();
         }
         static void AddMap(System.Collections.Generic.List<Map> list,string family,string title,string mode,int population,string scene,bool walkableIsland=false)
@@ -74,7 +75,7 @@ namespace DeadlyJenga.CastlePrototype
             AddMode(list,"infection","Infection","Survive the infected; eliminated survivors join the hunt.");
             AddMode(list,"teamtickets","Last Team Standing","Spend team respawns wisely. Be the last team left.");
             AddMode(list,"mystery","Murder Mystery","Find the hidden murderer, protect survivors and trust the sheriff.");
-            AddMode(list,"ninja","Shadow Lantern","Steal the spirit lantern and keep it lit. Any hit knocks it loose.");
+            AddMode(list,"ninja","Shadow Lantern","Grab the spirit lantern and keep moving. Hits knock it loose. The gong doubles carrier points.");
             modes=list.ToArray();
         }
         static void AddMode(System.Collections.Generic.List<Mode> list,string id,string title,string description)
@@ -83,7 +84,9 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
-                var content=new System.Text.StringBuilder(protocolVersion+"|disasters-1|lobby-roster-4|avatar-attachments-1|enemies-1|plasma-1|equipment-1|low-gravity-1|avatar-styles-2|mode-metrics-2|persistent-lobby-1|mayhem-enemies-2|live-poses-1|room-travel-2|closeout-20261105-v1");
+                var content=new System.Text.StringBuilder(protocolVersion+"|disasters-1|lobby-roster-3|avatar-attachments-1|enemies-1|plasma-1|equipment-1|low-gravity-1|avatar-styles-2|mode-metrics-2|persistent-lobby-1|mayhem-enemies-2|live-poses-1|room-travel-2|closeout-20261105-v3|curated-layouts-2|arsenal-contact-2|marina-spawns-1|bounded-poses-1|live-stream-gzip-piggyback-exact-acks-v2");
+                content.Append("|ack-anchored-lossless-world-xor-v1");
+                content.Append("|lateupdate-lossless-hotpath-bundle-v1|play-entry-rotation-v1");
                 foreach(var map in maps)content.Append("|map:").Append(map.id).Append(":").Append(string.Join(",",map.supportedModes??Array.Empty<string>()));
                 foreach(var mode in modes)content.Append("|mode:").Append(mode.id).Append(':').Append(mode.available);
                 using(var hash=System.Security.Cryptography.SHA256.Create())

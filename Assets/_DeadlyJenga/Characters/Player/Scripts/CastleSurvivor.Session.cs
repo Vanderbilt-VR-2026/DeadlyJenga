@@ -7,19 +7,50 @@ using DeadlyJenga.CandyPhysicsHands;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    // What the session, menus and lobby use, through Core (IPlayableCharacter, ISurvivorSettings).
-    public sealed partial class CastleSurvivor : IPlayableCharacter, ISurvivorSettings
+    // What the session, menus and lobby use, through Core (IPlayableCharacter, ISurvivorSettings, IHandRotationTuning).
+    public sealed partial class CastleSurvivor : IPlayableCharacter, ISurvivorSettings, IHandRotationTuning
     {
+        static readonly Vector3[] wristOffsets = new Vector3[2];
+        static bool wristOffsetsLoaded;
+        static void EnsureWristOffsets()
+        {
+            if (wristOffsetsLoaded) return;
+            wristOffsetsLoaded = true;
+            wristOffsets[0] = LoadWrist(true);
+            wristOffsets[1] = LoadWrist(false);
+        }
+        static Vector3 LoadWrist(bool left)
+        {
+            var key = left ? "WristFit.Left." : "WristFit.Right.";
+            return new Vector3(PlayerPrefs.GetFloat(key+"Pitch"), PlayerPrefs.GetFloat(key+"Yaw"), PlayerPrefs.GetFloat(key+"Roll"));
+        }
+        public Vector3 GetOffset(bool left)
+        {
+            EnsureWristOffsets();
+            return wristOffsets[left ? 0 : 1];
+        }
+        public void SetOffset(bool left, Vector3 degrees)
+        {
+            EnsureWristOffsets();
+            wristOffsets[left ? 0 : 1] = degrees;
+            var key = left ? "WristFit.Left." : "WristFit.Right.";
+            PlayerPrefs.SetFloat(key+"Pitch", degrees.x);
+            PlayerPrefs.SetFloat(key+"Yaw", degrees.y);
+            PlayerPrefs.SetFloat(key+"Roll", degrees.z);
+            PlayerPrefs.Save();
+        }
         // IPlayableCharacter (ViewCamera, IsVR, InputSuspended already exist)
         CandyTrackingSource handTracking;
         CandyTrackingSource HandTracking => handTracking ? handTracking : handTracking = GetComponent<CandyTrackingSource>();
         public bool HasHandTracking => HandTracking && HandTracking.HasHandTracking;
-        public bool MenuPressed => HandTracking && HandTracking.LeftMenuPressed;
-        public bool SelectPressed => HandTracking && HandTracking.MenuSelectPressed;
-        public bool SelectHeld => HandTracking && HandTracking.MenuSelectHeld;
-        public string StatusText => ActionStatus;
+        public bool MenuPressed => !IsVR?DesktopGamepad.MenuPressed:HandTracking && HandTracking.LeftMenuPressed;
+        public bool SelectPressed => !IsVR?DesktopGamepad.SelectPressed:HandTracking && HandTracking.MenuSelectPressed;
+        public bool SelectHeld => !IsVR?DesktopGamepad.SelectHeld:HandTracking && HandTracking.MenuSelectHeld;
+        public string StatusText => SprintRequested||Time.unscaledTime<sprintFeedbackUntil?SprintStatusText:ActionStatus;
         public void PrepareForSession() { if (viewCamera) viewCamera.clearFlags = CameraClearFlags.Skybox; UpdateSpectatorParticipation(); }
         public void Place(Vector3 position, Quaternion rotation) { Teleport(position, rotation); Revive(); }
+        CastleThirdPerson thirdPerson;
+        public IThirdPersonInspection ThirdPerson => thirdPerson ? thirdPerson : thirdPerson = gameObject.AddComponent<CastleThirdPerson>();
 
         // ISurvivorSettings
         public string MovementLabel => vrMovement.ToString();
@@ -28,8 +59,8 @@ namespace DeadlyJenga.CastlePrototype
         public float SmoothTurnSpeed => vrSmoothDegreesPerSecond;
         public void CycleMovement() => CycleVRMovement();
         public void CycleTurn() => CycleVRTurn();
-        public void CycleSnapAngle() => vrSnapAngle = vrSnapAngle < 30 ? 30 : vrSnapAngle < 45 ? 45 : vrSnapAngle < 60 ? 60 : 15;
-        public void CycleSmoothTurnSpeed() => vrSmoothDegreesPerSecond = vrSmoothDegreesPerSecond < 90 ? 90 : vrSmoothDegreesPerSecond < 180 ? 180 : vrSmoothDegreesPerSecond < 270 ? 270 : vrSmoothDegreesPerSecond < 360 ? 360 : 60;
+        public void CycleSnapAngle(){vrSnapAngle=vrSnapAngle<30?30:vrSnapAngle<45?45:vrSnapAngle<60?60:15;RememberComfort(snap:true);}
+        public void CycleSmoothTurnSpeed(){vrSmoothDegreesPerSecond=vrSmoothDegreesPerSecond<90?90:vrSmoothDegreesPerSecond<180?180:vrSmoothDegreesPerSecond<270?270:vrSmoothDegreesPerSecond<360?360:60;RememberComfort(speed:true);}
         public void UseStationaryPreset() => UseStationaryVR();
         public void UseFluidPreset() => UseFluidVR();
         public bool StandingPlay => vrPlayStyle == SurvivorVRPlayStyle.Standing;
@@ -89,6 +120,7 @@ namespace DeadlyJenga.CastlePrototype
         public void ApplyMatchRules(MatchRules rules)
         {
             if (rules == null) return;
+            var previousComfort=CaptureComfort();
             PhysicsProfile.Apply(rules.handPhysics);
             if (Enum.TryParse(rules.playStyle, out SurvivorVRPlayStyle style)) SetVRPlayStyle(style, false);
             if (Enum.TryParse(rules.movement, out SurvivorVRMovement movement)) vrMovement = movement;
@@ -103,6 +135,8 @@ namespace DeadlyJenga.CastlePrototype
             if (Enum.TryParse(rules.recoveryCurve, out StaminaCurve recoveryCurve)) climbRecoveryCurve = recoveryCurve;
             climbDrainDegree = rules.drainDegree;
             climbRecoveryDegree = rules.recoveryDegree;
+            RememberComfort(playStyle:previousComfort.playStyle!=vrPlayStyle,movement:previousComfort.movement!=vrMovement,
+                turn:previousComfort.turn!=vrTurn,snap:previousComfort.snap!=vrSnapAngle,speed:previousComfort.speed!=vrSmoothDegreesPerSecond);
         }
 
         public bool TryStandOn(Rigidbody block, float sideways, out Vector3 spot)

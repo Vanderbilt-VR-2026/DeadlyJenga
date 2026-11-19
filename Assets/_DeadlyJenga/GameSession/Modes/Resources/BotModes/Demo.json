@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "demo",
-  "description": "Explore and socialize freely when unassigned; active hazards may request a safe refuge through the shared objective director.",
+  "description": "Explore and socialize when unassigned, take refuge during hazards, and fight visible opponents when punching is enabled.",
   "objectives": [
     {
       "id": "survive",
@@ -13,6 +13,18 @@
       "utility": 3,
       "radius": 0.7,
       "timeout": 30
+    },
+    {
+      "id": "spar",
+      "query": "hostiles",
+      "skill": "Attack",
+      "tier": 1,
+      "maximum": 2,
+      "utility": 0.9,
+      "radius": 1.25,
+      "timeout": 25,
+      "retry": 4,
+      "commitment": 2
     },
     {
       "id": "collect-equipment",

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-35
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 6f5feae9dfb404944bb67e0769cf43c0, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 35
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Breath Exertion
+    atlasFile: atlas.png
+    atlasSha256: a71ee612bfd2cf9f8d169a1891320678f9d4e0cde4b58bce1687473f101ac5b3
+    gifFile: preview.gif
+    gifSha256: 7176c67b9260f1fd77e734b764f0710cae16eec5862ca7c28d932c65711360bf
+    sourceSha256: 929b616a810a7df3fc37e807d30eddcf7c0c6cce0c20fbf8bc87cdba3f77154a
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The moving player's feet, hands or exertion
+    action: Breath Exertion
+    target: The contacted ground or climbable ledge; show its material
+    listenerRole: That player for local breathing; nearby listener for movement contacts
+    triggerEvidence: Observed gameplay lifecycle firing Breath Exertion
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-28
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 37ccc8de1d5ed2a438f8191fcf81577c, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 28
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Totally Meant That
+    atlasFile: atlas.png
+    atlasSha256: 85e31a4899074e297b3030b378d5bc8e32a7c55fa2448eb04d133e9465aecede
+    gifFile: preview.gif
+    gifSha256: 6d369417d1bdeeb3bc316e03500cbe477271071beaf35e814f1ab70e31d31d6d
+    sourceSha256: 33d167ed54037c7c0143e48d5c66eb3889aaaed81b73b580462d9bfd1a8ac8ce
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Totally Meant That
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Totally Meant That
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

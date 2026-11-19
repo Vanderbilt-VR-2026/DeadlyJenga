@@ -87,28 +87,57 @@ namespace DeadlyJenga.DevTools.Editor
                 Require((character.transform.position-map.SafeSpawnPoint()).sqrMagnitude<4,"Standing survivor remains safely on the floor after three seconds");
                 Require(!map.IsSheltered(map.SafeSpawnPoint()),"Central seating is open to the sky");
                 int mask=1<<Layers.Surface;
+                var layout=map.transform.Find("Collision");
+                Require(layout&&Mathf.Abs(layout.localScale.x-.88f)<.001f&&
+                    map.transform.Find("Visual").localScale==layout.localScale,
+                    "Walkable geometry and visible resort use the same compact footprint");
                 var aisle=new[]{new Vector3(3.4f,.4f,-6.5f),new Vector3(3.4f,.4f,5.5f),new Vector3(4.2f,.4f,5.5f),new Vector3(4.2f,.4f,9.2f)};bool route=true;float scale=map.transform.lossyScale.y;
-                for(int i=1;i<aisle.Length;i++){var start=map.transform.TransformPoint(aisle[i-1]);var end=map.transform.TransformPoint(aisle[i]);route&=!Physics.CapsuleCast(start,map.transform.TransformPoint(aisle[i-1]+Vector3.up*1.2f),.3f*scale,(end-start).normalized,out _,Vector3.Distance(start,end),mask,QueryTriggerInteraction.Ignore);}
+                for(int i=1;i<aisle.Length;i++){var start=layout.TransformPoint(aisle[i-1]);var end=layout.TransformPoint(aisle[i]);route&=!Physics.CapsuleCast(start,layout.TransformPoint(aisle[i-1]+Vector3.up*1.2f),.3f*scale,(end-start).normalized,out _,Vector3.Distance(start,end),mask,QueryTriggerInteraction.Ignore);}
                 Require(route,"Main aisle provides a standing-width route through the cabana opening");
                 Require(Mathf.Abs(session.ActiveCamera.transform.position.y-character.transform.position.y-.8f)<.25f,"Avatar eye height matches the half-scale room and furniture");
                 Require(map.GetComponentInChildren<DeadlyJenga.CandyArt.TikiResortAtmosphere>(),"Tiki presentation is active in Game");
                 Require(!Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Any(l=>l.type==LightType.Directional&&l.enabled&&!l.transform.IsChildOf(map.transform)),"Resort controls one sun without outside lighting interference");
                 Require(!Object.FindObjectsByType<DeadlyJenga.CandyArt.CandyEnvironment>(FindObjectsSortMode.None).SelectMany(e=>e.GetComponentsInChildren<Renderer>()).Any(r=>r.enabled),"External island scenery cannot intersect the resort floor");
-                Require(map.IsSheltered(map.transform.TransformPoint(new Vector3(-10,1,0))),"Thatched bar provides physical shelter");
-                var stairStart=map.transform.TransformPoint(new Vector3(8,.4f,-9.5f));
+                Require(map.IsSheltered(layout.TransformPoint(new Vector3(-10,1,0))),"Thatched bar provides physical shelter");
+                var stairStart=layout.TransformPoint(new Vector3(8,.4f,-9.5f));
                 Require(!Physics.CapsuleCast(stairStart,stairStart+Vector3.up*.6f,.15f,Vector3.back,out _,2.1f,1<<Layers.Surface,QueryTriggerInteraction.Ignore),"Beach stair opening is free of railing blockers");
                 Require(map.GetComponentsInChildren<Collider>().Count(c=>c.name=="Cabana post")==24,"All twenty-four cabana posts have simple collision");
-                Require(Physics.Raycast(map.transform.TransformPoint(new Vector3(22,1,0)),Vector3.down,3,1<<Layers.Surface),"Beach scenery matches a walkable ground collider");
-                Require(map.PlayableBounds.Contains(map.transform.TransformPoint(new Vector3(22,-.45f,0))),"World bounds include the lower beach surface");
+                Require(Physics.Raycast(layout.TransformPoint(new Vector3(22,1,0)),Vector3.down,3,1<<Layers.Surface),"Beach scenery matches a walkable ground collider");
+                Require(map.PlayableBounds.Contains(layout.TransformPoint(new Vector3(22,-.45f,0))),"World bounds include the lower beach surface");
                 var lagoon=map.transform.Find("Visual/Turquoise waterfront").GetComponent<Renderer>();var properties=new MaterialPropertyBlock();lagoon.GetPropertyBlock(properties);
                 Require(Mathf.Abs(properties.GetFloat("_WaterHeight")-map.WaterHeight(map.SafeSpawnPoint()))<.01f,"Visible lagoon height matches the world water query");
-                var pierStart=map.transform.TransformPoint(new Vector3(0,.4f,-11));
-                Require(!Physics.CapsuleCast(pierStart,pierStart+Vector3.up*.6f,.15f,Vector3.back,out _,10.5f,1<<Layers.Surface,QueryTriggerInteraction.Ignore),"Pier has a clear standing route to the waterfront landing");
+                var pierStart=layout.TransformPoint(new Vector3(0,.4f,-11));
+                Require(!Physics.CapsuleCast(pierStart,pierStart+Vector3.up*.6f,.15f,Vector3.back,out _,Vector3.Distance(pierStart,layout.TransformPoint(new Vector3(0,.4f,-34))),1<<Layers.Surface,QueryTriggerInteraction.Ignore),"Pier has a clear standing route to the waterfront landing");
                 Require(map.GetComponentsInChildren<Renderer>().Count(r=>r.enabled)<60,"Shared-material batches keep visible renderer count below sixty");
+                var routes=layout.Find("Tiki tower routes");
+                Require(routes&&routes.Find("Signal lookout")&&routes.Find("Surf watch"),
+                    "Both lookouts are built into the selected Game map");
+                foreach(float side in new[]{-1f,1f})
+                    Require(Walkable(layout,new Vector3(16.75f*side,-.45f,.58f),
+                        new Vector3(16.75f*side,3.42f,10.55f)),
+                        "Lookout ramp is continuously supported with standing clearance on side "+side);
+                Require(Walkable(layout,new Vector3(-16.75f,3.42f,13.2f),new Vector3(16.75f,3.42f,13.2f)),
+                    "Upper bridge joins the lookout decks without a jump");
+                Require(Walkable(layout,new Vector3(-16.75f,-.425f,13.2f),new Vector3(16.75f,-.425f,13.2f)),
+                    "Lower promenade stays walkable under the bridge");
                 var camera=session.ActiveCamera;Require(camera,"Actual player camera is active");Capture(camera);
                 captureIndex=1;
             }
             catch(Exception e){File.AppendAllText(Report,"FAIL "+e+"\n");EditorApplication.ExitPlaymode();}
+        }
+        static bool Walkable(Transform layout,Vector3 from,Vector3 to)
+        {
+            const int samples=48;
+            int mask=1<<Layers.Surface;
+            for(int i=0;i<=samples;i++)
+            {
+                var floor=layout.TransformPoint(Vector3.Lerp(from,to,i/(float)samples));
+                if(!Physics.Raycast(floor+Vector3.up*.22f,Vector3.down,out var hit,.38f,mask,
+                    QueryTriggerInteraction.Ignore)||Mathf.Abs(hit.point.y-floor.y)>.075f)return false;
+                if(Physics.CheckCapsule(hit.point+Vector3.up*.22f,hit.point+Vector3.up*.72f,.11f,mask,
+                    QueryTriggerInteraction.Ignore))return false;
+            }
+            return true;
         }
         static void Require(bool ok,string message){if(!ok)throw new Exception(message);File.AppendAllText(Report,"PASS "+message+"\n");}
         static void Photo(Camera camera,TikiResortMap map,int index)

@@ -85,7 +85,14 @@ namespace DeadlyJenga.CastlePrototype
         public bool CanEditWorld => SessionDevelopmentPolicy.CanRequestLocal(this);
         InputAction select;
         bool wasVR, focused = true;
-        bool arrivalPending,travelInputHeld;float travelReleaseAt=-1;
+        bool arrivalPending,travelInputHeld,matchSpawnConfirmed;
+        float travelReleaseAt=-1,arrivalWorldReadyAt=-1;
+        internal void ConfirmMatchSpawn()=>matchSpawnConfirmed=true;
+        internal void ReleaseArrivalInput()
+        {
+            travelInputHeld=false;
+            SetMenu(MenuOpen);
+        }
 
         void Start()
         {
@@ -118,11 +125,17 @@ namespace DeadlyJenga.CastlePrototype
                 Network=gameObject.AddComponent<CastleLanSession>();
                 Network.Initialize(this);
             }
+            if(!room&&!MatchSetup.FromLobby&&!Network&&runner==null)
+                room=IslandRoomConnection.Ensure();
             MatchSetup.Apply(this);
             if(!RoomGameExperience.Manages(this))MatchSetup.FillRecommended(this);
-            var social = gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>(); social.Initialize(this);
             Demo = new SessionDemoControls(this);
-            Social = new DeadlyJenga.CastleSocial.SocialControls(social);
+            // AI voices are off by default; Social stays null ("not available" in Core's contract).
+            if (DeadlyJenga.CastleSocial.SocialWorld.AiVoicesEnabled)
+            {
+                var social = gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>(); social.Initialize(this);
+                Social = new DeadlyJenga.CastleSocial.SocialControls(social);
+            }
             Modes=gameObject.AddComponent<DeadlyJenga.Modes.MatchModeRuntime>();
             Modes.Initialize(this,RoomGameExperience.Manages(this));
             gameObject.AddComponent<CastleSessionMenuInput>().session=this;
@@ -133,12 +146,13 @@ namespace DeadlyJenga.CastlePrototype
         {
             CloseLobbyVisit(false);
             seaSpirit?.SetSeaSpirit(false);
-            if (ReferenceEquals(Services.Session, this)) Services.Session = null;
+            bool ownedSession = ReferenceEquals(Services.Session, this);
+            if (ownedSession) Services.Session = null;
             GameEvents.Eliminated -= OnEliminated;
             select?.Dispose();
             if (NetworkActors.Alive(Player)) Destroy(Player.gameObject);
             if (NetworkActors.Alive(Hand)) Destroy(Hand.gameObject);
-            Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
+            if (ownedSession) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
         }
         bool Ready => NetworkActors.Alive(Player) && NetworkActors.Alive(Hand);
         void OnApplicationFocus(bool value) { focused = value; HoldMenuGameplayInput(); if (!value && Ready) SetMenu(true); }
@@ -148,24 +162,43 @@ namespace DeadlyJenga.CastlePrototype
             ApplyRole(hand);
         }
         internal void SetRoleForMode(bool hand) => ApplyRole(hand);
-        void ApplyRole(bool hand)
+
+        internal bool TryEnterTimedHand(Pose spawn)
+        {
+            if(!Ready||VisitingLobby||!Hand.ViewCamera||Network&&Network.WaitingForWorld)return false;
+            if(!PlayingHand)ApplyRole(true,spawn);
+            return PlayingHand&&Hand.gameObject.activeInHierarchy;
+        }
+
+        void ApplyRole(bool hand,Pose? handSpawn=null)
         {
             if(VisitingLobby)return;
             if(Modes&&Modes.Rules.mode!=GameModeKind.Demo&&Modes.Authority)
             {bool accepted=Modes.SetDevelopmentHand(hand);if(hand&&!accepted)return;}
             if(Modes&&Modes.DemoSpectating)Modes.SetDemoSpectating(false);
             if(!hand&&SeaSpiritActive)seaSpirit.SetSeaSpirit(false);
+            if(handSpawn.HasValue)
+            {
+                // Place the receiving rig before removing the survivor and its camera.
+                Hand.gameObject.SetActive(true);
+                try { Hand.Place(handSpawn.Value.position,handSpawn.Value.rotation); }
+                catch
+                {
+                    if(!PlayingHand)Hand.gameObject.SetActive(false);
+                    throw;
+                }
+            }
             PlayingHand = hand;
             Player.gameObject.SetActive(!hand); Hand.gameObject.SetActive(hand);
             if(Player.ViewCamera)Player.ViewCamera.enabled=!hand;
             if(Hand.ViewCamera)Hand.ViewCamera.enabled=hand;
-            if (hand)
+            if (hand && !handSpawn.HasValue)
             {
                 // Float beside the map, a little above its top.
                 var world = Services.World;
                 Hand.Place(world.Center + new Vector3(0, world.TopHeight - world.Center.y + 3, -world.Radius - 10), Quaternion.identity);
             }
-            else RespawnPlayer();
+            else if (!hand) RespawnPlayer();
             SetMenu(MenuOpen);
         }
         // The ocean (or any hazard) eliminated someone. In this demo the local survivor just respawns.
@@ -177,8 +210,9 @@ namespace DeadlyJenga.CastlePrototype
 
         public void RespawnPlayer()
         {
-            Vector3 feet = Modes ? Modes.SpawnPoint((Player.gameObject.GetComponent<IModeActor>()?.Team)??-1,0,"survivor") : Services.World.SafeSpawnPoint();
+            Vector3 feet = Modes ? Modes.SpawnPoint((Player.gameObject.GetComponent<IModeActor>()?.Team)??-1,0,"survivor",Modes.LocalActorId) : Services.World.SafeSpawnPoint();
             Vector3 heading = Vector3.ProjectOnPlane(Services.World.Center - feet, Vector3.up);
+            if(Modes&&Modes.Authority)Modes.ReserveSpawn(Modes.LocalActorId,feet);
             LastSpawnFeet = feet;
             Player.Place(feet, heading.sqrMagnitude > .01f ? Quaternion.LookRotation(heading) : Quaternion.identity);
         }
@@ -211,13 +245,22 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Update()
         {
-            if (!Ready || VisitingLobby) return;
+            if (!Ready) return;
+            if (!VisitingLobby) TickEliminationVisit();
+            if (VisitingLobby) return;
             if(arrivalPending&&(!Network||!Network.WaitingForWorld))
             {
-                arrivalPending=false;if(travelInputHeld)travelReleaseAt=Time.unscaledTime+.8f;
-                GameEvents.RaiseEmoted(gameObject,"TravelArrived");
+                if(arrivalWorldReadyAt<0)arrivalWorldReadyAt=Time.unscaledTime;
+                bool waitingForSpawn=Network&&Network.IsClient&&!matchSpawnConfirmed&&Time.unscaledTime-arrivalWorldReadyAt<4;
+                bool waitingForRound=RoomGameExperience.Manages(this)&&Modes&&Modes.Frame.phase==RoundPhase.Waiting;
+                if(!waitingForSpawn&&!waitingForRound)
+                {
+                    arrivalPending=false;
+                    if(travelInputHeld)travelReleaseAt=Time.unscaledTime+2;
+                    GameEvents.RaiseEmoted(gameObject,"TravelArrived");
+                }
             }
-            if(travelInputHeld&&travelReleaseAt>=0&&Time.unscaledTime>=travelReleaseAt){travelInputHeld=false;SetMenu(MenuOpen);}
+            if(travelInputHeld&&travelReleaseAt>=0&&Time.unscaledTime>=travelReleaseAt)ReleaseArrivalInput();
             if (IsVR != wasVR) { wasVR = IsVR; SetMenu(MenuOpen); }
             if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);
             if (!PlayingHand && NetworkActors.Alive(Player) && Player.transform.position.y < -6)

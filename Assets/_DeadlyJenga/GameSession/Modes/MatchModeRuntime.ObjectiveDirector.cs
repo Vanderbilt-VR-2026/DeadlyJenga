@@ -103,7 +103,7 @@ namespace DeadlyJenga.Modes
             readonly Dictionary<string, List<BotObjective>> mysteries = new Dictionary<string, List<BotObjective>>();
             readonly Dictionary<string, List<BotObjective>> hostileCache = new Dictionary<string, List<BotObjective>>();
             static readonly HashSet<string> queries = new HashSet<string>(StringComparer.Ordinal)
-            { "pickups", "hazard-refuge", "hill", "unowned-blocks", "high-ground", "midfield", "infection-search", "hostiles", "home", "enemy-bases", "enemy-flags", "own-dropped-flag", "return-enemy-flag", "return-own-flag", "friendly-carriers", "hostile-carriers", "stolen-flag-search", "mystery-travel", "mystery-guard", "mystery-attack", "mystery-evade", "mystery-revive", "mystery-bodies", "mystery-badge", "lantern", "lantern-carrier", "lantern-escape" };
+            { "pickups", "hazard-refuge", "hill", "unowned-blocks", "high-ground", "midfield", "outer-crossings", "infection-search", "hostiles", "home", "enemy-bases", "enemy-flags", "own-dropped-flag", "return-enemy-flag", "return-own-flag", "friendly-carriers", "hostile-carriers", "stolen-flag-search", "mystery-travel", "mystery-guard", "mystery-attack", "mystery-evade", "mystery-revive", "mystery-bodies", "mystery-badge", "lantern", "lantern-carrier", "lantern-escape" };
             static readonly HashSet<string> conditions = new HashSet<string>(StringComparer.Ordinal)
             { "pickup-collected", "carrying", "infected", "own-flag-missing", "has-hostile", "carrying-enemy", "carrying-own", "scored", "own-flag-home", "block-owned", "target-dead", "carrying-lantern" };
             public MatchBotFacts(MatchModeRuntime owner) { this.owner = owner; }
@@ -119,7 +119,7 @@ namespace DeadlyJenga.Modes
                 switch (name)
                 {
                     case "pickup-collected": return int.TryParse(target.id,out int pickup)&&owner.botPickupReceipts.ContainsKey((actor.id,pickup));
-                    case "carrying": return Sim.CarriesFlag(actor.id);
+                    case "carrying": return Sim.CarriesFlag(actor.id)||Sim.CarriesLantern(actor.id);
                     case "carrying-lantern": return Sim.CarriesLantern(actor.id);
                     case "infected": return self.frame.role == "infected";
                     case "own-flag-missing": return Own(actor.team)?.atHome == false;
@@ -185,10 +185,16 @@ namespace DeadlyJenga.Modes
                         return;
                     case "hostiles": if(!owner.RulesFor(actor.body).punchEnabled)return; legacy.Clear(); Hostiles(actor, legacy); AddLegacy(legacy, results); return;
                     case "high-ground": SafeSupports(actor,results,false); return;
-                    case "midfield": case "infection-search":
+                    case "midfield": case "outer-crossings": case "infection-search":
                         owner.RefreshSupportGoals();
                         if (Services.World == null) return;
                         if (name == "midfield") ModeSearchGeometry.Midfield(actor.position, Services.World.Center, owner.supportCandidates, false, owner.searchStages);
+                        else if(name=="outer-crossings")
+                        {
+                            var rules=owner.RulesFor(actor.body);
+                            ModeSearchGeometry.OuterCrossings(actor.position,Services.World.Center,owner.supportCandidates,
+                                rules.fallDamage?Mathf.Max(1,rules.fallDamageStart*.9f):36,owner.searchStages);
+                        }
                         else ModeSearchGeometry.Select(actor.position, owner.supportCandidates, false, owner.searchStages);
                         for (int i = 0; i < owner.searchStages.Count; i++) Add(results, PointId(owner.searchStages[i]), owner.searchStages[i]);
                         if(results.Count==0)SafeSupports(actor,results,true); return;
@@ -223,7 +229,12 @@ namespace DeadlyJenga.Modes
                 foreach (var p in Sim.CombatParticipants)
                 {
                     if (p == self || !p.present || !p.frame.alive || p.frame.dying || p.frame.role == "hand" || p.frame.role == "spectator" || p.frame.role == "downed") continue;
-                    if(owner.Rules.mode==GameModeKind.Demo&&owner.FindActor(p.frame.id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true)continue;
+                    if (owner.Rules.mode == GameModeKind.Demo)
+                    {
+                        bool close = (p.frame.position - actor.position).sqrMagnitude <= 18 * 18;
+                        if ((!owner.Rules.punchEnabled || !close) &&
+                            owner.FindActor(p.frame.id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy != true) continue;
+                    }
                     bool infection = owner.Rules.mode == GameModeKind.Infection||owner.FindActor(actor.id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy==true;
                     if (infection ? (p.frame.role == "infected") == (self.frame.role == "infected") : ModeSimulation.TeamMode(owner.Rules.mode)&&p.frame.team == actor.team) continue;
                     bool publicBlip = infection && (self.frame.role != "infected" || survivors <= 2);

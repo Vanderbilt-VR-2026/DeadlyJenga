@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-363607
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 49a7bda3663df52469922539ad908f2f, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 363607
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Mode Switch
+    atlasFile: atlas.png
+    atlasSha256: e92ae58cf86766c5d95c3650dff9424d502dc0d5cb87201083274a4dc52fb449
+    gifFile: preview.gif
+    gifSha256: a1550158240a488699f0cdccd35f65d24db955f2e3636f64bdcae447a7ecac52
+    sourceSha256: 67bf24ccdfd999de96e990e0b26d8ea346e6ed88d96ef2b3953b8cb65d9449ef
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Dual Uzi in the acting player's hands
+    action: Mode Switch with Dual Uzi
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Mode Switch
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

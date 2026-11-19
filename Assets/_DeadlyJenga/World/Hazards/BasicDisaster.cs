@@ -55,8 +55,8 @@ namespace DeadlyJenga.World.Hazards
                 case "Tornado":
                     p.Add(new DisasterParameter("height","Height",10,160,65,"m"));
                     p.Add(new DisasterParameter("size","Funnel diameter",3,50,16,"m"));
-                    p.Add(new DisasterParameter("force","Ferocity",0,40,12,"m/s²"));
-                    p.Add(new DisasterParameter("reach","Pull-in distance",5,120,38,"m"));break;
+                    p.Add(new DisasterParameter("force","Ferocity",0,40,7,"m/s²"));
+                    p.Add(new DisasterParameter("reach","Pull-in distance",5,120,28,"m"));break;
                 case "Fire":
                     p.Add(new DisasterParameter("damage","Contact damage",0,50,8,"HP/s"));
                     p.Add(new DisasterParameter("contact","Contact time to spread",.2f,15,2,"s"));
@@ -86,7 +86,8 @@ namespace DeadlyJenga.World.Hazards
         protected override void BeginHazard(IWorldQuery map,Bounds bounds,float intensity,float seconds)
         {
             EnsureValues();world=map;area=bounds;strength=intensity;age=nextTick=0;started=false;cached=null;capturedAt=-1;
-            if(Kind=="Tornado"){tornadoCursor=0;tornadoBudgetFrame=-1;tornadoPushAt.Clear();}
+            earthquakeCursor=earthquakeWakeCount=0;earthquakeFrame=-1;iceRevision=iceBlockCount=-1;
+            if(Kind=="Tornado"){tornadoCursor=0;tornadoBudgetFrame=-1;tornadoPushAt.Clear();BeginTornadoRoute();}
             DisasterStates.Active.Add(this);
             if(Kind=="Vampire")GameEvents.Eliminated+=ResetSunlight;
         }
@@ -102,7 +103,12 @@ namespace DeadlyJenga.World.Hazards
             if(!started){started=true;if(Kind=="Fire")SeedFire();if(Kind=="PowerOutage")SeedLights();}
             if(Kind=="MeteorShower"||Kind=="PlanetKillerMeteor")TickMeteors(dt);
             if(Kind=="AntiGravity")TickGravity(dt);
-            if(Kind=="Tornado"){TickTornadoBlocks(dt);}
+            if(Kind=="Tornado"){AdvanceTornadoRoute(dt);TickTornadoBlocks(dt);}
+            if(Kind=="Earthquake")
+            {
+                TickEarthquake(dt);
+                return;
+            }
             if(age<nextTick)return;
             nextTick=age+.1f;
             switch(Kind)
@@ -111,7 +117,6 @@ namespace DeadlyJenga.World.Hazards
                 case "Icey":ApplyIce();break;
                 case "Fire":TickFire(.1f);if(started&&burning.Count==0)End();break;
                 case "Tornado":TickTornadoPlayers(.1f);break;
-                case "Earthquake":TickEarthquake(.1f);break;
                 case "AcidRain":TickRain(.1f);break;
             }
         }
@@ -189,7 +194,7 @@ namespace DeadlyJenga.World.Hazards
 
         void TickTornadoBlocks(float dt)
         {
-            float force=V("force")*strength;
+            float force=V("force")*strength*tornadoPower;
             if(force<=0)return;
             using var sample=TornadoForces.Auto();
             var blocks=world.Blocks;
@@ -255,7 +260,7 @@ namespace DeadlyJenga.World.Hazards
 
         void TickTornadoPlayers(float dt)
         {
-            float force=V("force")*strength;
+            float force=V("force")*strength*tornadoPower;
             if(force<=0)return;
             Vector3 center=TornadoCenter;
             float radius=V("reach"),height=V("height");
@@ -274,24 +279,106 @@ namespace DeadlyJenga.World.Hazards
                     body.AddForce(Vector3.ClampMagnitude(impulse,30),ForceMode.VelocityChange);
             }
         }
-        Vector3 TornadoCenter=>new Vector3(area.center.x+Mathf.Sin(age*.18f)*area.extents.x*.35f,world.WaterHeight(area.center),area.center.z+Mathf.Cos(age*.14f)*area.extents.z*.35f);
+        Vector3 TornadoCenter, tornadoStart, tornadoExit, tornadoVelocity;
+        float tornadoAngle, tornadoTurn, tornadoWeave, tornadoPower;
+
+        void BeginTornadoRoute()
+        {
+            tornadoAngle = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+            tornadoTurn = UnityEngine.Random.Range(.85f, 1.65f) * Mathf.PI * 2f;
+            if (UnityEngine.Random.value < .5f) tornadoTurn = -tornadoTurn;
+            tornadoWeave = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+            tornadoStart = Offshore(tornadoAngle);
+            tornadoExit = Offshore(tornadoAngle + tornadoTurn);
+            TornadoCenter = tornadoStart;
+            tornadoVelocity = Vector3.zero;
+            tornadoPower = 0f;
+        }
+
+        Vector3 Offshore(float angle)
+        {
+            var direction = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+            float envelope = new Vector2(area.extents.x, area.extents.z).magnitude;
+            float step = Mathf.Max(12f, V("size"));
+            float distance = Mathf.Max(envelope, world.Radius) + step;
+            Vector3 point = area.center;
+            for (int i = 0; i < 6; i++)
+            {
+                point = area.center + direction * (distance + i * step);
+                point.y = world.WaterHeight(point);
+                // Some islands extend past the authored play area.
+                float top = Mathf.Max(area.max.y + 1f, point.y + 12f);
+                var above = new Vector3(point.x, top, point.z);
+                if (!Physics.Raycast(above, Vector3.down, top - point.y + .1f,
+                    1 << Layers.Surface, QueryTriggerInteraction.Ignore)) break;
+            }
+            return point;
+        }
+
+        void AdvanceTornadoRoute(float dt)
+        {
+            float progress = Mathf.Clamp01((age - V("warning")) / V("duration"));
+            float orbit = Mathf.InverseLerp(.24f, .8f, progress);
+            float angle = tornadoAngle + tornadoTurn * orbit +
+                Mathf.Sin(orbit * Mathf.PI * 2f) * .28f;
+            float radius = .49f + .24f * Mathf.Sin(orbit * Mathf.PI * 5f + tornadoWeave);
+            var inland = area.center + new Vector3(Mathf.Cos(angle) * area.extents.x * radius, 0f,
+                Mathf.Sin(angle) * area.extents.z * radius);
+            float entry = Mathf.SmoothStep(0f, 1f, progress / .24f);
+            float departure = Mathf.SmoothStep(0f, 1f, (progress - .8f) / .2f);
+            Vector3 next = Vector3.Lerp(Vector3.Lerp(tornadoStart, inland, entry), tornadoExit, departure);
+            next.y = world.WaterHeight(next);
+            tornadoVelocity = (next - TornadoCenter) / dt;
+            TornadoCenter = next;
+            tornadoPower = Mathf.SmoothStep(0f, 1f, progress / .12f) * (1f - departure);
+        }
+        int earthquakeCursor,earthquakeWakeCount,earthquakeFrame=-1;
         void TickEarthquake(float dt)
         {
             float phase=(age-V("warning"))*V("frequency")*Mathf.PI*2;
             var impulse=new Vector3(Mathf.Sin(phase),Mathf.Sin(phase*1.31f)*V("vertical"),Mathf.Cos(phase*.83f))*V("force")*dt;
-            foreach(var b in world.Blocks)if(b&&!b.isKinematic){b.AddForce(impulse*strength,ForceMode.VelocityChange);b.AddTorque(new Vector3(impulse.z,0,-impulse.x)*.08f,ForceMode.VelocityChange);}
-            AffectPlayers(impulse*.45f,0,false);
+            var blocks=world.Blocks;
+            int count=blocks.Count;
+            if(count==0)return;
+            if(earthquakeFrame!=Time.frameCount){earthquakeFrame=Time.frameCount;earthquakeWakeCount=0;}
+            int start=earthquakeCursor%count;
+            int nextWake=start;
+            int wakeLimit=Application.isMobilePlatform||count>=700?18:int.MaxValue;
+            var velocity=impulse*strength;
+            var torque=new Vector3(impulse.z,0,-impulse.x)*.08f;
+            for(int i=0;i<count;i++)
+            {
+                int index=(start+i)%count;
+                var body=blocks[index];
+                if(!body||!body.gameObject.activeInHierarchy)continue;
+                bool wake=body.isKinematic||body.IsSleeping();
+                if(wake&&earthquakeWakeCount>=wakeLimit)continue;
+                if(body.isKinematic)
+                {
+                    if(!body.TryGetComponent<IHazardMotion>(out _)||!body.TryGetComponent<IPushable>(out var held))continue;
+                    held.Push(velocity,gameObject);
+                }
+                else
+                {
+                    body.AddForce(velocity,ForceMode.VelocityChange);
+                    body.AddTorque(torque,ForceMode.VelocityChange);
+                }
+                if(wake){earthquakeWakeCount++;nextWake=index+1;}
+            }
+            earthquakeCursor=nextWake;
+            // Shaking the support already moves riders. A combat impulse here repeatedly broke traversal.
         }
         void TickRain(float dt)=>AffectPlayers(Vector3.zero,V("damage")*dt,true);
         void TickGravity(float dt)
         {
             float scale=Mathf.Clamp(V("gravity"),.05f,1);
+            float fallSpeed=V("fallSpeed");
             foreach(var b in world.Blocks)if(b&&!b.isKinematic&&b.useGravity&&!b.IsSleeping())
             {
                 // Cancel only part of natural gravity, every physics step. Never add lift.
                 b.AddForce(-Physics.gravity*(1-scale),ForceMode.Acceleration);
                 var velocity=b.linearVelocity;
-                if(velocity.y < -V("fallSpeed")){velocity.y=-V("fallSpeed");b.linearVelocity=velocity;}
+                if(velocity.y < -fallSpeed){velocity.y=-fallSpeed;b.linearVelocity=velocity;}
             }
         }
         void AffectPlayers(Vector3 impulse,float damage,bool sheltered)
@@ -299,8 +386,12 @@ namespace DeadlyJenga.World.Hazards
             int n=Physics.OverlapBoxNonAlloc(area.center,area.extents+Vector3.one*5,hits,Quaternion.identity,1<<Layers.Survivor,QueryTriggerInteraction.Collide);receivers.Clear();
             for(int i=0;i<n;i++)if(!sheltered||!world.IsSheltered(hits[i].bounds.center))Affect(hits[i],impulse,damage);
         }
+        int iceRevision=-1,iceBlockCount=-1;
         void ApplyIce()
         {
+            int revision=world is ISyncedWorld synced?synced.Revision:0;
+            if(iceRevision==revision&&iceBlockCount==world.Blocks.Count)return;
+            iceRevision=revision;iceBlockCount=world.Blocks.Count;
             if(!ice)ice=new PhysicsMaterial("Disaster ice (temporary)"){staticFriction=Mathf.Lerp(.04f,.005f,V("slip")),dynamicFriction=Mathf.Lerp(.02f,.002f,V("slip")),frictionCombine=PhysicsMaterialCombine.Minimum};
             foreach(var body in world.Blocks)if(body)MakeSlippery(body.GetComponent<Collider>());
             int n;
@@ -314,7 +405,7 @@ namespace DeadlyJenga.World.Hazards
             if(!Active)return null;
             if(capturedAt==Time.frameCount&&cached!=null)return cached;
             capturedAt=Time.frameCount;
-            return cached=new DisasterFrame{sampledAt=Time.time,kind=Kind,label=Kind=="AntiGravity"?"Low Gravity":Type?Type.name:Kind,center=Kind=="Tornado"?TornadoCenter:area.center,size=area.size,age=age,warning=Mathf.Max(0,V("warning")-age),remaining=Kind=="Fire"?FireRemaining():Toggle||Kind=="PlanetKillerMeteor"?-1:Mathf.Max(0,V("duration")+V("warning")-age),values=values,points=meteors.ToArray(),blocks=burning.ToArray(),burns=Kind=="Fire"?CaptureBurns():null};
+            return cached=new DisasterFrame{sampledAt=Time.time,kind=Kind,label=Kind=="AntiGravity"?"Low Gravity":Type?Type.name:Kind,center=Kind=="Tornado"?TornadoCenter:area.center,size=area.size,age=age,warning=Mathf.Max(0,V("warning")-age),remaining=Kind=="Fire"?FireRemaining():Toggle||Kind=="PlanetKillerMeteor"?-1:Mathf.Max(0,V("duration")+V("warning")-age),values=values,points=Kind=="Tornado"?new[]{new DisasterPoint{position=TornadoCenter,velocity=tornadoVelocity}}:meteors.ToArray(),blocks=burning.ToArray(),burns=Kind=="Fire"?CaptureBurns():null};
         }
         protected override void EndHazard()
         {

@@ -8,8 +8,22 @@ namespace DeadlyJenga.CastlePrototype
     public static class DemoDisasters
     {
         static readonly Dictionary<int,Dictionary<string,float[]>> nextValues=new Dictionary<int,Dictionary<string,float[]>>();
+        static HazardCatalog catalog;
+        static ResourceRequest catalogRequest;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetValues()=>nextValues.Clear();
+        static void ResetValues()
+        {
+            nextValues.Clear();
+            catalog=null;
+            catalogRequest=null;
+        }
+
+        internal static void WarmCatalog()
+        {
+            if(!catalog&&catalogRequest==null)
+                catalogRequest=Resources.LoadAsync<HazardCatalog>("DisasterCatalog");
+        }
         public static IReadOnlyList<DisasterParameter> Parameters(GameObject prefab)=>prefab.GetComponent<IDemoHazard>()?.Parameters??Array.Empty<DisasterParameter>();
         public static float[] Values(CastlePlaySession session,GameObject prefab)
             => session&&prefab?(float[])MutableValues(session,prefab).Clone():Array.Empty<float>();
@@ -58,7 +72,9 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
-                var catalog = Resources.Load<HazardCatalog>("DisasterCatalog");
+                if(!catalog)
+                    catalog=catalogRequest?.isDone==true?catalogRequest.asset as HazardCatalog:
+                        Resources.Load<HazardCatalog>("DisasterCatalog");
                 return catalog && catalog.prefabs != null ? catalog.prefabs : Array.Empty<GameObject>();
             }
         }
@@ -79,18 +95,22 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public static bool Execute(CastlePlaySession session, string id,float? speed=null,float? force=null,float[] values=null)
-            => SessionDevelopmentPolicy.CanExecuteLocal(session)&&ExecuteInternal(session,id,speed,force,values,true);
+            => SessionDevelopmentPolicy.CanExecuteLocal(session)&&ExecuteInternal(session,id,speed,force,values,out _);
 
         internal static bool ExecuteDevelopmentAuthorized(CastlePlaySession session,string id,float? speed=null,float? force=null,float[] values=null)
-            => SessionDevelopmentPolicy.CanExecuteServer(session)&&ExecuteInternal(session,id,speed,force,values,true);
+            => SessionDevelopmentPolicy.CanExecuteServer(session)&&ExecuteInternal(session,id,speed,force,values,out _);
 
         public static bool ExecuteForMode(CastlePlaySession session,string id,float[] values=null)
-            => ExecuteInternal(session,id,null,null,values,true);
+            => ExecuteForMode(session,id,values,out _);
 
-        static bool ExecuteInternal(CastlePlaySession session,string id,float? speed,float? force,float[] values,bool modeOwned)
+        internal static bool ExecuteForMode(CastlePlaySession session,string id,float[] values,out IHazard started)
+            => ExecuteInternal(session,id,null,null,values,out started);
+
+        static bool ExecuteInternal(CastlePlaySession session,string id,float? speed,float? force,float[] values,out IHazard started)
         {
+            started=null;
             if(values!=null&&values.Length==0)values=null;
-            if (!(modeOwned?session&&session.HasWorldAuthority:CanTrigger(session)) || string.IsNullOrEmpty(id)) return false;
+            if (!session||!session.HasWorldAuthority || string.IsNullOrEmpty(id)) return false;
             if(speed.HasValue&&(float.IsNaN(speed.Value)||float.IsInfinity(speed.Value))||force.HasValue&&(float.IsNaN(force.Value)||float.IsInfinity(force.Value)))return false;
             var network = session.GetComponent<CastleFusionSession>();
             if (network && !network.IsHost) return false;
@@ -112,8 +132,13 @@ namespace DeadlyJenga.CastlePrototype
                 instance.GetComponent<IWaveTuning>()?.Configure(speed.Value, force.Value);
             if(values!=null)instance.GetComponent<IDemoHazard>()?.Configure(values);
             hazard.Begin();
-            if (!hazard.Active) UnityEngine.Object.Destroy(instance);
-            else instance.AddComponent<DemoDisasterLifetime>();
+            if (!hazard.Active)
+            {
+                UnityEngine.Object.Destroy(instance);
+                return false;
+            }
+            started=hazard;
+            instance.AddComponent<DemoDisasterLifetime>();
             return true;
         }
 

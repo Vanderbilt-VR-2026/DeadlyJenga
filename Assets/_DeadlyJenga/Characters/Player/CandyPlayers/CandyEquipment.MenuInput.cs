@@ -16,10 +16,10 @@ namespace DeadlyJenga.CandyPlayers
                 if(!motor.IsVR)
                 {
                     var keys=Keyboard.current;
-                    return keys!=null&&(keys.wKey.isPressed||keys.aKey.isPressed||keys.sKey.isPressed||
+                    return DesktopGamepad.Moving||Mathf.Abs(DesktopGamepad.Lift)>.1f||keys!=null&&(keys.wKey.isPressed||keys.aKey.isPressed||keys.sKey.isPressed||
                         keys.dKey.isPressed||keys.qKey.isPressed||keys.eKey.isPressed);
                 }
-                bool controllerLeft=!SuitShootingLeft;
+                bool controllerLeft=SuitFlightLeft;
                 var controller=HybridXRInput.Controller(controllerLeft);
                 float Axis(string name)=>controller?.TryGetChildControl<AxisControl>(name)?.ReadValue()??0;
                 return HybridXRInput.Stick(controllerLeft).magnitude>SuitMoveDeadzone||

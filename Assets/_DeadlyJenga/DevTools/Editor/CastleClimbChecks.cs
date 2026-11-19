@@ -10,7 +10,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
 {
     public static class CastleClimbChecks
     {
-        public static IEnumerator Check()
+        internal static string Report=>ProjectPath.Report("ClimbChecks.txt");
+        public static IEnumerator Check(bool exitPlayMode=true)
         {
             yield return null;
             var lines=new List<string>();var session=Object.FindFirstObjectByType<CastlePlaySession>();session.SetMenu(true);
@@ -23,7 +24,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var block=Object.Instantiate(Object.FindAnyObjectByType<CastleGenerator>().blockPrefab).GetComponent<CastleBlock>();
             var body=block.GetComponent<Rigidbody>();body.useGravity=false;body.isKinematic=true;
             const float dt=1f/60;
-            void Assert(bool ok,string text){lines.Add((ok?"PASS ":"FAIL ")+text);File.WriteAllLines("ArtDirection/ClimbChecks.txt",lines);}
+            void Assert(bool ok,string text){lines.Add((ok?"PASS ":"FAIL ")+text);File.WriteAllLines(Application.isBatchMode?Report:"ArtDirection/ClimbChecks.txt",lines);}
             void Setup(float height=10)
             {
                 body.isKinematic=true;block.transform.SetPositionAndRotation(new Vector3(120,45,2),Quaternion.identity);block.transform.localScale=new Vector3(6,height,2);block.SyncSurface();block.RefreshAppearance();Physics.SyncTransforms();
@@ -36,9 +37,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var start=motor.transform.position;Tick(Vector2.up,true,30);Assert(motor.Climbing&&motor.transform.position.y>start.y+.6f,"Forward input climbs upward.");
             start=motor.transform.position;Tick(Vector2.right,true,20);Assert(motor.Climbing&&motor.transform.position.x>start.x+.3f,"Right input shimmies right along the wall.");
             Assert(motor.TryGetClimbGrip(true,out var left)&&motor.TryGetClimbGrip(false,out var right)&&Vector3.Distance(left.position,right.position)>.1f,"Both avatar hands have separate wall contact targets.");
-            if(avatar){avatar.RefreshExternal(dt);Assert(avatar.LastFrame.left.tracked&&Vector3.Distance(avatar.LastFrame.left.position,left.position)<.01f,"Shared avatar presents the wall grip to first and third person.");Capture(motor,avatar);}
+            if(avatar){avatar.RefreshExternal(dt);Assert(avatar.LastFrame.left.tracked&&Vector3.Distance(avatar.LastFrame.left.position,left.position)<.01f,"Shared avatar presents the wall grip to first and third person.");if(!Application.isBatchMode)Capture(motor,avatar);}
             float spent=motor.GripRemaining;Tick(Vector2.zero,false,1);Assert(!motor.Climbing&&motor.GripRemaining<=spent,"Releasing drops without restoring stamina.");
-            Setup();Tick(Vector2.zero,true,350);Assert(!motor.Climbing&&motor.GripRemaining<.01f,"Idle clinging exhausts grip and drops the survivor.");
+            Setup();
+            int gripFrames=Mathf.CeilToInt(motor.climbGripSeconds/(Mathf.Max(.01f,motor.climbDrainPerSecond)*.85f*dt))+24;
+            Tick(Vector2.zero,true,gripFrames);
+            Assert(!motor.Climbing&&motor.GripRemaining<.01f,"Idle clinging exhausts grip and drops the survivor.");
             Tick(Vector2.zero,true,90);Assert(!motor.Climbing&&motor.GripRemaining<.01f,"Holding through exhaustion cannot relatch or recharge in air.");
             var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.transform.position=new Vector3(120,motor.transform.position.y-1,0);floor.transform.localScale=new Vector3(20,.5f,20);
             Tick(Vector2.zero,false,140);Assert(motor.Grounded&&motor.GripRemaining>.7f,"Secure footing restores exhausted grip after a short rest.");Object.DestroyImmediate(floor);
@@ -53,7 +57,20 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Assert(!motor.Climbing&&motor.transform.position.x>start.x+.08f,"A thrown crate breaks grip and transfers launch momentum.");
             Setup();Tick(Vector2.zero,true,15);body.isKinematic=false;body.linearVelocity=Vector3.down*3;Tick(Vector2.zero,true,1);Assert(!motor.Climbing&&motor.VerticalSpeed<0,"A falling crate cannot be used as a permanent anchor.");
             Setup();Tick(Vector2.zero,true,15);body.isKinematic=false;body.angularVelocity=Vector3.up*3;Tick(Vector2.zero,true,1);Assert(!motor.Climbing,"Rapid tumbling breaks grip.");
-            Setup();Tick(Vector2.zero,true,15);body.isKinematic=false;body.linearVelocity=Vector3.right;Tick(Vector2.zero,true,1);Assert(!motor.Climbing,"A sharp acceleration breaks grip even below the speed cap.");
+            Setup();Tick(Vector2.zero,true,15);body.isKinematic=false;body.linearVelocity=Vector3.right*.75f;Tick(Vector2.zero,true,1);
+            Assert(motor.Climbing,"A low-speed physics jolt preserves an attached grip.");
+            Setup();Tick(Vector2.zero,true,15);body.isKinematic=false;body.linearVelocity=Vector3.right*4;Tick(Vector2.zero,true,1);
+            Assert(!motor.Climbing,"A sharp acceleration at speed breaks grip below the speed cap.");
+            var wind=new GameObject("Tornado push source");
+            wind.AddComponent<DeadlyJenga.World.Hazards.TornadoHazard>();
+            Setup();
+            for(int i=0;i<24;i++)
+            {
+                if(i%6==0)motor.Push(Vector3.right*.45f,wind);
+                Tick(Vector2.zero,true,1);
+            }
+            Assert(motor.Climbing,"Repeated small tornado pushes still allow the player to acquire and keep a grip.");
+            Object.DestroyImmediate(wind);
             Setup();Tick(Vector2.zero,true,15);motor.ApplyTraversalImpulse(new Vector3(4,3,0));Assert(!motor.Climbing&&motor.VerticalSpeed>0,"Impact API breaks grip before applying knockback.");
             Setup();Tick(Vector2.zero,true,15);block.gameObject.SetActive(false);Tick(Vector2.zero,true,1);Assert(!motor.Climbing,"Disabled/destroyed support safely releases the climber.");block.gameObject.SetActive(true);
             Setup(2);motor.Teleport(new Vector3(120,44,.82f),Quaternion.identity);Tick(Vector2.up,true,100);
@@ -63,7 +80,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             motor.Teleport(patch-block.transform.forward*.29f-Vector3.up*(motor.StandingHeight*.65f),Quaternion.identity);Tick(Vector2.zero,true,15);start=motor.transform.position;Tick(Vector2.up,true,20);
             Assert(motor.Climbing&&motor.transform.position.y>start.y+.3f,"A settled 70 degree face supports upward scrambling.");
             Assert(Physics.GetIgnoreLayerCollision(CastleBlock.SurvivorLayer,CastleBlock.BlockLayer),"Climbing keeps player-to-dynamic-block collision isolation.");
-            Object.Destroy(staging);Object.Destroy(block.gameObject);Debug.Log(string.Join("\n",lines));EditorApplication.ExitPlaymode();
+            Object.Destroy(staging);Object.Destroy(block.gameObject);Debug.Log(string.Join("\n",lines));if(exitPlayMode)EditorApplication.ExitPlaymode();
         }
         static void Capture(CastleSurvivor motor,CandyPlayerAvatar avatar)
         {

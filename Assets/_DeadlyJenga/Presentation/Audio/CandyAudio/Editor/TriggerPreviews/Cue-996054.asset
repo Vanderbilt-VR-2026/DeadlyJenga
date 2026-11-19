@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-996054
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 6812ee0e988d1c74f8c0e192366be4c5, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 996054
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Draw
+    atlasFile: atlas.png
+    atlasSha256: 77bd6df035f92b937c8484de4ba830aeea9b89130cb1a4a47113cfc9460c4811
+    gifFile: preview.gif
+    gifSha256: d7375904569bdeed88372846960b97bbaf96064c2701e1f164117ac4d06d9582
+    sourceSha256: 247516c138655533dade5ba8503d4d85f0909d96ca94a0309afe5cdcd1838c75
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Rocket Launcher in the acting player's hands
+    action: Draw with Rocket Launcher
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Draw
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

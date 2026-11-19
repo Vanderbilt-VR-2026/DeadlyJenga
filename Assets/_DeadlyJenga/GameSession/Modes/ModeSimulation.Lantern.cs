@@ -6,6 +6,7 @@ namespace DeadlyJenga.Modes
     // Shadow Lantern: one spirit lantern, free-for-all. The carrier scores; any hit knocks it loose.
     public sealed partial class ModeSimulation
     {
+        internal System.Func<Vector3,Vector3,bool> LanternPathClear;
         public const float LanternReach = 1.8f, LanternRegrabSeconds = 2f;
         readonly LanternFrame lantern = new LanternFrame();
         float lanternIdle, lanternLockUntil, carrierHealth, carriedFor;
@@ -73,7 +74,8 @@ namespace DeadlyJenga.Modes
                 if (!p.present || p.deferredParticipation || !f.alive || f.dying || f.role != "survivor") continue;
                 if (f.id == lanternLockedFor && Elapsed < lanternLockUntil) continue;
                 float d = (f.position + Vector3.up * .9f - lantern.position).sqrMagnitude;
-                if (d < reach) { reach = d; best = p; }
+                if (d < reach && (LanternPathClear?.Invoke(f.position + Vector3.up * .9f, lantern.position) ?? true))
+                { reach = d; best = p; }
             }
             if (best == null) return;
             string victim = lanternLockedFor;
@@ -94,7 +96,9 @@ namespace DeadlyJenga.Modes
             lantern.gongRemaining = source.gongRemaining; lantern.gongNextIn = source.gongNextIn; lantern.eventSequence = source.eventSequence;
             lantern.eventKind = source.eventKind; lantern.eventActor = source.eventActor; lantern.eventVictim = source.eventVictim; lantern.eventPosition = source.eventPosition;
             lantern.holdRemaining = source.holdRemaining; carriedFor = Mathf.Max(0, Rules.lanternHoldSeconds - source.holdRemaining);
-            carrierHealth = 1; lanternIdle = 0; LanternNeedsPerch = NinjaRound && !source.active;
+            carrierHealth = Find(lantern.carrier)?.frame.health ?? 1;
+            lanternIdle = 0; lanternLockUntil = 0; lanternLockedFor = null; lanternFlee = false;
+            LanternNeedsPerch = NinjaRound && !source.active;
         }
     }
 }

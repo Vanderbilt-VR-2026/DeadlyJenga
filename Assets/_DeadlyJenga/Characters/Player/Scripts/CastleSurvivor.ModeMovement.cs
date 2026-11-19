@@ -6,10 +6,13 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public sealed partial class CastleSurvivor : IModeActor
+    public sealed partial class CastleSurvivor : IModeActor, ISandState
     {
         public bool Sinking { get; private set; }
         public float SinkProgress { get; private set; }
+        bool ISandState.InSand => Sinking;
+        float ISandState.SandDepth => SinkProgress;
+        bool sinkVaultPending;
         public bool CarryingFlag { get; private set; }
         public bool HasWalkableIsland => modeRules!=null&&modeRules.island==IslandRule.Walkable;
         public bool PunchEnabled { get; private set; }
@@ -22,6 +25,8 @@ namespace DeadlyJenga.CastlePrototype
         float movementMultiplier = 1, vaultMultiplier = 1, nextPunch;
         public float EffectiveWalkSpeed => walkSpeed*movementMultiplier*PowerupSpeedMultiplier;
         float peakFallSpeed;
+        internal float LandingSpeed { get; private set; }
+        internal float LandedAt { get; private set; } = float.NegativeInfinity;
         ModeRules modeRules;
         string actorId, displayName;
         int team = -1;
@@ -39,7 +44,16 @@ namespace DeadlyJenga.CastlePrototype
         public Pose HandPose(bool left)
         {
             var avatar=GetComponent<CandyPlayerAvatar>();
-            if(avatar&&avatar.Rig){var f=avatar.ReadFrame();var hand=left?f.left:f.right;return new Pose(hand.position,hand.rotation);}
+            if(avatar&&avatar.Rig)
+            {
+                var frame=avatar.ReadFrame();
+                var hand=left?frame.left:frame.right;
+                // Spiker alternation transfers the muzzle offset between gameplay grips.
+                var weapon=GetComponent<CandyEquipment>()?.Equipment;
+                if(weapon?.kind==EquipmentKind.DualUzi&&weapon.drawn)
+                    return CandyWeaponVisual.DrawnPose(weapon.kind,hand,left,frame.scale);
+                return new Pose(hand.position,hand.rotation);
+            }
             var view=ViewPose;return new Pose(view.position+view.rotation*new Vector3(left?-.25f:.25f,-.4f,.35f),view.rotation);
         }
         public Rigidbody StandingBody => Grounded&&StandingSurface ? Climbables.TryGet(StandingSurface,out var owner)?owner.Body:StandingSurface.attachedRigidbody : null;
@@ -75,11 +89,16 @@ namespace DeadlyJenga.CastlePrototype
         public void SetSinking(bool value, float progress = 0)
         {
             Sinking = value; SinkProgress = value ? Mathf.Clamp01(progress) : 0;
-            if (value && Climbing) ReleaseClimb("Sinking — find a ledge", false);
+            if (!value) sinkVaultPending = false;
         }
         void ApplyFallImpact()
         {
             if(!Grounded)return;
+            if (peakFallSpeed > 2.25f)
+            {
+                LandingSpeed = peakFallSpeed;
+                LandedAt = Time.time;
+            }
             if(FallDamageEnabled && peakFallSpeed>fallSafeSpeed)
             {
                 float distance=(peakFallSpeed*peakFallSpeed-fallSafeSpeed*fallSafeSpeed)/(2*Mathf.Max(.1f,gravity));
@@ -105,7 +124,7 @@ namespace DeadlyJenga.CastlePrototype
             { punchHandReady = false; return; }
             if (!IsVR)
             {
-                if (Cursor.lockState == CursorLockMode.Locked && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+                if (DesktopGamepad.FirePressed || Cursor.lockState == CursorLockMode.Locked && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
                     RequestPunch(viewCamera.transform.position, viewCamera.transform.forward, 2);
                 return;
             }

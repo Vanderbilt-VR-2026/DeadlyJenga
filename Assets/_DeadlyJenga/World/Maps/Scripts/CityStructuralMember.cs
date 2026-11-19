@@ -23,7 +23,6 @@ namespace DeadlyJenga.CastlePrototype
         float sweepRadius;
         CityDebrisCleanup cityDebris;
         public void RegisterCityDebris(CityDebrisCleanup value){cityDebris=value;}
-        void OnCollisionEnter(Collision collision){cityDebris?.Impact(body,collision);}
         public IReadOnlyList<Collider> Shapes=>shapes;
         public IReadOnlyList<Collider> SurvivorShapes=>copies;
         public bool CanClimb=>isActiveAndEnabled&&!(cityDebris&&cityDebris.IsVisual(body));

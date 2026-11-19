@@ -89,8 +89,13 @@ namespace DeadlyJenga.CastlePrototype
             Visual.gameObject.AddComponent<MeshFilter>().sharedMesh=model;
             Visual.gameObject.AddComponent<MeshRenderer>().sharedMaterials=palette;
         }
+        internal System.Action<Vector3> StructuralLoad;
         public void Push(Vector3 force,GameObject source)
-        {if(Body&&!Body.isKinematic){Body.WakeUp();Body.AddForce(force,ForceMode.VelocityChange);}GameEvents.RaisePushed(gameObject,force);}
+        {
+            StructuralLoad?.Invoke(force);
+            if(Body&&!Body.isKinematic){Body.WakeUp();Body.AddForce(force,ForceMode.VelocityChange);}
+            GameEvents.RaisePushed(gameObject,force);
+        }
         void OnEnable(){foreach(var shape in Shapes)if(shape)Climbables.Register(shape,this);}
         void OnDisable(){foreach(var shape in Shapes)if(shape)Climbables.Unregister(shape);}
         static void BeveledBox(Vector3 size,Vector3 center,Quaternion rotation,int finish,List<Vector3> vertices,List<int>[] triangles)

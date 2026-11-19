@@ -17,7 +17,7 @@ namespace DeadlyJenga.Presentation
         public static string Clock(float seconds)=>seconds<0?"NO TIME LIMIT":TimeSpan.FromSeconds(Mathf.CeilToInt(seconds)).ToString(@"mm\:ss");
         public static string Mode(GameModeKind mode)
         {
-            switch(mode){case GameModeKind.CaptureFlag:return "CAPTURE THE FLAG";case GameModeKind.MurderMystery:return "MURDER MYSTERY";case GameModeKind.TeamTickets:return "LAST TEAM STANDING";case GameModeKind.BlockControl:return "COLOR CONTROL";case GameModeKind.KingOfHill:return "KING OF THE HILL";case GameModeKind.Infection:return "INFECTION";case GameModeKind.Survival:return "LAST SURVIVOR";case GameModeKind.Ninja:return "SHADOW LANTERN";default:return "SANDBOX";}
+            switch(mode){case GameModeKind.Ninja:return "SHADOW LANTERN";case GameModeKind.CaptureFlag:return "CAPTURE THE FLAG";case GameModeKind.MurderMystery:return "MURDER MYSTERY";case GameModeKind.TeamTickets:return "LAST TEAM STANDING";case GameModeKind.BlockControl:return "COLOR CONTROL";case GameModeKind.KingOfHill:return "KING OF THE HILL";case GameModeKind.Infection:return "INFECTION";case GameModeKind.Survival:return "LAST SURVIVOR";default:return "SANDBOX";}
         }
         public static InputAction CreateSelectInput()
         {
@@ -38,6 +38,7 @@ namespace DeadlyJenga.Presentation
         {
             switch(mode)
             {
+                case GameModeKind.Ninja:return p.lanternPoints.ToString("0.0")+" lantern points / "+p.steals+" steals";
                 case GameModeKind.CaptureFlag:return p.captures+" captures / "+p.flagReturns+" returns / "+p.kills+" kills / "+p.deaths+" deaths";
                 case GameModeKind.TeamTickets:return p.kills+" kills / "+p.deaths+" deaths";
                 case GameModeKind.KingOfHill:return p.hillSeconds.ToString("0.0")+"s hill / "+p.kills+" kills";
@@ -45,7 +46,6 @@ namespace DeadlyJenga.Presentation
                 case GameModeKind.MurderMystery:return p.bodyReports+" reports / "+p.revives+" revives / "+p.kills+" kills";
                 case GameModeKind.Infection:return p.survivalSeconds.ToString("0.0")+"s survivor / "+p.infections+" infected";
                 case GameModeKind.Survival:return p.survivalSeconds.ToString("0.0")+"s / "+(p.alive?"SURVIVED":"ELIMINATED");
-                case GameModeKind.Ninja:return p.lanternPoints.ToString("0")+" lantern / "+p.steals+" steals / "+p.kills+" kills";
                 default:return p.kills+" kills / "+p.deaths+" deaths";
             }
         }

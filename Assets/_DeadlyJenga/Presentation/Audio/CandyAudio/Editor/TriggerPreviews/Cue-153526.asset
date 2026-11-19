@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-153526
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: de33b685580923b49824a4559c2d43c3, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 153526
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Reload
+    atlasFile: atlas.png
+    atlasSha256: 47c3a53be7784aef7e9f79f33fe579fd652a8a6f9e9f0be816b3253864562231
+    gifFile: preview.gif
+    gifSha256: 9f69a40c1e7a7e4814560b7ac31cf09fda4815935790c5aeb049ee1eee6a3619
+    sourceSha256: b6c897a19111c07da638929c8613b2e209e9475c90d0a19686ab25ca67c3e9f7
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Laser Claws in the acting player's hands
+    action: Reload with Laser Claws
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Reload
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

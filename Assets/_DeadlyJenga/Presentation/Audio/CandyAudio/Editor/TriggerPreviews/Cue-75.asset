@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-75
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: e698656a7bc56ed48be8c0200a2d1fd3, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 75
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Jaguar Growl
+    atlasFile: atlas.png
+    atlasSha256: d973fcf9b4495c8e0836ad1a66349728bcfc961db4f5bd9ab56d9173abf8d412
+    gifFile: preview.gif
+    gifSha256: 149b7ce83deeb866f70ae3f44a98e988eeac9ec19299d7e308ff7e78b4ee77e6
+    sourceSha256: b87c9e2317620ea9b0f6c19289227a2fbd2b4b738bebc78480cd3ca59f6188ec
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Feline avatar / bot
+    action: foley
+    target: Environment / local listener
+    listenerRole: Local player camera / ear
+    triggerEvidence: Observed gameplay lifecycle firing Jaguar Growl
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

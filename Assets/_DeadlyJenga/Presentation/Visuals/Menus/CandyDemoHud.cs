@@ -18,16 +18,34 @@ namespace DeadlyJenga.CastlePrototype
         public HintMode hintMode=HintMode.Adaptive;
         [Range(.5f,1)] public float hintOpacity=.86f;
         ISessionInfo session;CandyAudioStudio studio;
+        SessionPresentation tablet;
         IPlayableCharacter Active=>session.PlayingHand?session.Hand:session.Player;
         IMovementState Move=>session.Player as IMovementState;
         ISurvivorSettings Settings=>session.Player as ISurvivorSettings;
         IDemoControls Demo=>session.Demo;
         bool Climbing=>Move!=null&&Move.Climbing;
         string DemoStatus=>Demo!=null?Demo.Status:"";
+        string DemoAccessReason=>CanCommand?"Demo controls enabled":GameExperiencePanel.Resolve(session)?.Experience==GameExperience.Game?"GAME: enable Demo controls to use testing tools":session.Multiplayer?.IsClient==true?"Host permission required for Demo controls":"Demo controls temporarily unavailable while the room changes";
+        void EnableDemoControls()
+        {
+            var controls=GameExperiencePanel.Resolve(session);
+            if(GameExperiencePanel.CanEnableDemo(controls)){controls.SetExperience(GameExperience.Demo);commandFeedback="Requested Demo controls. Waiting for room confirmation.";feedbackUntil=Time.unscaledTime+6;}
+            else GameExperiencePanel.Open(session);
+        }
         int page,selection;Vector2 scroll;bool lastMenu;float nextHintSample;string lastContext="";
-        const float IntroSeconds=7f;const int IntroRuns=3;   // each situation teaches itself the first few times
-        float introRemaining=IntroSeconds;bool introReplay;string introKey;
-        float uiSize=1;GUIStyle title,heading,cardHeading,body,titleCenter,bodyCenter,small,button,compactButton,box;GUISkin themed;bool ready;
+        [Flags]
+        enum BasicAction { None = 0, Look = 1, Move = 2, Jump = 4, All = Look | Move | Jump }
+        BasicAction completedActions;
+        string introKey;
+        Transform introPlayer;
+        Camera introCamera;
+        Quaternion lookStart;
+        Vector3 lastMovePosition;
+        float walkedDistance;
+        bool introWasGrounded;
+        RectTransform hintStrip;
+        readonly RectTransform[] hintRows = new RectTransform[3];
+        float uiSize=1;GUIStyle title,heading,cardHeading,body,small,button,compactButton,box;GUISkin themed;bool ready;
         Canvas hintCanvas;CanvasGroup hintGroup;Text roleText,statusText,menuText;
         readonly Text[] hintKeys=new Text[3],hintNames=new Text[3];readonly RawImage[] hintIcons=new RawImage[3];
         readonly System.Collections.Generic.List<Action> navActions=new System.Collections.Generic.List<Action>();int navCount,drawIndex;bool activate;
@@ -43,10 +61,6 @@ namespace DeadlyJenga.CastlePrototype
             feedbackUntil=Time.unscaledTime+6;
             if(success)session.SetMenu(false);
         }
-        bool hostTools;
-        readonly RoomLeaveConfirmation guestLeave=new RoomLeaveConfirmation();
-        bool showVoice;
-        Vector2 personalScroll;
         int PageCount=>4;
         string PageName(int index)=>DemoMenuSections.Tabs[Mathf.Clamp(index,0,3)];
         CandyHudIcon PageIcon(int index)=>index==0?CandyHudIcon.Survivor:index==1?CandyHudIcon.Friends:index==2?CandyHudIcon.Home:CandyHudIcon.Settings;
@@ -59,17 +73,20 @@ namespace DeadlyJenga.CastlePrototype
         void Awake(){session=GetComponent<ISessionInfo>();}
         void Update()
         {
-            if((session as ILobbyMatchVisitControls)?.VisitingLobby==true){if(hintCanvas)hintCanvas.enabled=false;return;}
-            if(MatchRuntime.Current?.Frame.phase==RoundPhase.Results){if(hintCanvas)hintCanvas.enabled=false;return;}
-            if(GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session)){if(hintCanvas)hintCanvas.enabled=false;return;}
-            if(!Ready)return;
+            if(!Ready || (session as ILobbyMatchVisitControls)?.VisitingLobby==true ||
+                MatchRuntime.Current?.Frame.phase==RoundPhase.Results ||
+                GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session))
+            {
+                if(hintCanvas)hintCanvas.enabled=false;
+                introPlayer=null;
+                return;
+            }
             if(!studio)studio=FindFirstObjectByType<CandyAudioStudio>();
-            if(studio)studio.ShowLauncher=false;
-            if(!session.MenuOpen&&lastMenu){MultiplayerPanel.ClearLeaveConfirmation();guestLeave.Clear();}
-            if(session.MenuOpen&&!lastMenu){selection=0;hostTools=false;showVoice=false;}
+            if(!session.MenuOpen&&lastMenu)MultiplayerPanel.ClearLeaveConfirmation();
+            if(session.MenuOpen&&!lastMenu){selection=0;desktopWheelSection=null;}
             lastMenu=session.MenuOpen;
             var k=Keyboard.current;
-            if(k!=null&&hostTools&&DeadlyJenga.Presentation.MenuAccess.HostTools(session)&&session.MenuOpen&&!session.IsVR&&!(studio&&studio.IsOpen))
+            if(k!=null&&session.MenuOpen&&!session.IsVR&&!(studio&&studio.IsOpen))
             {
                 if(k.leftArrowKey.wasPressedThisFrame)ChangePage((page+PageCount-1)%PageCount);
                 if(k.rightArrowKey.wasPressedThisFrame)ChangePage((page+1)%PageCount);
@@ -89,10 +106,9 @@ namespace DeadlyJenga.CastlePrototype
         void FollowSelection(){float top=selection<navTops.Count?navTops[selection]:116+selection*104;if(top<scroll.y)scroll.y=top;if(top+100>scroll.y+404)scroll.y=top+100-404;}
         void Styles()
         {
-            if(ready)return;ready=true;var font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
+            if(ready)return;ready=true;var font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             title=new GUIStyle(GUI.skin.label){font=font,fontSize=30,fontStyle=FontStyle.Bold,normal={textColor=Color.white}};
             heading=new GUIStyle(title){fontSize=22};body=new GUIStyle(GUI.skin.label){font=font,fontSize=19,wordWrap=true,normal={textColor=Color.white}};
-            titleCenter=new GUIStyle(title){fontSize=40,alignment=TextAnchor.MiddleCenter};bodyCenter=new GUIStyle(body){alignment=TextAnchor.MiddleCenter,normal={textColor=CandyHudVisuals.Muted}};
             cardHeading=new GUIStyle(heading){fontSize=19,wordWrap=true};
             small=new GUIStyle(body){fontSize=18,normal={textColor=new Color(.90f,.87f,.96f)}};
             button=new GUIStyle(GUI.skin.button){font=font,fontSize=19,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(14,12,8,8),border=new RectOffset(10,10,10,10),normal={background=CandyHudVisuals.Rounded,textColor=Color.white},hover={background=CandyHudVisuals.Rounded,textColor=Color.white},active={background=CandyHudVisuals.Rounded,textColor=Color.white}};
@@ -106,26 +122,32 @@ namespace DeadlyJenga.CastlePrototype
             themed.textField=new GUIStyle(button){fontStyle=FontStyle.Normal};
             foreach(var state in new[]{themed.button.normal,themed.button.hover,themed.button.active,themed.button.focused,themed.textField.normal,themed.textField.hover,themed.textField.active,themed.textField.focused}){state.textColor=Color.white;state.background=CandyHudVisuals.Rounded;}
         }
+        internal bool StudioOpen => studio && studio.IsOpen;
+        bool TabletVisible
+        {
+            get
+            {
+                if (!tablet) tablet=GetComponent<SessionPresentation>();
+                return tablet && tablet.TabletVisible;
+            }
+        }
         void OnGUI()
         {
-            if(GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
+            if(MenuAim.InputConsumed||GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
             if((session as ILobbyMatchVisitControls)?.VisitingLobby==true)return;
             DrawSpectatorLabels();
             if(MatchRuntime.Current?.Frame.phase==RoundPhase.Results){if(hintCanvas)hintCanvas.enabled=false;return;}
             // Screen GUI is invisible in a headset and allocates every frame (garbage collection hitches), so skip it in VR.
             if(Ready&&session.IsVR)return;
             if(Ready&&!session.MenuOpen&&session.Social!=null&&session.Social.ShowCaption)SocialPanel.DrawCaption(session.Social);
-            if(!Ready||session.IsVR||!session.MenuOpen||studio&&studio.IsOpen)return;
+            if(!Ready||session.IsVR||!session.MenuOpen||studio&&studio.IsOpen||TabletVisible)return;
             Styles();var old=GUI.matrix;var skin=GUI.skin;var tint=GUI.color;var contentTint=GUI.contentColor;var backgroundTint=GUI.backgroundColor;bool enabled=GUI.enabled;int depth=GUI.depth;
             GUI.color=GUI.contentColor=GUI.backgroundColor=Color.white;GUI.enabled=true;
             try
             {
                 float scale=Mathf.Min(Screen.width/1280f,Screen.height/800f)*uiSize;
                 GUI.matrix=Matrix4x4.TRS(new Vector3((Screen.width-1280*scale)/2,(Screen.height-800*scale)/2),Quaternion.identity,Vector3.one*scale);GUI.depth=-100;GUI.skin=themed;
-                if(MenuAccess.GuestPause(session))
-                    GUI.ModalWindow(GetInstanceID(),new Rect(340,170,600,460),DrawGuestPause,GUIContent.none,GUIStyle.none);
-                else
-                    GUI.ModalWindow(GetInstanceID(),new Rect(40,32,1200,736),DrawMenu,GUIContent.none,GUIStyle.none);
+                GUI.Window(GetInstanceID(),new Rect(40,32,1200,736),DrawMenu,GUIContent.none,GUIStyle.none);
             }
             finally{GUI.matrix=old;GUI.skin=skin;GUI.color=tint;GUI.contentColor=contentTint;GUI.backgroundColor=backgroundTint;GUI.enabled=enabled;GUI.depth=depth;}
         }
@@ -133,66 +155,26 @@ namespace DeadlyJenga.CastlePrototype
         void Icon(Rect r,CandyHudIcon icon,Color c){var old=GUI.color;GUI.color=c;GUI.DrawTexture(r,CandyHudVisuals.Icon(icon));GUI.color=old;}
         bool Button(Rect r,string text,Color color)
         {var old=GUI.backgroundColor;GUI.backgroundColor=color;var foreground=color.grayscale>.5f?CandyHudVisuals.Ink:Color.white;var style=r.height<=34?compactButton:button;style.normal.textColor=style.hover.textColor=style.active.textColor=style.focused.textColor=foreground;bool result=GUI.Button(r,text,style);GUI.backgroundColor=old;return result;}
-        void DrawGuestPause(int id)
-        {
-            hostTools=false;activate=false;navCount=0;
-            Panel(new Rect(0,0,600,460),CandyHudVisuals.Ink);
-            Panel(new Rect(0,0,600,8),CandyHudVisuals.Lavender);
-            if(Button(new Rect(26,24,100,44),"Back",CandyHudVisuals.Card))
-            {guestLeave.Clear();session.SetMenu(false);return;}
-            GUI.Label(new Rect(155,25,300,50),"Pause",title);
-            if(Button(new Rect(45,124,510,58),"Controls & Comfort",CandyHudVisuals.Card))
-            {guestLeave.Clear();CandyComfortPanel.Open(session);return;}
-            if(session.PlayingHand&&HandLooks.Names.Length>0&&
-                Button(new Rect(45,197,510,58),"Hand appearance  ·  "+HandLooks.ChosenName,CandyHudVisuals.Card))
-                HandLooks.Chosen++;
-            var room=session.Multiplayer;
-            if(room?.CanLeave!=true)return;
-            string code=MultiplayerPanel.JoinCode(room);
-            float now=Time.unscaledTime;
-            bool confirming=guestLeave.Pending(room,code,now);
-            if(Button(new Rect(45,365,510,58),confirming?"Confirm exit to lobby":"Exit to Lobby",CandyHudVisuals.Peach)&&
-                guestLeave.Select(room,code,true,now))
-                MenuAccess.ExitGuestMatch(session);
-        }
         void DrawMenu(int id)
         {
-            guestLeave.Clear();
             page=Mathf.Clamp(page,0,PageCount-1);
             Panel(new Rect(0,0,1200,736),CandyHudVisuals.Ink);Panel(new Rect(0,0,1200,8),CandyHudVisuals.Lavender);
-            bool canOpenTools=MenuAccess.HostTools(session);
-            if(!canOpenTools)hostTools=false;
-            if(!hostTools)
-            {
-                // One centred column, the same order as the headset pause menu.
-                activate=false;navCount=0;
-                const float x=330,w=540;float y=34;
-                GUI.Label(new Rect(x,y,w,52),"Paused",titleCenter);y+=56;
-                string code=MultiplayerPanel.JoinCode(session.Multiplayer);
-                if(code.Length>0){int people=session.Multiplayer?.HumanCount??1;GUI.Label(new Rect(x,y,w,30),"Party code  "+code+"  ·  "+people+(people==1?" player":" players"),bodyCenter);}
-                y+=44;
-                if(Button(new Rect(x,y,w,70),"Resume",CandyHudVisuals.Mint)){session.SetMenu(false);return;}y+=90;
-                if(Button(new Rect(x,y,w,56),"How to play",CandyHudVisuals.Card)){TutorialCoach.Restart();DeadlyJenga.Presentation.CandyRoundCard.Replay();session.SetMenu(false);return;}y+=66;
-                if(Button(new Rect(x,y,w,56),"Controls & Comfort",CandyHudVisuals.Card)){CandyComfortPanel.Open(session);return;}y+=66;
-                if(session.Social!=null){if(Button(new Rect(x,y,w,56),showVoice?"Audio & voice  ·  hide":"Audio & voice",showVoice?CandyHudVisuals.Mint:CandyHudVisuals.Card))showVoice=!showVoice;y+=66;}
-                if(session.PlayingHand&&HandLooks.Names.Length>0){if(Button(new Rect(x,y,w,56),"Hand appearance  ·  "+HandLooks.ChosenName,CandyHudVisuals.Card))HandLooks.Chosen++;y+=66;}
-                if(canOpenTools){if(Button(new Rect(x,y,w,56),"Host tools",CandyHudVisuals.Card)){hostTools=true;return;}y+=66;}
-                if(MatchRuntime.Current!=null&&Button(new Rect(x,Mathf.Max(y+14,600),w,56),MultiplayerPanel.LobbyAction(session.Multiplayer),CandyHudVisuals.Peach))
-                    MatchRuntime.Current.ReturnToLobby();
-                if(showVoice)
-                {
-                    GUILayout.BeginArea(new Rect(900,120,280,560));
-                    personalScroll=GUILayout.BeginScrollView(personalScroll);
-                    SocialPanel.Draw(session.Social,false);
-                    GUILayout.EndScrollView();
-                    GUILayout.EndArea();
-                }
-                GUI.Label(new Rect(x,690,w,30),"Esc closes this menu",bodyCenter);
-                return;
-            }
-            Icon(new Rect(26,27,48,48),CandyHudIcon.Settings,CandyHudVisuals.Mint);
-            GUI.Label(new Rect(93,23,470,45),"Host Tools",title);
-            if(Button(new Rect(963,28,207,51),"Back",CandyHudVisuals.Mint)){hostTools=false;activate=false;return;}
+            Icon(new Rect(26,27,48,48),session.PlayingHand?CandyHudIcon.Hand:CandyHudIcon.Home,CandyHudVisuals.Mint);
+            if(GameExperiencePanel.Resolve(session)!=null){if(Button(new Rect(93,23,470,45),"GAME / DEMO - ROUND SETUP",CandyHudVisuals.Card))GameExperiencePanel.Open(session);}
+            else GUI.Label(new Rect(93,23,470,45),"DEADLY JENGA  /  DEMO",title);
+            GUI.Label(new Rect(95,71,775,22),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+DemoAccessReason,small);
+            if(Button(new Rect(963,28,207,51),"Resume  ·  Esc",CandyHudVisuals.Mint))session.SetMenu(false);
+            if(Button(new Rect(26,94,218,28),CanCommand?"DEMO CONTROLS: ON":"ENABLE DEMO CONTROLS",CanCommand?CandyHudVisuals.Mint:CandyHudVisuals.Peach))EnableDemoControls();
+            if(Button(new Rect(256,94,220,28),"CONTROLS / HAND",CandyHudVisuals.Lavender))CandyComfortPanel.Open(session);
+            var inspection=session.Player?.ThirdPerson;
+            if(DemoMode){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,94,207,28),"Third person",CandyHudVisuals.Lavender))inspection?.Begin();GUI.enabled=enabled;}
+            if(Button(new Rect(748,28,201,51),MultiplayerPanel.LobbyAction(session.Multiplayer),CandyHudVisuals.Peach))MatchRuntime.Current?.ReturnToLobby();
+            string joinCode=MultiplayerPanel.JoinCode(session.Multiplayer);
+            if(joinCode.Length>0&&Button(new Rect(488,94,248,28),"Code: "+joinCode+" / Copy",CandyHudVisuals.Card))GUIUtility.systemCopyBuffer=joinCode;
+            var review=MatchRuntime.Current as IMatchReviewControls;
+            if(review?.DevelopmentReviewEnabled==true)
+            {bool enabled=GUI.enabled;GUI.enabled=review.CanEndGame;if(Button(new Rect(572,28,164,51),MultiplayerPanel.EndAction(session.Multiplayer),CandyHudVisuals.Lavender))review.EndGame();GUI.enabled=enabled;}
+            if(HandLooks.Names.Length>0&&Button(new Rect(748,94,201,28),"Hand Appearance",CandyHudVisuals.Card))CharacterPicker.Open(session);
             for(int i=0;i<PageCount;i++)
             {
                 bool pending=i==3&&session.Multiplayer!=null&&session.Multiplayer.HasPending;
@@ -204,19 +186,20 @@ namespace DeadlyJenga.CastlePrototype
             DrawSectionSelector();
             Panel(new Rect(258,244,921,430),CandyHudVisuals.Panel);drawIndex=0;
             scroll=GUI.BeginScrollView(new Rect(278,254,884,404),scroll,new Rect(0,0,856,SectionHeight));
-            var picture=SectionPicture();
+            var picture=DesktopEquipmentWheelVisible?null:SectionPicture();
             float headerWidth=picture?610:830;
-            GUI.Label(new Rect(8,2,headerWidth,36),PageName(page)+" / "+SectionName,heading);
-            GUI.Label(new Rect(8,45,headerWidth,60),PageDescription(),small);
+            GUI.Label(new Rect(8,2,headerWidth,36),DesktopEquipmentWheelVisible?"EQUIPMENT WHEEL":PageName(page)+" / "+SectionName,heading);
+            string description=DesktopEquipmentWheelVisible?"Select an icon, then Give. Current respawn grant: "+EquipmentSpecifications.Get((MatchRuntime.Current as IDemoLoadoutControls)?.RespawnEquipment??EquipmentKind.None).name:PageDescription();
+            GUI.Label(new Rect(8,45,headerWidth,DesktopEquipmentWheelVisible?24:60),description,small);
             if(picture)GUI.DrawTexture(new Rect(650,2,177,106),picture,ScaleMode.ScaleToFit);
             DrawSection();
             GUI.EndScrollView();navCount=drawIndex;if(navCount>0)selection=Mathf.Clamp(selection,0,navCount-1);
-            GUI.Label(new Rect(26,692,1150,30),Time.unscaledTime<feedbackUntil?commandFeedback:"",small);
+            GUI.Label(new Rect(26,692,1150,30),Time.unscaledTime<feedbackUntil?commandFeedback:"Tab: section   ·   ←/→: tab   ·   ↑/↓: action   ·   Enter: select   ·   Esc: resume",small);
             if(activate&&Event.current.type==EventType.Repaint){activate=false;if(selection<navCount)navActions[selection]?.Invoke();}
         }
         string PageTitle()=>SectionName=="Spectate"?"Watch the match":SectionName=="Maps"?"Change map":SectionName=="Disasters"?"Natural disasters":SectionName=="Modes"?"Game modes and world rules":SectionName=="Play"?"Make a little mayhem":SectionName=="Voice"?"AI players and voice":SectionName=="Survivors"?"Bring the island to life":SectionName=="Giant hands"?"A few extra hands":SectionName=="Settings"?"Your local controls":SectionName=="Friends"?"Multiplayer session":"A little guide to surviving the chaos";
         string PageDescription()=>SectionName=="Character"?"Your character, viewpoint, equipment hand and local testing controls.":SectionName=="Equipment"||SectionName=="Bot equipment"?"Filter the arsenal, choose the target and select an item. Shared grants require the host.":SectionName=="World"?"Rebuild the map, deliver structures or finish the round.":SectionName=="Spectate"?"Use the same eye pose as the shared survivor character, with no commands sent to the watched player.":SectionName=="Maps"?((Demo as IDemoMapControls)?.MapStatus??"Maps are unavailable."):SectionName=="Disasters"?(!string.IsNullOrEmpty(DemoStatus)?DemoStatus:string.IsNullOrEmpty(disasterStatus)?"Tune a disaster below its button, then launch it. Ice toggles on / off. New settings apply on the next launch.":disasterStatus):SectionName=="Voice"?"Microphone is opt-in. Each AI keeps its own voice and volume.":SectionName=="Survivors"||SectionName=="Giant hands"?"The host manages the shared AI population.":SectionName=="Settings"?"Tune local controls while keeping lobby match setup available.":SectionName=="Play"?"Switch roles, get back on top, or start the tower over.":SectionName=="Friends"?"Your current connection and session controls.":"Hints match the inputs this demo actually supports.";
-        bool EditWorld=>DeadlyJenga.Presentation.MenuAccess.HostTools(session);
+        bool EditWorld=>session.CanEditWorld;
         bool CanCommand=>Demo!=null&&Demo.CanCommand;
         void ActionCard(float y,CandyHudIcon icon,string name,string description,Action action,bool enabled=true,Color? accent=null,Texture preview=null)
         {
@@ -258,34 +241,114 @@ namespace DeadlyJenga.CastlePrototype
                     var item=kind;ActionCard(1159+weaponRow++*104,CandyHudIcon.Play,"Spawn "+EquipmentNames(item),"One weapon or powerup per player. Walk near it and confirm a swap.",()=>{(match as IEquipmentRuntime)?.SpawnEquipment(item);session.SetMenu(false);},can&&match?.Authority==true);
                 }
                 Note(1790,Demo.Status);
-                var inspection=CandyThirdPersonInspection.For(session);
-                ActionCard(1895,CandyHudIcon.Survivor,"Inspect your character in third person","Leave your character still. Drag to orbit, scroll to zoom; V returns to first person.",()=>inspection.Begin(),inspection!=null&&inspection.CanInspect);
+                var inspection=session.Player?.ThirdPerson;
+                ActionCard(1895,CandyHudIcon.Survivor,"Inspect your character in third person","Leave your character still. Drag to orbit, scroll to zoom; V returns to first person.",()=>inspection?.Begin(),inspection!=null&&inspection.CanInspect);
             }
             if(match is IPowerupSpawnControls)
                 ActionCard(DemoMode?2010:535,CandyHudIcon.Settings,"Random block powerup settings","Spawn interval, active limit, lifetime, and weighted types / percentages.",()=>DeadlyJenga.Presentation.CandyPowerupSpawnPanel.Open());
         }
         bool giveAllEquipment,repeatEquipment;
+        bool DesktopEquipmentWheelVisible=>SectionName=="Equipment"||SectionName=="Bot equipment"||giveEquipmentPage;
+        int desktopWheelCategory,desktopWheelOffset;
+        EquipmentKind desktopWheelSelected=EquipmentKind.Blaster;
+        string desktopWheelSection;
+        GUIStyle desktopWheelName,desktopWheelCenter;
+        static readonly string[] DesktopWheelCategories={"RANGED","MELEE","POWERUPS"};
+        static readonly EquipmentKind[][] DesktopWheelItems={BuildDesktopWheelItems(0),BuildDesktopWheelItems(1),BuildDesktopWheelItems(2)};
+        static readonly Vector2[] DesktopWheelCenters={new Vector2(270,110),new Vector2(378.253f,172.5f),new Vector2(378.253f,297.5f),new Vector2(270,360),new Vector2(161.747f,297.5f),new Vector2(161.747f,172.5f)};
+        static EquipmentKind[] BuildDesktopWheelItems(int category)
+        {
+            var items=new System.Collections.Generic.List<EquipmentKind>();
+            for(int i=1;i<EquipmentSpecifications.All.Length;i++)
+            {
+                var kind=(EquipmentKind)i;var specification=EquipmentSpecifications.Get(kind);
+                bool power=specification.power||kind==EquipmentKind.PoweredArmor;
+                if(category==2?power:category==1?!power&&specification.melee:!power&&!specification.melee)items.Add(kind);
+            }
+            return items.ToArray();
+        }
+        void DesktopWheelButton(Rect rect,string text,Action action,bool enabled=true,Color? accent=null)
+        {
+            int index=drawIndex++;
+            if(index>=navTops.Count)navTops.Add(0);else navTops[index]=0;
+            if(index>=navActions.Count)navActions.Add(null);navActions[index]=enabled?action:null;
+            if(index==selection)Panel(new Rect(rect.x-2,rect.y-2,rect.width+4,rect.height+4),CandyHudVisuals.Mint);
+            bool previous=GUI.enabled;GUI.enabled=previous&&enabled;
+            if(Button(rect,text,accent??CandyHudVisuals.Card)){selection=index;action?.Invoke();}
+            GUI.enabled=previous;
+        }
+        static void DesktopWheelPicture(Rect box,EquipmentKind kind,bool alternate=false)
+        {
+            var sprite=CandyWeaponIcons.Get(kind,alternate);var previous=GUI.color;GUI.color=Color.white;
+            if(sprite)
+            {
+                var rect=sprite.rect;float scale=Mathf.Min(box.width/rect.width,box.height/rect.height);
+                var fit=new Rect(box.center.x-rect.width*scale*.5f,box.center.y-rect.height*scale*.5f,rect.width*scale,rect.height*scale);
+                GUI.DrawTextureWithTexCoords(fit,sprite.texture,new Rect(rect.x/sprite.texture.width,rect.y/sprite.texture.height,rect.width/sprite.texture.width,rect.height/sprite.texture.height));
+            }
+            else
+            {
+                var icon=kind==EquipmentKind.Jump?CandyHudIcon.Jump:kind==EquipmentKind.Speed?CandyHudIcon.Move:kind==EquipmentKind.FlyingHand?CandyHudIcon.Hand:CandyHudIcon.Key;
+                GUI.color=kind==EquipmentKind.Jump?new Color(.25f,1,.3f):kind==EquipmentKind.Speed?new Color(.25f,.7f,1):CandyHudVisuals.Mint;
+                GUI.DrawTexture(box,CandyHudVisuals.Icon(icon),ScaleMode.ScaleToFit);
+            }
+            GUI.color=previous;
+        }
         void GiveEquipmentPage()
         {
-            ActionCard(119,CandyHudIcon.Home,"Items: "+new[]{"ALL","POWERS","RANGED","MELEE"}[arsenalFilter],"Click to filter the item listing.",()=>{arsenalFilter=(arsenalFilter+1)%4;scroll=Vector2.zero;});
-            var runtime=MatchRuntime.Current;var controls=runtime as IDemoEquipmentControls;
-            var everyone=runtime as IDemoLoadoutControls;
+            if(desktopWheelSection!=SectionName)
+            {
+                desktopWheelSection=SectionName;giveAllEquipment=SectionName=="Bot equipment";
+                repeatEquipment=false;desktopWheelCategory=desktopWheelOffset=0;desktopWheelSelected=EquipmentKind.Blaster;scroll=Vector2.zero;
+            }
+            desktopWheelName??=new GUIStyle(cardHeading){fontSize=20,wordWrap=true};
+            desktopWheelCenter??=new GUIStyle(small){fontSize=14,alignment=TextAnchor.MiddleCenter,wordWrap=true};
+            var runtime=MatchRuntime.Current;var self=runtime as IDemoEquipmentControls;var everyone=runtime as IDemoLoadoutControls;
             bool host=DemoMode&&CanCommand&&runtime?.Authority==true;
-            bool can=host&&(giveAllEquipment?everyone!=null:!session.PlayingHand&&(Demo as ISpectatorControls)?.Spectating!=true&&controls!=null);
-            ActionCard(223,CandyHudIcon.Survivor,"Target: "+(giveAllEquipment?"ALL PLAYERS + BOTS":"MYSELF"),"Click to switch targets. Giant hands and enemy NPCs are excluded.",()=>{page=giveAllEquipment?0:1;subsection=giveAllEquipment?1:2;giveAllEquipment=!giveAllEquipment;scroll=Vector2.zero;},everyone!=null);
-            float y=327;
-            if(giveAllEquipment)
+            bool canSelf=host&&!session.PlayingHand&&(Demo as ISpectatorControls)?.Spectating!=true&&self!=null;
+            bool canEveryone=host&&everyone!=null&&desktopWheelSelected!=EquipmentKind.FlyingHand;
+            if(!giveAllEquipment||desktopWheelSelected==EquipmentKind.FlyingHand)repeatEquipment=false;
+            var items=DesktopWheelItems[desktopWheelCategory];int pages=Mathf.Max(1,(items.Length+5)/6);
+            desktopWheelOffset=Mathf.Clamp(desktopWheelOffset/6,0,pages-1)*6;
+            for(int category=0;category<3;category++)
             {
-                ActionCard(y,CandyHudIcon.Play,repeatEquipment?"NOW + EVERY RESPAWN":"THIS LIFE ONLY","Click to switch. Respawn grants also cover newly spawned survivors.",()=>repeatEquipment=!repeatEquipment);y+=104;
-                ActionCard(y,CandyHudIcon.Home,"Stop respawn grants","Active: "+(everyone?.RespawnEquipment==EquipmentKind.None?"OFF":DeadlyJenga.Presentation.CandyEquipmentView.Name(everyone?.RespawnEquipment??EquipmentKind.None))+". Stops future grants without taking held items away.",()=>everyone.GiveEveryoneEquipment(EquipmentKind.None,false),host&&everyone!=null&&everyone.RespawnEquipment!=EquipmentKind.None);y+=104;
+                int chosen=category;DesktopWheelButton(new Rect(470+category*116,82,110,32),DesktopWheelCategories[category],()=>{desktopWheelCategory=chosen;desktopWheelOffset=0;desktopWheelSelected=DesktopWheelItems[chosen][0];},true,desktopWheelCategory==category?CandyHudVisuals.Lavender:CandyHudVisuals.Card);
             }
-            int row=0;
-            foreach(EquipmentKind kind in System.Enum.GetValues(typeof(EquipmentKind)))
+            string pointed="";
+            for(int i=0;i<6;i++)
             {
-                if(giveAllEquipment&&kind==EquipmentKind.FlyingHand)continue;
-                if(kind==EquipmentKind.None||arsenalFilter==1&&!EquipmentSpecifications.Get(kind).power||arsenalFilter==2&&(kind<EquipmentKind.Blaster||EquipmentSpecifications.Get(kind).power||EquipmentSpecifications.Get(kind).melee)||arsenalFilter==3&&!EquipmentSpecifications.Get(kind).melee)continue;var item=kind;
-                ActionCard(y+row++*104,CandyHudIcon.Play,"Give "+(giveAllEquipment?"everyone ":"myself ")+DeadlyJenga.Presentation.CandyEquipmentView.Name(item),giveAllEquipment?"Replaces current inventory directly. "+(repeatEquipment?"Also gives this item on future respawns; new survivors included.":"Current living survivors only; disables future respawn grants."):"Replaces your one item slot. Your previous item drops at your feet. Timed powers last 20 seconds.",()=>EquipmentAction(()=>giveAllEquipment?everyone.GiveEveryoneEquipment(item,repeatEquipment):controls.GiveEquipment(item)),can);
+                int at=desktopWheelOffset+i;if(at>=items.Length)continue;var item=items[at];var center=DesktopWheelCenters[i];
+                var card=new Rect(center.x-52,center.y-37,104,74);bool hover=card.Contains(Event.current.mousePosition);
+                DesktopWheelButton(card,"",()=>desktopWheelSelected=item,true,hover?CandyHudVisuals.Mint:item==desktopWheelSelected?CandyHudVisuals.Lavender:CandyHudVisuals.Card);
+                DesktopWheelPicture(new Rect(card.x+4,card.y+4,96,66),item);
+                if(hover)pointed=EquipmentSpecifications.Get(item).name;
             }
+            Panel(new Rect(216,184,108,102),CandyHudVisuals.Ink);
+            bool alternate=desktopWheelSelected==EquipmentKind.DualRifle&&Mathf.FloorToInt(Time.unscaledTime/1.5f)%2==1;
+            DesktopWheelPicture(new Rect(224,190,92,52),desktopWheelSelected,alternate);
+            string centerName=desktopWheelSelected==EquipmentKind.DualRifle?"DUAL RIFLE\n"+(alternate?"SHOTGUN VIEW":"RIFLE VIEW"):EquipmentSpecifications.Get(desktopWheelSelected).name;
+            GUI.Label(new Rect(220,246,100,36),centerName,desktopWheelCenter);
+            GUI.Label(new Rect(470,123,350,28),string.IsNullOrEmpty(pointed)?EquipmentSpecifications.Get(desktopWheelSelected).name:pointed,desktopWheelName);
+            bool canGive=giveAllEquipment?canEveryone:canSelf;
+            string giveTitle=!host?"HOST / DEMO ACCESS REQUIRED":giveAllEquipment&&desktopWheelSelected==EquipmentKind.FlyingHand?"FLYING HAND: SELF ONLY":"GIVE SELECTED / "+(giveAllEquipment?"EVERYONE":"MYSELF");
+            DesktopWheelButton(new Rect(470,157,350,51),giveTitle,()=>
+            {
+                bool accepted=giveAllEquipment?everyone.GiveEveryoneEquipment(desktopWheelSelected,repeatEquipment):self.GiveEquipment(desktopWheelSelected);
+                commandFeedback=accepted?"Equipment request accepted.":"Request not completed: current rules or eligible recipients may have changed.";
+                feedbackUntil=Time.unscaledTime+6;if(accepted)session.SetMenu(false);
+            },canGive,CandyHudVisuals.Mint);
+            DesktopWheelButton(new Rect(470,219,350,35),"Target: "+(giveAllEquipment?"EVERYONE":"MYSELF"),()=>{giveAllEquipment=!giveAllEquipment;if(!giveAllEquipment)repeatEquipment=false;},host&&everyone!=null);
+            DesktopWheelButton(new Rect(470,262,350,35),giveAllEquipment?repeatEquipment?"NOW + EVERY RESPAWN":"THIS LIFE ONLY":"SELF / THIS LIFE ONLY",()=>repeatEquipment=!repeatEquipment,host&&everyone!=null&&giveAllEquipment&&desktopWheelSelected!=EquipmentKind.FlyingHand);
+            DesktopWheelButton(new Rect(470,305,350,35),"STOP EVERYONE RESPAWN GRANTS",()=>
+            {
+                bool accepted=everyone.GiveEveryoneEquipment(EquipmentKind.None,false);
+                commandFeedback=accepted?"Respawn grant stop accepted.":"Stop request not accepted; check the actual respawn grant above.";
+                feedbackUntil=Time.unscaledTime+6;
+            },host&&everyone!=null&&everyone.RespawnEquipment!=EquipmentKind.None,CandyHudVisuals.Peach);
+            DesktopWheelButton(new Rect(470,352,100,35),"< PREV",()=>{desktopWheelOffset-=6;desktopWheelSelected=items[desktopWheelOffset];},desktopWheelOffset>0);
+            GUI.Label(new Rect(580,352,130,35),(desktopWheelOffset/6+1)+" / "+pages,desktopWheelCenter);
+            DesktopWheelButton(new Rect(720,352,100,35),"NEXT >",()=>{desktopWheelOffset+=6;desktopWheelSelected=items[desktopWheelOffset];},desktopWheelOffset+6<items.Length);
+            DesktopWheelButton(new Rect(8,350,100,35),"BACK",()=>SelectSection(0));
         }
         static string EquipmentNames(EquipmentKind item)=>item==EquipmentKind.PoweredArmor?"powered iron suit":item==EquipmentKind.DualRifle?"dual rifle / shotgun":item==EquipmentKind.MurderSword?"murderer sword":item==EquipmentKind.SheriffHammer?"sheriff revolver":item==EquipmentKind.BoxingGlove?"giant boxing glove":"alien blaster";
         readonly MapCategoryPicker demoMapPicker=new MapCategoryPicker();
@@ -338,7 +401,7 @@ namespace DeadlyJenga.CastlePrototype
         void DrawSpectatorLabels()
         {
             if(!Ready||session.IsVR||session.MenuOpen||!(Demo is ISpectatorControls controls)||!controls.Spectating)return;
-            spectatorLabel??=new GUIStyle(GUI.skin.box){font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont,fontSize=16,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(12,12,4,4),normal={background=CandyHudVisuals.Rounded,textColor=Color.white}};
+            spectatorLabel??=new GUIStyle(GUI.skin.box){font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"),fontSize=16,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(12,12,4,4),normal={background=CandyHudVisuals.Rounded,textColor=Color.white}};
             var old=GUI.backgroundColor;GUI.backgroundColor=new Color(.08f,.03f,.15f,.9f);
             for(int i=0;i<(controls.FourViews?4:1);i++)
             {
@@ -348,23 +411,58 @@ namespace DeadlyJenga.CastlePrototype
             }
             GUI.Box(new Rect(8,Screen.height-34,Mathf.Min(Screen.width-16,490),26),"← / → switch players   ·   Esc spectator menu",spectatorLabel);GUI.backgroundColor=old;
         }
+        int desktopDisaster, desktopDisasterOffset;
+
+        Rect DesktopChoiceSlot(int index)
+        {
+            var direction = ModeSetupPanel.WheelDirection(index);
+            var center = new Vector2(271 + 163 * direction.x, 254 - 125 * direction.y);
+            return new Rect(center.x - 55, center.y - 25, 110, 50);
+        }
+
+        void DesktopChoiceCard(int index, string title, bool selected, Action select, bool enabled = true)
+        {
+            Rect rect = DesktopChoiceSlot(index);
+            Color tint = rect.Contains(Event.current.mousePosition) && enabled
+                ? CandyHudVisuals.Mint : selected ? CandyHudVisuals.Lavender : CandyHudVisuals.Card;
+            DesktopWheelButton(rect, "", select, enabled, tint);
+            desktopWheelCenter ??= new GUIStyle(small){fontSize=15,alignment=TextAnchor.MiddleCenter,wordWrap=true};
+            var style = desktopWheelCenter;
+            var oldColor = style.normal.textColor;
+            style.normal.textColor = tint.grayscale > .5f ? CandyHudVisuals.Ink : Color.white;
+            GUI.Label(new Rect(rect.x + 4, rect.y + 2, rect.width - 8, rect.height - 4), title, style);
+            style.normal.textColor = oldColor;
+        }
+
         float DisasterContentHeight()
         {
-            float height=350;
-            if(Demo!=null)for(int d=0;d<Demo.DisasterCount;d++)height+=104+Demo.DisasterParameters(d).Count*64+44;
-            return height;
+            if(Demo==null||Demo.DisasterCount==0)return 420;
+            int selected=Mathf.Clamp(desktopDisaster,0,Demo.DisasterCount-1);
+            return 445+Demo.DisasterParameters(selected).Count*64;
         }
         void DisastersPage()
         {
-            if(Demo==null){Note(125,"Disasters are getting ready...");return;}
-            ActionCard(119,CandyHudIcon.Play,"Stop all disasters","Extinguish fires and stop disasters. Reset the map to clear charring.",()=>Demo.Run(DemoCommand.StopDisasters),CanCommand);
-            float y=223;
-            for(int d=0;d<Demo.DisasterCount;d++)
+            if(Demo==null||Demo.DisasterCount==0){Note(125,"Disasters are getting ready...");return;}
+            const int size=ModeSetupPanel.ChoiceWheelSize;
+            desktopDisaster=Mathf.Clamp(desktopDisaster,0,Demo.DisasterCount-1);
+            desktopDisasterOffset=Mathf.Clamp(desktopDisasterOffset/size,0,(Demo.DisasterCount-1)/size)*size;
+            for(int i=0;i<size&&desktopDisasterOffset+i<Demo.DisasterCount;i++)
             {
-                int index=d;var definitions=Demo.DisasterParameters(index);var values=Demo.DisasterValues(index);
-                bool toggle=Demo.DisasterIsToggle(index);
-                ActionCard(y,CandyHudIcon.Play,Demo.DisasterLabel(index)+(toggle?" · toggle":""),toggle?"Turn slippery surfaces on or off.":"Launch with the settings selected below.",()=>disasterStatus=Demo.LaunchDisaster(index),CanCommand,CandyHudVisuals.Peach);
-                y+=104;Panel(new Rect(8,y,824,definitions.Count*64+36),CandyHudVisuals.Card);
+                int choice=desktopDisasterOffset+i;
+                DesktopChoiceCard(i,Demo.DisasterLabel(choice),choice==desktopDisaster,()=>desktopDisaster=choice);
+            }
+            int index=desktopDisaster;
+            Panel(new Rect(203,215,136,78),CandyHudVisuals.Panel);
+            GUI.Label(new Rect(207,217,128,74),Demo.DisasterLabel(index),desktopWheelCenter);
+            GUI.Label(new Rect(490,124,330,48),"DISASTER CONTROLS",heading);
+            DesktopWheelButton(new Rect(490,180,330,48),Demo.DisasterIsToggle(index)?"TOGGLE SELECTED":"LAUNCH SELECTED",()=>disasterStatus=Demo.LaunchDisaster(index),CanCommand,CandyHudVisuals.Peach);
+            DesktopWheelButton(new Rect(490,238,330,42),"STOP ALL DISASTERS",()=>Demo.Run(DemoCommand.StopDisasters),CanCommand);
+            DesktopWheelButton(new Rect(490,297,154,36),"PREVIOUS",()=>{desktopDisasterOffset-=size;desktopDisaster=desktopDisasterOffset;},desktopDisasterOffset>0);
+            DesktopWheelButton(new Rect(666,297,154,36),"NEXT",()=>{desktopDisasterOffset+=size;desktopDisaster=desktopDisasterOffset;},desktopDisasterOffset+size<Demo.DisasterCount);
+            GUI.Label(new Rect(490,342,330,64),disasterStatus??"",small);
+            var definitions=Demo.DisasterParameters(index);var values=Demo.DisasterValues(index);
+            float y=422;
+            Panel(new Rect(8,y,824,definitions.Count*64+23),CandyHudVisuals.Card);
                 bool old=GUI.enabled;GUI.enabled=old&&CanCommand;
                 for(int i=0;i<definitions.Count;i++)
                 {
@@ -378,8 +476,7 @@ namespace DeadlyJenga.CastlePrototype
                     var p=definitions[i];GUI.Label(new Rect(28,y+6+i*64,780,26),p.label+" · "+values[i].ToString(p.whole?"F0":"F1")+" "+p.unit,body);
                     float v=GUI.HorizontalSlider(new Rect(28,y+37+i*64,780,20),values[i],p.min,p.max);if(!Mathf.Approximately(v,values[i]))Demo.SetDisasterValue(index,i,v);
                 }
-                GUI.enabled=old;GUI.Label(new Rect(28,y+definitions.Count*64+4,780,26),"Next launch only · Stop all restores temporary changes",small);y+=definitions.Count*64+48;
-            }
+                GUI.enabled=old;GUI.Label(new Rect(28,y+definitions.Count*64,780,23),"Settings apply on the next launch",small);
         }
         void BotsPage()
         {
@@ -388,7 +485,10 @@ namespace DeadlyJenga.CastlePrototype
             ActionCard(223,CandyHudIcon.Friends,"Fill to "+Demo.SurvivorTarget+" players","Count human players too; fill the remaining survivor slots.",()=>Demo.Run(DemoCommand.FillSurvivors),CanCommand);
             ActionCard(327,CandyHudIcon.Settings,"Next personality: "+Demo.SurvivorPersonality,"Click to cycle the personality used for new survivors.",()=>Demo.Run(DemoCommand.NextSurvivor),CanCommand);
             ActionCard(431,CandyHudIcon.Survivor,"Clear bot survivors","Remove the survivor bots and stop automatic filling.",()=>Demo.Run(DemoCommand.ClearSurvivors),CanCommand,CandyHudVisuals.Peach);
-            Note(541,Demo.SurvivorStatus+(CanCommand?"":"  Only the host can add or remove bots."));
+            var enemies=session.SurvivorBots as IEnemyPopulation;bool canEnemies=enemies!=null&&MatchRuntime.Current?.Authority==true;
+            ActionCard(535,CandyHudIcon.Survivor,"Spawn jaguar enemy  ·  "+(enemies?.EnemyCount??0)+" active","Infected-style pursuit and normal bot movement. Spawns at the perimeter; 20 damage per hit.",()=>enemies.SpawnEnemy(new EnemySpawnSettings()),canEnemies,CandyHudVisuals.Peach);
+            ActionCard(639,CandyHudIcon.Survivor,"Clear jaguar enemies","Remove enemies while keeping ordinary survivor bots.",()=>enemies.ClearEnemies(),canEnemies);
+            Note(749,Demo.SurvivorStatus+(CanCommand?"":"  Only the host can add or remove bots."));
         }
         void HandsPage()
         {
@@ -401,41 +501,60 @@ namespace DeadlyJenga.CastlePrototype
         {
             // Keep all discovery / pending / cancellation conditions owned by the network component.
             var color=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
-            GUILayout.BeginArea(new Rect(10,113,816,515));if(session.Multiplayer!=null)MultiplayerPanel.Draw(session.Multiplayer,false);else GUILayout.Label("Local discovery is starting...");GUILayout.EndArea();GUI.backgroundColor=color;
+            GUILayout.BeginArea(new Rect(10,113,816,515));if(session.Multiplayer!=null)MultiplayerPanel.Draw(session.Multiplayer);else GUILayout.Label("Local discovery is starting...");GUILayout.EndArea();GUI.backgroundColor=color;
         }
         void ModesPage()
         {
             var background=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
-            bool editable=GUI.enabled;GUI.enabled=editable&&GameExperiencePanel.CanEditRawChoices(session);
-            GUILayout.BeginArea(new Rect(12,115,816,5800));ModeSetupPanel.Draw();GUILayout.EndArea();GUI.enabled=editable;
+            bool editable=GUI.enabled;
+            var match=MatchRuntime.Current;
+            bool canPick=editable&&match?.Authority==true&&GameExperiencePanel.CanEditRawChoices(session);
+            if(match!=null)
+            {
+                for(int i=0;i<ModeSetupPanel.WheelModes.Length;i++)
+                {
+                    var choice=ModeSetupPanel.WheelModes[i];
+                    DesktopChoiceCard(i,CandyHudContent.Mode(choice),choice==match.Rules.mode,
+                        ()=>{if(choice!=match.Rules.mode)match.Configure(ModeDefaults.Create(choice));},canPick);
+                }
+                var picture=ModeSetupPanel.WheelModePicture(match.Rules.mode);
+                if(picture)GUI.DrawTexture(new Rect(203,209,136,90),picture,ScaleMode.ScaleToFit);
+                GUI.Label(new Rect(490,133,330,48),CandyHudContent.Mode(match.Rules.mode),heading);
+                GUI.Label(new Rect(490,188,326,72),canPick?"Select a mode, then start a round. Settings are below.":"The host selects the mode.",body);
+                DesktopWheelButton(new Rect(490,275,330,48),"START / RESTART ROUND",()=>match.StartRound(),canPick,CandyHudVisuals.Peach);
+            }
+            GUI.enabled=editable&&GameExperiencePanel.CanEditRawChoices(session);
+            GUILayout.BeginArea(new Rect(12,422,816,5550));ModeSetupPanel.Draw();GUILayout.EndArea();GUI.enabled=editable;
             GUI.backgroundColor=background;
         }
         void SettingsPage()
         {
-            ActionCard(119,CandyHudIcon.Help,"Gameplay hints: "+hintMode,"Adaptive shows a short first-run intro. Always shows detailed controls. Hidden turns hints off.",()=>{hintMode=(HintMode)(((int)hintMode+1)%3);});
+            ActionCard(119,CandyHudIcon.Help,"Gameplay hints: "+hintMode,"Adaptive clears each first-run hint when you do the action. Always shows more controls.",()=>{hintMode=(HintMode)(((int)hintMode+1)%3);});
             GUI.Label(new Rect(12,230,820,29),"Hint opacity  ·  "+Mathf.RoundToInt(hintOpacity*100)+"%",body);hintOpacity=GUI.HorizontalSlider(new Rect(12,270,815,24),hintOpacity,.5f,1);
             Note(310,"Tip: F1 toggles gameplay hints. Use a larger Game view for a larger menu. Settings here apply to this running session.");
             var color=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
-            GUILayout.BeginArea(new Rect(12,410,816,1800));SurvivorSettingsPanel.Draw(Settings,EditWorld,Demo!=null?Demo.ApplyStaminaRules:(Action<string>)null,showComfort:false);
+            GUILayout.BeginArea(new Rect(12,410,816,1800));SurvivorSettingsPanel.Draw(Settings,EditWorld,Demo!=null?Demo.ApplyStaminaRules:(Action<string>)null);
             GUILayout.EndArea();GUI.backgroundColor=color;
         }
         void VoicePage()
         {
             var background=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
             GUILayout.BeginArea(new Rect(12,115,816,1250));
-            SocialPanel.Draw(session.Social);
+            SocialPanel.Draw(session.Social, DemoMode && CanCommand);
             GUILayout.EndArea();
             GUI.backgroundColor=background;
         }
         void ControlsPage()
         {
-            if(session.Player?.gameObject.GetComponent<IEquipmentControls>()?.PendingPickup>0)
-                Note(550,DeadlyJenga.Presentation.CandyEquipmentView.SwapInputHint(session));
+            var inspection=session.Player?.ThirdPerson;
+            ActionCard(117,CandyHudIcon.Survivor,"Third person / inspect your avatar",session.IsVR?"Stationary mirror: look at its orbit / zoom buttons, then hold RIGHT trigger or pinch.":"Character stays still. Drag mouse to orbit, scroll to zoom; V returns.",()=>inspection?.Begin(),inspection?.CanInspect==true);
+            Note(550,session.IsVR?"PICKUP: Look at the weapon, reach and squeeze grip or pinch. Swapping drops the item in your slot.":
+                "PICKUP: Aim at the weapon and press E. Swapping drops the item in your slot. Delete drops it directly.");
             var hints=Hints();for(int i=0;i<hints.Length;i++){Panel(new Rect(8,221+i*107,824,94),CandyHudVisuals.Card);Icon(new Rect(25,244+i*107,44,44),hints[i].icon,CandyHudVisuals.Mint);GUI.Label(new Rect(88,233+i*107,720,32),hints[i].key,heading);GUI.Label(new Rect(88,272+i*107,720,38),hints[i].text,body);}
-            if(!(session.Player?.gameObject.GetComponent<IEquipmentControls>()?.PendingPickup>0))Note(555,!session.IsVR?"MENU: Esc opens / closes. Click a card, or use arrow keys + Enter. Mouse wheel scrolls. Use Character to switch roles. F8 opens Sound Studio.":"MENU: bare left Y or native menu opens / closes. Right-only: Grip + B opens; B closes. Left thumb + middle also toggles. Aim at a button and press its controller trigger, or use the selecting pinch.");
-            Note(661,"SURVIVOR: jump toward a block, then press jump again near its edge to vault. Hold jump near a wall to catch it; move to climb or shimmy, then release to drop. Rest on secure ground to recover grip.");
-            Note(787,"GIANT HAND: desktop WASD flies, Q lowers, E rises, mouse steers. In VR, LEFT stick flies; LEFT trigger rises, LEFT grip lowers. Hold X and flick LEFT stick sideways to turn. With bare hands, pinch the spare hand and move it from its starting position to steer; release to stop.");
-            Note(919,"SURVIVOR SPRINT: click the movement stick or tap Left Shift to toggle while grounded. Jumping or climbing ends sprint. Single-controller weapon mode: Grip + X / A; two controllers: support trigger. Grip + stick click opens emotes. Delete or the Drop menu action drops equipment.");
+            Note(609,!session.IsVR?"MENU: Esc opens / closes. Click a card, or use arrow keys + Enter. Mouse wheel scrolls. Use Character to switch roles.":"MENU: bare left Y or native menu opens / closes. Right-only: Grip + B opens; B closes. Left thumb + middle also toggles. Aim at a button and press its controller trigger, or use the selecting pinch.");
+            Note(704,"SURVIVOR: jump, then press jump again by a ledge to vault. Hold jump by a wall to catch it; move to climb or shimmy; release to drop. Rest on secure ground to recover grip. AIM: dominant grip (VR) / RMB (desktop) raises gun / sight; release lowers it.");
+            Note(807,"GIANT HAND: desktop WASD flies, Q lowers, E rises, mouse steers. In VR, the movement stick flies. With one controller, hold the stick click and tilt to turn or look. Trigger rises; grip lowers. With bare hands, pinch the spare hand and move it from its starting position to steer; release to stop.");
+            Note(919,"SURVIVOR SPRINT: click the movement stick or tap Left Shift to toggle while grounded. Jumping or climbing ends sprint. Single-controller weapon mode: Grip + X / A; two controllers: support trigger. Grip + stick click opens emotes. Delete or Drop drops equipment. STANDINGS: with two controllers, hold bare look-stick click, or pin via menu. VR pages cycle every 5s.");
             Note(1051,"SUIT: V takes off / lands; WASD flies; Q lowers / E rises; left click fires. In VR the flight controller stick flies, trigger rises and grip lowers. Grip + Y toggles left; B toggles right. The tracked other hand trigger or pinch fires. Release input after menu or tracking changes.");
         }
         public struct Hint
@@ -487,8 +606,19 @@ namespace DeadlyJenga.CastlePrototype
             Hint move=vr?Controller(session.PlayingHand?left||!right:single?left:!dominantLeft,ControllerPart.Stick,session.PlayingHand?"Fly":"Move"):
                 new Hint(CandyHudIcon.Move,"W A S D",session.PlayingHand?"Fly":"Move");
             if(session.PlayingHand)
-                return vr ? new[]{move,Controller(true,ControllerPart.Trigger,"Rise"),Controller(true,ControllerPart.Grip,"Descend")} :
-                    new[]{move,new Hint(CandyHudIcon.Key,"Q / E","Descend / rise"),new Hint(CandyHudIcon.Look,"MOUSE","Steer")};
+            {
+                if(!vr)return new[]{move,new Hint(CandyHudIcon.Key,"Q / E","Descend / rise"),new Hint(CandyHudIcon.Look,"MOUSE","Steer")};
+                if(!left&&!right)return TrackedHands?new[]{
+                    new Hint(CandyHudIcon.Hand,"HAND TRACKING","Gesture flight"),
+                    new Hint(CandyHudIcon.Pinch,"SPARE HAND PINCH","Steer / release to stop"),
+                    new Hint(CandyHudIcon.Help,"OPEN CONTROLS","Hand-tracking help")}:new[]{
+                    new Hint(CandyHudIcon.Help,"TRACK A CONTROLLER","Flight input unavailable"),
+                    new Hint(CandyHudIcon.Help,"NO TRACKED TRIGGER","Rise unavailable"),
+                    new Hint(CandyHudIcon.Help,"NO TRACKED GRIP","Descend unavailable")};
+                bool pilotLeft=single?left:dominantLeft;
+                return new[]{Controller(single?left:!pilotLeft,ControllerPart.Stick,single?"Fly / click-hold to look":"Fly"),
+                    Controller(pilotLeft,ControllerPart.Trigger,"Rise"),Controller(pilotLeft,ControllerPart.Grip,"Descend")};
+            }
 
             var controls=session.Player.gameObject.GetComponent<IEquipmentControls>();
             var equipment=controls?.Equipment;
@@ -508,32 +638,26 @@ namespace DeadlyJenga.CastlePrototype
                 return new[]{move,jump,release};
             }
 
-            var ninja=MatchRuntime.Current;
-            if(ninja?.Rules?.mode==GameModeKind.Ninja&&ninja.Frame?.lantern!=null&&ninja.Frame.lantern.carrier==ninja.LocalActorId)
-                return new[]{move,jump,new Hint(CandyHudIcon.Help,"LANTERN IN HAND","Keep moving · hits drop it")};
-            if(controls?.PendingPickup>0)
-                return new[]{move,jump,new Hint(CandyHudIcon.Help,"READ PICKUP PROMPT","Swap / keep controls")};
-
             if(armed&&equipment.kind==EquipmentKind.PoweredArmor)
             {
                 if(vr&&!left&&!right)return new[]{
                     new Hint(CandyHudIcon.Hand,"TRACK A CONTROLLER","Controller needed"),
                     new Hint(CandyHudIcon.Move,"NO TRACKED STICK","Flight unavailable"),
                     new Hint(CandyHudIcon.Help,"NO TRACKED BUTTON","Toggle unavailable")};
-                bool pilotLeft=single?left:equipment.leftHanded;
+                bool pilotLeft=single?left:!equipment.leftHanded;
                 bool mixedFlightSide=vr&&left&&right&&TrackedHands;
-                if(!drawn)return new[]{move,jump,vr?(mixedFlightSide?new Hint(CandyHudIcon.Key,"FLIGHT: Grip+Y / B","Activate suit"):Controller(pilotLeft,ControllerPart.Secondary,"Activate suit",pilotLeft?"Grip + ":"")):
+                if(!drawn)return new[]{move,jump,vr?(mixedFlightSide?new Hint(CandyHudIcon.Key,"DOM: Grip+Y / B","Activate suit"):Controller(single?left:equipment.leftHanded,ControllerPart.Secondary,"Activate suit",(single?left:equipment.leftHanded)?"Grip + ":"")):
                     new Hint(CandyHudIcon.Key,"V","Activate suit")};
                 var fingers=session.Player.gameObject.GetComponent<IFingerTips>();
                 bool otherController=pilotLeft?right:left;
                 bool otherTracked=fingers!=null&&fingers.TryIndexTip(!pilotLeft,out _);
                 string fire=otherController?(pilotLeft?"R trig":"L trig"):
-                    otherTracked?(pilotLeft?"R pinch":"L pinch"):"";
-                string land=pilotLeft?"Grip+Y":"B";
+                    otherTracked?(pilotLeft?"R palm":"L palm"):"";
+                string land=equipment.leftHanded?"Grip+Y":"B";
                 if(mixedFlightSide)return new[]{
-                    new Hint(CandyHudIcon.Move,"FLIGHT STICK","Fly"),
+                    new Hint(CandyHudIcon.Move,"NON-DOM STICK","Fly"),
                     new Hint(CandyHudIcon.Key,"FLIGHT TRIG / GRIP","Rise / descend"),
-                    new Hint(CandyHudIcon.Key,"OTHER / Grip+Y,B","Fire / land")};
+                    new Hint(CandyHudIcon.Key,"DOM HAND / Grip+Y,B","Fire / land")};
                 return vr?new[]{Controller(pilotLeft,ControllerPart.Stick,"Fly"),
                     new Hint(CandyHudIcon.Key,pilotLeft?"L trigger / grip":"R trigger / grip","Rise / descend"),
                     new Hint(CandyHudIcon.Key,fire.Length>0?fire+" / "+land:land,fire.Length>0?"Fire / land":"Land")}:
@@ -555,24 +679,59 @@ namespace DeadlyJenga.CastlePrototype
                     new Hint(CandyHudIcon.Key,"R","Switch mode")):
                     (drawn?vr?Controller(weaponLeft,ControllerPart.Secondary,"Holster",weaponLeft?"Grip + ":""):
                     new Hint(CandyHudIcon.Key,"V","Holster"):jump);
-                return new[]{controls?.BlocksTraversal==true?move:jump,attack,extra};
+                var aim=vr?Controller(weaponLeft,ControllerPart.Grip,"Aim / release to lower"):
+                    new Hint(CandyHudIcon.Look,"RMB","Aim / release to lower");
+                return new[]{drawn&&!swing&&!spec.power?aim:controls?.BlocksTraversal==true?move:jump,attack,extra};
             }
 
             var climb=jump;climb.key="Hold "+jump.key;climb.text="Catch a wall";
             return new[]{move,jump,climb};
         }
 
-        // Which controls matter right now: walking around, flying as a hand, or holding equipment.
-        string HintSituation()
-        {
-            if(session.PlayingHand)return "hand";
-            var equipment=session.Player?.gameObject.GetComponent<IEquipmentControls>()?.Equipment;
-            if(equipment!=null&&equipment.kind>=EquipmentKind.Blaster&&equipment.kind!=EquipmentKind.FlyingHand)return "armed";
-            return "move";
-        }
         internal void ReplayIntro()
         {
-            hintMode=HintMode.Adaptive;introReplay=true;introRemaining=IntroSeconds;
+            hintMode=HintMode.Adaptive;
+            completedActions=BasicAction.None;
+            PlayerPrefs.DeleteKey(session.IsVR ? "CandyJenga.BasicActions.VR" : "CandyJenga.BasicActions.Desktop");
+            introKey=null;
+            introPlayer=null;
+            lastContext="";
+            nextHintSample=0;
+        }
+
+        void ObserveBasicActions(Camera camera)
+        {
+            var player=session.Player;
+            var motion=Move;
+            if(motion==null || motion.InputPaused) { introPlayer=null; return; }
+            Vector3 position=player.transform.position;
+            var rotation=camera.transform.rotation;
+            if(introPlayer!=player.transform || introCamera!=camera)
+            {
+                introPlayer=player.transform;
+                introCamera=camera;
+                lookStart=rotation;
+                lastMovePosition=position;
+                walkedDistance=0;
+                introWasGrounded=motion.Grounded;
+                return;
+            }
+
+            var previous=completedActions;
+            if(Quaternion.Angle(lookStart,rotation)>=12) completedActions|=BasicAction.Look;
+            var step=position-lastMovePosition;
+            step.y=0;
+            // Require both movement input and displacement. A moving platform alone is not walking.
+            if(motion.Grounded && step.sqrMagnitude<1 && player is IMenuInputState input && input.MovementHeld)
+                walkedDistance+=step.magnitude;
+            if(walkedDistance>=.4f) completedActions|=BasicAction.Move;
+            if(introWasGrounded && !motion.Grounded && !motion.Climbing && !motion.Vaulting && motion.VerticalSpeed>.8f)
+                completedActions|=BasicAction.Jump;
+            lastMovePosition=position;
+            introWasGrounded=motion.Grounded;
+            if(previous==completedActions)return;
+            PlayerPrefs.SetInt(introKey,(int)completedActions);
+            nextHintSample=0;
         }
 
         Hint[] IntroHints()
@@ -581,10 +740,13 @@ namespace DeadlyJenga.CastlePrototype
                 new Hint(CandyHudIcon.Look,"MOUSE","Look"),new Hint(CandyHudIcon.Move,"W A S D","Move"),new Hint(CandyHudIcon.Key,"SPACE","Jump")};
             Controllers(out bool left,out bool right);
             bool dominantLeft=left!=right?left:session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+            bool handsOnly=!left&&!right;
             var jump=Settings?.StandingPlay==true&&TrackedHands&&!right?
                 new Hint(CandyHudIcon.Pinch,Settings.JumpGestureLabel=="Fist"?"RIGHT FIST":"RIGHT PINCH","Jump"):
                 Controller(dominantLeft,ControllerPart.Primary,"Jump");
-            return new[]{new Hint(CandyHudIcon.Look,left!=right?"GRIP + STICK":dominantLeft?"LEFT STICK":"RIGHT STICK","Look / or turn head"),Controller(left!=right?left:!dominantLeft,ControllerPart.Stick,"Move"),jump};
+            var move=handsOnly?new Hint(CandyHudIcon.Move,"CONNECT CONTROLLER","Move"):
+                Controller(left!=right?left:!dominantLeft,ControllerPart.Stick,"Move");
+            return new[]{new Hint(CandyHudIcon.Look,"TURN YOUR HEAD","Look around"),move,jump};
         }
 
         void BuildHints()
@@ -597,11 +759,12 @@ namespace DeadlyJenga.CastlePrototype
             var role=Pill(go.transform,new Vector2(252,45),new Vector2(22,-20),new Vector2(0,1),CandyHudCards.Background);
             roleText=Text(role,"",new Vector2(226,21),new Vector2(0,9),16);roleText.fontStyle=FontStyle.Bold;roleText.color=CandyHudCards.Ink;roleText.GetComponent<Outline>().enabled=false;
             statusText=Text(role,"",new Vector2(226,18),new Vector2(0,-9),14);statusText.color=CandyHudCards.Accent;statusText.GetComponent<Outline>().enabled=false;
-            var strip=Pill(go.transform,new Vector2(225,151),new Vector2(18,18),Vector2.zero,new Color(.94f,.87f,1,.96f));
+            hintStrip=Pill(go.transform,new Vector2(225,151),new Vector2(18,18),Vector2.zero,new Color(.94f,.87f,1,.96f));
             for(int i=0;i<3;i++)
             {
                 var card=new GameObject("Control row",typeof(RectTransform)).GetComponent<RectTransform>();
-                card.SetParent(strip,false);card.sizeDelta=new Vector2(222,48);
+                hintRows[i]=card;
+                card.SetParent(hintStrip,false);card.sizeDelta=new Vector2(222,48);
                 card.anchoredPosition=new Vector2(3,(1-i)*46);
                 var raw=new GameObject("Control diagram",typeof(RectTransform),typeof(RawImage));
                 raw.transform.SetParent(card,false);
@@ -620,14 +783,19 @@ namespace DeadlyJenga.CastlePrototype
         }
         Text Text(Transform parent,string value,Vector2 size,Vector2 position,int fontSize)
         {
-            var go=new GameObject("Hint label",typeof(RectTransform),typeof(Text),typeof(Outline));go.transform.SetParent(parent,false);var text=go.GetComponent<Text>();text.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;text.text=value;text.fontSize=fontSize;text.alignment=TextAnchor.MiddleLeft;text.color=new Color(.99f,.96f,1);
+            var go=new GameObject("Hint label",typeof(RectTransform),typeof(Text),typeof(Outline));go.transform.SetParent(parent,false);var text=go.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");text.text=value;text.fontSize=fontSize;text.alignment=TextAnchor.MiddleLeft;text.color=new Color(.99f,.96f,1);
             var edge=go.GetComponent<Outline>();edge.effectColor=new Color(.10f,.045f,.20f,.9f);edge.effectDistance=new Vector2(1,-1);text.raycastTarget=false;text.rectTransform.sizeDelta=size;text.rectTransform.anchoredPosition=position;return text;
         }
         bool viewVR;Camera hintCamera;
         void PresentHints()
         {
-            if(DeadlyJenga.Presentation.CandyMatchHud.Expanded){if(hintCanvas)hintCanvas.enabled=false;return;}
-            if(session.Demo is ISpectatorControls observer&&observer.Spectating){if(hintCanvas)hintCanvas.enabled=false;return;}
+            if(DeadlyJenga.Presentation.CandyMatchHud.Expanded ||
+                session.Demo is ISpectatorControls observer&&observer.Spectating)
+            {
+                if(hintCanvas)hintCanvas.enabled=false;
+                introPlayer=null;
+                return;
+            }
             if(!hintCanvas)BuildHints();var camera=session.ActiveCamera;
             if(viewVR!=session.IsVR||hintCamera!=camera||hintCanvas.renderMode==RenderMode.ScreenSpaceOverlay&&session.IsVR)
             {
@@ -635,30 +803,48 @@ namespace DeadlyJenga.CastlePrototype
                 DeadlyJenga.Presentation.CandyHudLayout.Configure(hintCanvas,transform,camera,viewVR);
             }
             bool adaptive=hintMode==HintMode.Adaptive;
-            string situation=HintSituation();
-            string key=(session.IsVR?"CandyJenga.ControlsSeen.v2.VR.":"CandyJenga.ControlsSeen.v2.Desktop.")+situation;
-            if(introKey!=key){introKey=key;introRemaining=IntroSeconds;}
-            bool onboarding=adaptive&&introRemaining>0&&(introReplay||PlayerPrefs.GetInt(key,0)<IntroRuns);
-            bool hidden=!camera||session.MenuOpen||studio&&studio.IsOpen||hintMode==HintMode.Hidden||
-                adaptive&&!onboarding;
-            if(onboarding&&!hidden)
+            string key=session.IsVR?"CandyJenga.BasicActions.VR":"CandyJenga.BasicActions.Desktop";
+            if(introKey!=key)
             {
-                introRemaining-=Time.unscaledDeltaTime;
-                if(introRemaining<=0){PlayerPrefs.SetInt(key,PlayerPrefs.GetInt(key,0)+1);introReplay=false;}
+                introKey=key;
+                completedActions=(BasicAction)PlayerPrefs.GetInt(key,0)&BasicAction.All;
+                introPlayer=null;
+                nextHintSample=0;
             }
+            var phase=MatchRuntime.Current?.Frame.phase;
+            bool playable=phase==null||phase==RoundPhase.Playing;
+            bool hidden=!camera||session.MenuOpen||studio&&studio.IsOpen||hintMode==HintMode.Hidden||
+                adaptive&&(!playable||session.PlayingHand||session.Player.InputSuspended||completedActions==BasicAction.All);
+            if(adaptive&&!hidden)
+            {
+                ObserveBasicActions(camera);
+                hidden=completedActions==BasicAction.All;
+            }
+            else introPlayer=null;
             if(adaptive){roleText.transform.parent.gameObject.SetActive(false);menuText.transform.parent.gameObject.SetActive(false);}
             else menuText.transform.parent.gameObject.SetActive(true);
             if(!hidden&&Time.unscaledTime>=nextHintSample)
             {
                 nextHintSample=Time.unscaledTime+.12f;
-                var hints=adaptive&&situation=="move"?IntroHints():Hints();
-                string context=(adaptive?"intro|":"full|")+InputLabel;
+                var hints=adaptive?IntroHints():Hints();
+                string context=(adaptive?"intro|"+(int)completedActions+"|":"full|")+InputLabel;
                 foreach(var hint in hints)context+="|"+hint.key+"|"+hint.text;
                 if(context!=lastContext)
                 {
                     lastContext=context;
+                    int visibleCount=0;
                     for(int i=0;i<hints.Length;i++)
                     {
+                        bool shown=!adaptive||(completedActions&(BasicAction)(1<<i))==0;
+                        hintRows[i].gameObject.SetActive(shown);
+                        if(shown)visibleCount++;
+                    }
+                    hintStrip.sizeDelta=new Vector2(225,13+visibleCount*46);
+                    int row=0;
+                    for(int i=0;i<hints.Length;i++)
+                    {
+                        if(!hintRows[i].gameObject.activeSelf)continue;
+                        hintRows[i].anchoredPosition=new Vector2(3,(visibleCount-1)*23-row++*46);
                         var hint=hints[i];
                         hintKeys[i].text=hint.key;hintNames[i].text=hint.text;
                         hintIcons[i].texture=hint.part==ControllerPart.None?CandyHudVisuals.Icon(hint.icon):
@@ -679,7 +865,7 @@ namespace DeadlyJenga.CastlePrototype
             hintGroup.alpha=Mathf.MoveTowards(hintGroup.alpha,opacity,Time.unscaledDeltaTime*5);
             hintCanvas.enabled=hintGroup.alpha>.001f;
         }
-        void OnDisable(){if(hintCanvas)hintCanvas.enabled=false;if(studio)studio.ShowLauncher=true;}
-        void OnDestroy(){if(hintCanvas)Destroy(hintCanvas.gameObject);if(themed)Destroy(themed);if(studio)studio.ShowLauncher=true;}
+        void OnDisable(){if(hintCanvas)hintCanvas.enabled=false;}
+        void OnDestroy(){if(hintCanvas)Destroy(hintCanvas.gameObject);if(themed)Destroy(themed);}
     }
 }

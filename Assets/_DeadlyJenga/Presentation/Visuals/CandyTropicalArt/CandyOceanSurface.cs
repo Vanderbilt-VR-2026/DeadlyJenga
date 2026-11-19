@@ -14,6 +14,8 @@ namespace DeadlyJenga.CandyArt
         float lastSize,lastExtent,stormExtent;
         static readonly Dictionary<string,Mesh> Cache=new Dictionary<string,Mesh>();
         static readonly HashSet<CandyOceanSurface> Live=new HashSet<CandyOceanSurface>();
+        internal float DetailedExtent {get;set;}
+        internal bool TrackStorms {get;set;}=true;
         public float ActiveExtent{get;private set;}
         void OnEnable(){Live.Add(this);Refresh();}
         void OnDisable(){Live.Remove(this);PruneUnused();}
@@ -22,17 +24,30 @@ namespace DeadlyJenga.CandyArt
         {
             if(!profile)return;if(!filter)filter=GetComponent<MeshFilter>();
             int resolution=Mathf.Clamp(profile.waterResolution,24,128);
-            float size=Mathf.Max(100,profile.oceanSize),extent=Mathf.Min(Mathf.Max(16,profile.waveExtent),size*.4f);
-            bool storm=false;
-            foreach(var source in Tracked.Waves)
+            float size=Mathf.Max(100,profile.oceanSize),extent=Mathf.Min(Mathf.Max(16,Mathf.Max(profile.waveExtent,DetailedExtent)),size*.4f);
+            if(Application.isMobilePlatform)
             {
-                var wave=source.Wave;if(!wave.active)continue;storm=true;
-                Vector3 delta=wave.center-transform.position;
-                float reach=Mathf.Max(Mathf.Abs(delta.x),Mathf.Abs(delta.z))+wave.width*.65f+wave.depth*2+70;
-                stormExtent=Mathf.Max(stormExtent,Mathf.Ceil(reach/64)*64);
+                // Keep the GPU wave mesh stable while the independent tsunami mesh crosses the map.
+                resolution=Mathf.Min(resolution,64);
+                if(TrackStorms)
+                    extent=Mathf.Min(size*.4f,Mathf.Max(extent,(Services.World?.Radius??0)+48));
             }
-            if(storm){extent=Mathf.Min(size*.4f,Mathf.Max(extent,stormExtent));resolution=128;}
-            else stormExtent=0;
+            else
+            {
+                if(DetailedExtent>0)resolution=128;
+                bool storm=false;
+                if(TrackStorms)
+                foreach(var source in Tracked.Waves)
+                {
+                    if(source==null)continue;
+                    var wave=source.Wave;if(!wave.active)continue;storm=true;
+                    Vector3 delta=wave.center-transform.position;
+                    float reach=Mathf.Max(Mathf.Abs(delta.x),Mathf.Abs(delta.z))+wave.width*.65f+wave.depth*2+70;
+                    stormExtent=Mathf.Max(stormExtent,Mathf.Ceil(reach/64)*64);
+                }
+                if(storm){extent=Mathf.Min(size*.4f,Mathf.Max(extent,stormExtent));resolution=128;}
+                else stormExtent=0;
+            }
             ActiveExtent=extent;
             if(resolution==lastResolution&&size==lastSize&&extent==lastExtent&&filter.sharedMesh)return;
             string key=resolution+":"+size.ToString("F2")+":"+extent.ToString("F2");

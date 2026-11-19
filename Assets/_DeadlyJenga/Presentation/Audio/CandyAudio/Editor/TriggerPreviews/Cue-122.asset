@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-122
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 4fd47effbc0153b4ba5def0e989eb1bb, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 122
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Stamina Empty
+    atlasFile: atlas.png
+    atlasSha256: 9f346e02bcfeec5d6b42176377771f7b27166852ee6f947a347580b5e3fe14f1
+    gifFile: preview.gif
+    gifSha256: 2a6e226dbc7d6d3ca3b9d3d1eedb237fe3bdd14e0ef2175376f4f0cfb9a2673a
+    sourceSha256: 8f47b49b724173c19de315c57d612306f4b19ac7d269557f74c75b5bbb15bfa2
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The moving player's feet, hands or exertion
+    action: Stamina Empty
+    target: The contacted ground or climbable ledge; show its material
+    listenerRole: That player for local breathing; nearby listener for movement contacts
+    triggerEvidence: Observed gameplay lifecycle firing Stamina Empty
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

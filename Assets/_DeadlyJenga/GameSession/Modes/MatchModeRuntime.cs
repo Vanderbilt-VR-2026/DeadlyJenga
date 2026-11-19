@@ -54,6 +54,8 @@ namespace DeadlyJenga.Modes
             initial.sameHumanTeam=MatchChoices.SameHumanTeam;
             simulation=new ModeSimulation(initial);
             simulation.Eliminated+=OnEliminated;
+            simulation.DeathRecorded+=OnCombatDeath;
+            GameEvents.Damaged+=OnOtherDamage;
             simulation.PhaseChanged+=OnPhase;
             simulation.OwnershipChanged+=OnOwnership;
             simulation.PowerFinished+=OnPowerFinished;
@@ -79,13 +81,14 @@ namespace DeadlyJenga.Modes
         }
         void OnDestroy()
         {
+            GameEvents.Damaged-=OnOtherDamage;
             ResetObjectiveDirector("Session destroyed");
             ClearPickupTargets();ClearDemoCameras();ClearEnemyActions();equipmentAnnouncements.Clear();
             ClearMysteryBodies();
             if(ReferenceEquals(MatchRuntime.Current,this))MatchRuntime.Current=null;
             if(ReferenceEquals(BotObjectives.Current,this))BotObjectives.Current=null;
             if(session&&session.Network)session.Network.ParticipantLeft-=OnParticipantConnectionLeft;
-            if(simulation!=null){simulation.Eliminated-=OnEliminated;simulation.PhaseChanged-=OnPhase;simulation.OwnershipChanged-=OnOwnership;simulation.PowerFinished-=OnPowerFinished;}
+            if(simulation!=null){simulation.Eliminated-=OnEliminated;simulation.DeathRecorded-=OnCombatDeath;simulation.PhaseChanged-=OnPhase;simulation.OwnershipChanged-=OnOwnership;simulation.PowerFinished-=OnPowerFinished;}
         }
         public IModeActor FindActor(string id)=>id!=null&&actors.TryGetValue(id,out var actor)&&NetworkActors.Alive(actor)?actor:null;
         public Transform FindParticipantRoot(string id)
@@ -120,7 +123,7 @@ namespace DeadlyJenga.Modes
             if(!deferred&&!enemy&&p!=null&&p.frame.alive&&MysteryActive&&mystery.Role(id)==MysteryRole.Random)mystery.RegisterLate(id);
             if(fresh&&identity!=null)simulation.PreserveIdentity(id,identity.noun);
             if(p!=null)actor.SetIdentity(id,p.frame.name,p.frame.team,p.frame.color);
-            if(!deferred&&fresh&&!local&&!actor.IsBot&&p!=null&&!p.frame.dying&&p.frame.role=="survivor"&&Rules.mode!=GameModeKind.Demo)pendingSpawns[id]=Time.time+.3f;
+            if(!deferred&&fresh&&!local&&!actor.IsBot&&p!=null&&!p.frame.dying&&p.frame.role=="survivor")pendingSpawns[id]=Time.time+.3f;
         }
         void Update()
         {
@@ -301,10 +304,10 @@ namespace DeadlyJenga.Modes
             var room=IslandRoomConnection.Instance;
             if(room&&room.Connected)
             {
-                if(room.LocalIsLobbyHost){CastleDemoCommands.Run(session,CastleDemoAction.ReturnRoom);return;}
+                if(room.IsHost){room.ReturnMatchToLobby();return;}
                 if(session)session.VisitLobby();return;
             }
-            UnityEngine.SceneManagement.SceneManager.LoadScene("Lobby");
+            IslandRoomConnection.Ensure().ReturnMatchToLobby();
         }
         public bool HandleEliminated(GameObject who,GameObject source)
         {
@@ -330,6 +333,7 @@ namespace DeadlyJenga.Modes
         }
         void ApplyFrames()
         {
+            SyncLocalTimedHand();
             ApplyMysteryBodies();
             ruleCache.Clear();
             if(Authority)foreach(var enemy in simulation.Enemies){var body=FindActor(enemy.frame.id);if(body!=null)body.ApplyModeRules(RulesFor(body.gameObject));}
@@ -348,6 +352,10 @@ namespace DeadlyJenga.Modes
         }
         public ModeRules RulesFor(GameObject actor)
         {
+            if (session && session.VisitingLobby && actor &&
+                actor.GetComponent<IModeActor>()?.ActorId is string lobbyId&&
+                (lobbyId=="lobby-visitor"||lobbyId.StartsWith("lobby-bot-",StringComparison.Ordinal)))
+                return new ModeRules { island=IslandRule.Walkable, deathEnabled=false };
             string id=actor&&actorIds.TryGetValue(actor,out var found)?found:null;
             if(id!=null&&ruleCache.TryGetValue(id,out var cached))return cached;
             var rules=Rules.Copy();

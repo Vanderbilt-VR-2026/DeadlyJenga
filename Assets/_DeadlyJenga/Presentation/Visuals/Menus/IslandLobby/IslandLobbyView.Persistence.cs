@@ -8,10 +8,15 @@ namespace DeadlyJenga.CastlePrototype
         Light lobbySun;
         void LobbyResidenceChanged(GameObject owner,string state)
         {
-            if(owner!=gameObject||!Environment)return;
+            if (owner != gameObject) return;
+            if (state is "LobbyVisitOpened" or "LobbyResumed")
+                GetComponent<SessionPresentation>()?.ResetLobbyTablet();
+            if (!Environment) return;
             if(state=="LobbyParked")
             {
-                SetWardrobeOpen(false);
+                if(spectatorWall)spectatorWall.CloseFullScreen();
+                if (marina) CloseMarinaDetail();
+                else SetWardrobeOpen(false);
                 var position=Environment.transform.position;
                 Environment.applyLighting=false;
                 foreach(var component in Environment.GetComponents<MonoBehaviour>())component.enabled=false;
@@ -20,9 +25,16 @@ namespace DeadlyJenga.CastlePrototype
                 var terrain=Environment.sandRenderer.GetComponent<CandySandbar>();if(terrain)terrain.map=null;
                 Environment.transform.position=position;Environment.Refresh();
                 if(lobbySun)lobbySun.enabled=false;
+                Environment.gameObject.SetActive(false);
+            }
+            else if(state=="LobbyVisitOpened"&&!marina)
+            {
+                Environment.gameObject.SetActive(true);
+                Environment.Refresh();
             }
             else if(state=="LobbyResumed")
             {
+                Environment.gameObject.SetActive(true);
                 Environment.profile=localArt;Environment.sun=lobbySun;Environment.applyLighting=true;
                 if(lobbySun)lobbySun.enabled=true;
                 Environment.enabled=true;Environment.Refresh();

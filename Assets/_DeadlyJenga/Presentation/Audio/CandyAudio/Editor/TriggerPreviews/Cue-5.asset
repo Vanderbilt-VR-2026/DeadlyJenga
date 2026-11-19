@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-5
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 7597f86cd4e51c24faf9321f5456d814, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 5
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Block Splash
+    atlasFile: atlas.png
+    atlasSha256: 39b457272bc2d6dad9f470b5c7f168bef1432ad84fa5b5d9a4550dbca2a0c500
+    gifFile: preview.gif
+    gifSha256: 7e72e5bd507a117bdc17d3f4406820cc972abe59b8164706f7f84bdf92ba8e28
+    sourceSha256: ad53edbb7bba9f5946ecf94679e9b6357f83a367e0c11c3d752e23645a4ef852
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Block Splash
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Block Splash
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

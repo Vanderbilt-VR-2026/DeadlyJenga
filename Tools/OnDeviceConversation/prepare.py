@@ -36,12 +36,13 @@ def main():
     release('k2-fsa/sherpa-onnx','v1.13.8',['sherpa-onnx-v1.13.8-android.tar.bz2','sherpa-onnx-v1.13.8-win-x64-shared-MD-Release.tar.bz2','sherpa-onnx-v1.13.8-win-x64-shared-MD-Release-lib.tar.bz2'])
     release('ggml-org/llama.cpp','b11714',['llama-b11714-bin-android-arm64.tar.gz','llama-b11714-bin-win-cpu-x64.zip'])
     release('k2-fsa/sherpa-onnx','asr-models',['sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2'])
-    release('k2-fsa/sherpa-onnx','tts-models',['kitten-nano-en-v0_2-fp16.tar.bz2'])
+    release('k2-fsa/sherpa-onnx','tts-models',['sherpa-onnx-pocket-tts-int8-2026-01-26.tar.bz2'])
     revision='23749fefcc72300e3a2ad315e1317431b06b590a'
     info=get_json('https://huggingface.co/api/models/Qwen/Qwen3-0.6B-GGUF/revision/'+revision+'?blobs=true')
     weights=next(s for s in info['siblings'] if s['rfilename'].endswith('.gguf'))
     jobs.append(('https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/'+revision+'/'+weights['rfilename'],'Qwen3-0.6B-Q8_0.gguf',weights['lfs']['sha256']))
     oldlock=json.loads((ROOT/'downloads.lock.json').read_text()) if (ROOT/'downloads.lock.json').exists() else []
+    jobs.extend((item["url"],item["file"],item["sha256"]) for item in oldlock if item["file"].endswith(".wav"))
     known={item['file']:item['sha256'] for item in oldlock}
     jobs=[(url,name,known.get(name,sha)) for url,name,sha in jobs]
     zig='zig-x86_64-windows-0.15.2.zip'
@@ -50,7 +51,7 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
         for job,(path,digest) in zip(jobs,pool.map(lambda item:download(*item),jobs)):
             locked.append({'url':job[0],'file':path.name,'sha256':digest})
-            if path.suffix!='.gguf':extract(path,CACHE/('zig' if path.name.startswith('zig-') else path.name.split('.tar')[0].removesuffix('.zip')))
+            if path.suffix not in ('.gguf','.wav'):extract(path,CACHE/('zig' if path.name.startswith('zig-') else path.name.split('.tar')[0].removesuffix('.zip')))
     (ROOT/'downloads.lock.json').write_text(json.dumps(locked,indent=2)+'\n')
     headers=CACHE/'headers';headers.mkdir(exist_ok=True)
     sha='c0fd78626405c6d9b934efef0ec7291fcc20e3d6'

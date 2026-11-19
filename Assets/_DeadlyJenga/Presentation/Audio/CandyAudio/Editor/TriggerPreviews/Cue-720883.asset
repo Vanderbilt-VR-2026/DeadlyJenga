@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-720883
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: ca349ac084df1194e957eb632273aa9d, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 720883
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Reload
+    atlasFile: atlas.png
+    atlasSha256: b559bad085cf023d8f0be49a8f2b858e144c04e6a6d90403ae0305bf6d066b46
+    gifFile: preview.gif
+    gifSha256: a6b1259bee86c281ac82dd325f8f38cc5e3329b6f0f40cb113ad9334618c56f8
+    sourceSha256: a8f6710e8915fe689c31170e08ebf4e9eea7dedc36e9fc8649c2e16f8fba4ac2
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Grenade Launcher in the acting player's hands
+    action: Reload with Grenade Launcher
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Reload
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

@@ -1,118 +1,131 @@
-using System;
 using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CandyPlayers
 {
-    // Source-authored prototype; fit still needs captures. Desired preferences stay intact.
+    // Preferences survive an incompatible skin or a conflicting legacy outfit.
     internal static class CandyWardrobeCompatibility
     {
-        static readonly AvatarClothing[] OuterPriority={AvatarClothing.PufferVest,AvatarClothing.SailorShirt,AvatarClothing.BomberJacket,AvatarClothing.Hoodie,AvatarClothing.Tuxedo,AvatarClothing.MonkRobe};
-        internal enum Slot { Unreviewed, HeadCovering }
-        [Flags] internal enum Tags { None=0, CrownVolume=1, IntrinsicHeadCovering=2, IntrinsicSpikes=4 }
-        [Flags] internal enum Reason { None=0, CompetingHeadCovering=1, CoveredCrownHair=2, DuplicateIntrinsicHair=4, CompetingOuterGarment=8, ArmorPads=16 }
+        const AvatarAccessory Headgear = AvatarAccessory.TopHat | AvatarAccessory.Crown | AvatarAccessory.Beanie |
+            AvatarAccessory.CowboyHat | AvatarAccessory.PirateHat | AvatarAccessory.ChefHat |
+            AvatarAccessory.VikingHelmet | AvatarAccessory.PartyHat | AvatarAccessory.PropellerCap |
+            AvatarAccessory.FlowerCrown | AvatarAccessory.PumpkinHelmet | AvatarAccessory.SkeletonMask |
+            AvatarAccessory.PantherHead | AvatarAccessory.RabbitEars | AvatarAccessory.CatEars |
+            AvatarAccessory.AntAntennae | AvatarAccessory.UnicornHorn | AvatarAccessory.DevilHorns |
+            AvatarAccessory.Broccoli | AvatarAccessory.Halo | AvatarAccessory.Headphones | AvatarAccessory.RobotAntenna;
+        const AvatarAccessory Back = AvatarAccessory.Cape | AvatarAccessory.ButterflyWings |
+            AvatarAccessory.AngelWings | AvatarAccessory.DragonWings;
+        const AvatarAccessory Extras = AvatarAccessory.LongNose | AvatarAccessory.StrongJaw;
+        const AvatarAccessory ClosedHeads = AvatarAccessory.PumpkinHelmet | AvatarAccessory.SkeletonMask |
+            AvatarAccessory.PantherHead;
+        const AvatarAccessory PantherParts = AvatarAccessory.PantherClaws | AvatarAccessory.PantherTail;
+        const AvatarClothing Outfits = AvatarClothing.MonkRobe | AvatarClothing.Diaper | AvatarClothing.FootballPads |
+            AvatarClothing.GrassSkirt | AvatarClothing.Tuxedo | AvatarClothing.BomberJacket |
+            AvatarClothing.SailorShirt | AvatarClothing.Overalls | AvatarClothing.PufferVest;
+        const AvatarClothing SportsHelmets = AvatarClothing.HockeyHelmet | AvatarClothing.FootballHelmet;
+        const AvatarClothing ExtraClothing = AvatarClothing.Hoodie | AvatarClothing.BowTie;
+        const AvatarClothing OuterLayers = AvatarClothing.MonkRobe | AvatarClothing.Tuxedo |
+            AvatarClothing.BomberJacket | AvatarClothing.SailorShirt | AvatarClothing.PufferVest;
+        const AvatarAccessory Hats = AvatarAccessory.TopHat | AvatarAccessory.Beanie | AvatarAccessory.CowboyHat |
+            AvatarAccessory.PirateHat | AvatarAccessory.ChefHat | AvatarAccessory.VikingHelmet |
+            AvatarAccessory.PartyHat | AvatarAccessory.PropellerCap;
 
-        internal struct Resolution
+        internal static AvatarWardrobeResolution Resolve(AvatarAppearance desired)
         {
-            internal AvatarAppearance effective;
-            internal AvatarAccessory hiddenAccessories;
-            internal AvatarClothing hiddenClothing;
-            internal bool hiddenHair;
-            internal Reason reasons;
+            var effective = desired;
+            string reason;
+            if (desired.poweredArmor || desired.skin != AvatarSkin.Default)
+            {
+                effective.accessories = AvatarAccessory.None;
+                effective.hair = AvatarHair.None;
+                effective.eyewear = AvatarEyewear.None;
+                effective.clothing = AvatarClothing.None;
+                reason = desired.poweredArmor ? "Powered armor covers wardrobe items." :
+                    "Switch to Default to equip wardrobe items.";
+            }
+            else
+            {
+                LimitCategories(ref effective);
+                bool limited = DifferentItems(desired, effective);
+                ApplyFit(ref effective);
+                reason = limited ? "One item per wardrobe category." :
+                    DifferentItems(desired, effective) ? "Some wardrobe items overlap." : "";
+            }
+
+            if (reason.Length > 0 && DifferentItems(desired, effective)) reason += " Hidden items stay saved.";
+            return new AvatarWardrobeResolution
+            {
+                effective = effective,
+                hiddenAccessories = desired.accessories & ~effective.accessories,
+                hiddenClothing = desired.clothing & ~effective.clothing,
+                hiddenHair = desired.hair != effective.hair,
+                reason = reason
+            };
         }
 
-        internal static Slot AccessorySlot(AvatarAccessory item)
+        static void LimitCategories(ref AvatarAppearance look)
         {
-            return item==AvatarAccessory.TopHat||item==AvatarAccessory.Beanie?Slot.HeadCovering:Slot.Unreviewed;
-        }
-        internal static Slot ClothingSlot(AvatarClothing item)
-        {
-            return item==AvatarClothing.HockeyHelmet||item==AvatarClothing.FootballHelmet?Slot.HeadCovering:Slot.Unreviewed;
-        }
-        internal static Tags HairTags(AvatarHair hair)
-        {
-            switch(hair)
+            // Older saves have no selection order. Sports helmets keep their
+            // existing priority, and the other categories use stable item IDs.
+            if ((look.clothing & SportsHelmets) != 0)
             {
-                case AvatarHair.Afro: case AvatarHair.Pompadour: case AvatarHair.LibertySpikes:
-                case AvatarHair.Spikes: case AvatarHair.Bun: return Tags.CrownVolume;
-                default:return Tags.None;
+                var helmet = (look.clothing & AvatarClothing.FootballHelmet) != 0
+                    ? AvatarClothing.FootballHelmet : AvatarClothing.HockeyHelmet;
+                look.clothing = (look.clothing & ~SportsHelmets) | helmet;
+                look.accessories &= ~Headgear;
             }
-        }
-        internal static Tags SkinTags(AvatarSkin skin)
-        {
-            switch(skin)
+            else
             {
-                case AvatarSkin.Snowman: case AvatarSkin.Witch:return Tags.IntrinsicHeadCovering;
-                case AvatarSkin.Frankenstein: case AvatarSkin.CyclopsMonster:return Tags.IntrinsicSpikes;
-                default:return Tags.None;
+                var candidates = look.accessories & ClosedHeads;
+                if (candidates == 0) candidates = look.accessories & Hats;
+                if (candidates == 0) candidates = look.accessories & Headgear;
+                look.accessories = (look.accessories & ~Headgear) | (AvatarAccessory)FirstChoice((uint)candidates);
             }
+
+            if (look.hair != AvatarHair.None) look.accessories &= ~AvatarAccessory.Mohawk;
+            if (look.eyewear != AvatarEyewear.None) look.accessories &= ~AvatarAccessory.Glasses;
+
+            look.accessories = (look.accessories & ~(Back | Extras)) |
+                (AvatarAccessory)(FirstChoice((uint)(look.accessories & Back)) |
+                    FirstChoice((uint)(look.accessories & Extras)));
+            if ((look.accessories & Back) != 0) look.clothing &= ~AvatarClothing.RoyalMantle;
+            if ((look.accessories & Extras) != 0) look.clothing &= ~ExtraClothing;
+            look.clothing = (look.clothing & ~(Outfits | ExtraClothing)) |
+                (AvatarClothing)(FirstChoice((uint)(look.clothing & Outfits)) |
+                    FirstChoice((uint)(look.clothing & ExtraClothing)));
+
+            // The enemy's paws and tail are components of the single Panther look.
+            if ((look.accessories & AvatarAccessory.PantherHead) == 0) look.accessories &= ~PantherParts;
         }
 
-        internal static Resolution Resolve(AvatarAppearance desired)
+        static void ApplyFit(ref AvatarAppearance look)
         {
-            var result=new Resolution{effective=desired};
-            var tags=SkinTags(desired.skin);
-            bool occupied=(tags&Tags.IntrinsicHeadCovering)!=0;
-            // Fixed precedence for legacy saves, which contain no selection chronology.
-            CoverClothing(ref result,AvatarClothing.FootballHelmet,ref occupied);
-            CoverClothing(ref result,AvatarClothing.HockeyHelmet,ref occupied);
-            CoverAccessory(ref result,AvatarAccessory.TopHat,ref occupied);
-            CoverAccessory(ref result,AvatarAccessory.Beanie,ref occupied);
-            if(HairOverlapsCovering(result.effective,tags,desired.hair))
+            if ((look.accessories & ClosedHeads) != 0)
             {
-                result.effective.hair=AvatarHair.None;result.hiddenHair=true;result.reasons|=Reason.CoveredCrownHair;
+                look.hair = AvatarHair.None;
+                look.eyewear = AvatarEyewear.None;
+                look.accessories &= ~(AvatarAccessory.Mohawk | AvatarAccessory.Glasses | Extras);
             }
-            else if((tags&Tags.IntrinsicSpikes)!=0&&desired.hair==AvatarHair.Spikes)
+
+            bool sportsHelmet = (look.clothing & SportsHelmets) != 0;
+            if (sportsHelmet || (look.accessories & Hats) != 0)
             {
-                result.effective.hair=AvatarHair.None;result.hiddenHair=true;result.reasons|=Reason.DuplicateIntrinsicHair;
+                if (look.hair == AvatarHair.Afro || look.hair == AvatarHair.Pompadour ||
+                    look.hair == AvatarHair.LibertySpikes || look.hair == AvatarHair.Spikes ||
+                    (look.hair == AvatarHair.Bun && (sportsHelmet || (look.accessories & AvatarAccessory.Beanie) != 0)))
+                    look.hair = AvatarHair.None;
             }
-            AvatarClothing outer=0;
-            foreach(var item in OuterPriority)
-            {
-                if((result.effective.clothing&item)==0)continue;
-                if(outer==0)outer=item;
-                else {result.effective.clothing&=~item;result.hiddenClothing|=item;result.reasons|=Reason.CompetingOuterGarment;}
-            }
-            if(desired.poweredArmor&&(result.effective.clothing&AvatarClothing.FootballPads)!=0)
-            {result.effective.clothing&=~AvatarClothing.FootballPads;result.hiddenClothing|=AvatarClothing.FootballPads;result.reasons|=Reason.ArmorPads;}
-            return result;
+
+            if ((look.clothing & OuterLayers) != 0) look.clothing &= ~AvatarClothing.Hoodie;
         }
-        internal static AvatarWardrobeResolution Evaluate(AvatarAppearance desired)
+
+        static bool DifferentItems(AvatarAppearance first, AvatarAppearance second) =>
+            first.accessories != second.accessories || first.clothing != second.clothing ||
+            first.hair != second.hair || first.eyewear != second.eyewear;
+
+        static uint FirstChoice(uint choices)
         {
-            var result=Resolve(desired);
-            string reason="Reviewed head-covering rules only; other combinations need fit review.";
-            if(result.hiddenAccessories!=0||result.hiddenClothing!=0)
-                reason="Temporarily hidden layers: "+result.hiddenAccessories+" / "+result.hiddenClothing+". Head coverings share the crown; fitted outer garments use the same body surface. Remove a covering layer to restore preferred pieces.";
-            if((result.reasons&Reason.ArmorPads)!=0)reason+=" Powered armor chest and shoulder shells occupy the football-pad envelope; pads restore after armor removal.";
-            if(result.hiddenHair)reason+=" Hair "+desired.hair+" is covered by the selected crown or duplicates built-in spikes; the saved hair is retained.";
-            return new AvatarWardrobeResolution{effective=result.effective,hiddenAccessories=result.hiddenAccessories,hiddenClothing=result.hiddenClothing,hiddenHair=result.hiddenHair,reason=reason};
-        }
-        static bool HairOverlapsCovering(AvatarAppearance effective,Tags skinTags,AvatarHair hair)
-        {
-            bool authoredCover=(skinTags&Tags.IntrinsicHeadCovering)!=0||
-                (effective.accessories&(AvatarAccessory.TopHat|AvatarAccessory.Beanie))!=0||
-                (effective.clothing&(AvatarClothing.HockeyHelmet|AvatarClothing.FootballHelmet))!=0;
-            if(!authoredCover)return false;
-            switch(hair)
-            {
-                case AvatarHair.Afro: case AvatarHair.Pompadour:
-                case AvatarHair.LibertySpikes: case AvatarHair.Spikes:return true;
-                // The bun can sit inside a tall hat; do not infer that pair from a tag.
-                case AvatarHair.Bun:return (effective.accessories&AvatarAccessory.Beanie)!=0||
-                    (effective.clothing&(AvatarClothing.HockeyHelmet|AvatarClothing.FootballHelmet))!=0;
-                default:return false;
-            }
-        }
-        static void CoverAccessory(ref Resolution result,AvatarAccessory item,ref bool occupied)
-        {
-            if((result.effective.accessories&item)==0)return;
-            if(occupied){result.effective.accessories&=~item;result.hiddenAccessories|=item;result.reasons|=Reason.CompetingHeadCovering;}
-            else occupied=true;
-        }
-        static void CoverClothing(ref Resolution result,AvatarClothing item,ref bool occupied)
-        {
-            if((result.effective.clothing&item)==0)return;
-            if(occupied){result.effective.clothing&=~item;result.hiddenClothing|=item;result.reasons|=Reason.CompetingHeadCovering;}
-            else occupied=true;
+            // Isolate the lowest set bit, including the high-bit Dragon Wings ID.
+            return choices & unchecked(0u - choices);
         }
     }
 }

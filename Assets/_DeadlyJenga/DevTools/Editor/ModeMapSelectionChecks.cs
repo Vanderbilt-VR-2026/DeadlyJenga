@@ -18,7 +18,7 @@ namespace DeadlyJenga.DevTools.Editor
                 check(originalMaps.Length>1,"Map compatibility fixture has multiple real catalog maps");
                 foreach(var option in details.Modes.Where(m=>m.available))
                 {
-                    check(lobby.SelectMode(option.id)&&details.Maps.Count==originalMaps.Length,"All maps remain available for "+option.title+" while compatibility masks are empty");
+                    check(lobby.SelectMode(option.id)&&details.Maps.Count==originalMaps.Count(m=>m.SupportsMode(option.id)),"Current catalog filters compatible maps for "+option.title);
                 }
                 lobby.SelectMode("ctf");var recommended=originalMaps.FirstOrDefault(m=>m.recommendedMode=="survival")??originalMaps[0];
                 check(lobby.SelectMap(recommended.id)&&details.SelectedModeId=="ctf","Choosing a map preserves the already selected game mode");

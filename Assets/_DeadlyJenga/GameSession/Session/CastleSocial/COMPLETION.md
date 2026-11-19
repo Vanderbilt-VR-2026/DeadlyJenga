@@ -122,5 +122,4 @@ boundaries and evaluate frame time, memory and thermals on actual Quest hardware
 The authored CastlePhysicsTest scene, block physics, player movement implementation,
 avatar meshes, flying-hand behavior, XR packages and build flow were retained.
 Only the normal bot-emote random source received a domain-reload robustness fix.
-Unrelated ArchitectureMap work was not edited or staged. No commit, push, merge
-or deployment was performed.
+No commit, push, merge or deployment was performed.

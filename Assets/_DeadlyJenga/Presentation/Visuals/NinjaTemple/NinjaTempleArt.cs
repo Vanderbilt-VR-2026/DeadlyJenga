@@ -176,8 +176,8 @@ namespace DeadlyJenga.NinjaArt
             RenderSettings.ambientMode = AmbientMode.Trilight;
             var probe = new SphericalHarmonicsL2(); probe.AddAmbientLight(new Color(.15f, .16f, .26f)); RenderSettings.ambientProbe = probe;
             foreach (var light in FindObjectsByType<Light>(FindObjectsSortMode.None))
-                if (light.type == LightType.Directional && light != moon && !light.transform.IsChildOf(transform)) { if (!sunStates.ContainsKey(light)) sunStates.Add(light, light.enabled); light.enabled = false; }
-            foreach (var env in FindObjectsByType<CandyArt.CandyEnvironment>(FindObjectsSortMode.None))
+                if (light.gameObject.scene==gameObject.scene && light.type == LightType.Directional && light != moon && !light.transform.IsChildOf(transform)) { if (!sunStates.ContainsKey(light)) sunStates.Add(light, light.enabled); light.enabled = false; }
+            if(CandyArt.CandyEnvironment.ForMap(this) is CandyArt.CandyEnvironment env && env)
             {
                 if (!environments.ContainsKey(env)) environments.Add(env, env.applyLighting); env.applyLighting = false;
                 foreach (var r in env.GetComponentsInChildren<Renderer>(true)) { if (!hiddenRenderers.ContainsKey(r)) hiddenRenderers.Add(r, r.enabled); r.enabled = false; }
@@ -187,8 +187,7 @@ namespace DeadlyJenga.NinjaArt
         void LateUpdate()
         {
             if (!captured) return;
-            var frame = MatchRuntime.Current?.Frame;
-            float target = frame != null && frame.rules.mode == GameModeKind.Ninja && frame.lantern != null && frame.lantern.gongRemaining > 0 && frame.phase == RoundPhase.Playing ? 1 : 0;
+            float target = 0;
             BloodMoon = Mathf.MoveTowards(BloodMoon, target, Time.deltaTime * (target > BloodMoon ? 1.4f : .5f));
             float b = BloodMoon * BloodMoon * (3 - 2 * BloodMoon);
             var fog = Color.Lerp(Fog, new Color(.13f, .045f, .065f), b * .65f); var farFog = Color.Lerp(FarFog, new Color(.2f, .06f, .09f), b * .6f);
@@ -203,13 +202,13 @@ namespace DeadlyJenga.NinjaArt
             RenderSettings.ambientSkyColor = Color.Lerp(new Color(.2f, .23f, .36f), new Color(.34f, .12f, .14f), b);
             RenderSettings.ambientEquatorColor = new Color(.13f, .12f, .18f); RenderSettings.ambientGroundColor = new Color(.09f, .06f, .06f);
             if (moon) moon.color = Color.Lerp(new Color(.62f, .72f, 1), new Color(1, .45f, .4f), b * .85f);
-            if (taikoAudio) taikoAudio.volume = Mathf.Lerp(0, .32f, b) * Master;
+            if (taikoAudio) taikoAudio.volume = Mathf.Lerp(0, .32f, b) * Master * NinjaSounds.Gain(NinjaSounds.Taiko);
             var view = Services.Session?.ActiveCamera;
             if (view && weather)
             {
                 var at = view.transform.position; rain.transform.position = at; leaves.transform.position = at; fireflies.transform.position = new Vector3(at.x, transform.position.y, at.z);
                 bool sheltered = world != null && world.IsSheltered(at);
-                if (rainAudio) rainAudio.volume = Mathf.MoveTowards(rainAudio.volume, (sheltered ? .1f : .17f) * Master, Time.deltaTime * .3f);
+                if (rainAudio) rainAudio.volume = Mathf.MoveTowards(rainAudio.volume, (sheltered ? .1f : .17f) * Master * NinjaSounds.Gain(NinjaSounds.Rain), Time.deltaTime * .3f);
             }
             if (Time.unscaledTime >= nextClack)
             {

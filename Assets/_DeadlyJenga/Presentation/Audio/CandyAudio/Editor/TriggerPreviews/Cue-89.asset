@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-89
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: a58cba338abc2b847a0ea47fddcf5b14, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 89
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Kraken Idle
+    atlasFile: atlas.png
+    atlasSha256: 552e34b5b2a27ed9c03d3c830bd694fe882ac985fd41e97efeb4035a78f70b1c
+    gifFile: preview.gif
+    gifSha256: 61acc96e5c355e9ae9539d286cb51e866bf646732a2e7b1385b8897b9ee67158
+    sourceSha256: cfa6b57e78c26139821900c46030e46a749b6651b934185ec5091ae235bb87ab
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The specific Kraken body or tentacle performing this phase
+    action: Exposed Kraken body idles and breathes above water
+    target: Water or the exact tower/block/player the arm is acting upon
+    listenerRole: Nearby survivor hearing spatial Kraken audio
+    triggerEvidence: Observed disaster gameplay lifecycle firing Kraken Idle
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

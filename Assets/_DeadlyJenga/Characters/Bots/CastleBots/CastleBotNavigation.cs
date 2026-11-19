@@ -90,10 +90,10 @@ namespace DeadlyJenga.CastleBots
             if(abilities!=null)foreach(var ability in abilities)if(ability.CanReach(motor,end)){route=CastleBotRoute.Ability;return true;}
             return false;
         }
-        public static float MaximumDrop(CastleSurvivor motor)
+        public static float MaximumDrop(CastleSurvivor motor,bool extended=false)
         {
             var rules=MatchRuntime.Current?.RulesFor(motor.gameObject);
-            if(rules!=null&&!rules.fallDamage)return 12;
+            if(rules!=null&&!rules.fallDamage)return extended?36:12;
             return rules!=null?Mathf.Max(.5f,rules.fallDamageStart*.9f):motor.jumpHeight+motor.StandingHeight*2;
         }
         // Evaluates hypothetical graph edges as well as the bot's current position.
@@ -104,12 +104,18 @@ namespace DeadlyJenga.CastleBots
             float rise=end.y-start.y,distance=Vector3.ProjectOnPlane(end-start,Vector3.up).magnitude;
             if(distance<.05f||motor.gravity<=0||motor.EffectiveWalkSpeed<=0)return false;
             if(Mathf.Abs(rise)<Mathf.Max(.18f,distance*1.4f)&&Walkable(motor,start,end))return true;
-            if(rise>0&&ClimbLink(motor,start,end,out _)){route=CastleBotRoute.Climb;speed=motor.climbSpeed;return true;}
-            if(rise>motor.jumpHeight+motor.vaultMaxRise-.15f||rise< -MaximumDrop(motor))return false;
+            bool TryClimb(out CastleBotRoute climbRoute,out float climbSpeed)
+            {
+                climbRoute=CastleBotRoute.Climb;climbSpeed=motor.climbSpeed;
+                return rise>0&&ClimbLink(motor,start,end,out _);
+            }
+            if(rise>motor.jumpHeight+motor.vaultMaxRise-.15f)
+                return TryClimb(out route,out speed);
+            if(rise< -MaximumDrop(motor,true))return false;
             var rules=MatchRuntime.Current?.RulesFor(motor.gameObject);
             if(rise<-.3f&&DropArc(motor,start,end,out speed)){route=CastleBotRoute.Drop;return true;}
             if(rise<-.3f&&(rules==null||rules.canVault)&&DropCatch(motor,start,end,out speed)){route=CastleBotRoute.Drop;return true;}
-            if(rules!=null&&!rules.canJump)return false;
+            if(rules!=null&&!rules.canJump)return TryClimb(out route,out speed);
             speed=motor.EffectiveWalkSpeed;
             float v=Mathf.Sqrt(2*motor.gravity*motor.jumpHeight),disc=v*v-2*motor.gravity*rise;
             if(disc>=0)
@@ -121,7 +127,7 @@ namespace DeadlyJenga.CastleBots
             // A real face may be out of reach at takeoff but reachable near the apex.
             // Search the actual airborne intercept instead of requiring a ground-level face.
             if((rules==null||rules.canVault)&&VaultIntercept(motor,start,end,v,out float interceptSpeed)){route=CastleBotRoute.Vault;speed=interceptSpeed;return true;}
-            return false;
+            return TryClimb(out route,out speed);
         }
         public static bool ClimbLink(CastleSurvivor motor,Vector3 start,Vector3 end,out RaycastHit face)
         {
@@ -268,10 +274,46 @@ namespace DeadlyJenga.CastleBots
             }
             return found;
         }
-        public static void Nearby(CastleBotBrain bot,List<CastleBotLanding> candidates)
+        static Collider[] nearbyShapes = new Collider[256];
+        static readonly Dictionary<Rigidbody, int> nearbyOrder = new();
+        static readonly HashSet<Rigidbody> nearbySeen = new();
+        static readonly List<Rigidbody> nearbyBodies = new();
+        static readonly List<Vector3> nearbySamples = new(32);
+        static readonly Unity.Profiling.ProfilerMarker NearbyMarker = new("DJ.Bot.Nearby");
+
+        static IReadOnlyList<Rigidbody> GatherNearbyBodies(IReadOnlyList<Rigidbody> bodies, Vector3 feet, float above, float below)
         {
+            nearbyOrder.Clear(); nearbySeen.Clear(); nearbyBodies.Clear();
+            for (int i = 0; i < bodies.Count; i++) if (bodies[i]) nearbyOrder[bodies[i]] = i;
+            var center = feet + Vector3.up * ((above - below) * .5f);
+            var half = new Vector3(9.05f, (above + below) * .5f + .05f, 9.05f);
+            int count;
+            while (true)
+            {
+                count = Physics.OverlapBoxNonAlloc(center, half, nearbyShapes, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
+                if (count < nearbyShapes.Length) break;
+                // Keep every candidate if an unusually dense map fills the broad-phase buffer.
+                if (nearbyShapes.Length >= 16384) return bodies;
+                System.Array.Resize(ref nearbyShapes, nearbyShapes.Length * 2);
+            }
+            for (int i = 0; i < count; i++)
+            {
+                var body = nearbyShapes[i].attachedRigidbody;
+                if (body && nearbyOrder.ContainsKey(body) && nearbySeen.Add(body)) nearbyBodies.Add(body);
+                nearbyShapes[i] = null;
+            }
+            nearbyBodies.Sort((a, b) => nearbyOrder[a].CompareTo(nearbyOrder[b]));
+            return nearbyBodies;
+        }
+
+        public static void Nearby(CastleBotBrain bot,List<CastleBotLanding> candidates) => CollectNearby(bot, candidates, true);
+        static void CollectNearby(CastleBotBrain bot, List<CastleBotLanding> candidates, bool broadPhase)
+        {
+            using var measurement = NearbyMarker.Auto();
             candidates.Clear();var motor=bot.Motor;var feet=motor.transform.position;
-            var samples=new List<Vector3>(18);
+            var samples=nearbySamples;
+            float maximumDrop = MaximumDrop(motor);
+            float maximumRise = Mathf.Max(motor.jumpHeight + motor.vaultMaxRise - .15f, motor.climbSpeed * motor.climbGripSeconds * .65f);
             var toward=Vector3.ProjectOnPlane(bot.TripDestination-feet,Vector3.up).normalized;
             if(toward.sqrMagnitude<.1f)toward=bot.WanderDirection;
             for(int bearing=0;bearing<5;bearing++)
@@ -282,15 +324,15 @@ namespace DeadlyJenga.CastleBots
                 if(!Ground(probe+Vector3.up*.8f,1.5f,out var terrain))continue;
                 candidates.Add(new CastleBotLanding{surface=terrain.transform,body=terrain.rigidbody,local=terrain.transform.InverseTransformPoint(terrain.point),score=bot.JourneyProgress(terrain.point)-Mathf.Abs(angle)*.01f-bot.Population.ThreatCost(terrain.point)});
             }
-            foreach(var rb in bot.Population.Session.world.Blocks)
+            foreach(var rb in broadPhase ? GatherNearbyBodies(bot.Population.Session.world.Blocks, feet, Mathf.Max(6, maximumRise), maximumDrop + 1) : bot.Population.Session.world.Blocks)
             {
                 if(!rb||!rb.gameObject.activeInHierarchy)continue;
-                if(!BotGeometrySamples.Near(rb,feet,6,MaximumDrop(motor)+1,9))continue;
+                if(!BotGeometrySamples.Near(rb,feet,6,maximumDrop+1,9))continue;
                 BotGeometrySamples.Fill(rb,samples);
                 foreach(var p in samples)
                 {
                     float distance=Vector3.ProjectOnPlane(p-feet,Vector3.up).magnitude,rise=p.y-feet.y;
-                    if(distance<.3f||distance>7||rise>Mathf.Max(motor.jumpHeight+motor.vaultMaxRise-.15f,motor.climbSpeed*motor.climbGripSeconds*.65f)||rise< -MaximumDrop(motor))continue;
+                    if(distance<.3f||distance>7||rise>maximumRise||rise< -maximumDrop)continue;
                     var personality=bot.Personality;
                     float danger=rb.linearVelocity.magnitude*.8f+rb.angularVelocity.magnitude*2;
                     float threat=bot.Population.ThreatCost(p),crowd=bot.Population.Crowding(p,bot);
