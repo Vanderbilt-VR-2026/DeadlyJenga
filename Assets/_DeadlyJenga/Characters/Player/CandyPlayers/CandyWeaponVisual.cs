@@ -20,6 +20,11 @@ namespace DeadlyJenga.CandyPlayers
             return new Pose(position,yaw*(back?Quaternion.Euler(0,0,-35)*Quaternion.Euler(-90,0,0):Quaternion.Euler(90,0,left?-8:8)));
         }
         // Weapon shafts point along local Z and lie across the palm.
+        internal const float HandheldScale = .66f;
+        internal static float ModelScale(EquipmentKind kind, float avatarScale) =>
+            kind is EquipmentKind.PoweredArmor or EquipmentKind.WristLaser or EquipmentKind.BoxingGlove or EquipmentKind.LaserClaws
+                ? avatarScale : avatarScale * HandheldScale;
+
         internal static bool MeleeMount(EquipmentKind kind,bool left,out Vector3 palm,out Quaternion mount)
         {
             float side=left?1:-1;
@@ -68,7 +73,7 @@ namespace DeadlyJenga.CandyPlayers
             float side = left ? 1 : -1;
             Vector3 shaft = stance * (lightning
                 ? new Vector3(side * .18f, .84f, .50f)
-                : new Vector3(side * .40f, .89f, .21f)).normalized;
+                : new Vector3(side * .40f, .65f, .70f)).normalized;
 
             holdingSupport = false;
             if (support.HasValue)
@@ -247,6 +252,7 @@ namespace DeadlyJenga.CandyPlayers
         internal static bool TryPrimaryContact(ref CandyHandPose hand, Pose weapon, EquipmentKind kind,
             bool left, bool pressed, float scale)
         {
+            scale = ModelScale(kind, scale);
             var grip = PrimaryContact(kind);
             if (grip.width > 0)
             {
@@ -267,6 +273,7 @@ namespace DeadlyJenga.CandyPlayers
         internal static bool TrySupportContact(ref CandyHandPose hand, Pose weapon, EquipmentKind kind,
             bool left, float scale)
         {
+            scale = ModelScale(kind, scale);
             if (kind == EquipmentKind.ChainGun || kind == EquipmentKind.Chainsaw || kind == EquipmentKind.LaserAxe)
             {
                 Vector3 center = kind == EquipmentKind.ChainGun ? new(0, -.031f, ChainGunFrontGripDepth) :
@@ -326,6 +333,7 @@ namespace DeadlyJenga.CandyPlayers
 
         internal static Pose DrawnPose(EquipmentKind kind,CandyHandPose hand,bool left,float scale)
         {
+            scale = ModelScale(kind, scale);
             var contact = PrimaryContact(kind);
             if (contact.width > 0)
             {
@@ -406,10 +414,10 @@ namespace DeadlyJenga.CandyPlayers
                 pose = EmbedPose(state, pose, frame.scale);
             }
             root.gameObject.SetActive(true);
-            root.localScale = new Vector3((kind == EquipmentKind.BoxingGlove || kind == EquipmentKind.RocketLauncher) && state.leftHanded ? -1 : 1, 1, 1) * frame.scale;
+            root.localScale = new Vector3((kind == EquipmentKind.BoxingGlove || kind == EquipmentKind.RocketLauncher) && state.leftHanded ? -1 : 1, 1, 1) * ModelScale(kind, frame.scale);
             root.SetPositionAndRotation(pose.position, pose.rotation);
             if (kind == EquipmentKind.WristLaser)
-                root.localScale = new Vector3(1, 1, Mathf.Lerp(.78f, 1, drawAmount)) * frame.scale;
+                root.localScale = new Vector3(1, 1, Mathf.Lerp(.78f, 1, drawAmount)) * ModelScale(kind, frame.scale);
             if (kind == EquipmentKind.LaserClaws) PresentClaws(root, hand, state.leftHanded, drawAmount);
             if (kind == EquipmentKind.PoweredArmor) PresentRepulsor(root, drawAmount);
             if(rotor){spin+=Time.deltaTime*(state.triggerHeld?700+state.charge*1800:state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?500:0);rotor.localRotation=Quaternion.Euler(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?spin:0,0,state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?0:spin);}
@@ -434,7 +442,7 @@ namespace DeadlyJenga.CandyPlayers
                 var other = otherLeft ? frame.left : frame.right;
                 var otherPose = CarryPose(frame, other, otherLeft, drawAmount, target > 0);
                 paired.SetPositionAndRotation(otherPose.position, otherPose.rotation);
-                paired.localScale = Vector3.one * frame.scale;
+                paired.localScale = Vector3.one * ModelScale(kind, frame.scale);
                 paired.gameObject.SetActive(true);
                 if (kind == EquipmentKind.LaserClaws) PresentClaws(paired, other, otherLeft, drawAmount);
                 if (kind == EquipmentKind.PoweredArmor) PresentRepulsor(paired, drawAmount);
