@@ -65,7 +65,8 @@ namespace DeadlyJenga.CandyPlayers
         void OnDestroy(){trigger?.Dispose();offTrigger?.Dispose();grip?.Dispose();}
         public void SetEquipped(bool value)
         {
-            var state=Equipment;CancelBashPresentation();if(!value){motor?.ClearHoverFlight();suitWasFlying=false;}
+            var state=Equipment;if(value && motor && !motor.WeaponAvailableDuringTraversal(state,left))return;
+            CancelBashPresentation();if(!value){motor?.ClearHoverFlight();suitWasFlying=false;}
             if(state.roleIssued&&MatchRuntime.Current is IMysteryControls mystery)mystery.SetSpecialAttack(value);
             Runtime?.RequestEquipment(value,left,state.shotgun);offhandReady=false;armed=false;motor?.ResetVRJump();
         }
@@ -77,6 +78,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(left!=value)
             {
+                if (motor.Climbing || motor.Vaulting) return;
                 ReleaseHeldArsenal();ResetBashTracking();CancelBashPresentation();ClearPickupFocus();
                 handReady=offhandReady=false;primaryJumpReserved=false;
                 left=value;Bind();motor?.ResetVRJump();nextHandSync=0;
@@ -306,7 +308,7 @@ namespace DeadlyJenga.CandyPlayers
         bool FireAt(Pose muzzle,bool offhand=false)
         {
             var state=Equipment;
-            if(!Local||!state.drawn||SlingForEmote(state)||Time.time<nextFire||!motor.Alive||!motor.HasInputFocus||motor.InputSuspended||motor.Climbing||motor.Vaulting||Services.Session?.MenuOpen==true)return false;
+            if(!Local||!state.drawn||SlingForEmote(state)||Time.time<nextFire||!motor.Alive||!motor.HasInputFocus||motor.InputSuspended||!motor.WeaponAvailableDuringTraversal(state,offhand ? !left : left)||Services.Session?.MenuOpen==true)return false;
             if(motor.IsVR&&(!avatar.tracking||!avatar.tracking.WorldHand(state.kind==EquipmentKind.PoweredArmor?SuitShootingLeft:offhand?!left:left).tracked))return false;
             muzzle=AssistAim(muzzle);
             if(Runtime?.RequestEquipmentAttack(muzzle)!=true)return false;
@@ -414,7 +416,7 @@ namespace DeadlyJenga.CandyPlayers
 
         public void PoseHands(ref CandyAvatarFrame frame)
         {
-            var state=Equipment;if(!state.drawn||state.kind<EquipmentKind.Blaster||motor&&(motor.Climbing||motor.Vaulting))return;
+            var state=Equipment;if(!state.drawn||state.kind<EquipmentKind.Blaster||motor&&!motor.WeaponAvailableDuringTraversal(state,state.leftHanded))return;
             ReadAcceptedWeaponMotion(state);
             if(state.kind==EquipmentKind.PoweredArmor)
             {
@@ -551,10 +553,9 @@ namespace DeadlyJenga.CandyPlayers
             if(state.kind==EquipmentKind.PoweredArmor&&state.drawn){ResetBashTracking();CancelBashPresentation();ClearPickupFocus();UpdateSuit(state);return;}
             bool holsterPressed = motor.IsVR ? HybridXRInput.SecondaryPressed(left) :
                 Keyboard.current?.vKey.wasPressedThisFrame == true || DesktopGamepad.HolsterPressed;
-            if(motor.Climbing||motor.Vaulting)
+            if(!motor.WeaponAvailableDuringTraversal(state,left))
             {
-                if (motor.IsVR && motor.Climbing && state.drawn && state.kind == EquipmentKind.Dagger && holsterPressed)
-                    SetEquipped(false);
+                if (state.drawn && holsterPressed) SetEquipped(false);
                 ResetBashTracking();CancelBashPresentation();ClearPickupFocus();ReleaseHeldArsenal();armed=false;handReady=false;return;
             }
             if(!motor.IsVR&&(Keyboard.current?.deleteKey.wasPressedThisFrame==true||DesktopGamepad.DropPressed))
@@ -564,7 +565,8 @@ namespace DeadlyJenga.CandyPlayers
                 {ReleaseHeldArsenal();armed=false;handReady=false;offhandReady=false;}
                 return;
             }
-            if(UpdatePickupFocus(state))
+            if (motor.Climbing) ClearPickupFocus();
+            else if(UpdatePickupFocus(state))
             {
                 ResetBashTracking();CancelBashPresentation();ReleaseHeldArsenal();
                 armed=handReady=offhandReady=false;
@@ -637,7 +639,7 @@ namespace DeadlyJenga.CandyPlayers
             if(!avatar||!avatar.Rig)return;visual??=new CandyWeaponVisual(transform,avatar.Rig.style.material);
             avatar.Rig.SetAppearance(avatar.EquippedAppearance);
             var state = Equipment;
-            visual.Present(state, avatar.RenderedFrame, motor && motor.Alive && !motor.Climbing && !motor.Vaulting,
+            visual.Present(state, avatar.RenderedFrame, motor && motor.Alive && motor.WeaponAvailableDuringTraversal(state,state.leftHanded),
                 SlingForEmote(state));
         }
     }

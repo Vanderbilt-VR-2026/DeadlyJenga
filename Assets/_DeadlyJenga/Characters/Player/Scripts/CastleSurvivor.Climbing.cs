@@ -35,6 +35,16 @@ namespace DeadlyJenga.CastlePrototype
         Vector3 vrClimbVelocity;
         [Min(.1f)] public float vrClimbAcceleration=10f;
         Vector3 gripMoveVelocity;
+        [Header("VR climb tuning")]
+        [Min(.01f)] public float vrGripReach = .12f;
+        [Min(0f)] public float vrGripBuffer = .18f;
+        [Range(0f, .15f)] public float vrReleaseSmoothing = .04f;
+        [Min(0f)] public float vrReleaseScale = 1f;
+        public bool vrGripVaultAssist = true;
+
+        internal bool WeaponAvailableDuringTraversal(EquipmentState state, bool handLeft) =>
+            !Vaulting && (!Climbing || ManualVRClimb && !heldFaces[handLeft ? 0 : 1] &&
+                CanUseClimbHand(state, !handLeft, checkHolstered: true));
 
         int drivingGrip = -1;
         readonly float[] gripPressUntil = new float[2];
@@ -44,9 +54,9 @@ namespace DeadlyJenga.CastlePrototype
         readonly Vector3[] localGrip = new Vector3[2];
         readonly bool[] gripWasHeld = new bool[2];
 
-        static bool CanUseClimbHand(EquipmentState state, bool left)
+        static bool CanUseClimbHand(EquipmentState state, bool left, bool checkHolstered = false)
         {
-            if (state == null || !state.drawn || state.kind < EquipmentKind.Blaster) return true;
+            if (state == null || (!state.drawn && !checkHolstered) || state.kind < EquipmentKind.Blaster) return true;
             if (state.kind is EquipmentKind.PoweredArmor or EquipmentKind.DualUzi or EquipmentKind.Chainsaw or EquipmentKind.LaserClaws ||
                 EquipmentSpecifications.Get(state.kind).twoHanded) return false;
             return state.leftHanded != left;
@@ -60,7 +70,7 @@ namespace DeadlyJenga.CastlePrototype
 
         Collider FindGrip(Vector3 palm)
         {
-            float radius = .10f * playerScale;
+            float radius = vrGripReach * playerScale;
             int count = Physics.OverlapSphereNonAlloc(palm, radius, gripContacts, ClimbMask, QueryTriggerInteraction.Ignore);
             Collider nearest = null;
             float best = radius * radius;
@@ -87,6 +97,7 @@ namespace DeadlyJenga.CastlePrototype
             int previousDriver = drivingGrip;
             bool releasedDrivingGrip = false;
             Vector3 correction = Vector3.zero;
+            bool tryAssist = false;
             for (int side = 0; side < 2; side++)
             {
                 bool left = side == 0;
@@ -107,16 +118,18 @@ namespace DeadlyJenga.CastlePrototype
                     heldFaces[side] = null;
                     continue;
                 }
-                if (pressed) gripPressUntil[side] = Time.time + .18f;
-                if (!heldFaces[side] && Time.time < gripPressUntil[side] && climbCooldown <= 0 && climbStun <= 0 && (Climbing || GripRemaining >= .12f))
+                if (pressed) gripPressUntil[side] = Time.time + vrGripBuffer;
+                if (!heldFaces[side] && (pressed || Time.time < gripPressUntil[side]) && climbCooldown <= 0 && climbStun <= 0 && (Climbing || GripRemaining >= .12f))
                 {
                     heldFaces[side] = FindGrip(hand.position);
                     if (heldFaces[side])
                     {
                         drivingGrip = side;
+                        gripMoveVelocity = Vector3.zero;
                         gripPressUntil[side] = float.NegativeInfinity;
                         localGrip[side] = heldFaces[side].transform.InverseTransformPoint(hand.position);
                     }
+                    else if (pressed) tryAssist = true;
                 }
             }
             // The newest grip drives the body. Rebase the other hand when it takes over.
@@ -128,7 +141,11 @@ namespace DeadlyJenga.CastlePrototype
                     Climbables.TryGet(face, out var block) && AllowsGrip(block))
                 {
                     var hand = candyTracking.WorldHand(side == 0);
-                    if (attempt > 0) localGrip[side] = face.transform.InverseTransformPoint(hand.position);
+                    if (attempt > 0)
+                    {
+                        localGrip[side] = face.transform.InverseTransformPoint(hand.position);
+                        gripMoveVelocity = Vector3.zero;
+                    }
                     Vector3 anchor = face.transform.TransformPoint(localGrip[side]);
                     bool newSupport = climbCollider != face;
                     climbCollider = face;
@@ -151,7 +168,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if (Climbing)
                 {
-                    Vector3 lastMoveVelocity = gripMoveVelocity;
+                    Vector3 lastMoveVelocity = gripMoveVelocity * vrReleaseScale;
                     ReleaseClimb("Released grip", false);
                     if (releasedDrivingGrip)
                     {
@@ -161,6 +178,8 @@ namespace DeadlyJenga.CastlePrototype
                         climbCooldown = 0f;
                     }
                 }
+                if (tryAssist && vrGripVaultAssist && modeRules?.canVault != false && TryGripVaultAssist())
+                    return true;
                 RecoverGrip(dt);
                 return false;
             }
@@ -176,14 +195,16 @@ namespace DeadlyJenga.CastlePrototype
             Vector3 beforeMove = transform.position;
             Capsule.Move(correction);
             if (!Climbing) return false;
-            gripMoveVelocity = (transform.position - beforeMove) / dt;
+            Vector3 stepVelocity = (transform.position - beforeMove) / dt;
+            float sampleWeight = vrReleaseSmoothing > 0f ? 1f - Mathf.Exp(-dt / vrReleaseSmoothing) : 1f;
+            gripMoveVelocity = Vector3.Lerp(gripMoveVelocity, stepVelocity, sampleWeight);
             if (!PowerupUnlimitedStamina)
                 GripRemaining = 1 - CastleStaminaCurve.Advance(1 - GripRemaining,
                     dt * Mathf.Max(0, climbDrainPerSecond) / Mathf.Max(.2f, climbGripSeconds), climbDrainCurve, climbDrainDegree);
             ActionStatus = "Climbing";
             if (GripRemaining > 0)
             {
-                if (gripMoveVelocity.y > .03f * playerScale && modeRules?.canVault != false)
+                if (stepVelocity.y > .03f * playerScale && modeRules?.canVault != false)
                 {
                     Vector3 anchor = climbCollider.transform.TransformPoint(localGrip[drivingGrip]);
                     Vector3 intoWall = anchor - Feet;
@@ -196,6 +217,20 @@ namespace DeadlyJenga.CastlePrototype
             }
             ReleaseClimb("Grip exhausted", true);
             return false;
+        }
+
+        bool TryGripVaultAssist()
+        {
+            if (!viewCamera) return false;
+            Vector3 forward = Vector3.ProjectOnPlane(viewCamera.transform.forward, Vector3.up).normalized;
+            float reach = Capsule.radius + Capsule.skinWidth + .10f * playerScale;
+            Vector3 shins = Feet + Vector3.up * (.24f * playerScale);
+            if (!Physics.Raycast(shins, forward, out var wall, reach, ClimbMask, QueryTriggerInteraction.Ignore) ||
+                Mathf.Abs(wall.normal.y) > .35f || !Climbables.TryGet(wall.collider, out var block) || !AllowsGrip(block))
+                return false;
+
+            return TryFindLedge(out var top, out var destination, -wall.normal, wall.collider, .08f,
+                Mathf.Min(StandingHeight * .72f, ReachableVaultRise)) && FinishClimbMantle(top, destination);
         }
 
         void RecoverGrip(float dt)

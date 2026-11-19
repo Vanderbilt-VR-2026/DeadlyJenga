@@ -67,8 +67,7 @@ namespace DeadlyJenga.Modes
             {
                 equipmentHands[id]=command.left;
                 if(command.drawn&&(state.kind<EquipmentKind.Blaster||simulation.CarriesFlag(id)))return false;
-                var mover=actor.gameObject.GetComponent<IMovementState>();
-                if(command.drawn&&mover!=null&&(mover.Climbing||mover.Vaulting))return false;
+                if (command.drawn && !CanUseEquipmentDuringTraversal(actor, state.kind, command.left)) return false;
                 bool dual=EquipmentSpecifications.Get(state.kind).modeSwitch;
                 bool drawChanged=state.drawn!=command.drawn,modeChanged=dual&&state.shotgun!=command.shotgun;
                 StopArsenalTrigger(id);state.triggerHeld=false;state.charge=0;
@@ -302,13 +301,25 @@ namespace DeadlyJenga.Modes
             foreach(var pickup in saved.pickups??Array.Empty<EquipmentPickup>()){pickups.Add(pickup);nextPickup=Mathf.Max(nextPickup,pickup.id);}
             RestoreArsenal(saved);RestoreRandomPickups();stationsSeeded=pickups.Exists(x=>x.station);
         }
+        static bool CanUseEquipmentDuringTraversal(IModeActor actor, EquipmentKind kind, bool weaponLeft)
+        {
+            var movement = actor.gameObject.GetComponent<IMovementState>();
+            if (movement == null) return true;
+            if (movement.Vaulting) return false;
+            if (!movement.Climbing) return true;
+            if (actor.gameObject.GetComponent<IPlayerView>()?.IsVR != true ||
+                kind is EquipmentKind.PoweredArmor or EquipmentKind.DualUzi or EquipmentKind.Chainsaw or EquipmentKind.LaserClaws ||
+                EquipmentSpecifications.Get(kind).twoHanded) return false;
+            return movement.TryGetGrip(!weaponLeft, out _) && !movement.TryGetGrip(weaponLeft, out _);
+        }
+
         bool AttackEquipment(string id,EquipmentState state,EquipmentCommand command)
         {
             var source=FindActor(id);
             var participant=simulation.Find(id);
             if(participant==null||!participant.frame.alive||participant.frame.dying||simulation.Phase!=RoundPhase.Playing||MysteryActive&&mystery.IsDowned(id))return false;
             if(source==null||!state.drawn||state.kind<EquipmentKind.Blaster||simulation.CarriesFlag(id)||!Finite(command.position)||!Finite(command.forward)||command.forward.sqrMagnitude<.5f||command.forward.sqrMagnitude>2||Vector3.Distance(command.position,source.ViewPose.position)>2)return false;
-            var mover=source.gameObject.GetComponent<IMovementState>();if(mover!=null&&(mover.Climbing||mover.Vaulting))return false;
+            if (!CanUseEquipmentDuringTraversal(source, state.kind, state.leftHanded)) return false;
             if(Physics.Linecast(source.ViewPose.position,command.position,(1<<Layers.Surface)|(1<<Layers.Block)|1,QueryTriggerInteraction.Ignore))return false;
             if(state.kind>EquipmentKind.PoweredArmor)return AttackArsenal(id,state,command);
             var specification=EquipmentSpecifications.Get(state.kind);
