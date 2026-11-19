@@ -185,7 +185,19 @@ namespace DeadlyJenga.CastlePrototype
                 GripRemaining = 1 - CastleStaminaCurve.Advance(1 - GripRemaining,
                     dt * Mathf.Max(0, climbDrainPerSecond) / Mathf.Max(.2f, climbGripSeconds), climbDrainCurve, climbDrainDegree);
             ActionStatus = "Climbing";
-            if (GripRemaining > 0) return true;
+            if (GripRemaining > 0)
+            {
+                if (gripMoveVelocity.y > .03f * playerScale && modeRules?.canVault != false)
+                {
+                    Vector3 anchor = climbCollider.transform.TransformPoint(localGrip[drivingGrip]);
+                    Vector3 intoWall = anchor - Feet;
+                    float waist = StandingHeight * .45f;
+                    float chest = Mathf.Min(StandingHeight * .72f, ReachableVaultRise);
+                    if (TryFindLedge(out var top, out var destination, intoWall, climbCollider, waist, chest))
+                        return FinishClimbMantle(top, destination);
+                }
+                return true;
+            }
             ReleaseClimb("Grip exhausted", true);
             return false;
         }
@@ -408,6 +420,9 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool FinishClimbMantle(RaycastHit top,Vector3 destination)
         {
+            drivingGrip = -1;
+            gripMoveVelocity = Vector3.zero;
+            heldFaces[0] = heldFaces[1] = null;
             Climbing=false;toggleClimbActive=false;climbBlock=null;climbBody=null;climbCollider=null;climbCooldown=.3f;vrClimbVelocity=Vector3.zero;
             BeginVault(top,destination);return true;
         }
