@@ -129,7 +129,7 @@ namespace DeadlyJenga.CandyPlayers
                     (!EquipmentSpecifications.Get(action.kind).melee||action.shotgun))
                 {
                     kickKind=action.kind;
-                    if(action.kind==EquipmentKind.DualUzi&&visual!=null&&visual.IsPairedShot(action.position))
+                    if(visual!=null&&visual.IsPairedShot(action.position))
                         pairedKickAt=Time.time;
                     else primaryKickAt=Time.time;
                 }

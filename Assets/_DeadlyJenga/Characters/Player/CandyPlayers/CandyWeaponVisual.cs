@@ -350,7 +350,10 @@ namespace DeadlyJenga.CandyPlayers
 
         internal bool IsPairedShot(Vector3 origin)
         {
-            if(!root||!paired||kind!=EquipmentKind.DualUzi)return false;
+            if (!root || !paired) return false;
+            if (kind == EquipmentKind.PoweredArmor)
+                return (paired.position - origin).sqrMagnitude < (root.position - origin).sqrMagnitude;
+            if (kind != EquipmentKind.DualUzi) return false;
             var muzzle=new Vector3(0,.12f,.51f);
             return (paired.TransformPoint(muzzle)-origin).sqrMagnitude<(root.TransformPoint(muzzle)-origin).sqrMagnitude;
         }
