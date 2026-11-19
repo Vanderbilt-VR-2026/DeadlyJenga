@@ -1,0 +1,17 @@
+TITLE: Acceptance cut
+FCM: NON-DROP FRAME
+
+001  AX       V     C        00:00:00:00 00:00:01:04 00:00:00:00 00:00:01:04
+* FROM CLIP NAME: Wide.mp4
+* SHOT: Wide
+
+002  AX       V     C        00:00:01:04 00:00:01:04 00:00:01:04 00:00:01:04
+002  AX       V     D    006 00:00:00:12 00:00:02:07 00:00:01:04 00:00:02:14
+* FROM CLIP NAME: Wide.mp4
+* TO CLIP NAME: Follow-Ada.mp4
+* SHOT: Follow Ada
+
+003  AX       V     C        00:00:02:00 00:00:04:00 00:00:02:14 00:00:04:14
+* FROM CLIP NAME: Two-shot.mp4
+* SHOT: Two shot
+

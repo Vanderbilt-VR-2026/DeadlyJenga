@@ -6,7 +6,7 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.World.Hazards
 {
-    public abstract partial class BasicDisaster : MapHazard, IDemoHazard, IDisasterState
+    public abstract partial class BasicDisaster : MapHazard, IDemoHazard, IDisasterState, IDirectedHazard
     {
         protected abstract string Kind { get; }
         protected virtual string FrameKind => Kind;
@@ -283,12 +283,16 @@ namespace DeadlyJenga.World.Hazards
                     body.AddForce(Vector3.ClampMagnitude(impulse,30),ForceMode.VelocityChange);
             }
         }
+        // IDirectedHazard: degrees around the map the tornado comes in from (0 = +X, 90 = +Z). Null = random.
+        public float? Heading { get; set; }
         Vector3 TornadoCenter, tornadoStart, tornadoExit, tornadoVelocity;
         float tornadoAngle, tornadoTurn, tornadoWeave, tornadoPower;
 
         void BeginTornadoRoute()
         {
             tornadoAngle = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+            // A set heading (IDirectedHazard) replaces the random side the tornado arrives from.
+            if (Heading.HasValue) tornadoAngle = Heading.Value * Mathf.Deg2Rad;
             tornadoTurn = UnityEngine.Random.Range(.85f, 1.65f) * Mathf.PI * 2f;
             if (UnityEngine.Random.value < .5f) tornadoTurn = -tornadoTurn;
             tornadoWeave = UnityEngine.Random.Range(0f, Mathf.PI * 2f);

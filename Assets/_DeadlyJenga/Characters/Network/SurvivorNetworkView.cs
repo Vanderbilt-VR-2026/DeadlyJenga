@@ -7,7 +7,7 @@ namespace DeadlyJenga.CharacterNetwork
 {
     // Someone else's survivor (a player or bot) on this machine. No camera, no input.
     // On the host it can also be hit by hazards: pushes and damage go to its owner through the network.
-    public sealed class SurvivorNetworkView : MonoBehaviour, INetworkActorView, IPushable, IDamageable, IHazardMotion, IModeActor, IEnemyActor, IEnemyPose
+    public sealed class SurvivorNetworkView : MonoBehaviour, INetworkActorView, INetworkActorSnap, IPushable, IDamageable, IHazardMotion, IModeActor, IEnemyActor, IEnemyPose
     {
         NetworkContext context;
         CandyPlayerRig rig;
@@ -140,6 +140,12 @@ namespace DeadlyJenga.CharacterNetwork
             Vector3 center=Vector3.up*height*.5f;
             if(collisionBody.center!=center)collisionBody.center=center;
         }
+
+        // Replay tools: the avatar's walk-cycle memory (see CandyPlayerRig.Gait).
+        public CandyPlayerRig.GaitState Gait { get => rig ? rig.Gait : default; set { if (rig) rig.Gait = value; } }
+
+        // Replay tools: skip the easing and stand exactly where the last state says.
+        public void SnapToState() { if (hasTarget) { frame = target; UpdateCollisionPose(); } }
 
         public void Render(float dt)
         {

@@ -1,0 +1,19 @@
+# Trailer Studio Cut acceptance run
+
+Date: 2026-11-18 18:55  
+Unity: 6000.3.23f1  
+Map: sparse-viaduct-study
+
+| Test | Result | Detail |
+|------|--------|--------|
+| Cut 0a. Track warnings do not hide each other and survive saving | PASS | Stale + retimed + could-not-play on one track: 3 lines before clearing one, shown stale first: True; setting stale again replaced it: True; clearing retimed left the other two: True. Saved and loaded through StudioTape.Save/Load: True ("Stale: first differs at 1.50 s. / Could not play: a broken frame"). A single warning as older tapes have it reads as one: True. A new recording clears all three: True. |
+| Cut 0b. Cues without an id, or sharing one, get their own id | PASS | Ids as loaded by JsonUtility: set,empty,set,set. EnsureCueIds gave 2 new ids (1672e1f2, 330405e8, same, 4a807290); the first cue named "same" kept its id; a second call changed 0. |
+| Cut 0c. A recipe saved by older builds (by cue order) still applies when the count matches, and only then | PASS | Matching count: "Updated 2 cues (older recipe, matched by order).". One cue more: "This older variation kept its timings by cue order, and the Set's cues have changed since, so they no longer fit. Nothing was changed." and nothing changed: True. |
+| Cut 5. FCPXML and EDL written from a hand-made render folder pass the format checks (two-line dissolve, audio lengths, a dissolve with no spare frames becomes a cut) | PASS | FCPXML structure check against the FCPXML DTD rules: no faults. EDL check: no faults. Dissolve pair as expected: True. Audio assets carry their WAV length and rate, video format named FFVideoFormat1080p30: True; music clip clamped to its 2 s file: True. Exporter notes: The dissolve into "Top" is 0 frames instead of 12: a dissolve uses rendered frames from after the outgoing piece and before the incoming one, and the renders do not have enough. It is written as a straight cut.. Files: export/. |
+| Cut 1. A push placed exactly on the branch frame fires in the branch; frames up to the branch frame are the old take's | PASS | Cue at 1.500 s = frame 45, branch at frame 45. Cue log: 1.533s push 1 blocks at 6 m/s. Frames 0 to 45: 46 of 46 byte-for-byte the old take's. The pushed block ended 2.48 m from where it rests in the calm take; the takes first differ by more than 5 mm at frame 47. |
+| Cut 2. A variation run from the branch frame varies the cue sitting exactly on that frame, and it fires | PASS | Recipe: the cue ran at 1.500 s (not before the branch at 1.500 s) with strength 6.62 instead of 6.00. Cue log of the try: 1.533s push 1 blocks at 6.6 m/s. After the run the Set's cue is back to 1.500 s, strength 6.00, jitter 0. |
+| Cut 3. A variation's recipe is applied by cue id: reordered cues get their own timings, applying twice changes nothing, missing cues are counted | PASS | Recipe holds 2 cues by id: 5f5ad86d at 1.107 s strength 6.025, 236a0b48 at 1.611 s strength 4.474. On a copy with the cues swapped and a decoy in front: each cue got its own values: True ("Updated 2 cues. The Set's random seed is now 3001 (was 148), the seed this try used."); applying again changed nothing: True ("Updated 2 cues."); with one cue removed: "Updated 1 cue; 1 cue is no longer in the Set and was skipped. The Set's random seed is now 3001 (was 148), the seed this try used.". On the Set itself: "Updated 2 cues. The Set's random seed is now 3001 (was 148), the seed this try used." |
+| Cut 4. Recording the whole set after applying a fresh-map variation's recipe makes that try again | PASS | "Variation 2" (seed 3001; the Set's seed was 148, now 3001). Over 145 blocks, the re-recorded world's last frame is on average 1.4 mm and at most 41.0 mm from the try's last frame. Only a try from a fresh map can match this way: one that branched from an older take started from that take's pose. |
+| Runtime errors during the Studio tests | PASS | None. |
+
+Failures: 0

@@ -421,7 +421,8 @@ namespace DeadlyJenga.CastlePrototype
             Grounded=verticalSpeed<=0&&contact;
             if(Grounded)
             {
-                GroundNormal=hit.normal;support=hit.transform;supportLocal=support.InverseTransformPoint(feet);supportWorld=support.TransformPoint(supportLocal);
+                // The collider's own transform: block surface copies share one body that never moves.
+                GroundNormal=hit.normal;support=hit.collider.transform;supportLocal=support.InverseTransformPoint(feet);supportWorld=support.TransformPoint(supportLocal);
             }
             else{support=null;if(wasGrounded)airborneSince=Time.time;}
             StandingSurface=Grounded?hit.collider:null;
