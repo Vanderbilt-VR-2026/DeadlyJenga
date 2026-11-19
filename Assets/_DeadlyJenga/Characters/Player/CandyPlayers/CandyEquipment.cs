@@ -66,6 +66,7 @@ namespace DeadlyJenga.CandyPlayers
         public void SetEquipped(bool value)
         {
             var state=Equipment;if(value && motor && !motor.WeaponAvailableDuringTraversal(state,left))return;
+            handFireArmed[0] = handFireArmed[1] = false;
             CancelBashPresentation();if(!value){motor?.ClearHoverFlight();suitWasFlying=false;}
             if(state.roleIssued&&MatchRuntime.Current is IMysteryControls mystery)mystery.SetSpecialAttack(value);
             Runtime?.RequestEquipment(value,left,state.shotgun);offhandReady=false;armed=false;motor?.ResetVRJump();
@@ -305,16 +306,60 @@ namespace DeadlyJenga.CandyPlayers
         }
         public Pose WeaponAim=>MuzzlePose;
         public bool FireOnce()=>FireAt(MuzzlePose);
-        bool FireAt(Pose muzzle,bool offhand=false)
+        readonly bool[] handFireArmed = new bool[2];
+        readonly float[] nextHandFire = new float[2];
+        EquipmentKind handFireKind;
+
+        void UpdateHandFire(EquipmentState state, bool handLeft)
+        {
+            if (handFireKind != state.kind)
+            {
+                handFireKind = state.kind;
+                handFireArmed[0] = handFireArmed[1] = false;
+                nextHandFire[0] = nextHandFire[1] = 0f;
+            }
+
+            int handIndex = handLeft ? 0 : 1;
+            var hand = avatar.tracking ? avatar.tracking.WorldHand(handLeft) : default;
+            bool suit = state.kind == EquipmentKind.PoweredArmor;
+            bool controllerTracked = HybridXRInput.ControllerTracked(handLeft);
+            if (!state.drawn || !hand.tracked || (!controllerTracked && !(suit && hand.skeletonTracked)))
+            {
+                handFireArmed[handIndex] = false;
+                return;
+            }
+
+            bool held = controllerTracked
+                ? (handLeft == left ? trigger : offTrigger)?.IsPressed() == true
+                : (handLeft ? avatar.tracking.LeftPinching : avatar.tracking.RightPinching);
+            if (!held)
+            {
+                handFireArmed[handIndex] = true;
+                return;
+            }
+            if (!handFireArmed[handIndex] || Time.time < nextHandFire[handIndex]) return;
+
+            Pose muzzle = suit ? SuitPalmMuzzle(handLeft) : TrackedCarry(hand, state, handLeft);
+            if (!suit) muzzle.position += muzzle.rotation * new Vector3(0, .12f, .51f) * CandyWeaponVisual.ModelScale(state.kind, Scale);
+            // Pace commands per hand even when a shot fails its authority checks.
+            nextHandFire[handIndex] = Time.time + EquipmentSpecifications.Get(state.kind).cooldown;
+            FireAt(muzzle, handLeft != left, handSpecific: true);
+        }
+
+        bool FireAt(Pose muzzle, bool offhand = false, bool handSpecific = false)
         {
             var state=Equipment;
-            if(!Local||!state.drawn||SlingForEmote(state)||Time.time<nextFire||!motor.Alive||!motor.HasInputFocus||motor.InputSuspended||!motor.WeaponAvailableDuringTraversal(state,offhand ? !left : left)||Services.Session?.MenuOpen==true)return false;
-            if(motor.IsVR&&(!avatar.tracking||!avatar.tracking.WorldHand(state.kind==EquipmentKind.PoweredArmor?SuitShootingLeft:offhand?!left:left).tracked))return false;
+            if(!Local||!state.drawn||SlingForEmote(state)||(!handSpecific && Time.time<nextFire)||!motor.Alive||!motor.HasInputFocus||motor.InputSuspended||!motor.WeaponAvailableDuringTraversal(state,offhand ? !left : left)||Services.Session?.MenuOpen==true)return false;
+            if(motor.IsVR&&(!avatar.tracking||!avatar.tracking.WorldHand(offhand ? !left : left).tracked))return false;
             muzzle=AssistAim(muzzle);
-            if(Runtime?.RequestEquipmentAttack(muzzle)!=true)return false;
+            if (handSpecific)
+            {
+                if ((Runtime as IPairedEquipmentRuntime)?.RequestHandAttack(muzzle, offhand ? !left : left) != true) return false;
+            }
+            else if (Runtime?.RequestEquipmentAttack(muzzle) != true) return false;
             if(!EquipmentSpecifications.Get(state.kind).twoHanded)
                 GetComponent<SurvivorMoments>()?.Cancel();
-            lastAttackKind=state.kind;lastAttackTime=Time.time;nextFire=Time.time+(state.kind>EquipmentKind.PoweredArmor?EquipmentSpecifications.Get(state.kind).cooldown:((state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)?.45f:state.kind==EquipmentKind.DualRifle?(state.shotgun?.20f:.65f):state.kind==EquipmentKind.SheriffHammer?(state.shotgun?.28f:.75f):.9f));return true;
+            lastAttackKind=state.kind;lastAttackTime=Time.time;if(!handSpecific)nextFire=Time.time+(state.kind>EquipmentKind.PoweredArmor?EquipmentSpecifications.Get(state.kind).cooldown:((state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)?.45f:state.kind==EquipmentKind.DualRifle?(state.shotgun?.20f:.65f):state.kind==EquipmentKind.SheriffHammer?(state.shotgun?.28f:.75f):.9f));return true;
         }
         Pose AxeCarry(Pose gripPose, EquipmentState state, Quaternion aimRotation, out bool holdingSupport)
         {
@@ -420,11 +465,14 @@ namespace DeadlyJenga.CandyPlayers
             ReadAcceptedWeaponMotion(state);
             if(state.kind==EquipmentKind.PoweredArmor)
             {
-                bool emitterLeft=motor.IsVR&&Local?SuitShootingLeft:state.leftHanded;
-                var emitterHand=emitterLeft?frame.left:frame.right;
-                var suitRecoil=PresentedRecoil(new Pose(emitterHand.position,emitterHand.rotation),state,emitterLeft);
-                emitterHand.position=suitRecoil.position;emitterHand.rotation=suitRecoil.rotation;
-                if(emitterLeft)frame.left=emitterHand;else frame.right=emitterHand;
+                void Recoil(ref CandyHandPose hand, bool handLeft)
+                {
+                    var recoil = PresentedRecoil(new Pose(hand.position, hand.rotation), state, handLeft, handLeft != state.leftHanded);
+                    hand.position = recoil.position;
+                    hand.rotation = recoil.rotation;
+                }
+                if (motor.IsVR || state.leftHanded) Recoil(ref frame.left, true);
+                if (motor.IsVR || !state.leftHanded) Recoil(ref frame.right, false);
                 return;
             }
             var hand=state.leftHanded?frame.left:frame.right;
@@ -540,7 +588,7 @@ namespace DeadlyJenga.CandyPlayers
             bool effective=motor.IsVR&&HybridXRInput.SingleController?HybridXRInput.SingleControllerLeft:preferred;
             ApplyWeaponHand(effective);
             var state=Equipment;if(state.kind!=EquipmentKind.LaserClaws||!state.drawn)offhandReady=false;UpdatePower(state);if(state.kind!=EquipmentKind.PoweredArmor)SetSuitThrust(false);if(state.kind!=EquipmentKind.PoweredArmor||!state.drawn){motor.ClearHoverFlight();suitWasFlying=false;}
-            if(motor.InputSuspended||!motor.HasInputFocus||!motor.Alive||Services.Session?.MenuOpen==true){ResetBashTracking();CancelBashPresentation();ClearPickupFocus();SetSuitThrust(MaintainPausedSuit(state));ReleaseHeldArsenal();armed=false;handReady=false;return;}
+            if(motor.InputSuspended||!motor.HasInputFocus||!motor.Alive||Services.Session?.MenuOpen==true){ResetBashTracking();CancelBashPresentation();ClearPickupFocus();SetSuitThrust(MaintainPausedSuit(state));ReleaseHeldArsenal();handFireArmed[0]=handFireArmed[1]=false;armed=false;handReady=false;return;}
             if (SlingForEmote(state))
             {
                 ResetBashTracking();CancelBashPresentation();
@@ -584,6 +632,12 @@ namespace DeadlyJenga.CandyPlayers
                 return;
             }
             if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(HybridXRInput.SingleController?HybridXRInput.SingleModePressed:offTrigger.WasPressedThisFrame()):(Keyboard.current?.rKey.wasPressedThisFrame==true||DesktopGamepad.ModePressed)))ToggleRifleMode();
+            if (vr && state.kind == EquipmentKind.DualUzi)
+            {
+                UpdateHandFire(state, true);
+                UpdateHandFire(state, false);
+                return;
+            }
             if(state.kind>EquipmentKind.PoweredArmor&&(!EquipmentSpecifications.Get(state.kind).melee||state.kind==EquipmentKind.Chainsaw||state.kind==EquipmentKind.LaserAxe&&state.shotgun))
             {UpdateHeldArsenal(held&&armed&&state.drawn,state);return;}
             bool melee=EquipmentSpecifications.Get(state.kind).melee&&!(state.kind==EquipmentKind.Chainsaw&&state.shotgun)&&!(state.kind==EquipmentKind.LaserAxe&&state.shotgun);

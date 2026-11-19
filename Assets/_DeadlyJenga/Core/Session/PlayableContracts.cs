@@ -36,15 +36,6 @@ namespace DeadlyJenga.Core
         void SetOffset(bool left, Vector3 degrees);
     }
 
-    public interface IVrClimbTuning
-    {
-        float GripReach { get; set; }
-        float GripBuffer { get; set; }
-        float ReleaseSmoothing { get; set; }
-        float ReleaseScale { get; set; }
-        bool GripVaultAssist { get; set; }
-    }
-
     // Survivor settings and rules that menus, the lobby and multiplayer change.
     public interface ISurvivorSettings
     {

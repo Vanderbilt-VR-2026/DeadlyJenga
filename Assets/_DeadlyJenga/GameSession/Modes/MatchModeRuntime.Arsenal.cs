@@ -60,7 +60,7 @@ namespace DeadlyJenga.Modes
             if(projectile&&arsenalProjectiles.Count>=64)return false;
             var direction=command.forward.normalized;
             // Magazine progress is independent of feedback events in equipmentSequence.
-            if(state.kind==EquipmentKind.DualUzi&&((spec.magazine-state.rounds)&1)!=0)
+            if(state.kind==EquipmentKind.DualUzi&&!command.handSpecific&&((spec.magazine-state.rounds)&1)!=0)
             {
                 var actor=FindActor(id);
                 if(actor?.gameObject.GetComponent<IEnemyActor>()?.ArchetypeId!="mushroom")
@@ -81,7 +81,7 @@ namespace DeadlyJenga.Modes
                     direction=secondaryForward.normalized;
                 }
             }
-            weaponCooldown[id]=Time.time+cooldown;
+            SetShotCooldown(id,state,command,cooldown);
             if(spec.magazine>0&&(!spec.melee||state.shotgun)){state.rounds--;equipment[id]=state;if(state.rounds==0)BeginMagazineReload(id,state);}
             if(projectile)
             {
