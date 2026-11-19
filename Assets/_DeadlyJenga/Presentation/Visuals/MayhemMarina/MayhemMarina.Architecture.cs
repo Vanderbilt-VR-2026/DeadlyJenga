@@ -354,26 +354,85 @@ namespace DeadlyJenga.CandyArt.Marina
             // Offset along the slab normal, so its top meets both existing flat landings exactly.
             mesh.Box((from+to)*.5f-rotation*Vector3.up*.11f,new Vector3(3.2f,.22f,Vector3.Distance(from,to)),F.Stone,0,true,rotation);
         }
-        // The old style shop's deck becomes a shaded garden lounge beside the plaza.
+        // The deck beside the plaza (behind the wardrobe) is a small crate course for trying out
+        // climbing and jumping. Crates are fixed in place: solid art, no physics.
         // Routes stay clear: the cinema connector (z 7.6), terrace stairs (x -8.1) and west ramp (x -21).
         void GardenLounge()
         {
             const float floor = 1.285f;
-            foreach (var p in new[] { new Vector2(-17.6f, 3.6f), new Vector2(-12.4f, 3.6f), new Vector2(-17.6f, 5.9f), new Vector2(-12.4f, 5.9f) })
-            {
-                mesh.Box(new Vector3(p.x, floor + .12f, p.y), new Vector3(.5f, .24f, .5f), F.Stone, .06f, true);
-                mesh.Beam(new Vector3(p.x, floor + .2f, p.y), new Vector3(p.x, floor + 3.2f, p.y), .13f, F.Wood, true);
-            }
-            for (int side = 0; side < 2; side++)
-                mesh.Beam(new Vector3(-18.1f, floor + 3.2f, side == 0 ? 3.6f : 5.9f), new Vector3(-11.9f, floor + 3.2f, side == 0 ? 3.6f : 5.9f), .14f, F.Wood);
-            for (int i = 0; i < 9; i++)
-                mesh.Box(new Vector3(-17.8f + i * .68f, floor + 3.36f, 4.75f), new Vector3(.12f, .14f, 3.2f), F.Wood, .03f);
-            Sofa(new Vector3(-15, floor, 5.3f), 3.6f, Quaternion.identity);
-            Sofa(new Vector3(-17.55f, floor, 4.75f), 1.6f, Quaternion.Euler(0, -90, 0));
-            Table(new Vector3(-14.75f, floor, 3.60f), .72f);
-            Lantern(new Vector3(-15, floor + 2.75f, 4.75f), .22f);
+            // Steps up: one, two, then three crates high.
+            CrateStack(new Vector3(-12.7f, floor, 3.5f), 0, 1, 0);
+            CrateStack(new Vector3(-13.95f, floor, 3.5f), 0, 2, 1);
+            CrateStack(new Vector3(-15.2f, floor, 3.5f), 0, 3, 2);
+            // Jump across and down from the tallest stack, then step back down to the deck.
+            CrateStack(new Vector3(-16.9f, floor, 4.4f), 90, 2, 0);
+            CrateStack(new Vector3(-16.9f, floor, 5.75f), 90, 1, 1);
+            // A couple of loose-looking crates to hop between.
+            CrateStack(new Vector3(-13.6f, floor, 5.4f), 18, 1, 2);
+            CrateStack(new Vector3(-12.2f, floor, 5.3f), 90, 2, 1);
             foreach (var p in new[] { new Vector3(-18.6f, floor, 3.0f), new Vector3(-11.6f, floor, 3.0f), new Vector3(-18.6f, floor, 12.2f) })
                 Pot(p, .5f, .85f, (int)(p.x * 7 + p.z));
+        }
+
+        const float CrateLength = 1.15f, CrateSide = .9f;
+        static readonly F[] CrateColors = { F.Red, F.Green, F.Purple };
+
+        // Stacks crates on a point of the floor. Upper crates get a small twist so stacks look hand-placed.
+        void CrateStack(Vector3 floorPoint, float yaw, int height, int firstColor)
+        {
+            for (int i = 0; i < height; i++)
+            {
+                float twist = i == 0 ? 0 : (i % 2 == 0 ? -4 : 5);
+                Crate(floorPoint + Vector3.up * (i * CrateSide), yaw + twist, CrateColors[(firstColor + i) % 3]);
+            }
+        }
+
+        // A classic wooden crate in candy colors: a solid core, a raised frame on every edge,
+        // an X brace on each side and slats on top. Only the core has collision.
+        void Crate(Vector3 bottom, float yaw, F color)
+        {
+            var q = Quaternion.Euler(0, yaw, 0);
+            const float strip = .1f, relief = .035f;
+            float hx = CrateLength * .5f, hz = CrateSide * .5f, h = CrateSide;
+            Vector3 P(float x, float y, float z) => bottom + q * new Vector3(x, y, z);
+            void Part(Vector3 local, Vector3 size, Quaternion turn) => mesh.Box(bottom + q * local, size, color, .015f, false, q * turn);
+
+            mesh.Box(P(0, h * .5f, 0), new Vector3(CrateLength, h, CrateSide), color, .03f, true, q);
+
+            // Frame: the twelve edges stand out from the core by the relief depth.
+            float fx = hx - strip * .5f + relief * .5f, fz = hz - strip * .5f + relief * .5f;
+            float lowY = strip * .5f - relief * .5f, highY = h - strip * .5f + relief * .5f;
+            float thick = strip + relief;
+            foreach (float y in new[] { lowY, highY })
+            {
+                foreach (float z in new[] { -fz, fz }) Part(new Vector3(0, y, z), new Vector3(CrateLength + relief * 2, thick, thick), Quaternion.identity);
+                foreach (float x in new[] { -fx, fx }) Part(new Vector3(x, y, 0), new Vector3(thick, thick, CrateSide + relief * 2), Quaternion.identity);
+            }
+            foreach (float x in new[] { -fx, fx })
+                foreach (float z in new[] { -fz, fz })
+                    Part(new Vector3(x, h * .5f, z), new Vector3(thick, h + relief * 2, thick), Quaternion.identity);
+
+            // X braces across the inside of each side panel.
+            float innerH = h - strip * 2;
+            float longW = CrateLength - strip * 2, longLen = Mathf.Sqrt(longW * longW + innerH * innerH) - strip * .4f;
+            float longAngle = Mathf.Atan2(innerH, longW) * Mathf.Rad2Deg;
+            foreach (float z in new[] { -(hz + relief * .4f), hz + relief * .4f })
+                foreach (float sign in new[] { -1f, 1f })
+                    Part(new Vector3(0, h * .5f, z), new Vector3(longLen, strip * .85f, relief), Quaternion.Euler(0, 0, sign * longAngle));
+            float shortW = CrateSide - strip * 2, shortLen = Mathf.Sqrt(shortW * shortW + innerH * innerH) - strip * .4f;
+            float shortAngle = Mathf.Atan2(innerH, shortW) * Mathf.Rad2Deg;
+            foreach (float x in new[] { -(hx + relief * .4f), hx + relief * .4f })
+                foreach (float sign in new[] { -1f, 1f })
+                    Part(new Vector3(x, h * .5f, 0), new Vector3(relief, strip * .85f, shortLen), Quaternion.Euler(sign * shortAngle, 0, 0));
+
+            // Top slats inside the frame, with small gaps between them.
+            const int slats = 4;
+            float slatSpan = (CrateSide - strip * 2) / slats;
+            for (int i = 0; i < slats; i++)
+            {
+                float z = -hz + strip + slatSpan * (i + .5f);
+                Part(new Vector3(0, h + relief * .25f, z), new Vector3(CrateLength - strip * 2, relief * .5f, slatSpan - .03f), Quaternion.identity);
+            }
         }
         void Portal(Vector3 center,float width,float height,float depth,bool wardrobePassage=false)
         {

@@ -15,6 +15,13 @@ namespace DeadlyJenga.Presentation
         const float SampleInterval = 1f / 20f;
         const float WatchRange = 9;
         const float MarkerSize = .044f;
+        // The plinth: a square frustum from the floor up to the map, with rounded corners
+        // and a slope that curves over into the flat top.
+        internal const float PlinthHeight = .5f;
+        internal const float PlinthBase = 2.56f;
+        internal const float PlinthTop = 2.24f;
+        const float PlinthRoundOver = .16f;
+        const float PlinthCorner = .2f;
 
         sealed class ReplicaMesh
         {
@@ -41,7 +48,7 @@ namespace DeadlyJenga.Presentation
         ILobbyMatchVisitControls visit;
         Transform miniature;
         TextMesh status;
-        Mesh cube, sphere;
+        Mesh cube, sphere, plinthMesh;
         Material surface, border, markers, lettering;
         IWorldQuery map;
         IMatchRuntime runtime;
@@ -73,12 +80,8 @@ namespace DeadlyJenga.Presentation
             surface = new Material(unlit) { color = new Color(.035f, .32f, .42f) };
             markers = new Material(unlit);
 
-            var tabletop = MakeMesh("Live map table", cube, border);
-            tabletop.transform.localPosition = Vector3.down * .045f;
-            tabletop.transform.localScale = new Vector3(2.12f, .12f, 2.12f);
-            var pedestal = MakeMesh("Live map table pedestal", cube, border);
-            pedestal.transform.localPosition = Vector3.down * .49f;
-            pedestal.transform.localScale = new Vector3(.65f, .84f, .65f);
+            plinthMesh = PlinthMesh();
+            MakeMesh("Live map plinth", plinthMesh, border);
 
             var rim = MakeMesh("Table map base", cube, border);
             rim.transform.localPosition = Vector3.up * .021f;
@@ -112,6 +115,69 @@ namespace DeadlyJenga.Presentation
             miniature.SetParent(transform, false);
             miniature.localPosition = Vector3.up * .051f;
             miniature.gameObject.SetActive(false);
+        }
+
+        // Builds the plinth from stacked rings. Each ring is a rounded square; the side profile
+        // runs straight up the slope, then bends over (a curve) into the flat top at y = 0.
+        static Mesh PlinthMesh()
+        {
+            const int cornerSteps = 6, bendSteps = 6;
+            float bottom = PlinthBase * .5f, edge = PlinthTop * .5f, y0 = -PlinthHeight;
+            // The bend starts on the slope below the top edge and ends on the top face, inside the edge.
+            var slope = new Vector2(edge - bottom, PlinthHeight).normalized;
+            var bendStart = new Vector2(edge, 0) - slope * PlinthRoundOver;
+            var bendEnd = new Vector2(edge - PlinthRoundOver, 0);
+            var profile = new List<Vector2> { new(bottom, y0) };
+            for (int i = 0; i <= bendSteps; i++)
+            {
+                float t = i / (float)bendSteps;
+                profile.Add((1 - t) * (1 - t) * bendStart + 2 * (1 - t) * t * new Vector2(edge, 0) + t * t * bendEnd);
+            }
+
+            var vertices = new List<Vector3>();
+            var uvs = new List<Vector2>();
+            var triangles = new List<int>();
+            int ringSize = 4 * (cornerSteps + 1);
+            foreach (var point in profile)
+            {
+                float half = point.x, corner = Mathf.Min(PlinthCorner, half * .9f), run = 0;
+                for (int c = 0; c < 4; c++)
+                {
+                    var center = new Vector2(c == 0 || c == 3 ? half - corner : corner - half,
+                        c < 2 ? half - corner : corner - half);
+                    for (int s = 0; s <= cornerSteps; s++)
+                    {
+                        float angle = (c + s / (float)cornerSteps) * Mathf.PI * .5f;
+                        var p = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * corner;
+                        if (vertices.Count % ringSize > 0)
+                        {
+                            var last = vertices[vertices.Count - 1];
+                            run += Vector2.Distance(p, new Vector2(last.x, last.z));
+                        }
+                        vertices.Add(new Vector3(p.x, point.y, p.y));
+                        uvs.Add(new Vector2(run, point.y));
+                    }
+                }
+            }
+            for (int r = 0; r + 1 < profile.Count; r++)
+                for (int i = 0; i < ringSize; i++)
+                {
+                    int a = r * ringSize + i, b = r * ringSize + (i + 1) % ringSize;
+                    triangles.AddRange(new[] { a, a + ringSize, b, b, a + ringSize, b + ringSize });
+                }
+            int top = (profile.Count - 1) * ringSize, middle = vertices.Count;
+            vertices.Add(Vector3.zero);
+            uvs.Add(Vector2.zero);
+            for (int i = 0; i < ringSize; i++)
+                triangles.AddRange(new[] { middle, top + (i + 1) % ringSize, top + i });
+
+            var mesh = new Mesh { name = "Live map plinth" };
+            mesh.SetVertices(vertices);
+            mesh.SetUVs(0, uvs);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         MeshRenderer MakeMesh(string name, Mesh mesh, Material material)
@@ -372,6 +438,7 @@ namespace DeadlyJenga.Presentation
         void OnDestroy()
         {
             Destroy(border);
+            Destroy(plinthMesh);
             Destroy(surface);
             Destroy(markers);
             if(lettering)Destroy(lettering);

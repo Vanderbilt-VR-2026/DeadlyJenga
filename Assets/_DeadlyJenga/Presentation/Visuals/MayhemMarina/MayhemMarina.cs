@@ -17,7 +17,7 @@ namespace DeadlyJenga.CandyArt.Marina
         const float CinemaFront = -2.2f;
         const float CinemaBack = 11.9f;
         static readonly Vector3 CinemaSign = new(0, 5.58f, CinemaFront - .25f);
-        public static readonly Vector3 CinemaTable = new(0, CinemaFloor + .91f, 2.75f);
+        public static readonly Vector3 CinemaTable = new(0, CinemaFloor + DeadlyJenga.Presentation.LobbyLiveMap.PlinthHeight, 2.75f);
         static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, -90, 0);
         static readonly Quaternion FameTurn = Quaternion.Euler(0, 90, 0);
         public static readonly Vector3 Wardrobe = new(-5.12f, CinemaFloor + .22f, 3.25f);
