@@ -83,7 +83,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Assert(Quaternion.Angle(frozen,p.viewCamera.transform.localRotation)<.01f,"Invalid tracking freezes the last valid pose instead of applying bad input.");
                 InputSystem.QueueDeltaStateEvent(hmd.trackingState,3);InputSystem.QueueDeltaStateEvent(hmd.deviceRotation,Quaternion.Euler(0,-39,0));yield return null;yield return null;
                 Assert(Quaternion.Angle(p.viewCamera.transform.localRotation,Quaternion.Euler(0,-39,0))<.1f,"Head rotation resumes after tracking recovers.");
-                p.UseStationaryVR();Assert(p.vrMovement==SurvivorVRMovement.BodyRelative&&p.vrTurn==SurvivorVRTurn.Snap,"Seated preset uses stable movement plus snap turn.");
+                p.UseStationaryVR();Assert(p.vrMovement==SurvivorVRMovement.HeadRelative&&p.vrTurn==SurvivorVRTurn.Smooth,"Seated preset uses head-directed movement plus smooth turn.");
                 p.UseFluidVR();Assert(p.vrMovement==SurvivorVRMovement.HeadRelative&&p.vrTurn==SurvivorVRTurn.Smooth,"Fluid preset uses head-directed movement plus smooth turn.");
                 p.controlMode=ControlMode.Desktop;p.RefreshMode();Assert(!driver.enabled&&Quaternion.Angle(p.viewCamera.transform.localRotation,Quaternion.identity)<.01f,"Desktop mode restores mouse-owned camera rotation.");
                 var menu=Object.FindFirstObjectByType<CastleWorldMenu>(FindObjectsInactive.Include);menu.Show(true,p.viewCamera);
@@ -93,7 +93,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 p.viewCamera.transform.LookAt(buttons[12].transform);menu.Point(p.viewCamera,true);menu.Point(p.viewCamera,false);
                 Assert(buttons[1].GetComponentInChildren<UnityEngine.UI.Text>().text.StartsWith("Movement:"),"Gaze selection opens the actual VR comfort page.");
                 p.viewCamera.transform.LookAt(buttons[5].transform);menu.Point(p.viewCamera,true);
-                Assert(session.Survivor().vrMovement==SurvivorVRMovement.BodyRelative&&session.Survivor().vrTurn==SurvivorVRTurn.Snap,"Headset menu stationary preset changes the live local survivor.");
+                Assert(session.Survivor().vrMovement==SurvivorVRMovement.HeadRelative&&session.Survivor().vrTurn==SurvivorVRTurn.Smooth,"Headset menu seated preset uses head-directed movement plus smooth turn.");
                 p.viewCamera.transform.LookAt(buttons[6].transform);menu.Point(p.viewCamera,true);
                 Assert(session.Survivor().vrMovement==SurvivorVRMovement.HeadRelative&&session.Survivor().vrTurn==SurvivorVRTurn.Smooth,"Headset menu fluid preset changes the live local survivor.");
                 session.Survivor().vrMovement=savedMove;session.Survivor().vrTurn=savedTurn;menu.Show(false,p.viewCamera);
