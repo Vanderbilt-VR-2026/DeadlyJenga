@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-42
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: b86f6ae9cadd97f49ab1adb3e729b418, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 42
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Puddle Drain
+    atlasFile: atlas.png
+    atlasSha256: 7154dc9897f4c054e5d71eed97cec16452ab18a8e992c5f7fb7ba15cbdc53f54
+    gifFile: preview.gif
+    gifSha256: 55abd00fb440c030f194831bcbe30a57a4b6c8bf9ace855ede3e18dbd764ec38
+    sourceSha256: 0474095e2937bf97519f76131f1f4753affec175496009b51418d0ee9cbbed94
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Puddle Drain
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed disaster gameplay lifecycle firing Puddle Drain
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

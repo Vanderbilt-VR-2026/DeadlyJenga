@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-18
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: dd4184479bd0e2747b0ad6929d63021d, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 18
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Fall Wind
+    atlasFile: atlas.png
+    atlasSha256: 623536cd8f6d947596adfc4ec673e0387be3dc75e198e6dc75d59f4dc38fa403
+    gifFile: preview.gif
+    gifSha256: 17773c40d662abccd186c02a273f369e6713c8cb97c95a1f785cb3cdd202529f
+    sourceSha256: f6fe14e5d615111a36c1568fde02ccc3d5056f29c9c0cf2e5115dd940a988fc3
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The moving player's feet, hands or exertion
+    action: Fall Wind
+    target: The contacted ground or climbable ledge; show its material
+    listenerRole: That player for local breathing; nearby listener for movement contacts
+    triggerEvidence: Observed gameplay lifecycle firing Fall Wind
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

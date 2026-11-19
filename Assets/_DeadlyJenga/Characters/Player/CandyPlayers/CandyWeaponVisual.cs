@@ -6,6 +6,9 @@ namespace DeadlyJenga.CandyPlayers
     public sealed partial class CandyWeaponVisual
     {
         bool wasEmbedded;
+        IMatchRuntime pickupRuntime;
+        string pickupEpoch;
+        int pickupSequence = -1;
         readonly EquipmentState slungFeedState = new EquipmentState();
         readonly Transform parent;readonly Material material;Transform root,barrel;EquipmentKind kind;float barrelAngle,barrelTarget,barrelSpeed=600;bool barrelMode,barrelInitialized;
         public CandyWeaponVisual(Transform parent,Material material){this.parent=parent;this.material=material;PreparePickupModels();}
@@ -16,12 +19,16 @@ namespace DeadlyJenga.CandyPlayers
             var position=back?new Vector3(feet.x,Mathf.Lerp(feet.y,head.y,.63f),feet.z)+yaw*new Vector3(.12f,0,-.25f)*scale:new Vector3(feet.x,Mathf.Lerp(feet.y,head.y,.40f),feet.z)+yaw*new Vector3(left?-.23f:.23f,0,.025f)*scale;
             return new Pose(position,yaw*(back?Quaternion.Euler(0,0,-35)*Quaternion.Euler(-90,0,0):Quaternion.Euler(90,0,left?-8:8)));
         }
-        // Weapon geometry points along local Z. A shaft lies across the palm,
-        // while the chainsaw's pistol-style handle runs along local Y.
+        // Weapon shafts point along local Z and lie across the palm.
+        internal const float HandheldScale = .66f;
+        internal static float ModelScale(EquipmentKind kind, float avatarScale) =>
+            kind is EquipmentKind.PoweredArmor or EquipmentKind.WristLaser or EquipmentKind.BoxingGlove or EquipmentKind.LaserClaws
+                ? avatarScale : avatarScale * HandheldScale * (kind == EquipmentKind.MurderSword ? 1.25f : 1f);
+
         internal static bool MeleeMount(EquipmentKind kind,bool left,out Vector3 palm,out Quaternion mount)
         {
             float side=left?1:-1;
-            palm=new Vector3(0,-.031f,.075f);
+            palm=ShaftPalm(ShaftRadius(kind));
             switch(kind)
             {
                 case EquipmentKind.MurderSword:
@@ -32,19 +39,320 @@ namespace DeadlyJenga.CandyPlayers
                 case EquipmentKind.FlamingMarshmallow:
                     mount=Quaternion.Euler(0,side*90,0);
                     return true;
-                case EquipmentKind.Chainsaw:
-                    mount=Quaternion.Euler(0,0,-side*90);
-                    return true;
                 default:
                     mount=Quaternion.identity;
                     return false;
             }
         }
 
-        static Pose DrawnPose(EquipmentKind kind,CandyHandPose hand,bool left,float scale)
+        internal const float ChainGunBarrelHeight = -.235f;
+        internal const float ChainGunRotorStart = .39f;
+        internal const float ChainGunMuzzleDepth = ChainGunRotorStart + .61f;
+
+        internal static readonly Vector3 RocketMuzzle = new Vector3(0,.205f,1.065f);
+        internal const float RocketSupportDepth = .69f;
+        internal const float GrenadeDrumHeight = .12f, GrenadeChamberRadius = .115f, GrenadeDrumOffset = .16f;
+        internal static readonly Vector3 GrenadeMuzzle = new Vector3(0,GrenadeDrumHeight+GrenadeChamberRadius,.80f);
+        internal const float GrenadeSupportDepth = .515f;
+
+        internal const float RifleSupportDepth = .354f;
+        internal const float ChainGunRearGripDepth = .075f, ChainGunFrontGripDepth = .475f;
+        static readonly Vector3 ChainGunRearHandle = new Vector3(0, -.031f, ChainGunRearGripDepth);
+        const float BarGripRadius = .027f;
+        internal const float SawBailHeight = .315f, SawBailDepth = .275f;
+        internal const float AxeSupportDepth = .43f;
+        static readonly Vector3 StormbreakerEmitter = new Vector3(0, .397f, .827f);
+
+        internal static Pose StormbreakerCarry(Pose aim, bool left, bool lightning, float scale,
+            Vector3? support, out bool holdingSupport, bool sideways = false)
         {
+            Vector3 forward = aim.rotation * Vector3.forward;
+            Vector3 up = Vector3.ProjectOnPlane(Vector3.up, forward);
+            if (up.sqrMagnitude < .01f) up = aim.rotation * Vector3.up;
+            var stance = Quaternion.LookRotation(forward, up);
+            float side = left ? 1 : -1;
+            Vector3 shaft = stance * (lightning
+                ? new Vector3(side * .18f, .84f, .50f)
+                : new Vector3(side * .40f, .65f, .70f)).normalized;
+
+            holdingSupport = false;
+            if (support.HasValue)
+            {
+                var separation = support.Value - aim.position;
+                float distance = separation.magnitude / scale;
+                // Match the two leather grips. An unrelated squeeze must not flip the axe.
+                if (distance >= .24f && distance <= .65f && Vector3.Dot(shaft, separation.normalized) > .45f)
+                {
+                    shaft = separation.normalized;
+                    holdingSupport = true;
+                }
+            }
+
+            var blade = Vector3.ProjectOnPlane(forward, shaft);
+            if (blade.sqrMagnitude < .01f) blade = Vector3.ProjectOnPlane(stance * Vector3.up, shaft);
+            var rotation = Quaternion.LookRotation(shaft, blade);
+            if (sideways) rotation *= Quaternion.Euler(0, 0, 90f);
+            MeleeMount(EquipmentKind.LaserAxe, left, out var palm, out var mount);
+            var wrist = rotation * Quaternion.Inverse(mount);
+            return new Pose(aim.position + wrist * palm * scale, rotation);
+        }
+
+        internal static Pose StormbreakerShot(Pose carry, Vector3 target, Vector3 aimForward, float scale)
+        {
+            var origin = carry.position + carry.rotation * StormbreakerEmitter * scale;
+            var direction = target - origin;
+            // If the aim point is already behind the blade, keep the shot facing forward.
+            if (Vector3.Dot(direction, aimForward) <= .025f) direction = aimForward;
+            return new Pose(origin, Quaternion.LookRotation(direction));
+        }
+
+
+        // These are model-space measurements of the wrapped surfaces and trigger faces.
+        readonly struct PistolContact
+        {
+            public readonly Vector3 center, trigger;
+            public readonly float width, depth, rake;
+            public PistolContact(float y, float z, float width, float depth, float rake,
+                float triggerY = 0, float triggerZ = 0)
+            {
+                center = new Vector3(0, y, z);
+                trigger = new Vector3(0, triggerY, triggerZ);
+                this.width = width; this.depth = depth; this.rake = rake;
+            }
+        }
+
+        static PistolContact PrimaryContact(EquipmentKind kind) => kind switch
+        {
+            EquipmentKind.Blaster => new(-.067f, .030f, .054f, .045f, .25f, -.021f, .128f),
+            EquipmentKind.SheriffHammer => new(-.104f, -.045f, .055f, .047f, .34f, -.044f, .111f),
+            EquipmentKind.DualRifle => new(-.074f, -.032f, .061f, .046f, .33f, -.023f, .103f),
+            EquipmentKind.RocketLauncher or EquipmentKind.GrenadeLauncher =>
+                new(-.082f, 0, .037f, .052f, 0, -.029f, .089f),
+            EquipmentKind.DualUzi => new(-.082f, -.006f, .050f, .055f, 0, -.022f, .120f),
+            EquipmentKind.NeedleDrill => new(-.087f, -.052f, .058f, .049f, .37f, .003f, .083f),
+            EquipmentKind.StockPistol => new(-.055f, -.022f, .055f, .048f, .30f, .023f, .124f),
+            EquipmentKind.Chainsaw => new(-.101f, -.014f, .047f, .056f, 0, -.072f, .068f),
+            _ => default
+        };
+
+        static Pose ContactWrist(PistolContact grip, bool left)
+        {
+            float side = left ? -1 : 1;
+            float knuckleDepth = grip.center.z + grip.depth - .035f;
+            if (grip.trigger.z > 0) knuckleDepth = Mathf.Max(knuckleDepth, grip.trigger.z - .054f);
+            return new Pose(new Vector3(side * (grip.width + .014f), grip.center.y - .010f, knuckleDepth - .050f),
+                Quaternion.Euler(0, 0, -side * 86));
+        }
+
+        static CandyHandSkeleton PistolFingers(PistolContact grip, Pose wrist, bool left, bool pressed)
+        {
+            float side = left ? -1 : 1;
+            var inverse = Quaternion.Inverse(wrist.rotation);
+            var rest = CandyHandSkeleton.Rest(left, .30f);
+            var hand = rest;
+            for (int finger = 1; finger < 5; finger++)
+            {
+                int root = finger * 4;
+                Vector3 p = wrist.position + wrist.rotation * rest.Joint(root);
+                float first = FingerLength(rest, root);
+                float second = FingerLength(rest, root + 1);
+                float third = FingerLength(rest, root + 2);
+                if (finger == 1 && grip.trigger.z > 0)
+                {
+                    // Enter the guard from the side, and stop at the finger's natural reach.
+                    var tip = grip.trigger + new Vector3(pressed ? side * .006f : p.x,
+                        pressed ? 0 : .022f, pressed ? 0 : .010f);
+                    var entry = new Vector3(p.x, tip.y, tip.z - .016f);
+                    var approach = entry - p;
+                    Vector3 knuckle = p + (approach.sqrMagnitude > .000001f ? approach.normalized : Vector3.forward) * first;
+                    var towardTip = tip - knuckle;
+                    float reach = Mathf.Clamp(towardTip.magnitude, Mathf.Abs(second - third) + .001f, second + third - .001f);
+                    var along = towardTip.sqrMagnitude > .000001f ? towardTip.normalized : Vector3.forward;
+                    var bend = Vector3.ProjectOnPlane(Vector3.forward, along);
+                    if (bend.sqrMagnitude < .01f) bend = Vector3.ProjectOnPlane(Vector3.down, along);
+                    float run = (second * second - third * third + reach * reach) / (2 * reach);
+                    Vector3 middle = knuckle + along * run + bend.normalized * Mathf.Sqrt(Mathf.Max(0, second * second - run * run));
+                    hand.SetJoint(root + 1, inverse * (knuckle - wrist.position));
+                    hand.SetJoint(root + 2, inverse * (middle - wrist.position));
+                    hand.SetJoint(root + 3, inverse * (knuckle + along * reach - wrist.position));
+                    continue;
+                }
+
+                // Stay on the outside of the grip until the finger reaches its front corner.
+                float front = grip.center.z + (p.y - grip.center.y) * grip.rake + grip.depth + .008f;
+                for (int joint = 0; joint < 3; joint++)
+                {
+                    float length = joint == 0 ? first : joint == 1 ? second : third;
+                    float forward = Mathf.Clamp(front - p.z, 0, length);
+                    float inward = Mathf.Sqrt(Mathf.Max(0, length * length - forward * forward));
+                    p += Vector3.forward * forward + new Vector3(-side * .98f, -.199f, 0) * inward;
+                    hand.SetJoint(root + joint + 1, inverse * (p - wrist.position));
+                }
+            }
+            return hand;
+        }
+
+        static float FingerLength(CandyHandSkeleton rest, int joint) =>
+            Vector3.Distance(rest.Joint(joint), rest.Joint(joint + 1));
+
+        static void PlaceContact(ref CandyHandPose hand, Pose weapon, Pose wrist, float scale)
+        {
+            hand.position = weapon.position + weapon.rotation * wrist.position * scale;
+            hand.rotation = weapon.rotation * wrist.rotation;
+            hand.skeletonTracked = true;
+        }
+
+        const float ShaftStartAngle = -43f * Mathf.Deg2Rad;
+        static float ShaftClearance(float radius) => (radius + .007f) / .94f;
+        static Vector3 ShaftRadial(float angle) => new(0, Mathf.Cos(angle), Mathf.Sin(angle));
+        static Vector3 ShaftPalm(float radius) =>
+            new Vector3(0, -.004f, .05f) - ShaftRadial(ShaftStartAngle) * ShaftClearance(radius);
+
+        static CandyHandSkeleton ShaftFingers(bool left, float radius, bool pressed = false)
+        {
+            var rest = CandyHandSkeleton.Rest(left, .86f);
+            var hand = rest;
+            var center = ShaftPalm(radius);
+            float clearance = ShaftClearance(radius);
+            for (int finger = 1; finger < 5; finger++)
+            {
+                int root = finger * 4;
+                float angle = ShaftStartAngle;
+                Vector3 pivot = center + Vector3.right * rest.Joint(root).x;
+                for (int joint = 0; joint < 3; joint++)
+                {
+                    float length = FingerLength(rest, root + joint);
+                    angle += 2 * Mathf.Asin(length / (2 * clearance));
+                    Vector3 point = pivot + ShaftRadial(angle) * clearance;
+                    if (pressed && finger == 1 && joint == 2)
+                    {
+                        var middle = hand.Joint(root + joint);
+                        point = middle + Quaternion.AngleAxis(-12, Vector3.right) * (point - middle).normalized * length;
+                    }
+                    hand.SetJoint(root + joint + 1, point);
+                }
+            }
+            float side = left ? 1 : -1;
+            Vector3 thumb = rest.Joint(0);
+            thumb += new Vector3(side * .30f, .34f, .88f).normalized * FingerLength(rest, 0);
+            hand.SetJoint(1, thumb);
+            thumb += new Vector3(-side * .28f, .20f, .94f).normalized * FingerLength(rest, 1);
+            hand.SetJoint(2, thumb);
+            thumb += new Vector3(-side * .84f, -.18f, .51f).normalized * FingerLength(rest, 2);
+            hand.SetJoint(3, thumb);
+            return hand;
+        }
+
+        static void ShaftContact(ref CandyHandPose hand, Pose weapon, bool left, float scale,
+            Vector3 center, Quaternion rotation, float radius, bool pressed = false)
+        {
+            PlaceContact(ref hand, weapon, new Pose(center - rotation * ShaftPalm(radius), rotation), scale);
+            hand.skeleton = ShaftFingers(left, radius, pressed);
+        }
+
+        internal static bool TryPrimaryContact(ref CandyHandPose hand, Pose weapon, EquipmentKind kind,
+            bool left, bool pressed, float scale)
+        {
+            scale = ModelScale(kind, scale);
+            var grip = PrimaryContact(kind);
+            if (grip.width > 0)
+            {
+                var wrist = ContactWrist(grip, left);
+                PlaceContact(ref hand, weapon, wrist, scale);
+                hand.skeleton = PistolFingers(grip, wrist, left, pressed);
+                return true;
+            }
+            if (kind == EquipmentKind.ChainGun)
+            {
+                ShaftContact(ref hand, weapon, left, scale, ChainGunRearHandle,
+                    Quaternion.identity, BarGripRadius, pressed);
+                return true;
+            }
+            return false;
+        }
+
+        internal static bool TrySupportContact(ref CandyHandPose hand, Pose weapon, EquipmentKind kind,
+            bool left, float scale)
+        {
+            scale = ModelScale(kind, scale);
+            if (kind == EquipmentKind.ChainGun || kind == EquipmentKind.Chainsaw || kind == EquipmentKind.LaserAxe)
+            {
+                Vector3 center = kind == EquipmentKind.ChainGun ? new(0, -.031f, ChainGunFrontGripDepth) :
+                    kind == EquipmentKind.Chainsaw ? new(0, SawBailHeight, SawBailDepth) : new(0, 0, AxeSupportDepth);
+                var rotation = kind == EquipmentKind.LaserAxe ?
+                    Quaternion.Euler(0, left ? -90 : 90, 0) : Quaternion.identity;
+                ShaftContact(ref hand, weapon, left, scale, center, rotation,
+                    kind == EquipmentKind.LaserAxe ? AxeWrapRadius : BarGripRadius);
+                return true;
+            }
+
+            var grip = kind switch
+            {
+                EquipmentKind.RocketLauncher => new PistolContact(-.060f, RocketSupportDepth, .037f, .052f, 0),
+                EquipmentKind.GrenadeLauncher => new PistolContact(-.060f, GrenadeSupportDepth, .037f, .052f, 0),
+                EquipmentKind.DualRifle => new PistolContact(-.094f, RifleSupportDepth, .031f, .033f, 0),
+                _ => default
+            };
+            if (grip.width == 0) return false;
+            var wrist = ContactWrist(grip, left);
+            PlaceContact(ref hand, weapon, wrist, scale);
+            hand.skeleton = PistolFingers(grip, wrist, left, false);
+            return true;
+        }
+
+        internal static CandyHandSkeleton ShaftGrip(EquipmentKind kind, bool left) => ShaftFingers(left, ShaftRadius(kind));
+
+        static float ShaftRadius(EquipmentKind kind) => kind switch
+        {
+            EquipmentKind.LaserAxe => AxeWrapRadius,
+            EquipmentKind.SawStaff => .037f,
+            EquipmentKind.BarbedBat => .030f,
+            EquipmentKind.MurderSword => .032f,
+            EquipmentKind.Dagger => .034f,
+            EquipmentKind.FlamingMarshmallow => .023f,
+            _ => .030f
+        };
+
+        public bool TryOpticAnchor(EquipmentState state,out Pose anchor)
+        {
+            anchor=default;
+            if(!root||state==null||kind!=state.kind)return false;
+            string name=kind==EquipmentKind.DualRifle?(state.shotgun?"Shotgun optic":"Rifle optic"):
+                kind==EquipmentKind.Blaster?"Blaster optic":kind==EquipmentKind.SheriffHammer?"Revolver optic":null;
+            if(name==null)return false;
+            var optic=kind==EquipmentKind.DualRifle&&barrel?barrel.Find(name):root.Find(name);
+            if(!optic)return false;
+            if(kind==EquipmentKind.DualRifle)
+            {
+                // The carriage rotates during a mode change; the held receiver must not counter-rotate with it.
+                var settled=Quaternion.Euler(0,0,state.shotgun?0:180);
+                anchor=new Pose(barrel.localPosition+settled*optic.localPosition,settled*optic.localRotation);
+            }
+            else anchor=new Pose(root.InverseTransformPoint(optic.position),Quaternion.Inverse(root.rotation)*optic.rotation);
+            return true;
+        }
+
+        internal static Pose DrawnPose(EquipmentKind kind,CandyHandPose hand,bool left,float scale)
+        {
+            scale = ModelScale(kind, scale);
+            var contact = PrimaryContact(kind);
+            if (contact.width > 0)
+            {
+                var wrist = ContactWrist(contact, left);
+                var rotation = hand.rotation * Quaternion.Inverse(wrist.rotation);
+                return new Pose(hand.position - rotation * wrist.position * scale, rotation);
+            }
+            if(kind == EquipmentKind.ChainGun)
+                return new Pose(hand.position - hand.rotation * (ChainGunRearHandle - ShaftPalm(BarGripRadius)) * scale, hand.rotation);
             if(!MeleeMount(kind,left,out var palm,out var mount))return new Pose(hand.position,hand.rotation);
             return new Pose(hand.position+hand.rotation*palm*scale,hand.rotation*mount);
+        }
+
+        internal bool IsPairedShot(Vector3 origin)
+        {
+            if(!root||!paired||kind!=EquipmentKind.DualUzi)return false;
+            var muzzle=new Vector3(0,.12f,.51f);
+            return (paired.TransformPoint(muzzle)-origin).sqrMagnitude<(root.TransformPoint(muzzle)-origin).sqrMagnitude;
         }
 
         public void Present(EquipmentState state,CandyAvatarFrame frame,bool active) =>
@@ -83,30 +391,34 @@ namespace DeadlyJenga.CandyPlayers
                 motionReady = true;
             }
 
+            if (state.drawn && !slungForEmote && HasNewPickupDraw(state)) drawAmount = 0;
             var feedState = slungForEmote ? slungFeedState : state;
             float target = state.drawn && !slungForEmote ? 1 : 0;
-            bool back = EquipmentSpecifications.Get(kind).backHolster || kind == EquipmentKind.FlamingMarshmallow;
-            float duration = kind == EquipmentKind.LaserClaws || kind == EquipmentKind.WristLaser || kind == EquipmentKind.PoweredArmor ? .17f : back ? .34f : .23f;
+            float duration = CarryDuration(target > 0);
             drawAmount = Mathf.MoveTowards(drawAmount, target, Time.deltaTime / duration);
             if (state.roleIssued && !state.drawn && drawAmount <= 0) { Hide(); return; }
 
+            if (target > 0)
+            {
+                lastCarriedFrame = frame;
+                hasCarriedFrame = true;
+            }
             var hand = state.leftHanded ? frame.left : frame.right;
-            var pose = CarryPose(frame, hand, state.leftHanded, drawAmount);
+            var pose = CarryPose(frame, hand, state.leftHanded, drawAmount, target > 0);
             if (slungForEmote)
             {
                 wasEmbedded = false;
-                daggerUntil = 0;
+                contactUntil = 0;
             }
             else
             {
-                ReadMeleeActions(state, pose);
                 pose = EmbedPose(state, pose, frame.scale);
             }
             root.gameObject.SetActive(true);
-            root.localScale = new Vector3(kind == EquipmentKind.BoxingGlove && state.leftHanded ? -1 : 1, 1, 1) * frame.scale;
+            root.localScale = new Vector3((kind == EquipmentKind.BoxingGlove || kind == EquipmentKind.RocketLauncher) && state.leftHanded ? -1 : 1, 1, 1) * ModelScale(kind, frame.scale);
             root.SetPositionAndRotation(pose.position, pose.rotation);
             if (kind == EquipmentKind.WristLaser)
-                root.localScale = new Vector3(1, 1, Mathf.Lerp(.78f, 1, drawAmount)) * frame.scale;
+                root.localScale = new Vector3(1, 1, Mathf.Lerp(.78f, 1, drawAmount)) * ModelScale(kind, frame.scale);
             if (kind == EquipmentKind.LaserClaws) PresentClaws(root, hand, state.leftHanded, drawAmount);
             if (kind == EquipmentKind.PoweredArmor) PresentRepulsor(root, drawAmount);
             if(rotor){spin+=Time.deltaTime*(state.triggerHeld?700+state.charge*1800:state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?500:0);rotor.localRotation=Quaternion.Euler(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?spin:0,0,state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?0:spin);}
@@ -129,9 +441,9 @@ namespace DeadlyJenga.CandyPlayers
 
                 bool otherLeft = !state.leftHanded;
                 var other = otherLeft ? frame.left : frame.right;
-                var otherPose = CarryPose(frame, other, otherLeft, drawAmount);
+                var otherPose = CarryPose(frame, other, otherLeft, drawAmount, target > 0);
                 paired.SetPositionAndRotation(otherPose.position, otherPose.rotation);
-                paired.localScale = Vector3.one * frame.scale;
+                paired.localScale = Vector3.one * ModelScale(kind, frame.scale);
                 paired.gameObject.SetActive(true);
                 if (kind == EquipmentKind.LaserClaws) PresentClaws(paired, other, otherLeft, drawAmount);
                 if (kind == EquipmentKind.PoweredArmor) PresentRepulsor(paired, drawAmount);
@@ -146,16 +458,46 @@ namespace DeadlyJenga.CandyPlayers
                 barrel.localRotation=Quaternion.Euler(0,0,barrelAngle);
             }
         }
+        bool HasNewPickupDraw(EquipmentState state)
+        {
+            if (string.IsNullOrEmpty(state.actor)) return false;
+            var runtime = MatchRuntime.Current;
+            var frame = runtime?.Frame;
+            if (frame == null) return false;
+            if (!ReferenceEquals(pickupRuntime, runtime) || pickupEpoch != frame.equipmentEpoch)
+            {
+                pickupRuntime = runtime;
+                pickupEpoch = frame.equipmentEpoch;
+                pickupSequence = -1;
+            }
+            if (pickupSequence >= frame.equipmentSequence) return false;
+            int after = pickupSequence;
+            pickupSequence = frame.equipmentSequence;
+            foreach (var action in frame.equipmentActions)
+                if (action != null && action.id > after && action.remaining >= .40f &&
+                    action.actor == state.actor && action.kind == state.kind &&
+                    (action.action == EquipmentAction.Pickup || action.action == EquipmentAction.Swap))
+                    return true;
+            return false;
+        }
+
         Transform Create(EquipmentKind value)
         {
             barrel=null;barrelInitialized=false;
             var root=new GameObject("Visual - "+value).transform;root.SetParent(parent,false);
             var dark=new Color(.065f,.09f,.15f);var cyan=new Color(.1f,.95f,1);var gold=new Color(1,.65f,.12f);
-            if(value==EquipmentKind.Blaster)BuildDetailedAlienBlaster(root);
+            if(value==EquipmentKind.Blaster)
+            {
+                BuildDetailedAlienBlaster(root);
+            }
             else if (value == EquipmentKind.PoweredArmor)
             {
                 Part(root, "Left repulsor shutter", PrimitiveType.Cube, Vector3.zero, new Vector3(.025f,.033f,.006f), dark);
                 Part(root, "Right repulsor shutter", PrimitiveType.Cube, Vector3.zero, new Vector3(.025f,.033f,.006f), dark);
+                var hinges=new CandyAccessoryMeshes.Builder();
+                foreach(float side in new[]{-1f,1f})
+                    hinges.Box(new Vector3(side*.030f,0,-.008f),new Vector3(.027f,.036f,.020f));
+                MeshPart(root,"Repulsor shutter hinge rails",hinges.Mesh("Repulsor hinge rails"),dark);
             }
             else if(value==EquipmentKind.FlyingHand)
             {

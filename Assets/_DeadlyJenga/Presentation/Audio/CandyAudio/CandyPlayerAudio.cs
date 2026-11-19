@@ -10,12 +10,15 @@ namespace DeadlyJenga.CandyAudio
         IMovementState motor;Behaviour motorBehaviour;
         Vector3 previous;bool grounded,climbing,underwater;int vaults;
         float stepTravel,nextStep,fallSpeed,airtime,nextGrunt,previousGrip,nextGripWarning;
+        bool staminaObserved,staminaEmpty;
+        IPlayerView playerView;
         readonly Vector3[] gripLast=new Vector3[2];readonly bool[] gripMoving=new bool[2];readonly float[] gripCooldown=new float[2];
         float voicePitch;
         [Range(0,1)] public float staminaBreathingVolume=.65f;
         void Awake()
         {
             motor=GetComponent<IMovementState>();motorBehaviour=motor as Behaviour;previous=transform.position;grounded=motor.Grounded;climbing=motor.Climbing;vaults=motor.VaultCount;
+            playerView=GetComponent<IPlayerView>();
             voicePitch=Mathf.Lerp(.86f,1.16f,Mathf.Abs(GetInstanceID()%101)/100f);
             var engine=CandyAudioEngine.Instance;if(engine&&!CandyJaguarAudio.IsJaguar(this))engine.Play(CandySound.Spawn,previous,.4f,GetInstanceID(),voicePitch);
         }
@@ -37,6 +40,7 @@ namespace DeadlyJenga.CandyAudio
                 var breath=CandyBreathing.State(motor.Climbing,motor.Stamina);
                 if(breath.HasValue)engine.Loop(breath.Value,transform,staminaBreathingVolume*Mathf.Lerp(.55f,1,1-motor.Stamina),true,voicePitch);
             }
+            ObserveStamina();
             if(!grounded&&motor.Grounded&&airtime>.1f&&nearby)
             {Sound(fallSpeed>5?CandySound.LandHard:CandySound.LandSoft,p,Mathf.Clamp(.2f+fallSpeed/12,.2f,1));stepTravel=0;}
             if(grounded&&!motor.Grounded&&motor.VerticalSpeed>2&&!motor.Vaulting&&nearby)Sound(CandySound.Jump,p,.45f);
@@ -72,7 +76,6 @@ namespace DeadlyJenga.CandyAudio
                     gripLast[side]=grip.position;
                 }
                 if(Time.time>=nextGrunt&&Mathf.Abs(d.y)>.001f){Sound(CandySound.ClimbGrunt,p+Vector3.up*motor.Height*.8f,.5f);nextGrunt=Time.time+1.5f+Mathf.Abs(GetInstanceID()%5)*.15f;}
-                if(motor.Stamina<.22f&&previousGrip>=.22f&&Time.time>=nextGripWarning){Sound(CandySound.GripWarning,p,.5f);nextGripWarning=Time.time+3;}
             }
             if(climbing&&!motor.Climbing&&!motor.Vaulting&&nearby)Sound(CandySound.ClimbRelease,p+Vector3.up*motor.Height*.7f,.4f);
             var world=CandyAudioWorld.Instance;
@@ -82,6 +85,27 @@ namespace DeadlyJenga.CandyAudio
                 if(p.y>world.WaterHeight+.5f)underwater=false;
             }
             grounded=motor.Grounded;climbing=motor.Climbing;previousGrip=motor.Stamina;
+        }
+        void ObserveStamina()
+        {
+            if(!motor.IsLocal||motor.InputPaused||playerView==null||!playerView.ControlledHere)
+            {
+                staminaObserved=false;
+                return;
+            }
+            bool empty=playerView.StaminaExhausted;
+            if(staminaObserved)
+            {
+                if(empty&&!staminaEmpty)CandySoundSuite.Local(CandySound.StaminaEmpty);
+                else if(!empty&&staminaEmpty)CandySoundSuite.Local(CandySound.StaminaUsable);
+                else if(!empty&&motor.Stamina<.22f&&previousGrip>=.22f&&Time.unscaledTime>=nextGripWarning)
+                {
+                    CandySoundSuite.Local(CandySound.StaminaLow);
+                    nextGripWarning=Time.unscaledTime+3;
+                }
+            }
+            staminaEmpty=empty;
+            staminaObserved=true;
         }
         void OnEnable()=>GameEvents.Emoted+=OnEmoted;
         void OnDisable()=>GameEvents.Emoted-=OnEmoted;

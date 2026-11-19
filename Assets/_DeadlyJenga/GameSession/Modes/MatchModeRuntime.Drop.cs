@@ -51,7 +51,18 @@ namespace DeadlyJenga.Modes
             return true;
         }
 
-        bool TryDropPosition(IModeActor actor,out Vector3 point)
+        Vector3 FallenEquipmentPosition(string id,Vector3 feet)
+        {
+            var actor=FindActor(id);
+            if(actor!=null&&TryDropPosition(actor,out var nearby,.68f))return nearby;
+            const int floorMask=(1<<Layers.Block)|(1<<Layers.Surface)|1;
+            if(Physics.Raycast(feet+Vector3.up*.25f,Vector3.down,out var floor,6,floorMask,
+                QueryTriggerInteraction.Ignore)&&floor.normal.y>=.55f)
+                return floor.point+Vector3.up*.25f;
+            return feet+Vector3.up*.25f;
+        }
+
+        bool TryDropPosition(IModeActor actor,out Vector3 point,float distance=1.45f)
         {
             point=Vector3.zero;
             var feet=actor.transform.position;
@@ -65,7 +76,7 @@ namespace DeadlyJenga.Modes
             for(int i=0;i<4;i++)
             {
                 var direction=i==0?forward:i==1?side:i==2?-side:-forward;
-                var candidate=feet+direction*1.45f+Vector3.up*.35f;
+                var candidate=feet+direction*distance+Vector3.up*.35f;
                 if(!Physics.Raycast(candidate+Vector3.up*.3f,Vector3.down,out var floor,1.5f,mask,QueryTriggerInteraction.Ignore)||
                     floor.normal.y<.55f)continue;
                 candidate=floor.point+Vector3.up*.35f;

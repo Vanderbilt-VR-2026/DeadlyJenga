@@ -1,6 +1,6 @@
 Shader "Candy Tropical/Death Paint"
 {
- Properties { [PerRendererData] _MainTex("Sprite Texture",2D)="white" {} _Age("Seconds since impact",Float)=0 _Aspect("View aspect",Float)=1.6 _Wipe("Wipe progress",Range(0,1))=0 }
+ Properties { [PerRendererData] _MainTex("Sprite Texture",2D)="white" {} _Age("Seconds since impact",Float)=0 _Aspect("View aspect",Float)=1.6 _Wipe("Wipe progress",Range(0,1))=0 _Spatter("Spatter only",Float)=0 }
  SubShader
  {
   Tags {"RenderPipeline"="UniversalPipeline" "Queue"="Overlay" "RenderType"="Transparent"}
@@ -12,7 +12,7 @@ Shader "Candy Tropical/Death Paint"
    #pragma fragment frag
    #pragma multi_compile_instancing
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-   float _Age, _Aspect, _Wipe;
+   float _Age, _Aspect, _Wipe, _Spatter;
    struct A {float4 positionOS:POSITION;float2 uv:TEXCOORD0;float4 color:COLOR;UNITY_VERTEX_INPUT_INSTANCE_ID};
    struct V {float4 positionCS:SV_POSITION;float2 uv:TEXCOORD0;float4 color:COLOR;UNITY_VERTEX_OUTPUT_STEREO};
    V vert(A i) {V o;UNITY_SETUP_INSTANCE_ID(i);UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);o.positionCS=TransformObjectToHClip(i.positionOS.xyz);o.uv=i.uv;o.color=i.color;return o;}
@@ -49,14 +49,19 @@ Shader "Candy Tropical/Death Paint"
    half4 frag(V i):SV_Target
    {
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
-    float2 p=(i.uv-.5)*float2(_Aspect,1);
+    bool spatter=_Spatter>.5;
+    float2 p=(i.uv-.5)*(spatter?float2(1.72,1.72):float2(_Aspect,1));
     float d=1,coverage=1;
-    UNITY_BRANCH if(_Age<.28)
+    UNITY_BRANCH if(spatter||_Age<.28)
     {
      d=paint(p);float aa=max(fwidth(d),.001);
-     float fill=smoothstep(.06,.28,_Age);
-     float front=lerp(.15,1.62,fill)-length((i.uv-.5)*2)+.06*noise(i.uv*18);
-     coverage=max(smoothstep(-aa,aa,d),smoothstep(-.025,.025,front));
+     coverage=smoothstep(-aa,aa,d);
+     if(!spatter)
+     {
+      float fill=smoothstep(.06,.28,_Age);
+      float front=lerp(.15,1.62,fill)-length((i.uv-.5)*2)+.06*noise(i.uv*18);
+      coverage=max(coverage,smoothstep(-.025,.025,front));
+     }
     }
     float wipe=saturate(_Wipe);
     float edge=lerp(-.20,1.12,wipe)+.07*sin(i.uv.y*3.14159)+.025*(noise(i.uv.yy*26)-.5);

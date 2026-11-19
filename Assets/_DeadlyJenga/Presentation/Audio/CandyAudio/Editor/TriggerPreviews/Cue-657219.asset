@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-657219
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 64a2763cb6dbf7441a9b40ac299c8d54, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 657219
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Holster
+    atlasFile: atlas.png
+    atlasSha256: 16f8bfb99e4c82f07553f3b6ceadb4a1645d8362bdd739a3d5127bd4c77fcb88
+    gifFile: preview.gif
+    gifSha256: e003f77fd54f10fcd9927df98b7580a6cca380885a70de3abc7349bf48aa4933
+    sourceSha256: 311063678d59bc9eb4eb98d8ac0d91e22f31bf4c61655ed946e594cac5ca8631
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Dual Uzi in the acting player's hands
+    action: Holster with Dual Uzi
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Holster
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

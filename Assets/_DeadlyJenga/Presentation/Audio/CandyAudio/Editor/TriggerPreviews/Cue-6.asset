@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-6
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: bbd089563e32a744fa16deebd180f6fc, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 6
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Player Splash
+    atlasFile: atlas.png
+    atlasSha256: 896eb468a6c22a97d51212ef8a984069f00c29da3db8b2a1425d4a5ae17fdf5a
+    gifFile: preview.gif
+    gifSha256: 884b4285cc461ec354815b3ed086360021efaae803ddc554bed404163b8ee687
+    sourceSha256: 4a7869f00009a307c65134d37c917f729089b92bf6c67c6ab912352aeceb0a68
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The moving player's feet, hands or exertion
+    action: Player Splash
+    target: The contacted ground or climbable ledge; show its material
+    listenerRole: That player for local breathing; nearby listener for movement contacts
+    triggerEvidence: Observed gameplay lifecycle firing Player Splash
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

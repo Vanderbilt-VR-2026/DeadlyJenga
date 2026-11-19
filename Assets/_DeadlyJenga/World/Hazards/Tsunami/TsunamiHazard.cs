@@ -17,7 +17,7 @@ namespace DeadlyJenga.World.Hazards
         public bool randomDirection = true;
         [Tooltip("Coming FROM this heading: 0 = north (+Z), 90 = east (+X).")]
         public float approachHeading;
-        [Min(0)] public float offshoreDistance = 45;
+        [Min(0)] public float offshoreDistance = 160;
         [Min(0)] public float warningTime = 5;
         [Min(.1f)] public float riseTime = 4;
         [Min(.1f)] public float approachSpeed = 8;
@@ -37,7 +37,7 @@ namespace DeadlyJenga.World.Hazards
         [Range(0, 1)] public float heightIntensity = .5f;
         [Range(0, 1)] public float forceIntensity = 1;
 
-        readonly HashSet<object> touched = new HashSet<object>();
+        readonly Dictionary<object, (Target target, float submerged)> wetTargets = new();
         sealed class Target
         {
             public IPushable push;
@@ -49,7 +49,8 @@ namespace DeadlyJenga.World.Hazards
         readonly Dictionary<Collider, Target> targets = new Dictionary<Collider, Target>();
         Collider[] hits = new Collider[2048];
         IWorldQuery world;
-        Vector3 start, direction;
+        Vector3 start, direction, across, alongExtents, acrossExtents;
+        Quaternion queryRotation;
         float age, width, peak, fallStart, lifetime, water, forceScale;
         public int LastTargetCount { get; private set; }
         public WaveFrame Wave { get; private set; }
@@ -99,9 +100,12 @@ namespace DeadlyJenga.World.Hazards
             world = map; age = 0;
             float angle = (randomDirection ? Random.Range(0f, 360f) : approachHeading) * Mathf.Deg2Rad;
             direction = -new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle));
-            var side = Vector3.Cross(Vector3.up, direction);
+            across = Vector3.Cross(Vector3.up, direction);
+            queryRotation = Quaternion.LookRotation(direction);
+            alongExtents = new Vector3(Mathf.Abs(direction.x), 0, Mathf.Abs(direction.z));
+            acrossExtents = new Vector3(Mathf.Abs(across.x), 0, Mathf.Abs(across.z));
             float reach = Mathf.Abs(direction.x) * bounds.extents.x + Mathf.Abs(direction.z) * bounds.extents.z;
-            width = widthOverride > 0 ? widthOverride : (2 * (Mathf.Abs(side.x) * bounds.extents.x + Mathf.Abs(side.z) * bounds.extents.z) + widthMargin * 2) / .85f;
+            width = widthOverride > 0 ? widthOverride : (2 * Vector3.Dot(acrossExtents, bounds.extents) + widthMargin * 2) / .85f;
             water = map.WaterHeight(bounds.center);
             start = bounds.center - direction * (reach + offshoreDistance + depth * .5f);
             start.y = water;
@@ -132,44 +136,71 @@ namespace DeadlyJenga.World.Hazards
         {
             using var measurement = DJTsunamiMarker.Auto();
             if (!Active) return;
+            LastTargetCount = 0;
             if (Services.Session is IWorldAuthority authority && !authority.HasWorldAuthority) { End(); return; }
             age += Time.fixedDeltaTime;
             if (age >= lifetime) { End(); return; }
             RefreshFrame();
-            if (Wave.height < .05f) return;
+            if (Wave.height < .05f || forceScale <= 0 || pushAcceleration <= 0 && liftAcceleration <= 0 && damagePerSecond <= 0) return;
             var center = Wave.center + Vector3.up * (Wave.height * .5f - 1);
             var extents = new Vector3(width * .5f, Wave.height * .5f + 1, depth * .5f);
-            var rotation = Quaternion.LookRotation(direction);
             int mask = (affectBlocks ? 1 << Layers.Block : 0) | (affectPlayers ? 1 << Layers.Survivor : 0);
+            if (mask == 0) return;
             int count;
             do
             {
-                count = Physics.OverlapBoxNonAlloc(center, extents, hits, rotation, mask, QueryTriggerInteraction.Collide);
+                count = Physics.OverlapBoxNonAlloc(center, extents, hits, queryRotation, mask, QueryTriggerInteraction.Collide);
                 if (count < hits.Length || hits.Length >= 32768) break;
                 System.Array.Resize(ref hits, hits.Length * 2);
             } while (true);
-            touched.Clear(); LastTargetCount = 0;
+            wetTargets.Clear();
+            float crest = depth * .22f;
+            float flatWidth = width * .425f;
+            float maximumSurface = water + Wave.height;
             for (int i = 0; i < count; i++)
             {
                 var collider = hits[i];
                 hits[i] = null;
+                var bounds = collider.bounds;
+                if (bounds.min.y >= maximumSurface) continue;
                 if (!targets.TryGetValue(collider, out var target))
                 {
                     target = new Target { push = HitAbilities.Get<IPushable>(collider), damage = HitAbilities.Get<IDamageable>(collider),
                         motion = HitAbilities.Get<IHazardMotion>(collider), resistance = HitAbilities.Get<IWaterResistance>(collider), body = HitAbilities.Get<Rigidbody>(collider) };
                     targets.Add(collider, target);
                 }
-                var pushable = target.push;
-                object receiver = (object)pushable ?? target.damage;
-                if (receiver == null || touched.Contains(receiver)) continue;
-                var bounds = collider.bounds;
+                object receiver = (object)target.push ?? target.damage;
+                if (receiver == null || target.body && target.body.isKinematic && target.motion == null) continue;
+                bool alreadyWet = wetTargets.TryGetValue(receiver, out var previous);
+                if (alreadyWet && previous.submerged >= 1f) continue;
                 Vector3 point = bounds.center;
-                float surface = SurfaceHeight(Wave, point);
+                var relative = point - Wave.center;
+                float along = Vector3.Dot(relative, direction), lateral = Vector3.Dot(relative, across);
+                float surface = SurfaceHeight(Wave, along, lateral);
+                if (surface < bounds.max.y && collider.gameObject.layer == Layers.Block && collider is BoxCollider box)
+                {
+                    // Projected AABB intervals bound the best surface any point on this collider can reach.
+                    float halfAlong = Vector3.Dot(bounds.extents, alongExtents);
+                    float bestAlong = Mathf.Clamp(crest, along - halfAlong, along + halfAlong);
+                    float bestLateral = Mathf.Max(0, Mathf.Abs(lateral) - Vector3.Dot(bounds.extents, acrossExtents));
+                    if (SurfaceHeight(Wave, bestAlong, bestLateral) > Mathf.Max(surface, bounds.min.y))
+                    {
+                        var sample = point + direction * (crest - along) + across * (Mathf.Clamp(lateral, -flatWidth, flatWidth) - lateral);
+                        var nearest = box.ClosestPoint(sample);
+                        var offset = nearest - Wave.center;
+                        float edgeSurface = SurfaceHeight(Wave, Vector3.Dot(offset, direction), Vector3.Dot(offset, across));
+                        if (edgeSurface > surface) { point = nearest; surface = edgeSurface; }
+                    }
+                }
                 float submerged = Mathf.Clamp01((surface - bounds.min.y) / Mathf.Max(.1f, bounds.size.y));
                 if (submerged <= 0 || respectShelter && world.IsSheltered(point)) continue;
-                touched.Add(receiver); LastTargetCount++;
+                if (!alreadyWet || submerged > previous.submerged)
+                    wetTargets[receiver] = (target, submerged);
+            }
+            LastTargetCount = wetTargets.Count;
+            foreach (var (target, submerged) in wetTargets.Values)
+            {
                 var body = target.body;
-                if (body && body.isKinematic && target.motion == null) continue;
                 float resistance = target.resistance?.WaterResistance ??
                     (body ? body.mass / blockReferenceMass : 1);
                 resistance = Mathf.Max(.1f, resistance);
@@ -178,7 +209,7 @@ namespace DeadlyJenga.World.Hazards
                 float carried = new Vector2(Mathf.Max(0, Vector3.Dot(velocity, direction)), Mathf.Max(0, velocity.y)).magnitude;
                 var push = Vector3.ClampMagnitude((direction * pushAcceleration + Vector3.up * liftAcceleration) * force,
                     Mathf.Max(0, maximumCarriedSpeed - carried));
-                if (push.sqrMagnitude > .000001f) pushable?.Push(push, gameObject);
+                if (push.sqrMagnitude > .000001f) target.push?.Push(push, gameObject);
                 if (damagePerSecond > 0) target.damage?.Damage(damagePerSecond * forceScale * submerged * Time.fixedDeltaTime, gameObject);
             }
         }
@@ -186,17 +217,23 @@ namespace DeadlyJenga.World.Hazards
         public static float SurfaceHeight(WaveFrame wave, Vector3 point)
         {
             Vector3 relative = point - wave.center;
-            float x = Vector3.Dot(relative, Vector3.Cross(Vector3.up, wave.direction));
-            float t = Vector3.Dot(relative, wave.direction) / wave.depth + .5f;
-            if (t <= 0 || t >= 1 || Mathf.Abs(x) >= wave.width * .5f) return float.NegativeInfinity;
+            return SurfaceHeight(wave, Vector3.Dot(relative, wave.direction),
+                Vector3.Dot(relative, Vector3.Cross(Vector3.up, wave.direction)));
+        }
+
+        static float SurfaceHeight(WaveFrame wave, float along, float lateral)
+        {
+            float halfWidth = wave.width * .5f, x = Mathf.Abs(lateral);
+            float t = along / wave.depth + .5f;
+            if (t <= 0 || t >= 1 || x >= halfWidth) return float.NegativeInfinity;
             float shape = t < .72f ? Mathf.SmoothStep(0, 1, t / .72f) : 1 - Mathf.SmoothStep(0, 1, (t - .72f) / .28f);
-            float edge = 1 - Mathf.SmoothStep(0, 1, (Mathf.Abs(x) / (wave.width * .5f) - .85f) / .15f);
+            float edge = x <= halfWidth * .85f ? 1 : 1 - Mathf.SmoothStep(0, 1, (x / halfWidth - .85f) / .15f);
             return wave.waterHeight + wave.height * shape * edge;
         }
 
         protected override void EndHazard()
         {
-            Tracked.Waves.Remove(this); Wave = default; touched.Clear(); targets.Clear();
+            Tracked.Waves.Remove(this); Wave = default; wetTargets.Clear(); targets.Clear();
         }
     }
 }

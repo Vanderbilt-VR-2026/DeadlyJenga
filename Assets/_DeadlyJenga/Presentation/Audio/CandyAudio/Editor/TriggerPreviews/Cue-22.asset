@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-22
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: e9c123109e6706c428ad6b6ec5523da4, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 22
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Music
+    atlasFile: atlas.png
+    atlasSha256: 4aaf22466fce9d6c4000957733b56eba9f64fb32557c25cc4beec3b2a329b916
+    gifFile: preview.gif
+    gifSha256: 6dc2ff8e2d4b405c648147edcd0febd49e93ca0b247a682bcf116919f8a77b74
+    sourceSha256: f052911c1aa66265fc71969356655882e196cf1137c6f3e824ba24502a176adc
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The actual environment or menu where this bed is active
+    action: Sustained environmental/menu state
+    target: none (ambient bed)
+    listenerRole: Local listener in that environment
+    triggerEvidence: Observed gameplay lifecycle firing Music
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

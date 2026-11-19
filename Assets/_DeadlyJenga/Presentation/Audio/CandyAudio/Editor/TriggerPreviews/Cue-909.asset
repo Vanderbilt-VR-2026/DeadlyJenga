@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-909
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 7d86ef5817ac6d34391b141a1da2e11f, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 909
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: monkey
+    atlasFile: atlas.png
+    atlasSha256: 9c74302c1181f8453871292c6d4e00eb2282c7f4c7aa528e17a4f0fb31265c7b
+    gifFile: preview.gif
+    gifSha256: 822cf679b68cc66a5185cb782ca0f7ec750c6390c5d96ab521fb62575a2e0be8
+    sourceSha256: 66ce1bdb6c6ea7ecc4ad4048ea1bd79f2ec76174946b2cc811cc376a2ca1ee76
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Wildlife monkey companion
+    action: call
+    target: Environment / local listener
+    listenerRole: Local player camera / ear
+    triggerEvidence: Observed gameplay lifecycle firing monkey
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

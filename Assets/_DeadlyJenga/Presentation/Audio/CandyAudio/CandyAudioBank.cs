@@ -20,13 +20,18 @@ namespace DeadlyJenga.CandyAudio
         PlayerPain,PlayerDeath,
         SuitThruster,SuitIgnition,SuitShutdown,PlayerHeal,
         KrakenRise,KrakenIdle,KrakenSurface,KrakenReach,KrakenGrip,KrakenDrag,KrakenWindup,KrakenSlam,KrakenSubmerge,KrakenRetreat,
-        WaveSubmerged,WaveSurfaceBreath,WaveRoar=100,CycloneDebris=101,FrostCreak=102,LowGravityHum=103,OutageHum=104
+        WaveSubmerged,WaveSurfaceBreath,WaveRoar=100,CycloneDebris=101,FrostCreak=102,LowGravityHum=103,OutageHum=104,
+        ScoreboardOpen, PointScored, RoundResults, BeamFlyout, BeamArrival, HitConfirm, KillConfirm, PersonalHit, PersonalShot, NearbyHit, NearbyShot, PlayerKilled, NearbyDeath, IslandSinking, IslandDeath, DrowningDeath, StaminaLow, StaminaEmpty, StaminaUsable, HealthRegenerating,
+        AcidRoofRain, DisasterWarningTone, EarthJolt, MeteorFlyby, MeteorWaterImpact, PlanetApproach,
+        PlanetImpact, TornadoPass, TornadoPressure, RewindStart, RewindRelease, VampireShade, RewindBed
     }
     public enum CandyBus { World,Character,Ambience,Music,UI }
     [Serializable]
     public sealed class CandyAudioCue
     {
         public CandySound sound;
+        public string displayName = "", category = "";
+        [TextArea(2,5)] public string triggerNotes = "";
         public bool enabled=true;
         public AudioClip[] variants=Array.Empty<AudioClip>();
         public CandyBus bus;
@@ -43,6 +48,7 @@ namespace DeadlyJenga.CandyAudio
     public sealed class CandyAudioBank : ScriptableObject
     {
         public CandyAudioCue[] cues=Array.Empty<CandyAudioCue>();
+        public CandyAudioBinding[] bindings = Array.Empty<CandyAudioBinding>();
         [Range(8,48)] public int oneShotVoices=28;
         [Range(4,24)] public int loopVoices=12;
         [Range(4,40)] public int eventsPerSecond=22;

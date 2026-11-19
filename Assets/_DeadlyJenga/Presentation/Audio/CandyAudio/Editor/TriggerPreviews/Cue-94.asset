@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-94
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 606728514b1414f48b5f55d06e21caf1, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 94
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Kraken Windup
+    atlasFile: atlas.png
+    atlasSha256: bc44c76b852fdf581558e8b68c112719659c59e820e29745f244b1caa9965203
+    gifFile: preview.gif
+    gifSha256: 4760a2a9a1602a08c3ac8892f82c45c7c6088e4d3b10100b52d2597f68cc0f2f
+    sourceSha256: f40dc8662de0783758981bea09a2f72549a6befa7f8c36b95eaec6c15ddcb7ed
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The specific Kraken body or tentacle performing this phase
+    action: Tentacle rears back before its slam
+    target: Water or the exact tower/block/player the arm is acting upon
+    listenerRole: Nearby survivor hearing spatial Kraken audio
+    triggerEvidence: Observed disaster gameplay lifecycle firing Kraken Windup
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

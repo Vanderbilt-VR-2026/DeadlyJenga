@@ -1,246 +1,691 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DeadlyJenga.Core;
 using DeadlyJenga.Presentation;
 using DeadlyJenga.CastlePrototype;
-using DeadlyJenga.CandyAudio;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace DeadlyJenga.CandyArt.Marina
 {
-    // The lobby's front door. Requests still go through the real lobby; deeper pages open the existing terminals.
-    // Solo: Play Now / Join a friend / Your party, with mode, map and practice underneath.
-    // In a party: the mode and map cards, Start (host) or Ready (guest), and Leave.
+    // Requests still go through the real lobby. This is only its simplified front face.
     public sealed class MarinaScreen : MonoBehaviour
     {
-        static readonly Color Ink=new Color(.075f,.05f,.14f),Face=new Color(.27f,.19f,.40f),Lavender=new Color(.56f,.42f,.80f),
-            Mint=new Color(.30f,.95f,.74f),Peach=new Color(1,.66f,.45f),Cream=new Color(1,.96f,.88f),Muted=new Color(.80f,.74f,.90f);
-
-        sealed class Target
-        {
-            public string id;public RectTransform root,face;public BoxCollider collider;public Image faceImage,lip;public Color color;
-            public Action action;public Func<bool> allowed,visible;public float pressedUntil;public Text label,sub;public LobbyTerminalGlyph glyph;
-        }
+        sealed class Target {public string id;public BoxCollider collider;public Image face;public Color color;public Action action;public Func<bool> allowed;public Text actionLabel;public Graphic glyph;public Outline outline;public Shadow glow;public float pressedUntil;}
         readonly List<Target> targets=new();
-        ILobbyControls lobby;ISessionInfo session;Action<string> detail;IGameExperienceControls readiness;IQuickPlay quick;
+        ILobbyControls lobby;ISessionInfo session;Action<string> detail;
         bool requireRelease=true,inputFocused=true;
-        bool ModalBlocked=>!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
-        bool VisitingMatch=>(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true;
-        int People=>(lobby as ILobbyDetails)?.ConnectedCount??1;
-        bool Party=>VisitingMatch||lobby.Connected&&(People>1||quick?.PublicRoom==true);
-        bool Guest=>lobby.Connected&&!lobby.IsHost&&!VisitingMatch;
+        bool ModalBlocked=>GetComponent<IslandLobbyView>()?.WardrobeOpen==true||session?.MenuOpen==true&&(session.IsVR||SessionPresentation.LobbyDeveloperAvailable(session))||MenuAim.InputConsumed||!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
+        static readonly Color Plum=new(.12f,.055f,.19f);
+        static readonly Color Cream=new(1,.96f,.83f);
+        static readonly Color ProjectionInk=new(.29f,.12f,.30f);
+        static readonly Color Coral=new(1f,.37f,.40f);
+        static readonly Color Lilac=new(.67f,.36f,.87f);
+        static readonly Color Mint=new(.26f,.84f,.64f);
+        InputAction select,leftSelect;
+        Image aimDot;
+        Canvas aimCanvas;
+        void EnsureAimCanvas()
+        {
+            if (!aimCanvas)
+            {
+                var root = new GameObject("Marina aim reticle", typeof(RectTransform), typeof(Canvas));
+                root.transform.SetParent(transform, false);
+                aimCanvas = root.GetComponent<Canvas>();
+                aimCanvas.renderMode = RenderMode.WorldSpace;
+                aimCanvas.overrideSorting = true;
+                aimCanvas.sortingOrder = MenuAim.PointerSortOrder+1;
+                aimDot = MenuAim.CreateReticle(root.transform);
+                MenuAim.PresentInForeground(root.transform);
+            }
+        }
+        RectTransform canvas,mainFace,joinFace,hostFace;
+        Text modeTitle,mapTitle,playTitle,joinTitle,hostTitle,focusDescription,mainHeading,playerCountLabel;
+        Text liveStandings,liveActivity,liveHazards;
+        Text matchReturnTitle,matchActionTitle,matchSummary;
+        RectTransform matchReturn,matchAction;
+        float endMatchConfirmUntil;
+        IMatchReviewControls Review=>MatchRuntime.Current as IMatchReviewControls;
+        bool MatchEnded=>MatchRuntime.Current?.Frame?.phase is RoundPhase.Victory or RoundPhase.Results;
+        bool CanConfigureNext=>MatchRuntime.Current?.Authority==true&&MatchRuntime.Current.Frame.phase==RoundPhase.Results;
+        readonly Text[] standingRows=new Text[5],standingStats=new Text[5],activityRows=new Text[5],activityDetails=new Text[5],hazardRows=new Text[4];
+        readonly RawImage[] standingHeads=new RawImage[5],victimHeads=new RawImage[5],killerHeads=new RawImage[5],hazardArt=new RawImage[4];
+        Text modeMissing,mapMissing,joinStatus,hostStatus,marquee;
+        RectTransform modeCard,mapCard;
+        RawImage modePicture,mapPicture;
+        Texture2D projectionBackdrop;
+        string modeId,mapId,focusTarget,focusMode,focusMap;
+        float refreshAt;
+        RectTransform focusPanel;
+        public bool Visible
+        {
+            get => mainFace && mainFace.gameObject.activeSelf;
+            set
+            {
+                if (!mainFace || mainFace.gameObject.activeSelf == value) return;
+                if (value) Refresh();
+                mainFace.gameObject.SetActive(value);
+            }
+        }
+        bool AnyFaceVisible => Visible || (joinFace && joinFace.gameObject.activeSelf) ||
+            (hostFace && hostFace.gameObject.activeSelf);
 
-        RectTransform canvas,soloGroup,partyGroup,busyGroup;
-        Text heading,status,hint,busyText,modeTitle,mapTitle,soloMode,soloMap;
-        RawImage modePicture,mapPicture;string modeId,mapId;float refreshAt;
-        Target play,ready;
-        public bool Visible {get=>canvas&&canvas.gameObject.activeSelf;set{if(canvas)canvas.gameObject.SetActive(value);}}
+        internal static Vector3 CabinetScreen(bool host) => new Vector3(host ? 4.87f : -4.87f, 3.28f, 10.521f);
 
+        public void SetCabinetVisibility(bool join, bool host)
+        {
+            if (joinFace) joinFace.gameObject.SetActive(join);
+            if (hostFace) hostFace.gameObject.SetActive(host);
+        }
         public void Build(ILobbyControls controls,Action<string> openDetail)
         {
-            if(canvas)return;lobby=controls;session=Services.Session;detail=openDetail;
-            readiness=lobby as IGameExperienceControls;quick=lobby as IQuickPlay;
-            var go=new GameObject("Lobby terminal",typeof(RectTransform),typeof(Canvas),typeof(Image));
+            if(canvas)return;
+            lobby=controls;session=controls as ISessionInfo??Services.Session;detail=openDetail;
+            var go=new GameObject("Marina · live cinema terminal",typeof(RectTransform),typeof(Canvas));
             go.transform.SetParent(transform,false);
-            canvas=(RectTransform)go.transform;
-            canvas.sizeDelta=new Vector2(720,320);
-            canvas.position=MayhemMarina.PlayScreen+Vector3.back*.11f;
-            canvas.localScale=Vector3.one*.0098f;
-            var surface=go.GetComponent<Image>();surface.sprite=CandyHudVisuals.Pill;surface.type=Image.Type.Sliced;surface.color=Ink;surface.raycastTarget=false;
-            var c=go.GetComponent<Canvas>();c.renderMode=RenderMode.WorldSpace;c.overrideSorting=true;c.sortingOrder=70;
-            MenuAppear.Attach(go);
+            canvas=go.GetComponent<RectTransform>();canvas.sizeDelta=new Vector2(720,320);
+            canvas.localPosition=MayhemMarina.PlayScreen+Vector3.back*.20f;canvas.localScale=Vector3.one*.0095f;
+            var worldCanvas=go.GetComponent<Canvas>();worldCanvas.renderMode=RenderMode.WorldSpace;
+            worldCanvas.overrideSorting=true;worldCanvas.sortingOrder=70;
+            var scaler=go.AddComponent<CanvasScaler>();scaler.dynamicPixelsPerUnit=3.5f;scaler.referencePixelsPerUnit=100;
 
-            heading=Label(canvas,"Deadly Jenga",new Vector2(-160,138),new Vector2(380,34),28,Cream,true,TextAnchor.MiddleLeft);
-            var pill=Panel(canvas,"Status pill",new Vector2(212,134),new Vector2(276,34),Face);
-            status=Label(pill,"",Vector2.zero,new Vector2(262,30),15,Mint,false);
+            mainFace = new GameObject("Marina · map and mode display", typeof(RectTransform)).GetComponent<RectTransform>();
+            mainFace.SetParent(canvas,false);
+            mainFace.sizeDelta=canvas.sizeDelta;
+            BuildProjectedBackdrop();
+            marquee=Text("D E V E L O P E R",new Vector2(0,140),new Vector2(500,22),15,mainFace);
+            marquee.color=Cream;
+            marquee.gameObject.SetActive(false);
+            mainHeading=Text("MATCH OPTIONS",new Vector2(0,113),new Vector2(635,54),40,mainFace);
+            var ruleColor=new Color(1f,.49f,.52f,.85f);
+            for(int side=-1;side<=1;side+=2)
+            {
+                Panel("Cinema title rule",mainFace,new Vector2(side*260,113),new Vector2(103,2),ruleColor);
+                Panel("Cinema title diamond",mainFace,new Vector2(side*321,113),new Vector2(7,7),Coral)
+                    .rectTransform.localRotation=Quaternion.Euler(0,0,45);
+            }
 
-            // Solo front door
-            soloGroup=Group("Solo");
-            var quickPlay=Button(soloGroup,"marina-quickplay",new Vector2(-190,8),new Vector2(300,176),Mint,()=>quick?.QuickPlay(),()=>quick?.CanQuickPlay==true);
-            quickPlay.label=Label(quickPlay.face,"PLAY NOW",new Vector2(0,10),new Vector2(280,58),46,Ink,true);
-            quickPlay.sub=Label(quickPlay.face,"Jump into a public game",new Vector2(0,-38),new Vector2(270,28),17,Ink,false);
-            quickPlay.glyph=Glyph(quickPlay.face,LobbyTerminalGlyph.Symbol.Play,new Vector2(0,60),30,Ink);
-            var join=Button(soloGroup,"marina-join",new Vector2(165,57),new Vector2(360,78),Face,()=>detail?.Invoke("join"),()=>lobby.JoinEnabled);
-            join.glyph=Glyph(join.face,LobbyTerminalGlyph.Symbol.People,new Vector2(-148,0),34,Mint);
-            join.label=Label(join.face,"Join a friend",new Vector2(26,12),new Vector2(280,34),26,Cream,true,TextAnchor.MiddleLeft);
-            join.sub=Label(join.face,"Enter their party code",new Vector2(26,-16),new Vector2(280,24),15,Muted,false,TextAnchor.MiddleLeft);
-            var room=Button(soloGroup,"marina-room",new Vector2(165,-33),new Vector2(360,78),Face,()=>detail?.Invoke("room"),()=>true);
-            room.glyph=Glyph(room.face,LobbyTerminalGlyph.Symbol.Island,new Vector2(-148,0),34,Peach);
-            room.label=Label(room.face,"Your party",new Vector2(26,12),new Vector2(280,34),26,Cream,true,TextAnchor.MiddleLeft);
-            room.sub=Label(room.face,"",new Vector2(26,-16),new Vector2(280,24),15,Muted,false,TextAnchor.MiddleLeft);
-            var modes=Chip(soloGroup,"marina-modes",-265,170,()=>detail?.Invoke("modes"),()=>lobby.CanConfigure&&GameExperiencePanel.CanEditRawChoices(session));soloMode=modes.label;
-            var maps=Chip(soloGroup,"marina-maps",-85,170,()=>detail?.Invoke("maps"),()=>lobby.CanConfigure&&GameExperiencePanel.CanEditRawChoices(session));soloMap=maps.label;
-            var rules=Chip(soloGroup,"marina-settings",70,120,()=>detail?.Invoke("settings"),()=>true);rules.label.text="Rules";
-            rules.glyph=Glyph(rules.face,LobbyTerminalGlyph.Symbol.Gear,new Vector2(-38,0),20,Cream);rules.label.rectTransform.anchoredPosition=new Vector2(12,0);
-            play=Chip(soloGroup,"marina-play",245,210,lobby.StartOrCancel,()=>lobby.CanStart);
-            play.color=Peach;play.glyph=Glyph(play.face,LobbyTerminalGlyph.Symbol.Play,new Vector2(-80,0),20,Ink);play.label.rectTransform.anchoredPosition=new Vector2(12,0);
+            modePicture=Card("marina-modes","GAME MODE",new Vector2(-169,12),()=>detail?.Invoke("modes"),out modeTitle,out modeMissing);
+            mapPicture=Card("marina-maps","MAP",new Vector2(169,12),()=>detail?.Invoke("maps"),out mapTitle,out mapMissing);
+            var play=Button("marina-play",new Vector2(0,-111),new Vector2(378,36),Coral,lobby.StartOrCancel,()=>lobby.CanStart);
+            playTitle=ActionText("Start match",new Vector2(355,36),28,play);
+            modeCard = targets.Find(target => target.id == "marina-modes").face.rectTransform;
+            mapCard = targets.Find(target => target.id == "marina-maps").face.rectTransform;
 
-            // Party view
-            partyGroup=Group("Party");
-            modePicture=Card(partyGroup,"marina-modes",-176,"Mode",()=>detail?.Invoke("modes"),out modeTitle);
-            mapPicture=Card(partyGroup,"marina-maps",176,"Map",()=>detail?.Invoke("maps"),out mapTitle);
-            var invite=Chip(partyGroup,"marina-room",-280,124,()=>detail?.Invoke("room"),()=>true,-121);invite.label.text="Invite";
-            var leave=Chip(partyGroup,"marina-leave",-146,124,()=>lobby.Leave(),()=>lobby.CanLeave&&!lobby.StartPending,-121);leave.label.text="Leave";
-            leave.visible=()=>!VisitingMatch;
-            var partyRules=Chip(partyGroup,"marina-settings",0,124,()=>detail?.Invoke("settings"),()=>true,-121);partyRules.label.text="Rules";
-            ready=Chip(partyGroup,"marina-ready",250,196,()=>readiness.SetReady(!readiness.LocalReady),()=>lobby.CanLeave&&!lobby.StartPending&&readiness.ReadyCount>0,-121);
-            ready.visible=()=>readiness!=null&&Guest;
-            var start=Chip(partyGroup,"marina-play",250,196,lobby.StartOrCancel,()=>lobby.CanStart,-121);
-            start.visible=()=>!Guest;start.color=Mint;start.glyph=Glyph(start.face,LobbyTerminalGlyph.Symbol.Play,new Vector2(-70,0),20,Ink);start.label.rectTransform.anchoredPosition=new Vector2(12,0);
-            partyGroup.gameObject.SetActive(false);
+            var settingsBtn=Button("marina-settings",new Vector2(-263,-111),new Vector2(122,34),ProjectionInk,()=>detail?.Invoke("settings"),()=>true);
+            var gearGo=new GameObject("Marina · settings gear",typeof(RectTransform),typeof(CanvasRenderer),typeof(LobbyTerminalGlyph));
+            gearGo.layer=5;
+            gearGo.transform.SetParent(settingsBtn,false);
+            var gear=gearGo.GetComponent<LobbyTerminalGlyph>();
+            gear.symbol=LobbyTerminalGlyph.Symbol.Gear;
+            gear.color=Cream;
+            gear.rectTransform.anchoredPosition=Vector2.zero;
+            gear.rectTransform.sizeDelta=new Vector2(24,24);
+            gear.raycastTarget=false;
+            gear.UseVertexMesh();
+            var settingsTarget=targets.Find(target=>target.id=="marina-settings");
+            if(settingsTarget!=null)settingsTarget.glyph=gear;
 
-            // Connecting overlay
-            busyGroup=Group("Connecting");
-            var busy=Panel(busyGroup,"Connecting card",new Vector2(0,-5),new Vector2(560,200),Face);
-            busyText=Label(busy,"Connecting…",new Vector2(0,18),new Vector2(520,60),34,Cream,true);
-            Label(busy,"Hang tight, this takes a few seconds",new Vector2(0,-36),new Vector2(520,28),17,Muted,false);
-            busyGroup.gameObject.SetActive(false);
+            var styleBtn=Button("marina-style",new Vector2(263,-111),new Vector2(122,34),ProjectionInk,()=>detail?.Invoke("settings"),()=>true);
+            playerCountLabel=ActionText("10 PLAYERS",new Vector2(113,32),17,styleBtn);
 
-            hint=Label(canvas,"",new Vector2(-160,111),new Vector2(380,18),13,Muted,false,TextAnchor.MiddleLeft);
-            Refresh();
+            liveStandings=LiveColumn(new Vector2(-170,0),new Vector2(313,166));
+            liveActivity=LiveColumn(new Vector2(169,0),new Vector2(313,166));
+            liveHazards=LiveColumn(new Vector2(0,-116),new Vector2(648,43));
+            BuildLiveRows();
+            matchReturn=Button("marina-return-match",new Vector2(88,113),new Vector2(146,34),ProjectionInk,
+                ()=> (lobby as ILobbyMatchVisitControls)?.ReturnToMatch(),()=>lobby.CanStart);
+            matchReturnTitle=ActionText("Return to match",new Vector2(138,30),16,matchReturn);
+            matchAction=Button("marina-match-action",new Vector2(251,113),new Vector2(146,34),Coral,MatchAction,
+                ()=>MatchEnded?CanConfigureNext:Review?.CanEndGame==true);
+            matchActionTitle=ActionText("End match",new Vector2(138,30),16,matchAction);
+            matchSummary=Text("",new Vector2(0,-116),new Vector2(648,43),16,mainFace);
+
+            joinFace=CabinetFace("Lavender Join display",false);
+            hostFace=CabinetFace("Mint Host display",true);
+            CabinetHeading(joinFace,"JOIN");
+            CabinetHeading(hostFace,"HOST");
+            joinTitle=CabinetAction(joinFace,"marina-join","Room code",17,Lilac,()=>detail?.Invoke("join-code"));
+            CabinetAction(joinFace,"marina-nearby","Find nearby",-27,new Color(.34f,.17f,.45f),()=>detail?.Invoke("join-nearby"),()=>lobby.JoinEnabled);
+            hostTitle=CabinetAction(hostFace,"marina-host","Create room",17,Mint,()=>detail?.Invoke("host"));
+            CabinetAction(hostFace,"marina-invite","Invite nearby",-27,new Color(.29f,.18f,.41f),()=>detail?.Invoke("host-invite"),()=>lobby.CanInvite);
+
+            joinStatus=Text("",new Vector2(0,-62),new Vector2(165,23),14,joinFace);
+            hostStatus=Text("",new Vector2(0,-62),new Vector2(165,23),14,hostFace);
+            focusPanel=new GameObject("Marina · selection preview",typeof(RectTransform)).GetComponent<RectTransform>();
+            focusPanel.SetParent(mainFace,false);focusPanel.anchoredPosition=new Vector2(0,-78);
+            Panel("Marina · preview backing",focusPanel,Vector2.zero,new Vector2(674,23),Plum);
+            focusDescription=Text("",Vector2.zero,new Vector2(660,22),14,focusPanel);
+            focusDescription.resizeTextForBestFit=true;focusDescription.resizeTextMinSize=12;focusDescription.resizeTextMaxSize=14;
+            focusPanel.gameObject.SetActive(false);
+            select=MenuAim.SelectAction("Marina right select",false);select.Enable();
+            leftSelect=MenuAim.SelectAction("Marina left select",true);leftSelect.Enable();
+            EnsureAimCanvas();Refresh();TerminalUiStyle.Apply(canvas);
         }
+        void BuildProjectedBackdrop()
+        {
+            const int width=144,height=64;
+            projectionBackdrop=new Texture2D(width,height,TextureFormat.RGBA32,false)
+            {
+                name="Marina projection vignette",wrapMode=TextureWrapMode.Clamp,filterMode=FilterMode.Bilinear
+            };
+            var pixels=new Color[width*height];
+            var grain=new System.Random(1917);
+            var edge=new Color(.16f,.045f,.18f,1);
+            var center=new Color(.28f,.09f,.28f,1);
+            for(int y=0;y<height;y++)
+            for(int x=0;x<width;x++)
+            {
+                float u=x/(width-1f)*2-1;
+                float v=y/(height-1f)*2-1;
+                float light=Mathf.Clamp01(1-.49f*u*u-.44f*v*v);
+                float noise=((float)grain.NextDouble()-.5f)*.032f;
+                pixels[y*width+x]=Color.Lerp(edge,center,light*light)+new Color(noise,noise,noise,0);
+            }
+            projectionBackdrop.SetPixels(pixels);
+            projectionBackdrop.Apply(false,true);
 
-        RectTransform Group(string name)
-        {var go=new GameObject(name,typeof(RectTransform));go.transform.SetParent(canvas,false);var r=(RectTransform)go.transform;r.sizeDelta=canvas.sizeDelta;return r;}
-        static RectTransform Panel(RectTransform parent,string name,Vector2 p,Vector2 size,Color color)
-        {
-            var go=new GameObject(name,typeof(RectTransform),typeof(Image));go.transform.SetParent(parent,false);var r=(RectTransform)go.transform;r.anchoredPosition=p;r.sizeDelta=size;
-            var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=color;image.raycastTarget=false;return r;
+            var backdrop=new GameObject("Marina · projected picture",typeof(RectTransform),typeof(RawImage)).GetComponent<RawImage>();
+            backdrop.transform.SetParent(mainFace,false);
+            backdrop.rectTransform.sizeDelta=new Vector2(720,320);
+            backdrop.texture=projectionBackdrop;
+            backdrop.raycastTarget=false;
+            var rim=Panel("Saltwater Taffy coral trim",mainFace,Vector2.zero,new Vector2(722,322),Coral);
+            rim.fillCenter=false;
+            var inner=Panel("Saltwater Taffy cream pinstripe",mainFace,Vector2.zero,new Vector2(704,307),Cream);
+            inner.fillCenter=false;
         }
-        // A chunky candy button: a darker lip underneath and a face that dips when pressed.
-        Target Button(RectTransform parent,string id,Vector2 p,Vector2 size,Color color,Action action,Func<bool> allowed)
+        static Image Panel(string name,RectTransform parent,Vector2 position,Vector2 size,Color color)
         {
-            var go=new GameObject(id,typeof(RectTransform),typeof(BoxCollider));go.layer=5;go.transform.SetParent(parent,false);
-            var r=(RectTransform)go.transform;r.anchoredPosition=p;r.sizeDelta=size;
-            var lip=Panel(r,"Lip",new Vector2(0,-5),size,Color.black).GetComponent<Image>();
-            var face=Panel(r,"Face",Vector2.zero,size,color);
-            var hit=go.GetComponent<BoxCollider>();hit.isTrigger=true;hit.size=new Vector3(size.x,size.y+6,6);
-            var t=new Target{id=id,root=r,face=face,collider=hit,faceImage=face.GetComponent<Image>(),lip=lip,color=color,action=action,allowed=allowed};
-            targets.Add(t);return t;
+            var panel=new GameObject(name,typeof(RectTransform),typeof(Image)).GetComponent<Image>();
+            panel.transform.SetParent(parent,false);panel.rectTransform.anchoredPosition=position;panel.rectTransform.sizeDelta=size;
+            panel.sprite=CandyHudVisuals.Pill;panel.type=Image.Type.Sliced;panel.color=color;panel.raycastTarget=false;
+            return panel;
         }
-        Target Chip(RectTransform parent,string id,float x,float width,Action action,Func<bool> allowed,float y=-122)
+        void SmallButton(string id,string title,Vector2 position,Action action)
         {
-            var t=Button(parent,id,new Vector2(x,y),new Vector2(width,48),Face,action,allowed);
-            t.label=Label(t.face,"",Vector2.zero,new Vector2(width-20,40),18,Cream,true);return t;
+            var button=Button(id,position,new Vector2(122,34),ProjectionInk,action,()=>true);
+            ActionText(title,new Vector2(113,32),17,button);
         }
-        RawImage Card(RectTransform parent,string id,float x,string caption,Action action,out Text title)
+        RectTransform CabinetFace(string name,bool host)
         {
-            var card=Button(parent,id,new Vector2(x,7),new Vector2(334,170),Face,action,()=>lobby.CanConfigure&&GameExperiencePanel.CanEditRawChoices(session));
-            Label(card.face,caption,new Vector2(0,68),new Vector2(310,24),16,Muted,false);
-            title=Label(card.face,"",new Vector2(0,-66),new Vector2(316,30),20,Cream,true);
-            var go=new GameObject("Preview",typeof(RectTransform),typeof(RawImage));go.transform.SetParent(card.face,false);
-            var image=go.GetComponent<RawImage>();image.rectTransform.sizeDelta=new Vector2(310,96);image.rectTransform.anchoredPosition=new Vector2(0,2);image.raycastTarget=false;
+            var face=new GameObject(name,typeof(RectTransform)).GetComponent<RectTransform>();
+            face.SetParent(canvas,false);
+            face.sizeDelta=new Vector2(175,157);
+            face.localPosition=(CabinetScreen(host)-canvas.localPosition)/canvas.localScale.x;
+            return face;
+        }
+        static void CabinetHeading(RectTransform parent,string title)
+        {
+            Panel("Candy cabinet marquee",parent,new Vector2(0,59),new Vector2(167,32),Plum);
+            var label=Text(title,new Vector2(0,59),new Vector2(165,34),21,parent);
+            label.color=Cream;
+        }
+        Text CabinetAction(RectTransform parent,string id,string title,float y,Color color,Action action,Func<bool> allowed=null)
+        {
+            var button=Button(id,new Vector2(0,y),new Vector2(154,36),color,action,allowed??(()=>true),parent);
+            return ActionText(title,new Vector2(147,36),18,button);
+        }
+        RawImage Card(string id,string section,Vector2 position,Action action,out Text title,out Text missing)
+        {
+            var button=Button(id,position,new Vector2(321,152),(id=="marina-modes"?Lilac:Mint),action,()=>GameExperiencePanel.CanEditRawChoices(session));
+            Panel("Marina · illustration panel",button,Vector2.zero,new Vector2(313,144),ProjectionInk);
+            var crop=Panel("Marina · illustration crop",button,new Vector2(0,12),new Vector2(309,116),Color.white);
+            crop.gameObject.AddComponent<Mask>().showMaskGraphic=false;
+            var go=new GameObject("Live destination image",typeof(RectTransform),typeof(RawImage));
+            go.transform.SetParent(crop.transform,false);var image=go.GetComponent<RawImage>();
+            image.rectTransform.sizeDelta=crop.rectTransform.sizeDelta;image.raycastTarget=false;
+            image.color=new Color(.96f,.93f,.86f);
+            missing=Text("Preview unavailable",new Vector2(0,12),new Vector2(285,32),17,button);
+            Panel("Marina · category badge",button,new Vector2(-91,56),new Vector2(117,23),ProjectionInk);
+            Text(section,new Vector2(-91,56),new Vector2(113,23),13,button);
+            title=Text("",new Vector2(0,-59),new Vector2(299,25),22,button);
+            title.resizeTextForBestFit=true;title.resizeTextMinSize=14;title.resizeTextMaxSize=22;
             return image;
         }
-        static Text Label(Transform parent,string value,Vector2 p,Vector2 size,int font,Color color,bool title,TextAnchor anchor=TextAnchor.MiddleCenter)
+        RectTransform Button(string id,Vector2 p,Vector2 size,Color color,Action action,Func<bool> allowed,RectTransform parent=null)
         {
-            var go=new GameObject("Label · "+value,typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var t=go.GetComponent<Text>();
-            t.font=title?CandyHudVisuals.TitleFont:CandyHudVisuals.TextFont;t.text=value;t.fontSize=font;t.alignment=anchor;t.color=color;t.raycastTarget=false;
-            t.horizontalOverflow=HorizontalWrapMode.Wrap;t.verticalOverflow=VerticalWrapMode.Truncate;t.resizeTextForBestFit=true;t.resizeTextMinSize=Mathf.Min(font,14);t.resizeTextMaxSize=font;
-            t.rectTransform.anchoredPosition=p;t.rectTransform.sizeDelta=size;return t;
+            var go=new GameObject(id,typeof(RectTransform),typeof(Image),typeof(BoxCollider));go.layer=5;go.transform.SetParent(parent?parent:mainFace,false);var r=go.GetComponent<RectTransform>();r.anchoredPosition=p;r.sizeDelta=size;
+            var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=color;image.raycastTarget=false;
+            var hit=go.GetComponent<BoxCollider>();hit.isTrigger=true;hit.size=new Vector3(size.x,size.y,6);var outline=go.AddComponent<Outline>();outline.effectDistance=new Vector2(4,-4);outline.effectColor=Color.clear;
+            var glow=go.AddComponent<Shadow>();glow.effectDistance=new Vector2(0,-8);glow.effectColor=Color.clear;
+            targets.Add(new Target{id=id,collider=hit,face=image,color=color,action=action,allowed=allowed,outline=outline,glow=glow});return r;
         }
-        static LobbyTerminalGlyph Glyph(RectTransform parent,LobbyTerminalGlyph.Symbol symbol,Vector2 p,float size,Color color)
+        Text ActionText(string value,Vector2 size,int font,RectTransform button)
         {
-            var go=new GameObject(symbol+" icon",typeof(RectTransform),typeof(CanvasRenderer),typeof(LobbyTerminalGlyph));go.transform.SetParent(parent,false);
-            var g=go.GetComponent<LobbyTerminalGlyph>();g.symbol=symbol;g.color=color;g.raycastTarget=false;g.rectTransform.anchoredPosition=p;g.rectTransform.sizeDelta=new Vector2(size,size);return g;
+            var label=Text(value,Vector2.zero,size,font,button);
+            var target=targets.Find(item=>item.face.rectTransform==button);
+            if(target!=null)target.actionLabel=label;
+            label.resizeTextForBestFit=true;label.resizeTextMinSize=12;label.resizeTextMaxSize=font;
+            return label;
         }
-
+        static Text Text(string value,Vector2 p,Vector2 size,int font,Transform parent)
+        {
+            var go=new GameObject("Marina label · "+value,typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var t=go.GetComponent<Text>();
+            t.font=Resources.Load<Font>("Fonts/Fredoka-Bold") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            t.text=value;t.fontSize=font;t.fontStyle=FontStyle.Normal;t.alignment=TextAnchor.MiddleCenter;t.color=new Color(1,.97f,.89f);t.raycastTarget=false;t.rectTransform.anchoredPosition=p;t.rectTransform.sizeDelta=size;return t;
+        }
+        Text playlistStatus, launchSummary;
+        Image playlistStatusBacking;
         void Refresh()
         {
             if(!canvas||lobby==null)return;
-            bool busy=lobby.Busy,party=Party;
-            busyGroup.gameObject.SetActive(busy);
-            soloGroup.gameObject.SetActive(!busy&&!party);
-            partyGroup.gameObject.SetActive(!busy&&party);
-            busyText.text="Connecting…";
-            int count=People;string code=lobby.HostCode;
-            heading.text=!party?"Deadly Jenga":VisitingMatch?"Match in progress":quick?.PublicRoom==true?"Public game":Guest?"Friend's party":"Your party";
-            status.text=busy?"Connecting…":!lobby.Connected?"Offline":party?$"{count} player{(count==1?"":"s")}  ·  {readiness?.ReadyCount??0}/{readiness?.RequiredReadyCount??0} ready":"Solo  ·  "+code;
-            var room=targets.Find(t=>t.id=="marina-room"&&t.root.IsChildOf(soloGroup));
-            if(room!=null)room.sub.text=lobby.Connected&&!string.IsNullOrEmpty(code)?"Code  "+code+"  ·  friends join you":"Start a private party";
-            soloMode.text="Mode: "+lobby.ModeTitle;soloMap.text="Map: "+lobby.MapTitle;
-            play.label.text=VisitingMatch?"Return":lobby.StartPending?"Cancel":"Play solo";
             modeTitle.text=lobby.ModeTitle;mapTitle.text=lobby.MapTitle;
-            bool isReady=readiness?.LocalReady==true;
-            ready.label.text=isReady?"Not ready":"I'm ready";ready.color=isReady?Face:Mint;
-            var start=targets.Find(t=>t.id=="marina-play"&&t.root.IsChildOf(partyGroup));
-            if(start!=null)start.label.text=VisitingMatch?"Back to match":lobby.StartPending?"Cancel start":"Start match";
+            var experience=GameExperiencePanel.Resolve(session);
+            bool visiting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true;
+            bool playlist=experience?.Experience==GameExperience.Game&&!experience.CanConfigureExperience;
+            if (!playlistStatus)
+            {
+                playlistStatusBacking=Panel("Play status backing",mainFace,new Vector2(0,-78),new Vector2(350,25),ProjectionInk);
+                playlistStatus=Text("",new Vector2(0,-78),new Vector2(340,25),17,mainFace);
+                launchSummary=Text("",new Vector2(0,-65),new Vector2(640,30),20,mainFace);
+            }
+            int countdownSeconds = 0;
+            bool countdown = false;
+            if (playlist && experience.AutomaticRounds && !lobby.CanStart && experience.GamePhase == RoomGamePhase.Selected)
+            {
+                countdownSeconds = Mathf.Max(0, Mathf.CeilToInt(experience?.CountdownSeconds ?? 0));
+                countdown = countdownSeconds <= 10;
+            }
+            else if (lobby.StartPending)
+            {
+                countdown = true;
+                countdownSeconds = 3;
+                if (!string.IsNullOrEmpty(lobby.SetupHint) && lobby.SetupHint.StartsWith("MATCH STARTING IN ", StringComparison.Ordinal))
+                {
+                    var parts = lobby.SetupHint.Split(' ');
+                    if (parts.Length >= 4 && int.TryParse(parts[3].TrimEnd('.'), out int parsed))
+                        countdownSeconds = Mathf.Max(1, parsed);
+                }
+            }
+
+            mainHeading.text=visiting?"SPECTATOR LOBBY":countdown?"MATCH STARTING":playlist?"PLAY READY":"MATCH OPTIONS";
+            marquee.gameObject.SetActive(false);
+            playlistStatusBacking.gameObject.SetActive((playlist||countdown)&&!visiting);
+            playlistStatusBacking.color=countdown?Coral:ProjectionInk;
+            playlistStatusBacking.rectTransform.anchoredPosition=new Vector2(0,countdown?15:-78);
+            playlistStatusBacking.rectTransform.sizeDelta=new Vector2(countdown?150:350,countdown?108:25);
+            playlistStatus.rectTransform.anchoredPosition=playlistStatusBacking.rectTransform.anchoredPosition;
+            playlistStatus.rectTransform.sizeDelta=playlistStatusBacking.rectTransform.sizeDelta;
+            playlistStatus.fontSize=countdown?68:17;
+            launchSummary.gameObject.SetActive(countdown&&!visiting);
+            launchSummary.text=lobby.ModeTitle+"  ·  "+lobby.MapTitle;
+            playlistStatus.gameObject.SetActive((playlist||countdown)&&!visiting);
+            RefreshLiveMatch(visiting);
+            mainHeading.rectTransform.anchoredPosition=new Vector2(visiting?-170:0,113);
+            mainHeading.rectTransform.sizeDelta=new Vector2(visiting?300:635,54);
+            mainHeading.fontSize=visiting?28:40;
+            foreach(Transform child in mainFace)
+                if(child.name.StartsWith("Cinema title",StringComparison.Ordinal))child.gameObject.SetActive(!visiting);
+            matchReturn.gameObject.SetActive(visiting);
+            matchReturnTitle.text=MatchEnded?"View results":lobby.CanStart?"Return to match":"Watching match";
+            matchAction.gameObject.SetActive(visiting&&(MatchEnded||Review?.CanEndGame==true));
+            matchActionTitle.text=MatchEnded?(CanConfigureNext?"Configure next match":MatchRuntime.Current?.Authority==true?"Finishing round…":"Host sets next match"):
+                Time.unscaledTime<endMatchConfirmUntil?"Confirm end match":"End match";
+            if(!visiting||MatchEnded)endMatchConfirmUntil=0;
+            int seconds=countdown?countdownSeconds:Mathf.Max(0,Mathf.CeilToInt(experience?.CountdownSeconds??0));
+            int humans=Mathf.Max(1,session?.Multiplayer?.HumanCount??1);
+            playlistStatus.text=visiting?"Live match on the spectator TVs":countdown?
+                $"{seconds}":
+                lobby.Connected?$"ROOM {lobby.HostCode}    |    {humans} / {Mathf.Max(10,humans)}":
+                "LOCAL PLAY";
+            int totalPlayers=(lobby as ILobbyDetails)?.Setup?.population??MatchChoices.BotTarget;
+            if(totalPlayers<=0)totalPlayers=10;
+            if(playerCountLabel)playerCountLabel.text=$"{totalPlayers} PLAYERS";
+            modeCard.gameObject.SetActive(!visiting&&!playlist&&!countdown);
+            mapCard.gameObject.SetActive(!visiting&&!countdown);
+            modeCard.anchoredPosition=new Vector2(-169,12);
+            mapCard.anchoredPosition=new Vector2(playlist?0:169,12);
+            foreach(var target in targets)
+            {
+                if(target.id is "marina-settings" or "marina-style")
+                    target.face.gameObject.SetActive(!playlist&&!visiting&&!countdown);
+                if(target.id=="marina-play")
+                    target.face.gameObject.SetActive(!visiting&&(!countdown||(lobby.StartPending&&lobby.CanStart)));
+            }
+            playTitle.text=visiting?(lobby.CanStart?"Return to match":"WATCH LIVE"):
+                playlist?(experience.LocalReady?"READY":"GO"):lobby.StartPending?"Cancel start":"Start match";
+            joinTitle.text=visiting?"Room info":"Room code";
+            hostTitle.text=visiting?"Room info":lobby.Connected?(lobby.IsHost?"Manage room":"Create room"):"Create room";
+            joinStatus.text=visiting?(MatchEnded?"Match complete":"Match in progress"):lobby.Busy?"Connecting…":lobby.Connected?"In a room":"Find your friends";
+            hostStatus.text=visiting?(MatchEnded?"Match complete":"Match in progress"):lobby.Busy?"Working…":lobby.IsHost&&lobby.Connected?"You are host":lobby.Connected?"Joined as guest":"Host your friends";
             var details=lobby as ILobbyDetails;
-            string nextMode=details?.SelectedModeId??"survival",nextMap=details?.SelectedMapId??"castle";
-            if(modeId!=nextMode){modeId=nextMode;modePicture.texture=Resources.Load<Texture2D>("LobbyModePictures/"+modeId);FitPreview(modePicture);}
-            if(mapId!=nextMap){mapId=nextMap;mapPicture.texture=MapPreviewImages.Get(mapId);FitPreview(mapPicture);}
-            bool vr=session?.Player?.IsVR==true;
-            hint.text=busy?"":party&&lobby.Connected?"Party code  "+code+(Guest?"  ·  the host picks mode and map":"  ·  tap a card to change it"):vr?"Point and pull the trigger to choose":"Look at a button, then click or press E";
+            string nextMode=details?.SelectedModeId??"mystery",nextMap=details?.SelectedMapId??"castle";
+            if(modeId!=nextMode)
+            {
+                modeId=nextMode;
+                modePicture.texture=Resources.Load<Texture2D>("LobbyModePictures/"+modeId)??Resources.Load<Texture2D>("LobbyModePictures/demo");
+                FitPreview(modePicture,modeMissing);
+            }
+            if(mapId!=nextMap){mapId=nextMap;mapPicture.texture=MapPreviewImages.Get(mapId);FitPreview(mapPicture,mapMissing);}
         }
-        static void FitPreview(RawImage image)
+        Text LiveColumn(Vector2 position,Vector2 size)
         {
-            if(!image.texture){image.enabled=false;return;}
-            image.enabled=true;float scale=Mathf.Min(310f/image.texture.width,96f/image.texture.height);
-            image.rectTransform.sizeDelta=new Vector2(image.texture.width*scale,image.texture.height*scale);
+            var label=Text("",position,size,17,mainFace);
+            label.alignment=TextAnchor.UpperLeft;label.color=Cream;
+            return label;
         }
-        bool Shown(Target t)=>t.root.parent.gameObject.activeSelf&&(t.visible?.Invoke()??true);
-        public bool Invoke(string id)
+
+        void BuildLiveRows()
         {
-            if(ModalBlocked||requireRelease)return false;if(id=="marina-host")id="marina-room";
+            liveStandings.text="STANDINGS";
+            liveActivity.text="RECENT ELIMINATIONS";
+            liveStandings.color=Mint;liveActivity.color=Mint;liveHazards.fontSize=12;liveHazards.color=Mint;
+            for(int i=0;i<standingRows.Length;i++)
+            {
+                float y=43-i*28;
+                var rowColor=new Color(.13f,.045f,.18f,.55f);
+                Panel("Standing row backing",liveStandings.rectTransform,new Vector2(0,y),new Vector2(313,26),rowColor).transform.SetAsFirstSibling();
+                Panel("Activity row backing",liveActivity.rectTransform,new Vector2(0,y),new Vector2(313,26),rowColor).transform.SetAsFirstSibling();
+                standingHeads[i]=LiveImage(liveStandings.transform,new Vector2(-141,y),new Vector2(22,22));
+                standingRows[i]=Text("",new Vector2(17,y+6),new Vector2(275,18),14,liveStandings.transform);
+                standingStats[i]=Text("",new Vector2(17,y-9),new Vector2(275,14),11,liveStandings.transform);
+                standingRows[i].alignment=standingStats[i].alignment=TextAnchor.MiddleLeft;
+                standingStats[i].color=new Color(.82f,.76f,.87f);
+                killerHeads[i]=LiveImage(liveActivity.transform,new Vector2(-145,y),new Vector2(18,18));
+                victimHeads[i]=LiveImage(liveActivity.transform,new Vector2(-124,y),new Vector2(18,18));
+                activityRows[i]=Text("",new Vector2(25,y+6),new Vector2(259,18),14,liveActivity.transform);
+                activityDetails[i]=Text("",new Vector2(25,y-9),new Vector2(259,14),11,liveActivity.transform);
+                activityRows[i].alignment=activityDetails[i].alignment=TextAnchor.MiddleLeft;
+                activityDetails[i].color=new Color(.82f,.76f,.87f);
+            }
+            for(int i=0;i<hazardRows.Length;i++)
+            {
+                float x=-318+i*162;
+                hazardArt[i]=LiveImage(liveHazards.transform,new Vector2(x+20,-7),new Vector2(36,24));
+                hazardRows[i]=Text("",new Vector2(x+100,-7),new Vector2(118,28),12,liveHazards.transform);
+                hazardRows[i].alignment=TextAnchor.MiddleLeft;
+            }
+        }
+        static RawImage LiveImage(Transform parent,Vector2 position,Vector2 size)
+        {
+            var image=new GameObject("Live match art",typeof(RectTransform),typeof(RawImage)).GetComponent<RawImage>();
+            image.transform.SetParent(parent,false);
+            image.rectTransform.anchoredPosition=position;
+            image.rectTransform.sizeDelta=size;
+            image.raycastTarget=false;
+            return image;
+        }
+        static void SetLiveImage(RawImage image,Texture texture)
+        {
+            image.texture=texture;
+            image.enabled=texture;
+        }
+        void RefreshLiveMatch(bool visible)
+        {
+            liveStandings.gameObject.SetActive(visible);
+            liveActivity.gameObject.SetActive(visible);
+            liveHazards.gameObject.SetActive(visible&&!MatchEnded);
+            matchSummary.gameObject.SetActive(visible&&MatchEnded);
+            var match=MatchRuntime.Current;
+            var frame=visible?match?.Frame:null;
+            if(frame==null)return;
+            int seconds=Mathf.Max(0,Mathf.CeilToInt(frame.remaining));
+            mainHeading.text=frame.phase switch
+            {
+                RoundPhase.Waiting=>"BETWEEN ROUNDS",
+                RoundPhase.Countdown=>"ROUND STARTING",
+                RoundPhase.Victory=>"ROUND COMPLETE",
+                RoundPhase.Results=>"MATCH RESULTS",
+                _=>$"LIVE MATCH  {seconds/60:00}:{seconds%60:00}"
+            };
+            liveStandings.text=MatchEnded?"FINAL STANDINGS":"STANDINGS";
+            matchSummary.text="Winner: "+CandyHudContent.Safe(string.IsNullOrWhiteSpace(frame.winner)?"No winner":frame.winner,48)+
+                (CanConfigureNext?"\nChoose Configure next match to pick a map, mode and settings.":
+                    frame.phase==RoundPhase.Victory?"\nFinal results are coming up.":"\nView results, or wait for the host to configure the next match.");
+            var owner=match as Component;
+            var portraits=owner?CandyScorePortraits.For(owner.gameObject):null;
+            Texture Portrait(MatchPlayerFrame player)=>player==null?null:portraits?.Get(match,player);
+            MatchPlayerFrame Player(string id)=>string.IsNullOrEmpty(id)?null:Array.Find(frame.players,row=>row.id==id);
+            string Name(MatchPlayerFrame player)=>CandyHudContent.Safe(player?.name??"Player",18);
+            var standings=CandyResultsHud.Rank(frame.players.Where(player=>player.role!="enemy"),false,false).Take(5).ToArray();
+            var eliminations=frame.eliminations.Reverse().Take(5).ToArray();
+            for(int i=0;i<standingRows.Length;i++)
+            {
+                var standing=i<standings.Length?standings[i]:null;
+                SetLiveImage(standingHeads[i],Portrait(standing));
+                standingRows[i].text=standing==null?"":$"{i+1}. {Name(standing)}";
+                standingStats[i].text=standing==null?"":CandyResultsHud.RankStats(standing,frame.rules.mode,false);
+                var killer=i<eliminations.Length?Player(eliminations[i].killer):null;
+                var victim=i<eliminations.Length?Player(eliminations[i].victim):null;
+                SetLiveImage(killerHeads[i],Portrait(killer));
+                SetLiveImage(victimHeads[i],Portrait(victim));
+                activityRows[i].text=i>=eliminations.Length?"":Name(killer??victim);
+                activityDetails[i].text=i>=eliminations.Length?"":killer==null?"Eliminated":"Eliminated "+Name(victim);
+            }
+            if(eliminations.Length==0)activityRows[0].text="No eliminations yet";
+            if(standings.Length==0)standingRows[0].text="Waiting for players";
+            int slot=0;
+            foreach(var source in Tracked.Waves)
+            {
+                var wave=source.Wave;
+                if(wave.active){SetHazard(slot++,"Tsunami","Tsunami",wave.warningRemaining);break;}
+            }
+            foreach(var source in DisasterStates.Active)
+            {
+                if(slot>=hazardRows.Length)break;
+                var hazard=source.Capture();
+                if(hazard==null||hazard.residualOnly)continue;
+                SetHazard(slot++,hazard.kind,hazard.label??hazard.kind,hazard.warning);
+            }
+            if(slot<hazardRows.Length&&frame.disasterWarningRemaining>0&&!string.IsNullOrEmpty(frame.disasterWarning))
+                SetHazard(slot++,frame.disasterWarning,CandyDisasterWarningCard.DisplayName(frame.disasterWarning),frame.disasterWarningRemaining);
+            liveHazards.text=slot==0?"DISASTERS   None active or incoming":"DISASTERS";
+            for(;slot<hazardRows.Length;slot++)
+            {
+                SetLiveImage(hazardArt[slot],null);
+                hazardRows[slot].text="";
+            }
+        }
+        void MatchAction()
+        {
+            if(MatchEnded)
+            {
+                if(CanConfigureNext)MatchRuntime.Current.ReturnToLobby();
+                return;
+            }
+            if(Review?.CanEndGame!=true)return;
+            if(Time.unscaledTime<endMatchConfirmUntil){endMatchConfirmUntil=0;Review.EndGame();}
+            else endMatchConfirmUntil=Time.unscaledTime+5;
             Refresh();
-            foreach(var target in targets)
-                if(target.id==id&&Visible&&Shown(target)&&target.allowed()){Press(target);return true;}
-            return false;
         }
-        void Press(Target target)
+        void SetHazard(int slot,string kind,string title,float warning)
         {
-            target.pressedUntil=Time.unscaledTime+.14f;
-            CandyAudioControls.PlayUiClick(target.root.position);CandyFeedback.Pulse(.35f,.05f);
+            SetLiveImage(hazardArt[slot],CandyDisasterWarningCard.GetImage(kind)??CandyDisasterWarningCard.GetImage(title));
+            hazardRows[slot].text=CandyHudContent.Safe(title,24)+(warning>0?$" in {Mathf.CeilToInt(warning)}s":" active");
+        }
+
+        static void FitPreview(RawImage image,Text missing)
+        {
+            image.enabled=image.texture;
+            missing.gameObject.SetActive(!image.texture);
+            if(!image.texture)return;
+            float source=(float)image.texture.width/image.texture.height;
+            float target=image.rectTransform.sizeDelta.x/image.rectTransform.sizeDelta.y;
+            float width=Mathf.Min(1,target/source),height=Mathf.Min(1,source/target);
+            image.uvRect=new Rect((1-width)*.5f,(1-height)*.5f,width,height);
+        }
+        public bool Invoke(string id) => Activate(targets.Find(target => target.id == id), 0);
+
+        bool Activate(Target target, int pointerDevice)
+        {
+            if (ModalBlocked || requireRelease || target == null ||
+                !target.face.gameObject.activeInHierarchy || !target.allowed()) return false;
+            target.pressedUntil = Time.unscaledTime + .16f;
+            PaintTarget(target, true, true);
+            requireRelease = true;
+            MenuAim.Consume();
+            MenuAim.PulsePress(pointerDevice);
             target.action();
+            return true;
         }
-        Target hovered;
-        void Update()
+
+        static void PaintTarget(Target target, bool hover, bool allowed)
         {
-            if(!Visible||ModalBlocked){requireRelease=true;return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
-            var player=session?.Player;if(!NetworkActors.Alive(player)||!player.ViewCamera)return;
-            var mouse=Mouse.current;var keyboard=Keyboard.current;
-            var camera=player.ViewCamera;
-            bool held=mouse?.leftButton.isPressed==true||keyboard?.eKey.isPressed==true;
-            bool pressed=mouse?.leftButton.wasPressedThisFrame==true||keyboard?.eKey.wasPressedThisFrame==true;
-            Ray ray=session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
-            if(player.IsVR)
+            bool pressed = allowed && Time.unscaledTime < target.pressedUntil;
+            bool readOnlyPreview = target.id is "marina-maps" or "marina-modes";
+            target.face.rectTransform.localScale = Vector3.one;
+            allowed |= readOnlyPreview;
+            target.face.color = !allowed ? Color.Lerp(target.color, Plum, .70f) :
+                pressed ? Color.Lerp(target.color, Mint, .70f) :
+                hover ? Color.Lerp(target.color, readOnlyPreview ? Color.white : Cream, .40f) : target.color;
+            var rim = pressed ? Cream : allowed ? CandyHudVisuals.Mint : Cream;
+            float outline = hover || pressed ? 1 : 0;
+            if (readOnlyPreview && hover)
             {
-                bool aimed=MenuPointer.AimAt(camera,player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,
-                    candidate=>MenuPointer.PanelHit(candidate,canvas,MenuPointer.LobbyRange),out var input);
-                ray=input.Ray;held=aimed&&input.Held;pressed=aimed&&input.Pressed;
+                target.outline.effectDistance = new Vector2(2, -2);
+                target.outline.effectColor = new Color(.35f, 1f, .85f, 1f);
+                target.glow.effectDistance = Vector2.zero;
+                target.glow.effectColor = new Color(.35f, 1f, .85f, .75f);
             }
-            if(requireRelease){if(!held)requireRelease=false;pressed=false;}
-            Target nearest=null;float distance=MenuPointer.LobbyRange;
-            foreach(var target in targets)
+            else
             {
-                bool visible=Shown(target);
-                if(target.root.gameObject.activeSelf!=visible)target.root.gameObject.SetActive(visible);
-                if(!visible)continue;
-                target.collider.enabled=target.allowed();
-                if(target.collider.enabled&&Vector3.Dot(ray.direction,target.collider.transform.forward)>0&&target.collider.Raycast(ray,out var hit,distance))
-                {nearest=target;distance=hit.distance;}
+                target.outline.effectDistance = new Vector2(1.5f, -1.5f);
+                target.outline.effectColor = new Color(rim.r, rim.g, rim.b, outline);
+                target.glow.effectDistance = Vector2.zero;
+                target.glow.effectColor = new Color(rim.r, rim.g, rim.b, outline * (pressed ? .85f : .50f));
             }
-            if(nearest!=hovered){hovered=nearest;if(nearest!=null&&player.IsVR)CandyFeedback.Pulse(.12f,.03f);}
-            foreach(var target in targets)
+            if(target.actionLabel)
             {
-                if(!target.root.gameObject.activeSelf)continue;
-                bool usable=target.collider.enabled,hover=target==nearest,down=Time.unscaledTime<target.pressedUntil||hover&&held;
-                var color=!usable?Color.Lerp(target.color,Ink,.6f):hover?Color.Lerp(target.color,Color.white,.18f):target.color;
-                target.faceImage.color=color;target.lip.color=Color.Lerp(color,Color.black,.45f);
-                target.face.anchoredPosition=new Vector2(0,down?-4:hover?2:0);
-                float scale=hover&&usable?1.03f:1;target.face.localScale=new Vector3(scale,scale,1);
-                var ink=Luminance(color)>.22f?Ink:Cream;
-                if(target.label)target.label.color=usable?ink:Muted;
-                if(target.sub)target.sub.color=usable?(ink==Ink?new Color(.12f,.08f,.2f,.85f):Muted):Muted;
-                if(target.glyph)target.glyph.color=usable?(ink==Ink?Ink:target.glyph.color==Ink?Cream:target.glyph.color):Muted;
+                Color face=target.face.color.linear;
+                float luminance=.2126f*face.r+.7152f*face.g+.0722f*face.b;
+                target.actionLabel.color=allowed?(luminance>.22f?Plum:Cream):CandyHudVisuals.Muted;
             }
-            if(pressed&&nearest!=null)Press(nearest);
+            if(target.glyph)
+            {
+                Color face=target.face.color.linear;
+                float luminance=.2126f*face.r+.7152f*face.g+.0722f*face.b;
+                target.glyph.color=allowed?(luminance>.22f?Plum:Cream):CandyHudVisuals.Muted;
+            }
         }
-        static float Luminance(Color c)=>.2126f*Mathf.GammaToLinearSpace(c.r)+.7152f*Mathf.GammaToLinearSpace(c.g)+.0722f*Mathf.GammaToLinearSpace(c.b);
-        void OnEnable(){requireRelease=true;}
-        void OnApplicationFocus(bool focused){inputFocused=focused;requireRelease=true;}
-        void OnDestroy(){if(canvas)Destroy(canvas.gameObject);}
+        LineRenderer aimBeam;
+        void LateUpdate()
+        {
+            if (aimBeam) aimBeam.enabled = false;
+            if(!AnyFaceVisible||ModalBlocked||!NetworkActors.Alive(session?.Player)||!session.Player.gameObject.activeInHierarchy){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);if(focusPanel)focusPanel.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
+            var player=session?.Player;if(!NetworkActors.Alive(player)||!player.ViewCamera){aimDot.gameObject.SetActive(false);return;}
+            var mouse=Mouse.current;var keyboard=Keyboard.current;
+            bool held=player.IsVR ? select.IsPressed() || leftSelect.IsPressed() || player.SelectHeld :
+                !lobby.CodeFocused && keyboard?.eKey.isPressed==true || mouse?.leftButton.isPressed==true;
+            if(requireRelease&&!held)requireRelease=false;
+            bool pressed=player.IsVR ? player.SelectPressed :
+                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true;
+            int pointerDevice = 0;
+            var camera=player.ViewCamera;
+            Ray ray;
+            bool trackedPointer = false;
+            if (player.IsVR)
+            {
+                bool preferredLeft=player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+                ray=MenuAim.Resolve(camera,camera.transform.parent,preferredLeft,false,false,out trackedPointer,out _);
+                if(!trackedPointer && (lobby as ILobbyMatchVisitControls)?.VisitingLobby==true &&
+                    MenuAim.TryHandPointer(camera,player,preferredLeft,out var visitorHandRay))ray=visitorHandRay;
+                trackedPointer |= MenuAim.IsTrackedPointer(camera, ray);
+                var controllerAction=leftSelect.WasPressedThisFrame()?leftSelect:select.WasPressedThisFrame()?select:
+                    leftSelect.IsPressed()&&(!select.IsPressed()||preferredLeft)?leftSelect:select;
+                if (controllerAction.IsPressed() || controllerAction.WasPressedThisFrame())
+                {
+                    if (MenuAim.TryActionPointer(camera,controllerAction,out var controllerRay,out pointerDevice))
+                    {
+                        ray=controllerRay;
+                        trackedPointer=true;
+                        pressed=controllerAction.WasPressedThisFrame();
+                    }
+                    else pressed=false;
+                }
+            }
+            else
+                ray=session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
+            float screenRange = 11;
+            if (Physics.Raycast(ray, out var obstruction, screenRange, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
+                screenRange = Mathf.Min(screenRange,obstruction.distance+.05f);
+            var nearest = PickTarget(ray, screenRange);
+            foreach (var target in targets)
+                if (target.face.gameObject.activeInHierarchy) PaintTarget(target, target == nearest, target.collider.enabled);
+            PreviewDestination(nearest?.id);
+            bool hitFace = nearest != null && MenuAim.TryPoint(ray, nearest.face.rectTransform, screenRange, out _, out var point) ||
+                VisibleFacePoint(ray, mainFace, screenRange, out point) ||
+                VisibleFacePoint(ray, joinFace, screenRange, out point) ||
+                VisibleFacePoint(ray, hostFace, screenRange, out point);
+            bool actionable = nearest != null && nearest.collider.enabled;
+            EnsureAimCanvas();
+            aimCanvas.worldCamera = camera;
+            bool showReticle = hitFace && (trackedPointer || !player.IsVR);
+            if (showReticle)
+            {
+                float hitDistance = Vector3.Distance(ray.origin, point);
+                var reticleTransform = aimCanvas.transform;
+                reticleTransform.SetPositionAndRotation(point, camera.transform.rotation);
+                reticleTransform.localScale = Vector3.one * Mathf.Clamp(hitDistance * .0007f, .0007f, .003f);
+                MenuAim.Present(aimDot, point, true, actionable);
+                if (aimDot) aimDot.rectTransform.sizeDelta = actionable ? new Vector2(18, 18) : new Vector2(12, 12);
+            }
+            else if (!player.IsVR && camera != null)
+            {
+                var centerPoint = ray.GetPoint(1.8f);
+                aimCanvas.transform.SetPositionAndRotation(centerPoint, camera.transform.rotation);
+                aimCanvas.transform.localScale = Vector3.one * 0.0013f;
+                MenuAim.Present(aimDot, centerPoint, true, false);
+                if (aimDot) aimDot.rectTransform.sizeDelta = new Vector2(12, 12);
+            }
+            else if (aimDot) aimDot.gameObject.SetActive(false);
+            MenuAim.PresentBeam(ref aimBeam, transform, ray, point - ray.direction * .012f,
+                player.IsVR && trackedPointer && hitFace, actionable);
+            if (pressed && !requireRelease && nearest != null) Activate(nearest, pointerDevice);
+        }
+        Target PickTarget(Ray ray, float range)
+        {
+            Target nearest = null;
+            foreach (var target in targets)
+            {
+                if (!target.face.gameObject.activeInHierarchy) continue;
+                target.collider.enabled = target.allowed();
+                // A disabled control still owns its area. Never click through it to another button.
+                if (!MenuAim.TryPoint(ray, target.face.rectTransform, range, out _, out var hit)) continue;
+                nearest = target;
+                range = Vector3.Distance(ray.origin, hit);
+            }
+            return nearest;
+        }
+
+        static bool VisibleFacePoint(Ray ray, RectTransform face, float distance, out Vector3 point)
+        {
+            point = default;
+            return face.gameObject.activeInHierarchy && MenuAim.TryPoint(ray, face, distance, out _, out point);
+        }
+
+        void PreviewDestination(string id)
+        {
+            bool map=id=="marina-maps",mode=id=="marina-modes";
+            bool blockedStart=id=="marina-play"&&!lobby.CanStart;
+            focusPanel.gameObject.SetActive(map||mode||blockedStart);
+            if(blockedStart)
+            {
+                focusTarget=null;
+                focusDescription.text=lobby.Busy?"Waiting for the room to finish connecting.":
+                    !lobby.IsHost?"Only the host can start the match.":"The match is not ready to start.";
+                return;
+            }
+            if(!map&&!mode)return;
+            if(!GameExperiencePanel.CanEditRawChoices(session))
+            {
+                focusTarget=null;
+                focusDescription.text=lobby.IsHost?"This match chooses its mode and map automatically.":"The host chooses the mode and map.";
+                return;
+            }
+            if(focusTarget==id&&focusMode==modeId&&focusMap==mapId)return;
+            focusTarget=id;focusMode=modeId;focusMap=mapId;
+            var details=lobby as ILobbyDetails;string selected=map?mapId:modeId;
+            var options=map?details?.Maps:details?.Modes;string description="";
+            if(options!=null)foreach(var option in options)if(option.id==selected){description=option.description;break;}
+            if(string.IsNullOrWhiteSpace(description))description=map?"Browse maps. Point to a map for its picture and description; select to use it.":"Browse modes. Point to a mode to preview it; select to use it and choose a map.";
+            focusDescription.text=description.Length>150?description.Substring(0,147)+"...":description;
+        }
+        void OnEnable(){requireRelease=true;select?.Enable();leftSelect?.Enable();}
+        void OnApplicationFocus(bool focused){inputFocused=focused;requireRelease=true;if(!focused){if(aimBeam)aimBeam.enabled=false;if(aimDot)aimDot.gameObject.SetActive(false);}}
+        void OnDisable(){if(aimBeam)aimBeam.enabled=false;select?.Disable();leftSelect?.Disable();if(aimDot)aimDot.gameObject.SetActive(false);}
+        void OnDestroy(){select?.Dispose();leftSelect?.Dispose();if(canvas)Destroy(canvas.gameObject);if(projectionBackdrop)Destroy(projectionBackdrop);}
     }
 }

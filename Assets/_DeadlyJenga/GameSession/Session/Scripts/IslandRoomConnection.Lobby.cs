@@ -13,21 +13,17 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class IslandRoomConnection
     {
         const int LobbyCommand=6;
-        [Serializable] public sealed class LobbyAction {public string verb,value;public int index;public bool ready;public LobbySetup setup;}
+        [Serializable] public sealed class LobbyAction {public string verb,value;public int index;public LobbySetup setup;}
         [Serializable] public sealed class LobbyState
         {
             public string leader,notice;
             public LobbyParticipant[] roster;
             public string[] requests;
             public LobbySetup setup;
-            public int readyRevision;
-            public string[] readyGuests;
         }
         readonly Dictionary<string,LobbyParticipant> identities=new Dictionary<string,LobbyParticipant>();
         readonly List<string> hostRequests=new List<string>();
         readonly Dictionary<string,float> requestAfter=new Dictionary<string,float>();
-        readonly HashSet<string> readyGuests=new HashSet<string>();
-        int readyRevision;
         LobbyParticipant localIdentity;
         LobbySetup setup;
         string leaderId="",lobbyNotice="",matchNotice="";
@@ -42,7 +38,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
-                if(localIdentity==null){var color=ModeNames.Colors[UnityEngine.Random.Range(0,ModeNames.Colors.Length)];localIdentity=new LobbyParticipant{id="local",noun=ModeNames.Nouns[UnityEngine.Random.Range(0,ModeNames.Nouns.Length)],color=color};localIdentity.displayName=ModeNames.NameFor(color,localIdentity.noun);}
+                if(localIdentity==null){var color=ModeNames.Colors[UnityEngine.Random.Range(0,ModeNames.Colors.Length)];localIdentity=new LobbyParticipant{id="local",noun=ModeNames.Nouns[UnityEngine.Random.Range(0,ModeNames.Nouns.Length)],color=color};localIdentity.displayName=NearbyPlayerProfile.Name;}
                 return localIdentity;
             }
         }
@@ -50,6 +46,11 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
+                if(!Catalog)
+                {
+                    var fallback=new LobbySetup{rules=MatchSetup.DefaultModeRules(MatchModeRuntime.ParseMode(MatchSetup.ModeId),MatchSetup.SelectedMap),movement=MatchChoices.Rules,population=MatchSetup.BotTarget,hands=MatchSetup.HandCount,sameHumanTeam=MatchChoices.SameHumanTeam,survivorPreset=MatchSetup.SurvivorPreset,handPreset=MatchSetup.HandPreset,disasters=Array.Empty<LobbyHazardSetup>()};
+                    return JsonUtility.FromJson<LobbySetup>(JsonUtility.ToJson(fallback));
+                }
                 if(setup==null)ResetModeSetup();
                 if(LocalIsLobbyHost){setup.population=MatchSetup.BotTarget;setup.hands=MatchSetup.HandCount;setup.sameHumanTeam=MatchChoices.SameHumanTeam;setup.survivorPreset=MatchSetup.SurvivorPreset;setup.handPreset=MatchSetup.HandPreset;setup.movement=MatchChoices.Rules;}
                 return JsonUtility.FromJson<LobbySetup>(JsonUtility.ToJson(setup));
@@ -61,7 +62,7 @@ namespace DeadlyJenga.CastlePrototype
             setup=new LobbySetup{rules=MatchSetup.DefaultModeRules(kind,Catalog.maps[MapIndex]),movement=MatchChoices.Rules,population=MatchSetup.BotTarget,hands=MatchSetup.HandCount,sameHumanTeam=MatchChoices.SameHumanTeam,survivorPreset=MatchSetup.SurvivorPreset,handPreset=MatchSetup.HandPreset,disasters=DemoDisasters.Prefabs.Select(p=>new LobbyHazardSetup{id=p.name,values=DemoDisasters.Parameters(p).Select(v=>v.initial).ToArray()}).ToArray()};
         }
         public void ConfigureSetup(LobbySetup value)
-        {if(CanConfigure&&ValidSetup(value))Act(new LobbyAction{verb="setup",setup=value});}
+        {if(CanConfigure&&Catalog&&ValidSetup(value))Act(new LobbyAction{verb="setup",setup=value});}
         static bool ValidSetup(LobbySetup value)
         {
             if(value==null||!ModeFrameValidation.Rules(value.rules)||value.movement==null||value.population<1||value.population>100||value.hands<0||value.hands>100||value.survivorPreset<0||value.survivorPreset>100||value.handPreset<0||value.handPreset>100)return false;
@@ -80,23 +81,6 @@ namespace DeadlyJenga.CastlePrototype
             MatchSetup.BotTarget=setup.population;MatchSetup.HandCount=setup.hands;MatchSetup.SurvivorPreset=setup.survivorPreset;MatchSetup.HandPreset=setup.handPreset;MatchChoices.SameHumanTeam=setup.sameHumanTeam;
             JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(setup.movement),MatchChoices.Rules);
         }
-        internal bool LocalLobbyReady=>LocalIsLobbyHost||readyGuests.Contains(LocalLobbyId);
-        internal int LobbyReadyCount=>Connected
-            ?Runner.ActivePlayers.Count(player=>IsLobbyPlayerReady(player.ToString()))
-            :1;
-        bool EveryoneReadyForLobby=>LobbyReadyCount==HumanCount;
-        bool IsLobbyPlayerReady(string id)=>id==leaderId||readyGuests.Contains(id);
-        internal void SetLobbyReady(bool value)
-        {
-            if(Connected&&!LocalIsLobbyHost&&!Busy&&!Departing&&readyRevision>0)
-                Act(new LobbyAction{verb="ready",index=readyRevision,ready=value});
-        }
-        void ResetLobbyReadiness()
-        {
-            readyGuests.Clear();
-            readyRevision++;
-        }
-
         public void RequestHost(){if(Connected&&!LocalIsLobbyHost&&!Busy)Act(new LobbyAction{verb="request"});}
         public void ReviewHostRequest(string id,bool accept){if(LocalIsLobbyHost&&!Busy)Act(new LobbyAction{verb=accept?"accept":"deny",value=id});}
         void Act(LobbyAction action)
@@ -112,43 +96,51 @@ namespace DeadlyJenga.CastlePrototype
             if(!member||Departing)return;
             var experience=RoomGameExperience.Ensure(this);
             if(experience&&experience.Experience==GameExperience.Game&&
-                (action.verb=="shared"||action.verb=="setup"||action.verb=="map"||action.verb=="mode"||
-                 action.verb=="launch"||action.verb=="cancel"))return;
-            if(action.verb=="ready")
-            {
-                if(!IsHost||source==leaderId||Busy||transitioning||action.index!=readyRevision||!identities.ContainsKey(source))return;
-                if(action.ready)readyGuests.Add(source);
-                else readyGuests.Remove(source);
-                return;
-            }
+                (action.verb=="setup"||action.verb=="launch"||action.verb=="cancel"||
+                 (action.verb=="map"||action.verb=="mode")&&!experience.CanChooseFirstRound))return;
             if(action.verb=="request")
             {
                 if(source==leaderId||hostRequests.Contains(source)||hostRequests.Count>=10)return;
                 if(requestAfter.TryGetValue(source,out float after)&&Time.unscaledTime<after)return;
                 requestAfter[source]=Time.unscaledTime+20;hostRequests.Add(source);return;
             }
+            if(action.verb=="name")
+            {
+                string chosen=NearbyPlayerProfile.Clean(action.value);
+                if(chosen.Length>0&&identities.TryGetValue(source,out var identity)){identity.displayName=chosen;PublishSelection();}
+                return;
+            }
             if(Connected&&source!=leaderId)return;
             if(action.verb=="accept"||action.verb=="deny")
             {
                 if(!hostRequests.Remove(action.value))return;
                 if(action.verb=="accept"&&identities.ContainsKey(action.value)){leaderId=action.value;hostRequests.Clear();lobbyNotice=identities[action.value].displayName+" is now host.";LaunchPending=false;RefreshHostFlags();}
-                else{lobbyNotice="Host request declined.";return;}
+                else lobbyNotice="Host request declined.";
             }
             else if(!LaunchPending&&action.verb=="map"&&action.index>=0&&action.index<Catalog.maps.Length&&Catalog.maps[action.index].SupportsMode(Catalog.modes[ModeIndex].id))
             {
+                if(experience.PlayerPlaylist&&!experience.CanChoosePlayPair(Catalog.maps[action.index].id,Catalog.modes[ModeIndex].id))return;
                 MapIndex=action.index;
                 if(setup!=null)setup.rules.island=MatchSetup.DefaultModeRules(MatchModeRuntime.ParseMode(Catalog.modes[ModeIndex].id),Catalog.maps[MapIndex]).island;
             }
             else if(!LaunchPending&&action.verb=="mode"&&action.index>=0&&action.index<Catalog.modes.Length&&Catalog.modes[action.index].available)
             {
-                int compatible=Array.FindIndex(Catalog.maps,m=>m.SupportsMode(Catalog.modes[action.index].id));if(compatible<0)return;
-                ModeIndex=action.index;if(!Catalog.maps[MapIndex].SupportsMode(Catalog.modes[ModeIndex].id))MapIndex=compatible;ResetModeSetup();
+                string mode=Catalog.modes[action.index].id;
+                bool Compatible(IslandLobbyCatalog.Map map)=>map.SupportsMode(mode)&&
+                    (!experience.PlayerPlaylist||experience.CanChoosePlayPair(map.id,mode));
+                int compatible=Array.FindIndex(Catalog.maps,Compatible);if(compatible<0)return;
+                ModeIndex=action.index;if(!Compatible(Catalog.maps[MapIndex]))MapIndex=compatible;ResetModeSetup();
             }
             else if(!LaunchPending&&action.verb=="setup"&&ValidSetup(action.setup))ApplySetup(action.setup);
-            else if(!LaunchPending&&action.verb=="shared"&&Catalog.modes[ModeIndex].id=="demo")SharedDemoControls=action.index!=0;
+            else if(!LaunchPending&&action.verb=="shared")
+            {
+                if(Busy||Migrating||RoomSceneBusy||SwitchingMap||
+                    !(this is IDevelopmentExperienceSource development)||!development.DevelopmentExperience||
+                    (action.index!=0&&action.index!=1))return;
+                SharedDemoControls=action.index!=0;
+            }
             else if(action.verb=="launch"){matchNotice="";LaunchAuthoritative();return;}
-            else if(action.verb=="cancel"){LaunchPending=false;lobbyNotice="Start cancelled.";return;}
-            else return;
+            else if(action.verb=="cancel"){LaunchPending=false;lobbyNotice="Start cancelled.";}
             PublishSelection();
         }
         void RefreshHostFlags(){foreach(var item in identities.Values)item.host=item.id==leaderId;}
@@ -171,7 +163,7 @@ namespace DeadlyJenga.CastlePrototype
             Color color=preferred?.color??ModeNames.Colors[UnityEngine.Random.Range(0,ModeNames.Colors.Length)];
             if(float.IsNaN(color.r)||float.IsNaN(color.g)||float.IsNaN(color.b)||float.IsInfinity(color.r)||float.IsInfinity(color.g)||float.IsInfinity(color.b))color=ModeNames.Colors[0];
             color=new Color(Mathf.Clamp01(color.r),Mathf.Clamp01(color.g),Mathf.Clamp01(color.b),1);
-            identities[id]=new LobbyParticipant{id=id,noun=noun,color=color,displayName=ModeNames.NameFor(color,noun),host=id==leaderId};
+            identities[id]=new LobbyParticipant{id=id,noun=noun,color=color,displayName=string.IsNullOrWhiteSpace(preferred?.displayName)?ModeNames.NameFor(color,noun):NearbyPlayerProfile.Clean(preferred.displayName),host=id==leaderId};
             if(id==LocalLobbyId)localIdentity=identities[id];
             else if(IsHost)
             {
@@ -185,12 +177,10 @@ namespace DeadlyJenga.CastlePrototype
         public void PrepareSoloIdentity()
         {
             if(Connected)return;
-            readyGuests.Clear();readyRevision=0;
             lobbyNotice=matchNotice="";var own=LocalIdentity;identities.Clear();own.id="local";own.host=true;identities[own.id]=own;leaderId=own.id;hostRequests.Clear();
         }
         void ConnectedIdentity(bool hosting)
         {
-            readyGuests.Clear();readyRevision=0;
             lobbyNotice=matchNotice="";
             if(hosting){var own=LocalIdentity;identities.Clear();leaderId=LocalLobbyId;AssignIdentity(LocalLobbyId,own);}
             else{identities.Clear();leaderId="";hostRequests.Clear();}
@@ -208,61 +198,45 @@ namespace DeadlyJenga.CastlePrototype
         const string LobbyHandoffProperty="lobbyHandoff";
         string pendingLobbyHost;
         float nextRosterCheck,lobbyHandoffDeadline;
-        void PublishLobbyHandoff()
-        {
-            var remaining=Runner.ActivePlayers.Where(player=>player!=Runner.LocalPlayer).Select(player=>player.ToString()).ToArray();
-            if(remaining.Length==0)return;
-            string successor=remaining.Contains(leaderId)?leaderId:remaining[UnityEngine.Random.Range(0,remaining.Length)];
-            Runner.SessionInfo.UpdateCustomProperties(new Dictionary<string,SessionProperty>{{LobbyHandoffProperty,successor}});
-        }
         void ReadLobbyHandoff()
         {
-            pendingLobbyHost=Runner.SessionInfo.Properties.TryGetValue(LobbyHandoffProperty,out var successor)?(string)successor:null;
+            if(!Runner.SessionInfo.Properties.TryGetValue(LobbyHandoffProperty,out var value))return;
+            pendingLobbyHost=(string)value;
             if(string.IsNullOrEmpty(pendingLobbyHost)){pendingLobbyHost=null;return;}
             lobbyHandoffDeadline=Time.unscaledTime+12;
         }
         void ClearLobbyHandoff()
         {
             pendingLobbyHost=null;
-            if(IsHost)Runner.SessionInfo.UpdateCustomProperties(new Dictionary<string,SessionProperty>{{LobbyHandoffProperty,""}});
+            Runner.SessionInfo.UpdateCustomProperties(new Dictionary<string,SessionProperty>{{LobbyHandoffProperty,""}});
         }
         void ReconcileLobbyRoster()
         {
             if(Time.unscaledTime<nextRosterCheck)return;nextRosterCheck=Time.unscaledTime+.5f;
             var active=new HashSet<string>(Runner.ActivePlayers.Select(p=>p.ToString()));
-            var departed=identities.Keys.Where(id=>!active.Contains(id)).ToArray();
-            if(departed.Length>0)ResetLobbyReadiness();
-            foreach(var id in departed)DepartIdentity(id);
+            foreach(var id in identities.Keys.ToArray())if(!active.Contains(id))DepartIdentity(id);
             if(!active.Contains(leaderId))
             {
                 var candidates=active.ToArray();
                 leaderId=candidates.Length>0?candidates[UnityEngine.Random.Range(0,candidates.Length)]:LocalLobbyId;
-                ResetLobbyReadiness();
                 LaunchPending=false;RefreshHostFlags();
             }
             if(pendingLobbyHost==null)return;
             if(active.Contains(pendingLobbyHost))
             {
                 leaderId=pendingLobbyHost;
-                ResetLobbyReadiness();
-                hostRequests.Clear();
-                LaunchPending=false;
                 RefreshHostFlags();
                 ClearLobbyHandoff();
             }
             else if(Time.unscaledTime>=lobbyHandoffDeadline)ClearLobbyHandoff();
         }
-        string LobbyStateJson()=>JsonUtility.ToJson(new LobbyState{leader=leaderId,roster=identities.Values.ToArray(),requests=hostRequests.ToArray(),notice=lobbyNotice,setup=Setup,readyRevision=readyRevision,readyGuests=readyGuests.ToArray()});
+        string LobbyStateJson()=>JsonUtility.ToJson(new LobbyState{leader=leaderId,roster=identities.Values.ToArray(),requests=hostRequests.ToArray(),notice=lobbyNotice,setup=Setup});
         void ReadLobbyState(string json)
         {
             var state=JsonUtility.FromJson<LobbyState>(json);
             if(state?.roster==null||state.roster.Length>10||state.requests==null||state.requests.Length>10||!ValidSetup(state.setup)||state.leader?.Length>128||state.notice?.Length>200)throw new System.IO.InvalidDataException("Invalid lobby metadata");
             var used=new HashSet<string>();var nouns=new HashSet<string>();
             foreach(var p in state.roster)if(p==null||string.IsNullOrEmpty(p.id)||p.id.Length>128||!used.Add(p.id)||!ValidNoun(p.noun)||!nouns.Add(p.noun)||p.displayName?.Length>64)throw new System.IO.InvalidDataException("Invalid lobby identity");
-            if(state.readyRevision<0||state.readyGuests==null||state.readyGuests.Length>10||state.readyGuests.Any(id=>!used.Contains(id)))
-                throw new System.IO.InvalidDataException("Invalid lobby readiness");
-            readyRevision=state.readyRevision;
-            readyGuests.Clear();readyGuests.UnionWith(state.readyGuests);
             identities.Clear();foreach(var p in state.roster)identities.Add(p.id,p);
             leaderId=state.leader;lobbyNotice=state.notice??"";hostRequests.Clear();hostRequests.AddRange(state.requests);ApplySetup(state.setup);RefreshHostFlags();
             if(identities.TryGetValue(LocalLobbyId,out var own))localIdentity=own;

@@ -33,7 +33,10 @@ namespace DeadlyJenga.DevTools.Editor
         {
             var scenes=EditorSceneManager.GetSceneManagerSetup();if(scenes.Any(s=>s.isLoaded&&SceneManager.GetSceneByPath(s.path).isDirty))throw new Exception("Save edited scenes first.");
             SessionState.SetString(Key+"Scenes",JsonUtility.ToJson(new Scenes{scenes=scenes}));SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
-            MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.ModeId="demo";MatchSetup.MapId="castle";
+            bool routes=Environment.GetCommandLineArgs().Contains("-catwalkRoutes");
+            MatchSetup.FromLobby=routes;MatchSetup.StartLocalSession=false;MatchSetup.ModeId="demo";
+            MatchSetup.MapId=routes?"mode-castle-catwalks":"castle";
+            if(routes){MatchSetup.BotTarget=1;MatchSetup.HandCount=0;}
             File.WriteAllText(Report,"Actual Game, dynamic PhysX and replicated layout checks for experimental castle variants.\n");EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
         public static IEnumerator Play()
@@ -75,9 +78,135 @@ namespace DeadlyJenga.DevTools.Editor
         static void Check(bool pass,string text){File.AppendAllText(Report,(pass?"PASS ":"FAIL ")+text+"\n");if(!pass)throw new Exception(text);checks++;}
         static IEnumerator Guard()
         {
-            var iterator=Checks();while(true){bool more=false;Exception error=null;try{more=iterator.MoveNext();}catch(Exception e){error=e;}if(error!=null){File.AppendAllText(Report,"FAIL "+error+"\n");break;}if(!more)break;yield return iterator.Current;}
+            var iterator=Environment.GetCommandLineArgs().Contains("-catwalkRoutes")?CatwalkRoutes():Checks();while(true){bool more=false;Exception error=null;try{more=iterator.MoveNext();}catch(Exception e){error=e;}if(error!=null){File.AppendAllText(Report,"FAIL "+error+"\n");break;}if(!more)break;yield return iterator.Current;}
             (iterator as IDisposable)?.Dispose();File.AppendAllText(Report,"COMPLETE checks="+checks+" runtimeErrors="+errors+"\n");if(Application.isBatchMode){SessionState.SetBool(Key,false);SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);EditorApplication.Exit(File.ReadAllText(Report).Contains("FAIL ")||errors>0?1:0);}else EditorApplication.ExitPlaymode();
         }
+        sealed class RouteObjectives : IBotObjectives
+        {
+            public readonly Dictionary<GameObject,BotObjective> targets=new();
+            public void Collect(GameObject actor,List<BotObjective> result)
+            { if(targets.TryGetValue(actor,out var target))result.Add(target); }
+        }
+        static IEnumerator CatwalkRoutes()
+        {
+            float deadline=Time.realtimeSinceStartup+40;
+            while((!(Services.Session is CastlePlaySession current)||!current.Modes||!(Services.World is CastleGenerator))&&
+                Time.realtimeSinceStartup<deadline)yield return null;
+            var session=Services.Session as CastlePlaySession;
+            Check(session&&session.Modes,"Actual Game session starts");
+            MatchSetup.MapId="mode-castle-catwalks";
+            MatchSetup.ApplyMap();
+            yield return null;
+            var map=Services.World as CastleGenerator;
+            Check(map&&map.settings.structureVariant==CastleStructure.Catwalks,"Actual long-block Castle Catwalks selected");
+            session.SetMenu(false);
+            session.Survivor().InputSuspended=true;
+            if(session.Social!=null)session.Social.VoiceEnabled=false;
+            session.SurvivorBots.AutoFill=false;session.SurvivorBots.Clear();
+            var rules=session.Modes.Rules.Copy();rules.automaticDisasters=false;rules.fallDamage=false;rules.island=IslandRule.Sink;
+            rules.defaultDagger=true;rules.punchEnabled=true;
+            session.Modes.Configure(rules);
+            yield return new WaitForSeconds(2);
+            var bots=new DeadlyJenga.CastleBots.CastleBotBrain[4];
+            for(int i=0;i<bots.Length;i++)
+                bots[i]=session.SurvivorBots.SpawnOne()?.GetComponent<DeadlyJenga.CastleBots.CastleBotBrain>();
+            Check(bots.All(b=>b),"Four ordinary bot motors spawned");
+            yield return null;
+            var runtime=session.Modes;
+            var id=runtime.LocalActorId;
+            var dagger=runtime.EquipmentFor(id);
+            Check(dagger.kind==EquipmentKind.Dagger&&dagger.builtIn,"Local player starts with the built-in dagger");
+            var record=runtime.GetType().GetMethod("RecordMeleeContact",
+                System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+            var victim=bots[0].GetComponent<IModeActor>();
+            float registrationDeadline=Time.realtimeSinceStartup+4;
+            while(string.IsNullOrEmpty(victim.ActorId)&&Time.realtimeSinceStartup<registrationDeadline)yield return null;
+            Check(!string.IsNullOrEmpty(victim.ActorId),"The contact target has an authoritative actor ID");
+            record.Invoke(runtime,new object[]{id,dagger,victim,victim.ViewPose.position,.22f});
+            runtime.GetType().GetMethod("PublishEquipment",
+                System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(runtime,null);
+            Check(runtime.EquipmentFor(id).kind==EquipmentKind.Dagger&&
+                runtime.Frame.equipment.Any(item=>item.actor==id&&item.kind==EquipmentKind.Dagger&&item.embedRemaining>0),
+                "A dagger hit keeps the weapon drawn and publishes its contact");
+            yield return new WaitForSeconds(.3f);
+            Check(runtime.EquipmentFor(id).kind==EquipmentKind.Dagger&&runtime.EquipmentFor(id).embedRemaining==0,
+                "The dagger remains drawn after the contact expires");
+            Physics.SyncTransforms();
+            Vector3 Point(DeadlyJenga.CastleBots.CastleBotBrain bot,string section,Vector3 relative)
+            {
+                var wanted=map.Center+relative;
+                var samples=new List<Vector3>();
+                var best=Vector3.zero;float cost=float.PositiveInfinity;
+                foreach(var body in map.Bodies)
+                {
+                    if(!body.name.StartsWith(section,StringComparison.Ordinal)||!body.TryGetComponent<BoxCollider>(out var box))continue;
+                    DeadlyJenga.CastleBots.CastleBotNavigation.SurfaceSamples(body,box,samples);
+                    foreach(var sample in samples)
+                    {
+                        float score=(sample-wanted).sqrMagnitude;
+                        if(score>=cost||!DeadlyJenga.CastleBots.CastleBotNavigation.Landing(bot.Motor,sample,out var hit))continue;
+                        best=hit.point;cost=score;
+                    }
+                }
+                if(float.IsPositiveInfinity(cost))throw new InvalidOperationException("No landing on "+section);
+                return best;
+            }
+            var names=new[]{"purple roof to red","red to green","red bridge to purple roof","purple roof to lower purple"};
+            var starts=new[]{
+                Point(bots[0],"Keep_",new Vector3(3,60,10)),Point(bots[1],"Wall_",new Vector3(-12,28,-24)),
+                Point(bots[2],"Wall_",new Vector3(24,34,0)),Point(bots[3],"Keep_",new Vector3(4,60,-10))};
+            var ends=new[]{
+                Point(bots[0],"Wall_",new Vector3(0,33,22)),Point(bots[1],"Corner_",new Vector3(-24,36,-24)),
+                Point(bots[2],"Keep_",new Vector3(10,60,4)),Point(bots[3],"Keep_",new Vector3(0,42,-10))};
+            var reached=new bool[bots.Length];
+            var objectives=new RouteObjectives();
+            BotObjectives.Current=objectives;
+            for(int i=0;i<bots.Length;i++)
+            {
+                var bot=bots[i];
+                bot.diagnostics=true;
+                bot.Motor.Teleport(starts[i]+Vector3.up*.04f,Quaternion.LookRotation(Vector3.ProjectOnPlane(ends[i]-starts[i],Vector3.up)));
+                objectives.targets.Add(bot.gameObject,new BotObjective
+                {id="catwalk-route-"+i,kind=BotObjectiveKind.Travel,position=ends[i],radius=1,priority=3});
+                File.AppendAllText(Report,$"ROUTE {names[i]} {starts[i]} -> {ends[i]}\n");
+            }
+            float end=Time.time+65,next=Time.time;
+            deadline=Time.realtimeSinceStartup+100;
+            while(Time.time<end&&Time.realtimeSinceStartup<deadline&&!reached.All(v=>v))
+            {
+                for(int i=0;i<bots.Length;i++)
+                {
+                    var bot=bots[i];var p=bot.transform.position;var delta=p-ends[i];
+                    var standing=bot.Motor.StandingBody;
+                    bool arrived=i switch
+                    {
+                        0=>standing&&standing.name.StartsWith("Wall_",StringComparison.Ordinal)&&p.y>15&&
+                            Vector3.ProjectOnPlane(p-map.Center,Vector3.up).magnitude>18,
+                        1=>standing&&standing.name.StartsWith("Corner_",StringComparison.Ordinal)&&p.y>34,
+                        2=>standing&&standing.name.StartsWith("Keep_",StringComparison.Ordinal)&&p.y>57,
+                        _=>standing&&standing.name.StartsWith("Keep_",StringComparison.Ordinal)&&p.y<49&&p.y>32
+                    };
+                    if(!reached[i]&&bot.Motor.Grounded&&arrived)
+                    {
+                        reached[i]=true;
+                        File.AppendAllText(Report,$"ARRIVED {names[i]} {p} jumps={bot.Jumps} climbs={bot.Climbs}\n");
+                    }
+                    if(!reached[i]&&Time.time>=next)
+                        File.AppendAllText(Report,$"TRACE {names[i]} {p} target={bot.TripDestination} goal={bot.Goal} {bot.Intent} {bot.LastRouteSearch} {bot.RecoveryDiagnostics}\n");
+                }
+                if(Time.time>=next)next=Time.time+5;
+                yield return null;
+            }
+            bool requireRoof=Environment.GetCommandLineArgs().Contains("-requireCatwalkRoof");
+            for(int i=0;i<reached.Length;i++)
+            {
+                string status=reached[i]?"PASS ":i==2&&!requireRoof?"LIMIT ":"FAIL ";
+                File.AppendAllText(Report,status+names[i]+"\n");
+            }
+            Check(reached[0]&&reached[1]&&reached[3],"Bots leave purple, reach red and green, and land on a lower purple deck");
+            if(requireRoof)Check(reached[2],"Bots can climb all the way from the red bridge to the purple roof");
+        }
+
         static IEnumerator Checks()
         {
             float end=Time.realtimeSinceStartup+40;while(!(Services.Session is CastlePlaySession)&&Time.realtimeSinceStartup<end)yield return null;

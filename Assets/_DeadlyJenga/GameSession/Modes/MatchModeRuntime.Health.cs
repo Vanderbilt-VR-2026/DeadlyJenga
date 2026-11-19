@@ -24,15 +24,27 @@ namespace DeadlyJenga.Modes
         {remoteHealth.Reset(id);remoteFalls.Remove(id);var p=simulation.Find(id);if(p!=null)p.frame.health=1;}
         public void RecordRemoteDamage(string id,float damage,string sourceId=null)
         {
-            if(!Authority||simulation.Phase!=RoundPhase.Playing||float.IsNaN(damage)||float.IsInfinity(damage)||damage<=0)return;
-            var p=simulation.Find(id);if(p==null||!p.present||!p.frame.alive||p.frame.dying||transitionUntil.ContainsKey(id))return;
+            var participant=simulation?.Find(id);
+            int deaths=participant?.frame.deaths??0;
+            if(!ApplyRemoteDamage(id,damage,sourceId)||participant==null||participant.frame.deaths!=deaths)return;
+            var actor=FindActor(id);
+            if(actor!=null)RouteOtherDamage(id,actor.transform.position+Vector3.up*.6f);
+        }
+
+        bool ApplyRemoteDamage(string id,float damage,string sourceId)
+        {
+            if(!Authority||simulation.Phase!=RoundPhase.Playing||float.IsNaN(damage)||float.IsInfinity(damage)||damage<=0)return false;
+            var p=simulation.Find(id);if(p==null||!p.present||!p.frame.alive||p.frame.dying||transitionUntil.ContainsKey(id))return false;
+            float before=remoteHealth.Read(id);
             bool lethal=remoteHealth.Damage(id,damage,Rules.deathEnabled);
             p.frame.health=remoteHealth.Read(id);
+            bool damaged=p.frame.health<before;
             if(lethal)
             {
                 if(MysteryActive&&sourceId!=null)RecordMysteryReplay(sourceId,id,mystery.Role(sourceId)==MysteryRole.Murderer);
                 simulation.Kill(id,sourceId);
             }
+            return damaged;
         }
         void ObserveRemoteFall(string id,IModeActor actor)
         {

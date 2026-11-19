@@ -16,6 +16,7 @@ namespace DeadlyJenga.Core
 
     public enum AvatarSkin : byte { Default, Snowman, Penguin, Frankenstein, JackOLantern, Witch, Vampire, Fox, Koala, Panda, GoldenRetriever, Husky, CyclopsMonster, Leopard, Elephant, HoneyBear, Werewolf, HeadlessHorseman, Ghost, ScaryClown, FriendlyClown, Santa, Elf, MrsClaus, Reindeer, Gingerbread, CandyCane, CandyCorn, Horse, Bulldog, Inmate, Scarecrow, RobinHood, Gorilla, Monkey, Gargoyle, Mummy, Rabbit, Squirrel, Fish, Clownfish, Dragon, Cat, RagDoll, Sailor, TRex, Snake, Alligator, Zebra, Raccoon, Otter, Owl, Wolf, Lion, Parrot, Turtle, Axolotl, Walrus, Banana, Pineapple, Astronaut, CyberSamurai, DeepSeaDiver, CrystalKnight, NeonRobot, StormWizard, CandyKnight, SpacePirate, MushroomSprite, DiscoAlien }
     public enum AvatarHair : byte { None, Buzz, Bob, Curls, Afro, Ponytail, TwinTails, Spikes, SidePart, Bun, Braids, LongWaves, CrewCut, Dreadlocks, Pompadour, LibertySpikes }
+    public enum AvatarHairShade : byte { Original, Dark, Match, Light }
     public enum AvatarEyewear : byte { None, Round, Square, Aviator, CatEye, Visor, Monocle, Star, Heart, SkiGoggles, VRVisor, CyberEye, Shutter, SafetyGoggles, RoundSunglasses, HalfMoon }
     [Flags] public enum AvatarClothing : uint { None=0, MonkRobe=1, Diaper=2, FootballPads=4, HockeyHelmet=8, FootballHelmet=16, GrassSkirt=32, Tuxedo=64, Hoodie=128, BowTie=256, BomberJacket=512, SailorShirt=1024, Overalls=2048, PufferVest=4096, RoyalMantle=8192 }
     public interface IAvatarSurfacePalette { }
@@ -29,6 +30,7 @@ namespace DeadlyJenga.Core
         public AvatarEyewear eyewear;
         public AvatarClothing clothing;
         public bool poweredArmor;
+        public AvatarHairShade hairShade;
     }
 
     // Optional cosmetic posing while inspecting the existing avatar.

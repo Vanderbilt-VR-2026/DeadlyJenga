@@ -11,19 +11,26 @@ namespace DeadlyJenga.CandyArt.Marina
             for(int i=0;i<28;i++)
             {
                 float a=Mathf.Lerp(-106,117,i/27f)*Mathf.Deg2Rad;
-                Rock(new Vector3(Mathf.Sin(a)*24.0f,-.15f,4+Mathf.Cos(a)*21),new Vector3(1.4f+i%3*.38f,1.1f+i%2*.32f,1.6f),i+50,true);
+                var shore=new Vector3(Mathf.Sin(a)*24.0f,-.15f,4+Mathf.Cos(a)*21);
+                if(Mathf.Abs(shore.z-9.0f)<2.7f && Mathf.Abs(shore.x)>21)continue;
+                if(Mathf.Abs(shore.x-1.1f)<3.2f && shore.z>23)continue;
+                Rock(shore,new Vector3(1.4f+i%3*.38f,1.1f+i%2*.32f,1.6f),i+50,true);
             }
-            Palm(new Vector3(-20,1.3f,10),6.8f,.65f,0);Palm(new Vector3(-16,4.15f,19),5.2f,-.4f,1);
-            Palm(new Vector3(-20,4.15f,18.6f),6.1f,.45f,2);Palm(new Vector3(-10.5f,4.15f,21),4.7f,.5f,3);
-            Palm(new Vector3(6,4.15f,20),5.8f,-.5f,4);Palm(new Vector3(19.5f,1.3f,10),5.9f,-.5f,5);
+            Palm(new Vector3(-18.8f,1.285f,11.6f),6.8f,.65f,0);Palm(new Vector3(-16,4.14f,19.9f),5.2f,-.4f,1);
+            Palm(new Vector3(-20,4.14f,20.2f),6.1f,.45f,2);Palm(new Vector3(-10.8f,4.14f,20.2f),4.7f,.5f,3);
+            Palm(new Vector3(-3.7f,4.14f,19.9f),5.8f,-.5f,4);Palm(new Vector3(19.5f,1.285f,10),5.9f,-.5f,5);
             Palm(new Vector3(22,1.3f,3),5.3f,.6f,6);Palm(new Vector3(-22,1.3f,-1.5f),4.6f,-.4f,7);
-            Palm(new Vector3(-23,1.3f,16),5.7f,.45f,8);
-            Vector3[] pots={new(-16,1.3f,2),new(-18.5f,1.3f,12.8f),new(-4.7f,1.86f,5.2f),new(4.7f,1.86f,5.2f),new(6.4f,1.3f,2),new(9.5f,1.3f,2),new(18.8f,1.3f,1.8f),new(-6.9f,4.15f,15),new(-18.3f,4.15f,14),new(2.5f,4.15f,20),new(-6,4.15f,20.5f)};
+            Palm(new Vector3(20.6f,1.25f,13.5f),5.7f,.45f,8);
+            Vector3[] pots={new(-16.5f,1.285f,2.72f),new(-16.9f,1.285f,12.1f),new(6.85f,CinemaFloor,7.55f),new(8.94f,1.285f,3.7f),new(18.8f,1.285f,2.5f),new(-4.9f,4.14f,16),new(-17.5f,4.14f,14.1f),new(2.8f,4.14f,15.8f),new(-6,4.14f,20.2f)};
             for(int i=0;i<pots.Length;i++)Pot(pots[i],.45f+(i%3)*.07f,.72f+(i%2)*.12f,i+20);
             for(int i=0;i<18;i++)
             {
                 float a=Mathf.Lerp(-125,110,i/17f)*Mathf.Deg2Rad;
                 var p=new Vector3(Mathf.Sin(a)*21.2f,1.25f,4+Mathf.Cos(a)*18.7f);
+                // Leave clear approaches to the terrace ramp and all three beach ramps.
+                if(p.x < -19.3f && p.z < 19.0f) continue;
+                if(Mathf.Abs(p.x-1.1f)<2.1f && p.z>20) continue;
+                if(Mathf.Abs(p.z-9.0f)<2.0f && Mathf.Abs(p.x)>19) continue;
                 Shrub(p,.6f+(i%3)*.15f,i);
             }
             for(int i=0;i<5;i++)
@@ -31,7 +38,8 @@ namespace DeadlyJenga.CandyArt.Marina
                 var p=new Vector3(8.1f+i*1.7f,-.03f,-7.7f-i*.9f);
                 Buoy(p,i%2==0?F.Coral:F.Teal);
             }
-            LifeRing(new Vector3(-16.2f,1.7f,-20.5f),Quaternion.Euler(0,25,0));
+            mesh.Beam(new Vector3(-16.5f,1.24f,-20.1f),new Vector3(-16.5f,2.48f,-20.1f),.10f,F.DarkWood);
+            LifeRing(new Vector3(-16.5f,1.98f,-20.28f),Quaternion.Euler(0,25,0));
         }
         void Palm(Vector3 p,float height,float lean,int seed)
         {
@@ -63,7 +71,7 @@ namespace DeadlyJenga.CandyArt.Marina
         void Pot(Vector3 p,float radius,float height,int seed)
         {
             mesh.Disk(p,radius*.82f,height*.12f,F.Ivory,false,24);
-            mesh.Ellipsoid(p+Vector3.up*height*.49f,new Vector3(radius,height*.51f,radius),F.Ivory,rings:10,sides:20);
+            mesh.Ellipsoid(p+Vector3.up*height*.49f,new Vector3(radius,height*.51f,radius),seed%2==0 ? F.CandyMint : F.Ivory,rings:7,sides:14,solid:true);
             mesh.Disk(p+Vector3.up*(height-.04f),radius*.89f,.06f,F.DarkWood,false,24);
             var rim=new List<Vector3>();for(int i=0;i<=32;i++){float a=i*Mathf.PI/16;rim.Add(p+new Vector3(Mathf.Cos(a)*radius*.89f,height,Mathf.Sin(a)*radius*.89f));}mesh.Tube(rim,.045f,F.Ivory,8);
             Shrub(p+Vector3.up*height,radius*1.5f,seed);
@@ -114,15 +122,16 @@ namespace DeadlyJenga.CandyArt.Marina
             for(int i=0;i<7;i++)
             {
                 float a=Mathf.Lerp(-76,86,i/6f)*Mathf.Deg2Rad;float distance=145+(i%3)*37;var p=new Vector3(Mathf.Sin(a)*distance,-1.4f,Mathf.Cos(a)*distance+22);
+                mesh.Ellipsoid(p,new Vector3(11,5.3f,8),F.Rock,rings:8,sides:16);
                 for(int cluster=0;cluster<5;cluster++)
                 {
                     float r=cluster*1.7f;var center=p+new Vector3(Mathf.Cos(r)*6,cluster%2*1.3f,Mathf.Sin(r)*4);
                     Rock(center,new Vector3(4.5f+cluster%2,4+cluster%3*1.4f,3.8f),i*11+cluster);
                 }
-                if(i%2==0)Palm(p+Vector3.up*(6+(i%3)*2),4.5f,.4f,i+30);
+                if(i%2==0)Palm(p+Vector3.up*4.9f,4.5f,.4f,i+30);
                 if(i==5)
                 {
-                    mesh.Disk(p+Vector3.up*8,.85f,6,F.Ivory,false,16);mesh.Disk(p+Vector3.up*13.7f,1.08f,.22f,F.Wood,false,16);mesh.Disk(p+Vector3.up*13.9f,.75f,.9f,F.Teal,false,16);mesh.Disk(p+Vector3.up*14.8f,1.05f,.18f,F.Coral,false,16);
+                    mesh.Disk(p+Vector3.up*4.9f,.85f,6,F.Ivory,false,16);mesh.Disk(p+Vector3.up*10.6f,1.08f,.22f,F.Wood,false,16);mesh.Disk(p+Vector3.up*10.8f,.75f,.9f,F.Teal,false,16);mesh.Disk(p+Vector3.up*11.7f,1.05f,.18f,F.Coral,false,16);
                 }
             }
         }

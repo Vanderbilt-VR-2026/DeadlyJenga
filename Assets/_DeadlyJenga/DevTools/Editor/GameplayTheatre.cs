@@ -26,6 +26,8 @@ namespace DeadlyJenga.DevTools.Editor
         public int fps = 24, width = 1280, height = 720, seed = 148;
         public float warmup = .75f;
         public Vector3 stageOffset;
+        public bool useMapAnchor;
+        public Vector3 mapAnchor;
         public string ffmpeg = "ffmpeg", replaySource = "";
         public bool observedMatch;
         public bool fightSet, rooftopBattleSet;
@@ -92,7 +94,7 @@ namespace DeadlyJenga.DevTools.Editor
             if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(map) || string.IsNullOrWhiteSpace(ffmpeg))
                 throw new InvalidDataException("Title, map ID and FFmpeg executable are required.");
             if (fps < 12 || fps > 60 || width < 320 || width > 3840 || height < 180 || height > 2160 ||
-                width % 2 != 0 || height % 2 != 0 || !Finite(warmup) || !Finite(stageOffset) || warmup < 0 || warmup > 10)
+                width % 2 != 0 || height % 2 != 0 || !Finite(warmup) || !Finite(stageOffset) || !Finite(mapAnchor) || warmup < 0 || warmup > 10)
                 throw new InvalidDataException("Use even dimensions, 12–60 fps and a warmup of 0–10 seconds.");
             int maxCast = observedMatch && (Application.isPlaying || !string.IsNullOrWhiteSpace(replaySource)) ? 64 : 12;
             if (cast == null || cast.Length < 1 || cast.Length > maxCast || cast.Any(a => a == null || string.IsNullOrWhiteSpace(a.id) || !Finite(a.start)) ||
@@ -620,12 +622,12 @@ namespace DeadlyJenga.DevTools.Editor
         internal static string[] CurrentCastIds() => CurrentCast().Keys.OrderBy(id => id, StringComparer.Ordinal).ToArray();
 
         internal static void PreviewCurrentShot(Camera camera, RenderTexture image, TheatrePlan.TheatreShot shot,
-            float time, Vector3 stageOffset)
+            float time, Vector3 stageOffset, Vector3? mapAnchor = null)
         {
             var world = Services.World;
             if (world == null) return;
             var actors = CurrentCast();
-            PlaceCamera(camera, shot, actors, Stage(world) + stageOffset,
+            PlaceCamera(camera, shot, actors, (mapAnchor.HasValue ? world.Center + mapAnchor.Value : Stage(world)) + stageOffset,
                 Mathf.Clamp01((time - shot.start) / Mathf.Max(.01f, shot.duration)));
             camera.targetTexture = image;
             try { camera.Render(); }
@@ -808,7 +810,7 @@ namespace DeadlyJenga.DevTools.Editor
             var world = Services.World;
             if (world == null || world.Blocks.Count == 0)
                 throw new InvalidOperationException("The requested map did not provide the active block world.");
-            Vector3 stage = Stage(world) + plan.stageOffset;
+            Vector3 stage = (plan.useMapAnchor ? world.Center + plan.mapAnchor : Stage(world)) + plan.stageOffset;
             Rigidbody fightDeck = plan.fightSet && !existingMatch ? BuildFightDeck(world, stage) : null;
             bool replay = !string.IsNullOrEmpty(plan.replaySource);
             var towerSet = plan.rooftopBattleSet && !existingMatch ? BuildBattleSet(world, stage) : null;
@@ -856,7 +858,8 @@ namespace DeadlyJenga.DevTools.Editor
             var target = RenderTexture.GetTemporary(renderWidth, renderHeight, 24, RenderTextureFormat.ARGB32);
             var image = new Texture2D(renderWidth, renderHeight, TextureFormat.RGB24, false);
             if (existingMatch && job.batch)
-                PreviewCurrentShot(camera, target, plan.shots[0], plan.shots[0].start, plan.stageOffset);
+                PreviewCurrentShot(camera, target, plan.shots[0], plan.shots[0].start, plan.stageOffset,
+                    plan.useMapAnchor ? plan.mapAnchor : null);
             var cues = (plan.cues ?? Array.Empty<TheatrePlan.TheatreCue>()).OrderBy(c => c.at).ToArray();
             int cueIndex = 0;
             var listenerFocus = session.GetComponent<DeadlyJenga.CandyAudio.CandyListenerFocus>();

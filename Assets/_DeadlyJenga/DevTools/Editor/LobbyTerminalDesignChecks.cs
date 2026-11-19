@@ -98,6 +98,20 @@ namespace DeadlyJenga.DevTools.Editor
         static Button Button(IslandLobbyView view,string id)=>view.GetComponentsInChildren<Button>(true).Single(b=>b.name==id);
         static bool Shown(IslandLobbyView view,string id)=>Button(view,id).gameObject.activeInHierarchy;
         static string Page(IslandLobbyView view)=>(string)Field(view,"setupPage");
+        static bool InsideTerminal(RectTransform button)
+        {
+            Transform content = button;
+            while (content.parent && content.name != "Candy Arcade content") content = content.parent;
+            if (content is not RectTransform terminal) return false;
+            var bounds = terminal.rect;
+            bounds.xMin -= 1;
+            bounds.xMax += 1;
+            bounds.yMin -= 1;
+            bounds.yMax += 1;
+            var corners = new Vector3[4];
+            button.GetWorldCorners(corners);
+            return corners.All(point => bounds.Contains(terminal.InverseTransformPoint(point)));
+        }
         static void Layout(IslandLobbyView view,string page)
         {
             var choices=((IEnumerable)Field(view,"choices")).Cast<object>().Where(c=>(bool)Field(c,"candy")).ToArray();
@@ -107,10 +121,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var rect=(RectTransform)b.transform;var hit=(BoxCollider)Field(c,"collider");var text=(Text)Field(c,"label");
                 Check(Mathf.Abs(hit.size.x-rect.rect.width)<.1f&&Mathf.Abs(hit.size.y-rect.rect.height)<.1f,"Visual/hit target agree: "+page+" / "+b.name);
                 Check(text.font&&text.resizeTextMinSize>=20,"Readable font minimum: "+page+" / "+b.name);
-                var content=b.transform;
-                while(content.parent&&content.name!="Candy Arcade content")content=content.parent;
-                var corners=new Vector3[4];rect.GetWorldCorners(corners);
-                Check(corners.All(p=>{var local=content.InverseTransformPoint(p);return Mathf.Abs(local.x)<=551&&Mathf.Abs(local.y)<=441;}),"Button contained by screen: "+page+" / "+b.name);
+                Check(InsideTerminal(rect),"Button contained by screen: "+page+" / "+b.name);
             }
             var shown=choices.Select(c=>(Button)Field(c,"button")).Where(b=>b.gameObject.activeInHierarchy).ToArray();
             for(int i=0;i<shown.Length;i++)for(int j=i+1;j<shown.Length;j++)
@@ -162,21 +173,37 @@ namespace DeadlyJenga.DevTools.Editor
                 SessionState.SetBool(Key+"CabinetsOnly",false);Check(errors==0,"Controller cabinet captures have no runtime errors");yield break;
             }
             Check(view.transform.Find("JOIN/Candy Arcade content")&&view.transform.Find("HOST/Candy Arcade content")&&view.transform.Find("MAP + MODE/Candy Arcade content"),"All three terminals use approved design");
-            var wardrobe=view.transform.Find("WARDROBE");Check(wardrobe&&!wardrobe.Find("Candy Arcade content"),"Existing wardrobe kept separate");
+            var marina=view.GetComponent<DeadlyJenga.CandyArt.Marina.MayhemMarina>();
+            Check(marina&&marina.Anchor("Wardrobe")&&marina.Anchor("Hall of fame")&&
+                view.transform.Find("Marina wardrobe entry"),"Showtime Plaza exposes both the wardrobe and Hall of Fame");
             Layout(view,"main");
             Capture(view,"JOIN","Actual-Join.png");Capture(view,"HOST","Actual-Host-Offline.png");Capture(view,"MAP + MODE","Actual-Setup.png");
-            lobby.EnteredCode="";Check(view.InvokeChoice("key-A")&&view.InvokeChoice("key-1")&&view.InvokeChoice("key--")&&view.InvokeChoice("key-B")&&lobby.EnteredCode=="A1-B","Actual numeric/letter/hyphen keyboard routes through lobby");
+            Call(view,"OpenMarinaDetail","join-code");
+            Check(view.GiantKeyboard.gameObject.activeInHierarchy,"Room-code detail opens the floating keyboard");
+            lobby.EnteredCode="";
+            foreach (char key in "A1-B")
+            {
+                yield return null;
+                Check(view.InvokeChoice("key-"+key),"Production floating keyboard accepts "+key);
+            }
+            Check(lobby.EnteredCode=="A1-B","Actual numeric/letter/hyphen keyboard routes through lobby");
+            yield return null;
             Check(view.InvokeChoice("backspace")&&lobby.EnteredCode=="A1-","Actual backspace works");
+            yield return null;
             Check(view.InvokeChoice("clear-code")&&lobby.EnteredCode=="","Actual clear works");
-            Check(!view.InvokeChoice("keyboard-enter")&&!view.InvokeChoice("join"),"Invalid code cannot trigger join");
-            foreach(string code in new[]{"US-ABC234","EU-ABC234XYZ"})
+            yield return null;
+            Check(!view.InvokeChoice("keyboard-enter")&&!view.InvokeChoice("marina-submit-code"),"Invalid code cannot trigger join");
+            foreach(string code in new[]{"US-ABC234","EU-XYZ785"})
             {
                 lobby.EnteredCode=code;Sync(view);
-                var slots=(List<RectTransform>)Field(view,"candyCodeSlots");var letters=(List<Text>)Field(view,"candyCodeLetters");
-                Check(slots.Count(s=>s.gameObject.activeSelf)==code.Length&&string.Concat(letters.Take(code.Length).Select(t=>t.text))==code,"Region-prefixed code renders without truncation: "+code);
+                Call(view,"UpdateMarinaRoomScreens");
+                var letters=(Text[])Field(view,"marinaCodeSlots");
+                Check(((Text)Field(view,"marinaJoinRegion")).text==code.Substring(0,2)&&
+                    string.Concat(letters.Select(t=>t.text))==code.Substring(3),"Region-prefixed code renders without truncation: "+code);
             }
             Capture(view,"JOIN","Actual-Join-Code.png");lobby.EnteredCode="";lobby.UnfocusCode();Sync(view);
-            Check(view.InvokeChoice("mode-current")&&Page(view)=="modes","Mode picker opens");Sync(view);Layout(view,"modes");
+            Call(view,"OpenMarinaDetail","modes");
+            Check(Page(view)=="modes","Main terminal opens its mode picker");Sync(view);Layout(view,"modes");
             bool viewWasEnabled=view.enabled;view.enabled=false;
             float focusUntil=Time.realtimeSinceStartup+.3f;
             while(Time.realtimeSinceStartup<focusUntil){yield return null;Sync(view);}
@@ -197,8 +224,7 @@ namespace DeadlyJenga.DevTools.Editor
             {yield return null;view.Point(new Ray(hoverCard.position-hoverCard.forward,hoverCard.forward),false);}
             Check(hoverCard.localScale.x>1.3f,"Pointer hover enlarges the full mode card");
             Check(((ILobbyDetails)lobby).SelectedModeId==selectedMode,"Hover enlargement does not select a mode");
-            var focusCorners=new Vector3[4];((RectTransform)hoverCard).GetWorldCorners(focusCorners);
-            Check(focusCorners.All(p=>{var local=hoverCard.parent.InverseTransformPoint(p);return Mathf.Abs(local.x)<=550&&Mathf.Abs(local.y)<=440;}),"Enlarged mode stays within its terminal");
+            Check(InsideTerminal((RectTransform)hoverCard),"Enlarged mode stays within its terminal");
             Capture(view,"MAP + MODE","Actual-Modes-Hover.png");
             view.enabled=viewWasEnabled;
             if(SessionState.GetBool(Key+"ModesOnly",false))
@@ -210,20 +236,22 @@ namespace DeadlyJenga.DevTools.Editor
             var largePreview=(RawImage)Field(view,"browserMapPreview");
             Check(largePreview.gameObject.activeInHierarchy&&largePreview.enabled&&largePreview.texture,"Large map preview appears above names");
             var first=(RectTransform)Button(view,"picker-0").transform;
-            var secondColumn=(RectTransform)Button(view,"picker-5").transform;
-            Check(first.anchoredPosition.x<0&&secondColumn.anchoredPosition.x>0&&Mathf.Approximately(first.anchoredPosition.y,secondColumn.anchoredPosition.y),"Map names occupy two aligned columns");
-            int categorySlot=Enumerable.Range(0,10).First(i=>((string)Call(view,"PickerTitle",i)).Contains("Game-mode"));
-            Check(view.InvokeChoice("picker-"+categorySlot),"Map category expands");Sync(view);Layout(view,"expanded maps");
+            Check(first.anchoredPosition.x<0,"Map picker choices sit in left sidebar");
+            Check(largePreview.rectTransform.anchoredPosition.x>0,"Blown up map preview occupies huge right screen");
+            Check(view.InvokeChoice("map-tab-0"),"Play Approved tab opens");Sync(view);Layout(view,"approved maps");
             string selectedMap=((ILobbyDetails)lobby).SelectedMapId;
-            int previewSlot=Enumerable.Range(0,10).First(i=>Call(view,"PickerOption",i) is LobbyOption map&&map.id!=selectedMap);
+            int previewSlot=Enumerable.Range(0,4).FirstOrDefault(i=>Call(view,"PickerOption",i) is LobbyOption map&&map.id!=selectedMap);
             var previewOption=(LobbyOption)Call(view,"PickerOption",previewSlot);
-            var previewButton=Button(view,"picker-"+previewSlot).transform;
-            view.Point(new Ray(previewButton.position-previewButton.forward,previewButton.forward),false);
-            Check((string)Field(view,"browserMapId")==previewOption.id,"World-space cursor changes the large preview without clicking");
+            if(previewOption!=null)
+            {
+                var previewButton=Button(view,"picker-"+previewSlot).transform;
+                view.Point(new Ray(previewButton.position-previewButton.forward,previewButton.forward),false);
+                Check((string)Field(view,"browserMapId")==previewOption.id,"World-space cursor changes the large preview without clicking");
+            }
             Check(Page(view)=="maps"&&((ILobbyDetails)lobby).SelectedMapId==selectedMap,"Hover leaves the browser open and preserves selected map");
             Check(largePreview.uvRect==new Rect(0,0,1,1),"Preview shows the full screenshot without cropping");
             Capture(view,"MAP + MODE","Actual-Maps.png");
-            Check(view.InvokeChoice("setup-back")&&Page(view)=="main","Back returns to setup");
+            Check(view.InvokeChoice("map-cancel")&&Page(view)=="main","Cancel returns to setup");
             Check(view.InvokeChoice("mode-settings")&&Page(view)=="settings","All existing settings remain accessible");Sync(view);Layout(view,"settings");Capture(view,"MAP + MODE","Actual-Settings.png");
             var details=(ILobbyDetails)lobby;var saved=JsonUtility.FromJson<LobbySetup>(JsonUtility.ToJson(details.Setup));
             int before=details.Setup.population;Check(view.InvokeChoice("setting-plus-0"),"Settings adjustment action works");

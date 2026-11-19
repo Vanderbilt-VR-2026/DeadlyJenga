@@ -7,7 +7,8 @@ namespace DeadlyJenga.CastleBots
     // What bots need from the running game. Game Session fills this in.
     public sealed class BotWorld
     {
-        public IWorldQuery world => Services.World;   // whichever map is active
+        public IWorldQuery world => lobbyWorld??Services.World;
+        internal IWorldQuery lobbyWorld;
         public CastleSurvivor Player;
         public CastleHandActor Hand;
         public CastleSurvivor survivorPrefab;

@@ -21,9 +21,27 @@ namespace DeadlyJenga.World.Hazards
                 int n=Physics.SphereCastNonAlloc(p.position,p.size*.5f,p.velocity.normalized,rayHits,distance,(1<<Layers.Block)|(1<<Layers.Surface)|(1<<Layers.Survivor),QueryTriggerInteraction.Collide);
                 float nearest=float.PositiveInfinity;Vector3 point=p.position;
                 for(int j=0;j<n;j++)if(rayHits[j].distance<nearest){nearest=rayHits[j].distance;point=rayHits[j].point;}
-                if(n>0){MeteorImpact(point,p);meteors.RemoveAt(i);continue;}
+                bool planet=Kind=="PlanetKillerMeteor";
+                if(n>0)
+                {
+                    MeteorImpact(point,p);
+                    MeteorContactState.Publish(world,p,point,planet,false);
+                    meteors.RemoveAt(i);
+                    continue;
+                }
+                var previous=p.position;
                 p.position+=p.velocity*dt;p.life-=dt;
-                if(p.life<=0||p.position.y<world.WaterHeight(p.position)-p.size){meteors.RemoveAt(i);continue;}
+                float water=world.WaterHeight(p.position);
+                if(p.position.y<water-p.size)
+                {
+                    float depth=Mathf.Max(.001f,previous.y-p.position.y);
+                    var contact=Vector3.Lerp(previous,p.position,Mathf.Clamp01((previous.y-(water-p.size))/depth));
+                    contact.y=water;
+                    MeteorContactState.Publish(world,p,contact,planet,true);
+                    meteors.RemoveAt(i);
+                    continue;
+                }
+                if(p.life<=0){meteors.RemoveAt(i);continue;}
                 meteors[i]=p;
             }
             if(Kind=="PlanetKillerMeteor"&&launched&&meteors.Count==0)End();

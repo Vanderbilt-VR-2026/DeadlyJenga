@@ -1,0 +1,536 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using DeadlyJenga.Core;
+using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.Presentation;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.Rendering;
+using Object=UnityEngine.Object;
+
+namespace DeadlyJenga.DevTools.Editor
+{
+    [InitializeOnLoad]
+    public static class BodyFeedbackChecks
+    {
+        const string Key="BodyFeedbackChecks";
+        static string Output=>Path.GetFullPath("Logs/Validation/BodyFeedback");
+        static string Report=>Path.Combine(Output,"report.txt");
+        static readonly BindingFlags Flags=BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic;
+        static double began;
+        static int errors;
+        [Serializable] sealed class Saved { public SceneSetup[] scenes; }
+        static BodyFeedbackChecks() { EditorApplication.update+=Tick; EditorApplication.playModeStateChanged+=State; }
+        static void Tick()
+        {
+            if(SessionState.GetBool(Key,false))
+            {
+                if(!EditorApplication.isPlaying||began<=0)return;
+                if(EditorApplication.timeSinceStartup-began<8)return;
+                began=0;
+                int exitCode = 2;
+                try
+                {
+                    RunChecks();
+                    File.AppendAllText(Report,"COMPLETE assertions passed; runtime/editor errors observed: "+errors+"\n");
+                    if (errors == 0) exitCode = 0;
+                }
+                catch(Exception e){File.AppendAllText(Report,"FAIL "+e+"\n");}
+                finally
+                {
+                    SessionState.SetInt(Key+"ExitCode",exitCode);
+                    Time.timeScale=1;
+                    EditorApplication.ExitPlaymode();
+                }
+                return;
+            }
+            if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
+            var path=ProjectPath.Report("BodyFeedback.request");
+            if(!File.Exists(path)||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
+            if(File.ReadAllText(path).Trim()!=System.Diagnostics.Process.GetCurrentProcess().Id.ToString())return;
+            File.Delete(path);Run();
+        }
+        public static void Run()
+        {
+            var scenes=EditorSceneManager.GetSceneManagerSetup();
+            if(scenes.Any(s=>s.isLoaded&&(string.IsNullOrEmpty(s.path)||EditorSceneManager.GetSceneByPath(s.path).isDirty)))throw new InvalidOperationException("Unsaved scenes left untouched");
+            if(!ValidationRunGate.TryAcquire(Key))throw new InvalidOperationException("An existing check owns this editor");
+            Directory.CreateDirectory(Output);
+            File.WriteAllText(Report,"Production Game.unity and HUD; controlled health/stamina/death states. Mono camera, no Quest hardware evidence.\n");
+            SessionState.SetString(Key+"Saved",JsonUtility.ToJson(new Saved{scenes=scenes}));SessionState.SetBool(Key,true);
+            EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
+        }
+        public static void RunSandEngulf() => RunFocused("SandOnly");
+        public static void RunSprintCapture() => RunFocused("SprintOnly");
+        public static void RunTorso() => RunFocused("TorsoOnly");
+        public static void RunTeamSkinTorso() => RunFocused("TeamSkinTorso");
+
+        static void RunFocused(string scope)
+        {
+            if (!Application.isBatchMode) throw new InvalidOperationException("Use an isolated batch validation checkout");
+            MatchSetup.MapId = "castle";
+            MatchSetup.ModeId = "demo";
+            MatchSetup.BotTarget = 0;
+            MatchSetup.HandCount = 0;
+            MatchSetup.FromLobby = false;
+            MatchSetup.StartLocalSession = false;
+            SessionState.SetBool(Key+scope,true);
+            Run();
+        }
+        static void State(PlayModeStateChange state)
+        {
+            if(!SessionState.GetBool(Key,false))return;
+            if(state==PlayModeStateChange.EnteredPlayMode){began=EditorApplication.timeSinceStartup;errors=0;Application.logMessageReceived+=OnLog;}
+            if(state!=PlayModeStateChange.EnteredEditMode)return;
+            Application.logMessageReceived-=OnLog;
+            SessionState.SetBool(Key,false);
+            ValidationRunGate.Release(Key);
+            bool focused = SessionState.GetBool(Key+"SandOnly",false) || SessionState.GetBool(Key+"SprintOnly",false) ||
+                SessionState.GetBool(Key+"TorsoOnly",false) || SessionState.GetBool(Key+"TeamSkinTorso",false);
+            SessionState.SetBool(Key+"SandOnly",false);
+            SessionState.SetBool(Key+"SprintOnly",false);
+            SessionState.SetBool(Key+"TorsoOnly",false);
+            SessionState.SetBool(Key+"TeamSkinTorso",false);
+            if (focused && Application.isBatchMode)
+            {
+                File.AppendAllText(Report,"CLEANUP exited Play Mode in the isolated batch editor\n");
+                EditorApplication.Exit(SessionState.GetInt(Key+"ExitCode",2));
+                return;
+            }
+            var saved=JsonUtility.FromJson<Saved>(SessionState.GetString(Key+"Saved",""));
+            EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
+            File.AppendAllText(Report,"CLEANUP restored Edit Mode scenes\n");
+        }
+        static void OnLog(string message,string stack,LogType type)
+        {
+            if(type!=LogType.Error&&type!=LogType.Exception&&type!=LogType.Assert)return;
+            errors++;File.AppendAllText(Report,"OBSERVED "+message+"\n"+stack+"\n");
+        }
+        static void Check(bool value,string message)
+        {
+            File.AppendAllText(Report,(value?"PASS ":"FAIL ")+message+"\n");
+            if(!value)throw new InvalidOperationException(message);
+        }
+        static T Field<T>(object obj,string name)=>(T)obj.GetType().GetField(name,Flags).GetValue(obj);
+        static void Property(object obj,string name,object value)=>obj.GetType().GetProperty(name,Flags).SetValue(obj,value);
+        static object Call(object obj,string name,params object[] args)=>obj.GetType().GetMethod(name,Flags).Invoke(obj,args);
+        static void CheckTeamSkinTorso(CastleSurvivor motor)
+        {
+            var avatar = motor.GetComponent<CandyPlayerAvatar>();
+            Check(avatar && avatar.Rig, "The actual team match creates a skinned avatar");
+            var session = Object.FindFirstObjectByType<CastlePlaySession>();
+            Check(session && session.Modes && session.Modes.Authority, "The live Development match owns its mode rules");
+            session.Modes.Configure(MatchSetup.DefaultModeRules(GameModeKind.TeamTickets, MatchSetup.SelectedMap));
+            Check(MatchRuntime.Current?.RulesFor(motor.gameObject)?.mode == GameModeKind.TeamTickets,
+                "The wardrobe check is running in Team PvP");
+            var rig = avatar.Rig;
+            var actor = (IModeActor)motor;
+            var original = avatar.Appearance;
+            var originalTeam = actor.Team;
+            var originalColor = actor.Color;
+            var body = new Mesh();
+            var head = new Mesh();
+            var skinQuality = rig.bodyRenderer.quality;
+            try
+            {
+                rig.bodyRenderer.quality = SkinQuality.Bone2;
+                var colors = DeadlyJenga.Modes.ModeNames.Colors.Take(2).ToArray();
+                var skins = new[] { AvatarSkin.Rabbit, AvatarSkin.Dragon, AvatarSkin.Clownfish, AvatarSkin.CandyCorn };
+                for (int team = 0; team < colors.Length; team++)
+                {
+                    actor.SetIdentity(actor.ActorId, actor.DisplayName, team, colors[team]);
+                    foreach (var skin in skins)
+                    {
+                        avatar.ApplyAppearance(new AvatarAppearance { skin = skin });
+                        avatar.RefreshNow();
+                        var renderer = rig.bodyRenderer;
+                        string finish = ColorUtility.ToHtmlStringRGB(colors[team]);
+                        var approved = Resources.Load<WardrobeSkinAsset>("WardrobeSkins/" + skin + "-" + finish);
+                        Check(approved && renderer.sharedMesh == approved.bodyMesh &&
+                            renderer.sharedMaterial == approved.bodyMaterials[0],
+                            $"{skin} loads the approved team mesh and material for {finish}");
+                        renderer.BakeMesh(body);
+                        rig.headRenderer.BakeMesh(head);
+                        var points = body.vertices;
+                        var weights = renderer.sharedMesh.boneWeights;
+                        var bones = renderer.bones;
+                        float neckTop = float.NegativeInfinity;
+                        for (int i = 0; i < points.Length; i++)
+                            if (bones[weights[i].boneIndex0] == rig.ChestBone)
+                                neckTop = Mathf.Max(neckTop, renderer.transform.TransformPoint(points[i]).y);
+                        float headBottom = head.vertices.Min(v => rig.headRenderer.transform.TransformPoint(v).y);
+                        bool visibleHead = rig.headRenderer.enabled;
+                        if (!approved.headVisible)
+                        {
+                            var headAnchor = WardrobeSkinAsset.FindBone(rig, 1);
+                            visibleHead = approved.parts.Where(part => part.anchor == 1).Any(part =>
+                                headAnchor.GetComponentsInChildren<Renderer>().Any(piece =>
+                                    piece.enabled && piece.gameObject.name == part.label && piece.bounds.size.sqrMagnitude > 0));
+                        }
+                        Check(renderer.enabled && visibleHead && neckTop >= headBottom,
+                            $"{skin} team {team + 1}: baked head and chest meet in two-bone skinning ({headBottom:F3} to {neckTop:F3})");
+                    }
+                }
+            }
+            finally
+            {
+                rig.bodyRenderer.quality = skinQuality;
+                actor.SetIdentity(actor.ActorId, actor.DisplayName, originalTeam, originalColor);
+                avatar.ApplyAppearance(original);
+                Object.Destroy(body);
+                Object.Destroy(head);
+            }
+        }
+        static void RunChecks()
+        {
+            var session=Object.FindFirstObjectByType<CastlePlaySession>();
+            Check(session&&session.Player!=null,"Actual Game scene creates its local player");
+            var motor=session.Player.gameObject.GetComponent<CastleSurvivor>();
+            if (SessionState.GetBool(Key+"TeamSkinTorso",false))
+            {
+                CheckTeamSkinTorso(motor);
+                return;
+            }
+            if (SessionState.GetBool(Key+"TorsoOnly",false))
+            {
+                var rig = motor.GetComponentInChildren<CandyPlayerRig>(true);
+                Check(rig && rig.bodyRenderer && rig.ChestBone, "The live survivor has a skinned chest");
+                int chest = Array.IndexOf(rig.bodyRenderer.bones, rig.ChestBone);
+                Check(chest >= 0, "The chest bone is bound to the body renderer");
+                var weights = rig.bodyRenderer.sharedMesh.boneWeights;
+                Check(weights.Any(w => w.boneIndex0 == chest && w.weight0 > .99f),
+                    "Fully chest-weighted vertices keep the chest as their first influence");
+                Check(weights.All(w => w.weight0 + w.weight1 > 0),
+                    "Every body vertex retains a nonzero influence under two-bone skinning");
+                var avatar = motor.GetComponent<CandyPlayerAvatar>();
+                Check(avatar, "The live survivor exposes its wardrobe");
+                var original = avatar.Appearance;
+                try
+                {
+                    avatar.ApplyAppearance(new AvatarAppearance { clothing = AvatarClothing.FootballPads });
+                    avatar.RefreshNow();
+                    var pads = rig.GetComponentsInChildren<SkinnedMeshRenderer>()
+                        .FirstOrDefault(renderer => renderer.name == "Visual - football chest pads");
+                    Check(pads && pads.sharedMesh && pads.sharedMesh.boneWeights.Any(w => w.boneIndex0 == chest && w.weight0 > .99f),
+                        "Equipped football pads include the upper chest after torso weight ordering");
+                }
+                finally { avatar.ApplyAppearance(original); }
+                return;
+            }
+            var hud=motor.GetComponent<CandyStaminaHud>();
+            var match=MatchRuntime.Current;
+            Check(hud&&match?.Frame!=null,"Production session attaches shared body HUD and match runtime");
+            session.SetMenu(false);session.enabled=false;((Behaviour)match).enabled=false;
+            foreach(var transit in Object.FindObjectsByType<CandySessionTravel>(FindObjectsSortMode.None)) Object.DestroyImmediate(transit.gameObject);
+            bool sprintOnly = SessionState.GetBool(Key+"SprintOnly",false);
+            Time.timeScale=0;
+            if (sprintOnly)
+            {
+                motor.externallyDriven=true;
+                motor.RefreshMode();
+            }
+            motor.externallyDriven=false;
+            motor.InputSuspended=false;
+            if (!sprintOnly) motor.SendMessage("OnApplicationFocus",true);
+            var camera=motor.viewCamera;camera.enabled=true;
+            var playerEye = new Pose(camera.transform.position, camera.transform.rotation);
+            var world=Services.World;
+            if(world!=null)
+            {
+                var center=world.Center;float radius=Mathf.Max(8,world.Radius);
+                camera.transform.position=center+new Vector3(radius*.9f,world.TopHeight-center.y+5,-radius*1.2f);
+                camera.transform.LookAt(center+Vector3.up*(world.TopHeight-center.y)*.5f);
+            }
+            var own=match.Frame.players.First(p=>p.id==match.LocalActorId);
+            match.Frame.phase=RoundPhase.Playing;match.Rules.healthEnabled=true;
+            own.alive=true;own.dying=false;own.role="survivor";own.spectating=null;own.health=1;own.sinking=false;
+            if (SessionState.GetBool(Key+"SandOnly",false))
+            {
+                CheckSandEngulf(session,motor,match,camera);
+                return;
+            }
+            if (sprintOnly)
+            {
+                Check(!motor.IsVR && camera == session.ActiveCamera && MatchSetup.MapId == "castle",
+                    "Classic Castle Demo with the production desktop survivor camera");
+                CheckDesktopSprint(hud, motor, camera);
+                camera.transform.SetPositionAndRotation(playerEye.position, playerEye.rotation);
+                Object.Destroy(Capture(camera,null,"player-eye-resting.png"));
+                SetSprint(hud,motor,true,true,1f);
+                Object.Destroy(Capture(camera,null,"player-eye-sprinting.png"));
+                SetSprint(hud,motor,false,false,1f);
+                return;
+            }
+            Property(motor,"GripRemaining",1f);Property(motor,"SprintRequested",false);Property(motor,"Sprinting",false);
+            hud.Present(motor,2);
+            Check(Field<Canvas>(hud,"canvas")==null||!Field<Canvas>(hud,"canvas").enabled,"Rested, unhurt player has no overlay draw");
+            var baseline=Capture(camera,null,"01-clear.png");
+            Property(motor,"GripRemaining",0f);hud.Present(motor,2);
+            var canvas=Field<Canvas>(hud,"canvas");var material=Field<Material>(hud,"material");
+            Check(canvas&&material&&material.shader.isSupported,"Body feedback shader loads and compiles");
+            Check(canvas.GetComponentsInChildren<Image>().Length==1&&canvas.GetComponentsInChildren<Text>().Length==0,"One non-interactive Image, no health/stamina bars or text");
+            Check(!canvas.GetComponentInChildren<Image>().raycastTarget,"Overlay cannot consume terminal/menu pointer input");
+            var mask=material.GetTexture("_Masks") as Texture2D;
+            Check(mask&&mask.width==512&&mask.format==TextureFormat.RGBA32,"Packed feedback masks retain uncompressed precision");
+            var exhausted=Capture(camera,canvas,"02-exhausted.png");
+            Check(CenterClear(camera,canvas,"02-exhausted"),"Fully exhausted center remains clear in actual shader pixels");
+            Object.Destroy(exhausted);
+            Property(motor,"GripRemaining",1f);hud.Present(motor,.1f);Check(hud.Opacity>.5f,"Recovery unwinds fatigue instead of popping off");
+            hud.Present(motor,2);Check(!canvas.enabled,"Full stamina finishes recovery and removes overlay");
+            if (motor.IsVR)
+            {
+                Property(motor,"SprintRequested",true);hud.Present(motor,2);
+                Check(Field<Vector4>(hud,"state").z==0,"Sprint armed while stationary produces no vignette");
+                Property(motor,"Sprinting",true);hud.Present(motor,.06f);
+                Check(Field<Vector4>(hud,"state").z is >0 and <1,"Sprint vignette fades in");
+                hud.Present(motor,2);
+                Check(Field<Vector4>(hud,"state").z==1,"Active sprint enables the edge vignette");
+                var sprint=Capture(camera,canvas,"03-sprinting.png");Object.Destroy(sprint);
+                Check(CenterClear(camera,canvas,"03-sprinting",subtleDarkening:true),
+                    "Sprint darkens the edges gently and leaves the center clear in actual shader pixels");
+                Property(motor,"SprintRequested",false);Property(motor,"Sprinting",false);hud.Present(motor,.06f);
+                Check(Field<Vector4>(hud,"state").z is >0 and <1,"Sprint vignette fades out");
+                hud.Present(motor,2);Check(!canvas.enabled,"Stopping sprint removes the vignette");
+            }
+            else CheckDesktopSprint(hud,motor,camera);
+            own.health=.22f;hud.Present(motor,2);
+            var damage=Capture(camera,canvas,"04-injured.png");
+            Check(CenterClear(camera,canvas,"04-injured"),"Low-health ink preserves the aim and navigation center");Object.Destroy(damage);
+            var health=motor.GetComponent<CandyHealthFeedback>();hud.Present(motor,10);
+            Check(Mathf.Abs(health.Damage-.78f)<.001f,"Ink remains after ten seconds without healing");
+            Check(material.GetColor("_Ink")==own.color,"Ink uses the local participant's color");
+            own.health=.70f;hud.Present(motor,.1f);Check(health.Damage>.3f&&health.Damage<.78f,"Healing smoothly clears accumulated ink");
+            hud.Present(motor,2);own.health=1;hud.Present(motor,2);Check(health.Damage==0,"Full healing clears all damage paint");
+            own.sinking=true;own.sinkProgress=.9f;hud.Present(motor,2);
+            var sand=Capture(camera,canvas,"05-sinking.png");
+            Check(CenterClear(camera,canvas,"05-sinking"),"Sand warning leaves the center navigable before death");Object.Destroy(sand);
+            session.SetMenu(true);hud.Present(motor,2);Check(!canvas.enabled,"Menus immediately suppress effects and restore readability");
+            session.SetMenu(false);own.sinking=false;motor.InputSuspended=false;hud.Present(motor,2);
+            Check(Field<Vector4>(hud,"state").w==0,"Escaping sand removes its overlay");
+            own.alive=false;own.dying=true;hud.Present(motor,2);Check(!canvas.enabled,"Death suppresses living-player feedback");
+            GameEvents.RaiseMatchSound(MatchSoundCue.DrowningDeath,motor.transform.position);
+            var death=Object.FindFirstObjectByType<CandyDeathOverlay>();
+            Check(death&&Field<int>(death,"environment")==2,"Victim drowning cue selects water death, not paint");
+            typeof(CandyDeathOverlay).GetField("began",Flags).SetValue(death,Time.unscaledTime-.5f);Call(death,"LateUpdate");
+            var drowned=Capture(camera,Field<Canvas>(death,"canvas"),"06-drowned.png");Object.Destroy(drowned);
+            CandyDeathOverlay.Show(own.color);Check(Object.FindObjectsByType<CandyDeathOverlay>(FindObjectsSortMode.None).Length==1&&Field<int>(death,"environment")==2,"Snapshot death notification cannot duplicate or replace water with ink");
+            Object.DestroyImmediate(death.gameObject);
+            GameEvents.RaiseMatchSound(MatchSoundCue.IslandDeath,motor.transform.position);
+            death=Object.FindFirstObjectByType<CandyDeathOverlay>();Check(death&&Field<int>(death,"environment")==1,"Victim sand cue selects burial death");
+            typeof(CandyDeathOverlay).GetField("began",Flags).SetValue(death,Time.unscaledTime-.5f);Call(death,"LateUpdate");
+            var buried=Capture(camera,Field<Canvas>(death,"canvas"),"07-buried.png");Object.Destroy(buried);Object.DestroyImmediate(death.gameObject);
+            CandyDeathOverlay.ShowLocalDeath(own.color);death=Object.FindFirstObjectByType<CandyDeathOverlay>();
+            Check(death&&Field<int>(death,"environment")==0&&Field<Material>(death,"material").shader.name.Contains("Death"),"Ordinary death retains original player-color splatter shader");
+            typeof(CandyDeathOverlay).GetField("began",Flags).SetValue(death,Time.unscaledTime-.5f);Call(death,"LateUpdate");
+            var dead=Capture(camera,Field<Canvas>(death,"canvas"),"08-death-paint.png");Object.Destroy(dead);
+            match.Frame.phase=RoundPhase.Results;
+            Call(death,"LateUpdate");
+            Check(CandyDeathOverlay.GameOverActive && Field<float>(death,"wipeAt")<0,
+                "Entering results replaces the death wipe with GAME OVER");
+            Object.DestroyImmediate(death.gameObject);
+            own.alive=true;own.dying=false;match.Frame.phase=RoundPhase.Playing;
+            match.Rules.healthEnabled=false;own.health=.2f;hud.Present(motor,2);
+            Check(health.Damage==0,"Health-disabled rules cannot leave damage ink behind");
+            own.health=1;match.Rules.healthEnabled=true;
+            GameEvents.RaiseMatchSound(MatchSoundCue.NearbyDeath,motor.transform.position);
+            Check(!Object.FindFirstObjectByType<CandyDeathOverlay>(),"Bystander death sounds cannot start local death visuals");
+            Property(motor,"GripRemaining",.3f);hud.Present(motor,2);
+            long start=GC.GetAllocatedBytesForCurrentThread();for(int n=0;n<120;n++)hud.Present(motor,.016f);long allocated=GC.GetAllocatedBytesForCurrentThread()-start;
+            File.AppendAllText(Report,"120 steady-state Present calls allocated "+allocated+" managed bytes (Editor)\n");
+            var fit=typeof(CandyDeathOverlay).Assembly.GetType("DeadlyJenga.Presentation.CandyScreenPlane").GetMethod("Configure",Flags);
+            foreach(float fov in new[]{65f,105f})foreach(float near in new[]{.02f,.25f})
+            {
+                camera.fieldOfView=fov;camera.nearClipPlane=near;fit.Invoke(null,new object[]{canvas,camera,true});
+                var corners=new Vector3[4];((RectTransform)canvas.transform).GetWorldCorners(corners);
+                var a=camera.WorldToViewportPoint(corners[0]);var b=camera.WorldToViewportPoint(corners[2]);
+                Check(a.x<0&&a.y<0&&b.x>1&&b.y>1,"Mono VR plane covers view at FOV "+fov+", near "+near);
+            }
+            Object.Destroy(baseline);
+            Check(!ShaderUtil.GetShaderMessages(material.shader).Any(m=>m.severity==UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error),"No compiled shader errors");
+        }
+        static void CheckSandEngulf(CastlePlaySession session, CastleSurvivor motor, IMatchRuntime match, Camera camera)
+        {
+            var engulf = session.GetComponent<CandySandEngulf>();
+            Check(engulf && session.ActiveCamera == camera, "Classic Castle starts with the production sand effect and survivor camera");
+            motor.SetSinking(true, .8f);
+            Call(engulf,"Present",.4f);
+            var quad = Field<GameObject>(engulf,"quad");
+            Check(quad && quad.activeSelf && quad.transform.parent == camera.transform &&
+                Field<Material>(engulf,"material").shader.isSupported, "Sink state activates the supported grain renderer at the survivor camera");
+
+            session.SetMenu(true);
+            Call(engulf,"Present",.01f);
+            Check(!quad.activeSelf, "Opening the menu immediately clears the sand grains while still sinking");
+
+            session.SetMenu(false);
+            motor.InputSuspended = false;
+            Call(engulf,"Present",.4f);
+            Check(quad.activeSelf, "Returning to the survivor view restores the sand grains");
+
+            camera.enabled = false;
+            Call(engulf,"Present",.01f);
+            Check(!quad.activeSelf, "A disabled survivor camera cannot keep the grains visible");
+            camera.enabled = true;
+            Call(engulf,"Present",.4f);
+            Check(quad.activeSelf, "The restored survivor camera can show grains again");
+
+            match.Frame.phase = RoundPhase.Victory;
+            Call(engulf,"Present",.01f);
+            Check(!quad.activeSelf, "Victory clears the grains without waiting for sink state to reset");
+            match.Frame.phase = RoundPhase.Playing;
+            Call(engulf,"Present",.4f);
+            motor.SetSinking(false);
+            Call(engulf,"Present",.1f);
+            Check(quad.activeSelf, "Escaping sand begins a fade");
+            Call(engulf,"Present",.5f);
+            Check(!quad.activeSelf, "The escape fade finishes and disables the renderer");
+        }
+        static void SetSprint(CandyStaminaHud hud, CastleSurvivor motor, bool requested, bool sprinting, float dt)
+        {
+            Property(motor,"SprintRequested",requested);
+            Property(motor,"Sprinting",sprinting);
+            hud.Present(motor,dt);
+        }
+
+        static void CheckDesktopSprint(CandyStaminaHud hud, CastleSurvivor motor, Camera camera)
+        {
+            Property(motor,"GripRemaining",1f);
+            SetSprint(hud,motor,false,false,1f);
+            float baseFov = camera.fieldOfView;
+            float renderFov = -1;
+            void Observe(ScriptableRenderContext context, Camera rendering)
+            {
+                if (rendering == camera) renderFov = camera.fieldOfView;
+            }
+
+            RenderPipelineManager.beginCameraRendering += Observe;
+            try
+            {
+                var resting = Capture(camera,null,"sprint-resting.png");
+                Check(Mathf.Approximately(renderFov,baseFov),"Resting view uses normal lens");
+                SetSprint(hud,motor,true,false,1f);
+                Object.Destroy(Capture(camera,null,"sprint-armed.png"));
+                Check(Mathf.Approximately(renderFov,baseFov),"Arming sprint does not widen the lens");
+
+                SetSprint(hud,motor,true,true,.06f);
+                Check(Field<float>(hud,"desktopSprint") is >0 and <1,"Sprint eases in");
+                SetSprint(hud,motor,true,true,1f);
+                var sprint = Capture(camera,null,"sprint-active.png");
+                // A renderer recreated during the render can subscribe after Observe.
+                var feature = Resources.FindObjectsOfTypeAll<CandySprintCameraFx>()
+                    .FirstOrDefault(item => Field<float>(item,"appliedFieldOfView") > 0f);
+                Check(feature,"The installed PC renderer applied the sprint lens");
+                float sprintFov = Field<float>(feature,"appliedFieldOfView");
+                File.AppendAllText(Report,$"Classic Castle {MatchSetup.ModeId}; camera={camera.name}; position={camera.transform.position}; rotation={camera.transform.eulerAngles}; rest FOV={baseFov:F2}; sprint FOV={sprintFov:F2}; actual Game view, controlled survivor sprint state.\n");
+                Check(Mathf.Abs(sprintFov-baseFov-7f)<.05f && Mathf.Approximately(camera.fieldOfView,baseFov),
+                    "Sprint widens the rendered lens by seven degrees and restores the base lens after rendering");
+                var body = Field<Canvas>(hud,"canvas");
+                Check(!body || !body.enabled,"Desktop sprint has no old body vignette");
+
+                SetSprint(hud,motor,false,false,.06f);
+                Check(Field<float>(hud,"desktopSprint") is >0 and <1,"Sprint eases out");
+                SetSprint(hud,motor,false,false,1f);
+                camera.fieldOfView=sprintFov;
+                try
+                {
+                    var lensOnly = Capture(camera,null,"sprint-wide-reference.png");
+                    Check(EdgeDelta(sprint,lensOnly)>.025f,
+                        "Rendered sprint blur and streaks change the edges beyond lens widening");
+                    float centerShift = CenterDelta(sprint,lensOnly);
+                    float lensShift = CenterDelta(resting,lensOnly);
+                    File.AppendAllText(Report,$"Rendered RGB deltas in the center: active vs wide-only {centerShift:F4}; resting vs wide-only {lensShift:F4}.\n");
+                    Check(centerShift<.02f && lensShift>.05f,
+                        "The sprint image matches the wider lens in the center without blurring it");
+                    Object.Destroy(lensOnly);
+                }
+                finally
+                {
+                    camera.fieldOfView=baseFov;
+                    Object.Destroy(sprint);
+                    Object.Destroy(resting);
+                }
+                Object.Destroy(Capture(camera,null,"sprint-recovered.png"));
+                Check(Mathf.Approximately(renderFov,baseFov),"Releasing sprint restores the normal view");
+            }
+            finally
+            {
+                SetSprint(hud,motor,false,false,1f);
+                RenderPipelineManager.beginCameraRendering -= Observe;
+            }
+        }
+
+        static float EdgeDelta(Texture2D a, Texture2D b)
+        {
+            float delta=0;
+            for(int y=20; y<a.height-20; y+=13)
+            for(int x=12; x<a.width-12; x+=13)
+            {
+                if(x>a.width/7 && x<a.width*6/7) continue;
+                Color d=a.GetPixel(x,y)-b.GetPixel(x,y);
+                delta=Mathf.Max(delta,Mathf.Abs(d.r),Mathf.Abs(d.g),Mathf.Abs(d.b));
+            }
+            return delta;
+        }
+
+        static Texture2D Capture(Camera camera,Canvas overlay,string name)
+        {
+            if(overlay){overlay.renderMode=RenderMode.ScreenSpaceCamera;overlay.worldCamera=camera;overlay.planeDistance=camera.nearClipPlane+.1f;Canvas.ForceUpdateCanvases();}
+            var previous=camera.targetTexture;var active=RenderTexture.active;
+            var target=new RenderTexture(1280,800,24);var image=new Texture2D(1280,800,TextureFormat.RGB24,false);
+            try{camera.targetTexture=target;camera.Render();RenderTexture.active=target;image.ReadPixels(new Rect(0,0,1280,800),0,0);image.Apply();File.WriteAllBytes(Path.Combine(Output,name),image.EncodeToPNG());return image;}
+            finally{camera.targetTexture=previous;RenderTexture.active=active;target.Release();Object.Destroy(target);}
+        }
+        static float CenterDelta(Texture2D a,Texture2D b)
+        {
+            float diff=0;
+            for(int y=320;y<480;y+=7)for(int x=512;x<768;x+=7)
+            {var d=a.GetPixel(x,y)-b.GetPixel(x,y);diff=Mathf.Max(diff,Mathf.Abs(d.r),Mathf.Abs(d.g),Mathf.Abs(d.b));}
+            return diff;
+        }
+        static bool CenterClear(Camera camera, Canvas overlay, string name, bool subtleDarkening=false)
+        {
+            var clear = camera.clearFlags;
+            var mask = camera.cullingMask;
+            var color = camera.backgroundColor;
+            var nodes = overlay.GetComponentsInChildren<Transform>(true);
+            var layers = nodes.Select(node => node.gameObject.layer).ToArray();
+            try
+            {
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = Color.gray;
+                camera.cullingMask = 0;
+                var reference = Capture(camera, null, name+"-reference.png");
+                foreach (var node in nodes) node.gameObject.layer = 31;
+                camera.cullingMask = 1 << 31;
+                var isolated = Capture(camera, overlay, name+"-overlay.png");
+                float darkening = 0, brightening = 0;
+                for (int x = 16; x < isolated.width; x += 43)
+                for (int y = 16; y < isolated.height; y += 37)
+                {
+                    Color delta = isolated.GetPixel(x,y) - reference.GetPixel(x,y);
+                    darkening = Mathf.Max(darkening,-Mathf.Min(delta.r,delta.g,delta.b));
+                    brightening = Mathf.Max(brightening,Mathf.Max(delta.r,delta.g,delta.b));
+                }
+                bool visiblePeriphery = subtleDarkening
+                    ? darkening is >.025f and <.14f && brightening < .015f
+                    : Mathf.Max(darkening,brightening) > .025f;
+                bool clearCenter = visiblePeriphery && CenterDelta(reference, isolated) < .015f;
+                Object.Destroy(reference);
+                Object.Destroy(isolated);
+                return clearCenter;
+            }
+            finally
+            {
+                camera.clearFlags = clear;
+                camera.backgroundColor = color;
+                camera.cullingMask = mask;
+                for (int i = 0; i < nodes.Length; i++) nodes[i].gameObject.layer = layers[i];
+            }
+        }
+    }
+}

@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-108
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 8d17316d3e3d1fd49b538853c315cea2, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 108
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Beam Flyout
+    atlasFile: atlas.png
+    atlasSha256: b376826ee9937e96eb8b6c528744cc4feef7d4579ae6f5764a4c4e6cc4783827
+    gifFile: preview.gif
+    gifSha256: c8710374358dfe9ae655c57505e379331210c5963a060e7427c79be7981f43b8
+    sourceSha256: a9ce1b4436555f7619a0b34148e18aae8be34d5e674c9a7a97a4b6b9512dd887
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Beam Flyout
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Beam Flyout
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

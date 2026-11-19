@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-53
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 16a2a05f771459a44a43775592b70c8f, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 53
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Hand Swirl
+    atlasFile: atlas.png
+    atlasSha256: 1869f6017c20b1649580f4eda428a1095baa4e9766aa3e8d86f225d3bdaf5ee9
+    gifFile: preview.gif
+    gifSha256: 838764eb9fed608d6f69926e78821d3d51ab34b6737e48d27acad58c3aa499cb
+    sourceSha256: 7955f17dfea09fe315c7e23b284474ed4ed71c3629796611e65f21bb2faf7626
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Hand Swirl
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Hand Swirl
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

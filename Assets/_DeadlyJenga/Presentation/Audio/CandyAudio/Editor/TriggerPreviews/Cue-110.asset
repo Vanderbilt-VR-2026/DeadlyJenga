@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-110
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 746230bbceb18b74a9d24d9ff58c8a2b, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 110
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Hit Confirm
+    atlasFile: atlas.png
+    atlasSha256: 4c5e447da88f462138c8b09420c0a82b9b4f760c7bc1c98c4410d08579a95999
+    gifFile: preview.gif
+    gifSha256: cd8fb7c7412f3eed4d804d122ac41ce503d6e9c07f5011bd0ddfeb18bb6be813
+    sourceSha256: 0df635ca0579647d428ba60e0d6884b483e601033eff2f6ebb804ad65281b4e1
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Damage-causing projectile, melee weapon, or hazard at the victim's impact
+      point
+    action: A confirmed hit damages the victim
+    target: The damaged player, with readable contact/reaction
+    listenerRole: Attacker receiving confirmation
+    triggerEvidence: Observed gameplay lifecycle firing Hit Confirm
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

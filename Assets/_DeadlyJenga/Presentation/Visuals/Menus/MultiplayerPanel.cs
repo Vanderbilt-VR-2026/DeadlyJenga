@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
@@ -26,6 +27,11 @@ namespace DeadlyJenga.CastlePrototype
     public sealed class RoomNoticeHud:MonoBehaviour
     {
         TextMesh label;
+        ISessionInfo owner;
+        RoomConnectionTile roomTile;
+        string currentCode="";
+        bool expanded;
+        GUIStyle roomButton,roomPanel,roomCaption,roomCode;
         string seen;
         float expires;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -35,22 +41,55 @@ namespace DeadlyJenga.CastlePrototype
             GameEvents.LobbyStarted+=Attach;
         }
         static void Attach(GameObject root)
-        {if(root&&!root.GetComponent<RoomNoticeHud>())root.AddComponent<RoomNoticeHud>();}
+        {
+            if(!root)return;
+            var hud=root.GetComponent<RoomNoticeHud>();
+            if(!hud)hud=root.AddComponent<RoomNoticeHud>();
+            hud.owner=root.GetComponent<ISessionInfo>();
+        }
         void LateUpdate()
         {
             var session=Services.Session;
-            string status=session?.Multiplayer?.Status;
+            bool current=session!=null&&ReferenceEquals(session,owner);
+            string nextCode=current?MultiplayerPanel.JoinCode(session.Multiplayer):"";
+            if(nextCode!=currentCode||!CanShowCode(session))expanded=false;
+            currentCode=nextCode;
+            var view=current?session.ActiveCamera:null;
+            bool showCode=current&&CanShowCode(session)&&session.IsVR&&view&&currentCode.Length>0;
+            if(showCode&&!roomTile)
+            {
+                var canvasObject=new GameObject("Visual - current room connection",typeof(RectTransform),typeof(Canvas));
+                canvasObject.transform.SetParent(transform,false);
+                var canvas=canvasObject.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;
+                canvas.sortingOrder=90;
+                roomTile=RoomConnectionTile.Create(canvasObject.transform);
+                roomTile.SetIndicator();
+            }
+            if(roomTile)
+            {
+                var canvas=roomTile.transform.parent;
+                canvas.gameObject.SetActive(showCode);
+                roomTile.Refresh(current?session.Multiplayer:null);
+                if(showCode)
+                {
+                    canvas.SetPositionAndRotation(view.transform.TransformPoint(new Vector3(-.39f,.31f,1.5f)),view.transform.rotation);
+                    canvas.localScale=Vector3.one*.00125f;
+                }
+            }
+            if(!current){if(label)label.gameObject.SetActive(false);return;}
+            string requestNotice=DeadlyJenga.Presentation.NearbyRoomUi.Notice;
+            string status=requestNotice.Length>0?requestNotice:session?.Multiplayer?.Status;
             if(status!=seen)
             {
                 seen=status;
-                if(status!=null&&(status.EndsWith(" joined the room.",System.StringComparison.Ordinal)
+                if(status!=null&&(requestNotice.Length>0||status.EndsWith(" joined the room.",System.StringComparison.Ordinal)
                     ||status.EndsWith(" left the room.",System.StringComparison.Ordinal)))
                 {
                     if(!label)
                     {
                         var notice=new GameObject("Visual - room notice");notice.transform.SetParent(transform,false);
                         notice.layer=5;
-                        label=notice.AddComponent<TextMesh>();label.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
+                        label=notice.AddComponent<TextMesh>();label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                         var renderer=label.GetComponent<Renderer>();renderer.sharedMaterial=label.font.material;
                         renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;renderer.receiveShadows=false;
                         label.anchor=TextAnchor.MiddleCenter;
@@ -66,6 +105,102 @@ namespace DeadlyJenga.CastlePrototype
             label.gameObject.SetActive(visible);
             if(visible)label.transform.SetPositionAndRotation(camera.ViewportToWorldPoint(new Vector3(.5f,.84f,1.6f)),camera.transform.rotation);
         }
+        bool CanShowCode(ISessionInfo session)
+        {
+            return session!=null&&ReferenceEquals(session,owner)&&!session.MenuOpen
+                &&!(session is ILobbyControls)&&(session as ILobbyMatchVisitControls)?.VisitingLobby!=true
+                &&MatchRuntime.Current?.Frame.phase==RoundPhase.Playing
+                &&!CharacterPicker.Showing(session)&&!DeadlyJenga.Presentation.CandyComfortPanel.Showing(session)
+                &&!DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)
+                &&!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session);
+        }
+        void CacheRoomStyles()
+        {
+            if(roomButton!=null)return;
+            roomButton=new GUIStyle(GUI.skin.button){fontSize=18,alignment=TextAnchor.MiddleCenter,richText=false,
+                border=new RectOffset(12,12,12,12)};
+            roomButton.normal.background=roomButton.hover.background=roomButton.active.background=CandyHudVisuals.Pill.texture;
+            roomButton.normal.textColor=CandyHudVisuals.Mint;roomButton.hover.textColor=Color.white;
+            roomButton.active.textColor=CandyHudVisuals.Lavender;
+            roomPanel=new GUIStyle(roomButton);roomPanel.normal.textColor=Color.white;
+            roomCaption=new GUIStyle(GUI.skin.label){fontSize=16,alignment=TextAnchor.MiddleCenter,richText=false};
+            roomCaption.normal.textColor=CandyHudVisuals.Lavender;
+            roomCode=new GUIStyle(roomCaption){fontSize=26};roomCode.normal.textColor=CandyHudVisuals.Mint;
+        }
+        void OnGUI()
+        {
+            var session=Services.Session;
+            if(!CanShowCode(session)||session.IsVR){expanded=false;return;}
+            string code=MultiplayerPanel.JoinCode(session.Multiplayer);
+            if(code.Length==0){expanded=false;return;}
+            CacheRoomStyles();
+            string role=session.Multiplayer.IsClient?"GUEST":"HOST";
+            float x=Mathf.Max(8,Screen.width-(expanded?268:184));
+            var previous=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
+            if(!expanded)
+            {
+                if(GUI.Button(new Rect(x,8,176,34),role+" · "+code,roomButton))expanded=true;
+            }
+            else
+            {
+                GUI.Box(new Rect(x,8,260,118),"",roomPanel);
+                GUI.Label(new Rect(x+8,12,212,25),"CONNECTIONS · "+role,roomCaption);
+                if(GUI.Button(new Rect(x+224,12,28,25),"×",roomButton))expanded=false;
+                GUI.Label(new Rect(x+8,39,244,36),code,roomCode);
+                if(GUI.Button(new Rect(x+16,82,228,32),"Copy current join code",roomButton))GUIUtility.systemCopyBuffer=code;
+            }
+            GUI.backgroundColor=previous;
+        }
+    }
+
+    // Reusable read-only Connections tile for a tablet or world-space canvas.
+    public sealed class RoomConnectionTile:MonoBehaviour
+    {
+        Text title,code;
+        bool compact,indicator;
+        public static RoomConnectionTile Create(Transform parent)
+        {
+            var root=new GameObject("Connections - current room",typeof(RectTransform),typeof(Image),typeof(RoomConnectionTile));
+            root.transform.SetParent(parent,false);
+            var rect=root.GetComponent<RectTransform>();rect.sizeDelta=new Vector2(300,80);
+            var background=root.GetComponent<Image>();background.sprite=CandyHudVisuals.Pill;
+            background.type=Image.Type.Sliced;background.color=CandyHudVisuals.Card;background.raycastTarget=false;
+            var tile=root.GetComponent<RoomConnectionTile>();
+            tile.title=tile.Label("Connection role",new Vector2(0,23),18,CandyHudVisuals.Lavender);
+            tile.code=tile.Label("Current join code",new Vector2(0,-10),28,CandyHudVisuals.Mint);
+            return tile;
+        }
+        Text Label(string name,Vector2 position,int size,Color color)
+        {
+            var child=new GameObject(name,typeof(RectTransform),typeof(Text));child.transform.SetParent(transform,false);
+            var text=child.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize=size;text.color=color;text.alignment=TextAnchor.MiddleCenter;text.supportRichText=false;text.raycastTarget=false;
+            text.rectTransform.sizeDelta=new Vector2(284,34);text.rectTransform.anchoredPosition=position;
+            return text;
+        }
+        public void SetCompact(Vector2 position)
+        {
+            compact=true;
+            var rect=(RectTransform)transform;rect.sizeDelta=new Vector2(570,35);rect.anchoredPosition=position;
+            title.gameObject.SetActive(false);code.rectTransform.anchoredPosition=Vector2.zero;
+            code.rectTransform.sizeDelta=new Vector2(554,35);code.fontSize=23;
+        }
+        public void SetIndicator()
+        {
+            indicator=true;
+            var rect=(RectTransform)transform;rect.sizeDelta=new Vector2(210,36);
+            title.gameObject.SetActive(false);code.rectTransform.anchoredPosition=Vector2.zero;
+            code.rectTransform.sizeDelta=new Vector2(198,34);code.fontSize=23;
+        }
+        public void Refresh(IMultiplayerControls net)
+        {
+            string liveCode=MultiplayerPanel.JoinCode(net);
+            title.text=liveCode.Length==0?"CONNECTIONS · OFFLINE":net.IsClient?"CONNECTIONS · GUEST":"CONNECTIONS · HOST";
+            code.text=liveCode.Length==0?"No active room":indicator
+                ?(net.IsClient?"GUEST":"HOST")+" · "+liveCode:compact
+                ?"CONNECTIONS · "+(net.IsClient?"GUEST":"HOST")+" · CODE  "+liveCode
+                :"JOIN CODE  "+liveCode;
+        }
     }
 
     public static class MultiplayerPanel
@@ -79,14 +214,15 @@ namespace DeadlyJenga.CastlePrototype
             return end<0?info.Substring(6):info.Substring(6,end-6);
         }
         public static string LobbyAction(IMultiplayerControls net)
-            => string.IsNullOrEmpty(JoinCode(net))?"Back to lobby":net.CanToggleSharedControls?"End match · everyone to lobby":"Visit lobby";
+            => string.IsNullOrEmpty(JoinCode(net))?"Exit to Lobby":net.IsClient?"Visit Lobby":"Return Room to Lobby";
         static readonly RoomLeaveConfirmation desktopLeave=new RoomLeaveConfirmation();
         public static void ClearLeaveConfirmation()=>desktopLeave.Clear();
         public static string EndAction(IMultiplayerControls net)
             =>string.IsNullOrEmpty(JoinCode(net))?"End Game":"End Game for Room";
-        public static void Draw(IMultiplayerControls net,bool hostTools=true)
+        public static void Draw(IMultiplayerControls net)
         {
             if (net == null) return;
+            DeadlyJenga.Presentation.NearbyRoomUi.DrawDesktop();
             if (net.IsFusion)
             {
                 GUILayout.Label(net.Status);
@@ -95,8 +231,8 @@ namespace DeadlyJenga.CastlePrototype
                     GUILayout.Label(net.RoomInfo);
                     string code=JoinCode(net);
                     if(code.Length>0&&GUILayout.Button("Copy join code",GUILayout.Height(30)))GUIUtility.systemCopyBuffer=code;
-                    if (hostTools && net.CanToggleSharedControls && GUILayout.Button("Demo controls: " + (net.SharedControls ? "EVERYONE" : "HOST ONLY"), GUILayout.Height(32))) net.ToggleSharedControls();
-                    if (hostTools && net.CanInviteNearby && GUILayout.Button("Invite everyone on this Wi-Fi", GUILayout.Height(32))) net.InviteNearby();
+                    if (net.CanToggleSharedControls && GUILayout.Button("Demo controls: " + (net.SharedControls ? "EVERYONE" : "HOST ONLY"), GUILayout.Height(32))) net.ToggleSharedControls();
+                    if (net.CanInviteNearby && GUILayout.Button("Invite everyone on this Wi-Fi", GUILayout.Height(32))) net.InviteNearby();
                     if (net.InvitationFrom.Length > 0)
                     {
                         GUILayout.Label("Nearby invitation from " + net.InvitationFrom + ". Leave this room to accept it on the island.");

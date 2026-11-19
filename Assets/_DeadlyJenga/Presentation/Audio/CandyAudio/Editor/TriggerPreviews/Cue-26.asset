@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-26
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: ffc4d402d8c5b9f4892e7617e877bac2, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 26
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Grip Warning
+    atlasFile: atlas.png
+    atlasSha256: 62e5c18cc5fd571e4db43d14187898f2ea0c9685dc8439f9dbd6954f4a06a80a
+    gifFile: preview.gif
+    gifSha256: 80dd8ff488f09f3de0b5a352e0222f9911c9e65067a362866c1f63779a680d5c
+    sourceSha256: f6b78b6762e16a48ccf71528c384f11e5871abfea8f0e6977eb4bd45ab97170c
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The moving player's feet, hands or exertion
+    action: Grip Warning
+    target: The contacted ground or climbable ledge; show its material
+    listenerRole: That player for local breathing; nearby listener for movement contacts
+    triggerEvidence: Observed gameplay lifecycle firing Grip Warning
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

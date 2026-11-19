@@ -23,7 +23,7 @@ namespace DeadlyJenga.Modes
             {
                 if(everyRespawn)return false;respawnEquipment=EquipmentKind.None;loadoutAlive.Clear();PublishEquipment();return true;
             }
-            if(simulation.Phase!=RoundPhase.Playing)return false;
+            if(simulation.Phase!=RoundPhase.Playing||!AllowsSurvivalPickup(kind))return false;
             respawnEquipment=everyRespawn?kind:EquipmentKind.None;loadoutAlive.Clear();bool given=false;
             foreach(var p in simulation.Participants)
             {

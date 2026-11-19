@@ -80,7 +80,7 @@ namespace DeadlyJenga.Presentation
         }
         void BindEnvironment()
         {
-            environment=FindFirstObjectByType<CandyEnvironment>();if(!environment)return;
+            environment=CandyEnvironment.ForMap(this);if(!environment)return;
             oldLighting=environment.applyLighting;environment.applyLighting=false;
             sceneSkins=environment.GetComponent<CandySceneSkins>();
             if(sceneSkins){oldSkinsEnabled=sceneSkins.enabled;sceneSkins.enabled=false;}

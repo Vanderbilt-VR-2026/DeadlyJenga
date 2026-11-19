@@ -8,6 +8,7 @@ namespace DeadlyJenga.Presentation
     internal sealed class CandyEliminationFeed
     {
         const int Capacity = 4;
+        const int PortraitSize = 44;
         const float Lifetime = 5, Fade = 1.2f;
         struct Notice
         {
@@ -18,7 +19,8 @@ namespace DeadlyJenga.Presentation
         sealed class Row
         {
             public CanvasGroup group;
-            public Text message, victimInitial, killerInitial;
+            public MatchPlayerFrame shownVictim, shownKiller;
+            public Text message, action, victimName, victimInitial, killerInitial;
             public RawImage victimPortrait, killerPortrait;
         }
 
@@ -37,20 +39,25 @@ namespace DeadlyJenga.Presentation
             this.portraits = portraits;
             for (int i = 0; i < Capacity; i++)
             {
-                var text = CandyHudCards.Create(parent, "Elimination feed", new Vector2(-415, -120 - i * 40),
-                    new Vector2(364, 36), 17, TextAnchor.MiddleLeft);
+                var text = CandyHudCards.Create(parent, "Elimination feed", new Vector2(-414, -65 - i * 86),
+                    new Vector2(412, 82), 22, TextAnchor.MiddleLeft);
                 var panel = text.transform.parent.gameObject;
                 var group = panel.AddComponent<CanvasGroup>();
                 group.blocksRaycasts = group.interactable = false;
-                text.horizontalOverflow = HorizontalWrapMode.Wrap;
-                text.resizeTextForBestFit = true;
-                text.resizeTextMinSize = 11;
-                text.resizeTextMaxSize = 17;
-                var victim = Portrait(panel.transform, text.font, -162, out var victimInitial);
-                var killer = Portrait(panel.transform, text.font, -162, out var killerInitial);
+                text.horizontalOverflow = HorizontalWrapMode.Overflow;
+                text.resizeTextForBestFit = false;
+                text.supportRichText = false;
+                text.font=Resources.Load<Font>("Fonts/Fredoka-Bold") ?? text.font;text.fontStyle=FontStyle.Normal;
+                text.lineSpacing=.9f;
+                var action=CandyResultsHud.Label("Elimination action",panel.transform,new Vector2(282,18),new Vector2(53,0),13);
+                action.alignment=TextAnchor.MiddleLeft;action.color=CandyHudCards.Accent;
+                var victimName=CandyResultsHud.Label("Elimination victim",panel.transform,new Vector2(282,26),new Vector2(53,-24),22);
+                victimName.alignment=TextAnchor.MiddleLeft;victimName.color=text.color;
+                var victim = Portrait(panel.transform, text.font, -170, out var victimInitial);
+                var killer = Portrait(panel.transform, text.font, -170, out var killerInitial);
                 rows[i] = new Row
                 {
-                    group = group, message = text, victimPortrait = victim, victimInitial = victimInitial,
+                    group = group, message = text, action=action, victimName=victimName, victimPortrait = victim, victimInitial = victimInitial,
                     killerPortrait = killer, killerInitial = killerInitial
                 };
                 panel.SetActive(false);
@@ -63,18 +70,18 @@ namespace DeadlyJenga.Presentation
             icon.transform.SetParent(parent, false);
             var portrait = icon.GetComponent<RawImage>();
             portrait.raycastTarget = false;
-            portrait.rectTransform.sizeDelta = new Vector2(28, 28);
+            portrait.rectTransform.sizeDelta = Vector2.one * PortraitSize;
             portrait.rectTransform.anchoredPosition = new Vector2(x, 0);
             var letter = new GameObject("Initial", typeof(RectTransform), typeof(Text));
             letter.transform.SetParent(icon.transform, false);
             initial = letter.GetComponent<Text>();
             initial.font = font;
-            initial.fontStyle = FontStyle.Bold;
+            initial.fontStyle = FontStyle.Normal;
             initial.alignment = TextAnchor.MiddleCenter;
             initial.color = Color.white;
-            initial.fontSize = 16;
+            initial.fontSize = 34;
             initial.raycastTarget = false;
-            initial.rectTransform.sizeDelta = new Vector2(28, 28);
+            initial.rectTransform.sizeDelta = Vector2.one * PortraitSize;
             return portrait;
         }
 
@@ -132,11 +139,24 @@ namespace DeadlyJenga.Presentation
                 var notice = notices[notices.Count - 1 - i];
                 bool paired = notice.killer != null;
                 row.group.alpha = Mathf.Clamp01((notice.expires - now) / Fade);
-                row.victimPortrait.rectTransform.anchoredPosition = new Vector2(paired ? -130 : -162, 0);
-                row.message.rectTransform.offsetMin = new Vector2(paired ? 72 : 40, 4);
-                row.message.text = paired
-                    ? Name(notice.killer, match.LocalActorId) + "  ›  " + Name(notice.victim, match.LocalActorId)
-                    : Name(notice.victim, match.LocalActorId) + " was eliminated";
+                row.victimPortrait.rectTransform.anchoredPosition = new Vector2(paired ? -120 : -170, 0);
+                row.message.rectTransform.offsetMin = new Vector2(paired ? 118 : 68, paired ? 48 : 5);
+                row.message.rectTransform.offsetMax = new Vector2(-12, paired ? -8 : -5);
+                row.victimName.gameObject.SetActive(paired);
+                if (row.shownVictim != notice.victim || row.shownKiller != notice.killer)
+                {
+                    row.shownVictim = notice.victim;
+                    row.shownKiller = notice.killer;
+                    portraits.SetName(row.message, paired ? Name(notice.killer, match.LocalActorId) : Name(notice.victim, match.LocalActorId));
+                    string first = row.message.text;
+                    if (paired)
+                    {
+                        portraits.SetName(row.victimName, Name(notice.victim, match.LocalActorId));
+                    }
+                    else row.message.text = first + "\nwas eliminated";
+                    row.action.text=paired?"ELIMINATED":"";
+                    row.group.GetComponent<Image>().color=notice.victim.id==match.LocalActorId?new Color(1,.82f,.81f,.97f):paired&&notice.killer.id==match.LocalActorId?new Color(.72f,1,.87f,.97f):new Color(.96f,.92f,1,.97f);
+                }
                 row.killerPortrait.gameObject.SetActive(paired);
                 if (paired)
                     CandyScorePortraits.Show(row.killerPortrait, row.killerInitial, portraits.Get(match, notice.killer), notice.killer);
@@ -145,7 +165,7 @@ namespace DeadlyJenga.Presentation
         }
 
         static string Name(MatchPlayerFrame player, string local) =>
-            player.id == local ? "YOU" : CandyHudContent.Safe(player.name, 13);
+            player.id == local ? "YOU" : CandyHudContent.Safe(player.name, 64);
 
         void Observe(IMatchRuntime match, MatchFrame frame, bool announce)
         {

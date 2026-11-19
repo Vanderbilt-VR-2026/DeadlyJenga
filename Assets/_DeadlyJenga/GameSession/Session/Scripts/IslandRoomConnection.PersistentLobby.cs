@@ -45,13 +45,19 @@ namespace DeadlyJenga.CastlePrototype
 
         public bool ReturnMatchToLobby()
         {
-            if(!IsHost||Busy||SwitchingMap||RoomSceneBusy)return false;
+            if(Connected&&!IsHost||Busy||Departing||SwitchingMap||RoomSceneBusy)return false;
             // Resolve the enabled Lobby scene by name without a project asset path.
             for(int i=0;i<SceneManager.sceneCountInBuildSettings;i++)
             {
                 string path=SceneUtility.GetScenePathByBuildIndex(i);
                 if(System.IO.Path.GetFileNameWithoutExtension(path)!="Lobby")continue;
-                return LoadRoomScene(i,"lobby");
+                if(Connected)
+                {
+                    var scenes=Runner.SceneInfo;
+                    if(scenes.SceneCount>0&&scenes.Scenes[scenes.SceneCount-1]==SceneRef.FromIndex(i))return true;
+                }
+                else if(SceneManager.GetActiveScene().buildIndex==i)return true;
+                return BeginSceneDeparture(i,Connected,"lobby");
             }
             Debug.LogError("Lobby must be enabled in the build before returning a room.",this);return false;
         }

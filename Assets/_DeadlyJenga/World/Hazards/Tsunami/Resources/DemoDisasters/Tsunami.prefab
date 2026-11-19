@@ -48,7 +48,7 @@ MonoBehaviour:
   widthMargin: 12
   randomDirection: 1
   approachHeading: 0
-  offshoreDistance: 45
+  offshoreDistance: 160
   warningTime: 5
   riseTime: 4
   approachSpeed: 8

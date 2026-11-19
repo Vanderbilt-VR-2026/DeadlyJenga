@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-52
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: af3d217bc258fc641b74000173b0e3a8, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 52
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Finger Flex
+    atlasFile: atlas.png
+    atlasSha256: 72d9d478dc80a05ab8ff3cbb0a8279b3964fef1608638cd3b4496c58be43f633
+    gifFile: preview.gif
+    gifSha256: 3ba519ac1139bfa41977e43e611ed401faf43673a79331ecf4c86a976e9df2be
+    sourceSha256: 259365f7f8bca4e2bb41f5a98f1d9dcf2acf9b83bce5cd46cf19f1e65bbd281f
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Finger Flex
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Finger Flex
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

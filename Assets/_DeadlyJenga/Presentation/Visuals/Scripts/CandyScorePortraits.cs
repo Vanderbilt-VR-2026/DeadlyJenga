@@ -10,9 +10,47 @@ namespace DeadlyJenga.Presentation
     internal sealed class CandyScorePortraits : MonoBehaviour
     {
         const int PortraitLayer = 31;
-        const int Size = 72;
+        const int Size = 144;
         readonly Dictionary<string, Texture2D> portraits = new Dictionary<string, Texture2D>();
         readonly List<Mesh> baked = new List<Mesh>();
+        sealed class NameFit
+        {
+            public string source, fitted;
+            public float width;
+            public Font font;
+            public int size;
+        }
+        readonly Dictionary<Text, NameFit> nameFits = new Dictionary<Text, NameFit>();
+
+        public void SetName(Text label, string value)
+        {
+            string source = CandyHudContent.Safe(value, 64);
+            float width = label.rectTransform.rect.width;
+            if (!nameFits.TryGetValue(label, out var fit) || fit.source != source || fit.width != width
+                || fit.font != label.font || fit.size != label.fontSize)
+            {
+                var settings = label.GetGenerationSettings(new Vector2(width, label.rectTransform.rect.height));
+                settings.scaleFactor = 1;
+                settings.horizontalOverflow = HorizontalWrapMode.Overflow;
+                string fitted = source;
+                if (label.cachedTextGeneratorForLayout.GetPreferredWidth(source, settings) > width)
+                {
+                    int low = 0, high = source.Length;
+                    while (low < high)
+                    {
+                        int count = (low + high + 1) / 2;
+                        string candidate = source.Substring(0, count) + "…";
+                        if (label.cachedTextGeneratorForLayout.GetPreferredWidth(candidate, settings) <= width) low = count;
+                        else high = count - 1;
+                    }
+                    if (low > 0 && char.IsHighSurrogate(source[low - 1])) low--;
+                    fitted = source.Substring(0, low) + "…";
+                }
+                fit = new NameFit { source = source, fitted = fitted, width = width, font = label.font, size = label.fontSize };
+                nameFits[label] = fit;
+            }
+            label.text = fit.fitted;
+        }
         IMatchRuntime owner;
         Camera portraitCamera;
         GameObject stage;
@@ -44,7 +82,7 @@ namespace DeadlyJenga.Presentation
             var actor = match.FindActor(player.id);
             var visual = actor?.Visual;
             if (!visual) return null;
-            var head = visual.Find("Head");
+            var head = FindHead(visual);
             Vector3 center = head ? head.position : actor.ViewPose.position;
             Quaternion rotation = head ? head.rotation : actor.ViewPose.rotation;
             float scale = Mathf.Max(.15f, Mathf.Abs(visual.lossyScale.y));
@@ -60,7 +98,7 @@ namespace DeadlyJenga.Presentation
                 if (source is SkinnedMeshRenderer skin && skin.sharedMesh)
                 {
                     mesh = new Mesh();
-                    skin.BakeMesh(mesh);
+                    skin.BakeMesh(mesh, true);
                     baked.Add(mesh);
                 }
                 else if (source is MeshRenderer && source.TryGetComponent<MeshFilter>(out var filter))
@@ -134,7 +172,19 @@ namespace DeadlyJenga.Presentation
             fallback.text = texture || name.Length == 0 ? "" : name.Substring(0, 1).ToUpperInvariant();
         }
 
-        static bool VisibleInAvatar(Transform part, Transform visual)
+        // The head bone is often nested under a rig, so search the whole avatar.
+        static Transform FindHead(Transform visual)
+        {
+            Transform loose = null;
+            foreach (var part in visual.GetComponentsInChildren<Transform>(true))
+            {
+                if (part.name == "Head") return part;
+                if (!loose && part.name.IndexOf("head", System.StringComparison.OrdinalIgnoreCase) >= 0) loose = part;
+            }
+            return loose;
+        }
+
+        internal static bool VisibleInAvatar(Transform part, Transform visual)
         {
             while (part != visual)
             {
@@ -168,6 +218,7 @@ namespace DeadlyJenga.Presentation
         {
             foreach (var texture in portraits.Values) Destroy(texture);
             portraits.Clear();
+            nameFits.Clear();
         }
 
         void OnEnable() => GameEvents.RoundStarted += Clear;

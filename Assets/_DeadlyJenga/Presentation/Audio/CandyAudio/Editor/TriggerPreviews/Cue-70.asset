@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-70
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: aa8e85e256f60d84bb4c0d9e88cf9d86, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 70
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Weapon Hammer
+    atlasFile: atlas.png
+    atlasSha256: 7b86bea1128fb244e7aa3cb4e49cbbdae6fcd3c63994d5867e5da702b1bc206f
+    gifFile: preview.gif
+    gifSha256: 66e4f931b453fdbc9fb2b4384e755f68378507ae30651449b4ca0e34b80ff4c7
+    sourceSha256: 32c5bd962449ca3c520f53dee22df00e2d4ef086356bd2f2aaa604e6c11bc55c
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Weapon Hammer
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Weapon Hammer
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

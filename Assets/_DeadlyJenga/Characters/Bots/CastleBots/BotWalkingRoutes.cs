@@ -12,12 +12,22 @@ namespace DeadlyJenga.CastleBots
         static readonly ProfilerMarker DJWalkingSourcesMarker = new ProfilerMarker("DJ.WalkingSources");
         readonly List<NavMeshBuildSource> sources = new List<NavMeshBuildSource>();
         readonly List<NavMeshBuildMarkup> markup = new List<NavMeshBuildMarkup>();
+        readonly bool localRoutesOnly;
         NavMeshPath path;
+
+        public BotWalkingRoutes() : this(Application.isMobilePlatform) { }
+
+        internal BotWalkingRoutes(bool localRoutesOnly)
+        {
+            this.localRoutesOnly=localRoutesOnly;
+            if(localRoutesOnly)Status="Using local traversal";
+        }
         NavMeshData data;
         NavMeshDataInstance instance;
         AsyncOperation building;
         IWorldQuery world;
         NavMeshBuildSettings settings;
+        const int DenseBlockLimit = 700;
         float nextScan;
         int signature;
         public int Revision { get; private set; }
@@ -25,10 +35,19 @@ namespace DeadlyJenga.CastleBots
 
         public void Refresh(CastleBotBrain bot)
         {
+            // CollectSources runs synchronously even when the subsequent bake is asynchronous.
+            if(localRoutesOnly)return;
             using var measurement = DJWalkingSourcesMarker.Auto();
-            if (bot == null || Services.World == null || Time.time < nextScan) return;
-            nextScan = Time.time + 1;
-            if (!ReferenceEquals(world, Services.World)) { Dispose(); world = Services.World; signature = 0; }
+            var activeWorld=bot?.Population.Session.world;
+            if(activeWorld==null||Time.time<nextScan)return;
+            nextScan=Time.time+1;
+            if(!ReferenceEquals(world,activeWorld)){Dispose();world=activeWorld;signature=0;}
+            if (activeWorld.Blocks.Count >= DenseBlockLimit)
+            {
+                if (data) { Dispose(); world = activeWorld; }
+                Status = "Using local traversal on dense structures";
+                return;
+            }
             if (building != null && !building.isDone) return;
             if (building != null) { building = null; Revision++; Status = "Walking corridors ready"; }
             if (NavMesh.GetSettingsCount() == 0) { Status = "No navigation agent settings"; return; }

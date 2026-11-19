@@ -101,6 +101,9 @@ namespace DeadlyJenga.NinjaArt
         public static AudioClip Clack => clack ? clack : clack = Make("hyoshigi", .5f, (t, r) =>
             (Mathf.Sin(t * 2350 * Mathf.PI * 2) + Mathf.Sin(t * 3520 * Mathf.PI * 2) * .6f) * Mathf.Exp(-t * 28) + Noise(r) * Mathf.Exp(-t * 120) * .4f, false);
 
+        public static CandyAudio.CandySound SoundId(string clipName) => CandyAudio.CandySignatureSounds.Id("ninja/" + clipName);
+        public static float Gain(AudioClip clip) => clip ? CandyAudio.CandyDirectAudio.Gain(SoundId(clip.name)) : 0;
+
         static float Master
         {
             get { var engine = CandyAudio.CandyAudioEngine.Instance; return engine && engine.bank ? engine.bank.master : .8f; }
@@ -108,18 +111,20 @@ namespace DeadlyJenga.NinjaArt
         public static AudioSource Loop(Transform parent, AudioClip clip, float volume, bool spatial, float near = 3, float far = 40)
         {
             var go = new GameObject("Audio - " + clip.name); go.transform.SetParent(parent, false);
-            var s = go.AddComponent<AudioSource>(); s.clip = clip; s.loop = true; s.playOnAwake = false; s.volume = volume * Master; s.dopplerLevel = 0;
-            s.spatialBlend = spatial ? 1 : 0; s.minDistance = near; s.maxDistance = far; s.rolloffMode = AudioRolloffMode.Linear; s.time = Random.Range(0, clip.length * .9f); s.Play(); return s;
+            var s = go.AddComponent<AudioSource>(); s.clip = CandyAudio.CandyDirectAudio.Clip(SoundId(clip.name), clip); s.loop = true; s.playOnAwake = false; s.volume = volume * Master * Gain(clip); s.dopplerLevel = 0;
+            s.spatialBlend = spatial ? 1 : 0; s.minDistance = near; s.maxDistance = far; s.rolloffMode = AudioRolloffMode.Linear; if (s.clip) { s.time = Random.Range(0, s.clip.length * .9f); s.Play(); } return s;
         }
         public static void Play(AudioClip clip, Vector3 at, float volume, float pitch = 1, bool global = false)
         {
             var engine = CandyAudio.CandyAudioEngine.Instance;
             if (engine && engine.bank)
             {
-                var cue = new CandyAudio.CandyAudioCue { sound = (CandyAudio.CandySound)(900 + (clip.GetInstanceID() & 63)), variants = new[] { clip }, bus = CandyAudio.CandyBus.World, volume = volume, pitch = new Vector2(pitch * .97f, pitch * 1.03f), cooldown = .05f, maxVoices = 3, priority = 40, minDistance = global ? 40 : 4, maxDistance = global ? 600 : 70 };
-                if (engine.PlayCue(cue, at, 1, 0, 1, global)) return;
+                var cue = new CandyAudio.CandyAudioCue { sound = SoundId(clip.name), variants = new[] { clip }, bus = CandyAudio.CandyBus.World, volume = 1, pitch = new Vector2(.97f, 1.03f), cooldown = .05f, maxVoices = 3, priority = 40, minDistance = global ? 40 : 4, maxDistance = global ? 600 : 70 };
+                engine.PlayCue(cue, at, volume, 0, pitch, global);
+                return;
             }
-            AudioSource.PlayClipAtPoint(clip, at, volume * Master);
+            var replacement = CandyAudio.CandyDirectAudio.Clip(SoundId(clip.name), clip);
+            if (replacement && Gain(clip) > 0) AudioSource.PlayClipAtPoint(replacement, at, volume * Master * Gain(clip));
         }
     }
 }

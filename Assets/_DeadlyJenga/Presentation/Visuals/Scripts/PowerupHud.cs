@@ -5,45 +5,128 @@ using UnityEngine.UI;
 
 namespace DeadlyJenga.CastlePrototype
 {
+    [DisallowMultipleComponent, DefaultExecutionOrder(650)]
     public sealed class PowerupHud : MonoBehaviour
     {
+        static readonly int Boosts = Shader.PropertyToID("_Boosts");
+        static readonly int Phase = Shader.PropertyToID("_Phase");
+
+        IPlayerView view;
+        ITimedEffects effects;
+        IDamageable health;
+        EffectType speedType, jumpType;
         Canvas canvas;
-        Text speed,jump;
-        EffectType speedType,jumpType;
+        Material material;
         Camera attached;
-        bool vr;
-        public float ShownSpeedSeconds {get;private set;}
-        public float ShownJumpSeconds {get;private set;}
+        Vector2 strength;
+        bool triedBuild;
+
+        public float ShownSpeedSeconds { get; private set; }
+        public float ShownJumpSeconds { get; private set; }
+
+        void Awake()
+        {
+            view = GetComponent<IPlayerView>();
+            effects = GetComponent<ITimedEffects>();
+            health = GetComponent<IDamageable>();
+            speedType = Resources.Load<EffectType>("Powerups/Speed2x");
+            jumpType = Resources.Load<EffectType>("Powerups/Jump3x");
+        }
+
+        void LateUpdate() => Present(Time.unscaledDeltaTime, (float)(Time.unscaledTimeAsDouble % 120));
+
+        void Present(float dt, float time)
+        {
+            var session = Services.Session;
+            var camera = view?.ViewCamera;
+            if (effects == null || view?.ControlledHere != true || !camera || !camera.isActiveAndEnabled ||
+                (health != null && health.Health <= 0) || !OwnsView(session, camera))
+            {
+                Hide();
+                return;
+            }
+
+            if (attached != camera)
+            {
+                strength = Vector2.zero;
+                attached = camera;
+            }
+
+            ShownSpeedSeconds = effects.SecondsRemaining(speedType);
+            ShownJumpSeconds = effects.SecondsRemaining(jumpType);
+            strength.x = Ease(strength.x, ShownSpeedSeconds > 0, dt);
+            strength.y = Ease(strength.y, ShownJumpSeconds > 0, dt);
+            if (strength == Vector2.zero)
+            {
+                if (canvas) canvas.enabled = false;
+                return;
+            }
+
+            if (!triedBuild) Build();
+            if (!canvas) return;
+            CandyScreenPlane.Configure(canvas, camera, view.IsVR || camera.stereoEnabled);
+            material.SetVector(Boosts, new Vector4(strength.x, strength.y, 0, 0));
+            material.SetFloat(Phase, time);
+            canvas.enabled = true;
+        }
+
+        bool OwnsView(ISessionInfo session, Camera camera)
+        {
+            if (session == null) return true;
+            if (session.MenuOpen || session.PlayingHand || session.Player?.gameObject != gameObject ||
+                session.Player.InputSuspended || session.ActiveCamera != camera ||
+                (session as ILobbyMatchVisitControls)?.VisitingLobby == true ||
+                (session.Demo as ISpectatorControls)?.Spectating == true)
+                return false;
+
+            var match = MatchRuntime.Current;
+            var frame = match?.Frame;
+            if (frame == null) return true;
+            if (frame.phase != RoundPhase.Playing) return false;
+            foreach (var player in frame.players)
+                if (player.id == match.LocalActorId)
+                    return player.alive && !player.dying && player.role != "spectator" &&
+                        string.IsNullOrEmpty(player.spectating);
+            return false;
+        }
+
+        static float Ease(float value, bool active, float dt) =>
+            Mathf.MoveTowards(value, active ? 1 : 0, dt * (active ? 6 : 3.5f));
+
         void Build()
         {
-            var root=new GameObject("Powerup countdowns",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));root.transform.SetParent(transform,false);
-            canvas=root.GetComponent<Canvas>();canvas.sortingOrder=32;
-            speed=Row(root.transform,"Speed countdown",new Vector2(420,270),CandyHudVisuals.Mint);
-            jump=Row(root.transform,"Jump countdown",new Vector2(420,214),CandyHudVisuals.Lavender);
-            speedType=Resources.Load<EffectType>("Powerups/Speed2x");jumpType=Resources.Load<EffectType>("Powerups/Jump3x");
+            triedBuild = true;
+            var shader = Resources.Load<Shader>("CandyScenery/CandyPowerupScreenFx");
+            if (!shader || !shader.isSupported) return;
+
+            var root = new GameObject("Powerup screen effects", typeof(RectTransform), typeof(Canvas));
+            root.transform.SetParent(transform, false);
+            canvas = root.GetComponent<Canvas>();
+            canvas.sortingOrder = 32;
+            var image = new GameObject("Powerup light", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            image.transform.SetParent(root.transform, false);
+            image.raycastTarget = false;
+            image.rectTransform.anchorMin = Vector2.zero;
+            image.rectTransform.anchorMax = Vector2.one;
+            image.rectTransform.offsetMin = image.rectTransform.offsetMax = Vector2.zero;
+            material = new Material(shader) { name = "Local powerup screen effects" };
+            image.material = material;
         }
-        static Text Row(Transform parent,string name,Vector2 position,Color color)
+
+        void Hide()
         {
-            var panel=new GameObject(name,typeof(RectTransform),typeof(Image));panel.transform.SetParent(parent,false);
-            var image=panel.GetComponent<Image>();image.color=new Color(.07f,.04f,.15f,.9f);image.raycastTarget=false;
-            image.rectTransform.sizeDelta=new Vector2(360,48);image.rectTransform.anchoredPosition=position;
-            var go=new GameObject("Timer",typeof(RectTransform),typeof(Text));go.transform.SetParent(panel.transform,false);
-            var text=go.GetComponent<Text>();text.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;text.fontSize=20;text.fontStyle=FontStyle.Bold;
-            text.alignment=TextAnchor.MiddleCenter;text.color=color;text.raycastTarget=false;text.rectTransform.sizeDelta=new Vector2(350,46);return text;
+            if (canvas) canvas.enabled = false;
+            strength = Vector2.zero;
+            attached = null;
+            ShownSpeedSeconds = ShownJumpSeconds = 0;
         }
-        void Update()
+
+        void OnDisable() => Hide();
+
+        void OnDestroy()
         {
-            var view=GetComponent<IPlayerView>();var effects=GetComponent<ITimedEffects>();
-            if(view==null||effects==null||!view.ControlledHere||!view.ViewCamera)return;
-            if(!canvas)Build();
-            if(attached!=view.ViewCamera||vr!=view.IsVR){attached=view.ViewCamera;vr=view.IsVR;CandyHudLayout.Configure(canvas,transform,attached,vr);}
-            ShownSpeedSeconds=effects.SecondsRemaining(speedType);ShownJumpSeconds=effects.SecondsRemaining(jumpType);
-            Show(speed,"2x SPEED",ShownSpeedSeconds);Show(jump,"3x JUMP",ShownJumpSeconds);
-            canvas.enabled=attached.isActiveAndEnabled&&(ShownSpeedSeconds>0||ShownJumpSeconds>0);
+            if (canvas) Destroy(canvas.gameObject);
+            if (material) Destroy(material);
         }
-        static void Show(Text text,string name,float seconds)
-        {text.transform.parent.gameObject.SetActive(seconds>0);text.text=name+"  "+Mathf.CeilToInt(seconds)+"s  |  INFINITE STAMINA";}
-        void OnDisable(){if(canvas)canvas.enabled=false;}
-        void OnDestroy(){if(canvas)Destroy(canvas.gameObject);}
     }
 }

@@ -58,6 +58,9 @@ namespace DeadlyJenga.CastlePrototype
         public static bool StartLocalSession;
         public static MatchRules Rules => MatchChoices.Rules;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void SetDefaultStamina() => MatchChoices.Rules.gripSeconds = 8f;
+
         public static string ModeId { get => MatchChoices.ModeId; set => MatchChoices.ModeId = value; }
         public static string MapId { get => MatchChoices.MapId; set => MatchChoices.MapId = value; }
         public static int BotTarget { get => MatchChoices.BotTarget; set => MatchChoices.BotTarget = value; }
@@ -78,7 +81,7 @@ namespace DeadlyJenga.CastlePrototype
         public static string Turn => Rules.turn;
         public static float MasterVolume = .8f, MusicVolume = .22f;
 
-        // Seated smooth turn or standing physical turn. Saved per device.
+        // Both styles default to head-directed movement. Seated uses smooth turn and Standing uses physical turn.
         public static string PlayStyle
         {
             get { RefreshLocalControls(); return Rules.playStyle; }
@@ -92,10 +95,19 @@ namespace DeadlyJenga.CastlePrototype
         public static void RefreshLocalControls()
         {
             SetPlayStyle(PlayerPrefs.GetInt("SurvivorVRPlayStyle", 0) == 1 ? "Standing" : "Seated");
+            var movement=PlayerPrefs.GetString("SurvivorVR.MovementV2",Rules.movement);
+            if(movement=="HeadRelative"||movement=="BodyRelative")Rules.movement=movement;
+            var turn=PlayerPrefs.GetString("SurvivorVR.Turn",Rules.turn);
+            if(turn=="Snap"||turn=="Smooth"||turn=="PhysicalOnly")Rules.turn=turn;
+            float snap=PlayerPrefs.GetFloat("SurvivorVR.SnapAngle",Rules.snapAngle);
+            float speed=PlayerPrefs.GetFloat("SurvivorVR.SmoothDegrees",Rules.smoothDegrees);
+            if(float.IsFinite(snap))Rules.snapAngle=Mathf.Clamp(snap,15,90);
+            if(float.IsFinite(speed))Rules.smoothDegrees=Mathf.Clamp(speed,15,360);
         }
         static void SetPlayStyle(string style)
         {
             Rules.playStyle = style;
+            Rules.movement = "HeadRelative";
             Rules.turn = style == "Standing" ? "PhysicalOnly" : "Smooth";
         }
 

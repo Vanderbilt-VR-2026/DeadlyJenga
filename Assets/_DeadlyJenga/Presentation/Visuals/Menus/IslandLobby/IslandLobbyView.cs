@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using DeadlyJenga.Presentation;
 using UnityEngine.UI;
 using DeadlyJenga.Core;
 using DeadlyJenga.CandyArt;
-using DeadlyJenga.Presentation;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -15,6 +15,7 @@ namespace DeadlyJenga.CastlePrototype
     [DefaultExecutionOrder(210)]
     public sealed partial class IslandLobbyView : MonoBehaviour
     {
+        partial void BuildComfortControls();
         partial void BuildMayhemMarina();
         partial void UpdateMayhemMarina();
         partial void DisposeMayhemMarina();
@@ -25,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
         public CandyEnvironment Environment {get;private set;}
         CandyArtProfile localArt;
         InputAction select,wardrobeCancel;
-        sealed class Choice {public string id;public Button button;public BoxCollider collider;public Text label;public Action action;public Func<bool> enabled;public Func<string> title;public Func<bool> visible;public bool physical;public bool candy,selectionGlyph;public Color faceColor,edgeColor;public Image rim;public Func<bool> selected;public Text description;public LobbyTerminalGlyph glyph;public Transform keyVisual;public Renderer keyRenderer;public MaterialPropertyBlock keyProperties;public float pressedUntil;public Color keyColor;public Image keyGlow,keyGlowSoft;public Graphic keyIcon;public Action<float> slide;public Func<bool> slideEnabled;}
+        sealed class Choice {public string id;public Button button;public BoxCollider collider;public Text label;public Action action;public Func<bool> enabled;public Func<string> title;public Func<bool> visible;public bool physical;public bool candy,selectionGlyph,cabinetCandy,cabinetLink;public bool focusInitialized;public Outline focusOutline;public Shadow focusGlow;public Color faceColor,edgeColor;public Image rim;public Func<bool> selected;public Text description;public LobbyTerminalGlyph glyph;public Transform keyVisual;public Renderer keyRenderer;public MaterialPropertyBlock keyProperties;public float pressedUntil;public Color keyColor;public Image keyGlow,keyGlowSoft;public Graphic keyIcon;public Action<float> slide;public Func<bool> slideEnabled;}
         readonly List<Choice> choices=new List<Choice>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -43,15 +44,19 @@ namespace DeadlyJenga.CastlePrototype
             session=info;lobby=controls;
             GameEvents.Emoted+=LobbyResidenceChanged;
             BuildIsland();
-            select=new InputAction("Lobby select",InputActionType.Button,"<XRController>{RightHand}/trigger");select.AddBinding("<XRController>{LeftHand}/trigger");select.Enable();
+            select=MenuAim.SelectAction("Lobby select",false);
+            select.AddBinding("<XRController>{LeftHand}/trigger");
+            MenuAim.AddSelectBindings(select,true);
+            select.Enable();
             wardrobeCancel=new InputAction("Leave wardrobe",InputActionType.Button,"<XRController>{RightHand}/secondaryButton");
             wardrobeCancel.AddBinding("<XRController>{LeftHand}/secondaryButton");wardrobeCancel.Enable();
             BuildTerminals();
             BuildCandyDesign();
+            BuildComfortControls();
             BuildWardrobe();
-            BuildTVWall();
             BuildMayhemMarina();
-            LobbyArrivalFade.Begin(Player.ViewCamera,()=>lobby==null||lobby.Connected);
+            BuildTVWall();
+            SessionPresentation.AttachLobbyTablet(this,info);
         }
         void BuildIsland()
         {
@@ -60,8 +65,8 @@ namespace DeadlyJenga.CastlePrototype
             localArt=Instantiate(art?art:prefab.profile);localArt.name="Lobby art (runtime copy)";
             localArt.islandRadius=8;localArt.fitIslandToFoundation=false;localArt.alignSandToFoundation=false;
             localArt.sandHeight=.45f;localArt.sandRelief=.28f;localArt.sandMargin=.65f;localArt.sandShoreWidth=2.1f;localArt.terrainResolution=96;
-            Environment=Instantiate(prefab);Environment.name="Island  /  castle ocean, sand and sky";Environment.profile=localArt;Environment.foundation=null;Environment.applyLighting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby!=true;
-            lobbySun=new GameObject("Island sunlight").AddComponent<Light>();lobbySun.type=LightType.Directional;lobbySun.enabled=Environment.applyLighting;Environment.sun=lobbySun;
+            Environment=Instantiate(prefab,transform);Environment.WorldOverride=lobby as IWorldQuery;Environment.name="Island  /  castle ocean, sand and sky";Environment.profile=localArt;Environment.foundation=null;Environment.applyLighting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby!=true;
+            lobbySun=new GameObject("Island sunlight").AddComponent<Light>();lobbySun.transform.SetParent(transform,false);lobbySun.type=LightType.Directional;lobbySun.enabled=Environment.applyLighting;Environment.sun=lobbySun;
             if((lobby as ILobbyMatchVisitControls)?.VisitingLobby==true)
             {
                 foreach(var component in Environment.GetComponents<MonoBehaviour>())component.enabled=false;
@@ -72,127 +77,263 @@ namespace DeadlyJenga.CastlePrototype
             Environment.Refresh();var sand=Environment.sandRenderer;
             lobby.SetFloor(sand.GetComponent<MeshFilter>().sharedMesh,sand.transform);   // the lobby makes the floor collider
         }
-        TextMesh lobbyAimDot;
-        void DrawLobbyAim(Ray ray,float distance,bool pressed)
+        Image lobbyAimDot;
+        Canvas lobbyAimCanvas;
+        LineRenderer lobbyAimBeam;
+        bool trackedLobbyPointer;
+        void EnsureLobbyAimCanvas()
         {
-            if(Player.IsVR)MenuLaser.MarkHover(pressed);   // the menu laser draws the exact hit cursor
+            if(!lobbyAimCanvas)
+            {
+                var root=new GameObject("Lobby terminal reticle",typeof(RectTransform),typeof(Canvas));
+                root.transform.SetParent(transform,false);
+                lobbyAimCanvas=root.GetComponent<Canvas>();
+                lobbyAimCanvas.renderMode=RenderMode.WorldSpace;
+                lobbyAimCanvas.overrideSorting=true;
+                lobbyAimCanvas.sortingOrder=MenuAim.PointerSortOrder+1;
+                lobbyAimDot=MenuAim.CreateReticle(root.transform);
+                MenuAim.PresentInForeground(root.transform);
+            }
         }
-        bool controlsMenuWasOpen;
+        void DrawLobbyAim(Ray ray,float distance,bool hit,bool actionable=true)
+        {
+            if(!hit)
+            {
+                if(Player!=null&&!Player.IsVR&&Player.ViewCamera!=null)
+                {
+                    EnsureLobbyAimCanvas();
+                    var centerPoint=ray.GetPoint(1.8f);
+                    lobbyAimCanvas.worldCamera=Player.ViewCamera;
+                    lobbyAimCanvas.transform.SetPositionAndRotation(centerPoint,Player.ViewCamera.transform.rotation);
+                    lobbyAimCanvas.transform.localScale=Vector3.one*0.0013f;
+                    MenuAim.Present(lobbyAimDot,centerPoint,true,false);
+                }
+                else if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);
+                if(lobbyAimBeam)lobbyAimBeam.enabled=false;
+                return;
+            }
+            MenuAim.PresentBeam(ref lobbyAimBeam, transform, ray, ray.GetPoint(Mathf.Max(.1f,distance-.035f)),
+                Player.IsVR && trackedLobbyPointer && distance > .03f && hit, actionable);
+            EnsureLobbyAimCanvas();
+            var point=ray.GetPoint(Mathf.Max(.1f,distance-.035f));
+            lobbyAimCanvas.worldCamera=Player.ViewCamera;
+            var reticle=lobbyAimCanvas.transform;
+            reticle.SetPositionAndRotation(point,Player.ViewCamera.transform.rotation);
+            reticle.localScale=Vector3.one*Mathf.Clamp(distance*.0007f,.0007f,.003f);
+            MenuAim.Present(lobbyAimDot,point,true,actionable);
+        }
+        bool terminalRequireRelease=true,inputFocused=true;
+        void OnApplicationFocus(bool focused)
+        {
+            inputFocused = focused;
+            if(!focused){if(lobbyAimBeam)lobbyAimBeam.enabled=false;if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);}
+            terminalRequireRelease = true;
+            wardrobeDragDevice = 0;
+            draggingKeyboard=false;
+        }
+        bool TabletOwnsLobbyInput => session?.MenuOpen == true && !wardrobeOpen && lobby?.CodeFocused != true &&
+            (session.IsVR || SessionPresentation.LobbyDeveloperAvailable(session));
+
+        bool LocalModalBlocked => TabletOwnsLobbyInput || MenuAim.InputConsumed ||
+            GameExperiencePanel.Showing(session) || CandyComfortPanel.Showing(session) ||
+            CandyWildlifePanel.Showing(session) || CharacterPicker.Showing(session);
+
         void Update()
         {
-            bool menuOpened=session?.MenuOpen==true&&!controlsMenuWasOpen;
-            controlsMenuWasOpen=session?.MenuOpen==true;
-            if(menuOpened&&Player?.IsVR==true&&!wardrobeOpen&&!DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)&&!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))
-                DeadlyJenga.Presentation.CandyComfortPanel.Open(session);
-            if(DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)||DeadlyJenga.Presentation.CandyComfortPanel.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))
-            { if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false); if(piano)ClosePrivateKeyboard(); return; }
-            if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
-            var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;
-            if(!eye)return;
+            if (lobbyAimBeam) lobbyAimBeam.enabled = false;
+            if (lobbyAimDot) lobbyAimDot.gameObject.SetActive(false);
+            trackedLobbyPointer = false;
+            var keyboard=Keyboard.current;
+            if(inputFocused&&spectatorWall&&spectatorWall.FullScreen&&
+                (keyboard?.escapeKey.wasPressedThisFrame==true||session.MenuOpen))
+            {
+                spectatorWall.CloseFullScreen();
+                terminalRequireRelease=true;
+                if(session.MenuOpen)session.SetMenu(false);
+                MenuAim.Consume();
+                return;
+            }
+            if(!inputFocused||LocalModalBlocked||lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy||!Player.ViewCamera)
+            {
+                terminalRequireRelease=true;wardrobeDragDevice=0;draggingKeyboard=false;
+                if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);
+                return;
+            }
+            var mouse=Mouse.current;var eye=Player.ViewCamera;
             UpdateMayhemMarina();
             if(UpdateWardrobe()){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
-            UpdatePrivateKeyboard();
-            UpdateSettingRows();
-            bool movingKeyboard=UpdateKeyboardDrag(eye);
-            bool spinningWardrobe=Player.IsVR&&UpdateWardrobeDrag(eye);
-            if(Player.IsVR)
+            bool vr = Player.IsVR;
+            bool pointerHeld = vr ? select.IsPressed() || Player.SelectHeld : mouse?.leftButton.isPressed==true||Player.SelectHeld;
+            bool held = pointerHeld || !vr && !lobby.CodeFocused && keyboard?.eKey.isPressed==true;
+            if(terminalRequireRelease){if(!held)terminalRequireRelease=false;return;}
+            bool pressed = vr ? Player.SelectPressed :
+                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true||Player.SelectPressed;
+            int pointerDevice=0;
+            Ray ray;
+            if (Player.IsVR)
             {
-                bool aimed=MenuPointer.AimAt(eye, Player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true, LobbyPanelHit, out var input);
-                if(spinningWardrobe||BeginWardrobeDrag(input)||movingKeyboard||(lobby.CodeFocused&&BeginKeyboardDrag(input.Ray,input.Pressed,input.Device)))
-                {if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);}
-                else if(aimed)Point(input.Ray,input.Pressed,input.Held);
-                else Point(default,false);
+                bool preferredLeft=Player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+                ray=MenuAim.Resolve(eye,eye.transform.parent,preferredLeft,false,false,out trackedLobbyPointer,out _);
+                if(!trackedLobbyPointer && (lobby as ILobbyMatchVisitControls)?.VisitingLobby==true &&
+                    MenuAim.TryHandPointer(eye,Player,preferredLeft,out var visitorHandRay))ray=visitorHandRay;
+                trackedLobbyPointer |= MenuAim.IsTrackedPointer(eye, ray);
+                if (select.IsPressed() || select.WasPressedThisFrame())
+                {
+                    if (MenuAim.TryActionPointer(eye,select,out var controllerRay,out pointerDevice))
+                    {
+                        ray=controllerRay;
+                        trackedLobbyPointer=true;
+                        pressed=select.WasPressedThisFrame();
+                    }
+                    else
+                    {
+                        pressed=false;
+                        pointerHeld=false;
+                    }
+                }
             }
             else
+                ray=session.MenuOpen&&(mouse!=null||MenuGamepad.UsingPointer)?eye.ScreenPointToRay(MenuGamepad.UsingPointer?MenuGamepad.Position:mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
+            if (spectatorWall && spectatorWall.FullScreen)
             {
-                bool pressed=keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
-                Ray ray=session.MenuOpen&&mouse!=null?eye.ScreenPointToRay(mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
-                if(!movingKeyboard&&!(lobby.CodeFocused&&BeginKeyboardDrag(ray,mouse?.leftButton.wasPressedThisFrame==true,0)))
-                    Point(ray,pressed,mouse!=null&&mouse.leftButton.isPressed);
+                if (pressed || keyboard?.escapeKey.wasPressedThisFrame == true)
+                {
+                    spectatorWall.CloseFullScreen();
+                    terminalRequireRelease=true;
+                }
+                MenuAim.Consume();
+                return;
             }
+            Point(ray,pressed,pointerHeld,pointerDevice);
             UpdateStations();
         }
         readonly RoomLeaveConfirmation terminalLeave=new RoomLeaveConfirmation();
         bool ConfirmingTerminalLeave=>lobby.Connected&&!lobby.IsHost&&!lobby.Busy&&terminalLeave.Pending(lobby,lobby.HostCode,Time.unscaledTime);
         string TerminalLeaveLabel(string idle)=>ConfirmingTerminalLeave?
-            "Confirm leave":idle;
+            "CONFIRM LEAVE · DISCONNECT FROM HOST":idle;
         void LeaveFromTerminal()
         {
             if(lobby.CanLeave&&terminalLeave.Select(lobby,lobby.HostCode,lobby.Connected&&!lobby.IsHost&&!lobby.Busy,Time.unscaledTime))
                 lobby.Leave();
         }
-        public bool InvokeChoice(string id)
+        public bool InvokeChoice(string id) => InvokeChoice(id, 0);
+
+        bool InvokeChoice(string id, int pointerDevice)
         {
-            if(DeadlyJenga.Presentation.GameExperiencePanel.Showing(session))return false;
-            if(id=="leave"){if(!RoomHasGuests||!lobby.CanLeave)return false;LeaveFromTerminal();return true;}
-            if(!DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session)&&(id.StartsWith("map-",StringComparison.Ordinal)||id.StartsWith("mode-",StringComparison.Ordinal)))return false;
-            if(id.StartsWith("map-",StringComparison.Ordinal)&&lobby.SelectMap(id.Substring(4)))return true;
-            if(id.StartsWith("mode-",StringComparison.Ordinal)&&lobby.SelectMode(id.Substring(5)))return true;
-            var choice=choices.FirstOrDefault(c=>c.id==id);
-            if(choice==null||choice.visible!=null&&!choice.visible()||choice.enabled!=null&&!choice.enabled())return false;
-            choice.pressedUntil=Time.unscaledTime+.14f;
-            choice.action();return true;
+            if (LocalModalBlocked || string.IsNullOrEmpty(id)) return false;
+            bool map = id.StartsWith("map-", StringComparison.Ordinal);
+            bool mode = id.StartsWith("mode-", StringComparison.Ordinal);
+            if ((map || mode) && !GameExperiencePanel.CanEditRawChoices(session)) return false;
+
+            var choice = choices.FirstOrDefault(c => c.id == id);
+            if (choice == null)
+            {
+                if (id == "leave" && lobby.CanLeave) { MenuAim.Consume(); LeaveFromTerminal(); return true; }
+                bool selected = map ? lobby.SelectMap(id.Substring(4)) : mode && lobby.SelectMode(id.Substring(5));
+                if (selected) MenuAim.Consume();
+                return selected;
+            }
+            if (!choice.button || !choice.button.transform.parent.gameObject.activeInHierarchy ||
+                choice.visible?.Invoke() == false || choice.enabled?.Invoke() == false) return false;
+            choice.pressedUntil = Time.unscaledTime + .16f;
+            PaintCandyChoice(choice, true, true);
+            if (choice.physical) UpdatePhysicalKey(choice, true);
+            MenuAim.Consume();
+            MenuAim.PulsePress(pointerDevice);
+            choice.action();
+            return true;
         }
-        float LobbyPanelHit(Ray ray)
+        bool RefreshChoice(Choice choice)
         {
-            if(lobby.CodeFocused)return MenuPointer.PanelHit(ray,piano);
-            float range=MenuPointer.PanelRange;
-            MarinaInteractionRange(ref range);
-            if(wardrobeOpen)return WardrobePanelHit(ray,range);
-            float room=MenuPointer.PanelHit(ray,roomPage,range);
-            return room>0?room:MenuPointer.PanelHit(ray,setupStation,range);
+            bool shown=choice.visible?.Invoke()!=false;
+            choice.button.gameObject.SetActive(shown);
+            if(!shown)return false;
+            bool raw=choice.id.StartsWith("map-",StringComparison.Ordinal)||choice.id.StartsWith("mode-",StringComparison.Ordinal);
+            bool usable=choice.enabled?.Invoke()!=false&&(!raw||GameExperiencePanel.CanEditRawChoices(session));
+            choice.button.interactable=usable;
+            choice.collider.enabled=usable;
+            if(choice.title!=null)choice.label.text=choice.title();
+            return true;
         }
 
-        public void Point(Ray ray,bool pressed,bool held=false)
+        public void Point(Ray ray,bool pressed,bool held=false,int pointerDevice=0)
         {
-            if(terminalPageChangedFrame==Time.frameCount)pressed=held=false;
             Choice nearest=null;float distance=4;MarinaInteractionRange(ref distance);Vector3 selectionPoint=default;
+            if (marina && Physics.Raycast(ray, out var obstruction, distance, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
+                distance = Mathf.Min(distance,obstruction.distance+.05f);
             foreach(var choice in choices)
             {
                 if(wardrobeOpen&&Player.IsVR&&choice.button&&!choice.button.transform.IsChildOf(wardrobePanel))continue;
                 if(!choice.button||!choice.button.transform.parent.gameObject.activeInHierarchy)continue;
-                if(lobby.CodeFocused && piano && !choice.button.transform.IsChildOf(piano))continue;
-                bool shown=choice.visible==null||choice.visible();choice.button.gameObject.SetActive(shown);if(!shown)continue;
-                bool rawChoice=choice.id.StartsWith("map-",StringComparison.Ordinal)||choice.id.StartsWith("mode-",StringComparison.Ordinal);
-                bool usable=(choice.enabled==null||choice.enabled())&&(!rawChoice||DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session));choice.button.interactable=usable;choice.collider.enabled=usable;
-                if(choice.title!=null)choice.label.text=choice.title();
-                PaintCandyChoice(choice,false,usable);
-                if(usable&&Vector3.Dot(ray.direction,choice.collider.transform.forward)>0&&choice.collider.Raycast(ray,out var hit,distance)&&hit.distance<distance){nearest=choice;distance=hit.distance;selectionPoint=hit.point;}
+                if(!RefreshChoice(choice))continue;
+                bool usable=choice.button.interactable;
+                if(choice.physical && usable)
+                {
+                    if(Vector3.Dot(ray.direction,choice.collider.transform.forward)>0&&choice.collider.Raycast(ray,out var hit,distance)&&hit.distance<distance){nearest=choice;distance=hit.distance;selectionPoint=hit.point;}
+                }
+                else if(!choice.physical && MenuAim.TryPoint(ray,(RectTransform)choice.button.transform,distance,out _,out var point))
+                {
+                    float depth=Vector3.Distance(ray.origin,point);
+                    if(depth<distance){nearest=choice;distance=depth;selectionPoint=point;}
+                }
                 if(choice.physical)choice.button.image.color=Color.clear;
                 if(choice.physical)UpdatePhysicalKey(choice,false);
             }
-            if(nearest!=null)
+            foreach(var choice in choices)
+                if(choice.button&&choice.button.gameObject.activeInHierarchy)PaintCandyChoice(choice,choice==nearest,choice.button.interactable);
+            PreviewMapChoice(nearest?.id);
+            if (DragRoomCodeKeyboard(ray, pressed, held, pointerDevice, distance, out float keyboardDepth))
+            {
+                DrawLobbyAim(ray, keyboardDepth, true);
+                return;
+            }
+            if (!wardrobeOpen && spectatorWall && spectatorWall.TryPoint(ray,distance,out int channel,out float tvDepth))
+            {
+                DrawLobbyAim(ray,tvDepth,true);
+                if (pressed && spectatorWall.OpenFullScreen(channel))
+                {
+                    MenuAim.Consume();
+                    MenuAim.PulsePress(pointerDevice);
+                    terminalRequireRelease=true;
+                }
+                return;
+            }
+            bool actionable = nearest != null && nearest.button.interactable;
+            if(actionable)
             {
                 if(nearest.physical)UpdatePhysicalKey(nearest,true);
-                PaintCandyChoice(nearest,true,true);
                 if(nearest.slide!=null&&(nearest.slideEnabled?.Invoke()??true)&&(pressed||held)){var rect=(RectTransform)nearest.button.transform;nearest.slide(Mathf.InverseLerp(-rect.rect.width*.5f,rect.rect.width*.5f,rect.InverseTransformPoint(selectionPoint).x));}
-                else if(pressed&&InvokeChoice(nearest.id)){DeadlyJenga.CandyAudio.CandyAudioControls.PlayUiClick(nearest.button.transform.position);if(Player.IsVR)DeadlyJenga.CandyAudio.CandyFeedback.Pulse(.35f,.05f);}
+                else if(pressed)InvokeChoice(nearest.id,pointerDevice);
             }
-            AnimateChoices(nearest,pressed||held);
-            if(nearest!=null)DrawLobbyAim(ray,distance,pressed);
-            else if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);
-        }
-        // Hovered candy buttons lift slightly and dip when pressed; a light tick on the controller when hover moves.
-        Choice hoveredChoice;
-        void AnimateChoices(Choice nearest,bool down)
-        {
-            if(nearest!=hoveredChoice){hoveredChoice=nearest;if(nearest!=null&&Player.IsVR)DeadlyJenga.CandyAudio.CandyFeedback.Pulse(.12f,.03f);}
-            float k=1-Mathf.Exp(-18*Time.unscaledDeltaTime);
-            foreach(var choice in choices)
+            bool hitStation = nearest != null;
+            if (!hitStation)
             {
-                if(!choice.candy||!choice.button||!choice.button.gameObject.activeInHierarchy)continue;
-                float target=choice==nearest?(down||Time.unscaledTime<choice.pressedUntil?.97f:1.035f):1;
-                var item=choice.button.transform;float scale=item.localScale.x;if(Mathf.Approximately(scale,target))continue;
-                scale=Mathf.Abs(scale-target)<.002f?target:Mathf.Lerp(scale,target,k);item.localScale=new Vector3(scale,scale,1);
+                RectTransform[] stations = { hostStation, setupStation, joinStation, wardrobePanel, piano };
+                foreach (var station in stations)
+                {
+                    if (station && station.gameObject.activeInHierarchy &&
+                        MenuAim.TryPoint(ray, station, distance, out _, out var stationPoint))
+                    {
+                        float depth = Vector3.Distance(ray.origin, stationPoint);
+                        if (depth < distance)
+                        {
+                            distance = depth;
+                            selectionPoint = stationPoint;
+                            hitStation = true;
+                        }
+                    }
+                }
             }
+            DrawLobbyAim(ray,distance,hitStation,actionable);
         }
         void OnGUI()
         {
             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy||Player.IsVR)return;
-            if(DeadlyJenga.Presentation.CandyComfortPanel.Showing(session))return;
-            if(session.MenuOpen&&GUI.Button(new Rect(490,15,330,60),"Controls & comfort"))DeadlyJenga.Presentation.CandyComfortPanel.Open(session);
+            if(LocalModalBlocked)return;
+            if(session.MenuOpen&&GUI.Button(new Rect(490,15,330,60),"CONTROLS / LEFT OR RIGHT HAND"))DeadlyJenga.Presentation.CandyComfortPanel.Open(session);
             bool typing=lobby.CodeFocused;
-            GUI.Box(new Rect(15,15,460,typing?95:70),"ISLAND LOBBY  /  WASD move  /  mouse look\nE / click selects  /  Esc releases mouse"+(typing?"\nType your code  /  Enter joins  /  Backspace erases":""));
+            string escapeHint=SessionPresentation.LobbyDeveloperAvailable(session)?"Esc opens tablet":"Esc releases mouse";
+            GUI.Box(new Rect(15,15,460,typing?95:70),"ISLAND LOBBY  /  WASD move  /  mouse look\nE / click selects  /  "+escapeHint+(typing?"\nType your code  /  Enter joins  /  Backspace erases":""));
         }
         void OnDestroy()
         {

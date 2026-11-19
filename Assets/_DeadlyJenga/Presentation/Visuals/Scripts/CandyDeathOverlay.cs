@@ -9,7 +9,11 @@ namespace DeadlyJenga.Presentation
     {
         const float SpreadSeconds = .28f;
         const float WipeSeconds = .65f;
+        // The paint waits a moment so a game-ending death can become GAME OVER instead.
+        const float DecideSeconds = .12f;
+        const float GameOverSeconds = 1.35f;
         static CandyDeathOverlay active;
+        public static bool GameOverActive => active && active.gameOverAt >= 0;
 
         ISessionInfo deathSession;
         IMatchRuntime deathMatch;
@@ -17,8 +21,15 @@ namespace DeadlyJenga.Presentation
         string actorId, deathRole, deathSpectating;
         int initialDeaths, confirmedDeaths;
         bool sawDeadFrame, sawAliveAfterDeath, localEventSeen, menuAtDeath;
-        float began, wipeAt = -1;
+        float began, wipeAt = -1, gameOverAt = -1;
+        Canvas bannerCanvas;
+        Image bannerDim;
+        Text bannerText;
+        RectTransform bannerRect;
+        Outline bannerOutline;
+        Shadow bannerShadow;
         Color tint;
+        int environment;
         Canvas canvas;
         Image paint;
         Material material;
@@ -26,11 +37,46 @@ namespace DeadlyJenga.Presentation
         public static void Show(Color color) => Request(color, false);
         public static void ShowLocalDeath(Color color) => Request(color, true);
 
-        static void Request(Color color, bool localEvent)
+        public static void ShowGameOver(ISessionInfo session)
         {
+            var camera = session?.ActiveCamera;
+            if (!camera || GameOverActive) return;
+            if (!active)
+            {
+                var root = new GameObject("Candy death overlay", typeof(RectTransform), typeof(Canvas));
+                DontDestroyOnLoad(root);
+                active = root.AddComponent<CandyDeathOverlay>();
+                active.Begin(Color.clear);
+            }
+            active.StartGameOver(session, camera);
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void Listen() => GameEvents.MatchSound += EnvironmentDeath;
+
+        static void EnvironmentDeath(MatchSoundCue cue, Vector3 point)
+        {
+            int kind = cue == MatchSoundCue.IslandDeath ? 1 : cue == MatchSoundCue.DrowningDeath ? 2 : 0;
+            var session = Services.Session;
+            if (kind == 0 || session?.Player == null || session.PlayingHand ||
+                (session as ILobbyMatchVisitControls)?.VisitingLobby == true ||
+                MatchRuntime.Current?.Frame?.phase != RoundPhase.Playing) return;
+            // These cues are addressed to the victim; bystanders receive NearbyDeath instead.
+            var actor = session.Player.gameObject.GetComponent<IModeActor>();
+            Request(actor?.Color ?? Color.cyan, false, kind);
+        }
+
+        static void Request(Color color, bool localEvent, int kind = 0)
+        {
+            var phase = MatchRuntime.Current?.Frame?.phase;
+            if (phase == RoundPhase.Victory || phase == RoundPhase.Results) return;
             if (active)
             {
-                if (!active.IsAnotherDeath(localEvent)) return;
+                if (!active.IsAnotherDeath(localEvent))
+                {
+                    if (kind > 0) active.SetEnvironment(kind);
+                    return;
+                }
                 active.canvas.enabled = false;
                 Destroy(active.gameObject);
                 active = null;
@@ -39,6 +85,7 @@ namespace DeadlyJenga.Presentation
             DontDestroyOnLoad(root);
             active = root.AddComponent<CandyDeathOverlay>();
             active.Begin(color);
+            if (kind > 0) active.SetEnvironment(kind);
             active.localEventSeen = localEvent;
         }
 
@@ -96,12 +143,29 @@ namespace DeadlyJenga.Presentation
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
             rect.offsetMin = rect.offsetMax = Vector2.zero;
-            var shader = Resources.Load<Shader>("CandyScenery/CandyDeathPaint");
-            if (shader && shader.isSupported)
+            int kind = 0;
+            if (player?.sinking == true && player.sinkProgress >= .98f) kind = 1;
+            var world = Services.World;
+            if (deathView && world != null && deathView.transform.position.y <= world.WaterHeight(deathView.transform.position) + .25f) kind = 2;
+            SetEnvironment(kind);
+        }
+
+        void SetEnvironment(int kind)
+        {
+            if (material && environment == kind) return;
+            environment = kind;
+            if (material) Destroy(material);
+            var shader = Resources.Load<Shader>(kind == 0 ? "CandyScenery/CandyDeathPaint" : "CandyScenery/CandyBodyFeedback");
+            if (!shader || !shader.isSupported) return;
+            material = new Material(shader);
+            if (kind > 0)
             {
-                material = new Material(shader);
-                paint.material = material;
+                material.SetTexture("_SandTex", Resources.Load<Texture2D>("CandyScenery/CatwalksSandGrain"));
+                material.SetFloat("_DeathKind", kind);
+                material.SetVector("_State", new Vector4(0, 0, 0, kind == 1 ? 1 : 0));
             }
+            paint.material = material;
+            paint.color = kind == 0 ? tint : Color.white;
         }
 
         MatchPlayerFrame FindPlayer()
@@ -163,7 +227,25 @@ namespace DeadlyJenga.Presentation
             }
 
             float now = Time.unscaledTime;
-            float age = now - began;
+            var phase = deathMatch?.Frame?.phase;
+            if (gameOverAt < 0 && phase == RoundPhase.Victory)
+            {
+                canvas.enabled = false;
+                Destroy(gameObject);
+                return;
+            }
+            if (gameOverAt < 0 && phase == RoundPhase.Results) StartGameOver(session, camera);
+            if (gameOverAt >= 0)
+            {
+                TickGameOver(now);
+                return;
+            }
+            if (now - began < DecideSeconds)
+            {
+                canvas.enabled = false;
+                return;
+            }
+            float age = now - began - DecideSeconds;
             bool nextView = IsNextView(session, camera);
             if (wipeAt < 0 && age >= SpreadSeconds && nextView) wipeAt = now;
             float wipe = wipeAt < 0 ? 0 : Mathf.Clamp01((now - wipeAt) / WipeSeconds);
@@ -179,43 +261,89 @@ namespace DeadlyJenga.Presentation
             if (canvas.renderMode != renderMode) canvas.renderMode = renderMode;
             if (canvas.worldCamera != (vr ? camera : null)) canvas.worldCamera = vr ? camera : null;
             float aspect = Mathf.Max(.1f, camera.aspect);
-            if (vr) aspect = FitStereoPlane((RectTransform)transform, camera);
+            if (vr) aspect = CandyScreenPlane.Fit((RectTransform)transform, camera);
 
             if (material)
             {
                 material.SetFloat("_Age", Mathf.Min(age, 4));
                 material.SetFloat("_Wipe", wipe);
-                material.SetFloat("_Aspect", aspect);
+                if (environment == 0) material.SetFloat("_Aspect", aspect);
+                else material.SetFloat("_FeedbackTime", Time.unscaledTime % 120);
             }
             else paint.color = new Color(tint.r, tint.g, tint.b, 1 - wipe);
             canvas.enabled = true;
         }
 
-        static float FitStereoPlane(RectTransform plane, Camera camera)
+        // Keep the banner immediately before the results panel, after the winner announcement.
+        void StartGameOver(ISessionInfo session, Camera camera)
         {
-            float depth = camera.nearClipPlane + Mathf.Min(.12f, (camera.farClipPlane - camera.nearClipPlane) * .5f);
-            Vector2 extent = Vector2.zero;
-            bool stereo = camera.stereoEnabled;
-            for (int eye = 0; eye < (stereo ? 2 : 1); eye++)
-            {
-                var projection = !stereo ? Camera.MonoOrStereoscopicEye.Mono :
-                    eye == 0 ? Camera.MonoOrStereoscopicEye.Left : Camera.MonoOrStereoscopicEye.Right;
-                for (int corner = 0; corner < 4; corner++)
-                {
-                    var point = camera.ViewportToWorldPoint(new Vector3(corner & 1, corner >> 1, depth), projection);
-                    var local = Quaternion.Inverse(camera.transform.rotation) * (point - camera.transform.position);
-                    extent = Vector2.Max(extent, new Vector2(Mathf.Abs(local.x), Mathf.Abs(local.y)));
-                }
-            }
+            gameOverAt = Time.unscaledTime;
+            paint.enabled = false;
+            var go = new GameObject("Candy game over", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+            DontDestroyOnLoad(go);
+            bannerCanvas = go.GetComponent<Canvas>();
+            bannerCanvas.overrideSorting = true;
+            bannerCanvas.sortingOrder = 520;
+            CandyHudLayout.Configure(bannerCanvas, null, camera, session?.IsVR ?? camera.stereoEnabled);
+            var dimObject = new GameObject("Dim", typeof(RectTransform), typeof(Image));
+            dimObject.transform.SetParent(go.transform, false);
+            bannerDim = dimObject.GetComponent<Image>();
+            bannerDim.raycastTarget = false;
+            bannerDim.color = new Color(.09f, .03f, .2f, 0);
+            var dimRect = bannerDim.rectTransform;
+            dimRect.anchorMin = Vector2.zero;
+            dimRect.anchorMax = Vector2.one;
+            dimRect.offsetMin = dimRect.offsetMax = Vector2.zero;
+            var label = new GameObject("GAME OVER", typeof(RectTransform), typeof(Text));
+            label.transform.SetParent(go.transform, false);
+            bannerRect = (RectTransform)label.transform;
+            bannerRect.sizeDelta = new Vector2(1200, 300);
+            bannerText = label.GetComponent<Text>();
+            bannerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            bannerText.fontStyle = FontStyle.Bold;
+            bannerText.fontSize = 190;
+            bannerText.alignment = TextAnchor.MiddleCenter;
+            bannerText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            bannerText.verticalOverflow = VerticalWrapMode.Overflow;
+            bannerText.raycastTarget = false;
+            bannerText.text = "GAME OVER";
+            bannerText.color = new Color(1f, .96f, .62f);
+            bannerOutline = label.AddComponent<Outline>();
+            bannerOutline.effectDistance = new Vector2(9, -9);
+            bannerShadow = label.AddComponent<Shadow>();
+            bannerShadow.effectDistance = new Vector2(0, -22);
+            TickGameOver(gameOverAt);
+        }
 
-            plane.SetPositionAndRotation(camera.transform.position + camera.transform.forward * depth, camera.transform.rotation);
-            plane.sizeDelta = extent * 2.2f + Vector2.one * .03f;
-            return plane.sizeDelta.x / plane.sizeDelta.y;
+        void TickGameOver(float now)
+        {
+            float t = now - gameOverAt;
+            if (t >= GameOverSeconds || !bannerCanvas || !bannerRect || !bannerText ||
+                !bannerOutline || !bannerShadow || !bannerDim)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            canvas.enabled = false;
+            // Punch in with a small overshoot, hold, then fade out.
+            float pop = Mathf.Clamp01(t / .2f);
+            float overshoot = 1 + 2.7f * Mathf.Pow(pop - 1, 3) + 1.7f * Mathf.Pow(pop - 1, 2);
+            float scale = Mathf.Lerp(2.4f, 1, overshoot);
+            float fade = 1 - Mathf.SmoothStep(0, 1, (t - (GameOverSeconds - .35f)) / .35f);
+            float shake = Mathf.Max(0, 1 - t / .35f) * 14;
+            bannerRect.localScale = Vector3.one * scale;
+            bannerRect.localRotation = Quaternion.Euler(0, 0, -4 + Mathf.Sin(t * 60) * shake * .25f);
+            bannerRect.anchoredPosition = new Vector2(Mathf.Sin(t * 83) * shake, 20 + Mathf.Cos(t * 71) * shake);
+            bannerText.color = new Color(1f, .96f, .62f, Mathf.Clamp01(pop * 2) * fade);
+            bannerOutline.effectColor = new Color(1f, .22f, .62f, fade);
+            bannerShadow.effectColor = new Color(.25f, .08f, .5f, .8f * fade);
+            bannerDim.color = new Color(.09f, .03f, .2f, .5f * Mathf.Clamp01(t / .15f) * fade);
         }
 
         void OnDestroy()
         {
             if (active == this) active = null;
+            if (bannerCanvas) Destroy(bannerCanvas.gameObject);
             if (material) Destroy(material);
         }
     }

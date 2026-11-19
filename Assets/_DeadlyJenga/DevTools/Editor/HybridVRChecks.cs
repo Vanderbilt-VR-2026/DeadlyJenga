@@ -87,6 +87,61 @@ namespace DeadlyJenga.DevTools.Editor
         static void Refresh(CandyTrackingSource source)=>typeof(CandyTrackingSource).GetMethod("ReadLatest",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(source,null);
         static void Input(InputDevice device,string control,float value)
         {using(var state=StateEvent.From(device,out var inputEvent)){device.GetChildControl<AxisControl>(control).WriteValueIntoEvent(value,inputEvent);InputSystem.QueueEvent(inputEvent);}}
+        static void CheckTrackedAvatarHeight(CastleSurvivor player,CandyPlayerAvatar avatar)
+        {
+            var eye=player.viewCamera.transform;
+            var saved=eye.position;
+            var remoteRoot=new GameObject("XR posture remote fixture");
+            var remote=remoteRoot.AddComponent<DeadlyJenga.CharacterNetwork.SurvivorNetworkView>()
+                .Init(new NetworkContext{localSurvivor=player.gameObject,actorId="xr-posture-fixture"});
+            try
+            {
+                foreach(float height in new[]{.08f,1.05f,2.5f,1.05f})
+                {
+                    eye.position=new Vector3(saved.x,player.transform.position.y+height*player.playerScale,saved.z);
+                    avatar.RefreshNow();
+                    var tracking=avatar.LastFrame;
+                    Check(Mathf.Abs(tracking.head.y-eye.position.y)<.001f,
+                        "Local view and outgoing tracking preserve physical headset height");
+                    CheckStandingBody(avatar.Rig,tracking);
+
+                    using var stream=new MemoryStream();
+                    using var writer=new BinaryWriter(stream);
+                    using var reader=new BinaryReader(stream);
+                    avatar.WriteState(writer);
+                    stream.Position=0;
+                    remote.ReadState(reader,true);
+                    remote.Render(1);
+                    Check(Mathf.Abs(remote.ViewPose.position.y-tracking.head.y)<.015f,
+                        "Remote gameplay pose preserves transmitted headset height");
+                    CheckStandingBody(remote.Visual.GetComponent<CandyPlayerRig>(),tracking);
+                }
+            }
+            finally
+            {
+                eye.position=saved;
+                avatar.RefreshNow();
+                Object.Destroy(remoteRoot);
+            }
+        }
+
+        static void CheckStandingBody(CandyPlayerRig rig,CandyAvatarFrame tracking)
+        {
+            float scale=tracking.scale;
+            float expected=(1.6f-.14f)*scale+
+                (tracking.headRotation*(rig.style?rig.style.headCenterOffset:new Vector3(0,0,-.08f))).y*scale;
+            Check(Mathf.Abs(rig.HeadAnchor.position.y-tracking.feet.y-expected)<.015f,
+                "Tracked height changes leave the rendered avatar head at standing height");
+            Check(Mathf.Abs(rig.BodyAnchor.localScale.y-1)<.015f,
+                "Tracked height changes do not compress or stretch the torso");
+            foreach(int index in new[]{10,13})
+            {
+                float foot=rig.AppearanceBone(index).position.y;
+                Check(foot>=tracking.feet.y-.015f&&foot<rig.HeadAnchor.position.y,
+                    "The avatar foot stays below its head and above the floor");
+            }
+        }
+
         static IEnumerator Run()
         {
             yield return null;yield return null;
@@ -152,9 +207,9 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(DeadlyJenga.Presentation.CandyGunSights.OpenSightAligned(Vector3.zero,Vector3.forward,muzzle)&&
                       !DeadlyJenga.Presentation.CandyGunSights.OpenSightAligned(Vector3.up*.4f,Vector3.forward,muzzle),"Scopeless VR aim detects a raised weapon and rejects a lowered weapon");
                 var avatar=player.GetComponent<CandyPlayerAvatar>();var rig=avatar.Rig;var sample=avatar.ReadFrame();
-                rig.SeatedVisual=true;rig.ApplyFrame(sample);float seatedHead=rig.HeadAnchor.position.y;
-                sample.head.y+=.60f;rig.ApplyFrame(sample);
-                Check(Mathf.Abs(seatedHead-rig.HeadAnchor.position.y)<.001f,"Local seated rig posture does not stretch with headset height");
+                rig.ApplyFrame(sample);float uprightHead=rig.HeadAnchor.position.y;
+                rig.SeatedVisual=true;sample.seated=true;rig.ApplyFrame(sample);
+                Check(Mathf.Abs(uprightHead-rig.HeadAnchor.position.y)<.001f,"Seated comfort keeps the avatar in its upright pose");
                 rig.SeatedVisual=false;
                 using(var packet=new MemoryStream())
                 using(var writer=new BinaryWriter(packet))
@@ -165,7 +220,7 @@ namespace DeadlyJenga.DevTools.Editor
                     packet.Position=0;
                     DeadlyJenga.CharacterNetwork.CharacterWire.ReadSurvivor(reader,out var received,out _,out _,out _);
                     rig.ApplyFrame(received);
-                    Check(received.seated&&Mathf.Abs(seatedHead-rig.HeadAnchor.position.y)<.001f,"Network survivor frame preserves the seated pose on the receiving rig");
+                    Check(received.seated&&Mathf.Abs(uprightHead-rig.HeadAnchor.position.y)<.001f,"The seated wire flag decodes without changing the upright avatar pose");
                     packet.SetLength(0);
                     sample.seated=false;
                     DeadlyJenga.CharacterNetwork.CharacterWire.WriteSurvivor(writer,sample,0,default);
@@ -173,6 +228,7 @@ namespace DeadlyJenga.DevTools.Editor
                     DeadlyJenga.CharacterNetwork.CharacterWire.ReadSurvivor(reader,out received,out _,out _,out _);
                     Check(!received.seated,"Existing survivor packet without seated flag still decodes");
                 }
+                CheckTrackedAvatarHeight(player,avatar);
                 var testSkin=new Mesh{vertices=new[]{Vector3.zero},bindposes=new Matrix4x4[16]};
                 testSkin.boneWeights=new[]{new BoneWeight{boneIndex0=1,weight0=.6f,boneIndex1=4,weight1=.4f}};
                 var split=typeof(CandySmoothHandMesh).GetMethod("SeparateDigitWeights",BindingFlags.Static|BindingFlags.NonPublic);
@@ -180,16 +236,31 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(fixedSkin!=testSkin&&Mathf.Abs(fixedSkin.boneWeights[0].weight0-1)<.001f,"Legacy skin vertex no longer follows a neighboring finger");
                 Object.Destroy(testSkin);Object.Destroy(fixedSkin);
                 player.vrSmoothDegreesPerSecond=90;player.CycleSmoothTurnSpeed();Check(player.vrSmoothDegreesPerSecond==180,"Existing settings menu reaches speeds beyond its previous 90-degree cap");
-                Input(left,"isTracked",0);right=InputSystem.AddDevice("HybridFixController");InputSystem.SetDeviceUsage(right,CommonUsages.RightHand);Input(right,"isTracked",1);
+                InputSystem.DisableDevice(left);right=InputSystem.AddDevice("HybridFixController");InputSystem.SetDeviceUsage(right,CommonUsages.RightHand);Input(right,"isTracked",1);
                 InputSystem.QueueDeltaStateEvent(right.GetChildControl<Vector2Control>("primary2DAxis"),new Vector2(-.2f,.7f));InputSystem.Update();
                 source.LeftPoseSource=bare;source.RightPoseSource=controller;Refresh(source);
                 Check(source.IsHybrid&&!HybridXRInput.SingleControllerLeft,"Recognizes mirrored right-controller + left tracked-hand combination");
                 Check(Vector2.Distance(HybridXRInput.MoveStick(),new Vector2(-.2f,.7f))<.001f,"Single right controller also supplies walking input");
+                InputSystem.EnableDevice(left);
                 Input(left,"isTracked",1);InputSystem.Update();source.LeftPoseSource=source.RightPoseSource=null;Refresh(source);
                 Check(!source.IsHybrid&&source.WorldHand(true).tracked&&source.WorldHand(false).tracked&&
                     !source.WorldHand(true).skeletonTracked&&!source.WorldHand(false).skeletonTracked,"Two controllers own only their matching sides");
-                Input(left,"isTracked",0);
-                Input(right,"isTracked",0);InputSystem.Update();Check(!HybridXRInput.SingleController&&HybridXRInput.MoveStick()==Vector2.zero,"Controller tracking loss clears stale joystick movement");
+                source.LeftPoseSource=bare;
+                Input(left,"isTracked",0);InputSystem.Update();Refresh(source);
+                Check(!HybridXRInput.SingleController&&!source.IsHybrid&&!source.WorldHand(true).skeletonTracked,
+                    "A brief loss of the movement controller does not enable optical gestures or single-controller mode");
+                Check(HybridXRInput.MovementController(false)==null&&HybridXRInput.Stick(false).sqrMagnitude>.01f,
+                    "A brief loss does not route the dominant look stick to movement");
+                Input(left,"isTracked",1);InputSystem.Update();Refresh(source);
+                Check(HybridXRInput.MovementController(false)==left&&!source.IsHybrid,
+                    "Movement resumes on the original controller when its tracking returns");
+                source.RightPoseSource=bare;
+                Input(right,"isTracked",0);InputSystem.Update();Refresh(source);
+                Check(!HybridXRInput.SingleController&&!source.IsHybrid&&HybridXRInput.Stick(false)==Vector2.zero,
+                    "Losing the dominant controller briefly keeps the dual layout without stale look input");
+                InputSystem.DisableDevice(left);InputSystem.DisableDevice(right);
+                Check(!HybridXRInput.SingleController&&HybridXRInput.MoveStick()==Vector2.zero,
+                    "Disabling controllers releases ownership and clears joystick movement");
                 source.LeftPoseSource=new PoseSource{pose=new CandyHandPose{tracked=true,skeletonTracked=true,rotation=Quaternion.identity,skeleton=CandyHandSkeleton.Rest(true)}};
                 source.RightPoseSource=bare;Refresh(source);
                 Check(!source.IsHybrid&&source.WorldHand(true).skeletonTracked&&source.WorldHand(false).skeletonTracked,"Hand-only inputs retain both independent skeletons after controller loss");

@@ -8,6 +8,61 @@ namespace DeadlyJenga.CastlePrototype
     internal sealed class MapCategoryPicker
     {
         internal static readonly string[] Categories={"Castles", "Game-mode arenas", "Social & seasonal islands", "Festival cities", "Structure experiments", "Workshops", "Test & custom maps", "Other maps", "Epic connected cities"};
+        internal enum MainTab { PlayApproved, InDevelopment, Archive }
+
+        internal static bool IsPlayApproved(LobbyOption map)
+        {
+            if (map == null) return false;
+            string id = (map.id ?? "").ToLowerInvariant();
+            return id == "castle-catwalks" || id == "castle";
+        }
+
+        internal static bool IsInDevelopment(LobbyOption map)
+        {
+            return map?.id is "mode-vanderbilt" or "mode-cant-catch-me" or "mode-tycoon" or "mode-ninja-temple";
+        }
+
+        internal static bool IsArchive(LobbyOption map)
+        {
+            return map != null && !IsPlayApproved(map) && !IsInDevelopment(map);
+        }
+
+        internal static MainTab GetMainTab(LobbyOption map)
+        {
+            if (IsPlayApproved(map)) return MainTab.PlayApproved;
+            if (IsInDevelopment(map)) return MainTab.InDevelopment;
+            return MainTab.Archive;
+        }
+
+        internal List<LobbyOption> GetMapsForMainTab(MainTab tab)
+        {
+            var result = new List<LobbyOption>();
+            foreach (var map in snapshot)
+            {
+                if (tab == MainTab.PlayApproved && IsPlayApproved(map)) result.Add(map);
+                else if (tab == MainTab.InDevelopment && IsInDevelopment(map)) result.Add(map);
+                else if (tab == MainTab.Archive && IsArchive(map)) result.Add(map);
+            }
+            return result;
+        }
+
+        internal List<LobbyOption> GetMapsForArchiveCategory(int category)
+        {
+            var result = new List<LobbyOption>();
+            foreach (var map in snapshot)
+            {
+                if (IsArchive(map) && Category(map) == category) result.Add(map);
+            }
+            return result;
+        }
+
+        internal int GetArchiveCategoryCount(int category)
+        {
+            int count = 0;
+            foreach (var map in snapshot)
+                if (IsArchive(map) && Category(map) == category) count++;
+            return count;
+        }
         internal sealed class Row
         {
             internal int category,count;
@@ -104,7 +159,7 @@ namespace DeadlyJenga.CastlePrototype
             if(id.StartsWith("sparse-",StringComparison.Ordinal)||id=="mayhem-foundry"||id=="city-tower-exhibition"||id=="tower-lab-island"||id=="megablock-tower")return 4;
             if(id.Contains("castle"))return 0;
             if(id.Contains("test")||id.Contains("drafter")||id=="andy")return 6;
-            if(id.Contains("ninja")||id.Contains("mystery")||id.Contains("social")||id.Contains("christmas")||id.Contains("cantina")||id.Contains("tiki")||id.Contains("breakwater")||title.Contains("murder")||title.Contains("christmas"))return 2;
+            if(id.Contains("mystery")||id.Contains("social")||id.Contains("christmas")||id.Contains("cantina")||id.Contains("tiki")||id.Contains("breakwater")||title.Contains("murder")||title.Contains("christmas"))return 2;
             if(id=="ctf"||id=="infection"||id=="survival"||id=="territory"||id=="koth"||id=="tickets"||id=="buildup")return 1;
             return 7;
         }

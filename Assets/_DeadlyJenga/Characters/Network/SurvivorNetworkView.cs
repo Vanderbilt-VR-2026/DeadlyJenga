@@ -24,7 +24,7 @@ namespace DeadlyJenga.CharacterNetwork
         bool active, hasTarget, initialized, suspended;
         string emote; float emoteStart, emoteLength; int lastEmoteBits;
         Quaternion emoteFacing;
-        CapsuleCollider hazardTarget;
+        CapsuleCollider collisionBody;
         Vector3 previousFeet, velocity;
         float previousPoseTime;
         string assignedId, displayName;
@@ -45,6 +45,9 @@ namespace DeadlyJenga.CharacterNetwork
         public Pose HandPose(bool left)
         {
             var f=initialized?frame:target;var hand=left?f.left:f.right;
+            var weapon=(MatchRuntime.Current as IEquipmentRuntime)?.EquipmentFor(ActorId);
+            if(weapon?.kind==EquipmentKind.DualUzi&&weapon.drawn)
+                return CandyWeaponVisual.DrawnPose(weapon.kind,hand,left,f.scale);
             return new Pose(hand.position,hand.rotation);
         }
         public Rigidbody StandingBody { get { ProbeStanding();return standingHit.collider&&Climbables.TryGet(standingHit.collider,out var owner)?owner.Body:standingHit.rigidbody; } }
@@ -80,7 +83,7 @@ namespace DeadlyJenga.CharacterNetwork
             // A connected human cannot grant themselves NPC rules through their visual payload.
             if(context.host)enemy=null;
             if (active && !isActive && rig) Burst();
-            active = isActive; hasTarget = true;if(!active)weaponVisual?.Hide();
+            active = isActive; suspended = false; hasTarget = true;if(!active)weaponVisual?.Hide();
             if(!active&&blasterModel)blasterModel.gameObject.SetActive(false);
             transform.SetPositionAndRotation(target.feet, Quaternion.Euler(0,target.headRotation.eulerAngles.y,0));
             int bits = (color >> 16) & 0xFF;
@@ -94,6 +97,8 @@ namespace DeadlyJenga.CharacterNetwork
                 GameEvents.RaiseEmoted(rig ? rig.gameObject : gameObject, emote);
             }
             lastEmoteBits = active && !suspended ? bits : 0;
+            if (!initialized) { frame = target; initialized = true; }
+            UpdateCollisionBody();
             if (!rig)
             {
                 var avatar = context.localSurvivor ? context.localSurvivor.GetComponent<CandyPlayerAvatar>() : null;
@@ -102,43 +107,55 @@ namespace DeadlyJenga.CharacterNetwork
             }
             rig.gameObject.SetActive(active); rig.SetColor(color & 0xFF);rig.SetAppearance(appearance);
             if(IsEnemy&&(ArchetypeId=="longhand"||ArchetypeId=="gum-brute")&&!GetComponent<DeadlyJenga.CastleBots.CandyMayhemEnemyVisual>())gameObject.AddComponent<DeadlyJenga.CastleBots.CandyMayhemEnemyVisual>();
-            PushSample(target);
-            if (!initialized) { frame = target; initialized = true; }
-            UpdateHazardTarget();
+            UpdateCollisionPose();
         }
 
-        // Host: a trigger capsule where the remote survivor stands, so hazards can find and hit it.
-        void UpdateHazardTarget()
+        // A remote body blocks the local character on both host and guest.
+        // Keep its hit target on the same capsule to avoid duplicate contacts.
+        void UpdateCollisionBody()
         {
-            if (!context.host) { if (hazardTarget) hazardTarget.enabled = false; return; }
-            if (!hazardTarget)
+            if (!collisionBody && active)
             {
-                var hit = new GameObject("Remote survivor hazard target"); hit.layer = Layers.Survivor;
-                hit.transform.SetParent(transform, false); hazardTarget = hit.AddComponent<CapsuleCollider>(); hazardTarget.isTrigger = true;
+                var hit = new GameObject("Remote survivor solid capsule");
+                hit.layer = Layers.Survivor;
+                hit.transform.SetParent(transform, false);
+                collisionBody = hit.AddComponent<CapsuleCollider>();
+                collisionBody.excludeLayers = ~(1 << Layers.Survivor);
             }
             float dt = Time.time - previousPoseTime;
             velocity = previousPoseTime > 0 && dt > .001f ? Vector3.ClampMagnitude((target.feet - previousFeet) / dt, 60) : Vector3.zero;
             previousFeet = target.feet; previousPoseTime = Time.time;
-            hazardTarget.transform.position = target.feet;
-            hazardTarget.height = Mathf.Max(.2f, 1.7f * target.scale);
-            hazardTarget.radius = Mathf.Max(.05f, .24f * target.scale);
-            hazardTarget.center = Vector3.up * hazardTarget.height * .5f;
-            hazardTarget.enabled = active && !suspended;
+            if(collisionBody)collisionBody.enabled=active&&!suspended;
+            UpdateCollisionPose();
+        }
+
+        void UpdateCollisionPose()
+        {
+            if(!collisionBody||!collisionBody.enabled)return;
+            float height=Mathf.Max(.2f,1.7f*frame.scale);
+            float radius=Mathf.Max(.05f,.24f*frame.scale);
+            collisionBody.transform.position=frame.feet;
+            if(!Mathf.Approximately(collisionBody.height,height))collisionBody.height=height;
+            if(!Mathf.Approximately(collisionBody.radius,radius))collisionBody.radius=radius;
+            Vector3 center=Vector3.up*height*.5f;
+            if(collisionBody.center!=center)collisionBody.center=center;
         }
 
         public void Render(float dt)
         {
             if (!hasTarget || !active || !rig) return;
-            var wanted = Sampled();
-            float t = 1 - Mathf.Exp(-30 * dt);
-            frame.feet = Vector3.Lerp(frame.feet, wanted.feet, t); frame.head = Vector3.Lerp(frame.head, wanted.head, t);
-            frame.headRotation = Quaternion.Slerp(frame.headRotation, wanted.headRotation, t); frame.scale = wanted.scale; frame.seated = wanted.seated;
-            frame.left = Blend(frame.left, wanted.left, t); frame.right = Blend(frame.right, wanted.right, t);
-            rig.ApplyFrame(frame, true, dt);
+            float t = 1 - Mathf.Exp(-20 * dt);
+            frame.feet = Vector3.Lerp(frame.feet, target.feet, t); frame.head = Vector3.Lerp(frame.head, target.head, t);
+            frame.headRotation = Quaternion.Slerp(frame.headRotation, target.headRotation, t); frame.scale = target.scale; frame.seated = target.seated; frame.sprinting = target.sprinting;
+            frame.left = Blend(frame.left, target.left, t); frame.right = Blend(frame.right, target.right, t);
+            UpdateCollisionPose();
+            bool generatedActor = IsBot || context.actorId?.StartsWith("lobby-bot:", System.StringComparison.Ordinal) == true;
+            var rendered = generatedActor ? frame : CandyPlayerRig.UprightTrackingPose(frame);
+            bool grounded = !target.airborne;
+            rig.ApplyFrame(rendered, grounded, dt);
             var equipment=(MatchRuntime.Current as IEquipmentRuntime)?.EquipmentFor(ActorId)??new EquipmentState();
             bool held = equipment.drawn && equipment.kind >= EquipmentKind.Blaster && equipment.kind != EquipmentKind.PoweredArmor;
             bool twoHanded = held && EquipmentSpecifications.Get(equipment.kind).twoHanded;
-            var rendered = frame;
             if (emote != null)
             {
                 float age = Time.time - emoteStart;
@@ -153,7 +170,7 @@ namespace DeadlyJenga.CharacterNetwork
                         if (equipment.leftHanded || paired) SurvivorMoments.KeepGrip(ref rendered.left, frame.left);
                         if (!equipment.leftHanded || paired) SurvivorMoments.KeepGrip(ref rendered.right, frame.right);
                     }
-                    rig.ApplyFrame(rendered, true, 0);
+                    rig.ApplyFrame(rendered, grounded, 0);
                 }
             }
             if(IsEnemy)rig.SetTint(new Color(.035f,.045f,.065f));
@@ -161,7 +178,7 @@ namespace DeadlyJenga.CharacterNetwork
             weaponVisual.Present(equipment,rendered,active&&!suspended,emote!=null&&twoHanded);
         }
 
-        public void Suspend() { emote = null; lastEmoteBits = 0; weaponVisual?.Hide();suspended = true; if (hazardTarget) hazardTarget.enabled = false; }
+        public void Suspend() { emote = null; lastEmoteBits = 0; weaponVisual?.Hide();suspended = true; if (collisionBody) collisionBody.enabled = false; }
 
         // Someone else's survivor just disappeared (eliminated): let the effects burst it.
         void Burst()
@@ -170,51 +187,6 @@ namespace DeadlyJenga.CharacterNetwork
             var c = colors != null && colors.Length > 0 ? colors[(color & 0xFF) % colors.Length] : Color.white;
             GameEvents.RaiseBodyBurst(rig.gameObject, frame.feet, c, "A player", false);
             emote = null;
-        }
-
-        // Poses arrive unevenly: bots ride the world stream (a few per second), players the 30 Hz pose lane.
-        // The view plays a short adaptive delay behind the newest pose and interpolates between buffered
-        // samples, so movement stays continuous instead of catching up and stopping at each update.
-        const int Samples = 8;
-        readonly CandyAvatarFrame[] sampleFrames = new CandyAvatarFrame[Samples];
-        readonly float[] sampleTimes = new float[Samples];
-        int sampleCount;
-        float sampleInterval = .1f, sampleJitter;
-        void PushSample(CandyAvatarFrame pose)
-        {
-            float now = Time.unscaledTime;
-            if (sampleCount > 0)
-            {
-                int last = sampleCount - 1;
-                float gap = now - sampleTimes[last];
-                if (gap < .001f) { sampleFrames[last] = pose; return; }
-                if (gap > 1.5f || (pose.feet - sampleFrames[last].feet).sqrMagnitude > 9) sampleCount = 0;   // long silence or a teleport/respawn: start fresh
-                else { sampleJitter = Mathf.Lerp(sampleJitter, Mathf.Abs(gap - sampleInterval), .2f); sampleInterval = Mathf.Lerp(sampleInterval, gap, .2f); }
-            }
-            if (sampleCount == Samples)
-            {
-                System.Array.Copy(sampleFrames, 1, sampleFrames, 0, Samples - 1);
-                System.Array.Copy(sampleTimes, 1, sampleTimes, 0, Samples - 1);
-                sampleCount--;
-            }
-            sampleFrames[sampleCount] = pose; sampleTimes[sampleCount] = now; sampleCount++;
-            if (sampleCount == 1) frame = pose;
-        }
-        CandyAvatarFrame Sampled()
-        {
-            if (sampleCount == 0) return target;
-            float delay = Mathf.Clamp(sampleInterval * 1.15f + sampleJitter * 2f, .04f, .4f);
-            float at = Time.unscaledTime - delay;
-            int i = sampleCount - 1;
-            if (at >= sampleTimes[i]) return sampleFrames[i];
-            while (i > 0 && sampleTimes[i - 1] > at) i--;
-            if (i == 0) return sampleFrames[0];
-            var a = sampleFrames[i - 1]; var b = sampleFrames[i];
-            float u = Mathf.InverseLerp(sampleTimes[i - 1], sampleTimes[i], at);
-            b.feet = Vector3.Lerp(a.feet, b.feet, u); b.head = Vector3.Lerp(a.head, b.head, u);
-            b.headRotation = Quaternion.Slerp(a.headRotation, b.headRotation, u);
-            b.left = Blend(a.left, b.left, u); b.right = Blend(a.right, b.right, u);
-            return b;
         }
 
         static CandyHandPose Blend(CandyHandPose from, CandyHandPose to, float t)

@@ -16,8 +16,6 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class IslandLobby : MonoBehaviour, ISessionInfo, IWorldQuery
     {
         Vector3 lobbyLayoutCenter=Vector3.zero,lobbyLayoutSpawn=new Vector3(0,.5f,-3.5f);
-        Quaternion lobbyLayoutFacing=Quaternion.identity;   // new arrivals look toward the play screen
-        Quaternion SpawnFacing=>transform.rotation*lobbyLayoutFacing;
         float lobbyLayoutTop=.45f,lobbyLayoutRadius=9,lobbyLayoutReturnDistance=30;
         Bounds lobbyLayoutBounds=new Bounds(Vector3.up*2,new Vector3(18,4,18));
         partial void ConfigureMayhemMarinaLobby();
@@ -28,9 +26,11 @@ namespace DeadlyJenga.CastlePrototype
         public IslandRoomConnection Room {get;private set;}
         public bool MenuOpen {get;private set;}
         bool departing;float departureAt,departureSeconds;Pose departurePose;
+        bool refreshInputOnReturn;
         public void BeginDeparture(float seconds)
         {
             if(departing||!NetworkActors.Alive(Player))return;
+            GetComponent<MarinaDockActivities>()?.ReturnRiderToDock();
             SetMenu(false);departing=true;departureAt=Time.unscaledTime;departureSeconds=seconds;
             departurePose=new Pose(Player.transform.position,Player.transform.rotation);Player.InputSuspended=true;
         }
@@ -50,16 +50,17 @@ namespace DeadlyJenga.CastlePrototype
         public float WaterHeight(Vector3 p)=>-.12f;
         public bool IsSheltered(Vector3 p)=>false;
         public Vector3 SafeSpawnPoint()=>transform.TransformPoint(lobbyLayoutSpawn);
-        // First launch lands on the real game, not the sandbox.
-        void DefaultToSurvival()=>Room.DefaultToMode("survival");
         // Other players on the island, shown by Characters' remote views (Core's INetworkActorView).
         readonly Dictionary<string,INetworkActorView> peers=new Dictionary<string,INetworkActorView>();
         InputAction menu;bool focused=true;
         ISurvivorBotPopulation lobbyBots;IBotPopulation lobbyHands;float nextLobbyPopulation;
+        bool lobbyWildlifeSeeded;
         void PopulateLobbyWildlife()
         {
+            if (lobbyWildlifeSeeded || MatchResident || !Retained) return;
             var wildlife=GetComponent<IWildlifeControls>();
             if(wildlife?.Available!=true)return;
+            lobbyWildlifeSeeded=true;
             wildlife.Spawn("fox",false);
             wildlife.Spawn("tortoise",false);
             wildlife.Spawn("frog",false);
@@ -86,17 +87,17 @@ namespace DeadlyJenga.CastlePrototype
                 VisitOwner=match;Current=match?null:this;Services.Session=this;Services.World=this;
                 catalog=IslandLobbyCatalog.Runtime(catalog);
                 Room=IslandRoomConnection.Ensure();bool firstVisit=!Room.Catalog;Room.Catalog=catalog;
-                if(!match){Room.StartDiscovery();if(firstVisit){Room.Region=catalog.defaultRegion;DefaultToSurvival();}Room.CompleteDeparture();}
+                if(!match){Room.StartDiscovery();if(firstVisit)Room.Region=catalog.defaultRegion;Room.CompleteDeparture();}
                 Player=Instantiate(catalog.survivorPrefab).GetComponent<IPlayableCharacter>();
                 if(Player==null){Debug.LogError("Island lobby survivor prefab needs an IPlayableCharacter.",this);enabled=false;return;}
                 Player.gameObject.name="Persistent lobby survivor";Player.ViewCamera.clearFlags=CameraClearFlags.Skybox;
                 if(!match){Room.PrepareSoloIdentity();ApplyLobbyIdentities();}
-                ConfigureMayhemMarinaLobby();BuildFlatFloor();GameEvents.RaiseLobbyStarted(gameObject);
-                Player.Place(SafeSpawnPoint(),SpawnFacing);
+                ConfigureMayhemMarinaLobby();BuildFlatFloor();GameEvents.RaiseLobbyStarted(gameObject);marinaFloorSetupCompleted=true;
+                PlaceLocalLobbyArrival();
                 if(!match)
                 {
-                    PopulateLobbyWildlife();
-                    CreateLobbyPopulation();Voice=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();Voice.Initialize(this);
+                    CreateLobbyPopulation();
+                    if(DeadlyJenga.CastleSocial.SocialWorld.AiVoicesEnabled){Voice=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();Voice.Initialize(this);}
                 }
                 menu=new InputAction("Lobby controls",InputActionType.Button,"<XRController>{LeftHand}/secondaryButton");menu.Enable();
                 SetMenu(false);
@@ -124,23 +125,90 @@ namespace DeadlyJenga.CastlePrototype
                 foreach(var peer in peers.Values)peer.Render(Time.unscaledDeltaTime);
                 return;
             }
+            if (refreshInputOnReturn)
+            {
+                refreshInputOnReturn=false;
+                SetMenu(MenuOpen);
+            }
             var feet=Player.transform.position;
-            if(feet.y<-.9f||(feet-Center).sqrMagnitude>lobbyLayoutReturnDistance*lobbyLayoutReturnDistance)Player.Place(SafeSpawnPoint(),SpawnFacing);
+            bool outside=(feet-Center).sqrMagnitude>lobbyLayoutReturnDistance*lobbyLayoutReturnDistance;
+            if (UsesMarinaSpawns)
+            {
+                var dock=GetComponent<MarinaDockActivities>();
+                if ((outside||feet.y<WaterHeight(feet)-.025f) && !(dock&&dock.IsRiding))
+                    RecoverMarinaPlayer();
+            }
+            else if (outside||feet.y<-.9f) PlaceLocalLobbyArrival();
             var keyboard=Keyboard.current;
-            if(menu.WasPressedThisFrame()||keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame||Player.MenuPressed)SetMenu(!MenuOpen);
+            if(menu.WasPressedThisFrame()||keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame||Player.MenuPressed)
+            {
+                if (codeFocused) UnfocusCode();
+                else SetMenu(!MenuOpen);
+            }
             if(!Player.IsVR&&!MenuOpen&&Cursor.lockState!=CursorLockMode.Locked&&!Application.isBatchMode)SetMenu(true);
-            if(VisitOwner)return;
+            if(VisitOwner){RefreshVisitingBots();return;}
+            HomeSession.ConsumeLobbyEntry(this);
+            TickMarinaLocalArrival();
             foreach(var peer in peers.Values)peer.Render(Time.unscaledDeltaTime);
             ApplyLobbyIdentities();UpdateControls();
-            if(lobbyBots!=null&&Time.unscaledTime>=nextLobbyPopulation){nextLobbyPopulation=Time.unscaledTime+1;bool offline=HomeSession.AutofillLobby&&!Room.Connected&&!Room.Busy&&!Room.Departing;lobbyBots.AutoFill=false;lobbyBots.Running=offline;if(!offline){if(lobbyBots.Count>0)lobbyBots.Clear();}else{lobbyBots.SetHumanPlayerCount(1);lobbyBots.TargetPopulation=10;lobbyBots.FillToTarget();}}
+            if(lobbyBots!=null&&Time.unscaledTime>=nextLobbyPopulation)
+            {
+                nextLobbyPopulation=Time.unscaledTime+1;
+                bool populate=(!Room.Connected||Room.IsHost)&&!Room.Busy&&!Room.Departing&&
+                    (ExperienceProvider.IsRotatingLobby||HomeSession.AutofillLobby&&!Room.Connected&&Experience==GameExperience.Demo);
+                lobbyBots.AutoFill=false;
+                lobbyBots.Running=populate;
+                if(!populate){if(lobbyBots.Count>0)lobbyBots.Clear();}
+                else
+                {
+                    int humans=Room.Connected?Mathf.Max(1,Room.HumanCount):1;
+                    lobbyBots.SetHumanPlayerCount(humans);
+                    int target=Room!=null&&Room.Setup.population>0?Mathf.Clamp(Room.Setup.population,1,10):10;
+                    lobbyBots.TargetPopulation=target;
+                    lobbyBots.FillToTarget();
+                    if(ExperienceProvider.IsRotatingLobby)
+                    {
+                        int index=0;
+                        foreach(var bot in lobbyBots.Members)
+                            if(bot)ExperienceProvider.ApplyReturningBot(bot,index++);
+                    }
+                }
+            }
         }
         public static Vector3 SpawnPoint(int slot)
         {float angle=(Math.Abs(slot)%10)*2.399963f;var point=(Persistent?Persistent.Center:Vector3.zero)+new Vector3(Mathf.Sin(angle)*1.8f,.65f,-3.2f+Mathf.Cos(angle)*.8f);MayhemMarinaSpawn(slot,ref point);return point;}
-        public void SpawnAt(P.Pose pose){Player.Place(pose.position,pose.rotation);ClearPeers();}
+        public void SpawnAt(P.Pose pose)
+        {
+            if(UsesMarinaSpawns&&Room&&Room.Connected&&!Room.IsHost)
+            {if(!PlaceLocalLobbyArrival())return;}
+            else if(!ApplyReservedMarinaSpawn(pose))return;
+            ClearPeers();
+        }
         public void SetMenu(bool open)
-        {MenuOpen=open;if(NetworkActors.Alive(Player)){Player.InputSuspended=departing||!focused||open;Cursor.lockState=Player.IsVR||open?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=open&&!Player.IsVR;}}
-        void OnApplicationFocus(bool value){focused=value;if(!value&&(!MatchResident||VisitOwner))SetMenu(true);}
+        {
+            MenuOpen=open;
+            if (!NetworkActors.Alive(Player)) return;
+            var dock=GetComponent<MarinaDockActivities>();
+            Player.InputSuspended=(marinaArrivalPending&&!marinaArrivalPlaced)||departing||!focused||open||(dock&&dock.IsRiding);
+            Cursor.lockState=!Player.IsVR&&focused&&!open?CursorLockMode.Locked:CursorLockMode.None;
+            Cursor.visible=!Player.IsVR&&(open||!focused);
+        }
+        void OnApplicationFocus(bool value)
+        {
+            focused=value;
+            if (!MatchResident||VisitOwner) SetMenu(MenuOpen);
+        }
         public P.Actor Capture(string id)=>P.Capture(id,Player.gameObject.GetComponent<INetworkActor>());
+        internal void CaptureLobbyBots(List<P.Actor> actors)
+        {
+            if(lobbyBots?.Members==null||!ExperienceProvider.IsRotatingLobby)return;
+            foreach(var bot in lobbyBots.Members)
+            {
+                if(actors.Count>=10)break;
+                if(bot&&bot.GetComponent<INetworkActor>() is { } actor)
+                    actors.Add(P.Capture("lobby-bot:"+bot.GetInstanceID(),actor));
+            }
+        }
         public bool TryPeerPosition(string id,out Vector3 position)
         {if(Voice&&id==Voice.LocalParticipantId){position=Player.ViewCamera.transform.position;return true;}if(id!=null&&peers.TryGetValue(id,out var peer)){position=peer.NetworkPosition+Vector3.up*1.6f;return true;}position=default;return false;}
         public void ReceivePeer(P.Actor actor)

@@ -17,19 +17,30 @@ namespace DeadlyJenga.CastlePrototype
         {
             public Vector3[] position, velocity, spin;
             public Quaternion[] rotation;
-            public Frame(int n) { position = new Vector3[n]; velocity = new Vector3[n]; spin = new Vector3[n]; rotation = new Quaternion[n]; }
+            public bool[] held,active;
+            public Frame(int n) { position = new Vector3[n]; velocity = new Vector3[n]; spin = new Vector3[n]; rotation = new Quaternion[n]; held = new bool[n]; active = new bool[n]; }
         }
 
         Frame[] frames = new Frame[0];
         int head, count;
         float nextSample;
+        IWorldQuery sourceWorld;
         IReadOnlyList<Rigidbody> source;
         Rigidbody first;
         int sourceCount;
         bool rewinding;
 
         public bool Rewinding => rewinding;
-        public float Recorded => count * sampleEvery;
+        public float Recorded => IsCurrentSource() ? count * sampleEvery : 0;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void Boot()
+        {
+            if (Services.Rewind != null) return;
+            var go = new GameObject("Block timeline");
+            DontDestroyOnLoad(go);
+            go.AddComponent<BlockTimeline>();
+        }
 
         void OnEnable() => Services.Rewind = this;
         void OnDisable() { if (ReferenceEquals(Services.Rewind, this)) Services.Rewind = null; }
@@ -37,10 +48,10 @@ namespace DeadlyJenga.CastlePrototype
         void FixedUpdate()
         {
             if (rewinding) return;
-            var list = Services.World?.Blocks;
-            if (list == null || list.Count == 0) { count = 0; return; }
-            if (list != source || list.Count != sourceCount || list[0] != first) Reset(list);
-            if (!Owner(list)) { count = 0; return; }
+            var world = Services.World;
+            var list = world?.Blocks;
+            if (list == null || list.Count == 0 || !Owner(list)) { count = 0; return; }
+            if (!MatchesSource(world, list)) Reset(world, list);
             if (Time.time < nextSample) return;
             nextSample = Time.time + sampleEvery;
             var f = frames[head];
@@ -49,14 +60,27 @@ namespace DeadlyJenga.CastlePrototype
                 var b = list[i];
                 if (!b) continue;
                 f.position[i] = b.position; f.rotation[i] = b.rotation;
-                f.velocity[i] = b.linearVelocity; f.spin[i] = b.angularVelocity;
+                f.held[i] = b.isKinematic; f.active[i] = b.gameObject.activeSelf;
+                f.velocity[i] = b.isKinematic ? Vector3.zero : b.linearVelocity;
+                f.spin[i] = b.isKinematic ? Vector3.zero : b.angularVelocity;
             }
             head = (head + 1) % frames.Length;
             count = Mathf.Min(count + 1, frames.Length);
         }
 
-        void Reset(IReadOnlyList<Rigidbody> list)
+        bool IsCurrentSource()
         {
+            var world = Services.World;
+            return MatchesSource(world, world?.Blocks);
+        }
+
+        bool MatchesSource(IWorldQuery world, IReadOnlyList<Rigidbody> list) =>
+            ReferenceEquals(world, sourceWorld) && ReferenceEquals(list, source) &&
+            list != null && list.Count > 0 && list.Count == sourceCount && list[0] == first;
+
+        void Reset(IWorldQuery world, IReadOnlyList<Rigidbody> list)
+        {
+            sourceWorld = world;
             source = list; sourceCount = list.Count; first = list[0];
             frames = new Frame[Mathf.Max(2, Mathf.CeilToInt(historySeconds / sampleEvery))];
             for (int i = 0; i < frames.Length; i++) frames[i] = new Frame(sourceCount);
@@ -65,14 +89,14 @@ namespace DeadlyJenga.CastlePrototype
 
         static bool Owner(IReadOnlyList<Rigidbody> list)
         {
-            if (Services.Session is IWorldAuthority authority && !authority.HasWorldAuthority) return false;
-            foreach (var b in list) if (b) return !b.isKinematic;
+            if (Services.Session is IWorldAuthority authority) return authority.HasWorldAuthority;
+            foreach (var b in list) if (b && !b.isKinematic) return true;
             return false;
         }
 
         public bool Rewind(float seconds)
         {
-            if (rewinding || count < 2 || source == null || !Owner(source)) return false;
+            if (rewinding || count < 2 || !IsCurrentSource() || !Owner(source)) return false;
             StartCoroutine(Play(Mathf.Clamp(seconds, sampleEvery, Recorded)));
             return true;
         }
@@ -89,6 +113,7 @@ namespace DeadlyJenga.CastlePrototype
             float duration = seconds / playbackSpeed, t = 0;
             while (t < duration)
             {
+                if (!CanContinue()) yield break;
                 t += Time.fixedDeltaTime;
                 float k = Mathf.Clamp01(t / duration) * steps;
                 int k0 = Mathf.Min(Mathf.FloorToInt(k), steps), k1 = Mathf.Min(k0 + 1, steps);
@@ -99,6 +124,7 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     var b = bodies[i];
                     if (!b) continue;
+                    if (b.gameObject.activeSelf != earlier.active[i]) b.gameObject.SetActive(earlier.active[i]);
                     var p = Vector3.Lerp(later.position[i], earlier.position[i], u);
                     // Never slide a block through the map on its way back from the graveyard.
                     if (CastleBlock.InGraveyard(later.position[i]) != CastleBlock.InGraveyard(earlier.position[i])) p = earlier.position[i];
@@ -108,19 +134,33 @@ namespace DeadlyJenga.CastlePrototype
                 yield return new WaitForFixedUpdate();
             }
 
+            if (!CanContinue()) yield break;
             var target = frames[(newest - steps + len * 4) % len];
             for (int i = 0; i < bodies.Count; i++)
             {
                 var b = bodies[i];
                 if (!b) continue;
                 b.position = target.position[i]; b.rotation = target.rotation[i];
-                b.isKinematic = false;
-                b.linearVelocity = target.velocity[i]; b.angularVelocity = target.spin[i];
+                b.isKinematic = target.held[i];
+                if (!b.isKinematic) { b.linearVelocity = target.velocity[i]; b.angularVelocity = target.spin[i]; }
+                if (b.gameObject.activeSelf != target.active[i]) b.gameObject.SetActive(target.active[i]);
             }
             count = Mathf.Max(1, count - steps);
             head = (newest - steps + 1 + len * 4) % len;
             rewinding = false;
             GameEvents.RaiseRewindEnded();
+        }
+
+        bool CanContinue()
+        {
+            // Playback makes the bodies kinematic, so the fallback Owner check cannot run here.
+            if (IsCurrentSource() && (!(Services.Session is IWorldAuthority authority) || authority.HasWorldAuthority))
+                return true;
+
+            count = 0;
+            rewinding = false;
+            GameEvents.RaiseRewindEnded();
+            return false;
         }
     }
 }

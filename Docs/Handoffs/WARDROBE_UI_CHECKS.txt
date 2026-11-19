@@ -1,0 +1,571 @@
+Source: 60b3262bb76c19bdd4b53568166434a4803a07b4
+Fixture: DeveloperUiChecks.RunWardrobeLayout
+Job: 5a7e50c8e6fa4860a57d7de0dc24bcc4
+Actual Marina desktop input and explicit VR branch in a desktop fixture; not physical Quest evidence.
+
+PASS Actual Marina lobby initializes
+PASS Fixture explicitly selects desktop input
+PASS Production proximity check opens desktop UI at the wardrobe
+PASS Preview preserves player camera and suspends movement
+PASS Character preview contains rendered avatar geometry
+PASS Separate targets: Category 0 / Category 1
+PASS Separate targets: Category 0 / Category 2
+PASS Separate targets: Category 0 / Category 3
+PASS Separate targets: Category 0 / Category 4
+PASS Separate targets: Category 0 / Category 5
+PASS Separate targets: Category 0 / Category 6
+PASS Separate targets: Category 0 / Accessory 0
+PASS Separate targets: Category 0 / Accessory 1
+PASS Separate targets: Category 0 / Accessory 2
+PASS Separate targets: Category 0 / Accessory 3
+PASS Separate targets: Category 0 / Accessory 4
+PASS Separate targets: Category 0 / Accessory 5
+PASS Separate targets: Category 0 / Accessory 6
+PASS Separate targets: Category 0 / Accessory 7
+PASS Separate targets: Category 0 / Accessory 8
+PASS Separate targets: Category 0 / Accessory 9
+PASS Separate targets: Category 0 / Accessory 10
+PASS Separate targets: Category 0 / Accessory 11
+PASS Separate targets: Category 0 / Next category
+PASS Separate targets: Category 0 / Clear
+PASS Separate targets: Category 0 / Done
+PASS Separate targets: Category 0 / Reset view
+PASS Separate targets: Category 0 / Wardrobe identity
+PASS Separate targets: Category 1 / Category 2
+PASS Separate targets: Category 1 / Category 3
+PASS Separate targets: Category 1 / Category 4
+PASS Separate targets: Category 1 / Category 5
+PASS Separate targets: Category 1 / Category 6
+PASS Separate targets: Category 1 / Accessory 0
+PASS Separate targets: Category 1 / Accessory 1
+PASS Separate targets: Category 1 / Accessory 2
+PASS Separate targets: Category 1 / Accessory 3
+PASS Separate targets: Category 1 / Accessory 4
+PASS Separate targets: Category 1 / Accessory 5
+PASS Separate targets: Category 1 / Accessory 6
+PASS Separate targets: Category 1 / Accessory 7
+PASS Separate targets: Category 1 / Accessory 8
+PASS Separate targets: Category 1 / Accessory 9
+PASS Separate targets: Category 1 / Accessory 10
+PASS Separate targets: Category 1 / Accessory 11
+PASS Separate targets: Category 1 / Next category
+PASS Separate targets: Category 1 / Clear
+PASS Separate targets: Category 1 / Done
+PASS Separate targets: Category 1 / Reset view
+PASS Separate targets: Category 1 / Wardrobe identity
+PASS Separate targets: Category 2 / Category 3
+PASS Separate targets: Category 2 / Category 4
+PASS Separate targets: Category 2 / Category 5
+PASS Separate targets: Category 2 / Category 6
+PASS Separate targets: Category 2 / Accessory 0
+PASS Separate targets: Category 2 / Accessory 1
+PASS Separate targets: Category 2 / Accessory 2
+PASS Separate targets: Category 2 / Accessory 3
+PASS Separate targets: Category 2 / Accessory 4
+PASS Separate targets: Category 2 / Accessory 5
+PASS Separate targets: Category 2 / Accessory 6
+PASS Separate targets: Category 2 / Accessory 7
+PASS Separate targets: Category 2 / Accessory 8
+PASS Separate targets: Category 2 / Accessory 9
+PASS Separate targets: Category 2 / Accessory 10
+PASS Separate targets: Category 2 / Accessory 11
+PASS Separate targets: Category 2 / Next category
+PASS Separate targets: Category 2 / Clear
+PASS Separate targets: Category 2 / Done
+PASS Separate targets: Category 2 / Reset view
+PASS Separate targets: Category 2 / Wardrobe identity
+PASS Separate targets: Category 3 / Category 4
+PASS Separate targets: Category 3 / Category 5
+PASS Separate targets: Category 3 / Category 6
+PASS Separate targets: Category 3 / Accessory 0
+PASS Separate targets: Category 3 / Accessory 1
+PASS Separate targets: Category 3 / Accessory 2
+PASS Separate targets: Category 3 / Accessory 3
+PASS Separate targets: Category 3 / Accessory 4
+PASS Separate targets: Category 3 / Accessory 5
+PASS Separate targets: Category 3 / Accessory 6
+PASS Separate targets: Category 3 / Accessory 7
+PASS Separate targets: Category 3 / Accessory 8
+PASS Separate targets: Category 3 / Accessory 9
+PASS Separate targets: Category 3 / Accessory 10
+PASS Separate targets: Category 3 / Accessory 11
+PASS Separate targets: Category 3 / Next category
+PASS Separate targets: Category 3 / Clear
+PASS Separate targets: Category 3 / Done
+PASS Separate targets: Category 3 / Reset view
+PASS Separate targets: Category 3 / Wardrobe identity
+PASS Separate targets: Category 4 / Category 5
+PASS Separate targets: Category 4 / Category 6
+PASS Separate targets: Category 4 / Accessory 0
+PASS Separate targets: Category 4 / Accessory 1
+PASS Separate targets: Category 4 / Accessory 2
+PASS Separate targets: Category 4 / Accessory 3
+PASS Separate targets: Category 4 / Accessory 4
+PASS Separate targets: Category 4 / Accessory 5
+PASS Separate targets: Category 4 / Accessory 6
+PASS Separate targets: Category 4 / Accessory 7
+PASS Separate targets: Category 4 / Accessory 8
+PASS Separate targets: Category 4 / Accessory 9
+PASS Separate targets: Category 4 / Accessory 10
+PASS Separate targets: Category 4 / Accessory 11
+PASS Separate targets: Category 4 / Next category
+PASS Separate targets: Category 4 / Clear
+PASS Separate targets: Category 4 / Done
+PASS Separate targets: Category 4 / Reset view
+PASS Separate targets: Category 4 / Wardrobe identity
+PASS Separate targets: Category 5 / Category 6
+PASS Separate targets: Category 5 / Accessory 0
+PASS Separate targets: Category 5 / Accessory 1
+PASS Separate targets: Category 5 / Accessory 2
+PASS Separate targets: Category 5 / Accessory 3
+PASS Separate targets: Category 5 / Accessory 4
+PASS Separate targets: Category 5 / Accessory 5
+PASS Separate targets: Category 5 / Accessory 6
+PASS Separate targets: Category 5 / Accessory 7
+PASS Separate targets: Category 5 / Accessory 8
+PASS Separate targets: Category 5 / Accessory 9
+PASS Separate targets: Category 5 / Accessory 10
+PASS Separate targets: Category 5 / Accessory 11
+PASS Separate targets: Category 5 / Next category
+PASS Separate targets: Category 5 / Clear
+PASS Separate targets: Category 5 / Done
+PASS Separate targets: Category 5 / Reset view
+PASS Separate targets: Category 5 / Wardrobe identity
+PASS Separate targets: Category 6 / Accessory 0
+PASS Separate targets: Category 6 / Accessory 1
+PASS Separate targets: Category 6 / Accessory 2
+PASS Separate targets: Category 6 / Accessory 3
+PASS Separate targets: Category 6 / Accessory 4
+PASS Separate targets: Category 6 / Accessory 5
+PASS Separate targets: Category 6 / Accessory 6
+PASS Separate targets: Category 6 / Accessory 7
+PASS Separate targets: Category 6 / Accessory 8
+PASS Separate targets: Category 6 / Accessory 9
+PASS Separate targets: Category 6 / Accessory 10
+PASS Separate targets: Category 6 / Accessory 11
+PASS Separate targets: Category 6 / Next category
+PASS Separate targets: Category 6 / Clear
+PASS Separate targets: Category 6 / Done
+PASS Separate targets: Category 6 / Reset view
+PASS Separate targets: Category 6 / Wardrobe identity
+PASS Separate targets: Accessory 0 / Accessory 1
+PASS Separate targets: Accessory 0 / Accessory 2
+PASS Separate targets: Accessory 0 / Accessory 3
+PASS Separate targets: Accessory 0 / Accessory 4
+PASS Separate targets: Accessory 0 / Accessory 5
+PASS Separate targets: Accessory 0 / Accessory 6
+PASS Separate targets: Accessory 0 / Accessory 7
+PASS Separate targets: Accessory 0 / Accessory 8
+PASS Separate targets: Accessory 0 / Accessory 9
+PASS Separate targets: Accessory 0 / Accessory 10
+PASS Separate targets: Accessory 0 / Accessory 11
+PASS Separate targets: Accessory 0 / Next category
+PASS Separate targets: Accessory 0 / Clear
+PASS Separate targets: Accessory 0 / Done
+PASS Separate targets: Accessory 0 / Reset view
+PASS Separate targets: Accessory 0 / Wardrobe identity
+PASS Separate targets: Accessory 1 / Accessory 2
+PASS Separate targets: Accessory 1 / Accessory 3
+PASS Separate targets: Accessory 1 / Accessory 4
+PASS Separate targets: Accessory 1 / Accessory 5
+PASS Separate targets: Accessory 1 / Accessory 6
+PASS Separate targets: Accessory 1 / Accessory 7
+PASS Separate targets: Accessory 1 / Accessory 8
+PASS Separate targets: Accessory 1 / Accessory 9
+PASS Separate targets: Accessory 1 / Accessory 10
+PASS Separate targets: Accessory 1 / Accessory 11
+PASS Separate targets: Accessory 1 / Next category
+PASS Separate targets: Accessory 1 / Clear
+PASS Separate targets: Accessory 1 / Done
+PASS Separate targets: Accessory 1 / Reset view
+PASS Separate targets: Accessory 1 / Wardrobe identity
+PASS Separate targets: Accessory 2 / Accessory 3
+PASS Separate targets: Accessory 2 / Accessory 4
+PASS Separate targets: Accessory 2 / Accessory 5
+PASS Separate targets: Accessory 2 / Accessory 6
+PASS Separate targets: Accessory 2 / Accessory 7
+PASS Separate targets: Accessory 2 / Accessory 8
+PASS Separate targets: Accessory 2 / Accessory 9
+PASS Separate targets: Accessory 2 / Accessory 10
+PASS Separate targets: Accessory 2 / Accessory 11
+PASS Separate targets: Accessory 2 / Next category
+PASS Separate targets: Accessory 2 / Clear
+PASS Separate targets: Accessory 2 / Done
+PASS Separate targets: Accessory 2 / Reset view
+PASS Separate targets: Accessory 2 / Wardrobe identity
+PASS Separate targets: Accessory 3 / Accessory 4
+PASS Separate targets: Accessory 3 / Accessory 5
+PASS Separate targets: Accessory 3 / Accessory 6
+PASS Separate targets: Accessory 3 / Accessory 7
+PASS Separate targets: Accessory 3 / Accessory 8
+PASS Separate targets: Accessory 3 / Accessory 9
+PASS Separate targets: Accessory 3 / Accessory 10
+PASS Separate targets: Accessory 3 / Accessory 11
+PASS Separate targets: Accessory 3 / Next category
+PASS Separate targets: Accessory 3 / Clear
+PASS Separate targets: Accessory 3 / Done
+PASS Separate targets: Accessory 3 / Reset view
+PASS Separate targets: Accessory 3 / Wardrobe identity
+PASS Separate targets: Accessory 4 / Accessory 5
+PASS Separate targets: Accessory 4 / Accessory 6
+PASS Separate targets: Accessory 4 / Accessory 7
+PASS Separate targets: Accessory 4 / Accessory 8
+PASS Separate targets: Accessory 4 / Accessory 9
+PASS Separate targets: Accessory 4 / Accessory 10
+PASS Separate targets: Accessory 4 / Accessory 11
+PASS Separate targets: Accessory 4 / Next category
+PASS Separate targets: Accessory 4 / Clear
+PASS Separate targets: Accessory 4 / Done
+PASS Separate targets: Accessory 4 / Reset view
+PASS Separate targets: Accessory 4 / Wardrobe identity
+PASS Separate targets: Accessory 5 / Accessory 6
+PASS Separate targets: Accessory 5 / Accessory 7
+PASS Separate targets: Accessory 5 / Accessory 8
+PASS Separate targets: Accessory 5 / Accessory 9
+PASS Separate targets: Accessory 5 / Accessory 10
+PASS Separate targets: Accessory 5 / Accessory 11
+PASS Separate targets: Accessory 5 / Next category
+PASS Separate targets: Accessory 5 / Clear
+PASS Separate targets: Accessory 5 / Done
+PASS Separate targets: Accessory 5 / Reset view
+PASS Separate targets: Accessory 5 / Wardrobe identity
+PASS Separate targets: Accessory 6 / Accessory 7
+PASS Separate targets: Accessory 6 / Accessory 8
+PASS Separate targets: Accessory 6 / Accessory 9
+PASS Separate targets: Accessory 6 / Accessory 10
+PASS Separate targets: Accessory 6 / Accessory 11
+PASS Separate targets: Accessory 6 / Next category
+PASS Separate targets: Accessory 6 / Clear
+PASS Separate targets: Accessory 6 / Done
+PASS Separate targets: Accessory 6 / Reset view
+PASS Separate targets: Accessory 6 / Wardrobe identity
+PASS Separate targets: Accessory 7 / Accessory 8
+PASS Separate targets: Accessory 7 / Accessory 9
+PASS Separate targets: Accessory 7 / Accessory 10
+PASS Separate targets: Accessory 7 / Accessory 11
+PASS Separate targets: Accessory 7 / Next category
+PASS Separate targets: Accessory 7 / Clear
+PASS Separate targets: Accessory 7 / Done
+PASS Separate targets: Accessory 7 / Reset view
+PASS Separate targets: Accessory 7 / Wardrobe identity
+PASS Separate targets: Accessory 8 / Accessory 9
+PASS Separate targets: Accessory 8 / Accessory 10
+PASS Separate targets: Accessory 8 / Accessory 11
+PASS Separate targets: Accessory 8 / Next category
+PASS Separate targets: Accessory 8 / Clear
+PASS Separate targets: Accessory 8 / Done
+PASS Separate targets: Accessory 8 / Reset view
+PASS Separate targets: Accessory 8 / Wardrobe identity
+PASS Separate targets: Accessory 9 / Accessory 10
+PASS Separate targets: Accessory 9 / Accessory 11
+PASS Separate targets: Accessory 9 / Next category
+PASS Separate targets: Accessory 9 / Clear
+PASS Separate targets: Accessory 9 / Done
+PASS Separate targets: Accessory 9 / Reset view
+PASS Separate targets: Accessory 9 / Wardrobe identity
+PASS Separate targets: Accessory 10 / Accessory 11
+PASS Separate targets: Accessory 10 / Next category
+PASS Separate targets: Accessory 10 / Clear
+PASS Separate targets: Accessory 10 / Done
+PASS Separate targets: Accessory 10 / Reset view
+PASS Separate targets: Accessory 10 / Wardrobe identity
+PASS Separate targets: Accessory 11 / Next category
+PASS Separate targets: Accessory 11 / Clear
+PASS Separate targets: Accessory 11 / Done
+PASS Separate targets: Accessory 11 / Reset view
+PASS Separate targets: Accessory 11 / Wardrobe identity
+PASS Separate targets: Next category / Clear
+PASS Separate targets: Next category / Done
+PASS Separate targets: Next category / Reset view
+PASS Separate targets: Next category / Wardrobe identity
+PASS Separate targets: Clear / Done
+PASS Separate targets: Clear / Reset view
+PASS Separate targets: Clear / Wardrobe identity
+PASS Separate targets: Done / Reset view
+PASS Separate targets: Done / Wardrobe identity
+PASS Separate targets: Reset view / Wardrobe identity
+PASS Headgear category displays its items
+PASS Next page opens remaining headgear
+PASS Category switch resets pagination
+PASS Actual VR wardrobe branch opens in desktop fixture
+PASS Separate targets: wardrobe-category-0 / wardrobe-category-1
+PASS Separate targets: wardrobe-category-0 / wardrobe-category-2
+PASS Separate targets: wardrobe-category-0 / wardrobe-category-3
+PASS Separate targets: wardrobe-category-0 / wardrobe-category-4
+PASS Separate targets: wardrobe-category-0 / wardrobe-category-5
+PASS Separate targets: wardrobe-category-0 / wardrobe-category-6
+PASS Separate targets: wardrobe-category-0 / wardrobe-0
+PASS Separate targets: wardrobe-category-0 / wardrobe-1
+PASS Separate targets: wardrobe-category-0 / wardrobe-2
+PASS Separate targets: wardrobe-category-0 / wardrobe-3
+PASS Separate targets: wardrobe-category-0 / wardrobe-4
+PASS Separate targets: wardrobe-category-0 / wardrobe-5
+PASS Separate targets: wardrobe-category-0 / wardrobe-6
+PASS Separate targets: wardrobe-category-0 / wardrobe-7
+PASS Separate targets: wardrobe-category-0 / wardrobe-8
+PASS Separate targets: wardrobe-category-0 / wardrobe-9
+PASS Separate targets: wardrobe-category-0 / wardrobe-10
+PASS Separate targets: wardrobe-category-0 / wardrobe-11
+PASS Separate targets: wardrobe-category-0 / wardrobe-clear
+PASS Separate targets: wardrobe-category-0 / wardrobe-reset
+PASS Separate targets: wardrobe-category-0 / wardrobe-player-name
+PASS Separate targets: wardrobe-category-0 / wardrobe-clear-look
+PASS Separate targets: wardrobe-category-0 / wardrobe-open
+PASS Separate targets: wardrobe-category-1 / wardrobe-category-2
+PASS Separate targets: wardrobe-category-1 / wardrobe-category-3
+PASS Separate targets: wardrobe-category-1 / wardrobe-category-4
+PASS Separate targets: wardrobe-category-1 / wardrobe-category-5
+PASS Separate targets: wardrobe-category-1 / wardrobe-category-6
+PASS Separate targets: wardrobe-category-1 / wardrobe-0
+PASS Separate targets: wardrobe-category-1 / wardrobe-1
+PASS Separate targets: wardrobe-category-1 / wardrobe-2
+PASS Separate targets: wardrobe-category-1 / wardrobe-3
+PASS Separate targets: wardrobe-category-1 / wardrobe-4
+PASS Separate targets: wardrobe-category-1 / wardrobe-5
+PASS Separate targets: wardrobe-category-1 / wardrobe-6
+PASS Separate targets: wardrobe-category-1 / wardrobe-7
+PASS Separate targets: wardrobe-category-1 / wardrobe-8
+PASS Separate targets: wardrobe-category-1 / wardrobe-9
+PASS Separate targets: wardrobe-category-1 / wardrobe-10
+PASS Separate targets: wardrobe-category-1 / wardrobe-11
+PASS Separate targets: wardrobe-category-1 / wardrobe-clear
+PASS Separate targets: wardrobe-category-1 / wardrobe-reset
+PASS Separate targets: wardrobe-category-1 / wardrobe-player-name
+PASS Separate targets: wardrobe-category-1 / wardrobe-clear-look
+PASS Separate targets: wardrobe-category-1 / wardrobe-open
+PASS Separate targets: wardrobe-category-2 / wardrobe-category-3
+PASS Separate targets: wardrobe-category-2 / wardrobe-category-4
+PASS Separate targets: wardrobe-category-2 / wardrobe-category-5
+PASS Separate targets: wardrobe-category-2 / wardrobe-category-6
+PASS Separate targets: wardrobe-category-2 / wardrobe-0
+PASS Separate targets: wardrobe-category-2 / wardrobe-1
+PASS Separate targets: wardrobe-category-2 / wardrobe-2
+PASS Separate targets: wardrobe-category-2 / wardrobe-3
+PASS Separate targets: wardrobe-category-2 / wardrobe-4
+PASS Separate targets: wardrobe-category-2 / wardrobe-5
+PASS Separate targets: wardrobe-category-2 / wardrobe-6
+PASS Separate targets: wardrobe-category-2 / wardrobe-7
+PASS Separate targets: wardrobe-category-2 / wardrobe-8
+PASS Separate targets: wardrobe-category-2 / wardrobe-9
+PASS Separate targets: wardrobe-category-2 / wardrobe-10
+PASS Separate targets: wardrobe-category-2 / wardrobe-11
+PASS Separate targets: wardrobe-category-2 / wardrobe-clear
+PASS Separate targets: wardrobe-category-2 / wardrobe-reset
+PASS Separate targets: wardrobe-category-2 / wardrobe-player-name
+PASS Separate targets: wardrobe-category-2 / wardrobe-clear-look
+PASS Separate targets: wardrobe-category-2 / wardrobe-open
+PASS Separate targets: wardrobe-category-3 / wardrobe-category-4
+PASS Separate targets: wardrobe-category-3 / wardrobe-category-5
+PASS Separate targets: wardrobe-category-3 / wardrobe-category-6
+PASS Separate targets: wardrobe-category-3 / wardrobe-0
+PASS Separate targets: wardrobe-category-3 / wardrobe-1
+PASS Separate targets: wardrobe-category-3 / wardrobe-2
+PASS Separate targets: wardrobe-category-3 / wardrobe-3
+PASS Separate targets: wardrobe-category-3 / wardrobe-4
+PASS Separate targets: wardrobe-category-3 / wardrobe-5
+PASS Separate targets: wardrobe-category-3 / wardrobe-6
+PASS Separate targets: wardrobe-category-3 / wardrobe-7
+PASS Separate targets: wardrobe-category-3 / wardrobe-8
+PASS Separate targets: wardrobe-category-3 / wardrobe-9
+PASS Separate targets: wardrobe-category-3 / wardrobe-10
+PASS Separate targets: wardrobe-category-3 / wardrobe-11
+PASS Separate targets: wardrobe-category-3 / wardrobe-clear
+PASS Separate targets: wardrobe-category-3 / wardrobe-reset
+PASS Separate targets: wardrobe-category-3 / wardrobe-player-name
+PASS Separate targets: wardrobe-category-3 / wardrobe-clear-look
+PASS Separate targets: wardrobe-category-3 / wardrobe-open
+PASS Separate targets: wardrobe-category-4 / wardrobe-category-5
+PASS Separate targets: wardrobe-category-4 / wardrobe-category-6
+PASS Separate targets: wardrobe-category-4 / wardrobe-0
+PASS Separate targets: wardrobe-category-4 / wardrobe-1
+PASS Separate targets: wardrobe-category-4 / wardrobe-2
+PASS Separate targets: wardrobe-category-4 / wardrobe-3
+PASS Separate targets: wardrobe-category-4 / wardrobe-4
+PASS Separate targets: wardrobe-category-4 / wardrobe-5
+PASS Separate targets: wardrobe-category-4 / wardrobe-6
+PASS Separate targets: wardrobe-category-4 / wardrobe-7
+PASS Separate targets: wardrobe-category-4 / wardrobe-8
+PASS Separate targets: wardrobe-category-4 / wardrobe-9
+PASS Separate targets: wardrobe-category-4 / wardrobe-10
+PASS Separate targets: wardrobe-category-4 / wardrobe-11
+PASS Separate targets: wardrobe-category-4 / wardrobe-clear
+PASS Separate targets: wardrobe-category-4 / wardrobe-reset
+PASS Separate targets: wardrobe-category-4 / wardrobe-player-name
+PASS Separate targets: wardrobe-category-4 / wardrobe-clear-look
+PASS Separate targets: wardrobe-category-4 / wardrobe-open
+PASS Separate targets: wardrobe-category-5 / wardrobe-category-6
+PASS Separate targets: wardrobe-category-5 / wardrobe-0
+PASS Separate targets: wardrobe-category-5 / wardrobe-1
+PASS Separate targets: wardrobe-category-5 / wardrobe-2
+PASS Separate targets: wardrobe-category-5 / wardrobe-3
+PASS Separate targets: wardrobe-category-5 / wardrobe-4
+PASS Separate targets: wardrobe-category-5 / wardrobe-5
+PASS Separate targets: wardrobe-category-5 / wardrobe-6
+PASS Separate targets: wardrobe-category-5 / wardrobe-7
+PASS Separate targets: wardrobe-category-5 / wardrobe-8
+PASS Separate targets: wardrobe-category-5 / wardrobe-9
+PASS Separate targets: wardrobe-category-5 / wardrobe-10
+PASS Separate targets: wardrobe-category-5 / wardrobe-11
+PASS Separate targets: wardrobe-category-5 / wardrobe-clear
+PASS Separate targets: wardrobe-category-5 / wardrobe-reset
+PASS Separate targets: wardrobe-category-5 / wardrobe-player-name
+PASS Separate targets: wardrobe-category-5 / wardrobe-clear-look
+PASS Separate targets: wardrobe-category-5 / wardrobe-open
+PASS Separate targets: wardrobe-category-6 / wardrobe-0
+PASS Separate targets: wardrobe-category-6 / wardrobe-1
+PASS Separate targets: wardrobe-category-6 / wardrobe-2
+PASS Separate targets: wardrobe-category-6 / wardrobe-3
+PASS Separate targets: wardrobe-category-6 / wardrobe-4
+PASS Separate targets: wardrobe-category-6 / wardrobe-5
+PASS Separate targets: wardrobe-category-6 / wardrobe-6
+PASS Separate targets: wardrobe-category-6 / wardrobe-7
+PASS Separate targets: wardrobe-category-6 / wardrobe-8
+PASS Separate targets: wardrobe-category-6 / wardrobe-9
+PASS Separate targets: wardrobe-category-6 / wardrobe-10
+PASS Separate targets: wardrobe-category-6 / wardrobe-11
+PASS Separate targets: wardrobe-category-6 / wardrobe-clear
+PASS Separate targets: wardrobe-category-6 / wardrobe-reset
+PASS Separate targets: wardrobe-category-6 / wardrobe-player-name
+PASS Separate targets: wardrobe-category-6 / wardrobe-clear-look
+PASS Separate targets: wardrobe-category-6 / wardrobe-open
+PASS Separate targets: wardrobe-0 / wardrobe-1
+PASS Separate targets: wardrobe-0 / wardrobe-2
+PASS Separate targets: wardrobe-0 / wardrobe-3
+PASS Separate targets: wardrobe-0 / wardrobe-4
+PASS Separate targets: wardrobe-0 / wardrobe-5
+PASS Separate targets: wardrobe-0 / wardrobe-6
+PASS Separate targets: wardrobe-0 / wardrobe-7
+PASS Separate targets: wardrobe-0 / wardrobe-8
+PASS Separate targets: wardrobe-0 / wardrobe-9
+PASS Separate targets: wardrobe-0 / wardrobe-10
+PASS Separate targets: wardrobe-0 / wardrobe-11
+PASS Separate targets: wardrobe-0 / wardrobe-clear
+PASS Separate targets: wardrobe-0 / wardrobe-reset
+PASS Separate targets: wardrobe-0 / wardrobe-player-name
+PASS Separate targets: wardrobe-0 / wardrobe-clear-look
+PASS Separate targets: wardrobe-0 / wardrobe-open
+PASS Separate targets: wardrobe-1 / wardrobe-2
+PASS Separate targets: wardrobe-1 / wardrobe-3
+PASS Separate targets: wardrobe-1 / wardrobe-4
+PASS Separate targets: wardrobe-1 / wardrobe-5
+PASS Separate targets: wardrobe-1 / wardrobe-6
+PASS Separate targets: wardrobe-1 / wardrobe-7
+PASS Separate targets: wardrobe-1 / wardrobe-8
+PASS Separate targets: wardrobe-1 / wardrobe-9
+PASS Separate targets: wardrobe-1 / wardrobe-10
+PASS Separate targets: wardrobe-1 / wardrobe-11
+PASS Separate targets: wardrobe-1 / wardrobe-clear
+PASS Separate targets: wardrobe-1 / wardrobe-reset
+PASS Separate targets: wardrobe-1 / wardrobe-player-name
+PASS Separate targets: wardrobe-1 / wardrobe-clear-look
+PASS Separate targets: wardrobe-1 / wardrobe-open
+PASS Separate targets: wardrobe-2 / wardrobe-3
+PASS Separate targets: wardrobe-2 / wardrobe-4
+PASS Separate targets: wardrobe-2 / wardrobe-5
+PASS Separate targets: wardrobe-2 / wardrobe-6
+PASS Separate targets: wardrobe-2 / wardrobe-7
+PASS Separate targets: wardrobe-2 / wardrobe-8
+PASS Separate targets: wardrobe-2 / wardrobe-9
+PASS Separate targets: wardrobe-2 / wardrobe-10
+PASS Separate targets: wardrobe-2 / wardrobe-11
+PASS Separate targets: wardrobe-2 / wardrobe-clear
+PASS Separate targets: wardrobe-2 / wardrobe-reset
+PASS Separate targets: wardrobe-2 / wardrobe-player-name
+PASS Separate targets: wardrobe-2 / wardrobe-clear-look
+PASS Separate targets: wardrobe-2 / wardrobe-open
+PASS Separate targets: wardrobe-3 / wardrobe-4
+PASS Separate targets: wardrobe-3 / wardrobe-5
+PASS Separate targets: wardrobe-3 / wardrobe-6
+PASS Separate targets: wardrobe-3 / wardrobe-7
+PASS Separate targets: wardrobe-3 / wardrobe-8
+PASS Separate targets: wardrobe-3 / wardrobe-9
+PASS Separate targets: wardrobe-3 / wardrobe-10
+PASS Separate targets: wardrobe-3 / wardrobe-11
+PASS Separate targets: wardrobe-3 / wardrobe-clear
+PASS Separate targets: wardrobe-3 / wardrobe-reset
+PASS Separate targets: wardrobe-3 / wardrobe-player-name
+PASS Separate targets: wardrobe-3 / wardrobe-clear-look
+PASS Separate targets: wardrobe-3 / wardrobe-open
+PASS Separate targets: wardrobe-4 / wardrobe-5
+PASS Separate targets: wardrobe-4 / wardrobe-6
+PASS Separate targets: wardrobe-4 / wardrobe-7
+PASS Separate targets: wardrobe-4 / wardrobe-8
+PASS Separate targets: wardrobe-4 / wardrobe-9
+PASS Separate targets: wardrobe-4 / wardrobe-10
+PASS Separate targets: wardrobe-4 / wardrobe-11
+PASS Separate targets: wardrobe-4 / wardrobe-clear
+PASS Separate targets: wardrobe-4 / wardrobe-reset
+PASS Separate targets: wardrobe-4 / wardrobe-player-name
+PASS Separate targets: wardrobe-4 / wardrobe-clear-look
+PASS Separate targets: wardrobe-4 / wardrobe-open
+PASS Separate targets: wardrobe-5 / wardrobe-6
+PASS Separate targets: wardrobe-5 / wardrobe-7
+PASS Separate targets: wardrobe-5 / wardrobe-8
+PASS Separate targets: wardrobe-5 / wardrobe-9
+PASS Separate targets: wardrobe-5 / wardrobe-10
+PASS Separate targets: wardrobe-5 / wardrobe-11
+PASS Separate targets: wardrobe-5 / wardrobe-clear
+PASS Separate targets: wardrobe-5 / wardrobe-reset
+PASS Separate targets: wardrobe-5 / wardrobe-player-name
+PASS Separate targets: wardrobe-5 / wardrobe-clear-look
+PASS Separate targets: wardrobe-5 / wardrobe-open
+PASS Separate targets: wardrobe-6 / wardrobe-7
+PASS Separate targets: wardrobe-6 / wardrobe-8
+PASS Separate targets: wardrobe-6 / wardrobe-9
+PASS Separate targets: wardrobe-6 / wardrobe-10
+PASS Separate targets: wardrobe-6 / wardrobe-11
+PASS Separate targets: wardrobe-6 / wardrobe-clear
+PASS Separate targets: wardrobe-6 / wardrobe-reset
+PASS Separate targets: wardrobe-6 / wardrobe-player-name
+PASS Separate targets: wardrobe-6 / wardrobe-clear-look
+PASS Separate targets: wardrobe-6 / wardrobe-open
+PASS Separate targets: wardrobe-7 / wardrobe-8
+PASS Separate targets: wardrobe-7 / wardrobe-9
+PASS Separate targets: wardrobe-7 / wardrobe-10
+PASS Separate targets: wardrobe-7 / wardrobe-11
+PASS Separate targets: wardrobe-7 / wardrobe-clear
+PASS Separate targets: wardrobe-7 / wardrobe-reset
+PASS Separate targets: wardrobe-7 / wardrobe-player-name
+PASS Separate targets: wardrobe-7 / wardrobe-clear-look
+PASS Separate targets: wardrobe-7 / wardrobe-open
+PASS Separate targets: wardrobe-8 / wardrobe-9
+PASS Separate targets: wardrobe-8 / wardrobe-10
+PASS Separate targets: wardrobe-8 / wardrobe-11
+PASS Separate targets: wardrobe-8 / wardrobe-clear
+PASS Separate targets: wardrobe-8 / wardrobe-reset
+PASS Separate targets: wardrobe-8 / wardrobe-player-name
+PASS Separate targets: wardrobe-8 / wardrobe-clear-look
+PASS Separate targets: wardrobe-8 / wardrobe-open
+PASS Separate targets: wardrobe-9 / wardrobe-10
+PASS Separate targets: wardrobe-9 / wardrobe-11
+PASS Separate targets: wardrobe-9 / wardrobe-clear
+PASS Separate targets: wardrobe-9 / wardrobe-reset
+PASS Separate targets: wardrobe-9 / wardrobe-player-name
+PASS Separate targets: wardrobe-9 / wardrobe-clear-look
+PASS Separate targets: wardrobe-9 / wardrobe-open
+PASS Separate targets: wardrobe-10 / wardrobe-11
+PASS Separate targets: wardrobe-10 / wardrobe-clear
+PASS Separate targets: wardrobe-10 / wardrobe-reset
+PASS Separate targets: wardrobe-10 / wardrobe-player-name
+PASS Separate targets: wardrobe-10 / wardrobe-clear-look
+PASS Separate targets: wardrobe-10 / wardrobe-open
+PASS Separate targets: wardrobe-11 / wardrobe-clear
+PASS Separate targets: wardrobe-11 / wardrobe-reset
+PASS Separate targets: wardrobe-11 / wardrobe-player-name
+PASS Separate targets: wardrobe-11 / wardrobe-clear-look
+PASS Separate targets: wardrobe-11 / wardrobe-open
+PASS Separate targets: wardrobe-clear / wardrobe-reset
+PASS Separate targets: wardrobe-clear / wardrobe-player-name
+PASS Separate targets: wardrobe-clear / wardrobe-clear-look
+PASS Separate targets: wardrobe-clear / wardrobe-open
+PASS Separate targets: wardrobe-reset / wardrobe-player-name
+PASS Separate targets: wardrobe-reset / wardrobe-clear-look
+PASS Separate targets: wardrobe-reset / wardrobe-open
+PASS Separate targets: wardrobe-player-name / wardrobe-clear-look
+PASS Separate targets: wardrobe-player-name / wardrobe-open
+PASS Separate targets: wardrobe-clear-look / wardrobe-open
+PASS VR selection targets remain triggers
+PASS First reset click only asks for confirmation
+PASS Close restores movement and original camera
+COMPLETE UI assertions passed with no runtime errors.
+CLEANUP restored name preference and initial scene state.

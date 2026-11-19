@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-120
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 0d3fa57a10801a14cbb95c1768bb9a01, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 120
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Drowning Death
+    atlasFile: atlas.png
+    atlasSha256: abec8b3879c9165a7fa8b0d21faf1ead79a42a4579d2acc457b34994c2e9e13b
+    gifFile: preview.gif
+    gifSha256: 243ecb6e6de91e2ae5ce43ccbe44f2040c507dfd24b650fced0048e0c86b767e
+    sourceSha256: 0ed961f8d206e2572d7f49a03cb2792578089d2571cc95e2a0085de3a4384d3a
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Drowning Death
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Drowning Death
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

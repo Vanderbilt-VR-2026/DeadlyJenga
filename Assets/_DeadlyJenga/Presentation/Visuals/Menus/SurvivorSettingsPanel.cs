@@ -12,28 +12,24 @@ namespace DeadlyJenga.CastlePrototype
 
         // staminaEditable: false for joined players (the host owns stamina rules).
         // shareStamina: called with the new stamina rules after a change, so the host can share them.
-        public static void Draw(ISurvivorSettings survivor, bool staminaEditable = true, System.Action<string> shareStamina = null, bool showComfort = true)
+        public static void Draw(ISurvivorSettings survivor, bool staminaEditable = true, System.Action<string> shareStamina = null)
         {
             if (survivor == null) return;
             var rules = survivor.CurrentRules;
             bool changed = false;
             string staminaBefore = survivor.SaveStaminaRules();
 
-            if(showComfort)
-            {
-                GUILayout.Label(survivor.ControlDescription);
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Seated / smooth turn")) survivor.UseStationaryPreset();
-                if (GUILayout.Button("Standing / physical turn")) survivor.UseStandingPreset();
-                GUILayout.EndHorizontal();
-                if (GUILayout.Button("Standing jump gesture: " + survivor.JumpGestureLabel)) survivor.CycleJumpGesture();
-                if (!survivor.StandingPlay && GUILayout.Button("Recalibrate seated eye height")) survivor.RecalibrateSeatedHeight();
-                if (GUILayout.Button("Movement: " + survivor.MovementLabel)) survivor.CycleMovement();
-                if (GUILayout.Button("Right-stick turn: " + survivor.TurnLabel)) survivor.CycleTurn();
-                changed |= Slider("Snap: " + rules.snapAngle.ToString("0") + "\u00b0", ref rules.snapAngle, 15, 90);
-                changed |= Slider("Smooth: " + rules.smoothDegrees.ToString("0") + "\u00b0 / sec", ref rules.smoothDegrees, 15, 180);
-
-            }
+            GUILayout.Label(survivor.ControlDescription);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Seated / smooth turn")) survivor.UseStationaryPreset();
+            if (GUILayout.Button("Standing / physical turn")) survivor.UseStandingPreset();
+            GUILayout.EndHorizontal();
+            if (GUILayout.Button("Standing jump gesture: " + survivor.JumpGestureLabel)) survivor.CycleJumpGesture();
+            if (!survivor.StandingPlay && GUILayout.Button("Recalibrate seated eye height")) survivor.RecalibrateSeatedHeight();
+            if (GUILayout.Button("Movement: " + survivor.MovementLabel)) survivor.CycleMovement();
+            if (GUILayout.Button("Right-stick turn: " + survivor.TurnLabel)) survivor.CycleTurn();
+            changed |= Slider("Snap: " + rules.snapAngle.ToString("0") + "\u00b0", ref rules.snapAngle, 15, 90);
+            changed |= Slider("Smooth: " + rules.smoothDegrees.ToString("0") + "\u00b0 / sec", ref rules.smoothDegrees, 15, 180);
 
             staminaOpen = GUILayout.Toggle(staminaOpen, "Live climbing stamina settings" + (staminaEditable ? "" : " (host only)"));
             if (staminaOpen)
@@ -59,7 +55,7 @@ namespace DeadlyJenga.CastlePrototype
             handPhysicsOpen=GUILayout.Toggle(handPhysicsOpen,"Flying hand drive / contact"+(editable?"":" (host only)"));
             if(!handPhysicsOpen)return;
             var physics=survivor.CurrentRules.handPhysics;
-            float force=physics?.forceNewtons??3000,friction=physics?.friction??1.8f;
+            float force=physics?.forceNewtons??1200,friction=physics?.friction??2f;
             bool previous=GUI.enabled;GUI.enabled=previous&&editable;
             GUILayout.Label("Hand drive force (N): "+force.ToString("0"));
             float position=Mathf.Sqrt(Mathf.Clamp(force,0,10000)/10000);
@@ -70,10 +66,10 @@ namespace DeadlyJenga.CastlePrototype
                 if(GUILayout.Button(preset.ToString("0")+" N"))force=preset;
             GUILayout.EndHorizontal();
             Slider("Contact friction: "+friction.ToString("0.00"),ref friction,0,2);
-            if(GUILayout.Button("Reset hand drive / friction")){force=3000;friction=1.8f;}
+            if(GUILayout.Button("Reset hand drive / friction")){force=1200;friction=2f;}
             GUI.enabled=previous;
             GUILayout.Label("Drive budget only. Momentum can produce larger contact impulses. Zero disables drive; it does not freeze the hand.");
-            if(editable&&(!Mathf.Approximately(force,physics?.forceNewtons??3000)||!Mathf.Approximately(friction,physics?.friction??1.8f)))
+            if(editable&&(!Mathf.Approximately(force,physics?.forceNewtons??1200)||!Mathf.Approximately(friction,physics?.friction??2f)))
                 SetHandPhysics(survivor,force,friction,true,share);
         }
         public static void SetHandPhysics(ISurvivorSettings survivor,float force,float friction,bool editable,System.Action<string> share)

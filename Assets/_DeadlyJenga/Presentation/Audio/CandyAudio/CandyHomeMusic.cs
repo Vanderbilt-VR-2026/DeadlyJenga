@@ -29,7 +29,7 @@ namespace DeadlyJenga.CandyAudio
             source.spatialBlend = 0;
             source.dopplerLevel = 0;
             source.priority = 16;
-            source.clip = Resources.Load<AudioClip>("CandyMenuMusic/Shorebreak-Home");
+            source.clip = CandyDirectAudio.Clip(CandyDirectAudio.Home, Resources.Load<AudioClip>("CandyMenuMusic/Shorebreak-Home"));
         }
 
         void OnEnable()
@@ -51,7 +51,7 @@ namespace DeadlyJenga.CandyAudio
         void SetVolume()
         {
             var audio = CandyAudioEngine.Instance;
-            source.volume = focused ? (audio && audio.bank ? Mathf.Clamp01(audio.bank.master * audio.bank.music * 1.8f) : .32f) : 0;
+            source.volume = CandyDirectAudio.Gain(CandyDirectAudio.Home) * (focused ? (audio && audio.bank ? Mathf.Clamp01(audio.bank.master * audio.bank.music * 1.8f) : .32f) : 0);
         }
 
         void Update() => SetVolume();

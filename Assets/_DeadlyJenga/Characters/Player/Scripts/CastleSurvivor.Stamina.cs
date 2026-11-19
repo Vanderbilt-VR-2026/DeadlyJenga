@@ -43,5 +43,35 @@ namespace DeadlyJenga.CastlePrototype
         [Range(1,6)] public float climbDrainDegree=2,climbRecoveryDegree=2;
         public bool StaminaRecovering=>!Climbing&&GripRemaining<1&&climbGroundRest>Mathf.Max(0,climbRecoveryDelay)&&climbRecoveryPerSecond>0;
         public bool StaminaExhausted=>GripRemaining<=.001f;
+        public bool SprintRequested {get;private set;}
+        bool sprintToggleArmed;
+        float sprintFeedbackUntil;
+        string sprintFeedback;
+        bool SprintHold => PlayerPrefs.GetInt("SurvivorVR.SprintHold", 0) != 0;
+        string SprintStatusText=>Sprinting?(Climbing?"CLIMB SPRINT":"SPRINTING"):
+            SprintRequested?"SPRINT READY · move to run":sprintFeedback;
+
+        void UpdateSprintToggle(bool available,bool pressed,bool held)
+        {
+            if(!available){ClearSprint();return;}
+            if(SprintHold)
+            {
+                if(held) SprintRequested=true;
+                else if(SprintRequested) ClearSprint();
+                return;
+            }
+            if(!held){sprintToggleArmed=true;return;}
+            if(!pressed||!sprintToggleArmed)return;
+            sprintToggleArmed=false;
+            if(SprintRequested)
+            {
+                ClearSprint();sprintFeedback="SPRINT OFF";sprintFeedbackUntil=Time.unscaledTime+1.5f;
+            }
+            else SprintRequested=true;
+        }
+        bool CanSprint(Vector2 input)=>SprintRequested&&(Grounded||(jumped&&Time.time-airborneSince<1.5f))&&
+            input.y>=.08f&&input.sqrMagnitude>.04f&&
+            Alive&&!InputSuspended&&vrInputFocused&&!externallyDriven&&!Climbing&&!Vaulting&&!Sinking&&
+            modeRules?.downed!=true&&movementMultiplier>0;
     }
 }

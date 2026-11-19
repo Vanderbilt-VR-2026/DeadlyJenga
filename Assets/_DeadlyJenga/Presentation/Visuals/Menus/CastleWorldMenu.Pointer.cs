@@ -1,68 +1,304 @@
 using UnityEngine;
 using UnityEngine.UI;
-using DeadlyJenga.Presentation;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
+using UnityEngine.InputSystem.XR;
+using Unity.XR.CoreUtils;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public sealed partial class CastleWorldMenu
+    public sealed partial class CastleWorldMenu : IPointerDownHandler, IPointerUpHandler
     {
         const float MenuDistance=1.68f;
         Ray pointerRay;
-        BoxCollider focus,pressedTarget,previousFocus;
+        BoxCollider focus,pressedTarget;
         Image pointerDot,focusOutline;
+        LineRenderer pointerBeam;
         float pressedUntil;
-        bool requireRelease,startedAim,usingController;
+        bool requireRelease,startedAim,usingController,desktopOpened,inputFocused=true;
+        int tabletPointerDevice=-1;
+        bool tabletDominantLeft,tabletWasHeld,pointerForegroundReady;
+        Image tabletFrame;
+        GraphicRaycaster desktopRaycaster;
+        InputAction desktopSelect;
+        Vector2 desktopClickPosition;
+        bool desktopClick, desktopHeld;
+        int desktopDownFrame=-1;
+        Mesh tabletCaseMesh;
+        Material tabletCaseMaterial;
 
         public void Show(bool show,Camera camera)
         {
             roomLeave.Clear();
+            if(!show)RestoreEquipmentWheelLayout();
             gameObject.SetActive(show&&camera);
-            if(!show||!camera)return;
+            ResetPointer();
+            if(!show||!camera){desktopSelect?.Disable();return;}
+            ConfigureDesktopClicks(camera);
+            GetComponent<CanvasScaler>().dynamicPixelsPerUnit=3.5f;
+            if (session.IsVR) PlayerPrefs.SetInt(TabletOpenedPreference,1);
+            else if (!desktopOpened)
+            {
+                desktopOpened=true;
+                if (DeveloperTabAvailable) OpenPlayerTabletPage(TabletPage.Developer);
+            }
+            DeadlyJenga.Presentation.MenuAim.PresentInForeground(transform);
             var eye=camera.transform;
             var flat=Vector3.ProjectOnPlane(eye.forward,Vector3.up);
             if(flat.sqrMagnitude<.015f)flat=Vector3.Cross(eye.right,Vector3.up);
             flat=flat.sqrMagnitude>.001f?flat.normalized:Vector3.forward;
             transform.SetPositionAndRotation(eye.position+flat*MenuDistance,Quaternion.LookRotation(flat,Vector3.up));
-            startedAim=false;requireRelease=true;focus=pressedTarget=null;
+            if (session.IsVR) PlaceTablet(camera);
+            pointerForegroundReady=false;
+        }
+
+        internal void SetInputFocused(bool focused)
+        {
+            inputFocused=focused;
+            if(!focused)ResetPointer();
+        }
+
+        void OnDisable(){ResetPointer();desktopSelect?.Disable();}
+
+        void ResetPointer()
+        {
+            startedAim=false;requireRelease=true;focus=pressedTarget=null;tabletPointerDevice=-1;tabletWasHeld=false;
+            desktopClick=desktopHeld=false;
             if(pointerDot)pointerDot.gameObject.SetActive(false);
+            if(pointerBeam)pointerBeam.enabled=false;
             if(focusOutline)focusOutline.gameObject.SetActive(false);
+        }
+
+        void UpdateTabletDreamchase()
+        {
+            if(!tabletFrame)return;
+            float chase = Mathf.Sin(Time.unscaledTime * 3.2f) * 0.5f + 0.5f;
+            float pulse = Mathf.Sin(Time.unscaledTime * 1.8f) * 0.2f + 0.8f;
+            Color baseCol = CandyHudVisuals.Lavender;
+            Color dream = Color.Lerp(baseCol, new Color(.92f, .82f, 1f, .95f), chase);
+            dream.a = Mathf.Lerp(0.55f, 0.95f, pulse);
+            tabletFrame.color = dream;
+            var frameOutline = tabletFrame.GetComponent<Outline>();
+            if(!frameOutline)
+            {
+                frameOutline = tabletFrame.gameObject.AddComponent<Outline>();
+                frameOutline.effectDistance = new Vector2(4, -4);
+            }
+            frameOutline.effectColor = new Color(baseCol.r, baseCol.g, baseCol.b, 0.35f + Mathf.Sin(Time.unscaledTime * 4.2f) * 0.25f);
         }
 
         public void Point(Camera camera,bool pressed,bool held=false)
         {
-            if(!camera||!isActiveAndEnabled)return;
-            previousFocus=focus;focus=null;
-            bool homePage=!DeadlyJenga.Presentation.MenuAccess.GuestPause(session)&&AtHome&&!hostTools&&!wildlifePage;
-            if(!homePage)LayoutDefault();
+            if(!camera||!isActiveAndEnabled||!inputFocused||DeadlyJenga.Presentation.MenuAim.InputConsumed){ResetPointer();return;}
+            UpdateTabletDreamchase();
+            bool consumed=DeadlyJenga.Presentation.MenuAim.InputConsumed;
+            if(!giveEquipmentPage&&!(disasterPage&&disasterSelection<0)&&!(modePage&&modeWheel))RestoreEquipmentWheelLayout();
+            focus=null;
             foreach(var button in buttons)if(button)button.image.color=CandyHudVisuals.Card;
-            bool guest=DeadlyJenga.Presentation.MenuAccess.GuestPause(session);
-            ((RectTransform)transform).sizeDelta=new Vector2(600,guest?590:1080);
-            heading.rectTransform.anchoredPosition=new Vector2(0,guest?171:355);
             help.rectTransform.anchoredPosition=new Vector2(0,-480);
-            bool controller = session.IsVR;
-            if (controller)
+            bool controller=false;
+            if (session.IsVR)
             {
-                var trackingCamera = MenuPointer.TrackingCamera(session, camera);
-                bool aimed = DeadlyJenga.Presentation.MenuPointer.AimAt(camera, trackingCamera,
-                    session.Player?.gameObject.GetComponent<DeadlyJenga.Core.IBlasterControls>()?.LeftHanded==true,
-                    ray => DeadlyJenga.Presentation.MenuPointer.PanelHit(ray, (RectTransform)transform), out var input);
-                pointerRay=input.Ray;
-                pressed=aimed&&input.Pressed;
-                held=aimed&&input.Held;
+                controller=TabletInput(camera,ref pressed,ref held,out pointerRay);
             }
-            else pointerRay=new Ray(camera.transform.position,camera.transform.forward);
+            else
+            {
+                PlaceDesktopTablet(camera);
+                var mouse=Mouse.current;
+                bool mousePressed=mouse?.leftButton.wasPressedThisFrame==true||
+                    (Keyboard.current?.enterKey.wasPressedThisFrame==true);
+                pressed=mousePressed||desktopClick||DeadlyJenga.Presentation.MenuGamepad.UsingPointer&&DeadlyJenga.Presentation.MenuGamepad.Pressed;
+                if(mouse?.leftButton.wasReleasedThisFrame==true)desktopHeld=false;
+                held=mouse?.leftButton.isPressed==true||desktopHeld||DeadlyJenga.Presentation.MenuGamepad.UsingPointer&&DeadlyJenga.Presentation.MenuGamepad.Held;
+                desktopClick=false;
+                pointerRay=DeadlyJenga.Presentation.MenuGamepad.UsingPointer?camera.ScreenPointToRay(DeadlyJenga.Presentation.MenuGamepad.Position):pressed&&!mousePressed?camera.ScreenPointToRay(desktopClickPosition):
+                    mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):
+                    new Ray(camera.transform.position,camera.transform.forward);
+            }
             if(startedAim&&usingController!=controller)requireRelease=true;
             usingController=controller;startedAim=true;
+            if(consumed)requireRelease=true;
             if(requireRelease)
             {
-                if(!pressed&&!held)requireRelease=false;
+                if(!consumed&&!pressed&&!held)requireRelease=false;
                 pressed=held=false;
             }
-            if(guest)PointGuestPause(pressed);
-            else PointPage(camera,pressed,held);
+            PointPlayerTablet(camera,pressed,held);
             if(!isActiveAndEnabled)return;
             if(pressed&&focus){pressedTarget=focus;pressedUntil=Time.unscaledTime+.13f;}
-            ApplyLabelContrast();PresentPointer();
+            if(tabletDeveloperDetails)ApplyLabelContrast();
+            PresentPointer();
+            if (pressed || !pointerForegroundReady)
+            {
+                DeadlyJenga.Presentation.MenuAim.PresentInForeground(transform);
+                pointerForegroundReady=true;
+            }
+        }
+
+        void ConfigureDesktopClicks(Camera camera)
+        {
+            if (session.IsVR)
+            {
+                desktopSelect?.Disable();
+                if (desktopRaycaster) desktopRaycaster.enabled=false;
+                return;
+            }
+
+            if (desktopSelect==null)
+            {
+                desktopSelect=new InputAction("Desktop tablet select",InputActionType.Button,"<Mouse>/leftButton");
+                desktopSelect.performed+=DesktopSelectPerformed;
+            }
+            desktopSelect.Enable();
+            GetComponent<Canvas>().worldCamera=camera;
+            if (!desktopRaycaster) desktopRaycaster=gameObject.AddComponent<GraphicRaycaster>();
+            desktopRaycaster.enabled=true;
+            var background=GetComponent<Image>();
+            foreach (var graphic in GetComponentsInChildren<Graphic>(true))
+                graphic.raycastTarget=graphic==background;
+            if (FindFirstObjectByType<EventSystem>()) return;
+            var input=new GameObject("Desktop tablet UI input",typeof(EventSystem),typeof(InputSystemUIInputModule));
+            input.transform.SetParent(transform,false);
+            input.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
+        }
+
+        void DesktopSelectPerformed(InputAction.CallbackContext context)
+        {
+            if (context.control.device is Mouse mouse && session.MenuOpen)
+                QueueDesktopClick(mouse.position.ReadValue());
+        }
+
+        public void OnPointerDown(PointerEventData e)
+        {
+            if (session.IsVR||e.button!=PointerEventData.InputButton.Left) return;
+            QueueDesktopClick(e.position);
+        }
+
+        public void OnPointerUp(PointerEventData e)
+        {
+            if (e.button==PointerEventData.InputButton.Left) desktopHeld=false;
+        }
+
+        void OnGUI()
+        {
+            if (session==null||session.IsVR||!session.MenuOpen) return;
+            var e=Event.current;
+            if (e.button!=0) return;
+            if (e.rawType==EventType.MouseUp) desktopHeld=false;
+            if (e.rawType!=EventType.MouseDown) return;
+            QueueDesktopClick(new Vector2(e.mousePosition.x,Screen.height-e.mousePosition.y));
+        }
+
+        void QueueDesktopClick(Vector2 position)
+        {
+            if (!inputFocused||desktopHeld||desktopDownFrame==Time.frameCount) return;
+            desktopDownFrame=Time.frameCount;
+            desktopClickPosition=position;
+            desktopClick=desktopHeld=true;
+        }
+
+        bool DominantLeft=>session.Player?.gameObject.GetComponent<DeadlyJenga.Core.IBlasterControls>()?.LeftHanded
+            ??(session as DeadlyJenga.Core.IBlasterControls)?.LeftHanded??false;
+
+        bool ControllerPose(Camera camera,bool left,out Pose pose,out XRController selected)
+            =>DeadlyJenga.Presentation.MenuAim.PhysicalPose(camera,left,out pose,out selected);
+        bool TabletInput(Camera camera,ref bool pressed,ref bool held,out Ray ray)
+        {
+            bool left=DominantLeft;
+            bool physical=ControllerPose(camera,left,out var pose,out var device);
+            if(!physical)physical=ControllerPose(camera,!left,out pose,out device);
+            Ray handRay = default;
+            bool optical = !physical && DeadlyJenga.Presentation.MenuAim.TryHandPointer(camera, session.Player, left, out handRay);
+            bool opticalLeft=left;
+            if(!physical&&!optical)
+            {
+                opticalLeft=!left;
+                optical=DeadlyJenga.Presentation.MenuAim.TryHandPointer(camera,session.Player,opticalLeft,out handRay);
+            }
+            int identity=physical?device.deviceId:optical?(opticalLeft?-2:-3):-1;
+            if(tabletDominantLeft!=left||tabletPointerDevice!=identity)
+            {
+                tabletDominantLeft=left;tabletPointerDevice=identity;tabletWasHeld=false;
+                requireRelease=true;focus=pressedTarget=null;
+            }
+            if(physical)
+            {
+                // Aim and click come from the same chosen controller. The holding hand cannot steal them.
+                bool down=DeadlyJenga.Presentation.MenuAim.TriggerHeld(device);
+                held=down;pressed=down&&!tabletWasHeld;tabletWasHeld=down;
+                ray=new Ray(pose.position,pose.rotation*Vector3.forward);return true;
+            }
+            tabletWasHeld=held;
+            if (optical)
+            {
+                ray = handRay;
+                return true;
+            }
+            ray=new Ray(camera.transform.position,camera.transform.forward);return false;
+        }
+        void PlaceTablet(Camera camera)
+        {
+            DeadlyJenga.Presentation.MenuAim.PlaceTablet((RectTransform)transform,camera,session,DominantLeft, fixedPose: true);
+            BuildTabletFrame();
+        }
+
+        void PlaceDesktopTablet(Camera camera)
+        {
+            const float distance=1.25f;
+            var eye=camera.transform;
+            transform.SetPositionAndRotation(eye.position+eye.forward*distance,eye.rotation);
+            float height=2*distance*Mathf.Tan(camera.fieldOfView*Mathf.Deg2Rad*.5f);
+            transform.localScale=Vector3.one*(.88f*height*Mathf.Min(1,camera.aspect*800f/1160f)/800f);
+            BuildTabletFrame();
+        }
+
+        void BuildTabletFrame()
+        {
+            if(!tabletFrame)
+            {
+                tabletFrame=PointerImage("Tablet lavender bezel",new Vector2(1160,800));
+                tabletFrame.type=Image.Type.Sliced;tabletFrame.pixelsPerUnitMultiplier=.30f;tabletFrame.fillCenter=false;tabletFrame.color=CandyHudVisuals.Lavender;
+                tabletFrame.transform.SetAsFirstSibling();
+                BuildTabletCase();
+            }
+        }
+
+        void BuildTabletCase()
+        {
+            var shader=Shader.Find("Universal Render Pipeline/Lit");if(!shader)return;
+            tabletCaseMaterial=new Material(shader){name="Tablet candy shell",hideFlags=HideFlags.DontSave};
+            tabletCaseMaterial.SetColor("_BaseColor",CandyHudVisuals.Lavender);
+            tabletCaseMaterial.SetFloat("_Smoothness",.8f);tabletCaseMaterial.SetFloat("_Metallic",.18f);
+            const int count=32;
+            var vertices=new Vector3[count*2+2];var triangles=new System.Collections.Generic.List<int>();
+            for(int ring=0;ring<2;ring++)for(int i=0;i<count;i++)
+            {
+                int corner=i/8;float angle=(corner*90+i%8*90f/7)*Mathf.Deg2Rad;
+                float x=(corner==0||corner==3?545:-545)+Mathf.Cos(angle)*35;
+                float y=(corner<2?365:-365)+Mathf.Sin(angle)*35;
+                vertices[ring*count+i]=new Vector3(x,y,ring==0?10:36);
+            }
+            vertices[count*2]=new Vector3(0,0,10);vertices[count*2+1]=new Vector3(0,0,36);
+            for(int i=0;i<count;i++)
+            {
+                int next=(i+1)%count;
+                triangles.AddRange(new[]{count*2,next,i,count*2+1,count+i,count+next,i,next,count+i,next,count+next,count+i});
+            }
+            tabletCaseMesh=new Mesh{name="Rounded tablet shell",hideFlags=HideFlags.DontSave};
+            tabletCaseMesh.vertices=vertices;tabletCaseMesh.triangles=triangles.ToArray();tabletCaseMesh.RecalculateNormals();tabletCaseMesh.RecalculateBounds();
+            var body=new GameObject("Visual - glossy tablet shell",typeof(MeshFilter),typeof(MeshRenderer));
+            body.transform.SetParent(transform,false);body.layer=gameObject.layer;
+            body.GetComponent<MeshFilter>().sharedMesh=tabletCaseMesh;
+            var renderer=body.GetComponent<MeshRenderer>();renderer.sharedMaterial=tabletCaseMaterial;
+            renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;renderer.receiveShadows=false;
+        }
+        void OnDestroy()
+        {
+            desktopSelect?.Dispose();
+            if(tabletCaseMesh)Destroy(tabletCaseMesh);
+            if(tabletCaseMaterial)Destroy(tabletCaseMaterial);
         }
 
         static bool Project(Ray ray,Transform plane,out Vector3 point)
@@ -79,20 +315,13 @@ namespace DeadlyJenga.CastlePrototype
         bool Hit(BoxCollider target,Ray ray,out Vector3 point)
         {
             point=default;
-            if(!Inside(target,ray,target==previousFocus?7:1,out point))return false;
-            // Rows sit 2 units apart: the row hovered last frame keeps a small margin so the highlight does not flicker between neighbours.
-            if(previousFocus&&target!=previousFocus&&Inside(previousFocus,ray,7,out _))return false;
-            focus=target;return true;
-        }
-        bool Inside(BoxCollider target,Ray ray,float padY,out Vector3 point)
-        {
-            point=default;
             if(!target||!target.enabled||!target.gameObject.activeInHierarchy||
                 !(target.transform is RectTransform rect)||!Project(ray,rect,out point))return false;
             var local=rect.InverseTransformPoint(point);
             var bounds=rect.rect;
             float pad=bounds.width<150?1.8f:14;
-            return !(local.x<bounds.xMin-pad||local.x>bounds.xMax+pad||local.y<bounds.yMin-padY||local.y>bounds.yMax+padY);
+            if(local.x<bounds.xMin-pad||local.x>bounds.xMax+pad||local.y<bounds.yMin-1||local.y>bounds.yMax+1)return false;
+            focus=target;return true;
         }
 
         void PresentPointer()
@@ -110,7 +339,6 @@ namespace DeadlyJenga.CastlePrototype
             bool dot=intersects&&(panel.rect.Contains(panel.InverseTransformPoint(at))||actionable);
             bool confirming=actionable&&pressedTarget==focus&&Time.unscaledTime<pressedUntil;
             Color color=confirming?CandyHudVisuals.Peach:actionable?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
-            if(usingController){if(actionable)DeadlyJenga.Presentation.MenuLaser.MarkHover(confirming);dot=false;}   // VR uses the laser's own hit cursor
             pointerDot.gameObject.SetActive(dot);
             if(dot)
             {
@@ -125,6 +353,8 @@ namespace DeadlyJenga.CastlePrototype
                 focusOutline.transform.position=row.TransformPoint(new Vector3(row.rect.xMin+8,0,-3));
                 focusOutline.transform.SetAsLastSibling();if(dot)pointerDot.transform.SetAsLastSibling();
             }
+            DeadlyJenga.Presentation.MenuAim.PresentBeam(ref pointerBeam,transform,pointerRay,
+                at-transform.forward*.012f,session.IsVR&&usingController&&dot,actionable);
         }
 
         Image PointerImage(string name,Vector2 size)

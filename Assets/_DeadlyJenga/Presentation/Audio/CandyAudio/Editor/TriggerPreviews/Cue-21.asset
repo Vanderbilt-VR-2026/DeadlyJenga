@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-21
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: a518343e0514fe44482cc574e66237e7, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 21
+    frameCount: 36
+    columns: 8
+    rows: 5
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 1.5
+    title: Surf
+    atlasFile: atlas.png
+    atlasSha256: 8624e5f04c2b9f94b356787b8f1c56d0cae2762fe214623364e3015919a9329f
+    gifFile: preview.gif
+    gifSha256: 3a07c5a588e0ea0f469bfe5a14790f56755f43f29dda605bde7bb4a30e00a5c6
+    sourceSha256: bd41e21a1186283fbea4fa861a85711990e57fb170f779b9dc53fb2592a440d7
+    sourceCommit: d3bd9450422c1e091a984bae667936ac9de5c902
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: gameplay
+    source: Ocean water surface and shoreline surf
+    action: Active ocean waves and breaking surf rolling onto the island rocks and
+      beach
+    target: none
+    listenerRole: Local ambient listener on shoreline
+    triggerEvidence: Observed CandyAudioWorld ambient ocean loop CandySound.Surf
+      active at listener height
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

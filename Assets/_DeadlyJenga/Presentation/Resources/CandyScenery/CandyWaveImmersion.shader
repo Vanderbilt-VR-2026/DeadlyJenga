@@ -26,9 +26,18 @@ Shader "Candy Tropical/Wave Immersion"
                 return frac((q.x + q.y) * q.z);
             }
 
+            float Current(float2 p)
+            {
+                float2 cell = floor(p);
+                float2 blend = frac(p);
+                blend = blend * blend * (3 - 2 * blend);
+                return lerp(lerp(Hash(cell), Hash(cell + float2(1, 0)), blend.x),
+                            lerp(Hash(cell + float2(0, 1)), Hash(cell + 1), blend.x), blend.y);
+            }
+
             float Bubbles(float2 uv, float time)
             {
-                float2 flow = uv - float2(time * .47, time * 2.7);
+                float2 flow = uv - float2(time * .31, time * 1.6);
                 float2 id = floor(flow);
                 float seed = Hash(id);
                 float2 center = float2(.26 + .48 * seed, .21 + .55 * Hash(id + 14));
@@ -40,7 +49,7 @@ Shader "Candy Tropical/Wave Immersion"
                 float rim = smoothstep(radius - .06, radius - .02, d) *
                             (1 - smoothstep(radius, radius + .035, d));
                 float shine = rim * saturate(.45 - p.x * 2 + p.y * 3);
-                return (rim * .32 + shine * .6) * smoothstep(.70, .88, seed);
+                return (rim * .24 + shine * .48) * smoothstep(.87, .96, seed);
             }
 
             half4 Frag(Varyings input) : SV_Target
@@ -52,9 +61,10 @@ Shader "Candy Tropical/Wave Immersion"
                 float foam = _WaterWash.y;
                 float2 p = uv * 2 - 1;
                 float edge = saturate(dot(p,p) * .58);
-                float2 distortion = sin(float2(uv.y * 26 + uv.x * 7 - t * 5,
-                                               uv.x * 22 - uv.y * 9 + t * 4));
-                distortion += .38 * sin(float2(uv.y * 49 + t * 8, uv.x * 43 - t * 7));
+                float2 flow = uv * float2(5.3, 4.1) + float2(t * .19, -t * .27);
+                float current = Current(flow);
+                float ripples = Current(flow * 1.93 + float2(-t * .13, t * .11) + 17.3);
+                float2 distortion = float2(current, ripples) * 2 - 1;
                 float2 distortedUV = saturate(uv + distortion * _WaterWash.w *
                     (wet + foam * .38) * (1 - edge * .45));
                 half4 scene = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, distortedUV);
@@ -66,19 +76,18 @@ Shader "Candy Tropical/Wave Immersion"
                     visibility = lerp(.045, .75, exp2(-distance * .32));
                 }
                 visibility *= 1 - .35 * edge;
-                float current = sin(uv.y * 21 + uv.x * 7 - t * 4 + distortion.x * .8);
-                float ripples = .5 + .5 * sin(uv.y * 39 - uv.x * 16 - t * 6 + distortion.y);
                 half3 water = lerp(half3(.006,.027,.036), half3(.013,.098,.106),
-                    saturate(.71 + p.y * .2 - edge * .48 + current * .10 + ripples * .06));
+                    saturate(.71 + p.y * .2 - edge * .48 + (current - .5) * .12));
                 half luminance = dot(scene.rgb, half3(.25,.62,.13));
                 half3 filtered = lerp(scene.rgb * half3(.31,.73,.74),
                     luminance * half3(.24,.62,.65), .40);
                 half3 submerged = water + filtered * visibility;
-                float bubbles = Bubbles(uv * float2(23, 14), t) +
-                                .5 * Bubbles(uv * float2(39, 24) + .37, t * 1.36);
+                float2 bubbleUV = uv + distortion * .012;
+                float bubbles = Bubbles(bubbleUV * float2(17, 11), t) +
+                                .4 * Bubbles(bubbleUV * float2(29, 18) + .37, t * 1.36);
                 submerged += bubbles * half3(.076,.19,.20);
 
-                float froth = smoothstep(.18, .95, (.5 + .5 * current) * (.52 + .48 * ripples));
+                float froth = smoothstep(.34, .82, current * (.52 + .48 * ripples));
                 float whitewater = saturate(foam * (.16 + .56 * froth + .42 * bubbles));
                 half3 color = lerp(scene.rgb, submerged, wet);
                 return half4(lerp(color, half3(.56,.78,.77), whitewater), scene.a);

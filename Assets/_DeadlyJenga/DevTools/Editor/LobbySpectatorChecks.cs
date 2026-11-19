@@ -76,8 +76,8 @@ namespace DeadlyJenga.DevTools.Editor
             Check(!NetworkActors.Local.Contains(lobby.Player.gameObject.GetComponent<INetworkActor>()),"Visitor excluded from network actor registry");
             Check(!Tracked.Movers.Contains(lobby.Player as IMovementState),"Visitor excluded from gameplay mover registry");
             Check(!lobby.CanHost&&!lobby.CanConfigure&&!lobby.JoinEnabled&&lobby.CanStart,"Room changes locked; return enabled");
-            var wall=lobby.GetComponentInChildren<LobbySpectatorTVWall>();Check(wall,"3 by 3 TV wall built");
-            Check(wall.GetComponentsInChildren<UnityEngine.UI.RawImage>().Length==9,"Nine screen images");
+            var wall=lobby.GetComponentInChildren<LobbySpectatorTVWall>();Check(wall,"Three-column, two-row TV wall built");
+            Check(wall.GetComponentsInChildren<UnityEngine.UI.RawImage>().Length==6,"Six screen images");
             Check(wall.GetComponentsInChildren<Camera>().Length==1&&!wall.FeedCamera.enabled,"Only one manually scheduled feed camera");
             Check(!wall.FeedCamera.GetUniversalAdditionalCameraData().allowXRRendering&&!wall.FeedCamera.allowMSAA,"Feed camera disables stereo and MSAA");
             lobby.Player.Place(wall.transform.TransformPoint(new Vector3(0,0,-4)),Quaternion.LookRotation(wall.transform.forward));lobby.Player.InputSuspended=true;
@@ -110,7 +110,7 @@ namespace DeadlyJenga.DevTools.Editor
             SceneManager.LoadScene("Lobby");yield return Wait(4);
             Check(IslandLobby.Current&&!IslandLobby.Current.VisitingLobby,"Ordinary lobby still initializes");
             var normalWall=IslandLobby.Current.GetComponentInChildren<LobbySpectatorTVWall>();Check(normalWall,"Ordinary lobby has the TV stack");
-            Check(normalWall.GetComponentsInChildren<UnityEngine.UI.RawImage>().Length==9,"Ordinary lobby has nine screens");
+            Check(normalWall.GetComponentsInChildren<UnityEngine.UI.RawImage>().Length==6,"Ordinary lobby has six screens");
             Check(errors==0,"No runtime errors");
         }
         static void Capture(Camera source,string name)

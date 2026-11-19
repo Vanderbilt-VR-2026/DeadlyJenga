@@ -166,6 +166,31 @@ namespace DeadlyJenga.DevTools.Editor
                 Require(effect.WetRendererCount==0&&effect.BatchedRendererCount==0,"Dry-out releases every coating instance");
                 Require(selected.renderer.sharedMaterial==originalMaterial,"Dry-out leaves the original material in place");
                 Capture(camera,"wet-candy-dry.png");
+                var contactBlocks=blocks.Take(2).ToArray();
+                var aggregate=new GameObject("Wet grouped-collider fixture");
+                aggregate.layer=Layers.Block;aggregate.transform.position=new Vector3(500,20,500);
+                var sharedBody=aggregate.AddComponent<Rigidbody>();sharedBody.isKinematic=true;
+                var shapes=new BoxCollider[2];
+                try
+                {
+                    for(int i=0;i<shapes.Length;i++)
+                    {
+                        shapes[i]=aggregate.AddComponent<BoxCollider>();
+                        shapes[i].center=new Vector3(i*.4f-.2f,0,0);shapes[i].size=Vector3.one*.3f;
+                        Climbables.Register(shapes[i],contactBlocks[i].GetComponent<IClimbable>());
+                    }
+                    Physics.SyncTransforms();
+                    Require(shapes.All(s=>s.attachedRigidbody==sharedBody)&&sharedBody.GetComponent<IClimbable>()==null,
+                        "Fixture colliders share a physics body with no original block visual");
+                    effect.HandSweep(aggregate.transform.position,aggregate.transform.position,.65f);
+                    Require(contactBlocks.All(b=>b.GetComponent<IClimbable>().Visual.GetComponentsInChildren<MeshRenderer>()
+                        .Any(r=>entries.Contains(r))),"Water overlap coats both logical blocks sharing one physics body");
+                }
+                finally
+                {
+                    foreach(var shape in shapes)if(shape)Climbables.Unregister(shape);
+                    Object.Destroy(aggregate);
+                }
             }
             finally{Object.Destroy(cameraGo);}
         }

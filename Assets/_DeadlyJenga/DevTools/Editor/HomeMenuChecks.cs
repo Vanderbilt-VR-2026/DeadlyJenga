@@ -33,6 +33,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             if(run==null)
             {
+                if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 string request=ProjectPath.Report("HomeMenuChecks.request");
                 if(!File.Exists(request)||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 if(File.ReadAllText(request).Trim()!=System.Diagnostics.Process.GetCurrentProcess().Id.ToString())return;
@@ -57,6 +58,20 @@ namespace DeadlyJenga.DevTools.Editor
             Application.logMessageReceived-=Log;
             File.AppendAllText(Report,"COMPLETE; logged errors="+errors+". Desktop Editor; headset and separate-device networking not tested.\n");
             EditorApplication.ExitPlaymode();
+        }
+        public static void RunPlayEntryBatch()
+        {
+            SessionState.SetBool(Key+"PlayEntryOnly",true);
+            if(string.IsNullOrEmpty(SceneManager.GetActiveScene().path))
+                EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
+            Start();
+        }
+        public static void RunHostedPlayBatch()
+        {
+            SessionState.SetBool(Key+"HostedPlayOnly",true);
+            if(string.IsNullOrEmpty(SceneManager.GetActiveScene().path))
+                EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
+            Start();
         }
         public static void RunQuestFlowBatch()
         {
@@ -88,8 +103,11 @@ namespace DeadlyJenga.DevTools.Editor
                 var saved=JsonUtility.FromJson<Saved>(SessionState.GetString(Key+"Saved",""));
                 MatchSetup.MapId=saved.map;MatchSetup.ModeId=saved.mode;MatchSetup.BotTarget=saved.population;
                 EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);ValidationRunGate.Release(Key);
-                if(SessionState.GetBool(Key+"QuestOffline",false))
+                if(SessionState.GetBool(Key+"QuestOffline",false)||SessionState.GetBool(Key+"PlayEntryOnly",false)||
+                    SessionState.GetBool(Key+"HostedPlayOnly",false))
                 {
+                    SessionState.SetBool(Key+"PlayEntryOnly",false);
+                    SessionState.SetBool(Key+"HostedPlayOnly",false);
                     SessionState.SetBool(Key+"QuestOffline",false);
                     EditorApplication.Exit(errors==0?0:2);
                 }
@@ -117,6 +135,18 @@ namespace DeadlyJenga.DevTools.Editor
             Require(EditorBuildSettings.scenes.First(s=>s.enabled).path.EndsWith("/Home.unity"),"Home is first enabled build scene");
             Require(Services.Session==null&&Tracked.Movers.Count==0,"Home creates no game simulation or bots");
             Require(Resources.LoadAll<Texture2D>("HomeSlides").Length==4,"All four supplied slides load");
+            if(SessionState.GetBool(Key+"HostedPlayOnly",false))
+            {
+                oldPeer=NetworkProjectConfig.Global.PeerMode;
+                peerChanged=true;
+                NetworkProjectConfig.Global.PeerMode=NetworkProjectConfig.PeerModes.Multiple;
+                home.Host();
+                yield return Until(()=>IslandLobby.Current&&IslandRoomConnection.Instance.Connected&&
+                    !IslandRoomConnection.Instance.Busy&&IslandLobby.Current.CanStart,
+                    "Home Host opens a Play lobby that can choose its first game",65);
+                yield return ModeSelectionNetworkChecks.Run(Require,alreadyHostedPlay:true);
+                yield break;
+            }
             home.Code="invalid";Require(!home.CodeValid,"Invalid join code rejected");home.JoinCode();Require(!home.Busy,"Invalid join does not connect");
             home.Code="US-ABC234";Require(home.CodeValid,"Existing region-prefixed code format supported");
             yield return new WaitForSecondsRealtime(1.2f);
@@ -127,13 +157,39 @@ namespace DeadlyJenga.DevTools.Editor
             for(int i=0;i<180&&view.SlideIndex==first;i++){animate.Invoke(view,new object[]{.1f});fullWhite|=view.WhiteFade>=.99f;}
             Require(fullWhite&&view.WhiteFade>=.99f,"Actual slideshow changes images only at full white, including stalled frames");
             Require(view.SlideIndex==(first+1)%4,"Slideshow advances through supplied images in order");
-            home.RandomLobby();
-            yield return Until(()=>IslandLobby.Current&&IslandLobby.Current.SurvivorBots?.Count==9,"Random lobby fills to ten including player",50);
-            Require(!IslandLobby.Current.Room.Connected,"Random lobby works without an Internet room");
+            int hill=Array.IndexOf(home.QuickPlayModes,"King of the Hill");
+            Require(hill>=0,"Quick Play includes King of the Hill");
+            home.SelectQuickPlayMode(hill);
+            int crown=Array.FindIndex(home.QuickPlayMaps,title=>title.Contains("Crown"));
+            Require(crown>=0,"Quick Play offers the compatible Crown Summit arena");
+            home.StartQuickPlay(crown);
+            yield return Until(()=>RoomGameExperience.Current?.GamePhase==RoomGamePhase.Playing,"Quick Play starts the selected game directly",75);
+            var experience=RoomGameExperience.Current;
+            Require(MatchSetup.ModeId=="hill"&&MatchSetup.MapId=="mode-koth","Selected map and mode were loaded");
+            experience.SetExperience(GameExperience.Demo);
+            Require(experience.Experience==GameExperience.Game&&!experience.CanConfigureExperience,"Play room rejects the Developer toggle");
+            experience.RequestReturn();
+            yield return Until(()=>IslandLobby.Current&&experience.GamePhase==RoomGamePhase.Selected&&
+                experience.GameStatus.StartsWith("NEXT",StringComparison.Ordinal),
+                "The lobby reveals a mode/map pair while counting down",60);
+            Require(experience.CountdownSeconds>0&&experience.CountdownSeconds<=30,
+                "The live lobby countdown is within the 30-second window ("+experience.CountdownSeconds+" seconds)");
+            yield return Until(()=>IslandLobby.Current&&IslandLobby.Current.SurvivorBots?.Count==9,"Returning Play lobby fills to ten including player",45);
+            Require(!IslandLobby.Current.Room.Connected,"Quick Play is available offline");
+            yield return Until(()=>experience.GamePhase==RoomGamePhase.Playing&&!IslandLobby.Current,
+                "The selected rotation launches automatically",70);
+            SceneManager.LoadScene("Home");yield return Until(()=>Object.FindFirstObjectByType<HomeSession>(),"Home can reopen");
+            home=Object.FindFirstObjectByType<HomeSession>();home.Demo();
+            yield return Until(()=>IslandLobby.Current&&IslandLobby.Current.CanStart,"Developer opens the lobby directly",60);
+            Require(IslandLobby.Current.Room.SharedDemoControls&&RoomGameExperience.Current.Experience==GameExperience.Demo,
+                "The Developer lobby grants shared development controls");
+            if(SessionState.GetBool(Key+"PlayEntryOnly",false))yield break;
             if(SessionState.GetBool(Key+"QuestOffline",false))
             {
                 var lobbyView=Object.FindFirstObjectByType<IslandLobbyView>();
-                Require(lobbyView&&lobbyView.InvokeChoice("mode-current"),"Lobby world terminal opens mode picker");
+                var marina=lobbyView?lobbyView.GetComponent<DeadlyJenga.CandyArt.Marina.MarinaScreen>():null;
+                Require(marina?marina.Invoke("marina-modes"):lobbyView&&lobbyView.InvokeChoice("mode-current"),
+                    "Lobby world terminal opens the current mode picker");
                 var survivor=IslandLobby.Current.Player.gameObject.GetComponent<CastleSurvivor>();
                 survivor.controlMode=FlyingHand.ControlMode.VR;survivor.RefreshMode();
                 survivor.Place(lobbyView.WardrobePosition+Vector3.up*.04f,Quaternion.Euler(0,80,0));
@@ -150,9 +206,9 @@ namespace DeadlyJenga.DevTools.Editor
                 lobbyView.SetWardrobeOpen(false);
             }
 
-            SceneManager.LoadScene("Home");yield return Until(()=>Object.FindFirstObjectByType<HomeMenuView>(),"Home can reopen");
-            home=Object.FindFirstObjectByType<HomeSession>();home.Demo();
-            yield return Until(()=>Services.Session?.Demo!=null,"Demo opens actual Game session",60);
+            IslandLobby.Current.SelectMap("castle");
+            IslandLobby.Current.StartOrCancel();
+            yield return Until(()=>Services.Session?.Demo!=null,"Developer lobby starts the actual Game session",60);
             Require(MatchSetup.MapId=="castle"&&MatchSetup.ModeId=="demo","Demo selects original castle and sandbox mode");
             Require(Services.World!=null&&Services.Session.Player!=null,"Castle world and local player initialize");
 
@@ -163,7 +219,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var player=session.Player.gameObject.GetComponent<CastleSurvivor>();
                 var equipment=player.GetComponent<IEquipmentControls>();
                 equipment.SetEquipped(true);yield return new WaitForSecondsRealtime(.35f);
-                Require(equipment.Equipment.drawn&&equipment.BlocksTraversal,"Drawn duplex blocks traversal");
+                Require(equipment.Equipment.drawn&&!equipment.BlocksTraversal,"Drawn duplex preserves traversal");
                 player.controlMode=FlyingHand.ControlMode.VR;player.RefreshMode();session.SetMenu(false);
                 yield return new WaitForSecondsRealtime(.35f);
                 var rifle=player.GetComponentsInChildren<Transform>().FirstOrDefault(t=>t.name=="Rifle optic");
@@ -184,7 +240,7 @@ namespace DeadlyJenga.DevTools.Editor
                     tick.Invoke(sight,null);
                     var lens=(GameObject)lensField.GetValue(sight);
                     string diagnostic=$"VR={session.IsVR} sameCamera={session.ActiveCamera==player.ViewCamera} suspended={player.InputSuspended} menu={session.MenuOpen} mode={equipment.Equipment.shotgun} stereo={player.ViewCamera.stereoEnabled} scale={scopeScale} optic={typeof(CandyGunSights).GetField("optic",flags).GetValue(sight)}";
-                    Require(lens&&lens.activeSelf&&lens.transform.parent==rifle,"Raising the production rifle to the synthetic eye enables the magnifying lens without grip ("+diagnostic+")");
+                    Require(lens&&lens.activeSelf&&lens.transform.parent==rifle.Find("Optic lens"),"Raising the production rifle to the synthetic eye enables the magnifying lens without grip ("+diagnostic+")");
                     camera.position+=rifle.right*(.10f*scopeScale);tick.Invoke(sight,null);
                     Require(!lens.activeSelf,"Lateral eye offset hides the magnifying lens");
                 }
@@ -194,7 +250,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var carriage=shotgun.parent;var root=carriage.parent;
                 Require(root.InverseTransformPoint(shotgun.position).y>root.InverseTransformPoint(rifle.position).y,"Shotgun red dot rotates into the upper active position");
                 equipment.SetEquipped(false);yield return null;
-                Require(!equipment.Equipment.drawn&&!equipment.BlocksTraversal,"Holstering the duplex releases the traversal restriction");
+                Require(!equipment.Equipment.drawn&&!equipment.BlocksTraversal,"Holstering the duplex leaves traversal available");
                 player.controlMode=FlyingHand.ControlMode.Desktop;player.RefreshMode();
                 session.SetRole(true);yield return null;
                 Require(session.PlayingHand&&session.Hand?.ViewCamera,"Flying hand takes camera ownership");

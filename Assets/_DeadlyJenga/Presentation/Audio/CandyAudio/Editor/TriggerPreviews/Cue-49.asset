@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-49
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 3bf353dffdfd40643b2c1d76ba0365ec, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 49
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Meteor Impact
+    atlasFile: atlas.png
+    atlasSha256: f9905d52f43c65de44ed4169c945bc5691fa9796f61efd036db2b344854decbc
+    gifFile: preview.gif
+    gifSha256: 418ae2c1150bbe3828d757d80cba8dd1c890acdb8b7145c257f916063bc27980
+    sourceSha256: e7ad8013b6ac50855da90cc33bcdc3caf0568e8cdced16c2ff3a965e39667845
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Meteor Impact
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed disaster gameplay lifecycle firing Meteor Impact
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

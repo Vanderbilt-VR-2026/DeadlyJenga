@@ -7,20 +7,22 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CastleSurvivor : IMenuInputState
     {
-        public bool MenuHeld=>HandTracking&&HandTracking.LeftMenuHeld;
+        public bool MenuHeld=>!IsVR?DesktopGamepad.MenuHeld:HandTracking&&HandTracking.LeftMenuHeld;
         public bool MovementHeld
         {
             get
             {
                 if(externallyDriven)return false;
                 var keys=Keyboard.current;
-                if(!IsVR)return keys!=null&&(keys.wKey.isPressed||keys.aKey.isPressed||
+                if(!IsVR)return DesktopGamepad.Moving||keys!=null&&(keys.wKey.isPressed||keys.aKey.isPressed||
                     keys.sKey.isPressed||keys.dKey.isPressed||keys.spaceKey.isPressed||keys.leftShiftKey.isPressed);
                 var equipment=GetComponent<CandyEquipment>();
                 if(equipment&&equipment.SuitMovementHeld)return true;
                 bool dominantLeft=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
-                bool both=HybridXRInput.ControllerTracked(true)&&HybridXRInput.ControllerTracked(false);
-                var walking=FilterVRMove(HybridXRInput.Stick(HybridXRInput.MovementController(dominantLeft)));
+                bool both=HybridXRInput.DualControllers;
+                var movementController=HybridXRInput.MovementController(dominantLeft);
+                if(HybridXRInput.MoveClickHeld(movementController))return true;
+                var walking=FilterVRMove(HybridXRInput.Stick(movementController));
                 var looking=both?HybridXRInput.Stick(dominantLeft):Vector2.zero;
                 if(HybridXRInput.SingleController&&vrTurn!=SurvivorVRTurn.PhysicalOnly&&HybridXRInput.SingleLookHeld)
                 {
@@ -30,6 +32,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(walking.sqrMagnitude>0)return true;
                 if(vrTurn!=SurvivorVRTurn.PhysicalOnly)
                 {
+                    if(Mathf.Abs(looking.y)>.25f)return true;
                     if(vrTurn==SurvivorVRTurn.Smooth&&Mathf.Abs(looking.x)>.2f)return true;
                     if(vrTurn==SurvivorVRTurn.Snap&&Mathf.Abs(looking.x)>=.3f)return true;
                 }

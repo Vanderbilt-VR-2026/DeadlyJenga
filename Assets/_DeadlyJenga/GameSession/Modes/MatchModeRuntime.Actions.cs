@@ -20,7 +20,7 @@ namespace DeadlyJenga.Modes
             if(float.IsNaN(speed)||float.IsInfinity(speed)||float.IsNaN(origin.sqrMagnitude)||float.IsInfinity(origin.sqrMagnitude)||float.IsNaN(direction.sqrMagnitude)||float.IsInfinity(direction.sqrMagnitude))return false;
             var held=EquipmentFor(id);
             bool bash = UsesWeaponBash(held);
-            if(held.builtIn)return AttackEquipment(id,held,new EquipmentCommand{position=origin,forward=direction});
+            if(held.builtIn&&held.drawn)return AttackEquipment(id,held,new EquipmentCommand{position=origin,forward=direction});
             if(held.drawn&&!held.roleIssued&&!bash)return false;
             if(held.drawn&&held.kind==EquipmentKind.SheriffHammer&&!bash)return AttackEquipment(id,held,new EquipmentCommand{action="attack",position=origin,forward=direction});
             var p=simulation.Find(id);var source=FindActor(id);
@@ -61,19 +61,41 @@ namespace DeadlyJenga.Modes
             if(target==null)return true;
             string targetId=actorIds[target.gameObject];
             if(simulation.Shielded(targetId,direction))return true;
+            if(held.roleIssued&&held.drawn&&held.kind==EquipmentKind.MurderSword&&nearest>.05f)
+                {
+                var torso=target.transform.position+Vector3.up*.6f;
+                RecordMeleeContact(id,held,target,torso-(torso-origin).normalized*.20f,.24f);
+            }
             float distanceScale=rules.punchDistance*(bash?profile.push:1);
             var push=Vector3.ProjectOnPlane(direction,Vector3.up).normalized*Mathf.Sqrt(2*9.81f*Mathf.Max(0,distanceScale))*.65f+Vector3.up*.8f;
             float damage=rules.healthEnabled?rules.punchDamage*(bash?profile.damage/18f:1):0;
             if(source.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&target.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&MysteryPunch(id,targetId,ref damage,bash))return true;
             var targetState=simulation.Find(targetId);
             if(!rules.friendlyFire && (p.frame.team>=0&&p.frame.team==targetState?.frame.team || p.frame.role=="infected"&&targetState?.frame.role=="infected"))damage=0;
-            if(target.IsLocal||target.IsBot)
-            {
-                target.gameObject.GetComponent<IPushable>()?.Push(push,source.gameObject);
-                if(damage>0)target.gameObject.GetComponent<IDamageable>()?.Damage(damage,source.gameObject);
-            }
-            else {if(damage>0)RecordRemoteDamage(targetId,damage,id);RemoteImpact?.Invoke(targetId,push,damage);}
+            if(!held.drawn&&!source.IsBot)PublishPunchContact(id,source,target,origin,direction);
+            ApplyCombatImpact(source,target,damage,push,target.transform.position+Vector3.up*.6f,false);
             return true;
+        }
+        void PublishPunchContact(string attacker,IModeActor source,IModeActor target,Vector3 origin,Vector3 direction)
+        {
+            Collider body=target.gameObject.GetComponent<CharacterController>();
+            if(!body)body=target.gameObject.GetComponentInChildren<CapsuleCollider>();
+            if(!body||!body.enabled)return;
+            float scale=Mathf.Max(.1f,source.gameObject.GetComponent<IMovementState>()?.Scale??1);
+            var bounds=body.bounds;
+            float radius=Mathf.Min(bounds.extents.x,bounds.extents.z,bounds.extents.y);
+            if(radius<=0)return;
+            var approach=origin-direction*.16f*scale;
+            var axis=bounds.center;
+            axis.y=Mathf.Clamp(approach.y,bounds.min.y+radius,bounds.max.y-radius);
+            var outward=approach-axis;
+            outward=outward.sqrMagnitude>.0001f?outward.normalized:-direction;
+            var surface=axis+outward*radius;
+            if((surface-origin).sqrMagnitude>.24f*.24f*scale*scale)return;
+            if(expressions.Count>=32)expressions.RemoveAt(0);
+            expressions.Add(new ExpressionFrame{id=++expressionSequence,actor=attacker,name="PunchContact",
+                position=surface-outward*Mathf.Min(.085f*scale,radius*.55f),remaining=.55f});
+            PublishEnemyActions();
         }
         public void ReceiveCommand(string sender,string command)
         {
@@ -100,7 +122,12 @@ namespace DeadlyJenga.Modes
             if(CuratedActorDeferred(id))return;
             var deadActor=FindActor(id);if(deadActor!=null)DropEquipment(id,deadActor.transform.position);
             if(corpseDeaths.Contains(id)){ApplyOutcome(id,outcome);return;}
-            if(outcome==EliminationOutcome.FlyingHand){ApplyOutcome(id,outcome);return;}
+            if(outcome==EliminationOutcome.FlyingHand)
+            {
+                pendingSpawns.Remove(id);
+                ApplyOutcome(id,outcome);
+                return;
+            }
             if(transitionUntil.ContainsKey(id))return;
             var p=simulation.Find(id);if(p!=null){p.frame.dying=true;p.frame.deathProgress=0;p.frame.deathRemaining=.9f;p.frame.pendingOutcome=outcome.ToString();}
             transitionUntil[id]=Time.time+.9f;delayedOutcomes[id]=outcome;sinkStarted.Remove(id);
@@ -118,12 +145,16 @@ namespace DeadlyJenga.Modes
             var enemy=FindActor(id)?.gameObject.GetComponent<IEnemyActor>();if(enemy?.IsEnemy==true){enemy.Despawn();return;}
             CaptureStats();
             if(id!=LocalActorId&&connectedHumans.Contains(id)){ResetRemoteHealth(id);RemoteEliminated?.Invoke(id,outcome);return;}
+            if(id==LocalActorId&&outcome==EliminationOutcome.FlyingHand)
+            {
+                StartLocalTimedHand();
+                return;
+            }
             var actor=FindActor(id);if(actor==null)return;
             if(id!=LocalActorId&&!actor.IsBot){RemoteEliminated?.Invoke(id,outcome);return;}
             if(outcome==EliminationOutcome.Spectator){actor.ApplyModeRules(RulesFor(actor.gameObject));return;}
             if(id==LocalActorId)
             {
-                if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;session.SetRoleForMode(true);session.Hand.Place(at+Vector3.up*2,session.Player.transform.rotation);return;}
                 if(outcome==EliminationOutcome.Spectator){actor.ApplyModeRules(RulesFor(actor.gameObject));return;}
                 if(session.PlayingHand)session.SetRoleForMode(false);
             }
@@ -133,20 +164,22 @@ namespace DeadlyJenga.Modes
         {
             if(CuratedActorDeferred(id))return;
             var actor=FindActor(id);var p=simulation.Find(id);if(actor==null||p==null)return;
-            if(id!=LocalActorId&&!actor.IsBot){ResetRemoteHealth(id);RemoteEliminated?.Invoke(id,EliminationOutcome.Respawn);return;}
+            if(id!=LocalActorId&&!actor.IsBot){pendingSpawns.Remove(id);ResetRemoteHealth(id);RemoteEliminated?.Invoke(id,EliminationOutcome.Respawn);return;}
             int ordinal=ParticipantOrdinal(p);
-            Vector3 point=SpawnPoint(p.frame.team,ordinal,role);
+            Vector3 point=SpawnPoint(p.frame.team,ordinal,role,id);
+            if(id==LocalActorId)ReserveSpawn(id,point);
             var rotation=Quaternion.LookRotation(Vector3.ProjectOnPlane((Services.World?.Center??Vector3.zero)-point,Vector3.up).normalized+Vector3.forward*.001f);
             if(actor.gameObject.GetComponent<IPlayableCharacter>() is IPlayableCharacter playable)playable.Place(point,rotation);
             else actor.gameObject.GetComponent<ITeleportable>()?.Teleport(point,rotation);
             actor.ApplyModeRules(RulesFor(actor.gameObject));
         }
         readonly Dictionary<string,Pose> powerReturnOverrides=new Dictionary<string,Pose>();
-        public Pose OutcomeSpawn(string id)
+        public Pose OutcomeSpawn(string id,bool reserve=false)
         {
             if(powerReturnOverrides.TryGetValue(id,out var powerReturn)){powerReturnOverrides.Remove(id);return powerReturn;}
             if(MysteryActive&&mystery.IsDowned(id)){var actor=FindActor(id);if(actor!=null)return new Pose(actor.transform.position,actor.transform.rotation);}
-            var p=simulation.Find(id);var point=SpawnPoint(p?.frame.team??-1,ParticipantOrdinal(p),p?.frame.role??"survivor");
+            var p=simulation.Find(id);var point=SpawnPoint(p?.frame.team??-1,ParticipantOrdinal(p),p?.frame.role??"survivor",id);
+            if(reserve)ReserveSpawn(id,point);
             var direction=Vector3.ProjectOnPlane((Services.World?.Center??Vector3.zero)-point,Vector3.up);
             return new Pose(point,direction.sqrMagnitude>.01f?Quaternion.LookRotation(direction):Quaternion.identity);
         }
@@ -154,13 +187,87 @@ namespace DeadlyJenga.Modes
         {
             int n=0;foreach(var p in simulation.Participants){if(p==target)break;if(!ModeSimulation.TeamMode(Rules.mode)||p.frame.team==target?.frame.team)n++;}return n;
         }
+        bool localTimedHand;
+        Pose? remoteHandReturn;
+
+        bool StartLocalTimedHand()
+        {
+            if(!session||!NetworkActors.Alive(session.Player)||session.VisitingLobby||
+                CuratedActorDeferred(LocalActorId))return false;
+            var survivor=session.Player.transform;
+            var spawn=FindHandPowerSpawn(survivor.position);
+            if(!session.TryEnterTimedHand(new Pose(spawn,survivor.rotation)))return false;
+            localTimedHand=true;
+            remoteHandReturn=null;
+            return true;
+        }
+
+        static Vector3 FindHandPowerSpawn(Vector3 feet)
+        {
+            const int solids=(1<<Layers.Block)|(1<<Layers.Surface)|1;
+            var world=Services.World;
+            var center=feet+Vector3.up*2;
+            if(world!=null)center.y=Mathf.Max(center.y,world.WaterHeight(center)+1.5f);
+            if(!Physics.CheckSphere(center,.76f,solids,QueryTriggerInteraction.Ignore))return center;
+            for(int i=0;i<8;i++)
+            {
+                float angle=i*Mathf.PI*.25f;
+                var at=center+new Vector3(Mathf.Cos(angle)*2.1f,.35f,Mathf.Sin(angle)*2.1f);
+                if(!Physics.CheckSphere(at,.76f,solids,QueryTriggerInteraction.Ignore))return at;
+            }
+            center.y=Mathf.Max(center.y+2,(world?.TopHeight??center.y)+2.5f);
+            return center;
+        }
+
+        static bool IsTimedHand(MatchPlayerFrame row)=>row!=null&&row.alive&&
+            row.role=="hand"&&row.handPowerRemaining>0;
+
+        MatchPlayerFrame LocalPowerFrame()
+        {
+            if(frame.players==null)return null;
+            foreach(var row in frame.players)if(row.id==LocalActorId)return row;
+            return null;
+        }
+
+        void SyncLocalTimedHand()
+        {
+            if(!session||session.VisitingLobby||CuratedActorDeferred(LocalActorId)||
+                session.Network&&session.Network.WaitingForWorld)return;
+            var self=LocalPowerFrame();
+            if(IsTimedHand(self))
+            {
+                if(!localTimedHand||!session.PlayingHand)StartLocalTimedHand();
+                return;
+            }
+            if(!localTimedHand||self==null)return;
+            var at=remoteHandReturn??new Pose(HandReturnPoint(FindParticipantRoot(LocalActorId)),Quaternion.identity);
+            localTimedHand=false;
+            remoteHandReturn=null;
+            if(session.PlayingHand)session.SetRoleForMode(false);
+            if(self.alive&&self.role!="spectator"&&NetworkActors.Alive(session.Player))
+                session.Player.Place(at.position,at.rotation);
+        }
+
+        Vector3 HandReturnPoint(Transform root)
+        {
+            var flyer=root?root.GetComponent<IFlyingState>():null;
+            var near=flyer?.ContactBodies!=null&&flyer.ContactBodies.Count>0&&flyer.ContactBodies[0]
+                ?flyer.ContactBodies[0].position:flyer?.Anchor?flyer.Anchor.position:root?root.position:
+                Services.World?.SafeSpawnPoint()??Vector3.zero;
+            return SafeHandReturn(near);
+        }
+
         void OnPowerFinished(string id)
         {
-            var root=FindParticipantRoot(id);
-            var flyer=root?root.GetComponent<IFlyingState>():null;
-            var near=flyer?.ContactBodies!=null&&flyer.ContactBodies.Count>0&&flyer.ContactBodies[0]?flyer.ContactBodies[0].position:flyer?.Anchor?flyer.Anchor.position:root?root.position:Services.World.SafeSpawnPoint();
-            var point=SafeHandReturn(near);if(id!=LocalActorId)powerReturnOverrides[id]=new Pose(point,Quaternion.identity);ApplyOutcome(id,EliminationOutcome.Respawn);
-            if(id==LocalActorId)session.Player.Place(point,Quaternion.identity);
+            var point=HandReturnPoint(FindParticipantRoot(id));
+            if(id!=LocalActorId)powerReturnOverrides[id]=new Pose(point,Quaternion.identity);
+            ApplyOutcome(id,EliminationOutcome.Respawn);
+            if(id==LocalActorId)
+            {
+                localTimedHand=false;
+                if(session.PlayingHand)session.SetRoleForMode(false);
+                session.Player.Place(point,Quaternion.identity);
+            }
         }
         Vector3 SafeHandReturn(Vector3 near)
         {
@@ -169,26 +276,38 @@ namespace DeadlyJenga.Modes
                 float angle=i*2.399963f,radius=i==0?0:2+i/12*3;
                 var origin=near+new Vector3(Mathf.Sin(angle)*radius,3,Mathf.Cos(angle)*radius);
                 if(!Physics.Raycast(origin,Vector3.down,out var hit,160,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore)||hit.normal.y<.65f)continue;
+                if(Services.World is IWorldQuery world&&hit.point.y<=world.WaterHeight(hit.point)+.20f)continue;
                 if(Rules.island!=IslandRule.Walkable&&!Climbables.TryGet(hit.collider,out _))continue;
                 var point=hit.point+Vector3.up*.06f;
                 if(!Physics.CheckCapsule(point+Vector3.up*.28f,point+Vector3.up*1.5f,.25f,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))return point;
             }
-            return Services.World.SafeSpawnPoint();
+            return Services.World?.SafeSpawnPoint()??near;
         }
         public void ApplyRemoteOutcome(EliminationOutcome outcome,Vector3 spawn,Quaternion rotation,string role)
         {
             if(CuratedActorDeferred(LocalActorId))return;
             if(Authority||session==null)return;
-            if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;var facing=session.Player.transform.rotation;session.SetRoleForMode(true);session.Hand.Place(at+Vector3.up*2,facing);return;}
+            if(outcome==EliminationOutcome.FlyingHand)
+            {
+                // The current authoritative frame also recovers this transition after a rejoin.
+                SyncLocalTimedHand();
+                return;
+            }
             if(outcome==EliminationOutcome.Spectator)return;
+            if(localTimedHand&&IsTimedHand(LocalPowerFrame()))
+            {
+                remoteHandReturn=new Pose(spawn,rotation);
+                return;
+            }
             if(session.PlayingHand)session.SetRoleForMode(false);
             session.Player.Place(spawn,rotation);
+            if(outcome==EliminationOutcome.Respawn)session.ConfirmMatchSpawn();
         }
         void OnPhase(RoundPhase phase)
         {
             if(phase==RoundPhase.Countdown){ResetObjectiveDirector("New round");ResetBotPerception();mystery=null;ClearMysteryBodies();}
             if(phase==RoundPhase.Waiting||phase==RoundPhase.Victory||phase==RoundPhase.Results)ResetObjectiveDirector("Round phase changed");
-            if(phase==RoundPhase.Playing){ConfigureStatCollectors();BeginMystery();analyzer=new RoundStatAnalyzer(Time.timeAsDouble);sinkStarted.Clear();disasters.Reset(Rules,simulation.Elapsed);CaptureStats();GameEvents.RaiseRoundStarted();}
+            if(phase==RoundPhase.Playing){StartOpeningWeapons();ConfigureStatCollectors();BeginMystery();analyzer=new RoundStatAnalyzer(Time.timeAsDouble);sinkStarted.Clear();ResetDisasterRotation();disasters.Reset(Rules,simulation.Elapsed);CaptureStats();GameEvents.RaiseRoundStarted();}
             if(phase==RoundPhase.Victory)
             {
                 FinishMysteryReplay();

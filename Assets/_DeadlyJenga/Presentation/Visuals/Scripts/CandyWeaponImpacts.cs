@@ -137,6 +137,7 @@ namespace DeadlyJenga.Presentation
         }
         void Action(EquipmentActionFrame action)
         {
+            if(action.kind==EquipmentKind.LaserAxe&&action.shotgun)return; // The thunderbolt owns ranged axe feedback.
             if(!Ranged(action))return;
             if(action.action==EquipmentAction.Shot)
             {

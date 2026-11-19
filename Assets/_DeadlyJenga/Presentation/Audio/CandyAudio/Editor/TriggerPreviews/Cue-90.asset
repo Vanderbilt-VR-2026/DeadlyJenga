@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-90
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: de075a67f09dfc54389315e6c826e9d3, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 90
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Kraken Surface
+    atlasFile: atlas.png
+    atlasSha256: b6ad4c9acc2ca33a1f3d92591c6f960d79a7568de3578d0c2670d652222a6083
+    gifFile: preview.gif
+    gifSha256: 4a5223d0de9856e42e6ec1a6abfe9ed08f64c4698ff52a92ff39c214cc176600
+    sourceSha256: d0bc91cb7902a9308c2c4eb1b536a1bcedf61e90218883ca63b4ffc5315ba985
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The specific Kraken body or tentacle performing this phase
+    action: One arm surfaces into its Resting state
+    target: Water or the exact tower/block/player the arm is acting upon
+    listenerRole: Nearby survivor hearing spatial Kraken audio
+    triggerEvidence: Observed disaster gameplay lifecycle firing Kraken Surface
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

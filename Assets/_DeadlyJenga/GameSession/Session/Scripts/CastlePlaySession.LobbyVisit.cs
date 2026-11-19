@@ -10,6 +10,28 @@ namespace DeadlyJenga.CastlePrototype
         IslandLobby visitLobby;bool loadingLobby;
         readonly Dictionary<AudioListener,bool> visitListeners=new Dictionary<AudioListener,bool>();
         public bool VisitingLobby=>visitLobby;
+        bool dismissedEliminationVisit;
+        internal bool EliminatedLobbySpectator
+        {
+            get
+            {
+                var frame=Modes?Modes.Frame:null;
+                if(frame?.rules==null || frame.rules.mode is not (GameModeKind.Survival or GameModeKind.TeamTickets)) return false;
+                var id=Modes.LocalActorId;
+                if(string.IsNullOrEmpty(id)) return false;
+                foreach(var row in frame.players)
+                    if(row.id==id) return !row.alive && !row.dying && row.role=="spectator" &&
+                        (RoomGameExperience.ForManagedMatch(this)?.HoldsLocalParticipant(this)!=true || VisitingLobby);
+                return false;
+            }
+        }
+        internal bool CanLeaveEliminationVisit=>!EliminatedLobbySpectator ||
+            Modes.Frame.phase==RoundPhase.Results&&RoomGameExperience.ForManagedMatch(this)==null;
+        void TickEliminationVisit()
+        {
+            if(!EliminatedLobbySpectator) { dismissedEliminationVisit=false; return; }
+            if(!dismissedEliminationVisit && CanVisitLobby) VisitLobby();
+        }
         public bool CanVisitLobby=>Ready&&!VisitingLobby&&!loadingLobby&&enabled;
         public void VisitLobby()
         {
@@ -42,7 +64,12 @@ namespace DeadlyJenga.CastlePrototype
                 foreach(var listener in playable.gameObject.GetComponentsInChildren<AudioListener>(true)){visitListeners[listener]=listener.enabled;listener.enabled=false;}
             }
         }
-        public void ReturnToMatch()=>CloseLobbyVisit(true);
+        public void ReturnToMatch()
+        {
+            if (!CanLeaveEliminationVisit) return;
+            dismissedEliminationVisit=EliminatedLobbySpectator;
+            CloseLobbyVisit(true);
+        }
         void CloseLobbyVisit(bool restore)
         {
             if(!visitLobby)return;

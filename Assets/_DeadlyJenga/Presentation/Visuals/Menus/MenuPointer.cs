@@ -206,7 +206,7 @@ namespace DeadlyJenga.Presentation
         readonly LineRenderer[] beams = new LineRenderer[2];
         readonly Transform[] cores = new Transform[2], rims = new Transform[2];
         readonly int[] shownFrames = { -1, -1 };
-        Material material, ownedMaterial, coreMaterial, rimMaterial;
+        Material coreMaterial, rimMaterial;
         static Mesh disc;
         static int hoverFrame = -1, pressFrame = -1;
         int lastHand;
@@ -242,6 +242,7 @@ namespace DeadlyJenga.Presentation
             go.AddComponent<MeshFilter>().sharedMesh = Disc();
             var r = go.AddComponent<MeshRenderer>();
             r.sharedMaterial = mat;
+            r.sortingOrder=MenuAim.PointerSortOrder+1;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             r.receiveShadows = false;
             return go.transform;
@@ -249,9 +250,10 @@ namespace DeadlyJenga.Presentation
 
         Material DotMaterial(Color color)
         {
-            var shader = Shader.Find("Universal Render Pipeline/Unlit");
+            var shader = Resources.Load<Shader>("CandyScenery/CandyHeadsetOverlay");
             if (!shader) return null;
-            var m = new Material(shader) { renderQueue = 3150, color = color };
+            var m = new Material(shader) { renderQueue = 4120 };
+            m.SetColor("_BaseColor",color);
             m.SetFloat("_Cull", 0);
             return m;
         }
@@ -282,37 +284,17 @@ namespace DeadlyJenga.Presentation
             cores[hand].localScale = Vector3.one * size;
             rims[hand].SetPositionAndRotation(point - dir * Mathf.Min(.008f, distance * .4f), facing);
             rims[hand].localScale = Vector3.one * size * 1.5f;
-            coreMaterial.color = press ? new Color(1f, .72f, .55f) : hover ? new Color(.45f, 1f, .8f) : Color.white;
+            coreMaterial.SetColor("_BaseColor",press ? new Color(1f, .72f, .55f) : hover ? new Color(.45f, 1f, .8f) : Color.white);
             cores[hand].gameObject.SetActive(true);
             rims[hand].gameObject.SetActive(true);
         }
 
         public void Show(int hand, Ray ray, float distance)
         {
-            var beam = beams[hand];
-            if (!beam)
-            {
-                var go = new GameObject(hand == 0 ? "Left menu laser" : "Right menu laser");
-                go.transform.SetParent(transform, false);
-                beams[hand] = beam = go.AddComponent<LineRenderer>();
-                if (!material)
-                {
-                    material = Resources.Load<Material>("CandyUtilityGlow");
-                    if (!material)
-                    {
-                        var shader = Shader.Find("Universal Render Pipeline/Unlit");
-                        if (shader) material = ownedMaterial = new Material(shader);
-                    }
-                }
-                beam.sharedMaterial = material;
-                beam.useWorldSpace = true;
-                beam.positionCount = 2;
-                beam.startWidth = .005f;
-                beam.endWidth = .0025f;
-                beam.startColor = beam.endColor = new Color(.45f, 1f, .8f);
-                beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                beam.receiveShadows = false;
-            }
+            if(hand<0||hand>=beams.Length||distance<=0||distance>MenuPointer.LobbyRange)return;
+            MenuAim.PresentBeam(ref beams[hand],transform,ray,ray.GetPoint(distance),true,hoverFrame>=Time.frameCount-1);
+            var beam=beams[hand];
+            if(!beam)return;
             shownFrames[hand] = Time.frameCount;
             lastHand = hand;
             beam.enabled = true;
@@ -341,7 +323,6 @@ namespace DeadlyJenga.Presentation
 
         void OnDestroy()
         {
-            if (ownedMaterial) Destroy(ownedMaterial);
             if (coreMaterial) Destroy(coreMaterial);
             if (rimMaterial) Destroy(rimMaterial);
         }

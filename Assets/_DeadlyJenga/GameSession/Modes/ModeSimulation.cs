@@ -55,12 +55,13 @@ namespace DeadlyJenga.Modes
         public static bool TeamMode(GameModeKind mode) => mode == GameModeKind.BlockControl || mode == GameModeKind.CaptureFlag || mode == GameModeKind.TeamTickets;
         public static ModeRules Defaults(GameModeKind mode)
         {
-            var r = new ModeRules { mode = mode, automaticDisasters = mode == GameModeKind.Demo || mode == GameModeKind.Survival };
+            var r = new ModeRules { mode = mode, automaticDisasters = mode == GameModeKind.Survival };
             if (mode == GameModeKind.Demo) { r.roundSeconds=0; r.metric=ScoreMetric.AliveStatus; }
+            if (mode == GameModeKind.Survival) { r.healthEnabled=true; r.disasterMinInterval=r.disasterMaxInterval=r.disasterLateInterval=20; }
             if (mode == GameModeKind.KingOfHill) { r.island=IslandRule.Walkable; r.spawn=SpawnRule.Rim; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.HillTime; r.hillInterval=30; }
             if (mode == GameModeKind.BlockControl) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Walkable; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.TeamPoints; }
             if (mode == GameModeKind.CaptureFlag) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Walkable; r.punchEnabled=true; r.healthEnabled=true; r.punchDistance=1.8f; r.metric=ScoreMetric.FlagCaptures; r.roundSeconds=600; r.flagWinByTwo=false; }
-            if (mode == GameModeKind.TeamTickets) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Walkable; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.Eliminations; r.roundSeconds=600; r.tickets=30; }
+            if (mode == GameModeKind.TeamTickets) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Sink; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.Eliminations; r.roundSeconds=600; r.tickets=30; }
             if (mode == GameModeKind.Infection) { r.healthEnabled=true; r.punchEnabled=true; r.starterInfected=true; r.roundSeconds=300; r.metric=ScoreMetric.SurvivalTime; }
             if (mode == GameModeKind.MurderMystery) { r.healthEnabled=true; r.punchEnabled=true; r.punchDamage=8; r.punchDistance=.7f; r.roundSeconds=480; r.island=IslandRule.Walkable; r.spawn=SpawnRule.Rim; r.metric=ScoreMetric.AliveStatus; }
             if (mode == GameModeKind.Ninja) { r.island=IslandRule.Walkable; r.spawn=SpawnRule.Rim; r.punchEnabled=true; r.healthEnabled=true; r.punchDamage=22; r.punchDistance=2.2f; r.punchCooldown=.6f; r.metric=ScoreMetric.LanternPoints; r.roundSeconds=180; r.environmentSkin="ninja"; }
@@ -70,6 +71,7 @@ namespace DeadlyJenga.Modes
         public void Configure(ModeRules input)
         {
             Rules = input?.Copy() ?? new ModeRules();
+            if(Rules.mode==GameModeKind.Survival)Rules.healthEnabled=true;
             Rules.teamCount = Mathf.Clamp(Rules.teamCount,2,8);
             Rules.claimSeconds = Mathf.Clamp(Rules.claimSeconds,.1f,120);
             Rules.reclaimSeconds = Mathf.Clamp(Rules.reclaimSeconds,.1f,120);
@@ -77,6 +79,11 @@ namespace DeadlyJenga.Modes
             Rules.hillInterval = Mathf.Max(1,Rules.hillInterval);
             Rules.hillRadius = Mathf.Max(.5f,Rules.hillRadius);
             Rules.flagTarget = Mathf.Clamp(Rules.flagTarget,1,100);
+            Rules.lanternTarget=Mathf.Clamp(Rules.lanternTarget,1,600);
+            Rules.lanternHoldSeconds=Mathf.Clamp(Rules.lanternHoldSeconds,1,120);
+            Rules.lanternIdleSeconds=Mathf.Clamp(Rules.lanternIdleSeconds,3,180);
+            Rules.gongInterval=Mathf.Clamp(Rules.gongInterval,5,300);
+            Rules.gongSeconds=Mathf.Clamp(Rules.gongSeconds,1,60);
             Rules.tickets = Mathf.Max(0,Rules.tickets);
             Rules.punchCooldown = Mathf.Max(.25f,Rules.punchCooldown);
             Rules.punchDistance = Mathf.Clamp(Rules.punchDistance,0,20);
@@ -246,7 +253,11 @@ namespace DeadlyJenga.Modes
             var list=new List<Participant>();foreach(var p in players.Values)if(p.present&&!p.deferredParticipation&&p.frame.alive&&!p.frame.dying&&p.frame.role!="spectator")list.Add(p);
             if(list.Count>1)MakeInfected(list[(sequence+17)%list.Count]);
         }
-        public EliminationOutcome Kill(string id, string killerId)
+        internal event Action<string, string, MatchSoundCue?> DeathRecorded;
+
+        public EliminationOutcome Kill(string id, string killerId) => Kill(id, killerId, null);
+
+        internal EliminationOutcome Kill(string id, string killerId, MatchSoundCue? cause)
         {
             var p=Find(id);if(p==null||!p.frame.alive||p.frame.dying||Phase!=RoundPhase.Playing)return EliminationOutcome.None;
             if(enemies.ContainsKey(id)){p.frame.alive=false;Eliminated?.Invoke(id,EliminationOutcome.Spectator);return EliminationOutcome.Spectator;}
@@ -260,6 +271,7 @@ namespace DeadlyJenga.Modes
                     sequence = ++eliminationSequence, victim = id, killer = killer != null && killer != p ? killerId : ""
                 });
             }
+            DeathRecorded?.Invoke(id, killer != null && killer != p ? killerId : null, cause);
             EliminationOutcome outcome;
             if(Rules.mode==GameModeKind.Demo || Rules.mode==GameModeKind.Ninja || Rules.mode==GameModeKind.KingOfHill || Rules.mode==GameModeKind.BlockControl || Rules.mode==GameModeKind.CaptureFlag)outcome=EliminationOutcome.Respawn;
             else if(Rules.mode==GameModeKind.Infection){MakeInfected(p);return EliminationOutcome.Infected;}
@@ -307,16 +319,18 @@ namespace DeadlyJenga.Modes
             if(Rules.mode==GameModeKind.MurderMystery)return;
             int present=0,alive=0;Participant last=null;
             foreach(var p in players.Values)if(p.present&&!p.deferredParticipation){present++;if(p.frame.alive&&p.frame.role!="infected"){alive++;last=p;}}
-            if(present<2)return;
-            if(Rules.mode==GameModeKind.Survival && alive<=1){Finish(last?.frame.name??"Nobody",-1);return;}
-            if(Rules.mode==GameModeKind.Infection && alive==0){Finish("Infected",-2);return;}
+            if(present==0)return;
+            bool deadlineReached=Rules.roundSeconds>0&&Elapsed>=Rules.roundSeconds;
+            bool resolveEliminations=present>=2||deadlineReached;
+            if(Rules.mode==GameModeKind.Survival && resolveEliminations && alive<=1){Finish(last?.frame.name??"Nobody",-1);return;}
+            if(Rules.mode==GameModeKind.Infection && resolveEliminations && alive==0){Finish("Infected",-2);return;}
             if(Rules.mode==GameModeKind.Ninja){CheckLanternWinner();if(Phase!=RoundPhase.Playing)return;}
-            if(Rules.mode==GameModeKind.TeamTickets)
+            if(Rules.mode==GameModeKind.TeamTickets && resolveEliminations)
             {
                 var active=new HashSet<int>();foreach(var p in players.Values)if(p.present&&p.frame.alive&&p.frame.team>=0)active.Add(p.frame.team);
                 if(active.Count<=1){int t=-1;foreach(int value in active)t=value;Finish(t>=0?teams[t].name:"Nobody",t);return;}
             }
-            if(Rules.roundSeconds<=0||Elapsed<Rules.roundSeconds)return;
+            if(!deadlineReached)return;
             if(Rules.mode==GameModeKind.Infection){Finish("Survivors",-1);return;}
             FinishByScore();
         }

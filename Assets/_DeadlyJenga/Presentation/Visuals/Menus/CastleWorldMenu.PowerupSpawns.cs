@@ -6,32 +6,52 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class CastleWorldMenu
     {
         bool randomPowerupPage;int weightOffset;
+        bool developerPowerupWeights;
+        int developerPowerupChoice=-1,developerWeightChoice;
         void PointRandomPowerups(Camera camera,bool pressed)
         {
-            HideDisasterSliders();
-            var runtime=MatchRuntime.Current;var controls=runtime as IPowerupSpawnControls;if(controls==null){randomPowerupPage=false;return;}
-            var settings=controls.SpawnSettings;heading.text="RANDOM BLOCK POWERUPS\nAll heights · Host settings";
-            float total=0;foreach(var type in settings.types)total+=type.weight;
-            var ray=pointerRay;
-            for(int i=0;i<buttons.Length;i++)
+            scaffoldButton.gameObject.SetActive(false);HideDisasterSliders();
+            var runtime=MatchRuntime.Current;var controls=runtime as IPowerupSpawnControls;
+            if(controls==null){randomPowerupPage=false;return;}
+            var settings=controls.SpawnSettings;
+            var names=new System.Collections.Generic.List<string>();var actions=new System.Collections.Generic.List<System.Action>();
+            var enabled=new System.Collections.Generic.List<bool>();var art=new System.Collections.Generic.List<CandyHudIcon>();
+            var captions=new System.Collections.Generic.List<string>();var pictures=new System.Collections.Generic.List<Texture>();
+            void Add(string label,System.Action action,bool available=true)
+            {names.Add(label);actions.Add(action);enabled.Add(available);art.Add(CandyHudIcon.Settings);captions.Add("");pictures.Add(null);}
+            heading.text="WORLD & PICKUPS / AUTOMATIC POWERUPS";
+            if(developerPowerupChoice>=0)
             {
-                int weightIndex=weightOffset+i-6;bool exists=i<6||i==13||i==14||i>=6&&i<=12&&weightIndex<settings.types.Length;buttons[i].gameObject.SetActive(exists);if(!exists)continue;
-                labels[i].text=i switch{0=>"Back",1=>"Random spawns: "+(settings.enabled?"ON":"OFF"),2=>"Spawn interval: "+settings.interval.ToString("F0")+"s (cycle)",3=>"Maximum active: "+settings.maximum+" (cycle)",4=>"Pickup lifetime: "+settings.lifetime.ToString("F0")+"s (cycle)",5=>"Timing variation: "+settings.jitter.ToString("P0")+" (cycle)",13=>"Previous types",14=>"More types",_=>DeadlyJenga.Presentation.CandyEquipmentView.Name(settings.types[weightIndex].kind)+": "+(total>0?settings.types[weightIndex].weight/total:0).ToString("P0")+" (cycle weight)"};
-                targets[i].enabled=i==0||runtime.Authority;bool hover=targets[i].enabled&&Hit(targets[i],ray);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;
-                if(!pressed||!hover)continue;
-                if(i==0){randomPowerupPage=false;return;}
-                if(i==1)settings.enabled=!settings.enabled;
-                if(i==2)settings.interval=Cycle(settings.interval,new[]{2f,5,10,15,30,60,120});
-                if(i==3)settings.maximum=(int)Cycle(settings.maximum,new[]{0f,2,4,8,12,16,24,32});
-                if(i==4)settings.lifetime=Cycle(settings.lifetime,new[]{15f,30,60,90,180,300});
-                if(i==5)settings.jitter=Cycle(settings.jitter,new[]{0f,.1f,.25f,.5f,.75f});
-                if(i==13){weightOffset=Mathf.Max(0,weightOffset-7);break;}
-                if(i==14){if(weightOffset+7<settings.types.Length)weightOffset+=7;break;}
-                if(i>=6&&i<=12)settings.types[weightIndex].weight=Cycle(settings.types[weightIndex].weight,new[]{0f,5,10,20,40,80,100});
-                controls.ConfigurePowerupSpawns(settings);break;
+                Add("Close value choices",()=>developerPowerupChoice=-1);
+                float[] values=developerPowerupChoice switch{0=>new[]{2f,5,10,15,30,60,120},1=>new[]{0f,2,4,8,12,16,24,32},2=>new[]{15f,30,60,90,180,300},3=>new[]{0f,.1f,.25f,.5f,.75f},_=>new[]{0f,5,10,20,40,80,100}};
+                foreach(float option in values)
+                {
+                    float value=option;
+                    Add(developerPowerupChoice==3?value.ToString("P0"):value.ToString("0.##"),()=>{
+                        switch(developerPowerupChoice){case 0:settings.interval=value;break;case 1:settings.maximum=(int)value;break;case 2:settings.lifetime=value;break;case 3:settings.jitter=value;break;default:settings.types[developerWeightChoice].weight=value;break;}
+                        controls.ConfigurePowerupSpawns(settings);developerPowerupChoice=-1;
+                    },runtime.Authority);
+                }
             }
-            help.text=$"Random pickups {controls.RandomPickupCount}/{settings.maximum} · next attempt {controls.NextSpawnIn:F0}s\nZero weight disables a type. The desktop panel provides finer sliders.";
-            
+            else
+            {
+                Add("Random spawns: "+(settings.enabled?"ON":"OFF"),()=>{settings.enabled=!settings.enabled;controls.ConfigurePowerupSpawns(settings);},runtime.Authority);
+                Add("Interval: "+settings.interval.ToString("0")+" seconds  v",()=>developerPowerupChoice=0,runtime.Authority);
+                Add("Maximum active: "+settings.maximum+"  v",()=>developerPowerupChoice=1,runtime.Authority);
+                Add("Pickup lifetime: "+settings.lifetime.ToString("0")+" seconds  v",()=>developerPowerupChoice=2,runtime.Authority);
+                Add("Timing variation: "+settings.jitter.ToString("P0")+"  v",()=>developerPowerupChoice=3,runtime.Authority);
+                Add((developerPowerupWeights?"Hide":"Show")+" item weights",()=>developerPowerupWeights=!developerPowerupWeights);
+                if(developerPowerupWeights)
+                {
+                    float total=0;foreach(var type in settings.types)total+=type.weight;
+                    for(int i=weightOffset;i<Mathf.Min(settings.types.Length,weightOffset+7);i++)
+                    {int index=i;var type=settings.types[i];Add(DeadlyJenga.Presentation.CandyEquipmentView.Name(type.kind)+": "+(total>0?type.weight/total:0).ToString("P0")+"  v",()=>{developerWeightChoice=index;developerPowerupChoice=4;},runtime.Authority);}
+                    if(weightOffset>0)Add("Previous items",()=>weightOffset=Mathf.Max(0,weightOffset-7));
+                    if(weightOffset+7<settings.types.Length)Add("Next items",()=>weightOffset+=7);
+                }
+            }
+            help.text=$"Active pickups: {controls.RandomPickupCount}/{settings.maximum}. Zero weight disables an item.";
+            RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);
         }
         static float Cycle(float value,float[] values){foreach(float next in values)if(next>value+.001f)return next;return values[0];}
     }

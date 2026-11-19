@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-104
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 0b814b7e0b6b40f4fb24a8ed010c0766, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 104
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Outage Hum
+    atlasFile: atlas.png
+    atlasSha256: 9c99a3a17ea45d52a4697e2a462da79ff00ae1405063d6da944f01b1bc1f3163
+    gifFile: preview.gif
+    gifSha256: 984c84c65295961d98a2036fc0dd0b0457b723356fdc00d35d227232824c22b1
+    sourceSha256: 1124a137ad8fc7a8be3a37b284f1750a8cd3a063f7ab2c0d4688022b90b1e500
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Outage Hum
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed disaster gameplay lifecycle firing Outage Hum
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 
