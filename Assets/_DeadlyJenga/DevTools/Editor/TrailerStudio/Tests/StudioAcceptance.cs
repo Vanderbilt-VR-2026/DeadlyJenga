@@ -155,6 +155,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             text.Append($"\nFailures: {Failures}\n");
             File.WriteAllText(Path.Combine(Folder, "report.md"), text.ToString());
             Debug.Log("[TrailerStudio acceptance] finished with " + Failures + " failures. Report: " + Path.Combine(Folder, "report.md"));
+            // An always-open test editor (the coordinator's warm worker) wants the result in a file and
+            // the editor left open for the next test.
+            if (SessionState.GetString("DJWarm.id", "") != "")
+            {
+                Directory.CreateDirectory(Path.Combine("Logs", "Warm"));
+                File.WriteAllText(Path.Combine("Logs", "Warm", "exit.txt"), Failures == 0 ? "0" : "1");
+                if (EditorApplication.isPlaying) EditorApplication.ExitPlaymode();
+                return;
+            }
             // Close the editor when it was started just for this run (batch mode, or -executeMethod on the command line).
             bool startedForThis = Environment.GetCommandLineArgs().Any(a => a.Contains("StudioAcceptance.Run"));
             if (Application.isBatchMode || startedForThis) EditorApplication.Exit(Failures == 0 ? 0 : 1);
