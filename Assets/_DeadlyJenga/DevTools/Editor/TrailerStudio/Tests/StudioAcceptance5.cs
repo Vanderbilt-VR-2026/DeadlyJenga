@@ -220,7 +220,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // A dissolve is two EDL lines with one event number, so count event numbers, not lines.
             int edlEvents = 0;
             var xmlFaults = File.Exists(xmlFile) ? CheckFcpxml(xmlFile) : new List<string> { "no FCPXML file" };
-            var edlFaults = File.Exists(edlFile) ? CheckEdl(edlFile, set.render.fps, out edlEvents) : new List<string> { "no EDL file" };
+            var edlFaults = File.Exists(edlFile) ? CheckEdl(edlFile, firstResults.Count > 0 ? firstResults[0].fps : 15, out edlEvents) : new List<string> { "no EDL file" };
             int edlLines = File.Exists(edlFile) ? File.ReadAllLines(edlFile).Count(l => l.Length > 3 && char.IsDigit(l[0]) && char.IsDigit(l[2])) : 0;
             Result("4. The cut exports as FCPXML and EDL with shots and sound in place, and both pass the format checks (opening them in Resolve was NOT done)",
                 exportNote == "" && clips == 3 && missing == 0 && assets >= 4 && soundClips == 3 && transitions == 1 && edlEvents == 3 && edlLines == 4 && xmlFaults.Count == 0 && edlFaults.Count == 0
