@@ -127,7 +127,7 @@ namespace DeadlyJenga.CastlePrototype
             playerScale = Mathf.Clamp(playerScale,.1f,2f);
             if (modeReady && vr == IsVR && Mathf.Approximately(appliedScale,playerScale)) return;
             bool wasVR=IsVR;modeReady = true; IsVR = vr;
-            if(vr!=wasVR){ClearSprint();sprintController=null;if(vr)EnsureHeadPitchPivot();else{ResetVRLook();ReleaseTrackingSystems();}}
+            if(vr!=wasVR){ResetClimb(false);ClearSprint();sprintController=null;if(vr)EnsureHeadPitchPivot();else{ResetVRLook();ReleaseTrackingSystems();}}
             appliedScale = playerScale;
             Capsule.radius = .24f * playerScale;
             Capsule.height = StandingHeight; Capsule.center = Vector3.up * StandingHeight * .5f;
@@ -256,34 +256,7 @@ namespace DeadlyJenga.CastlePrototype
             UpdateSprintToggle(sprintInput&&Alive&&!Vaulting&&!Sinking&&modeRules?.downed!=true,
                 sprintClick,sprintHeld);
             UpdatePunch();
-            Vector3 beforeWalk = transform.position;
             Simulate(walking, pressed, Time.deltaTime,held);
-            if (!externallyDriven && Services.Session is ILobbyControls)
-                CheckLobbyWalk(walking, transform.position - beforeWalk);
-        }
-
-        float nextLobbyWalkSample;
-        string lastLobbyWalkState;
-        void CheckLobbyWalk(Vector2 walking, Vector3 displacement)
-        {
-            if (Time.unscaledTime < nextLobbyWalkSample) return;
-            nextLobbyWalkSample = Time.unscaledTime + .25f;
-            var left = move.ReadValue<Vector2>();
-            var right = turn.ReadValue<Vector2>();
-            float speed = new Vector2(displacement.x, displacement.z).magnitude / Mathf.Max(.0001f, Time.deltaTime);
-            string state;
-            if (!IsVR) state = "desktop controls";
-            else if (InputSuspended || !vrInputFocused || trackingRebase) state = "input paused";
-            else if (Climbing || Vaulting) state = "traversal";
-            else if (walking.sqrMagnitude > .01f) state = speed < .05f ? "walk blocked" : "walking";
-            else state = left.sqrMagnitude + right.sqrMagnitude > .04f ? "stick active without walk" : "sticks idle";
-            if (state == lastLobbyWalkState) return;
-            lastLobbyWalkState = state;
-            Debug.Log($"[Lobby walk] {state} left={left} right={right} walk={walking} speed={speed:F2} " +
-                $"tracked L/R={HybridXRInput.ControllerTracked(true)}/{HybridXRInput.ControllerTracked(false)} " +
-                $"leftHanded={PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)} menu={Services.Session.MenuOpen} " +
-                $"suspended={InputSuspended} focused={vrInputFocused} recenter={trackingRebase} " +
-                $"climbing={Climbing} grounded={Grounded} speedMultiplier={movementMultiplier} collision={Capsule.collisionFlags}", this);
         }
 
         public void Teleport(Vector3 feet, Quaternion rotation)
@@ -311,7 +284,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             bool climbToggle = PlayerPrefs.GetInt("SurvivorVR.ClimbToggle", 0) != 0;
             bool canClimbNow = (climbHeld || (climbToggle && (jumpPressed || toggleClimbActive))) && !InputSuspended && !CarryingFlag && (modeRules?.canClimb ?? true);
-            if (!Sinking || Vaulting || InputSuspended || !Alive || !externallyDriven && !vrInputFocused)
+            if (ManualVRClimb || !Sinking || Vaulting || InputSuspended || !Alive || !externallyDriven && !vrInputFocused)
                 sinkVaultPending = false;
             else if (jumpPressed && canClimbNow && climbingEnabled)
             {
@@ -324,7 +297,7 @@ namespace DeadlyJenga.CastlePrototype
                 sinkVaultPending = false;
                 jumpPressed = true;
             }
-            if (UpdateClimb(Vector2.ClampMagnitude(input,1),canClimbNow,dt,jumpPressed))
+            if (ManualVRClimb ? UpdateGripClimb(dt) : UpdateClimb(Vector2.ClampMagnitude(input,1),canClimbNow,dt,jumpPressed))
             {
                 sinkVaultPending = false;
                 return;
@@ -351,7 +324,7 @@ namespace DeadlyJenga.CastlePrototype
                     verticalSpeed = Mathf.Sqrt(2 * gravity * EffectiveJumpHeight); Grounded = false;
                     jumped = true; support = null; airborneSince = Time.time; ActionStatus = "Jump";
                 }
-                else if ((Sinking || !Grounded && Time.time - airborneSince > .06f) && TryStartVault()) return;
+                else if (!ManualVRClimb && (Sinking || !Grounded && Time.time - airborneSince > .06f) && TryStartVault()) return;
                 else ActionStatus = "No reachable ledge — no double jump";
             }
             if (SprintRequested && !SprintHold && Time.time >= hoverUntil && Grounded)
