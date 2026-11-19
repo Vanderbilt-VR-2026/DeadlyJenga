@@ -127,10 +127,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var set = context.Set; var tape = context.Tape;
             if (set == null) { panel.Add(StudioUi.Hint("Choose or make a Set first.")); return; }
             bool held = StudioRun.State == StudioState.Held;
-            float now = Mathf.Min(context.Frame / (float)set.fps, set.length - .1f);
 
             void AddCue(string label, Action<StudioCue> setup)
             {
+                // The playhead at the moment of the click (scrubbing does not rebuild this panel).
+                float now = Mathf.Min(context.Frame / (float)set.fps, set.length - .1f);
                 StudioCue made = null;
                 context.Edit("Add " + label, () => { made = new StudioCue { at = now, strength = 6 }; setup(made); set.cues.Add(made); });
                 context.Select(made);
@@ -314,6 +315,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             catch { return new float[0]; }
         }
 
+        // Does 'cue' wait for the cue 'id', directly or through a chain of links?
+        public static bool WaitsFor(StudioSet set, StudioCue cue, string id)
+        {
+            var seen = new HashSet<string>();
+            for (var step = cue; step != null && !string.IsNullOrEmpty(step.link) && seen.Add(step.id); step = set.cues.FirstOrDefault(c => c.id == step.link))
+                if (step.link == id) return true;
+            return false;
+        }
+
         public static void Add(VisualElement panel, StudioCue cue, StudioContext context)
         {
             var set = context.Set;
@@ -392,7 +402,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
 
             // Chain reactions: any cue can wait for another cue instead of the clock.
-            var others = set.cues.Where(c => c != cue && c.link != cue.id).ToList();
+            // A loop (A waits for B, B waits for C, C waits for A) would never start, so cues that already wait
+            // for this one, directly or through others, are not offered.
+            var others = set.cues.Where(c => c != cue && !WaitsFor(set, c, cue.id)).ToList();
+            if (!string.IsNullOrEmpty(cue.link) && !set.cues.Any(c => c.id == cue.link && c != cue))
+                panel.Add(StudioUi.Warning("This cue waits for a cue that is no longer in the Set, so it never runs. Pick \"Its own time\" or another cue under Chain reaction."));
             if (others.Count > 0 && cue.action != SlowTimeCue.Id)
             {
                 var ids = new List<string> { "" }.Concat(others.Select(c => c.id)).ToList();

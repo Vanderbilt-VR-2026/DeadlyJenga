@@ -13,6 +13,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         readonly VisualElement host, ruler, playhead;
         readonly ScrollView rows;
         StudioCue draggingCue;
+        bool cueMoved;
 
         public StudioTimeline(StudioContext context, VisualElement host)
         {
@@ -30,9 +31,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         }
 
         int Frames => Mathf.Max(1, context.Set?.Frames ?? 1);
-        float LaneWidth => Mathf.Max(1, ruler.resolvedStyle.width);
-        float X(float frame) => frame / Frames * LaneWidth;
-        int FrameAt(float x) => Mathf.Clamp(Mathf.RoundToInt(x / LaneWidth * Frames), 0, Frames - 1);
+        float LaneWidth => ruler.resolvedStyle.width;
+        float X(float frame) => FrameToX(frame, Frames, LaneWidth);
+        int FrameAt(float x) => XToFrame(x, Frames, LaneWidth);
+
+        // Frame <-> pixels along a lane. A lane that is not laid out yet (NaN or 0 wide) counts as 1 pixel.
+        public static float FrameToX(float frame, int frames, float width) => frame / Mathf.Max(1, frames) * Usable(width);
+        public static int XToFrame(float x, int frames, float width)
+        {
+            frames = Mathf.Max(1, frames);
+            float at = x / Usable(width) * frames;
+            return float.IsNaN(at) ? 0 : Mathf.RoundToInt(Mathf.Clamp(at, 0, frames - 1));
+        }
+        static float Usable(float width) => float.IsNaN(width) || width < 1 ? 1 : width;
 
         public void Rebuild()
         {
@@ -138,7 +149,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             float height = ruler.resolvedStyle.height;
             // A tick each second; a label every few seconds so they never overlap.
             int seconds = Mathf.CeilToInt(set.length);
-            int labelEvery = Mathf.Max(1, Mathf.CeilToInt(seconds / Mathf.Max(1, LaneWidth / 60)));
+            int labelEvery = Mathf.Max(1, Mathf.CeilToInt(seconds / Mathf.Max(1, Usable(LaneWidth) / 60)));
             painter.strokeColor = new Color(.6f, .6f, .7f, .7f); painter.lineWidth = 1;
             for (int s = 0; s <= seconds; s++)
             {
@@ -208,23 +219,32 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (e.button != 0) return;
                 var cue = set.cues.OrderBy(c => Mathf.Abs(X(c.at * set.fps) - e.localPosition.x)).FirstOrDefault();
                 if (cue == null || Mathf.Abs(X(cue.at * set.fps) - e.localPosition.x) > 8) { context.window.Scrub(FrameAt(e.localPosition.x)); return; }
-                draggingCue = cue;
+                // Selecting rebuilds the timeline, which would drop this lane and its drag, so the cue is selected on release.
+                draggingCue = cue; cueMoved = false;
                 lane.CapturePointer(e.pointerId);
-                if (!ReferenceEquals(context.Selection, cue)) context.Select(cue);
-                context.window.BeginEdit("Move cue");
             });
             lane.RegisterCallback<PointerMoveEvent>(e =>
             {
                 if (draggingCue == null || !lane.HasPointerCapture(e.pointerId)) return;
+                if (!cueMoved) { cueMoved = true; context.window.BeginEdit("Move cue"); }
                 draggingCue.at = Mathf.Clamp(FrameAt(e.localPosition.x) / (float)set.fps, 0, set.length - 1f / set.fps);
                 lane.MarkDirtyRepaint();
             });
             lane.RegisterCallback<PointerUpEvent>(e =>
             {
+                var cue = draggingCue;
+                draggingCue = null;
                 if (lane.HasPointerCapture(e.pointerId)) lane.ReleasePointer(e.pointerId);
+                if (cue == null) return;
+                if (cueMoved) context.window.EndEdit(false);
+                if (!ReferenceEquals(context.Selection, cue)) context.Select(cue);
+            });
+            // Capture can also be lost without a release (the window lost focus): finish the drag there.
+            lane.RegisterCallback<PointerCaptureOutEvent>(_ =>
+            {
                 if (draggingCue == null) return;
                 draggingCue = null;
-                context.window.EndEdit(false);
+                if (cueMoved) context.window.EndEdit(false);
             });
             row.Add(title); row.Add(lane);
             return row;

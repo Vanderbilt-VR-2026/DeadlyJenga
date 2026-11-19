@@ -194,13 +194,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var camera = (StudioCameraTrack)selection;
             var set = context.Set;
-            float now = context.Frame / (float)set.fps;
+            // The playhead at the moment of a click (scrubbing does not rebuild the inspector).
+            float Now() => context.Frame / (float)set.fps;
             panel.Add(StudioFields.Text(context, "Name", camera.name, v => camera.name = string.IsNullOrWhiteSpace(v) ? camera.name : v));
             panel.Add(StudioFields.Swatches(context, camera.color, v => camera.color = v));
 
             // Keys
             var here = StudioUi.Big("Key here  (" + StudioUi.Time(context.Frame, set.fps) + ")", () =>
-                context.Edit("Camera key", () => StudioCameras.AddKey(camera, StudioCameras.KeyFromView(context.Stage, camera, now))),
+                context.Edit("Camera key", () => StudioCameras.AddKey(camera, StudioCameras.KeyFromView(context.Stage, camera, Now()))),
                 "Save the viewport's current view as this camera's key at the playhead.");
             here.AddToClassList("ts-big--primary");
             here.SetEnabled(context.StageOpen && ShootMode.LookThrough != camera.id);
@@ -256,6 +257,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             panel.Add(StudioFields.Slide(context, "Shot ends (s)", camera.End(set), 0, set.length, v => camera.end = Mathf.Max(v, camera.start + .1f)));
             panel.Add(StudioUi.Small("Speed change at the playhead", () => context.Edit("Speed mark", () =>
             {
+                float now = Now();
                 // A ramp needs somewhere to come from: the first mark also pins the shot's start at real speed.
                 if (camera.speeds.Count == 0 && now > camera.start + .05f) camera.speeds.Add(new StudioSpeedMark { time = camera.start, speed = 1 });
                 camera.speeds.RemoveAll(m => Mathf.Abs(m.time - now) < .001f);
@@ -267,12 +269,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var captured = mark;
                 var speed = new Slider(StudioUi.Time(Mathf.RoundToInt(mark.time * set.fps), set.fps), .05f, 2) { value = mark.speed, showInputField = true };
                 speed.style.flexGrow = 1;
-                speed.RegisterCallback<FocusOutEvent>(_ => context.Edit("Speed", () => captured.speed = speed.value));
-                speed.RegisterCallback<PointerCaptureOutEvent>(_ => context.Edit("Speed", () => captured.speed = speed.value), TrickleDown.TrickleDown);
+                // Both events come after one drag; only a real change becomes an undo step.
+                void Keep() { if (!Mathf.Approximately(captured.speed, speed.value)) context.Edit("Speed", () => captured.speed = speed.value); }
+                speed.RegisterCallback<FocusOutEvent>(_ => Keep());
+                speed.RegisterCallback<PointerCaptureOutEvent>(_ => Keep(), TrickleDown.TrickleDown);
                 panel.Add(StudioUi.Row(speed, StudioUi.Small("x", () => context.Edit("Delete speed mark", () => camera.speeds.Remove(captured)))));
             }
             panel.Add(StudioUi.Small(camera.freezeAt >= 0 ? "Remove the freeze frame" : "Freeze frame at the playhead", () =>
-                context.Edit("Freeze frame", () => { if (camera.freezeAt >= 0) camera.freezeAt = -1; else { camera.freezeAt = now; camera.freezeFor = 1; } }),
+                context.Edit("Freeze frame", () => { if (camera.freezeAt >= 0) camera.freezeAt = -1; else { camera.freezeAt = Now(); camera.freezeFor = 1; } }),
                 "The tape holds still while the camera keeps moving."));
             if (camera.freezeAt >= 0) panel.Add(StudioFields.Slide(context, "Freeze for (s)", camera.freezeFor, .1f, 6, v => camera.freezeFor = v));
             panel.Add(StudioUi.Hint($"This shot plays for {StudioCameras.OutputLength(camera, set, set.render.fps):0.00} s."));

@@ -51,9 +51,25 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static PopupField<string> Choice(StudioContext context, string label, List<string> names, int index, Action<int> apply, bool structural = false)
         {
             if (names.Count == 0) names = new List<string> { "(none)" };
+            names = Distinct(names);
             var field = Styled(new PopupField<string>(label, names, Mathf.Clamp(index, 0, names.Count - 1)));
             field.RegisterValueChangedCallback(e => context.Edit("Change " + label.ToLowerInvariant(), () => apply(names.IndexOf(e.newValue)), structural));
             return field;
+        }
+
+        // A popup reports the chosen text, so two entries with the same text (two actors both called "Mia",
+        // two Sets both "Untitled set") would both pick the first. Number the repeats: "Mia", "Mia (2)".
+        public static List<string> Distinct(List<string> names)
+        {
+            var seen = new HashSet<string>();
+            var result = new List<string>(names.Count);
+            foreach (string name in names)
+            {
+                string shown = name ?? "";
+                for (int n = 2; !seen.Add(shown); n++) shown = (name ?? "") + " (" + n + ")";
+                result.Add(shown);
+            }
+            return result;
         }
 
         public static EnumField Enum<T>(StudioContext context, string label, T value, Action<T> apply, bool structural = false) where T : Enum

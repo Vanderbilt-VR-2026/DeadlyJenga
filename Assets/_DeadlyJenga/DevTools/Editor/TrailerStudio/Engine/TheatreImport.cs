@@ -27,24 +27,26 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (var actor in plan.cast ?? Array.Empty<TheatrePlan.TheatreActor>())
             {
                 if (actor == null) continue;
+                // A recipe without actor ids would give marks with no id or name, which the rest of the Studio cannot handle.
+                string name = string.IsNullOrWhiteSpace(actor.id) ? "Actor " + (set.marks.Count + 1) : actor.id;
                 set.marks.Add(new StudioMark
                 {
-                    id = set.UniqueId(actor.id), actor = actor.id, color = actor.color, position = actor.start,
+                    id = set.UniqueId(name), actor = name, color = actor.color, position = actor.start,
                     // Theatre's scripted moves are not performances; a live bot is the closest stand-in until someone performs it.
                     role = actor.live ? StudioRole.Bot : StudioRole.Survivor,
                     customLook = actor.customLook, appearance = actor.appearance
                 });
                 if ((actor.moves?.Length ?? 0) + (actor.performance?.Length ?? 0) + (actor.stunt?.Length ?? 0) > 0)
-                    set.shotNotes.Add($"{actor.id} had scripted motion in Theatre. Perform this actor in the Studio (Perform mode).");
+                    set.shotNotes.Add($"{name} had scripted motion in Theatre. Perform this actor in the Studio (Perform mode).");
             }
             foreach (var cue in plan.cues ?? Array.Empty<TheatrePlan.TheatreCue>())
                 if (cue != null)
-                    set.cues.Add(new StudioCue { at = cue.at, action = cue.action, actor = cue.actor ?? "", target = cue.target ?? "",
+                    set.cues.Add(new StudioCue { at = cue.at, action = cue.action ?? "", actor = cue.actor ?? "", target = cue.target ?? "",
                         hazard = cue.hazard ?? "", weapon = cue.weapon ?? "", strength = cue.strength, heading = cue.heading,
                         height = cue.height, optional = cue.optional, lethal = cue.lethal });
             foreach (var shot in shots)
                 if (shot != null)
-                    set.shots.Add(new StudioShot { name = shot.name, subject = shot.subject ?? "", second = shot.second ?? "",
+                    set.shots.Add(new StudioShot { name = shot.name ?? "Shot", subject = shot.subject ?? "", second = shot.second ?? "",
                         start = shot.start, duration = shot.duration, fov = shot.fov, roll = shot.roll, avoidWalls = shot.avoidWalls,
                         autoFocus = shot.autoFocus, firstPerson = shot.firstPerson, from = shot.from, to = shot.to, look = shot.look });
             return set;
@@ -58,12 +60,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var plan = JsonUtility.FromJson<TheatrePlan>(File.ReadAllText(recipe));
             if (plan == null) throw new InvalidDataException("The recipe could not be read.");
             var set = RecipeToSet(plan);
+            // Read the whole motion tape before anything is written, so a damaged tape leaves no half-imported Set behind.
+            var tape = File.Exists(motion) ? ConvertTape(motion, set) : null;
             StudioLibrary.Save(set);
-            if (File.Exists(motion))
+            if (tape != null)
             {
-                var tape = ConvertTape(motion, set);
+                tape.header.setId = set.id;
                 tape.Save(StudioLibrary.TapePath(set.id));
-                StudioLibrary.Save(set);
             }
             return set;
         }
@@ -74,6 +77,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // set (optional) gets its length, frame rate and any missing marks filled in from the tape.
         public static StudioTape ConvertTape(string file, StudioSet set = null)
         {
+            try { return ReadTape(file, set); }
+            catch (EndOfStreamException) { throw new InvalidDataException("The Theatre motion tape is cut short (damaged, or it was still being written)."); }
+        }
+
+        static StudioTape ReadTape(string file, StudioSet set)
+        {
             var tape = new StudioTape();
             using (var r = new BinaryReader(File.OpenRead(file)))
             {
@@ -83,7 +92,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 bool effects = format != FormatV2, particles = format == FormatV4;
                 string map = r.ReadString();
                 int fps = r.ReadInt32(), length = r.ReadInt32(), blocks = r.ReadInt32(), cast = r.ReadInt32();
-                if (blocks < 0 || blocks > 100000 || cast < 0 || cast > 64) throw new InvalidDataException("Damaged Theatre tape header.");
+                if (blocks < 0 || blocks > 100000 || cast < 0 || cast > 64 || fps < 1 || fps > 240 || length < 0) throw new InvalidDataException("Damaged Theatre tape header.");
                 Vector3 stage = NetWire.ReadVector(r);
                 var ids = new string[cast];
                 for (int i = 0; i < cast; i++) ids[i] = r.ReadString();
@@ -140,6 +149,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     frame++;
                 }
                 tape.header.frames = frame;
+                if (frame == 0) throw new InvalidDataException("The Theatre motion tape has no frames.");
 
                 if (set != null)
                 {

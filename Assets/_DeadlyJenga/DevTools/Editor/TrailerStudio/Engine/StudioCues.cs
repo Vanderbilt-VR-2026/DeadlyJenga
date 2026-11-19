@@ -77,7 +77,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 instance.GetComponent<IDirectedHazard>().Heading = cue.heading;
                 if (values != null) instance.GetComponent<IDemoHazard>()?.Configure(values);
                 var started = instance.GetComponent<IHazard>();
-                started.Begin();
+                // A disaster that fails to start must not stay in the scene (it would sit in later frames of the take).
+                try { started.Begin(); }
+                catch { Object.Destroy(instance); throw; }
                 if (!started.Active) { Object.Destroy(instance); throw new InvalidOperationException("The disaster did not start: " + cue.hazard); }
                 instance.AddComponent<DemoDisasterLifetime>();
             }
@@ -111,8 +113,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             wave.approachSpeed = cue.strength > 0 ? Mathf.Clamp(cue.strength, 1, 30) : 30;
             wave.height = cue.height > 0 ? cue.height : Mathf.Clamp(stage.anchor.y - stage.world.WaterHeight(stage.anchor) + 8, 18, 100);
             wave.affectPlayers = false;
-            wave.Begin();
-            if (!wave.Active) throw new InvalidOperationException("The tsunami did not start.");
+            // A wave that fails to start must not stay in the scene.
+            try { wave.Begin(); }
+            catch { Object.Destroy(wave.gameObject); throw; }
+            if (!wave.Active) { Object.Destroy(wave.gameObject); throw new InvalidOperationException("The tsunami did not start."); }
             return $"heading {wave.approachHeading:F0}, height {wave.height:F0} m";
         }
     }

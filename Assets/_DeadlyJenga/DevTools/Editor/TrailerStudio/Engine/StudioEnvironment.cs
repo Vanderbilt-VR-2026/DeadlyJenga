@@ -34,6 +34,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 fog = RenderSettings.fog; fogDensity = RenderSettings.fogDensity; fogColor = RenderSettings.fogColor; fogMode = RenderSettings.fogMode;
                 saved = true;
             }
+            // Start from the map's own values each time, so turning one of the two off (weather back to
+            // "Map's own" while the hour stays set, or the reverse) really takes it away.
+            if (sun) sun.transform.rotation = sunRotation;
+            RenderSettings.fog = fog; RenderSettings.fogDensity = fogDensity; RenderSettings.fogColor = fogColor; RenderSettings.fogMode = fogMode;
             float light = 1, haze = 0;
             Color tint = sunColor, mist = fog ? fogColor : new Color(.72f, .78f, .84f);
             if (sun && wantsTime)
