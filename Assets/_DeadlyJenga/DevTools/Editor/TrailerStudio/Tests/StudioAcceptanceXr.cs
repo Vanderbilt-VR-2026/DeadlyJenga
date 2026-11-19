@@ -25,6 +25,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public static Pose left = new Pose(new Vector3(-.2f, -.35f, .4f), Quaternion.identity);
             public static Pose right = new Pose(new Vector3(.2f, -.35f, .4f), Quaternion.identity);
             public static Vector2 rightStick;
+            public static bool headTracked = true;   // false = the headset reports "not tracked" (taken off, lost tracking)
             public static string Layouts = "";
 
             // What the devices said in the last game-side input update (reading them from the editor loop gives empty values).
@@ -103,8 +104,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     Set(device, e, "devicePosition", pose.position);
                     Set(device, e, "deviceRotation", pose.rotation);
                     if (isHead) { Set(device, e, "centerEyePosition", pose.position); Set(device, e, "centerEyeRotation", pose.rotation); }
-                    Set(device, e, "isTracked", 1f);
-                    Set(device, e, "trackingState", 3);
+                    bool tracked = !isHead || headTracked;
+                    Set(device, e, "isTracked", tracked ? 1f : 0f);
+                    Set(device, e, "trackingState", tracked ? 3 : 0);
                     if (!isHead) Set(device, e, "primary2DAxis", stick);
                     InputSystem.QueueEvent(e);
                 }
@@ -119,6 +121,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public static Pose HeadNow => Read(hmd);
             public static Pose LeftNow => Read(leftDevice);
             public static Pose RightNow => Read(rightDevice);
+            public static string HeadFlags =>
+                $"headset device says trackingState {(hmd?.TryGetChildControl("trackingState") as InputControl<int>)?.ReadValue()}, isTracked {(hmd?.TryGetChildControl("isTracked") as InputControl<float>)?.ReadValue()}, " +
+                $"centre eye {P((hmd?.TryGetChildControl("centerEyePosition") as InputControl<Vector3>)?.ReadValue() ?? Vector3.zero)}; right controller trackingState {(rightDevice?.TryGetChildControl("trackingState") as InputControl<int>)?.ReadValue()}; " +
+                $"XR headsets in the Input System: {string.Join(", ", InputSystem.devices.Where(d => d is UnityEngine.InputSystem.XR.XRHMD).Select(d => d.name + (d.enabled ? "" : " (disabled)")))}";
 
             static Pose Read(InputDevice device)
             {
@@ -226,16 +232,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     focused = focus != null && (bool)focus.GetValue(motor), rebasing = rebase != null && (bool)rebase.GetValue(motor)
                 };
                 // In real time one shown frame can stand for several tape frames; they all hold this frame's pose.
-                if (driverNote.Length == 0)
+                if (driverNote.Length == 0 && frame >= 45)
                 {
-                    // What the game's head tracker (TrackedPoseDriver on the view camera) sees on the first recorded frame.
+                    // What the game's head tracker (TrackedPoseDriver on the view camera) sees halfway through the take.
                     var driver = motor.viewCamera.GetComponent<UnityEngine.InputSystem.XR.TrackedPoseDriver>();
                     var position = driver ? driver.positionInput.action : null;
                     var state = driver ? driver.trackingStateInput.action : null;
                     driverNote = driver == null ? "no TrackedPoseDriver on the view camera" :
                         $"TrackedPoseDriver enabled {driver.isActiveAndEnabled}, tracking type {driver.trackingType}, update {driver.updateType}, ignore tracking state {driver.ignoreTrackingState}; " +
                         $"position action enabled {position?.enabled}, bound to {position?.controls.Count ?? 0} controls ({string.Join(", ", position?.controls.Select(c => c.path) ?? new string[0])}), value {P(position != null && position.controls.Count > 0 ? position.ReadValue<Vector3>() : Vector3.zero)}; " +
-                        $"tracking state action enabled {state?.enabled}, controls {state?.controls.Count ?? 0}, value {(state != null && state.controls.Count > 0 ? state.ReadValue<int>() : -1)}; headset device position now {P(h.position)}";
+                        $"tracking state action enabled {state?.enabled}, controls {state?.controls.Count ?? 0}, value {(state != null && state.controls.Count > 0 ? state.ReadValue<int>() : -1)}; headset device position now {P(h.position)}; {XrDevices.HeadFlags}";
                 }
                 for (int f = Mathf.Max(lastSampled + 1, StudioRun.FirstFrame); f <= frame; f++) samples[f] = s;
                 lastSampled = frame; rendered++;
@@ -247,6 +253,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var countdownTexts = new List<string>();
             float panelToWrist = -1, panelToController = -1, countdownDistance = -1, scaleInCountdown = -1;
             bool panelBuilt = false; float pathStart = -1;
+            float countdownStart = -1, gapSteady = 0, gapAfterBlip = 0; int blipFrames = 0;
             StudioRun.FrameShown += Sample;
             StudioRun.Record(pass);
             float started = Time.realtimeSinceStartup;
@@ -272,8 +279,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 if (StudioRun.Recording && !StudioRun.LeadIn && StudioRun.Countdown <= 0 && pathStart < 0) pathStart = Time.realtimeSinceStartup;
                 PoseAt(pathStart < 0 ? 0 : Time.realtimeSinceStartup - pathStart);
+                if (StudioRun.Countdown > 0)
+                {
+                    // In the 3-2-1 the head bobs too. First with the headset steadily "tracked" (as a worn headset is),
+                    // then after it reports "not tracked" for a moment and "tracked" again (as when it is put back on).
+                    if (countdownStart < 0) countdownStart = Time.realtimeSinceStartup;
+                    float ct = Time.realtimeSinceStartup - countdownStart;
+                    XrDevices.head = new Pose(HeadPath(ct), Quaternion.identity);
+                    float gap = Vector3.Distance(motor.viewCamera.transform.localPosition, XrDevices.head.position);
+                    if (ct > .5f && ct < 1f) gapSteady = Mathf.Max(gapSteady, gap);
+                    if (ct >= 1f && blipFrames < 3) { XrDevices.headTracked = false; blipFrames++; }
+                    else XrDevices.headTracked = true;
+                    if (ct > 1.8f && ct < 2.8f) gapAfterBlip = Mathf.Max(gapAfterBlip, gap);
+                }
                 yield return 0;
             }
+            XrDevices.headTracked = true;
             StudioRun.FrameShown -= Sample;
             var adaTrack = tape.Find(ada.id);
             var take = adaTrack?.ActiveTake;
@@ -283,6 +304,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 $"at most {captureWhileRecording} over {capturedSamples} recorded frames of a pass that asked for the fixed clock (fixedClock = true), so MustBeRealTime overrode it. " +
                 $"{rendered} rendered frames covered {samples.Count} tape frames (real time: a slow batch frame spans several tape frames). Time scale {scaleWhileRecording:0.##} while recording, {scaleInCountdown:0.##} in the countdown. " +
                 (focusedAtStart ? "" : $"Forced: CastleSurvivor.vrInputFocused set to true {forcedFocus} times (the batch editor is never the focused app; the game treats that as the headset being off). ") + simulated);
+
+            Result("b0. Head tracking works as soon as the Studio puts the performer in their body",
+                gapSteady < .002f,
+                $"While the headset steadily reported \"tracked\", the view camera was up to {gapSteady * 100:F1} cm from the headset pose (it did not move). " +
+                $"After the headset reported \"not tracked\" for {blipFrames} frames and then \"tracked\" again, the camera was within {gapAfterBlip * 1000:F1} mm. " +
+                "Cause (Characters, not changed here): CastleSurvivor.ConfigureHeadTracking gives the TrackedPoseDriver a PassThrough tracking-state action. " +
+                "When the driver is enabled (VR mode on, or the rig re-activated: the Studio parks the player and Perform turns it back on) it reads that action once, " +
+                "and a PassThrough action reads 0 (\"not tracked\") until the value changes, so the head stays put while a worn headset keeps reporting the same state. " +
+                "Forced for the rest of this suite: the tracking-state blip above. Not checked on a Quest, where OpenXR may report the state differently.");
 
             // Compare every recorded frame with where the devices were on that frame.
             float worstHead = 0, worstLeft = 0, worstRight = 0, worstLocal = 0; int compared = 0;
@@ -406,14 +436,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Quaternion CameraTurn(float t) => Quaternion.Euler(-5 * t, -25 * t, 0);
             var truth = new Dictionary<int, Pose>();
             int lastTruth = -1; bool viewfinderSeen = false;
-            float sameFrameGap = 0, sameFrameAngle = 0;
+            float sameFrameGap = 0, sameFrameAngle = 0; int repeatedFrames = 0;
             void Watch(int frame)
             {
                 if (!StudioHandheld.Recording) return;
                 var o = avatar.trackingOrigin;
                 var device = XrDevices.RightNow;   // read on the same frame, as the Studio does
                 var pose = new Pose(o.TransformPoint(device.position), o.rotation * device.rotation);
-                for (int f = Mathf.Max(lastTruth + 1, StudioRun.FirstFrame); f <= frame; f++) truth[f] = pose;
+                // The same tape frame can be shown twice when rendering outruns the tape (always on a headset); the latest pose counts.
+                if (frame == lastTruth) repeatedFrames++;
+                for (int f = Mathf.Max(lastTruth + 1, StudioRun.FirstFrame); f < frame; f++) truth[f] = pose;
+                truth[frame] = pose;
                 // This runs after the Studio's own handler on the same frame, so the director's camera holds what it just read.
                 var cam = StudioCamera.Camera ? StudioCamera.Camera.transform : null;
                 if (cam) { sameFrameGap = Mathf.Max(sameFrameGap, Vector3.Distance(cam.position, pose.position)); sameFrameAngle = Mathf.Max(sameFrameAngle, Quaternion.Angle(cam.rotation, pose.rotation)); }
@@ -454,6 +487,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 handheldDone && keysCompared >= 5 && keyWorst < .001f && angleWorst < .1f && travel > .1f && viewfinderSeen && viewfinderGone && focalLast > focalFirst * 1.2f,
                 $"{handheld.keys.Count} keys kept ({keysCompared} compared with the controller's pose on their frame): worst {keyWorst * 1000:F3} mm and {angleWorst:F3} degrees. " +
                 $"On each frame the director's camera was at most {sameFrameGap * 1000:F3} mm and {sameFrameAngle:F3} degrees from the controller pose read on that frame. " +
+                $"{repeatedFrames} renders showed a tape frame a second time; keys with the same time: {handheld.keys.GroupBy(k => Mathf.RoundToInt(k.time * fps)).Count(g => g.Count() > 1)} " +
+                "(before this branch's fix every render added a pose, so a headset's 72+ renders a second gave several poses per tape frame and could give two keys the same time). " +
                 $"The camera travelled {travel:F2} m. Viewfinder shown above the controller: {viewfinderSeen}, removed afterwards: {viewfinderGone}. " +
                 $"Pushing the stick zoomed from {focalFirst:F1} mm to {focalLast:F1} mm (before this branch's fix the Studio only read a control called \"thumbstick\", which the PC-simulated controllers do not have; " +
                 "Quest controllers do have it, so on a headset zoom worked already). Simulated: controller pose and stick written by the test.");

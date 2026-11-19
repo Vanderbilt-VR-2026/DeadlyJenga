@@ -51,8 +51,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // What is being filmed is what the director's camera shows.
             StudioCamera.Camera.transform.SetPositionAndRotation(position, rotation);
             StudioCamera.Camera.fieldOfView = StudioCameras.FieldOfView(focal, Target.sensorHeight);
-            captured.Add(new StudioCameraKey { time = time, position = stage.ToStage(position), euler = rotation.eulerAngles, focal = focal,
-                focus = Target.keys.Count > 0 ? Target.keys[0].focus : 6, ease = 0 });
+            var key = new StudioCameraKey { time = time, position = stage.ToStage(position), euler = rotation.eulerAngles, focal = focal,
+                focus = Target.keys.Count > 0 ? Target.keys[0].focus : 6, ease = 0 };
+            // A headset draws 72-120 frames a second, faster than the tape's frames: keep one pose per tape frame (the latest),
+            // so no two keys share a time.
+            if (captured.Count > 0 && Mathf.Approximately(captured[captured.Count - 1].time, time)) captured[captured.Count - 1] = key;
+            else captured.Add(key);
         }
 
         // Desktop fly camera, read straight from the keyboard and mouse.
