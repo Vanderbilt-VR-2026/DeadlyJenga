@@ -12,6 +12,8 @@ namespace DeadlyJenga.CandyPlayers
     [DefaultExecutionOrder(100)]
     public sealed partial class CandyPlayerAvatar : MonoBehaviour, INetworkActor
     {
+        [Tooltip("Local gun rotation in degrees. Positive X pitches down, Y turns right, Z rolls left.")]
+        public Vector3 vrGunRotation = new Vector3(5f, 4f, 7f);
         public CandyPlayerRig visualPrefab;
         public CastleSurvivor survivor;
         public Camera viewCamera;

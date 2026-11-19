@@ -23,7 +23,7 @@ namespace DeadlyJenga.CandyPlayers
         internal const float HandheldScale = .66f;
         internal static float ModelScale(EquipmentKind kind, float avatarScale) =>
             kind is EquipmentKind.PoweredArmor or EquipmentKind.WristLaser or EquipmentKind.BoxingGlove or EquipmentKind.LaserClaws
-                ? avatarScale : avatarScale * HandheldScale;
+                ? avatarScale : avatarScale * HandheldScale * (kind == EquipmentKind.MurderSword ? 1.25f : 1f);
 
         internal static bool MeleeMount(EquipmentKind kind,bool left,out Vector3 palm,out Quaternion mount)
         {
@@ -64,7 +64,7 @@ namespace DeadlyJenga.CandyPlayers
         static readonly Vector3 StormbreakerEmitter = new Vector3(0, .397f, .827f);
 
         internal static Pose StormbreakerCarry(Pose aim, bool left, bool lightning, float scale,
-            Vector3? support, out bool holdingSupport)
+            Vector3? support, out bool holdingSupport, bool sideways = false)
         {
             Vector3 forward = aim.rotation * Vector3.forward;
             Vector3 up = Vector3.ProjectOnPlane(Vector3.up, forward);
@@ -91,6 +91,7 @@ namespace DeadlyJenga.CandyPlayers
             var blade = Vector3.ProjectOnPlane(forward, shaft);
             if (blade.sqrMagnitude < .01f) blade = Vector3.ProjectOnPlane(stance * Vector3.up, shaft);
             var rotation = Quaternion.LookRotation(shaft, blade);
+            if (sideways) rotation *= Quaternion.Euler(0, 0, 90f);
             MeleeMount(EquipmentKind.LaserAxe, left, out var palm, out var mount);
             var wrist = rotation * Quaternion.Inverse(mount);
             return new Pose(aim.position + wrist * palm * scale, rotation);

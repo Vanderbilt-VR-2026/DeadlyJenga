@@ -115,8 +115,9 @@ namespace DeadlyJenga.CandyPlayers
             if(leftHanded)offset.x=-offset.x;
             return true;
         }
-        Pose TrackedCarry(CandyHandPose tracked, EquipmentKind kind, bool handLeft)
+        Pose TrackedCarry(CandyHandPose tracked, EquipmentState state, bool handLeft)
         {
+            var kind = state.kind;
             var controllerRight = tracked.rotation * Vector3.right;
             tracked.rotation = avatar.WristRotation(tracked, handLeft);
             var weapon = CandyWeaponVisual.DrawnPose(kind, tracked, handLeft, Scale);
@@ -126,6 +127,14 @@ namespace DeadlyJenga.CandyPlayers
                 weapon.position = tracked.position;
                 weapon.rotation = Quaternion.AngleAxis(45f, controllerRight) * weapon.rotation;
             }
+            if (kind == EquipmentKind.LaserAxe || kind == EquipmentKind.MurderSword ||
+                kind == EquipmentKind.BoxingGlove || kind == EquipmentKind.LaserClaws || kind == EquipmentKind.PoweredArmor)
+                return weapon;
+            bool melee = EquipmentSpecifications.Get(kind).melee && !(kind == EquipmentKind.Chainsaw && state.shotgun);
+            Quaternion adjusted = weapon.rotation * Quaternion.Euler(melee ? new Vector3(0, 0, 90f) : avatar.vrGunRotation);
+            // Turn about the wrist so adjusting the sights keeps the grip in the hand.
+            weapon.position = tracked.position + adjusted * Quaternion.Inverse(weapon.rotation) * (weapon.position - tracked.position);
+            weapon.rotation = adjusted;
             return weapon;
         }
 
@@ -139,13 +148,15 @@ namespace DeadlyJenga.CandyPlayers
                 if(motor&&motor.IsVR&&avatar.tracking&&avatar.tracking.WorldHand(left).tracked)
                 {
                     var primary = avatar.tracking.WorldHand(left);
-                    var kind = Equipment.kind;
-                    aim = TrackedCarry(primary, kind, left);
+                    var carried = Equipment;
+                    var kind = carried.kind;
+                    aim = TrackedCarry(primary, carried, left);
                     if (kind == EquipmentKind.LaserAxe)
                     {
                         // Stormbreaker has its own shaft, support and lightning aim solver.
                         aim = avatar.tracking.TryControllerAim(left, out var pointer)
                             ? pointer : new Pose(primary.position, primary.rotation);
+                        if (carried.shotgun) aim.rotation *= Quaternion.Euler(avatar.vrGunRotation);
                     }
                     else if ((UsesSupportGrip || kind == EquipmentKind.Chainsaw) &&
                         (grip?.IsPressed() == true || avatar.tracking.IsHybrid &&
@@ -303,7 +314,7 @@ namespace DeadlyJenga.CandyPlayers
                 if (latched && support.tracked) supportPosition = support.position;
             }
             return CandyWeaponVisual.StormbreakerCarry(new Pose(gripPose.position, aimRotation), state.leftHanded,
-                state.shotgun, Scale * CandyWeaponVisual.HandheldScale, supportPosition, out holdingSupport);
+                state.shotgun, Scale * CandyWeaponVisual.HandheldScale, supportPosition, out holdingSupport, motor.IsVR && !state.shotgun);
         }
 
         Pose DesktopMeleePose(Pose gripPose, EquipmentState state)
@@ -456,7 +467,7 @@ namespace DeadlyJenga.CandyPlayers
                     if (avatar.tracking)
                     {
                         var tracked = avatar.tracking.WorldHand(supportLeft);
-                        if (tracked.tracked) offhandAim = TrackedCarry(tracked, state.kind, supportLeft);
+                        if (tracked.tracked) offhandAim = TrackedCarry(tracked, state, supportLeft);
                     }
                     offhandAim=PresentedSprintGrip(offhandAim,state,frame,supportLeft);
                     offhandAim=PresentedRecoil(offhandAim,state,supportLeft,true);
