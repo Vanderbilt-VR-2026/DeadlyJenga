@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.Core;
 using UnityEngine;
 
 namespace DeadlyJenga.DevTools.Editor.TrailerStudio
@@ -31,6 +32,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool Built => panel;
         public int KeyCount => keys.Count;
         public Vector3 KeyPosition(int index) => keys[index].body.position;
+        public string KeyLabel(int index) => keys[index].label.text;
+        public Transform Panel => panel ? panel.transform : null;
+        public Vector3 Pointer { get; private set; }   // what presses the keys this frame (world space)
+        public string CountdownShown => countdown && countdown.gameObject.activeSelf ? countdown.text : "";
+        public Vector3 CountdownPosition => countdown ? countdown.transform.position : Vector3.zero;
 
         void Build()
         {
@@ -111,7 +117,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Vector3 wrist = frame.left.position;
                 Vector3 toEyes = (frame.head - wrist).normalized;
                 panel.transform.SetPositionAndRotation(wrist + toEyes * .06f + Vector3.up * .05f, Quaternion.LookRotation(-toEyes, Vector3.up));
-                pointer = frame.right.position;
+                // Press with the right index fingertip, like the game's own menus. The avatar's hand point is the
+                // palm (inside a held controller), several centimetres behind the finger; it is only the fallback.
+                var tips = body.GetComponent<IFingerTips>();
+                pointer = tips != null && tips.TryIndexTip(false, out var tip) ? tip : frame.right.position;
             }
             else if (camera)
             {
@@ -122,6 +131,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 pointer = view.position + view.forward * 10;   // nothing to press with; use the keys or the Studio window
             }
             else return;
+            Pointer = pointer;
 
             float left = Mathf.Max(0, (StudioRun.LastFrame - StudioRun.Frame) / (float)stage.Fps);
             status.text = StudioRun.Recording ? (StudioRun.LeadIn ? "ROLLING" : $"REC  {left:0.0}s left") : "READY";

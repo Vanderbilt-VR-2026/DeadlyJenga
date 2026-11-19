@@ -527,7 +527,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // In the headset the person stays in their body while the tape plays (they may be filming it by hand).
             if (!MustBeRealTime) StudioCast.LeaveBody(stage);
             stage.physicalPlayback = false;
-            BuildPlayers(null);
+            // In the headset the person stays in their body, so their own take is not shown a second time on top of them.
+            BuildPlayers(MustBeRealTime && stage.performer.Length > 0 ? new[] { stage.performer } : null);
             var report = new StudioDrift();
             Begin(from, to, !realTime && !MustBeRealTime, speed, report);
             recordFrom = from;

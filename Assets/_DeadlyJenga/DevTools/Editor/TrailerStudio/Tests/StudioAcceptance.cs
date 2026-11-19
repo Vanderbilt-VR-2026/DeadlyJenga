@@ -54,6 +54,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static void RunPhase4() => Begin("Phase4");
         public static void RunPhase5() => Begin("Phase5");
         public static void RunCut() => Begin("Cut");
+        public static void RunXr() => Begin("Xr");
 
         static void Begin(string suite)
         {
