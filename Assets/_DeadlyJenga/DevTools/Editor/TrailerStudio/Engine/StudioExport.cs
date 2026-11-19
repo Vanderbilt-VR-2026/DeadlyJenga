@@ -77,6 +77,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             bool music = !string.IsNullOrEmpty(set.music) && File.Exists(set.music);
             if (sound) xml.Append($"    <asset id=\"s1\" name=\"Game sound\" start=\"0s\" hasAudio=\"1\" audioSources=\"1\" audioChannels=\"2\">\n      <media-rep kind=\"original-media\" src=\"{X(Uri(audioFile))}\"/>\n    </asset>\n");
             if (music) xml.Append($"    <asset id=\"m1\" name=\"Music\" start=\"0s\" hasAudio=\"1\" audioSources=\"1\" audioChannels=\"2\">\n      <media-rep kind=\"original-media\" src=\"{X(Uri(set.music))}\"/>\n    </asset>\n");
+            var performed = StudioCutSound.PerformedSounds(set); StudioCutSound.AppendAssets(xml, performed);
             xml.Append("  </resources>\n  <library>\n    <event name=\"Trailer Studio\">\n");
             xml.Append($"      <project name=\"{X(set.title)}\">\n        <sequence format=\"r1\" duration=\"{Rational(total, fps)}\" tcStart=\"0s\" tcFormat=\"NDF\">\n          <spine>\n");
             for (int i = 0; i < pieces.Count; i++)
@@ -91,6 +92,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 if (music && i == 0)
                     xml.Append($"              <asset-clip ref=\"m1\" lane=\"-2\" name=\"Music\" offset=\"{Rational(piece.inFrame, fps)}\" start=\"0s\" duration=\"{Rational(total, fps)}\"/>\n");
+                StudioCutSound.AppendClips(xml, performed, piece, fps);
                 xml.Append("            </asset-clip>\n");
                 if (i + 1 < pieces.Count && pieces[i + 1].cut.dissolve > 0)
                 {
@@ -101,6 +103,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             xml.Append("          </spine>\n        </sequence>\n      </project>\n    </event>\n  </library>\n</fcpxml>\n");
             string file = Path.Combine(renderFolder, StudioRender.Safe(set.title) + ".fcpxml");
             File.WriteAllText(file, xml.ToString());
+            StudioCutSound.WriteCutSound(set, renderFolder, audioFile, performed, pieces, fps, problems);
             return file;
         }
 

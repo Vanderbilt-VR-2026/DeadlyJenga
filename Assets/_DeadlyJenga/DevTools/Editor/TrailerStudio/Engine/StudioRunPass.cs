@@ -153,6 +153,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             try
             {
                 EndLiveSound(false);
+                DropPerformedSound();
                 DisposeRecorders();
                 if (liveWorld) DemoDisasters.StopAll(Stage.session);
                 StudioDirector.End();
@@ -441,10 +442,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     UnityEngine.Random.InitState(pass.seed >= 0 ? pass.seed : set.seed);
                 }
                 // Sound. Blocks only make impact sounds while real physics runs (the game plays them straight
-                // from collisions), so the mix is recorded here, together with the world. Only on a whole
-                // fixed-clock recording with nobody performing: the capture takes the sound away from the speakers.
-                LastRecordingHasSound = false;
-                if (pass.liveWorld && clock && performer == null && !branch && startFrame == 0) StartLiveSound(stage);
+                // from collisions), so the mix is recorded here, together with the world. Only on a fixed-clock
+                // recording with nobody performing (whole, or a branch from its branch frame on): the capture
+                // takes the sound away from the speakers. A performer in real time is recorded from their own ears.
+                LastRecordingHasSound = false; SoundNote = "";
+                if (pass.liveWorld && clock && performer == null && (branch || startFrame == 0)) StartLiveSound(stage);
+                if (performer != null && !clock) StartPerformedSound(stage);
                 Begin(startFrame, to, clock, pass.speed, null);
                 recordFrom = pass.from; capturedTo = pass.from - 1;
                 Recording = true;
@@ -453,6 +456,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Debug.Log($"[TrailerStudio] {pass.label}: rolling from frame {startFrame} to {to}, {recorders.Count} recorders, fixed clock {clock}");
                 foreach (int wait in WaitForRun()) yield return wait;
                 EndLiveSound(!stopAsked);    // a stopped recording keeps the sound that was there before
+                StopPerformedSound();        // a stopped performance keeps its take, so it keeps its sound too
 
                 // Keep every take, even a bad one. The newest becomes the active take.
                 Recording = false;
@@ -483,9 +487,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if ((active.track.type == SurvivorTrack.Id || active.track.type == HandTrack.Id) && active.take.frames.Count > 0)
                         active.take.meta = StudioTakes.WorldMeta(world?.id ?? "");
                 if (newWorld != null) StudioTakes.MarkStale(stage.tape, newWorld, stage.Fps, recorders.Select(r => r.track.id).ToList());
-                // The sound belongs to the world take it was recorded with.
-                if (LastRecordingHasSound && newWorld != null) StudioRender.KeepAudioFile(set.id, newWorld.id);
+                // The sound belongs to the world take it was recorded with; a branch's sound starts with the old take's.
+                if (LastRecordingHasSound && newWorld != null && branch)
+                    SoundNote = StudioRender.KeepBranchAudio(set.id, oldWorld.id, newWorld.id, pass.from, stage.Frames, stage.Fps);
+                else if (LastRecordingHasSound && newWorld != null) StudioRender.KeepAudioFile(set.id, newWorld.id);
                 else StudioRender.DropAudioFile(set.id);
+                KeepPerformedSound(recorders.FirstOrDefault(r => r.track.id == pass.performer && r.take.frames.Count > 0)?.take, leadTake, pass.from);
+                StudioRender.PruneAudio(set.id, stage.tape);
                 DisposeRecorders();
                 if (pass.liveWorld) DemoDisasters.StopAll(stage.session);
                 StudioDirector.End();
@@ -497,6 +505,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Status = $"{pass.label}: recorded {kept} tracks, {Mathf.Max(0, capturedTo - pass.from + 1)} frames" + (loops > 1 ? $" (loop {loops})" : "") +
                     $". Tape is {StudioTape.Size(new System.IO.FileInfo(stage.tape.path).Length)}." +
                     (branchRefused ? " Note: the old world take did not reach the branch point, so the whole world was re-recorded from a fresh map." : "");
+                if (SoundNote.Length > 0) Status += " " + SoundNote;
                 Debug.Log("[TrailerStudio] " + Status);
                 // Loop record: go again with a new take until someone presses stop.
                 if (!pass.loop || stopAsked) break;

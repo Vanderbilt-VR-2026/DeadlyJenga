@@ -95,7 +95,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     case 2:
                         if (routine == null)
                         {
-                            if (StudioRun.State == StudioState.Held) routine = Suite == "Phase1" ? StageTests() : SuiteTests(Suite);
+                            if (StudioRun.State == StudioState.Held) routine = Suite == "Phase1" ? StageTests() : Suite == "Sound" ? SoundTests() : SuiteTests(Suite);
                             else if (EditorApplication.timeSinceStartup > Deadline)
                                 throw new TimeoutException($"The stage never finished opening. State {StudioRun.State}, playing {EditorApplication.isPlaying}, status: {StudioRun.Status}");
                             return;

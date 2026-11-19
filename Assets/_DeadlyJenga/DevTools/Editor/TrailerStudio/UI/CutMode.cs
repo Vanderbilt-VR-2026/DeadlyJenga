@@ -115,12 +115,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (!File.Exists(audio)) panel.Add(StudioUi.Hint("No game sound recorded yet. Record the whole set (that records its sound too), or use \"Record the tape's sound\" in the Shoot tab. The cut will export without it."));
             else
             {
-                // The sound was recorded with one take of the world. Say so when a different one is active now.
-                string soundTake = StudioRender.AudioTakeId(set.id);
-                string activeTake = context.Stage?.tape.FindType(WorldTrack.Id)?.ActiveTake?.id ?? "";
-                if (soundTake.Length > 0 && activeTake.Length > 0 && soundTake != activeTake)
-                    panel.Add(StudioUi.Hint("Careful: the game sound was recorded with a different take of the world than the one that is active now, so impacts may not match the picture. Record the whole set again, or switch the world back."));
+                // Each world take keeps its own sound. Say so when the active one has none (an older single file is used instead).
+                string activeTake = StudioRender.ActiveWorldTakeId(set.id);
+                if (activeTake.Length > 0 && StudioRender.AudioTakeId(set.id) != activeTake)
+                    panel.Add(StudioUi.Hint("Careful: there is no sound for the active world take. The export uses sound recorded with another take, so impacts may not match the picture. Record the whole set again (or branch it) to give this take its own sound."));
             }
+            int performedSounds = StudioCutSound.PerformedSounds(set).Count;
+            if (performedSounds > 0) panel.Add(StudioUi.Hint($"{performedSounds} performed take(s) add what their performer heard, each on its own sound lane. The export also writes {StudioCutSound.MixName}, everything mixed into one file."));
             string captured = folder;
             var export = StudioUi.Big("Export for Resolve or Premiere", () =>
             {
