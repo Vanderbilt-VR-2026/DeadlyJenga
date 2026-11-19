@@ -4,7 +4,7 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public sealed partial class CastleSurvivor
+    public sealed partial class CastleSurvivor : IVrClimbTuning
     {
         [Header("Short scramble / cling")]
         public bool climbingEnabled=true;
@@ -41,6 +41,37 @@ namespace DeadlyJenga.CastlePrototype
         [Range(0f, .15f)] public float vrReleaseSmoothing = .04f;
         [Min(0f)] public float vrReleaseScale = 1f;
         public bool vrGripVaultAssist = true;
+
+        const string ClimbPreferencePrefix = "SurvivorVR.Climb.";
+        float IVrClimbTuning.GripReach { get => vrGripReach; set => vrGripReach = SaveClimbOption("Reach", value, .02f, .30f); }
+        float IVrClimbTuning.GripBuffer { get => vrGripBuffer; set => vrGripBuffer = SaveClimbOption("Buffer", value, 0f, .5f); }
+        float IVrClimbTuning.ReleaseSmoothing { get => vrReleaseSmoothing; set => vrReleaseSmoothing = SaveClimbOption("Smoothing", value, 0f, .15f); }
+        float IVrClimbTuning.ReleaseScale { get => vrReleaseScale; set => vrReleaseScale = SaveClimbOption("ReleaseScale", value, 0f, 3f); }
+        bool IVrClimbTuning.GripVaultAssist
+        {
+            get => vrGripVaultAssist;
+            set
+            {
+                vrGripVaultAssist = value;
+                PlayerPrefs.SetInt(ClimbPreferencePrefix + "VaultAssist", value ? 1 : 0);
+            }
+        }
+
+        static float SaveClimbOption(string name, float value, float min, float max)
+        {
+            value = Mathf.Clamp(value, min, max);
+            PlayerPrefs.SetFloat(ClimbPreferencePrefix + name, value);
+            return value;
+        }
+
+        void RestoreClimbTuning()
+        {
+            vrGripReach = PlayerPrefs.GetFloat(ClimbPreferencePrefix + "Reach", vrGripReach);
+            vrGripBuffer = PlayerPrefs.GetFloat(ClimbPreferencePrefix + "Buffer", vrGripBuffer);
+            vrReleaseSmoothing = PlayerPrefs.GetFloat(ClimbPreferencePrefix + "Smoothing", vrReleaseSmoothing);
+            vrReleaseScale = PlayerPrefs.GetFloat(ClimbPreferencePrefix + "ReleaseScale", vrReleaseScale);
+            vrGripVaultAssist = PlayerPrefs.GetInt(ClimbPreferencePrefix + "VaultAssist", vrGripVaultAssist ? 1 : 0) != 0;
+        }
 
         internal bool WeaponAvailableDuringTraversal(EquipmentState state, bool handLeft) =>
             !Vaulting && (!Climbing || ManualVRClimb && !heldFaces[handLeft ? 0 : 1] &&

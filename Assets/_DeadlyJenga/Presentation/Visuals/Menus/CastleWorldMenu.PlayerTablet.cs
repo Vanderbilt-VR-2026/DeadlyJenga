@@ -100,7 +100,8 @@ namespace DeadlyJenga.CastlePrototype
         TabletPage tabletPage;
         bool tabletDeveloperDetails;
         float tabletRefreshAt;
-        RectTransform tabletDeveloperGrid, tabletDeveloperWeapons;
+        RectTransform tabletDeveloperGrid, tabletDeveloperWeapons, tabletClimbTuning;
+        IVrClimbTuning ClimbTuning => DeveloperTabAvailable && session.IsVR ? session.Player as IVrClimbTuning : null;
         bool tabletWeaponsOpen;
         int tabletWeaponCategory, tabletWeaponOffset;
         EquipmentKind tabletWeaponSelected = EquipmentKind.Blaster;
@@ -184,6 +185,7 @@ namespace DeadlyJenga.CastlePrototype
             if (modeWheelUI) modeWheelUI.SetActive(false);
             if(tabletDeveloperGrid)tabletDeveloperGrid.gameObject.SetActive(true);
             if(tabletDeveloperWeapons)tabletDeveloperWeapons.gameObject.SetActive(false);
+            if(tabletClimbTuning)tabletClimbTuning.gameObject.SetActive(false);
             tabletRefreshAt=0;
             legacyDeveloper.gameObject.SetActive(false);
             if(tabletNav)tabletNav.gameObject.SetActive(true);
@@ -746,7 +748,8 @@ namespace DeadlyJenga.CastlePrototype
                 ()=>session.Player?.ThirdPerson?.CanInspect==true,opensDetails:false);
             DeveloperTile(tabletDeveloperGrid,"God mode",6,CandyHudIcon.Survivor,ToggleDeveloperGodMode,
                 ()=>DeveloperGodMode?.CanSetGodMode==true,opensDetails:false,title:()=>"God mode: "+(DeveloperGodMode?.GodModeEnabled==true?"ON":"OFF"));
-            DeveloperTile(tabletDeveloperGrid,"\u00d7 Coming soon",7,CandyHudIcon.Key,()=>{},()=>false,opensDetails:false);
+            DeveloperTile(tabletDeveloperGrid,"Climb Tuning",7,CandyHudIcon.Settings,OpenClimbTuning,
+                ()=>ClimbTuning!=null,opensDetails:false);
             DeveloperTile(tabletDeveloperGrid,"\u00d7 Coming soon",8,CandyHudIcon.Key,()=>{},()=>false,opensDetails:false);
             DeveloperTile(tabletDeveloperGrid,"Rebuild",9,CandyHudIcon.Home,()=>session.ResetMap(),()=>session.CanEditWorld,opensDetails:false);
             DeveloperTile(tabletDeveloperGrid,"Spectate",10,CandyHudIcon.Look,()=>{ResetPages();spectatePage=true;},()=>session is not ILobbyControls);
@@ -754,6 +757,47 @@ namespace DeadlyJenga.CastlePrototype
 
             TabletText(tabletDeveloperGrid,"God flight: look + move / hold sprint for fast / release to brake",new(0,-278),new(990,32),19);
             BuildTabletWeaponWheel(page);
+            BuildClimbTuning(page);
+        }
+
+        void BuildClimbTuning(RectTransform page)
+        {
+            tabletClimbTuning = new GameObject("Climb tuning", typeof(RectTransform)).GetComponent<RectTransform>();
+            tabletClimbTuning.SetParent(page, false);
+            tabletClimbTuning.anchoredPosition = Vector2.zero;
+            TabletText(tabletClimbTuning, "CLIMB TUNING", new(0, 215), new(750, 56), 38);
+
+            void Row(string name, string unit, float y, float step,
+                Func<IVrClimbTuning, float> read, Action<IVrClimbTuning, float> write)
+            {
+                void Nudge(float delta)
+                {
+                    if (ClimbTuning is { } tuning) write(tuning, read(tuning) + delta);
+                }
+
+                TabletControl(tabletActions, tabletClimbTuning, () => "−", new(-357, y), new(125, 54), () => Nudge(-step));
+                TabletControl(tabletActions, tabletClimbTuning,
+                    () => ClimbTuning is { } tuning ? $"{name}  {read(tuning):0.00}{unit}  +" : name,
+                    new(80, y), new(725, 54), () => Nudge(step));
+            }
+
+            Row("Grip reach", " m × player scale", 143, .01f, t => t.GripReach, (t, v) => t.GripReach = v);
+            Row("Early grab", " s", 77, .02f, t => t.GripBuffer, (t, v) => t.GripBuffer = v);
+            Row("Release smoothing", " s", 11, .01f, t => t.ReleaseSmoothing, (t, v) => t.ReleaseSmoothing = v);
+            Row("Release multiplier", "×", -55, .1f, t => t.ReleaseScale, (t, v) => t.ReleaseScale = v);
+            TabletControl(tabletActions, tabletClimbTuning,
+                () => ClimbTuning?.GripVaultAssist == true ? "Leg-level vault assist  ON" : "Leg-level vault assist  OFF",
+                new(0, -124), new(855, 54),
+                () => { if (ClimbTuning is { } tuning) tuning.GripVaultAssist = !tuning.GripVaultAssist; });
+            tabletClimbTuning.gameObject.SetActive(false);
+        }
+
+        void OpenClimbTuning()
+        {
+            if (ClimbTuning == null) return;
+            tabletDeveloperGrid.gameObject.SetActive(false);
+            tabletClimbTuning.gameObject.SetActive(true);
+            UpdateDevBackButtonState();
         }
 
         static string CleanWeaponSlotName(EquipmentKind kind) => kind switch
@@ -1084,7 +1128,7 @@ namespace DeadlyJenga.CastlePrototype
         bool IsDevBackButtonActive()
         {
             if (tabletPage != TabletPage.Developer) return false;
-            return tabletWeaponsOpen || tabletDeveloperDetails || disasterPage || modePage || mapPage ||
+            return tabletWeaponsOpen || (tabletClimbTuning && tabletClimbTuning.gameObject.activeSelf) || tabletDeveloperDetails || disasterPage || modePage || mapPage ||
                    spectatePage || batchPage || menuCategory >= 0 || menuSection >= 0 || disasterSelection >= 0 || comfortSliderOpen;
         }
 
@@ -1101,6 +1145,11 @@ namespace DeadlyJenga.CastlePrototype
         void OnDeveloperBackClicked()
         {
             if (!IsDevBackButtonActive()) return;
+            if (tabletClimbTuning && tabletClimbTuning.gameObject.activeSelf)
+            {
+                OpenPlayerTabletPage(TabletPage.Developer);
+                return;
+            }
             if(developerVolumeApply!=null){developerVolumeApply=null;return;}
             if(randomPowerupPage&&developerPowerupChoice>=0){developerPowerupChoice=-1;return;}
             if(mapPage&&developerMapSearchOpen){developerMapSearchOpen=false;return;}
