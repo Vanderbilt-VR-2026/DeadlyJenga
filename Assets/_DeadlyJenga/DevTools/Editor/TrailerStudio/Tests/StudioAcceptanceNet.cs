@@ -145,9 +145,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             };
         }
 
+        // Hand states are checked against the map's reachable area, so they sit 20 m above the map's centre.
+        static Vector3 HandOrigin;
+
         static CandyHandPose HandTarget(int k) => new CandyHandPose
         {
-            tracked = true, skeletonTracked = true, position = Origin + new Vector3(2 + .3f * k, 4 - .2f * k, .1f * k),
+            tracked = true, skeletonTracked = true, position = HandOrigin + new Vector3(2 + .3f * k, 4 - .2f * k, .1f * k),
             rotation = Quaternion.Euler(0, 20 * k, 5 * k), skeleton = CandyHandSkeleton.Rest(false)
         };
 
@@ -235,6 +238,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             yield return 0;
 
             // ---- 3. A fixed sequence of hand states (a guest's copy of the flying hand) ----
+            HandOrigin = (Services.World != null ? Services.World.Center : Vector3.zero) + Vector3.up * 20;
             var handRoot = new GameObject("Net check: hand copy");
             var hand = localHand ? NetworkActors.CreateView(NetworkKinds.Hand, handRoot, new NetworkContext { host = false, localSurvivor = localSurvivor, localHand = localHand, actorId = "net-check-hand" }) as HandNetworkView : null;
             if (!hand) Result("3. A hand copy eases its bones toward each new state", false, localHand ? "NetworkActors.CreateView(hand) did not make a HandNetworkView." : "This Game.unity session has no local hand to copy from.");
@@ -258,7 +262,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 float jump = Vector3.Distance(HandBones(2)[15].position, HandBones(3)[15].position);
                 float predicted = jump * Mathf.Pow(Mathf.Exp(-20 * Dt), 12);
                 Result("3. A hand copy eases its bones toward each new state", hand.Hand && handGap < jump * .2f && handGap > .00001f,
-                    $"4 states x 12 frames. Bone 15 is {handGap * 1000:F3} mm from its last state; the easing formula predicts {predicted * 1000:F3} mm. Numbers to compare between commits: {handNumbers}");
+                    $"4 states x 12 frames, 20 m above the map centre {V(HandOrigin - Vector3.up * 20)}. Bone 15 is {handGap * 1000:F3} mm from its last state; the easing formula predicts {predicted * 1000:F3} mm. Numbers to compare between commits: {handNumbers}");
             }
             Object.Destroy(handRoot);
             yield return 0;
