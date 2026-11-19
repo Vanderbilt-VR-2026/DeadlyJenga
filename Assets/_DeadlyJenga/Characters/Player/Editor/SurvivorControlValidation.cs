@@ -64,7 +64,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 var pinch=open;pinch.skeleton.SetJoint(3,pinch.skeleton.Joint(7)+Vector3.right*.015f);
                 motor.ReadVRJump(pinch,false,out var press,out var held);Check(!press&&!held,"Held gesture at entry cannot auto-jump");
                 motor.ReadVRJump(open,false,out _,out _);motor.ReadVRJump(pinch,false,out press,out held);
-                Check(press&&held,"Fresh right pinch jumps and holds for climbing");
+                Check(press&&held,"Fresh right pinch registers a jump");
                 pinch.skeleton.SetJoint(3,pinch.skeleton.Joint(7)+Vector3.right*.027f);
                 motor.ReadVRJump(pinch,false,out press,out held);Check(!press&&held,"Pinch hysteresis prevents chatter and repeated jumps");
                 motor.InputSuspended=true;motor.ReadVRJump(pinch,false,out press,out held);motor.InputSuspended=false;
@@ -77,13 +77,17 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 motor.ReadVRJump(fist,false,out press,out held);Check(press&&held,"Fist is a selectable alternative to pinch");
                 motor.SetVRPlayStyle(SurvivorVRPlayStyle.Seated,false);motor.ReadVRJump(default,false,out _,out _);motor.ReadVRJump(default,true,out press,out held);
                 Check(press&&held,"Seated button jumps without requiring hand tracking");
-                motor.ReadVRJump(default,true,out press,out held);Check(!press&&held,"Held jump button climbs without repeated jump presses");
+                motor.ReadVRJump(default,true,out press,out held);Check(!press&&held,"Holding jump does not repeat the press");
                 motor.CalibrateSeatedHeight();Check(Mathf.Abs(motor.transform.InverseTransformPoint(eye.position).y-motor.eyeHeight*motor.playerScale)<.002f,"Seated calibration restores avatar eye height");
                 motor.SetVRPlayStyle(SurvivorVRPlayStyle.Standing,false);motor.SetVRPlayStyle(SurvivorVRPlayStyle.Seated,false);
                 eye.localPosition=Vector3.zero;eye.localRotation=Quaternion.identity;motor.Teleport(new Vector3(1000,1001.05f,1000.45f),Quaternion.identity);
                 GameObject Box(Vector3 position,Vector3 size)
                 {var box=GameObject.CreatePrimitive(PrimitiveType.Cube);box.transform.SetParent(fixture.transform);box.transform.position=position;box.transform.localScale=size;return box;}
                 var ledge=Box(new Vector3(1000,1001,1002),new Vector3(6,2,2));Physics.SyncTransforms();
+                motor.Simulate(Vector2.zero,true,.02f,true);
+                Check(!motor.Vaulting && !motor.Climbing,"VR jump input cannot vault at a reachable ledge");
+                motor.Teleport(new Vector3(1000,1001.05f,1000.45f),Quaternion.identity);
+                motor.enabled=true;
                 Check(motor.TryStartVault(),"VR vault starts only at a real clear ledge");
                 position=motor.transform.position;rotation=motor.transform.rotation;motor.ApplyVRTurn(1,1);
                 Check(Quaternion.Angle(rotation,motor.transform.rotation)<.01f,"Artificial turning cannot displace an active vault");
@@ -95,12 +99,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 var wall=Box(new Vector3(1000,1005,1002),new Vector3(6,10,2));wall.layer=Layers.Surface;wall.AddComponent<SurvivorControlTestSurface>();Physics.SyncTransforms();
                 motor.Teleport(new Vector3(1000,1002,1000.82f),Quaternion.identity);
                 for(int i=0;i<12;i++)motor.Simulate(Vector2.zero,false,.02f,true);
-                Check(motor.Climbing,"Holding jump catches a real climbable face");
-                position=motor.transform.position;motor.Simulate(Vector2.up,false,.02f,true);
-                Check(motor.transform.position.y-position.y<.012f,"VR climb starts with bounded acceleration");
-                for(int i=0;i<20;i++)motor.Simulate(Vector2.up,false,.02f,true);
-                Check(motor.Climbing&&motor.transform.position.y>position.y+.4f,"VR climb reaches useful upward motion");
-                motor.Simulate(Vector2.zero,false,.02f,false);Check(!motor.Climbing,"Release exits climb without locking the camera");
+                Check(!motor.Climbing,"Holding jump against a climbable face cannot latch in VR");
                 motor.externallyDriven=true;motor.RefreshMode();motor.Teleport(new Vector3(1010,1010,1010),Quaternion.identity);
                 position=motor.transform.position;motor.Simulate(Vector2.up,false,.1f);
                 Check(Mathf.Abs((motor.transform.position-position).z-motor.walkSpeed*.1f)<.003f,"Externally driven survivor keeps its original movement speed");

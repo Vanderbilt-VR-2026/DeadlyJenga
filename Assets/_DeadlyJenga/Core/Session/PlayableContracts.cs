@@ -30,6 +30,12 @@ namespace DeadlyJenga.Core
         void End();
     }
 
+    public interface IHandRotationTuning
+    {
+        Vector3 GetOffset(bool left);
+        void SetOffset(bool left, Vector3 degrees);
+    }
+
     // Survivor settings and rules that menus, the lobby and multiplayer change.
     public interface ISurvivorSettings
     {

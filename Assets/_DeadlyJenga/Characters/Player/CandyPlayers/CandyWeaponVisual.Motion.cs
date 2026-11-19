@@ -126,7 +126,7 @@ namespace DeadlyJenga.CandyPlayers
                 if (MeleeMount(kind, left, out var palm, out var mount))
                 {
                     contact.rotation *= Quaternion.Inverse(mount);
-                    contact.position -= contact.rotation * palm * frame.scale;
+                    contact.position -= contact.rotation * palm * ModelScale(kind, frame.scale);
                     contact.skeleton = ShaftGrip(kind, left);
                 }
                 else contact.skeleton = CandyHandSkeleton.Rest(left, .96f);

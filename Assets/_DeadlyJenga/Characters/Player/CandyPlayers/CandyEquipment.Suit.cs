@@ -29,16 +29,20 @@ namespace DeadlyJenga.CandyPlayers
                 return left;
             }
         }
+        CandyAvatarWardrobe suitEmitters;
         public Pose SuitMuzzle
         {
             get
             {
                 if(motor.IsVR&&avatar.tracking)
                 {
-                    var hand=avatar.tracking.WorldHand(SuitShootingLeft);
-                    if(!hand.skeletonTracked&&avatar.tracking.TryControllerAim(SuitShootingLeft,out var aim))return aim;
-                    var outward=hand.rotation*Vector3.down;
-                    return new Pose(hand.position+outward*.09f*Scale,Quaternion.LookRotation(outward,hand.rotation*Vector3.forward));
+                    if (!suitEmitters) suitEmitters = GetComponentInChildren<CandyAvatarWardrobe>();
+                    var emitter = suitEmitters ? (SuitShootingLeft ? suitEmitters.LeftPalmEmitter : suitEmitters.RightPalmEmitter) : null;
+                    if (emitter) return new Pose(emitter.position + emitter.forward * (.009f * Scale), emitter.rotation);
+                    var hand = avatar.tracking.WorldHand(SuitShootingLeft);
+                    var wrist = avatar.WristRotation(hand, SuitShootingLeft);
+                    return new Pose(hand.position + wrist * new Vector3(0, -.04f, .025f) * Scale,
+                        wrist * Quaternion.Euler(90, 0, 0));
                 }
                 var eye=avatar.viewCamera.transform;
                 var offset=new Vector3(left?.25f:-.25f,-.18f,.40f);

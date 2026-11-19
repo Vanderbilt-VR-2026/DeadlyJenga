@@ -185,7 +185,7 @@ namespace DeadlyJenga.CandyPlayers
         Pose PresentedSprintGrip(Pose grip,EquipmentState state,CandyAvatarFrame frame,bool handLeft)
         {
             bool vr=motor.IsVR;
-            bool input=Local&&(vr?trigger?.IsPressed()==true||aimBlend>.05f:
+            bool input=Local&&(vr?trigger?.IsPressed()==true:
                 (Mouse.current?.leftButton.isPressed==true||DesktopGamepad.FireHeld)||(Mouse.current?.rightButton.isPressed==true||DesktopGamepad.AimHeld));
             bool shooting=state.triggerHeld||Time.time-Mathf.Max(primaryKickAt,pairedKickAt)<.24f||input;
             bool sprint=frame.sprinting&&!shooting&&state.reloadRemaining<=0;
