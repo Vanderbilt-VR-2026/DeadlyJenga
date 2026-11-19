@@ -35,7 +35,7 @@ namespace DeadlyJenga.CastlePrototype
         Vector3 vrClimbVelocity;
         [Min(.1f)] public float vrClimbAcceleration=10f;
         Vector3 gripMoveVelocity;
-        [Min(.1f)] public float vrGripMoveSpeedLimit = 16f;
+        [Min(.1f)] public float vrGripMoveSpeedLimit = 24f;
 
         int drivingGrip = -1;
         readonly float[] gripPressUntil = new float[2];
@@ -108,7 +108,7 @@ namespace DeadlyJenga.CastlePrototype
                     heldFaces[side] = null;
                     continue;
                 }
-                if (pressed) gripPressUntil[side] = Time.time + .12f;
+                if (pressed) gripPressUntil[side] = Time.time + .18f;
                 if (!heldFaces[side] && Time.time < gripPressUntil[side] && climbCooldown <= 0 && climbStun <= 0 && (Climbing || GripRemaining >= .12f))
                 {
                     heldFaces[side] = FindGrip(hand.position);
@@ -129,10 +129,7 @@ namespace DeadlyJenga.CastlePrototype
                     Climbables.TryGet(face, out var block) && AllowsGrip(block))
                 {
                     var hand = candyTracking.WorldHand(side == 0);
-                    if (attempt > 0)
-                    {
-                        localGrip[side] = face.transform.InverseTransformPoint(hand.position);
-                    }
+                    if (attempt > 0) localGrip[side] = face.transform.InverseTransformPoint(hand.position);
                     Vector3 anchor = face.transform.TransformPoint(localGrip[side]);
                     bool newSupport = climbCollider != face;
                     climbCollider = face;
@@ -141,7 +138,7 @@ namespace DeadlyJenga.CastlePrototype
                     climbPointVelocity = climbBody ? climbBody.GetPointVelocity(anchor) : Vector3.zero;
                     correction = anchor - hand.position;
                     if (!UnsafeClimb(climbPointVelocity, dt, newSupport) && correction.magnitude <= .55f * playerScale &&
-                        (attempt == 0 || Vector3.Distance(face.ClosestPoint(hand.position), hand.position) <= .15f * playerScale))
+                        (attempt == 0 || Vector3.Distance(face.ClosestPoint(hand.position), hand.position) <= .20f * playerScale))
                     {
                         climbLastVelocity = climbPointVelocity;
                         climbLastRotation = block.Anchor.rotation;
@@ -162,7 +159,7 @@ namespace DeadlyJenga.CastlePrototype
                         // Capsule displacement already includes the wall's motion and collision response.
                         verticalSpeed = lastMoveVelocity.y;
                         slopeVelocity = Vector3.ProjectOnPlane(lastMoveVelocity, Vector3.up);
-                        if (verticalSpeed > 0f) climbCooldown = 0f;
+                        climbCooldown = 0f;
                     }
                 }
                 RecoverGrip(dt);
