@@ -34,6 +34,11 @@ namespace DeadlyJenga.CastlePrototype
         int climbMovingHand=-1;
         Vector3 vrClimbVelocity;
         [Min(.1f)] public float vrClimbAcceleration=10f;
+        readonly Vector3[] previousGripPosition = new Vector3[2];
+        readonly Vector3[] pullVelocity = new Vector3[2];
+        [Min(0)] public float vrReleaseMultiplier = 6f;
+        [Min(0)] public float vrReleaseSpeedLimit = 14f;
+
         bool ManualVRClimb => IsVR && !externallyDriven;
         readonly Collider[] gripContacts = new Collider[32];
         readonly Collider[] heldFaces = new Collider[2];
@@ -81,6 +86,8 @@ namespace DeadlyJenga.CastlePrototype
                 !Vaulting && !InputSuspended && vrInputFocused && !trackingRebase && candyTracking;
             var equipment = GetComponent<CandyEquipment>()?.Equipment;
             int grips = 0;
+            int releases = 0;
+            Vector3 releaseVelocity = Vector3.zero;
             Vector3 correction = Vector3.zero;
             for (int side = 0; side < 2; side++)
             {
@@ -89,6 +96,28 @@ namespace DeadlyJenga.CastlePrototype
                 bool pressed = held && !gripWasHeld[side];
                 gripWasHeld[side] = held;
                 var hand = candyTracking ? candyTracking.WorldHand(left) : default;
+                // Sample the controller in tracking space. Pulling a fixed wall moves the
+                // player and can leave the hand nearly stationary in world space.
+                if (heldFaces[side] && allowed && hand.tracked && CanUseClimbHand(equipment, left))
+                {
+                    var controller = HybridXRInput.Controller(left);
+                    if (controller != null)
+                    {
+                        Vector3 current = controller.devicePosition.ReadValue();
+                        Vector3 delta = previousGripPosition[side] - current;
+                        previousGripPosition[side] = current;
+                        bool continuous = dt < .1f && delta.magnitude <= .1f + 8f * dt;
+                        pullVelocity[side] = continuous
+                            ? Vector3.Lerp(pullVelocity[side], delta / dt, 1f - Mathf.Exp(-dt / .05f))
+                            : Vector3.zero;
+                        if (!held && heldFaces[side].enabled && heldFaces[side].gameObject.activeInHierarchy)
+                        {
+                            var origin = candyTracking.trackingOrigin;
+                            releaseVelocity += (origin ? origin.rotation : transform.rotation) * pullVelocity[side];
+                            releases++;
+                        }
+                    }
+                }
                 if (!held || !allowed || !hand.tracked || !CanUseClimbHand(equipment, left))
                 {
                     heldFaces[side] = null;
@@ -98,7 +127,11 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     heldFaces[side] = FindGrip(hand.position);
                     if (heldFaces[side])
+                    {
+                        previousGripPosition[side] = HybridXRInput.Controller(left).devicePosition.ReadValue();
+                        pullVelocity[side] = Vector3.zero;
                         localGrip[side] = heldFaces[side].transform.InverseTransformPoint(hand.position);
+                    }
                 }
                 var face = heldFaces[side];
                 if (!face || !face.enabled || !face.gameObject.activeInHierarchy ||
@@ -125,7 +158,17 @@ namespace DeadlyJenga.CastlePrototype
             }
             if (grips == 0)
             {
-                if (Climbing) ReleaseClimb("Released grip", false);
+                if (Climbing)
+                {
+                    ReleaseClimb("Released grip", false);
+                    if (releases > 0 && releaseVelocity.y / releases >= .65f)
+                    {
+                        Vector3 launch = Vector3.ClampMagnitude(releaseVelocity * (vrReleaseMultiplier / releases), vrReleaseSpeedLimit);
+                        verticalSpeed += launch.y;
+                        slopeVelocity += Vector3.ProjectOnPlane(launch, Vector3.up);
+                        climbCooldown = 0;
+                    }
+                }
                 RecoverGrip(dt);
                 return false;
             }
