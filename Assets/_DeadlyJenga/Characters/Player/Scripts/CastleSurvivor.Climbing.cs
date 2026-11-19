@@ -35,7 +35,6 @@ namespace DeadlyJenga.CastlePrototype
         Vector3 vrClimbVelocity;
         [Min(.1f)] public float vrClimbAcceleration=10f;
         Vector3 gripMoveVelocity;
-        [Min(.1f)] public float vrGripMoveSpeedLimit = 24f;
 
         int drivingGrip = -1;
         readonly float[] gripPressUntil = new float[2];
@@ -175,7 +174,7 @@ namespace DeadlyJenga.CastlePrototype
             climbElapsed += dt;
             ClearSprint();
             Vector3 beforeMove = transform.position;
-            Capsule.Move(Vector3.ClampMagnitude(correction, vrGripMoveSpeedLimit * playerScale * dt));
+            Capsule.Move(correction);
             if (!Climbing) return false;
             gripMoveVelocity = (transform.position - beforeMove) / dt;
             if (!PowerupUnlimitedStamina)
