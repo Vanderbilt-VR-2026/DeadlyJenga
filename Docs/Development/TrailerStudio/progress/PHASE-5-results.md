@@ -1,6 +1,6 @@
 # Phase 5 results: cameras and finishing
 
-Run through the coordinator: job `5bdecbe7` on commit `47fa54e6`, batch
+Run through the coordinator: job `7696823d` on commit `3608bd41`, batch
 editor, map `sparse-viaduct-study`. Method
 `StudioAcceptance.RunPhase5`. Full report: [evidence/phase5/report.md](evidence/phase5/report.md).
 
@@ -82,3 +82,22 @@ Limits, by design for now:
 - The window: [08-shoot-cameras.png](evidence/window/08-shoot-cameras.png),
   [10-cut.png](evidence/window/10-cut.png),
   [06-polish-layer.png](evidence/window/06-polish-layer.png).
+
+## After the fix agents
+- **Sound** is kept per world take (`audio/takes/<take id>/`). A branch's
+  sound is its parent's up to the branch frame, then the new recording,
+  joined sample by sample (Sound suite, job `cd11c6ed`: all 195200 samples
+  before the branch identical). Takes performed in real time record what the
+  performer heard through a tap on their listener (`audio/performed/`), one
+  mix with no stems; game music is muted for the performer so it is not
+  doubled. The export puts each on its own lane and writes a mixed
+  `cut-sound.wav`. About 8 MB of sound per 5 s take, so a 20-try variation
+  run stored 189 MB. Slow motion makes performed sound drift.
+- **Export** follows the FCPXML and CMX 3600 rules: audio assets carry their
+  length, a dissolve is a cut line plus a dissolve line under one event
+  number, dissolves are shortened when the renders lack handles. Checked by
+  two offline checkers (Cut suite and Phase 5 test 4), not by an editing
+  app: none is installed on this PC.
+- **Handheld camera in emulated VR** (XR suite, job `c897c8cf`): 11 keys
+  match the controller pose exactly; the stick zooms. Fixed: one pose per
+  tape frame.

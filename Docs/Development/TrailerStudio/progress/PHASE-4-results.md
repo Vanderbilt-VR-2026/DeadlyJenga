@@ -1,6 +1,6 @@
 # Phase 4 results: performance polish
 
-Run through the coordinator: job `52d89f82` on commit `47fa54e6` (first passed as job `6ee21374` on `3c323f74`; the numbers below are from that run, the linked report is the latest), batch
+Run through the coordinator: job `82153512` on commit `3608bd41` (first passed as job `6ee21374` on `3c323f74`; the numbers below are from that run, the linked report is the latest), batch
 editor, map `sparse-viaduct-study`. Method
 `StudioAcceptance.RunPhase4`. Full report: [evidence/phase4/report.md](evidence/phase4/report.md).
 

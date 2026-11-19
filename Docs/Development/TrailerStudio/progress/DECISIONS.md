@@ -335,3 +335,34 @@ any of them at review.
     actor takes are stale. A variation remembers the cue times and
     strengths it used. Crowd copies hold their first and last pose instead
     of appearing late or leaving early.
+
+## After the fix agents
+66. **Sound is kept per world take** (`audio/takes/<take id>/`), so each
+    variation and branch keeps its own and picking a take picks its sound.
+    The old single `audio/tape.wav` is still used when the active take has
+    none. Replaces the one-file part of decision 60.
+67. **A branch's sound is its parent's up to the branch frame, then the new
+    recording**, joined sample by sample for the mix and every stem.
+68. **A performed take keeps what the performer heard**, through a small
+    audio tap on their listener (`StudioEarTap`, DevTools runtime), saved as
+    `audio/performed/<actor take id>.wav`. One mix, no stems. Game music is
+    muted for the performer during the take so the cut's music comes only
+    from the world sound.
+69. **The cut's sound is the sum**: each heard performed take on its own
+    lane in the FCPXML, plus a mixed `cut-sound.wav`.
+70. **Track warnings are separate.** `track.badge` holds one line per kind
+    (Stale, Retimed, Could not play); the tape format is unchanged.
+71. **Variation recipes store cues by id** with the time, the final strength
+    and the try's seed. Applying one is repeatable and also sets the Set's
+    seed for a try that started from a fresh map.
+72. **Export follows the format rules** (asset durations, CMX 3600 two-line
+    dissolves centred on the edit point, shortened when renders lack
+    handles), checked by offline checkers, not by an editing app.
+73. **A standing survivor rides a moving block.** The one-line Characters
+    change that decision 57 left for Evan was made by a fix agent at his
+    request ("fix all these things"), on its own commit `2496f88d`. Decision
+    57 no longer holds while that commit is kept.
+74. **Playback in the headset leaves the performer's own take out**, like
+    holding still does, so it is not drawn on top of the live body.
+75. **Wrist-panel keys are pressed with the right index fingertip**
+    (`IFingerTips`), not the palm.

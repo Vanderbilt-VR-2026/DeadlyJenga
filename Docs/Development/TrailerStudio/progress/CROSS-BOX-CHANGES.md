@@ -11,6 +11,8 @@ GameSession goes here, one row per commit, for Evan to keep or drop.
 | `05c5a153` | Characters: `Characters/Network/HandNetworkView.cs` | `SnapToState` (from `2fe6abf1`) now also sets the hand bodies' physics pose, not only their transforms. | `Render` read the stale physics pose after a snap. Review finding C11. | Nothing breaks; a played-back hand may show the previous pose for one physics step after a jump. |
 | `c419d1fd` | Characters: `Characters/Player/CandyPlayers/CandyPlayerRig.cs` | `CandyPlayerRig.StepGait(gait, frame, dt)`: one step of the walk cycle as a pure function. It repeats the sum in `ApplyFrame` (without the moving-floor part). `ApplyFrame` is not changed. | The Studio needs the walk state for every frame of a take. Posing a real copy for every frame was slow and raised every emote event in the take. Review round 2, finding A1. | The Studio stops compiling. Note: two copies of the walk sum now exist; a later tidy-up could make `ApplyFrame` call `StepGait`. |
 | `c737b172` | Characters: `Characters/Player/CandyPlayers/CandyPlayerRig.cs` | `StepGait` uses `frame.gaitPhase` when `frame.hasGaitPhase` is set, the same as `ApplyFrame`. | So the two copies of the walk sum really are the same. Review round 3. | Nothing visible today; the copies would differ for frames that carry their own phase. |
+| `2496f88d` | Characters: `Characters/Player/Scripts/CastleSurvivor.cs` | In the ground probe, the moving-floor support is `hit.collider.transform` instead of `hit.transform`. One line. **This changes the live game.** | Survivors stand on per-block surface copies parented to one shared body that never moves, so the existing carry step was always zero and nobody rode a moving block. The copy's own transform follows its block. Now a standing survivor (and a bot) is carried: Phase 1 test 3 measures 0.71 m for a 0.70 m block. Side effect: climb grip (`SupportAtRest`) now sees the real block, so it refills only on a block at rest, as its comment says. Maps with unified collision are unchanged. | Phase 1 test 3 fails again (nobody is carried, live or in playback). Nothing else in the Studio depends on it. |
+| `841b9b98` | Characters: `Characters/Player/CandyPlayers/CandyPlayerRig.cs` | `ApplyFrame` and `StepGait` both call one private `AdvanceGait`. Public signatures unchanged. Meant to change nothing in the game. | Two copies of the walk sum could drift apart. | Nothing breaks; the sum exists twice again. |
 
 ## Notes
 
@@ -20,15 +22,10 @@ GameSession goes here, one row per commit, for Evan to keep or drop.
 
 ## Wanted from other boxes (not changed; for Evan to decide)
 
-- **Characters: a standing survivor is not carried by a moving block.**
-  `CastleSurvivor.cs` (ground probe) sets `support = hit.transform`. On maps
-  without unified collision the survivor stands on a per-block proxy
-  collider whose rigidbody is one shared, never-moving body, so `support` is
-  that shared body and the carry step is always zero. This is the live game,
-  for the local player too, and it is why Phase 1's "rides a played-back
-  block" cannot be shown. The reviewer's suggested fix is one line
-  (`support = hit.collider.transform`). It changes how every survivor stands
-  on moving blocks, so it was left for Evan.
+- **Characters: head tracking freezes when a rig is re-enabled while the
+  headset is already tracked.** `CastleSurvivor.ConfigureHeadTracking` uses
+  a pass-through tracking-state action. Found by the emulated-XR suite; see
+  `AGENT-FINDINGS.md` item 17. Not changed: it needs a Quest to check.
 - **GameSession: a public way to give an actor equipment.**
   `Engine/StudioCast.cs` calls the private `MatchModeRuntime.GiveEquipmentTo`
   by reflection (Theatre does the same). A rename would fail only with a

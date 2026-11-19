@@ -1,6 +1,6 @@
 # Phase 3 results: world direction
 
-Run through the coordinator: job `d00573e3` on commit `47fa54e6` (first passed as job `4309fa48` on `3c323f74`; the numbers below are from that run, the linked report is the latest), batch
+Run through the coordinator: job `34cdab39` on commit `3608bd41` (first passed as job `4309fa48` on `3c323f74`; the numbers below are from that run, the linked report is the latest), batch
 editor, map `sparse-viaduct-study`. Method
 `StudioAcceptance.RunPhase3`. Full report: [evidence/phase3/report.md](evidence/phase3/report.md).
 
@@ -40,3 +40,14 @@ editor, map `sparse-viaduct-study`. Method
 - [ripple-00012.png](evidence/phase3/ripple-00012.png),
   [ripple-00020.png](evidence/phase3/ripple-00020.png),
   [ripple-00024.png](evidence/phase3/ripple-00024.png): the wave moving out.
+
+## After the fix agents
+- A cue exactly on the branch frame is now tested (Cut suite, job
+  `e314cec3`): the push fires on the first new frame; frames up to and
+  including the branch frame are byte-for-byte the old take's; a variation
+  run from that frame varies that cue.
+- Variation recipes match cues by id and store the final strength and the
+  seed, so applying one twice changes nothing. A try from a fresh map,
+  recorded again as the whole set with its recipe, ends a mean of 1.4 mm and
+  at most 41 mm from the try: close, not bit-identical.
+- Found and fixed: the collapse cue ignored a variation's strength change.

@@ -8,7 +8,7 @@ Nothing is merged. This file is the handoff record AGENTS.md asks for.
 | Source branch | `claude/trailer-studio-a` on `origin` (Vanderbilt-VR-2026/DeadlyJenga) |
 | Target branch | `Evan_Sprint_4` (not merged; merges cleanly with `25e76440`, checked with `git merge-tree`) |
 | Base | `73339768bafdba50b5e42d9e7ced5e7c1c87a3e0` |
-| Candidate | Code: `47fa54e649d6e43ed1f3818fc587c4b4bfb6abd5`. The branch tip adds documentation only. |
+| Candidate | Code: `6047138620b2da5c73b02ca482779f18d2aebe64` (three reviews plus five fix-agent branches merged). The branch tip adds documentation only. |
 | Scope | DevTools (editor + runtime `TrailerStudio` folders), two small cross-box commits, docs under `Docs/Development/TrailerStudio/` |
 | Depends on | nothing outside this branch |
 | Approval | none yet. Evan pre-approved cross-box changes in the builder prompt; each is still his to keep or drop. |
@@ -36,27 +36,70 @@ Full table with consequences: [CROSS-BOX-CHANGES.md](CROSS-BOX-CHANGES.md).
 | `05c5a153` | Characters `HandNetworkView.SnapToState` also sets the physics bodies. |
 | `c419d1fd` | Characters `CandyPlayerRig.StepGait`: the walk cycle's step as a pure function (a copy of the sum in `ApplyFrame`, which is unchanged). |
 | `c737b172` | Characters: `StepGait` uses a frame's recorded walk phase when it has one, like `ApplyFrame`. |
+| `2496f88d` | Characters `CastleSurvivor`: the moving-floor support is the block's own surface copy, so a standing survivor rides a moving block. **Changes the live game.** |
+| `841b9b98` | Characters `CandyPlayerRig`: `ApplyFrame` and `StepGait` share one walk-cycle step. Meant to change nothing. |
 
 Both only add. No ProjectSettings, Packages or `Assets/XR` change. No package
 added. No scene or prefab saved.
 
 ## Test results (actual, through the coordinator)
 
-Every suite ran on the same code commit, `47fa54e6`, each as its own
-coordinator job (owner `claude-builder-prompt`); the phases in a batch
-editor, the window tour in an interactive one.
+After three review rounds, five fix agents (Opus) each worked on their own
+branch and the builder merged them. Suites ran through the coordinator
+(owner `claude-builder-prompt`), in batch editors unless noted. Most ran on
+merge commit `3608bd41` (four branches); `60471386` adds the fifth branch
+(wrist panel, handheld camera, the XR and network suites, one playback
+line), and the suites that touch those ran on it.
 
-| Suite | Job | Result | Honest caveats |
-|-------|-----|--------|----------------|
-| Phase 1 | `133a871c` | 0 failures | Spec test 3 ("rides a moving block") is **not met**: the live game does not carry a standing survivor, and playback reproduces that. See `PHASE-1-results.md`. |
-| Phase 2 | `a73b1036` | 0 failures | Headset test covered only as data and wrist-panel logic, no XR session. Scripted performer never climbed. |
-| Phase 3 | `d00573e3` | 0 failures | Tornado particles are not replayed exactly; blocks and hazard state are. No test puts a cue exactly on the branch frame. |
-| Phase 4 | `52d89f82` | 0 failures | The foot-slide number follows body speed; it does not prove planted feet stay still. |
-| Phase 5 | `5bdecbe7` | 0 failures | Handheld camera fed by script, not a controller. FCPXML not opened in Resolve. |
-| Window tour | `d0acc8e3` | 0 failures | Scripted: every tab opened and used, 12 screenshots, undo and redo, one audio listener. No person has used the window by hand. |
+| Suite | Job | Commit | Result | Honest caveats |
+|-------|-----|--------|--------|----------------|
+| Phase 1 | `9b95e35e` | `3608bd41` | 0 failures | Test 3 now passes for real: the survivor is carried 0.71 m with a 0.70 m block, live and against playback. Needs the Characters fix `2496f88d`. |
+| Phase 2 | `fb31c231` | `60471386` | 0 failures | Scripted performer never climbed. |
+| Phase 3 | `34cdab39` | `3608bd41` | 0 failures | Tornado particles are not replayed exactly. |
+| Phase 4 | `82153512` | `3608bd41` | 0 failures | The foot-slide number follows body speed. |
+| Phase 5 | `7696823d` | `3608bd41` | 0 failures | Export checked against the format rules, not opened in an editor. |
+| Sound (new) | `cd11c6ed` | `3608bd41` | 0 failures | Proves performed sound was captured and lined up, not which sounds are in it. |
+| Cut (new) | `e314cec3` | `3608bd41` | 0 failures | A variation made again from its recipe ends at most 41 mm from the original, not bit-identical. |
+| UI (new) | `726a1133` | `3608bd41` | 0 failures | Batch mode: no real layout, no mouse. |
+| XR (new) | `c897c8cf` | `60471386` | **1 failure, a finding** | Emulated headset and controllers, not a Quest. The failure is the head-tracking freeze in the game's Characters code, left for Evan (below). |
+| Net (new) | `b3b6b94c` | `60471386` | 0 failures | Remote copies render the same as on the base commit. Not a two-player session. |
+| Window tour | `304e877e` | `60471386` | 0 failures | Interactive editor, scripted. No person has used the window by hand. |
+| Game's own checks | `228cd2b0` vs base `cb8073c5` | `3608bd41` vs `07073018` | identical | `SocialMergeValidation`: 156 pass, 56 fail on BOTH. The failures are that suite's own on this PC; the merged code changes none of them. |
 
 Read a job with `coordinator.py job --owner claude-builder-prompt --id <id>`;
 its Unity log is under the pool's `runs/<id>/`.
+
+## Fix agents (after the reviews) and what they did
+
+| Agent branch | What it did |
+|--------------|-------------|
+| `claude/ts-carry` | Characters: a standing survivor now rides a moving block (`2496f88d`); the walk-cycle sum exists once (`841b9b98`). Phase 1 test 3 requires riding. |
+| `claude/ts-sound` | Sound per world take; a branch's sound is the parent's up to the branch frame plus the new part; takes performed in real time record what the performer heard; the export adds those lanes and a mixed `cut-sound.wav`. |
+| `claude/ts-cutfix` | Variation recipes by cue id with final strength and seed; a cue on the branch frame is tested; FCPXML and EDL follow the format rules (asset durations, two-line dissolves); separate track warnings. Found and fixed: the collapse cue ignored variation jitter. |
+| `claude/ts-xrnet` | Emulated-XR suite and network suite. Fixed: wrist-panel keys are pressed with the fingertip (they tested the palm, 3-5 cm away); the handheld camera keeps one pose per tape frame. |
+| `claude/ts-uiread` | Read the files no reviewer had read (timeline, viewport, tabs, cues, environment, Theatre import, library) and fixed 13 defects; new UI suite. |
+
+## Open after the agents (for Evan)
+
+- **Head tracking freezes when the Studio puts you back in a body** while
+  the headset is already tracked. `CastleSurvivor.ConfigureHeadTracking`
+  gives the pose driver a pass-through tracking-state action, which reads 0
+  until the value changes. Suggested one-word fix: make it a Value action.
+  Not made: it touches head tracking for the whole game and cannot be
+  checked without a Quest. The XR suite's one failure is this.
+- **The carry fix changes the live game:** survivors and bots ride moving
+  blocks on every map, and climb grip refills only on a block at rest.
+- **Edits are allowed while a recording runs** (Clone, Crowd, Polish edits,
+  take Use and Trash). Needs a decision: disable or queue.
+- **Timeline lanes are 13 px narrower than the ruler** when the track list
+  scrolls (more than about seven tracks), so the end of the tape is cut off.
+- **A hazard cue's "Ends after" stops every hazard of that type**, not only
+  its own.
+- **Missing from `UI.md`:** timeline zoom, branch and punch-in markers,
+  draggable camera keys in the viewport, take thumbnails beyond the world
+  cards, a waveform, J/K/L shuttle, light-skin colours.
+- Smaller unfixed findings from the UI read are in the agent's list, kept
+  in `AGENT-FINDINGS.md`.
 
 ## Review round 1 (Fable 5.2 chat) and what was done
 
@@ -122,24 +165,24 @@ chat's own coordinator runs.
 
 ## What was NOT tested
 
-- **Nothing in a headset or the XR simulator.** Performing in VR, the wrist
-  panel at arm's length, the handheld VR camera's viewfinder, comfort and
-  hand tracking all still need a person in a Quest 3.
-- **A person using the window.** Every tab was opened and used by a script in
-  a real editor window (screenshots in `evidence/window/`), but nobody has
-  dragged a mark, scrubbed with the mouse or performed a take by hand.
-- **FCPXML in DaVinci Resolve or Premiere.** The file is well-formed and its
-  media exists; it has not been imported.
-- **Two-player multiplayer.** The two cross-box commits add an interface and
-  a few lines to the network views and the disaster. AGENTS.md asks for a
-  two-player Play Mode test for networking changes; that was not run.
-  Solo `Game.unity` with the Studio closed was run (Phase 1 test 5).
-- MP4 and ProRes output need `ffmpeg` on the PATH; only PNG sequences were
-  rendered in tests.
-- Foot sliding after a retime is measured, not proven (see
-  `PHASE-4-results.md`).
-- Sound of actors performed by a person, and of branched worlds, is not in
-  the cut's sound (see `PHASE-5-results.md`).
+- **A real headset.** The VR paths now run in an emulated XR session
+  (`StudioAcceptance.RunXr`): real-time clock, a VR take storing head and
+  hands exactly, the wrist panel pressed with the fingertip, the handheld
+  camera, playback in the body. Still untested: a Quest, OpenXR, comfort,
+  reach, frame rate.
+- **A person using the window.** Every tab is opened and used by a script;
+  the drag fixes from the UI read need a mouse.
+- **The export in an editing app.** FCPXML and EDL are checked against the
+  format rules. Neither DaVinci Resolve nor Premiere is installed on this
+  PC, so nothing was imported.
+- **A real two-player session.** No game code calls the Studio's additions
+  and remote copies render the same as on the base commit, but the game's
+  own network checks need Photon's cloud and were not run. Multiplayer Play
+  Mode 2.0.2 is installed and needs an interactive editor.
+- MP4 and ProRes output were not rendered in a test (PNG sequences were).
+- Foot sliding after a retime is measured, not proven.
+- Sound: nobody has listened to it. Performed sound is one mix with no
+  stems and drifts in slow motion.
 
 ## Known gaps by design
 
