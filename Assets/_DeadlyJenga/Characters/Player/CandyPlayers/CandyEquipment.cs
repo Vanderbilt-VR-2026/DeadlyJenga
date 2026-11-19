@@ -140,6 +140,16 @@ namespace DeadlyJenga.CandyPlayers
             float blend=Mathf.SmoothStep(0,1,aimBlend);
             return new Pose(Vector3.Lerp(tracked.position,raised.position,blend),Quaternion.Slerp(tracked.rotation,raised.rotation,blend));
         }
+        Pose TrackedCarry(CandyHandPose tracked, EquipmentKind kind, bool handLeft)
+        {
+            tracked.rotation = avatar.WristRotation(tracked, handLeft);
+            var weapon = CandyWeaponVisual.DrawnPose(kind, tracked, handLeft, Scale);
+            // Shaft weapons add their palm offset when the visual is attached.
+            if (CandyWeaponVisual.MeleeMount(kind, handLeft, out _, out _))
+                weapon.position = tracked.position;
+            return weapon;
+        }
+
         public Pose GripPose
         {
             get
@@ -149,12 +159,32 @@ namespace DeadlyJenga.CandyPlayers
                 Pose aim;
                 if(motor&&motor.IsVR&&avatar.tracking&&avatar.tracking.WorldHand(left).tracked)
                 {
-                    var primary=avatar.tracking.WorldHand(left);aim=new Pose(primary.position,primary.rotation);
-                    if(avatar.tracking.TryControllerAim(left,out var controllerAim))aim=controllerAim;
-                    if(Equipment.kind!=EquipmentKind.LaserAxe&&UsesSupportGrip&&(grip.IsPressed()||avatar.tracking.IsHybrid&&(left?avatar.tracking.RightPinching:avatar.tracking.LeftPinching)))
+                    var primary = avatar.tracking.WorldHand(left);
+                    var kind = Equipment.kind;
+                    aim = TrackedCarry(primary, kind, left);
+                    if (kind == EquipmentKind.LaserAxe)
                     {
-                        var secondary=avatar.tracking.WorldHand(!left);var delta=secondary.position-primary.position;
-                        if(secondary.tracked&&delta.magnitude>.12f*Scale&&delta.magnitude<1.1f*Scale)aim.rotation=Quaternion.LookRotation(delta,primary.rotation*Vector3.up);
+                        // Stormbreaker has its own shaft, support and lightning aim solver.
+                        aim = avatar.tracking.TryControllerAim(left, out var pointer)
+                            ? pointer : new Pose(primary.position, primary.rotation);
+                    }
+                    else if ((UsesSupportGrip || kind == EquipmentKind.Chainsaw) &&
+                        (grip?.IsPressed() == true || avatar.tracking.IsHybrid &&
+                        (left ? avatar.tracking.RightPinching : avatar.tracking.LeftPinching)))
+                    {
+                        var secondary = avatar.tracking.WorldHand(!left);
+                        var contact = secondary;
+                        if (secondary.tracked && CandyWeaponVisual.TrySupportContact(ref contact, aim, kind, !left, Scale))
+                        {
+                            var from = contact.position - primary.position;
+                            var to = secondary.position - primary.position;
+                            if (to.magnitude > .12f * Scale && (contact.position - secondary.position).magnitude <= .30f * Scale)
+                            {
+                                var turn = Quaternion.FromToRotation(from, to);
+                                aim.position = primary.position + turn * (aim.position - primary.position);
+                                aim.rotation = turn * aim.rotation;
+                            }
+                        }
                     }
                     // Dominant grip is explicit aim; releasing it restores the tracked hip pose.
                     if(Equipment.kind!=EquipmentKind.LaserAxe)aim=RaiseForAim(aim,head);
@@ -457,7 +487,11 @@ namespace DeadlyJenga.CandyPlayers
                 if(motor.IsVR)
                 {
                     var offhandAim=new Pose(support.position,support.rotation);
-                    if(avatar.tracking&&avatar.tracking.TryControllerAim(supportLeft,out var aim))offhandAim=aim;
+                    if (avatar.tracking)
+                    {
+                        var tracked = avatar.tracking.WorldHand(supportLeft);
+                        if (tracked.tracked) offhandAim = TrackedCarry(tracked, state.kind, supportLeft);
+                    }
                     offhandAim=PresentedSprintGrip(offhandAim,state,frame,supportLeft);
                     offhandAim=PresentedRecoil(offhandAim,state,supportLeft,true);
                     CandyWeaponVisual.TryPrimaryContact(ref support,offhandAim,state.kind,supportLeft,
@@ -525,7 +559,14 @@ namespace DeadlyJenga.CandyPlayers
                 return;
             }
             if(state.kind==EquipmentKind.PoweredArmor&&state.drawn){ResetBashTracking();CancelBashPresentation();ClearPickupFocus();UpdateSuit(state);return;}
-            if(motor.Climbing||motor.Vaulting){ResetBashTracking();CancelBashPresentation();ClearPickupFocus();ReleaseHeldArsenal();armed=false;handReady=false;return;}
+            bool holsterPressed = motor.IsVR ? HybridXRInput.SecondaryPressed(left) :
+                Keyboard.current?.vKey.wasPressedThisFrame == true || DesktopGamepad.HolsterPressed;
+            if(motor.Climbing||motor.Vaulting)
+            {
+                if (motor.IsVR && motor.Climbing && state.drawn && state.kind == EquipmentKind.Dagger && holsterPressed)
+                    SetEquipped(false);
+                ResetBashTracking();CancelBashPresentation();ClearPickupFocus();ReleaseHeldArsenal();armed=false;handReady=false;return;
+            }
             if(!motor.IsVR&&(Keyboard.current?.deleteKey.wasPressedThisFrame==true||DesktopGamepad.DropPressed))
             {
                 ResetBashTracking();CancelBashPresentation();ClearPickupFocus();
@@ -544,7 +585,7 @@ namespace DeadlyJenga.CandyPlayers
             bool vr=motor.IsVR,pressed=vr?trigger.WasPressedThisFrame():(Mouse.current?.leftButton.wasPressedThisFrame==true||DesktopGamepad.FirePressed);
             bool held=vr?trigger.IsPressed():(Cursor.lockState==CursorLockMode.Locked||DesktopGamepad.Current!=null)&&(Mouse.current?.leftButton.isPressed==true||DesktopGamepad.FireHeld);
             if(!held)armed=true;
-            if((vr?HybridXRInput.SecondaryPressed(left):(Keyboard.current?.vKey.wasPressedThisFrame==true||DesktopGamepad.HolsterPressed))&&UsesTriggers)
+            if(holsterPressed&&UsesTriggers)
             {
                 SetEquipped(!state.drawn);
                 armed=false;

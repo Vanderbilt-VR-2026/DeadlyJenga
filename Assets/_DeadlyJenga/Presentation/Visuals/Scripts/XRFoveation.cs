@@ -27,7 +27,7 @@ namespace DeadlyJenga.Presentation
         // Re-applied every couple of seconds: XR can restart (pause, focus loss) and reset it.
         void Update()
         {
-            bool menuOpen=Services.Session?.MenuOpen==true;
+            bool menuOpen = Services.Session is ILobbyControls || Services.Session?.MenuOpen == true;
             if(menuOpen==menuWasOpen&&Time.unscaledTime<nextCheck)return;
             menuWasOpen=menuOpen;
             nextCheck=Time.unscaledTime+2;

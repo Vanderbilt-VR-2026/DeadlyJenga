@@ -20,7 +20,7 @@ namespace DeadlyJenga.Modes
             if(float.IsNaN(speed)||float.IsInfinity(speed)||float.IsNaN(origin.sqrMagnitude)||float.IsInfinity(origin.sqrMagnitude)||float.IsNaN(direction.sqrMagnitude)||float.IsInfinity(direction.sqrMagnitude))return false;
             var held=EquipmentFor(id);
             bool bash = UsesWeaponBash(held);
-            if(held.builtIn)return AttackEquipment(id,held,new EquipmentCommand{position=origin,forward=direction});
+            if(held.builtIn&&held.drawn)return AttackEquipment(id,held,new EquipmentCommand{position=origin,forward=direction});
             if(held.drawn&&!held.roleIssued&&!bash)return false;
             if(held.drawn&&held.kind==EquipmentKind.SheriffHammer&&!bash)return AttackEquipment(id,held,new EquipmentCommand{action="attack",position=origin,forward=direction});
             var p=simulation.Find(id);var source=FindActor(id);

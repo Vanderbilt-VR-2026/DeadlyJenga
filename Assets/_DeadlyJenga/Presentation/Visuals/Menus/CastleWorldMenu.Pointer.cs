@@ -50,6 +50,7 @@ namespace DeadlyJenga.CastlePrototype
             if(flat.sqrMagnitude<.015f)flat=Vector3.Cross(eye.right,Vector3.up);
             flat=flat.sqrMagnitude>.001f?flat.normalized:Vector3.forward;
             transform.SetPositionAndRotation(eye.position+flat*MenuDistance,Quaternion.LookRotation(flat,Vector3.up));
+            if (session.IsVR) PlaceTablet(camera);
             pointerForegroundReady=false;
         }
 
@@ -101,7 +102,6 @@ namespace DeadlyJenga.CastlePrototype
             if (session.IsVR)
             {
                 controller=TabletInput(camera,ref pressed,ref held,out pointerRay);
-                PlaceTablet(camera);
             }
             else
             {
@@ -240,7 +240,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void PlaceTablet(Camera camera)
         {
-            DeadlyJenga.Presentation.MenuAim.PlaceTablet((RectTransform)transform,camera,session,DominantLeft);
+            DeadlyJenga.Presentation.MenuAim.PlaceTablet((RectTransform)transform,camera,session,DominantLeft, fixedPose: true);
             BuildTabletFrame();
         }
 

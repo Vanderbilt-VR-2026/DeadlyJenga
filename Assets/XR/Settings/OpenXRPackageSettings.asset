@@ -613,9 +613,9 @@ MonoBehaviour:
   openxrExtensionStrings: XR_META_simultaneous_hands_and_controllers
   company: Deadly Jenga
   priority: 0
-  targetOpenXRApiVersion:
+  targetOpenXRApiVersion: 
   required: 0
-  customRuntimeLoaderName:
+  customRuntimeLoaderName: 
 --- !u!114 &-2678709247379309322
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -828,7 +828,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6096094d69d82cc40947df806f66ab34, type: 3}
   m_Name: OpenXRCompositionLayersFeature Android
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.CompositionLayers.OpenXRCompositionLayersFeature
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Composition Layers Support
   version: 1.0.0
   featureIdInternal: com.unity.openxr.feature.compositionlayers
@@ -1477,11 +1477,11 @@ MonoBehaviour:
   m_depthSubmissionMode: 0
   m_spacewarpMotionVectorTextureFormat: 0
   m_optimizeBufferDiscards: 1
-  m_symmetricProjection: 1
+  m_symmetricProjection: 0
   m_optimizeMultiviewRenderRegions: 0
   m_multiviewRenderRegionsOptimizationMode: 0
   m_hasMigratedMultiviewRenderRegionSetting: 1
-  m_foveatedRenderingApi: 1
+  m_foveatedRenderingApi: 0
   m_useOpenXRPredictedTime: 0
 --- !u!114 &2670558816994935001
 MonoBehaviour:
@@ -1778,9 +1778,9 @@ MonoBehaviour:
   openxrExtensionStrings: XR_META_simultaneous_hands_and_controllers
   company: Deadly Jenga
   priority: 0
-  targetOpenXRApiVersion:
+  targetOpenXRApiVersion: 
   required: 0
-  customRuntimeLoaderName:
+  customRuntimeLoaderName: 
 --- !u!114 &5081290910021086260
 MonoBehaviour:
   m_ObjectHideFlags: 0

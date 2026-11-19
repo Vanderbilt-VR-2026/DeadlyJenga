@@ -568,8 +568,10 @@ namespace DeadlyJenga.Presentation
                 if(visible)plateSeen[p.id]=Time.unscaledTime;
                 if(!teamMode&&!visible&&(competitive||!plateSeen.TryGetValue(p.id,out float seen)||Time.unscaledTime-seen>2))continue;
                 shown++;active.Add(p.id);
-                if(!plates.TryGetValue(p.id,out var label)||!label){label=CandyNameplate.Create(transform,"Visual - nameplate");plates[p.id]=label;}
-                label.text=p.name;label.color=teamMode?p.color:Color.white;label.transform.position=point;label.transform.rotation=Quaternion.LookRotation(label.transform.position-camera.transform.position);label.gameObject.SetActive(true);
+                if(!plates.TryGetValue(p.id,out var label)||!label){label=CandyNameplate.CreateTag(transform,"Visual - nameplate");plates[p.id]=label;}
+                label.text=p.bot?CandyNameplate.BotName(p.name):p.name;label.color=teamMode?p.color:Color.white;label.transform.position=point;label.transform.rotation=Quaternion.LookRotation(label.transform.position-camera.transform.position);label.gameObject.SetActive(Services.Session?.MenuOpen!=true);
+                var anchor=flyer?.ContactBodies!=null && flyer.ContactBodies.Count>0 && flyer.ContactBodies[0]?flyer.ContactBodies[0].transform:flyer?.Anchor?flyer.Anchor:root;
+                label.GetComponent<CandyNameplateFollow>().Bind(label,camera,anchor,focus,flyer!=null?.6f:.28f,flyer==null);
                 CandyNameplate.RefreshShadow(label);
             }
             remove.Clear();foreach(var pair in plates)if(!active.Contains(pair.Key)){if(pair.Value)pair.Value.gameObject.SetActive(false);if(!Contains(f.players,pair.Key))remove.Add(pair.Key);}

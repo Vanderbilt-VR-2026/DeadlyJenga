@@ -265,6 +265,17 @@ namespace DeadlyJenga.Presentation
                 halfHeight=vertical*.84f;
                 halfWidth=Mathf.Atan(Mathf.Tan(halfHeight)*width/panelHeight);
             }
+            if (fixedPose)
+            {
+                var heading = Vector3.ProjectOnPlane(eye.transform.forward, Vector3.up);
+                if (heading.sqrMagnitude < .0001f)
+                    heading = Vector3.Cross(eye.transform.right, Vector3.up);
+                heading.Normalize();
+                panel.SetPositionAndRotation(eye.transform.position + heading * depth,
+                    Quaternion.LookRotation(heading, Vector3.up));
+                panel.localScale = Vector3.one * (2 * depth * Mathf.Tan(halfWidth) / width);
+                return;
+            }
             float horizontalInset=Mathf.Max(0,horizontal*.9f-halfWidth);
             float verticalInset=Mathf.Max(0,vertical*.9f-halfHeight);
             lateral=Mathf.Clamp(lateral,-depth*Mathf.Tan(horizontalInset),depth*Mathf.Tan(horizontalInset));
