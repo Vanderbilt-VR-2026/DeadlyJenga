@@ -397,8 +397,7 @@ namespace DeadlyJenga.HandValidation
                         {
                             if(index==0)return hand.Target.rotation;
                             int finger=(index-1)/3,joint=(index-1)%3;
-                            var d=hand.Target.skeleton.Joint(finger*4+joint+1)-hand.Target.skeleton.Joint(finger*4+joint);
-                            return CandyPhysicalHand.SegmentRotation(hand.Target.rotation*d,hand.Target.rotation*Vector3.up);
+                            return hand.Target.rotation*CandyPhysicalHand.FingerRotation(hand.Target.skeleton,hand.left,finger,joint);
                         }
                         float angle=Quaternion.Angle(Quaternion.Inverse(hand.bodies[parent].rotation)*hand.bodies[i].rotation,Quaternion.Inverse(Desired(parent))*Desired(i));
                         worstAngle=Mathf.Max(worstAngle,angle);

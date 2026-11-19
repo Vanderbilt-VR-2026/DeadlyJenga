@@ -19,6 +19,8 @@ namespace DeadlyJenga.CastlePrototype
         [Range(15,360)] public float vrSmoothDegreesPerSecond=120;
         public bool autoDetectHybridControls=true;
         bool hybridProfileActive;
+        float profileChangeSince=-1;
+        const float ProfileChangeDelay=.6f;
         public SurvivorVRPlayStyle vrPlayStyle=SurvivorVRPlayStyle.Seated;
         public SurvivorJumpGesture jumpGesture=SurvivorJumpGesture.IndexPinch;
         public InputAction seatedJump=new InputAction("Jump / hold to climb",InputActionType.Button,"<XRController>{RightHand}/primaryButton");
@@ -301,16 +303,26 @@ namespace DeadlyJenga.CastlePrototype
             if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
             if(!candyTracking)return;
             if(Climbing||Vaulting)return;
-            if(candyTracking.IsHybrid&&!hybridProfileActive)
+            // Switching control profile rebases the view, so only do it once the new situation has lasted a moment,
+            // and never rebase when the play style would not actually change.
+            bool wantHybrid=candyTracking.IsHybrid&&!hybridProfileActive;
+            bool wantDual=hybridProfileActive&&DeadlyJenga.CandyPlayers.HybridXRInput.DualControllers;
+            if(!wantHybrid&&!wantDual){profileChangeSince=-1;return;}
+            if(profileChangeSince<0)profileChangeSince=Time.unscaledTime;
+            if(Time.unscaledTime-profileChangeSince<ProfileChangeDelay)return;
+            profileChangeSince=-1;
+            if(wantHybrid)
             {
                 hybridComfort=CaptureComfort();
-                SetVRPlayStyle(SurvivorVRPlayStyle.Standing,false);
+                if(vrPlayStyle!=SurvivorVRPlayStyle.Standing)SetVRPlayStyle(SurvivorVRPlayStyle.Standing,false);
+                else{vrMovement=SurvivorVRMovement.HeadRelative;vrTurn=SurvivorVRTurn.PhysicalOnly;turnReady=false;}
                 hybridProfileActive=true;
             }
-            else if(hybridProfileActive&&DeadlyJenga.CandyPlayers.HybridXRInput.DualControllers)
+            else
             {
                 hybridProfileActive=false;
-                RestoreComfort(hybridComfort);
+                if(vrPlayStyle!=hybridComfort.playStyle)RestoreComfort(hybridComfort);
+                else{vrMovement=hybridComfort.movement;vrTurn=hybridComfort.turn;vrSnapAngle=hybridComfort.snap;vrSmoothDegreesPerSecond=hybridComfort.speed;turnReady=false;}
             }
         }
         public void UseFluidVR(){SetVRPlayStyle(SurvivorVRPlayStyle.Seated);vrMovement=SurvivorVRMovement.HeadRelative;RememberComfort(movement:true);}

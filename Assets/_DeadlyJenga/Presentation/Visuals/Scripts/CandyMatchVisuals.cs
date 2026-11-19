@@ -27,10 +27,11 @@ namespace DeadlyJenga.Presentation
         readonly List<string> staleLooks=new List<string>();CandyEnvironment[] environments;float environmentAt;
         readonly Dictionary<Renderer,MaterialPropertyBlock> handOriginals=new Dictionary<Renderer,MaterialPropertyBlock>();readonly HashSet<Renderer> activeHands=new HashSet<Renderer>();readonly List<Renderer> oldHands=new List<Renderer>();
         readonly HashSet<string> melting=new HashSet<string>();readonly HashSet<Renderer> hidden=new HashSet<Renderer>();
+        readonly HashSet<string> hiddenPlayers=new HashSet<string>();static readonly List<Renderer> rendererBuffer=new List<Renderer>();
         IMatchRuntime splatRuntime;bool splatNotified;int splatDeaths;
         void OnEnable(){props=new MaterialPropertyBlock();healthShader=Resources.Load<Shader>("CandyScenery/CandyAvatarHealth");if(healthShader&&!healthMaterial){healthMaterial=new Material(healthShader);healthMaterial.enableInstancing=true;healthMaterial.SetFloat("_Smoothness",.8f);}GameEvents.Eliminated+=Eliminated;GameEvents.RoundEnded+=RoundEnded;}
         void RoundEnded(){transitionAt=Time.unscaledTime;transitionColor=new Color(.96f,.97f,1);}
-        void OnDisable(){GameEvents.Eliminated-=Eliminated;GameEvents.RoundEnded-=RoundEnded;RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();foreach(var r in hidden)if(r)r.forceRenderingOff=false;hidden.Clear();melting.Clear();if(canvas)canvas.enabled=false;}
+        void OnDisable(){GameEvents.Eliminated-=Eliminated;GameEvents.RoundEnded-=RoundEnded;RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();foreach(var r in hidden)if(r)r.forceRenderingOff=false;hidden.Clear();hiddenPlayers.Clear();melting.Clear();if(canvas)canvas.enabled=false;}
         void Update()
         {
             var runtime=MatchRuntime.Current;if(runtime?.Frame==null){if(canvas)canvas.enabled=false;return;}var f=runtime.Frame;
@@ -254,12 +255,18 @@ namespace DeadlyJenga.Presentation
             foreach(var p in frame.players)
             {
                 var actor=runtime.FindActor(p.id);if(actor?.Visual==null)continue;
-                if(p.dying&&melting.Add(p.id))CandyMelt.Spawn(actor.Visual,p.color,actor.transform.position.y);
+                // A melting ghost is costly. When many die at once only a few get one; the rest just vanish.
+                if(p.dying&&melting.Add(p.id)&&(p.id==runtime.LocalActorId||CandyMelt.HasRoom))CandyMelt.Spawn(actor.Visual,p.color,actor.transform.position.y);
                 if(p.dying&&p.id==runtime.LocalActorId&&frame.phase==RoundPhase.Playing&&(!splatNotified||p.deaths>splatDeaths))
                 {splatNotified=true;splatDeaths=p.deaths;CandyDeathOverlay.Show(p.color);}
                 if(!p.dying&&p.alive)melting.Remove(p.id);
-                foreach(var r in actor.Visual.GetComponentsInChildren<Renderer>())
-                {if(p.dying||!p.alive){r.forceRenderingOff=true;hidden.Add(r);}else if(hidden.Remove(r))r.forceRenderingOff=false;}
+                bool gone=p.dying||!p.alive;
+                // Living players with nothing hidden need no renderer search.
+                if(gone)hiddenPlayers.Add(p.id);else if(!hiddenPlayers.Remove(p.id))continue;
+                actor.Visual.GetComponentsInChildren(!gone,rendererBuffer);
+                foreach(var r in rendererBuffer)
+                {if(gone){r.forceRenderingOff=true;hidden.Add(r);}else if(hidden.Remove(r))r.forceRenderingOff=false;}
+                rendererBuffer.Clear();
             }
         }
         void Transition(MatchFrame frame)
@@ -355,6 +362,16 @@ namespace DeadlyJenga.Presentation
         public int SkinnedSnapshotVertices {get;private set;}
         public ulong SkinnedSnapshotIndices {get;private set;}
         public Bounds CurrentBodyBounds=>ragdoll!=null?ragdoll.Bounds:SnapshotBounds;
+        // Each ghost copies meshes, skins them on the CPU and probes scenery for every joint.
+        // A crowd dying together (a tornado through 100 bots) must not start one each.
+        static int alive,ragdolling,lastSpawnFrame=-1;
+        bool counted,countedRagdoll;
+        public static int RagdollBudget=>Application.isMobilePlatform?4:10;
+        public static bool HasRoom=>ragdolling<RagdollBudget&&alive<RagdollBudget*3&&lastSpawnFrame!=Time.frameCount;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetCounts(){alive=ragdolling=0;lastSpawnFrame=-1;}
+        void Awake(){counted=countedRagdoll=true;alive++;ragdolling++;lastSpawnFrame=Time.frameCount;}
+        void EndRagdollCount(){if(countedRagdoll){countedRagdoll=false;ragdolling--;}}
         public static void Spawn(Transform visual,Color color)=>Spawn(visual,color,float.NaN);
         public static void Spawn(Transform visual,Color color,float floor)
         {
@@ -665,7 +682,7 @@ namespace DeadlyJenga.Presentation
                 if(stepped)ragdoll.Present();
                 if(Age>=RagdollSeconds&&(ragdoll.Settled||Age>=5))
                 {
-                    meltAt=Age;var body=ragdoll.Bounds;
+                    meltAt=Age;EndRagdollCount();var body=ragdoll.Bounds;
                     var center=new Vector3(body.center.x,ragdoll.GroundHeight,body.center.z);
                     CreatePuddle(ref center);
                     meltCenter=center;
@@ -681,6 +698,6 @@ namespace DeadlyJenga.Presentation
             }
             Present();
         }
-        void OnDestroy(){foreach(var m in owned)if(m)Destroy(m);foreach(var mesh in meshes)if(mesh)Destroy(mesh);}
+        void OnDestroy(){EndRagdollCount();if(counted){counted=false;alive--;}foreach(var m in owned)if(m)Destroy(m);foreach(var mesh in meshes)if(mesh)Destroy(mesh);}
     }
 }

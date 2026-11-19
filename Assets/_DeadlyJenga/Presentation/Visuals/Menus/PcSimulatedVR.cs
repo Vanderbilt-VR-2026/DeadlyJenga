@@ -34,6 +34,15 @@ namespace DeadlyJenga.Presentation
         // Test hooks: scripts can hold keys without a real keyboard.
         public Vector2 TestMove, TestLook;
         public bool TestJump, TestSprint, TestTrigger, TestGrip;
+        // A controller that is put down stops being tracked (the game then looks for a tracked hand).
+        public bool TestLeftUntracked, TestRightUntracked;
+        // A simulated controller counts as held (a thumb resting on its stick) unless a script says it is lying somewhere.
+        public bool TestLeftResting, TestRightResting;
+        // Exact controller poses in tracking space, and analog trigger/grip (0..1), when a script sets them.
+        public Pose? TestLeftPose, TestRightPose;
+        public float TestLeftTrigger = -1, TestLeftGrip = -1, TestRightTrigger = -1, TestRightGrip = -1;
+        public Vector2 TestTurn;
+        public Pose SimulatedControllerPose(bool useLeft) => ControllerPose(useLeft);
 
         public static PcSimulatedVR Create()
         {
@@ -122,6 +131,7 @@ namespace DeadlyJenga.Presentation
             Vector2 turn = Vector2.zero;
             if (Held(kb?.rightArrowKey)) turn.x += 1; if (Held(kb?.leftArrowKey)) turn.x -= 1;
             if (Held(kb?.upArrowKey)) turn.y += 1; if (Held(kb?.downArrowKey)) turn.y -= 1;
+            turn = Vector2.ClampMagnitude(turn + TestTurn, 1f);
 
             bool mouseOk = mouse != null && Cursor.lockState == CursorLockMode.Locked && !holdLeft && !holdRight;
             bool fire = TestTrigger || mouseOk && mouse.leftButton.isPressed;
@@ -135,22 +145,23 @@ namespace DeadlyJenga.Presentation
                 primary2DAxis = stick,
                 devicePosition = leftPose.position,
                 deviceRotation = leftPose.rotation,
-                isTracked = true, trackingState = 3, batteryLevel = 1f,
+                isTracked = !TestLeftUntracked, trackingState = TestLeftUntracked ? 0 : 3, batteryLevel = 1f,
             };
             var r = new XRSimulatedControllerState
             {
                 primary2DAxis = turn,
                 devicePosition = rightPose.position,
                 deviceRotation = rightPose.rotation,
-                isTracked = true, trackingState = 3, batteryLevel = 1f,
+                isTracked = !TestRightUntracked, trackingState = TestRightUntracked ? 0 : 3, batteryLevel = 1f,
             };
             l = l.WithButton(ControllerButton.Primary2DAxisClick, TestSprint || Held(kb?.leftShiftKey))
-                 .WithButton(ControllerButton.Primary2DAxisTouch, stick != Vector2.zero)
+                 .WithButton(ControllerButton.Primary2DAxisTouch, stick != Vector2.zero || !TestLeftResting)
                  .WithButton(ControllerButton.PrimaryButton, Held(kb?.zKey))
                  .WithButton(ControllerButton.SecondaryButton, Held(kb?.xKey))
                  .WithButton(ControllerButton.MenuButton, Held(kb?.mKey))
                  .WithButton(ControllerButton.UserPresence, true);
-            r = r.WithButton(ControllerButton.PrimaryButton, TestJump || Held(kb?.spaceKey))
+            r = r.WithButton(ControllerButton.Primary2DAxisTouch, !TestRightResting)
+                 .WithButton(ControllerButton.PrimaryButton, TestJump || Held(kb?.spaceKey))
                  .WithButton(ControllerButton.SecondaryButton, Held(kb?.fKey))
                  .WithButton(ControllerButton.UserPresence, true);
 
@@ -158,6 +169,7 @@ namespace DeadlyJenga.Presentation
             ref var other = ref (leftHanded ? ref r : ref l);
             SetTrigger(ref dominant, fire); SetGrip(ref dominant, grab);
             SetTrigger(ref other, offFire);
+            Analog(ref l, TestLeftTrigger, TestLeftGrip); Analog(ref r, TestRightTrigger, TestRightGrip);
 
             InputState.Change(left, l);
             InputState.Change(right, r);
@@ -165,6 +177,11 @@ namespace DeadlyJenga.Presentation
 
         static void SetTrigger(ref XRSimulatedControllerState s, bool on)
         { s.trigger = on ? 1f : 0f; s = s.WithButton(ControllerButton.TriggerButton, on); }
+        static void Analog(ref XRSimulatedControllerState s, float trigger, float grip)
+        {
+            if (trigger >= 0) { s.trigger = Mathf.Clamp01(trigger); s = s.WithButton(ControllerButton.TriggerButton, trigger > .5f); }
+            if (grip >= 0) { s.grip = Mathf.Clamp01(grip); s = s.WithButton(ControllerButton.GripButton, grip > .5f); }
+        }
         static void SetGrip(ref XRSimulatedControllerState s, bool on)
         { s.grip = on ? 1f : 0f; s = s.WithButton(ControllerButton.GripButton, on); }
 
@@ -184,6 +201,8 @@ namespace DeadlyJenga.Presentation
 
         internal Pose ControllerPose(bool useLeft)
         {
+            var scripted = useLeft ? TestLeftPose : TestRightPose;
+            if (scripted.HasValue) return scripted.Value;
             var head = HeadPose;
             var body = Quaternion.Euler(0f, yaw, 0f);
             var offset = useLeft ? LeftHome + leftOffset : RightHome + rightOffset;

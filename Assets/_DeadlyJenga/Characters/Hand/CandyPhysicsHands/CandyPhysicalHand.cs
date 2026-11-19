@@ -20,6 +20,8 @@ namespace DeadlyJenga.CandyPhysicsHands
         public HandDriveProfile Profile {get;set;}
         public bool RequiresProfile {get;set;}
         readonly Vector3[] driveForces=new Vector3[16];
+        readonly bool[] digitFree=new bool[5];
+        readonly float[] tipReach=new float[16];
         readonly float[] driveTorques=new float[16];
         Vector3 palmTorque;
         readonly Pose[] authoritativePreview=new Pose[16];
@@ -63,12 +65,37 @@ namespace DeadlyJenga.CandyPhysicsHands
         // AI fingers follow their joints instead of pulling independently through a contacted block.
         public bool JointDrivenFingers {get;set;}
         public bool ReplicatedBones {get;set;}
+        // The drawn hand: which fingers are resting on something, and where each finger starts on the palm.
+        readonly CandyHandContactProbe[] touches=new CandyHandContactProbe[16];
+        readonly float[] fingerContact=new float[5];
         Mesh originalSkin;
         static readonly System.Collections.Generic.Dictionary<Mesh,Mesh> leftSkins=new();
+        // The baked skin shares every finger vertex between neighbouring bones. On short finger bones that
+        // squeezes the middle of a bent finger to half its thickness. Sharpening the shares keeps the middle
+        // of each bone rigid (full thickness) and leaves the blend only at the joints.
+        static readonly System.Collections.Generic.Dictionary<Mesh,Mesh> firmSkins=new();
+        static Mesh FirmFingerWeights(Mesh source)
+        {
+            if(!source||!source.isReadable)return source;
+            if(firmSkins.TryGetValue(source,out var cached)&&cached)return cached;
+            var weights=source.boneWeights;
+            for(int i=0;i<weights.Length;i++)
+            {
+                var w=weights[i];
+                bool finger=w.weight0>0&&w.boneIndex0>=1&&w.boneIndex0<=15||w.weight1>0&&w.boneIndex1>=1&&w.boneIndex1<=15||
+                    w.weight2>0&&w.boneIndex2>=1&&w.boneIndex2<=15||w.weight3>0&&w.boneIndex3>=1&&w.boneIndex3<=15;
+                if(!finger)continue;
+                float a=Mathf.Pow(w.weight0,4),b=Mathf.Pow(w.weight1,4),c=Mathf.Pow(w.weight2,4),d=Mathf.Pow(w.weight3,4);
+                float total=a+b+c+d;if(total<=0)continue;
+                w.weight0=a/total;w.weight1=b/total;w.weight2=c/total;w.weight3=d/total;weights[i]=w;
+            }
+            var mesh=Instantiate(source);mesh.name=source.name+" (firm fingers)";mesh.boneWeights=weights;
+            firmSkins[source]=mesh;return mesh;
+        }
         void FitSkinHandedness()
         {
             if(!skin||!skin.sharedMesh)return;
-            if(!originalSkin)originalSkin=CandySmoothHandMesh.SeparateDigitWeights(skin.sharedMesh,1,5);
+            if(!originalSkin)originalSkin=FirmFingerWeights(CandySmoothHandMesh.SeparateDigitWeights(skin.sharedMesh,1,5));
             if(!left){skin.sharedMesh=originalSkin;return;}
             if(!leftSkins.TryGetValue(originalSkin,out var mesh)||!mesh)
             {
@@ -98,7 +125,12 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(friction){if(Application.isPlaying)Destroy(friction);else DestroyImmediate(friction);}
             Build(pose);
         }
-        public void SetTarget(CandyHandPose target,float strength){Target=target;Strength=Mathf.Clamp01(strength);}
+        public void SetTarget(CandyHandPose target,float strength){SetTarget(target,strength,null);}
+        // exactBones: the 15 finger bone directions in palm space at full precision, when the caller has them.
+        // The skeleton in a pose is stored to 1 mm, which makes slowly moving fingers shiver if drawn from it.
+        public void SetTarget(CandyHandPose target,float strength,Vector3[] exactBones)
+        {Target=target;Strength=Mathf.Clamp01(strength);if(exactBones!=null&&exactBones.Length==15){System.Array.Copy(exactBones,exactTargetBones,15);hasExactBones=true;}else hasExactBones=false;}
+        readonly Vector3[] exactTargetBones=new Vector3[15];bool hasExactBones;
         public void Build(CandyHandPose initial)
         {
             builtSize=settings.size;Target=initial;contacts=new Collider[16];bodies=new Rigidbody[16];segmentLengths=new float[15];joints=new ConfigurableJoint[15];referenceRelative=new Quaternion[15];
@@ -107,11 +139,14 @@ namespace DeadlyJenga.CandyPhysicsHands
             {
                 var go=new GameObject(i==0?"Physical palm":"Physical finger "+(i-1)/3+" joint "+(i-1)%3);go.transform.SetParent(transform,false);go.layer=0;
                 var rb=go.AddComponent<Rigidbody>();rb.mass=Mathf.Max(.001f,i==0?settings.palmMass:settings.fingerMass);rb.useGravity=false;rb.interpolation=RigidbodyInterpolation.Interpolate;rb.collisionDetectionMode=CollisionDetectionMode.ContinuousDynamic;rb.solverIterations=settings.solverIterations;rb.solverVelocityIterations=settings.solverVelocityIterations;rb.maxAngularVelocity=settings.maxAngularSpeed;rb.maxLinearVelocity=settings.maxSpeed;rb.maxDepenetrationVelocity=1;
-                bodies[i]=rb;
+                bodies[i]=rb;touches[i]=go.AddComponent<CandyHandContactProbe>();touches[i].At=-100;
                 if(i==0){var col=go.AddComponent<BoxCollider>();col.center=new Vector3(0,0,.020f)*builtSize;col.size=new Vector3(.078f,.04f,.078f)*builtSize;contacts[i]=col;}
                 else
                 {
                     int f=(i-1)/3,j=(i-1)%3;Vector3 a=initial.skeleton.Joint(f*4+j),b=initial.skeleton.Joint(f*4+j+1);segmentLengths[i-1]=Mathf.Max(.005f,(b-a).magnitude);
+                    // Joints are stored to 1 mm. Snap near-rest lengths so every hand gets the same finger proportions.
+                    var resting=CandyHandSkeleton.Rest(left);float restLength=(resting.Joint(f*4+j+1)-resting.Joint(f*4+j)).magnitude;
+                    if(Mathf.Abs(segmentLengths[i-1]-restLength)<.0015f)segmentLengths[i-1]=restLength;
                     float radius=((f==0?.011f:.0078f)-j*.001f)*builtSize,length=segmentLengths[i-1]*builtSize;
                     if(j==2)
                     {
@@ -122,7 +157,9 @@ namespace DeadlyJenga.CandyPhysicsHands
                 }
                 contacts[i].sharedMaterial=friction;contacts[i].contactOffset=Mathf.Clamp(.0005f*builtSize,.0001f,.02f);
             }
-            ResetInactive(initial); // Safe only before activating contacts.
+            // Player hands build their joints with straight fingers, so the joint limits below are measured from straight.
+            var jointPose=initial;if(!JointDrivenFingers)jointPose.skeleton=Straightened(initial.skeleton);
+            ResetInactive(jointPose); // Safe only before activating contacts.
             for(int i=1;i<16;i++)
             {
                 int j=(i-1)%3;var joint=bodies[i].gameObject.AddComponent<ConfigurableJoint>();joint.connectedBody=bodies[j==0?0:i-1];joint.autoConfigureConnectedAnchor=false;joint.anchor=Vector3.zero;
@@ -137,13 +174,67 @@ namespace DeadlyJenga.CandyPhysicsHands
                     float swing=i<=3?25:10;
                     joint.angularYLimit=new SoftJointLimit{limit=swing};joint.angularZLimit=new SoftJointLimit{limit=swing};
                 }
+                else
+                {
+                    // Firm fingers: they curl toward the palm but cannot bend backwards, fold sideways or roll.
+                    // Pressing a fingertip on a block then pushes on the whole hand instead of folding the finger.
+                    bool thumb=i<=3,knuckle=j==0;
+                    // All three stay "Limited". Locking any one of them silently switches off the joint's drive
+                    // (the slerp drive needs every turning axis unlocked), and the fingers then just flop.
+                    joint.angularXMotion=joint.angularYMotion=joint.angularZMotion=ConfigurableJointMotion.Limited;
+                    // The thumb's base swings every way (that is how it gets across the palm to oppose the fingers).
+                    joint.angularYLimit=new SoftJointLimit{limit=thumb?(knuckle?70:15):3};
+                    joint.lowAngularXLimit=new SoftJointLimit{limit=thumb?-90:-FingerBackBendDegrees};
+                    joint.highAngularXLimit=new SoftJointLimit{limit=thumb?90:FingerCurlDegrees};
+                    joint.angularZLimit=new SoftJointLimit{limit=thumb?(knuckle?70:25):knuckle?25:6};
+                }
                 joint.enableCollision=false;joint.enablePreprocessing=true;joint.projectionMode=JointProjectionMode.None;
                 joint.rotationDriveMode=RotationDriveMode.Slerp;joint.configuredInWorldSpace=false;joints[i-1]=joint;
                 referenceRelative[i-1]=Quaternion.Inverse(joint.connectedBody.rotation)*bodies[i].rotation;
             }
             // Internal contacts produce jitter, never gripping force. Ignore only this hand's pairs.
             for(int i=0;i<16;i++)for(int j=i+1;j<16;j++)Physics.IgnoreCollision(contacts[i],contacts[j]);
+            if(!JointDrivenFingers)ResetInactive(initial);
             FitSkinHandedness();if(skin)skin.sharedMaterial=settings.skin;active=true;SetInteractive(false);
+        }
+        // Rotation of one finger bone, in palm space. Each bone only bends away from its rest pose and
+        // carries its parent's roll along. A bone that rolls against its neighbour pinches the skin
+        // into a thin thread, so roll is never taken from the palm direction (that flips past 90 degrees).
+        public static Quaternion FingerRotation(in CandyHandSkeleton skeleton,bool left,int finger,int joint)
+        {
+            var rest=CandyHandSkeleton.Rest(left);
+            Quaternion bend=Quaternion.identity;Vector3 restBone=Vector3.forward;
+            for(int k=0;k<=joint;k++)
+            {
+                int at=finger*4+k;
+                restBone=rest.Joint(at+1)-rest.Joint(at);
+                Vector3 bone=skeleton.Joint(at+1)-skeleton.Joint(at);
+                if(bone.sqrMagnitude>1e-10f)bend=Quaternion.FromToRotation(bend*restBone,bone)*bend;
+            }
+            return bend*SegmentRotation(restBone,Vector3.up);
+        }
+        public const float FingerCurlDegrees=115,FingerBackBendDegrees=12;
+        // Share of the hand's strength one finger (or the thumb) can use. Grip adds up finger by finger:
+        // a thumb-and-index pinch holds less than a whole hand.
+        public const float FingerStrengthShare=.12f,ThumbStrengthShare=.25f;
+        // How quickly a blocked finger's push builds as tracking closes further than the finger can go.
+        // At this stiffness a finger reaches its full share when tracking is about ten degrees past it.
+        const float FingerStiffness=16;
+        // Same knuckles and bone lengths, fingers pointing as they do at rest.
+        CandyHandSkeleton Straightened(CandyHandSkeleton skeleton)
+        {
+            var rest=CandyHandSkeleton.Rest(left);var result=skeleton;
+            for(int f=0;f<5;f++)
+            {
+                Vector3 at=skeleton.Joint(f*4);
+                for(int j=0;j<3;j++)
+                {
+                    int i=f*4+j;
+                    at+=(rest.Joint(i+1)-rest.Joint(i)).normalized*(skeleton.Joint(i+1)-skeleton.Joint(i)).magnitude;
+                    result.SetJoint(i+1,at);
+                }
+            }
+            return result;
         }
         public static Quaternion SegmentRotation(Vector3 delta,Vector3 normal)
         {var forward=Vector3.ProjectOnPlane(normal,delta.normalized);if(forward.sqrMagnitude<.001f)forward=Vector3.ProjectOnPlane(Vector3.right,delta.normalized);return Quaternion.LookRotation(forward.normalized,delta.normalized);}
@@ -160,7 +251,7 @@ namespace DeadlyJenga.CandyPhysicsHands
         {
             position=pose.position;rotation=pose.rotation;if(i==0)return;
             int f=(i-1)/3,j=(i-1)%3;Vector3 a=pose.skeleton.Joint(f*4+j),b=pose.skeleton.Joint(f*4+j+1);
-            position+=pose.rotation*a*builtSize;rotation=SegmentRotation(pose.rotation*(b-a),pose.rotation*Vector3.up);
+            position+=pose.rotation*a*builtSize;rotation=pose.rotation*FingerRotation(pose.skeleton,left,f,j);
         }
         public void SetInteractive(bool value)
         {
@@ -243,46 +334,115 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(friction.dynamicFriction!=sliding)friction.dynamicFriction=sliding;
             friction.frictionCombine=RequiresProfile?PhysicsMaterialCombine.Multiply:PhysicsMaterialCombine.Average;
             float requestedEffort=0;
+            // Only the palm chases the tracked hand. Fingers hold their pose on the real palm, so a hand pressed
+            // against something keeps its fingers firm instead of dragging them on toward where tracking went.
+            var onPalm=Target;onPalm.position=bodies[0].position;onPalm.rotation=bodies[0].rotation;
             for(int i=0;i<bodies.Length;i++)
             {
-                var rb=bodies[i];Desired(Target,i,out var p,out var q);
+                var rb=bodies[i];Desired(i==0?Target:onPalm,i,out var p,out var q);
                 rb.maxLinearVelocity=RequiresProfile?Mathf.Min(settings.maxSpeed,12):settings.maxSpeed;
-                float denominator=1+dt*settings.positionDamping/rb.mass+dt*dt*settings.positionSpring/rb.mass;
-                driveForces[i]=i==0||!JointDrivenFingers?Vector3.ClampMagnitude(
-                    ((p-rb.position)*settings.positionSpring-rb.linearVelocity*settings.positionDamping)/denominator,
-                    (i==0?settings.palmForce:settings.fingerForce)*Strength):Vector3.zero;
+                // The palm carries the whole hand, so damp it for the whole hand's mass. Damped for the palm alone,
+                // the hand wobbled around its target and bounced off whatever it pressed on.
+                float carried=0;if(i==0)foreach(var part in bodies)carried+=part.mass;
+                float palmDamping=Mathf.Max(settings.positionDamping,1.8f*Mathf.Sqrt(settings.positionSpring*Mathf.Max(carried,rb.mass)));
+                float denominator=1+dt*palmDamping/Mathf.Max(carried,rb.mass)+dt*dt*settings.positionSpring/Mathf.Max(carried,rb.mass);
+                // Only the palm is pulled toward a place. A finger is held on by its joint, so pulling it as well
+                // just fights that joint and spends the hand's strength on nothing. Fingers are turned, not pulled.
+                driveForces[i]=i==0?Vector3.ClampMagnitude(
+                    ((p-rb.position)*settings.positionSpring-rb.linearVelocity*palmDamping)/denominator,
+                    settings.palmForce*Strength):Vector3.zero;
                 if(i>0)
                 {
                     int parent=(i-1)%3==0?0:i-1;
-                    Desired(Target,parent,out _,out var parentRotation);
+                    Desired(onPalm,parent,out _,out var parentRotation);
                     Quaternion relative=Quaternion.Inverse(parentRotation)*q;
                     joints[i-1].targetRotation=Quaternion.Inverse(relative)*referenceRelative[i-1];
-                    driveTorques[i]=settings.fingerTorque*Strength;
+                    // A finger asks for torque by how far it is from its pose: resting fingers leave the
+                    // strength budget to whatever is actually pushing, and a blocked finger pushes harder.
+                    float off=Quaternion.Angle(Quaternion.Inverse(bodies[parent].rotation)*rb.rotation,relative)*Mathf.Deg2Rad;
+                    driveTorques[i]=(settings.fingerTorque*.1f+settings.rotationSpring*FingerStiffness*off)*Strength;
                 }
                 else
                 {
                     palmTorque=RequestedPalmTorque(rb,q,dt);
                     driveTorques[0]=palmTorque.magnitude;
                 }
-                requestedEffort+=driveForces[i].magnitude+driveTorques[i]/DriveLever(i);
+            }
+            // Holding its own angle is not pushing: the palm's turning strength is its own allowance (the hand's
+            // strength at the palm's edge) instead of being taken out of the push. A hand that spends everything on
+            // pressing would otherwise tip over on its fingers.
+            float turnAllowance=float.IsInfinity(forceBudget)?float.PositiveInfinity:forceBudget*Strength*DriveLever(0);
+            if(driveTorques[0]>turnAllowance){palmTorque*=turnAllowance/driveTorques[0];driveTorques[0]=turnAllowance;}
+            requestedEffort=driveForces[0].magnitude;
+            if(!JointDrivenFingers)FindFoldedJoints();
+            for(int f=0;f<5;f++)
+            {
+                // A finger touching nothing only moves itself. That costs none of the hand's strength, so it may
+                // move as fast as a finger does. The strength rule applies to what the hand does to other things.
+                bool touching=false;
+                for(int j=0;j<3;j++)touching|=touches[1+f*3+j]&&Time.fixedTime-touches[1+f*3+j].At<.15f;
+                digitFree[f]=!touching&&forceBudget>0;
+                // A touching finger's strength is what it can press with at its tip: its share of the hand's
+                // strength. Each joint may turn hard enough to deliver that at the fingertip, and no harder.
+                float press=forceBudget*(f==0?ThumbStrengthShare:FingerStrengthShare)*Strength,effort=0;
+                for(int j=0;j<3;j++)
+                {
+                    int i=1+f*3+j;float toTip=0;
+                    for(int k=j;k<3;k++)toTip+=segmentLengths[f*3+k]*builtSize;
+                    // Touching or not: a free finger flung shut by a sudden stop must be caught just the same.
+                    bool held=foldedShut[i];
+                    float most=held?settings.fingerTorque*3*Strength:digitFree[f]?settings.fingerTorque*Strength:Mathf.Min(press*toTip,settings.fingerTorque*2*Strength);
+                    driveTorques[i]=Mathf.Min(driveTorques[i],most);
+                    tipReach[i]=Mathf.Max(.01f,toTip);
+                    if(!held)effort=Mathf.Max(effort,driveTorques[i]/tipReach[i]);
+                }
+                if(!digitFree[f])requestedEffort+=effort;
             }
             float scale=requestedEffort>0?Mathf.Min(1,forceBudget*Strength/requestedEffort):0;
             for(int i=0;i<bodies.Length;i++)
             {
                 Vector3 force=driveForces[i]*scale;
-                float torque=driveTorques[i]*scale;
+                bool free=i>0&&(digitFree[(i-1)/3]||foldedShut[i]);
+                float torque=driveTorques[i]*(free?1:scale);
                 bodies[i].AddForce(force,ForceMode.Force);
                 MaximumAppliedForce=Mathf.Max(MaximumAppliedForce,force.magnitude);
                 AppliedLinearForceNewtons+=force.magnitude;
-                AppliedTorqueNewtonMetres+=torque;
-                AppliedDriveEffortNewtons+=force.magnitude+torque/DriveLever(i);
-                if(i==0)bodies[0].AddTorque(palmTorque*scale,ForceMode.Force);
+                if(i>0)AppliedTorqueNewtonMetres+=torque;
+                if(!free)AppliedDriveEffortNewtons+=force.magnitude+(i==0?0:torque/(tipReach[i]*3));
+                if(i==0){torque=driveTorques[0];bodies[0].AddTorque(palmTorque,ForceMode.Force);}
                 else joints[i-1].slerpDrive=new JointDrive
                 {
-                    positionSpring=torque>0?settings.rotationSpring*(JointDrivenFingers?6:1):0,
-                    positionDamper=torque>0?settings.rotationDamping*(JointDrivenFingers?2.5f:1):0,
+                    positionSpring=torque>0?settings.rotationSpring*FingerStiffness:0,
+                    positionDamper=torque>0?settings.rotationDamping*3:0,
                     maximumForce=torque
                 };
+            }
+        }
+        // Firm both ways. A finger can be stopped short of where tracking wants it (that is touching and gripping),
+        // but it resists being folded further closed than the tracked pose with its full structure, the same way its
+        // joint stops it bending backwards. Without this a hand pressed down hard crumpled onto its own curled fingers.
+        // This only marks which joints are being folded shut; the joint's own drive (which the solver keeps stable)
+        // then holds them with a larger allowance that is not taken from the hand's strength.
+        readonly bool[] foldedShut=new bool[16];
+        void FindFoldedJoints()
+        {
+            Quaternion palmTurn=bodies[0].rotation;Vector3 hinge=palmTurn*Vector3.right;
+            for(int f=1;f<5;f++)
+            {
+                Vector3 first=Target.skeleton.Joint(f*4+1)-Target.skeleton.Joint(f*4);
+                float flat=new Vector2(first.x,first.z).magnitude;
+                Vector3 along=flat>1e-5f&&first.z>0?new Vector3(first.x,0,first.z)/flat:Vector3.forward;
+                float before=0;
+                for(int j=0;j<3;j++)
+                {
+                    int i=1+f*3+j,parent=j==0?0:i-1;
+                    Vector3 bone=Target.skeleton.Joint(f*4+j+1)-Target.skeleton.Joint(f*4+j);
+                    float total=bone.sqrMagnitude>1e-10f?Mathf.Atan2(-bone.y,Vector3.Dot(bone.normalized,along))*Mathf.Rad2Deg:before;
+                    float wanted=Mathf.DeltaAngle(before,total);before=total;
+                    Vector3 from=j==0?palmTurn*Vector3.forward:bodies[parent].rotation*Vector3.up;
+                    float actual=Vector3.SignedAngle(from,bodies[i].rotation*Vector3.up,hinge);
+                    foldedShut[i]=actual>wanted+8;
+                }
             }
         }
         readonly RaycastHit[] previewSweep=new RaycastHit[64];
@@ -413,6 +573,8 @@ namespace DeadlyJenga.CandyPhysicsHands
         readonly RaycastHit[] recoverySweep=new RaycastHit[64];
         readonly Collider[] recoveryOverlaps=new Collider[64];
 
+        // How briskly the palm follows a wrist turn (radians per second; higher = snappier). Torque stays capped by palmTorque.
+        const float PalmTurnResponse=14;
         float DriveLever(int index)=>Mathf.Max(.01f,index==0?.078f*builtSize:segmentLengths[index-1]*builtSize);
         Vector3 RequestedPalmTorque(Rigidbody body,Quaternion target,float dt)
         {
@@ -424,23 +586,64 @@ namespace DeadlyJenga.CandyPhysicsHands
             Quaternion inertiaFrame=body.rotation*body.inertiaTensorRotation;
             Vector3 e=Quaternion.Inverse(inertiaFrame)*(axis*angle*Mathf.Deg2Rad);
             Vector3 w=Quaternion.Inverse(inertiaFrame)*body.angularVelocity;
+            // The palm turns the whole hand, fingers included, so size the turning torque for all of it.
+            // (Sized for the palm alone, a giant hand took seconds to follow a wrist turn.)
             Vector3 inertia=body.inertiaTensor,torque=Vector3.zero;
-            for(int n=0;n<3;n++)torque[n]=(e[n]*settings.rotationSpring-w[n]*settings.rotationDamping)/
-                (1+dt*settings.rotationDamping/Mathf.Max(.00000001f,inertia[n])+dt*dt*settings.rotationSpring/Mathf.Max(.00000001f,inertia[n]));
+            Quaternion toFrame=Quaternion.Inverse(inertiaFrame);
+            for(int i=1;i<bodies.Length;i++)
+            {
+                Vector3 r=toFrame*(bodies[i].worldCenterOfMass-body.worldCenterOfMass);float m=bodies[i].mass,square=r.sqrMagnitude;
+                inertia.x+=m*(square-r.x*r.x);inertia.y+=m*(square-r.y*r.y);inertia.z+=m*(square-r.z*r.z);
+            }
+            for(int n=0;n<3;n++)
+            {
+                float spring=inertia[n]*PalmTurnResponse*PalmTurnResponse,damping=2*inertia[n]*PalmTurnResponse;
+                torque[n]=(e[n]*spring-w[n]*damping)/(1+dt*damping/Mathf.Max(.00000001f,inertia[n])+dt*dt*spring/Mathf.Max(.00000001f,inertia[n]));
+            }
             return Vector3.ClampMagnitude(inertiaFrame*torque,settings.palmTorque*Strength);
         }
+        // Draws the hand as one whole glove. Bones are never copied straight from the physics bodies:
+        // those can drift apart, lag or roll, and the skin between them would stretch into noodles.
+        // Every finger starts at its knuckle on the palm and each bone starts where the last one ends.
+        // A free finger shows the tracked pose exactly; a finger touching something shows where physics stopped it.
         void LateUpdate()
         {
             if(!skin||visualBones==null||bodies==null)return;
             var rest=CandyHandSkeleton.Rest(left);
-            for(int i=0;i<16;i++)
+            Vector3 palmAt=bodies[0].transform.position;Quaternion palmTurn=bodies[0].transform.rotation;
+            Quaternion fromPalm=Quaternion.Inverse(palmTurn);
+            visualBones[0].SetPositionAndRotation(palmAt,palmTurn);visualBones[0].localScale=Vector3.one*builtSize;
+            // Network copies only know the bodies, so they always follow them.
+            bool followBodies=ReplicatedBones||NetworkPreview&&HasFreshAuthoritativePreview;
+            float limit=CandyHandPoseLimits.MaximumBendDegrees*Mathf.Deg2Rad;
+            var bounds=new Bounds(palmAt,Vector3.one*(.3f*builtSize));
+            for(int f=0;f<5;f++)
             {
-                visualBones[i].SetPositionAndRotation(bodies[i].transform.position,bodies[i].transform.rotation);var scale=Vector3.one*builtSize;
-                if(i>0){int f=(i-1)/3,j=(i-1)%3;float reference=visualReferenceLengths!=null&&visualReferenceLengths.Length==15?visualReferenceLengths[i-1]:(rest.Joint(f*4+j+1)-rest.Joint(f*4+j)).magnitude;scale.y*=segmentLengths[i-1]/Mathf.Max(.001f,reference);}
-                visualBones[i].localScale=scale;
+                bool touching=false;
+                if(active&&!followBodies)for(int j=0;j<3;j++)touching|=touches[1+f*3+j]&&Time.fixedTime-touches[1+f*3+j].At<.1f;
+                fingerContact[f]=followBodies?1:Mathf.MoveTowards(fingerContact[f],touching?1:0,Time.unscaledDeltaTime*10);
+                Vector3 at=palmAt+palmTurn*(rest.Joint(f*4)*builtSize),previous=Vector3.zero;
+                Quaternion bend=Quaternion.identity;
+                for(int j=0;j<3;j++)
+                {
+                    int i=1+f*3+j,joint=f*4+j;
+                    Vector3 restBone=rest.Joint(joint+1)-rest.Joint(joint);
+                    Vector3 tracked=hasExactBones?exactTargetBones[f*3+j]:Target.skeleton.Joint(joint+1)-Target.skeleton.Joint(joint);
+                    Vector3 physical=fromPalm*bodies[i].transform.up;
+                    Vector3 bone=tracked.sqrMagnitude>1e-10f?Vector3.Slerp(tracked.normalized,physical,fingerContact[f]):physical;
+                    if(bone.sqrMagnitude<1e-6f)bone=restBone;
+                    bone.Normalize();
+                    if(j>0)bone=Vector3.RotateTowards(previous,bone,limit,0);
+                    bend=Quaternion.FromToRotation(bend*restBone,bone)*bend;
+                    visualBones[i].SetPositionAndRotation(at,palmTurn*bend*SegmentRotation(restBone,Vector3.up));
+                    // Only length is scaled, so a finger keeps its full thickness whatever the hand size.
+                    float reference=visualReferenceLengths!=null&&visualReferenceLengths.Length==15?visualReferenceLengths[i-1]:restBone.magnitude;
+                    var scale=Vector3.one*builtSize;scale.y*=segmentLengths[i-1]/Mathf.Max(.001f,reference);
+                    visualBones[i].localScale=scale;
+                    at+=palmTurn*bone*(segmentLengths[i-1]*builtSize);previous=bone;
+                    bounds.Encapsulate(at);
+                }
             }
-            var bounds=new Bounds(bodies[0].position,Vector3.one*(.3f*builtSize));
-            for(int i=1;i<16;i++){bounds.Encapsulate(bodies[i].position);bounds.Encapsulate(bodies[i].position+bodies[i].rotation*(Vector3.up*segmentLengths[i-1]*builtSize));}
             bounds.Expand(.08f*builtSize);skin.localBounds=new Bounds(transform.InverseTransformPoint(bounds.center),bounds.size);
         }
         void OnDisable(){SetInteractive(false);}

@@ -27,6 +27,7 @@ namespace DeadlyJenga.CandyPlayers
         bool overridePose,wasVaulting;
         float handStride, handSwing, handSprintBlend;
         int handMotionFrame = -1;
+        readonly CandyAvatarHandSmoother leftHandSmoother = new CandyAvatarHandSmoother(), rightHandSmoother = new CandyAvatarHandSmoother();
         CandyAvatarFrame overridden;
         CandyHandPose vaultStartLeft,vaultStartRight;
         bool wasClimbing;
@@ -121,8 +122,16 @@ namespace DeadlyJenga.CandyPlayers
                 frame.hasGaitPhase = true;
                 frame.gaitPhase = handStride;
             }
+            int leftKind=!left.tracked?CandyAvatarHandSmoother.None:left.skeletonTracked?CandyAvatarHandSmoother.TrackedHand:CandyAvatarHandSmoother.Controller;
+            int rightKind=!right.tracked?CandyAvatarHandSmoother.None:right.skeletonTracked?CandyAvatarHandSmoother.TrackedHand:CandyAvatarHandSmoother.Controller;
             frame.left = LocomotionHand(frame, left, true, animateHands);
             frame.right = LocomotionHand(frame, right, false, animateHands);
+            // Only the local VR player's hands come from tracking; bots and desktop hands are already authored poses.
+            if(vr&&tracking&&animateHands)
+            {
+                frame.left=leftHandSmoother.Step(frame.left,leftKind,true,frame.head,frame.headRotation,Time.unscaledDeltaTime);
+                frame.right=rightHandSmoother.Step(frame.right,rightKind,false,frame.head,frame.headRotation,Time.unscaledDeltaTime);
+            }
             ApplyPunch(ref frame);
             GetComponent<CandyEquipment>()?.PoseHands(ref frame);
             return frame;
