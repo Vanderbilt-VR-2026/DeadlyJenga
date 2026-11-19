@@ -188,12 +188,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var back = loaded.Find("ada"); var oldBack = loaded.Find("ben");
             bool kept = back != null && back.badge == track.badge && StudioBadges.Has(back, StudioBadges.Stale) && StudioBadges.Has(back, StudioBadges.CouldNotPlay);
             bool oldReads = oldBack != null && StudioBadges.Parts(oldBack).Count == 1 && StudioBadges.Has(oldBack, StudioBadges.Stale);
+            string loadedBadge = back?.badge ?? "";
             StudioBadges.ClearAfterRecording(back);
             bool recorded = string.IsNullOrEmpty(back.badge);
             Result("Cut 0a. Track warnings do not hide each other and survive saving",
                 three && replaced && cleared && kept && oldReads && recorded,
                 $"Stale + retimed + could-not-play on one track: {StudioBadges.Parts(track).Count + 1} lines before clearing one, shown stale first: {three}; setting stale again replaced it: {replaced}; " +
-                $"clearing retimed left the other two: {cleared}. Saved and loaded through StudioTape.Save/Load: {kept} (\"{back?.badge?.Replace("\n", " / ")}\"). A single warning as older tapes have it reads as one: {oldReads}. A new recording clears all three: {recorded}.");
+                $"clearing retimed left the other two: {cleared}. Saved and loaded through StudioTape.Save/Load: {kept} (\"{loadedBadge.Replace("\n", " / ")}\"). A single warning as older tapes have it reads as one: {oldReads}. A new recording clears all three: {recorded}.");
         }
 
         static void CueIdTests()
@@ -265,7 +266,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             catch (Exception e) { error = e.Message; }
             var xmlFaults = error == "" ? CheckFcpxml(xmlFile) : new List<string> { error };
-            var edlFaults = error == "" ? CheckEdl(edlFile, out _) : new List<string> { error };
+            var edlFaults = error == "" ? CheckEdl(edlFile, 30, out _) : new List<string> { error };
             string[] edl = error == "" ? File.ReadAllLines(edlFile) : new string[0];
             // The expected dissolve pair, worked out by hand: Wide ends 7 frames early (0:00:01:23), the zero-length
             // cut line sits there, and Close comes in 7 frames before its in point (0:00:00:23) with D 015.
@@ -447,14 +448,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // D line with the same event number. 'events' = how many event numbers the list has.
         static readonly Regex EdlLine = new Regex(@"^(\d{3})  (\S{1,8}) +(V|A|A2|AA|AA/V|B) +(C|D|W\d{3}) +(\d{3})? *(\d\d:\d\d:\d\d:\d\d) (\d\d:\d\d:\d\d:\d\d) (\d\d:\d\d:\d\d:\d\d) (\d\d:\d\d:\d\d:\d\d)$");
 
-        public static List<string> CheckEdl(string file, out int events)
+        // fps: the timeline's frame rate. An EDL does not say it; the last timecode field counts frames at that rate.
+        public static List<string> CheckEdl(string file, int fps, out int events)
         {
             var faults = new List<string>();
             var lines = File.ReadAllLines(file);
             events = 0;
             if (lines.Length < 2 || !lines[0].StartsWith("TITLE: ")) faults.Add("the first line must be TITLE:");
             if (!lines.Any(l => l == "FCM: NON-DROP FRAME" || l == "FCM: DROP FRAME")) faults.Add("no FCM line");
-            int fps = 30;
             var numbers = new HashSet<string>();
             long recordAt = -1;
             string[] last = null;
