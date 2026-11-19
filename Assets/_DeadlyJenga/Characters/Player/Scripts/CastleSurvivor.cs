@@ -256,7 +256,34 @@ namespace DeadlyJenga.CastlePrototype
             UpdateSprintToggle(sprintInput&&Alive&&!Vaulting&&!Sinking&&modeRules?.downed!=true,
                 sprintClick,sprintHeld);
             UpdatePunch();
+            Vector3 beforeWalk = transform.position;
             Simulate(walking, pressed, Time.deltaTime,held);
+            if (!externallyDriven && Services.Session is ILobbyControls)
+                CheckLobbyWalk(walking, transform.position - beforeWalk);
+        }
+
+        float nextLobbyWalkSample;
+        string lastLobbyWalkState;
+        void CheckLobbyWalk(Vector2 walking, Vector3 displacement)
+        {
+            if (Time.unscaledTime < nextLobbyWalkSample) return;
+            nextLobbyWalkSample = Time.unscaledTime + .25f;
+            var left = move.ReadValue<Vector2>();
+            var right = turn.ReadValue<Vector2>();
+            float speed = new Vector2(displacement.x, displacement.z).magnitude / Mathf.Max(.0001f, Time.deltaTime);
+            string state;
+            if (!IsVR) state = "desktop controls";
+            else if (InputSuspended || !vrInputFocused || trackingRebase) state = "input paused";
+            else if (Climbing || Vaulting) state = "traversal";
+            else if (walking.sqrMagnitude > .01f) state = speed < .05f ? "walk blocked" : "walking";
+            else state = left.sqrMagnitude + right.sqrMagnitude > .04f ? "stick active without walk" : "sticks idle";
+            if (state == lastLobbyWalkState) return;
+            lastLobbyWalkState = state;
+            Debug.Log($"[Lobby walk] {state} left={left} right={right} walk={walking} speed={speed:F2} " +
+                $"tracked L/R={HybridXRInput.ControllerTracked(true)}/{HybridXRInput.ControllerTracked(false)} " +
+                $"leftHanded={PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)} menu={Services.Session.MenuOpen} " +
+                $"suspended={InputSuspended} focused={vrInputFocused} recenter={trackingRebase} " +
+                $"climbing={Climbing} grounded={Grounded} speedMultiplier={movementMultiplier} collision={Capsule.collisionFlags}", this);
         }
 
         public void Teleport(Vector3 feet, Quaternion rotation)
