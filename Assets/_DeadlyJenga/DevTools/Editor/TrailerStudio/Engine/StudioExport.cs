@@ -50,7 +50,87 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return pieces;
         }
 
-        static string Rational(int frames, int fps) => frames == 0 ? "0s" : $"{frames}/{fps}s";
+        // FCPXML time: a rational number of seconds, "frames/fps" + "s" (whole seconds are written as "5s").
+        static string Rational(long frames, int fps) => frames == 0 ? "0s" : frames % fps == 0 ? $"{frames / fps}s" : $"{frames}/{fps}s";
+
+        // How long a WAV file is: sample frames and sample rate from its header. False if it is not a PCM WAV we can read.
+        public static bool WavLength(string file, out long samples, out int rate, out int channels)
+        {
+            samples = 0; rate = 0; channels = 0;
+            try
+            {
+                using (var r = new BinaryReader(File.OpenRead(file)))
+                {
+                    if (r.BaseStream.Length < 12 || new string(r.ReadChars(4)) != "RIFF") return false;
+                    r.ReadInt32();
+                    if (new string(r.ReadChars(4)) != "WAVE") return false;
+                    int blockAlign = 0;
+                    while (r.BaseStream.Position + 8 <= r.BaseStream.Length)
+                    {
+                        string chunk = new string(r.ReadChars(4));
+                        long size = r.ReadUInt32(), body = r.BaseStream.Position;
+                        if (chunk == "fmt ")
+                        {
+                            r.ReadInt16(); channels = r.ReadInt16(); rate = r.ReadInt32(); r.ReadInt32(); blockAlign = r.ReadInt16();
+                        }
+                        else if (chunk == "data")
+                        {
+                            // A file whose writer never went back to fill in the size: use what is really there.
+                            long available = r.BaseStream.Length - body;
+                            if (size == 0 || size > available) size = available;
+                            if (blockAlign <= 0 || rate <= 0) return false;
+                            samples = size / blockAlign;
+                            return true;
+                        }
+                        r.BaseStream.Position = body + size + (size & 1);
+                    }
+                }
+            }
+            catch (IOException) { }
+            return false;
+        }
+
+        // The dissolve into piece i, centred on the edit point: 'head' frames before it come from the outgoing
+        // shot's extra rendered frames, the rest from the incoming shot's frames before its in point.
+        // It is shortened when the renders do not have enough frames on either side (0 = a straight cut).
+        static int Dissolve(List<Piece> pieces, int i, int fps, out int head)
+        {
+            head = 0;
+            if (i <= 0 || i >= pieces.Count || pieces[i].cut.dissolve <= 0) return 0;
+            int length = Mathf.Max(2, Mathf.RoundToInt(pieces[i].cut.dissolve * fps));
+            var before = pieces[i - 1];
+            int spareAfter = before.shot.frames - (before.inFrame + before.frames), spareBefore = pieces[i].inFrame;
+            head = length / 2;
+            int tail = length - head;
+            if (head > spareBefore || tail > spareAfter)
+            {
+                head = tail = Mathf.Max(0, Mathf.Min(head, Mathf.Min(spareBefore, spareAfter)));
+                length = head + tail;
+            }
+            if (length < 2) { head = 0; return 0; }
+            return length;
+        }
+
+        static void CheckDissolves(List<Piece> pieces, List<string> problems)
+        {
+            if (pieces.Count == 0) return;
+            int fps = pieces[0].shot.fps;
+            for (int i = 1; i < pieces.Count; i++)
+            {
+                if (pieces[i].cut.dissolve <= 0) continue;
+                int wanted = Mathf.Max(2, Mathf.RoundToInt(pieces[i].cut.dissolve * fps)), got = Dissolve(pieces, i, fps, out _);
+                if (got < wanted)
+                    problems.Add($"The dissolve into \"{pieces[i].shot.name}\" is {got} frames instead of {wanted}: a dissolve uses rendered frames from after the outgoing piece and before the incoming one, and the renders do not have enough." + (got == 0 ? " It is written as a straight cut." : ""));
+            }
+        }
+
+        // Final Cut Pro's own names for its standard formats. Anything else is written by size and rate only.
+        static string FormatName(int width, int height, int fps)
+        {
+            string size = width == 1920 && height == 1080 ? "1080" : width == 1280 && height == 720 ? "720" : width == 3840 && height == 2160 ? "3840x2160" : null;
+            bool rate = fps == 24 || fps == 25 || fps == 30 || fps == 50 || fps == 60;
+            return size != null && rate ? $" name=\"FFVideoFormat{size}p{fps}\"" : "";
+        }
         static string Uri(string file) => new Uri(Path.GetFullPath(file)).AbsoluteUri;
         static string X(string text) => SecurityElement.Escape(text ?? "");
 
@@ -59,11 +139,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var pieces = Resolve(set, renderFolder, out problems);
             if (pieces.Count == 0) throw new InvalidOperationException(problems.Count > 0 ? problems[0] : "The cut is empty. Add shots in the Cut tab.");
+            CheckDissolves(pieces, problems);
             int fps = pieces[0].shot.fps, width = pieces[0].shot.width, height = pieces[0].shot.height;
             int total = pieces.Sum(p => p.frames);
             var xml = new StringBuilder();
             xml.Append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE fcpxml>\n<fcpxml version=\"1.9\">\n  <resources>\n");
-            xml.Append($"    <format id=\"r1\" name=\"FFVideoFormat{height}p{fps}\" frameDuration=\"1/{fps}s\" width=\"{width}\" height=\"{height}\"/>\n");
+            xml.Append($"    <format id=\"r1\"{FormatName(width, height, fps)} frameDuration=\"{Rational(1, fps)}\" width=\"{width}\" height=\"{height}\"/>\n");
             var assets = new Dictionary<string, string>();
             foreach (var piece in pieces)
             {
@@ -75,11 +156,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             bool sound = !string.IsNullOrEmpty(audioFile) && File.Exists(audioFile);
             bool music = !string.IsNullOrEmpty(set.music) && File.Exists(set.music);
-            if (sound) xml.Append($"    <asset id=\"s1\" name=\"Game sound\" start=\"0s\" hasAudio=\"1\" audioSources=\"1\" audioChannels=\"2\">\n      <media-rep kind=\"original-media\" src=\"{X(Uri(audioFile))}\"/>\n    </asset>\n");
-            if (music) xml.Append($"    <asset id=\"m1\" name=\"Music\" start=\"0s\" hasAudio=\"1\" audioSources=\"1\" audioChannels=\"2\">\n      <media-rep kind=\"original-media\" src=\"{X(Uri(set.music))}\"/>\n    </asset>\n");
+            if (sound) xml.Append(AudioAsset("s1", "Game sound", audioFile, problems));
+            long soundFrames = sound && WavLength(audioFile, out long soundSamples, out int soundRate, out _) ? soundSamples * fps / soundRate : -1;
+            if (music) xml.Append(AudioAsset("m1", "Music", set.music, problems));
+            // The sound of takes a person performed, each on its own lane.
             var performed = StudioCutSound.PerformedSounds(set); StudioCutSound.AppendAssets(xml, performed);
             xml.Append("  </resources>\n  <library>\n    <event name=\"Trailer Studio\">\n");
-            xml.Append($"      <project name=\"{X(set.title)}\">\n        <sequence format=\"r1\" duration=\"{Rational(total, fps)}\" tcStart=\"0s\" tcFormat=\"NDF\">\n          <spine>\n");
+            xml.Append($"      <project name=\"{X(set.title)}\">\n        <sequence format=\"r1\" duration=\"{Rational(total, fps)}\" tcStart=\"0s\" tcFormat=\"NDF\" audioLayout=\"stereo\" audioRate=\"48k\">\n          <spine>\n");
             for (int i = 0; i < pieces.Count; i++)
             {
                 var piece = pieces[i];
@@ -88,23 +171,46 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (sound)
                 {
                     int tapeFrame = Mathf.RoundToInt(piece.shot.tapeStart * fps) + piece.inFrame;
-                    xml.Append($"              <asset-clip ref=\"s1\" lane=\"-1\" name=\"Game sound\" offset=\"{Rational(piece.inFrame, fps)}\" start=\"{Rational(tapeFrame, fps)}\" duration=\"{Rational(piece.frames, fps)}\"/>\n");
+                    // Never past the end of the sound file (it can be a frame shorter than the tape).
+                    long heard = soundFrames >= 0 ? Math.Min(piece.frames, soundFrames - tapeFrame) : piece.frames;
+                    if (heard > 0)
+                        xml.Append($"              <asset-clip ref=\"s1\" lane=\"-1\" name=\"Game sound\" offset=\"{Rational(piece.inFrame, fps)}\" start=\"{Rational(tapeFrame, fps)}\" duration=\"{Rational(heard, fps)}\"/>\n");
                 }
                 if (music && i == 0)
-                    xml.Append($"              <asset-clip ref=\"m1\" lane=\"-2\" name=\"Music\" offset=\"{Rational(piece.inFrame, fps)}\" start=\"0s\" duration=\"{Rational(total, fps)}\"/>\n");
+                {
+                    // The music runs under the whole cut, but never past the end of its own file.
+                    int musicFrames = total;
+                    if (WavLength(set.music, out long samples, out int rate, out _)) musicFrames = (int)Math.Min(total, samples * fps / rate);
+                    xml.Append($"              <asset-clip ref=\"m1\" lane=\"-2\" name=\"Music\" offset=\"{Rational(piece.inFrame, fps)}\" start=\"0s\" duration=\"{Rational(Math.Max(1, musicFrames), fps)}\"/>\n");
+                }
                 StudioCutSound.AppendClips(xml, performed, piece, fps);
                 xml.Append("            </asset-clip>\n");
-                if (i + 1 < pieces.Count && pieces[i + 1].cut.dissolve > 0)
-                {
-                    int length = Mathf.Max(2, Mathf.RoundToInt(pieces[i + 1].cut.dissolve * fps));
-                    xml.Append($"            <transition name=\"Cross Dissolve\" offset=\"{Rational(pieces[i + 1].recordStart - length / 2, fps)}\" duration=\"{Rational(length, fps)}\"/>\n");
-                }
+                // A transition sits between the two clips it overlaps; the clips keep their edit point.
+                int length = Dissolve(pieces, i + 1, fps, out int head);
+                if (length > 0)
+                    xml.Append($"            <transition name=\"Cross Dissolve\" offset=\"{Rational(pieces[i + 1].recordStart - head, fps)}\" duration=\"{Rational(length, fps)}\"/>\n");
             }
             xml.Append("          </spine>\n        </sequence>\n      </project>\n    </event>\n  </library>\n</fcpxml>\n");
             string file = Path.Combine(renderFolder, StudioRender.Safe(set.title) + ".fcpxml");
             File.WriteAllText(file, xml.ToString());
             StudioCutSound.WriteCutSound(set, renderFolder, audioFile, performed, pieces, fps, problems);
             return file;
+        }
+
+        // An audio-only asset. FCPXML wants its length; a WAV header gives it exactly. Other files are left to the editor.
+        static string AudioAsset(string id, string name, string file, List<string> problems)
+        {
+            string length = "";
+            int channels = 2;
+            if (WavLength(file, out long samples, out int rate, out int found))
+            {
+                long whole = samples % rate == 0 ? samples / rate : -1;
+                length = $" duration=\"{(whole >= 0 ? whole + "s" : samples + "/" + rate + "s")}\" audioRate=\"{rate}\"";
+                channels = Mathf.Max(1, found);
+            }
+            else problems.Add($"\"{Path.GetFileName(file)}\" is not a WAV file the Studio can read, so its length is not written in the FCPXML; the editor reads it from the file.");
+            return $"    <asset id=\"{id}\" name=\"{X(name)}\" start=\"0s\"{length} hasAudio=\"1\" audioSources=\"1\" audioChannels=\"{channels}\">\n" +
+                $"      <media-rep kind=\"original-media\" src=\"{X(Uri(file))}\"/>\n    </asset>\n";
         }
 
         static string Timecode(int frame, int fps) =>
@@ -115,16 +221,43 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var pieces = Resolve(set, renderFolder, out problems);
             if (pieces.Count == 0) throw new InvalidOperationException(problems.Count > 0 ? problems[0] : "The cut is empty. Add shots in the Cut tab.");
+            CheckDissolves(pieces, problems);
             int fps = pieces[0].shot.fps;
-            var edl = new StringBuilder($"TITLE: {set.title}\nFCM: NON-DROP FRAME\n\n");
+            if (fps != 24 && fps != 25 && fps != 30)
+                problems.Add($"EDL at {fps} fps: CMX 3600 timecode is defined for 24, 25 and 30 fps. Import it into a timeline set to {fps} fps, or use the FCPXML.");
+            // CMX 3600. Each event line: number, reel, track, transition (C = cut, D = dissolve + length in frames),
+            // source in/out, record in/out; "out" times are the first frame after the piece.
+            // Rendered files have no tape reel, so the reel is AX ("auxiliary source") and the editor finds
+            // the file by the "FROM CLIP NAME" comment, the way Premiere and Resolve write their own EDLs.
+            const string Reel = "AX      ";
+            string Line(int number, string kind, int length, int sourceIn, int sourceOut, int recordIn, int recordOut) =>
+                $"{number:000}  {Reel} V     {kind,-4} {(length > 0 ? length.ToString("000") : "   ")} " +
+                $"{Timecode(sourceIn, fps)} {Timecode(sourceOut, fps)} {Timecode(recordIn, fps)} {Timecode(recordOut, fps)}\r\n";
+            var edl = new StringBuilder($"TITLE: {set.title}\r\nFCM: NON-DROP FRAME\r\n\r\n");
+            int[] heads = new int[pieces.Count], lengths = new int[pieces.Count];
+            for (int i = 1; i < pieces.Count; i++) lengths[i] = Dissolve(pieces, i, fps, out heads[i]);
             for (int i = 0; i < pieces.Count; i++)
             {
                 var piece = pieces[i];
-                string reel = ("S" + (i + 1).ToString("000")).PadRight(8);
-                bool dissolve = piece.cut.dissolve > 0 && i > 0;
-                string transition = dissolve ? "D    " + Mathf.RoundToInt(piece.cut.dissolve * fps).ToString("000") : "C        ";
-                edl.Append($"{i + 1:000}  {reel} V     {transition} {Timecode(piece.inFrame, fps)} {Timecode(piece.inFrame + piece.frames, fps)} {Timecode(piece.recordStart, fps)} {Timecode(piece.recordStart + piece.frames, fps)}\n");
-                edl.Append($"* FROM CLIP NAME: {Path.GetFileName(piece.media)}\n* SHOT: {piece.shot.name}\n\n");
+                // A dissolve starts 'head' frames before the edit point, so the outgoing event ends there.
+                int end = i + 1 < pieces.Count ? heads[i + 1] : 0;
+                int sourceIn = piece.inFrame, recordIn = piece.recordStart, sourceOut = piece.inFrame + piece.frames - end, recordOut = piece.recordStart + piece.frames - end;
+                if (lengths[i] == 0)
+                {
+                    edl.Append(Line(i + 1, "C", 0, sourceIn, sourceOut, recordIn, recordOut));
+                    edl.Append($"* FROM CLIP NAME: {Path.GetFileName(piece.media)}\r\n");
+                }
+                else
+                {
+                    // A dissolve is two lines with one event number: the outgoing shot as a zero-length cut at the
+                    // frame where the dissolve starts, then the incoming shot with D and the length.
+                    var before = pieces[i - 1];
+                    int outgoing = before.inFrame + before.frames - heads[i], start = piece.recordStart - heads[i];
+                    edl.Append(Line(i + 1, "C", 0, outgoing, outgoing, start, start));
+                    edl.Append(Line(i + 1, "D", lengths[i], piece.inFrame - heads[i], sourceOut, start, recordOut));
+                    edl.Append($"* FROM CLIP NAME: {Path.GetFileName(before.media)}\r\n* TO CLIP NAME: {Path.GetFileName(piece.media)}\r\n");
+                }
+                edl.Append($"* SHOT: {piece.shot.name}\r\n\r\n");
             }
             string file = Path.Combine(renderFolder, StudioRender.Safe(set.title) + ".edl");
             File.WriteAllText(file, edl.ToString());

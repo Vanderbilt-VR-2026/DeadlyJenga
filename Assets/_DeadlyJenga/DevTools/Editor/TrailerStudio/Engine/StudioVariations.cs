@@ -117,17 +117,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var random = new System.Random(running.seed * 7919 + Done);
             float Spread(float amount) => (float)(random.NextDouble() * 2 - 1) * amount;
             Restore();
+            stage.set.EnsureCueIds();   // the recipe finds its cues again by id
+            float fromTime = running.fromFrame / (float)stage.Fps;
             foreach (var cue in stage.set.cues)
             {
-                if (cue.at * stage.Fps < running.fromFrame) continue;   // cues before the branch already happened on the tape
+                // Cues before the branch already happened on the tape. A cue exactly on the branch frame has not
+                // (the recording fires it on the first new frame), so it is varied too. Same tolerance as the recording.
+                if (cue.at < fromTime - .0001f) continue;
                 cue.jitter = cue.action == PushCue.Id || cue.action == "collapse" ? Spread(running.forceJitter) : 0;
                 moved.Add((cue, cue.at));
-                if (string.IsNullOrEmpty(cue.link)) cue.at = Mathf.Clamp(cue.at + Spread(running.timeJitter), running.fromFrame / (float)stage.Fps, stage.set.length - .05f);
+                if (string.IsNullOrEmpty(cue.link)) cue.at = Mathf.Clamp(cue.at + Spread(running.timeJitter), fromTime, stage.set.length - .05f);
             }
-            var recipe = new Recipe();
-            foreach (var cue in stage.set.cues) { recipe.at.Add(cue.at); recipe.jitter.Add(cue.jitter); }
+            int seed = running.seed * 1000 + Done;
+            var recipe = new Recipe { seed = seed, fromFrame = running.fromFrame };
+            foreach (var cue in stage.set.cues) recipe.cues.Add(new RecipeCue { id = cue.id, at = cue.at, strength = cue.strength * (1 + cue.jitter) });
             var pass = new StudioPass { label = $"Variation {Done + 1} of {Total}", liveWorld = true, fixedClock = true, recipe = JsonUtility.ToJson(recipe),
-                branchFrom = running.fromFrame > 0 ? running.fromFrame : -1, seed = running.seed * 1000 + Done, note = $"Variation {Done + 1}" };
+                branchFrom = running.fromFrame > 0 ? running.fromFrame : -1, seed = seed, note = $"Variation {Done + 1}" };
             foreach (var track in stage.tape.tracks)
                 if (!track.locked && track.type != SurvivorTrack.Id && track.type != HandTrack.Id && StudioTrackTypes.Get(track.type) != null) pass.record.Add(track.id);
             StudioRun.Record(pass);
@@ -141,7 +146,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         }
 
         // What a variation changed, kept with its take so a chosen one can be made again.
-        [Serializable] public sealed class Recipe { public List<float> at = new List<float>(), jitter = new List<float>(); }
+        // Each cue by its id: the time it ran at and the strength it really had (strength x (1 + jitter)).
+        // Older recipes only have 'at' and 'jitter' lists in the Set's cue order.
+        [Serializable] public sealed class Recipe
+        {
+            public List<RecipeCue> cues = new List<RecipeCue>();
+            public int seed = -1;             // the random seed the try was recorded with
+            public int fromFrame;             // 0 = the try started from a fresh map
+            public List<float> at = new List<float>(), jitter = new List<float>();   // old format, by position
+        }
+        [Serializable] public sealed class RecipeCue { public string id = ""; public float at, strength; }
 
         public static Recipe RecipeOf(StudioTake take)
         {
@@ -151,17 +165,44 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         }
 
         // Write a variation's cue times and strengths into the Set, so "Record whole set" makes that collapse again.
-        public static bool ApplyRecipe(StudioSet set, StudioTake take)
+        // Cues are found by id, so reordering cues does not matter; pressing it twice changes nothing more.
+        // Returns a short message for the person.
+        public static string ApplyRecipe(StudioSet set, StudioTake take)
         {
             var recipe = RecipeOf(take);
-            if (recipe == null || recipe.at.Count != set.cues.Count || recipe.jitter.Count != set.cues.Count) return false;
-            for (int i = 0; i < set.cues.Count; i++)
+            if (recipe == null) return "This take has no variation recipe.";
+            if (recipe.cues.Count == 0)
             {
-                set.cues[i].at = recipe.at[i];
-                set.cues[i].strength *= 1 + recipe.jitter[i];
-                set.cues[i].jitter = 0;
+                // Old recipe: only usable while the Set has exactly the same number of cues.
+                if (recipe.at.Count != set.cues.Count || recipe.jitter.Count != set.cues.Count)
+                    return "This older variation kept its timings by cue order, and the Set's cues have changed since, so they no longer fit. Nothing was changed.";
+                for (int i = 0; i < set.cues.Count; i++)
+                {
+                    set.cues[i].at = recipe.at[i];
+                    set.cues[i].strength *= 1 + recipe.jitter[i];
+                    set.cues[i].jitter = 0;
+                }
+                return $"Updated {set.cues.Count} cues (older recipe, matched by order).";
             }
-            return true;
+            set.EnsureCueIds();
+            int updated = 0, missing = 0;
+            foreach (var saved in recipe.cues)
+            {
+                var cue = set.cues.FirstOrDefault(c => c.id == saved.id);
+                if (cue == null) { missing++; continue; }
+                cue.at = saved.at; cue.strength = saved.strength; cue.jitter = 0;
+                updated++;
+            }
+            string message = $"Updated {updated} cue{(updated == 1 ? "" : "s")}" + (missing > 0 ? $"; {missing} cue{(missing == 1 ? " is" : "s are")} no longer in the Set and {(missing == 1 ? "was" : "were")} skipped." : ".");
+            if (recipe.fromFrame <= 0 && recipe.seed >= 0)
+            {
+                // A try from a fresh map is only made again with the same random seed.
+                if (set.seed != recipe.seed) message += $" The Set's random seed is now {recipe.seed} (was {set.seed}), the seed this try used.";
+                set.seed = recipe.seed;
+            }
+            else if (recipe.fromFrame > 0)
+                message += " This try branched from an older world take, so recording the whole set from a fresh map gives a similar, not identical, result.";
+            return message;
         }
 
         // Put cue times and strengths back the way the person set them.

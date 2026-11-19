@@ -40,6 +40,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 case "Window": return WindowTour();
                 case "Phase5": return Phase5Tests();
                 case "Ui": return UiTests();
+                case "Cut": return CutTests();
                 default: throw new InvalidOperationException("There is no test suite called " + suite);
             }
         }

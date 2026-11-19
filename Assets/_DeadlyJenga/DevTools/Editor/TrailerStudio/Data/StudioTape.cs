@@ -36,7 +36,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public TrackMode mode = TrackMode.Playback;
         public int active = -1;           // index into takes, -1 = nothing recorded yet
         public string meta = "";          // free JSON for the track type
-        public string badge = "";         // honest status shown on the row ("stale", "drifted"...)
+        public string badge = "";         // honest status shown on the row; one line per kind, see StudioBadges
         public readonly List<StudioTake> takes = new List<StudioTake>();
 
         public StudioTake ActiveTake => active >= 0 && active < takes.Count ? takes[active] : null;
@@ -48,6 +48,49 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             takes.Add(take);
             active = takes.Count - 1;
             return take;
+        }
+    }
+
+    // A track can have several warnings at once ("Stale: ...", "Retimed: ...", "Could not play: ...").
+    // They share track.badge, one per line, each starting with its kind, so setting or clearing one
+    // never touches the others. Old tapes with a single warning read as one line: nothing changes on disk.
+    public static class StudioBadges
+    {
+        public const string Stale = "Stale:", Retimed = "Retimed:", CouldNotPlay = "Could not play:";
+        static readonly string[] Order = { Stale, Retimed, CouldNotPlay };
+
+        public static List<string> Parts(string badge) =>
+            string.IsNullOrEmpty(badge) ? new List<string>() : badge.Split('\n').Where(p => p.Trim().Length > 0).ToList();
+
+        public static List<string> Parts(StudioTrack track) => Parts(track?.badge);
+
+        // The kind of a warning line: the known prefix it starts with, or "" for any other text.
+        public static string KindOf(string part) => Order.FirstOrDefault(k => part.StartsWith(k)) ?? "";
+
+        public static bool Has(StudioTrack track, string kind) => Parts(track).Any(p => p.StartsWith(kind));
+
+        // Set one kind of warning. 'message' is the text after the kind ("Stale:" + " " + message).
+        public static string With(string badge, string kind, string message)
+        {
+            var parts = Parts(badge).Where(p => !p.StartsWith(kind)).ToList();
+            parts.Add(kind + " " + (message ?? "").Replace('\r', ' ').Replace('\n', ' ').Trim());
+            // Always the same order, so the row reads the same whichever was written last.
+            return string.Join("\n", parts.OrderBy(p => { int i = Array.IndexOf(Order, KindOf(p)); return i < 0 ? Order.Length : i; }));
+        }
+
+        public static string Without(string badge, string kind) => string.Join("\n", Parts(badge).Where(p => !p.StartsWith(kind)));
+
+        public static void Set(StudioTrack track, string kind, string message) => track.badge = With(track.badge, kind, message);
+
+        public static void Clear(StudioTrack track, string kind)
+        {
+            if (!string.IsNullOrEmpty(track.badge) && track.badge.Contains(kind)) track.badge = Without(track.badge, kind);
+        }
+
+        // A track was just recorded again: its new take is not stale or retimed, and gets a fresh chance to play.
+        public static void ClearAfterRecording(StudioTrack track)
+        {
+            Clear(track, Stale); Clear(track, Retimed); Clear(track, CouldNotPlay);
         }
     }
 

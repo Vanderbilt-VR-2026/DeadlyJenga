@@ -46,7 +46,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 .OrderBy(b => (b.position - centre).sqrMagnitude).Take(10))
             {
                 var outward = Vector3.ProjectOnPlane(body.position - centre, Vector3.up);
-                body.AddForce((outward.normalized + Vector3.right * .75f + Vector3.up * .12f) * Mathf.Clamp(cue.strength, .1f, 30), ForceMode.VelocityChange);
+                body.AddForce((outward.normalized + Vector3.right * .75f + Vector3.up * .12f) * Mathf.Clamp(cue.strength, .1f, 30) * (1 + cue.jitter), ForceMode.VelocityChange);
                 count++;
             }
             if (count == 0) throw new InvalidOperationException("No loose blocks near the cue.");

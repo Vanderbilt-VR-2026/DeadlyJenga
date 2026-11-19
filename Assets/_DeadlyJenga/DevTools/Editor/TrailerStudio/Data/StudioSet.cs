@@ -96,6 +96,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return mark;
         }
 
+        // Every cue needs its own id (links and variation recipes find cues by it). Sets saved before
+        // cues had ids, or with a copied cue, get new ones here. Returns how many ids were added.
+        public int EnsureCueIds()
+        {
+            int added = 0;
+            var seen = new HashSet<string>();
+            foreach (var cue in cues)
+            {
+                if (string.IsNullOrEmpty(cue.id) || !seen.Add(cue.id))
+                {
+                    cue.id = Guid.NewGuid().ToString("N").Substring(0, 8);
+                    seen.Add(cue.id);
+                    added++;
+                }
+            }
+            return added;
+        }
+
         public string UniqueId(string wanted)
         {
             string id = wanted;

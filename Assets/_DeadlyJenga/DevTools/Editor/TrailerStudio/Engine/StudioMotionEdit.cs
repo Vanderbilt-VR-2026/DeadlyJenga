@@ -74,7 +74,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (source.start + frames.Count > setFrames) frames.RemoveRange(setFrames - source.start, source.start + frames.Count - setFrames);
             var retimed = Finish(track, source, frames, source.start, speed < 1 ? "Slowed part" : "Sped-up part");
             // Everything after the range now happens at a different time than the world it was performed against.
-            if (to < source.End) track.badge = $"Retimed: after {to / (float)Mathf.Max(1, StudioRun.Stage != null ? StudioRun.Stage.Fps : 30):0.0} s this take no longer lines up with the world.";
+            if (to < source.End) StudioBadges.Set(track, StudioBadges.Retimed, $"after {to / (float)Mathf.Max(1, StudioRun.Stage != null ? StudioRun.Stage.Fps : 30):0.0} s this take no longer lines up with the world.");
             return retimed;
         }
 

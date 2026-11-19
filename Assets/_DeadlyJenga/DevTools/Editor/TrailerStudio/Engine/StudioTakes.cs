@@ -244,7 +244,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 if (frame < 0) { take.meta = WorldMeta(newWorld.id); continue; }   // same world after all
                 StudioTrackNotes.Update(track, n => n.staleFrame = frame);
-                track.badge = $"Stale: the world was re-recorded and first differs at {frame / (float)fps:0.00} s (frame {frame}). Keep it, re-record it, or punch in from there.";
+                StudioBadges.Set(track, StudioBadges.Stale, $"the world was re-recorded and first differs at {frame / (float)fps:0.00} s (frame {frame}). Keep it, re-record it, or punch in from there.");
             }
         }
 
@@ -268,8 +268,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     differences[against] = frame;
                 }
                 StudioTrackNotes.Update(track, n => n.staleFrame = frame);
-                if (frame >= 0) track.badge = $"Stale: performed against a different world, which first differs at {frame / (float)fps:0.00} s (frame {frame}). Keep it, re-record it, or punch in from there.";
-                else if ((track.badge ?? "").StartsWith("Stale")) track.badge = "";
+                if (frame >= 0) StudioBadges.Set(track, StudioBadges.Stale, $"performed against a different world, which first differs at {frame / (float)fps:0.00} s (frame {frame}). Keep it, re-record it, or punch in from there.");
+                else StudioBadges.Clear(track, StudioBadges.Stale);
             }
         }
 
@@ -278,7 +278,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var world = tape.FindType(WorldTrack.Id)?.ActiveTake;
             if (track.ActiveTake != null && world != null) track.ActiveTake.meta = WorldMeta(world.id);
-            track.badge = "";
+            StudioBadges.Clear(track, StudioBadges.Stale);
             StudioTrackNotes.Update(track, n => n.staleFrame = -1);
         }
     }

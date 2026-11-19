@@ -239,11 +239,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     {
                         if (type.TypeId == WorldTrack.Id) { SetWorldKinematic(true); worldPlayed = true; }
                         var player = type.CreatePlayer(Stage, track, take);
-                        if (player != null) players.Add(player);
+                        if (player != null) { players.Add(player); StudioBadges.Clear(track, StudioBadges.CouldNotPlay); }
                     }
                     catch (Exception error)
                     {
-                        track.badge = "Could not play: " + error.Message;
+                        StudioBadges.Set(track, StudioBadges.CouldNotPlay, error.Message);
                         Debug.LogWarning($"Trailer Studio: {track.name} could not be played. {error.Message}");
                     }
                 }
@@ -476,7 +476,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     take.name = "Take " + (active.track.takes.Count + 1);
                     active.track.takes.Add(take);
                     active.track.active = active.track.takes.Count - 1;
-                    active.track.badge = "";
+                    StudioBadges.ClearAfterRecording(active.track);
                     StudioTrackNotes.Update(active.track, n => n.staleFrame = -1);
                     if (active.track.type == WorldTrack.Id) newWorld = take;
                     kept++;
