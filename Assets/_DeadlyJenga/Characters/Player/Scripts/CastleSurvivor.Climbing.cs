@@ -34,10 +34,8 @@ namespace DeadlyJenga.CastlePrototype
         int climbMovingHand=-1;
         Vector3 vrClimbVelocity;
         [Min(.1f)] public float vrClimbAcceleration=10f;
-        readonly Vector3[] previousGripPosition = new Vector3[2];
-        readonly Vector3[] pullVelocity = new Vector3[2];
-        [Min(0)] public float vrReleaseMultiplier = 1.6f;
-        [Min(0)] public float vrReleaseSpeedLimit = 5f;
+        Vector3 gripMoveVelocity;
+        [Min(.1f)] public float vrGripMoveSpeedLimit = 16f;
 
         int drivingGrip = -1;
         readonly float[] gripPressUntil = new float[2];
@@ -88,7 +86,7 @@ namespace DeadlyJenga.CastlePrototype
                 !Vaulting && !InputSuspended && vrInputFocused && !trackingRebase && candyTracking;
             var equipment = GetComponent<CandyEquipment>()?.Equipment;
             int previousDriver = drivingGrip;
-            Vector3 releaseVelocity = Vector3.zero;
+            bool releasedDrivingGrip = false;
             Vector3 correction = Vector3.zero;
             for (int side = 0; side < 2; side++)
             {
@@ -97,26 +95,12 @@ namespace DeadlyJenga.CastlePrototype
                 bool pressed = held && !gripWasHeld[side];
                 gripWasHeld[side] = held;
                 var hand = candyTracking ? candyTracking.WorldHand(left) : default;
-                // Sample the controller in tracking space. Pulling a fixed wall moves the
-                // player and can leave the hand nearly stationary in world space.
-                if (heldFaces[side] && allowed && hand.tracked && CanUseClimbHand(equipment, left))
+                if (!held && side == previousDriver && allowed && hand.tracked &&
+                    CanUseClimbHand(equipment, left) && HybridXRInput.ControllerTracked(left))
                 {
-                    var controller = HybridXRInput.Controller(left);
-                    if (controller != null)
-                    {
-                        Vector3 current = controller.devicePosition.ReadValue();
-                        Vector3 delta = previousGripPosition[side] - current;
-                        previousGripPosition[side] = current;
-                        bool continuous = dt < .1f && delta.magnitude <= .1f + 8f * dt;
-                        pullVelocity[side] = continuous
-                            ? Vector3.Lerp(pullVelocity[side], delta / dt, 1f - Mathf.Exp(-dt / .05f))
-                            : Vector3.zero;
-                        if (!held && side == previousDriver && heldFaces[side].enabled && heldFaces[side].gameObject.activeInHierarchy)
-                        {
-                            var origin = candyTracking.trackingOrigin;
-                            releaseVelocity = (origin ? origin.rotation : transform.rotation) * pullVelocity[side];
-                        }
-                    }
+                    var releasedFace = heldFaces[side];
+                    releasedDrivingGrip = releasedFace && releasedFace.enabled && releasedFace.gameObject.activeInHierarchy &&
+                        Climbables.TryGet(releasedFace, out var releasedBlock) && AllowsGrip(releasedBlock);
                 }
                 if (!held || !allowed || !hand.tracked || !CanUseClimbHand(equipment, left))
                 {
@@ -132,8 +116,6 @@ namespace DeadlyJenga.CastlePrototype
                     {
                         drivingGrip = side;
                         gripPressUntil[side] = float.NegativeInfinity;
-                        previousGripPosition[side] = HybridXRInput.Controller(left).devicePosition.ReadValue();
-                        pullVelocity[side] = Vector3.zero;
                         localGrip[side] = heldFaces[side].transform.InverseTransformPoint(hand.position);
                     }
                 }
@@ -150,7 +132,6 @@ namespace DeadlyJenga.CastlePrototype
                     if (attempt > 0)
                     {
                         localGrip[side] = face.transform.InverseTransformPoint(hand.position);
-                        pullVelocity[side] = Vector3.zero;
                     }
                     Vector3 anchor = face.transform.TransformPoint(localGrip[side]);
                     bool newSupport = climbCollider != face;
@@ -174,13 +155,14 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if (Climbing)
                 {
+                    Vector3 lastMoveVelocity = gripMoveVelocity;
                     ReleaseClimb("Released grip", false);
-                    if (releaseVelocity.y > 0f)
+                    if (releasedDrivingGrip)
                     {
-                        Vector3 launch = Vector3.ClampMagnitude(releaseVelocity * vrReleaseMultiplier, vrReleaseSpeedLimit);
-                        verticalSpeed += launch.y;
-                        slopeVelocity += Vector3.ProjectOnPlane(launch, Vector3.up);
-                        climbCooldown = 0;
+                        // Capsule displacement already includes the wall's motion and collision response.
+                        verticalSpeed = lastMoveVelocity.y;
+                        slopeVelocity = Vector3.ProjectOnPlane(lastMoveVelocity, Vector3.up);
+                        if (verticalSpeed > 0f) climbCooldown = 0f;
                     }
                 }
                 RecoverGrip(dt);
@@ -195,8 +177,10 @@ namespace DeadlyJenga.CastlePrototype
             climbGroundRest = 0;
             climbElapsed += dt;
             ClearSprint();
-            Capsule.Move(Vector3.ClampMagnitude(correction, 6f * playerScale * dt));
+            Vector3 beforeMove = transform.position;
+            Capsule.Move(Vector3.ClampMagnitude(correction, vrGripMoveSpeedLimit * playerScale * dt));
             if (!Climbing) return false;
+            gripMoveVelocity = (transform.position - beforeMove) / dt;
             if (!PowerupUnlimitedStamina)
                 GripRemaining = 1 - CastleStaminaCurve.Advance(1 - GripRemaining,
                     dt * Mathf.Max(0, climbDrainPerSecond) / Mathf.Max(.2f, climbGripSeconds), climbDrainCurve, climbDrainDegree);
@@ -216,6 +200,7 @@ namespace DeadlyJenga.CastlePrototype
         void ResetClimb(bool refill)
         {
             drivingGrip = -1;
+            gripMoveVelocity = Vector3.zero;
             heldFaces[0] = heldFaces[1] = null;
             Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;toggleClimbActive=false;
             vrClimbVelocity=Vector3.zero;
@@ -274,6 +259,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             Vector3 inherited=Vector3.ClampMagnitude(climbPointVelocity,12);
             drivingGrip = -1;
+            gripMoveVelocity = Vector3.zero;
             heldFaces[0] = heldFaces[1] = null;
             Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;Grounded=false;support=null;toggleClimbActive=false;
             verticalSpeed=Mathf.Clamp(inherited.y,-10,8);slopeVelocity=Vector3.ProjectOnPlane(inherited,Vector3.up)+climbNormal*(forced?1.8f:.65f);
