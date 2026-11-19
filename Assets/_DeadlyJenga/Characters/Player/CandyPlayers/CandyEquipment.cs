@@ -127,11 +127,13 @@ namespace DeadlyJenga.CandyPlayers
                 weapon.position = tracked.position;
                 weapon.rotation = Quaternion.AngleAxis(45f, controllerRight) * weapon.rotation;
             }
-            if (kind == EquipmentKind.LaserAxe || kind == EquipmentKind.MurderSword ||
-                kind == EquipmentKind.BoxingGlove || kind == EquipmentKind.LaserClaws || kind == EquipmentKind.PoweredArmor)
+            if (kind == EquipmentKind.LaserAxe || kind == EquipmentKind.PoweredArmor)
                 return weapon;
             bool melee = EquipmentSpecifications.Get(kind).melee && !(kind == EquipmentKind.Chainsaw && state.shotgun);
-            Quaternion adjusted = weapon.rotation * Quaternion.Euler(melee ? new Vector3(0, 0, 90f) : avatar.vrGunRotation);
+            Quaternion adjusted = weapon.rotation;
+            if (melee && kind != EquipmentKind.MurderSword && kind != EquipmentKind.BoxingGlove && kind != EquipmentKind.LaserClaws)
+                adjusted *= Quaternion.Euler(0, 0, 90f);
+            adjusted *= Quaternion.Euler(avatar.vrGunRotation);
             // Turn about the wrist so adjusting the sights keeps the grip in the hand.
             weapon.position = tracked.position + adjusted * Quaternion.Inverse(weapon.rotation) * (weapon.position - tracked.position);
             weapon.rotation = adjusted;
@@ -156,7 +158,7 @@ namespace DeadlyJenga.CandyPlayers
                         // Stormbreaker has its own shaft, support and lightning aim solver.
                         aim = avatar.tracking.TryControllerAim(left, out var pointer)
                             ? pointer : new Pose(primary.position, primary.rotation);
-                        if (carried.shotgun) aim.rotation *= Quaternion.Euler(avatar.vrGunRotation);
+                        aim.rotation *= Quaternion.Euler(avatar.vrGunRotation);
                     }
                     else if ((UsesSupportGrip || kind == EquipmentKind.Chainsaw) &&
                         (grip?.IsPressed() == true || avatar.tracking.IsHybrid &&
@@ -497,8 +499,9 @@ namespace DeadlyJenga.CandyPlayers
             if(state.kind==EquipmentKind.LaserClaws&&motor.IsVR)
             {
                 var other=state.leftHanded?frame.right:frame.left;
-                if(other.tracked&&!other.skeletonTracked)
+                if(other.tracked)
                 {
+                    other.rotation *= Quaternion.Euler(avatar.vrGunRotation);
                     other.skeleton=CandyHandSkeleton.Rest(!state.leftHanded,.96f);
                     other.skeletonTracked=true;
                     if(state.leftHanded)frame.right=other;else frame.left=other;
@@ -590,9 +593,32 @@ namespace DeadlyJenga.CandyPlayers
         }
         internal void PoseWeaponPresentationHands(ref CandyAvatarFrame frame,float deltaTime)
         {
-            if(visual==null||!motor||motor.IsVR||!motor.Alive||motor.Climbing||motor.Vaulting)return;
+            if(!motor||!motor.Alive||motor.Climbing||motor.Vaulting)return;
             var state=Equipment;
-            if(!SlingForEmote(state))visual.PoseDesktopCarryHand(ref frame,state,deltaTime);
+            if (motor.IsVR)
+            {
+                if (!Local || !avatar.tracking || !state.drawn || motor.EmoteActive ||
+                    !EquipmentSpecifications.Get(state.kind).melee) return;
+                // The weapon uses the carry frame. Rotate only the rendered hand about its grip.
+                float frameScale = frame.scale;
+                void AlignWrist(ref CandyHandPose hand, bool left)
+                {
+                    var tracked = avatar.tracking.WorldHand(left);
+                    if (!tracked.tracked) return;
+                    var rotation = avatar.WristRotation(tracked, left);
+                    if (CandyWeaponVisual.MeleeMount(state.kind, left, out var palm, out _))
+                    {
+                        palm *= CandyWeaponVisual.ModelScale(state.kind, frameScale);
+                        hand.position += hand.rotation * palm - rotation * palm;
+                    }
+                    hand.rotation = rotation;
+                }
+                bool usesBothHands = state.kind is EquipmentKind.LaserAxe or EquipmentKind.Chainsaw or EquipmentKind.LaserClaws;
+                if (state.leftHanded || usesBothHands) AlignWrist(ref frame.left, true);
+                if (!state.leftHanded || usesBothHands) AlignWrist(ref frame.right, false);
+                return;
+            }
+            if(visual!=null&&!SlingForEmote(state))visual.PoseDesktopCarryHand(ref frame,state,deltaTime);
         }
         void LateUpdate()
         {
