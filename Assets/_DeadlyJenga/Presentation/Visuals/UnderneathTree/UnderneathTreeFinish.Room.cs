@@ -42,19 +42,54 @@ namespace DeadlyJenga.CandyArt
         Material FoilPaper(string label, Color color)
         {
             if (finishes.TryGetValue(label, out var cached)) return cached;
-            var shader = Resources.Load<Shader>(ResourcePath + "Christmas Foil Paper");
-            if (!shader) return Surface(label, "Winter Print", color, .4f, new Vector2(1.5f, 1.5f));
-            if (color.b > color.r * 2f && color.b > color.g) color = new Color(.018f, .065f, .30f);
-            else if (color.g > color.r * 2f && color.g > color.b) color = new Color(.025f, .26f, .105f);
-            else if (color.r > color.g * 3f) color = new Color(.58f, .018f, .045f);
-            var material = new Material(shader) { name = label, color = color, enableInstancing = true };
+            // Deep jewel colours, like the approved picture.
+            if (color.b > color.r * 2f && color.b > color.g) color = new Color(.015f, .07f, .52f);
+            else if (color.g > color.r * 2f && color.g > color.b) color = new Color(.01f, .30f, .08f);
+            else if (color.r > color.g * 3f) color = new Color(.70f, .004f, .03f);
+            else color = new Color(1f, .80f, .55f);
+            // Foil film, not paper: part mirror, glossy, slightly crinkled.
+            // Cream is already bright, so it is less mirror-like and keeps less of its own glow.
+            bool cream = color.g > .5f;
+            var material = Lacquer(label, color, .74f, cream ? .3f : .55f, .35f, cream ? .05f : .07f);
+            if (!material.HasProperty("_Coat")) return material;
+            material.SetFloat("_CoatSmoothness", .85f);
             material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Gold Snowflake Foil"));
             material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Paper Normal"));
-            material.SetTextureScale("_BaseMap", new Vector2(1.5f, 1.5f));
-            material.SetFloat("_BumpScale", .16f);
-            material.SetFloat("_Smoothness", .36f);
+            // A few big snowflakes on each face, like the approved picture.
+            material.SetTextureScale("_BaseMap", new Vector2(1.3f, 1.3f));
+            material.SetFloat("_BaseShade", .55f);
+            material.SetFloat("_BumpScale", .12f);
+            material.SetColor("_FoilColor", new Color(1f, .68f, .16f));
+            material.SetFloat("_FoilGlow", .7f);
+            material.SetFloat("_TopLight", .2f);
+            material.SetFloat("_EdgeLight", .35f);
+            material.SetFloat("_Foil", cream ? .45f : .55f);
+            material.SetFloat("_Crinkle", .8f);
+            material.SetFloat("_CrinkleSize", 1.8f);
+            material.SetFloat("_EdgeCrinkle", 1.5f);
+            material.SetFloat("_Tuck", .55f);
+            return material;
+        }
+
+        // Glossy coated paper or satin: a colour under a clear shiny layer.
+        // glow = how much of its own colour it keeps in shadow, so it never goes grey.
+        Material Lacquer(string label, Color color, float smoothness, float metallic, float coat, float glow)
+        {
+            if (finishes.TryGetValue(label, out var cached)) return cached;
+            var shader = Resources.Load<Shader>(ResourcePath + "Christmas Foil Paper");
+            if (!shader) return Surface(label, null, color, smoothness, Vector2.one, metallic);
+            var material = new Material(shader) { name = label, color = color, enableInstancing = true };
+            material.SetFloat("_Smoothness", smoothness);
+            material.SetFloat("_Metallic", metallic);
+            material.SetFloat("_Coat", coat);
+            material.SetFloat("_CoatSmoothness", .78f);
+            // The colour of the lamp glow the foil mirrors.
+            material.SetColor("_GlossColor", new Color(1f, .80f, .58f));
+            material.SetFloat("_EdgeLight", .5f);
+            material.SetFloat("_TopLight", .35f);
             material.SetFloat("_Sheen", 0f);
-            material.SetColor("_FoilColor", new Color(.95f, .65f, .22f));
+            material.SetFloat("_BumpScale", 0f);
+            material.SetColor("_EmissionColor", new Color(glow, glow, glow));
             materials.Add(material);
             finishes.Add(label, material);
             return material;
@@ -109,20 +144,27 @@ namespace DeadlyJenga.CandyArt
             }
             if (name.Contains("ribbon") || name.Contains("Ribbon") || name.Contains("Satin"))
             {
-                bool gold = name.Contains("Gold") || name.Contains("gold");
-                if (gold)
-                    color = new Color(.85f, .55f, .18f);
-                return Surface("Satin " + name, "Woven", color, .52f, new Vector2(2, 3), gold ? .25f : 0f, .18f);
+                // The approved picture only has gold and red ribbon, so ivory becomes pale gold.
+                if (name.Contains("Gold") || name.Contains("gold"))
+                    color = new Color(.95f, .52f, .08f);
+                else if (name.Contains("Ivory"))
+                    color = new Color(.95f, .66f, .22f);
+                else if (color.r > color.g * 3f)
+                    color = new Color(.55f, .008f, .03f);
+                var satin = Lacquer("Satin " + name, color, .8f, .7f, .35f, .08f);
+                satin.SetFloat("_Foil", .6f);
+                satin.SetFloat("_Crinkle", .4f);
+                return satin;
             }
             if (name.Contains("gift wrap") || name.Contains("gift Wrap") || name.Contains("Mulberry"))
                 return FoilPaper(name + " paper", color);
             if (name.StartsWith("Felt"))
-                return Fabric("Cranberry tufted tree skirt", "Cranberry Rug Weave", Color.white,
+                return Fabric("Cranberry tufted tree skirt", "Cranberry Rug Weave", new Color(1.25f, .72f, .84f),
                     new Vector2(12f, 12f), .12f, .65f);
             if (name.StartsWith("Fluff"))
                 return Surface("Ivory fleece", "Woven", new Color(.84f, .75f, .63f), .25f, new Vector2(10, 8), 0f, 1f);
             if (objectName.StartsWith("Wood Planks") || name.Contains("Mahogany"))
-                return Surface("French polished walnut", "Walnut Grain", new Color(.72f, .50f, .33f), .59f, new Vector2(2.2f, 6.1f), 0f, .42f);
+                return Surface("French polished walnut", "Walnut Grain", new Color(.40f, .23f, .15f), .86f, new Vector2(2.2f, 6.1f), 0f, .42f);
             if (name.Contains("Wallpap"))
                 return WallCover();
             if (name == "Brick")
@@ -156,8 +198,33 @@ namespace DeadlyJenga.CandyArt
             new Color(.18f, .27f, .51f), new Color(.75f, .46f, .18f), new Color(.33f, .49f, .44f)
         };
 
-        Material WallCover() => Surface("Cobalt botanical wallcovering", "Botanical Paper", new Color(.08f, .17f, .52f),
-            .28f, new Vector2(13, 5), 0f, .38f);
+        // Warm cream walls, like the family rooms in Evan's photos.
+        Material WallCover() => Surface("Cream botanical wallcovering", "Botanical Paper", new Color(.96f, .87f, .70f),
+            .22f, new Vector2(13, 5), 0f, .3f);
+
+        // The family room: the tree stands in the north-east corner, the room opens out to the
+        // south and west. Map units; the map root is the origin.
+        // The ceiling sits where the old tall window used to end.
+        const float RoomTop = 290f;
+        // The west wall (opposite the fireplace) sits closer in, 410 from the east wall.
+        const float RoomWest = -350f, RoomEast = 60f, RoomSouth = -600f, RoomNorth = 58f;
+        // Openings: tall window wall behind the tree, hallway in the south wall,
+        // archway to the kitchen in the west wall, under the loft.
+        const float WindowWest = -270f, WindowEast = -130f, WindowSill = 40f, WindowHead = 172f;
+        // The wide window centred on the south wall: same height, twice-plus as wide.
+        const float SouthWindowWest = (RoomWest + RoomEast) * .5f - 135f, SouthWindowEast = (RoomWest + RoomEast) * .5f + 135f;
+        const float ArchSouth = -170f, ArchNorth = -50f, ArchHeight = 170f;
+        // Cased opening to the front entry (door, coats, the bottom of the stairs) at the south end
+        // of the west wall.
+        const float FoyerSouth = -585f, FoyerNorth = -495f, FoyerHeight = 150f;
+        // Fireplace on the east wall, south of the rug.
+        const float HearthZ = -350f;
+        // The fireplace is on the west wall; the big sofa backs onto the east wall facing it,
+        // with the bookcase at the sofa's far end from the tree and the lamp table at the near end.
+        // Turning the fireplace round about this x moves it from the east wall to the west wall.
+        const float FireplaceTurnX = (RoomWest + RoomEast) * .5f;
+        const float SofaZ = -340f;
+        const float BookcaseZ = -533f, BookcaseWidth = 130f;
 
         void BuildRoom()
         {
@@ -166,48 +233,118 @@ namespace DeadlyJenga.CandyArt
                 .49f, new Vector2(10, 3f), 0f, .4f);
             var casing = Surface("Cream window casing", "Paper", new Color(.79f, .68f, .54f),
                 .48f, new Vector2(2, 2));
-            var curtain = Surface("Cranberry velvet curtain", "Woven", new Color(.48f, .075f, .106f),
-                .29f, new Vector2(7, 9));
-            const float z = 77f;
-            const float left = -34f;
-            const float right = 39f;
-            const float sill = 22f;
-            const float head = 78f;
-            Wall("North wall left bay", -260f, left, 0f, 177f, z, plaster);
-            Wall("North wall right bay", right, 82f, 0f, 177f, z, plaster);
-            Wall("North wall overhead", left, right, head, 177f, z, plaster);
-            Wall("North wall below window", left, right, 0f, sill, z, plaster);
-            Box("West wall", new Vector3(-258f, 88.5f, -92f), new Vector3(3.0f, 177f, 343f), plaster)
+            var beam = Surface("Dark timber", "Walnut Grain", new Color(.30f, .19f, .12f), .35f, new Vector2(1, 6));
+
+            WallAlongX("North wall", RoomNorth, RoomWest, RoomEast, WindowWest, WindowEast, WindowSill, WindowHead, plaster);
+            WallAlongX("South wall", RoomSouth, RoomWest, RoomEast, SouthWindowWest, SouthWindowEast, WindowSill, WindowHead, plaster);
+            WallAlongZ("West wall", RoomWest, RoomSouth, ArchSouth - 1f, FoyerSouth, FoyerNorth, 0f, FoyerHeight, plaster);
+            WallAlongZ("West wall", RoomWest, ArchSouth - 1f, RoomNorth, ArchSouth, ArchNorth, 0f, ArchHeight, plaster);
+            WallAlongZ("East wall", RoomEast, RoomSouth, RoomNorth, 0f, 0f, 0f, 0f, plaster);
+            float midX = (RoomWest + RoomEast) * .5f, midZ = (RoomSouth + RoomNorth) * .5f;
+            float spanX = RoomEast - RoomWest, spanZ = RoomNorth - RoomSouth;
+            foreach (var side in new[] { (RoomNorth - 2.2f, true), (RoomSouth + 2.2f, true), (RoomWest + 2.2f, false), (RoomEast - 2.2f, false) })
+            {
+                var at = side.Item2 ? new Vector3(midX, 0f, side.Item1) : new Vector3(side.Item1, 0f, midZ);
+                var length = side.Item2 ? new Vector3(spanX, 0f, 2f) : new Vector3(2f, 0f, spanZ);
+                Box("Oak wainscot", at + Vector3.up * 8f, length + Vector3.up * 16f, wood);
+                Box("Chair rail", at + Vector3.up * 16.7f, length * 1.0f + Vector3.up * 1.9f + (side.Item2 ? Vector3.forward : Vector3.right) * .5f, casing);
+                Box("Crown", at + Vector3.up * (RoomTop - 4.7f), length + Vector3.up * 5.2f + (side.Item2 ? Vector3.forward : Vector3.right) * 2.3f, casing);
+            }
+            Box("Plaster ceiling", new Vector3(midX, RoomTop + 1.5f, midZ), new Vector3(spanX + 8f, 3f, spanZ + 8f),
+                Surface("Plaster ceiling", "Wallpaper", new Color(.72f, .62f, .53f), .17f, new Vector2(8, 8)))
                 .GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
-            Box("West oak wainscot", new Vector3(-255.7f, 8f, -92f), new Vector3(2f, 16f, 343f), wood);
-            Box("North oak wainscot", new Vector3(-88f, 7.8f, z - 2.2f), new Vector3(343f, 15.6f, 2f), wood);
-            Box("North chair rail", new Vector3(-88f, 16.7f, z - 3.0f), new Vector3(343f, 1.9f, 2.5f), casing);
-            Box("West chair rail", new Vector3(-254.7f, 16.7f, -92f), new Vector3(2.5f, 1.9f, 343f), casing);
-            Box("North crown", new Vector3(-88f, 172.3f, z - 3.2f), new Vector3(343f, 5.2f, 4.3f), casing);
-            Box("West crown", new Vector3(-254.5f, 172.3f, -92f), new Vector3(4.3f, 5.2f, 343f), casing);
-            Wall("South botanical wall", -260f, 85f, 0f, 177f, -264f, plaster);
-            Box("South oak wainscot", new Vector3(-88f, 8f, -261f), new Vector3(343f, 16f, 2f), wood);
-            Box("South chair rail", new Vector3(-88f, 16.7f, -260f), new Vector3(343f, 1.9f, 2.5f), casing);
-            Box("South crown", new Vector3(-88f, 172.3f, -260f), new Vector3(343f, 5.2f, 4.3f), casing);
-            // Keep the existing east window aperture clear from both sides.
-            Box("East wall south bay", new Vector3(86f, 88.5f, -223.5f), new Vector3(3f, 177f, 81f), plaster);
-            Box("East wall north bay", new Vector3(86f, 88.5f, 0f), new Vector3(3f, 177f, 154f), plaster);
-            Box("East window lower bay", new Vector3(86f, 27.8f, -130f), new Vector3(3f, 55.6f, 106f), plaster);
-            Box("East window upper bay", new Vector3(86f, 159.3f, -130f), new Vector3(3f, 35.4f, 106f), plaster);
-            Box("East oak wainscot", new Vector3(83f, 8f, -92f), new Vector3(2f, 16f, 343f), wood);
-            Box("East chair rail", new Vector3(82f, 16.7f, -92f), new Vector3(2.5f, 1.9f, 343f), casing);
-            Box("East crown", new Vector3(82f, 172.3f, -92f), new Vector3(4.3f, 5.2f, 343f), casing);
-            Box("Window header", new Vector3(2.5f, head, z - 2f), new Vector3(81f, 3.4f, 5.2f), casing);
-            Box("Window sill", new Vector3(2.5f, sill, z - 3f), new Vector3(81f, 3.4f, 7.4f), casing);
-            foreach (float x in new[] { left, right, 2.5f })
-                Box("Window mullion", new Vector3(x, 50f, z - 2f), new Vector3(2.3f, 55f, 4.3f), casing);
-            Box("Window meeting rail", new Vector3(2.5f, 52f, z - 2f), new Vector3(73f, 2.0f, 4.5f), casing);
-            Box("Curtain rod", new Vector3(2.5f, 87f, z - 10.3f), new Vector3(111f, 1.2f, 1.4f), wood);
-            Curtain("Left drape", -47f, 87f, z - 10.5f, curtain);
-            Curtain("Right drape", 52f, 87f, z - 10.5f, curtain);
-            NightWindow("Front window snow", new Vector3(2.5f, 50f, z + 1.3f), new Vector2(74, 57), Quaternion.identity);
-            NightWindow("Side window snow", new Vector3(84.5f, 98.6f, -130f), new Vector2(106, 86), Quaternion.Euler(0f, 90f, 0f));
-            BuildHearth();
+            // Timber beams across the tall ceiling, like a lodge great room.
+            for (float x = RoomWest + 90f; x < RoomEast; x += 120f)
+                Box("Ceiling beam", new Vector3(x, RoomTop - 9f, midZ), new Vector3(14f, 18f, spanZ), beam);
+
+            // Snowy window along the north wall, a little way from the tree.
+            WindowFrame(WindowWest, WindowEast, RoomNorth, -1f, 4, casing);
+            WindowFrame(SouthWindowWest, SouthWindowEast, RoomSouth, 1f, 6, casing);
+            BuildOutdoorView(WindowWest, WindowEast, 1931);
+            // The south window gets its own snowy scene: built the same way, then turned to face
+            // south and pressed to a little over half its depth, so it stays within the cameras' reach.
+            int firstOutside = art.childCount;
+            float southMid = (SouthWindowWest + SouthWindowEast) * .5f;
+            BuildOutdoorView(SouthWindowWest, SouthWindowEast, 4417);
+            var south = new GameObject("Outside the south window").transform;
+            south.SetParent(art, false);
+            south.localPosition = new Vector3(southMid, 0f, RoomNorth);
+            for (int i = art.childCount - 2; i >= firstOutside; i--)
+                art.GetChild(i).SetParent(south, true);
+            south.localPosition = new Vector3(southMid, 0f, RoomSouth);
+            south.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            south.localScale = new Vector3(1f, 1f, .55f);
+
+            // Stone fireplace on the east wall (see UnderneathTreeFinish.Fireplace.cs).
+            int firstFireplace = art.childCount;
+            BuildFireplace();
+            var fireplace = new GameObject("Fireplace on the west wall").transform;
+            fireplace.SetParent(art, false);
+            fireplace.localPosition = new Vector3(FireplaceTurnX, 0f, HearthZ);
+            for (int i = art.childCount - 2; i >= firstFireplace; i--)
+                art.GetChild(i).SetParent(fireplace, true);
+            fireplace.localRotation = Quaternion.Euler(0f, 180f, 0f);
+
+            // Rooms beyond the openings: just a lit glimpse, the player never goes there.
+            // The kitchen and front entry beyond the west wall are built in UnderneathTreeFinish.HouseRooms.cs.
+
+            // Bookshelves (the piano is in UnderneathTreeFinish.Decor.cs).
+            var rand = new System.Random(77);
+            Box("Bookcase", new Vector3(RoomEast - 20f, 90f, BookcaseZ), new Vector3(34f, 180f, BookcaseWidth), beam);
+            for (int shelf = 0; shelf < 5; shelf++)
+                for (float z = BookcaseZ - BookcaseWidth * .5f + 4f; z < BookcaseZ + BookcaseWidth * .5f - 12f;)
+                {
+                    float thick = Range(rand, 4f, 8f), tall = Range(rand, 18f, 28f);
+                    var book = Surface("Book cloth " + (shelf * 7 + (int)z) % 5, "Woven",
+                        Color.HSVToRGB(Range(rand, 0f, 1f) < .5f ? .0f : .35f, .6f, Range(rand, .25f, .6f)), .3f, Vector2.one);
+                    Box("Book", new Vector3(RoomEast - 38f, 12f + shelf * 34f + tall * .5f, z + thick * .5f), new Vector3(4f, tall, thick - .6f), book);
+                    z += thick;
+                }
+        }
+
+        // A wall running east-west at z, with one opening from x0 to x1 between heights low and high.
+        // Header, sill, transom and mullions for a window in an east-west wall at z.
+        // inward = which way the room is (-1 for the north wall, +1 for the south wall).
+        void WindowFrame(float west, float east, float z, float inward, int panes, Material casing)
+        {
+            float mid = (west + east) * .5f, width = east - west;
+            Box("Window header", new Vector3(mid, WindowHead, z + inward * 2f), new Vector3(width + 6f, 5f, 6f), casing);
+            Box("Window sill", new Vector3(mid, WindowSill, z + inward * 3f), new Vector3(width + 6f, 4f, 9f), casing);
+            Box("Window transom", new Vector3(mid, (WindowSill + WindowHead) * .5f, z + inward * 2f), new Vector3(width, 3f, 5f), casing);
+            for (int i = 0; i <= panes; i++)
+                Box("Window mullion", new Vector3(west + width * i / panes, (WindowSill + WindowHead) * .5f, z + inward * 2f),
+                    new Vector3(3f, WindowHead - WindowSill, 5f), casing);
+        }
+
+        void WallAlongX(string label, float z, float west, float east, float x0, float x1, float low, float high, Material material)
+        {
+            if (x1 <= x0)
+            {
+                Wall(label, west, east, 0f, RoomTop, z, material);
+                return;
+            }
+            Wall(label, west, x0, 0f, RoomTop, z, material);
+            Wall(label, x1, east, 0f, RoomTop, z, material);
+            Wall(label + " over opening", x0, x1, high, RoomTop, z, material);
+            if (low > 0f)
+                Wall(label + " under opening", x0, x1, 0f, low, z, material);
+        }
+
+        void WallAlongZ(string label, float x, float south, float north, float z0, float z1, float low, float high, Material material)
+        {
+            void Side(string name, float a, float b, float bottom, float top) =>
+                Box(name, new Vector3(x, (bottom + top) * .5f, (a + b) * .5f), new Vector3(3f, top - bottom, b - a), material)
+                    .GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+            if (z1 <= z0)
+            {
+                Side(label, south, north, 0f, RoomTop);
+                return;
+            }
+            Side(label, south, z0, 0f, RoomTop);
+            Side(label, z1, north, 0f, RoomTop);
+            Side(label + " over opening", z0, z1, high, RoomTop);
+            if (low > 0f)
+                Side(label + " under opening", z0, z1, 0f, low);
         }
 
         void Wall(string label, float left, float right, float low, float high, float depth, Material material)
@@ -233,7 +370,7 @@ namespace DeadlyJenga.CandyArt
             renderer.receiveShadows = false;
         }
 
-        void Curtain(string label, float x, float top, float z, Material material)
+        void Curtain(string label, float x, float top, float z, Material material, float height = 86f, float width = 1f)
         {
             const int columns = 36, rows = 10;
             var vertices = new Vector3[(columns + 1) * (rows + 1)];
@@ -245,8 +382,8 @@ namespace DeadlyJenga.CandyArt
             {
                 float u = c / (float)columns, v = r / (float)rows;
                 float wave = Mathf.Sin(u * Mathf.PI * 12 + .34f * v);
-                vertices[index] = new Vector3(x + (u - .5f) * Mathf.Lerp(19, 25, v),
-                    top - v * (86f - wave * .9f), z + wave * Mathf.Lerp(1.28f, 2.15f, v));
+                vertices[index] = new Vector3(x + (u - .5f) * Mathf.Lerp(19, 25, v) * width,
+                    top - v * (height - wave * .9f), z + wave * Mathf.Lerp(1.28f, 2.15f, v) * width);
                 uv[index++] = new Vector2(u, 1f - v);
             }
             index = 0;
@@ -262,47 +399,6 @@ namespace DeadlyJenga.CandyArt
             mesh.RecalculateNormals();
             mesh.RecalculateTangents();
             AddMesh(label, mesh, material, ShadowCastingMode.TwoSided);
-        }
-
-        void BuildHearth()
-        {
-            var amber = Glow("Amber fireglass", new Color(1f, .12f, .012f), 1.8f);
-            var center = Glow("Yellow flame", new Color(1f, .39f, .035f), 2.7f);
-            var log = Surface("Charred birch", "Mahogany", new Color(.14f, .071f, .039f), .33f, new Vector2(3, 2));
-            var rand = new System.Random(2114);
-            for (int i = 0; i < 7; i++)
-            {
-                var timber = Primitive("Hearth log", PrimitiveType.Cylinder,
-                    new Vector3(-168f + i * 5.8f, 8f + (i % 3) * 1.7f, -240f + (i % 2) * 3.4f),
-                    new Vector3(3.1f, 8.4f, 3.1f), log);
-                timber.localRotation = Quaternion.Euler(18f, 20f * i, 71f);
-            }
-            for (int i = 0; i < 16; i++)
-            {
-                var pos = new Vector3(-168f + Range(rand, 0f, 39f), Range(rand, 10f, 16f), Range(rand, -241f, -236f));
-                float height = Range(rand, 5.2f, 11f);
-                var flame = Primitive("Hearth flame", PrimitiveType.Sphere, pos,
-                    new Vector3(Range(rand, 2.4f, 4.9f), height, Range(rand, 1.5f, 2.6f)),
-                    i % 3 == 0 ? center : amber);
-                var flameMesh = Instantiate(flame.GetComponent<MeshFilter>().sharedMesh);
-                var flameVertices = flameMesh.vertices;
-                for (int v = 0; v < flameVertices.Length; v++)
-                {
-                    var point = flameVertices[v];
-                    float rise = point.y + .5f;
-                    float taper = Mathf.Lerp(1.05f, .12f, rise * rise);
-                    point.x = point.x * taper + Mathf.Sin(rise * 4f + i) * rise * .18f;
-                    point.z *= taper;
-                    flameVertices[v] = point;
-                }
-                flameMesh.vertices = flameVertices;
-                flameMesh.RecalculateNormals();
-                flameMesh.RecalculateBounds();
-                meshes.Add(flameMesh);
-                flame.GetComponent<MeshFilter>().sharedMesh = flameMesh;
-                flame.localRotation = Quaternion.Euler(0f, 0f, Range(rand, -16f, 16f));
-                flame.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
-            }
         }
 
         Transform Box(string label, Vector3 position, Vector3 size, Material material) =>

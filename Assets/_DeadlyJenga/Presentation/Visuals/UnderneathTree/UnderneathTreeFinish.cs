@@ -37,6 +37,7 @@ namespace DeadlyJenga.CandyArt
         int revision = -1;
         Light key, outageMoon;
         ReflectionProbe roomProbe;
+        Material floorVarnish;
         bool roomReflected;
         Mesh roundedWrap;
         Volume volume;
@@ -103,6 +104,8 @@ namespace DeadlyJenga.CandyArt
                 roomPipeline.shadowCascadeCount = Application.platform == RuntimePlatform.Android ? 2 : 4;
                 roomPipeline.mainLightShadowmapResolution = Application.platform == RuntimePlatform.Android ? 2048 : 4096;
                 roomPipeline.supportsHDR = true;
+                // Enough lamps per object for the floor to catch the ones nearest it.
+                roomPipeline.maxAdditionalLightsCount = 8;
                 QualitySettings.renderPipeline = roomPipeline;
             }
             BuildLighting();
@@ -121,6 +124,7 @@ namespace DeadlyJenga.CandyArt
             }
             if (world.Revision != revision)
                 RefreshWorldArt();
+            AnimateFire();
 
             bool viewUnderFloor = Services.Session?.ActiveCamera is Camera view && view.transform.position.y < -1.7f;
             bool blackout = false;
@@ -139,6 +143,8 @@ namespace DeadlyJenga.CandyArt
                 if (blackout && !outageEmission.ContainsKey(material))
                 {outageEmission[material] = material.GetColor("_EmissionColor");material.SetColor("_EmissionColor", Color.black);}
             }
+            if (floorVarnish && floorVarnish.HasProperty("_GlowPower"))
+                floorVarnish.SetFloat("_GlowPower", blackout ? 0f : 1f);
             if (!blackout && outageEmission.Count > 0)
             {
                 foreach (var item in outageEmission) if (item.Key) item.Key.SetColor("_EmissionColor", item.Value);
@@ -213,18 +219,21 @@ namespace DeadlyJenga.CandyArt
 
         void RestoreIndoorSettings()
         {
-            var fill = new Color(.27f, .30f, .39f);
-            if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Flat &&
-                RenderSettings.ambientLight == fill && Mathf.Approximately(RenderSettings.reflectionIntensity, .68f))
+            // The middle of the night: only a little blue from the windows and red off the rug,
+            // so the tree lights, the lamp and the moonlight do the lighting.
+            var sky = new Color(.045f, .05f, .11f);
+            var sides = new Color(.03f, .05f, .16f);
+            var rug = new Color(.07f, .015f, .02f);
+            if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Trilight &&
+                RenderSettings.ambientSkyColor == sky && Mathf.Approximately(RenderSettings.reflectionIntensity, .4f))
                 return;
             RenderSettings.skybox = null;
             RenderSettings.fog = false;
-            RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = fill;
-            var probe = new SphericalHarmonicsL2();
-            probe.AddAmbientLight(fill);
-            RenderSettings.ambientProbe = probe;
-            RenderSettings.reflectionIntensity = .68f;
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = sky;
+            RenderSettings.ambientEquatorColor = sides;
+            RenderSettings.ambientGroundColor = rug;
+            RenderSettings.reflectionIntensity = .4f;
         }
 
         void Hide(Renderer renderer)
@@ -247,10 +256,11 @@ namespace DeadlyJenga.CandyArt
                 if (name.StartsWith("Tree Tier", StringComparison.Ordinal) || name == "Tree Trunk" ||
                     name.StartsWith("Tree Light", StringComparison.Ordinal) ||
                     name.StartsWith("Tree Ornament", StringComparison.Ordinal) ||
-                    name.StartsWith("Tree Wire", StringComparison.Ordinal) || name == "Fireplace Fire" ||
+                    name.StartsWith("Tree Wire", StringComparison.Ordinal) || name == "Fireplace Fire" || name == "Tree Star" ||
                     name.StartsWith("Wood Planks", StringComparison.Ordinal) || name == "Tree Skirt rim" ||
                     name.StartsWith("Sofa", StringComparison.Ordinal) || name == "Lamp Shade" || name == "Side Table" ||
-                    name.StartsWith("Room Wall", StringComparison.Ordinal))
+                    name.StartsWith("Room Wall", StringComparison.Ordinal) || name == "Room Ceiling" ||
+                    OldRoomDressing(renderer))
                 {
                     Hide(renderer);
                     continue;
@@ -261,11 +271,80 @@ namespace DeadlyJenga.CandyArt
                         shadowCasting.Add(renderer, renderer.shadowCastingMode);
                     renderer.shadowCastingMode = ShadowCastingMode.Off;
                 }
+                if (RaiseToCeiling(renderer))
+                    continue;
                 ApplyFinish(renderer);
                 SoftenGiftEdges(renderer);
                 MapRugTexture(renderer);
                 AddGiftBow(renderer);
             }
+            LightToyBuildings();
+        }
+
+        // Big walk-in toy buildings get warm lights inside, like a dollhouse left on at night,
+        // so their rooms can be seen and played in. Found by name and size only.
+        readonly HashSet<int> litBuildings = new HashSet<int>();
+
+        void LightToyBuildings()
+        {
+            foreach (Transform child in world.Root.GetComponentsInChildren<Transform>())
+            {
+                if (!child.name.StartsWith("Toy ", StringComparison.Ordinal) || litBuildings.Contains(child.GetInstanceID()))
+                    continue;
+                var renderers = child.GetComponentsInChildren<MeshRenderer>();
+                if (renderers.Length < 40)
+                    continue;
+                var box = renderers[0].bounds;
+                foreach (var r in renderers)
+                    box.Encapsulate(r.bounds);
+                if (box.size.x < 20f && box.size.z < 20f)
+                    continue;
+                litBuildings.Add(child.GetInstanceID());
+                int floors = Mathf.Clamp(Mathf.RoundToInt(box.size.y / 9f), 1, 4);
+                for (int i = 0; i < floors; i++)
+                {
+                    var glow = new GameObject(child.name + " room light");
+                    glow.transform.position = new Vector3(box.center.x, box.min.y + 3f + i * (box.size.y - 6f) / Mathf.Max(1, floors - 1), box.center.z);
+                    glow.transform.SetParent(art, true);
+                    var light = glow.AddComponent<Light>();
+                    light.type = LightType.Point;
+                    // Soft and warm, like a night light: enough to see the rooms, not to wash them out.
+                    light.color = new Color(1f, .72f, .45f);
+                    light.intensity = 90f;
+                    light.range = Mathf.Max(box.extents.x, box.extents.z) * 1.1f;
+                    practicalLights.Add(light);
+                }
+            }
+        }
+
+        // The block-out's fireplace, garland, pictures and window sat on the old small room's walls.
+        // The family room builds its own, so these would float in the middle of it.
+        static bool OldRoomDressing(MeshRenderer renderer)
+        {
+            string name = renderer.name;
+            // The old mantel's garland bulbs are plain "Sphere" pieces at mantel height.
+            if (name.StartsWith("Sphere", StringComparison.Ordinal))
+                return renderer.bounds.max.y < 100f && renderer.bounds.size.x < 6f;
+            return name.StartsWith("Fireplace", StringComparison.Ordinal) || name.StartsWith("Garland", StringComparison.Ordinal) ||
+            name.StartsWith("Stocking", StringComparison.Ordinal) || name.StartsWith("Picture", StringComparison.Ordinal) ||
+            name.StartsWith("Room Baseboard", StringComparison.Ordinal) || name.StartsWith("Window Frame", StringComparison.Ordinal) ||
+            name.StartsWith("Window Mullion", StringComparison.Ordinal);
+        }
+
+        // Decorations hung just under the map's own ceiling (the string of lights along the walls)
+        // hung on the old small room's walls, which are gone, so they stay hidden.
+        bool RaiseToCeiling(MeshRenderer renderer)
+        {
+            // Already copied on an earlier refresh.
+            if (hidden.ContainsKey(renderer))
+                return renderer.name.StartsWith("Sphere", StringComparison.Ordinal) || !renderer.enabled;
+            var box = renderer.bounds;
+            if (box.min.y < 150f || box.max.y > 177f || box.max.x > 86f || box.min.z < -266f || renderer.GetComponentInParent<Rigidbody>())
+                return false;
+            if (!renderer.TryGetComponent<MeshFilter>(out var filter) || !filter.sharedMesh)
+                return false;
+            Hide(renderer);
+            return true;
         }
 
         void OnDisable()
@@ -319,51 +398,83 @@ namespace DeadlyJenga.CandyArt
                 Destroy(material);
             foreach (var mesh in meshes)
                 Destroy(mesh);
+            if (firPalette)
+                Destroy(firPalette);
+            if (stoneTexture)
+                Destroy(stoneTexture);
+            foreach (var clip in clips)
+                if (clip)
+                    Destroy(clip);
         }
 
         void BuildLighting()
         {
             key = MakeLight("Amber lamplight and ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .90f, .75f), 1.4f, 0f);
-            key.transform.localRotation = Quaternion.Euler(68f, -58f, 0f);
+                Vector3.zero, new Color(1f, .70f, .42f), .08f, 0f);
+            // Shines from the fireplace side so the gift faces seen in the approved picture are lit.
+            key.transform.localRotation = Quaternion.Euler(46f, 18f, 0f);
             key.shadows = LightShadows.Soft;
-            key.shadowStrength = .65f;
+            key.shadowStrength = .78f;
             key.shadowBias = .08f;
             key.shadowNormalBias = .2f;
 
             var bounce = MakeLight("Soft blue room bounce", LightType.Directional, Vector3.zero,
-                new Color(.55f, .65f, 1f), .35f, 0f);
-            bounce.transform.localRotation = Quaternion.Euler(40f, 130f, 0f);
+                new Color(.18f, .38f, 1f), .12f, 0f);
+            // Blue light from the side window gives the gifts a cool edge.
+            bounce.transform.localRotation = Quaternion.Euler(30f, 262f, 0f);
             practicalLights.Add(bounce);
 
-            MakeSpot("Moonlight from the front window", new Vector3(10, 65, 70),
-                new Vector3(-90, 10, -110), new Color(.16f, .36f, 1f), 26000f, 240f, 83f);
-            MakeSpot("Blue evening light through side window", new Vector3(78f, 98f, -130f),
-                new Vector3(-75f, 15f, -125f), new Color(.08f, .27f, 1f), 18000f, 260f, 95f);
-            MakeSpot("Warm reflected light across gift terraces", new Vector3(-95f, 100f, -190f),
-                new Vector3(-95f, 18f, -110f), new Color(1f, .81f, .60f), 8500f, 185f, 110f);
-            MakeSpot("Hearth bounce", new Vector3(-113, 37, -148),
-                new Vector3(-45, 7, -54), new Color(1f, .54f, .30f), 6500f, 240f, 100f);
-            MakeLight("Golden light under the tree", LightType.Point,
-                new Vector3(-25, 28, -38), new Color(1f, .71f, .40f), 2200f, 110f);
-            MakeSpot("Warm tree canopy bounce", new Vector3(-80f, 67f, -109f),
-                new Vector3(-37f, 80f, -35.7f), new Color(1f, .86f, .64f), 5000f, 150f, 75f);
-            MakeSpot("Warm fill across the junction", new Vector3(18, 30, -5),
-                new Vector3(10, 2, -69), new Color(1f, .76f, .51f), 4600f, 160f, 86f);
+            // Moonlight falls in through each window onto the floor just inside it.
+            float windowX = (WindowWest + WindowEast) * .5f;
+            MakeSpot("Moonlight through the window", new Vector3(windowX, WindowHead, 54f),
+                new Vector3(windowX, 0f, -80f), new Color(.16f, .36f, 1f), 24000f, 300f, 70f);
+            MakeSpot("Moonlight across the room", new Vector3(windowX + 40f, WindowHead - 10f, 54f),
+                new Vector3(windowX + 70f, 0f, -50f), new Color(.12f, .30f, 1f), 14000f, 280f, 60f);
+            // Fire on the east wall, then lit doorways and a lamp up on the loft.
+            fireLight = MakeLight("Fireplace glow", LightType.Point, new Vector3(2f * FireplaceTurnX - (BreastFront - 18f), 34f, HearthZ),
+                new Color(1f, .45f, .14f), 14000f, 230f);
+            MakeSpot("Moonlight through the south window", new Vector3((SouthWindowWest + SouthWindowEast) * .5f, WindowHead, RoomSouth + 4f),
+                new Vector3((SouthWindowWest + SouthWindowEast) * .5f, 0f, RoomSouth + 150f), new Color(.16f, .36f, 1f), 26000f, 300f, 80f);
+            MakeLight("Kitchen light", LightType.Point, new Vector3(RoomWest - 60f, 110f, (ArchSouth + ArchNorth) * .5f),
+                new Color(1f, .70f, .40f), 9000f, 200f);
+            MakeLight("Bookcase lamp", LightType.Point, new Vector3(RoomEast - 60f, 120f, BookcaseZ),
+                new Color(1f, .68f, .38f), 9000f, 220f);
+            MakeLight("Glow in the train tunnel", LightType.Point,
+                new Vector3(-150, 16, -128), new Color(1f, .68f, .28f), 700f, 38f);
+            // The lamp lights what is near it: the wall, the table and the end of the sofa.
             MakeLight("Floor lamp", LightType.Point,
-                new Vector3(-203, 59, -12), new Color(1f, .70f, .39f), 12000f, 150f);
-            MakeSpot("Soft lamplight on velvet", new Vector3(-145f, 68f, -145f),
-                new Vector3(-215f, 30f, -105f), new Color(1f, .78f, .62f), 3500f, 150f, 90f);
+                LampPlace + Vector3.up * 59f, new Color(1f, .70f, .39f), 9000f, 120f);
+
+            // The tree is the room's main light. A warm heart, then a ring of coloured lights
+            // low and just outside the branches. Short reach, so each tints only the gifts beside it
+            // instead of all of them adding up to one orange pool on the rug.
+            MakeLight("Golden light in the tree", LightType.Point,
+                new Vector3(-37, 75, -50), new Color(1f, .66f, .36f), 600f, 170f);
+            // The same four colours as the bulbs: red, yellow, green, blue.
+            var bulbGlow = new[] { new Color(1f, .08f, .05f), new Color(1f, .70f, .12f),
+                new Color(.08f, 1f, .20f), new Color(.08f, .32f, 1f) };
+            // Twelve lights spiral up the outside of the tree from the gifts to the top, so the
+            // colour lands on the presents below and on the branches all the way up.
+            for (int i = 0; i < 12; i++)
+            {
+                float height = (12f + i * 15f) * FirHeight / FirScale;
+                float spread = Mathf.Lerp(78f, 18f, height / (200f * FirHeight / FirScale));
+                float angle = (i * 137.5f + 10f) * Mathf.Deg2Rad;
+                var place = new Vector3(-37f + Mathf.Cos(angle) * spread, height, -35.7f + Mathf.Sin(angle) * spread);
+                MakeLight("Tree bulb glow " + i, LightType.Point, place, bulbGlow[i % bulbGlow.Length],
+                    height < 60f ? 6000f : 3000f, height < 60f ? 95f : 55f);
+            }
 
             var reflections = new GameObject("Christmas Room Reflections");
             reflections.transform.SetParent(art, false);
-            reflections.transform.localPosition = new Vector3(-90f, 55f, -105f);
+            reflections.transform.localPosition = new Vector3((RoomWest + RoomEast) * .5f, 90f, (RoomSouth + RoomNorth) * .5f);
             roomProbe = reflections.AddComponent<ReflectionProbe>();
             roomProbe.mode = ReflectionProbeMode.Realtime;
             roomProbe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
             roomProbe.timeSlicingMode = ReflectionProbeTimeSlicingMode.IndividualFaces;
-            roomProbe.resolution = 128;
-            roomProbe.size = new Vector3(340f, 180f, 340f);
+            roomProbe.resolution = 256;
+            roomProbe.hdr = true;
+            roomProbe.size = new Vector3(RoomEast - RoomWest + 10f, RoomTop + 10f, RoomNorth - RoomSouth + 10f);
             roomProbe.boxProjection = true;
             roomProbe.intensity = .85f;
 
@@ -377,13 +488,21 @@ namespace DeadlyJenga.CandyArt
             var tone = grade.Add<Tonemapping>(true);
             tone.mode.Override(TonemappingMode.ACES);
             var bloom = grade.Add<Bloom>(true);
-            bloom.threshold.Override(1.04f);
-            bloom.intensity.Override(.42f);
-            bloom.scatter.Override(.62f);
+            bloom.threshold.Override(.9f);
+            bloom.intensity.Override(1.35f);
+            bloom.scatter.Override(.72f);
             var color = grade.Add<ColorAdjustments>(true);
-            color.postExposure.Override(.42f);
-            color.contrast.Override(7f);
-            color.saturation.Override(5f);
+            color.postExposure.Override(.1f);
+            color.contrast.Override(30f);
+            color.saturation.Override(38f);
+            // Storybook grade: blue in the shadows, gold in the highlights.
+            var split = grade.Add<SplitToning>(true);
+            split.shadows.Override(new Color(.38f, .48f, 1f));
+            split.highlights.Override(new Color(1f, .80f, .50f));
+            split.balance.Override(-10f);
+            var edges = grade.Add<Vignette>(true);
+            edges.intensity.Override(.32f);
+            edges.smoothness.Override(.5f);
         }
 
         Light MakeLight(string label, LightType type, Vector3 position, Color color, float power, float range)

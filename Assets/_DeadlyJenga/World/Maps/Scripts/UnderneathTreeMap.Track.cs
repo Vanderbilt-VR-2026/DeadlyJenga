@@ -12,22 +12,16 @@ namespace DeadlyJenga.CastlePrototype
 
         void BuildApprovedTrack()
         {
-            const int samples = 128, perSection = 8;
-            const float height = 6.5f;
+            const int perSection = 8;
+            const float height = ApprovedRailHeight;
+            int samples = ApprovedRail.Length;
             var course = new Vector3[samples];
             for (int i = 0; i < samples; i++)
             {
-                float t = i * Mathf.PI * 2f / samples;
-                float u = 43f * Mathf.Cos(t) + 1.3f * Mathf.Sin(3f * t);
-                float v = 29f * Mathf.Sin(t) + 1.2f * Mathf.Sin(2f * t);
-                course[i] = CoursePoint(u, v, height);
+                // Rail height is measured from the rug, like the gifts.
+                float rug = GiftFloor(CoursePoint(ApprovedRail[i].x, ApprovedRail[i].y));
+                course[i] = CoursePoint(ApprovedRail[i].x, ApprovedRail[i].y, rug + height);
             }
-            var colors = new[] { new Color(.82f, .035f, .07f), new Color(.035f, .38f, .19f),
-                new Color(.97f, .84f, .63f), new Color(.04f, .17f, .64f) };
-            var wraps = new Material[4];
-            for (int i = 0; i < wraps.Length; i++)
-                wraps[i] = ColoredPaper("Rail " + i + " snowflake gift wrap", colors[i], .4f);
-            var ribbon = ColoredPaper("Gold ribbon", new Color(.93f, .62f, .18f), .65f);
             var metal = ColoredPaper("Track Rail polished brass", new Color(.75f, .57f, .3f), .8f);
             var wood = ColoredPaper("Track Tie Dark Wood", new Color(.22f, .10f, .035f), .4f);
             var cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
@@ -37,13 +31,8 @@ namespace DeadlyJenga.CastlePrototype
             {
                 int mid = first + perSection / 2;
                 var anchor = course[mid];
-                var direction = Quaternion.LookRotation(course[(mid + 1) % samples] - course[mid - 1]);
-                float top = height - .35f;
-                float bottom = GiftFloor(anchor);
-                var bearing = BoxGift("Rail Gift " + (first / perSection + 1),
-                    new Vector3(anchor.x, (bottom + top) * .5f, anchor.z),
-                    new Vector3(5f, top - bottom, Vector3.Distance(course[first], course[(first + perSection) % samples]) - 1.8f),
-                    direction, wraps[(first / perSection) % 4], ribbon);
+                // The present under this stretch of rail comes from the layout table.
+                var bearing = giftLids["Rail Gift " + (first / perSection + 1)];
                 var section = Child(root, "Gift-supported rail " + (first / perSection + 1), anchor, Quaternion.identity);
                 var rails = new List<CombineInstance>();
                 var ties = new List<CombineInstance>();

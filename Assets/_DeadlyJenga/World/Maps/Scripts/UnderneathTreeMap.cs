@@ -112,6 +112,8 @@ namespace DeadlyJenga.CastlePrototype
                     AddMeshSurface(filter);
             }
 
+            AddFamilyRoomFloor();
+
             // The imported model supplies the room and rug; the approved course owns every gift.
             foreach (var pair in gifts)
                 foreach (var part in pair.Value)
@@ -123,7 +125,7 @@ namespace DeadlyJenga.CastlePrototype
             Physics.SyncTransforms();
             BuildApprovedTrack();
             ScaleApprovedCourse(layout.transform);
-            fallbackSpawn = CoursePoint(0f, -41f, 2f);
+            BuildToys();
             playArea.Expand(new Vector3(8f, 12f, 8f));
             Physics.SyncTransforms();
             BuildSkirtStitching();
@@ -144,6 +146,7 @@ namespace DeadlyJenga.CastlePrototype
             bodies.Clear();
             panels.Clear();
             giftBearings.Clear();
+            toyHolds.Clear();
             foreach (var mesh in generatedMeshes)
                 Release(mesh);
             generatedMeshes.Clear();
@@ -176,6 +179,20 @@ namespace DeadlyJenga.CastlePrototype
             return collider;
         }
 
+        // The block-out's floor boards only cover the old small room. The family room is bigger
+        // (tree in its north-east corner), so a flat floor under the whole room catches anyone
+        // who falls off the course. Its top is level with the boards.
+        static readonly Bounds FamilyRoom = new Bounds(new Vector3(-290f, -1f, -271f), new Vector3(700f, 2f, 658f));
+
+        void AddFamilyRoomFloor()
+        {
+            var floor = new GameObject("Family room floor") { layer = Layers.Surface };
+            floor.transform.SetParent(built, false);
+            var box = floor.AddComponent<BoxCollider>();
+            box.center = FamilyRoom.center;
+            box.size = FamilyRoom.size;
+        }
+
         static Rigidbody AddBody(GameObject go)
         {
             var body = go.AddComponent<Rigidbody>();
@@ -206,6 +223,7 @@ namespace DeadlyJenga.CastlePrototype
                 return;
             foreach (var bearing in giftBearings)
                 bearing.Check();
+            CheckToyHolds();
             if (Time.time < nextDebrisCleanup)
                 return;
             nextDebrisCleanup = Time.time + .8f;

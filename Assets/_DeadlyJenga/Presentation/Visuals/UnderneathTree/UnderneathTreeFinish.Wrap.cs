@@ -10,7 +10,8 @@ namespace DeadlyJenga.CandyArt
             string label = renderer.name;
             if (!renderer.TryGetComponent<MeshFilter>(out var filter) || !filter.sharedMesh)
                 return;
-            bool generated = label == "Wrap" || label == "Visual";
+            // Gift panels are plain cubes called "Visual"; toys also keep their model in "Visual", so leave those alone.
+            bool generated = (label == "Wrap" || label == "Visual") && filter.sharedMesh.name.StartsWith("Cube");
             bool imported = label.StartsWith("Present ") && label.EndsWith(" box");
             if (!generated && !imported)
                 return;

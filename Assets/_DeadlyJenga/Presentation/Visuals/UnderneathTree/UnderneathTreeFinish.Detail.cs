@@ -14,8 +14,30 @@ namespace DeadlyJenga.CandyArt
             BuildFloorboards();
             BuildFleece();
             BuildBraidedRugEdge();
+            // The sofa faces the fireplace on the east wall, with the lamp table at its south end.
+            int first = art.childCount;
             BuildSofa();
+            // A big family sofa (1.6x the model), its back against the east wall, facing the fire.
+            Restage("Velvet sofa", first, new Vector3(-216f, 0f, -109f), new Vector3(RoomEast - 60f, 0f, SofaZ), 180f, 1.6f);
+            first = art.childCount;
             BuildLampAndTable();
+            Restage("Lamp table", first, new Vector3(-215f, 0f, -11f), LampPlace, 0f);
+            BuildHomeyDetails();
+        }
+
+        static readonly Vector3 LampPlace = new Vector3(RoomEast - 19f, 0f, SofaZ + 140f);
+
+        // Gathers the pieces just built under one pivot and moves them as a group.
+        void Restage(string label, int first, Vector3 from, Vector3 to, float turn, float scale = 1f)
+        {
+            var pivot = new GameObject(label).transform;
+            pivot.SetParent(art, false);
+            pivot.localPosition = from;
+            for (int i = art.childCount - 2; i >= first; i--)
+                art.GetChild(i).SetParent(pivot, true);
+            pivot.localPosition = to;
+            pivot.localRotation = Quaternion.Euler(0f, turn, 0f);
+            pivot.localScale = Vector3.one * scale;
         }
 
         void BuildLampAndTable()
@@ -31,10 +53,20 @@ namespace DeadlyJenga.CandyArt
             foreach (var source in originals)
             {
                 if (source.transform.IsChildOf(art)) continue;
-                if (source.name != "Lamp Shade" && source.name != "Side Table") continue;
+                // The block-out calls its lampshade "Cone".
+                if (source.name != "Lamp Shade" && source.name != "Cone" && source.name != "Lamp Base" &&
+                    source.name != "Side Table") continue;
                 var center = art.InverseTransformPoint(source.bounds.center);
                 var size = source.bounds.size / art.lossyScale.x;
                 Hide(source);
+                if (source.name == "Lamp Base")
+                {
+                    Primitive("Turned brass lamp base", PrimitiveType.Cylinder, center,
+                        new Vector3(size.x * .55f, size.y * .5f, size.z * .55f), brass);
+                    Primitive("Brass lamp foot", PrimitiveType.Sphere, center - Vector3.up * size.y * .42f,
+                        new Vector3(size.x * 1.1f, size.y * .22f, size.z * 1.1f), brass);
+                    continue;
+                }
                 if (source.name == "Side Table")
                 {
                     RoundedDetail("Walnut tabletop", center + Vector3.up * size.y * .46f,
@@ -102,11 +134,11 @@ namespace DeadlyJenga.CandyArt
         void BuildSofa()
         {
             var velvet = Fabric("Deep red damask upholstery", "Crimson Damask",
-                new Color(1f, .91f, .91f), new Vector2(1.5f, 1.5f), .32f, .38f);
+                new Color(1.5f, .80f, .85f), new Vector2(1.5f, 1.5f), .32f, .38f);
             var lining = Fabric("Dark red velvet sofa frame", "Velour Scan",
-                new Color(.57f, .43f, .43f), new Vector2(3.0f, 3.3f), .07f, .4f);
+                new Color(.90f, .42f, .46f), new Vector2(3.0f, 3.3f), .07f, .4f);
             var piping = Fabric("Red velvet seam piping", "Velour Scan",
-                new Color(.74f, .53f, .52f), Vector2.one, .21f, .2f);
+                new Color(1.05f, .50f, .52f), Vector2.one, .21f, .2f);
             var walnut = Surface("Carved sofa feet", "Walnut Grain", new Color(.40f, .29f, .22f),
                 .40f, new Vector2(1.1f, 1.6f), 0f, .28f);
             RoundedDetail("Velvet sofa plinth", new Vector3(-216f, 13f, -109f),
@@ -177,31 +209,90 @@ namespace DeadlyJenga.CandyArt
             return detail;
         }
 
+        // Flat staggered boards. Each board leans a hair differently, so the reflection
+        // breaks from board to board like a real floor.
         void BuildFloorboards()
         {
-            var random = new System.Random(2419);
-            var boards = new List<CombineInstance>[5];
-            var cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
-            for (int i = 0; i < boards.Length; i++)
-                boards[i] = new List<CombineInstance>();
-            for (int row = 0; row < 43; row++)
+            Material varnish;
+            var shader = Resources.Load<Shader>(ResourcePath + "Christmas Polished Floor");
+            if (shader)
             {
-                float x = -254.1f + row * 7.9f;
-                for (float z = -260f; z < 76.8f;)
+                varnish = new Material(shader) { name = "Polished walnut floor", color = new Color(.24f, .15f, .14f) };
+                varnish.SetFloat("_Mirror", 1.3f);
+                varnish.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Walnut Grain"));
+                varnish.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Mahogany Normal"));
+                // Amber on the boards beside the lamp, blue on the boards inside the side window.
+                // Lamp = where the glint comes from; wash = centre on the floor (x, z) and size.
+                varnish.SetVector("_GlowALamp", new Vector4(LampPlace.x, 59f, LampPlace.z, 0f));
+                varnish.SetVector("_GlowAWash", new Vector4(LampPlace.x + 12f, LampPlace.z + 8f, 60f, 0f));
+                varnish.SetColor("_GlowAColor", new Color(1f, .42f, .08f) * 1.5f);
+                varnish.SetVector("_GlowBLamp", new Vector4((WindowWest + WindowEast) * .5f, WindowHead, 54f, 0f));
+                varnish.SetVector("_GlowBWash", new Vector4((WindowWest + WindowEast) * .5f, -10f, 80f, 0f));
+                varnish.SetColor("_GlowBColor", new Color(.06f, .22f, 1f) * 3.2f);
+                materials.Add(varnish);
+                floorVarnish = varnish;
+            }
+            else
+                varnish = Surface("Polished walnut floor", "Walnut Grain", new Color(.44f, .28f, .23f), .74f,
+                    new Vector2(.86f, 1.05f), 0f, .35f);
+
+            // Unity lights each mesh with only its few nearest lamps,
+            // so the floor is cut into tiles that each find their own.
+            var tiles = new Dictionary<int, FloorTile>();
+            var random = new System.Random(2419);
+            const float width = 7.9f;
+            int rows = Mathf.CeilToInt((RoomEast - RoomWest) / width);
+            for (int row = 0; row < rows; row++)
+            {
+                float x = RoomWest + row * width;
+                for (float z = RoomSouth; z < RoomNorth - .2f;)
                 {
-                    float length = Mathf.Min(77f - z, Range(random, 23f, 42f));
-                    boards[random.Next(boards.Length)].Add(Part(cube,
-                        new Vector3(x, .008f, z + length * .5f), new Vector3(7.82f, .051f, length - .12f)));
+                    float length = Mathf.Min(RoomNorth - z, Range(random, 23f, 42f));
+                    float shade = Range(random, .72f, 1.18f);
+                    var tint = new Color(shade, shade * Range(random, .94f, 1.04f), shade * Range(random, .90f, 1.05f));
+                    var lean = new Vector3(Range(random, -.006f, .006f), 1f, Range(random, -.004f, .004f)).normalized;
+                    float u = Range(random, 0f, 1f), v = Range(random, 0f, 1f);
+                    // Big tiles: enough for nearby lamps, without hundreds of floor meshes.
+                    int key = row / 11 * 100 + Mathf.FloorToInt((z + length * .5f - RoomSouth) / 85f);
+                    if (!tiles.TryGetValue(key, out var tile))
+                        tiles.Add(key, tile = new FloorTile());
+                    int first = tile.vertices.Count;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        float across = i == 1 || i == 2 ? 1f : 0f, along = i >= 2 ? 1f : 0f;
+                        tile.vertices.Add(new Vector3(x + across * width, .034f, z + along * length));
+                        tile.normals.Add(lean);
+                        // The grain runs along the board; each board starts at a different place in the picture.
+                        tile.grain.Add(new Vector2(u + across * .21f, v + along * length / 46f));
+                        tile.board.Add(new Vector4(across * width, along * length, width, length));
+                        tile.tints.Add(tint);
+                    }
+                    tile.faces.Add(first); tile.faces.Add(first + 3); tile.faces.Add(first + 2);
+                    tile.faces.Add(first); tile.faces.Add(first + 2); tile.faces.Add(first + 1);
                     z += length;
                 }
             }
-            for (int i = 0; i < boards.Length; i++)
+            foreach (var tile in tiles.Values)
             {
-                float tint = Mathf.Lerp(.76f, 1.2f, i / (float)(boards.Length - 1));
-                var varnish = Surface("Polished walnut board " + i, "Walnut Grain",
-                    new Color(.50f * tint, .48f * tint, .46f * tint), .46f, new Vector2(.86f, 1.05f), 0f, .35f);
-                Combined("Staggered hardwood boards " + i, boards[i], varnish, ShadowCastingMode.Off);
+                var mesh = new Mesh { name = "Staggered hardwood boards" };
+                mesh.SetVertices(tile.vertices);
+                mesh.SetNormals(tile.normals);
+                mesh.SetUVs(0, tile.grain);
+                mesh.SetUVs(1, tile.board);
+                mesh.SetColors(tile.tints);
+                mesh.SetTriangles(tile.faces, 0);
+                AddMesh("Staggered hardwood boards", mesh, varnish, ShadowCastingMode.Off);
             }
+        }
+
+        sealed class FloorTile
+        {
+            public readonly List<Vector3> vertices = new List<Vector3>();
+            public readonly List<Vector3> normals = new List<Vector3>();
+            public readonly List<Vector2> grain = new List<Vector2>();
+            public readonly List<Vector4> board = new List<Vector4>();
+            public readonly List<Color> tints = new List<Color>();
+            public readonly List<int> faces = new List<int>();
         }
 
         void BuildFleece()
@@ -210,7 +301,7 @@ namespace DeadlyJenga.CandyArt
             var vertices = new List<Vector3>();
             var uv = new List<Vector2>();
             var triangles = new List<int>();
-            var center = new Vector3(-90f, .56f, -110f);
+            var center = new Vector3(RugCentreX, .56f, RugCentreZ);
 
             for (int i = 0; i <= around; i++)
             {
@@ -220,7 +311,7 @@ namespace DeadlyJenga.CandyArt
                 for (int j = 0; j <= cross; j++)
                 {
                     float v = j / (float)cross, spin = v * Mathf.PI * 2f;
-                    var position = center + outward * (115.15f + .31f * Mathf.Sin(angle * 11f) + (2.77f + .19f * Mathf.Cos(angle * 96f + spin * 3f)) * Mathf.Cos(spin)) +
+                    var position = center + outward * (RugEdge + .31f * Mathf.Sin(angle * 11f) + (2.77f + .19f * Mathf.Cos(angle * 96f + spin * 3f)) * Mathf.Cos(spin)) +
                         Vector3.up * Mathf.Max(.04f, .40f + Mathf.Sin(spin) * (1.06f + .16f * Mathf.Cos(angle * 19f)));
                     vertices.Add(position);
                     uv.Add(new Vector2(u, v));
@@ -240,6 +331,9 @@ namespace DeadlyJenga.CandyArt
             AddMesh("Rolled ivory skirt edge", mesh, trim, ShadowCastingMode.TwoSided);
         }
 
+        // The rug the map builds: centre and edge radius in room units.
+        const float RugCentreX = -74f, RugCentreZ = -77.7f, RugEdge = 125.4f;
+
         void BuildBraidedRugEdge()
         {
             var braid = new FirMesh();
@@ -251,9 +345,9 @@ namespace DeadlyJenga.CandyArt
                 {
                     float angle = i * Mathf.PI * 2f / samples;
                     float twist = angle * 160f + strand * Mathf.PI * 2f / 3f;
-                    float radius = 115.15f + 2.45f * Mathf.Cos(twist);
-                    var point = new Vector3(-90f + Mathf.Cos(angle) * radius,
-                        Mathf.Max(.36f, 1.3f + 1.15f * Mathf.Sin(twist)), -110f + Mathf.Sin(angle) * radius);
+                    float radius = RugEdge + 2.45f * Mathf.Cos(twist);
+                    var point = new Vector3(RugCentreX + Mathf.Cos(angle) * radius,
+                        Mathf.Max(.36f, 1.3f + 1.15f * Mathf.Sin(twist)), RugCentreZ + Mathf.Sin(angle) * radius);
                     if (i > 0) braid.Tube(previous, point, .44f, .44f, 6);
                     previous = point;
                 }
@@ -270,8 +364,12 @@ namespace DeadlyJenga.CandyArt
                 return;
             if (panel.parent.parent && panel.parent.parent.name.StartsWith("Rail Gift ", StringComparison.Ordinal))
                 return;
-            var bowSpace = renderer.bounds.center + Vector3.up * (renderer.bounds.extents.y + .6f);
-            foreach (var cover in Physics.OverlapBox(bowSpace, new Vector3(.75f, .5f, .75f),
+            // Check the whole space the bow will fill (it grows with the gift), not just the middle.
+            var lidSize = renderer.name == "Curved wrapping"
+                ? panel.GetComponent<MeshFilter>().sharedMesh.bounds.size : panel.localScale;
+            float bowSize = Mathf.Clamp(Mathf.Min(lidSize.x, lidSize.z) * .30f, .6f, 3.6f) * panel.parent.lossyScale.x;
+            var bowSpace = renderer.bounds.center + Vector3.up * (renderer.bounds.extents.y + bowSize * .8f);
+            foreach (var cover in Physics.OverlapBox(bowSpace, new Vector3(1.4f, .7f, 1.4f) * bowSize,
                 Quaternion.identity, 1 << DeadlyJenga.Core.Layers.Block, QueryTriggerInteraction.Ignore))
                 if (cover.attachedRigidbody && cover.attachedRigidbody.transform.parent != panel.parent.parent)
                     return;
@@ -279,15 +377,24 @@ namespace DeadlyJenga.CandyArt
             if (!ribbon || !ribbon.TryGetComponent<MeshRenderer>(out var strip) || !strip.sharedMaterial)
                 return;
             if (!giftBow)
+                giftBow = Resources.Load<Mesh>(ResourcePath + "Gift Bow");
+            if (!giftBow)
             {
                 giftBow = RibbonMesh();
                 meshes.Add(giftBow);
             }
 
             var finish = ChooseFinish(strip.name, strip.sharedMaterial) ?? strip.sharedMaterial;
-            var bowMaterial = Surface("Bow " + finish.name, "Woven", finish.color, .72f,
-                new Vector2(3f, 2f), .1f, .25f);
+            // Solid satin: deep gold for gold and ivory ribbon, deep red for red.
+            bool redBow = finish.color.g < .2f;
+            var bowColor = redBow ? new Color(.62f, .01f, .03f) :
+                finish.color.g > .6f ? new Color(.92f, .58f, .14f) : new Color(.88f, .46f, .05f);
+            // Same foil as the ribbon, drawn on both sides of each loop.
+            var bowMaterial = Lacquer("Bow " + finish.name, bowColor, .8f, redBow ? .55f : .7f, .35f, .07f);
             bowMaterial.SetFloat("_Cull", 0f);
+            bowMaterial.SetFloat("_Foil", .6f);
+            bowMaterial.SetFloat("_TopLight", 0f);
+            bowMaterial.SetFloat("_EdgeLight", 0f);
             var obj = new GameObject("Hand-tied satin bow", typeof(MeshFilter), typeof(MeshRenderer));
             obj.GetComponent<MeshFilter>().sharedMesh = giftBow;
             var skin = obj.GetComponent<MeshRenderer>();
@@ -296,20 +403,12 @@ namespace DeadlyJenga.CandyArt
             var size = renderer.name == "Curved wrapping"
                 ? panel.GetComponent<MeshFilter>().sharedMesh.bounds.size : panel.localScale;
             obj.transform.SetParent(panel.parent, false);
-            obj.transform.localPosition = renderer.name == "Curved wrapping"
-                ? new Vector3(0f, .5f * size.y + .11f, 0f)
-                : new Vector3(0f, .5f * size.y + .11f, 0f);
-            obj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            obj.transform.localPosition = new Vector3(0f, .5f * size.y + .08f, 0f);
+            // The model is about 2.6 wide; turn each bow a little so no two sit the same way.
             float span = Mathf.Min(size.x, size.z);
-            obj.transform.localScale = new Vector3(Mathf.Clamp(span * .31f, .3f, 4.8f),
-                Mathf.Clamp(span * .23f, .2f, 3.0f), Mathf.Clamp(span * .30f, .2f, 3.6f));
-            var knot = new GameObject("Satin bow knot", typeof(MeshFilter), typeof(MeshRenderer));
-            knot.transform.SetParent(obj.transform, false);
-            knot.transform.localPosition = new Vector3(0f, 0f, -.14f);
-            knot.transform.localScale = new Vector3(.52f, .42f, .50f);
-            if (!roundedWrap) roundedWrap = RoundedWrap(new Bounds(Vector3.zero, Vector3.one));
-            knot.GetComponent<MeshFilter>().sharedMesh = roundedWrap;
-            knot.GetComponent<MeshRenderer>().sharedMaterial = bowMaterial;
+            float turn = (Mathf.Abs(panel.position.x * 7.3f + panel.position.z * 3.1f) % 50f) - 25f;
+            obj.transform.localRotation = Quaternion.Euler(0f, turn + (size.x < size.z ? 90f : 0f), 0f);
+            obj.transform.localScale = Vector3.one * Mathf.Clamp(span * .40f, .8f, 5f);
             mapDressings.Add(obj);
         }
 

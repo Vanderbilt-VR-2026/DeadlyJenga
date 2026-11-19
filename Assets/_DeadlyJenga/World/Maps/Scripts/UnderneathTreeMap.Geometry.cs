@@ -7,6 +7,10 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class UnderneathTreeMap
     {
+        // Where the middle of the train loop sits in the room, and how much the course is enlarged.
+        static readonly Vector3 CourseCentre = new Vector3(-74f, -.486f, -110f);
+        const float CourseScale = 1.9f;
+
         void ResizeApprovedRug(MeshFilter filter)
         {
             var mesh = Instantiate(filter.sharedMesh);
@@ -15,8 +19,10 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < points.Length; i++)
             {
                 var point = transform.InverseTransformPoint(filter.transform.TransformPoint(points[i]));
-                point.x = -90f + (point.x + 35f) * 1.4375f;
-                point.z = -110f + (point.z + 35f) * 1.4375f;
+                // The block-out rug is 78.8 wide around (-35, -35). Fit it to the approved course.
+                float grow = ApprovedRugRadius * CourseScale / 78.8f;
+                point.x = CourseCentre.x + (point.x + 35f) * grow;
+                point.z = CourseCentre.z + ApprovedRugBack * CourseScale + (point.z + 35f) * grow;
                 points[i] = filter.transform.InverseTransformPoint(transform.TransformPoint(point));
             }
             mesh.vertices = points;
@@ -33,8 +39,9 @@ namespace DeadlyJenga.CastlePrototype
                 if (node != course && node != imported && !node.name.EndsWith("(Clone)") && node.name != "Fir trunk collision")
                     frames.Add(node);
             foreach (var frame in frames) frame.SetParent(course, true);
-            course.localPosition = new Vector3(-90f, -.486f, -110f);
-            course.localScale = Vector3.one * 1.9f;
+            course.localPosition = CourseCentre;
+            course.localScale = Vector3.one * CourseScale;
+            fallbackSpawn = transform.InverseTransformPoint(course.TransformPoint(new Vector3(9f, 5f, -40.6f)));
             Physics.SyncTransforms();
             foreach (var body in bodies)
                 foreach (var shape in body.GetComponentsInChildren<Collider>())
@@ -93,7 +100,7 @@ namespace DeadlyJenga.CastlePrototype
             var frame = Child(built, label, center, orientation);
             var shell = new UnderneathTreeGiftShell();
             const float joint = .016f;
-            float ribbonWidth = Mathf.Min(size.x, size.z) * .135f;
+            float ribbonWidth = Mathf.Min(size.x, size.z) * .17f;
             float thick = Mathf.Clamp(Mathf.Min(size.x, size.y, size.z) * .085f, .2f, .57f);
             float insideY = size.y - 2f * (thick + joint);
             float insideX = size.x - 2f * (thick + joint);
@@ -128,7 +135,7 @@ namespace DeadlyJenga.CastlePrototype
             var visual = VisualBox(piece, "Visual", Vector3.zero, size, wrap);
             if (ribbon)
             {
-                float width = ribbonWidth > 0f ? ribbonWidth : Mathf.Min(size.x, size.z) * .135f;
+                float width = ribbonWidth > 0f ? ribbonWidth : Mathf.Min(size.x, size.z) * .17f;
                 if (facing.y != 0f)
                 {
                     VisualBox(piece, "Ribbon across", new Vector3(0f, size.y * .5f + .03f, 0f),
