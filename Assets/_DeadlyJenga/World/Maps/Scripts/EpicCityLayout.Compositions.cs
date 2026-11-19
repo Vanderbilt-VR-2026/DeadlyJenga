@@ -22,6 +22,8 @@ namespace DeadlyJenga.CastlePrototype
                     b.PlazaCanyon();break;
                 case MechanismCityDesign:
                     b.MechanismCity();break;
+                case SkyRingCityDesign:
+                    b.MechanismCity(true);break;
                 case 2:
                     b.Site("Cathedral",-65,-110,2,name:"Bowl entry arcade");b.Site("Parking",55,-105,1,name:"Low bowl terraces");
                     b.Site("Parking",120,-15,2,0,4,"East switchback");b.Site("Office",105,90,3,0,12,"High east crown");b.Site("Lantern",0,115,3,0,8,"Bowl lantern");

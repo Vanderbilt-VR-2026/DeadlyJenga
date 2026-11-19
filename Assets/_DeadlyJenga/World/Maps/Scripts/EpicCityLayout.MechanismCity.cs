@@ -7,11 +7,14 @@ namespace DeadlyJenga.CastlePrototype
     // Candy Mechanism City: Candy Plaza Canyon with engineered mechanisms transplanted from the workshop maps.
     // Each piece keeps its own tested geometry, masses and hinges; it is only moved, turned and (for the two
     // lab towers) trimmed to fewer tiers.
+    // Candy Sky Ring City (skyRing): the same city with the sky ring closed. Two annexes grow taller so their
+    // roofs line up with the two lab towers, and those sky bridges land on the towers' moving parts (the Bookfall
+    // wing and the Drop-Stop's dropping floor). The island is trimmed close to the buildings.
     public static partial class EpicCityLayout
     {
         sealed partial class Builder
         {
-            public void MechanismCity()
+            public void MechanismCity(bool skyRing = false)
             {
                 const float ring = 72;
                 Vector3 OnRing(float angle, float radius) => new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad), 0, Mathf.Sin(angle * Mathf.Deg2Rad)) * radius;
@@ -28,7 +31,7 @@ namespace DeadlyJenga.CastlePrototype
                 // Sugar Market: unchanged hall with two annexes.
                 p = OnRing(105, ring); order.Add(JengaSite("Sugar Market west annex", p.x, p.z, 3, 24, 24, FacePlaza(105)));
                 p = OnRing(135, ring); order.Add(JengaSite("Sugar Market hall", p.x, p.z, 2, 28, 22, FacePlaza(135)));
-                p = OnRing(165, ring); order.Add(JengaSite("Sugar Market east annex", p.x, p.z, 2, 24, 24, FacePlaza(165)));
+                p = OnRing(165, ring); order.Add(JengaSite("Sugar Market east annex", p.x, p.z, skyRing ? 7 : 2, 24, 24, FacePlaza(165)));
                 // Grape Heights: Bookfall Keep (three spine tiers, one pair of swing-down wings).
                 p = OnRing(225, 84);
                 order.Add(Transplant("Grape Heights bookfall keep", TowerExhibitionLayout.Build(false, 8), TowerExhibitionLayout.Centers[8], p, TangentZ(225), m =>
@@ -40,8 +43,15 @@ namespace DeadlyJenga.CastlePrototype
                 // Cloud Harbor: unchanged block with two annexes.
                 p = OnRing(285, ring); order.Add(JengaSite("Cloud Harbor west annex", p.x, p.z, 2, 24, 24, FacePlaza(285)));
                 p = OnRing(315, ring); order.Add(JengaSite("Cloud Harbor block", p.x, p.z, 3, 28, 22, FacePlaza(315)));
-                p = OnRing(345, ring); order.Add(JengaSite("Cloud Harbor east annex", p.x, p.z, 3, 24, 24, FacePlaza(345)));
-                for (int i = 0; i < order.Count; i++) TryLink(order[i], order[(i + 1) % order.Count], true, 9.2f, 13.2f, 5.2f, 17.2f);
+                p = OnRing(345, ring); order.Add(JengaSite("Cloud Harbor east annex", p.x, p.z, skyRing ? 5 : 3, 24, 24, FacePlaza(345)));
+                for (int i = 0; i < order.Count; i++)
+                {
+                    int next = (i + 1) % order.Count;
+                    // Points found offline with the same clearance test the planner uses.
+                    if (skyRing && i == 3) DeckLink(order[3], order[4], new Vector3(-63.96f, 29.15f, 8.96f), new Vector3(-56.46f, 29.15f, -28.39f), false);
+                    else if (skyRing && i == 7) DeckLink(order[7], order[0], new Vector3(81.11f, 21.15f, -13.55f), new Vector3(67.18f, 20.35f, 45.96f), false);
+                    else TryLink(order[i], order[next], true, 9.2f, 13.2f, 5.2f, 17.2f);
+                }
 
                 // Canyon: two tower pairs, wider apart so the keystone vault fits between them.
                 int nw = JengaSite("Canyon north-west tower", -27, 17, 6, 22, 22, 0, true);
@@ -62,7 +72,13 @@ namespace DeadlyJenga.CastlePrototype
                 plan.routes.Add(new EpicCityRoute { name = "Plaza keystone vault to Canyon south-west tower", from = vault, to = sw });
                 Bridge(new Vector3(11, 13.01f, 8), new Vector3(20, 13.15f, 12), BridgeWidth, "Loose city street crossing");
                 plan.routes.Add(new EpicCityRoute { name = "Plaza keystone vault to Canyon north-east tower", from = vault, to = ne });
-                foreach (int inner in new[] { nw, ne, sw, se })
+                if (skyRing)
+                {
+                    // Low spokes from the canyon's first floors to the ring (the planner never tries below 9 m).
+                    DeckLink(nw, order[2], new Vector3(-27, 5.15f, 25.85f), new Vector3(-46.03f, 5.15f, 46.03f), true);
+                    DeckLink(ne, order[7], new Vector3(27, 5.15f, 11.65f), new Vector3(59.87f, 5.15f, -24.22f), true);
+                }
+                foreach (int inner in skyRing ? new[] { sw, se } : new[] { nw, ne, sw, se })
                 {
                     int best = order[0];
                     foreach (int s in order) if ((plan.sites[s].position - plan.sites[inner].position).sqrMagnitude < (plan.sites[best].position - plan.sites[inner].position).sqrMagnitude) best = s;
@@ -81,7 +97,7 @@ namespace DeadlyJenga.CastlePrototype
                 foreach (var (unitX, angle) in new[] { (-43.5f, 300f), (-14.5f, 330f) })
                 {
                     var unit = new Vector3(unitX, 0, -26);
-                    Transplant("Harbor bascule " + angle, MayhemStructureLayout.Build(9), harborOrigin + unit, OnRing(angle, 98), TangentZ(angle), m =>
+                    Transplant("Harbor bascule " + angle, MayhemStructureLayout.Build(9), harborOrigin + unit, OnRing(angle, skyRing ? 90 : 98), TangentZ(angle), m =>
                     {
                         var local = m.position - harborOrigin - unit;
                         return Mathf.Abs(local.x) < 9 && local.z > -20 && local.z < 25 && m.purpose != "Loose route bridge";
@@ -110,6 +126,19 @@ namespace DeadlyJenga.CastlePrototype
                     }
                     if (m.purpose == "Moving roof") { m.slideSupport = Find("Fixed roof frame A"); m.slideAxis = Vector3.right; m.slideLimit = 2.5f; }
                 }
+            }
+
+            // A bridge between two known deck points, with trestles on long spans (like Link).
+            void DeckLink(int from, int to, Vector3 a, Vector3 b, bool durable)
+            {
+                district = from; int before = plan.modules.Count;
+                plan.routes.Add(new EpicCityRoute { name = plan.sites[from].name + " to " + plan.sites[to].name, from = from, to = to, a = a, b = b });
+                float distance = Vector3.ProjectOnPlane(b - a, Vector3.up).magnitude; int spans = Mathf.Max(1, Mathf.CeilToInt(distance / 32));
+                var seats = new List<Vector3> { a };
+                for (int n = 1; n < spans; n++) { var point = Vector3.Lerp(a, b, n / (float)spans); if (FootClear(point)) { Trestle(point, b - a); seats.Add(point); } }
+                seats.Add(b);
+                for (int n = 1; n < seats.Count; n++) Bridge(seats[n - 1], seats[n], BridgeWidth, "Loose city street crossing", n == 1, n == seats.Count - 1);
+                if (durable) for (int i = before; i < plan.modules.Count; i++) plan.modules[i].mass = 450;
             }
 
             // Tries each height until a real bridge lands; keeps a single ground-street note if none do.

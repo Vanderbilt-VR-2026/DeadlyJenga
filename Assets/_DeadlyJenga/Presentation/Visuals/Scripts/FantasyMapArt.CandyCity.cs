@@ -266,7 +266,7 @@ namespace DeadlyJenga.Presentation
         void FinishCityPass()
         {
             if(cityBuilt)return;cityBuilt=true;
-            BuildPlaza();BuildGondola();
+            BuildPlaza();BuildGondola();if(cityStreets)BuildCityStreets();
         }
 
         void BuildPlaza()
@@ -425,6 +425,7 @@ namespace DeadlyJenga.Presentation
             float time=Time.time;
             if(balloonRing){balloonRing.localRotation=Quaternion.Euler(0,time*1.2f,0);balloonRing.localPosition=Vector3.up*Mathf.Sin(time*.3f)*2;}
             if(balloonRingOuter){balloonRingOuter.localRotation=Quaternion.Euler(0,-time*.7f,0);balloonRingOuter.localPosition=Vector3.up*Mathf.Sin(time*.25f+1)*3;}
+            AnimateCars(time);
             float length=Mathf.Max(1,(cableB-cableA).magnitude);
             for(int i=0;i<cabins.Count;i++)
             {

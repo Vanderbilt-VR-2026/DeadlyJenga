@@ -7,7 +7,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed class EpicCityMap : MonoBehaviour,IWorldQuery,IMapFootprint,ISyncedWorld,IRebuildable,ITraversalCollisionWorld
     {
-        [Range(0,13)] public int design;
+        [Range(0,14)] public int design;
         public Material[] palette;
         public PhysicsMaterial friction;
         public Transform foundation;

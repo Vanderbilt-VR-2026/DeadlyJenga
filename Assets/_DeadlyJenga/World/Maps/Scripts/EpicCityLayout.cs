@@ -32,16 +32,16 @@ namespace DeadlyJenga.CastlePrototype
     // Coordinates, stairs and bearing seats are physical geometry. Road markings are separate art.
     public static partial class EpicCityLayout
     {
-        public static readonly string[] Names={"Tideway Metropolis","Double-Loop Exchange","Caldera Switchback City","Broken Crown Capital","Harbor Loom","Lantern Ravine","Canopy Borough","Bookfall Boulevard","Three Hearts City","The Rising Spine","Candy Plaza Wheel","Candy Canyon","Candy Plaza Canyon","Candy Mechanism City"};
-        public static readonly string[] Ids={"epic-tideway","epic-double-loop","epic-caldera","epic-broken-crown","epic-harbor-loom","epic-lantern-ravine","epic-canopy-borough","epic-bookfall","epic-three-hearts","epic-rising-spine","epic-candy-plaza-wheel","epic-candy-canyon","epic-candy-plaza-canyon","epic-candy-mechanism-city"};
+        public static readonly string[] Names={"Tideway Metropolis","Double-Loop Exchange","Caldera Switchback City","Broken Crown Capital","Harbor Loom","Lantern Ravine","Canopy Borough","Bookfall Boulevard","Three Hearts City","The Rising Spine","Candy Plaza Wheel","Candy Canyon","Candy Plaza Canyon","Candy Mechanism City","Candy Sky Ring City"};
+        public static readonly string[] Ids={"epic-tideway","epic-double-loop","epic-caldera","epic-broken-crown","epic-harbor-loom","epic-lantern-ravine","epic-canopy-borough","epic-bookfall","epic-three-hearts","epic-rising-spine","epic-candy-plaza-wheel","epic-candy-canyon","epic-candy-plaza-canyon","epic-candy-mechanism-city","epic-candy-sky-ring-city"};
         public static EpicCityPlan Build(int design)
         {
             if(design<0||design>=Names.Length)throw new ArgumentOutOfRangeException(nameof(design));
             var b=new Builder();Compose(b,design);if(!IsCompactCandyCity(design))b.WeaveStreets(design);b.Finish();
             if(IsCompactCandyCity(design))
             {
-                var bounds=MayhemStructureLayout.Bounds(b.plan.modules);
-                b.plan.halfSize=new Vector2(Mathf.Max(70,Mathf.Max(Mathf.Abs(bounds.min.x),Mathf.Abs(bounds.max.x))+22),Mathf.Max(60,Mathf.Max(Mathf.Abs(bounds.min.z),Mathf.Abs(bounds.max.z))+22));
+                var bounds=MayhemStructureLayout.Bounds(b.plan.modules);float margin=design==SkyRingCityDesign?8:22;
+                b.plan.halfSize=new Vector2(Mathf.Max(70,Mathf.Max(Mathf.Abs(bounds.min.x),Mathf.Abs(bounds.max.x))+margin),Mathf.Max(60,Mathf.Max(Mathf.Abs(bounds.min.z),Mathf.Abs(bounds.max.z))+margin));
             }
             if(design==1)
             {

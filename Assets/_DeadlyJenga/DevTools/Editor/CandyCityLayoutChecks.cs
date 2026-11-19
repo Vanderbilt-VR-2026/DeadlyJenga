@@ -23,6 +23,7 @@ namespace DeadlyJenga.DevTools.Editor
             (EpicCityLayout.CandyCanyonDesign, "epic-candy-canyon"),
             (EpicCityLayout.PlazaCanyonDesign, "epic-candy-plaza-canyon"),
             (EpicCityLayout.MechanismCityDesign, "epic-candy-mechanism-city"),
+            (EpicCityLayout.SkyRingCityDesign, "epic-candy-sky-ring-city"),
         };
 
         [Serializable] sealed class Shape { public int module; public Vector3 center, size; public Quaternion rotation; public int finish; public Vector3[] vertices; }
@@ -37,7 +38,12 @@ namespace DeadlyJenga.DevTools.Editor
         }
 
         [MenuItem("Tools/Deadly Jenga/Maps/Candy City Layout Checks")]
-        public static void Run()
+        public static void Run() => RunMaps(Maps);
+
+        // -executeMethod DeadlyJenga.DevTools.Editor.CandyCityLayoutChecks.RunSkyRing (only the newest map)
+        public static void RunSkyRing() => RunMaps(Maps.Where(m => m.design == EpicCityLayout.SkyRingCityDesign).ToArray());
+
+        static void RunMaps((int design, string id)[] maps)
         {
             var report = new StringBuilder("Candy city layout checks\n");
             string folder = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Validation");
@@ -45,7 +51,7 @@ namespace DeadlyJenga.DevTools.Editor
             int failed = 0;
             try
             {
-                foreach (var (design, id) in Maps)
+                foreach (var (design, id) in maps)
                 {
                     var plan = EpicCityLayout.Build(design);
                     File.WriteAllText(Path.Combine(folder, "CandyCity-" + id + ".json"), JsonUtility.ToJson(ExportPlan(design, plan)));
@@ -55,7 +61,7 @@ namespace DeadlyJenga.DevTools.Editor
                                       $"{plan.routes.Count - groundOnly} bridges built, {groundOnly} links fell back to ground, island {plan.halfSize.x * 2:0}x{plan.halfSize.y * 2:0} m, top {b.max.y:0.0} m");
                     if (groundOnly > 0) report.AppendLine("  ground fallbacks: " + string.Join("; ", plan.routes.Where(r => r.name.StartsWith("Ground street", StringComparison.Ordinal)).Select(r => r.name)));
                     failed += SettleAndPull(design, id, report);
-                    if (design == EpicCityLayout.MechanismCityDesign) failed += Mechanisms(id, report);
+                    if (design >= EpicCityLayout.MechanismCityDesign) failed += Mechanisms(id, report);
                 }
             }
             catch (Exception e) { report.AppendLine("ERROR " + e); failed++; Debug.LogException(e); }
@@ -63,7 +69,7 @@ namespace DeadlyJenga.DevTools.Editor
             File.WriteAllText(Path.Combine(folder, "CandyCityLayouts.txt"), report.ToString());
             Debug.Log(report.ToString());
             // Captures run in Play Mode and exit Unity when done.
-            MapLiveCapture.BatchMaps(Maps.Select(m => m.id).ToList(), Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Captures", "CandyCityLayouts"));
+            MapLiveCapture.BatchMaps(maps.Select(m => m.id).ToList(), Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Captures", "CandyCityLayouts"));
         }
 
         static Export ExportPlan(int design, EpicCityPlan plan)

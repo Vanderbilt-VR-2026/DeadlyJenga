@@ -400,6 +400,14 @@ MonoBehaviour:
     recommendedMode: demo
     walkableIsland: 1
     supportedModes: []
+  - id: epic-candy-sky-ring-city
+    title: Candy Sky Ring City
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 4900549641561135372, guid: 8f78a29dfb0a433bbbbe4a232f52e83b, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
   - id: megablock-tower
     title: Megablock Tower
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity

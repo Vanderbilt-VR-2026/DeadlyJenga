@@ -7,7 +7,7 @@ namespace DeadlyJenga.CastlePrototype
     // and climb-only crowns (walls taller than jump + vault, no stairs).
     public static partial class EpicCityLayout
     {
-        public const int PlazaWheelDesign = 10, CandyCanyonDesign = 11, PlazaCanyonDesign = 12, MechanismCityDesign = 13;
+        public const int PlazaWheelDesign = 10, CandyCanyonDesign = 11, PlazaCanyonDesign = 12, MechanismCityDesign = 13, SkyRingCityDesign = 14;
         public static bool IsCompactCandyCity(int design) => design >= PlazaWheelDesign;
 
         sealed partial class Builder
