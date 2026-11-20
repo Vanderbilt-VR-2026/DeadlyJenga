@@ -54,6 +54,10 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem(Menu + "Run Checks and Pictures (XXL ship)")]
         public static void RunChecksHuge() { SessionState.SetString("DeadlyJenga.DeckShipMapId", "deck-ship-xxl"); RunChecksForMap(); }
 
+        // -executeMethod DeadlyJenga.DevTools.Editor.DeckShipTools.RunChecksGrand (the 8-bay Deck Ship XL+)
+        [MenuItem(Menu + "Run Checks and Pictures (XL+ ship)")]
+        public static void RunChecksGrand() { SessionState.SetString("DeadlyJenga.DeckShipMapId", "deck-ship-xlplus"); RunChecksForMap(); }
+
         static void RunChecksForMap()
         {
             Directory.CreateDirectory(ValidationFolder);

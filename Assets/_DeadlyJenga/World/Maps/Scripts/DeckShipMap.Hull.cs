@@ -112,8 +112,9 @@ namespace DeadlyJenga.CastlePrototype
 
         // Sizes of the built-in box ships. Standard is the original ship; Large has four times its deck area
         // (twice as long and wide), a higher deck, and four cargo bays so four submaps sail at once;
-        // Huge is four times Large again (288 x 88 m) with sixteen bays in a 4 x 4 grid.
-        public enum BoxShipSize { Standard, Large, Huge }
+        // Huge is four times Large again (288 x 88 m) with sixteen bays in a 4 x 4 grid;
+        // Grand is twice Large's deck area (204 x 62 m) with eight bays, two across and four along.
+        public enum BoxShipSize { Standard, Large, Huge, Grand }
 
         struct BoxPlan
         {
@@ -121,9 +122,18 @@ namespace DeadlyJenga.CastlePrototype
             public Vector2[] bays;   // bay centers on the main deck (x across, z along)
         }
 
-        static BoxPlan PlanFor(BoxShipSize size) => size == BoxShipSize.Huge ? HugePlan() : size == BoxShipSize.Large
+        static BoxPlan PlanFor(BoxShipSize size) => size == BoxShipSize.Grand ? GrandPlan() : size == BoxShipSize.Huge ? HugePlan() : size == BoxShipSize.Large
             ? new BoxPlan { halfLength = 72, halfBeam = 22, deck = 6, bays = new[] { new Vector2(-11.6f, -17), new Vector2(11.6f, -17), new Vector2(-11.6f, 17), new Vector2(11.6f, 17) } }
             : new BoxPlan { halfLength = 36, halfBeam = HalfBeam, deck = DeckHeight, bays = new[] { Vector2.zero } };
+
+        static BoxPlan GrandPlan()
+        {
+            var bays = new List<Vector2>();
+            foreach (float z in new[] { -51f, -17f, 17f, 51f })
+                foreach (float x in new[] { -11.6f, 11.6f })
+                    bays.Add(new Vector2(x, z));
+            return new BoxPlan { halfLength = 102, halfBeam = 31, deck = 7.5f, bays = bays.ToArray() };
+        }
 
         static BoxPlan HugePlan()
         {
