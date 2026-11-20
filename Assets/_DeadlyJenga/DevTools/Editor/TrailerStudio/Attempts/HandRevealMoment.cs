@@ -561,7 +561,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (final) foreach (var c in cameras) c.motionBlur = .3f;
             set.cameras.Clear(); set.cameras.AddRange(cameras);
             set.render = final
-                ? new StudioRenderSettings { width = 1920, height = 1080, fps = Fps, subFrames = 1, format = "png", cinema = true, filmstrip = 12 }
+                // cinema = false: the cinema preset (the project's top quality level) renders the survivor white
+                // (v08 final A: the yellow hero came out white, as the pilot's "washed-out hero" did).
+                ? new StudioRenderSettings { width = 1920, height = 1080, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 12 }
                 : new StudioRenderSettings { width = 640, height = 360, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 8 };
             StudioLibrary.Save(set);
             string renders = Path.Combine(Folder, "renders");
