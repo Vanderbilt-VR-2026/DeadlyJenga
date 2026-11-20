@@ -25,9 +25,9 @@ namespace DeadlyJenga.CandyPlayers
             {
                 // Switched off: legs straight, head dropped onto the chest (tipped a little to one side),
                 // arms dangling straight down, fingers loose.
-                float tip = (color % 3 - 1) * 14f;
-                frame.head = feet + facing * new Vector3(tip * -.004f, 1.55f, .3f);
-                frame.headRotation = facing * Quaternion.Euler(80, 0, tip);
+                // The body is posed standing tall first; the head is then bent down at the neck below.
+                frame.head = feet + Vector3.up * 1.6f;
+                frame.headRotation = facing;
                 frame.left = Hand(feet + facing * new Vector3(-.22f, .6f, -.02f), facing * Quaternion.Euler(0, 0, 4), true, .4f);
                 frame.right = Hand(feet + facing * new Vector3(.22f, .6f, -.02f), facing * Quaternion.Euler(0, 0, -4), false, .4f);
             }
@@ -40,7 +40,17 @@ namespace DeadlyJenga.CandyPlayers
                 frame.right = Hand(feet + facing * new Vector3(.36f, .98f, .1f), facing * Quaternion.Euler(-10, 0, -12), false, .15f);
             }
             rig.ApplyFrame(frame, true, 0);
+            if (pose == MannequinPose.Hanging) DropHead(rig.HeadAnchor, facing, (color % 3 - 1) * 14f);
             return rig.gameObject;
+        }
+
+        // Swings the head forward around the neck, so it stays attached to the body.
+        static void DropHead(Transform head, Quaternion facing, float tip)
+        {
+            if (!head) return;
+            Vector3 neck = head.position + Vector3.down * .15f;
+            Quaternion bend = facing * Quaternion.Euler(70, 0, tip) * Quaternion.Inverse(facing);
+            head.SetPositionAndRotation(neck + bend * (head.position - neck), bend * head.rotation);
         }
 
         static CandyHandPose Hand(Vector3 position, Quaternion rotation, bool left, float curl) =>
