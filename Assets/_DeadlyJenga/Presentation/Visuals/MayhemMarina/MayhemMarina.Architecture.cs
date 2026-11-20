@@ -174,8 +174,9 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void Pavilion()
         {
-            Ramp(new Vector3(0,PlazaTop,CinemaFront-2),new Vector3(0,CinemaFloor,CinemaFront),9.6f,false);
-            Ramp(new Vector3(5.98f,PlazaTop,CinemaFront-1.9f),new Vector3(5.98f,CinemaFloor,CinemaFront),2.15f,false);
+            // Wooden boardwalk ramps from the plaza up into the cinema.
+            Ramp(new Vector3(0,PlazaTop,CinemaFront-2),new Vector3(0,CinemaFloor,CinemaFront),9.6f,false,F.Wood);
+            Ramp(new Vector3(5.98f,PlazaTop,CinemaFront-1.9f),new Vector3(5.98f,CinemaFloor,CinemaFront),2.15f,false,F.Wood);
             float depth=CinemaBack-CinemaFront;
             float center=(CinemaFront+CinemaBack)*.5f;
             mesh.Box(new Vector3(0,CinemaFloor-.3f,center),new Vector3(15.8f,.6f,depth),F.Stone,0,true);
@@ -427,10 +428,15 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Disk(c,.1f,.16f,F.Ivory,false,12);
             }
         }
-        void Ramp(Vector3 from,Vector3 to,float width,bool guarded=true)
+        void Ramp(Vector3 from,Vector3 to,float width,bool guarded=true,F finish=F.Stone)
         {
             var slope=(to-from).normalized;var rotation=Quaternion.LookRotation(slope);
-            mesh.Box((from+to)*.5f-rotation*Vector3.up*.11f,new Vector3(width,.22f,Vector3.Distance(from,to)),F.Stone,0,false,rotation);
+            float length=Vector3.Distance(from,to);
+            mesh.Box((from+to)*.5f-rotation*Vector3.up*.11f,new Vector3(width,.22f,length),finish,0,false,rotation);
+            // A wooden ramp gets dark seams between its boards.
+            if(finish==F.Wood)
+                for(float d=.3f;d<length-.05f;d+=.3f)
+                    mesh.Box(from+slope*d+rotation*Vector3.up*.002f,new Vector3(width-.04f,.006f,.02f),F.DarkWood,.002f,false,rotation);
             mesh.WalkStrip(from,to,Vector3.Cross(Vector3.up,slope).normalized*(width*.5f));
             if(!guarded)return;
             Vector3 side=Vector3.Cross(Vector3.up,slope).normalized*(width*.5f+.12f);Rail(from-side,to-side);Rail(from+side,to+side);
