@@ -302,14 +302,16 @@ namespace DeadlyJenga.Presentation
             }
             for (int i = 0; i < 3; i++)
                 Part(root, PrimitiveType.Sphere, new Vector3(Range(-r, r) * .8f, 0, Range(-r, r) * .6f), Vector3.one * Range(2, 5), Quaternion.Euler(Range(0, 40), Range(0, 360), 0), rock);
-            Place(root, index * 260 - 400);
+            Place(root, index * 260 - 400 - (index > 1 ? hullBounds.extents.z : 0));
             return root;
         }
 
         void Place(Transform island, float z)
         {
             int side = random.Next(2) * 2 - 1;
-            island.localPosition = new Vector3(side * Range(75, 190), water - transform.position.y, z);
+            // Outside the hull, whatever its size.
+            float clear = Mathf.Max(20, hullBounds.extents.x);
+            island.localPosition = new Vector3(side * (clear + Range(55, 170)), water - transform.position.y, z);
             island.localRotation = Quaternion.Euler(0, Range(0, 360), 0);
             float s = Range(.7f, 1.3f); island.localScale = new Vector3(s, s * Range(.8f, 1.2f), s);
         }
@@ -322,7 +324,8 @@ namespace DeadlyJenga.Presentation
                 var p = island.localPosition;
                 p.z -= cruiseSpeed * dt;
                 island.localPosition = p;
-                if (p.z < -600) Place(island, 600 + Range(0, 200));
+                float reach = Mathf.Max(600, hullBounds.extents.z * 3);
+                if (p.z < -reach) Place(island, reach + Range(0, 200));
             }
         }
 

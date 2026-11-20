@@ -1,0 +1,115 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &7310550183224610001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7310550183224610002}
+  - component: {fileID: 7310550183224610003}
+  - component: {fileID: 7310550183224610004}
+  - component: {fileID: 7310550183224610005}
+  m_Layer: 0
+  m_Name: Mode_deck-ship-xxl
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7310550183224610002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7310550183224610001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7310550183224610003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7310550183224610001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 214189048ebd463990c0620959729411, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.DeckShipMap
+  hullPrefab: {fileID: 0}
+  boxShip: 2
+  autoEvents: 1
+  calmSeconds: 20
+  gapMin: 16
+  gapMax: 28
+  eventsBeforeIceberg: 3
+  newCargoAfterIceberg: 1
+  swayRoll: 1
+  swayPitch: 0.4
+  swayHeave: 0.2
+  rollDegrees: 8
+  pitchDegrees: 3
+  periodScale: 2.2
+  icebergList: 3
+  icebergShove: 7
+  cruiseSpeed: 7
+  blockPrefab: {fileID: 4765161766151906529, guid: 63f32e5c8c149da438596af9620735f3, type: 3}
+  blockMaterials:
+  - {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+  - {fileID: 2100000, guid: 1f4297b594299cc4fbdec5329506df5f, type: 2}
+  - {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+  - {fileID: 2100000, guid: 6d644d4ed46b4f3884dcba06f5fcdd5e, type: 2}
+  cargo: 0
+  randomCargoOnRebuild: 0
+  seed: 1
+  dropHeight: 2.5
+  hullSource: {fileID: 2100000, guid: 6d644d4ed46b4f3884dcba06f5fcdd5e, type: 2}
+  deckFriction: 0.12
+  waterHeight: 0
+  killHeight: -8
+  solverIterations: 16
+  solverVelocityIterations: 6
+  generateOnStart: 1
+--- !u!114 &7310550183224610004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7310550183224610001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48c6a0a4dbae06947883663d9dfdf475, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.Presentation::DeadlyJenga.Presentation.VillageFlatScenery
+  openWater: 1
+--- !u!114 &7310550183224610005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7310550183224610001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2d6cab139a94fc0ae2ded2e15216b58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.Presentation::DeadlyJenga.Presentation.DeckShipSeaArt
+  cruiseSpeed: 7
+  wake: 1
+  propellers: 1
+  hullFoam: 1
+  bowSpray: 1
+  islands: 1
+  islandCount: 4
+  foamAmount: 1

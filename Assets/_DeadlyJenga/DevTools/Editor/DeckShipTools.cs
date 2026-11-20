@@ -50,6 +50,10 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem(Menu + "Run Checks and Pictures (XL ship)")]
         public static void RunChecksLarge() { SessionState.SetString("DeadlyJenga.DeckShipMapId", "deck-ship-xl"); RunChecksForMap(); }
 
+        // -executeMethod DeadlyJenga.DevTools.Editor.DeckShipTools.RunChecksHuge (the 16-bay Deck Ship XXL)
+        [MenuItem(Menu + "Run Checks and Pictures (XXL ship)")]
+        public static void RunChecksHuge() { SessionState.SetString("DeadlyJenga.DeckShipMapId", "deck-ship-xxl"); RunChecksForMap(); }
+
         static void RunChecksForMap()
         {
             Directory.CreateDirectory(ValidationFolder);
@@ -75,7 +79,10 @@ namespace DeadlyJenga.DevTools.Editor
             if (!catalog || !catalog.maps.Any(m => m.id == MapId && m.mapPrefab == prefab)) { report.AppendLine("FAIL lobby catalog has no " + MapId + " entry for the prefab"); problems++; }
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             problems += BuildCheck(prefab, null, report);
-            for (int k = 0; k < DeckShipCargo.Count; k++) problems += RunCargo(prefab, (DeckShipCargoKind)k, report, k == 0);
+            // A ship with several bays already carries every layout at once, so one run covers them all.
+            var mapComponent = prefab.GetComponent<DeckShipMap>();
+            int kinds = mapComponent.hullPrefab || mapComponent.boxShip == DeckShipMap.BoxShipSize.Standard ? DeckShipCargo.Count : 1;
+            for (int k = 0; k < kinds; k++) problems += RunCargo(prefab, (DeckShipCargoKind)k, report, k == 0);
             return problems;
         }
 
