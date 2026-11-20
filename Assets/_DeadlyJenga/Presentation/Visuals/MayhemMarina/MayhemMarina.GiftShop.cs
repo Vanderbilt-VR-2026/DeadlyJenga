@@ -333,8 +333,12 @@ namespace DeadlyJenga.CandyArt.Marina
             // The housing outside: an oval mint wall with a teal, glow-striped inside and a flat roof.
             mesh.ArcSlab(centre + Vector3.up * .03f, Oval(VaultAlong + .02f, VaultDeep + .02f), Oval(VaultAlong + .2f, VaultDeep + .2f), VaultTop, backAngle - outsideHalf, backAngle + outsideHalf, F.CandyMint, true, 56);
             mesh.ArcSlab(centre + Vector3.up * .03f, Oval(VaultAlong, VaultDeep), Oval(VaultAlong + .02f, VaultDeep + .02f), VaultTop, backAngle - outsideHalf, backAngle + outsideHalf, F.Teal, false, 56);
-            mesh.ArcSlab(centre + Vector3.up * VaultTop, Oval(.01f, .01f), Oval(VaultAlong + .3f, VaultDeep + .3f), .16f, 0, 360, F.CandyMint, true, 72);
-            mesh.ArcSlab(centre + Vector3.up * (VaultTop - .01f), Oval(.01f, .01f), Oval(VaultAlong, VaultDeep), .01f, 0, 360, F.CandyGrape, false, 72);
+            // The roof stops at the wall line: the outside part of the oval, plus a slab from the wall to the
+            // oval's centre that fills the wedge between them, so no sky shows and nothing pokes into the shop.
+            mesh.ArcSlab(centre + Vector3.up * VaultTop, Oval(.01f, .01f), Oval(VaultAlong + .3f, VaultDeep + .3f), .16f, backAngle - outsideHalf, backAngle + outsideHalf, F.CandyMint, true, 56);
+            B((vx - hw) * .5f, VaultTop + .08f, vz, new Vector3(-vx - hw + .02f, .16f, (VaultOpening + .25f) * 2), F.CandyMint, .02f, true);
+            mesh.ArcSlab(centre + Vector3.up * (VaultTop - .01f), Oval(.01f, .01f), Oval(VaultAlong, VaultDeep), .01f, backAngle - outsideHalf, backAngle + outsideHalf, F.CandyGrape, false, 56);
+            B((vx - hw) * .5f, VaultTop - .005f, vz, new Vector3(-vx - hw, .01f, VaultOpening * 2), F.CandyGrape, .002f);
             for (int i = -3; i <= 3; i++)
             {
                 float a = (backAngle + i * outsideHalf / 3.6f) * Mathf.Deg2Rad;
