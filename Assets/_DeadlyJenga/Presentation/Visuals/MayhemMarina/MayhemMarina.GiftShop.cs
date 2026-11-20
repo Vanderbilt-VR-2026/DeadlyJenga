@@ -279,16 +279,16 @@ namespace DeadlyJenga.CandyArt.Marina
             // ---------- Right wall: apparel and hats ----------
             float rx = hw - .45f;
             // One long clothes rod. Each display body hangs from it on a white stick through the top
-            // of its head, like a lollipop on its stick.
-            float rodX = rx - .3f, rodY = 2.4f;
+            // of its head, like a lollipop on its stick. They hang side-on, like clothes on a store rack.
+            float rodX = rx - .4f, rodY = 2.4f;
             mesh.Beam(P(rodX, rodY, -3.25f), P(rodX, rodY, 1.35f), .025f, F.Brass);
             foreach (float z in new[] { -3.2f, -.95f, 1.3f }) B((rodX + hw) / 2, rodY, z, new Vector3(hw - rodX, .05f, .05f), F.Brass, .01f);
             for (int n = 0; n < 6; n++)
             {
-                float hz = -2.85f + n * .76f;
+                float hz = -2.45f + n * .6f;
                 mesh.Beam(P(rodX, 2.05f, hz), P(rodX, rodY, hz), .014f, F.Ivory);
                 Ball(rodX, rodY + .03f, hz, Vector3.one * .035f, F.Ivory);
-                Figure(rodX, .4f, hz, -90, rackLooks[n], rackColors[n], MannequinPose.Hanging);
+                Figure(rodX, .4f, hz, 180, rackLooks[n], rackColors[n], MannequinPose.Hanging);
             }
             for (int level = 0; level < 2; level++)
             {
