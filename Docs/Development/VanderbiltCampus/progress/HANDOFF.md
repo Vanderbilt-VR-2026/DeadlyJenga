@@ -1,38 +1,43 @@
 # Handoff
 
-Updated 2026-11-19 (after the PC restart at about 21:48). Owner: Vanderbilt-Main (one chat runs Stages 0-5).
+Updated 2026-11-20 (afternoon). Owner: Vanderbilt-Main (one chat runs Stages 0-5).
 
 ## Branch
 - Branch: `claude/vanderbilt-campus-062ef7` on `origin` (https://github.com/Vanderbilt-VR-2026/DeadlyJenga).
 - Base: `Evan_Sprint_4` at `9342eff8eb88d3261265e72f694d9c0acdebffff` (rebased from `main` on request, before
-  any push).
+  any push). Not merged anywhere; no PR.
 - Worktree: `.claude/worktrees/vanderbilt-campus-062ef7` under the central checkout (never the central
   checkout itself).
 - Archive (outside git): `C:\Users\evanp\VanderbiltCampusData`. Tools (outside git):
-  `C:\Users\evanp\VanderbiltCampusTools` (micromamba + PDAL, COLMAP 4.2.1 CPU, ExifTool).
+  `C:\Users\evanp\VanderbiltCampusTools` (micromamba + PDAL, COLMAP 4.2.1 CPU, ExifTool, Blender 5.3, ffmpeg).
+- A local-only branch `claude/vanderbilt-campus-test` holds test commits with interim FBX tiles for Unity
+  runs. It is never pushed.
 
-## Done so far
-- Spec package committed. Pipeline scaffold: `Tools/VanderbiltCampus` (manifest, material IDs, tool check).
-- Tools installed and checked (`pipeline/check_tools.py`).
-- Stage 0 downloads: OSM snapshot, campus boundary + ring, Metro footprints/canopy/2026 orthophoto, NAIP,
-  D22 LiDAR as the USGS EPT crop, 2011 LiDAR EPT crop. `manifest.py verify`: 964 ok, 0 problems (after
-  the restart).
-- Unity code written and compile-checked (coordinator precheck), not yet run in Unity: World map component,
-  Presentation palette/atmosphere, GameSession lobby title, DevTools builder and checks.
+## State by stage
+- **Stage 0: done.** `STAGE-0-results.md`. All 10 original LiDAR tiles are now in `raw/`.
+- **Stage 1: built, gates partly missed.** Terrain, trees, ring LoD1, buildings v2, Blender export, Unity
+  builder, edit and play checks exist. Unity build #2 passed (job 3878fd2c); play check: spawn and Kirkland
+  climb passed, the walk failed at waypoint 40 of 86 (route fixed in data since, not re-run yet).
+  Buildings: 155 of 375 pass the strict accuracy gate (41.3 %, target 95 %), see
+  `stage1-buildings-accuracy.md`. In progress: game-weight building meshes (`buildings_game.py`), then a full
+  re-export and Unity re-run, then `STAGE-1-results.md`.
+- **Stage 2: built on stand-ins.** `STAGE-2-results.md`. No on-site capture exists yet (EVAN-TODO item 1).
+- **Stage 3: in progress** (alignment of the public street-photo stand-in set, then facade measurement).
+- **Stage 4: in progress** (style kits, assembler, Kirkland LoD3+ from estimates, a second building).
+- **Stage 5: not started.**
 
-## In progress
-- Campus frame, per-tile LiDAR, rasters, Stage 0 render and results file (worker resumed after restart).
-- Public on-campus sample photos (Wikimedia Commons, KartaView) as the stand-in capture (worker resumed).
-- Original D22 LAZ tiles: 1 of 10 downloaded; USGS rockyweb rate-limits (HTTP 429). Resume with
-  `Tools/VanderbiltCampus/.venv/Scripts/python.exe Tools/VanderbiltCampus/pipeline/fetch_lidar.py --project TN_DavidsonCounty_D22 --pause 10`.
-
-## Next
-Stage 1 (terrain, buildings, trees, Blender export, Unity build + play check through the coordinator),
-then Stages 2-5 in order.
+## Unity runs (through the coordinator only)
+Owner name `claude-vanderbilt-campus`. Batch entries:
+`DeadlyJenga.DevTools.Editor.VanderbiltCampusBuilder.BuildAndCheckBatch`,
+`DeadlyJenga.DevTools.Editor.VanderbiltCampusPlayChecks.Run` and `.RunGray`.
+Generated assets come back in the run's `test-output/files/Assets/`; copy them into the worktree to keep GUIDs.
+Reports of past runs: archive `reports/stage1/unity_run*`.
 
 ## Re-run commands
-See `Tools/VanderbiltCampus/README.md` (install, Stage 0 run order). Tests:
+See `Tools/VanderbiltCampus/README.md` (install and run order per stage). Tests:
 `Tools\VanderbiltCampus\.venv\Scripts\python -m pytest Tools/VanderbiltCampus/tests -q`.
+Full export: `Tools\VanderbiltCampus\.venv\Scripts\python.exe Tools\VanderbiltCampus\pipeline\export_all.py --jobs 6`.
 
-## No Unity jobs have been submitted yet
-Nothing was queued or running in the coordinator at the restart.
+## Not yet in git
+The exported FBX tiles, the map prefab, match layout and visual prefab are generated and sit uncommitted in
+the worktree until the Stage 1 re-run passes; then they are committed (FBX through Git LFS).

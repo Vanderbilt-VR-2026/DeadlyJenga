@@ -9,7 +9,7 @@ Date: 2026-11-19. Archive: `C:\Users\evanp\VanderbiltCampusData` (`data_root`). 
 |--------|------------------|------:|-----:|---------|
 | OpenStreetMap (Overpass), dated snapshot | `osm/2026-11-19/` | 4 | 5.6 MB | ODbL 1.0, © OpenStreetMap contributors |
 | USGS 3DEP TN_DavidsonCounty_D22 (2022 QL1), EPT copy cropped to campus + ring | `lidar/TN_DavidsonCounty_D22/EPT/` | 2 | 362.8 MB | Public domain (USGS) |
-| USGS 3DEP D22 original LAZ tiles | `lidar/TN_DavidsonCounty_D22/LAZ/` | 1 of 10 | 25.8 MB | Public domain (USGS) |
+| USGS 3DEP D22 original LAZ tiles | `lidar/TN_DavidsonCounty_D22/LAZ/` | 10 of 10 (finished 2026-11-20) | 292 MB | Public domain (USGS) |
 | USGS 3DEP D22 metadata, reports, tile index | `lidar/TN_DavidsonCounty_D22/metadata/` | 9 | 11.0 MB | Public domain (USGS) |
 | USGS 3DEP TN_NASHVILLE_2011, EPT crop (comparison only) | `lidar/TN_NASHVILLE_2011/EPT/` | 2 | 25.7 MB | Public domain (USGS) |
 | USGS 3DEP 2011 metadata | `lidar/TN_NASHVILLE_2011/metadata/` | 7 | 2.4 MB | Public domain (USGS) |
@@ -184,3 +184,7 @@ Flags for Stage 2:
 5. **`Tools/VanderbiltCampus/tests` run green.** Done: `python -m pytest Tools/VanderbiltCampus/tests -q`
    gives `50 passed, 1 warning`. The warning is a deprecation notice from the `dash` pytest plugin in the
    venv, not from our code.
+
+
+## Update 2026-11-20: all original tiles
+All 10 original D22 LAZ tiles are now in `raw/` and in the manifest. The working copy (EPT crop) was compared with all of them (`reports/stage0/ept_vs_original_all.log`): nearest-neighbor distance median 4.3 mm, p95 6.1 mm, 100 % within 10 mm; same-pulse height difference median 2.5 mm. The working copy stays as it is (D007).

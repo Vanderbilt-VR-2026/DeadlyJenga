@@ -2,13 +2,21 @@
 
 Ordered by importance. Builder chats never send, buy, sign up or accept terms.
 
-1. **Move the archive to a drive with >= 500 GB free, and keep a second copy.**
+1. **Photograph the campus (this unlocks everything past LoD2).** Nothing on site has been captured yet, so
+   every building is still LoD2 from LiDAR, and Kirkland Hall's detail is an estimate from one public photo.
+   Start with Day 1 in `capture/CAPTURE-DAYS.md` (Kirkland Hall first: about 2.5 hours, about 2,000 photos);
+   the guide is `capture/README.md`, the phone map is `capture/coverage/index.html`. Copy each day's card to
+   `raw/capture/<date>/` and run `Tools/VanderbiltCampus/pipeline/intake.py` (commands in `STAGE-2-results.md`).
+   Optional: a 360 camera makes paths and interiors of quads much faster (the 360 path is only tested on a
+   synthetic clip so far).
+
+2. **Move the archive to a drive with >= 500 GB free, and keep a second copy.**
    Today it is at `C:\Users\evanp\VanderbiltCampusData` (C: has about 314 GB free).
    Steps: copy the whole folder to the new drive, edit `Tools/VanderbiltCampus/config/local.json`
    (`data_root`), then run `python Tools/VanderbiltCampus/pipeline/manifest.py verify`.
    Keep a backup copy (another drive or cloud). `raw/` must never leave your machine or your backup.
 
-2. **Send the Vanderbilt GIS / Facilities data request** (biggest possible shortcut). Draft, ready to send
+3. **Send the Vanderbilt GIS / Facilities data request** (biggest possible shortcut). Draft, ready to send
    from your Vanderbilt email to the Facilities GIS team (address on
    https://www.vanderbilt.edu/facilities/maps/ ; the drone page is https://www.vanderbilt.edu/facilities/maps/drone/):
 
@@ -34,7 +42,7 @@ Ordered by importance. Builder chats never send, buy, sign up or accept terms.
    When anything arrives: put it untouched in `raw/gis/<date>/` with their terms in a `TERMS.txt` beside it,
    then run `manifest.py add raw/gis/<date> --source "Vanderbilt Facilities GIS" --license "<their terms>" --stage 0`.
 
-3. **Ask about ACCRE access** (for Stage 6 GPU texture baking; optional). Draft for your faculty sponsor or
+4. **Ask about ACCRE access** (for Stage 6 GPU texture baking; optional). Draft for your faculty sponsor or
    ACCRE (https://www.vanderbilt.edu/accre/):
 
    > Subject: ACCRE GPU access for a student project
@@ -45,7 +53,7 @@ Ordered by importance. Builder chats never send, buy, sign up or accept terms.
    > sponsor's allocation? What would I need to set up?
    > Thank you, Evan Prestipino
 
-4. **Trademark question to Vanderbilt licensing** (draft only; send when you want to use the name in a
+5. **Trademark question to Vanderbilt licensing** (draft only; send when you want to use the name in a
    release). https://www.vanderbilt.edu/communications/trademark-licensing/
 
    > Subject: Using the Vanderbilt name in a student game
@@ -57,5 +65,10 @@ Ordered by importance. Builder chats never send, buy, sign up or accept terms.
 
    Until you record an answer in DECISIONS.md, the map is called "Campus" and signs are blank.
 
-5. **Optional: sign up for RealityScan** (free for students; needs your Epic account; you accept the terms,
+6. **Optional: sign up for RealityScan** (free for students; needs your Epic account; you accept the terms,
    not the builder). It can be used in Stage 3 as a second alignment. https://www.realityscan.com
+
+7. **Optional: more public reference photos.** Wikimedia Commons blocked bulk downloads (HTTP 429) after 1
+   of 370 files. If you want them, either let `fetch_samples.py commons --file-pause 45` run overnight, or
+   make a free Mapillary developer token yourself (you accept their terms) and put it in
+   `Tools/VanderbiltCampus/config/local.json` as `mapillary_token`.
