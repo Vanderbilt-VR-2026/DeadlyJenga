@@ -15,6 +15,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             public ParticleSystem system;
             public Material ownedMaterial;
+            public bool checkedColour;
         }
 
         readonly Dictionary<int, ReplaySystem> replay = new();
@@ -106,6 +107,21 @@ namespace DeadlyJenga.DevTools.Editor
                 view.system.gameObject.SetActive(true);
                 view.system.Pause(false);
                 view.system.SetParticles(particles, count);
+                // A system whose material was made at runtime is replayed with a default material built from its shader
+                // name. One such system (saturated green) drew as a big opaque disc in front of the lens in
+                // disaster-pvp-1's bundle renders; those are hidden rather than drawn wrongly.
+                if (view.ownedMaterial && !view.checkedColour)
+                {
+                    view.checkedColour = true;
+                    Color sum = Color.clear;
+                    for (int i = 0; i < count; i++) sum += (Color)particles[i].startColor;
+                    sum /= count;
+                    if (sum.g > .5f && sum.r < .45f && sum.b < .45f)
+                    {
+                        view.system.GetComponent<ParticleSystemRenderer>().enabled = false;
+                        Debug.Log($"[Theatre] Recorded particles with a runtime material hidden on replay (shader '{shader}', colour {sum}).");
+                    }
+                }
             }
             if (!apply) return;
             foreach (var pair in replay)

@@ -286,7 +286,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // Everyone looks up at the planet killer, the hero screams.
             Vector3 sky = plan.planetTarget + plan.planetFrom * 55;
             foreach (string role in Roles)
-                Add(role, "lookAt", PlanetFrame - 50, LengthFrames, target: P(stage, sky), blendIn: .4f);
+                if (role != "hero") Add(role, "lookAt", PlanetFrame - 50, LengthFrames, target: P(stage, sky), blendIn: .4f);
+            // The hero, in the castle-wall corridor, cannot turn his head to the rock behind him (the neck stops at 85 deg:
+            // final B's MCU saw the back of his head). He looks toward the MCU's lens instead, and the scream layer tips his
+            // head back, so he reads as looking up past the lens; after the impact he looks at the sky point again.
+            Add("hero", "lookAt", 258, 300, target: "camera:S08", blendIn: .3f);
+            Add("hero", "lookAt", 300, LengthFrames, target: P(stage, sky), blendIn: .3f);
             Add("hero", "reaction", PlanetFrame - 26, PlanetFrame + 4, "scream", blendIn: .15f);
             // Record 4 (the committed take): the hero tumbles down the tower from about f195; the fox and the dragon are
             // thrown at f246. They panic in the air (hands to the head).

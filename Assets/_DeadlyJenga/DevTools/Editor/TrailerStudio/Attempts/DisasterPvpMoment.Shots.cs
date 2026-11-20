@@ -236,6 +236,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var cameras = ShotCameras(stage, plan);
             if (cameras.Count == 0) { Note("No shots planned yet."); yield break; }
+            // Every camera goes into the Set, so overrides can aim at one ("camera:S08").
+            stage.set.cameras.Clear(); stage.set.cameras.AddRange(cameras);
             bool final = mode.StartsWith("final");
             if (mode == "finalA") cameras = cameras.Take(4).ToList();
             if (mode == "finalB") cameras = cameras.Skip(3).Take(5).ToList();   // S04-S08 (S04 again: its first render had the green disc)
