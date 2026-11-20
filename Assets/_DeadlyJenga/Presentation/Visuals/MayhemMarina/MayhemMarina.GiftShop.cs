@@ -8,7 +8,7 @@ namespace DeadlyJenga.CandyArt.Marina
     // Seaside Souvenirs: a flagship resort gift shop. Outside: a pastel clapboard storefront with a
     // striped barrel roof over a deep porch, double doors between two big display windows, and a cupola.
     // Inside: a wood floor with a star medallion, cream walls over wood panelling, chandeliers, a tiered
-    // centrepiece with a big souvenir block tower, a plush cubby wall, lit merchandise bays, display
+    // centrepiece with a big souvenir block tower, a turning hero suit vault, lit merchandise bays, display
     // tables with snow globes, a glass case and a checkout under a lit logo.
     //
     // It is NOT in the lobby yet. To add it, call it once in Build(), after Planting():
@@ -35,6 +35,20 @@ namespace DeadlyJenga.CandyArt.Marina
             Look(AvatarHair.None, AvatarEyewear.Visor, AvatarClothing.Hoodie, AvatarAccessory.RobotAntenna),
         };
         static readonly int[] rackColors = { 0, 3, 1, 6, 2, 5 };
+
+        // The skins standing in the hero suit vault, in pod order.
+        static readonly AvatarAppearance[] suitLooks =
+        {
+            new AvatarAppearance { skin = AvatarSkin.CyberSamurai },
+            new AvatarAppearance { skin = AvatarSkin.NeonRobot },
+            new AvatarAppearance { skin = AvatarSkin.CrystalKnight },
+            new AvatarAppearance { skin = AvatarSkin.StormWizard },
+            new AvatarAppearance { skin = AvatarSkin.Astronaut },
+            new AvatarAppearance { skin = AvatarSkin.SpacePirate },
+            new AvatarAppearance { skin = AvatarSkin.CandyKnight },
+            new AvatarAppearance { skin = AvatarSkin.DeepSeaDiver },
+        };
+        static readonly int[] suitColors = { 2, 6, 4, 5, 0, 3, 1, 7 };
 
         void GiftShop(Vector3 floor, float yaw)
         {
@@ -262,19 +276,52 @@ namespace DeadlyJenga.CandyArt.Marina
                 if (i % 2 == 0) SnowGlobe(P(Mathf.Cos(r + .5f) * .8f, .63f, .3f + Mathf.Sin(r + .5f) * .8f), q, candy[(i / 2) + 3]);
             }
 
-            // ---------- Left wall: plush cubbies ----------
-            float lx = -hw + .5f;
-            B(lx - .12f, 1.48f, .2f, new Vector3(.3f, 2.6f, 5.64f), F.Wood, .03f, true);
-            for (int row = 0; row <= 4; row++) B(lx + .15f, .24f + row * .62f, .2f, new Vector3(.3f, .04f, 5.64f), F.Wood, .01f);
-            for (int col = 0; col <= 7; col++) B(lx + .15f, 1.48f, .2f - 2.8f + col * .8f, new Vector3(.3f, 2.5f, .04f), F.Wood, .01f);
-            for (int col = 0; col < 7; col++)
-                for (int row = 0; row < 4; row++)
-                {
-                    float z = .2f - 2.4f + col * .8f, y = .55f + row * .62f;
-                    B(lx + .04f, y, z, new Vector3(.02f, .58f, .76f), row % 2 == col % 2 ? F.CandyCream : F.CandyMint, .005f);
-                    Crab(P(lx + .15f, y - .19f, z), q * Quaternion.Euler(0, -90, 0), candy[(col + row) % 3 == 0 ? 0 : (col + row) % 3 == 1 ? 2 : 3]);
-                }
-            Valance(lx + .26f, .2f, 5.8f, F.CandyCoral, "PLUSH PALS", 1);
+            // ---------- Left wall: the hero suit vault ----------
+            // A slowly turning drum of eight lit glass pods, each holding a player in a different skin,
+            // in front of a curved backdrop like a superhero's suit room.
+            float vx = -4.15f, vz = .8f, podRing = 1.05f, podRadius = .36f, podHeight = 2.05f;
+            var back = q * Vector3.left;
+            float backAngle = Mathf.Atan2(back.x, back.z) * Mathf.Rad2Deg;
+            Disc(vx, .03f, vz, 1.5f, .12f, F.Ivory, true);
+            mesh.ArcSlab(P(vx, .15f, vz), Vector2.one * 1.42f, Vector2.one * 1.5f, .02f, 0, 360, F.Glow, false, 56);
+            mesh.ArcSlab(P(vx, .03f, vz), Vector2.one * 1.6f, Vector2.one * 1.72f, 3.1f, backAngle - 75, backAngle + 75, F.CandyGrape, true, 40);
+            mesh.ArcSlab(P(vx, .03f, vz), Vector2.one * 1.585f, Vector2.one * 1.6f, 3.1f, backAngle - 75, backAngle + 75, F.Teal, false, 40);
+            for (int i = -2; i <= 2; i++)
+            {
+                float a = (backAngle + i * 30f) * Mathf.Deg2Rad;
+                var strip = P(vx, 0, vz) + new Vector3(Mathf.Sin(a), 0, Mathf.Cos(a)) * 1.575f;
+                mesh.Box(strip + Vector3.up * 1.6f, new Vector3(.04f, 2.9f, .04f), F.Glow, .01f, false, Quaternion.Euler(0, a * Mathf.Rad2Deg, 0));
+            }
+            mesh.ArcSlab(P(vx, 3.0f, vz), Vector2.one * 1.1f, Vector2.one * 1.72f, .16f, 0, 360, F.CandyGrape, false, 56);
+            mesh.ArcSlab(P(vx, 2.98f, vz), Vector2.one * 1.12f, Vector2.one * 1.18f, .02f, 0, 360, F.Glow, false, 56);
+            B(-hw + .45f, 3.45f, vz, new Vector3(.1f, .45f, 2.6f), F.CandyGrape, .04f);
+            Sign("HERO SUITS", P(-hw + .51f, 3.45f, vz), .028f, cream, new Vector3(0, yaw - 90, 0));
+            Accent("Hero suit vault", P(vx + .6f, 2.6f, vz), new Color(.75f, .85f, 1f), 1.6f, 4.5f);
+
+            var drum = new GameObject("Hero suit vault drum").transform;
+            drum.SetParent(visual, false);
+            drum.localPosition = P(vx, .15f, vz);
+            drum.localRotation = q;
+            var drumMesh = new MarinaMesh();
+            drumMesh.Disk(new Vector3(0, 0, 0), 1.4f, .05f, F.CandyCream, false, 48);
+            drumMesh.Beam(new Vector3(0, .05f, 0), new Vector3(0, 2.85f, 0), .22f, F.Metal);
+            drumMesh.Disk(new Vector3(0, 2.15f, 0), 1.42f, .06f, F.Brass, false, 48);
+            for (int i = 0; i < 8; i++)
+            {
+                float a = i * 45f, r = a * Mathf.Deg2Rad;
+                var dir = new Vector3(Mathf.Sin(r), 0, Mathf.Cos(r));
+                var pod = dir * podRing;
+                var outward = Quaternion.LookRotation(dir);
+                drumMesh.Disk(pod + Vector3.up * .05f, podRadius + .04f, .08f, F.Ivory, false, 28);
+                drumMesh.ArcSlab(pod + Vector3.up * .13f, Vector2.one * podRadius, Vector2.one * (podRadius + .03f), .015f, 0, 360, F.Glow, false, 28);
+                drumMesh.Box(pod - dir * (podRadius - .02f) + Vector3.up * 1.1f, new Vector3(.62f, 1.95f, .04f), i % 2 == 0 ? F.Teal : F.CandyGrape, .02f, false, outward);
+                drumMesh.Tube(new[] { pod + Vector3.up * .13f, pod + Vector3.up * podHeight }, podRadius + .02f, F.Glass, 24);
+                drumMesh.ArcSlab(pod + Vector3.up * (podHeight - .04f), Vector2.one * (podRadius - .05f), Vector2.one * (podRadius + .05f), .05f, 0, 360, F.Brass, false, 28);
+                drumMesh.Disk(pod + Vector3.up * (podHeight - .05f), podRadius - .05f, .02f, F.Glow, false, 24);
+                Mannequins.Create(drum, drum.TransformPoint(pod + Vector3.up * .13f), drum.rotation * outward, suitLooks[i], suitColors[i], MannequinPose.Display);
+            }
+            drumMesh.Flush(drum, 0);
+            drum.gameObject.AddComponent<MarinaTurntable>().Own(drumMesh, 9f);
 
             // ---------- Right wall: apparel and hats ----------
             float rx = hw - .45f;
@@ -374,7 +421,6 @@ namespace DeadlyJenga.CandyArt.Marina
             B(3.4f, 1.15f, 1.6f, new Vector3(1.5f, .5f, .6f), F.Glass, .02f);
             B(3.4f, .92f, 1.6f, new Vector3(1.5f, .03f, .6f), F.Glow, .01f);
             for (int i = 0; i < 6; i++) B(2.9f + (i % 3) * .5f, .99f, 1.45f + (i / 3) * .3f, new Vector3(.18f, .1f, .14f), i % 2 == 0 ? F.Brass : F.CandyLilac, .02f);
-            HatStand(P(-3.4f, .03f, 1.6f));
 
             // Warm light inside.
             Accent("Gift shop", P(0, 3.4f, .3f), new Color(1, .82f, .6f), 2.2f, 8.5f);

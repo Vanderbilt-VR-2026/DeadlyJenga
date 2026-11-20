@@ -30,6 +30,14 @@ namespace DeadlyJenga.CandyPlayers
                 frame.left = Hand(feet + facing * new Vector3(-.21f, .5f, 0), facing * Quaternion.Euler(0, 0, 2), true, .35f);
                 frame.right = Hand(feet + facing * new Vector3(.21f, .5f, 0), facing * Quaternion.Euler(0, 0, -2), false, .35f);
             }
+            else if (look.skin != AvatarSkin.Default)
+            {
+                // A skin on show: standing normally, arms relaxed at the sides.
+                frame.head = feet + Vector3.up * 1.6f;
+                frame.headRotation = facing;
+                frame.left = Hand(feet + facing * new Vector3(-.3f, .82f, .03f), facing * Quaternion.Euler(0, 0, 8), true, .3f);
+                frame.right = Hand(feet + facing * new Vector3(.3f, .82f, .03f), facing * Quaternion.Euler(0, 0, -8), false, .3f);
+            }
             else
             {
                 // On display: standing tall, one hand on the hip, the other relaxed.
@@ -40,14 +48,14 @@ namespace DeadlyJenga.CandyPlayers
             }
             // A hanging body is "in the air", so its feet don't reach for the floor.
             rig.ApplyFrame(frame, pose != MannequinPose.Hanging, 0);
-            if (pose == MannequinPose.Display) Chrome(rig);
+            if (pose == MannequinPose.Display && look.skin == AvatarSkin.Default) Chrome(rig);
             else Dangle(rig, feet, facing, (color % 3 - 1) * 4f);
             return rig.gameObject;
         }
 
         static Material chrome;
 
-        // Display mannequins get a polished chrome skin; their clothes keep their colors.
+        // Plain display mannequins get a polished chrome body; their clothes keep their colors.
         static void Chrome(CandyPlayerRig rig)
         {
             if (!chrome)
