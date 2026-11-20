@@ -208,6 +208,12 @@ def plan_tiles(root, out_dir, unity_map, only=None):
         ring = root / "derived" / "buildings" / "ring" / "v1" / f"{tile}.npz"
         if ring.exists():
             objects.append({"name": "Ring", "role": "ring", "src": [str(ring)]})
+        # HLOD: the far version of the whole tile in one mesh and one material slot (one draw call).
+        far = [o["src"][0] for o in objects if o["role"] in ("terrain_lod1", "building_lod1", "trees_lod1", "ring")]
+        if far:
+            objects.append({"name": "HLOD", "role": "hlod", "src": far, "single_material": "mat_mixed",
+                            "note": "Terrain_LOD1 + building LOD1 + Trees_LOD1 + Ring merged; one slot mat_mixed, "
+                                    "color R = material index; UV0 copied per source, so charts overlap"})
         empties = markers.get(tile, [])
         plan = {"tile": tile, "zone": zone, "fbx": str(Path(out_dir) / f"{tile}.fbx"),
                 "stats": str(export_dir / f"{tile}.json"), "check": str(export_dir / "check" / f"{tile}.json"),

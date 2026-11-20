@@ -164,7 +164,8 @@ def check_tile(plan, names):
         if obj.get("collider"):
             objects[name] = rec
             continue
-        want_mats = [names[i] for i in exp["mat_indices"]]
+        single = obj.get("single_material")
+        want_mats = [single] if single else [names[i] for i in exp["mat_indices"]]
         got_mats = model_mats.get(mid, [])
         rec["materials"], rec["uv_layers"] = got_mats, g["uv_names"]
         if "corner_rgba" in g:
@@ -179,15 +180,23 @@ def check_tile(plan, names):
             r = g["corner_rgba"][:, 0] * 255.0
             if np.abs(r - np.round(r)).max() > 1e-3 or np.abs(g["corner_rgba"][:, 1:] - 1).max() > 1e-6:
                 problems.append(f"{name}: color R not an exact byte, or G/B/A != 1")
-            slot = g["poly_slot"] if g["mat_mapping"] == "ByPolygon" else np.zeros(g["polys"], np.int64)
-            index_of_slot = np.array([int(next(i for i, n in names.items() if n == mn)) for mn in got_mats])
-            want_r = np.repeat(index_of_slot[slot], 3)
-            bad = int((np.round(r).astype(int) != want_r).sum())
-            if bad:
-                problems.append(f"{name}: {bad} corners whose color R disagrees with their mat_ slot")
-            hist = np.bincount(index_of_slot[slot], minlength=256)
-            if {str(i): int(hist[i]) for i in exp["mat_indices"]} != exp["faces_per_index"]:
-                problems.append(f"{name}: triangles per material differ from the npz")
+            if single:
+                # One slot for everything: color R must be each face's own material index.
+                face_index = np.round(r[0::3]).astype(int)
+                if len(face_index) == len(mesh["face_mat"]) and (face_index != mesh["face_mat"]).any():
+                    problems.append(f"{name}: color R differs from the npz face materials")
+                if (np.round(r).reshape(-1, 3) != np.round(r).reshape(-1, 3)[:, :1]).any():
+                    problems.append(f"{name}: a triangle has mixed color R on its corners")
+            else:
+                slot = g["poly_slot"] if g["mat_mapping"] == "ByPolygon" else np.zeros(g["polys"], np.int64)
+                index_of_slot = np.array([int(next(i for i, n in names.items() if n == mn)) for mn in got_mats])
+                want_r = np.repeat(index_of_slot[slot], 3)
+                bad = int((np.round(r).astype(int) != want_r).sum())
+                if bad:
+                    problems.append(f"{name}: {bad} corners whose color R disagrees with their mat_ slot")
+                hist = np.bincount(index_of_slot[slot], minlength=256)
+                if {str(i): int(hist[i]) for i in exp["mat_indices"]} != exp["faces_per_index"]:
+                    problems.append(f"{name}: triangles per material differ from the npz")
         objects[name] = rec
 
     # Empties: Unity position and (for climb markers) forward.
@@ -206,7 +215,9 @@ def check_tile(plan, names):
             problems.append(f"{item['name']}: Unity position {pos_u.round(3).tolist()}, expected {want_u.round(3).tolist()}")
         if item.get("forward"):
             rx, ry, rz = (math.radians(float(a)) for a in props.get("Lcl Rotation", (0, 0, 0))[:3])
-            fwd_f = _euler_xyz(rx, ry, rz) @ np.array([0.0, 0.0, 1.0])
+            # Unity's local +Z in FBX terms is fbx_to_unity(0, 0, 1) (the mirror is its own inverse);
+            # rotate it, then mirror back into Unity axes.
+            fwd_f = _euler_xyz(rx, ry, rz) @ vc_fbx.fbx_to_unity(np.array([0.0, 0.0, 1.0]))
             fwd_u = vc_fbx.fbx_to_unity(fwd_f)
             erec["unity_forward"] = fwd_u.round(5).tolist()
             d = np.array([item["forward"][0], 0.0, item["forward"][1]])
@@ -258,6 +269,22 @@ def check_with_importer(fbx, expected_meshes, names):
         if obj.get("collider"):
             continue
         slots = [m.name if m else None for m in me.materials]
+        single = obj.get("single_material")
+        if single:
+            if slots != [single]:
+                problems.append(f"importer: {name} slots {slots}, expected [{single}]")
+            if not me.uv_layers or me.uv_layers[0].name != "UV0":
+                problems.append(f"importer: {name} first UV map is not UV0")
+            if me.color_attributes:
+                col = me.color_attributes[0]
+                rgba = np.empty(len(col.data) * 4, np.float32)
+                col.data.foreach_get("color_srgb", rgba)
+                seen[name] = sorted(int(x) for x in np.unique(np.round(rgba.reshape(-1, 4)[:, 0] * 255)))
+                if seen[name] != sorted(np.unique(mesh["face_mat"]).astype(int).tolist()):
+                    problems.append(f"importer: {name} color bytes {seen[name]} differ from the npz materials")
+            else:
+                problems.append(f"importer: {name} has no color attribute")
+            continue
         if any(s not in index_of for s in slots):
             problems.append(f"importer: {name} slot names {slots} (need exact mat_<id>)")
             continue

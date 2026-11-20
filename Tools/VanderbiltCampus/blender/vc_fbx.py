@@ -8,42 +8,40 @@ AXES (read this before changing anything here)
 Campus frame: X east, Y north, Z up, meters, right-handed (frame.py).
 Unity wants:  x = X, y = Z, z = Y (frame.campus_to_unity), left-handed.
 
+CALIBRATED against a real Unity import on 2026-11-20 (Unity 6.3, the builder's
+ModelImporter settings: bakeAxisConversion = true, useFileScale = true). The
+first version of this file assumed Unity negates raw x and pre-rotated the data
+180 degrees; that import came out turned 180 degrees about up (Unity position =
+(-X, Z, -Y)), which shows Unity negates raw **z** for this header. The rules
+below follow the measured behaviour.
+
 1. We export with axis_up='Y', axis_forward='-Z'. For that pair Blender's FBX
-   writer declares the axis system UpAxis=+Y, FrontAxis=+Z, CoordAxis=+X
-   (fbx_utils.RIGHT_HAND_AXES[('Y', '-Z')]). That is FBX's standard
-   right-handed Y-up system (the one Maya and Unity's own FBX exporter
-   use), so Unity has no axis conversion left to do; bakeAxisConversion has
-   nothing to bake and object transforms stay identity. We pick this pair on
-   purpose: whether or not an importer honors the declared front/coord signs,
-   the result is the same.
+   writer declares UpAxis=+Y, FrontAxis=+Z, CoordAxis=+X
+   (fbx_utils.RIGHT_HAND_AXES[('Y', '-Z')]), FBX's standard right-handed Y-up
+   system, so the importer's axis conversion is only the handedness flip and
+   object transforms stay identity.
 2. With bake_space_transform=True Blender multiplies vertex data by its
    global matrix G: Blender (x, y, z) -> FBX (x, z, -y), and writes identity
-   object transforms (empties get G @ M @ G^-1, i.e. the same rotation seen in
-   FBX space).
-3. Unity turns a right-handed Y-up FBX into its left-handed space by negating
-   x: Unity (x, y, z) = (-x_fbx, y_fbx, z_fbx). (Unity's FBX Exporter package
-   does the reverse, x -> -x, when it writes files.) Unity also flips the
-   triangle order at the same time, so faces keep facing outward.
-4. Steps 2 + 3 alone would give Unity (-X, Z, -Y): the map turned 180 degrees
-   about the vertical axis (not mirrored, but north would point south).
-   So before export we turn the data 180 degrees about Blender Z:
-   Blender (x, y, z) = (-X, -Y, Z)   (BLENDER_FROM_CAMPUS below)
-   FBX     (x, y, z) = (-X,  Z,  Y)
-   Unity   (x, y, z) = ( X,  Z,  Y)   = campus_to_unity. East stays east,
-   north becomes Unity +Z, no mirror (a rotation keeps handedness, and step 3
-   is the one intended handedness change).
+   object transforms (empties get G @ M @ G^-1: the same rotation seen in FBX
+   space).
+3. Unity (measured): Unity (x, y, z) = (x_fbx, y_fbx, -z_fbx). Mirroring one
+   axis is the right-handed -> left-handed change; Unity flips the triangle
+   order with it, so faces keep facing outward.
+4. So Blender data = campus coordinates unchanged (BLENDER_FROM_CAMPUS = 1):
+   campus (X, Y, Z) -> FBX (X, Z, -Y) -> Unity (X, Z, Y) = campus_to_unity.
 5. Scale: apply_scale_options='FBX_SCALE_ALL' with apply_unit_scale=True and
-   unit scale 1 writes UnitScaleFactor = 100 (1 file unit = 100 cm = 1 m)
-   and leaves the numbers in meters. Unity's useFileScale gives file scale
-   UnitScaleFactor / 100 = 1, so 1 unit = 1 m. (If an importer ignored the
-   unit, the numbers are still meters.)
-6. Climb markers: Unity's play check uses the marker's transform.forward
-   (+Z). A Blender rotation about Z by t becomes an FBX rotation about +Y by t
-   (G is a rotation), whose +Z axis is (sin t, 0, cos t); Unity negates x:
-   (-sin t, 0, cos t). We want Unity forward = (dX, 0, dY) (the campus
-   direction toward the wall), so t = atan2(-dX, dY) (climb_angle below).
+   unit scale 1 writes UnitScaleFactor = 100 (1 file unit = 1 m) and leaves the
+   numbers in meters; Unity's file scale is UnitScaleFactor / 100 = 1.
+6. Climb markers: Unity's play check uses transform.forward (+Z). By 2-4,
+   Unity's local +Z is the empty's Blender local +Y (G maps +Y to -Z, step 3
+   mirrors -Z to +Z). Blender rotation about Z by t turns +Y into
+   (-sin t, cos t), which must equal the campus direction (dX, dY) toward the
+   wall: t = atan2(-dX, dY) (climb_angle). (This is the same angle as before:
+   the old x-mirror plus 180 degree turn and the new z-mirror agree on
+   directions; only positions were wrong.)
 
-check_fbx.py reads the raw FBX numbers back and verifies steps 1, 2, 4, 5, 6.
+check_fbx.py reads the raw FBX numbers back and verifies steps 1, 2, 4, 5, 6
+with fbx_to_unity below. Changing the import settings means re-calibrating.
 """
 import json
 import math
@@ -51,8 +49,8 @@ from pathlib import Path
 
 import numpy as np
 
-# Campus -> Blender data (180 degree turn about Z, see step 4).
-BLENDER_FROM_CAMPUS = np.array([-1.0, -1.0, 1.0])
+# Campus -> Blender data (unchanged, see step 4).
+BLENDER_FROM_CAMPUS = np.array([1.0, 1.0, 1.0])
 
 FBX_SETTINGS = dict(
     use_selection=False,
@@ -99,9 +97,9 @@ def unity_to_campus(p):
 
 
 def fbx_to_unity(p):
-    """Raw FBX numbers -> Unity (step 3)."""
+    """Raw FBX numbers -> Unity (step 3, measured 2026-11-20): z is negated."""
     p = np.asarray(p, float)
-    return np.stack([-p[..., 0], p[..., 1], p[..., 2]], -1)
+    return np.stack([p[..., 0], p[..., 1], -p[..., 2]], -1)
 
 
 def climb_angle(dx, dy):

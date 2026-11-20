@@ -3,7 +3,8 @@
 Archive layout is faked in a temp folder (VC_DATA_ROOT); FBX files go to a temp
 folder through export_all.py --out. Checks the object names, mat_<id> slots,
 color bytes (all 27 material indices), UV0, and the axis convention:
-campus (X, Y, Z) -> raw FBX (-X, Z, Y) -> Unity (X, Z, Y).
+campus (X, Y, Z) -> raw FBX (X, Z, -Y) -> Unity (X, Z, Y)
+(calibrated against a real Unity import on 2026-11-20).
 """
 import json
 import os
@@ -106,7 +107,7 @@ def test_driver_passes_and_is_idempotent(run):
 def test_names_and_materials(run):
     c0, c1 = check(run, "T_00_00"), check(run, "T_01_00")
     assert c0["pass"] and c1["pass"], (c0["problems"], c1["problems"])
-    assert set(c0["objects"]) == {"Terrain", "Terrain_LOD1", "COL_Terrain", "B_new_3_LOD0", "B_new_3_LOD1", "COL_B_new_3_0",
+    assert set(c0["objects"]) == {"Terrain", "Terrain_LOD1", "HLOD", "COL_Terrain", "B_new_3_LOD0", "B_new_3_LOD1", "COL_B_new_3_0",
                                   "Trees", "Trees_LOD1", "COL_Trees"}
     assert set(c1["objects"]) >= {"Terrain", "Ring"}
     assert set(c0["info"]["empties"]) == {"Spawn_AlumniLawn_1", "Route_00", "Climb_B_new_3", "Climb_B_new_3_b"}
@@ -122,7 +123,12 @@ def test_names_and_materials(run):
     t1 = c0["objects"]["Trees_LOD1"]
     assert t1["triangles"] == 12 and t1["materials"] == ["mat_bark", "mat_foliage"]
     assert t1["color_r_bytes"] == [22, 23] and t1["uv_layers"][0] == "UV0"
-    assert "Trees_LOD1" not in c1["objects"]          # T_01_00 has no terrain_col.npz
+    assert "Trees_LOD1" not in c1["objects"]
+    # HLOD = Terrain_LOD1 (2) + B_new_3 LOD1 (12) + Trees_LOD1 (12) in one mesh, one slot.
+    h = c0["objects"]["HLOD"]
+    assert h["triangles"] == 26 and h["materials"] == ["mat_mixed"] and h["uv_layers"][0] == "UV0"
+    assert h["color_r_bytes"] == [1, 13, 17, 20, 22, 23] and h["import_color_bytes"] == [1, 13, 17, 20, 22, 23]
+    assert c1["objects"]["HLOD"]["triangles"] == 12            # ring tile: only the Ring exists          # T_01_00 has no terrain_col.npz
 
 
 def test_color_bytes_all_indices(run):
@@ -136,10 +142,10 @@ def test_color_bytes_all_indices(run):
 def test_axis_convention(run):
     b = check(run, "T_00_00")["objects"]["B_new_3_LOD0"]
     # Campus box X 10..20 (east), Y 20..30 (north), Z 2..5 (up); marker corner (10, 20, 5).
-    assert b["fbx_min"] == [-20.0, 2.0, 20.0] and b["fbx_max"] == [-10.0, 5.0, 30.0]   # raw FBX = (-X, Z, Y)
+    assert b["fbx_min"] == [10.0, 2.0, -30.0] and b["fbx_max"] == [20.0, 5.0, -20.0]   # raw FBX = (X, Z, -Y)
     assert b["unity_min"] == [10.0, 2.0, 20.0] and b["unity_max"] == [20.0, 5.0, 30.0]  # Unity = (X, Z, Y)
     e = check(run, "T_00_00")["info"]["empties"]
-    assert e["Spawn_AlumniLawn_1"]["fbx_translation"] == [-40.0, 2.1, 60.0]
+    assert e["Spawn_AlumniLawn_1"]["fbx_translation"] == [40.0, 2.1, -60.0]
     assert e["Spawn_AlumniLawn_1"]["unity_pos"] == [40.0, 2.1, 60.0]
     assert np.allclose(e["Climb_B_new_3"]["unity_forward"], [0, 0, 1], atol=1e-4)      # north, at the wall
     assert np.allclose(e["Climb_B_new_3_b"]["unity_forward"], [-1, 0, 0], atol=1e-4)   # west, at the wall

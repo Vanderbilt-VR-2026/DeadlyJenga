@@ -9,8 +9,8 @@ which object). Each tile plan lists:
   fbx:     output file;  stats: export stats JSON (archive derived/export/v1)
 
 Every object is a direct child of the scene root with an identity transform;
-vertices are campus coordinates (turned 180 degrees about Z, see vc_fbx.py for
-the axis reasoning), so every tile lands at the Unity map root.
+vertices are campus coordinates (unchanged; see vc_fbx.py for the axis reasoning,
+calibrated against a real Unity import on 2026-11-20), so every tile lands at the Unity map root.
 
 Visual meshes get:
   - one material slot per material id used, named exactly mat_<id> (one shared
@@ -19,6 +19,9 @@ Visual meshes get:
   - a byte color attribute "Col" (face corner) with R = material index, G = B = A = 255,
   - flat shading (faceted, suits the candy look).
 Collider meshes (COL_*) get geometry only: Unity strips their renderer.
+HLOD (plan "single_material": "mat_mixed") gets ONE slot for every face; color R
+still carries each face's material index, UV0 is copied per source (charts of
+different sources overlap; it is a far-only mesh and is never baked).
 """
 import argparse
 import math
@@ -35,6 +38,7 @@ import vc_fbx  # noqa: E402
 
 TOOLS = Path(__file__).resolve().parent.parent
 MATERIAL_IDS = TOOLS / "config" / "material_ids.json"
+MIXED = "mat_mixed"
 
 
 def clear_scene():
@@ -51,6 +55,8 @@ def shared_materials():
     for m in list(bpy.data.materials):          # factory file's "Material" etc.
         if m.name not in names.values():
             bpy.data.materials.remove(m)
+    names = dict(names)
+    names[MIXED] = MIXED                          # the one HLOD slot
     mats = {}
     for index, name in names.items():
         mat = bpy.data.materials.get(name) or bpy.data.materials.new(name)
@@ -60,7 +66,7 @@ def shared_materials():
     return mats
 
 
-def build_mesh_object(name, mesh, mats, collider):
+def build_mesh_object(name, mesh, mats, collider, single=None):
     """Make one Blender mesh object from a merged VC mesh dict."""
     v = (mesh["verts"] * vc_fbx.BLENDER_FROM_CAMPUS).astype(np.float32)
     f = mesh["faces"].astype(np.int32)
@@ -77,12 +83,17 @@ def build_mesh_object(name, mesh, mats, collider):
         raise RuntimeError(f"{name}: Blender kept {len(me.polygons)} of {n} triangles")
 
     if not collider:
-        used = sorted(int(i) for i in np.unique(mesh["face_mat"]))
-        slot_of = np.zeros(256, np.int32)
-        for slot, index in enumerate(used):
-            me.materials.append(mats[index])
-            slot_of[index] = slot
-        me.polygons.foreach_set("material_index", slot_of[mesh["face_mat"]])
+        if single:
+            # One slot for the whole mesh (HLOD); the per-face material stays in color R.
+            me.materials.append(mats[single])
+            me.polygons.foreach_set("material_index", np.zeros(n, np.int32))
+        else:
+            used = sorted(int(i) for i in np.unique(mesh["face_mat"]))
+            slot_of = np.zeros(256, np.int32)
+            for slot, index in enumerate(used):
+                me.materials.append(mats[index])
+                slot_of[index] = slot
+            me.polygons.foreach_set("material_index", slot_of[mesh["face_mat"]])
         uv = me.uv_layers.new(name="UV0")
         uv.data.foreach_set("uv", mesh["uv0"].astype(np.float32).ravel())
         # Material index in R as a raw byte: color_srgb on a byte attribute is byte/255 exactly.
@@ -126,11 +137,13 @@ def export_tile(plan, mats):
         if not len(mesh["faces"]):
             stats.setdefault("skipped", []).append(obj["name"] + " (no faces)")
             continue
-        build_mesh_object(obj["name"], mesh, mats, obj.get("collider", False))
+        build_mesh_object(obj["name"], mesh, mats, obj.get("collider", False), obj.get("single_material"))
         stats["objects"].append({"name": obj["name"], "role": obj["role"], "triangles": int(len(mesh["faces"])),
                                  "vertices": int(len(mesh["verts"])), "src": obj["src"],
                                  "materials": [] if obj.get("collider") else
-                                 sorted({int(i) for i in np.unique(mesh["face_mat"])})})
+                                 sorted({int(i) for i in np.unique(mesh["face_mat"])}),
+                                 "single_material": obj.get("single_material"),
+                                 "note": obj.get("note")})
     for item in plan.get("empties", []):
         add_empty(item)
         stats["empties"].append(item["name"])
@@ -145,7 +158,7 @@ def export_tile(plan, mats):
     stats["fbx_bytes"] = out.stat().st_size
     stats["seconds"] = round(time.time() - t0, 2)
     stats["settings"] = {k: (sorted(v) if isinstance(v, set) else v) for k, v in vc_fbx.FBX_SETTINGS.items()}
-    stats["axes"] = "Blender data = campus * (-1, -1, 1); Unity = campus_to_unity (see blender/vc_fbx.py)"
+    stats["axes"] = "Blender data = campus; raw FBX = (X, Z, -Y); Unity = (X, Z, Y) (calibrated 2026-11-20, see blender/vc_fbx.py)"
     if plan.get("stats"):
         vc_fbx.write_json(plan["stats"], stats)
     return stats
