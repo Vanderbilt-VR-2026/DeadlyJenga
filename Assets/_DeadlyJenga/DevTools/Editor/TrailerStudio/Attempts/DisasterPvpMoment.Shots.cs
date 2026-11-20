@@ -259,32 +259,61 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         }
 
         // A bright green disc floated in front of the lens in several shots of the bundle renders (not in the renders made
-        // right after recording). Anything near the tower that is not a block, the map's own scenery or a played-back
-        // actor, roughly 0.3-8 m across and saturated green, is switched off for the render and logged, so the report
-        // says what it was.
+        // right after recording); neither a saturated-green material nor a runtime-material particle system explained it.
+        // During the render: lens flares are switched off, and anything that is not a block, the map's surfaces or a
+        // played-back actor and either sits within 2.5 m of the render camera or covers a quarter of the frame from
+        // within 15 m is switched off. Every object switched off is logged with its path, type, material and shader.
         static void HideStrays(StudioStage stage, Plan plan, HashSet<Renderer> hidden)
         {
+            var cam = GameObject.Find("Trailer Studio render camera")?.GetComponent<Camera>();
+            if (!cam) return;
+            if (!flaresOff)
+            {
+                flaresOff = true;
+                foreach (var b in Object.FindObjectsByType<Behaviour>(FindObjectsSortMode.None))
+                    if (b && b.enabled && b.GetType().Name.Contains("LensFlare")) { b.enabled = false; Note($"Lens flare switched off: {b.name} ({b.GetType().Name})"); }
+            }
+            // Worked out again every frame: what was in front of one lens must come back for the next (rocks are pooled).
+            foreach (var r in hidden) if (r) r.forceRenderingOff = false;
+            hidden.Clear();
             var actors = new HashSet<Transform>(stage.playback.Values.Where(o => o).Select(o => o.transform));
+            Vector3 eye = cam.transform.position;
+            var planes = GeometryUtility.CalculateFrustumPlanes(cam);
             foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
             {
                 if (!r || hidden.Contains(r) || !r.enabled || r.forceRenderingOff || !r.gameObject.activeInHierarchy) continue;
                 int layer = r.gameObject.layer;
                 if (layer == Layers.Block || layer == Layers.Surface) continue;
-                var b = r.bounds;
-                if (Vector3.Distance(b.center, plan.arena.centre) > 25 || b.size.magnitude < .3f || b.size.magnitude > 12) continue;
-                var m = r.sharedMaterial;
-                if (!m) continue;
-                Color c = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : m.HasProperty("_Color") ? m.color : Color.white;
-                if (r is ParticleSystemRenderer ps && ps.TryGetComponent<ParticleSystem>(out var system)) { var main = system.main; c = main.startColor.color * c; }
-                if (!(c.g > .55f && c.r < .45f && c.b < .45f)) continue;
+                var bounds = r.bounds;
+                float near = Mathf.Sqrt(bounds.SqrDistance(eye));
+                if (near > 15 || !GeometryUtility.TestPlanesAABB(planes, bounds)) continue;
+                bool intruder = near < 2.5f;
+                if (!intruder)
+                {
+                    // Share of the frame the box covers (its corners projected to the screen).
+                    float minX = 1, minY = 1, maxX = 0, maxY = 0; bool behind = false;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        var corner = bounds.center + Vector3.Scale(bounds.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                        var v = cam.WorldToViewportPoint(corner);
+                        if (v.z <= 0) { behind = true; break; }
+                        minX = Mathf.Min(minX, v.x); maxX = Mathf.Max(maxX, v.x); minY = Mathf.Min(minY, v.y); maxY = Mathf.Max(maxY, v.y);
+                    }
+                    float cover = behind ? 1 : Mathf.Clamp01(maxX - Mathf.Max(0, minX)) * Mathf.Clamp01(maxY - Mathf.Max(0, minY));
+                    intruder = cover > .25f && bounds.size.magnitude < 20;
+                }
+                if (!intruder) continue;
                 Transform t = r.transform; bool actor = false;
                 while (t) { if (actors.Contains(t)) { actor = true; break; } t = t.parent; }
-                if (actor) continue;
-                hidden.Add(r); r.forceRenderingOff = true;
                 string path = r.name; for (var p = r.transform.parent; p; p = p.parent) path = p.name + "/" + path;
-                Note($"Hidden stray green renderer: {path} ({r.GetType().Name}, material '{m.name}', shader '{m.shader.name}', colour {c}, size {b.size.magnitude:0.0} m at {V(b.center)})");
+                var m = r.sharedMaterial;
+                if (actor && near > .6f) continue;   // a played-back actor is only hidden when the lens is inside it
+                hidden.Add(r); r.forceRenderingOff = true;
+                if (logged.Add(path)) Note($"Switched off in front of the lens: {path} ({r.GetType().Name}, layer {LayerMask.LayerToName(layer)}, material '{(m ? m.name : "-")}', shader '{(m && m.shader ? m.shader.name : "-")}', {near:0.0} m from the camera, size {bounds.size.magnitude:0.0} m at {V(bounds.center)})");
             }
         }
+        static bool flaresOff;
+        static readonly HashSet<string> logged = new HashSet<string>();
 
         // Keep each shot's movie, metrics, filmstrip and its first, key and last stills; the frames are deleted.
         static void KeepShots(List<StudioRender.Finished> results)
