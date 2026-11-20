@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "name": "Vanderbilt campus frame v1",
+  "axes": {
+    "X": "grid east (EPSG:6576 grid, meters)",
+    "Y": "grid north (EPSG:6576 grid north, meters; not true north)",
+    "Z": "up (NAVD88 height minus Z0, meters)",
+    "blender": "(X, Y, Z) unchanged, Z up",
+    "unity": "Unity (x, y, z) = (X, Z, Y); Unity y is up"
+  },
+  "origin": {
+    "osm_element": "way/259811259",
+    "osm_name": "Alumni Lawn",
+    "osm_snapshot": "raw/osm/2026-11-19/campus_overpass.json",
+    "method": "area centroid of the OSM polygon computed in EPSG:6576, rounded to 0.01 ftUS",
+    "lon": -86.803953057,
+    "lat": 36.14745729,
+    "E_ftUS": 1731135.91,
+    "N_ftUS": 661330.12,
+    "ground_navd88_m": 168.66,
+    "ground_navd88_ftUS": 553.345,
+    "ground_points_within_3m": 422,
+    "ground_method": "median NAVD88 height of LiDAR class-2 points within 3 m (horizontal)",
+    "Z": 26.42
+  },
+  "horizontal": {
+    "grid_epsg": 6576,
+    "grid_name": "NAD83(2011) / Tennessee (ftUS)",
+    "ftUS_m": 0.3048006096012192,
+    "formula": "X = (E - E0) * ftUS_m / k ; Y = (N - N0) * ftUS_m / k",
+    "k": 0.9999415532949346,
+    "grid_scale_factor": 0.9999633142404517,
+    "elevation_factor": 0.9999782382561369,
+    "earth_radius_m": 6371593.352,
+    "radius_method": "GRS80 Gaussian mean radius sqrt(M*N) at the origin latitude",
+    "ellipsoid_height_m": 138.66,
+    "geoid_height_m_assumed": -30.0,
+    "geoid_note": "GEOID18 grid not installed; approximate value for Nashville. 1 m error in h changes k by 1.6e-7 (0.016 mm per 100 m).",
+    "meridian_convergence_deg": -0.4706660577524257,
+    "rotation_applied": "none (the frame keeps grid north)",
+    "datum_shift_wgs84": "PROJ 'NAD83(2011) to WGS 84 (1)' = null transform"
+  },
+  "vertical": {
+    "datum": "NAVD88 (GEOID18)",
+    "epsg": 6360,
+    "formula": "Z = H_ftUS * ftUS_m - Z0_m",
+    "Z0_m": 142.24,
+    "target_lowest_ground_Z": 2.0,
+    "lowest_ground_navd88_m": 144.24,
+    "lowest_ground_E_N_ftUS": [
+      1732836.52,
+      662521.83
+    ],
+    "min_ground_Z": 2.0,
+    "max_ground_Z": 59.53,
+    "ground_Z_p001": 3.22,
+    "ground_points_in_area": 26618696,
+    "ground_source": "raw/lidar/TN_DavidsonCounty_D22/EPT/TN_DavidsonCounty_D22_campus_ring_ept.laz (class 2, inside boundary + ring, duplicates included; EPT Z is meters)"
+  },
+  "tiles": {
+    "size_m": 100.0,
+    "col": "floor(X / 100)",
+    "row": "floor(Y / 100)",
+    "name": "T_<col>_<row>; each number = optional '-' then at least two digits of the absolute value (T_03_-02, T_-01_00)"
+  },
+  "sources": {
+    "6576": "E, N ftUS; Z NAVD88 ftUS (original D22 tiles)",
+    "4326": "lon, lat; Z NAVD88 m (OSM)",
+    "3857": "web mercator m; Z NAVD88 m (D22 and 2011 EPT copies store Z in meters)",
+    "32616": "UTM 16N m; Z NAVD88 m (orthophotos)"
+  }
+}

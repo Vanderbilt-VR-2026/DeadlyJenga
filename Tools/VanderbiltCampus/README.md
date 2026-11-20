@@ -124,3 +124,46 @@ error if anything is missing.
 - Brush: Gaussian splat trainer. Only if we try splats.
 - GPU tools for Stage 6 (CUDA COLMAP, neural reconstruction): need an NVIDIA
   GPU, for example on ACCRE. This PC does not have one.
+
+## Stage 0: commands in run order
+
+Run from the repository root in PowerShell. `$PY` is
+`Tools\VanderbiltCampus\.venv\Scripts\python.exe`; `$P` is
+`Tools\VanderbiltCampus\pipeline`. Every step writes into `data_root`, records
+its files in the manifest, and can be run again (it skips or rewrites the same
+files).
+
+```powershell
+$PY = "Tools\VanderbiltCampus\.venv\Scripts\python.exe"; $P = "Tools\VanderbiltCampus\pipeline"
+& $PY $P\check_tools.py                                    # 1. tools installed?
+& $PY $P\fetch_osm.py                                      # 2. OSM snapshot -> raw/osm/<date>/
+& $PY $P\make_boundary.py                                  # 3. config/boundary.geojson (campus + 150 m ring)
+& $PY $P\fetch_lidar.py --project TN_DavidsonCounty_D22    # 4. D22 tiles (slow: rockyweb rate limit)
+& $PY $P\fetch_lidar.py --project TN_DavidsonCounty_D22 --source ept   #    working EPT copy (D007)
+& $PY $P\fetch_lidar.py --project TN_NASHVILLE_2011 --source ept       #    2011 comparison set
+& $PY $P\fetch_metro.py                                    # 5. Metro footprints, canopy, ortho; NAIP
+& $PY $P\frame.py build                                    # 6. config/frame.json (origin, k, Z0)
+& $PY Tools\VanderbiltCampus\tests\make_frame_points.py    #    tests/frame_points.json (10 known points)
+& $PY $P\prepare_lidar.py --with-2011                      # 7. derived/lidar/v1/tiles/*.laz + index.json,
+                                                           #    EPT-vs-original check, 2011 copy
+& $PY $P\make_rasters.py                                   # 8. derived/rasters/v1 (DTM, DSM, nDSM, masks,
+                                                           #    density) + derived/ortho/v1 mosaics
+& $PY $P\render_stage0.py --git-copies                     # 9. reports/stage0/*.jpg (+ 2 copies in git)
+& $PY $P\hero_spots.py                                     # 10. config/hero_spots.json
+& $PY $P\manifest.py verify                                # 11. every archived file still matches
+& $PY -m pytest Tools\VanderbiltCampus\tests -q            # 12. tests
+```
+
+Useful afterwards:
+
+```powershell
+& $PY $P\frame.py convert --epsg 4326 -86.80297 36.14804 170 --unity   # lon lat NAVD88-m -> campus/Unity
+& $PY $P\frame.py convert --epsg 6576 --inverse 0 0 26.4              # campus -> EPSG:6576 ftUS
+& $PY $P\frame.py tile 350 -120                                       # -> T_03_-02
+& $PY $P\prepare_lidar.py --skip-tiles     # re-run only the check against newly downloaded original tiles
+```
+
+In Python, later stages read LiDAR with
+`lidar_io.load_points(xmin, ymin, xmax, ymax, classes=[2, 6], buffer=5)`
+(campus meters) and convert coordinates with `frame.to_campus(x, y, z, epsg)` /
+`frame.from_campus(X, Y, Z, epsg)`.
