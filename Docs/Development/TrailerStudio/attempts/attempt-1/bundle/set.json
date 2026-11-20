@@ -1,0 +1,350 @@
+{
+    "id": "trailer-attempt-1",
+    "title": "Deadly Jenga - trailer attempt",
+    "notes": "Made by TrailerAttempt1. Safe to delete.",
+    "map": "castle",
+    "fps": 30,
+    "seed": 2026,
+    "length": 13.600000381469727,
+    "warmup": 0.75,
+    "useMapAnchor": false,
+    "mapAnchor": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "stageOffset": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "timeOfDay": -1.0,
+    "weather": "",
+    "startFromSet": "",
+    "startFromFrame": 0,
+    "thumbnail": "",
+    "handBot": true,
+    "marks": [
+        {
+            "id": "survivor-1",
+            "actor": "Hero",
+            "role": 0,
+            "color": 0,
+            "position": {
+                "x": 0.0,
+                "y": -0.02083587646484375,
+                "z": 0.0
+            },
+            "yaw": 135.0,
+            "customLook": false,
+            "appearance": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "equipment": ""
+        },
+        {
+            "id": "bot-1",
+            "actor": "Ada",
+            "role": 2,
+            "color": 1,
+            "position": {
+                "x": 1.3538780212402344,
+                "y": -0.020862579345703126,
+                "z": -0.6457667350769043
+            },
+            "yaw": 122.0,
+            "customLook": false,
+            "appearance": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "equipment": ""
+        },
+        {
+            "id": "bot-2",
+            "actor": "Ben",
+            "role": 2,
+            "color": 2,
+            "position": {
+                "x": -1.3538780212402344,
+                "y": -0.020809173583984376,
+                "z": 0.6457667350769043
+            },
+            "yaw": 169.0,
+            "customLook": false,
+            "appearance": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "equipment": ""
+        },
+        {
+            "id": "survivor-2",
+            "actor": "Cleo",
+            "role": 0,
+            "color": 3,
+            "position": {
+                "x": -1.6585822105407715,
+                "y": 1.9781417846679688,
+                "z": 3.3632726669311525
+            },
+            "yaw": 96.0,
+            "customLook": false,
+            "appearance": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "equipment": ""
+        },
+        {
+            "id": "bot-3",
+            "actor": "Dev",
+            "role": 2,
+            "color": 4,
+            "position": {
+                "x": 3.3187036514282228,
+                "y": 1.9780349731445313,
+                "z": -1.7460546493530274
+            },
+            "yaw": 143.0,
+            "customLook": false,
+            "appearance": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "equipment": ""
+        },
+        {
+            "id": "bot-4",
+            "actor": "Eli",
+            "role": 2,
+            "color": 5,
+            "position": {
+                "x": -1.050504207611084,
+                "y": 1.978363037109375,
+                "z": 4.375664234161377
+            },
+            "yaw": 190.0,
+            "customLook": false,
+            "appearance": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "equipment": ""
+        },
+        {
+            "id": "hand-1",
+            "actor": "Hand",
+            "role": 1,
+            "color": 6,
+            "position": {
+                "x": -3.535533905029297,
+                "y": 3.0,
+                "z": 3.535533905029297
+            },
+            "yaw": 0.0,
+            "customLook": false,
+            "appearance": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "equipment": ""
+        }
+    ],
+    "cues": [
+        {
+            "id": "43c88103",
+            "at": 5.900000095367432,
+            "action": "weaken",
+            "actor": "",
+            "target": "",
+            "hazard": "",
+            "weapon": "",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 4.439261436462402,
+                "y": -3.024658203125,
+                "z": -1.8361005783081055
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [
+                554
+            ],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false
+        },
+        {
+            "id": "c32593d8",
+            "at": 6.0,
+            "action": "push",
+            "actor": "",
+            "target": "",
+            "hazard": "",
+            "weapon": "",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 4.439261436462402,
+                "y": -3.024658203125,
+                "z": -1.8361005783081055
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [
+                554
+            ],
+            "direction": {
+                "x": 0.9240782260894775,
+                "y": 0.07999999821186066,
+                "z": -0.3822033405303955
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false
+        },
+        {
+            "id": "04e051db",
+            "at": 7.0,
+            "action": "collapse",
+            "actor": "",
+            "target": "",
+            "hazard": "",
+            "weapon": "",
+            "strength": 8.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": -1.7677669525146485,
+                "y": -1.5208358764648438,
+                "z": 1.7677669525146485
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false
+        },
+        {
+            "id": "d4067055",
+            "at": 9.399999618530274,
+            "action": "tsunami",
+            "actor": "",
+            "target": "",
+            "hazard": "",
+            "weapon": "",
+            "strength": 22.0,
+            "heading": 225.0,
+            "height": 30.69519805908203,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false
+        }
+    ],
+    "shots": [],
+    "shotNotes": [],
+    "cameras": [],
+    "cuts": [],
+    "render": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "subFrames": 1,
+        "shutter": 0.5,
+        "format": "png",
+        "cinema": true,
+        "freezeAmbient": false
+    },
+    "music": "",
+    "bpm": 120.0,
+    "beatOffset": 0.0,
+    "overrides": []
+}

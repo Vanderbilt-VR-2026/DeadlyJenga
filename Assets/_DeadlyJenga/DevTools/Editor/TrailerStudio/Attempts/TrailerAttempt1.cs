@@ -18,7 +18,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     [InitializeOnLoad]
     public static class TrailerAttempt1
     {
-        const int Iteration = 2;
+        const int Iteration = 3;
+        const string Subject = "Dev";   // from the record run's motion log: on the camera-side edge of the top
         const int Fps = 30;
 
         const string Key = "DeadlyJenga.TrailerAttempt1";
@@ -315,66 +316,60 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Vector3 anchor = stage.anchor;
             float water = stage.world.WaterHeight(anchor);
             float H = Mathf.Max(anchor.y - water, 6);
-            var hero = set.marks.First(m => m.actor == "Hero");
+            var hero = set.marks.First(m => m.actor == Subject);
             var hand = set.marks.FirstOrDefault(m => m.role == StudioRole.Hand);
-            Vector3 heroStage = hero.position, up = Vector3.up, across = Vector3.Cross(up, Side);
+            Vector3 up = Vector3.up, across = Vector3.Cross(up, Side);
+            // The subject stands on the camera-side edge of the top from 2 s to 7 s in the recorded take.
+            Vector3 heroStage = (ActorAt(tape, hero.id, 4f, set.fps) ?? stage.ToWorld(hero.position)) - anchor;
+            Note($"Subject {hero.actor} at {heroStage} (stage) at 4 s.");
 
-            // Who fell furthest in the collapse?
-            StudioMark faller = hero; float biggest = 0;
-            foreach (var mark in set.marks.Where(m => m.role != StudioRole.Hand && m != hero))
-            {
-                var a = ActorAt(tape, mark.id, 6.8f, set.fps); var b = ActorAt(tape, mark.id, 9.5f, set.fps);
-                if (a.HasValue && b.HasValue && a.Value.y - b.Value.y > biggest) { biggest = a.Value.y - b.Value.y; faller = mark; }
-            }
-            Note($"Fall shot subject: {faller.actor}, dropped {biggest:0.0} m between 6.8 s and 9.5 s.");
-
-            // Performance layers on the hero: cowers as the block slides, screams as the top goes.
-            set.overrides.RemoveAll(o => o.actor == hero.id);
-            set.overrides.Add(new StudioOverride { actor = hero.id, kind = "reaction", name = "cower", from = 5.6f, to = 6.9f });
-            set.overrides.Add(new StudioOverride { actor = hero.id, kind = "reaction", name = "scream", from = 6.9f, to = 8.2f });
+            // Performance layer on the subject: cowers as the block slides out.
+            set.overrides.Clear();
+            set.overrides.Add(new StudioOverride { actor = hero.id, kind = "reaction", name = "cower", from = 5.9f, to = 7.0f });
 
             void Style(StudioCameraTrack c) { c.bloom = .35f; c.vignette = .45f; c.grain = .12f; c.chroma = .06f; }
             set.cameras.Clear();
             // A. Establishing: far over the ocean, the whole spire, slow push in.
-            var establish = new StudioCameraTrack { name = "A Establish", start = 0, end = 2.6f, noise = "subtle" };
-            establish.keys.Add(K(0, Side * 70 + up * -10, new Vector3(0, -26, 0), 18));
-            establish.keys.Add(K(2.6f, Side * 50 + up * -7, new Vector3(0, -20, 0), 20, 3));
-            // B. Hero on the top, sky behind, shallow focus.
-            var heroShot = new StudioCameraTrack { name = "B Hero", start = 2.6f, end = 4.8f, behavior = "follow", subject = hero.id, lag = .15f, noise = "walking", noiseStrength = .5f, focusOnSubject = true, aimOffset = new Vector3(0, 1.0f, 0) };
-            heroShot.keys.Add(K(2.6f, heroStage + Side * 5.5f + across * 1.2f + up * 2.2f, heroStage + up, 32, 1, 2.8f));
-            heroShot.keys.Add(K(4.8f, heroStage + Side * 4.3f + across * .6f + up * 1.6f, heroStage + up, 38, 1, 2.8f));
-            // C. The hand, riding along with it, the tower behind.
-            var handShot = new StudioCameraTrack { name = "C Hand", start = 4.8f, end = 6.8f, behavior = hand != null ? "ride" : "", subject = hand?.id ?? "", lag = .1f, noise = "subtle", aimOffset = Vector3.zero };
-            handShot.keys.Add(new StudioCameraKey { time = 4.8f, position = -Side * 6 + up * 1.5f + across * 1.5f, focal = 28, aperture = 16 });
-            // D. The collapse, slowed down, on whoever falls furthest.
-            var fall = new StudioCameraTrack { name = "D Collapse", start = 6.6f, end = 9.3f, behavior = "follow", subject = faller.id, lag = .15f, noise = "impact", noiseStrength = .4f };
-            fall.keys.Add(K(6.6f, heroStage + Side * 16 + across * 4 + up * 1, heroStage, 24));
-            fall.keys.Add(K(9.3f, heroStage + Side * 18 + across * 5 + up * -3, heroStage + up * -6, 22));
-            fall.speeds.Add(new StudioSpeedMark { time = 6.6f, speed = 1 });
-            fall.speeds.Add(new StudioSpeedMark { time = 7.1f, speed = .3f });
-            fall.speeds.Add(new StudioSpeedMark { time = 7.9f, speed = .3f });
-            fall.speeds.Add(new StudioSpeedMark { time = 8.4f, speed = 1 });
+            var establish = new StudioCameraTrack { name = "A Establish", start = 0, end = 2.8f, noise = "subtle" };
+            establish.keys.Add(K(0, Side * 72 + up * -9, new Vector3(0, -24, 0), 18));
+            establish.keys.Add(K(2.8f, Side * 50 + up * -6, new Vector3(0, -18, 0), 20, 3));
+            // B. The subject on the edge of the top, sky behind, slow push in.
+            var heroShot = new StudioCameraTrack { name = "B Edge", start = 2.8f, end = 5.4f, behavior = "follow", subject = hero.id, lag = .15f, noise = "walking", noiseStrength = .5f, focusOnSubject = true, aimOffset = new Vector3(0, 1.0f, 0) };
+            heroShot.keys.Add(K(2.8f, heroStage + Side * 4.5f + across * 2.0f + up * .8f, heroStage + up, 30, 1, 2.8f));
+            heroShot.keys.Add(K(5.4f, heroStage + Side * 3.2f + across * 1.2f + up * .5f, heroStage + up, 36, 1, 2.8f));
+            // D. The pull and the collapse, slowing down as the top goes, on the subject.
+            var fall = new StudioCameraTrack { name = "D Collapse", start = 5.6f, end = 8.6f, behavior = "follow", subject = hero.id, lag = .15f, noise = "impact", noiseStrength = .4f };
+            fall.keys.Add(K(5.6f, heroStage + Side * 11 + across * 3 + up * 1, heroStage, 28));
+            fall.keys.Add(K(8.6f, heroStage + Side * 13 + across * 4 + up * -3, heroStage + up * -6, 26));
+            fall.speeds.Add(new StudioSpeedMark { time = 5.6f, speed = 1 });
+            fall.speeds.Add(new StudioSpeedMark { time = 6.8f, speed = 1 });
+            fall.speeds.Add(new StudioSpeedMark { time = 7.1f, speed = .35f });
+            fall.speeds.Add(new StudioSpeedMark { time = 7.8f, speed = .35f });
+            fall.speeds.Add(new StudioSpeedMark { time = 8.2f, speed = 1 });
+            // C. The hand, riding along with it as the top breaks around it.
+            var handShot = new StudioCameraTrack { name = "C Hand", start = 8.0f, end = 9.7f, behavior = hand != null ? "ride" : "", subject = hand?.id ?? "", lag = .1f, noise = "impact", noiseStrength = .3f, aimOffset = Vector3.zero };
+            handShot.keys.Add(new StudioCameraKey { time = 8.0f, position = -Side * 5 + up * 1.2f + across * -1.5f, focal = 26, aperture = 16 });
             // E. The wave hits the castle: low over the water, wide.
-            var wave = new StudioCameraTrack { name = "E Wave", start = 9.0f, end = 11.8f, noise = "walking" };
+            var wave = new StudioCameraTrack { name = "E Wave", start = 9.4f, end = 12.0f, noise = "walking" };
             Vector3 waveSide = Quaternion.Euler(0, -35, 0) * Side;
-            wave.keys.Add(K(9.0f, waveSide * 47 + up * (-H * .75f), new Vector3(0, -H * .45f, 0), 22));
-            wave.keys.Add(K(11.8f, waveSide * 42 + up * (-H * .6f), new Vector3(0, -H * .35f, 0), 22));
+            wave.keys.Add(K(9.4f, waveSide * 47 + up * (-H * .75f), new Vector3(0, -H * .45f, 0), 22));
+            wave.keys.Add(K(12.0f, waveSide * 42 + up * (-H * .6f), new Vector3(0, -H * .35f, 0), 22));
             // F. Finale: high and wide over what is left; the title goes on top of this.
-            var finale = new StudioCameraTrack { name = "F Finale", start = 11.6f, end = 13.6f, noise = "subtle" };
+            var finale = new StudioCameraTrack { name = "F Finale", start = 11.2f, end = 13.6f, noise = "subtle" };
             Vector3 finSide = Quaternion.Euler(0, -60, 0) * Side;
-            finale.keys.Add(K(11.6f, finSide * 55 + up * -14, new Vector3(0, -42, 0), 20));
-            finale.keys.Add(K(13.6f, finSide * 66 + up * -8, new Vector3(0, -44, 0), 20, 3));
+            finale.keys.Add(K(11.2f, finSide * 55 + up * -14, new Vector3(0, -42, 0), 20));
+            finale.keys.Add(K(13.6f, finSide * 68 + up * -8, new Vector3(0, -44, 0), 20, 3));
             int color = 0;
-            foreach (var c in new[] { establish, heroShot, handShot, fall, wave, finale }) { Style(c); c.color = color++; set.cameras.Add(c); }
+            foreach (var c in new[] { establish, heroShot, fall, handShot, wave, finale }) { Style(c); c.color = color++; set.cameras.Add(c); }
 
             float fallLength = StudioCameras.OutputLength(fall, set, Fps);
             set.cuts.Clear();
-            set.cuts.Add(new StudioCut { camera = establish.id, from = 0, to = 2.6f });
-            set.cuts.Add(new StudioCut { camera = heroShot.id, from = 0, to = 2.2f });
-            set.cuts.Add(new StudioCut { camera = handShot.id, from = 0, to = 2.0f });
+            set.cuts.Add(new StudioCut { camera = establish.id, from = 0, to = 2.8f });
+            set.cuts.Add(new StudioCut { camera = heroShot.id, from = 0, to = 2.4f });
             set.cuts.Add(new StudioCut { camera = fall.id, from = 0, to = Mathf.Min(3.4f, fallLength) });
-            set.cuts.Add(new StudioCut { camera = wave.id, from = 0, to = 2.8f });
-            set.cuts.Add(new StudioCut { camera = finale.id, from = 0, to = 2.0f });
+            set.cuts.Add(new StudioCut { camera = handShot.id, from = 0, to = 1.6f });
+            set.cuts.Add(new StudioCut { camera = wave.id, from = 0, to = 2.4f });
+            set.cuts.Add(new StudioCut { camera = finale.id, from = 0, to = 2.4f });
             Note($"Cut: {set.cuts.Count} pieces, {set.cuts.Sum(c => c.to - c.from):0.00} s. Slow-motion shot output length {fallLength:0.00} s.");
             set.render = new StudioRenderSettings { width = width, height = height, fps = Fps, subFrames = subFrames, format = "png", cinema = cinema, freezeAmbient = false };
             StudioLibrary.Save(set);
