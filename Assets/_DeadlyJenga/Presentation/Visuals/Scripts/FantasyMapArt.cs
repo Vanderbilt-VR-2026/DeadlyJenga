@@ -35,7 +35,6 @@ namespace DeadlyJenga.Presentation
         Quaternion oldSunRotation;
         AmbientMode oldAmbientMode;
         int revision=-1;
-        bool lateReport;
         float retry;
 
         void LateUpdate()
@@ -47,7 +46,6 @@ namespace DeadlyJenga.Presentation
             if(environment){if(environment.waterRenderer)environment.waterRenderer.forceRenderingOff=true;if(environment.sandRenderer)environment.sandRenderer.forceRenderingOff=true;}
             UpdateLighting();
             if(City)AnimateCity();
-            if(City&&solidCandy&&!lateReport&&Time.timeSinceLevelLoad>8){lateReport=true;ReportSolid();}
             if(world.Revision!=revision&&Services.World.Blocks.Count>0)
             {
                 ClearBodyArt();revision=world.Revision;
@@ -66,13 +64,13 @@ namespace DeadlyJenga.Presentation
                         var cityGlass=City?(solidCandy?SolidMaterial(body):CityGlass(body)):null;
                         for(int i=0;i<replacement.Length;i++)replacement[i]=cityGlass?cityGlass:blockMaterials[i%blockMaterials.Length];
                         renderer.sharedMaterials=replacement;
+                        if(City&&solidCandy)KeepOwnLook(renderer);
                         SoftenEdges(renderer,body);
                     }
                     if(City)DecorateCity(body,visual);
                     else if(theme!=FantasyMapTheme.CandyGlass)Decorate(body,visual,count++);
                 }
                 if(City)FinishCityPass();
-                if(City&&solidCandy)ReportSolid();
             }
         }
         void Activate()
@@ -111,6 +109,7 @@ namespace DeadlyJenga.Presentation
         }
         void ClearBodyArt()
         {
+            RestoreBatching();
             foreach(var pair in originalShapes)if(pair.Key)pair.Key.sharedMesh=pair.Value;originalShapes.Clear();
             foreach(var pair in originals)if(pair.Key&&pair.Key!=ground)pair.Key.sharedMaterials=pair.Value;
             var remove=new List<Renderer>();foreach(var pair in originals)if(pair.Key!=ground)remove.Add(pair.Key);

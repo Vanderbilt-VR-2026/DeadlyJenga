@@ -228,58 +228,16 @@ namespace DeadlyJenga.Presentation
             mesh.Sphere(at+Vector3.up*3.7f,Vector3.one*.16f,0,Gold,3,6);
         }
 
-        // One log line per pass: any block renderer that still has a non-candy material (helps spot missed parts).
-        void ReportSolid()
+        // Structural artwork batching snapshots repeated block meshes and materials when the city is built,
+        // before this pass recolors them, and would draw the old look. A property block opts a renderer out.
+        static MaterialPropertyBlock keepOwnLook;
+        readonly List<Renderer> optedOut=new();
+        void KeepOwnLook(Renderer renderer)
         {
-            var known=new HashSet<Material>(solidMaterials.Values);int bad=0;var sb=new System.Text.StringBuilder();
-            foreach(var body in Services.World.Blocks)
-            {
-                if(!body)continue;
-                foreach(var r in body.GetComponentsInChildren<MeshRenderer>(true))
-                {
-                    if(r.name=="Fantasy decorations")continue;
-                    var mats=r.sharedMaterials;bool ok=true;foreach(var m in mats)if(!known.Contains(m))ok=false;
-                    if(ok)continue;bad++;
-                    if(bad<=12){var f=r.GetComponent<MeshFilter>();sb.Append(" | ").Append(body.name).Append(" / ").Append(r.name).Append(" parent=").Append(r.transform.parent?r.transform.parent.name:"-")
-                        .Append(" subs=").Append(f&&f.sharedMesh?f.sharedMesh.subMeshCount:-1).Append(" mats=");foreach(var m in mats)sb.Append(m?m.name:"null").Append(',');}
-                }
-            }
-            // Anything else in the scene still drawn with the map's original block materials.
-            var palette=new HashSet<Material>(blockMaterials);int stray=0;
-            foreach(var r in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
-            {
-                bool uses=false;foreach(var m in r.sharedMaterials)if(m&&palette.Contains(m))uses=true;
-                if(!uses)continue;stray++;
-                if(stray<=8){var path=r.name;for(var t=r.transform.parent;t&&path.Length<160;t=t.parent)path=t.name+"/"+path;sb.Append(" || palette user: ").Append(path).Append(" enabled=").Append(r.enabled&&r.gameObject.activeInHierarchy);}
-            }
-            // Which material each Downtown / keep / canyon body got, and whether its mesh has vertex colors.
-            int listed=0;
-            foreach(var body in Services.World.Blocks)
-            {
-                if(!body||listed>=30)continue;
-                if(!(body.name.Contains("Downtown")||body.name.Contains("Grape")||body.name.Contains("north-west tower floor 2")))continue;
-                foreach(var r in body.GetComponentsInChildren<MeshRenderer>(true))
-                {
-                    if(r.name=="Fantasy decorations")continue;listed++;
-                    var f=r.GetComponent<MeshFilter>();var mesh=f?f.sharedMesh:null;
-                    sb.Append(" #").Append(body.name).Append(" -> ").Append(r.sharedMaterial?r.sharedMaterial.name:"null").Append(" x").Append(r.sharedMaterials.Length)
-                      .Append(" colors=").Append(mesh?mesh.colors.Length:-1).Append(" verts=").Append(mesh?mesh.vertexCount:-1).Append(" mesh=").Append(mesh?mesh.name:"-");
-                }
-            }
-            // Every see-through renderer in the scene (glass looks), biggest first.
-            var clear=new List<Renderer>();
-            foreach(var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
-            {if(!r.enabled||!r.gameObject.activeInHierarchy)continue;foreach(var m in r.sharedMaterials)if(m&&m.renderQueue>=2500){clear.Add(r);break;}}
-            clear.Sort((x,y)=>y.bounds.size.sqrMagnitude.CompareTo(x.bounds.size.sqrMagnitude));
-            sb.Append(" ||| see-through renderers: ").Append(clear.Count);
-            for(int i=0;i<Mathf.Min(14,clear.Count);i++)
-            {
-                var r=clear[i];var path=r.name;for(var t=r.transform.parent;t&&path.Length<180;t=t.parent)path=t.name+"/"+path;
-                sb.Append(" || ").Append(path).Append(" [").Append(r.GetType().Name).Append("] size=").Append(r.bounds.size.ToString("F0")).Append(" mats=");
-                foreach(var m in r.sharedMaterials)sb.Append(m?m.name+"("+m.shader.name+")":"null").Append(',');
-            }
-            Debug.Log("[SolidCandy] renderers with other materials: "+bad+", palette users in scene: "+stray+sb);
+            if(keepOwnLook==null){keepOwnLook=new MaterialPropertyBlock();keepOwnLook.SetFloat("_DetailStrength",0);}
+            renderer.SetPropertyBlock(keepOwnLook);optedOut.Add(renderer);
         }
+        void RestoreBatching(){foreach(var r in optedOut)if(r)r.SetPropertyBlock(null);optedOut.Clear();}
 
         void WarmLighting()
         {
