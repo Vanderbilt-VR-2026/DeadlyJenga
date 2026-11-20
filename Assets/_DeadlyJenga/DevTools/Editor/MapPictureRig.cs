@@ -36,7 +36,7 @@ namespace DeadlyJenga.DevTools.Editor
     // Every run also writes a gallery folder (Logs/Captures/...) with manifest.json, contact-sheet.png and index.html.
     public static class MapPictureRig
     {
-        internal static readonly string[] AllViews = { "hero", "top", "front", "close" };
+        internal static readonly string[] AllViews = { "hero", "top", "front", "close", "target", "balloon" };
 
         [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Quick: Render All (lobby pictures)")]
         static void RenderAll() => Run(null, new[] { "hero" }, null, false, 1600, 1100, null, CaptureOutput.OpenByDefault);
@@ -83,7 +83,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             if (clip != null && !CameraPath.Modes.Contains(clip.mode)) throw new ArgumentException("Unknown clip " + clip.mode + " (" + string.Join(", ", CameraPath.Modes) + ").");
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
-            foreach (var v in views) if (!AllViews.Contains(v)) throw new ArgumentException("Unknown view " + v + " (hero, top, front, close).");
+            foreach (var v in views) if (!AllViews.Contains(v)) throw new ArgumentException("Unknown view " + v + " (hero, top, front, close, target, balloon).");
             var source = Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog");
             if (!source) throw new InvalidOperationException("IslandLobby/Catalog is missing.");
             var catalog = Object.Instantiate(source);
@@ -259,6 +259,8 @@ namespace DeadlyJenga.DevTools.Editor
                     distance = bounds.extents.y + flat / Mathf.Tan(Mathf.Min(halfFov, horizontalHalf));
                     break;
                 case "front": direction = new Vector3(0, .25f, -1); break;
+                // Same angle as the Candy Sky Ring City target picture: high, from the south-east corner.
+                case "target": direction = new Vector3(1, 1.25f, -1); distance = fit * .78f; focus.y = Mathf.Lerp(bounds.min.y, bounds.max.y, .2f); break;
                 case "close": direction = new Vector3(.7f, .45f, -1); distance = fit * .55f; focus.y = Mathf.Lerp(bounds.min.y, bounds.max.y, .6f); break;
                 default: direction = new Vector3(1.05f, .8f, -1.3f); distance = fit * .95f; break; // hero, matches the existing lobby pictures
             }

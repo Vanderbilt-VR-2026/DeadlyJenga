@@ -10,7 +10,7 @@ namespace DeadlyJenga.Presentation
     {
         public bool cityStreets;
 
-        static readonly Color Pavement=new(.97f,.78f,.86f),PavementLine=new(.86f,.55f,.72f),Asphalt=new(.2f,.13f,.26f),Sidewalk=new(1,.93f,.96f),
+        static readonly Color Pavement=new(.98f,.7f,.82f),PavementLine=new(.84f,.48f,.66f),Asphalt=new(.24f,.22f,.3f),Sidewalk=new(1,.93f,.96f),
             LaneLine=new(1,.95f,.62f),Grass=new(.55f,.93f,.5f);
         const int RoadBins=96;
         float roadRadius;Vector3 roadCenter;readonly bool[] roadOpen=new bool[RoadBins];

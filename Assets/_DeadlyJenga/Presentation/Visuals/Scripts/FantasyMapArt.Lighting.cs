@@ -24,7 +24,7 @@ namespace DeadlyJenga.Presentation
             gradeProfile=ScriptableObject.CreateInstance<VolumeProfile>();grade.sharedProfile=gradeProfile;
             var bloom=gradeProfile.Add<Bloom>(true);bloom.intensity.Override(.18f);bloom.threshold.Override(1.1f);bloom.scatter.Override(.55f);
             gradeProfile.Add<Tonemapping>(true).mode.Override(TonemappingMode.None);
-            var color=gradeProfile.Add<ColorAdjustments>(true);color.contrast.Override(5);color.saturation.Override(5);
+            var color=gradeProfile.Add<ColorAdjustments>(true);color.contrast.Override(solidCandy&&candyCity?14:5);color.saturation.Override(solidCandy&&candyCity?22:5);
             color.postExposure.Override(0);
         }
 
@@ -44,6 +44,7 @@ namespace DeadlyJenga.Presentation
             RenderSettings.ambientSkyColor=theme==FantasyMapTheme.Honeycomb?new Color(.91f,.74f,.45f):theme==FantasyMapTheme.Carnival?new Color(.68f,.73f,1):new Color(.66f,.83f,1);
             RenderSettings.ambientEquatorColor=theme==FantasyMapTheme.Honeycomb?new Color(.62f,.40f,.17f):theme==FantasyMapTheme.Carnival?new Color(.87f,.62f,.75f):new Color(.64f,.76f,.88f);
             RenderSettings.ambientGroundColor=theme==FantasyMapTheme.Honeycomb?new Color(.28f,.15f,.055f):new Color(.32f,.35f,.49f);
+            if(solidCandy&&candyCity)WarmLighting();
             ConfigureCamera(Services.Session?.ActiveCamera);
         }
 
