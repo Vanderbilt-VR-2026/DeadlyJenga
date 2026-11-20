@@ -390,8 +390,32 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             string encoder = StudioRender.FindEncoder();
             if (encoder.Length == 0) return "Mux: FFmpeg not found.";
             string inv(float v) => v.ToString("0.###", CultureInfo.InvariantCulture);
-            string sound = File.Exists(audio) ? $"-ss {inv(from)} -t {inv(length)} -i \"{audio}\" -c:a aac -b:a 192k " : "";
-            string args = $"-hide_banner -loglevel error -nostdin -y -framerate {fps} -i \"{Path.Combine(frames, "%05d.png")}\" {sound}-c:v libx264 -preset medium -crf 17 -pix_fmt yuv420p -movflags +faststart -shortest \"{movie}\"";
+            // The directed hand is not live while recording, so the take has no sound of its own for it.
+            // Its sound is laid in here from the game's own files: the flight loop under the flight,
+            // the block scrape and a block hit on the yank. (The Studio has no sound cues: see the report.)
+            string Clip(string name) { var guid = UnityEditor.AssetDatabase.FindAssets(name + " t:AudioClip").FirstOrDefault(); return guid == null ? "" : Path.GetFullPath(UnityEditor.AssetDatabase.GUIDToAssetPath(guid)); }
+            string flight = Clip("HandFlight_01"), scrape = Clip("BlockScrape_01"), hit = Clip("BlockHit_02");
+            string sound = "";
+            if (File.Exists(audio))
+            {
+                var inputs = new StringBuilder($"-ss {inv(from)} -t {inv(length)} -i \"{audio}\" ");
+                var graph = new StringBuilder("[1:a]aresample=48000,volume=1.6[take];");
+                var mix = new List<string> { "[take]" };
+                int n = 2;
+                void Layer(string file, float at, float lasts, float gain, float fadeIn, float fadeOut, string label)
+                {
+                    if (file.Length == 0) return;
+                    inputs.Append($"-i \"{file}\" ");
+                    graph.Append($"[{n}:a]aresample=48000,aformat=channel_layouts=stereo,atrim=0:{inv(lasts)},afade=t=in:d={inv(fadeIn)},afade=t=out:st={inv(Mathf.Max(0, lasts - fadeOut))}:d={inv(fadeOut)},volume={inv(gain)},adelay={Mathf.RoundToInt(at * 1000)}|{Mathf.RoundToInt(at * 1000)}[{label}];");
+                    mix.Add($"[{label}]"); n++;
+                }
+                Layer(flight, Mathf.Max(0, FlightStart - .35f), Landed - FlightStart + .7f, .9f, .6f, .6f, "flight");
+                Layer(scrape, Yank, PullSeconds + .2f, 1.0f, .05f, .3f, "scrape");
+                Layer(hit, Yank + .12f, .6f, 1.0f, .005f, .2f, "hit");
+                graph.Append($"{string.Concat(mix)}amix=inputs={mix.Count}:normalize=0,alimiter=limit=0.89,apad[mixed]");
+                sound = inputs + $"-filter_complex \"{graph}\" -map 0:v -map \"[mixed]\" -c:a aac -b:a 192k ";
+            }
+            string args = $"-hide_banner -loglevel error -nostdin -y -framerate {fps} -i \"{Path.Combine(frames, "%05d.png")}\" {sound}-c:v libx264 -preset medium -crf 17 -pix_fmt yuv420p -movflags +faststart -t {inv(length)} \"{movie}\"";
             try
             {
                 using (var process = Process.Start(new ProcessStartInfo(encoder, args) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true }))
