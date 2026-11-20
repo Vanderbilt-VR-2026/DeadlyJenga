@@ -278,19 +278,17 @@ namespace DeadlyJenga.CandyArt.Marina
 
             // ---------- Right wall: apparel and hats ----------
             float rx = hw - .45f;
-            foreach (float z in new[] { -2.2f, .3f })
+            // One long clothes rod. Each display body hangs from it on a white stick through the top
+            // of its head, like a lollipop on its stick.
+            float rodX = rx - .3f, rodY = 2.4f;
+            mesh.Beam(P(rodX, rodY, -3.25f), P(rodX, rodY, 1.35f), .025f, F.Brass);
+            foreach (float z in new[] { -3.2f, -.95f, 1.3f }) B((rodX + hw) / 2, rodY, z, new Vector3(hw - rodX, .05f, .05f), F.Brass, .01f);
+            for (int n = 0; n < 6; n++)
             {
-                mesh.Beam(P(rx - .1f, 1.95f, z - 1f), P(rx - .1f, 1.95f, z + 1f), .025f, F.Brass);
-                foreach (float e in new[] { -1f, 1f }) B(rx + .05f, 1.95f, z + e, new Vector3(.3f, .05f, .05f), F.Brass, .01f);
-                // Display bodies hung from the rail like switched-off robots, each wearing a different outfit.
-                for (int i = 0; i < 3; i++)
-                {
-                    float hz = z - .65f + i * .65f;
-                    int n = i + (z > 0 ? 3 : 0);
-                    mesh.Beam(P(rx - .1f, 1.95f, hz), P(rx - .22f, 1.8f, hz), .012f, F.Brass);
-                    B(rx - .24f, 1.79f, hz, new Vector3(.05f, .035f, .44f), F.DarkWood, .01f);
-                    Figure(rx - .3f, .4f, hz, -90, rackLooks[n], rackColors[n], MannequinPose.Hanging);
-                }
+                float hz = -2.85f + n * .76f;
+                mesh.Beam(P(rodX, 2.05f, hz), P(rodX, rodY, hz), .014f, F.Ivory);
+                Ball(rodX, rodY + .03f, hz, Vector3.one * .035f, F.Ivory);
+                Figure(rodX, .4f, hz, -90, rackLooks[n], rackColors[n], MannequinPose.Hanging);
             }
             for (int level = 0; level < 2; level++)
             {

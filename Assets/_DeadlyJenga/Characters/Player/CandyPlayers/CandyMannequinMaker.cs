@@ -23,9 +23,7 @@ namespace DeadlyJenga.CandyPlayers
             var frame = new CandyAvatarFrame { feet = feet, scale = 1 };
             if (pose == MannequinPose.Hanging)
             {
-                // Switched off: legs straight, head dropped onto the chest (tipped a little to one side),
-                // arms dangling straight down, fingers loose.
-                // The body is posed standing tall first; the head is then bent down at the neck below.
+                // Switched off on its hanger stick: legs straight, head level, arms dangling, fingers loose.
                 frame.head = feet + Vector3.up * 1.6f;
                 frame.headRotation = facing;
                 frame.left = Hand(feet + facing * new Vector3(-.22f, .6f, -.02f), facing * Quaternion.Euler(0, 0, 4), true, .4f);
@@ -40,8 +38,7 @@ namespace DeadlyJenga.CandyPlayers
                 frame.right = Hand(feet + facing * new Vector3(.36f, .98f, .1f), facing * Quaternion.Euler(-10, 0, -12), false, .15f);
             }
             rig.ApplyFrame(frame, true, 0);
-            if (pose == MannequinPose.Hanging) DropHead(rig.HeadAnchor, facing, (color % 3 - 1) * 14f);
-            else Chrome(rig);
+            if (pose == MannequinPose.Display) Chrome(rig);
             return rig.gameObject;
         }
 
@@ -65,15 +62,6 @@ namespace DeadlyJenga.CandyPlayers
                 skin.SetPropertyBlock(null);
                 skin.sharedMaterial = chrome;
             }
-        }
-
-        // Swings the head forward around the neck, so it stays attached to the body.
-        static void DropHead(Transform head, Quaternion facing, float tip)
-        {
-            if (!head) return;
-            Vector3 neck = head.position + Vector3.down * .15f;
-            Quaternion bend = facing * Quaternion.Euler(70, 0, tip) * Quaternion.Inverse(facing);
-            head.SetPositionAndRotation(neck + bend * (head.position - neck), bend * head.rotation);
         }
 
         static CandyHandPose Hand(Vector3 position, Quaternion rotation, bool left, float curl) =>
