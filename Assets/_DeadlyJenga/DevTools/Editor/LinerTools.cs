@@ -115,7 +115,7 @@ namespace DeadlyJenga.DevTools.Editor
                 // c) The sinking story, run by the map itself.
                 map.Rebuild();
                 map.calmSeconds = 5; map.autoSinking = true;
-                float maxPitch = 0, sternRise = 0, standPitch = 0, standHigh = 0, sternUnder = -1, bowUnder = -1;
+                float maxPitch = 0, sternRise = 0, standPitch = 0, standHigh = 0, sternUnder = -1, bowUnder = -1, middleAtBreak = float.NaN;
                 var timeline = new StringBuilder();
                 float nextNote = 0;
                 for (float t = 0; t < 480; t += dt)
@@ -135,6 +135,7 @@ namespace DeadlyJenga.DevTools.Editor
                         sternRise = Mathf.Max(sternRise, DeckHigh(map, sternBody));
                         continue;
                     }
+                    if (float.IsNaN(middleAtBreak)) { var cut = map.Segments[map.breakLine]; middleAtBreak = cut.transform.TransformPoint(new Vector3(0, map.hullHeight - map.draft, cut.zTo)).y - map.waterHeight; }
                     float since = map.Clock - map.BrokeAt;
                     if (sternAlive)
                     {
@@ -148,13 +149,14 @@ namespace DeadlyJenga.DevTools.Editor
                 report.AppendLine($"  sinking story (bow floods at 5 s):");
                 report.Append(timeline);
                 report.AppendLine(map.Broken
-                    ? $"    before the break: max pitch {maxPitch:0.0} deg, stern deck up to {sternRise:0.0} m above the water; broke at line {map.breakLine + 1} at {map.BrokeAt:0} s ({(maxPitch >= map.breakPitch - .5f ? "pitch reached" : "time limit")})"
+                    ? $"    before the break: max pitch {maxPitch:0.0} deg, stern deck up to {sternRise:0.0} m above the water; broke at line {map.breakLine + 1} at {map.BrokeAt:0} s with the deck there {middleAtBreak:0.0} m from the water ({(maxPitch >= map.breakPitch - .5f ? "pitch reached" : "time limit")})"
                     : $"    never broke (max pitch {maxPitch:0.0} deg)");
                 report.AppendLine($"    after the break: stern half tipped up to {standPitch:0.0} deg, its top {standHigh:0.0} m above the water while standing; " +
                                   $"bow half fully under after {(bowUnder < 0 ? "never" : bowUnder.ToString("0") + " s")}, stern half after {(sternUnder < 0 ? "never" : sternUnder.ToString("0") + " s")}");
                 if (!map.Broken) { report.AppendLine("  FAIL the ship never broke"); problems++; }
                 if (sternRise < 20) { report.AppendLine("  FAIL the stern should lift at least 20 m out of the water before the break"); problems++; }
                 if (standPitch < 35) { report.AppendLine("  FAIL the stern half should tip up past 35 deg after the break"); problems++; }
+                if (bowUnder >= 0 && bowUnder < 20) { report.AppendLine("  FAIL the bow half vanished too fast (under 20 s after the break)"); problems++; }
                 if (sternUnder < 0) { report.AppendLine("  FAIL the stern half never went under"); problems++; }
                 else if (sternUnder < 60) { report.AppendLine("  FAIL the stern half went under too fast (under 60 s)"); problems++; }
                 var names = map.Blocks.Where(b => b).Select(b => b.name).ToList();

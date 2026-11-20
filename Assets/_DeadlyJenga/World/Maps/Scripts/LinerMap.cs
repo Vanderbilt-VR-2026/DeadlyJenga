@@ -38,7 +38,10 @@ namespace DeadlyJenga.CastlePrototype
         public float calmSeconds = 25;
         [Tooltip("The bow section fills over this long; the section behind it fills partly (secondFlood).")]
         public float bowFloodSeconds = 60;
-        [Range(0, 1)] public float secondFlood = .4f;
+        [Range(0, 1)] public float secondFlood;
+        [Tooltip("Twists the flooding ship about its middle (no lift, no weight) so the stern rises high while the middle stays at the waterline. " +
+                 "Without it the ship sinks deep before it tips far, and the bow half is already out of sight when it breaks.")]
+        public bool tipAssist = true;
         [Tooltip("When the ship's pitch passes this (stern high in the air), it breaks at breakLine.")]
         public float breakPitch = 22;
         [Tooltip("Breaks anyway this long after the bow starts flooding.")]
@@ -48,6 +51,8 @@ namespace DeadlyJenga.CastlePrototype
         [Tooltip("At a break, the open end behind the line fills this much over brokenEndSeconds: the stern half tips up on it.")]
         [Range(0, 1)] public float brokenEndFlood = .85f;
         public float brokenEndSeconds = 20;
+        [Tooltip("At a break, the section ahead of the line fills over this long: the bow half goes down nose first.")]
+        public float bowSinkSeconds = 90;
         [Tooltip("The stern stands up for this long after the break, then fills to sternFlood over sternSinkSeconds and slowly goes under.")]
         public float sternHoldSeconds = 50;
         [Range(0, 1)] public float sternFlood = .9f;
@@ -62,7 +67,7 @@ namespace DeadlyJenga.CastlePrototype
         Material black, red, white, wood, buff, dark;
         Transform shipRoot;
         readonly List<float> underwater = new List<float>();
-        float clock, breachedAt, brokeAt;
+        float clock, breachedAt, brokeAt, tipError;
         bool breached, broken, sternFlooding, replica;
         int spawnTurn;
 
@@ -96,7 +101,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (shipRoot) { shipRoot.gameObject.SetActive(false); if (Application.isPlaying) Destroy(shipRoot.gameObject); else DestroyImmediate(shipRoot.gameObject); }
             bodies.Clear(); segments.Clear(); spawns.Clear();
-            clock = 0; breached = broken = sternFlooding = false;
+            clock = 0; tipError = 0; breached = broken = sternFlooding = false;
             if (materials.Count == 0) MakeMaterials();
 
             shipRoot = new GameObject("Liner").transform;
@@ -319,7 +324,7 @@ namespace DeadlyJenga.CastlePrototype
                 body.AddForce(-body.linearVelocity * (underwaterDrag * share), ForceMode.Acceleration);
                 body.AddTorque(-body.angularVelocity * (underwaterSpin * share), ForceMode.Acceleration);
             }
-            if (autoSinking) Direct();
+            if (autoSinking) Direct(dt);
             // Pieces that have sunk far below stop simulating.
             foreach (var body in bodies)
                 if (body && !body.isKinematic && body.worldCenterOfMass.y < waterHeight - 120) { body.isKinematic = true; body.gameObject.SetActive(false); }
@@ -327,13 +332,14 @@ namespace DeadlyJenga.CastlePrototype
 
         // The story: calm, the bow floods and the stern lifts out of the water, the ship breaks, the stern half
         // falls back, then tips up on its flooded end and stands in the air before it slowly goes under.
-        void Direct()
+        void Direct(float dt)
         {
             if (!breached && clock >= calmSeconds) BreachBow(bowFloodSeconds);
             if (!breached) return;
             if (!broken && breakLine >= 0 && breakLine < segments.Count - 1)
             {
                 var body = segments[breakLine].GetComponentInParent<Rigidbody>();
+                if (body && tipAssist) TipTowardBreak(body, dt);
                 if (body && (Pitch(body) >= breakPitch || clock - breachedAt >= breakAfterSeconds)) Break(breakLine);
             }
             if (broken && !sternFlooding && clock - brokeAt >= sternHoldSeconds)
@@ -341,6 +347,18 @@ namespace DeadlyJenga.CastlePrototype
                 sternFlooding = true;
                 segments[0].Breach(sternFlood, sternSinkSeconds);
             }
+        }
+
+        // Steers the bow-down pitch toward a little past breakPitch over bowFloodSeconds with a pure twist.
+        void TipTowardBreak(Rigidbody body, float dt)
+        {
+            float progress = Mathf.Clamp01((clock - breachedAt) / Mathf.Max(1, bowFloodSeconds));
+            float target = (breakPitch + 2) * progress * Mathf.Deg2Rad;
+            float pitch = Mathf.Asin(Mathf.Clamp(-body.transform.forward.y, -1, 1));   // bow down = positive
+            float error = target - pitch;
+            tipError += error * dt;
+            float spin = Vector3.Dot(body.angularVelocity, body.transform.right);
+            body.AddTorque(body.transform.right * (2 * error + .6f * tipError - 2 * spin), ForceMode.Acceleration);
         }
 
         public static float Pitch(Rigidbody body) => Mathf.Abs(Mathf.DeltaAngle(0, body.rotation.eulerAngles.x));
@@ -367,7 +385,7 @@ namespace DeadlyJenga.CastlePrototype
             piece.linearVelocity = velocity + Vector3.Cross(spin, piece.worldCenterOfMass - body.worldCenterOfMass);
             piece.angularVelocity = spin;
             Physics.SyncTransforms();
-            stern.Breach(brokenEndFlood, brokenEndSeconds); bow.Breach(1, 30);
+            stern.Breach(brokenEndFlood, brokenEndSeconds); bow.Breach(1, bowSinkSeconds);
             NamePieces();
             return true;
         }

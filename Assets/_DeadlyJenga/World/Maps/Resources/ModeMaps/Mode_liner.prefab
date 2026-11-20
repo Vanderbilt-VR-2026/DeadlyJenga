@@ -64,12 +64,14 @@ MonoBehaviour:
   autoSinking: 1
   calmSeconds: 25
   bowFloodSeconds: 60
-  secondFlood: 0.4
+  secondFlood: 0
+  tipAssist: 1
   breakPitch: 22
   breakAfterSeconds: 120
   breakLine: 1
   brokenEndFlood: 0.85
   brokenEndSeconds: 20
+  bowSinkSeconds: 90
   sternHoldSeconds: 50
   sternFlood: 0.9
   sternSinkSeconds: 150
