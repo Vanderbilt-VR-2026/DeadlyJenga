@@ -488,7 +488,7 @@ MonoBehaviour:
     walkableIsland: 1
     supportedModes: []
   - id: mode-vanderbilt
-    title: Vanderbilt
+    title: Campus (LoD2)
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
     mapPrefab: {fileID: 4478676743504610698, guid: e6136c5e3d7a494783dccf8d013741c0, type: 3}
     recommendedPlayers: 1
