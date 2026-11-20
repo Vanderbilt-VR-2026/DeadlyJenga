@@ -203,6 +203,8 @@ namespace DeadlyJenga.Presentation
                 displayed.statues.transform.SetPositionAndRotation(transform.TransformPoint(MayhemMarina.FamePodium),
                     transform.rotation * MayhemMarina.FameFacing);
                 if (!displayed.statues.activeSelf) displayed.statues.SetActive(true);
+                // The statues swing with the piston heads they stand on.
+                for (int i = 0; i < StepTops.Length; i++) displayed.podium.SetWorldTurn(i, MayhemMarina.FamePivot(i, Time.time));
             }
         }
 

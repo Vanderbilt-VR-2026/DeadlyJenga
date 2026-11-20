@@ -191,13 +191,16 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Box(At(0, .12f, .2f), new Vector3(4.55f, .24f, .45f), F.Stone, .06f, true, turn);
 
             // Winners' steps in front of the board. Solid, so players can hop up for a victory pose.
+            // On each one a round piston head pivots back and forth, carrying the winner's statue and
+            // three pop-up spotlights that light it (see MarinaFamePiston).
             F[] finishes = { F.Brass, F.Metal, F.Coral };
             for (int i = 0; i < FameSteps.Length; i++)
             {
                 var step = FameSteps[i];
                 var top = FamePodium + turn * step;
                 mesh.Box(top - Vector3.up * (step.y * .5f), new Vector3(1.1f, step.y, 1.0f), F.CandyCream, .09f, true, turn);
-                mesh.Box(top + Vector3.up * (FameStepCap * .5f), new Vector3(1.02f, FameStepCap, .92f), finishes[i], .02f, false, turn);
+                mesh.ArcSlab(top, Vector2.one * .49f, Vector2.one * .53f, .015f, 0, 360, F.Glow, false, 40);
+                MarinaFamePiston.Build(visual, i, top, turn, finishes[i]);
             }
             Accent("Recent match", At(0, 3.1f, -1.8f), new Color(1, .86f, .62f), 2.6f, 6.5f);
         }

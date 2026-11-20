@@ -33,7 +33,10 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Quaternion FameFacing = FameTurn;
         internal static readonly Vector3 FamePodium = new(5.9f, CinemaFloor, 3.65f);
         internal static readonly Vector3[] FameSteps = { new(0,.6f,0), new(-1.15f,.4f,0), new(1.15f,.26f,0) };
-        internal const float FameStepCap = .03f;
+        internal const float FameStepCap = .16f;
+        // Each winners' step carries a round piston head that swings 60 degrees (30 each way), slowly
+        // and smoothly. The statue on it turns by the same angle, so both use this one function.
+        internal static float FamePivot(int step, float time) => 30f * Mathf.Sin(time * .45f + step * 2.1f);
         public bool Built {get;private set;}
         public int RenderTriangles=>mesh?.RenderTriangles??0;
         public int CollisionTriangles=>mesh?.CollisionTriangles??0;
