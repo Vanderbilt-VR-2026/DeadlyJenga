@@ -206,8 +206,8 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             if(Built)return;controls=lobby;mesh=new MarinaMesh();
             visual=new GameObject("Visual · Mayhem Marina").transform;visual.SetParent(transform,false);
-            ShoreAndCourts();ShowtimePlaza();Pavilion();StyleStage();HallOfFame();GardenLounge();Lounge();UpperTerraces();Landmark();Planting();
-            BeaconWalk();MarshAndBeach();JetSkiDock();LightingFixtures();SignMounts();
+            ShoreAndCourts();ShowtimePlaza();Pavilion();StyleStage();HallOfFame();GardenLounge();ArrivalSeating();UpperTerraces();Landmark();Planting();
+            MarshAndBeach();JetSkiDock();LightingFixtures();SignMounts();
             mesh.Disk(new Vector3(0, OceanLevel - SeabedDepth - .12f, 3), 38, .12f, MarinaFinish.Sand, false, 80);
             mesh.Flush(visual,transform.TransformPoint(Vector3.up*OceanLevel).y);
             if(controls!=null)controls.SetFloor(mesh.CollisionMesh,visual);
@@ -250,14 +250,10 @@ namespace DeadlyJenga.CandyArt.Marina
             var probeObject=new GameObject("Marina reflection capture");probeObject.transform.SetParent(visual,false);probeObject.transform.localPosition=new Vector3(0,4,3);
             var probe=probeObject.AddComponent<ReflectionProbe>();probe.mode=ReflectionProbeMode.Realtime;probe.refreshMode=ReflectionProbeRefreshMode.ViaScripting;probe.timeSlicingMode=ReflectionProbeTimeSlicingMode.IndividualFaces;probe.resolution=256;probe.size=new Vector3(56,24,65);probe.boxProjection=true;probe.intensity=.8f;probe.nearClipPlane=.3f;probe.farClipPlane=250;probe.clearFlags=ReflectionProbeClearFlags.Skybox;reflection=probe;StartCoroutine(CaptureReflection());
             var amber = new Color(1, .68f, .34f);
-            var cool = new Color(.35f, .78f, 1);
             Accent("Cinema", new Vector3(0, 5.9f, 4.1f), new Color(1,.90f,.76f), 2.9f, 10);
             Accent("Garden lounge", new Vector3(-15, 3.9f, 4.75f), amber, 2.2f, 5.5f);
-            Accent("Waterfront lounge", new Vector3(13.7f, 3.8f, 5.4f), amber, 3.2f, 6.5f);
             Accent("Arrival", new Vector3(-12.5f, 2.45f, -10.25f), amber, 2, 5.5f);
-            Accent("Practice pool", new Vector3(19, 2.1f, -3.25f), cool, 2.5f, 5.5f);
             Accent("West terrace", new Vector3(-13.8f, 6.65f, 17.9f), amber, 3, 6.5f);
-            Accent("East terrace", new Vector3(16.5f, 5.1f, 17.8f), cool, 2, 5);
         }
         void Accent(string zone, Vector3 position, Color color, float intensity, float range)
         {
@@ -467,17 +463,12 @@ namespace DeadlyJenga.CandyArt.Marina
             var cream = new Color(.95f, .88f, .69f);
             Sign("JET SKIS", new Vector3(-22.7f, 2.69f, -24.115f), .047f, cream, new Vector3(0, 180, 0));
             Sign("SOLO  /  E OR GRIP", new Vector3(-22.7f, 2.46f, -24.115f), .024f, cream, new Vector3(0, 180, 0));
-            Sign("BEACON WALK", BeaconWalkGate + BeaconWalkFacing * Vector3.back * .13f, .048f, cream,
-                BeaconWalkFacing.eulerAngles);
-            Sign("LOUNGE  /  POOL  >", new Vector3(5.82f, CinemaFloor + 1.35f, -.632f), .025f, cream);
             Sign("BEACHSIDE CINEMA", CinemaSign + Vector3.back * .122f, .048f, cream);
             var styleBase = new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z);
             Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.13f, 1.939f), .055f, cream, StyleStageTurn.eulerAngles);
 
             Sign("SHOWTIME PLAZA", OnPlaza(-114, 4.7f, PlazaTop - PlazaCenter.y + .018f), .05f,
                 new Color(.23f, .16f, .10f), new Vector3(90, 66, 0));
-            Sign("WATERFRONT LOUNGE", new Vector3(13.7f, 4.42f, 2.49f), .044f, cream);
-            Sign("PRACTICE POOL", new Vector3(19, 1.76f, -3.24f), .026f, cream, new Vector3(0, 180, 0));
             Sign("MAYHEM MARINA", new Vector3(-10, 1.352f, -10.1f), .06f, new Color(.23f, .16f, .10f), new Vector3(90, 0, 0));
         }
         void Sign(string text,Vector3 position,float size,Color color,Vector3? rotation=null)
