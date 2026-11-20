@@ -79,6 +79,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static void RunScout() => Begin("scout");
         public static void RunPreview() => Begin("preview");
         public static void RunFinal() => Begin("final");
+        // The 1080p render in two halves, so each job stays well inside the coordinator's 10 minutes on a busy PC.
+        // The directed hand and the summit block repeat exactly between takes; the rest of the world within about 5 cm.
+        public static void RunFinalA() => Begin("finalA");
+        public static void RunFinalB() => Begin("finalB");
 
         static void Begin(string mode)
         {
@@ -438,7 +442,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var s = Shots[1]; var c = NewCamera(s, 50);
                 // He looks at the flying hand, so the lens goes on the hand's side of him (v03 saw the back of his head).
                 Vector3 toHand = Flat(FlyingHand(stage, plan, (s.cutIn + s.cutOut) / 2) - plan.hero);
-                Vector3 at = Pick(s.id, new[] { 25f, -25f, 40f, -40f }.Select(a => plan.hero + up * .62f + Quaternion.AngleAxis(a, up) * toHand * 1.0f), head);
+                Vector3 at = Pick(s.id, new[] { 25f, -25f, 40f, -40f }.Select(a => plan.hero + up * 1.05f + Quaternion.AngleAxis(a, up) * toHand * 1.0f), head);   // just above his eyes: his face is tipped back toward the sky (v07 read as the back of his head from below)
                 // A fixed aim point (r1: aiming at the moving head made a static shot pan at 40 deg/s).
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, head + up * .05f));
                 foreach (var key in c.keys) { key.aperture = 4f; key.focus = Vector3.Distance(at, head); }
@@ -481,11 +485,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // rise shows against the sea and sky (r1: riding with him hid the rise). Aimed from his feet, because
             // the cower layer moves the recorded head point lower than the drawn head.
             {
-                var s = Shots[4]; var c = NewCamera(s, 50);
+                var s = Shots[4]; var c = NewCamera(s, 70);
                 string feet = "actor:" + plan.heroId;
                 Vector3 mid = plan.Riding(plan.hero, (s.cutIn + s.cutOut) / 2);
-                Vector3 dir = (plan.along * .9f + plan.side * .6f).normalized;
-                Vector3 at = Pick(s.id, new[] { 3.4f, 4f, 2.8f }.Select(d => mid + dir * d + up * .3f), plan.Riding(head, s.cutIn), plan.Riding(head, s.cutOut));
+                // Well round to the side: the block tips in the plane of the pull, so a lens off that plane is never in its swing
+                // (v07: at 3.4 m on the grip-end side the rising block passed through the lens).
+                Vector3 dir = (plan.along * .45f + plan.side * .9f).normalized;
+                Vector3 at = Pick(s.id, new[] { 5.5f, 6.5f, 4.5f }.Select(d => mid + dir * d + up * .3f), plan.Riding(head, s.cutIn) + up * .5f, plan.Riding(head, s.cutOut) + up * .5f);
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), feet, new Vector3(0, .6f, 0));
                 c.keys[0].aperture = 5.6f; c.keys[0].focus = Vector3.Distance(at, mid);
                 Report(s, c, at, mid, .97f); cameras.Add(c);
@@ -540,7 +546,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         static IEnumerator<int> Shoot(string mode)
         {
-            bool final = mode == "final";
+            bool final = mode.StartsWith("final");
             var stage = StudioRun.Stage;
             Note($"# Hand reveal 2, {mode} run, version {Version}\n");
             var plan = Direct(stage);
@@ -550,6 +556,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             var set = stage.set;
             var cameras = BuildCameras(stage, plan);
+            if (mode == "finalA") cameras = cameras.Take(3).ToList();
+            if (mode == "finalB") cameras = cameras.Skip(3).ToList();
             if (final) foreach (var c in cameras) c.motionBlur = .3f;
             set.cameras.Clear(); set.cameras.AddRange(cameras);
             set.render = final
