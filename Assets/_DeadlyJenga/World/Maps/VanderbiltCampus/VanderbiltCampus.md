@@ -67,3 +67,56 @@ Every key is optional.
    Report `VanderbiltCampus-play.txt` / `VanderbiltCampus-play-gray.txt`.
 
 If `Presentation/.../Campus Visual.prefab` exists, the builder nests it as the child "Visual"; without it the map is gray and still plays.
+
+## Stage 5: gameplay, streaming, looks, checks
+
+### Play area and towers
+- The whole campus is visible and walkable. Towers, spawns, team areas and objectives sit inside a **play area**
+  (default: 150 m radius around Alumni Lawn). `PlayableBounds`, `Center`, `Radius` and `TopHeight` describe the
+  play area, so bots (their NavMesh is baked over `PlayableBounds`) and disasters stay inside it.
+  `IMapFootprint` still describes the whole campus.
+- Towers use the existing castle blocks and `CastleLayout` (as `CastleGenerator` does): `kind: tower` is a single
+  Jenga tower (`size` = courses), `kind: castle` is a small block castle (`size` = keep courses). Each stands on a
+  flat static plinth. They are built at runtime only (`Rebuild()`); the prefab stores only the list.
+- Layout token: `vanderbilt-campus:<layoutVersion>:towers<count>-<hash>`. Peers with different towers refuse the layout.
+
+### gameplay.json (`Tools/VanderbiltCampus/config/gameplay.json`, read by the builder)
+Campus meters on the ground plane (x east, y north = Unity x and z); heights are sampled from `COL_Terrain`.
+Every key is optional; without the file the builder generates a default (castle + two towers on the flattest open
+8 m lawn cells inside the play area, spawns from unity_map.json plus a ring, two team areas west/east).
+```json
+{
+  "play_area": {"center": [x, y], "radius": 150},
+  "towers": [{"id": "alumni_castle", "kind": "castle", "size": 12, "x": 0.3, "y": -1.3, "yaw": 58.5}],
+  "spawns": [{"name": "AlumniLawn_E", "x": 30.6, "y": -8.6}],
+  "team_areas": [{"name": "Northwest", "flag": [x, y], "spawns": [[x, y], ...]}],
+  "objectives": [{"kind": "hill", "x": 12, "y": -24}]
+}
+```
+Points outside the play area, without ground, on a tower plinth or blocked are skipped and listed as
+`NOTE GAMEPLAY ...` in the build report. A blocked tower is nudged up to 12 m to open ground first.
+Modes using it: `hill` (King of the Hill: `objectives` hill) and `ctf` (Capture the Flag: the first two `team_areas`).
+
+### Streaming (`CampusTileStreamer`, on the map root, Play Mode only)
+Tiles farther than `streamDistance` (300 m) from every character and the camera are forced to their far LOD level
+(HLOD, or the LoD1 meshes incl. the backdrop ring) and their `Colliders` child is switched off. Tiles touching
+the play area (+30 m) always stay loaded. Local only; never changes the layout token.
+
+### Lighting
+One realtime sun (checked in Play Mode). Baked lighting is not used. `VanderbiltCampusLighting.BakeProbeBatch`
+is an optional CPU timing probe (off by default, not in the all-checks job; it deletes its scratch scene).
+
+### Looks
+`CampusPalette` (Presentation) already has the switch: its `look` field (Candy/Plain) and context menu.
+`VanderbiltCampusChecks.LooksBatch` renders both palettes from every hero spot.
+
+### Stage 5 checks (all write Logs/Validation, all exit with 0/1)
+| Batch entry | What | Report |
+|---|---|---|
+| `VanderbiltCampusChecks.RunBatch` | structure, gameplay, viewpoint budgets, overhead renders | `VanderbiltCampusChecks.txt` |
+| `VanderbiltCampusChecks.TileBudgetBatch` | busiest spot of every tile, lodBias 1 | `VanderbiltCampusTileBudget.txt` |
+| `VanderbiltCampusChecks.RoutesBatch` | spawn-to-center connectivity, route capsule/step sweep | `VanderbiltCampusRoutes.txt` |
+| `VanderbiltCampusChecks.LooksBatch` | candy/plain from every hero spot | `VanderbiltCampusLooks.txt`, `VanderbiltCampus/looks/*.png` |
+| `VanderbiltCampusStage5PlayChecks.BotSmokeBatch` | towers, sun, streaming, 8 bots for 60 s | `VanderbiltCampus-stage5-play.txt` |
+| `VanderbiltCampusStage5PlayChecks.ModesBatch` | King of the Hill + Capture the Flag, 20 s each | `VanderbiltCampus-stage5-play.txt` |
+| `VanderbiltCampusStage5Checks.RunAllBatch` | all of the above in one job | `VanderbiltCampus-stage5.txt` |
