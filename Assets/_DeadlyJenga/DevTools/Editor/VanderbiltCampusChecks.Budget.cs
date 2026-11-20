@@ -51,17 +51,19 @@ namespace DeadlyJenga.DevTools.Editor
         static void Budget(Transform root, VanderbiltCampusMap map, VanderbiltCampusData data)
         {
             var camera = ViewCamera();
-            float editorBias = QualitySettings.lodBias;
+            float editorBias = QualitySettings.lodBias;   // read only, never written
             try
             {
                 foreach (var view in Views(root, map, data))
                 {
                     Aim(camera, view.pos, view.look);
                     var count = Count(root, camera, 1);
-                    bool pass = count.triangles <= TriangleBudget && count.drawsPerSubmesh <= DrawBudget;
-                    Check(pass, $"Budget '{view.name}' at {view.pos:F0} (lodBias 1): tris={count.triangles} draws(A per submesh)={count.drawsPerSubmesh} " +
-                        $"(limits {TriangleBudget}/{DrawBudget}); draws(B one shared material)={count.drawsPerRenderer} " +
-                        (count.drawsPerRenderer <= DrawBudget ? "within" : "over") + " budget");
+                    // Main verdict = play-mode truth: Presentation swaps every mat_* for ONE material, so a renderer is one draw (B).
+                    Check(count.triangles <= TriangleBudget && count.drawsPerRenderer <= DrawBudget,
+                        $"Budget '{view.name}' at {view.pos:F0} (lodBias 1, play mode with one shared palette material): " +
+                        $"tris={count.triangles} (limit {TriangleBudget}), draws B={count.drawsPerRenderer} (limit {DrawBudget}, one per renderer)");
+                    report.AppendLine($"  info, gray-box mode (Presentation removed, one draw per submesh): draws A={count.drawsPerSubmesh} (same limit {DrawBudget}: " +
+                        (count.drawsPerSubmesh <= DrawBudget ? "within" : "over") + ")");
                     report.AppendLine("  by role (tris / draws A): " + string.Join(", ",
                         count.roles.Where(r => r.Value[1] > 0).Select(r => $"{r.Key} {r.Value[0]} / {r.Value[1]}")));
                     if (!Mathf.Approximately(editorBias, 1))
@@ -88,6 +90,17 @@ namespace DeadlyJenga.DevTools.Editor
             return "other";
         }
 
+        // The LOD level a camera would show (-1 = culled), from our own math: no project setting is read or changed.
+        static int ChooseLod(LODGroup group, LOD[] lods, Camera camera, float lodBias)
+        {
+            var center = group.transform.TransformPoint(group.localReferencePoint);
+            float scale = Mathf.Max(Mathf.Abs(group.transform.lossyScale.x), Mathf.Abs(group.transform.lossyScale.y), Mathf.Abs(group.transform.lossyScale.z));
+            float distance = Vector3.Distance(camera.transform.position, center);
+            float screen = VanderbiltCampusBuilder.ScreenHeight(group.size * scale, distance, camera.fieldOfView) * lodBias;
+            for (int i = 0; i < lods.Length; i++) if (screen >= lods[i].screenRelativeTransitionHeight) return i;
+            return -1;
+        }
+
         // Counts what a camera would draw: frustum test plus the LOD level each LODGroup would show.
         static ViewCount Count(Transform root, Camera camera, float lodBias)
         {
@@ -96,12 +109,7 @@ namespace DeadlyJenga.DevTools.Editor
             foreach (var group in root.GetComponentsInChildren<LODGroup>())
             {
                 var lods = group.GetLODs();
-                var center = group.transform.TransformPoint(group.localReferencePoint);
-                float scale = Mathf.Max(Mathf.Abs(group.transform.lossyScale.x), Mathf.Abs(group.transform.lossyScale.y), Mathf.Abs(group.transform.lossyScale.z));
-                float distance = Vector3.Distance(camera.transform.position, center);
-                float screen = VanderbiltCampusBuilder.ScreenHeight(group.size * scale, distance, camera.fieldOfView) * lodBias;
-                int chosen = -1;
-                for (int i = 0; i < lods.Length; i++) if (screen >= lods[i].screenRelativeTransitionHeight) { chosen = i; break; }
+                int chosen = ChooseLod(group, lods, camera, lodBias);
                 for (int i = 0; i < lods.Length; i++)
                     if (i != chosen) foreach (var r in lods[i].renderers) if (r) hidden.Add(r);
                 if (chosen >= 0) foreach (var r in lods[chosen].renderers) if (r) hidden.Remove(r);

@@ -12,6 +12,7 @@ namespace DeadlyJenga.DevTools.Editor
     // Turns one imported tile model into map content. Object names from Blender decide roles:
     //   COL_Terrain, COL_Trees      -> static non-convex MeshCollider on Layers.Surface (renderer removed)
     //   COL_B_<id>_<n>              -> static convex MeshCollider, grouped under COL_B_<id> with CampusClimbSurface
+    //   COLM_B_<id>                 -> one static non-convex MeshCollider for the whole building, same COL_B_<id> group
     //   Terrain, B_<id>_LOD0, Trees -> tile LOD0 (detail)
     //   Terrain_LOD1, B_<id>_LOD1, Trees_LOD1 -> tile LOD1 (mid distance)
     //   Ring                        -> tile LOD0 and LOD1 (and LOD2 when there is no HLOD)
@@ -38,6 +39,7 @@ namespace DeadlyJenga.DevTools.Editor
             size / (2 * Mathf.Max(.01f, distance) * Mathf.Tan(fovDegrees * .5f * Mathf.Deg2Rad));
 
         static readonly Regex BuildingCollider = new Regex(@"^COL_B_(.+)_(\d+)$");
+        static readonly Regex BuildingMeshCollider = new Regex(@"^COLM_B_(.+)$");
         static readonly Regex BuildingLod = new Regex(@"^B_(.+)_LOD([01])$");
 
         // Blender may add ".001" to duplicate names; ignore it when reading roles.
@@ -76,25 +78,22 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 if (t == tile.transform || t == colliders || t == markers) continue;
                 string name = CleanName(t.name);
-                if (name.StartsWith("B_") || name.StartsWith("COL_B_")) hasBuildings = true;
-                if (name.StartsWith("COL_"))
+                if (name.StartsWith("B_") || name.StartsWith("COL_B_") || name.StartsWith("COLM_B_")) hasBuildings = true;
+                var whole = BuildingMeshCollider.Match(name);
+                if (whole.Success)
+                {
+                    // One non-convex collider for a whole building (the newer export).
+                    if (!MakeCollider(t, false, stats)) continue;
+                    stats.buildingMeshColliders++;
+                    t.SetParent(BuildingHolder(colliders, buildingColliders, whole.Groups[1].Value, stats), true);
+                }
+                else if (name.StartsWith("COL_"))
                 {
                     var match = BuildingCollider.Match(name);
                     bool convex = match.Success;
                     if (!MakeCollider(t, convex, stats)) continue;
                     if (name == "COL_Terrain") terrainCollider = true;
-                    if (convex)
-                    {
-                        string id = match.Groups[1].Value;
-                        if (!buildingColliders.TryGetValue(id, out var holder))
-                        {
-                            holder = Child(colliders, "COL_B_" + id);
-                            holder.gameObject.AddComponent<CampusClimbSurface>();
-                            holder.gameObject.layer = Layers.Surface; holder.gameObject.isStatic = true;
-                            buildingColliders[id] = holder; stats.climbSurfaces++;
-                        }
-                        t.SetParent(holder, true);
-                    }
+                    if (convex) t.SetParent(BuildingHolder(colliders, buildingColliders, match.Groups[1].Value, stats), true);
                     else t.SetParent(colliders, true);
                 }
                 else if (name.StartsWith("Spawn_") || name.StartsWith("Route_") || name.StartsWith("Climb_"))
@@ -133,6 +132,17 @@ namespace DeadlyJenga.DevTools.Editor
                 if (hasBuildings) stats.Problem(tile.name + " has campus buildings but no COL_Terrain collider.");
                 else stats.ringTilesWithoutCollider++;
             }
+        }
+
+        // The Colliders/COL_B_<id> object that holds every collider of one building and makes it climbable.
+        static Transform BuildingHolder(Transform colliders, Dictionary<string, Transform> holders, string id, BuildStats stats)
+        {
+            if (holders.TryGetValue(id, out var holder)) return holder;
+            holder = Child(colliders, "COL_B_" + id);
+            holder.gameObject.AddComponent<CampusClimbSurface>();
+            holder.gameObject.layer = Layers.Surface; holder.gameObject.isStatic = true;
+            holders[id] = holder; stats.climbSurfaces++;
+            return holder;
         }
 
         static Transform Child(Transform parent, string name)

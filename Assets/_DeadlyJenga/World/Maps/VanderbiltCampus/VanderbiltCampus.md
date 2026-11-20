@@ -18,6 +18,7 @@ Prefab: `World/Maps/Resources/ModeMaps/Mode_vanderbilt.prefab` (GUID kept; conte
 | `COL_Terrain` | static non-convex MeshCollider (Surface layer), renderer removed. Backdrop ring tiles more than 20 m from campus have none (a note, not a problem) |
 | `B_<id>_LOD0`, `B_<id>_LOD1` | building visual, tile LOD0 / LOD1 |
 | `COL_B_<id>_<n>` | static convex MeshCollider under `Colliders/COL_B_<id>`, which carries `CampusClimbSurface` |
+| `COLM_B_<id>` | one static non-convex MeshCollider for the whole building, under the same `Colliders/COL_B_<id>` (climbable); a tile may use this or the convex parts |
 | `Trees` / `Trees_LOD1` | merged tree mesh per tile, tile LOD0 / LOD1 |
 | `HLOD` (optional, from the exporter) | one merged far mesh (one submesh, material `mat_mixed`), tile LOD2 |
 | `COL_Trees` | optional static non-convex MeshCollider (trunks) |

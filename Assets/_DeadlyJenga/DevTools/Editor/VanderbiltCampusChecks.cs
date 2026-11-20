@@ -62,6 +62,7 @@ namespace DeadlyJenga.DevTools.Editor
                     Physics.SyncTransforms();
                     CheckMeshes(root.transform);
                     CheckColliders(root.transform);
+                    CheckBuildingColliders(root.transform);
                     CheckTiles(root.transform);
                     Check(map.SaveLayout() == "vanderbilt-campus:" + map.layoutVersion, "Layout token is " + map.SaveLayout());
                     Check(map.spawns.Length > 0 && map.spawns.All(s => s), "Map has " + map.spawns.Length + " spawn points");
@@ -111,6 +112,36 @@ namespace DeadlyJenga.DevTools.Editor
             Check(noUv.Count == 0, "Every world mesh has UV0" + List(noUv));
             Check(noColor.Count == 0, "Every world mesh has vertex colors (material index in R)" + List(noColor));
             Check(badMaterial.Count == 0, "Every world material is named mat_<id>" + List(badMaterial));
+        }
+
+        // Every building (B_<id> visual) needs a collider group COL_B_<id> with at least one collider, and a
+        // whole-building non-convex collider (COLM_B_<id>) needs a real mesh (at least 4 triangles).
+        static void CheckBuildingColliders(Transform root)
+        {
+            var missing = new List<string>(); var thin = new List<string>(); int convexParts = 0, wholeMeshes = 0;
+            foreach (Transform tile in root)
+            {
+                if (!tile.name.StartsWith("T_")) continue;
+                var ids = tile.GetComponentsInChildren<Renderer>(true)
+                    .Select(r => Regex.Match(Regex.Replace(r.name, @"\.\d+$", ""), @"^B_(.+)_LOD[01]$"))
+                    .Where(m => m.Success).Select(m => m.Groups[1].Value).Distinct();
+                foreach (var id in ids)
+                {
+                    var holder = tile.Find("Colliders/COL_B_" + id);
+                    if (!holder || holder.GetComponentsInChildren<Collider>(true).Length == 0) missing.Add(tile.name + "/B_" + id);
+                }
+                foreach (var shape in tile.GetComponentsInChildren<MeshCollider>(true))
+                {
+                    string n = Regex.Replace(shape.name, @"\.\d+$", "");
+                    if (n.StartsWith("COL_B_")) convexParts++;
+                    if (!n.StartsWith("COLM_B_")) continue;
+                    wholeMeshes++;
+                    if (shape.convex || !shape.sharedMesh || VanderbiltCampusBuilder.Triangles(shape.sharedMesh) < 4) thin.Add(tile.name + "/" + n);
+                }
+            }
+            report.AppendLine($"NOTE Building colliders: {convexParts} convex parts (COL_B_*_n), {wholeMeshes} whole-building non-convex meshes (COLM_B_*)");
+            Check(missing.Count == 0, "Every building has at least one collider" + List(missing));
+            Check(thin.Count == 0, "Every COLM_B_* collider is non-convex with at least 4 triangles" + List(thin));
         }
 
         static void CheckColliders(Transform root)

@@ -28,7 +28,7 @@ namespace DeadlyJenga.DevTools.Editor
             var materials = renderers.ToDictionary(r => r, r => r.sharedMaterials);
             var otherLights = Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Where(l => l.enabled).ToList();
             var ambient = (RenderSettings.ambientMode, RenderSettings.ambientLight, RenderSettings.fog, RenderSettings.sun);
-            float bias = QualitySettings.lodBias;
+            var groups = root.GetComponentsInChildren<LODGroup>(true);
             var sun = new GameObject("Check sunlight"); SceneManager.MoveGameObjectToScene(sun, scene);
             var palette = PaletteMaterial();
             try
@@ -44,17 +44,17 @@ namespace DeadlyJenga.DevTools.Editor
                 if (palette)
                     foreach (var r in renderers)
                         if (!InVisual(r.transform, root)) r.sharedMaterials = Enumerable.Repeat(palette, r.sharedMaterials.Length).ToArray();
-                ViewRenders(root, map, data);
-                Overhead(root, map, "VanderbiltCampus-overhead.png", palette ? "palette colors" : "gray (CampusPalette.mat not found)");
+                ViewRenders(root, map, data, groups);
+                Overhead(root, map, groups, "VanderbiltCampus-overhead.png", palette ? "palette colors" : "gray (CampusPalette.mat not found)");
                 foreach (var r in renderers) r.sharedMaterials = materials[r];
-                Overhead(root, map, "VanderbiltCampus-overhead-gray.png", "gray World materials");
+                Overhead(root, map, groups, "VanderbiltCampus-overhead-gray.png", "gray World materials");
             }
             finally
             {
                 foreach (var r in renderers) if (r) { r.gameObject.layer = layers[r]; r.sharedMaterials = materials[r]; }
                 foreach (var l in otherLights) if (l) l.enabled = true;
                 (RenderSettings.ambientMode, RenderSettings.ambientLight, RenderSettings.fog, RenderSettings.sun) = ambient;
-                QualitySettings.lodBias = bias;
+                foreach (var g in groups) if (g) g.ForceLOD(-1);   // back to normal LOD selection
                 Object.DestroyImmediate(sun);
                 if (palette) Object.DestroyImmediate(palette);
             }
@@ -85,15 +85,21 @@ namespace DeadlyJenga.DevTools.Editor
             return camera;
         }
 
-        static void ViewRenders(Transform root, VanderbiltCampusMap map, VanderbiltCampusData data)
+        static void ViewRenders(Transform root, VanderbiltCampusMap map, VanderbiltCampusData data, LODGroup[] groups)
         {
             var camera = RenderCamera(ViewCamera());
             try
             {
-                QualitySettings.lodBias = 1;   // render what the lodBias 1 budget counted
                 foreach (var view in Views(root, map, data))
                 {
                     Aim(camera, view.pos, view.look);
+                    // Show exactly the levels the lodBias 1 budget counted (forced per group; QualitySettings untouched).
+                    foreach (var g in groups)
+                    {
+                        var lods = g.GetLODs();
+                        int level = ChooseLod(g, lods, camera, 1);
+                        g.ForceLOD(level >= 0 ? level : lods.Length);   // an index past the last level culls the group
+                    }
                     Capture(camera, 1600, 1600, "VanderbiltCampus-view-" + Safe(view.name) + ".png");
                 }
             }
@@ -102,7 +108,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         // Straight-down orthographic render covering localArea exactly. The camera looks along -Y with its
         // "up" set to +Z, so its right is +X: image top = north (+Z), image left = west (-X).
-        static void Overhead(Transform root, VanderbiltCampusMap map, string fileName, string look)
+        static void Overhead(Transform root, VanderbiltCampusMap map, LODGroup[] groups, string fileName, string look)
         {
             var area = map.localArea;
             var min = map.transform.TransformPoint(area.min); var max = map.transform.TransformPoint(area.max);
@@ -115,7 +121,7 @@ namespace DeadlyJenga.DevTools.Editor
             var camera = RenderCamera(new GameObject("Overhead camera").AddComponent<Camera>());
             try
             {
-                QualitySettings.lodBias = 1000;   // always the most detailed level from above
+                foreach (var g in groups) g.ForceLOD(0);   // always the most detailed level from above
                 camera.enabled = false; camera.orthographic = true;
                 camera.orthographicSize = sizeZ * .5f; camera.aspect = sizeX / sizeZ;
                 camera.transform.position = new Vector3((min.x + max.x) * .5f, top + 20, (min.z + max.z) * .5f);
