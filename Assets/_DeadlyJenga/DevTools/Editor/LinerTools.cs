@@ -17,8 +17,9 @@ namespace DeadlyJenga.DevTools.Editor
     // Play Mode menu: Tools > Deadly Jenga > Maps > Sinking Liner > Flood Bow / Break at line 1-3 / Auto Sinking.
     // Batch check: -executeMethod DeadlyJenga.DevTools.Editor.LinerTools.RunChecks
     //   1. scripted physics in an empty scene: floats level at its draft; breaking at each line makes separate
-    //      floating pieces; a flooded bow tips the ship until it breaks and the bow sinks. Logs/Validation/Liner.txt
-    //   2. pictures in Game.unity (Play Mode, no bots) through the automatic sinking. Logs/Captures/Liner/
+    //      floating pieces; the sinking story (bow floods, stern lifts, break, stern stands up, slowly goes under).
+    //      Logs/Validation/Liner.txt
+    //   2. pictures in Game.unity (Play Mode, no bots, 4x speed) through the sinking story. Logs/Captures/Liner/
     [InitializeOnLoad]
     public static class LinerTools
     {
@@ -111,26 +112,53 @@ namespace DeadlyJenga.DevTools.Editor
                     if (Keel(map, b) > -map.draft * .4f || Keel(map, b) < -map.hullHeight) { report.AppendLine("    FAIL piece is not floating at a sensible depth"); problems++; }
                 }
 
-                // c) The sinking story: flood the bow, the ship tips, breaks in the middle, the bow goes down.
+                // c) The sinking story, run by the map itself.
                 map.Rebuild();
-                Run(5);
-                map.BreachBow(30);
-                float t0 = 0, maxPitch = 0; bool brokeAt = false;
-                for (float t = 0; t < 120; t += dt)
+                map.calmSeconds = 5; map.autoSinking = true;
+                float maxPitch = 0, sternRise = 0, standPitch = 0, standHigh = 0, sternUnder = -1, bowUnder = -1;
+                var timeline = new StringBuilder();
+                float nextNote = 0;
+                for (float t = 0; t < 480; t += dt)
                 {
                     map.Step(dt); Physics.Simulate(dt);
-                    var b = map.Segments[map.breakLine].GetComponentInParent<Rigidbody>();
-                    float pitch = Mathf.Abs(Signed(b.rotation.eulerAngles.x));
-                    maxPitch = Mathf.Max(maxPitch, pitch);
-                    if (!brokeAt && pitch >= map.breakPitch) { brokeAt = map.Break(map.breakLine); t0 = t; }
-                    if (brokeAt && t - t0 > 40) break;
+                    var sternBody = map.Segments[0].GetComponentInParent<Rigidbody>(true);
+                    var bowBody = map.Segments[map.Segments.Count - 1].GetComponentInParent<Rigidbody>(true);
+                    bool sternAlive = sternBody.gameObject.activeSelf, bowAlive = bowBody.gameObject.activeSelf;
+                    if (t >= nextNote)
+                    {
+                        nextNote += 20;
+                        timeline.AppendLine($"    t {t,3:0} s: " + string.Join("; ", map.Blocks.Where(b => b && b.gameObject.activeSelf).Select(b => $"{b.name} pitch {LinerMap.Pitch(b):0} deg, top {DeckHigh(map, b):0} m, bottom {DeckLow(map, b):0} m")));
+                    }
+                    if (!map.Broken)
+                    {
+                        maxPitch = Mathf.Max(maxPitch, LinerMap.Pitch(sternBody));
+                        sternRise = Mathf.Max(sternRise, DeckHigh(map, sternBody));
+                        continue;
+                    }
+                    float since = map.Clock - map.BrokeAt;
+                    if (sternAlive)
+                    {
+                        standPitch = Mathf.Max(standPitch, LinerMap.Pitch(sternBody));
+                        if (LinerMap.Pitch(sternBody) > 30) standHigh = Mathf.Max(standHigh, DeckHigh(map, sternBody));
+                    }
+                    if (sternUnder < 0 && (!sternAlive || DeckHigh(map, sternBody) < 0)) sternUnder = since;
+                    if (bowUnder < 0 && (!bowAlive || DeckHigh(map, bowBody) < 0)) bowUnder = since;
+                    if (sternUnder >= 0 && bowUnder >= 0) break;
                 }
-                report.AppendLine($"  sinking: bow flooded, max pitch {maxPitch:0.0} deg, {(brokeAt ? $"broke at line {map.breakLine + 1} after {t0:0} s" : "never broke")}; {map.PieceCount} pieces");
-                if (!brokeAt) { report.AppendLine("  FAIL the flooded ship never tipped enough to break"); problems++; }
-                foreach (var b in map.Blocks.Where(b => b))
-                    report.AppendLine($"    {b.name}: {(b.gameObject.activeSelf ? Pose(b) + $", deck end {DeckLow(map, b):0.0} m" : "sunk out of sight")}");
-                var bowPiece = map.Segments[map.Segments.Count - 1].GetComponentInParent<Rigidbody>(true);
-                if (bowPiece && bowPiece.gameObject.activeSelf && DeckLow(map, bowPiece) > 0) { report.AppendLine("  FAIL bow piece is still above water"); problems++; }
+                report.AppendLine($"  sinking story (bow floods at 5 s):");
+                report.Append(timeline);
+                report.AppendLine(map.Broken
+                    ? $"    before the break: max pitch {maxPitch:0.0} deg, stern deck up to {sternRise:0.0} m above the water; broke at line {map.breakLine + 1} at {map.BrokeAt:0} s ({(maxPitch >= map.breakPitch - .5f ? "pitch reached" : "time limit")})"
+                    : $"    never broke (max pitch {maxPitch:0.0} deg)");
+                report.AppendLine($"    after the break: stern half tipped up to {standPitch:0.0} deg, its top {standHigh:0.0} m above the water while standing; " +
+                                  $"bow half fully under after {(bowUnder < 0 ? "never" : bowUnder.ToString("0") + " s")}, stern half after {(sternUnder < 0 ? "never" : sternUnder.ToString("0") + " s")}");
+                if (!map.Broken) { report.AppendLine("  FAIL the ship never broke"); problems++; }
+                if (sternRise < 20) { report.AppendLine("  FAIL the stern should lift at least 20 m out of the water before the break"); problems++; }
+                if (standPitch < 35) { report.AppendLine("  FAIL the stern half should tip up past 35 deg after the break"); problems++; }
+                if (sternUnder < 0) { report.AppendLine("  FAIL the stern half never went under"); problems++; }
+                else if (sternUnder < 60) { report.AppendLine("  FAIL the stern half went under too fast (under 60 s)"); problems++; }
+                var names = map.Blocks.Where(b => b).Select(b => b.name).ToList();
+                if (names.Distinct().Count() != names.Count) { report.AppendLine("  FAIL two pieces share a name: " + string.Join(", ", names)); problems++; }
             }
             catch (Exception e) { report.AppendLine("  ERROR " + e); problems++; Debug.LogException(e); }
             finally { Physics.simulationMode = mode; Object.DestroyImmediate(go); }
@@ -142,6 +170,16 @@ namespace DeadlyJenga.DevTools.Editor
         // Lowest float point of a piece, relative to the water.
         static float Keel(LinerMap map, Rigidbody body) =>
             body.GetComponentsInChildren<LinerSegment>().SelectMany(s => s.floatPoints.Select(p => s.transform.TransformPoint(p).y)).DefaultIfEmpty(0).Average() - map.waterHeight;
+
+        // Highest deck corner of a piece, relative to the water.
+        static float DeckHigh(LinerMap map, Rigidbody body)
+        {
+            float deck = map.hullHeight - map.draft, high = float.MinValue;
+            foreach (var s in body.GetComponentsInChildren<LinerSegment>())
+                foreach (float z in new[] { s.zFrom, s.zTo })
+                    high = Mathf.Max(high, s.transform.TransformPoint(new Vector3(0, deck, z)).y);
+            return high == float.MinValue ? 0 : high - map.waterHeight;
+        }
 
         // Lowest deck corner of a piece, relative to the water (negative = that end is under).
         static float DeckLow(LinerMap map, Rigidbody body)
@@ -156,7 +194,7 @@ namespace DeadlyJenga.DevTools.Editor
         // ---------- 2. Pictures ----------
 
         const string Key = "DeadlyJenga.LinerCapture";
-        [Serializable] sealed class Job { public int step, problems; public double stepAt; public bool prepared; public List<string> files = new List<string>(); }
+        [Serializable] sealed class Job { public int step, problems; public double stepAt; public float clockAt; public bool prepared; public List<string> files = new List<string>(); }
         static Job job;
 
         static LinerTools() { EditorApplication.playModeStateChanged += OnState; }
@@ -204,12 +242,13 @@ namespace DeadlyJenga.DevTools.Editor
             EditorApplication.Exit(code);
         }
 
-        // Seconds after the previous step, then what to do. The bow floods fast so the whole story fits in a minute.
+        // Game seconds (map clock) after the previous step, then what to do. The game runs at 4x speed meanwhile.
         static readonly (float wait, string action)[] Script =
         {
             (6, "shoot calm"),
-            (0, "flood"), (14, "shoot tipping"),
-            (0, "wait-break"), (2.5f, "shoot breaking"), (12, "shoot broken"), (18, "shoot sinking"),
+            (0, "flood"), (55, "shoot tipping"),
+            (0, "wait-break"), (3, "shoot breaking"), (30, "shoot rising"), (45, "shoot standing"),
+            (70, "shoot going-under"), (70, "shoot almost-gone"),
             (0, "done"),
         };
 
@@ -223,9 +262,11 @@ namespace DeadlyJenga.DevTools.Editor
                 if (session == null || Services.World == null) { if (now - job.stepAt > 60) { Debug.LogError("Liner capture: game did not load"); EditorApplication.ExitPlaymode(); } return; }
                 if (!(Services.World is LinerMap)) { MatchSetup.MapId = MapId; MatchSetup.ApplyMap(); }
                 if (!(Services.World is LinerMap liner)) { if (now - job.stepAt > 60) { Debug.LogError("Liner capture: map did not load"); EditorApplication.ExitPlaymode(); } return; }
-                liner.autoSinking = false;
+                // The map runs the story, but only once the capture floods the bow.
+                liner.autoSinking = true; liner.calmSeconds = 1e6f;
+                Time.timeScale = 4;
                 Prepare(session);
-                job.prepared = true; job.stepAt = now; Save(); return;
+                job.prepared = true; job.stepAt = now; job.clockAt = liner.Clock; Save(); return;
             }
             Prepare(session);
             var map = Services.World as LinerMap;
@@ -234,19 +275,17 @@ namespace DeadlyJenga.DevTools.Editor
             var (wait, action) = Script[job.step];
             if (action == "wait-break")
             {
-                // Hold here until the tipping ship breaks (or give up after 60 s and break it).
-                var b = map.Segments[map.breakLine].GetComponentInParent<Rigidbody>();
-                float pitch = Mathf.Abs(Mathf.DeltaAngle(0, b.rotation.eulerAngles.x));
-                if (pitch < map.breakPitch && now - job.stepAt < 60) return;
-                map.Break(map.breakLine);
-                job.stepAt = now; job.step++; Save(); return;
+                // Hold here until the map breaks the ship (it breaks by itself at its time limit).
+                if (!map.Broken && map.Clock - job.clockAt < map.breakAfterSeconds + 30) return;
+                if (!map.Broken) map.Break(map.breakLine);
+                job.clockAt = map.Clock; job.step++; Save(); return;
             }
-            if (now - job.stepAt < wait) return;
-            job.stepAt = now; job.step++;
+            if (map.Clock - job.clockAt < wait) return;
+            job.clockAt = map.Clock; job.step++;
             try
             {
-                if (action == "done") { Save(); EditorApplication.ExitPlaymode(); return; }
-                if (action == "flood") map.BreachBow(12);
+                if (action == "done") { Time.timeScale = 1; Save(); EditorApplication.ExitPlaymode(); return; }
+                if (action == "flood") map.BreachBow(map.bowFloodSeconds);
                 else if (action.StartsWith("shoot ", StringComparison.Ordinal)) Shoot(map, session, action.Substring(6));
             }
             catch (Exception e) { Debug.LogException(e); }

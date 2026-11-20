@@ -10,6 +10,8 @@ namespace DeadlyJenga.CastlePrototype
     // The hull is built from sections welded into one Rigidbody, so it moves as one ship. It can break at
     // each split line: the piece holding that line becomes two separate physics bodies, each still floating,
     // tilting and sinking on its own. Sections take on water (flood), lose buoyancy, and drag their piece down.
+    // The automatic story follows the Titanic: the bow floods and the stern lifts high, the hull breaks in the
+    // middle, the stern half falls back, tips up on its flooded end, stands in the air and slowly goes under.
     // Ship space: origin at the waterline in the middle, x = starboard, y = up, z = toward the bow.
     public sealed class LinerMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IRebuildable
     {
@@ -24,14 +26,32 @@ namespace DeadlyJenga.CastlePrototype
         public float waterHeight;
         [Tooltip("How strongly the water slows the hull (1 = about critically damped bobbing).")]
         public float waterDamping = .6f;
+        [Tooltip("Buoyancy counts the hull from the keel up to this height above the waterline (deck plus deckhouse).")]
+        public float buoyancyTop = 16;
+        [Tooltip("Extra weight of the water inside a flooded section, as a share of the section's own weight.")]
+        public float floodWeight = .3f;
+        [Tooltip("How strongly the water slows pieces that are deep under (makes sinking slow).")]
+        public float underwaterDrag = 4, underwaterSpin = 1;
 
-        [Header("Automatic sinking (test sequence)")]
+        [Header("Sinking story (automatic)")]
         public bool autoSinking = true;
-        public float calmSeconds = 25, bowFloodSeconds = 70;
-        [Tooltip("When the ship's pitch passes this, it breaks at the split line below.")]
-        public float breakPitch = 11;
-        [Tooltip("Which split line breaks first (0 = nearest the stern).")]
+        public float calmSeconds = 25;
+        [Tooltip("The bow section fills over this long; the section behind it fills partly (secondFlood).")]
+        public float bowFloodSeconds = 60;
+        [Range(0, 1)] public float secondFlood = .4f;
+        [Tooltip("When the ship's pitch passes this (stern high in the air), it breaks at breakLine.")]
+        public float breakPitch = 22;
+        [Tooltip("Breaks anyway this long after the bow starts flooding.")]
+        public float breakAfterSeconds = 120;
+        [Tooltip("Which split line breaks (0 = nearest the stern).")]
         public int breakLine = 1;
+        [Tooltip("At a break, the open end behind the line fills this much over brokenEndSeconds: the stern half tips up on it.")]
+        [Range(0, 1)] public float brokenEndFlood = .85f;
+        public float brokenEndSeconds = 20;
+        [Tooltip("The stern stands up for this long after the break, then fills to sternFlood over sternSinkSeconds and slowly goes under.")]
+        public float sternHoldSeconds = 50;
+        [Range(0, 1)] public float sternFlood = .9f;
+        public float sternSinkSeconds = 150;
         public bool generateOnStart = true;
 
         readonly List<Rigidbody> bodies = new List<Rigidbody>();
@@ -41,14 +61,18 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<Material> materials = new List<Material>();
         Material black, red, white, wood, buff, dark;
         Transform shipRoot;
-        float clock;
-        bool breached, broken, replica;
+        readonly List<float> underwater = new List<float>();
+        float clock, breachedAt, brokeAt;
+        bool breached, broken, sternFlooding, replica;
         int spawnTurn;
 
         public IReadOnlyList<Rigidbody> Blocks => bodies;
         public IReadOnlyList<LinerSegment> Segments => segments;
         public int PieceCount => bodies.Count(b => b);
         public float Clock => clock;
+        public bool Breached => breached;
+        public bool Broken => broken;
+        public float BrokeAt => brokeAt;
         public Transform Root => transform;
         public int Revision { get; private set; }
         public Vector3 Center => transform.position;
@@ -72,7 +96,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (shipRoot) { shipRoot.gameObject.SetActive(false); if (Application.isPlaying) Destroy(shipRoot.gameObject); else DestroyImmediate(shipRoot.gameObject); }
             bodies.Clear(); segments.Clear(); spawns.Clear();
-            clock = 0; breached = broken = false;
+            clock = 0; breached = broken = sternFlooding = false;
             if (materials.Count == 0) MakeMaterials();
 
             shipRoot = new GameObject("Liner").transform;
@@ -250,29 +274,50 @@ namespace DeadlyJenga.CastlePrototype
             Step(Time.fixedDeltaTime);
         }
 
-        // Applies one physics step of buoyancy and runs the test sequence. Tests call it before Physics.Simulate.
+        // Applies one physics step of buoyancy and runs the sinking story. Tests call it before Physics.Simulate.
+        // Each float point stands for a column of hull from the keel up to buoyancyTop; it pushes up by how much
+        // of that column is under water. That still works when a piece stands on end.
         public void Step(float dt)
         {
             clock += dt;
             float g = -Physics.gravity.y;
+            underwater.Clear();
+            foreach (var _ in bodies) underwater.Add(0);
             foreach (var seg in segments)
             {
                 if (!seg) continue;
                 seg.StepFlood(dt);
                 var body = seg.GetComponentInParent<Rigidbody>();
                 if (!body || body.isKinematic) continue;
-                int n = seg.floatPoints.Length;
+                int n = seg.floatPoints.Length, which = bodies.IndexOf(body);
+                float column = buoyancyTop + draft;
                 // At the design draft the dry points carry exactly the section's weight.
-                float k = seg.mass * g * hullHeight / (n * draft);
+                float k = seg.mass * g * column / (n * draft);
                 float c = seg.mass / n * waterDamping * 2 * Mathf.Sqrt(g / draft);
+                float water = seg.flood * floodWeight * seg.mass * g / n;
                 foreach (var local in seg.floatPoints)
                 {
-                    var p = seg.transform.TransformPoint(local);
-                    float depth = Mathf.Clamp01((waterHeight - p.y) / hullHeight);
+                    var keel = seg.transform.TransformPoint(local);
+                    var top = seg.transform.TransformPoint(new Vector3(local.x, buoyancyTop, local.z));
+                    if (water > 0) body.AddForceAtPosition(Vector3.down * water, keel, ForceMode.Force);
+                    float low = Mathf.Min(keel.y, top.y), high = Mathf.Max(keel.y, top.y), span = Mathf.Max(high - low, 1);
+                    float depth = Mathf.Clamp01((waterHeight - ((low + high) * .5f - span * .5f)) / span);
                     if (depth <= 0) continue;
+                    // Push at the middle of the wet part of the column.
+                    var p = Vector3.Lerp(keel, top, keel.y < top.y ? depth * .5f : 1 - depth * .5f);
                     var force = Vector3.up * (k * depth * (1 - seg.flood)) - body.GetPointVelocity(p) * (c * depth);
                     body.AddForceAtPosition(force, p, ForceMode.Force);
+                    if (which >= 0) underwater[which] += Mathf.Clamp01((depth - .6f) / .4f) / n;
                 }
+            }
+            // Pieces that are deep under move slowly, so they sink gradually instead of dropping like a stone.
+            for (int i = 0; i < bodies.Count; i++)
+            {
+                var body = bodies[i];
+                if (!body || body.isKinematic || underwater[i] <= 0) continue;
+                float share = underwater[i] / Mathf.Max(1, body.GetComponentsInChildren<LinerSegment>().Length);
+                body.AddForce(-body.linearVelocity * (underwaterDrag * share), ForceMode.Acceleration);
+                body.AddTorque(-body.angularVelocity * (underwaterSpin * share), ForceMode.Acceleration);
             }
             if (autoSinking) Direct();
             // Pieces that have sunk far below stop simulating.
@@ -280,16 +325,25 @@ namespace DeadlyJenga.CastlePrototype
                 if (body && !body.isKinematic && body.worldCenterOfMass.y < waterHeight - 120) { body.isKinematic = true; body.gameObject.SetActive(false); }
         }
 
+        // The story: calm, the bow floods and the stern lifts out of the water, the ship breaks, the stern half
+        // falls back, then tips up on its flooded end and stands in the air before it slowly goes under.
         void Direct()
         {
-            if (!breached && clock >= calmSeconds) { breached = true; segments[segments.Count - 1].Breach(.97f, bowFloodSeconds); if (segments.Count > 2) segments[segments.Count - 2].Breach(.6f, bowFloodSeconds * 1.6f); }
-            if (breached && !broken && breakLine >= 0 && breakLine < segments.Count - 1)
+            if (!breached && clock >= calmSeconds) BreachBow(bowFloodSeconds);
+            if (!breached) return;
+            if (!broken && breakLine >= 0 && breakLine < segments.Count - 1)
             {
                 var body = segments[breakLine].GetComponentInParent<Rigidbody>();
-                float pitch = Mathf.Abs(Mathf.DeltaAngle(0, body.rotation.eulerAngles.x));
-                if (pitch >= breakPitch) Break(breakLine);
+                if (body && (Pitch(body) >= breakPitch || clock - breachedAt >= breakAfterSeconds)) Break(breakLine);
+            }
+            if (broken && !sternFlooding && clock - brokeAt >= sternHoldSeconds)
+            {
+                sternFlooding = true;
+                segments[0].Breach(sternFlood, sternSinkSeconds);
             }
         }
+
+        public static float Pitch(Rigidbody body) => Mathf.Abs(Mathf.DeltaAngle(0, body.rotation.eulerAngles.x));
 
         // Splits the ship at split line `line` (0 = nearest the stern). The piece holding that line becomes two
         // physics bodies; the bow-side part keeps the velocity it had at its own center. Returns false if that
@@ -300,10 +354,11 @@ namespace DeadlyJenga.CastlePrototype
             var stern = segments[line]; var bow = segments[line + 1];
             var body = stern.GetComponentInParent<Rigidbody>();
             if (!body || bow.GetComponentInParent<Rigidbody>() != body) return false;
+            if (!broken) brokeAt = clock;
             broken = true;
             // Everything bow-ward of the line that rides this body moves to a new body.
             var moving = segments.Where(s => s.index > line && s.GetComponentInParent<Rigidbody>() == body).ToList();
-            var piece = NewBody($"Liner piece (sections {moving.First().index + 1}-{moving.Last().index + 1})", shipRoot);
+            var piece = NewBody("Liner piece", shipRoot);
             piece.transform.SetPositionAndRotation(body.transform.position, body.transform.rotation);
             var velocity = body.linearVelocity; var spin = body.angularVelocity;
             foreach (var s in moving) s.transform.SetParent(piece.transform, true);
@@ -312,12 +367,31 @@ namespace DeadlyJenga.CastlePrototype
             piece.linearVelocity = velocity + Vector3.Cross(spin, piece.worldCenterOfMass - body.worldCenterOfMass);
             piece.angularVelocity = spin;
             Physics.SyncTransforms();
-            stern.Breach(.75f, 90); bow.Breach(.9f, 45);
-            if (!body.name.StartsWith("Liner piece", StringComparison.Ordinal)) body.name = $"Liner piece (sections 1-{line + 1})";
+            stern.Breach(brokenEndFlood, brokenEndSeconds); bow.Breach(1, 30);
+            NamePieces();
             return true;
         }
 
-        public void BreachBow(float seconds) { breached = true; segments[segments.Count - 1].Breach(.97f, seconds); }
+        // Names each piece after the sections it carries, e.g. "Liner piece (sections 1-2)".
+        void NamePieces()
+        {
+            foreach (var body in bodies)
+            {
+                if (!body) continue;
+                var parts = body.GetComponentsInChildren<LinerSegment>(true).Select(s => s.index + 1).OrderBy(i => i).ToList();
+                if (parts.Count == 0) continue;
+                body.name = parts.Count == 1 ? $"Liner piece (section {parts[0]})" : $"Liner piece (sections {parts[0]}-{parts[parts.Count - 1]})";
+            }
+        }
+
+        // Starts the sinking: the bow section fills over `seconds`, the section behind it partly.
+        public void BreachBow(float seconds)
+        {
+            if (!breached) breachedAt = clock;
+            breached = true;
+            segments[segments.Count - 1].Breach(1, seconds);
+            if (segments.Count > 2) segments[segments.Count - 2].Breach(secondFlood, seconds * 1.3f);
+        }
 
         // ---------- Spawns and network ----------
 

@@ -57,11 +57,22 @@ MonoBehaviour:
   colorSource: {fileID: 2100000, guid: 6d644d4ed46b4f3884dcba06f5fcdd5e, type: 2}
   waterHeight: 0
   waterDamping: 0.6
+  buoyancyTop: 16
+  floodWeight: 0.3
+  underwaterDrag: 4
+  underwaterSpin: 1
   autoSinking: 1
   calmSeconds: 25
-  bowFloodSeconds: 70
-  breakPitch: 11
+  bowFloodSeconds: 60
+  secondFlood: 0.4
+  breakPitch: 22
+  breakAfterSeconds: 120
   breakLine: 1
+  brokenEndFlood: 0.85
+  brokenEndSeconds: 20
+  sternHoldSeconds: 50
+  sternFlood: 0.9
+  sternSinkSeconds: 150
   generateOnStart: 1
 --- !u!114 &5120330000000000004
 MonoBehaviour:
