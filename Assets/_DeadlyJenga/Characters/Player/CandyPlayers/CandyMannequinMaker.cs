@@ -41,7 +41,30 @@ namespace DeadlyJenga.CandyPlayers
             }
             rig.ApplyFrame(frame, true, 0);
             if (pose == MannequinPose.Hanging) DropHead(rig.HeadAnchor, facing, (color % 3 - 1) * 14f);
+            else Chrome(rig);
             return rig.gameObject;
+        }
+
+        static Material chrome;
+
+        // Display mannequins get a polished chrome skin; their clothes keep their colors.
+        static void Chrome(CandyPlayerRig rig)
+        {
+            if (!chrome)
+            {
+                var shader = Shader.Find("Universal Render Pipeline/Lit");
+                if (!shader) return;
+                chrome = new Material(shader) { name = "Mannequin chrome", enableInstancing = true };
+                chrome.SetColor("_BaseColor", new Color(.82f, .85f, .89f));
+                chrome.SetFloat("_Metallic", 1f);
+                chrome.SetFloat("_Smoothness", .94f);
+            }
+            foreach (var skin in new Renderer[] { rig.bodyRenderer, rig.headRenderer })
+            {
+                if (!skin) continue;
+                skin.SetPropertyBlock(null);
+                skin.sharedMaterial = chrome;
+            }
         }
 
         // Swings the head forward around the neck, so it stays attached to the body.
