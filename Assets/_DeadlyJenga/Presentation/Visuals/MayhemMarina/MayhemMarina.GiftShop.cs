@@ -20,11 +20,12 @@ namespace DeadlyJenga.CandyArt.Marina
     public sealed partial class MayhemMarina
     {
         const float ShopWidth = 12f, ShopDepth = 9f, ShopWall = 4.2f, ShopPorch = 1.8f;
-        // The hero suit vault: an oval loop of pods that runs deep into an oval housing outside the left
-        // wall. VaultZ = its middle along the wall; VaultAlong/VaultDeep = the housing's half-width along
-        // the wall and half-depth through it; VaultCentre = how far outside the wall the oval's centre is;
-        // VaultOpening = half the wall opening (where the oval meets the wall); VaultTop = opening height.
-        const float VaultZ = 1.0f, VaultAlong = 2.65f, VaultDeep = 3.6f, VaultCentre = 1.78f, VaultOpening = 2.3f, VaultTop = 2.6f;
+        // The hero suit vault: a rounded-rectangle loop of pods. Its flat front shows just inside the shop;
+        // the rest runs back through a rounded-rectangle housing outside the left wall.
+        // VaultZ = its middle along the wall; VaultAlong = the housing's inside half-width along the wall;
+        // VaultCentre = how far outside the wall the loop's centre is; VaultOpening = half the wall
+        // opening; VaultTop = the opening's height.
+        const float VaultZ = 1.0f, VaultAlong = 2.45f, VaultCentre = 2.38f, VaultOpening = 2.3f, VaultTop = 2.6f;
 
         static AvatarAppearance Look(AvatarHair hair, AvatarEyewear eyes, AvatarClothing clothes, AvatarAccessory extras) =>
             new AvatarAppearance { hair = hair, eyewear = eyes, clothing = clothes, accessories = extras };
@@ -116,7 +117,7 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 B(0, y, hd + .005f, new Vector3(ShopWidth, .035f, .03f), F.Ivory, .01f);
                 B(hw + .005f, y, 0, new Vector3(.03f, .035f, ShopDepth), F.Ivory, .01f);
-                foreach (var (z0, z1) in y > VaultTop ? new[] { (-hd, hd) } : new[] { (-hd, VaultZ - VaultAlong - .1f), (VaultZ + VaultAlong + .1f, hd) })
+                foreach (var (z0, z1) in y > VaultTop ? new[] { (-hd, hd) } : new[] { (-hd, VaultZ - VaultAlong - .2f), (VaultZ + VaultAlong + .2f, hd) })
                     B(-hw - .005f, y, (z0 + z1) * .5f, new Vector3(.03f, .035f, z1 - z0), F.Ivory, .01f);
             }
             // One stretch of the left wall, from z0 to z1 and from y0 to y1.
@@ -312,40 +313,74 @@ namespace DeadlyJenga.CandyArt.Marina
             }
 
             // ---------- Left wall: the hero suit vault ----------
-            // Fourteen lit glass pods, each holding a player in a different skin, glide around an oval loop.
-            // Only the near end of the oval comes into the shop through the wall opening; the rest runs deep
-            // into an oval housing outside, so new suits keep sliding into view like a superhero's suit room.
+            // Fourteen lit glass pods, each holding a player in a different skin, glide around a rounded-
+            // rectangle loop. Its flat front runs along just inside the shop, so suits slide past in a row;
+            // the long sides and back run deep into a housing outside, so new suits keep coming into view.
             float vx = -hw + .12f - VaultCentre, vz = VaultZ;
-            float trackAlong = 2.1f, trackDeep = 3.0f, podRadius = .38f, podHeight = 2.05f;
-            bool sideways = Mathf.Abs(Mathf.DeltaAngle(yaw, 90)) < 1 || Mathf.Abs(Mathf.DeltaAngle(yaw, 270)) < 1;
-            // ArcSlab radii are in lobby axes: (x radius, z radius). Swap when the shop is turned sideways.
-            Vector2 Oval(float along, float deep) => sideways ? new Vector2(along, deep) : new Vector2(deep, along);
-            var back = q * Vector3.left;
-            float backAngle = Mathf.Atan2(back.x, back.z) * Mathf.Rad2Deg;
-            float outsideHalf = Mathf.Acos(-VaultCentre / VaultDeep) * Mathf.Rad2Deg;
-            var centre = P(vx, 0, vz);
-            mesh.ArcSlab(centre + Vector3.up * .03f, Oval(.01f, .01f), Oval(VaultAlong, VaultDeep), .12f, 0, 360, F.Ivory, true, 72);
-            mesh.ArcSlab(centre + Vector3.up * .15f, Oval(VaultAlong - .12f, VaultDeep - .12f), Oval(VaultAlong - .04f, VaultDeep - .04f), .02f, 0, 360, F.Glow, false, 72);
-            // The dark oval core the pods circle around, and a brass canopy over the loop.
-            mesh.ArcSlab(centre + Vector3.up * .15f, Oval(.01f, .01f), Oval(trackAlong - .5f, trackDeep - .5f), 2.15f, 0, 360, F.CandyGrape, false, 56);
-            mesh.ArcSlab(centre + Vector3.up * 2.3f, Oval(.01f, .01f), Oval(trackAlong + .5f, trackDeep + .5f), .08f, 0, 360, F.Brass, false, 72);
-            mesh.ArcSlab(centre + Vector3.up * 2.28f, Oval(trackAlong + .42f, trackDeep + .42f), Oval(trackAlong + .48f, trackDeep + .48f), .02f, 0, 360, F.Glow, false, 72);
-            // The housing outside: an oval mint wall with a teal, glow-striped inside and a flat roof.
-            mesh.ArcSlab(centre + Vector3.up * .03f, Oval(VaultAlong + .02f, VaultDeep + .02f), Oval(VaultAlong + .2f, VaultDeep + .2f), VaultTop, backAngle - outsideHalf, backAngle + outsideHalf, F.CandyMint, true, 56);
-            mesh.ArcSlab(centre + Vector3.up * .03f, Oval(VaultAlong, VaultDeep), Oval(VaultAlong + .02f, VaultDeep + .02f), VaultTop, backAngle - outsideHalf, backAngle + outsideHalf, F.Teal, false, 56);
-            // The roof stops at the wall line: the outside part of the oval, plus a slab from the wall to the
-            // oval's centre that fills the wedge between them, so no sky shows and nothing pokes into the shop.
-            mesh.ArcSlab(centre + Vector3.up * VaultTop, Oval(.01f, .01f), Oval(VaultAlong + .3f, VaultDeep + .3f), .16f, backAngle - outsideHalf, backAngle + outsideHalf, F.CandyMint, true, 56);
-            B((vx - hw) * .5f, VaultTop + .08f, vz, new Vector3(-vx - hw + .02f, .16f, (VaultOpening + .25f) * 2), F.CandyMint, .02f, true);
-            mesh.ArcSlab(centre + Vector3.up * (VaultTop - .01f), Oval(.01f, .01f), Oval(VaultAlong, VaultDeep), .01f, backAngle - outsideHalf, backAngle + outsideHalf, F.CandyGrape, false, 56);
-            B((vx - hw) * .5f, VaultTop - .005f, vz, new Vector3(-vx - hw, .01f, VaultOpening * 2), F.CandyGrape, .002f);
-            for (int i = -3; i <= 3; i++)
+            float trackAlong = 1.9f, trackDeep = 3.0f, trackCorner = .9f, podRadius = .38f, podHeight = 2.05f;
+            // A rounded rectangle centred on the loop, in shop axes: x from -back to +front, z within +-half,
+            // corners of radius r. Filled (ring = 0) or just a wall of that thickness (ring > 0).
+            void RoundRect(float y, float height, float half, float front, float back, float r, F finish, bool solid, float ring = 0)
             {
-                float a = (backAngle + i * outsideHalf / 3.6f) * Mathf.Deg2Rad;
-                var r = Oval(VaultAlong - .02f, VaultDeep - .02f);
-                var strip = centre + new Vector3(Mathf.Sin(a) * r.x, 0, Mathf.Cos(a) * r.y);
-                mesh.Box(strip + Vector3.up * (VaultTop * .5f + .1f), new Vector3(.04f, VaultTop - .4f, .04f), F.Glow, .01f);
+                float fx = front - r, bx = -back + r, hz = half - r;
+                if (ring <= 0)
+                {
+                    B(vx + (fx + bx) * .5f, y + height * .5f, vz, new Vector3(fx - bx, height, half * 2), finish, .01f, solid);
+                    B(vx + (front + fx) * .5f, y + height * .5f, vz, new Vector3(front - fx, height, hz * 2), finish, .01f, solid);
+                    B(vx + (bx - back) * .5f, y + height * .5f, vz, new Vector3(bx + back, height, hz * 2), finish, .01f, solid);
+                }
+                else
+                {
+                    foreach (float e in new[] { -1f, 1f }) B(vx + (fx + bx) * .5f, y + height * .5f, vz + e * (half - ring * .5f), new Vector3(fx - bx, height, ring), finish, .01f, solid);
+                    B(vx + front - ring * .5f, y + height * .5f, vz, new Vector3(ring, height, hz * 2), finish, .01f, solid);
+                    B(vx - back + ring * .5f, y + height * .5f, vz, new Vector3(ring, height, hz * 2), finish, .01f, solid);
+                }
+                Corner(fx, hz, 0, y, height, r, ring, finish, solid);
+                Corner(bx, hz, 90, y, height, r, ring, finish, solid);
+                Corner(bx, -hz, 180, y, height, r, ring, finish, solid);
+                Corner(fx, -hz, 270, y, height, r, ring, finish, solid);
             }
+            // A quarter-round corner at (x, z) from the loop's centre, sweeping 90 degrees from the local
+            // direction "from" (0 = +x, 90 = +z). ArcSlab angles are in lobby axes, so turn them by the shop's yaw.
+            void Corner(float x, float z, float from, float y, float height, float r, float ring, F finish, bool solid)
+            {
+                Vector3 Dir(float deg) => q * new Vector3(Mathf.Cos(deg * Mathf.Deg2Rad), 0, Mathf.Sin(deg * Mathf.Deg2Rad));
+                float a0 = Mathf.Atan2(Dir(from).x, Dir(from).z) * Mathf.Rad2Deg;
+                float a1 = a0 + Mathf.DeltaAngle(a0, Mathf.Atan2(Dir(from + 90).x, Dir(from + 90).z) * Mathf.Rad2Deg);
+                mesh.ArcSlab(P(vx + x, y, vz + z), Vector2.one * (ring > 0 ? r - ring : .01f), Vector2.one * r, height, Mathf.Min(a0, a1), Mathf.Max(a0, a1), finish, solid, 12);
+            }
+            float wallLine = VaultCentre, housingBack = trackDeep + .55f, housingCorner = trackCorner + .55f;
+            // Floor under the whole loop, with a glowing rim.
+            RoundRect(.03f, .12f, VaultAlong, trackDeep + .5f, housingBack, housingCorner, F.Ivory, true);
+            RoundRect(.15f, .02f, VaultAlong - .04f, trackDeep + .46f, housingBack - .04f, housingCorner - .04f, F.Glow, false, .06f);
+            // The dark core the pods circle around, and a brass canopy over the loop.
+            RoundRect(.15f, 2.15f, trackAlong - .5f, trackDeep - .5f, trackDeep - .5f, Mathf.Max(.2f, trackCorner - .5f), F.CandyGrape, false);
+            RoundRect(2.3f, .08f, trackAlong + .5f, trackDeep + .5f, trackDeep + .5f, trackCorner + .5f, F.Brass, false);
+            RoundRect(2.28f, .02f, trackAlong + .5f, trackDeep + .5f, trackDeep + .5f, trackCorner + .5f, F.Glow, false, .05f);
+            // The housing outside: mint walls with a teal, glow-striped inside, from the wall line round the back.
+            float sideLength = wallLine + housingBack - housingCorner;
+            foreach (float e in new[] { -1f, 1f })
+            {
+                B(vx + (wallLine - housingBack + housingCorner) * .5f, VaultTop * .5f + .03f, vz + e * (VaultAlong + .1f), new Vector3(sideLength, VaultTop, .2f), F.CandyMint, .02f, true);
+                B(vx + (wallLine - housingBack + housingCorner) * .5f, VaultTop * .5f + .03f, vz + e * (VaultAlong - .01f), new Vector3(sideLength, VaultTop, .02f), F.Teal, .005f);
+                for (int i = 0; i < 3; i++)
+                    B(vx + wallLine - .9f - i * 1.6f, VaultTop * .5f + .1f, vz + e * (VaultAlong - .03f), new Vector3(.04f, VaultTop - .4f, .04f), F.Glow, .01f);
+            }
+            float backHalf = VaultAlong - housingCorner;
+            B(vx - housingBack - .1f, VaultTop * .5f + .03f, vz, new Vector3(.2f, VaultTop, backHalf * 2), F.CandyMint, .02f, true);
+            B(vx - housingBack + .01f, VaultTop * .5f + .03f, vz, new Vector3(.02f, VaultTop, backHalf * 2), F.Teal, .005f);
+            B(vx - housingBack + .03f, VaultTop * .5f + .1f, vz, new Vector3(.04f, VaultTop - .4f, .04f), F.Glow, .01f);
+            Corner(-housingBack + housingCorner, backHalf, 90, .03f, VaultTop, housingCorner + .2f, .2f, F.CandyMint, true);
+            Corner(-housingBack + housingCorner, -backHalf, 180, .03f, VaultTop, housingCorner + .2f, .2f, F.CandyMint, true);
+            Corner(-housingBack + housingCorner, backHalf, 90, .03f, VaultTop, housingCorner + .01f, .02f, F.Teal, false);
+            Corner(-housingBack + housingCorner, -backHalf, 180, .03f, VaultTop, housingCorner + .01f, .02f, F.Teal, false);
+            // Roof: from the wall line round the back, so nothing pokes into the shop and no sky shows.
+            float roofBack = housingBack + .2f, roofCorner = housingCorner + .2f, roofHalf = VaultAlong + .2f;
+            B(vx + (wallLine - roofBack + roofCorner) * .5f, VaultTop + .11f, vz, new Vector3(wallLine + roofBack - roofCorner, .16f, roofHalf * 2), F.CandyMint, .02f, true);
+            B(vx - roofBack + roofCorner * .5f, VaultTop + .11f, vz, new Vector3(roofCorner, .16f, (roofHalf - roofCorner) * 2), F.CandyMint, .02f, true);
+            Corner(-roofBack + roofCorner, roofHalf - roofCorner, 90, VaultTop + .03f, .16f, roofCorner, 0, F.CandyMint, true);
+            Corner(-roofBack + roofCorner, -(roofHalf - roofCorner), 180, VaultTop + .03f, .16f, roofCorner, 0, F.CandyMint, true);
+            B(vx + (wallLine - housingBack + housingCorner) * .5f, VaultTop + .025f, vz, new Vector3(sideLength, .01f, VaultAlong * 2), F.CandyGrape, .002f);
             // Inside the shop: a purple frame around the opening with the HERO SUITS header on top.
             B(-hw + .26f, (VaultTop + H) * .5f, vz, new Vector3(.06f, H - VaultTop, VaultOpening * 2 + .3f), F.CandyGrape, .03f);
             B(-hw + .3f, VaultTop + .03f, vz, new Vector3(.04f, .04f, VaultOpening * 2), F.Glow, .01f);
@@ -356,15 +391,15 @@ namespace DeadlyJenga.CandyArt.Marina
             }
             Sign("HERO SUITS", P(-hw + .3f, (VaultTop + H) * .5f, vz), .03f, cream, new Vector3(0, yaw - 90, 0));
             Accent("Hero suit vault", P(-hw + 1.6f, 2.7f, vz), new Color(.75f, .85f, 1f), 1.8f, 5f);
-            Accent("Hero suit housing", P(vx - 1.2f, 2.4f, vz), new Color(.6f, .8f, 1f), 1.2f, 4.5f);
+            Accent("Hero suit housing", P(vx - 1.2f, 2.3f, vz), new Color(.6f, .8f, 1f), 1.2f, 4.5f);
 
-            // The moving pods. Each pod is its own object; MarinaPodTrack slides them around the oval.
+            // The moving pods. Each pod is its own object; MarinaPodTrack slides them around the loop.
             var loop = new GameObject("Hero suit vault loop").transform;
             loop.SetParent(visual, false);
             loop.localPosition = P(vx, .15f, vz);
             loop.localRotation = q;
             var track = loop.gameObject.AddComponent<MarinaPodTrack>();
-            track.Setup(trackDeep, trackAlong, .22f, VaultCentre - .7f, VaultCentre + .5f);
+            track.Setup(trackDeep, trackAlong, trackCorner, .22f, VaultCentre - .5f, VaultCentre + .5f);
             for (int i = 0; i < suitLooks.Length; i++)
             {
                 var pod = new GameObject("Suit pod " + (i + 1)).transform;

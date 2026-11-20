@@ -3,11 +3,11 @@ using UnityEngine;
 
 namespace DeadlyJenga.CandyArt.Marina
 {
-    // Slides display pods around an oval loop at a steady speed, each pod facing outward.
-    // The oval lies flat in this object's space: "deep" along local x, "along" along local z.
+    // Slides display pods around a rounded-rectangle loop at a steady speed, each pod facing outward.
+    // The loop lies flat in this object's space: "deep" = half-length along local x, "along" = half-width
+    // along local z, "corner" = the radius of its rounded corners.
     public sealed class MarinaPodTrack : MonoBehaviour
     {
-        const int Samples = 256;
         float speed;
         float length;
         float showFrom, showTo;
@@ -15,27 +15,33 @@ namespace DeadlyJenga.CandyArt.Marina
         readonly List<Light[]> lights = new();
         readonly List<Transform> pods = new();
         readonly List<MarinaMesh> meshes = new();
-        readonly Vector3[] points = new Vector3[Samples + 1];
-        readonly float[] distance = new float[Samples + 1];
+        readonly List<Vector3> points = new();
+        readonly List<float> distance = new();
 
-        // showFrom/showTo: how far along local x a pod must be before its lamps start / finish popping up
-        // (the near end of the oval is the part inside the shop).
-        public void Setup(float deep, float along, float metresPerSecond, float lampsFrom, float lampsTo)
+        // lampsFrom/lampsTo: how far along local x a pod must be before its lamps start / finish popping up
+        // (the front of the loop is the part inside the shop).
+        public void Setup(float deep, float along, float corner, float metresPerSecond, float lampsFrom, float lampsTo)
         {
             speed = metresPerSecond;
             showFrom = lampsFrom;
             showTo = lampsTo;
-            // Sample the oval and measure how far along it each sample is, so pods move evenly.
-            for (int i = 0; i <= Samples; i++)
-            {
-                float t = i * Mathf.PI * 2f / Samples;
-                points[i] = new Vector3(Mathf.Cos(t) * deep, 0, Mathf.Sin(t) * along);
-                distance[i] = i == 0 ? 0 : distance[i - 1] + Vector3.Distance(points[i - 1], points[i]);
-            }
-            length = distance[Samples];
+            corner = Mathf.Clamp(corner, .05f, Mathf.Min(deep, along));
+            float fx = deep - corner, fz = along - corner;
+            // Walk the outline: each corner is a quarter circle; the straight parts join them.
+            var centres = new[] { new Vector2(fx, fz), new Vector2(-fx, fz), new Vector2(-fx, -fz), new Vector2(fx, -fz) };
+            points.Add(new Vector3(deep, 0, 0));
+            for (int c = 0; c < 4; c++)
+                for (int i = 0; i <= 16; i++)
+                {
+                    float t = (c * 90f + i * 90f / 16f) * Mathf.Deg2Rad;
+                    points.Add(new Vector3(centres[c].x + Mathf.Cos(t) * corner, 0, centres[c].y + Mathf.Sin(t) * corner));
+                }
+            points.Add(new Vector3(deep, 0, 0));
+            distance.Add(0);
+            for (int i = 1; i < points.Count; i++) distance.Add(distance[i - 1] + Vector3.Distance(points[i - 1], points[i]));
+            length = distance[distance.Count - 1];
         }
 
-        // A pod plus three pop-up spotlights inside its glass, aimed up at the suit's chest.
         public void Add(Transform pod, MarinaMesh mesh)
         {
             pods.Add(pod);
@@ -59,7 +65,7 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 float d = Mathf.Repeat(time * speed + i * length / pods.Count, length);
                 int k = 1;
-                while (k < Samples && distance[k] < d) k++;
+                while (k < points.Count - 1 && distance[k] < d) k++;
                 float f = Mathf.InverseLerp(distance[k - 1], distance[k], d);
                 Vector3 at = Vector3.Lerp(points[k - 1], points[k], f);
                 Vector3 tangent = points[k] - points[k - 1];
