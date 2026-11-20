@@ -97,17 +97,23 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             // S04: low under the fighters' level, looking up past them into the sky the rocks come from.
             {
-                var s = S("S04"); var c = ShotCam(s, 18);
+                var s = S("S04"); var c = ShotCam(s, 18); c.motionBlur = 0;
                 Vector3 target = Feet(stage, plan, "purple", s.cutIn);
                 Vector3 at = PickSpot(new[] { 4.5f, 5.5f, 3.8f }.Select(d => target + a.side * d - up * 1.6f), target + up * .6f);
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, target + up * 2.2f - a.side * 2));
                 Add(c, at, target, .94f);
             }
             // S05..S07: each victim side-on to the rock's path, the throw crossing the frame.
-            void Victim(string id, string role, int meteorIndex, float focal, float distance)
+            void Victim(string id, float focal, float distance)
             {
                 var s = S(id); var c = ShotCam(s, focal);
-                Vector3 who = plan.cast.TryGetValue(role, out var victim) ? victim.feet : Feet(stage, plan, role, s.cutIn);   // where they stood before the hit
+                c.motionBlur = 0;   // rocks pass close to these lenses; blurred they smeared into worms (record 3)
+                // The rock that lands nearest this shot's key, and whoever (or wherever) it lands beside.
+                int key = s.cutIn + s.key;
+                int meteorIndex = Enumerable.Range(0, plan.meteors.Count).OrderBy(i => Mathf.Abs(plan.meteors[i].arriveFrame - key)).FirstOrDefault();
+                string role = plan.meteors.Count > 0 ? plan.meteors[meteorIndex].label : "";
+                Vector3 who = plan.cast.TryGetValue(role, out var victim) ? victim.feet : plan.meteors.Count > 0 ? plan.meteors[meteorIndex].target : C;   // where they stood before the hit
+                lines.Append($"  {id}: rock f{(plan.meteors.Count > 0 ? plan.meteors[meteorIndex].arriveFrame : -1)} beside {role}\n");
                 Vector3 travel = meteorIndex >= 0 && meteorIndex < plan.meteorFrom.Count ? Flat(-plan.meteorFrom[meteorIndex]) : a.side;
                 // From outside the tower (record 2: cameras beside the victims sat inside the lattice and saw purple walls),
                 // a little behind the rock's path, so the rock comes in past the lens and the victim is thrown away across frame.
@@ -118,10 +124,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 StudioMoves.Shake(c, TapeF(s.cutIn + s.key) + 1f / Fps, 1.2f, .5f);
                 Add(c, at, who, .94f);
             }
-            int Index(string near) => plan.meteors.FindIndex(m => m.label == near);
-            Victim("S05", "purple", Index("purple"), 20, 6.5f);
-            Victim("S06", "pink", Index("pink"), 26, 5.5f);
-            Victim("S07", "cyan", Index("cyan"), 26, 5.5f);
+            Victim("S05", 20, 6.5f);
+            Victim("S06", 26, 5.5f);
+            Victim("S07", 26, 5.5f);
             // S08: the hero, medium shot from the sun side, the rocks landing behind him.
             {
                 var s = S("S08"); var c = ShotCam(s, 35);
@@ -132,7 +137,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             // S09: wide from the sun side, the planet killer coming over the tower top.
             {
-                var s = S("S09"); var c = ShotCam(s, 18);
+                var s = S("S09"); var c = ShotCam(s, 18); c.motionBlur = 0;
                 Vector3 at = C + a.side * 32 + a.along * 6 - up * 6;
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, C + up * 9 - a.side * 8));
                 Add(c, at, C, 2);

@@ -119,8 +119,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             plan.cast["rival"] = new Actor { role = "rival", color = 0, feet = rivalAt, yaw = YawTo(rivalAt, heroAt) };
             // Everyone else: spread over the free spots below the summit, at least 1.7 m apart, nearest levels first.
             var chosen = new List<Vector3> { heroAt, rivalAt };
-            // Only the sun-side half of the tower, so the cameras on that side see every fighter lit and unhidden.
-            var below = a.spots.Where(p => p.y < a.top - .5f && Vector3.Distance(Flat2(p), Flat2(a.centre)) < 8 && Vector3.Dot(Flat2(p - a.centre), a.side) > -.3f).ToList();
+            // Only the sun-side half of the tower, and only spots with open sky above (record 3: cyan stood under an
+            // overhang inside the lattice, hidden from every camera).
+            var below = a.spots.Where(p => p.y < a.top - .5f && Vector3.Distance(Flat2(p), Flat2(a.centre)) < 8 && Vector3.Dot(Flat2(p - a.centre), a.side) > -.3f
+                && !Physics.Raycast(p + Vector3.up * 1.2f, Vector3.up, 12, (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)).ToList();
             string[] others = { "blue", "green", "purple", "pink", "cyan" };
             int[] colors = { 2, 3, 5, 4, 7 };
             // No rocket: in the first record its 8 m blast at f117 threw blue, purple, cyan and the hero off together.
@@ -139,36 +141,47 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // Meteors come in low (28 deg) and land 1.2 m short of a fighter, so the blast throws them along the rock's path.
             // Spare spots: free places far from everyone, for rocks that should land in frame without hitting anybody.
             var spare = below.Where(p => Vector3.Distance(Flat2(p), Flat2(heroAt)) > 3.6f && Vector3.Distance(Flat2(p), Flat2(a.centre)) > 5.5f).OrderByDescending(p => chosen.Min(c => Vector3.Distance(c, p))).ToList();
-            var rng = new System.Random(11);
             int spareUsed = 0;
-            foreach (var (near, frame) in MeteorPlan)
+            Vector3 heroHead = heroAt + Vector3.up * .8f;
+            float SegmentDistance(Vector3 p, Vector3 x0, Vector3 x1) { var d = x1 - x0; float t = Mathf.Clamp01(Vector3.Dot(p - x0, d) / d.sqrMagnitude); return Vector3.Distance(p, x0 + d * t); }
+            foreach (var (role, frame) in MeteorPlan)
             {
-                // Record 2: rocks crossing the tower top on their way clipped the summit ring, tipped the summit
-                // and threw the hero off at f218. Now each rock skims along the outside of the tower (tangent to it,
-                // a little outward) and lands on the outer ledge, so its path never crosses the summit.
-                Vector3 place = (near == "heroFar" || near == "summitFar" || near == "spare") && spare.Count > spareUsed ? spare[spareUsed]
-                    : plan.cast.TryGetValue(near, out var person) ? person.feet : a.centre;
+                // Record 3: a rock aimed at pink (4.2 m from the hero) clipped the summit and threw the hero off at f218.
+                // A fighter gets a rock only when 4.5 m or more from the hero; otherwise it lands on a spare outer spot.
+                // Each rock skims along the outside of the tower (tangent, a little outward) onto the outer ledge, and its
+                // whole path, the landing included, must stay 4 m from the hero's head; elevations 28 and 40 deg and both
+                // tangent directions are tried.
+                bool person = plan.cast.TryGetValue(role, out var who) && role != "hero" && role != "rival" && Vector3.Distance(Flat2(who.feet), Flat2(heroAt)) >= 4.5f;
+                if (!person && spare.Count <= spareUsed) continue;
+                Vector3 place = person ? who.feet : spare[spareUsed++];
+                string label = person ? role : "spare";
                 Vector3 outward = Flat(place - a.centre), tangent = Vector3.Cross(Vector3.up, outward);
-                if (Vector3.Dot(tangent, a.along) < 0) tangent = -tangent;
-                Vector3 travel = (tangent + outward * .3f).normalized;
-                Vector3 target;
-                if (near == "rivalEnd") continue;
-                else if ((near == "heroFar" || near == "summitFar" || near == "spare") && spare.Count > spareUsed) target = spare[spareUsed++];
-                else if (plan.cast.TryGetValue(near, out var who))
+                bool found = false;
+                foreach (float elevation in new[] { MeteorElevation, 40f })
+                foreach (float sign in new[] { 1f, -1f })
                 {
-                    // On the block they stand on (record 1: rocks aimed past a block's edge fell to the level below).
-                    target = who.feet - travel * .6f;
-                    foreach (float k in new[] { 1.3f, 1.1f, .9f, .75f })
+                    if (found) break;
+                    Vector3 travel = (tangent * sign * (Vector3.Dot(tangent, a.along) < 0 ? -1 : 1) + outward * .3f).normalized;
+                    Vector3 target = place;
+                    if (person)
                     {
-                        var p = who.feet - travel * k;
-                        if (StudioStage.SurfaceBelow(p + Vector3.up * .3f, out var hit) && Mathf.Abs(hit.y - who.feet.y) < .15f) { target = p; break; }
+                        // On the block they stand on (record 1: rocks aimed past a block's edge fell to the level below).
+                        target = place - travel * .6f;
+                        foreach (float k in new[] { 1.3f, 1.1f, .9f, .75f })
+                        {
+                            var p = place - travel * k;
+                            if (StudioStage.SurfaceBelow(p + Vector3.up * .3f, out var hit) && Mathf.Abs(hit.y - place.y) < .15f) { target = p; break; }
+                        }
                     }
+                    var from = (-travel * Mathf.Cos(elevation * Mathf.Deg2Rad) + Vector3.up * Mathf.Sin(elevation * Mathf.Deg2Rad)).normalized;
+                    if (SegmentDistance(heroHead, target + from * MeteorDistance, target) < 4f) continue;
+                    plan.meteors.Add((label, frame, target + Vector3.up * .2f));
+                    plan.meteorFrom.Add(from);
+                    found = true;
                 }
-                else continue;
-                var from = (-travel * Mathf.Cos(MeteorElevation * Mathf.Deg2Rad) + Vector3.up * Mathf.Sin(MeteorElevation * Mathf.Deg2Rad)).normalized;
-                plan.meteors.Add((near, frame, target + Vector3.up * .2f));
-                plan.meteorFrom.Add(from);
+                if (!found) Note($"No safe path for the rock at f{frame} ({label}); dropped.");
             }
+            Note("Rocks: " + string.Join("; ", plan.meteors.Select(m => $"f{m.arriveFrame} {m.label} at {V(m.target)}")));
             plan.planetTarget = a.centre;
             plan.planetFrame = PlanetFrame;
             // The planet killer comes in low from the far side of the sun side (it is seen over the tower from the sun side).
