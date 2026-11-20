@@ -244,6 +244,23 @@ namespace DeadlyJenga.Presentation
         void PauseBatching(){if(batchingPaused)return;batchingPaused=true;DeadlyJenga.CandyArt.StructuralMeshBatches.BatchingEnabled=false;}
         void ResumeBatching(){if(!batchingPaused)return;batchingPaused=false;DeadlyJenga.CandyArt.StructuralMeshBatches.BatchingEnabled=true;}
 
+        // Diagnostic: every renderer near the Downtown tower that is not drawn with the candy materials.
+        void ReportDowntown()
+        {
+            var sb=new System.Text.StringBuilder("[SolidCandy] near Downtown: ");
+            var area=new Bounds(Services.World.Center+new Vector3(56,15,56),new Vector3(50,40,50));int n=0;
+            foreach(var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if(!r.enabled||!r.gameObject.activeInHierarchy||r.forceRenderingOff||!r.bounds.Intersects(area))continue;
+                bool candy=true;foreach(var m in r.sharedMaterials)if(!m||!(m.name.StartsWith("Candy planks")||m==cityCandyMaterial||m==cityGlowMaterial))candy=false;
+                if(candy)continue;n++;if(n>25)continue;
+                var path=r.name;for(var t=r.transform.parent;t&&path.Length<200;t=t.parent)path=t.name+"/"+path;
+                sb.Append(" || ").Append(path).Append(" [").Append(r.GetType().Name).Append("] ");
+                foreach(var m in r.sharedMaterials)sb.Append(m?m.name+"("+m.shader.name+" q"+m.renderQueue+")":"null").Append(',');
+            }
+            Debug.Log(sb.Append(" total ").Append(n));
+        }
+
         void WarmLighting()
         {
             RenderSettings.fogColor=new Color(1,.84f,.86f);
