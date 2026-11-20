@@ -35,6 +35,12 @@ namespace DeadlyJenga.CastlePrototype
             var black = Paint("Blackened tinplate", new Color(.06f, .06f, .07f));
             var lamp = Paint("Lamp ivory", new Color(1f, .93f, .75f));
 
+            // Car bodies use a satin, non-metal paint so their flat sides show in the dim room.
+            // (Names without "enamel" keep the room finish from swapping in its gloss metal.)
+            var coachRed = Satin(red, "Toy coach red paint", new Color(.85f, .1f, .12f));
+            var coachGreen = Satin(green, "Toy coach green paint", new Color(.1f, .55f, .26f));
+            red = coachRed;
+            green = coachGreen;
             var cars = new (CarKind kind, Material body, float length)[]
             {
                 (CarKind.Tender, green, .45f),
@@ -189,6 +195,14 @@ namespace DeadlyJenga.CastlePrototype
             // The room lights are almost overhead, so roofs would shade the whole side; cars still cast shadows.
             drawn.receiveShadows = false;
             generatedMeshes.Add(mesh);
+        }
+
+        Material Satin(Material source, string label, Color color)
+        {
+            var paint = Brighter(source, label, color);
+            paint.SetFloat("_Metallic", 0f);
+            paint.SetFloat("_Smoothness", .45f);
+            return paint;
         }
 
         Material Brighter(Material source, string label, Color color)
