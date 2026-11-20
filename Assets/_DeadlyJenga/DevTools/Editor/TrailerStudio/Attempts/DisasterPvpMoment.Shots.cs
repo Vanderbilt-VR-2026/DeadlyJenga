@@ -238,15 +238,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (mode == "finalB") cameras = cameras.Skip(3).Take(5).ToList();   // S04-S08 (S04 again: its first render had the green disc)
             if (mode == "finalC") cameras = cameras.Skip(8).ToList();
             // Critic round 1 fixes: S06 ends before its camera drops into the castle, S07 starts earlier, S09 side-on.
-            if (mode == "finalD") cameras = cameras.Where(c => new[] { "S01", "S04", "S05", "S06", "S07", "S09" }.Contains(c.id)).ToList();
+            if (mode == "finalD") cameras = cameras.Where(c => new[] { "S04", "S05", "S06" }.Contains(c.id)).ToList();
             var settings = final
                 ? new StudioRenderSettings { width = 1920, height = 1080, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 12 }
                 : new StudioRenderSettings { width = 640, height = 360, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 8 };
             string renders = Path.Combine(Folder, "renders");
             var clock = Stopwatch.StartNew();
-            StudioRender.Start(cameras, settings, renders);
             var hidden = new HashSet<Renderer>();
-            while (StudioRender.Running) { HideStrays(stage, plan, hidden); yield return 0; }
+            void Tidy(Camera _) => HideStrays(stage, plan, hidden);
+            StudioRender.BeforeFrame += Tidy;
+            StudioRender.Start(cameras, settings, renders);
+            try { while (StudioRender.Running) yield return 0; }
+            finally { StudioRender.BeforeFrame -= Tidy; }
             Note($"Render {settings.width}x{settings.height}: {StudioRender.Progress} in {clock.Elapsed.TotalSeconds:0} s.");
             KeepShots(StudioRender.Results.ToList());
             string audio = StudioRender.AudioFile(stage.set.id);
@@ -255,17 +258,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (Directory.Exists(renders)) Directory.Delete(renders, true);
         }
 
-        // The bright green disc in the bundle renders is the blaster's plasma impact cloud ("Castle Play Session/Visual -
-        // plasma impact radius/Translucent plasma cloud", shader DeadlyJenga/Alien Plasma, about 10 m across): the live
-        // match's own view, left showing on the stage after loading a take (found by final B3's log, job 36d1f64a). It is
-        // switched off for the render. (B3's wider rule also caught block visuals, which sit on the Default layer.)
+        // The bright green disc in the bundle renders is the uzi's impact view "Castle Play Session/Visual - steaming neon
+        // spike" (a MeshRenderer with a runtime Particles/Unlit material, about 5 m, left at about (-2.6, 58.7, 6.9) where
+        // purple's uzi burst hit), and with it the blaster's "Visual - plasma impact radius" cloud: live match views left
+        // showing on the stage after a take is loaded (named by final B3's log, job 36d1f64a; the lines of sight from the
+        // S04, S05 and S06 lenses to the disc meet there). Both are switched off right before every frame is drawn.
         static void HideStrays(StudioStage stage, Plan plan, HashSet<Renderer> hidden)
         {
             foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
             {
-                if (!r || hidden.Contains(r) || r.name != "Translucent plasma cloud" || r.transform.parent == null || !r.transform.parent.name.StartsWith("Visual - plasma impact")) continue;
-                hidden.Add(r); r.forceRenderingOff = true;
-                Note($"Plasma impact cloud switched off for the render: {r.transform.parent.name}/{r.name}");
+                if (!r) continue;
+                var t = r.transform; bool stray = false;
+                for (int up = 0; t && up < 3 && !stray; up++, t = t.parent)
+                    stray = t.name.StartsWith("Visual - plasma impact") || t.name.StartsWith("Visual - steaming neon spike");
+                if (!stray) continue;
+                r.forceRenderingOff = true; r.enabled = false;
+                if (hidden.Add(r)) Note($"Left-over impact view switched off for the render: {r.transform.parent?.name}/{r.name}");
             }
         }
 

@@ -155,6 +155,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             volume.sharedProfile = profile;
         }
 
+        // Called right before each saved picture is drawn, after the tape and the lens are set (drivers use it to
+        // tidy the scene, for example to hide a game view that is left showing on a loaded take).
+        public static event Action<Camera> BeforeFrame;
+
         // Which motion the URP blur uses (a test switch; camera and objects by default).
         public static MotionBlurMode BlurMode = MotionBlurMode.CameraAndObjects;
 
@@ -274,6 +278,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                             StudioCameras.Apply(camera, lens);
                             ApplyLook(profile, shot, lens);
                             camera.targetTexture = target;
+                            try { BeforeFrame?.Invoke(camera); } catch (Exception problem) { Debug.LogException(problem); }
                             camera.Render();
                             var old = RenderTexture.active;
                             RenderTexture.active = target;
