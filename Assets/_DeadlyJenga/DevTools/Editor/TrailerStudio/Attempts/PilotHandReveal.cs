@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -25,10 +25,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // Real sizes on the castle map (measured in iteration 1): survivor about 0.94 m tall, hand 4 m across,
         // blocks 6 x 2 x 2 m, and the spire ends in a single block. The research numbers assume a 1.7 m person,
         // so its distances are scaled by about 0.55 here.
-        const int Iteration = 3;
+        const int Iteration = 5;
         const float ShotStart = 1.6f, ShotLength = 5f;      // tape seconds
         const float FlightStart = .3f, Landed = 2.7f, Yank = 3.3f;    // shot seconds
         const float PullSeconds = 1.2f;                     // huge things move slowly
+        const float PullDistance = 3.5f;                    // metres the block slides out on the yank (blocks are 6 m long)
         const float VerticalFov = 55f;                      // about a 23 mm lens: wide, close to the action
         const float HandDistance = 5f;                      // metres from the lens to the middle of the hand at the grab
         const float HeadHeight = .8f;                       // survivor eye height above the feet (survivor is 0.94 m tall)
@@ -227,7 +228,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             plan.blockSize = StudioHandDirection.BlockSize(body);
             plan.across = heroSide;
             float blockLength = Mathf.Max(plan.blockSize.x, plan.blockSize.z);
-            plan.pullDistance = blockLength + .6f;          // all the way out, so lifting it never drags the tower
+            plan.pullDistance = Mathf.Min(blockLength + .6f, PullDistance);   // one clear yank beats distance
             plan.blockEnd = body.position + plan.pull * (blockLength * .5f) + Vector3.up * (plan.blockSize.y * .5f);
             Note($"Layer under the top: {row.Count} blocks. Pull block #{pullBlock} at {body.position}, out along {plan.pull}, {plan.pullDistance:0.0} m; hero over block #{heroBlock}.");
 
@@ -271,8 +272,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             bool Blocked(Vector3 from, Vector3 to) => Physics.Raycast(from, (to - from).normalized, Vector3.Distance(from, to) - .8f, ~0, QueryTriggerInteraction.Ignore);
             float best = float.MaxValue; Vector3 bestAt = plan.blockEnd + plan.pull * 3 + side * 3; string why = "nothing fitted; fallback spot";
             int tried = 0, clear = 0;
-            foreach (float along in new[] { .5f, 1.5f, 2.5f, 3.5f, 4.5f, 5.5f })
-            foreach (float across in new[] { -6f, -5f, -4f, -3f, -2f, 2f, 3f, 4f, 5f, 6f })
+            Vector3 afterPull = plan.handCentre + plan.pull * plan.pullDistance;
+            foreach (float along in new[] { -2f, -1f, 0f, 1f, 2f, 3f, 4f, 5f })
+            foreach (float across in new[] { -7f, -6f, -5f, -4f, -3f, -2f, 2f, 3f, 4f, 5f, 6f, 7f })
             foreach (float up in new[] { -3f, -2.4f, -1.8f, -1.2f, -.6f, 0f })
             {
                 tried++;
@@ -284,18 +286,26 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (h.z <= 0 || k.z <= 0) continue;
                 // Where the two land on screen, as a fraction of the half frame (0 = centre, 1 = edge).
                 float hx = h.x / h.z / tanH, hy = h.y / h.z / tanV, kx = k.x / k.z / tanH, ky = k.y / k.z / tanV;
-                if (Mathf.Max(Mathf.Abs(hx), Mathf.Abs(kx)) > .7f || Mathf.Max(Mathf.Abs(hy), Mathf.Abs(ky)) > .65f) continue;
+                if (Mathf.Max(Mathf.Abs(hx), Mathf.Abs(kx)) > .75f || Mathf.Max(Mathf.Abs(hy), Mathf.Abs(ky)) > .65f) continue;
                 float handDistance = Vector3.Distance(at, plan.handCentre), heroDistance = Vector3.Distance(at, head);
+                // The hand must not hide the hero (iteration 4: hand, hero and lens were in one line), so they sit on
+                // different sides of the frame, further apart than the hand looks wide.
+                float apart = Vector3.Angle(head - at, plan.handCentre - at), handRadius = Mathf.Asin(Mathf.Clamp01(1.7f / handDistance)) * Mathf.Rad2Deg;
+                if (apart < handRadius + 4 || Mathf.Abs(hx - kx) < .5f) continue;
+                // After the pull the hand (and block) should still be in frame: the payoff happens on screen.
+                Vector3 a = Quaternion.Inverse(look) * (afterPull - at);
+                float ax = a.z > .5f ? a.x / a.z / tanH : 9, ay = a.z > .5f ? a.y / a.z / tanV : 9;
                 float phi = Vector3.Angle(Flat(at - plan.hero), Flat(plan.handCentre - plan.hero));
                 float pitch = Mathf.Asin(FinalAim(plan, at).y) * Mathf.Rad2Deg;
                 bool sunBehind = Vector3.Dot(Flat(at - plan.hero), Flat(toSun)) > 0;
                 float score = Mathf.Abs(handDistance - HandDistance) * 2 + Mathf.Max(0, heroDistance - 7.5f) * 2 + Mathf.Max(0, 5 - heroDistance) * 2
-                    + phi / 30 + Mathf.Max(0, 8 - pitch) / 4 + (sunBehind ? 0 : 1.5f);
+                    + Mathf.Max(0, phi - 40) / 15 + Mathf.Max(0, 8 - pitch) / 4 + (sunBehind ? 0 : 1.5f)
+                    + Mathf.Max(0, Mathf.Max(Mathf.Abs(ax), Mathf.Abs(ay)) - .8f) * 4;
                 if (score < best)
                 {
                     best = score; bestAt = at;
                     why = $"along {along}, across {across}, {up:+0.0;-0.0} m from the hero's feet: hand {handDistance:0.0} m away, hero {heroDistance:0.0} m away, " +
-                        $"face angle {phi:0} deg, looking up {pitch:0} deg, sun {(sunBehind ? "behind" : "in front of")} the camera, hero on screen ({hx:0.00},{hy:0.00}), hand ({kx:0.00},{ky:0.00}); score {score:0.0}";
+                        $"face angle {phi:0} deg, looking up {pitch:0} deg, sun {(sunBehind ? "behind" : "in front of")} the camera, hero on screen ({hx:0.00},{hy:0.00}), hand ({kx:0.00},{ky:0.00}), hand after the pull ({ax:0.00},{ay:0.00}); score {score:0.0}";
                 }
             }
             Note($"Camera spot: tried {tried}, {clear} clear of blocks. Chosen {why}.");
