@@ -14,14 +14,14 @@ Prefab: `World/Maps/Resources/ModeMaps/Mode_vanderbilt.prefab` (GUID kept; conte
 ## Object names inside each tile FBX
 | Name | Becomes |
 |------|---------|
-| `Terrain` | static visual ground |
-| `COL_Terrain` | static non-convex MeshCollider (Surface layer), renderer removed |
+| `Terrain` (+ optional `Terrain_LOD1`) | static visual ground; with LOD1 both go under `Terrain LODs` (LODGroup, LOD0 to 20% ~250 m, LOD1 never culled) |
+| `COL_Terrain` | static non-convex MeshCollider (Surface layer), renderer removed. Backdrop ring tiles more than 20 m from campus have none (a note, not a problem) |
 | `B_<id>_LOD0`, `B_<id>_LOD1` | grouped under `B_<id>` with a LODGroup: LOD0 to 4% screen height, LOD1 to 0.5%, then culled |
 | `COL_B_<id>_<n>` | static convex MeshCollider under `Colliders/COL_B_<id>`, which carries `CampusClimbSurface` |
-| `Trees` | static visual (one merged mesh per tile) |
+| `Trees` (+ optional `Trees_LOD1`) | static visual (one merged mesh per tile); with LOD1 both go under `Trees LODs` (LOD0 to 12% ~420 m, LOD1 to 1%, then culled) |
 | `COL_Trees` | optional static non-convex MeshCollider (trunks) |
 | `Ring` | backdrop boxes, visual only |
-| `Spawn_<name>` | spawn point (moved under `Markers`) |
+| `Spawn_<name>` | marker (moved under `Markers`); used as spawns only when the json has no spawns list |
 | `Route_<nn>` | Alumni Lawn to Peabody walk, ordered by number (fallback when the json has no route) |
 | `Climb_<id>` | point 0.6 m out from a wall of building `<id>`, +Z facing the wall (fallback for the json climb list) |
 
@@ -53,7 +53,8 @@ Every key is optional.
 
 ## Rebuild
 1. Pipeline exports the tiles into `Models/` and writes `unity_map.json`.
-2. `Tools > Deadly Jenga > Maps > Build Vanderbilt Campus` (batch: `DeadlyJenga.DevTools.Editor.VanderbiltCampusBuilder.BuildBatch`).
+2. `Tools > Deadly Jenga > Maps > Build Vanderbilt Campus` (batch: `DeadlyJenga.DevTools.Editor.VanderbiltCampusBuilder.BuildBatch`,
+   or `BuildAndCheckBatch` to build and run step 3 in one session; exit 1 only for real build problems).
    Report: `Logs/Validation/VanderbiltCampusBuild.txt`. It also updates the lobby catalog entry and
    `GameSession/Modes/Resources/MapMatchLayouts/Campus Match Layout.asset`. With no tiles it changes nothing.
 3. `Tools > Deadly Jenga > Validation > Check Vanderbilt Campus` (`VanderbiltCampusChecks.RunBatch`):
