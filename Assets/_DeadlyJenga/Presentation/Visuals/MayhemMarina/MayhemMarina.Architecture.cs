@@ -7,15 +7,16 @@ namespace DeadlyJenga.CandyArt.Marina
     public sealed partial class MayhemMarina
     {
         // The stone island stops at this angle (degrees around the island, 0 = toward the cinema,
-        // 90 = east). East of it is open beach.
-        const float EastCut = 30;
+        // 90 = east, -90 = west). Everything from here round through the back and the east is open beach.
+        const float EastCut = -55;
 
         void ShoreAndCourts()
         {
             mesh.ArcSlab(new Vector3(0,-1.6f,4),new Vector2(9,11),new Vector2(24,21),2.8f,-110,EastCut,F.Rock,true,72);
             mesh.ArcSlab(new Vector3(0,1.12f,4),new Vector2(9,11),new Vector2(23.8f,20.8f),.13f,-110,EastCut,F.Stone,true,72);
-            mesh.Box(new Vector3(0,.6f,10),new Vector3(16,1.2f,15),F.Ivory,.28f,true);
-            mesh.Box(new Vector3(0,1.22f,10),new Vector3(16,.13f,15),F.Stone,.045f,true);
+            // The main deck ends at the back of the cinema; behind it is beach.
+            mesh.Box(new Vector3(0,.6f,7.2f),new Vector3(16,1.2f,9.4f),F.Ivory,.28f,true);
+            mesh.Box(new Vector3(0,1.22f,7.2f),new Vector3(16,.13f,9.4f),F.Stone,.045f,true);
             mesh.Box(new Vector3(-14,.6f,8),new Vector3(11,1.2f,12),F.Ivory,.4f,true);
             mesh.Box(new Vector3(-14,1.22f,8),new Vector3(11,.13f,12),F.Stone,.04f,true);
             mesh.Disk(new Vector3(-10,-.8f,-8),5.55f,2,F.Rock,true);
@@ -33,7 +34,7 @@ namespace DeadlyJenga.CandyArt.Marina
             Bridge(new Vector3(-18,1.24f,-25),new Vector3(-10,1.33f,-12.3f),3.6f,0);
             mesh.Box(new Vector3(-8.27f,1.225f,3.15f),new Vector3(1.12f,.12f,2.65f),F.Stone,0,true);
             mesh.Box(new Vector3(0,1.294f,3.1f),new Vector3(15.4f,.007f,1.1f),F.Ivory,.002f);
-            TileLines(new Vector3(0,1.292f,8),new Vector2(15,10));
+            TileLines(new Vector3(0,1.292f,7.2f),new Vector2(15,9));
             TileLines(new Vector3(-14,1.292f,7),new Vector2(10,10));
             for(int i=0;i<5;i++)
             {
@@ -43,16 +44,15 @@ namespace DeadlyJenga.CandyArt.Marina
         void MarshAndBeach()
         {
             var center = new Vector3(0, .02f, 4);
-            // The whole east side is open beach, low by the water. The plaza and main deck step down onto it.
+            // The whole east side and the back are open beach, low by the water. The plaza, main deck and
+            // the west deck step down onto it.
             mesh.ArcSlab(center, new Vector2(6, 6), new Vector2(27.6f, 24.6f), .36f, EastCut, 140, F.Sand, true, 56);
             Ramp(new Vector3(7.0f, PlazaTop, -4.4f), new Vector3(10.6f, .40f, -4.4f), 3f, false);
             Ramp(new Vector3(7.9f, 1.285f, 6.5f), new Vector3(11.4f, .40f, 6.5f), 2.7f, false);
             mesh.ArcSlab(center, new Vector2(20, 17), new Vector2(27.2f, 24.0f), .34f, -105, -62, F.Sand, true, 28);
-            mesh.ArcSlab(center, new Vector2(20, 18), new Vector2(27.5f, 25.7f), .37f, -34, 32, F.Sand, true, 38);
             Ramp(new Vector3(-23.0f,1.25f,8.78f),new Vector3(-24.1f,1.25f,8.93f),2.7f,false);
             Ramp(new Vector3(-24.1f,1.25f,8.93f),new Vector3(-25.8f,.36f,9.25f),2.7f,false);
-            Ramp(new Vector3(1.1f,1.25f,24.5f),new Vector3(1.1f,1.25f,25.7f),2.7f,false);
-            Ramp(new Vector3(1.1f,1.25f,25.7f),new Vector3(1.1f,.39f,28.4f),2.7f,false);
+            Ramp(new Vector3(-12f,1.285f,14f),new Vector3(-12f,.40f,17.3f),2.7f,false);
             for (int i = 0; i < 22; i++)
             {
                 float angle = Mathf.Lerp(-32, 30, i / 21f) * Mathf.Deg2Rad;
@@ -106,7 +106,6 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void LightingFixtures()
         {
-            Lantern(new Vector3(-13.8f, 6.65f, 17.9f), .24f);
             DeckLight(new Vector3(-12.5f, 1.33f, -10.25f));
             DeckLight(new Vector3(-7.5f, 1.33f, -10.25f));
         }
@@ -305,7 +304,7 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         // The deck beside the plaza (behind the wardrobe) is a small crate course for trying out
         // climbing and jumping. Crates are fixed in place: solid art, no physics.
-        // Routes stay clear: the cinema connector (z 7.6), terrace stairs (x -8.1) and west ramp (x -21).
+        // Routes stay clear: the cinema connector (z 7.6) and the ramp down to the back beach (x -12).
         void GardenLounge()
         {
             const float floor = 1.285f;
@@ -428,49 +427,6 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Disk(c,.1f,.16f,F.Ivory,false,12);
             }
         }
-        void UpperTerraces()
-        {
-            // Leave the entire stair flight open, including headroom below the top landing.
-            TerraceSection(-18.5f,-9.5f,13,21);
-            TerraceSection(-6.7f,-5.5f,13,21);
-            TerraceSection(-9.5f,-6.7f,19.3f,21);
-            Ramp(new Vector3(-8.1f,4.14f,18.4f),new Vector3(-8.1f,4.14f,19.4f),2.8f,false);
-            mesh.Box(new Vector3(-1,3.4f,18),new Vector3(10,1.1f,6),F.Ivory,.4f,true);
-            mesh.Box(new Vector3(-1,4.05f,18),new Vector3(10,.18f,6),F.Stone,.06f,true);
-            Stairs(new Vector3(-8.1f,1.285f,11.5f),new Vector3(-8.1f,4.14f,18.4f),2.3f);
-            // A broad side ramp gives the upper gathering terrace a route without jumps.
-            Ramp(new Vector3(-21.0f,1.28f,2.4f),new Vector3(-21.0f,4.14f,17.4f),2.5f);
-            mesh.Box(new Vector3(-19.7f,4.05f,19.24f),new Vector3(5,.18f,3.72f),F.Stone,0);
-            mesh.WalkStrip(new Vector3(-19.7f,4.14f,17.4f),new Vector3(-19.7f,4.14f,21.1f),Vector3.right*2.5f);
-            for(int i=0;i<4;i++)
-            {
-                float x=i==3?-6.2f:-17+i*3.2f;mesh.Beam(new Vector3(x,4.15f,17.9f),new Vector3(x,7.2f,17.9f),.15f,F.Wood,true);
-                mesh.Beam(new Vector3(x,7.2f,14),new Vector3(x,7.2f,20),.17f,F.Wood);
-            }
-            mesh.Beam(new Vector3(-17,7.2f,17.9f),new Vector3(-6.2f,7.2f,17.9f),.18f,F.Wood);
-            for(int i=0;i<8;i++)mesh.Box(new Vector3(-11.55f,7.24f,14+i*.82f),new Vector3(12.1f,.1f,.25f),F.Wood,.025f);
-            Sofa(new Vector3(-14,4.15f,18.4f),4.3f,Quaternion.identity);Table(new Vector3(-14,4.15f,16.6f),1.1f);
-            Rail(new Vector3(-18,4.15f,13.1f),new Vector3(-9.5f,4.15f,13.1f));
-            Rail(new Vector3(-9.5f,4.14f,13.1f),new Vector3(-9.5f,4.14f,18.25f));
-            Rail(new Vector3(-6.7f,4.14f,13.1f),new Vector3(-6.7f,4.14f,18.25f));
-            Rail(new Vector3(-6.4f,4.15f,15.08f),new Vector3(3.88f,4.15f,15.08f));
-            Rail(new Vector3(3.88f,4.15f,15.08f),new Vector3(3.88f,4.15f,20.85f));
-        }
-        void TerraceSection(float left,float right,float front,float back)
-        {
-            var center=new Vector3((left+right)*.5f,2.7f,(front+back)*.5f);
-            var size=new Vector3(right-left,2.6f,back-front);
-            mesh.Box(center,size,F.Ivory,.08f,true);
-            center.y=4.05f;size.y=.18f;
-            mesh.Box(center,size,F.Stone,.025f,true);
-        }
-        void Stairs(Vector3 from,Vector3 to,float width)
-        {
-            int count=Mathf.CeilToInt((to.y-from.y)/.17f);Vector3 direction=Vector3.ProjectOnPlane(to-from,Vector3.up).normalized;float run=Vector3.ProjectOnPlane(to-from,Vector3.up).magnitude;var q=Quaternion.LookRotation(direction);
-            for(int i=0;i<count;i++){float top=Mathf.Lerp(from.y,to.y,(i+1f)/count);var p=Vector3.Lerp(from,to,(i+.5f)/count);p.y=(top+from.y-.15f)*.5f;mesh.Box(p,new Vector3(width,top-from.y+.15f,run/count+.02f),F.Stone,.026f,false,q);}
-            mesh.WalkStrip(from,to,q*Vector3.right*(width*.5f));
-            for(int side=-1;side<=1;side+=2){var offset=q*Vector3.right*(side*(width*.5f+.14f));Rail(from+offset,to+offset);}
-        }
         void Ramp(Vector3 from,Vector3 to,float width,bool guarded=true)
         {
             var slope=(to-from).normalized;var rotation=Quaternion.LookRotation(slope);
@@ -485,26 +441,6 @@ namespace DeadlyJenga.CandyArt.Marina
             for(int i=0;i<=count;i++)Post(Vector3.Lerp(from,to,i/(float)count));
             mesh.Beam(from+Vector3.up*.58f,to+Vector3.up*.58f,.035f,F.Wood);
             mesh.Beam(from+Vector3.up*1.03f,to+Vector3.up*1.03f,.065f,F.Wood,true);
-        }
-        void Landmark()
-        {
-            var plinth = new Vector3(1.8f, 4.14f, 19.9f);
-            mesh.Box(plinth + Vector3.up * .27f, new Vector3(2.65f, .54f, 1.85f), F.DarkWood, .13f, true);
-            for (int i = 0; i < 10; i++)
-                mesh.Box(plinth + Vector3.up * (.90f + i * .78f), new Vector3(2.5f, .76f, 1.25f),
-                    (F)((int)F.Red + i % 3), .11f, true, Quaternion.Euler(0, i % 2 * 90 + i % 3 * 3, 0));
-            var lanternBase = plinth + Vector3.up * 8.42f;
-            mesh.Disk(lanternBase, 1.32f, .24f, F.Brass, false, 32);
-            mesh.Ellipsoid(lanternBase + Vector3.up * .87f, new Vector3(.62f, .74f, .62f), F.Glow, rings: 10, sides: 20);
-            for (int i = 0; i < 6; i++)
-            {
-                float angle = i * Mathf.PI / 3;
-                var edge = new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle)) * .89f;
-                mesh.Beam(lanternBase + edge + Vector3.up * .20f, lanternBase + edge + Vector3.up * 1.56f, .07f, F.DarkWood);
-            }
-            mesh.Disk(lanternBase + Vector3.up * 1.55f, 1.16f, .22f, F.Brass, false, 32);
-            mesh.Ellipsoid(lanternBase + Vector3.up * 1.78f, new Vector3(1.13f, .64f, 1.13f), F.Teal, rings: 10, sides: 24);
-            mesh.Beam(lanternBase + Vector3.up * 2.30f, lanternBase + Vector3.up * 2.76f, .065f, F.Brass);
         }
     }
 }

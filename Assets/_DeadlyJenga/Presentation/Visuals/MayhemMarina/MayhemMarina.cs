@@ -209,7 +209,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             if(Built)return;controls=lobby;mesh=new MarinaMesh();
             visual=new GameObject("Visual · Mayhem Marina").transform;visual.SetParent(transform,false);
-            ShoreAndCourts();ShowtimePlaza();Pavilion();StyleStage();HallOfFame();GardenLounge();ArrivalSeating();UpperTerraces();Landmark();Planting();
+            ShoreAndCourts();ShowtimePlaza();Pavilion();StyleStage();HallOfFame();GardenLounge();ArrivalSeating();Planting();
             MarshAndBeach();JetSkiDock();LightingFixtures();SignMounts();
             mesh.Disk(new Vector3(0, OceanLevel - SeabedDepth - .12f, 3), 38, .12f, MarinaFinish.Sand, false, 80);
             mesh.Flush(visual,transform.TransformPoint(Vector3.up*OceanLevel).y);
@@ -218,7 +218,7 @@ namespace DeadlyJenga.CandyArt.Marina
             Mark("Arrival",Arrival);Mark("Wardrobe",Wardrobe);Mark("Play screen",PlayScreen);
             Mark("Play interaction",new Vector3(0,1.285f,3.4f));Mark("Lounge",new Vector3(13,1.28f,5));
             Mark("Beacon Walk", Vector3.Lerp(BeaconWalkStart, BeaconWalkEnd, .5f));
-            Mark("Pool",new Vector3(17,.3f,-8));Mark("Roof terrace",new Vector3(-12,4.05f,17));
+            Mark("Pool",new Vector3(17,.3f,-8));Mark("Roof terrace",new Vector3(-8,.38f,18.5f));
             Mark("Showtime plaza",PlazaCenter);Mark("Last match",FameBoard);
             Mark("Overview camera",new Vector3(-29,18,-39));Mark("Arrival camera",new Vector3(-11,3.1f,-8.9f));
             Built=true;
