@@ -435,6 +435,15 @@ MonoBehaviour:
     walkableIsland: 1
     supportedModes:
     - demo
+  - id: liner
+    title: "Sinking Liner \xB7 WIP"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 5120330000000000001, guid: 55e3ee3d98e440ddb705c20d6e610752, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes:
+    - demo
   - id: deck-ship-xxl
     title: "Deck Ship XXL \xB7 WIP"
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
