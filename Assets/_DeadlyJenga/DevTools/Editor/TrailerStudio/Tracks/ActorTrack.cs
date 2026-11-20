@@ -184,12 +184,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     // Only open the frame up when something needs to change it: an in-between pose, or an override.
                     bool between = part > .001f && take.Covers(frame + 1);
                     var filters = ActorFrameFilters.For(stage, track);
+                    bool hand = track.type == HandTrack.Id;
                     ActorFrame pose = null;
-                    if (between || filters.Count > 0)
+                    if (between || filters.Count > 0 || hand)
                     {
                         pose = ActorFrame.Read(track.type, data);
                         if (between) pose = ActorFrame.Blend(pose, ActorFrame.Read(track.type, take.frames[index + 1]), part);
                         foreach (var filter in filters) filter.Apply(stage, track, time, pose);
+                        // A hand frame with no bones is never drawn by the copy; give it bones from its target.
+                        if (hand) StudioHandDirection.FillBones(pose);
                         data = pose.Write();
                     }
 
@@ -213,6 +216,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
 
                     if (!Pose(data, step, walker, gait, out string equipment)) { weapon?.Hide(); return; }
+                    if (hand) StudioHandDirection.SyncVisual(root);
                     ShowWeapon(equipment, pose, data);
                     if (stage.recording) look.Apply(root, StudioTrackNotes.Of(track), StudioColors.For(stage.set.Mark(track.id)?.color ?? 0));
                 }

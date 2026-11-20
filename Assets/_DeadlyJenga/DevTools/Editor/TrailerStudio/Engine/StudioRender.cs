@@ -167,6 +167,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var vignette = Get<Vignette>(); vignette.active = shot.vignette > .001f; vignette.intensity.Override(Mathf.Clamp01(shot.vignette) * .55f);
             var grain = Get<FilmGrain>(); grain.active = shot.grain > .001f; grain.intensity.Override(Mathf.Clamp01(shot.grain));
             var fringe = Get<ChromaticAberration>(); fringe.active = shot.chroma > .001f; fringe.intensity.Override(Mathf.Clamp01(shot.chroma));
+            var blur = Get<MotionBlur>(); blur.active = shot.motionBlur > .001f;
+            blur.mode.Override(MotionBlurMode.CameraAndObjects); blur.quality.Override(MotionBlurQuality.High);
+            blur.intensity.Override(Mathf.Clamp01(shot.motionBlur)); blur.clamp.Override(.05f);
             var lookup = Get<ColorLookup>();
             lookup.active = false;
             if (!string.IsNullOrEmpty(shot.lut))
@@ -210,6 +213,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     var times = StudioCameras.Timeline(shot, set, settings.fps, sub);
                     int frames = times.Count / sub;
                     var done = new Finished { camera = shot.name, cameraId = shot.id, folder = folder, fps = settings.fps, width = width, height = height };
+                    var framing = shot.measure != null && shot.measure.Count > 0 ? new StudioFraming(stage, shot.measure, settings.fps) : null;
                     if (times.Count > 0)
                     {
                         // Throw-away pictures of the first frame. Whatever was on screen before the render
@@ -247,6 +251,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                             RenderTexture.active = target;
                             reader.ReadPixels(new Rect(0, 0, width, height), 0, 0);
                             RenderTexture.active = old;
+                            if (framing != null && s == open - 1) framing.Measure(camera, n, tape);
                             if (sum != null)
                             {
                                 var pixels = reader.GetRawTextureData<float>();
@@ -287,6 +292,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         if (n % 5 == 0) try { Changed?.Invoke(); } catch { }
                     }
                     done.seconds = (float)watch.Elapsed.TotalSeconds;
+                    try
+                    {
+                        framing?.Write(folder);
+                        if (!exr) StudioFraming.Filmstrip(folder, done.frames, settings.fps, shot.start, settings.filmstrip);
+                    }
+                    catch (Exception error) { Debug.LogWarning("[TrailerStudio] Metrics or filmstrip failed: " + error.Message); }
                     File.WriteAllText(Path.Combine(folder, "shot.json"), JsonUtility.ToJson(new ShotRecord
                     { name = shot.name, id = shot.id, frames = done.frames, fps = settings.fps, width = width, height = height, tapeStart = shot.start, tapeEnd = shot.End(set), subFrames = sub, format = settings.format }, true));
 

@@ -58,7 +58,34 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float bloom, vignette, grain, chroma;
         public string lut = "";           // name of a LUT texture in the project, or empty
 
+        // Pilot additions: aim at any target, ride on any target, impact shakes, framing metrics.
+        // Target text: "actor:<mark id>", "head:<mark id>", "body:<mark id>", "block:<index>", "point:x,y,z" (metres from the stage spot).
+        public List<StudioAimKey> aims = new List<StudioAimKey>();   // empty = aim comes from the keys and behavior
+        public string rideTarget = "";    // non-empty = key positions are offsets from this target
+        public float leadRoom;            // seconds: aim this far ahead of where the aimed actor is going
+        public List<StudioShake> shakes = new List<StudioShake>();
+        public List<string> measure = new List<string>();   // targets to write framing metrics for
+        public float motionBlur;          // 0 to 1: URP camera-and-object motion blur in renders
+
         public float End(StudioSet set) => end < 0 ? set.length : Mathf.Min(end, set.length);
+    }
+
+    // From 'time' on, the camera aims at 'target' (+ offset), easing over 'blend' seconds from the previous aim.
+    [Serializable] public sealed class StudioAimKey
+    {
+        public float time;
+        public string target = "";
+        public Vector3 offset;
+        public float blend = .8f;
+    }
+
+    // An impact: rotation-only shake that starts at 'time' and dies away.
+    [Serializable] public sealed class StudioShake
+    {
+        public float time;
+        public float degrees = 1.5f;      // peak rotation
+        public float decay = .4f;         // seconds until it is gone
+        public float rate = 9;            // wobbles per second
     }
 
     // One piece of the final cut: part of a shot.
@@ -77,6 +104,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public string format = "png";     // png, exr, mp4, prores
         public bool cinema = true;        // cinema quality preset during the render
         public bool freezeAmbient;        // true = ocean, sky and birds hold still, so two renders are bit-for-bit the same
+        public int filmstrip = 12;        // frames in the contact sheet written next to each shot (0 = none)
     }
 
     public static class StudioAspects
