@@ -64,7 +64,7 @@ namespace DeadlyJenga.Presentation
                         var cityGlass=City?(solidCandy?SolidMaterial(body):CityGlass(body)):null;
                         for(int i=0;i<replacement.Length;i++)replacement[i]=cityGlass?cityGlass:blockMaterials[i%blockMaterials.Length];
                         renderer.sharedMaterials=replacement;
-                        if(City&&solidCandy)KeepOwnLook(renderer);
+                        if(City&&solidCandy){KeepOwnLook(renderer);PauseBatching();}
                         SoftenEdges(renderer,body);
                     }
                     if(City)DecorateCity(body,visual);
@@ -134,7 +134,7 @@ namespace DeadlyJenga.Presentation
             RenderSettings.skybox=oldSky;RenderSettings.ambientMode=oldAmbientMode;
             RenderSettings.ambientSkyColor=oldAmbientSky;RenderSettings.ambientEquatorColor=oldAmbientEquator;
             RenderSettings.ambientGroundColor=oldAmbientGround;RenderSettings.ambientIntensity=oldAmbientIntensity;
-            ReleaseSolidMaterials();active=false;revision=-1;environment=null;sceneSkins=null;cityBuilt=false;cabins.Clear();cars.Clear();carPhase.Clear();
+            ReleaseSolidMaterials();ResumeBatching();active=false;revision=-1;environment=null;sceneSkins=null;cityBuilt=false;cabins.Clear();cars.Clear();carPhase.Clear();
         }
         static void Release(Object item){if(!item)return;if(Application.isPlaying)Destroy(item);else DestroyImmediate(item);}
         GameObject Model(string name,ArtMesh builder,Transform parent,Material[] materials,bool body=false)

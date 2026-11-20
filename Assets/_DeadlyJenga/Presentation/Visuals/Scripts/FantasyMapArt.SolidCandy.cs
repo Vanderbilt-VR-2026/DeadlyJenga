@@ -238,6 +238,11 @@ namespace DeadlyJenga.Presentation
             renderer.SetPropertyBlock(keepOwnLook);optedOut.Add(renderer);
         }
         void RestoreBatching(){foreach(var r in optedOut)if(r)r.SetPropertyBlock(null);optedOut.Clear();}
+        // The property block alone did not stop it (pass 3 captures), so batching is also switched off while
+        // this map is shown, and switched back on when the art is removed.
+        bool batchingPaused;
+        void PauseBatching(){if(batchingPaused)return;batchingPaused=true;DeadlyJenga.CandyArt.StructuralMeshBatches.BatchingEnabled=false;}
+        void ResumeBatching(){if(!batchingPaused)return;batchingPaused=false;DeadlyJenga.CandyArt.StructuralMeshBatches.BatchingEnabled=true;}
 
         void WarmLighting()
         {
