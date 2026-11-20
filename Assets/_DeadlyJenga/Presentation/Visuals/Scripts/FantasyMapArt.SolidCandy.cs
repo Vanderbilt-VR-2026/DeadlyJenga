@@ -39,6 +39,7 @@ namespace DeadlyJenga.Presentation
             Color color;string key;
             if(purpose.Contains("crossing")){bool high=body.worldCenterOfMass.y-groundY>17;key=high?"bridge high":"bridge";color=high?new Color(.92f,.27f,.3f):new Color(.9f,.64f,.36f);}
             else if(purpose.Contains("trestle")){key="trestle";color=new Color(.78f,.54f,.3f);}
+            else if(site.StartsWith("Harbor bascule")){key="bascule";color=new Color(.9f,.64f,.36f);}
             else{color=DistrictColor(site);key=color.ToString();}
             if(solidMaterials.TryGetValue(key,out var material)&&material)return material;
             material=new Material(cityCandyMaterial){name="Candy planks "+key};
@@ -225,6 +226,33 @@ namespace DeadlyJenga.Presentation
             mesh.Box(at+Vector3.up*1.8f,new Vector3(.1f,3.6f,.1f),Quaternion.identity,0,Sugar);
             mesh.Box(at+new Vector3(.6f,3.2f,0),new Vector3(1.2f,.75f,.05f),Quaternion.identity,0,tint);
             mesh.Sphere(at+Vector3.up*3.7f,Vector3.one*.16f,0,Gold,3,6);
+        }
+
+        // One log line per pass: any block renderer that still has a non-candy material (helps spot missed parts).
+        void ReportSolid()
+        {
+            var known=new HashSet<Material>(solidMaterials.Values);int bad=0;var sb=new System.Text.StringBuilder();
+            foreach(var body in Services.World.Blocks)
+            {
+                if(!body)continue;
+                foreach(var r in body.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    if(r.name=="Fantasy decorations")continue;
+                    var mats=r.sharedMaterials;bool ok=true;foreach(var m in mats)if(!known.Contains(m))ok=false;
+                    if(ok)continue;bad++;
+                    if(bad<=12){var f=r.GetComponent<MeshFilter>();sb.Append(" | ").Append(body.name).Append(" / ").Append(r.name).Append(" parent=").Append(r.transform.parent?r.transform.parent.name:"-")
+                        .Append(" subs=").Append(f&&f.sharedMesh?f.sharedMesh.subMeshCount:-1).Append(" mats=");foreach(var m in mats)sb.Append(m?m.name:"null").Append(',');}
+                }
+            }
+            // Anything else in the scene still drawn with the map's original block materials.
+            var palette=new HashSet<Material>(blockMaterials);int stray=0;
+            foreach(var r in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+            {
+                bool uses=false;foreach(var m in r.sharedMaterials)if(m&&palette.Contains(m))uses=true;
+                if(!uses)continue;stray++;
+                if(stray<=8){var path=r.name;for(var t=r.transform.parent;t&&path.Length<160;t=t.parent)path=t.name+"/"+path;sb.Append(" || palette user: ").Append(path).Append(" enabled=").Append(r.enabled&&r.gameObject.activeInHierarchy);}
+            }
+            Debug.Log("[SolidCandy] renderers with other materials: "+bad+", palette users in scene: "+stray+sb);
         }
 
         void WarmLighting()

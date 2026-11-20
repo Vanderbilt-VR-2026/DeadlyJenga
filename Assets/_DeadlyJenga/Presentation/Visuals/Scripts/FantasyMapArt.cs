@@ -70,6 +70,7 @@ namespace DeadlyJenga.Presentation
                     else if(theme!=FantasyMapTheme.CandyGlass)Decorate(body,visual,count++);
                 }
                 if(City)FinishCityPass();
+                if(City&&solidCandy)ReportSolid();
             }
         }
         void Activate()

@@ -82,7 +82,7 @@ Shader "DeadlyJenga/Fantasy Surface"
     if(faceY){along=lp.x;ri=floor(lp.z/1.4);fy=frac(lp.z/1.4);plank=4.2;longRow=1;}
     float u=(along+hash(float2(ri,faceX?3:7))*plank)/plank;float ui=floor(u);float fu=frac(u);
     float seamY=min(fy,1-fy)*(faceY?1.4:.55);float seamX=min(fu,1-fu)*plank;
-    float aa=max(fwidth(seamY),.002);float gap=1-smoothstep(.018-aa,.05+aa,min(seamY,seamX));
+    float aa=max(fwidth(seamY),.002);float gap=1-smoothstep(.03-aa,.075+aa,min(seamY,seamX));
     float id=hash(float2(ui*1.37+ri,ri*.71));
     float grain=sin((longRow>.5?along:lp.y)*9+noise(float2(along,lp.y)*1.3)*3)*.5+.5;
     color=_BaseColor.rgb*(.9+.16*id);color=lerp(color,color*(.94+.06*grain),.6);
