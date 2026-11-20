@@ -99,8 +99,6 @@ namespace DeadlyJenga.CandyArt.Marina
                 // Window display: three-step riser with souvenirs, lit from behind.
                 for (int step = 0; step < 3; step++)
                     B(s * winMid, sill + .05f + step * .22f, front + .45f + step * .3f, new Vector3(winWide - .3f, .1f + step * 0f, .32f), step % 2 == 0 ? F.Ivory : F.CandyCream, .02f);
-                B(s * winMid, (sill + doorTop) * .5f, front + 1.5f, new Vector3(winWide - .1f, doorTop - sill, .04f), F.CandyLilac, .01f);
-                B(s * winMid, doorTop - .08f, front + 1.46f, new Vector3(winWide - .2f, .05f, .04f), F.Glow, .01f);
                 MiniTower(P(s * winMid, sill + .54f, front + 1.05f), q, .9f);
                 for (int i = 0; i < 3; i++)
                 {
@@ -389,9 +387,9 @@ namespace DeadlyJenga.CandyArt.Marina
         // A snow globe on a wooden base with a tiny block tower inside.
         void SnowGlobe(Vector3 bottom, Quaternion q, F baseColor)
         {
-            mesh.Disk(bottom, .11f, .08f, baseColor, false, 16);
-            MiniTower(bottom + Vector3.up * .08f, q, .14f);
-            mesh.Ellipsoid(bottom + Vector3.up * .19f, Vector3.one * .12f, F.Glass, q, 8, 14);
+            mesh.Disk(bottom, .12f, .08f, baseColor, false, 16);
+            MiniTower(bottom + Vector3.up * .08f, q, .1f);
+            mesh.Ellipsoid(bottom + Vector3.up * .2f, Vector3.one * .14f, F.Glass, q, 8, 14);
         }
 
         void Mug(Vector3 bottom, F color)
