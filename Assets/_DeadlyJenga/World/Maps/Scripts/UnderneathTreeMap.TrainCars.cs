@@ -20,8 +20,17 @@ namespace DeadlyJenga.CastlePrototype
                 .SelectMany(r => r.sharedMaterials).Where(m => m).ToList();
             Material Paint(string label, Color fallback) =>
                 paints.FirstOrDefault(m => m.name.StartsWith(label)) ?? ColoredPaper("Train " + label, fallback, .7f);
-            var red = Paint("Cranberry enamel", new Color(.6f, .05f, .08f));
-            var green = Paint("Pine enamel", new Color(.05f, .3f, .15f));
+            // The model's enamel is almost black in the room light; repaint the whole train brighter.
+            var red = Brighter(Paint("Cranberry enamel", new Color(.6f, .05f, .08f)), "Toy train cranberry enamel", new Color(.82f, .07f, .1f));
+            var green = Brighter(Paint("Pine enamel", new Color(.05f, .3f, .15f)), "Toy train pine enamel", new Color(.07f, .46f, .22f));
+            foreach (var r in engine.GetComponentsInChildren<Renderer>())
+            {
+                var shared = r.sharedMaterials;
+                for (int i = 0; i < shared.Length; i++)
+                    if (shared[i] && shared[i].name.StartsWith("Cranberry enamel")) shared[i] = red;
+                    else if (shared[i] && shared[i].name.StartsWith("Pine enamel")) shared[i] = green;
+                r.sharedMaterials = shared;
+            }
             var brass = Paint("Polished brass", new Color(.85f, .65f, .3f));
             var black = Paint("Blackened tinplate", new Color(.06f, .06f, .07f));
             var lamp = Paint("Lamp ivory", new Color(1f, .93f, .75f));
@@ -159,6 +168,13 @@ namespace DeadlyJenga.CastlePrototype
             var visual = Child(car, "Visual", Vector3.zero, Quaternion.identity);
             foreach (var pair in parts)
                 JoinRailDetail(visual, pair.Key.name, pair.Value, pair.Key);
+        }
+
+        Material Brighter(Material source, string label, Color color)
+        {
+            var paint = new Material(source) { name = label, color = color };
+            wrapping.Add(paint);
+            return paint;
         }
 
         // The engine's size in its parent's units, measured from its meshes.
