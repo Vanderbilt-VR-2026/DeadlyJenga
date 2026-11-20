@@ -414,14 +414,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 .Any(h => h.collider.attachedRigidbody != summit && !h.collider.transform.IsChildOf(summit.transform));
             Vector3 Pick(string id, IEnumerable<Vector3> spots, params Vector3[] targets)
             {
-                int tried = 0;
+                int tried = 0, bestSeen = -1; Vector3 best = spots.First();
                 foreach (var spot in spots)
                 {
                     tried++;
-                    if (Clear(spot) && targets.All(t => Sees(spot, t))) { lines.Append($"  {id}: spot {tried} of the list is clear\n"); return spot; }
+                    if (!Clear(spot)) continue;
+                    int seen = targets.Count(t => Sees(spot, t));
+                    if (seen == targets.Length) { lines.Append($"  {id}: spot {tried} of the list is clear\n"); return spot; }
+                    if (seen > bestSeen) { bestSeen = seen; best = spot; }
                 }
-                lines.Append($"  {id}: NO clear spot in {tried}; using the first\n");
-                return spots.First();
+                lines.Append($"  {id}: NO fully clear spot in {tried}; using one that sees {bestSeen} of {targets.Length} targets\n");
+                return best;
             }
             Vector3 heroAt(int f) => plan.Riding(head, f);
             Vector3 handAt(int f) => plan.Riding(plan.handCentre, f);
@@ -485,17 +488,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // S06 final image: wide on the camera side, the spire's stump low in frame, the block held up in the
             // giant fingers with the hero on it; the lift settles inside the shot.
             {
-                var s = Shots[5]; var c = NewCamera(s, 24);
+                var s = Shots[5]; var c = NewCamera(s, 20);
                 Vector3 heroEnd = heroAt(LengthFrames), handEnd = handAt(LengthFrames);
                 // Aim halfway between the stump's top and the held block, so both are in frame (v03 lost the stump).
                 Vector3 stumpTop = plan.centre - up * 1f;
                 Vector3 middle = Vector3.Lerp(stumpTop, (heroEnd + handEnd) * .5f, .55f);
                 var spots = new List<Vector3>();
-                foreach (float d in new[] { 11f, 12.5f, 14f })
-                foreach (float lift in new[] { -2f, -.5f, 1f, 2.5f })
-                foreach (float turn in new[] { 15f, 0f, 30f })
+                foreach (float d in new[] { 8f, 9.5f, 11f })
+                foreach (float lift in new[] { -.5f, 1f, 2.5f, -2f })
+                foreach (float turn in new[] { 15f, 0f, 30f, -15f, 45f })
                 { Vector3 p = middle + (plan.side * Mathf.Cos(turn * Mathf.Deg2Rad) - plan.along * Mathf.Sin(turn * Mathf.Deg2Rad)) * d; p.y = plan.top + lift; spots.Add(p); }
-                Vector3 at = Pick(s.id, spots, heroEnd, handEnd, plan.centre + up * -.5f);
+                Vector3 at = Pick(s.id, spots, heroEnd, handEnd, plan.centre - up * .9f);
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, middle));
                 Report(s, c, at, handEnd, 2.4f); cameras.Add(c);
                 lines.Append($"  S06 hero end {V(heroEnd)}, hand end {V(handEnd)}\n");
