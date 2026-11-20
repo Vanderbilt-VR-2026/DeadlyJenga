@@ -21,6 +21,9 @@ namespace DeadlyJenga.CastlePrototype
         public float swayRoll = 2.5f, swayPitch = 1, swayHeave = .2f;
         public float rollDegrees = 17, pitchDegrees = 7;
         public float icebergList = 7, icebergShove = 7;
+        [Tooltip("How fast the ship seems to sail (m/s). The ship never moves; the iceberg drifts past at this speed. " +
+                 "Keep it equal to the sea art's cruise speed (DeckShipSeaArt) so the water and iceberg agree.")]
+        public float cruiseSpeed = 7;
 
         public const float RollSeconds = 18, PitchSeconds = 15, IcebergSeconds = 18, RightingSeconds = 8, IcebergImpact = 5;
 
@@ -195,7 +198,11 @@ namespace DeadlyJenga.CastlePrototype
         void MoveIceberg(float e)
         {
             if (!iceberg) return;
-            var start = new Vector3(15, 0, 95); var hit = new Vector3(17, 0, 31); var past = new Vector3(19.5f, 0, -45);
+            // The iceberg is still in the sea, so it comes at the ship's cruise speed; after the hit the ship has
+            // nearly stopped and the iceberg grinds slowly down the starboard side.
+            var hit = new Vector3(17, 0, 31);
+            var start = hit + Vector3.forward * Mathf.Max(4, cruiseSpeed) * IcebergImpact;
+            var past = new Vector3(19.5f, 0, -45);
             Vector3 p;
             if (e < IcebergImpact) p = Vector3.Lerp(start, hit, e / IcebergImpact);
             else p = Vector3.Lerp(hit, past, (e - IcebergImpact) / (IcebergSeconds - IcebergImpact));

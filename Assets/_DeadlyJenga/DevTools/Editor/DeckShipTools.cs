@@ -394,7 +394,7 @@ namespace DeadlyJenga.DevTools.Editor
         // deck (eye height on the stern deck, moving with the ship), top.
         static void Shoot(DeckShipMap map, ISessionInfo session, string label)
         {
-            string[] views = label.StartsWith("calm", StringComparison.Ordinal) ? new[] { "hero", "stern", "side", "deck", "top" }
+            string[] views = label.StartsWith("calm", StringComparison.Ordinal) ? new[] { "hero", "stern", "side", "deck", "top", "wake", "waterline" }
                 : label.StartsWith("roll", StringComparison.Ordinal) ? new[] { "stern", "hero", "deck" }
                 : label.StartsWith("iceberg", StringComparison.Ordinal) ? new[] { "hero", "deck" }
                 : label.Contains("pitch") ? new[] { "side", "deck" }
@@ -422,6 +422,8 @@ namespace DeadlyJenga.DevTools.Editor
                         case "stern": Place(camera, root.TransformPoint(0, 13, -78), root.TransformPoint(0, 7, 0), 36); break;
                         case "side": Place(camera, root.TransformPoint(72, 11, 0), root.TransformPoint(0, 6, 0), 46); break;
                         case "top": Place(camera, root.TransformPoint(0, 110, 0), root.TransformPoint(0, 0, .01f), 42); break;
+                        case "wake": Place(camera, root.TransformPoint(16, 14, -95), root.TransformPoint(0, 0, -40), 50); break;
+                        case "waterline": Place(camera, root.TransformPoint(24, 2.2f, 22), root.TransformPoint(0, 1.2f, 8), 55); break;
                         default:
                         {
                             // Eye height at the first spawn, looking at the cargo deck; it moves with the ship.
