@@ -26,11 +26,14 @@ Per shot, each image labelled with shot id, cut frame and tape frame:
 2. **First, key and last stills** at full preview size, plus key -2 and key +2. One question at a time,
    each answered yes or no plus one sentence: Is the subject visible and recognisable? Is it where the
    eye goes first (name the grid cell, compare with `frame_at_key.grid`)? Is the `learns` line true of
-   this frame? Is the face visible where the plan says? Anything ugly (clipping, camera in geometry,
-   grey ghosts, empty sky where the hand should be)?
+   this frame? Does the hero's reaction read through head direction, body and hands (the avatars
+   have no drawn face)? For every hit: are the attacker and the victim both readable, and can you
+   say who did what to whom from key -2, key and key +2? Is the hero's colour the one the plan names?
+   Anything ugly (clipping, camera in geometry, grey ghosts, a white survivor from motion blur, a
+   survivor sunk into a tilted block)?
 3. **Subject overlay**: the key still with the engine's projected box, area %, occlusion % and the 3 x 3
-   grid. If the still looks empty but the overlay says the hand is 30 % of frame, look again and report
-   the disagreement (that was F5).
+   grid, plus the attacker's and victim's boxes on every hit. If the still looks empty but the overlay
+   says the subject is 30 % of frame, look again and report the disagreement (that was F5).
 4. **Motion strip**: camera speed from the track keys (m/s, deg/s), subject screen speed, mean optical
    flow, frame-difference score, with lines at the key frame and the cuts. Is there a motion peak at the
    key frame? Any frame-difference spike that is not a cut (a pop)?
@@ -41,7 +44,9 @@ For the whole cut:
    this: is the story clear?
 7. **Audio plot**: mix waveform, momentary and short-term loudness, beat grid, cut marks, detected
    onsets, planned sound events.
-8. **Sync table**: for every cut, hit and key moment, the nearest onset and the offset in frames.
+8. **Sync table**: for every cut, hit and key moment, the nearest onset and the offset in frames, in
+   two columns: the full mix and that event's own sound lane (`tools/assemble.py`). Trust the lane
+   column; every voice line is marked "needs ears" whatever it reads.
 9. **Stem table**: integrated loudness and peak per lane (music, take, designed SFX, voice). Attempt 1's
    music stem sat near -40 dB RMS against SFX near -10 dB peak (F3).
 10. **Delivery numbers** and the `profile.py check` output (`measured-reference.md`).
@@ -75,8 +80,12 @@ Inputs: brief, concept, plan, lint output, evidence pack [, previous notes, prev
    nothing; list it under "owed".
 5. Check the geometry yourself: for every shot with numbers, compute the frame height at the
    subject (distance x 24 / focal) and say whether the subject and its action fit. Check that no
-   shot needs something the game cannot do (two giant hands) and that every `shows` label is true
-   of the shot as described.
+   shot needs something the game or the Studio cannot do (a punch cue, a tsunami cue that pushes
+   survivors, an elimination on the Studio stage: `game-content.md` section 9) and that every
+   `shows` label is true of the shot as described.
+5b. Mayhem: for every hit, name the attacker and the victim and say whether both read; name the
+   hero in each section; say whether each new disaster gets its own beat and whether you always
+   know where on the tower you are.
 6. For every category at 3 or below write: shot/frame, symptom, cause, stage to return to,
    optional fix.
 7. End with a numbered list of concrete errors found, then the top three problems, ranked by how
@@ -109,15 +118,19 @@ Use this when the session may not spawn agents (or none can be started). It is w
    - payoff key off the main hit by more than 2 frames; title off its hit or earlier than its window;
    - the hero's reaction placed after the full reveal; a duplicated or near-duplicate shot;
    - a subject that would be hidden or facing away at its key frame; an impact with no sound;
-   - a frame whose `fit` cannot contain its action; a capability the game lacks (two hands, a sea
-     drawback); a `shows` label that is not true of the shot; an example's tagline, hero or numbers.
+   - a frame whose `fit` cannot contain its action; a capability the game or Studio lacks (a punch
+     cue, a sea drawback, a drawn face, a pushing `tsunami` cue); a `shows` label that is not true of
+     the shot; an example's tagline, hero, twist or numbers;
+   - mayhem: a hit whose attacker is off frame and not in the shot before; the hero missing from the
+     build or the payoff; two disasters first shown in the same beat; a knock-off cut before the
+     victim lands; a crowd wide with nobody at h ≥ 0.08; a reaction shot that relies on a face.
 4. List at least three real problems with fixes. If you find fewer, look again at the framing and
    the capability list before concluding.
 5. End with a **critic owed** block for whoever orchestrates the work: the files to give an
    independent critic (brief, concept, plan, lint table, animatic), the prompt in section 3, and the
    planted-defect recipe in section 6 (for a text plan: move the payoff 5 frames off its hit, move
-   the reaction after the reveal, duplicate one shot; skill test 1's critics found 3 of 3 such
-   defects in both copies).
+   the reaction after the reveal, take a hit's attacker out of its frame; skill test 1's critics
+   found 3 of 3 such defects in both copies).
 6. Mark the stage-4 gate "passed on self-review". In production mode an independent critic must
    still review the plan or the preview before stage 8.
 
@@ -126,11 +139,11 @@ Use this when the session may not spawn agents (or none can be started). It is w
 | # | Category | Weight | What it asks | Hard lints that cap it at 2 |
 |---|----------|--------|--------------|------------------------------|
 | C1 | Hook | 1.5 | Do the first 2 s show something only this game has, and is the core verb readable by its deadline? | L04, L05 |
-| C2 | Clarity | 1.5 | Does every shot read at preview size: one subject, one idea, the `learns` line and `shows` labels true, the subject visible? Muted: is the rule readable (a caption where needed)? | L02, L09, L10, R01 |
-| C3 | Story and order | 1.5 | Sections in order, each beat raising something, a staged reveal or a cold open whose consequences escalate, causes before effects, ending on the strongest beat | L03, L08 |
-| C4 | Emotion and human stakes | 1.0 | A hero with a readable face, a reaction, a failure, a near miss | L14 |
+| C2 | Clarity and readable chaos | 1.5 | Does every shot read at preview size: one subject, one idea, the `learns` line and `shows` labels true, the subject visible? In every hit, can a viewer say who did what to whom? Are several survivors readable at once where claimed? Muted: is the rule readable (a caption where needed)? | L02, L09, L10, L41, R01 |
+| C3 | Story, cause and escalation | 1.5 | Sections in order, each beat raising something, a staged reveal or a cold open whose consequences escalate, every effect after its cause, disasters added one layer at a time, both halves of mayhem shown, ending on the strongest beat | L03, L08, L40 |
+| C4 | A hero through the chaos | 1.0 | One hero we can follow (by colour) through the hook, the build and the payoff; her reaction reads through head, body and hands; someone fails; the hero wins, loses or nearly falls | L14, L42 |
 | C5 | Rhythm and sync | 1.0 | The declared shape met; payoff and title on hits; barrage on hits; pace that builds; not gridded | L06, L07, L11, R03 |
-| C6 | Shot craft | 1.0 | Framing that can contain its action (`fit`), scale references, declared moves eased, no jump cuts, continuity, eye trace | L15, L16, L17, L38 |
+| C6 | Shot craft and geography | 1.0 | Framing that can contain its action and the knockback path (`fit`), scale references, declared moves eased, no jump cuts, continuity, eye trace, the tower's geography clear (where is the hero, which way is down to the sea) | L15, L16, L17, L38 |
 | C7 | Sound design and mix (by numbers) | 0.75 | Every key moment has a sound; lanes balanced; ramp; title drop; delivery targets | L12, L13, R04 |
 | C8 | Titles | 0.5 | Readable, in the window, on a hit, saying something only this game could say | L07 |
 | C9 | Technical | 0.75 | No pops, ghosts, clipping cameras, black frames, flashes, reused footage | R04, R05 |
@@ -152,12 +165,12 @@ Weighted mean = sum(score x weight) / 10.0.
 
 | Category | 1 | 3 | 5 |
 |----------|---|---|---|
-| C1 Hook | opens on a slow establishing shot; the hand never appears (attempt 1) | the hook appears by 2 s but is hard to read; the verb lands late in its window | frame 0 is a readable piece of the hook; the verb reads in one look well before its deadline |
-| C2 Clarity | two or more shots where the subject cannot be found (attempt 1's hand shot: empty sky) | every subject found, two shots need a second look | every contact-sheet frame reads alone; the eye is always where the plan says |
-| C3 Story | a list of events in captured order, no turn | sections in order but one beat repeats without raising anything | each beat sets up the next; partial, reaction, whole; ends on the strongest image |
-| C4 Emotion | no face, no person to follow (attempt 1 F16) | a face, but the reaction is weak or the hero does not return | a hero we read in 1 s, in danger, surviving a near miss |
+| C1 Hook | opens on a slow establishing shot; no disaster and no fight in the first 5 s | the hook appears by 2 s but is hard to read; the verb lands late in its window | frame 0 is a readable piece of mayhem; the first hit or hazard hit reads in one look well before its deadline |
+| C2 Clarity | two or more shots where the subject cannot be found, or a brawl where nobody can say who hit whom | every subject found; one hit needs a second look to see its attacker | every contact-sheet frame reads alone; every hit's attacker and victim read at once; the eye is always where the plan says |
+| C3 Story | a list of events in captured order, no turn; every disaster at once | sections in order but one beat repeats without raising anything | each beat sets up the next; disasters stack one layer at a time; every effect after its cause; ends on the strongest image |
+| C4 Hero | no person to follow (attempt 1 F16); strangers in every shot | a hero, but she disappears in the build or her reaction does not read | a hero we pick out by colour in 1 s, in danger in every section, whose body tells us how she feels |
 | C5 Rhythm | 5-6 even shots neither montage nor take; the payoff misses the main hit by over 6 frames | shape met, payoff on its hit, but no build into it | barrage on hits, payoff and title on hits within 2 frames, a breath before the drop |
-| C6 Shot craft | subjects blocked or facing away; unmotivated drifts | sound framing, one jump cut or a lost scale reference | every frame composed, every move eased and motivated, the hand always reads giant |
+| C6 Shot craft | subjects blocked or facing away; unmotivated drifts; no idea where on the tower we are | sound framing, one jump cut, a lost scale reference or one confusing jump in height | every frame composed, every move eased and motivated, the geography always clear |
 | C7 Sound | key moments silent; slow motion with real-speed sound (F4) | every key has a sound, but a lane is buried or the title does not drop | every accent an onset; ramp +2 to +6 LU; title -6 LU or more; peaks within spec |
 | C8 Titles | 2.3 s title louder than the body (attempt 1) | in the window but busy picture behind | clean, on its hit, held long enough, says what only this game is |
 | C9 Technical | ghost survivors, a camera inside a block, a flash frame | one minor pop | nothing to fix |
@@ -177,7 +190,8 @@ Weighted mean = sum(score x weight) / 10.0.
 
 1. **Planted defects every round from stage 7; recommended at stage 4** (on a text plan, plant
    plan-level defects: payoff off its hit, title moved early, reaction after the reveal, a
-   duplicated shot, a hidden hero). A script makes a copy of the evidence pack with three injected
+   duplicated shot, a hidden hero, a hit whose attacker is out of frame). `tools/pack.py --plant`
+   builds the render-level copy. A script makes a copy of the evidence pack with three injected
    defects: one cut moved 5 frames off its hit in the sync table, one key still replaced by a frame where
    the subject is hidden, one impact sound removed from the audio plot and stem table, or one shot
    duplicated. The critic gets both packs in random order and does not know which is which. If it finds
@@ -194,6 +208,20 @@ Weighted mean = sum(score x weight) / 10.0.
 6. **Lints overrule.** A failing hard lint caps its category at 2 (table in section 4).
 7. **Inflation check.** If the weighted mean rises by more than 0.75 in one round while fewer than half
    of the previous top three were fixed, a second fresh critic re-scores.
+
+## 6b. When critic runs are capped
+
+A critic run with the planted-defect check costs two packs and a fresh agent. If the budget is
+smaller than the rounds above:
+- **Two runs:** stage 7 (the preview: every fix is still cheap) and stage 9 (the fine cut: the
+  release gate). Stage 4 and stage 8 are labelled self-reviews (section 3a). This is what
+  hand-reveal-2 did, and both critics found 3 of 3 planted defects.
+- **One run:** stage 7. Self-review the fine cut and say in the hand-off that it had no
+  independent critic.
+- **None:** self-review every round (section 3a), and the "critic owed" block goes to the human
+  with the files and prompt ready.
+- Never drop the planted-defect check from a critic run to save a run: a critic you cannot trust
+  costs more than the run.
 
 ## 7. Re-cuts, disputes and stopping
 
@@ -218,6 +246,7 @@ Weighted mean = sum(score x weight) / 10.0.
 - The sync table and the loudness numbers (integrated, true peak, ramp, title drop).
 - The critic's last top three and any split decisions.
 - The unverified list, as questions: Does the music fit the candy-peril tone? Does the main hit land on
-  the collapse? Is the title drop-out too abrupt? Does the hand read as a giant player's hand? Is anything
-  harsh, muddy or out of sync? Is any shot too fast to follow at full speed?
+  the payoff? Can you tell who hit whom in every fight? Do you follow the hero, and does her body
+  read? Is every voice line in sync (the meters cannot tell)? Is the title drop-out too abrupt? Is
+  anything harsh, muddy or out of sync? Is any shot too fast to follow at full speed?
 - Save their notes in the version folder (R07).

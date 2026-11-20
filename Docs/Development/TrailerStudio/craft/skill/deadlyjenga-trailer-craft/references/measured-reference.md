@@ -49,6 +49,14 @@ Median and interquartile range. "Body" = first content frame to the closing titl
 | Designed-move share | 0.11 | 0.00 | 0.11 | 0.21 | 0.03 | 0.14 |
 | Cuts joining same-size shots | 0.59 | 0.72 | 0.62 | 0.49 | 0.58 | 0.50 |
 
+For a mayhem cut, read the party / physics column (10 references: Gang Beasts, Fall Guys, TABS,
+Party Animals, Human Fall Flat VR, Ultimate Chicken Horse, Among Us, Gorilla Tag, Teardown, Besiege) beside the mid
+column: gameplay by 0.3 s, "what is this game" by 3.7 s, 60 % wide shots, 71 % static cameras, 14 %
+designed moves, a mild loudness ramp (+1.9 LU) and no shortening into the end (mid-length party
+trailers end on a held gag or hero shot). These trailers sell readable chaos mostly with one fixed
+wide game camera (Gang Beasts 91 % same-size cuts; the comedy Goose 100 %). Nothing here measured how
+readable a fight is; the mayhem lints' numbers are estimates.
+
 Pooled sync tests (599 body cuts, 21 trailers): beat 25.0 % vs 24.9 % chance (p 0.47); guessed
 downbeat 5.5 % vs 6.2 %; any onset 40.9 % vs 36.5 % (p 0.014); strong onset 9.8 % vs 7.4 % (p 0.016);
 strong onset after shots under 0.8 s 12.8 % vs 6.7 % (p 0.004). Beat-phase vector strength 0.036

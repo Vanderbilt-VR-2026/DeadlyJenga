@@ -44,7 +44,8 @@ now and against the measured mix later.
 - Structure (All-In-One, or librosa segmentation): there is a section change near where the trailer
   turns, or the track can be cut in whole phrases to put one there.
 
-**Step 2. Build the beat map** (`music.yaml`): `bpm`, `beats[]`, `downbeats[]`, `sections[]`,
+**Step 2. Build the beat map** (`music.yaml`; `tools/music_map.py` writes most of it, though not
+downbeats, sections or rises): `bpm`, `beats[]`, `downbeats[]`, `sections[]`,
 `onsets[]` with strength, `energy[]` (RMS every 10 ms plus EBU momentary and short-term every
 100 ms), `hits[]` (onsets in the top 5 % of strength with a momentary jump of 6 dB or more within
 100 ms), `biggest_hit` (largest momentary rise from a 0.25-2 s low before it), `stopdowns[]` (0.25 s
@@ -81,10 +82,16 @@ frames of action overlap), or `free`. Keep beat-snapped cuts under 80 % (soft li
 leaves, crown breaks, survivor lands) falls on its hit within 1 frame. Cut into an event shot at least
 0.3 s before the event so the setup reads; the exception is an impact on the cut. [inferred]
 
-**Step 7. Lay sound design against the plan** (section 3). Then measure: run onset detection on the
-mix; every planned sync point must have an onset within 2 frames of its picture event, never more than
-1 frame before it (audio leading picture is noticed at about 45 ms; lagging at about 125 ms).
-[sourced: ITU-R BT.1359]
+**Step 7. Lay sound design against the plan** (section 3). Then measure: every planned sync point
+must have an onset within 2 frames of its picture event, never more than 1 frame before it (audio
+leading picture is noticed at about 45 ms; lagging at about 125 ms). [sourced: ITU-R BT.1359]
+**Measure each sound lane alone, not only the full mix** (`tools/assemble.py` prints both columns):
+an onset detector on the full mix picks the strongest change near a frame, and a voice line or
+any sound with a soft first syllable can read many frames late under music (hand-reveal-2: "What
+was that?" measured +17.3 frames though its first syllable was placed at 0.03 s; the dry run of the
+tool: a soft attack read +9.4 frames in the mix and -0.5 in its own lane). Trust the lane column,
+and list every voice line as **needs ears** for the human pass whatever the numbers say. [sourced:
+hand-reveal-2 REPORT]
 
 **Step 8. Mix and measure** (targets in section 5).
 
@@ -111,13 +118,17 @@ onset (subs vanish on phones). [sourced: Violet Recording; 150 Hz inferred]
 
 [sourced: Violet Recording, No Film School, Morphic, Lieu; frame counts inferred]
 
-Today the Studio has no sound cues, and the pilot's directed hand is silent (its take is baked
-after recording): every hand, scrape and impact sound is laid in at assembly from the game's sound
-files, at times taken from the plan or take report (`studio-tooling.md`).
+Today the Studio has no sound cues: every designed sound is laid in at assembly from the game's
+sound files, at times taken from the plan or take report (`tools/assemble.py`). Recorded game sound
+events (block hits, match sounds such as hit and kill confirms, block breaks) do replay in a
+playback render (`Tracks/AudioEventTrack.cs`); a directed hand is silent (`studio-tooling.md`).
 
 Game sounds to feature (pull the music out around one of them, as Lieu did with Half-Life: Alyx's
-health sound): the block scrape and pop, the tower creak and groan, the hand's whoosh and knuckle
-creak, the tsunami roar, a survivor's yelp, the splash. [sourced]
+health sound): a punch and the hit confirm, the glove's boom, a rocket blast, a meteor impact, the
+tsunami roar, the tower creak and groan, a survivor's yelp or "nope nope nope", the splash, the
+elimination burst and the kill confirm (`MatchSoundCue`). In a brawl, give each hit its own short
+sound on its frame and keep the music under them: a viewer counts hits by ear. [sourced; mayhem
+application inferred]
 
 Slow motion: into the ramp, a descending whoosh or pitch-down that bottoms out at the slowest frame,
 music filtered or dropped to a drone; out of it, a rising build that stops on the frame normal speed
@@ -215,3 +226,5 @@ subtract 0.030 s before comparing with cut frames. The repository's `tools/analy
 | Music ends mid-phrase or on a fade | music trimmed to picture | edit the music to length first, in phrases |
 | Slow motion with real-speed sound | the Studio's take sound under a ramp | designed sound only under ramps |
 | Game sounds lost | the trailer treated as a music video | pull the music out at one featured game sound |
+| A voice line "17 frames late" that sounds right | full-mix onsets miss soft first syllables | check the line's own lane; mark voices "needs ears" |
+| Hits in a brawl blur into one | one long sound under several hits | one short sound per hit, on its frame |

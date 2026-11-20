@@ -8,36 +8,42 @@ measured data in report 06. Templates are inferred unless a line says measured.
 
 1. **Write one goal and one pitch line** before choosing any shot, in your own words for this
    brief (example A's tagline is reserved; lint L39). [sourced: Lieu]
-2. **Name the hook by crossing out.** List the game's features; cross out every one another game
-   has (co-op, physics, VR, candy art). What is left is the hook: one player is a giant hand pulling
-   blocks out from under the others. A disaster cut's hook is what the disaster does to *this*
-   tower and *these* tiny players, not the disaster alone (a draining sea is generic to tsunamis).
-   [sourced: Lieu, "Finding the hook"; skill test 1 critic]
-3. **Pick the concept type from the brief** (`hand`, `disaster`, `two_role`; SKILL.md). The brief
-   decides whether the hand appears. Never add the hand to a "disaster is the star" brief.
+2. **Name the hook by crossing out.** List the game's features (`game-content.md`); cross out every
+   one another game has (co-op, physics, VR, candy art, a battle royale). What is left is the hook:
+   friends knock each other off a collapsing block tower while disasters tear it apart, and the sea
+   is out. A disaster's hook is what it does to *this* tower and *these* tiny players, not the
+   disaster alone (a big wave is generic); a fight's hook is that the floor itself is falling.
+   [sourced: Lieu, "Finding the hook"; skill test 1 critic; the owner's direction, 2026-11-20]
+3. **Pick the concept type from the brief** (`mayhem` by default, `disaster`, `pvp`; legacy `hand`
+   and `two_role` in `legacy-hand.md`). The brief decides whether the hand appears; it never does
+   by default.
 4. **Copy the must-show list from the brief, with proofs.** One id per thing asked for, each with
    one line saying what in frame proves it. Suggested ids:
 
    | id | proof |
    |----|-------|
-   | `pull` | the hand moves a block out of its slot, a survivor on or beside it |
-   | `grip` | the hand closes on a block that has not moved yet |
-   | `hand` | the hand, readable as a hand, with a survivor or block for scale |
    | `hazard_hit` | the hazard visibly moves blocks or survivors |
+   | `pvp_hit` | one survivor visibly strikes, shoots or shoves another and the victim moves, both in frame |
+   | `knock_off` | a survivor leaves the structure because of a named attacker (a survivor or a hazard) |
+   | `elimination` | the victim is out: the candy burst with "OUT!", or into the sea (Studio: verify, deaths are off) |
+   | `weapon` | a weapon fired or swung with its effect in frame |
+   | `several_survivors` | 3 or more survivors at h ≥ 0.08 in one frame |
+   | `escalation` | a second (third...) disaster arriving on top of the first, in frame |
    | `survivor_face`, `survivors_react` | a readable face; a survivor visibly turns, runs, points or flinches |
    | `fall`, `into_sea` | a survivor leaves the tower and drops; tower pieces or survivors enter the water in frame |
    | `climbing` | a survivor climbs or jumps up a block |
-   | `multiplayer` | 3 or more survivors acting independently in one frame, or a hand and survivors reacting to each other |
+   | `multiplayer` | 3 or more survivors readable and acting independently in one frame, or players visibly answering each other |
    | `friends` | two players visibly answering each other (a wave, a point, a voice line) |
-   | `pov_hand`, `pov_survivor` | smoothed first-person from that side (hand fingers in frame; survivor eye height 0.85 m) |
+   | `pov_survivor` | smoothed first-person at survivor eye height 0.85 m |
    | `tower_over_ocean` | the tower with the sea around or below it |
+   | legacy: `pull`, `grip`, `hand`, `pov_hand` | `legacy-hand.md` section 2 |
 
 5. **Generate before choosing.** Write at least five one-line "image people will remember" ideas,
-   from different sources: a game rule turned against a player, a role reversal, a scale joke, a
-   social moment between friends, an ending gag, a disaster's signature on this tower. The test's
-   control plans had the inventive moments (a lobby role swap, a fingertip flick toppling the tower
-   on the title hit, a survivor still clinging to a toppling block); those three are now spent, so
-   find your own. Then pick. Rules constrain how a shot is made, never which idea wins: if the best
+   from different sources: a game rule turned against a player (into the sea is out), a betrayal, a
+   disaster settling a fight, a weapon meeting a disaster (a rocket into a tornado), a scale joke, a
+   social moment between friends, an ending gag, a disaster's signature on this tower. Spent ideas
+   (do not reuse): a lobby role swap, a fingertip flick on the title hit, a survivor clinging to a
+   toppling block, the wave taking the bully (D), the winner shoved off by a friend (E). Then pick. Rules constrain how a shot is made, never which idea wins: if the best
    idea breaks a soft rule, keep it and waive the rule; if it breaks a hard rule, say so to the
    human. [sourced: skill test 1]
 6. **Pick the type and length, then the shape** (montage or single take) and the opening (staged
@@ -76,15 +82,17 @@ does it challenge me; how much is there; what is it called. Answer in that order
   [sourced: Cauller]
 - Hold a new mechanic until it reads (the first pull, or the first hazard hit, ≥ 1.5 s uncut, hard rule 6); shorten it only after.
 - Show failure: someone falls. Perfect play makes a game look trivial. [sourced: Lieu, Sheepherds]
-- Show the goal, not a task list. For a survivor the goal is "stay on the tower"; for the hand,
-  "bring it down".
-- Both roles are players. Somewhere in 30 s or more, show the same event from the hand's view and a
-  survivor's view (Evolve sold 4v1 that way). [sourced]
+- Show the goal, not a task list: "stay on the tower and knock the others off", the mode's
+  objective if the cut shows one (the hill, the flag, the lantern).
+- Teach one hit and one disaster plainly before stacking them: a viewer who has seen one shove
+  land and one wave hit can read the third thing at once. [sourced: Cauller; report 01 rule 40]
+- Keep one hero through the chaos and let every other survivor be a rival or a victim we can name
+  by colour. [sourced: Lieu on one hero]
 - Extras (cosmetics, modes, map lists) only after the midpoint. [sourced: Lieu]
 - Flashiest material last; simpler readable moments early. [sourced: Lieu]
 - One main idea per shot; the `learns` line must be true when watched. [sourced]
 - Make it read muted: picture carries the verb. Store pages and muted-first social cuts get one
-  plain rule caption by default ("the hand is another player" style: a rule of play, ≤ 6 words, no
+  plain rule caption by default (a rule of play such as "the sea is out", ≤ 6 words, no
   superlative); other cuts add a caption only if a rule cannot be read from picture in 2 s. In skill
   test 1 the control plans' rule captions scored better on clarity for muted viewers. Captions are
   separate from the end card's tagline (≤ 8 words) and call to action (≤ 6). [measured: 11 of 22
@@ -100,7 +108,7 @@ defaults.
 | Time | Section | Content |
 |------|---------|---------|
 | 0.0-1.5 | hook | gameplay at frame 0 (h); a partial or effect view of the hook in motion, or a cold open on the threat itself (h: held ≥ 1.0 s); an open hit at 0 |
-| 1.5-5.0 | teach | the hero's face (reaction); the core verb readable by 5.0 s (h) |
+| 1.5-5.0 | teach | the hero's reaction (head, body, hands); the core verb readable by 5.0 s (h): the first hit or hazard hit, both parties in frame |
 | 5.0-8.5 | escalate | 2-4 shots, each raising one thing (stakes, threat, count); the barrage lives here: ≥ 4 cuts in some 5 s window (h) |
 | 7.5-8.5 | breath (optional) | a 0.3-0.5 s drop-out with one sound before the main hit |
 | 7.5-10.5 | payoff | the key moment on the main hit (h), in the last 40 % of the body; the longest body shot (≥ 2.0 s, h) often lives here |
@@ -112,6 +120,15 @@ The 15 s title window trades card length against position: the measured 80-95 % 
 Extrapolated: no 15 s montage was measured.
 
 A button, if any, is picture under the card (a last block plopping into the water), not extra time.
+
+### Moment (5-10 s, class `moment`)
+
+The whole piece is the body; no title card unless the brief asks (then it comes after the payoff).
+Sections: `hook`, optional `teach` and `escalate`, `payoff` at 50 % of the length or later, then
+`aftermath` or `breath`. 1-6 shots, a median of 0.8-2.5 s, the longest ≥ 1.5 s, no barrage
+(estimates). The core verb is still due by 5 s and still held 1.5 s. Example of the shape:
+hand-reveal-2 (8.8 s: effect, reaction, whole, payoff at 57 %, consequence, final image), which
+needed four waivers as a "15 s" and none as a `moment`.
 
 ### 15 s single take
 
@@ -125,7 +142,7 @@ reach it (hard rule 9). Title laid over the take or a cut to the card in the tit
 | Time | Section | Content |
 |------|---------|---------|
 | 0-2 | hook | gameplay by 2 s; the hook partial or mid-action |
-| 2-8 | teach | hero face; core verb readable by 8 s; a second role glimpse |
+| 2-8 | teach | the hero; one hit and one disaster readable by 8 s |
 | 8-16 | escalate (wave 1) | each shot raises; one failure; one shot ≥ 3.0 s somewhere in the body (h) |
 | 14-17 | breath (optional) | a held shot under a stop-down |
 | 17-24 | escalate (wave 2), payoff | barrage of ≥ 4 cuts in 5 s (h); payoff on the main hit after 60 % of the body |
@@ -133,7 +150,7 @@ reach it (hard rule 9). Title laid over the take or a cut to the card in the tit
 
 Stop-down vs breath: the stop-down is a music event (≥ 0.3 s, ≥ 12 LU dip; L31 wants one at 30 s);
 the breath is a picture section. One drop-out 0.3-0.8 s before the main hit satisfies L31 by itself;
-a breath section may carry it or sit elsewhere. Two-role 30 s cuts: worked example C.
+a breath section may carry it or sit elsewhere. A 30 s mayhem single take: worked example E.
 
 ### 60 s (body 53-55 s, 22-32 body shots)
 
@@ -141,7 +158,7 @@ a breath section may carry it or sit elsewhere. Two-role 30 s cuts: worked examp
 |------|---------|---------|
 | 0-6 | hook | gameplay by 2 s; a self-contained cold open that raises a question |
 | 6-12 | teach | the core verb by 12 s (h; default by 8 s); hero; genre and perspective clear |
-| 12-24 | teach / escalate | why the hook matters; both roles as players; first failure |
+| 12-24 | teach / escalate | why the hook matters; weapons; the first knock-off |
 | 24-40 | escalate in waves | disasters as layers (one new threat per beat); variety after 30 s; shots shortening into the climax (default) |
 | 40-42 | breath | stop-down (default 1-2 in the cut) |
 | 42-53 | escalate, payoff | barrage; the payoff on the main hit; loudest section (+2 to +6 LU over the first quarter) |
@@ -153,45 +170,36 @@ physics game read at a glance), bullet point (card states a point, play proves i
 
 ## 5. Concept sketches (15 s), not defaults
 
-Three sketches to widen the field, beside the three fully worked examples (A in
-`plan-schema-and-lints.md`; B and C in `worked-examples.md`). None is the default: start from the
-brief and your own image ideas (section 1, step 5). Re-derive every number for your map and shot.
+Three sketches to widen the field, beside the worked examples (D, E and B in `worked-examples.md`;
+the legacy hand examples in `legacy-hand.md`). None is the default: start from the brief and your
+own image ideas (section 1, step 5). Re-derive every number for your map and shot, and check every
+cue against `game-content.md` section 9.
 
-### A. "The Pull" (montage, `hand`, staged) - worked example A
-Partial (a block slides, fingertips cropped, 0.0-1.5) → the hero looks up (1.5-3.5) → the whole hand
-pulls the block beside her, verb at 4.5 s (3.5-5.5) → a barrage: another survivor falls, the hand
-pinches a lower block, her block lurches (5.5-7.6) → 0.4 s drop-out → the crown topples on the main
-hit at 8.0 s (7.6-10.5) → she hangs on (10.5-11.5) → title at 11.5 s, card 3.5 s.
+### A. "Hot Potato" (montage, `pvp`, staged)
+A dropped rocket launcher lies on the crown. Hook: four survivors see it at once (0.0-1.5) → the
+hero grabs it first (1.5-3.0) → she fires, the blast knocks a rival off (verb at 3.8 s, held 1.5 s)
+→ barrage: the rival's friend punches her, she drops it, it changes hands twice (5.5-8.0, each
+hit's attacker and victim in frame) → held beat: the last holder aims at the hero → payoff on the
+main hit: the rocket misses and blows out the block under the shooter (8.5) → title over the hero
+picking it up again. Needs: `gear` and `fire` (available); a weapon lying on the ground is missing on the
+stage (pickup bubbles are off and no cue places one), so open with it already in a survivor's hands
+(`StudioMark.equipment`) or verify; the hand-offs between bots (verify).
 
-### B. "Then the Weather Turns" (montage, `hand` with a hazard, two staged threats)
-Hook: a tsunami rising behind a tower full of climbers, while the hand keeps pulling. Each threat
-gets its own anticipation (rule 6).
+### B. "Slow Fall" (single take, `mayhem`, cold open on anti-gravity)
+Anti-gravity is already on at frame 0 (18 % gravity, falls capped at 4 m/s): survivors leap in long
+slow arcs between blocks (cold open, held 1.0 s) → the hero shoves a rival, who drifts slowly out
+over the sea, a knock-off that reads for seconds (verb) → meteors start (a second threat, with its
+own anticipation: a shadow on the blocks) → each impact sends blocks floating loose (count, stakes)
+→ the payoff: anti-gravity's duration ends on the main hit and everything drops at once. One cut to
+the hero's body reaction (a cower layer), the title over the splashes. Needs: two hazards in one
+take, how anti-gravity reads on survivors (verify).
 
-| Time | Section | Shot |
-|------|---------|------|
-| 0.0-1.5 | hook | low over the water: the wave rising behind the tower; survivors busy, unaware (knows, tsunami) |
-| 1.5-2.5 | teach | MCU: the hero glances back over her shoulder at the sea (reaction, tsunami; face) |
-| 2.5-3.2 | teach | INSERT: a huge shadow slides over the block beside her (partial, hand) |
-| 3.2-5.0 | teach | WS low: while everyone watches the sea, the hand pulls that block (whole, hand; verb at 4.4 s) |
-| 5.0-6.0 | escalate (threat) | the wall of water hits the base; lower blocks scatter |
-| 6.0-6.6 | escalate (stakes) | FS: a climber knocked off |
-| 6.6-7.2 | escalate (count) | FS: two more slide toward the edge |
-| 7.2-7.6 | breath | drop-out; one creak; the hero alone near the top |
-| 7.6-10.5 | payoff | WS from the water framing the section the wave strikes (derive it: a long-lens crown frame cannot hold a mid-tower impact): the weakened tower folds into the wave on the main hit (8.0 s) |
-| 10.5-11.5 | aftermath | the hero clinging to what is left (floating is unverified) |
-| 11.5-15.0 | title | title over the wreck; card 3.5 s |
-
-### C. "Be the Hand" (single take, `hand`, cold open from the hand's side)
-
-| Time | Section | Content |
-|------|---------|---------|
-| 0.0-9.0 | take (moments: hook, teach, escalate, payoff) | smoothed hand-player POV: the player's own fingers above the tower at frame 0 (cold open, held); survivors scatter (consequence, 1.5); the fingers pull a block beside a survivor (verb at 3.5 s, held 1.5 s); a second pull lower down (escalate, consequence, 5.5); the crown tips on the main hit (7.0 s) |
-| 9.0-11.5 | aftermath (one cut) | MCU, third person: the hero looking straight up at the hand (face) |
-| 11.5-15.0 | title | card 3.5 s, the music dropping away |
-
-The take is 9.0 of 11.5 s of body (78 %), one cut in the body. Needs a person performing the hand,
-the POV smoothed (position 0.2-0.4 s, rotation 0.3-0.6 s), and a check of where the hand player's
-eye sits (unknown).
+### C. "Kraken Referee" (montage, `mayhem`, staged)
+A King of the Hill shove-fight on the top block (hook) → the hero holds the top (teach: two hits)
+→ a tentacle rises behind them, unseen (knows) → it slams across the top level on the main hit and
+everyone but the hero is swept off (payoff) → she looks around, alone and triumphant (reaction) →
+a second tentacle curls up behind her (button under the card). Needs: the Kraken's side
+(not directable: run variations), the King of the Hill HUD (not on the Studio stage: leave it out).
 
 ## 6. Mistakes
 
@@ -203,5 +211,7 @@ eye sits (unknown).
 | Looks like every other game | generic features shown | lead with the hook |
 | Repetitive | the same action more than three times | three at most, each with a twist |
 | Game looks trivial | only perfect play | someone falls |
-| Chaos reads as noise | no focal point | one focal point; cause, then effect |
+| Chaos reads as noise | no focal point; hits with no visible attacker | one focal hit per shot; attacker and victim in frame or across one cut; cause, then effect (L41) |
+| Nobody to follow | the camera jumps between strangers | one hero by colour, in the hook, the build and the payoff (L42) |
+| Everything at once | all disasters in the opening | one new disaster per beat (L43) |
 | Ends limp | no payoff, title buried, several calls to action | payoff on the main hit, title, one call to action |

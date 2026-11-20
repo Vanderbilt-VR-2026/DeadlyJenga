@@ -3,9 +3,10 @@
 Written 2026-11-20. Inputs: `research/01-structure.md` to `research/06-measured-trailers.md`,
 `tools/data/tables.md`, `tools/data/reference_profile.json`, and attempt 1's
 `attempts/attempt-1/FINDINGS.md`. Output: the decisions the skill
-`skill/deadlyjenga-trailer-craft/` is built on. **Revision 2 (2026-11-20, at the end) supersedes
-the decisions above where they differ** (notably conflict 5, the 15 s title window, and conflicts 19
-and 21).
+`skill/deadlyjenga-trailer-craft/` is built on. **Revision 2 (2026-11-20) supersedes the
+decisions above where they differ** (notably conflict 5, the 15 s title window, and conflicts 19
+and 21), and **Revision 3 (2026-11-20, at the end) supersedes both** where they differ (the hand as
+the hook, the hand's size, conflict 15's 0.6 rule, the face rule).
 
 ## How evidence is weighed
 
@@ -359,3 +360,58 @@ words, tagline ≤ 8, CTA ≤ 6; two-role views before half the body; a barrage 
   come from the code, the pilot and attempt 1, and unknowns are marked unknown.
 - **The hero-near-miss default** stays in the recipes but is now one ending among several, because
   all four test plans used it.
+
+---
+
+## Revision 3 (2026-11-20)
+
+Triggers: (1) the owner's direction the same day: the flying hand "is like not an important part of
+our game at all anymore. i need you to have one focused on epic disaster pvp mayhem"; (2) the
+hand-reveal-2 field test (`attempts/hand-reveal-2/REPORT.md` in the DeadlyJenga repo, section
+"Feedback on the skill", nine fixes). No Unity was run for this revision. Game facts were read from
+the central checkout's code (`Evan_Sprint_4`, HEAD `9342eff8`, read only) and the Studio's code on
+`claude/trailer-hand-reveal-pilot` (HEAD `164e7115`, read only, another agent working there).
+Nothing new was measured in trailers; "estimate" marks every new number.
+
+### Changes
+
+| # | Change | Where | Measured / sourced / estimated / untested |
+|---|--------|-------|-------------------------------------------|
+| 1 | **Re-centred on disaster-PvP mayhem.** New default concept type `mayhem` (core verb: the first of `hazard_hit` and `pvp_hit`), plus `disaster` and `pvp`; `hand` and `two_role` demoted to legacy. New pitch line, must-show ids (`pvp_hit`, `knock_off`, `elimination`, `weapon`, `several_survivors`, `escalation`), recipes, sketches, moments and mistakes rows. Frontmatter no longer names the hand first. | SKILL.md; `structure-and-templates.md`; `reveals-and-moments.md`; `camera.md` | sourced: the owner's direction; game facts from code (row 2) |
+| 2 | **What the game can show**, from the code with file references: 16 disasters and their settings, 21 weapons and 3 powers, punch rules by mode, bots and monsters, drowning elimination, the candy-burst "OUT!", modes, `GameEvents`, maps; and what the Studio can cue for each. Findings that changed the skill: the flying hand is a 30 s power-up; AI hand bots are uncapped (so "one hand" is a Studio fact, not a game fact); **the tsunami's height is zero during its warning** (revision 2 said it rose in place); the Studio's `tsunami` cue never pushes survivors (`affectPlayers = false`); the stage runs Demo with deaths off; no punch cue; the tornado's settable side exists only on the pilot branch. | `references/game-content.md` (new); SKILL.md can/cannot table | sourced (code read); **untested in the engine**: every "unconfirmed" row |
+| 3 | **Readable-mayhem rules and lints.** Hard: L40 (mayhem shows both halves by 60 % of the body), L41 (every hit names attacker and victim, both readable), L42 (a hero in the opening, build and payoff). Soft: L43 (disasters escalate one per beat), L44 (geography: an early wide with the structure and hero; `tower_level`), L45 (crowd shots: ≥ 3 survivors at h ≥ 0.08), L46 (a knock-off held 0.6 s or picked up next shot). New hard rule 16. Rubric C2, C3, C4, C6 and their anchors reworked; mayhem defects added to the self-review sweep and planted-defect recipes. | SKILL.md; `plan-schema-and-lints.md`; `review-rubric.md`; `reveals-and-moments.md` §2 | sourced: report 01 rules 20 and 40, Salters, Lieu, Cauller; the 0.6, 0.6 s, h 0.08 crowd line and "3 survivors" are **estimates** (0.08 is the measured EWS size line reused) |
+| 4 | **Two disaster-PvP worked examples**: D (15 s montage, staged audience-knows opening, title over picture) and E (30 s single take, cold open on meteors, planning-only, smash cut to the card after a betrayal). B kept. A and C moved to `legacy-hand.md`. Reserved ids, taglines and captions extended; twists marked spent. | `worked-examples.md`; `legacy-hand.md` | linted by `tools/lint.py` (0 hard failures; the linter caught a real jump cut in D's first draft); geometry derived on the assumed castle map; **untested in the engine** |
+| 5 | **Fix 1: class `moment`** (5-10 s): no title needed, the whole piece is the body, payoff ≥ 50 %; L03 pattern with optional teach, escalate and title; L07 and L11's title clause n/a; L28 at 0.5; moment shape limits; montage-only soft lints n/a. | SKILL.md defaults and rules 2, 3, 5; lints | sourced: hand-reveal-2 needed four waivers; tested: its `v08/plan.yaml` linted as `moment` needs none of them; the moment shape numbers are **estimates** |
+| 6 | **Fix 2: the hand's drawn size is 2.4 x 2.3 x 1.8 m.** Every hand framing number re-derived for 2.3 m (FS 3.1-4.6 m frames; a 14 m crown frame leaves the hand at 0.16; whole tower 2.5-3.7 %); the 0.6 x distance rule (from conflict 15) replaced by ≥ 0.8 x (ratio ≥ 2.0); examples A and C re-derived (A's S03 hero 3.5 → 4.5 m; C's S04 Gus 4.5 → 6.0 m). | `legacy-hand.md`; `camera.md` | measured: the 2.4 x 2.3 x 1.8 box (hand-reveal-2); the 0.8 is an **estimate** from geometry |
+| 7 | **Fix 3: no drawn face.** L14 and rubric C4 now ask for a reaction that reads through head direction, body and hand pose, named in a new `reaction` field (Studio layers `scream`, `cower`, `cheer`, `knockback`..., an emote or a performed pose). | rule 9; L14; C4; `reveals-and-moments.md` rule 13 | sourced: hand-reveal-2 critics; reaction list from `StudioOverrides.cs:19` |
+| 8 | **Fix 4: the white hero is URP motion blur, not bloom**; another agent is fixing it; check with a with/without colour still. `StudioMark.color` is a palette index (index 6 rendered yellow): confirm colours in a still. | `studio-tooling.md`; SKILL.md self-review table | measured: hand-reveal-2's `v08/colour-check.png`; the pilot's washed-out hero is **likely** the same cause, not proven |
+| 9 | **Fix 5: riding a tilting block** sinks a survivor unless he stands at its middle (0.36 m off-centre, 0.27 m slide at the middle). | SKILL.md table; `game-content.md`; `studio-tooling.md` | measured in hand-reveal-2 |
+| 10 | **Fix 6: capped critic budget**: keep stage 7 (preview) and stage 9 (fine cut), each with the planted-defect check; stage 4 and 8 as labelled self-reviews; with one run, stage 7. | SKILL.md pipeline rules; `review-rubric.md` §6b | sourced: what hand-reveal-2 did (3 of 3 planted defects found twice); the one-run choice is **inferred** |
+| 11 | **Fix 7: the scout loop** is a pipeline stage (5b): a new plan version, every lint re-run, the stage-4 review re-run when keys move > 6 frames, a shot falls back or a label changes; loop until a scout changes nothing that matters. | SKILL.md pipeline | sourced: hand-reveal-2's scout changed the design, the spot and every camera |
+| 12 | **Fix 8: shipped tools** in `tools/`: `lint.py` rewritten for revision 3 (all L-lints, moments, classes, concept types); `music_map.py` (`--fps`, `--lag`); `assemble.py` (no hard-wired worktree, tape offset, fps or loudness; sound root by flag, config or env; per-lane sync); `pack.py` (planted defects chosen on the command line); `sound_events.example.json`. | `tools/`; `studio-tooling.md` §7 | tested: every `--help`; `lint.py` on A-E and on hand-reveal-2's plan; `music_map`, `assemble` (preview) and `pack --plant` end to end on a synthetic job. **Untested**: a 1080p assembly, real Studio job output, real game sounds, a real metrics CSV |
+| 13 | **Fix 9: sync lane by lane.** `assemble.py`'s sync table has a full-mix and an own-lane column and marks voice lines NEEDS EARS; rule 15, R03 and the rubric say to trust the lane column and send voices to the human. | SKILL.md rule 15; `rhythm-and-sound.md` step 7; R03 note; rubric pack item 8 | sourced: hand-reveal-2's +17.3-frame false reading; tested on synthetic sound (+9.4 mix vs -0.5 lane) |
+| + | **Other tooling findings recorded**: the directed hand's fixed ease (most flight in the first 20 %; the yank's motion peak 15-25 frames after the hit); no dust or debris at a directed yank; no Studio sound cues (recorded game sound events do replay); no live view (each look costs a job); takes differ slightly (finals A and B; the hero within about 5 cm); hand-reveal-2's added tooling (`carryTime`, `BakeLook`, per-shot grade, the multi-shot driver). | `studio-tooling.md` §2, §3, §6 | measured or observed in hand-reveal-2 |
+
+### Chosen not to change, and why
+
+- **The gated pipeline, planning-only mode, the waiver rule and the planted-defect protocol** stay
+  as they were; the field test credited all four.
+- **The measured numbers** (title windows, shape rules, mix targets, first gameplay, the 1.5 s first
+  hold) are unchanged; the party / physics column of the profile is now pointed to for mayhem cuts.
+- **Hard lints still cannot be waived away.** `lint.py` prints a waived hard lint as WAIVED-HARD and
+  the skill still says to report it to the human; the moment class removes the need in the common case.
+- **"One giant hand"** is no longer stated as a game rule (AI hand bots are uncapped in code); a
+  second hand needs `verify`.
+- **No new trailer measurement.** No mayhem trailer was annotated for "who did what to whom"; the
+  readable-chaos numbers stay estimates until one is.
+
+### Unsure
+
+- Whether L40's 60 % and L46's 0.6 s are the right lines; whether three readable survivors is the
+  right crowd floor.
+- Whether a drowning elimination (and its candy burst) fires for actors on the Studio stage, where
+  deaths are off (`MatchModeRuntime.World.cs:209` does not check the rule).
+- Whether the `fire` cue swings melee weapons (glove, dagger, bat) or only fires ranged ones.
+- Whether three disasters run together in one Studio take.
+- Example D and E camera numbers assume the attempt-1 castle (the wall walk at 25 m); neither was
+  scouted.

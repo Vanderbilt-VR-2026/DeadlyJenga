@@ -1,11 +1,13 @@
-# Trailer Studio: what it can and cannot do (as of 2026-11-20)
+# Trailer Studio: what it can and cannot do (as of 2026-11-20, revision 3)
 
 **Dated 2026-11-20.** Based on attempt 1's findings (`Docs/Development/TrailerStudio/attempts/attempt-1/FINDINGS.md`,
 F1-F21), the Studio handoff (`progress/HANDOFF.md`, candidate `60471386`, branch
 `claude/trailer-studio-a`), `StudioCameraData.cs`, and the hand-reveal pilot
 (`Docs/Development/TrailerStudio/attempts/pilot-hand-reveal/PILOT-REPORT.md`, branch
 `claude/trailer-hand-reveal-pilot`, final commit `249cf4b05658046aa9379253debe8802c071f398`, not
-pushed as of the report). Before relying on any row, check `HANDOFF.md`, `DECISIONS.md` and the git
+pushed as of the report), and the hand-reveal-2 field test (`attempts/hand-reveal-2/REPORT.md` in the
+DeadlyJenga repo; same branch, commit `164e7115`, 13 coordinator jobs). For what the Studio can cue
+for **disasters and PvP**, cue by cue with file references, read `game-content.md` section 9 first. Before relying on any row, check `HANDOFF.md`, `DECISIONS.md` and the git
 log for newer work, and update this file with the date when a row changes. In planning-only mode
 (no git, no engine) use the table as written and say in the plan that it was not re-checked.
 
@@ -49,6 +51,8 @@ coordinator.py request --owner <you> --task "<what>" --candidate <SHA> \
 | `StudioMoves` (move library) | `LockedOff`, `PushIn`, `TiltTo`, `Shake`, `CraneUp`, `Orbit`, `Follow` | camera keys |
 | `StudioFraming` (framing metrics) | per frame: on-screen share, height, x/y, area, occlusion, facing for the hero and the hand; camera speed and turn rate | `metrics.json/csv` |
 | Fix: `ActorFrame.Blend` aliasing | the real reason the hand was never seen in renders (in-between poses blended toward the origin, the reader threw, the actor froze) | the hand renders on this branch |
+| `HandRevealMoment` (hand-reveal-2) | a multi-shot driver: `RunScout`, `RunPreview`, `RunFinalA` / `RunFinalB` (the final split into two jobs), `RunFinal` (one job); a clear-spot camera search per shot, a shadow-timing solver, a take log, per-shot stills and metrics, design comparison stills, a colour check | `Attempts/HandRevealMoment.cs`; writes the `shots.txt` and `shots/<id>*.{mp4,png,csv}` that `tools/assemble.py` and `tools/pack.py` read |
+| Added by hand-reveal-2 | `StudioCue.carryTime` (how long the hand carries a block), `StudioHandDirection.BakeLook` (a game hand design on a directed take), `StudioCameraTrack.exposure / contrast / saturation` (a per-shot grade, `StudioRender.ApplyLook`) | not yet covered by `StudioAcceptance` after these changes |
 
 How to use it for a new shot: copy `PilotHandReveal.cs` into a new attempt file on your own branch,
 change the constants and the target ids, keep `RunPreview` as the scout (it gives the filmstrip, the
@@ -75,12 +79,19 @@ metrics and the hand timeline in one job), and read `metrics.json` against the p
 | Stage anchor at the top | "highest block near the middle" sat about 4 m below the crown | print a height profile of the map and place marks and cameras from the measured top | F15 |
 | Export the cut as one file | per-camera PNG/MP4, FCPXML, EDL and `cut-sound.wav`, never one playable cut | assemble with ffmpeg (attempt 1's `assemble.py`) | F1 |
 | Titles | none | burn in with ffmpeg `drawtext` or a PNG overlay in the assembly step | F2 |
-| **Sound cues** | **none**: the Studio cannot place a sound on a cue; the pilot muxed hand flight, scrape and hit by hand at fixed times | lay every designed and game sound in at assembly from the plan's or take report's times | pilot |
+| **Sound cues** | **none**: the Studio cannot place a sound on a cue; the pilot and hand-reveal-2 laid every sound in at assembly. Recorded game sound events (block hits, match sounds, block breaks) do replay in playback (`Tracks/AudioEventTrack.cs`) | lay every designed sound in at assembly from the plan's or take report's times (`tools/assemble.py`); check each lane's sync alone | pilot, hand-reveal-2 |
 | Music in the mix, lane gains | `set.music` only reaches an FCPXML lane; `cut-sound.wav` has no music; no per-lane gain | mix music and cut sound in the assembly step by meter, then normalise (`rhythm-and-sound.md`) | F3, F18 |
 | Sound under speed ramps | plays at real speed | `studio.ramp_sound: false`; designed sound only on ramped shots (L13) | F4 |
-| Motion blur | `subFrames` > 1 roughly doubles render time; the pilot final used motion blur | leave at 1 for previews | attempt 1, pilot |
+| Motion blur | `subFrames` > 1 roughly doubles render time; **URP motion blur (`StudioCameraTrack.motionBlur` > 0, `StudioRender.cs:170-172`) renders the survivor white** | leave both off; see the next row | attempt 1, pilot, hand-reveal-2 |
 | Ghost survivors | a survivor sometimes renders see-through grey | look for it in every filmstrip; cut or re-frame | F9 |
-| Washed-out hero at 1080p | bloom and exposure washed the hero out in the pilot final | check the hero's exposure in the final's stills; lower bloom for the trailer look | pilot |
+| Washed-out (white) hero at 1080p | **the cause is URP motion blur, not bloom** (revision 2 blamed bloom). hand-reveal-2's colour test: the same 1080p frame is yellow without motion blur and white with it (`v08/colour-check.png`); very likely the pilot's washed-out hero too. Another agent is fixing it on the pilot branch (2026-11-20) | render finals with `motionBlur = 0` until the fix lands; after any render-setting change, render one 1080p frame of the hero with and without the setting and compare the hero's colour in the two stills before trusting the final | hand-reveal-2 |
+| Mark colours | `StudioMark.color` is an **index into a palette** (`Data/StudioSet.cs:17`), not a colour name; index 6 rendered **yellow** in hand-reveal-2 (not the orange the agent expected) | choose by index, then confirm the colour in a full-size still before the plan, the caption or the critic names the hero by it | hand-reveal-2 |
+| The directed hand's motion | its path runs on a **fixed ease**: most of the flight happens in the first 20 %, so it hangs nearly still afterwards, and the yank starts slow (its motion peak 15-25 frames after the cue's hit); there is no front-loaded pull option | measure the motion peak in the metrics and put the music hit on it, not on the cue time; keep flights short | hand-reveal-2 |
+| Dust, debris, spray | **none** at a directed yank (the directed hand is not live, so no game effects fire); recorded game particles do replay (`Tracks/EffectsTrack.cs`) | let real collisions make the debris (a `push` or a live hazard), or add it in the grade; say it is missing in the human-pass questions | hand-reveal-2 |
+| Riding a tilting block | a survivor on a lifted, tilting block is carried by the block's position only: off its middle he sinks into it (0.36 m), at its middle he still slides 0.27 m | stand him at the block's middle; check his feet in the scout stills | hand-reveal-2 |
+| Looking at a framing | **no live view**: every look costs a job (hand-reveal-2 spent one scout and seven preview or final looks; one job ran 613 s, one was deferred for memory headroom) | batch every camera candidate into one scout job; use the clear-spot search; keep a list of what each look must answer | F10, hand-reveal-2 |
+| Repeating a take | takes differ slightly (world physics): hand-reveal-2's finals A and B were separate takes; the hand and the lifted block repeated exactly, the hero within about 5 cm before the pull | plan cuts so a 5 cm difference between takes cannot show; prefer one take for both halves when the job fits | hand-reveal-2 |
+| Disasters and PvP on cue | `hazard`, `tsunami`, `stopHazards`, `collapse`, `push`, `weaken`, `guide`, `slowTime`, `gear`, `fire`, reaction layers; **no punch cue**; the `tsunami` cue never pushes survivors; the stage runs Demo with deaths off | `game-content.md` section 9 | code read 2026-11-20 |
 | Repeatable renders | `freezeAmbient` holds ocean, sky and birds still | turn it on when re-rendering one shot to compare versions | `StudioRenderSettings` |
 | Directed hazards | a cue can choose which side a tornado comes from (`IDirectedHazard`, `aa5331a4`); the tsunami's height, warning time, offshore distance and speed are parameters | use them to fix screen direction and arrival time; dry-run the arrival in the scout | HANDOFF, TsunamiHazard |
 | Riding blocks | standing survivors ride a moving block (`2496f88d`) | plan the lurch shot around that | HANDOFF |
@@ -122,17 +133,46 @@ metrics and the hand timeline in one job), and read `metrics.json` against the p
 
 ## 6. Still missing (ranked by how much it would help an agent)
 
-1. Sound cues in the Studio, and a directed hand that is live while recording (so it makes game
-   sound and events and touches the world).
-2. Repeatable world physics between takes.
-3. A render that fails (or skips one frame) when an actor's frame is bad, instead of silently
+1. For mayhem: a **punch / shove cue** for a chosen attacker and victim; a tsunami cue that can push
+   survivors; real eliminations on the stage (deaths on, as an option); aimed meteors and a chosen
+   side for every disaster, not only the tornado.
+2. Motion blur that keeps survivor colours (in progress by another agent, 2026-11-20).
+3. Sound cues in the Studio, and a directed hand that is live while recording (so it makes game
+   sound, events, dust and debris and touches the world); a front-loaded pull ease.
+4. Repeatable world physics between takes, and directable bots (go here, hit that survivor).
+5. A render that fails (or skips one frame) when an actor's frame is bad, instead of silently
    freezing the actor.
-4. An automatic framing judge: `metrics.json` checked against the pass ranges.
-5. Shorter editor start-up per job (or a persistent editor for a session of scouts).
-6. Merge the pilot's hand fix (`ActorFrame.Blend`) and a Characters-side "replay copy" flag so the
+6. An automatic framing judge: `metrics.json` checked against the pass ranges; a live view or a
+   persistent editor for a session of scouts.
+7. Merge the pilot's hand fix (`ActorFrame.Blend`) and a Characters-side "replay copy" flag so the
    hand draws without the baked-mesh workaround.
-7. A take report per take (F11); plan import plus a lint runner (`plan-schema-and-lints.md`).
-8. Export the cut as one MP4 with music lane, gains, fades and titles (F1-F3).
-9. A music grid lane with measured hits and cut snapping; an automatic evidence pack per render.
-10. Batch render of a saved take, stable ids, a repeatability report (F12-F14); resumable renders
+8. A take report per take (F11) with every `GameEvents` hit, knock-off and splash; plan import (the
+   lint runner now exists as `tools/lint.py`).
+9. Export the cut as one MP4 with music lane, gains, fades and titles (F1-F3); `tools/assemble.py`
+   does this outside the Studio today.
+10. A music grid lane with measured hits and cut snapping; an automatic evidence pack per render.
+11. Batch render of a saved take, stable ids, a repeatability report (F12-F14); resumable renders
     (F19); named stage anchors (F15); no ghost survivors (F9); ramp-following sound (F4).
+
+## 7. The shipped tools (`tools/`, revision 3)
+
+Copied from hand-reveal-2 (`attempts/hand-reveal-2/tools/`) and generalised where it was small and
+safe. All need Python 3; `assemble.py`, `music_map.py` need ffmpeg/ffprobe, numpy, soundfile and
+librosa; `lint.py` needs PyYAML. Each prints its usage with `--help`. Run them with `python -I` when
+their inputs come from somewhere you do not trust.
+
+| Tool | What it does | Use it at | Limits |
+|------|--------------|-----------|--------|
+| `lint.py <plan.yaml>` | computes every plan lint (L01-L46) and prints PASS / FAIL / WAIVED / N/A with numbers; exit 1 on an unwaived hard failure | stage 3, after every plan change, after the scout loop | cannot judge truth (labels, proofs, `fit` lines), R-lints, or plans that are not in the schema |
+| `music_map.py <cue> <start_s> <length_s> <out> [--fps --lag]` | tempo, beats, onsets with strength and rise, candidate hits, the biggest hit, stop-downs, loudness; writes `music.yaml` and the excerpt | stage 2 | onsets on the full mix, not phrases; hits are candidates; check the downbeat yourself |
+| `assemble.py <job> <out> <preview|final> <events.json> [--sound-root]` | cuts the picture by `shots.txt`, mixes music, take sound and every event at its frame (a clip's first attack placed on the frame), normalises to -15 LUFS / -1.5 dBTP, writes `cut.mp4`, `mix.wav`, filmstrip, contact sheet, stills and `metrics.txt` with a **two-column sync table (full mix, own lane)** and NEEDS EARS on voice lines | stages 7-10 | needs the driver's `shots.txt` format and per-shot mp4s with handles; no titles; does not judge lane balance |
+| `pack.py <job> <asm> <pack> [--plant ...]` | the evidence pack from the job and the assembly, and a planted-defect copy (a sync line moved 5 frames, an impact removed, a still swapped) with `planted.txt` beside the packs | every critic round from stage 7 | no subject overlay, motion strip or audio plot (items 3, 4, 7) |
+| `sound_events.example.json` | hand-reveal-2's real sound plan, as a format example | - | its music path and sound names are that clip's |
+
+Tested on 2026-11-20 (no Unity): each tool's `--help`; `lint.py` on worked examples A-E (0 hard
+failures) and on hand-reveal-2's `v08/plan.yaml` (as class `moment` its four waivers are no longer
+needed; it fails the new L14 because it has no `reaction` field); `music_map.py`, `assemble.py`
+(preview) and `pack.py --plant` end to end on a synthetic two-shot job with test-pattern video and
+generated sounds, where a soft-attack "voice" read +9.4 frames in the full mix and -0.5 frames in its
+own lane. Not tested: a `final` (1080p) assembly, real Studio job output, real game sound files, and
+`pack.py` against a real metrics CSV.

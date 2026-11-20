@@ -11,8 +11,8 @@ values: tune them on reviewed shots.
 | Thing | Size | Notes |
 |-------|------|-------|
 | Survivor | 0.94 m tall, eyes about 0.85 m | 0.55 x the 1.7 m person report 03 assumed |
-| Hand | about 4 m across; assume about 3 m of visible height side-on | measure in the scene; every hand distance below depends on it |
-| Block | 6 x 2 x 2 m | twice a survivor's height; three times longer than the hand is tall |
+| Giant hand (legacy) | drawn 2.4 x 2.3 x 1.8 m (revision 2's "4 m" was wrong) | framing it: `legacy-hand.md` section 3 |
+| Block | 6 x 2 x 2 m | twice a survivor's height |
 | Tower (attempt 1 map) | 56 m on a 25 m castle | crown section for framing: about 14 m |
 
 Physical-camera lenses (24 mm sensor height): vertical FOV = 2 atan(12 / f). Frame height at
@@ -49,17 +49,21 @@ Close survivor shots put the camera under a metre away. Set the near clip plane 
 and the camera collision sphere to 0.10-0.15 m (report 03's 0.2-0.3 m, scaled). Prefer 50-85 mm for
 MS and closer so the camera does not sit inside the tower's blocks.
 
-### Hand, crown and tower
+### Fights, crowds, disasters and the tower
 
 | Framing | Hf | Distance |
 |---------|----|----------|
-| Hand whole, h 0.5-0.75 (FS) | 4-6 m | 4-6 m at 24 mm; 6-9 m at 35 mm |
-| Hand breaking the frame, h 0.8-1.2 | 2.5-3.8 m | 2.5-3.8 m at 24 mm |
+| Two survivors fighting, both whole, room for a 3 m knockback (each h 0.25-0.35) | 2.7-3.8 m | 2.7-3.8 m at 24 mm; 3.9-5.5 m at 35 mm |
+| A crowd: 3-5 survivors readable (each h ≥ 0.08, ideally ≥ 0.12) | ≤ 11.75 m (≤ 7.8 m) | ≤ 11.75 m at 24 mm |
+| A survivor sailing off the structure (h 0.08-0.2 through the flight) | 4.7-11.75 m | follow the arc: a glove launch is 22 m/s sideways |
+| Tsunami wall (40 m above the sea) with the castle (25 m) for scale | 50-60 m | 50-60 m at 24 mm, side-on |
+| Tornado funnel (65 m tall, 16 m wide) beside the crown | 60-80 m whole; 20-30 m for the funnel wall | measure the funnel in the scout |
 | Crown (top 9-12 m of the tower) with room around it | 14 m | 80 m at 135 mm; 50 m at 85 mm; 20 m at 35 mm |
 | Whole tower, h 0.6-0.9 | 62-93 m | 47-70 m at 18 mm; 62-93 m at 24 mm |
 
-In a whole-tower frame the hand is about 4-6 % of frame height and survivors about 1 %: neither
-reads. Use whole-tower frames only for establishing scale and the ocean, never for the hand.
+In a whole-tower frame survivors are about 1 % of frame height: nobody reads, so no hit reads. Use
+whole-tower frames for establishing scale, the sea and a disaster's size, never for a fight. Every
+number here is a starting point (estimate for the fight and crowd rows); derive each shot's own.
 
 The crown row frames a topple of the top 9-12 m only. An impact lower down (a wave striking
 mid-tower, a pull near the base) needs a frame derived for that height: in skill test 1 a copied
@@ -71,44 +75,47 @@ Write one line per shot, derived for that shot:
 1. `Hf = distance x 24 / focal` at the subject's distance (16:9 frame width = 1.78 x Hf).
 2. The subject's fraction `h = subject height / Hf`; it must match the declared `size` (tables above;
    POV and non-survivor subjects use the subject-fraction rule in `plan-schema-and-lints.md`).
-3. Every other thing the shot claims at the same time, at its own distance: the survivor for scale
-   (and the ≥ 0.6 x hand-distance rule), the impact point, the block's travel (≥ 15 % of frame width),
-   both threats if two are claimed, the face if it must read.
+3. Every other thing the shot claims at the same time, at its own distance: each survivor counted as
+   readable (h ≥ 0.08), the attacker and the victim of a hit, the victim's knockback path (a punch
+   shoves about `sqrt(2 g d) x 0.65` m/s, d = the mode's punch distance; the glove launches 22 m/s),
+   the impact point, both threats if two are claimed, the hero's head and hands if her reaction must read.
 4. Where the action ends: if the payoff exits frame (the pilot's block and hand left toward the lens),
    move the camera or choose a frame that holds the end point.
-5. Nothing the game cannot do: one giant hand, not two.
+5. Nothing the game or the Studio cannot do (`game-content.md` section 9).
 
-Example: "Hf = 6.5 x 24/28 = 5.6 m: hand 0.54. Survivor at 4.5 m (≥ 3.9): Hf 3.9 m, h 0.24 (WS).
-Slide 2 m of a 9.9 m wide frame (20 %)." If the arithmetic fails, change the distance or lens, not
-the claim. Reaching an example's numbers is fine only if the derivation for your shot gets there.
+Example: "Hf = 3.2 x 24/24 = 3.2 m: the victim 0.29 (WS), frame 5.7 m wide; she starts at x 0.65 and
+a 2-3 m knockback to the left ends at x 0.13-0.30; the attacker at x 0.82, both whole at the strike."
+If the arithmetic fails, change the distance or lens, not the claim. Reaching an example's numbers is fine only if the derivation for your shot gets there.
 
 ### 1c. POV shots
 
 Size by what fills the frame, using the subject-fraction rule (a survivor seen tiny from the hand's
 view is WS or EWS by its own height fraction). `side` is null (no yaw), so the jump-cut check skips
 POV pairs. Hold 1-2 s by default; inside a barrage a POV may be 0.5-1.0 s if the same POV was held
-≥ 1 s earlier. A survivor POV sits at eye height 0.85 m; where the hand player's eye sits relative to
-the hand is unknown: verify it at scout.
+≥ 1 s earlier. A survivor POV sits at eye height 0.85 m. A first-person hit (the glove filling the lower
+frame, the victim flying off) is a strong "you are there" beat; smooth it.
 
 ## 2. Scale rules for this game
 
-1. **People set the size.** The hand is only about 4 times a survivor. It looks giant only when a
-   survivor at a similar depth is in the same frame. On-screen ratio = (4 m / 0.94 m) x
-   (survivor distance / hand distance). Keep the survivor's camera distance ≥ 0.6 x the hand's,
-   which keeps the ratio ≥ 2.5. A survivor much nearer the lens (forced perspective) shrinks the
-   hand: an over-the-shoulder 1 m behind a survivor with the hand 6 m away makes them look almost
-   the same size. [inferred, geometry]
-2. **Blocks are the second yardstick.** A block is 2 m tall and 6 m long. The hand lifting a block
-   that a survivor stood on says "giant" better than the hand alone. [inferred]
+1. **People set the size.** A survivor reads as a person at h ≥ 0.08 and as a person doing
+   something (a punch, a flinch) at about h ≥ 0.2 (estimate). A disaster looks huge only with
+   survivors at a similar depth in frame: a wave behind four fighters, a funnel beside the crown.
+   [inferred, geometry]
+2. **Blocks are the second yardstick.** A block is 2 m tall and 6 m long. A disaster moving a block
+   a survivor stood on says "huge" better than the disaster alone. [inferred]
 3. **Low camera for the giant, high camera for the small.** Camera 0.3-0.9 m above the survivor's
-   surface (about survivor eye level) tilted up at the hand; camera above and behind a survivor
-   looking down at the drop for vulnerability. [sourced: Godzilla 2014, Pacific Rim, Shadow of the
-   Colossus; heights scaled]
+   surface tilted up at the wave or funnel; camera above and behind a survivor looking down at the
+   drop for vulnerability and for a knock-off's fall. [sourced: Godzilla 2014, Pacific Rim, Shadow
+   of the Colossus; heights scaled]
 4. **Shoot from where a person could stand:** a ledge, the water, the beach. A camera floating
-   beside the hand at its own height makes it look normal-sized. [sourced: ILM on Pacific Rim]
-5. **Slow giants, fast small things.** If the hand's motion looks quick, slow the hand shot to
-   0.5-0.7 x or pick an angle where it moves toward or away from camera. [sourced practice; numbers
-   inferred]
+   beside a funnel at its own height makes it look small. [sourced: ILM on Pacific Rim]
+5. **Slow giants, fast small things.** A big disaster moving fast looks small: slow its shot to
+   0.5-0.7 x or pick an angle where it comes toward the lens. Fights stay at real speed. [sourced
+   practice; numbers inferred]
+5b. **One fight, one line.** In a fight keep the camera on one side of the line between the two
+   fighters for the whole beat, so the attacker stays on the same side of frame (30-degree and
+   180-degree practice). A hit across a cut keeps the victim's travel in the same screen direction.
+   [sourced: continuity practice]
 6. **Falls are metre-true.** 10 m takes 1.4 s, 20 m 2.0 s, the 56 m tower 3.4 s (t = sqrt(2h/g)).
    Real time already reads big. If falls look toy-fast because viewers read survivors as 1.7 m
    people, 0.75 x on scale-shot falls is the suggested fix (sqrt of 0.94/1.7). [inferred]
@@ -174,13 +181,15 @@ Pass ranges (median in range, 10th/90th percentile at most one band outside):
 | Shot | Subject size | Placement | `phi` | Occlusion max | Other |
 |------|--------------|-----------|-------|---------------|-------|
 | EWS tower | tower 0.5-0.9; survivors 0.02-0.08 | tower centre on x 0.5 or a vertical third; horizon y 0.25-0.40 or 0.60-0.75 | - | 10 % | roll ≤ 0.5°; under 6°/s |
-| EWS crown (payoff) | crown 0.65-0.85; hand 0.2-0.3; survivors 0.05-0.08 | break point within 0.15 of a thirds point | - | 10 % on the break point | locked or under 4°/s before impact |
+| EWS crown (payoff) | crown 0.65-0.85; survivors 0.05-0.08 | break point within 0.15 of a thirds point | - | 10 % on the break point | locked or under 4°/s before impact |
+| Fight (two-shot) | attacker and victim each 0.20-0.45, both whole at the key | the victim's knockback path inside frame (or picked up by the next shot) | 0-100° | 15 % each | camera on one side of the fighters' line |
+| Crowd | 3 or more survivors at ≥ 0.08 | one focal survivor (the hero or the hit) on a thirds point | - | 20 % each | static or a slow move |
 | WS survivor | 0.20-0.45 | thirds error < 0.08 | 0-100° | 15 % | foreground element preferred |
 | FS survivor | 0.70-0.90 | head 0.05-0.15 below top | 0-80° | 10 % | feet and head in frame |
 | MS / MCU survivor | frame height per the size table | eyes at y 0.62-0.70 | 0-60° (face shot) | 5 % | lead room 0.55-0.70 if moving |
 | CU face | frame height 0.18-0.28 m | eyes at y 0.60-0.68 | 0-45° | 2 % | shallow focus on the eyes |
-| Giant reveal | hand 0.5-1.2 (may break the top edge); survivor 0.15-0.30 | survivor on a lower third, hand in the top two thirds (when the hand grips a block *below* the survivor, invert: survivor upper, hand lower) | survivor may look up and away | survivor 20 %, hand 30 % | camera ≤ 0.9 m above the survivor's surface, pitch up 15-60°; survivor distance ≥ 0.6 x hand distance; hand and survivor apart on screen by at least the hand's angular radius + 4° (pilot) |
-| Pull (close-medium) | block 0.4-0.8; block travel ≥ 15 % of frame width | fingertips on an upper thirds point, block centre | survivor in frame 0-60° if present | 10 % on the block | static during the yank; impulse shake 1-2°, 0.4 s |
+| Giant hazard reveal (wave, funnel, Kraken) | hazard 0.5-1.2 (may break the top edge); survivor 0.15-0.30 | survivor on a lower third, hazard in the top two thirds | survivor may look up and away | survivor 20 % | camera ≤ 0.9 m above the survivor's surface, pitch up 15-60° |
+| Hand (legacy) | see `legacy-hand.md` section 3 | | | | |
 | Follow | as its size | lead room 0.58-0.70; subject screen speed < 0.15 frame/s | 0-110° | 15 % (spikes under 0.5 s ignored) | background speed exempt |
 | Fall with | 0.15-0.45 | subject y 0.35-0.65 throughout | any | 20 % | camera vertical accel 0.6-1.0 g |
 | POV | - | target within 0.2 of centre | - | 20 % | under 30°/s; smoothed |
@@ -197,24 +206,35 @@ direction, the wave direction).
 
 ## 5. Recipes
 
-### The hand
-1. **Arrival (tilt-up).** Camera on a survivor's ledge 0.3-0.9 m above the surface, 2.5-4 m behind
-   and to the side of one or two survivors, 24-28 mm. Start on the survivors in the lower third with
-   sky above; the hand's shadow or a light change arrives first; tilt up 30-50° over 2.5-3.5 s as the
-   hand enters and breaks the top edge. Keep the hand 4-6 m from camera so the survivors stay at
-   ≥ 0.6 of its distance. (Report 03 put the camera 1-1.6 m up and 2-4 m behind a 1.7 m person;
-   both are rescaled, and the distance is raised to protect the scale ratio.)
-2. **Silhouette.** Put the hand between the camera and a bright sky; cut fill so it reads as a dark
-   shape with a bright rim. [sourced: Godzilla 2014]
-3. **Long-lens menace.** From 50-100 m on the water at 85-200 mm, frame the crown (12-14 m tall)
-   with the hand above it; locked off or a very slow push. Compression stacks hand and tower.
-4. **The pull.** Camera at block height, 4-7 m from the block's side, 35 mm (frame 2.7-4.8 m high);
-   fingertips on an upper thirds point, the block in the centre, a survivor on the opposite third
-   facing within 60°. Slow push-in over the grab (2-3 s) is optional; hold still for the yank; impulse
-   shake 1-2°, decay 0.4 s. The block must travel ≥ 2 m (≥ 15 % of frame width). Report 03's 1-3 m
-   assumed a smaller block; at 6 m long that distance shows only the block's face.
-5. **Hand POV (hand player).** Smoothed `pov`, the player's hands reaching down at the tiny tower,
-   hands high in frame, actions slowed and held 1-2 s.
+### A fight
+1. **The two-shot.** 24 mm at 2.7-3.8 m, camera 0.4-0.9 m up, on one side of the fighters' line;
+   attacker on one third, victim on the other with room on her far side for the knockback. Static
+   or calm handheld; hold the strike 12+ frames before and after.
+2. **The hit's result.** If the victim leaves frame (a glove launch, a knock-off), the next shot
+   picks her up within one cut, travelling the same screen direction (L46).
+3. **Over the attacker's shoulder.** 35-50 mm, 0.3-0.8 m behind the attacker's shoulder: the victim
+   readable at 0.25-0.4, so the viewer is the attacker for a beat.
+4. **The weapon.** A rocket or grenade: frame the shooter and the impact in one wide (blast 8 m and
+   3.5 m), or cut shooter → impact on the hit with the projectile's direction kept.
+
+### A knock-off into the sea
+Show the cause (the hit) → the victim leaving the edge with the sea below in frame (camera high,
+looking down) → the splash or the victim small against the water. A 25 m fall takes 2.3 s: hold
+it or cut to the splash on a hit. Real eliminations are off on the Studio stage: plan the splash.
+
+### Several survivors at once
+Frame ≤ 11.75 m at the farthest survivor you count (h ≥ 0.08); stagger them in depth so no one
+hides another; the hero brightest-coloured and on a thirds point; one action in focus, the rest as
+background busyness. Gang Beasts and Goose hold one fixed wide game camera for most shots (91 % and
+100 % same-size cuts): a fixed wide is an honest party-game camera. [measured]
+
+### Geography
+Early in the cut, one wide with the structure and the hero on it (L44); afterwards keep one height
+cue in every shot (the sea below, the crown above, a known block), and tag `tower_level`. When the
+action jumps a level, cut on a motion (a fall, a launch) that carries the eye down or up.
+
+### The giant hand (legacy)
+`legacy-hand.md` section 3.
 
 ### The tower
 1. **Base-up establishing.** On the beach or water 10-30 m from the base, camera 0.3-0.9 m up,
@@ -256,8 +276,8 @@ survivor falls toward the lens.
 - Never use a raw head-locked view. Smooth every POV (position 0.2-0.4 s, rotation 0.3-0.6 s),
   exaggerate head turns, keep hands high, slow hand actions. [sourced: Gartner, Lieu, Road to VR]
 - Measured: 6 of 8 VR trailers are mostly first person. For Deadly Jenga, third person carries the
-  scale (the selling point), and smoothed POV carries "you are there": the survivor looking up at
-  the hand, the hand player reaching down. Default POV share: under half the shots.
+  scale and the readability of a fight, and smoothed POV carries "you are there": a survivor
+  looking up at the wave, a first-person glove hit. Default POV share: under half the shots.
 - Brighten for monitors and phones. Capture at 60 fps where the render budget allows.
 - Live action of a headset player (Gorilla Tag, Job Simulator) is a suggestion only; the Studio
   cannot capture it.
@@ -270,10 +290,13 @@ survivor falls toward the lens.
 | Subject tiny or lost | set the size first, then `d = Hf / k` |
 | Subject faces away | place the camera from the subject's forward vector; facing ≤ 60° for reactions |
 | Blocks in front of the subject | occlusion check in the scout; choose the clearest of 8 yaw angles |
-| Hand looks normal-sized | survivor at a similar depth in frame, low camera, slow hand, crown framing |
-| Hand looks like a smooth white glove with a cut stump (pilot) | silhouette against bright sky, wrist out of frame or behind blocks, contrast from rim light; ask the human pass |
-| Hero too small to read (pilot: 0.17 of frame) | a separate MS-or-tighter cut for the reaction |
-| Hand hides the hero (pilot: hand, hero and lens in one line) | separate them on screen by the hand's angular radius + 4°; do not put the hero's facing straight at the lens with the hand behind |
+| Who hit whom is unclear | both fighters whole in a two-shot at the key; one side of their line |
+| The victim flies off and is lost | frame the knockback path, or pick her up in the next shot, same direction |
+| A crowd where nobody reads | frame ≤ 11.75 m at the farthest counted survivor |
+| The disaster looks small | survivors at a similar depth, low camera, slow the disaster shot |
+| Hero too small to read (pilot: 0.17 of frame) | a separate MS-or-tighter cut for the reaction, framing head and both hands |
+| The hero renders white (motion blur) | render without URP motion blur; check a colour still |
+| The hand (legacy) looks normal-sized or hides the hero | `legacy-hand.md` sections 3-4 |
 | Payoff leaves frame toward the lens (pilot) | place the frame so the action's end point stays inside; check the frame after the key |
 | Copied frame cannot hold the new action (skill test 1) | the `fit` line (section 1b) |
 | Robotic motion | ease every move; damping 0.5-3 s; jerk check |
