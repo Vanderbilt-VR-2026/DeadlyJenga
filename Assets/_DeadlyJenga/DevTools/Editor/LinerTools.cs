@@ -116,6 +116,7 @@ namespace DeadlyJenga.DevTools.Editor
                 map.Rebuild();
                 map.calmSeconds = 5; map.autoSinking = true;
                 float maxPitch = 0, sternRise = 0, standPitch = 0, standHigh = 0, sternUnder = -1, bowUnder = -1, middleAtBreak = float.NaN;
+                bool sternUp = true, bowUp = true;
                 var timeline = new StringBuilder();
                 float nextNote = 0;
                 for (float t = 0; t < 480; t += dt)
@@ -142,10 +143,14 @@ namespace DeadlyJenga.DevTools.Editor
                         standPitch = Mathf.Max(standPitch, LinerMap.Pitch(sternBody));
                         if (LinerMap.Pitch(sternBody) > 30) standHigh = Mathf.Max(standHigh, DeckHigh(map, sternBody));
                     }
-                    if (sternUnder < 0 && (!sternAlive || DeckHigh(map, sternBody) < 0)) sternUnder = since;
-                    if (bowUnder < 0 && (!bowAlive || DeckHigh(map, bowBody) < 0)) bowUnder = since;
-                    if (sternUnder >= 0 && bowUnder >= 0) break;
+                    // "Under" = the last moment any of it was above water (a piece can dip and come back up).
+                    sternUnder = sternAlive && DeckHigh(map, sternBody) > 0 ? since : Mathf.Max(sternUnder, 0);
+                    bowUnder = bowAlive && DeckHigh(map, bowBody) > 0 ? since : Mathf.Max(bowUnder, 0);
+                    sternUp = sternAlive && DeckHigh(map, sternBody) > 0; bowUp = bowAlive && DeckHigh(map, bowBody) > 0;
+                    if (!sternAlive && !bowAlive) break;
                 }
+                if (sternUp) sternUnder = -1;
+                if (bowUp) bowUnder = -1;
                 report.AppendLine($"  sinking story (bow floods at 5 s):");
                 report.Append(timeline);
                 report.AppendLine(map.Broken
