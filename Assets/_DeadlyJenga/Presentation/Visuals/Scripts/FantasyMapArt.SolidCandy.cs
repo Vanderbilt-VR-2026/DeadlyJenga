@@ -252,6 +252,18 @@ namespace DeadlyJenga.Presentation
                 if(!uses)continue;stray++;
                 if(stray<=8){var path=r.name;for(var t=r.transform.parent;t&&path.Length<160;t=t.parent)path=t.name+"/"+path;sb.Append(" || palette user: ").Append(path).Append(" enabled=").Append(r.enabled&&r.gameObject.activeInHierarchy);}
             }
+            // Every see-through renderer in the scene (glass looks), biggest first.
+            var clear=new List<Renderer>();
+            foreach(var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {if(!r.enabled||!r.gameObject.activeInHierarchy)continue;foreach(var m in r.sharedMaterials)if(m&&m.renderQueue>=2500){clear.Add(r);break;}}
+            clear.Sort((x,y)=>y.bounds.size.sqrMagnitude.CompareTo(x.bounds.size.sqrMagnitude));
+            sb.Append(" ||| see-through renderers: ").Append(clear.Count);
+            for(int i=0;i<Mathf.Min(14,clear.Count);i++)
+            {
+                var r=clear[i];var path=r.name;for(var t=r.transform.parent;t&&path.Length<180;t=t.parent)path=t.name+"/"+path;
+                sb.Append(" || ").Append(path).Append(" [").Append(r.GetType().Name).Append("] size=").Append(r.bounds.size.ToString("F0")).Append(" mats=");
+                foreach(var m in r.sharedMaterials)sb.Append(m?m.name+"("+m.shader.name+")":"null").Append(',');
+            }
             Debug.Log("[SolidCandy] renderers with other materials: "+bad+", palette users in scene: "+stray+sb);
         }
 

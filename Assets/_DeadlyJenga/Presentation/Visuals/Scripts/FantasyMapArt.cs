@@ -35,6 +35,7 @@ namespace DeadlyJenga.Presentation
         Quaternion oldSunRotation;
         AmbientMode oldAmbientMode;
         int revision=-1;
+        bool lateReport;
         float retry;
 
         void LateUpdate()
@@ -46,6 +47,7 @@ namespace DeadlyJenga.Presentation
             if(environment){if(environment.waterRenderer)environment.waterRenderer.forceRenderingOff=true;if(environment.sandRenderer)environment.sandRenderer.forceRenderingOff=true;}
             UpdateLighting();
             if(City)AnimateCity();
+            if(City&&solidCandy&&!lateReport&&Time.timeSinceLevelLoad>8){lateReport=true;ReportSolid();}
             if(world.Revision!=revision&&Services.World.Blocks.Count>0)
             {
                 ClearBodyArt();revision=world.Revision;
