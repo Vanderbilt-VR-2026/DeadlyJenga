@@ -18,7 +18,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     [InitializeOnLoad]
     public static class TrailerAttempt1
     {
-        const int Iteration = 3;
+        const int Iteration = 4;
         const string Subject = "Dev";   // from the record run's motion log: on the camera-side edge of the top
         const int Fps = 30;
 
@@ -335,8 +335,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             establish.keys.Add(K(2.8f, Side * 50 + up * -6, new Vector3(0, -18, 0), 20, 3));
             // B. The subject on the edge of the top, sky behind, slow push in.
             var heroShot = new StudioCameraTrack { name = "B Edge", start = 2.8f, end = 5.4f, behavior = "follow", subject = hero.id, lag = .15f, noise = "walking", noiseStrength = .5f, focusOnSubject = true, aimOffset = new Vector3(0, 1.0f, 0) };
-            heroShot.keys.Add(K(2.8f, heroStage + Side * 4.5f + across * 2.0f + up * .8f, heroStage + up, 30, 1, 2.8f));
-            heroShot.keys.Add(K(5.4f, heroStage + Side * 3.2f + across * 1.2f + up * .5f, heroStage + up, 36, 1, 2.8f));
+            // Iteration 4: low, outside and below the edge, looking up past the subject at the sky.
+            heroShot.keys.Add(K(2.8f, heroStage + Side * 2.8f + across * -1.8f + up * -1.2f, heroStage + up * 1.2f, 24, 1, 4f));
+            heroShot.keys.Add(K(5.4f, heroStage + Side * 2.2f + across * -1.2f + up * -1.0f, heroStage + up * 1.2f, 26, 1, 4f));
             // D. The pull and the collapse, slowing down as the top goes, on the subject.
             var fall = new StudioCameraTrack { name = "D Collapse", start = 5.6f, end = 8.6f, behavior = "follow", subject = hero.id, lag = .15f, noise = "impact", noiseStrength = .4f };
             fall.keys.Add(K(5.6f, heroStage + Side * 11 + across * 3 + up * 1, heroStage, 28));
@@ -346,9 +347,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             fall.speeds.Add(new StudioSpeedMark { time = 7.1f, speed = .35f });
             fall.speeds.Add(new StudioSpeedMark { time = 7.8f, speed = .35f });
             fall.speeds.Add(new StudioSpeedMark { time = 8.2f, speed = 1 });
-            // C. The hand, riding along with it as the top breaks around it.
-            var handShot = new StudioCameraTrack { name = "C Hand", start = 8.0f, end = 9.7f, behavior = hand != null ? "ride" : "", subject = hand?.id ?? "", lag = .1f, noise = "impact", noiseStrength = .3f, aimOffset = Vector3.zero };
-            handShot.keys.Add(new StudioCameraKey { time = 8.0f, position = -Side * 5 + up * 1.2f + across * -1.5f, focal = 26, aperture = 16 });
+            // C. Falling with the subject (iteration 3's hand shot showed no hand: the played-back hand is not drawn).
+            var handShot = new StudioCameraTrack { name = "C Falling", start = 7.9f, end = 9.6f, behavior = "ride", subject = hero.id, lag = .05f, noise = "impact", noiseStrength = .5f, aimOffset = new Vector3(0, .8f, 0) };
+            handShot.keys.Add(new StudioCameraKey { time = 7.9f, position = Side * 3.2f + across * 1.5f + up * 2.2f, focal = 22, aperture = 16 });
             // E. The wave hits the castle: low over the water, wide.
             var wave = new StudioCameraTrack { name = "E Wave", start = 9.4f, end = 12.0f, noise = "walking" };
             Vector3 waveSide = Quaternion.Euler(0, -35, 0) * Side;
@@ -357,8 +358,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // F. Finale: high and wide over what is left; the title goes on top of this.
             var finale = new StudioCameraTrack { name = "F Finale", start = 11.2f, end = 13.6f, noise = "subtle" };
             Vector3 finSide = Quaternion.Euler(0, -60, 0) * Side;
-            finale.keys.Add(K(11.2f, finSide * 55 + up * -14, new Vector3(0, -42, 0), 20));
-            finale.keys.Add(K(13.6f, finSide * 68 + up * -8, new Vector3(0, -44, 0), 20, 3));
+            // Iteration 4: high above the wave (it filled the lens in iteration 3).
+            finale.keys.Add(K(11.2f, finSide * 50 + up * 2, new Vector3(0, -46, 0), 20));
+            finale.keys.Add(K(13.6f, finSide * 62 + up * 8, new Vector3(0, -48, 0), 20, 3));
             int color = 0;
             foreach (var c in new[] { establish, heroShot, fall, handShot, wave, finale }) { Style(c); c.color = color++; set.cameras.Add(c); }
 
@@ -371,6 +373,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             set.cuts.Add(new StudioCut { camera = wave.id, from = 0, to = 2.4f });
             set.cuts.Add(new StudioCut { camera = finale.id, from = 0, to = 2.4f });
             Note($"Cut: {set.cuts.Count} pieces, {set.cuts.Sum(c => c.to - c.from):0.00} s. Slow-motion shot output length {fallLength:0.00} s.");
+            // The music bed: the game's own match music. The Studio puts it on its own lane in the FCPXML.
+            string music = AssetDatabase.FindAssets("Music_01 t:AudioClip").Select(AssetDatabase.GUIDToAssetPath).FirstOrDefault() ?? "";
+            set.music = music.Length > 0 ? Path.GetFullPath(music) : "";
+            Note("Music bed: " + (set.music.Length > 0 ? set.music : "none found"));
             set.render = new StudioRenderSettings { width = width, height = height, fps = Fps, subFrames = subFrames, format = "png", cinema = cinema, freezeAmbient = false };
             StudioLibrary.Save(set);
 
