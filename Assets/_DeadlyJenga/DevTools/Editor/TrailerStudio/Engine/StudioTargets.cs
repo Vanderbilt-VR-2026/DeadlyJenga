@@ -71,7 +71,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             bounds = default;
             bool any = false;
-            foreach (var shown in root.GetComponentsInChildren<Renderer>().Where(r => r.enabled && r.gameObject.activeInHierarchy && !(r is ParticleSystemRenderer) && !(r is TrailRenderer) && !(r is LineRenderer)))
+            foreach (var shown in root.GetComponentsInChildren<Renderer>().Where(r => r.enabled && !r.forceRenderingOff && r.gameObject.activeInHierarchy && !(r is ParticleSystemRenderer) && !(r is TrailRenderer) && !(r is LineRenderer)))
             {
                 if (!any) { bounds = shown.bounds; any = true; }
                 else bounds.Encapsulate(shown.bounds);

@@ -149,9 +149,44 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     foreach (var body in hand.bodies)
                         if (body && body.interpolation != RigidbodyInterpolation.None) body.interpolation = RigidbodyInterpolation.None;
                 try { lateUpdate?.Invoke(hand, null); } catch (Exception) { }
-                // Renders can come several times in one engine frame; skin from the bones as they are now.
-                if (hand.skin) hand.skin.forceMatrixRecalculationPerRender = true;
+                if (hand.skin) DrawBaked(root, hand.skin);
             }
+        }
+
+        // The copy's skinned mesh is not drawn in Studio renders (the pilot measured 0 % of pixels changing when
+        // it was hidden, even its shadow). So the Studio draws a plain mesh baked from the bones as they are now,
+        // and switches the skinned one off. The baked copy sits under the playback root, so hiding the root hides it.
+        public const string BakedName = "Studio baked hand";
+        static MaterialPropertyBlock bakedBlock;
+        static void DrawBaked(GameObject root, SkinnedMeshRenderer skin)
+        {
+            string name = BakedName + " " + skin.GetInstanceID();
+            var baked = root.transform.Find(name);
+            if (!baked)
+            {
+                baked = new GameObject(name).transform;
+                baked.SetParent(root.transform, false);
+                baked.gameObject.AddComponent<MeshFilter>().sharedMesh = new Mesh { name = BakedName, hideFlags = HideFlags.DontSave };
+                baked.gameObject.AddComponent<MeshRenderer>();
+            }
+            var filter = baked.GetComponent<MeshFilter>();
+            var shown = baked.GetComponent<MeshRenderer>();
+            bool visible = skin.enabled && skin.gameObject.activeInHierarchy;
+            shown.enabled = visible;
+            skin.forceRenderingOff = true;
+            if (!visible) return;
+            skin.BakeMesh(filter.sharedMesh, true);
+            filter.sharedMesh.RecalculateBounds();
+            baked.SetPositionAndRotation(skin.transform.position, skin.transform.rotation);
+            var parentScale = root.transform.lossyScale;
+            baked.localScale = new Vector3(1 / Mathf.Max(.0001f, parentScale.x), 1 / Mathf.Max(.0001f, parentScale.y), 1 / Mathf.Max(.0001f, parentScale.z));
+            shown.sharedMaterials = skin.sharedMaterials;
+            shown.shadowCastingMode = skin.shadowCastingMode;
+            shown.receiveShadows = skin.receiveShadows;
+            baked.gameObject.layer = skin.gameObject.layer;
+            bakedBlock ??= new MaterialPropertyBlock();
+            skin.GetPropertyBlock(bakedBlock);
+            shown.SetPropertyBlock(bakedBlock);
         }
 
         public static float HandSize(StudioStage stage)
