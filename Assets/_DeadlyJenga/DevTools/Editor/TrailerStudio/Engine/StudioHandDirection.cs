@@ -59,8 +59,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             else
             {
                 float after = t - pullTime, speed = distance / pullTime, slow = .35f;
-                offset = grab.pull * (distance + speed * slow * (1 - Mathf.Exp(-after / slow))) + cue.carry * Smooth(after / 1.5f);
-                tilt = 22 * Smooth(after / 1.2f);
+                float carryTime = Mathf.Max(.2f, cue.carryTime);
+                offset = grab.pull * (distance + speed * slow * (1 - Mathf.Exp(-after / slow))) + cue.carry * Smooth(after / carryTime);
+                tilt = 22 * Smooth(after / (carryTime * .8f));
             }
             var rotation = Quaternion.AngleAxis(-tilt, Vector3.Cross(Vector3.up, grab.pull)) * grab.wrist.rotation;
             return new Pose(grab.wrist.position + offset, rotation);
@@ -159,7 +160,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
                 try { lateUpdate?.Invoke(hand, null); } catch (Exception) { }
                 if (hand.skin) DrawBaked(root, hand.skin);
+                ShowDesignParts(hand);
             }
+        }
+
+        // A hand design's extra shapes (gems, bands) hide whenever the skin is switched off, and a host copy
+        // switches its skin off at the grab. The Studio draws the baked skin instead, so it shows the parts too.
+        static FieldInfo designParts;
+        static void ShowDesignParts(CandyPhysicalHand hand)
+        {
+            var look = hand.GetComponent<CandyHandLook>();
+            if (!look) return;
+            designParts ??= typeof(CandyHandLook).GetField("renderers", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (!(designParts?.GetValue(look) is List<Renderer> parts)) return;
+            bool visible = hand.gameObject.activeInHierarchy;
+            foreach (var part in parts) if (part) part.enabled = visible;
         }
 
         // The copy's skinned mesh is not drawn in Studio renders (the pilot measured 0 % of pixels changing when
@@ -266,6 +281,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // ---- After recording: the hand's take ----
 
+        // The hand design (CandyHandDesigns index, 0 = Classic) written into directed takes. Set it before recording.
+        public static int BakeLook;
+
         // Writes a new take on each hand mark that has handPull cues. Returns a note for the log.
         public static string Bake(StudioStage stage)
         {
@@ -298,7 +316,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     for (int i = 0; i < cues.Count; i++)
                         if (time >= cues[i].at - Mathf.Max(.05f, cues[i].grip) - Mathf.Max(.2f, cues[i].duration)) index = i;
                     if (index < 0 || !HandAt(stage, cues[index], grabsFor[index], time, out var pose)) { take.frames.Add(hidden); continue; }
-                    var hand = new ActorFrame { isHand = true, visible = true, left = false, size = size, target = pose, bones = BonesFor(pose, size), health = 100 };
+                    var hand = new ActorFrame { isHand = true, visible = true, left = false, size = size, handLook = BakeLook, target = pose, bones = BonesFor(pose, size), health = 100 };
                     take.frames.Add(hand.Write());
                     shown++;
                 }

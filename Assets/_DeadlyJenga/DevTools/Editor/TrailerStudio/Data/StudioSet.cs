@@ -49,7 +49,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // 'direction' = which way the block is pulled, 'strength' = how far it slides out.
         public float pullTime = .9f;      // seconds the yank takes
         public float grip = .45f;         // seconds the fingers take to close before the yank
-        public Vector3 carry = new Vector3(0, 5, 0);   // where the hand takes the block after the yank (metres, over 1.5 s)
+        public Vector3 carry = new Vector3(0, 5, 0);   // where the hand takes the block after the yank (metres, over carryTime)
+        public float carryTime = 1.5f;    // seconds the carry takes after the yank
         // The block's pose for the grab (metres from the stage spot). Set = the hand and the block follow the
         // same path in every take, even if the map settled a few millimetres differently.
         public bool fixedGrab;

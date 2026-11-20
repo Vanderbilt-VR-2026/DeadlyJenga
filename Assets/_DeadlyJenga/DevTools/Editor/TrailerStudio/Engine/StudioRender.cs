@@ -170,6 +170,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var blur = Get<MotionBlur>(); blur.active = shot.motionBlur > .001f;
             blur.mode.Override(MotionBlurMode.CameraAndObjects); blur.quality.Override(MotionBlurQuality.High);
             blur.intensity.Override(Mathf.Clamp01(shot.motionBlur)); blur.clamp.Override(.05f);
+            var grade = Get<ColorAdjustments>();
+            grade.active = Mathf.Abs(shot.exposure) > .001f || Mathf.Abs(shot.contrast) > .001f || Mathf.Abs(shot.saturation) > .001f;
+            grade.postExposure.Override(shot.exposure); grade.contrast.Override(shot.contrast); grade.saturation.Override(shot.saturation);
             var lookup = Get<ColorLookup>();
             lookup.active = false;
             if (!string.IsNullOrEmpty(shot.lut))

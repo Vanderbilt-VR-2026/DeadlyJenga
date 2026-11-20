@@ -66,6 +66,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public List<StudioShake> shakes = new List<StudioShake>();
         public List<string> measure = new List<string>();   // targets to write framing metrics for
         public float motionBlur;          // 0 to 1: URP camera-and-object motion blur in renders
+        // Grade for this shot (0 = leave the scene's own): exposure in stops, contrast and saturation -100 to 100.
+        public float exposure, contrast, saturation;
 
         public float End(StudioSet set) => end < 0 ? set.length : Mathf.Min(end, set.length);
     }
