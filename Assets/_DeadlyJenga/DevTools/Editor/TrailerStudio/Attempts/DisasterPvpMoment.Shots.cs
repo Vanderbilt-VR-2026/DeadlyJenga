@@ -48,7 +48,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return c;
         }
 
-        const float MotionBlur = .35f;
+        // Record 2 preview: at 0.35 the 45 m/s rocks near the lens smeared into long brown worms.
+        const float MotionBlur = .15f;
 
         static List<StudioCameraTrack> ShotCameras(StudioStage stage, Plan plan)
         {
@@ -108,10 +109,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var s = S(id); var c = ShotCam(s, focal);
                 Vector3 who = plan.cast.TryGetValue(role, out var victim) ? victim.feet : Feet(stage, plan, role, s.cutIn);   // where they stood before the hit
                 Vector3 travel = meteorIndex >= 0 && meteorIndex < plan.meteorFrom.Count ? Flat(-plan.meteorFrom[meteorIndex]) : a.side;
-                Vector3 across = Vector3.Cross(up, travel).normalized;
-                if (Vector3.Dot(across, a.side) < 0) across = -across;
-                Vector3 look = who + travel * 1.8f + up * .7f;
-                Vector3 at = PickSpot(new[] { 1f, -1f }.SelectMany(sgn => new[] { distance, distance * 1.3f }.Select(d => look + across * d * sgn + up * 1.0f + travel * 1.5f)), who + up * .6f, who + travel * 4 + up * 1.5f);
+                // From outside the tower (record 2: cameras beside the victims sat inside the lattice and saw purple walls),
+                // a little behind the rock's path, so the rock comes in past the lens and the victim is thrown away across frame.
+                Vector3 outward = Flat(who - C);
+                Vector3 look = who + travel * 1.5f + up * .7f;
+                Vector3 at = PickSpot(new[] { 0f, 15f, -15f, 30f }.SelectMany(t => new[] { distance, distance * 1.3f }.Select(d => who + Quaternion.AngleAxis(t, up) * (outward * d - travel * 2.5f) + up * 1.8f)), who + up * .6f, who + travel * 3 + up * 1.2f);
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, look));
                 StudioMoves.Shake(c, TapeF(s.cutIn + s.key) + 1f / Fps, 1.2f, .5f);
                 Add(c, at, who, .94f);

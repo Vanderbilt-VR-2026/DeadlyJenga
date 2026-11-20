@@ -138,15 +138,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             // Meteors come in low (28 deg) and land 1.2 m short of a fighter, so the blast throws them along the rock's path.
             // Spare spots: free places far from everyone, for rocks that should land in frame without hitting anybody.
-            var spare = below.Where(p => Vector3.Distance(Flat2(p), Flat2(heroAt)) > 3.6f).OrderByDescending(p => chosen.Min(c => Vector3.Distance(c, p))).ToList();
+            var spare = below.Where(p => Vector3.Distance(Flat2(p), Flat2(heroAt)) > 3.6f && Vector3.Distance(Flat2(p), Flat2(a.centre)) > 5.5f).OrderByDescending(p => chosen.Min(c => Vector3.Distance(c, p))).ToList();
             var rng = new System.Random(11);
             int spareUsed = 0;
             foreach (var (near, frame) in MeteorPlan)
             {
-                float turn = (float)(rng.NextDouble() * 60 - 30);
-                Vector3 travel = Quaternion.AngleAxis(turn, Vector3.up) * a.side;
+                // Record 2: rocks crossing the tower top on their way clipped the summit ring, tipped the summit
+                // and threw the hero off at f218. Now each rock skims along the outside of the tower (tangent to it,
+                // a little outward) and lands on the outer ledge, so its path never crosses the summit.
+                Vector3 place = (near == "heroFar" || near == "summitFar" || near == "spare") && spare.Count > spareUsed ? spare[spareUsed]
+                    : plan.cast.TryGetValue(near, out var person) ? person.feet : a.centre;
+                Vector3 outward = Flat(place - a.centre), tangent = Vector3.Cross(Vector3.up, outward);
+                if (Vector3.Dot(tangent, a.along) < 0) tangent = -tangent;
+                Vector3 travel = (tangent + outward * .3f).normalized;
                 Vector3 target;
-                if (near == "rivalEnd") target = a.centre + a.along * 2.5f;
+                if (near == "rivalEnd") continue;
                 else if ((near == "heroFar" || near == "summitFar" || near == "spare") && spare.Count > spareUsed) target = spare[spareUsed++];
                 else if (plan.cast.TryGetValue(near, out var who))
                 {
@@ -193,8 +199,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 mark.actor = role; mark.yaw = who.yaw; mark.color = who.color; mark.equipment = who.weapon;
                 // A plain candy body for everyone (the bot's random outfit hid the rival in a dark robot suit in the scout).
                 var hair = new[] { AvatarHair.Spikes, AvatarHair.Afro, AvatarHair.Ponytail, AvatarHair.Buzz, AvatarHair.Curls, AvatarHair.TwinTails, AvatarHair.Pompadour };
+                // Record 2: every body still played back in the same yellow (a colour override did not change it), so
+                // everyone but the hero wears one of the game's skins and reads at a glance; the hero stays plain yellow.
+                var skins = new Dictionary<string, AvatarSkin> { ["rival"] = AvatarSkin.Gorilla, ["blue"] = AvatarSkin.Penguin, ["green"] = AvatarSkin.Dragon, ["purple"] = AvatarSkin.Astronaut, ["pink"] = AvatarSkin.Fox, ["cyan"] = AvatarSkin.Panda };
                 mark.customLook = true;
-                mark.appearance = new AvatarAppearance { hair = hair[Array.IndexOf(Roles, role) % hair.Length], hairShade = role == "hero" ? AvatarHairShade.Match : AvatarHairShade.Dark };
+                mark.appearance = new AvatarAppearance { hair = role == "hero" ? AvatarHair.Spikes : AvatarHair.None, hairShade = AvatarHairShade.Match, skin = skins.TryGetValue(role, out var skin) ? skin : AvatarSkin.Default };
                 who.id = mark.id;
             }
 
@@ -238,11 +247,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 list.Add(new StudioOverride { actor = id, kind = kind, name = name, target = target, from = TapeF(from), to = TapeF(to), blendIn = blendIn, blendOut = blendOut, leftHand = left });
             }
             string Actor(string role) => "actor:" + plan.Id(role);
-            // Body colours (record 1: the match recorded every survivor in the same yellow).
-            var colours = new Dictionary<string, int> { ["hero"] = 1, ["rival"] = 0, ["blue"] = 2, ["green"] = 3, ["purple"] = 5, ["pink"] = 4, ["cyan"] = 7 };
-            foreach (var pair in colours)
-                if (plan.Id(pair.Key).Length > 0)
-                    list.Add(new StudioOverride { actor = plan.Id(pair.Key), kind = "color", color = pair.Value, from = 0, to = TapeF(LengthFrames) + 1, blendIn = 0, blendOut = 0 });
             // The punch: the glove hand goes to the rival's head, then the hero taunts.
             Add("hero", "lookAt", 0, 40, target: Actor("rival"), blendIn: .05f);
             Add("hero", "reach", PunchFrame - 6, PunchFrame + 6, target: Actor("rival"), blendIn: .12f, blendOut: .2f);

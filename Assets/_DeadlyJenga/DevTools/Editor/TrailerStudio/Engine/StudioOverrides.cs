@@ -14,8 +14,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     {
         public int Order => 10;
 
-        public static readonly List<string> Kinds = new List<string> { "lookAt", "reach", "pose", "reaction", "emote", "outfit", "colorFlash", "equipment", "hitPause", "color" };
-        public static readonly List<string> KindLabels = new List<string> { "Look at", "Reach", "Pose", "Reaction", "Emote", "Outfit change", "Color flash", "Weapon swap", "Hit pause", "Body colour" };
+        public static readonly List<string> Kinds = new List<string> { "lookAt", "reach", "pose", "reaction", "emote", "outfit", "colorFlash", "equipment", "hitPause" };
+        public static readonly List<string> KindLabels = new List<string> { "Look at", "Reach", "Pose", "Reaction", "Emote", "Outfit change", "Color flash", "Weapon swap", "Hit pause" };
         public static readonly List<string> Reactions = new List<string> { "stagger", "knockback", "fall", "tumble", "death", "getUp", "cheer", "scream", "cower" };
         public static readonly List<string> ReactionLabels = new List<string> { "Hit stagger", "Knockback", "Fall", "Tumble", "Death", "Get up", "Cheer", "Scream", "Cower" };
 
@@ -67,10 +67,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if (emote >= 0) frame.color = (frame.color & ~0xFF0000) | ((emote + 1) << 16);
                     break;
                 case "outfit": frame.look = layer.look; break;
-                case "color":
-                    // A steady body colour (palette index), for takes where the match recoloured everyone alike.
-                    frame.color = (frame.color & ~0xFF) | (layer.color & 0xFF);
-                    break;
                 case "colorFlash":
                     // Flash between the actor's own color and the chosen one, five times a second.
                     if (Mathf.FloorToInt((time - layer.Start) * 10) % 2 == 0) frame.color = (frame.color & ~0xFF) | (layer.color & 0xFF);
