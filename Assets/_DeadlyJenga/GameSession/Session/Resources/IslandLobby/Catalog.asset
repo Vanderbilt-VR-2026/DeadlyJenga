@@ -417,6 +417,15 @@ MonoBehaviour:
     walkableIsland: 1
     supportedModes:
     - demo
+  - id: deck-ship-xl
+    title: "Deck Ship XL \xB7 WIP"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7310550183224610001, guid: 7910a45d050141b0a9b4eb25488ca2fa, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes:
+    - demo
   - id: megablock-tower
     title: Megablock Tower
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity

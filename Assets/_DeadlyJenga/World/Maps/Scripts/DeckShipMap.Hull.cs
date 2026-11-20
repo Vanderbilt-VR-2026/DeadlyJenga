@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using DeadlyJenga.Core;
 using UnityEngine;
 
@@ -17,12 +18,14 @@ namespace DeadlyJenga.CastlePrototype
         [Header("Ship build")]
         [Tooltip("Your own ship: a prefab with DeckShipHull on its root. Empty = the built-in box ship.")]
         public DeckShipHull hullPrefab;
+        [Tooltip("Which built-in box ship to build when there is no hull prefab.")]
+        public BoxShipSize boxShip = BoxShipSize.Standard;
 
         Rigidbody hullBody;
         Transform hull, collisionRoot, visualRoot;
         DeckShipHull ship;
-        Vector3 cargoLocal;
-        Quaternion cargoLocalRotation = Quaternion.identity;
+        readonly List<Vector3> bayLocal = new List<Vector3>();
+        readonly List<Quaternion> bayLocalRotation = new List<Quaternion>();
         Bounds hullLocalBounds;
         PhysicsMaterial deckMaterial;
         readonly List<Material> hullMaterials = new List<Material>();
@@ -31,9 +34,17 @@ namespace DeadlyJenga.CastlePrototype
 
         public Transform Hull => hull;
         public DeckShipHull Ship => ship;
-        // The cargo deck's center and orientation right now (it moves with the ship).
-        public Vector3 CargoCenter => hullBody.position + hullBody.rotation * cargoLocal;
-        public Quaternion CargoRotation => hullBody.rotation * cargoLocalRotation;
+        // Cargo bays: centers and orientations right now (they move with the ship). Bay 0 is the main cargo area.
+        public int BayCount => bayLocal.Count;
+        public Vector3 BayCenter(int bay) => hullBody.position + hullBody.rotation * bayLocal[bay];
+        public Quaternion BayRotation(int bay) => hullBody.rotation * bayLocalRotation[bay];
+        public Vector3 CargoCenter => BayCenter(0);
+        public Quaternion CargoRotation => BayRotation(0);
+        // Each bay carries a different layout: bay i gets the map's cargo plus i (wrapping around).
+        public DeckShipCargoKind BayCargo(int bay) => (DeckShipCargoKind)(((int)cargo + bay) % DeckShipCargo.Count);
+        int BaySeed(int bay) => seed + bay * 101;
+        // The hull's size in its own space, for camera framing and play area.
+        public Bounds HullBounds => hullLocalBounds;
 
         void BuildHull()
         {
@@ -88,12 +99,30 @@ namespace DeadlyJenga.CastlePrototype
                 Debug.LogWarning("Deck Ship: the hull has no cargo area marker; using its origin.", ship);
                 ship.cargoArea = hull;
             }
-            cargoLocal = hull.InverseTransformPoint(ship.cargoArea.position);
-            cargoLocalRotation = Quaternion.Inverse(hull.rotation) * ship.cargoArea.rotation;
+            bayLocal.Clear(); bayLocalRotation.Clear();
+            foreach (var bay in ship.Bays)
+            {
+                bayLocal.Add(hull.InverseTransformPoint(bay.position));
+                bayLocalRotation.Add(Quaternion.Inverse(hull.rotation) * bay.rotation);
+            }
             bodies.Insert(0, hullBody);
             hullBody.position = hull.position; hullBody.rotation = hull.rotation;
             Physics.SyncTransforms();
         }
+
+        // Sizes of the built-in box ships. Standard is the original ship; Large has four times its deck area
+        // (twice as long and wide), a higher deck, and four cargo bays so four submaps sail at once.
+        public enum BoxShipSize { Standard, Large }
+
+        struct BoxPlan
+        {
+            public float halfLength, halfBeam, deck;
+            public Vector2[] bays;   // bay centers on the main deck (x across, z along)
+        }
+
+        static BoxPlan PlanFor(BoxShipSize size) => size == BoxShipSize.Large
+            ? new BoxPlan { halfLength = 72, halfBeam = 22, deck = 6, bays = new[] { new Vector2(-11.6f, -17), new Vector2(11.6f, -17), new Vector2(-11.6f, 17), new Vector2(11.6f, 17) } }
+            : new BoxPlan { halfLength = 36, halfBeam = HalfBeam, deck = DeckHeight, bays = new[] { Vector2.zero } };
 
         void BuildBoxHull()
         {
@@ -103,68 +132,86 @@ namespace DeadlyJenga.CastlePrototype
             collisionRoot = new GameObject("Collision").transform; collisionRoot.SetParent(hull, false);
             visualRoot = new GameObject("Visual").transform; visualRoot.SetParent(hull, false);
 
-            float d = DeckHeight, top = DeckHeight + RaisedDeck;
+            var plan = PlanFor(boxShip);
+            float H = plan.halfLength, B = plan.halfBeam, d = plan.deck, top = d + RaisedDeck;
+            float bottom = -Mathf.Max(2.5f, d * .7f);
+            float midFrom = -(H - 6), midTo = H - 10, bowStart = H - 12, sternEnd = -(H - 12);
+            float w1 = B * .8f, w2 = B * .55f, w3 = B * .3f, ws = B * .9f;   // half widths: bow steps and stern
+
             // Hull: a long midship box, a stepped bow and a squared stern. Their tops are the main deck.
-            Box("Hull midship", new Vector3(0, .25f, -2), new Vector3(20, 5.5f, 56), navy);
-            Box("Hull bow 1", new Vector3(0, .5f, 28), new Vector3(16, 5, 4), navy);
-            Box("Hull bow 2", new Vector3(0, .75f, 31.5f), new Vector3(11, 4.5f, 3), navy);
-            Box("Hull bow 3", new Vector3(0, 1, 34.25f), new Vector3(6, 4, 2.5f), navy);
-            Box("Hull stern", new Vector3(0, .25f, -33), new Vector3(18, 5.5f, 6), navy);
-            Paint("Red stripe midship", new Vector3(0, 1.9f, -2), new Vector3(20.08f, .7f, 56.04f), red);
-            Paint("Red stripe stern", new Vector3(0, 1.9f, -33), new Vector3(18.08f, .7f, 6.04f), red);
-            Paint("Red stripe bow", new Vector3(0, 1.9f, 28), new Vector3(16.08f, .7f, 4.04f), red);
-            Paint("Main deck boards", new Vector3(0, d - .04f, -2), new Vector3(19.6f, .1f, 55.6f), cream);
-            Paint("Waterline", new Vector3(0, -.05f, -2), new Vector3(20.1f, .3f, 56.1f), red);
+            Slab("Hull midship", 0, B, midFrom, midTo, bottom, d, navy);
+            Slab("Hull bow 1", 0, w1, midTo, H - 6, bottom + .5f, d, navy);
+            Slab("Hull bow 2", 0, w2, H - 6, H - 3, bottom + 1, d, navy);
+            Slab("Hull bow 3", 0, w3, H - 3, H - .5f, bottom + 1.5f, d, navy);
+            Slab("Hull stern", 0, ws, -H, midFrom, bottom, d, navy);
+            float stripe = d - 1.1f;
+            Paint("Red stripe midship", new Vector3(0, stripe, (midFrom + midTo) * .5f), new Vector3(B * 2 + .08f, .7f, midTo - midFrom + .04f), red);
+            Paint("Red stripe stern", new Vector3(0, stripe, (-H + midFrom) * .5f), new Vector3(ws * 2 + .08f, .7f, 6.04f), red);
+            Paint("Red stripe bow", new Vector3(0, stripe, (midTo + H - 6) * .5f), new Vector3(w1 * 2 + .08f, .7f, 4.04f), red);
+            Paint("Main deck boards", new Vector3(0, d - .04f, (midFrom + midTo) * .5f), new Vector3(B * 2 - .4f, .1f, midTo - midFrom - .4f), cream);
+            Paint("Waterline", new Vector3(0, -.05f, (midFrom + midTo) * .5f), new Vector3(B * 2 + .1f, .3f, midTo - midFrom + .1f), red);
 
             // Raised bow deck (team end A) with two ramps up from the main deck.
-            Box("Bow deck 1", new Vector3(0, d + 2, 27), new Vector3(16, 4, 6), cream);
-            Box("Bow deck 2", new Vector3(0, d + 2, 31.5f), new Vector3(11, 4, 3), cream);
-            Box("Bow deck 3", new Vector3(0, d + 2, 34.25f), new Vector3(6, 4, 2.5f), cream);
-            Paint("Bow stripe 1", new Vector3(0, d + 3.2f, 27), new Vector3(16.06f, .5f, 6.06f), red);
-            Paint("Bow stripe 2", new Vector3(0, d + 3.2f, 31.5f), new Vector3(11.06f, .5f, 3.06f), red);
-            Paint("Bow stripe 3", new Vector3(0, d + 3.2f, 34.25f), new Vector3(6.06f, .5f, 2.56f), red);
-            Rail(top, new[] { new Vector2(-8, 24), new Vector2(-8, 30), new Vector2(-5.5f, 30), new Vector2(-5.5f, 33), new Vector2(-3, 33), new Vector2(-3, 35.5f),
-                              new Vector2(3, 35.5f), new Vector2(3, 33), new Vector2(5.5f, 33), new Vector2(5.5f, 30), new Vector2(8, 30), new Vector2(8, 24) }, .8f);
-            Ramp("Bow ramp port", new Vector3(-5.5f, d, 15), new Vector3(-5.5f, top, 24), 3.5f);
-            Ramp("Bow ramp starboard", new Vector3(5.5f, d, 15), new Vector3(5.5f, top, 24), 3.5f);
+            Slab("Bow deck 1", 0, w1, bowStart, H - 6, d, top, cream);
+            Slab("Bow deck 2", 0, w2, H - 6, H - 3, d, top, cream);
+            Slab("Bow deck 3", 0, w3, H - 3, H - .5f, d, top, cream);
+            Paint("Bow stripe 1", new Vector3(0, d + 3.2f, (bowStart + H - 6) * .5f), new Vector3(w1 * 2 + .06f, .5f, H - 6 - bowStart + .06f), red);
+            Paint("Bow stripe 2", new Vector3(0, d + 3.2f, H - 4.5f), new Vector3(w2 * 2 + .06f, .5f, 3.06f), red);
+            Paint("Bow stripe 3", new Vector3(0, d + 3.2f, H - 1.75f), new Vector3(w3 * 2 + .06f, .5f, 2.56f), red);
+            Rail(top, new[] { new Vector2(-w1, bowStart), new Vector2(-w1, H - 6), new Vector2(-w2, H - 6), new Vector2(-w2, H - 3), new Vector2(-w3, H - 3), new Vector2(-w3, H - .5f),
+                              new Vector2(w3, H - .5f), new Vector2(w3, H - 3), new Vector2(w2, H - 3), new Vector2(w2, H - 6), new Vector2(w1, H - 6), new Vector2(w1, bowStart) }, .8f);
+            float rampX = B * .55f;
+            Ramp("Bow ramp port", new Vector3(-rampX, d, bowStart - 9), new Vector3(-rampX, top, bowStart), 3.5f);
+            Ramp("Bow ramp starboard", new Vector3(rampX, d, bowStart - 9), new Vector3(rampX, top, bowStart), 3.5f);
             // Climb boards only between the ramps, so the ramp tops stay a smooth walk.
-            ClimbFace("Bow wall climb", new Vector3(0, d + 2, 23.88f), new Vector3(7.3f, 4, .2f));
+            float between = 2 * (rampX - 1.75f) - .2f;
+            ClimbFace("Bow wall climb", new Vector3(0, d + 2, bowStart - .12f), new Vector3(between, 4, .2f));
 
-            // Raised stern deck (team end B) with the wheelhouse and funnel, and two ramps.
-            Box("Stern deck", new Vector3(0, d + 2, -30), new Vector3(18, 4, 12), cream);
-            Paint("Stern stripe", new Vector3(0, d + 3.2f, -30), new Vector3(18.06f, .5f, 12.06f), red);
-            Rail(top, new[] { new Vector2(-9, -24), new Vector2(-9, -36), new Vector2(9, -36), new Vector2(9, -24) }, .8f);
-            Ramp("Stern ramp port", new Vector3(-5.5f, d, -15), new Vector3(-5.5f, top, -24), 3.5f);
-            Ramp("Stern ramp starboard", new Vector3(5.5f, d, -15), new Vector3(5.5f, top, -24), 3.5f);
-            ClimbFace("Stern wall climb", new Vector3(0, d + 2, -23.88f), new Vector3(7.3f, 4, .2f));
-            Box("Wheelhouse", new Vector3(0, top + 2, -32.5f), new Vector3(10, 4, 5), white);
-            Paint("Wheelhouse windows", new Vector3(0, top + 2.6f, -32.5f), new Vector3(10.06f, 1.1f, 5.06f), glass);
-            Paint("Wheelhouse roof", new Vector3(0, top + 4.05f, -32.5f), new Vector3(10.4f, .14f, 5.4f), red);
-            ClimbFace("Wheelhouse climb", new Vector3(0, top + 2, -29.88f), new Vector3(10, 4, .2f));
-            Cylinder("Funnel", new Vector3(0, top + 5.75f, -33.2f), new Vector3(2.6f, 1.75f, 2.6f), yellow, new Vector3(2.4f, 3.5f, 2.4f));
-            Paint("Funnel band", new Vector3(0, top + 7.1f, -33.2f), new Vector3(2.7f, .25f, 2.7f), red, PrimitiveType.Cylinder);
-
-            // Main deck rails, with gaps where cargo can slide overboard.
-            float[] gaps = { -13, -10, 2, 5, 16, 19 };
-            for (int side = -1; side <= 1; side += 2)
+            // Raised stern deck (team end B) with the wheelhouse and funnel(s), and two ramps.
+            Slab("Stern deck", 0, ws, -H, sternEnd, d, top, cream);
+            Paint("Stern stripe", new Vector3(0, d + 3.2f, (-H + sternEnd) * .5f), new Vector3(ws * 2 + .06f, .5f, sternEnd + H + .06f), red);
+            Rail(top, new[] { new Vector2(-ws, sternEnd), new Vector2(-ws, -H), new Vector2(ws, -H), new Vector2(ws, sternEnd) }, .8f);
+            Ramp("Stern ramp port", new Vector3(-rampX, d, sternEnd + 9), new Vector3(-rampX, top, sternEnd), 3.5f);
+            Ramp("Stern ramp starboard", new Vector3(rampX, d, sternEnd + 9), new Vector3(rampX, top, sternEnd), 3.5f);
+            ClimbFace("Stern wall climb", new Vector3(0, d + 2, sternEnd + .12f), new Vector3(between, 4, .2f));
+            float wheelZ = -(H - 3.5f);
+            Box("Wheelhouse", new Vector3(0, top + 2, wheelZ), new Vector3(B, 4, 5), white);
+            Paint("Wheelhouse windows", new Vector3(0, top + 2.6f, wheelZ), new Vector3(B + .06f, 1.1f, 5.06f), glass);
+            Paint("Wheelhouse roof", new Vector3(0, top + 4.05f, wheelZ), new Vector3(B + .4f, .14f, 5.4f), red);
+            ClimbFace("Wheelhouse climb", new Vector3(0, top + 2, wheelZ + 2.62f), new Vector3(B, 4, .2f));
+            int funnels = B > 12 ? 2 : 1;
+            for (int f = 0; f < funnels; f++)
             {
-                float x = side * (HalfBeam - .2f);
-                float from = -24;
-                for (int g = 0; g <= gaps.Length; g += 2)
-                {
-                    float to = g < gaps.Length ? gaps[g] : 26;
-                    RailSegment(new Vector2(x, from), new Vector2(x, to), d, 1.1f);
-                    if (g + 1 < gaps.Length) from = gaps[g + 1];
-                }
-                RailSegment(new Vector2(x, 26), new Vector2(side * 8, 26), d, 1.1f);
+                float fx = funnels == 1 ? 0 : (f == 0 ? -B * .22f : B * .22f);
+                Cylinder("Funnel", new Vector3(fx, top + 5.75f, -(H - 2.8f)), new Vector3(2.6f, 1.75f, 2.6f), yellow, new Vector3(2.4f, 3.5f, 2.4f));
+                Paint("Funnel band", new Vector3(fx, top + 7.1f, -(H - 2.8f)), new Vector3(2.7f, .25f, 2.7f), red, PrimitiveType.Cylinder);
             }
 
-            // The fixed cargo hatch in the middle: a low wooden plateau the cargo builds on.
-            Box("Cargo hatch", new Vector3(0, d + DeckShipCargo.HatchHeight * .5f, 0), new Vector3(DeckShipCargo.HatchHalf * 2, DeckShipCargo.HatchHeight, DeckShipCargo.HatchHalf * 2), wood);
-            Paint("Hatch trim", new Vector3(0, d + DeckShipCargo.HatchHeight - .05f, 0), new Vector3(DeckShipCargo.HatchHalf * 2 + .1f, .12f, DeckShipCargo.HatchHalf * 2 + .1f), red);
+            // Main deck rails, with 3 m gaps every 15 m where cargo can slide overboard.
+            var gaps = new List<float>();
+            for (float g = sternEnd + 11; g + 3 <= midTo - 3; g += 15) { gaps.Add(g); gaps.Add(g + 3); }
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float x = side * (B - .2f);
+                float from = sternEnd;
+                for (int g = 0; g <= gaps.Count; g += 2)
+                {
+                    float to = g < gaps.Count ? gaps[g] : midTo;
+                    RailSegment(new Vector2(x, from), new Vector2(x, to), d, 1.1f);
+                    if (g + 1 < gaps.Count) from = gaps[g + 1];
+                }
+                RailSegment(new Vector2(x, midTo), new Vector2(side * w1, midTo), d, 1.1f);
+            }
+
+            // A fixed cargo hatch in the middle of every bay: a low wooden plateau the cargo builds on.
+            foreach (var bay in plan.bays)
+            {
+                Box("Cargo hatch", new Vector3(bay.x, d + DeckShipCargo.HatchHeight * .5f, bay.y), new Vector3(DeckShipCargo.HatchHalf * 2, DeckShipCargo.HatchHeight, DeckShipCargo.HatchHalf * 2), wood);
+                Paint("Hatch trim", new Vector3(bay.x, d + DeckShipCargo.HatchHeight - .05f, bay.y), new Vector3(DeckShipCargo.HatchHalf * 2 + .1f, .12f, DeckShipCargo.HatchHalf * 2 + .1f), red);
+            }
 
             // Mast with a climbable ladder on its aft side and a crow's nest reached from the ladder's top.
-            const float mastZ = 19, nest = 13.5f;
+            float mastZ = H - 17, nest = d + 10.5f;
             // The pole stops under the nest so a climber can step off the ladder top onto it.
             float pole = nest - d;
             Cylinder("Mast", new Vector3(0, d + pole * .5f, mastZ), new Vector3(.8f, pole * .5f, .8f), white, new Vector3(.7f, pole, .7f));
@@ -174,45 +221,46 @@ namespace DeadlyJenga.CastlePrototype
             Rail(nest + .3f, new[] { new Vector2(-1.5f, mastZ), new Vector2(-1.5f, mastZ + 2.6f), new Vector2(1.5f, mastZ + 2.6f), new Vector2(1.5f, mastZ) }, .7f);
             Paint("Top mast", new Vector3(0, nest + 1.8f, mastZ + 2.4f), new Vector3(.14f, 3.2f, .14f), white);
             Paint("Mast flag", new Vector3(.8f, nest + 2.9f, mastZ + 2.4f), new Vector3(1.6f, 1, .05f), red);
-            Paint("Bow pennant", new Vector3(0, top + 2.2f, 34.6f), new Vector3(.12f, 4.4f, .12f), white);
-            Paint("Bow pennant flag", new Vector3(.6f, top + 3.9f, 34.6f), new Vector3(1.2f, .8f, .05f), red);
-            Paint("Stern pennant", new Vector3(-7.5f, top + 2.2f, -35.3f), new Vector3(.12f, 4.4f, .12f), white);
-            Paint("Stern pennant flag", new Vector3(-6.9f, top + 3.9f, -35.3f), new Vector3(1.2f, .8f, .05f), MakeColor("Mint", new Color(.31f, .89f, .76f)));
-            Portholes();
+            Paint("Bow pennant", new Vector3(0, top + 2.2f, H - 1.4f), new Vector3(.12f, 4.4f, .12f), white);
+            Paint("Bow pennant flag", new Vector3(.6f, top + 3.9f, H - 1.4f), new Vector3(1.2f, .8f, .05f), red);
+            Paint("Stern pennant", new Vector3(-ws * .83f, top + 2.2f, -(H - .7f)), new Vector3(.12f, 4.4f, .12f), white);
+            Paint("Stern pennant flag", new Vector3(-ws * .83f + .6f, top + 3.9f, -(H - .7f)), new Vector3(1.2f, .8f, .05f), MakeColor("Mint", new Color(.31f, .89f, .76f)));
+            for (int side = -1; side <= 1; side += 2)
+                for (float z = sternEnd; z <= midTo - 2; z += 5.5f)
+                {
+                    var go = Visual("Porthole", PrimitiveType.Cylinder, new Vector3(side * (B + .02f), d * .3f, z), new Vector3(.9f, .04f, .9f), yellow);
+                    go.transform.localRotation = Quaternion.Euler(0, 0, 90);
+                }
 
-            // Markers: the open cargo deck and the spawn spots, exactly as a hull prefab would carry them.
-            var area = new GameObject("Cargo area").transform;
-            area.SetParent(hull, false); area.localPosition = new Vector3(0, d, 0);
-            ship.cargoArea = area;
+            // Markers: the cargo bays and the spawn spots, exactly as a hull prefab would carry them.
+            var bays = new Transform[plan.bays.Length];
+            for (int i = 0; i < bays.Length; i++)
+            {
+                bays[i] = new GameObject(bays.Length == 1 ? "Cargo area" : "Cargo bay " + (i + 1)).transform;
+                bays[i].SetParent(hull, false); bays[i].localPosition = new Vector3(plan.bays[i].x, d, plan.bays[i].y);
+            }
+            ship.cargoArea = bays[0];
+            ship.extraCargoAreas = bays.Skip(1).ToArray();
             ship.cargoHalfSize = new Vector2(DeckShipCargo.FieldHalfWidth, DeckShipCargo.FieldMaxZ);
             ship.hatchHeight = DeckShipCargo.HatchHeight; ship.hatchHalf = DeckShipCargo.HatchHalf;
-            var spawns = new Transform[BoxSpawnSpots.Length];
+            var spots = new[]
+            {
+                new Vector3(0, 4, -(H - 10.5f)), new Vector3(-B * .35f, 4, -(H - 10)), new Vector3(B * .35f, 4, -(H - 10)), new Vector3(-B * .75f, 4, -(H - 8.5f)), new Vector3(B * .75f, 4, -(H - 8.5f)),
+                new Vector3(0, 4, H - 10), new Vector3(-B * .5f, 4, H - 9), new Vector3(B * .5f, 4, H - 9),
+                new Vector3(-(B - 1.5f), 0, -(H - 17)), new Vector3(B - 1.5f, 0, -(H - 17)), new Vector3(-(B - 1.5f), 0, H - 16), new Vector3(B - 1.5f, 0, H - 16),
+            };
+            var spawns = new Transform[spots.Length];
             for (int i = 0; i < spawns.Length; i++)
             {
                 spawns[i] = new GameObject("Spawn " + (i + 1)).transform;
-                spawns[i].SetParent(hull, false); spawns[i].localPosition = BoxSpawnSpots[i] + Vector3.up * d;
+                spawns[i].SetParent(hull, false); spawns[i].localPosition = spots[i] + Vector3.up * d;
             }
             ship.spawnPoints = spawns;
         }
 
-        // Spawns of the box ship (above the main deck): stern deck, bow deck, aft and fore main deck corners.
-        static readonly Vector3[] BoxSpawnSpots =
-        {
-            new Vector3(0, 4, -25.5f), new Vector3(-3.5f, 4, -26), new Vector3(3.5f, 4, -26), new Vector3(-7.5f, 4, -27.5f), new Vector3(7.5f, 4, -27.5f),
-            new Vector3(0, 4, 26), new Vector3(-5, 4, 27), new Vector3(5, 4, 27),
-            new Vector3(-8.5f, 0, -19), new Vector3(8.5f, 0, -19), new Vector3(-8.5f, 0, 20), new Vector3(8.5f, 0, 20),
-        };
-
-        void Portholes()
-        {
-            for (int side = -1; side <= 1; side += 2)
-                for (int i = 0; i < 9; i++)
-                {
-                    var p = new Vector3(side * (HalfBeam + .02f), .9f, -24 + i * 5.5f);
-                    var go = Visual("Porthole", PrimitiveType.Cylinder, p, new Vector3(.9f, .04f, .9f), yellow);
-                    go.transform.localRotation = Quaternion.Euler(0, 0, 90);
-                }
-        }
+        // A solid box given by its x half width, z range and y range.
+        void Slab(string name, float x, float halfWidth, float zFrom, float zTo, float yFrom, float yTo, Material material) =>
+            Box(name, new Vector3(x, (yFrom + yTo) * .5f, (zFrom + zTo) * .5f), new Vector3(halfWidth * 2, yTo - yFrom, zTo - zFrom), material);
 
         // A solid box: collision plus matching gray-box art.
         void Box(string name, Vector3 center, Vector3 size, Material material)

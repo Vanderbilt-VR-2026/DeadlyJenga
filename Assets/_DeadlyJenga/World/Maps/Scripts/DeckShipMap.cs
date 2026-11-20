@@ -46,10 +46,10 @@ namespace DeadlyJenga.CastlePrototype
         public Transform Root => transform;
         public int Revision { get; private set; }
         public Vector3 Center => transform.position;
-        public float TopHeight => transform.position.y + 16;
-        public float Radius => 40;
+        public float TopHeight => transform.position.y + Mathf.Max(16, hullLocalBounds.max.y + 10);
+        public float Radius => Mathf.Max(40, Mathf.Max(hullLocalBounds.extents.x, hullLocalBounds.extents.z) + 4);
         public float StepHeight => DeckShipCargo.Height;
-        public Bounds PlayableBounds => new Bounds(transform.position + Vector3.up * 12, new Vector3(110, 32, 110));
+        public Bounds PlayableBounds => new Bounds(transform.position + Vector3.up * 12, new Vector3(Radius * 2 + 30, 32, Radius * 2 + 30));
 
         void OnEnable() { Services.World = this; }
         void OnDisable() { if (ReferenceEquals(Services.World, this)) Services.World = null; }
@@ -99,11 +99,13 @@ namespace DeadlyJenga.CastlePrototype
         void SpawnCargo(float lift)
         {
             // Cargo is not parented to the moving hull: dynamic bodies must not ride a moving transform.
-            cargoRoot = new GameObject("Cargo: " + DeckShipCargo.Titles[(int)cargo]).transform;
+            cargoRoot = new GameObject("Cargo: " + DeckShipCargo.Titles[(int)cargo] + (BayCount > 1 ? " and more" : "")).transform;
             cargoRoot.SetParent(transform, false);
-            var deckCenter = CargoCenter; var deckRotation = CargoRotation;
             var friction = blockPrefab.GetComponent<BoxCollider>().sharedMaterial;
-            foreach (var piece in DeckShipCargo.Build(cargo, seed, ship.hatchHeight))
+            for (int bay = 0; bay < BayCount; bay++)
+            {
+            var deckCenter = BayCenter(bay); var deckRotation = BayRotation(bay);
+            foreach (var piece in DeckShipCargo.Build(BayCargo(bay), BaySeed(bay), ship.hatchHeight))
             {
                 var go = Instantiate(blockPrefab, cargoRoot);
                 go.name = (bodies.Count) + " · " + piece.role;
@@ -124,6 +126,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (friction) go.GetComponent<BoxCollider>().sharedMaterial = friction;
                 block.SyncSurface();
                 bodies.Add(body);
+            }
             }
             Physics.SyncTransforms();
         }
@@ -183,8 +186,12 @@ namespace DeadlyJenga.CastlePrototype
             try { state = JsonUtility.FromJson<LayoutState>(layout.Substring(Prefix.Length)); } catch (ArgumentException) { return false; }
             if (state == null || state.version != 1 || !Enum.IsDefined(typeof(DeckShipCargoKind), state.cargo)) return false;
             var kind = (DeckShipCargoKind)state.cargo;
-            if (DeckShipCargo.Build(kind, state.seed).Count + 1 != expectedBlocks) return false;
+            var oldCargo = cargo; var oldSeed = seed;
             cargo = kind; seed = state.seed;
+            int count = 1;
+            int bays = Mathf.Max(1, BayCount);
+            for (int bay = 0; bay < bays; bay++) count += DeckShipCargo.Build(BayCargo(bay), BaySeed(bay)).Count;
+            if (count != expectedBlocks) { cargo = oldCargo; seed = oldSeed; return false; }
             transform.SetPositionAndRotation(origin.position, origin.rotation); transform.localScale = scale;
             Rebuild(false);
             return true;

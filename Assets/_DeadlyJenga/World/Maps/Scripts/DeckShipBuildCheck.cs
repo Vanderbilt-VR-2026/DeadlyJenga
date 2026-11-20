@@ -42,13 +42,17 @@ namespace DeadlyJenga.CastlePrototype
             if (registered != climbs.Count) Fail($"only {registered}/{climbs.Count} climbable (Surface layer) colliders are registered");
             if (failures == 0) Ok($"{solids.Count} solid colliders, {climbs.Count} climbable, nothing Static, one body");
 
-            // 2. The cargo deck: flat, at the marked height, hatch where it says.
-            var center = map.CargoCenter; var rotation = map.CargoRotation;
-            var up = rotation * Vector3.up;
-            float tilt = Vector3.Angle(up, Vector3.up);
-            if (tilt > MaxTilt) Fail($"cargo area marker is tilted {tilt:0.0} deg at rest (its up arrow must point up)");
             var half = ship.cargoHalfSize;
             int mask = ~((1 << Layers.Block) | (1 << Layers.Survivor) | (1 << Layers.Surface));
+            if (map.BayCount > 1) report.AppendLine($"  {map.BayCount} cargo bays");
+            for (int bay = 0; bay < map.BayCount; bay++)
+            {
+            string where = map.BayCount > 1 ? $"bay {bay + 1}: " : "";
+            // 2. The cargo deck: flat, at the marked height, hatch where it says.
+            var center = map.BayCenter(bay); var rotation = map.BayRotation(bay);
+            var up = rotation * Vector3.up;
+            float tilt = Vector3.Angle(up, Vector3.up);
+            if (tilt > MaxTilt) Fail($"{where}cargo area marker is tilted {tilt:0.0} deg at rest (its up arrow must point up)");
             int samples = 0, missing = 0, bumpy = 0, sloped = 0, foreign = 0;
             var bad = new List<string>();
             for (float x = -half.x + .25f; x <= half.x - .25f + .001f; x += .5f)
@@ -67,14 +71,15 @@ namespace DeadlyJenga.CastlePrototype
                     if (Vector3.Angle(hit.normal, up) > MaxTilt) { sloped++; Note(bad, $"deck at ({x:0.0}, {z:0.0}) slopes {Vector3.Angle(hit.normal, up):0} deg"); }
                 }
             int deckProblems = missing + bumpy + sloped + foreign;
-            if (deckProblems > 0) { Fail($"cargo deck not flat: {missing} holes, {bumpy} wrong heights or bumps, {sloped} sloped, {foreign} non-ship surfaces (of {samples} samples)"); foreach (var b in bad) report.AppendLine("       " + b); }
-            else Ok($"cargo deck {half.x * 2:0.0} x {half.y * 2:0.0} m is flat at its marker ({samples} samples){(ship.hatchHeight > 0 ? $", hatch {ship.hatchHeight:0.0} m" : "")}, {Vector3.Dot(center - map.transform.position, Vector3.up) - map.WaterHeight(center):0.0} m above the water");
+            if (deckProblems > 0) { Fail($"{where}cargo deck not flat: {missing} holes, {bumpy} wrong heights or bumps, {sloped} sloped, {foreign} non-ship surfaces (of {samples} samples)"); foreach (var b in bad) report.AppendLine("       " + b); }
+            else Ok($"{where}cargo deck {half.x * 2:0.0} x {half.y * 2:0.0} m is flat at its marker ({samples} samples){(ship.hatchHeight > 0 ? $", hatch {ship.hatchHeight:0.0} m" : "")}, {Vector3.Dot(center - map.transform.position, Vector3.up) - map.WaterHeight(center):0.0} m above the water");
 
             // 3. Empty: nothing of the ship sticks into the space above the cargo deck (except the hatch).
             var hits = Physics.OverlapBox(center + up * (ship.headroom * .5f + .06f), new Vector3(half.x - .02f, ship.headroom * .5f - .05f, half.y - .02f), rotation, mask, QueryTriggerInteraction.Ignore);
             var intruders = hits.Where(c => c.transform.IsChildOf(hull) && !IsHatch(c, center, rotation, ship)).Select(c => c.name).Distinct().ToList();
-            if (intruders.Count > 0) Fail($"ship parts inside the cargo space ({half.x * 2:0.0} x {half.y * 2:0.0} x {ship.headroom:0} m high): {string.Join(", ", intruders.Take(8))}");
-            else Ok($"cargo space is empty up to {ship.headroom:0} m");
+            if (intruders.Count > 0) Fail($"{where}ship parts inside the cargo space ({half.x * 2:0.0} x {half.y * 2:0.0} x {ship.headroom:0} m high): {string.Join(", ", intruders.Take(8))}");
+            else Ok($"{where}cargo space is empty up to {ship.headroom:0} m");
+            }
             if (ship.hatchHeight > 0 && Mathf.Abs(ship.hatchHeight - DeckShipCargo.HatchHeight) > .01f) Warn($"hatch is {ship.hatchHeight:0.00} m; Tower and Forts' bridge planks are sized for {DeckShipCargo.HatchHeight} m");
 
             // 4. Every cargo layout fits inside the cargo deck and its headroom.
@@ -104,8 +109,12 @@ namespace DeadlyJenga.CastlePrototype
                 var p = s.position;
                 bool floor = Physics.Raycast(p + Vector3.up * .5f, Vector3.down, out var hit, .8f, mask, QueryTriggerInteraction.Ignore) && hit.normal.y > .95f && hit.collider.transform.IsChildOf(hull);
                 bool room = Physics.OverlapCapsuleNonAlloc(p + Vector3.up * .25f, p + Vector3.up * .8f, .2f, probe, mask, QueryTriggerInteraction.Ignore) == 0;
-                var local = Quaternion.Inverse(rotation) * (p - center);
-                bool onCargo = Mathf.Abs(local.x) < half.x && Mathf.Abs(local.z) < half.y && local.y < ship.headroom;
+                bool onCargo = false;
+                for (int bay = 0; bay < map.BayCount; bay++)
+                {
+                    var local = Quaternion.Inverse(map.BayRotation(bay)) * (p - map.BayCenter(bay));
+                    onCargo |= Mathf.Abs(local.x) < half.x && Mathf.Abs(local.z) < half.y && local.y < ship.headroom;
+                }
                 if (!floor) { Fail($"spawn '{s.name}' has no flat ship floor under it"); badSpawns++; }
                 else if (!room) { Fail($"spawn '{s.name}' is inside something"); badSpawns++; }
                 if (onCargo) Warn($"spawn '{s.name}' is on the cargo deck; dropped cargo can land on players there");
@@ -128,11 +137,14 @@ namespace DeadlyJenga.CastlePrototype
                         map.Step(.05f); Physics.Simulate(.05f);
                         commanded = Mathf.Max(commanded, Mathf.Sqrt(map.RollAngle * map.RollAngle + map.PitchAngle * map.PitchAngle));
                         reached = Mathf.Max(reached, Vector3.Angle(hull.up, map.transform.up));
-                        var c = map.CargoCenter; var r = map.CargoRotation;
-                        for (int i = 0; i < 4; i++)
+                        for (int bay = 0; bay < map.BayCount; bay++)
                         {
-                            var corner = c + r * new Vector3((i & 1) == 0 ? -half.x : half.x, 0, (i & 2) == 0 ? -half.y : half.y);
-                            lowestCorner = Mathf.Min(lowestCorner, corner.y - map.WaterHeight(corner));
+                            var c = map.BayCenter(bay); var r = map.BayRotation(bay);
+                            for (int i = 0; i < 4; i++)
+                            {
+                                var corner = c + r * new Vector3((i & 1) == 0 ? -half.x : half.x, 0, (i & 2) == 0 ? -half.y : half.y);
+                                lowestCorner = Mathf.Min(lowestCorner, corner.y - map.WaterHeight(corner));
+                            }
                         }
                     }
                     if (reached < commanded * .8f) Fail($"{ev}: the hull only tilted {reached:0.0} of {commanded:0.0} deg");

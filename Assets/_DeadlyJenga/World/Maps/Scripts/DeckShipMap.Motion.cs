@@ -20,6 +20,8 @@ namespace DeadlyJenga.CastlePrototype
         public bool newCargoAfterIceberg = true;
         public float swayRoll = 2.5f, swayPitch = 1, swayHeave = .2f;
         public float rollDegrees = 17, pitchDegrees = 7;
+        [Tooltip("Bigger ships rock more slowly: every sway and roll period is multiplied by this.")]
+        public float periodScale = 1;
         public float icebergList = 7, icebergShove = 7;
         [Tooltip("How fast the ship seems to sail (m/s). The ship never moves; the iceberg drifts past at this speed. " +
                  "Keep it equal to the sea art's cruise speed (DeckShipSeaArt) so the water and iceberg agree.")]
@@ -99,20 +101,21 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (!hullBody) return;
             float t = clock, e = clock - eventStart;
-            float roll = swayRoll * Mathf.Sin(t * 2 * Mathf.PI / 9.3f);
-            float pitch = swayPitch * Mathf.Sin(t * 2 * Mathf.PI / 12.7f + 1);
-            float heave = swayHeave * Mathf.Sin(t * 2 * Mathf.PI / 7.1f + .5f);
+            float slow = Mathf.Max(.2f, periodScale);
+            float roll = swayRoll * Mathf.Sin(t * 2 * Mathf.PI / (9.3f * slow));
+            float pitch = swayPitch * Mathf.Sin(t * 2 * Mathf.PI / (12.7f * slow) + 1);
+            float heave = swayHeave * Mathf.Sin(t * 2 * Mathf.PI / (7.1f * slow) + .5f);
             float yaw = 0, surge = 0;
             switch (CurrentEvent)
             {
                 case DeckShipEvent.Roll:
-                    roll += rollDegrees * Envelope(e, RollSeconds, 3) * Mathf.Sin(e * 2 * Mathf.PI / 8);
+                    roll += rollDegrees * Envelope(e, RollSeconds, 3) * Mathf.Sin(e * 2 * Mathf.PI / (8 * slow));
                     break;
                 case DeckShipEvent.Pitch:
                 {
                     float env = Envelope(e, PitchSeconds, 3);
-                    pitch += pitchDegrees * env * Mathf.Sin(e * 2 * Mathf.PI / 7);
-                    heave += .6f * env * Mathf.Cos(e * 2 * Mathf.PI / 7);
+                    pitch += pitchDegrees * env * Mathf.Sin(e * 2 * Mathf.PI / (7 * slow));
+                    heave += .6f * env * Mathf.Cos(e * 2 * Mathf.PI / (7 * slow));
                     break;
                 }
                 case DeckShipEvent.Iceberg:
@@ -200,9 +203,10 @@ namespace DeadlyJenga.CastlePrototype
             if (!iceberg) return;
             // The iceberg is still in the sea, so it comes at the ship's cruise speed; after the hit the ship has
             // nearly stopped and the iceberg grinds slowly down the starboard side.
-            var hit = new Vector3(17, 0, 31);
+            // Sized from the hull, so it grazes the starboard bow of any ship.
+            var hit = new Vector3(hullLocalBounds.max.x + 7, 0, hullLocalBounds.max.z - 5);
             var start = hit + Vector3.forward * Mathf.Max(4, cruiseSpeed) * IcebergImpact;
-            var past = new Vector3(19.5f, 0, -45);
+            var past = new Vector3(hit.x + 2.5f, 0, hullLocalBounds.min.z - 9);
             Vector3 p;
             if (e < IcebergImpact) p = Vector3.Lerp(start, hit, e / IcebergImpact);
             else p = Vector3.Lerp(hit, past, (e - IcebergImpact) / (IcebergSeconds - IcebergImpact));

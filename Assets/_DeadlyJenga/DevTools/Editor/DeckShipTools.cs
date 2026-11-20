@@ -37,11 +37,20 @@ namespace DeadlyJenga.DevTools.Editor
         static bool HasShip() => Live;
 
         static string ValidationFolder => Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Validation");
-        static string CaptureFolder => Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Captures", "DeckShip");
-        static string ReportPath => Path.Combine(ValidationFolder, "DeckShip.txt");
+        // Which Deck Ship map the batch check is running: "deck-ship" or the large "deck-ship-xl".
+        static string MapId => SessionState.GetString("DeadlyJenga.DeckShipMapId", "deck-ship");
+        static string CaptureFolder => Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Captures", MapId == "deck-ship" ? "DeckShip" : "DeckShip-" + MapId);
+        static string ReportPath => Path.Combine(ValidationFolder, MapId == "deck-ship" ? "DeckShip.txt" : "DeckShip-" + MapId + ".txt");
+        static GameObject MapPrefab => Resources.Load<GameObject>("ModeMaps/Mode_" + MapId);
 
         [MenuItem(Menu + "Run Checks and Pictures")]
-        public static void RunChecks()
+        public static void RunChecks() { SessionState.SetString("DeadlyJenga.DeckShipMapId", "deck-ship"); RunChecksForMap(); }
+
+        // -executeMethod DeadlyJenga.DevTools.Editor.DeckShipTools.RunChecksLarge (the 4x Deck Ship XL)
+        [MenuItem(Menu + "Run Checks and Pictures (XL ship)")]
+        public static void RunChecksLarge() { SessionState.SetString("DeadlyJenga.DeckShipMapId", "deck-ship-xl"); RunChecksForMap(); }
+
+        static void RunChecksForMap()
         {
             Directory.CreateDirectory(ValidationFolder);
             var report = new StringBuilder("Deck Ship checks\n");
@@ -59,10 +68,11 @@ namespace DeadlyJenga.DevTools.Editor
         static int StaticChecks(StringBuilder report)
         {
             int problems = 0;
-            var prefab = Resources.Load<GameObject>("ModeMaps/Mode_deck-ship");
-            if (!prefab) { report.AppendLine("FAIL missing ModeMaps/Mode_deck-ship prefab"); return 1; }
+            var prefab = MapPrefab;
+            report.AppendLine("Map: " + MapId);
+            if (!prefab) { report.AppendLine("FAIL missing ModeMaps/Mode_" + MapId + " prefab"); return 1; }
             var catalog = Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog");
-            if (!catalog || !catalog.maps.Any(m => m.id == "deck-ship" && m.mapPrefab == prefab)) { report.AppendLine("FAIL lobby catalog has no deck-ship entry for the prefab"); problems++; }
+            if (!catalog || !catalog.maps.Any(m => m.id == MapId && m.mapPrefab == prefab)) { report.AppendLine("FAIL lobby catalog has no " + MapId + " entry for the prefab"); problems++; }
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             problems += BuildCheck(prefab, null, report);
             for (int k = 0; k < DeckShipCargo.Count; k++) problems += RunCargo(prefab, (DeckShipCargoKind)k, report, k == 0);
@@ -300,7 +310,7 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 Application.runInBackground = true; AudioListener.volume = 0;
                 MatchSetup.FromLobby = false; MatchSetup.StartLocalSession = false;
-                MatchSetup.MapId = "deck-ship"; MatchSetup.ModeId = "demo"; MatchSetup.BotTarget = 0; MatchSetup.HandCount = 0;
+                MatchSetup.MapId = MapId; MatchSetup.ModeId = "demo"; MatchSetup.BotTarget = 0; MatchSetup.HandCount = 0;
                 job.stepAt = EditorApplication.timeSinceStartup; job.step = 0; job.prepared = false;
                 EditorApplication.update += Tick;
             }
@@ -346,7 +356,7 @@ namespace DeadlyJenga.DevTools.Editor
             if (!job.prepared)
             {
                 if (session == null || Services.World == null) { if (now - job.stepAt > 60) { Debug.LogError("Deck Ship capture: game did not load"); EditorApplication.ExitPlaymode(); } return; }
-                if (!(Services.World is DeckShipMap)) { MatchSetup.MapId = "deck-ship"; MatchSetup.ApplyMap(); }
+                if (!(Services.World is DeckShipMap)) { MatchSetup.MapId = MapId; MatchSetup.ApplyMap(); }
                 if (!(Services.World is DeckShipMap ship)) { if (now - job.stepAt > 60) { Debug.LogError("Deck Ship capture: map did not load"); EditorApplication.ExitPlaymode(); } return; }
                 ship.autoEvents = false;
                 Prepare(session);
@@ -414,16 +424,18 @@ namespace DeadlyJenga.DevTools.Editor
                 if (game) { var g = game.GetUniversalAdditionalCameraData(); data.renderPostProcessing = g.renderPostProcessing; data.volumeLayerMask = g.volumeLayerMask; }
                 RenderSettings.fog = false;
                 var root = map.transform; var ship = map.Hull;
+                float k = Mathf.Max(1, map.HullBounds.extents.z / 36);
                 foreach (var view in views)
                 {
                     switch (view)
                     {
-                        case "hero": Place(camera, root.TransformPoint(34, 30, -52), root.TransformPoint(0, 5, 2), 42); break;
-                        case "stern": Place(camera, root.TransformPoint(0, 13, -78), root.TransformPoint(0, 7, 0), 36); break;
-                        case "side": Place(camera, root.TransformPoint(72, 11, 0), root.TransformPoint(0, 6, 0), 46); break;
-                        case "top": Place(camera, root.TransformPoint(0, 110, 0), root.TransformPoint(0, 0, .01f), 42); break;
-                        case "wake": Place(camera, root.TransformPoint(16, 14, -95), root.TransformPoint(0, 0, -40), 50); break;
-                        case "waterline": Place(camera, root.TransformPoint(24, 2.2f, 22), root.TransformPoint(0, 1.2f, 8), 55); break;
+                        // Framed for the standard 72 m ship and pulled back for bigger ones.
+                        case "hero": Place(camera, root.TransformPoint(new Vector3(34, 30, -52) * k), root.TransformPoint(0, 5, 2), 42); break;
+                        case "stern": Place(camera, root.TransformPoint(new Vector3(0, 13, -78) * k), root.TransformPoint(0, 7, 0), 36); break;
+                        case "side": Place(camera, root.TransformPoint(new Vector3(72, 11, 0) * k), root.TransformPoint(0, 6, 0), 46); break;
+                        case "top": Place(camera, root.TransformPoint(new Vector3(0, 110, 0) * k), root.TransformPoint(0, 0, .01f), 42); break;
+                        case "wake": Place(camera, root.TransformPoint(new Vector3(16, 14, -95) * k), root.TransformPoint(new Vector3(0, 0, -40) * k), 50); break;
+                        case "waterline": Place(camera, root.TransformPoint(new Vector3(24 * k, 2.2f + (k - 1) * 2, 22 * k)), root.TransformPoint(new Vector3(0, 1.2f, 8 * k)), 55); break;
                         default:
                         {
                             // Eye height at the first spawn, looking at the cargo deck; it moves with the ship.

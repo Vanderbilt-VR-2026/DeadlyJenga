@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
@@ -10,6 +11,8 @@ namespace DeadlyJenga.CastlePrototype
     {
         [Tooltip("Center of the open cargo deck, placed ON the deck surface. Its up arrow is the deck's up, its forward arrow points to the bow.")]
         public Transform cargoArea;
+        [Tooltip("More cargo bays of the same size (a big ship can carry several submaps at once). Same rules as the cargo area.")]
+        public Transform[] extraCargoAreas;
         [Tooltip("Half the open cargo deck: x = across the ship, y = along it. Must be flat and empty.")]
         public Vector2 cargoHalfSize = new Vector2(DeckShipCargo.FieldHalfWidth, DeckShipCargo.FieldMaxZ);
         [Tooltip("Height of the raised square hatch in the middle of the cargo deck (0 = no hatch).")]
@@ -20,11 +23,21 @@ namespace DeadlyJenga.CastlePrototype
         [Tooltip("Where players appear. Keep them off the cargo deck so new cargo cannot land on them.")]
         public Transform[] spawnPoints;
 
+        // Every cargo bay: the main cargo area first, then the extra ones.
+        public IEnumerable<Transform> Bays
+        {
+            get
+            {
+                if (cargoArea) yield return cargoArea;
+                if (extraCargoAreas != null) foreach (var bay in extraCargoAreas) if (bay) yield return bay;
+            }
+        }
+
         void OnDrawGizmos()
         {
-            if (cargoArea)
+            foreach (var bay in Bays)
             {
-                Gizmos.matrix = Matrix4x4.TRS(cargoArea.position, cargoArea.rotation, Vector3.one);
+                Gizmos.matrix = Matrix4x4.TRS(bay.position, bay.rotation, Vector3.one);
                 Gizmos.color = new Color(.2f, 1, .3f, .9f);
                 Gizmos.DrawWireCube(Vector3.up * headroom * .5f, new Vector3(cargoHalfSize.x * 2, headroom, cargoHalfSize.y * 2));
                 Gizmos.color = new Color(.2f, 1, .3f, .25f);
