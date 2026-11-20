@@ -216,7 +216,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
 
                     if (!Pose(data, step, walker, gait, out string equipment)) { weapon?.Hide(); return; }
-                    if (hand) StudioHandDirection.SyncVisual(root);
+                    if (hand) StudioHandDirection.SyncVisual(root, pose);
                     ShowWeapon(equipment, pose, data);
                     if (stage.recording) look.Apply(root, StudioTrackNotes.Of(track), StudioColors.For(stage.set.Mark(track.id)?.color ?? 0));
                 }

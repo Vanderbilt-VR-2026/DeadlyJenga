@@ -139,7 +139,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // The hand copy draws its skin from bones it moves in LateUpdate. A render draws right after the
         // pose is set (before LateUpdate), so it would show the previous frame's hand. Move them now.
         static MethodInfo lateUpdate;
-        public static void SyncVisual(GameObject root)
+        // 'frame' (optional) is the frame being shown: its bones are put on the hand directly. The Studio's copy is a
+        // host copy, and a host copy is moved by physics, not by the recorded bones (HandNetworkView.SnapToState skips it).
+        public static void SyncVisual(GameObject root, ActorFrame frame = null)
         {
             if (!root || !root.activeInHierarchy) return;
             lateUpdate ??= typeof(CandyPhysicalHand).GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -148,6 +150,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (hand.bodies != null)
                     foreach (var body in hand.bodies)
                         if (body && body.interpolation != RigidbodyInterpolation.None) body.interpolation = RigidbodyInterpolation.None;
+                if (frame != null && frame.visible && frame.bones != null && frame.bones.Length == 16 && hand.bodies != null && hand.bodies.Length == 16)
+                    for (int i = 0; i < 16; i++)
+                    {
+                        if (!hand.bodies[i]) continue;
+                        hand.bodies[i].transform.SetPositionAndRotation(frame.bones[i].position, frame.bones[i].rotation);
+                        hand.bodies[i].position = frame.bones[i].position; hand.bodies[i].rotation = frame.bones[i].rotation;
+                    }
                 try { lateUpdate?.Invoke(hand, null); } catch (Exception) { }
                 if (hand.skin) DrawBaked(root, hand.skin);
             }
@@ -171,7 +180,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             var filter = baked.GetComponent<MeshFilter>();
             var shown = baked.GetComponent<MeshRenderer>();
-            bool visible = skin.enabled && skin.gameObject.activeInHierarchy;
+            // Shown whenever the frame shows the hand (the copy is active). Not skin.enabled: a host copy switches its
+            // skin off when it is switched on while touching a block, which is exactly the moment of a grab.
+            bool visible = skin.gameObject.activeInHierarchy;
             shown.enabled = visible;
             skin.forceRenderingOff = true;
             if (!visible) return;

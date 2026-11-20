@@ -289,7 +289,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 float phi = Vector3.Angle(Flat(at - plan.hero), Flat(plan.handCentre - plan.hero));
                 float pitch = Mathf.Asin(FinalAim(plan, at).y) * Mathf.Rad2Deg;
                 bool sunBehind = Vector3.Dot(Flat(at - plan.hero), Flat(toSun)) > 0;
-                float score = Mathf.Abs(handDistance - HandDistance) * 2 + Mathf.Max(0, heroDistance - 9) * 2 + Mathf.Max(0, 5 - heroDistance) * 2
+                float score = Mathf.Abs(handDistance - HandDistance) * 2 + Mathf.Max(0, heroDistance - 7.5f) * 2 + Mathf.Max(0, 5 - heroDistance) * 2
                     + phi / 30 + Mathf.Max(0, 8 - pitch) / 4 + (sunBehind ? 0 : 1.5f);
                 if (score < best)
                 {
@@ -426,9 +426,36 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 foreach (string name in new[] { "metrics.csv", "metrics.json", "filmstrip.png", "filmstrip.txt" })
                     if (File.Exists(Path.Combine(result.folder, name))) File.Copy(Path.Combine(result.folder, name), Path.Combine(Folder, name), true);
             }
+            foreach (int wait in HandTimeline(stage, plan, camera)) yield return wait;
             string audio = StudioRender.AudioFile(set.id);
             if (File.Exists(audio)) File.Copy(audio, Path.Combine(Folder, "tape.wav"), true);
             File.WriteAllText(Path.Combine(Folder, "set.json"), JsonUtility.ToJson(set, true));
+        }
+
+        // Where the hand is drawn during the shot, and where the shot camera sees it (0..1 across and up the frame).
+        static IEnumerable<int> HandTimeline(StudioStage stage, Plan plan, StudioCameraTrack shot)
+        {
+            var probe = new GameObject("Pilot probe camera").AddComponent<Camera>();
+            probe.enabled = false;
+            var line = new StringBuilder("Hand during the shot (shot time: drawn renderers, middle, where on screen):\n");
+            for (float t = .5f; t <= ShotLength + .01f; t += .5f)
+            {
+                float tape = ShotStart + t;
+                StudioRun.ShowExact(tape * stage.Fps);
+                yield return 0;
+                StudioRun.ShowExact(tape * stage.Fps);
+                StudioCameras.Apply(probe, StudioCameras.Evaluate(shot, stage.set, stage.tape, stage.anchor, tape, tape));
+                var root = StudioTargets.Object(stage, "actor:" + plan.handId);
+                var drawn = root ? root.GetComponentsInChildren<Renderer>().Where(r => r.enabled && !r.forceRenderingOff).Select(r => r.GetType().Name).ToList() : new List<string>();
+                if (root && StudioTargets.TryBounds(root, out var box))
+                {
+                    var v = probe.WorldToViewportPoint(box.center);
+                    line.Append($"- {t:0.0}s: {string.Join("+", drawn)}, middle {box.center:F1}, size {box.size:F1}, screen ({v.x:0.00},{v.y:0.00}) {v.z:0.0} m ahead\n");
+                }
+                else line.Append($"- {t:0.0}s: nothing drawn (root {(root ? root.activeInHierarchy.ToString() : "missing")})\n");
+            }
+            Object.Destroy(probe.gameObject);
+            Note(line.ToString());
         }
 
         static void MeasureSizes(StudioStage stage, Plan plan)
@@ -613,7 +640,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (var shown in root.GetComponentsInChildren<Renderer>(true).Take(12))
                 line.Append($"- {shown.GetType().Name} '{shown.name}' enabled {shown.enabled} forceOff {shown.forceRenderingOff} active {shown.gameObject.activeInHierarchy} layer {shown.gameObject.layer} " +
                     (shown is SkinnedMeshRenderer sk ? $"offscreen {sk.updateWhenOffscreen} local {sk.localBounds.center:F1}/{sk.localBounds.size:F1} " : "") +
-                    (shown.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh ? $"mesh {mf.sharedMesh.vertexCount} v local {mf.sharedMesh.bounds.center:F1}/{mf.sharedMesh.bounds.size:F1} " : "") + "bounds {shown.bounds.center:F1}/{shown.bounds.size:F1} " +
+                    (shown.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh ? $"mesh {mf.sharedMesh.vertexCount} v local {mf.sharedMesh.bounds.center:F1}/{mf.sharedMesh.bounds.size:F1} " : "") + $"bounds {shown.bounds.center:F1}/{shown.bounds.size:F1} " +
                     $"shadows {shown.shadowCastingMode} material {(shown.sharedMaterial ? shown.sharedMaterial.name + " / " + shown.sharedMaterial.shader.name + " q" + shown.sharedMaterial.renderQueue : "none")}\n");
             return line.ToString();
         }
