@@ -124,7 +124,7 @@ namespace DeadlyJenga.CastlePrototype
             if(name=="disasterMinInterval"||name=="disasterMaxInterval"||name=="disasterLateInterval"){min=10;max=600;return;}
             if(name=="disasterWarningSeconds"){min=2;max=30;return;}
             if(name=="maxConcurrentDisasters"){min=1;max=4;return;}
-            if(name=="teamCount"){min=2;max=8;}else if(name=="flagTarget"){min=1;max=10;}else if(name=="tickets")max=200;
+            if(name=="teamCount"){min=1;max=8;}else if(name=="flagTarget"){min=1;max=10;}else if(name=="tickets")max=200;
             else if(name=="roundSeconds"){min=0;max=1200;}else if(name=="hillInterval"){min=2;max=60;}
             else if(name=="claimSeconds"||name=="reclaimSeconds"){min=.2f;max=30;}else if(name=="claimDecaySeconds")max=180;
             else if(name=="punchCooldown"){min=.2f;max=5;}else if(name=="punchDamage"||name=="fallDamagePerMeter")max=100;

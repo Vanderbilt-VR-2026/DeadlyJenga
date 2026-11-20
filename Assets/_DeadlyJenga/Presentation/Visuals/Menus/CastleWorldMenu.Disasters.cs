@@ -8,6 +8,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class CastleWorldMenu
     {
         int disasterSelection=-1;
+        bool developerDisasterTuning;
         Slider[] disasterSliders;
         Text[] disasterCaptions;
         BoxCollider[] disasterHits;
@@ -38,23 +39,28 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(disasterSelection>=0&&(Demo==null||disasterSelection>=Demo.DisasterCount))disasterSelection=-1;
             if(disasterSelection<0){PointDisasterWheel(pressed);return;}
+            if(disasterWheelUI)disasterWheelUI.SetActive(false);
             EnsureDisasterSliders();HideDisasterSliders();
+            help.rectTransform.anchoredPosition=new Vector2(0,-330);help.rectTransform.sizeDelta=new Vector2(950,30);help.fontSize=17;
             bool allowed=CanCommand;int switchParameter=-1;
             foreach(var button in buttons)button.gameObject.SetActive(false);
             void ButtonAt(int i,string text,float y,bool enabled=true)
-            {buttons[i].gameObject.SetActive(true);labels[i].text=text;targets[i].enabled=enabled;var r=(RectTransform)buttons[i].transform;r.anchoredPosition=new Vector2(0,y);r.sizeDelta=new Vector2(480,44);targets[i].size=new Vector3(480,44,4);}
+            {buttons[i].gameObject.SetActive(true);labels[i].text=text;targets[i].enabled=enabled;var r=(RectTransform)buttons[i].transform;r.anchoredPosition=new Vector2(0,y);r.sizeDelta=new Vector2(480,44);targets[i].size=new Vector3(480,44,4);labels[i].rectTransform.anchoredPosition=Vector2.zero;labels[i].rectTransform.sizeDelta=new Vector2(460,44);labels[i].fontSize=22;labels[i].alignment=TextAnchor.MiddleCenter;}
             {
                 var definitions=Demo.DisasterParameters(disasterSelection);var values=Demo.DisasterValues(disasterSelection);
                 heading.text=Demo.DisasterLabel(disasterSelection).ToUpperInvariant()+"\n<size=17><color=#d0b8d8>Settings apply to the next launch</color></size>";
                 heading.rectTransform.anchoredPosition=new Vector2(0,232);
-                heading.fontSize=24;
+                heading.fontSize=28;
+                heading.rectTransform.sizeDelta=new Vector2(900,64);
+                heading.color=TabletCream;
                 ButtonAt(1,Demo.DisasterIsToggle(disasterSelection)?"Toggle on / off":"Launch disaster",175,allowed);
-                for(int i=0;i<definitions.Count&&i<8;i++)
+                ButtonAt(9,(developerDisasterTuning?"Hide":"Show")+" tuning",123);
+                for(int i=0;developerDisasterTuning&&i<definitions.Count&&i<8;i++)
                 {
                     if(definitions[i].whole&&definitions[i].min==0&&definitions[i].max==1)
-                    {switchParameter=i;ButtonAt(11,definitions[i].label+" · "+(values[i]>.5f?"ON":"OFF"),118-i*44,allowed);continue;}
+                    {switchParameter=i;ButtonAt(11,definitions[i].label+" · "+(values[i]>.5f?"ON":"OFF"),60-(i/2)*74,allowed);((RectTransform)buttons[11].transform).anchoredPosition=new Vector2(i%2==0?-245:245,60-(i/2)*74);continue;}
                     var slider=disasterSliders[i];var p=definitions[i];syncingDisasterSliders=true;slider.minValue=p.min;slider.maxValue=p.max;slider.wholeNumbers=p.whole;slider.SetValueWithoutNotify(values[i]);syncingDisasterSliders=false;
-                    slider.interactable=allowed;slider.gameObject.SetActive(true);((RectTransform)slider.transform).anchoredPosition=new Vector2(0,118-i*44);UpdateCaption(i,disasterSelection);
+                    slider.interactable=allowed;slider.gameObject.SetActive(true);((RectTransform)slider.transform).anchoredPosition=new Vector2(i%2==0?-245:245,60-(i/2)*74);UpdateCaption(i,disasterSelection);
                 }
                 ButtonAt(10,"Stop all disasters",-235,allowed);ButtonAt(12,"◄ Back to disasters",-287);
             }
@@ -65,9 +71,10 @@ namespace DeadlyJenga.CastlePrototype
             for(int i=0;i<buttons.Length;i++)
             {
                 if(!buttons[i].gameObject.activeSelf)continue;
-                bool hover=Hit(targets[i],ray);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover?CandyHudVisuals.Ink:Color.white;
-                if(!hover||!pressed)continue;
+                bool hover=Hit(targets[i],ray);buttons[i].image.color=hover?CandyHudVisuals.Lavender:i==1?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover||i==1?CandyHudVisuals.Ink:TabletCream;
+                if(!hover||!pressed||!targets[i].enabled)continue;
                 if(i==0)session.SetMenu(false);
+                else if(i==9)developerDisasterTuning=!developerDisasterTuning;
                 else if(i==10)Demo?.Run(DemoCommand.StopDisasters);
                 else if(i==12)disasterSelection=-1;
                 else if(i==11&&switchParameter>=0)Demo.SetDisasterValue(disasterSelection,switchParameter,Demo.DisasterValues(disasterSelection)[switchParameter]>.5f?0:1);

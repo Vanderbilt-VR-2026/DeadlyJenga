@@ -59,6 +59,8 @@ namespace DeadlyJenga.CastlePrototype
             if(!focused)ResetPointer();
         }
 
+        void OnDisable(){ResetPointer();desktopSelect?.Disable();}
+
         void ResetPointer()
         {
             startedAim=false;requireRelease=true;focus=pressedTarget=null;tabletPointerDevice=-1;tabletWasHeld=false;
@@ -88,7 +90,7 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Point(Camera camera,bool pressed,bool held=false)
         {
-            if(!camera||!isActiveAndEnabled)return;
+            if(!camera||!isActiveAndEnabled||!inputFocused||DeadlyJenga.Presentation.MenuAim.InputConsumed){ResetPointer();return;}
             UpdateTabletDreamchase();
             bool consumed=DeadlyJenga.Presentation.MenuAim.InputConsumed;
             if(!giveEquipmentPage&&!(disasterPage&&disasterSelection<0)&&!(modePage&&modeWheel))RestoreEquipmentWheelLayout();
@@ -337,8 +339,8 @@ namespace DeadlyJenga.CastlePrototype
             bool dot=intersects&&(panel.rect.Contains(panel.InverseTransformPoint(at))||actionable);
             bool confirming=actionable&&pressedTarget==focus&&Time.unscaledTime<pressedUntil;
             Color color=confirming?CandyHudVisuals.Peach:actionable?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
-            pointerDot.gameObject.SetActive(dot && session.IsVR);
-            if(dot && session.IsVR)
+            pointerDot.gameObject.SetActive(dot);
+            if(dot)
             {
                 pointerDot.color=color;pointerDot.rectTransform.sizeDelta=Vector2.one*(actionable?17:11);
                 pointerDot.transform.position=at-transform.forward*.008f;
@@ -352,7 +354,7 @@ namespace DeadlyJenga.CastlePrototype
                 focusOutline.transform.SetAsLastSibling();if(dot)pointerDot.transform.SetAsLastSibling();
             }
             DeadlyJenga.Presentation.MenuAim.PresentBeam(ref pointerBeam,transform,pointerRay,
-                at-transform.forward*.012f,usingController&&dot,actionable);
+                at-transform.forward*.012f,session.IsVR&&usingController&&dot,actionable);
         }
 
         Image PointerImage(string name,Vector2 size)

@@ -32,12 +32,17 @@ namespace DeadlyJenga.CastlePrototype
     // Coordinates, stairs and bearing seats are physical geometry. Road markings are separate art.
     public static partial class EpicCityLayout
     {
-        public static readonly string[] Names={"Tideway Metropolis","Double-Loop Exchange","Caldera Switchback City","Broken Crown Capital","Harbor Loom","Lantern Ravine","Canopy Borough","Bookfall Boulevard","Three Hearts City","The Rising Spine"};
-        public static readonly string[] Ids={"epic-tideway","epic-double-loop","epic-caldera","epic-broken-crown","epic-harbor-loom","epic-lantern-ravine","epic-canopy-borough","epic-bookfall","epic-three-hearts","epic-rising-spine"};
+        public static readonly string[] Names={"Tideway Metropolis","Double-Loop Exchange","Caldera Switchback City","Broken Crown Capital","Harbor Loom","Lantern Ravine","Canopy Borough","Bookfall Boulevard","Three Hearts City","The Rising Spine","Candy Plaza Wheel","Candy Canyon","Candy Plaza Canyon","Candy Mechanism City","Candy Sky Ring City"};
+        public static readonly string[] Ids={"epic-tideway","epic-double-loop","epic-caldera","epic-broken-crown","epic-harbor-loom","epic-lantern-ravine","epic-canopy-borough","epic-bookfall","epic-three-hearts","epic-rising-spine","epic-candy-plaza-wheel","epic-candy-canyon","epic-candy-plaza-canyon","epic-candy-mechanism-city","epic-candy-sky-ring-city"};
         public static EpicCityPlan Build(int design)
         {
             if(design<0||design>=Names.Length)throw new ArgumentOutOfRangeException(nameof(design));
-            var b=new Builder();Compose(b,design);b.WeaveStreets(design);b.Finish();
+            var b=new Builder();Compose(b,design);if(!IsCompactCandyCity(design))b.WeaveStreets(design);b.Finish();
+            if(IsCompactCandyCity(design))
+            {
+                var bounds=MayhemStructureLayout.Bounds(b.plan.modules);float margin=design==SkyRingCityDesign?8:22;
+                b.plan.halfSize=new Vector2(Mathf.Max(70,Mathf.Max(Mathf.Abs(bounds.min.x),Mathf.Abs(bounds.max.x))+margin),Mathf.Max(60,Mathf.Max(Mathf.Abs(bounds.min.z),Mathf.Abs(bounds.max.z))+margin));
+            }
             if(design==1)
             {
                 var bounds=MayhemStructureLayout.Bounds(b.plan.modules);
@@ -95,7 +100,7 @@ namespace DeadlyJenga.CastlePrototype
                 Part(m,new Vector3(0,y-.35f,(far+depth*.5f)*.5f),new Vector3(w,.7f,depth*.5f-far),finish);
                 foreach(int s in new[]{-1,1})Part(m,new Vector3(s*(w*.5f+hole)*.5f,y-.35f,lane),new Vector3(w*.5f-hole,.7f,7.6f),finish);
             }
-            MayhemModule Cassette(Vector3 p,float w,float depth,int floors,float yaw,string purpose,bool cover=true)
+            MayhemModule Cassette(Vector3 p,float w,float depth,int floors,float yaw,string purpose,bool cover=true,int firstFloor=0)
             {
                 var m=Module(p,purpose,yaw);float h=floors*4,lane=-depth*.5f+7.5f;
                 foreach(int x in new[]{-1,1})foreach(int z in new[]{-1,1})Part(m,new Vector3(x*(w*.5f-1.2f),h*.5f,z*(depth*.5f-1.2f)),new Vector3(2.4f,h,2.4f));
@@ -103,7 +108,8 @@ namespace DeadlyJenga.CastlePrototype
                 for(int f=0;f<floors;f++)
                 {
                     float y=f*4;Deck(m,y+4,w-1.2f,depth-1.2f,lane,1+(district%3));
-                    float x=f%2==0?-5.6f:5.6f,z=lane+(f%2==0?-2.1f:2.1f);
+                    // firstFloor keeps stairs alternating when a tower is built one floor per section.
+                    int parity=(f+firstFloor)%2;float x=parity==0?-5.6f:5.6f,z=lane+(parity==0?-2.1f:2.1f);
                     Flight(m,new Vector3(x,y,z),new Vector3(-x,y+4,z));
                 }
                 return m;

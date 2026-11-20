@@ -36,8 +36,8 @@ namespace DeadlyJenga.CastlePrototype
                            {
                                id="play:"+mode.id+"/"+map.id, modeId=mode.id, mapId=map.id,
                                enabled=true, evidence="Catalog-compatible Play pair",
-                               minimumPopulation=1, maximumPopulation=mode.id=="survival"?25:30,
-                               targetPopulation=mode.id=="survival"?25:30
+                               minimumPopulation=1, maximumPopulation=mode.id=="survival"?25:32,
+                               targetPopulation=mode.id=="survival"?25:32
                            };
             profiles=(list?.profiles??Array.Empty<CuratedGameProfile>()).Concat(playable).ToArray();
             // These trial profiles pin the first observed authored prefab structure in this room.
@@ -101,12 +101,13 @@ namespace DeadlyJenga.CastlePrototype
             var rules=MatchSetup.DefaultModeRules(MatchModeRuntime.ParseMode(p.modeId),MapFor(p.mapId));
             if(IsPlayProfile(p))
             {
+                if(!room.Connected)rules.countdownSeconds=0;
                 if (p.modeId=="teamtickets")
                 {
-                    rules.teamCount=3;
+                    rules.teamCount=4;
                     rules.sameHumanTeam=false;
                     rules.automaticDisasters=true;
-                    rules.disasterMinInterval=rules.disasterMaxInterval=rules.disasterLateInterval=60;
+                    rules.disasterMinInterval=rules.disasterMaxInterval=rules.disasterLateInterval=30;
                     rules.island=MapFor(p.mapId)?.walkableIsland==true?IslandRule.Walkable:IslandRule.Sink;
                     rules.maxConcurrentDisasters=1;
                 }
@@ -117,18 +118,23 @@ namespace DeadlyJenga.CastlePrototype
             rules.starterInfected=p.modeId=="infection";
             return rules;
         }
-        void SelectNext()
+        CuratedGameProfile NextProfile()
         {
             EnsureProfiles();var s=State;
             var candidates=profiles.Where(p=>p!=null&&IsPlayProfile(p)==s.playerPlaylist&&ProfileAvailable(p.id,s.humanIds.Length)).ToArray();
-            if(candidates.Length==0)
+            // The random room identity seeds a choice that stays stable after replay or migration.
+            return candidates.Length==0?null:candidates[ProfileIndex(s.roomId,s.round,candidates.Length)];
+        }
+        void SelectNext()
+        {
+            var s=State;
+            var profile=NextProfile();
+            if(profile==null)
             {
                 if(s.pending==GameFlowEffect.ChooseProfile&&flow.ChooseCompleted(s.authorityTerm,s.operationId,s.attempts,"",false))CommitFlow();
                 else if(s.pending==GameFlowEffect.None&&flow.RejectSetup(s.authorityTerm,"No compatible game is available for this room."))CommitFlow();
                 return;
             }
-            // The random room identity seeds a choice that stays stable after replay or migration.
-            var profile=candidates[ProfileIndex(s.roomId,s.round,candidates.Length)];
             if(!room.ExperienceSelect(profile,ProfileRules(profile)))return;
             bool changed=s.pending==GameFlowEffect.ChooseProfile?
                 flow.ChooseCompleted(s.authorityTerm,s.operationId,s.attempts,profile.id,true):flow.Select(s.authorityTerm,profile.id,true);

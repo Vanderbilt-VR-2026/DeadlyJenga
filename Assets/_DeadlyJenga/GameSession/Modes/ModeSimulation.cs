@@ -52,11 +52,13 @@ namespace DeadlyJenga.Modes
         public event Action<string> PowerFinished;
 
         public ModeSimulation(ModeRules rules, int seed = 7281) { names = new ModeNames(seed); random=new System.Random(seed^471); Configure(rules); }
+        // Demo is teamless unless the developer sets Teams to 2 or more.
+        public static bool TeamMode(ModeRules rules) => rules!=null&&(TeamMode(rules.mode)||rules.mode==GameModeKind.Demo&&rules.teamCount>=2);
         public static bool TeamMode(GameModeKind mode) => mode == GameModeKind.BlockControl || mode == GameModeKind.CaptureFlag || mode == GameModeKind.TeamTickets;
         public static ModeRules Defaults(GameModeKind mode)
         {
             var r = new ModeRules { mode = mode, automaticDisasters = mode == GameModeKind.Survival };
-            if (mode == GameModeKind.Demo) { r.roundSeconds=0; r.metric=ScoreMetric.AliveStatus; }
+            if (mode == GameModeKind.Demo) { r.roundSeconds=0; r.metric=ScoreMetric.AliveStatus; r.teamCount=1; }
             if (mode == GameModeKind.Survival) { r.healthEnabled=true; r.disasterMinInterval=r.disasterMaxInterval=r.disasterLateInterval=20; }
             if (mode == GameModeKind.KingOfHill) { r.island=IslandRule.Walkable; r.spawn=SpawnRule.Rim; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.HillTime; r.hillInterval=30; }
             if (mode == GameModeKind.BlockControl) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Walkable; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.TeamPoints; }
@@ -72,7 +74,7 @@ namespace DeadlyJenga.Modes
         {
             Rules = input?.Copy() ?? new ModeRules();
             if(Rules.mode==GameModeKind.Survival)Rules.healthEnabled=true;
-            Rules.teamCount = Mathf.Clamp(Rules.teamCount,2,8);
+            Rules.teamCount = Mathf.Clamp(Rules.teamCount,Rules.mode==GameModeKind.Demo?1:2,8);
             Rules.claimSeconds = Mathf.Clamp(Rules.claimSeconds,.1f,120);
             Rules.reclaimSeconds = Mathf.Clamp(Rules.reclaimSeconds,.1f,120);
             Rules.claimDecaySeconds = Mathf.Max(0,Rules.claimDecaySeconds);
@@ -90,7 +92,7 @@ namespace DeadlyJenga.Modes
             Rules.punchDamage = Mathf.Clamp(Rules.punchDamage,0,100);
             Rules.roundSeconds = Rules.roundSeconds<=0?0:Mathf.Max(10,Rules.roundSeconds);
             teams.Clear();
-            if (TeamMode(Rules.mode)) for (int t = 0; t < Rules.teamCount; t++)
+            if (TeamMode(Rules)) for (int t = 0; t < Rules.teamCount; t++)
                 teams.Add(new MatchTeamFrame { id=t,name=ModeNames.ColorNames[t],color=ModeNames.Colors[t],tickets=Rules.tickets });
             foreach(var p in players.Values){p.frame.team=-1;p.frame.color=SurvivorColor(p);}
             foreach (var p in players.Values) { AssignTeam(p); Rename(p); }
@@ -173,7 +175,7 @@ namespace DeadlyJenga.Modes
         {
             p.frame.team=-1;
             if(p.deferredParticipation)return;
-            if(TeamMode(Rules.mode))
+            if(TeamMode(Rules))
             {
                 if(Rules.sameHumanTeam&&!p.frame.bot)p.frame.team=0;
                 else
@@ -216,7 +218,7 @@ namespace DeadlyJenga.Modes
             foreach(var p in players.Values)
             {
                 var f=p.frame; f.alive=p.present&&!p.deferredParticipation; f.role=p.deferredParticipation?"spectator":"survivor"; f.survivalSeconds=f.averageHeight=f.metric=0;f.kills=f.deaths=f.captures=f.flagReturns=f.blocksClaimed=f.infections=f.bodyReports=f.revives=f.steals=0;f.hillSeconds=f.lanternPoints=0;f.dying=false;f.deathProgress=0;f.sinking=false;f.sinkProgress=0;f.spectating=null;f.pendingOutcome=null;f.deathRemaining=0;f.handPowerRemaining=0;f.handReturnRole=null;
-                if(!TeamMode(Rules.mode)){f.team=-1;f.color=SurvivorColor(p);}
+                if(!TeamMode(Rules)){f.team=-1;f.color=SurvivorColor(p);}
                 p.heightIntegral=p.observedSeconds=0;p.powerUntil=0;p.nextPunch=0;
             }
             foreach(var flag in flags){flag.carrier=null;flag.position=flag.home;flag.atHome=true;}

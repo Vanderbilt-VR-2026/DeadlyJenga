@@ -1,26 +1,88 @@
 using System;
-using System.Collections.Generic;
+using System.Linq;
+using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.Core;
+using UnityEngine;
 
 namespace DeadlyJenga.CastleBots
 {
     public static class BotSpawnAppearance
     {
-        static readonly AvatarAppearance[] choices=Build();
-        static readonly Random random=new Random();
-        public static AvatarAppearance Pick()=>choices[random.Next(choices.Length)];
-        static AvatarAppearance[] Build()
+        [Serializable]
+        sealed class Catalog
         {
-            var values=new List<AvatarAppearance>();
-            foreach(AvatarAccessory item in Enum.GetValues(typeof(AvatarAccessory)))
-                if(Single((uint)item)&&item!=AvatarAccessory.PantherHead&&item!=AvatarAccessory.PantherClaws&&item!=AvatarAccessory.PantherTail)
-                    values.Add(new AvatarAppearance{accessories=item});
-            foreach(AvatarSkin item in Enum.GetValues(typeof(AvatarSkin)))if(item!=AvatarSkin.Default&&item!=AvatarSkin.MushroomSprite)values.Add(new AvatarAppearance{skin=item});
-            foreach(AvatarHair item in Enum.GetValues(typeof(AvatarHair)))if(item!=AvatarHair.None)values.Add(new AvatarAppearance{hair=item});
-            foreach(AvatarEyewear item in Enum.GetValues(typeof(AvatarEyewear)))if(item!=AvatarEyewear.None)values.Add(new AvatarAppearance{eyewear=item});
-            foreach(AvatarClothing item in Enum.GetValues(typeof(AvatarClothing)))if(Single((uint)item))values.Add(new AvatarAppearance{clothing=item});
-            return values.ToArray();
+            public AvatarAppearance[] skins, hair, headgear, eyewear, outfits, back, extras;
         }
-        static bool Single(uint value)=>value!=0&&(value&(value-1))==0;
+
+        const AvatarAccessory EnemyParts = AvatarAccessory.PantherHead |
+            AvatarAccessory.PantherClaws | AvatarAccessory.PantherTail;
+        const AvatarAccessory ClosedHeads = AvatarAccessory.PumpkinHelmet | AvatarAccessory.SkeletonMask;
+        const AvatarAccessory FaceExtras = AvatarAccessory.LongNose | AvatarAccessory.StrongJaw;
+        const AvatarClothing SportsHelmets = AvatarClothing.HockeyHelmet | AvatarClothing.FootballHelmet;
+        const AvatarClothing ShadeableClothing = SportsHelmets | AvatarClothing.Hoodie |
+            AvatarClothing.BowTie | AvatarClothing.RoyalMantle;
+
+        static Catalog catalog;
+        static AvatarAppearance[] themedSkins, headgear;
+        static readonly System.Random random = new();
+
+        public static AvatarAppearance Pick()
+        {
+            if (catalog == null) LoadCatalog();
+            if (themedSkins.Length > 0 && random.Next(3) == 0)
+                return new AvatarAppearance { skin = PickItem(themedSkins).skin };
+
+            var look = new AvatarAppearance();
+            var head = random.Next(2) == 0 ? PickItem(headgear) : default;
+            Add(ref look, head);
+            if (head.accessories == 0 && head.clothing == 0 && random.Next(3) != 0)
+                Add(ref look, PickItem(catalog.hair));
+
+            bool coveredFace = (head.accessories & ClosedHeads) != 0 || (head.clothing & SportsHelmets) != 0;
+            if (!coveredFace && random.Next(2) == 0) Add(ref look, PickItem(catalog.eyewear));
+            if (random.Next(4) != 0) Add(ref look, PickItem(catalog.outfits));
+            bool hasOutfit = (look.clothing & ~SportsHelmets) != 0;
+            if (random.Next(5) == 0) Add(ref look, PickItem(catalog.back));
+            if ((look.clothing & AvatarClothing.Hoodie) == 0 && random.Next(4) == 0)
+            {
+                var extra = PickItem(catalog.extras);
+                bool hasEyewear = look.eyewear != AvatarEyewear.None ||
+                    (look.accessories & AvatarAccessory.Glasses) != 0;
+                bool overlapsFace = (coveredFace || hasEyewear) && (extra.accessories & FaceExtras) != 0;
+                if (!overlapsFace && !(hasOutfit && extra.clothing == AvatarClothing.Hoodie))
+                    Add(ref look, extra);
+            }
+            if (look.accessories == 0 && look.clothing == 0 && look.hair == 0 && look.eyewear == 0)
+                Add(ref look, PickItem(catalog.outfits));
+            look = CandyWardrobeCompatibility.Resolve(CandyPlayerAvatar.SanitizeAppearance(look)).effective;
+            if (look.hair != AvatarHair.None || look.eyewear != AvatarEyewear.None ||
+                look.accessories != AvatarAccessory.None || (look.clothing & ShadeableClothing) != 0)
+            {
+                look.hairShade = (AvatarHairShade)random.Next(
+                    (int)AvatarHairShade.Dark, (int)AvatarHairShade.Light + 1);
+            }
+            return look;
+        }
+
+        static void LoadCatalog()
+        {
+            var asset = Resources.Load<TextAsset>("WardrobeCatalog");
+            catalog = (asset ? JsonUtility.FromJson<Catalog>(asset.text) : null) ?? new Catalog();
+            themedSkins = (catalog.skins ?? Array.Empty<AvatarAppearance>())
+                .Where(x => x.skin != AvatarSkin.Default && x.skin != AvatarSkin.MushroomSprite).ToArray();
+            headgear = (catalog.headgear ?? Array.Empty<AvatarAppearance>())
+                .Where(x => (x.accessories & EnemyParts) == 0).ToArray();
+        }
+
+        static AvatarAppearance PickItem(AvatarAppearance[] options) =>
+            options != null && options.Length > 0 ? options[random.Next(options.Length)] : default;
+
+        static void Add(ref AvatarAppearance look, AvatarAppearance item)
+        {
+            look.accessories |= item.accessories;
+            look.clothing |= item.clothing;
+            if (item.hair != AvatarHair.None) look.hair = item.hair;
+            if (item.eyewear != AvatarEyewear.None) look.eyewear = item.eyewear;
+        }
     }
 }

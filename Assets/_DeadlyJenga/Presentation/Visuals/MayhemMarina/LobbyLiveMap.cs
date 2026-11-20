@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DeadlyJenga.CandyArt;
 using DeadlyJenga.CandyArt.Marina;
 using DeadlyJenga.Core;
 using UnityEngine;
@@ -41,7 +42,7 @@ namespace DeadlyJenga.Presentation
         Transform miniature;
         TextMesh status;
         Mesh cube, sphere;
-        Material surface, border, markers;
+        Material surface, border, markers, lettering;
         IWorldQuery map;
         IMatchRuntime runtime;
         int revision;
@@ -54,7 +55,7 @@ namespace DeadlyJenga.Presentation
         {
             var floor = new GameObject("Showtime Plaza live match miniature");
             floor.transform.SetParent(lobby, false);
-            floor.transform.localPosition = MayhemMarina.PlazaCenter + new Vector3(0, .012f, -2.35f);
+            floor.transform.localPosition = MayhemMarina.CinemaTable;
             var display = floor.AddComponent<LobbyLiveMap>();
             display.Build(viewer);
         }
@@ -68,11 +69,18 @@ namespace DeadlyJenga.Presentation
             cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
             sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
             var unlit = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            border = new Material(unlit) { color = new Color(.06f, .21f, .22f) };
+            border = MarinaMesh.MaterialFor(MarinaFinish.Wood);
             surface = new Material(unlit) { color = new Color(.035f, .32f, .42f) };
             markers = new Material(unlit);
 
-            var rim = MakeMesh("Floor map base", cube, border);
+            var tabletop = MakeMesh("Live map table", cube, border);
+            tabletop.transform.localPosition = Vector3.down * .045f;
+            tabletop.transform.localScale = new Vector3(2.12f, .12f, 2.12f);
+            var pedestal = MakeMesh("Live map table pedestal", cube, border);
+            pedestal.transform.localPosition = Vector3.down * .49f;
+            pedestal.transform.localScale = new Vector3(.65f, .84f, .65f);
+
+            var rim = MakeMesh("Table map base", cube, border);
             rim.transform.localPosition = Vector3.up * .021f;
             rim.transform.localScale = new Vector3(BaseWidth, .042f, BaseWidth);
             var inset = MakeMesh("Miniature water", cube, surface);
@@ -81,16 +89,24 @@ namespace DeadlyJenga.Presentation
 
             var sign = new GameObject("Match map status");
             sign.transform.SetParent(transform, false);
-            sign.transform.SetLocalPositionAndRotation(new Vector3(0, .052f, 0), Quaternion.Euler(90, 0, 0));
+            sign.transform.SetLocalPositionAndRotation(new Vector3(0, .050f, 0), Quaternion.Euler(90, 0, 0));
             status = sign.AddComponent<TextMesh>();
             status.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            status.GetComponent<MeshRenderer>().sharedMaterial = status.font.material;
             status.fontSize = 58;
             status.fontStyle = FontStyle.Bold;
             status.anchor = TextAnchor.MiddleCenter;
-            status.characterSize = .062f;
+            status.alignment = TextAlignment.Center;
+            status.characterSize = .032f;
             status.color = new Color(.78f, 1, .97f);
             status.text = "NO LIVE MATCH";
+            var shader = Resources.Load<Shader>("VillageLettering");
+            if(shader)
+            {
+                lettering = new Material(shader) { name = "Marina tabletop lettering" };
+                status.GetComponent<MeshRenderer>().sharedMaterial = lettering;
+                sign.AddComponent<ChristmasTownText>();
+            }
+            else status.GetComponent<MeshRenderer>().sharedMaterial = status.font.material;
 
             miniature = new GameObject("Visual-only miniature").transform;
             miniature.SetParent(transform, false);
@@ -358,6 +374,7 @@ namespace DeadlyJenga.Presentation
             Destroy(border);
             Destroy(surface);
             Destroy(markers);
+            if(lettering)Destroy(lettering);
         }
     }
 }

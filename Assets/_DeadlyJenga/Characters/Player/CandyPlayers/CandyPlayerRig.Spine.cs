@@ -9,6 +9,7 @@ namespace DeadlyJenga.CandyPlayers
     public sealed partial class CandyPlayerRig
     {
         const int SpineBoneIndex = 44, ChestBoneIndex = 45, SkinBoneCount = 46;
+        internal static bool IsTorsoSkinBone(int bone) => bone == 0 || bone == SpineBoneIndex || bone == ChestBoneIndex;
         const string SpineName = "Candy spine", ChestName = "Candy chest";
         static readonly Dictionary<Mesh, Mesh> spineMeshes = new();
         Transform spine, chest;
@@ -74,11 +75,18 @@ namespace DeadlyJenga.CandyPlayers
                 float y = vertices[i].y;
                 float toSpine = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.70f, .92f, y));
                 float toChest = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.96f, 1.16f, y));
+                var pelvis = (bone: 0, weight: 1 - toSpine);
+                var waist = (bone: SpineBoneIndex, weight: toSpine * (1 - toChest));
+                var ribs = (bone: ChestBoneIndex, weight: toSpine * toChest);
+                // Reduced skinning reads the strongest influences from the first slots.
+                if (pelvis.weight < waist.weight) (pelvis, waist) = (waist, pelvis);
+                if (waist.weight < ribs.weight) (waist, ribs) = (ribs, waist);
+                if (pelvis.weight < waist.weight) (pelvis, waist) = (waist, pelvis);
                 weights[i] = new BoneWeight
                 {
-                    boneIndex0 = 0, weight0 = 1 - toSpine,
-                    boneIndex1 = SpineBoneIndex, weight1 = toSpine * (1 - toChest),
-                    boneIndex2 = ChestBoneIndex, weight2 = toSpine * toChest
+                    boneIndex0 = pelvis.bone, weight0 = pelvis.weight,
+                    boneIndex1 = waist.bone, weight1 = waist.weight,
+                    boneIndex2 = ribs.bone, weight2 = ribs.weight
                 };
             }
             var mesh = Object.Instantiate(source);
@@ -125,13 +133,14 @@ namespace DeadlyJenga.CandyPlayers
         }
 
         // Lean, hip and shoulder counter-rotation and breathing, shared between the three torso bones.
-        void PoseTorso(CandyAvatarFrame frame, Vector3 offset, float crouch, float width, float run, float dance, bool moving)
+        void PoseTorso(CandyAvatarFrame frame, Vector3 offset, float crouch, float width, float run, float dance, bool moving, float landing)
         {
             float gait = moving ? Mathf.InverseLerp(.12f, 4f, locomotionSpeed) : 0f;
             float counter = Mathf.Cos(walkPhase);
             // Pitch and roll follow the stride direction. The body leans a little when walking and more when running.
             float lean = run * 14f + gait * (1f - run) * 3f;
-            float pitch = lean * strideDirection.z, roll = -(run * 13f + gait * (1f - run) * 2f) * strideDirection.x;
+            float pitch = lean * strideDirection.z + landing * 16f;
+            float roll = -(run * 13f + gait * (1f - run) * 2f) * strideDirection.x;
             // Hips and shoulders twist against each other, in time with the arm swing.
             float twist = Mathf.Lerp(3.5f, 9f, run) * gait * counter;
             float breath = Mathf.Sin(Time.time * 1.7f + breathSeed) * (1f - gait * .7f);

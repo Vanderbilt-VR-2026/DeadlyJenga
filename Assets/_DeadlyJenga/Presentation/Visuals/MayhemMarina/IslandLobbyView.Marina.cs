@@ -32,6 +32,10 @@ namespace DeadlyJenga.CastlePrototype
             }
             marina=gameObject.AddComponent<MayhemMarina>();marina.Build(lobby,Environment);
             LobbyLiveMap.Attach(transform, session);
+            lobby.AddBlocker(marina.transform, MayhemMarina.CinemaTable + Vector3.down * .045f,
+                new Vector3(2.12f, .12f, 2.12f));
+            lobby.AddBlocker(marina.transform, MayhemMarina.CinemaTable + Vector3.down * .49f,
+                new Vector3(.65f, .84f, .65f));
             foreach(float x in new[]{-4.87f,4.87f})
                 lobby.AddBlocker(marina.transform,new Vector3(x,3.08f,11.13f),new Vector3(2.08f,2.48f,.96f));
             wardrobeCenter=MayhemMarina.Wardrobe;
@@ -39,6 +43,8 @@ namespace DeadlyJenga.CastlePrototype
             var detailCenter = new Vector3(0, 3.85f, 10.88f);
             MountMarinaScreen(joinStation, MarinaScreen.CabinetScreen(false), Quaternion.identity, 1.69f, 1.55f);
             MountMarinaScreen(hostStation, MarinaScreen.CabinetScreen(true), Quaternion.identity, 1.69f, 1.55f);
+            foreach (var child in joinStation.GetComponentsInChildren<Transform>(true))
+                if (child.name.StartsWith("CRT ", System.StringComparison.Ordinal)) child.gameObject.SetActive(false);
             BuildMarinaRoomScreens();
             MountMarinaScreen(setupStation, detailCenter, Quaternion.identity, 6.4f, 2.95f);
             MountMarinaScreen(wardrobePanel, MayhemMarina.StyleScreen, MayhemMarina.StyleScreenFacing, 2.55f, 2.75f);
@@ -55,6 +61,9 @@ namespace DeadlyJenga.CastlePrototype
             Add(marinaStylePrompt, "marina-open-style", () => "OPEN WARDROBE", 0, () => OpenMarinaDetail("style"), () => true, 0, 780, 140);
             GameEvents.Emoted += MarinaActivityArt;
             BuildMarinaMirror();CloseMarinaDetail();
+            TerminalUiStyle.Apply(joinStation);
+            TerminalUiStyle.Apply(hostStation);
+            TerminalUiStyle.Apply(setupStation);
         }
         static void MountMarinaScreen(RectTransform screen, Vector3 position, Quaternion rotation, float maxWidth, float maxHeight)
         {
@@ -93,8 +102,8 @@ namespace DeadlyJenga.CastlePrototype
             var linkArt=RoomSprite(280,56,25,CabinetSurface.Glaze);
 
             RoomLabel(marinaJoinScreen,"JOIN",0,325,720,126,120).name="Join room heading";
-            var code=RoomButton(marinaJoinScreen,"marina-code-focus",()=>"",0,99,955,245,
-                RoomSprite(955,245,68,CabinetSurface.Neon),new Color(1,.59f,1),lobby.FocusCode,()=>lobby.JoinEnabled);
+            var code=RoomButton(marinaJoinScreen,"marina-code-focus",()=>"",0,85,955,220,
+                RoomSprite(955,220,55,CabinetSurface.Neon),new Color(1,.59f,1),lobby.FocusCode,()=>lobby.JoinEnabled);
             // Inset buttons are graphics on the code field so they share one input target.
             for(int i=0;i<marinaCodeSlots.Length;i++)
             {
@@ -103,8 +112,8 @@ namespace DeadlyJenga.CastlePrototype
                     new Color(.82f,.50f,.81f),x,-3,132,132);
                 marinaCodeSlots[i]=RoomLabel(slot.rectTransform,"",0,1,113,103,83);
             }
-            RoomLabel(marinaJoinScreen,"Room code",0,223,330,61,54);
-            marinaJoinRegion=RoomLabel(marinaJoinScreen,"",354,183,130,36,25);
+            RoomLabel(marinaJoinScreen,"Room code",0,242,400,54,46);
+            marinaJoinRegion=RoomLabel(marinaJoinScreen,"",0,-48,860,30,24);
             RoomButton(marinaJoinScreen,"marina-submit-code",()=>"Join",0,-153,754,136,glaze,RoomPurple,
                 RequestJoinCodeChoice,()=>lobby.JoinEnabled&&lobby.CodeValid&&!ConfirmingJoin,88);
             var nearby=RoomButton(marinaJoinScreen,"marina-find-nearby",()=>"Find nearby",0,-269,395,67,linkArt,
@@ -112,18 +121,18 @@ namespace DeadlyJenga.CastlePrototype
             RoomLine((RectTransform)nearby.button.transform,0,-25,202,new Color(1,.91f,.73f,.85f));
             marinaJoinMessage=RoomLabel(marinaJoinScreen,"",0,-352,1000,59,28);
 
-            RoomLabel(marinaHostScreen,"HOST",-158,313,530,112,108).name="Host room heading";
-            var badge=RoomImage(marinaHostScreen,"Connected player badge",RoomSprite(302,88,44,CabinetSurface.Glaze),
-                new Color(.48f,.22f,.34f),338,318,302,88).rectTransform;
-            CandyIcon(badge,LobbyTerminalGlyph.Symbol.Person,-95,0,53,CandyCream);
-            marinaHostCount=RoomLabel(badge,"",29,1,207,67,54);
+            RoomLabel(marinaHostScreen,"HOST",-110,313,410,98,86).name="Host room heading";
+            var badge=RoomImage(marinaHostScreen,"Connected player badge",RoomSprite(220,78,38,CabinetSurface.Glaze),
+                new Color(.48f,.22f,.34f),255,318,220,78).rectTransform;
+            CandyIcon(badge,LobbyTerminalGlyph.Symbol.Person,-65,0,40,CandyCream);
+            marinaHostCount=RoomLabel(badge,"",25,1,137,60,40);
             RoomLabel(marinaHostScreen,"Room code",0,212,310,56,48);
             RoomLine(marinaHostScreen,-286,213,208,new Color(1,.84f,.87f));
             RoomLine(marinaHostScreen,286,213,208,new Color(1,.84f,.87f));
             var hostFrame=RoomImage(marinaHostScreen,"Host code outline",RoomSprite(850,146,54,CabinetSurface.Rim),
                 new Color(1,.82f,.89f),0,103,850,146).rectTransform;
-            marinaHostCode=RoomLabel(hostFrame,"",0,1,802,123,96);
-            marinaHostRegion=RoomLabel(hostFrame,"",339,-49,119,28,23);
+            marinaHostCode=RoomLabel(hostFrame,"",0,14,790,80,82);
+            marinaHostRegion=RoomLabel(hostFrame,"",0,-49,730,26,23);
             var copy=RoomButton(marinaHostScreen,"marina-copy-code",()=>Time.unscaledTime<copiedHostCodeUntil?"Copied":"Copy Code",
                 0,-77,804,137,glaze,RoomMint,()=>
                 {
@@ -134,12 +143,12 @@ namespace DeadlyJenga.CastlePrototype
                 new Color(.57f,.29f,.64f),lobby.InviteNearby,()=>lobby.CanInvite,60);
             CandyChoiceIcon(copy,LobbyTerminalGlyph.Symbol.Copy,-247,0,67);
             CandyChoiceIcon(invite,LobbyTerminalGlyph.Symbol.Invite,-247,0,67);
-            CandyText(copy,37,0,622,120,61);
-            CandyText(invite,40,0,627,120,60);
+            CandyText(copy,70,0,520,105,56);
+            CandyText(invite,70,0,520,105,52);
             RoomButton(marinaHostScreen,"marina-host-options",()=>RequestId!=null?"!":"…",
-                462,322,66,60,linkArt,Color.white,()=>{marinaHostOptions=true;UpdateMarinaRoomScreens();},
+                460,322,76,66,linkArt,Color.white,()=>{marinaHostOptions=true;UpdateMarinaRoomScreens();},
                 ()=>lobby.Connected&&!lobby.Busy,40,true);
-            RoomButton(candyHostContent,"marina-host-summary",()=>"Room code",403,365,190,54,linkArt,
+            RoomButton(candyHostContent,"marina-host-summary",()=>"Room code",355,-385,230,44,linkArt,
                 Color.white,()=>{marinaHostOptions=false;UpdateMarinaRoomScreens();},()=>true,29,true).visible=
                 ()=>marinaHostOptions&&lobby.Connected&&!lobby.Busy;
 
@@ -320,9 +329,7 @@ namespace DeadlyJenga.CastlePrototype
             label.font=marinaRoomFont?marinaRoomFont:label.font;
             label.fontStyle=marinaRoomFont?FontStyle.Normal:FontStyle.Bold;
             label.resizeTextMinSize=Mathf.RoundToInt(size*.75f);
-            var shadow=label.gameObject.AddComponent<Shadow>();
-            shadow.effectColor=new Color(.17f,.035f,.12f,.74f);
-            shadow.effectDistance=new Vector2(0,-2);
+
             return label;
         }
         Choice RoomButton(RectTransform parent,string id,System.Func<string> title,float x,float y,float width,float height,
@@ -339,7 +346,7 @@ namespace DeadlyJenga.CastlePrototype
             choice.label.font=marinaRoomFont?marinaRoomFont:choice.label.font;
             choice.label.fontStyle=marinaRoomFont?FontStyle.Normal:FontStyle.Bold;
             choice.label.color=CandyCream;
-            CandyText(choice,0,0,width-26,height-9,fontSize);
+            CandyText(choice,0,0,width-48,height-16,fontSize);
             return choice;
         }
         static Image RoomImage(RectTransform parent,string title,Sprite art,Color color,float x,float y,float width,float height)
@@ -356,7 +363,7 @@ namespace DeadlyJenga.CastlePrototype
 
         Sprite RoomSprite(float width,float height,float radius,CabinetSurface finish)
         {
-            int w=Mathf.CeilToInt(width*.4f),h=Mathf.CeilToInt(height*.4f);
+            int w=Mathf.CeilToInt(width),h=Mathf.CeilToInt(height);
             var texture=new Texture2D(w,h,TextureFormat.RGBA32,false)
                 {name="Marina room "+finish,filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp};
             var pixels=new Color32[w*h];
@@ -382,8 +389,8 @@ namespace DeadlyJenga.CastlePrototype
                     case CabinetSurface.Neon:
                     case CabinetSurface.Rim:
                         float line=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(2,5,Mathf.Abs(d)));
-                        float glow=finish==CabinetSurface.Neon?.58f*Mathf.Exp(-Mathf.Abs(d)*.12f):0;
-                        bool captionGap=finish==CabinetSurface.Neon&&v>.76f&&Mathf.Abs(point.x)<171;
+                        float glow=0;
+                        bool captionGap=false;
                         coverage=captionGap?0:Mathf.Max(line,glow);
                         shade=.83f+line*.17f;
                         break;
@@ -456,8 +463,8 @@ namespace DeadlyJenga.CastlePrototype
                     marinaHostCount.text="1 / 10";
                     return;
                 }
-                marinaHostCode.resizeTextMaxSize=96;
-                marinaHostCode.resizeTextMinSize=72;
+                marinaHostCode.resizeTextMaxSize=82;
+                marinaHostCode.resizeTextMinSize=60;
                 string code=lobby.HostCode??"";
                 int dash=code.LastIndexOf('-');
                 marinaHostRegion.text=dash>0?code.Substring(0,dash):"";

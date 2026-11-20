@@ -360,6 +360,54 @@ MonoBehaviour:
     recommendedMode: demo
     walkableIsland: 1
     supportedModes: []
+  - id: epic-candy-glass-city
+    title: Candy Glass City
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 4900549641561135372, guid: 4698795eba1f48b5ab77b46f1189e350, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-candy-plaza-wheel
+    title: Candy Plaza Wheel
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 4900549641561135372, guid: c80214cbdf3b44058d4621709ee183d7, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-candy-canyon
+    title: Candy Canyon
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 4900549641561135372, guid: 2f9493ff7b6e4e00a4073238a93ff1f8, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-candy-plaza-canyon
+    title: Candy Plaza Canyon
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 4900549641561135372, guid: 8f9779616e614525bc62018facc4b6a6, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-candy-mechanism-city
+    title: Candy Mechanism City
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 4900549641561135372, guid: 40828c6c6df343d89492b3e00e443e8b, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-candy-sky-ring-city
+    title: Candy Sky Ring City
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 4900549641561135372, guid: 8f78a29dfb0a433bbbbe4a232f52e83b, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
   - id: megablock-tower
     title: Megablock Tower
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity

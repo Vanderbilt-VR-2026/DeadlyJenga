@@ -77,11 +77,12 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             if(!current){if(label)label.gameObject.SetActive(false);return;}
-            string status=session?.Multiplayer?.Status;
+            string requestNotice=DeadlyJenga.Presentation.NearbyRoomUi.Notice;
+            string status=requestNotice.Length>0?requestNotice:session?.Multiplayer?.Status;
             if(status!=seen)
             {
                 seen=status;
-                if(status!=null&&(status.EndsWith(" joined the room.",System.StringComparison.Ordinal)
+                if(status!=null&&(requestNotice.Length>0||status.EndsWith(" joined the room.",System.StringComparison.Ordinal)
                     ||status.EndsWith(" left the room.",System.StringComparison.Ordinal)))
                 {
                     if(!label)
@@ -221,6 +222,7 @@ namespace DeadlyJenga.CastlePrototype
         public static void Draw(IMultiplayerControls net)
         {
             if (net == null) return;
+            DeadlyJenga.Presentation.NearbyRoomUi.DrawDesktop();
             if (net.IsFusion)
             {
                 GUILayout.Label(net.Status);

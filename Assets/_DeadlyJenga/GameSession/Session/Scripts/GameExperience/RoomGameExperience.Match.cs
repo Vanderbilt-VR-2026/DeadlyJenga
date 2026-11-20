@@ -215,17 +215,19 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if(!committed){FailMatch("Match started without the curated start receipt. Deferred startup integration is required.");return;}
                 // Marker was published after staffing checks; never restart a recovered active round.
-                modeStartIssued=true;MatchLoadCompleted();MatchStatus="PROTOTYPE · round starting · no disasters";return;
+                modeStartIssued=true;MatchLoadCompleted();MatchStatus="Round starting…";return;
             }
             if(phase!=RoundPhase.Waiting&&!(preparingRematch&&phase==RoundPhase.Results))
             {FailMatch("The selected match is not in a safe pre-start phase.");return;}
+            bool localPlay=PlayerPlaylist&&!room.Connected;
+            float populationCheckInterval=localPlay?0:.25f;
             if(!populationReset)
             {
                 // Clear inherited or previous-round bots once, then observe the resulting population.
                 match.SurvivorBots.Clear();match.HandBots?.Clear();populationReset=true;
-                nextPopulationCheck=now+.25f;return;
+                nextPopulationCheck=now+populationCheckInterval;return;
             }
-            if(now<nextPopulationCheck)return;nextPopulationCheck=now+.25f;
+            if(now<nextPopulationCheck)return;nextPopulationCheck=now+populationCheckInterval;
             var state=flow.State;int expectedHumans=0;
             foreach(var id in state.launchIds)if(Array.IndexOf(state.humanIds,id)>=0)expectedHumans++;
             if(expectedHumans<1){MatchStatus="No launch participants remain. Waiting for room recovery.";return;}
@@ -239,7 +241,9 @@ namespace DeadlyJenga.CastlePrototype
             if(humans+bots<target)
             {
                 // Capacity/SpawnOne return is not proof: success is observed next time through Members+Frame.
-                if(population.Count<target-expectedHumans&&population.Count<population.Capacity)population.SpawnOne();
+                int missing=Math.Min(target-expectedHumans,population.Capacity)-population.Count;
+                int batch=localPlay?missing:Math.Min(missing,1);
+                for(int i=0;i<batch;i++)if(!population.SpawnOne())break;
                 MatchStatus="Preparing players and bots · "+(humans+bots)+"/"+target+" · waiting for real bot actors";return;
             }
             if(humans+bots<profile.minimumPopulation){MatchStatus="Waiting for the profile's minimum observed population…";return;}

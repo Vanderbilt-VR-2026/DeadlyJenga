@@ -217,7 +217,11 @@ Shader "Candy Tropical/Ocean"
                     float2 uv=ndc*.5+.5+(slope+normal.xz*.32)*(.026+.043*deep);
                     float edge=1-smoothstep(.43,.50,max(abs(uv.x-.5),abs(uv.y-.5)));
                     half4 reflectedCastle=SAMPLE_TEXTURE2D_LOD(_CoastReflection,sampler_CoastReflection,uv,lerp(.65,1.6,deep));
-                    reflectionCoverage=saturate(reflectedCastle.a*edge)*step(.001,reflectedPosition.w);
+                    // Keep the sandy bottom visible when looking down into the near shore.
+                    float shallowShelf=1-smoothstep(.40,1.45,depth);
+                    float downward=smoothstep(.20,.44,saturate(view.y));
+                    reflectionCoverage=saturate(reflectedCastle.a*edge)*step(.001,reflectedPosition.w)*
+                        (1-shallowShelf*downward);
                     // The reflection target is premultiplied after its mip chain blends the silhouette.
                     half3 castle=reflectedCastle.rgb/max(.04,reflectedCastle.a);
                     reflectedSky=lerp(reflectedSky,castle,reflectionCoverage*.88);

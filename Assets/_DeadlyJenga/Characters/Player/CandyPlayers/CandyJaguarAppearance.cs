@@ -104,6 +104,23 @@ namespace DeadlyJenga.CandyPlayers
             var renderer=go.AddComponent<MeshRenderer>();renderer.sharedMaterial=material;pieces.Add(renderer);
             if(parent==rig.HeadAnchor||parent==rig.BodyAnchor||parent==tail)concealed.Add(renderer);
         }
+        internal void Tint(Color? shade)
+        {
+            foreach (var renderer in pieces)
+            {
+                if (!renderer || (renderer.sharedMaterial != fur &&
+                    !renderer.name.StartsWith("Visual - jaguar curved ivory claws"))) continue;
+                if (shade.HasValue)
+                {
+                    pigment ??= new MaterialPropertyBlock();
+                    renderer.GetPropertyBlock(pigment);
+                    pigment.SetColor("_BaseColor",shade.Value);
+                    renderer.SetPropertyBlock(pigment);
+                }
+                else renderer.SetPropertyBlock(null);
+            }
+        }
+
         public void FirstPerson(bool active){foreach(var r in concealed)if(r)r.shadowCastingMode=active?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;}
         void LateUpdate()
         {

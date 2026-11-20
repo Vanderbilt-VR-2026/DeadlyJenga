@@ -64,11 +64,13 @@ namespace DeadlyJenga.CastleBots
         }
         public void CyclePersonality(){SelectedPreset=(SelectedPreset+1)%profiles.Length;}
         public void SelectPreset(int index){if(profiles==null||profiles.Length==0)return;SelectedPreset=Mathf.Clamp(index,0,profiles.Length-1);}
+        // Plain names for nameplates before a match gives bots their real identity.
+        static readonly string[] FriendlyNames={"Sunny","Maple","Pip","Juniper","Biscuit","Coco","Rory","Mochi","Taffy","Ziggy","Olive","Bean"};
         public CastleBotBrain SpawnBot()
         {return SpawnBot(null);}
         CastleBotBrain SpawnBot(EnemySpawnSettings enemy)
         {
-            var motor=Instantiate(Session.survivorPrefab,staging);motor.name="Candy NPC "+(++serial)+" — "+SelectedName;
+            var motor=Instantiate(Session.survivorPrefab,staging);motor.name=FriendlyNames[serial%FriendlyNames.Length]+(serial>=FriendlyNames.Length?" "+(serial/FriendlyNames.Length+1):"");serial++;
             motor.externallyDriven=true;motor.controlMode=FlyingHand.ControlMode.Desktop;
             var avatar=motor.GetComponent<CandyPlayerAvatar>();if(avatar)avatar.remoteDriven=true;
             foreach(var camera in motor.GetComponentsInChildren<Camera>(true)){camera.enabled=false;camera.tag="Untagged";}

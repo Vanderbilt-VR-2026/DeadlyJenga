@@ -67,8 +67,10 @@ namespace DeadlyJenga.Presentation
             this.owner = owner;
 
             var card = CandyHudCards.Create((RectTransform)parent, "Scoreboard podium",
-                position, new Vector2(380, 540), 24, TextAnchor.UpperCenter);
+                position, new Vector2(380, 470), 24, TextAnchor.UpperCenter);
             card.text = "TOP THREE";
+            card.font = Resources.Load<Font>("Fonts/Fredoka-Bold") ?? card.font;
+            card.fontStyle = FontStyle.Normal;
             card.color = Color.white;
             card.rectTransform.offsetMax = new Vector2(-12, -16);
             panel = (RectTransform)card.transform.parent;
@@ -78,8 +80,8 @@ namespace DeadlyJenga.Presentation
             image = go.GetComponent<RawImage>();
             image.raycastTarget = false;
             image.enabled = false;
-            image.rectTransform.sizeDelta = new Vector2(354, 354);
-            image.rectTransform.anchoredPosition = new Vector2(0, 28);
+            image.rectTransform.sizeDelta = new Vector2(310, 310);
+            image.rectTransform.anchoredPosition = new Vector2(0, 12);
             for (int i = 0; i < leaders.Length; i++)
             {
                 float x = Columns[i] * 118;
@@ -133,8 +135,8 @@ namespace DeadlyJenga.Presentation
             var go = new GameObject(name, typeof(RectTransform), typeof(Text));
             go.transform.SetParent(panel, false);
             var label = go.GetComponent<Text>();
-            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            label.fontStyle = FontStyle.Bold;
+            label.font = Resources.Load<Font>("Fonts/Fredoka-Bold") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.fontStyle = FontStyle.Normal;
             label.fontSize = size;
             label.alignment = TextAnchor.MiddleCenter;
             label.color = Color.white;

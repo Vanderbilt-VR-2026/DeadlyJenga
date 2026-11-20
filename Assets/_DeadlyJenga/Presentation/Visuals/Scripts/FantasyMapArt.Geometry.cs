@@ -6,7 +6,7 @@ namespace DeadlyJenga.Presentation
 {
     public sealed partial class FantasyMapArt
     {
-        sealed class ArtMesh
+        sealed partial class ArtMesh
         {
             readonly List<Vector3> vertices=new(),normals=new();
             readonly List<Color> colors=new();

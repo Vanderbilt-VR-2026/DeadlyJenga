@@ -11,26 +11,29 @@ namespace DeadlyJenga.CandyArt.Marina
     {
         public static readonly Vector3 Arrival=new(-10,1.36f,-8);
         // Showtime Plaza: one open deck between the arrival island and the cinema.
-        // The wardrobe stage and the Hall of Fame face each other across it.
         public static readonly Vector3 PlazaCenter = new(0, 1.31f, -3.6f);
         public const float PlazaRadius = 7.2f;
-        static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, -58, 0);
-        static readonly Quaternion FameTurn = Quaternion.Euler(0, 58, 0);
-        public static readonly Vector3 Wardrobe = PlazaCenter + StyleStageTurn * new Vector3(0, .22f, 4.3f);
+        public const float CinemaFloor = 1.86f;
+        const float CinemaFront = -2.2f;
+        const float CinemaBack = 11.9f;
+        static readonly Vector3 CinemaSign = new(0, 5.58f, CinemaFront - .25f);
+        public static readonly Vector3 CinemaTable = new(0, CinemaFloor + .91f, 2.75f);
+        static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, -90, 0);
+        static readonly Quaternion FameTurn = Quaternion.Euler(0, 90, 0);
+        public static readonly Vector3 Wardrobe = new(-5.12f, CinemaFloor + .22f, 3.25f);
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
         public static readonly Quaternion CodeKeyboardFacing = Quaternion.Euler(61, 0, 0);
-        public static readonly Vector3 StyleScreen = Wardrobe + StyleStageTurn * new Vector3(2.3f, 1.5f, 1.02f);
-        public static readonly Quaternion StyleScreenFacing = StyleStageTurn * Quaternion.Euler(0, 65, 0);
+        public static readonly Vector3 StyleScreen = Wardrobe + StyleStageTurn * new Vector3(-2.72f, 1.4f, .43f);
+        public static readonly Quaternion StyleScreenFacing = StyleStageTurn;
         public static readonly Vector3 StyleMirror = Wardrobe + StyleStageTurn * new Vector3(0, 1.85f, 1.88f);
         public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;
-        // The last-match board stands at the far side of the Hall of Fame, readable from the plaza.
-        public static readonly Vector3 FameBoard = PlazaCenter + FameTurn * new Vector3(0, 4.37f, 5.85f);
+        // The compact recent-match board sits behind the winners' steps.
+        public static readonly Vector3 FameBoard = new(7.34f, CinemaFloor + 2.9f, 3.65f);
         public static readonly Quaternion FameFacing = FameTurn;
-        internal static readonly Vector3 FamePodium = PlazaCenter + FameTurn * new Vector3(0, 0, 4.4f);
+        internal static readonly Vector3 FamePodium = new(5.9f, CinemaFloor, 3.65f);
         internal static readonly Vector3[] FameSteps = { new(0,.6f,0), new(-1.15f,.4f,0), new(1.15f,.26f,0) };
         internal const float FameStepCap = .03f;
-        const float FameHeaderHeight = 5.70f;
         public bool Built {get;private set;}
         public int RenderTriangles=>mesh?.RenderTriangles??0;
         public int CollisionTriangles=>mesh?.CollisionTriangles??0;
@@ -184,7 +187,7 @@ namespace DeadlyJenga.CandyArt.Marina
             RenderSettings.ambientGroundColor=new Color(.41f,.35f,.30f);
             RenderSettings.ambientIntensity=1;
             var ambient=new SphericalHarmonicsL2();
-            ambient.AddAmbientLight(new Color(.33f,.34f,.35f));
+            ambient.AddAmbientLight(new Color(.48f,.46f,.42f));
             ambient.AddDirectionalLight(Vector3.up,new Color(.59f,.76f,.97f),.47f);
             ambient.AddDirectionalLight(Vector3.forward,new Color(1,.68f,.36f),.21f);
             RenderSettings.ambientProbe=ambient;
@@ -213,7 +216,7 @@ namespace DeadlyJenga.CandyArt.Marina
             Mark("Play interaction",new Vector3(0,1.285f,3.4f));Mark("Lounge",new Vector3(13,1.28f,5));
             Mark("Beacon Walk", Vector3.Lerp(BeaconWalkStart, BeaconWalkEnd, .5f));
             Mark("Pool",new Vector3(17,.3f,-8));Mark("Roof terrace",new Vector3(-12,4.05f,17));
-            Mark("Showtime plaza",PlazaCenter);Mark("Hall of fame",FameBoard);
+            Mark("Showtime plaza",PlazaCenter);Mark("Last match",FameBoard);
             Mark("Overview camera",new Vector3(-29,18,-39));Mark("Arrival camera",new Vector3(-11,3.1f,-8.9f));
             Built=true;
         }
@@ -242,13 +245,13 @@ namespace DeadlyJenga.CandyArt.Marina
             var go=new GameObject("Marina warm coastal grading");go.transform.SetParent(visual,false);var volume=go.AddComponent<Volume>();volume.isGlobal=true;volume.priority=3;
             volumeProfile=ScriptableObject.CreateInstance<VolumeProfile>();volume.profile=volumeProfile;
             var tone=volumeProfile.Add<Tonemapping>();tone.mode.Override(TonemappingMode.ACES);
-            var color=volumeProfile.Add<ColorAdjustments>();color.postExposure.Override(0);color.contrast.Override(7);color.saturation.Override(3);
+            var color=volumeProfile.Add<ColorAdjustments>();color.postExposure.Override(.15f);color.contrast.Override(2);color.saturation.Override(7);
             var bloom=volumeProfile.Add<Bloom>();bloom.intensity.Override(.14f);bloom.threshold.Override(1.15f);bloom.scatter.Override(.55f);
             var probeObject=new GameObject("Marina reflection capture");probeObject.transform.SetParent(visual,false);probeObject.transform.localPosition=new Vector3(0,4,3);
             var probe=probeObject.AddComponent<ReflectionProbe>();probe.mode=ReflectionProbeMode.Realtime;probe.refreshMode=ReflectionProbeRefreshMode.ViaScripting;probe.timeSlicingMode=ReflectionProbeTimeSlicingMode.IndividualFaces;probe.resolution=256;probe.size=new Vector3(56,24,65);probe.boxProjection=true;probe.intensity=.8f;probe.nearClipPlane=.3f;probe.farClipPlane=250;probe.clearFlags=ReflectionProbeClearFlags.Skybox;reflection=probe;StartCoroutine(CaptureReflection());
             var amber = new Color(1, .68f, .34f);
             var cool = new Color(.35f, .78f, 1);
-            Accent("Play Pavilion", new Vector3(0, 4.7f, 7), new Color(1,.96f,.91f), 2.4f, 8);
+            Accent("Cinema", new Vector3(0, 5.9f, 4.1f), new Color(1,.90f,.76f), 2.9f, 10);
             Accent("Garden lounge", new Vector3(-15, 3.9f, 4.75f), amber, 2.2f, 5.5f);
             Accent("Waterfront lounge", new Vector3(13.7f, 3.8f, 5.4f), amber, 3.2f, 6.5f);
             Accent("Arrival", new Vector3(-12.5f, 2.45f, -10.25f), amber, 2, 5.5f);
@@ -283,7 +286,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 HideLegacyGround(environment);
                 environment.enabled=false;
                 var sun=environment.sun;
-                if(sun){sun.transform.rotation=Quaternion.LookRotation(-CandyCatwalksCoast.SunDirection);sun.color=new Color(1,.94f,.83f);sun.intensity=1.85f;sun.shadows=LightShadows.Soft;sun.shadowBias=.035f;sun.shadowNormalBias=.25f;}
+                if(sun){sun.transform.rotation=Quaternion.LookRotation(-CandyCatwalksCoast.SunDirection);sun.color=new Color(1,.94f,.83f);sun.intensity=1.65f;sun.shadows=LightShadows.Soft;sun.shadowBias=.035f;sun.shadowNormalBias=.25f;}
             }
             ApplyDaylightAmbient();
             RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Exponential;RenderSettings.fogColor=new Color(.37f,.66f,.83f);RenderSettings.fogDensity=.00045f;
@@ -466,13 +469,12 @@ namespace DeadlyJenga.CandyArt.Marina
             Sign("SOLO  /  E OR GRIP", new Vector3(-22.7f, 2.46f, -24.115f), .024f, cream, new Vector3(0, 180, 0));
             Sign("BEACON WALK", BeaconWalkGate + BeaconWalkFacing * Vector3.back * .13f, .048f, cream,
                 BeaconWalkFacing.eulerAngles);
-            Sign("LOUNGE  /  POOL  >", new Vector3(6.65f, 2.635f, 3.56f), .032f, cream);
-            Sign("BEACHSIDE CINEMA", new Vector3(0, 5.58f, 3.58f), .062f, cream);
-            var styleBase = new Vector3(Wardrobe.x, PlazaTop, Wardrobe.z);
-            Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.72f, 1.95f), .085f, cream, StyleStageTurn.eulerAngles);
-            var fameBase = new Vector3(FameBoard.x, PlazaTop, FameBoard.z);
-            Sign("HALL OF FAME", fameBase + FameTurn * new Vector3(0, FameHeaderHeight, .04f), .05f, cream, FameTurn.eulerAngles);
-            Sign("SHOWTIME PLAZA", OnPlaza(-114, 4.7f, PlazaTop - PlazaCenter.y + .012f), .05f,
+            Sign("LOUNGE  /  POOL  >", new Vector3(5.82f, CinemaFloor + 1.35f, -.632f), .025f, cream);
+            Sign("BEACHSIDE CINEMA", CinemaSign + Vector3.back * .122f, .048f, cream);
+            var styleBase = new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z);
+            Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.13f, 1.939f), .055f, cream, StyleStageTurn.eulerAngles);
+
+            Sign("SHOWTIME PLAZA", OnPlaza(-114, 4.7f, PlazaTop - PlazaCenter.y + .018f), .05f,
                 new Color(.23f, .16f, .10f), new Vector3(90, 66, 0));
             Sign("WATERFRONT LOUNGE", new Vector3(13.7f, 4.42f, 2.49f), .044f, cream);
             Sign("PRACTICE POOL", new Vector3(19, 1.76f, -3.24f), .026f, cream, new Vector3(0, 180, 0));

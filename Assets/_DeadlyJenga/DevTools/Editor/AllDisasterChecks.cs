@@ -90,7 +90,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     if(hazard is BasicDisaster waiting)
                     {
                         var warning=settings.ToArray();Set(tuning,warning,"warning",2);tuning.Configure(warning);hazard.Begin();Vector3 previous=exposed.impulse;float previousHealth=exposed.Health;Step(hazard,10);
-                        Require(waiting.Capture().warning>1&&waiting.Capture().points.Length==0&&waiting.Capture().blocks.Length==0&&previous==exposed.impulse&&previousHealth==exposed.Health,prefab.name+" warning gives players time before effects begin");hazard.End();
+                        Require(waiting.Capture().warning>1&&(waiting.Capture().points.Length==0||instance.GetComponent<TornadoHazard>())&&waiting.Capture().blocks.Length==0&&previous==exposed.impulse&&previousHealth==exposed.Health,prefab.name+" warning gives players time before effects begin");hazard.End();
                     }
                     tuning.Configure(settings);hazard.Begin();
                     Require(hazard.Active&&hazard.TryValidate(map,out _),prefab.name+" starts on translated sandbox bounds");

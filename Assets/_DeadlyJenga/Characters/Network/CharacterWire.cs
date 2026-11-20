@@ -27,14 +27,19 @@ namespace DeadlyJenga.CharacterNetwork
             return p;
         }
 
-        // Packed avatar color already carries presentation flags. Older readers ignore this bit.
+        // Packed avatar color already carries presentation flags. Older readers ignore the extra pose bit.
         const int SprintPoseBit = 1 << 24;
+        const int AirbornePoseBit = 1 << 25;
+        const int PoseBits = SprintPoseBit | AirbornePoseBit;
+        const int HairShadeShift = 26;
+        const int HairShadeMask = 3 << HairShadeShift;
 
         // Survivor: body frame plus color.
         public static void WriteSurvivor(BinaryWriter w, CandyAvatarFrame f, int color)
         {
             NetWire.Write(w, f.feet); NetWire.Write(w, f.head); NetWire.Write(w, f.headRotation); w.Write(f.scale);
-            WriteHandPose(w, f.left); WriteHandPose(w, f.right); w.Write((color & ~SprintPoseBit) | (f.sprinting ? SprintPoseBit : 0));
+            WriteHandPose(w, f.left); WriteHandPose(w, f.right);
+            w.Write((color & ~PoseBits) | (f.sprinting ? SprintPoseBit : 0) | (f.airborne ? AirbornePoseBit : 0));
         }
         public static void ReadSurvivor(BinaryReader r, out CandyAvatarFrame frame, out int color)
         {
@@ -42,12 +47,14 @@ namespace DeadlyJenga.CharacterNetwork
             if (frame.scale < .1f || frame.scale > 2) throw new InvalidDataException("Invalid avatar scale");
             color = r.ReadInt32();
             frame.sprinting = (color & SprintPoseBit) != 0;
-            color &= ~SprintPoseBit;
+            frame.airborne = (color & AirbornePoseBit) != 0;
+            color &= ~PoseBits;
         }
         const int AppearanceMagic=0x41565031;
         public static void WriteSurvivor(BinaryWriter w,CandyAvatarFrame frame,int color,AvatarAppearance appearance,IEnemyActor enemy=null,IBlasterControls blaster=null,byte remoteBlaster=0)
         {
-            WriteSurvivor(w,frame,color);w.Write(AppearanceMagic);w.Write((uint)(appearance.accessories&CandyPlayerAvatar.SupportedAccessories));
+            int shadeBits=((int)appearance.hairShade&3)<<HairShadeShift;
+            WriteSurvivor(w,frame,(color&~HairShadeMask)|shadeBits);w.Write(AppearanceMagic);w.Write((uint)(appearance.accessories&CandyPlayerAvatar.SupportedAccessories));
             bool npc=enemy?.IsEnemy==true;w.Write(npc);if(npc)w.Write(Mathf.Clamp(enemy.HitDamage,1,99));
             w.Write(blaster==null?(byte)(remoteBlaster&3):(byte)((blaster.Drawn?1:0)|(blaster.LeftHanded?2:0)));
             int archetype=npc?(enemy.ArchetypeId=="mushroom"?1:enemy.ArchetypeId=="longhand"?4:enemy.ArchetypeId=="gum-brute"?8:0):0;
@@ -59,6 +66,8 @@ namespace DeadlyJenga.CharacterNetwork
         public static void ReadSurvivor(BinaryReader r,out CandyAvatarFrame frame,out int color,out AvatarAppearance appearance,out EnemySpawnSettings enemy,out byte blaster)
         {
             ReadSurvivor(r,out frame,out color);appearance=default;enemy=null;blaster=0;
+            var shade=(AvatarHairShade)((color&HairShadeMask)>>HairShadeShift);
+            color&=~HairShadeMask;
             if(r.BaseStream.Position==r.BaseStream.Length)return;
             if(r.ReadInt32()!=AppearanceMagic)throw new InvalidDataException("Unknown survivor appearance extension");
             uint bits=r.ReadUInt32();if((bits&~(uint)CandyPlayerAvatar.SupportedAccessories)!=0)throw new InvalidDataException("Unknown avatar attachment");
@@ -66,6 +75,7 @@ namespace DeadlyJenga.CharacterNetwork
             if(r.ReadBoolean()){float damage=NetWire.ReadNumber(r);if(damage<1||damage>99)throw new InvalidDataException("Invalid enemy damage");enemy=new EnemySpawnSettings{hitDamage=damage};}
             if(r.BaseStream.Position<r.BaseStream.Length){blaster=r.ReadByte();if((blaster&~3)!=0)throw new InvalidDataException("Invalid blaster flags");}
             if(r.BaseStream.Position<r.BaseStream.Length){uint style=r.ReadUInt32();if((style&0xC0000000u)!=0||((style&7)|(((style>>20)&15)<<3))>(uint)AvatarSkin.DiscoAlien)throw new InvalidDataException("Invalid avatar style");appearance=CandyPlayerAvatar.WithStyle(appearance,style);}
+            appearance.hairShade=shade;
             if(r.BaseStream.Position<r.BaseStream.Length){byte archetype=r.ReadByte();if((archetype&~15)!=0||((archetype&13)!=0&&(archetype&13)!=1&&(archetype&13)!=4&&(archetype&13)!=8)||archetype!=0&&enemy==null)throw new InvalidDataException("Invalid enemy archetype");if(enemy!=null){enemy.archetypeId=(archetype&1)!=0?"mushroom":(archetype&4)!=0?"longhand":(archetype&8)!=0?"gum-brute":"panther";enemy.preparingMelee=(archetype&2)!=0;}}
             if(enemy!=null&&r.BaseStream.Position<r.BaseStream.Length){enemy.healthRatio=NetWire.ReadNumber(r);if(enemy.healthRatio<0||enemy.healthRatio>1)throw new InvalidDataException("Invalid enemy health");}
             if(r.BaseStream.Position<r.BaseStream.Length&&enemy==null)

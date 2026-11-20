@@ -17,6 +17,7 @@ namespace DeadlyJenga.Presentation
         static int consumedFrame=-1;
         static MaterialPropertyBlock beamColor;
         static Material foreground,beamMaterial;
+        internal const int PointerSortOrder = 32760;
         static readonly List<Graphic> graphics=new();
         internal static void PresentInForeground(Transform root)
         {
@@ -143,7 +144,7 @@ namespace DeadlyJenga.Presentation
 
         internal static void PresentBeam(ref LineRenderer beam, Transform owner, Ray ray, Vector3 end, bool shown, bool actionable)
         {
-            if (!shown)
+            if (!shown || !owner || !owner.gameObject.activeInHierarchy)
             {
                 if (beam) beam.enabled = false;
                 return;
@@ -165,14 +166,14 @@ namespace DeadlyJenga.Presentation
                 beam.sharedMaterial = beamMaterial;
                 beam.useWorldSpace = true;
                 beam.positionCount = 2;
-                beam.startWidth = .006f;
-                beam.endWidth = .003f;
+                beam.startWidth = .008f;
+                beam.endWidth = .006f;
                 beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 beam.receiveShadows = false;
-                beam.sortingOrder = 999;
+                beam.sortingOrder = PointerSortOrder;
             }
             beam.enabled = true;
-            beam.sortingOrder = 999;
+            beam.sortingOrder = PointerSortOrder;
             beamColor ??= new MaterialPropertyBlock();
             beamColor.SetColor(BaseColor, actionable ? CandyHudVisuals.Mint : Color.white);
             beam.SetPropertyBlock(beamColor);
@@ -280,7 +281,7 @@ namespace DeadlyJenga.Presentation
         public static bool TryPoint(Ray ray,RectTransform target,float range,out Vector2 local,out Vector3 hit)
         {
             local=default;hit=default;
-            if(Vector3.Dot(ray.direction,target.forward)<=.01f||!new Plane(target.forward,target.position).Raycast(ray,out float distance)||distance>range)return false;
+            if(!target||!target.gameObject.activeInHierarchy||Vector3.Dot(ray.direction,target.forward)<=.01f||!new Plane(target.forward,target.position).Raycast(ray,out float distance)||distance>range)return false;
             hit=ray.GetPoint(distance);local=target.InverseTransformPoint(hit);return target.rect.Contains(local);
         }
         public static Image CreateReticle(Transform parent)

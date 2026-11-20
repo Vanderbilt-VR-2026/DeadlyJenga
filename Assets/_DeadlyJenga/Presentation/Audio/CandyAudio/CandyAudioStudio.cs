@@ -13,7 +13,6 @@ namespace DeadlyJenga.CandyAudio
     {
         const float W=1280,H=800;
         public bool IsOpen {get;private set;}
-        public bool ShowLauncher {get;set;}=true;
         public CandyAudioBank SessionBank=>working;
         public bool IsPreviewPlaying=>preview&&preview.isPlaying;
         CandyAudioBank original,working;CandyAudioEngine engine;ISessionInfo session;
@@ -183,10 +182,9 @@ namespace DeadlyJenga.CandyAudio
         };
         void OnGUI()
         {
-            if(!CanAuthor()||!engine||!engine.bank||!IsOpen&&!ShowLauncher)return;Styles();var matrix=GUI.matrix;int depth=GUI.depth;Color old=GUI.color,bg=GUI.backgroundColor;
+            if(!IsOpen||!CanAuthor()||!engine||!engine.bank)return;Styles();var matrix=GUI.matrix;int depth=GUI.depth;Color old=GUI.color,bg=GUI.backgroundColor;
             float scale=Mathf.Min(Screen.width/W,Screen.height/H);GUI.matrix=Matrix4x4.TRS(new Vector3((Screen.width-W*scale)/2,(Screen.height-H*scale)/2),Quaternion.identity,Vector3.one*scale);GUI.depth=-1000;
-            if(!IsOpen){if(Btn(new Rect(W-204,15,188,39),"Sound studio  •  F8",Mint))Open();}
-            else GUI.ModalWindow(GetInstanceID(),new Rect(20,18,W-40,H-36),DrawWindow,GUIContent.none,GUIStyle.none);
+            GUI.ModalWindow(GetInstanceID(),new Rect(20,18,W-40,H-36),DrawWindow,GUIContent.none,GUIStyle.none);
             GUI.matrix=matrix;GUI.depth=depth;GUI.color=old;GUI.backgroundColor=bg;
         }
         void DrawWindow(int id)

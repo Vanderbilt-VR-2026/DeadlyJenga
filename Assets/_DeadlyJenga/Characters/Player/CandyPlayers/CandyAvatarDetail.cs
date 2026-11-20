@@ -18,6 +18,7 @@ namespace DeadlyJenga.CandyPlayers
         float nextRefresh;
         int detail;
         public int Detail => detail;
+        internal Mesh FullHeadMesh => fullHead;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void Reset()
         {
@@ -31,6 +32,17 @@ namespace DeadlyJenga.CandyPlayers
             fullBody = rig.bodyRenderer.sharedMesh; fullHead = rig.headRenderer.sharedMesh;
             bodies[0] = rig.bodyRenderer; heads[0] = rig.headRenderer;
         }
+        internal void SetWardrobeMeshes(Mesh body, Mesh head)
+        {
+            fullBody = body;
+            fullHead = head;
+            for (int level = 0; level < bodies.Length; level++)
+            {
+                if (bodies[level]) bodies[level].sharedMesh = Reduced(body, level);
+                if (heads[level]) heads[level].sharedMesh = Reduced(head, level);
+            }
+        }
+
         void LateUpdate()
         {
             if (Time.unscaledTime < nextRefresh) return;
@@ -96,7 +108,13 @@ namespace DeadlyJenga.CandyPlayers
             // Each renderer keeps one vertex layout for its entire lifetime.
             current.GetPropertyBlock(properties);
             next.SetPropertyBlock(properties);
-            next.sharedMaterials = current.sharedMaterials;
+            var materials = current.sharedMaterials;
+            next.sharedMaterials = materials;
+            for (int index = 0; index < materials.Length; index++)
+            {
+                current.GetPropertyBlock(properties, index);
+                next.SetPropertyBlock(properties, index);
+            }
             next.shadowCastingMode = current.shadowCastingMode;
             next.receiveShadows = current.receiveShadows;
             next.renderingLayerMask = current.renderingLayerMask;

@@ -53,7 +53,17 @@ namespace DeadlyJenga.CandyPlayers
             }
         }
         void OnEnable(){Application.onBeforeRender+=BeforeRender;if(survivor)survivor.PunchRequested+=BeginPunch;if(!remoteDriven)NetworkActors.Local.Add(this);}
-        void OnDisable(){Application.onBeforeRender-=BeforeRender;if(survivor)survivor.PunchRequested-=BeginPunch;ResetPunch();wasVaulting=false;NetworkActors.Local.Remove(this);}
+        void OnDisable()
+        {
+            Application.onBeforeRender -= BeforeRender;
+            if (survivor) survivor.PunchRequested -= BeginPunch;
+            ResetPunch();
+            wasVaulting = wasClimbing = false;
+            climbRelease = 1f;
+            handSwing = handSprintBlend = 0f;
+            handMotionFrame = -1;
+            NetworkActors.Local.Remove(this);
+        }
         // Emotes and the elimination burst live on SurvivorMoments (looks come from the avatar appearance system).
         void Start(){if(!GetComponent<SurvivorMoments>())gameObject.AddComponent<SurvivorMoments>();}
         SurvivorMoments moments;
@@ -65,7 +75,13 @@ namespace DeadlyJenga.CandyPlayers
         public bool NetworkActive{get{if(!bot)bot=GetComponent<CastleBotBrain>();return !(bot&&bot.Respawning);}}
         public Vector3 NetworkPosition=>transform.position;
         // Third byte of the synced color value: the emote showing right now (index + 1, or 0).
-        public void WriteState(BinaryWriter w)=>CharacterWire.WriteSurvivor(w,survivor&&survivor.externallyDriven&&LastFrame.scale>0?LastFrame:ReadFrame(),(ColorIndex&0xFF)|(Moments?Moments.NetworkBits<<16:0),EquippedAppearance,GetComponent<IEnemyActor>(),GetComponent<IBlasterControls>());
+        public void WriteState(BinaryWriter w)
+        {
+            var frame = survivor && survivor.externallyDriven && LastFrame.scale > 0 ? LastFrame : ReadFrame();
+            frame.airborne = survivor && !survivor.Grounded;
+            CharacterWire.WriteSurvivor(w, frame, (ColorIndex & 0xFF) | (Moments ? Moments.NetworkBits << 16 : 0),
+                EquippedAppearance, GetComponent<IEnemyActor>(), GetComponent<IBlasterControls>());
+        }
         void LateUpdate(){if(!remoteDriven)Present(Time.deltaTime);}
         [BeforeRenderOrder(100)] void BeforeRender(){if(!remoteDriven)Present(0);}
         public void SetColor(int index){ColorIndex=index;if(Rig)Rig.SetColor(index);}
@@ -218,8 +234,16 @@ namespace DeadlyJenga.CandyPlayers
             {
                 climbRelease=Mathf.Min(1,climbRelease+dt/.16f);
                 float t=Mathf.SmoothStep(0,1,climbRelease);
-                frame.left.position=Vector3.Lerp(climbLastLeft.position,frame.left.position,t);frame.left.rotation=Quaternion.Slerp(climbLastLeft.rotation,frame.left.rotation,t);
-                frame.right.position=Vector3.Lerp(climbLastRight.position,frame.right.position,t);frame.right.rotation=Quaternion.Slerp(climbLastRight.rotation,frame.right.rotation,t);
+                if (!frame.left.tracked)
+                {
+                    frame.left.position = Vector3.Lerp(climbLastLeft.position, frame.left.position, t);
+                    frame.left.rotation = Quaternion.Slerp(climbLastLeft.rotation, frame.left.rotation, t);
+                }
+                if (!frame.right.tracked)
+                {
+                    frame.right.position = Vector3.Lerp(climbLastRight.position, frame.right.position, t);
+                    frame.right.rotation = Quaternion.Slerp(climbLastRight.rotation, frame.right.rotation, t);
+                }
             }
             wasClimbing=climbing;
             bool vaulting=survivor&&survivor.Vaulting&&Rig.style.lockHandsDuringVault;

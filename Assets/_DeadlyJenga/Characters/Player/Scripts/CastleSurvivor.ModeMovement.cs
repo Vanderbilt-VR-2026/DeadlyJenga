@@ -25,6 +25,8 @@ namespace DeadlyJenga.CastlePrototype
         float movementMultiplier = 1, vaultMultiplier = 1, nextPunch;
         public float EffectiveWalkSpeed => walkSpeed*movementMultiplier*PowerupSpeedMultiplier;
         float peakFallSpeed;
+        internal float LandingSpeed { get; private set; }
+        internal float LandedAt { get; private set; } = float.NegativeInfinity;
         ModeRules modeRules;
         string actorId, displayName;
         int team = -1;
@@ -92,6 +94,11 @@ namespace DeadlyJenga.CastlePrototype
         void ApplyFallImpact()
         {
             if(!Grounded)return;
+            if (peakFallSpeed > 2.25f)
+            {
+                LandingSpeed = peakFallSpeed;
+                LandedAt = Time.time;
+            }
             if(FallDamageEnabled && peakFallSpeed>fallSafeSpeed)
             {
                 float distance=(peakFallSpeed*peakFallSpeed-fallSafeSpeed*fallSafeSpeed)/(2*Mathf.Max(.1f,gravity));

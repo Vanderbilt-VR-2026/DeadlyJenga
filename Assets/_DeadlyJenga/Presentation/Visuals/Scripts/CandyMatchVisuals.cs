@@ -9,7 +9,13 @@ namespace DeadlyJenga.Presentation
     [DefaultExecutionOrder(650)]
     public sealed class CandyMatchVisuals : MonoBehaviour
     {
-        sealed class Look {public Renderer renderer;public Material[] originals;public Material[] health;public MaterialPropertyBlock originalProps;}
+        sealed class Look
+        {
+            public Renderer renderer;
+            public Material[] originals, health;
+            public readonly MaterialPropertyBlock originalProps = new();
+            public MaterialPropertyBlock[] originalSlots;
+        }
         readonly Dictionary<string,List<Look>> looks=new Dictionary<string,List<Look>>();
         readonly Dictionary<string,float> displayedHealth=new Dictionary<string,float>();
         MaterialPropertyBlock props;
@@ -82,14 +88,16 @@ namespace DeadlyJenga.Presentation
                 {
                     list=new List<Look>();foreach(var r in actor.Visual.GetComponentsInChildren<Renderer>())
                     {
-                        if(!(r is MeshRenderer)&&!(r is SkinnedMeshRenderer))continue;var original=r.sharedMaterials;var material=new Material[original.Length];
-                        for(int i=0;i<material.Length;i++){material[i]=healthMaterial;}
-                        var saved=new MaterialPropertyBlock();r.GetPropertyBlock(saved);list.Add(new Look{renderer=r,originals=original,health=material,originalProps=saved});PreserveSurface(r,original,saved);r.sharedMaterials=material;
-                        if(!saved.HasColor("_BaseColor")&&original.Length>0&&original[0]&&original[0].HasProperty("_BaseColor")){r.GetPropertyBlock(props);props.SetColor("_BaseColor",original[0].GetColor("_BaseColor"));r.SetPropertyBlock(props);}
+                        if(!(r is MeshRenderer)&&!(r is SkinnedMeshRenderer))continue;
+                        var look = new Look { renderer = r };
+                        ApplyHealthSurface(look);
+                        list.Add(look);
                     }
                     looks[p.id]=list;
                 }
-                foreach(var look in list)if(look.renderer&&look.health.Length>0&&look.renderer.sharedMaterial!=look.health[0]){look.originals=look.renderer.sharedMaterials;look.renderer.GetPropertyBlock(look.originalProps);PreserveSurface(look.renderer,look.originals,look.originalProps);look.renderer.sharedMaterials=look.health;}
+                foreach (var look in list)
+                    if (look.renderer && look.health.Length > 0 && look.renderer.sharedMaterial != healthMaterial)
+                        ApplyHealthSurface(look);
                 float target=f.rules.healthEnabled?Mathf.Clamp01(p.health):1;
                 float shown=displayedHealth.TryGetValue(p.id,out var previous)?Mathf.Lerp(previous,target,1-Mathf.Exp(-24*Time.unscaledDeltaTime)):target;
                 if(Mathf.Abs(shown-target)<.001f)shown=target;displayedHealth[p.id]=shown;
@@ -97,24 +105,78 @@ namespace DeadlyJenga.Presentation
                 float recovering=target>previous+.0001f?1:0,sink=runtime.RulesFor(actor.gameObject).sinkProgress;
                 foreach(var look in list)if(look.renderer)
                 {
-                    look.renderer.GetPropertyBlock(props);
-                    // Full, dry health does not use the height interval. Read the live block
-                    // so wardrobe changes and other visual effects cannot invalidate a cache.
-                    bool heightVisible=shown<.9999f||sink>0||props.HasFloat(MeltId)&&props.GetFloat(MeltId)>=0;
-                    if(props.HasFloat(HealthId)&&props.GetFloat(HealthId)==shown&&props.GetFloat(RecoveringId)==recovering&&props.GetFloat(SinkId)==sink&&
-                        (!heightVisible||props.GetFloat(BottomId)==bottom&&props.GetFloat(TopId)==top))continue;
-                    props.SetFloat(HealthId,shown);props.SetFloat(RecoveringId,recovering);props.SetFloat(SinkId,sink);
-                    props.SetFloat(BottomId,bottom);props.SetFloat(TopId,top);look.renderer.SetPropertyBlock(props);
+                    UpdateHealthProperties(look.renderer, -1, shown, recovering, sink, bottom, top);
+                    if (look.originalSlots == null) continue;
+                    for (int slot = 0; slot < look.originalSlots.Length; slot++)
+                        UpdateHealthProperties(look.renderer, slot, shown, recovering, sink, bottom, top);
                 }
             }
+        }
+        void UpdateHealthProperties(Renderer renderer, int slot, float health, float recovering, float sink, float bottom, float top)
+        {
+            if (slot < 0) renderer.GetPropertyBlock(props);
+            else renderer.GetPropertyBlock(props, slot);
+            // Full, dry health does not need changing world-space bounds every frame.
+            bool heightVisible = health < .9999f || sink > 0 || props.HasFloat(MeltId) && props.GetFloat(MeltId) >= 0;
+            if (props.HasFloat(HealthId) && props.GetFloat(HealthId) == health && props.GetFloat(RecoveringId) == recovering &&
+                props.GetFloat(SinkId) == sink && (!heightVisible || props.GetFloat(BottomId) == bottom && props.GetFloat(TopId) == top)) return;
+            props.SetFloat(HealthId, health);
+            props.SetFloat(RecoveringId, recovering);
+            props.SetFloat(SinkId, sink);
+            props.SetFloat(BottomId, bottom);
+            props.SetFloat(TopId, top);
+            if (slot < 0) renderer.SetPropertyBlock(props);
+            else renderer.SetPropertyBlock(props, slot);
         }
         void RestoreLooks()
         {
             foreach(var list in looks.Values)ReleaseLooks(list);looks.Clear();displayedHealth.Clear();
         }
-        void PreserveSurface(Renderer renderer,Material[] materials,MaterialPropertyBlock saved)
+        void ApplyHealthSurface(Look look)
         {
-            if(materials.Length==0||!materials[0])return;var source=materials[0];renderer.GetPropertyBlock(props);
+            var renderer = look.renderer;
+            look.originals = renderer.sharedMaterials;
+            renderer.GetPropertyBlock(look.originalProps);
+            int count = look.originals.Length;
+            var firstSlot = new MaterialPropertyBlock();
+            if (count > 0) renderer.GetPropertyBlock(firstSlot, 0);
+            if (count > 1 || !firstSlot.isEmpty)
+            {
+                look.originalSlots = new MaterialPropertyBlock[count];
+                for (int i = 0; i < count; i++)
+                {
+                    var saved = i == 0 ? firstSlot : new MaterialPropertyBlock();
+                    if (i > 0) renderer.GetPropertyBlock(saved, i);
+                    look.originalSlots[i] = saved;
+                    bool indexed = !saved.isEmpty;
+                    if (indexed) renderer.GetPropertyBlock(props, i);
+                    else renderer.GetPropertyBlock(props);
+                    PreserveSurface(look.originals[i], indexed ? saved : look.originalProps);
+                    renderer.SetPropertyBlock(props, i);
+                }
+            }
+            else
+            {
+                look.originalSlots = null;
+                if (count > 0)
+                {
+                    renderer.GetPropertyBlock(props);
+                    PreserveSurface(look.originals[0], look.originalProps);
+                    renderer.SetPropertyBlock(props);
+                }
+            }
+            if (look.health == null || look.health.Length != count)
+            {
+                look.health = new Material[count];
+                for (int i = 0; i < count; i++) look.health[i] = healthMaterial;
+            }
+            renderer.sharedMaterials = look.health;
+        }
+        void PreserveSurface(Material source, MaterialPropertyBlock saved)
+        {
+            if (!source) return;
+            if (!saved.HasColor("_BaseColor") && source.HasProperty("_BaseColor"))
+                props.SetColor("_BaseColor", source.GetColor("_BaseColor"));
             var map=saved.GetTexture("_BaseMap");if(!map&&source.HasProperty("_BaseMap"))map=source.GetTexture("_BaseMap");
             props.SetTexture("_BaseMap",map?map:Texture2D.whiteTexture);
             var scale=source.HasProperty("_BaseMap")?source.GetTextureScale("_BaseMap"):Vector2.one;var offset=source.HasProperty("_BaseMap")?source.GetTextureOffset("_BaseMap"):Vector2.zero;
@@ -122,19 +184,21 @@ namespace DeadlyJenga.Presentation
             var normal=saved.GetTexture("_BumpMap");if(!normal&&source.HasProperty("_BumpMap")&&source.IsKeywordEnabled("_NORMALMAP"))normal=source.GetTexture("_BumpMap");
             if(normal)props.SetTexture("_BumpMap",normal);
             props.SetFloat("_BumpScale",normal?(saved.HasFloat("_BumpScale")?saved.GetFloat("_BumpScale"):source.HasProperty("_BumpScale")?source.GetFloat("_BumpScale"):1):0);
-            foreach(var property in new[]{"_Smoothness","_Metallic"})if(!saved.HasFloat(property)&&source.HasProperty(property))props.SetFloat(property,source.GetFloat(property));
+            foreach(var property in new[]{"_Smoothness","_Metallic","_CandyGlaze"})if(!saved.HasFloat(property)&&source.HasProperty(property))props.SetFloat(property,source.GetFloat(property));
             if(!saved.HasColor("_EmissionColor")&&source.HasProperty("_EmissionColor"))props.SetColor("_EmissionColor",source.GetColor("_EmissionColor"));
-            renderer.SetPropertyBlock(props);
         }
         void ReleaseLooks(List<Look> list)
         {
-            foreach(var l in list)if(l.renderer)
+            foreach(var l in list)if(l.renderer && l.renderer.sharedMaterial == healthMaterial)
             {
                 l.renderer.GetPropertyBlock(props);
                 // Wardrobe and team colors may change while the health overlay is active.
                 foreach(var property in new[]{"_BaseColor","_Color","_EmissionColor"})if(props.HasColor(property))l.originalProps.SetColor(property,props.GetColor(property));
                 foreach(var property in new[]{"_Smoothness","_Metallic"})if(props.HasFloat(property))l.originalProps.SetFloat(property,props.GetFloat(property));
                 l.renderer.sharedMaterials=l.originals;l.renderer.SetPropertyBlock(l.originalProps);
+                if (l.originalSlots == null) continue;
+                for (int slot = 0; slot < l.originalSlots.Length; slot++)
+                    l.renderer.SetPropertyBlock(l.originalSlots[slot], slot);
             }
         }
         void Winner(MatchFrame f)

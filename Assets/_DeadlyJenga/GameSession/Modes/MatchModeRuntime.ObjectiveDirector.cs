@@ -236,7 +236,7 @@ namespace DeadlyJenga.Modes
                             owner.FindActor(p.frame.id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy != true) continue;
                     }
                     bool infection = owner.Rules.mode == GameModeKind.Infection||owner.FindActor(actor.id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy==true;
-                    if (infection ? (p.frame.role == "infected") == (self.frame.role == "infected") : ModeSimulation.TeamMode(owner.Rules.mode)&&p.frame.team == actor.team) continue;
+                    if (infection ? (p.frame.role == "infected") == (self.frame.role == "infected") : ModeSimulation.TeamMode(owner.Rules)&&p.frame.team == actor.team) continue;
                     bool publicBlip = infection && (self.frame.role != "infected" || survivors <= 2);
                     Vector3 point = p.frame.position;
                     if (!publicBlip && !owner.ObserveOpponent(self.frame, p.frame, out point)) continue;

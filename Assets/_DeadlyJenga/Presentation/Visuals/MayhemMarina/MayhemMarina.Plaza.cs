@@ -4,8 +4,7 @@ using F=DeadlyJenga.CandyArt.Marina.MarinaFinish;
 
 namespace DeadlyJenga.CandyArt.Marina
 {
-    // Showtime Plaza: the open heart of the Marina. Players arrive straight onto it, see the play
-    // screen ahead, the wardrobe stage on the left and the Hall of Fame on the right.
+    // Showtime Plaza leads into the covered cinema and out to the waterfront.
     public sealed partial class MayhemMarina
     {
         const float PlazaTop = 1.31f;
@@ -31,6 +30,10 @@ namespace DeadlyJenga.CandyArt.Marina
             var fleet = new GameObject("Marina cruise ships");
             fleet.transform.SetParent(visual, false);
             fleet.AddComponent<MarinaCruiseShips>().Build(visual.Find("Marina ocean"), OceanLevel);
+            var sea = new GameObject("Marina sea life");
+            sea.transform.SetParent(visual, false);
+            sea.transform.localPosition = Vector3.up * OceanLevel;
+            sea.AddComponent<CandySeaLife>().Build(110, 150, true, visual.Find("Marina ocean"));
         }
 
         void ShowtimePlaza()
@@ -40,36 +43,29 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Disk(floor + Vector3.down * 2.2f, PlazaRadius + .3f, 2.07f, F.Rock, true, 72);
             mesh.Disk(floor + Vector3.down * .13f, PlazaRadius, .13f, F.Stone, true, 72);
 
-            // Flush inlays: a candy-tile mosaic medallion, a brass ring and warm wood rays (art only, no collision).
-            mesh.Disk(floor, 1.55f, .006f, F.CandyCream, false, 48);
+            // Flush inlays: a candy-tile mosaic medallion and a brass ring (art only, no collision).
+            var mosaic = floor + Vector3.back * 3.85f;
+            mesh.Disk(mosaic, 1.15f, .010f, F.CandyCream, false, 48);
             F[] tiles = { F.CandyMint, F.CandyCoral, F.CandyLilac, F.CandyCream };
             for (int ring = 0; ring < 3; ring++)
             {
-                float inner = 1.85f + ring * .55f, outer = inner + .48f;
+                float inner = 1.38f + ring * .38f, outer = inner + .32f;
                 int count = 16 + ring * 8;
                 for (int i = 0; i < count; i++)
                 {
                     float from = i * 360f / count + 1.2f, to = (i + 1) * 360f / count - 1.2f;
-                    mesh.ArcSlab(floor, Vector2.one * inner, Vector2.one * outer, .007f, from, to, tiles[(i + ring) % tiles.Length], false, 3);
+                    mesh.ArcSlab(mosaic, Vector2.one * inner, Vector2.one * outer, .010f, from, to, tiles[(i + ring) % tiles.Length], false, 3);
                 }
             }
             // A five-pointed candy star at the very centre.
             for (int i = 0; i < 5; i++)
             {
                 float a = i * 72f;
-                var tip = OnPlaza(a, .95f, PlazaTop - PlazaCenter.y + .009f);
-                mesh.Box((tip + floor) * .5f + Vector3.up * .009f, new Vector3(.32f, .004f, .95f), F.CandyCoral, .002f, false, Quaternion.Euler(0, a, 0));
+                var ray = Quaternion.Euler(0, a, 0) * Vector3.forward * .4f;
+                mesh.Box(mosaic + ray + Vector3.up * .016f, new Vector3(.29f, .004f, .80f), F.CandyCoral, .002f, false, Quaternion.Euler(0, a, 0));
             }
-            mesh.ArcSlab(floor, Vector2.one * 1.55f, Vector2.one * 1.72f, .008f, 0, 360, F.Brass, false, 48);
+            mesh.ArcSlab(mosaic, Vector2.one * 1.15f, Vector2.one * 1.26f, .010f, 0, 360, F.Brass, false, 48);
             mesh.ArcSlab(floor, Vector2.one * (PlazaRadius - .62f), Vector2.one * (PlazaRadius - .48f), .008f, 0, 360, F.Brass, false, 72);
-            for (int i = 0; i < 12; i++)
-            {
-                float a = i * 30f;
-                var from = OnPlaza(a, 1.9f, PlazaTop - PlazaCenter.y + .004f);
-                var to = OnPlaza(a, PlazaRadius - .8f, PlazaTop - PlazaCenter.y + .004f);
-                mesh.Box((from + to) * .5f, new Vector3(.07f, .006f, Vector3.Distance(from, to)),
-                    i % 2 == 0 ? F.Wood : F.DarkWood, .002f, false, Quaternion.Euler(0, a, 0));
-            }
 
             // Rounded masonry copings only where the plaza meets open water.
             for (int i = 0; i < 64; i++)
@@ -80,7 +76,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Box(p, new Vector3(.86f, .2f, .42f), F.Ivory, .07f, false, Quaternion.Euler(0, a + 90, 0));
             }
             // Low lanterns ring the plaza edge so it reads as a stage at every time of day.
-            float[] posts = { -160f, -60f, 44f, 80f, 140f, 180f };
+            float[] posts = { -160f, 140f, 180f };
             foreach (float a in posts)
                 DeckLight(OnPlaza(a, PlazaRadius - .55f, PlazaTop - PlazaCenter.y));
 
@@ -90,7 +86,7 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 float a0 = posts[p], a1 = posts[(p + 1) % posts.Length];
                 if (a1 <= a0) a1 += 360;
-                if (a1 - a0 > 110) continue;
+                if (a1 - a0 > 110 || (a0 < 0 && a1 > 0)) continue;
                 var from = OnPlaza(a0, PlazaRadius - .55f, PlazaTop - PlazaCenter.y + 3.1f);
                 var to = OnPlaza(a1, PlazaRadius - .55f, PlazaTop - PlazaCenter.y + 3.1f);
                 var rope = new List<Vector3>();
@@ -112,7 +108,7 @@ namespace DeadlyJenga.CandyArt.Marina
         void StyleStage()
         {
             var turn = StyleStageTurn;
-            Vector3 At(float x, float y, float z) => new Vector3(Wardrobe.x, PlazaTop, Wardrobe.z) + turn * new Vector3(x, y, z);
+            Vector3 At(float x, float y, float z) => new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z) + turn * new Vector3(x, y, z);
 
             // Raised runway disk with a glowing rim; the wardrobe places the player on it.
             mesh.Disk(At(0, 0, 0), 1.35f, .2f, F.Stone, true, 48);
@@ -120,7 +116,7 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.ArcSlab(At(0, .2f, 0), Vector2.one * 1.12f, Vector2.one * 1.2f, .008f, 0, 360, F.Brass, false, 48);
 
             // Free-standing vanity: carved panel, illuminated oval mirror and a crown arch.
-            mesh.Box(At(0, 1.95f, 2.3f), new Vector3(3.7f, 3.9f, .3f), F.Wood, .16f, true, turn);
+            mesh.Box(At(0, 1.95f, 2.3f), new Vector3(3.7f, 3.9f, .3f), F.Teal, .16f, true, turn);
             mesh.Box(At(0, .12f, 2.3f), new Vector3(4.1f, .24f, .62f), F.DarkWood, .08f, true, turn);
             var crown = new List<Vector3>();
             for (int i = 0; i <= 32; i++)
@@ -129,6 +125,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 crown.Add(At(Mathf.Cos(a) * 1.85f, 3.9f + Mathf.Sin(a) * .62f, 2.18f));
             }
             mesh.Tube(crown, .2f, F.Ivory, 12, true);
+            mesh.Box(At(0, 4.13f, 2.12f), new Vector3(1.80f, .48f, .34f), F.Teal, .11f, false, turn);
             var ring = new List<Vector3>();
             for (int i = 0; i <= 64; i++)
             {
@@ -143,39 +140,39 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Ellipsoid(At(Mathf.Cos(a) * 1.4f, 2.07f + Mathf.Sin(a) * 1.91f, 1.86f), Vector3.one * .06f, F.Glow, rings: 5, sides: 8);
             }
 
-            // Angled clothing rails and hat shelves either side keep the stage open toward the plaza.
-            for (int side = -1; side <= 1; side += 2)
+            // Keep the cabinet and clothing rack on opposite sides of the mirror.
             {
-                var rack = turn * Quaternion.Euler(0, side * -38, 0);
-                Vector3 R(float x, float y, float z) => At(side * 2.35f, 0, 1.15f) + rack * new Vector3(x, y, z);
-                mesh.Beam(R(-.75f, 0, 0), R(-.75f, 2.05f, 0), .045f, F.Brass, true);
-                mesh.Beam(R(.75f, 0, 0), R(.75f, 2.05f, 0), .045f, F.Brass, true);
+                var rack = turn * Quaternion.Euler(0, -38, 0);
+                Vector3 R(float x, float y, float z) => At(2.35f, 0, 1.15f) + rack * new Vector3(x, y, z);
+                mesh.Beam(R(-.75f, 0, 0), R(-.75f, 2.29f, 0), .045f, F.Brass, true);
+                mesh.Beam(R(.75f, 0, 0), R(.75f, 2.29f, 0), .045f, F.Brass, true);
                 mesh.Beam(R(-.78f, 1.98f, 0), R(.78f, 1.98f, 0), .03f, F.Brass);
                 mesh.Box(R(0, .08f, 0), new Vector3(1.7f, .16f, .55f), F.DarkWood, .05f, false, rack);
                 for (int j = 0; j < 4; j++)
                 {
-                    var color = (j + (side > 0 ? 1 : 0)) % 2 == 0 ? F.MintFabric : F.CoralFabric;
+                    var color = (j + 1) % 2 == 0 ? F.MintFabric : F.CoralFabric;
                     var p = R((j - 1.5f) * .36f, 1.38f, 0);
                     mesh.Box(p, new Vector3(.3f, .85f, .12f), color, .06f, false, rack);
                     mesh.Box(p + rack * new Vector3(-.18f, .24f, 0), new Vector3(.16f, .5f, .12f), color, .05f, false, rack * Quaternion.Euler(0, 0, -14));
                     mesh.Box(p + rack * new Vector3(.18f, .24f, 0), new Vector3(.16f, .5f, .12f), color, .05f, false, rack * Quaternion.Euler(0, 0, 14));
                 }
+                mesh.Box(R(0, 2.25f, .05f), new Vector3(1.67f, .10f, .58f), F.Wood, .025f, false, rack);
                 for (int j = 0; j < 3; j++)
                 {
                     var hat = R((j - 1) * .5f, 2.3f, .05f);
                     mesh.Disk(hat, .22f, .05f, F.Metal, false, 20);
                     mesh.Disk(hat + Vector3.up * .05f, .14f, .26f, (F)((int)F.Red + (j + 1) % 3), false, 20);
                 }
-                Pot(At(side * 2.05f, 0, 2.55f), .42f, .78f, 30 + side);
+                Pot(At(2.05f, 0, 2.55f), .42f, .78f, 31);
             }
 
             // Frame and feet behind the wardrobe screen, as in the original shop.
             var frame = StyleScreen + StyleScreenFacing * Vector3.forward * .12f;
-            mesh.Box(frame, new Vector3(2.48f, 2.91f, .16f), F.DarkWood, .09f, true, StyleScreenFacing);
+            mesh.Box(frame, new Vector3(2.48f, 2.91f, .16f), F.Teal, .09f, true, StyleScreenFacing);
             for (int side = -1; side <= 1; side += 2)
             {
                 var foot = frame + StyleScreenFacing * Vector3.right * (side * .95f);
-                foot.y = PlazaTop + .3f;
+                foot.y = CinemaFloor + .3f;
                 mesh.Box(foot, new Vector3(.16f, .6f, .2f), F.Brass, .035f, true, StyleScreenFacing);
             }
             Accent("Style stage", At(0, 3.2f, .4f), new Color(1, .79f, .61f), 3, 6);
@@ -184,21 +181,14 @@ namespace DeadlyJenga.CandyArt.Marina
         void HallOfFame()
         {
             var turn = FameTurn;
-            var baseAt = new Vector3(FameBoard.x, PlazaTop, FameBoard.z);
+            var baseAt = new Vector3(FameBoard.x, CinemaFloor, FameBoard.z);
             Vector3 At(float x, float y, float z) => baseAt + turn * new Vector3(x, y, z);
 
-            // Backdrop for the board: two dark posts, a brass-capped header and a low plinth.
+            // Compact backing keeps the recent-match board above the podium.
             for (int side = -1; side <= 1; side += 2)
-            {
-                mesh.Box(At(side * 3.05f, 1.75f, .22f), new Vector3(.34f, 3.5f, .34f), F.DarkWood, .06f, true, turn);
-                mesh.Box(At(side * 3.05f, (3.48f + FameHeaderHeight) * .5f, .22f), new Vector3(.34f, FameHeaderHeight - 3.48f, .34f), F.DarkWood, .06f, false, turn);
-                mesh.Box(At(side * 3.05f, FameHeaderHeight - .36f, .22f), new Vector3(.5f, .26f, .5f), F.Brass, .05f, false, turn);
-            }
-            mesh.Box(At(0, FameHeaderHeight, .22f), new Vector3(6.6f, .5f, .3f), F.DarkWood, .08f, false, turn);
-            mesh.Box(At(0, FameHeaderHeight + .28f, .22f), new Vector3(6.8f, .07f, .38f), F.Brass, .02f, false, turn);
-            mesh.Box(At(0, 1.2f, .32f), new Vector3(6.3f, 2.4f, .16f), F.Teal, .08f, true, turn);
-            mesh.Box(At(0, 3.895f, .32f), new Vector3(6.3f, 3.03f, .16f), F.Teal, .08f, false, turn);
-            mesh.Box(At(0, .14f, .2f), new Vector3(6.9f, .28f, .9f), F.Stone, .06f, true, turn);
+                mesh.Box(At(side * 2.14f, 1.4f, .22f), new Vector3(.14f, 2.8f, .14f), F.DarkWood, .04f, true, turn);
+            mesh.Box(At(0, 2.9f, .12f), new Vector3(4.48f, 2.38f, .14f), F.CandyMint, .08f, false, turn);
+            mesh.Box(At(0, .12f, .2f), new Vector3(4.55f, .24f, .45f), F.Stone, .06f, true, turn);
 
             // Winners' steps in front of the board. Solid, so players can hop up for a victory pose.
             F[] finishes = { F.Brass, F.Metal, F.Coral };
@@ -209,7 +199,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Box(top - Vector3.up * (step.y * .5f), new Vector3(1.1f, step.y, 1.0f), F.CandyCream, .09f, true, turn);
                 mesh.Box(top + Vector3.up * (FameStepCap * .5f), new Vector3(1.02f, FameStepCap, .92f), finishes[i], .02f, false, turn);
             }
-            Accent("Hall of fame", At(0, 3.4f, -1.8f), new Color(1, .86f, .62f), 2.6f, 6.5f);
+            Accent("Recent match", At(0, 3.1f, -1.8f), new Color(1, .86f, .62f), 2.6f, 6.5f);
         }
     }
 }

@@ -1,0 +1,146 @@
+Tested source: fd17eb106c0e936b00d9f234eead628d5367b588
+Windows desktop Play Mode; job 9338eccfc2e54ff191add65a42e625f5
+
+Actual Game scene and production menu, scripted pointer/binding checks. Capture camera temporarily frames the world-locked tablet for readability; these are not headset eye-placement measurements. No physical headset or multiplayer proof.
+PASS Actual Game initializes
+PASS Session camera available
+PASS Production session presentation exists
+PASS Use the actual game tablet, not an overlapping duplicate
+PASS Developer has exactly twelve tiles
+PASS Three columns
+PASS Four rows
+PASS Exactly two coming-soon tiles disabled in local demo
+PASS Exactly one rendered tablet: 01-developer-root.png
+PASS Exactly one rendered tablet: 23-more-tools-hover.png
+PASS Exactly one rendered tablet: 22-controls.png
+PASS Tablet command available: Weapons
+PASS Exactly one rendered tablet: 21-weapons.png
+PASS Weapon label matches command: Blaster / ✓ Blaster
+PASS Weapon label matches command: Sheriff / Sheriff
+PASS Weapon label matches command: Rifle / Rifle
+PASS Weapon label matches command: Rocket / Rocket
+PASS Weapon label matches command: Spiker Uzis / Spiker Uzis
+PASS Weapon label matches command: Chain Gun / Chain Gun
+PASS Weapon label matches command: Grenade / Grenade
+PASS Weapon label matches command: Wrist Laser / Wrist Laser
+PASS Weapon label matches command: Drill / Drill
+PASS Weapon label matches command: Pistol / Pistol
+PASS Weapon label matches command: Murderer / Murderer
+PASS Weapon label matches command: Boxing / Boxing
+PASS Weapon label matches command: Saw Staff / Saw Staff
+PASS Weapon label matches command: Bat / Bat
+PASS Weapon label matches command: Chainsaw / Chainsaw
+PASS Weapon label matches command: Claws / Claws
+PASS Weapon label matches command: Flaming / Flaming
+PASS Weapon label matches command: Laser Axe / Laser Axe
+PASS Weapon label matches command: Dagger / Dagger
+PASS Weapon label matches command: 2x SPEED / 2x SPEED
+PASS Weapon label matches command: 3x JUMP / 3x JUMP
+PASS Weapon label matches command: POWERED IRON SUIT / POWERED IRON SUIT
+PASS Weapon label matches command: FLYING HAND · 30 SECONDS / FLYING HAND · 30 SECONDS
+PASS Tablet command available: Bots
+PASS Exactly one rendered tablet: 02-bots.png
+PASS Row available: Population presets
+PASS Exactly one rendered tablet: 03-bot-presets.png
+PASS Row available: Bot voices
+PASS Exactly one rendered tablet: 04-bot-voices.png
+PASS Bots Back returns to root
+PASS Tablet command available: More tools
+PASS Exactly one rendered tablet: 05-more-tools.png
+PASS Row available: World & pickups
+PASS Exactly one rendered tablet: 06-world-tools.png
+PASS Row available: Ground pickups
+PASS Child Back returns to owning tools page
+PASS Row available: Automatic powerups
+PASS Exactly one rendered tablet: 17-automatic-powerups.png
+PASS Row available: Show item weights
+PASS Exactly one rendered tablet: 18-powerup-weights.png
+PASS Row available: Player debug
+PASS Row available: Host stamina tuning
+PASS Exactly one rendered tablet: 20-stamina.png
+PASS Tablet command available: Map
+PASS Exactly one rendered tablet: 07-maps.png
+PASS Row available: Filter:
+PASS Exactly one rendered tablet: 08-map-filters.png
+PASS Row available: In development
+PASS Exactly one rendered tablet: 09-filtered-maps.png
+PASS Row available: Search:
+PASS Exactly one rendered tablet: 19-map-search.png
+PASS Search has an explicit empty result state
+PASS Row available: Search:
+PASS Top-level tabs clear stale developer route
+PASS Tablet command available: Spectate
+PASS Exactly one rendered tablet: 16-spectate.png
+PASS Tablet command available: Mode
+PASS Exactly one rendered tablet: 10-mode.png
+PASS Row available: advanced rules
+PASS Exactly one rendered tablet: 11-advanced-rules.png
+PASS Tablet command available: Disasters
+PASS Exactly one rendered tablet: 12-disasters.png
+PASS Lazy-created disaster cards share the foreground menu material
+PASS Selecting a disaster hides its selector before showing settings
+PASS Exactly one rendered tablet: 13-disaster-selected.png
+PASS Row available: Show tuning
+PASS Exactly one rendered tablet: 14-disaster-tuning.png
+PASS Tablet command available: Bots
+PASS Exactly one rendered tablet: 24-bots-hands.png
+PASS Tablet command available: Bots
+PASS Exactly one rendered tablet: 24-bots-behavior.png
+PASS Tablet command available: Bots
+PASS Exactly one rendered tablet: 24-bots-equipment.png
+PASS Tablet command available: Bots
+PASS Exactly one rendered tablet: 24-bots-voices.png
+PASS Exactly one rendered tablet: 25-bot-volume.png
+PASS Tablet command available: Bots
+PASS Row available: Everyone loadout
+PASS Exactly one rendered tablet: 26-equipment-0.png
+PASS Exactly one rendered tablet: 26-equipment-1.png
+PASS Exactly one rendered tablet: 26-equipment-2.png
+PASS Tablet command available: More tools
+PASS Exactly one rendered tablet: 27-tools-player.png
+PASS Tablet command available: More tools
+PASS Exactly one rendered tablet: 27-tools-world.png
+PASS Tablet command available: More tools
+PASS Exactly one rendered tablet: 27-tools-round.png
+PASS Tablet command available: More tools
+PASS Exactly one rendered tablet: 27-tools-diagnostics.png
+PASS Tablet command available: More tools
+PASS Row available: Show hand physics
+PASS Exactly one rendered tablet: 28-hand-physics.png
+PASS Row available: Hide hand physics
+PASS Row available: Sea spirit / tabletop
+PASS Exactly one rendered tablet: 29-tabletop.png
+PASS Row available: Ground pickups
+PASS Exactly one rendered tablet: 30-ground-pickups.png
+PASS Row available: Wildlife & enemies
+PASS Exactly one rendered tablet: 31-wildlife.png
+PASS Tablet command available: Disasters
+PASS Exactly one rendered tablet: 32-disaster-00-tuning.png
+PASS Exactly one rendered tablet: 32-disaster-01-tuning.png
+PASS Exactly one rendered tablet: 32-disaster-02-tuning.png
+PASS Exactly one rendered tablet: 32-disaster-03-tuning.png
+PASS Exactly one rendered tablet: 32-disaster-04-tuning.png
+PASS Exactly one rendered tablet: 32-disaster-05-tuning.png
+PASS Exactly one rendered tablet: 32-disaster-06-tuning.png
+PASS Exactly one rendered tablet: 32-disaster-07-tuning.png
+PASS Exactly one rendered tablet: 32-disaster-08-tuning.png
+PASS Exactly one rendered tablet: 32-disaster-09-tuning.png
+PASS Exactly one rendered tablet: 32-disaster-10-tuning.png
+PASS Exactly one rendered tablet: 32-disaster-11-tuning.png
+PASS Hand appearance panel opens
+PASS Round setup panel opens
+PASS God Mode permitted in local Demo
+PASS Tablet command available: God mode
+PASS God Mode toggles on
+PASS God Mode rejects direct damage and elimination
+PASS Exactly one rendered tablet: 15-god-mode.png
+PASS Actual character flight: fast travels over five times slow distance
+PASS Flight brakes when movement released
+PASS Menu input pause prevents flight movement
+PASS Tablet command available: God mode
+PASS God Mode toggles off
+PASS Damage works again after disabling God Mode
+PASS Leaving Demo revokes God Mode
+PASS Returning to Demo does not silently restore God Mode
+COMPLETE UI assertions passed with no runtime errors.
+CLEANUP restored name preference and initial scene state.

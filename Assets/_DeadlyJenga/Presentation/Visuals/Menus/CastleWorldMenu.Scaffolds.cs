@@ -112,30 +112,23 @@ namespace DeadlyJenga.CastlePrototype
         void PointSpectatePage(Camera camera,bool pressed)
         {
             scaffoldButton.gameObject.SetActive(false);HideDisasterSliders();
-            var controls=Demo as ISpectatorControls;heading.text="WATCH THE MATCH\nYour character stays in the world";
+            var controls=Demo as ISpectatorControls;
+            var names=new System.Collections.Generic.List<string>();var actions=new System.Collections.Generic.List<System.Action>();
+            var enabled=new System.Collections.Generic.List<bool>();var art=new System.Collections.Generic.List<CandyHudIcon>();
+            var captions=new System.Collections.Generic.List<string>();var pictures=new System.Collections.Generic.List<Texture>();
+            void Add(string label,System.Action action,bool available=true)
+            {names.Add(label);actions.Add(action);enabled.Add(available);art.Add(CandyHudIcon.Look);captions.Add("");pictures.Add(null);}
+            heading.text="DEVELOPER / SPECTATE";
+            Add(controls?.Spectating==true?"Return to your character":"Start spectating",()=>{controls.SetSpectating(!controls.Spectating);session.SetMenu(false);},controls!=null&&(controls.CanSpectate||controls.Spectating));
+            Add("Previous player",()=>{controls.CycleWatched(-1);session.SetMenu(false);},controls?.Spectating==true);
+            Add("Next player",()=>{controls.CycleWatched(1);session.SetMenu(false);},controls?.Spectating==true);
+            Add("Four views: "+(controls?.FourViews==true?"ON":"OFF"),()=>controls.SetFourViews(!controls.FourViews),controls?.CanUseFourViews==true);
             var review=MatchRuntime.Current as IMatchReviewControls;
-            bool spoilers=review?.DevelopmentReviewEnabled==true&&MatchRuntime.Current.Rules.mode==GameModeKind.MurderMystery;
-            var ray=pointerRay;
-            for(int i=0;i<buttons.Length;i++)
-            {
-                bool shown=i<=4||spoilers&&i<=6||i==7&&DemoMode;buttons[i].gameObject.SetActive(shown);if(!shown)continue;
-                targets[i].enabled=true;var rect=(RectTransform)buttons[i].transform;rect.anchoredPosition=new Vector2(0,277-i*50);rect.sizeDelta=new Vector2(540,48);
-                labels[i].text=i==0?"Back":i==1?(controls?.Spectating==true?"Return to your character":"Start spectating"):i==2?"Previous player":i==3?"Next player":controls?.FourViews==true?"Four views (desktop only)":"Single POV · four views on desktop";
-                bool enabled=i==0||controls!=null&&(i==1?(controls.CanSpectate||controls.Spectating):i==4?controls.CanUseFourViews:controls.Spectating);
-                string watchedId="";
-                if(i==5||i==6)
-                {
-                    var role=i==5?MysteryRole.Murderer:MysteryRole.Sheriff;watchedId=review.PlayerInRole(role);MatchPlayerFrame player=null;
-                    foreach(var p in MatchRuntime.Current.Frame.players)if(p.id==watchedId){player=p;break;}
-                    labels[i].text="DEV · "+role+": "+(player?.name??"not assigned");enabled=player!=null&&player.alive&&!player.dying;
-                }
-                if(i==7){labels[i].text="Inspect your avatar · third person mirror";enabled=session.Player?.ThirdPerson?.CanInspect==true;}
-                targets[i].enabled=enabled;bool hover=Hit(targets[i],ray);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover?CandyHudVisuals.Ink:enabled?Color.white:CandyHudVisuals.Muted;
-                if(hover&&pressed)
-                {if(i==0)spectatePage=false;else if(i==7)session.Player?.ThirdPerson?.Begin();else if(i>=5)review.WatchPlayer(watchedId);else if(i==1){controls.SetSpectating(!controls.Spectating);session.SetMenu(false);}else if(i==4)controls.SetFourViews(!controls.FourViews);else{controls.CycleWatched(i==2?-1:1);session.SetMenu(false);}break;}
-            }
-            help.text=controls?.Spectating==true?"Watching "+controls.WatchedName(0)+"\nRight stick switches players. Open this menu to return.":"No movement commands reach the watched player.\nYour body can still be affected by the match.";
-            
+            if(review?.DevelopmentReviewEnabled==true&&MatchRuntime.Current.Rules.mode==GameModeKind.MurderMystery)
+                foreach(var role in new[]{MysteryRole.Murderer,MysteryRole.Sheriff})
+                {string id=review.PlayerInRole(role);Add("Watch "+role,()=>review.WatchPlayer(id),!string.IsNullOrEmpty(id));}
+            help.text=controls?.Spectating==true?"Watching "+controls.WatchedName(0)+". Your body remains in the match.":"Watch another player without controlling them. Four views requires desktop.";
+            RenderOrganizedMenuGrid(names,actions,enabled,art,captions,pictures,pressed);
         }
         void BuildScaffoldButton()
         {

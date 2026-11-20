@@ -15,6 +15,7 @@ namespace DeadlyJenga.Modes
         }
         [Tooltip("Exact ISyncedWorld layout token. Geometry changes must update both assets.")]
         public string layoutSignature;
+        public bool playOpeningOnly;
         [Tooltip("Resolve authored room-floor starts onto nearby static ground; never onto loose blocks.")]
         public bool groundSpawns;
         public Vector3[] freeSpawns=Array.Empty<Vector3>();

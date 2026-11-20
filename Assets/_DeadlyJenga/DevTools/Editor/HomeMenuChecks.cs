@@ -11,6 +11,8 @@ using Fusion;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using Object=UnityEngine.Object;
 using LogType=UnityEngine.LogType;
@@ -73,6 +75,13 @@ namespace DeadlyJenga.DevTools.Editor
                 EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
             Start();
         }
+        public static void RunWardrobeExitBatch()
+        {
+            SessionState.SetBool(Key+"WardrobeExitOnly",true);
+            if(string.IsNullOrEmpty(SceneManager.GetActiveScene().path))
+                EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
+            Start();
+        }
         public static void RunQuestFlowBatch()
         {
             SessionState.SetBool(Key+"QuestOffline",true);
@@ -104,11 +113,12 @@ namespace DeadlyJenga.DevTools.Editor
                 MatchSetup.MapId=saved.map;MatchSetup.ModeId=saved.mode;MatchSetup.BotTarget=saved.population;
                 EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);ValidationRunGate.Release(Key);
                 if(SessionState.GetBool(Key+"QuestOffline",false)||SessionState.GetBool(Key+"PlayEntryOnly",false)||
-                    SessionState.GetBool(Key+"HostedPlayOnly",false))
+                    SessionState.GetBool(Key+"HostedPlayOnly",false)||SessionState.GetBool(Key+"WardrobeExitOnly",false))
                 {
                     SessionState.SetBool(Key+"PlayEntryOnly",false);
                     SessionState.SetBool(Key+"HostedPlayOnly",false);
                     SessionState.SetBool(Key+"QuestOffline",false);
+                    SessionState.SetBool(Key+"WardrobeExitOnly",false);
                     EditorApplication.Exit(errors==0?0:2);
                 }
             }
@@ -127,6 +137,36 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static IEnumerator Task(System.Threading.Tasks.Task task,string message)
         {yield return Until(()=>task.IsCompleted,message);if(task.IsFaulted)throw task.Exception;}
+        static IEnumerator VerifyWardrobeEscape(IslandLobbyView wardrobe)
+        {
+            Require(wardrobe.WardrobeOpen,"Wardrobe is ready to receive Escape");
+            var settings = InputSystem.settings;
+            var background = settings.backgroundBehavior;
+            var routing = settings.editorInputBehaviorInPlayMode;
+            settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            var keyboard=InputSystem.AddDevice<Keyboard>();
+            try
+            {
+                InputSystem.QueueStateEvent(keyboard,new KeyboardState());
+                yield return null;
+                yield return null;
+                keyboard.MakeCurrent();
+                InputSystem.QueueStateEvent(keyboard,new KeyboardState(UnityEngine.InputSystem.Key.Escape));
+                yield return Until(() => keyboard.escapeKey.isPressed,"The editor forwards the synthetic Escape to the game",5);
+                yield return Until(() => !wardrobe.WardrobeOpen,"Escape closes the wardrobe",5);
+                yield return null;
+                var lobby = IslandLobby.Current;
+                Require(!lobby.MenuOpen&&!lobby.Player.InputSuspended,
+                    "Escape does not also open the lobby menu or suspend movement");
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(keyboard);
+                settings.editorInputBehaviorInPlayMode = routing;
+                settings.backgroundBehavior = background;
+            }
+        }
         static IEnumerator Validate()
         {
             Application.runInBackground=true;
@@ -135,6 +175,20 @@ namespace DeadlyJenga.DevTools.Editor
             Require(EditorBuildSettings.scenes.First(s=>s.enabled).path.EndsWith("/Home.unity"),"Home is first enabled build scene");
             Require(Services.Session==null&&Tracked.Movers.Count==0,"Home creates no game simulation or bots");
             Require(Resources.LoadAll<Texture2D>("HomeSlides").Length==4,"All four supplied slides load");
+            if (SessionState.GetBool(Key+"WardrobeExitOnly",false))
+            {
+                home.Demo();
+                yield return Until(() => IslandLobby.Current && Object.FindFirstObjectByType<IslandLobbyView>(),
+                    "Developer lobby and wardrobe view load",60);
+                var wardrobeLobby = IslandLobby.Current;
+                var wardrobe = Object.FindFirstObjectByType<IslandLobbyView>();
+                var survivor = wardrobeLobby.Player.gameObject.GetComponent<CastleSurvivor>();
+                survivor.Place(wardrobe.WardrobePosition+Vector3.up*.04f,Quaternion.identity);
+                wardrobeLobby.SetMenu(false);
+                wardrobe.SetWardrobeOpen(true);
+                yield return VerifyWardrobeEscape(wardrobe);
+                yield break;
+            }
             if(SessionState.GetBool(Key+"HostedPlayOnly",false))
             {
                 oldPeer=NetworkProjectConfig.Global.PeerMode;
@@ -201,9 +255,10 @@ namespace DeadlyJenga.DevTools.Editor
                 var forward=Vector3.ProjectOnPlane(eye.transform.forward,Vector3.up).normalized;
                 Require(Vector3.Dot((panel.position-eye.transform.position).normalized,forward)>.92f,"Wardrobe aligns to the eye line when opened sideways");
                 Require(lobbyView.InvokeChoice("wardrobe-open")&&!lobbyView.WardrobeOpen&&survivor.InputSuspended==oldInput,"Wardrobe Done restores input");
+                IslandLobby.Current.SetMenu(false);
                 lobbyView.SetWardrobeOpen(true);
                 Require(lobbyView.WardrobeOpen,"Wardrobe can re-enter");
-                lobbyView.SetWardrobeOpen(false);
+                yield return VerifyWardrobeEscape(lobbyView);
             }
 
             IslandLobby.Current.SelectMap("castle");

@@ -17,7 +17,7 @@ namespace DeadlyJenga.CandyArt.Marina
         readonly List<Target> targets=new();
         ILobbyControls lobby;ISessionInfo session;Action<string> detail;
         bool requireRelease=true,inputFocused=true;
-        bool ModalBlocked=>session?.IsVR==true&&session.MenuOpen||MenuAim.InputConsumed||!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
+        bool ModalBlocked=>GetComponent<IslandLobbyView>()?.WardrobeOpen==true||session?.MenuOpen==true&&(session.IsVR||SessionPresentation.LobbyDeveloperAvailable(session))||MenuAim.InputConsumed||!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
         static readonly Color Plum=new(.12f,.055f,.19f);
         static readonly Color Cream=new(1,.96f,.83f);
         static readonly Color ProjectionInk=new(.29f,.12f,.30f);
@@ -36,7 +36,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 aimCanvas = root.GetComponent<Canvas>();
                 aimCanvas.renderMode = RenderMode.WorldSpace;
                 aimCanvas.overrideSorting = true;
-                aimCanvas.sortingOrder = 999;
+                aimCanvas.sortingOrder = MenuAim.PointerSortOrder+1;
                 aimDot = MenuAim.CreateReticle(root.transform);
                 MenuAim.PresentInForeground(root.transform);
             }
@@ -44,7 +44,13 @@ namespace DeadlyJenga.CandyArt.Marina
         RectTransform canvas,mainFace,joinFace,hostFace;
         Text modeTitle,mapTitle,playTitle,joinTitle,hostTitle,focusDescription,mainHeading,playerCountLabel;
         Text liveStandings,liveActivity,liveHazards;
-        readonly Text[] standingRows=new Text[5],activityRows=new Text[5],hazardRows=new Text[4];
+        Text matchReturnTitle,matchActionTitle,matchSummary;
+        RectTransform matchReturn,matchAction;
+        float endMatchConfirmUntil;
+        IMatchReviewControls Review=>MatchRuntime.Current as IMatchReviewControls;
+        bool MatchEnded=>MatchRuntime.Current?.Frame?.phase is RoundPhase.Victory or RoundPhase.Results;
+        bool CanConfigureNext=>MatchRuntime.Current?.Authority==true&&MatchRuntime.Current.Frame.phase==RoundPhase.Results;
+        readonly Text[] standingRows=new Text[5],standingStats=new Text[5],activityRows=new Text[5],activityDetails=new Text[5],hazardRows=new Text[4];
         readonly RawImage[] standingHeads=new RawImage[5],victimHeads=new RawImage[5],killerHeads=new RawImage[5],hazardArt=new RawImage[4];
         Text modeMissing,mapMissing,joinStatus,hostStatus,marquee;
         RectTransform modeCard,mapCard;
@@ -125,10 +131,17 @@ namespace DeadlyJenga.CandyArt.Marina
             var styleBtn=Button("marina-style",new Vector2(263,-111),new Vector2(122,34),ProjectionInk,()=>detail?.Invoke("settings"),()=>true);
             playerCountLabel=ActionText("10 PLAYERS",new Vector2(113,32),17,styleBtn);
 
-            liveStandings=LiveColumn(new Vector2(-170,20),new Vector2(313,126));
-            liveActivity=LiveColumn(new Vector2(169,20),new Vector2(313,126));
-            liveHazards=LiveColumn(new Vector2(0,-76),new Vector2(648,46));
+            liveStandings=LiveColumn(new Vector2(-170,0),new Vector2(313,166));
+            liveActivity=LiveColumn(new Vector2(169,0),new Vector2(313,166));
+            liveHazards=LiveColumn(new Vector2(0,-116),new Vector2(648,43));
             BuildLiveRows();
+            matchReturn=Button("marina-return-match",new Vector2(88,113),new Vector2(146,34),ProjectionInk,
+                ()=> (lobby as ILobbyMatchVisitControls)?.ReturnToMatch(),()=>lobby.CanStart);
+            matchReturnTitle=ActionText("Return to match",new Vector2(138,30),16,matchReturn);
+            matchAction=Button("marina-match-action",new Vector2(251,113),new Vector2(146,34),Coral,MatchAction,
+                ()=>MatchEnded?CanConfigureNext:Review?.CanEndGame==true);
+            matchActionTitle=ActionText("End match",new Vector2(138,30),16,matchAction);
+            matchSummary=Text("",new Vector2(0,-116),new Vector2(648,43),16,mainFace);
 
             joinFace=CabinetFace("Lavender Join display",false);
             hostFace=CabinetFace("Mint Host display",true);
@@ -149,7 +162,7 @@ namespace DeadlyJenga.CandyArt.Marina
             focusPanel.gameObject.SetActive(false);
             select=MenuAim.SelectAction("Marina right select",false);select.Enable();
             leftSelect=MenuAim.SelectAction("Marina left select",true);leftSelect.Enable();
-            EnsureAimCanvas();Refresh();
+            EnsureAimCanvas();Refresh();TerminalUiStyle.Apply(canvas);
         }
         void BuildProjectedBackdrop()
         {
@@ -252,9 +265,9 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             var go=new GameObject("Marina label · "+value,typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var t=go.GetComponent<Text>();
             t.font=Resources.Load<Font>("Fonts/Fredoka-Bold") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            t.text=value;t.fontSize=font;t.fontStyle=FontStyle.Bold;t.alignment=TextAnchor.MiddleCenter;t.color=new Color(1,.97f,.89f);t.raycastTarget=false;t.rectTransform.anchoredPosition=p;t.rectTransform.sizeDelta=size;return t;
+            t.text=value;t.fontSize=font;t.fontStyle=FontStyle.Normal;t.alignment=TextAnchor.MiddleCenter;t.color=new Color(1,.97f,.89f);t.raycastTarget=false;t.rectTransform.anchoredPosition=p;t.rectTransform.sizeDelta=size;return t;
         }
-        Text playlistStatus;
+        Text playlistStatus, launchSummary;
         Image playlistStatusBacking;
         void Refresh()
         {
@@ -267,6 +280,7 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 playlistStatusBacking=Panel("Play status backing",mainFace,new Vector2(0,-78),new Vector2(350,25),ProjectionInk);
                 playlistStatus=Text("",new Vector2(0,-78),new Vector2(340,25),17,mainFace);
+                launchSummary=Text("",new Vector2(0,-65),new Vector2(640,30),20,mainFace);
             }
             int countdownSeconds = 0;
             bool countdown = false;
@@ -287,30 +301,43 @@ namespace DeadlyJenga.CandyArt.Marina
                 }
             }
 
-            mainHeading.text=visiting?"SPECTATOR LOBBY":countdown?$"MATCH STARTING IN {countdownSeconds}...":playlist?"PLAY READY":"MATCH OPTIONS";
+            mainHeading.text=visiting?"SPECTATOR LOBBY":countdown?"MATCH STARTING":playlist?"PLAY READY":"MATCH OPTIONS";
             marquee.gameObject.SetActive(false);
             playlistStatusBacking.gameObject.SetActive((playlist||countdown)&&!visiting);
             playlistStatusBacking.color=countdown?Coral:ProjectionInk;
-            playlistStatusBacking.rectTransform.anchoredPosition=new Vector2(0,countdown?68:-78);
-            playlistStatusBacking.rectTransform.sizeDelta=new Vector2(countdown?236:350,countdown?41:25);
+            playlistStatusBacking.rectTransform.anchoredPosition=new Vector2(0,countdown?15:-78);
+            playlistStatusBacking.rectTransform.sizeDelta=new Vector2(countdown?150:350,countdown?108:25);
             playlistStatus.rectTransform.anchoredPosition=playlistStatusBacking.rectTransform.anchoredPosition;
             playlistStatus.rectTransform.sizeDelta=playlistStatusBacking.rectTransform.sizeDelta;
-            playlistStatus.fontSize=countdown?30:17;
+            playlistStatus.fontSize=countdown?68:17;
+            launchSummary.gameObject.SetActive(countdown&&!visiting);
+            launchSummary.text=lobby.ModeTitle+"  ·  "+lobby.MapTitle;
             playlistStatus.gameObject.SetActive((playlist||countdown)&&!visiting);
             RefreshLiveMatch(visiting);
+            mainHeading.rectTransform.anchoredPosition=new Vector2(visiting?-170:0,113);
+            mainHeading.rectTransform.sizeDelta=new Vector2(visiting?300:635,54);
+            mainHeading.fontSize=visiting?28:40;
+            foreach(Transform child in mainFace)
+                if(child.name.StartsWith("Cinema title",StringComparison.Ordinal))child.gameObject.SetActive(!visiting);
+            matchReturn.gameObject.SetActive(visiting);
+            matchReturnTitle.text=MatchEnded?"View results":lobby.CanStart?"Return to match":"Watching match";
+            matchAction.gameObject.SetActive(visiting&&(MatchEnded||Review?.CanEndGame==true));
+            matchActionTitle.text=MatchEnded?(CanConfigureNext?"Configure next match":MatchRuntime.Current?.Authority==true?"Finishing round…":"Host sets next match"):
+                Time.unscaledTime<endMatchConfirmUntil?"Confirm end match":"End match";
+            if(!visiting||MatchEnded)endMatchConfirmUntil=0;
             int seconds=countdown?countdownSeconds:Mathf.Max(0,Mathf.CeilToInt(experience?.CountdownSeconds??0));
             int humans=Mathf.Max(1,session?.Multiplayer?.HumanCount??1);
             playlistStatus.text=visiting?"Live match on the spectator TVs":countdown?
-                $"{seconds}s":
+                $"{seconds}":
                 lobby.Connected?$"ROOM {lobby.HostCode}    |    {humans} / {Mathf.Max(10,humans)}":
                 "LOCAL PLAY";
             int totalPlayers=(lobby as ILobbyDetails)?.Setup?.population??MatchChoices.BotTarget;
             if(totalPlayers<=0)totalPlayers=10;
             if(playerCountLabel)playerCountLabel.text=$"{totalPlayers} PLAYERS";
-            modeCard.gameObject.SetActive(!visiting&&(!playlist||countdown));
-            mapCard.gameObject.SetActive(!visiting);
-            modeCard.anchoredPosition=new Vector2(-169,countdown?-41:12);
-            mapCard.anchoredPosition=new Vector2(playlist&&!countdown?0:169,countdown?-41:12);
+            modeCard.gameObject.SetActive(!visiting&&!playlist&&!countdown);
+            mapCard.gameObject.SetActive(!visiting&&!countdown);
+            modeCard.anchoredPosition=new Vector2(-169,12);
+            mapCard.anchoredPosition=new Vector2(playlist?0:169,12);
             foreach(var target in targets)
             {
                 if(target.id is "marina-settings" or "marina-style")
@@ -322,8 +349,8 @@ namespace DeadlyJenga.CandyArt.Marina
                 playlist?(experience.LocalReady?"READY":"GO"):lobby.StartPending?"Cancel start":"Start match";
             joinTitle.text=visiting?"Room info":"Room code";
             hostTitle.text=visiting?"Room info":lobby.Connected?(lobby.IsHost?"Manage room":"Create room"):"Create room";
-            joinStatus.text=visiting?"Match in progress":lobby.Busy?"Connecting…":lobby.Connected?"In a room":"Find your friends";
-            hostStatus.text=visiting?"Match in progress":lobby.Busy?"Working…":lobby.IsHost&&lobby.Connected?"You are host":lobby.Connected?"Joined as guest":"Host your friends";
+            joinStatus.text=visiting?(MatchEnded?"Match complete":"Match in progress"):lobby.Busy?"Connecting…":lobby.Connected?"In a room":"Find your friends";
+            hostStatus.text=visiting?(MatchEnded?"Match complete":"Match in progress"):lobby.Busy?"Working…":lobby.IsHost&&lobby.Connected?"You are host":lobby.Connected?"Joined as guest":"Host your friends";
             var details=lobby as ILobbyDetails;
             string nextMode=details?.SelectedModeId??"mystery",nextMap=details?.SelectedMapId??"castle";
             if(modeId!=nextMode)
@@ -345,22 +372,30 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             liveStandings.text="STANDINGS";
             liveActivity.text="RECENT ELIMINATIONS";
+            liveStandings.color=Mint;liveActivity.color=Mint;liveHazards.fontSize=12;liveHazards.color=Mint;
             for(int i=0;i<standingRows.Length;i++)
             {
-                float y=32-i*19;
-                standingHeads[i]=LiveImage(liveStandings.transform,new Vector2(-145,y),new Vector2(18,18));
-                standingRows[i]=Text("",new Vector2(13,y),new Vector2(285,19),15,liveStandings.transform);
-                standingRows[i].alignment=TextAnchor.MiddleLeft;
+                float y=43-i*28;
+                var rowColor=new Color(.13f,.045f,.18f,.55f);
+                Panel("Standing row backing",liveStandings.rectTransform,new Vector2(0,y),new Vector2(313,26),rowColor).transform.SetAsFirstSibling();
+                Panel("Activity row backing",liveActivity.rectTransform,new Vector2(0,y),new Vector2(313,26),rowColor).transform.SetAsFirstSibling();
+                standingHeads[i]=LiveImage(liveStandings.transform,new Vector2(-141,y),new Vector2(22,22));
+                standingRows[i]=Text("",new Vector2(17,y+6),new Vector2(275,18),14,liveStandings.transform);
+                standingStats[i]=Text("",new Vector2(17,y-9),new Vector2(275,14),11,liveStandings.transform);
+                standingRows[i].alignment=standingStats[i].alignment=TextAnchor.MiddleLeft;
+                standingStats[i].color=new Color(.82f,.76f,.87f);
                 killerHeads[i]=LiveImage(liveActivity.transform,new Vector2(-145,y),new Vector2(18,18));
                 victimHeads[i]=LiveImage(liveActivity.transform,new Vector2(-124,y),new Vector2(18,18));
-                activityRows[i]=Text("",new Vector2(25,y),new Vector2(259,19),15,liveActivity.transform);
-                activityRows[i].alignment=TextAnchor.MiddleLeft;
+                activityRows[i]=Text("",new Vector2(25,y+6),new Vector2(259,18),14,liveActivity.transform);
+                activityDetails[i]=Text("",new Vector2(25,y-9),new Vector2(259,14),11,liveActivity.transform);
+                activityRows[i].alignment=activityDetails[i].alignment=TextAnchor.MiddleLeft;
+                activityDetails[i].color=new Color(.82f,.76f,.87f);
             }
             for(int i=0;i<hazardRows.Length;i++)
             {
                 float x=-318+i*162;
-                hazardArt[i]=LiveImage(liveHazards.transform,new Vector2(x+25,-4),new Vector2(48,30));
-                hazardRows[i]=Text("",new Vector2(x+105,-4),new Vector2(105,32),14,liveHazards.transform);
+                hazardArt[i]=LiveImage(liveHazards.transform,new Vector2(x+20,-7),new Vector2(36,24));
+                hazardRows[i]=Text("",new Vector2(x+100,-7),new Vector2(118,28),12,liveHazards.transform);
                 hazardRows[i].alignment=TextAnchor.MiddleLeft;
             }
         }
@@ -382,12 +417,24 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             liveStandings.gameObject.SetActive(visible);
             liveActivity.gameObject.SetActive(visible);
-            liveHazards.gameObject.SetActive(visible);
+            liveHazards.gameObject.SetActive(visible&&!MatchEnded);
+            matchSummary.gameObject.SetActive(visible&&MatchEnded);
             var match=MatchRuntime.Current;
             var frame=visible?match?.Frame:null;
             if(frame==null)return;
             int seconds=Mathf.Max(0,Mathf.CeilToInt(frame.remaining));
-            mainHeading.text=$"LIVE MATCH    {seconds/60:00}:{seconds%60:00}";
+            mainHeading.text=frame.phase switch
+            {
+                RoundPhase.Waiting=>"BETWEEN ROUNDS",
+                RoundPhase.Countdown=>"ROUND STARTING",
+                RoundPhase.Victory=>"ROUND COMPLETE",
+                RoundPhase.Results=>"MATCH RESULTS",
+                _=>$"LIVE MATCH  {seconds/60:00}:{seconds%60:00}"
+            };
+            liveStandings.text=MatchEnded?"FINAL STANDINGS":"STANDINGS";
+            matchSummary.text="Winner: "+CandyHudContent.Safe(string.IsNullOrWhiteSpace(frame.winner)?"No winner":frame.winner,48)+
+                (CanConfigureNext?"\nChoose Configure next match to pick a map, mode and settings.":
+                    frame.phase==RoundPhase.Victory?"\nFinal results are coming up.":"\nView results, or wait for the host to configure the next match.");
             var owner=match as Component;
             var portraits=owner?CandyScorePortraits.For(owner.gameObject):null;
             Texture Portrait(MatchPlayerFrame player)=>player==null?null:portraits?.Get(match,player);
@@ -399,13 +446,17 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 var standing=i<standings.Length?standings[i]:null;
                 SetLiveImage(standingHeads[i],Portrait(standing));
-                standingRows[i].text=standing==null?"":$"{i+1}. {Name(standing)}  {CandyResultsHud.RankStats(standing,frame.rules.mode,false)}";
+                standingRows[i].text=standing==null?"":$"{i+1}. {Name(standing)}";
+                standingStats[i].text=standing==null?"":CandyResultsHud.RankStats(standing,frame.rules.mode,false);
                 var killer=i<eliminations.Length?Player(eliminations[i].killer):null;
                 var victim=i<eliminations.Length?Player(eliminations[i].victim):null;
                 SetLiveImage(killerHeads[i],Portrait(killer));
                 SetLiveImage(victimHeads[i],Portrait(victim));
-                activityRows[i].text=i>=eliminations.Length?"":killer==null?Name(victim)+" fell":Name(killer)+" > "+Name(victim);
+                activityRows[i].text=i>=eliminations.Length?"":Name(killer??victim);
+                activityDetails[i].text=i>=eliminations.Length?"":killer==null?"Eliminated":"Eliminated "+Name(victim);
             }
+            if(eliminations.Length==0)activityRows[0].text="No eliminations yet";
+            if(standings.Length==0)standingRows[0].text="Waiting for players";
             int slot=0;
             foreach(var source in Tracked.Waves)
             {
@@ -427,6 +478,18 @@ namespace DeadlyJenga.CandyArt.Marina
                 SetLiveImage(hazardArt[slot],null);
                 hazardRows[slot].text="";
             }
+        }
+        void MatchAction()
+        {
+            if(MatchEnded)
+            {
+                if(CanConfigureNext)MatchRuntime.Current.ReturnToLobby();
+                return;
+            }
+            if(Review?.CanEndGame!=true)return;
+            if(Time.unscaledTime<endMatchConfirmUntil){endMatchConfirmUntil=0;Review.EndGame();}
+            else endMatchConfirmUntil=Time.unscaledTime+5;
+            Refresh();
         }
         void SetHazard(int slot,string kind,string title,float warning)
         {
@@ -463,8 +526,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             bool pressed = allowed && Time.unscaledTime < target.pressedUntil;
             bool readOnlyPreview = target.id is "marina-maps" or "marina-modes";
-            float scale = pressed ? .96f : hover && (allowed || readOnlyPreview) ? (readOnlyPreview ? 1.075f : 1.035f) : 1f;
-            target.face.rectTransform.localScale = Vector3.one * scale;
+            target.face.rectTransform.localScale = Vector3.one;
             allowed |= readOnlyPreview;
             target.face.color = !allowed ? Color.Lerp(target.color, Plum, .70f) :
                 pressed ? Color.Lerp(target.color, Mint, .70f) :
@@ -473,16 +535,16 @@ namespace DeadlyJenga.CandyArt.Marina
             float outline = hover || pressed ? 1 : 0;
             if (readOnlyPreview && hover)
             {
-                target.outline.effectDistance = new Vector2(8, -8);
+                target.outline.effectDistance = new Vector2(2, -2);
                 target.outline.effectColor = new Color(.35f, 1f, .85f, 1f);
-                target.glow.effectDistance = new Vector2(0, -12);
+                target.glow.effectDistance = Vector2.zero;
                 target.glow.effectColor = new Color(.35f, 1f, .85f, .75f);
             }
             else
             {
-                target.outline.effectDistance = new Vector2(4, -4);
+                target.outline.effectDistance = new Vector2(1.5f, -1.5f);
                 target.outline.effectColor = new Color(rim.r, rim.g, rim.b, outline);
-                target.glow.effectDistance = new Vector2(0, -8);
+                target.glow.effectDistance = Vector2.zero;
                 target.glow.effectColor = new Color(rim.r, rim.g, rim.b, outline * (pressed ? .85f : .50f));
             }
             if(target.actionLabel)
@@ -505,11 +567,12 @@ namespace DeadlyJenga.CandyArt.Marina
             if(!AnyFaceVisible||ModalBlocked||!NetworkActors.Alive(session?.Player)||!session.Player.gameObject.activeInHierarchy){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);if(focusPanel)focusPanel.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
             var player=session?.Player;if(!NetworkActors.Alive(player)||!player.ViewCamera){aimDot.gameObject.SetActive(false);return;}
             var mouse=Mouse.current;var keyboard=Keyboard.current;
+            bool gamepadInteract = !player.IsVR && MenuGamepad.InteractPressed;
             bool held=player.IsVR ? select.IsPressed() || leftSelect.IsPressed() || player.SelectHeld :
-                !lobby.CodeFocused && keyboard?.eKey.isPressed==true || mouse?.leftButton.isPressed==true;
+                !lobby.CodeFocused && keyboard?.eKey.isPressed==true || mouse?.leftButton.isPressed==true || MenuGamepad.InteractHeld;
             if(requireRelease&&!held)requireRelease=false;
             bool pressed=player.IsVR ? player.SelectPressed :
-                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true;
+                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true || gamepadInteract;
             int pointerDevice = 0;
             var camera=player.ViewCamera;
             Ray ray;
@@ -535,7 +598,8 @@ namespace DeadlyJenga.CandyArt.Marina
                 }
             }
             else
-                ray=session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
+                ray=session.MenuOpen&&mouse!=null&&!gamepadInteract
+                    ?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
             float screenRange = 11;
             if (Physics.Raycast(ray, out var obstruction, screenRange, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
                 screenRange = Mathf.Min(screenRange,obstruction.distance+.05f);
@@ -570,7 +634,7 @@ namespace DeadlyJenga.CandyArt.Marina
             }
             else if (aimDot) aimDot.gameObject.SetActive(false);
             MenuAim.PresentBeam(ref aimBeam, transform, ray, point - ray.direction * .012f,
-                trackedPointer && hitFace && nearest != null, actionable);
+                player.IsVR && trackedPointer && hitFace, actionable);
             if (pressed && !requireRelease && nearest != null) Activate(nearest, pointerDevice);
         }
         Target PickTarget(Ray ray, float range)
@@ -622,7 +686,7 @@ namespace DeadlyJenga.CandyArt.Marina
             focusDescription.text=description.Length>150?description.Substring(0,147)+"...":description;
         }
         void OnEnable(){requireRelease=true;select?.Enable();leftSelect?.Enable();}
-        void OnApplicationFocus(bool focused){inputFocused=focused;requireRelease=true;}
+        void OnApplicationFocus(bool focused){inputFocused=focused;requireRelease=true;if(!focused){if(aimBeam)aimBeam.enabled=false;if(aimDot)aimDot.gameObject.SetActive(false);}}
         void OnDisable(){if(aimBeam)aimBeam.enabled=false;select?.Disable();leftSelect?.Disable();if(aimDot)aimDot.gameObject.SetActive(false);}
         void OnDestroy(){select?.Dispose();leftSelect?.Dispose();if(canvas)Destroy(canvas.gameObject);if(projectionBackdrop)Destroy(projectionBackdrop);}
     }

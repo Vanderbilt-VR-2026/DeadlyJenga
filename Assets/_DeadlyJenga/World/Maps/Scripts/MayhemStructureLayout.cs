@@ -24,6 +24,17 @@ namespace DeadlyJenga.CastlePrototype
         public float mass;
         public MayhemModule hingeSupport;
         public Vector3 pivot;
+        // Hinge axis in the module's own frame and its limits (used by EpicCityMap; other maps set their own).
+        public Vector3 hingeAxis=Vector3.forward;
+        public float hingeMin=-80,hingeMax=80;
+        // Optional extras honoured by EpicCityMap (defaults change nothing):
+        public bool anchored;              // held still (kinematic), e.g. concept "Fixed" pieces
+        public bool hingeToWorld;          // hinge at pivot with no partner body
+        public bool hingeCollide=true;     // collision between hinged body and its support
+        public MayhemModule slideSupport;  // limited slider along slideAxis (module frame)
+        public Vector3 slideAxis=Vector3.right;
+        public float slideLimit;
+        public readonly List<MayhemModule> ignore=new();
     }
 
     // Ten independent neighborhoods on one ground plane. Coordinates are in metres.

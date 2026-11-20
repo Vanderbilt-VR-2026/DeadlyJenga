@@ -38,6 +38,15 @@ namespace DeadlyJenga.CandyPlayers
                 for(int side=-1;side<=1;side+=2)
                 {
                     int s=side;
+                    if(skin==AvatarSkin.Rabbit)
+                    {
+                        var tilt=Quaternion.Euler(0,0,-s*11f);
+                        var center=new Vector3(s*.135f,.39f,-.02f);
+                        Add(rig,id+" long ear "+s,1,Tone.Primary,b=>b.Sphere(center,new Vector3(.077f,.26f,.055f),tilt));
+                        Add(rig,id+" inset ear "+s,1,Tone.Dark,b=>b.Sphere(center+new Vector3(s*.006f,.023f,.037f),
+                            new Vector3(.044f,.185f,.023f),tilt));
+                        continue;
+                    }
                     if(pointed)Add(rig,id+" pointed ear "+s,1,Tone.Primary,b=>b.Cone(new Vector3(s*.16f,.14f,0),new Vector3(s*.22f,.39f,-.025f),.095f,0,4));
                     else Ball(rig,id+" ear "+s,1,Tone.Primary,new Vector3(s*(skin==AvatarSkin.Elephant?.27f:.20f),floppy?0:.19f,-.02f),new Vector3(skin==AvatarSkin.Elephant?.17f:.10f,floppy?.20f:.11f,.06f));
                     Ball(rig,id+" inner ear "+s,1,Tone.Dark,new Vector3(s*.21f,floppy?-.01f:.21f,.035f),new Vector3(.052f,floppy?.12f:.058f,.012f));
@@ -50,7 +59,6 @@ namespace DeadlyJenga.CandyPlayers
                     Add(rig,id+" curved tail",0,Tone.Primary,b=>{Vector3 last=new Vector3(0,.65f,-.13f);for(int i=1;i<=6;i++){var next=new Vector3(Mathf.Sin(i*.45f)*.18f,.65f+i*.065f,-.13f-i*.085f);b.Cone(last,next,skin==AvatarSkin.Squirrel?.13f:.05f,skin==AvatarSkin.Squirrel?.11f:.045f,10);last=next;}b.Sphere(last,Vector3.one*.06f);});
                 if(skin==AvatarSkin.Elephant)Add(rig,"elephant trunk",1,Tone.Primary,b=>{for(int i=0;i<7;i++)b.Sphere(new Vector3(0,-.02f-i*.05f,.23f+Mathf.Sin(i*.4f)*.09f),Vector3.one*(.065f-i*.004f));});
                 if(skin==AvatarSkin.Lion)Add(rig,"lion mane",1,Tone.Brown,b=>{for(int i=0;i<16;i++){float a=i*Mathf.PI/8;b.Sphere(new Vector3(Mathf.Cos(a)*.24f,Mathf.Sin(a)*.24f,-.03f),new Vector3(.10f,.10f,.09f));}});
-                if(skin==AvatarSkin.Rabbit)for(int side=-1;side<=1;side+=2)Ball(rig,"rabbit tall ear"+side,1,Tone.Primary,new Vector3(side*.11f,.43f,0),new Vector3(.07f,.29f,.05f));
                 if(skin==AvatarSkin.Walrus)for(int side=-1;side<=1;side+=2){int s=side;Add(rig,"walrus tusk"+s,1,Tone.White,b=>b.Cone(new Vector3(s*.10f,-.10f,.29f),new Vector3(s*.085f,-.38f,.32f),.025f,0,10));}
                 if(skin==AvatarSkin.Panda||skin==AvatarSkin.Raccoon)for(int side=-1;side<=1;side+=2)Ball(rig,id+" eye patch"+side,1,Tone.Black,new Vector3(side*.10f,.04f,.19f),new Vector3(.075f,.08f,.025f));
                 if(skin==AvatarSkin.Koala)Ball(rig,"koala broad nose",1,Tone.Black,new Vector3(0,0,.225f),new Vector3(.075f,.095f,.035f));

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using DeadlyJenga.Core;
+using DeadlyJenga.CastlePrototype;
 
 namespace DeadlyJenga.CandyPlayers
 {
@@ -20,6 +21,19 @@ namespace DeadlyJenga.CandyPlayers
             frame.head.y = frame.feet.y + 1.6f * Mathf.Max(.1f, frame.scale);
             return frame;
         }
+        static float LandingWeight(CastleSurvivor motor)
+        {
+            if (!motor || !motor.Grounded) return 0;
+            float elapsed = Time.time - motor.LandedAt;
+            const float absorb = .07f;
+            float strength = Mathf.InverseLerp(2.25f, 10f, motor.LandingSpeed);
+            float recover = Mathf.Lerp(.20f, .36f, strength);
+            if (elapsed >= recover || elapsed < 0) return 0;
+            float bend = elapsed < absorb
+                ? Mathf.SmoothStep(0, 1, elapsed / absorb)
+                : Mathf.SmoothStep(1, 0, (elapsed - absorb) / (recover - absorb));
+            return bend * Mathf.Lerp(.18f, 1f, strength);
+        }
         [SerializeField] Transform[] bones;
         [SerializeField] float[] lengths;
         MaterialPropertyBlock colorProperties;
@@ -29,7 +43,9 @@ namespace DeadlyJenga.CandyPlayers
         [SerializeField] Color tint;
         float currentSmoothness;
         int colorIndex=int.MinValue;
-        Vector3 previousFeet;
+        Vector3 previousFeet, previousSupportFeet;
+        Transform previousGaitSupport;
+        bool gaitReady;
         float walkPhase, sprintBlend;
         Vector3 strideDirection = Vector3.forward;
         float locomotionSpeed;
@@ -37,6 +53,12 @@ namespace DeadlyJenga.CandyPlayers
         public Transform HeadAnchor=>bones[1];
         public Transform BodyAnchor=>bones[0];
         CandyAvatarAttachments attachments;
+        Vector3 wardrobeHeadScale = Vector3.one;
+        internal void SetWardrobeHeadScale(Vector3 scale)
+        {
+            wardrobeHeadScale = scale;
+            HeadAnchor.localScale = scale * (calibration?.headSize ?? 1f);
+        }
         public void SetAppearance(AvatarAppearance appearance)
         {
             if(!attachments)attachments=GetComponent<CandyAvatarAttachments>();
@@ -48,7 +70,12 @@ namespace DeadlyJenga.CandyPlayers
             hasTint=true;tint=color;
             if(currentColor==color)return;
             colorProperties??=new MaterialPropertyBlock();colorProperties.SetColor("_BaseColor",color);colorProperties.SetFloat("_Smoothness",style?style.smoothness:.78f);
-            bodyRenderer.SetPropertyBlock(colorProperties);headRenderer.SetPropertyBlock(colorProperties);currentColor=color;
+            if (attachments?.UsesApprovedSkin != true)
+            {
+                bodyRenderer.SetPropertyBlock(colorProperties);
+                headRenderer.SetPropertyBlock(colorProperties);
+            }
+            currentColor=color;
             if(attachments)attachments.Tint(this);
         }
         public Transform RightPalm=>bones[7];
@@ -61,7 +88,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             var copy=Instantiate(this);copy.name="Candy mystery body";copy.ownerCamera=null;copy.enabled=false;copy.SnapSpineToTorso();
             copy.bodyRenderer.enabled=copy.headRenderer.enabled=true;copy.bodyRenderer.SetPropertyBlock(colorProperties);copy.headRenderer.SetPropertyBlock(colorProperties);
-            var copiedAttachments=copy.GetComponent<CandyAvatarAttachments>();if(copiedAttachments){copiedAttachments.Tint(copy);if((copiedAttachments.Appearance.accessories&AvatarAccessory.SkeletonMask)!=0)copy.headRenderer.enabled=false;}
+            var copiedAttachments=copy.GetComponent<CandyAvatarAttachments>();if(copiedAttachments){copiedAttachments.Tint(copy);if((copiedAttachments.Appearance.accessories&CandyHeadgearMeshes.SculptedHeads)!=0)copy.headRenderer.enabled=false;}
             var corpse=copy.gameObject.AddComponent<CandyMysteryBody>();corpse.Initialize(copy.bones,copy.lengths);copy.gameObject.SetActive(true);return corpse;
         }
         void Awake()
@@ -77,7 +104,16 @@ namespace DeadlyJenga.CandyPlayers
             if(Application.isPlaying&&!GetComponent<CandyAvatarDetail>())gameObject.AddComponent<CandyAvatarDetail>();
         }
         void OnEnable(){RenderPipelineManager.beginCameraRendering+=BeforeCamera;RenderPipelineManager.endCameraRendering+=AfterCamera;}
-        void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;RestoreFirstPersonBody();if(attachments)attachments.FirstPerson(this,false);}
+        void OnDisable()
+        {
+            RenderPipelineManager.beginCameraRendering-=BeforeCamera;
+            RenderPipelineManager.endCameraRendering-=AfterCamera;
+            gaitReady=false;
+            previousGaitSupport=null;
+            if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;
+            RestoreFirstPersonBody();
+            if(attachments)attachments.FirstPerson(this,false);
+        }
         bool firstPersonOverride;
         void BeforeCamera(ScriptableRenderContext context,Camera camera)
         {
@@ -96,9 +132,14 @@ namespace DeadlyJenga.CandyPlayers
             if(!style)return;var color=hasTint?tint:style.ColorAt(index);
             if(index==colorIndex&&currentMaterial==style.material&&currentColor==color&&currentSmoothness==style.smoothness)return;
             colorProperties??=new MaterialPropertyBlock();
-            bodyRenderer.sharedMaterial=style.material;headRenderer.sharedMaterial=style.material;
             colorProperties.SetColor("_BaseColor",color);colorProperties.SetFloat("_Smoothness",style.smoothness);
-            bodyRenderer.SetPropertyBlock(colorProperties);headRenderer.SetPropertyBlock(colorProperties);
+            if (attachments?.UsesApprovedSkin != true)
+            {
+                bodyRenderer.sharedMaterial = style.material;
+                headRenderer.sharedMaterial = style.material;
+                bodyRenderer.SetPropertyBlock(colorProperties);
+                headRenderer.SetPropertyBlock(colorProperties);
+            }
             colorIndex=index;currentMaterial=style.material;currentColor=color;currentSmoothness=style.smoothness;
             if(attachments)attachments.Tint(this);
         }
@@ -133,6 +174,7 @@ namespace DeadlyJenga.CandyPlayers
             float bodyYaw=UpdateBodyYaw(frame,forward);
             transform.SetPositionAndRotation(frame.feet,Quaternion.Euler(0f,bodyYaw,0f));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
             transform.localScale=new Vector3(scale/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
+            var motor = actor as CastleSurvivor;
             float dance = downed ? 0 : frame.danceWeight;
             float headY=transform.InverseTransformPoint(frame.head).y;
             float crouch=Mathf.Clamp(headY/1.6f,.4f,1.25f)*(fit?.bodyHeight??1f);
@@ -140,8 +182,26 @@ namespace DeadlyJenga.CandyPlayers
             Vector3 torsoOffset=fit?.bodyOffset??Vector3.zero;
             if(deltaTime>0f)
             {
-                Vector3 travel = Vector3.ProjectOnPlane(frame.feet - previousFeet, Vector3.up);
+                Vector3 displacement = frame.feet - previousFeet;
+                float teleportDistance = BodyTeleportDistance * scale;
+                bool resetGait = !gaitReady || displacement.sqrMagnitude > teleportDistance * teleportDistance;
+                Transform support = grounded && motor && motor.StandingSurface ? motor.StandingSurface.transform : null;
+                if (!resetGait && support && support == previousGaitSupport)
+                {
+                    // The floor can carry a planted survivor without taking a step.
+                    Vector3 carry = support.TransformPoint(previousSupportFeet) - previousFeet;
+                    if (carry.sqrMagnitude < teleportDistance * teleportDistance) displacement -= carry;
+                }
+                Vector3 travel = resetGait ? Vector3.zero : Vector3.ProjectOnPlane(displacement, Vector3.up);
                 previousFeet = frame.feet;
+                previousGaitSupport = support;
+                if (support) previousSupportFeet = support.InverseTransformPoint(frame.feet);
+                gaitReady = true;
+                if (resetGait)
+                {
+                    sprintBlend = 0f;
+                    strideDirection = Vector3.forward;
+                }
                 locomotionSpeed = travel.magnitude / (deltaTime * scale);
                 bool running = frame.sprinting && grounded && !downed && dance <= .01f;
                 float runTarget = running ? Mathf.InverseLerp(.3f, 2.4f, locomotionSpeed) : 0f;
@@ -149,23 +209,29 @@ namespace DeadlyJenga.CandyPlayers
                 if (travel.sqrMagnitude > .00001f)
                 {
                     Vector3 targetDirection = transform.InverseTransformDirection(travel.normalized);
-                    Vector3 blendedDirection = Vector3.Lerp(strideDirection, targetDirection, 1f - Mathf.Exp(-12f * deltaTime));
-                    strideDirection = blendedDirection.sqrMagnitude > .01f ? blendedDirection.normalized : targetDirection;
+                    // Interpolate the heading so opposite directions cannot cancel or stall.
+                    float oldHeading = Mathf.Atan2(strideDirection.x, strideDirection.z) * Mathf.Rad2Deg;
+                    float targetHeading = Mathf.Atan2(targetDirection.x, targetDirection.z) * Mathf.Rad2Deg;
+                    float heading = Mathf.LerpAngle(oldHeading, targetHeading, 1f - Mathf.Exp(-12f * deltaTime)) * Mathf.Deg2Rad;
+                    strideDirection = new Vector3(Mathf.Sin(heading), 0f, Mathf.Cos(heading));
                 }
                 float cadence = Mathf.Lerp(6f, 11f, Mathf.InverseLerp(.12f, 4f, locomotionSpeed)) + sprintBlend * 3.8f;
                 walkPhase = frame.hasGaitPhase ? frame.gaitPhase : Mathf.Repeat(walkPhase + cadence * deltaTime, 2f * Mathf.PI);
             }
             float run = grounded && !downed && dance <= .01f ? sprintBlend : 0f;
+            float landing = grounded && !downed && dance <= .01f ? LandingWeight(motor) : 0f;
             float counterSwing = Mathf.Cos(walkPhase);
             torsoOffset.y -= run * (.038f - .017f * Mathf.Abs(counterSwing));
             float stride=grounded?Mathf.Clamp01(locomotionSpeed/2)*.13f:0;
             float dropTarget=PlanFeet(grounded&&!downed&&dance<=.01f,scale,stride,run);
             groundDrop=Application.isPlaying?Mathf.Lerp(groundDrop,dropTarget,1f-Mathf.Exp(-14f*Time.deltaTime)):dropTarget;
             torsoOffset.y+=groundDrop/scale;
-            PoseTorso(frame, torsoOffset, crouch, width, run, dance, grounded && !downed);
+            torsoOffset.y -= landing * .16f;
+            torsoOffset.z -= landing * .055f;
+            PoseTorso(frame, torsoOffset, crouch, width, run, dance, grounded && !downed, landing);
             var headOffset=frame.headRotation*((style?style.headCenterOffset:new Vector3(0,0,-.08f))+(fit?.headOffset??Vector3.zero))+Vector3.down*.14f;
             bones[1].SetPositionAndRotation(frame.head+headOffset*scale,frame.headRotation);
-            bones[1].localScale=Vector3.one*(fit?.headSize??1f);
+            bones[1].localScale=wardrobeHeadScale*(fit?.headSize??1f);
             if(attachments)attachments.RefreshPalette(this);
             for(int side=0;side<2;side++)
             {

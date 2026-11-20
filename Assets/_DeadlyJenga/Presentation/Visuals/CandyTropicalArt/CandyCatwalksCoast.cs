@@ -40,6 +40,7 @@ namespace DeadlyJenga.CandyArt
         Vector3 rayCenter;
         readonly float water;
         bool disposed;
+        CandyBenchyFleet boats;
         internal bool Alive => root && !disposed;
 
         public CandyCatwalksCoast(Transform owner, CandySandbar terrain, Vector3 origin, float waterLevel, Shader shader, IWorldQuery world, Renderer waterRenderer, Renderer sandRenderer)
@@ -79,6 +80,7 @@ namespace DeadlyJenga.CandyArt
             BuildPaintedHorizon();
             BuildHorizon(random);
             BuildRay();
+            boats=new CandyBenchyFleet(root.transform);
         }
 
         internal void SetWaterProperties(MaterialPropertyBlock properties)
@@ -147,6 +149,7 @@ namespace DeadlyJenga.CandyArt
 
         internal void Animate()
         {
+            boats?.Animate();
             float time=Time.time;
             for (int i=0;i<schools.Length;i++)
             {
@@ -526,6 +529,7 @@ namespace DeadlyJenga.CandyArt
         {
             if (disposed) return;
             disposed=true;
+            boats?.Dispose();boats=null;
             SetDayReflections(false);
             reflection.Dispose();
             reefLight.Dispose();

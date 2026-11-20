@@ -38,7 +38,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
-                if(localIdentity==null){var color=ModeNames.Colors[UnityEngine.Random.Range(0,ModeNames.Colors.Length)];localIdentity=new LobbyParticipant{id="local",noun=ModeNames.Nouns[UnityEngine.Random.Range(0,ModeNames.Nouns.Length)],color=color};localIdentity.displayName=ModeNames.NameFor(color,localIdentity.noun);}
+                if(localIdentity==null){var color=ModeNames.Colors[UnityEngine.Random.Range(0,ModeNames.Colors.Length)];localIdentity=new LobbyParticipant{id="local",noun=ModeNames.Nouns[UnityEngine.Random.Range(0,ModeNames.Nouns.Length)],color=color};localIdentity.displayName=NearbyPlayerProfile.Name;}
                 return localIdentity;
             }
         }
@@ -104,6 +104,12 @@ namespace DeadlyJenga.CastlePrototype
                 if(requestAfter.TryGetValue(source,out float after)&&Time.unscaledTime<after)return;
                 requestAfter[source]=Time.unscaledTime+20;hostRequests.Add(source);return;
             }
+            if(action.verb=="name")
+            {
+                string chosen=NearbyPlayerProfile.Clean(action.value);
+                if(chosen.Length>0&&identities.TryGetValue(source,out var identity)){identity.displayName=chosen;PublishSelection();}
+                return;
+            }
             if(Connected&&source!=leaderId)return;
             if(action.verb=="accept"||action.verb=="deny")
             {
@@ -157,7 +163,7 @@ namespace DeadlyJenga.CastlePrototype
             Color color=preferred?.color??ModeNames.Colors[UnityEngine.Random.Range(0,ModeNames.Colors.Length)];
             if(float.IsNaN(color.r)||float.IsNaN(color.g)||float.IsNaN(color.b)||float.IsInfinity(color.r)||float.IsInfinity(color.g)||float.IsInfinity(color.b))color=ModeNames.Colors[0];
             color=new Color(Mathf.Clamp01(color.r),Mathf.Clamp01(color.g),Mathf.Clamp01(color.b),1);
-            identities[id]=new LobbyParticipant{id=id,noun=noun,color=color,displayName=ModeNames.NameFor(color,noun),host=id==leaderId};
+            identities[id]=new LobbyParticipant{id=id,noun=noun,color=color,displayName=string.IsNullOrWhiteSpace(preferred?.displayName)?ModeNames.NameFor(color,noun):NearbyPlayerProfile.Clean(preferred.displayName),host=id==leaderId};
             if(id==LocalLobbyId)localIdentity=identities[id];
             else if(IsHost)
             {

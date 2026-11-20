@@ -12,7 +12,7 @@ using UnityEngine.XR;
 
 namespace DeadlyJenga.Presentation
 {
-    public sealed class HomeMenuView : MonoBehaviour
+    public sealed partial class HomeMenuView : MonoBehaviour
     {
         IHomeMenuControls controls;
         Texture2D[] slides;
@@ -111,7 +111,7 @@ namespace DeadlyJenga.Presentation
             quickPage=Node("Quick Play",content,new Vector2(0,-70),new Vector2(620,520)).gameObject;
             BuildQuickPlay();
             joinPage=Node("Join a session",content,new Vector2(0,-65),new Vector2(620,520)).gameObject;
-            BuildJoin();ShowPage(entryPage);
+            BuildJoin();BuildBluetooth();ShowPage(entryPage);
             BuildInputModeToggle(content, new Vector2(0, -360), new Vector2(580, 52));
             padHint=Label(content,"",new Vector2(0,-403),new Vector2(580,30),16,new Color(.85f,.9f,1));
             status=Label(content,"",new Vector2(0,-450),new Vector2(580,65),22,new Color(.85f,.83f,.95f));
@@ -135,7 +135,7 @@ namespace DeadlyJenga.Presentation
         }
         void ShowPage(GameObject page)
         {
-            foreach(var candidate in new[]{entryPage,mainPage,joinPage,quickPage,inputPage})if(candidate)candidate.SetActive(candidate==page);
+            foreach(var candidate in new[]{entryPage,mainPage,joinPage,quickPage,inputPage,bluetoothPage})if(candidate)candidate.SetActive(candidate==page);
         }
         void BuildQuickPlay()
         {
@@ -187,7 +187,8 @@ namespace DeadlyJenga.Presentation
             code.contentType=InputField.ContentType.Standard;code.onValueChanged.AddListener(value=>controls.Code=value);
             var placeholder=Label(field,"ABC234",Vector2.zero,new Vector2(380,60),28,new Color(.45f,.4f,.53f));code.placeholder=placeholder;
             join=ButtonAt(root,"JOIN",new Vector2(220,155),new Vector2(130,68),controls.JoinCode);
-            ButtonAt(root,"DETECT NEARBY",new Vector2(-65,70),new Vector2(450,56),()=>{controls.DetectNearby();nextNearby=0;});
+            ButtonAt(root,"WI-FI",new Vector2(-180,70),new Vector2(220,56),()=>{controls.DetectNearby();nextNearby=0;});
+            ButtonAt(root,"BLUETOOTH",new Vector2(50,70),new Vector2(220,56),ShowBluetooth);
             ButtonAt(root,"NEXT",new Vector2(220,70),new Vector2(130,56),()=>{nearbyPage++;nextNearby=0;});
             nearby=Label(root,"",new Vector2(0,15),new Vector2(580,40),19,Color.white);
             for(int i=0;i<2;i++){int slot=i;nearbyButtons.Add(ButtonAt(root,"",new Vector2(0,-35-i*56),new Vector2(580,48),()=>controls.JoinNearby(nearbyPage*2+slot)));}
@@ -219,6 +220,7 @@ namespace DeadlyJenga.Presentation
             if(homeAimBeam)homeAimBeam.enabled=false;
             AnimateSlideshow(Time.unscaledDeltaTime);Crop();
             status.text=controls.Status;
+            RefreshBluetooth();
             foreach(var button in buttons)button.interactable=!controls.Busy;
             if(quickPage.activeSelf)
             {
@@ -354,8 +356,9 @@ namespace DeadlyJenga.Presentation
                 {
                     ray=MenuAim.ResolveSelect(eye,transform,preferred,leftPointSelect,rightPointSelect,false,out pressed,out tracked);
                 }
-                var plane=new Plane(frame.forward,frame.position);
-                if(Vector3.Dot(ray.direction,frame.forward)<=.01f||!plane.Raycast(ray,out float distance)||distance>8){ClearHomeAim();return;}
+
+                if(!MenuAim.TryPoint(ray,frame,8,out _,out var hit)){ClearHomeAim();return;}
+                float distance=Vector3.Distance(ray.origin,hit);
                 pointer.gameObject.SetActive(true);pointer.position=ray.GetPoint(distance);
                 foreach(var button in buttons)
                 {
@@ -560,7 +563,8 @@ namespace DeadlyJenga.Presentation
             }
             selectReady=false;UpdateInputModeText();
         }
-        void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused){selectReady=false;if(pointer)pointer.gameObject.SetActive(false);}}
+        void OnDisable(){ClearHomeAim();selectReady=false;}
+        void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused){selectReady=false;ClearHomeAim();}}
         void OnDestroy()
         {
             leftPointSelect?.Dispose();rightPointSelect?.Dispose();

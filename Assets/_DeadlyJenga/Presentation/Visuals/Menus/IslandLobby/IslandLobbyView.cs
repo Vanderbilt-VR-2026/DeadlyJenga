@@ -79,6 +79,11 @@ namespace DeadlyJenga.CastlePrototype
         }
         Image lobbyAimDot;
         Canvas lobbyAimCanvas;
+        Canvas nextMatchCanvas;
+        Text nextMatchLabel;
+        Camera nextMatchCamera;
+        bool nextMatchVr;
+        int nextMatchSeconds=-1;
         LineRenderer lobbyAimBeam;
         bool trackedLobbyPointer;
         void EnsureLobbyAimCanvas()
@@ -90,7 +95,7 @@ namespace DeadlyJenga.CastlePrototype
                 lobbyAimCanvas=root.GetComponent<Canvas>();
                 lobbyAimCanvas.renderMode=RenderMode.WorldSpace;
                 lobbyAimCanvas.overrideSorting=true;
-                lobbyAimCanvas.sortingOrder=999;
+                lobbyAimCanvas.sortingOrder=MenuAim.PointerSortOrder+1;
                 lobbyAimDot=MenuAim.CreateReticle(root.transform);
                 MenuAim.PresentInForeground(root.transform);
             }
@@ -126,6 +131,7 @@ namespace DeadlyJenga.CastlePrototype
         void OnApplicationFocus(bool focused)
         {
             inputFocused = focused;
+            if(!focused){if(lobbyAimBeam)lobbyAimBeam.enabled=false;if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);}
             terminalRequireRelease = true;
             wardrobeDragDevice = 0;
             draggingKeyboard=false;
@@ -139,6 +145,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void Update()
         {
+            UpdateNextMatchHud();
             if (lobbyAimBeam) lobbyAimBeam.enabled = false;
             if (lobbyAimDot) lobbyAimDot.gameObject.SetActive(false);
             trackedLobbyPointer = false;
@@ -162,11 +169,15 @@ namespace DeadlyJenga.CastlePrototype
             UpdateMayhemMarina();
             if(UpdateWardrobe()){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             bool vr = Player.IsVR;
-            bool pointerHeld = vr ? select.IsPressed() || Player.SelectHeld : mouse?.leftButton.isPressed==true||Player.SelectHeld;
+            bool codePointer = !vr && lobby.CodeFocused && MenuGamepad.UsingPointer;
+            bool gamepadInteract = !vr && MenuGamepad.InteractPressed;
+            bool pointerHeld = vr ? select.IsPressed() || Player.SelectHeld :
+                mouse?.leftButton.isPressed==true || MenuGamepad.InteractHeld || (codePointer && MenuGamepad.Held);
             bool held = pointerHeld || !vr && !lobby.CodeFocused && keyboard?.eKey.isPressed==true;
             if(terminalRequireRelease){if(!held)terminalRequireRelease=false;return;}
             bool pressed = vr ? Player.SelectPressed :
-                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true||Player.SelectPressed;
+                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true ||
+                gamepadInteract || (codePointer && MenuGamepad.Pressed);
             int pointerDevice=0;
             Ray ray;
             if (Player.IsVR)
@@ -191,8 +202,11 @@ namespace DeadlyJenga.CastlePrototype
                     }
                 }
             }
+            else if (codePointer)
+                ray = eye.ScreenPointToRay(MenuGamepad.Position);
             else
-                ray=session.MenuOpen&&(mouse!=null||MenuGamepad.UsingPointer)?eye.ScreenPointToRay(MenuGamepad.UsingPointer?MenuGamepad.Position:mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
+                ray = session.MenuOpen && mouse != null && !gamepadInteract
+                    ? eye.ScreenPointToRay(mouse.position.ReadValue()) : new Ray(eye.transform.position, eye.transform.forward);
             if (spectatorWall && spectatorWall.FullScreen)
             {
                 if (pressed || keyboard?.escapeKey.wasPressedThisFrame == true)
@@ -205,6 +219,42 @@ namespace DeadlyJenga.CastlePrototype
             }
             Point(ray,pressed,pointerHeld,pointerDevice);
             UpdateStations();
+        }
+
+        void UpdateNextMatchHud()
+        {
+            var experience=session as IGameExperienceControls;
+            var view=session?.ActiveCamera;
+            bool show=view&&ReferenceEquals(Services.Session,session)&&experience?.AutomaticRounds==true&&
+                experience.GamePhase==RoomGamePhase.Selected&&experience.CountdownSeconds>0&&experience.CountdownSeconds<=25f&&
+                experience.ProfileId?.StartsWith("play:",StringComparison.Ordinal)==true;
+            if(!show)
+            {
+                if(nextMatchCanvas)nextMatchCanvas.enabled=false;
+                return;
+            }
+            if(!nextMatchCanvas)
+            {
+                var hud=new GameObject("Next match HUD",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));
+                hud.transform.SetParent(transform,false);
+                nextMatchCanvas=hud.GetComponent<Canvas>();
+                nextMatchCanvas.sortingOrder=26;
+                nextMatchLabel=CandyHudCards.Create((RectTransform)hud.transform,"Next match",
+                    new Vector2(0,334),new Vector2(270,40),18,TextAnchor.MiddleCenter);
+                CandyHudCards.Badge(nextMatchLabel);
+                CandyHudCards.Tint(nextMatchLabel,CandyHudVisuals.Mint,.45f);
+            }
+            if(nextMatchCamera!=view||nextMatchVr!=session.IsVR)
+            {
+                nextMatchCamera=view;
+                nextMatchVr=session.IsVR;
+                CandyHudLayout.Configure(nextMatchCanvas,transform,view,nextMatchVr);
+            }
+            nextMatchCanvas.enabled=true;
+            int seconds=Mathf.CeilToInt(experience.CountdownSeconds);
+            if(seconds==nextMatchSeconds)return;
+            nextMatchSeconds=seconds;
+            nextMatchLabel.text="NEXT MATCH IN "+seconds+" S";
         }
         readonly RoomLeaveConfirmation terminalLeave=new RoomLeaveConfirmation();
         bool ConfirmingTerminalLeave=>lobby.Connected&&!lobby.IsHost&&!lobby.Busy&&terminalLeave.Pending(lobby,lobby.HostCode,Time.unscaledTime);
@@ -332,11 +382,17 @@ namespace DeadlyJenga.CastlePrototype
             if(session.MenuOpen&&GUI.Button(new Rect(490,15,330,60),"CONTROLS / LEFT OR RIGHT HAND"))DeadlyJenga.Presentation.CandyComfortPanel.Open(session);
             bool typing=lobby.CodeFocused;
             string escapeHint=SessionPresentation.LobbyDeveloperAvailable(session)?"Esc opens tablet":"Esc releases mouse";
-            GUI.Box(new Rect(15,15,460,typing?95:70),"ISLAND LOBBY  /  WASD move  /  mouse look\nE / click selects  /  "+escapeHint+(typing?"\nType your code  /  Enter joins  /  Backspace erases":""));
+            bool gamepad = MenuGamepad.Current != null;
+            string controls = gamepad
+                ? "ISLAND LOBBY  /  Left stick move  /  Right stick aim\nAim at a terminal button and press X"
+                : "ISLAND LOBBY  /  WASD move  /  mouse look\nE / click selects  /  " + escapeHint;
+            GUI.Box(new Rect(15,15,460,typing?95:70),controls+
+                (typing?"\nType your code  /  Enter joins  /  Backspace erases":""));
         }
         void OnDestroy()
         {
             GameEvents.Emoted-=LobbyResidenceChanged;
+            if(nextMatchCanvas)Destroy(nextMatchCanvas.gameObject);
             if(lobbySun)Destroy(lobbySun.gameObject);
             DisposeMayhemMarina();
             DisposeWardrobe();
