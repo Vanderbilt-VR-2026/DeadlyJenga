@@ -116,9 +116,9 @@ namespace DeadlyJenga.CastlePrototype
                     for (int w = 0; w < windows; w++)
                     {
                         float z = -length * .4f + step * (w + .5f);
-                        Box(lamp, new Vector3(0f, top + h * .6f, z), new Vector3(width * 1.02f, h * .32f, step * .62f));
+                        Box(lamp, new Vector3(0f, top + h * .6f, z), new Vector3(width * 1.01f, h * .32f, step * .62f));
                     }
-                    Box(black, new Vector3(0f, top + h + height * .04f, 0f), new Vector3(width * 1.08f, height * .08f, length));
+                    Box(black, new Vector3(0f, top + h + height * .04f, 0f), new Vector3(width, height * .08f, length));
                     Box(black, new Vector3(0f, top + h + height * .1f, 0f), new Vector3(width * .7f, height * .05f, length * .9f));
                     break;
                 }
@@ -151,8 +151,8 @@ namespace DeadlyJenga.CastlePrototype
                     float h = height * .46f;
                     Box(body, new Vector3(0f, top + h * .5f, -length * .03f), new Vector3(width, h, length * .82f));
                     foreach (float z in new[] { -.2f, .14f })
-                        Box(lamp, new Vector3(0f, top + h * .6f, length * z), new Vector3(width * 1.02f, h * .3f, length * .16f));
-                    Box(black, new Vector3(0f, top + h + height * .03f, -length * .03f), new Vector3(width * 1.08f, height * .06f, length * .9f));
+                        Box(lamp, new Vector3(0f, top + h * .6f, length * z), new Vector3(width * 1.01f, h * .3f, length * .16f));
+                    Box(black, new Vector3(0f, top + h + height * .03f, -length * .03f), new Vector3(width, height * .06f, length * .9f));
                     float cupola = height * .2f;
                     Box(body, new Vector3(0f, top + h + cupola * .5f, -length * .05f), new Vector3(width * .6f, cupola, length * .32f));
                     Box(lamp, new Vector3(0f, top + h + cupola * .55f, -length * .05f), new Vector3(width * .62f, cupola * .45f, length * .2f));
@@ -184,7 +184,10 @@ namespace DeadlyJenga.CastlePrototype
             mesh.RecalculateTangents();
             mesh.RecalculateBounds();
             node.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
-            node.gameObject.AddComponent<MeshRenderer>().sharedMaterial = material;
+            var drawn = node.gameObject.AddComponent<MeshRenderer>();
+            drawn.sharedMaterial = material;
+            // The room lights are almost overhead, so roofs would shade the whole side; cars still cast shadows.
+            drawn.receiveShadows = false;
             generatedMeshes.Add(mesh);
         }
 
