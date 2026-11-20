@@ -75,7 +75,14 @@ namespace DeadlyJenga.Presentation
                     if(style==2&&(k==2||k==6))c=palette[2];               // two rings
                     if(k>=profile.Length-3)c=palette[0];                  // crown cap
                     Vector3 P(float r,float y,float a)=>new Vector3(Mathf.Cos(a)*r*R,y*H,Mathf.Sin(a)*r*R);
-                    m.Panel(P(p0.x,p0.y,a0),P(p0.x,p0.y,a1),P(p1.x,p1.y,a1),P(p1.x,p1.y,a0),c);
+                    // Smooth normals across the profile, so the fabric reads round instead of faceted.
+                    Vector3 N(int i,float a)
+                    {
+                        var lo=profile[Mathf.Max(0,i-1)];var hi=profile[Mathf.Min(profile.Length-1,i+1)];
+                        var n=new Vector2((hi.y-lo.y)*H,-(hi.x-lo.x)*R).normalized;
+                        return new Vector3(Mathf.Cos(a)*n.x,n.y,Mathf.Sin(a)*n.x).normalized;
+                    }
+                    m.Panel(P(p0.x,p0.y,a0),P(p0.x,p0.y,a1),P(p1.x,p1.y,a1),P(p1.x,p1.y,a0),N(k,a0),N(k,a1),N(k+1,a1),N(k+1,a0),c);
                 }
             }
             // Gold crown ring and a little pennant on top.
@@ -150,10 +157,17 @@ namespace DeadlyJenga.Presentation
 
         sealed partial class ArtMesh
         {
-            // One double-sided quad (envelopes are seen from below and from far away).
-            public void Panel(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Color color)
+            // One envelope panel with its own smooth normals, drawn from both sides.
+            public void Panel(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Vector3 na,Vector3 nb,Vector3 nc,Vector3 nd,Color color)
             {
-                Quad(a,b,c,d,0,color);Quad(d,c,b,a,0,color);
+                foreach(bool outside in new[]{true,false})
+                {
+                    int start=vertices.Count;float s=outside?1:-1;
+                    vertices.AddRange(new[]{a,b,c,d});normals.AddRange(new[]{na*s,nb*s,nc*s,nd*s});for(int i=0;i<4;i++)colors.Add(color);
+                    var face=Vector3.Cross(b-a,c-a);bool facesOut=Vector3.Dot(face,na)>0;
+                    if(facesOut==outside)triangles[0].AddRange(new[]{start,start+1,start+2,start,start+2,start+3});
+                    else triangles[0].AddRange(new[]{start,start+2,start+1,start,start+3,start+2});
+                }
             }
         }
     }
