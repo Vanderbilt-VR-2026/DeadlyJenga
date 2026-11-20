@@ -167,7 +167,25 @@ namespace DeadlyJenga.CastlePrototype
 
             var visual = Child(car, "Visual", Vector3.zero, Quaternion.identity);
             foreach (var pair in parts)
-                JoinRailDetail(visual, pair.Key.name, pair.Value, pair.Key);
+                JoinCarPart(visual, pair.Key.name, pair.Value, pair.Key);
+        }
+
+        // Like the rails, but with full vertex data (white colours, tangents) for the room's gloss shader.
+        void JoinCarPart(Transform visual, string label, List<CombineInstance> pieces, Material material)
+        {
+            var node = Child(visual, label, Vector3.zero, Quaternion.identity);
+            var mesh = new Mesh { name = label + " car part" };
+            mesh.CombineMeshes(pieces.ToArray(), true, true);
+            var white = new Color32[mesh.vertexCount];
+            for (int i = 0; i < white.Length; i++)
+                white[i] = new Color32(255, 255, 255, 255);
+            mesh.colors32 = white;
+            mesh.RecalculateNormals();
+            mesh.RecalculateTangents();
+            mesh.RecalculateBounds();
+            node.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
+            node.gameObject.AddComponent<MeshRenderer>().sharedMaterial = material;
+            generatedMeshes.Add(mesh);
         }
 
         Material Brighter(Material source, string label, Color color)

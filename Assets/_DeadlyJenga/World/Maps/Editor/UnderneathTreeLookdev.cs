@@ -348,6 +348,20 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     log.AppendLine($"{name}: eye {at} looking at {target}");
                 }
                 log.AppendLine($"train bounds {whole}");
+                // What each train part is drawn with, to compare the engine and the cars.
+                foreach (var r in engine.transform.parent.GetComponentsInChildren<MeshRenderer>())
+                {
+                    bool car = r.transform.parent && r.transform.parent.parent && r.transform.parent.parent.name.StartsWith("Train Car");
+                    if (!car && !r.transform.IsChildOf(engine.transform))
+                        continue;
+                    var m = r.GetComponent<MeshFilter>() ? r.GetComponent<MeshFilter>().sharedMesh : null;
+                    var mat = r.sharedMaterial;
+                    log.AppendLine($"part {r.transform.parent.name}/{r.name} mat={(mat ? mat.name : "-")} shader={(mat ? mat.shader.name : "-")} " +
+                        $"color={(mat && mat.HasProperty("_BaseColor") ? mat.GetColor("_BaseColor").ToString() : "-")} " +
+                        $"verts={(m ? m.vertexCount : 0)} normal={(m && m.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Normal))} " +
+                        $"color0={(m && m.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Color))} uv1={(m && m.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.TexCoord1))} " +
+                        $"layer={r.gameObject.layer} rlm={r.renderingLayerMask} probes={r.lightProbeUsage} shadows={r.shadowCastingMode}/{r.receiveShadows} enabled={r.enabled}");
+                }
                 Save("train-side-right", middle + side * reach * 1.3f + Vector3.up * reach * .25f, middle, 55f);
                 Save("train-side-left", middle - side * reach * 1.3f + Vector3.up * reach * .25f, middle, 55f);
                 Save("train-front", nose + ahead * reach * .7f + side * reach * .35f + Vector3.up * reach * .15f, middle, 60f);
