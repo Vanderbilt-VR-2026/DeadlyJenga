@@ -333,12 +333,6 @@ namespace DeadlyJenga.CandyArt.Marina
                         oceanProperties.SetVector(region,absent);
                 }
             }
-            if (!poolShader) { LateUpdate(); return; }
-            var vertices=new List<Vector3>{Vector3.zero};var triangles=new List<int>();
-            for(int i=0;i<=64;i++){float a=i*Mathf.PI/32;vertices.Add(new Vector3(Mathf.Sin(a)*4.77f,0,Mathf.Cos(a)*4.77f));if(i>0){triangles.Add(0);triangles.Add(i+1);triangles.Add(i);}}
-            var poolMesh=new Mesh{name="Marina shallow practice pool"};poolMesh.SetVertices(vertices);poolMesh.SetTriangles(triangles,0);poolMesh.RecalculateNormals();poolMesh.RecalculateBounds();extraMeshes.Add(poolMesh);
-            poolWater = CreateBasinWater(poolShader);
-            WaterSurface("Clear practice pool water", new Vector3(17, .61f, -8), poolMesh, poolWater);
             LateUpdate();
         }
         void PaintedHorizon()
