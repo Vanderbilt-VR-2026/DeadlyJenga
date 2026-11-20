@@ -155,8 +155,10 @@ namespace DeadlyJenga.CastlePrototype
         void ShoveDeck()
         {
             pushed.Clear();
-            var center = hullBody.position + hullBody.rotation * new Vector3(0, DeckHeight + 6, 0);
-            int count = Physics.OverlapBoxNonAlloc(center, new Vector3(HalfBeam + 1, 7, 38), deckHits, hullBody.rotation, 1 << Layers.Survivor, QueryTriggerInteraction.Ignore);
+            // Everyone inside the hull's outline, up to 6 m above its highest part.
+            var center = hullBody.position + hullBody.rotation * (hullLocalBounds.center + Vector3.up * 3);
+            var half = hullLocalBounds.extents + new Vector3(1, 3, 1);
+            int count = Physics.OverlapBoxNonAlloc(center, half, deckHits, hullBody.rotation, 1 << Layers.Survivor, QueryTriggerInteraction.Ignore);
             var push = hullBody.rotation * new Vector3(-.25f, .3f, 1).normalized * icebergShove;
             for (int i = 0; i < count; i++)
             {

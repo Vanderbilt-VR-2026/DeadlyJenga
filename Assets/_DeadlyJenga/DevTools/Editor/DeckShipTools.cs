@@ -63,8 +63,134 @@ namespace DeadlyJenga.DevTools.Editor
             if (!prefab) { report.AppendLine("FAIL missing ModeMaps/Mode_deck-ship prefab"); return 1; }
             var catalog = Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog");
             if (!catalog || !catalog.maps.Any(m => m.id == "deck-ship" && m.mapPrefab == prefab)) { report.AppendLine("FAIL lobby catalog has no deck-ship entry for the prefab"); problems++; }
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            problems += BuildCheck(prefab, null, report);
             for (int k = 0; k < DeckShipCargo.Count; k++) problems += RunCargo(prefab, (DeckShipCargoKind)k, report, k == 0);
             return problems;
+        }
+
+        // ---------- Ship build check (for whoever edits the hull) ----------
+
+        // Builds the map far from anything else in the open scenes and runs DeckShipBuildCheck on it.
+        static int BuildCheck(GameObject mapPrefab, DeckShipHull hullOverride, StringBuilder report)
+        {
+            var go = Object.Instantiate(mapPrefab, new Vector3(10000, 0, 10000), Quaternion.identity);
+            var mode = Physics.simulationMode;
+            try
+            {
+                var map = go.GetComponent<DeckShipMap>();
+                if (hullOverride) map.hullPrefab = hullOverride;
+                map.autoEvents = false;
+                Physics.simulationMode = SimulationMode.Script;
+                map.Rebuild();
+                return DeckShipBuildCheck.Run(map, report);
+            }
+            catch (Exception e) { report.AppendLine("  FAIL " + e.Message); Debug.LogException(e); return 1; }
+            finally { Physics.simulationMode = mode; Object.DestroyImmediate(go); }
+        }
+
+        [MenuItem(Menu + "Check Ship Build")]
+        static void CheckShipBuild()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogError("Stop Play Mode first."); return; }
+            var prefab = Resources.Load<GameObject>("ModeMaps/Mode_deck-ship");
+            // A hull prefab selected in the Project window is checked instead of the one the map uses.
+            var selected = Selection.activeGameObject ? Selection.activeGameObject.GetComponent<DeckShipHull>() : null;
+            if (selected && !EditorUtility.IsPersistent(selected)) selected = null;
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            var previous = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
+            var report = new StringBuilder();
+            int failures;
+            try { failures = BuildCheck(prefab, selected, report); }
+            finally { UnityEngine.SceneManagement.SceneManager.SetActiveScene(previous); EditorSceneManager.CloseScene(scene, true); }
+            string text = (failures == 0 ? "Deck Ship build check PASSED\n" : $"Deck Ship build check: {failures} problem(s)\n") + report;
+            if (failures == 0) Debug.Log(text); else Debug.LogError(text);
+            EditorUtility.DisplayDialog("Deck Ship build check", failures == 0 ? "Passed. Details are in the Console." : failures + " problem(s). Details are in the Console.", "OK");
+        }
+
+        // Saves the built-in box ship as an editable prefab (with its colours as material assets) next to the
+        // map scripts, and points the Deck Ship map at it. Edit that prefab freely; run Check Ship Build after.
+        [MenuItem(Menu + "Make Editable Ship Prefab")]
+        static void MakeEditablePrefabMenu()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogError("Stop Play Mode first."); return; }
+            string path = HullPrefabPath();
+            if (File.Exists(path) && !EditorUtility.DisplayDialog("Deck Ship", "An editable ship already exists:\n" + path + "\n\nReplace it with a fresh copy of the box ship?", "Replace", "Cancel")) return;
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            var previous = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
+            try { MakeEditablePrefab(path); }
+            finally { UnityEngine.SceneManagement.SceneManager.SetActiveScene(previous); EditorSceneManager.CloseScene(scene, true); }
+            Selection.activeObject = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        }
+
+        static string HullPrefabPath()
+        {
+            string maps = Path.GetDirectoryName(ProjectPath.FolderOf("DeckShipMap.cs").TrimEnd('/')).Replace('\\', '/');
+            return maps + "/DeckShip/Deck Ship Hull.prefab";
+        }
+
+        static void MakeEditablePrefab(string path)
+        {
+            string folder = Path.GetDirectoryName(path).Replace('\\', '/');
+            if (!AssetDatabase.IsValidFolder(folder)) AssetDatabase.CreateFolder(Path.GetDirectoryName(folder).Replace('\\', '/'), Path.GetFileName(folder));
+            var mapPrefab = Resources.Load<GameObject>("ModeMaps/Mode_deck-ship");
+            var go = Object.Instantiate(mapPrefab);
+            try
+            {
+                var map = go.GetComponent<DeckShipMap>();
+                map.hullPrefab = null; map.autoEvents = false;
+                map.Rebuild();
+                var hull = map.Hull.gameObject;
+                // The map adds these itself when the game starts.
+                Object.DestroyImmediate(hull.GetComponent<DeckShipHullClimb>());
+                Object.DestroyImmediate(hull.GetComponent<Rigidbody>());
+                foreach (var col in hull.GetComponentsInChildren<Collider>(true)) col.sharedMaterial = null;
+                // Runtime colours become material assets the prefab can keep.
+                var saved = new Dictionary<Material, Material>();
+                foreach (var renderer in hull.GetComponentsInChildren<Renderer>(true))
+                {
+                    var source = renderer.sharedMaterial;
+                    if (!source) continue;
+                    if (!saved.TryGetValue(source, out var asset))
+                    {
+                        string matPath = folder + "/Deck Ship " + source.name + ".mat";
+                        asset = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+                        if (asset) asset.CopyPropertiesFromMaterial(source);
+                        else { asset = new Material(source) { name = "Deck Ship " + source.name }; AssetDatabase.CreateAsset(asset, matPath); }
+                        saved[source] = asset;
+                    }
+                    renderer.sharedMaterial = asset;
+                }
+                hull.name = "Deck Ship Hull";
+                var prefab = PrefabUtility.SaveAsPrefabAsset(hull, path, out bool ok);
+                if (!ok || !prefab) throw new Exception("Could not save " + path);
+                // Point the map at the new hull.
+                string mapPath = AssetDatabase.GetAssetPath(mapPrefab);
+                var root = PrefabUtility.LoadPrefabContents(mapPath);
+                try { root.GetComponent<DeckShipMap>().hullPrefab = prefab.GetComponent<DeckShipHull>(); PrefabUtility.SaveAsPrefabAsset(root, mapPath); }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
+                AssetDatabase.SaveAssets();
+                Debug.Log("Deck Ship: saved editable ship " + path + " (" + saved.Count + " materials) and set it as the map's hull.");
+            }
+            finally { Object.DestroyImmediate(go); }
+        }
+
+        // Batch: make the editable ship prefab, then run the full checks and pictures with it.
+        public static void MakeEditablePrefabThenCheck()
+        {
+            try { EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single); MakeEditablePrefab(HullPrefabPath()); }
+            catch (Exception e) { Debug.LogException(e); Directory.CreateDirectory(ValidationFolder); File.WriteAllText(ReportPath, "FAIL making the editable ship prefab: " + e + "\n"); Finish(2); return; }
+            // Keep a copy of the new files where the run's output is collected.
+            string export = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "DeckShipExport");
+            Directory.CreateDirectory(export);
+            string folder = Path.GetDirectoryName(HullPrefabPath());
+            foreach (var file in Directory.GetFiles(folder)) File.Copy(file, Path.Combine(export, Path.GetFileName(file)), true);
+            string mapPath = AssetDatabase.GetAssetPath(Resources.Load<GameObject>("ModeMaps/Mode_deck-ship"));
+            File.Copy(mapPath, Path.Combine(export, Path.GetFileName(mapPath)), true);
+            if (File.Exists(folder + ".meta")) File.Copy(folder + ".meta", Path.Combine(export, Path.GetFileName(folder) + ".folder.meta"), true);
+            RunChecks();
         }
 
         static int RunCargo(GameObject prefab, DeckShipCargoKind kind, StringBuilder report, bool checkHull)
@@ -296,7 +422,13 @@ namespace DeadlyJenga.DevTools.Editor
                         case "stern": Place(camera, root.TransformPoint(0, 13, -78), root.TransformPoint(0, 7, 0), 36); break;
                         case "side": Place(camera, root.TransformPoint(72, 11, 0), root.TransformPoint(0, 6, 0), 46); break;
                         case "top": Place(camera, root.TransformPoint(0, 110, 0), root.TransformPoint(0, 0, .01f), 42); break;
-                        default: Place(camera, ship.TransformPoint(0, 7.8f, -25.5f), ship.TransformPoint(0, 6.2f, 6), 70, ship.up); break;
+                        default:
+                        {
+                            // Eye height at the first spawn, looking at the cargo deck; it moves with the ship.
+                            var eye = map.Ship.spawnPoints != null && map.Ship.spawnPoints.Length > 0 && map.Ship.spawnPoints[0] ? map.Ship.spawnPoints[0].position + ship.up * .8f : ship.TransformPoint(0, 7.8f, -25.5f);
+                            Place(camera, eye, map.CargoCenter + ship.up * 3.2f, 70, ship.up);
+                            break;
+                        }
                     }
                     string path = Path.Combine(CaptureFolder, label + "-" + view + ".png");
                     RenderNow(camera, 1600, 900, path);

@@ -4,42 +4,104 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    // The solid ship. Built from boxes at runtime (gray-box art in "Visual", collision in "Collision").
+    // The solid ship. Either your own hull prefab (hullPrefab, with a DeckShipHull on its root) or the
+    // built-in box ship below. Both go through PrepareHull, so ship events rock whichever one is used.
     // Ship coordinates: origin at the waterline in the middle, x = starboard, y = up, z = toward the bow.
     public sealed partial class DeckShipMap
     {
+        // Measurements of the built-in box ship only. Your own hull describes itself with DeckShipHull.
         public const float DeckHeight = 3f;     // main deck above the water
         public const float RaisedDeck = 4f;     // bow and stern decks above the main deck
         public const float HalfBeam = 10f;
 
+        [Header("Ship build")]
+        [Tooltip("Your own ship: a prefab with DeckShipHull on its root. Empty = the built-in box ship.")]
+        public DeckShipHull hullPrefab;
+
         Rigidbody hullBody;
         Transform hull, collisionRoot, visualRoot;
+        DeckShipHull ship;
+        Vector3 cargoLocal;
+        Quaternion cargoLocalRotation = Quaternion.identity;
+        Bounds hullLocalBounds;
         PhysicsMaterial deckMaterial;
         readonly List<Material> hullMaterials = new List<Material>();
         Material navy, red, cream, wood, white, yellow, glass, ice, iceShade;
         DeckShipHullClimb climb;
 
         public Transform Hull => hull;
+        public DeckShipHull Ship => ship;
+        // The cargo deck's center and orientation right now (it moves with the ship).
+        public Vector3 CargoCenter => hullBody.position + hullBody.rotation * cargoLocal;
+        public Quaternion CargoRotation => hullBody.rotation * cargoLocalRotation;
 
         void BuildHull()
         {
-            hull = new GameObject("Ship (solid hull)").transform;
-            hull.SetParent(transform, false);
-            hullBody = hull.gameObject.AddComponent<Rigidbody>();
-            hullBody.isKinematic = true; hullBody.useGravity = false;
-            hullBody.interpolation = RigidbodyInterpolation.Interpolate;
-            hullBody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-            climb = hull.gameObject.AddComponent<DeckShipHullClimb>();
-            climb.Body = hullBody;
-            collisionRoot = new GameObject("Collision").transform; collisionRoot.SetParent(hull, false);
-            visualRoot = new GameObject("Visual").transform; visualRoot.SetParent(hull, false);
             deckMaterial = new PhysicsMaterial("Ship deck")
             {
                 staticFriction = deckFriction + .08f, dynamicFriction = deckFriction,
                 frictionCombine = PhysicsMaterialCombine.Minimum, bounciness = 0, bounceCombine = PhysicsMaterialCombine.Minimum
             };
             MakeMaterials();
+            if (hullPrefab)
+            {
+                ship = Instantiate(hullPrefab, transform, false);
+                ship.name = hullPrefab.name;
+                hull = ship.transform;
+                hull.localPosition = Vector3.zero; hull.localRotation = Quaternion.identity;
+            }
+            else BuildBoxHull();
+            PrepareHull();
+            BuildIceberg();
+        }
+
+        // Makes any hull ready to be rocked: one kinematic body on the root, climbable Surface colliders,
+        // slippery deck friction on solid colliders that have none, and the cargo deck's local pose.
+        void PrepareHull()
+        {
+            foreach (var extra in hull.GetComponentsInChildren<Rigidbody>(true))
+                if (extra.transform != hull) { Debug.LogWarning("Deck Ship: removed a Rigidbody inside the hull (" + extra.name + "); the whole hull moves as one body.", extra); if (Application.isPlaying) Destroy(extra); else DestroyImmediate(extra); }
+            hullBody = hull.GetComponent<Rigidbody>();
+            if (!hullBody) hullBody = hull.gameObject.AddComponent<Rigidbody>();
+            hullBody.isKinematic = true; hullBody.useGravity = false;
+            hullBody.interpolation = RigidbodyInterpolation.Interpolate;
+            hullBody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            climb = hull.GetComponent<DeckShipHullClimb>();
+            if (!climb) climb = hull.gameObject.AddComponent<DeckShipHullClimb>();
+            climb.Body = hullBody; climb.Faces.Clear();
+            hullLocalBounds = new Bounds();
+            bool first = true;
+            foreach (var col in hull.GetComponentsInChildren<Collider>(true))
+            {
+                if (col.isTrigger) continue;
+                if (col.gameObject.layer == Layers.Surface) { Climbables.Register(col, climb); climb.Faces.Add(col); continue; }
+                if (!col.sharedMaterial) col.sharedMaterial = deckMaterial;
+                var b = col.bounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    var corner = hull.InverseTransformPoint(new Vector3((i & 1) == 0 ? b.min.x : b.max.x, (i & 2) == 0 ? b.min.y : b.max.y, (i & 4) == 0 ? b.min.z : b.max.z));
+                    if (first) { hullLocalBounds = new Bounds(corner, Vector3.zero); first = false; } else hullLocalBounds.Encapsulate(corner);
+                }
+            }
+            if (!ship.cargoArea)
+            {
+                Debug.LogWarning("Deck Ship: the hull has no cargo area marker; using its origin.", ship);
+                ship.cargoArea = hull;
+            }
+            cargoLocal = hull.InverseTransformPoint(ship.cargoArea.position);
+            cargoLocalRotation = Quaternion.Inverse(hull.rotation) * ship.cargoArea.rotation;
             bodies.Insert(0, hullBody);
+            hullBody.position = hull.position; hullBody.rotation = hull.rotation;
+            Physics.SyncTransforms();
+        }
+
+        void BuildBoxHull()
+        {
+            hull = new GameObject("Ship (solid hull)").transform;
+            hull.SetParent(transform, false);
+            ship = hull.gameObject.AddComponent<DeckShipHull>();
+            collisionRoot = new GameObject("Collision").transform; collisionRoot.SetParent(hull, false);
+            visualRoot = new GameObject("Visual").transform; visualRoot.SetParent(hull, false);
 
             float d = DeckHeight, top = DeckHeight + RaisedDeck;
             // Hull: a long midship box, a stepped bow and a squared stern. Their tops are the main deck.
@@ -118,10 +180,28 @@ namespace DeadlyJenga.CastlePrototype
             Paint("Stern pennant flag", new Vector3(-6.9f, top + 3.9f, -35.3f), new Vector3(1.2f, .8f, .05f), MakeColor("Mint", new Color(.31f, .89f, .76f)));
             Portholes();
 
-            BuildIceberg();
-            hullBody.position = transform.position; hullBody.rotation = transform.rotation;
-            Physics.SyncTransforms();
+            // Markers: the open cargo deck and the spawn spots, exactly as a hull prefab would carry them.
+            var area = new GameObject("Cargo area").transform;
+            area.SetParent(hull, false); area.localPosition = new Vector3(0, d, 0);
+            ship.cargoArea = area;
+            ship.cargoHalfSize = new Vector2(DeckShipCargo.FieldHalfWidth, DeckShipCargo.FieldMaxZ);
+            ship.hatchHeight = DeckShipCargo.HatchHeight; ship.hatchHalf = DeckShipCargo.HatchHalf;
+            var spawns = new Transform[BoxSpawnSpots.Length];
+            for (int i = 0; i < spawns.Length; i++)
+            {
+                spawns[i] = new GameObject("Spawn " + (i + 1)).transform;
+                spawns[i].SetParent(hull, false); spawns[i].localPosition = BoxSpawnSpots[i] + Vector3.up * d;
+            }
+            ship.spawnPoints = spawns;
         }
+
+        // Spawns of the box ship (above the main deck): stern deck, bow deck, aft and fore main deck corners.
+        static readonly Vector3[] BoxSpawnSpots =
+        {
+            new Vector3(0, 4, -25.5f), new Vector3(-3.5f, 4, -26), new Vector3(3.5f, 4, -26), new Vector3(-7.5f, 4, -27.5f), new Vector3(7.5f, 4, -27.5f),
+            new Vector3(0, 4, 26), new Vector3(-5, 4, 27), new Vector3(5, 4, 27),
+            new Vector3(-8.5f, 0, -19), new Vector3(8.5f, 0, -19), new Vector3(-8.5f, 0, 20), new Vector3(8.5f, 0, 20),
+        };
 
         void Portholes()
         {
@@ -197,9 +277,7 @@ namespace DeadlyJenga.CastlePrototype
         // A climbable wall face: a thin Surface-layer board that players can grip (blocks pass through it).
         void ClimbFace(string name, Vector3 center, Vector3 size)
         {
-            var box = Collide(name, center, size, Quaternion.identity, Layers.Surface);
-            Climbables.Register(box, climb);
-            climb.Faces.Add(box);
+            Collide(name, center, size, Quaternion.identity, Layers.Surface);
         }
 
         void Rail(float y, Vector2[] points, float height)

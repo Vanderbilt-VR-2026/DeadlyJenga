@@ -30,25 +30,26 @@ namespace DeadlyJenga.CastlePrototype
         public static int Count => 4;
         public static readonly string[] Titles = { "Tower and Forts", "Container Yard", "Domino Run", "Step Pyramid" };
 
-        public static List<DeckShipPiece> Build(DeckShipCargoKind kind, int seed)
+        // hatch: height of the ship's raised hatch (0 = none). Tower and Forts' bridge planks are sized for 1.5 m.
+        public static List<DeckShipPiece> Build(DeckShipCargoKind kind, int seed, float hatch = HatchHeight)
         {
             var list = new List<DeckShipPiece>();
             var random = new System.Random(seed);
             switch (kind)
             {
-                case DeckShipCargoKind.TowerAndForts: TowerAndForts(list, random); break;
-                case DeckShipCargoKind.ContainerYard: ContainerYard(list, random); break;
-                case DeckShipCargoKind.DominoRun: DominoRun(list, random); break;
+                case DeckShipCargoKind.TowerAndForts: TowerAndForts(list, random, hatch); break;
+                case DeckShipCargoKind.ContainerYard: ContainerYard(list, random, hatch); break;
+                case DeckShipCargoKind.DominoRun: DominoRun(list, random, hatch); break;
                 default: StepPyramid(list, random); break;
             }
             return list;
         }
 
         // A tall Jenga tower on the hatch, a gate fort fore and aft, and long planks bridging them to the tower.
-        static void TowerAndForts(List<DeckShipPiece> list, System.Random random)
+        static void TowerAndForts(List<DeckShipPiece> list, System.Random random, float hatch)
         {
             // Layer 5 runs along the ship; its middle block is left out so the bridge planks slot in from both ends.
-            Tower(list, new Vector3(0, HatchHeight, 0), 11, 0, (layer, i) => layer == 5 && i == 0 || layer == 8 && i == 0 || layer == 2 && i == 1, "Center tower");
+            Tower(list, new Vector3(0, hatch, 0), 11, 0, (layer, i) => layer == 5 && i == 0 || layer == 8 && i == 0 || layer == 2 && i == 1, "Center tower");
             Tower(list, new Vector3(0, 0, -11), 7, 1, null, "Aft fort");
             Tower(list, new Vector3(0, 0, 11), 7, 2, null, "Bow fort");
             // Each plank rests on a fort's top and reaches into the tower's open slot, then settles onto the slot floor.
@@ -64,7 +65,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         // Block-built shipping containers in two rows, stacked one to three high, with an aisle over the hatch.
-        static void ContainerYard(List<DeckShipPiece> list, System.Random random)
+        static void ContainerYard(List<DeckShipPiece> list, System.Random random, float hatch)
         {
             float[] rows = { -6.2f, 6.2f };
             float[] stations = { -11.5f, -6.8f, 6.8f, 11.5f };
@@ -77,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
                     for (int t = 0; t < tiers; t++) Container(list, new Vector3(rows[r], t * tierHeight, stations[s]), (r + s + t) % 3, "Container");
                 }
             // One container sits on the hatch, open along the ship.
-            Container(list, new Vector3(0, HatchHeight, 0), 3, "Hatch container");
+            Container(list, new Vector3(0, hatch, 0), 3, "Hatch container");
             // A plank across the aisle between the two middle stacks, at roof height of a single container.
             float roof = tierHeight;
             Add(list, new Vector3(0, roof + .3f + Gap, -6.8f), new Vector3(13, .6f, 1.4f), 0, 3, "Aisle plank");
@@ -86,7 +87,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         // Tall standing slabs in snaking lines: the first big roll knocks them down like dominoes.
-        static void DominoRun(List<DeckShipPiece> list, System.Random random)
+        static void DominoRun(List<DeckShipPiece> list, System.Random random, float hatch)
         {
             var slab = new Vector3(2.4f, 3.6f, .6f);
             // Two S-shaped lines down the port and starboard halves of the deck.
@@ -108,7 +109,7 @@ namespace DeadlyJenga.CastlePrototype
                 Add(list, new Vector3(k * 1.4f, slab.y * .5f + Gap, 5.2f), slab, 90, 2, "Domino");
             }
             // A short Jenga tower on the hatch as high ground.
-            Tower(list, new Vector3(0, HatchHeight, 0), 6, 3, null, "Hatch tower");
+            Tower(list, new Vector3(0, hatch, 0), 6, 3, null, "Hatch tower");
             Scatter(list, random, 6, "Loose block");
         }
 
@@ -194,11 +195,12 @@ namespace DeadlyJenga.CastlePrototype
             int placed = 0;
             for (int attempt = 0; attempt < count * 30 && placed < count; attempt++)
             {
-                var p = new Vector3((float)(random.NextDouble() * 2 - 1) * (FieldHalfWidth - 1.5f), 0, Mathf.Lerp(FieldMinZ + 1, FieldMaxZ - 1, (float)random.NextDouble()));
                 bool crate = random.Next(3) == 0;
                 var size = crate ? new Vector3(1.5f, 1.5f, 1.5f) : Block;
                 float yaw = random.Next(4) * 45;
-                float r = crate ? 1.2f : 2.4f;
+                // r covers the piece at any turn, so it never pokes past the edge of the cargo deck.
+                float r = crate ? 1.1f : 2.4f;
+                var p = new Vector3((float)(random.NextDouble() * 2 - 1) * (FieldHalfWidth - r), 0, Mathf.Lerp(FieldMinZ + r, FieldMaxZ - r, (float)random.NextDouble()));
                 if (Mathf.Abs(p.x) < HatchHalf + r && Mathf.Abs(p.z) < HatchHalf + r) continue;
                 bool clear = true;
                 foreach (var other in list)

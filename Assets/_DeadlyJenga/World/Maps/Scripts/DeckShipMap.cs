@@ -101,15 +101,14 @@ namespace DeadlyJenga.CastlePrototype
             // Cargo is not parented to the moving hull: dynamic bodies must not ride a moving transform.
             cargoRoot = new GameObject("Cargo: " + DeckShipCargo.Titles[(int)cargo]).transform;
             cargoRoot.SetParent(transform, false);
-            var shipPosition = hullBody.position; var shipRotation = hullBody.rotation;
-            var deck = Vector3.up * DeckHeight;
+            var deckCenter = CargoCenter; var deckRotation = CargoRotation;
             var friction = blockPrefab.GetComponent<BoxCollider>().sharedMaterial;
-            foreach (var piece in DeckShipCargo.Build(cargo, seed))
+            foreach (var piece in DeckShipCargo.Build(cargo, seed, ship.hatchHeight))
             {
                 var go = Instantiate(blockPrefab, cargoRoot);
                 go.name = (bodies.Count) + " · " + piece.role;
-                var position = shipPosition + shipRotation * (deck + piece.position + Vector3.up * lift);
-                var rotation = shipRotation * Quaternion.Euler(0, piece.yaw, 0);
+                var position = deckCenter + deckRotation * (piece.position + Vector3.up * lift);
+                var rotation = deckRotation * Quaternion.Euler(0, piece.yaw, 0);
                 go.transform.SetPositionAndRotation(position, rotation);
                 go.transform.localScale = piece.size;
                 var block = go.GetComponent<CastleBlock>();
@@ -129,27 +128,23 @@ namespace DeadlyJenga.CastlePrototype
             Physics.SyncTransforms();
         }
 
-        // Spawns rotate between open spots on the raised decks and the aft main deck.
-        static readonly Vector3[] SpawnSpots =
-        {
-            new Vector3(0, 4, -25.5f), new Vector3(-3.5f, 4, -26), new Vector3(3.5f, 4, -26), new Vector3(-7.5f, 4, -27.5f), new Vector3(7.5f, 4, -27.5f),
-            new Vector3(0, 4, 26), new Vector3(-5, 4, 27), new Vector3(5, 4, 27),
-            new Vector3(-8.5f, 0, -19), new Vector3(8.5f, 0, -19), new Vector3(-8.5f, 0, 20), new Vector3(8.5f, 0, 20),
-        };
-
+        // Spawns rotate between the hull's spawn markers, skipping any that something is standing in.
         public Vector3 SafeSpawnPoint()
         {
-            if (!hullBody) return transform.position + Vector3.up * (DeckHeight + 1);
+            var spots = ship ? ship.spawnPoints : null;
+            if (!hullBody || spots == null || spots.Length == 0) return hullBody ? CargoCenter + Vector3.up * 1 : transform.position + Vector3.up * 5;
             Physics.SyncTransforms();
-            for (int i = 0; i < SpawnSpots.Length; i++)
+            for (int i = 0; i < spots.Length; i++)
             {
-                var local = SpawnSpots[(spawnTurn + i) % SpawnSpots.Length] + Vector3.up * (DeckHeight + .05f);
-                var p = hullBody.position + hullBody.rotation * local;
+                var spot = spots[(spawnTurn + i) % spots.Length];
+                if (!spot) continue;
+                var p = spot.position + Vector3.up * .05f;
                 if (Physics.OverlapCapsuleNonAlloc(p + Vector3.up * .2f, p + Vector3.up * .74f, .18f, clearance, (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore) > 0) continue;
-                spawnTurn = (spawnTurn + i + 1) % SpawnSpots.Length;
+                spawnTurn = (spawnTurn + i + 1) % spots.Length;
                 return p;
             }
-            return hullBody.position + hullBody.rotation * (SpawnSpots[0] + Vector3.up * (DeckHeight + .05f));
+            var fallback = System.Array.Find(spots, s => s);
+            return fallback ? fallback.position + Vector3.up * .05f : CargoCenter + Vector3.up;
         }
 
         void FixedUpdate()
