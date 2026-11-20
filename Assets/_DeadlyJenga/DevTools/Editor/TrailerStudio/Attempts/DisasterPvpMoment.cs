@@ -45,7 +45,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static int lastTick = -1;
         static readonly StringBuilder notes = new StringBuilder();
 
-        public static string Folder => Path.Combine(StudioLibrary.ProjectRoot, "Logs", "ClaudeDisasterPvp");
+        // One folder per run kind: final B and C ran one after the other on one slot and C deleted B's output.
+        public static string Folder => Path.Combine(StudioLibrary.ProjectRoot, "Logs", "ClaudeDisasterPvp", Mode);
         static string Bundle => Path.Combine(StudioLibrary.ProjectRoot, "Docs", "Development", "TrailerStudio", "attempts", "disaster-pvp-1", "bundle");
 
         static DisasterPvpMoment() { if (Step != 0) Hook(); }
@@ -62,12 +63,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         static void Begin(string mode)
         {
+            Mode = mode;
             if (Directory.Exists(Folder)) Directory.Delete(Folder, true);
             Directory.CreateDirectory(Folder);
             notes.Clear();
             string tapes = StudioLibrary.TapeFolder(SetId);
             if (Directory.Exists(tapes)) Directory.Delete(tapes, true);
-            Mode = mode; Failure = ""; Step = 1;
+            Failure = ""; Step = 1;
             Deadline = EditorApplication.timeSinceStartup + 240;
             Hook();
         }

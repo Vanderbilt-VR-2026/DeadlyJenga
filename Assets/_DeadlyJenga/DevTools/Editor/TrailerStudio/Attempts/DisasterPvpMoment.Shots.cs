@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using DeadlyJenga.Core;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 {
@@ -237,7 +238,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (cameras.Count == 0) { Note("No shots planned yet."); yield break; }
             bool final = mode.StartsWith("final");
             if (mode == "finalA") cameras = cameras.Take(4).ToList();
-            if (mode == "finalB") cameras = cameras.Skip(4).Take(4).ToList();
+            if (mode == "finalB") cameras = cameras.Skip(3).Take(5).ToList();   // S04-S08 (S04 again: its first render had the green disc)
             if (mode == "finalC") cameras = cameras.Skip(8).ToList();
             var settings = final
                 ? new StudioRenderSettings { width = 1920, height = 1080, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 12 }
@@ -245,13 +246,42 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             string renders = Path.Combine(Folder, "renders");
             var clock = Stopwatch.StartNew();
             StudioRender.Start(cameras, settings, renders);
-            foreach (int wait in UntilRendered()) yield return wait;
+            var hidden = new HashSet<Renderer>();
+            while (StudioRender.Running) { HideStrays(stage, plan, hidden); yield return 0; }
             Note($"Render {settings.width}x{settings.height}: {StudioRender.Progress} in {clock.Elapsed.TotalSeconds:0} s.");
             KeepShots(StudioRender.Results.ToList());
             string audio = StudioRender.AudioFile(stage.set.id);
             if (File.Exists(audio)) File.Copy(audio, Path.Combine(Folder, "tape.wav"), true);
             File.WriteAllText(Path.Combine(Folder, "shots.txt"), string.Join("\n", Shots.Select(s => $"{s.id} {s.cutIn} {s.cutOut} {s.key} {s.tapeShift} {Handle}")) + "\n");
             if (Directory.Exists(renders)) Directory.Delete(renders, true);
+        }
+
+        // A bright green disc floated in front of the lens in several shots of the bundle renders (not in the renders made
+        // right after recording). Anything near the tower that is not a block, the map's own scenery or a played-back
+        // actor, roughly 0.3-8 m across and saturated green, is switched off for the render and logged, so the report
+        // says what it was.
+        static void HideStrays(StudioStage stage, Plan plan, HashSet<Renderer> hidden)
+        {
+            var actors = new HashSet<Transform>(stage.playback.Values.Where(o => o).Select(o => o.transform));
+            foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (!r || hidden.Contains(r) || !r.enabled || r.forceRenderingOff || !r.gameObject.activeInHierarchy) continue;
+                int layer = r.gameObject.layer;
+                if (layer == Layers.Block || layer == Layers.Surface) continue;
+                var b = r.bounds;
+                if (Vector3.Distance(b.center, plan.arena.centre) > 25 || b.size.magnitude < .3f || b.size.magnitude > 12) continue;
+                var m = r.sharedMaterial;
+                if (!m) continue;
+                Color c = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : m.HasProperty("_Color") ? m.color : Color.white;
+                if (r is ParticleSystemRenderer ps && ps.TryGetComponent<ParticleSystem>(out var system)) { var main = system.main; c = main.startColor.color * c; }
+                if (!(c.g > .55f && c.r < .45f && c.b < .45f)) continue;
+                Transform t = r.transform; bool actor = false;
+                while (t) { if (actors.Contains(t)) { actor = true; break; } t = t.parent; }
+                if (actor) continue;
+                hidden.Add(r); r.forceRenderingOff = true;
+                string path = r.name; for (var p = r.transform.parent; p; p = p.parent) path = p.name + "/" + path;
+                Note($"Hidden stray green renderer: {path} ({r.GetType().Name}, material '{m.name}', shader '{m.shader.name}', colour {c}, size {b.size.magnitude:0.0} m at {V(b.center)})");
+            }
         }
 
         // Keep each shot's movie, metrics, filmstrip and its first, key and last stills; the frames are deleted.
