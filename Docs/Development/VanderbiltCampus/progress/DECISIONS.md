@@ -91,3 +91,33 @@ Each entry: choice, alternatives, why. Newest at the bottom. Owner: Vanderbilt-M
 - No OSM outline: Kirkland tower (inside Kirkland Hall, way/544397715), Rand Wall, Peabody Esplanade
   (node only), Branscomb Quad (treated as its four houses + market). "Commons" = Commons Center
   (way/370608816). Stage 2's shot list carries these as named areas; see `config/hero_spots.json`.
+
+## D013 Capture plan size and tiers (Stage 2)
+- Found: the campus has 375 buildings and 2,691 facades (1,912 reachable from public ground). Shooting every
+  facade to the full standard (3 passes x 2 heights, 75% overlap) is about 200,000 photos, 275 hours and 94
+  capture days; 5 TB as DNG.
+- Choice: keep the complete shot list (nothing dropped), and work in tiers: (1) Day 1 = Kirkland Hall + Alumni
+  Lawn at the full standard (needed by Stage 4); (2) hero spots at the full standard (RAW/DNG); (3) normal
+  buildings at the `min_photos` count (one pass, one height, about 40% of the full estimate; HEIC/JPEG is
+  acceptable); (4) background entries optional. A 360 walk of the paths covers everything quickly if Evan
+  gets a 360 camera. Evan can raise any building to the full standard later; intake and the coverage map
+  track status per facade either way.
+- Alternatives: cut the list to hero spots only (loses the record of what is still needed); require the full
+  standard everywhere (not realistic for one person).
+- Why: keeps the most data per hour and makes the remaining work visible.
+
+## D014 Buildings v2 and colliders (Stage 1)
+- Found: v1 (plane fitting) passes the accuracy gate for 28.3% of buildings (56.0% on the main part) and
+  got Kirkland Hall's roof wrong.
+- Choice: v2 keeps v1 where it passes and otherwise builds the roof from the LiDAR height field with real
+  breaks and a 0.08 m merge tolerance (exact shape first, clean planes second). Each building gets one
+  non-convex static mesh collider (`COLM_<id>`) instead of ~30 convex parts (248 of those were degenerate
+  for PhysX). v1 stays in the archive.
+- Why: Evan's goal is the exact shape; static mesh colliders are exact and far fewer.
+
+## D015 Tile export axes and LODs (Stage 1)
+- Unity mirrors raw z for our FBX header, measured on the first import (tiles came in turned 180 degrees);
+  the exporter was corrected and the builder now checks orientation against unity_map.json on every build.
+- One LODGroup per tile: detail to about 143 m, mid to about 250 m, then a one-draw-call HLOD mesh (far
+  terrain + LoD1 buildings + LoD1 trees + ring). In-progress FBX tiles are tested from a local-only commit
+  and pushed once final, to avoid filling Git LFS with intermediate versions.
