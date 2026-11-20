@@ -34,7 +34,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         const float HandDistance = 5f;                      // metres from the lens to the middle of the hand at the grab
         const float HeadHeight = .8f;                       // survivor eye height above the feet (survivor is 0.94 m tall)
         const float HeroInset = .6f;                        // how far inside the top block's edges the hero stands
-        const float CalmDrop = 9f;                          // degrees the calm frame looks lower than the final frame
+        const float CalmDrop = 5f;                          // degrees the calm frame looks lower than the final frame
+        const float HeroWeight = .62f;                      // how much the final frame leans toward the hero (0.5 = halfway to the hand)
         const float RevealAt = 1.0f, RevealSeconds = 1.7f;  // shot seconds: the tilt up into the final frame
         const float PushFraction = .1f;                     // slow push-in toward the hero over the whole shot
         const bool PullUnderHero = false;                   // true = pull the block that holds up the hero's end
@@ -256,9 +257,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return plan;
         }
 
-        // The direction the final frame looks: halfway between the hero's eyes and the middle of the hand.
+        // The direction the final frame looks: between the hero's eyes and the middle of the hand, nearer the hero,
+        // so the hero keeps headroom and the huge hand is allowed to run off the bottom edge.
         static Vector3 FinalAim(Plan plan, Vector3 from) =>
-            ((plan.hero + Vector3.up * HeadHeight - from).normalized + (plan.handCentre - from).normalized).normalized;
+            ((plan.hero + Vector3.up * HeadHeight - from).normalized * HeroWeight + (plan.handCentre - from).normalized * (1 - HeroWeight)).normalized;
 
         // The camera spot, tried on a grid outside the tower on the side the block comes out of (research 03, 4.1):
         // low (below the hero, so it looks up), close enough that the hand fills most of the frame, the hero and
@@ -563,8 +565,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var handB = stage.tape.Find(plan.handId).ActiveTake;
             var worldB = stage.tape.FindType(WorldTrack.Id).ActiveTake;
             var heroB = stage.tape.Find(plan.heroId).ActiveTake;
-            bool sameHand = handA != handB && handA.frames.Count == handB.frames.Count && handA.frames.Zip(handB.frames, (a, b) => a.SequenceEqual(b)).All(x => x);
-            Check("hand take is byte-identical across two recordings", sameHand, $"{handA.frames.Count} and {handB.frames.Count} frames");
+            // Compared by pose, not bytes: the frames are packed through the network writer.
+            float handOff = handA.frames.Count == handB.frames.Count ? 0 : float.MaxValue; int handAt = -1;
+            for (int f = 0; f < Mathf.Min(handA.frames.Count, handB.frames.Count); f++)
+            {
+                var a = ActorFrame.Read(HandTrack.Id, handA.frames[f]); var b = ActorFrame.Read(HandTrack.Id, handB.frames[f]);
+                float d = a.visible != b.visible ? float.MaxValue : !a.visible ? 0 : Vector3.Distance(a.target.position, b.target.position);
+                for (int i = 0; a.visible && b.visible && i < Mathf.Min(a.bones.Length, b.bones.Length); i++) d = Mathf.Max(d, Vector3.Distance(a.bones[i].position, b.bones[i].position));
+                if (d > handOff) { handOff = d; handAt = f; }
+            }
+            Check("hand take is the same across two recordings (within 1 mm)", handA != handB && handOff < .001f, $"{handA.frames.Count} and {handB.frames.Count} frames, worst {handOff * 1000:0.0} mm (frame {handAt})");
             // The pulled block follows the cue in both takes, from the yank on.
             float blockOff = 0;
             int yankFrame = Mathf.RoundToInt((ShotStart + Yank) * stage.Fps);
@@ -615,7 +625,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var handRoot = StudioTargets.Object(stage, "actor:" + plan.handId);
             Vector3 handCentre = stage.anchor;
             if (handRoot && StudioTargets.TryBounds(handRoot, out var handBox)) handCentre = handBox.center;
-            cam.transform.position = handCentre + (plan.camera - plan.hero).normalized * 12 + Vector3.up * 2;
+            // Close enough that the hand fills a good part of the picture (at 12 m it covered under 3 %).
+            cam.transform.position = handCentre + (plan.camera - plan.handCentre).normalized * 6;
             cam.transform.LookAt(handCentre);
             var target = new RenderTexture(320, 180, 24); cam.targetTexture = target;
             Color32[] Snap()
