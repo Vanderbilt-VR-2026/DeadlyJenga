@@ -75,8 +75,18 @@ namespace DeadlyJenga.CastlePrototype.Editor
         // Unattended capture for a coordinator job (-executeMethod): opens the map in Play Mode,
         // waits for it to build, saves every family room view to Logs/TreeLookdev/batch, then quits.
         // Exit code 0 = pictures written; 2 = timed out.
-        public static void BatchCaptureFamilyRoom()
+        public static void BatchCaptureFamilyRoom() => StartBatch("room");
+
+        // Same, but from where a player's eyes really are: at spawn, around the playable area
+        // looking in and out, and on top of the structure. Pictures go to Logs/TreeLookdev/pov.
+        public static void BatchCapturePlayerViews() => StartBatch("pov");
+
+        const string BatchMode = "UnderneathTreeLookdev.BatchMode";
+        public const string PovFolder = "Logs/TreeLookdev/pov";
+
+        static void StartBatch(string mode)
         {
+            SessionState.SetString(BatchMode, mode);
             SessionState.SetBool(BatchKey, true);
             SessionState.SetFloat(BatchStarted, (float)EditorApplication.timeSinceStartup);
             SessionState.SetFloat(BatchPlaying, 0f);
@@ -111,11 +121,104 @@ namespace DeadlyJenga.CastlePrototype.Editor
             // Give the map, its art and the fire a few seconds to build and settle.
             if (now - playing < 15f)
                 return;
+            if (SessionState.GetString(BatchMode, "room") == "pov")
+            {
+                ShootPlayerViews(PovFolder);
+                FinishBatch(0);
+                return;
+            }
             Directory.CreateDirectory(BatchFolder);
             foreach (var view in FamilyRoomViews)
                 Shoot(Path.Combine(BatchFolder, view.name + ".png"), view.eye, view.target, view.fov);
             File.WriteAllText(Path.Combine(BatchFolder, "done.txt"), System.DateTime.Now.ToString("s"));
             FinishBatch(0);
+        }
+
+        static readonly string[] Compass = { "n", "ne", "e", "se", "s", "sw", "w", "nw" };
+
+        // Player eye-level pictures. Positions come from the running map (playable area, spawn,
+        // real eye height), so they follow layout changes. views.txt lists every camera.
+        static void ShootPlayerViews(string folder)
+        {
+            Directory.CreateDirectory(folder);
+            var player = Services.Session.Player;
+            var cam = player.ViewCamera;
+            var world = Services.World;
+            float eye = Mathf.Clamp(cam.transform.position.y - player.transform.position.y, .3f, 30f);
+            const float fov = 60f;
+            var log = new System.Text.StringBuilder();
+            var bounds = world.PlayableBounds;
+            var center = world.Center;
+            float radius = world.Radius > 0f ? world.Radius : Mathf.Max(bounds.extents.x, bounds.extents.z);
+            log.AppendLine($"eye {eye:F2} center {center} radius {radius:F1} top {world.TopHeight:F1} bounds {bounds}");
+
+            void Save(string name, Vector3 at, Vector3 target)
+            {
+                Shoot(Path.Combine(folder, name + ".png"), at, target, fov);
+                log.AppendLine($"{name}: eye {at} looking at {target}");
+            }
+
+            // 1. Where the player starts, turning all the way around.
+            var spawn = player.transform.position + Vector3.up * eye;
+            var ahead = Flat(cam.transform.forward);
+            string[] turns = { "ahead", "right", "behind", "left" };
+            for (int i = 0; i < 4; i++)
+                Save("pov-spawn-" + turns[i], spawn, spawn + Quaternion.Euler(0f, 90f * i, 0f) * ahead * 10f);
+
+            // 2. Standing around the edge of the playable area, looking in at the structure.
+            float topY = Mathf.Max(world.TopHeight, center.y + 1f);
+            var ring = new Vector3[8];
+            for (int i = 0; i < 8; i++)
+            {
+                float angle = i * 45f * Mathf.Deg2Rad;
+                var flat = center + new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * radius * .95f;
+                ring[i] = Ground(flat, bounds.max.y + 1f, player.transform) + Vector3.up * eye;
+                var look = new Vector3(center.x, Mathf.Lerp(ring[i].y, topY, .3f), center.z);
+                Save("pov-edge-" + Compass[i] + "-in", ring[i], look);
+            }
+
+            // 3. The same spots looking out, to see the background scenery.
+            for (int i = 0; i < 8; i += 2)
+            {
+                var outward = Flat(ring[i] - center);
+                Save("pov-edge-" + Compass[i] + "-out", ring[i], ring[i] + outward * 10f + Vector3.up * 1.5f);
+            }
+
+            // 4. Looking up from the edge, the way a small player sees the giant room.
+            for (int i = 0; i < 8; i += 4)
+            {
+                var up = ring[i] + Flat(center - ring[i]) * 10f + Vector3.up * 8f;
+                Save("pov-edge-" + Compass[i] + "-up", ring[i], up);
+            }
+
+            // 5. On top of the structure, looking out four ways.
+            var summit = Ground(center, bounds.max.y + 1f, player.transform) + Vector3.up * eye;
+            for (int i = 0; i < 8; i += 2)
+            {
+                float angle = i * 45f * Mathf.Deg2Rad;
+                var dir = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
+                Save("pov-top-" + Compass[i], summit, summit + dir * 10f - Vector3.up * 2f);
+            }
+
+            File.WriteAllText(Path.Combine(folder, "views.txt"), log.ToString());
+            File.WriteAllText(Path.Combine(folder, "done.txt"), System.DateTime.Now.ToString("s"));
+        }
+
+        static Vector3 Flat(Vector3 v)
+        {
+            v.y = 0f;
+            return v.sqrMagnitude > 1e-6f ? v.normalized : Vector3.forward;
+        }
+
+        // The highest solid surface under this spot, skipping the player's own body.
+        static Vector3 Ground(Vector3 at, float fromHeight, Transform skip)
+        {
+            var start = new Vector3(at.x, fromHeight, at.z);
+            float best = float.NegativeInfinity;
+            foreach (var hit in Physics.RaycastAll(start, Vector3.down, fromHeight + 500f, ~0, QueryTriggerInteraction.Ignore))
+                if (!hit.transform.IsChildOf(skip) && hit.point.y > best)
+                    best = hit.point.y;
+            return new Vector3(at.x, float.IsNegativeInfinity(best) ? at.y : best, at.z);
         }
 
         static void FinishBatch(int code)
