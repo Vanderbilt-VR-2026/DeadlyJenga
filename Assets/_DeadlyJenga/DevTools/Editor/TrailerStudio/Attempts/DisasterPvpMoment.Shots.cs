@@ -30,8 +30,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             new Shot { id = "S03", what = "teach: the whole top is a brawl", cutIn = 64, cutOut = 104, key = 26 },
             new Shot { id = "S04", what = "anticipation: low, rocks streak in over the fighters", cutIn = 104, cutOut = 134, key = 24 },
             new Shot { id = "S05", what = "core verb: a meteor throws the astronaut off", cutIn = 134, cutOut = 180, key = 19 },
-            new Shot { id = "S06", what = "escalate: the hero's summit gives way, he tumbles down the tower", cutIn = 180, cutOut = 232, key = 16 },
-            new Shot { id = "S07", what = "escalate: a rock throws the fox and the dragon", cutIn = 232, cutOut = 268, key = 17 },
+            new Shot { id = "S06", what = "escalate: the hero's summit gives way, he tumbles down the tower", cutIn = 180, cutOut = 210, key = 16 },
+            new Shot { id = "S07", what = "escalate: a rock throws the fox and the dragon", cutIn = 210, cutOut = 268, key = 39 },
             new Shot { id = "S08", what = "the hero on the castle wall looks up", cutIn = 268, cutOut = 292, key = 14 },
             new Shot { id = "S09", what = "payoff: the planet killer lands on the tower", cutIn = 292, cutOut = 330, key = 15 },
             new Shot { id = "S10", what = "aftermath: the hero cowers on the wall under the falling wreck", cutIn = 330, cutOut = 352, key = 8 },
@@ -238,7 +238,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (mode == "finalB") cameras = cameras.Skip(3).Take(5).ToList();   // S04-S08 (S04 again: its first render had the green disc)
             if (mode == "finalC") cameras = cameras.Skip(8).ToList();
             // Critic round 1 fixes: S06 ends before its camera drops into the castle, S07 starts earlier, S09 side-on.
-            if (mode == "finalD") cameras = cameras.Where(c => new[] { "S04", "S05", "S06" }.Contains(c.id)).ToList();
+            if (mode == "finalD") cameras = cameras.Where(c => new[] { "S07" }.Contains(c.id)).ToList();
             var settings = final
                 ? new StudioRenderSettings { width = 1920, height = 1080, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 12 }
                 : new StudioRenderSettings { width = 640, height = 360, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 8 };
