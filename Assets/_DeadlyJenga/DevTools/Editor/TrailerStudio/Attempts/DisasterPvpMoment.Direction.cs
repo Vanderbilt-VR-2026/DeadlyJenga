@@ -61,7 +61,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var a = new Arena();
             var blocks = Enumerable.Range(0, stage.blocks.Length).Where(i => stage.blocks[i] && stage.blocks[i].gameObject.activeInHierarchy).ToList();
             var tops = blocks.ToDictionary(i => i, i => TopOf(stage.blocks[i]));
-            a.summit = blocks.OrderByDescending(i => tops[i]).First();
+            // The four top blocks tie within millimetres, so the choice must not depend on how the map settled
+            // (the first preview picked #567 instead of the record's #564): among blocks within 5 cm of the top,
+            // the one with the largest x + z.
+            float highest = blocks.Max(i => tops[i]);
+            a.summit = blocks.Where(i => tops[i] > highest - .05f).OrderByDescending(i => stage.blocks[i].position.x + stage.blocks[i].position.z).First();
             var s = stage.blocks[a.summit];
             a.top = tops[a.summit];
             a.size = StudioHandDirection.BlockSize(s);
@@ -289,6 +293,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Add("hero", "reaction", 194, 240, "scream", blendIn: .1f);
             Add("pink", "reaction", 245, 300, "scream", blendIn: .08f);
             Add("green", "reaction", 245, 300, "scream", blendIn: .08f);
+            Add("hero", "reaction", 318, 360, "cower", blendIn: .12f);
         }
     }
 }
