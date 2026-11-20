@@ -32,7 +32,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         const int ShadowFrame = 28;             // the hand's shadow reaches the hero (on the music accent at frame 28)
         const float PullDistance = 2.5f, PullSeconds = .9f, GripSeconds = 1.1f, FlightSeconds = 3.6f;
         const float CarryUp = 5f, CarryOut = 1.5f, CarrySeconds = 2.4f;
-        const float HeroInset = .9f;            // metres from the summit block's inner end to the hero's feet
+        const float HeroInset = 2.2f;           // metres from the summit block's inner end to the hero's feet (nearer the hand: scale)
         const int HandDesign = 3;               // CandyHandDesigns: 3 = Lava (the scout's design stills: it reads most as a hand)
         const int HeroColour = 6;               // renders as a strong yellow on this map (scout)
         const float Exposure = 0, Contrast = 12, Saturation = 10;
@@ -450,7 +450,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var spots = new List<Vector3>();
                 foreach (float lift in new[] { -.5f, .5f, 1.5f, 2.5f })
                 foreach (float turn in new[] { 25f, 15f, 35f })
-                foreach (float d in new[] { 9f, 11f })
+                foreach (float d in new[] { 6.5f, 7.5f, 9f })
                 { Vector3 p = middle + (plan.side * Mathf.Cos(turn * Mathf.Deg2Rad) - plan.along * Mathf.Sin(turn * Mathf.Deg2Rad)) * d; p.y = plan.top + lift; spots.Add(p); }
                 Vector3 at = Pick(s.id, spots, head, plan.handCentre, heroAt(YankFrame + 45), handAt(YankFrame + 45));
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, middle));
@@ -460,11 +460,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // S05 consequence: rides along with the hero's head, in front of him and above, looking down past him
             // at the spire falling away; he cowers, looking up at the hand that holds him (above the lens).
             {
-                var s = Shots[4]; var c = NewCamera(s, 50);
-                Vector3 offset = (plan.along * .9f + plan.side * .6f).normalized * 1.3f + up * .5f;
+                var s = Shots[4]; var c = NewCamera(s, 40);
+                Vector3 offset = (plan.along * .9f + plan.side * .6f).normalized * 1.5f + up * .3f;
                 c.rideTarget = hero;
                 c.keys[0].position = offset;
-                StudioMoves.Aim(c, c.start, hero, new Vector3(0, -.2f, 0), 0);
+                StudioMoves.Aim(c, c.start, hero, new Vector3(0, -.1f, 0), 0);
                 c.keys[0].aperture = 4f; c.keys[0].focus = offset.magnitude;
                 Report(s, c, head + offset, head, .55f); cameras.Add(c);
             }
@@ -473,9 +473,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 var s = Shots[5]; var c = NewCamera(s, 24);
                 Vector3 heroEnd = heroAt(LengthFrames), handEnd = handAt(LengthFrames);
-                Vector3 middle = (heroEnd + handEnd + plan.centre) / 3 + up * .5f;
+                Vector3 middle = (heroEnd + handEnd) * .4f + plan.centre * .2f;
                 var spots = new List<Vector3>();
-                foreach (float d in new[] { 11f, 13f, 15f })
+                foreach (float d in new[] { 8f, 9.5f, 11f })
                 foreach (float lift in new[] { -2f, -.5f, 1f, 2.5f })
                 foreach (float turn in new[] { 15f, 0f, 30f })
                 { Vector3 p = middle + (plan.side * Mathf.Cos(turn * Mathf.Deg2Rad) - plan.along * Mathf.Sin(turn * Mathf.Deg2Rad)) * d; p.y = plan.top + lift; spots.Add(p); }
