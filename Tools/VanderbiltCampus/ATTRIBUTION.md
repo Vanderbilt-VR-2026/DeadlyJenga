@@ -131,3 +131,30 @@ Commons photo is on disk; the full candidate list with licenses is in
   field, so licenses cannot be checked. Not used.
 - COLMAP sample datasets (UNC buildings): no license stated. Not used.
 - CRBeDaSet (Mendeley Data 9nvn27yw62): CC BY-NC 3.0. Not used (NC).
+
+## Capture intake detector models (Stage 2, local only)
+
+Downloaded 2026-11-20 from the official OpenCV Zoo repository
+(https://github.com/opencv/opencv_zoo, files via media.githubusercontent.com)
+into `C:\Users\<you>\VanderbiltCampusTools\models\` (outside git; the license
+and README of each model folder are saved next to the files). Used only on this
+PC to blur faces/plates and mask people/vehicles; nothing is uploaded.
+
+| Model file | What | License (as stated in the model folder) | sha256 |
+|------------|------|------------------------------------------|--------|
+| face_detection_yunet_2026may.onnx | YuNet face detector (dynamic input, for OpenCV 5) | MIT (Copyright (c) 2020 Shiqi Yu) | see `intake_report.json` → detectors |
+| object_detection_yolox_2022nov.onnx | YOLOX-S, COCO 80 classes (people, vehicles) | Apache-2.0 | c5c2d13e59ae883e6af3b45daea64af4833a4951c92d116ec270d9ddbe998063 |
+| license_plate_detection_lpd_yunet_2023mar.onnx | LPD-YuNet plate detector (trained on Chinese CCPD plates) | Apache-2.0 | 6d4978a7b6d25514d5e24811b82bfb511d166bdd8ca3b03aa63c1623d4d039c7 |
+
+The YOLOX and LPD-YuNet decoding in `pipeline/intake_privacy.py` follows the
+OpenCV Zoo demo code (Apache-2.0).
+
+## 360 test clip (Stage 2)
+
+The Wikimedia Commons 360 sample (Insta360 X6 clip, CC BY-SA 4.0, 1080p
+transcode) was tried once on 2026-11-20 and refused with HTTP 429, so the 360
+path was tested on a SYNTHETIC clip made by `pipeline/intake_synth360.py`
+from archive stills (3 KartaView photos, CC BY-SA 4.0, KartaView contributor
+user 53757; 1 public-domain Commons photo "2019_Sit-in.jpg"). It is stored as
+`raw/capture/2026-11-20/synthetic360/SYNTHETIC_equirect_test_30s.mp4` with a
+`.synthetic.json` sidecar. It is test input only, not a capture.

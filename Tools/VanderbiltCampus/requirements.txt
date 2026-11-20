@@ -18,3 +18,5 @@ scikit-image==0.26.0
 scikit-learn==1.9.1
 networkx==3.7
 pygltflib==1.16.5
+pillow-heif==1.8.1
+rawpy==0.28.0

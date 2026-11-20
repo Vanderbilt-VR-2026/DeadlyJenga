@@ -167,3 +167,33 @@ In Python, later stages read LiDAR with
 `lidar_io.load_points(xmin, ymin, xmax, ymax, classes=[2, 6], buffer=5)`
 (campus meters) and convert coordinates with `frame.to_campus(x, y, z, epsg)` /
 `frame.from_campus(X, Y, Z, epsg)`.
+
+## Stage 2: capture intake
+
+```powershell
+& $PY $P\intake.py E:\DCIM\100APPLE --device iphone              # copy a day's photos into raw/capture/<date>/iphone/
+& $PY $P\intake.py <folder> --dry-run                           # show what would be copied; write nothing
+& $PY $P\intake.py <data_root>\raw\capture\kartaview-2026-11-19 --jobs 14   # a set already in raw/: used in place
+& $PY $P\intake_spotcheck.py <data_root>\derived\capture\<set>\photos.json  # reports/stage2/blur_spotcheck.jpg
+```
+
+Options: `--date`, `--device`, `--set`, `--license`, `--skip-blur`, `--jobs N`,
+`--views 4|8`, `--up-row`, `--max-video-seconds`. Outputs go to
+`derived/capture/<date>/<device>/` (`photos.json`, `intake_report.json`,
+`blurred/`, `masks/`, `views/` for 360 videos) and
+`config/coverage_status.json` is merged. About 10 s of CPU per 12 MP photo
+(three detectors); with `--jobs 14` a 350-photo set takes a few minutes.
+
+Detector models (OpenCV Zoo, licenses in ATTRIBUTION.md) live in
+`<tools>\models\` (`VC_MODELS` overrides):
+
+```powershell
+$B = "https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models"
+mkdir $T\models
+curl.exe -L -o $T\models\face_detection_yunet_2026may.onnx $B/face_detection_yunet/face_detection_yunet_2026may.onnx
+curl.exe -L -o $T\models\object_detection_yolox_2022nov.onnx $B/object_detection_yolox/object_detection_yolox_2022nov.onnx
+curl.exe -L -o $T\models\license_plate_detection_lpd_yunet_2023mar.onnx $B/license_plate_detection_yunet/license_plate_detection_lpd_yunet_2023mar.onnx
+```
+
+`pipeline/intake_synth360.py` makes a clearly labeled SYNTHETIC equirectangular
+clip for testing the 360 path when no real clip is available.
