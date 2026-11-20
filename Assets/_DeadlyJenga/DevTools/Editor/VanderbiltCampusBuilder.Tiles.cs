@@ -16,6 +16,7 @@ namespace DeadlyJenga.DevTools.Editor
     //   Terrain, B_<id>_LOD0, Trees -> tile LOD0 (detail)
     //   Terrain_LOD1, B_<id>_LOD1, Trees_LOD1 -> tile LOD1 (mid distance)
     //   Ring                        -> tile LOD0 and LOD1 (and LOD2 when there is no HLOD)
+    //   Props / Props_LOD1          -> tile LOD0 / LOD1 only (never far or HLOD); COL_Props -> Colliders, not climbable
     //   HLOD                        -> tile LOD2 (far): one merged mesh (from the exporter, or built here)
     //   Spawn_*, Route_*, Climb_*   -> empty markers (moved under "Markers")
     //   anything else with a mesh   -> static visual, never a collider, always drawn
@@ -48,7 +49,7 @@ namespace DeadlyJenga.DevTools.Editor
         // Renderers of one tile sorted by LOD role.
         sealed class TileParts
         {
-            public Renderer terrain, terrainLod1, trees, treesLod1, hlod;
+            public Renderer terrain, terrainLod1, trees, treesLod1, props, propsLod1, hlod;
             public readonly List<Renderer> ring = new List<Renderer>();
             public readonly Dictionary<string, Renderer[]> buildings = new Dictionary<string, Renderer[]>();
         }
@@ -93,6 +94,7 @@ namespace DeadlyJenga.DevTools.Editor
                     bool convex = match.Success;
                     if (!MakeCollider(t, convex, stats)) continue;
                     if (name == "COL_Terrain") terrainCollider = true;
+                    if (name == "COL_Props") stats.propColliders++;   // plain ground-like collider, not climbable
                     if (convex) t.SetParent(BuildingHolder(colliders, buildingColliders, match.Groups[1].Value, stats), true);
                     else t.SetParent(colliders, true);
                 }
@@ -121,6 +123,8 @@ namespace DeadlyJenga.DevTools.Editor
                     else if (name == "Terrain_LOD1") parts.terrainLod1 = renderer;
                     else if (name == "Trees") parts.trees = renderer;
                     else if (name == "Trees_LOD1") parts.treesLod1 = renderer;
+                    else if (name == "Props") { parts.props = renderer; stats.propRenderers++; }
+                    else if (name == "Props_LOD1") { parts.propsLod1 = renderer; stats.propRenderers++; }
                     else if (name == "Ring") parts.ring.Add(renderer);
                     else if (name == "HLOD") { parts.hlod = renderer; stats.exporterHlods++; }
                 }
@@ -247,8 +251,10 @@ namespace DeadlyJenga.DevTools.Editor
             detail.AddRange(parts.ring); mid.AddRange(parts.ring);
             if (detail.Count == 0) return;
 
+            // Props (benches, lamps...) are near and mid detail only: never in the HLOD or the far level.
             var hlod = parts.hlod ? parts.hlod : MakeHlod(tile, mid, stats);
-            var far = hlod ? new List<Renderer> { hlod } : mid;
+            var far = hlod ? new List<Renderer> { hlod } : new List<Renderer>(mid);
+            Pair(parts.props, parts.propsLod1);
             var lodGroup = tile.gameObject.AddComponent<LODGroup>();
             lodGroup.SetLODs(new[]
             {

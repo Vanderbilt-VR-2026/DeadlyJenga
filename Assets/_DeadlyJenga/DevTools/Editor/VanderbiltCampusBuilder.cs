@@ -33,7 +33,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             public int tiles, buildings, lodGroups, colliders, convexColliders, climbSurfaces, materials, trianglesAll, trianglesLod0, spawns;
             public int renderers, submeshes, ringTilesWithoutCollider, tinyConvex, buildingsMissingLevel, exporterHlods, builtHlods;
-            public int skippedConvex, buildingMeshColliders;
+            public int skippedConvex, buildingMeshColliders, propRenderers, propColliders;
             public readonly List<string> skippedConvexNames = new List<string>();
             public long hlodVertices, hlodIndices, hlodAssetBytes;
             public string axisFix = "";
@@ -263,6 +263,7 @@ namespace DeadlyJenga.DevTools.Editor
             r.AppendLine("unity_map.json: " + (data.found ? data.path : "missing"));
             r.AppendLine("Prefab: " + (prefabPath ?? "not saved"));
             r.AppendLine($"Tiles={stats.tiles} Buildings={stats.buildings} Colliders={stats.colliders} ClimbSurfaces={stats.climbSurfaces}");
+            r.AppendLine($"Props: renderers (Props + Props_LOD1)={stats.propRenderers}, COL_Props colliders={stats.propColliders}");
             r.AppendLine($"Building colliders: convex parts COL_B_*_n={stats.convexColliders}, whole-building non-convex COLM_B_*={stats.buildingMeshColliders}");
             r.AppendLine($"Triangles all visuals={stats.trianglesAll} LOD0+terrain+trees+ring={stats.trianglesLod0} Materials={stats.materials} Spawns={stats.spawns}");
             r.AppendLine($"Visual renderers={stats.renderers} submeshes={stats.submeshes} (all static, batching-static; not merged so material IDs stay submeshes)");

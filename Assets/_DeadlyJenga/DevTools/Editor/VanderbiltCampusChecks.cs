@@ -178,6 +178,11 @@ namespace DeadlyJenga.DevTools.Editor
             Check(noMesh.Count == 0, "Every MeshCollider has a mesh" + List(noMesh));
             Check(climb.Length > 0, climb.Length + " climbable building collider groups");
             Check(!root.GetComponent<CampusClimbSurface>() && climb.All(c => !c.name.Contains("Terrain")), "Climb surfaces are on buildings only (not terrain or map root)");
+            // Props (merged per tile; optional): COL_Props is a static non-convex collider that is not climbable.
+            var propColliders = all.OfType<MeshCollider>().Where(c => Regex.Replace(c.name, @"\.\d+$", "") == "COL_Props").ToList();
+            int propRenderers = root.GetComponentsInChildren<MeshRenderer>(true).Count(r => Regex.Replace(r.name, @"\.\d+$", "") is "Props" or "Props_LOD1");
+            Check(propColliders.All(c => !c.convex && !c.GetComponentInParent<CampusClimbSurface>()),
+                $"Props: {propRenderers} renderers, {propColliders.Count} COL_Props colliders (non-convex, not climbable)");
         }
 
         // Each tile's Terrain should be about a 100 m square (catches Blender scale or axis mistakes).

@@ -18,7 +18,7 @@ namespace DeadlyJenga.DevTools.Editor
     {
         const int TriangleBudget = 250000, DrawBudget = 150;
         const float Fov = 90, FarClip = 700, EyeHeight = 1.7f;
-        static readonly string[] Roles = { "terrain LOD0", "terrain LOD1", "buildings LOD0", "buildings LOD1", "trees LOD0", "trees LOD1", "ring", "HLOD", "other" };
+        static readonly string[] Roles = { "terrain LOD0", "terrain LOD1", "buildings LOD0", "buildings LOD1", "trees LOD0", "trees LOD1", "props LOD0", "props LOD1", "ring", "HLOD", "other" };
 
         sealed class ViewCount
         {
@@ -83,6 +83,8 @@ namespace DeadlyJenga.DevTools.Editor
             if (n == "Terrain_LOD1") return "terrain LOD1";
             if (n == "Trees") return "trees LOD0";
             if (n == "Trees_LOD1") return "trees LOD1";
+            if (n == "Props") return "props LOD0";
+            if (n == "Props_LOD1") return "props LOD1";
             if (n == "Ring") return "ring";
             if (n == "HLOD") return "HLOD";
             if (n.StartsWith("B_") && n.EndsWith("_LOD0")) return "buildings LOD0";
