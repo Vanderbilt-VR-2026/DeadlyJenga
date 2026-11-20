@@ -51,6 +51,11 @@ SPAWN_SITES = [
     ("Flora Wilson Community Plaza", "FloraWilsonPlaza", 1), ("The Martha Rivers Ingram Commons", "IngramCommons", 1),
 ]
 KIRKLAND = "B_544397715"
+BODY_CLEAR = 0.6           # survivor radius + margin around building colliders (route)
+TRUNK_CLEAR = 0.5          # around trunk colliders (route)
+BUILT_CLEAR = 2.0          # spawns, flags, hill, viewpoints stay this far outside building colliders
+MAX_STEP = 0.35            # height step between route samples that is walked without a warning
+JUMP = 1.0                 # the survivor can jump about this much; more is an error
 NAMES = {}                 # building id -> name (from footprints.json)
 ZONES = {}                 # building id -> campus / ring (from footprints.json)
 
@@ -325,15 +330,151 @@ def load_trees(root, preview, notes):
     return np.column_stack([X, Y, np.full(len(X), 0.3)])
 
 
+# ---- what the survivor collides with (the exported colliders) ----------------------
+
+def _hull2d(verts):
+    from shapely.geometry import MultiPoint
+    return MultiPoint(np.asarray(verts)[:, :2]).convex_hull
+
+
+def _mesh_outline(path):
+    """2D outline (union of the triangles seen from above) of a VC mesh."""
+    import shapely
+    with np.load(path) as z:
+        tri = z["verts"][z["faces"]][:, :, :2]
+    polys = shapely.polygons(tri)
+    return shapely.union_all(polys[shapely.area(polys) > 1e-6])
+
+
+def built_obstacles(root, notes):
+    """{building id: 2D outline} of every exported building, from the same records the exporter
+    uses (export_all.building_records: the v2 index when present, else v1 folders).
+    Outline: the v2 index footprint if given; else col_mesh.npz seen from above; else the union of
+    the col_*.npz convex hulls (Unity makes convex MeshColliders from them); else lod1/lod2."""
+    import shapely
+    from export_all import building_records
+    out, bad, src = {}, 0, {}
+    for r in building_records(root):
+        folder, bid = Path(r["folder"]), r["id"]
+        try:
+            if r.get("footprint"):
+                geom, how = _poly_from(r["footprint"]), "index footprint"
+            elif (folder / "col_mesh.npz").exists():
+                geom, how = _mesh_outline(folder / "col_mesh.npz"), "col_mesh"
+            elif list(folder.glob("col_*.npz")):
+                parts = []
+                for c in sorted(folder.glob("col_*.npz")):
+                    with np.load(c) as z:
+                        parts.append(_hull2d(z["verts"]))
+                geom, how = shapely.union_all(parts), "col hulls"
+            else:
+                f = next((folder / n for n in ("lod1.npz", "lod2.npz") if (folder / n).exists()), None)
+                if f is None:
+                    continue
+                geom, how = _mesh_outline(f), "lod outline"
+        except Exception:          # a building being rewritten right now: skip it, say so
+            bad += 1
+            continue
+        if geom is not None and not geom.is_empty:
+            out[bid] = geom.buffer(0)
+            src[how] = src.get(how, 0) + 1
+    if bad:
+        notes.append(f"{bad} buildings could not be read (being rewritten?) and were ignored")
+    notes.append(f"{len(out)} exported buildings used as obstacles: {src}")
+    return out
+
+
+def trunk_colliders(root):
+    """2D outlines of the trunk colliders (trees_col.npz): one convex hull per connected piece."""
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+    out = []
+    for p in sorted((root / "derived" / "trees" / "v1").glob("T_*/trees_col.npz")):
+        try:
+            with np.load(p) as z:
+                v, f = z["verts"], z["faces"]
+        except Exception:
+            continue
+        if not len(f):
+            continue
+        e = np.vstack([f[:, [0, 1]], f[:, [1, 2]]])
+        g = coo_matrix((np.ones(len(e)), (e[:, 0], e[:, 1])), shape=(len(v), len(v)))
+        n, lab = connected_components(g, directed=False)
+        for k in range(n):
+            pts = v[lab == k]
+            if len(pts) >= 3:
+                out.append(_hull2d(pts))
+    return out
+
+
+class WalkSurface:
+    """Height of the terrain collider (terrain_col.npz) at points: the surface the survivor walks on,
+    including curbs and walls that heights.npy smooths away. Falls back to Ground."""
+
+    def __init__(self, root, ground):
+        self.root, self.ground, self.cache = root, ground, {}
+
+    def _tile(self, t):
+        if t not in self.cache:
+            import shapely
+            from shapely.strtree import STRtree
+            d = self.root / "derived" / "terrain" / "v1" / t
+            p = d / "terrain_col.npz" if (d / "terrain_col.npz").exists() else d / "terrain.npz"
+            self.cache[t] = None
+            if p.exists():
+                with np.load(p) as z:
+                    T = z["verts"][z["faces"]]
+                polys = shapely.polygons(T[:, :, :2])
+                keep = shapely.area(polys) > 1e-8           # vertical faces have no area seen from above
+                self.cache[t] = (STRtree(polys[keep]), T[keep])
+        return self.cache[t]
+
+    def __call__(self, x, y):
+        import shapely
+        from export_all import tile_of
+        x, y = np.atleast_1d(np.asarray(x, float)), np.atleast_1d(np.asarray(y, float))
+        out = np.full(x.shape, np.nan)
+        names = np.array([tile_of(a, b) for a, b in zip(x, y)])
+        for t in np.unique(names):
+            m = np.nonzero(names == t)[0]
+            data = self._tile(t)
+            if data is None:
+                out[m] = self.ground(x[m], y[m])
+                continue
+            tree, T = data
+            pi, ti = tree.query(shapely.points(x[m], y[m]), predicate="intersects")
+            a, b, c = T[ti, 0], T[ti, 1], T[ti, 2]
+            px, py = x[m][pi], y[m][pi]
+            det = (b[:, 0] - a[:, 0]) * (c[:, 1] - a[:, 1]) - (c[:, 0] - a[:, 0]) * (b[:, 1] - a[:, 1])
+            u = ((px - a[:, 0]) * (c[:, 1] - a[:, 1]) - (c[:, 0] - a[:, 0]) * (py - a[:, 1])) / det
+            w = ((b[:, 0] - a[:, 0]) * (py - a[:, 1]) - (px - a[:, 0]) * (b[:, 1] - a[:, 1])) / det
+            z = a[:, 2] + u * (b[:, 2] - a[:, 2]) + w * (c[:, 2] - a[:, 2])
+            res = np.full(len(m), -np.inf)
+            np.maximum.at(res, pi, z)                       # top surface where triangles overlap
+            res[np.isinf(res)] = np.nan
+            out[m] = res
+        return out
+
+
 # ---- the obstacle test shared by spawns, teams and climb anchors ------------------
 
 class World:
-    def __init__(self, ground, surface, footprints, trees, campus):
+    """Everything the placement rules test against. Obstacles = footprints.json outlines plus the
+    exported building colliders (built); blocked = colliders + BODY_CLEAR and trunks + TRUNK_CLEAR."""
+
+    def __init__(self, ground, surface, footprints, trees, campus, built=None, trunks=None, walk=None):
         import shapely
         from shapely.strtree import STRtree
         self.ground, self.surface, self.campus = ground, surface, campus
-        self.ids = list(footprints)
-        self.polys = [footprints[i] for i in self.ids]
+        self.built = built or {}
+        self.walk_height = walk or ground
+        self.ids = list(footprints) + [f"built:{b}" for b in self.built]
+        self.polys = list(footprints.values()) + list(self.built.values())
+        parts = [g.buffer(BODY_CLEAR) for g in self.built.values()] + [t.buffer(TRUNK_CLEAR) for t in (trunks or [])]
+        self.blocked = shapely.union_all(parts) if parts else None
+        if self.blocked is not None:
+            shapely.prepare(self.blocked)
+        self.built_union = shapely.union_all(list(self.built.values())) if self.built else None
         self.tree = STRtree(self.polys)
         self.trees = trees
         self.union = shapely.union_all(self.polys)
@@ -346,6 +487,10 @@ class World:
         import shapely
         _idx, dist = self.tree.query_nearest(shapely.Point(x, y), return_distance=True)
         return float(dist[0]) if len(dist) else 1e9
+
+    def built_distance(self, x, y):
+        import shapely
+        return float(shapely.distance(self.built_union, shapely.Point(x, y))) if self.built_union is not None else 1e9
 
     def tree_distance(self, x, y):
         if self.trunks is None:
@@ -361,7 +506,7 @@ class World:
             reason = "outside campus"
         elif not np.isfinite(self.ground(x, y)[0]):
             reason = "no ground"
-        elif self.building_distance(x, y) < CLEAR_BUILDING:
+        elif self.building_distance(x, y) < CLEAR_BUILDING or self.built_distance(x, y) < BUILT_CLEAR:
             reason = "near building"
         elif self.tree_distance(x, y) < CLEAR_TREE:
             reason = "near tree"
@@ -476,15 +621,18 @@ def make_team(name, site, world):
 
 
 # ---- route -----------------------------------------------------------------------
+# The route is checked against what the survivor actually collides with: the
+# exported building colliders (col_*.npz), buffered by BODY_CLEAR, and the tree
+# trunk colliders (trees_col.npz), buffered by TRUNK_CLEAR.
 
-def path_graph(root, world, allow_covered):
+def path_graph(root, allow_covered):
+    """OSM pedestrian graph: (networkx Graph, {node: (x, y)}, list of stair lines)."""
     import frame
     import networkx as nx
-    import shapely
     from shapely.geometry import LineString
     data, (nodes, _ways, _rels) = osm_data(root)
     G = nx.Graph()
-    pos = {}
+    pos, stairs = {}, []
     for el in data["elements"]:
         tags = el.get("tags", {})
         if el["type"] != "way" or tags.get("highway") not in PATH_TYPES:
@@ -500,85 +648,186 @@ def path_graph(root, world, allow_covered):
             if n not in pos:
                 X, Y, _ = frame.to_campus(nodes[n]["lon"], nodes[n]["lat"], 0.0, 4326)
                 pos[n] = (float(X), float(Y))
+        if tags["highway"] == "steps" and len(ids) > 1:
+            stairs.append(LineString([pos[n] for n in ids]))
         cost = PATH_COST.get(tags["highway"], 1.0) * (3.0 if covered else 1.0)
         for a, b in zip(ids, ids[1:]):
-            seg = LineString([pos[a], pos[b]])
-            length = seg.length
-            if length < 1e-6:
-                continue
-            # Paths that cut through a footprint (indoor passages, mapping errors) cost a lot.
-            inside = shapely.intersection(world.union, seg).length if world.union.intersects(seg) else 0.0
-            G.add_edge(a, b, weight=length * cost + inside * 100.0, length=length, highway=tags["highway"])
-    return G, pos
+            length = math.dist(pos[a], pos[b])
+            if length > 1e-6:
+                G.add_edge(a, b, weight=length * cost, length=length, highway=tags["highway"])
+    return G, pos, stairs
 
 
-def nearest_node(G, pos, x, y):
-    best, bd = None, 1e18
-    for n in G.nodes:
-        d = (pos[n][0] - x) ** 2 + (pos[n][1] - y) ** 2
-        if d < bd:
-            best, bd = n, d
-    return best, math.sqrt(bd)
+def drop_blocked_edges(G, pos, blocked):
+    """Remove every edge whose straight segment touches the blocked area. Returns how many."""
+    import shapely
+    if blocked is None or blocked.is_empty:
+        return 0
+    edges = list(G.edges)
+    if not edges:
+        return 0
+    segs = shapely.linestrings([[pos[a], pos[b]] for a, b in edges])
+    shapely.prepare(blocked)
+    hit = shapely.intersects(blocked, segs)
+    G.remove_edges_from([e for e, h in zip(edges, hit) if h])
+    return int(hit.sum())
 
 
-def simplify_and_split(pts, step=15.0):
-    """Keep the path's corners (1 m tolerance) and add points so no segment is longer than step."""
+def clear_leg(blocked, p, q):
     from shapely.geometry import LineString
-    line = LineString(pts).simplify(1.0, preserve_topology=False)
-    c = list(line.coords)
-    out = [c[0]]
-    for a, b in zip(c, c[1:]):
-        L = math.dist(a, b)
-        n = max(1, math.ceil(L / step))
+    return blocked is None or not blocked.intersects(LineString([p, q]))
+
+
+def nearest_reachable(G, pos, p, blocked, limit=80.0):
+    """Nearest graph node whose straight leg from p is clear (None if none within limit)."""
+    cands = sorted(G.nodes, key=lambda n: (pos[n][0] - p[0]) ** 2 + (pos[n][1] - p[1]) ** 2)
+    for n in cands[:200]:
+        d = math.dist(pos[n], p)
+        if d > limit:
+            break
+        if clear_leg(blocked, p, pos[n]):
+            return n, d
+    return None, None
+
+
+def grid_route(world, blocked, stairs, start, end, cell=1.0, margin=120.0):
+    """A* over free 1 m cells (free = outside blocked; neighbor step <= MAX_STEP, or <= JUMP on a
+    mapped stair). Returns a list of points or None."""
+    import heapq
+    import shapely
+    x0, x1 = min(start[0], end[0]) - margin, max(start[0], end[0]) + margin
+    y0, y1 = min(start[1], end[1]) - margin, max(start[1], end[1]) + margin
+    xs, ys = np.arange(x0, x1, cell), np.arange(y0, y1, cell)
+    X, Y = np.meshgrid(xs, ys)
+    free = ~shapely.contains_xy(blocked, X.ravel(), Y.ravel()).reshape(X.shape) if blocked is not None \
+        else np.ones(X.shape, bool)
+    H = world.ground(X.ravel(), Y.ravel()).reshape(X.shape)
+    free &= np.isfinite(H)
+    stair = np.zeros(X.shape, bool)
+    if stairs:
+        sz = shapely.union_all(stairs).buffer(1.5)
+        stair = shapely.contains_xy(sz, X.ravel(), Y.ravel()).reshape(X.shape)
+    h, w = X.shape
+
+    def idx(p):
+        return int(round((p[1] - y0) / cell)), int(round((p[0] - x0) / cell))
+    s, g = idx(start), idx(end)
+    if not (free[s] and free[g]):
+        return None
+    steps = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+    dist = {s: 0.0}
+    prev = {}
+    heap = [(0.0, s)]
+    while heap:
+        _f, u = heapq.heappop(heap)
+        if u == g:
+            break
+        du = dist[u]
+        for dr, dc in steps:
+            v = (u[0] + dr, u[1] + dc)
+            if not (0 <= v[0] < h and 0 <= v[1] < w) or not free[v]:
+                continue
+            limit = JUMP if (stair[u] or stair[v]) else MAX_STEP
+            if abs(H[v] - H[u]) > limit:
+                continue
+            nd = du + cell * (1.4142 if dr and dc else 1.0)
+            if nd < dist.get(v, 1e18):
+                dist[v], prev[v] = nd, u
+                heapq.heappush(heap, (nd + cell * math.hypot(v[0] - g[0], v[1] - g[1]), v))
+    if g not in prev:
+        return None
+    cells, u = [g], g
+    while u != s:
+        u = prev[u]
+        cells.append(u)
+    return [start] + [(x0 + c * cell, y0 + r * cell) for r, c in reversed(cells)] + [end]
+
+
+def simplify_safe(pts, blocked, step=15.0):
+    """Drop points that are not needed (tolerance 1 m, then 0.3 m, then none) as long as every leg
+    stays clear, then split legs longer than step (a clear straight leg stays clear when split)."""
+    from shapely.geometry import LineString
+    coords = pts
+    for tol in (1.0, 0.3, 0.0):
+        c = list(LineString(pts).simplify(tol, preserve_topology=False).coords) if tol else list(pts)
+        if all(clear_leg(blocked, p, q) for p, q in zip(c, c[1:])):
+            coords = c
+            break
+    out = [coords[0]]
+    for a, b in zip(coords, coords[1:]):
+        n = max(1, math.ceil(math.dist(a, b) / step))
         for k in range(1, n + 1):
             out.append((a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n))
     return out
 
 
+def simulate_walk(world, blocked, wps, sample=0.25):
+    """Sample the polyline every 0.25 m: positions inside the blocked area, and height steps on the
+    walk surface (terrain collider) between samples. Returns (inside, warnings, errors, worst)."""
+    import shapely
+    pts = []
+    for p, q in zip(wps, wps[1:]):
+        n = max(2, int(math.ceil(math.dist(p, q) / sample)) + 1)
+        t = np.linspace(0, 1, n)[:-1]
+        pts.append(np.column_stack([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]))
+    pts.append(np.array([wps[-1]]))
+    pts = np.vstack(pts)
+    inside = []
+    if blocked is not None:
+        hit = shapely.contains_xy(blocked, pts[:, 0], pts[:, 1])
+        inside = [to_unity(x, y, 0) for x, y in pts[hit][:20]]
+    h = world.walk_height(pts[:, 0], pts[:, 1])
+    dh = np.abs(np.diff(h))
+    warnings, errors = [], []
+    for j in np.nonzero(np.isnan(h))[0][:20]:
+        errors.append({"at_unity": to_unity(pts[j, 0], pts[j, 1], 0), "problem": "no walk surface"})
+    for j in np.nonzero(dh > MAX_STEP)[0]:
+        item = {"at_unity": to_unity(pts[j, 0], pts[j, 1], h[j]), "step_m": round(float(dh[j]), 2)}
+        (errors if dh[j] > JUMP else warnings).append(item)
+    return inside, warnings, errors, (float(np.nanmax(dh)) if len(dh) else 0.0)
+
+
 def make_route(root, world, start, end, report):
     import networkx as nx
-    import shapely
-    from shapely.geometry import LineString
-    path = None
+    blocked = world.blocked
+    path_pts, method, highways = None, None, []
     for allow_covered in (False, True):
-        G, pos = path_graph(root, world, allow_covered)
-        a, da = nearest_node(G, pos, *start)
-        b, db = nearest_node(G, pos, *end)
+        G, pos, stairs = path_graph(root, allow_covered)
+        removed = drop_blocked_edges(G, pos, blocked)
+        a, da = nearest_reachable(G, pos, start, blocked)
+        b, db = nearest_reachable(G, pos, end, blocked)
+        if a is None or b is None:
+            continue
         try:
             path = nx.shortest_path(G, a, b, weight="weight")
-            if allow_covered:
-                report["route_notes"].append("needed tunnel/indoor/covered paths to connect")
-            break
         except nx.NetworkXNoPath:
             continue
-    if path is None:
-        report["problems"].append("no OSM path connects Alumni Lawn to Peabody Esplanade")
+        path_pts = [start] + [pos[n] for n in path] + [end]
+        highways = sorted({G.edges[u, v]["highway"] for u, v in zip(path, path[1:])})
+        method = "osm_graph" + ("_with_covered" if allow_covered else "")
+        report["route_notes"].append(f"{removed} OSM path edges removed: they touch a building collider "
+                                     f"(+{BODY_CLEAR} m) or a trunk (+{TRUNK_CLEAR} m)")
+        break
+    if path_pts is None:
+        _G, _pos, stairs = path_graph(root, True)
+        path_pts = grid_route(world, blocked, stairs, start, end)
+        method = "grid_astar_1m"
+        da = db = 0.0
+    if path_pts is None:
+        report["problems"].append("no clear walk from Alumni Lawn to Peabody Esplanade (OSM graph and 1 m grid)")
         return []
-    pts = [start] + [pos[n] for n in path] + [end]
-    wps = simplify_and_split(pts)
+    wps = simplify_safe(path_pts, blocked)
     length = sum(math.dist(p, q) for p, q in zip(wps, wps[1:]))
-    # Every straight leg must stay out of buildings (the play check walks straight lines).
-    shrunk = world.union.buffer(-0.3)
-    hits = []
-    for i, (p, q) in enumerate(zip(wps, wps[1:])):
-        if shrunk.intersects(LineString([p, q])):
-            hits.append(i)
-    steps, big = [], 0
-    for i, (p, q) in enumerate(zip(wps, wps[1:])):
-        n = max(2, int(math.dist(p, q) / 0.25) + 1)
-        xs, ys = np.linspace(p[0], q[0], n), np.linspace(p[1], q[1], n)
-        h = world.ground(xs, ys)
-        dh = np.abs(np.diff(h))
-        big += int((dh > 0.2).sum())
-        for j in np.nonzero(dh > 0.5)[0]:
-            steps.append({"segment": i, "at_unity": to_unity(xs[j], ys[j], h[j]), "step_m": round(float(dh[j]), 2)})
-    report["route"] = {"waypoints": len(wps), "length_m": round(length, 1), "osm_nodes": len(path),
-                       "start_offset_m": round(da, 1), "end_offset_m": round(db, 1),
-                       "legs_through_buildings": hits, "steps_over_0.5m": steps,
-                       "samples_with_step_over_0.2m": big,
-                       "highways": sorted({G.edges[u, v]["highway"] for u, v in zip(path, path[1:])})}
-    if hits:
-        report["problems"].append(f"route legs {hits} cross a building footprint")
+    inside, warnings, errors, worst = simulate_walk(world, blocked, wps)
+    report["route"] = {"method": method, "waypoints": len(wps), "length_m": round(length, 1),
+                       "start_offset_m": round(da, 1), "end_offset_m": round(db, 1), "highways": highways,
+                       "clearance": f"building colliders + {BODY_CLEAR} m, trunks + {TRUNK_CLEAR} m",
+                       "samples_inside_clearance": inside, "max_step_m": round(worst, 2),
+                       f"steps_{MAX_STEP}_to_{JUMP}m_warnings": warnings, f"steps_over_{JUMP}m_errors": errors}
+    if inside:
+        report["problems"].append(f"route passes inside building/trunk clearance at {inside[:3]}")
+    if errors:
+        report["problems"].append(f"route has {len(errors)} steps over {JUMP} m or gaps: {errors[:3]}")
     return [world.point(x, y, 0.0) for x, y in wps]
 
 
@@ -625,6 +874,8 @@ def wall_anchors(bid, poly, world):
         m = world.surface(x, y)
         if m is not None and m not in WALK_MATERIALS:
             continue
+        if world.built and not 0.45 <= world.built_distance(x, y) <= 0.8:
+            continue                                  # must sit 0.6 m off the collider wall
         out.append((L, x, y, nx, ny))
     return sorted(out, reverse=True)
 
@@ -634,7 +885,15 @@ def make_climbs(root, world, footprints, near_pts, report, count=6):
     pts = shapely.multipoints(np.asarray(near_pts)) if near_pts else None
     scored = []
     for bid, poly in footprints.items():
-        if poly.geom_type != "Polygon" or poly.area < 80 or ZONES.get(bid, "campus") != "campus":
+        if ZONES.get(bid, "campus") != "campus":
+            continue
+        if world.built:
+            if bid not in world.built:
+                continue                     # not exported: nothing to climb in the game
+            poly = world.built[bid]          # the collider outline, not the OSM/Metro footprint
+            if poly.geom_type == "MultiPolygon":
+                poly = max(poly.geoms, key=lambda g: g.area)
+        if poly.geom_type != "Polygon" or poly.area < 80:
             continue
         rect = rectangularity(poly)
         dist = float(shapely.distance(pts, poly)) if pts is not None else 0.0
@@ -764,7 +1023,10 @@ def main(argv=None):
     report["notes"] += ground.notes
     footprints = load_footprints(root, args.preview, report["notes"])
     trees = load_trees(root, args.preview, report["notes"])
-    world = World(ground, Surface(root), footprints, trees, campus)
+    built = built_obstacles(root, report["notes"])
+    trunks = trunk_colliders(root)
+    report["notes"].append(f"{len(trunks)} trunk colliders from trees_col.npz")
+    world = World(ground, Surface(root), footprints, trees, campus, built, trunks, WalkSurface(root, ground))
 
     # Spawns, teams, hill.
     spawns, sites = make_spawns(root, world, report)
@@ -796,6 +1058,7 @@ def main(argv=None):
     kirk_xy = (kirk.centroid.x, kirk.centroid.y) if kirk is not None else (104.59, 83.08)
     cands = [(s["name"], tuple(s["campus"])) for s in spawns] + \
             [(f"Route_{i:02d}", (r[0], r[2])) for i, r in enumerate(route)]
+    cands = [c for c in cands if world.built_distance(*c[1]) >= BUILT_CLEAR]
     views = make_viewpoints(world, cands, tris, alumni, kirk_xy, peabody, report)
 
     # Area and lowest ground.
@@ -834,6 +1097,17 @@ def main(argv=None):
            "climb": climbs, "sheltered": []}
     if args.preview:
         out["preview"] = True
+    # Every standing point must be BUILT_CLEAR outside the building colliders (climb anchors: 0.6 m).
+    pts = [("spawn " + sp["name"], sp["pos"]) for sp in out["spawns"]]
+    pts += [(f"team {t['name']} flag", t["flag"]) for t in teams] +         [(f"team {t['name']} spawn", q) for t in teams for q in t["spawns"]]
+    pts += [("hill", hill)] if hill else []
+    pts += [("viewpoint " + v["name"], v["pos"]) for v in views]
+    close = [(n, round(world.built_distance(q[0], q[2]), 2)) for n, q in pts
+             if world.built_distance(q[0], q[2]) < BUILT_CLEAR]
+    report["points_too_close_to_buildings"] = close
+    if close:
+        report["problems"].append(f"{len(close)} points closer than {BUILT_CLEAR} m to a building collider: {close[:5]}")
+    report["climb_wall_distance_m"] = [round(world.built_distance(c["pos"][0], c["pos"][2]), 2) for c in climbs]
     save_json(args.out, out)
     report["sheltered"] = "none: LoD2 buildings are solid, no roofed open areas"
     report["zones_known"] = len(zones)

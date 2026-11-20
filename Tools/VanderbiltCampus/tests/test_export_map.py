@@ -28,6 +28,7 @@ class FlatWorld:
     """Minimal stand-in for make_unity_map.World: flat open ground, one building."""
     def __init__(self, poly):
         self.union, self.campus = poly, box(-1000, -1000, 1000, 1000)
+        self.built = {}
 
     def ground(self, x, y):
         return np.zeros(np.shape(np.atleast_1d(x)))
@@ -53,3 +54,35 @@ def test_wall_anchor_faces_wall():
 
 def test_to_unity_axes():
     assert mum.to_unity(10, 20, 5) == [10.0, 5.0, 20.0]
+
+
+def test_building_across_path_removes_edge():
+    """A straight path A-B with a built building across it: the route must take the detour A-C-D-B."""
+    import networkx as nx
+    pos = {"A": (0, 0), "B": (100, 0), "C": (0, 30), "D": (100, 30)}
+    G = nx.Graph()
+    for a, b in (("A", "B"), ("A", "C"), ("C", "D"), ("D", "B")):
+        G.add_edge(a, b, weight=float(np.hypot(*np.subtract(pos[a], pos[b]))))
+    building = box(45, -10, 55, 10)                          # collider outline across A-B
+    blocked = building.buffer(mum.BODY_CLEAR)
+    assert mum.drop_blocked_edges(G, pos, blocked) == 1
+    assert nx.shortest_path(G, "A", "B", weight="weight") == ["A", "C", "D", "B"]
+    # Passing 0.4 m from the wall is still inside the survivor clearance.
+    near = {"E": (0, 10.4), "F": (100, 10.4)}
+    H = nx.Graph()
+    H.add_edge("E", "F", weight=100.0)
+    assert mum.drop_blocked_edges(H, near, blocked) == 1
+
+
+def test_grid_fallback_goes_around_building():
+    building = box(45, -10, 55, 10)
+    blocked = building.buffer(mum.BODY_CLEAR)
+
+    class W:
+        def ground(self, x, y):
+            return np.zeros(np.shape(np.atleast_1d(x)))
+    pts = mum.grid_route(W(), blocked, [], (0.0, 0.0), (100.0, 0.0), margin=30.0)
+    assert pts is not None
+    wps = mum.simplify_safe(pts, blocked)
+    assert all(mum.clear_leg(blocked, p, q) for p, q in zip(wps, wps[1:]))
+    assert max(abs(p[1]) for p in wps) >= 10.6 - 1.0          # it really went around

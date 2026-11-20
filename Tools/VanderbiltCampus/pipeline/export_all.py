@@ -21,8 +21,12 @@ Exits non-zero if anything failed.
 
 Archive inputs (VC_DATA_ROOT overrides the archive root):
   derived/terrain/v1/<tile>/terrain.npz, terrain_col.npz
-  buildings/<id>/v1/model.json (key "tile"), lod2.npz, lod1.npz, col_<n>.npz
+  derived/buildings/v2/index.json (when present: which version folder per building), else
+  buildings/<id>/v1/model.json (key "tile"); in the folder lod2.npz -> B_<id>_LOD0,
+  lod1.npz -> B_<id>_LOD1, col_mesh.npz -> COLM_<id> (one non-convex collider; replaces
+  the convex col_<n>.npz -> COL_<id>_<n>)
   derived/trees/v1/<tile>/trees_lod0.npz, trees_lod1.npz, trees_col.npz  (Trees, Trees_LOD1, COL_Trees)
+  derived/terrain/v1/<tile>/terrain_far.npz: ground of the HLOD object (fallback: terrain_col.npz)
   terrain_col.npz is also drawn as Terrain_LOD1 (the builder groups Terrain/Terrain_LOD1 and
   Trees/Trees_LOD1 under LODGroups)
   derived/buildings/ring/v1/<tile>.npz
@@ -97,9 +101,39 @@ def campus_polygon():
         return None
 
 
-def building_index(root):
-    """tile -> [(building id, folder)] from buildings/<id>/v1/model.json."""
-    out = {}
+def _v2_index(root):
+    """Records from derived/buildings/v2/index.json, or None when there is no v2 index.
+    Each record: id, tile, folder (the version folder to export), footprint (coords or None)."""
+    path = root / "derived" / "buildings" / "v2" / "index.json"
+    if not path.exists():
+        return None
+    data = load_json(path)
+    items = data.get("buildings", data) if isinstance(data, dict) else data
+    if isinstance(items, dict):
+        items = [dict(v, id=k) for k, v in items.items()]
+    out = []
+    for it in items:
+        bid = str(it.get("id") or it.get("building") or it.get("building_id"))
+        if not bid.startswith("B_"):
+            bid = "B_" + bid
+        folder = it.get("folder") or it.get("dir") or it.get("path")
+        if folder:
+            folder = Path(folder) if Path(folder).is_absolute() else root / folder
+        else:
+            v = str(it.get("version") or it.get("export_version") or "v2")
+            folder = root / "buildings" / bid / (v if v.startswith("v") else "v" + v)
+        out.append({"id": bid, "tile": it.get("tile"), "folder": folder,
+                    "footprint": it.get("footprint") or it.get("polygon")})
+    return out
+
+
+def building_records(root):
+    """Every building to export: [{id, tile, folder, footprint}].
+    From the v2 index when it exists, else buildings/<id>/v1 folders with a model.json."""
+    recs = _v2_index(root)
+    if recs is not None:
+        return recs
+    out = []
     for model in sorted((root / "buildings").glob("*/v1/model.json")):
         folder = model.parent
         bid = folder.parent.name
@@ -116,9 +150,36 @@ def building_index(root):
             with np.load(folder / "lod1.npz") as z:
                 c = z["verts"][:, :2].mean(0)
             tile = tile_of(*c)
-        if tile:
-            out.setdefault(tile, []).append((bid, folder))
+        out.append({"id": bid, "tile": tile, "folder": folder, "footprint": None})
     return out
+
+
+def building_index(root):
+    """tile -> [(building id, folder)]."""
+    out = {}
+    for r in building_records(root):
+        if r["tile"]:
+            out.setdefault(r["tile"], []).append((r["id"], Path(r["folder"])))
+    return out
+
+
+def building_objects(bid, folder):
+    """Plan entries for one building. col_mesh.npz (v2: one non-convex collider) replaces col_<n>.npz."""
+    objs = []
+    if (folder / "lod2.npz").exists():
+        objs.append({"name": f"{bid}_LOD0", "role": "building_lod0", "src": [str(folder / "lod2.npz")]})
+    if (folder / "lod1.npz").exists():
+        objs.append({"name": f"{bid}_LOD1", "role": "building_lod1", "src": [str(folder / "lod1.npz")]})
+    if (folder / "col_mesh.npz").exists():
+        objs.append({"name": f"COLM_{bid}", "role": "building_colm", "collider": True,
+                     "src": [str(folder / "col_mesh.npz")]})
+    else:
+        for col in sorted(folder.glob("col_*.npz")):
+            m = COL_RE.match(col.name)
+            if m:
+                objs.append({"name": f"COL_{bid}_{int(m.group(1))}", "role": "building_col",
+                             "collider": True, "src": [str(col)]})
+    return objs
 
 
 def markers_by_tile(unity_map):
@@ -188,15 +249,7 @@ def plan_tiles(root, out_dir, unity_map, only=None):
                 objects.append({"name": "COL_Terrain", "role": "terrain_col", "collider": True,
                                 "src": [str(tdir / "terrain_col.npz")]})
         for bid, folder in sorted(buildings.get(tile, [])):
-            if (folder / "lod2.npz").exists():
-                objects.append({"name": f"{bid}_LOD0", "role": "building_lod0", "src": [str(folder / "lod2.npz")]})
-            if (folder / "lod1.npz").exists():
-                objects.append({"name": f"{bid}_LOD1", "role": "building_lod1", "src": [str(folder / "lod1.npz")]})
-            for col in sorted(folder.glob("col_*.npz")):
-                m = COL_RE.match(col.name)
-                if m:
-                    objects.append({"name": f"COL_{bid}_{int(m.group(1))}", "role": "building_col",
-                                    "collider": True, "src": [str(col)]})
+            objects += building_objects(bid, folder)
         trees = root / "derived" / "trees" / "v1" / tile
         if (trees / "trees_lod0.npz").exists():
             objects.append({"name": "Trees", "role": "trees", "src": [str(trees / "trees_lod0.npz")]})
@@ -209,11 +262,17 @@ def plan_tiles(root, out_dir, unity_map, only=None):
         if ring.exists():
             objects.append({"name": "Ring", "role": "ring", "src": [str(ring)]})
         # HLOD: the far version of the whole tile in one mesh and one material slot (one draw call).
-        far = [o["src"][0] for o in objects if o["role"] in ("terrain_lod1", "building_lod1", "trees_lod1", "ring")]
+        # Ground: terrain_far.npz (about 200 triangles with a border skirt), else the Terrain_LOD1 source.
+        if (tdir / "terrain_far.npz").exists():
+            far, ground = [str(tdir / "terrain_far.npz")], "terrain_far"
+        else:
+            far = [o["src"][0] for o in objects if o["role"] == "terrain_lod1"]
+            ground = "terrain_col (no terrain_far.npz)"
+        far += [o["src"][0] for o in objects if o["role"] in ("building_lod1", "trees_lod1", "ring")]
         if far:
             objects.append({"name": "HLOD", "role": "hlod", "src": far, "single_material": "mat_mixed",
-                            "note": "Terrain_LOD1 + building LOD1 + Trees_LOD1 + Ring merged; one slot mat_mixed, "
-                                    "color R = material index; UV0 copied per source, so charts overlap"})
+                            "note": f"ground from {ground} + building LOD1 + Trees_LOD1 + Ring merged; one slot "
+                                    "mat_mixed, color R = material index; UV0 copied per source, so charts overlap"})
         empties = markers.get(tile, [])
         plan = {"tile": tile, "zone": zone, "fbx": str(Path(out_dir) / f"{tile}.fbx"),
                 "stats": str(export_dir / f"{tile}.json"), "check": str(export_dir / "check" / f"{tile}.json"),

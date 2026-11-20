@@ -58,6 +58,7 @@ def run(tmp_path_factory):
     # Terrain of tile T_00_00 uses all 27 material indices.
     save_mesh(t0 / "terrain.npz", *grid(0, 0, 100, 4, 2.0, list(range(27))))
     save_mesh(t0 / "terrain_col.npz", *grid(0, 0, 100, 1, 2.0, [20, 17]))
+    save_mesh(t0 / "terrain_far.npz", *grid(0, 0, 100, 1, 2.0, [18]))
     save_mesh(t1 / "terrain.npz", *grid(100, 0, 100, 1, 3.0, [20]))
     (root / "derived/terrain/v1/T_02_00").mkdir(parents=True)          # empty tile: skipped
     # One building with an id containing underscores; its corner is the axis marker (10, 20, 5).
@@ -66,6 +67,18 @@ def run(tmp_path_factory):
     save_mesh(b / "lod1.npz", *box(10, 20, 2, 20, 30, 5, 1, 13))
     save_mesh(b / "col_0.npz", *box(10, 20, 2, 20, 30, 5, 0, 0))
     (b / "model.json").write_text(json.dumps({"building": "B_new_3", "tile": "T_00_00"}))
+    # Buildings v2: an index picks the folder; col_mesh.npz (one non-convex collider) replaces col_<n>.npz.
+    k = root / "buildings/B_544397715/v2"
+    save_mesh(k / "lod2.npz", *box(60, 60, 2, 70, 70, 12, 2, 11))
+    save_mesh(k / "lod1.npz", *box(60, 60, 2, 70, 70, 12, 2, 11))
+    save_mesh(k / "col_mesh.npz", *box(60, 60, 2, 70, 70, 12, 2, 2))
+    save_mesh(k / "col_0.npz", *box(60, 60, 2, 70, 70, 12, 2, 2))      # old convex part: must be ignored
+    idx = root / "derived/buildings/v2"
+    idx.mkdir(parents=True)
+    (idx / "index.json").write_text(json.dumps({"buildings": [
+        {"id": "B_new_3", "tile": "T_00_00", "folder": "buildings/B_new_3/v1"},
+        {"id": "B_544397715", "tile": "T_00_00", "version": "v2",
+         "footprint": [[60, 60], [70, 60], [70, 70], [60, 70]]}]}))
     tr = root / "derived/trees/v1/T_00_00"
     save_mesh(tr / "trees_lod0.npz", *box(50, 50, 2, 51, 51, 8, 22, 23))
     save_mesh(tr / "trees_lod1.npz", *box(50, 50, 2, 51, 51, 8, 22, 23))
@@ -108,6 +121,7 @@ def test_names_and_materials(run):
     c0, c1 = check(run, "T_00_00"), check(run, "T_01_00")
     assert c0["pass"] and c1["pass"], (c0["problems"], c1["problems"])
     assert set(c0["objects"]) == {"Terrain", "Terrain_LOD1", "HLOD", "COL_Terrain", "B_new_3_LOD0", "B_new_3_LOD1", "COL_B_new_3_0",
+                                  "B_544397715_LOD0", "B_544397715_LOD1", "COLM_B_544397715",
                                   "Trees", "Trees_LOD1", "COL_Trees"}
     assert set(c1["objects"]) >= {"Terrain", "Ring"}
     assert set(c0["info"]["empties"]) == {"Spawn_AlumniLawn_1", "Route_00", "Climb_B_new_3", "Climb_B_new_3_b"}
@@ -124,10 +138,13 @@ def test_names_and_materials(run):
     assert t1["triangles"] == 12 and t1["materials"] == ["mat_bark", "mat_foliage"]
     assert t1["color_r_bytes"] == [22, 23] and t1["uv_layers"][0] == "UV0"
     assert "Trees_LOD1" not in c1["objects"]
-    # HLOD = Terrain_LOD1 (2) + B_new_3 LOD1 (12) + Trees_LOD1 (12) in one mesh, one slot.
+    # v2 building: one non-convex collider object, no convex parts.
+    assert c0["objects"]["COLM_B_544397715"]["triangles"] == 12
+    assert not any(n.startswith("COL_B_544397715") for n in c0["objects"])
+    # HLOD = terrain_far (2, asphalt 18) + 2 building LOD1 (24) + Trees_LOD1 (12) in one mesh, one slot.
     h = c0["objects"]["HLOD"]
-    assert h["triangles"] == 26 and h["materials"] == ["mat_mixed"] and h["uv_layers"][0] == "UV0"
-    assert h["color_r_bytes"] == [1, 13, 17, 20, 22, 23] and h["import_color_bytes"] == [1, 13, 17, 20, 22, 23]
+    assert h["triangles"] == 38 and h["materials"] == ["mat_mixed"] and h["uv_layers"][0] == "UV0"
+    assert h["color_r_bytes"] == [1, 2, 11, 13, 18, 22, 23] and h["import_color_bytes"] == [1, 2, 11, 13, 18, 22, 23]
     assert c1["objects"]["HLOD"]["triangles"] == 12            # ring tile: only the Ring exists          # T_01_00 has no terrain_col.npz
 
 
