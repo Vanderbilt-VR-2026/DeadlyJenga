@@ -355,8 +355,9 @@ namespace DeadlyJenga.Presentation
         void BuildCityBackdrop()
         {
             float R=Mathf.Max(halfWidth,halfDepth);
-            // Hot-air balloons on two slowly turning rings.
-            for(int ring=0;ring<2;ring++)
+            // Hot-air balloons on two slowly turning rings (Candy Sky Ring City has its own flying fleet).
+            if(solidCandy)BuildBalloonFleet();
+            else for(int ring=0;ring<2;ring++)
             {
                 var m=new ArtMesh(1);int count=ring==0?5:6;
                 for(int i=0;i<count;i++)
@@ -427,6 +428,7 @@ namespace DeadlyJenga.Presentation
             if(balloonRing){balloonRing.localRotation=Quaternion.Euler(0,time*1.2f,0);balloonRing.localPosition=Vector3.up*Mathf.Sin(time*.3f)*2;}
             if(balloonRingOuter){balloonRingOuter.localRotation=Quaternion.Euler(0,-time*.7f,0);balloonRingOuter.localPosition=Vector3.up*Mathf.Sin(time*.25f+1)*3;}
             AnimateCars(time);
+            if(solidCandy)AnimateBalloons(time);
             float length=Mathf.Max(1,(cableB-cableA).magnitude);
             for(int i=0;i<cabins.Count;i++)
             {

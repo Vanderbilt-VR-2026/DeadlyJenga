@@ -36,7 +36,7 @@ namespace DeadlyJenga.DevTools.Editor
     // Every run also writes a gallery folder (Logs/Captures/...) with manifest.json, contact-sheet.png and index.html.
     public static class MapPictureRig
     {
-        internal static readonly string[] AllViews = { "hero", "top", "front", "close", "target" };
+        internal static readonly string[] AllViews = { "hero", "top", "front", "close", "target", "balloon" };
 
         [MenuItem("Tools/Deadly Jenga/Maps/Map Pictures/Quick: Render All (lobby pictures)")]
         static void RenderAll() => Run(null, new[] { "hero" }, null, false, 1600, 1100, null, CaptureOutput.OpenByDefault);
@@ -83,7 +83,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             if (clip != null && !CameraPath.Modes.Contains(clip.mode)) throw new ArgumentException("Unknown clip " + clip.mode + " (" + string.Join(", ", CameraPath.Modes) + ").");
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");
-            foreach (var v in views) if (!AllViews.Contains(v)) throw new ArgumentException("Unknown view " + v + " (hero, top, front, close, target).");
+            foreach (var v in views) if (!AllViews.Contains(v)) throw new ArgumentException("Unknown view " + v + " (hero, top, front, close, target, balloon).");
             var source = Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog");
             if (!source) throw new InvalidOperationException("IslandLobby/Catalog is missing.");
             var catalog = Object.Instantiate(source);

@@ -298,6 +298,14 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     string path = single ? job.output : string.IsNullOrEmpty(job.output) && view == "hero" ? lobby : Path.Combine(job.gallery, id + "-" + view + ".png");
                     MapPictureRig.Place(camera, view, bounds, job.width / (float)job.height);
+                    // "balloon": a close look at the first hot-air balloon, when the map has one (else the hero view).
+                    var balloon = view == "balloon" ? GameObject.Find("Visual · hot-air balloon 1") : null;
+                    if (balloon)
+                    {
+                        var at = balloon.transform.position + Vector3.down * 2;
+                        camera.transform.position = at + new Vector3(16, 3, -22);
+                        camera.transform.LookAt(at);
+                    }
                     Render(camera, job.width, job.height, path);
                     gallery.Add(path, id + " · " + view, "image", job.width, job.height);
                 }
