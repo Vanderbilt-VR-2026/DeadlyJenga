@@ -43,6 +43,43 @@ namespace DeadlyJenga.DevTools.Editor
         // -executeMethod DeadlyJenga.DevTools.Editor.CandyCityLayoutChecks.RunSkyRing (only the newest map)
         public static void RunSkyRing() => RunMaps(Maps.Where(m => m.design == EpicCityLayout.SkyRingCityDesign).ToArray());
 
+        // -executeMethod DeadlyJenga.DevTools.Editor.CandyCityLayoutChecks.RunSkyRingTour
+        // Player-eye pictures all over Candy Sky Ring City (streets, roofs, bridges, inside a tower) plus wide looks
+        // across the whole map from the high points. No checks; pictures only.
+        public static void RunSkyRingTour()
+        {
+            // name, stand near (x, y, z), look at (x, y, z); metres from the map center, y = rough floor height.
+            var shots = new (string name, Vector3 at, Vector3 look)[]
+            {
+                ("street-01-se-crosswalk", new Vector3(40, .5f, -40), new Vector3(0, 8, 0)),
+                ("street-02-plaza-vault", new Vector3(0, .5f, -21), new Vector3(0, 12, 8)),
+                ("street-03-under-sky-bridge", new Vector3(-76, .5f, -12), new Vector3(-60, 28, -10)),
+                ("street-04-sugar-market", new Vector3(-36, .5f, 36), new Vector3(-51, 5, 51)),
+                ("street-05-harbor-drawbridge", new Vector3(35, .5f, -63), new Vector3(46, 5, -79)),
+                ("street-06-downtown-base", new Vector3(35, .5f, 35), new Vector3(56, 30, 56)),
+                ("street-07-avenue-to-keep", new Vector3(-20, .5f, -40), new Vector3(-59, 20, -59)),
+                ("street-08-north-ring-road", new Vector3(13, .5f, 48), new Vector3(0, 8, -20)),
+                ("street-09-east-shelter", new Vector3(60, .5f, 5), new Vector3(-20, 8, 5)),
+                ("street-10-island-edge", new Vector3(-10, .5f, -92), new Vector3(0, 15, 0)),
+                ("inside-01-canyon-tower", new Vector3(27, 5.6f, 17), new Vector3(-10, 6, 17)),
+                ("roof-01-sugar-annex-sky-bridge", new Vector3(-66, 29.6f, 12), new Vector3(-56, 30, -28)),
+                ("roof-02-harbor-block", new Vector3(48, 13.6f, -48), new Vector3(0, 8, 0)),
+                ("roof-03-sugar-hall", new Vector3(-48, 9.6f, 48), new Vector3(0, 8, 0)),
+                ("roof-04-vault-fountain", new Vector3(8, 13.6f, -8), new Vector3(0, 14, 2)),
+                ("bridge-01-harbor-to-downtown", new Vector3(75, 21.6f, 16), new Vector3(67, 25, 46)),
+                ("bridge-02-plaza-diagonal", new Vector3(7, 21.6f, 1.5f), new Vector3(34, 21, -10)),
+                ("wide-01-from-downtown-top", new Vector3(56, 47, 56), new Vector3(-40, 0, -40)),
+                ("wide-02-from-keep-top", new Vector3(-59, 37.5f, -59), new Vector3(56, 12, 56)),
+                ("wide-03-from-canyon-se-roof", new Vector3(22, 29.6f, -23), new Vector3(-40, 5, 40)),
+                ("wide-04-from-canyon-nw-roof", new Vector3(-27, 25.6f, 23), new Vector3(40, 5, -40)),
+                ("wide-05-harbor-bridge-look-back", new Vector3(75, 21.6f, 16), new Vector3(-20, 6, -20)),
+                ("wide-06-sugar-annex-over-city", new Vector3(-66, 29.6f, 12), new Vector3(40, 5, -10)),
+            };
+            string F(float v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var views = shots.Select(s => $"pov|{s.name}|{F(s.at.x)}|{F(s.at.y)}|{F(s.at.z)}|{F(s.look.x)}|{F(s.look.y)}|{F(s.look.z)}").ToArray();
+            MapLiveCapture.BatchMaps(new List<string> { "epic-candy-sky-ring-city" }, Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Captures", "SkyRingTour"), views);
+        }
+
         static void RunMaps((int design, string id)[] maps)
         {
             var report = new StringBuilder("Candy city layout checks\n");

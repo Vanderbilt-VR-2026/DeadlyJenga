@@ -95,6 +95,29 @@ namespace DeadlyJenga.DevTools.Editor
             Begin(new Job { batch = true, output = output, views = MapPictureRig.AllViews }, null, false, ids);
         }
 
+        // Same, with chosen views. A view "pov|name|x|y|z|lookX|lookY|lookZ" is a player-eye shot: the camera stands
+        // on the first surface below (x, y + 1.6, z) relative to the map center, 1 m up, looking at the look point.
+        public static void BatchMaps(ICollection<string> ids, string output, string[] views)
+        {
+            Begin(new Job { batch = true, output = output, views = views }, null, false, ids);
+        }
+
+        static bool PlayerEye(Camera camera, string view, IWorldQuery world, out string name)
+        {
+            name = null; var p = view.Split('|');
+            if (p.Length != 8 || p[0] != "pov") return false;
+            var f = new float[6];
+            for (int i = 0; i < 6; i++) f[i] = float.Parse(p[i + 2], System.Globalization.CultureInfo.InvariantCulture);
+            name = p[1];
+            var guess = world.Center + new Vector3(f[0], f[1], f[2]);
+            var feet = guess;
+            if (Physics.Raycast(guess + Vector3.up * 1.6f, Vector3.down, out var hit, 40, ~0, QueryTriggerInteraction.Ignore)) feet = hit.point;
+            camera.transform.position = feet + Vector3.up * 1f;
+            camera.transform.LookAt(world.Center + new Vector3(f[3], f[4], f[5]));
+            camera.fieldOfView = 70;
+            return true;
+        }
+
         static void Size(string text, ref int w, ref int h)
         {
             var p = text?.Split('x');
@@ -296,6 +319,14 @@ namespace DeadlyJenga.DevTools.Editor
                 bool single = job.maps.Count == 1 && job.views.Length == 1 && job.clip.Length == 0 && Path.HasExtension(job.output);
                 foreach (var view in job.views)
                 {
+                    camera.fieldOfView = 38;
+                    if (PlayerEye(camera, view, world, out string eye))
+                    {
+                        string eyePath = Path.Combine(job.gallery, id + "-" + eye + ".png");
+                        Render(camera, job.width, job.height, eyePath);
+                        gallery.Add(eyePath, id + " · " + eye, "image", job.width, job.height);
+                        continue;
+                    }
                     string path = single ? job.output : string.IsNullOrEmpty(job.output) && view == "hero" ? lobby : Path.Combine(job.gallery, id + "-" + view + ".png");
                     MapPictureRig.Place(camera, view, bounds, job.width / (float)job.height);
                     // "balloon": a close look at the first hot-air balloon, when the map has one (else the hero view).
