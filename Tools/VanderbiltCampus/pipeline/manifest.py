@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS files (
 def connect(root=None):
     root = Path(root or data_root())
     root.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(root / "manifest.sqlite")
+    db = sqlite3.connect(root / "manifest.sqlite", timeout=120)  # other scripts may be writing
     db.execute(SCHEMA)
     return db
 

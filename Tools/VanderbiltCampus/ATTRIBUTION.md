@@ -68,3 +68,66 @@ content is used anywhere.
 - Script: `pipeline/fetch_metro.py --only naip` -> `raw/metro/<date>/naip/`.
 - License: public domain. Credit: **USDA Farm Production and Conservation
   Business Center (NAIP); served by USGS The National Map.**
+
+## Stand-in capture photos (Stage 2/3 samples)
+
+Public photos used only to test intake, alignment and measurement until Evan's
+own capture exists. Script: `pipeline/fetch_samples.py` (stage 2 in the
+manifest). Per-file author, license and source URL are in the `licenses.json`
+/ `sequence.json` / `record.json` files named below and in the manifest's
+license column. **CC BY-SA items require author credit and share-alike:** any
+texture, image or other adaptation made from them must be released under the
+same CC BY-SA license with credit, so prefer them for alignment/measurement
+(facts, not copied pixels) and do not bake them into game textures without
+deciding that first. CC BY items need credit only. Faces/plates: blur in
+`derived/` before any sharing (STANDARDS.md §9).
+
+### Wikimedia Commons: Vanderbilt campus photos
+- Where: MediaWiki API https://commons.wikimedia.org/w/api.php (categories
+  "Kirkland Hall", "Vanderbilt University structures" and siblings, plus every
+  geotagged file inside the campus box); originals from upload.wikimedia.org.
+- Script: `pipeline/fetch_samples.py commons` -> `raw/capture/commons-<date>/wikimedia/<category>/`.
+- Licenses accepted: public domain, CC0, CC BY, CC BY-SA (no NC/ND). Per-file
+  author, license, license URL, page URL, date taken and GPS:
+  `raw/capture/commons-<date>/licenses.json` (also one per category folder).
+- Credit: **"<file title>" by <author>, <license>, via Wikimedia Commons**, per file.
+
+### KartaView street-level imagery
+- Where: public API https://api.kartaview.org/2.0 (no account); images are
+  KartaView's processed copies with faces and plates blurred by KartaView.
+- Script: `pipeline/fetch_samples.py kartaview` -> `raw/capture/kartaview-<date>/<sequence>/`
+  with `sequence.json` (lat, lon, heading, time, size per photo); summary in
+  `derived/capture/kartaview-<date>/summary.json`.
+- License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).
+  Credit: **Imagery © KartaView contributors, CC BY-SA 4.0** (user ids in sequence.json).
+
+### Wikimedia Commons: 360 video sample
+- File: "3-mins-in-360 on The Old Ghost Road.webm" (outdoor trail walk,
+  4096x2048 equirectangular), https://commons.wikimedia.org/wiki/File:3-mins-in-360_on_The_Old_Ghost_Road.webm
+- Script: `pipeline/fetch_samples.py video360` -> `raw/capture/commons-<date>/video360/`
+  (original) and a 45 s stream copy in `derived/capture/commons-<date>/video360/`.
+- License: CC BY-SA 3.0; author and credit in `video360/licenses.json`.
+- Status 2026-11-19: **not downloaded yet** (upload.wikimedia.org answered
+  HTTP 429 to this client; see the Commons note below).
+
+Note (2026-11-19): Wikimedia's User-Agent policy asks automated clients for
+contact details in the User-Agent. Our generic agent got the metadata but
+upload.wikimedia.org refused almost every original file (HTTP 429). Only 1
+Commons photo is on disk; the full candidate list with licenses is in
+`derived/capture/commons-<date>/api_cache.json` and `licenses-progress.json`.
+`raw/.../licenses.json` is written once a run finishes without failures.
+
+### Zenodo 16576623: Paganico street-facade photogrammetry set (fallback)
+- "Photogrammetry Photo Dataset of Historic Architecture in Paganico, Italy",
+  Maria Legut-Pintal, 2025, 65 JPGs (Canon EOS RP, 50 mm), https://zenodo.org/records/16576623
+- Script: `pipeline/fetch_samples.py fallback` -> zip in `raw/capture/fallback-<date>/zenodo-16576623/`
+  with `record.json`; images unpacked to `derived/capture/fallback-<date>/zenodo-16576623/images/`.
+- License: CC BY 4.0 (record license field "cc-by-4.0"). Credit: **Maria
+  Legut-Pintal, Photogrammetry Photo Dataset of Historic Architecture in Paganico, Italy, Zenodo, CC BY 4.0.**
+
+### Checked and not used
+- Mapillary: the Graph API needs an access token (account). Optional Evan to-do.
+- Flickr: the search API needs a key; the keyless public feed has no license
+  field, so licenses cannot be checked. Not used.
+- COLMAP sample datasets (UNC buildings): no license stated. Not used.
+- CRBeDaSet (Mendeley Data 9nvn27yw62): CC BY-NC 3.0. Not used (NC).
