@@ -4847,7 +4847,7 @@
       "last_capture": null
     },
     "B_285022929/east-1": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -4859,7 +4859,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 3,
+          "coverage_pct": 20.7,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_285022929/east-2": {
       "status": "not_started",
@@ -4907,7 +4915,7 @@
       "last_capture": null
     },
     "B_285022929/north-3": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -4919,7 +4927,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 3,
+          "coverage_pct": 95.6,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_285022929/north-east-1": {
       "status": "not_started",
@@ -11987,7 +12003,7 @@
       "last_capture": null
     },
     "B_544413710/east-1": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -11999,7 +12015,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 3,
+          "coverage_pct": 15.3,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_544413710/east-2": {
       "status": "not_started",
@@ -12047,7 +12071,7 @@
       "last_capture": null
     },
     "B_544413710/north-2": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -12059,7 +12083,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 3,
+          "coverage_pct": 78.5,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_544413710/north-3": {
       "status": "not_started",
@@ -13247,7 +13279,7 @@
       "last_capture": null
     },
     "B_544597154/east": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -13259,7 +13291,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 4,
+          "coverage_pct": 35.8,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_544597154/north-1": {
       "status": "not_started",
@@ -13337,7 +13377,7 @@
       "last_capture": null
     },
     "B_544597155/east": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -13349,7 +13389,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 4,
+          "coverage_pct": 13.8,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_544597155/north": {
       "status": "not_started",
@@ -21827,7 +21875,7 @@
       "last_capture": null
     },
     "B_544658927/north": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -21839,7 +21887,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 4,
+          "coverage_pct": 21.9,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_544658927/south": {
       "status": "not_started",
@@ -21857,7 +21913,7 @@
       "last_capture": null
     },
     "B_544658927/west": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -21869,7 +21925,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 4,
+          "coverage_pct": 100.0,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_544658928/east": {
       "status": "not_started",
@@ -21887,7 +21951,7 @@
       "last_capture": null
     },
     "B_544658928/north": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -21899,7 +21963,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 2,
+          "coverage_pct": 68.6,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_544658928/south": {
       "status": "not_started",
@@ -21932,7 +22004,7 @@
       "last_capture": null
     },
     "B_544658928/west-1": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -21944,7 +22016,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 4,
+          "coverage_pct": 100.0,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_544658928/west-2": {
       "status": "not_started",
@@ -22202,7 +22282,7 @@
       "last_capture": null
     },
     "B_544658931/north-2": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -22214,7 +22294,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 3,
+          "coverage_pct": 8.2,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_544658931/north-3": {
       "status": "not_started",
@@ -22277,7 +22365,7 @@
       "last_capture": null
     },
     "B_544658931/west-1": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -22289,7 +22377,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 4,
+          "coverage_pct": 15.2,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_544658931/west-2": {
       "status": "not_started",
@@ -32132,7 +32228,7 @@
       "last_capture": null
     },
     "B_new_201/south": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -32144,7 +32240,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 4,
+          "coverage_pct": 40.6,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_new_201/west": {
       "status": "not_started",
@@ -32372,7 +32476,7 @@
       "last_capture": null
     },
     "B_new_208/east": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -32384,10 +32488,18 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 5,
+          "coverage_pct": 33.3,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_new_208/north": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -32399,7 +32511,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 2,
+          "coverage_pct": 9.1,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_new_208/south": {
       "status": "not_started",
@@ -32447,7 +32567,7 @@
       "last_capture": null
     },
     "B_new_209/north": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -32459,7 +32579,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 4,
+          "coverage_pct": 100.0,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_new_209/south": {
       "status": "not_started",
@@ -32492,7 +32620,7 @@
       "last_capture": null
     },
     "B_new_213/east": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -32504,10 +32632,18 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 10,
+          "coverage_pct": 29.8,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_new_213/north": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -32519,7 +32655,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 7,
+          "coverage_pct": 100.0,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_new_213/south": {
       "status": "not_started",
@@ -39917,7 +40061,7 @@
       "last_capture": null
     },
     "B_r7779786/north-east-1": {
-      "status": "not_started",
+      "status": "aligned",
       "sets": {},
       "kind": "shot_list",
       "shot_kind": "facade",
@@ -39929,7 +40073,15 @@
       "photo_count": 0,
       "usable_count": 0,
       "flagged_count": 0,
-      "last_capture": null
+      "last_capture": null,
+      "aligned": {
+        "kartaview-2026-11-19": {
+          "version": "v1",
+          "photos": 3,
+          "coverage_pct": 14.2,
+          "date": "2026-11-20"
+        }
+      }
     },
     "B_r7779786/north-east-2": {
       "status": "not_started",
@@ -48009,7 +48161,7 @@
       "last_capture": null
     }
   },
-  "updated": "2026-11-20T10:43:30",
+  "updated": "2026-11-20T13:47:14",
   "rule": "captured: >= min_photos (default 12) usable photos; needs_reshoot: photos exist but > 40% flagged, or too few usable; aligned: set by the alignment stage",
   "target_sources": {
     "kartaview-2026-11-19": "shot_list",

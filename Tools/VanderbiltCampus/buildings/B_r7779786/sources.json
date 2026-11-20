@@ -1,0 +1,29 @@
+{
+  "building": "B_r7779786",
+  "version": 1,
+  "facades": {
+    "north-east-1": {
+      "photos": [
+        "kartaview-2026-11-19/3632465/00043_3632465_fa62a_60ba731589fcc.jpg",
+        "kartaview-2026-11-19/3632465/00044_3632465_78a89_60ba731734c39.jpg",
+        "kartaview-2026-11-19/3632465/00045_3632465_a4a69_60ba7318c883a.jpg"
+      ],
+      "frames_360": [],
+      "scans": [],
+      "sets": {
+        "kartaview-2026-11-19": {
+          "alignment": "derived/alignment/kartaview-2026-11-19/v1",
+          "photos": 3,
+          "coverage_pct": 14.2,
+          "mean_view_distance_m": 74.09
+        }
+      },
+      "shot_list_id": "B_r7779786/north-east-1",
+      "coverage_pct": 14.2,
+      "mean_view_distance_m": 74.09
+    }
+  },
+  "updated": "2026-11-20T13:47:14",
+  "script": "Tools/VanderbiltCampus/pipeline/align_sources.py",
+  "rule": "photo listed when it sees >= 0.05 of the facade samples (in front, in frustum, <= 80 m, not behind another footprint); coverage_pct = share of samples seen by >= 2 photos at incidence <= 70 deg"
+}

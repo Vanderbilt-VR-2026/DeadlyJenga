@@ -1,0 +1,87 @@
+{
+  "building": "B_544658931",
+  "version": 1,
+  "facades": {
+    "north-3": {
+      "photos": [
+        "kartaview-2026-11-19/3632465/00137_3632465_dc936_60ba73ad0aaee.jpg"
+      ],
+      "frames_360": [],
+      "scans": [],
+      "sets": {
+        "kartaview-2026-11-19": {
+          "alignment": "derived/alignment/kartaview-2026-11-19/v1",
+          "photos": 1,
+          "coverage_pct": 0.0,
+          "mean_view_distance_m": 24.78
+        }
+      },
+      "shot_list_id": "B_544658931/north-3",
+      "coverage_pct": 0.0,
+      "mean_view_distance_m": 24.78
+    },
+    "west-2": {
+      "photos": [
+        "kartaview-2026-11-19/3632465/00137_3632465_dc936_60ba73ad0aaee.jpg",
+        "kartaview-2026-11-19/3632465/00138_3632465_75c26_60ba73aec72da.jpg"
+      ],
+      "frames_360": [],
+      "scans": [],
+      "sets": {
+        "kartaview-2026-11-19": {
+          "alignment": "derived/alignment/kartaview-2026-11-19/v1",
+          "photos": 2,
+          "coverage_pct": 0.0,
+          "mean_view_distance_m": 27.36
+        }
+      },
+      "shot_list_id": "B_544658931/west-2",
+      "coverage_pct": 0.0,
+      "mean_view_distance_m": 27.36
+    },
+    "west-1": {
+      "photos": [
+        "kartaview-2026-11-19/3632465/00129_3632465_c3838_60ba739fab0b3.jpg",
+        "kartaview-2026-11-19/3632465/00130_3632465_d1311_60ba73a113203.jpg",
+        "kartaview-2026-11-19/3632465/00131_3632465_73d86_60ba73a2aaa54.jpg",
+        "kartaview-2026-11-19/3632465/00132_3632465_6686a_60ba73a458a9d.jpg"
+      ],
+      "frames_360": [],
+      "scans": [],
+      "sets": {
+        "kartaview-2026-11-19": {
+          "alignment": "derived/alignment/kartaview-2026-11-19/v1",
+          "photos": 4,
+          "coverage_pct": 15.2,
+          "mean_view_distance_m": 66.09
+        }
+      },
+      "shot_list_id": "B_544658931/west-1",
+      "coverage_pct": 15.2,
+      "mean_view_distance_m": 66.09
+    },
+    "north-2": {
+      "photos": [
+        "kartaview-2026-11-19/3632465/00129_3632465_c3838_60ba739fab0b3.jpg",
+        "kartaview-2026-11-19/3632465/00130_3632465_d1311_60ba73a113203.jpg",
+        "kartaview-2026-11-19/3632465/00131_3632465_73d86_60ba73a2aaa54.jpg"
+      ],
+      "frames_360": [],
+      "scans": [],
+      "sets": {
+        "kartaview-2026-11-19": {
+          "alignment": "derived/alignment/kartaview-2026-11-19/v1",
+          "photos": 3,
+          "coverage_pct": 8.2,
+          "mean_view_distance_m": 59.54
+        }
+      },
+      "shot_list_id": "B_544658931/north-2",
+      "coverage_pct": 8.2,
+      "mean_view_distance_m": 59.54
+    }
+  },
+  "updated": "2026-11-20T13:47:14",
+  "script": "Tools/VanderbiltCampus/pipeline/align_sources.py",
+  "rule": "photo listed when it sees >= 0.05 of the facade samples (in front, in frustum, <= 80 m, not behind another footprint); coverage_pct = share of samples seen by >= 2 photos at incidence <= 70 deg"
+}

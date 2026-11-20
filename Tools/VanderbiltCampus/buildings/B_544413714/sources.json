@@ -1,0 +1,49 @@
+{
+  "building": "B_544413714",
+  "version": 1,
+  "facades": {
+    "west": {
+      "photos": [
+        "kartaview-2026-11-19/3632465/00071_3632465_39713_60ba734122fb1.jpg",
+        "kartaview-2026-11-19/3632465/00072_3632465_1d491_60ba7342ba8d1.jpg",
+        "kartaview-2026-11-19/3632465/00073_3632465_2ed88_60ba7344533c6.jpg",
+        "kartaview-2026-11-19/3632465/00083_3632465_fcd6b_60ba73543f023.jpg",
+        "kartaview-2026-11-19/3632465/00084_3632465_a9b18_60ba7355e3711.jpg"
+      ],
+      "frames_360": [],
+      "scans": [],
+      "sets": {
+        "kartaview-2026-11-19": {
+          "alignment": "derived/alignment/kartaview-2026-11-19/v1",
+          "photos": 5,
+          "coverage_pct": 0.0,
+          "mean_view_distance_m": 71.32
+        }
+      },
+      "shot_list_id": "B_544413714/west",
+      "coverage_pct": 0.0,
+      "mean_view_distance_m": 71.32
+    },
+    "north": {
+      "photos": [
+        "kartaview-2026-11-19/3632465/00071_3632465_39713_60ba734122fb1.jpg"
+      ],
+      "frames_360": [],
+      "scans": [],
+      "sets": {
+        "kartaview-2026-11-19": {
+          "alignment": "derived/alignment/kartaview-2026-11-19/v1",
+          "photos": 1,
+          "coverage_pct": 0.0,
+          "mean_view_distance_m": 70.78
+        }
+      },
+      "shot_list_id": "B_544413714/north",
+      "coverage_pct": 0.0,
+      "mean_view_distance_m": 70.78
+    }
+  },
+  "updated": "2026-11-20T13:47:14",
+  "script": "Tools/VanderbiltCampus/pipeline/align_sources.py",
+  "rule": "photo listed when it sees >= 0.05 of the facade samples (in front, in frustum, <= 80 m, not behind another footprint); coverage_pct = share of samples seen by >= 2 photos at incidence <= 70 deg"
+}
