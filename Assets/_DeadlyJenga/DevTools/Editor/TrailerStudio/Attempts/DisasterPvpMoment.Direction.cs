@@ -284,6 +284,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (string role in Roles)
                 Add(role, "lookAt", PlanetFrame - 50, LengthFrames, target: P(stage, sky), blendIn: .4f);
             Add("hero", "reaction", PlanetFrame - 26, PlanetFrame + 4, "scream", blendIn: .15f);
+            // Record 4 (the committed take): the hero tumbles down the tower from about f195; the fox and the dragon are
+            // thrown at f246. They panic in the air (hands to the head).
+            Add("hero", "reaction", 194, 240, "scream", blendIn: .1f);
+            Add("pink", "reaction", 245, 300, "scream", blendIn: .08f);
+            Add("green", "reaction", 245, 300, "scream", blendIn: .08f);
         }
     }
 }

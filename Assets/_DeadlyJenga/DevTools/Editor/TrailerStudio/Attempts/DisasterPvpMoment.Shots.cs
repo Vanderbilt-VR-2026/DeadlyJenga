@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using DeadlyJenga.Core;
 using UnityEngine;
 
 namespace DeadlyJenga.DevTools.Editor.TrailerStudio
@@ -18,19 +19,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public int Length => cutOut - cutIn;
         }
 
+        // Cut against the committed take (record 4, job 457d098f): the hero's summit is shaken loose at about f192 and he
+        // tumbles 38 m down the tower face onto the castle wall (f238), where he lives to see the planet killer land (f307).
         static readonly Shot[] Shots =
         {
-            new Shot { id = "S01", what = "hook: the glove punch, rival knocked off, hero taunts", cutIn = 0, cutOut = 42, key = 25 },
+            new Shot { id = "S01", what = "hook: the glove punch knocks the rival off the top", cutIn = 0, cutOut = 42, key = 25 },
             new Shot { id = "S02", what = "the rival sails off the tower", cutIn = 42, cutOut = 60, key = 9 },
-            new Shot { id = "S03", what = "teach: the whole top is a brawl (blaster, rocket)", cutIn = 60, cutOut = 104, key = 30 },
+            new Shot { id = "S03", what = "teach: the whole top is a brawl", cutIn = 60, cutOut = 104, key = 30 },
             new Shot { id = "S04", what = "anticipation: low, rocks streak in over the fighters", cutIn = 104, cutOut = 134, key = 20 },
-            new Shot { id = "S05", what = "core verb: a meteor throws purple, then green", cutIn = 134, cutOut = 200, key = 20 },
-            new Shot { id = "S06", what = "escalate: pink thrown", cutIn = 200, cutOut = 232, key = 18 },
-            new Shot { id = "S07", what = "escalate: cyan thrown, rocks behind", cutIn = 232, cutOut = 262, key = 12 },
-            new Shot { id = "S08", what = "escalate: the hero, rocks landing behind him", cutIn = 262, cutOut = 284, key = 8 },
-            new Shot { id = "S09", what = "the planet killer looms over the tower", cutIn = 284, cutOut = 294, key = 5 },
-            new Shot { id = "S10", what = "stop-down: the hero looks up", cutIn = 294, cutOut = 308, key = 6 },
-            new Shot { id = "S11", what = "payoff and title: the planet killer lands on the summit", cutIn = 308, cutOut = 450, key = 6 },
+            new Shot { id = "S05", what = "core verb: a meteor throws the astronaut off", cutIn = 134, cutOut = 180, key = 19 },
+            new Shot { id = "S06", what = "escalate: the hero's summit gives way, he tumbles down the tower", cutIn = 180, cutOut = 240, key = 30 },
+            new Shot { id = "S07", what = "escalate: a rock throws the fox and the dragon", cutIn = 240, cutOut = 266, key = 9 },
+            new Shot { id = "S08", what = "the hero on the castle wall looks up", cutIn = 266, cutOut = 290, key = 16 },
+            new Shot { id = "S09", what = "payoff: behind the hero, the planet killer lands on the tower", cutIn = 290, cutOut = 330, key = 17 },
+            new Shot { id = "S10", what = "aftermath and title: the tower folds into the sea", cutIn = 330, cutOut = 450, key = 30 },
         };
 
         static Vector3 Feet(StudioStage stage, Plan plan, string role, int frame)
@@ -125,41 +127,55 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Add(c, at, who, .94f);
             }
             Victim("S05", 20, 6.5f);
-            Victim("S06", 26, 5.5f);
-            Victim("S07", 26, 5.5f);
-            // S08: the hero, medium shot from the sun side, the rocks landing behind him.
+            // S06: falling with the hero (fall_with): the camera rides 5 m out from him on the outside of the tower face.
             {
-                var s = S("S08"); var c = ShotCam(s, 35);
-                Vector3 hero = Feet(stage, plan, "hero", s.cutIn);
-                Vector3 at = PickSpot(new[] { 0f, 20f, -20f }.Select(t => hero + Quaternion.AngleAxis(t, up) * a.side * 2.4f + up * .7f), hero + up * .8f);
-                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, hero + up * .55f - a.side * .3f));
-                Add(c, at, hero, .94f);
+                var s = S("S06"); var c = ShotCam(s, 22);
+                Vector3 start = Feet(stage, plan, "hero", 192), end = Feet(stage, plan, "hero", 238);
+                Vector3 dir = Flat(end - start), perp = Vector3.Cross(up, dir).normalized;
+                if (Vector3.Dot(perp, Flat(end - C)) < 0) perp = -perp;
+                Vector3 offset = perp * 5f + up * 1.6f - dir * 1.2f;
+                StudioMoves.Follow(c, Actor("hero"), offset, 0);
+                StudioMoves.Aim(c, c.start, Actor("hero"), up * .45f, 0);
+                lines.Append($"  S06 rides at {V(offset)} from the hero, fall {V(start)} -> {V(end)}\n");
+                Add(c, start + offset, start, .94f);
             }
-            // S09: wide from the sun side, the planet killer coming over the tower top.
+            Victim("S07", 24, 6f);
+            // The hero on the castle wall (record 4: cameras at his head height sat inside the red wall).
+            Vector3 heroWall = Feet(stage, plan, "hero", 270);
+            var heroPose = StudioActorPoses.At(stage.tape, plan.Id("hero"), TapeF(282), Fps);
+            Vector3 head = heroPose.found ? heroPose.head : heroWall + up * .8f;
+            Vector3 sky = plan.planetTarget + plan.planetFrom * 55;
+            Vector3 toSky = Flat(sky - head), toTower = Flat(C - heroWall);
+            bool Roomy(Vector3 p) => !Physics.CheckSphere(p, .6f, ~0, QueryTriggerInteraction.Ignore);
+            Vector3 PickRoomy(IEnumerable<Vector3> spots, Vector3 target)
             {
-                var s = S("S09"); var c = ShotCam(s, 18); c.motionBlur = 0;
-                Vector3 at = C + a.side * 32 + a.along * 6 - up * 6;
-                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, C + up * 9 - a.side * 8));
-                Add(c, at, C, 2);
+                foreach (var p in spots) if (Roomy(p) && !Physics.Linecast(p, target, (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore)) return p;
+                return PickSpot(spots, target);
             }
-            // S10: the hero's face tipped up at it, from in front and below.
+            // S08: his face as he looks up at the rock (MS, from in front and a little below his eyeline).
             {
-                var s = S("S10"); var c = ShotCam(s, 40);
-                var pose = StudioActorPoses.At(stage.tape, plan.Id("hero"), TapeF(s.cutIn + s.key), Fps);
-                Vector3 head = pose.found ? pose.head : hero0 + up * .8f;
-                Vector3 toRock = Flat(plan.planetFrom);
-                Vector3 at = PickSpot(new[] { 25f, -25f, 45f, -45f }.Select(t => head + Quaternion.AngleAxis(t, up) * toRock * 1.4f - up * .35f), head);
-                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, head + up * .05f));
+                var s = S("S08"); var c = ShotCam(s, 45);
+                Vector3 at = PickRoomy(new[] { 0f, 25f, -25f, 45f, -45f }.SelectMany(t => new[] { 2.2f, 2.8f }.SelectMany(d => new[] { .1f, .5f }.Select(h => head + Quaternion.AngleAxis(t, up) * toSky * d + up * h))), head);
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, head - up * .2f));
                 foreach (var k in c.keys) { k.aperture = 4; k.focus = Vector3.Distance(at, head); }
-                Add(c, at, head, .45f);
+                Add(c, at, head, .94f);
             }
-            // S11: the impact and the wreck, wide from the sun side; the title goes over it.
+            // S09: low behind him, the tower rising above with the planet killer coming down on it (16 mm takes in
+            // his head at the bottom and the summit at the top: about 10 and 68 degrees up from the lens).
             {
-                var s = S("S11"); var c = ShotCam(s, 18);
-                // Aimed lower than record 1 (which ended on empty sky once the top fell): the stump and the sea stay in frame.
+                var s = S("S09"); var c = ShotCam(s, 16);
+                Vector3 at = PickRoomy(new[] { 2.5f, 3.2f, 4f }.SelectMany(d => new[] { .4f, 1f, 1.6f }.Select(h => heroWall - toTower * d + up * h)), head);
+                Vector3 toward = Flat(C - at);
+                Vector3 aim = at + (toward * Mathf.Cos(38 * Mathf.Deg2Rad) + up * Mathf.Sin(38 * Mathf.Deg2Rad)) * 10;
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, aim));
+                StudioMoves.Shake(c, TapeF(PlanetFrame) + 1f / Fps, 2.5f, 1.2f);
+                Add(c, at, head, .94f);
+            }
+            // S10: the impact's aftermath and the title, wide from the sun side; the stump, the castle and the sea stay in frame.
+            {
+                var s = S("S10"); var c = ShotCam(s, 18);
                 Vector3 at = C + a.side * 58 + a.along * 14 - up * 20;
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, C - up * 4 - a.side * 6));
-                StudioMoves.Shake(c, TapeF(PlanetFrame) + 1f / Fps, 2.2f, 1.4f);
                 Add(c, at, C, 2);
             }
             Note(lines.ToString());
