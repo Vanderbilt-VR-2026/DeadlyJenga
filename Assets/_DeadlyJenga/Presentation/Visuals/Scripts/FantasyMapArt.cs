@@ -35,7 +35,6 @@ namespace DeadlyJenga.Presentation
         Quaternion oldSunRotation;
         AmbientMode oldAmbientMode;
         int revision=-1;
-        bool downtownReported;
         float retry;
 
         void LateUpdate()
@@ -47,7 +46,6 @@ namespace DeadlyJenga.Presentation
             if(environment){if(environment.waterRenderer)environment.waterRenderer.forceRenderingOff=true;if(environment.sandRenderer)environment.sandRenderer.forceRenderingOff=true;}
             UpdateLighting();
             if(City)AnimateCity();
-            if(City&&solidCandy&&!downtownReported&&revision>=0&&Time.timeSinceLevelLoad>6){downtownReported=true;ReportDowntown();}
             if(world.Revision!=revision&&Services.World.Blocks.Count>0)
             {
                 ClearBodyArt();revision=world.Revision;
@@ -66,7 +64,6 @@ namespace DeadlyJenga.Presentation
                         var cityGlass=City?(solidCandy?SolidMaterial(body):CityGlass(body)):null;
                         for(int i=0;i<replacement.Length;i++)replacement[i]=cityGlass?cityGlass:blockMaterials[i%blockMaterials.Length];
                         renderer.sharedMaterials=replacement;
-                        if(City&&solidCandy){KeepOwnLook(renderer);PauseBatching();}
                         SoftenEdges(renderer,body);
                     }
                     if(City)DecorateCity(body,visual);
@@ -111,7 +108,6 @@ namespace DeadlyJenga.Presentation
         }
         void ClearBodyArt()
         {
-            RestoreBatching();
             foreach(var pair in originalShapes)if(pair.Key)pair.Key.sharedMesh=pair.Value;originalShapes.Clear();
             foreach(var pair in originals)if(pair.Key&&pair.Key!=ground)pair.Key.sharedMaterials=pair.Value;
             var remove=new List<Renderer>();foreach(var pair in originals)if(pair.Key!=ground)remove.Add(pair.Key);
@@ -121,6 +117,7 @@ namespace DeadlyJenga.Presentation
         }
         void OnDisable()
         {
+            ResumeBatching();
             if(!active)return;
             EndLighting();ClearBodyArt();foreach(var pair in originals)if(pair.Key)pair.Key.sharedMaterials=pair.Value;originals.Clear();
             foreach(var go in ownedObjects)if(go)Release(go);ownedObjects.Clear();
@@ -136,7 +133,7 @@ namespace DeadlyJenga.Presentation
             RenderSettings.skybox=oldSky;RenderSettings.ambientMode=oldAmbientMode;
             RenderSettings.ambientSkyColor=oldAmbientSky;RenderSettings.ambientEquatorColor=oldAmbientEquator;
             RenderSettings.ambientGroundColor=oldAmbientGround;RenderSettings.ambientIntensity=oldAmbientIntensity;
-            ReleaseSolidMaterials();ResumeBatching();active=false;revision=-1;environment=null;sceneSkins=null;cityBuilt=false;cabins.Clear();cars.Clear();carPhase.Clear();
+            ReleaseSolidMaterials();active=false;revision=-1;environment=null;sceneSkins=null;cityBuilt=false;cabins.Clear();cars.Clear();carPhase.Clear();
         }
         static void Release(Object item){if(!item)return;if(Application.isPlaying)Destroy(item);else DestroyImmediate(item);}
         GameObject Model(string name,ArtMesh builder,Transform parent,Material[] materials,bool body=false)
