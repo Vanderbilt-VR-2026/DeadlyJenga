@@ -44,6 +44,7 @@ namespace DeadlyJenga.Presentation
             RenderSettings.ambientSkyColor=theme==FantasyMapTheme.Honeycomb?new Color(.91f,.74f,.45f):theme==FantasyMapTheme.Carnival?new Color(.68f,.73f,1):new Color(.66f,.83f,1);
             RenderSettings.ambientEquatorColor=theme==FantasyMapTheme.Honeycomb?new Color(.62f,.40f,.17f):theme==FantasyMapTheme.Carnival?new Color(.87f,.62f,.75f):new Color(.64f,.76f,.88f);
             RenderSettings.ambientGroundColor=theme==FantasyMapTheme.Honeycomb?new Color(.28f,.15f,.055f):new Color(.32f,.35f,.49f);
+            if(solidCandy&&candyCity)WarmLighting();
             ConfigureCamera(Services.Session?.ActiveCamera);
         }
 

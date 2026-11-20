@@ -107,6 +107,7 @@ namespace DeadlyJenga.CastlePrototype
                     // Turned around so the stair opening is at the back; front and side decks stay clear for bridges.
                     var floor = Cassette(site.position + Vector3.up * (.8f + f * 4), w, depth, 1, yaw + 180, name + " floor " + (f + 1), false, f);
                     floor.mass = Mathf.Clamp(w * depth * .45f, 60, 260);
+                    RememberFloor(floor, w, depth, f);
                 }
                 float roof = .8f + floors * 4;
                 if (crown)

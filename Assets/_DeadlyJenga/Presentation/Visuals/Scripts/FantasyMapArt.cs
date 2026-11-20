@@ -61,7 +61,7 @@ namespace DeadlyJenga.Presentation
                         if(renderer.name=="Fantasy decorations")continue;
                         if(!originals.ContainsKey(renderer))originals[renderer]=renderer.sharedMaterials;
                         var replacement=new Material[renderer.sharedMaterials.Length];
-                        var cityGlass=City?CityGlass(body):null;
+                        var cityGlass=City?(solidCandy?SolidMaterial(body):CityGlass(body)):null;
                         for(int i=0;i<replacement.Length;i++)replacement[i]=cityGlass?cityGlass:blockMaterials[i%blockMaterials.Length];
                         renderer.sharedMaterials=replacement;
                         SoftenEdges(renderer,body);
@@ -102,6 +102,8 @@ namespace DeadlyJenga.Presentation
                 environment.sun.color=theme==FantasyMapTheme.Honeycomb?new Color(1,.95f,.83f):theme==FantasyMapTheme.Carnival?new Color(1,.94f,.90f):new Color(1,.98f,.96f);
                 environment.sun.intensity=theme==FantasyMapTheme.Honeycomb?1.65f:theme==FantasyMapTheme.Carnival?1.45f:1.7f;
                 environment.sun.transform.rotation=theme==FantasyMapTheme.Honeycomb?Quaternion.Euler(48,140,0):theme==FantasyMapTheme.Carnival?Quaternion.Euler(18,180,0):Quaternion.Euler(52,140,0);
+                // Candy Sky Ring City: warm late-afternoon sun from the south-west.
+                if(solidCandy&&candyCity){environment.sun.color=new Color(1,.88f,.72f);environment.sun.intensity=1.8f;environment.sun.transform.rotation=Quaternion.Euler(38,55,0);}
             }
         }
         void ClearBodyArt()
@@ -130,7 +132,7 @@ namespace DeadlyJenga.Presentation
             RenderSettings.skybox=oldSky;RenderSettings.ambientMode=oldAmbientMode;
             RenderSettings.ambientSkyColor=oldAmbientSky;RenderSettings.ambientEquatorColor=oldAmbientEquator;
             RenderSettings.ambientGroundColor=oldAmbientGround;RenderSettings.ambientIntensity=oldAmbientIntensity;
-            active=false;revision=-1;environment=null;sceneSkins=null;cityBuilt=false;cabins.Clear();cars.Clear();carPhase.Clear();
+            ReleaseSolidMaterials();active=false;revision=-1;environment=null;sceneSkins=null;cityBuilt=false;cabins.Clear();cars.Clear();carPhase.Clear();
         }
         static void Release(Object item){if(!item)return;if(Application.isPlaying)Destroy(item);else DestroyImmediate(item);}
         GameObject Model(string name,ArtMesh builder,Transform parent,Material[] materials,bool body=false)

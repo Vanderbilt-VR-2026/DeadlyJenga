@@ -62,6 +62,7 @@ namespace DeadlyJenga.Presentation
 
         void DecorateCity(Rigidbody body,Transform visual)
         {
+            if(solidCandy){SolidDress(body,visual);return;}
             // Material 0 = candy (vertex tinted), 1 = glow.
             var mesh=new ArtMesh(2);bool any=false;
             foreach(var shape in body.GetComponentsInChildren<BoxCollider>())
@@ -266,7 +267,7 @@ namespace DeadlyJenga.Presentation
         void FinishCityPass()
         {
             if(cityBuilt)return;cityBuilt=true;
-            BuildPlaza();BuildGondola();if(cityStreets)BuildCityStreets();
+            if(!solidCandy){BuildPlaza();BuildGondola();}if(cityStreets)BuildCityStreets();
         }
 
         void BuildPlaza()

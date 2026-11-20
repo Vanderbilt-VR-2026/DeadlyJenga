@@ -237,6 +237,7 @@ MonoBehaviour:
   halfDepth: 102
   candyCity: 1
   cityStreets: 1
+  solidCandy: 1
   cityCandyMaterial: {fileID: 2100000, guid: a89865e595544961b1349093f6366f2c, type: 2}
   cityGlowMaterial: {fileID: 2100000, guid: 4a8c6a5b9f1b49f9a1acc6cd11902d8d, type: 2}
   cityGlassMaterials:

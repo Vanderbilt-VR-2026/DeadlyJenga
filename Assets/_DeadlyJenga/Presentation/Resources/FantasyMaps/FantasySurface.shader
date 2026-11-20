@@ -70,6 +70,25 @@ Shader "DeadlyJenga/Fantasy Surface"
     float2 grad=float2(cotton(q+float2(.035,0))-softness,cotton(q+float2(0,.035))-softness)/.035;
     if(abs(i.localNormal.y)>.6)n=normalize(n+float3(-grad.x,0,-grad.y)*1.1);
     color=lerp(_Accent.rgb*.88,_BaseColor.rgb,smoothstep(.08,.88,softness));gloss=.05;
+   } else if(_Pattern>4.5&&_Pattern<5.5){
+    // Pattern 5, Jenga planks in body space: rows .55 m tall from .03 m. Rows alternate between a long plank side
+    // and short plank ends, swapped on the neighbouring faces, like a real Jenga tower.
+    float3 lp=i.local;float3 ln=normalize(i.localNormal);
+    bool faceX=abs(ln.x)>.6;bool faceY=abs(ln.y)>.6;
+    float row=(lp.y-.03)/.55;float ri=floor(row);float fy=frac(row);
+    float along=faceX?lp.z:lp.x;
+    float longRow=fmod(abs(ri)+(faceX?1:0),2)<.5?1:0;
+    float plank=longRow>.5?4.2:1.4;
+    if(faceY){along=lp.x;ri=floor(lp.z/1.4);fy=frac(lp.z/1.4);plank=4.2;longRow=1;}
+    float u=(along+hash(float2(ri,faceX?3:7))*plank)/plank;float ui=floor(u);float fu=frac(u);
+    float seamY=min(fy,1-fy)*(faceY?1.4:.55);float seamX=min(fu,1-fu)*plank;
+    float aa=max(fwidth(seamY),.002);float gap=1-smoothstep(.018-aa,.05+aa,min(seamY,seamX));
+    float id=hash(float2(ui*1.37+ri,ri*.71));
+    float grain=sin((longRow>.5?along:lp.y)*9+noise(float2(along,lp.y)*1.3)*3)*.5+.5;
+    color=_BaseColor.rgb*(.9+.16*id);color=lerp(color,color*(.94+.06*grain),.6);
+    float bevel=smoothstep(.07,.0,seamY)*(fy>.5?1:-1)*(faceY?0:1);
+    color=lerp(color,_Accent.rgb,gap*.85);color*=1+bevel*.12;
+    gloss*=1-gap*.6;relief=(1-gap)*.012;
    } else color=_BaseColor.rgb;
    if(i.color.a>.01)color*=i.color.rgb;
    // Derivative relief follows the moving body and needs no normal-map texture or extra draw.

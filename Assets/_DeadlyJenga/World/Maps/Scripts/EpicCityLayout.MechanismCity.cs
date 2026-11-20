@@ -103,6 +103,8 @@ namespace DeadlyJenga.CastlePrototype
                         return Mathf.Abs(local.x) < 9 && local.z > -20 && local.z < 25 && m.purpose != "Loose route bridge";
                     }, true);
                 }
+                // Last, once every bridge exists: Jenga plank walls that leave each crossing open.
+                if (skyRing) PlankWalls();
             }
 
             // Recreates what ConceptMechanismMap adds itself: anchored "Fixed" pieces, hinges, the roof slider.
