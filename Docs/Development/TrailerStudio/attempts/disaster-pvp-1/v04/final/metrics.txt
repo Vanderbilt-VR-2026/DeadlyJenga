@@ -1,0 +1,13 @@
+duration 15.000 s; video h264 1920x1080 30/1 fps, 450 frames; audio aac 48000 Hz 2 ch
+loudness: I:         -15.0 LUFS | LRA:         3.4 LU | Peak:       -1.3 dBFS
+body (0-11.97 s) momentary mean: first quarter -15.4, last quarter -13.3, ramp +2.1 LU
+title section vs body: -19.1 vs -14.5 LUFS (-4.6 LU)
+silence >0.25 s: none
+black >0.1 s: none
+sync (name, planned frame, nearest mix onset offset in frames; + = sound after picture):
+  punch 25 -0.4
+  rock_purple 153 +0.0
+  hero_falls 194 -1.7
+  main_planet 307 -0.1
+  title 359 -0.2
+shots: S01 0-64, S03 64-104, S04 104-134, S05 134-180, S06 180-210, S07 210-268, S08 268-292, S09 292-330, S10 330-352, S11 352-450

@@ -1,0 +1,309 @@
+id: disaster-pvp-1
+version: 3
+mode: production
+concept_type: mayhem
+opening: cold_open
+cold_open_threat: "pvp"      # frame 0 is the PvP punch; the disaster gets its own staged reveal (S04)
+threats: ["hazard:meteor_shower", "hazard:planet_killer"]
+fps: 30
+length_frames: 450
+class: 15
+aspect: "16:9"
+shape: montage
+hook: "Survivors brawl on a Jenga tower while the sky falls on all of them"
+hero: yellow
+cast: [yellow, gorilla, penguin, dragon, astronaut, fox]
+must_show: [pvp_hit, knock_off, multiplayer, hazard_hit, escalation, hero, ending_image]
+capture:
+  hand: none
+  survivors: "all recorded stand-ins (no performer): weapons through gear + fire cues, the punch through glovePunch (real equipment command, no fallback used)"
+  take: "Docs/Development/TrailerStudio/attempts/disaster-pvp-1/bundle (record 4, job 457d098f)"
+camera_sensor_mm: 24
+music:
+  file: v02/music-edit.wav   # Collapse Protocol, edited on bar lines (v02/music-notes.md)
+  bpm: 140
+  meter: 4
+  downbeat_frame: 25
+  hits:
+    - {name: punch, role: accent, frame: 25, measured_onset_frame: 25.2}
+    - {name: build, role: reveal, frame: 102, measured_onset_frame: 102.3}
+    - {name: main, role: main, frame: 308, measured_onset_frame: 307.8}
+    - {name: title, role: title, frame: 359, measured_onset_frame: 359.4}
+  stopdowns:
+    - {from: 297, to: 308}
+titles:
+  - {text: "DEADLY JENGA", role: title, frame_in: 359, frame_out: 450, style: over_picture, position: center, closing: true}
+  - {text: "BRAWL UP TOP. THE SKY WINS.", role: tagline, frame_in: 364, frame_out: 450, style: over_picture, position: lower_center, closing: false}
+hazard_set:
+  - {type: meteor_shower, cue: hazard, values: {size: 3, deviation: 1, per_s: 8, force: 40, warning: 0, duration: 12}, tape_s: 4.33}
+  - {type: aimed_meteor, cue: aimedMeteor, size_m: 4.2, speed_m_s: 45, elevation_deg: 28, note: "9 rocks on the build's beats f154-f283, skimming the tower's outside"}
+  - {type: planet_killer, cue: aimedMeteor, values: {size: 45, warning: 0}, contact_frame: 307}
+mix: {target_lufs: -15, true_peak_max: -1.0, title_vs_body_lu: -4, ramp_lu: 2}
+studio: {ramp_sound: false}
+waive:
+  - {lint: L46, shot: S06, reason: "the hero's fall is cut at f210, before the ride camera enters the tower lattice; he is picked up alive on the castle wall in S08, one shot later, which is the story's turn (he survived his own rain)"}
+  - {lint: L34, reason: "knock_off is the escalation itself: rival by a punch (S01), astronaut by a rock (S05), the hero by a rock (S06), two at once (S07); each raises something different"}
+  - {lint: L21, reason: "S07 holds 58 frames so the rain builds before its double knock-off; the escalate beats S06 and S08 are short"}
+  - {lint: L45, shot: S03, reason: "the brawl wide holds five survivors but they are 0.12 of frame height; a closer lens loses the lower ledge fighters. Readable as figures with skins; the critic should judge"}
+
+shots:
+  - id: S01
+    section: hook
+    kind: gameplay
+    cut_in: 0
+    cut_out: 64
+    subject: {kind: actor, id: yellow}
+    also_in_frame: [gorilla]
+    shows: [pvp_hit, knock_off, weapon]
+    attacker: yellow
+    victim: gorilla
+    tower_level: top
+    learns: "The yellow survivor punches a rival off the tower"
+    reveal: none
+    size: FS
+    angle: eye
+    side: {face: profile, yaw_deg: 80}
+    camera: {move: push_in, purpose: "hold both fighters full height through the punch, creep in on the taunt", ease: in_out, distance_m: 3.0, height_m: 0.6, focal_mm: 32, aperture: 16, focus: subject}
+    fit: "Hf = 3.0 x 24/32 = 2.25 m at the pair: each survivor 0.94/2.25 = 0.42 (FS). The pair is 1.05 m apart on the summit across a 4.0 m wide frame; the rival's launch (22 m/s along the summit) exits frame right within 3 frames, inside the frame at the key."
+    key_frame: 25
+    sound:
+      - {at: 25, kind: sfx, name: WeaponBoxing-02, source: library, gain_db: 4, sync: punch}
+      - {at: 25, kind: music_hit, name: punch, source: library, gain_db: 0, sync: punch}
+      - {at: 40, kind: vo, name: TotallyMeantThat_01, source: library, gain_db: 0}
+      - {at: 51, kind: music_hit, name: musical_stop, source: library, gain_db: 0}
+    hook_count: 1
+    transition_in: cut
+    connects_from_prev: {type: new_beat, screen_direction: L>R, eye_enter: MC, eye_exit: MR}
+    needs: [{feature: glove_punch_on_stand_in, status: available}]
+    fallback: "glovePunch's logged push fallback (not needed: the real command fired)"
+
+  - id: S03
+    section: teach
+    kind: gameplay
+    cut_in: 64
+    cut_out: 104
+    subject: {kind: actor, id: penguin}
+    also_in_frame: [yellow, dragon, astronaut, fox, "tower:summit"]
+    shows: [multiplayer, weapon]
+    readable_survivors: 5
+    tower_level: top
+    learns: "Everyone on the tower is shooting at someone"
+    reveal: none
+    size: WS
+    angle: high
+    side: {face: 3q_front, yaw_deg: 40}
+    camera: {move: static, purpose: "the geography: the summit, the ledge below, every fighter", ease: none, distance_m: 6.5, height_m: 2.6, focal_mm: 20, aperture: 16, focus: subject}
+    fit: "Hf = 6.5 x 24/20 = 7.8 m at the centroid: survivors 0.12 (WS); the summit block top-centre with the hero on it, three fighters on the ledge below; blaster bolts cross the frame width (6-8 m shots)."
+    key_frame: 26
+    sound:
+      - {at: 0, kind: sfx, name: blaster_shot, source: take, gain_db: 0}
+      - {at: 26, kind: sfx, name: WeaponBlaster-02, source: library, gain_db: -4}
+    transition_in: cut
+    connects_from_prev: {type: new_beat, screen_direction: none, eye_enter: TC, eye_exit: MC}
+
+  - id: S04
+    section: teach
+    kind: gameplay
+    cut_in: 104
+    cut_out: 134
+    subject: {kind: actor, id: astronaut}
+    also_in_frame: ["hazard:meteor_shower", "tower:ledge"]
+    shows: [weapon]
+    tower_level: upper
+    learns: "Rocks start streaking down out of the sky"
+    reveal: effect
+    threat: "hazard:meteor_shower"
+    size: WS
+    angle: low
+    side: {face: 3q_front, yaw_deg: 45}
+    camera: {move: static, purpose: "low under the ledge so the sky the rocks come from fills the frame", ease: none, distance_m: 4.8, height_m: -1.6, focal_mm: 18, aperture: 16, focus: subject}
+    fit: "Hf = 4.8 x 24/18 = 6.4 m at the astronaut: 0.15 (WS); the upper two thirds of frame are sky where the first rocks (from f101) cross."
+    key_frame: 24
+    sound:
+      - {at: 24, kind: music_hit, name: build_beat, source: library, gain_db: 0}
+    transition_in: cut
+    connects_from_prev: {type: eye_trace, screen_direction: up, eye_enter: MC, eye_exit: TL}
+
+  - id: S05
+    section: escalate
+    raises: threat
+    kind: gameplay
+    cut_in: 134
+    cut_out: 180
+    subject: {kind: actor, id: astronaut}
+    also_in_frame: ["hazard:meteor_shower", "tower:ledge", penguin]
+    shows: [hazard_hit, knock_off]
+    attacker: "hazard:meteor_shower"
+    victim: astronaut
+    cause_in: self
+    reveal: whole
+    threat: "hazard:meteor_shower"
+    tower_level: upper
+    learns: "A meteor blasts a fighter clean off the tower"
+    size: WS
+    angle: high
+    side: {face: profile, yaw_deg: 90}
+    camera: {move: static, purpose: "side-on to the rock's path so the throw crosses frame", ease: none, distance_m: 5.4, height_m: 1.8, focal_mm: 20, aperture: 16, focus: subject}
+    fit: "Hf = 5.4 x 24/20 = 6.5 m at the astronaut: 0.15 (WS); the 4.2 m rock lands 2.3 m from him at the key (f153) inside frame; he is thrown 8 m across and out of frame right within 12 frames."
+    key_frame: 19
+    sound:
+      - {at: 19, kind: sfx, name: BlockSmash_01, source: library, gain_db: 0}
+      - {at: 19, kind: sfx, name: meteor_impact, source: take, gain_db: 0}
+    transition_in: cut
+    connects_from_prev: {type: cause_effect, screen_direction: down, eye_enter: TL, eye_exit: MR}
+    needs: [{feature: aimed_meteor_cue, status: available}]
+
+  - id: S06
+    section: escalate
+    raises: stakes
+    kind: gameplay
+    cut_in: 180
+    cut_out: 210
+    subject: {kind: actor, id: yellow}
+    also_in_frame: ["tower:face", "hazard:meteor_shower"]
+    shows: [hazard_hit, hero, knock_off]
+    attacker: "hazard:meteor_shower"
+    victim: yellow
+    cause_in: self
+    reveal: consequence
+    threat: "hazard:meteor_shower"
+    tower_level: upper
+    learns: "Now the sky knocks the puncher off too"
+    size: WS
+    angle: high
+    side: {face: 3q_front, yaw_deg: 40}
+    camera: {move: follow, purpose: "fall with the hero down the tower face (fall_with): the bully gets his turn", ease: damped, distance_m: 5.4, height_m: 1.6, focal_mm: 22, aperture: 16, focus: subject}
+    fit: "Hf = 5.4 x 24/22 = 5.9 m at the hero: 0.16 (WS) while the camera rides 5 m out from him; the summit block tipping under him (f192) and the first 10 m of his fall fit the 10.5 m wide frame; the shot ends at f210 before the ride passes into the tower lattice."
+    key_frame: 16
+    sound:
+      - {at: 16, kind: vo, name: NopeNopeNope_01, source: library, gain_db: 1, sync: null}
+      - {at: 20, kind: sfx, name: FallWind_01, source: library, gain_db: -6}
+    hook_count: 2
+    transition_in: cut
+    connects_from_prev: {type: new_beat, screen_direction: down, eye_enter: MC, eye_exit: BC}
+
+  - id: S07
+    section: escalate
+    raises: count
+    kind: gameplay
+    cut_in: 210
+    cut_out: 268
+    subject: {kind: actor, id: dragon}
+    also_in_frame: [fox, "hazard:meteor_shower", "tower:ledge"]
+    shows: [hazard_hit, knock_off]
+    attacker: "hazard:meteor_shower"
+    victim: dragon
+    cause_in: self
+    tower_level: upper
+    learns: "One rock throws two more fighters at once"
+    size: WS
+    angle: high
+    side: {face: profile, yaw_deg: 80}
+    camera: {move: static, purpose: "from outside the tower so both victims leave across frame", ease: none, distance_m: 4.9, height_m: 1.8, focal_mm: 24, aperture: 16, focus: subject}
+    fit: "Hf = 6.1 x 24/24 = 6.1 m at the dragon: 0.15 (WS); the rock lands at f243, the dragon (and the fox, partly hidden behind a block) are thrown by f249 inside the 10.8 m wide frame; 19 frames are held after the key."
+    key_frame: 39
+    sound:
+      - {at: 36, kind: sfx, name: BlockSmash_03, source: library, gain_db: -1}
+      - {at: 39, kind: sfx, name: PlayerPain-04, source: library, gain_db: -4}
+    transition_in: cut
+    connects_from_prev: {type: new_beat, screen_direction: none, eye_enter: MC, eye_exit: MR}
+
+  - id: S08
+    section: escalate
+    raises: threat
+    kind: gameplay
+    cut_in: 268
+    cut_out: 292
+    subject: {kind: actor, id: yellow}
+    also_in_frame: ["castle:wall"]
+    shows: [hero]
+    reaction: "Studio scream layer (head tipped up, hands to the head) with a look-at to the incoming rock"
+    reveal: reaction
+    threat: "hazard:planet_killer"
+    tower_level: base
+    learns: "On the wall below he sees something bigger coming"
+    size: MCU
+    angle: eye
+    side: {face: 3q_front, yaw_deg: 30}
+    camera: {move: static, purpose: "his face as he looks up; the stop-down follows", ease: none, distance_m: 3.2, height_m: -0.1, focal_mm: 75, aperture: 4, focus: subject}
+    fit: "Hf = 3.2 x 24/75 = 1.02 m at the hero: head and shoulders of a 0.94 m survivor (MCU), from the open end of the castle-wall corridor he stands in; head tipped up toward the rock above frame top."
+    key_frame: 14
+    sound:
+      - {at: 14, kind: vo, name: WhatWasThat_01, source: library, gain_db: 0}
+    transition_in: cut
+    connects_from_prev: {type: reaction, screen_direction: none, eye_enter: MC, eye_exit: TC}
+
+  - id: S09
+    section: payoff
+    kind: gameplay
+    cut_in: 292
+    cut_out: 330
+    subject: {kind: hazard, id: "hazard:planet_killer"}
+    also_in_frame: ["tower:summit", "castle:wall"]
+    shows: [hazard_hit, escalation, ending_image]
+    reveal: payoff
+    threat: "hazard:planet_killer"
+    cause_in: self
+    tower_level: top
+    learns: "A rock the size of the tower lands on it"
+    size: EWS
+    angle: low
+    side: {face: null, yaw_deg: null}
+    camera: {move: static, purpose: "side-on to the rock's path: one rock and the tower top apart against the sky, then contact on the drop", ease: none, distance_m: 55, height_m: -4, focal_mm: 18, aperture: 16, focus: subject}
+    fit: "Hf = 55 x 24/18 = 73 m at the summit (130 m wide): the 45 m rock (0.6 of frame height) comes in from one side about 36 m from the summit at the cut and touches it at f307; the top 20 m of tower and the rock both sit inside frame."
+    key_frame: 15
+    sound:
+      - {at: 5, kind: silence, name: stopdown, source: library, gain_db: 0}
+      - {at: 15, kind: sfx, name: Slam-01, source: library, gain_db: 3, sync: main}
+      - {at: 16, kind: music_hit, name: main, source: library, gain_db: 0, sync: main}
+    hook_count: 3
+    transition_in: cut
+    connects_from_prev: {type: eye_trace, screen_direction: down, eye_enter: TR, eye_exit: MC}
+
+  - id: S10
+    section: aftermath
+    kind: gameplay
+    cut_in: 330
+    cut_out: 352
+    subject: {kind: actor, id: yellow}
+    also_in_frame: ["castle:wall"]
+    shows: [hero]
+    reveal: consequence
+    cause_in: prev
+    tower_level: base
+    learns: "He cowers as the wreck rains down"
+    reaction: "Studio cower layer"
+    size: FS
+    angle: eye
+    side: {face: 3q_front, yaw_deg: 40}
+    camera: {move: handheld, purpose: "a shaken lens under the falling wreck", ease: none, distance_m: 3.0, height_m: 0.1, focal_mm: 24, aperture: 16, focus: subject}
+    fit: "Hf = 3.0 x 24/24 = 3.0 m at the hero: 0.31 crouched to about 0.5 m (FS); different size, angle and lens from S08, no jump cut."
+    key_frame: 8
+    sound:
+      - {at: 8, kind: sfx, name: debris, source: take, gain_db: 0}
+    transition_in: cut
+    connects_from_prev: {type: cause_effect, screen_direction: down, eye_enter: MC, eye_exit: MC}
+
+  - id: S11
+    section: title
+    kind: gameplay
+    cut_in: 352
+    cut_out: 450
+    subject: {kind: tower, id: castle_spire}
+    also_in_frame: ["hazard:meteor_shower", "castle:wall"]
+    shows: [ending_image]
+    tower_level: base
+    learns: "The title lands over the wrecked tower"
+    reveal: none
+    size: EWS
+    angle: low
+    side: {face: null, yaw_deg: null}
+    camera: {move: static, purpose: "the wreck, the castle and the sea under the title", ease: none, distance_m: 63, height_m: -20, focal_mm: 18, aperture: 16, focus: subject}
+    fit: "Hf = 63 x 24/18 = 84 m: the castle (25 m) and the stump fill the lower third, the falling blocks and remaining rocks the middle; title centred over the sky."
+    key_frame: 7
+    sound:
+      - {at: 0, kind: sfx, name: BlockSmash_02, source: library, gain_db: -4}
+      - {at: 7, kind: music_hit, name: title, source: library, gain_db: 0, sync: title}
+      - {at: 7, kind: sfx, name: Slam-02, source: library, gain_db: -6}
+    transition_in: cut
+    connects_from_prev: {type: contrast_size, screen_direction: none, eye_enter: MC, eye_exit: MC}
