@@ -1,0 +1,29 @@
+{
+  "building": "B_new_225",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        455.64,
+        -1039.4,
+        39.88
+      ],
+      "size": [
+        0.75,
+        0.56,
+        0.95
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 6,
+      "source": "v1"
+    }
+  ]
+}

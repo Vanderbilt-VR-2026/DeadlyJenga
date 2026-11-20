@@ -1,0 +1,28 @@
+{
+  "building": "B_new_55",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        -495.707,
+        -474.942,
+        20.6
+      ],
+      "size": [
+        0.098,
+        0.098,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    }
+  ]
+}

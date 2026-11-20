@@ -33,6 +33,18 @@ A building passes when footprint p95 (vs reference) <= 0.3 m and every checked p
 ledgered features left out) within 0.5 m of the model roof ("fit": catches gross misfits that
 the bands, which only use points within 1.5 m of the model, would not see).
 
+--version v2 checks the v2 buildings (buildings_v2.py) with the same gate. Buildings that kept
+their v1 roof planes ("planes_v1") are checked exactly as above. Height-field buildings
+("heightfield_v2") have no roof planes: their parts are the height field's smooth regions; the
+model roof height is read from the LoD2 mesh (rays cast straight down); eave samples are the
+part's edge on the footprint outline whose model height is within 0.3 m of the part's eave,
+ridge samples are model points within 0.15 m of the part's ridge. The LiDAR bands are computed
+from the raw points exactly as for v1 (never from the model's own raster).
+Every building also gets an independent whole-roof metric: vertical distance of all its roof
+points (inside the footprint, facade points left out) to the LoD2 mesh (median, p90, p95,
+share within 0.2 m). v2 writes reports/stage1/buildings_accuracy_v2.json/.md and replaces
+Docs/.../progress/stage1-buildings-accuracy.md (keeping a short v1 paragraph at the top).
+
 Writes reports/stage1/buildings_accuracy.json, reports/stage1/buildings_accuracy.md (also
 copied to Docs/Development/VanderbiltCampus/progress/stage1-buildings-accuracy.md), and the
 numbers into each model.json (archive and git mirror). Exit code 1 if the pass rate is
@@ -265,6 +277,129 @@ def check_building(model, rec, planes_json, ledger, pts, others):
         if not row["checked"]:
             row["why_not"] = "fewer than 10 LiDAR points near the eave or ridge"
         parts.append(row)
+    return finish(out, parts, model, rec)
+
+
+def whole_roof(P, mz):
+    """Vertical distance of roof points to the mesh (the independent whole-roof metric)."""
+    if not len(P):
+        return None
+    d = np.abs(P[:, 2] - mz(P[:, 0], P[:, 1]))
+    d = d[np.isfinite(d)]
+    if not len(d):
+        return None
+    return {"n": int(len(d)), "median": round(float(np.median(d)), 3), "p90": round(float(np.percentile(d, 90)), 3),
+            "p95": round(float(np.percentile(d, 95)), 3), "within_0.2": round(float(np.mean(d <= 0.2)), 4),
+            "n_within_0.2": int((d <= 0.2).sum())}
+
+
+def roof_points_checked(model, rec, pts, others):
+    """Roof points used by every height test: v1 selection, inside the footprint, facade left out."""
+    fp = bc.geom_from_json(rec["polygon"])
+    idx = rf.roof_point_selection(pts, fp, others, model["ground_z"])
+    P = np.c_[pts["x"][idx], pts["y"][idx], pts["z"][idx]]
+    inside = shapely.contains_xy(fp, P[:, 0], P[:, 1])
+    if len(P) >= 10:
+        N, _, _ = rf.normals(P, 10)
+        wall = np.abs(N[:, 2]) < 0.35
+    else:
+        wall = np.zeros(len(P), bool)
+    return P[inside & ~wall], int((wall & inside).sum())
+
+
+def check_building_hf(model, rec, ledger, pts, others, mesh):
+    """The gate for a height-field (v2) building; same tests and bands as check_building."""
+    import buildings_v2 as b2
+    bid = model["building"]
+    fp = bc.geom_from_json(rec["polygon"])
+    out = {"building": bid, "name": model.get("name"), "roof_type": model["roof_type"],
+           "area_m2": rec["area_m2"], "flags": model["flags"], "source": rec["source"],
+           "roof_method": model.get("roof_method")}
+    out["footprint"] = footprint_check(rec, fp, pts, others)
+    mz = b2.MeshZ(mesh)
+    P, nwall = roof_points_checked(model, rec, pts, others)
+    out["wall_points_dropped"] = nwall
+    zm = mz(P[:, 0], P[:, 1]) if len(P) else np.zeros(0)
+    res = P[:, 2] - zm
+    ok = np.isfinite(res)
+    out["roof_surface"] = st(np.abs(res[ok]))
+    out["whole_roof"] = whole_roof(P, mz)
+    out["roof_points"] = int(ok.sum())
+    out["roof_points_per_m2"] = round(float(ok.sum()) / max(fp.area, 1.0), 2)
+    feat = np.zeros(len(P), bool)
+    for e in ledger["entries"]:
+        if e["type"] == "footprint_jog":
+            continue
+        r = float(np.hypot(e["size"][0], e["size"][1])) / 2 + 0.3
+        near = np.hypot(P[:, 0] - e["center"][0], P[:, 1] - e["center"][1]) < r
+        feat |= near & (res > 0.3)
+    parts = []
+    pts2 = shapely.points(P[:, :2])
+    outline = fp.boundary
+    for part in model["parts"]:
+        pp = bc.geom_from_json(part["polygon"])
+        row = {"id": part["id"], "area_m2": part["area_m2"], "roof_type": part["roof_type"],
+               "eave_z": part["eave_z"], "ridge_z": part["ridge_z"]}
+        if part["area_m2"] < 4.0:
+            row["checked"] = False
+            row["why_not"] = "part under 4 m2"
+            parts.append(row)
+            continue
+        ring = b2.ring_samples(pp)
+        zr = mz(ring[:, 0], ring[:, 1]) if len(ring) else np.zeros(0)
+        on = shapely.distance(shapely.points(ring), outline) < 0.1 if len(ring) else np.zeros(0, bool)
+        sel = on if on.any() else np.ones(len(ring), bool)
+        eav = ring[sel & (np.nan_to_num(zr, nan=1e9) - part["eave_z"] < 0.3)]
+        allp = b2.ridge_samples(pp)           # 0.3 m inside the part, as the model's ridge
+        zall = mz(allp[:, 0], allp[:, 1])
+        rid = allp[np.nan_to_num(zall, nan=-1e9) >= part["ridge_z"] - 0.15]
+        inner = pp.boundary.difference(fp.boundary.buffer(0.01))
+        inpart = shapely.contains_xy(pp, P[:, 0], P[:, 1])
+        okr = inpart & np.isfinite(res)
+        if not inner.is_empty:
+            okr &= shapely.distance(pts2, inner) >= 0.4
+        row["fit_share"] = round(float(np.mean(np.abs(res[okr & ~feat]) <= 0.5)), 3) if (okr & ~feat).sum() else None
+        inp = inpart & ~feat & okr & (np.abs(res) <= 1.5)
+        Pin = P[inp]
+        din = pts2[inp]
+
+        def near(xy, r):
+            if not len(xy) or not len(Pin):
+                return np.zeros(len(Pin), bool)
+            from scipy.spatial import cKDTree
+            d, _ = cKDTree(xy).query(Pin[:, :2], distance_upper_bound=r + 1e-9)
+            return np.isfinite(d)
+        e_sel = near(eav, 0.75)
+        if e_sel.sum() < 10:
+            e_sel = near(eav, 1.5)
+        # a height-field region can hold several levels joined by ramps or slopes: it counts as
+        # flat (ridge band over the whole part) only when its own relief is under 0.5 m
+        flat = part["ridge_z"] - part["eave_z"] < 0.5
+        r_sel = np.ones(len(Pin), bool) if flat else near(rid, 0.75)
+        if r_sel.sum() < 10 and not flat:
+            r_sel = near(rid, 1.5)
+        if e_sel.sum() >= 10:
+            lo, hi = np.percentile(Pin[e_sel, 2], [5, 10])
+            row["lidar_eave_band"] = [round(float(lo), 3), round(float(hi), 3)]
+            row["eave_err_m"] = round(band_err(part["eave_z"], lo, hi), 3)
+            row["eave_diff_to_p7.5_m"] = round(part["eave_z"] - float(np.percentile(Pin[e_sel, 2], 7.5)), 3)
+            row["eave_points"] = int(e_sel.sum())
+        if r_sel.sum() >= 10:
+            lo, hi = np.percentile(Pin[r_sel, 2], [98, 99.5])
+            row["lidar_ridge_band"] = [round(float(lo), 3), round(float(hi), 3)]
+            row["ridge_err_m"] = round(band_err(part["ridge_z"], lo, hi), 3)
+            row["ridge_points"] = int(r_sel.sum())
+        row["checked"] = "eave_err_m" in row and "ridge_err_m" in row
+        if row["checked"] and row["fit_share"] is not None and row["fit_share"] < FIT_SHARE:
+            row["fit_fail"] = True
+        if not row["checked"]:
+            row["why_not"] = "fewer than 10 LiDAR points near the eave or ridge"
+        parts.append(row)
+    return finish(out, parts, model, rec)
+
+
+def finish(out, parts, model, rec):
+    """Pass/fail and summary numbers of one building from its part rows (shared by v1 and v2)."""
     out["parts"] = parts
     checked = [p for p in parts if p.get("checked")]
     fpr = out["footprint"]["vs_reference"]
@@ -281,7 +416,6 @@ def check_building(model, rec, planes_json, ledger, pts, others):
     out["checked_parts"] = len(checked)
     out["pass_footprint"], out["pass_eave"], out["pass_ridge"] = fp_ok, eave_ok, ridge_ok
     out["pass"] = bool(fp_ok and eave_ok and ridge_ok and out["pass_fit"] and checked)
-    # main-part result (reported next to the strict all-parts one): footprint + the biggest part
     out["pass_main_part"] = bool(main is not None and fp_ok and abs(main["eave_err_m"]) <= H_TOL
                                  and abs(main["ridge_err_m"]) <= H_TOL and not main.get("fit_fail"))
     big = [p for p in checked if p["area_m2"] >= 50.0]
@@ -328,6 +462,29 @@ def reason(out, model, rec):
     return "; ".join(why) or "unknown"
 
 
+def mesh_checks_v2(bid, root):
+    """v2: the single non-convex collider (col_mesh.npz) must have no degenerate or duplicate
+    triangles, no vertices closer than 1 mm and consistent winding; LoD2/LoD1 watertight."""
+    import buildings_v2 as b2
+    import vcmesh
+    d = bc.building_dir(bid, root, "v2")
+    out = {"colliders": 1, "bad_colliders": [], "lod_problems": {}}
+    c = vcmesh.load_mesh(d / "col_mesh.npz")
+    pr = b2.collider_problems(c)
+    out["col_mesh_triangles"] = int(len(c["faces"]))
+    if pr:
+        out["bad_colliders"].append({"file": "col_mesh.npz", "problems": pr})
+    for name in ("lod2", "lod1"):
+        m = vcmesh.load_mesh(d / f"{name}.npz")
+        probs = vcmesh.check_mesh(m, need_watertight=True)
+        F = m["faces"]
+        if len(np.unique(np.sort(F, axis=1), axis=0)) < len(F):
+            probs.append("duplicate triangles")
+        if probs:
+            out["lod_problems"][name] = probs
+    return out
+
+
 def mesh_checks(bid, root):
     """Colliders: each col_<n>.npz must be a real convex solid for PhysX (scipy ConvexHull
     volume >= 0.1 m3, oriented box >= 0.3 m in every direction, no duplicate vertices, no
@@ -372,22 +529,34 @@ def mesh_checks(bid, root):
 
 
 def run_job(job):
-    tile, items, neighbors, root = job
+    tile, items, neighbors, root, version = job
+    import buildings_v2 as b2
+    import vcmesh
     gs = [bc.geom_from_json(r["polygon"]) for _, r in items]
     b = np.array([g.bounds for g in gs])
     pts = lidar_io.load_points(b[:, 0].min() - 8, b[:, 1].min() - 8, b[:, 2].max() + 8, b[:, 3].max() + 8,
                                root=root)
     out = []
     for (bid, rec), g in zip(items, gs):
-        d = bc.building_dir(bid, root)
+        d = bc.building_dir(bid, root, version)
         try:
             model = load_json(d / "model.json")
             planes_json = load_json(d / "roof_planes.json")
             ledger = load_json(d / "ledger.json")
             others = [ng for nid, ng in neighbors if nid != bid and ng.intersects(g.buffer(8))]
             others = shapely.unary_union(others) if others else None
-            r = check_building(model, rec, planes_json, ledger, pts, others)
-            r["meshes"] = mesh_checks(bid, root)
+            mesh = vcmesh.load_mesh(d / "lod2.npz")
+            if version == "v2" and model.get("roof_method") == "heightfield_v2":
+                r = check_building_hf(model, rec, ledger, pts, others, mesh)
+            else:
+                r = check_building(model, rec, planes_json, ledger, pts, others)
+                r["roof_method"] = model.get("roof_method", "planes_v1")
+                P, _ = roof_points_checked(model, rec, pts, others)
+                r["whole_roof"] = whole_roof(P, b2.MeshZ(mesh))
+            r["meshes"] = mesh_checks_v2(bid, root) if version == "v2" else mesh_checks(bid, root)
+            if version == "v2":
+                r["collider"] = {k: model.get("collider", {}).get(k) for k in ("triangles", "max_dev_m", "p95_dev_m")}
+                r["triangles"] = model.get("triangles")
             out.append(r)
         except Exception as ex:
             import traceback
@@ -405,7 +574,45 @@ def distribution(vals):
             "within_0.2": round(float(np.mean(v <= 0.2)), 4), "zero_in_band": round(float(np.mean(v == 0)), 4)}
 
 
+def whole_roof_summary(rows):
+    """Whole-roof metric over all buildings: per-building medians/p95 and the pooled share of
+    roof points within 0.2 m."""
+    w = [r["whole_roof"] for r in rows if r.get("whole_roof")]
+    if not w:
+        return None
+    n = sum(x["n"] for x in w)
+    return {"buildings": len(w), "points": n,
+            "pooled_within_0.2": round(sum(x["n_within_0.2"] for x in w) / max(n, 1), 4),
+            "median_of_medians": round(float(np.median([x["median"] for x in w])), 3),
+            "median_of_p90": round(float(np.median([x["p90"] for x in w])), 3),
+            "median_of_p95": round(float(np.median([x["p95"] for x in w])), 3),
+            "p95_of_p95": round(float(np.percentile([x["p95"] for x in w], 95)), 3),
+            "buildings_p95_within_0.2": sum(1 for x in w if x["p95"] <= 0.2)}
+
+
+def collider_summary(rows):
+    c = [r["collider"] for r in rows if r.get("collider") and r["collider"].get("triangles") is not None]
+    if not c:
+        return None
+    t = [x["triangles"] for x in c]
+    d = [x["max_dev_m"] for x in c]
+    return {"buildings": len(c), "triangles_total": int(sum(t)), "triangles_median": float(np.median(t)),
+            "triangles_max": int(max(t)), "over_2000": sum(1 for x in t if x > 2000),
+            "max_dev_max_m": round(float(max(d)), 3), "max_dev_p95_m": round(float(np.percentile(d, 95)), 3),
+            "p95_dev_max_m": round(float(max(x["p95_dev_m"] for x in c)), 3),
+            "over_0.15": sum(1 for x in d if x > 0.15 + 1e-9)}
+
+
+V1_HISTORY = ("**v1 result (2026-11-20, roof planes only):** 106 of 375 campus buildings passed the strict gate "
+              "(28.3%); 210 (56.0%) passed on the main part. v1 split many roofs into too many small parts, "
+              "approximated curved roofs by facets, lumped roof equipment and lower roof edges into the wrong "
+              "planes, and modeled Kirkland Hall as flat with a tower. v2 keeps v1 where it passed and follows "
+              "the LiDAR roof surface (height field, <= 0.08 m mesh tolerance) everywhere else.")
+
+
 def write_md(path, summary, rows):
+    if summary.get("version") == "v2":
+        return write_md_v2(path, summary, rows)
     L = ["# Stage 1 buildings accuracy (LoD2)", "",
          f"Made {summary['made']} by `Tools/VanderbiltCampus/pipeline/buildings_check.py`. "
          "Targets: footprint corners <= 0.3 m (p95 vs the reference), eave and ridge <= 0.2 m from the LiDAR "
@@ -447,19 +654,99 @@ def write_md(path, summary, rows):
     path.write_text("\n".join(L) + "\n", encoding="utf-8", newline="\n")
 
 
+def write_md_v2(path, summary, rows):
+    n = max(summary["buildings"], 1)
+    w = summary.get("whole_roof") or {}
+    c = summary.get("collider_mesh") or {}
+    L = ["# Stage 1 buildings accuracy (LoD2, v2)", "", V1_HISTORY, "",
+         f"Made {summary['made']} by `Tools/VanderbiltCampus/pipeline/buildings_check.py --version v2`. "
+         "Targets: footprint corners <= 0.3 m (p95 vs the reference), eave and ridge <= 0.2 m from the LiDAR "
+         "bands (STANDARDS.md section 5). Same gate as v1 (tolerances unchanged, every campus building in the "
+         "denominator).", "",
+         f"**Pass: {summary['passed']} of {summary['buildings']} campus buildings ({summary['pass_rate']:.1%}); "
+         f"target {summary['target']:.0%}.** (strict: footprint and every checked part >= 4 m2)", "",
+         f"- Main part only (footprint + the biggest part): {summary['pass_main_part']} ({summary['pass_main_part'] / n:.1%})",
+         f"- Footprint + every part >= 50 m2: {summary['pass_parts_50m2']} ({summary['pass_parts_50m2'] / n:.1%})",
+         f"- Parts: {summary['parts_passing']} of {summary['parts_checked']} checked parts pass eave, ridge and fit "
+         f"({summary['parts_passing'] / max(summary['parts_checked'], 1):.1%})",
+         f"- Roof methods: " + ", ".join(f"{k} {v} (pass {summary['pass_by_method'].get(k, 0)})"
+                                        for k, v in sorted(summary["methods"].items())),
+         f"- Whole-roof metric (all roof points vs the LoD2 mesh, vertical): {w.get('pooled_within_0.2', 0):.1%} of "
+         f"{w.get('points', 0)} points within 0.2 m; per building median of medians {w.get('median_of_medians')} m, "
+         f"median p90 {w.get('median_of_p90')} m, median p95 {w.get('median_of_p95')} m, p95 of the per-building p95 "
+         f"{w.get('p95_of_p95')} m; {w.get('buildings_p95_within_0.2')} of {w.get('buildings')} buildings have p95 <= 0.2 m",
+         f"- Triangles: LoD2 {summary['triangles_total']['lod2']} total (median {summary['triangles_lod2_median']} per "
+         f"building), LoD1 {summary['triangles_total']['lod1']}, colliders {summary['triangles_total']['col_mesh']}",
+         f"- Colliders: one non-convex mesh per building ({c.get('buildings')} buildings, median {c.get('triangles_median')} "
+         f"triangles, max {c.get('triangles_max')}, {c.get('over_2000')} over 2000); deviation from the LoD2 shell max "
+         f"{c.get('max_dev_max_m')} m (p95 over buildings {c.get('max_dev_p95_m')} m, worst per-building p95 "
+         f"{c.get('p95_dev_max_m')} m), {c.get('over_0.15')} over 0.15 m; {summary['colliders_bad']} failing the "
+         "mesh test (degenerate/duplicate triangles, vertices closer than 1 mm, inconsistent winding)",
+         f"- LoD2/LoD1 meshes with problems: {len(summary['lod_mesh_problems'])} "
+         + ", ".join(f"{k} {v}" for k, v in summary['lod_mesh_problems'].items()), "",
+         "| Test | Pass rate |", "|---|---|"]
+    for k in ("pass_footprint", "pass_eave", "pass_ridge", "pass_fit"):
+        L.append(f"| {k.replace('pass_', '')} | {summary['by_test'][k]:.1%} |")
+    L += ["", "Error distributions (absolute, m):", "", "| What | n | median | p90 | p95 | max |", "|---|---|---|---|---|---|"]
+    for k in ("footprint_ref_p95", "footprint_lidar_p95", "eave_main_part", "ridge_main_part",
+              "eave_all_parts", "ridge_all_parts", "whole_roof_median", "whole_roof_p95"):
+        d = summary["distributions"].get(k)
+        if d:
+            L.append(f"| {k} | {d['n']} | {d['median']} | {d['p90']} | {d['p95']} | {d['max']} |")
+    fails = [r for r in rows if not r.get("pass")]
+    cls = Counter(failure_class(r) for r in fails)
+    L += ["", "Failures by class: " + ", ".join(f"{k} {v}" for k, v in cls.most_common()), "",
+          "Roof types: " + ", ".join(f"{k} {v}" for k, v in sorted(summary["roof_types"].items(), key=lambda t: -t[1])), "",
+          "## Every failing building", "",
+          "| Building | Name | Method | Class | Area m2 | fp p95 | eave | ridge | roof p95 | Reason |",
+          "|---|---|---|---|---|---|---|---|---|---|"]
+    for r in sorted(fails, key=lambda r: -(r.get("area_m2") or 0)):
+        wr = (r.get("whole_roof") or {}).get("p95")
+        L.append(f"| {r['building']} | {(r.get('name') or '').replace('|', '/')} | {r.get('roof_method', '')} | "
+                 f"{failure_class(r)} | {r.get('area_m2', 0):.0f} | {r.get('footprint_ref_p95_m')} | "
+                 f"{r.get('worst_eave_err_m')} | {r.get('worst_ridge_err_m')} | {wr} | {r.get('reason', '')} |")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(L) + "\n", encoding="utf-8", newline="\n")
+
+
+def failure_class(r):
+    """One word for why a building fails (first matching rule)."""
+    if r.get("pass"):
+        return "pass"
+    if "error" in r:
+        return "check_error"
+    if not r.get("checked_parts"):
+        return "no_lidar_roof"
+    fp_bad = r.get("pass_footprint") is False
+    roof_bad = not (r.get("pass_eave") and r.get("pass_ridge") and r.get("pass_fit"))
+    if fp_bad and roof_bad:
+        return "footprint+roof"
+    if fp_bad:
+        return "footprint_only"
+    if not r.get("pass_eave") and r.get("pass_ridge"):
+        return "eave"
+    if not r.get("pass_ridge") and r.get("pass_eave"):
+        return "ridge"
+    if not r.get("pass_fit") and r.get("pass_eave") and r.get("pass_ridge"):
+        return "fit"
+    return "eave+ridge"
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--jobs", type=int, default=14)
     p.add_argument("--target", type=float, default=0.95)
     p.add_argument("--only", nargs="*")
+    p.add_argument("--version", default="v1", choices=["v1", "v2"], help="which building folders to check")
     args = p.parse_args(argv)
+    ver = args.version
     t0 = time.time()
     root = data_root()
     allrec = load_json(bc.out_dir(root) / "footprints.json")["buildings"]
     recs = {r["id"]: r for r in allrec if r["zone"] == "campus"}
     if args.only:
         recs = {k: v for k, v in recs.items() if k in set(args.only)}
-    missing = [b for b in recs if not (bc.building_dir(b, root) / "model.json").exists()]
+    missing = [b for b in recs if not (bc.building_dir(b, root, ver) / "model.json").exists()]
     allg = [(r["id"], bc.geom_from_json(r["polygon"])) for r in allrec]
     tree = shapely.STRtree([g for _, g in allg])
     by_tile = {}
@@ -470,7 +757,12 @@ def main(argv=None):
     for tile, items in sorted(by_tile.items()):
         env = shapely.box(*np.array([bc.geom_from_json(r["polygon"]).bounds for _, r in items]).min(axis=0)[:2] - 10,
                         *np.array([bc.geom_from_json(r["polygon"]).bounds for _, r in items]).max(axis=0)[2:] + 10)
-        jobs.append((tile, items, [allg[int(k)] for k in tree.query(env)], root))
+        nb = [allg[int(k)] for k in tree.query(env)]
+        if ver == "v2":       # one job per building: height-field checks of big buildings take a while
+            for it in sorted(items, key=lambda t: -t[1]["area_m2"]):
+                jobs.append((tile, [it], nb, root, ver))
+        else:
+            jobs.append((tile, items, nb, root, ver))
     rows = []
     if args.jobs > 1 and len(jobs) > 1:
         with Pool(args.jobs) as pool:
@@ -481,7 +773,7 @@ def main(argv=None):
             rows += run_job(j)
     for b in missing:
         rows.append({"building": b, "name": recs[b].get("name"), "pass": False, "area_m2": recs[b]["area_m2"],
-                     "reason": "no model (buildings_lod2.py failed or not run)"})
+                     "reason": "no model (buildings_lod2.py / buildings_v2.py failed or not run)"})
     rows.sort(key=lambda r: r["building"])
     n = len(rows)
     passed = sum(1 for r in rows if r.get("pass"))
@@ -509,6 +801,8 @@ def main(argv=None):
             "ridge_all_parts": distribution([p["ridge_err_m"] for p in allparts]),
             "roof_surface_median": distribution([r["roof_surface"]["median"] for r in ok_rows if r["roof_surface"]]),
             "roof_surface_p95": distribution([r["roof_surface"]["p95"] for r in ok_rows if r["roof_surface"]]),
+            "whole_roof_median": distribution([r["whole_roof"]["median"] for r in ok_rows if r.get("whole_roof")]),
+            "whole_roof_p95": distribution([r["whole_roof"]["p95"] for r in ok_rows if r.get("whole_roof")]),
         },
         "roof_types": dict(Counter(r.get("roof_type") for r in rows if r.get("roof_type"))),
         "failures_by_test": dict(Counter(k for r in rows if not r.get("pass")
@@ -520,21 +814,30 @@ def main(argv=None):
         "buildings_over_12_colliders": sum(1 for r in rows if r.get("meshes", {}).get("colliders", 0) > 12),
         "lod_mesh_problems": {r["building"]: r["meshes"]["lod_problems"] for r in rows
                               if r.get("meshes", {}).get("lod_problems")},
+        "version": ver,
+        "methods": dict(Counter(r.get("roof_method") for r in rows if r.get("roof_method"))),
+        "pass_by_method": {m: sum(1 for r in rows if r.get("roof_method") == m and r.get("pass"))
+                           for m in ("planes_v1", "heightfield_v2")},
+        "whole_roof": whole_roof_summary(rows),
+        "triangles_total": {k: sum((r.get("triangles") or {}).get(k, 0) for r in rows) for k in ("lod2", "lod1", "col_mesh")},
+        "triangles_lod2_median": float(np.median([r["triangles"]["lod2"] for r in rows if r.get("triangles")])) if any(r.get("triangles") for r in rows) else None,
+        "collider_mesh": collider_summary(rows),
         "rules": {"footprint_tol_m": FP_TOL, "height_tol_m": H_TOL,
                   "eave_band": "p5-p10 of roof points within 0.75 m inside the eave edges",
                   "ridge_band": "p98-p99.5 of roof points within 0.75 m of ridge lines (whole part if flat)",
                   "excluded": "points > 0.3 m above the model inside ledgered feature extents"},
     }
     rd = bc.reports_dir(root)
-    jp = bc.save(rd / "buildings_accuracy.json", {"summary": summary, "buildings": rows})
-    mp = rd / "buildings_accuracy.md"
+    sfx = "_v2" if ver == "v2" else ""
+    jp = bc.save(rd / f"buildings_accuracy{sfx}.json", {"summary": summary, "buildings": rows})
+    mp = rd / f"buildings_accuracy{sfx}.md"
     write_md(mp, summary, rows)
     if not args.only:
         write_md(DOCS / "stage1-buildings-accuracy.md", summary, rows)
     # numbers into model.json (archive + git mirror)
     db = manifest.connect(root)
     for r in rows:
-        d = bc.building_dir(r["building"], root)
+        d = bc.building_dir(r["building"], root, ver)
         mpath = d / "model.json"
         if not mpath.exists():
             continue
@@ -542,7 +845,7 @@ def main(argv=None):
         m["accuracy"] = {k: r.get(k) for k in ("pass", "pass_footprint", "pass_eave", "pass_ridge", "reason",
                                                "footprint_ref_p95_m", "eave_err_m", "ridge_err_m",
                                                "worst_eave_err_m", "worst_ridge_err_m", "roof_surface",
-                                               "roof_points_per_m2")}
+                                               "roof_points_per_m2", "whole_roof", "roof_method")}
         m["accuracy"]["footprint"] = r.get("footprint")
         m["accuracy"]["parts"] = [{k: v for k, v in pp.items()} for pp in r.get("parts", [])]
         m["accuracy"]["checked"] = summary["made"]

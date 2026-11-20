@@ -1,0 +1,29 @@
+{
+  "building": "B_new_144",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        106.93,
+        -628.94,
+        31.67
+      ],
+      "size": [
+        1.97,
+        0.31,
+        1.08
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 7,
+      "source": "v1"
+    }
+  ]
+}

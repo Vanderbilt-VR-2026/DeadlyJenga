@@ -1,0 +1,29 @@
+{
+  "building": "B_544597217",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -294.34,
+        -117.68,
+        26.28
+      ],
+      "size": [
+        1.47,
+        0.61,
+        0.93
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 9,
+      "source": "v1"
+    }
+  ]
+}

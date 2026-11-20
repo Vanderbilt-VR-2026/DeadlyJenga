@@ -1,0 +1,611 @@
+{
+  "building": "B_544597241",
+  "version": 2,
+  "name": "Alpha Delta Pi House",
+  "osm": "way/544597241",
+  "metro_ids": [
+    241067
+  ],
+  "tile": "T_-02_-03",
+  "zone": "campus",
+  "style_kit": null,
+  "lod_reached": "LoD2",
+  "footprint": {
+    "source": "osm+lidar",
+    "decisions": [
+      "OSM and Metro differ (corner p95 1.20 m); OSM is as close or closer to the LiDAR edge (0.51 vs 0.47 m): OSM used",
+      "4 edge(s) more than 0.3 m off the LiDAR edge moved to it: 6.22 m edge outward 0.83 m; 1.44 m edge inward 0.64 m; 1.7 m edge inward 0.52 m; 1.41 m edge inward 0.34 m"
+    ],
+    "area_m2": 287.86,
+    "corners": 13,
+    "overhang_m": 0.0,
+    "corner_errors": {
+      "vs_osm": {
+        "median": 0.0,
+        "p95": 0.89,
+        "max": 0.975,
+        "n": 13
+      },
+      "vs_metro": {
+        "median": 0.454,
+        "p95": 1.286,
+        "max": 1.321,
+        "n": 13
+      },
+      "vs_lidar": {
+        "median": 0.275,
+        "p95": 1.248,
+        "max": 1.604,
+        "n": 13
+      },
+      "lidar_corners_used": 13,
+      "lidar_corners_total": 13
+    }
+  },
+  "ground_z": 24.48,
+  "base_z": 23.47,
+  "roof_type": "hip",
+  "metro_roof_type": "Gable",
+  "parts": [
+    {
+      "id": "P1",
+      "area_m2": 230.99,
+      "roof_type": "hip",
+      "planes": [
+        0,
+        1,
+        2,
+        3,
+        8,
+        9
+      ],
+      "ground_z": 24.48,
+      "base_z": 23.47,
+      "eave_z": 30.59,
+      "ridge_z": 34.01,
+      "eave_height_m": 6.11,
+      "ridge_height_m": 9.53,
+      "polygon": [
+        [
+          [
+            [
+              -187.722,
+              -214.392
+            ],
+            [
+              -190.387,
+              -210.359
+            ],
+            [
+              -191.046,
+              -210.665
+            ],
+            [
+              -191.246,
+              -210.312
+            ],
+            [
+              -193.77,
+              -205.848
+            ],
+            [
+              -192.712,
+              -205.17
+            ],
+            [
+              -193.406,
+              -203.631
+            ],
+            [
+              -189.449,
+              -201.197
+            ],
+            [
+              -187.84,
+              -200.206
+            ],
+            [
+              -187.713,
+              -200.184
+            ],
+            [
+              -187.046,
+              -201.961
+            ],
+            [
+              -184.685,
+              -202.713
+            ],
+            [
+              -181.02,
+              -203.782
+            ],
+            [
+              -181.02,
+              -203.244
+            ],
+            [
+              -182.926,
+              -200.032
+            ],
+            [
+              -183.299,
+              -199.405
+            ],
+            [
+              -183.206,
+              -199.388
+            ],
+            [
+              -183.27,
+              -199.282
+            ],
+            [
+              -183.345,
+              -199.327
+            ],
+            [
+              -183.388,
+              -199.255
+            ],
+            [
+              -182.073,
+              -198.469
+            ],
+            [
+              -183.558,
+              -196.06
+            ],
+            [
+              -180.7,
+              -193.694
+            ],
+            [
+              -171.46,
+              -209.215
+            ],
+            [
+              -176.002,
+              -211.747
+            ],
+            [
+              -180.34,
+              -214.166
+            ],
+            [
+              -182.069,
+              -211.654
+            ],
+            [
+              -182.274,
+              -211.355
+            ],
+            [
+              -184.761,
+              -212.741
+            ],
+            [
+              -187.474,
+              -214.254
+            ]
+          ],
+          [
+            [
+              -186.535,
+              -209.696
+            ],
+            [
+              -186.535,
+              -209.696
+            ],
+            [
+              -186.535,
+              -209.696
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "P2",
+      "area_m2": 30.94,
+      "roof_type": "gable",
+      "planes": [
+        5,
+        7
+      ],
+      "ground_z": 24.48,
+      "base_z": 23.47,
+      "eave_z": 27.57,
+      "ridge_z": 30.932,
+      "eave_height_m": 3.09,
+      "ridge_height_m": 6.452,
+      "polygon": [
+        [
+          [
+            [
+              -176.002,
+              -211.747
+            ],
+            [
+              -171.46,
+              -209.215
+            ],
+            [
+              -169.932,
+              -211.782
+            ],
+            [
+              -174.441,
+              -214.401
+            ],
+            [
+              -178.541,
+              -216.782
+            ],
+            [
+              -180.34,
+              -214.166
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "P3",
+      "area_m2": 15.55,
+      "roof_type": "shed",
+      "planes": [
+        4
+      ],
+      "ground_z": 24.48,
+      "base_z": 23.47,
+      "eave_z": 31.207,
+      "ridge_z": 34.01,
+      "eave_height_m": 6.727,
+      "ridge_height_m": 9.53,
+      "polygon": [
+        [
+          [
+            [
+              -187.713,
+              -200.184
+            ],
+            [
+              -187.84,
+              -200.206
+            ],
+            [
+              -187.73,
+              -200.139
+            ],
+            [
+              -187.596,
+              -200.056
+            ],
+            [
+              -187.557,
+              -200.032
+            ],
+            [
+              -186.853,
+              -200.032
+            ],
+            [
+              -184.688,
+              -200.032
+            ],
+            [
+              -183.781,
+              -199.49
+            ],
+            [
+              -183.388,
+              -199.255
+            ],
+            [
+              -183.345,
+              -199.327
+            ],
+            [
+              -183.27,
+              -199.282
+            ],
+            [
+              -183.206,
+              -199.388
+            ],
+            [
+              -183.299,
+              -199.405
+            ],
+            [
+              -182.926,
+              -200.032
+            ],
+            [
+              -181.02,
+              -203.244
+            ],
+            [
+              -181.02,
+              -203.782
+            ],
+            [
+              -184.685,
+              -202.713
+            ],
+            [
+              -187.046,
+              -201.961
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "P4",
+      "area_m2": 10.37,
+      "roof_type": "shed",
+      "planes": [
+        6
+      ],
+      "ground_z": 24.48,
+      "base_z": 23.47,
+      "eave_z": 30.623,
+      "ridge_z": 32.978,
+      "eave_height_m": 6.143,
+      "ridge_height_m": 8.498,
+      "polygon": [
+        [
+          [
+            [
+              -182.073,
+              -198.469
+            ],
+            [
+              -183.388,
+              -199.255
+            ],
+            [
+              -183.781,
+              -199.49
+            ],
+            [
+              -184.688,
+              -200.032
+            ],
+            [
+              -186.853,
+              -200.032
+            ],
+            [
+              -187.557,
+              -200.032
+            ],
+            [
+              -185.387,
+              -198.697
+            ],
+            [
+              -186.127,
+              -197.52
+            ],
+            [
+              -183.7,
+              -196.177
+            ],
+            [
+              -183.558,
+              -196.06
+            ]
+          ]
+        ]
+      ]
+    }
+  ],
+  "roof_fit": {
+    "points": 2507,
+    "density_pts_m2": 8.71,
+    "coverage": 0.927,
+    "planes": 10,
+    "fallback": null,
+    "roof_color": {
+      "mean_rgb": [
+        94,
+        86,
+        80
+      ],
+      "saturation": 0.149,
+      "value": 0.37
+    },
+    "equipment_volumes": 0
+  },
+  "materials": [
+    "brick_red",
+    "concrete",
+    "roof_slate"
+  ],
+  "wall_material_guess": true,
+  "material_rule": "walls brick_red (guess); flat roofs roof_flat; pitched roof_slate unless the Metro 2026 ortho mean color is clearly green (roof_copper) or orange-red (roof_tile); base concrete",
+  "flags": [],
+  "uv_m_per_unit": {
+    "lod2": 50.4519,
+    "lod1": 49.8274
+  },
+  "ledger_entries": 8,
+  "mesh_checks": {
+    "lod2": [],
+    "lod1": []
+  },
+  "roof_method": "planes_v1",
+  "roof_method_reason": "v1 passes the accuracy gate",
+  "hero": false,
+  "uv_check": {
+    "charts": 59,
+    "note": "v1 UV (one chart per roof cell and wall segment)"
+  },
+  "triangles": {
+    "lod2": 228,
+    "lod1": 48,
+    "col_mesh": 160
+  },
+  "collider": {
+    "kind": "one non-convex static triangle mesh (LoD2 shell without base cap)",
+    "triangles": 160,
+    "shell_triangles": 160,
+    "max_dev_m": 0.0,
+    "p95_dev_m": 0.0,
+    "simplified": false,
+    "tries": [],
+    "within_tolerance": true,
+    "over_triangle_budget": false,
+    "problems": []
+  },
+  "roof_surface_error": {
+    "planes_v1": {
+      "n": 2356,
+      "median": 0.024,
+      "p90": 0.1,
+      "p95": 0.949,
+      "within_0.2": 0.9385
+    },
+    "heightfield_v2": null
+  },
+  "heightfield_error": null,
+  "files": {
+    "lod2": "lod2.npz",
+    "lod1": "lod1.npz",
+    "col_mesh": "col_mesh.npz",
+    "roof_planes": "roof_planes.json",
+    "ledger": "ledger.json"
+  },
+  "accuracy": {
+    "pass": true,
+    "pass_footprint": true,
+    "pass_eave": true,
+    "pass_ridge": true,
+    "reason": null,
+    "footprint_ref_p95_m": 0.164,
+    "eave_err_m": -0.04,
+    "ridge_err_m": 0.024,
+    "worst_eave_err_m": 0.04,
+    "worst_ridge_err_m": 0.024,
+    "roof_surface": {
+      "median": 0.02,
+      "p95": 2.489,
+      "max": 6.65,
+      "n": 2424
+    },
+    "roof_points_per_m2": 8.42,
+    "whole_roof": {
+      "n": 2424,
+      "median": 0.025,
+      "p90": 0.139,
+      "p95": 2.583,
+      "within_0.2": 0.9138,
+      "n_within_0.2": 2215
+    },
+    "roof_method": "planes_v1",
+    "footprint": {
+      "vs_reference": {
+        "median": 0.0,
+        "p95": 0.164,
+        "max": 0.22,
+        "n": 13
+      },
+      "vs_lidar": {
+        "median": 0.127,
+        "p95": 0.938,
+        "max": 0.938,
+        "n": 11
+      },
+      "corners": 13,
+      "corners_moved_to_lidar": 3,
+      "corners_with_lidar_evidence": 11,
+      "corners_without_clean_evidence": 2,
+      "reference": "osm outline; LiDAR edge for moved corners"
+    },
+    "parts": [
+      {
+        "id": "P1",
+        "area_m2": 230.99,
+        "roof_type": "hip",
+        "eave_z": 30.59,
+        "ridge_z": 34.01,
+        "fit_share": 0.959,
+        "lidar_eave_band": [
+          30.63,
+          30.66
+        ],
+        "eave_err_m": -0.04,
+        "eave_diff_to_p7.5_m": -0.07,
+        "eave_points": 108,
+        "lidar_ridge_band": [
+          33.97,
+          33.986
+        ],
+        "ridge_err_m": 0.024,
+        "ridge_points": 274,
+        "checked": true
+      },
+      {
+        "id": "P2",
+        "area_m2": 30.94,
+        "roof_type": "gable",
+        "eave_z": 27.57,
+        "ridge_z": 30.932,
+        "fit_share": 0.977,
+        "lidar_eave_band": [
+          27.6,
+          27.66
+        ],
+        "eave_err_m": -0.03,
+        "eave_diff_to_p7.5_m": -0.06,
+        "eave_points": 21,
+        "lidar_ridge_band": [
+          30.904,
+          30.909
+        ],
+        "ridge_err_m": 0.023,
+        "ridge_points": 31,
+        "checked": true
+      },
+      {
+        "id": "P3",
+        "area_m2": 15.55,
+        "roof_type": "shed",
+        "eave_z": 31.207,
+        "ridge_z": 34.01,
+        "fit_share": 1.0,
+        "lidar_ridge_band": [
+          33.734,
+          33.739
+        ],
+        "ridge_err_m": 0.271,
+        "ridge_points": 11,
+        "checked": false,
+        "why_not": "fewer than 10 LiDAR points near the eave or ridge"
+      },
+      {
+        "id": "P4",
+        "area_m2": 10.37,
+        "roof_type": "shed",
+        "eave_z": 30.623,
+        "ridge_z": 32.978,
+        "fit_share": 0.667,
+        "lidar_ridge_band": [
+          32.624,
+          32.636
+        ],
+        "ridge_err_m": 0.342,
+        "ridge_points": 14,
+        "checked": false,
+        "why_not": "fewer than 10 LiDAR points near the eave or ridge"
+      }
+    ],
+    "checked": "2026-11-20T12:20:45"
+  },
+  "v1_accuracy_pass": true,
+  "seconds": 0.24
+}

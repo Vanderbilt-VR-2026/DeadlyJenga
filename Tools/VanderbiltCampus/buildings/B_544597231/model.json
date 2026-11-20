@@ -1,0 +1,374 @@
+{
+  "building": "B_544597231",
+  "version": 2,
+  "name": "Kappa Alpha House",
+  "osm": "way/544597231",
+  "metro_ids": [
+    23237
+  ],
+  "tile": "T_-02_-02",
+  "zone": "campus",
+  "style_kit": null,
+  "lod_reached": "LoD2",
+  "footprint": {
+    "source": "osm+lidar",
+    "decisions": [
+      "OSM and Metro differ (corner p95 4.04 m); OSM is as close or closer to the LiDAR edge (0.67 vs 0.98 m): OSM used",
+      "7 edge(s) more than 0.3 m off the LiDAR edge moved to it: 1.48 m edge outward 0.93 m; 7.65 m edge inward 0.98 m; 6.51 m edge inward 0.87 m; 6.84 m edge inward 1.05 m; 14.56 m edge inward 0.54 m; 1.49 m edge outward 0.35 m ..."
+    ],
+    "area_m2": 486.67,
+    "corners": 16,
+    "overhang_m": 0.0,
+    "corner_errors": {
+      "vs_osm": {
+        "median": 0.0,
+        "p95": 0.97,
+        "max": 1.284,
+        "n": 16
+      },
+      "vs_metro": {
+        "median": 0.823,
+        "p95": 3.161,
+        "max": 3.17,
+        "n": 16
+      },
+      "vs_lidar": {
+        "median": 0.276,
+        "p95": 1.005,
+        "max": 1.017,
+        "n": 12
+      },
+      "lidar_corners_used": 12,
+      "lidar_corners_total": 16
+    }
+  },
+  "ground_z": 20.01,
+  "base_z": 19.32,
+  "roof_type": "hip",
+  "metro_roof_type": "Gable",
+  "parts": [
+    {
+      "id": "P1",
+      "area_m2": 486.66,
+      "roof_type": "hip",
+      "planes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "ground_z": 20.01,
+      "base_z": 19.32,
+      "eave_z": 26.75,
+      "ridge_z": 31.163,
+      "eave_height_m": 6.74,
+      "ridge_height_m": 11.153,
+      "polygon": [
+        [
+          [
+            [
+              -188.086,
+              -104.899
+            ],
+            [
+              -188.472,
+              -104.242
+            ],
+            [
+              -188.369,
+              -104.157
+            ],
+            [
+              -189.653,
+              -102.215
+            ],
+            [
+              -186.46,
+              -100.262
+            ],
+            [
+              -183.609,
+              -98.518
+            ],
+            [
+              -181.952,
+              -101.446
+            ],
+            [
+              -181.657,
+              -101.274
+            ],
+            [
+              -176.6,
+              -98.323
+            ],
+            [
+              -176.64,
+              -98.253
+            ],
+            [
+              -177.147,
+              -97.362
+            ],
+            [
+              -174.016,
+              -95.538
+            ],
+            [
+              -174.015,
+              -95.537
+            ],
+            [
+              -170.519,
+              -93.5
+            ],
+            [
+              -170.408,
+              -93.686
+            ],
+            [
+              -169.299,
+              -93.036
+            ],
+            [
+              -162.115,
+              -88.827
+            ],
+            [
+              -160.42,
+              -91.782
+            ],
+            [
+              -159.851,
+              -91.455
+            ],
+            [
+              -158.974,
+              -90.95
+            ],
+            [
+              -157.272,
+              -93.83
+            ],
+            [
+              -155.71,
+              -96.472
+            ],
+            [
+              -156.676,
+              -97.069
+            ],
+            [
+              -156.98,
+              -97.257
+            ],
+            [
+              -154.107,
+              -102.242
+            ],
+            [
+              -161.471,
+              -106.245
+            ],
+            [
+              -169.338,
+              -110.521
+            ],
+            [
+              -181.045,
+              -116.884
+            ],
+            [
+              -184.401,
+              -111.171
+            ]
+          ],
+          [
+            [
+              -166.787,
+              -100.752
+            ],
+            [
+              -166.787,
+              -100.752
+            ],
+            [
+              -166.787,
+              -100.752
+            ]
+          ],
+          [
+            [
+              -182.924,
+              -106.222
+            ],
+            [
+              -182.924,
+              -106.222
+            ],
+            [
+              -182.924,
+              -106.222
+            ]
+          ]
+        ]
+      ]
+    }
+  ],
+  "roof_fit": {
+    "points": 3881,
+    "density_pts_m2": 7.97,
+    "coverage": 0.983,
+    "planes": 8,
+    "fallback": null,
+    "roof_color": {
+      "mean_rgb": [
+        79,
+        81,
+        84
+      ],
+      "saturation": 0.057,
+      "value": 0.33
+    },
+    "equipment_volumes": 0
+  },
+  "materials": [
+    "brick_red",
+    "concrete",
+    "roof_slate"
+  ],
+  "wall_material_guess": true,
+  "material_rule": "walls brick_red (guess); flat roofs roof_flat; pitched roof_slate unless the Metro 2026 ortho mean color is clearly green (roof_copper) or orange-red (roof_tile); base concrete",
+  "flags": [
+    "tree_cover"
+  ],
+  "uv_m_per_unit": {
+    "lod2": 62.2462,
+    "lod1": 75.7279
+  },
+  "ledger_entries": 6,
+  "mesh_checks": {
+    "lod2": [],
+    "lod1": []
+  },
+  "roof_method": "planes_v1",
+  "roof_method_reason": "v1 passes the accuracy gate",
+  "hero": false,
+  "uv_check": {
+    "charts": 46,
+    "note": "v1 UV (one chart per roof cell and wall segment)"
+  },
+  "triangles": {
+    "lod2": 170,
+    "lod1": 60,
+    "col_mesh": 121
+  },
+  "collider": {
+    "kind": "one non-convex static triangle mesh (LoD2 shell without base cap)",
+    "triangles": 121,
+    "shell_triangles": 121,
+    "max_dev_m": 0.0,
+    "p95_dev_m": 0.0,
+    "simplified": false,
+    "tries": [],
+    "within_tolerance": true,
+    "over_triangle_budget": false,
+    "problems": []
+  },
+  "roof_surface_error": {
+    "planes_v1": {
+      "n": 3744,
+      "median": 0.024,
+      "p90": 0.064,
+      "p95": 0.091,
+      "within_0.2": 0.9786
+    },
+    "heightfield_v2": null
+  },
+  "heightfield_error": null,
+  "files": {
+    "lod2": "lod2.npz",
+    "lod1": "lod1.npz",
+    "col_mesh": "col_mesh.npz",
+    "roof_planes": "roof_planes.json",
+    "ledger": "ledger.json"
+  },
+  "accuracy": {
+    "pass": true,
+    "pass_footprint": true,
+    "pass_eave": true,
+    "pass_ridge": true,
+    "reason": null,
+    "footprint_ref_p95_m": 0.161,
+    "eave_err_m": -0.03,
+    "ridge_err_m": -0.017,
+    "worst_eave_err_m": 0.03,
+    "worst_ridge_err_m": 0.017,
+    "roof_surface": {
+      "median": 0.023,
+      "p95": 0.08,
+      "max": 3.369,
+      "n": 3759
+    },
+    "roof_points_per_m2": 7.72,
+    "whole_roof": {
+      "n": 3759,
+      "median": 0.024,
+      "p90": 0.065,
+      "p95": 0.096,
+      "within_0.2": 0.975,
+      "n_within_0.2": 3665
+    },
+    "roof_method": "planes_v1",
+    "footprint": {
+      "vs_reference": {
+        "median": 0.0,
+        "p95": 0.161,
+        "max": 0.227,
+        "n": 16
+      },
+      "vs_lidar": {
+        "median": 0.139,
+        "p95": 0.241,
+        "max": 0.241,
+        "n": 13
+      },
+      "corners": 16,
+      "corners_moved_to_lidar": 4,
+      "corners_with_lidar_evidence": 13,
+      "corners_without_clean_evidence": 3,
+      "reference": "osm outline; LiDAR edge for moved corners"
+    },
+    "parts": [
+      {
+        "id": "P1",
+        "area_m2": 486.66,
+        "roof_type": "hip",
+        "eave_z": 26.75,
+        "ridge_z": 31.163,
+        "fit_share": 0.989,
+        "lidar_eave_band": [
+          26.78,
+          26.792
+        ],
+        "eave_err_m": -0.03,
+        "eave_diff_to_p7.5_m": -0.037,
+        "eave_points": 183,
+        "lidar_ridge_band": [
+          31.18,
+          32.196
+        ],
+        "ridge_err_m": -0.017,
+        "ridge_points": 181,
+        "checked": true
+      }
+    ],
+    "checked": "2026-11-20T12:20:45"
+  },
+  "v1_accuracy_pass": true,
+  "seconds": 0.14
+}

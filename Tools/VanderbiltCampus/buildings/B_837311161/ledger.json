@@ -1,0 +1,50 @@
+{
+  "building": "B_837311161",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        666.14,
+        -394.32,
+        29.72
+      ],
+      "size": [
+        7.62,
+        1.22,
+        3.56
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 44,
+      "source": "v1"
+    },
+    {
+      "id": "L0002",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        658.63,
+        -388.45,
+        27.06
+      ],
+      "size": [
+        3.03,
+        11.39,
+        0.17
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 0,
+      "source": "v1"
+    }
+  ]
+}

@@ -1,0 +1,306 @@
+{
+  "building": "B_new_33",
+  "version": 2,
+  "name": null,
+  "osm": null,
+  "metro_ids": [],
+  "tile": "T_-09_-08",
+  "zone": "campus",
+  "style_kit": null,
+  "lod_reached": "LoD2",
+  "footprint": {
+    "source": "lidar_trace",
+    "decisions": [
+      "LiDAR roof (72 m2, median 2.9 m above ground) with no OSM or Metro footprint; outline traced from the LiDAR mask"
+    ],
+    "area_m2": 71.75,
+    "corners": 19,
+    "overhang_m": 0.0,
+    "corner_errors": {
+      "vs_osm": null,
+      "vs_metro": null,
+      "vs_lidar": {
+        "median": 0.169,
+        "p95": 0.42,
+        "max": 0.42,
+        "n": 18
+      },
+      "lidar_corners_used": 18,
+      "lidar_corners_total": 19
+    }
+  },
+  "ground_z": 32.9,
+  "base_z": 32.1,
+  "roof_type": "curved",
+  "metro_roof_type": null,
+  "parts": [
+    {
+      "id": "P1",
+      "area_m2": 71.75,
+      "roof_type": "curved",
+      "region": 0,
+      "planar": false,
+      "ground_z": 32.9,
+      "base_z": 32.1,
+      "eave_z": 33.888,
+      "ridge_z": 35.971,
+      "eave_height_m": 0.988,
+      "ridge_height_m": 3.071,
+      "touches_outline": true,
+      "polygon": [
+        [
+          [
+            [
+              -799.5,
+              -767.5
+            ],
+            [
+              -799.0,
+              -770.0
+            ],
+            [
+              -798.0,
+              -770.5
+            ],
+            [
+              -798.0,
+              -772.5
+            ],
+            [
+              -794.5,
+              -776.0
+            ],
+            [
+              -794.5,
+              -778.5
+            ],
+            [
+              -799.5,
+              -779.0
+            ],
+            [
+              -801.0,
+              -777.0
+            ],
+            [
+              -801.0,
+              -776.0
+            ],
+            [
+              -802.0,
+              -775.5
+            ],
+            [
+              -802.0,
+              -774.5
+            ],
+            [
+              -804.5,
+              -774.5
+            ],
+            [
+              -804.5,
+              -773.5
+            ],
+            [
+              -805.0,
+              -773.5
+            ],
+            [
+              -805.0,
+              -769.0
+            ],
+            [
+              -804.0,
+              -769.0
+            ],
+            [
+              -804.0,
+              -768.0
+            ],
+            [
+              -803.0,
+              -768.0
+            ],
+            [
+              -803.0,
+              -767.5
+            ]
+          ]
+        ]
+      ]
+    }
+  ],
+  "roof_fit": {
+    "points": 568,
+    "density_pts_m2": 7.92,
+    "coverage": 0.873,
+    "planes": 2,
+    "fallback": null,
+    "roof_color": {
+      "mean_rgb": [
+        141,
+        125,
+        95
+      ],
+      "saturation": 0.327,
+      "value": 0.554
+    },
+    "equipment_volumes": 0,
+    "heightfield": {
+      "cells": 1236,
+      "measured_share": 0.408,
+      "noise_cells": 3,
+      "theta_deg": 1.05,
+      "snapped_to_v1_share": 0.686,
+      "regions": 1,
+      "break_edges": 25,
+      "planar_regions": 0,
+      "pieces": 83,
+      "split_pieces": 73
+    },
+    "roof_material": "roof_slate"
+  },
+  "materials": [
+    "brick_red",
+    "concrete",
+    "roof_flat",
+    "roof_slate"
+  ],
+  "wall_material_guess": true,
+  "material_rule": "walls and vertical roof steps brick_red (guess); roof faces flatter than 6 deg roof_flat, steeper roof_slate unless the Metro 2026 ortho color is clearly green (roof_copper) or orange-red (roof_tile); base concrete",
+  "flags": [],
+  "uv_m_per_unit": {
+    "lod2": 25.9223,
+    "lod1": 21.8024
+  },
+  "ledger_entries": 3,
+  "mesh_checks": {
+    "lod2": [],
+    "lod1": []
+  },
+  "roof_method": "heightfield_v2",
+  "roof_method_reason": "v1 fails the accuracy gate",
+  "hero": false,
+  "uv_check": {
+    "charts": 86,
+    "inside_atlas": true,
+    "rectangle_overlaps": 0
+  },
+  "triangles": {
+    "lod2": 442,
+    "lod1": 72,
+    "col_mesh": 387
+  },
+  "collider": {
+    "kind": "one non-convex static triangle mesh (LoD2 shell without base cap)",
+    "triangles": 387,
+    "shell_triangles": 387,
+    "max_dev_m": 0.0,
+    "p95_dev_m": 0.0,
+    "simplified": false,
+    "tries": [],
+    "within_tolerance": true,
+    "over_triangle_budget": false,
+    "problems": []
+  },
+  "roof_surface_error": {
+    "planes_v1": {
+      "n": 501,
+      "median": 0.02,
+      "p90": 0.37,
+      "p95": 0.4,
+      "within_0.2": 0.8124
+    },
+    "heightfield_v2": {
+      "n": 501,
+      "median": 0.02,
+      "p90": 0.096,
+      "p95": 0.182,
+      "within_0.2": 0.9561
+    }
+  },
+  "heightfield_error": null,
+  "files": {
+    "lod2": "lod2.npz",
+    "lod1": "lod1.npz",
+    "col_mesh": "col_mesh.npz",
+    "roof_planes": "roof_planes.json",
+    "ledger": "ledger.json"
+  },
+  "accuracy": {
+    "pass": true,
+    "pass_footprint": true,
+    "pass_eave": true,
+    "pass_ridge": true,
+    "reason": null,
+    "footprint_ref_p95_m": 0.244,
+    "eave_err_m": -0.029,
+    "ridge_err_m": -0.019,
+    "worst_eave_err_m": 0.029,
+    "worst_ridge_err_m": 0.019,
+    "roof_surface": {
+      "median": 0.02,
+      "p95": 2.359,
+      "max": 4.062,
+      "n": 536
+    },
+    "roof_points_per_m2": 7.47,
+    "whole_roof": {
+      "n": 536,
+      "median": 0.02,
+      "p90": 0.446,
+      "p95": 2.359,
+      "within_0.2": 0.8937,
+      "n_within_0.2": 479
+    },
+    "roof_method": "heightfield_v2",
+    "footprint": {
+      "vs_reference": {
+        "median": 0.024,
+        "p95": 0.244,
+        "max": 0.244,
+        "n": 10
+      },
+      "vs_lidar": {
+        "median": 0.024,
+        "p95": 0.244,
+        "max": 0.244,
+        "n": 10
+      },
+      "corners": 19,
+      "corners_moved_to_lidar": 19,
+      "corners_with_lidar_evidence": 10,
+      "corners_without_clean_evidence": 9,
+      "reference": "LiDAR edge"
+    },
+    "parts": [
+      {
+        "id": "P1",
+        "area_m2": 71.75,
+        "roof_type": "curved",
+        "eave_z": 33.888,
+        "ridge_z": 35.971,
+        "fit_share": 0.972,
+        "lidar_eave_band": [
+          33.917,
+          33.93
+        ],
+        "eave_err_m": -0.029,
+        "eave_diff_to_p7.5_m": -0.042,
+        "eave_points": 28,
+        "lidar_ridge_band": [
+          35.99,
+          36.0
+        ],
+        "ridge_err_m": -0.019,
+        "ridge_points": 295,
+        "checked": true
+      }
+    ],
+    "checked": "2026-11-20T12:20:45"
+  },
+  "v1_accuracy_pass": false,
+  "seconds": 5.21,
+  "parts_refreshed": "2026-11-20T12:06:27"
+}

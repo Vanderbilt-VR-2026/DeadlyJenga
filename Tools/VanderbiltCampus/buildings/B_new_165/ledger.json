@@ -1,0 +1,29 @@
+{
+  "building": "B_new_165",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "small_roof_step",
+      "merged_into": "roof",
+      "center": [
+        190.42,
+        -802.61,
+        37.22
+      ],
+      "size": [
+        7.55,
+        1.43,
+        0.18
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 60,
+      "source": "v1"
+    }
+  ]
+}

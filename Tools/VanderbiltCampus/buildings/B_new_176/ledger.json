@@ -1,0 +1,134 @@
+{
+  "building": "B_new_176",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "parapet",
+      "merged_into": "roof",
+      "center": [
+        241.37,
+        -591.52,
+        59.61
+      ],
+      "size": [
+        3.95,
+        0.64,
+        0.52
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 48,
+      "source": "v1"
+    },
+    {
+      "id": "L0002",
+      "type": "parapet",
+      "merged_into": "roof",
+      "center": [
+        224.47,
+        -589.54,
+        59.61
+      ],
+      "size": [
+        2.56,
+        0.57,
+        0.48
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 30,
+      "source": "v1"
+    },
+    {
+      "id": "L0003",
+      "type": "parapet",
+      "merged_into": "roof",
+      "center": [
+        240.6,
+        -587.06,
+        59.6
+      ],
+      "size": [
+        6.44,
+        0.74,
+        0.48
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 59,
+      "source": "v1"
+    },
+    {
+      "id": "L0004",
+      "type": "parapet",
+      "merged_into": "roof",
+      "center": [
+        227.15,
+        -585.48,
+        59.56
+      ],
+      "size": [
+        2.68,
+        0.47,
+        0.42
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 16,
+      "source": "v1"
+    },
+    {
+      "id": "L0005",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        224.83,
+        -585.15,
+        59.61
+      ],
+      "size": [
+        0.83,
+        0.31,
+        0.44
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 3,
+      "source": "v1"
+    },
+    {
+      "id": "L0006",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        228.89,
+        -589.98,
+        59.16
+      ],
+      "size": [
+        8.25,
+        1.73,
+        0.48
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 0,
+      "source": "v1"
+    }
+  ]
+}

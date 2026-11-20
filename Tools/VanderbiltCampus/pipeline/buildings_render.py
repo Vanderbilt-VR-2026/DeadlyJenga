@@ -10,6 +10,10 @@ Commands:
                            (gray = fits no plane within 0.15 m). Default: about 12 representative
                            buildings (Kirkland Hall included). Written to reports/stage1/buildings/.
   --git-copies             also copy two sheets (<= 1 MB each) into the git images folder.
+  --version v2             draw the v2 buildings (buildings_v2.py): LiDAR points are colored by their
+                           vertical distance to the LoD2 mesh (green <= 0.2 m, orange <= 0.5 m, red more);
+                           Kirkland Hall gets a full row: two oblique views of the mesh and its LiDAR
+                           points from the first angle. Overview outlines use buildings_accuracy_v2.
 """
 import argparse
 import io
@@ -58,8 +62,11 @@ def shade(mesh, light=(-0.4, -0.5, 0.75)):
     return np.clip(base * k[:, None], 0, 1), n
 
 
+VERSION = "v1"
+
+
 def load_lod2(bid, root):
-    p = bc.building_dir(bid, root) / "lod2.npz"
+    p = bc.building_dir(bid, root, VERSION) / "lod2.npz"
     return vcmesh.load_mesh(p) if p.exists() else None
 
 
@@ -73,7 +80,7 @@ def pick_representative(models, n=12):
     by_type = {}
     for m in sorted(models, key=lambda m: -m["footprint"]["area_m2"]):
         by_type.setdefault(m["roof_type"], []).append(m)
-    for t in ("gable", "hip", "complex", "mansard", "curved", "pyramidal", "shed", "gambrel", "flat",
+    for t in ("pitched", "gable", "hip", "complex", "mansard", "curved", "pyramidal", "shed", "gambrel", "flat",
               "fallback_flat"):
         for m in by_type.get(t, [])[:1 if t != "complex" else 2]:
             if m not in chosen:
@@ -151,6 +158,111 @@ def draw_building(ax3, ax2, model, root):
     ax2.set_title(f"LiDAR by plane; fp p95 {fpe}, eave {e}, ridge {r}", fontsize=7)
 
 
+def mesh_axes(ax3, mesh, elev=32, azim=-58):
+    col, _ = shade(mesh)
+    v, f = mesh["verts"], mesh["faces"]
+    ax3.add_collection3d(Poly3DCollection(v[f], facecolors=col, edgecolors=(0, 0, 0, 0.12), linewidths=0.15))
+    lo, hi = v.min(axis=0), v.max(axis=0)
+    d = np.maximum(hi - lo, 1e-3)
+    ax3.set_xlim(lo[0], hi[0])
+    ax3.set_ylim(lo[1], hi[1])
+    ax3.set_zlim(lo[2], hi[2])
+    ax3.set_box_aspect((d[0], d[1], d[2]), zoom=1.25)
+    ax3.view_init(elev=elev, azim=azim)
+    ax3.set_axis_off()
+    return lo, hi
+
+
+def v2_points(model, root):
+    import buildings_v2 as b2
+    mesh = load_lod2(model["building"], root)
+    fp = shapely.unary_union([bc.geom_from_json(p["polygon"]) for p in model["parts"]])
+    x0, y0, x1, y1 = fp.bounds
+    pts = lidar_io.load_points(x0, y0, x1, y1, classes=[1, 6], buffer=0.5, root=root)
+    ins = shapely.contains_xy(fp.buffer(0.3), pts["x"], pts["y"]) & (pts["z"] > model["ground_z"] + 1.0)
+    x, y, z = pts["x"][ins], pts["y"][ins], pts["z"][ins]
+    d = np.abs(z - b2.MeshZ(mesh)(x, y))
+    c = np.where(d <= 0.2, 0, np.where(d <= 0.5, 1, 2))
+    colors = np.array([[0.1, 0.7, 0.2], [1.0, 0.6, 0.0], [0.9, 0.1, 0.1]])[c]
+    colors[~np.isfinite(d)] = 0.6
+    return mesh, fp, x, y, z, colors, d
+
+
+def draw_building_v2(ax3, ax2, model, root, extra=None):
+    """v2 panel pair: shaded mesh, LiDAR points colored by distance to the mesh."""
+    bid = model["building"]
+    mesh, fp, x, y, z, colors, d = v2_points(model, root)
+    lo, hi = mesh_axes(ax3, mesh)
+    acc = model.get("accuracy") or {}
+    status = "PASS" if acc.get("pass") else ("FAIL" if acc else "")
+    wr = (acc.get("whole_roof") or {})
+    name = (model.get("name") or "")[:28]
+    ax3.set_title(f"{bid} {name}\n{model['roof_method']}, {model['roof_type']}, {len(model['parts'])} part(s), "
+                  f"{model['triangles']['lod2']} tris {status}", fontsize=8)
+    ax2.scatter(x, y, c=colors, s=0.4, linewidths=0)
+    for p in bc.polys_of(fp):
+        xx, yy = p.exterior.xy
+        ax2.plot(xx, yy, "k-", lw=0.4)
+    ax2.set_aspect("equal")
+    ax2.set_xticks([])
+    ax2.set_yticks([])
+    ax2.set_title(f"LiDAR vs mesh (green <= 0.2 m); roof p95 {wr.get('p95')} m, "
+                  f"eave {acc.get('worst_eave_err_m')}, ridge {acc.get('worst_ridge_err_m')}", fontsize=7)
+    if extra is not None:
+        ax3b, ax3c = extra
+        mesh_axes(ax3b, mesh, elev=28, azim=122)
+        ax3b.set_title(f"{name}: second oblique view", fontsize=8)
+        k = np.random.default_rng(0).permutation(len(x))[:60000]
+        ax3c.scatter(x[k], y[k], z[k], c=z[k], cmap="viridis", s=0.3, linewidths=0)
+        dd = np.maximum(hi - lo, 1e-3)
+        ax3c.set_xlim(lo[0], hi[0])
+        ax3c.set_ylim(lo[1], hi[1])
+        ax3c.set_zlim(lo[2], hi[2])
+        ax3c.set_box_aspect((dd[0], dd[1], dd[2]), zoom=1.25)
+        ax3c.view_init(elev=32, azim=-58)
+        ax3c.set_axis_off()
+        ax3c.set_title(f"{name}: LiDAR roof points (2022), same view as the first", fontsize=8)
+
+
+def sheets_v2(models, root, prefix="v2"):
+    """Sheet 1: Kirkland Hall row (two obliques, LiDAR points, distance map) + 4 buildings;
+    later sheets 6 buildings each."""
+    out = []
+    od = bc.reports_dir(root) / "buildings"
+    od.mkdir(parents=True, exist_ok=True)
+    kirk = [m for m in models if (m.get("name") or "").startswith("Kirkland Hall")][:1]
+    rest = [m for m in models if m not in kirk]
+    groups = [kirk + rest[:4]] + [rest[4 + 6 * k: 10 + 6 * k] for k in range(max(0, (len(rest) - 4 + 5) // 6))]
+    for gi, group in enumerate(g for g in groups if g):
+        slots = []
+        has_k = bool(kirk) and group and group[0] is kirk[0]
+        rows = (1 if has_k else 0) + (len(group) - (1 if has_k else 0) + 1) // 2
+        fig = plt.figure(figsize=(18, 4.6 * rows))
+        pos = 1
+        for i, m in enumerate(group):
+            try:
+                if has_k and i == 0:
+                    a1 = fig.add_subplot(rows, 4, 1, projection="3d")
+                    a2 = fig.add_subplot(rows, 4, 2, projection="3d")
+                    a3 = fig.add_subplot(rows, 4, 3, projection="3d")
+                    a4 = fig.add_subplot(rows, 4, 4)
+                    draw_building_v2(a1, a4, m, root, extra=(a2, a3))
+                    pos = 5
+                    continue
+                ax3 = fig.add_subplot(rows, 4, pos, projection="3d")
+                ax2 = fig.add_subplot(rows, 4, pos + 1)
+                pos += 2
+                draw_building_v2(ax3, ax2, m, root)
+            except Exception as ex:
+                print(f"sheet: {m['building']} failed: {ex!r}", file=sys.stderr)
+        fig.subplots_adjust(left=0.01, right=0.99, top=0.95, bottom=0.02, wspace=0.05, hspace=0.25)
+        p = od / f"{prefix}_{gi + 1:02d}.png"
+        fig.savefig(p, dpi=70)
+        plt.close(fig)
+        out.append(p)
+    return out
+
+
 def sheets(models, root, per_sheet=6, prefix="contact"):
     out = []
     od = bc.reports_dir(root) / "buildings"
@@ -178,7 +290,7 @@ def sheets(models, root, per_sheet=6, prefix="contact"):
 
 def overview(models, root, out_png):
     naip_meta = load_json(Path(root) / "derived" / "ortho" / "v1" / "naip2021_campus_0.6m.json")
-    allp = shapely.unary_union([bc.geom_from_json(p["polygon"]) for m in models for p in m["parts"]])
+    allp = shapely.unary_union([shapely.make_valid(bc.geom_from_json(p["polygon"])) for m in models for p in m["parts"]])
     x0, y0, x1, y1 = allp.buffer(20).bounds
     rgb, (ox, oy, cell) = bc.ortho_window("naip2021_campus_0.6m", x0, y0, x1, y1, root)
     W = (x1 - x0)
@@ -202,7 +314,7 @@ def overview(models, root, out_png):
     for m in models:
         acc = m.get("accuracy") or {}
         color = "#22dd22" if acc.get("pass") else "#ff2222"
-        fp = shapely.unary_union([bc.geom_from_json(p["polygon"]) for p in m["parts"]])
+        fp = shapely.unary_union([shapely.make_valid(bc.geom_from_json(p["polygon"])) for p in m["parts"]])
         for p in bc.polys_of(fp):
             xx, yy = p.exterior.xy
             ax.plot(xx, yy, color=color, lw=0.6)
@@ -234,7 +346,7 @@ def small_copy(src, dst, max_bytes):
 def load_models(root):
     out = []
     for d in sorted((Path(root) / "buildings").glob("B_*")):
-        p = d / bc.VERSION / "model.json"
+        p = d / VERSION / "model.json"
         if p.exists():
             m = load_json(p)
             if m.get("zone") == "campus":
@@ -248,7 +360,10 @@ def main(argv=None):
     p.add_argument("--ids", nargs="*")
     p.add_argument("--prefix", default="contact")
     p.add_argument("--git-copies", action="store_true")
+    p.add_argument("--version", default="v1", choices=["v1", "v2"])
     args = p.parse_args(argv)
+    global VERSION
+    VERSION = args.version
     root = data_root()
     models = load_models(root)
     if not models:
@@ -257,7 +372,7 @@ def main(argv=None):
     db = manifest.connect(root)
     written = []
     if args.cmd == "overview":
-        out = bc.reports_dir(root) / "buildings_overview.png"
+        out = bc.reports_dir(root) / ("buildings_overview_v2.png" if VERSION == "v2" else "buildings_overview.png")
         out.parent.mkdir(parents=True, exist_ok=True)
         overview(models, root, out)
         written.append(out)
@@ -270,11 +385,14 @@ def main(argv=None):
             chosen = [byid[i] for i in args.ids if i in byid]
         else:
             chosen = pick_representative(models)
-        outs = sheets(chosen, root, prefix=args.prefix)
+        if VERSION == "v2":
+            outs = sheets_v2(chosen, root, prefix=args.prefix if args.prefix != "contact" else "v2")
+        else:
+            outs = sheets(chosen, root, prefix=args.prefix)
         written += outs
         if args.git_copies:
             for k, o in enumerate(outs[:2], 1):
-                dst, s = small_copy(o, GIT_IMAGES / f"stage1-buildings-sheet-{k}.png", 1_000_000)
+                dst, s = small_copy(o, GIT_IMAGES / f"stage1-buildings-sheet-{k}.png", 1_400_000)
                 print(f"git copy {dst} (scale {s}, {dst.stat().st_size} bytes)")
     for f in written:
         manifest.add_file(f, source="buildings_render.py", license="derived; NAIP public domain", stage=1,

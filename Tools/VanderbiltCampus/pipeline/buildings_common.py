@@ -43,9 +43,9 @@ def out_dir(root=None):
     return Path(root or data_root()) / "derived" / "buildings" / VERSION
 
 
-def building_dir(bid, root=None):
-    """Archive folder for one building's v1 files: buildings/<id>/v1/."""
-    return Path(root or data_root()) / "buildings" / bid / VERSION
+def building_dir(bid, root=None, version=None):
+    """Archive folder for one building's files: buildings/<id>/<version>/ (default v1)."""
+    return Path(root or data_root()) / "buildings" / bid / (version or VERSION)
 
 
 def git_building_dir(bid):

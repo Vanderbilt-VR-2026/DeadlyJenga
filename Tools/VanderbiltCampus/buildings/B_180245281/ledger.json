@@ -1,0 +1,818 @@
+{
+  "building": "B_180245281",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        168.84,
+        -239.46,
+        39.06
+      ],
+      "size": [
+        8.03,
+        7.97,
+        3.57
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 418,
+      "source": "v1"
+    },
+    {
+      "id": "L0002",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        157.32,
+        -238.22,
+        37.53
+      ],
+      "size": [
+        6.99,
+        2.64,
+        2.81
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 288,
+      "source": "v1"
+    },
+    {
+      "id": "L0003",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        157.73,
+        -233.54,
+        38.07
+      ],
+      "size": [
+        2.75,
+        1.43,
+        3.47
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 11,
+      "source": "v1"
+    },
+    {
+      "id": "L0004",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        160.26,
+        -234.05,
+        37.3
+      ],
+      "size": [
+        1.26,
+        0.65,
+        2.23
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 6,
+      "source": "v1"
+    },
+    {
+      "id": "L0005",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        162.46,
+        -232.44,
+        38.08
+      ],
+      "size": [
+        3.05,
+        1.85,
+        2.8
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 34,
+      "source": "v1"
+    },
+    {
+      "id": "L0006",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        157.66,
+        -232.05,
+        37.83
+      ],
+      "size": [
+        0.89,
+        0.55,
+        2.32
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 4,
+      "source": "v1"
+    },
+    {
+      "id": "L0007",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        169.31,
+        -231.47,
+        35.94
+      ],
+      "size": [
+        2.12,
+        2.05,
+        0.4
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 67,
+      "source": "v1"
+    },
+    {
+      "id": "L0008",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        164.83,
+        -229.41,
+        37.95
+      ],
+      "size": [
+        2.49,
+        1.11,
+        2.84
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 26,
+      "source": "v1"
+    },
+    {
+      "id": "L0009",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        165.78,
+        -226.88,
+        37.49
+      ],
+      "size": [
+        2.77,
+        1.7,
+        2.2
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 26,
+      "source": "v1"
+    },
+    {
+      "id": "L0010",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        167.73,
+        -240.27,
+        38.49
+      ],
+      "size": [
+        3.01,
+        3.92,
+        0.76
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    },
+    {
+      "id": "L0011",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        166.827,
+        -225.545,
+        30.48
+      ],
+      "size": [
+        0.2,
+        0.2,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0012",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        167.888,
+        -225.598,
+        30.48
+      ],
+      "size": [
+        0.155,
+        0.155,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0013",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        170.045,
+        -226.037,
+        30.48
+      ],
+      "size": [
+        0.069,
+        0.069,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0014",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        172.314,
+        -227.021,
+        30.48
+      ],
+      "size": [
+        0.139,
+        0.139,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0015",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        173.665,
+        -227.92,
+        30.48
+      ],
+      "size": [
+        0.14,
+        0.14,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0016",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        175.246,
+        -229.42,
+        30.48
+      ],
+      "size": [
+        0.13,
+        0.13,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0017",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        175.656,
+        -229.912,
+        30.48
+      ],
+      "size": [
+        0.173,
+        0.173,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0018",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        176.43,
+        -231.05,
+        30.48
+      ],
+      "size": [
+        0.131,
+        0.131,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0019",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        177.394,
+        -233.133,
+        30.48
+      ],
+      "size": [
+        0.065,
+        0.065,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0020",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        177.949,
+        -237.831,
+        30.48
+      ],
+      "size": [
+        0.078,
+        0.078,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0021",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        177.49,
+        -240.103,
+        30.48
+      ],
+      "size": [
+        0.062,
+        0.062,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0022",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        176.271,
+        -242.734,
+        30.48
+      ],
+      "size": [
+        0.19,
+        0.19,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0023",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        175.743,
+        -243.495,
+        30.48
+      ],
+      "size": [
+        0.18,
+        0.18,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0024",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        173.918,
+        -245.411,
+        30.48
+      ],
+      "size": [
+        0.129,
+        0.129,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0025",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        172.859,
+        -246.179,
+        30.48
+      ],
+      "size": [
+        0.137,
+        0.137,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0026",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        170.175,
+        -247.444,
+        30.48
+      ],
+      "size": [
+        0.096,
+        0.096,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0027",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        167.678,
+        -247.945,
+        30.48
+      ],
+      "size": [
+        0.052,
+        0.052,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0028",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        163.254,
+        -247.432,
+        30.48
+      ],
+      "size": [
+        0.085,
+        0.085,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0029",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        160.976,
+        -246.414,
+        30.48
+      ],
+      "size": [
+        0.151,
+        0.151,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0030",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        159.786,
+        -245.606,
+        30.48
+      ],
+      "size": [
+        0.163,
+        0.163,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0031",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        156.862,
+        -242.175,
+        30.48
+      ],
+      "size": [
+        0.091,
+        0.091,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0032",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        156.508,
+        -241.484,
+        30.48
+      ],
+      "size": [
+        0.065,
+        0.065,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0033",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        155.52,
+        -237.903,
+        30.48
+      ],
+      "size": [
+        0.072,
+        0.072,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0034",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        155.729,
+        -234.343,
+        30.48
+      ],
+      "size": [
+        0.187,
+        0.187,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0035",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        155.98,
+        -233.39,
+        30.48
+      ],
+      "size": [
+        0.152,
+        0.152,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0036",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        157.18,
+        -230.803,
+        30.48
+      ],
+      "size": [
+        0.067,
+        0.067,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0037",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        159.769,
+        -227.94,
+        30.48
+      ],
+      "size": [
+        0.134,
+        0.134,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0038",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        160.62,
+        -227.336,
+        30.48
+      ],
+      "size": [
+        0.191,
+        0.191,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0039",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        161.352,
+        -226.898,
+        30.48
+      ],
+      "size": [
+        0.171,
+        0.171,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    },
+    {
+      "id": "L0040",
+      "type": "footprint_jog",
+      "merged_into": "wall",
+      "center": [
+        166.034,
+        -225.561,
+        30.48
+      ],
+      "size": [
+        0.178,
+        0.178,
+        0.0
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "source": "v1"
+    }
+  ]
+}
