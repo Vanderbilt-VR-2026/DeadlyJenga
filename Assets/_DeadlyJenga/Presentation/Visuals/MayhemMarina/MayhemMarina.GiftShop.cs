@@ -24,7 +24,7 @@ namespace DeadlyJenga.CandyArt.Marina
         // wall. VaultZ = its middle along the wall; VaultAlong/VaultDeep = the housing's half-width along
         // the wall and half-depth through it; VaultCentre = how far outside the wall the oval's centre is;
         // VaultOpening = half the wall opening (where the oval meets the wall); VaultTop = opening height.
-        const float VaultZ = 1.0f, VaultAlong = 2.65f, VaultDeep = 3.6f, VaultCentre = 1.78f, VaultOpening = 2.3f, VaultTop = 3.3f;
+        const float VaultZ = 1.0f, VaultAlong = 2.65f, VaultDeep = 3.6f, VaultCentre = 1.78f, VaultOpening = 2.3f, VaultTop = 2.6f;
 
         static AvatarAppearance Look(AvatarHair hair, AvatarEyewear eyes, AvatarClothing clothes, AvatarAccessory extras) =>
             new AvatarAppearance { hair = hair, eyewear = eyes, clothing = clothes, accessories = extras };
@@ -333,7 +333,8 @@ namespace DeadlyJenga.CandyArt.Marina
             // The housing outside: an oval mint wall with a teal, glow-striped inside and a flat roof.
             mesh.ArcSlab(centre + Vector3.up * .03f, Oval(VaultAlong + .02f, VaultDeep + .02f), Oval(VaultAlong + .2f, VaultDeep + .2f), VaultTop, backAngle - outsideHalf, backAngle + outsideHalf, F.CandyMint, true, 56);
             mesh.ArcSlab(centre + Vector3.up * .03f, Oval(VaultAlong, VaultDeep), Oval(VaultAlong + .02f, VaultDeep + .02f), VaultTop, backAngle - outsideHalf, backAngle + outsideHalf, F.Teal, false, 56);
-            mesh.ArcSlab(centre + Vector3.up * VaultTop, Oval(.01f, .01f), Oval(VaultAlong + .3f, VaultDeep + .3f), .16f, backAngle - outsideHalf, backAngle + outsideHalf, F.CandyMint, true, 56);
+            mesh.ArcSlab(centre + Vector3.up * VaultTop, Oval(.01f, .01f), Oval(VaultAlong + .3f, VaultDeep + .3f), .16f, 0, 360, F.CandyMint, true, 72);
+            mesh.ArcSlab(centre + Vector3.up * (VaultTop - .01f), Oval(.01f, .01f), Oval(VaultAlong, VaultDeep), .01f, 0, 360, F.CandyGrape, false, 72);
             for (int i = -3; i <= 3; i++)
             {
                 float a = (backAngle + i * outsideHalf / 3.6f) * Mathf.Deg2Rad;
@@ -375,7 +376,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 track.Add(pod, podMesh);
             }
             track.Place(0);
-            FogMachine(P(-hw + .55f, .18f, vz), q, new Vector3(1.2f, .05f, VaultOpening * 1.7f));
+            FogMachine(P(-hw + .55f, .12f, vz), q, new Vector3(1.2f, .02f, VaultOpening * 1.7f));
             foreach (Transform pod in loop)
             {
                 int i = pod.GetSiblingIndex();
@@ -518,19 +519,19 @@ namespace DeadlyJenga.CandyArt.Marina
             var mist = fog.gameObject.AddComponent<ParticleSystem>();
             mist.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = mist.main;
-            main.loop = true; main.playOnAwake = true; main.maxParticles = 70; main.prewarm = true;
+            main.loop = true; main.playOnAwake = true; main.maxParticles = 50; main.prewarm = true;
             main.startLifetime = new ParticleSystem.MinMaxCurve(6f, 9f);
             main.startSpeed = 0;
-            main.startSize = new ParticleSystem.MinMaxCurve(.9f, 1.7f);
+            main.startSize = new ParticleSystem.MinMaxCurve(.45f, .9f);
             main.startRotation = new ParticleSystem.MinMaxCurve(0, Mathf.PI * 2);
-            main.startColor = new Color(.86f, .93f, 1f, .2f);
+            main.startColor = new Color(.86f, .93f, 1f, .1f);
             main.simulationSpace = ParticleSystemSimulationSpace.Local;
             main.gravityModifier = 0;
-            var emission = mist.emission; emission.rateOverTime = 9;
+            var emission = mist.emission; emission.rateOverTime = 6;
             var shape = mist.shape; shape.shapeType = ParticleSystemShapeType.Box; shape.scale = area;
             var drift = mist.velocityOverLifetime; drift.enabled = true; drift.space = ParticleSystemSimulationSpace.Local;
-            drift.x = new ParticleSystem.MinMaxCurve(.08f, .22f); drift.y = new ParticleSystem.MinMaxCurve(-.01f, .02f); drift.z = new ParticleSystem.MinMaxCurve(-.08f, .08f);
-            var grow = mist.sizeOverLifetime; grow.enabled = true; grow.size = new ParticleSystem.MinMaxCurve(1, AnimationCurve.Linear(0, .7f, 1, 1.6f));
+            drift.x = new ParticleSystem.MinMaxCurve(.08f, .22f); drift.y = new ParticleSystem.MinMaxCurve(-.01f, .005f); drift.z = new ParticleSystem.MinMaxCurve(-.08f, .08f);
+            var grow = mist.sizeOverLifetime; grow.enabled = true; grow.size = new ParticleSystem.MinMaxCurve(1, AnimationCurve.Linear(0, .8f, 1, 1.3f));
             var spin = mist.rotationOverLifetime; spin.enabled = true; spin.z = new ParticleSystem.MinMaxCurve(-.15f, .15f);
             var fade = mist.colorOverLifetime; fade.enabled = true;
             var gradient = new Gradient();
