@@ -33,9 +33,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         const float PullDistance = 2.5f, PullSeconds = .9f, GripSeconds = 1.1f, FlightSeconds = 3.6f;
         const float CarryUp = 5f, CarryOut = 1.5f, CarrySeconds = 2.4f;
         const float HeroInset = .9f;            // metres from the summit block's inner end to the hero's feet
-        const int HandDesign = 8;               // CandyHandDesigns: 8 = Golden Gauntlet
-        const int HeroColour = 6;               // CandyPlayerStyle colour 6 = orange
-        const float Exposure = 0, Contrast = 0, Saturation = 0;
+        const int HandDesign = 3;               // CandyHandDesigns: 3 = Lava (the scout's design stills: it reads most as a hand)
+        const int HeroColour = 6;               // renders as a strong yellow on this map (scout)
+        const float Exposure = 0, Contrast = 12, Saturation = 10;
         static readonly int[] DesignsToCompare = { 0, 8, 3 };
 
         sealed class Shot
@@ -194,6 +194,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public Quaternion blockRotation;
             public float top, heroYaw, shadowFrame;
             public string heroId, handId;
+            public StudioCue cue;
+            public StudioHandDirection.Grab grab;
+            // Where a point riding on the summit block is at a trailer frame (from the cue's own path).
+            public Vector3 Riding(Vector3 point, int frame)
+            {
+                var pose = StudioHandDirection.BlockAt(cue, grab, Tape(frame));
+                return pose.position + pose.rotation * (Quaternion.Inverse(blockRotation) * (point - centre));
+            }
             public Vector3 Dir(float degrees) => (along * Mathf.Cos(degrees * Mathf.Deg2Rad) + side * Mathf.Sin(degrees * Mathf.Deg2Rad)).normalized;
         }
 
@@ -259,9 +267,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Vector3 Middle(CandyPlayers.CandyHandPose pose) { var b = StudioHandDirection.BonesFor(pose, size); return b.Aggregate(Vector3.zero, (s, x) => s + x.position) / b.Length; }
             float best = float.MaxValue; string why = "none fitted";
             plan.flightStart = plan.gripEnd + plan.along * 8 + Vector3.up * 12;
-            for (float back = -6; back <= 18; back += 1)
-            for (float up = 6; up <= 18; up += 1)
-            foreach (float across in new[] { -4f, 0f, 4f })
+            // The shadow falls away from the sun by about 1.1 x the hand's height, so the start lies well out on
+            // the sun's side (the camera side), up to 20 m across.
+            for (float back = -8; back <= 10; back += 2)
+            for (float up = 6; up <= 18; up += 2)
+            for (float across = 0; across <= 20; across += 2)
             {
                 Vector3 start = plan.gripEnd + plan.along * back + plan.side * across + Vector3.up * up;
                 var cue = PullCue(stage, plan, "", start);
@@ -275,7 +285,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if (first < 0 && middle.y > plan.top && Vector2.Distance(new Vector2(s.x, s.z), new Vector2(plan.hero.x, plan.hero.z)) < 1f) first = f;
                 }
                 if (first < 0) continue;
-                float score = Mathf.Abs(first - ShadowFrame) + (nearest < 2.5f ? 100 : 0) + Mathf.Abs(across) * .2f;
+                float score = Mathf.Abs(first - ShadowFrame) + (nearest < 2.5f ? 100 : 0) + Mathf.Abs(across) * .05f;
                 if (score < best)
                 {
                     best = score; plan.flightStart = start; plan.shadowFrame = first;
@@ -284,6 +294,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             var closed = new CandyPlayers.CandyHandPose { position = grab.wrist.position, rotation = grab.wrist.rotation, skeleton = DeadlyJenga.CastleBots.CastleHandBotBrain.Articulate(false, .8f) };
             plan.handCentre = Middle(closed);
+            plan.grab = grab;
             Note($"Flight start {V(plan.flightStart)}: {why}. Hand middle at the grab {V(plan.handCentre)}, hand size {size}.");
         }
 
@@ -301,16 +312,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             plan.heroId = hero.id; plan.handId = hand.id;
 
             set.cues.Clear();
-            set.cues.Add(PullCue(stage, plan, hand.id, plan.flightStart));
+            plan.cue = PullCue(stage, plan, hand.id, plan.flightStart);
+            set.cues.Add(plan.cue);
 
             // The hero: sees the shadow, looks up at the hand and follows it in, screams on the yank,
             // then looks back down at the spire he was standing on.
             set.overrides.Clear();
-            string where = StudioTargets.Point(stage.ToStage(plan.hero));
-            set.overrides.Add(new StudioOverride { actor = hero.id, kind = "lookAt", target = "actor:" + hand.id, from = Tape(ShadowFrame - 4), to = Tape(YankFrame + 30), blendIn = .35f, blendOut = .3f });
-            set.overrides.Add(new StudioOverride { actor = hero.id, kind = "reaction", name = "scream", from = Tape(YankFrame + 2), to = Tape(YankFrame + 40) });
-            set.overrides.Add(new StudioOverride { actor = hero.id, kind = "lookAt", target = where, from = Tape(YankFrame + 32), to = Tape(LengthFrames + 10), blendIn = .4f, blendOut = .1f });
-            set.overrides.Add(new StudioOverride { actor = hero.id, kind = "reaction", name = "cower", from = Tape(YankFrame + 42), to = Tape(LengthFrames + 10) });
+            // (The avatars have no drawn eyes or mouth, so the reaction is carried by the head and hands: the
+            // "scream" layer tips the head up with both hands at the cheeks, "cower" hunches with hands over the head.)
+            set.overrides.Add(new StudioOverride { actor = hero.id, kind = "lookAt", target = "actor:" + hand.id, from = Tape(ShadowFrame - 8), to = Tape(LengthFrames + 10), blendIn = .35f, blendOut = .1f });
+            set.overrides.Add(new StudioOverride { actor = hero.id, kind = "reaction", name = "scream", from = Tape(44), to = Tape(YankFrame) });
+            set.overrides.Add(new StudioOverride { actor = hero.id, kind = "reaction", name = "cower", from = Tape(YankFrame + 3), to = Tape(LengthFrames + 10) });
             StudioLibrary.Save(set);
             StudioRun.Refresh();
             return plan;
@@ -386,12 +398,32 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, plan.hero + up * .35f + plan.along * .6f));
                 Report(s, c, at, head, .97f); cameras.Add(c);
             }
-            // S02 reaction: medium close-up of the face, lens below the eyes, the hand above and behind the lens.
+            // The first camera spot in a list that is clear of blocks and sees every target (the summit block
+            // itself is ignored: it is not there any more when the late targets are).
+            var summit = stage.blocks[plan.block];
+            bool Sees(Vector3 from, Vector3 to) => !Physics.RaycastAll(from, (to - from).normalized, Vector3.Distance(from, to) - .3f, ~0, QueryTriggerInteraction.Ignore)
+                .Any(h => h.collider.attachedRigidbody != summit && !h.collider.transform.IsChildOf(summit.transform));
+            Vector3 Pick(string id, IEnumerable<Vector3> spots, params Vector3[] targets)
+            {
+                int tried = 0;
+                foreach (var spot in spots)
+                {
+                    tried++;
+                    if (Clear(spot) && targets.All(t => Sees(spot, t))) { lines.Append($"  {id}: spot {tried} of the list is clear\n"); return spot; }
+                }
+                lines.Append($"  {id}: NO clear spot in {tried}; using the first\n");
+                return spots.First();
+            }
+            Vector3 heroAt(int f) => plan.Riding(head, f);
+            Vector3 handAt(int f) => plan.Riding(plan.handCentre, f);
+
+            // S02 reaction: medium close-up, lens below the eyes, in front of him; the hand is above and behind
+            // the lens, so his eyeline (and the scream pose's raised head) goes past us.
             {
                 var s = Shots[1]; var c = NewCamera(s, 50);
-                Vector3 at = plan.hero + up * .62f + plan.Dir(30) * .85f;
+                Vector3 at = Pick(s.id, new[] { 30f, 20f, 40f, 10f }.Select(a => plan.hero + up * .62f + plan.Dir(a) * 1.0f), head);
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), hero, new Vector3(0, -.05f, 0));
-                foreach (var key in c.keys) key.aperture = 2.8f;
+                foreach (var key in c.keys) { key.aperture = 4f; key.focus = Vector3.Distance(at, head); }
                 Report(s, c, at, head, .45f); cameras.Add(c);
             }
             // S03 whole: low on the camera side, nearer the hand than the hero (so the hero is the farther one
@@ -399,42 +431,58 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 var s = Shots[2]; var c = NewCamera(s, 24);
                 float apart = Vector3.Distance(Flat2(plan.hero), Flat2(plan.handCentre));
-                Vector3 at = plan.hero + plan.along * (apart * .62f) + plan.side * 5f; at.y = plan.top + .35f;
-                Vector3 aim = Vector3.Lerp(plan.hero + up * .6f, plan.handCentre, .55f) + up * .8f;
+                var spots = new List<Vector3>();
+                foreach (float k in new[] { .75f, .7f, .8f })
+                foreach (float lift in new[] { .35f, .6f, .9f })
+                { Vector3 p = plan.hero + plan.along * (apart * k) + plan.side * 5f; p.y = plan.top + lift; spots.Add(p); }
+                Vector3 at = Pick(s.id, spots, head, plan.handCentre);
+                Vector3 aim = Vector3.Lerp(plan.hero + up * .6f, plan.handCentre, .68f) + up * .9f;
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, aim));
                 StudioMoves.PushIn(c, c.start, c.end, stage.ToStage(aim), .08f);
                 Report(s, c, at, plan.handCentre, 2.4f); cameras.Add(c);
                 lines.Append($"  S03 hero distance {Vector3.Distance(at, head):0.0} m, hand distance {Vector3.Distance(at, plan.handCentre):0.0} m\n");
             }
-            // S04 payoff: wider, low, behind the hero's shoulder line, so the block slides across and away (never
-            // toward the lens), with the whole slide and the start of the lift in frame. Shake on the yank.
+            // S04 payoff: wider, on the camera side and a little behind the hero's line, so the block slides across
+            // and away (never toward the lens); the slide and the start of the lift stay in frame. Shake on the yank.
             {
                 var s = Shots[3]; var c = NewCamera(s, 28);
-                Vector3 middle = plan.centre + plan.along * 2.3f + up * .8f;
-                Vector3 at = middle + (plan.side * Mathf.Cos(25 * Mathf.Deg2Rad) - plan.along * Mathf.Sin(25 * Mathf.Deg2Rad)) * 9f; at.y = plan.top - 1f;
+                Vector3 middle = Vector3.Lerp(plan.centre, plan.Riding(plan.centre, YankFrame + 45), .5f) + up * 1.2f;
+                var spots = new List<Vector3>();
+                foreach (float lift in new[] { -.5f, .5f, 1.5f, 2.5f })
+                foreach (float turn in new[] { 25f, 15f, 35f })
+                foreach (float d in new[] { 9f, 11f })
+                { Vector3 p = middle + (plan.side * Mathf.Cos(turn * Mathf.Deg2Rad) - plan.along * Mathf.Sin(turn * Mathf.Deg2Rad)) * d; p.y = plan.top + lift; spots.Add(p); }
+                Vector3 at = Pick(s.id, spots, head, plan.handCentre, heroAt(YankFrame + 45), handAt(YankFrame + 45));
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, middle));
                 StudioMoves.Shake(c, Tape(YankFrame) + 1f / Fps, 1.5f, .45f);
                 Report(s, c, at, middle, 7.5f); cameras.Add(c);
             }
-            // S05 consequence: rides along with the hero's head, above and behind-side, looking down past him
-            // to the spire dropping away below.
+            // S05 consequence: rides along with the hero's head, in front of him and above, looking down past him
+            // at the spire falling away; he cowers, looking up at the hand that holds him (above the lens).
             {
                 var s = Shots[4]; var c = NewCamera(s, 50);
-                Vector3 offset = (-plan.along * .9f + plan.side * .7f).normalized * 1.3f + up * .45f;
+                Vector3 offset = (plan.along * .9f + plan.side * .6f).normalized * 1.3f + up * .5f;
                 c.rideTarget = hero;
                 c.keys[0].position = offset;
-                StudioMoves.Aim(c, c.start, hero, new Vector3(0, -.15f, 0), 0);
-                c.keys[0].aperture = 2.8f;
+                StudioMoves.Aim(c, c.start, hero, new Vector3(0, -.2f, 0), 0);
+                c.keys[0].aperture = 4f; c.keys[0].focus = offset.magnitude;
                 Report(s, c, head + offset, head, .55f); cameras.Add(c);
             }
-            // S06 final image: low and wide on the camera side, the spire's stump at the bottom of frame,
-            // the block held up in the giant fingers with the hero on it; the lift settles inside the shot.
+            // S06 final image: wide on the camera side, the spire's stump low in frame, the block held up in the
+            // giant fingers with the hero on it; the lift settles inside the shot.
             {
                 var s = Shots[5]; var c = NewCamera(s, 24);
-                Vector3 middle = plan.centre + plan.along * 2.75f + up * 2.5f;
-                Vector3 at = middle + (plan.side * Mathf.Cos(15 * Mathf.Deg2Rad) - plan.along * Mathf.Sin(15 * Mathf.Deg2Rad)) * 9.5f; at.y = plan.top - 4.5f;
+                Vector3 heroEnd = heroAt(LengthFrames), handEnd = handAt(LengthFrames);
+                Vector3 middle = (heroEnd + handEnd + plan.centre) / 3 + up * .5f;
+                var spots = new List<Vector3>();
+                foreach (float d in new[] { 11f, 13f, 15f })
+                foreach (float lift in new[] { -2f, -.5f, 1f, 2.5f })
+                foreach (float turn in new[] { 15f, 0f, 30f })
+                { Vector3 p = middle + (plan.side * Mathf.Cos(turn * Mathf.Deg2Rad) - plan.along * Mathf.Sin(turn * Mathf.Deg2Rad)) * d; p.y = plan.top + lift; spots.Add(p); }
+                Vector3 at = Pick(s.id, spots, heroEnd, handEnd, plan.centre + up * -.5f);
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, middle));
-                Report(s, c, at, middle, 9f); cameras.Add(c);
+                Report(s, c, at, handEnd, 2.4f); cameras.Add(c);
+                lines.Append($"  S06 hero end {V(heroEnd)}, hand end {V(handEnd)}\n");
             }
             foreach (var c in cameras) { c.measure.Add("actor:" + plan.heroId); c.measure.Add("actor:" + plan.handId); c.measure.Add("block:" + plan.block); }
             Note(lines.ToString());
