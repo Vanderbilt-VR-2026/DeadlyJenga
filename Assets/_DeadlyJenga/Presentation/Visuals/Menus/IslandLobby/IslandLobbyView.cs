@@ -15,6 +15,8 @@ namespace DeadlyJenga.CastlePrototype
     [DefaultExecutionOrder(210)]
     public sealed partial class IslandLobbyView : MonoBehaviour
     {
+        // Turn the retro spectator TV stack (and its big broadcast TV) back on by setting this to true.
+        static readonly bool ShowSpectatorTVs = false;
         partial void BuildComfortControls();
         partial void BuildMayhemMarina();
         partial void UpdateMayhemMarina();
@@ -55,7 +57,9 @@ namespace DeadlyJenga.CastlePrototype
             BuildComfortControls();
             BuildWardrobe();
             BuildMayhemMarina();
-            BuildTVWall();
+            // The spectator TV wall is switched off for now. All its code (IslandLobbyView.TVs.cs,
+            // LobbySpectatorTVWall) is kept; set ShowSpectatorTVs to true to bring it back.
+            if(ShowSpectatorTVs)BuildTVWall();
             SessionPresentation.AttachLobbyTablet(this,info);
         }
         void BuildIsland()
