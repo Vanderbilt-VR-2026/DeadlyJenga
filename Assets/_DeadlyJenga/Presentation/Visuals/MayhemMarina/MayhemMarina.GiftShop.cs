@@ -306,8 +306,8 @@ namespace DeadlyJenga.CandyArt.Marina
             }
             mesh.ArcSlab(P(vx, 3.0f, vz), Vector2.one * 1.1f, Vector2.one * 1.72f, .16f, 0, 360, F.CandyGrape, false, 56);
             mesh.ArcSlab(P(vx, 2.98f, vz), Vector2.one * 1.12f, Vector2.one * 1.18f, .02f, 0, 360, F.Glow, false, 56);
-            B(-hw + .45f, 3.45f, vz, new Vector3(.1f, .45f, 2.6f), F.CandyGrape, .04f);
-            Sign("HERO SUITS", P(-hw + .51f, 3.45f, vz), .028f, cream, new Vector3(0, yaw - 90, 0));
+            B(-hw + .3f, 3.72f, vz, new Vector3(.1f, .45f, 2.6f), F.CandyGrape, .04f);
+            Sign("HERO SUITS", P(-hw + .36f, 3.72f, vz), .028f, cream, new Vector3(0, yaw - 90, 0));
             Accent("Hero suit vault", P(vx + .6f, 2.6f, vz), new Color(.75f, .85f, 1f), 1.6f, 4.5f);
 
             var drum = new GameObject("Hero suit vault drum").transform;

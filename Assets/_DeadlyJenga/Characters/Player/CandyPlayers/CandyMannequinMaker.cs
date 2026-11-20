@@ -38,8 +38,8 @@ namespace DeadlyJenga.CandyPlayers
                 // A skin on show: standing normally, arms relaxed at the sides.
                 frame.head = feet + Vector3.up * 1.6f;
                 frame.headRotation = facing;
-                frame.left = Hand(feet + facing * new Vector3(-.3f, .82f, .03f), facing * Quaternion.Euler(0, 0, 8), true, .3f);
-                frame.right = Hand(feet + facing * new Vector3(.3f, .82f, .03f), facing * Quaternion.Euler(0, 0, -8), false, .3f);
+                frame.left = Hand(feet + facing * new Vector3(-.25f, .66f, .02f), facing * Quaternion.Euler(0, 0, 4), true, .3f);
+                frame.right = Hand(feet + facing * new Vector3(.25f, .66f, .02f), facing * Quaternion.Euler(0, 0, -4), false, .3f);
             }
             else
             {
