@@ -202,6 +202,10 @@ namespace DeadlyJenga.CastlePrototype
             var paint = Brighter(source, label, color);
             paint.SetFloat("_Metallic", 0f);
             paint.SetFloat("_Smoothness", .45f);
+            // A soft glow of its own colour so the cars read in the dark corner of the room.
+            paint.SetColor("_EmissionColor", color * .35f);
+            paint.EnableKeyword("_EMISSION");
+            paint.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             return paint;
         }
 
