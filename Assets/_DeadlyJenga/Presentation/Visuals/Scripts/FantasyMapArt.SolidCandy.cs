@@ -24,11 +24,11 @@ namespace DeadlyJenga.Presentation
 
         static Color DistrictColor(string site)
         {
-            if(site.StartsWith("Sugar"))return new Color(1,.45f,.68f);
-            if(site.StartsWith("Grape"))return new Color(.58f,.86f,.28f);
-            if(site.StartsWith("Cloud Harbor")||site.StartsWith("Harbor"))return new Color(.68f,.45f,.96f);
-            if(site.StartsWith("Downtown"))return new Color(1,.6f,.16f);
-            if(site.StartsWith("Canyon"))return new Color(.16f,.76f,.7f);
+            if(site.StartsWith("Sugar"))return new Color(1,.36f,.62f);
+            if(site.StartsWith("Grape"))return new Color(.5f,.84f,.16f);
+            if(site.StartsWith("Cloud Harbor")||site.StartsWith("Harbor"))return new Color(.62f,.36f,.96f);
+            if(site.StartsWith("Downtown"))return new Color(1,.54f,.08f);
+            if(site.StartsWith("Canyon"))return new Color(.08f,.72f,.66f);
             if(site.StartsWith("Plaza"))return new Color(1,.82f,.3f);
             return new Color(.94f,.88f,.97f);
         }
@@ -37,15 +37,15 @@ namespace DeadlyJenga.Presentation
         {
             var (site,purpose)=NameParts(body);
             Color color;string key;
-            if(purpose.Contains("crossing")){bool high=body.worldCenterOfMass.y-groundY>17;key=high?"bridge high":"bridge";color=high?new Color(.92f,.27f,.3f):new Color(.9f,.64f,.36f);}
-            else if(purpose.Contains("trestle")){key="trestle";color=new Color(.78f,.54f,.3f);}
-            else if(site.StartsWith("Harbor bascule")){key="bascule";color=new Color(.9f,.64f,.36f);}
+            if(purpose.Contains("crossing")){bool high=body.worldCenterOfMass.y-groundY>17;key=high?"bridge high":"bridge";color=high?new Color(.92f,.22f,.26f):new Color(.86f,.68f,.48f);}
+            else if(purpose.Contains("trestle")){key="trestle";color=new Color(.74f,.56f,.4f);}
+            else if(site.StartsWith("Harbor bascule")){key="bascule";color=new Color(.86f,.68f,.48f);}
             else{color=DistrictColor(site);key=color.ToString();}
             if(solidMaterials.TryGetValue(key,out var material)&&material)return material;
             material=new Material(cityCandyMaterial){name="Candy planks "+key};
             material.SetFloat("_Pattern",5);material.SetColor("_BaseColor",color);
             material.SetColor("_Accent",Color.Lerp(color,new Color(.25f,.1f,.2f),.62f));
-            material.SetFloat("_Smoothness",.72f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
+            material.SetFloat("_Smoothness",.55f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
             solidMaterials[key]=material;return material;
         }
 
@@ -67,7 +67,7 @@ namespace DeadlyJenga.Presentation
                 if(site.StartsWith("Grape")&&uncovered&&Mathf.Min(size.x,size.z)>=3&&top.y>groundY+6){Battlements(mesh,size,P,q);any=true;}
                 if(site.StartsWith("Downtown")&&size.y>5&&Mathf.Min(size.x,size.z)>=4){Chevrons(mesh,size,P,q,world);any=true;}
                 if(site.StartsWith("Plaza")&&flat&&uncovered&&Mathf.Min(size.x,size.z)>=8&&!fountainBuilt&&top.y>groundY+8)
-                {fountainBuilt=true;Fountain(mesh,P(Vector3.up*size.y*.5f));any=true;}
+                {fountainBuilt=true;Fountain(mesh,P(Vector3.up*size.y*.5f),1.7f);any=true;}
             }
             if(purpose.Contains(" floor ")){FloorDress(body,visual,site,purpose,mesh);any=true;}
             if(any)Model("Fantasy decorations",mesh,visual,new[]{cityCandyMaterial,cityGlowMaterial},true);
@@ -196,20 +196,20 @@ namespace DeadlyJenga.Presentation
             }
         }
 
-        void Fountain(ArtMesh mesh,Vector3 at)
+        void Fountain(ArtMesh mesh,Vector3 at,float k)
         {
             var up=Quaternion.identity;var choc=new Color(.42f,.22f,.12f);var milk=new Color(.62f,.38f,.22f);var cream=new Color(1,.95f,.86f);
-            mesh.Cylinder(at,up,4.2f,.6f,0,cream,28);
-            mesh.Cylinder(at+Vector3.up*.08f,up,3.8f,.6f,0,choc,28);
+            mesh.Cylinder(at,up,4.2f*k,.6f*k,0,cream,28);
+            mesh.Cylinder(at+Vector3.up*.08f*k,up,3.8f*k,.6f*k,0,choc,28);
             float y=.6f;
             foreach(var (r,h) in new[]{(2.6f,1.6f),(1.8f,1.3f),(1.1f,1.1f)})
             {
-                mesh.Cylinder(at+Vector3.up*y,up,.35f,h,0,cream,10);y+=h;
-                mesh.Cylinder(at+Vector3.up*y,up,r,.35f,0,cream,22);
-                mesh.Cylinder(at+Vector3.up*(y+.05f),up,r*.9f,.35f,0,milk,22);
-                for(int i=0;i<10;i++){float a=i*Mathf.PI/5;mesh.Box(at+new Vector3(Mathf.Cos(a)*r,y-.4f,Mathf.Sin(a)*r),new Vector3(.22f,.9f,.22f),up,0,choc);}
+                mesh.Cylinder(at+Vector3.up*y*k,up,.35f*k,h*k,0,cream,10);y+=h;
+                mesh.Cylinder(at+Vector3.up*y*k,up,r*k,.35f*k,0,cream,22);
+                mesh.Cylinder(at+Vector3.up*(y+.05f)*k,up,r*.9f*k,.35f*k,0,milk,22);
+                for(int i=0;i<10;i++){float a=i*Mathf.PI/5;mesh.Box(at+new Vector3(Mathf.Cos(a)*r,y-.4f,Mathf.Sin(a)*r)*k,new Vector3(.22f,.9f,.22f)*k,up,0,choc);}
             }
-            mesh.Sphere(at+Vector3.up*(y+.6f),Vector3.one*.5f,0,new Color(.9f,.08f,.15f),6,10);
+            mesh.Sphere(at+Vector3.up*(y+.6f)*k,Vector3.one*.5f*k,0,new Color(.9f,.08f,.15f),6,10);
         }
 
         void Awning(ArtMesh mesh,Vector3 at,Quaternion q)
