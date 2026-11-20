@@ -189,7 +189,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if (between || filters.Count > 0 || hand)
                     {
                         pose = ActorFrame.Read(track.type, data);
-                        if (between) pose = ActorFrame.Blend(pose, ActorFrame.Read(track.type, take.frames[index + 1]), part);
+                        if (between)
+                        {
+                            // Only blend two shown frames: a hidden frame has no pose (zero rotations), and a blend
+                            // with it is refused by the network reader, which stopped the hand playing back for good.
+                            var next = ActorFrame.Read(track.type, take.frames[index + 1]);
+                            if (pose.visible && next.visible) pose = ActorFrame.Blend(pose, next, part);
+                        }
                         foreach (var filter in filters) filter.Apply(stage, track, time, pose);
                         // A hand frame with no bones is never drawn by the copy; give it bones from its target.
                         if (hand) StudioHandDirection.FillBones(pose);
