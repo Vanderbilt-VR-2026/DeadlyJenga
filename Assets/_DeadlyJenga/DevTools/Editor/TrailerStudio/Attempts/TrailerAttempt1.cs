@@ -18,7 +18,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     [InitializeOnLoad]
     public static class TrailerAttempt1
     {
-        const int Iteration = 5;
+        const int Iteration = 6;
         const string Subject = "Dev";   // from the record run's motion log: on the camera-side edge of the top
         const int Fps = 30;
 
@@ -40,7 +40,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static void Hook() { EditorApplication.update -= Tick; EditorApplication.update += Tick; }
 
         public static void RunRecord() => Begin(true);
-        public static void RunRender() => Begin(false);
+        public static void RunRender() { Only = ""; Begin(false); }
+        // A 1080p render of all six cameras did not fit in ten minutes on a busy PC, so it is split in two runs.
+        public static void RunRender1() { Only = "A Establish|B Edge|D Collapse"; Begin(false); }
+        public static void RunRender2() { Only = "C Falling|E Wave|F Finale"; Begin(false); }
+        static string Only { get => SessionState.GetString(Key + ".Only", ""); set => SessionState.SetString(Key + ".Only", value); }
 
         static void Begin(bool record)
         {
@@ -362,7 +366,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             finale.keys.Add(K(11.2f, finSide * 50 + up * 2, new Vector3(0, -46, 0), 20));
             finale.keys.Add(K(13.6f, finSide * 62 + up * 8, new Vector3(0, -48, 0), 20, 3));
             int color = 0;
-            foreach (var c in new[] { establish, heroShot, fall, handShot, wave, finale }) { Style(c); c.color = color++; set.cameras.Add(c); }
+            // Fixed ids, so the shot folders of two separate render runs belong to the same cameras.
+            foreach (var c in new[] { establish, heroShot, fall, handShot, wave, finale }) { Style(c); c.id = "cam" + color; c.color = color++; set.cameras.Add(c); }
 
             float fallLength = StudioCameras.OutputLength(fall, set, Fps);
             set.cuts.Clear();
@@ -382,11 +387,23 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             string renders = Path.Combine(Folder, "renders");
             var clock = System.Diagnostics.Stopwatch.StartNew();
-            StudioRender.Start(set.cameras, set.render, renders);
+            var only = Only.Length > 0 ? Only.Split('|') : null;
+            StudioRender.Start(set.cameras.Where(c => only == null || only.Contains(c.name)), set.render, renders);
             foreach (int wait in UntilRendered()) yield return wait;
             Note($"Render {width}x{height}, {subFrames} sub-frames: {StudioRender.Progress} in {clock.Elapsed.TotalSeconds:0} s. " +
                 string.Join("; ", StudioRender.Results.Select(r => $"{r.camera}: {r.frames} frames, movie {(r.movie.Length > 0 ? Path.GetFileName(r.movie) : "none")} {r.error}")));
 
+            // Shots rendered by the other render run: their shot records (committed to the bundle) let the export
+            // place them in the cut. The pictures themselves are joined outside Unity.
+            string others = Path.Combine(Bundle, "shots");
+            if (only != null && Directory.Exists(others))
+                foreach (string record in Directory.GetFiles(others, "*.json"))
+                {
+                    string folder = Path.Combine(renders, Path.GetFileNameWithoutExtension(record));
+                    if (Directory.Exists(folder)) continue;
+                    Directory.CreateDirectory(folder);
+                    File.Copy(record, Path.Combine(folder, "shot.json"));
+                }
             string audio = StudioRender.AudioFile(set.id);
             try
             {
