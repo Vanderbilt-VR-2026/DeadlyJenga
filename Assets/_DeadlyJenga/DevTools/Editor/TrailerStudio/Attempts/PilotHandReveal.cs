@@ -343,6 +343,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             StudioRun.SaveTape();
             Note($"Recorded in {clock.Elapsed.TotalSeconds:0} s. {StudioRun.Status}");
             Note("Cue log: " + string.Join(" | ", StudioRun.CueLog));
+            // Every hand frame must read back, and every rotation in it must be a real rotation.
+            var hand = StudioRun.Stage.tape.Find(plan.handId)?.ActiveTake;
+            if (hand == null) { Note("Hand take: none"); yield break; }
+            string bad = "";
+            for (int f = 0; f < hand.frames.Count && bad.Length == 0; f++)
+            {
+                try
+                {
+                    var frame = ActorFrame.Read(HandTrack.Id, hand.frames[f]);
+                    if (!frame.visible) continue;
+                    bool Bad(Quaternion q) { float l = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w; return float.IsNaN(l) || l < .01f || l > 4; }
+                    if (Bad(frame.target.rotation)) bad = $"frame {f}: target rotation {frame.target.rotation}";
+                    for (int i = 0; i < frame.bones.Length && bad.Length == 0; i++) if (Bad(frame.bones[i].rotation)) bad = $"frame {f}: bone {i} rotation {frame.bones[i].rotation}";
+                    ActorFrame.Read(HandTrack.Id, frame.Write());
+                }
+                catch (Exception error) { bad = $"frame {f}: {error.Message}"; }
+            }
+            Note($"Hand take scan: {hand.frames.Count} frames, {(bad.Length == 0 ? "all read back" : "FIRST BAD " + bad)}.");
         }
 
         // What happened in the take, from the tape: the pulled block, the hero, the rest of the tower.

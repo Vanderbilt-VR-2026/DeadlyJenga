@@ -230,7 +230,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 {
                     failed = true;
                     StudioBadges.Set(track, StudioBadges.CouldNotPlay, error.Message);
-                    Debug.LogWarning($"Trailer Studio: {track.name} could not be played back. {error.Message}");
+                    Debug.LogWarning($"Trailer Studio: {track.name} could not be played back. {error.Message} (frame {frame} + {part:0.###})\n{error}");
                 }
             }
 
