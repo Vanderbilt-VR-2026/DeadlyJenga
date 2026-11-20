@@ -45,6 +45,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 214189048ebd463990c0620959729411, type: 3}
   m_Name: 
   m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.DeckShipMap
+  hullPrefab: {fileID: 6097907480918889442, guid: eb08b0c1900021e4090805482ff58d85, type: 3}
+  autoEvents: 1
+  calmSeconds: 20
+  gapMin: 16
+  gapMax: 28
+  eventsBeforeIceberg: 3
+  newCargoAfterIceberg: 1
+  swayRoll: 2.5
+  swayPitch: 1
+  swayHeave: 0.2
+  rollDegrees: 17
+  pitchDegrees: 7
+  icebergList: 7
+  icebergShove: 7
   blockPrefab: {fileID: 4765161766151906529, guid: 63f32e5c8c149da438596af9620735f3, type: 3}
   blockMaterials:
   - {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
@@ -62,19 +76,6 @@ MonoBehaviour:
   solverIterations: 16
   solverVelocityIterations: 6
   generateOnStart: 1
-  autoEvents: 1
-  calmSeconds: 20
-  gapMin: 16
-  gapMax: 28
-  eventsBeforeIceberg: 3
-  newCargoAfterIceberg: 1
-  swayRoll: 2.5
-  swayPitch: 1
-  swayHeave: 0.2
-  rollDegrees: 17
-  pitchDegrees: 7
-  icebergList: 7
-  icebergShove: 7
 --- !u!114 &7310550183224610004
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -151,13 +151,16 @@ namespace DeadlyJenga.CastlePrototype
         static void Note(List<string> list, string text) { if (list.Count < 8) list.Add(text); }
 
         // A collider belongs to the hatch if it lies within the hatch square and below its top.
+        // Box colliders use their real corners (a world-aligned box around a tilted part is too big).
         static bool IsHatch(Collider c, Vector3 center, Quaternion rotation, DeckShipHull ship)
         {
             if (ship.hatchHeight <= 0) return false;
-            var b = c.bounds;
+            var b = c.bounds; var box = c as BoxCollider;
             for (int i = 0; i < 8; i++)
             {
-                var corner = new Vector3((i & 1) == 0 ? b.min.x : b.max.x, (i & 2) == 0 ? b.min.y : b.max.y, (i & 4) == 0 ? b.min.z : b.max.z);
+                var sign = new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1);
+                var corner = box ? box.transform.TransformPoint(box.center + Vector3.Scale(box.size * .5f, sign))
+                                 : new Vector3(sign.x < 0 ? b.min.x : b.max.x, sign.y < 0 ? b.min.y : b.max.y, sign.z < 0 ? b.min.z : b.max.z);
                 var local = Quaternion.Inverse(rotation) * (corner - center);
                 if (local.y > ship.hatchHeight + .05f) return false;
                 if (local.y > .05f && (Mathf.Abs(local.x) > ship.hatchHalf + .25f || Mathf.Abs(local.z) > ship.hatchHalf + .25f)) return false;
