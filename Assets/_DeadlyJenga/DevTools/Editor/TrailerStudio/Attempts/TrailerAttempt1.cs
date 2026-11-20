@@ -3,29 +3,28 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using DeadlyJenga.CastlePrototype;
-using DeadlyJenga.Core;
 using UnityEditor;
 using UnityEngine;
 
 namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 {
     // An AI's attempt at a 15-second gameplay trailer, made only through the Studio's own data model and engine.
-    // Run from the command line (or the coordinator):
-    //   -executeMethod DeadlyJenga.DevTools.Editor.TrailerStudio.TrailerAttempt1.Run
-    // Everything goes to Logs/TrailerAttempt1/: scout pictures, notes, the rendered shots, the cut export.
+    // Two entry points, because recording plus a 1080p render does not fit in one ten-minute test run:
+    //   ...TrailerAttempt1.RunRecord  sets up the castle, records one whole-set take (world, actors, sound),
+    //                                 renders a small preview of every camera, and saves the take as a bundle.
+    //   ...TrailerAttempt1.RunRender  loads the committed bundle (Docs/.../attempts/attempt-1/bundle),
+    //                                 renders the cameras at full size and exports the cut.
+    // Everything goes to Logs/TrailerAttempt1/.
     [InitializeOnLoad]
     public static class TrailerAttempt1
     {
-        // ---- What this iteration renders (changed between iterations) ----
-        const int Iteration = 1;
-        const int Width = 960, Height = 540, Fps = 30, SubFrames = 1;
-        const bool Cinema = true;
-        const bool Scout = true;            // scout pictures and notes before recording
+        const int Iteration = 2;
+        const int Fps = 30;
 
         const string Key = "DeadlyJenga.TrailerAttempt1";
         const string SetId = "trailer-attempt-1";
         static int Step { get => SessionState.GetInt(Key, 0); set => SessionState.SetInt(Key, value); }
+        static bool Recording { get => SessionState.GetBool(Key + ".Record", true); set => SessionState.SetBool(Key + ".Record", value); }
         static double Deadline { get => SessionState.GetFloat(Key + ".Deadline", 0); set => SessionState.SetFloat(Key + ".Deadline", (float)value); }
         static string Failure { get => SessionState.GetString(Key + ".Failure", ""); set => SessionState.SetString(Key + ".Failure", value); }
 
@@ -34,17 +33,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static readonly StringBuilder notes = new StringBuilder();
 
         public static string Folder => Path.Combine(StudioLibrary.ProjectRoot, "Logs", "TrailerAttempt1");
+        static string Bundle => Path.Combine(StudioLibrary.ProjectRoot, "Docs", "Development", "TrailerStudio", "attempts", "attempt-1", "bundle");
 
         static TrailerAttempt1() { if (Step != 0) Hook(); }
         static void Hook() { EditorApplication.update -= Tick; EditorApplication.update += Tick; }
 
-        public static void Run()
+        public static void RunRecord() => Begin(true);
+        public static void RunRender() => Begin(false);
+
+        static void Begin(bool record)
         {
             if (Directory.Exists(Folder)) Directory.Delete(Folder, true);
             Directory.CreateDirectory(Folder);
-            // A fresh tape every run, so nothing from an older attempt is mixed in.
+            notes.Clear();
             string tapes = StudioLibrary.TapeFolder(SetId);
             if (Directory.Exists(tapes)) Directory.Delete(tapes, true);
+            Recording = record;
             Failure = ""; Step = 1;
             Deadline = EditorApplication.timeSinceStartup + 120;
             Hook();
@@ -67,13 +71,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     case 1:
                         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
                         StudioLibrary.SetsFolderOverride = Path.Combine(Folder, "sets");
-                        StudioRun.OpenStage(MakeSet());
-                        Step = 2; Deadline = EditorApplication.timeSinceStartup + 540;
+                        StudioRun.OpenStage(Recording ? NewSet() : LoadBundle());
+                        Step = 2; Deadline = EditorApplication.timeSinceStartup + 560;
                         break;
                     case 2:
                         if (routine == null)
                         {
-                            if (StudioRun.State == StudioState.Held) routine = Film();
+                            if (StudioRun.State == StudioState.Held) routine = Recording ? Record() : Render();
                             else if (EditorApplication.timeSinceStartup > Deadline) throw new TimeoutException("The stage never opened: " + StudioRun.Status);
                             return;
                         }
@@ -108,7 +112,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Step = 0;
             StudioLibrary.SetsFolderOverride = "";
             EditorApplication.update -= Tick;
-            Note(failed ? "FAIL trailer attempt: " + Failure : "PASS trailer attempt rendered and exported to " + Folder);
+            Note(failed ? "FAIL trailer attempt: " + Failure : "PASS trailer attempt finished, output in " + Folder);
             if (SessionState.GetString("DJWarm.id", "") != "")
             {
                 Directory.CreateDirectory(Path.Combine("Logs", "Warm"));
@@ -120,13 +124,29 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (Application.isBatchMode || startedForThis) EditorApplication.Exit(failed ? 1 : 0);
         }
 
-        static StudioSet MakeSet()
+        static StudioSet NewSet()
         {
             var set = new StudioSet
             {
-                id = SetId, title = "Deadly Jenga - trailer attempt " + Iteration, map = "castle", fps = Fps, length = 14, seed = 2026,
+                id = SetId, title = "Deadly Jenga - trailer attempt", map = "castle", fps = Fps, length = 13.6f, seed = 2026,
                 handBot = true, notes = "Made by TrailerAttempt1. Safe to delete."
             };
+            StudioLibrary.Save(set);
+            return set;
+        }
+
+        // The take from an earlier record run, committed to the repository: the Set, the tape and its sound.
+        static StudioSet LoadBundle()
+        {
+            if (!Directory.Exists(Bundle)) throw new DirectoryNotFoundException("No recorded bundle at " + Bundle);
+            var set = JsonUtility.FromJson<StudioSet>(File.ReadAllText(Path.Combine(Bundle, "set.json")));
+            string tape = StudioLibrary.TapePath(SetId);
+            Directory.CreateDirectory(Path.GetDirectoryName(tape));
+            File.Copy(Path.Combine(Bundle, "main.djtape"), tape, true);
+            string take = File.ReadAllText(Path.Combine(Bundle, "take.txt")).Trim();
+            string audio = StudioRender.TakeAudioFile(SetId, take);
+            Directory.CreateDirectory(Path.GetDirectoryName(audio));
+            File.Copy(Path.Combine(Bundle, "tape.wav"), audio, true);
             StudioLibrary.Save(set);
             return set;
         }
@@ -150,16 +170,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
         }
 
-        static IEnumerable<int> UntilRendered()
-        {
-            while (StudioRender.Running) yield return 0;
-        }
-
-        static void Shoot(string file, Vector3 target, float yaw, float pitch, float distance)
-        {
-            StudioCamera.Target = target; StudioCamera.Yaw = yaw; StudioCamera.Pitch = pitch; StudioCamera.Distance = distance; StudioCamera.Place();
-            StudioCamera.SavePng(file);
-        }
+        static IEnumerable<int> UntilRendered() { while (StudioRender.Running) yield return 0; }
 
         static Vector3? ActorAt(StudioTape tape, string markId, float time, int fps)
         {
@@ -167,125 +178,79 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return pose.found ? pose.feet : (Vector3?)null;
         }
 
-        // ---- The film ----
+        static readonly Vector3 Side = new Vector3(1, 0, -1).normalized;   // the main camera side; survivors face it
 
-        static IEnumerator<int> Film()
+        // ---- Record run ----
+
+        static IEnumerator<int> Record()
         {
             var stage = StudioRun.Stage;
             var set = stage.set;
             var tape = stage.tape;
-            var world = stage.world;
             Vector3 anchor = stage.anchor;
-            float water = world.WaterHeight(anchor);
-
-            // Bounds of the map's blocks.
-            var live = stage.blocks.Where(b => b && b.gameObject.activeInHierarchy).ToArray();
-            var bounds = new Bounds(live[0].position, Vector3.zero);
-            foreach (var b in live) foreach (var c in b.GetComponentsInChildren<Collider>()) if (c.enabled && !c.isTrigger) bounds.Encapsulate(c.bounds);
+            float water = stage.world.WaterHeight(anchor);
             float towerHeight = anchor.y - water;
-            float radius = Mathf.Max(bounds.extents.x, bounds.extents.z);
-            Note($"# Trailer attempt, iteration {Iteration}\n");
-            Note($"Map {set.map}: {live.Length} blocks. Anchor (top of the tower) {anchor}. Water height {water:0.00}. Tower height above water {towerHeight:0.0} m.");
-            Note($"Block bounds centre {bounds.center}, size {bounds.size}. World centre {world.Center}, world radius {world.Radius:0.0}, top height {world.TopHeight:0.0}. Playable bounds {world.PlayableBounds.center} size {world.PlayableBounds.size}.");
-            Note("Disasters: " + string.Join("; ", SetLists.Hazards.Select(h =>
-            {
-                var prefab = DemoDisasters.Prefabs.FirstOrDefault(p => p && p.name == h);
-                return h + (prefab ? " (" + string.Join(", ", DemoDisasters.Parameters(prefab).Select(p => $"{p.id} {p.min}..{p.max} default {p.initial}")) + ")" : "");
-            })));
+            Note($"# Trailer attempt, record run (iteration {Iteration})\n");
+            Note($"Map {set.map}: {stage.blocks.Length} blocks. Anchor {anchor}. Tower height above water {towerHeight:0.0} m.");
 
-            // Height profile: how many blocks per 2 m band below the top.
-            var bands = live.GroupBy(b => Mathf.FloorToInt((anchor.y - b.position.y) / 2)).OrderBy(g => g.Key).Select(g => $"{g.Key * 2}-{g.Key * 2 + 2} m below top: {g.Count()} blocks, spread {g.Max(b => Vector3.ProjectOnPlane(b.position - anchor, Vector3.up).magnitude):0.0} m");
-            Note("Height profile: " + string.Join("; ", bands));
-
-            if (Scout)
-            {
-                StudioCamera.Resize(960, 540);
-                float far = Mathf.Max(bounds.extents.magnitude * 1.6f, 18);
-                for (int yaw = 0; yaw < 360; yaw += 45) Shoot(Path.Combine(Folder, "scout", $"wide-yaw{yaw:000}.png"), bounds.center, yaw, 18, far);
-                for (int yaw = 0; yaw < 360; yaw += 90) Shoot(Path.Combine(Folder, "scout", $"top-yaw{yaw:000}.png"), anchor, yaw, 30, 9);
-                Shoot(Path.Combine(Folder, "scout", "overhead.png"), bounds.center, 0, 85, far);
-                yield return 0;
-            }
-
-            // ---- Marks: survivors on the top of the tower, the hand bot nearby ----
-            set.marks.Clear();
+            // Survivors on the top of the spire, the hand bot beside it.
             var spots = new List<Vector3>();
             for (float r = 0; r <= 4.5f; r += .75f)
                 for (int a = 0; a < (r == 0 ? 1 : 10); a++)
                 {
                     Vector3 offset = Quaternion.Euler(0, a * 36 + r * 17, 0) * new Vector3(r, 0, 0);
                     if (!StudioStage.SurfaceBelow(anchor + offset + Vector3.up * .5f, out var surface)) continue;
-                    if (anchor.y - surface.y > 3.5f) continue;   // only the top levels
+                    if (anchor.y - surface.y > 3.5f) continue;
                     if (spots.Any(s => Vector3.Distance(s, surface) < 1.1f)) continue;
+                    if (stage.MarkWarning(new StudioMark { position = stage.ToStage(surface) }) != "") continue;
                     spots.Add(surface);
                 }
-            // Main camera side: the survivors face it.
-            Vector3 side = new Vector3(1, 0, -1).normalized;
-            float faceCamera = Quaternion.LookRotation(side).eulerAngles.y;
-            var good = new List<Vector3>();
-            foreach (var spot in spots)
-            {
-                var probe = new StudioMark { position = stage.ToStage(spot), role = StudioRole.Survivor };
-                if (stage.MarkWarning(probe) == "") good.Add(spot);
-            }
-            Note($"Found {spots.Count} surface spots on the top levels, {good.Count} without a warning.");
-            if (good.Count == 0) throw new InvalidOperationException("No place to stand on the top of the tower.");
-
-            var hero = set.AddMark(StudioRole.Survivor, stage.ToStage(good[0]));
+            if (spots.Count == 0) throw new InvalidOperationException("No place to stand on the top of the tower.");
+            float faceCamera = Quaternion.LookRotation(Side).eulerAngles.y;
+            set.marks.Clear();
+            var hero = set.AddMark(StudioRole.Survivor, stage.ToStage(spots[0]));
             hero.actor = "Hero"; hero.yaw = faceCamera; hero.color = 0;
             var names = new[] { "Ada", "Ben", "Cleo", "Dev", "Eli" };
             var crew = new List<StudioMark>();
-            for (int i = 1; i < good.Count && crew.Count < 5; i++)
+            for (int i = 1; i < spots.Count && crew.Count < 5; i++)
             {
-                var mark = set.AddMark(i % 3 == 0 ? StudioRole.Survivor : StudioRole.Bot, stage.ToStage(good[i]));
+                var mark = set.AddMark(i % 3 == 0 ? StudioRole.Survivor : StudioRole.Bot, stage.ToStage(spots[i]));
                 mark.actor = names[crew.Count]; mark.color = crew.Count + 1; mark.yaw = faceCamera + (i * 47) % 120 - 60;
                 crew.Add(mark);
             }
-            var hand = set.AddMark(StudioRole.Hand, new Vector3(-side.x * 6, 4, -side.z * 6) + new Vector3(0, 0, 0));
+            var hand = set.AddMark(StudioRole.Hand, -Side * 5 + Vector3.up * 3);
             hand.actor = "Hand";
-            Note("Marks: " + string.Join("; ", set.marks.Select(m => $"{m.actor} ({m.role}) at {m.position} warn \"{stage.MarkWarning(m)}\"")));
+            Note("Marks: " + string.Join("; ", set.marks.Select(m => $"{m.actor} ({m.role}) at {m.position}")));
 
-            // ---- Cues ----
-            // The "pull": a block two to six metres below the top, on the camera side, slid straight out.
-            var pullCandidates = Enumerable.Range(0, stage.blocks.Length)
-                .Where(i => stage.blocks[i] && stage.blocks[i].gameObject.activeInHierarchy && !stage.blocks[i].isKinematic)
-                .Where(i => anchor.y - stage.blocks[i].position.y > 2 && anchor.y - stage.blocks[i].position.y < 6.5f)
-                .OrderByDescending(i => Vector3.Dot(Vector3.ProjectOnPlane(stage.blocks[i].position - anchor, Vector3.up), side)).ToList();
-            int pull = pullCandidates.Count > 0 ? pullCandidates[0] : -1;
+            // The pull: loosen one spire block on the camera side, then slide it out. Then the collapse, then the wave.
+            var candidates = Enumerable.Range(0, stage.blocks.Length)
+                .Where(i => stage.blocks[i] && stage.blocks[i].gameObject.activeInHierarchy)
+                .Where(i => anchor.y - stage.blocks[i].position.y > 2 && anchor.y - stage.blocks[i].position.y < 5.5f)
+                .Where(i => Vector3.ProjectOnPlane(stage.blocks[i].position - anchor, Vector3.up).magnitude < 7)
+                .OrderByDescending(i => Vector3.Dot(Vector3.ProjectOnPlane(stage.blocks[i].position - anchor, Vector3.up), Side)).ToList();
+            int pull = candidates.Count > 0 ? candidates[0] : -1;
             Vector3 pullPoint = pull >= 0 ? stage.blocks[pull].position : anchor + Vector3.down * 3;
             Vector3 pullOut = Vector3.ProjectOnPlane(pullPoint - anchor, Vector3.up);
-            pullOut = pullOut.sqrMagnitude < .01f ? side : pullOut.normalized;
+            pullOut = pullOut.sqrMagnitude < .01f ? Side : pullOut.normalized;
             set.cues.Clear();
-            var pullCue = new StudioCue { at = 5.5f, action = "push", strength = 7, direction = pullOut + Vector3.up * .05f, point = stage.ToStage(pullPoint) };
-            if (pull >= 0) pullCue.blocks.Add(pull);
-            set.cues.Add(pullCue);
-            // The collapse: aimed beside the hero, so the crew goes and the hero holds on.
+            var loosen = new StudioCue { at = 5.9f, action = "weaken", point = stage.ToStage(pullPoint) };
+            var slide = new StudioCue { at = 6.0f, action = "push", strength = 9, direction = pullOut + Vector3.up * .08f, point = stage.ToStage(pullPoint) };
+            if (pull >= 0) { loosen.blocks.Add(pull); slide.blocks.Add(pull); }
+            set.cues.Add(loosen); set.cues.Add(slide);
             Vector3 heroWorld = stage.ToWorld(hero.position);
-            Vector3 collapsePoint = stage.ToStage(heroWorld - side * 2.5f + Vector3.down * 1.5f);
-            set.cues.Add(new StudioCue { at = 7.0f, action = "collapse", strength = 8, point = collapsePoint });
-            // The wave: lower than the top, so it smashes the base.
+            set.cues.Add(new StudioCue { at = 7.0f, action = "collapse", strength = 8, point = stage.ToStage(heroWorld - Side * 2.5f + Vector3.down * 1.5f) });
             set.cues.Add(new StudioCue { at = 9.4f, action = "tsunami", heading = 225, strength = 22, height = Mathf.Max(6, towerHeight * .55f) });
-            Note($"Pull block #{pull} at {pullPoint} ({anchor.y - pullPoint.y:0.0} m below the top), pushed {pullOut}. Collapse at stage {collapsePoint}. Tsunami heading 225, height {Mathf.Max(6, towerHeight * .55f):0.0} m.");
+            Note($"Pull block #{pull} at {pullPoint} ({anchor.y - pullPoint.y:0.0} m below the top), out along {pullOut}.");
             StudioLibrary.Save(set);
             StudioRun.Refresh();
             yield return 0;
 
-            // ---- Record the whole set once, live physics, with sound ----
-            StudioCamera.Resize(640, 360);
-            void Watch(int frame)
-            {
-                if (frame % 15 != 0) return;
-                Shoot(Path.Combine(Folder, "live", $"t{frame / (float)set.fps:00.0}s.png"), anchor + Vector3.down * towerHeight * .4f, 135 + 180, 12, Mathf.Max(towerHeight * 1.6f, 20));
-            }
-            StudioRun.FrameShown += Watch;
             StudioRun.RecordWholeSet();
             foreach (int wait in UntilHeld()) yield return wait;
-            StudioRun.FrameShown -= Watch;
             StudioRun.SaveTape();
             Note("Cue log: " + string.Join(" | ", StudioRun.CueLog));
             Note($"Recording has sound: {StudioRun.LastRecordingHasSound}. Sound file: {StudioRender.AudioFile(set.id)}");
 
-            // Where everyone went, once a second (read from the tape).
             var motion = new StringBuilder("Motion (relative to the anchor, from the tape):\n");
             foreach (var mark in set.marks)
             {
@@ -299,87 +264,128 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             Note(motion.ToString());
             var worldTake = tape.FindType(WorldTrack.Id).ActiveTake;
-            for (float t = 0; t < set.length; t += 1)
+            WorldTrack.Positions(worldTake, worldTake.start, out var start, out _);
+            if (pull >= 0)
+                for (float t = 5.5f; t < 7.5f; t += .5f)
+                {
+                    WorldTrack.Positions(worldTake, Mathf.RoundToInt(t * set.fps), out var p, out _);
+                    Note($"Pull block at {t:0.0}s moved {Vector3.Distance(p[pull], start[pull]):0.00} m.");
+                }
+            for (float t = 6; t < set.length; t += 1)
             {
-                int f = Mathf.Min(Mathf.RoundToInt(t * set.fps), set.Frames - 1);
-                WorldTrack.Positions(worldTake, worldTake.start, out var start, out _);
-                WorldTrack.Positions(worldTake, f, out var now, out var on);
-                int moved = 0, gone = 0;
-                for (int i = 0; i < start.Length; i++) { if (!on[i]) gone++; else if (Vector3.Distance(start[i], now[i]) > .5f) moved++; }
-                if (t % 2 == 0 || t > 5) Note($"World at {t:0}s: {moved} blocks moved more than 0.5 m, {gone} gone.");
+                WorldTrack.Positions(worldTake, Mathf.Min(Mathf.RoundToInt(t * set.fps), set.Frames - 1), out var now, out var on);
+                int moved = 0;
+                for (int i = 0; i < start.Length; i++) if (on[i] && Vector3.Distance(start[i], now[i]) > .5f) moved++;
+                Note($"World at {t:0}s: {moved} blocks moved more than 0.5 m.");
             }
 
-            // Who fell furthest during the collapse?
+            // Bundle for the render runs.
+            string bundle = Path.Combine(Folder, "bundle");
+            Directory.CreateDirectory(bundle);
+            File.WriteAllText(Path.Combine(bundle, "set.json"), JsonUtility.ToJson(set, true));
+            File.Copy(StudioLibrary.TapePath(set.id), Path.Combine(bundle, "main.djtape"), true);
+            File.WriteAllText(Path.Combine(bundle, "take.txt"), worldTake.id);
+            string audio = StudioRender.AudioFile(set.id);
+            if (File.Exists(audio))
+            {
+                File.Copy(audio, Path.Combine(bundle, "tape.wav"), true);
+                string stems = Path.Combine(Path.GetDirectoryName(audio), "stems");
+                if (Directory.Exists(stems)) { Directory.CreateDirectory(Path.Combine(Folder, "stems")); foreach (var s in Directory.GetFiles(stems)) File.Copy(s, Path.Combine(Folder, "stems", Path.GetFileName(s)), true); }
+            }
+
+            // A small preview of every camera, to check framing.
+            foreach (int wait in Shoot(640, 360, 1, false)) yield return wait;
+        }
+
+        // ---- Render run ----
+
+        static IEnumerator<int> Render()
+        {
+            Note($"# Trailer attempt, render run (iteration {Iteration})\n");
+            foreach (int wait in Shoot(1920, 1080, 1, true)) yield return wait;
+        }
+
+        // ---- Cameras, cut, render, export ----
+
+        static IEnumerable<int> Shoot(int width, int height, int subFrames, bool cinema)
+        {
+            var stage = StudioRun.Stage;
+            var set = stage.set;
+            var tape = stage.tape;
+            Vector3 anchor = stage.anchor;
+            float water = stage.world.WaterHeight(anchor);
+            float H = Mathf.Max(anchor.y - water, 6);
+            var hero = set.marks.First(m => m.actor == "Hero");
+            var hand = set.marks.FirstOrDefault(m => m.role == StudioRole.Hand);
+            Vector3 heroStage = hero.position, up = Vector3.up, across = Vector3.Cross(up, Side);
+
+            // Who fell furthest in the collapse?
             StudioMark faller = hero; float biggest = 0;
-            foreach (var mark in crew)
+            foreach (var mark in set.marks.Where(m => m.role != StudioRole.Hand && m != hero))
             {
                 var a = ActorAt(tape, mark.id, 6.8f, set.fps); var b = ActorAt(tape, mark.id, 9.5f, set.fps);
                 if (a.HasValue && b.HasValue && a.Value.y - b.Value.y > biggest) { biggest = a.Value.y - b.Value.y; faller = mark; }
             }
             Note($"Fall shot subject: {faller.actor}, dropped {biggest:0.0} m between 6.8 s and 9.5 s.");
 
-            // ---- Cameras (positions are metres from the anchor) ----
-            set.cameras.Clear();
-            float H = Mathf.Max(towerHeight, 6), R = Mathf.Max(radius, 4);
-            Vector3 up = Vector3.up;
-            Vector3 heroStage = hero.position;
-            void Style(StudioCameraTrack c) { c.bloom = .35f; c.vignette = .4f; c.grain = .12f; c.chroma = .08f; }
+            // Performance layers on the hero: cowers as the block slides, screams as the top goes.
+            set.overrides.RemoveAll(o => o.actor == hero.id);
+            set.overrides.Add(new StudioOverride { actor = hero.id, kind = "reaction", name = "cower", from = 5.6f, to = 6.9f });
+            set.overrides.Add(new StudioOverride { actor = hero.id, kind = "reaction", name = "scream", from = 6.9f, to = 8.2f });
 
-            // A. Establishing: from far over the ocean, push in toward the tower top.
-            var establish = new StudioCameraTrack { name = "A Establish", color = 0, start = 0, end = 3.2f, noise = "subtle" };
-            establish.keys.Add(K(0, side * (R * 3f + 22) + up * 5, new Vector3(0, -H * .45f, 0), 24));
-            establish.keys.Add(K(3.2f, side * (R * 1.6f + 7) + up * 2.2f, new Vector3(0, -H * .2f, 0), 28, 3));
-            // B. Hero: low angle near the hero, looking up past them.
-            var heroShot = new StudioCameraTrack { name = "B Hero", color = 1, start = 2.8f, end = 5.4f, behavior = "follow", subject = hero.id, lag = .15f, noise = "walking", noiseStrength = .6f };
-            heroShot.keys.Add(K(2.8f, heroStage + side * 2.6f + Vector3.Cross(up, side) * 1.0f + up * .35f, heroStage + up * 1.4f, 30));
-            heroShot.keys.Add(K(5.4f, heroStage + side * 2.0f + Vector3.Cross(up, side) * .6f + up * .25f, heroStage + up * 1.4f, 34));
-            // C. The pull: on the block that slides out.
-            Vector3 pullStage = stage.ToStage(pullPoint);
-            var pullShot = new StudioCameraTrack { name = "C Pull", color = 2, start = 4.8f, end = 7.2f, noise = "subtle" };
-            pullShot.keys.Add(K(4.8f, pullStage + pullOut * 7 + Vector3.Cross(up, pullOut) * 2.5f + up * 1.2f, pullStage, 32));
-            pullShot.keys.Add(K(7.2f, pullStage + pullOut * 8.5f + Vector3.Cross(up, pullOut) * 3.5f + up * 2.2f, pullStage + up * 1.5f, 28));
-            // D. The collapse in slow motion, on whoever falls furthest.
-            var fall = new StudioCameraTrack { name = "D Fall", color = 3, start = 6.6f, end = 9.2f, behavior = "follow", subject = faller.id, lag = .1f, noise = "impact", noiseStrength = .5f };
-            fall.keys.Add(K(6.6f, heroStage + side * 9 + up * 1.5f, heroStage, 26));
-            fall.keys.Add(K(9.2f, heroStage + side * 11 + up * -1.5f, heroStage + up * -3, 24));
+            void Style(StudioCameraTrack c) { c.bloom = .35f; c.vignette = .45f; c.grain = .12f; c.chroma = .06f; }
+            set.cameras.Clear();
+            // A. Establishing: far over the ocean, the whole spire, slow push in.
+            var establish = new StudioCameraTrack { name = "A Establish", start = 0, end = 2.6f, noise = "subtle" };
+            establish.keys.Add(K(0, Side * 70 + up * -10, new Vector3(0, -26, 0), 18));
+            establish.keys.Add(K(2.6f, Side * 50 + up * -7, new Vector3(0, -20, 0), 20, 3));
+            // B. Hero on the top, sky behind, shallow focus.
+            var heroShot = new StudioCameraTrack { name = "B Hero", start = 2.6f, end = 4.8f, behavior = "follow", subject = hero.id, lag = .15f, noise = "walking", noiseStrength = .5f, focusOnSubject = true, aimOffset = new Vector3(0, 1.0f, 0) };
+            heroShot.keys.Add(K(2.6f, heroStage + Side * 5.5f + across * 1.2f + up * 2.2f, heroStage + up, 32, 1, 2.8f));
+            heroShot.keys.Add(K(4.8f, heroStage + Side * 4.3f + across * .6f + up * 1.6f, heroStage + up, 38, 1, 2.8f));
+            // C. The hand, riding along with it, the tower behind.
+            var handShot = new StudioCameraTrack { name = "C Hand", start = 4.8f, end = 6.8f, behavior = hand != null ? "ride" : "", subject = hand?.id ?? "", lag = .1f, noise = "subtle", aimOffset = Vector3.zero };
+            handShot.keys.Add(new StudioCameraKey { time = 4.8f, position = -Side * 6 + up * 1.5f + across * 1.5f, focal = 28, aperture = 16 });
+            // D. The collapse, slowed down, on whoever falls furthest.
+            var fall = new StudioCameraTrack { name = "D Collapse", start = 6.6f, end = 9.3f, behavior = "follow", subject = faller.id, lag = .15f, noise = "impact", noiseStrength = .4f };
+            fall.keys.Add(K(6.6f, heroStage + Side * 16 + across * 4 + up * 1, heroStage, 24));
+            fall.keys.Add(K(9.3f, heroStage + Side * 18 + across * 5 + up * -3, heroStage + up * -6, 22));
             fall.speeds.Add(new StudioSpeedMark { time = 6.6f, speed = 1 });
             fall.speeds.Add(new StudioSpeedMark { time = 7.1f, speed = .3f });
             fall.speeds.Add(new StudioSpeedMark { time = 7.9f, speed = .3f });
             fall.speeds.Add(new StudioSpeedMark { time = 8.4f, speed = 1 });
-            // E. The wave: low over the water, wide.
-            var wave = new StudioCameraTrack { name = "E Wave", color = 4, start = 9.0f, end = 11.8f, noise = "walking" };
-            Vector3 waveSide = Quaternion.Euler(0, -35, 0) * side;
-            wave.keys.Add(K(9.0f, waveSide * (R * 2.2f + 14) + up * (-H * .75f), new Vector3(0, -H * .45f, 0), 22));
-            wave.keys.Add(K(11.8f, waveSide * (R * 2.0f + 12) + up * (-H * .6f), new Vector3(0, -H * .35f, 0), 22));
-            // F. Finale: crane up and away from what is left, the hero on top.
-            var finale = new StudioCameraTrack { name = "F Finale", color = 5, start = 11.2f, end = 14f, noise = "subtle" };
-            Vector3 finSide = Quaternion.Euler(0, 40, 0) * side;
-            finale.keys.Add(K(11.2f, heroStage + finSide * 4 + up * .6f, heroStage + up * 1.2f, 30));
-            finale.keys.Add(K(14f, heroStage + finSide * 12 + up * 7, heroStage + up * .5f, 24, 3));
-            foreach (var c in new[] { establish, heroShot, pullShot, fall, wave, finale }) { Style(c); set.cameras.Add(c); }
+            // E. The wave hits the castle: low over the water, wide.
+            var wave = new StudioCameraTrack { name = "E Wave", start = 9.0f, end = 11.8f, noise = "walking" };
+            Vector3 waveSide = Quaternion.Euler(0, -35, 0) * Side;
+            wave.keys.Add(K(9.0f, waveSide * 47 + up * (-H * .75f), new Vector3(0, -H * .45f, 0), 22));
+            wave.keys.Add(K(11.8f, waveSide * 42 + up * (-H * .6f), new Vector3(0, -H * .35f, 0), 22));
+            // F. Finale: high and wide over what is left; the title goes on top of this.
+            var finale = new StudioCameraTrack { name = "F Finale", start = 11.6f, end = 13.6f, noise = "subtle" };
+            Vector3 finSide = Quaternion.Euler(0, -60, 0) * Side;
+            finale.keys.Add(K(11.6f, finSide * 55 + up * -14, new Vector3(0, -42, 0), 20));
+            finale.keys.Add(K(13.6f, finSide * 66 + up * -8, new Vector3(0, -44, 0), 20, 3));
+            int color = 0;
+            foreach (var c in new[] { establish, heroShot, handShot, fall, wave, finale }) { Style(c); c.color = color++; set.cameras.Add(c); }
 
-            // ---- The cut: 15.0 s ----
             float fallLength = StudioCameras.OutputLength(fall, set, Fps);
             set.cuts.Clear();
-            set.cuts.Add(new StudioCut { camera = establish.id, from = 0, to = 3.0f });
-            set.cuts.Add(new StudioCut { camera = heroShot.id, from = .2f, to = 2.4f });
-            set.cuts.Add(new StudioCut { camera = pullShot.id, from = .2f, to = 2.2f });
-            set.cuts.Add(new StudioCut { camera = fall.id, from = .2f, to = Mathf.Min(3.4f, fallLength) });
-            set.cuts.Add(new StudioCut { camera = wave.id, from = .2f, to = 2.6f });
-            set.cuts.Add(new StudioCut { camera = finale.id, from = .4f, to = 2.6f, dissolve = .3f });
-            float total = set.cuts.Sum(c => c.to - c.from);
-            Note($"Cut: {set.cuts.Count} pieces, {total:0.00} s. Slow-motion shot output length {fallLength:0.00} s.");
-            set.render = new StudioRenderSettings { width = Width, height = Height, fps = Fps, subFrames = SubFrames, format = "png", cinema = Cinema, freezeAmbient = false };
+            set.cuts.Add(new StudioCut { camera = establish.id, from = 0, to = 2.6f });
+            set.cuts.Add(new StudioCut { camera = heroShot.id, from = 0, to = 2.2f });
+            set.cuts.Add(new StudioCut { camera = handShot.id, from = 0, to = 2.0f });
+            set.cuts.Add(new StudioCut { camera = fall.id, from = 0, to = Mathf.Min(3.4f, fallLength) });
+            set.cuts.Add(new StudioCut { camera = wave.id, from = 0, to = 2.8f });
+            set.cuts.Add(new StudioCut { camera = finale.id, from = 0, to = 2.0f });
+            Note($"Cut: {set.cuts.Count} pieces, {set.cuts.Sum(c => c.to - c.from):0.00} s. Slow-motion shot output length {fallLength:0.00} s.");
+            set.render = new StudioRenderSettings { width = width, height = height, fps = Fps, subFrames = subFrames, format = "png", cinema = cinema, freezeAmbient = false };
             StudioLibrary.Save(set);
 
-            // ---- Render every camera ----
             string renders = Path.Combine(Folder, "renders");
             var clock = System.Diagnostics.Stopwatch.StartNew();
             StudioRender.Start(set.cameras, set.render, renders);
             foreach (int wait in UntilRendered()) yield return wait;
-            Note($"Render: {StudioRender.Progress} in {clock.Elapsed.TotalSeconds:0} s. " + string.Join("; ", StudioRender.Results.Select(r => $"{r.camera}: {r.frames} frames, movie {(r.movie.Length > 0 ? Path.GetFileName(r.movie) : "none")} {r.error}")));
+            Note($"Render {width}x{height}, {subFrames} sub-frames: {StudioRender.Progress} in {clock.Elapsed.TotalSeconds:0} s. " +
+                string.Join("; ", StudioRender.Results.Select(r => $"{r.camera}: {r.frames} frames, movie {(r.movie.Length > 0 ? Path.GetFileName(r.movie) : "none")} {r.error}")));
 
-            // ---- Export the cut ----
             string audio = StudioRender.AudioFile(set.id);
             try
             {
@@ -387,20 +393,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 string edl = StudioExport.WriteEdl(set, renders, out _);
                 Note($"Export: {Path.GetFileName(xml)}, {Path.GetFileName(edl)}. Exporter notes: {(problems.Count == 0 ? "none" : string.Join(" / ", problems))}");
                 var pieces = StudioExport.Resolve(set, renders, out _);
-                var manifest = new StringBuilder("index\tshot\tmedia\tinFrame\tframes\trecordStart\tdissolve\tfps\n");
+                var manifest = new StringBuilder("index\tshot\tmedia\tinFrame\tframes\trecordStart\tdissolve\tfps\ttapeStart\n");
                 for (int i = 0; i < pieces.Count; i++)
-                    manifest.Append($"{i}\t{pieces[i].shot.name}\t{pieces[i].media}\t{pieces[i].inFrame}\t{pieces[i].frames}\t{pieces[i].recordStart}\t{pieces[i].cut.dissolve}\t{pieces[i].shot.fps}\n");
+                    manifest.Append($"{i}\t{pieces[i].shot.name}\t{pieces[i].media}\t{pieces[i].inFrame}\t{pieces[i].frames}\t{pieces[i].recordStart}\t{pieces[i].cut.dissolve}\t{pieces[i].shot.fps}\t{pieces[i].shot.tapeStart}\n");
                 File.WriteAllText(Path.Combine(renders, "pieces.tsv"), manifest.ToString());
             }
             catch (Exception error) { Note("Export failed: " + error.Message); }
-            if (File.Exists(audio))
-            {
-                Directory.CreateDirectory(Path.Combine(Folder, "audio"));
-                File.Copy(audio, Path.Combine(Folder, "audio", "tape.wav"), true);
-                string stems = Path.Combine(Path.GetDirectoryName(audio), "stems");
-                if (Directory.Exists(stems)) foreach (var s in Directory.GetFiles(stems)) File.Copy(s, Path.Combine(Folder, "audio", Path.GetFileName(s)), true);
-            }
-            File.Copy(StudioLibrary.TapePath(set.id), Path.Combine(Folder, "tape.djtape"), true);
+            File.WriteAllText(Path.Combine(Folder, "set-final.json"), JsonUtility.ToJson(set, true));
             Note("Done.");
         }
     }
