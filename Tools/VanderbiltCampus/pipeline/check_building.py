@@ -241,7 +241,7 @@ def collider_checks(col, layouts, kit_steps_riser=0.165, lod3=None):
                 ok = np.isfinite(hz) & (np.abs(hz - zt) < 0.05)
                 out["ledges"].append({"feature": f"{k}/{f['id']}", "depth_m": f["depth_m"], "top_z": round(zt, 3),
                                       "rays": int(len(hz)), "rays_on_ledge": int(ok.sum()), "ok": bool(ok.mean() >= 0.6)})
-    out["steps_ok"] = bool(out["steps"]) and all(s["ok"] for s in out["steps"])
+    out["steps_ok"] = all(s["ok"] for s in out["steps"])          # true when the layouts have no steps
     # at least one ledge must work when the layouts have ledges (the hero play check climbs one)
     out["ledges_ok"] = any(x["ok"] for x in out["ledges"]) if out["ledges"] else True
     if not out["ledges"]:
@@ -294,8 +294,8 @@ def load_cameras(path, root):
         from align_sources import project as colmap_project
         for e in data["images"]:
             c = e.get("campus")
-            if not c or not e.get("camera"):
-                continue
+            if not c or not e.get("camera") or c.get("reliable") is False:
+                continue                      # unregistered, or registered but flagged unreliable
             R = np.asarray(c["R_cam_from_campus"], float)
             C = np.asarray(c["center"], float)
             t = -R @ C

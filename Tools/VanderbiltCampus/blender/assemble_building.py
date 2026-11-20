@@ -177,6 +177,9 @@ def detect_roof_features(bid, inputs, root, points=None):
     ground = float(model["ground_z"])
     if points is None:
         import lidar_io
+        if not (lidar_io.lidar_dir(root=root) / "index.json").exists():
+            return {"eave_z": round(eave, 3), "tower": None, "chimneys": [], "roof_volumes": [], "not_modeled": [],
+                    "note": "no LiDAR tiles in this archive: roof features skipped"}
         fp = np.asarray(rec["footprint"])
         points = lidar_io.load_points(fp[:, 0].min(), fp[:, 1].min(), fp[:, 0].max(), fp[:, 1].max(), buffer=3,
                                       root=root)
@@ -512,15 +515,25 @@ def write_index(root):
     rows = []
     for bdir in sorted((root / "buildings").glob("*")):
         vers = sorted(bdir.glob("lod3_v*"), key=lambda d: int(d.name.split("_v")[1]) if d.name.split("_v")[1].isdigit() else 0)
-        if not vers or not (vers[-1] / "model.json").exists():
+        # newest version that was not put on the review list (model.json "accepted": false)
+        pick = None
+        for d in reversed(vers):
+            if (d / "model.json").exists():
+                m = common.load_json(d / "model.json")
+                if m.get("accepted", True):
+                    pick = (d, m)
+                    break
+        if pick is None:
             continue
-        m = common.load_json(vers[-1] / "model.json")
-        rows.append({"id": bdir.name, "folder": f"buildings/{bdir.name}/{vers[-1].name}", "level": m["lod_reached"],
-                     "kit": m["style_kit"], "measured": bool(m["measured"]), "name": m.get("name")})
+        d, m = pick
+        rows.append({"id": bdir.name, "folder": f"buildings/{bdir.name}/{d.name}", "level": m["lod_reached"],
+                     "kit": m["style_kit"], "measured": bool(m["measured"]), "name": m.get("name"),
+                     "status": "accepted" if m["measured"] else "estimated stand-in (measured=false)"})
     path = root / "derived" / "buildings" / "lod3" / "index.json"
     common.save_json(path, {"version": 1, "made": datetime.datetime.now().isoformat(timespec="seconds"),
-                            "note": "Buildings with a Stage 4 LoD3/LoD3+ model. measured=false means the facade "
-                                    "layouts are estimated (no aligned photos yet); re-run when they exist.",
+                            "note": "Buildings with an accepted LoD3/LoD3+ model (versions put on the review list "
+                                    "are left out). measured=false means the facade layouts are estimated stand-ins; "
+                                    "re-run when measured layouts exist.",
                             "buildings": rows})
     manifest.add_file(path, "blender/assemble_building.py", "derived", stage=4, root=root)
     return path
