@@ -24,7 +24,7 @@ namespace DeadlyJenga.Presentation
             gradeProfile=ScriptableObject.CreateInstance<VolumeProfile>();grade.sharedProfile=gradeProfile;
             var bloom=gradeProfile.Add<Bloom>(true);bloom.intensity.Override(.18f);bloom.threshold.Override(1.1f);bloom.scatter.Override(.55f);
             gradeProfile.Add<Tonemapping>(true).mode.Override(TonemappingMode.None);
-            var color=gradeProfile.Add<ColorAdjustments>(true);color.contrast.Override(5);color.saturation.Override(5);
+            var color=gradeProfile.Add<ColorAdjustments>(true);color.contrast.Override(solidCandy&&candyCity?14:5);color.saturation.Override(solidCandy&&candyCity?22:5);
             color.postExposure.Override(0);
         }
 

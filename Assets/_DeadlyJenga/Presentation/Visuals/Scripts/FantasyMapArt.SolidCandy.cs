@@ -252,6 +252,20 @@ namespace DeadlyJenga.Presentation
                 if(!uses)continue;stray++;
                 if(stray<=8){var path=r.name;for(var t=r.transform.parent;t&&path.Length<160;t=t.parent)path=t.name+"/"+path;sb.Append(" || palette user: ").Append(path).Append(" enabled=").Append(r.enabled&&r.gameObject.activeInHierarchy);}
             }
+            // Which material each Downtown / keep / canyon body got, and whether its mesh has vertex colors.
+            int listed=0;
+            foreach(var body in Services.World.Blocks)
+            {
+                if(!body||listed>=30)continue;
+                if(!(body.name.Contains("Downtown")||body.name.Contains("Grape")||body.name.Contains("north-west tower floor 2")))continue;
+                foreach(var r in body.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    if(r.name=="Fantasy decorations")continue;listed++;
+                    var f=r.GetComponent<MeshFilter>();var mesh=f?f.sharedMesh:null;
+                    sb.Append(" #").Append(body.name).Append(" -> ").Append(r.sharedMaterial?r.sharedMaterial.name:"null").Append(" x").Append(r.sharedMaterials.Length)
+                      .Append(" colors=").Append(mesh?mesh.colors.Length:-1).Append(" verts=").Append(mesh?mesh.vertexCount:-1).Append(" mesh=").Append(mesh?mesh.name:"-");
+                }
+            }
             // Every see-through renderer in the scene (glass looks), biggest first.
             var clear=new List<Renderer>();
             foreach(var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
