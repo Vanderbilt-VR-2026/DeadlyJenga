@@ -58,6 +58,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static void RunFinalA() => Begin("finalA");
         public static void RunFinalB() => Begin("finalB");
         public static void RunFinalC() => Begin("finalC");
+        public static void RunFinalD() => Begin("finalD");
 
         static bool Recording => Mode == "scout" || Mode == "record";
 

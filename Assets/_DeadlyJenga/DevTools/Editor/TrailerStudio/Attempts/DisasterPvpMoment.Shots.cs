@@ -29,8 +29,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             new Shot { id = "S03", what = "teach: the whole top is a brawl", cutIn = 64, cutOut = 104, key = 26 },
             new Shot { id = "S04", what = "anticipation: low, rocks streak in over the fighters", cutIn = 104, cutOut = 134, key = 24 },
             new Shot { id = "S05", what = "core verb: a meteor throws the astronaut off", cutIn = 134, cutOut = 180, key = 19 },
-            new Shot { id = "S06", what = "escalate: the hero's summit gives way, he tumbles down the tower", cutIn = 180, cutOut = 240, key = 16 },
-            new Shot { id = "S07", what = "escalate: a rock throws the fox and the dragon", cutIn = 240, cutOut = 268, key = 9 },
+            new Shot { id = "S06", what = "escalate: the hero's summit gives way, he tumbles down the tower", cutIn = 180, cutOut = 232, key = 16 },
+            new Shot { id = "S07", what = "escalate: a rock throws the fox and the dragon", cutIn = 232, cutOut = 268, key = 17 },
             new Shot { id = "S08", what = "the hero on the castle wall looks up", cutIn = 268, cutOut = 292, key = 14 },
             new Shot { id = "S09", what = "payoff: the planet killer lands on the tower", cutIn = 292, cutOut = 330, key = 15 },
             new Shot { id = "S10", what = "aftermath: the hero cowers on the wall under the falling wreck", cutIn = 330, cutOut = 352, key = 8 },
@@ -154,11 +154,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 foreach (var p in spots) if (Roomy(p) && !Physics.Linecast(p, target, (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore)) return p;
                 return PickSpot(spots, target);
             }
-            // S09: the impact, from 32 m out on the sun side and below the summit, the rock against the tower top.
+            // S09: side-on to the planet killer's path (critic round 1: from behind the tower the rock overlapped the top
+            // and read as a cluster of rocks). 55 m out on the sun side, level with the top: the single rock and the whole
+            // top of the tower stand apart against the sky until contact.
             {
                 var s = S("S09"); var c = ShotCam(s, 18); c.motionBlur = 0;
-                Vector3 at = C + a.side * 32 + a.along * 6 - up * 6;
-                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, C + up * 6 - a.side * 8));
+                Vector3 path = Flat(-plan.planetFrom), perp = Vector3.Cross(up, path).normalized;
+                if (Vector3.Dot(perp, a.side) < 0) perp = -perp;
+                Vector3 at = C + perp * 55 - up * 4;
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, C + plan.planetFrom * 16 - up * 8));
                 StudioMoves.Shake(c, TapeF(PlanetFrame) + 1f / Fps, 2.2f, 1.2f);
                 Add(c, at, C, 2);
             }
@@ -242,6 +246,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (mode == "finalA") cameras = cameras.Take(4).ToList();
             if (mode == "finalB") cameras = cameras.Skip(3).Take(5).ToList();   // S04-S08 (S04 again: its first render had the green disc)
             if (mode == "finalC") cameras = cameras.Skip(8).ToList();
+            // Critic round 1 fixes: S06 ends before its camera drops into the castle, S07 starts earlier, S09 side-on.
+            if (mode == "finalD") cameras = cameras.Where(c => new[] { "S04", "S05", "S06", "S07", "S09" }.Contains(c.id)).ToList();
             var settings = final
                 ? new StudioRenderSettings { width = 1920, height = 1080, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 12 }
                 : new StudioRenderSettings { width = 640, height = 360, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 8 };
@@ -258,62 +264,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (Directory.Exists(renders)) Directory.Delete(renders, true);
         }
 
-        // A bright green disc floated in front of the lens in several shots of the bundle renders (not in the renders made
-        // right after recording); neither a saturated-green material nor a runtime-material particle system explained it.
-        // During the render: lens flares are switched off, and anything that is not a block, the map's surfaces or a
-        // played-back actor and either sits within 2.5 m of the render camera or covers a quarter of the frame from
-        // within 15 m is switched off. Every object switched off is logged with its path, type, material and shader.
+        // The bright green disc in the bundle renders is the blaster's plasma impact cloud ("Castle Play Session/Visual -
+        // plasma impact radius/Translucent plasma cloud", shader DeadlyJenga/Alien Plasma, about 10 m across): the live
+        // match's own view, left showing on the stage after loading a take (found by final B3's log, job 36d1f64a). It is
+        // switched off for the render. (B3's wider rule also caught block visuals, which sit on the Default layer.)
         static void HideStrays(StudioStage stage, Plan plan, HashSet<Renderer> hidden)
         {
-            var cam = GameObject.Find("Trailer Studio render camera")?.GetComponent<Camera>();
-            if (!cam) return;
-            if (!flaresOff)
-            {
-                flaresOff = true;
-                foreach (var b in Object.FindObjectsByType<Behaviour>(FindObjectsSortMode.None))
-                    if (b && b.enabled && b.GetType().Name.Contains("LensFlare")) { b.enabled = false; Note($"Lens flare switched off: {b.name} ({b.GetType().Name})"); }
-            }
-            // Worked out again every frame: what was in front of one lens must come back for the next (rocks are pooled).
-            foreach (var r in hidden) if (r) r.forceRenderingOff = false;
-            hidden.Clear();
-            var actors = new HashSet<Transform>(stage.playback.Values.Where(o => o).Select(o => o.transform));
-            Vector3 eye = cam.transform.position;
-            var planes = GeometryUtility.CalculateFrustumPlanes(cam);
             foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
             {
-                if (!r || hidden.Contains(r) || !r.enabled || r.forceRenderingOff || !r.gameObject.activeInHierarchy) continue;
-                int layer = r.gameObject.layer;
-                if (layer == Layers.Block || layer == Layers.Surface) continue;
-                var bounds = r.bounds;
-                float near = Mathf.Sqrt(bounds.SqrDistance(eye));
-                if (near > 15 || !GeometryUtility.TestPlanesAABB(planes, bounds)) continue;
-                bool intruder = near < 2.5f;
-                if (!intruder)
-                {
-                    // Share of the frame the box covers (its corners projected to the screen).
-                    float minX = 1, minY = 1, maxX = 0, maxY = 0; bool behind = false;
-                    for (int i = 0; i < 8; i++)
-                    {
-                        var corner = bounds.center + Vector3.Scale(bounds.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
-                        var v = cam.WorldToViewportPoint(corner);
-                        if (v.z <= 0) { behind = true; break; }
-                        minX = Mathf.Min(minX, v.x); maxX = Mathf.Max(maxX, v.x); minY = Mathf.Min(minY, v.y); maxY = Mathf.Max(maxY, v.y);
-                    }
-                    float cover = behind ? 1 : Mathf.Clamp01(maxX - Mathf.Max(0, minX)) * Mathf.Clamp01(maxY - Mathf.Max(0, minY));
-                    intruder = cover > .25f && bounds.size.magnitude < 20;
-                }
-                if (!intruder) continue;
-                Transform t = r.transform; bool actor = false;
-                while (t) { if (actors.Contains(t)) { actor = true; break; } t = t.parent; }
-                string path = r.name; for (var p = r.transform.parent; p; p = p.parent) path = p.name + "/" + path;
-                var m = r.sharedMaterial;
-                if (actor && near > .6f) continue;   // a played-back actor is only hidden when the lens is inside it
+                if (!r || hidden.Contains(r) || r.name != "Translucent plasma cloud" || r.transform.parent == null || !r.transform.parent.name.StartsWith("Visual - plasma impact")) continue;
                 hidden.Add(r); r.forceRenderingOff = true;
-                if (logged.Add(path)) Note($"Switched off in front of the lens: {path} ({r.GetType().Name}, layer {LayerMask.LayerToName(layer)}, material '{(m ? m.name : "-")}', shader '{(m && m.shader ? m.shader.name : "-")}', {near:0.0} m from the camera, size {bounds.size.magnitude:0.0} m at {V(bounds.center)})");
+                Note($"Plasma impact cloud switched off for the render: {r.transform.parent.name}/{r.name}");
             }
         }
-        static bool flaresOff;
-        static readonly HashSet<string> logged = new HashSet<string>();
 
         // Keep each shot's movie, metrics, filmstrip and its first, key and last stills; the frames are deleted.
         static void KeepShots(List<StudioRender.Finished> results)
