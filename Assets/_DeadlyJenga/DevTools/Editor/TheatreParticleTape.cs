@@ -144,6 +144,14 @@ namespace DeadlyJenga.DevTools.Editor
                 if (shader) material = generated = new Material(shader);
             }
             if (material) renderer.sharedMaterial = material;
+            // A mesh particle whose mesh (or material) was made at runtime cannot be loaded back; drawn as a plain
+            // billboard it became a huge flat coloured disc in front of the camera (disaster-pvp-1 preview: a green
+            // disc over three shots). Such systems are kept hidden instead of drawn wrongly.
+            if (mode == ParticleSystemRenderMode.Mesh && (!mesh || generated || !material))
+            {
+                renderer.enabled = false;
+                Debug.Log($"[Theatre] Recorded mesh particles hidden on replay (runtime mesh or material): shader '{shaderName}', mesh '{meshPath}'.");
+            }
             system.Play(false);
             system.Pause(false);
             owned.Add(system);

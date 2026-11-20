@@ -26,6 +26,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (!plan.cast.TryGetValue(mark.actor, out var who)) plan.cast[mark.actor] = who = new Actor { role = mark.actor };
                 who.id = mark.id; who.feet = stage.ToWorld(mark.position); who.yaw = mark.yaw; who.color = mark.color; who.weapon = mark.equipment; who.bot = mark.role == StudioRole.Bot;
             }
+            // The rocks as the take really had them (re-working them from the map can order the spare spots differently).
+            plan.meteors.Clear(); plan.meteorFrom.Clear();
+            foreach (var cue in stage.set.cues.Where(c => c.action == AimedMeteorCue.Id && c.hazard != "PlanetKillerMeteor").OrderBy(c => c.at))
+            {
+                Vector3 target = stage.ToWorld(cue.point);
+                int arrive = Mathf.RoundToInt((cue.at + AimedMeteorCue.ArrivalDelay(cue) - TapeAtZero) * Fps);
+                var near = plan.cast.Values.Where(c => c.role != "hero" && c.role != "rival").OrderBy(c => Vector3.Distance(c.feet, target)).FirstOrDefault();
+                plan.meteors.Add((near != null && Vector3.Distance(near.feet, target) < 2.5f ? near.role : "spare", arrive, target));
+                plan.meteorFrom.Add(cue.direction.normalized);
+            }
         }
 
         // ---- The take report ----
