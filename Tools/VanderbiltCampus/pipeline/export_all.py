@@ -22,10 +22,12 @@ Exits non-zero if anything failed.
 Archive inputs (VC_DATA_ROOT overrides the archive root):
   derived/terrain/v1/<tile>/terrain.npz, terrain_col.npz
   derived/buildings/v2/index.json (when present: which version folder per building), else
-  buildings/<id>/v1/model.json (key "tile"); in the folder lod2.npz -> B_<id>_LOD0,
-  lod1.npz -> B_<id>_LOD1, col_mesh.npz -> COLM_<id> (one non-convex collider; replaces
+  buildings/<id>/v1/model.json (key "tile"); in the folder lod2.npz (or game_lod0.npz from buildings_game.py) -> B_<id>_LOD0,
+  lod1.npz -> B_<id>_LOD1, col_mesh.npz (or game_col.npz) -> COLM_<id> (one non-convex collider; replaces
   the convex col_<n>.npz -> COL_<id>_<n>)
-  derived/trees/v1/<tile>/trees_lod0.npz, trees_lod1.npz, trees_col.npz  (Trees, Trees_LOD1, COL_Trees)
+  derived/trees/v2/<tile>/ (else v1) trees_lod0.npz, trees_lod1.npz, trees_col.npz  (Trees, Trees_LOD1, COL_Trees)
+  derived/props/v1/tiles/<tile>/props_lod0.npz, props_lod1.npz, props_col.npz  (Props, Props_LOD1, COL_Props;
+                                                          not in the HLOD)
   derived/terrain/v1/<tile>/terrain_far.npz: ground of the HLOD object (fallback: terrain_col.npz)
   terrain_col.npz is also drawn as Terrain_LOD1 (the builder groups Terrain/Terrain_LOD1 and
   Trees/Trees_LOD1 under LODGroups)
@@ -163,16 +165,42 @@ def building_index(root):
     return out
 
 
-def building_objects(bid, folder):
-    """Plan entries for one building. col_mesh.npz (v2: one non-convex collider) replaces col_<n>.npz."""
+def lod3_folders(root):
+    """{building id: folder} from derived/buildings/lod3/index.json (Stage 4 LoD3 models)."""
+    path = root / "derived" / "buildings" / "lod3" / "index.json"
+    if not path.exists():
+        return {}
+    out = {}
+    for it in load_json(path).get("buildings", []):
+        f = Path(it["folder"])
+        out[str(it["id"])] = f if f.is_absolute() else root / f
+    return out
+
+
+def building_objects(bid, folder, lod3=None):
+    """Plan entries for one building. col_mesh.npz (v2: one non-convex collider) replaces col_<n>.npz.
+    lod3: the building's LoD3 folder, if any: lod3.npz -> LOD0, its lod1.npz -> LOD1, its
+    game_col.npz -> COLM. (No LOD2 object: the Unity builder only knows LOD0 and LOD1.)"""
+    if lod3 is not None and (lod3 / "lod3.npz").exists():
+        objs = [{"name": f"{bid}_LOD0", "role": "building_lod0", "src": [str(lod3 / "lod3.npz")], "lod3": True}]
+        lod1 = lod3 / "lod1.npz" if (lod3 / "lod1.npz").exists() else folder / "lod1.npz"
+        if lod1.exists():
+            objs.append({"name": f"{bid}_LOD1", "role": "building_lod1", "src": [str(lod1)]})
+        colm = next((c for c in (lod3 / "game_col.npz", folder / "game_col.npz", folder / "col_mesh.npz")
+                     if c.exists()), None)
+        if colm is not None:
+            objs.append({"name": f"COLM_{bid}", "role": "building_colm", "collider": True, "src": [str(colm)]})
+        return objs
     objs = []
-    if (folder / "lod2.npz").exists():
-        objs.append({"name": f"{bid}_LOD0", "role": "building_lod0", "src": [str(folder / "lod2.npz")]})
+    # Light game meshes from buildings_game.py are preferred when present.
+    lod0 = folder / "game_lod0.npz" if (folder / "game_lod0.npz").exists() else folder / "lod2.npz"
+    if lod0.exists():
+        objs.append({"name": f"{bid}_LOD0", "role": "building_lod0", "src": [str(lod0)]})
     if (folder / "lod1.npz").exists():
         objs.append({"name": f"{bid}_LOD1", "role": "building_lod1", "src": [str(folder / "lod1.npz")]})
-    if (folder / "col_mesh.npz").exists():
-        objs.append({"name": f"COLM_{bid}", "role": "building_colm", "collider": True,
-                     "src": [str(folder / "col_mesh.npz")]})
+    colm = folder / "game_col.npz" if (folder / "game_col.npz").exists() else folder / "col_mesh.npz"
+    if colm.exists():
+        objs.append({"name": f"COLM_{bid}", "role": "building_colm", "collider": True, "src": [str(colm)]})
     else:
         for col in sorted(folder.glob("col_*.npz")):
             m = COL_RE.match(col.name)
@@ -220,6 +248,7 @@ def plan_tiles(root, out_dir, unity_map, only=None):
     terrain_root = root / "derived" / "terrain" / "v1"
     zones = tile_zones(root)
     buildings = building_index(root)
+    lod3 = lod3_folders(root)
     markers = markers_by_tile(unity_map)
     campus_poly = None
     tiles = sorted(p.name for p in terrain_root.glob("T_*") if p.is_dir() and TILE_RE.match(p.name)) \
@@ -249,8 +278,11 @@ def plan_tiles(root, out_dir, unity_map, only=None):
                 objects.append({"name": "COL_Terrain", "role": "terrain_col", "collider": True,
                                 "src": [str(tdir / "terrain_col.npz")]})
         for bid, folder in sorted(buildings.get(tile, [])):
-            objects += building_objects(bid, folder)
-        trees = root / "derived" / "trees" / "v1" / tile
+            objects += building_objects(bid, folder, lod3.get(bid))
+        # Trees: the v2 folder when it exists (same layout), else v1.
+        trees = root / "derived" / "trees" / "v2" / tile
+        if not trees.is_dir():
+            trees = root / "derived" / "trees" / "v1" / tile
         if (trees / "trees_lod0.npz").exists():
             objects.append({"name": "Trees", "role": "trees", "src": [str(trees / "trees_lod0.npz")]})
         if (trees / "trees_lod1.npz").exists():
@@ -258,6 +290,16 @@ def plan_tiles(root, out_dir, unity_map, only=None):
         if (trees / "trees_col.npz").exists():
             objects.append({"name": "COL_Trees", "role": "trees_col", "collider": True,
                             "src": [str(trees / "trees_col.npz")]})
+        # Props: handled like the trees, but never part of the HLOD.
+        props = root / "derived" / "props" / "v1" / "tiles" / tile
+        for fname, name, role, col in (("props_lod0.npz", "Props", "props", False),
+                                       ("props_lod1.npz", "Props_LOD1", "props_lod1", False),
+                                       ("props_col.npz", "COL_Props", "props_col", True)):
+            if (props / fname).exists():
+                o = {"name": name, "role": role, "src": [str(props / fname)]}
+                if col:
+                    o["collider"] = True
+                objects.append(o)
         ring = root / "derived" / "buildings" / "ring" / "v1" / f"{tile}.npz"
         if ring.exists():
             objects.append({"name": "Ring", "role": "ring", "src": [str(ring)]})

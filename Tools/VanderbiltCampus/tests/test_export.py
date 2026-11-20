@@ -73,6 +73,14 @@ def run(tmp_path_factory):
     save_mesh(k / "lod1.npz", *box(60, 60, 2, 70, 70, 12, 2, 11))
     save_mesh(k / "col_mesh.npz", *box(60, 60, 2, 70, 70, 12, 2, 2))
     save_mesh(k / "col_0.npz", *box(60, 60, 2, 70, 70, 12, 2, 2))      # old convex part: must be ignored
+    # LoD3 for the same building: lod3.npz -> LOD0, its lod1.npz -> LOD1, its game_col.npz -> COLM.
+    l3 = root / "buildings/B_544397715/lod3_v1"
+    save_mesh(l3 / "lod3.npz", *box(60, 60, 2, 70, 70, 12, 3, 12))
+    save_mesh(l3 / "lod1.npz", *box(60, 60, 2, 70, 70, 12, 2, 11))
+    save_mesh(l3 / "game_col.npz", *box(60, 60, 2, 70, 70, 11, 2, 2))
+    (root / "derived/buildings/lod3").mkdir(parents=True)
+    (root / "derived/buildings/lod3/index.json").write_text(json.dumps(
+        {"buildings": [{"id": "B_544397715", "folder": "buildings/B_544397715/lod3_v1"}]}))
     idx = root / "derived/buildings/v2"
     idx.mkdir(parents=True)
     (idx / "index.json").write_text(json.dumps({"buildings": [
@@ -83,6 +91,11 @@ def run(tmp_path_factory):
     save_mesh(tr / "trees_lod0.npz", *box(50, 50, 2, 51, 51, 8, 22, 23))
     save_mesh(tr / "trees_lod1.npz", *box(50, 50, 2, 51, 51, 8, 22, 23))
     save_mesh(tr / "trees_col.npz", *box(50, 50, 2, 51, 51, 8, 22, 22))
+    pr = root / "derived/props/v1/tiles/T_00_00"
+    for f_ in ("props_lod0", "props_lod1", "props_col"):
+        save_mesh(pr / f"{f_}.npz", *box(30, 30, 2, 31, 31, 3, 15, 25))
+    # Trees v2 for T_01_00 (preferred over v1 when the folder exists).
+    save_mesh(root / "derived/trees/v2/T_01_00/trees_lod0.npz", *box(150, 20, 3, 151, 21, 9, 22, 23))
     save_mesh(root / "derived/buildings/ring/v1/T_01_00.npz", *box(150, 50, 3, 160, 60, 20, 26, 13))
     lidar = root / "derived/lidar/v1"
     lidar.mkdir(parents=True)
@@ -122,8 +135,11 @@ def test_names_and_materials(run):
     assert c0["pass"] and c1["pass"], (c0["problems"], c1["problems"])
     assert set(c0["objects"]) == {"Terrain", "Terrain_LOD1", "HLOD", "COL_Terrain", "B_new_3_LOD0", "B_new_3_LOD1", "COL_B_new_3_0",
                                   "B_544397715_LOD0", "B_544397715_LOD1", "COLM_B_544397715",
+                                  "Props", "Props_LOD1", "COL_Props",
                                   "Trees", "Trees_LOD1", "COL_Trees"}
-    assert set(c1["objects"]) >= {"Terrain", "Ring"}
+    assert set(c1["objects"]) >= {"Terrain", "Ring", "Trees"}
+    assert c0["objects"]["Props"]["materials"] == ["mat_metal_trim", "mat_wood"]
+    assert c0["objects"]["COL_Props"]["triangles"] == 12
     assert set(c0["info"]["empties"]) == {"Spawn_AlumniLawn_1", "Route_00", "Climb_B_new_3", "Climb_B_new_3_b"}
     assert set(c1["info"]["empties"]) == {"Route_01"}
     assert c0["objects"]["B_new_3_LOD0"]["materials"] == ["mat_brick_red", "mat_roof_flat"]
@@ -140,6 +156,9 @@ def test_names_and_materials(run):
     assert "Trees_LOD1" not in c1["objects"]
     # v2 building: one non-convex collider object, no convex parts.
     assert c0["objects"]["COLM_B_544397715"]["triangles"] == 12
+    assert c0["objects"]["B_544397715_LOD0"]["materials"] == ["mat_stone_rough", "mat_roof_copper"]   # from lod3
+    assert c0["objects"]["COLM_B_544397715"]["unity_max"][1] == 11.0                                # lod3 game_col
+    assert "B_544397715_LOD2" not in c0["objects"]
     assert not any(n.startswith("COL_B_544397715") for n in c0["objects"])
     # HLOD = terrain_far (2, asphalt 18) + 2 building LOD1 (24) + Trees_LOD1 (12) in one mesh, one slot.
     h = c0["objects"]["HLOD"]
