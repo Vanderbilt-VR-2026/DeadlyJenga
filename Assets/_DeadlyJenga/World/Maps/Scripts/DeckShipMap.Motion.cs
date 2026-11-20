@@ -44,7 +44,8 @@ namespace DeadlyJenga.CastlePrototype
             listRoll = listPitch = 0; shoved = false;
             CurrentEvent = DeckShipEvent.None;
             if (iceberg) iceberg.gameObject.SetActive(false);
-            ApplyPose();
+            // Jump straight to the starting pose: moving there in one physics step would fling the new cargo.
+            ApplyPose(true);
         }
 
         // Starts an event now (tools, game modes). Replaces any event already running.
@@ -91,7 +92,7 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
-        void ApplyPose()
+        void ApplyPose(bool teleport = false)
         {
             if (!hullBody) return;
             float t = clock, e = clock - eventStart;
@@ -142,8 +143,8 @@ namespace DeadlyJenga.CastlePrototype
             var local = Quaternion.Euler(0, yaw, 0) * Quaternion.Euler(pitch, 0, 0) * Quaternion.Euler(0, 0, -roll);
             var position = transform.TransformPoint(new Vector3(0, heave, surge));
             var rotation = transform.rotation * local;
-            if (Application.isPlaying || Physics.simulationMode == SimulationMode.Script) { hullBody.MovePosition(position); hullBody.MoveRotation(rotation); }
-            else { hullBody.position = position; hullBody.rotation = rotation; hull.SetPositionAndRotation(position, rotation); }
+            if (!teleport && (Application.isPlaying || Physics.simulationMode == SimulationMode.Script)) { hullBody.MovePosition(position); hullBody.MoveRotation(rotation); }
+            else { hullBody.position = position; hullBody.rotation = rotation; hull.SetPositionAndRotation(position, rotation); Physics.SyncTransforms(); }
         }
 
         // 0 -> 1 over ramp seconds at the start, back to 0 over ramp seconds at the end.
@@ -192,7 +193,7 @@ namespace DeadlyJenga.CastlePrototype
         void MoveIceberg(float e)
         {
             if (!iceberg) return;
-            var start = new Vector3(15, 0, 95); var hit = new Vector3(13.5f, 0, 30); var past = new Vector3(17, 0, -45);
+            var start = new Vector3(15, 0, 95); var hit = new Vector3(17, 0, 31); var past = new Vector3(19.5f, 0, -45);
             Vector3 p;
             if (e < IcebergImpact) p = Vector3.Lerp(start, hit, e / IcebergImpact);
             else p = Vector3.Lerp(hit, past, (e - IcebergImpact) / (IcebergSeconds - IcebergImpact));

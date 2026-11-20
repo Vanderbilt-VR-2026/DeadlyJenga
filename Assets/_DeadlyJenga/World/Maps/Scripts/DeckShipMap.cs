@@ -21,7 +21,7 @@ namespace DeadlyJenga.CastlePrototype
         [Tooltip("The reset button picks a random cargo layout.")]
         public bool randomCargoOnRebuild;
         public int seed = 1;
-        public float dropHeight = 7;
+        public float dropHeight = 2.5f;
 
         [Header("Ship")]
         [Tooltip("Hull colors are copies of this material with new colors.")]

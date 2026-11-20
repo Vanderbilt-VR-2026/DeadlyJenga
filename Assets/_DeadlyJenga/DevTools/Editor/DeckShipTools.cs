@@ -206,7 +206,7 @@ namespace DeadlyJenga.DevTools.Editor
             (6, "shoot calm"),
             (0, "roll"), (6, "shoot roll-peak"), (13.5f, "shoot roll-after"),
             (0, "iceberg"), (3.5f, "shoot iceberg-approach"), (2.1f, "shoot iceberg-impact"), (7, "shoot iceberg-after"),
-            (6, "right"), (8.5f, "cargo 1"), (1.1f, "shoot drop-container-yard"), (6, "shoot container-yard"),
+            (6, "right"), (8.5f, "cargo 1"), (.45f, "shoot drop-container-yard"), (6, "shoot container-yard"),
             (0, "cargo 2"), (6.5f, "shoot domino-run"), (0, "pitch"), (5.3f, "shoot domino-pitch"),
             (10, "cargo 3"), (6.5f, "shoot step-pyramid"),
             (0, "done"),

@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7310550183224610002}
   - component: {fileID: 7310550183224610003}
+  - component: {fileID: 7310550183224610004}
   m_Layer: 0
   m_Name: Mode_deck-ship
   m_TagString: Untagged
@@ -53,7 +54,7 @@ MonoBehaviour:
   cargo: 0
   randomCargoOnRebuild: 0
   seed: 1
-  dropHeight: 7
+  dropHeight: 2.5
   hullSource: {fileID: 2100000, guid: 6d644d4ed46b4f3884dcba06f5fcdd5e, type: 2}
   deckFriction: 0.2
   waterHeight: 0
@@ -74,3 +75,16 @@ MonoBehaviour:
   pitchDegrees: 7
   icebergList: 7
   icebergShove: 7
+--- !u!114 &7310550183224610004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7310550183224610001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48c6a0a4dbae06947883663d9dfdf475, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.Presentation::DeadlyJenga.Presentation.VillageFlatScenery
+  openWater: 1
