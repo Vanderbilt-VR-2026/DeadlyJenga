@@ -558,7 +558,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var cameras = BuildCameras(stage, plan);
             if (mode == "finalA") cameras = cameras.Take(3).ToList();
             if (mode == "finalB") cameras = cameras.Skip(3).ToList();
-            if (final) foreach (var c in cameras) c.motionBlur = .3f;
+            // No motion blur: with it (v08 finals A and A2) the survivor rendered white; the previews never used it.
+            if (final) foreach (var c in cameras) c.motionBlur = 0;
             set.cameras.Clear(); set.cameras.AddRange(cameras);
             set.render = final
                 // cinema = false: the cinema preset (the project's top quality level) renders the survivor white
@@ -579,6 +580,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             File.WriteAllText(Path.Combine(Folder, "shots.txt"), string.Join("\n", Shots.Select(s => $"{s.id} {s.cutIn} {s.cutOut} {s.key} {s.shift} {Handle}")) + "\n");
 
             if (mode == "scout") foreach (int wait in CompareDesigns(stage, plan, cameras)) yield return wait;
+            if (mode == "finalA") foreach (int wait in ColourCheck(cameras[1])) yield return wait;
             if (Directory.Exists(renders)) Directory.Delete(renders, true);
         }
 
@@ -602,6 +604,30 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 Still("first", Handle); Still("key", Handle + shot.key); Still("last", Handle + shot.Length - 1);
             }
+        }
+
+        // The hero's colour at two sizes and with and without motion blur, one frame of S02 each, to find what
+        // turns the survivor white in 1080p renders.
+        static IEnumerable<int> ColourCheck(StudioCameraTrack shot)
+        {
+            string folder = Path.Combine(Folder, "colour-check");
+            Directory.CreateDirectory(folder);
+            foreach (var (label, width, blur) in new[] { ("540", 960, 0f), ("1080-blur", 1920, .3f) })
+            {
+                var copy = JsonUtility.FromJson<StudioCameraTrack>(JsonUtility.ToJson(shot));
+                float t = Tape(Shots[1].cutIn + Shots[1].key);
+                copy.id = "colour-" + label; copy.name = copy.id; copy.start = t; copy.end = t + 1.5f / Fps; copy.measure.Clear(); copy.motionBlur = blur;
+                StudioRender.Start(new[] { copy }, new StudioRenderSettings { width = width, height = width * 9 / 16, fps = Fps, format = "png", cinema = false, filmstrip = 0 }, Path.Combine(Folder, "renders-colour"));
+                foreach (int wait in UntilRendered()) yield return wait;
+                foreach (var result in StudioRender.Results)
+                {
+                    string first = Path.Combine(result.folder, "00000.png");
+                    if (File.Exists(first)) File.Copy(first, Path.Combine(folder, label + ".png"), true);
+                }
+            }
+            Note("Colour check stills written.");
+            string renders = Path.Combine(Folder, "renders-colour");
+            if (Directory.Exists(renders)) Directory.Delete(renders, true);
         }
 
         // Stills of the same frames with other game hand designs, to choose the hand's look.
