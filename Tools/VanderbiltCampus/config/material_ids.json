@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "encoding": "vertex_color_r",
+  "encoding_note": "Each vertex's color R channel = index/255 (G,B,A = 1). Submeshes are also named mat_<id>. UV0 is reserved for the future bake; UV1 is left for Unity lightmaps.",
+  "gray_fallback": "#9A9A9A",
+  "ids": [
+    {
+      "index": 0,
+      "id": "brick_red",
+      "use": "Red/brown brick walls",
+      "candy": "#D9534F",
+      "plain": "#8E3B2E"
+    },
+    {
+      "index": 1,
+      "id": "brick_buff",
+      "use": "Tan or light brick",
+      "candy": "#F2C38B",
+      "plain": "#C9A77C"
+    },
+    {
+      "index": 2,
+      "id": "limestone",
+      "use": "Light stone trim, columns, facades",
+      "candy": "#FFF1D6",
+      "plain": "#D8D0BE"
+    },
+    {
+      "index": 3,
+      "id": "stone_rough",
+      "use": "Rough-cut or rubble stone",
+      "candy": "#C8B8A6",
+      "plain": "#8F8577"
+    },
+    {
+      "index": 4,
+      "id": "concrete",
+      "use": "Modern concrete, plinths",
+      "candy": "#E3DDE8",
+      "plain": "#A7A5A0"
+    },
+    {
+      "index": 5,
+      "id": "stucco",
+      "use": "Painted render",
+      "candy": "#FFE3EC",
+      "plain": "#E6DCCB"
+    },
+    {
+      "index": 6,
+      "id": "metal_panel",
+      "use": "Modern cladding",
+      "candy": "#9FC9E8",
+      "plain": "#8C9196"
+    },
+    {
+      "index": 7,
+      "id": "glass",
+      "use": "Windows and glass walls",
+      "candy": "#7FD8F0",
+      "plain": "#3E5A66"
+    },
+    {
+      "index": 8,
+      "id": "window_frame",
+      "use": "Frames and mullions",
+      "candy": "#FFFFFF",
+      "plain": "#E8E6E0"
+    },
+    {
+      "index": 9,
+      "id": "door_wood",
+      "use": "Wooden doors",
+      "candy": "#B5651D",
+      "plain": "#5C3A21"
+    },
+    {
+      "index": 10,
+      "id": "door_metal",
+      "use": "Metal and glass doors",
+      "candy": "#6C7FD8",
+      "plain": "#4A4F55"
+    },
+    {
+      "index": 11,
+      "id": "roof_slate",
+      "use": "Slate or dark shingle roofs",
+      "candy": "#6B5B95",
+      "plain": "#4B4F56"
+    },
+    {
+      "index": 12,
+      "id": "roof_copper",
+      "use": "Copper and green-patina roofs, domes",
+      "candy": "#5FD3B3",
+      "plain": "#6FA58E"
+    },
+    {
+      "index": 13,
+      "id": "roof_flat",
+      "use": "Flat membrane roofs",
+      "candy": "#BFC7D5",
+      "plain": "#8A8C8E"
+    },
+    {
+      "index": 14,
+      "id": "roof_tile",
+      "use": "Clay tile",
+      "candy": "#F28C5B",
+      "plain": "#A8553A"
+    },
+    {
+      "index": 15,
+      "id": "metal_trim",
+      "use": "Railings, gutters, lamp posts",
+      "candy": "#3D3D5C",
+      "plain": "#2E3236"
+    },
+    {
+      "index": 16,
+      "id": "paving_brick",
+      "use": "Brick walks",
+      "candy": "#E8907A",
+      "plain": "#9C5A48"
+    },
+    {
+      "index": 17,
+      "id": "paving_concrete",
+      "use": "Concrete walks",
+      "candy": "#F5EBDD",
+      "plain": "#BDB8AE"
+    },
+    {
+      "index": 18,
+      "id": "asphalt",
+      "use": "Roads and parking",
+      "candy": "#5A5470",
+      "plain": "#3F4144"
+    },
+    {
+      "index": 19,
+      "id": "curb",
+      "use": "Curbs and edging",
+      "candy": "#FFFFFF",
+      "plain": "#B9B6AF"
+    },
+    {
+      "index": 20,
+      "id": "grass",
+      "use": "Lawns",
+      "candy": "#7ED957",
+      "plain": "#5E8C3A"
+    },
+    {
+      "index": 21,
+      "id": "planting",
+      "use": "Beds and shrubs",
+      "candy": "#3FAF6C",
+      "plain": "#3E6B32"
+    },
+    {
+      "index": 22,
+      "id": "bark",
+      "use": "Tree trunks",
+      "candy": "#A0522D",
+      "plain": "#5A4632"
+    },
+    {
+      "index": 23,
+      "id": "foliage",
+      "use": "Tree canopies",
+      "candy": "#4CC46A",
+      "plain": "#3F6E34"
+    },
+    {
+      "index": 24,
+      "id": "water",
+      "use": "Fountains and pools",
+      "candy": "#4FC3F7",
+      "plain": "#4D7F94"
+    },
+    {
+      "index": 25,
+      "id": "wood",
+      "use": "Benches, decks",
+      "candy": "#E0A060",
+      "plain": "#8A6A48"
+    },
+    {
+      "index": 26,
+      "id": "signage_blank",
+      "use": "Sign faces (always blank in release builds)",
+      "candy": "#FFFFFF",
+      "plain": "#F0F0F0"
+    }
+  ]
+}
