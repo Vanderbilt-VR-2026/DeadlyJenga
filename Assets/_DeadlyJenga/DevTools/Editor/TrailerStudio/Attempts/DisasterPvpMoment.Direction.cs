@@ -123,7 +123,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var below = a.spots.Where(p => p.y < a.top - .5f && Vector3.Distance(Flat2(p), Flat2(a.centre)) < 8 && Vector3.Dot(Flat2(p - a.centre), a.side) > -.3f).ToList();
             string[] others = { "blue", "green", "purple", "pink", "cyan" };
             int[] colors = { 2, 3, 5, 4, 7 };
-            string[] weapons = { "Blaster", "RocketLauncher", "DualUzi", "", "Blaster" };
+            // No rocket: in the first record its 8 m blast at f117 threw blue, purple, cyan and the hero off together.
+            string[] weapons = { "Blaster", "Blaster", "DualUzi", "", "Blaster" };
             for (int n = 0; n < others.Length; n++)
             {
                 var pick = below.Where(p => chosen.All(c => Vector3.Distance(c, p) > 1.7f))
@@ -147,7 +148,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Vector3 target;
                 if (near == "rivalEnd") target = a.centre + a.along * 2.5f;
                 else if ((near == "heroFar" || near == "summitFar" || near == "spare") && spare.Count > spareUsed) target = spare[spareUsed++];
-                else if (plan.cast.TryGetValue(near, out var who)) target = who.feet - travel * 1.2f;
+                else if (plan.cast.TryGetValue(near, out var who))
+                {
+                    // On the block they stand on (record 1: rocks aimed past a block's edge fell to the level below).
+                    target = who.feet - travel * .6f;
+                    foreach (float k in new[] { 1.3f, 1.1f, .9f, .75f })
+                    {
+                        var p = who.feet - travel * k;
+                        if (StudioStage.SurfaceBelow(p + Vector3.up * .3f, out var hit) && Mathf.Abs(hit.y - who.feet.y) < .15f) { target = p; break; }
+                    }
+                }
                 else continue;
                 var from = (-travel * Mathf.Cos(MeteorElevation * Mathf.Deg2Rad) + Vector3.up * Mathf.Sin(MeteorElevation * Mathf.Deg2Rad)).normalized;
                 plan.meteors.Add((near, frame, target + Vector3.up * .2f));
@@ -196,13 +206,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             set.cues.Add(new StudioCue { action = GlovePunchCue.Id, actor = plan.Id("hero"), target = plan.Id("rival"), at = TapeF(PunchFrame) });
             foreach (int f in BlueShots) set.cues.Add(Fire(plan, "blue", "green", f));
             set.cues.Add(Fire(plan, "green", "cyan", RocketFrame));
+            set.cues.Add(Fire(plan, "blue", "purple", BlueShots[0] + 40));
             set.cues.Add(Fire(plan, "purple", "blue", UziFrame));
             set.cues.Add(Fire(plan, "cyan", "purple", UziFrame + 13));
             // Background meteors over the whole map (no warning, force at its maximum), then the aimed ones by the fighters.
             set.cues.Add(new StudioCue { action = "hazard", hazard = "MeteorShower", at = TapeF(ShowerFrame), values = new[] { 3f, 1f, 8f, 40f, 0f, 12f } });
             for (int i = 0; i < plan.meteors.Count; i++)
                 set.cues.Add(Meteor(stage, plan.meteors[i].target, plan.meteorFrom[i], plan.meteors[i].arriveFrame, "MeteorShower", MeteorDistance, MeteorSize, 45));
-            var planet = Meteor(stage, plan.planetTarget, plan.planetFrom, plan.planetFrame, "PlanetKillerMeteor", PlanetDistance, PlanetSize, 28);
+            // Record 1 landed it 2 frames late (f310), so it leaves 2 frames earlier.
+            var planet = Meteor(stage, plan.planetTarget, plan.planetFrom, plan.planetFrame - 2, "PlanetKillerMeteor", PlanetDistance, PlanetSize, 28);
             planet.values = new[] { PlanetSize, 0f };   // size, warning (the scout's default 3 s warning made it land 2.2 s late)
             set.cues.Add(planet);
             set.cues.Sort((x, y) => x.at.CompareTo(y.at));
@@ -226,6 +238,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 list.Add(new StudioOverride { actor = id, kind = kind, name = name, target = target, from = TapeF(from), to = TapeF(to), blendIn = blendIn, blendOut = blendOut, leftHand = left });
             }
             string Actor(string role) => "actor:" + plan.Id(role);
+            // Body colours (record 1: the match recorded every survivor in the same yellow).
+            var colours = new Dictionary<string, int> { ["hero"] = 1, ["rival"] = 0, ["blue"] = 2, ["green"] = 3, ["purple"] = 5, ["pink"] = 4, ["cyan"] = 7 };
+            foreach (var pair in colours)
+                if (plan.Id(pair.Key).Length > 0)
+                    list.Add(new StudioOverride { actor = plan.Id(pair.Key), kind = "color", color = pair.Value, from = 0, to = TapeF(LengthFrames) + 1, blendIn = 0, blendOut = 0 });
             // The punch: the glove hand goes to the rival's head, then the hero taunts.
             Add("hero", "lookAt", 0, 40, target: Actor("rival"), blendIn: .05f);
             Add("hero", "reach", PunchFrame - 6, PunchFrame + 6, target: Actor("rival"), blendIn: .12f, blendOut: .2f);

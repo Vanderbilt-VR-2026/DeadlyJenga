@@ -77,9 +77,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             // S02: the rival in the air, panned from beside the summit's far end, sea and sky behind.
             {
-                var s = S("S02"); var c = ShotCam(s, 24);
+                var s = S("S02"); var c = ShotCam(s, 28);
                 Vector3 flying = Feet(stage, plan, "rival", s.cutIn + s.key);
-                Vector3 at = C + a.along * 3.5f + a.side * 6 + up * 1.2f;
+                // Beside his path, 8 m from where he is at the key, a little above, so the sea is below him (record 1: 17 m, 0.05 of frame).
+                Vector3 at = flying + a.side * 7.5f - a.along * 2.5f + up * 2.5f;
                 at = PickSpot(new[] { at, at + up * 2, at + a.side * 2 }, flying + up * .5f);
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), Actor("rival"), up * .5f);
                 Add(c, at, flying, .94f);
@@ -89,7 +90,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var s = S("S03"); var c = ShotCam(s, 20);
                 var fighters = new[] { "blue", "green", "purple", "pink", "cyan", "hero" }.Where(r => plan.cast.ContainsKey(r)).Select(r => Feet(stage, plan, r, s.cutIn)).ToList();
                 Vector3 centroid = fighters.Aggregate(Vector3.zero, (x, y) => x + y) / fighters.Count;
-                Vector3 at = PickSpot(new[] { 0f, 15f, -15f, 30f }.Select(t => centroid + Quaternion.AngleAxis(t, up) * a.side * 7.5f + up * 3.2f), fighters.Select(f => f + up * .5f).ToArray());
+                Vector3 at = PickSpot(new[] { 0f, 15f, -15f, 30f }.Select(t => centroid + Quaternion.AngleAxis(t, up) * a.side * 6f + up * 2.6f), fighters.Select(f => f + up * .5f).ToArray());
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, centroid + up * .4f));
                 Add(c, at, centroid, .94f);
             }
@@ -105,7 +106,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             void Victim(string id, string role, int meteorIndex, float focal, float distance)
             {
                 var s = S(id); var c = ShotCam(s, focal);
-                Vector3 who = Feet(stage, plan, role, s.cutIn);
+                Vector3 who = plan.cast.TryGetValue(role, out var victim) ? victim.feet : Feet(stage, plan, role, s.cutIn);   // where they stood before the hit
                 Vector3 travel = meteorIndex >= 0 && meteorIndex < plan.meteorFrom.Count ? Flat(-plan.meteorFrom[meteorIndex]) : a.side;
                 Vector3 across = Vector3.Cross(up, travel).normalized;
                 if (Vector3.Dot(across, a.side) < 0) across = -across;
@@ -148,8 +149,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // S11: the impact and the wreck, wide from the sun side; the title goes over it.
             {
                 var s = S("S11"); var c = ShotCam(s, 18);
-                Vector3 at = C + a.side * 55 + a.along * 14 - up * 14;
-                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, C + up * 6 - a.side * 6));
+                // Aimed lower than record 1 (which ended on empty sky once the top fell): the stump and the sea stay in frame.
+                Vector3 at = C + a.side * 58 + a.along * 14 - up * 20;
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, C - up * 4 - a.side * 6));
                 StudioMoves.Shake(c, TapeF(PlanetFrame) + 1f / Fps, 2.2f, 1.4f);
                 Add(c, at, C, 2);
             }
