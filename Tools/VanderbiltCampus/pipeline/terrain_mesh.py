@@ -549,7 +549,7 @@ def _greedy_rectangles(n, forced, mat, node_block, NT, max_side=64):
 
 def build_mesh(hc, x0, y0, cell, bx=None, by=None, mat=None, border_z=None, border_keep=None,
                tol=0.03, merge_materials=False, uv_strip=True, mat_ids=None, hole=None, hole_tol=0.10,
-               partition="greedy", max_side=64):
+               partition="greedy", max_side=64, majority_mat=False):
     """Triangle mesh of one tile.
 
     hc          (n, n) cell heights (breaks already sharpened)
@@ -686,7 +686,11 @@ def build_mesh(hc, x0, y0, cell, bx=None, by=None, mat=None, border_z=None, bord
     faces, fmat, kind = [], [], []           # kind 0 = ground, 1 = break face
     extra_xyz = []
     for j0, j1, i0, i1, mode, data in leaves:
-        m = int(mat_cells[j0, i0])
+        if majority_mat and (j1 - j0) * (i1 - i0) > 1:
+            # far mesh: a merged rectangle takes the most common material of its cells
+            m = int(np.bincount(np.asarray(mat_cells[j0:j1, i0:i1], np.int64).ravel()).argmax())
+        else:
+            m = int(mat_cells[j0, i0])
         if mode == "cell":
             c = CV[j0, i0]
             # pick the diagonal whose midpoint is closest to the measured cell height
@@ -883,6 +887,48 @@ def make_uv(verts, faces, kind, vf_edge, x0, y0, cell, strip=True, tile=100.0, p
         uv[fl, :, 1] = (v0 + oy + loc[e][:, :, 1] * scale) / m_per_unit
     info["uv_break_scale"] = round(scale, 4)
     return np.clip(uv, 0, 1), info
+
+
+def add_skirt(mesh, x0, y0, size=100.0, depth=1.5, eps=1e-6):
+    """Hang a vertical strip `depth` m deep below every open edge on the tile border, facing
+    outward, so gaps against a neighbor drawn at another detail level never show the sky.
+    Skirt faces get kind 2, the material of the face above them and planar UVs.
+    Returns a new mesh dict."""
+    v, f = mesh["verts"], mesh["faces"].astype(np.int64)
+    e = np.concatenate([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]])
+    owner = np.tile(np.arange(len(f)), 3)
+    key = np.sort(e, axis=1)
+    _, inv, cnt = np.unique(key, axis=0, return_inverse=True, return_counts=True)
+    open_ = cnt[inv.ravel()] == 1
+    a, b = v[e[:, 0]], v[e[:, 1]]
+    on = np.zeros(len(e), bool)
+    for axis, val in ((0, x0), (0, x0 + size), (1, y0), (1, y0 + size)):
+        on |= (np.abs(a[:, axis] - val) < eps) & (np.abs(b[:, axis] - val) < eps)
+    sel = np.flatnonzero(open_ & on)
+    if not sel.size:
+        return dict(mesh)
+    # one lowered copy per border vertex used by the skirt
+    top = np.unique(e[sel].ravel())
+    low_id = {int(t): len(v) + k for k, t in enumerate(top)}
+    low = v[top] - np.array([0.0, 0.0, depth])
+    faces, mats = [], []
+    for k in sel:
+        i, j = int(e[k, 0]), int(e[k, 1])      # edge i -> j runs counter-clockwise around the face above
+        li, lj = low_id[i], low_id[j]
+        # the face above lies to the left of i -> j, so the outside is to the right: (j, i, li), (j, li, lj)
+        faces += [(j, i, li), (j, li, lj)]
+        mats += [int(mesh["face_mat"][owner[k]])] * 2
+    verts = np.vstack([v, low])
+    faces = np.array(faces, np.int64)
+    P = verts[faces]
+    uv = np.clip(np.stack([(P[:, :, 0] - x0) / (size / UV_SCALE), (P[:, :, 1] - y0) / (size / UV_SCALE)], axis=2), 0, 1)
+    out = dict(mesh)
+    out["verts"] = verts
+    out["faces"] = np.vstack([mesh["faces"], faces]).astype(np.int32)
+    out["face_mat"] = np.r_[mesh["face_mat"], np.array(mats, np.uint8)].astype(np.uint8)
+    out["uv0"] = np.vstack([mesh["uv0"], uv.astype(np.float32)])
+    out["kind"] = np.r_[mesh["kind"], np.full(len(faces), 2, np.int8)]
+    return out
 
 
 # ---- mesh height at points (accuracy checks) ------------------------------------

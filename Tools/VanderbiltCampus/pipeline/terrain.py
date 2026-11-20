@@ -59,6 +59,10 @@ COL_BUDGET = 2500
 # 3 x 3 denoise passes: 2 on 0.5 m cells (about 1 point per cell); none on 2 m cells, which
 # already average about 16 points and where a 6 m window would flatten real ground shape
 DENOISE_PASSES = {"campus": 2, "ring": 0}
+FAR_CELL = 4.0                      # far mesh grid (m), the same for every tile so far edges match
+FAR_TOL = 0.5                       # far mesh max vertical error (m), also its border rule
+FAR_BUDGET = {"campus": 300, "ring": 150}
+FAR_SKIRT = 1.5                     # m the far mesh's border skirt hangs down
 HOLE_TOL = {"visual": 0.10, "collider": 0.15}    # error allowed where no ground point is within 1 m
 
 
@@ -215,9 +219,11 @@ class TileSet:
         J = int(round((Y - t["bounds"][1]) / c))
         return float(H[J, I])
 
-    def border(self, t, tol):
-        """(border_z, border_keep) arrays for a tile's nodes, from the shared edge rule."""
-        cell = cell_size(t)
+    def border(self, t, tol, step=None):
+        """(border_z, border_keep) arrays for a tile's nodes, from the shared edge rule.
+        step: grid spacing used by EVERY tile for this mesh kind (the far meshes use one
+        4 m grid everywhere); None = each tile's own height grid."""
+        cell = step or cell_size(t)
         n = int(round(100 / cell))
         x0, y0 = t["bounds"][0], t["bounds"][1]
         bz = np.full((n + 1, n + 1), np.nan)
@@ -226,9 +232,12 @@ class TileSet:
         sides = {"S": (c, r - 1), "N": (c, r + 1), "W": (c - 1, r), "E": (c + 1, r)}
         for side, nb in sides.items():
             nbt = self.by_cr.get(nb)
-            step = max(cell, cell_size(nbt)) if nbt else cell
-            m = int(round(100 / step))
-            s = np.arange(m + 1) * step
+            if step is not None:
+                es = step
+            else:
+                es = max(cell, cell_size(nbt)) if nbt else cell
+            m = int(round(100 / es))
+            s = np.arange(m + 1) * es
             if side in ("S", "N"):
                 Y = y0 if side == "S" else y0 + 100
                 zc = np.array([self.node_z(x0 + v, Y) for v in s])
@@ -358,7 +367,81 @@ def finish_tile(name, t, d, vis, col, gstats, ids, root, version, t0):
     return [d / "terrain.npz", d / "terrain_col.npz", d / "tile.json"], info
 
 
+# ---- far meshes (seen from 250 m and more) ----------------------------------------
+
+def far_heights(H, cell):
+    """Coarse cell heights for the far grid: mean of the tile's height nodes in each 4 m cell."""
+    k = int(round(FAR_CELL / cell))
+    m = int(round(100 / FAR_CELL))
+    out = np.empty((m, m))
+    for j in range(m):
+        for i in range(m):
+            out[j, i] = H[j * k:j * k + k + 1, i * k:i * k + k + 1].mean()
+    return out
+
+
+def far_mesh(t, ts, H, mat_far, ids):
+    """Far mesh of one tile: 4 m grid, no breaks, up to FAR_TOL vertical error, materials kept
+    where the budget allows (else each merged rectangle takes its majority material), shared
+    edges at 4 m with the Douglas-Peucker rule, and a 1.5 m skirt around the border."""
+    x0, y0 = t["bounds"][0], t["bounds"][1]
+    hc = far_heights(H, cell_size(t))
+    bz, bk = ts.border(t, FAR_TOL, step=FAR_CELL)
+    budget = FAR_BUDGET[kind_of(t)]
+    best = None
+    # accuracy first: a 0.25 m fit with majority materials beats a 0.5 m fit with exact ones
+    for tol, merge in ((FAR_TOL / 2, False), (FAR_TOL / 2, True), (FAR_TOL, False), (FAR_TOL, True)):
+        m = tm.build_mesh(hc, x0, y0, FAR_CELL, mat=mat_far, border_z=bz, border_keep=bk, tol=tol,
+                          merge_materials=merge, majority_mat=merge, uv_strip=False, mat_ids=ids)
+        m = tm.add_skirt(m, x0, y0, depth=FAR_SKIRT)
+        m["stats"].update({"tol_m": tol, "materials": "majority per merged rectangle" if merge
+                           else "4 m cells, one material per rectangle"})
+        best = m
+        if len(m["faces"]) <= budget:
+            break
+    return best          # the last try is returned even if it is still over budget (tile.json says so)
+
+
+def far_tile(name, t, tiles, root, version):
+    t0 = time.time()
+    d = tdir(root, version, name)
+    H = np.load(d / "heights.npy").astype(np.float64)
+    mat_far = cell_materials(np.load(d / "surface.npy"), int(round(100 / FAR_CELL)))
+    ids = vcmesh.material_index()
+    ts = TileSet(tiles, root, version)
+    m = far_mesh(t, ts, H, mat_far, ids)
+    x0, y0 = t["bounds"][0], t["bounds"][1]
+    pts = lidar_io.load_points(x0, y0, x0 + 100, y0 + 100, classes=[2], root=root)
+    zm = tm.mesh_z_at(m["verts"], m["faces"], pts["x"], pts["y"], x0, y0)
+    acc = tm.error_stats(pts["z"] - zm)
+    k = m["kind"]
+    info = {"triangles": int(len(m["faces"])), "ground_triangles": int((k == 0).sum()),
+            "skirt_triangles": int((k == 2).sum()), "budget": FAR_BUDGET[kind_of(t)],
+            "cell_m": FAR_CELL, "tol_m": m["stats"]["tol_m"], "materials": m["stats"]["materials"],
+            "skirt_depth_m": FAR_SKIRT, "breaks": "none (all breaks dropped in the far mesh)",
+            "accuracy": acc, "mesh_problems": vcmesh.check_mesh(m),
+            "border_rule": f"owner tile node heights sampled every {FAR_CELL} m, Douglas-Peucker {FAR_TOL} m",
+            "seconds": round(time.time() - t0, 2)}
+    vcmesh.save_mesh(d / "terrain_far.npz", m["verts"], m["faces"], m["face_mat"], m["uv0"],
+                     {"tile": name, "version": version, "kind": "far", "frame": "Vanderbilt campus frame v1",
+                      "uv_m_per_unit": round(100 / tm.UV_SCALE, 6), "uv_note": "planar; skirt faces planar too",
+                      **{k2: v for k2, v in info.items() if k2 not in ("accuracy", "mesh_problems")}})
+    tj = load_json(d / "tile.json")
+    tj["far"] = info
+    save_json(d / "tile.json", tj)
+    return [d / "terrain_far.npz", d / "tile.json"], info
+
+
 # ---- workers (top level so Windows can pickle them) ------------------------------
+
+def _far_job(args):
+    name, t, tiles, root, version = args
+    try:
+        files, info = far_tile(name, t, tiles, root, version)
+        return name, [str(f) for f in files], info, None
+    except Exception:
+        return name, [], None, traceback.format_exc()
+
 
 def _grid_job(args):
     name, t, walls, root, version = args
@@ -451,10 +534,32 @@ def summarize(root, version, tiles):
     for r in rows:
         for k, v in r["material_area_m2"].items():
             summary["material_area_m2"][k] = round(summary["material_area_m2"].get(k, 0) + v, 1)
+    far = [r for r in rows if "far" in r]
+    if far:
+        def dist(vals):
+            a = np.array(vals, float)
+            return {"median": round(float(np.median(a)), 3), "p90": round(float(np.percentile(a, 90)), 3),
+                    "max": round(float(a.max()), 3)}
+        summary["far"] = {
+            "tiles": len(far), "cell_m": FAR_CELL, "tol_m": FAR_TOL, "skirt_m": FAR_SKIRT, "budget": FAR_BUDGET,
+            "triangles_total": int(sum(r["far"]["triangles"] for r in far)),
+            "triangles_campus_total": int(sum(r["far"]["triangles"] for r in far if r["kind"] == "campus")),
+            "triangles_ring_total": int(sum(r["far"]["triangles"] for r in far if r["kind"] == "ring")),
+            "triangles_per_tile_campus": dist([r["far"]["triangles"] for r in far if r["kind"] == "campus"] or [0]),
+            "triangles_per_tile_ring": dist([r["far"]["triangles"] for r in far if r["kind"] == "ring"] or [0]),
+            "over_budget": [r["tile"] for r in far if r["far"]["triangles"] > r["far"]["budget"]],
+            "majority_material_tiles": sum("majority" in r["far"]["materials"] for r in far),
+            "tile_p95_error_m": dist([r["far"]["accuracy"].get("p95_m", 0) for r in far]),
+            "tile_max_error_m": dist([r["far"]["accuracy"].get("max_m", 0) for r in far]),
+            "tile_median_error_m": dist([r["far"]["accuracy"].get("median_m", 0) for r in far]),
+            "tiles_p95_over_0.5m": [r["tile"] for r in far if r["far"]["accuracy"].get("p95_m", 0) > 0.5],
+            "mesh_problems": {r["tile"]: r["far"]["mesh_problems"] for r in far if r["far"]["mesh_problems"]},
+        }
     idx = {"version": version, "made": summary["made"],
            "tiles": [{"tile": r["tile"], "kind": r["kind"], "cell_m": r["cell_m"], "bounds": r["bounds"],
                       "triangles_visual": r["visual"]["triangles"], "triangles_collider": r["collider"]["triangles"],
-                      "break_edges": r["breaks"]["edges"], "files": ["terrain.npz", "terrain_col.npz", "heights.npy",
+                      "break_edges": r["breaks"]["edges"], "triangles_far": r.get("far", {}).get("triangles"),
+                      "files": ["terrain.npz", "terrain_col.npz", "terrain_far.npz", "heights.npy",
                                                                      "tile.json"]} for r in rows]}
     ip = Path(root) / "derived" / "terrain" / version / "index.json"
     rp = Path(root) / "reports" / "stage1" / "terrain_build.json"
@@ -468,6 +573,26 @@ def summarize(root, version, tiles):
     return summary
 
 
+def far_only(args, root):
+    """Build terrain_far.npz for the chosen tiles (skips finished ones unless --force)."""
+    t_start = time.time()
+    tiles = [t for t in lidar_io.load_index(root=root)["tiles"] if t["zone"] in ("campus", "ring")]
+    by_name = {t["name"]: t for t in tiles}
+    targets = tiles if args.all else [by_name[n] for n in args.tile]
+    missing = [t["name"] for t in tiles if not (tdir(root, args.version, t["name"]) / "heights.npy").exists()]
+    if missing:
+        fail(f"{len(missing)} tiles have no heights.npy yet (run terrain.py first): {missing[:5]}")
+    jobs = [(t["name"], t, tiles, str(root), args.version) for t in targets
+            if (tdir(root, args.version, t["name"]) / "tile.json").exists()
+            and (args.force or not (tdir(root, args.version, t["name"]) / "terrain_far.npz").exists())]
+    _, ferr = run_jobs(_far_job, jobs, args.jobs, "far", root)
+    summary = summarize(root, args.version, tiles)
+    print(json.dumps(summary.get("far", {}), indent=2)[:3000])
+    print(f"done in {time.time() - t_start:.0f} s wall")
+    if ferr:
+        fail(f"{len(ferr)} far mesh failures: {sorted(ferr)}")
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     g = p.add_mutually_exclusive_group(required=True)
@@ -476,10 +601,15 @@ def main(argv=None):
     p.add_argument("--jobs", type=int, default=1, help="parallel worker processes")
     p.add_argument("--force", action="store_true", help="rebuild finished tiles")
     p.add_argument("--version", default="v1", help="output folder version (default v1)")
+    p.add_argument("--far-only", action="store_true",
+                   help="only (re)build the far meshes terrain_far.npz; the visual and collider meshes "
+                        "are not touched (allowed on an ACCEPTED version: the far mesh is an added file)")
     args = p.parse_args(argv)
     root = data_root()
     t_start = time.time()
     vdir = Path(root) / "derived" / "terrain" / args.version
+    if args.far_only:
+        return far_only(args, root)
     if args.force and (vdir / "ACCEPTED").exists():
         fail(f"{vdir} is marked ACCEPTED; write new geometry to a new --version (e.g. v2)")
     tiles = [t for t in lidar_io.load_index(root=root)["tiles"] if t["zone"] in ("campus", "ring")]
@@ -535,6 +665,19 @@ def main(argv=None):
     mesh_jobs = [(nme, by_name[nme], tiles, str(root), args.version) for nme in sorted(mesh_names)
                  if nme not in gerr]
     _, merr = run_jobs(_mesh_job, mesh_jobs, args.jobs, "mesh", root)
+
+    # phase 3: far meshes (tiles without one, tiles just meshed and their neighbors, or --force)
+    far_names = set()
+    for t in targets:
+        if args.force or not (tdir(root, args.version, t["name"]) / "terrain_far.npz").exists():
+            far_names.add(t["name"])
+    for nme in regridded:
+        far_names |= {nb["name"] for nb in neighbors(by_name[nme], by_cr)} | {nme}
+    far_jobs = [(nme, by_name[nme], tiles, str(root), args.version) for nme in sorted(far_names)
+                if nme not in merr and nme not in gerr
+                and (tdir(root, args.version, nme) / "tile.json").exists()]
+    _, ferr = run_jobs(_far_job, far_jobs, args.jobs, "far", root)
+    merr = {**merr, **ferr}
 
     summary = summarize(root, args.version, tiles)
     print(json.dumps({k: v for k, v in summary.items() if k not in ("material_area_m2",)}, indent=2)[:4000])

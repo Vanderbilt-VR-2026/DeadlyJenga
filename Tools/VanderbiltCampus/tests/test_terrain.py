@@ -58,7 +58,69 @@ def built(tmp_path_factory, request):
         mat[np.abs(jj - ii) < nc // 40] = ids["paving_concrete"]     # a diagonal path (staircase edges)
         vis, col = terrain.meshes_from_cells(g["hc"].astype(float), g["bx"], g["by"], g["holes"] == 2, mat, t, ts, ids)
         out[t["name"]] = (vis, col)
+        fm = np.full((25, 25), ids["grass"], np.int16)
+        fj, fi = np.mgrid[0:25, 0:25]
+        fm[np.abs(fj - fi) < 2] = ids["paving_concrete"]
+        out[t["name"] + "_far"] = terrain.far_mesh(t, ts, g["nodes"].astype(float), fm, ids)
     return out
+
+
+def test_far_mesh_budget_uv_and_accuracy(built):
+    x, y, z = built["pts"]
+    for t in built["tiles"]:
+        far = built[t["name"] + "_far"]
+        assert len(far["faces"]) <= terrain.FAR_BUDGET[terrain.kind_of(t)]
+        assert vcmesh.check_mesh(far) == []
+        assert far["uv0"].min() >= 0 and far["uv0"].max() <= 1
+        x0 = t["bounds"][0]
+        m = (x >= x0) & (x < x0 + 100) & (y >= 0) & (y < 100)
+        s = tm.error_stats(z[m] - tm.mesh_z_at(far["verts"], far["faces"], x[m], y[m], x0, 0.0))
+        assert s["points"] > 0.99 * m.sum()
+        assert s["max_m"] <= 1.0 and s["p95_m"] <= terrain.FAR_TOL
+
+
+def test_far_mesh_skirt(built):
+    for t in built["tiles"]:
+        far = built[t["name"] + "_far"]
+        x0, y0 = t["bounds"][0], t["bounds"][1]
+        sk = far["faces"][far["kind"] == 2]
+        assert len(sk) >= 8                           # at least one quad per side
+        P = far["verts"][sk]
+        # skirt faces are vertical, on the border, and reach 1.5 m below the edge
+        nrm = np.cross(P[:, 1] - P[:, 0], P[:, 2] - P[:, 0])
+        assert np.all(np.abs(nrm[:, 2]) < 1e-9)
+        onb = (np.isclose(P[:, :, 0], x0) | np.isclose(P[:, :, 0], x0 + 100)
+               | np.isclose(P[:, :, 1], y0) | np.isclose(P[:, :, 1], y0 + 100))
+        assert onb.all()
+        # every skirt corner either is a ground vertex or sits exactly FAR_SKIRT below one
+        ground = far["verts"][np.unique(far["faces"][far["kind"] == 0].ravel())]
+        gkey = {(round(v[0], 6), round(v[1], 6)): v[2] for v in ground}
+        for v in far["verts"][np.unique(sk.ravel())]:
+            zt = gkey[(round(v[0], 6), round(v[1], 6))]
+            assert np.isclose(v[2], zt) or np.isclose(zt - v[2], terrain.FAR_SKIRT)
+        # the skirt runs all the way round (its top edges add up to the 400 m border) and faces out
+        mid = P.mean(axis=1)
+        cx, cy = x0 + 50, y0 + 50
+        dirn = np.c_[mid[:, 0] - cx, mid[:, 1] - cy]
+        assert np.all((nrm[:, :2] * dirn).sum(axis=1) > 0), "skirt faces point out of the tile"
+        top_len = 0.0
+        for tri in P:
+            hi = np.array([v for v in tri if np.isclose(v[2], gkey[(round(v[0], 6), round(v[1], 6))])])
+            if len(hi) == 2:
+                top_len += np.linalg.norm(hi[0, :2] - hi[1, :2])
+        assert top_len == pytest.approx(400.0, abs=1e-6)
+
+
+def test_far_edges_match(built):
+    a = built["T_00_00_far"]
+    b = built["T_01_00_far"]
+    ea = np.unique(a["verts"][a["faces"][a["kind"] == 0].ravel()], axis=0)
+    eb = np.unique(b["verts"][b["faces"][b["kind"] == 0].ravel()], axis=0)
+    ea, eb = ea[np.isclose(ea[:, 0], 100.0)], eb[np.isclose(eb[:, 0], 100.0)]
+    ea, eb = ea[np.argsort(ea[:, 1])], eb[np.argsort(eb[:, 1])]
+    assert ea[0, 1] == 0 and ea[-1, 1] == 100 and eb[0, 1] == 0 and eb[-1, 1] == 100
+    assert np.abs(np.interp(ea[:, 1], eb[:, 1], eb[:, 2]) - ea[:, 2]).max() < 1e-9
+    assert np.abs(np.interp(eb[:, 1], ea[:, 1], ea[:, 2]) - eb[:, 2]).max() < 1e-9
 
 
 def test_curb_kept_as_vertical_face(built):
