@@ -189,6 +189,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
         }
 
+        // Played-back characters are posed straight from the tape, so a skinned mesh's "previous frame" can be a
+        // pose from far away. With per-object motion vectors URP then blurs the whole body along that garbage
+        // motion and it renders see-through and pale (proved in disaster-pvp-1's colour check: the skinned body
+        // ghosted, the rigid hair on the same actor did not, and switching skinned vectors off fixed it).
+        // Their transform motion still blurs; only the skinned part's own vectors are switched off.
+        static void NoSkinnedVectors(StudioStage stage)
+        {
+            foreach (var shown in stage.playback.Values)
+                if (shown)
+                    foreach (var skin in shown.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                        if (skin.skinnedMotionVectors) skin.skinnedMotionVectors = false;
+        }
+
         // ---- The render itself ----
 
         const int WarmUpFrames = 12;
@@ -256,6 +269,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                             yield return 0;
                             StudioRun.ShowExact(tape * set.fps);
                             if (!settings.freezeAmbient) Time.captureDeltaTime = keepStep;
+                            if (shot.motionBlur > .001f) NoSkinnedVectors(stage);
                             var lens = StudioCameras.Evaluate(shot, set, stage.tape, stage.anchor, tape, cameraTime);
                             StudioCameras.Apply(camera, lens);
                             ApplyLook(profile, shot, lens);

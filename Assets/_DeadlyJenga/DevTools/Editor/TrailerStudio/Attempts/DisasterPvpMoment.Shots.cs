@@ -18,9 +18,144 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public int Length => cutOut - cutIn;
         }
 
-        static readonly Shot[] Shots = { };
+        static readonly Shot[] Shots =
+        {
+            new Shot { id = "S01", what = "hook: the glove punch, rival knocked off, hero taunts", cutIn = 0, cutOut = 42, key = 25 },
+            new Shot { id = "S02", what = "the rival sails off the tower", cutIn = 42, cutOut = 60, key = 9 },
+            new Shot { id = "S03", what = "teach: the whole top is a brawl (blaster, rocket)", cutIn = 60, cutOut = 104, key = 30 },
+            new Shot { id = "S04", what = "anticipation: low, rocks streak in over the fighters", cutIn = 104, cutOut = 134, key = 20 },
+            new Shot { id = "S05", what = "core verb: a meteor throws purple, then green", cutIn = 134, cutOut = 200, key = 20 },
+            new Shot { id = "S06", what = "escalate: pink thrown", cutIn = 200, cutOut = 232, key = 18 },
+            new Shot { id = "S07", what = "escalate: cyan thrown, rocks behind", cutIn = 232, cutOut = 262, key = 12 },
+            new Shot { id = "S08", what = "escalate: the hero, rocks landing behind him", cutIn = 262, cutOut = 284, key = 8 },
+            new Shot { id = "S09", what = "the planet killer looms over the tower", cutIn = 284, cutOut = 294, key = 5 },
+            new Shot { id = "S10", what = "stop-down: the hero looks up", cutIn = 294, cutOut = 308, key = 6 },
+            new Shot { id = "S11", what = "payoff and title: the planet killer lands on the summit", cutIn = 308, cutOut = 450, key = 6 },
+        };
 
-        static List<StudioCameraTrack> ShotCameras(StudioStage stage, Plan plan) => new List<StudioCameraTrack>();
+        static Vector3 Feet(StudioStage stage, Plan plan, string role, int frame)
+        {
+            var pose = StudioActorPoses.At(stage.tape, plan.Id(role), TapeF(frame), Fps);
+            return pose.found ? pose.feet : plan.cast.TryGetValue(role, out var a) ? a.feet : plan.arena.centre;
+        }
+
+        static StudioCameraTrack ShotCam(Shot shot, float focal)
+        {
+            var c = StudioMoves.Camera(shot.id, TapeF(shot.cutIn - Handle + shot.tapeShift), TapeF(shot.cutOut + Handle + shot.tapeShift), focal);
+            c.id = shot.id; c.sensorHeight = 24; c.keys[0].focal = focal;
+            c.vignette = .2f; c.grain = .03f; c.contrast = 10; c.saturation = 8;
+            c.motionBlur = MotionBlur;
+            return c;
+        }
+
+        const float MotionBlur = .35f;
+
+        static List<StudioCameraTrack> ShotCameras(StudioStage stage, Plan plan)
+        {
+            var a = plan.arena; Vector3 up = Vector3.up, C = a.centre;
+            var cams = new List<StudioCameraTrack>();
+            var lines = new System.Text.StringBuilder("Shot cameras:\n");
+            Shot S(string id) => Shots.First(s => s.id == id);
+            void Add(StudioCameraTrack c, Vector3 at, Vector3 subject, float subjectHeight)
+            {
+                float d = Vector3.Distance(at, subject), hf = d * 24 / c.keys[0].focal;
+                lines.Append($"- {c.id} at {V(at)}{(Clear(at) ? "" : " INSIDE GEOMETRY")}, {c.keys[0].focal:0} mm, subject {d:0.0} m: Hf {hf:0.00} m, fraction {subjectHeight / hf:0.00}\n");
+                foreach (var who in plan.cast.Values) c.measure.Add("actor:" + who.id);
+                cams.Add(c);
+            }
+            string Actor(string role) => "actor:" + plan.Id(role);
+            Vector3 hero0 = Feet(stage, plan, "hero", 0), rival0 = Feet(stage, plan, "rival", 0);
+
+            // S01: the punch in profile from the sun side, low, both fighters full height; slow push in.
+            {
+                var c = ShotCam(S("S01"), 32);
+                Vector3 mid = Vector3.Lerp(hero0, rival0, .5f) + up * .5f;
+                Vector3 at = PickSpot(new[] { 3.0f, 3.5f, 2.6f }.Select(d => mid + a.side * d - a.along * .4f + up * .1f), hero0 + up * .8f, rival0 + up * .8f);
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, mid + a.along * .3f));
+                StudioMoves.PushIn(c, c.start, c.end, stage.ToStage(mid), .12f);
+                Add(c, at, mid, .94f);
+            }
+            // S02: the rival in the air, panned from beside the summit's far end, sea and sky behind.
+            {
+                var s = S("S02"); var c = ShotCam(s, 24);
+                Vector3 flying = Feet(stage, plan, "rival", s.cutIn + s.key);
+                Vector3 at = C + a.along * 3.5f + a.side * 6 + up * 1.2f;
+                at = PickSpot(new[] { at, at + up * 2, at + a.side * 2 }, flying + up * .5f);
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), Actor("rival"), up * .5f);
+                Add(c, at, flying, .94f);
+            }
+            // S03: the brawl, high three-quarter from the sun side, every fighter in frame.
+            {
+                var s = S("S03"); var c = ShotCam(s, 20);
+                var fighters = new[] { "blue", "green", "purple", "pink", "cyan", "hero" }.Where(r => plan.cast.ContainsKey(r)).Select(r => Feet(stage, plan, r, s.cutIn)).ToList();
+                Vector3 centroid = fighters.Aggregate(Vector3.zero, (x, y) => x + y) / fighters.Count;
+                Vector3 at = PickSpot(new[] { 0f, 15f, -15f, 30f }.Select(t => centroid + Quaternion.AngleAxis(t, up) * a.side * 7.5f + up * 3.2f), fighters.Select(f => f + up * .5f).ToArray());
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, centroid + up * .4f));
+                Add(c, at, centroid, .94f);
+            }
+            // S04: low under the fighters' level, looking up past them into the sky the rocks come from.
+            {
+                var s = S("S04"); var c = ShotCam(s, 18);
+                Vector3 target = Feet(stage, plan, "purple", s.cutIn);
+                Vector3 at = PickSpot(new[] { 4.5f, 5.5f, 3.8f }.Select(d => target + a.side * d - up * 1.6f), target + up * .6f);
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, target + up * 2.2f - a.side * 2));
+                Add(c, at, target, .94f);
+            }
+            // S05..S07: each victim side-on to the rock's path, the throw crossing the frame.
+            void Victim(string id, string role, int meteorIndex, float focal, float distance)
+            {
+                var s = S(id); var c = ShotCam(s, focal);
+                Vector3 who = Feet(stage, plan, role, s.cutIn);
+                Vector3 travel = meteorIndex >= 0 && meteorIndex < plan.meteorFrom.Count ? Flat(-plan.meteorFrom[meteorIndex]) : a.side;
+                Vector3 across = Vector3.Cross(up, travel).normalized;
+                if (Vector3.Dot(across, a.side) < 0) across = -across;
+                Vector3 look = who + travel * 1.8f + up * .7f;
+                Vector3 at = PickSpot(new[] { 1f, -1f }.SelectMany(sgn => new[] { distance, distance * 1.3f }.Select(d => look + across * d * sgn + up * 1.0f + travel * 1.5f)), who + up * .6f, who + travel * 4 + up * 1.5f);
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, look));
+                StudioMoves.Shake(c, TapeF(s.cutIn + s.key) + 1f / Fps, 1.2f, .5f);
+                Add(c, at, who, .94f);
+            }
+            int Index(string near) => plan.meteors.FindIndex(m => m.label == near);
+            Victim("S05", "purple", Index("purple"), 20, 6.5f);
+            Victim("S06", "pink", Index("pink"), 26, 5.5f);
+            Victim("S07", "cyan", Index("cyan"), 26, 5.5f);
+            // S08: the hero, medium shot from the sun side, the rocks landing behind him.
+            {
+                var s = S("S08"); var c = ShotCam(s, 35);
+                Vector3 hero = Feet(stage, plan, "hero", s.cutIn);
+                Vector3 at = PickSpot(new[] { 0f, 20f, -20f }.Select(t => hero + Quaternion.AngleAxis(t, up) * a.side * 2.4f + up * .7f), hero + up * .8f);
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, hero + up * .55f - a.side * .3f));
+                Add(c, at, hero, .94f);
+            }
+            // S09: wide from the sun side, the planet killer coming over the tower top.
+            {
+                var s = S("S09"); var c = ShotCam(s, 18);
+                Vector3 at = C + a.side * 32 + a.along * 6 - up * 6;
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, C + up * 9 - a.side * 8));
+                Add(c, at, C, 2);
+            }
+            // S10: the hero's face tipped up at it, from in front and below.
+            {
+                var s = S("S10"); var c = ShotCam(s, 40);
+                var pose = StudioActorPoses.At(stage.tape, plan.Id("hero"), TapeF(s.cutIn + s.key), Fps);
+                Vector3 head = pose.found ? pose.head : hero0 + up * .8f;
+                Vector3 toRock = Flat(plan.planetFrom);
+                Vector3 at = PickSpot(new[] { 25f, -25f, 45f, -45f }.Select(t => head + Quaternion.AngleAxis(t, up) * toRock * 1.4f - up * .35f), head);
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, head + up * .05f));
+                foreach (var k in c.keys) { k.aperture = 4; k.focus = Vector3.Distance(at, head); }
+                Add(c, at, head, .45f);
+            }
+            // S11: the impact and the wreck, wide from the sun side; the title goes over it.
+            {
+                var s = S("S11"); var c = ShotCam(s, 18);
+                Vector3 at = C + a.side * 55 + a.along * 14 - up * 14;
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, C + up * 6 - a.side * 6));
+                StudioMoves.Shake(c, TapeF(PlanetFrame) + 1f / Fps, 2.2f, 1.4f);
+                Add(c, at, C, 2);
+            }
+            Note(lines.ToString());
+            return cams;
+        }
 
         static IEnumerator<int> Shoot(string mode)
         {

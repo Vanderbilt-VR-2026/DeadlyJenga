@@ -29,7 +29,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static readonly FieldInfo Launched = typeof(BasicDisaster).GetField("launched", BindingFlags.Instance | BindingFlags.NonPublic);
         static readonly FieldInfo NextId = typeof(BasicDisaster).GetField("meteorId", BindingFlags.Instance | BindingFlags.NonPublic);
 
-        public static float ArrivalDelay(StudioCue cue) => Mathf.Max(1, cue.radius) / Speed(cue);
+        // Seconds from the cue to the hit: the rock's front touches first, so its radius is taken off
+        // (the planet killer hit 0.8 s before its centre would have arrived in the first test).
+        public static float ArrivalDelay(StudioCue cue) => Mathf.Max(1, cue.radius - Size(cue) * (Planet(cue) ? .5f : .25f)) / Speed(cue);
+        static float Size(StudioCue cue) => cue.height > 0 ? cue.height : Planet(cue) ? 45 : 3;
         static bool Planet(StudioCue cue) => cue.hazard == "PlanetKillerMeteor";
         static float Speed(StudioCue cue) => cue.strength > 0 ? Mathf.Clamp(cue.strength, 5, 120) : Planet(cue) ? 28 : 45;
 
@@ -50,7 +53,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Vector3 target = stage.ToWorld(cue.point);
             Vector3 from = cue.direction.sqrMagnitude > .0001f ? cue.direction.normalized : new Vector3(.5f, .8f, 0).normalized;
             float distance = Mathf.Max(1, cue.radius), speed = Speed(cue);
-            float size = cue.height > 0 ? cue.height : Planet(cue) ? 45 : 3;
+            float size = Size(cue);
             int id = (int)NextId.GetValue(disaster) + 1;
             NextId.SetValue(disaster, id);
             list.Add(new DisasterPoint { id = id, position = target + from * distance, velocity = -from * speed, size = size, life = distance / speed + 4 });

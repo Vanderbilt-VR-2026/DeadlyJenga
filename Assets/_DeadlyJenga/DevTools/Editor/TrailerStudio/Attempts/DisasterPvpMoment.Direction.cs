@@ -33,27 +33,28 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public Arena arena;
             public readonly Dictionary<string, Actor> cast = new Dictionary<string, Actor>();
             public readonly List<(string label, int arriveFrame, Vector3 target)> meteors = new List<(string, int, Vector3)>();
+            public readonly List<Vector3> meteorFrom = new List<Vector3>();
             public Vector3 planetFrom, planetTarget;
             public int planetFrame;
             public string Id(string role) => cast.TryGetValue(role, out var a) ? a.id : "";
             public Actor this[string role] => cast[role];
         }
 
-        // ---- The choreography, in trailer frames (30 fps) ----
-        const int PunchFrame = 24;                 // the hero's glove hits the rival
-        const int PlanetFrame = 309;               // the planet killer lands (music drop)
-        static readonly int[] BlueShots = { 69, 81, 93 };
-        const int RocketFrame = 90;
-        const int UziFrame = 120;
-        const int ShowerFrame = 102;
-        // Aimed meteors: who they land beside, and when.
+        // ---- The choreography, in trailer frames (30 fps), on measured onsets of the music edit (v02/music-map) ----
+        const int PunchFrame = 25;                 // the hero's glove hits the rival (onset 25.2)
+        const int PlanetFrame = 308;               // the planet killer lands (the drop, onset 307.8)
+        static readonly int[] BlueShots = { 64, 77 };   // beats 2.13 s, 2.56 s
+        const int RocketFrame = 90;                // beat 2.99 s
+        const int UziFrame = 115;                  // beat 3.84 s
+        const int ShowerFrame = 100;               // the build starts at 102
+        // Aimed meteors: who they land beside, and when (every beat of the build from 5.13 s).
         static readonly (string near, int frame)[] MeteorPlan =
         {
-            ("purple", 150), ("green", 177), ("blue", 198), ("pink", 216), ("rivalEnd", 237), ("bot1", 255), ("heroSide", 270), ("bot2", 285)
+            ("purple", 154), ("green", 173), ("blue", 192), ("rivalEnd", 205), ("pink", 218), ("cyan", 244), ("heroFar", 257), ("summitFar", 270), ("spare", 283)
         };
-        const float MeteorDistance = 70, PlanetDistance = 130, PlanetSize = 45;
+        const float MeteorDistance = 60, MeteorElevation = 28, MeteorSize = 4.2f, PlanetDistance = 130, PlanetSize = 45;
 
-        static readonly string[] Roles = { "hero", "rival", "blue", "green", "purple", "pink", "bot1", "bot2" };
+        static readonly string[] Roles = { "hero", "rival", "blue", "green", "purple", "pink", "cyan" };
 
         static Arena FindArena(StudioStage stage)
         {
@@ -118,10 +119,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             plan.cast["rival"] = new Actor { role = "rival", color = 0, feet = rivalAt, yaw = YawTo(rivalAt, heroAt) };
             // Everyone else: spread over the free spots below the summit, at least 1.7 m apart, nearest levels first.
             var chosen = new List<Vector3> { heroAt, rivalAt };
-            var below = a.spots.Where(p => p.y < a.top - .5f && Vector3.Distance(Flat2(p), Flat2(a.centre)) < 8).ToList();
-            string[] others = { "blue", "green", "purple", "pink", "bot1", "bot2" };
-            int[] colors = { 1, 2, 4, 5, 3, 7 };
-            string[] weapons = { "Blaster", "RocketLauncher", "DualUzi", "", "Blaster", "Blaster" };
+            // Only the sun-side half of the tower, so the cameras on that side see every fighter lit and unhidden.
+            var below = a.spots.Where(p => p.y < a.top - .5f && Vector3.Distance(Flat2(p), Flat2(a.centre)) < 8 && Vector3.Dot(Flat2(p - a.centre), a.side) > -.3f).ToList();
+            string[] others = { "blue", "green", "purple", "pink", "cyan" };
+            int[] colors = { 2, 3, 5, 4, 7 };
+            string[] weapons = { "Blaster", "RocketLauncher", "DualUzi", "", "Blaster" };
             for (int n = 0; n < others.Length; n++)
             {
                 var pick = below.Where(p => chosen.All(c => Vector3.Distance(c, p) > 1.7f))
@@ -133,15 +135,23 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             Note("Cast: " + string.Join("; ", plan.cast.Values.Select(c => $"{c.role} colour {c.color} {(c.weapon.Length > 0 ? c.weapon : "unarmed")}{(c.bot ? " (bot brain)" : "")} at {V(c.feet)} yaw {c.yaw:0}")));
 
-            // Meteors land beside people (never on them), on the block they stand on.
+            // Meteors come in low (28 deg) and land 1.2 m short of a fighter, so the blast throws them along the rock's path.
+            // Spare spots: free places far from everyone, for rocks that should land in frame without hitting anybody.
+            var spare = below.Where(p => Vector3.Distance(Flat2(p), Flat2(heroAt)) > 3.6f).OrderByDescending(p => chosen.Min(c => Vector3.Distance(c, p))).ToList();
+            var rng = new System.Random(11);
+            int spareUsed = 0;
             foreach (var (near, frame) in MeteorPlan)
             {
+                float turn = (float)(rng.NextDouble() * 60 - 30);
+                Vector3 travel = Quaternion.AngleAxis(turn, Vector3.up) * a.side;
                 Vector3 target;
-                if (near == "rivalEnd") target = a.centre + a.along * 2.4f;
-                else if (near == "heroSide") target = a.centre - a.along * 2.3f;
-                else if (plan.cast.TryGetValue(near, out var who)) target = who.feet + Flat(who.feet - a.centre) * .9f;
+                if (near == "rivalEnd") target = a.centre + a.along * 2.5f;
+                else if ((near == "heroFar" || near == "summitFar" || near == "spare") && spare.Count > spareUsed) target = spare[spareUsed++];
+                else if (plan.cast.TryGetValue(near, out var who)) target = who.feet - travel * 1.2f;
                 else continue;
-                plan.meteors.Add((near, frame, target));
+                var from = (-travel * Mathf.Cos(MeteorElevation * Mathf.Deg2Rad) + Vector3.up * Mathf.Sin(MeteorElevation * Mathf.Deg2Rad)).normalized;
+                plan.meteors.Add((near, frame, target + Vector3.up * .2f));
+                plan.meteorFrom.Add(from);
             }
             plan.planetTarget = a.centre;
             plan.planetFrame = PlanetFrame;
@@ -171,26 +181,30 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (!plan.cast.TryGetValue(role, out var who)) continue;
                 var mark = set.AddMark(who.bot ? StudioRole.Bot : StudioRole.Survivor, stage.ToStage(who.feet));
                 mark.actor = role; mark.yaw = who.yaw; mark.color = who.color; mark.equipment = who.weapon;
-                if (role == "hero") { mark.customLook = true; mark.appearance = new AvatarAppearance { hair = AvatarHair.Spikes, hairShade = AvatarHairShade.Match }; }
+                // A plain candy body for everyone (the bot's random outfit hid the rival in a dark robot suit in the scout).
+                var hair = new[] { AvatarHair.Spikes, AvatarHair.Afro, AvatarHair.Ponytail, AvatarHair.Buzz, AvatarHair.Curls, AvatarHair.TwinTails, AvatarHair.Pompadour };
+                mark.customLook = true;
+                mark.appearance = new AvatarAppearance { hair = hair[Array.IndexOf(Roles, role) % hair.Length], hairShade = role == "hero" ? AvatarHairShade.Match : AvatarHairShade.Dark };
                 who.id = mark.id;
             }
 
             set.cues.Clear();
-            set.cues.Add(Fire(plan, "hero", "rival", PunchFrame));
+            // Weapons go through the match's own equipment path once the stand-ins are part of the match
+            // (in the scout, marks' equipment given at spawn was refused: every shot fired "None").
+            foreach (var who in plan.cast.Values.Where(c => c.weapon.Length > 0))
+                set.cues.Add(new StudioCue { action = "gear", actor = who.id, weapon = who.weapon, at = .3f, optional = true });
+            set.cues.Add(new StudioCue { action = GlovePunchCue.Id, actor = plan.Id("hero"), target = plan.Id("rival"), at = TapeF(PunchFrame) });
             foreach (int f in BlueShots) set.cues.Add(Fire(plan, "blue", "green", f));
-            set.cues.Add(Fire(plan, "green", "purple", RocketFrame));
+            set.cues.Add(Fire(plan, "green", "cyan", RocketFrame));
             set.cues.Add(Fire(plan, "purple", "blue", UziFrame));
-            // Background meteors over the whole map, then the aimed ones by the fighters.
-            set.cues.Add(new StudioCue { action = "hazard", hazard = "MeteorShower", at = TapeF(ShowerFrame), values = new[] { 2.5f, .8f, 8f, 14f, 0f, 12f } });
-            var rng = new System.Random(7);
-            foreach (var (label, frame, target) in plan.meteors)
-            {
-                // From high up, from the far side of the sun-side cameras, so the streak crosses the sky toward the lens.
-                float yaw = (float)(rng.NextDouble() * 70 - 35);
-                Vector3 from = (Quaternion.AngleAxis(yaw, Vector3.up) * -plan.arena.side * .55f + Vector3.up).normalized;
-                set.cues.Add(Meteor(stage, target, from, frame, "MeteorShower", MeteorDistance, 3.2f, 45));
-            }
-            set.cues.Add(Meteor(stage, plan.planetTarget, plan.planetFrom, plan.planetFrame, "PlanetKillerMeteor", PlanetDistance, PlanetSize, 28));
+            set.cues.Add(Fire(plan, "cyan", "purple", UziFrame + 13));
+            // Background meteors over the whole map (no warning, force at its maximum), then the aimed ones by the fighters.
+            set.cues.Add(new StudioCue { action = "hazard", hazard = "MeteorShower", at = TapeF(ShowerFrame), values = new[] { 3f, 1f, 8f, 40f, 0f, 12f } });
+            for (int i = 0; i < plan.meteors.Count; i++)
+                set.cues.Add(Meteor(stage, plan.meteors[i].target, plan.meteorFrom[i], plan.meteors[i].arriveFrame, "MeteorShower", MeteorDistance, MeteorSize, 45));
+            var planet = Meteor(stage, plan.planetTarget, plan.planetFrom, plan.planetFrame, "PlanetKillerMeteor", PlanetDistance, PlanetSize, 28);
+            planet.values = new[] { PlanetSize, 0f };   // size, warning (the scout's default 3 s warning made it land 2.2 s late)
+            set.cues.Add(planet);
             set.cues.Sort((x, y) => x.at.CompareTo(y.at));
             set.EnsureCueIds();
 
@@ -217,11 +231,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Add("hero", "reach", PunchFrame - 6, PunchFrame + 6, target: Actor("rival"), blendIn: .12f, blendOut: .2f);
             Add("hero", "reaction", PunchFrame + 10, PunchFrame + 46, "cheer");
             Add("rival", "reaction", PunchFrame + 2, PunchFrame + 90, "scream", blendIn: .05f);
-            // The fighters watch each other.
-            Add("blue", "lookAt", 0, 200, target: Actor("green"));
-            Add("green", "lookAt", 0, 200, target: Actor("purple"));
-            Add("purple", "lookAt", 0, 200, target: Actor("blue"));
-            Add("pink", "reaction", 140, 300, "cower");
+            // The fighters watch and aim at each other; the gun hand goes toward the target around each shot.
+            Add("blue", "lookAt", 0, 150, target: Actor("green"));
+            Add("green", "lookAt", 0, 150, target: Actor("cyan"));
+            Add("purple", "lookAt", 0, 150, target: Actor("blue"));
+            Add("cyan", "lookAt", 0, 150, target: Actor("purple"));
+            Add("pink", "lookAt", 0, 60, target: Actor("hero"));
+            Add("blue", "reach", BlueShots[0] - 8, BlueShots[BlueShots.Length - 1] + 8, target: Actor("green"), blendIn: .15f);
+            Add("green", "reach", RocketFrame - 10, RocketFrame + 8, target: Actor("cyan"), blendIn: .15f);
+            Add("purple", "reach", UziFrame - 8, UziFrame + 10, target: Actor("blue"), blendIn: .15f);
+            Add("cyan", "reach", UziFrame + 5, UziFrame + 22, target: Actor("purple"), blendIn: .15f);
+            Add("pink", "reaction", 60, 210, "cower");
+            // Thrown survivors scream in the air.
+            foreach (var (near, frame, _) in plan.meteors)
+                if (plan.cast.ContainsKey(near)) Add(near, "reaction", frame, frame + 70, "scream", blendIn: .08f);
             // Everyone looks up at the planet killer, the hero screams.
             Vector3 sky = plan.planetTarget + plan.planetFrom * 55;
             foreach (string role in Roles)
