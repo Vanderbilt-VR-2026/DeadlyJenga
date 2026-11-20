@@ -85,12 +85,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 result.target.position = Vector3.Lerp(from.target.position, to.target.position, weight);
                 result.target.rotation = Mix(from.target.rotation, to.target.rotation, weight);
-                if (from.bones.Length == to.bones.Length)
+                // 'result' is the same object as 'to': keep its bones before replacing them (the old code read the new,
+                // empty array and blended every bone toward the world origin with a zero rotation).
+                var toBones = to.bones;
+                if (from.bones.Length == toBones.Length)
                 {
-                    result.bones = new Pose[to.bones.Length];
-                    for (int i = 0; i < to.bones.Length; i++)
-                        result.bones[i] = new Pose(Vector3.Lerp(from.bones[i].position, to.bones[i].position, weight),
-                            Mix(from.bones[i].rotation, to.bones[i].rotation, weight));
+                    result.bones = new Pose[toBones.Length];
+                    for (int i = 0; i < toBones.Length; i++)
+                        result.bones[i] = new Pose(Vector3.Lerp(from.bones[i].position, toBones[i].position, weight),
+                            Mix(from.bones[i].rotation, toBones[i].rotation, weight));
                 }
                 return result;
             }
