@@ -193,6 +193,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public Vector3 blockSize;
             public Quaternion blockRotation;
             public float top, heroYaw, shadowFrame;
+            public Vector3 facing;
             public string heroId, handId;
             public StudioCue cue;
             public StudioHandDirection.Grab grab;
@@ -303,6 +304,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var set = stage.set;
             var plan = MakePlan(stage);
             SolveFlight(stage, plan);
+            // He faces the way the hand comes from (seen where it is in the middle of the reaction shot), so he sees
+            // its shadow arrive and looks up at it without turning his head over his shoulder.
+            plan.cue = PullCue(stage, plan, "", plan.flightStart);
+            plan.facing = Flat(FlyingHand(stage, plan, (Shots[1].cutIn + Shots[1].cutOut) / 2) - plan.hero);
+            plan.heroYaw = Quaternion.LookRotation(plan.facing).eulerAngles.y;
+            Note($"Hero faces {V(plan.facing)} (yaw {plan.heroYaw:0}), toward the incoming hand.");
             set.marks.Clear();
             var hero = set.AddMark(StudioRole.Survivor, stage.ToStage(plan.hero));
             hero.actor = "Hero"; hero.yaw = plan.heroYaw; hero.color = HeroColour;
@@ -394,7 +401,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // shadow can be seen sliding over it and over the hero.
             {
                 var s = Shots[0]; var c = NewCamera(s, 28);
-                Vector3 at = plan.hero + plan.Dir(50) * 3.8f + up * 1.5f;
+                // In front of him, 50 degrees round toward the grip end, so the shadow comes toward him and the lens.
+                Vector3 front = Vector3.Dot(Vector3.Cross(plan.facing, plan.along), Vector3.up) >= 0 ? Quaternion.AngleAxis(50, up) * plan.facing : Quaternion.AngleAxis(-50, up) * plan.facing;
+                Vector3 at = plan.hero + front * 3.8f + up * 1.5f;
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, plan.hero + up * .35f + plan.along * .6f));
                 Report(s, c, at, head, .97f); cameras.Add(c);
             }
@@ -421,7 +430,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // the lens, so his eyeline (and the scream pose's raised head) goes past us.
             {
                 var s = Shots[1]; var c = NewCamera(s, 50);
-                Vector3 at = Pick(s.id, new[] { 30f, 20f, 40f, 10f }.Select(a => plan.hero + up * .62f + plan.Dir(a) * 1.0f), head);
+                // He looks at the flying hand, so the lens goes on the hand's side of him (v03 saw the back of his head).
+                Vector3 toHand = Flat(FlyingHand(stage, plan, (s.cutIn + s.cutOut) / 2) - plan.hero);
+                Vector3 at = Pick(s.id, new[] { 25f, -25f, 40f, -40f }.Select(a => plan.hero + up * .62f + Quaternion.AngleAxis(a, up) * toHand * 1.0f), head);
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), hero, new Vector3(0, -.05f, 0));
                 foreach (var key in c.keys) { key.aperture = 4f; key.focus = Vector3.Distance(at, head); }
                 Report(s, c, at, head, .45f); cameras.Add(c);
@@ -461,21 +472,26 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // at the spire falling away; he cowers, looking up at the hand that holds him (above the lens).
             {
                 var s = Shots[4]; var c = NewCamera(s, 40);
-                Vector3 offset = (plan.along * .9f + plan.side * .6f).normalized * 1.5f + up * .3f;
-                c.rideTarget = hero;
+                // Ride and aim from his feet (the cower layer moves the recorded head point lower than the drawn
+                // head, which cut his head off in v03).
+                string feet = "actor:" + plan.heroId;
+                Vector3 offset = (plan.along * .9f + plan.side * .6f).normalized * 1.5f + up * 1.15f;
+                c.rideTarget = feet;
                 c.keys[0].position = offset;
-                StudioMoves.Aim(c, c.start, hero, new Vector3(0, -.1f, 0), 0);
-                c.keys[0].aperture = 4f; c.keys[0].focus = offset.magnitude;
-                Report(s, c, head + offset, head, .55f); cameras.Add(c);
+                StudioMoves.Aim(c, c.start, feet, new Vector3(0, .62f, 0), 0);
+                c.keys[0].aperture = 4f; c.keys[0].focus = 1.6f;
+                Report(s, c, plan.hero + offset, head, .55f); cameras.Add(c);
             }
             // S06 final image: wide on the camera side, the spire's stump low in frame, the block held up in the
             // giant fingers with the hero on it; the lift settles inside the shot.
             {
                 var s = Shots[5]; var c = NewCamera(s, 24);
                 Vector3 heroEnd = heroAt(LengthFrames), handEnd = handAt(LengthFrames);
-                Vector3 middle = (heroEnd + handEnd) * .4f + plan.centre * .2f;
+                // Aim halfway between the stump's top and the held block, so both are in frame (v03 lost the stump).
+                Vector3 stumpTop = plan.centre - up * 1f;
+                Vector3 middle = Vector3.Lerp(stumpTop, (heroEnd + handEnd) * .5f, .55f);
                 var spots = new List<Vector3>();
-                foreach (float d in new[] { 8f, 9.5f, 11f })
+                foreach (float d in new[] { 11f, 12.5f, 14f })
                 foreach (float lift in new[] { -2f, -.5f, 1f, 2.5f })
                 foreach (float turn in new[] { 15f, 0f, 30f })
                 { Vector3 p = middle + (plan.side * Mathf.Cos(turn * Mathf.Deg2Rad) - plan.along * Mathf.Sin(turn * Mathf.Deg2Rad)) * d; p.y = plan.top + lift; spots.Add(p); }
@@ -490,6 +506,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         }
 
         static Vector3 Flat2(Vector3 v) => new Vector3(v.x, 0, v.z);
+
+        // The middle of the hand at a trailer frame during its flight (from the cue's own path).
+        static Vector3 FlyingHand(StudioStage stage, Plan plan, int frame)
+        {
+            float size = StudioHandDirection.HandSize(stage);
+            if (!StudioHandDirection.HandAt(stage, plan.cue, plan.grab, Tape(frame), out var pose)) return plan.flightStart;
+            var bones = StudioHandDirection.BonesFor(pose, size);
+            return bones.Aggregate(Vector3.zero, (s, b) => s + b.position) / bones.Length;
+        }
 
         // ---- Shooting ----
 
