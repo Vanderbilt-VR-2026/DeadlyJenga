@@ -69,12 +69,12 @@ namespace DeadlyJenga.CandyArt.Marina
                 pods[i].localRotation = Quaternion.LookRotation(outward);
                 // Lamps rise and light up only while the pod is in the shop; out of sight they sink and switch off.
                 float pop = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(showFrom, showTo, at.x));
-                for (int k = 0; k < 3; k++)
+                for (int j = 0; j < 3; j++)
                 {
-                    var p = lamps[i][k].localPosition;
-                    lamps[i][k].localPosition = new Vector3(p.x, .09f - .1f * (1 - pop), p.z);
-                    lights[i][k].enabled = pop > .01f;
-                    lights[i][k].intensity = 1.6f * pop;
+                    var p = lamps[i][j].localPosition;
+                    lamps[i][j].localPosition = new Vector3(p.x, .09f - .1f * (1 - pop), p.z);
+                    lights[i][j].enabled = pop > .01f;
+                    lights[i][j].intensity = 1.6f * pop;
                 }
             }
         }
