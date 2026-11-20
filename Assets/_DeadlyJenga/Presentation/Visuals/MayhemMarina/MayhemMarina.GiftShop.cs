@@ -286,9 +286,9 @@ namespace DeadlyJenga.CandyArt.Marina
             for (int n = 0; n < 6; n++)
             {
                 float hz = -2.45f + n * .6f;
-                mesh.Beam(P(rodX, 2.07f, hz), P(rodX, rodY, hz), .014f, F.Ivory);
+                mesh.Beam(P(rodX, 1.99f, hz), P(rodX, rodY, hz), .014f, F.Ivory);
                 Ball(rodX, rodY + .03f, hz, Vector3.one * .035f, F.Ivory);
-                Figure(rodX, .65f, hz, 180, rackLooks[n], rackColors[n], MannequinPose.Hanging);
+                Figure(rodX, .55f, hz, 180, rackLooks[n], rackColors[n], MannequinPose.Hanging);
             }
             for (int level = 0; level < 2; level++)
             {

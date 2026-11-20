@@ -75,11 +75,19 @@ namespace DeadlyJenga.CandyPlayers
             if (!head) return;
             head.rotation = facing * Quaternion.Euler(6, 0, tip) * Quaternion.Inverse(facing) * head.rotation;
             var right = facing * Vector3.right;
-            foreach (int foot in new[] { 10, 13 })
-            {
-                var bone = rig.BoneCount > foot ? rig.AppearanceBone(foot) : null;
-                if (bone) bone.rotation = Quaternion.AngleAxis(45, right) * bone.rotation;
-            }
+            var forward = facing * Vector3.forward;
+            // Nothing holds the legs up, so each one hangs straight down from the hip and the toes droop.
+            if (rig.BoneCount > 13)
+                foreach (int thigh in new[] { 8, 11 })
+                {
+                    Transform upper = rig.AppearanceBone(thigh), lower = rig.AppearanceBone(thigh + 1), foot = rig.AppearanceBone(thigh + 2);
+                    var straight = Quaternion.LookRotation(forward, Vector3.down);
+                    Vector3 hip = upper.position;
+                    upper.rotation = straight;
+                    lower.SetPositionAndRotation(hip + Vector3.down * .31f, straight);
+                    foot.position = hip + Vector3.down * .62f;
+                    foot.rotation = Quaternion.AngleAxis(45, right) * facing;
+                }
             var offset = head.position - feet;
             rig.transform.position -= new Vector3(offset.x, 0, offset.z);
         }
