@@ -18,7 +18,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     [InitializeOnLoad]
     public static class TrailerAttempt1
     {
-        const int Iteration = 4;
+        const int Iteration = 5;
         const string Subject = "Dev";   // from the record run's motion log: on the camera-side edge of the top
         const int Fps = 30;
 
@@ -335,13 +335,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             establish.keys.Add(K(2.8f, Side * 50 + up * -6, new Vector3(0, -18, 0), 20, 3));
             // B. The subject on the edge of the top, sky behind, slow push in.
             var heroShot = new StudioCameraTrack { name = "B Edge", start = 2.8f, end = 5.4f, behavior = "follow", subject = hero.id, lag = .15f, noise = "walking", noiseStrength = .5f, focusOnSubject = true, aimOffset = new Vector3(0, 1.0f, 0) };
-            // Iteration 4: low, outside and below the edge, looking up past the subject at the sky.
-            heroShot.keys.Add(K(2.8f, heroStage + Side * 2.8f + across * -1.8f + up * -1.2f, heroStage + up * 1.2f, 24, 1, 4f));
-            heroShot.keys.Add(K(5.4f, heroStage + Side * 2.2f + across * -1.2f + up * -1.0f, heroStage + up * 1.2f, 26, 1, 4f));
+            // Iteration 5: the collapse shot's angle (clear line of sight in iteration 4), much closer.
+            heroShot.keys.Add(K(2.8f, heroStage + Side * 6f + across * 3f + up * 1.8f, heroStage + up, 32, 1, 4f));
+            heroShot.keys.Add(K(5.4f, heroStage + Side * 4.5f + across * 2.2f + up * 1.4f, heroStage + up, 36, 1, 4f));
             // D. The pull and the collapse, slowing down as the top goes, on the subject.
             var fall = new StudioCameraTrack { name = "D Collapse", start = 5.6f, end = 8.6f, behavior = "follow", subject = hero.id, lag = .15f, noise = "impact", noiseStrength = .4f };
-            fall.keys.Add(K(5.6f, heroStage + Side * 11 + across * 3 + up * 1, heroStage, 28));
-            fall.keys.Add(K(8.6f, heroStage + Side * 13 + across * 4 + up * -3, heroStage + up * -6, 26));
+            fall.keys.Add(K(5.6f, heroStage + Side * 11 + across * 3 + up * 1, heroStage, 34));
+            fall.keys.Add(K(8.6f, heroStage + Side * 13 + across * 4 + up * -3, heroStage + up * -6, 28));
             fall.speeds.Add(new StudioSpeedMark { time = 5.6f, speed = 1 });
             fall.speeds.Add(new StudioSpeedMark { time = 6.8f, speed = 1 });
             fall.speeds.Add(new StudioSpeedMark { time = 7.1f, speed = .35f });
