@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using DeadlyJenga.Core;
 using UnityEditor;
@@ -136,8 +137,26 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         static readonly string[] Compass = { "n", "ne", "e", "se", "s", "sw", "w", "nw" };
 
+        // Places a player can stand on, found by name in the built map. Missing ones are skipped
+        // (views.txt says which).
+        static readonly (string find, string label, bool allWays)[] Lookouts =
+        {
+            ("Wizard Cap", "wizard-tower", true),
+            ("Sapphire Crown", "right-summit", true),
+            ("Ruby Perch", "ruby-perch", false),
+            ("Navy Span", "gift-bridge", false),
+            ("Mansion Deck", "mansion-deck", false),
+            ("Hero Deck", "hero-deck", false),
+            ("Ivory Perch", "ivory-perch", false),
+            ("High Ruby", "left-stair-top", false),
+            ("Rail Gift 8", "train-track", false),
+            ("Back Row / Gift 3", "back-row", false),
+            ("Green Hop", "courtyard-hop", false)
+        };
+
         // Player eye-level pictures. Positions come from the running map (playable area, spawn,
-        // real eye height), so they follow layout changes. views.txt lists every camera.
+        // real eye height, named lookouts, the tallest presents), so they follow layout changes.
+        // views.txt lists every camera.
         static void ShootPlayerViews(string folder)
         {
             Directory.CreateDirectory(folder);
@@ -145,63 +164,154 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var cam = player.ViewCamera;
             var world = Services.World;
             float eye = Mathf.Clamp(cam.transform.position.y - player.transform.position.y, .3f, 30f);
-            const float fov = 60f;
+            const float fov = 62f, wide = 80f;
             var log = new System.Text.StringBuilder();
             var bounds = world.PlayableBounds;
             var center = world.Center;
             float radius = world.Radius > 0f ? world.Radius : Mathf.Max(bounds.extents.x, bounds.extents.z);
+            float topY = Mathf.Max(world.TopHeight, center.y + 1f);
+            float skyY = bounds.max.y + 1f;
             log.AppendLine($"eye {eye:F2} center {center} radius {radius:F1} top {world.TopHeight:F1} bounds {bounds}");
 
-            void Save(string name, Vector3 at, Vector3 target)
+            // Menus float in front of the spawn point; hide them while shooting.
+            var hidden = new List<Behaviour>();
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+                if (canvas.enabled)
+                {
+                    canvas.enabled = false;
+                    hidden.Add(canvas);
+                }
+            var mapCenter = new Vector3(center.x, Mathf.Lerp(center.y, topY, .2f), center.z);
+            var self = player.transform;
+
+            void Save(string name, Vector3 at, Vector3 target, float angle = fov)
             {
-                Shoot(Path.Combine(folder, name + ".png"), at, target, fov);
+                Shoot(Path.Combine(folder, name + ".png"), at, target, angle);
                 log.AppendLine($"{name}: eye {at} looking at {target}");
             }
 
-            // 1. Where the player starts, turning all the way around.
-            var spawn = player.transform.position + Vector3.up * eye;
-            var ahead = Flat(cam.transform.forward);
-            string[] turns = { "ahead", "right", "behind", "left" };
-            for (int i = 0; i < 4; i++)
-                Save("pov-spawn-" + turns[i], spawn, spawn + Quaternion.Euler(0f, 90f * i, 0f) * ahead * 10f);
-
-            // 2. Standing around the edge of the playable area, looking in at the structure.
-            float topY = Mathf.Max(world.TopHeight, center.y + 1f);
-            var ring = new Vector3[8];
-            for (int i = 0; i < 8; i++)
+            // Stand on top of whatever is here; nudge up if the eye would be inside something.
+            Vector3 StandOn(Vector3 spot, float from)
             {
-                float angle = i * 45f * Mathf.Deg2Rad;
-                var flat = center + new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * radius * .95f;
-                ring[i] = Ground(flat, bounds.max.y + 1f, player.transform) + Vector3.up * eye;
-                var look = new Vector3(center.x, Mathf.Lerp(ring[i].y, topY, .3f), center.z);
-                Save("pov-edge-" + Compass[i] + "-in", ring[i], look);
+                var at = Ground(spot, from, self) + Vector3.up * eye;
+                for (int i = 0; i < 6 && Physics.CheckSphere(at, .25f, ~0, QueryTriggerInteraction.Ignore); i++)
+                    at += Vector3.up * .5f;
+                return at;
             }
 
-            // 3. The same spots looking out, to see the background scenery.
-            for (int i = 0; i < 8; i += 2)
+            // Looking at the whole map from a high spot, and away from it at the room.
+            void Lookout(string label, Vector3 at, bool allWays)
             {
-                var outward = Flat(ring[i] - center);
-                Save("pov-edge-" + Compass[i] + "-out", ring[i], ring[i] + outward * 10f + Vector3.up * 1.5f);
+                var toMap = mapCenter - at;
+                var level = Flat(toMap);
+                if (new Vector2(toMap.x, toMap.z).magnitude < 12f)
+                    level = Flat(at - new Vector3(bounds.min.x, 0f, bounds.min.z));
+                // Look across the map, tilted down just enough to see the ground near the middle.
+                float drop = Mathf.Clamp(at.y - mapCenter.y, 0f, 60f);
+                Save($"pov-{label}-overlook", at, at + level * 40f - Vector3.up * drop * .35f, wide);
+                Save($"pov-{label}-room", at, at - level * 40f + Vector3.up * 6f, wide);
+                if (!allWays)
+                    return;
+                var side = Vector3.Cross(Vector3.up, level);
+                Save($"pov-{label}-left", at, at + side * 40f - Vector3.up * 4f, wide);
+                Save($"pov-{label}-right", at, at - side * 40f - Vector3.up * 4f, wide);
+                Save($"pov-{label}-up", at, at + level * 20f + Vector3.up * 30f, wide);
             }
 
-            // 4. Looking up from the edge, the way a small player sees the giant room.
-            for (int i = 0; i < 8; i += 4)
+            try
             {
-                var up = ring[i] + Flat(center - ring[i]) * 10f + Vector3.up * 8f;
-                Save("pov-edge-" + Compass[i] + "-up", ring[i], up);
-            }
+                // 1. Where the player starts, turning all the way around.
+                var spawn = self.position + Vector3.up * eye;
+                var ahead = Flat(cam.transform.forward);
+                string[] turns = { "ahead", "right", "behind", "left" };
+                for (int i = 0; i < 4; i++)
+                    Save("pov-spawn-" + turns[i], spawn, spawn + Quaternion.Euler(0f, 90f * i, 0f) * ahead * 10f, wide);
 
-            // 5. On top of the structure, looking out four ways.
-            var summit = Ground(center, bounds.max.y + 1f, player.transform) + Vector3.up * eye;
-            for (int i = 0; i < 8; i += 2)
+                // 2. Around the edge of the playable area on the floor, looking in at the gifts.
+                //    A spot on top of or against a present moves outwards until it is clear.
+                for (int i = 0; i < 8; i++)
+                {
+                    float angle = i * 45f * Mathf.Deg2Rad;
+                    var dir = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
+                    Vector3 at = default;
+                    for (float r = radius * .95f; r < radius * 1.6f; r += 6f)
+                    {
+                        at = StandOn(center + dir * r, skyY);
+                        bool onFloor = at.y - center.y < eye + 1.5f;
+                        bool clear = !Physics.Raycast(at, -dir, 5f, ~0, QueryTriggerInteraction.Ignore);
+                        if (onFloor && clear)
+                            break;
+                    }
+                    Save("pov-floor-" + Compass[i], at, new Vector3(center.x, Mathf.Lerp(at.y, topY, .3f), center.z), wide);
+                    if (i % 4 == 0)
+                        Save("pov-floor-" + Compass[i] + "-up", at, at - dir * 10f + Vector3.up * 8f, wide);
+                }
+
+                // 3. Named lookouts: the wizard tower, summits, decks, the bridge, the track.
+                var all = Object.FindObjectsByType<Transform>(FindObjectsSortMode.None);
+                var used = new List<Vector3>();
+                foreach (var (find, label, allWays) in Lookouts)
+                {
+                    Transform found = null;
+                    foreach (var t in all)
+                        if (t.name.Contains(find) && t.GetComponentInChildren<Collider>())
+                        {
+                            found = t;
+                            break;
+                        }
+                    if (!found)
+                    {
+                        log.AppendLine($"{label}: no object named like '{find}'");
+                        continue;
+                    }
+                    var b = ColliderBounds(found);
+                    var at = StandOn(b.center, b.max.y + .5f);
+                    used.Add(at);
+                    log.AppendLine($"{label}: standing on {found.name}");
+                    Lookout(label, at, allWays);
+                }
+
+                // 4. The tallest presents that are not near a lookout already used.
+                var tops = new List<UnityEngine.Bounds>();
+                foreach (var block in world.Blocks)
+                    if (block)
+                        tops.Add(ColliderBounds(block.transform));
+                tops.Sort((x, y) => y.max.y.CompareTo(x.max.y));
+                int count = 0;
+                foreach (var b in tops)
+                {
+                    if (count >= 6)
+                        break;
+                    var at = StandOn(b.center, b.max.y + .5f);
+                    bool near = false;
+                    foreach (var u in used)
+                        near |= (u - at).sqrMagnitude < 25f * 25f;
+                    if (near)
+                        continue;
+                    used.Add(at);
+                    Lookout("present-" + (++count), at, false);
+                }
+            }
+            finally
             {
-                float angle = i * 45f * Mathf.Deg2Rad;
-                var dir = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
-                Save("pov-top-" + Compass[i], summit, summit + dir * 10f - Vector3.up * 2f);
+                foreach (var canvas in hidden)
+                    if (canvas)
+                        canvas.enabled = true;
             }
 
             File.WriteAllText(Path.Combine(folder, "views.txt"), log.ToString());
             File.WriteAllText(Path.Combine(folder, "done.txt"), System.DateTime.Now.ToString("s"));
+        }
+
+        static UnityEngine.Bounds ColliderBounds(Transform root)
+        {
+            var colliders = root.GetComponentsInChildren<Collider>();
+            if (colliders.Length == 0)
+                return new UnityEngine.Bounds(root.position, Vector3.zero);
+            var b = colliders[0].bounds;
+            foreach (var c in colliders)
+                b.Encapsulate(c.bounds);
+            return b;
         }
 
         static Vector3 Flat(Vector3 v)
