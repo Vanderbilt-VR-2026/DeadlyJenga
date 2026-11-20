@@ -31,6 +31,8 @@ namespace DeadlyJenga.DevTools.Editor
         {
             public int tiles, buildings, lodGroups, colliders, convexColliders, climbSurfaces, materials, trianglesAll, trianglesLod0, spawns;
             public int renderers, submeshes, ringTilesWithoutCollider, tinyConvex, buildingsMissingLevel, exporterHlods, builtHlods;
+            public int skippedConvex;
+            public readonly List<string> skippedConvexNames = new List<string>();
             public long hlodVertices, hlodIndices, hlodAssetBytes;
             public string axisFix = "";
             public readonly List<string> problems = new List<string>();
@@ -250,6 +252,8 @@ namespace DeadlyJenga.DevTools.Editor
             r.AppendLine($"Triangles all visuals={stats.trianglesAll} LOD0+terrain+trees+ring={stats.trianglesLod0} Materials={stats.materials} Spawns={stats.spawns}");
             r.AppendLine($"Visual renderers={stats.renderers} submeshes={stats.submeshes} (all static, batching-static; not merged so material IDs stay submeshes)");
             r.AppendLine($"Tile LODGroups={stats.lodGroups} (one per tile, not nested); switch heights detail {TileDetail} / mid {TileMid} / far {TileFar}; buildings missing a LOD level={stats.buildingsMissingLevel}");
+            if (stats.skippedConvex > 0)
+                r.AppendLine($"NOTE {stats.skippedConvex} degenerate COL_B_* meshes skipped (flat or under 5 cm thick; PhysX cannot hull them), e.g. {string.Join(", ", stats.skippedConvexNames)}");
             if (stats.axisFix.Length > 0) r.AppendLine("AXES " + stats.axisFix);
             int perBuilding = stats.buildings > 0 ? Mathf.RoundToInt((float)stats.convexColliders / stats.buildings) : 0;
             r.AppendLine($"Convex colliders per building (average)={perBuilding}; tiny convex pieces (< 0.5 m or < 0.05 m3)={stats.tinyConvex}");

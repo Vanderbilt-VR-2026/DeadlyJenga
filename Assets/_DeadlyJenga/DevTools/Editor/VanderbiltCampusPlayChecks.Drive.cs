@@ -54,6 +54,9 @@ namespace DeadlyJenga.DevTools.Editor
         static IEnumerator Walk(VanderbiltCampusMap map, List<Vector3> route, float maxDistance)
         {
             reached = 0; walked = 0; failedAt = "";
+            float simulated = 0, realStart = Time.realtimeSinceStartup;
+            void Progress(string what) => File.AppendAllText(Report,
+                $"ROUTE {what}: waypoint {reached + 1}/{route.Count}, {walked:F0} m walked, {simulated:F0} s simulated, {Time.realtimeSinceStartup - realStart:F0} s real\n");
             motor.Teleport(route[0] + Vector3.up * .08f, Quaternion.identity);
             Face(route[1] - route[0]);
             for (int i = 1; i < route.Count; i++)
@@ -67,6 +70,7 @@ namespace DeadlyJenga.DevTools.Editor
                     {
                         failedAt = $"stopped {Flat(target - motor.transform.position).magnitude:F1} m short of waypoint {i + 1} at {motor.transform.position:F1}" +
                             (motor.Alive ? "" : " (eliminated)");
+                        Progress("stopped");
                         Shot("route-stuck", motor.transform.position, motor.transform.forward);
                         yield break;
                     }
@@ -79,14 +83,17 @@ namespace DeadlyJenga.DevTools.Editor
                         float step = Flat(motor.transform.position - last).magnitude;
                         walked += step; last = motor.transform.position;
                         stuckTime = step < WalkSpeed * Dt * .25f ? stuckTime + Dt : 0;
-                        time += Dt;
-                        if (walked >= maxDistance) yield break;
+                        time += Dt; simulated += Dt;
+                        if (walked >= maxDistance) { Progress("distance goal reached"); yield break; }
                     }
                     yield return null;
                 }
                 reached = i;
+                step = "route waypoint " + (i + 1) + "/" + route.Count;
+                if (i % 10 == 0) Progress("progress");
                 if (i == route.Count / 2) Shot("mid-route", motor.transform.position, motor.transform.forward);
             }
+            Progress("finished");
         }
 
         // Within 2 m on the ground plane and not on a different floor.
@@ -101,7 +108,7 @@ namespace DeadlyJenga.DevTools.Editor
             if (anchors.Count == 0)
                 anchors = map.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("Climb_"))
                     .Select(t => (name: t.name, pos: t.position, forward: t.forward)).ToList();
-            Require(anchors.Count > 0, anchors.Count + " climb anchors");
+            if (!Expect(anchors.Count > 0, anchors.Count + " climb anchors")) yield break;
             foreach (var anchor in anchors)
             {
                 motor.Teleport(anchor.pos + Vector3.up * .08f, Quaternion.LookRotation(Flat(anchor.forward).sqrMagnitude > .0001f ? Flat(anchor.forward).normalized : Vector3.forward));
@@ -123,11 +130,11 @@ namespace DeadlyJenga.DevTools.Editor
                 if (latched && bestY - startY > .6f)
                 {
                     Shot("climb", motor.transform.position, anchor.forward);   // camera stands back from the wall
-                    Require(true, "Test survivor climbed " + anchor.name + " by " + (bestY - startY).ToString("F2") + " m");
+                    Expect(true, "Test survivor climbed " + anchor.name + " by " + (bestY - startY).ToString("F2") + " m");
                     yield break;
                 }
             }
-            Require(false, "No climb anchor let the survivor latch and climb 0.6 m");
+            Expect(false, "No climb anchor let the survivor latch and climb 0.6 m");
         }
     }
 }

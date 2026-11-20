@@ -146,6 +146,13 @@ namespace DeadlyJenga.DevTools.Editor
             var filter = t.GetComponent<MeshFilter>();
             var mesh = filter ? filter.sharedMesh : null;
             if (!mesh) { stats.Problem("Collider object without a mesh: " + t.name); return false; }
+            // Safety net: PhysX cannot build a convex hull from a flat or tiny mesh and logs errors in the game.
+            if (convex && Degenerate(mesh))
+            {
+                stats.skippedConvex++; if (stats.skippedConvexNames.Count < 15) stats.skippedConvexNames.Add(t.name);
+                Object.DestroyImmediate(t.gameObject);
+                return false;
+            }
             foreach (var r in t.GetComponents<Renderer>()) Object.DestroyImmediate(r);
             Object.DestroyImmediate(filter);
             foreach (var old in t.GetComponents<Collider>()) Object.DestroyImmediate(old);
@@ -161,6 +168,30 @@ namespace DeadlyJenga.DevTools.Editor
                 if (Mathf.Max(size.x, size.y, size.z) < .5f || size.x * size.y * size.z < .05f) stats.tinyConvex++;
             }
             return true;
+        }
+
+        // True when a convex collider mesh is too thin (smallest side under 5 cm) or its points do not span
+        // a volume (fewer than 4 points off one plane). Meshes are readable here because this runs in edit mode.
+        static bool Degenerate(Mesh mesh)
+        {
+            var size = mesh.bounds.size;
+            if (Mathf.Min(size.x, size.y, size.z) < .05f) return true;
+            Vector3[] v;
+            try { v = mesh.vertices; } catch (System.Exception) { return false; }
+            if (v.Length == 0 && mesh.vertexCount > 0) return false;   // data not accessible: only the size test applies
+            if (v.Length < 4) return true;
+            var a = v[0];
+            int bi = -1; for (int i = 1; i < v.Length; i++) if ((v[i] - a).sqrMagnitude > 1e-4f) { bi = i; break; }
+            if (bi < 0) return true;
+            var ab = v[bi] - a; Vector3 normal = Vector3.zero;
+            for (int i = 0; i < v.Length; i++)
+            {
+                var n = Vector3.Cross(ab, v[i] - a);
+                if (n.sqrMagnitude > 1e-6f) { normal = n.normalized; break; }
+            }
+            if (normal == Vector3.zero) return true;   // all points on one line
+            for (int i = 0; i < v.Length; i++) if (Mathf.Abs(Vector3.Dot(v[i] - a, normal)) > .01f) return false;
+            return true;   // all points on one plane
         }
 
         // Visual meshes are fully static (isStatic sets every flag, including Batching Static) and never collide.
