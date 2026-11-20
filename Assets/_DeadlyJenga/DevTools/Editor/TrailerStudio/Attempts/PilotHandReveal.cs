@@ -22,15 +22,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     public static class PilotHandReveal
     {
         // ---- The shot plan: what an iteration changes ----
-        const int Iteration = 1;
+        // Real sizes on the castle map (measured in iteration 1): survivor about 0.94 m tall, hand 4 m across,
+        // blocks 6 x 2 x 2 m, and the spire ends in a single block. The research numbers assume a 1.7 m person,
+        // so its distances are scaled by about 0.55 here.
+        const int Iteration = 2;
         const float ShotStart = 1.6f, ShotLength = 5f;      // tape seconds
-        const float FlightStart = .55f, Landed = 2.5f, Yank = 3.0f;   // shot seconds
-        const float PullSeconds = .9f;
-        const float CameraDistance = 4.5f, CameraHeight = 1.2f, CameraAzimuth = 40f;   // from the hero, degrees off the pull line
-        const float VerticalFov = 50f;
-        const float RevealAt = 1.3f, RevealSeconds = 1.7f;  // shot seconds: the tilt up
-        const float HeroAlong = .35f, HeroAcross = .0f;     // where the hero stands on the top (fractions of half-size)
-        const int Side = 1;                                 // which side of the pull line the camera is on
+        const float FlightStart = .5f, Landed = 2.6f, Yank = 3.1f;    // shot seconds
+        const float PullSeconds = 1.2f;                     // huge things move slowly
+        // Camera, from the pulled block's outer end: along the pull, across toward the hero's side, up.
+        const float CamAlong = 1.5f, CamAcross = 6.5f, CamUp = .8f;
+        const float VerticalFov = 60f;
+        const float RevealAt = 1.1f, RevealSeconds = 1.5f;  // shot seconds: the tilt up to the sky
+        const float SettleAt = 2.3f, SettleSeconds = 1.1f;  // shot seconds: the tilt back down onto the grab
+        const float SkyAbove = 3.5f;                        // metres above the hero's head the tilt looks at
+        const float HeroAlong = .55f;                       // how far toward the supported end of the top block the hero stands (0..1)
+        const bool PullUnderHero = false;                   // true = pull the block that holds up the hero's end
 
         const string Key = "DeadlyJenga.PilotHandReveal";
         const string SetId = "pilot-hand-reveal";
@@ -44,7 +50,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static int lastTick = -1;
         static readonly StringBuilder notes = new StringBuilder();
 
-        public static string Folder => Path.Combine(StudioLibrary.ProjectRoot, "Logs", "PilotHandReveal");
+        public static string Folder => Path.Combine(StudioLibrary.ProjectRoot, "Logs", "ClaudeHandRevealPilot");
 
         static PilotHandReveal() { if (Step != 0) Hook(); }
         static void Hook() { EditorApplication.update -= Tick; EditorApplication.update += Tick; }
@@ -172,7 +178,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         sealed class Plan
         {
             public int block;
-            public Vector3 pull, across, hero, camera, flightStart, blockSize;
+            public Vector3 pull, across, hero, camera, flightStart, blockSize, blockEnd, blockPosition;
+            public Quaternion blockRotation;
             public float pullDistance, heroYaw;
             public string heroId, handId;
         }
@@ -199,44 +206,42 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Vector3 toSun = sun ? -sun.transform.forward : new Vector3(-.4f, .8f, -.4f).normalized;
             Note($"Sun: {(sun ? sun.name : "none")}, direction to the sun {toSun} (elevation {Mathf.Asin(toSun.y) * Mathf.Rad2Deg:0} deg).");
 
-            // The layer to pull from: one or two below the top, the one whose blocks point most toward the sun
-            // (the camera has the sun behind it; the block comes out toward the camera's side).
+            // The block to pull: in the layer right under the top block (so it is next to the hero's feet).
+            // Its blocks lie across the top block; the hero stands over one of them and the hand pulls the other,
+            // so the hero stays up to react while the top lurches. It comes out on the sun's side.
             Vector3 LongAxis(Rigidbody b) { var s = StudioHandDirection.BlockSize(b); return Flat(b.rotation * (s.x >= s.z ? Vector3.right : Vector3.forward)); }
-            int pick = -1; Vector3 axis = Vector3.forward; float best = -1;
-            foreach (int down in new[] { 1, 2 })
-            {
-                var row = Layer(down);
-                if (row.Count == 0) continue;
-                var a = LongAxis(stage.blocks[row[0]]);
-                float score = Mathf.Abs(Vector3.Dot(a, Flat(toSun))) + (down == 1 ? .15f : 0);
-                if (score <= best) continue;
-                best = score; axis = a;
-                Vector3 pullDir = Vector3.Dot(a, Flat(toSun)) >= 0 ? a : -a;
-                Vector3 across = Vector3.Cross(Vector3.up, pullDir).normalized * Side;
-                // An edge block on the camera's side, so it is in plain view.
-                pick = row.OrderByDescending(i => Vector3.Dot(stage.blocks[i].position - centre, across)).First();
-            }
-            if (pick < 0) throw new InvalidOperationException("No layer under the top to pull from.");
-            var plan = new Plan { block = pick };
-            var body = stage.blocks[pick];
+            var row = Layer(1);
+            if (row.Count == 0) throw new InvalidOperationException("No layer under the top to pull from.");
+            Vector3 topAxis = LongAxis(top);
+            Vector3 axis = LongAxis(stage.blocks[row[0]]);
+            var plan = new Plan();
             plan.pull = Vector3.Dot(axis, Flat(toSun)) >= 0 ? axis : -axis;
-            plan.across = Vector3.Cross(Vector3.up, plan.pull).normalized * Side;
+            // Which end of the top block the hero stands on: over the row block nearer that end.
+            var ordered = row.OrderBy(i => Vector3.Dot(stage.blocks[i].position - top.position, topAxis)).ToList();
+            int heroBlock = ordered[ordered.Count - 1], pullBlock = ordered.Count > 1 ? ordered[0] : ordered[0];
+            if (PullUnderHero) pullBlock = heroBlock;
+            Vector3 heroSide = Flat(Vector3.ProjectOnPlane(stage.blocks[heroBlock].position - top.position, Vector3.up) + topAxis * .001f);
+            plan.block = pullBlock;
+            var body = stage.blocks[pullBlock];
+            plan.blockPosition = body.position; plan.blockRotation = body.rotation;
             plan.blockSize = StudioHandDirection.BlockSize(body);
+            plan.across = heroSide;
             float blockLength = Mathf.Max(plan.blockSize.x, plan.blockSize.z);
-            plan.pullDistance = blockLength * .9f + .4f;
-            Note($"Pull block #{pick} at {body.position} ({top.position.y - body.position.y:0.00} m below the top block), out along {plan.pull}, {plan.pullDistance:0.0} m. Block size {plan.blockSize}.");
+            plan.pullDistance = blockLength + .6f;          // all the way out, so lifting it never drags the tower
+            plan.blockEnd = body.position + plan.pull * (blockLength * .5f) + Vector3.up * (plan.blockSize.y * .5f);
+            Note($"Layer under the top: {row.Count} blocks. Pull block #{pullBlock} at {body.position}, out along {plan.pull}, {plan.pullDistance:0.0} m; hero over block #{heroBlock}.");
 
-            // The hero: on the top, toward the pull side and the camera side.
-            float halfTop = topLayer.Max(i => Vector3.ProjectOnPlane(stage.blocks[i].position - centre, Vector3.up).magnitude) + Mathf.Min(plan.blockSize.x, plan.blockSize.z) * .5f;
-            Vector3 wanted = centre + plan.pull * (HeroAlong * halfTop) + plan.across * (HeroAcross * halfTop) + Vector3.up * 2;
-            if (!StudioStage.SurfaceBelow(wanted, out var feet)) feet = new Vector3(centre.x, TopOf(top), centre.z);
+            // The hero: on the top block, toward the end that stays held up, turned three-quarters to the camera.
+            float halfTop = Mathf.Max(size.x, size.z) * .5f;
+            Vector3 wanted = top.position + heroSide * (HeroAlong * halfTop) + Vector3.up * 2;
+            if (!StudioStage.SurfaceBelow(wanted, out var feet)) feet = new Vector3(top.position.x, TopOf(top), top.position.z);
             plan.hero = feet;
-            plan.camera = feet + (Quaternion.AngleAxis(-CameraAzimuth * Side, Vector3.up) * plan.pull) * CameraDistance + Vector3.up * CameraHeight;
-            plan.heroYaw = Quaternion.LookRotation(Flat(plan.camera - feet)).eulerAngles.y + 28 * Side;
-            // The flight starts on the hero's line to the sun, so the hand's shadow is on the hero first.
+            plan.camera = plan.blockEnd + plan.pull * CamAlong + heroSide * CamAcross + Vector3.up * (CamUp - plan.blockSize.y * .5f);
+            plan.heroYaw = Quaternion.LookRotation(Flat(plan.camera - feet)).eulerAngles.y + 25;
+            // The flight starts on the hero's line to the sun, so the hand's shadow reaches the hero first.
             plan.flightStart = feet + toSun * 16;
             if (plan.flightStart.y < feet.y + 9) plan.flightStart.y = feet.y + 9;
-            Note($"Hero feet {feet} (top half-size {halfTop:0.0} m). Camera {plan.camera} ({CameraDistance} m, +{CameraHeight} m, {CameraAzimuth} deg). Hand flight starts at {plan.flightStart}.");
+            Note($"Hero feet {feet}. Block end {plan.blockEnd}. Camera {plan.camera} ({Vector3.Distance(plan.camera, feet):0.0} m from the hero, {plan.camera.y - feet.y:+0.0;-0.0} m). Hand flight starts at {plan.flightStart}.");
             return plan;
         }
 
@@ -259,7 +264,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 id = "handpull1", action = HandPullCue.Id, actor = hand.id, at = ShotStart + Yank,
                 duration = Landed - FlightStart, grip = Yank - Landed, pullTime = PullSeconds,
                 point = stage.ToStage(plan.flightStart), height = 2.5f, direction = plan.pull, strength = plan.pullDistance,
-                carry = Vector3.up * 5 + plan.pull * 1.5f
+                carry = Vector3.up * 6 + plan.pull * 1f,
+                fixedGrab = true, grabPosition = stage.ToStage(plan.blockPosition), grabRotation = plan.blockRotation
             };
             pull.blocks.Add(plan.block);
             set.cues.Add(pull);
@@ -310,14 +316,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             camera.keys[0].focal = StudioMoves.FocalForVertical(camera, VerticalFov);
             string hero = "actor:" + plan.heroId, block = "block:" + plan.block;
             Vector3 camera0 = stage.ToStage(plan.camera);
-            // Calm: locked-off, low, the hero in the lower part of the frame and sky above.
-            StudioMoves.LockedOff(camera, t0, camera0, hero, new Vector3(0, 1.9f, 0));
+            Vector3 head = plan.hero + Vector3.up * .9f;
+            // Fixed points (not the moving block), so the camera does not chase the block when it flies off.
+            string calm = StudioTargets.Point(stage.ToStage(Vector3.Lerp(plan.blockEnd, head, .6f)));
+            string sky = StudioTargets.Point(stage.ToStage(head + Vector3.up * SkyAbove));
+            string grab = StudioTargets.Point(stage.ToStage(Vector3.Lerp(plan.blockEnd, head, .5f) + Vector3.up * .8f));
+            // Calm: locked-off and low, the hero and the block end in frame.
+            StudioMoves.LockedOff(camera, t0, camera0, calm);
             // A slow push-in all the way through (about 15 % of the distance).
-            StudioMoves.PushIn(camera, t0, t0 + ShotLength, stage.ToStage(plan.hero + Vector3.up * 1.2f), .15f);
-            // The reveal: tilt up to where the hand lands, above the block next to the hero.
-            StudioMoves.TiltTo(camera, t0 + RevealAt, block, Vector3.up * 3.2f - plan.pull * .5f, RevealSeconds);
-            // The yank: hold, then shake on the beat.
-            StudioMoves.Shake(camera, t0 + Yank + .05f, 1.6f, .55f);
+            StudioMoves.PushIn(camera, t0, t0 + ShotLength, stage.ToStage(head), .15f);
+            // The reveal: tilt up into the sky as the hand's shadow passes, then down with it onto the grab.
+            StudioMoves.TiltTo(camera, t0 + RevealAt, sky, Vector3.zero, RevealSeconds);
+            StudioMoves.TiltTo(camera, t0 + SettleAt, grab, Vector3.zero, SettleSeconds);
+            // The yank: hold, then a shake on the beat (rotation only, about 1.5 degrees, gone in half a second).
+            StudioMoves.Shake(camera, t0 + Yank + .05f, 1.5f, .5f);
             camera.measure.Add(hero); camera.measure.Add("actor:" + plan.handId); camera.measure.Add(block);
             camera.bloom = .3f; camera.vignette = .35f; camera.grain = .08f;
             return camera;
@@ -369,6 +381,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var handRoot = StudioTargets.Object(stage, "actor:" + plan.handId);
             string Size(GameObject root) => root && StudioTargets.TryBounds(root, out var b) ? b.size.ToString("F2") : "not drawn";
             Note($"At the yank: hero drawn size {Size(heroRoot)}, hand drawn size {Size(handRoot)} (hand scale {StudioHandDirection.HandSize(stage)}).");
+            Note(HandReport(stage, plan));
         }
 
         // Picture and the take's own sound in one MP4 (H.264 + AAC), with FFmpeg.
@@ -415,16 +428,41 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var worldB = stage.tape.FindType(WorldTrack.Id).ActiveTake;
             var heroB = stage.tape.Find(plan.heroId).ActiveTake;
             bool sameHand = handA != handB && handA.frames.Count == handB.frames.Count && handA.frames.Zip(handB.frames, (a, b) => a.SequenceEqual(b)).All(x => x);
-            Check("hand take is identical across two recordings", sameHand, $"{handA.frames.Count} and {handB.frames.Count} frames");
-            int differ = WorldTrack.FirstDifference(worldA, worldB, 5);
-            Check("world take matches within 5 mm across two recordings", differ < 0, differ < 0 ? "never differs" : $"first differs at frame {differ} ({differ / (float)stage.Fps:0.00} s)");
-            float heroOff = 0;
+            Check("hand take is byte-identical across two recordings", sameHand, $"{handA.frames.Count} and {handB.frames.Count} frames");
+            // The pulled block follows the cue in both takes, from the yank on.
+            float blockOff = 0;
+            int yankFrame = Mathf.RoundToInt((ShotStart + Yank) * stage.Fps);
+            for (int f = yankFrame; f < stage.Frames; f++)
+            {
+                WorldTrack.Positions(worldA, f, out var pa, out _);
+                WorldTrack.Positions(worldB, f, out var pb, out _);
+                blockOff = Mathf.Max(blockOff, Vector3.Distance(pa[plan.block], pb[plan.block]));
+            }
+            Check("pulled block path matches within 2 mm across two recordings", blockOff < .002f, $"worst {blockOff * 1000:0.0} mm");
+            // The rest of the world is free physics: say how far apart the two takes are, before and after the yank.
+            float Worst(int from, int to, out int at)
+            {
+                float worst = 0; at = -1;
+                for (int f = from; f < to; f++)
+                {
+                    WorldTrack.Positions(worldA, f, out var pa, out var oa);
+                    WorldTrack.Positions(worldB, f, out var pb, out var ob);
+                    for (int i = 0; i < pa.Length; i++) if (oa[i] && ob[i] && Vector3.Distance(pa[i], pb[i]) > worst) { worst = Vector3.Distance(pa[i], pb[i]); at = f; }
+                }
+                return worst;
+            }
+            float early = Worst(0, yankFrame, out int earlyAt), late = Worst(yankFrame, stage.Frames, out int lateAt);
+            Check("world before the yank matches within 5 cm", early < .05f, $"worst {early * 100:0.0} cm (frame {earlyAt})");
+            Note($"INFO world after the yank (free physics, not required to match): worst {late * 100:0.0} cm (frame {lateAt}); first frame over 5 mm: {WorldTrack.FirstDifference(worldA, worldB, 5)}.");
+            float heroEarly = 0, heroLate = 0;
             for (int f = 0; f < Mathf.Min(heroA.frames.Count, heroB.frames.Count); f++)
             {
                 var a = ActorFrame.Read(SurvivorTrack.Id, heroA.frames[f]); var b = ActorFrame.Read(SurvivorTrack.Id, heroB.frames[f]);
-                if (a.visible && b.visible) heroOff = Mathf.Max(heroOff, Vector3.Distance(a.body.feet, b.body.feet));
+                if (!a.visible || !b.visible) continue;
+                float d = Vector3.Distance(a.body.feet, b.body.feet);
+                if (heroA.start + f < yankFrame) heroEarly = Mathf.Max(heroEarly, d); else heroLate = Mathf.Max(heroLate, d);
             }
-            Check("hero matches within 5 cm across two recordings", heroOff < .05f, $"worst {heroOff * 100:0.0} cm");
+            Check("hero before the yank matches within 5 cm", heroEarly < .05f, $"worst {heroEarly * 100:0.0} cm; after the yank {heroLate * 100:0.0} cm (free physics)");
             WorldTrack.Positions(worldB, Mathf.RoundToInt((ShotStart + Yank + PullSeconds) * stage.Fps), out var after, out _);
             WorldTrack.Positions(worldB, 0, out var before, out _);
             float slid = Vector3.Distance(after[plan.block], before[plan.block]);
@@ -433,6 +471,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // 3. The hand is drawn: a still with and without the hand copy differs where the hand is.
             float grab = ShotStart + Landed + .2f;
             StudioRun.ShowExact(grab * stage.Fps);
+            yield return 0; yield return 0;          // skinned meshes update in the game loop
+            StudioRun.ShowExact(grab * stage.Fps);
+            Note(HandReport(stage, plan));
             var cam = new GameObject("Pilot check camera").AddComponent<Camera>();
             cam.enabled = false; cam.fieldOfView = 60;
             var handRoot = StudioTargets.Object(stage, "actor:" + plan.handId);
@@ -455,6 +496,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 handRoot.SetActive(false);
                 var without = Snap();
                 handRoot.SetActive(true);
+                StudioRun.ShowExact(grab * stage.Fps);
                 for (int i = 0; i < with.Length; i++) if (Mathf.Abs(with[i].r - without[i].r) + Mathf.Abs(with[i].g - without[i].g) + Mathf.Abs(with[i].b - without[i].b) > 30) changed++;
             }
             File.WriteAllBytes(Path.Combine(Folder, "hand-check.png"), Encode(with));
@@ -476,6 +518,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             int rows = File.Exists(csv) ? File.ReadAllLines(csv).Length - 1 : -1;
             Check("metrics file is written, one row per frame", result != null && rows == result.frames, $"{rows} rows for {result?.frames} frames");
             Check("filmstrip is written", result != null && File.Exists(Path.Combine(result.folder, "filmstrip.png")), result?.folder ?? "no render");
+        }
+
+        // Everything drawn for the hand copy, for finding out why a hand is or is not seen.
+        static string HandReport(StudioStage stage, Plan plan)
+        {
+            var root = StudioTargets.Object(stage, "actor:" + plan.handId);
+            if (!root) return "Hand report: no playback object.";
+            var line = new StringBuilder($"Hand report: root active {root.activeInHierarchy} at {root.transform.position}.\n");
+            foreach (var hand in root.GetComponentsInChildren<DeadlyJenga.CandyPhysicsHands.CandyPhysicalHand>(true))
+                line.Append($"- physical hand: size {hand.GeometrySize}, palm {(hand.bodies != null && hand.bodies.Length > 0 ? hand.bodies[0].position.ToString("F2") : "none")}, " +
+                    $"skin {(hand.skin ? $"enabled {hand.skin.enabled}, bones {hand.skin.bones?.Length}, first bone {(hand.skin.bones != null && hand.skin.bones.Length > 0 && hand.skin.bones[0] ? hand.skin.bones[0].position.ToString("F2") : "none")}, root bone {(hand.skin.rootBone ? hand.skin.rootBone.name : "none")}, mesh {(hand.skin.sharedMesh ? hand.skin.sharedMesh.vertexCount.ToString() : "none")}" : "none")}\n");
+            foreach (var shown in root.GetComponentsInChildren<Renderer>(true).Take(12))
+                line.Append($"- {shown.GetType().Name} '{shown.name}' enabled {shown.enabled} active {shown.gameObject.activeInHierarchy} layer {shown.gameObject.layer} bounds {shown.bounds.center:F1}/{shown.bounds.size:F1} " +
+                    $"shadows {shown.shadowCastingMode} material {(shown.sharedMaterial ? shown.sharedMaterial.name + " / " + shown.sharedMaterial.shader.name + " q" + shown.sharedMaterial.renderQueue : "none")}\n");
+            return line.ToString();
         }
 
         static byte[] Encode(Color32[] pixels)

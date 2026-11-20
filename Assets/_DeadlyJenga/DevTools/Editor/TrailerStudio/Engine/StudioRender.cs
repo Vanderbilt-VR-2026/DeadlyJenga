@@ -242,6 +242,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                             if (settings.freezeAmbient) Time.timeScale = 0;
                             else { Time.timeScale = 1; Time.captureDeltaTime = Mathf.Max(.00002f, step); }
                             StudioRun.ShowExact(tape * set.fps);
+                            // One engine frame with the new pose before drawing: skinned characters (the hand, the
+                            // survivors) update their meshes in the game loop, so a picture drawn right away shows
+                            // the previous pose, or nothing for a character that has just appeared.
+                            float keepStep = Time.captureDeltaTime;
+                            if (!settings.freezeAmbient) Time.captureDeltaTime = .00002f;
+                            yield return 0;
+                            StudioRun.ShowExact(tape * set.fps);
+                            if (!settings.freezeAmbient) Time.captureDeltaTime = keepStep;
                             var lens = StudioCameras.Evaluate(shot, set, stage.tape, stage.anchor, tape, cameraTime);
                             StudioCameras.Apply(camera, lens);
                             ApplyLook(profile, shot, lens);

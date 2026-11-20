@@ -149,6 +149,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     foreach (var body in hand.bodies)
                         if (body && body.interpolation != RigidbodyInterpolation.None) body.interpolation = RigidbodyInterpolation.None;
                 try { lateUpdate?.Invoke(hand, null); } catch (Exception) { }
+                // Renders can come several times in one engine frame; skin from the bones as they are now.
+                if (hand.skin) hand.skin.forceMatrixRecalculationPerRender = true;
             }
         }
 
@@ -169,6 +171,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // ---- While recording ----
 
+        // The grab from the cue's stored block pose when it has one, else from where the block is now.
+        static Grab GrabOf(StudioStage stage, StudioCue cue, Rigidbody body) => cue.fixedGrab
+            ? GripFor(stage.ToWorld(cue.grabPosition), cue.grabRotation, BlockSize(body), cue.direction, HandSize(stage))
+            : GripFor(body.position, body.rotation, BlockSize(body), cue.direction, HandSize(stage));
+
         sealed class Pull { public StudioCue cue; public Rigidbody body; public Grab grab; }
         static readonly List<Pull> pulls = new List<Pull>();
         static readonly Dictionary<string, Grab> grabs = new Dictionary<string, Grab>();
@@ -179,7 +186,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var body = StudioDirector.Blocks(stage, cue).FirstOrDefault();
             if (!body) throw new InvalidOperationException("The block to pull is gone.");
-            var grab = GripFor(body.position, body.rotation, BlockSize(body), cue.direction, HandSize(stage));
+            var grab = GrabOf(stage, cue, body);
             foreach (var joint in body.GetComponents<Joint>()) Object.Destroy(joint);
             body.isKinematic = true;
             body.interpolation = RigidbodyInterpolation.None;
@@ -231,7 +238,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     {
                         var body = StudioDirector.Blocks(stage, cue).FirstOrDefault();
                         if (!body) { notes.Add("cue " + cue.id + ": block gone"); grabsFor.Add(default); continue; }
-                        grabsFor.Add(GripFor(body.position, body.rotation, BlockSize(body), cue.direction, size));
+                        grabsFor.Add(GrabOf(stage, cue, body));
                     }
                 }
                 var take = new StudioTake { start = 0, keyEvery = 1, name = "Directed " + (track.takes.Count + 1) };

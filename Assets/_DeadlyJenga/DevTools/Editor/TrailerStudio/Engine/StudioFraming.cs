@@ -61,12 +61,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var root = StudioTargets.Object(stage, target);
             if (!root || !root.activeInHierarchy || !StudioTargets.TryBounds(root, out var bounds)) return sample;
             // The box on screen: the 8 corners of the bounds, clipped to the frame.
+            // Points on a 5x5x5 grid through the bounds; the ones in front of the lens make the box
+            // (a target partly behind the camera is measured by its part in front).
             float minX = 1, minY = 1, maxX = 0, maxY = 0; bool front = false;
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 125; i++)
             {
-                var corner = bounds.center + Vector3.Scale(bounds.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
-                var v = camera.WorldToViewportPoint(corner);
-                if (v.z <= camera.nearClipPlane) { v.x = v.x < .5f ? -1 : 2; v.y = v.y < .5f ? -1 : 2; } else front = true;
+                var grid = new Vector3(i % 5, i / 5 % 5, i / 25) / 2f - Vector3.one;
+                var v = camera.WorldToViewportPoint(bounds.center + Vector3.Scale(bounds.extents, grid));
+                if (v.z <= camera.nearClipPlane) continue;
+                front = true;
                 minX = Mathf.Min(minX, v.x); maxX = Mathf.Max(maxX, v.x); minY = Mathf.Min(minY, v.y); maxY = Mathf.Max(maxY, v.y);
             }
             float cx0 = Mathf.Clamp01(minX), cx1 = Mathf.Clamp01(maxX), cy0 = Mathf.Clamp01(minY), cy1 = Mathf.Clamp01(maxY);

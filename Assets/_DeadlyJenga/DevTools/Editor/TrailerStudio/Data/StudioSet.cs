@@ -50,6 +50,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float pullTime = .9f;      // seconds the yank takes
         public float grip = .45f;         // seconds the fingers take to close before the yank
         public Vector3 carry = new Vector3(0, 5, 0);   // where the hand takes the block after the yank (metres, over 1.5 s)
+        // The block's pose for the grab (metres from the stage spot). Set = the hand and the block follow the
+        // same path in every take, even if the map settled a few millimetres differently.
+        public bool fixedGrab;
+        public Vector3 grabPosition;
+        public Quaternion grabRotation = Quaternion.identity;
     }
 
     // A camera shot. Phase 1 only keeps these (imported from Theatre); Phase 5 edits them.
