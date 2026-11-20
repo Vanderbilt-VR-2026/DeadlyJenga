@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DeadlyJenga.Core;
 using UnityEngine;
 using F=DeadlyJenga.CandyArt.Marina.MarinaFinish;
 
@@ -19,6 +20,21 @@ namespace DeadlyJenga.CandyArt.Marina
     public sealed partial class MayhemMarina
     {
         const float ShopWidth = 12f, ShopDepth = 9f, ShopWall = 4.2f, ShopPorch = 1.8f;
+
+        static AvatarAppearance Look(AvatarHair hair, AvatarEyewear eyes, AvatarClothing clothes, AvatarAccessory extras) =>
+            new AvatarAppearance { hair = hair, eyewear = eyes, clothing = clothes, accessories = extras };
+
+        // Outfits on the hanging display bodies, in rail order.
+        static readonly AvatarAppearance[] rackLooks =
+        {
+            Look(AvatarHair.Buzz, AvatarEyewear.None, AvatarClothing.Hoodie, AvatarAccessory.None),
+            Look(AvatarHair.SidePart, AvatarEyewear.Square, AvatarClothing.BomberJacket, AvatarAccessory.None),
+            Look(AvatarHair.Bun, AvatarEyewear.None, AvatarClothing.Overalls, AvatarAccessory.RobotAntenna),
+            Look(AvatarHair.Spikes, AvatarEyewear.VRVisor, AvatarClothing.PufferVest, AvatarAccessory.None),
+            Look(AvatarHair.Bob, AvatarEyewear.None, AvatarClothing.SailorShirt, AvatarAccessory.PropellerCap),
+            Look(AvatarHair.None, AvatarEyewear.Visor, AvatarClothing.Hoodie, AvatarAccessory.RobotAntenna),
+        };
+        static readonly int[] rackColors = { 0, 3, 1, 6, 2, 5 };
 
         void GiftShop(Vector3 floor, float yaw)
         {
@@ -100,10 +116,16 @@ namespace DeadlyJenga.CandyArt.Marina
                 for (int step = 0; step < 3; step++)
                     B(s * winMid, sill + .05f + step * .22f, front + .45f + step * .3f, new Vector3(winWide - .3f, .1f + step * 0f, .32f), step % 2 == 0 ? F.Ivory : F.CandyCream, .02f);
                 MiniTower(P(s * winMid, sill + .54f, front + 1.05f), q, .9f);
+                // A mannequin in the latest look on a small stand, nearest the doors.
+                float standX = s * (winMid - .9f);
+                Disc(standX, sill + .1f, front + .42f, .26f, .06f, F.Ivory);
+                Figure(standX, sill + .16f, front + .42f, 180, s < 0
+                    ? Look(AvatarHair.Ponytail, AvatarEyewear.RoundSunglasses, AvatarClothing.SailorShirt, AvatarAccessory.FlowerCrown) : Look(AvatarHair.Pompadour, AvatarEyewear.Aviator, AvatarClothing.Tuxedo | AvatarClothing.BowTie, AvatarAccessory.TopHat),
+                    s < 0 ? 4 : 2, MannequinPose.Display);
                 for (int i = 0; i < 3; i++)
                 {
                     float x = s * winMid + (i - 1) * .9f;
-                    if (i == 1) continue;
+                    if (i == 1 || Mathf.Abs(x - standX) < .1f) continue;
                     Crab(P(x, sill + .2f, front + .45f), q, candy[i + (s > 0 ? 0 : 2)]);
                     SunHat(P(x, sill + .32f, front + .75f), i == 0 ? F.CandyCream : F.CandyLilac);
                 }
@@ -260,7 +282,15 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 mesh.Beam(P(rx - .1f, 1.95f, z - 1f), P(rx - .1f, 1.95f, z + 1f), .025f, F.Brass);
                 foreach (float e in new[] { -1f, 1f }) B(rx + .05f, 1.95f, z + e, new Vector3(.3f, .05f, .05f), F.Brass, .01f);
-                for (int i = 0; i < 3; i++) Shirt(P(rx - .14f, 1.55f, z - .65f + i * .65f), q * Quaternion.Euler(0, 90, 0), candy[(i + (z > 0 ? 3 : 0)) % candy.Length]);
+                // Display bodies hung from the rail like switched-off robots, each wearing a different outfit.
+                for (int i = 0; i < 3; i++)
+                {
+                    float hz = z - .65f + i * .65f;
+                    int n = i + (z > 0 ? 3 : 0);
+                    mesh.Beam(P(rx - .1f, 1.95f, hz), P(rx - .22f, 1.8f, hz), .012f, F.Brass);
+                    B(rx - .24f, 1.79f, hz, new Vector3(.05f, .035f, .44f), F.DarkWood, .01f);
+                    Figure(rx - .3f, .4f, hz, -90, rackLooks[n], rackColors[n], MannequinPose.Hanging);
+                }
             }
             for (int level = 0; level < 2; level++)
             {
@@ -315,6 +345,17 @@ namespace DeadlyJenga.CandyArt.Marina
             Sign("SEASIDE SOUVENIRS", P(0, 2.62f, hd - .45f), .03f, cream, new Vector3(0, yaw, 0));
             Sign("EST. MAYHEM MARINA", P(0, 2.28f, hd - .45f), .013f, cream, new Vector3(0, yaw, 0));
 
+            // Two mannequins flanking the checkout, facing the doors.
+            foreach (float s in new[] { -1f, 1f })
+            {
+                float mx = s * 2.75f, mz = hd - 1.6f;
+                Disc(mx, .03f, mz, .38f, .14f, F.Ivory, true);
+                mesh.ArcSlab(P(mx, .16f, mz), Vector2.one * .34f, Vector2.one * .39f, .02f, 0, 360, F.Brass, false, 32);
+                Figure(mx, .17f, mz, 180, s < 0
+                    ? Look(AvatarHair.Curls, AvatarEyewear.Heart, AvatarClothing.RoyalMantle, AvatarAccessory.Crown) : Look(AvatarHair.Afro, AvatarEyewear.Star, AvatarClothing.PufferVest, AvatarAccessory.Headphones),
+                    s < 0 ? 5 : 7, MannequinPose.Display);
+            }
+
             // ---------- Display tables and a glass case ----------
             foreach (float s in new[] { -1f, 1f })
             {
@@ -340,6 +381,10 @@ namespace DeadlyJenga.CandyArt.Marina
             // Warm light inside.
             Accent("Gift shop", P(0, 3.4f, .3f), new Color(1, .82f, .6f), 2.2f, 8.5f);
             Accent("Gift shop back", P(0, 3.2f, hd - 2f), new Color(1, .86f, .66f), 1.4f, 6f);
+
+            // A real player figure (see Core Mannequins). Skipped when no maker is registered.
+            void Figure(float x, float y, float z, float turnY, AvatarAppearance look, int color, MannequinPose pose)
+                => Mannequins.Create(visual, P(x, y, z), q * Quaternion.Euler(0, turnY, 0), look, color, pose);
 
             // A wall-length valance header with a glowing underside and a label.
             // facing: +1 reads from the +x side (left wall), -1 from the -x side (right wall).
