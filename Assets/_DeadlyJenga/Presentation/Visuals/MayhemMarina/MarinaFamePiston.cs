@@ -41,36 +41,41 @@ namespace DeadlyJenga.CandyArt.Marina
             for (int i = 0; i < 3; i++)
             {
                 float a = (60f + i * 120f) * Mathf.Deg2Rad;
-                var spot = new Vector3(Mathf.Sin(a), 0, Mathf.Cos(a)) * LampRing;
-                var lamp = new GameObject("Pop-up light " + (i + 1)).transform;
-                lamp.SetParent(root, false);
-                lamp.localPosition = spot + Vector3.up * h;
-                var aim = Quaternion.LookRotation(StatueChest - lamp.localPosition);
-
-                var body = new MarinaMesh();
-                body.Disk(Vector3.zero, .05f, .015f, F.Metal, false, 16);
-                body.Beam(Vector3.zero, Vector3.up * .08f, .014f, F.Metal);
-                var head = Vector3.up * .1f;
-                body.Box(head, new Vector3(.09f, .07f, .09f), F.DarkWood, .02f, false, aim);
-                body.Box(head + aim * Vector3.forward * .047f, new Vector3(.07f, .05f, .01f), F.Glow, .01f, false, aim);
-                body.Flush(lamp, 0);
-                piston.meshes.Add(body);
-
-                var light = new GameObject("Spotlight").AddComponent<Light>();
-                light.transform.SetParent(lamp, false);
-                light.transform.localPosition = head;
-                light.transform.localRotation = aim;
-                light.type = LightType.Spot;
-                light.spotAngle = 58f;
-                light.innerSpotAngle = 30f;
-                light.range = 3.6f;
-                light.intensity = 0f;
-                light.color = new Color(1f, .93f, .82f);
-                light.shadows = LightShadows.None;
+                var spot = new Vector3(Mathf.Sin(a), 0, Mathf.Cos(a)) * LampRing + Vector3.up * h;
+                piston.lights.Add(PopLamp(root, spot, StatueChest, 1f, 3.6f, piston.meshes, out var lamp));
                 piston.lamps.Add(lamp);
-                piston.lights.Add(light);
             }
             return piston;
+        }
+
+        // A small spotlight on a short post, aimed at a point. Shared with the hero suit pods.
+        // The light starts off (intensity 0); its owner fades it on as the lamp pops up.
+        internal static Light PopLamp(Transform parent, Vector3 at, Vector3 target, float size, float range, List<MarinaMesh> meshes, out Transform lamp)
+        {
+            lamp = new GameObject("Pop-up light").transform;
+            lamp.SetParent(parent, false);
+            lamp.localPosition = at;
+            var aim = Quaternion.LookRotation(target - at);
+            var body = new MarinaMesh();
+            body.Disk(Vector3.zero, .05f * size, .015f, F.Metal, false, 16);
+            body.Beam(Vector3.zero, Vector3.up * .08f * size, .014f * size, F.Metal);
+            var head = Vector3.up * .1f * size;
+            body.Box(head, new Vector3(.09f, .07f, .09f) * size, F.DarkWood, .02f * size, false, aim);
+            body.Box(head + aim * Vector3.forward * .047f * size, new Vector3(.07f, .05f, .01f) * size, F.Glow, .01f * size, false, aim);
+            body.Flush(lamp, 0);
+            meshes.Add(body);
+            var light = new GameObject("Spotlight").AddComponent<Light>();
+            light.transform.SetParent(lamp, false);
+            light.transform.localPosition = head;
+            light.transform.localRotation = aim;
+            light.type = LightType.Spot;
+            light.spotAngle = 58f;
+            light.innerSpotAngle = 30f;
+            light.range = range;
+            light.intensity = 0f;
+            light.color = new Color(1f, .93f, .82f);
+            light.shadows = LightShadows.None;
+            return light;
         }
 
         void OnEnable() => startTime = Time.time;

@@ -359,7 +359,7 @@ namespace DeadlyJenga.CandyArt.Marina
             loop.localPosition = P(vx, .15f, vz);
             loop.localRotation = q;
             var track = loop.gameObject.AddComponent<MarinaPodTrack>();
-            track.Setup(trackDeep, trackAlong, .22f);
+            track.Setup(trackDeep, trackAlong, .22f, VaultCentre - .7f, VaultCentre + .5f);
             for (int i = 0; i < suitLooks.Length; i++)
             {
                 var pod = new GameObject("Suit pod " + (i + 1)).transform;
@@ -375,6 +375,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 track.Add(pod, podMesh);
             }
             track.Place(0);
+            FogMachine(P(-hw + .55f, .18f, vz), q, new Vector3(1.2f, .05f, VaultOpening * 1.7f));
             foreach (Transform pod in loop)
             {
                 int i = pod.GetSiblingIndex();
@@ -502,6 +503,50 @@ namespace DeadlyJenga.CandyArt.Marina
                 B(x + facing * .07f, y - .27f, z, new Vector3(.02f, .04f, length - .2f), F.Glow, .005f);
                 Sign(label, P(x + facing * .07f, y, z), .02f, cream, new Vector3(0, yaw - 90 * facing, 0));
             }
+        }
+
+        // A fog machine: low, slow, soft mist that rolls out along the floor (here, out of the hero suit vault).
+        // pos/turn = the emitter's middle and facing (mist drifts along +x of turn); area = the emitter box.
+        void FogMachine(Vector3 pos, Quaternion turn, Vector3 area)
+        {
+            var source = Resources.Load<Material>("Tsunami/Spray");
+            if (!source) return;
+            var fog = new GameObject("Fog machine").transform;
+            fog.SetParent(visual, false);
+            fog.localPosition = pos;
+            fog.localRotation = turn;
+            var mist = fog.gameObject.AddComponent<ParticleSystem>();
+            mist.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = mist.main;
+            main.loop = true; main.playOnAwake = true; main.maxParticles = 70; main.prewarm = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(6f, 9f);
+            main.startSpeed = 0;
+            main.startSize = new ParticleSystem.MinMaxCurve(.9f, 1.7f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0, Mathf.PI * 2);
+            main.startColor = new Color(.86f, .93f, 1f, .2f);
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.gravityModifier = 0;
+            var emission = mist.emission; emission.rateOverTime = 9;
+            var shape = mist.shape; shape.shapeType = ParticleSystemShapeType.Box; shape.scale = area;
+            var drift = mist.velocityOverLifetime; drift.enabled = true; drift.space = ParticleSystemSimulationSpace.Local;
+            drift.x = new ParticleSystem.MinMaxCurve(.08f, .22f); drift.y = new ParticleSystem.MinMaxCurve(-.01f, .02f); drift.z = new ParticleSystem.MinMaxCurve(-.08f, .08f);
+            var grow = mist.sizeOverLifetime; grow.enabled = true; grow.size = new ParticleSystem.MinMaxCurve(1, AnimationCurve.Linear(0, .7f, 1, 1.6f));
+            var spin = mist.rotationOverLifetime; spin.enabled = true; spin.z = new ParticleSystem.MinMaxCurve(-.15f, .15f);
+            var fade = mist.colorOverLifetime; fade.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0), new GradientColorKey(Color.white, 1) },
+                new[] { new GradientAlphaKey(0, 0), new GradientAlphaKey(1, .25f), new GradientAlphaKey(.8f, .7f), new GradientAlphaKey(0, 1) });
+            fade.color = gradient;
+            var material = new Material(source) { name = "Fog machine mist" };
+            var cloud = Resources.Load<Texture2D>("CandyScenery/StormCloudPuff");
+            if (cloud) { material.SetTexture("_CloudTexture", cloud); material.SetFloat("_UseCloudTexture", 1); }
+            extraMaterials.Add(material);
+            var renderer = mist.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.sortingFudge = 10;
+            mist.Play();
         }
 
         // A souvenir tower of tiny candy blocks, three per layer, layers crossed.
