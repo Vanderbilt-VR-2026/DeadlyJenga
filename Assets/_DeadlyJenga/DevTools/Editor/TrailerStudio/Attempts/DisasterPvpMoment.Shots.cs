@@ -24,8 +24,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // tumbles 38 m down the tower face onto the castle wall (f238), where he lives to see the planet killer land (f307).
         static readonly Shot[] Shots =
         {
-            new Shot { id = "S01", what = "hook: the glove punch knocks the rival off the top", cutIn = 0, cutOut = 46, key = 25 },
-            new Shot { id = "S02", what = "the rival sails off the tower", cutIn = 46, cutOut = 64, key = 6 },
+            // S01 holds through the rival's exit and the taunt (lint L06 wants a 2 s shot; critic round 1 found the separate
+            // flight shot S02 a low-contrast speck), so S02 is dropped.
+            new Shot { id = "S01", what = "hook: the glove punch knocks the rival off the top, the hero taunts", cutIn = 0, cutOut = 64, key = 25 },
             new Shot { id = "S03", what = "teach: the whole top is a brawl", cutIn = 64, cutOut = 104, key = 26 },
             new Shot { id = "S04", what = "anticipation: low, rocks streak in over the fighters", cutIn = 104, cutOut = 134, key = 24 },
             new Shot { id = "S05", what = "core verb: a meteor throws the astronaut off", cutIn = 134, cutOut = 180, key = 19 },
@@ -79,16 +80,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, mid + a.along * .3f));
                 StudioMoves.PushIn(c, c.start, c.end, stage.ToStage(mid), .12f);
                 Add(c, at, mid, .94f);
-            }
-            // S02: the rival in the air, panned from beside the summit's far end, sea and sky behind.
-            {
-                var s = S("S02"); var c = ShotCam(s, 28);
-                Vector3 flying = Feet(stage, plan, "rival", s.cutIn + s.key);
-                // Beside his path, 8 m from where he is at the key, a little above, so the sea is below him (record 1: 17 m, 0.05 of frame).
-                Vector3 at = flying + a.side * 7.5f - a.along * 2.5f + up * 2.5f;
-                at = PickSpot(new[] { at, at + up * 2, at + a.side * 2 }, flying + up * .5f);
-                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), Actor("rival"), up * .5f);
-                Add(c, at, flying, .94f);
             }
             // S03: the brawl, high three-quarter from the sun side, every fighter in frame.
             {
@@ -247,7 +238,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (mode == "finalB") cameras = cameras.Skip(3).Take(5).ToList();   // S04-S08 (S04 again: its first render had the green disc)
             if (mode == "finalC") cameras = cameras.Skip(8).ToList();
             // Critic round 1 fixes: S06 ends before its camera drops into the castle, S07 starts earlier, S09 side-on.
-            if (mode == "finalD") cameras = cameras.Where(c => new[] { "S04", "S05", "S06", "S07", "S09" }.Contains(c.id)).ToList();
+            if (mode == "finalD") cameras = cameras.Where(c => new[] { "S01", "S04", "S05", "S06", "S07", "S09" }.Contains(c.id)).ToList();
             var settings = final
                 ? new StudioRenderSettings { width = 1920, height = 1080, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 12 }
                 : new StudioRenderSettings { width = 640, height = 360, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 8 };
