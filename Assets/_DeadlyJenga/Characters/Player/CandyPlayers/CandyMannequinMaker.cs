@@ -23,11 +23,12 @@ namespace DeadlyJenga.CandyPlayers
             var frame = new CandyAvatarFrame { feet = feet, scale = 1 };
             if (pose == MannequinPose.Hanging)
             {
-                // Switched off on its hanger stick: legs straight, head level, arms dangling, fingers loose.
+                // Limp, held up only by a stick through the middle of the head: the body hangs straight
+                // below it, arms fall straight down from the shoulders, feet dangle off the floor.
                 frame.head = feet + Vector3.up * 1.6f;
                 frame.headRotation = facing;
-                frame.left = Hand(feet + facing * new Vector3(-.22f, .6f, -.02f), facing * Quaternion.Euler(0, 0, 4), true, .4f);
-                frame.right = Hand(feet + facing * new Vector3(.22f, .6f, -.02f), facing * Quaternion.Euler(0, 0, -4), false, .4f);
+                frame.left = Hand(feet + facing * new Vector3(-.21f, .5f, 0), facing * Quaternion.Euler(0, 0, 2), true, .35f);
+                frame.right = Hand(feet + facing * new Vector3(.21f, .5f, 0), facing * Quaternion.Euler(0, 0, -2), false, .35f);
             }
             else
             {
@@ -37,8 +38,10 @@ namespace DeadlyJenga.CandyPlayers
                 frame.left = Hand(feet + facing * new Vector3(-.3f, 1.02f, -.02f), facing * Quaternion.Euler(0, 40, 70), true, .55f);
                 frame.right = Hand(feet + facing * new Vector3(.36f, .98f, .1f), facing * Quaternion.Euler(-10, 0, -12), false, .15f);
             }
-            rig.ApplyFrame(frame, true, 0);
+            // A hanging body is "in the air", so its feet don't reach for the floor.
+            rig.ApplyFrame(frame, pose != MannequinPose.Hanging, 0);
             if (pose == MannequinPose.Display) Chrome(rig);
+            else Dangle(rig, feet, facing, (color % 3 - 1) * 4f);
             return rig.gameObject;
         }
 
@@ -62,6 +65,23 @@ namespace DeadlyJenga.CandyPlayers
                 skin.SetPropertyBlock(null);
                 skin.sharedMaterial = chrome;
             }
+        }
+
+        // Gravity on a body hung by the head: the head tips a little on its stick, the toes droop, and
+        // the whole body settles so the middle of the head sits straight above the given point.
+        static void Dangle(CandyPlayerRig rig, Vector3 feet, Quaternion facing, float tip)
+        {
+            var head = rig.HeadAnchor;
+            if (!head) return;
+            head.rotation = facing * Quaternion.Euler(6, 0, tip) * Quaternion.Inverse(facing) * head.rotation;
+            var right = facing * Vector3.right;
+            foreach (int foot in new[] { 10, 13 })
+            {
+                var bone = rig.BoneCount > foot ? rig.AppearanceBone(foot) : null;
+                if (bone) bone.rotation = Quaternion.AngleAxis(45, right) * bone.rotation;
+            }
+            var offset = head.position - feet;
+            rig.transform.position -= new Vector3(offset.x, 0, offset.z);
         }
 
         static CandyHandPose Hand(Vector3 position, Quaternion rotation, bool left, float curl) =>
