@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastlePrototype;
 using UnityEditor;
@@ -137,7 +138,8 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 if (!tile.name.StartsWith("T_")) continue;
                 tiles++;
-                var terrain = tile.GetComponentsInChildren<MeshRenderer>(true).FirstOrDefault(r => r.name.StartsWith("Terrain"));
+                // The LOD0 ground is named exactly "Terrain" (Terrain_LOD1 is the cheap far copy).
+                var terrain = tile.GetComponentsInChildren<MeshRenderer>(true).FirstOrDefault(r => Regex.Replace(r.name, @"\.\d+$", "") == "Terrain");
                 if (!terrain) { odd.Add(tile.name + " (no Terrain)"); continue; }
                 var size = terrain.bounds.size;
                 if (Mathf.Abs(size.x - 100) > 2 || Mathf.Abs(size.z - 100) > 2) odd.Add($"{tile.name} {size.x:F1}x{size.z:F1} m");

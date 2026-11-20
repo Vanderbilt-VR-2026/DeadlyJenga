@@ -29,8 +29,15 @@ namespace DeadlyJenga.DevTools.Editor
         // Counts and problems collected while building; written to the report at the end.
         sealed class BuildStats
         {
-            public int tiles, buildings, colliders, convexColliders, climbSurfaces, materials, trianglesAll, trianglesLod0, spawns;
+            public int tiles, buildings, lodGroups, colliders, convexColliders, climbSurfaces, materials, trianglesAll, trianglesLod0, spawns;
+            public int renderers, submeshes, ringTilesWithoutCollider;
             public readonly List<string> problems = new List<string>();
+            // A real problem: fails the build (exit 1) and goes to the Unity log so the coordinator's summary shows it.
+            public void Problem(string text)
+            {
+                problems.Add(text);
+                Debug.LogError("[VanderbiltCampus] PROBLEM: " + text);
+            }
             public readonly List<string> notes = new List<string>();
             public readonly List<Transform> spawnMarkers = new List<Transform>();
             public readonly List<Renderer> terrain = new List<Renderer>();
@@ -55,10 +62,32 @@ namespace DeadlyJenga.DevTools.Editor
             VanderbiltCampusData.Exit(ok ? 0 : 1);
         }
 
-        // Returns true when the prefab was saved and nothing needs fixing.
+        // One coordinator job: build, then the edit-mode checks (overhead render + budget), then exit once.
+        // The exit code reflects only the build; check failures are in VanderbiltCampusChecks.txt.
+        public static void BuildAndCheckBatch()
+        {
+            bool ok = false;
+            try { ok = Build(); }
+            catch (Exception e) { File.AppendAllText(ReportPath, "FAIL " + e + "\n"); Debug.LogError("[VanderbiltCampus] PROBLEM: build threw " + e.Message); }
+            if (prefabSaved)
+            {
+                try
+                {
+                    bool checks = VanderbiltCampusChecks.Run();
+                    Debug.Log("[VanderbiltCampus] checks " + (checks ? "passed" : "reported failures") + ": " + ProjectPath.Report("VanderbiltCampusChecks.txt"));
+                }
+                catch (Exception e) { Debug.LogWarning("[VanderbiltCampus] checks threw: " + e.Message); }
+            }
+            VanderbiltCampusData.Exit(ok ? 0 : 1);
+        }
+
+        static bool prefabSaved;
+
+        // Returns true when the prefab was saved and there were no real problems (notes are fine).
         public static bool Build()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Exit Play Mode first.");
+            prefabSaved = false;
             var stats = new BuildStats();
             File.WriteAllText(ReportPath, "Vanderbilt campus build " + DateTime.Now.ToString("u") + "\n");
 
@@ -66,14 +95,14 @@ namespace DeadlyJenga.DevTools.Editor
             string modelsFolder = Folder(campusFolder, "Models");
             string materialsFolder = Folder(campusFolder, "Materials");
             var data = VanderbiltCampusData.Load();
-            stats.problems.AddRange(data.problems);
+            foreach (var p in data.problems) stats.Problem(p);
 
             var materials = EnsureMaterials(materialsFolder, stats);
             var tilePaths = AssetDatabase.FindAssets("t:Model", new[] { modelsFolder })
                 .Select(AssetDatabase.GUIDToAssetPath).Where(p => TileFile.IsMatch(Path.GetFileName(p))).Distinct().OrderBy(p => p).ToList();
             if (materials.Count == 0 || tilePaths.Count == 0)
             {
-                if (tilePaths.Count == 0) stats.problems.Add("No T_<col>_<row>.fbx tiles in " + modelsFolder + ". The existing prefab was left unchanged.");
+                if (tilePaths.Count == 0) stats.Problem("No T_<col>_<row>.fbx tiles in " + modelsFolder + ". The existing prefab was left unchanged.");
                 WriteReport(stats, data, null);
                 return false;
             }
@@ -93,6 +122,7 @@ namespace DeadlyJenga.DevTools.Editor
                 string prefabPath = PrefabPath();
                 var saved = PrefabUtility.SaveAsPrefabAsset(root, prefabPath, out bool success);
                 if (!success || !saved) throw new InvalidOperationException("Could not save " + prefabPath);
+                prefabSaved = true;
                 UpdateCatalog(prefabPath);
                 AuthorMatchLayout(map, data, stats);
                 AssetDatabase.SaveAssets();
@@ -132,8 +162,14 @@ namespace DeadlyJenga.DevTools.Editor
         static void FillMap(VanderbiltCampusMap map, VanderbiltCampusData data, BuildStats stats)
         {
             var root = map.transform;
-            var spawns = new List<Transform>(stats.spawnMarkers);
-            if (data.spawns.Count > 0)
+            // The json spawns and the Spawn_* empties are the same points: use the json, empties only as a fallback.
+            var spawns = new List<Transform>();
+            if (data.spawns.Count == 0)
+            {
+                spawns.AddRange(stats.spawnMarkers);
+                if (spawns.Count > 0) stats.notes.Add("No spawns in unity_map.json; used " + spawns.Count + " Spawn_* empties.");
+            }
+            else
             {
                 var group = new GameObject("Spawns (unity_map.json)").transform; group.SetParent(root, false);
                 foreach (var s in data.spawns)
@@ -142,14 +178,14 @@ namespace DeadlyJenga.DevTools.Editor
                     spawns.Add(t);
                 }
             }
-            if (spawns.Count == 0) stats.problems.Add("No spawns: add Spawn_* empties or a spawns list in unity_map.json.");
+            if (spawns.Count == 0) stats.Problem("No spawns: add Spawn_* empties or a spawns list in unity_map.json.");
             map.spawns = spawns.ToArray(); stats.spawns = spawns.Count;
 
             float lowest = float.PositiveInfinity;
             foreach (var r in stats.terrain) lowest = Mathf.Min(lowest, root.InverseTransformPoint(r.bounds.min).y);
             if (data.hasLowestGround) lowest = data.lowestGround;
-            if (float.IsInfinity(lowest)) { lowest = 0; stats.problems.Add("No Terrain meshes found; lowestGround set to 0."); }
-            if (lowest < -.01f) stats.problems.Add("Lowest ground is " + lowest.ToString("F2") + " m; the contract needs y >= 0.");
+            if (float.IsInfinity(lowest)) { lowest = 0; stats.Problem("No Terrain meshes found; lowestGround set to 0."); }
+            if (lowest < -.01f) stats.Problem("Lowest ground is " + lowest.ToString("F2") + " m; the contract needs y >= 0.");
             map.lowestGround = lowest;
 
             if (data.hasArea) map.localArea = data.localArea;
@@ -180,7 +216,7 @@ namespace DeadlyJenga.DevTools.Editor
             catch (FileNotFoundException) { stats.notes.Add(VisualPrefabName + " not found: built as gray box (no Visual child)."); return; }
             var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             var visual = asset ? PrefabUtility.InstantiatePrefab(asset, root) as GameObject : null;
-            if (!visual) { stats.problems.Add("Could not nest " + path); return; }
+            if (!visual) { stats.Problem("Could not nest " + path); return; }
             visual.name = "Visual";
             stats.notes.Add("Nested " + path + " as Visual.");
         }
@@ -208,6 +244,11 @@ namespace DeadlyJenga.DevTools.Editor
             r.AppendLine("Prefab: " + (prefabPath ?? "not saved"));
             r.AppendLine($"Tiles={stats.tiles} Buildings={stats.buildings} Colliders={stats.colliders} (convex {stats.convexColliders}) ClimbSurfaces={stats.climbSurfaces}");
             r.AppendLine($"Triangles all visuals={stats.trianglesAll} LOD0+terrain+trees+ring={stats.trianglesLod0} Materials={stats.materials} Spawns={stats.spawns}");
+            r.AppendLine($"Visual renderers={stats.renderers} submeshes={stats.submeshes} (all static, batching-static; not merged so material IDs stay submeshes)");
+            r.AppendLine($"Terrain/Trees LOD groups={stats.lodGroups}");
+            r.AppendLine("LOD switch heights: Terrain " + TerrainLod0 + "/" + TerrainLod1 + ", Trees " + TreesLod0 + "/" + TreesLod1 + ", Buildings " + BuildingLod0 + "/" + BuildingLod1);
+            if (stats.ringTilesWithoutCollider > 0)
+                r.AppendLine("NOTE " + stats.ringTilesWithoutCollider + " backdrop ring tiles have no COL_Terrain (expected: farther than 20 m from campus).");
             foreach (var note in stats.notes) r.AppendLine("NOTE " + note);
             foreach (var problem in stats.problems) r.AppendLine("PROBLEM " + problem);
             r.AppendLine(stats.problems.Count == 0 && prefabPath != null ? "RESULT PASS" : "RESULT FAIL (" + stats.problems.Count + " problems)");

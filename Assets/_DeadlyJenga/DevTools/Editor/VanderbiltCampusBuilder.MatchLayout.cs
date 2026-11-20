@@ -43,7 +43,7 @@ namespace DeadlyJenga.DevTools.Editor
             foreach (var p in layout.freeSpawns.Concat(layout.teams.SelectMany(t => t.spawns)))
                 if (!OpenSpawn(map.transform.TransformPoint(p))) blocked++;
             stats.notes.Add($"Match layout: {layout.freeSpawns.Length} free spawns, {layout.teams.Length} teams, signature {layout.layoutSignature}.");
-            if (blocked > 0) stats.problems.Add(blocked + " match spawn points have no ground within 2 m or are blocked.");
+            if (blocked > 0) stats.Problem(blocked + " match spawn points have no ground within 2 m or are blocked.");
         }
 
         // Same test the runtime uses (MapMatchLayout.TrySpawnPosition) plus a standing-room check.

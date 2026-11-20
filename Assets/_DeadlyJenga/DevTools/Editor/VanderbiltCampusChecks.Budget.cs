@@ -53,14 +53,13 @@ namespace DeadlyJenga.DevTools.Editor
         {
             var planes = GeometryUtility.CalculateFrustumPlanes(camera);
             var hidden = new HashSet<Renderer>();
-            float halfTan = Mathf.Tan(camera.fieldOfView * .5f * Mathf.Deg2Rad);
             foreach (var group in root.GetComponentsInChildren<LODGroup>())
             {
                 var lods = group.GetLODs();
                 var center = group.transform.TransformPoint(group.localReferencePoint);
                 float scale = Mathf.Max(Mathf.Abs(group.transform.lossyScale.x), Mathf.Abs(group.transform.lossyScale.y), Mathf.Abs(group.transform.lossyScale.z));
                 float distance = Mathf.Max(.01f, Vector3.Distance(camera.transform.position, center));
-                float screen = group.size * scale / (2 * distance * halfTan) * QualitySettings.lodBias;
+                float screen = VanderbiltCampusBuilder.ScreenHeight(group.size * scale, distance, camera.fieldOfView) * QualitySettings.lodBias;
                 int chosen = -1;
                 for (int i = 0; i < lods.Length; i++) if (screen >= lods[i].screenRelativeTransitionHeight) { chosen = i; break; }
                 for (int i = 0; i < lods.Length; i++)

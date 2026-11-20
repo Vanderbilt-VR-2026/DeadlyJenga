@@ -25,11 +25,11 @@ namespace DeadlyJenga.DevTools.Editor
                     foreach (var item in items)
                         if (item is Dictionary<string, object> d && d.TryGetValue("id", out var id) && id is string s && s.Length > 0) ids.Add(s);
             }
-            catch (Exception e) { stats.problems.Add("material_ids.json could not be read (" + MaterialIdsPath + "): " + e.Message); return result; }
-            if (ids.Count == 0) { stats.problems.Add("material_ids.json has no ids."); return result; }
+            catch (Exception e) { stats.Problem("material_ids.json could not be read (" + MaterialIdsPath + "): " + e.Message); return result; }
+            if (ids.Count == 0) { stats.Problem("material_ids.json has no ids."); return result; }
 
             var shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (!shader) { stats.problems.Add("URP Lit shader not found."); return result; }
+            if (!shader) { stats.Problem("URP Lit shader not found."); return result; }
             foreach (var id in ids)
             {
                 string name = "mat_" + id, path = folder + "/" + name + ".mat";
@@ -50,7 +50,7 @@ namespace DeadlyJenga.DevTools.Editor
         static void ConfigureImporter(string path, List<Material> materials, BuildStats stats)
         {
             var importer = AssetImporter.GetAtPath(path) as ModelImporter;
-            if (!importer) { stats.problems.Add("Not a model importer: " + path); return; }
+            if (!importer) { stats.Problem("Not a model importer: " + path); return; }
             bool changed = false;
             void Set<T>(T current, T wanted, Action<T> apply)
             {
