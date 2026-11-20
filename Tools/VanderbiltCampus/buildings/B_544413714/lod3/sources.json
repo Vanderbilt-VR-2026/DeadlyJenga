@@ -1,0 +1,80 @@
+{
+  "building": "B_544413714",
+  "version": 1,
+  "stage": 4,
+  "lidar": {
+    "path": "derived/lidar/v1/tiles",
+    "use": "tower heights, roof bumps (chimneys), stairs and ground beside each facade"
+  },
+  "lod2": "buildings/B_544413714/v2/lod2.npz",
+  "facades": {
+    "F01": {
+      "layout": "facades/F01/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F02": {
+      "layout": "facades/F02/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F03": {
+      "layout": "facades/F03/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F04": {
+      "layout": "facades/F04/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F05": {
+      "layout": "facades/F05/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F06": {
+      "layout": "facades/F06/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F07": {
+      "layout": "facades/F07/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F08": {
+      "layout": "facades/F08/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F09": {
+      "layout": "facades/F09/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F10": {
+      "layout": "facades/F10/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F11": {
+      "layout": "facades/F11/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    }
+  },
+  "reference_images": [],
+  "public_facts": []
+}
