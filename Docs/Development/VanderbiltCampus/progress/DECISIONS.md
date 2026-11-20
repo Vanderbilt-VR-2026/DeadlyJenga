@@ -28,3 +28,28 @@ Each entry: choice, alternatives, why. Newest at the bottom. Owner: Vanderbilt-M
 - Choice: "Campus" (lobby title "Campus (LoD2)" while massing only). Data and editor tools may use
   "Vanderbilt" and OSM building names; nothing player-facing does until Evan records a trademark decision
   (STANDARDS §12).
+
+## D006 Campus boundary (Stage 0)
+- Choice: OSM way/131042264 "Vanderbilt University" (the only amenity=university polygon; Peabody and the
+  Medical Center lie inside it), closed by 20 m, plus whole street blocks that are >= 75% campus.
+  Campus 1,603,003 m2; 150 m backdrop ring 964,158 m2.
+- Alternatives: cut out the Medical Center (not a separate polygon in OSM; keeping it loses nothing).
+- Why: keeps the most area; the shot list (Stage 2) marks hospital buildings as background priority.
+
+## D007 Working LiDAR copy while USGS throttles the original tiles (Stage 0)
+- Choice: Stage 1 works from the USGS public EPT copy of TN_DavidsonCounty_D22 cropped to campus + ring
+  (`raw/lidar/TN_DavidsonCounty_D22/EPT/`), de-duplicated (the crop has every point twice) and converted
+  to the campus frame under `derived/lidar/`. The 10 original LAZ tiles keep downloading in the background
+  (rockyweb answers HTTP 429; about one tile per 30-40 minutes) and are compared with the EPT copy when
+  complete.
+- Alternatives: wait hours for the tiles before starting Stage 1.
+- Why: same USGS data, same points; nothing is lost, and the originals still land in `raw/`.
+
+## D008 2011 LiDAR and orthophoto sources (Stage 0)
+- 2011 Nashville LiDAR: EPT crop only (6.18 M points, all class 0, 1.6 pts/m2); the 3 GB staging strips
+  were skipped because of the rate limit. Comparison only, so nothing depends on it.
+- Orthophoto: Metro Nashville 2026 imagery exported at 0.15 m/px (license not stated: reference only,
+  never shipped, never leaves this machine) and USGS NAIP 2021 at 0.6 m (public domain) as the
+  shareable fallback. Overlays in results files that might be shared use NAIP.
+- Metro footprints (with Height and RoofType) and 2021 canopy: Metro open data, no explicit license text
+  (Executive Order FO-018); used for cross-checks, credited in ATTRIBUTION.md.
