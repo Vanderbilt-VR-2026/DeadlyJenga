@@ -155,6 +155,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             volume.sharedProfile = profile;
         }
 
+        // Which motion the URP blur uses (a test switch; camera and objects by default).
+        public static MotionBlurMode BlurMode = MotionBlurMode.CameraAndObjects;
+
         // The per-shot look: depth of field from the lens, plus bloom, vignette, grain, colour fringes and a LUT.
         public static void ApplyLook(VolumeProfile target, StudioCameraTrack shot, StudioCameras.Shot lens)
         {
@@ -168,7 +171,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var grain = Get<FilmGrain>(); grain.active = shot.grain > .001f; grain.intensity.Override(Mathf.Clamp01(shot.grain));
             var fringe = Get<ChromaticAberration>(); fringe.active = shot.chroma > .001f; fringe.intensity.Override(Mathf.Clamp01(shot.chroma));
             var blur = Get<MotionBlur>(); blur.active = shot.motionBlur > .001f;
-            blur.mode.Override(MotionBlurMode.CameraAndObjects); blur.quality.Override(MotionBlurQuality.High);
+            blur.mode.Override(BlurMode); blur.quality.Override(MotionBlurQuality.High);
             blur.intensity.Override(Mathf.Clamp01(shot.motionBlur)); blur.clamp.Override(.05f);
             var grade = Get<ColorAdjustments>();
             grade.active = Mathf.Abs(shot.exposure) > .001f || Mathf.Abs(shot.contrast) > .001f || Mathf.Abs(shot.saturation) > .001f;
