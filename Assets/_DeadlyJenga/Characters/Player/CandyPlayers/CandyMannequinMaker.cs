@@ -23,11 +23,13 @@ namespace DeadlyJenga.CandyPlayers
             var frame = new CandyAvatarFrame { feet = feet, scale = 1 };
             if (pose == MannequinPose.Hanging)
             {
-                // Switched off: head slumped forward and down, arms hanging, fingers loose.
-                frame.head = feet + facing * new Vector3(0, 1.42f, .16f);
-                frame.headRotation = facing * Quaternion.Euler(58, 0, 0);
-                frame.left = Hand(feet + facing * new Vector3(-.27f, .66f, .06f), facing * Quaternion.Euler(10, 0, 8), true, .45f);
-                frame.right = Hand(feet + facing * new Vector3(.27f, .66f, .06f), facing * Quaternion.Euler(10, 0, -8), false, .45f);
+                // Switched off: legs straight, head dropped onto the chest (tipped a little to one side),
+                // arms dangling straight down, fingers loose.
+                float tip = (color % 3 - 1) * 14f;
+                frame.head = feet + facing * new Vector3(tip * -.004f, 1.55f, .3f);
+                frame.headRotation = facing * Quaternion.Euler(80, 0, tip);
+                frame.left = Hand(feet + facing * new Vector3(-.22f, .6f, -.02f), facing * Quaternion.Euler(0, 0, 4), true, .4f);
+                frame.right = Hand(feet + facing * new Vector3(.22f, .6f, -.02f), facing * Quaternion.Euler(0, 0, -4), false, .4f);
             }
             else
             {
