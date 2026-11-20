@@ -1,0 +1,24 @@
+# content_start=0.5; first_logo=0; first_gameplay=0.5; first_what=4.23; first_title=29.5; final_title=29.5; endcard_start=29.5; endcard_end=35.18; button=; gameplay_share=0.80
+0 T st t brand platform logo
+1 W pa g hook island course flyover, caption: the ultimate VR mini golf experience
+2 W pa g hook canyon course with windmill obstacle
+3 M pov g teach putt, ball flies over ramps
+4 W pov g teach night course, ball rolls to cup
+5 W st g teach caption: true to life physics
+6 M st g teach gear obstacle, physics caption
+7 W st g var cave course with creature
+8 W st g var fantasy course, big face
+9 C pov g teach ball circles the hole, drops
+10 W st g teach caption: tons of courses
+11 W st g var neon alien course
+12 M st u teach avatar customisation menu
+13 M st g joke friend avatars, caption: challenge your friends
+14 W st g var pier course, friends
+15 M st g joke pirate avatars in tavern
+16 W st g teach caption: full crossplay available
+17 W st g var palm course, flag
+18 T st t title black beat
+19 W pu g title island hero shot, logo appears
+20 T st t title fade
+21 T st t brand black
+22 T st t brand platform end logo

@@ -1,0 +1,5 @@
+# content_start=1.5; first_logo=; first_gameplay=1.5; first_what=1.9; first_title=26.53; final_title=26.53; endcard_start=26.53; endcard_end=31.18; button=; gameplay_share=0.85
+0 T st t hook fade up from black
+1 M pov g hook first-person slicing blocks to the beat, red corridor
+2 M pov g esc same, environment turns blue (light change or cut)
+3 T st t title logo and platforms

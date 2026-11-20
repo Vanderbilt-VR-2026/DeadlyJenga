@@ -1,0 +1,52 @@
+# content_start=0.1; first_logo=86.87; first_gameplay=0.33; first_what=2.10; first_title=86.87; final_title=86.87; endcard_start=86.87; endcard_end=93.59; button=; gameplay_share=0.65
+0 T st t hook black
+1 C st g hook dark canyon wall
+2 C pu g hook canyon wall, rope
+3 M st g hook gorilla with banana hat faces camera, waves
+4 W pov g teach arm-swing locomotion over ropes
+5 W pov g esc chase in canyon, others swing past
+6 W pov g var night forest slide, players
+7 EW pov g var moonlit mountain view
+8 M st g joke gorillas in party hats around campfire
+9 M st g joke text: monke /mon-keh/
+10 W pov g var forest canopy, players swing
+11 W st l teach live action: player in headset in living room
+12 M st g joke unicorn-costume gorilla
+13 M st l teach live action: player flaps arms
+14 W pov g esc swing across treehouse planks
+15 W st l teach live action: player swings arms
+16 W pov g esc forest at night, running
+17 M st l joke live action: girl laughs in headset
+18 W pov g esc dark forest chase
+19 W pov g esc tree trunk climb
+20 M st l joke live action: girl moves
+21 M pov g esc cave with pink crystal, tagged
+22 M pov g esc dark chase
+23 C pov g esc leaves flash
+24 M pov g esc chase in dark
+25 M st l esc live action: player among plants
+26 M pov g esc treetop chase
+27 M st l esc live action: player ducks
+28 W pov g esc forest chase
+29 W pov g esc treehouse
+30 W pov g esc tree trunks
+31 M st l esc live action: player swipes
+32 M st g joke gorilla close with friend behind
+33 M pov g esc canyon, lava-skin gorilla jumps in
+34 C pov g wow lava gorilla tags, close
+35 M pov g esc lava gorilla chases
+36 W st g var blue tunnel, gorilla runs
+37 W pov g esc crystal cave group
+38 M pov g esc lava hands reach
+39 M st l esc live action: player reaches
+40 M pov g esc canyon swing
+41 W pov g esc canyon ropes chase
+42 M st l esc live action
+43 W pov g wow crystal cave fall
+44 M st l esc live action
+45 C st l esc live action close, headset
+46 W pov g wow crystal cave tag
+47 W pov g esc canyon chase
+48 W pu l wow live action player walks, living room becomes jungle
+49 T st t title logo
+50 T st t title black

@@ -1,0 +1,36 @@
+# content_start=0.07; first_logo=44.34; first_gameplay=0.07; first_what=4.30; first_title=44.34; final_title=44.34; endcard_start=44.34; endcard_end=50.13; button=; gameplay_share=0.85
+0 T st t hook black
+1 EW pu g hook floating island map, push in
+2 W st g hook red army lines up
+3 W st g teach shield wall formation
+4 M fo g teach catapult crew loads
+5 W st g joke boulders fly from catapults
+6 W fo g esc boulder hits blue army
+7 M st g esc knights, arrows incoming
+8 M st g joke mammoths charge
+9 M st g joke archers flatten a soldier
+10 W st g esc tree-hat druid casts
+11 EW st g wow massive army on plain
+12 W st g var narrow streets fight
+13 W st g var shield wall on savanna
+14 M st g joke dragon-head ship units
+15 W fo g wow mammoth stampede
+16 M ha g wow cart crash, blur
+17 W st g esc melee mash
+18 W st g esc chaos, bodies fly
+19 M st g joke duel at cliff edge
+20 W st g wow axe units fly over shields
+21 W st g esc town street brawl
+22 EW st g esc wide battle line
+23 M st g wow axe warriors smash
+24 W ha g wow town crash
+25 M st g joke duel in snow
+26 W st g var dragon kite
+27 M st g joke club duel
+28 M st g joke spear duel
+29 M st g joke duel by tower
+30 M st g joke duel in town
+31 M st g joke duel in snow, final hit
+32 T st t title black
+33 T st t title studio logo then game logo
+34 T st t cta available now in Steam Early Access

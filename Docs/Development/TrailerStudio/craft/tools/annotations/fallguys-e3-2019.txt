@@ -1,0 +1,36 @@
+# content_start=2.07; first_logo=6.2; first_gameplay=64.6; first_what=10.3; first_title=80.5; final_title=80.5; endcard_start=80.5; endcard_end=93.79; button=; gameplay_share=0.12
+0 T st t brand rating card
+1 T st t brand black
+2 T st t hook colour wipe
+3 W pu c hook lone bean, then crowd behind it
+4 W st c brand crowd with studio and publisher logos
+5 C st c joke two beans bump, wipe
+6 W fo c teach start line, sweeper arm swings
+7 C st c joke bean flattened by huge ball, wipe
+8 T st t hook wipe
+9 T st t teach counter: 100 fall guys remaining, drops to 87
+10 W fo c esc beans pour down giant slide
+11 W fo c esc slide, other angle
+12 M st c joke bean rides slide toward camera
+13 C st c joke purple bean face, flash
+14 M st c joke chicken and golden egg scuffle
+15 W fo c esc crowd rides giant skateboard
+16 M st c joke beans thrown into water
+17 T st t teach counter drops to 62
+18 W st c var see-saw platform
+19 W pu c joke rainbow run, push to pink bean close
+20 W st c teach wall with holes
+21 M st c joke bean stuck in pink pool
+22 T st t teach counter drops to 56
+23 EW st c var top-down pegs, beans bounce
+24 M st c joke bean in front of giant ball
+25 M st c joke beans flung through the air
+26 W st c wow ball pit, balls flood
+27 W fo c esc castle walls break
+28 C st c esc pink wall close
+29 C st c esc pink wall top
+30 C st c esc wall blocks
+31 M fo c joke beans run among blocks
+32 W fo g esc in-game run to the finish
+33 M st c wow crown graphic, bean grabs crown
+34 T st t title wipe to logo and 2020 date

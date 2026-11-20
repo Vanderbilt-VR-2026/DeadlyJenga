@@ -1,0 +1,33 @@
+# content_start=7.24; first_logo=0; first_gameplay=7.34; first_what=7.34; first_title=10.88; final_title=53.4; endcard_start=53.4; endcard_end=58.26; button=; gameplay_share=0.80
+0 T st t brand Boneloaf logo card
+1 T st t brand partner logo card, dissolves into gameplay
+2 W st g hook brawlers knocked into a floor grinder pit
+3 W st g hook brawl on iceberg buoy over ocean
+4 W st g hook boxing ring top-down, punch lands
+5 T st t title title letter flash over ring
+6 T st t title title letter flash
+7 T st t title title letter flash
+8 T st t title title letter flash
+9 T st t title title letter flash
+10 W st g var letter S wipes into crane-over-water level
+11 W st g var rooftop pool, tentacle grabs fighters
+12 W fo g var fight on top of moving train, desert
+13 W st g var fighters hanging from helicopter over fog city
+14 W fo g var brawl on truck roofs on highway
+15 M st g var grappling on a billboard
+16 W pa g var window-washer gondolas on skyscraper
+17 W st g var yellow gondola platforms
+18 W st g var pink vat factory, fighter falls in
+19 W st g var ferris wheel by the sea
+20 W st g var incinerator conveyor with fire
+21 W st g var lighthouse dome over ocean
+22 W st g var boxing ring again, wider
+23 W st g var water tower staircase fight
+24 W st g var rooftop with pink beams
+25 W fo g var subway train, fighters on side
+26 W st g esc grinder gears from above
+27 W fo g var train roof desert again
+28 W st g esc crane containers swing
+29 W fo g joke truck backs, fighter dangling
+30 W st g joke wharf, pile of fighters with plank
+31 T st t cta yellow end card, logo + platforms

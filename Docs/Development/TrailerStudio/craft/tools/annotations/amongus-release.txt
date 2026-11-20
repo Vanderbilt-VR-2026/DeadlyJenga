@@ -1,0 +1,19 @@
+# content_start=0.27; first_logo=; first_gameplay=0.27; first_what=5.37; first_title=36.0; final_title=36.0; endcard_start=36.0; endcard_end=42.99; button=; gameplay_share=0.70
+0 T st t hook fade from black
+1 W fo g hook top-down crewmate walks the ship
+2 W fo g hook crewmate in corridor with task arrow UI
+3 W st u teach lobby, caption: play online with 4-15 players
+4 W st u teach role reveal splash, caption: one or more players
+5 W st u teach caption: is an impostor
+6 T st t joke SHHHHH impostor graphic
+7 W st g teach impostor vents
+8 C st u wow kill animation
+9 T st t wow red flash
+10 M st u teach wiring task, caption: the others fix the ship
+11 M st u teach card task, task complete
+12 W st g teach caption: call emergency meetings
+13 T pa t esc EMERGENCY MEETING graphic
+14 M st u teach voting screen: discuss what you saw
+15 M st u teach chat accusations
+16 M st u teach voting results: and eject the impostor
+17 W st g title ejected into space, then logo and tagline

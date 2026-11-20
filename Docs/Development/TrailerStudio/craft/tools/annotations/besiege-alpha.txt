@@ -1,0 +1,22 @@
+# content_start=1.0; first_logo=; first_gameplay=1.0; first_what=12.01; first_title=69.1; final_title=69.1; endcard_start=69.1; endcard_end=79.61; button=; gameplay_share=0.85
+0 T st t hook black
+1 W st g hook catapult machine, tower explodes
+2 W pa g wow explosion debris, second angle
+3 W or u teach build editor, machine assembled
+4 W pa g teach siege tower rolls
+5 EW st g var army on mountain plain
+6 W or u teach build editor, catapult arm
+7 M pa g var knights with shields
+8 W pa g esc fortress burns
+9 W st g var flying machine over island
+10 W st g var catapult and army
+11 W st g wow tower collapses on island
+12 M pa g teach wooden machine close
+13 W pa g var crusher by tower
+14 C st g wow flame cannons firing
+15 W st g esc machine set on fire
+16 M ha g wow big explosion
+17 W st g var red siege engine
+18 M pu g esc cannon battery fires
+19 W st g wow huge explosion
+20 T st t title logo card, long hold

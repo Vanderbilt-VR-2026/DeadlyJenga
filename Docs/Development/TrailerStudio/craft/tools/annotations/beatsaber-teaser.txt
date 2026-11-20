@@ -1,0 +1,7 @@
+# content_start=0.63; first_logo=; first_gameplay=; first_what=; first_title=16.1; final_title=16.5; endcard_start=16.5; endcard_end=22.04; button=; gameplay_share=0
+0 T st t build black, thin light line appears
+1 T pu t build light lines form a red 7
+2 T st t build 7 turns blue
+3 T st t title 7 becomes logo
+4 T st t title BEAT SABER logo
+5 T st t title logo fades

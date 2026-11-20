@@ -1,0 +1,48 @@
+# content_start=0.33; first_logo=47.25; first_gameplay=11.0; first_what=11.0; first_title=149.82; final_title=149.82; endcard_start=149.82; endcard_end=162.47; button=; gameplay_share=0.45
+0 T st t hook black
+1 M pu c hook dark door creaks open
+2 W st c hook book character struts through a storybook town
+3 W st g teach wizard and fighter battle (co-op)
+4 W st g teach top-down room, dissolve in
+5 W fo g esc speedboat through explosions
+6 W st g teach split-screen: anglerfish chase
+7 W fo g esc boat chase
+8 W pu g wow clockwork tower, burst
+9 W st g var split-screen space rails
+10 M st c joke Book of Love dances on a table
+11 W fo g var split-screen ski run
+12 W fo g var split-screen tube slide
+13 W fo g var split-screen ice
+14 W fo g var split-screen ice tube
+15 C st c joke book face close
+16 W pu g esc machine room
+17 W st g esc dragon-like bosses
+18 W st g esc fire explosion
+19 W st g esc blaster beam
+20 W st g esc giant spider
+21 M fo g esc climbing a wall
+22 W st g esc clock tower interior
+23 M st g joke doll characters on floor
+24 M st g esc plant boss
+25 M st g esc beetle in cage
+26 C st g esc clown face
+27 W st c joke beetle, then book waves
+28 T st t esc black stop-down
+29 W fo c wow slow motion: the couple fly through a sea of fire
+30 W pu c wow fire aftermath
+31 M st c joke book grins
+32 T st t brand black
+33 T st t brand studio and publisher logos
+34 M st c teach the couple wake up tiny on the floor
+35 M st c teach tiny man looks at his hands
+36 M st c teach tiny woman sits up
+37 M st c joke the two tiny parents argue
+38 M pu c joke the book introduces himself
+88 W st c joke book and the couple on a sofa
+89 M st c joke the couple holding controllers, deadpan
+90 C st c joke book close
+91 M st c joke couple deadpan
+92 W st c joke book bows
+93 W st c joke book flips off a table
+94 T st t title logo animates in, date
+95 T st t cta end card with date and platform info

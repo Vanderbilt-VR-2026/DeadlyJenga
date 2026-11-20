@@ -1,0 +1,30 @@
+# content_start=4.45; first_logo=19.28; first_gameplay=41.2; first_what=41.2; first_title=106.95; final_title=106.95; endcard_start=106.95; endcard_end=120.0; button=; gameplay_share=0.50
+0 T st t brand rating card
+1 T st t brand rating card fades
+2 W pu c build fade up: an old book on a reading desk, candles
+3 W pu c build push into the book, pages glow
+4 T st t build fade
+5 C st c build glowing orb swirls in darkness
+6 C st c build orb circles a blue mask
+7 C st c teach the mask: you, the Reader
+8 C st c teach orb reaches the mask
+9 C st c teach mask glows
+10 C st c teach mask close
+11 W st c brand studio logo over a glade
+12 W st c build dark machine with a glowing brain
+13 W st c build machine pulses
+14 W st c build machine room fades
+15 T st t build black
+16 W pu g build mossy forest house, dissolve
+17 T st t build fade
+18 W st g teach Quill the mouse on a raft in a misty forest, the Reader's light hovers
+19 W st g var forest ruin with frog guards
+20 W st g teach mouse in tall grass, giant blue light
+21 M st g teach mouse sneaks past roots
+22 T st t build fade
+46 W st g esc mouse crosses a statue hall
+47 W pu c title book again: the page shows the mouse and the Reader
+48 T st t title fade to black
+49 T st t title MOSS logo glows in
+50 T st t title logo turns blue, fades
+51 T st t title black

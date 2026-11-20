@@ -1,0 +1,41 @@
+# content_start=0; first_logo=70.3; first_gameplay=0; first_what=1.07; first_title=66.1; final_title=66.1; endcard_start=66.1; endcard_end=72.37; button=; gameplay_share=0.80
+0 W st g hook chicken places a block on blank level
+1 W st g hook horse places a block
+2 W st g hook sheep places a trap
+3 W st g teach raccoon places a hay block
+4 W st g teach players run the course they built
+5 W st g joke everyone reaches goal: too easy, no points
+6 W st g teach horse places crossbow
+7 W st g teach chicken places saw
+8 W st g teach sheep places spinner
+9 W st g esc run with traps
+10 W st g esc long run, traps fire
+11 W st u teach scoreboard slides in, points
+12 T st t joke caption: you're the ultimate chicken
+13 W st g var ice level
+14 W st g var ice level run
+15 W st g var tree level
+16 W st u teach award laurels on level
+17 W st t teach caption card: play on the couch
+18 W st t teach caption card: play online
+19 W st u teach mode signs: creative, party
+20 W st g var farm level
+21 W st g var cannon block
+22 W st g var spinning traps
+23 W st g var windmill saws
+24 W st g var pyramid level
+25 W st g esc tower level
+26 W st g esc tall level
+27 W st g esc waterfall level
+28 W st g esc desert level
+29 W st g esc cave level
+30 W st g wow black hole sucks in the level
+31 W pu g wow debris spins into the void
+32 W pu g wow debris
+33 C pu g wow door flies past
+34 C pu g wow debris
+35 W pl g title pull out of hole to title over cliff
+36 T st t title iris
+37 T st t title flash
+38 T st t brand studio logo
+39 T st t brand logo zooms out

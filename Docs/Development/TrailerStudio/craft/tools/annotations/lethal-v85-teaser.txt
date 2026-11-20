@@ -1,0 +1,14 @@
+# content_start=0.23; first_logo=; first_gameplay=0.23; first_what=23.69; first_title=25.09; final_title=25.09; endcard_start=25.09; endcard_end=27.03; button=; gameplay_share=0.90
+0 T st t build black open
+1 W st g build fade up on dark girders
+2 W pa g build slow tilt down from ladder tower to foggy valley
+3 EW pu g build slow push over cliff landscape at dusk
+4 W st g build dark facility exterior
+5 W st g build darker exterior, lights in windows
+6 M st g build interior with hanging lamp
+7 T st t build black beat
+8 M st g build dark interior glimpse
+9 M st g build lit room with scrap
+10 W pu g esc cave tunnel then corridor
+11 M st g wow corridor, a figure, burst of debris
+12 T st t title text: V85 is coming soon
