@@ -18,9 +18,9 @@ namespace DeadlyJenga.CandyArt.Marina
             }
             Palm(new Vector3(-18.8f,1.285f,11.6f),6.8f,.65f,0);Palm(new Vector3(-16,4.14f,19.9f),5.2f,-.4f,1);
             Palm(new Vector3(-20,4.14f,20.2f),6.1f,.45f,2);Palm(new Vector3(-10.8f,4.14f,20.2f),4.7f,.5f,3);
-            Palm(new Vector3(-3.7f,4.14f,19.9f),5.8f,-.5f,4);Palm(new Vector3(21.6f,.38f,12.4f),5.9f,-.5f,5);
+            Palm(new Vector3(-3.7f,4.14f,19.9f),5.8f,-.5f,4);Palm(new Vector3(23.8f,.38f,12.6f),5.9f,-.5f,5);
             Palm(new Vector3(21.0f,.38f,-3.4f),5.3f,.6f,6);Palm(new Vector3(-22,1.3f,-1.5f),4.6f,-.4f,7);
-            Palm(new Vector3(20.6f,.38f,13.5f),5.7f,.45f,8);
+            Palm(new Vector3(23.4f,.38f,14.8f),5.7f,.45f,8);
             Palm(new Vector3(12.6f,.38f,-4.8f),5.1f,.55f,9);Palm(new Vector3(12.4f,.38f,15.6f),6.2f,-.35f,10);
             Vector3[] pots={new(-16.5f,1.285f,2.72f),new(-16.9f,1.285f,12.1f),new(6.85f,CinemaFloor,7.55f),new(-4.9f,4.14f,16),new(-17.5f,4.14f,14.1f),new(2.8f,4.14f,15.8f),new(-6,4.14f,20.2f)};
             for(int i=0;i<pots.Length;i++)Pot(pots[i],.45f+(i%3)*.07f,.72f+(i%2)*.12f,i+20);
