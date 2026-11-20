@@ -494,12 +494,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Vector3 stumpTop = plan.centre - up * 1f;
                 Vector3 middle = Vector3.Lerp(stumpTop, (heroEnd + handEnd) * .5f, .55f);
                 var spots = new List<Vector3>();
+                // First choice (v06): out past the hand, a little below it, looking back at the tower: the giant hand
+                // big in the foreground, the stolen block running back from it with the hero on the far end, the
+                // stump below and behind. (From the side, v05 had the hand at 0.13 of frame among tower blocks.)
+                Vector3 behindHand = Vector3.Lerp(heroEnd, stumpTop, .35f);
+                foreach (float d in new[] { 5.5f, 7f })
+                foreach (float angle in new[] { 60f, 75f, 45f })   // well round to the side, so the wrist's cut end is not toward the lens
+                { Vector3 p = handEnd + (plan.along * Mathf.Cos(angle * Mathf.Deg2Rad) + plan.side * Mathf.Sin(angle * Mathf.Deg2Rad)) * d; p.y = handEnd.y - 1.2f; spots.Add(p); }
+                int heroSideSpots = spots.Count;
                 foreach (float d in new[] { 8f, 9.5f, 11f })
                 foreach (float lift in new[] { -.5f, 1f, 2.5f, -2f })
                 foreach (float turn in new[] { 15f, 0f, 30f, -15f, 45f })
                 { Vector3 p = middle + (plan.side * Mathf.Cos(turn * Mathf.Deg2Rad) - plan.along * Mathf.Sin(turn * Mathf.Deg2Rad)) * d; p.y = plan.top + lift; spots.Add(p); }
                 Vector3 at = Pick(s.id, spots, heroEnd, handEnd, plan.centre - up * .9f);
-                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, middle));
+                bool pastHand = spots.IndexOf(at) < heroSideSpots;
+                // Past the hand: aim between the hand and the hero's far end, lowered so the stump is in frame.
+                Vector3 aimAt = pastHand ? Vector3.Lerp(handEnd, behindHand, .55f) : middle;
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(at), P(stage, aimAt));
+                lines.Append($"  S06 {(pastHand ? "past the hand" : "from the side")}, hand {Vector3.Distance(at, handEnd):0.0} m, hero {Vector3.Distance(at, heroEnd):0.0} m, stump {Vector3.Distance(at, stumpTop):0.0} m\n");
                 Report(s, c, at, handEnd, 2.4f); cameras.Add(c);
                 lines.Append($"  S06 hero end {V(heroEnd)}, hand end {V(handEnd)}\n");
             }
