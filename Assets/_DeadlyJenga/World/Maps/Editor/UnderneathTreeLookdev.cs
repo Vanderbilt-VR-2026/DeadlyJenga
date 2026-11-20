@@ -81,9 +81,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
         // Same, but from where a player's eyes really are: at spawn, around the playable area
         // looking in and out, and on top of the structure. Pictures go to Logs/TreeLookdev/pov.
         public static void BatchCapturePlayerViews() => StartBatch("pov");
+        public static void BatchCaptureTrain() => StartBatch("train");
 
         const string BatchMode = "UnderneathTreeLookdev.BatchMode";
         public const string PovFolder = "Logs/TreeLookdev/pov";
+        public const string TrainFolder = "Logs/TreeLookdev/train";
 
         static void StartBatch(string mode)
         {
@@ -122,6 +124,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
             // Give the map, its art and the fire a few seconds to build and settle.
             if (now - playing < 15f)
                 return;
+            if (SessionState.GetString(BatchMode, "room") == "train")
+            {
+                ShootTrainViews(TrainFolder);
+                FinishBatch(0);
+                return;
+            }
             if (SessionState.GetString(BatchMode, "room") == "pov")
             {
                 ShootPlayerViews(PovFolder);
@@ -299,6 +307,60 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         canvas.enabled = true;
             }
 
+            File.WriteAllText(Path.Combine(folder, "views.txt"), log.ToString());
+            File.WriteAllText(Path.Combine(folder, "done.txt"), System.DateTime.Now.ToString("s"));
+        }
+
+        // The toy train and its coaches from the side, front, back and above.
+        static void ShootTrainViews(string folder)
+        {
+            Directory.CreateDirectory(folder);
+            var log = new System.Text.StringBuilder();
+            var engine = Object.FindAnyObjectByType<UnderneathTreeTrain>();
+            if (!engine)
+            {
+                File.WriteAllText(Path.Combine(folder, "views.txt"), "no train found");
+                File.WriteAllText(Path.Combine(folder, "done.txt"), System.DateTime.Now.ToString("s"));
+                return;
+            }
+            var hidden = new List<Behaviour>();
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+                if (canvas.enabled)
+                {
+                    canvas.enabled = false;
+                    hidden.Add(canvas);
+                }
+            try
+            {
+                // Whole train: the engine plus every "Train Car" next to it.
+                var whole = new UnityEngine.Bounds(engine.transform.position, Vector3.zero);
+                foreach (var r in engine.transform.parent.GetComponentsInChildren<Renderer>())
+                    if (r.transform.IsChildOf(engine.transform) || (r.transform.parent && r.transform.parent.parent && r.transform.parent.parent.name.StartsWith("Train Car")))
+                        whole.Encapsulate(r.bounds);
+                var ahead = engine.transform.forward;
+                var side = engine.transform.right;
+                float reach = Mathf.Max(whole.extents.x, whole.extents.z);
+                var middle = whole.center;
+                var nose = engine.transform.position;
+                void Save(string name, Vector3 at, Vector3 target, float angle)
+                {
+                    Shoot(Path.Combine(folder, name + ".png"), at, target, angle);
+                    log.AppendLine($"{name}: eye {at} looking at {target}");
+                }
+                log.AppendLine($"train bounds {whole}");
+                Save("train-side-right", middle + side * reach * 1.3f + Vector3.up * reach * .25f, middle, 55f);
+                Save("train-side-left", middle - side * reach * 1.3f + Vector3.up * reach * .25f, middle, 55f);
+                Save("train-front", nose + ahead * reach * .7f + side * reach * .35f + Vector3.up * reach * .15f, middle, 60f);
+                Save("train-back", middle - ahead * reach * 1.4f - side * reach * .3f + Vector3.up * reach * .2f, middle, 55f);
+                Save("train-above", middle + Vector3.up * reach * 1.6f + side * reach * .5f, middle, 60f);
+                Save("train-player-eye", middle + side * reach * .6f + Vector3.up * 1.2f, middle, 75f);
+            }
+            finally
+            {
+                foreach (var canvas in hidden)
+                    if (canvas)
+                        canvas.enabled = true;
+            }
             File.WriteAllText(Path.Combine(folder, "views.txt"), log.ToString());
             File.WriteAllText(Path.Combine(folder, "done.txt"), System.DateTime.Now.ToString("s"));
         }

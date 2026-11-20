@@ -68,7 +68,9 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var train = Instantiate(locomotive, root);
                 train.name = "Tinplate Christmas Train";
-                train.AddComponent<UnderneathTreeTrain>().SetUp(course, ballast, .55f);
+                var engine = train.AddComponent<UnderneathTreeTrain>();
+                engine.SetUp(course, ballast, .55f);
+                AddTrainCars(engine, root);
             }
         }
 
@@ -123,7 +125,9 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var train = Instantiate(locomotive, decking);
                 train.name = "Tinplate Christmas Train";
-                train.AddComponent<UnderneathTreeTrain>().SetUp(course.ToArray(), ballast);
+                var engine = train.AddComponent<UnderneathTreeTrain>();
+                engine.SetUp(course.ToArray(), ballast);
+                AddTrainCars(engine, decking);
             }
         }
 

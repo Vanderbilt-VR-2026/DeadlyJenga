@@ -10,6 +10,8 @@ namespace DeadlyJenga.CastlePrototype
         float[] distance;
         UnderneathTreeGiftPanel[] track;
         float progress;
+        Transform[] cars = new Transform[0];
+        float[] carsBehind = new float[0];
 
         internal void SetUp(Vector3[] course, UnderneathTreeGiftPanel[] sections, float startFraction = 0f)
         {
@@ -22,6 +24,14 @@ namespace DeadlyJenga.CastlePrototype
             PoseTrain();
         }
 
+        // Coaches follow the engine at fixed distances along the rails.
+        internal void AddCars(Transform[] coaches, float[] behind)
+        {
+            cars = coaches;
+            carsBehind = behind;
+            PoseTrain();
+        }
+
         void Update()
         {
             if (path == null || path.Length < 3)
@@ -29,16 +39,28 @@ namespace DeadlyJenga.CastlePrototype
             int next = SectionAt(progress + 2.6f);
             if (!TrackIntact(track[next]) || !TrackIntact(track[SectionAt(progress)]))
                 return;
+            // A coach over a broken stretch holds the whole train.
+            foreach (float behind in carsBehind)
+                if (!TrackIntact(track[SectionAt(progress - behind)]))
+                    return;
             progress = Mathf.Repeat(progress + Time.deltaTime * MetresPerSecond, distance[distance.Length - 1]);
             PoseTrain();
         }
 
         void PoseTrain()
         {
-            var point = Sample(progress);
-            var nose = Sample(progress + 1.4f);
-            var tail = Sample(progress - 1.4f);
-            transform.SetLocalPositionAndRotation(point + Vector3.up * .35f, Quaternion.LookRotation(nose - tail));
+            Pose(transform, progress);
+            for (int i = 0; i < cars.Length; i++)
+                if (cars[i])
+                    Pose(cars[i], progress - carsBehind[i]);
+        }
+
+        void Pose(Transform body, float travelled)
+        {
+            var point = Sample(travelled);
+            var nose = Sample(travelled + 1.4f);
+            var tail = Sample(travelled - 1.4f);
+            body.SetLocalPositionAndRotation(point + Vector3.up * .35f, Quaternion.LookRotation(nose - tail));
         }
 
         static bool TrackIntact(UnderneathTreeGiftPanel segment) =>
