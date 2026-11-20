@@ -179,10 +179,10 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 DeckLight(P(s * 2.0f, .03f, -hd - ShopPorch + .35f));
                 Pot(P(s * (hw - .7f), .03f, -hd - .55f), .38f, .65f, s > 0 ? 31 : 32);
-                float bx = s * 3.3f, bz = -hd - .4f;
-                B(bx, .42f, bz, new Vector3(1.6f, .07f, .45f), F.Wood, .02f, true);
-                B(bx, .75f, bz + .2f, new Vector3(1.6f, .4f, .06f), F.Wood, .02f);
-                foreach (float e in new[] { -.7f, .7f }) B(bx + e, .21f, bz, new Vector3(.08f, .42f, .4f), F.DarkWood, .02f);
+                float benchX = s * 3.3f, benchZ = -hd - .4f;
+                B(benchX, .42f, benchZ, new Vector3(1.6f, .07f, .45f), F.Wood, .02f, true);
+                B(benchX, .75f, benchZ + .2f, new Vector3(1.6f, .4f, .06f), F.Wood, .02f);
+                foreach (float e in new[] { -.7f, .7f }) B(benchX + e, .21f, benchZ, new Vector3(.08f, .42f, .4f), F.DarkWood, .02f);
             }
 
             // Outside, left: a rack of beach towels. Outside, right: sunglasses spinner and beach balls.
