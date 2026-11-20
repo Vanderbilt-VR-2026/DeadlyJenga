@@ -30,7 +30,9 @@ namespace DeadlyJenga.DevTools.Editor
         sealed class BuildStats
         {
             public int tiles, buildings, lodGroups, colliders, convexColliders, climbSurfaces, materials, trianglesAll, trianglesLod0, spawns;
-            public int renderers, submeshes, ringTilesWithoutCollider;
+            public int renderers, submeshes, ringTilesWithoutCollider, tinyConvex, buildingsMissingLevel, exporterHlods, builtHlods;
+            public long hlodVertices, hlodIndices, hlodAssetBytes;
+            public string axisFix = "";
             public readonly List<string> problems = new List<string>();
             // A real problem: fails the build (exit 1) and goes to the Unity log so the coordinator's summary shows it.
             public void Problem(string text)
@@ -40,6 +42,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
             public readonly List<string> notes = new List<string>();
             public readonly List<Transform> spawnMarkers = new List<Transform>();
+            public readonly List<Transform> routeMarkers = new List<Transform>();
             public readonly List<Renderer> terrain = new List<Renderer>();
             public readonly List<Renderer> visuals = new List<Renderer>();
         }
@@ -116,6 +119,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var root = new GameObject("Campus (LoD2) - Vanderbilt tiles");
                 var map = root.AddComponent<VanderbiltCampusMap>();
                 foreach (var path in tilePaths) AddTile(root.transform, path, stats);
+                CheckAxes(root.transform, data, stats);
                 FillMap(map, data, stats);
                 NestVisual(root.transform, stats);
 
@@ -245,8 +249,14 @@ namespace DeadlyJenga.DevTools.Editor
             r.AppendLine($"Tiles={stats.tiles} Buildings={stats.buildings} Colliders={stats.colliders} (convex {stats.convexColliders}) ClimbSurfaces={stats.climbSurfaces}");
             r.AppendLine($"Triangles all visuals={stats.trianglesAll} LOD0+terrain+trees+ring={stats.trianglesLod0} Materials={stats.materials} Spawns={stats.spawns}");
             r.AppendLine($"Visual renderers={stats.renderers} submeshes={stats.submeshes} (all static, batching-static; not merged so material IDs stay submeshes)");
-            r.AppendLine($"Terrain/Trees LOD groups={stats.lodGroups}");
-            r.AppendLine("LOD switch heights: Terrain " + TerrainLod0 + "/" + TerrainLod1 + ", Trees " + TreesLod0 + "/" + TreesLod1 + ", Buildings " + BuildingLod0 + "/" + BuildingLod1);
+            r.AppendLine($"Tile LODGroups={stats.lodGroups} (one per tile, not nested); switch heights detail {TileDetail} / mid {TileMid} / far {TileFar}; buildings missing a LOD level={stats.buildingsMissingLevel}");
+            if (stats.axisFix.Length > 0) r.AppendLine("AXES " + stats.axisFix);
+            int perBuilding = stats.buildings > 0 ? Mathf.RoundToInt((float)stats.convexColliders / stats.buildings) : 0;
+            r.AppendLine($"Convex colliders per building (average)={perBuilding}; tiny convex pieces (< 0.5 m or < 0.05 m3)={stats.tinyConvex}");
+            long hlodBytes = stats.hlodVertices * HlodVertexBytes + stats.hlodIndices * 4;
+            r.AppendLine($"HLOD exporter objects={stats.exporterHlods} built={stats.builtHlods} (MakeHlodAssets={MakeHlodAssets}); HLOD estimate if built here: " +
+                $"{stats.hlodVertices} vertices, {stats.hlodIndices / 3} triangles, {hlodBytes / 1048576f:F1} MB binary, about {hlodBytes * 2 / 1048576f:F0} MB as text .asset (ForceText)" +
+                (stats.builtHlods > 0 ? $"; actual files {stats.hlodAssetBytes / 1048576f:F1} MB" : ""));
             if (stats.ringTilesWithoutCollider > 0)
                 r.AppendLine("NOTE " + stats.ringTilesWithoutCollider + " backdrop ring tiles have no COL_Terrain (expected: farther than 20 m from campus).");
             foreach (var note in stats.notes) r.AppendLine("NOTE " + note);

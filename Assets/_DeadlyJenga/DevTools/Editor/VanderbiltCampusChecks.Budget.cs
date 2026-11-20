@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastlePrototype;
 using UnityEngine;
@@ -8,48 +9,87 @@ using Object = UnityEngine.Object;
 namespace DeadlyJenga.DevTools.Editor
 {
     // Quest 3 budget per viewpoint (STANDARDS §10): <= 250k visible triangles and <= 150 draw calls.
-    // "Visible" = inside a 90 degree, 700 m frustum after picking each LODGroup's level by screen size.
-    // Two draw-call numbers: A = one per renderer submesh (today's gray materials), B = one per renderer
+    // "Visible" = inside a 90 degree, 700 m frustum after picking each LODGroup's level by screen size
+    // (the same formula as the builder: VanderbiltCampusBuilder.ScreenHeight).
+    // Main result at lodBias 1 (the conservative Quest assumption); also shown at the editor's lodBias.
+    // Draw calls: A = one per renderer submesh (today's gray materials), B = one per renderer
     // (every mat_ submesh sharing ONE palette material). Neither assumes static batching.
     public static partial class VanderbiltCampusChecks
     {
         const int TriangleBudget = 250000, DrawBudget = 150;
         const float Fov = 90, FarClip = 700, EyeHeight = 1.7f;
+        static readonly string[] Roles = { "terrain LOD0", "terrain LOD1", "buildings LOD0", "buildings LOD1", "trees LOD0", "trees LOD1", "ring", "HLOD", "other" };
 
-        struct ViewCount { public int triangles, drawsPerSubmesh, drawsPerRenderer; }
+        sealed class ViewCount
+        {
+            public int triangles, drawsPerSubmesh, drawsPerRenderer;
+            public readonly Dictionary<string, int[]> roles = Roles.ToDictionary(r => r, r => new int[2]);   // [triangles, draws A]
+        }
+
+        static List<(string name, Vector3 pos, Vector3 look)> Views(Transform root, VanderbiltCampusMap map, VanderbiltCampusData data)
+        {
+            var views = data.viewpoints.Select(v => (v.name, pos: root.TransformPoint(v.pos), look: root.TransformPoint(v.look))).ToList();
+            if (views.Count > 0) return views;
+            report.AppendLine("NOTE No viewpoints in unity_map.json: using the 5 tile centers with the most triangles.");
+            return BusiestTiles(root, map);
+        }
+
+        static Camera ViewCamera()
+        {
+            var camera = new GameObject("Budget camera").AddComponent<Camera>();
+            camera.enabled = false; camera.fieldOfView = Fov; camera.aspect = 1; camera.nearClipPlane = .05f; camera.farClipPlane = FarClip;
+            return camera;
+        }
+
+        static void Aim(Camera camera, Vector3 pos, Vector3 look)
+        {
+            camera.transform.position = pos;
+            var dir = look - pos; if (dir.sqrMagnitude < .01f) dir = Vector3.forward;
+            camera.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+        }
 
         static void Budget(Transform root, VanderbiltCampusMap map, VanderbiltCampusData data)
         {
-            var views = data.viewpoints.Select(v => (v.name, pos: root.TransformPoint(v.pos), look: root.TransformPoint(v.look))).ToList();
-            if (views.Count == 0)
-            {
-                report.AppendLine("NOTE No viewpoints in unity_map.json: using the 5 tile centers with the most triangles.");
-                views = BusiestTiles(root, map);
-            }
-            var go = new GameObject("Budget camera"); var camera = go.AddComponent<Camera>();
-            camera.enabled = false; camera.fieldOfView = Fov; camera.aspect = 1; camera.nearClipPlane = .05f; camera.farClipPlane = FarClip;
-            camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = new Color(.55f, .75f, .92f);
+            var camera = ViewCamera();
+            float editorBias = QualitySettings.lodBias;
             try
             {
-                foreach (var view in views)
+                foreach (var view in Views(root, map, data))
                 {
-                    camera.transform.position = view.pos;
-                    var dir = view.look - view.pos; if (dir.sqrMagnitude < .01f) dir = Vector3.forward;
-                    camera.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
-                    var count = Count(root, camera);
+                    Aim(camera, view.pos, view.look);
+                    var count = Count(root, camera, 1);
                     bool pass = count.triangles <= TriangleBudget && count.drawsPerSubmesh <= DrawBudget;
-                    Check(pass, $"Budget '{view.name}' at {view.pos:F0}: tris={count.triangles} draws(A per submesh)={count.drawsPerSubmesh} " +
+                    Check(pass, $"Budget '{view.name}' at {view.pos:F0} (lodBias 1): tris={count.triangles} draws(A per submesh)={count.drawsPerSubmesh} " +
                         $"(limits {TriangleBudget}/{DrawBudget}); draws(B one shared material)={count.drawsPerRenderer} " +
                         (count.drawsPerRenderer <= DrawBudget ? "within" : "over") + " budget");
-                    Capture(camera, 1600, 1600, "VanderbiltCampus-view-" + Safe(view.name) + ".png");
+                    report.AppendLine("  by role (tris / draws A): " + string.Join(", ",
+                        count.roles.Where(r => r.Value[1] > 0).Select(r => $"{r.Key} {r.Value[0]} / {r.Value[1]}")));
+                    if (!Mathf.Approximately(editorBias, 1))
+                    {
+                        var editor = Count(root, camera, editorBias);
+                        report.AppendLine($"  at editor lodBias {editorBias}: tris={editor.triangles} draws A={editor.drawsPerSubmesh} B={editor.drawsPerRenderer}");
+                    }
                 }
             }
-            finally { Object.DestroyImmediate(go); }
-            report.AppendLine("NOTE LOD choice uses QualitySettings.lodBias=" + QualitySettings.lodBias + " of the editor's quality level; Quest may differ.");
+            finally { Object.DestroyImmediate(camera.gameObject); }
+        }
+
+        static string RoleOf(Renderer r)
+        {
+            string n = Regex.Replace(r.name, @"\.\d+$", "");
+            if (n == "Terrain") return "terrain LOD0";
+            if (n == "Terrain_LOD1") return "terrain LOD1";
+            if (n == "Trees") return "trees LOD0";
+            if (n == "Trees_LOD1") return "trees LOD1";
+            if (n == "Ring") return "ring";
+            if (n == "HLOD") return "HLOD";
+            if (n.StartsWith("B_") && n.EndsWith("_LOD0")) return "buildings LOD0";
+            if (n.StartsWith("B_") && n.EndsWith("_LOD1")) return "buildings LOD1";
+            return "other";
         }
 
         // Counts what a camera would draw: frustum test plus the LOD level each LODGroup would show.
-        static ViewCount Count(Transform root, Camera camera)
+        static ViewCount Count(Transform root, Camera camera, float lodBias)
         {
             var planes = GeometryUtility.CalculateFrustumPlanes(camera);
             var hidden = new HashSet<Renderer>();
@@ -58,8 +98,8 @@ namespace DeadlyJenga.DevTools.Editor
                 var lods = group.GetLODs();
                 var center = group.transform.TransformPoint(group.localReferencePoint);
                 float scale = Mathf.Max(Mathf.Abs(group.transform.lossyScale.x), Mathf.Abs(group.transform.lossyScale.y), Mathf.Abs(group.transform.lossyScale.z));
-                float distance = Mathf.Max(.01f, Vector3.Distance(camera.transform.position, center));
-                float screen = VanderbiltCampusBuilder.ScreenHeight(group.size * scale, distance, camera.fieldOfView) * QualitySettings.lodBias;
+                float distance = Vector3.Distance(camera.transform.position, center);
+                float screen = VanderbiltCampusBuilder.ScreenHeight(group.size * scale, distance, camera.fieldOfView) * lodBias;
                 int chosen = -1;
                 for (int i = 0; i < lods.Length; i++) if (screen >= lods[i].screenRelativeTransitionHeight) { chosen = i; break; }
                 for (int i = 0; i < lods.Length; i++)
@@ -72,9 +112,9 @@ namespace DeadlyJenga.DevTools.Editor
                 if (!r.enabled || hidden.Contains(r)) continue;
                 var filter = r.GetComponent<MeshFilter>(); var mesh = filter ? filter.sharedMesh : null;
                 if (!mesh || !GeometryUtility.TestPlanesAABB(planes, r.bounds)) continue;
-                count.triangles += VanderbiltCampusBuilder.Triangles(mesh);
-                count.drawsPerSubmesh += mesh.subMeshCount;
-                count.drawsPerRenderer++;
+                int tris = VanderbiltCampusBuilder.Triangles(mesh);
+                count.triangles += tris; count.drawsPerSubmesh += mesh.subMeshCount; count.drawsPerRenderer++;
+                var role = count.roles[RoleOf(r)]; role[0] += tris; role[1] += mesh.subMeshCount;
             }
             return count;
         }
@@ -107,34 +147,6 @@ namespace DeadlyJenga.DevTools.Editor
             return views;
         }
 
-        // Straight-down orthographic render covering localArea exactly, north (+Z) up.
-        static void Overhead(VanderbiltCampusMap map)
-        {
-            var area = map.localArea;
-            var min = map.transform.TransformPoint(area.min); var max = map.transform.TransformPoint(area.max);
-            float sizeX = Mathf.Max(1, max.x - min.x), sizeZ = Mathf.Max(1, max.z - min.z);
-            int width = sizeX >= sizeZ ? 4096 : Mathf.Max(1, Mathf.RoundToInt(4096 * sizeX / sizeZ));
-            int height = sizeZ >= sizeX ? 4096 : Mathf.Max(1, Mathf.RoundToInt(4096 * sizeZ / sizeX));
-            var go = new GameObject("Overhead camera"); var camera = go.AddComponent<Camera>();
-            try
-            {
-                camera.enabled = false; camera.orthographic = true;
-                camera.orthographicSize = sizeZ * .5f; camera.aspect = sizeX / sizeZ;
-                camera.transform.position = new Vector3((min.x + max.x) * .5f, max.y + 50, (min.z + max.z) * .5f);
-                camera.transform.rotation = Quaternion.LookRotation(Vector3.down, Vector3.forward);
-                camera.nearClipPlane = .1f; camera.farClipPlane = max.y - min.y + 150;
-                camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = Color.black;
-                Capture(camera, width, height, "VanderbiltCampus-overhead.png");
-                report.AppendLine($"OVERHEAD Logs/Validation/VanderbiltCampus-overhead.png {width}x{height} px covers world X {min.x:F2}..{max.x:F2}, Z {min.z:F2}..{max.z:F2} " +
-                    $"(map root at origin, so campus frame = world). {sizeX / width:F4} m per pixel; top of image = north (+Z), left = west (-X).");
-            }
-            finally { Object.DestroyImmediate(go); }
-        }
-
-        static string Safe(string name)
-        {
-            var chars = name.Select(c => char.IsLetterOrDigit(c) || c == '-' || c == '_' ? c : '_').ToArray();
-            return new string(chars);
-        }
+        static string Safe(string name) => new string(name.Select(c => char.IsLetterOrDigit(c) || c == '-' || c == '_' ? c : '_').ToArray());
     }
 }

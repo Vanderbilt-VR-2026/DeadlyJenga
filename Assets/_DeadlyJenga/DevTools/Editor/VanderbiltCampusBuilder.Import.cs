@@ -30,6 +30,9 @@ namespace DeadlyJenga.DevTools.Editor
 
             var shader = Shader.Find("Universal Render Pipeline/Lit");
             if (!shader) { stats.Problem("URP Lit shader not found."); return result; }
+            // "mixed" is not a material ID: it is the one material of a merged HLOD mesh, whose
+            // vertex colors still carry each triangle's ID. Its mat_ prefix lets Presentation swap it too.
+            ids.Add(MixedMaterialName.Substring(4));
             foreach (var id in ids)
             {
                 string name = "mat_" + id, path = folder + "/" + name + ".mat";
@@ -41,8 +44,9 @@ namespace DeadlyJenga.DevTools.Editor
                 m.enableInstancing = true;
                 EditorUtility.SetDirty(m); result.Add(m);
             }
+            mixedMaterial = result.Find(m => m.name == MixedMaterialName);
             stats.materials = result.Count;
-            if (result.Count != 27) stats.notes.Add("material_ids.json lists " + result.Count + " ids (STANDARDS v1 has 27).");
+            if (result.Count != 28) stats.notes.Add("material_ids.json lists " + (result.Count - 1) + " ids (STANDARDS v1 has 27) plus mat_mixed.");
             return result;
         }
 

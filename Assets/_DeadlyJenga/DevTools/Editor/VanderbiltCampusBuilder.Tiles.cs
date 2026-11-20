@@ -10,35 +10,46 @@ using Object = UnityEngine.Object;
 namespace DeadlyJenga.DevTools.Editor
 {
     // Turns one imported tile model into map content. Object names from Blender decide roles:
-    //   COL_Terrain, COL_Trees     -> static non-convex MeshCollider on Layers.Surface (renderer removed)
-    //   COL_B_<id>_<n>             -> static convex MeshCollider, grouped under COL_B_<id> with CampusClimbSurface
-    //   Terrain + Terrain_LOD1     -> LODGroup "Terrain LODs" (far terrain never culled)
-    //   Trees + Trees_LOD1         -> LODGroup "Trees LODs"
-    //   B_<id>_LOD0 + B_<id>_LOD1  -> LODGroup "B_<id>"
-    //   Spawn_*, Route_*, Climb_*  -> empty markers (moved under "Markers")
-    //   anything else with a mesh  -> static visual, never a collider (this includes Ring: no collider, no LOD)
+    //   COL_Terrain, COL_Trees      -> static non-convex MeshCollider on Layers.Surface (renderer removed)
+    //   COL_B_<id>_<n>              -> static convex MeshCollider, grouped under COL_B_<id> with CampusClimbSurface
+    //   Terrain, B_<id>_LOD0, Trees -> tile LOD0 (detail)
+    //   Terrain_LOD1, B_<id>_LOD1, Trees_LOD1 -> tile LOD1 (mid distance)
+    //   Ring                        -> tile LOD0 and LOD1 (and LOD2 when there is no HLOD)
+    //   HLOD                        -> tile LOD2 (far): one merged mesh (from the exporter, or built here)
+    //   Spawn_*, Route_*, Climb_*   -> empty markers (moved under "Markers")
+    //   anything else with a mesh   -> static visual, never a collider, always drawn
+    //
+    // One LODGroup per tile on the tile root, never nested: every renderer belongs to exactly one LODGroup,
+    // which is the only arrangement Unity handles reliably. (The FBX importer may add its own LODGroup for
+    // "_LOD0/_LOD1" names; it is removed first.)
     public static partial class VanderbiltCampusBuilder
     {
-        // LOD switch heights (fraction of screen height). Unity: height = size / (2 * distance * tan(fov / 2)),
-        // so at 90 degree FOV distance = size / (2 * height). Distances below are for lodBias 1.
-        // Terrain group (size ~100 m tile): LOD0 until 20% (~250 m from the tile center), then LOD1 forever.
-        public const float TerrainLod0 = .20f, TerrainLod1 = 0f;
-        // Trees group (one merged mesh per tile, size ~100 m): LOD0 until 12% (~420 m), LOD1 until 1% (~5 km,
-        // past the 700 m far clip, so in practice never culled), then culled.
-        public const float TreesLod0 = .12f, TreesLod1 = .01f;
-        // Buildings (size s = largest side): LOD0 until 4% (12.5 x s: a 20 m building ~250 m),
-        // LOD1 until 0.5% (100 x s: a 20 m building ~2 km, beyond the far clip), then culled.
-        public const float BuildingLod0 = .04f, BuildingLod1 = .005f;
+        // Tile LOD switch heights (fraction of screen height). Unity: height = size / (2 * distance * tan(fov / 2)),
+        // so at 90 degree FOV and lodBias 1, distance = size / (2 * height), measured to the tile's bounds center.
+        // A tile's size is about 100 m (more with tall buildings).
+        // LOD0 (detail) until 35%  -> about 143 m from the tile center (the nearest tile edge is ~50 m closer).
+        // LOD1 (LoD1 meshes) until 20% -> about 250 m.
+        // LOD2 (HLOD, one draw call) beyond that, never culled, so the ground always draws.
+        // At lodBias 2 (the editor's default quality level) every distance doubles.
+        public const float TileDetail = .35f, TileMid = .20f, TileFar = 0f;
 
         // Fraction of screen height an object of this size fills (Unity's LODGroup rule). The budget check uses it too.
         internal static float ScreenHeight(float size, float distance, float fovDegrees) =>
             size / (2 * Mathf.Max(.01f, distance) * Mathf.Tan(fovDegrees * .5f * Mathf.Deg2Rad));
 
         static readonly Regex BuildingCollider = new Regex(@"^COL_B_(.+)_(\d+)$");
-        static readonly Regex LodName = new Regex(@"^(B_.+)_LOD([01])$|^(Terrain|Trees)(_LOD1)?$");
+        static readonly Regex BuildingLod = new Regex(@"^B_(.+)_LOD([01])$");
 
         // Blender may add ".001" to duplicate names; ignore it when reading roles.
         static string CleanName(string name) => Regex.Replace(name, @"\.\d+$", "");
+
+        // Renderers of one tile sorted by LOD role.
+        sealed class TileParts
+        {
+            public Renderer terrain, terrainLod1, trees, treesLod1, hlod;
+            public readonly List<Renderer> ring = new List<Renderer>();
+            public readonly Dictionary<string, Renderer[]> buildings = new Dictionary<string, Renderer[]>();
+        }
 
         static void AddTile(Transform root, string path, BuildStats stats)
         {
@@ -52,12 +63,13 @@ namespace DeadlyJenga.DevTools.Editor
             tile.transform.SetParent(root, false);
             tile.transform.localPosition = Vector3.zero; tile.transform.localRotation = Quaternion.identity; tile.transform.localScale = Vector3.one;
             tile.isStatic = true;
+            foreach (var auto in tile.GetComponentsInChildren<LODGroup>(true)) Object.DestroyImmediate(auto);
             stats.tiles++;
 
             var colliders = Child(tile.transform, "Colliders");
             var markers = Child(tile.transform, "Markers");
             var buildingColliders = new Dictionary<string, Transform>();
-            var lods = new Dictionary<string, Transform[]>();   // group name -> [LOD0, LOD1]
+            var parts = new TileParts();
             bool terrainCollider = false, hasBuildings = false;
 
             foreach (var t in tile.GetComponentsInChildren<Transform>(true).ToArray())
@@ -91,25 +103,30 @@ namespace DeadlyJenga.DevTools.Editor
                     foreach (var f in t.GetComponents<MeshFilter>()) Object.DestroyImmediate(f);
                     t.SetParent(markers, true);
                     if (name.StartsWith("Spawn_")) stats.spawnMarkers.Add(t);
+                    if (name.StartsWith("Route_")) stats.routeMarkers.Add(t);
                 }
                 else
                 {
-                    var lod = LodName.Match(name);
-                    bool lod1 = false;
+                    var lod = BuildingLod.Match(name);
+                    bool mid = name.EndsWith("_LOD1");
+                    var renderer = MakeVisual(t, mid, stats);
+                    if (!renderer) continue;
                     if (lod.Success)
                     {
-                        string group = lod.Groups[1].Success ? lod.Groups[1].Value : lod.Groups[3].Value + " LODs";
-                        int level = lod.Groups[1].Success ? (lod.Groups[2].Value == "0" ? 0 : 1) : (lod.Groups[4].Success ? 1 : 0);
-                        lod1 = level == 1;
-                        if (!lods.TryGetValue(group, out var pair)) lods[group] = pair = new Transform[2];
-                        if (pair[level]) stats.Problem(tile.name + ": two objects for " + group + " LOD" + level);
-                        pair[level] = t;
+                        string id = lod.Groups[1].Value; int level = lod.Groups[2].Value == "0" ? 0 : 1;
+                        if (!parts.buildings.TryGetValue(id, out var pair)) parts.buildings[id] = pair = new Renderer[2];
+                        if (pair[level]) stats.Problem(tile.name + ": two objects named B_" + id + "_LOD" + level);
+                        pair[level] = renderer;
                     }
-                    MakeVisual(t, lod1, stats);
-                    if (name == "Terrain") { var r = t.GetComponent<Renderer>(); if (r) stats.terrain.Add(r); }
+                    else if (name == "Terrain") { parts.terrain = renderer; stats.terrain.Add(renderer); }
+                    else if (name == "Terrain_LOD1") parts.terrainLod1 = renderer;
+                    else if (name == "Trees") parts.trees = renderer;
+                    else if (name == "Trees_LOD1") parts.treesLod1 = renderer;
+                    else if (name == "Ring") parts.ring.Add(renderer);
+                    else if (name == "HLOD") { parts.hlod = renderer; stats.exporterHlods++; }
                 }
             }
-            foreach (var pair in lods) GroupLods(tile.transform, pair.Key, pair.Value, stats);
+            TileLods(tile.transform, parts, stats);
             if (!terrainCollider)
             {
                 // Backdrop ring tiles far from campus have no ground collider on purpose.
@@ -136,23 +153,30 @@ namespace DeadlyJenga.DevTools.Editor
             t.gameObject.isStatic = true;
             var shape = t.gameObject.AddComponent<MeshCollider>();
             shape.sharedMesh = mesh; shape.convex = convex;
-            stats.colliders++; if (convex) stats.convexColliders++;
+            stats.colliders++;
+            if (convex)
+            {
+                stats.convexColliders++;
+                var size = mesh.bounds.size;   // bounds are available even when the mesh is not readable
+                if (Mathf.Max(size.x, size.y, size.z) < .5f || size.x * size.y * size.z < .05f) stats.tinyConvex++;
+            }
             return true;
         }
 
         // Visual meshes are fully static (isStatic sets every flag, including Batching Static) and never collide.
-        static void MakeVisual(Transform t, bool lod1, BuildStats stats)
+        static MeshRenderer MakeVisual(Transform t, bool lod1, BuildStats stats)
         {
             foreach (var c in t.GetComponents<Collider>()) Object.DestroyImmediate(c);
             t.gameObject.isStatic = true;
             var filter = t.GetComponent<MeshFilter>(); var renderer = t.GetComponent<MeshRenderer>();
-            if (!filter || !filter.sharedMesh || !renderer) return;
+            if (!filter || !filter.sharedMesh || !renderer) return null;
             stats.visuals.Add(renderer);
             stats.renderers++; stats.submeshes += filter.sharedMesh.subMeshCount;
             int tris = Triangles(filter.sharedMesh);
             stats.trianglesAll += tris; if (!lod1) stats.trianglesLod0 += tris;
             foreach (var m in renderer.sharedMaterials)
                 if (!m || !m.name.StartsWith("mat_")) { stats.Problem(t.name + " uses material '" + (m ? m.name : "none") + "' (needs mat_<id>)."); break; }
+            return renderer;
         }
 
         internal static int Triangles(Mesh mesh)
@@ -162,31 +186,37 @@ namespace DeadlyJenga.DevTools.Editor
             return (int)count;
         }
 
-        // LOD0 and LOD1 of one thing go under one object that switches between them by screen size.
-        static void GroupLods(Transform tile, string group, Transform[] levels, BuildStats stats)
+        // One LODGroup on the tile root: LOD0 detail, LOD1 the LoD1 meshes, LOD2 the HLOD (or the LoD1 meshes again).
+        // Anything missing a level uses the level it has, so nothing pops out.
+        static void TileLods(Transform tile, TileParts parts, BuildStats stats)
         {
-            bool building = group.StartsWith("B_");
-            if (!building && !levels[1]) return;   // terrain or trees with only LOD0: keep a plain renderer
-            float near = building ? BuildingLod0 : group.StartsWith("Terrain") ? TerrainLod0 : TreesLod0;
-            float far = building ? BuildingLod1 : group.StartsWith("Terrain") ? TerrainLod1 : TreesLod1;
+            var detail = new List<Renderer>(); var mid = new List<Renderer>();
+            void Pair(Renderer near, Renderer far)
+            {
+                if (near || far) { detail.Add(near ? near : far); mid.Add(far ? far : near); }
+            }
+            Pair(parts.terrain, parts.terrainLod1);
+            Pair(parts.trees, parts.treesLod1);
+            foreach (var pair in parts.buildings)
+            {
+                if (!pair.Value[0] || !pair.Value[1]) stats.buildingsMissingLevel++;
+                Pair(pair.Value[0], pair.Value[1]);
+                stats.buildings++;
+            }
+            detail.AddRange(parts.ring); mid.AddRange(parts.ring);
+            if (detail.Count == 0) return;
 
-            var holder = Child(tile, group);
-            holder.gameObject.isStatic = true;
-            var oldParents = levels.Where(l => l).Select(l => l.parent).Where(p => p != tile).Distinct().ToList();
-            var entries = new List<LOD>();
-            if (levels[0]) { levels[0].SetParent(holder, true); entries.Add(new LOD(near, levels[0].GetComponentsInChildren<Renderer>())); }
-            if (levels[1]) { levels[1].SetParent(holder, true); entries.Add(new LOD(far, levels[1].GetComponentsInChildren<Renderer>())); }
-            if (!levels[0]) stats.Problem(tile.name + ": " + group + " is missing LOD0.");
-            else if (!levels[1]) stats.Problem(tile.name + ": " + group + " is missing LOD1.");
-            // A single level still uses the far threshold (buildings cull at 0.5% screen height).
-            if (entries.Count == 1) entries[0] = new LOD(far, entries[0].renderers);
-            var lodGroup = holder.gameObject.AddComponent<LODGroup>();
-            lodGroup.SetLODs(entries.ToArray());
+            var hlod = parts.hlod ? parts.hlod : MakeHlod(tile, mid, stats);
+            var far = hlod ? new List<Renderer> { hlod } : mid;
+            var lodGroup = tile.gameObject.AddComponent<LODGroup>();
+            lodGroup.SetLODs(new[]
+            {
+                new LOD(TileDetail, detail.ToArray()),
+                new LOD(TileMid, mid.ToArray()),
+                new LOD(TileFar, far.ToArray())
+            });
             lodGroup.RecalculateBounds();
-            // If Blender already had an empty B_<id> parent, remove it now that it is empty.
-            foreach (var old in oldParents)
-                if (old && old.childCount == 0 && old.GetComponents<Component>().Length == 1) Object.DestroyImmediate(old.gameObject);
-            if (building) stats.buildings++; else stats.lodGroups++;
+            stats.lodGroups++;
         }
     }
 }

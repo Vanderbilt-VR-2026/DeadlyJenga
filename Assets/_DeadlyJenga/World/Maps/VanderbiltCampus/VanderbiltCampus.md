@@ -9,22 +9,25 @@ Prefab: `World/Maps/Resources/ModeMaps/Mode_vanderbilt.prefab` (GUID kept; conte
   anything 3 m below the water is eliminated.
 - `Scripts/CampusClimbSurface.cs`: IClimbable on each building's collider group.
 - `Models/T_<col>_<row>.fbx`: one per 100 m tile, written by the Blender pipeline (Git LFS).
-- `Materials/mat_<id>.mat`: 27 gray URP/Lit fallback materials, made by the builder.
+- `Materials/mat_<id>.mat`: 27 gray URP/Lit fallback materials plus `mat_mixed` (merged HLOD meshes; vertex colors keep the IDs), made by the builder.
 
 ## Object names inside each tile FBX
 | Name | Becomes |
 |------|---------|
-| `Terrain` (+ optional `Terrain_LOD1`) | static visual ground; with LOD1 both go under `Terrain LODs` (LODGroup, LOD0 to 20% ~250 m, LOD1 never culled) |
+| `Terrain` / `Terrain_LOD1` | static visual ground, tile LOD0 / LOD1 |
 | `COL_Terrain` | static non-convex MeshCollider (Surface layer), renderer removed. Backdrop ring tiles more than 20 m from campus have none (a note, not a problem) |
-| `B_<id>_LOD0`, `B_<id>_LOD1` | grouped under `B_<id>` with a LODGroup: LOD0 to 4% screen height, LOD1 to 0.5%, then culled |
+| `B_<id>_LOD0`, `B_<id>_LOD1` | building visual, tile LOD0 / LOD1 |
 | `COL_B_<id>_<n>` | static convex MeshCollider under `Colliders/COL_B_<id>`, which carries `CampusClimbSurface` |
-| `Trees` (+ optional `Trees_LOD1`) | static visual (one merged mesh per tile); with LOD1 both go under `Trees LODs` (LOD0 to 12% ~420 m, LOD1 to 1%, then culled) |
+| `Trees` / `Trees_LOD1` | merged tree mesh per tile, tile LOD0 / LOD1 |
+| `HLOD` (optional, from the exporter) | one merged far mesh (one submesh, material `mat_mixed`), tile LOD2 |
 | `COL_Trees` | optional static non-convex MeshCollider (trunks) |
-| `Ring` | backdrop boxes, visual only |
+| `Ring` | backdrop boxes, visual only (no collider), tile LOD0 and LOD1 |
 | `Spawn_<name>` | marker (moved under `Markers`); used as spawns only when the json has no spawns list |
 | `Route_<nn>` | Alumni Lawn to Peabody walk, ordered by number (fallback when the json has no route) |
 | `Climb_<id>` | point 0.6 m out from a wall of building `<id>`, +Z facing the wall (fallback for the json climb list) |
 
+Each tile root gets ONE LODGroup (never nested): LOD0 detail to 35% screen height (~143 m from the tile center at 90 degrees, lodBias 1), LOD1 the LoD1 meshes to 20% (~250 m), LOD2 the HLOD (or the LoD1 meshes) never culled. Constants: `VanderbiltCampusBuilder.TileDetail/TileMid/TileFar`.
+If the imported empties sit at the json points turned 180 degrees, the builder turns every tile back and reports `AXES` in the build report.
 Visual meshes never get colliders. Material slots must be named `mat_<id>`
 (`Tools/VanderbiltCampus/config/material_ids.json`); the vertex color R channel holds the material index.
 

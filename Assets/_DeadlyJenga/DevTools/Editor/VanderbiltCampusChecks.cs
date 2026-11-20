@@ -65,10 +65,8 @@ namespace DeadlyJenga.DevTools.Editor
                     CheckTiles(root.transform);
                     Check(map.SaveLayout() == "vanderbilt-campus:" + map.layoutVersion, "Layout token is " + map.SaveLayout());
                     Check(map.spawns.Length > 0 && map.spawns.All(s => s), "Map has " + map.spawns.Length + " spawn points");
-                    var light = AddLight(scene);
                     Budget(root.transform, map, data);
-                    Overhead(map);
-                    Object.DestroyImmediate(light);
+                    Renders(root.transform, map, data, scene);
                 }
             }
             catch (Exception e) { failures++; report.AppendLine("FAIL " + e); }
@@ -150,16 +148,6 @@ namespace DeadlyJenga.DevTools.Editor
 
         static string List(List<string> items) =>
             items.Count == 0 ? "" : ": " + string.Join(", ", items.Take(12)) + (items.Count > 12 ? " ... (" + items.Count + " total)" : "");
-
-        static GameObject AddLight(Scene scene)
-        {
-            var go = new GameObject("Check sunlight"); SceneManager.MoveGameObjectToScene(go, scene);
-            var sun = go.AddComponent<Light>(); sun.type = LightType.Directional; sun.intensity = 1.3f; sun.shadows = LightShadows.Soft;
-            go.transform.rotation = Quaternion.Euler(55, -30, 0);
-            RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(.66f, .78f, .93f); RenderSettings.ambientEquatorColor = new Color(.45f, .5f, .58f); RenderSettings.ambientGroundColor = new Color(.35f, .3f, .25f);
-            return go;
-        }
 
         // Renders one camera into a PNG under Logs/Validation.
         internal static void Capture(Camera camera, int width, int height, string fileName)
