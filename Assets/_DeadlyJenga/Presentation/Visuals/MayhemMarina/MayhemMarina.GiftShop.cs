@@ -36,6 +36,18 @@ namespace DeadlyJenga.CandyArt.Marina
         };
         static readonly int[] rackColors = { 0, 3, 1, 6, 2, 5 };
 
+        // Heads on the hat shelf, each showing off one head cosmetic.
+        static readonly AvatarAppearance[] hatLooks =
+        {
+            Look(AvatarHair.SidePart, AvatarEyewear.Monocle, AvatarClothing.None, AvatarAccessory.TopHat),
+            Look(AvatarHair.LongWaves, AvatarEyewear.None, AvatarClothing.None, AvatarAccessory.Crown),
+            Look(AvatarHair.Buzz, AvatarEyewear.Aviator, AvatarClothing.None, AvatarAccessory.CowboyHat),
+            Look(AvatarHair.Braids, AvatarEyewear.None, AvatarClothing.None, AvatarAccessory.PirateHat),
+            Look(AvatarHair.Curls, AvatarEyewear.None, AvatarClothing.None, AvatarAccessory.VikingHelmet),
+            Look(AvatarHair.TwinTails, AvatarEyewear.Heart, AvatarClothing.None, AvatarAccessory.CatEars),
+        };
+        static readonly int[] hatColors = { 4, 1, 6, 0, 3, 5 };
+
         // The skins standing in the hero suit vault, in pod order.
         static readonly AvatarAppearance[] suitLooks =
         {
@@ -337,13 +349,19 @@ namespace DeadlyJenga.CandyArt.Marina
                 Ball(rodX, rodY + .03f, hz, Vector3.one * .035f, F.Ivory);
                 Figure(rodX, .55f, hz, 180, rackLooks[n], rackColors[n], MannequinPose.Hanging);
             }
-            for (int level = 0; level < 2; level++)
+            // Head cosmetics on show: one long shelf of lollipops whose tops are real player heads,
+            // each wearing a different hat or crown.
+            float shelfY = 2.5f;
+            B(rx, shelfY, .2f - .4f, new Vector3(.45f, .05f, 6f), F.Wood, .015f);
+            foreach (float z in new[] { -3f, -.2f, 2.6f }) B(rx + .12f, shelfY - .12f, z, new Vector3(.2f, .2f, .04f), F.Wood, .01f);
+            for (int i = 0; i < hatLooks.Length; i++)
             {
-                float y = 2.55f + level * .55f;
-                B(rx, y, .2f - .4f, new Vector3(.45f, .05f, 6f), F.Wood, .015f);
-                for (int i = 0; i < 9; i++) SunHat(P(rx - .05f, y + .03f, -2.6f + i * .65f), candy[(i + level * 2) % 4 == 3 ? 7 : (i + level * 2) % 4]);
+                float hz = -2.7f + i * 1.05f, stickTop = shelfY + .3f;
+                Disc(rx - .02f, shelfY + .025f, hz, .09f, .03f, F.Brass);
+                mesh.Beam(P(rx - .02f, shelfY + .05f, hz), P(rx - .02f, stickTop, hz), .014f, F.Ivory);
+                Figure(rx - .02f, stickTop - .22f, hz, -90, hatLooks[i], hatColors[i], MannequinPose.Head);
             }
-            Valance(rx - .2f, -.2f, 6f, F.CandyLilac, "TEES  &  SUN HATS", -1, 3.75f);
+            Valance(rx - .2f, -.2f, 6f, F.CandyLilac, "TEES  &  HATS", -1, 3.75f);
 
             // ---------- Back wall: lit bays either side of the checkout ----------
             float bz = hd - .5f;

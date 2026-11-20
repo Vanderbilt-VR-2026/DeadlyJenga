@@ -20,6 +20,9 @@ namespace DeadlyJenga.CandyPlayers
             if (rig.style) rig.SetColor(color);
             rig.SetAppearance(CandyPlayerAvatar.SanitizeAppearance(look));
 
+            // A head on its own is built as a whole standing figure; the body is hidden afterwards.
+            Vector3 headBottom = feet;
+            if (pose == MannequinPose.Head) feet -= Vector3.up * 1.24f;
             var frame = new CandyAvatarFrame { feet = feet, scale = 1 };
             if (pose == MannequinPose.Hanging)
             {
@@ -30,7 +33,7 @@ namespace DeadlyJenga.CandyPlayers
                 frame.left = Hand(feet + facing * new Vector3(-.21f, .5f, 0), facing * Quaternion.Euler(0, 0, 2), true, .35f);
                 frame.right = Hand(feet + facing * new Vector3(.21f, .5f, 0), facing * Quaternion.Euler(0, 0, -2), false, .35f);
             }
-            else if (look.skin != AvatarSkin.Default)
+            else if (look.skin != AvatarSkin.Default || pose == MannequinPose.Head)
             {
                 // A skin on show: standing normally, arms relaxed at the sides.
                 frame.head = feet + Vector3.up * 1.6f;
@@ -49,7 +52,8 @@ namespace DeadlyJenga.CandyPlayers
             // A hanging body is "in the air", so its feet don't reach for the floor.
             rig.ApplyFrame(frame, pose != MannequinPose.Hanging, 0);
             if (pose == MannequinPose.Display && look.skin == AvatarSkin.Default) Chrome(rig);
-            else Dangle(rig, feet, facing, (color % 3 - 1) * 4f);
+            else if (pose == MannequinPose.Hanging) Dangle(rig, feet, facing, (color % 3 - 1) * 4f);
+            else if (pose == MannequinPose.Head) HeadOnly(rig, headBottom);
             return rig.gameObject;
         }
 
@@ -72,6 +76,22 @@ namespace DeadlyJenga.CandyPlayers
                 if (!skin) continue;
                 skin.SetPropertyBlock(null);
                 skin.sharedMaterial = chrome;
+            }
+        }
+
+        // Hides everything below the neck. Hats, hair and glasses stay because they sit on or around the head.
+        static void HeadOnly(CandyPlayerRig rig, Vector3 headBottom)
+        {
+            var head = rig.HeadAnchor;
+            if (!head) return;
+            var offset = headBottom + Vector3.up * .22f - head.position;
+            rig.transform.position += offset;
+            float neck = head.position.y - .16f;
+            foreach (var part in rig.GetComponentsInChildren<Renderer>(true))
+            {
+                if (part == rig.headRenderer || part.transform.IsChildOf(head)) continue;
+                if (part != rig.bodyRenderer && part.bounds.center.y > neck) continue;
+                part.enabled = false;
             }
         }
 
