@@ -71,3 +71,19 @@ driving from `CastleClimbChecks.Check`, with the DJWarm exit).
    the ID).
 4. Blender Z-up to Unity Y-up: verify a tile's bounds are 100 m after import.
 5. Layout token and MapMatchLayout signature must change together.
+
+## Stage 5 additions (code written, compile-checked; Unity runs pending)
+- **Play area** (data: `config/gameplay.json`, default 150 m around Alumni Lawn): `PlayableBounds`, `Center`,
+  `Radius`, `TopHeight` now describe it, which also answers risk 1: the bot NavMesh (baked over `PlayableBounds`
+  by `BotWalkingRoutes`) and disasters stay inside the play area. No Core addition needed.
+- **Towers**: `CampusTower` list on `VanderbiltCampusMap` (World), built at runtime from castle blocks with
+  `CastleLayout` (single towers and small castles) on static plinths; `Blocks` lists them; `SaveLayout()` =
+  `vanderbilt-campus:<version>:towers<n>-<hash>`; `LoadLayout` checks the block count; `SetReplica` like
+  `CastleGenerator`. The builder writes the match-layout signature from the same token (risk 5).
+- **Modes**: the catalog entry supports `demo`, `hill`, `ctf` (`IslandLobbyCatalog.EnsureModeMaps` and
+  `Catalog.asset`); the campus match layout carries the hill and two team areas from gameplay.json.
+- **Streaming**: `CampusTileStreamer` (World, Play Mode only, local): far tiles forced to their far LOD and
+  colliders off; play-area tiles always loaded.
+- **Lighting**: one realtime sun; optional CPU bake probe only (`VanderbiltCampusLighting.BakeProbeBatch`, off by default).
+- **Checks**: tile budgets, routes, looks, bot smoke test, modes, and `VanderbiltCampusStage5Checks.RunAllBatch`
+  (table in the lane note `World/Maps/VanderbiltCampus/VanderbiltCampus.md`).

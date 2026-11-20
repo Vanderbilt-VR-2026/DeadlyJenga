@@ -14,7 +14,9 @@ namespace DeadlyJenga.DevTools.Editor
     {
         const string MatchLayoutName = "Campus Match Layout";
 
-        static void AuthorMatchLayout(VanderbiltCampusMap map, VanderbiltCampusData data, BuildStats stats)
+        // Spawns, team areas and the hill come from the resolved gameplay (gameplay.json or the default),
+        // so every point is inside the play area. Positions are map-root local.
+        static void AuthorMatchLayout(VanderbiltCampusMap map, CampusPlay play, BuildStats stats)
         {
             Physics.SyncTransforms();
             string modes = ProjectPath.FolderOf("MapMatchLayout.cs").TrimEnd('/');
@@ -26,37 +28,15 @@ namespace DeadlyJenga.DevTools.Editor
             layout.layoutSignature = map.SaveLayout();
             layout.groundSpawns = true;   // authored points snap onto the static ground at runtime
             layout.playOpeningOnly = false;
-
-            var named = new List<(string name, Vector3 pos)>();
-            foreach (var spawn in map.spawns) if (spawn) named.Add((spawn.name, map.transform.InverseTransformPoint(spawn.position)));
-            layout.freeSpawns = named.Select(n => n.pos).Distinct().ToArray();
-
-            layout.teams = data.teams.Select(t => new MapMatchLayout.TeamArea
-            {
-                name = t.name, flagHome = t.flag, spawns = t.spawns.ToArray()
-            }).ToArray();
-            foreach (var team in data.teams)
-            {
-                for (int i = 0; i < team.spawns.Count; i++) named.Add(("team " + team.name + " spawn " + i, team.spawns[i]));
-                named.Add(("team " + team.name + " flag", team.flag));
-            }
-            layout.hill = data.hasHill ? data.hill : layout.freeSpawns.Length > 0 ? layout.freeSpawns[0] : map.localArea.center;
-            if (data.hasHill) named.Add(("hill", data.hill));
+            layout.freeSpawns = play.spawns.Select(s => s.pos).Distinct().ToArray();
+            layout.teams = play.teams.Select(t => new MapMatchLayout.TeamArea { name = t.name, flagHome = t.flag, spawns = t.spawns.ToArray() }).ToArray();
+            layout.hill = play.hasHill ? play.hill : layout.freeSpawns.Length > 0 ? layout.freeSpawns[0] : map.playAreaCenter;
             EditorUtility.SetDirty(layout);
 
-            // Every authored point must find ground the way the runtime does and have standing room.
-            var failures = new List<string>();
-            foreach (var point in named)
-            {
-                string reason = SpawnProblem(map.transform.TransformPoint(point.pos));
-                if (reason != null) failures.Add($"{point.name} at {point.pos:F2}: {reason}");
-            }
-            stats.notes.Add($"Match layout: {layout.freeSpawns.Length} free spawns, {layout.teams.Length} teams, signature {layout.layoutSignature}.");
-            if (failures.Count > 0)
-            {
-                stats.Problem(failures.Count + " of " + named.Count + " match points have no ground within 2 m or are blocked (listed below).");
-                foreach (var f in failures) stats.notes.Add("SPAWN " + f);
-            }
+            stats.notes.Add($"Match layout: {layout.freeSpawns.Length} free spawns, {layout.teams.Length} teams " +
+                $"({string.Join(", ", layout.teams.Select(t => t.name + " " + t.spawns.Length))}), hill {layout.hill:F1}, signature {layout.layoutSignature}.");
+            if (layout.freeSpawns.Length < 4) stats.Problem("Fewer than 4 usable free spawns inside the play area.");
+            foreach (var team in layout.teams) if (team.spawns.Length < 3) stats.Problem("Team area " + team.name + " has fewer than 3 usable spawns.");
         }
 
         // Null when the point is fine; otherwise why not. Matches MapMatchLayout.TrySpawnPosition

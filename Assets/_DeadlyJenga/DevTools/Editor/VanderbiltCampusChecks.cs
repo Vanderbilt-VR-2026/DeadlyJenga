@@ -39,12 +39,24 @@ namespace DeadlyJenga.DevTools.Editor
             VanderbiltCampusData.Exit(ok ? 0 : 1);
         }
 
-        public static bool Run()
+        public static bool Run() => RunSuite("VanderbiltCampusChecks.txt", "Vanderbilt campus edit-mode checks", (root, map, data, scene) =>
+        {
+            CheckMeshes(root);
+            CheckColliders(root);
+            CheckBuildingColliders(root);
+            CheckTiles(root);
+            CheckGameplay(map);
+            Budget(root, map, data);
+            Renders(root, map, data, scene);
+        });
+
+        // Shared frame for every edit-mode campus check: the built prefab in a temporary additive scene,
+        // a report with PASS/FAIL lines, and the scene closed again whatever happens.
+        internal static bool RunSuite(string reportName, string title, Action<Transform, VanderbiltCampusMap, VanderbiltCampusData, Scene> body)
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Exit Play Mode first.");
             report = new StringBuilder(); failures = 0;
-            report.AppendLine("Vanderbilt campus edit-mode checks " + DateTime.Now.ToString("u") + ". Desktop editor only; no headset.");
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ProjectPath.Find("Mode_vanderbilt.prefab"));
+            report.AppendLine(title + " " + DateTime.Now.ToString("u") + ". Desktop editor only; no headset.");
             var data = VanderbiltCampusData.Load();
             foreach (var p in data.problems) report.AppendLine("NOTE " + p);
 
@@ -53,6 +65,7 @@ namespace DeadlyJenga.DevTools.Editor
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive); SceneManager.SetActiveScene(scene);
             try
             {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ProjectPath.Find("Mode_vanderbilt.prefab"));
                 var root = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
                 var map = root.GetComponent<VanderbiltCampusMap>();
                 Check(map, "Mode_vanderbilt.prefab root has VanderbiltCampusMap");
@@ -60,14 +73,7 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
                     Physics.SyncTransforms();
-                    CheckMeshes(root.transform);
-                    CheckColliders(root.transform);
-                    CheckBuildingColliders(root.transform);
-                    CheckTiles(root.transform);
-                    Check(map.SaveLayout() == "vanderbilt-campus:" + map.layoutVersion, "Layout token is " + map.SaveLayout());
-                    Check(map.spawns.Length > 0 && map.spawns.All(s => s), "Map has " + map.spawns.Length + " spawn points");
-                    Budget(root.transform, map, data);
-                    Renders(root.transform, map, data, scene);
+                    body(root.transform, map, data, scene);
                 }
             }
             catch (Exception e) { failures++; report.AppendLine("FAIL " + e); }
@@ -77,9 +83,24 @@ namespace DeadlyJenga.DevTools.Editor
                 if (active.IsValid() && active.isLoaded) SceneManager.SetActiveScene(active);
                 Services.World = previousWorld;
                 report.AppendLine(failures == 0 ? "RESULT PASS" : "RESULT FAIL (" + failures + ")");
-                File.WriteAllText(ReportPath, report.ToString());
+                File.WriteAllText(ProjectPath.Report(reportName), report.ToString());
             }
             return failures == 0;
+        }
+
+        // Play area, towers, spawns, streaming and the layout token (Stage 5 gameplay).
+        static void CheckGameplay(VanderbiltCampusMap map)
+        {
+            Check(map.SaveLayout().StartsWith("vanderbilt-campus:" + map.layoutVersion + ":towers"), "Layout token is " + map.SaveLayout());
+            Check(map.spawns.Length > 0 && map.spawns.All(s => s), "Map has " + map.spawns.Length + " spawn points");
+            Check(map.spawns.Where(s => s).All(s => map.InPlayArea(s.position)), "Every map spawn is inside the play area");
+            var b = map.PlayableBounds;
+            Check(b.size.x > 0 && b.size.y > 0 && b.size.z > 0 && b.size.x <= map.playAreaRadius * 2.01f,
+                $"PlayableBounds is the play area: center {b.center:F0} size {b.size:F0} (radius {map.playAreaRadius} m, top {map.TopHeight:F1})");
+            Check(map.towers.Length > 0 && map.towers.All(t => map.InPlayArea(map.transform.TransformPoint(t.position), -map.HalfWidth(t) + .01f)),
+                $"{map.towers.Length} towers inside the play area ({map.ExpectedBlockCount()} blocks): " + string.Join(", ", map.towers.Select(t => t.id + " " + t.kind)));
+            Check(map.blockPrefab, "Tower block prefab assigned");
+            Check(map.GetComponent<CampusTileStreamer>(), "Tile streamer on the map root");
         }
 
         static void Check(bool pass, string text)

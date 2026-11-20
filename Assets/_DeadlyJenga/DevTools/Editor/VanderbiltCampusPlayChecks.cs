@@ -168,7 +168,11 @@ namespace DeadlyJenga.DevTools.Editor
             var map = Services.World as VanderbiltCampusMap;
             Must(map, "Catalog entry " + VanderbiltCampusBuilder.MapId + " loads a VanderbiltCampusMap in Game");
             Expect(MatchSetup.SelectedMap?.title == VanderbiltCampusBuilder.Title, "Lobby title is '" + MatchSetup.SelectedMap?.title + "'");
-            Expect(map.Blocks.Count == 0, "Static map reports no blocks");
+            Expect(map.Blocks.Count == map.ExpectedBlockCount(), $"Map reports exactly its tower blocks ({map.Blocks.Count} of {map.ExpectedBlockCount()})");
+            // The test survivor is not a tracked character, so streaming would switch off the colliders along a
+            // route that leaves the play area. This check measures walking, not streaming: streaming stays off here.
+            var streamer = map.GetComponent<CampusTileStreamer>();
+            if (streamer) { streamer.streamingEnabled = false; File.AppendAllText(Report, "NOTE tile streaming switched off for the walk and climb checks.\n"); }
             var data = VanderbiltCampusData.Load();
             foreach (var p in data.problems) File.AppendAllText(Report, "NOTE " + p + "\n");
 

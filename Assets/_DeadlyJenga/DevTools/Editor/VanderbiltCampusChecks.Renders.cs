@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -21,7 +22,24 @@ namespace DeadlyJenga.DevTools.Editor
         const int RenderLayer = 31;
         static readonly Color Sky = new Color(.62f, .78f, .93f);
 
-        static void Renders(Transform root, VanderbiltCampusMap map, VanderbiltCampusData data, Scene scene)
+        static void Renders(Transform root, VanderbiltCampusMap map, VanderbiltCampusData data, Scene scene) =>
+            WithRenderSetup(root, scene, (groups, original) =>
+            {
+                var palette = PaletteMaterial("CampusPaletteCandy.png");
+                try
+                {
+                    if (palette) Paint(root, palette);
+                    ViewRenders(root, map, data, groups);
+                    Overhead(root, map, groups, "VanderbiltCampus-overhead.png", palette ? "palette colors" : "gray (CampusPalette.mat not found)");
+                    original();
+                    Overhead(root, map, groups, "VanderbiltCampus-overhead-gray.png", "gray World materials");
+                }
+                finally { if (palette) Object.DestroyImmediate(palette); }
+            });
+
+        // Puts the campus alone on the render layer with one fixed sun, runs the renders, then puts every
+        // layer, material, light, render setting and forced LOD back. "original" restores the gray materials.
+        static void WithRenderSetup(Transform root, Scene scene, Action<LODGroup[], Action> renders)
         {
             var renderers = root.GetComponentsInChildren<Renderer>(true);
             var layers = renderers.ToDictionary(r => r, r => r.gameObject.layer);
@@ -30,7 +48,7 @@ namespace DeadlyJenga.DevTools.Editor
             var ambient = (RenderSettings.ambientMode, RenderSettings.ambientLight, RenderSettings.fog, RenderSettings.sun);
             var groups = root.GetComponentsInChildren<LODGroup>(true);
             var sun = new GameObject("Check sunlight"); SceneManager.MoveGameObjectToScene(sun, scene);
-            var palette = PaletteMaterial();
+            void Original() { foreach (var r in renderers) if (r) r.sharedMaterials = materials[r]; }
             try
             {
                 foreach (var r in renderers) r.gameObject.layer = RenderLayer;
@@ -40,38 +58,50 @@ namespace DeadlyJenga.DevTools.Editor
                 sun.transform.rotation = Quaternion.Euler(50, -30, 0);   // 50 degrees above the horizon
                 RenderSettings.sun = light; RenderSettings.fog = false;
                 RenderSettings.ambientMode = AmbientMode.Flat; RenderSettings.ambientLight = new Color(.42f, .44f, .48f);
-
-                if (palette)
-                    foreach (var r in renderers)
-                        if (!InVisual(r.transform, root)) r.sharedMaterials = Enumerable.Repeat(palette, r.sharedMaterials.Length).ToArray();
-                ViewRenders(root, map, data, groups);
-                Overhead(root, map, groups, "VanderbiltCampus-overhead.png", palette ? "palette colors" : "gray (CampusPalette.mat not found)");
-                foreach (var r in renderers) r.sharedMaterials = materials[r];
-                Overhead(root, map, groups, "VanderbiltCampus-overhead-gray.png", "gray World materials");
+                renders(groups, Original);
             }
             finally
             {
-                foreach (var r in renderers) if (r) { r.gameObject.layer = layers[r]; r.sharedMaterials = materials[r]; }
+                foreach (var r in renderers) if (r) r.gameObject.layer = layers[r];
+                Original();
                 foreach (var l in otherLights) if (l) l.enabled = true;
                 (RenderSettings.ambientMode, RenderSettings.ambientLight, RenderSettings.fog, RenderSettings.sun) = ambient;
                 foreach (var g in groups) if (g) g.ForceLOD(-1);   // back to normal LOD selection
                 Object.DestroyImmediate(sun);
-                if (palette) Object.DestroyImmediate(palette);
             }
         }
 
-        // A temporary copy of Presentation's CampusPalette.mat (found by name), with a palette strip if it has none.
-        static Material PaletteMaterial()
+        // Every World renderer (not Presentation's Visual child) gets the palette material in every slot.
+        static void Paint(Transform root, Material palette)
+        {
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+                if (!InVisual(r.transform, root)) r.sharedMaterials = Enumerable.Repeat(palette, r.sharedMaterials.Length).ToArray();
+        }
+
+        // Forces each LODGroup to the level the lodBias 1 budget math picks for this camera (QualitySettings untouched).
+        static void ForceLods(LODGroup[] groups, Camera camera)
+        {
+            foreach (var g in groups)
+            {
+                var lods = g.GetLODs();
+                int level = ChooseLod(g, lods, camera, 1);
+                g.ForceLOD(level >= 0 ? level : lods.Length);   // an index past the last level culls the group
+            }
+        }
+
+        // A temporary copy of Presentation's CampusPalette.mat (found by name) showing one palette strip
+        // (CampusPaletteCandy.png or CampusPalettePlain.png). Null when the material is missing.
+        static Material PaletteMaterial(string strip)
         {
             try
             {
                 var asset = AssetDatabase.LoadAssetAtPath<Material>(ProjectPath.Find("CampusPalette.mat"));
                 if (!asset) return null;
                 var copy = new Material(asset) { name = "Campus palette (check copy)" };
-                if (copy.HasProperty("_Palette") && !copy.GetTexture("_Palette"))
+                if (copy.HasProperty("_Palette"))
                 {
-                    try { copy.SetTexture("_Palette", AssetDatabase.LoadAssetAtPath<Texture2D>(ProjectPath.Find("CampusPaletteCandy.png"))); }
-                    catch (FileNotFoundException) { }
+                    try { copy.SetTexture("_Palette", AssetDatabase.LoadAssetAtPath<Texture2D>(ProjectPath.Find(strip))); }
+                    catch (FileNotFoundException) { report.AppendLine("NOTE " + strip + " not found; using the material's own palette."); }
                 }
                 return copy;
             }
@@ -93,13 +123,7 @@ namespace DeadlyJenga.DevTools.Editor
                 foreach (var view in Views(root, map, data))
                 {
                     Aim(camera, view.pos, view.look);
-                    // Show exactly the levels the lodBias 1 budget counted (forced per group; QualitySettings untouched).
-                    foreach (var g in groups)
-                    {
-                        var lods = g.GetLODs();
-                        int level = ChooseLod(g, lods, camera, 1);
-                        g.ForceLOD(level >= 0 ? level : lods.Length);   // an index past the last level culls the group
-                    }
+                    ForceLods(groups, camera);   // exactly the levels the lodBias 1 budget counted
                     Capture(camera, 1600, 1600, "VanderbiltCampus-view-" + Safe(view.name) + ".png");
                 }
             }

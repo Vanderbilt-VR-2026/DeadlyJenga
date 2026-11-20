@@ -22,6 +22,8 @@ namespace DeadlyJenga.DevTools.Editor
     {
         public const string MapId = "mode-vanderbilt";
         public const string Title = "Campus (LoD2)";
+        // Demo plus the two match modes the campus supplies data for (hill objective, two CTF team areas).
+        public static readonly string[] SupportedModes = { "demo", "hill", "ctf" };
         const string PrefabName = "Mode_vanderbilt.prefab";
         const string VisualPrefabName = "Campus Visual.prefab";
         static readonly Regex TileFile = new Regex(@"^T_-?\d+_-?\d+\.fbx$", RegexOptions.IgnoreCase);
@@ -122,7 +124,10 @@ namespace DeadlyJenga.DevTools.Editor
                 var map = root.AddComponent<VanderbiltCampusMap>();
                 foreach (var path in tilePaths) AddTile(root.transform, path, stats);
                 CheckAxes(root.transform, data, stats);
-                FillMap(map, data, stats);
+                FillMapGround(map, data, stats);
+                var play = ApplyGameplay(map, data, stats);
+                FillMapSpawns(map, data, stats);
+                root.AddComponent<CampusTileStreamer>();
                 NestVisual(root.transform, stats);
 
                 string prefabPath = PrefabPath();
@@ -130,7 +135,7 @@ namespace DeadlyJenga.DevTools.Editor
                 if (!success || !saved) throw new InvalidOperationException("Could not save " + prefabPath);
                 prefabSaved = true;
                 UpdateCatalog(prefabPath);
-                AuthorMatchLayout(map, data, stats);
+                AuthorMatchLayout(map, play, stats);
                 AssetDatabase.SaveAssets();
                 WriteReport(stats, data, prefabPath);
             }
@@ -164,29 +169,10 @@ namespace DeadlyJenga.DevTools.Editor
             return path;
         }
 
-        // Fills the map component: spawns, lowest ground, playable area and layout version.
-        static void FillMap(VanderbiltCampusMap map, VanderbiltCampusData data, BuildStats stats)
+        // Fills the map's ground facts: lowest ground, the whole-campus area and the layout version.
+        static void FillMapGround(VanderbiltCampusMap map, VanderbiltCampusData data, BuildStats stats)
         {
             var root = map.transform;
-            // The json spawns and the Spawn_* empties are the same points: use the json, empties only as a fallback.
-            var spawns = new List<Transform>();
-            if (data.spawns.Count == 0)
-            {
-                spawns.AddRange(stats.spawnMarkers);
-                if (spawns.Count > 0) stats.notes.Add("No spawns in unity_map.json; used " + spawns.Count + " Spawn_* empties.");
-            }
-            else
-            {
-                var group = new GameObject("Spawns (unity_map.json)").transform; group.SetParent(root, false);
-                foreach (var s in data.spawns)
-                {
-                    var t = new GameObject(s.name).transform; t.SetParent(group, false); t.localPosition = s.pos;
-                    spawns.Add(t);
-                }
-            }
-            if (spawns.Count == 0) stats.Problem("No spawns: add Spawn_* empties or a spawns list in unity_map.json.");
-            map.spawns = spawns.ToArray(); stats.spawns = spawns.Count;
-
             float lowest = float.PositiveInfinity;
             foreach (var r in stats.terrain) lowest = Mathf.Min(lowest, root.InverseTransformPoint(r.bounds.min).y);
             if (data.hasLowestGround) lowest = data.lowestGround;
@@ -209,6 +195,34 @@ namespace DeadlyJenga.DevTools.Editor
                 stats.notes.Add("local_area missing from unity_map.json; used all visual bounds plus a 10 m margin.");
             }
             map.layoutVersion = data.layoutVersion;
+        }
+
+        // Fallback spawns when gameplay found none inside the play area: the pipeline's spawn list
+        // (or the Spawn_* empties when the json has none).
+        static void FillMapSpawns(VanderbiltCampusMap map, VanderbiltCampusData data, BuildStats stats)
+        {
+            var root = map.transform;
+            if (map.spawns != null && map.spawns.Length > 0) { stats.spawns = map.spawns.Length; return; }
+            stats.notes.Add("No gameplay spawns inside the play area; using the pipeline's campus-wide spawns.");
+            // The json spawns and the Spawn_* empties are the same points: use the json, empties only as a fallback.
+            var spawns = new List<Transform>();
+            if (data.spawns.Count == 0)
+            {
+                spawns.AddRange(stats.spawnMarkers);
+                if (spawns.Count > 0) stats.notes.Add("No spawns in unity_map.json; used " + spawns.Count + " Spawn_* empties.");
+            }
+            else
+            {
+                var group = new GameObject("Spawns (unity_map.json)").transform; group.SetParent(root, false);
+                foreach (var s in data.spawns)
+                {
+                    var t = new GameObject(s.name).transform; t.SetParent(group, false); t.localPosition = s.pos;
+                    spawns.Add(t);
+                }
+            }
+            if (spawns.Count == 0) stats.Problem("No spawns: add Spawn_* empties or a spawns list in unity_map.json.");
+            map.spawns = spawns.ToArray(); stats.spawns = spawns.Count;
+
         }
 
         // The Presentation look is optional: without it the map stays gray and still plays.
@@ -238,7 +252,7 @@ namespace DeadlyJenga.DevTools.Editor
             entry.mapPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             if (string.IsNullOrEmpty(entry.scenePath)) entry.scenePath = ProjectPath.Find("Game.unity");
             entry.recommendedMode = "demo"; entry.recommendedPlayers = 1; entry.walkableIsland = true;
-            entry.supportedModes = new[] { "demo" };
+            entry.supportedModes = SupportedModes;
             catalog.maps = list.ToArray();
             EditorUtility.SetDirty(catalog);
         }

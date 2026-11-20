@@ -121,3 +121,21 @@ Each entry: choice, alternatives, why. Newest at the bottom. Owner: Vanderbilt-M
 - One LODGroup per tile: detail to about 143 m, mid to about 250 m, then a one-draw-call HLOD mesh (far
   terrain + LoD1 buildings + LoD1 trees + ring). In-progress FBX tiles are tested from a local-only commit
   and pushed once final, to avoid filling Git LFS with intermediate versions.
+
+## D016 Game-weight building meshes (Stage 1)
+- Buildings v2 follow the LiDAR roof closely but weigh 2.65 M triangles (colliders 1.75 M), far over the
+  Quest budget. A separate step (`buildings_game.py`) merges coplanar pieces and simplifies within 0.05 m
+  (visual) and 0.15 m (collider) of the LoD2 mesh; the game uses those files, the archive keeps the exact ones.
+
+## D017 Play area and gameplay on a 1.2 km map (Stage 5)
+- Towers, spawns and objectives live in a play area (default 150 m around Alumni Lawn, a data value in
+  `Tools/VanderbiltCampus/config/gameplay.json`); the rest of the campus is walkable scenery.
+  `IWorldQuery` Center/Radius/TopHeight/PlayableBounds describe the play area so bots and disasters stay in
+  it; `IMapFootprint` stays the whole campus. Towers reuse the castle blocks. StepHeight stays 0.5 m.
+- Modes made startable: King of the Hill and Capture the Flag (plus demo). Bot smoke test uses 8 bots.
+- Streaming: tiles beyond 300 m from every player/bot drop to their far mesh and switch colliders off
+  (local only, never part of the synced layout). No baked lighting ships yet; one realtime sun.
+
+## D018 Kirkland Hall detail is an estimate until it is photographed (Stage 4)
+- No on-site photos exist. Kirkland's LoD3+ features are placed from LiDAR, one public reference photo and
+  its known composition, each marked `estimated`, and the model is flagged `measured: false`.
