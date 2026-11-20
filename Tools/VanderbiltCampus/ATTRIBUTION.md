@@ -158,3 +158,15 @@ from archive stills (3 KartaView photos, CC BY-SA 4.0, KartaView contributor
 user 53757; 1 public-domain Commons photo "2019_Sit-in.jpg"). It is stored as
 `raw/capture/2026-11-20/synthetic360/SYNTHETIC_equirect_test_30s.mp4` with a
 `.synthetic.json` sidecar. It is test input only, not a capture.
+
+## Famous tree location (Stage 5, trees v2)
+
+`pipeline/tree_species.py` (`FAMOUS`) places one named tree from public pages read on
+2026-11-20 (nothing downloaded; the numbers are typed into the script):
+- Bioimages, Vanderbilt University: "An individual instance of Quercus macrocarpa (bur oak)",
+  https://bioimages.vanderbilt.edu/vanderbilt/7-314.htm, nickname "Bicentennial Oak",
+  36.14642, -86.80219 (about 10 m). Bioimages states its organism metadata is CC0
+  (Zenodo record 11075516 / github.com/baskaufs/Bioimages); images are not used.
+- Vanderbilt News, 16 Nov 2022, "Bicentennial Oak, beloved campus landmark, has died"
+  (status only: the tree fell on 12 Nov 2022, after the March 2022 LiDAR).
+No species from these sources is applied to any other tree.

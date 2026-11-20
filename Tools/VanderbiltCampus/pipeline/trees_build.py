@@ -14,6 +14,11 @@ trees. That is accepted for instanced props and recorded as "uv_shared_per_insta
 Budget: the whole campus must stay <= 400k LOD0 tree triangles. If it would not, small and
 medium trees switch to their LOD1 kit at LOD0 ("lean" mode) and the report says so.
 Report: derived/trees/v1/build.json and reports/stage1/trees_build.json.
+
+--version v2 (Stage 5) builds the species trees instead: it reads derived/trees/v2/trees.json
+(tree_species.py), uses tree_species.tree_mesh, writes the same files under
+derived/trees/v2/<tile>/ (v1 is left untouched), compares triangles with v1 per tile, and
+reports to reports/stage5/trees_v2_build.json (manifest stage 5).
 """
 import argparse
 import datetime
@@ -36,6 +41,20 @@ MIN_TRUNK_D = 0.25
 LICENSE = "Derived: USGS 3DEP LiDAR (public domain), OpenStreetMap (ODbL 1.0)"
 
 
+def tree_mesh(tree, lod, version):
+    if version == "v2":
+        import tree_species as ts
+        return ts.tree_mesh(tree, lod)
+    return kit.tree_mesh(tree, lod)
+
+
+def tree_tris(tree, lod, version):
+    if version == "v2":
+        import tree_species as ts
+        return len(ts.species_mesh(tree["species"], ts.detail_of(float(tree["height"])), lod)["faces"])
+    return len(kit.kit_mesh(kit.size_class(float(tree["height"])), kit.shape_of(tree), lod)["faces"])
+
+
 def lod0_level(tree, lean):
     """Kit LOD to use for a tree's LOD0 mesh (lean mode drops small/medium trees to LOD1)."""
     if lean and kit.size_class(float(tree["height"])) in ("small", "medium"):
@@ -44,13 +63,14 @@ def lod0_level(tree, lean):
 
 
 def build_tile(job):
-    tile, trees, out_dir, lean = job
+    tile, trees, out_dir, lean, version = job
     out = Path(out_dir) / tile
     res = {"tile": tile, "trees": len(trees)}
-    meta = {"tile": tile, "kit_version": kit.KIT_VERSION, "uv_shared_per_instance": True,
+    meta = {"tile": tile, "kit_version": kit.KIT_VERSION if version == "v1" else 2, "tree_version": version,
+            "uv_shared_per_instance": True,
             "tree_ids": [t["id"] for t in trees], "frame": "campus meters, Z up", "source": "trees_build.py"}
     for name, lodf in (("trees_lod0", lambda t: lod0_level(t, lean)), ("trees_lod1", lambda t: 1)):
-        m = vcmesh.merge([kit.tree_mesh(t, lodf(t)) for t in trees])
+        m = vcmesh.merge([tree_mesh(t, lodf(t), version) for t in trees])
         vcmesh.save_mesh(out / f"{name}.npz", m["verts"], m["faces"], m["face_mat"], m["uv0"],
                          {**meta, "lod": name[-4:], "lean": bool(lean and name == "trees_lod0")})
         res[name] = int(len(m["faces"]))
@@ -75,12 +95,17 @@ def build_tile(job):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--jobs", type=int, default=max(1, min(12, (os.cpu_count() or 2) - 2)))
+    p.add_argument("--version", choices=["v1", "v2"], default="v1",
+                   help="v1 = single-shape kit (Stage 1); v2 = species trees (Stage 5)")
     p.add_argument("--lean", action="store_true", help="force lean LOD0 (small/medium trees use the LOD1 kit)")
     p.add_argument("--no-manifest", action="store_true")
     args = p.parse_args(argv)
     t0 = time.time()
     root = data_root()
-    tdir = root / "derived/trees/v1"
+    version = args.version
+    stage = 1 if version == "v1" else 5
+    tdir = root / "derived/trees" / version
+    report_path = root / ("reports/stage1/trees_build.json" if version == "v1" else "reports/stage5/trees_v2_build.json")
     if not (tdir / "trees.json").exists():
         fail("derived/trees/v1/trees.json is missing; run trees_detect.py first")
     data = load_json(tdir / "trees.json")
@@ -88,7 +113,7 @@ def main(argv=None):
 
     # Budget check before writing anything.
     def lod0_tris(t, lean):
-        return len(kit.kit_mesh(kit.size_class(float(t["height"])), kit.shape_of(t), lod0_level(t, lean))["faces"])
+        return tree_tris(t, lod0_level(t, lean), version)
     campus_full = sum(lod0_tris(t, False) for t in trees if t["zone"] == "campus")
     lean = args.lean or campus_full > BUDGET_LOD0
     if lean and not args.lean:
@@ -97,7 +122,7 @@ def main(argv=None):
     by_tile = {}
     for t in trees:
         by_tile.setdefault(t["tile"], []).append(t)
-    jobs = [(tile, ts, str(tdir), lean) for tile, ts in sorted(by_tile.items())]
+    jobs = [(tile, ts, str(tdir), lean, version) for tile, ts in sorted(by_tile.items())]
     # Remove tile folders of an earlier run that no longer have trees.
     for d in tdir.glob("T_*"):
         if d.is_dir() and d.name not in by_tile:
@@ -115,15 +140,16 @@ def main(argv=None):
     for t in trees:
         zone_of_tile.setdefault(t["tile"], set()).add(t["zone"])
     campus_lod0 = sum(lod0_tris(t, lean) for t in trees if t["zone"] == "campus")
-    campus_lod1 = sum(len(kit.kit_mesh(kit.size_class(float(t["height"])), kit.shape_of(t), 1)["faces"])
-                      for t in trees if t["zone"] == "campus")
+    campus_lod1 = sum(tree_tris(t, 1, version) for t in trees if t["zone"] == "campus")
     sizes = {}
     for t in trees:
-        key = f"{kit.size_class(float(t['height']))}_{kit.shape_of(t)}"
+        key = (f"{kit.size_class(float(t['height']))}_{kit.shape_of(t)}" if version == "v1"
+               else t["species"])
         sizes[key] = sizes.get(key, 0) + 1
     report = {
         "made": datetime.datetime.now().isoformat(timespec="seconds"),
-        "kit_version": kit.KIT_VERSION,
+        "kit_version": kit.KIT_VERSION if version == "v1" else 2,
+        "tree_version": version,
         "trees_built": len(trees),
         "trees_campus": sum(t["zone"] == "campus" for t in trees),
         "trees_ring": sum(t["zone"] == "ring" for t in trees),
@@ -142,17 +168,36 @@ def main(argv=None):
         "uv_shared_per_instance": True,
         "per_tile": [{k: v for k, v in r.items() if not k.endswith("_problems")} for r in results],
     }
+    v1b = root / "derived/trees/v1/build.json"
+    if version == "v2" and v1b.exists():
+        v1 = load_json(v1b)
+        old = {r["tile"]: r for r in v1["per_tile"]}
+        for r in report["per_tile"]:
+            o = old.get(r["tile"])
+            if o:
+                r["v1_lod0"], r["v1_lod1"] = o["trees_lod0"], o["trees_lod1"]
+        report["vs_v1"] = {
+            "campus_lod0_v1": v1["campus_lod0_triangles"], "campus_lod0_v2": report["campus_lod0_triangles"],
+            "campus_lod0_change_pct": round(100.0 * (report["campus_lod0_triangles"] / v1["campus_lod0_triangles"] - 1), 2),
+            "all_lod0_change_pct": round(100.0 * (report["all_lod0_triangles"] / v1["all_lod0_triangles"] - 1), 2),
+            "all_lod1_change_pct": round(100.0 * (report["all_lod1_triangles"] / v1["all_lod1_triangles"] - 1), 2),
+            "max_tile_lod0_v1": max(o["trees_lod0"] for o in v1["per_tile"]),
+            "max_tile_lod0_v2": max(r["trees_lod0"] for r in report["per_tile"]),
+            "max_tile_change_pct": round(max(100.0 * (r["trees_lod0"] / r["v1_lod0"] - 1)
+                                             for r in report["per_tile"] if r.get("v1_lod0")), 2),
+            "note": "tree positions and sizes are the same as v1; only the model shapes differ",
+        }
     save_json(tdir / "build.json", report)
-    save_json(root / "reports/stage1/trees_build.json", report)
+    save_json(report_path, report)
     if not args.no_manifest:
         db = manifest.connect(root)
         for r in results:
             for name in ("trees_lod0", "trees_lod1", "trees_col"):
                 f = tdir / r["tile"] / f"{name}.npz"
                 if f.exists():
-                    manifest.add_file(f, "trees_build.py + tree_kit.py", LICENSE, 1, root=root, db=db)
-        for f in (tdir / "build.json", root / "reports/stage1/trees_build.json"):
-            manifest.add_file(f, "trees_build.py", LICENSE, 1, root=root, db=db)
+                    manifest.add_file(f, f"trees_build.py --version {version}", LICENSE, stage, root=root, db=db)
+        for f in (tdir / "build.json", report_path):
+            manifest.add_file(f, f"trees_build.py --version {version}", LICENSE, stage, root=root, db=db)
         db.commit(); db.close()
     print(f"{len(trees):,} trees in {len(results)} tiles; campus LOD0 {campus_lod0:,} / LOD1 {campus_lod1:,} tris "
           f"(budget {BUDGET_LOD0:,}{', lean' if lean else ''}); all LOD0 {report['all_lod0_triangles']:,}; "
