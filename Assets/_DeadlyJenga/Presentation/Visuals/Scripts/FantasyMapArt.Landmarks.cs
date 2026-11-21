@@ -72,6 +72,8 @@ namespace DeadlyJenga.Presentation
             bool roofOpen=RoofHole(pieces,out var hole,out var holeSize)&&!Covered(frame.TransformPoint(hole),body);
             if(roofOpen){Pavilion(m,V,vq,hole,holeSize,site.StartsWith("Plaza")?Gold:DistrictColor(site));any=true;}
             bool streetLevel=frame.TransformPoint(b.min).y<groundY+2;
+            int decks=0;foreach(var (c,s) in pieces)if(s.y>.6f&&s.y<.95f)decks++;
+            Debug.Log($"[SkyRingArt] '{site}' '{purpose}' pieces {pieces.Count} decks {decks} roof {roofOpen} street {streetLevel} b {b.center} {b.size}");
 
             if(purpose=="Broad catch frame")
             {

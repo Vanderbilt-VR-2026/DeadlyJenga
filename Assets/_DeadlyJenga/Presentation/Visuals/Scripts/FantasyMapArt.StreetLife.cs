@@ -39,6 +39,7 @@ namespace DeadlyJenga.Presentation
             Model("Visual · candy street life",m,transform,new[]{cityCandyMaterial,cityGlowMaterial});
 
             // Walkers on both sidewalks, in both directions.
+            Debug.Log($"[SkyRingArt] street life: road radius {roadRadius}, center {roadCenter}");
             if(roadRadius<=0)return;
             for(int i=0;i<30;i++)
             {
