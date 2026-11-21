@@ -464,8 +464,6 @@ namespace DeadlyJenga.CandyArt.Marina
             var cream = new Color(.95f, .88f, .69f);
             Sign("JET SKIS", new Vector3(-22.7f, 2.69f, -24.115f), .047f, cream, new Vector3(0, 180, 0));
             Sign("SOLO  /  E OR GRIP", new Vector3(-22.7f, 2.46f, -24.115f), .024f, cream, new Vector3(0, 180, 0));
-            var styleBase = new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z);
-            Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.13f, 1.939f), .055f, cream, StyleStageTurn.eulerAngles);
 
             Sign("SHOWTIME PLAZA", OnPlaza(-114, 4.7f, PlazaTop - PlazaCenter.y + .018f), .05f,
                 new Color(.23f, .16f, .10f), new Vector3(90, 66, 0));
