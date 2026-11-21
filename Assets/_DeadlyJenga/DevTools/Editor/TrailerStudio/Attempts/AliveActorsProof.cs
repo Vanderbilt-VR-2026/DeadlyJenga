@@ -245,39 +245,56 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             plan.group.AddRange(best);
             Vector3 middle = best.Aggregate(Vector3.zero, (a, b) => a + b) / best.Count;
 
-            // The hero and his rival: 3.5-6.5 m apart away from the group, a clear run between them; a step on the way is best.
+            // The hero and his rival, away from the group, with one step or small gap early on the run between them,
+            // and room after it to land (a jump carries a running survivor about 3 m) before the rival.
             float bestScore = float.MinValue;
             var free = spots.Where(s => best.All(g => Vector3.Distance(Flat(g), Flat(s)) > 2.2f)).ToList();
+            const float sample = .2f;
             foreach (var h in free)
                 foreach (var r in free)
                 {
                     float d = Vector3.Distance(Flat(h), Flat(r));
-                    if (d < 3.5f || d > 6.5f || Mathf.Abs(h.y - r.y) > 1.1f) continue;
-                    // Ground along the run: count gaps and steps.
-                    int holes = 0; bool step = false; float last = h.y;
-                    for (float u = .1f; u < .95f; u += .06f)
+                    if (d < 5f || d > 8.5f || Mathf.Abs(h.y - r.y) > 1.3f) continue;
+                    // The ground along the run, every 20 cm.
+                    var ground = new List<float>();
+                    for (float x = .3f; x < d - .3f; x += sample)
                     {
-                        Vector3 p = Vector3.Lerp(h, r, u);
-                        if (!Physics.Raycast(p + Vector3.up * 1.6f, Vector3.down, out var hit, 2.6f, Mask, QueryTriggerInteraction.Ignore)) { holes++; continue; }
-                        if (Mathf.Abs(hit.point.y - last) > .15f) step = true;
-                        last = hit.point.y;
+                        Vector3 p = Vector3.Lerp(h, r, x / d);
+                        ground.Add(Physics.Raycast(new Vector3(p.x, Mathf.Max(h.y, r.y) + 1.6f, p.z), Vector3.down, out var hit, 4f, Mask, QueryTriggerInteraction.Ignore) ? hit.point.y : float.NaN);
                     }
-                    if (holes > 3) continue;
-                    if (Physics.CapsuleCast(h + Vector3.up * .5f, h + Vector3.up * 1.1f, .2f, Flat(r - h).normalized, d - .4f, (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore) && !step) continue;
-                    float score = (step ? 3 : 0) + (holes > 0 ? 2 : 0) + d * .5f - Vector3.Distance(Flat(h), Flat(middle)) * .05f + h.y * .2f;
-                    if (score > bestScore) { bestScore = score; plan.hero = h; plan.rival = r; plan.step = step || holes > 0; }
+                    int change = ground.FindIndex(y => float.IsNaN(y) || Mathf.Abs(y - h.y) > .25f);
+                    if (change < 0) continue;
+                    float at = .3f + change * sample;
+                    if (at < .9f || at > 2.8f || d - at < 4.0f) continue;
+                    // After the change: at most 1 m of gap, then ground all the way at the rival's level.
+                    int gap = 0, bad = 0;
+                    for (int i = change; i < ground.Count; i++)
+                    {
+                        if (float.IsNaN(ground[i]) || ground[i] < Mathf.Min(h.y, r.y) - 1.4f) { if (bad == 0) gap++; continue; }
+                        if (Mathf.Abs(ground[i] - r.y) > .3f && i > change + 6) bad++;
+                    }
+                    if (gap * sample > 1f || bad > 2) continue;
+                    // Nothing in the way of a running body (a step up is fine: it is jumped).
+                    Vector3 eye = Vector3.up * (Mathf.Max(h.y, r.y) - h.y + .9f);
+                    if (Physics.Linecast(h + eye, r + Vector3.up * .9f + Vector3.up * Mathf.Max(0, h.y - r.y), (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)) continue;
+                    float score = 10 - Mathf.Abs(d - 6.5f) - Mathf.Abs(at - 1.6f) + (gap > 0 ? 1 : 0) + h.y * .1f;
+                    if (score > bestScore) { bestScore = score; plan.hero = h; plan.rival = r; plan.step = true; plan.jumpAt = Vector3.Lerp(h, r, Mathf.Max(.05f, at - .55f) / d); }
                 }
-            if (bestScore == float.MinValue) throw new InvalidOperationException("No clear run for the hero and the rival.");
-            // Jump just before the first change of ground (a step or a gap); with none, a hop in the middle.
-            plan.jumpAt = Vector3.Lerp(plan.hero, plan.rival, .45f);
-            float baseY = plan.hero.y;
-            for (float u = .1f; u < .9f; u += .04f)
+            if (bestScore == float.MinValue)
             {
-                Vector3 p = Vector3.Lerp(plan.hero, plan.rival, u);
-                bool ground = Physics.Raycast(p + Vector3.up * 1.6f, Vector3.down, out var hit, 2.6f, Mask, QueryTriggerInteraction.Ignore);
-                if (!ground || Mathf.Abs(hit.point.y - baseY) > .15f) { plan.jumpAt = Vector3.Lerp(plan.hero, plan.rival, Mathf.Max(.05f, u - .45f / Vector3.Distance(plan.hero, plan.rival))); break; }
+                // No step anywhere: a straight run, and no jump (said in the notes).
+                foreach (var h in free)
+                    foreach (var r in free)
+                    {
+                        float d = Vector3.Distance(Flat(h), Flat(r));
+                        if (d < 4f || d > 7f || Mathf.Abs(h.y - r.y) > .3f) continue;
+                        if (Physics.CapsuleCast(h + Vector3.up * .5f, h + Vector3.up * 1.1f, .2f, Flat(r - h).normalized, d - .4f, (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)) continue;
+                        float score = -Mathf.Abs(d - 5.5f);
+                        if (score > bestScore) { bestScore = score; plan.hero = h; plan.rival = r; plan.step = false; }
+                    }
+                if (bestScore == float.MinValue) throw new InvalidOperationException("No clear run for the hero and the rival.");
             }
-            Note($"Group of {best.Count} around {V(middle)}: {string.Join(" ", best.Select(V))}. Hero {V(plan.hero)}, rival {V(plan.rival)} ({Vector3.Distance(plan.hero, plan.rival):0.00} m, step or gap on the way: {plan.step}), jump at {V(plan.jumpAt)}.");
+            Note($"Group of {best.Count} around {V(middle)}: {string.Join(" ", best.Select(V))}. Hero {V(plan.hero)}, rival {V(plan.rival)} ({Vector3.Distance(Flat(plan.hero), Flat(plan.rival)):0.00} m), step or gap on the way: {plan.step}" + (plan.step ? $", jump at {V(plan.jumpAt)} ({Vector3.Distance(Flat(plan.hero), Flat(plan.jumpAt)):0.00} m from the hero)." : ", so no jump."));
             return plan;
         }
 
@@ -313,8 +330,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             drive.steps.Add(new StudioDriveStep { action = "gear", at = .3f, weapon = "BoxingGlove" });
             drive.steps.Add(new StudioDriveStep { action = "look", at = .75f, target = "actor:rival" });
             drive.steps.Add(new StudioDriveStep { action = "wait", duration = .5f });
-            drive.steps.Add(new StudioDriveStep { action = "jump", target = P(stage, plan.jumpAt) });
-            drive.steps.Add(new StudioDriveStep { action = "punch", target = "actor:rival", pace = "run", reach = 1.0f });
+            if (plan.step) drive.steps.Add(new StudioDriveStep { action = "jump", target = P(stage, plan.jumpAt) });
+            drive.steps.Add(new StudioDriveStep { action = "punch", target = "actor:rival", pace = "jog", reach = 1.0f });
             drive.steps.Add(new StudioDriveStep { action = "wait", duration = 1.4f });
             drive.steps.Add(new StudioDriveStep { action = "look", target = "" });
             drive.steps.Add(new StudioDriveStep { action = "wait", duration = 2 });
@@ -338,10 +355,27 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static bool Sees(Vector3 from, Vector3 to) => !Physics.Linecast(from, to, Mask, QueryTriggerInteraction.Ignore);
 
         // A clear camera spot looking at 'centre' from about 'distance', seeing every point in 'must'.
-        static Vector3 Spot(Vector3 centre, float distance, float height, IEnumerable<Vector3> must, Vector3 prefer)
+        static Vector3 Spot(Vector3 centre, float distance, float height, IEnumerable<Vector3> must, Vector3 prefer) => Spot(centre, distance, height, must, prefer, null, out _);
+
+        // As above; 'avoid' = other people who must not stand between the camera and 'centre'.
+        static Vector3 Spot(Vector3 centre, float distance, float height, IEnumerable<Vector3> must, Vector3 prefer, List<Vector3> avoid, out float bestScore)
         {
-            Vector3 best = centre + Vector3.back * distance + Vector3.up * height; float bestScore = float.MinValue;
+            Vector3 best = centre + Vector3.back * distance + Vector3.up * height; bestScore = float.MinValue;
             var points = must.ToList();
+            float Blocked(Vector3 p)
+            {
+                if (avoid == null) return 0;
+                Vector3 a = p, b = centre + Vector3.up * .5f, d = b - a;
+                float worst = 0;
+                foreach (var o in avoid)
+                {
+                    Vector3 q = o + Vector3.up * .5f;
+                    float t = Mathf.Clamp01(Vector3.Dot(q - a, d) / d.sqrMagnitude);
+                    float gap = Vector3.Distance(q, a + d * t);
+                    if (gap < .7f) worst = Mathf.Max(worst, 1 - gap / .7f);
+                }
+                return worst;
+            }
             for (int a = 0; a < 24; a++)
                 foreach (float k in new[] { 1f, 1.2f, .85f, 1.45f })
                     foreach (float up in new[] { height, height + .6f, height - .3f, height + 1.2f })
@@ -350,7 +384,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         Vector3 p = centre + dir * distance * k + Vector3.up * up;
                         if (Physics.CheckSphere(p, .4f, Mask, QueryTriggerInteraction.Ignore)) continue;
                         int seen = points.Count(t => Sees(p, t + Vector3.up * .6f) && Sees(p, t + Vector3.up * .3f));
-                        float score = seen * 10 + Vector3.Dot(dir, prefer) * 2 - Mathf.Abs(k - 1) * 3 - Mathf.Abs(up - height);
+                        float score = seen * 10 + Vector3.Dot(dir, prefer) * 2 - Mathf.Abs(k - 1) * 3 - Mathf.Abs(up - height) - Blocked(p) * 12;
                         if (score > bestScore) { bestScore = score; best = p; }
                     }
             return best;
@@ -380,8 +414,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             // B: the run and the punch, close and from the side; and the hero's own eyes.
             Vector3 run = Flat(plan.rival - plan.hero).normalized, side = Vector3.Cross(Vector3.up, run);
-            Vector3 mid = Vector3.Lerp(plan.hero, plan.rival, .6f);
-            Vector3 bSpot = Spot(mid, 3.6f, .7f, new[] { plan.hero, mid, plan.rival }, Vector3.Dot(side, toSun) >= 0 ? side : -side);
+            // Beside the end of the run, where the punch lands, so the hit is close.
+            Vector3 mid = Vector3.Lerp(plan.hero, plan.rival, .72f);
+            Vector3 bSpot = Spot(mid, 3.1f, .6f, new[] { plan.hero, mid, plan.rival }, Vector3.Dot(side, toSun) >= 0 ? side : -side);
             var b = Cam("B-close", .4f, 3.9f, 28);
             StudioMoves.LockedOff(b, .4f, stage.ToStage(bSpot), "actor:hero", new Vector3(0, .45f, 0));
             b.aims[0].blend = 0;
@@ -392,23 +427,32 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             list.Add(fp);
             Note($"B camera at {V(bSpot)}.");
 
-            // C: the look behind, close on Turner from in front.
-            var turner = set.marks[0];
-            Vector3 feet = stage.ToWorld(turner.position);
-            Vector3 front = Quaternion.Euler(0, turner.yaw + 35, 0) * Vector3.forward;
-            Vector3 cSpot = Spot(feet, 2.6f, .55f, new[] { feet }, front);
+            // C: the look behind, close on one of the group from in front, with nobody in between.
+            StudioMark turner = null; Vector3 cSpot = default; float cBest = float.MinValue;
+            foreach (var m in set.marks.Take(plan.group.Count))
+            {
+                Vector3 at = stage.ToWorld(m.position);
+                var others = set.marks.Where(o => o != m).Select(o => stage.ToWorld(o.position)).ToList();
+                Vector3 front = Quaternion.Euler(0, m.yaw + 30, 0) * Vector3.forward;
+                var spot = Spot(at, 2.3f, .5f, new[] { at }, front, others, out float score);
+                if (score > cBest) { cBest = score; turner = m; cSpot = spot; }
+            }
             var cc = Cam("C-lookBehind", .8f, 4.8f, 35);
+            cc.subject = turner.id;   // who looks behind (LookBehind reads it)
             StudioMoves.LockedOff(cc, .8f, stage.ToStage(cSpot), "actor:" + turner.id, new Vector3(0, .45f, 0));
             cc.measure.Add("actor:" + turner.id);
             list.Add(cc);
-            Note($"C camera at {V(cSpot)}.");
+            Note($"C camera at {V(cSpot)} on {turner.actor}.");
             return list;
         }
 
-        // The look-behind layer for proof C: Turner looks at a point straight behind him (a point: target, fix 4).
+        // The look-behind layer for proof C: one of the group looks at a point straight behind him (a point: target, fix 4).
+        static StudioMark Turner(StudioStage stage) =>
+            stage.set.Mark(stage.set.cameras.FirstOrDefault(c => c.id == "C-lookBehind")?.subject ?? "") ?? stage.set.marks[0];
+
         static StudioOverride LookBehind(StudioStage stage)
         {
-            var turner = stage.set.marks[0];
+            var turner = Turner(stage);
             Vector3 feet = stage.ToWorld(turner.position);
             Vector3 behind = feet + Quaternion.Euler(0, turner.yaw + 172, 0) * Vector3.forward * 8 + Vector3.up * 1.2f;
             return new StudioOverride { actor = turner.id, kind = "lookAt", target = P(stage, behind), from = 1.4f, to = 4.2f, blendIn = .3f, blendOut = .5f };
@@ -417,10 +461,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // ---- Numbers ----
 
         // Longest time an actor holds perfectly still (head under 3 deg/s and feet under 2 cm/s), and the head's top speed.
-        static (float still, float peak, float peakAt) Stillness(StudioStage stage, string id, float from, float to)
+        static (float still, float peak, float peakAt, float fastest) Stillness(StudioStage stage, string id, float from, float to)
         {
             int fps = stage.Fps;
-            float longest = 0, run = 0, peak = 0, peakAt = 0;
+            float longest = 0, run = 0, peak = 0, peakAt = 0, fastest = 0;
             StudioActorPoses.Pose last = default;
             for (int f = Mathf.RoundToInt(from * fps); f <= Mathf.RoundToInt(to * fps); f++)
             {
@@ -431,11 +475,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     float turn = Quaternion.Angle(last.headRotation, now.headRotation) * fps;
                     float move = Vector3.Distance(last.feet, now.feet) * fps;
                     if (turn > peak) { peak = turn; peakAt = f / (float)fps; }
+                    fastest = Mathf.Max(fastest, move);
                     if (turn < 3 && move < .02f) { run += 1f / fps; longest = Mathf.Max(longest, run); } else run = 0;
                 }
                 last = now;
             }
-            return (longest, peak, peakAt);
+            return (longest, peak, peakAt, fastest);
         }
 
         // Every shown frame of these actors, as bytes, hashed; played forward and backward must give the same.
@@ -472,14 +517,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var set = stage.set;
             var group = set.marks.Where(m => m.id != "hero" && m.id != "rival").Select(m => m.id).ToList();
             bool was = set.alive.on;
-            var table = new StringBuilder($"\n### Numbers ({label}), idle group, tape 0.5-5.5 s\n\n| actor | still OFF (s) | still ON (s) | peak head ON (deg/s) |\n|---|---|---|---|\n");
+            var table = new StringBuilder($"\n### Numbers ({label}), idle group, tape 0.5-5.5 s\n\n| actor | still OFF (s) | OFF peak head / feet | still ON (s) | peak head ON (deg/s) | ON peak feet (m/s) |\n|---|---|---|---|---|---|\n");
             float worstOff = 0, worstOn = 0, peakOn = 0;
             foreach (string id in group)
             {
                 set.alive.on = false; var off = Stillness(stage, id, .5f, 5.5f);
                 set.alive.on = true; var on = Stillness(stage, id, .5f, 5.5f);
                 worstOff = Mathf.Max(worstOff, off.still); worstOn = Mathf.Max(worstOn, on.still); peakOn = Mathf.Max(peakOn, on.peak);
-                table.Append($"| {set.Mark(id).actor} | {off.still:0.00} | {on.still:0.00} | {on.peak:0} at {on.peakAt:0.00} s |\n");
+                table.Append($"| {set.Mark(id).actor} | {off.still:0.00} | {off.peak:0} deg/s / {off.fastest:0.00} m/s | {on.still:0.00} | {on.peak:0} at {on.peakAt:0.00} s | {on.fastest:0.00} |\n");
             }
             set.alive.on = was;
             Note(table.ToString());
@@ -521,7 +566,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var clock = Stopwatch.StartNew();
             var rows = new StringBuilder("time,head_yaw,rig_yaw\n");
-            string turner = stage.set.marks[0].id;
+            string turner = Turner(stage).id;
             void Watch(Camera _)
             {
                 if (!shots.Any(s => s.id.StartsWith("C-"))) return;
@@ -542,7 +587,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // Proof C numbers: how far the head turns from where the body faced, and when it gets there.
         static IEnumerable<int> TurnLog(StudioStage stage)
         {
-            var turner = stage.set.marks[0];
+            var turner = Turner(stage);
             var layer = stage.set.overrides.Last();
             StudioOverrides.Target(stage.set, stage.tape, stage.anchor, layer, 2.5f, out var point);
             float facing = turner.yaw;

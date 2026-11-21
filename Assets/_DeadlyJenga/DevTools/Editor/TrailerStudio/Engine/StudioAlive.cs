@@ -355,28 +355,27 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Vector2 to = Aim(set, tape, track, seed, k, beat.start, time, head, facing, out float rollTo, out bool big);
             Vector2 from = Vector2.zero; float rollFrom = 0;
             if (k > 0) from = Aim(set, tape, track, seed, k - 1, looks[k - 1].start, beat.start, head, facing, out rollFrom, out _);
-            // A look over the shoulder takes longer: the body comes round with it.
-            float move = big ? beat.move + .35f : beat.move;
+            // Bigger head moves take longer (about 300 degrees a second at most); a look over the shoulder longer still.
+            // The move always ends before the next look starts, so one look hands over to the next without a jump.
+            float size = Mathf.Abs(to.x - from.x) + .5f * Mathf.Abs(to.y - from.y);
+            float move = Mathf.Clamp(.1f + size / 300 + (big ? .25f : 0), beat.move, beat.move + .8f * beat.hold);
             float u = StudioHuman.Ease((time - beat.start) / move);
             Vector2 gaze = Vector2.Lerp(from, to, u);
             roll = Mathf.Lerp(rollFrom, rollTo, u);
 
-            // A loud hit or a match sound nearby: a quick look toward it, then back.
+            // A loud hit or a match sound nearby: a quick look toward it, then back. Several in a row hand over smoothly.
             var loud = LoudMoments(tape, set.fps);
             if (loud != null)
             {
                 float delay = StudioHuman.Range(seed, 0, 120, .16f, .3f), hold = StudioHuman.Range(seed, 0, 121, .7f, 1.3f);
-                for (int i = loud.Count - 1; i >= 0; i--)
+                foreach (var e in loud)
                 {
-                    var e = loud[i];
                     float since = time - e.time - delay;
-                    if (since < 0) continue;
-                    if (since > hold + .5f) break;
+                    if (since > hold + .5f) continue;
+                    if (since < 0) break;
                     if (Vector3.Distance(e.position, head) > 25) continue;
-                    float w = since < hold ? StudioHuman.Ease(since / .2f) : 1 - StudioHuman.Ease((since - hold) / .45f);
-                    var look = new Vector2(Mathf.Clamp(Mathf.DeltaAngle(facing, StudioHuman.Yaw(e.position - head)), -140, 140), Mathf.Clamp(StudioHuman.Pitch(head, e.position), -35, 40));
-                    gaze = Vector2.Lerp(gaze, look, w);
-                    break;
+                    float w = since < hold ? StudioHuman.Ease(since / .25f) : 1 - StudioHuman.Ease((since - hold) / .5f);
+                    gaze = Vector2.Lerp(gaze, Toward(head, e.position, facing, .9f), w);
                 }
             }
             return gaze;
@@ -426,12 +425,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (u < .66f) return new Vector2(sign * Mathf.Lerp(25, 68, a), -3 + b * 4);
             if (u < .9f) return new Vector2((a - .5f) * 34, 12 + b * 14);
             big = true;
-            return new Vector2(sign * Mathf.Lerp(105, 140, a), -2 + b * 6);
+            return new Vector2(sign * Mathf.Lerp(100, 125, a), -2 + b * 6);
         }
 
         // Head yaw and pitch toward a point. The head does most of the turn; the eyes do the rest ('share').
-        static Vector2 Toward(Vector3 head, Vector3 point, float facing, float share) =>
-            new Vector2(Mathf.Clamp(Mathf.DeltaAngle(facing, StudioHuman.Yaw(point - head)) * share, -140, 140), Mathf.Clamp(StudioHuman.Pitch(head, point) * share, -35, 40));
+        // Something straight behind is not looked at by the head alone (a person would turn round): the look fades
+        // out toward 180 degrees, so it never flips from one shoulder to the other.
+        static Vector2 Toward(Vector3 head, Vector3 point, float facing, float share)
+        {
+            float raw = Mathf.DeltaAngle(facing, StudioHuman.Yaw(point - head));
+            float fade = 1 - Mathf.InverseLerp(125, 170, Mathf.Abs(raw));
+            return new Vector2(Mathf.Clamp(raw * share, -100, 100) * fade, Mathf.Clamp(StudioHuman.Pitch(head, point) * share, -35, 40) * Mathf.Lerp(.3f, 1, fade));
+        }
 
         // Another actor's head straight from its take (no layers), so actors looking at each other never loop.
         static bool RawHead(StudioTrack track, float time, int fps, out Vector3 head)

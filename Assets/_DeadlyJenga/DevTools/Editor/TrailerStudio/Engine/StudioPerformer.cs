@@ -224,7 +224,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 fromYaw = headYaw; fromPitch = headPitch; moveStart = time;
                 float size = Mathf.Abs(Mathf.DeltaAngle(headYaw, yaw)) + Mathf.Abs(pitch - headPitch) * .5f;
-                moveTime = human < .001f ? .01f : Mathf.Clamp(.1f + size / 420 + Range(++glances, 30, 0, .05f) * human, .12f, .7f);
+                // About 300 degrees a second at most for a big turn, quicker for a small one.
+                moveTime = human < .001f ? .01f : Mathf.Clamp(.16f + size / 300 + Range(++glances, 30, 0, .06f) * human, .16f, .85f);
             }
             toYaw = yaw; toPitch = pitch;
         }
@@ -511,11 +512,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             float distance = toward.magnitude;
             bool punch = step.action == "punch";
             float reach = punch ? Mathf.Max(.4f, step.reach) : 0;
-            if (punch && distance > reach)
+            // Never swing from the air or from on top of someone: keep closing in until both stand on one level.
+            bool level = motor.Grounded && Mathf.Abs(feet.y - Feet.y) < .6f;
+            if (punch && (distance > reach || !level))
             {
                 // Close the gap, braking into range.
                 intent.move = toward;
-                intent.speed = Pace(step.pace) * Mathf.Clamp01((distance - reach * .85f) / .8f + .1f);
+                intent.speed = distance > reach ? Pace(step.pace) * Mathf.Clamp01((distance - reach * .85f) / .8f + .1f) : motor.Grounded ? .3f : 0;
                 return;
             }
             // Square up, then swing (or shoot).
