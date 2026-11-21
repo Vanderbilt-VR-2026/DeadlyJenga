@@ -55,8 +55,8 @@ namespace DeadlyJenga.DevTools.Editor
                 foreach(var piston in Object.FindObjectsByType<DeadlyJenga.CandyArt.Marina.MarinaFamePiston>(FindObjectsSortMode.None).OrderBy(p=>p.name))
                 {
                     var look=new AvatarAppearance{skin=fame==0?AvatarSkin.CrystalKnight:fame==1?AvatarSkin.NeonRobot:AvatarSkin.Astronaut};
-                    var figure=Mannequins.Create(piston.transform,piston.transform.TransformPoint(0,.16f,0),piston.transform.rotation*Quaternion.Euler(0,180,0),look,fame,MannequinPose.Display);
-                    if(figure){figure.transform.rotation=piston.transform.rotation*Quaternion.Euler(0,180,0);figure.transform.localScale*=1.75f;}
+                    var figure=Mannequins.Create(piston.transform,piston.transform.TransformPoint(0,.16f,0),piston.transform.rotation,look,fame,MannequinPose.Display);
+                    if(figure)figure.transform.localScale*=1.75f;
                     fame++;
                 }
             }

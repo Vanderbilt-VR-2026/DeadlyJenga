@@ -19,7 +19,7 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Vector3 CinemaTable = new(0, CinemaFloor + DeadlyJenga.Presentation.LobbyLiveMap.PlinthHeight, 2.75f);
         // The style stage (wardrobe) stands on the cinema's right side, where the podium was; its vanity backs onto the right edge.
         static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, 90, 0);
-        static readonly Quaternion FameTurn = Quaternion.Euler(0, 180, 0);
+        static readonly Quaternion FameTurn = Quaternion.identity;
         public static readonly Vector3 Wardrobe = new(5.12f, CinemaFloor + .22f, 3.25f);
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
