@@ -75,24 +75,24 @@ namespace DeadlyJenga.DevTools.Editor
             Shot(new Vector3(0,3.1f,-8.5f),new Vector3(0,3.9f,-1.45f),58,"Marina-FamePistons.png");yield return null;
             Shot(new Vector3(4.2f,2.9f,-5.2f),new Vector3(0,3.4f,-1.45f),62,"Marina-FamePistonsSide.png");yield return null;
             Shot(new Vector3(0,2.7f,-10.5f),new Vector3(0,5.1f,-2.45f),62,"Marina-LastMatchFront.png");yield return null;
-            Shot(new Vector3(1.2f,2.9f,0.4f),new Vector3(5.6f,2.4f,3.9f),64,"Marina-StyleTablet.png");yield return null;
+            Shot(new Vector3(1.2f,2.9f,5.25f),new Vector3(5.6f,2.4f,8.75f),64,"Marina-StyleTablet.png");yield return null;
             Shot(new Vector3(0,3.0f,4.2f),new Vector3(0,5.4f,-2.45f),62,"Marina-LastMatchBack.png");yield return null;
             Shot(new Vector3(-10.4f,4.3f,0.4f),new Vector3(-15f,2.1f,4.6f),56,"Marina-Crates.png");yield return null;
             Shot(new Vector3(-19.6f,2.9f,8.4f),new Vector3(-14.5f,2.0f,4.2f),56,"Marina-CratesBack.png");yield return null;
-            Shot(new Vector3(-1.5f,3.6f,6.5f),new Vector3(10f,3.0f,-0.3f),66,"Marina-ShopFromLobby.png");yield return null;
+            Shot(new Vector3(-1.5f,3.6f,9.5f),new Vector3(10f,3.0f,4.1f),66,"Marina-ShopFromLobby.png");yield return null;
             Shot(new Vector3(-4f,10f,-18f),new Vector3(9f,3.5f,1f),55,"Marina-EastGlass.png");yield return null;
-            Shot(new Vector3(1.4f,9.98f,-11.8f),new Vector3(14.2f,3.68f,-0.3f),52,"Marina-GiftShop.png");yield return null;
-            Shot(new Vector3(5.1f,3.48f,-0.3f),new Vector3(14.2f,4.38f,-0.3f),66,"Marina-GiftShopFront.png");yield return null;
-            Shot(new Vector3(4.7f,4.08f,7.8f),new Vector3(14.2f,3.88f,-1.3f),58,"Marina-GiftShopSide.png");yield return null;
-            Shot(new Vector3(10.2f,3.58f,-0.3f),new Vector3(18.7f,3.08f,-0.3f),78,"Marina-GiftShopInside.png");yield return null;
-            Shot(new Vector3(10.9f,3.68f,-1.2f),new Vector3(15.5f,2.88f,5.5f),72,"Marina-GiftShopPlush.png");yield return null;
-            Shot(new Vector3(10.9f,3.68f,0.6f),new Vector3(17.5f,2.78f,-3.8f),72,"Marina-GiftShopCounter.png");yield return null;
-            Shot(new Vector3(16.5f,3.48f,-0.3f),new Vector3(9.9f,3.08f,-0.3f),76,"Marina-GiftShopBack.png");yield return null;
-            Shot(new Vector3(15.5f,3.38f,-2.4f),new Vector3(12.9f,2.78f,-5.6f),64,"Marina-GiftShopRack.png");yield return null;
-            Shot(new Vector3(13.1f,3.28f,-0.3f),new Vector3(17.1f,2.88f,-0.3f),70,"Marina-GiftShopMannequins.png");yield return null;
-            Shot(new Vector3(15.2f,3.68f,0.6f),new Vector3(15.2f,2.98f,5.6f),70,"Marina-GiftShopSuits.png");yield return null;
-            Shot(new Vector3(12.3f,4.28f,-1.4f),new Vector3(15.2f,3.08f,5.6f),68,"Marina-GiftShopSuitsWide.png");
-            Shot(new Vector3(23.4f,7.98f,14.7f),new Vector3(15.2f,2.88f,6.8f),58,"Marina-GiftShopSuitsOutside.png");yield return null;
+            Shot(new Vector3(1.4f,9.98f,-7.4f),new Vector3(14.2f,3.68f,4.1f),52,"Marina-GiftShop.png");yield return null;
+            Shot(new Vector3(5.1f,3.48f,4.1f),new Vector3(14.2f,4.38f,4.1f),66,"Marina-GiftShopFront.png");yield return null;
+            Shot(new Vector3(4.7f,4.08f,12.2f),new Vector3(14.2f,3.88f,3.1f),58,"Marina-GiftShopSide.png");yield return null;
+            Shot(new Vector3(10.2f,3.58f,4.1f),new Vector3(18.7f,3.08f,4.1f),78,"Marina-GiftShopInside.png");yield return null;
+            Shot(new Vector3(10.9f,3.68f,3.2f),new Vector3(15.5f,2.88f,9.9f),72,"Marina-GiftShopPlush.png");yield return null;
+            Shot(new Vector3(10.9f,3.68f,5f),new Vector3(17.5f,2.78f,0.6f),72,"Marina-GiftShopCounter.png");yield return null;
+            Shot(new Vector3(16.5f,3.48f,4.1f),new Vector3(9.9f,3.08f,4.1f),76,"Marina-GiftShopBack.png");yield return null;
+            Shot(new Vector3(15.5f,3.38f,2f),new Vector3(12.9f,2.78f,-1.2f),64,"Marina-GiftShopRack.png");yield return null;
+            Shot(new Vector3(13.1f,3.28f,4.1f),new Vector3(17.1f,2.88f,4.1f),70,"Marina-GiftShopMannequins.png");yield return null;
+            Shot(new Vector3(15.2f,3.68f,5f),new Vector3(15.2f,2.98f,10f),70,"Marina-GiftShopSuits.png");yield return null;
+            Shot(new Vector3(12.3f,4.28f,3f),new Vector3(15.2f,3.08f,10f),68,"Marina-GiftShopSuitsWide.png");
+            Shot(new Vector3(23.4f,7.98f,19.1f),new Vector3(15.2f,2.88f,11.2f),58,"Marina-GiftShopSuitsOutside.png");yield return null;
             try{foreach(var r in Services.Session.Player.gameObject.GetComponentsInChildren<Renderer>(true))r.enabled=true;Export(lobby.transform.position,Services.Session.Player.gameObject);}catch(Exception e){failed=true;Debug.LogException(e);}
             EditorApplication.ExitPlaymode();
         }

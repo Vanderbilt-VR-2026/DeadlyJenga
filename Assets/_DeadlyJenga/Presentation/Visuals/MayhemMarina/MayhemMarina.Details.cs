@@ -21,8 +21,8 @@ namespace DeadlyJenga.CandyArt.Marina
             Palm(new Vector3(-2.5f,.38f,21.5f),5.8f,-.5f,4);Palm(new Vector3(23.8f,.38f,12.6f),5.9f,-.5f,5);
             Palm(new Vector3(21.0f,.38f,-3.4f),5.3f,.6f,6);Palm(new Vector3(-22,1.3f,-1.5f),4.6f,-.4f,7);
             Palm(new Vector3(23.4f,.38f,14.8f),5.7f,.45f,8);
-            Palm(new Vector3(14.0f,.38f,-9.6f),5.1f,.55f,9);Palm(new Vector3(21.2f,.38f,19.8f),6.2f,-.35f,10);
-            Vector3[] pots={new(-16.5f,1.285f,2.72f),new(-16.9f,1.285f,12.1f),new(6.85f,CinemaFloor,10.4f)};
+            Palm(new Vector3(12.6f,.38f,-4.8f),5.1f,.55f,9);Palm(new Vector3(21.2f,.38f,19.8f),6.2f,-.35f,10);
+            Vector3[] pots={new(-16.5f,1.285f,2.72f),new(-16.9f,1.285f,12.1f),new(6.9f,CinemaFloor,11.05f)};
             for(int i=0;i<pots.Length;i++)Pot(pots[i],.45f+(i%3)*.07f,.72f+(i%2)*.12f,i+20);
             for(int i=0;i<18;i++)
             {

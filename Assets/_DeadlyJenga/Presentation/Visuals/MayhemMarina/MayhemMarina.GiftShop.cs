@@ -9,7 +9,7 @@ namespace DeadlyJenga.CandyArt.Marina
     // striped barrel roof over a deep porch, double doors between two big display windows, and a cupola.
     // Inside: a wood floor with a star medallion, cream walls over wood panelling, chandeliers, a tiered
     // centrepiece with a big souvenir block tower, a turning hero suit vault, lit merchandise bays, display
-    // tables with snow globes, a glass case and a checkout under a lit logo.
+    // tables with snow globes, a glass case and a checkout in front of a big window.
     //
     // GiftShopWing (Architecture) places it off the cinema's east side, level with the cinema floor.
     // floor = the ground under the middle of the shop.
@@ -106,7 +106,17 @@ namespace DeadlyJenga.CandyArt.Marina
             for (float x = -hw; x < hw + .3f; x += .3f) B(x, .032f, -hd - ShopPorch * .5f, new Vector3(.02f, .004f, ShopPorch), F.DarkWood, .002f);
 
             // ---------- Walls ----------
-            B(0, H * .5f, hd - .12f, new Vector3(ShopWidth, H, .24f), F.CandyMint, .05f, true);
+            // Back wall, with a wide window behind the checkout (WinHalf either side, WinSill to WinHead high).
+            const float WinHalf = 2.2f, WinSill = 1.35f, WinHead = 3.25f;
+            B(0, WinSill * .5f, hd - .12f, new Vector3(ShopWidth, WinSill, .24f), F.CandyMint, .05f, true);
+            B(0, (WinHead + H) * .5f, hd - .12f, new Vector3(ShopWidth, H - WinHead, .24f), F.CandyMint, .05f, true);
+            foreach (float s in new[] { -1f, 1f })
+                B(s * (WinHalf + hw) * .5f, (WinSill + WinHead) * .5f, hd - .12f, new Vector3(hw - WinHalf, WinHead - WinSill, .24f), F.CandyMint, .05f, true);
+            B(0, (WinSill + WinHead) * .5f, hd - .12f, new Vector3(WinHalf * 2, WinHead - WinSill, .04f), F.Glass, .01f, true);
+            B(0, WinSill, hd - .3f, new Vector3(WinHalf * 2 + .2f, .08f, .2f), F.Wood, .02f);
+            B(0, WinHead, hd - .12f, new Vector3(WinHalf * 2 + .1f, .1f, .3f), F.Ivory, .02f);
+            foreach (float s in new[] { -1f, 0f, 1f })
+                B(s * WinHalf, (WinSill + WinHead) * .5f, hd - .12f, new Vector3(.08f, WinHead - WinSill, .3f), F.Ivory, .02f);
             // The left wall has a tall opening that the hero suit vault turns through (see below).
             B(hw - .12f, H * .5f, 0, new Vector3(.24f, H, ShopDepth), F.CandyMint, .05f, true);
             WallRun(-hd, VaultZ - VaultOpening, 0, H, true);
@@ -114,7 +124,9 @@ namespace DeadlyJenga.CandyArt.Marina
             WallRun(VaultZ - VaultOpening, VaultZ + VaultOpening, VaultTop, H, true);
             for (float y = .35f; y < H; y += .32f)
             {
-                B(0, y, hd + .005f, new Vector3(ShopWidth, .035f, .03f), F.Ivory, .01f);
+                if (y > WinSill && y < WinHead)
+                    foreach (float s in new[] { -1f, 1f }) B(s * (WinHalf + hw) * .5f, y, hd + .005f, new Vector3(hw - WinHalf, .035f, .03f), F.Ivory, .01f);
+                else B(0, y, hd + .005f, new Vector3(ShopWidth, .035f, .03f), F.Ivory, .01f);
                 B(hw + .005f, y, 0, new Vector3(.03f, .035f, ShopDepth), F.Ivory, .01f);
                 foreach (var (z0, z1) in y > VaultTop ? new[] { (-hd, hd) } : new[] { (-hd, VaultZ - VaultAlong - .2f), (VaultZ + VaultAlong + .2f, hd) })
                     B(-hw - .005f, y, (z0 + z1) * .5f, new Vector3(.03f, .035f, z1 - z0), F.Ivory, .01f);
@@ -232,15 +244,6 @@ namespace DeadlyJenga.CandyArt.Marina
             Ball(0, 7.75f, 0, Vector3.one * .1f, F.Brass);
             Ball(0, 8.35f, 0, new Vector3(.42f, .15f, .05f), F.Brass);
             B(.52f, 8.35f, 0, new Vector3(.22f, .24f, .04f), F.Brass, .01f);
-
-            // Big sign over the porch: teal board, brass frame, glowing trim.
-            float signZ = -hd - ShopPorch - .02f;
-            B(0, 4.6f, signZ + .06f, new Vector3(6.3f, 1.35f, .08f), F.Brass, .03f);
-            B(0, 4.6f, signZ, new Vector3(6f, 1.1f, .12f), F.Teal, .06f);
-            B(0, 4.6f + .5f, signZ - .07f, new Vector3(5.6f, .04f, .02f), F.Glow, .01f);
-            B(0, 4.6f - .5f, signZ - .07f, new Vector3(5.6f, .04f, .02f), F.Glow, .01f);
-            Sign("SEASIDE SOUVENIRS", P(0, 4.72f, signZ - .08f), .046f, cream, new Vector3(0, yaw, 0));
-            Sign("GIFTS  ·  SWEETS  ·  PLUSH  ·  SUN HATS", P(0, 4.33f, signZ - .08f), .019f, cream, new Vector3(0, yaw, 0));
 
             // Porch: lamps, planters, two benches.
             foreach (float s in new[] { -1f, 1f })
@@ -474,7 +477,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 Sign(s < 0 ? "SOUVENIRS" : "SWEETS", P(cx, 3.36f, bz - .12f), .022f, cream, new Vector3(0, yaw, 0));
             }
 
-            // Checkout: a long counter under a lit logo panel, with candy jars and a till.
+            // Checkout: a long counter in front of the window, with candy jars and a till.
             B(0, .5f, hd - 1.55f, new Vector3(4.2f, 1f, .8f), F.Wood, .06f, true);
             B(0, 1.03f, hd - 1.55f, new Vector3(4.4f, .07f, .95f), F.CandyCream, .02f);
             for (int i = 0; i < 4; i++) B(-1.5f + i, .52f, hd - 1.96f, new Vector3(.8f, .6f, .03f), i % 2 == 0 ? F.CandyCoral : F.CandyMint, .01f);
@@ -487,12 +490,6 @@ namespace DeadlyJenga.CandyArt.Marina
                 Ball(x, 1.25f, hd - 1.6f, new Vector3(.17f, .2f, .17f), F.Glass);
                 Disc(x, 1.43f, hd - 1.6f, .12f, .05f, F.Brass);
             }
-            B(0, 2.55f, hd - .38f, new Vector3(4.6f, 1.2f, .1f), F.Teal, .05f);
-            B(0, 2.55f, hd - .32f, new Vector3(4.8f, 1.4f, .04f), F.Brass, .03f);
-            B(0, 3.07f, hd - .44f, new Vector3(4.4f, .04f, .02f), F.Glow, .01f);
-            B(0, 2.03f, hd - .44f, new Vector3(4.4f, .04f, .02f), F.Glow, .01f);
-            Sign("SEASIDE SOUVENIRS", P(0, 2.62f, hd - .45f), .03f, cream, new Vector3(0, yaw, 0));
-            Sign("EST. MAYHEM MARINA", P(0, 2.28f, hd - .45f), .013f, cream, new Vector3(0, yaw, 0));
 
             // Two mannequins flanking the checkout, facing the doors.
             foreach (float s in new[] { -1f, 1f })

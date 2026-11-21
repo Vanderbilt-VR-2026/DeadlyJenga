@@ -47,6 +47,7 @@ namespace DeadlyJenga.CandyArt.Marina
             // The whole east side and the back are open beach, low by the water. The plaza, main deck and
             // the west deck step down onto it.
             mesh.ArcSlab(center, new Vector2(6, 6), new Vector2(27.6f, 24.6f), .36f, EastCut, 140, F.Sand, true, 56);
+            Ramp(new Vector3(7.0f, PlazaTop, -4.4f), new Vector3(10.6f, .40f, -4.4f), 3f, false);
             mesh.ArcSlab(center, new Vector2(20, 17), new Vector2(27.2f, 24.0f), .34f, -105, -62, F.Sand, true, 28);
             Ramp(new Vector3(-23.0f,1.25f,8.78f),new Vector3(-24.1f,1.25f,8.93f),2.7f,false);
             Ramp(new Vector3(-24.1f,1.25f,8.93f),new Vector3(-25.8f,.36f,9.25f),2.7f,false);
@@ -210,9 +211,9 @@ namespace DeadlyJenga.CandyArt.Marina
             Lantern(new Vector3(-3.8f,5.35f,8.3f),.22f);
             Lantern(new Vector3(3.8f,5.35f,8.3f),.22f);
         }
-        // The gift shop sits on the south end of the cinema's east side; its door opens between the
-        // front corner post and the wardrobe rack. The shop itself reaches south past the cinema front.
-        const float ShopDoorZ = -.3f, EastGlassX = 7.85f, BackGlassZ = 11.65f, ShopDoorHalf = 1.1f;
+        // The gift shop sits on the south end of the cinema's east side, inside the roofed part:
+        // its porch starts at the cinema front. The wardrobe stage is north of its door.
+        const float ShopDoorZ = CinemaFront + ShopWidth * .5f + .3f, EastGlassX = 7.85f, BackGlassZ = 11.65f, ShopDoorHalf = 1.3f;
 
         // Glass walling around the cinema: tall panes in wooden frames, cut to meet the curved roof.
         // Behind the terminals it runs the full width; on the east side it leaves a doorway into the shop.
