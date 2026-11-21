@@ -251,7 +251,7 @@ namespace DeadlyJenga.CastlePrototype
                 yield return Until(() => File.Exists(Mark("host-pressed-go")),
                     "Host opens the ready check", 40, LobbyState);
             yield return Until(() => IslandLobby.Current.CanStart,
-                "Play's Marina GO button is available", 35, LobbyState);
+                "Play's Marina GO button is available", 35, () => LobbyState()+" | "+room.GetComponent<RoomGameExperience>()?.GameStatus);
             IslandLobby.Current.StartOrCancel();
             if (host) File.WriteAllText(Mark("host-pressed-go"), "ready");
             CastlePlaySession game=null;
