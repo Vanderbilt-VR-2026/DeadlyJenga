@@ -225,6 +225,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 list.Add(new StudioOverride { actor = role, kind = kind, name = name, target = target, point = point, from = T(from), to = T(to), blendIn = blendIn, blendOut = blendOut, flinch = flinch });
             }
             int end = TapeFrame(LengthFrames) + 30;
+            // The opening, out of step (record 5 measured the gorilla and the dragon 1-4 frames from the hero): the gorilla
+            // glances past the hero at the dragon early, the dragon fixes on the hero a little later; both hold through S01.
+            var opening = shots.First(s => s.id == "S01");
+            int o0 = TapeFrame(opening.cutIn) + opening.shift;
+            Add("rival", "lookAt", o0 + 22, o0 + 56, target: "actor:dragon", blendIn: .35f, blendOut: .4f);
+            Add("dragon", "lookAt", o0 + 28, o0 + 60, target: "actor:hero", blendIn: .4f, blendOut: .4f);
             void AddPunch(string victim, int contact)
             {
                 Vector3 aim = HeadAt(stage, victim, contact, plan) - Vector3.up * .12f;

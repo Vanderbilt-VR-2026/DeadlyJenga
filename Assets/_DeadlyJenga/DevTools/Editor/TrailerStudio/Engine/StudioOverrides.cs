@@ -204,7 +204,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // recorded head drifting across 85 degrees from the target snapped about 30 degrees in one frame (disaster-pvp-2
             // measured 887 deg/s on the hero's look up).
             // Keep turning the same way round once the turn has started.
-            if (Mathf.Abs(delta) > 110 && side != 0 && Mathf.Sign(side) != Mathf.Sign(delta)) delta += delta > 0 ? -360 : 360;
+            // The turn nearest to the way it started (continuous: a fixed angle threshold jumped 350 degrees when the
+            // recorded head drifted across it; disaster-pvp-2's fox measured 3311 deg/s).
+            if (side != 0) delta = side + Mathf.DeltaAngle(side, delta);
             // The turn takes longer the further round it goes; the blend-out is the layer's own.
             float turnTime = Mathf.Max(.05f, layer.blendIn) + Mathf.Max(0, Mathf.Abs(delta) - NeckLimit) / BodyTurnSpeed;
             float rise = Mathf.Clamp01((time - layer.Start) / turnTime);
