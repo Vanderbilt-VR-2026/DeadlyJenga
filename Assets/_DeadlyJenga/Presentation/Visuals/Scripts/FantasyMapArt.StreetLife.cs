@@ -13,6 +13,7 @@ namespace DeadlyJenga.Presentation
         readonly List<(Transform body,float radius,float speed,float phase)> walkers=new();
         Transform skyRing;Vector3 skyRingHome;
         readonly bool[,] walkClear=new bool[2,RoadBins];
+        bool walkersLogged;
 
         void BuildStreetLife()
         {
@@ -133,6 +134,12 @@ namespace DeadlyJenga.Presentation
                 float step=Mathf.Abs(Mathf.Sin(time*5.5f+phase*3));
                 body.localPosition=L(roadCenter+dir*radius+Vector3.up*(.05f+step*.06f));
                 body.localRotation=LR(Quaternion.LookRotation(Vector3.Cross(dir,Vector3.up)*Mathf.Sign(speed))*Quaternion.Euler(0,0,(step-.5f)*6));
+            }
+            if(!walkersLogged&&walkers.Count>0&&walkers[0].body&&time>4)
+            {
+                walkersLogged=true;int on=0;foreach(var w in walkers)if(w.body&&w.body.gameObject.activeInHierarchy)on++;
+                var r=walkers[0].body.GetComponent<MeshRenderer>();
+                Debug.Log($"[SkyRingArt] walkers {walkers.Count}, active {on}, first at {walkers[0].body.position} scale {walkers[0].body.lossyScale} bounds {r.bounds}");
             }
         }
 

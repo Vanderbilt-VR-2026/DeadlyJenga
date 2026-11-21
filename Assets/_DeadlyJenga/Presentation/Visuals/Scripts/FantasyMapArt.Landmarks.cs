@@ -116,7 +116,6 @@ namespace DeadlyJenga.Presentation
                 if(ground)
                 {
                     foreach(int side in new[]{-1,1})DoorFrame(m,V,vq,new Vector3(mid.x,floorY,mid.z+side*(hz-.55f)),side);
-                    Debug.Log($"[SkyRingArt] harbor doors of '{purpose}' at {frame.TransformPoint(new Vector3(mid.x,floorY,mid.z+hz))} and {frame.TransformPoint(new Vector3(mid.x,floorY,mid.z-hz))}, visual {visual.name} active {visual.gameObject.activeInHierarchy}");
                     foreach(int side in new[]{-1,1})Cargo(m,V,frame,new Vector3(mid.x+side*(hx+2.6f),floorY,mid.z),body,side);
                 }
                 if(purpose.EndsWith(" floor 2"))
@@ -184,7 +183,7 @@ namespace DeadlyJenga.Presentation
             for(int i=0;i<bands;i++)
                 m.Box(V(c+Vector3.up*(-s.y*.5f+(i+.5f)*h)),new Vector3(s.x+.06f,h*1.01f,s.z+.06f),vq,0,i%2==0?CaneRed:Sugar);
             // Tall free-standing posts get a gold cap so they read as candy sticks, not chimneys.
-            if(s.y>10)m.Sphere(V(c+Vector3.up*(s.y*.5f+.4f)),new Vector3(s.x*.62f,.9f,s.z*.62f),0,Gold,6,10);
+            if(s.y>10)m.Sphere(V(c+Vector3.up*(s.y*.5f+.55f)),Vector3.one*Mathf.Min(s.x,s.z)*.42f,0,Gold,8,12);
         }
 
         void ShopSign(ArtMesh m,System.Func<Vector3,Vector3> V,Quaternion vq,Vector3 at,int side,int seed)
@@ -313,8 +312,9 @@ namespace DeadlyJenga.Presentation
                 m.Box(V(at+Vector3.down*4),new Vector3(3,7.6f,.12f),q,0,GrapeDark);
                 m.Box(V(at+Vector3.down*4-n*.01f),new Vector3(3.3f,7.9f,.08f),q,0,Gold);
                 var heart=at+Vector3.down*3.6f+n*.1f;var right=Vector3.Cross(Vector3.up,n);
-                foreach(int s in new[]{-1,1})m.Sphere(V(heart+right*s*.42f+Vector3.up*.25f),new Vector3(.6f,.6f,.12f),0,new Color(1,.36f,.62f),6,10);
-                m.Box(V(heart-Vector3.up*.35f),new Vector3(.95f,.95f,.1f),q*Quaternion.Euler(0,0,45),0,new Color(1,.36f,.62f));
+                // Heart: two round lobes over a square turned 45 degrees.
+                foreach(int s in new[]{-1,1})m.Sphere(V(heart+right*s*.36f+Vector3.up*.2f),new Vector3(.52f,.52f,.12f),0,new Color(1,.36f,.62f),8,12);
+                m.Box(V(heart-Vector3.up*.22f),new Vector3(.98f,.98f,.12f),q*Quaternion.Euler(0,0,45),0,new Color(1,.36f,.62f));
             }
         }
 
