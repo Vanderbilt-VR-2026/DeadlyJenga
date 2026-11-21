@@ -33,6 +33,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float amount = 1;          // crouch: 0..1 depth
         public float reach = 1.05f;       // punch: how close (metres, feet to feet) before swinging
         public string weapon = "";        // gear: an EquipmentKind name (BoxingGlove, Blaster...)
+        public string shoot = "";         // goTo/path: a target to fire at once, in the air, after a jump made during the step (run and gun)
+        public float shootAfter = .15f;   // seconds after that take-off
     }
 
     // The always-on "alive" layer: small human motion on every recorded survivor whenever no stronger

@@ -119,6 +119,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         int leg; Vector3 legStart; float bend, overshoot, feetWait; bool settling; float settleStart;
         // punch / fire
         bool swung; float swungAt;
+        bool shotOnMove, aimingNow; float shotAt;
         bool edgeLogged;
 
         StudioPerformer(StudioStage stage, StudioDrive drive, CastleSurvivor motor)
@@ -179,7 +180,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     stick = Vector3.zero;
                 }
             }
-            if (jumpArmed && (time > jumpArmedUntil || Vector3.Distance(Flat(Feet), Flat(jumpAt)) < .35f)) { if (time <= jumpArmedUntil) intent.jump = true; jumpArmed = false; }
+            // The armed jump goes at its spot, or just past it when the run went by a little to one side.
+            float toJump = Vector3.Distance(Flat(Feet), Flat(jumpAt));
+            bool passedJump = toJump < 1f && Vector3.Dot(stick, Flat(jumpAt - Feet)) < 0;
+            if (jumpArmed && (time > jumpArmedUntil || toJump < .35f || passedJump)) { if (time <= jumpArmedUntil) intent.jump = true; jumpArmed = false; }
 
             // Blocked by a low step while pushing forward: hop up it, as a person would.
             float moved = Flat(motor.Capsule.velocity).magnitude;
@@ -367,6 +371,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 stepBegun = true;
             }
             bool busy = current >= 0 && current < drive.steps.Count && !finished;
+            aimingNow = false;
             if (busy) Tick(drive.steps[current], time, ref intent);
             // Idle (between steps, after the last one, or during a wait): the head wanders like anyone's.
             if (busy && (drive.steps[current].action == "wait" || drive.steps[current].action == "stop")) busy = false;
@@ -376,7 +381,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 // An explicit look holds the head; otherwise glances while travelling, and more often while idle.
                 if (looking && time <= lookUntil && Where(lookTarget, lookPoint, time, true, out var seen)) intent.gaze = seen;
-                else if (doing == "goTo" || doing == "path") { if (intent.speed > .2f) Glance(time, ref intent, true); }
+                else if (doing == "goTo" || doing == "path") { if (intent.speed > .2f && !aimingNow) Glance(time, ref intent, true); }
                 else Glance(time, ref intent, false);
             }
             return intent;
@@ -394,7 +399,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if (step.action == "path") route.AddRange(step.points.Select(p => stage.ToWorld(p)));
                     else if (!Where(step.target, step.point, time, false, out var to)) { Log(time, "goTo: the target is not there"); route.Add(Feet); }
                     else route.Add(to);
-                    leg = 0; legStart = Feet; settling = false;
+                    leg = 0; legStart = Feet; settling = false; shotOnMove = false;
                     // A gentle curve, a small overshoot, and the feet start a moment after the head turns.
                     bend = human * Range(n, 1, -.07f, .07f);
                     overshoot = human * Range(n, 2, .04f, .12f) * Mathf.Lerp(.6f, 1.4f, Pace(step.pace));
@@ -447,7 +452,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             switch (step.action)
             {
-                case "goTo": case "path": Travel(step, time, ref intent); break;
+                case "goTo": case "path": Travel(step, time, ref intent); ShootOnMove(step, time, ref intent); break;
                 case "face":
                     if (Where(step.target, step.point, time, true, out var faceAt)) { intent.gaze = faceAt; intent.face = faceAt; }
                     break;
@@ -510,6 +515,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (overshoot > .02f && human > .001f) { settling = true; settleStart = time; }
                 else { settling = true; settleStart = time - 1; }
             }
+        }
+
+        // Run and gun: near the jump the head finds the step's 'shoot' target, and one shot goes off in the air.
+        void ShootOnMove(StudioDriveStep step, float time, ref Intent intent)
+        {
+            if (string.IsNullOrEmpty(step.shoot) || !Where(step.shoot, Vector3.zero, time, true, out var head)) return;
+            bool air = !motor.Grounded && lastJump >= stepStart;
+            bool near = jumpArmed && Vector3.Distance(Flat(Feet), Flat(jumpAt)) < 3.5f;
+            if (!shotOnMove && (air || near) || shotOnMove && time - shotAt < .45f) { intent.gaze = head; aimingNow = true; }
+            if (shotOnMove || !air || time - lastJump < step.shootAfter) return;
+            shotOnMove = true; shotAt = time;
+            Where(step.shoot, Vector3.zero, time, false, out var feet);
+            Log(time, "fire on the move " + Hit(new StudioDriveStep { action = "fire", target = step.shoot }, head, Flat(feet - Feet).magnitude));
         }
 
         bool Arrived(float time)
