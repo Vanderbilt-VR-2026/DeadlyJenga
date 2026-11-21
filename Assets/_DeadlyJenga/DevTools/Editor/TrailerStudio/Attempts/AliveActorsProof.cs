@@ -232,25 +232,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Note($"Top of the map {highest:0.00} m; {spots.Count} free standing spots with open sky in the top 7 m.");
             if (spots.Count < 7) throw new InvalidOperationException("Not enough free spots on the tower top.");
 
-            // The idle group: five people on one level, close enough to be a group, not shoulder to shoulder.
-            List<Vector3> best = null;
-            foreach (var centre in spots)
-            {
-                var near = spots.Where(s => Mathf.Abs(s.y - centre.y) < .45f && Vector3.Distance(Flat(s), Flat(centre)) < 3.2f)
-                    .OrderBy(s => Vector3.Distance(Flat(s), Flat(centre))).ToList();
-                var chosen = new List<Vector3>();
-                foreach (var s in near) if (chosen.All(c => Vector3.Distance(c, s) > 1.0f)) { chosen.Add(s); if (chosen.Count == 5) break; }
-                if (best == null || chosen.Count > best.Count || chosen.Count == best.Count && centre.y > best[0].y + .3f) best = chosen;
-            }
-            plan.group.AddRange(best);
-            Vector3 middle = best.Aggregate(Vector3.zero, (a, b) => a + b) / best.Count;
-
             // The hero and his rival, away from the group, with one step or small gap early on the run between them,
             // and room after it to land (a jump carries a running survivor about 3 m) before the rival.
             float bestScore = float.MinValue;
-            var free = spots.Where(s => best.All(g => Vector3.Distance(Flat(g), Flat(s)) > 2.2f)).ToList();
+            var free = spots;   // the run is chosen first; the group stands away from it
             const float sample = .2f;
-            var why = new int[4];
+            var why = new int[4]; float shortest = float.MaxValue;
             foreach (var h in free)
                 foreach (var r in free)
                 {
@@ -277,14 +264,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         else run = 0;
                     }
                     int gap = longest;
-                    if (longest * sample > 1.6f || holes > ground.Count * .35f || lastGap >= 0 && d - (.3f + lastGap * sample) < 2.8f) { why[2]++; continue; }
+                    if (longest * sample > 1.6f || holes > ground.Count * .35f || lastGap >= 0 && d - (.3f + lastGap * sample) < 2.8f) { why[2]++; shortest = Mathf.Min(shortest, longest * sample); continue; }
                     // Nothing in the way of a running body (a step up is fine: it is jumped).
                     float top = Mathf.Max(h.y, r.y) + .9f;
                     if (Physics.Linecast(new Vector3(h.x, top, h.z), new Vector3(r.x, top, r.z), (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)) { why[3]++; continue; }
                     float score = 10 - Mathf.Abs(d - 6.5f) - Mathf.Abs(at - 1.6f) + (gap > 0 ? 1 : 0) + h.y * .1f;
                     if (score > bestScore) { bestScore = score; plan.hero = h; plan.rival = r; plan.step = true; plan.jumpAt = Vector3.Lerp(h, r, Mathf.Max(.15f, at - .5f) / d); }
                 }
-            Note($"Run search: no change of ground {why[0]}, change too early or late {why[1]}, gap too long or holes after {why[2]}, something in the way {why[3]}.");
+            Note($"Run search: no change of ground {why[0]}, change too early or late {why[1]}, gap too long or holes after {why[2]}, something in the way {why[3]}; shortest rejected gap {shortest:0.0} m.");
             if (bestScore == float.MinValue)
             {
                 // No step anywhere: a straight run, and no jump (said in the notes).
@@ -306,8 +293,28 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
                 if (bestScore == float.MinValue) throw new InvalidOperationException("No clear run for the hero and the rival.");
             }
+            // The idle group: five people on one level, close enough to be a group, not shoulder to shoulder.
+            List<Vector3> best = null;
+            var away = spots.Where(s => SegmentGap(s, plan.hero, plan.rival) > 2.2f).ToList();
+            foreach (var centre in away)
+            {
+                var near = away.Where(s => Mathf.Abs(s.y - centre.y) < .45f && Vector3.Distance(Flat(s), Flat(centre)) < 3.2f)
+                    .OrderBy(s => Vector3.Distance(Flat(s), Flat(centre))).ToList();
+                var chosen = new List<Vector3>();
+                foreach (var s in near) if (chosen.All(c => Vector3.Distance(c, s) > 1.0f)) { chosen.Add(s); if (chosen.Count == 5) break; }
+                if (best == null || chosen.Count > best.Count || chosen.Count == best.Count && centre.y > best[0].y + .3f) best = chosen;
+            }
+            plan.group.AddRange(best);
+            Vector3 middle = best.Aggregate(Vector3.zero, (a, b) => a + b) / best.Count;
+
             Note($"Group of {best.Count} around {V(middle)}: {string.Join(" ", best.Select(V))}. Hero {V(plan.hero)}, rival {V(plan.rival)} ({Vector3.Distance(Flat(plan.hero), Flat(plan.rival)):0.00} m), step or gap on the way: {plan.step}" + (plan.step ? $", jump at {V(plan.jumpAt)} ({Vector3.Distance(Flat(plan.hero), Flat(plan.jumpAt)):0.00} m from the hero)." : ", so no jump."));
             return plan;
+        }
+
+        static float SegmentGap(Vector3 p, Vector3 a, Vector3 b)
+        {
+            Vector3 d = Flat(b - a); float t = Mathf.Clamp01(Vector3.Dot(Flat(p - a), d) / Mathf.Max(.0001f, d.sqrMagnitude));
+            return Vector3.Distance(Flat(p), Flat(a) + d * t);
         }
 
         static readonly string[] GroupNames = { "Turner", "Bea", "Cal", "Dot", "Eli" };
