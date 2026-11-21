@@ -15,21 +15,21 @@ namespace DeadlyJenga.CandyArt
         {
             var plaid = Fabric("Plaid dog bed", "Cranberry Rug Weave", new Color(1.25f, .85f, .85f), new Vector2(8f, 2f), .1f, .6f);
             var fleece = Fabric("Dog bed fleece", "Fleece Scan", new Color(.95f, .86f, .72f), new Vector2(3f, 4f), .2f, .8f);
-            var fur = Fabric("Golden retriever fur", "Fleece Scan", new Color(1.15f, .80f, .45f), new Vector2(4f, 4f), .35f, .7f);
-            var ears = Fabric("Golden retriever ears", "Fleece Scan", new Color(.90f, .55f, .27f), new Vector2(2f, 2f), .35f, .7f);
+            var fur = Fabric("Golden retriever fur", "Fleece Scan", new Color(1.35f, .95f, .52f), new Vector2(4f, 4f), .35f, .7f);
+            var ears = Fabric("Golden retriever ears", "Fleece Scan", new Color(1.0f, .62f, .30f), new Vector2(2f, 2f), .35f, .7f);
             var nose = Surface("Dog nose", null, new Color(.05f, .035f, .03f), .75f, Vector2.one);
 
             // Real dog size beside the furniture; head toward the tree, turned a little toward the room.
             var bed = Pivot("Dog bed with sleeping retriever", new Vector3(RoomEast - 85f, 0f, SofaZ - 8f), -12f);
-            Under(Primitive("Dog bed base", PrimitiveType.Cylinder, new Vector3(0f, 2f, 0f), new Vector3(118f, 2f, 158f), plaid), bed);
-            Under(Primitive("Dog bed cushion", PrimitiveType.Cylinder, new Vector3(0f, 6f, 0f), new Vector3(100f, 3f, 140f), fleece), bed);
-            var bolster = AddMesh("Dog bed bolster", Bolster(50f, 70f, 12f, 11f), plaid, ShadowCastingMode.On).transform;
+            Under(Primitive("Dog bed base", PrimitiveType.Cylinder, new Vector3(0f, 2f, 0f), new Vector3(120f, 2f, 192f), plaid), bed);
+            Under(Primitive("Dog bed cushion", PrimitiveType.Cylinder, new Vector3(0f, 6f, 0f), new Vector3(102f, 3f, 172f), fleece), bed);
+            var bolster = AddMesh("Dog bed bolster", Bolster(51f, 81f, 12f, 11f), plaid, ShadowCastingMode.On).transform;
             Under(bolster, bed).localPosition = new Vector3(0f, 12f, 0f);
 
             // The retriever itself was modelled in Blender (Retriever Body/Ears/Nose.obj).
             dogBreath = new GameObject("Sleeping golden retriever").transform;
             dogBreath.SetParent(bed, false);
-            dogBreath.localPosition = new Vector3(0f, 8.5f, -8f);
+            dogBreath.localPosition = new Vector3(0f, 8.5f, -6f);
             dogBreath.localScale = Vector3.one * DogScale;
             foreach (var (model, look) in new[] { ("Retriever Body", fur), ("Retriever Ears", ears), ("Retriever Nose", nose) })
             {
