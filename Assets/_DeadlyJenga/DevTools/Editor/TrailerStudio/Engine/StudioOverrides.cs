@@ -259,7 +259,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var hand = left ? body.left : body.right;
             Vector3 direction = (target - body.head).normalized;
             Vector3 shoulder = Shoulder(body, left);
-            Vector3 strike = shoulder + Vector3.ClampMagnitude(target - direction * (.055f * scale) - shoulder, .75f * scale);
+            Vector3 strike = shoulder + Vector3.ClampMagnitude(target - direction * (.055f * scale) - shoulder, .6f * scale);   // the arm bones are 0.56 x scale long; the game allows 0.75 (a visible stretch at first-person range)
             Vector3 windup = hand.position - direction * (.12f * scale) + Vector3.down * (.035f * scale);
             float extension = age < .045f ? 0 : age < .125f ? Mathf.SmoothStep(0, 1, (age - .045f) / .08f) : age < .155f ? 1 : 1 - Mathf.SmoothStep(0, 1, (age - .155f) / .205f);
             Vector3 start = age >= .155f ? hand.position : Vector3.Lerp(hand.position, windup, Mathf.SmoothStep(0, 1, Mathf.Min(age / .045f, 1)));

@@ -10,7 +10,7 @@
  ],
  "music_early": {
   "until_frame": 103,
-  "db": -3
+  "db": -4
  },
  "duck": {
   "frame": 360,
@@ -84,6 +84,11 @@
    "file": "BlockSplash_02",
    "frame": 340,
    "gain_db": -4
+  },
+  {
+   "file": "BlockSmash_04",
+   "frame": 338,
+   "gain_db": -4
   }
  ],
  "titles": [
@@ -126,7 +131,7 @@
   400
  ],
  "take_shot_gain": {
-  "S10": -6
+  "S11": -6
  },
  "skip": {
   "S08": [
