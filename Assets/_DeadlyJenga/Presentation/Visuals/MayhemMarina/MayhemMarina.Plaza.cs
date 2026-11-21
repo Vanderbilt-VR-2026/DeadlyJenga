@@ -115,17 +115,9 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.ArcSlab(At(0, 0, 0), Vector2.one * 1.35f, Vector2.one * 1.47f, .05f, 0, 360, F.Glow, false, 48);
             mesh.ArcSlab(At(0, .2f, 0), Vector2.one * 1.12f, Vector2.one * 1.2f, .008f, 0, 360, F.Brass, false, 48);
 
-            // Free-standing vanity: carved panel, illuminated oval mirror and a crown arch.
-            mesh.Box(At(0, 1.95f, 2.3f), new Vector3(3.7f, 3.9f, .3f), F.Teal, .16f, true, turn);
+            // Free-standing oval mirror on a wooden base, with a wooden back so it reads from behind too.
             mesh.Box(At(0, .12f, 2.3f), new Vector3(4.1f, .24f, .62f), F.DarkWood, .08f, true, turn);
-            var crown = new List<Vector3>();
-            for (int i = 0; i <= 32; i++)
-            {
-                float a = Mathf.PI - i * Mathf.PI / 32;
-                crown.Add(At(Mathf.Cos(a) * 1.85f, 3.9f + Mathf.Sin(a) * .62f, 2.18f));
-            }
-            mesh.Tube(crown, .2f, F.Ivory, 12, true);
-            mesh.Box(At(0, 4.13f, 2.12f), new Vector3(1.80f, .48f, .34f), F.Teal, .11f, false, turn);
+            mesh.Ellipsoid(At(0, 2.07f, 2.06f), new Vector3(1.38f, 1.9f, .04f), F.Wood, turn, 9, 32);
             var ring = new List<Vector3>();
             for (int i = 0; i <= 64; i++)
             {
