@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DeadlyJenga.Core;
 using UnityEngine;
 using F=DeadlyJenga.CandyArt.Marina.MarinaFinish;
 
@@ -7,7 +8,7 @@ namespace DeadlyJenga.CandyArt.Marina
     // Showtime Plaza leads into the covered cinema and out to the waterfront.
     public sealed partial class MayhemMarina
     {
-        const float PlazaTop = 1.31f;
+        const float PlazaTop = .71f;
 
         // Open arcs (degrees, 0 = toward the cinema) where the plaza meets other decks.
         static readonly Vector2[] PlazaOpenings = { new(-35, 35), new(88, 112), new(-135, -92) };
@@ -115,17 +116,9 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.ArcSlab(At(0, 0, 0), Vector2.one * 1.35f, Vector2.one * 1.47f, .05f, 0, 360, F.Glow, false, 48);
             mesh.ArcSlab(At(0, .2f, 0), Vector2.one * 1.12f, Vector2.one * 1.2f, .008f, 0, 360, F.Brass, false, 48);
 
-            // Free-standing vanity: carved panel, illuminated oval mirror and a crown arch.
-            mesh.Box(At(0, 1.95f, 2.3f), new Vector3(3.7f, 3.9f, .3f), F.Teal, .16f, true, turn);
+            // Free-standing oval mirror on a wooden base, with a wooden back so it reads from behind too.
             mesh.Box(At(0, .12f, 2.3f), new Vector3(4.1f, .24f, .62f), F.DarkWood, .08f, true, turn);
-            var crown = new List<Vector3>();
-            for (int i = 0; i <= 32; i++)
-            {
-                float a = Mathf.PI - i * Mathf.PI / 32;
-                crown.Add(At(Mathf.Cos(a) * 1.85f, 3.9f + Mathf.Sin(a) * .62f, 2.18f));
-            }
-            mesh.Tube(crown, .2f, F.Ivory, 12, true);
-            mesh.Box(At(0, 4.13f, 2.12f), new Vector3(1.80f, .48f, .34f), F.Teal, .11f, false, turn);
+            mesh.Ellipsoid(At(0, 2.07f, 2.06f), new Vector3(1.38f, 1.9f, .04f), F.Wood, turn, 9, 32);
             var ring = new List<Vector3>();
             for (int i = 0; i <= 64; i++)
             {
@@ -144,62 +137,58 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 var rack = turn * Quaternion.Euler(0, -38, 0);
                 Vector3 R(float x, float y, float z) => At(2.35f, 0, 1.15f) + rack * new Vector3(x, y, z);
-                mesh.Beam(R(-.75f, 0, 0), R(-.75f, 2.29f, 0), .045f, F.Brass, true);
-                mesh.Beam(R(.75f, 0, 0), R(.75f, 2.29f, 0), .045f, F.Brass, true);
-                mesh.Beam(R(-.78f, 1.98f, 0), R(.78f, 1.98f, 0), .03f, F.Brass);
+                // Same display style as the gift shop: bodies hang side-on from the rod on white
+                // lollipop sticks, and the hats sit on real player heads on short upright sticks.
+                const float rod = 2.4f, shelf = 2.78f;
+                mesh.Beam(R(-.75f, 0, 0), R(-.75f, shelf, 0), .045f, F.Brass, true);
+                mesh.Beam(R(.75f, 0, 0), R(.75f, shelf, 0), .045f, F.Brass, true);
+                mesh.Beam(R(-.78f, rod, 0), R(.78f, rod, 0), .03f, F.Brass);
                 mesh.Box(R(0, .08f, 0), new Vector3(1.7f, .16f, .55f), F.DarkWood, .05f, false, rack);
                 for (int j = 0; j < 4; j++)
                 {
-                    var color = (j + 1) % 2 == 0 ? F.MintFabric : F.CoralFabric;
-                    var p = R((j - 1.5f) * .36f, 1.38f, 0);
-                    mesh.Box(p, new Vector3(.3f, .85f, .12f), color, .06f, false, rack);
-                    mesh.Box(p + rack * new Vector3(-.18f, .24f, 0), new Vector3(.16f, .5f, .12f), color, .05f, false, rack * Quaternion.Euler(0, 0, -14));
-                    mesh.Box(p + rack * new Vector3(.18f, .24f, 0), new Vector3(.16f, .5f, .12f), color, .05f, false, rack * Quaternion.Euler(0, 0, 14));
+                    float x = (j - 1.5f) * .37f;
+                    mesh.Beam(R(x, rod - .41f, 0), R(x, rod, 0), .014f, F.Ivory);
+                    mesh.Ellipsoid(R(x, rod + .03f, 0), Vector3.one * .035f, F.Ivory, null, 7, 12);
+                    Mannequins.Create(visual, R(x, rod - 1.85f, 0), rack * Quaternion.Euler(0, 90, 0), rackLooks[j], rackColors[j], MannequinPose.Hanging);
                 }
-                mesh.Box(R(0, 2.25f, .05f), new Vector3(1.67f, .10f, .58f), F.Wood, .025f, false, rack);
+                mesh.Box(R(0, shelf, .05f), new Vector3(1.67f, .05f, .5f), F.Wood, .015f, false, rack);
                 for (int j = 0; j < 3; j++)
                 {
-                    var hat = R((j - 1) * .5f, 2.3f, .05f);
-                    mesh.Disk(hat, .22f, .05f, F.Metal, false, 20);
-                    mesh.Disk(hat + Vector3.up * .05f, .14f, .26f, (F)((int)F.Red + (j + 1) % 3), false, 20);
+                    var foot = R((j - 1) * .52f, shelf + .025f, .05f);
+                    mesh.Disk(foot, .09f, .03f, F.Brass, false, 24);
+                    mesh.Beam(foot + Vector3.up * .025f, foot + Vector3.up * .3f, .014f, F.Ivory);
+                    Mannequins.Create(visual, foot + Vector3.up * .055f, rack * Quaternion.Euler(0, 180, 0), hatLooks[j + 3], hatColors[j + 3], MannequinPose.Head);
                 }
-                Pot(At(2.05f, 0, 2.55f), .42f, .78f, 31);
             }
 
-            // Frame and feet behind the wardrobe screen, as in the original shop.
-            var frame = StyleScreen + StyleScreenFacing * Vector3.forward * .12f;
-            mesh.Box(frame, new Vector3(2.48f, 2.91f, .16f), F.Teal, .09f, true, StyleScreenFacing);
-            for (int side = -1; side <= 1; side += 2)
-            {
-                var foot = frame + StyleScreenFacing * Vector3.right * (side * .95f);
-                foot.y = CinemaFloor + .3f;
-                mesh.Box(foot, new Vector3(.16f, .6f, .2f), F.Brass, .035f, true, StyleScreenFacing);
-            }
+            // The wardrobe tablet on its stand: a weighted base, a brass pole and a tilted tablet in a dark case.
+            var standFoot = new Vector3(StyleScreen.x, CinemaFloor, StyleScreen.z);
+            mesh.Disk(standFoot, .24f, .04f, F.Metal, false, 24);
+            mesh.Beam(standFoot + Vector3.up * .04f, StyleScreen + Vector3.down * .2f, .028f, F.Brass, true);
+            mesh.Box(StyleScreen + Vector3.down * .2f, new Vector3(.12f, .06f, .12f), F.Metal, .02f);
+            var tablet = StyleScreen + StyleTabletFacing * Vector3.forward * .028f;
+            mesh.Box(tablet, new Vector3(.7f, .55f, .04f), F.DarkWood, .03f, false, StyleTabletFacing);
+            mesh.Box(tablet + StyleTabletFacing * new Vector3(0, -.24f, -.022f), new Vector3(.08f, .012f, .004f), F.Glow, .002f, false, StyleTabletFacing);
             Accent("Style stage", At(0, 3.2f, .4f), new Color(1, .79f, .61f), 3, 6);
         }
 
         void HallOfFame()
         {
             var turn = FameTurn;
-            var baseAt = new Vector3(FameBoard.x, CinemaFloor, FameBoard.z);
-            Vector3 At(float x, float y, float z) => baseAt + turn * new Vector3(x, y, z);
-
-            // Compact backing keeps the recent-match board above the podium.
-            for (int side = -1; side <= 1; side += 2)
-                mesh.Box(At(side * 2.14f, 1.4f, .22f), new Vector3(.14f, 2.8f, .14f), F.DarkWood, .04f, true, turn);
-            mesh.Box(At(0, 2.9f, .12f), new Vector3(4.48f, 2.38f, .14f), F.CandyMint, .08f, false, turn);
-            mesh.Box(At(0, .12f, .2f), new Vector3(4.55f, .24f, .45f), F.Stone, .06f, true, turn);
 
             // Winners' steps in front of the board. Solid, so players can hop up for a victory pose.
+            // On each one a round piston head pivots back and forth, carrying the winner's statue and
+            // three pop-up spotlights that light it (see MarinaFamePiston).
             F[] finishes = { F.Brass, F.Metal, F.Coral };
             for (int i = 0; i < FameSteps.Length; i++)
             {
                 var step = FameSteps[i];
                 var top = FamePodium + turn * step;
                 mesh.Box(top - Vector3.up * (step.y * .5f), new Vector3(1.1f, step.y, 1.0f), F.CandyCream, .09f, true, turn);
-                mesh.Box(top + Vector3.up * (FameStepCap * .5f), new Vector3(1.02f, FameStepCap, .92f), finishes[i], .02f, false, turn);
+                mesh.ArcSlab(top, Vector2.one * .49f, Vector2.one * .53f, .015f, 0, 360, F.Glow, false, 40);
+                MarinaFamePiston.Build(visual, i, top, turn, finishes[i]);
             }
-            Accent("Recent match", At(0, 3.1f, -1.8f), new Color(1, .86f, .62f), 2.6f, 6.5f);
+            Accent("Recent match", FamePodium + turn * new Vector3(0, 3.1f, -1.8f), new Color(1, .86f, .62f), 2.6f, 6.5f);
         }
     }
 }

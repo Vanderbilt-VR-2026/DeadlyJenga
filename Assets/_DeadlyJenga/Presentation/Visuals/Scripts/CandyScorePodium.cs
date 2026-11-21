@@ -130,6 +130,14 @@ namespace DeadlyJenga.Presentation
             }
         }
 
+        // Turns a world statue around its feet, on top of its usual facing (for the lobby's pivoting pistons).
+        public void SetWorldTurn(int index, float degrees)
+        {
+            if (!worldPodium || index < 0 || index >= leaders.Length) return;
+            var model = leaders[index].model;
+            if (model) model.localRotation = Quaternion.Euler(0, 180 + Columns[index] * 10 + degrees, 0);
+        }
+
         Text Label(string name, Vector2 position, int size)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Text));

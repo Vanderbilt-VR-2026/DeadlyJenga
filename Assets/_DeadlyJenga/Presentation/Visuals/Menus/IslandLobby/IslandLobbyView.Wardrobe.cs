@@ -360,7 +360,8 @@ namespace DeadlyJenga.CastlePrototype
 
                 wardrobePanel.gameObject.SetActive(Player.IsVR);
                 fallbackWardrobeMirror.gameObject.SetActive(Player.IsVR&&!marinaMirror);
-                if(Player.IsVR)PlaceVrWardrobe();
+                // In the Marina lobby the wardrobe stays on its tablet stand; elsewhere it floats beside the player.
+                if(Player.IsVR&&!UsesMayhemMarina)PlaceVrWardrobe();
                 RefreshWardrobeLabels();
                 PresentWardrobe();
 

@@ -11,31 +11,37 @@ namespace DeadlyJenga.CandyArt.Marina
     {
         public static readonly Vector3 Arrival=new(-10,1.36f,-8);
         // Showtime Plaza: one open deck between the arrival island and the cinema.
-        public static readonly Vector3 PlazaCenter = new(0, 1.31f, -3.6f);
+        public static readonly Vector3 PlazaCenter = new(0, .71f, -3.6f);
         public const float PlazaRadius = 7.2f;
         public const float CinemaFloor = 1.86f;
         const float CinemaFront = -2.2f;
         const float CinemaBack = 11.9f;
-        static readonly Vector3 CinemaSign = new(0, 5.58f, CinemaFront - .25f);
         public static readonly Vector3 CinemaTable = new(0, CinemaFloor + DeadlyJenga.Presentation.LobbyLiveMap.PlinthHeight, 2.75f);
-        static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, -90, 0);
-        static readonly Quaternion FameTurn = Quaternion.Euler(0, 90, 0);
-        public static readonly Vector3 Wardrobe = new(-5.12f, CinemaFloor + .22f, 3.25f);
+        // The style stage (wardrobe) stands on the cinema's right side, where the podium was; its vanity backs onto the right edge.
+        static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, 90, 0);
+        static readonly Quaternion FameTurn = Quaternion.identity;
+        public static readonly Vector3 Wardrobe = new(5.12f, CinemaFloor + .22f, .7f);
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
         public static readonly Quaternion CodeKeyboardFacing = Quaternion.Euler(61, 0, 0);
-        public static readonly Vector3 StyleScreen = Wardrobe + StyleStageTurn * new Vector3(-2.72f, 1.4f, .43f);
-        // The readable side of the canvas faces local -Z, toward the wardrobe platform.
-        public static readonly Quaternion StyleScreenFacing = Quaternion.LookRotation(
-            Vector3.ProjectOnPlane(StyleScreen - Wardrobe, Vector3.up), Vector3.up);
+        // The wardrobe controls are a tablet on a stand, just off the stage to the player's left, tilted up.
+        public static readonly Vector3 StyleScreen = new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z) + StyleStageTurn * new Vector3(-1.85f, 1.2f, .3f);
+        public static readonly Quaternion StyleScreenFacing = StyleStageTurn;
+        public static readonly Quaternion StyleTabletFacing = StyleStageTurn * Quaternion.Euler(0, -81, 0) * Quaternion.Euler(28, 0, 0);
         public static readonly Vector3 StyleMirror = Wardrobe + StyleStageTurn * new Vector3(0, 1.85f, 1.88f);
         public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;
         // The compact recent-match board sits behind the winners' steps.
-        public static readonly Vector3 FameBoard = new(7.34f, CinemaFloor + 2.9f, 3.65f);
+        // The last-match board hangs where the cinema sign was, readable from the plaza and from inside.
+        public static readonly Vector3 FameBoard = new(0, 6.2f, CinemaFront - .25f);
         public static readonly Quaternion FameFacing = FameTurn;
-        internal static readonly Vector3 FamePodium = new(5.9f, CinemaFloor, 3.65f);
+        // The winners' podium stands down at plaza level in a gap in the middle of the entrance ramp,
+        // right under the board, facing the plaza.
+        internal static readonly Vector3 FamePodium = new(0, .71f, CinemaFront - .6f);
         internal static readonly Vector3[] FameSteps = { new(0,.6f,0), new(-1.15f,.4f,0), new(1.15f,.26f,0) };
-        internal const float FameStepCap = .03f;
+        internal const float FameStepCap = .16f;
+        // Each winners' step carries a round piston head that swings 60 degrees (30 each way), slowly
+        // and smoothly. The statue on it turns by the same angle, so both use this one function.
+        internal static float FamePivot(int step, float time) => 30f * Mathf.Sin(time * .45f + step * 2.1f);
         public bool Built {get;private set;}
         public int RenderTriangles=>mesh?.RenderTriangles??0;
         public int CollisionTriangles=>mesh?.CollisionTriangles??0;
@@ -208,8 +214,8 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             if(Built)return;controls=lobby;mesh=new MarinaMesh();
             visual=new GameObject("Visual · Mayhem Marina").transform;visual.SetParent(transform,false);
-            ShoreAndCourts();ShowtimePlaza();Pavilion();StyleStage();HallOfFame();GardenLounge();Lounge();UpperTerraces();Landmark();Planting();
-            BeaconWalk();MarshAndBeach();JetSkiDock();LightingFixtures();SignMounts();
+            ShoreAndCourts();ShowtimePlaza();Pavilion();StyleStage();HallOfFame();GardenLounge();ArrivalSeating();Planting();GiftShopWing();
+            MarshAndBeach();JetSkiDock();LightingFixtures();SignMounts();
             mesh.Disk(new Vector3(0, OceanLevel - SeabedDepth - .12f, 3), 38, .12f, MarinaFinish.Sand, false, 80);
             mesh.Flush(visual,transform.TransformPoint(Vector3.up*OceanLevel).y);
             if(controls!=null)controls.SetFloor(mesh.CollisionMesh,visual);
@@ -217,7 +223,7 @@ namespace DeadlyJenga.CandyArt.Marina
             Mark("Arrival",Arrival);Mark("Wardrobe",Wardrobe);Mark("Play screen",PlayScreen);
             Mark("Play interaction",new Vector3(0,1.285f,3.4f));Mark("Lounge",new Vector3(13,1.28f,5));
             Mark("Beacon Walk", Vector3.Lerp(BeaconWalkStart, BeaconWalkEnd, .5f));
-            Mark("Pool",new Vector3(17,.3f,-8));Mark("Roof terrace",new Vector3(-12,4.05f,17));
+            Mark("Pool",new Vector3(17,.3f,-8));Mark("Roof terrace",new Vector3(-8,.38f,18.5f));
             Mark("Showtime plaza",PlazaCenter);Mark("Last match",FameBoard);
             Mark("Overview camera",new Vector3(-29,18,-39));Mark("Arrival camera",new Vector3(-11,3.1f,-8.9f));
             Built=true;
@@ -252,14 +258,10 @@ namespace DeadlyJenga.CandyArt.Marina
             var probeObject=new GameObject("Marina reflection capture");probeObject.transform.SetParent(visual,false);probeObject.transform.localPosition=new Vector3(0,4,3);
             var probe=probeObject.AddComponent<ReflectionProbe>();probe.mode=ReflectionProbeMode.Realtime;probe.refreshMode=ReflectionProbeRefreshMode.ViaScripting;probe.timeSlicingMode=ReflectionProbeTimeSlicingMode.IndividualFaces;probe.resolution=256;probe.size=new Vector3(56,24,65);probe.boxProjection=true;probe.intensity=.8f;probe.nearClipPlane=.3f;probe.farClipPlane=250;probe.clearFlags=ReflectionProbeClearFlags.Skybox;reflection=probe;StartCoroutine(CaptureReflection());
             var amber = new Color(1, .68f, .34f);
-            var cool = new Color(.35f, .78f, 1);
             Accent("Cinema", new Vector3(0, 5.9f, 4.1f), new Color(1,.90f,.76f), 2.9f, 10);
             Accent("Garden lounge", new Vector3(-15, 3.9f, 4.75f), amber, 2.2f, 5.5f);
-            Accent("Waterfront lounge", new Vector3(13.7f, 3.8f, 5.4f), amber, 3.2f, 6.5f);
             Accent("Arrival", new Vector3(-12.5f, 2.45f, -10.25f), amber, 2, 5.5f);
-            Accent("Practice pool", new Vector3(19, 2.1f, -3.25f), cool, 2.5f, 5.5f);
             Accent("West terrace", new Vector3(-13.8f, 6.65f, 17.9f), amber, 3, 6.5f);
-            Accent("East terrace", new Vector3(16.5f, 5.1f, 17.8f), cool, 2, 5);
         }
         void Accent(string zone, Vector3 position, Color color, float intensity, float range)
         {
@@ -339,12 +341,6 @@ namespace DeadlyJenga.CandyArt.Marina
                         oceanProperties.SetVector(region,absent);
                 }
             }
-            if (!poolShader) { LateUpdate(); return; }
-            var vertices=new List<Vector3>{Vector3.zero};var triangles=new List<int>();
-            for(int i=0;i<=64;i++){float a=i*Mathf.PI/32;vertices.Add(new Vector3(Mathf.Sin(a)*4.77f,0,Mathf.Cos(a)*4.77f));if(i>0){triangles.Add(0);triangles.Add(i+1);triangles.Add(i);}}
-            var poolMesh=new Mesh{name="Marina shallow practice pool"};poolMesh.SetVertices(vertices);poolMesh.SetTriangles(triangles,0);poolMesh.RecalculateNormals();poolMesh.RecalculateBounds();extraMeshes.Add(poolMesh);
-            poolWater = CreateBasinWater(poolShader);
-            WaterSurface("Clear practice pool water", new Vector3(17, .61f, -8), poolMesh, poolWater);
             LateUpdate();
         }
         void PaintedHorizon()
@@ -469,17 +465,9 @@ namespace DeadlyJenga.CandyArt.Marina
             var cream = new Color(.95f, .88f, .69f);
             Sign("JET SKIS", new Vector3(-22.7f, 2.69f, -24.115f), .047f, cream, new Vector3(0, 180, 0));
             Sign("SOLO  /  E OR GRIP", new Vector3(-22.7f, 2.46f, -24.115f), .024f, cream, new Vector3(0, 180, 0));
-            Sign("BEACON WALK", BeaconWalkGate + BeaconWalkFacing * Vector3.back * .13f, .048f, cream,
-                BeaconWalkFacing.eulerAngles);
-            Sign("LOUNGE  /  POOL  >", new Vector3(5.82f, CinemaFloor + 1.35f, -.632f), .025f, cream);
-            Sign("BEACHSIDE CINEMA", CinemaSign + Vector3.back * .122f, .048f, cream);
-            var styleBase = new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z);
-            Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.13f, 1.939f), .055f, cream, StyleStageTurn.eulerAngles);
 
             Sign("SHOWTIME PLAZA", OnPlaza(-114, 4.7f, PlazaTop - PlazaCenter.y + .018f), .05f,
                 new Color(.23f, .16f, .10f), new Vector3(90, 66, 0));
-            Sign("WATERFRONT LOUNGE", new Vector3(13.7f, 4.42f, 2.49f), .044f, cream);
-            Sign("PRACTICE POOL", new Vector3(19, 1.76f, -3.24f), .026f, cream, new Vector3(0, 180, 0));
             Sign("MAYHEM MARINA", new Vector3(-10, 1.352f, -10.1f), .06f, new Color(.23f, .16f, .10f), new Vector3(90, 0, 0));
         }
         void Sign(string text,Vector3 position,float size,Color color,Vector3? rotation=null)
