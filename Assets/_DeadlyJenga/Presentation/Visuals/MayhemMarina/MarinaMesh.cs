@@ -274,7 +274,7 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 // Loose cream netting: threads are nearly solid, the holes let most light and sky through.
                 m.SetFloat("_Surface",1);m.SetFloat("_ZWrite",0);m.SetFloat("_Cull",0);m.SetFloat("_SrcBlend",(float)BlendMode.SrcAlpha);m.SetFloat("_DstBlend",(float)BlendMode.OneMinusSrcAlpha);m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");m.SetOverrideTag("RenderType","Transparent");m.renderQueue=3000;
-                m.SetTexture("_BaseMap",NetTexture());m.SetTextureScale("_BaseMap",new Vector2(20,18));m.SetFloat("_Smoothness",.15f);
+                m.SetTexture("_BaseMap",NetTexture());m.SetTextureScale("_BaseMap",new Vector2(14,12));m.SetFloat("_Smoothness",.15f);
             }
             if(finish==MarinaFinish.Glow){m.EnableKeyword("_EMISSION");m.SetColor("_EmissionColor",new Color(1,.56f,.16f)*2.0f);}
             return m;
@@ -288,9 +288,9 @@ namespace DeadlyJenga.CandyArt.Marina
             for(int y=0;y<size;y++)for(int x=0;x<size;x++)
             {
                 float u=(x+.5f)/size,v=(y+.5f)/size;
-                float d=Mathf.Min(Mathf.Abs(Mathf.Repeat(u+v,1)-.5f),Mathf.Abs(Mathf.Repeat(u-v,1)-.5f));
-                float thread=Mathf.Clamp01((.075f-Mathf.Abs(.5f-d))/.03f+1);
-                pixels[y*size+x]=new Color32(255,255,255,(byte)Mathf.Lerp(28,245,thread));
+                float d=Mathf.Max(Mathf.Abs(Mathf.Repeat(u+v,1)-.5f),Mathf.Abs(Mathf.Repeat(u-v,1)-.5f));
+                float thread=Mathf.Clamp01((.09f-(.5f-d))/.03f+1);
+                pixels[y*size+x]=new Color32(255,255,255,(byte)Mathf.Lerp(70,250,thread));
             }
             netTexture=new Texture2D(size,size,TextureFormat.RGBA32,true){name="Marina fishnet",wrapMode=TextureWrapMode.Repeat,filterMode=FilterMode.Trilinear,anisoLevel=4};
             netTexture.SetPixels32(pixels);netTexture.Apply(true,true);
