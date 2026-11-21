@@ -366,6 +366,7 @@ namespace DeadlyJenga.CastlePrototype
         public DemoState Demo {get;private set;}=new DemoState();
         public bool CanUseDemoControls=>SessionDevelopmentPolicy.DemoEnabled(session)&&runner&&runner.IsRunning&&(runner.IsServer?(!IslandRoomConnection.Instance||IslandRoomConnection.Instance.LocalIsLobbyHost||IslandRoomConnection.Instance.SharedDemoControls):(Demo.shared||Demo.leader==runner.LocalPlayer.ToString()));
         public bool IsHost=>runner&&runner.IsRunning&&runner.IsServer;
+        internal int ConnectedHumanCount => runner && runner.IsRunning ? runner.ActivePlayers.Count() : 1;
         public void SetSharedControls(bool value){var room=IslandRoomConnection.Instance;if(IsHost&&room)room.SetSharedControls(value);}
         CastleDemoCommand pendingStamina;float nextStamina;string authoritativeRules;
         public void Request(CastleDemoCommand command)

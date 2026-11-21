@@ -96,7 +96,9 @@ namespace DeadlyJenga.CastlePrototype
             foreach(var c in connections)if(c.id!=null&&c.actor!=null)yield return new KeyValuePair<string,Vector3>(c.id,c.actor.position);
         }
         public bool WaitingForWorld => IsClient && !receivedWorld;
-        public int HumanCount => 1 + (fusionMode ? fusionActors.Count : connections.Count(c => c.id != null));
+        public int HumanCount => fusionMode && fusionClient
+            ? GetComponent<CastleFusionSession>()?.ConnectedHumanCount ?? 1
+            : 1 + (fusionMode ? fusionActors.Count : connections.Count(c => c.id != null));
         public string Status { get; private set; } = "Starting local discoveryÃ¢â‚¬Â¦";
         public int NearbyCount => Choices().Count;
         public string SelectedName => Selected()?.info.name ?? "No local demos found";

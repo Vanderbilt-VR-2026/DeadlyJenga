@@ -254,10 +254,14 @@ namespace DeadlyJenga.CastlePrototype
                 "Play's Marina GO button is available", 35, () => LobbyState()+" | "+room.GetComponent<RoomGameExperience>()?.GameStatus);
             IslandLobby.Current.StartOrCancel();
             if (host) File.WriteAllText(Mark("host-pressed-go"), "ready");
+            const int matchEntryTimeout = 125;
             CastlePlaySession game=null;
             double previous = Time.realtimeSinceStartupAsDouble;
             double nextTrace = previous;
             double longestFrame = 0;
+            bool SeesMatchHuman() => game && game.Network && room.Connected && room.Runner &&
+                room.Runner.ActivePlayers.Any(player => player != room.Runner.LocalPlayer &&
+                    game.Network.ParticipantTransform(player.ToString())?.GetComponent<SurvivorNetworkView>()?.Alive == true);
             string MatchState()
             {
                 var flow = room.GetComponent<RoomGameExperience>();
@@ -265,7 +269,7 @@ namespace DeadlyJenga.CastlePrototype
                 return $"{LobbyState()}, map={MatchSetup.MapId}, flow={flow?.GamePhase} ({flow?.GameStatus}), " +
                     $"sceneVersion={(room.Runner ? room.Runner.SceneInfo.Version.ToString() : "none")}, " +
                     $"round={game?.Modes?.Frame?.phase}, worldPending={game?.Network?.WaitingForWorld}, " +
-                    $"gameHumans={game?.Network?.HumanCount}, blocks={Services.World?.Blocks.Count}, " +
+                    $"gameHumans={game?.Network?.HumanCount}, otherAvatar={SeesMatchHuman()}, blocks={Services.World?.Blocks.Count}, " +
                     $"fullWorld={fusion?.WorldFullTransfersSubmitted}, deltaWorld={fusion?.WorldDeltaTransfersSubmitted}, " +
                     $"bundles={fusion?.HotpathBundlesSubmitted}, flushFailures={fusion?.HotpathFlushFailures}, " +
                     $"longestFrameMs={longestFrame * 1000:F0}";
@@ -282,12 +286,15 @@ namespace DeadlyJenga.CastlePrototype
                     File.AppendAllText(Report, $"PLAY {DateTime.UtcNow:O} {MatchState()}\n");
                 }
                 return game && game.Network && !game.Network.WaitingForWorld && game.Modes &&
+                    Services.World?.Blocks.Count > 0 && NetworkActors.Alive(game.Player) &&
                     game.Modes.Frame.phase == RoundPhase.Playing && MatchSetup.MapId == "mode-castle-catwalks" &&
-                    room.Connected && room.HumanCount == 2 && game.Network.HumanCount == 2 && room.Code == address;
-            }, "Both clients enter the real Play round with the world ready", 125, MatchState);
+                    room.Connected && room.HumanCount == 2 && game.Network.HumanCount == 2 && room.Code == address &&
+                    SeesMatchHuman();
+            }, "This client enters the real Play round with the world and other avatar ready", matchEntryTimeout, MatchState);
+            File.AppendAllText(Report, "MATCH READY " + MatchState() + "\n");
             File.WriteAllText(Mark(role+"-nearby-playing"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-playing")),
-                "Both clients confirmed the match before returning",25);
+                "Both clients confirmed the match before returning", matchEntryTimeout, MatchState);
             yield return Until(() => game && game.Modes &&
                 game.Modes.Frame.phase is RoundPhase.Victory or RoundPhase.Results,
                 "The full Play round reaches results after nearby join", 480, () => room.Status);
@@ -295,7 +302,7 @@ namespace DeadlyJenga.CastlePrototype
                 "Guest follows host back to Marina without disconnecting",90,()=>room.Status);
             File.WriteAllText(Mark(role+"-nearby-returned"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-returned")),
-                "Both clients confirm the return",25);
+                "Both clients confirm the return",90,LobbyState);
         }
 
         // N-player join: one host (--dj-smoke=host) and N-1 guests (--dj-smoke=guestK). Each process
