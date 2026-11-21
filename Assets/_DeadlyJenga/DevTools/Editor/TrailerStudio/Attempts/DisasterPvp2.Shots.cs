@@ -321,7 +321,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var list = stage.set.overrides; int added = 0;
             var windows = shots.Where(s => s.id == "S02" || s.id == "S05" || s.id == "S08")
-                .Select(s => (a: TapeFrame(s.cutIn) + s.shift - (s.id == "S08" ? 3 : 14), b: TapeFrame(s.cutOut) + s.shift + Handle)).ToList();   // S08 follows the MS of the hero: a short pre-roll only   // lowered before the cut-in (round 1: glove at the lens on every POV cut)
+                .Select(s => (a: TapeFrame(s.cutIn) + s.shift - (s.id == "S08" ? 8 : 14), b: TapeFrame(s.cutOut) + s.shift + Handle)).ToList();   // S08 follows the MS of the hero: a short pre-roll only   // lowered before the cut-in (round 1: glove at the lens on every POV cut)
             var punches = new List<int>(); if (e.punch1 >= 0) punches.Add(e.punch1); if (e.punch2 >= 0) punches.Add(e.punch2);
             foreach (var (a, b) in windows)
                 for (int tf = a; tf < b; tf += 5)
@@ -343,6 +343,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         list.Add(new StudioOverride { actor = "hero", kind = "reach", leftHand = true, point = stage.ToStage(leftHand), from = tf / (float)Fps, to = (tf + 10) / (float)Fps, blendIn = .15f, blendOut = .15f });
                     }
                 }
+            // The MS (S07): the glove held low and close at his chest, so his head and the shading hand read (final 1 of the
+            // re-cut: the recorded guard rose with his head and covered it).
+            var ms = shots.First(s => s.id == "S07");
+            for (int tf = TapeFrame(ms.cutIn) + ms.shift - Handle; tf < TapeFrame(ms.cutOut) + ms.shift - 8; tf += 5)
+            {
+                var pose = Shown(stage, "hero", tf);
+                if (pose == null || !pose.visible) continue;
+                Vector3 fwd = Flat(pose.body.headRotation * Vector3.forward), right = Vector3.Cross(Vector3.up, fwd).normalized;
+                Vector3 hand = pose.body.head + fwd * .25f + right * .12f - Vector3.up * .32f;
+                list.Add(new StudioOverride { actor = "hero", kind = "reach", point = stage.ToStage(hand), from = tf / (float)Fps, to = (tf + 10) / (float)Fps, blendIn = .15f, blendOut = .15f });
+                added++;
+            }
             Note($"Lowered guard: {added} reach layers on the hero.");
         }
 
