@@ -1,0 +1,12 @@
+{
+    "name": "A Establish",
+    "id": "cam0",
+    "format": "png",
+    "frames": 84,
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "subFrames": 1,
+    "tapeStart": 0.0,
+    "tapeEnd": 2.799999952316284
+}

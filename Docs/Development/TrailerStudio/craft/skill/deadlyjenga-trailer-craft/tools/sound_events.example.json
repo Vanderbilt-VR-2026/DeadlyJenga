@@ -1,0 +1,32 @@
+{
+  "_about": "hand-reveal-2's real sound plan (8.8 s moment, 2026-11-20), kept as a format example. Frames are trailer frames. 'file' is a game sound's name (found as <name>.wav under the sound root) or a path. 'start' skips into a clip; without it the clip's first attack is placed on 'frame' ('align': false places the file start). 'sync' ties an event to a sync point for the per-lane check; 'voice': true marks a line that needs ears.",
+  "music": "../v01/music-excerpt.wav",
+  "music_gain_db": -3,
+  "music_fade_out": 0.4,
+  "music_boost_after_main_db": 2,
+  "main_frame": 150,
+  "take_gain_db": -12,
+  "tape_at_zero_s": 1.6,
+  "fps": 30,
+  "target_lufs": -15,
+  "mix_true_peak": -1.5,
+  "sound_root": null,
+  "events": [
+    {"frame": 0,   "file": "HandFlight_01", "gain_db": -9,  "dur": 2.3, "fade_in": 0.9, "fade_out": 1.2},
+    {"frame": 24,  "file": "FallWind_01",   "gain_db": -10, "dur": 1.2, "fade_in": 0.12, "fade_out": 0.8},
+    {"frame": 52,  "file": "WhatWasThat_01","gain_db": -2, "sync": "voice1", "voice": true},
+    {"frame": 74,  "file": "HandFlight_01", "gain_db": -12, "start": 0.5, "dur": 1.4, "fade_in": 0.01, "fade_out": 1.0},
+    {"frame": 116, "file": "RubberTouch_02","gain_db": -1, "sync": "grip"},
+    {"frame": 116, "file": "Grip-01",       "gain_db": -5, "sync": "grip"},
+    {"frame": 124, "file": "GripWarning_01","gain_db": -9, "dur": 0.8, "fade_out": 0.3},
+    {"frame": 135, "file": "StructureLean_01","gain_db": -8, "dur": 0.5, "fade_out": 0.1},
+    {"frame": 150, "file": "BlockSmash_02", "gain_db": 0, "sync": "main"},
+    {"frame": 150, "file": "Slam-01",       "gain_db": -3, "sync": "main"},
+    {"frame": 151, "file": "BlockScrape_01","gain_db": -3, "dur": 0.9, "fade_in": 0.01, "fade_out": 0.3},
+    {"frame": 195, "file": "FallWind_01",   "gain_db": -9, "dur": 1.1, "fade_in": 0.2, "fade_out": 0.5},
+    {"frame": 204, "file": "NopeNopeNope_01","gain_db": -1, "sync": "voice2", "voice": true},
+    {"frame": 219, "file": "BeachWind_01",  "gain_db": -16, "dur": 1.5, "fade_in": 0.1, "fade_out": 0.5},
+    {"frame": 249, "file": "StructureLean_02","gain_db": -5, "dur": 0.5, "fade_out": 0.15, "sync": "creak"}
+  ],
+  "sync_points": {"shadow": 28, "voice1": 52, "reveal_cut": 74, "grip": 116, "main": 150, "voice2": 204, "creak": 249}
+}

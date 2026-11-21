@@ -1,0 +1,12 @@
+{
+    "name": "B Edge",
+    "id": "cam1",
+    "format": "png",
+    "frames": 78,
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "subFrames": 1,
+    "tapeStart": 2.799999952316284,
+    "tapeEnd": 5.400000095367432
+}

@@ -1,0 +1,7 @@
+# content_start=0; first_logo=12.7; first_gameplay=0; first_what=5.2; first_title=12.7; final_title=12.7; endcard_start=12.7; endcard_end=15.0; button=; gameplay_share=1.0
+0 W pu g hook establishing: candy tower over the ocean, slow push in
+1 M st g teach survivor on the edge of the top, seen from behind
+2 W st g esc top of the tower, block slides, top tilts, slow motion
+3 M fo g esc camera falls with a survivor past blocks
+4 W st g wow tsunami rolls over the castle (low angle)
+5 W st g title high wide aftermath, title fades in

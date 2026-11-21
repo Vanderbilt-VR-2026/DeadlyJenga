@@ -1,0 +1,31 @@
+# content_start=0.13; first_logo=; first_gameplay=0.13; first_what=3.10; first_title=39.6; final_title=39.6; endcard_start=39.6; endcard_end=43.12; button=; gameplay_share=0.85
+0 T st t hook black
+1 W pu g hook first-person walk up to a brick warehouse at dawn, sledgehammer in hand
+2 M pov g joke smash a TV in a voxel living room
+3 M st u teach mission computer and island map
+4 M st u teach mission briefing screens
+5 W pov g esc truck rams a house at night
+6 W pov g esc harbour yard, vehicle drives
+7 M pov g wow floor planks blasted
+8 C pov g wow door smashed
+9 M pov g wow ceiling caves in
+10 W pov g esc yard, crane over stacks
+11 W pov g esc wrecking vehicle in yard
+12 M pov g teach indoor heist, alarm lights
+13 M pov g esc corridor, green lights
+14 M pov g wow explosion in corridor
+15 W pov g esc rooftop view at dusk
+16 W pov g wow wall blown open
+17 W pov g esc rooftop again
+18 W pov g wow blast flash
+19 W pov g var crane wrecks a modern villa
+20 W pov g var villa collapse
+21 W pov g var speedboat at night
+22 W pov g wow explosion on harbour
+23 W pov g var boat heads to shore
+24 M pov g wow burning shed, fire extinguisher
+25 W pov g var forest road at night
+26 W pov g var car smashes through Christmas tree
+27 W fo g esc car drives through a house
+28 W fo g title car through garage, cut to title
+29 T st t cta TEARDOWN available now card

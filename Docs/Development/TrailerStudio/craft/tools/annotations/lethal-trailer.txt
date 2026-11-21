@@ -1,0 +1,33 @@
+# content_start=0.17; first_logo=45.82; first_gameplay=2.5; first_what=13.12; first_title=45.82; final_title=45.82; endcard_start=45.82; endcard_end=52.27; button=; gameplay_share=0.80
+0 T st t hook blue VHS screen
+1 T st t hook CRT switches on
+2 T st t joke cheery corporate ad card: the company is hiring!
+3 W st g teach company ship in orbit above a red moon
+4 W st g teach crew in orange suits at the ship door, fog outside
+5 M pov g teach first-person scanner HUD in a facility
+6 M pov g teach scanning scrap, HUD markers
+7 W st g teach crew walk in red fog
+8 W st g teach crew cross a dusty valley, ship lands
+9 W st g joke ship lands, text: it's easy!
+10 T st t esc static, line on black
+11 W st g build dark exterior at night
+12 M pov g esc elevator lift goes down
+13 W pov g esc forest at night, something in the trees
+14 W pov g esc dark interior
+15 M st g esc crewmate in yellow suit with flashlight
+16 M pov g esc dark corridor, figure ahead
+17 M pov g teach ship monitor map
+18 M pov g build dark doorway, light
+19 M pov g teach terminal text
+20 M pov g esc tunnel, light approaches
+21 W st g wow giant creature in sky over forest
+22 W st g esc bridge in fog
+23 M pov g esc facility hallway, enemy
+24 W st g build dark woods
+25 W st g esc fog, crewmate fleeing
+26 M st g wow strobe-lit attack on yellow crewmate
+27 M pov g esc first-person, shovel
+28 T st g build black, a light in the distance
+29 T st t title logo, wishlist on Steam
+30 T st t title black
+31 T st t cta work starts on October 23

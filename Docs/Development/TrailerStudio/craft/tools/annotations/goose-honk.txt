@@ -1,0 +1,24 @@
+# content_start=5.93; first_logo=0.3; first_gameplay=5.93; first_what=11.93; first_title=48.4; final_title=51.43; endcard_start=48.4; endcard_end=54.47; button=; gameplay_share=0.75
+0 T st t brand white, developer logo pops in
+1 T st t brand developer logo
+2 T st t hook publisher logo, then text: it's finally time
+3 W st g hook empty garden, quiet
+4 T st t joke text: to honk.
+5 W st g hook goose flaps into the garden
+6 W st g joke goose honks at a boy
+7 W st g joke man on bridge, goose steals
+8 W st g joke goose at a well
+9 W st g joke woman gardening, goose steals
+10 W st g joke gardener and goose by barrels
+11 W st g joke goose at red house, gardener leaves
+12 W st g joke market stall, goose sneaks
+13 W st g joke goose on pub deck
+14 W st g joke goose flapping on bridge
+15 W st g joke goose hides in bushes
+16 W st g joke goose at picnic table with couple
+17 W st g joke man reading in garden
+18 W st g joke shop window, goose inside
+19 W st g joke goose drags object down street
+20 W st g joke shopkeeper, no-goose sign
+21 T st t cta text: coming to Steam in late 2020
+22 T st t title logo card

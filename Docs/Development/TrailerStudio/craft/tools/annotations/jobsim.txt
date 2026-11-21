@@ -1,0 +1,67 @@
+# content_start=0; first_logo=80.25; first_gameplay=15.5; first_what=15.5; first_title=80.25; final_title=80.25; endcard_start=80.25; endcard_end=87.43; button=man asleep in office chair under the title; gameplay_share=0.55
+0 M st l hook live action: man asleep, hand slaps alarm
+1 C st l hook alarm clock 6:00
+2 C st l hook alarm slapped again
+3 C st l joke toothpaste on brush
+4 C st l joke brushing teeth, extreme close
+5 C st l joke electric shaver
+6 C st l joke buttoning shirt
+7 C st l joke tie
+8 C st l joke tie knot
+9 C st l joke coffee into I-heart-JOB mug
+10 C st l joke cufflink
+11 C st l joke cuff
+12 C st l joke aftershave slap
+13 M pa l teach tilt from mug up to a VR headset, the man sips coffee through it
+14 W st l teach whip into mixed reality: the man arrives in the cartoon office
+15 M pov g teach robot boss on monitor greets the player
+16 W st l teach mixed reality: player in headset inside the game office
+17 M pov g var first-person task gameplay
+18 M pov g var first-person task gameplay
+19 M pov g var first-person task gameplay
+20 M pov g var first-person task gameplay
+21 M pov g var first-person task gameplay
+22 M pov g var first-person task gameplay
+23 M pov g var first-person task gameplay
+24 M pov g var first-person task gameplay
+25 M pov g var first-person task gameplay
+26 M pov g var first-person task gameplay
+27 M pov g var first-person task gameplay
+28 M st l joke live action hand pins a press quote
+29 C st l joke press quote card
+30 M pov g var first-person task gameplay
+31 M pov g var first-person task gameplay
+32 M pov g esc first-person task gameplay
+33 C st l joke press quote
+34 C st l joke press quote
+35 M pov g esc first-person task gameplay
+36 M pov g esc first-person task gameplay
+37 M pov g esc first-person task gameplay
+38 M st l joke mixed reality: player laughing in headset
+39 M pov g esc first-person task gameplay
+40 M pov g esc first-person task gameplay
+41 W st l joke mixed reality: player at the store counter
+42 M pov g esc first-person task gameplay
+43 M pov g esc first-person task gameplay
+44 M pov g esc first-person task gameplay
+45 M pov g esc first-person task gameplay
+46 C st l teach press quote
+47 C st l teach award laurel
+48 W st l joke mixed reality: player in office
+49 M pov g esc first-person task gameplay
+50 C st l teach festival laurel
+51 C st l teach wall of laurels
+52 M pov g esc first-person task gameplay
+53 W st l joke mixed reality: player in the office
+54 M pov g esc first-person task gameplay
+55 M pov g esc first-person task gameplay
+56 M pov g esc first-person task gameplay
+57 M pov g esc first-person task gameplay
+58 M pov g esc first-person task gameplay
+59 M pov g esc first-person task gameplay
+60 M pov g esc first-person task gameplay
+61 M pov g esc first-person task gameplay
+62 M pov g esc first-person task gameplay
+63 M pov g wow first-person task gameplay
+64 W st l title live action man slumped asleep, logo over him
+65 T st t title fade out

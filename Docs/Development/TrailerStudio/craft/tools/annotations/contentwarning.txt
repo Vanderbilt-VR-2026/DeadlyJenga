@@ -1,0 +1,17 @@
+# content_start=0; first_logo=64.4; first_gameplay=0; first_what=10.3; first_title=64.4; final_title=64.4; endcard_start=64.4; endcard_end=69.14; button=; gameplay_share=0.90
+0-2 M ha g hook camcorder vlog: diver-suit host talks to camera, subtitles explain the plan
+3-9 M ha g teach jump-cut glitches as host points camera around the farm
+10-15 M ha g teach host: film cool stuff, upload, make views, make money
+16-21 W ha g teach friends walk to the diving bell, jump cuts
+22 W pov g esc inside the diving bell, descent
+23-29 W ha g esc dark arrival, flashlight, nervous subtitles
+30-36 M ha g esc exploring dark halls: can you touch it? are you filming this?
+37-43 M ha g esc green-face friend finds a monster, flicker
+44-50 M ha g esc running: keep running, don't look back
+51-56 M ha g wow chase, camera drops, light flares
+57-74 C ha g wow red/yellow glitch-flash montage, friend caught, welcome back to another video
+75-81 W ha g wow black-and-white monster montage, very short shots
+82-90 C ha g esc dark close shots, a face appears, red smiley in dark
+91 W st g joke back home in the cabin, friends watch the footage
+92 T st t title logo
+93 T st t cta out now on Steam

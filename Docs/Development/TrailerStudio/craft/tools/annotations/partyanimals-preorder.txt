@@ -1,0 +1,34 @@
+# content_start=0; first_logo=; first_gameplay=0; first_what=0; first_title=58.0; final_title=58.0; endcard_start=54.47; endcard_end=60.91; button=; gameplay_share=0.80
+0 W fo g hook dog runs into temple arena
+1 W st g hook dog on submarine deck at sea
+2 W st g hook dog on aircraft wing
+3 M st g hook dino and dog punching on factory line
+4 W pa g esc bridge breaks, animals fall
+5 M st g joke animals around portal machine
+6 T st t teach text: 20 maps, we are back
+7 W st g var underwater blast
+8 W st g var animals fight on platforms
+9 W st g var football match
+10 W st g var ice level, animals on ice block
+11 W st g joke bridge with animals falling
+12 M st g joke animal sliding in pipe
+13 M st g joke raft in rapids
+14 M st g joke pink animal on bridge
+15 T st t teach text: 30+ animals, where you at
+16 W st g var jungle cliff level, corgi close
+17 M st g joke cave, animal thrown
+18 M st g esc brawl with explosion
+19 W st g var propeller plane wing
+20 W st g var courtyard punches
+21 W st g joke animals push a ball
+22 M st g wow train car explodes
+23 M st g wow train explosion
+24 W st g joke ice floe, animal slips into water
+25 M st g joke penguin? waddles
+26 W st g var american football
+27 W st g joke conveyor train
+28 W st g joke submarine periscope fight
+29 M pu c title character group render, push in
+30 T st t title black flash
+31 W st c cta pre-order now board
+32 T st t title logo card

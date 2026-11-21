@@ -1,0 +1,27 @@
+# content_start=0.37; first_logo=; first_gameplay=0.37; first_what=1.53; first_title=49.5; final_title=49.5; endcard_start=49.5; endcard_end=55.05; button=; gameplay_share=0.80
+0 T st t hook black
+1 M pov g hook headset view opens on briefcase with pistol
+2 M pov g hook glass shatters
+3 M pov g teach red men attack, player grabs gun
+4 M pov g teach thrown shuriken frozen in air
+5 M pov g wow shoot red man, he shatters
+6 M pov g teach empty hands dodge a bullet trail
+7 M pov g wow catch a rifle mid-air
+8 C pov g wow punch red man close
+9 M pov g teach shoot across a room
+10 M pov g esc office, pistol, enemies running
+11 W pov g esc room swing
+12 M pov g teach text DODGE in the world
+13 M pov g esc office, rifles hang in air
+14 C pov g wow red man explodes into shards
+15 M pov g esc shards and pistol
+16 M pov g esc more enemies
+17 C pov g wow multiple men shatter
+18 C pov g wow red man close, shattering
+19 M pov g esc last fight, pistol
+20 M pov g title world text: time moves when you move
+21 T st t title black, then title and date
+22 T st t title flash
+23 T st t title title card
+24 T st t title fade
+25 T st t title black

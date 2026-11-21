@@ -1,0 +1,1210 @@
+{
+ "source": "TrailerCraft-Reference measured sample (22 official trailers)",
+ "classes": {
+  "short": {
+   "n": 4,
+   "trailers": [
+    "lethal-v85-teaser",
+    "hff-vr-launch",
+    "beatsaber-teaser",
+    "beatsaber-release"
+   ],
+   "metrics": {
+    "msl": {
+     "desc": "median picture-shot length, s",
+     "n": 3,
+     "median": 12.517,
+     "p10": 4.345,
+     "p25": 7.409,
+     "p75": 14.258,
+     "p90": 15.303,
+     "min": 2.302,
+     "max": 16.0
+    },
+    "asl": {
+     "desc": "mean picture-shot length, s",
+     "n": 3,
+     "median": 12.517,
+     "p10": 5.632,
+     "p25": 8.213,
+     "p75": 14.258,
+     "p90": 15.303,
+     "min": 3.91,
+     "max": 16.0
+    },
+    "sl_p10": {
+     "desc": "10th-percentile shot length, s",
+     "n": 3,
+     "median": 11.223,
+     "p10": 3.045,
+     "p25": 6.112,
+     "p75": 13.612,
+     "p90": 15.045,
+     "min": 1.001,
+     "max": 16.0
+    },
+    "sl_max": {
+     "desc": "longest picture shot, s",
+     "n": 3,
+     "median": 14.133,
+     "p10": 10.595,
+     "p25": 11.921,
+     "p75": 15.066,
+     "p90": 15.627,
+     "min": 9.71,
+     "max": 16.0
+    },
+    "cuts_per_min": {
+     "desc": "cuts per minute of body",
+     "n": 4,
+     "median": 4.287,
+     "p10": 1.134,
+     "p25": 2.836,
+     "p75": 6.613,
+     "p90": 9.886,
+     "min": 0.0,
+     "max": 12.068
+    },
+    "max_cuts_5s": {
+     "desc": "most cuts in any 5 s window",
+     "n": 4,
+     "median": 0.5,
+     "p10": 0.0,
+     "p25": 0.0,
+     "p75": 1.25,
+     "p90": 1.7,
+     "min": 0.0,
+     "max": 2.0
+    },
+    "accel": {
+     "desc": "median shot length last quarter / first quarter",
+     "n": 1,
+     "median": 0.191,
+     "p10": 0.191,
+     "p25": 0.191,
+     "p75": 0.191,
+     "p90": 0.191,
+     "min": 0.191,
+     "max": 0.191
+    },
+    "first_gameplay": {
+     "desc": "first gameplay frame, s",
+     "n": 3,
+     "median": 1.5,
+     "p10": 0.484,
+     "p25": 0.865,
+     "p75": 1.75,
+     "p90": 1.9,
+     "min": 0.23,
+     "max": 2.0
+    },
+    "first_what": {
+     "desc": "first 'what is this game' moment, s",
+     "n": 3,
+     "median": 2.0,
+     "p10": 1.92,
+     "p25": 1.95,
+     "p75": 12.845,
+     "p90": 19.352,
+     "min": 1.9,
+     "max": 23.69
+    },
+    "final_title_frac": {
+     "desc": "closing title start / runtime",
+     "n": 4,
+     "median": 0.8,
+     "p10": 0.38,
+     "p25": 0.617,
+     "p75": 0.87,
+     "p90": 0.905,
+     "min": 0.222,
+     "max": 0.928
+    },
+    "endcard_len": {
+     "desc": "closing title + end card length, s",
+     "n": 4,
+     "median": 5.095,
+     "p10": 2.753,
+     "p25": 3.972,
+     "p75": 5.665,
+     "p90": 5.89,
+     "min": 1.94,
+     "max": 6.04
+    },
+    "lufs": {
+     "desc": "integrated loudness, LUFS",
+     "n": 4,
+     "median": -15.9,
+     "p10": -24.3,
+     "p25": -18.9,
+     "p75": -14.35,
+     "p90": -11.56,
+     "min": -27.9,
+     "max": -9.7
+    },
+    "peak": {
+     "desc": "true peak, dBTP",
+     "n": 4,
+     "median": -0.95,
+     "p10": -4.21,
+     "p25": -2.275,
+     "p75": -0.225,
+     "p90": 0.63,
+     "min": -5.5,
+     "max": 1.2
+    },
+    "lra": {
+     "desc": "loudness range, LU",
+     "n": 4,
+     "median": 6.4,
+     "p10": 4.91,
+     "p25": 5.675,
+     "p75": 7.25,
+     "p90": 8.24,
+     "min": 4.4,
+     "max": 8.9
+    },
+    "loud_ramp": {
+     "desc": "short-term loudness last quarter minus first quarter, LU",
+     "n": 3,
+     "median": 3.595,
+     "p10": 0.194,
+     "p25": 1.469,
+     "p75": 3.732,
+     "p90": 3.815,
+     "min": -0.656,
+     "max": 3.87
+    },
+    "title_vs_body_LU": {
+     "desc": "closing title loudness relative to body, LU",
+     "n": 4,
+     "median": -2.85,
+     "p10": -24.015,
+     "p25": -13.013,
+     "p75": 3.375,
+     "p90": 7.29,
+     "min": -31.35,
+     "max": 9.9
+    },
+    "onset_pct_mean": {
+     "desc": "mean onset-strength percentile at cuts (50 = random)",
+     "n": 3,
+     "median": 55.9,
+     "p10": 54.22,
+     "p25": 54.85,
+     "p75": 69.65,
+     "p90": 77.9,
+     "min": 53.8,
+     "max": 83.4
+    },
+    "onset_top25_share": {
+     "desc": "share of cuts on top-25% audio onsets (0.25 = random)",
+     "n": 3,
+     "median": 0.5,
+     "p10": 0.366,
+     "p25": 0.416,
+     "p75": 0.584,
+     "p90": 0.634,
+     "min": 0.333,
+     "max": 0.667
+    },
+    "size_W": {
+     "desc": "share of wide shots",
+     "n": 3,
+     "median": 0.0,
+     "p10": 0.0,
+     "p25": 0.0,
+     "p75": 0.25,
+     "p90": 0.4,
+     "min": 0.0,
+     "max": 0.5
+    },
+    "size_C": {
+     "desc": "share of close shots",
+     "n": 3,
+     "median": 0.0,
+     "p10": 0.0,
+     "p25": 0.0,
+     "p75": 0.0,
+     "p90": 0.0,
+     "min": 0.0,
+     "max": 0.0
+    },
+    "static_share": {
+     "desc": "share of static-camera shots",
+     "n": 3,
+     "median": 0.0,
+     "p10": 0.0,
+     "p25": 0.0,
+     "p75": 0.35,
+     "p90": 0.56,
+     "min": 0.0,
+     "max": 0.7
+    },
+    "adj_same_size": {
+     "desc": "share of cuts joining two shots of the same size",
+     "n": 2,
+     "median": 0.722,
+     "p10": 0.5,
+     "p25": 0.583,
+     "p75": 0.861,
+     "p90": 0.944,
+     "min": 0.444,
+     "max": 1.0
+    },
+    "gameplay_share": {
+     "desc": "share of runtime that is gameplay (by eye)",
+     "n": 4,
+     "median": 0.85,
+     "p10": 0.255,
+     "p25": 0.637,
+     "p75": 0.863,
+     "p90": 0.885,
+     "min": 0.0,
+     "max": 0.9
+    }
+   }
+  },
+  "mid": {
+   "n": 11,
+   "trailers": [
+    "walkabout-psvr2",
+    "amongus-release",
+    "teardown",
+    "tabs-early-access",
+    "lethal-trailer",
+    "goose-honk",
+    "superhot-vr-release",
+    "gangbeasts",
+    "partyanimals-preorder",
+    "contentwarning",
+    "uch-launch"
+   ],
+   "metrics": {
+    "msl": {
+     "desc": "median picture-shot length, s",
+     "n": 11,
+     "median": 1.602,
+     "p10": 1.167,
+     "p25": 1.442,
+     "p75": 1.709,
+     "p90": 2.033,
+     "min": 0.767,
+     "max": 2.133
+    },
+    "asl": {
+     "desc": "mean picture-shot length, s",
+     "n": 11,
+     "median": 1.834,
+     "p10": 1.425,
+     "p25": 1.585,
+     "p75": 2.087,
+     "p90": 2.207,
+     "min": 1.002,
+     "max": 2.32
+    },
+    "sl_p10": {
+     "desc": "10th-percentile shot length, s",
+     "n": 11,
+     "median": 0.826,
+     "p10": 0.457,
+     "p25": 0.597,
+     "p75": 1.232,
+     "p90": 1.398,
+     "min": 0.167,
+     "max": 1.58
+    },
+    "sl_max": {
+     "desc": "longest picture shot, s",
+     "n": 11,
+     "median": 4.167,
+     "p10": 2.983,
+     "p25": 3.284,
+     "p75": 5.333,
+     "p90": 5.883,
+     "min": 2.803,
+     "max": 6.4
+    },
+    "cuts_per_min": {
+     "desc": "cuts per minute of body",
+     "n": 11,
+     "median": 30.0,
+     "p10": 22.418,
+     "p25": 24.745,
+     "p75": 38.108,
+     "p90": 42.015,
+     "min": 20.151,
+     "max": 47.516
+    },
+    "max_cuts_5s": {
+     "desc": "most cuts in any 5 s window",
+     "n": 11,
+     "median": 4.0,
+     "p10": 3.0,
+     "p25": 4.0,
+     "p75": 5.5,
+     "p90": 7.0,
+     "min": 3.0,
+     "max": 11.0
+    },
+    "accel": {
+     "desc": "median shot length last quarter / first quarter",
+     "n": 11,
+     "median": 1.062,
+     "p10": 0.437,
+     "p25": 0.676,
+     "p75": 1.506,
+     "p90": 1.727,
+     "min": 0.147,
+     "max": 2.229
+    },
+    "first_gameplay": {
+     "desc": "first gameplay frame, s",
+     "n": 11,
+     "median": 0.27,
+     "p10": 0.0,
+     "p25": 0.035,
+     "p75": 1.5,
+     "p90": 5.93,
+     "min": 0.0,
+     "max": 7.34
+    },
+    "first_what": {
+     "desc": "first 'what is this game' moment, s",
+     "n": 11,
+     "median": 4.3,
+     "p10": 1.07,
+     "p25": 2.315,
+     "p75": 8.82,
+     "p90": 11.93,
+     "min": 0.0,
+     "max": 13.12
+    },
+    "final_title_frac": {
+     "desc": "closing title start / runtime",
+     "n": 11,
+     "median": 0.913,
+     "p10": 0.839,
+     "p25": 0.881,
+     "p75": 0.925,
+     "p90": 0.944,
+     "min": 0.837,
+     "max": 0.952
+    },
+    "endcard_len": {
+     "desc": "closing title + end card length, s",
+     "n": 11,
+     "median": 5.79,
+     "p10": 4.74,
+     "p25": 5.205,
+     "p75": 6.355,
+     "p90": 6.45,
+     "min": 3.52,
+     "max": 6.99
+    },
+    "lufs": {
+     "desc": "integrated loudness, LUFS",
+     "n": 11,
+     "median": -16.9,
+     "p10": -20.4,
+     "p25": -19.5,
+     "p75": -13.3,
+     "p90": -12.5,
+     "min": -21.1,
+     "max": -10.2
+    },
+    "peak": {
+     "desc": "true peak, dBTP",
+     "n": 11,
+     "median": 0.1,
+     "p10": -4.6,
+     "p25": -2.1,
+     "p75": 0.45,
+     "p90": 1.2,
+     "min": -6.7,
+     "max": 1.2
+    },
+    "lra": {
+     "desc": "loudness range, LU",
+     "n": 11,
+     "median": 8.7,
+     "p10": 4.0,
+     "p25": 4.45,
+     "p75": 12.0,
+     "p90": 15.9,
+     "min": 2.6,
+     "max": 17.0
+    },
+    "loud_ramp": {
+     "desc": "short-term loudness last quarter minus first quarter, LU",
+     "n": 11,
+     "median": 2.875,
+     "p10": -1.336,
+     "p25": 0.194,
+     "p75": 5.573,
+     "p90": 8.703,
+     "min": -2.288,
+     "max": 13.519
+    },
+    "title_vs_body_LU": {
+     "desc": "closing title loudness relative to body, LU",
+     "n": 11,
+     "median": -8.9,
+     "p10": -29.25,
+     "p25": -21.3,
+     "p75": -6.95,
+     "p90": -3.3,
+     "min": -40.3,
+     "max": 0.6
+    },
+    "onset_pct_mean": {
+     "desc": "mean onset-strength percentile at cuts (50 = random)",
+     "n": 11,
+     "median": 57.5,
+     "p10": 44.9,
+     "p25": 49.8,
+     "p75": 65.1,
+     "p90": 67.0,
+     "min": 43.7,
+     "max": 68.8
+    },
+    "onset_top25_share": {
+     "desc": "share of cuts on top-25% audio onsets (0.25 = random)",
+     "n": 11,
+     "median": 0.35,
+     "p10": 0.167,
+     "p25": 0.207,
+     "p75": 0.415,
+     "p90": 0.519,
+     "min": 0.167,
+     "max": 0.533
+    },
+    "size_W": {
+     "desc": "share of wide shots",
+     "n": 11,
+     "median": 0.621,
+     "p10": 0.239,
+     "p25": 0.466,
+     "p75": 0.803,
+     "p90": 0.958,
+     "min": 0.05,
+     "max": 1.0
+    },
+    "size_C": {
+     "desc": "share of close shots",
+     "n": 11,
+     "median": 0.036,
+     "p10": 0.0,
+     "p25": 0.0,
+     "p75": 0.066,
+     "p90": 0.2,
+     "min": 0.0,
+     "max": 0.293
+    },
+    "static_share": {
+     "desc": "share of static-camera shots",
+     "n": 11,
+     "median": 0.75,
+     "p10": 0.011,
+     "p25": 0.296,
+     "p75": 0.853,
+     "p90": 0.897,
+     "min": 0.0,
+     "max": 1.0
+    },
+    "adj_same_size": {
+     "desc": "share of cuts joining two shots of the same size",
+     "n": 11,
+     "median": 0.615,
+     "p10": 0.412,
+     "p25": 0.539,
+     "p75": 0.924,
+     "p90": 0.938,
+     "min": 0.367,
+     "max": 1.0
+    },
+    "gameplay_share": {
+     "desc": "share of runtime that is gameplay (by eye)",
+     "n": 11,
+     "median": 0.8,
+     "p10": 0.75,
+     "p25": 0.8,
+     "p75": 0.825,
+     "p90": 0.85,
+     "min": 0.7,
+     "max": 0.9
+    }
+   }
+  },
+  "long": {
+   "n": 7,
+   "trailers": [
+    "jobsim",
+    "gorillatag",
+    "fallguys-e3-2019",
+    "alyx-announce",
+    "ittakestwo-reveal",
+    "besiege-alpha",
+    "moss-launch"
+   ],
+   "metrics": {
+    "msl": {
+     "desc": "median picture-shot length, s",
+     "n": 7,
+     "median": 1.533,
+     "p10": 1.078,
+     "p25": 1.251,
+     "p75": 1.917,
+     "p90": 2.662,
+     "min": 1.043,
+     "max": 3.704
+    },
+    "asl": {
+     "desc": "mean picture-shot length, s",
+     "n": 7,
+     "median": 1.881,
+     "p10": 1.492,
+     "p25": 1.748,
+     "p75": 2.716,
+     "p90": 3.143,
+     "min": 1.254,
+     "max": 3.584
+    },
+    "sl_p10": {
+     "desc": "10th-percentile shot length, s",
+     "n": 7,
+     "median": 0.498,
+     "p10": 0.213,
+     "p25": 0.277,
+     "p75": 0.606,
+     "p90": 1.125,
+     "min": 0.204,
+     "max": 1.761
+    },
+    "sl_max": {
+     "desc": "longest picture shot, s",
+     "n": 7,
+     "median": 9.517,
+     "p10": 5.811,
+     "p25": 7.591,
+     "p75": 10.755,
+     "p90": 11.778,
+     "min": 5.706,
+     "max": 12.946
+    },
+    "cuts_per_min": {
+     "desc": "cuts per minute of body",
+     "n": 7,
+     "median": 27.286,
+     "p10": 17.584,
+     "p25": 19.401,
+     "p75": 34.111,
+     "p90": 40.573,
+     "min": 16.74,
+     "max": 47.85
+    },
+    "max_cuts_5s": {
+     "desc": "most cuts in any 5 s window",
+     "n": 7,
+     "median": 6.0,
+     "p10": 3.6,
+     "p25": 4.0,
+     "p75": 7.5,
+     "p90": 8.8,
+     "min": 3.0,
+     "max": 10.0
+    },
+    "accel": {
+     "desc": "median shot length last quarter / first quarter",
+     "n": 7,
+     "median": 0.573,
+     "p10": 0.243,
+     "p25": 0.367,
+     "p75": 0.881,
+     "p90": 1.116,
+     "min": 0.088,
+     "max": 1.427
+    },
+    "first_gameplay": {
+     "desc": "first gameplay frame, s",
+     "n": 7,
+     "median": 11.0,
+     "p10": 0.732,
+     "p25": 3.27,
+     "p75": 28.35,
+     "p90": 50.56,
+     "min": 0.33,
+     "max": 64.6
+    },
+    "first_what": {
+     "desc": "first 'what is this game' moment, s",
+     "n": 7,
+     "median": 12.01,
+     "p10": 7.02,
+     "p25": 10.65,
+     "p75": 16.99,
+     "p90": 27.568,
+     "min": 2.1,
+     "max": 41.2
+    },
+    "final_title_frac": {
+     "desc": "closing title start / runtime",
+     "n": 7,
+     "median": 0.891,
+     "p10": 0.834,
+     "p25": 0.863,
+     "p75": 0.92,
+     "p90": 0.925,
+     "min": 0.797,
+     "max": 0.928
+    },
+    "endcard_len": {
+     "desc": "closing title + end card length, s",
+     "n": 7,
+     "median": 10.51,
+     "p10": 6.996,
+     "p25": 7.6,
+     "p75": 12.85,
+     "p90": 13.146,
+     "min": 6.72,
+     "max": 13.29
+    },
+    "lufs": {
+     "desc": "integrated loudness, LUFS",
+     "n": 7,
+     "median": -16.0,
+     "p10": -25.18,
+     "p25": -18.5,
+     "p75": -12.2,
+     "p90": -10.42,
+     "min": -32.5,
+     "max": -9.1
+    },
+    "peak": {
+     "desc": "true peak, dBTP",
+     "n": 7,
+     "median": -2.5,
+     "p10": -7.96,
+     "p25": -4.8,
+     "p75": 1.45,
+     "p90": 2.9,
+     "min": -11.2,
+     "max": 5.0
+    },
+    "lra": {
+     "desc": "loudness range, LU",
+     "n": 7,
+     "median": 9.8,
+     "p10": 4.86,
+     "p25": 7.15,
+     "p75": 13.25,
+     "p90": 17.18,
+     "min": 4.8,
+     "max": 18.8
+    },
+    "loud_ramp": {
+     "desc": "short-term loudness last quarter minus first quarter, LU",
+     "n": 6,
+     "median": 6.123,
+     "p10": 1.638,
+     "p25": 2.78,
+     "p75": 9.367,
+     "p90": 11.783,
+     "min": 1.549,
+     "max": 13.179
+    },
+    "title_vs_body_LU": {
+     "desc": "closing title loudness relative to body, LU",
+     "n": 6,
+     "median": -14.275,
+     "p10": -18.65,
+     "p25": -17.462,
+     "p75": -8.613,
+     "p90": -5.375,
+     "min": -19.5,
+     "max": -3.3
+    },
+    "onset_pct_mean": {
+     "desc": "mean onset-strength percentile at cuts (50 = random)",
+     "n": 7,
+     "median": 51.4,
+     "p10": 42.7,
+     "p25": 45.6,
+     "p75": 56.15,
+     "p90": 57.12,
+     "min": 41.8,
+     "max": 58.5
+    },
+    "onset_top25_share": {
+     "desc": "share of cuts on top-25% audio onsets (0.25 = random)",
+     "n": 7,
+     "median": 0.281,
+     "p10": 0.209,
+     "p25": 0.239,
+     "p75": 0.314,
+     "p90": 0.354,
+     "min": 0.172,
+     "max": 0.368
+    },
+    "size_W": {
+     "desc": "share of wide shots",
+     "n": 7,
+     "median": 0.444,
+     "p10": 0.27,
+     "p25": 0.403,
+     "p75": 0.608,
+     "p90": 0.653,
+     "min": 0.092,
+     "max": 0.684
+    },
+    "size_C": {
+     "desc": "share of close shots",
+     "n": 7,
+     "median": 0.104,
+     "p10": 0.032,
+     "p25": 0.063,
+     "p75": 0.257,
+     "p90": 0.302,
+     "min": 0.0,
+     "max": 0.316
+    },
+    "static_share": {
+     "desc": "share of static-camera shots",
+     "n": 7,
+     "median": 0.474,
+     "p10": 0.282,
+     "p25": 0.413,
+     "p75": 0.675,
+     "p90": 0.726,
+     "min": 0.111,
+     "max": 0.789
+    },
+    "adj_same_size": {
+     "desc": "share of cuts joining two shots of the same size",
+     "n": 7,
+     "median": 0.489,
+     "p10": 0.323,
+     "p25": 0.343,
+     "p75": 0.644,
+     "p90": 0.724,
+     "min": 0.308,
+     "max": 0.778
+    },
+    "gameplay_share": {
+     "desc": "share of runtime that is gameplay (by eye)",
+     "n": 7,
+     "median": 0.55,
+     "p10": 0.318,
+     "p25": 0.475,
+     "p75": 0.7,
+     "p90": 0.79,
+     "min": 0.12,
+     "max": 0.85
+    }
+   }
+  },
+  "all": {
+   "n": 22,
+   "trailers": [
+    "lethal-v85-teaser",
+    "hff-vr-launch",
+    "beatsaber-teaser",
+    "beatsaber-release",
+    "walkabout-psvr2",
+    "amongus-release",
+    "teardown",
+    "tabs-early-access",
+    "lethal-trailer",
+    "goose-honk",
+    "superhot-vr-release",
+    "gangbeasts",
+    "partyanimals-preorder",
+    "contentwarning",
+    "jobsim",
+    "gorillatag",
+    "fallguys-e3-2019",
+    "alyx-announce",
+    "ittakestwo-reveal",
+    "besiege-alpha",
+    "uch-launch",
+    "moss-launch"
+   ],
+   "metrics": {
+    "msl": {
+     "desc": "median picture-shot length, s",
+     "n": 21,
+     "median": 1.617,
+     "p10": 1.101,
+     "p25": 1.433,
+     "p75": 2.033,
+     "p90": 3.704,
+     "min": 0.767,
+     "max": 16.0
+    },
+    "asl": {
+     "desc": "mean picture-shot length, s",
+     "n": 21,
+     "median": 1.881,
+     "p10": 1.425,
+     "p25": 1.711,
+     "p75": 2.583,
+     "p90": 3.91,
+     "min": 1.002,
+     "max": 16.0
+    },
+    "sl_p10": {
+     "desc": "10th-percentile shot length, s",
+     "n": 21,
+     "median": 0.783,
+     "p10": 0.22,
+     "p25": 0.467,
+     "p75": 1.323,
+     "p90": 1.761,
+     "min": 0.167,
+     "max": 16.0
+    },
+    "sl_max": {
+     "desc": "longest picture shot, s",
+     "n": 21,
+     "median": 5.881,
+     "p10": 3.136,
+     "p25": 4.167,
+     "p75": 9.71,
+     "p90": 12.946,
+     "min": 2.803,
+     "max": 16.0
+    },
+    "cuts_per_min": {
+     "desc": "cuts per minute of body",
+     "n": 22,
+     "median": 26.759,
+     "p10": 5.522,
+     "p25": 18.648,
+     "p75": 34.504,
+     "p90": 41.918,
+     "min": 0.0,
+     "max": 47.85
+    },
+    "max_cuts_5s": {
+     "desc": "most cuts in any 5 s window",
+     "n": 22,
+     "median": 4.0,
+     "p10": 1.1,
+     "p25": 3.0,
+     "p75": 6.0,
+     "p90": 7.9,
+     "min": 0.0,
+     "max": 11.0
+    },
+    "accel": {
+     "desc": "median shot length last quarter / first quarter",
+     "n": 19,
+     "median": 0.853,
+     "p10": 0.182,
+     "p25": 0.413,
+     "p75": 1.262,
+     "p90": 1.647,
+     "min": 0.088,
+     "max": 2.229
+    },
+    "first_gameplay": {
+     "desc": "first gameplay frame, s",
+     "n": 21,
+     "median": 1.0,
+     "p10": 0.0,
+     "p25": 0.23,
+     "p75": 5.93,
+     "p90": 15.5,
+     "min": 0.0,
+     "max": 64.6
+    },
+    "first_what": {
+     "desc": "first 'what is this game' moment, s",
+     "n": 21,
+     "median": 7.34,
+     "p10": 1.53,
+     "p25": 2.1,
+     "p75": 12.01,
+     "p90": 18.48,
+     "min": 0.0,
+     "max": 41.2
+    },
+    "final_title_frac": {
+     "desc": "closing title start / runtime",
+     "n": 22,
+     "median": 0.895,
+     "p10": 0.801,
+     "p25": 0.853,
+     "p75": 0.921,
+     "p90": 0.931,
+     "min": 0.222,
+     "max": 0.952
+    },
+    "endcard_len": {
+     "desc": "closing title + end card length, s",
+     "n": 22,
+     "median": 6.17,
+     "p10": 4.659,
+     "p25": 5.542,
+     "p75": 7.133,
+     "p90": 12.436,
+     "min": 1.94,
+     "max": 13.29
+    },
+    "lufs": {
+     "desc": "integrated loudness, LUFS",
+     "n": 22,
+     "median": -15.95,
+     "p10": -21.03,
+     "p25": -19.55,
+     "p75": -13.025,
+     "p90": -10.31,
+     "min": -32.5,
+     "max": -9.1
+    },
+    "peak": {
+     "desc": "true peak, dBTP",
+     "n": 22,
+     "median": -0.9,
+     "p10": -5.77,
+     "p25": -3.625,
+     "p75": 1.05,
+     "p90": 1.38,
+     "min": -11.2,
+     "max": 5.0
+    },
+    "lra": {
+     "desc": "loudness range, LU",
+     "n": 22,
+     "median": 8.8,
+     "p10": 4.4,
+     "p25": 4.65,
+     "p75": 11.5,
+     "p90": 16.08,
+     "min": 2.6,
+     "max": 18.8
+    },
+    "loud_ramp": {
+     "desc": "short-term loudness last quarter minus first quarter, LU",
+     "n": 20,
+     "median": 3.686,
+     "p10": -0.724,
+     "p25": 1.401,
+     "p75": 6.03,
+     "p90": 10.666,
+     "min": -2.288,
+     "max": 13.519
+    },
+    "title_vs_body_LU": {
+     "desc": "closing title loudness relative to body, LU",
+     "n": 21,
+     "median": -8.9,
+     "p10": -29.25,
+     "p25": -17.8,
+     "p75": -6.0,
+     "p90": 0.6,
+     "min": -40.3,
+     "max": 9.9
+    },
+    "onset_pct_mean": {
+     "desc": "mean onset-strength percentile at cuts (50 = random)",
+     "n": 21,
+     "median": 55.9,
+     "p10": 43.7,
+     "p25": 48.0,
+     "p75": 59.4,
+     "p90": 67.0,
+     "min": 41.8,
+     "max": 83.4
+    },
+    "onset_top25_share": {
+     "desc": "share of cuts on top-25% audio onsets (0.25 = random)",
+     "n": 21,
+     "median": 0.333,
+     "p10": 0.172,
+     "p25": 0.234,
+     "p75": 0.368,
+     "p90": 0.519,
+     "min": 0.167,
+     "max": 0.667
+    },
+    "size_W": {
+     "desc": "share of wide shots",
+     "n": 21,
+     "median": 0.5,
+     "p10": 0.05,
+     "p25": 0.389,
+     "p75": 0.643,
+     "p90": 0.939,
+     "min": 0.0,
+     "max": 1.0
+    },
+    "size_C": {
+     "desc": "share of close shots",
+     "n": 21,
+     "median": 0.053,
+     "p10": 0.0,
+     "p25": 0.0,
+     "p75": 0.104,
+     "p90": 0.292,
+     "min": 0.0,
+     "max": 0.316
+    },
+    "static_share": {
+     "desc": "share of static-camera shots",
+     "n": 21,
+     "median": 0.667,
+     "p10": 0.0,
+     "p25": 0.111,
+     "p75": 0.789,
+     "p90": 0.857,
+     "min": 0.0,
+     "max": 1.0
+    },
+    "adj_same_size": {
+     "desc": "share of cuts joining two shots of the same size",
+     "n": 20,
+     "median": 0.592,
+     "p10": 0.351,
+     "p25": 0.436,
+     "p75": 0.812,
+     "p90": 0.944,
+     "min": 0.308,
+     "max": 1.0
+    },
+    "gameplay_share": {
+     "desc": "share of runtime that is gameplay (by eye)",
+     "n": 22,
+     "median": 0.8,
+     "p10": 0.455,
+     "p25": 0.662,
+     "p75": 0.85,
+     "p90": 0.85,
+     "min": 0.0,
+     "max": 0.9
+    }
+   }
+  }
+ },
+ "rules": [
+  {
+   "id": "first_gameplay",
+   "metric": "first_gameplay",
+   "op": "<=",
+   "value": 2.0,
+   "classes": [
+    "short",
+    "mid"
+   ],
+   "support": "13 of 21 trailers with gameplay; 17 of 21 within 8 s"
+  },
+  {
+   "id": "first_what",
+   "metric": "first_what",
+   "op": "<=",
+   "value": 12.0,
+   "classes": [
+    "mid",
+    "long"
+   ],
+   "support": "15 of 21"
+  },
+  {
+   "id": "final_title_late",
+   "metric": "final_title_frac",
+   "op": "between",
+   "value": [
+    0.8,
+    0.95
+   ],
+   "classes": [
+    "mid",
+    "long"
+   ],
+   "support": "18 of 22"
+  },
+  {
+   "id": "endcard",
+   "metric": "endcard_len",
+   "op": "between",
+   "value": [
+    4.0,
+    8.0
+   ],
+   "classes": [
+    "short",
+    "mid"
+   ],
+   "support": "15 of 22 (long trailers hold 8-13 s)"
+  },
+  {
+   "id": "msl",
+   "metric": "msl",
+   "op": "between",
+   "value": [
+    1.0,
+    2.2
+   ],
+   "classes": [
+    "mid",
+    "long",
+    "short-montage"
+   ],
+   "support": "16 of 18 mid/long trailers"
+  },
+  {
+   "id": "loud_ramp",
+   "metric": "loud_ramp",
+   "op": ">=",
+   "value": 0.0,
+   "classes": [
+    "all"
+   ],
+   "support": "16 of 20"
+  },
+  {
+   "id": "title_quieter",
+   "metric": "title_vs_body_LU",
+   "op": "<=",
+   "value": -3.0,
+   "classes": [
+    "all"
+   ],
+   "support": "16 of 21 at -6 LU or lower"
+  },
+  {
+   "id": "lufs",
+   "metric": "lufs",
+   "op": "between",
+   "value": [
+    -20.0,
+    -12.0
+   ],
+   "classes": [
+    "all"
+   ],
+   "support": "13 of 22 (median -16)"
+  },
+  {
+   "id": "peak",
+   "metric": "peak",
+   "op": "<=",
+   "value": -1.0,
+   "classes": [
+    "all"
+   ],
+   "support": "delivery spec, not a sample norm: 11 of 22 references exceed -1 dBTP"
+  },
+  {
+   "id": "close_ups_present",
+   "metric": "size_C",
+   "op": ">=",
+   "value": 0.05,
+   "classes": [
+    "mid",
+    "long"
+   ],
+   "support": "median 5%; 15 of 21 at 10% or less; most trailers have at least one"
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+# content_start=5.54; first_logo=0.38; first_gameplay=5.54; first_what=18.48; first_title=86.9; final_title=86.9; endcard_start=100.98; endcard_end=109.0; button=G-Man appears out of the dark after the title; gameplay_share=0.75
+0 T st t brand blue screen
+1 T st t brand platform logo animation
+2 T st t brand platform logo, fade
+3 T st t build black
+4 M pov g build one first-person take: torch-lit storeroom, look around, lockers, a headcrab lunges
+5 T st t build black hold with sound only
+6 EW st g wow City 17 skyline with a Strider in the haze
+7 T st t brand Valve logo
+8 W pov g teach rooftop, soldiers and walkers
+9 W pov g wow green energy streams over rooftops
+10 W pov g wow energy streams
+11 M pov g teach hands rewire a panel
+12 W pov g esc looking down a building, combine machine
+13 M st g teach character talks to the player
+14 M pov g teach gloves: gravity gloves on a rack
+15 W pov g esc pick up a gun from a car hood, street
+16 M pov g esc dark tunnel, robot
+17 M pov g esc subway, enemy
+18 W pov g wow explosion
+19 M pov g esc sewer pipes, crawl
+53 M pov g esc fast montage tail
+54 M pov g esc fast montage tail
+55 W pu c title wreck in the dark, title appears
+56 T st t title fade
+57 T pu c joke button: G-Man steps out of the dark
+58 T st t cta date and website card

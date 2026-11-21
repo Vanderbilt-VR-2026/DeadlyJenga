@@ -1,0 +1,12 @@
+{
+    "name": "D Collapse",
+    "id": "cam2",
+    "format": "png",
+    "frames": 144,
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "subFrames": 1,
+    "tapeStart": 5.599999904632568,
+    "tapeEnd": 8.600000381469727
+}
