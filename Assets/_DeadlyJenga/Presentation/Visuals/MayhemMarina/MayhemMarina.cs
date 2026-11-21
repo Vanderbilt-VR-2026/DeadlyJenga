@@ -19,7 +19,7 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Vector3 CinemaTable = new(0, CinemaFloor + DeadlyJenga.Presentation.LobbyLiveMap.PlinthHeight, 2.75f);
         // The style stage (wardrobe) stands on the cinema's right side, where the podium was; its vanity backs onto the right edge.
         static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, 90, 0);
-        static readonly Quaternion FameTurn = Quaternion.identity;
+        static readonly Quaternion FameTurn = Quaternion.Euler(0, 180, 0);
         public static readonly Vector3 Wardrobe = new(5.12f, CinemaFloor + .22f, 3.25f);
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
@@ -32,7 +32,7 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;
         // The compact recent-match board sits behind the winners' steps.
         // The last-match board hangs where the cinema sign was, readable from the plaza and from inside.
-        public static readonly Vector3 FameBoard = new(0, 5.75f, CinemaFront - .25f);
+        public static readonly Vector3 FameBoard = new(0, 6.2f, CinemaFront - .25f);
         public static readonly Quaternion FameFacing = FameTurn;
         // The winners' podium stands right under the board, just inside the entrance, facing the plaza.
         internal static readonly Vector3 FamePodium = new(0, CinemaFloor, CinemaFront + .75f);
