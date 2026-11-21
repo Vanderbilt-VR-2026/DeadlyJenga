@@ -190,8 +190,9 @@ namespace DeadlyJenga.CandyArt.Marina
             foreach (float side in new[]{-1f,1f})
                 Rail(new Vector3(side*7.78f,CinemaFloor,CinemaFront+.5f),new Vector3(side*7.78f,CinemaFloor,2.0f));
             WardrobeConnector();
-            mesh.Box(new Vector3(0,3.7f,11.65f),new Vector3(15.8f,4.0f,.5f),F.Teal,.2f,true);
-            mesh.CurvedRoof(new Vector3(0,5.95f,center),17.1f,depth+2.0f,2.08f,F.CandyCoral,striped:true);
+            var roof=new Vector3(0,5.95f,center);
+            mesh.CurvedRoof(roof,17.1f,depth+2.0f,2.08f,F.NetCloth);
+            GlassBackWall(roof,depth+2.0f);
             // The two-sided last-match board hangs from the roof where the cinema sign used to be
             // (LobbyLastRoundBoard draws its screens on both faces).
             mesh.Box(FameBoard,new Vector3(4.5f,2.4f,.14f),F.Teal,.08f);
@@ -211,6 +212,31 @@ namespace DeadlyJenga.CandyArt.Marina
             Lantern(new Vector3(3.4f,5.46f,2.6f),.21f);
             Lantern(new Vector3(-3.8f,5.35f,8.3f),.22f);
             Lantern(new Vector3(3.8f,5.35f,8.3f),.22f);
+        }
+        // Behind the terminals: tall glass panes in wooden frames, each cut to meet the curved roof.
+        void GlassBackWall(Vector3 roof,float roofDepth)
+        {
+            const float z=11.65f,half=7.9f,sill=.25f;const int panes=10;
+            float Top(float x)=>MarinaMesh.CurvedRoofHeight(roof,17.1f,roofDepth,2.08f,x,z)-.2f;
+            mesh.Box(new Vector3(0,CinemaFloor+sill*.5f,z),new Vector3(half*2,sill,.3f),F.DarkWood,.04f,true);
+            for(int i=0;i<panes;i++)
+            {
+                float x0=Mathf.Lerp(-half,half,i/(float)panes),x1=Mathf.Lerp(-half,half,(i+1)/(float)panes);
+                const int steps=4;
+                for(int s=0;s<steps;s++)
+                {
+                    float a=Mathf.Lerp(x0,x1,s/(float)steps),b=Mathf.Lerp(x0,x1,(s+1)/(float)steps);
+                    mesh.Pane(new Vector3(a,CinemaFloor+sill,z),new Vector3(b,CinemaFloor+sill,z),new Vector3(a,Top(a),z),new Vector3(b,Top(b),z),F.Glass,true);
+                }
+            }
+            for(int i=0;i<=panes;i++)
+            {
+                float x=Mathf.Lerp(-half,half,i/(float)panes);
+                mesh.Beam(new Vector3(x,CinemaFloor+sill,z),new Vector3(x,Top(x)+.1f,z),.055f,F.Wood);
+            }
+            var cap=new List<Vector3>();
+            for(int i=0;i<=40;i++){float x=Mathf.Lerp(-half,half,i/40f);cap.Add(new Vector3(x,Top(x),z));}
+            mesh.Tube(cap,.06f,F.Wood,8);
         }
         static readonly Vector3 ProjectorLens = new(-1.35f,5.49f,5.75f);
         static readonly Vector3 ProjectionSurface = new(0,3.85f,10.91f);
