@@ -18,6 +18,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static int stage;
         static float settled;
         static float? sankAt;
+        static string lastSink = "";
         static string Mode => SessionState.GetInt(Index, 0) == 0 ? "teamtickets" : "survival";
         public static void Run()
         {
@@ -52,7 +53,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 if (!SessionState.GetBool(Pending, false)) return;
                 if (state == PlayModeStateChange.EnteredPlayMode)
                 {
-                    stage = 0; settled = 0; sankAt = null;
+                    stage = 0; settled = 0; sankAt = null; lastSink = "";
                     deadline = EditorApplication.timeSinceStartup + 150;
                     EditorApplication.update += Tick;
                 }
@@ -165,7 +166,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         sankAt = Time.time;
                         File.AppendAllText(Report, "PASS " + Mode + ": player on the carpet starts sinking after " + (Time.time - settled).ToString("F1") + " s\n");
                     }
-                    if (me != null && !me.alive && sankAt.HasValue)
+                    if (me != null && (!me.alive || me.dying) && sankAt.HasValue)
                     {
                         Check(Time.time - sankAt.Value >= mode.Rules.sinkGraceSeconds - .6f, "carpet kills only after the sink grace");
                         File.AppendAllText(Report, "PASS " + Mode + ": carpet eliminated the player " + (Time.time - sankAt.Value).ToString("F1") + " s after sinking began\n");
@@ -173,13 +174,18 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         SessionState.SetBool(Pass, true);
                         EditorApplication.ExitPlaymode();
                     }
-                    else if (Time.time - settled > mode.Rules.sinkGraceSeconds + 6)
-                        throw new Exception(sankAt.HasValue ? "player sank but was not eliminated" : "player on the carpet never started sinking");
+                    else if (me != null && me.sinking)
+                        lastSink = "sinking " + me.sinkProgress.ToString("F2") + " at y " + session.Player.transform.position.y.ToString("F2") + " (t " + (Time.time - settled).ToString("F1") + ")";
+                    else if (sankAt.HasValue && lastSink.Length > 0 && !lastSink.StartsWith("stopped"))
+                        lastSink = "stopped after " + lastSink + "; now y " + session.Player.transform.position.y.ToString("F2");
+                    if (stage == 2 && Time.time - settled > mode.Rules.sinkGraceSeconds + 6)
+                        throw new Exception((sankAt.HasValue ? "player sank but was not eliminated: " : "player on the carpet never started sinking: ") + lastSink +
+                            " alive " + me?.alive + " dying " + me?.dying);
                 }
                 else if (stage == 3)
                 {
                     var me = mode.Frame.players.FirstOrDefault(p => p.id == mode.LocalActorId);
-                    if (me != null && !me.alive)
+                    if (me != null && (!me.alive || me.dying))
                     {
                         Check(!sankAt.HasValue, "wood floor kills without a sinking phase");
                         File.AppendAllText(Report, "PASS " + Mode + ": wood floor eliminated the player " + (Time.time - settled).ToString("F1") + " s after touching it\n");
