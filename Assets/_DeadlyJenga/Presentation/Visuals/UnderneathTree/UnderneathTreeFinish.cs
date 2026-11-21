@@ -127,6 +127,7 @@ namespace DeadlyJenga.CandyArt
                 RefreshWorldArt();
             AnimateFire();
             AnimateCarpet();
+            AnimateDog();
 
             bool viewUnderFloor = Services.Session?.ActiveCamera is Camera view && view.transform.position.y < -1.7f;
             bool blackout = false;

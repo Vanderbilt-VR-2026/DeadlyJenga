@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 namespace DeadlyJenga.CandyArt
 {
     // Second round of lived-in detail: a proper upright piano with Silent Night on the stand,
-    // a pet bed by the fire, family photos over the sofa, sconces by the fireplace, colored
+    // family photos over the sofa, sconces by the fireplace, colored
     // lights strung along the ceiling edge, greenery on the beams and paper stars hanging down.
     public sealed partial class UnderneathTreeFinish
     {
@@ -14,7 +14,6 @@ namespace DeadlyJenga.CandyArt
             // Piano against the west wall's north end, facing the room; the clock beside it.
             BuildPiano(new Vector3(RoomWest + 23f, 0f, 0f), 90f);
             BuildGrandfatherClock(new Vector3(RoomWest + 55f, 0f, RoomNorth - 15f), 180f);
-            PetBed(new Vector3(RoomWest + 88f, 0f, HearthZ - 150f));
             FamilyPhotos();
             Sconces();
             CeilingLights();
@@ -92,22 +91,6 @@ namespace DeadlyJenga.CandyArt
             Under(Primitive("Nutcracker belt", PrimitiveType.Cylinder, at + new Vector3(0f, 6.2f, 0f) * size, new Vector3(3.5f, .4f, 3.5f) * size, gold), parent);
             Under(Primitive("Nutcracker head", PrimitiveType.Sphere, at + new Vector3(0f, 12.5f, 0f) * size, new Vector3(2.8f, 3f, 2.8f) * size, skin), parent);
             Under(Primitive("Nutcracker hat", PrimitiveType.Cylinder, at + new Vector3(0f, 16f, 0f) * size, new Vector3(3f, 2.4f, 3f) * size, black), parent);
-        }
-
-        // ------------------------------------------------------------------ pet bed
-        void PetBed(Vector3 at)
-        {
-            var plaid = Fabric("Plaid rocker cushion", "Cranberry Rug Weave", new Color(1.2f, .8f, .8f), new Vector2(2f, 2f), .1f, .6f);
-            var fleece = Surface("Ivory fleece", "Woven", new Color(.84f, .75f, .63f), .25f, new Vector2(10, 8), 0f, 1f);
-            var toy = Surface("Chew toy", null, new Color(.20f, .55f, .85f), .5f, Vector2.one);
-            var red = Surface("Red knit stocking", "Woven", new Color(.72f, .03f, .05f), .2f, new Vector2(2, 3), 0f, .7f);
-            Primitive("Pet bed rim", PrimitiveType.Cylinder, at + Vector3.up * 5f, new Vector3(40f, 5f, 32f), plaid);
-            Primitive("Pet bed cushion", PrimitiveType.Cylinder, at + Vector3.up * 8f, new Vector3(32f, 2.5f, 25f), fleece);
-            // A chew bone and a little stocking of its own.
-            Box("Chew bone", at + new Vector3(4f, 11f, -2f), new Vector3(9f, 1.6f, 2.4f), toy).localRotation = Quaternion.Euler(0f, 30f, 0f);
-            foreach (int end in new[] { -1, 1 })
-                Primitive("Chew bone end", PrimitiveType.Sphere, at + new Vector3(4f + end * 3.9f, 11f, -2f + end * 2.2f), Vector3.one * 2.6f, toy);
-            RoundedDetail("Pet stocking", at + new Vector3(-6f, 11f, 5f), new Vector3(10f, 2.4f, 4.5f), .4f, red).localRotation = Quaternion.Euler(0f, -20f, 0f);
         }
 
         // ------------------------------------------------------------------ walls
