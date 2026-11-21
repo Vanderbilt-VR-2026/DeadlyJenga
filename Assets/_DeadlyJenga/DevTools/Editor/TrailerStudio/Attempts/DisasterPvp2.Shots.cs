@@ -146,15 +146,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 int at = Tf(s, 266);
                 Vector3 head = HeadAt(stage, "hero", at, plan);
                 Vector3 toward = Flat(plan.planetFrom), right = Vector3.Cross(Vector3.up, toward).normalized;
-                Vector3 spot = head + toward * 1.5f - up * .3f;
-                foreach (float turn in new[] { 35f, 25f, 45f, 15f, 55f })
+                // Rehearsal 2: 35 deg read as the back of a faceless head. 50 deg shows the head's shape tipping up.
+                Vector3 spot = head + toward * 1.6f - up * .25f;
+                foreach (float turn in new[] { 50f, 40f, 60f, 30f })
                 {
                     Vector3 dir = (toward * Mathf.Cos(turn * Mathf.Deg2Rad) - right * Mathf.Sin(turn * Mathf.Deg2Rad)).normalized;
-                    Vector3 p = head + dir * 1.5f - up * .3f;
+                    Vector3 p = head + dir * 1.6f - up * .25f;
                     if (Clear(p, .25f) && Sees(p, head)) { spot = p; break; }
                 }
-                var c = ShotCam(s, 75);
-                c.keys[0].aperture = 5.6f; c.keys[0].focus = 1.5f;
+                var c = ShotCam(s, 80);
+                c.keys[0].aperture = 8f; c.keys[0].focus = 1.6f;
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(spot), "head:hero", new Vector3(0, -.1f, 0));
                 StudioMoves.PushIn(c, c.start, c.end, stage.ToStage(head), .15f);
                 c.aims[0].blend = .35f;
@@ -256,7 +257,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static void GuardLow(StudioStage stage, Plan plan, Events e, List<Shot> shots)
         {
             var list = stage.set.overrides; int added = 0;
-            var windows = shots.Where(s => s.id == "S02" || s.id == "S05" || s.id == "S07" || s.id == "S08")
+            var windows = shots.Where(s => s.id == "S02" || s.id == "S05" || s.id == "S08")
                 .Select(s => (a: TapeFrame(s.cutIn) + s.shift - Handle - 4, b: TapeFrame(s.cutOut) + s.shift + Handle + 4)).ToList();
             var punches = new List<int>(); if (e.punch1 >= 0) punches.Add(e.punch1); if (e.punch2 >= 0) punches.Add(e.punch2);
             foreach (var (a, b) in windows)

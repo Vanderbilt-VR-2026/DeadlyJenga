@@ -196,14 +196,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 if (plan.wideRock == Vector3.zero) Note("WARNING no clear spot for the wide's rock");
             }
-            // K2: between the fox and the penguin, coming in from the top of the rock camera's frame.
+            // K2: rehearsal 2 dropped the rock steeply between them and it only hurt them. A rock throws whoever it ploughs into,
+            // so (as disaster-pvp-1 did) it comes in low (28 deg) along block 2 from the penguin's end and lands 1.2 m short of
+            // him: it runs into the penguin, then the fox. Across the rock camera's frame, never toward its lens.
             {
-                Vector3 mid = Vector3.Lerp(plan.at["fox"], plan.at["penguin"], .5f);
-                Vector3 rf = Flat(mid - plan.rockCam), right = Vector3.Cross(Vector3.up, rf).normalized;
-                // Rehearsal 1: with a component toward the lens the rock filled the rock camera; now it falls across the frame.
-                Vector3 from = (up * .85f + right * .52f).normalized;
-                if (!SafeForHero(mid, from) || !PathClear(mid, from)) from = (up * .85f - right * .52f).normalized;
-                plan.rock2 = mid; plan.rocks.Add((mid + up * .2f, from, Rock2Frame, "K2 fox and penguin", RockDistance));
+                Vector3 pen = plan.at["penguin"], travel = Flat(plan.at["fox"] - pen);
+                Vector3 target = pen - travel * .6f;
+                foreach (float k in new[] { 1.2f, 1.0f, .8f, .6f })
+                {
+                    var p = pen - travel * k;
+                    if (StudioStage.SurfaceBelow(p + up * .3f, out var hit) && Mathf.Abs(hit.y - pen.y) < .15f) { target = p; break; }
+                }
+                Vector3 from = (-travel * Mathf.Cos(28 * Mathf.Deg2Rad) + up * Mathf.Sin(28 * Mathf.Deg2Rad)).normalized;
+                if (!SafeForHero(target, from) || !PathClear(target, from)) { from = (-travel * Mathf.Cos(40 * Mathf.Deg2Rad) + up * Mathf.Sin(40 * Mathf.Deg2Rad)).normalized; Note("K2 rock: 28 deg path not clear, using 40 deg"); }
+                plan.rock2 = target; plan.rocks.Add((target + up * .2f, from, Rock2Frame, "K2 into the penguin, then the fox", RockDistance));
             }
             // Mayhem in the background: rocks into the levels below, far from the hero.
             {
