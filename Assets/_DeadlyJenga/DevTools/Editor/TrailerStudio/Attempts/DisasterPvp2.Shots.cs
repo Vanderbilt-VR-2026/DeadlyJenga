@@ -219,7 +219,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 // Critic round 1: the first-person view dropped to the floor after the hit. The eyes stay on the gorilla's fall.
                 Add("hero", "lookAt", e.punch1 + 1, e.punch1 + 22, point: stage.ToStage(HeadAt(stage, "rival", e.punch1 + 14, plan)), blendIn: .12f, blendOut: .2f);
                 Add("hero", "lookAt", e.punch1 + 18, e.punch1 + 48, point: stage.ToStage(HeadAt(stage, "rival", e.punch1 + 34, plan)), blendIn: .25f, blendOut: .4f);
-                Add("hero", "reaction", e.punch1 + 18, e.punch1 + 42, "cheer", blendIn: .15f, blendOut: .3f);
+                // No cheer: in his own eyes it raised the glove over the lens (final 2). The lowered guard stays on.
                 Add("rival", "reaction", e.punch1 + 1, e.punch1 + 70, "scream", blendIn: .05f);
             }
             if (e.punch2 >= 0)
@@ -266,7 +266,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var list = stage.set.overrides; int added = 0;
             var windows = shots.Where(s => s.id == "S02" || s.id == "S05" || s.id == "S08")
-                .Select(s => (a: TapeFrame(s.cutIn) + s.shift - (s.id == "S08" ? 6 : 14), b: TapeFrame(s.cutOut) + s.shift + Handle)).ToList();   // S08 follows the MS of the hero: a short pre-roll only   // lowered before the cut-in (round 1: glove at the lens on every POV cut)
+                .Select(s => (a: TapeFrame(s.cutIn) + s.shift - (s.id == "S08" ? 3 : 14), b: TapeFrame(s.cutOut) + s.shift + Handle)).ToList();   // S08 follows the MS of the hero: a short pre-roll only   // lowered before the cut-in (round 1: glove at the lens on every POV cut)
             var punches = new List<int>(); if (e.punch1 >= 0) punches.Add(e.punch1); if (e.punch2 >= 0) punches.Add(e.punch2);
             foreach (var (a, b) in windows)
                 for (int tf = a; tf < b; tf += 5)
