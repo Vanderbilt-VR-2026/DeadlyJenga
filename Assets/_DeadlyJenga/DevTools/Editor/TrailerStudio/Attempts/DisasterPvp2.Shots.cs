@@ -229,8 +229,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // glances past the hero at the dragon early, the dragon fixes on the hero a little later; both hold through S01.
             var opening = shots.First(s => s.id == "S01");
             int o0 = TapeFrame(opening.cutIn) + opening.shift;
+            // (Final 1 measured the dragon at 30, the gorilla at 34 and the hero at 35: the dragon now fixes on the hero
+            // early and the hero glances up at a streaking rock at about 26, so the starts sit 8 frames apart or more.)
             Add("rival", "lookAt", o0 + 22, o0 + 56, target: "actor:dragon", blendIn: .35f, blendOut: .4f);
-            Add("dragon", "lookAt", o0 + 28, o0 + 60, target: "actor:hero", blendIn: .4f, blendOut: .4f);
+            Add("dragon", "lookAt", o0 + 17, o0 + 60, target: "actor:hero", blendIn: .4f, blendOut: .4f);
+            Add("hero", "lookAt", o0 + 25, o0 + 44, point: stage.ToStage(plan.arena.C + Vector3.up * 18 - plan.arena.a * 26 + plan.arena.s * 6), blendIn: .35f, blendOut: .35f);
             void AddPunch(string victim, int contact)
             {
                 Vector3 aim = HeadAt(stage, victim, contact, plan) - Vector3.up * .12f;
@@ -279,7 +282,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 // The rock runs into the penguin (thrown); the fox, 3 m away and watching him, flinches, then looks where he went.
                 Add("penguin", "reaction", e.rock2 + 1, e.rock2 + 50, "scream", blendIn: .05f);
                 Add("fox", "pose", e.rock2 + 2, e.rock2 + 22, blendIn: .08f, blendOut: .35f, flinch: .9f);
-                Add("fox", "lookAt", e.rock2 + 6, e.rock2 + 48, point: stage.ToStage(HeadAt(stage, "penguin", e.rock2 + 18, plan)), blendIn: .75f, blendOut: .5f);   // round 1: 634 deg/s
+                // The fox's recorded head flips 108 degrees at rock2 + 17 (its drive's neck limit). He holds his eyes on the
+                // impact through it, then turns slowly to where the penguin went (round 1: 634 deg/s; final 1: 3311).
+                Add("fox", "lookAt", e.rock2 + 1, e.rock2 + 30, point: stage.ToStage(plan.rock2), blendIn: .25f, blendOut: .3f);
+                Add("fox", "lookAt", e.rock2 + 24, e.rock2 + 60, point: stage.ToStage(HeadAt(stage, "penguin", e.rock2 + 18, plan)), blendIn: .7f, blendOut: .5f);
                 // Witnesses, staggered by attention: the panda was looking elsewhere, close (startle 9-15 f late).
                 Add("panda", "pose", e.rock2 + 11, e.rock2 + 30, blendIn: .1f, blendOut: .35f, flinch: .8f);
                 Add("panda", "lookAt", e.rock2 + 13, e.rock2 + 48, target: "actor:fox", blendIn: .25f, blendOut: .45f);
@@ -320,7 +326,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (var (a, b) in windows)
                 for (int tf = a; tf < b; tf += 5)
                 {
-                    if (punches.Any(p => tf > p - 14 && tf < p + 9)) continue;
+                    if (punches.Any(p => tf > p - 14 && tf < p + 6)) continue;
                     var pose = Shown(stage, "hero", tf);
                     if (pose == null || !pose.visible) continue;
                     Vector3 fwd = Flat(pose.body.headRotation * Vector3.forward), right = Vector3.Cross(Vector3.up, fwd).normalized;
