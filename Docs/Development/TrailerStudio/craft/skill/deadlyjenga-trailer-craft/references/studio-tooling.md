@@ -108,7 +108,7 @@ metrics and the hand timeline in one job), and read `metrics.json` against the p
 | `tape_in`, shot length, `speed` | `start`, `end` (tape seconds), `speeds` (`StudioSpeedMark`) | convert from frames |
 | `camera.move` static, push_in, pull_out, pan, tilt, truck, crane | `keys` (`StudioCameraKey`: time, position, euler, focal, focus, aperture, shake, ease); `spline`; `constantSpeed`; pilot: `StudioMoves` helpers | positions are metres from the stage spot |
 | `camera.ease` | key `ease`: 0 straight, 1 smooth (in_out), 2 slow start (in), 3 slow end (out), 4 hold then cut | `none` = 0 on a static shot |
-| follow, ride, orbit, dolly_zoom, pov | `behavior`: `follow`, `ride`, `orbit`, `dollyZoom`, `firstPerson`; `subject`, `lag`, `aimOffset` | set `aimOffset` y to about 0.85 m (survivor eyes), not the default 1.1 m. `pov`: **first-person camera fix in progress, see commit note** (today `firstPerson` is a raw head-locked view) |
+| follow, ride, orbit, dolly_zoom, pov | `behavior`: `follow`, `ride`, `orbit`, `dollyZoom`, `firstPerson`; `subject`, `lag`, `aimOffset` | set `aimOffset` y to about 0.85 m (survivor eyes), not the default 1.1 m. `pov`: `behavior = "firstPerson"`, `subject` = the survivor's mark; keys only set start/end; `fpSmoothMove` 0.25, `fpSmoothTurn` 0.45, `fpLevel` true, `fpFieldOfView` 62, `fpOwnBody` true are the defaults (own arms, hands and weapon drawn for that lens only, head/hair/hat/upper torso shadow-only, no depth of field, near clip 4 cm); all off = old raw head lock. Shoot-tab inspector shows them. Limits and how-to: `camera.md` 1c |
 | handheld, impact shake | `noise`: `subtle`, `walking`, `running`, `impact`; `noiseStrength`; per-key `shake`; pilot `StudioMoves.Shake` (rotation only) | check angles in the metrics |
 | `focal_mm`, `aperture`, `focus` | key `focal`, `aperture`, `focus`; `focusOnSubject` | |
 | sensor | `sensorHeight`, default **18.66 mm** | set `sensorHeight = 24` on every track |
@@ -140,7 +140,9 @@ metrics and the hand timeline in one job), and read `metrics.json` against the p
 
 0. For agents acting against the tape: the gaps in `record-and-layer.md` section 6 (a `move` cue, a
    `hit` trigger for overlays, a Studio take report, `point:` targets for overlays, a `hide` overlay,
-   keeping chosen actors live while performing), and the first-person fix in progress.
+   keeping chosen actors live while performing). First person is done (`490c0bbb`, see `camera.md`
+   1c); still missing there: a look-at that turns the body when the neck limit is reached, and a
+   first-person own-body view for the giant hand.
 1. For mayhem: an unarmed **punch / shove cue** for a chosen attacker and victim; a tsunami cue that can push
    survivors; real eliminations on the stage (deaths on, as an option); a chosen
    side for every disaster, not only the tornado.

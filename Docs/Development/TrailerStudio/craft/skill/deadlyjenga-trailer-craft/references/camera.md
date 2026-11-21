@@ -95,13 +95,37 @@ POV pairs. Hold 1-2 s by default; inside a barrage a POV may be 0.5-1.0 s if the
 ≥ 1 s earlier. A survivor POV sits at eye height 0.85 m. A first-person hit (the glove filling the lower
 frame, the victim flying off) is a strong "you are there" beat; smooth it.
 
-> **First-person camera fix in progress, see commit note.** Today the Studio's `firstPerson` behavior
-> is a raw head-locked view (`StudioCameras.cs:186-188`: camera at the recorded head, head rotation,
-> no smoothing). Another agent is adding smoothing, the actor's own hands and weapon in view and the
-> own head hidden, and will write the how-to here and in `studio-tooling.md`. Until then plan every
-> POV with `camera.pov_of`, `pov_smoothing`, a `needs: first_person_camera_with_hands, verify` item and
-> a close over-the-shoulder fallback (0.3-0.5 m behind and 0.1-0.2 m above the head). When first
-> person is required is decided by section 1d and SKILL.md rule 18, not by this note.
+**Setting up a first-person shot (Studio, since commit `490c0bbb`, branch
+`claude/trailer-hand-reveal-pilot`).** A `StudioCameraTrack` with `behavior = "firstPerson"` and
+`subject` = the survivor's mark id. One key is enough: it only sets `start`/`end`; key positions,
+`aimOffset` and `lag` are ignored, and the eye is the recorded head (the game records the player's
+camera there; bots without a camera get feet + 1.6 x scale, about 0.85-0.9 m, looking level). Fields,
+with defaults that need no change for a normal POV:
+- `fpSmoothMove` 0.25 s, `fpSmoothTurn` 0.45 s: a centred smoothing window (the tape can look ahead),
+  so falls and knockbacks do not leave the eye behind; it never strays more than 12 cm or 30° from the
+  head. Raise `fpSmoothTurn` to 0.6 for a calmer look-around, lower both to 0.1 for a violent hit.
+- `fpLevel` true: head roll removed. (Recorded heads in the committed takes had no roll anyway.)
+- `fpFieldOfView` 62: vertical degrees; it replaces the keys' focal length (0 = use the focal length).
+- `fpOwnBody` true: the shot's camera is lent to the played-back body as its owner camera, so the
+  game's own first-person body is drawn for that lens only: own arms, hands and the held weapon
+  (glove, blaster...) are seen exactly where the tape put them; head, hair, hats and the upper torso are
+  shadow-only. Every other camera of the take still sees the whole body. Also: no depth of field
+  (aperture forced to f/16 or more), near clip 4 cm. Hand-tracked fingers come from the tape too.
+All of them 0/false = the old raw head lock. `noise` and `shakes` work as on any camera; set
+`motionBlur` 0 (the game has none, and blurred hands 30 cm from the lens smear).
+
+What it shows and its limits (proof: `Docs/Development/TrailerStudio/attempts/first-person-fix/` in
+the central checkout, disaster-pvp-1 take). The hero's glove punch reads well: guard up, the arm and
+glove travel to the rival's face, the rival flies off. Limits: (1) the head can only look where the
+recorded head or a `lookAt` layer points it, and a `lookAt` stops at the neck's 85° limit, so a rock
+coming from behind the body is not seen; check the actor's facing before planning "looks up at X",
+and check that no block fills the view. (2) Hands sit where the tape put them: a bot's carry pose puts
+the glove large in the lower right (that is also how the game draws it); `reach` layers stretch the
+arm, which reads as a punch but looks rubbery at a full stretch. `reaction` layers (scream, cower) raise
+the hands into the top of the frame. (3) Only survivor tracks get the own-body view; a `firstPerson`
+on the hand track is smoothed but has no body to hide. (4) Live (performed-now) actors keep their own
+player's view; the own-body view applies to played-back takes and renders. When first person is
+required is decided by section 1d and SKILL.md rule 18.
 
 ### 1d. Close on every key event (hard lints L47, L48)
 
@@ -184,7 +208,7 @@ opener, the reveal, the payoff and the title.
 | `whip` | energetic transition | 90-180° in 6-12 frames at 30 fps; cut hidden mid-blur | hard S curve | too slow; no blur |
 | `crash_zoom` | comic or shock emphasis | FOV narrows 2-4 x in 0.15-0.3 s, 3-5 % overshoot, settle 0.2 s | fast ease-out | combined with camera motion |
 | `dolly_zoom` | the ground drops away | keep `d x tan(FOV/2)` constant; FOV change 20-40° over 1.5-3 s | in_out | subject size pulses |
-| `pov` | the survivor's or hand player's eyes | smoothed position 0.2-0.4 s, rotation 0.3-0.6 s; vFOV 55-70°; eye height 0.85 m for survivors; hands high in frame; hold 1-2 s | smoothed | raw head-locked jitter (never) |
+| `pov` | the survivor's or hand player's eyes | Studio `firstPerson` with defaults: `fpSmoothMove` 0.25 s, `fpSmoothTurn` 0.45 s, `fpLevel` on, `fpFieldOfView` 62°, `fpOwnBody` on (own hands and weapon, no head in the lens); eye at the recorded head (about 0.85 m on survivors); hold 1-2 s | smoothed | raw head-locked jitter (all fp settings off: never) |
 | `fall_with` | ride a fall | start 1.1-2.2 m beside and slightly below the survivor; accelerate at 80-95 % of g so the survivor drifts up in frame; 1-2 s | gravity ease-in | constant speed (subject leaves frame); passing through blocks |
 
 Shake on impacts: rotation only, amplitude = trauma² x max angle, decaying over 0.3-1.5 s; max
