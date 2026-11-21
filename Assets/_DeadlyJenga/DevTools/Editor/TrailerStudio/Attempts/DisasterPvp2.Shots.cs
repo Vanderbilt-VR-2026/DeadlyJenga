@@ -233,7 +233,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // early and the hero glances up at a streaking rock at about 26, so the starts sit 8 frames apart or more.)
             Add("rival", "lookAt", o0 + 22, o0 + 56, target: "actor:dragon", blendIn: .35f, blendOut: .4f);
             Add("dragon", "lookAt", o0 + 17, o0 + 60, target: "actor:hero", blendIn: .4f, blendOut: .4f);
-            Add("hero", "lookAt", o0 + 25, o0 + 44, point: stage.ToStage(plan.arena.C + Vector3.up * 18 - plan.arena.a * 26 + plan.arena.s * 6), blendIn: .35f, blendOut: .35f);
+            Add("hero", "lookAt", o0 + 25, o0 + 44, point: stage.ToStage(plan.arena.C + Vector3.up * 14 + plan.arena.a * 22 + plan.arena.s * 5), blendIn: .35f, blendOut: .35f);   // the sky beyond the gorilla, in front of him (a point behind him spun his head the long way)
             void AddPunch(string victim, int contact)
             {
                 Vector3 aim = HeadAt(stage, victim, contact, plan) - Vector3.up * .12f;
@@ -284,8 +284,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Add("fox", "pose", e.rock2 + 2, e.rock2 + 22, blendIn: .08f, blendOut: .35f, flinch: .9f);
                 // The fox's recorded head flips 108 degrees at rock2 + 17 (its drive's neck limit). He holds his eyes on the
                 // impact through it, then turns slowly to where the penguin went (round 1: 634 deg/s; final 1: 3311).
-                Add("fox", "lookAt", e.rock2 + 1, e.rock2 + 30, point: stage.ToStage(plan.rock2), blendIn: .25f, blendOut: .3f);
-                Add("fox", "lookAt", e.rock2 + 24, e.rock2 + 60, point: stage.ToStage(HeadAt(stage, "penguin", e.rock2 + 18, plan)), blendIn: .7f, blendOut: .5f);
+                // A chain of looks that overlap by a second, so his recorded head (which flips at rock2 + 17 and again at
+                // rock2 + 53) never shows through until S08: the impact, where the penguin went, the hero, the sky.
+                Add("fox", "lookAt", e.rock2 + 1, e.rock2 + 62, point: stage.ToStage(plan.rock2), blendIn: .25f, blendOut: .3f);
+                Add("fox", "lookAt", e.rock2 + 24, e.rock2 + 100, point: stage.ToStage(HeadAt(stage, "penguin", e.rock2 + 18, plan)), blendIn: .7f, blendOut: .5f);
+                Add("fox", "lookAt", e.rock2 + 66, e.rock2 + 128, target: "actor:hero", blendIn: .7f, blendOut: .5f);
                 // Witnesses, staggered by attention: the panda was looking elsewhere, close (startle 9-15 f late).
                 Add("panda", "pose", e.rock2 + 11, e.rock2 + 30, blendIn: .1f, blendOut: .35f, flinch: .8f);
                 Add("panda", "lookAt", e.rock2 + 13, e.rock2 + 48, target: "actor:fox", blendIn: .25f, blendOut: .45f);
