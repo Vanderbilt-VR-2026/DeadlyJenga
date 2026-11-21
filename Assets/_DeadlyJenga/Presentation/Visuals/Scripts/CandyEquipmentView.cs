@@ -170,8 +170,9 @@ namespace DeadlyJenga.Presentation
         {
             if (!vr) return "V: take off / land · WASD: fly\nQ / E: down / up · Left click: fire";
             if (!left && !right) return "Controller needed for flight and take off / land";
-            string hint = "Flight stick: fly · Trigger: rise · Grip: descend\nLeft Grip+Y / Right B: take off / land";
-            if (left && right || otherTracked) hint += "\nOther tracked hand: trigger or pinch to fire";
+            string hint = "Flight stick: fly · Dominant grip: rise · Offhand grip: descend\nLeft Grip+Y / Right B: take off / land";
+            hint += "\nEither trigger fires that palm";
+            if (otherTracked) hint += " · Pinch with tracked hand to fire";
             return hint;
         }
 

@@ -7,8 +7,9 @@ using UnityEngine;
 
 namespace DeadlyJenga.Modes
 {
-    public sealed partial class MatchModeRuntime : IEquipmentRuntime, IPoweredEquipmentRuntime, IDemoEquipmentControls
+    public sealed partial class MatchModeRuntime : IEquipmentRuntime, IPairedEquipmentRuntime, IPoweredEquipmentRuntime, IDemoEquipmentControls
     {
+        readonly HashSet<string> holsteredDaggers = new HashSet<string>();
         readonly Dictionary<string,bool> equipmentHands=new Dictionary<string,bool>();
         readonly Dictionary<string,EquipmentState> equipment=new Dictionary<string,EquipmentState>();
         readonly List<EquipmentPickup> pickups=new List<EquipmentPickup>();
@@ -19,7 +20,7 @@ namespace DeadlyJenga.Modes
         readonly List<KeyValuePair<string,EquipmentState>> equipmentTick=new List<KeyValuePair<string,EquipmentState>>();
         int nextPickup;bool stationsSeeded;
         [Serializable] public sealed class EquipmentCommand
-        {public string action;public int pickup;public bool swap,drawn,left,shotgun,thrust,held;public Vector3 position,forward;public int dropRequest;}
+        {public string action;public int pickup;public bool swap,drawn,left,shotgun,thrust,held,handSpecific;public Vector3 position,forward;public int dropRequest;}
 
         bool AllowsSurvivalPickup(EquipmentKind kind)=>Rules.mode!=GameModeKind.Survival||
             kind is EquipmentKind.Speed or EquipmentKind.Jump or EquipmentKind.FlyingHand;
@@ -33,7 +34,7 @@ namespace DeadlyJenga.Modes
             if((state==null||state.kind is EquipmentKind.None or EquipmentKind.Speed or EquipmentKind.Jump)&&AllowsSurvivalPickup(EquipmentKind.Dagger)&&Rules.defaultDagger&&Rules.punchEnabled&&simulation?.Phase==RoundPhase.Playing)
             {
                 var p=simulation.Find(id);if(p!=null&&p.frame.alive&&!p.frame.dying&&p.frame.role!="hand"&&p.frame.role!="spectator"&&FindActor(id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true)
-                    return new EquipmentState{actor=id,kind=EquipmentKind.Dagger,activePower=state?.kind??EquipmentKind.None,remaining=state?.remaining??20,drawn=true,builtIn=true,
+                    return new EquipmentState{actor=id,kind=EquipmentKind.Dagger,activePower=state?.kind??EquipmentKind.None,remaining=state?.remaining??20,drawn=!holsteredDaggers.Contains(id),builtIn=true,
                         embeddedVictim=state?.embeddedVictim,embeddedPoint=state?.embeddedPoint??Vector3.zero,embedRemaining=state?.embedRemaining??0,
                         leftHanded=equipmentHands.TryGetValue(id,out bool left)?left:FindActor(id)?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded??state?.leftHanded??false};
             }
@@ -48,6 +49,21 @@ namespace DeadlyJenga.Modes
         public bool RequestPickup(int id,bool swap)=>SendEquipment(new EquipmentCommand{action="pickup",pickup=id,swap=swap});
         public bool RequestEquipment(bool drawn,bool leftHanded,bool shotgun)=>SendEquipment(new EquipmentCommand{action="state",drawn=drawn,left=leftHanded,shotgun=shotgun});
         public bool RequestEquipmentAttack(Pose muzzle)=>SendEquipment(new EquipmentCommand{action="attack",position=muzzle.position,forward=muzzle.rotation*Vector3.forward});
+        public bool RequestHandAttack(Pose muzzle, bool left) => SendEquipment(new EquipmentCommand
+        {
+            action = "attack", position = muzzle.position, forward = muzzle.rotation * Vector3.forward,
+            left = left, handSpecific = true
+        });
+
+        readonly Dictionary<(string actor, EquipmentKind kind, bool left), float> handCooldowns = new();
+        bool HandShotCoolingDown(string id, EquipmentState state, EquipmentCommand command) =>
+            command.handSpecific && handCooldowns.TryGetValue((id, state.kind, command.left), out float ready) && Time.time < ready;
+
+        void SetShotCooldown(string id, EquipmentState state, EquipmentCommand command, float cooldown)
+        {
+            if (command.handSpecific) handCooldowns[(id, state.kind, command.left)] = Time.time + cooldown;
+            else weaponCooldown[id] = Time.time + cooldown;
+        }
         bool EquipmentCommandFor(string id,EquipmentCommand command)
         {
             if(command?.action=="drop"&&!BeginManualDropRequest(id,command.dropRequest))return false;
@@ -65,15 +81,19 @@ namespace DeadlyJenga.Modes
             if(command.action=="state")
             {
                 equipmentHands[id]=command.left;
-                if(state.builtIn){if(!command.drawn)return false;if(equipment.TryGetValue(id,out var power))power.leftHanded=command.left;PublishEquipment();return true;}
                 if(command.drawn&&(state.kind<EquipmentKind.Blaster||simulation.CarriesFlag(id)))return false;
-                var mover=actor.gameObject.GetComponent<IMovementState>();
-                if(command.drawn&&mover!=null&&(mover.Climbing||mover.Vaulting))return false;
+                if (command.drawn && !CanUseEquipmentDuringTraversal(actor, state.kind, command.left)) return false;
                 bool dual=EquipmentSpecifications.Get(state.kind).modeSwitch;
                 bool drawChanged=state.drawn!=command.drawn,modeChanged=dual&&state.shotgun!=command.shotgun;
-                if(state.kind==EquipmentKind.Dagger&&!command.drawn)return false;
                 StopArsenalTrigger(id);state.triggerHeld=false;state.charge=0;
-                state.drawn=command.drawn;if(!state.drawn)state.thrust=false;state.leftHanded=command.left;state.shotgun=dual&&command.shotgun;equipment[id]=state;
+                state.drawn=command.drawn;if(!state.drawn)state.thrust=false;state.leftHanded=command.left;state.shotgun=dual&&command.shotgun;
+                if (state.builtIn)
+                {
+                    if (state.drawn) holsteredDaggers.Remove(id);
+                    else holsteredDaggers.Add(id);
+                    if (equipment.TryGetValue(id, out var underlying)) underlying.leftHanded = command.left;
+                }
+                else equipment[id]=state;
                 if(modeChanged)weaponCooldown[id]=Mathf.Max(Time.time+.4f,weaponCooldown.TryGetValue(id,out float ready)?ready:0);
                 if(drawChanged)AnnounceEquipment(id,state,state.drawn?EquipmentAction.Draw:EquipmentAction.Holster,actor.ViewPose.position);
                 if(modeChanged)AnnounceEquipment(id,state,EquipmentAction.ModeSwitch,actor.ViewPose.position);
@@ -141,6 +161,7 @@ namespace DeadlyJenga.Modes
                 actor=id,kind=pickup.kind,remaining=pickup.remaining,rounds=Mathf.Max(0,pickup.rounds),
                 magazineInitialized=pickup.rounds>=0,leftHanded=previous.leftHanded,drawn=drawOnPickup
             };
+            if (pickup.kind >= EquipmentKind.Blaster) holsteredDaggers.Remove(id);
             if(drawOnPickup)
                 weaponCooldown[id]=Mathf.Max(Time.time+.48f,weaponCooldown.TryGetValue(id,out float ready)?ready:0);
             if(MysteryActive&&pickup.kind==EquipmentKind.SheriffHammer){mystery.RecoverDroppedSheriff(id);equipment[id].roleIssued=true;}
@@ -211,6 +232,7 @@ namespace DeadlyJenga.Modes
             var movement=actor.gameObject.GetComponent<IMovementState>();
             var state=new EquipmentState{actor=id,kind=kind,remaining=20,leftHanded=actor.gameObject.GetComponent<IBlasterControls>()?.LeftHanded??previous.leftHanded,shotgun=previous.kind==kind&&previous.shotgun,
                 drawn=kind>=EquipmentKind.Blaster&&!simulation.CarriesFlag(id)&&(movement==null||!movement.Climbing&&!movement.Vaulting)};
+            if (kind >= EquipmentKind.Blaster) holsteredDaggers.Remove(id);
             StopArsenalTrigger(id);equipment[id]=state;weaponCooldown.Remove(id);thrustSeen.Remove(id);sheriffDrops.Remove(id);
             AnnounceEquipment(id,state,previous.kind==EquipmentKind.None?EquipmentAction.Pickup:EquipmentAction.Swap,actor.ViewPose.position);
             if(publish)PublishEquipment();return true;
@@ -277,28 +299,44 @@ namespace DeadlyJenga.Modes
             frame.pickups=pickups.Select(x=>new EquipmentPickup{id=x.id,rounds=x.rounds,kind=x.kind,position=x.position,remaining=x.remaining,availableIn=x.availableIn,station=x.station,randomSpawn=x.randomSpawn,supportBlock=x.supportBlock,supportLocal=x.supportLocal,expiresIn=x.expiresIn}).ToArray();
             PublishEquipmentAnnouncements();WritePowerupFrame();ruleCache.Clear();
         }
-        void ResetEquipment(){ResetArsenal();loadoutAlive.Clear();ResetRandomPickups();ResetEquipmentAnnouncements();equipment.Clear();pickups.Clear();authoredPickups.Clear();weaponCooldown.Clear();thrustSeen.Clear();sheriffDrops.Clear();stationsSeeded=false;PublishEquipment();}
+        void ResetEquipment(){holsteredDaggers.Clear();ResetArsenal();loadoutAlive.Clear();ResetRandomPickups();ResetEquipmentAnnouncements();equipment.Clear();pickups.Clear();authoredPickups.Clear();weaponCooldown.Clear();handCooldowns.Clear();thrustSeen.Clear();sheriffDrops.Clear();stationsSeeded=false;PublishEquipment();}
         void RestoreEquipment(MatchFrame saved)
         {
+            holsteredDaggers.Clear();
             ResetArsenal();respawnEquipment=saved.demoRespawnEquipment;loadoutAlive.Clear();foreach(var p in saved.players)loadoutAlive[p.id]=p.alive&&!p.dying&&p.role!="hand"&&p.role!="spectator";
             ResetRandomPickups();sheriffDrops.Clear();
             if(ValidPowerupSpawns(saved.powerupSpawns)){spawnSettings=CopySpawnSettings(saved.powerupSpawns);spawnMode=Rules.mode;nextRandomPickup=Time.time+saved.nextPowerupIn;}
             equipmentAnnouncements.Clear();equipmentEpoch=string.IsNullOrEmpty(saved.equipmentEpoch)?Guid.NewGuid().ToString("N"):saved.equipmentEpoch;
             equipmentSequence=Mathf.Max(0,saved.equipmentSequence);
-            equipment.Clear();pickups.Clear();authoredPickups.Clear();weaponCooldown.Clear();thrustSeen.Clear();nextPickup=0;
+            equipment.Clear();pickups.Clear();authoredPickups.Clear();weaponCooldown.Clear();handCooldowns.Clear();thrustSeen.Clear();nextPickup=0;
             foreach(var state in saved.equipment??Array.Empty<EquipmentState>()){var copy=state.Copy();copy.thrust=false;copy.triggerHeld=false;copy.charge=0;equipmentHands[state.actor]=copy.leftHanded;
+                if (copy.builtIn && !copy.drawn) holsteredDaggers.Add(state.actor);
                 if(copy.builtIn&&copy.activePower!=EquipmentKind.None){copy.kind=copy.activePower;copy.activePower=EquipmentKind.None;copy.builtIn=false;copy.drawn=false;}
                 if(!copy.builtIn)equipment[state.actor]=copy;}
             foreach(var pickup in saved.pickups??Array.Empty<EquipmentPickup>()){pickups.Add(pickup);nextPickup=Mathf.Max(nextPickup,pickup.id);}
             RestoreArsenal(saved);RestoreRandomPickups();stationsSeeded=pickups.Exists(x=>x.station);
         }
+        static bool CanUseEquipmentDuringTraversal(IModeActor actor, EquipmentKind kind, bool weaponLeft)
+        {
+            var movement = actor.gameObject.GetComponent<IMovementState>();
+            if (movement == null) return true;
+            if (movement.Vaulting) return false;
+            if (!movement.Climbing) return true;
+            if (actor.gameObject.GetComponent<IPlayerView>()?.IsVR != true ||
+                kind is EquipmentKind.PoweredArmor or EquipmentKind.DualUzi or EquipmentKind.Chainsaw or EquipmentKind.LaserClaws ||
+                EquipmentSpecifications.Get(kind).twoHanded) return false;
+            return movement.TryGetGrip(!weaponLeft, out _) && !movement.TryGetGrip(weaponLeft, out _);
+        }
+
         bool AttackEquipment(string id,EquipmentState state,EquipmentCommand command)
         {
             var source=FindActor(id);
             var participant=simulation.Find(id);
             if(participant==null||!participant.frame.alive||participant.frame.dying||simulation.Phase!=RoundPhase.Playing||MysteryActive&&mystery.IsDowned(id))return false;
             if(source==null||!state.drawn||state.kind<EquipmentKind.Blaster||simulation.CarriesFlag(id)||!Finite(command.position)||!Finite(command.forward)||command.forward.sqrMagnitude<.5f||command.forward.sqrMagnitude>2||Vector3.Distance(command.position,source.ViewPose.position)>2)return false;
-            var mover=source.gameObject.GetComponent<IMovementState>();if(mover!=null&&(mover.Climbing||mover.Vaulting))return false;
+            if (command.handSpecific && (state.kind is not (EquipmentKind.DualUzi or EquipmentKind.PoweredArmor) ||
+                HandShotCoolingDown(id, state, command))) return false;
+            if (!CanUseEquipmentDuringTraversal(source, state.kind, command.handSpecific ? command.left : state.leftHanded)) return false;
             if(Physics.Linecast(source.ViewPose.position,command.position,(1<<Layers.Surface)|(1<<Layers.Block)|1,QueryTriggerInteraction.Ignore))return false;
             if(state.kind>EquipmentKind.PoweredArmor)return AttackArsenal(id,state,command);
             var specification=EquipmentSpecifications.Get(state.kind);
@@ -307,7 +345,7 @@ namespace DeadlyJenga.Modes
             if(state.roleIssued&&state.kind!=EquipmentKind.SheriffHammer)return Punch(id,command.position,command.forward,4);
             if(MysteryActive&&mystery.Personal(id).attackReadyIn>0)return false;
             float cooldown=state.kind==EquipmentKind.DualRifle?(state.shotgun?.20f:.65f):state.kind==EquipmentKind.SheriffHammer?(state.shotgun?.28f:.75f):(state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)?.45f:.9f;
-            weaponCooldown[id]=Time.time+cooldown;
+            SetShotCooldown(id,state,command,cooldown);
             if(specification.magazine>0){state.rounds--;equipment[id]=state;if(state.rounds==0)BeginMagazineReload(id,state);}
             if(state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)
             {

@@ -25,7 +25,9 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
         public static readonly Quaternion CodeKeyboardFacing = Quaternion.Euler(61, 0, 0);
         public static readonly Vector3 StyleScreen = Wardrobe + StyleStageTurn * new Vector3(-2.72f, 1.4f, .43f);
-        public static readonly Quaternion StyleScreenFacing = StyleStageTurn;
+        // The readable side of the canvas faces local -Z, toward the wardrobe platform.
+        public static readonly Quaternion StyleScreenFacing = Quaternion.LookRotation(
+            Vector3.ProjectOnPlane(StyleScreen - Wardrobe, Vector3.up), Vector3.up);
         public static readonly Vector3 StyleMirror = Wardrobe + StyleStageTurn * new Vector3(0, 1.85f, 1.88f);
         public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;
         // The compact recent-match board sits behind the winners' steps.

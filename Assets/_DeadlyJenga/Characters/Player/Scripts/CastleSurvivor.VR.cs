@@ -177,7 +177,8 @@ namespace DeadlyJenga.CastlePrototype
             seatedCalibrated=false;
             if(IsVR)RequestTrackingRebase();
             ClearSprint();ResetVRLook();
-            vrPlayStyle=style;vrMovement=style==SurvivorVRPlayStyle.Standing?SurvivorVRMovement.HeadRelative:SurvivorVRMovement.BodyRelative;
+            vrPlayStyle=style;
+            vrMovement=SurvivorVRMovement.HeadRelative;
             vrTurn=style==SurvivorVRPlayStyle.Standing?SurvivorVRTurn.PhysicalOnly:SurvivorVRTurn.Smooth;
             turnReady=false;ResetVRJump();calibrateSeated=style==SurvivorVRPlayStyle.Seated;
             if(remember)RememberComfort(playStyle:true,movement:true,turn:true);

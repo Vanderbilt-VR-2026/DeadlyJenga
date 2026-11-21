@@ -56,6 +56,10 @@ namespace DeadlyJenga.Core
         bool SpawnEquipment(EquipmentKind kind);
         int RegisterPickup(IEquipmentPickupSource source);
     }
+    public interface IPairedEquipmentRuntime
+    {
+        bool RequestHandAttack(Pose muzzle, bool left);
+    }
     public interface IEquipmentDropRuntime
     {
         bool RequestDropEquipment();

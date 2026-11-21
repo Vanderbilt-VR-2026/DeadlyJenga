@@ -81,7 +81,7 @@ namespace DeadlyJenga.CastlePrototype
         public static string Turn => Rules.turn;
         public static float MasterVolume = .8f, MusicVolume = .22f;
 
-        // Seated (body-directed, smooth turn) or Standing (head-directed, turn physically). Saved per device.
+        // Both styles default to head-directed movement. Seated uses smooth turn and Standing uses physical turn.
         public static string PlayStyle
         {
             get { RefreshLocalControls(); return Rules.playStyle; }
@@ -95,7 +95,7 @@ namespace DeadlyJenga.CastlePrototype
         public static void RefreshLocalControls()
         {
             SetPlayStyle(PlayerPrefs.GetInt("SurvivorVRPlayStyle", 0) == 1 ? "Standing" : "Seated");
-            var movement=PlayerPrefs.GetString("SurvivorVR.Movement",Rules.movement);
+            var movement=PlayerPrefs.GetString("SurvivorVR.MovementV2",Rules.movement);
             if(movement=="HeadRelative"||movement=="BodyRelative")Rules.movement=movement;
             var turn=PlayerPrefs.GetString("SurvivorVR.Turn",Rules.turn);
             if(turn=="Snap"||turn=="Smooth"||turn=="PhysicalOnly")Rules.turn=turn;
@@ -107,7 +107,7 @@ namespace DeadlyJenga.CastlePrototype
         static void SetPlayStyle(string style)
         {
             Rules.playStyle = style;
-            Rules.movement = style == "Standing" ? "HeadRelative" : "BodyRelative";
+            Rules.movement = "HeadRelative";
             Rules.turn = style == "Standing" ? "PhysicalOnly" : "Smooth";
         }
 

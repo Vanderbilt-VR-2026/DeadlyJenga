@@ -123,7 +123,16 @@ namespace DeadlyJenga.CastlePrototype
         // IPlayerView (IsVR, StaminaExhausted, StaminaRecovering already exist)
         public Camera ViewCamera => viewCamera;
         public bool ControlledHere => !externallyDriven;
-        public bool TryGetGrip(bool left, out Pose grip) => TryGetClimbGrip(left, out grip);
+        public bool TryGetGrip(bool left, out Pose grip)
+        {
+            if (!ManualVRClimb) return TryGetClimbGrip(left, out grip);
+            int side = left ? 0 : 1;
+            var face = heldFaces[side];
+            grip = default;
+            if (!Climbing || !face) return false;
+            grip = new Pose(face.transform.TransformPoint(localGrip[side]), face.transform.rotation);
+            return true;
+        }
 
         void LateUpdate()
         {

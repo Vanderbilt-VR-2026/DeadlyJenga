@@ -39,9 +39,10 @@ namespace DeadlyJenga.Presentation
                 if(p.id==details.LocalParticipantId)continue;var root=details.ParticipantRoot(p.id);if(!root)continue;var actor=root.GetComponent<IModeActor>();var point=(actor?.ViewPose.position??root.position+Vector3.up*1.6f)+Vector3.up*.3f;
                 var screen=eye.WorldToViewportPoint(point);bool inView=screen.z>0&&screen.x>=0&&screen.x<=1&&screen.y>=0&&screen.y<=1;
                 bool visible=inView&&(p.host||!Physics.Linecast(eye.transform.position,point,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore));
-                if(!labels.TryGetValue(p.id,out var tag)){tag=CandyNameplate.Create(transform,"Lobby name · "+p.id);labels[p.id]=tag;var host=CandyNameplate.Create(tag.transform,"Host badge");hostLabels[p.id]=host;host.characterSize=.06f;host.text="HOST";host.fontStyle=FontStyle.Bold;}
-                tag.gameObject.SetActive(visible);if(!visible)continue;
+                if(!labels.TryGetValue(p.id,out var tag)){tag=CandyNameplate.CreateTag(transform,"Lobby name · "+p.id);labels[p.id]=tag;var host=CandyNameplate.Create(tag.transform,"Host badge");hostLabels[p.id]=host;host.characterSize=.024f;host.text="HOST";host.fontStyle=FontStyle.Bold;}
+                tag.gameObject.SetActive(visible && !session.MenuOpen);if(!visible)continue;
                 tag.text=p.displayName;tag.color=Color.white;tag.transform.position=point;tag.transform.rotation=Quaternion.LookRotation(point-eye.transform.position);CandyNameplate.RefreshShadow(tag);
+                tag.GetComponent<CandyNameplateFollow>().Bind(tag,eye,root,point-Vector3.up*.3f,.3f,true);
                 var badge=hostLabels[p.id];badge.gameObject.SetActive(p.host);float scale=Mathf.Max(1,Vector3.Distance(eye.transform.position,point)/12);badge.transform.localPosition=Vector3.up*(.18f*scale);badge.transform.localScale=Vector3.one*scale;CandyNameplate.RefreshShadow(badge);
             }
             foreach(var id in labels.Keys.ToArray())if(!details.Participants.Any(p=>p.id==id)){Destroy(labels[id].gameObject);labels.Remove(id);hostLabels.Remove(id);}
@@ -61,20 +62,21 @@ namespace DeadlyJenga.Presentation
                     activeBots.Add(bot);
                     if(!botLabels.TryGetValue(bot,out var label)||!label)
                     {
-                        label=CandyNameplate.Create(transform,"Lobby bot name");
+                        label=CandyNameplate.CreateTag(transform,"Lobby bot name");
                         botLabels[bot]=label;
                     }
                     var point=(actor?.ViewPose.position??bot.transform.position+Vector3.up*1.6f)+Vector3.up*.28f;
                     var screen=eye.WorldToViewportPoint(point);
                     bool visible=screen.z>0&&screen.z<42&&screen.x>=0&&screen.x<=1&&screen.y>=0&&screen.y<=1&&
                         !Physics.Linecast(eye.transform.position,point,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore);
-                    label.gameObject.SetActive(visible);
+                    label.gameObject.SetActive(visible && !session.MenuOpen);
                     if(!visible)continue;
-                    label.text=actor?.DisplayName??bot.name;
+                    label.text=CandyNameplate.BotName(actor?.DisplayName??bot.name);
                     label.color=new Color(.9f,.96f,1);
                     label.transform.position=point;
                     label.transform.rotation=Quaternion.LookRotation(point-eye.transform.position);
                     CandyNameplate.RefreshShadow(label);
+                    label.GetComponent<CandyNameplateFollow>().Bind(label,eye,bot.transform,point-Vector3.up*.28f,.28f,true);
                 }
             }
             removedBots.Clear();

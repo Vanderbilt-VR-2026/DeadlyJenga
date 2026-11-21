@@ -12,6 +12,8 @@ namespace DeadlyJenga.CandyPlayers
     [DefaultExecutionOrder(100)]
     public sealed partial class CandyPlayerAvatar : MonoBehaviour, INetworkActor
     {
+        [Tooltip("Local gun rotation in degrees. Positive X pitches down, Y turns right, Z rolls left.")]
+        public Vector3 vrGunRotation = new Vector3(5f, 4f, 7f);
         public CandyPlayerRig visualPrefab;
         public CastleSurvivor survivor;
         public Camera viewCamera;
@@ -152,16 +154,25 @@ namespace DeadlyJenga.CandyPlayers
             handStride = Mathf.Repeat(handStride + Time.deltaTime * cadence, 2f * Mathf.PI);
         }
 
+        internal Quaternion WristRotation(CandyHandPose hand, bool isLeft)
+        {
+            if (hand.skeletonTracked) return hand.rotation;
+            var fit = CandyAvatarCalibration.Current;
+            var angles = isLeft ? fit.leftRotation : fit.rightRotation;
+            if (survivor) angles += survivor.GetOffset(isLeft);
+            return hand.rotation * Quaternion.Euler(angles);
+        }
+
         CandyHandPose LocomotionHand(CandyAvatarFrame frame, CandyHandPose hand, bool isLeft, bool animate)
         {
             float side = isLeft ? -1f : 1f;
             float swing = animate ? Mathf.Sin(handStride) * handSwing * side : 0f;
             if (hand.tracked)
             {
+                // Controller grip axes differ from the avatar palm axes. Optical wrists
+                // already carry their anatomical orientation.
+                hand.rotation = WristRotation(hand, isLeft);
                 PointOnHover(ref hand, isLeft);
-                // Keep the tracked palm position and optical pose. Only the free controller wrist gets a tiny roll.
-                if (animate && !hand.skeletonTracked)
-                    hand.rotation *= Quaternion.Euler(0f, 0f, swing * 1.5f);
                 hand.skeletonTracked = true;
                 return hand;
             }

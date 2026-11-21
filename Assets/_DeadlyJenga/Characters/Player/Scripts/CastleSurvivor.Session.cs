@@ -7,9 +7,38 @@ using DeadlyJenga.CandyPhysicsHands;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    // What the session, menus and lobby use, through Core (IPlayableCharacter, ISurvivorSettings).
-    public sealed partial class CastleSurvivor : IPlayableCharacter, ISurvivorSettings
+    // What the session, menus and lobby use, through Core (IPlayableCharacter, ISurvivorSettings, IHandRotationTuning).
+    public sealed partial class CastleSurvivor : IPlayableCharacter, ISurvivorSettings, IHandRotationTuning
     {
+        static readonly Vector3[] wristOffsets = new Vector3[2];
+        static bool wristOffsetsLoaded;
+        static void EnsureWristOffsets()
+        {
+            if (wristOffsetsLoaded) return;
+            wristOffsetsLoaded = true;
+            wristOffsets[0] = LoadWrist(true);
+            wristOffsets[1] = LoadWrist(false);
+        }
+        static Vector3 LoadWrist(bool left)
+        {
+            var key = left ? "WristFit.Left." : "WristFit.Right.";
+            return new Vector3(PlayerPrefs.GetFloat(key+"Pitch"), PlayerPrefs.GetFloat(key+"Yaw"), PlayerPrefs.GetFloat(key+"Roll"));
+        }
+        public Vector3 GetOffset(bool left)
+        {
+            EnsureWristOffsets();
+            return wristOffsets[left ? 0 : 1];
+        }
+        public void SetOffset(bool left, Vector3 degrees)
+        {
+            EnsureWristOffsets();
+            wristOffsets[left ? 0 : 1] = degrees;
+            var key = left ? "WristFit.Left." : "WristFit.Right.";
+            PlayerPrefs.SetFloat(key+"Pitch", degrees.x);
+            PlayerPrefs.SetFloat(key+"Yaw", degrees.y);
+            PlayerPrefs.SetFloat(key+"Roll", degrees.z);
+            PlayerPrefs.Save();
+        }
         // IPlayableCharacter (ViewCamera, IsVR, InputSuspended already exist)
         CandyTrackingSource handTracking;
         CandyTrackingSource HandTracking => handTracking ? handTracking : handTracking = GetComponent<CandyTrackingSource>();

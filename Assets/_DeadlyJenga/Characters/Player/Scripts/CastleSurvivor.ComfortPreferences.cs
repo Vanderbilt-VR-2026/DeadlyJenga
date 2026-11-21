@@ -24,7 +24,8 @@ namespace DeadlyJenga.CastlePrototype
         void RestoreRememberedComfort()
         {
             var saved=CaptureComfort();
-            if(Enum.TryParse(PlayerPrefs.GetString("SurvivorVR.Movement",saved.movement.ToString()),out SurvivorVRMovement movement)&&
+            // The old key also stored the automatic seated movement default.
+            if(Enum.TryParse(PlayerPrefs.GetString("SurvivorVR.MovementV2",saved.movement.ToString()),out SurvivorVRMovement movement)&&
                 Enum.IsDefined(typeof(SurvivorVRMovement),movement))saved.movement=movement;
             if(Enum.TryParse(PlayerPrefs.GetString("SurvivorVR.Turn",saved.turn.ToString()),out SurvivorVRTurn turn)&&
                 Enum.IsDefined(typeof(SurvivorVRTurn),turn))saved.turn=turn;
@@ -50,7 +51,7 @@ namespace DeadlyJenga.CastlePrototype
                 hybridComfort=saved;
             }
             PlayerPrefs.SetInt("SurvivorVRPlayStyle",(int)saved.playStyle);
-            PlayerPrefs.SetString("SurvivorVR.Movement",saved.movement.ToString());
+            PlayerPrefs.SetString("SurvivorVR.MovementV2",saved.movement.ToString());
             PlayerPrefs.SetString("SurvivorVR.Turn",saved.turn.ToString());
             PlayerPrefs.SetFloat("SurvivorVR.SnapAngle",saved.snap);
             PlayerPrefs.SetFloat("SurvivorVR.SmoothDegrees",saved.speed);
