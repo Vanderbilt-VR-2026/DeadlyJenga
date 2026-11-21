@@ -230,8 +230,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 fromYaw = headYaw; fromPitch = headPitch; moveStart = time;
                 float size = Mathf.Abs(Mathf.DeltaAngle(headYaw, yaw)) + Mathf.Abs(pitch - headPitch) * .5f;
-                // About 300 degrees a second at most for a big turn, quicker for a small one.
-                moveTime = human < .001f ? .01f : Mathf.Clamp(.16f + size / 300 + Range(++glances, 30, 0, .06f) * human, .16f, .85f);
+                // A 90 degree look takes about 0.6 s (peak near 280 degrees a second); the proofs measured 400+ with
+                // the old 0.16 + size / 300, which read as snapping. Small looks stay quick.
+                moveTime = human < .001f ? .01f : Mathf.Clamp(.18f + size / 210 + Range(++glances, 30, 0, .06f) * human, .18f, 1.0f);
             }
             toYaw = yaw; toPitch = pitch;
         }

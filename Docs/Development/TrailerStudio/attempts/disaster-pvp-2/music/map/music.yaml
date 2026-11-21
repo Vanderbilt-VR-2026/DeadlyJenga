@@ -1,0 +1,618 @@
+# Measured by tools/music_map.py (JSON is valid YAML)
+{
+ "file": "music-edit.wav",
+ "excerpt_start_s": 0.0,
+ "excerpt_length_s": 15.0,
+ "fps": 30.0,
+ "lag_s": 0.03,
+ "bpm": 93.75,
+ "beats_s": [
+  0.845,
+  1.485,
+  2.029,
+  2.562,
+  3.202,
+  3.842,
+  4.482,
+  5.122,
+  5.773,
+  6.413,
+  7.053,
+  7.703,
+  8.343,
+  8.994,
+  9.634,
+  10.263,
+  11.117,
+  11.757,
+  12.407,
+  13.047,
+  13.687,
+  14.338
+ ],
+ "onsets": [
+  {
+   "t": 0.0,
+   "frame": 0.0,
+   "strength": 2.78,
+   "rise_db": 1.2
+  },
+  {
+   "t": 0.2,
+   "frame": 6.0,
+   "strength": 4.02,
+   "rise_db": 2.9
+  },
+  {
+   "t": 0.31,
+   "frame": 9.3,
+   "strength": 7.05,
+   "rise_db": 5.6
+  },
+  {
+   "t": 0.41,
+   "frame": 12.3,
+   "strength": 3.94,
+   "rise_db": 2.9
+  },
+  {
+   "t": 0.62,
+   "frame": 18.6,
+   "strength": 3.65,
+   "rise_db": 1.3
+  },
+  {
+   "t": 0.84,
+   "frame": 25.2,
+   "strength": 15.32,
+   "rise_db": 7.5
+  },
+  {
+   "t": 1.05,
+   "frame": 31.5,
+   "strength": 6.67,
+   "rise_db": 3.7
+  },
+  {
+   "t": 1.17,
+   "frame": 35.1,
+   "strength": 3.43,
+   "rise_db": -1.8
+  },
+  {
+   "t": 1.27,
+   "frame": 38.1,
+   "strength": 5.17,
+   "rise_db": -12.1
+  },
+  {
+   "t": 1.48,
+   "frame": 44.4,
+   "strength": 14.05,
+   "rise_db": 14.7
+  },
+  {
+   "t": 1.69,
+   "frame": 50.7,
+   "strength": 10.62,
+   "rise_db": 9.4
+  },
+  {
+   "t": 1.91,
+   "frame": 57.3,
+   "strength": 2.49,
+   "rise_db": 3.1
+  },
+  {
+   "t": 2.02,
+   "frame": 60.6,
+   "strength": 6.32,
+   "rise_db": 5.5
+  },
+  {
+   "t": 2.13,
+   "frame": 63.9,
+   "strength": 6.96,
+   "rise_db": 3.5
+  },
+  {
+   "t": 2.34,
+   "frame": 70.2,
+   "strength": 8.13,
+   "rise_db": 1.5
+  },
+  {
+   "t": 2.55,
+   "frame": 76.5,
+   "strength": 12.71,
+   "rise_db": 7.6
+  },
+  {
+   "t": 2.77,
+   "frame": 83.1,
+   "strength": 9.38,
+   "rise_db": 4.5
+  },
+  {
+   "t": 2.88,
+   "frame": 86.4,
+   "strength": 2.32,
+   "rise_db": -1.4
+  },
+  {
+   "t": 2.98,
+   "frame": 89.4,
+   "strength": 3.46,
+   "rise_db": -10.9
+  },
+  {
+   "t": 3.19,
+   "frame": 95.7,
+   "strength": 6.89,
+   "rise_db": 13.4
+  },
+  {
+   "t": 3.4,
+   "frame": 102.0,
+   "strength": 4.49,
+   "rise_db": 4.2
+  },
+  {
+   "t": 3.62,
+   "frame": 108.6,
+   "strength": 9.25,
+   "rise_db": 2.5
+  },
+  {
+   "t": 3.83,
+   "frame": 114.9,
+   "strength": 5.86,
+   "rise_db": 4.2
+  },
+  {
+   "t": 4.05,
+   "frame": 121.5,
+   "strength": 10.65,
+   "rise_db": 3.7
+  },
+  {
+   "t": 4.26,
+   "frame": 127.8,
+   "strength": 5.71,
+   "rise_db": 4.6
+  },
+  {
+   "t": 4.48,
+   "frame": 134.4,
+   "strength": 10.13,
+   "rise_db": 3.6
+  },
+  {
+   "t": 4.69,
+   "frame": 140.7,
+   "strength": 7.17,
+   "rise_db": -2.8
+  },
+  {
+   "t": 4.9,
+   "frame": 147.0,
+   "strength": 5.84,
+   "rise_db": 8.0
+  },
+  {
+   "t": 5.12,
+   "frame": 153.6,
+   "strength": 13.32,
+   "rise_db": 4.6
+  },
+  {
+   "t": 5.33,
+   "frame": 159.9,
+   "strength": 4.77,
+   "rise_db": 4.3
+  },
+  {
+   "t": 5.55,
+   "frame": 166.5,
+   "strength": 11.73,
+   "rise_db": 4.4
+  },
+  {
+   "t": 5.76,
+   "frame": 172.8,
+   "strength": 7.2,
+   "rise_db": 4.2
+  },
+  {
+   "t": 5.98,
+   "frame": 179.4,
+   "strength": 13.36,
+   "rise_db": 4.7
+  },
+  {
+   "t": 6.09,
+   "frame": 182.7,
+   "strength": 4.45,
+   "rise_db": 3.4
+  },
+  {
+   "t": 6.2,
+   "frame": 186.0,
+   "strength": 5.63,
+   "rise_db": 4.5
+  },
+  {
+   "t": 6.3,
+   "frame": 189.0,
+   "strength": 4.12,
+   "rise_db": 2.1
+  },
+  {
+   "t": 6.41,
+   "frame": 192.3,
+   "strength": 5.3,
+   "rise_db": -2.7
+  },
+  {
+   "t": 6.52,
+   "frame": 195.6,
+   "strength": 6.63,
+   "rise_db": 2.3
+  },
+  {
+   "t": 6.62,
+   "frame": 198.6,
+   "strength": 4.82,
+   "rise_db": 6.3
+  },
+  {
+   "t": 6.73,
+   "frame": 201.9,
+   "strength": 3.54,
+   "rise_db": 4.6
+  },
+  {
+   "t": 6.84,
+   "frame": 205.2,
+   "strength": 7.13,
+   "rise_db": 3.6
+  },
+  {
+   "t": 6.95,
+   "frame": 208.5,
+   "strength": 5.84,
+   "rise_db": 4.6
+  },
+  {
+   "t": 7.05,
+   "frame": 211.5,
+   "strength": 3.64,
+   "rise_db": 3.0
+  },
+  {
+   "t": 7.16,
+   "frame": 214.8,
+   "strength": 7.17,
+   "rise_db": 1.3
+  },
+  {
+   "t": 7.27,
+   "frame": 218.1,
+   "strength": 6.48,
+   "rise_db": 4.0
+  },
+  {
+   "t": 7.37,
+   "frame": 221.1,
+   "strength": 2.89,
+   "rise_db": 4.0
+  },
+  {
+   "t": 7.48,
+   "frame": 224.4,
+   "strength": 5.24,
+   "rise_db": 4.5
+  },
+  {
+   "t": 7.59,
+   "frame": 227.7,
+   "strength": 5.61,
+   "rise_db": 0.5
+  },
+  {
+   "t": 7.7,
+   "frame": 231.0,
+   "strength": 4.4,
+   "rise_db": 2.7
+  },
+  {
+   "t": 8.02,
+   "frame": 240.6,
+   "strength": 3.0,
+   "rise_db": 0.5
+  },
+  {
+   "t": 8.13,
+   "frame": 243.9,
+   "strength": 2.52,
+   "rise_db": -2.5
+  },
+  {
+   "t": 8.34,
+   "frame": 250.2,
+   "strength": 3.78,
+   "rise_db": 5.0
+  },
+  {
+   "t": 8.56,
+   "frame": 256.8,
+   "strength": 2.59,
+   "rise_db": 2.2
+  },
+  {
+   "t": 8.88,
+   "frame": 266.4,
+   "strength": 2.82,
+   "rise_db": 1.6
+  },
+  {
+   "t": 9.36,
+   "frame": 280.8,
+   "strength": 2.67,
+   "rise_db": 5.4
+  },
+  {
+   "t": 9.62,
+   "frame": 288.6,
+   "strength": 2.37,
+   "rise_db": -0.3
+  },
+  {
+   "t": 9.74,
+   "frame": 292.2,
+   "strength": 3.41,
+   "rise_db": -3.4
+  },
+  {
+   "t": 9.84,
+   "frame": 295.2,
+   "strength": 5.18,
+   "rise_db": -11.4
+  },
+  {
+   "t": 9.94,
+   "frame": 298.2,
+   "strength": 2.73,
+   "rise_db": 6.1
+  },
+  {
+   "t": 10.04,
+   "frame": 301.2,
+   "strength": 4.1,
+   "rise_db": 12.6
+  },
+  {
+   "t": 10.25,
+   "frame": 307.5,
+   "strength": 6.53,
+   "rise_db": 6.2
+  },
+  {
+   "t": 10.47,
+   "frame": 314.1,
+   "strength": 3.02,
+   "rise_db": 3.4
+  },
+  {
+   "t": 10.58,
+   "frame": 317.4,
+   "strength": 6.66,
+   "rise_db": 6.0
+  },
+  {
+   "t": 10.69,
+   "frame": 320.7,
+   "strength": 5.31,
+   "rise_db": 3.7
+  },
+  {
+   "t": 10.9,
+   "frame": 327.0,
+   "strength": 9.19,
+   "rise_db": 2.0
+  },
+  {
+   "t": 11.11,
+   "frame": 333.3,
+   "strength": 11.83,
+   "rise_db": 8.0
+  },
+  {
+   "t": 11.32,
+   "frame": 339.6,
+   "strength": 2.85,
+   "rise_db": 3.5
+  },
+  {
+   "t": 11.45,
+   "frame": 343.5,
+   "strength": 3.24,
+   "rise_db": -0.4
+  },
+  {
+   "t": 11.54,
+   "frame": 346.2,
+   "strength": 5.47,
+   "rise_db": -9.2
+  },
+  {
+   "t": 11.65,
+   "frame": 349.5,
+   "strength": 3.07,
+   "rise_db": 7.0
+  },
+  {
+   "t": 11.75,
+   "frame": 352.5,
+   "strength": 7.45,
+   "rise_db": 12.9
+  },
+  {
+   "t": 11.97,
+   "frame": 359.1,
+   "strength": 21.53,
+   "rise_db": 7.4
+  },
+  {
+   "t": 12.19,
+   "frame": 365.7,
+   "strength": 4.53,
+   "rise_db": 3.9
+  },
+  {
+   "t": 12.29,
+   "frame": 368.7,
+   "strength": 3.85,
+   "rise_db": 6.0
+  },
+  {
+   "t": 12.4,
+   "frame": 372.0,
+   "strength": 5.92,
+   "rise_db": 3.3
+  },
+  {
+   "t": 12.61,
+   "frame": 378.3,
+   "strength": 5.78,
+   "rise_db": 1.8
+  },
+  {
+   "t": 12.82,
+   "frame": 384.6,
+   "strength": 4.75,
+   "rise_db": 7.8
+  },
+  {
+   "t": 13.04,
+   "frame": 391.2,
+   "strength": 9.56,
+   "rise_db": 3.0
+  },
+  {
+   "t": 13.16,
+   "frame": 394.8,
+   "strength": 3.68,
+   "rise_db": -0.9
+  },
+  {
+   "t": 13.26,
+   "frame": 397.8,
+   "strength": 6.55,
+   "rise_db": -10.2
+  },
+  {
+   "t": 13.37,
+   "frame": 401.1,
+   "strength": 3.16,
+   "rise_db": 8.3
+  },
+  {
+   "t": 13.47,
+   "frame": 404.1,
+   "strength": 14.55,
+   "rise_db": 12.9
+  },
+  {
+   "t": 13.68,
+   "frame": 410.4,
+   "strength": 16.19,
+   "rise_db": 6.6
+  },
+  {
+   "t": 13.9,
+   "frame": 417.0,
+   "strength": 3.75,
+   "rise_db": 3.7
+  },
+  {
+   "t": 14.01,
+   "frame": 420.3,
+   "strength": 7.0,
+   "rise_db": 6.1
+  },
+  {
+   "t": 14.11,
+   "frame": 423.3,
+   "strength": 3.01,
+   "rise_db": 3.7
+  },
+  {
+   "t": 14.33,
+   "frame": 429.9,
+   "strength": 9.21,
+   "rise_db": 2.0
+  },
+  {
+   "t": 14.54,
+   "frame": 436.2,
+   "strength": 13.71,
+   "rise_db": 8.1
+  },
+  {
+   "t": 14.75,
+   "frame": 442.5,
+   "strength": 4.81,
+   "rise_db": 3.2
+  },
+  {
+   "t": 14.87,
+   "frame": 446.1,
+   "strength": 2.59,
+   "rise_db": -0.9
+  },
+  {
+   "t": 14.97,
+   "frame": 449.1,
+   "strength": 6.48,
+   "rise_db": -12.0
+  }
+ ],
+ "hits_top5pct_rise6db": [
+  {
+   "t": 11.97,
+   "frame": 359.1,
+   "strength": 21.53,
+   "rise_db": 7.4
+  },
+  {
+   "t": 13.68,
+   "frame": 410.4,
+   "strength": 16.19,
+   "rise_db": 6.6
+  },
+  {
+   "t": 0.84,
+   "frame": 25.2,
+   "strength": 15.32,
+   "rise_db": 7.5
+  },
+  {
+   "t": 13.47,
+   "frame": 404.1,
+   "strength": 14.55,
+   "rise_db": 12.9
+  }
+ ],
+ "biggest_hit": {
+  "t": 3.12,
+  "frame": 93.6,
+  "rise_db": 28.5
+ },
+ "stopdowns": [],
+ "loudness_summary": [
+  "I:         -16.7 LUFS",
+  "LRA:         3.2 LU"
+ ],
+ "momentary_every_0.5s": []
+}

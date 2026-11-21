@@ -14,8 +14,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     {
         public int Order => 10;
 
-        public static readonly List<string> Kinds = new List<string> { "lookAt", "reach", "pose", "reaction", "emote", "outfit", "colorFlash", "equipment", "hitPause" };
-        public static readonly List<string> KindLabels = new List<string> { "Look at", "Reach", "Pose", "Reaction", "Emote", "Outfit change", "Color flash", "Weapon swap", "Hit pause" };
+        // "hide": the actor is not drawn while the layer is on (for example after a fall into the sea, so the respawn is never seen).
+        public static readonly List<string> Kinds = new List<string> { "lookAt", "reach", "pose", "reaction", "emote", "outfit", "colorFlash", "equipment", "hitPause", "hide" };
+        public static readonly List<string> KindLabels = new List<string> { "Look at", "Reach", "Pose", "Reaction", "Emote", "Outfit change", "Color flash", "Weapon swap", "Hit pause", "Hide" };
         public static readonly List<string> Reactions = new List<string> { "stagger", "knockback", "fall", "tumble", "death", "getUp", "cheer", "scream", "cower" };
         public static readonly List<string> ReactionLabels = new List<string> { "Hit stagger", "Knockback", "Fall", "Tumble", "Death", "Get up", "Cheer", "Scream", "Cower" };
 
@@ -40,6 +41,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // Also used by tests and tools that want an override's result without a stage.
         public static void Apply(StudioSet set, StudioTape tape, Vector3 anchor, StudioOverride layer, float time, float weight, ActorFrame frame)
         {
+            if (layer.kind == "hide") { if (weight > 0) frame.visible = false; return; }
             if (frame.isHand) return;   // the hand has no head, arms or outfit
             switch (layer.kind)
             {
