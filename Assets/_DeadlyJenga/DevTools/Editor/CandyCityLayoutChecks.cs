@@ -97,6 +97,9 @@ namespace DeadlyJenga.DevTools.Editor
                 ("sky-08-harbor-roof-se", new Vector3(48, 13.6f, -48), new Vector3(400, 40, -300)),
                 ("sky-09-sw-edge", new Vector3(-70, .5f, -70), new Vector3(-400, 30, -400)),
                 ("sky-10-ne-edge", new Vector3(70, .5f, 70), new Vector3(400, 30, 400)),
+                ("sky-11-island-above-close", new Vector3(-30, .5f, 15), new Vector3(-120, 70, 70)),
+                ("sky-12-hamlet-waterfall", new Vector3(80, .5f, 20), new Vector3(315, -10, 127)),
+                ("sky-13-island-above-across-city", new Vector3(60, .5f, -30), new Vector3(-104, 55, 60)),
             };
             string F(float v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var views = shots.Select(s => $"pov|{s.name}|{F(s.at.x)}|{F(s.at.y)}|{F(s.at.z)}|{F(s.look.x)}|{F(s.look.y)}|{F(s.look.z)}").ToArray();

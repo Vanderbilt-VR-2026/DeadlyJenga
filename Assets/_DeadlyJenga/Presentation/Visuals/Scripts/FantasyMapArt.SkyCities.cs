@@ -13,6 +13,7 @@ namespace DeadlyJenga.Presentation
         readonly List<(Transform city,Vector3 home,float phase)> floatingCities=new();
         readonly List<Transform> wheelCars=new();
         readonly List<(Transform car,float offset)> trainCars=new();
+        readonly List<(Transform streaks,Vector3 home,float period,float speed)> fallStreaks=new();
         Transform ferrisWheel,lighthouseBeam;Vector3 wheelHub;float wheelRadius;
         Vector3[] rainbowPath,rainbowUp;
 
@@ -26,7 +27,7 @@ namespace DeadlyJenga.Presentation
 
         void BuildSkyCities()
         {
-            floatingCities.Clear();wheelCars.Clear();trainCars.Clear();ferrisWheel=lighthouseBeam=null;
+            floatingCities.Clear();fallStreaks.Clear();wheelCars.Clear();trainCars.Clear();ferrisWheel=lighthouseBeam=null;
             var center=Services.World!=null?Services.World.Center:transform.position;center.y=groundY;
             // angle (degrees), distance from the map center, height above the street, island radius, kind
             var cities=new[]{(70f,400f,25f,55f,0),(22f,340f,40f,34f,5),(140f,370f,8f,42f,1),(205f,420f,32f,48f,2),(262f,385f,14f,45f,3),(318f,440f,-4f,44f,4)};
@@ -57,6 +58,9 @@ namespace DeadlyJenga.Presentation
                 if(i>1)floatingCities.Add((go.transform,go.transform.localPosition,i*1.7f));
             }
             BuildRainbowBridge(tops[0],radii[0],tops[1],radii[1]);
+            // The cupcake hamlet (one end of the bridge) pours a rainbow waterfall toward the island.
+            RainbowFall(transforms[1],new Vector3(0,-1,radii[1]+1),16,10,150,"hamlet");
+            BuildIslandAbove(center);
         }
 
         // Frosted cake platform on a cotton-candy cloud, with rock-candy crystals hanging underneath.
@@ -376,8 +380,71 @@ namespace DeadlyJenga.Presentation
             }
         }
 
+        // A small spring island high over the edge of our island; its rainbow waterfall lands on our cloud,
+        // just outside the play area so it never hides the streets.
+        void BuildIslandAbove(Vector3 center)
+        {
+            float R=Mathf.Max(halfWidth,halfDepth),a=150*Mathf.Deg2Rad;const float r=30,height=140,push=12;
+            var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
+            var world=center+dir*(R*1.08f+r+push)+Vector3.up*height;
+            var m=new ArtMesh(3);
+            CloudIsland(m,r,new Color(.7f,.6f,1),7);
+            // Rainbow spring: a gold-pillared gazebo over a glowing pool, with little cottages around it.
+            m.Cylinder(Vector3.zero,Quaternion.identity,9,1.4f,1,H(Sugar),24);
+            m.Cylinder(Vector3.up*1.2f,Quaternion.identity,7.6f,.4f,2,new Color(.45f,.7f,.9f),24);
+            for(int i=0;i<8;i++){float b=i*Mathf.PI/4;m.Cylinder(new Vector3(Mathf.Cos(b),0,Mathf.Sin(b))*8.4f,Quaternion.identity,.5f,10,1,H(Gold),8);}
+            m.Cylinder(Vector3.up*10,Quaternion.identity,9.4f,1,1,H(Gold),24);
+            m.StripedCone(Vector3.up*11,10,7,16,1,H(new Color(.68f,.5f,1)),H(Sugar));
+            m.Sphere(Vector3.up*18.4f,Vector3.one*1.4f,2,new Color(1,.85f,.55f),5,10);
+            for(int i=0;i<7;i++){float b=i*Mathf.PI*2/7+.4f;var p=new Vector3(Mathf.Cos(b),0,Mathf.Sin(b))*r*.72f;if(p.z>r*.4f)continue;SkyTower(m,p,5,5+i%3*2,Pastels[i%Pastels.Length],i%2==0?0:1,i);}
+            var go=Model("Visual · spring island above",m,transform,SkyMaterials);
+            go.transform.localPosition=L(world);go.transform.localRotation=LR(Quaternion.LookRotation(-dir));
+            // Lands on the cloud skirt around our island (about 11 m below the streets).
+            RainbowFall(go.transform,new Vector3(0,-1,r+1),22,push,height+10,"above");
+        }
+
+        // A seven-band rainbow sheet pouring forward (+z of its parent) off a lip, curving down,
+        // with bright streaks sliding down it and rainbow mist where it lands.
+        void RainbowFall(Transform parent,Vector3 lip,float width,float push,float drop,string label)
+        {
+            var bands=new[]{new Color(1,.25f,.35f),new Color(1,.55f,.2f),new Color(1,.9f,.3f),new Color(.4f,.95f,.45f),new Color(.3f,.7f,1),new Color(.45f,.4f,1),new Color(.8f,.45f,1)};
+            const int Steps=36;var m=new ArtMesh(3);
+            Vector3 At(float t)=>lip+new Vector3(0,-drop*t*t,push*Mathf.Sqrt(t));
+            float Spread(float t)=>width*(1+t*.45f);
+            for(int i=0;i<Steps;i++)
+            {
+                float t0=i/(float)Steps,t1=(i+1)/(float)Steps;var p0=At(t0);var p1=At(t1);float w0=Spread(t0),w1=Spread(t1);
+                for(int k=0;k<bands.Length;k++)
+                {
+                    float u0=k/7f-.5f,u1=(k+1)/7f-.5f;
+                    m.TwoSidedQuad(p0+Vector3.right*w0*u0,p0+Vector3.right*w0*u1,p1+Vector3.right*w1*u1,p1+Vector3.right*w1*u0,2,bands[k]*.44f);
+                }
+            }
+            // Foam at the lip and rainbow mist where it lands.
+            for(int k=0;k<5;k++)m.Sphere(lip+new Vector3((k-2)*width*.2f,.4f,.6f),new Vector3(width*.14f,1.4f,1.8f),0,Color.white,6,10);
+            var bottom=At(1);
+            for(int k=0;k<14;k++)
+            {
+                float b=k*2.399963f,rad=width*(.25f+(k%4)*.22f);
+                var tint=Color.Lerp(Color.white,bands[k%7],.22f);
+                m.Sphere(bottom+new Vector3(Mathf.Cos(b)*rad,2+(k%3)*3,Mathf.Sin(b)*rad),new Vector3(9,6+(k%2)*3,9)*(1+(k%3)*.25f),0,tint,8,14);
+            }
+            Model("Visual · rainbow waterfall "+label,m,parent,SkyMaterials);
+            // Streaks on the steep part, spaced evenly; sliding the whole set down by one spacing loops seamlessly.
+            const float Period=9;var streaks=new ArtMesh(3);
+            for(float y=drop*.12f;y<drop*.98f;y+=Period)
+            {
+                float t=Mathf.Sqrt(y/drop);var p=At(t);float w=Spread(t);
+                for(int k=0;k<7;k++)if(Hash(new Vector3(k,y,label.Length))<.55f)
+                    streaks.Box(p+Vector3.right*w*((k+.5f)/7f-.5f),new Vector3(w/7f*.45f,3.2f,.5f),Quaternion.identity,2,new Color(.62f,.62f,.62f));
+            }
+            var go=Model("Visual · rainbow waterfall streaks "+label,streaks,parent,SkyMaterials);
+            fallStreaks.Add((go.transform,go.transform.localPosition,Period,7f));
+        }
+
         void AnimateSkyCities(float time)
         {
+            foreach(var (streaks,home,period,speed) in fallStreaks)if(streaks)streaks.localPosition=home+Vector3.down*Mathf.Repeat(time*speed,period);
             foreach(var (city,home,phase) in floatingCities)if(city)city.localPosition=home+Vector3.up*Mathf.Sin(time*.18f+phase)*2.2f;
             if(ferrisWheel)
             {
@@ -407,7 +474,7 @@ namespace DeadlyJenga.Presentation
             }
         }
 
-        void ClearSkyCities(){floatingCities.Clear();wheelCars.Clear();trainCars.Clear();ferrisWheel=lighthouseBeam=null;rainbowPath=rainbowUp=null;}
+        void ClearSkyCities(){floatingCities.Clear();fallStreaks.Clear();wheelCars.Clear();trainCars.Clear();ferrisWheel=lighthouseBeam=null;rainbowPath=rainbowUp=null;}
 
         sealed partial class ArtMesh
         {
