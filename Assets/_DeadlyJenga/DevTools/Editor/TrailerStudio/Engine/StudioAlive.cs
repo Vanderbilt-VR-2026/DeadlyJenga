@@ -483,7 +483,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             switch (state)
             {
                 case Relaxed: return (new Vector3(side * .21f, -.72f, .07f), new Vector3(78, -side * 6, side * 12), .2f);
-                case Guard: return (new Vector3(side * .14f, -.31f, .30f), new Vector3(18, -side * 25, side * 68), .95f);
+                case Guard: return (new Vector3(side * .15f, -.42f, .30f), new Vector3(18, -side * 25, side * 68), .95f);
                 case Hip: return (new Vector3(side * .28f, -.62f, -.03f), new Vector3(70, -side * 30, side * 60), .4f);
                 case Fidget: return (new Vector3(side * .05f, -.54f, .24f), new Vector3(50, -side * 42, side * 32), .45f);
                 default: return (new Vector3(side * .27f, -.53f, .24f), new Vector3(51, -side * 10, side * 24), .3f);

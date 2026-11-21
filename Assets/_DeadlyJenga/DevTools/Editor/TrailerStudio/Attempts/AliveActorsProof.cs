@@ -250,6 +250,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             float bestScore = float.MinValue;
             var free = spots.Where(s => best.All(g => Vector3.Distance(Flat(g), Flat(s)) > 2.2f)).ToList();
             const float sample = .2f;
+            var why = new int[4];
             foreach (var h in free)
                 foreach (var r in free)
                 {
@@ -262,24 +263,26 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         Vector3 p = Vector3.Lerp(h, r, x / d);
                         ground.Add(Physics.Raycast(new Vector3(p.x, Mathf.Max(h.y, r.y) + 1.6f, p.z), Vector3.down, out var hit, 4f, Mask, QueryTriggerInteraction.Ignore) ? hit.point.y : float.NaN);
                     }
-                    int change = ground.FindIndex(y => float.IsNaN(y) || Mathf.Abs(y - h.y) > .25f);
-                    if (change < 0) continue;
+                    bool Hole(float y) => float.IsNaN(y) || y < Mathf.Min(h.y, r.y) - .7f;
+                    int change = ground.FindIndex(y => Hole(y) || Mathf.Abs(y - h.y) > .25f);
+                    if (change < 0) { why[0]++; continue; }
                     float at = .3f + change * sample;
-                    if (at < .9f || at > 2.8f || d - at < 4.0f) continue;
-                    // After the change: at most 1 m of gap, then ground all the way at the rival's level.
-                    int gap = 0, bad = 0;
+                    if (at < .5f || at > 3f || d - at < 3.8f) { why[1]++; continue; }
+                    // After the change: at most 1.1 m of gap, then (almost) solid ground to the rival.
+                    int gap = 0, holes = 0; bool landed = false;
                     for (int i = change; i < ground.Count; i++)
                     {
-                        if (float.IsNaN(ground[i]) || ground[i] < Mathf.Min(h.y, r.y) - 1.4f) { if (bad == 0) gap++; continue; }
-                        if (Mathf.Abs(ground[i] - r.y) > .3f && i > change + 6) bad++;
+                        if (Hole(ground[i])) { if (!landed) gap++; else holes++; }
+                        else landed = true;
                     }
-                    if (gap * sample > 1f || bad > 2) continue;
+                    if (gap * sample > 1.1f || holes > (ground.Count - change) * .12f) { why[2]++; continue; }
                     // Nothing in the way of a running body (a step up is fine: it is jumped).
-                    Vector3 eye = Vector3.up * (Mathf.Max(h.y, r.y) - h.y + .9f);
-                    if (Physics.Linecast(h + eye, r + Vector3.up * .9f + Vector3.up * Mathf.Max(0, h.y - r.y), (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)) continue;
+                    float top = Mathf.Max(h.y, r.y) + .9f;
+                    if (Physics.Linecast(new Vector3(h.x, top, h.z), new Vector3(r.x, top, r.z), (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)) { why[3]++; continue; }
                     float score = 10 - Mathf.Abs(d - 6.5f) - Mathf.Abs(at - 1.6f) + (gap > 0 ? 1 : 0) + h.y * .1f;
-                    if (score > bestScore) { bestScore = score; plan.hero = h; plan.rival = r; plan.step = true; plan.jumpAt = Vector3.Lerp(h, r, Mathf.Max(.05f, at - .55f) / d); }
+                    if (score > bestScore) { bestScore = score; plan.hero = h; plan.rival = r; plan.step = true; plan.jumpAt = Vector3.Lerp(h, r, Mathf.Max(.15f, at - .5f) / d); }
                 }
+            Note($"Run search: no change of ground {why[0]}, change too early or late {why[1]}, gap too long or holes after {why[2]}, something in the way {why[3]}.");
             if (bestScore == float.MinValue)
             {
                 // No step anywhere: a straight run, and no jump (said in the notes).
@@ -289,6 +292,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         float d = Vector3.Distance(Flat(h), Flat(r));
                         if (d < 4f || d > 7f || Mathf.Abs(h.y - r.y) > .3f) continue;
                         if (Physics.CapsuleCast(h + Vector3.up * .5f, h + Vector3.up * 1.1f, .2f, Flat(r - h).normalized, d - .4f, (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)) continue;
+                        bool solid = true;
+                        for (float x = .3f; x < d - .3f && solid; x += sample)
+                        {
+                            Vector3 p = Vector3.Lerp(h, r, x / d);
+                            solid = Physics.Raycast(p + Vector3.up * .5f, Vector3.down, out var hit, 1.1f, Mask, QueryTriggerInteraction.Ignore) && Mathf.Abs(hit.point.y - h.y) < .3f;
+                        }
+                        if (!solid) continue;
                         float score = -Mathf.Abs(d - 5.5f);
                         if (score > bestScore) { bestScore = score; plan.hero = h; plan.rival = r; plan.step = false; }
                     }
