@@ -58,7 +58,46 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float bloom, vignette, grain, chroma;
         public string lut = "";           // name of a LUT texture in the project, or empty
 
+        // Pilot additions: aim at any target, ride on any target, impact shakes, framing metrics.
+        // Target text: "actor:<mark id>", "head:<mark id>", "body:<mark id>", "block:<index>", "point:x,y,z" (metres from the stage spot).
+        public List<StudioAimKey> aims = new List<StudioAimKey>();   // empty = aim comes from the keys and behavior
+        public string rideTarget = "";    // non-empty = key positions are offsets from this target
+        public float leadRoom;            // seconds: aim this far ahead of where the aimed actor is going
+        public List<StudioShake> shakes = new List<StudioShake>();
+        public List<string> measure = new List<string>();   // targets to write framing metrics for
+        public float motionBlur;          // 0 to 1: URP camera-and-object motion blur in renders
+        // Grade for this shot (0 = leave the scene's own): exposure in stops, contrast and saturation -100 to 100.
+        public float exposure, contrast, saturation;
+
+        // First person (behavior "firstPerson", subject = a survivor): the eye of that survivor, the way its
+        // player saw the game. See StudioFirstPerson for what each setting does. All zero / false = the old raw head lock.
+        public float fpSmoothMove = .25f;    // seconds of smoothing on where the eye is (0 = exactly on the head)
+        public float fpSmoothTurn = .45f;    // seconds of smoothing on where the eye looks
+        public bool fpLevel = true;          // keep the horizon level (no head roll)
+        public float fpFieldOfView = 62;     // vertical degrees; 0 = from the keys' focal length
+        public bool fpOwnBody = true;        // show the actor's own arms, hands and weapon, hide its head, hair, hat and upper torso
+
+        public bool aliveOff;                // true = the alive layer (StudioAlive) is off while this shot renders
+
         public float End(StudioSet set) => end < 0 ? set.length : Mathf.Min(end, set.length);
+    }
+
+    // From 'time' on, the camera aims at 'target' (+ offset), easing over 'blend' seconds from the previous aim.
+    [Serializable] public sealed class StudioAimKey
+    {
+        public float time;
+        public string target = "";
+        public Vector3 offset;
+        public float blend = .8f;
+    }
+
+    // An impact: rotation-only shake that starts at 'time' and dies away.
+    [Serializable] public sealed class StudioShake
+    {
+        public float time;
+        public float degrees = 1.5f;      // peak rotation
+        public float decay = .4f;         // seconds until it is gone
+        public float rate = 9;            // wobbles per second
     }
 
     // One piece of the final cut: part of a shot.
@@ -77,6 +116,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public string format = "png";     // png, exr, mp4, prores
         public bool cinema = true;        // cinema quality preset during the render
         public bool freezeAmbient;        // true = ocean, sky and birds hold still, so two renders are bit-for-bit the same
+        public int filmstrip = 12;        // frames in the contact sheet written next to each shot (0 = none)
     }
 
     public static class StudioAspects

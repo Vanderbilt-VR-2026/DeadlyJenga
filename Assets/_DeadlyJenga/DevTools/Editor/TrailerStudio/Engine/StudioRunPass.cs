@@ -434,6 +434,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 float cuesFrom = (branch ? pass.branchFrom : startFrame) / (float)stage.Fps;
                 if (pass.liveWorld) pendingCues.AddRange(set.cues.Where(c => string.IsNullOrEmpty(c.link) && c.at >= cuesFrom - .0001f).OrderBy(c => c.at));
                 StudioDirector.Begin(stage, startFrame / (float)stage.Fps);
+                StudioHandDirection.Begin();
 
                 if (branch)
                 {
@@ -487,6 +488,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if ((active.track.type == SurvivorTrack.Id || active.track.type == HandTrack.Id) && active.take.frames.Count > 0)
                         active.take.meta = StudioTakes.WorldMeta(world?.id ?? "");
                 if (newWorld != null) StudioTakes.MarkStale(stage.tape, newWorld, stage.Fps, recorders.Select(r => r.track.id).ToList());
+                // Directed hands: the hand marks get a take written from their pull cues (same path the blocks followed).
+                if (pass.liveWorld && !stopAsked && set.cues.Any(c => c.action == HandPullCue.Id))
+                {
+                    string baked = StudioHandDirection.Bake(stage);
+                    if (baked.Length > 0) CueLog.Add("hand: " + baked);
+                }
                 // The sound belongs to the world take it was recorded with; a branch's sound starts with the old take's.
                 if (LastRecordingHasSound && newWorld != null && branch)
                     SoundNote = StudioRender.KeepBranchAudio(set.id, oldWorld.id, newWorld.id, pass.from, stage.Frames, stage.Fps);
@@ -577,7 +584,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (!running || runStart < 0 || Stage == null) return;
             float time = firstFrame / (float)Stage.Fps + (Time.fixedTime - runStart);
             foreach (var player in players) player.FixedStep(time);
-            if (Recording && currentPass != null && currentPass.liveWorld) StudioDirector.FixedTick(Stage, CueLog);
+            if (Recording && currentPass != null && currentPass.liveWorld) { StudioDirector.FixedTick(Stage, CueLog); StudioHandDirection.FixedTick(time); }
         }
 
         internal static void FrameStart()
@@ -606,7 +613,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             if (Recording && currentPass != null)
             {
-                if (currentPass.liveWorld) StudioDirector.Tick(Stage, time, CueLog);
+                if (currentPass.liveWorld) { StudioDirector.Tick(Stage, time, CueLog); StudioHandDirection.FrameTick(time); }
                 // Slow-time cues: only while performing in real time (a fixed clock has no speed to change).
                 if (!fixedClock) Time.timeScale = Mathf.Clamp(currentPass.speed, .05f, 4) * StudioDirector.SlowFactor(time);
             }

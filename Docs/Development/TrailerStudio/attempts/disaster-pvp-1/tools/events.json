@@ -1,0 +1,147 @@
+{
+ "music": "../v02/music-edit.wav",
+ "music_gain_db": -1,
+ "music_fade_out": 0.6,
+ "duck": {
+  "frame": 357,
+  "db": -12
+ },
+ "take_gain_db": 4,
+ "take_until": 450,
+ "lufs": -15,
+ "events": [
+  {
+   "file": "WeaponBoxing-02",
+   "frame": 25,
+   "gain_db": 4
+  },
+  {
+   "file": "PlayerPain-02",
+   "frame": 27,
+   "gain_db": -2
+  },
+  {
+   "file": "TotallyMeantThat_01",
+   "frame": 40,
+   "gain_db": 0
+  },
+  {
+   "file": "FallWind_01",
+   "frame": 44,
+   "gain_db": -8,
+   "dur": 0.6,
+   "fade_out": 0.2
+  },
+  {
+   "file": "WeaponBlaster-02",
+   "frame": 90,
+   "gain_db": -4
+  },
+  {
+   "file": "BlockSmash_01",
+   "frame": 153,
+   "gain_db": 0
+  },
+  {
+   "file": "PlayerPain-03",
+   "frame": 155,
+   "gain_db": -4
+  },
+  {
+   "file": "NopeNopeNope_01",
+   "frame": 194,
+   "gain_db": 1
+  },
+  {
+   "file": "FallWind_01",
+   "frame": 200,
+   "gain_db": -6,
+   "dur": 0.4,
+   "fade_out": 0.3
+  },
+  {
+   "file": "BlockSmash_03",
+   "frame": 246,
+   "gain_db": -1
+  },
+  {
+   "file": "PlayerPain-04",
+   "frame": 249,
+   "gain_db": -4
+  },
+  {
+   "file": "Slam-01",
+   "frame": 307,
+   "gain_db": 3
+  },
+  {
+   "file": "Slam-02",
+   "frame": 308,
+   "gain_db": 0,
+   "filter": "asetrate=38400,aresample=48000"
+  },
+  {
+   "file": "BlockSmash_01",
+   "frame": 308,
+   "gain_db": 0
+  },
+  {
+   "file": "Slam-02",
+   "frame": 359,
+   "gain_db": -6
+  },
+  {
+   "file": "WhatWasThat_01",
+   "frame": 282,
+   "gain_db": 0
+  },
+  {
+   "file": "BlockSmash_02",
+   "frame": 352,
+   "gain_db": -4
+  }
+ ],
+ "titles": [
+  {
+   "text": "DEADLY JENGA",
+   "role": "title",
+   "frame_in": 359,
+   "size": 168,
+   "y": 360,
+   "fade": 3
+  },
+  {
+   "text": "BRAWL UP TOP. THE SKY WINS.",
+   "role": "tagline",
+   "frame_in": 364,
+   "size": 84,
+   "y": 575,
+   "fade": 6
+  }
+ ],
+ "darken_from": 359,
+ "darken": 0.3,
+ "sync_points": {
+  "punch": 25,
+  "rock_purple": 153,
+  "hero_falls": 194,
+  "main_planet": 307,
+  "title": 359
+ },
+ "stills": [
+  12,
+  25,
+  52,
+  90,
+  153,
+  205,
+  250,
+  282,
+  315,
+  400
+ ],
+ "music_early": {
+  "db": -3,
+  "until_frame": 100
+ }
+}

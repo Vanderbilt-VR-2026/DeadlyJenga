@@ -234,6 +234,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (camera.behavior == "orbit") panel.Add(StudioFields.Slide(context, "Orbit (deg/s)", camera.orbitSpeed, -90, 90, v => camera.orbitSpeed = v));
                 if (camera.behavior != "firstPerson" && camera.behavior != "dollyZoom") panel.Add(StudioFields.Slide(context, "Lag (s)", camera.lag, 0, 1.5f, v => camera.lag = v));
                 if (camera.behavior == "ride" || camera.behavior == "orbit") panel.Add(StudioUi.Hint("With this behavior the keys are positions around the actor, not places on the map."));
+                if (camera.behavior == "firstPerson")
+                {
+                    panel.Add(StudioFields.Slide(context, "Smooth position (s)", camera.fpSmoothMove, 0, 1, v => camera.fpSmoothMove = v));
+                    panel.Add(StudioFields.Slide(context, "Smooth turning (s)", camera.fpSmoothTurn, 0, 1.5f, v => camera.fpSmoothTurn = v));
+                    panel.Add(StudioFields.Switch(context, "Keep the horizon level", camera.fpLevel, v => camera.fpLevel = v));
+                    panel.Add(StudioFields.Slide(context, "Field of view (deg)", camera.fpFieldOfView, 0, 100, v => camera.fpFieldOfView = v));
+                    panel.Add(StudioFields.Switch(context, "Show own hands and weapon", camera.fpOwnBody, v => camera.fpOwnBody = v));
+                    panel.Add(StudioUi.Hint("The actor's eyes, as its player saw the game: own arms, hands and weapon in view, no head or hair in the lens. Other cameras still see the whole body. Field of view 0 uses the keys' focal length; all settings at 0 / off is the raw head view."));
+                }
             }
             panel.Add(StudioFields.Choice(context, "Handheld", StudioCameras.NoiseNames, Mathf.Max(0, StudioCameras.NoiseNames.IndexOf(camera.noise)), i => camera.noise = i <= 0 ? "" : StudioCameras.NoiseNames[i]));
             if (camera.noise != "") panel.Add(StudioFields.Slide(context, "Shake amount", camera.noiseStrength, 0, 3, v => camera.noiseStrength = v));

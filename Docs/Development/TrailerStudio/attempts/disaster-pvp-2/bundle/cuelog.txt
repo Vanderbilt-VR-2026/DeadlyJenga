@@ -1,0 +1,61 @@
+0.000s aimedMeteor MeteorShower rock 4 m at (-1.64, 0.00, 137.42), lands in 5.11 s
+0.000s aimedMeteor MeteorShower rock 4 m at (77.58, 0.00, 147.43), lands in 5.11 s
+0.000s aimedMeteor MeteorShower rock 4 m at (42.75, 0.00, 187.71), lands in 5.11 s
+0.300s drive hero: gear BoxingGlove to hero
+0.300s drive rival: gear BoxingGlove to rival
+0.300s drive dragon: gear BoxingGlove to dragon
+0.300s drive fox: gear Blaster to fox
+0.300s drive penguin: gear Blaster to penguin
+0.300s drive astro: gear Blaster to astro
+0.400s drive hero: path to (9.12, 3.98, 8.70) at walk
+0.500s drive dragon: goTo to (6.96, 3.98, 10.01) at walk
+0.633s drive rival: goTo to (10.04, 3.98, 7.86) at jog
+0.900s drive fox: goTo to (0.77, 3.98, 10.15) at walk
+1.000s drive penguin: goTo to (-0.82, 3.98, 7.64) at walk
+1.000s drive panda: goTo to (3.76, 1.97, 10.43) at walk
+1.667s drive dragon: goTo to (7.39, 3.98, 10.86) at walk
+1.767s drive rival: goTo to (10.32, 3.98, 7.15) at walk
+2.000s drive astro: begins to fire at point:-20.136,17.164,13.134
+2.133s drive panda: goTo to (4.57, 1.97, 10.18) at walk
+2.333s drive fox: begins to fire at actor:penguin
+2.433s drive fox: fire fox fired Blaster: True at 2.92 m
+2.633s drive astro: fire astro fired Blaster: True at 20.48 m
+2.800s drive fox: goTo to (1.09, 3.98, 9.55) at walk
+2.800s drive penguin: begins to fire at actor:fox
+2.833s drive penguin: fire penguin fired Blaster: True at 3.17 m
+2.900s drive rival: goTo to (10.22, 3.98, 7.54) at walk
+2.933s drive hero: begins to punch at actor:rival
+3.000s drive astro: goTo to (-1.57, 1.97, 5.35) at walk
+3.200s drive penguin: goTo to (-1.10, 3.98, 8.20) at walk
+3.367s drive hero: punch real glove punch (hero fired BoxingGlove: True) at 0.97 m
+3.767s aimedMeteor MeteorShower rock 4 m at (6.74, 58.06, -0.44), lands in 1.33 s
+4.200s drive astro: begins to fire at point:-9.103,18.894,-12.642
+4.333s drive fox: begins to fire at actor:penguin
+4.467s drive dragon: goTo to (7.28, 3.98, 10.75) at walk
+4.733s drive fox: fire fox fired Blaster: True at 2.82 m
+4.833s aimedMeteor MeteorShower rock 4 m at (-6.30, 60.06, 2.57), lands in 1.33 s
+4.933s drive hero: goTo to (8.73, 3.98, 8.74) at walk
+4.933s drive penguin: begins to fire at actor:fox
+5.033s drive astro: fire astro fired Blaster: True at 19.37 m
+5.100s drive fox: goTo to (0.95, 3.98, 10.19) at walk
+5.333s drive panda: goTo to (4.49, 1.97, 10.94) at jog
+5.400s drive astro: goTo to (-1.26, 1.97, 4.56) at walk
+5.500s drive penguin: fire penguin fired Blaster: True at 3.10 m
+5.867s drive penguin: goTo to (-0.89, 3.98, 7.71) at walk
+6.100s aimedMeteor MeteorShower rock 4 m at (1.36, 54.07, -5.82), lands in 1.33 s
+6.233s drive fox: begins to fire at actor:penguin
+6.233s drive penguin: jumps a gap
+6.233s drive penguin: jump
+6.267s drive dragon: goTo to (6.96, 3.98, 10.79) at walk
+6.533s drive astro: begins to fire at point:15.084,20.502,11.296
+7.000s drive penguin: begins to fire at actor:fox
+7.167s drive astro: fire astro fired Blaster: True at 17.45 m
+7.233s drive fox: fire fox fired Blaster: True at 19.67 m
+7.333s drive panda: goTo to (4.28, 1.97, 10.27) at walk
+7.400s drive dragon: goTo to (8.24, 3.98, 9.52) at run
+7.400s drive penguin: fire penguin fired Blaster: True at 23.05 m
+7.633s aimedMeteor MeteorShower rock 4 m at (0.16, 54.07, -6.27), lands in 1.33 s
+7.867s drive hero: begins to punch at actor:dragon
+8.300s drive hero: punch real glove punch (hero fired BoxingGlove: True) at 0.95 m
+8.567s aimedMeteor MeteorShower rock 4 m at (-1.04, 54.07, -6.72), lands in 1.33 s
+8.767s aimedMeteor PlanetKillerMeteor rock 45 m at (4.45, 59.87, 4.44), lands in 3.25 s

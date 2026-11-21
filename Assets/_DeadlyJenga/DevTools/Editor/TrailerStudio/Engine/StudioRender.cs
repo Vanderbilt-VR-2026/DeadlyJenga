@@ -44,6 +44,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var list = cameras.Where(c => c != null).ToList();
             if (list.Count == 0) throw new InvalidOperationException("Add a camera first.");
             var stage = StudioRun.Stage;
+            // An override aimed at something that does not exist must stop the render, not be quietly skipped.
+            var bad = StudioOverrides.TargetProblems(stage.set);
+            if (bad.Count > 0) throw new InvalidOperationException(string.Join(" ", bad));
             if (stage.performer.Length > 0) StudioRun.LeaveBody();   // the performer's own rig must not be in the shot
             LastFolder = folder ?? Path.Combine(RendersFolder(stage.set.id), DateTime.Now.ToString("yyyyMMdd-HHmmss"));
             Results.Clear();
@@ -155,6 +158,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             volume.sharedProfile = profile;
         }
 
+        // Called right before each saved picture is drawn, after the tape and the lens are set (drivers use it to
+        // tidy the scene, for example to hide a game view that is left showing on a loaded take).
+        public static event Action<Camera> BeforeFrame;
+
+        // The shot being rendered right now (null when no render runs). The alive layer reads its aliveOff switch.
+        public static StudioCameraTrack CurrentShot { get; private set; }
+
+        // Which motion the URP blur uses (a test switch; camera and objects by default).
+        public static MotionBlurMode BlurMode = MotionBlurMode.CameraAndObjects;
+
         // The per-shot look: depth of field from the lens, plus bloom, vignette, grain, colour fringes and a LUT.
         public static void ApplyLook(VolumeProfile target, StudioCameraTrack shot, StudioCameras.Shot lens)
         {
@@ -167,6 +180,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var vignette = Get<Vignette>(); vignette.active = shot.vignette > .001f; vignette.intensity.Override(Mathf.Clamp01(shot.vignette) * .55f);
             var grain = Get<FilmGrain>(); grain.active = shot.grain > .001f; grain.intensity.Override(Mathf.Clamp01(shot.grain));
             var fringe = Get<ChromaticAberration>(); fringe.active = shot.chroma > .001f; fringe.intensity.Override(Mathf.Clamp01(shot.chroma));
+            var blur = Get<MotionBlur>(); blur.active = shot.motionBlur > .001f;
+            blur.mode.Override(BlurMode); blur.quality.Override(MotionBlurQuality.High);
+            blur.intensity.Override(Mathf.Clamp01(shot.motionBlur)); blur.clamp.Override(.05f);
+            var grade = Get<ColorAdjustments>();
+            grade.active = Mathf.Abs(shot.exposure) > .001f || Mathf.Abs(shot.contrast) > .001f || Mathf.Abs(shot.saturation) > .001f;
+            grade.postExposure.Override(shot.exposure); grade.contrast.Override(shot.contrast); grade.saturation.Override(shot.saturation);
             var lookup = Get<ColorLookup>();
             lookup.active = false;
             if (!string.IsNullOrEmpty(shot.lut))
@@ -178,6 +197,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 if (lutTexture) { lookup.active = true; lookup.texture.Override(lutTexture); lookup.contribution.Override(1); }
             }
+        }
+
+        // Played-back characters are posed straight from the tape, so a skinned mesh's "previous frame" can be a
+        // pose from far away. With per-object motion vectors URP then blurs the whole body along that garbage
+        // motion and it renders see-through and pale (proved in disaster-pvp-1's colour check: the skinned body
+        // ghosted, the rigid hair on the same actor did not, and switching skinned vectors off fixed it).
+        // Their transform motion still blurs; only the skinned part's own vectors are switched off.
+        static void NoSkinnedVectors(StudioStage stage)
+        {
+            foreach (var shown in stage.playback.Values)
+                if (shown)
+                    foreach (var skin in shown.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                        if (skin.skinnedMotionVectors) skin.skinnedMotionVectors = false;
         }
 
         // ---- The render itself ----
@@ -204,12 +236,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 foreach (var shot in shots)
                 {
                     if (cancel) break;
+                    CurrentShot = shot;
                     var watch = Stopwatch.StartNew();
                     string folder = Path.Combine(root, ShotFolder(shot));
                     Directory.CreateDirectory(folder);
                     var times = StudioCameras.Timeline(shot, set, settings.fps, sub);
                     int frames = times.Count / sub;
                     var done = new Finished { camera = shot.name, cameraId = shot.id, folder = folder, fps = settings.fps, width = width, height = height };
+                    var framing = shot.measure != null && shot.measure.Count > 0 ? new StudioFraming(stage, shot.measure, settings.fps) : null;
                     if (times.Count > 0)
                     {
                         // Throw-away pictures of the first frame. Whatever was on screen before the render
@@ -238,15 +272,26 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                             if (settings.freezeAmbient) Time.timeScale = 0;
                             else { Time.timeScale = 1; Time.captureDeltaTime = Mathf.Max(.00002f, step); }
                             StudioRun.ShowExact(tape * set.fps);
+                            // One engine frame with the new pose before drawing: skinned characters (the hand, the
+                            // survivors) update their meshes in the game loop, so a picture drawn right away shows
+                            // the previous pose, or nothing for a character that has just appeared.
+                            float keepStep = Time.captureDeltaTime;
+                            if (!settings.freezeAmbient) Time.captureDeltaTime = .00002f;
+                            yield return 0;
+                            StudioRun.ShowExact(tape * set.fps);
+                            if (!settings.freezeAmbient) Time.captureDeltaTime = keepStep;
+                            if (shot.motionBlur > .001f) NoSkinnedVectors(stage);
                             var lens = StudioCameras.Evaluate(shot, set, stage.tape, stage.anchor, tape, cameraTime);
                             StudioCameras.Apply(camera, lens);
                             ApplyLook(profile, shot, lens);
                             camera.targetTexture = target;
+                            try { BeforeFrame?.Invoke(camera); } catch (Exception problem) { Debug.LogException(problem); }
                             camera.Render();
                             var old = RenderTexture.active;
                             RenderTexture.active = target;
                             reader.ReadPixels(new Rect(0, 0, width, height), 0, 0);
                             RenderTexture.active = old;
+                            if (framing != null && s == open - 1) framing.Measure(camera, n, tape);
                             if (sum != null)
                             {
                                 var pixels = reader.GetRawTextureData<float>();
@@ -287,6 +332,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         if (n % 5 == 0) try { Changed?.Invoke(); } catch { }
                     }
                     done.seconds = (float)watch.Elapsed.TotalSeconds;
+                    try
+                    {
+                        framing?.Write(folder);
+                        if (!exr) StudioFraming.Filmstrip(folder, done.frames, settings.fps, shot.start, settings.filmstrip);
+                    }
+                    catch (Exception error) { Debug.LogWarning("[TrailerStudio] Metrics or filmstrip failed: " + error.Message); }
                     File.WriteAllText(Path.Combine(folder, "shot.json"), JsonUtility.ToJson(new ShotRecord
                     { name = shot.name, id = shot.id, frames = done.frames, fps = settings.fps, width = width, height = height, tapeStart = shot.start, tapeEnd = shot.End(set), subFrames = sub, format = settings.format }, true));
 
@@ -314,6 +365,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             finally
             {
+                CurrentShot = null;
                 camera.targetTexture = null;
                 Object.Destroy(target); Object.Destroy(reader); if (writer) Object.Destroy(writer);
                 Restore();

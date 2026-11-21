@@ -176,7 +176,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             string tape = StudioLibrary.TapePath("acceptance-viaduct");
             if (File.Exists(tape)) File.Delete(tape);
             var set = new StudioSet { id = "acceptance-viaduct", title = "Acceptance: viaduct collapse", map = Map, fps = 30, length = 6,
-                notes = "Made by the Phase 1 acceptance run. Safe to delete." };
+                notes = "Made by the Phase 1 acceptance run. Safe to delete.", alive = new StudioAliveSettings { on = false } };   // these tests measure exact poses
             set.AddMark(StudioRole.Bot, new Vector3(1.5f, 0, 0));
             set.AddMark(StudioRole.Bot, new Vector3(-1.5f, 0, 0));
             set.AddMark(StudioRole.Survivor, new Vector3(0, 0, 1.5f));

@@ -14,8 +14,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     {
         public int Order => 10;
 
-        public static readonly List<string> Kinds = new List<string> { "lookAt", "reach", "pose", "reaction", "emote", "outfit", "colorFlash", "equipment", "hitPause" };
-        public static readonly List<string> KindLabels = new List<string> { "Look at", "Reach", "Pose", "Reaction", "Emote", "Outfit change", "Color flash", "Weapon swap", "Hit pause" };
+        // "hide": the actor is not drawn while the layer is on (for example after a fall into the sea, so the respawn is never seen).
+        public static readonly List<string> Kinds = new List<string> { "lookAt", "reach", "pose", "reaction", "emote", "outfit", "colorFlash", "equipment", "hitPause", "hide", "punch" };
+        public static readonly List<string> KindLabels = new List<string> { "Look at", "Reach", "Pose", "Reaction", "Emote", "Outfit change", "Color flash", "Weapon swap", "Hit pause", "Hide", "Punch" };
         public static readonly List<string> Reactions = new List<string> { "stagger", "knockback", "fall", "tumble", "death", "getUp", "cheer", "scream", "cower" };
         public static readonly List<string> ReactionLabels = new List<string> { "Hit stagger", "Knockback", "Fall", "Tumble", "Death", "Get up", "Cheer", "Scream", "Cower" };
 
@@ -40,19 +41,48 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // Also used by tests and tools that want an override's result without a stage.
         public static void Apply(StudioSet set, StudioTape tape, Vector3 anchor, StudioOverride layer, float time, float weight, ActorFrame frame)
         {
+            if (layer.kind == "hide") { if (weight > 0) frame.visible = false; return; }
             if (frame.isHand) return;   // the hand has no head, arms or outfit
             switch (layer.kind)
             {
                 case "lookAt":
-                    if (Target(set, tape, anchor, layer, time, out var see)) LookAt(frame, see, weight);
+                    if (Target(set, tape, anchor, layer, time, out var see))
+                    {
+                        // Which way round a look behind turns is decided once, where the layer starts, so it never flips.
+                        // (The recorded head at the layer's start, not now: measured against the current head, a target that
+                        // drifted behind the actor flipped the turn 160 degrees in one frame; disaster-pvp-2 measured 4886 deg/s.)
+                        float side = 0;
+                        var then = StudioActorPoses.At(tape, layer.actor, layer.Start, set.fps);
+                        if (Target(set, tape, anchor, layer, layer.Start, out var first))
+                            side = then.found ? Mathf.DeltaAngle(then.headRotation.eulerAngles.y, StudioHuman.Yaw(first - then.head))
+                                              : Mathf.DeltaAngle(frame.body.headRotation.eulerAngles.y, StudioHuman.Yaw(first - frame.body.head));
+                        LookAt(frame, see, layer, time, weight, side);
+                    }
                     break;
                 case "reach":
-                    if (Target(set, tape, anchor, layer, time, out var reach))
+                    if (layer.target == "self")
+                    {
+                        // A hand held somewhere on the actor's own body: 'point' is metres from the head, in the frame
+                        // the head faces (x right, y up, z forward). It is worked out from this frame's own head, so the
+                        // hand follows the body smoothly. (disaster-pvp-2 faked this with a chain of short reaches to
+                        // fixed points every 5 frames; the hand stepped, 55 one-frame pops in 15 s.)
+                        Vector3 held = frame.body.head + Quaternion.Euler(0, frame.body.headRotation.eulerAngles.y, 0) * layer.point;
+                        held = ClampToArm(frame.body, held, layer.leftHand);
+                        if (layer.leftHand) { frame.body.left.position = Vector3.Lerp(frame.body.left.position, held, weight); frame.body.left.tracked = true; }
+                        else { frame.body.right.position = Vector3.Lerp(frame.body.right.position, held, weight); frame.body.right.tracked = true; }
+                    }
+                    else if (Target(set, tape, anchor, layer, time, out var reach))
                     {
                         // The game's avatar already solves the arm from the hand's position (IK), so moving the hand is enough.
+                        // Never past the arm's own reach (the same limit the game's punch uses): an unclamped target far away
+                        // stretched the arm into a ribbon metres long (disaster-pvp-2's first cut).
+                        reach = ClampToArm(frame.body, reach, layer.leftHand);
                         if (layer.leftHand) { frame.body.left.position = Vector3.Lerp(frame.body.left.position, reach, weight); frame.body.left.tracked = true; }
                         else { frame.body.right.position = Vector3.Lerp(frame.body.right.position, reach, weight); frame.body.right.tracked = true; }
                     }
+                    break;
+                case "punch":
+                    if (Target(set, tape, anchor, layer, layer.Start + PunchContact, out var at)) Punch(frame, at, layer, time);
                     break;
                 case "pose": Pose(frame, layer.crouch, layer.lean, layer.flinch, layer.armRaise, weight); break;
                 case "reaction":
@@ -116,21 +146,138 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         if (HazardTrack.CenterAt(hazards, f, out point)) { point.y = Mathf.Max(point.y, anchor.y); return true; }
                 return false;
             }
+            if (target.StartsWith("point:"))
+            {
+                if (!TryParsePoint(target.Substring(6), out var offset)) { Unknown(layer); return false; }
+                point = anchor + offset;
+                return true;
+            }
+            Unknown(layer);
             return false;
+        }
+
+        // "x,y,z" in metres from the stage spot (the same text StudioTargets.Point writes).
+        public static bool TryParsePoint(string text, out Vector3 point)
+        {
+            point = default;
+            var parts = (text ?? "").Split(',');
+            if (parts.Length != 3) return false;
+            var style = System.Globalization.NumberStyles.Float;
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+            if (!float.TryParse(parts[0], style, culture, out point.x) || !float.TryParse(parts[1], style, culture, out point.y) || !float.TryParse(parts[2], style, culture, out point.z)) return false;
+            return true;
+        }
+
+        // A target the Studio does not understand: say so once per override, loudly (it used to be silently ignored).
+        static readonly HashSet<string> reported = new HashSet<string>();
+        static void Unknown(StudioOverride layer)
+        {
+            if (reported.Add(layer.id + layer.target)) Debug.LogError($"Trailer Studio: override {layer.id} ({layer.kind} on {layer.actor}) has a target the Studio does not understand: \"{layer.target}\". Use \"\", actor:<mark id>, block:<index>, camera:<camera id>, hazard or point:x,y,z.");
+        }
+
+        // Every override whose target is written wrong or points at something that is not in the Set.
+        public static List<string> TargetProblems(StudioSet set)
+        {
+            var problems = new List<string>();
+            if (set?.overrides == null) return problems;
+            foreach (var layer in set.overrides)
+            {
+                string target = layer.target ?? "";
+                if (target.Length == 0 || target == "hazard" || target == "self" && layer.kind == "reach") continue;
+                string where = $"Override {layer.id} ({layer.kind} on {set.Mark(layer.actor)?.actor ?? layer.actor})";
+                if (target.StartsWith("actor:")) { if (set.Mark(target.Substring(6)) == null) problems.Add($"{where} looks at an actor that is not in the Set: \"{target}\"."); }
+                else if (target.StartsWith("block:")) { if (!int.TryParse(target.Substring(6), out int index) || index < 0) problems.Add($"{where} has a block target that is not a block number: \"{target}\"."); }
+                else if (target.StartsWith("camera:")) { if (set.cameras.All(c => c.id != target.Substring(7))) problems.Add($"{where} looks at a camera that is not in the Set: \"{target}\"."); }
+                else if (target.StartsWith("point:")) { if (!TryParsePoint(target.Substring(6), out _)) problems.Add($"{where} has a point target that is not \"point:x,y,z\": \"{target}\"."); }
+                else problems.Add($"{where} has a target the Studio does not understand: \"{target}\" (use actor:, block:, camera:, hazard or point:x,y,z).");
+            }
+            return problems;
         }
 
         // ---- Look-at ----
 
-        // Turn the head toward a point. The neck only turns so far, so the body's facing limits it.
-        static void LookAt(ActorFrame frame, Vector3 point, float weight)
+        // Turn the head toward a point. Up to 85 degrees from where the body faces the neck does it (the
+        // avatar's torso already follows a head turned past about 35 degrees). Further round, as for a look
+        // behind, the whole body turns to follow: the head goes the full way, but more slowly, the way a
+        // person turns on the spot, so the avatar's torso and feet come round after it.
+        // 'side' is which way round to turn when the target is right behind (from where the layer starts).
+        const float NeckLimit = 85, BodyTurnSpeed = 220;   // degrees, degrees per second
+
+        static void LookAt(ActorFrame frame, Vector3 point, StudioOverride layer, float time, float weight, float side)
         {
             Vector3 toward = point - frame.body.head;
             if (toward.sqrMagnitude < .0001f) return;
             float facing = frame.body.headRotation.eulerAngles.y;
             var wanted = Quaternion.LookRotation(toward).eulerAngles;
-            float yaw = facing + Mathf.Clamp(Mathf.DeltaAngle(facing, wanted.y), -85, 85);
+            float delta = Mathf.DeltaAngle(facing, wanted.y);
             float pitch = Mathf.Clamp(Mathf.DeltaAngle(0, wanted.x), -55, 55);
-            frame.body.headRotation = Quaternion.Slerp(frame.body.headRotation, Quaternion.Euler(pitch, yaw, 0), weight);
+            // One formula for every angle. It used to switch from a weighted slerp to a timed turn at the neck limit, so a
+            // recorded head drifting across 85 degrees from the target snapped about 30 degrees in one frame (disaster-pvp-2
+            // measured 887 deg/s on the hero's look up).
+            // Keep turning the same way round once the turn has started.
+            // The turn nearest to the way it started (continuous: a fixed angle threshold jumped 350 degrees when the
+            // recorded head drifted across it; disaster-pvp-2's fox measured 3311 deg/s).
+            if (side != 0) delta = side + Mathf.DeltaAngle(side, delta);
+            // The turn takes longer the further round it goes; the blend-out is the layer's own.
+            float turnTime = Mathf.Max(.05f, layer.blendIn) + Mathf.Max(0, Mathf.Abs(delta) - NeckLimit) / BodyTurnSpeed;
+            float rise = Mathf.Clamp01((time - layer.Start) / turnTime);
+            float fall = layer.blendOut <= 0 ? 1 : Mathf.Clamp01((layer.Stop - time) / layer.blendOut);
+            float u = Mathf.Min(rise, fall);
+            float progress = u * u * (3 - 2 * u) * Mathf.Clamp01(layer.strength);
+            if (weight <= 0) progress = 0;
+            var recorded = frame.body.headRotation.eulerAngles;
+            frame.body.headRotation = Quaternion.Euler(Mathf.LerpAngle(recorded.x, pitch, progress), facing + delta * progress, Mathf.LerpAngle(recorded.z, 0, progress));
+        }
+
+        // ---- Arms ----
+
+        // Where the shoulder is, the way the game's own punch finds it (CandyPlayerAvatar.Punch: head + (0.21, -0.345, 0) x scale).
+        static Vector3 Shoulder(CandyAvatarFrame body, bool left)
+        {
+            float scale = Mathf.Max(.1f, body.scale);
+            var yaw = Quaternion.Euler(0, body.headRotation.eulerAngles.y, 0);
+            return body.head + yaw * new Vector3(left ? -.21f : .21f, -.345f, 0) * scale;
+        }
+
+        // The game's punch never puts the hand more than 0.75 x scale from the shoulder; nor does a reach layer.
+        public static Vector3 ClampToArm(CandyAvatarFrame body, Vector3 point, bool left)
+        {
+            Vector3 shoulder = Shoulder(body, left);
+            return shoulder + Vector3.ClampMagnitude(point - shoulder, .75f * Mathf.Max(.1f, body.scale));
+        }
+
+        // A punch thrown with the game's own timing (CandyPlayerAvatar.ApplyPunch: wind-up 0.045 s, extend 0.08 s, hold 0.03 s,
+        // back 0.205 s) toward the target as it stands at the contact moment, the arm clamped to its reach, while the body
+        // lunges into the hit and comes back. The layer's start is the wind-up; contact is PunchContact seconds later.
+        // The boxing glove in the game is a held glove (a melee sphere cast), not a spring: the arm alone carries it.
+        public const float PunchContact = .125f;
+        static void Punch(ActorFrame frame, Vector3 target, StudioOverride layer, float time)
+        {
+            float age = time - layer.Start;
+            if (age < 0 || age >= .36f) return;
+            var body = frame.body;
+            float scale = Mathf.Max(.1f, body.scale);
+            bool left = layer.leftHand;
+            Vector3 flat = Vector3.ProjectOnPlane(target - body.feet, Vector3.up);
+            Vector3 toward = flat.sqrMagnitude > .0001f ? flat.normalized : Quaternion.Euler(0, body.headRotation.eulerAngles.y, 0) * Vector3.forward;
+            // The body: a small dip back on the wind-up, then a lunge of up to 0.3 x scale into the hit, easing back.
+            float lunge = age < .045f ? -.06f * Mathf.SmoothStep(0, 1, age / .045f)
+                        : age < .155f ? Mathf.Lerp(-.06f, 1, Mathf.SmoothStep(0, 1, (age - .045f) / .11f))
+                        : 1 - Mathf.SmoothStep(0, 1, (age - .155f) / .205f);
+            Vector3 move = toward * (.3f * scale * lunge * Mathf.Clamp(layer.strength, 0, 2));
+            body.feet += move * .35f; body.head += move; body.left.position += move; body.right.position += move;
+            body.headRotation = Quaternion.Slerp(body.headRotation, body.headRotation * Quaternion.Euler(8, 0, 0), Mathf.Max(0, lunge) * .6f);
+            var hand = left ? body.left : body.right;
+            Vector3 direction = (target - body.head).normalized;
+            Vector3 shoulder = Shoulder(body, left);
+            Vector3 strike = shoulder + Vector3.ClampMagnitude(target - direction * (.055f * scale) - shoulder, .6f * scale);   // the arm bones are 0.56 x scale long; the game allows 0.75 (a visible stretch at first-person range)
+            Vector3 windup = hand.position - direction * (.12f * scale) + Vector3.down * (.035f * scale);
+            float extension = age < .045f ? 0 : age < .125f ? Mathf.SmoothStep(0, 1, (age - .045f) / .08f) : age < .155f ? 1 : 1 - Mathf.SmoothStep(0, 1, (age - .155f) / .205f);
+            Vector3 start = age >= .155f ? hand.position : Vector3.Lerp(hand.position, windup, Mathf.SmoothStep(0, 1, Mathf.Min(age / .045f, 1)));
+            hand.position = Vector3.Lerp(start, strike, extension);
+            hand.tracked = true;
+            if (left) body.left = hand; else body.right = hand;
+            frame.body = body;
         }
 
         // ---- Pose layer ----
@@ -180,6 +327,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             bool stays = layer.name == "death" || layer.name == "fall";  // these do not blend back by themselves
             if (time > layer.Stop && !stays) return;
             float back = stays ? 1 : 1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(1 - Mathf.Clamp01(layer.blendOut / length), 1, u));
+            // Ease in too: reactions started at full strength on their first frame (disaster-pvp-2: the scream tipped the
+            // hero's head 28 degrees in one frame, 887 deg/s). A short blendIn (0.05 s) keeps a hit's reaction sharp.
+            if (layer.blendIn > 0) back *= Mathf.SmoothStep(0, 1, Mathf.Clamp01((time - start) / layer.blendIn));
             float amount = Mathf.Clamp(layer.strength, 0, 3);
             var body = frame.body;
             float size = Mathf.Max(.1f, body.scale);
@@ -252,7 +402,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     body.headRotation = Quaternion.Slerp(body.headRotation, body.headRotation * Quaternion.Euler(-28, 0, 0), back);
                     body.left.position = Vector3.Lerp(body.left.position, body.head + facing * new Vector3(-.17f, .04f, .06f) * size, back);
                     body.right.position = Vector3.Lerp(body.right.position, body.head + facing * new Vector3(.17f, .04f, .06f) * size, back);
-                    body.head += facing * Vector3.forward * (.03f * Mathf.Sin(u * length * 40) * back);   // a tremble
+                    // A slow shudder of a few millimetres. (It was 3 cm at 6 Hz, which at 30 frames a second showed as the
+                    // head and both hands jumping every seventh frame.)
+                    body.head += facing * Vector3.forward * (.006f * Mathf.Sin(u * length * 13) * back);
                     break;
                 case "cower":
                     body.head.y -= standing * .5f * back;
@@ -271,6 +423,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static List<string> Resolve(StudioSet set, StudioTape tape, Vector3 anchor)
         {
             var notes = new List<string>();
+            var bad = TargetProblems(set);
+            if (bad.Count > 0) throw new InvalidOperationException(string.Join(" ", bad));
             var world = tape?.FindType(WorldTrack.Id)?.ActiveTake;
             var hazards = tape?.FindType(HazardTrack.Id)?.ActiveTake;
             foreach (var layer in set.overrides)

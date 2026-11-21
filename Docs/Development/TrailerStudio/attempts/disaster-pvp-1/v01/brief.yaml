@@ -1,0 +1,36 @@
+# Stage 0 brief, disaster-pvp-1 (2026-11-20)
+goal: >
+  A 12-15 s gameplay trailer moment for Deadly Jenga about disaster PvP mayhem: survivors on a
+  collapsing block tower fight each other while disasters tear the place apart. Rendered from the
+  real game with Trailer Studio. Judged by the owner as a test of how captivating an AI-made moment can be.
+direction_from_owner: "the flying hand is not an important part of our game any more; epic disaster PvP mayhem"
+audience: the owner and team first; then players on social/video platforms
+length_s: 15            # class 15
+aspect: "16:9"
+delivery: 1920x1080, 30 fps, H.264 + AAC stereo, -16 to -14 LUFS
+platform: social / video, sound on, but every beat must read with the sound off
+concept_type: disaster  # the hazard is the star threat; PvP is the hook and the human story
+hand: none              # the giant hand is left out entirely (owner direction)
+map: castle             # the classic spire over the ocean; numbers measured at the scout
+render_budget: about 15 coordinator jobs in total (3 for the motion blur bug)
+must_show:
+  - id: pvp
+    proof: one survivor hurts or knocks another off the tower with a game weapon, the hit and the victim's flight both in frame
+  - id: multiplayer
+    proof: four or more survivors in one frame acting independently (shooting, dodging, cowering)
+  - id: disaster_hit
+    proof: a disaster visibly moves blocks or throws a survivor, with the tower or a survivor in frame for scale
+  - id: escalation
+    proof: the threat grows on screen - single fights, then a meteor rain, then one rock big enough to end the tower
+  - id: hero
+    proof: the same survivor (yellow, boxing glove) is readable in at least three shots, including one MS or tighter
+  - id: ending_image
+    proof: a held final frame with the tower and the final threat both readable, under the title
+sentence_to_repeat: "You fight your friends on top of a tower while the sky falls on all of you."
+title_choice: >
+  A short end title (DEADLY JENGA + one tagline line) from about 11.5 s. The owner asked for a trailer
+  clip, the 15 s class allows a 3.5 s card, and a muted viewer needs the name. Chosen, not required.
+known_limits:
+  - avatars have no drawn face: reactions read through head, body and hands (Studio scream, cower, cheer layers)
+  - the Studio has no sound cues: the take's own recorded game sound plus game audio files are laid in at assembly
+  - takes differ between runs: one take is recorded, saved as a bundle and every render loads it

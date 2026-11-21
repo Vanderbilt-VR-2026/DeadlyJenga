@@ -1,0 +1,383 @@
+id: disaster-pvp-2
+version: 1
+mode: production
+concept_type: mayhem
+opening: staged
+threats: ["hazard:meteor_shower", "hazard:planet_killer"]
+fps: 30
+length_frames: 450
+class: 15
+aspect: "16:9"
+shape: montage
+hook: "Friends punch each other off a tower top while meteors smash it"
+hero: hero
+cast: [hero, rival, dragon, fox, penguin, panda, astro]
+must_show: [pvp_hit, knock_off, hazard_hit, several_survivors, survivors_react]
+capture: {hand: none, survivors: "all seven live in ONE RecordWholeSet pass, each driven through the game's controls by StudioPerformer (goTo, look, face, punch with the real glove, fire)", take: "bundle (planned)", take_status: planned}
+motion_source: plan
+pov_led: false
+camera_sensor_mm: 24
+waive:
+  - {lint: L56, shot: "S02, S05, S07, S08", reason: "no person in the headset for this attempt; the hero is driven through the game's controls (head leads body, eased looks) with explicit look-at, reach and reaction layers and the alive layer on his hands and breath; re-shoot S08 with a person performing the hero if one is free"}
+  - {lint: L22, shot: "all", reason: "shot lengths are set by four physics events placed on measured onsets (76, 154, 218, 309); varying them further would move cuts off the hits"}
+key_events:
+  - {id: K1, frame: 76,  kind: pvp_hit,    attacker: hero, victim: rival, what: "the hero's glove launches the gorilla off the summit (also a knock-off)"}
+  - {id: K2, frame: 154, kind: hazard_hit, attacker: "hazard:meteor_shower", victim: fox, what: "a rock lands between the fox and the penguin and throws both off block 2"}
+  - {id: K3, frame: 218, kind: pvp_hit,    attacker: hero, victim: dragon, what: "the hero's counter-punch launches the charging dragon off the summit"}
+  - {id: K4, frame: 309, kind: payoff,     attacker: "hazard:planet_killer", victim: hero, what: "the planet killer lands on the summit, on the hero"}
+layers:
+  - {order: 1, kind: world, actor: world, how: "RecordWholeSet: aimed meteors (3 streaks, a rock into the wide, a rock between fox and penguin, 3 background rocks), the light meteor shower they start, the aimed planet killer; every survivor live and driven", gives: "blocks, rocks, punches, blaster shots, every body"}
+  - {order: 2, kind: actor, actor: hero, how: "driven: circles, looks at the sky, punches the gorilla (real glove), watches him fall, walks back, turns to the dragon, counter-punches, looks up, crouches; layers: lookAt the gorilla's chest before K1, reach through each contact frame, cheer after K1, lookAt the planet killer, scream then cower", reacts_to: [K1, K3, K4]}
+  - {order: 3, kind: actor, actor: rival, how: "driven: squares up, feints in, backs off; physics at K1; scream layer in the air; hidden after his respawn", reacts_to: [K1]}
+  - {order: 4, kind: actor, actor: dragon, how: "driven: watches the shoot-out, sees K1, charges the hero; physics at K3; scream; hidden after respawn", reacts_to: [K1, K3]}
+  - {order: 5, kind: actor, actor: fox, how: "driven: strafes and trades blaster shots with the penguin, glances at the hero, looks up at the rock; physics at K2; scream", reacts_to: [K2]}
+  - {order: 6, kind: actor, actor: penguin, how: "driven: strafes and fires back, looks at the sky; physics at K2; scream 1 frame after the fox", reacts_to: [K2]}
+  - {order: 7, kind: actor, actor: panda, how: "driven: peeks over the edge, watches the fights, shuffles away from the rocks; flinch at K2 + 11 (looking elsewhere), lookAt the fox; looks up at the planet killer, cowers", reacts_to: [K2, K4]}
+  - {order: 8, kind: actor, actor: astro, how: "driven: shoots blaster bolts at the falling rocks; lookAt the penguin at K2 + 19 (far); looks up at the planet killer, screams", reacts_to: [K2, K4]}
+music:
+  file: music/music-edit.wav
+  bpm: 140
+  meter: 4
+  downbeat_frame: 0
+  sections: [{name: groove, from_frame: 0, to_frame: 103}, {name: build, from_frame: 103, to_frame: 309}, {name: drop, from_frame: 309, to_frame: 450}]
+  hits:
+    - {name: feint,  role: accent, frame: 25,  measured_onset_frame: 25.2}
+    - {name: punch1, role: accent, frame: 76,  measured_onset_frame: 76.5}
+    - {name: wide,   role: accent, frame: 122, measured_onset_frame: 121.5}
+    - {name: rock,   role: accent, frame: 154, measured_onset_frame: 153.6}
+    - {name: punch2, role: accent, frame: 218, measured_onset_frame: 218.1}
+    - {name: main,   role: main,   frame: 309, measured_onset_frame: 307.5}
+    - {name: title,  role: title,  frame: 359, measured_onset_frame: 359.1}
+  stopdowns:
+    - {from: 297, to: 308}
+titles:
+  - {text: "DEADLY JENGA", role: title, frame_in: 359, frame_out: 450, style: over_picture, position: center, closing: true}
+  - {text: "WIN THE TOP. LOSE THE SKY.", role: tagline, frame_in: 366, frame_out: 450, style: over_picture, position: lower_third, closing: false}
+hazard_set:
+  - {cue: aimedMeteor, kind: MeteorShower, starts_shower: "1.8 m, 0.6 dev, 1.5 per s, force 22, no warning, 14 s", rocks: "4.0 m at 45 m/s"}
+  - {cue: aimedMeteor, kind: PlanetKillerMeteor, size_m: 45, speed_m_s: 40, from: "27 deg up, beyond the dragon's end of the summit", lands: 309}
+mix: {target_lufs: -15, true_peak_max: -1.0, title_vs_body_lu: -5, ramp_lu: 3}
+studio: {ramp_sound: false}
+
+shots:
+  - id: S01
+    section: hook
+    kind: gameplay
+    cut_in: 0
+    cut_out: 48
+    subject: {kind: actor, id: hero}
+    also_in_frame: [rival, dragon, "tower:summit", "hazard:meteor_shower"]
+    shows: [several_survivors]
+    readable_survivors: 3
+    tower_level: top
+    learns: "Three gloved survivors square up on the summit"
+    reveal: knows
+    threat: "hazard:meteor_shower"
+    size: WS
+    angle: low
+    side: {face: 3q_front, yaw_deg: 40}
+    camera: {move: push_in, purpose: "inside the brawl, rocks streaking past behind it", ease: in_out, distance_m: 3.6, height_m: 0.45, focal_mm: 29, aperture: 11, focus: subject}
+    fit: "Hf = 3.6 x 24/29 = 3.0 m: hero and gorilla 0.31 (WS); frame 5.3 m wide holds the 4.7 m from the dragon to the gorilla; lens 0.45 m above the summit, so the sky (and the streaking rocks 130-190 m out) fills the top half"
+    key_frame: 25
+    actors:
+      - {id: hero,   doing: "circles the gorilla with the glove up, glancing at a rock in the sky", how: [driven, alive], spot: summit, still_f: 8, level_f: 20, acts_at: [3, 20, 44]}
+      - {id: rival,  doing: "feints in at the hero, then backs off", how: [driven, alive], spot: summit, still_f: 6, level_f: 18, acts_at: [9, 25, 36]}
+      - {id: dragon, doing: "watches the shoot-out on the next block, then the hero", how: [driven, alive], spot: summit, still_f: 10, level_f: 22, acts_at: [12, 30]}
+    transition_in: cut
+    connects_from_prev: {type: new_beat, screen_direction: none, eye_enter: MC, eye_exit: MR}
+    sound:
+      - {at: 0, kind: music_hit, name: groove, source: library, gain_db: 0}
+      - {at: 14, kind: sfx, name: meteor whoosh, source: library, gain_db: -10, lead_in: true}
+      - {at: 25, kind: music_hit, name: feint, source: library, gain_db: 0, sync: feint}
+      - {at: 25, kind: sfx, name: glove swish, source: library, gain_db: -6}
+    hook_count: 1
+    needs: [{feature: performer_driver, status: available}, {feature: alive_layer, status: available}, {feature: aimed_meteor, status: available}]
+    fallback: "if no rock crosses the frame, the hero's glance up carries the anticipation (reveal: reaction)"
+
+  - id: S02
+    section: teach
+    kind: gameplay
+    cut_in: 48
+    cut_out: 110
+    subject: {kind: actor, id: rival}
+    also_in_frame: [hero, "tower:summit"]
+    shows: [pvp_hit, knock_off]
+    attacker: hero
+    victim: rival
+    tower_level: top
+    learns: "Your own glove launches the gorilla off the top"
+    reveal: none
+    size: FS
+    angle: eye
+    side: {face: null, yaw_deg: null}
+    camera: {move: pov, purpose: "the hit from the hero's own eyes: guard, glove, the gorilla flying", ease: none, distance_m: 1.6, height_m: 0.85, focal_mm: 20, pov_smoothing: {pos_s: 0.2, rot_s: 0.32}, pov_of: hero}
+    fit: "POV, vertical FOV 62: Hf = 2 x 1.6 x tan 31 = 1.92 m at the gorilla 1.6 m away: 0.49 (FS by the subject-fraction rule); the glove arm fills the lower right; after contact he leaves frame in about 6 frames and the hero's head follows him down over the edge"
+    key_frame: 28
+    take_ref: {event: K1, take_frame: planned, subject_h: 0.49, source: fit}
+    actors:
+      - {id: hero,  doing: "closes in on the gorilla, punches, watches him fall, pumps a fist", how: [driven, layer, alive], spot: summit, still_f: 5, level_f: 24, acts_at: [8, 26, 34, 46]}
+      - {id: rival, doing: "squares up to the hero, too late to block", how: [driven, physics, layer], spot: summit, still_f: 6, level_f: 20, acts_at: [2, 28]}
+    transition_in: cut
+    connects_from_prev: {type: cause_effect, screen_direction: toward, eye_enter: MC, eye_exit: MR}
+    sound:
+      - {at: 28, kind: music_hit, name: punch1, source: library, gain_db: 0, sync: punch1}
+      - {at: 28, kind: sfx, name: WeaponBoxing, source: library, gain_db: 3}
+      - {at: 30, kind: sfx, name: PlayerPain, source: library, gain_db: -3}
+      - {at: 34, kind: sfx, name: FallWind, source: library, gain_db: -8}
+    hook_count: null
+    needs: [{feature: driven_glove_punch, status: available}, {feature: first_person_own_body, status: available}]
+    fallback: "glovePunch cue at the same frame"
+
+  - id: S03
+    section: teach
+    kind: gameplay
+    cut_in: 110
+    cut_out: 140
+    subject: {kind: tower, id: summit}
+    also_in_frame: [hero, dragon, fox, penguin, panda, "hazard:meteor_shower"]
+    shows: [hazard_hit, several_survivors]
+    readable_survivors: 4
+    tower_level: top
+    learns: "Meteors start smashing the tower around every fight"
+    reveal: whole
+    threat: "hazard:meteor_shower"
+    size: WS
+    angle: high
+    side: {face: 3q_front, yaw_deg: 30}
+    camera: {move: static, purpose: "geography: the summit, block 2 and who is where", ease: none, distance_m: 11.0, height_m: 4.5, focal_mm: 28, aperture: 11, focus: subject}
+    fit: "Hf = 11.0 x 24/28 = 9.4 m at the middle of the two top blocks: each survivor 0.10 (readable, >= 0.08), frame 16.8 m wide holds both blocks 8.9 m apart; the rock lands on the level below 2 m under them, inside frame"
+    key_frame: 12
+    actors:
+      - {id: hero,    doing: "watches the gorilla fall, then looks up at the rocks", how: [driven, alive], spot: summit, still_f: 6, level_f: 12, acts_at: [4, 31]}
+      - {id: dragon,  doing: "steps back from his end, eyes on the sky", how: [driven, layer, alive], spot: summit, still_f: 8, level_f: 14, acts_at: [13, 24]}
+      - {id: fox,     doing: "strafes and fires at the penguin", how: [driven, alive], spot: block2, still_f: 4, level_f: 18, acts_at: [18, 36]}
+      - {id: penguin, doing: "strafes, aiming back at the fox", how: [driven, alive], spot: block2, still_f: 5, level_f: 18, acts_at: [0, 9]}
+      - {id: panda,   doing: "shuffles along the lower level away from the falling rocks", how: [driven, alive], spot: level58, still_f: 6, level_f: 15, acts_at: [27, 40]}
+    transition_in: cut
+    connects_from_prev: {type: new_beat, screen_direction: none, eye_enter: MC, eye_exit: MR}
+    sound:
+      - {at: 12, kind: music_hit, name: wide, source: library, gain_db: 0, sync: wide}
+      - {at: 12, kind: sfx, name: BlockSmash, source: library, gain_db: -2}
+    hook_count: 2
+    needs: [{feature: aimed_meteor, status: available}]
+    fallback: "any shower rock that lands in frame"
+
+  - id: S04
+    section: escalate
+    kind: gameplay
+    cut_in: 140
+    cut_out: 180
+    subject: {kind: actor, id: fox}
+    also_in_frame: [penguin, "tower:block2", "hazard:meteor_shower"]
+    shows: [hazard_hit]
+    attacker: "hazard:meteor_shower"
+    victim: fox
+    tower_level: top
+    learns: "A rock blows two shooters off their block"
+    raises: threat
+    reveal: consequence
+    threat: "hazard:meteor_shower"
+    cause_in: self
+    size: WS
+    angle: eye
+    side: {face: profile, yaw_deg: 80}
+    camera: {move: static, purpose: "the hit from a metre off the block, side-on, both victims whole", ease: none, distance_m: 3.5, height_m: 0.7, focal_mm: 25, aperture: 11, focus: subject}
+    fit: "Hf = 3.5 x 24/25 = 3.4 m: fox and penguin 0.28 (WS), 2.9 m apart across a 6.0 m wide frame; the 4 m rock enters from the top right and lands between them; both are thrown out of frame within about 10 frames, held 26 frames after"
+    key_frame: 14
+    take_ref: {event: K2, take_frame: planned, subject_h: 0.28, source: fit}
+    actors:
+      - {id: fox,     doing: "fires at the penguin, then looks up at the rock too late", how: [driven, physics, layer], spot: block2, still_f: 4, level_f: 10, acts_at: [0, 9, 14]}
+      - {id: penguin, doing: "strafes to dodge the fox's bolt", how: [driven, physics, layer], spot: block2, still_f: 5, level_f: 14, acts_at: [4, 20]}
+    transition_in: cut
+    connects_from_prev: {type: new_beat, screen_direction: down, eye_enter: MC, eye_exit: ML}
+    sound:
+      - {at: 14, kind: music_hit, name: rock, source: library, gain_db: 0, sync: rock}
+      - {at: 14, kind: sfx, name: BlockSmash, source: library, gain_db: 0}
+      - {at: 16, kind: sfx, name: PlayerPain, source: library, gain_db: -4}
+    hook_count: null
+    needs: [{feature: aimed_meteor_on_survivors, status: verify}]
+    fallback: "if the rock misses them, the shot shows it landing beside them and they flinch (reaction layers)"
+
+  - id: S05
+    section: escalate
+    kind: gameplay
+    cut_in: 180
+    cut_out: 208
+    subject: {kind: actor, id: dragon}
+    also_in_frame: [hero, "tower:summit"]
+    shows: []
+    tower_level: top
+    learns: "The dragon charges you down the block"
+    raises: stakes
+    reveal: none
+    size: WS
+    angle: eye
+    side: {face: null, yaw_deg: null}
+    camera: {move: pov, purpose: "turning to find the next fight coming at you", ease: none, distance_m: 2.5, height_m: 0.85, focal_mm: 20, pov_smoothing: {pos_s: 0.22, rot_s: 0.4}, pov_of: hero}
+    fit: "POV, vertical FOV 62: Hf = 2 x 2.5 x tan 31 = 3.0 m at the dragon 2.5 m away: 0.31 (WS); he closes to 1.3 m (0.6) by the cut"
+    key_frame: 14
+    actors:
+      - {id: hero,   doing: "turns his head from the fallen fox to find the dragon", how: [driven, alive], spot: summit, still_f: 4, level_f: 14, acts_at: [5, 12]}
+      - {id: dragon, doing: "charges the hero, glove up", how: [driven, alive], spot: summit, still_f: 2, level_f: 20, acts_at: [0, 18]}
+    transition_in: cut
+    connects_from_prev: {type: new_beat, screen_direction: toward, eye_enter: MC, eye_exit: MC}
+    sound:
+      - {at: 0, kind: sfx, name: footsteps run, source: take, gain_db: -6}
+      - {at: 14, kind: sfx, name: glove swish, source: library, gain_db: -6}
+    hook_count: null
+    needs: [{feature: driven_goto_jog, status: available}]
+    fallback: "start the dragon's charge earlier"
+
+  - id: S06
+    section: escalate
+    kind: gameplay
+    cut_in: 208
+    cut_out: 248
+    subject: {kind: actor, id: dragon}
+    also_in_frame: [hero, "tower:summit"]
+    shows: [pvp_hit, knock_off]
+    attacker: hero
+    victim: dragon
+    tower_level: top
+    learns: "The hero counters the dragon off the top"
+    raises: count
+    reveal: none
+    size: WS
+    angle: low
+    side: {face: profile, yaw_deg: 85}
+    camera: {move: static, purpose: "the counter-punch side-on, both whole, the arm thrown", ease: none, distance_m: 3.1, height_m: 0.45, focal_mm: 22, aperture: 11, focus: subject}
+    fit: "Hf = 3.1 x 24/22 = 3.4 m: hero and dragon 0.28 (WS) at the contact frame, 1.3 m apart in a 6.0 m wide frame; the glove arm (reach layer) crosses the gap; the dragon leaves frame along the summit's axis within about 6 frames"
+    key_frame: 10
+    take_ref: {event: K3, take_frame: planned, subject_h: 0.28, source: fit}
+    actors:
+      - {id: hero,   doing: "steps in and throws the counter, watching the dragon go", how: [driven, layer, alive], spot: summit, still_f: 4, level_f: 14, acts_at: [5, 10, 22]}
+      - {id: dragon, doing: "lunges at the hero, glove cocked", how: [driven, physics, layer], spot: summit, still_f: 2, level_f: 10, acts_at: [0, 11]}
+    transition_in: cut
+    connects_from_prev: {type: cause_effect, screen_direction: R>L, eye_enter: MC, eye_exit: ML}
+    sound:
+      - {at: 10, kind: music_hit, name: punch2, source: library, gain_db: 0, sync: punch2}
+      - {at: 10, kind: sfx, name: WeaponBoxing, source: library, gain_db: 3}
+      - {at: 12, kind: sfx, name: PlayerPain, source: library, gain_db: -3}
+    hook_count: null
+    needs: [{feature: driven_glove_punch, status: available}, {feature: reach_layer_arm_throw, status: available}]
+    fallback: "the same hit from the S05 POV continued"
+
+  - id: S07
+    section: escalate
+    kind: gameplay
+    cut_in: 248
+    cut_out: 284
+    subject: {kind: actor, id: hero}
+    also_in_frame: ["sky"]
+    shows: [survivors_react]
+    tower_level: top
+    learns: "The hero looks up at something huge"
+    raises: threat
+    reveal: reaction
+    threat: "hazard:planet_killer"
+    reaction: "lookAt layer up at the planet killer, scream layer then cower; head tipped up past the lens, both hands rising"
+    size: MCU
+    angle: low
+    side: {face: front, yaw_deg: 15}
+    camera: {move: push_in, purpose: "his win turns to dread", ease: in_out, distance_m: 1.15, height_m: 0.57, focal_mm: 58, aperture: 4, focus: subject}
+    fit: "Hf = 1.15 x 24/58 = 0.48 m: chest up (MCU 0.35-0.48), pushing in 15 %; lens 0.28 m under his eyes, toward the planet killer, so he looks up past it"
+    key_frame: 20
+    actors:
+      - {id: hero, doing: "looks up from the fallen dragon to the sky, screams", how: [driven, layer, alive], spot: summit, still_f: 4, level_f: 6, acts_at: [2, 14, 20]}
+    transition_in: cut
+    connects_from_prev: {type: reaction, screen_direction: none, eye_enter: MC, eye_exit: TC}
+    sound:
+      - {at: 20, kind: sfx, name: deep rumble, source: library, gain_db: -6}
+      - {at: 20, kind: vo, name: "WhatWasThat", source: library, gain_db: -2}
+    hook_count: null
+    needs: [{feature: reaction_layer_scream, status: available}]
+    fallback: "cower layer only"
+
+  - id: S08
+    section: payoff
+    kind: gameplay
+    cut_in: 284
+    cut_out: 318
+    subject: {kind: hazard, id: planet_killer}
+    also_in_frame: [hero, "tower:summit"]
+    shows: [hazard_hit]
+    attacker: "hazard:planet_killer"
+    victim: hero
+    tower_level: top
+    learns: "The planet killer fills your whole view"
+    reveal: payoff
+    threat: "hazard:planet_killer"
+    cause_in: self
+    size: MS
+    angle: high
+    side: {face: null, yaw_deg: null}
+    camera: {move: pov, purpose: "the payoff from the hero's own eyes, looking up", ease: none, distance_m: 40, height_m: 0.85, focal_mm: 20, pov_smoothing: {pos_s: 0.2, rot_s: 0.4}, pov_of: hero}
+    fit: "POV, vertical FOV 62, Hf = 2 x d x tan 31 = 1.2 d, looking up 27 deg: the 45 m rock 2.3 s out (about 90 m) is 0.42 of frame height; 0.5 s out (about 20 m) it overfills the frame (MS, cropped); the hero's hands rise into the top of frame (scream, cower)"
+    key_frame: 25
+    take_ref: {event: K4, take_frame: planned, subject_h: 1.0, source: fit}
+    actors:
+      - {id: hero, doing: "stares up at the rock, hands rising over his head", how: [driven, layer], spot: summit, still_f: 4, level_f: 0, acts_at: [0, 10, 24]}
+    transition_in: cut
+    connects_from_prev: {type: eye_trace, screen_direction: up, eye_enter: TC, eye_exit: MC}
+    sound:
+      - {at: 13, kind: silence, name: stop-down, source: library, gain_db: 0}
+      - {at: 25, kind: music_hit, name: main, source: library, gain_db: 0, sync: main}
+      - {at: 25, kind: sfx, name: planet impact, source: take, gain_db: 2}
+    hook_count: 3
+    needs: [{feature: aimed_planet_killer, status: available}]
+    fallback: "the S09 wide carries the impact; POV ends a frame before contact"
+
+  - id: S09
+    section: aftermath
+    kind: gameplay
+    cut_in: 318
+    cut_out: 359
+    subject: {kind: tower, id: summit}
+    also_in_frame: [hero, "hazard:planet_killer"]
+    shows: []
+    tower_level: top
+    learns: "The whole tower top is blown into the sea"
+    reveal: consequence
+    threat: "hazard:planet_killer"
+    cause_in: prev
+    size: EWS
+    angle: eye
+    side: {face: profile, yaw_deg: 90}
+    camera: {move: static, purpose: "scale: what the rock did to the tower", ease: none, distance_m: 52, height_m: -5, focal_mm: 20, aperture: 11, focus: subject}
+    fit: "Hf = 52 x 24/20 = 62 m: the top 30 m of the tower and the sea; survivors 0.015 (not claimed readable); blocks 6 m long read at 0.03"
+    key_frame: 10
+    actors:
+      - {id: hero, doing: "thrown with the blocks, arms flailing", how: [physics, layer], spot: summit, still_f: 0, level_f: 0, acts_at: [0]}
+    transition_in: cut
+    connects_from_prev: {type: cause_effect, screen_direction: none, eye_enter: MC, eye_exit: MC}
+    sound:
+      - {at: 10, kind: sfx, name: debris rain, source: take, gain_db: -2}
+    hook_count: null
+    needs: []
+    fallback: "none needed"
+
+  - id: S10
+    section: title
+    kind: gameplay
+    cut_in: 359
+    cut_out: 450
+    subject: {kind: tower, id: wreck}
+    also_in_frame: ["sea"]
+    shows: []
+    tower_level: sea
+    learns: "The wreck settles under the title"
+    reveal: none
+    size: EWS
+    angle: high
+    side: {face: 3q_front, yaw_deg: 40}
+    camera: {move: pull_out, purpose: "settle on the wreck for the title", ease: in_out, distance_m: 48, height_m: 18, focal_mm: 20, aperture: 11, focus: subject}
+    fit: "Hf = 48 x 24/20 = 58 m: the broken tower, the castle and the sea; the title sits in the sky above"
+    key_frame: 0
+    actors: []
+    transition_in: cut
+    connects_from_prev: {type: new_beat, screen_direction: none, eye_enter: MC, eye_exit: MC}
+    sound:
+      - {at: 0, kind: music_hit, name: title, source: library, gain_db: 0, sync: title}
+    hook_count: null
+    needs: []
+    fallback: "none needed"

@@ -84,19 +84,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (to.isHand)
             {
                 result.target.position = Vector3.Lerp(from.target.position, to.target.position, weight);
-                result.target.rotation = Quaternion.Slerp(from.target.rotation, to.target.rotation, weight);
-                if (from.bones.Length == to.bones.Length)
+                result.target.rotation = Mix(from.target.rotation, to.target.rotation, weight);
+                // 'result' is the same object as 'to': keep its bones before replacing them (the old code read the new,
+                // empty array and blended every bone toward the world origin with a zero rotation).
+                var toBones = to.bones;
+                if (from.bones.Length == toBones.Length)
                 {
-                    result.bones = new Pose[to.bones.Length];
-                    for (int i = 0; i < to.bones.Length; i++)
-                        result.bones[i] = new Pose(Vector3.Lerp(from.bones[i].position, to.bones[i].position, weight),
-                            Quaternion.Slerp(from.bones[i].rotation, to.bones[i].rotation, weight));
+                    result.bones = new Pose[toBones.Length];
+                    for (int i = 0; i < toBones.Length; i++)
+                        result.bones[i] = new Pose(Vector3.Lerp(from.bones[i].position, toBones[i].position, weight),
+                            Mix(from.bones[i].rotation, toBones[i].rotation, weight));
                 }
                 return result;
             }
             result.body.feet = Vector3.Lerp(from.body.feet, to.body.feet, weight);
             result.body.head = Vector3.Lerp(from.body.head, to.body.head, weight);
-            result.body.headRotation = Quaternion.Slerp(from.body.headRotation, to.body.headRotation, weight);
+            result.body.headRotation = Mix(from.body.headRotation, to.body.headRotation, weight);
             result.body.left = BlendHand(from.body.left, to.body.left, weight);
             result.body.right = BlendHand(from.body.right, to.body.right, weight);
             return result;
@@ -105,8 +108,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static CandyHandPose BlendHand(CandyHandPose from, CandyHandPose to, float weight)
         {
             to.position = Vector3.Lerp(from.position, to.position, weight);
-            to.rotation = Quaternion.Slerp(from.rotation, to.rotation, weight);
+            to.rotation = Mix(from.rotation, to.rotation, weight);
             return to;
+        }
+
+        // A blend of two rotations that is always a real rotation. Recorded rotations come back from the wire
+        // slightly off unit length, and a plain Slerp of them could come out near zero (seen on the pilot's hand:
+        // the network reader refused it and the hand stopped playing). Falls back to the newer rotation.
+        static Quaternion Mix(Quaternion from, Quaternion to, float weight)
+        {
+            float Length(Quaternion q) => Mathf.Sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+            Quaternion Unit(Quaternion q, Quaternion fallback) { float l = Length(q); return float.IsNaN(l) || l < .001f ? fallback : new Quaternion(q.x / l, q.y / l, q.z / l, q.w / l); }
+            to = Unit(to, Quaternion.identity);
+            from = Unit(from, to);
+            return Unit(Quaternion.Slerp(from, to, weight), to);
         }
 
         // ---- Moving a whole performance (clones) ----

@@ -1,0 +1,5 @@
+Defective pack: critic-r2/pack-1
+1. sync table: title moved 5 frames late
+2. sync table: rock impact removed
+3. stills/S04-key.png replaced by S04-last.png
+pack-1 = planted copy; pack-2 = real

@@ -44,6 +44,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float[] values = new float[0];   // a disaster's own settings, in the order the disaster lists them
         public float jitter;              // set by variation runs: this cue's strength is multiplied by (1 + jitter)
         public bool aimed;                // a disaster that arrives from a side comes from 'heading' instead of a random side
+        // Directed hand pull (action "handPull"): 'actor' = hand mark, blocks[0] = block, 'at' = the yank,
+        // 'duration' = flight time before the grab, 'point' = where the flight starts, 'height' = arc of the flight,
+        // 'direction' = which way the block is pulled, 'strength' = how far it slides out.
+        public float pullTime = .9f;      // seconds the yank takes
+        public float grip = .45f;         // seconds the fingers take to close before the yank
+        public Vector3 carry = new Vector3(0, 5, 0);   // where the hand takes the block after the yank (metres, over carryTime)
+        public float carryTime = 1.5f;    // seconds the carry takes after the yank
+        // The block's pose for the grab (metres from the stage spot). Set = the hand and the block follow the
+        // same path in every take, even if the map settled a few millimetres differently.
+        public bool fixedGrab;
+        public Vector3 grabPosition;
+        public Quaternion grabRotation = Quaternion.identity;
     }
 
     // A camera shot. Phase 1 only keeps these (imported from Theatre); Phase 5 edits them.
@@ -82,6 +94,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float bpm = 120, beatOffset; // beat markers for snapping cuts
         // Phase 4: overrides, reactions and extras layered on recorded takes.
         public List<StudioOverride> overrides = new List<StudioOverride>();
+        // Driven actors (StudioPerformer) and the always-on alive layer (StudioAlive).
+        public List<StudioDrive> drives = new List<StudioDrive>();
+        public StudioAliveSettings alive = new StudioAliveSettings();
 
         public int Frames => Mathf.Max(1, Mathf.RoundToInt(length * fps));
         public StudioMark Mark(string markId) => marks.FirstOrDefault(m => m.id == markId);
@@ -130,6 +145,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (length < .5f || length > 120) problems.Add("Length must be half a second to two minutes.");
             if (marks.Select(m => m.id).Distinct().Count() != marks.Count) problems.Add("Two marks share an id.");
             foreach (var cue in cues) if (cue.at < 0 || cue.at >= length) problems.Add($"Cue \"{cue.action}\" is outside the set's length.");
+            problems.AddRange(StudioOverrides.TargetProblems(this));
+            problems.AddRange(StudioPerformer.Problems(this));
             return problems;
         }
 

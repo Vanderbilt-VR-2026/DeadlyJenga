@@ -51,6 +51,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public Vector3 position;
             public Quaternion rotation;
             public float focal, focus, aperture, fieldOfView;
+            public string ownBody;     // first person: the mark id whose own arms, hands and weapon this lens shows (else empty)
         }
 
         public static float FieldOfView(float focal, float sensorHeight) =>
@@ -66,6 +67,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 case 2: return u * u;
                 case 3: return 1 - (1 - u) * (1 - u);
                 case 4: return u < 1 ? 0 : 1;
+                case 5: return u * u * u * (u * (u * 6 - 15) + 10);   // extra smooth start and stop
                 default: return u * u * (3 - 2 * u);
             }
         }
@@ -129,6 +131,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var key = Keyed(camera, cameraTime, out var rotation);
             Vector3 position = anchor + key.position;
             float focal = key.focal, focus = key.focus;
+            string ownBody = "";
             var subject = string.IsNullOrEmpty(camera.subject) ? default : StudioActorPoses.At(tape, camera.subject, tapeTime - Mathf.Max(0, camera.lag), set.fps);
             var subjectNow = string.IsNullOrEmpty(camera.subject) ? default : StudioActorPoses.At(tape, camera.subject, tapeTime, set.fps);
             // The aim trails a little behind the actor (lag), but never by more than half a metre,
@@ -183,8 +186,25 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
                     break;
                 case "firstPerson":
-                    if (subjectNow.found) { position = subjectNow.head; rotation = subjectNow.headRotation; }
+                    // An actor's eyes, smoothed and level, with the game's own first-person body (StudioFirstPerson).
+                    if (subjectNow.found && StudioFirstPerson.Eye(camera, set, tape, tapeTime, out var eye, out var look))
+                    {
+                        position = eye; rotation = look;
+                        if (camera.fpFieldOfView > 1) focal = FocalFor(camera.fpFieldOfView, camera.sensorHeight);
+                        if (camera.fpOwnBody) ownBody = camera.subject;
+                    }
                     break;
+            }
+
+            // Targets beyond actors: ride on any target, aim at a list of targets that ease into each other.
+            var stage = StudioRun.Stage != null && StudioRun.Stage.tape == tape ? StudioRun.Stage : null;
+            bool aimedByList = false;
+            if (stage != null && !string.IsNullOrEmpty(camera.rideTarget) && StudioTargets.TryPoint(stage, camera.rideTarget, tapeTime, out var ridden))
+                position = ridden + key.position;
+            if (stage != null && camera.aims != null && camera.aims.Count > 0 && AimPoint(stage, camera, tapeTime, cameraTime, out var aimed) && (aimed - position).sqrMagnitude > .0001f)
+            {
+                aim = aimed; aimedByList = true;
+                rotation = Quaternion.LookRotation(aim - position) * Quaternion.Euler(0, 0, rotation.eulerAngles.z);
             }
 
             if (camera.avoidBlocks && camera.behavior != "firstPerson")
@@ -209,15 +229,59 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 rotation *= Quaternion.Euler(N(40) * noise.turn * amount);
             }
 
-            if (camera.focusOnSubject && subjectNow.found) focus = Vector3.Distance(position, subjectNow.feet + camera.aimOffset);
-            return new Shot { position = position, rotation = rotation, focal = focal, focus = Mathf.Max(.2f, focus), aperture = Mathf.Max(.7f, key.aperture),
-                fieldOfView = FieldOfView(focal, camera.sensorHeight) };
+            // Impacts: rotation only, strongest at the hit, gone after 'decay' seconds (trauma squared).
+            if (camera.shakes != null)
+                foreach (var shake in camera.shakes)
+                {
+                    float since = cameraTime - shake.time;
+                    if (since < 0 || since > shake.decay || shake.decay <= 0) continue;
+                    float trauma = 1 - since / shake.decay, amount = shake.degrees * trauma * trauma, wobble = since * shake.rate;
+                    float W(float seed) => (Mathf.PerlinNoise(wobble, seed) - .5f) * 2;
+                    rotation *= Quaternion.Euler(W(3.1f) * amount, W(17.3f) * amount, W(29.7f) * amount * .4f);
+                }
+
+            if (camera.focusOnSubject && aimedByList) focus = Vector3.Distance(position, aim);
+            else if (camera.focusOnSubject && subjectNow.found && camera.behavior != "firstPerson") focus = Vector3.Distance(position, subjectNow.feet + camera.aimOffset);
+            // A player's own eye has no depth of field (f/16 switches it off in renders).
+            float aperture = ownBody.Length > 0 ? Mathf.Max(16, key.aperture) : Mathf.Max(.7f, key.aperture);
+            return new Shot { position = position, rotation = rotation, focal = focal, focus = Mathf.Max(.2f, focus), aperture = aperture,
+                fieldOfView = FieldOfView(focal, camera.sensorHeight), ownBody = ownBody };
+        }
+
+        // Where the aim list points at a time: the newest aim key, eased in from the one before it.
+        static bool AimPoint(StudioStage stage, StudioCameraTrack camera, float tapeTime, float cameraTime, out Vector3 point)
+        {
+            point = default;
+            var aims = camera.aims;
+            int k = 0;
+            for (int i = 0; i < aims.Count; i++) if (aims[i].time <= cameraTime) k = i;
+            bool Resolve(StudioAimKey key, out Vector3 p)
+            {
+                if (!StudioTargets.TryPoint(stage, key.target, tapeTime, out p)) return false;
+                if (camera.leadRoom > 0 && StudioTargets.Timeless(key.target) && StudioTargets.TryPoint(stage, key.target, tapeTime + camera.leadRoom, out var ahead)) p = ahead;
+                p += key.offset;
+                return true;
+            }
+            bool now = Resolve(aims[k], out var current);
+            if (k == 0 || cameraTime >= aims[k].time + aims[k].blend)
+            {
+                if (now) { point = current; return true; }
+                return k > 0 && Resolve(aims[k - 1], out point);
+            }
+            bool before = Resolve(aims[k - 1], out var previous);
+            if (!now) { point = previous; return before; }
+            if (!before) { point = current; return true; }
+            float u = Ease(5, Mathf.InverseLerp(aims[k].time, aims[k].time + aims[k].blend, cameraTime));
+            point = Vector3.Lerp(previous, current, u);
+            return true;
         }
 
         public static void Apply(Camera target, Shot shot)
         {
             target.transform.SetPositionAndRotation(shot.position, shot.rotation);
             target.fieldOfView = shot.fieldOfView;
+            // First person: this camera (only) sees the actor the way its player did; any other shot gives the actor back.
+            StudioFirstPerson.Show(target, shot.ownBody);
         }
 
         // A key that matches the director's current view, at a tape time.

@@ -1,0 +1,4 @@
+0.300s drive hero: gear Blaster to hero
+1.200s drive hero: path to (9.85, 1.98, 5.86) at run
+2.233s drive hero: jump
+2.367s drive hero: fire on the move hero fired Blaster: True at 3.48 m

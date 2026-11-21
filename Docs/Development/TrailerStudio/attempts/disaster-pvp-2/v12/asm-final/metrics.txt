@@ -1,0 +1,15 @@
+duration 15.000 s; video h264 1920x1080 30/1 fps, 450 frames; audio aac 48000 Hz 2 ch
+loudness: I:         -15.2 LUFS | LRA:         4.0 LU | Peak:       -1.2 dBFS
+body (0-11.97 s) momentary mean: first quarter -15.6, last quarter -13.2, ramp +2.4 LU
+title section vs body: -23.0 vs -14.5 LUFS (-8.6 LU)
+silence >0.25 s: none
+black >0.1 s: none
+sync (name, planned frame, nearest onset offset in frames in the FULL MIX, then in its OWN LANE; + = sound after picture):
+  feint 25 mix +0.2 lane +0.2
+  punch1 76 mix -0.4 lane +0.0
+  wide 122 mix -0.5 lane -0.5
+  rock 154 mix -0.4 lane -0.4
+  punch2 218 mix -0.2 lane +0.0
+  main 309 mix -0.3 lane +0.0
+  title 359 mix +0.1 lane +0.1
+shots: S01 0-48 (shift -5), S02 48-110 (shift -5), S03 110-140 (shift -1), S04 140-180 (shift 0), S05 180-208 (shift 1), S06 208-236 (shift 1), S07 236-284 (shift 0), S08 284-318 (shift 0), S09 318-338 (shift 0), S10 338-359 (shift 0), S11 359-450 (shift 0)

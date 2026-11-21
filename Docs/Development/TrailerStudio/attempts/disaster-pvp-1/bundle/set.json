@@ -1,0 +1,2122 @@
+{
+    "id": "disaster-pvp-1",
+    "title": "Disaster PvP 1",
+    "notes": "Made by DisasterPvpMoment. Safe to delete.",
+    "map": "castle",
+    "fps": 30,
+    "seed": 2027,
+    "length": 16.600000381469728,
+    "warmup": 0.75,
+    "useMapAnchor": false,
+    "mapAnchor": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "stageOffset": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "timeOfDay": -1.0,
+    "weather": "",
+    "startFromSet": "",
+    "startFromFrame": 0,
+    "thumbnail": "",
+    "handBot": false,
+    "marks": [
+        {
+            "id": "survivor-1",
+            "actor": "hero",
+            "role": 0,
+            "color": 6,
+            "position": {
+                "x": 8.449029922485352,
+                "y": 3.975597381591797,
+                "z": 9.304342269897461
+            },
+            "yaw": 134.9640350341797,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 7,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": "BoxingGlove"
+        },
+        {
+            "id": "survivor-2",
+            "actor": "rival",
+            "role": 0,
+            "color": 0,
+            "position": {
+                "x": 9.191959381103516,
+                "y": 3.975597381591797,
+                "z": 8.562346458435059
+            },
+            "yaw": 314.9640197753906,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 33,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": ""
+        },
+        {
+            "id": "survivor-3",
+            "actor": "blue",
+            "role": 0,
+            "color": 2,
+            "position": {
+                "x": 2.4830641746520998,
+                "y": 1.9749679565429688,
+                "z": 11.16645622253418
+            },
+            "yaw": 109.68396759033203,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 2,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": "Blaster"
+        },
+        {
+            "id": "survivor-4",
+            "actor": "green",
+            "role": 0,
+            "color": 3,
+            "position": {
+                "x": 11.165302276611329,
+                "y": 1.9734954833984376,
+                "z": 2.793422222137451
+            },
+            "yaw": 339.3685302734375,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 41,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": "Blaster"
+        },
+        {
+            "id": "survivor-5",
+            "actor": "purple",
+            "role": 0,
+            "color": 5,
+            "position": {
+                "x": 5.483368873596191,
+                "y": 1.9749679565429688,
+                "z": 10.267471313476563
+            },
+            "yaw": 112.25234985351563,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 60,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": "DualUzi"
+        },
+        {
+            "id": "survivor-6",
+            "actor": "pink",
+            "role": 0,
+            "color": 4,
+            "position": {
+                "x": 10.71322250366211,
+                "y": 1.9734954833984376,
+                "z": 5.79310941696167
+            },
+            "yaw": 329.2095947265625,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 7,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": ""
+        }
+    ],
+    "cues": [
+        {
+            "id": "a2e7cf0b",
+            "at": 0.30000001192092898,
+            "action": "gear",
+            "actor": "survivor-1",
+            "target": "",
+            "hazard": "",
+            "weapon": "BoxingGlove",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": true,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "affd1fb6",
+            "at": 0.30000001192092898,
+            "action": "gear",
+            "actor": "survivor-3",
+            "target": "",
+            "hazard": "",
+            "weapon": "Blaster",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": true,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "620f495b",
+            "at": 0.30000001192092898,
+            "action": "gear",
+            "actor": "survivor-4",
+            "target": "",
+            "hazard": "",
+            "weapon": "Blaster",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": true,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "b3dc0057",
+            "at": 0.30000001192092898,
+            "action": "gear",
+            "actor": "survivor-5",
+            "target": "",
+            "hazard": "",
+            "weapon": "DualUzi",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": true,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "65efc34f",
+            "at": 1.8333333730697632,
+            "action": "glovePunch",
+            "actor": "survivor-1",
+            "target": "survivor-2",
+            "hazard": "",
+            "weapon": "",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "f278e373",
+            "at": 3.133333444595337,
+            "action": "fire",
+            "actor": "survivor-3",
+            "target": "survivor-4",
+            "hazard": "",
+            "weapon": "",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": true,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "a7875162",
+            "at": 3.566666603088379,
+            "action": "fire",
+            "actor": "survivor-3",
+            "target": "survivor-4",
+            "hazard": "",
+            "weapon": "",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": true,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "e99507a7",
+            "at": 4.0,
+            "action": "fire",
+            "actor": "survivor-4",
+            "target": "",
+            "hazard": "",
+            "weapon": "",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": true,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "bfe4c91d",
+            "at": 4.333333492279053,
+            "action": "hazard",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [
+                3.0,
+                1.0,
+                8.0,
+                40.0,
+                0.0,
+                12.0
+            ],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "94a20125",
+            "at": 4.4666666984558109,
+            "action": "fire",
+            "actor": "survivor-3",
+            "target": "survivor-5",
+            "hazard": "",
+            "weapon": "",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": true,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "c4f3fed9",
+            "at": 4.823333263397217,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.199999809265137,
+            "point": {
+                "x": 3.6832165718078615,
+                "y": 2.174968719482422,
+                "z": 10.716861724853516
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 0.5212839245796204,
+                "y": 0.46947160363197329,
+                "z": 0.7126426100730896
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "f7016cf0",
+            "at": 4.833333492279053,
+            "action": "fire",
+            "actor": "survivor-5",
+            "target": "survivor-3",
+            "hazard": "",
+            "weapon": "",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": true,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "04ed6347",
+            "at": 5.266666889190674,
+            "action": "fire",
+            "actor": "",
+            "target": "survivor-5",
+            "hazard": "",
+            "weapon": "",
+            "strength": 9.0,
+            "heading": 0.0,
+            "height": 0.0,
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "optional": true,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 3.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "eaede309",
+            "at": 5.456666946411133,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.199999809265137,
+            "point": {
+                "x": 9.868362426757813,
+                "y": 2.1734962463378908,
+                "z": 2.704272747039795
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": -0.8808690309524536,
+                "y": 0.4694715738296509,
+                "z": -0.060549478977918628
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "9b2deff7",
+            "at": 6.090000152587891,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.199999809265137,
+            "point": {
+                "x": 2.8389739990234377,
+                "y": 2.174968719482422,
+                "z": 11.649496078491211
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 0.5237494707107544,
+                "y": 0.4694715738296509,
+                "z": 0.7108325958251953
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "a128a035",
+            "at": 6.523333549499512,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.199999809265137,
+            "point": {
+                "x": 3.6830639839172365,
+                "y": 2.174968719482422,
+                "z": 11.166862487792969
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 0.5731202363967896,
+                "y": 0.4694715738296509,
+                "z": 0.6716618537902832
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "f6888c9e",
+            "at": 6.956666469573975,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.199999809265137,
+            "point": {
+                "x": 3.0833687782287599,
+                "y": 2.174968719482422,
+                "z": 10.266658782958985
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 0.4436580240726471,
+                "y": 0.46947160363197329,
+                "z": 0.7633898258209229
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "eff448db",
+            "at": 7.360713958740234,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "PlanetKillerMeteor",
+            "weapon": "",
+            "strength": 28.0,
+            "heading": 0.0,
+            "height": 45.0,
+            "point": {
+                "x": 8.873560905456543,
+                "y": 3.975597381591797,
+                "z": 8.88034439086914
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 0.7929378151893616,
+                "y": 0.4099999666213989,
+                "z": 0.4507213234901428
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 130.0,
+            "values": [
+                45.0,
+                0.0
+            ],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "70f3d91a",
+            "at": 7.823333263397217,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.199999809265137,
+            "point": {
+                "x": 10.264885902404786,
+                "y": 2.1734962463378908,
+                "z": 3.3927979469299318
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": -0.8821258544921875,
+                "y": 0.4694715738296509,
+                "z": 0.03808475285768509
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "d8053909",
+            "at": 8.25666618347168,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.199999809265137,
+            "point": {
+                "x": 3.083216428756714,
+                "y": 2.174968719482422,
+                "z": 10.716659545898438
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 0.49749815464019778,
+                "y": 0.4694715738296509,
+                "z": 0.7294464111328125
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "ae65b79d",
+            "at": 8.6899995803833,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.199999809265137,
+            "point": {
+                "x": 10.714885711669922,
+                "y": 2.1734962463378908,
+                "z": 3.3931100368499758
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": -0.8824869990348816,
+                "y": 0.4694715738296509,
+                "z": -0.028515225276350976
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "c6479304",
+            "at": 9.123332977294922,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.199999809265137,
+            "point": {
+                "x": 3.083064079284668,
+                "y": 2.174968719482422,
+                "z": 11.166658401489258
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 0.5465704798698425,
+                "y": 0.4694715738296509,
+                "z": 0.693438708782196
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        }
+    ],
+    "shots": [],
+    "shotNotes": [],
+    "cameras": [],
+    "cuts": [],
+    "render": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "subFrames": 1,
+        "shutter": 0.5,
+        "format": "png",
+        "cinema": true,
+        "freezeAmbient": false,
+        "filmstrip": 12
+    },
+    "music": "",
+    "bpm": 120.0,
+    "beatOffset": 0.0,
+    "overrides": [
+        {
+            "id": "38ba96c1",
+            "actor": "survivor-1",
+            "kind": "lookAt",
+            "from": 1.0,
+            "to": 2.3333332538604738,
+            "blendIn": 0.05000000074505806,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "actor:survivor-2",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "c5080911",
+            "actor": "survivor-1",
+            "kind": "reach",
+            "from": 1.6333333253860474,
+            "to": 2.0333333015441896,
+            "blendIn": 0.11999999731779099,
+            "blendOut": 0.20000000298023225,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "actor:survivor-2",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "b632f81c",
+            "actor": "survivor-1",
+            "kind": "reaction",
+            "from": 2.1666667461395265,
+            "to": 3.366666555404663,
+            "blendIn": 0.20000000298023225,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "cheer",
+            "strength": 1.0,
+            "target": "",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "d627dd97",
+            "actor": "survivor-2",
+            "kind": "reaction",
+            "from": 1.899999976158142,
+            "to": 4.833333492279053,
+            "blendIn": 0.05000000074505806,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "scream",
+            "strength": 1.0,
+            "target": "",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "61f8d4dc",
+            "actor": "survivor-3",
+            "kind": "lookAt",
+            "from": 1.0,
+            "to": 6.0,
+            "blendIn": 0.20000000298023225,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "actor:survivor-4",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "302d2651",
+            "actor": "survivor-4",
+            "kind": "lookAt",
+            "from": 1.0,
+            "to": 6.0,
+            "blendIn": 0.20000000298023225,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "actor:",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "4ac9cab4",
+            "actor": "survivor-5",
+            "kind": "lookAt",
+            "from": 1.0,
+            "to": 6.0,
+            "blendIn": 0.20000000298023225,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "actor:survivor-3",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "0937b84a",
+            "actor": "survivor-6",
+            "kind": "lookAt",
+            "from": 1.0,
+            "to": 3.0,
+            "blendIn": 0.20000000298023225,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "actor:survivor-1",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "0ff3f390",
+            "actor": "survivor-3",
+            "kind": "reach",
+            "from": 2.866666555404663,
+            "to": 3.8333332538604738,
+            "blendIn": 0.15000000596046449,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "actor:survivor-4",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "49cd7b16",
+            "actor": "survivor-4",
+            "kind": "reach",
+            "from": 3.6666667461395265,
+            "to": 4.266666889190674,
+            "blendIn": 0.15000000596046449,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "actor:",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "ce8dff81",
+            "actor": "survivor-5",
+            "kind": "reach",
+            "from": 4.566666603088379,
+            "to": 5.166666507720947,
+            "blendIn": 0.15000000596046449,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "actor:survivor-3",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "39085cbf",
+            "actor": "survivor-6",
+            "kind": "reaction",
+            "from": 3.0,
+            "to": 8.0,
+            "blendIn": 0.20000000298023225,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "cower",
+            "strength": 1.0,
+            "target": "",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "2582dcc3",
+            "actor": "survivor-4",
+            "kind": "reaction",
+            "from": 6.766666889190674,
+            "to": 9.100000381469727,
+            "blendIn": 0.07999999821186066,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "scream",
+            "strength": 1.0,
+            "target": "",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "7e76e214",
+            "actor": "survivor-3",
+            "kind": "reaction",
+            "from": 7.400000095367432,
+            "to": 9.733333587646485,
+            "blendIn": 0.07999999821186066,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "scream",
+            "strength": 1.0,
+            "target": "",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "973959b6",
+            "actor": "survivor-1",
+            "kind": "lookAt",
+            "from": 9.600000381469727,
+            "to": 16.0,
+            "blendIn": 0.4000000059604645,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "point:52.485,26.526,33.67",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "a0f501a6",
+            "actor": "survivor-2",
+            "kind": "lookAt",
+            "from": 9.600000381469727,
+            "to": 16.0,
+            "blendIn": 0.4000000059604645,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "point:52.485,26.526,33.67",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "976c1218",
+            "actor": "survivor-3",
+            "kind": "lookAt",
+            "from": 9.600000381469727,
+            "to": 16.0,
+            "blendIn": 0.4000000059604645,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "point:52.485,26.526,33.67",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "68c3db91",
+            "actor": "survivor-4",
+            "kind": "lookAt",
+            "from": 9.600000381469727,
+            "to": 16.0,
+            "blendIn": 0.4000000059604645,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "point:52.485,26.526,33.67",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "52a1af37",
+            "actor": "survivor-5",
+            "kind": "lookAt",
+            "from": 9.600000381469727,
+            "to": 16.0,
+            "blendIn": 0.4000000059604645,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "point:52.485,26.526,33.67",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "91a993a3",
+            "actor": "survivor-6",
+            "kind": "lookAt",
+            "from": 9.600000381469727,
+            "to": 16.0,
+            "blendIn": 0.4000000059604645,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "",
+            "strength": 1.0,
+            "target": "point:52.485,26.526,33.67",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        },
+        {
+            "id": "e437a83c",
+            "actor": "survivor-1",
+            "kind": "reaction",
+            "from": 10.399999618530274,
+            "to": 11.399999618530274,
+            "blendIn": 0.15000000596046449,
+            "blendOut": 0.25,
+            "muted": false,
+            "name": "scream",
+            "strength": 1.0,
+            "target": "",
+            "point": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "leftHand": false,
+            "crouch": 0.0,
+            "lean": 0.0,
+            "flinch": 0.0,
+            "armRaise": 0.0,
+            "trigger": "",
+            "resolvedFrom": -1.0,
+            "look": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 0
+            },
+            "color": 0
+        }
+    ]
+}

@@ -185,7 +185,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var camera = set == null || ShootMode.LookThrough.Length == 0 ? null : set.cameras.Find(c => c.id == ShootMode.LookThrough);
             if (camera == null || stage == null || StudioHandheld.Recording || StudioRender.Running)
             {
-                if (lookedThrough && !StudioHandheld.Recording) { lookedThrough = false; StudioCamera.Camera.fieldOfView = 60; StudioCamera.Place(); }
+                if (lookedThrough && !StudioHandheld.Recording) { lookedThrough = false; StudioFirstPerson.Release(Camera); StudioCamera.Camera.fieldOfView = 60; StudioCamera.Place(); }
                 return;
             }
             lookedThrough = true;

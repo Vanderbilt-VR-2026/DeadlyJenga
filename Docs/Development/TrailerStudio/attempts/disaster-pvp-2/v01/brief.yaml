@@ -1,0 +1,22 @@
+# Stage 0 brief, Disaster PvP 2 (replaces Disaster PvP 1)
+goal: "A 15 s trailer moment of epic disaster plus player-versus-player mayhem on a collapsing tower, close and in first person"
+owner_notes:
+  - "i need you to have one focused on epic disaster pvp mayhem (no giant hand)"
+  - "overly-reliant on distant shots esp the super distant ones during important events; why no first person"
+  - "I don't want them to be moving robotically ... constantly doing something humanlike"
+audience: "VR players and party-game fans scrolling social feeds; the owner's team"
+length_class: 15
+aspect: "16:9"
+platform: "social and store page, sound on but readable muted"
+must_show:
+  - {id: pvp_hit, proof: "one survivor's glove visibly lands on another and the victim flies, both in frame (in POV the hero's own glove arm is the attacker in frame)"}
+  - {id: knock_off, proof: "a survivor leaves the summit because of a named attacker, seen at the contact frame"}
+  - {id: hazard_hit, proof: "a meteor visibly hits the tower or survivors, with a survivor or the structure in frame"}
+  - {id: several_survivors, proof: "three or more survivors readable (h >= 0.08) and acting independently in one frame"}
+  - {id: survivors_react, proof: "a survivor's head and hands turn to the threat (the hero looks up at the planet killer and screams)"}
+repeat_sentence: "You knock your friends off the top of the tower, and then the sky lands on you."
+map: "castle (attempt 1's map): about 60 m tower of 6 x 2 x 2 m blocks over the sea; top level a ring of four blocks"
+mode_rules: "Trailer Studio stage: Demo rules, punches and health on, deaths off (the fallen respawn on the tower: hidden with a hide layer)"
+performers: "no person in the headset; all seven survivors driven through the game's own controls by the scripted performer driver in one live recording, plus layers and the alive layer"
+budget: {unity_jobs: 22, critics: "two fresh critics at preview/rough cut and at fine cut, each with a planted-defect pack"}
+not_featured: "the giant flying hand"

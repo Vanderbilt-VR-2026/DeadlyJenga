@@ -1,0 +1,2106 @@
+{
+    "id": "disaster-pvp-2",
+    "title": "Disaster PvP 2",
+    "notes": "Made by DisasterPvp2. Safe to delete.",
+    "map": "castle",
+    "fps": 30,
+    "seed": 2031,
+    "length": 16.799999237060548,
+    "warmup": 0.75,
+    "useMapAnchor": false,
+    "mapAnchor": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "stageOffset": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "timeOfDay": -1.0,
+    "weather": "",
+    "startFromSet": "",
+    "startFromFrame": 0,
+    "thumbnail": "",
+    "handBot": false,
+    "marks": [
+        {
+            "id": "hero",
+            "actor": "hero",
+            "role": 0,
+            "color": 6,
+            "position": {
+                "x": 8.767428398132325,
+                "y": 3.975597381591797,
+                "z": 8.986344337463379
+            },
+            "yaw": 122.96403503417969,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 0,
+                "hair": 7,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": ""
+        },
+        {
+            "id": "rival",
+            "actor": "rival",
+            "role": 0,
+            "color": 1,
+            "position": {
+                "x": 10.46554946899414,
+                "y": 3.975597381591797,
+                "z": 7.290353775024414
+            },
+            "yaw": -30.035972595214845,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 33,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": ""
+        },
+        {
+            "id": "dragon",
+            "actor": "dragon",
+            "role": 0,
+            "color": 2,
+            "position": {
+                "x": 7.140061855316162,
+                "y": 3.975597381591797,
+                "z": 10.611668586730957
+            },
+            "yaw": -96.60751342773438,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 41,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": ""
+        },
+        {
+            "id": "fox",
+            "actor": "fox",
+            "role": 0,
+            "color": 3,
+            "position": {
+                "x": 1.0200400352478028,
+                "y": 3.9752120971679689,
+                "z": 9.90274429321289
+            },
+            "yaw": -115.02520751953125,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 7,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": ""
+        },
+        {
+            "id": "penguin",
+            "actor": "penguin",
+            "role": 0,
+            "color": 4,
+            "position": {
+                "x": -1.0296673774719239,
+                "y": 3.9752120971679689,
+                "z": 7.851233005523682
+            },
+            "yaw": 19.97479248046875,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 2,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": ""
+        },
+        {
+            "id": "panda",
+            "actor": "panda",
+            "role": 0,
+            "color": 5,
+            "position": {
+                "x": 4.2833685874938969,
+                "y": 1.9749679565429688,
+                "z": 10.267065048217774
+            },
+            "yaw": 146.80982971191407,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 9,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": ""
+        },
+        {
+            "id": "astro",
+            "actor": "astro",
+            "role": 0,
+            "color": 6,
+            "position": {
+                "x": -1.3909735679626465,
+                "y": 1.9747695922851563,
+                "z": 4.887684345245361
+            },
+            "yaw": 18.745147705078126,
+            "customLook": true,
+            "appearance": {
+                "accessories": 0,
+                "skin": 60,
+                "hair": 0,
+                "eyewear": 0,
+                "clothing": 0,
+                "poweredArmor": false,
+                "hairShade": 2
+            },
+            "equipment": ""
+        }
+    ],
+    "cues": [
+        {
+            "id": "b1bdce1d",
+            "at": 0.0,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.0,
+            "point": {
+                "x": 2.783618450164795,
+                "y": -55.88945007324219,
+                "z": 141.854248046875
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 0.8588210344314575,
+                "y": 0.5050762295722961,
+                "z": 0.08558328449726105
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 230.0,
+            "values": [
+                1.7999999523162842,
+                0.6000000238418579,
+                1.5,
+                40.0,
+                0.0,
+                14.0
+            ],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "08db2642",
+            "at": 0.0,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.0,
+            "point": {
+                "x": 82.00336456298828,
+                "y": -55.88945007324219,
+                "z": 151.86582946777345
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": -0.7033308148384094,
+                "y": 0.5050762295722961,
+                "z": 0.500223696231842
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 230.0,
+            "values": [
+                1.7999999523162842,
+                0.6000000238418579,
+                1.5,
+                40.0,
+                0.0,
+                14.0
+            ],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "93a54956",
+            "at": 0.0,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.0,
+            "point": {
+                "x": 47.17232131958008,
+                "y": -55.88945007324219,
+                "z": 192.14981079101563
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 0.8588210344314575,
+                "y": 0.5050762295722961,
+                "z": 0.08558328449726105
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 230.0,
+            "values": [
+                1.7999999523162842,
+                0.6000000238418579,
+                1.5,
+                40.0,
+                0.0,
+                14.0
+            ],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "23549ab2",
+            "at": 3.7555556297302248,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.0,
+            "point": {
+                "x": 11.164469718933106,
+                "y": 2.1734962463378908,
+                "z": 3.993421792984009
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": 0.19996608793735505,
+                "y": 0.882075309753418,
+                "z": -0.4265638291835785
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [
+                1.7999999523162842,
+                0.6000000238418579,
+                1.5,
+                40.0,
+                0.0,
+                14.0
+            ],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "cb7b1145",
+            "at": 4.8222222328186039,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.0,
+            "point": {
+                "x": -1.8778223991394044,
+                "y": 4.175212860107422,
+                "z": 7.002331733703613
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": -0.6240634918212891,
+                "y": 0.4694715738296509,
+                "z": -0.6246128678321838
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [
+                1.7999999523162842,
+                0.6000000238418579,
+                1.5,
+                40.0,
+                0.0,
+                14.0
+            ],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "d91a6806",
+            "at": 6.088889122009277,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.0,
+            "point": {
+                "x": 5.789037704467773,
+                "y": -1.8237724304199219,
+                "z": -1.3854284286499024
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": -0.17976094782352448,
+                "y": 0.7808687686920166,
+                "z": -0.598272442817688
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [
+                1.7999999523162842,
+                0.6000000238418579,
+                1.5,
+                40.0,
+                0.0,
+                14.0
+            ],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "200f77d6",
+            "at": 7.622222423553467,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.0,
+            "point": {
+                "x": 4.589262008666992,
+                "y": -1.8237724304199219,
+                "z": -1.8360257148742676
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": -0.23190096020698548,
+                "y": 0.7808687686920166,
+                "z": -0.5800567865371704
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [
+                1.7999999523162842,
+                0.6000000238418579,
+                1.5,
+                40.0,
+                0.0,
+                14.0
+            ],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "6cb5d6ba",
+            "at": 8.55555534362793,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "MeteorShower",
+            "weapon": "",
+            "strength": 45.0,
+            "heading": 0.0,
+            "height": 4.0,
+            "point": {
+                "x": 3.3894858360290529,
+                "y": -1.8237724304199219,
+                "z": -2.286623477935791
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": -0.2753717005252838,
+                "y": 0.7808687686920166,
+                "z": -0.5607267022132874
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 60.0,
+            "values": [
+                1.7999999523162842,
+                0.6000000238418579,
+                1.5,
+                40.0,
+                0.0,
+                14.0
+            ],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        },
+        {
+            "id": "cd802ee3",
+            "at": 8.745833396911621,
+            "action": "aimedMeteor",
+            "actor": "",
+            "target": "",
+            "hazard": "PlanetKillerMeteor",
+            "weapon": "",
+            "strength": 40.0,
+            "heading": 0.0,
+            "height": 45.0,
+            "point": {
+                "x": 8.873560905456543,
+                "y": 3.975597381591797,
+                "z": 8.88034439086914
+            },
+            "optional": false,
+            "lethal": false,
+            "blocks": [],
+            "direction": {
+                "x": -0.7101370096206665,
+                "y": 0.45075663924217226,
+                "z": 0.5408548712730408
+            },
+            "spin": 0.0,
+            "duration": 0.0,
+            "ripple": 0.0,
+            "link": "",
+            "linkOnHit": false,
+            "radius": 130.0,
+            "values": [
+                45.0,
+                0.0
+            ],
+            "jitter": 0.0,
+            "aimed": false,
+            "pullTime": 0.8999999761581421,
+            "grip": 0.44999998807907107,
+            "carry": {
+                "x": 0.0,
+                "y": 5.0,
+                "z": 0.0
+            },
+            "carryTime": 1.5,
+            "fixedGrab": false,
+            "grabPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "grabRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 1.0
+            }
+        }
+    ],
+    "shots": [],
+    "shotNotes": [],
+    "cameras": [],
+    "cuts": [],
+    "render": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "subFrames": 1,
+        "shutter": 0.5,
+        "format": "png",
+        "cinema": true,
+        "freezeAmbient": false,
+        "filmstrip": 12
+    },
+    "music": "",
+    "bpm": 120.0,
+    "beatOffset": 0.0,
+    "overrides": [],
+    "drives": [
+        {
+            "actor": "hero",
+            "muted": false,
+            "seed": 11,
+            "human": 1.0,
+            "safeEdges": true,
+            "steps": [
+                {
+                    "action": "gear",
+                    "at": 0.30000001192092898,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": "BoxingGlove"
+                },
+                {
+                    "action": "crouch",
+                    "at": 0.3199999928474426,
+                    "duration": 2.4000000953674318,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 0.30000001192092898,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 0.3499999940395355,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:rival",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "path",
+                    "at": 0.4000000059604645,
+                    "duration": 2.299999952316284,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [
+                        {
+                            "x": 8.484807968139649,
+                            "y": 3.975597381591797,
+                            "z": 8.632614135742188
+                        },
+                        {
+                            "x": 8.732405662536621,
+                            "y": 3.975597381591797,
+                            "z": 8.455991744995118
+                        },
+                        {
+                            "x": 9.121158599853516,
+                            "y": 3.975597381591797,
+                            "z": 8.703723907470704
+                        }
+                    ],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "punch",
+                    "at": 2.933333396911621,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:rival",
+                    "pace": "jog",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": -1.0,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:13.826,-5.024,3.934",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 4.733333110809326,
+                    "duration": 1.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:-12.312,18.074,8.061",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 4.933333396911621,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 8.73222827911377,
+                        "y": 3.975597381591797,
+                        "z": 8.738834381103516
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 5.866666793823242,
+                    "duration": 1.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:fox",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 7.133333206176758,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:dragon",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "punch",
+                    "at": 7.84666633605957,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:dragon",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": -1.0,
+                    "duration": 0.699999988079071,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:3.213,-4.024,14.534",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 9.533333778381348,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:-19.532,22.856,30.515",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                }
+            ]
+        },
+        {
+            "actor": "rival",
+            "muted": false,
+            "seed": 23,
+            "human": 1.0,
+            "safeEdges": true,
+            "steps": [
+                {
+                    "action": "gear",
+                    "at": 0.30000001192092898,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": "BoxingGlove"
+                },
+                {
+                    "action": "look",
+                    "at": 0.5,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:hero",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 0.6200000047683716,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 10.04093074798584,
+                        "y": 3.975597381591797,
+                        "z": 7.855772972106934
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "jog",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 1.600000023841858,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 10.324216842651368,
+                        "y": 3.975597381591797,
+                        "z": 7.148843765258789
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 1.7999999523162842,
+                    "duration": 0.44999998807907107,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:dragon",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 2.433333396911621,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 10.217906951904297,
+                        "y": 3.975597381591797,
+                        "z": 7.537685394287109
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": -1.0,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:hero",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "face",
+                    "at": -1.0,
+                    "duration": 1.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:hero",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                }
+            ]
+        },
+        {
+            "actor": "dragon",
+            "muted": false,
+            "seed": 31,
+            "human": 1.0,
+            "safeEdges": true,
+            "steps": [
+                {
+                    "action": "gear",
+                    "at": 0.30000001192092898,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": "BoxingGlove"
+                },
+                {
+                    "action": "crouch",
+                    "at": 0.30000001192092898,
+                    "duration": 3.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 0.14000000059604646,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 0.44999998807907107,
+                    "duration": 1.2999999523162842,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:penguin",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 0.5,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 6.963662624359131,
+                        "y": 3.975597381591797,
+                        "z": 10.010517120361329
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 1.6666666269302369,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 7.387393951416016,
+                        "y": 3.975597381591797,
+                        "z": 10.8593111038208
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 1.9666666984558106,
+                    "duration": 0.800000011920929,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:hero",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 3.4000000953674318,
+                    "duration": 1.2999999523162842,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:rival",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 4.4666666984558109,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 7.2813944816589359,
+                        "y": 3.975597381591797,
+                        "z": 10.753178596496582
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 4.933333396911621,
+                    "duration": 0.800000011920929,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:-7.332,19.165,-3.878",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 6.0,
+                    "duration": 0.699999988079071,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:fox",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 6.266666889190674,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 6.963174343109131,
+                        "y": 3.975597381591797,
+                        "z": 10.788333892822266
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 6.666666507720947,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:hero",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 6.933333396911621,
+                    "duration": 1.399999976158142,
+                    "point": {
+                        "x": 8.236764907836914,
+                        "y": 3.975597381591797,
+                        "z": 9.516341209411621
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "run",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "face",
+                    "at": -1.0,
+                    "duration": 1.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:hero",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                }
+            ]
+        },
+        {
+            "actor": "fox",
+            "muted": false,
+            "seed": 41,
+            "human": 1.0,
+            "safeEdges": true,
+            "steps": [
+                {
+                    "action": "gear",
+                    "at": 0.30000001192092898,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": "Blaster"
+                },
+                {
+                    "action": "look",
+                    "at": 0.5,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:penguin",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 0.8999999761581421,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 0.7724437713623047,
+                        "y": 3.9752120971679689,
+                        "z": 10.150123596191407
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "fire",
+                    "at": 2.3333332538604738,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:penguin",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": -1.0,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 1.0909063816070557,
+                        "y": 3.9752120971679689,
+                        "z": 9.549222946166993
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 3.5333333015441896,
+                    "duration": 0.6000000238418579,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:hero",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "fire",
+                    "at": 4.333333492279053,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:penguin",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": -1.0,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 0.9492049217224121,
+                        "y": 3.9752120971679689,
+                        "z": 10.185556411743164
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "fire",
+                    "at": 5.666666507720947,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:penguin",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 5.866666793823242,
+                    "duration": 0.5,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:-1.878,11.975,7.002",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                }
+            ]
+        },
+        {
+            "actor": "penguin",
+            "muted": false,
+            "seed": 43,
+            "human": 1.0,
+            "safeEdges": true,
+            "steps": [
+                {
+                    "action": "gear",
+                    "at": 0.30000001192092898,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": "Blaster"
+                },
+                {
+                    "action": "look",
+                    "at": 0.550000011920929,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:fox",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 1.0,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": -0.8174419403076172,
+                        "y": 3.9752120971679689,
+                        "z": 7.639194488525391
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "fire",
+                    "at": 2.799999952316284,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:fox",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": -1.0,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": -1.1005334854125977,
+                        "y": 3.9752120971679689,
+                        "z": 8.204755783081055
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 4.0,
+                    "duration": 0.6000000238418579,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:-16.346,17.325,23.154",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "fire",
+                    "at": 4.933333396911621,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:fox",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": -1.0,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": -0.88818359375,
+                        "y": 3.9752120971679689,
+                        "z": 7.709874153137207
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "fire",
+                    "at": 5.900000095367432,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:fox",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                }
+            ]
+        },
+        {
+            "actor": "panda",
+            "muted": false,
+            "seed": 51,
+            "human": 1.0,
+            "safeEdges": true,
+            "steps": [
+                {
+                    "action": "look",
+                    "at": 0.5,
+                    "duration": 1.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:fox",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 1.0,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 3.7568702697753908,
+                        "y": 1.9749679565429688,
+                        "z": 10.426122665405274
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": -1.0,
+                    "duration": 0.8999999761581421,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:-0.503,-10.025,11.713",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": -1.0,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 4.570549964904785,
+                        "y": 1.9749679565429688,
+                        "z": 10.180306434631348
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 2.6666667461395265,
+                    "duration": 1.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:hero",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 4.333333492279053,
+                    "duration": 0.8999999761581421,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:23.142,18.217,4.57",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 5.333333492279053,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 4.485805988311768,
+                        "y": 1.9749679565429688,
+                        "z": 10.937153816223145
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "jog",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 6.199999809265137,
+                    "duration": 0.800000011920929,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:fox",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": 7.333333492279053,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": 4.2833685874938969,
+                        "y": 1.9749679565429688,
+                        "z": 10.267065048217774
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 8.666666984558106,
+                    "duration": 3.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:-19.532,22.856,30.515",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                }
+            ]
+        },
+        {
+            "actor": "astro",
+            "muted": false,
+            "seed": 61,
+            "human": 1.0,
+            "safeEdges": true,
+            "steps": [
+                {
+                    "action": "gear",
+                    "at": 0.30000001192092898,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": "Blaster"
+                },
+                {
+                    "action": "look",
+                    "at": 0.6000000238418579,
+                    "duration": 0.8999999761581421,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:-21.569,15.325,-2.961",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "fire",
+                    "at": 2.0,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:-20.136,17.164,13.134",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": -1.0,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": -1.5722322463989258,
+                        "y": 1.9747695922851563,
+                        "z": 5.353672981262207
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 3.3333332538604738,
+                    "duration": 0.800000011920929,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:panda",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "fire",
+                    "at": 4.199999809265137,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:-9.103,18.894,-12.642",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "goTo",
+                    "at": -1.0,
+                    "duration": 1.100000023841858,
+                    "point": {
+                        "x": -1.2640924453735352,
+                        "y": 1.9747695922851563,
+                        "z": 4.561492443084717
+                    },
+                    "points": [],
+                    "target": "",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0499999523162842,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 5.400000095367432,
+                    "duration": 1.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "actor:hero",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "fire",
+                    "at": 6.5,
+                    "duration": 0.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:15.084,20.502,11.296",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                },
+                {
+                    "action": "look",
+                    "at": 8.666666984558106,
+                    "duration": 3.0,
+                    "point": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "points": [],
+                    "target": "point:-19.532,22.856,30.515",
+                    "pace": "walk",
+                    "edge": false,
+                    "amount": 1.0,
+                    "reach": 1.0,
+                    "weapon": ""
+                }
+            ]
+        }
+    ],
+    "alive": {
+        "on": true,
+        "seed": 0,
+        "strength": 1.0,
+        "head": 1.0,
+        "body": 1.0,
+        "hands": 1.0,
+        "breath": 1.0,
+        "glanceRange": 14.0,
+        "actors": []
+    }
+}

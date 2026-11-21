@@ -1,0 +1,5 @@
+Defective pack: v02/critic-r1/pack-B
+1. sync table: main moved 5 frames late
+2. sync table: punch2 impact removed
+3. stills/S06-key.png replaced by S06-last.png
+pack-1 = planted copy (was pack-B); pack-2 = real

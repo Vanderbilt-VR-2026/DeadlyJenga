@@ -184,12 +184,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     // Only open the frame up when something needs to change it: an in-between pose, or an override.
                     bool between = part > .001f && take.Covers(frame + 1);
                     var filters = ActorFrameFilters.For(stage, track);
+                    bool hand = track.type == HandTrack.Id;
                     ActorFrame pose = null;
-                    if (between || filters.Count > 0)
+                    if (between || filters.Count > 0 || hand)
                     {
                         pose = ActorFrame.Read(track.type, data);
-                        if (between) pose = ActorFrame.Blend(pose, ActorFrame.Read(track.type, take.frames[index + 1]), part);
+                        if (between)
+                        {
+                            // Only blend two shown frames: a hidden frame has no pose (zero rotations), and a blend
+                            // with it is refused by the network reader, which stopped the hand playing back for good.
+                            var next = ActorFrame.Read(track.type, take.frames[index + 1]);
+                            if (pose.visible && next.visible) pose = ActorFrame.Blend(pose, next, part);
+                        }
                         foreach (var filter in filters) filter.Apply(stage, track, time, pose);
+                        // A hand frame with no bones is never drawn by the copy; give it bones from its target.
+                        if (hand) StudioHandDirection.FillBones(pose);
                         data = pose.Write();
                     }
 
@@ -213,6 +222,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
 
                     if (!Pose(data, step, walker, gait, out string equipment)) { weapon?.Hide(); return; }
+                    if (hand) StudioHandDirection.SyncVisual(root, pose);
                     ShowWeapon(equipment, pose, data);
                     if (stage.recording) look.Apply(root, StudioTrackNotes.Of(track), StudioColors.For(stage.set.Mark(track.id)?.color ?? 0));
                 }
@@ -220,7 +230,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 {
                     failed = true;
                     StudioBadges.Set(track, StudioBadges.CouldNotPlay, error.Message);
-                    Debug.LogWarning($"Trailer Studio: {track.name} could not be played back. {error.Message}");
+                    Debug.LogWarning($"Trailer Studio: {track.name} could not be played back. {error.Message} (frame {frame} + {part:0.###})\n{error}");
                 }
             }
 

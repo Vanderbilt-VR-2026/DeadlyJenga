@@ -1,0 +1,49 @@
+L01 hard PASS: 0 -> 64 -> 104 -> 134 -> 180 -> 210 -> 268 -> 292 -> 330 -> 352 -> 450 (length 450)
+L02 hard PASS: missing subject, or learns/what over 12 words or with 'and': none
+L03 hard PASS: sections: hook teach teach escalate escalate escalate escalate payoff aftermath title
+L04 hard PASS: first shot gameplay; first gameplay at frame 0
+L05 hard PASS: core verb ['hazard_hit', 'pvp_hit']: first is pvp_hit at S01, key 0.83 s (deadline 5.0 s); scale or both parties in frame: True
+L06 hard PASS: montage: lengths [64, 40, 30, 46, 30, 58, 24, 38, 22, 7], median 34.0, shortest 7, longest 64 (floor 60), most cuts in a 5 s window 5
+L07 hard PASS: closing title at 359 (window 330-360), title plus card 91 (window 90-120)
+L08 hard PASS: threats ['hazard:meteor_shower', 'hazard:planet_killer']: anticipation or declared cold open ok; every effect has its cause
+L09 hard PASS: S01: 64 frames, key 25/39 from the ends; scale or both parties in frame: True
+L10 hard PASS: keys too near a cut: none
+L11 hard PASS: payoff key 307 vs main 308; title clause True; sync sounds off their hit: none; every hit measured within 2 frames: True
+L12 hard PASS: keys without a sound in [key-1, key+3]: none
+L13 hard PASS: ramped shots with take sound: none
+L14 hard PASS: close shots ['S08']; hero head-on shots ['S08']; of those with a `reaction` (layer, emote or performed pose) ['S08']
+L15 hard PASS: bad camera declarations: none
+L16 hard PASS: jump cuts: none
+L17 hard PASS: unsmoothed POV: none
+L18 hard PASS: must-show coverage {'pvp_hit': ['S01'], 'knock_off': ['S01', 'S05', 'S06', 'S07'], 'multiplayer': ['S03'], 'hazard_hit': ['S05', 'S06', 'S07', 'S09'], 'escalation': ['S09'], 'hero': ['S06', 'S08', 'S10'], 'ending_image': ['S09', 'S11']} (whether each proof is true of its shot: CHECK)
+L19 hard PASS: missing or impossible: none; verify at scout: none
+L20 soft PASS: text too short on screen: none
+L21 soft PASS: escalate median 38.0 vs hook+teach median 40
+L22 soft PASS: CV 0.45
+L23 soft PASS: longest even run 1
+L24 soft PASS: cuts within 1 frame of a beat: 2 of 9 [64, 180]
+L25 soft PASS: hook counts [1, 2, 3]
+L26 soft PASS: direction flips across cause-effect cuts: none
+L27 soft PASS: eye-trace jumps: none
+L28 soft PASS: main hit 308 vs 0.6 x 359 = 215
+L29 soft PASS: wide share 90%, close share 0% (limit 25%)
+L30 soft PASS: designed moves 20% of shots
+L31 soft N/A: class 30 and 60 only
+L32 soft PASS: captions 0; text problems none (rule-of-play wording: CHECK)
+L33 soft PASS: short shots whose next cut has no sound or hit: none
+L34 soft WAIVED: shows counts, core verb excluded: {'weapon': 3, 'knock_off': 4, 'multiplayer': 1, 'hero': 3, 'escalation': 1, 'ending_image': 2}  [waiver: knock_off is the escalation itself: rival by a punch (S01), astronaut by a rock (S05), the hero by a rock (S06), two at once (S07); each raises something different]
+L35 soft PASS: too short to read: none
+L36 hard N/A: two_role only
+L37 soft N/A: two_role only
+L38 hard PASS: gameplay shots without an Hf fit line: none (whether each fit is right: CHECK)
+L39 hard PASS: reserved example ids or text used: none
+L40 hard PASS: first hazard_hit at 153, first pvp_hit at 25; both needed by frame 215 (60 % of the body)
+L41 hard PASS: who did what to whom: every hit names its attacker and victim, both readable
+L42 hard PASS: hero yellow in frame through the cut; missing from: none
+L43 soft PASS: hazards by first appearance: hazard:meteor_shower@104 (teach), hazard:planet_killer@268 (escalate)
+L44 soft PASS: establishing wides with structure and hero in the first third: ['S03']; shots without tower_level: none
+L45 soft PASS: crowd shots with fewer than 3 survivors at h >= 0.08: none
+L46 soft WAIVED: knock-offs held 0.6 s or picked up by the next shot: ['S06: 14 frames after the hit']  [waiver: the hero's fall is cut at f210, before the ride camera enters the tower lattice; he is picked up alive on the castle wall in S08, one shot later, which is the story's turn (he survived his own rain)]
+
+Hard failures: 0 []; hard lints waived (report to the human): none
+Not checked here: R01-R07 (scout and render), and whether labels, proofs and fit lines are true.
