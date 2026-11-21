@@ -193,7 +193,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             stuckFor = motor.Grounded && stick.magnitude > .45f && moved < .35f ? stuckFor + dt : 0;
             if (stuckFor > .25f && LedgeAhead(stick.normalized)) { intent.jump = true; stuckFor = 0; }
             // A second press in the air grabs a ledge (the game's vault).
-            if (!motor.Grounded && jumpPresses == 1 && time - lastJump > .14f && time - lastJump < .6f && (intent.climb || LedgeAhead(stick.sqrMagnitude > .0001f ? stick.normalized : Forward)))
+            // (The game itself says when a ledge is in reach: within 0.65 m ahead and 1.25 m above the feet.)
+            if (!motor.Grounded && !motor.Vaulting && jumpPresses == 1 && time - lastJump > .08f && time - lastJump < 1.2f && motor.TryFindLedge(out _, out _))
             { command.jump = true; jumpPresses = 2; }
             if (intent.jump && motor.Grounded && time - lastJump > .3f)
             {
