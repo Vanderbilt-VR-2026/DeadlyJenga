@@ -169,7 +169,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     revision = map.Revision;
                     railBodies = map.Blocks.Where(body => body.name.StartsWith("Gift-supported rail ", StringComparison.Ordinal)).ToArray();
                     var walkways = map.Blocks.Where(body => body.transform.parent.name == "Present Walk to the Train Loop").ToArray();
-                    var gifts = map.Blocks.Except(railBodies).Except(walkways).GroupBy(body => body.transform.parent.name)
+                    // Toys and toy buildings are blocks too, but not six- or ten-piece present shells.
+                    var gifts = map.Blocks.Except(railBodies).Except(walkways)
+                        .Where(body => !body.GetComponentInParent<UnderneathTreeToy>()).GroupBy(body => body.transform.parent.name)
                         .ToDictionary(group => group.Key, group => group.ToArray());
                     originalPieces = PieceOrder();
                     Require(gifts.Count >= 30 && map.Blocks.All(b => b && b.isKinematic && b.useGravity),
