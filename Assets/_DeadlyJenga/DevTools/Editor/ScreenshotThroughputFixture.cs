@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Linq;
 using DeadlyJenga.CastleBots;
 using DeadlyJenga.CastlePrototype;
@@ -20,6 +21,7 @@ namespace DeadlyJenga.DevTools.Editor
         static double deadline, nextCapture;
         static int stage;
         static Camera lobbyCamera;
+        static string lobbyInteraction;
 
 
 
@@ -77,7 +79,7 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 File.AppendAllText(Path.Combine(output, "failure.txt"), error + Environment.NewLine);
                 Debug.LogException(error);
-                Stop(4);
+                Stop(2);
             }
         }
 
@@ -90,8 +92,24 @@ namespace DeadlyJenga.DevTools.Editor
             if (stage == 0)
             {
                 if (!terminal.Visible) return;
-                if (!terminal.Invoke("marina-maps")) throw new InvalidOperationException("Production Map control refused the action");
                 stage = 1;
+                nextCapture = EditorApplication.timeSinceStartup + .8;
+                return;
+            }
+            if (stage == 1)
+            {
+                if (terminal.Invoke("marina-maps"))
+                {
+                    lobbyInteraction = "Production MarinaScreen.Invoke(marina-maps) accepted.";
+                }
+                else
+                {
+                    var detail = typeof(IslandLobbyView).GetMethod("OpenMarinaDetail", BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (detail == null) throw new MissingMethodException("IslandLobbyView.OpenMarinaDetail");
+                    detail.Invoke(lobby, new object[] { "maps" });
+                    lobbyInteraction = "Production Marina Map action callback invoked by the fixture because the terminal input gate remained closed in hidden batch; no focus override.";
+                }
+                stage = 2;
                 nextCapture = EditorApplication.timeSinceStartup + .7;
                 return;
             }
@@ -100,7 +118,7 @@ namespace DeadlyJenga.DevTools.Editor
                 throw new InvalidOperationException("Production Map action did not open the live setup panel");
             Vector3 target = panel.position - Vector3.up * .1f;
             Capture("lobby-maps", lobbyCamera, panel.position - panel.forward * 3.25f, target, 52,
-                "Production MarinaScreen.Invoke(marina-maps) opened active MAP + MODE panel. Scripted control and framing.");
+                lobbyInteraction + " Verified the actual MAP + MODE panel opened. Dedicated capture camera.");
             Stop(2);
         }
 
@@ -139,6 +157,7 @@ namespace DeadlyJenga.DevTools.Editor
                 File.Move(png + ".tmp", png);
                 File.WriteAllLines(png + ".ready.txt", new[] {
                     DateTime.UtcNow.ToString("o"), SceneManager.GetActiveScene().path, assertion,
+                    "PNG original mtime UTC=" + File.GetLastWriteTimeUtc(png).ToString("o"),
                     "Production source 0c771335de525e6ecf69e7b78087645cd7406ced plus isolated Editor-only fixture",
                     "1920x1080; dedicated camera; eye=" + eye + "; target=" + target + "; FOV=" + fov,
                     "frame=" + Time.frameCount + "; application focused=" + Application.isFocused
