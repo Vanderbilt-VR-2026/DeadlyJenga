@@ -407,6 +407,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             StudioRun.Refresh();
             yield return 0;
             try { MotionTable(stage, shots, cameras); } catch (Exception error) { Note("Motion table failed: " + error); }
+            if (mode == "motion") { MotionDump(stage, shots); yield break; }
             bool final = mode.StartsWith("final");
             if (mode == "finalA") cameras = cameras.Where(c => c.id == "S01" || c.id == "S02" || c.id == "S03").ToList();
             if (mode == "finalB") cameras = cameras.Where(c => c.id == "S04" || c.id == "S05" || c.id == "S06").ToList();

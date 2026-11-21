@@ -47,6 +47,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static void RunFinalA() => Begin("finalA");
         public static void RunFinalB() => Begin("finalB");
         public static void RunFinalC() => Begin("finalC");
+        public static void RunMotion() => Begin("motion");   // no render: every drawn joint of every shot frame, as a table
 
         static bool Recording => Mode == "rehearse";
 

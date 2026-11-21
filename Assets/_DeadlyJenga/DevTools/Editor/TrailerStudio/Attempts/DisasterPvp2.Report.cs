@@ -239,5 +239,44 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             File.WriteAllText(Path.Combine(Folder, "motion.csv"), table.ToString());
             Note(md.ToString());
         }
+
+        // Every drawn joint of every shot frame, three ways: the tape alone, the tape with the explicit layers,
+        // and everything (alive layer too). Used to find which layer makes a body twitch.
+        static void MotionDump(StudioStage stage, List<Shot> shots)
+        {
+            var csv = new StringBuilder("shot,frame,actor,variant,visible,fx,fy,fz,hx,hy,hz,hqx,hqy,hqz,hqw,lx,ly,lz,lqx,lqy,lqz,lqw,rx,ry,rz,rqx,rqy,rqz,rqw\n");
+            foreach (var shot in shots)
+                foreach (string role in Roles)
+                {
+                    var track = stage.tape.Find(role); var take = track?.ActiveTake;
+                    if (take == null) continue;
+                    for (int f = shot.cutIn; f < shot.cutOut; f++)
+                    {
+                        int tf = TapeFrame(f) + shot.shift;
+                        if (!take.Covers(tf)) continue;
+                        for (int variant = 0; variant < 3; variant++)
+                        {
+                            var p = ActorFrame.Read(track.type, take.frames[tf - take.start]);
+                            if (variant > 0)
+                                foreach (var filter in ActorFrameFilters.For(stage, track))
+                                    if (variant == 2 || !(filter is StudioAlive)) filter.Apply(stage, track, tf / (float)Fps, p);
+                            var b = p.body;
+                            var q = new[] { b.headRotation, b.left.rotation, b.right.rotation };
+                            var v = new[] { b.feet, b.head, b.left.position, b.right.position };
+                            csv.Append($"{shot.id},{f - shot.cutIn},{role},{(variant == 0 ? "tape" : variant == 1 ? "layers" : "all")},{(p.visible ? 1 : 0)}");
+                            foreach (int k in new[] { 0, 1 }) csv.Append(string.Format(CultureInfo.InvariantCulture, ",{0:0.0000},{1:0.0000},{2:0.0000}", v[k].x, v[k].y, v[k].z));
+                            csv.Append(string.Format(CultureInfo.InvariantCulture, ",{0:0.00000},{1:0.00000},{2:0.00000},{3:0.00000}", q[0].x, q[0].y, q[0].z, q[0].w));
+                            for (int k = 1; k <= 2; k++)
+                            {
+                                csv.Append(string.Format(CultureInfo.InvariantCulture, ",{0:0.0000},{1:0.0000},{2:0.0000}", v[k + 1].x, v[k + 1].y, v[k + 1].z));
+                                csv.Append(string.Format(CultureInfo.InvariantCulture, ",{0:0.00000},{1:0.00000},{2:0.00000},{3:0.00000}", q[k].x, q[k].y, q[k].z, q[k].w));
+                            }
+                            csv.Append('\n');
+                        }
+                    }
+                }
+            File.WriteAllText(Path.Combine(Folder, "joints.csv"), csv.ToString());
+            Note("Joint table written: joints.csv");
+        }
     }
 }
