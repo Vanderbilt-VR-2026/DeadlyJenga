@@ -25,7 +25,17 @@ namespace DeadlyJenga.CastleBots
             public Mesh mesh;
             public Bounds meshBounds;
             public int vertices;
-            public bool Same(ShapeState other)=>shape==other.shape&&active==other.active&&matrix.Equals(other.matrix)&&center.Equals(other.center)&&size.Equals(other.size)&&mesh==other.mesh&&meshBounds.Equals(other.meshBounds)&&vertices==other.vertices;
+            // Sub-centimetre jitter of a resting block keeps its samples; real moves rebuild them.
+            static bool Close(Matrix4x4 a,Matrix4x4 b)
+            {
+                for(int row=0;row<3;row++)
+                {
+                    if(Mathf.Abs(a[row,3]-b[row,3])>.01f)return false;
+                    for(int col=0;col<3;col++)if(Mathf.Abs(a[row,col]-b[row,col])>.004f)return false;
+                }
+                return true;
+            }
+            public bool Same(ShapeState other)=>shape==other.shape&&active==other.active&&Close(matrix,other.matrix)&&center.Equals(other.center)&&size.Equals(other.size)&&mesh==other.mesh&&meshBounds.Equals(other.meshBounds)&&vertices==other.vertices;
         }
         static readonly Dictionary<Rigidbody,BodySamples> cache=new();
         readonly struct FaceSample

@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(NearbyFlow?850:LobbyHandoff||TycoonTest||FullRound?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:NearbyFlow?850:LobbyHandoff||TycoonTest||FullRound?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -286,6 +286,143 @@ namespace DeadlyJenga.CastlePrototype
             File.WriteAllText(Mark(role+"-nearby-returned"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-returned")),
                 "Both clients confirm the return",25);
+        }
+
+        // N-player join: one host (--dj-smoke=host) and N-1 guests (--dj-smoke=guestK). Each process
+        // holds the room for --dj-scale-seconds once everyone is in, then leaves.
+        static bool ScaleTest => Environment.GetCommandLineArgs().Contains("--dj-scale");
+        static int ScaleArg(string name, int fallback)
+        {
+            foreach (var arg in Environment.GetCommandLineArgs())
+                if (arg.StartsWith(name + "=") && int.TryParse(arg.Substring(name.Length + 1), out int value)) return value;
+            return fallback;
+        }
+
+        IEnumerator CheckScale()
+        {
+            int players = ScaleArg("--dj-scale-players", 2);
+            float holdSeconds = ScaleArg("--dj-scale-seconds", 60);
+            bool host = role == "host";
+            HomeSession home = null;
+            yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && !string.IsNullOrEmpty(home.Region),
+                "Home initializes its room connection", 90);
+            var room = IslandRoomConnection.Instance;
+            if (host)
+            {
+                if (MatchTest)
+                {
+                    // Same entry as the Tycoon run: a local lobby first, then Host from its terminal.
+                    home.Demo();
+                    yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player), "Host enters usable lobby", 90);
+                    var opened = room.Host();
+                    yield return Until(() => opened.IsCompleted && room.IsHost && !room.Busy, "Host opens a Fusion room", 90, () => room.Status);
+                    yield return ChooseDemoCastle(IslandLobby.Current, players + ScaleArg("--dj-match-bots", 8));
+                }
+                else
+                {
+                    home.Host();
+                    yield return Until(() => IslandLobby.Current && room.IsHost && !room.Busy, "Host opens a Fusion room", 90, () => room.Status);
+                }
+                File.WriteAllText(Mark("scale-code-temp"), room.Code);
+                File.Move(Mark("scale-code-temp"), Mark("scale-code"));
+            }
+            else
+            {
+                yield return Until(() => File.Exists(Mark("scale-code")), "Host publishes the room code", 180);
+                home.Code = File.ReadAllText(Mark("scale-code"));
+                home.JoinCode();
+                yield return Until(() => IslandLobby.Current && room.Connected && !room.IsHost && !room.Busy,
+                    "Guest joins the room", 120, () => room.Status);
+            }
+            yield return Until(() => room.Connected && room.HumanCount == players,
+                $"Room reaches {players} humans", 240, () => $"humans={room.HumanCount}; status={room.Status}");
+            File.AppendAllText(Report, $"SCALE joined humans={room.HumanCount} of {players}\n");
+            if (MatchTest)
+            {
+                yield return CheckMatch(room, players, ScaleArg("--dj-match-bots", 8), holdSeconds);
+            }
+            else
+            {
+                float holdUntil = Time.realtimeSinceStartup + holdSeconds;
+                int minHumans = int.MaxValue, drops = 0;
+                while (Time.realtimeSinceStartup < holdUntil)
+                {
+                    yield return new WaitForSeconds(1f);
+                    int humans = room.HumanCount;
+                    minHumans = Mathf.Min(minHumans, humans);
+                    if (!room.Connected) drops++;
+                }
+                File.AppendAllText(Report, $"SCALE held minHumans={minHumans} disconnectedSeconds={drops}\n");
+                Require(drops == 0 && minHumans == players, $"Room held {players} humans for {holdSeconds:F0}s without drops");
+            }
+            var leave = room.Leave();
+            yield return Until(() => leave.IsCompleted, "Process leaves the room", 30);
+        }
+
+        // Match run: host starts Demo on Castle with a fixed bot count, then both processes hold the round.
+        static bool MatchTest => Environment.GetCommandLineArgs().Contains("--dj-match");
+
+        // Chosen while the host is alone: a joined guest standing in a lobby slot blocks terminal changes.
+        IEnumerator ChooseDemoCastle(IslandLobby lobby, int population)
+        {
+            MatchSetup.BotTarget = population;
+            yield return Until(() => lobby.CanConfigure, "Host terminal is configurable", 60,
+                () => $"canStart={lobby.CanStart} status={IslandRoomConnection.Instance.Status}");
+            lobby.SelectMode("demo");
+            yield return Until(() => lobby.SelectedModeId == "demo", "Terminal selects Demo mode", 30);
+            lobby.SelectMap("castle");
+            yield return Until(() => lobby.SelectedMapId == "castle", "Terminal selects Castle map", 30);
+        }
+
+        IEnumerator CheckMatch(IslandRoomConnection room, int players, int bots, float seconds)
+        {
+            bool host = role == "host";
+            var lobby = IslandLobby.Current;
+            if (host) lobby.StartOrCancel();
+            CastlePlaySession session = null;
+            yield return Until(() => (session = FindFirstObjectByType<CastlePlaySession>()) && NetworkActors.Alive(session.Player)
+                && session.Network && !session.Network.WaitingForWorld, "Room transitions to a Castle match", 150, () => $"room={room.Status}");
+            if (host)
+            {
+                session.SurvivorBots.AutoFill = false;
+                session.SurvivorBots.Clear();
+                for (int i = 0; i < bots; i++) session.SurvivorBots.SpawnOne();
+                Require(session.SurvivorBots.Count == bots, $"Host spawns {bots} bots");
+            }
+            yield return Until(() => session.SurvivorBots.Count == bots || !host, $"Bots replicate to {role} ({bots} expected)", 60,
+                () => $"count={session.SurvivorBots.Count}");
+            File.AppendAllText(Report, $"MATCH started role={role} bots={session.SurvivorBots.Count} humans={room.HumanCount}\n");
+
+            var start = new Dictionary<GameObject, Vector3>();
+            foreach (var bot in session.SurvivorBots.Members) if (bot) start[bot] = bot.transform.position;
+            var times = new List<double>(4000);
+            int disconnected = 0, hitchSeconds = 0, minHumans = int.MaxValue;
+            double previous = Time.realtimeSinceStartupAsDouble, end = previous + seconds, nextSecond = previous + 1;
+            double worstInSecond = 0;
+            while (previous < end)
+            {
+                yield return null;
+                double now = Time.realtimeSinceStartupAsDouble, ms = (now - previous) * 1000;
+                times.Add(ms); worstInSecond = System.Math.Max(worstInSecond, ms); previous = now;
+                if (now >= nextSecond)
+                {
+                    nextSecond += 1;
+                    if (!room.Connected) disconnected++;
+                    if (worstInSecond >= 100) hitchSeconds++;
+                    minHumans = Mathf.Min(minHumans, room.HumanCount);
+                    worstInSecond = 0;
+                }
+            }
+            int moved = 0;
+            foreach (var pair in start)
+                if (pair.Key && Vector3.Distance(pair.Key.transform.position, pair.Value) > 1f) moved++;
+            var sorted = times.OrderBy(ms => ms).ToArray();
+            double Percentile(float fraction) => sorted[Mathf.Clamp(Mathf.CeilToInt(sorted.Length * fraction) - 1, 0, sorted.Length - 1)];
+            File.AppendAllText(Report, $"FRAMES match n={times.Count} p50={Percentile(.5f):F1}ms p95={Percentile(.95f):F1}ms p99={Percentile(.99f):F1}ms max={sorted.Last():F1}ms >=100ms={times.Count(ms => ms >= 100)}\n");
+            File.WriteAllLines(Path.Combine(folder, role + "-match-frames-ms.txt"), times.Select(ms => ms.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)));
+            File.AppendAllText(Report, $"MATCH held seconds={seconds:F0} bots={session.SurvivorBots.Count} botsMoved={moved}/{start.Count} minHumans={minHumans} disconnectedSeconds={disconnected} hitchSeconds={hitchSeconds}\n");
+            Require(disconnected == 0 && minHumans == players, $"Match held {players} humans for {seconds:F0}s without drops");
+            Require(moved > 0 || !host, "Bots move during the match");
         }
 
         static bool TycoonTest => Environment.GetCommandLineArgs().Contains("--dj-tycoon");
@@ -649,6 +786,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             File.WriteAllText(Report,"Independent player "+role+"\n");
             if(FullRound){yield return CheckFullRound();yield break;}
+            if(ScaleTest){yield return CheckScale();yield break;}
             if(TycoonTest){yield return CheckTycoon();yield break;}
             if(NearbyFlow){yield return CheckNearbyLobby();yield break;}
             if(LobbyHandoff)
