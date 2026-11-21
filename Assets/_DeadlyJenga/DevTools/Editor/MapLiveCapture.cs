@@ -102,6 +102,9 @@ namespace DeadlyJenga.DevTools.Editor
             Begin(new Job { batch = true, output = output, views = views }, null, false, ids);
         }
 
+        // Far plane for player-eye shots; 0 keeps the usual long picture range.
+        public static float PlayerEyeFar;
+
         static bool PlayerEye(Camera camera, string view, IWorldQuery world, out string name)
         {
             name = null; var p = view.Split('|');
@@ -115,6 +118,8 @@ namespace DeadlyJenga.DevTools.Editor
             camera.transform.position = feet + Vector3.up * 1f;
             camera.transform.LookAt(world.Center + new Vector3(f[3], f[4], f[5]));
             camera.fieldOfView = 70;
+            // Optional: see only as far as a player does (no pushed-out far plane or fog).
+            if (PlayerEyeFar > 0) { camera.farClipPlane = PlayerEyeFar; fogRadius = 0; }
             return true;
         }
 

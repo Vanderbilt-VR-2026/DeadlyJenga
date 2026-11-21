@@ -80,6 +80,30 @@ namespace DeadlyJenga.DevTools.Editor
             MapLiveCapture.BatchMaps(new List<string> { "epic-candy-sky-ring-city" }, Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Captures", "SkyRingTour"), views);
         }
 
+        // -executeMethod DeadlyJenga.DevTools.Editor.CandyCityLayoutChecks.RunSkyRingSkyline
+        // Player-eye pictures looking OUT from Candy Sky Ring City at the distant cloud cities and the rainbow,
+        // with the survivor camera's real 700 m view distance (anything farther is cut off in the game too).
+        public static void RunSkyRingSkyline()
+        {
+            var shots = new (string name, Vector3 at, Vector3 look)[]
+            {
+                ("sky-01-north-edge", new Vector3(0, .5f, 85), new Vector3(0, 40, 500)),
+                ("sky-02-south-edge-across-city", new Vector3(0, .5f, -90), new Vector3(0, 60, 500)),
+                ("sky-03-east-edge", new Vector3(95, .5f, 0), new Vector3(500, 30, 0)),
+                ("sky-04-west-edge", new Vector3(-95, .5f, 0), new Vector3(-500, 30, 0)),
+                ("sky-05-downtown-top-nw", new Vector3(56, 47, 56), new Vector3(-300, 40, 400)),
+                ("sky-06-keep-top-south", new Vector3(-59, 37.5f, -59), new Vector3(-200, 30, -500)),
+                ("sky-07-plaza-up", new Vector3(0, .5f, -21), new Vector3(0, 70, 300)),
+                ("sky-08-harbor-roof-se", new Vector3(48, 13.6f, -48), new Vector3(400, 40, -300)),
+                ("sky-09-sw-edge", new Vector3(-70, .5f, -70), new Vector3(-400, 30, -400)),
+                ("sky-10-ne-edge", new Vector3(70, .5f, 70), new Vector3(400, 30, 400)),
+            };
+            string F(float v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var views = shots.Select(s => $"pov|{s.name}|{F(s.at.x)}|{F(s.at.y)}|{F(s.at.z)}|{F(s.look.x)}|{F(s.look.y)}|{F(s.look.z)}").ToArray();
+            MapLiveCapture.PlayerEyeFar = 700; // the batch runs over later editor frames and then quits Unity
+            MapLiveCapture.BatchMaps(new List<string> { "epic-candy-sky-ring-city" }, Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Captures", "SkyRingSkyline"), views);
+        }
+
         static void RunMaps((int design, string id)[] maps)
         {
             var report = new StringBuilder("Candy city layout checks\n");
