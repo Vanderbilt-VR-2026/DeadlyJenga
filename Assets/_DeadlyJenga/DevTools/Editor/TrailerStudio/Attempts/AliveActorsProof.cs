@@ -232,8 +232,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Note($"Top of the map {highest:0.00} m; {spots.Count} free standing spots with open sky in the top 7 m.");
             if (spots.Count < 7) throw new InvalidOperationException("Not enough free spots on the tower top.");
 
-            // The hero and his rival, away from the group, with one step or small gap early on the run between them,
-            // and room after it to land (a jump carries a running survivor about 3 m) before the rival.
+            // The hero and his rival with a gap (up to 2.4 m: the castle's top blocks stand at least 2.2 m apart) or a step
+            // on the run between them, far enough along to be at full speed there, and room after it to land before the rival.
             float bestScore = float.MinValue;
             var free = spots;   // the run is chosen first; the group stands away from it
             const float sample = .2f;
@@ -254,7 +254,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     int change = ground.FindIndex(y => Hole(y) || Mathf.Abs(y - h.y) > .25f);
                     if (change < 0) { why[0]++; continue; }
                     float at = .3f + change * sample;
-                    if (at < .5f || at > 3f || d - at < 3.6f) { why[1]++; continue; }
+                    if (at < 1.8f || at > 3.4f || d - at < 4.2f) { why[1]++; continue; }
                     // Gaps on the way: each one short enough to jump (the drive jumps small gaps by itself), the last one
                     // early enough to land before the rival.
                     int run = 0, longest = 0, lastGap = -1, holes = 0;
@@ -264,12 +264,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         else run = 0;
                     }
                     int gap = longest;
-                    if (longest * sample > 1.6f || holes > ground.Count * .35f || lastGap >= 0 && d - (.3f + lastGap * sample) < 2.8f) { why[2]++; shortest = Mathf.Min(shortest, longest * sample); continue; }
+                    if (longest * sample > 2.4f || holes > ground.Count * .4f || lastGap >= 0 && d - (.3f + lastGap * sample) < 2.8f) { why[2]++; shortest = Mathf.Min(shortest, longest * sample); continue; }
                     // Nothing in the way of a running body (a step up is fine: it is jumped).
                     float top = Mathf.Max(h.y, r.y) + .9f;
                     if (Physics.Linecast(new Vector3(h.x, top, h.z), new Vector3(r.x, top, r.z), (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)) { why[3]++; continue; }
-                    float score = 10 - Mathf.Abs(d - 6.5f) - Mathf.Abs(at - 1.6f) + (gap > 0 ? 1 : 0) + h.y * .1f;
-                    if (score > bestScore) { bestScore = score; plan.hero = h; plan.rival = r; plan.step = true; plan.jumpAt = Vector3.Lerp(h, r, Mathf.Max(.15f, at - .5f) / d); }
+                    float score = 10 - Mathf.Abs(d - 7f) - Mathf.Abs(at - 2.4f) - gap * sample + h.y * .1f;
+                    if (score > bestScore) { bestScore = score; plan.hero = h; plan.rival = r; plan.step = true; plan.jumpAt = Vector3.Lerp(h, r, Mathf.Max(.15f, at - .35f) / d); }
                 }
             Note($"Run search: no change of ground {why[0]}, change too early or late {why[1]}, gap too long or holes after {why[2]}, something in the way {why[3]}; shortest rejected gap {shortest:0.0} m.");
             if (bestScore == float.MinValue)
@@ -350,7 +350,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             drive.steps.Add(new StudioDriveStep { action = "look", at = .75f, target = "actor:rival" });
             drive.steps.Add(new StudioDriveStep { action = "wait", duration = .5f });
             if (plan.step) drive.steps.Add(new StudioDriveStep { action = "jump", target = P(stage, plan.jumpAt) });
-            drive.steps.Add(new StudioDriveStep { action = "punch", target = "actor:rival", pace = "jog", reach = 1.0f });
+            // Running: a running jump carries about 4 m, enough for the gaps between the castle's top blocks.
+            drive.steps.Add(new StudioDriveStep { action = "punch", target = "actor:rival", pace = plan.step ? "run" : "jog", reach = 1.0f });
             drive.steps.Add(new StudioDriveStep { action = "wait", duration = 1.4f });
             drive.steps.Add(new StudioDriveStep { action = "look", target = "" });
             drive.steps.Add(new StudioDriveStep { action = "wait", duration = 2 });

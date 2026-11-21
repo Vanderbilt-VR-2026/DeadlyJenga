@@ -168,7 +168,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 if (jumpArmed && Vector3.Distance(Flat(Feet), Flat(jumpAt)) < 1.4f) intent.jump = true;
                 // Running at a small gap with ground just beyond it: a person jumps it rather than stopping.
-                else if (Flat(motor.Capsule.velocity).magnitude > 1.2f && LandingBeyond(stick.normalized)) { intent.jump = true; Log(time, "jumps a gap"); }
+                else if (Flat(motor.Capsule.velocity).magnitude > 1.2f && LandingBeyond(stick.normalized, Flat(motor.Capsule.velocity).magnitude * .75f)) { intent.jump = true; Log(time, "jumps a gap"); }
                 else
                 {
                     if (!edgeLogged) { Log(time, "stopped at an edge (no ground ahead)"); edgeLogged = true; }
@@ -270,12 +270,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return hit.point.y <= water + .05f;
         }
 
-        // Solid ground at about the same height within 2.2 m ahead, past a gap: somewhere a jump lands.
-        bool LandingBeyond(Vector3 direction)
+        // Solid ground at about the same height within 3 m ahead, past a gap: somewhere a jump lands.
+        bool LandingBeyond(Vector3 direction, float farthest)
         {
             int mask = (1 << Layers.Block) | (1 << Layers.Surface) | 1;
             Vector3 feet = Feet;
-            for (float reach = .45f; reach <= 2.2f; reach += .15f)
+            for (float reach = .45f; reach <= Mathf.Min(3f, farthest); reach += .15f)
             {
                 Vector3 probe = feet + direction * (motor.Capsule.radius + reach);
                 if (!Physics.Raycast(probe + Vector3.up * .6f, Vector3.down, out var hit, 1.2f, mask, QueryTriggerInteraction.Ignore)) continue;
