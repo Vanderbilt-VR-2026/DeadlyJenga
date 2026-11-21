@@ -111,6 +111,7 @@ namespace DeadlyJenga.CandyArt
             BuildLighting();
             RestoreIndoorSettings();
             RefreshWorldArt();
+            BuildCarpet();
         }
 
         void LateUpdate()
@@ -125,6 +126,8 @@ namespace DeadlyJenga.CandyArt
             if (world.Revision != revision)
                 RefreshWorldArt();
             AnimateFire();
+            AnimateCarpet();
+            AnimateDog();
 
             bool viewUnderFloor = Services.Session?.ActiveCamera is Camera view && view.transform.position.y < -1.7f;
             bool blackout = false;
@@ -219,13 +222,13 @@ namespace DeadlyJenga.CandyArt
 
         void RestoreIndoorSettings()
         {
-            // The middle of the night: only a little blue from the windows and red off the rug,
-            // so the tree lights, the lamp and the moonlight do the lighting.
-            var sky = new Color(.045f, .05f, .11f);
-            var sides = new Color(.03f, .05f, .16f);
-            var rug = new Color(.07f, .015f, .02f);
+            // Night, but not black: deep blue from the windows, plum at the sides and warm red off the rug,
+            // so shapes in shadow still read while the coloured lights make the pools.
+            var sky = new Color(.11f, .11f, .24f);
+            var sides = new Color(.10f, .08f, .22f);
+            var rug = new Color(.18f, .06f, .07f);
             if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Trilight &&
-                RenderSettings.ambientSkyColor == sky && Mathf.Approximately(RenderSettings.reflectionIntensity, .4f))
+                RenderSettings.ambientSkyColor == sky && Mathf.Approximately(RenderSettings.reflectionIntensity, .3f))
                 return;
             RenderSettings.skybox = null;
             RenderSettings.fog = false;
@@ -233,7 +236,7 @@ namespace DeadlyJenga.CandyArt
             RenderSettings.ambientSkyColor = sky;
             RenderSettings.ambientEquatorColor = sides;
             RenderSettings.ambientGroundColor = rug;
-            RenderSettings.reflectionIntensity = .4f;
+            RenderSettings.reflectionIntensity = .3f;
         }
 
         void Hide(Renderer renderer)
@@ -352,6 +355,7 @@ namespace DeadlyJenga.CandyArt
             if (!captured)
                 return;
             captured = false;
+            ClearCarpet();
             if (roomPipeline)
             {
                 if (QualitySettings.renderPipeline == roomPipeline) QualitySettings.renderPipeline = previousPipeline;
@@ -410,7 +414,7 @@ namespace DeadlyJenga.CandyArt
         void BuildLighting()
         {
             key = MakeLight("Amber lamplight and ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .70f, .42f), .08f, 0f);
+                Vector3.zero, new Color(1f, .70f, .42f), .16f, 0f);
             // Shines from the fireplace side so the gift faces seen in the approved picture are lit.
             key.transform.localRotation = Quaternion.Euler(46f, 18f, 0f);
             key.shadows = LightShadows.Soft;
@@ -465,6 +469,21 @@ namespace DeadlyJenga.CandyArt
                     height < 60f ? 6000f : 3000f, height < 60f ? 95f : 55f);
             }
 
+            // Coloured pools across the whole gift course, like strings of big old bulbs overhead:
+            // red, yellow, green and blue in turn, each lighting its own patch of presents.
+            // Kept few and spread out, because the Quest only lights each object with 4 of these.
+            var course = new Vector3(-76f, 0f, -102f);
+            var pools = new (Vector3 at, int colour)[]
+            {
+                (course + new Vector3(0f, 52f, 0f), 2),
+                (course + new Vector3(70f, 40f, 30f), 0), (course + new Vector3(30f, 44f, 75f), 1),
+                (course + new Vector3(-45f, 40f, 65f), 3), (course + new Vector3(-85f, 38f, 0f), 0),
+                (course + new Vector3(-55f, 42f, -70f), 1), (course + new Vector3(15f, 40f, -85f), 3),
+                (course + new Vector3(80f, 38f, -50f), 2),
+            };
+            foreach (var (at, colour) in pools)
+                MakeLight("Coloured light pool", LightType.Point, at, bulbGlow[colour], 4200f, 85f);
+
             var reflections = new GameObject("Christmas Room Reflections");
             reflections.transform.SetParent(art, false);
             reflections.transform.localPosition = new Vector3((RoomWest + RoomEast) * .5f, 90f, (RoomSouth + RoomNorth) * .5f);
@@ -476,7 +495,7 @@ namespace DeadlyJenga.CandyArt
             roomProbe.hdr = true;
             roomProbe.size = new Vector3(RoomEast - RoomWest + 10f, RoomTop + 10f, RoomNorth - RoomSouth + 10f);
             roomProbe.boxProjection = true;
-            roomProbe.intensity = .85f;
+            roomProbe.intensity = .7f;
 
             var post = new GameObject("Christmas Eve Grade");
             post.transform.SetParent(art, false);
@@ -489,7 +508,7 @@ namespace DeadlyJenga.CandyArt
             tone.mode.Override(TonemappingMode.ACES);
             var bloom = grade.Add<Bloom>(true);
             bloom.threshold.Override(.9f);
-            bloom.intensity.Override(1.35f);
+            bloom.intensity.Override(1.0f);
             bloom.scatter.Override(.72f);
             var color = grade.Add<ColorAdjustments>(true);
             color.postExposure.Override(.1f);

@@ -62,6 +62,7 @@ namespace DeadlyJenga.CandyArt
             var shade = Surface("Warm linen lampshade", "Woven", new Color(1f, .82f, .56f), .18f, new Vector2(12f, 3f), 0f, .32f);
             Box("Pendant cord", new Vector3(RoomWest - 90f, height - 18f, midZ), new Vector3(.4f, 36f, .4f), steel);
             Primitive("Pendant shade", PrimitiveType.Cylinder, new Vector3(RoomWest - 90f, height - 40f, midZ), new Vector3(16f, 5f, 16f), shade);
+            DeckTheKitchen(far, south, north, height);
         }
 
         void GingerbreadHouse(Vector3 at)

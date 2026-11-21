@@ -60,9 +60,10 @@ namespace DeadlyJenga.CandyArt
             material.SetFloat("_BaseShade", .55f);
             material.SetFloat("_BumpScale", .12f);
             material.SetColor("_FoilColor", new Color(1f, .68f, .16f));
-            material.SetFloat("_FoilGlow", .7f);
-            material.SetFloat("_TopLight", .2f);
-            material.SetFloat("_EdgeLight", .35f);
+            // Gold that glows by itself looked fake next to the dark room; let the lights make it shine.
+            material.SetFloat("_FoilGlow", .25f);
+            material.SetFloat("_TopLight", .1f);
+            material.SetFloat("_EdgeLight", .15f);
             material.SetFloat("_Foil", cream ? .45f : .55f);
             material.SetFloat("_Crinkle", .8f);
             material.SetFloat("_CrinkleSize", 1.8f);
@@ -151,16 +152,17 @@ namespace DeadlyJenga.CandyArt
                     color = new Color(.95f, .66f, .22f);
                 else if (color.r > color.g * 3f)
                     color = new Color(.55f, .008f, .03f);
-                var satin = Lacquer("Satin " + name, color, .8f, .7f, .35f, .08f);
-                satin.SetFloat("_Foil", .6f);
+                var satin = Lacquer("Satin " + name, color, .7f, .45f, .3f, .05f);
+                satin.SetFloat("_Foil", .35f);
+                satin.SetFloat("_EdgeLight", .2f);
+                satin.SetFloat("_TopLight", .15f);
                 satin.SetFloat("_Crinkle", .4f);
                 return satin;
             }
             if (name.Contains("gift wrap") || name.Contains("gift Wrap") || name.Contains("Mulberry"))
                 return FoilPaper(name + " paper", color);
             if (name.StartsWith("Felt"))
-                return Fabric("Cranberry tufted tree skirt", "Cranberry Rug Weave", new Color(1.25f, .72f, .84f),
-                    new Vector2(12f, 12f), .12f, .65f);
+                return Carpet();
             if (name.StartsWith("Fluff"))
                 return Surface("Ivory fleece", "Woven", new Color(.84f, .75f, .63f), .25f, new Vector2(10, 8), 0f, 1f);
             if (objectName.StartsWith("Wood Planks") || name.Contains("Mahogany"))

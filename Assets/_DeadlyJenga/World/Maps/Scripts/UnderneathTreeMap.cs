@@ -108,8 +108,10 @@ namespace DeadlyJenga.CastlePrototype
                     ResizeApprovedRug(filter);
                     skirt = AddMeshSurface(filter);
                 }
-                else if (name.StartsWith("Wood Planks", StringComparison.Ordinal) || name == "Tree Skirt rim")
+                else if (name == "Tree Skirt rim")
                     AddMeshSurface(filter);
+                else if (name.StartsWith("Wood Planks", StringComparison.Ordinal))
+                    AddMeshSurface(filter).gameObject.AddComponent<UnderneathTreeLethalFloor>();
             }
 
             AddFamilyRoomFloor();
@@ -187,6 +189,7 @@ namespace DeadlyJenga.CastlePrototype
         void AddFamilyRoomFloor()
         {
             var floor = new GameObject("Family room floor") { layer = Layers.Surface };
+            floor.AddComponent<UnderneathTreeLethalFloor>();
             floor.transform.SetParent(built, false);
             var box = floor.AddComponent<BoxCollider>();
             box.center = FamilyRoom.center;

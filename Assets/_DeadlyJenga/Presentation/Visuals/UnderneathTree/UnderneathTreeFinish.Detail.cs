@@ -14,12 +14,9 @@ namespace DeadlyJenga.CandyArt
             BuildFloorboards();
             BuildFleece();
             BuildBraidedRugEdge();
-            // The sofa faces the fireplace on the east wall, with the lamp table at its south end.
+            // Against the east wall, where the sofa used to be: a giant retriever asleep in its bed.
+            BuildDogBed();
             int first = art.childCount;
-            BuildSofa();
-            // A big family sofa (1.6x the model), its back against the east wall, facing the fire.
-            Restage("Velvet sofa", first, new Vector3(-216f, 0f, -109f), new Vector3(RoomEast - 60f, 0f, SofaZ), 180f, 1.6f);
-            first = art.childCount;
             BuildLampAndTable();
             Restage("Lamp table", first, new Vector3(-215f, 0f, -11f), LampPlace, 0f);
             BuildHomeyDetails();
@@ -129,75 +126,6 @@ namespace DeadlyJenga.CandyArt
             materials.Add(material);
             finishes.Add(label, material);
             return material;
-        }
-
-        void BuildSofa()
-        {
-            var velvet = Fabric("Deep red damask upholstery", "Crimson Damask",
-                new Color(1.5f, .80f, .85f), new Vector2(1.5f, 1.5f), .32f, .38f);
-            var lining = Fabric("Dark red velvet sofa frame", "Velour Scan",
-                new Color(.90f, .42f, .46f), new Vector2(3.0f, 3.3f), .07f, .4f);
-            var piping = Fabric("Red velvet seam piping", "Velour Scan",
-                new Color(1.05f, .50f, .52f), Vector2.one, .21f, .2f);
-            var walnut = Surface("Carved sofa feet", "Walnut Grain", new Color(.40f, .29f, .22f),
-                .40f, new Vector2(1.1f, 1.6f), 0f, .28f);
-            RoundedDetail("Velvet sofa plinth", new Vector3(-216f, 13f, -109f),
-                new Vector3(67f, 16f, 145f), .17f, lining, .025f);
-            RoundedDetail("Overstuffed sofa apron", new Vector3(-197f, 20f, -109f),
-                new Vector3(30f, 16.3f, 136f), .17f, velvet, .035f);
-            var back = RoundedDetail("Tufted sofa back", new Vector3(-242f, 39f, -109f),
-                new Vector3(19f, 43f, 147f), .20f, velvet, .034f);
-            back.localRotation = Quaternion.Euler(0f, 0f, 8f);
-            foreach (float z in new[] { -178.8f, -39.2f })
-            {
-                RoundedDetail("Velvet rolled arm", new Vector3(-218f, 31f, z),
-                    new Vector3(66f, 34f, 16.0f), .30f, velvet, .07f);
-                RoundedDetail("Inset arm front", new Vector3(-187.4f, 29f, z),
-                    new Vector3(9f, 30f, 14.7f), .33f, velvet, .065f);
-                foreach (float x in new[] { -237f, -192f })
-                    RoundedDetail("Walnut bun foot", new Vector3(x, 4.7f, z),
-                        new Vector3(8f, 8.7f, 8f), .33f, walnut, .055f);
-            }
-
-            for (int i = 0; i < 3; i++)
-            {
-                float z = -152f + 43f * i;
-                var seat = RoundedDetail("Stuffed velvet seat cushion", new Vector3(-212f, 28f + (i == 1 ? .33f : 0f), z),
-                    new Vector3(48f, 9.7f, 42f), .19f, velvet, .065f);
-                SofaSeam(seat, new Vector3(0f, 4.35f, 0f), new Vector2(22.9f, 20.15f), 3.6f, piping);
-                var cushion = RoundedDetail("Loose velvet back cushion", new Vector3(-233.1f, 44f, z),
-                    new Vector3(16f, 28.0f, 42f), .22f, velvet, .077f);
-                cushion.localRotation = Quaternion.Euler(.7f * (i - 1), i == 1 ? .9f : -.7f, 10.5f + i * .8f);
-                SofaSeam(cushion, new Vector3(7.4f, 0f, 0f), new Vector2(12.8f, 20.0f),
-                    3.45f, piping, true);
-            }
-        }
-
-        void SofaSeam(Transform cushion, Vector3 center, Vector2 half, float rounding, Material piping,
-            bool vertical = false)
-        {
-            var path = new FirMesh();
-            Vector3 previous = default, first = default;
-            for (int corner = 0; corner < 4; corner++)
-            {
-                float angle = corner * Mathf.PI * .5f;
-                var cornerCenter = new Vector2(
-                    Mathf.Sign(Mathf.Cos(angle + .785398f)) * (half.x - rounding),
-                    Mathf.Sign(Mathf.Sin(angle + .785398f)) * (half.y - rounding));
-                for (int step = 0; step <= 6; step++)
-                {
-                    float t = angle + step * Mathf.PI / 12f;
-                    var p = cornerCenter + new Vector2(Mathf.Cos(t), Mathf.Sin(t)) * rounding;
-                    var point = center + (vertical ? new Vector3(0f, p.x, p.y) : new Vector3(p.x, 0f, p.y));
-                    if (corner == 0 && step == 0)
-                        first = point;
-                    else
-                        path.Tube(previous, point, .215f, .215f, 6);
-                    previous = point;
-                }
-            }
-            path.Tube(previous, first, .215f, .215f, 6);
-            AddMesh("Velvet welt seam", path.Build(), piping, ShadowCastingMode.Off).transform.SetParent(cushion, false);
         }
 
         Transform RoundedDetail(string label, Vector3 position, Vector3 size, float radius, Material material,
