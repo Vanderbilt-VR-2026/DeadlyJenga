@@ -49,6 +49,12 @@ namespace DeadlyJenga.DevTools.Editor
         static BotCombatChecks(){EditorApplication.update+=Poll;EditorApplication.playModeStateChanged+=State;}
         [MenuItem("Tools/Deadly Jenga/Validation/Check Bot Combat")]
         public static void Run()=>Begin(AllCases);
+        public static void RunScreenshot()
+        {
+            SessionState.SetBool(Key+"Screenshot",true);
+            SessionState.SetBool(Key+"ScreenshotWritten",false);
+            Begin(new[]{"approach-face-hit"});
+        }
         static void Begin(string[] selected)
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode||SpectatorVideoCapture.Busy)throw new InvalidOperationException("Combat checks require an idle Editor.");
@@ -79,6 +85,11 @@ namespace DeadlyJenga.DevTools.Editor
             MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);
             MysteryChoices.RequestedRole=(MysteryRole)SessionState.GetInt(Key+"Role",0);
             File.AppendAllText(Report,"PASS Original scene setup and match choices restored.\n");
+            if(SessionState.GetBool(Key+"Screenshot",false))
+            {
+                SessionState.SetBool(Key+"Screenshot",false);
+                EditorApplication.Exit(SessionState.GetInt(Key+"ScreenshotExit",2));
+            }
         }
         static void Poll()
         {
@@ -300,6 +311,19 @@ namespace DeadlyJenga.DevTools.Editor
             if(name=="territory-contact"||name=="survival-option")hit=victimPushes>0;
             if(name=="airborne-opponent")hit=airDamage;
             if(name=="cancel-climb")hit=changed&&sawClimb&&attacker.Motor.Grounded&&!attacker.Motor.Climbing&&!attacker.Motor.Vaulting&&attacker.transform.position.y>13.8f;
+            if(SessionState.GetBool(Key+"Screenshot",false)&&damageEvents>0&&victim.Health<healthBefore&&
+                !SessionState.GetBool(Key+"ScreenshotWritten",false))
+            {
+                var target=(attacker.transform.position+victim.transform.position)*.5f+Vector3.up*.95f;
+                var attackLine=(victim.transform.position-attacker.transform.position).normalized;
+                var eye=target+Vector3.Cross(Vector3.up,attackLine).normalized*3.5f-attackLine*.7f+Vector3.up*.7f;
+                ScreenshotThroughputFixture.Capture("bots-punch",session.ActiveCamera,eye,target,58,
+                    "GameEvents.Damaged observed on victim; actual ordinary bot punch resolved in " + fixtureMode +
+                    "; case=" + name + "; damage events=" + damageEvents + "; victim health=" + F(healthBefore) +
+                    " -> " + F(victim.Health) + "; attacker=" + attacker.Motor.ActorId + "; victim=" + victim.ActorId +
+                    "; production motors and damage; fixture support, actor placement and objective.");
+                SessionState.SetBool(Key+"ScreenshotWritten",true);
+            }
             if(positive&&elapsed<limit&&!hit)return;
             if(!positive&&elapsed<limit)return;
             bool pass=positive?hit&&cadence&&firstPunch>=.25f:attacker.PunchAttempts==attemptsAtStart&&!hit;
@@ -342,6 +366,8 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetBool(Key,false);Application.logMessageReceived-=Log;GameEvents.Damaged-=Damage;GameEvents.Pushed-=Push;
             if(attacker)attacker.Motor.PunchRequested-=Punch;
             BotObjectives.Current=session?session.Modes:null;
+            if(SessionState.GetBool(Key+"Screenshot",false))
+                SessionState.SetInt(Key+"ScreenshotExit",failures+errors==0&&SessionState.GetBool(Key+"ScreenshotWritten",false)?0:2);
             Time.timeScale=SessionState.GetFloat(Key+"Scale",1);Time.captureFramerate=SessionState.GetInt(Key+"Capture",0);Application.targetFrameRate=SessionState.GetInt(Key+"Target",-1);
             try{File.AppendAllText(Report,"COMPLETE failures="+failures+" runtimeErrors="+errors+". Desktop fixtures only; no headset or second peer.\n");}
             finally{EditorApplication.ExitPlaymode();}
