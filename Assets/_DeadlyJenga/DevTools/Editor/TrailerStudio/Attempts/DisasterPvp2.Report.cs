@@ -44,6 +44,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (line.Contains("REJECTED") || line.Contains("refused")) { Note("Punch not landed: " + line); continue; }
                 if (e.punch1 < 0) e.punch1 = f; else if (e.punch2 < 0) e.punch2 = f;
             }
+            // Fallback: the frame the victim's health drops (the glove's 80 damage) near the planned punch.
+            int Drop(string victim, int planned)
+            {
+                var track = stage.tape.Find(victim); var take = track?.ActiveTake; if (take == null) return -1;
+                float last = -1;
+                for (int tf = Mathf.Max(take.start, planned - 30); tf < Mathf.Min(take.End, planned + 30); tf++)
+                {
+                    var f = ActorFrame.Read(track.type, take.frames[tf - take.start]);
+                    if (last >= 0 && f.health < last - 40) return tf;
+                    last = f.health;
+                }
+                return -1;
+            }
+            if (e.punch1 < 0) { e.punch1 = Drop("rival", TapeFrame(Punch1Frame)); Note("Punch 1 from the gorilla's health drop: " + e.punch1); }
+            if (e.punch2 < 0) { e.punch2 = Drop("dragon", TapeFrame(Punch2Frame)); Note("Punch 2 from the dragon's health drop: " + e.punch2); }
             var hazards = stage.tape.FindType(HazardTrack.Id)?.ActiveTake;
             var seen = new HashSet<string>();
             if (hazards != null)
@@ -146,7 +161,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // ---- How alive each visible actor is, per shot (L53, L55): measured on what is drawn (layers and alive applied) ----
         static void MotionTable(StudioStage stage, List<Shot> shots, List<StudioCameraTrack> cameras)
         {
-            var table = new StringBuilder("shot,actor,visible_frames,longest_still_f,longest_level_f,peak_head_deg_s,action_starts\n");
+            var table = new StringBuilder("shot,actor,visible_frames,longest_still_f,longest_level_f,peak_head_deg_s,peak_at_shot_frame,action_starts\n");
             var md = new StringBuilder("\n### Per-actor motion (measured on the drawn poses, layers and alive applied)\n\n| shot | actor | visible f | longest still f | longest level-head f | peak head deg/s | action starts (shot frames) |\n|---|---|---|---|---|---|---|\n");
             var probe = new GameObject("motion probe").AddComponent<Camera>();
             probe.enabled = false; probe.aspect = 16f / 9;
@@ -184,7 +199,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         }
                         int count = visible.Count(v => v);
                         if (count == 0) continue;
-                        int still = 0, level = 0, levelRun = 0; float peak = 0; var starts = new List<int>();
+                        int still = 0, level = 0, levelRun = 0, peakAt = -1; float peak = 0; var starts = new List<int>();
                         int quiet = 99;
                         for (int i = 0; i < frames.Count; i++)
                         {
@@ -209,13 +224,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                                 float head = Quaternion.Angle(p0.headRotation, b.headRotation) * Fps;
                                 float root = Vector3.Distance(p0.feet, b.feet) * Fps;
                                 float hand = Mathf.Max(Vector3.Distance(p0.left.position - p0.feet, b.left.position - b.feet), Vector3.Distance(p0.right.position - p0.feet, b.right.position - b.feet)) * Fps;
-                                peak = Mathf.Max(peak, head);
+                                if (head > peak) { peak = head; peakAt = i; }
                                 bool moving = head > 45 || root > .4f || hand > .7f;
                                 if (moving && quiet >= 4) starts.Add(i);
                                 quiet = moving ? 0 : quiet + 1;
                             }
                         }
-                        table.Append($"{shot.id},{role},{count},{still},{level},{peak:0},{string.Join(" ", starts)}\n");
+                        table.Append($"{shot.id},{role},{count},{still},{level},{peak:0},{peakAt},{string.Join(" ", starts)}\n");
                         md.Append($"| {shot.id} | {role} | {count} | {still} | {level} | {peak:0} | {string.Join(" ", starts)} |\n");
                     }
                 }

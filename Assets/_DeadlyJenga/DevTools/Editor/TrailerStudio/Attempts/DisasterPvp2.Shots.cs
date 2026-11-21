@@ -261,7 +261,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var list = stage.set.overrides; int added = 0;
             var windows = shots.Where(s => s.id == "S02" || s.id == "S05" || s.id == "S08")
-                .Select(s => (a: TapeFrame(s.cutIn) + s.shift - Handle - 4, b: TapeFrame(s.cutOut) + s.shift + Handle + 4)).ToList();
+                .Select(s => (a: TapeFrame(s.cutIn) + s.shift - Handle, b: TapeFrame(s.cutOut) + s.shift + Handle)).ToList();
             var punches = new List<int>(); if (e.punch1 >= 0) punches.Add(e.punch1); if (e.punch2 >= 0) punches.Add(e.punch2);
             foreach (var (a, b) in windows)
                 for (int tf = a; tf < b; tf += 5)

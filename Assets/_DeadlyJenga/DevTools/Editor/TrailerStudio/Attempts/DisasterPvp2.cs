@@ -207,7 +207,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Note("Cue log:\n- " + string.Join("\n- ", cueLog));
                 SaveBundle(stage.set);
             }
-            else Note("Loaded the committed bundle; cue log has " + cueLog.Count + " lines.");
+            else
+            {
+                // Statics do not survive the stage's domain reload (preview 1 lost the cue log), so read it here.
+                string log = Path.Combine(Bundle, "cuelog.txt");
+                cueLog = File.Exists(log) ? File.ReadAllLines(log).ToList() : new List<string>();
+                Note("Loaded the committed bundle; cue log has " + cueLog.Count + " lines.");
+            }
 
             var events = FindEvents(stage, plan);
             try { Report(stage, plan, events); } catch (Exception error) { Note("Take report failed: " + error); }
