@@ -108,8 +108,10 @@ namespace DeadlyJenga.CastlePrototype
                     ResizeApprovedRug(filter);
                     skirt = AddMeshSurface(filter);
                 }
-                else if (name.StartsWith("Wood Planks", StringComparison.Ordinal) || name == "Tree Skirt rim")
+                else if (name == "Tree Skirt rim")
                     AddMeshSurface(filter);
+                else if (name.StartsWith("Wood Planks", StringComparison.Ordinal))
+                    AddMeshSurface(filter).gameObject.layer = SafeFloor;
             }
 
             AddFamilyRoomFloor();
@@ -170,6 +172,11 @@ namespace DeadlyJenga.CastlePrototype
                 Release(mesh);
         }
 
+        // Only the tree skirt (the carpet) is sinking ground. Ground on the Surface layer counts as
+        // the island in sinking modes, so the wood floor uses the Block layer instead. It has no
+        // body, so nothing can pull it and it never counts as a block.
+        static int SafeFloor => Layers.Block;
+
         static MeshCollider AddMeshSurface(MeshFilter filter)
         {
             var go = filter.gameObject;
@@ -186,7 +193,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void AddFamilyRoomFloor()
         {
-            var floor = new GameObject("Family room floor") { layer = Layers.Surface };
+            var floor = new GameObject("Family room floor") { layer = SafeFloor };
             floor.transform.SetParent(built, false);
             var box = floor.AddComponent<BoxCollider>();
             box.center = FamilyRoom.center;

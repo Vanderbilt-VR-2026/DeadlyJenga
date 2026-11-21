@@ -17,6 +17,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static double deadline;
         static int stage;
         static float settled;
+        static float? sankAt;
         static string Mode => SessionState.GetInt(Index, 0) == 0 ? "teamtickets" : "survival";
         public static void Run()
         {
@@ -51,7 +52,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 if (!SessionState.GetBool(Pending, false)) return;
                 if (state == PlayModeStateChange.EnteredPlayMode)
                 {
-                    stage = 0; settled = 0;
+                    stage = 0; settled = 0; sankAt = null;
                     deadline = EditorApplication.timeSinceStartup + 150;
                     EditorApplication.update += Tick;
                 }
@@ -77,6 +78,26 @@ namespace DeadlyJenga.CastlePrototype.Editor
             if (!ok) throw new InvalidOperationException(label);
             File.AppendAllText(Report, "PASS " + Mode + ": " + label + "\n");
         }
+        // An open bit of carpet near the middle of the course, clear overhead.
+        static bool TryCarpetSpot(IWorldQuery world, out Vector3 spot)
+        {
+            int mask = (1 << Layers.Surface) | (1 << Layers.Block) | 1;
+            float top = world.PlayableBounds.max.y + 5;
+            for (float ring = 0; ring < 120; ring += 3)
+                for (int i = 0; i < 16; i++)
+                {
+                    float angle = i * Mathf.PI / 8;
+                    var probe = new Vector3(world.Center.x + Mathf.Cos(angle) * ring, top, world.Center.z + Mathf.Sin(angle) * ring);
+                    if (!Physics.Raycast(probe, Vector3.down, out var hit, top + 50, mask, QueryTriggerInteraction.Ignore) ||
+                        !hit.collider.name.Contains("kill floor"))
+                        continue;
+                    spot = hit.point + Vector3.up * .05f;
+                    if (!Physics.CheckCapsule(spot + Vector3.up * .4f, spot + Vector3.up * 1.65f, .4f, mask, QueryTriggerInteraction.Ignore))
+                        return true;
+                }
+            spot = default;
+            return false;
+        }
         static void Tick()
         {
             try
@@ -91,7 +112,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     if (mode.Frame.phase != RoundPhase.Playing || mode.Frame.players.Length < 2) return;
                     Check(world is ISyncedWorld synced && synced.SaveLayout() == "underneath-the-tree-v6-underpass", "approved map loaded");
                     Check(mode.Rules.mode == MatchModeRuntime.ParseMode(Mode), "requested mode playing");
-                    Check(mode.Rules.island == IslandRule.Walkable, "rug and house floor remain walkable");
+                    Check(mode.Rules.island == IslandRule.Sink, "the carpet is sinking ground");
                     var catalog = IslandLobbyCatalog.Runtime(Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog"));
                     var entry = Array.Find(catalog.maps, m => m.id == MapId);
                     Check(entry != null && entry.SupportsMode(Mode), "catalog permits mode");
@@ -105,6 +126,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         if (!layout.TrySpawnPosition(world, local, out var p)) { problems.Add("No nearby ground for " + local); continue; }
                         if (!Physics.Raycast(p + Vector3.up * .25f, Vector3.down, out var hit, .5f, mask, QueryTriggerInteraction.Ignore) || hit.normal.y < .9f)
                             problems.Add("Missing spawn floor at " + p.ToString("F3"));
+                        else if (hit.collider.gameObject.layer != Layers.Block || !hit.collider.attachedRigidbody)
+                            problems.Add("Spawn not on a gift top at " + p.ToString("F3") + " (" + hit.collider.name + ")");
                         if (Physics.CheckCapsule(p + Vector3.up * .4f, p + Vector3.up * 1.65f, .32f, mask, QueryTriggerInteraction.Ignore))
                             problems.Add("Blocked spawn at " + p.ToString("F3"));
                     }
@@ -121,13 +144,35 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     Check(mode.Frame.players.Length >= 2, "local player and real bots registered");
                     settled = Time.time; stage = 1;
                 }
-                else if (Time.time - settled >= 2)
+                else if (stage == 1 && Time.time - settled >= 2)
                 {
                     Check(mode.Frame.players.Any(p => p.id == mode.LocalActorId && p.alive), "local player survives initial setup");
                     Check(mode.Frame.players.Any(p => p.bot && p.alive), "bots survive initial setup");
-                    File.AppendAllText(Report, "NOT VERIFIED: custom disasters, human navigation, network peers, Quest.\n");
-                    SessionState.SetBool(Pass, true);
-                    EditorApplication.ExitPlaymode();
+                    Check(!mode.Frame.players.Any(p => p.id == mode.LocalActorId && p.sinking), "local player starts on a gift, not sinking");
+                    var floor = GameObject.Find("Family room floor");
+                    Check(floor && floor.layer != Layers.Surface, "wood room floor is safe ground");
+                    Check(TryCarpetSpot(world, out var spot), "found open carpet");
+                    session.Player.Place(spot, Quaternion.identity);
+                    settled = Time.time; stage = 2;
+                }
+                else if (stage == 2)
+                {
+                    var me = mode.Frame.players.FirstOrDefault(p => p.id == mode.LocalActorId);
+                    if (me != null && me.sinking && !sankAt.HasValue)
+                    {
+                        sankAt = Time.time;
+                        File.AppendAllText(Report, "PASS " + Mode + ": player on the carpet starts sinking after " + (Time.time - settled).ToString("F1") + " s\n");
+                    }
+                    if (me != null && !me.alive && sankAt.HasValue)
+                    {
+                        Check(Time.time - sankAt.Value >= mode.Rules.sinkGraceSeconds - .6f, "carpet kills only after the sink grace");
+                        File.AppendAllText(Report, "PASS " + Mode + ": carpet eliminated the player " + (Time.time - sankAt.Value).ToString("F1") + " s after sinking began\n");
+                        File.AppendAllText(Report, "NOT VERIFIED: custom disasters, human navigation, network peers, Quest.\n");
+                        SessionState.SetBool(Pass, true);
+                        EditorApplication.ExitPlaymode();
+                    }
+                    else if (Time.time - settled > mode.Rules.sinkGraceSeconds + 6)
+                        throw new Exception(sankAt.HasValue ? "player sank but was not eliminated" : "player on the carpet never started sinking");
                 }
             }
             catch (Exception e)
