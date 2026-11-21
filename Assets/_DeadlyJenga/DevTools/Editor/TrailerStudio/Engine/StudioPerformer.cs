@@ -166,9 +166,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             bool edgeOk = !drive.safeEdges || intent.edge || time < edgeAllowedUntil || !motor.Grounded;
             if (stick.sqrMagnitude > .0025f && !edgeOk && EdgeAhead(stick.normalized))
             {
-                if (jumpArmed && Vector3.Distance(Flat(Feet), Flat(jumpAt)) < 1.4f) intent.jump = true;
+                float ground = Flat(motor.Capsule.velocity).magnitude;
+                // An armed jump near the edge goes now, if there is somewhere to land (a running jump carries about 4 m).
+                if (jumpArmed && Vector3.Distance(Flat(Feet), Flat(jumpAt)) < 1.4f && LandingBeyond(stick.normalized, Mathf.Max(1.5f, ground * .85f))) intent.jump = true;
                 // Running at a small gap with ground just beyond it: a person jumps it rather than stopping.
-                else if (Flat(motor.Capsule.velocity).magnitude > 1.2f && LandingBeyond(stick.normalized, Flat(motor.Capsule.velocity).magnitude * .75f)) { intent.jump = true; Log(time, "jumps a gap"); }
+                else if (ground > 1.2f && LandingBeyond(stick.normalized, ground * .8f)) { intent.jump = true; Log(time, "jumps a gap"); }
                 else
                 {
                     if (!edgeLogged) { Log(time, "stopped at an edge (no ground ahead)"); edgeLogged = true; }
@@ -270,12 +272,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return hit.point.y <= water + .05f;
         }
 
-        // Solid ground at about the same height within 3 m ahead, past a gap: somewhere a jump lands.
+        // Solid ground at about the same height within reach ahead (at most 3.9 m), past a gap: somewhere a jump lands.
         bool LandingBeyond(Vector3 direction, float farthest)
         {
             int mask = (1 << Layers.Block) | (1 << Layers.Surface) | 1;
             Vector3 feet = Feet;
-            for (float reach = .45f; reach <= Mathf.Min(3f, farthest); reach += .15f)
+            for (float reach = .45f; reach <= Mathf.Min(3.9f, farthest); reach += .15f)
             {
                 Vector3 probe = feet + direction * (motor.Capsule.radius + reach);
                 if (!Physics.Raycast(probe + Vector3.up * .6f, Vector3.down, out var hit, 1.2f, mask, QueryTriggerInteraction.Ignore)) continue;

@@ -242,7 +242,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 foreach (var r in free)
                 {
                     float d = Vector3.Distance(Flat(h), Flat(r));
-                    if (d < 5f || d > 8.5f || Mathf.Abs(h.y - r.y) > 1.3f) continue;
+                    if (d < 4.5f || d > 9.5f || Mathf.Abs(h.y - r.y) > 1.3f) continue;
                     // The ground along the run, every 20 cm.
                     var ground = new List<float>();
                     for (float x = .3f; x < d - .3f; x += sample)
@@ -254,22 +254,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     int change = ground.FindIndex(y => Hole(y) || Mathf.Abs(y - h.y) > .25f);
                     if (change < 0) { why[0]++; continue; }
                     float at = .3f + change * sample;
-                    if (at < 1.5f || at > 3.4f || d - at < 3.9f) { why[1]++; continue; }
-                    // Gaps on the way: each one short enough to jump (the drive jumps small gaps by itself), the last one
-                    // early enough to land before the rival.
-                    int run = 0, longest = 0, lastGap = -1, holes = 0;
-                    for (int i = 0; i < ground.Count; i++)
-                    {
-                        if (Hole(ground[i])) { run++; holes++; lastGap = i; longest = Mathf.Max(longest, run); }
-                        else run = 0;
-                    }
-                    int gap = longest;
-                    if (longest * sample > 2.4f || holes > ground.Count * .4f || lastGap >= 0 && d - (.3f + lastGap * sample) < 1.9f) { why[2]++; shortest = Mathf.Min(shortest, longest * sample); continue; }
+                    if (at < 1.2f) { why[1]++; continue; }
+                    // One gap (or step) only: its length, then solid ground the rest of the way.
+                    int end = change;
+                    while (end < ground.Count && Hole(ground[end])) end++;
+                    float gapLength = (end - change) * sample, room = d - (.3f + end * sample);
+                    int later = 0;
+                    for (int i = end; i < ground.Count; i++) if (Hole(ground[i])) later++;
+                    if (gapLength > 2.4f || later * sample > .3f || room < 1.2f) { why[2]++; shortest = Mathf.Min(shortest, gapLength); continue; }
                     // Nothing in the way of a running body (a step up is fine: it is jumped).
                     float top = Mathf.Max(h.y, r.y) + .9f;
                     if (Physics.Linecast(new Vector3(h.x, top, h.z), new Vector3(r.x, top, r.z), (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)) { why[3]++; continue; }
-                    float score = 10 - Mathf.Abs(d - 7f) - Mathf.Abs(at - 2.4f) - gap * sample + h.y * .1f;
-                    if (score > bestScore) { bestScore = score; plan.hero = h; plan.rival = r; plan.step = true; plan.jumpAt = Vector3.Lerp(h, r, Mathf.Max(.15f, at - .35f) / d); }
+                    // Best: a long runway (full speed at the edge), a short gap, room to land before the rival.
+                    float score = 10 - Mathf.Max(0, 2f - at) * 4 - gapLength - Mathf.Max(0, 2f - room) * 3 - Mathf.Abs(d - 7f) * .3f + h.y * .1f;
+                    int gap = end - change;                    if (score > bestScore) { bestScore = score; plan.hero = h; plan.rival = r; plan.step = true; plan.jumpAt = Vector3.Lerp(h, r, Mathf.Max(.15f, at - .35f) / d); }
                 }
             Note($"Run search: no change of ground {why[0]}, change too early or late {why[1]}, gap too long or holes after {why[2]}, something in the way {why[3]}; shortest rejected gap {shortest:0.0} m.");
             if (bestScore == float.MinValue)
