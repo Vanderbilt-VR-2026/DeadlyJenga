@@ -28,6 +28,11 @@ Interrupted step: the game-weight building meshes and the full tile re-export.
   the LoD3 buildings from `derived/buildings/lod3/index.json`. Check the diff before trusting it; the full
   export has not been re-run (the FBX in the worktree are from the morning export).
 
+On resume, first (shared flow update relayed by the Unity coordinator chat on 2026-11-21): run
+`py -3 $env:USERPROFILE/.codex/skills/deadlyjenga-worktree-pool/scripts/shared_flow.py brief` once, and submit
+scripted Play Mode tests and captures through `shared_flow.py submit --id <stable job id> ...`. Quest APKs go
+through the established builder, never ad hoc builds. Read the guide it points to before the first Unity run.
+
 Then, in order:
 1. Finish the game meshes, run `export_all.py --jobs 6` and `check_fbx.py`.
 2. Local test commit (never pushed) -> coordinator `VanderbiltCampusBuilder.BuildAndCheckBatch` -> copy the
