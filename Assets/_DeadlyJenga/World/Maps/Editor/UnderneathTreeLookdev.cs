@@ -82,10 +82,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
         // looking in and out, and on top of the structure. Pictures go to Logs/TreeLookdev/pov.
         public static void BatchCapturePlayerViews() => StartBatch("pov");
         public static void BatchCaptureTrain() => StartBatch("train");
+        public static void BatchCaptureCarpet() => StartBatch("carpet");
 
         const string BatchMode = "UnderneathTreeLookdev.BatchMode";
         public const string PovFolder = "Logs/TreeLookdev/pov";
         public const string TrainFolder = "Logs/TreeLookdev/train";
+        public const string CarpetFolder = "Logs/TreeLookdev/carpet";
 
         static void StartBatch(string mode)
         {
@@ -127,6 +129,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
             if (SessionState.GetString(BatchMode, "room") == "train")
             {
                 ShootTrainViews(TrainFolder);
+                FinishBatch(0);
+                return;
+            }
+            if (SessionState.GetString(BatchMode, "room") == "carpet")
+            {
+                ShootCarpetViews(CarpetFolder);
                 FinishBatch(0);
                 return;
             }
@@ -368,6 +376,80 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Save("train-back", middle - ahead * reach * 1.4f - side * reach * .3f + Vector3.up * reach * .2f, middle, 55f);
                 Save("train-above", middle + Vector3.up * reach * 1.6f + side * reach * .5f, middle, 60f);
                 Save("train-player-eye", middle + side * reach * .6f + Vector3.up * 1.2f, middle, 75f);
+            }
+            finally
+            {
+                foreach (var canvas in hidden)
+                    if (canvas)
+                        canvas.enabled = true;
+            }
+            File.WriteAllText(Path.Combine(folder, "views.txt"), log.ToString());
+            File.WriteAllText(Path.Combine(folder, "done.txt"), System.DateTime.Now.ToString("s"));
+        }
+
+        // Carpet close-ups: the sinking swirls (found by their "Carpet swirl" markers), the yarn
+        // loops next to the gifts, and the knitted border, at real eye height and from above.
+        static void ShootCarpetViews(string folder)
+        {
+            Directory.CreateDirectory(folder);
+            var log = new System.Text.StringBuilder();
+            var player = Services.Session.Player;
+            float eye = Mathf.Clamp(player.ViewCamera.transform.position.y - player.transform.position.y, .3f, 30f);
+            var hidden = new List<Behaviour>();
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+                if (canvas.enabled)
+                {
+                    canvas.enabled = false;
+                    hidden.Add(canvas);
+                }
+            try
+            {
+                void Save(string name, Vector3 at, Vector3 target, float angle)
+                {
+                    Shoot(Path.Combine(folder, name + ".png"), at, target, angle);
+                    log.AppendLine($"{name}: eye {at} looking at {target}");
+                }
+                var center = Services.World.Center;
+                var swirls = new List<Transform>();
+                var loops = new List<Renderer>();
+                foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+                {
+                    if (t.name.StartsWith("Carpet swirl"))
+                        swirls.Add(t);
+                    else if (t.name == "Carpet yarn loops" && t.TryGetComponent<Renderer>(out var r))
+                        loops.Add(r);
+                }
+                swirls.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+                log.AppendLine($"eye {eye:F2} swirls {swirls.Count} loop patches {loops.Count}");
+                foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+                    if (r.name.Contains("kill floor"))
+                        log.AppendLine($"rug {r.name} mat={(r.sharedMaterial ? r.sharedMaterial.name : "-")} shader={(r.sharedMaterial ? r.sharedMaterial.shader.name : "-")} supported={(r.sharedMaterial && r.sharedMaterial.shader.isSupported)} enabled={r.enabled}");
+                for (int i = 0; i < Mathf.Min(2, swirls.Count); i++)
+                {
+                    var s = swirls[i].position;
+                    var toward = Flat(center - s);
+                    Save($"carpet-swirl{i + 1}-eye", s - toward * 5f + Vector3.up * eye, s, 70f);
+                    Save($"carpet-swirl{i + 1}-close", s - toward * 2.2f + Vector3.up * 1.6f, s, 65f);
+                    Save($"carpet-swirl{i + 1}-above", s - toward * 3f + Vector3.up * 7f, s, 60f);
+                }
+                // Yarn loops: the patch nearest the course centre, looking from the open side.
+                loops.Sort((a, b) => (a.bounds.center - center).sqrMagnitude.CompareTo((b.bounds.center - center).sqrMagnitude));
+                for (int i = 0; i < Mathf.Min(2, loops.Count); i++)
+                {
+                    var c = loops[i].bounds.center;
+                    var dir = Flat(c - center);
+                    var at = new Vector3(c.x, loops[i].bounds.min.y, c.z) + dir * 3f;
+                    Save($"carpet-loops{i + 1}-eye", at + Vector3.up * eye, at - dir * 6f + Vector3.up * eye * .5f, 75f);
+                    Save($"carpet-loops{i + 1}-down", at + Vector3.up * 2f, at - dir * 2.5f, 70f);
+                }
+                // The knitted border near the rug edge, and an overlook from a tall present.
+                var rugCentre = new Vector3(-74f, 0f, -77.7f);
+                var edge = rugCentre + new Vector3(0f, 0f, -1f) * 125.4f * .9f;
+                Save("carpet-border-eye", edge + new Vector3(-6f, eye * 2f, 4f), edge + new Vector3(8f, 0f, -3f), 75f);
+                Save("carpet-border-above", edge + new Vector3(0f, 14f, 12f), edge, 60f);
+                Save("carpet-overlook", center + new Vector3(30f, 45f, -95f), center + new Vector3(0f, 0f, -30f), 70f);
+                var floor = new Vector3(center.x, 0f, center.z + 110f);
+                Save("carpet-floor-low", floor + Vector3.up * eye, floor + new Vector3(0f, eye * .4f, -20f), 80f);
             }
             finally
             {

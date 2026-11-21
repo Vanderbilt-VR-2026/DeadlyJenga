@@ -111,6 +111,7 @@ namespace DeadlyJenga.CandyArt
             BuildLighting();
             RestoreIndoorSettings();
             RefreshWorldArt();
+            BuildCarpet();
         }
 
         void LateUpdate()
@@ -125,6 +126,7 @@ namespace DeadlyJenga.CandyArt
             if (world.Revision != revision)
                 RefreshWorldArt();
             AnimateFire();
+            AnimateCarpet();
 
             bool viewUnderFloor = Services.Session?.ActiveCamera is Camera view && view.transform.position.y < -1.7f;
             bool blackout = false;
@@ -352,6 +354,7 @@ namespace DeadlyJenga.CandyArt
             if (!captured)
                 return;
             captured = false;
+            ClearCarpet();
             if (roomPipeline)
             {
                 if (QualitySettings.renderPipeline == roomPipeline) QualitySettings.renderPipeline = previousPipeline;
