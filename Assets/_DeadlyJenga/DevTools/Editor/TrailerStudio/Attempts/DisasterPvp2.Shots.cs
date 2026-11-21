@@ -147,16 +147,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Vector3 head = HeadAt(stage, "hero", at, plan);
                 Vector3 toward = Flat(plan.planetFrom), right = Vector3.Cross(Vector3.up, toward).normalized;
                 // Rehearsal 2: 35 deg read as the back of a faceless head. 50 deg shows the head's shape tipping up.
-                Vector3 spot = head + toward * 1.6f - up * .25f;
+                Vector3 spot = head + toward * 1.6f - up * .45f;
                 foreach (float turn in new[] { 50f, 40f, 60f, 30f })
                 {
                     Vector3 dir = (toward * Mathf.Cos(turn * Mathf.Deg2Rad) - right * Mathf.Sin(turn * Mathf.Deg2Rad)).normalized;
-                    Vector3 p = head + dir * 1.6f - up * .25f;
+                    Vector3 p = head + dir * 1.6f - up * .45f;
                     if (Clear(p, .25f) && Sees(p, head)) { spot = p; break; }
                 }
-                var c = ShotCam(s, 80);
-                c.keys[0].aperture = 8f; c.keys[0].focus = 1.6f;
-                StudioMoves.LockedOff(c, c.start, stage.ToStage(spot), "head:hero", new Vector3(0, -.1f, 0));
+                // Rehearsal 3: an 80 mm MCU of a faceless head read as the back of it; an MS shows the head tipping up and both hands.
+                var c = ShotCam(s, 50);
+                c.keys[0].aperture = 11f; c.keys[0].focus = 1.6f;
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(spot), "head:hero", new Vector3(0, -.25f, 0));
                 StudioMoves.PushIn(c, c.start, c.end, stage.ToStage(head), .15f);
                 c.aims[0].blend = .35f;
                 c.noise = "subtle"; c.noiseStrength = .5f;
@@ -224,8 +225,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             if (e.rock2 >= 0)
             {
-                Add("fox", "reaction", e.rock2 + 1, e.rock2 + 50, "scream", blendIn: .05f);
-                Add("penguin", "reaction", e.rock2 + 2, e.rock2 + 50, "scream", blendIn: .05f);
+                // The rock runs into the penguin (thrown); the fox, 3 m away and watching him, flinches, then looks where he went.
+                Add("penguin", "reaction", e.rock2 + 1, e.rock2 + 50, "scream", blendIn: .05f);
+                Add("fox", "pose", e.rock2 + 2, e.rock2 + 22, blendIn: .08f, blendOut: .35f, flinch: .9f);
+                Add("fox", "lookAt", e.rock2 + 6, e.rock2 + 44, point: stage.ToStage(HeadAt(stage, "penguin", e.rock2 + 18, plan)), blendIn: .3f, blendOut: .45f);
                 // Witnesses, staggered by attention: the panda was looking elsewhere, close (startle 9-15 f late).
                 Add("panda", "pose", e.rock2 + 11, e.rock2 + 30, blendIn: .1f, blendOut: .35f, flinch: .8f);
                 Add("panda", "lookAt", e.rock2 + 13, e.rock2 + 48, target: "actor:fox", blendIn: .25f, blendOut: .45f);
@@ -235,8 +238,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             int pk = e.planet >= 0 ? e.planet : TapeFrame(PlanetFrame);
             // Rehearsal 1: scream and cower in the first-person payoff put his hands and glove over the lens, then his own legs.
             // So the scream ends as the POV starts (S08 begins about 25 frames before the impact) and the POV only looks up.
-            Add("hero", "lookAt", pk - 62, pk + 40, point: stage.ToStage(planetPoint), blendIn: .5f, blendOut: .5f);
-            Add("hero", "reaction", pk - 48, pk - 26, "scream", blendIn: .2f, blendOut: .15f);
+            Add("hero", "lookAt", pk - 70, pk + 40, point: stage.ToStage(planetPoint), blendIn: .8f, blendOut: .5f);
+            Add("hero", "reaction", pk - 48, pk - 26, "scream", blendIn: .3f, blendOut: .15f);
             GuardLow(stage, plan, e, shots);
             Add("panda", "lookAt", pk - 75, pk + 20, point: stage.ToStage(planetPoint), blendIn: .45f, blendOut: .4f);
             Add("astro", "lookAt", pk - 66, pk + 20, point: stage.ToStage(planetPoint), blendIn: .5f, blendOut: .4f);
@@ -297,12 +300,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     n++;
                     float r = StudioHuman.Rand(StudioHuman.SeedOf(role), n, 7);
                     int length = 18 + Mathf.RoundToInt(r * 20);
-                    Vector3 feet = p.body.feet, fwd = Flat(p.body.headRotation * Vector3.forward);
-                    Vector3 outward = Flat(feet - plan.arena.C);
+                    // Within about 30 deg of where the head already points (preview 1: looks at the drop behind them swung heads at 700+ deg/s).
+                    Vector3 feet = p.body.feet, fwd = Flat(p.body.headRotation * Vector3.forward), side = Vector3.Cross(Vector3.up, fwd);
                     Vector3 look = n % 2 == 1
-                        ? feet + (outward * .7f + fwd * .5f).normalized * 3.5f - Vector3.up * (5 + r * 4)          // down at the drop
-                        : p.body.head + (fwd + Vector3.Cross(Vector3.up, fwd) * (r - .5f)).normalized * 8 + Vector3.up * (4 + r * 3);   // up at the sky
-                    list.Add(new StudioOverride { actor = role, kind = "lookAt", point = stage.ToStage(look), from = (tf - 4) / (float)Fps, to = (tf - 4 + length) / (float)Fps, blendIn = .3f, blendOut = .35f });
+                        ? feet + (fwd + side * (r - .5f) * .8f).normalized * 3f - Vector3.up * (3 + r * 3)          // down at the block's edge and the drop
+                        : p.body.head + (fwd + side * (r - .5f) * .8f).normalized * 8 + Vector3.up * (3.5f + r * 3);   // up at the sky
+                    list.Add(new StudioOverride { actor = role, kind = "lookAt", point = stage.ToStage(look), from = (tf - 4) / (float)Fps, to = (tf - 4 + length) / (float)Fps, blendIn = .4f, blendOut = .45f });
                     added++;
                     tf += length + 4; run = 0;
                 }
