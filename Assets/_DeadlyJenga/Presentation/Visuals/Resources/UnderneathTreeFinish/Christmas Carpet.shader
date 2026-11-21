@@ -199,14 +199,15 @@ Shader "DeadlyJenga/Christmas Carpet"
                 ivory += green * (half)step(abs(ring - (0.905 + 0.05 * zig)), 0.0065);
                 float dotAngle = frac(around * 48.0) - 0.5;
                 float2 dotSpot = float2(dotAngle * 6.2831853 * ring * _RugCircle.z / 48.0, (ring - 0.83) * _RugCircle.z);
-                half snow = (half)step(length(dotSpot), 1.1) + (half)step(max(abs(dotSpot.x), abs(dotSpot.y)), 0.35) * (half)step(length(dotSpot), 1.9);
+                half snow = (half)step(length(dotSpot), 0.55) + (half)step(min(abs(dotSpot.x), abs(dotSpot.y)), 0.18) * (half)step(length(dotSpot), 1.5);
                 ivory = saturate(ivory + snow * (half)step(abs(ring - 0.83), 0.03));
                 albedo = lerp(albedo, _Pine.rgb * shade, green * (1.0h - ivory));
                 albedo = lerp(albedo, _Ivory.rgb * shade, ivory);
 
                 // Gaps between loops are dark; the swirl centres sink into shadow.
-                half gaps = lerp(0.78h, lerp(0.4h, 1.12h, loopTop), near);
-                albedo *= gaps * lerp(1.0h, 0.22h, pull * pull);
+                half gaps = lerp(1.0h, lerp(0.55h, 1.3h, loopTop), near);
+                // The swirl centre sinks into deep shadow; the rim stays red so the pit stands out.
+                albedo *= gaps * lerp(1.0h, 0.08h, pull * pull);
 
                 half3 n = normalize(input.normalWS);
                 half3 detail = half3(bump.x, bump.z, bump.y);
@@ -229,7 +230,8 @@ Shader "DeadlyJenga/Christmas Carpet"
                 s.smoothness = _Smoothness;
                 s.occlusion = 1;
                 s.normalTS = half3(0, 0, 1);
-                half3 glow = _Ember.rgb * (pull * pull * pull) * (1.0h - loopTop * 0.7h) *
+                half core = saturate((pull - 0.55h) * 2.5h);
+                half3 glow = _Ember.rgb * (core * core) * (1.0h - loopTop * 0.7h) *
                     (0.75h + 0.25h * sin(_Time.y * 2.3 + ring * 40.0));
                 s.emission = glow;
                 half4 result = UniversalFragmentPBR(data, s);
@@ -238,7 +240,7 @@ Shader "DeadlyJenga/Christmas Carpet"
                 Light key = GetMainLight(data.shadowCoord);
                 half grazing = 1.0h - saturate(dot(n, view));
                 half scatter = saturate(dot(normal, key.direction) * 0.6h + 0.3h);
-                half3 lint = lerp(albedo, half3(0.9h, 0.75h, 0.6h), 0.35h);
+                half3 lint = albedo * 1.8h + half3(0.04h, 0.0h, 0.01h);
                 result.rgb += lint * key.color * key.shadowAttenuation * (grazing * grazing * scatter * _Sheen * (0.5h + loopTop));
                 result.rgb = MixFog(result.rgb, input.fog);
                 return result;

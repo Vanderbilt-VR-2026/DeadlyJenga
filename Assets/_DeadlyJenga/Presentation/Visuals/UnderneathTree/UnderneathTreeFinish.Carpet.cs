@@ -10,7 +10,7 @@ namespace DeadlyJenga.CandyArt
     // who is caught sinking, and loose yarn loops sticking up around gifts, toys and the track.
     public sealed partial class UnderneathTreeFinish
     {
-        const int MaxSwirls = 8, MaxTufts = 9000;
+        const int MaxSwirls = 8, MaxTufts = 12000;
         const float TuftChunk = 16f;
         static readonly int SwirlsId = Shader.PropertyToID("_CarpetSwirls");
         static readonly int SwirlCountId = Shader.PropertyToID("_CarpetSwirlCount");
@@ -25,7 +25,7 @@ namespace DeadlyJenga.CandyArt
             const string label = "Cranberry tufted tree skirt";
             if (finishes.TryGetValue(label, out var cached))
                 return cached;
-            var tint = new Color(1.25f, .72f, .84f);
+            var tint = new Color(1.5f, .58f, .7f);
             var shader = Resources.Load<Shader>(ResourcePath + "Christmas Carpet");
             if (!shader || !shader.isSupported)
                 return Fabric(label + " (plain)", "Cranberry Rug Weave", tint, new Vector2(12f, 12f), .12f, .65f);
@@ -37,6 +37,7 @@ namespace DeadlyJenga.CandyArt
             material.SetTexture("_DetailMap", weave);
             material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Cranberry Rug Weave Normal"));
             var centre = art.TransformPoint(new Vector3(RugCentreX, 0f, RugCentreZ));
+            material.SetColor("_Ember", new Color(1.1f, .28f, .07f));
             material.SetVector("_RugCircle", new Vector4(centre.x, centre.z, RugEdge, 0f));
             materials.Add(material);
             finishes.Add(label, material);
@@ -123,8 +124,8 @@ namespace DeadlyJenga.CandyArt
                 if (crowded || !Clear(spot, 6f) || !OnCarpet(spot, out var ground))
                     continue;
                 chosen.Add(spot);
-                float radius = 2.4f + (float)random.NextDouble() * 1.4f;
-                restingSwirls.Add(new Vector4(ground.x, ground.z, radius, .8f));
+                float radius = 2.8f + (float)random.NextDouble() * 1.6f;
+                restingSwirls.Add(new Vector4(ground.x, ground.z, radius, .9f));
                 // Named marker so the look-dev camera can find it.
                 var marker = new GameObject("Carpet swirl " + chosen.Count);
                 marker.transform.SetParent(art, false);
@@ -180,13 +181,13 @@ namespace DeadlyJenga.CandyArt
         // Decoration only: no colliders. Grouped in 16 m patches that hide when far away.
         void BuildTufts(List<Vector3> edges)
         {
-            var yarn = Fabric("Cranberry carpet yarn loops", "Cranberry Rug Weave", new Color(1.3f, .74f, .86f),
-                Vector2.one, .35f, .7f);
+            var yarn = Fabric("Cranberry carpet yarn loops", "Cranberry Rug Weave", new Color(1.6f, .62f, .74f),
+                Vector2.one, .3f, .7f);
             var random = new System.Random(2512);
             var patches = new Dictionary<Vector2Int, TuftPatch>();
             int count = 0;
             foreach (var cellCentre in edges)
-                for (int i = 0; i < 7 && count < MaxTufts; i++)
+                for (int i = 0; i < 10 && count < MaxTufts; i++)
                 {
                     var spot = cellCentre + new Vector3((float)random.NextDouble() * 3f - 1.5f, 0f,
                         (float)random.NextDouble() * 3f - 1.5f);
@@ -234,9 +235,9 @@ namespace DeadlyJenga.CandyArt
             public void Add(Vector3 ground, System.Random random)
             {
                 float R() => (float)random.NextDouble();
-                float half = .06f + R() * .05f;
-                float height = .12f + R() * R() * .2f;
-                float tube = .022f + R() * .01f;
+                float half = .1f + R() * .08f;
+                float height = .18f + R() * R() * .32f;
+                float tube = .04f + R() * .02f;
                 float yaw = R() * Mathf.PI * 2f;
                 var across = new Vector3(Mathf.Cos(yaw), 0f, Mathf.Sin(yaw));
                 var outward = Vector3.Cross(across, Vector3.up);
