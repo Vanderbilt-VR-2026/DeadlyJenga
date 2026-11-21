@@ -46,6 +46,13 @@ inputs, parts = [], []
 for i, s in enumerate(shots):
     inputs += ["-i", os.path.join(where[s["id"]], "shots", s["id"] + ".mp4")]
     a, b = s["handle"], s["handle"] + s["cut_out"] - s["cut_in"]
+    skip = cfg.get("skip", {}).get(s["id"])   # [shot frame, frames]: drop that many source frames there (the handle refills the end)
+    if skip:
+        at, n = skip
+        parts.append(f"[{i}:v]split[p{i}a][p{i}b];[p{i}a]trim=start_frame={a}:end_frame={a + at},setpts=PTS-STARTPTS[q{i}a];"
+                     f"[p{i}b]trim=start_frame={a + at + n}:end_frame={b + n},setpts=PTS-STARTPTS[q{i}b];"
+                     f"[q{i}a][q{i}b]concat=n=2:v=1:a=0,scale={W}:{H}:flags=lanczos,setsar=1,fps={FPS}[v{i}]")
+        continue
     parts.append(f"[{i}:v]trim=start_frame={a}:end_frame={b},setpts=PTS-STARTPTS,scale={W}:{H}:flags=lanczos,setsar=1,fps={FPS}[v{i}]")
 graph = ";".join(parts) + ";" + "".join(f"[v{i}]" for i in range(len(shots))) + f"concat=n={len(shots)}:v=1:a=0[cat]"
 post = "[cat]"

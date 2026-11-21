@@ -14,7 +14,7 @@
  },
  "duck": {
   "frame": 360,
-  "db": -16
+  "db": -12
  },
  "tape_at_zero": 1.0,
  "take_gain_db": 2,
@@ -67,7 +67,7 @@
   },
   {
    "file": "WhatWasThat_02",
-   "frame": 266,
+   "frame": 268,
    "gain_db": -1
   },
   {
@@ -126,6 +126,12 @@
   400
  ],
  "take_shot_gain": {
-  "S10": -9
+  "S10": -6
+ },
+ "skip": {
+  "S08": [
+   25,
+   2
+  ]
  }
 }
