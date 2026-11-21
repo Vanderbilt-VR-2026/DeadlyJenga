@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 
 namespace DeadlyJenga.CandyArt.Marina
 {
-    public enum MarinaFinish { Ivory, Stone, Wood, DarkWood, Coral, Teal, Red, Green, Purple, Leaf, LeafLight, Sand, Rock, Metal, Brass, Glow, CreamFabric, MintFabric, CoralFabric, Glass, CandyCream, CandyCoral, CandyLilac, CandyMint, CandyGrape, CanopyLining }
+    public enum MarinaFinish { Ivory, Stone, Wood, DarkWood, Coral, Teal, Red, Green, Purple, Leaf, LeafLight, Sand, Rock, Metal, Brass, Glow, CreamFabric, MintFabric, CoralFabric, Glass, CandyCream, CandyCoral, CandyLilac, CandyMint, CandyGrape, CanopyLining, NetCloth }
 
     // Static art is combined by finish. The lobby receives a separate simplified solid mesh.
     public sealed class MarinaMesh : IDisposable
@@ -148,8 +148,22 @@ namespace DeadlyJenga.CandyArt.Marina
                 b.Triangle(a,a+1,a+3,Vector3.down);b.Triangle(a+1,a+4,a+3,Vector3.down);
             }
         }
+        // A see-through glass sheet (both faces drawn), e.g. one pane of a window wall.
+        public void Pane(Vector3 a,Vector3 b,Vector3 c,Vector3 d,MarinaFinish finish,bool solid=false)
+        {
+            var n=Vector3.Cross(b-a,c-a).normalized;
+            Quad(Get(finish),a,b,c,d,n);Quad(Get(finish),a,b,c,d,-n);
+            if(solid){Quad(collision,a,b,c,d,n);Quad(collision,a,b,c,d,-n);}
+        }
+        // Height of a CurvedRoof's surface at a point, for walls that should meet it.
+        public static float CurvedRoofHeight(Vector3 center,float width,float depth,float rise,float worldX,float worldZ)
+        {
+            float x=Mathf.Clamp((worldX-center.x)/(width*.5f),-1,1),z=(worldZ-center.z)/(depth*.5f);
+            return center.y+rise*Mathf.Pow(Mathf.Max(0,1-x*x),.62f)-.12f*z*z;
+        }
         public void CurvedRoof(Vector3 center,float width,float depth,float rise,MarinaFinish finish, bool striped = false)
         {
+            bool net=finish==MarinaFinish.NetCloth;
             var b=Get(finish);const int nx=40,nz=12;int start=b.vertices.Count;
             Vector3 P(float x,float z)=>center+new Vector3(x*width*.5f,rise*Mathf.Pow(Mathf.Max(0,1-x*x),.62f)-.12f*z*z,z*depth*.5f);
             for(int iz=0;iz<=nz;iz++)for(int ix=0;ix<=nx;ix++)
@@ -174,7 +188,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 Quad(collision,a,right,back,far,Vector3.up);
                 var drop=Vector3.up*.14f;
                 Quad(collision,a-drop,right-drop,back-drop,far-drop,Vector3.down);
-                Quad(lining,a-drop,right-drop,back-drop,far-drop,Vector3.down);
+                if(!net)Quad(lining,a-drop,right-drop,back-drop,far-drop,Vector3.down);
             }
             for(int side=-1;side<=1;side+=2)
             {
@@ -211,7 +225,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {var m=new Mesh{name=name,indexFormat=IndexFormat.UInt32};m.SetVertices(b.vertices);m.SetNormals(b.normals);m.SetUVs(0,b.uv);m.SetTriangles(b.indices,0);m.RecalculateBounds();return m;}
         public static Material MaterialFor(MarinaFinish finish)
         {
-            Color[] colors={new(1,.94f,.81f),new(.93f,.80f,.63f),new(.83f,.51f,.28f),new(.51f,.31f,.19f),new(1,.25f,.32f),new(.10f,.47f,.44f),new(.95f,.045f,.06f),new(.075f,.79f,.29f),new(.57f,.12f,.85f),new(.12f,.43f,.17f),new(.43f,.68f,.19f),new(.80f,.63f,.40f),new(.64f,.57f,.46f),new(.10f,.16f,.19f),new(.69f,.40f,.12f),new(1,.74f,.34f),new(1,.89f,.70f),new(.28f,.77f,.68f),new(.98f,.41f,.43f),new(.15f,.56f,.64f,.19f),new(1,.95f,.84f),new(1,.33f,.38f),new(.68f,.48f,.92f),new(.29f,.85f,.69f),new(.12f,.055f,.19f),new(1,.94f,.79f)};
+            Color[] colors={new(1,.94f,.81f),new(.93f,.80f,.63f),new(.83f,.51f,.28f),new(.51f,.31f,.19f),new(1,.25f,.32f),new(.10f,.47f,.44f),new(.95f,.045f,.06f),new(.075f,.79f,.29f),new(.57f,.12f,.85f),new(.12f,.43f,.17f),new(.43f,.68f,.19f),new(.80f,.63f,.40f),new(.64f,.57f,.46f),new(.10f,.16f,.19f),new(.69f,.40f,.12f),new(1,.74f,.34f),new(1,.89f,.70f),new(.28f,.77f,.68f),new(.98f,.41f,.43f),new(.15f,.56f,.64f,.19f),new(1,.95f,.84f),new(1,.33f,.38f),new(.68f,.48f,.92f),new(.29f,.85f,.69f),new(.12f,.055f,.19f),new(1,.94f,.79f),new(1,.95f,.86f)};
             var sandShader=finish==MarinaFinish.Sand?Shader.Find("Candy Tropical/Sand"):null;
             var m=new Material(sandShader?sandShader:Shader.Find("Universal Render Pipeline/Lit"))
                 {name="Marina "+finish,enableInstancing=true};
@@ -256,8 +270,31 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 m.SetFloat("_Surface",1);m.SetFloat("_ZWrite",0);m.SetFloat("_SrcBlend",(float)BlendMode.SrcAlpha);m.SetFloat("_DstBlend",(float)BlendMode.OneMinusSrcAlpha);m.SetFloat("_Smoothness",.88f);m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");m.SetOverrideTag("RenderType","Transparent");m.renderQueue=3000;
             }
+            if(finish==MarinaFinish.NetCloth)
+            {
+                // Loose cream netting: threads are nearly solid, the holes let most light and sky through.
+                m.SetFloat("_Surface",1);m.SetFloat("_ZWrite",0);m.SetFloat("_Cull",0);m.SetFloat("_SrcBlend",(float)BlendMode.SrcAlpha);m.SetFloat("_DstBlend",(float)BlendMode.OneMinusSrcAlpha);m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");m.SetOverrideTag("RenderType","Transparent");m.renderQueue=3000;
+                m.SetTexture("_BaseMap",NetTexture());m.SetTextureScale("_BaseMap",new Vector2(20,18));m.SetFloat("_Smoothness",.15f);
+            }
             if(finish==MarinaFinish.Glow){m.EnableKeyword("_EMISSION");m.SetColor("_EmissionColor",new Color(1,.56f,.16f)*2.0f);}
             return m;
+        }
+        static Texture2D netTexture;
+        // One diamond cell of fishnet; the material tiles it across the cloth.
+        static Texture2D NetTexture()
+        {
+            if(netTexture)return netTexture;
+            const int size=64;var pixels=new Color32[size*size];
+            for(int y=0;y<size;y++)for(int x=0;x<size;x++)
+            {
+                float u=(x+.5f)/size,v=(y+.5f)/size;
+                float d=Mathf.Min(Mathf.Abs(Mathf.Repeat(u+v,1)-.5f),Mathf.Abs(Mathf.Repeat(u-v,1)-.5f));
+                float thread=Mathf.Clamp01((.075f-Mathf.Abs(.5f-d))/.03f+1);
+                pixels[y*size+x]=new Color32(255,255,255,(byte)Mathf.Lerp(28,245,thread));
+            }
+            netTexture=new Texture2D(size,size,TextureFormat.RGBA32,true){name="Marina fishnet",wrapMode=TextureWrapMode.Repeat,filterMode=FilterMode.Trilinear,anisoLevel=4};
+            netTexture.SetPixels32(pixels);netTexture.Apply(true,true);
+            return netTexture;
         }
         public void Dispose(){foreach(var m in meshes)if(m)UnityEngine.Object.Destroy(m);foreach(var m in materials)if(m)UnityEngine.Object.Destroy(m);meshes.Clear();materials.Clear();}
     }
