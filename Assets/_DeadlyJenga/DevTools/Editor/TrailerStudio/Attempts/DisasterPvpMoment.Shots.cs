@@ -224,6 +224,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 foreach (int wait in RenderScout(stage, plan)) yield return wait;
                 yield break;
             }
+            if (mode.StartsWith("fp"))
+            {
+                foreach (int wait in FirstPersonProof(stage, plan, mode)) yield return wait;
+                yield break;
+            }
             foreach (int wait in RenderShots(stage, plan, mode)) yield return wait;
         }
 

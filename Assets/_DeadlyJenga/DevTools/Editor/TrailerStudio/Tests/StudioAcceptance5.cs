@@ -74,6 +74,49 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 $"{compared} pictures compared byte for byte between the two renders: {different} differ. {middles} of 5 cameras show a different middle frame. " +
                 $"Ocean and sky were held still for this check (with them moving, two renders differ in the water and clouds only). Pictures: render-1/, render-2/.");
 
+            // ---- Test 1b: a first-person camera: smooth, level, the actor's own body for that lens only ----
+            {
+                var fp = new StudioCameraTrack { name = "First person Ada", color = 7, behavior = "firstPerson", subject = ada, keys = { new StudioCameraKey { time = 0, focal = 28, aperture = 4 } } };
+                var raw = new StudioCameraTrack { name = "Raw head Ada", color = 7, behavior = "firstPerson", subject = ada, keys = { new StudioCameraKey { time = 0, focal = 28, aperture = 4 } },
+                    fpSmoothMove = 0, fpSmoothTurn = 0, fpLevel = false, fpFieldOfView = 0, fpOwnBody = false };
+                float rawError = 0, rawTurn = 0, offHead = 0, roll = 0;
+                for (float t = .2f; t < set.length - .2f; t += .1f)
+                {
+                    var head = StudioActorPoses.At(tape, ada, t, fps);
+                    var r = StudioCameras.Evaluate(raw, set, tape, stage.anchor, t, t);
+                    var s = StudioCameras.Evaluate(fp, set, tape, stage.anchor, t, t);
+                    rawError = Mathf.Max(rawError, Vector3.Distance(r.position, head.head)); rawTurn = Mathf.Max(rawTurn, Quaternion.Angle(r.rotation, head.headRotation));
+                    offHead = Mathf.Max(offHead, Vector3.Distance(s.position, head.head));
+                    roll = Mathf.Max(roll, Mathf.Abs((s.rotation * Vector3.right).y));
+                }
+                var lens = StudioCameras.Evaluate(fp, set, tape, stage.anchor, 1, 1);
+                var probe = new GameObject("First-person probe").AddComponent<Camera>(); probe.enabled = false;
+                var other = new GameObject("Other probe").AddComponent<Camera>(); other.enabled = false;
+                StudioRun.ShowExact(fps); yield return 0;
+                StudioCameras.Apply(probe, lens);
+                StudioCameras.Apply(other, StudioCameras.Evaluate(set.cameras[0], set, tape, stage.anchor, 1, 1));
+                var rig = StudioFirstPerson.LentTo(probe);
+                var benRig = stage.playback.TryGetValue(ben, out var benShown) && benShown ? benShown.GetComponentInChildren<DeadlyJenga.CandyPlayers.CandyPlayerRig>(true) : null;
+                bool lentRight = rig && rig.ownerCamera == probe && rig.transform.IsChildOf(stage.playback[ada].transform) && StudioFirstPerson.LentTo(other) == null && (!benRig || !benRig.ownerCamera);
+                float near = probe.nearClipPlane;
+                StudioCameras.Apply(probe, StudioCameras.Evaluate(set.cameras[0], set, tape, stage.anchor, 1, 1));
+                bool released = rig && !rig.ownerCamera && StudioFirstPerson.LentTo(probe) == null && probe.nearClipPlane > near;
+                UnityEngine.Object.DestroyImmediate(probe.gameObject); UnityEngine.Object.DestroyImmediate(other.gameObject);
+                fp.start = 1; fp.end = 2;
+                StudioRender.Start(new[] { fp }, set.render, Path.Combine(Folder, "render-first-person"));
+                foreach (int wait in UntilRendered()) yield return wait;
+                var fpDone = StudioRender.Results.FirstOrDefault();
+                int fpBlank = fpDone == null ? -1 : Directory.GetFiles(fpDone.folder, "*.png").Count(f => new FileInfo(f).Length < 900);
+                bool afterRender = !rig || !rig.ownerCamera;   // the render's camera is gone, so nothing still looks out of Ada
+                Result("1b. A first-person camera is smooth and level and shows the actor's own body to its own lens only",
+                    rawError < .001f && rawTurn < .5f && offHead < .125f && roll < .01f && Mathf.Abs(lens.fieldOfView - 62) < .1f && lens.aperture >= 16 && lens.ownBody == ada &&
+                    lentRight && released && near < .05f && fpDone != null && fpDone.frames == Mathf.RoundToInt(set.render.fps) && fpBlank == 0 && afterRender,
+                    $"All settings off gives the old raw head lock ({rawError * 100:0.00} cm, {rawTurn:0.00} deg off the head). With the defaults the eye stays within {offHead * 100:0.0} cm of the head, " +
+                    $"the largest roll is {Mathf.Asin(Mathf.Clamp01(roll)) * Mathf.Rad2Deg:0.00} deg, the lens is {lens.fieldOfView:0.0} deg tall at f/{lens.aperture:0}. " +
+                    $"Ada's played-back rig lent to the first-person lens: {lentRight} (near clip {near:0.00} m; Ben's rig and a second camera untouched); given back when that lens shows another shot: {released}. " +
+                    $"A 1 s first-person render: {fpDone?.frames ?? 0} frames, {fpBlank} blank; rig given back after the render: {afterRender}. Pictures: render-first-person/.");
+            }
+
             // ---- Test 2: a speed ramp to a quarter speed and back, with in-between frames ----
             var ramp = new StudioCameraTrack { name = "Ramp", color = 5, keys = { CameraKey(0, new Vector3(9, 5, -11), centre), CameraKey(4, new Vector3(6, 4, -12), centre) },
                 speeds = { new StudioSpeedMark { time = 0, speed = 1 }, new StudioSpeedMark { time = .9f, speed = .25f }, new StudioSpeedMark { time = 1.6f, speed = .25f }, new StudioSpeedMark { time = 2.3f, speed = 1 } } };

@@ -69,6 +69,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // Grade for this shot (0 = leave the scene's own): exposure in stops, contrast and saturation -100 to 100.
         public float exposure, contrast, saturation;
 
+        // First person (behavior "firstPerson", subject = a survivor): the eye of that survivor, the way its
+        // player saw the game. See StudioFirstPerson for what each setting does. All zero / false = the old raw head lock.
+        public float fpSmoothMove = .25f;    // seconds of smoothing on where the eye is (0 = exactly on the head)
+        public float fpSmoothTurn = .45f;    // seconds of smoothing on where the eye looks
+        public bool fpLevel = true;          // keep the horizon level (no head roll)
+        public float fpFieldOfView = 62;     // vertical degrees; 0 = from the keys' focal length
+        public bool fpOwnBody = true;        // show the actor's own arms, hands and weapon, hide its head, hair, hat and upper torso
+
         public float End(StudioSet set) => end < 0 ? set.length : Mathf.Min(end, set.length);
     }
 

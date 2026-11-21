@@ -51,6 +51,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public Vector3 position;
             public Quaternion rotation;
             public float focal, focus, aperture, fieldOfView;
+            public string ownBody;     // first person: the mark id whose own arms, hands and weapon this lens shows (else empty)
         }
 
         public static float FieldOfView(float focal, float sensorHeight) =>
@@ -130,6 +131,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var key = Keyed(camera, cameraTime, out var rotation);
             Vector3 position = anchor + key.position;
             float focal = key.focal, focus = key.focus;
+            string ownBody = "";
             var subject = string.IsNullOrEmpty(camera.subject) ? default : StudioActorPoses.At(tape, camera.subject, tapeTime - Mathf.Max(0, camera.lag), set.fps);
             var subjectNow = string.IsNullOrEmpty(camera.subject) ? default : StudioActorPoses.At(tape, camera.subject, tapeTime, set.fps);
             // The aim trails a little behind the actor (lag), but never by more than half a metre,
@@ -184,7 +186,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
                     break;
                 case "firstPerson":
-                    if (subjectNow.found) { position = subjectNow.head; rotation = subjectNow.headRotation; }
+                    // An actor's eyes, smoothed and level, with the game's own first-person body (StudioFirstPerson).
+                    if (subjectNow.found && StudioFirstPerson.Eye(camera, set, tape, tapeTime, out var eye, out var look))
+                    {
+                        position = eye; rotation = look;
+                        if (camera.fpFieldOfView > 1) focal = FocalFor(camera.fpFieldOfView, camera.sensorHeight);
+                        if (camera.fpOwnBody) ownBody = camera.subject;
+                    }
                     break;
             }
 
@@ -233,9 +241,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
 
             if (camera.focusOnSubject && aimedByList) focus = Vector3.Distance(position, aim);
-            else if (camera.focusOnSubject && subjectNow.found) focus = Vector3.Distance(position, subjectNow.feet + camera.aimOffset);
-            return new Shot { position = position, rotation = rotation, focal = focal, focus = Mathf.Max(.2f, focus), aperture = Mathf.Max(.7f, key.aperture),
-                fieldOfView = FieldOfView(focal, camera.sensorHeight) };
+            else if (camera.focusOnSubject && subjectNow.found && camera.behavior != "firstPerson") focus = Vector3.Distance(position, subjectNow.feet + camera.aimOffset);
+            // A player's own eye has no depth of field (f/16 switches it off in renders).
+            float aperture = ownBody.Length > 0 ? Mathf.Max(16, key.aperture) : Mathf.Max(.7f, key.aperture);
+            return new Shot { position = position, rotation = rotation, focal = focal, focus = Mathf.Max(.2f, focus), aperture = aperture,
+                fieldOfView = FieldOfView(focal, camera.sensorHeight), ownBody = ownBody };
         }
 
         // Where the aim list points at a time: the newest aim key, eased in from the one before it.
@@ -270,6 +280,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             target.transform.SetPositionAndRotation(shot.position, shot.rotation);
             target.fieldOfView = shot.fieldOfView;
+            // First person: this camera (only) sees the actor the way its player did; any other shot gives the actor back.
+            StudioFirstPerson.Show(target, shot.ownBody);
         }
 
         // A key that matches the director's current view, at a tape time.
