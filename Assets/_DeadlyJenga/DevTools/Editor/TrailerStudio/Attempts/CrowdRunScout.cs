@@ -251,6 +251,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Vector3 takeoff = p + d * s;
                 if (!SimJump(takeoff, d, out var land)) continue;
                 if (!Level(land, land.y) || !Level(land + d * .7f, land.y)) continue;
+                // Scout 3: a 2.0 m step up is a hair beyond his 1.9 m jump; he stalled and scrambled. Only clean jumps.
+                if (land.y - takeoff.y > 1.3f) continue;
                 if (Mathf.Abs(land.y - takeoff.y) < .4f && !GapBetween(takeoff, land)) continue;
                 // Never back onto ground this route has already used (no hopping to and fro between two blocks).
                 if (legs.Any(l => Vector3.Distance(l.land, land) < 2.5f || Vector3.Distance(l.takeoff, land) < 2.5f || Vector3.Distance(l.from, land) < 2f)) continue;
