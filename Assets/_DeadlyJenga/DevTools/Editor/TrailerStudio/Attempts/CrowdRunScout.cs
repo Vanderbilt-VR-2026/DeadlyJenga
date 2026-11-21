@@ -65,7 +65,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
                         StudioLibrary.SetsFolderOverride = Path.Combine(Folder, "sets");
                         StudioRun.OpenStage(NewSet());
-                        Step = 2; Deadline = EditorApplication.timeSinceStartup + 570;
+                        Step = 2; Deadline = EditorApplication.timeSinceStartup + 1300;   // 41 players render at about 1.2 s a frame
                         break;
                     case 2:
                         if (routine == null)
@@ -493,7 +493,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             var chase = Cam("CHASE", from, to, 24);
             StudioMoves.Follow(chase, "actor:hero", -route.dir * 3.4f + Vector3.up * 1.7f + Vector3.Cross(Vector3.up, route.dir) * .9f, .25f);
-            cams.Add(chase);
+            // (The chase camera is planned but not rendered: scout 3 ran out of time with three cameras.)
 
             // A wide from outside that sees as much of the route and the crowd as possible.
             var see = Line(route).Concat(startAt.Values).ToList();
@@ -512,7 +512,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var wide = Cam("WIDE", from, to, Mathf.Clamp(24 * bestDistance / 15f, 16, 60));
             StudioMoves.LockedOff(wide, wide.start, stage.ToStage(best), P(stage, centre));
             cams.Add(wide);
-            Note($"Cameras {from:0.00}-{to:0.00} s: POV (hero, 72 deg), CHASE, WIDE at {V(best)} seeing {bestSeen} of {see.Count} points.");
+            Note($"Cameras {from:0.00}-{to:0.00} s: POV (hero, 72 deg), WIDE at {V(best)} seeing {bestSeen} of {see.Count} points.");
             return cams;
         }
     }
