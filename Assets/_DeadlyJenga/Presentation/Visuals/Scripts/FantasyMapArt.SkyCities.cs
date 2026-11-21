@@ -437,8 +437,11 @@ namespace DeadlyJenga.Presentation
             for(float y=drop*.12f;y<drop*.98f;y+=Period)
             {
                 float t=Mathf.Sqrt(y/drop);var p=At(t);float w=Spread(t);
-                for(int k=0;k<7;k++)if(Hash(new Vector3(k,y,label.Length))<.55f)
-                    streaks.Box(p+Vector3.right*w*((k+.5f)/7f-.5f),new Vector3(w/7f*.45f,3.2f,.5f),Quaternion.identity,2,new Color(.62f,.62f,.62f));
+                for(int k=0;k<14;k++)if(Hash(new Vector3(k,y,label.Length))<.35f)
+                {
+                    float x=w*((k+Hash(new Vector3(y,k,2)))/14f-.5f),len=5+Hash(new Vector3(k,y,7))*6;
+                    streaks.Box(p+Vector3.right*x+Vector3.down*len*.5f,new Vector3(.22f,len,.45f),Quaternion.identity,2,new Color(.5f,.5f,.52f));
+                }
             }
             var go=Model("Visual · rainbow waterfall streaks "+label,streaks,parent,SkyMaterials);
             fallStreaks.Add((go.transform,go.transform.localPosition,Period,7f));
