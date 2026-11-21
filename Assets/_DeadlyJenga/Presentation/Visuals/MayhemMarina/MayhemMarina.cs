@@ -11,7 +11,7 @@ namespace DeadlyJenga.CandyArt.Marina
     {
         public static readonly Vector3 Arrival=new(-10,1.36f,-8);
         // Showtime Plaza: one open deck between the arrival island and the cinema.
-        public static readonly Vector3 PlazaCenter = new(0, 1.31f, -3.6f);
+        public static readonly Vector3 PlazaCenter = new(0, .71f, -3.6f);
         public const float PlazaRadius = 7.2f;
         public const float CinemaFloor = 1.86f;
         const float CinemaFront = -2.2f;
@@ -20,7 +20,7 @@ namespace DeadlyJenga.CandyArt.Marina
         // The style stage (wardrobe) stands on the cinema's right side, where the podium was; its vanity backs onto the right edge.
         static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, 90, 0);
         static readonly Quaternion FameTurn = Quaternion.identity;
-        public static readonly Vector3 Wardrobe = new(5.12f, CinemaFloor + .22f, 8.1f);
+        public static readonly Vector3 Wardrobe = new(5.12f, CinemaFloor + .22f, .7f);
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
         public static readonly Quaternion CodeKeyboardFacing = Quaternion.Euler(61, 0, 0);
@@ -34,8 +34,9 @@ namespace DeadlyJenga.CandyArt.Marina
         // The last-match board hangs where the cinema sign was, readable from the plaza and from inside.
         public static readonly Vector3 FameBoard = new(0, 6.2f, CinemaFront - .25f);
         public static readonly Quaternion FameFacing = FameTurn;
-        // The winners' podium stands right under the board, just inside the entrance, facing the plaza.
-        internal static readonly Vector3 FamePodium = new(0, CinemaFloor, CinemaFront + .75f);
+        // The winners' podium stands down at plaza level in a gap in the middle of the entrance ramp,
+        // right under the board, facing the plaza.
+        internal static readonly Vector3 FamePodium = new(0, .71f, CinemaFront - .6f);
         internal static readonly Vector3[] FameSteps = { new(0,.6f,0), new(-1.15f,.4f,0), new(1.15f,.26f,0) };
         internal const float FameStepCap = .16f;
         // Each winners' step carries a round piston head that swings 60 degrees (30 each way), slowly

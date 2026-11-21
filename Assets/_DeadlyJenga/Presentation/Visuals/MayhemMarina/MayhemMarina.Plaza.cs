@@ -8,7 +8,7 @@ namespace DeadlyJenga.CandyArt.Marina
     // Showtime Plaza leads into the covered cinema and out to the waterfront.
     public sealed partial class MayhemMarina
     {
-        const float PlazaTop = 1.31f;
+        const float PlazaTop = .71f;
 
         // Open arcs (degrees, 0 = toward the cinema) where the plaza meets other decks.
         static readonly Vector2[] PlazaOpenings = { new(-35, 35), new(88, 112), new(-135, -92) };
@@ -159,7 +159,6 @@ namespace DeadlyJenga.CandyArt.Marina
                     mesh.Beam(foot + Vector3.up * .025f, foot + Vector3.up * .3f, .014f, F.Ivory);
                     Mannequins.Create(visual, foot + Vector3.up * .055f, rack * Quaternion.Euler(0, 180, 0), hatLooks[j + 3], hatColors[j + 3], MannequinPose.Head);
                 }
-                Pot(At(2.05f, 0, 2.55f), .42f, .78f, 31);
             }
 
             // The wardrobe tablet on its stand: a weighted base, a brass pole and a tilted tablet in a dark case.
