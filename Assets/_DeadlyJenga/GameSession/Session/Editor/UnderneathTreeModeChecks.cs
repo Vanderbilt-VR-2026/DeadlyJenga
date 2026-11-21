@@ -78,18 +78,18 @@ namespace DeadlyJenga.CastlePrototype.Editor
             if (!ok) throw new InvalidOperationException(label);
             File.AppendAllText(Report, "PASS " + Mode + ": " + label + "\n");
         }
-        // An open bit of carpet near the middle of the course, clear overhead.
-        static bool TryCarpetSpot(IWorldQuery world, out Vector3 spot)
+        // An open bit of carpet (or of the wood floor), clear overhead, nearest the course middle.
+        static bool TryGroundSpot(IWorldQuery world, bool wood, out Vector3 spot)
         {
             int mask = (1 << Layers.Surface) | (1 << Layers.Block) | 1;
             float top = world.PlayableBounds.max.y + 5;
-            for (float ring = 0; ring < 120; ring += 3)
+            for (float ring = 0; ring < 300; ring += 3)
                 for (int i = 0; i < 16; i++)
                 {
                     float angle = i * Mathf.PI / 8;
                     var probe = new Vector3(world.Center.x + Mathf.Cos(angle) * ring, top, world.Center.z + Mathf.Sin(angle) * ring);
                     if (!Physics.Raycast(probe, Vector3.down, out var hit, top + 50, mask, QueryTriggerInteraction.Ignore) ||
-                        !hit.collider.name.Contains("kill floor"))
+                        (wood ? hit.collider.GetComponent<ILethalGround>() == null : !hit.collider.name.Contains("kill floor")))
                         continue;
                     spot = hit.point + Vector3.up * .05f;
                     if (!Physics.CheckCapsule(spot + Vector3.up * .4f, spot + Vector3.up * 1.65f, .4f, mask, QueryTriggerInteraction.Ignore))
@@ -150,10 +150,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     Check(mode.Frame.players.Any(p => p.bot && p.alive), "bots survive initial setup");
                     Check(!mode.Frame.players.Any(p => p.id == mode.LocalActorId && p.sinking), "local player starts on a gift, not sinking");
                     var floor = GameObject.Find("Family room floor");
-                    Check(floor && floor.layer != Layers.Surface, "wood room floor is safe ground");
-                    Check(TryCarpetSpot(world, out var spot), "found open carpet");
+                    Check(floor && floor.GetComponent<ILethalGround>() != null, "wood room floor is marked deadly");
+                    // Team Tickets proves the carpet sinks; Survival proves the wood floor kills at once.
+                    bool wood = Mode == "survival";
+                    Check(TryGroundSpot(world, wood, out var spot), wood ? "found open wood floor" : "found open carpet");
                     session.Player.Place(spot, Quaternion.identity);
-                    settled = Time.time; stage = 2;
+                    settled = Time.time; stage = wood ? 3 : 2;
                 }
                 else if (stage == 2)
                 {
@@ -173,6 +175,24 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     }
                     else if (Time.time - settled > mode.Rules.sinkGraceSeconds + 6)
                         throw new Exception(sankAt.HasValue ? "player sank but was not eliminated" : "player on the carpet never started sinking");
+                }
+                else if (stage == 3)
+                {
+                    var me = mode.Frame.players.FirstOrDefault(p => p.id == mode.LocalActorId);
+                    if (me != null && !me.alive)
+                    {
+                        Check(!sankAt.HasValue, "wood floor kills without a sinking phase");
+                        File.AppendAllText(Report, "PASS " + Mode + ": wood floor eliminated the player " + (Time.time - settled).ToString("F1") + " s after touching it\n");
+                        File.AppendAllText(Report, "NOT VERIFIED: custom disasters, human navigation, network peers, Quest.\n");
+                        SessionState.SetBool(Pass, true);
+                        EditorApplication.ExitPlaymode();
+                    }
+                    else
+                    {
+                        if (me != null && me.sinking) sankAt = Time.time;
+                        if (Time.time - settled > 3)
+                            throw new Exception("player on the wood floor was not eliminated within 3 s");
+                    }
                 }
             }
             catch (Exception e)

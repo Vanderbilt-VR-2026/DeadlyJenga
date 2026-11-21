@@ -208,9 +208,10 @@ namespace DeadlyJenga.Modes
                 var view=actor.ViewPose.position;
                 if(view.y<=world.WaterHeight(view)+.25f){EliminateActor(actor,MatchSoundCue.DrowningDeath);continue;}
                 Vector3 feet=actor.transform.position;
-                bool onIsland=actor.Grounded&&!actor.StandingBody&&Physics.Raycast(feet+Vector3.up*.2f,Vector3.down,out var hit,.65f,(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore)&&hit.normal.y>.4f;
+                RaycastHit hit=default;
+                bool onIsland=actor.Grounded&&!actor.StandingBody&&Physics.Raycast(feet+Vector3.up*.2f,Vector3.down,out hit,.65f,(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore)&&hit.normal.y>.4f;
                 if(!onIsland||rules.island==IslandRule.Walkable){sinkStarted.Remove(pair.Key);continue;}
-                if(rules.island==IslandRule.Lethal){EliminateActor(actor,MatchSoundCue.IslandDeath);continue;}
+                if(rules.island==IslandRule.Lethal||hit.collider.TryGetComponent<ILethalGround>(out _)){EliminateActor(actor,MatchSoundCue.IslandDeath);continue;}
                 if(!sinkStarted.ContainsKey(pair.Key))sinkStarted[pair.Key]=Time.time;
                 p.frame.sinking=true;p.frame.sinkProgress=Mathf.Clamp01((Time.time-sinkStarted[pair.Key])/Mathf.Max(.2f,rules.sinkGraceSeconds));
                 if(Time.time-sinkStarted[pair.Key]>=rules.sinkGraceSeconds)EliminateActor(actor,MatchSoundCue.IslandDeath);
