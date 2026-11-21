@@ -11,15 +11,14 @@ using Debug = UnityEngine.Debug;
 namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 {
     // A scout, not a trailer: can the Studio record a crowd, and can a driven hero sprint, leap and shoot in the air?
-    //   - about 24 players on the top of the castle: half are the game's own bots (Bot marks), half are driven by
-    //     small generated scripts, so the two kinds of crowd can be compared in one take;
-    //   - one hero who runs along the top, jumps off an edge to the next platform, fires in the air and runs on.
+    //   - about 40 players near the top of the map, all the game's own bots (scout 1 compared them with scripted pairs);
+    //   - one hero who plans his own route of runs and jumps on the loaded map, and fires in the air on every jump.
     // Run: DeadlyJenga.DevTools.Editor.TrailerStudio.CrowdRunScout.Run
     // Output: Logs/ClaudeCrowdRunScout/ (notes.md, hero.csv, crowd.csv, shots/*.mp4).
     [InitializeOnLoad]
     public static class CrowdRunScout
     {
-        const int Fps = 30, Crowd = 24;
+        const int Fps = 30, Crowd = 40;
         const float Length = 9f, RunAt = 1.2f;
         const string Key = "DeadlyJenga.CrowdRunScout", SetId = "crowd-run-scout";
 
@@ -175,7 +174,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var blocks = stage.blocks.Where(b => b && b.gameObject.activeInHierarchy).ToList();
             var tops = blocks.ToDictionary(b => b, TopOf);
             float highest = top = tops.Values.Max();
-            foreach (var body in blocks.Where(b => tops[b] > highest - 7f))
+            foreach (var body in blocks.Where(b => tops[b] > highest - 12f))
             {
                 var bs = StudioHandDirection.BlockSize(body);
                 Vector3 longLocal = bs.x >= bs.z ? Vector3.right : Vector3.forward, wideLocal = bs.x >= bs.z ? Vector3.forward : Vector3.right;
@@ -188,186 +187,172 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         if (Level(p, p.y)) spots.Add(p);
                     }
             }
-            Note($"Castle top y {top:0.00}. Free standing spots in the top 7 m: {spots.Count}.");
+            Note($"Castle top y {top:0.00}. Free standing spots in the top 12 m: {spots.Count}.");
             return spots;
         }
 
-        sealed class RunPlan
-        {
-            public bool gap;                         // true = a real edge and a platform beyond it
-            public Vector3 start, takeoff, landing, end, dir;
-            public float run, drop, width;
-        }
+        // ---- The hero's route ----
+        // The hero finds his own way on whatever map is loaded: straight runs joined by jumps. Each jump is flown
+        // here first with his real jump (measured in scout 1: 4.9 m/s run, 1.9 m high, 0.86 s in the air on the flat),
+        // so he only jumps where he will land. This is the Studio's own planner; the game's bot navigation is not used.
+        const float RunSpeed = 4.9f, JumpSpeed = 8.9f, Gravity = 20.7f, RouteTarget = 34f;
 
-        // A straight run-up to an edge with a platform beyond it (a little lower is better: a leap, not a hop).
-        static RunPlan FindRun(List<Vector3> spots, float top)
+        sealed class Leg { public Vector3 from, takeoff, land, dir; }
+        sealed class Route { public List<Leg> legs = new List<Leg>(); public Vector3 start, tail, dir; public float length; }
+
+        static Route bestRoute; static int budget;
+
+        static bool SimJump(Vector3 takeoff, Vector3 d, out Vector3 land)
         {
-            RunPlan best = null; float bestScore = float.MinValue; int candidates = 0;
-            foreach (var q in spots.Where(spot => spot.y > top - 4.5f))
-                for (int k = 0; k < 24; k++)
-                {
-                    Vector3 d = Quaternion.Euler(0, k * 15, 0) * Vector3.forward;
-                    // The edge: the first place ahead with no floor (a wall or a step up is not an edge).
-                    float edge = -1; bool wall = false;
-                    for (float s = .3f; s <= 1.5f && edge < 0 && !wall; s += .1f)
-                    {
-                        if (!GroundAt(q + d * s, q.y, out float f) || f < q.y - .5f) edge = s;
-                        else if (f > q.y + .12f) wall = true;
-                    }
-                    if (edge < 0 || wall) continue;
-                    // The run-up behind it.
-                    int steps = 0;
-                    while (steps < 20 && Level(q - d * (steps + 1) * .4f, q.y)) steps++;
-                    float run = steps * .4f;
-                    if (run < 4f) continue;
-                    // The platform beyond: starts 0.8 to 2.4 m past the edge and goes on for 3.2 m.
-                    for (float r = edge + .8f; r <= edge + 2.4f; r += .2f)
-                    {
-                        Vector3 l = q + d * r;
-                        if (!GroundAt(l, q.y, out float f)) continue;
-                        float drop = q.y - f;
-                        if (drop < -.15f || drop > 3.2f) continue;
-                        bool ok = true;
-                        for (int j = 0; j <= 8 && ok; j++) ok = Level(l + d * j * .4f, f);
-                        if (!ok) continue;
-                        Vector3 from = q + Vector3.up * 1.3f, to = new Vector3(l.x, f + 1.3f, l.z);
-                        if (!Sees(from, to) || !Sees(from + Vector3.up * .6f, to + Vector3.up * .6f)) continue;
-                        candidates++;
-                        float gapWidth = r - edge;
-                        float score = Mathf.Min(run, 8) + (drop > .6f && drop < 2.6f ? 2 : 0) + (gapWidth >= 1.2f ? 1.5f : 0) + (q.y - (top - 4.5f)) * .5f;
-                        if (score > bestScore)
-                        {
-                            bestScore = score;
-                            best = new RunPlan
-                            {
-                                gap = true, dir = d, run = Mathf.Min(run, 7.2f), drop = drop, width = gapWidth,
-                                start = q - d * Mathf.Min(run, 7.2f), takeoff = q + d * (edge - .45f),
-                                landing = new Vector3(l.x, f, l.z) + d * .6f, end = new Vector3(l.x, f, l.z) + d * 3f
-                            };
-                        }
-                        break;
-                    }
-                }
-            if (best != null)
+            land = takeoff;
+            Vector3 up = Vector3.up, prev = takeoff + up * .12f;
+            for (float t = .05f; t < 1.9f; t += .05f)
             {
-                Note($"Run found ({candidates} candidates): {best.run:0.0} m run-up from {V(best.start)}, take-off {V(best.takeoff)}, gap {best.width:0.0} m, drop {best.drop:0.0} m, lands {V(best.landing)}, ends {V(best.end)}.");
-                return best;
+                Vector3 p = takeoff + d * RunSpeed * t + up * (JumpSpeed * t - .5f * Gravity * t * t + .12f);
+                if (p.y < takeoff.y - 3.6f) return false;
+                if (Physics.Linecast(prev + up * 1.4f, p + up * 1.4f, Solid, QueryTriggerInteraction.Ignore)) return false;   // his head would hit something
+                if (Physics.Linecast(prev, p, out var hit, Ground, QueryTriggerInteraction.Ignore))
+                {
+                    if (JumpSpeed - Gravity * t > 0 || hit.normal.y < .7f) return false;   // into a wall
+                    land = hit.point;
+                    return true;
+                }
+                prev = p;
             }
-            // No edge with a platform beyond: the longest straight floor, with a jump in the middle of it.
-            float longest = 0; Vector3 a = spots[0], dirBest = Vector3.forward;
-            foreach (var q in spots.Where(spot => spot.y > top - 4.5f))
+            return false;
+        }
+
+        // No floor somewhere between two points: a real gap, not a hop on the flat.
+        static bool GapBetween(Vector3 a, Vector3 b)
+        {
+            float distance = Flat0(b - a).magnitude;
+            for (float s = .3f; s < distance - .2f; s += .3f)
+            {
+                Vector3 p = Vector3.Lerp(a, b, s / distance);
+                if (!GroundAt(p, a.y, out float f) || f < a.y - .6f) return true;
+            }
+            return false;
+        }
+
+        static void Extend(Vector3 p, Vector3 d, List<Leg> legs, float length, Vector3 start, Vector3 startDir)
+        {
+            int n = 0;
+            while (n < 22 && Level(p + d * (n + 1) * .4f, p.y)) n++;
+            float walk = n * .4f;
+            float total = length + Mathf.Min(walk, 4f);
+            if (legs.Count > 0 && (bestRoute == null || total > bestRoute.length))
+                bestRoute = new Route { legs = new List<Leg>(legs), start = start, tail = p + d * Mathf.Min(walk, 4f), length = total, dir = startDir };
+            if (legs.Count >= 7 || length >= RouteTarget || budget <= 0) return;
+            float minRun = legs.Count == 0 ? 2.8f : 1.6f;
+            int tried = 0;
+            for (float s = walk; s >= minRun - .001f && tried < 3; s -= .4f)
+            {
+                budget--;
+                Vector3 takeoff = p + d * s;
+                if (!SimJump(takeoff, d, out var land)) continue;
+                if (!Level(land, land.y) || !Level(land + d * .7f, land.y)) continue;
+                if (Mathf.Abs(land.y - takeoff.y) < .4f && !GapBetween(takeoff, land)) continue;
+                tried++;
+                legs.Add(new Leg { from = p, takeoff = takeoff, land = land, dir = d });
+                float add = s + Flat0(land - takeoff).magnitude;
+                foreach (float turn in new[] { 0f, -25f, 25f, -50f, 50f })
+                {
+                    Extend(land, Quaternion.Euler(0, turn, 0) * d, legs, length + add, start, startDir);
+                    if (bestRoute != null && bestRoute.length >= RouteTarget) break;
+                }
+                legs.RemoveAt(legs.Count - 1);
+                if (bestRoute != null && bestRoute.length >= RouteTarget) return;
+            }
+        }
+
+        static Route FindRoute(List<Vector3> spots, float top)
+        {
+            bestRoute = null; int used = 0, roots = 0;
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            foreach (var q in spots.Where(spot => spot.y > top - 6f).OrderByDescending(spot => spot.y))
+            {
                 for (int k = 0; k < 24; k++)
                 {
                     Vector3 d = Quaternion.Euler(0, k * 15, 0) * Vector3.forward;
-                    int steps = 0;
-                    while (steps < 30 && Level(q + d * (steps + 1) * .4f, q.y)) steps++;
-                    if (steps * .4f > longest) { longest = steps * .4f; a = q; dirBest = d; }
+                    budget = 250; roots++;
+                    Extend(q, d, new List<Leg>(), 0, q, d);
+                    used += 250 - budget;
+                    if (bestRoute != null && bestRoute.length >= RouteTarget || used > 120000) break;
                 }
-            Note($"NO edge with a platform beyond it was found. Falling back to the longest flat run: {longest:0.0} m from {V(a)}.");
-            return new RunPlan { gap = false, dir = dirBest, run = longest * .5f, start = a, takeoff = a + dirBest * longest * .5f, landing = a + dirBest * longest * .75f, end = a + dirBest * (longest - .3f) };
+                if (bestRoute != null && bestRoute.length >= RouteTarget || used > 120000) break;
+            }
+            if (bestRoute == null) throw new InvalidOperationException($"No route with a jump was found on this map top ({roots} starts, {used} jumps tried).");
+            var r = bestRoute;
+            Note($"Route found in {clock.Elapsed.TotalSeconds:0.0} s ({roots} starts, {used} jumps tried): {r.length:0.0} m with {r.legs.Count} jumps, from {V(r.start)} to {V(r.tail)}.");
+            foreach (var leg in r.legs)
+                Note($"- run {Flat0(leg.takeoff - leg.from).magnitude:0.0} m, jump {Flat0(leg.land - leg.takeoff).magnitude:0.0} m, {leg.land.y - leg.takeoff.y:+0.0;-0.0} m in height, lands {V(leg.land)}");
+            return r;
         }
 
-        static float SegmentDistance(Vector3 p, Vector3 x0, Vector3 x1)
+        static List<Vector3> Line(Route route)
         {
-            var d = x1 - x0; float t = Mathf.Clamp01(Vector3.Dot(p - x0, d) / Mathf.Max(.0001f, d.sqrMagnitude));
-            return Vector3.Distance(p, x0 + d * t);
+            var points = new List<Vector3> { route.start };
+            foreach (var leg in route.legs) { points.Add(leg.takeoff); points.Add(leg.land); }
+            points.Add(route.tail);
+            return points;
+        }
+
+        static float LineDistance(Vector3 p, List<Vector3> line)
+        {
+            float best = float.MaxValue;
+            for (int i = 0; i + 1 < line.Count; i++)
+            {
+                var d = line[i + 1] - line[i]; float t = Mathf.Clamp01(Vector3.Dot(p - line[i], d) / Mathf.Max(.0001f, d.sqrMagnitude));
+                best = Mathf.Min(best, Vector3.Distance(p, line[i] + d * t));
+            }
+            return best;
         }
 
         // ---- The cast ----
 
         static readonly List<string> crowdIds = new List<string>();
         static readonly Dictionary<string, Vector3> startAt = new Dictionary<string, Vector3>();
-        static string victim = "", second = "";
+        static float heroStops = Length - .3f;
 
-        static StudioDriveStep S(string action, float at = -1, string target = "", float duration = 0, string pace = "walk", float reach = 1.0f, string weapon = "") =>
-            new StudioDriveStep { action = action, at = at, target = target, duration = duration, pace = pace, reach = reach, weapon = weapon };
-
-        static void Direct(StudioStage stage, List<Vector3> spots, RunPlan run)
+        static void Direct(StudioStage stage, List<Vector3> spots, Route route)
         {
-            var set = stage.set; Vector3 up = Vector3.up;
+            var set = stage.set;
             set.marks.Clear(); set.drives.Clear(); set.overrides.Clear(); set.cues.Clear();
             crowdIds.Clear(); startAt.Clear();
             var random = new System.Random(4711);
-            float Rand(float a, float b) => a + (float)random.NextDouble() * (b - a);
+            var line = Line(route);
 
-            // The hero.
-            var hero = set.AddMark(StudioRole.Survivor, stage.ToStage(run.start));
-            hero.id = "hero"; hero.actor = "hero"; hero.yaw = StudioHuman.Yaw(run.dir); hero.color = 6; hero.customLook = true;
+            var hero = set.AddMark(StudioRole.Survivor, stage.ToStage(route.start));
+            hero.id = "hero"; hero.actor = "hero"; hero.yaw = StudioHuman.Yaw(route.dir); hero.color = 6; hero.customLook = true;
             hero.appearance = new AvatarAppearance { hair = AvatarHair.Spikes, hairShade = AvatarHairShade.Match, skin = AvatarSkin.Default };
-            startAt["hero"] = run.start;
+            startAt["hero"] = route.start;
 
-            // The crowd: spots off the hero's line, nearest to it first, at least 1.5 m apart.
-            Vector3 mid = Vector3.Lerp(run.start, run.end, .55f);
-            var free = spots.Where(p => SegmentDistance(p, run.start, run.end) > 1.7f && Mathf.Abs(p.y - mid.y) < 5f)
-                .OrderBy(p => Vector3.Distance(p, mid)).ToList();
+            // The crowd: the game's own bots, on spots beside the route (never on it), nearest first, 1.4 m apart.
+            var free = spots.Select(p => (p, d: LineDistance(p, line))).Where(x => x.d > 1.8f && x.d < 10f).OrderBy(x => x.d).Select(x => x.p).ToList();
             var chosen = new List<Vector3>();
             foreach (var p in free)
             {
                 if (chosen.Count >= Crowd) break;
-                if (chosen.All(c => Vector3.Distance(c, p) > 1.5f)) chosen.Add(p);
+                if (chosen.All(c => Vector3.Distance(c, p) > 1.4f)) chosen.Add(p);
             }
-            var skins = ((AvatarSkin[])Enum.GetValues(typeof(AvatarSkin))).Where(s => s != AvatarSkin.Default).ToArray();
+            Vector3 mid = line[line.Count / 2];
             for (int i = 0; i < chosen.Count; i++)
             {
-                bool bot = i % 2 == 0;
-                var mark = set.AddMark(bot ? StudioRole.Bot : StudioRole.Survivor, stage.ToStage(chosen[i]));
-                mark.id = (bot ? "bot" : "drv") + i.ToString("00"); mark.actor = mark.id;
-                mark.yaw = StudioHuman.Yaw(Flat0(mid - chosen[i])) + Rand(-40, 40); mark.color = i % 8;
-                if (bot) mark.equipment = i % 4 == 0 ? "Blaster" : "BoxingGlove";
-                else
-                {
-                    mark.customLook = true;
-                    mark.appearance = new AvatarAppearance { hair = AvatarHair.None, hairShade = AvatarHairShade.Match, skin = skins.Length > 0 ? skins[(i / 2) % skins.Length] : AvatarSkin.Default };
-                }
+                var mark = set.AddMark(StudioRole.Bot, stage.ToStage(chosen[i]));
+                mark.id = "bot" + i.ToString("00"); mark.actor = mark.id;
+                mark.yaw = StudioHuman.Yaw(Flat0(mid - chosen[i])) + (float)random.NextDouble() * 80 - 40; mark.color = i % 8;
+                mark.equipment = i % 3 == 0 ? "BoxingGlove" : "Blaster";
                 crowdIds.Add(mark.id); startAt[mark.id] = chosen[i];
             }
-            Note($"Crowd: {chosen.Count} of {Crowd} wanted ({crowdIds.Count(c => c.StartsWith("bot"))} game bots, {crowdIds.Count(c => c.StartsWith("drv"))} driven), {free.Count} free spots near the run.");
-
-            // Who the hero shoots: in the air, whoever is most nearly straight ahead of the take-off; after landing, whoever is nearest the end.
-            victim = crowdIds.Where(id => { float dist = Vector3.Distance(startAt[id], run.takeoff); return dist > 3.5f && dist < 16; })
-                .OrderBy(id => Vector3.Angle(Flat0(startAt[id] - run.takeoff), run.dir)).FirstOrDefault() ?? crowdIds.FirstOrDefault() ?? "";
-            second = crowdIds.Where(id => id != victim).OrderBy(id => Vector3.Distance(startAt[id], run.end)).FirstOrDefault() ?? victim;
-            if (victim.Length > 0) Note($"Hero shoots {victim} in the air ({Vector3.Distance(startAt[victim], run.takeoff):0.0} m, {Vector3.Angle(Flat0(startAt[victim] - run.takeoff), run.dir):0} deg off his line), then {second} after landing.");
+            Note($"Crowd: {chosen.Count} of {Crowd} wanted, all game bots, from {free.Count} free spots within 10 m of the route.");
 
             var h = new StudioDrive { actor = "hero", seed = 11, human = .7f };
-            h.steps.Add(S("gear", .3f, weapon: "Blaster"));
-            h.steps.Add(new StudioDriveStep { action = "jump", at = RunAt, target = P(stage, run.takeoff), duration = 8 });
-            h.steps.Add(new StudioDriveStep
-            {
-                action = "path", pace = "run", edge = true, duration = 6.5f, shoot = victim.Length > 0 ? "actor:" + victim : "", shootAfter = .12f,
-                points = new List<Vector3> { stage.ToStage(run.takeoff), stage.ToStage(run.landing), stage.ToStage(run.end) }
-            });
-            if (second.Length > 0) { h.steps.Add(S("fire", -1, "actor:" + second)); h.steps.Add(S("look", -1, "actor:" + second, 2)); }
+            h.steps.Add(new StudioDriveStep { action = "gear", at = .3f, weapon = "Blaster" });
+            var path = new StudioDriveStep { action = "path", at = RunAt, pace = "run", edge = true, duration = Length, shoot = "auto", shootAfter = .12f };
+            foreach (var p in line.Skip(1)) path.points.Add(stage.ToStage(p));
+            foreach (var leg in route.legs) path.jumps.Add(stage.ToStage(leg.takeoff));
+            h.steps.Add(path);
             set.drives.Add(h);
-
-            // The driven half of the crowd: each has a rival (the nearest other player) and a weapon.
-            for (int i = 1; i < chosen.Count; i += 2)
-            {
-                string id = crowdIds[i];
-                var others = crowdIds.Where(o => o != id).OrderBy(o => Vector3.Distance(startAt[o], chosen[i])).ToList();
-                string rival = others[0], other = others.Count > 1 ? others[1] : others[0];
-                bool glove = i % 4 == 1;
-                var d = new StudioDrive { actor = id, seed = 100 + i, human = 1 };
-                d.steps.Add(S("gear", Rand(.3f, .7f), weapon: glove ? "BoxingGlove" : "Blaster"));
-                d.steps.Add(S("look", -1, "actor:" + rival));
-                float t = Rand(1.0f, 2.6f);
-                if (glove)
-                {
-                    d.steps.Add(S("punch", t, "actor:" + rival, 3.5f, "jog"));
-                    d.steps.Add(S("look", -1, "actor:" + other, 1.2f));
-                    d.steps.Add(S("punch", t + Rand(2.6f, 3.4f), "actor:" + other, 3f, "jog"));
-                }
-                else
-                {
-                    Vector3 side = Vector3.Cross(up, Flat(startAt[rival] - chosen[i])) * (i % 8 < 4 ? .45f : -.45f);
-                    d.steps.Add(S("fire", t, "actor:" + rival));
-                    if (Level(chosen[i] + side, chosen[i].y)) d.steps.Add(new StudioDriveStep { action = "goTo", point = stage.ToStage(chosen[i] + side), pace = "walk", duration = 1.1f });
-                    d.steps.Add(S("fire", t + Rand(1.5f, 2f), "actor:" + rival));
-                    d.steps.Add(S("look", -1, "actor:hero", .9f));
-                    d.steps.Add(S("fire", t + Rand(3.3f, 4f), "actor:" + other));
-                }
-                set.drives.Add(d);
-            }
 
             set.alive.smooth = .12f;
             set.EnsureCueIds();
@@ -385,9 +370,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             yield return 0; yield return 0;
             Note($"# Crowd run scout, {DateTime.Now:yyyy-MM-dd HH:mm}\n");
             var spots = FindSpots(stage, out float top);
-            if (spots.Count == 0) throw new InvalidOperationException("No standing spots on the castle top.");
-            var run = FindRun(spots, top);
-            Direct(stage, spots, run);
+            if (spots.Count == 0) throw new InvalidOperationException("No standing spots on the map top.");
+            var route = FindRoute(spots, top);
+            Direct(stage, spots, route);
             yield return 0;
 
             var clock = System.Diagnostics.Stopwatch.StartNew();
@@ -397,16 +382,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var cueLog = StudioRun.CueLog.ToList();
             Note($"Recorded {stage.set.marks.Count} players, {Length:0} s of tape, in {clock.Elapsed.TotalSeconds:0} s of real time. {StudioRun.Status}");
             File.WriteAllLines(Path.Combine(Folder, "cuelog.txt"), cueLog);
-            Note("Hero's log:\n- " + string.Join("\n- ", cueLog.Where(l => l.Contains("drive hero"))));
+            var heroLog = cueLog.Where(l => l.Contains("drive hero")).ToList();
+            Note($"Hero's log ({heroLog.Count(l => l.EndsWith(": jump"))} jumps of {route.legs.Count} planned, {heroLog.Count(l => l.Contains("fire on the move"))} shots in the air):\n- " + string.Join("\n- ", heroLog));
 
-            try { Report(stage, run); } catch (Exception error) { Note("Report failed: " + error); }
+            try { Report(stage, route); } catch (Exception error) { Note("Report failed: " + error); }
 
-            var cameras = Cameras(stage, run);
+            var cameras = Cameras(stage, route);
             stage.set.cameras.Clear(); stage.set.cameras.AddRange(cameras);
             StudioLibrary.Save(stage.set);
             StudioRun.Refresh();
             yield return 0;
-            var settings = new StudioRenderSettings { width = 640, height = 360, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 10 };
+            var settings = new StudioRenderSettings { width = 640, height = 360, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 12 };
             string renders = Path.Combine(Folder, "renders");
             clock.Restart();
             StudioRender.Start(cameras, settings, renders);
@@ -416,7 +402,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Directory.CreateDirectory(dir);
             foreach (var result in StudioRender.Results.ToList())
             {
-                Note($"{result.cameraId}: {result.frames} frames in {result.seconds:0} s {result.error}");
+                Note($"{result.cameraId}: {result.frames} frames in {result.seconds:0} s {result.error}".TrimEnd());
                 if (!string.IsNullOrEmpty(result.movie) && File.Exists(result.movie)) File.Copy(result.movie, Path.Combine(dir, result.cameraId + ".mp4"), true);
                 string strip = Path.Combine(result.folder, "filmstrip.png");
                 if (File.Exists(strip)) File.Copy(strip, Path.Combine(dir, result.cameraId + "-filmstrip.png"), true);
@@ -424,54 +410,62 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (Directory.Exists(renders)) Directory.Delete(renders, true);
         }
 
-        static void Report(StudioStage stage, RunPlan run)
+        static void Report(StudioStage stage, Route route)
         {
             int frames = Mathf.RoundToInt(Length * Fps);
             StudioActorPoses.Pose At(string id, int f) => StudioActorPoses.At(stage.tape, id, f / (float)Fps, Fps);
+            var line = Line(route);
 
             // The hero, frame by frame.
-            var hero = new StringBuilder("frame,time,x,y,z,speed,alongRun,heightAboveTakeoff\n");
-            Vector3 last = Vector3.zero; bool have = false; float maxSpeed = 0, peak = float.MinValue, lowest = float.MaxValue;
+            var hero = new StringBuilder("frame,time,x,y,z,speed,offRoute\n");
+            Vector3 last = Vector3.zero; bool have = false; float maxSpeed = 0, covered = 0, worstOff = 0; int lastFast = 0, slowFrames = 0;
+            int first = Mathf.RoundToInt((RunAt + .8f) * Fps);
             for (int f = 6; f < frames - 2; f++)
             {
                 var p = At("hero", f);
-                if (!p.found) { hero.Append($"{f},{f / (float)Fps:0.000},,,,,,\n"); have = false; continue; }
+                if (!p.found) { hero.Append($"{f},{f / (float)Fps:0.000},,,,,\n"); have = false; continue; }
                 float speed = have ? Flat0(p.feet - last).magnitude * Fps : 0;
-                maxSpeed = Mathf.Max(maxSpeed, speed); peak = Mathf.Max(peak, p.feet.y); lowest = Mathf.Min(lowest, p.feet.y);
-                hero.Append($"{f},{f / (float)Fps:0.000},{p.feet.x:0.00},{p.feet.y:0.00},{p.feet.z:0.00},{speed:0.00},{Vector3.Dot(p.feet - run.start, run.dir):0.00},{p.feet.y - run.takeoff.y:0.00}\n");
+                float off = LineDistance(new Vector3(p.feet.x, 0, p.feet.z), line.Select(v => new Vector3(v.x, 0, v.z)).ToList());
+                if (have && speed < 12) { maxSpeed = Mathf.Max(maxSpeed, speed); covered += speed / Fps; }
+                if (speed > 2.5f && speed < 12) lastFast = f;
+                worstOff = Mathf.Max(worstOff, off);
+                hero.Append($"{f},{f / (float)Fps:0.000},{p.feet.x:0.00},{p.feet.y:0.00},{p.feet.z:0.00},{speed:0.00},{off:0.00}\n");
                 last = p.feet; have = true;
             }
+            for (int f = first; f < lastFast; f++)
+            {
+                var a = At("hero", f); var b = At("hero", f + 1);
+                if (a.found && b.found && Flat0(b.feet - a.feet).magnitude * Fps < 2f) slowFrames++;
+            }
             File.WriteAllText(Path.Combine(Folder, "hero.csv"), hero.ToString());
+            heroStops = Mathf.Clamp(lastFast / (float)Fps - .1f, RunAt + 1.5f, Length - .3f);
             var end = At("hero", frames - 4);
-            float planned = Vector3.Dot(run.end - run.start, run.dir);
-            Note($"Hero: top ground speed {maxSpeed:0.0} m/s, highest feet {peak - run.takeoff.y:+0.00;-0.00} m against the take-off, lowest {lowest - run.takeoff.y:+0.00;-0.00} m. " +
-                 (end.found ? $"At the end he is {Vector3.Dot(end.feet - run.start, run.dir):0.0} m along a {planned:0.0} m run, {end.feet.y - run.end.y:+0.00;-0.00} m against the planned end height, {Flat0(end.feet - run.end).magnitude:0.0} m from the planned end." : "At the end he is NOT on the tape (fell out or was eliminated)."));
+            Note($"Hero: covered {covered:0.0} m of a {route.length:0.0} m route, top ground speed {maxSpeed:0.0} m/s, still running until {lastFast / (float)Fps:0.00} s, " +
+                 $"{slowFrames} frames slower than 2 m/s in the middle of the run, farthest off the planned line {worstOff:0.0} m. " +
+                 (end.found ? $"At the end he is {Flat0(end.feet - route.tail).magnitude:0.0} m from the planned end and {end.feet.y - route.tail.y:+0.00;-0.00} m against its height." : "At the end he is NOT on the tape (fell out or was eliminated)."));
 
             // The crowd: who moved, who is still there.
-            var table = new StringBuilder("id,kind,travelled,drop,present_at_end\n");
-            foreach (string kind in new[] { "bot", "drv" })
+            var table = new StringBuilder("id,travelled,drop,present_at_end\n");
+            int n = 0, gone = 0, fell = 0, moved = 0; float travelled = 0;
+            foreach (string id in crowdIds)
             {
-                int n = 0, gone = 0, fell = 0, moved = 0; float travelled = 0;
-                foreach (string id in crowdIds.Where(c => c.StartsWith(kind)))
+                n++;
+                float path = 0; Vector3 prev = Vector3.zero; bool seen = false; Vector3 begin = Vector3.zero, final = Vector3.zero;
+                for (int f = 6; f < frames - 2; f += 3)
                 {
-                    n++;
-                    float path = 0; Vector3 prev = Vector3.zero; bool seen = false; Vector3 first = Vector3.zero, final = Vector3.zero;
-                    for (int f = 6; f < frames - 2; f += 3)
-                    {
-                        var p = At(id, f);
-                        if (!p.found) continue;
-                        if (seen) path += Vector3.Distance(p.feet, prev); else first = p.feet;
-                        prev = p.feet; final = p.feet; seen = true;
-                    }
-                    bool present = At(id, frames - 4).found;
-                    float drop = seen ? first.y - final.y : 0;
-                    if (!present) gone++; else if (drop > 3) fell++;
-                    if (path > 1.5f) moved++;
-                    travelled += path;
-                    table.Append($"{id},{kind},{path:0.0},{drop:0.0},{present}\n");
+                    var p = At(id, f);
+                    if (!p.found) continue;
+                    if (seen) path += Vector3.Distance(p.feet, prev); else begin = p.feet;
+                    prev = p.feet; final = p.feet; seen = true;
                 }
-                Note($"{(kind == "bot" ? "Game bots" : "Driven crowd")}: {n} players, {moved} moved more than 1.5 m, average path {(n > 0 ? travelled / n : 0):0.0} m, {fell} fell more than 3 m, {gone} no longer on the tape at the end.");
+                bool present = At(id, frames - 4).found;
+                float drop = seen ? begin.y - final.y : 0;
+                if (!present) gone++; else if (drop > 3) fell++;
+                if (path > 1.5f) moved++;
+                travelled += path;
+                table.Append($"{id},{path:0.0},{drop:0.0},{present}\n");
             }
+            Note($"Crowd: {n} game bots, {moved} moved more than 1.5 m, average path {(n > 0 ? travelled / n : 0):0.0} m, {fell} ended more than 3 m lower, {gone} no longer on the tape at the end.");
             File.WriteAllText(Path.Combine(Folder, "crowd.csv"), table.ToString());
         }
 
@@ -484,36 +478,37 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return c;
         }
 
-        static List<StudioCameraTrack> Cameras(StudioStage stage, RunPlan run)
+        static List<StudioCameraTrack> Cameras(StudioStage stage, Route route)
         {
             var cams = new List<StudioCameraTrack>();
-            float from = RunAt - .4f, to = Length - .3f;
+            float from = RunAt - .3f, to = heroStops;   // the shots end while he is still running
 
             var pov = Cam("POV", from, to, 24);
             pov.behavior = "firstPerson"; pov.subject = "hero"; pov.fpSmoothMove = .2f; pov.fpSmoothTurn = .32f; pov.fpLevel = true; pov.fpFieldOfView = 72; pov.fpOwnBody = true;
             cams.Add(pov);
 
             var chase = Cam("CHASE", from, to, 24);
-            StudioMoves.Follow(chase, "actor:hero", -run.dir * 3.4f + Vector3.up * 1.7f + Vector3.Cross(Vector3.up, run.dir) * .9f, .25f);
+            StudioMoves.Follow(chase, "actor:hero", -route.dir * 3.4f + Vector3.up * 1.7f + Vector3.Cross(Vector3.up, route.dir) * .9f, .25f);
             cams.Add(chase);
 
-            // A wide from outside that sees as much of the crowd as possible.
-            Vector3 centre = Vector3.zero; foreach (var p in startAt.Values) centre += p;
-            centre /= Mathf.Max(1, startAt.Count);
-            Vector3 best = centre + Vector3.up * 6 - run.dir * 14; int bestSeen = -1; float bestDistance = 14;
+            // A wide from outside that sees as much of the route and the crowd as possible.
+            var see = Line(route).Concat(startAt.Values).ToList();
+            Vector3 centre = Vector3.zero; foreach (var p in see) centre += p;
+            centre /= Mathf.Max(1, see.Count);
+            Vector3 best = centre + Vector3.up * 7 - route.dir * 16; int bestSeen = -1; float bestDistance = 16;
             for (int k = 0; k < 24; k++)
-                foreach (float distance in new[] { 13f, 17f })
-                    foreach (float height in new[] { 4f, 7f })
+                foreach (float distance in new[] { 16f, 22f })
+                    foreach (float height in new[] { 5f, 9f })
                     {
-                        Vector3 p = centre + Quaternion.Euler(0, k * 15, 0) * Vector3.forward * distance + Vector3.up * height;
-                        if (!Clear(p, .5f)) continue;
-                        int seen = startAt.Values.Count(s => Sees(p, s + Vector3.up * .7f));
-                        if (seen > bestSeen) { bestSeen = seen; best = p; bestDistance = distance; }
+                        Vector3 at = centre + Quaternion.Euler(0, k * 15, 0) * Vector3.forward * distance + Vector3.up * height;
+                        if (!Clear(at, .5f)) continue;
+                        int seen = see.Count(s => Sees(at, s + Vector3.up * .7f));
+                        if (seen > bestSeen) { bestSeen = seen; best = at; bestDistance = distance; }
                     }
-            var wide = Cam("WIDE", from, to, Mathf.Clamp(24 * bestDistance / 11f, 16, 60));
+            var wide = Cam("WIDE", from, to, Mathf.Clamp(24 * bestDistance / 15f, 16, 60));
             StudioMoves.LockedOff(wide, wide.start, stage.ToStage(best), P(stage, centre));
             cams.Add(wide);
-            Note($"Cameras: POV (hero, 72 deg), CHASE, WIDE at {V(best)} seeing {bestSeen} of {startAt.Count} starting spots.");
+            Note($"Cameras {from:0.00}-{to:0.00} s: POV (hero, 72 deg), CHASE, WIDE at {V(best)} seeing {bestSeen} of {see.Count} points.");
             return cams;
         }
     }

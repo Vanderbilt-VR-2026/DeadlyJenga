@@ -119,7 +119,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         int leg; Vector3 legStart; float bend, overshoot, feetWait; bool settling; float settleStart;
         // punch / fire
         bool swung; float swungAt;
-        bool shotOnMove, aimingNow; float shotAt;
+        bool aimingNow; float shotAt = -10, shotJump = -100; string shootTarget = "";
+        readonly Queue<Vector3> jumpQueue = new Queue<Vector3>();   // a path's jump spots, in order
         bool edgeLogged;
 
         StudioPerformer(StudioStage stage, StudioDrive drive, CastleSurvivor motor)
@@ -180,6 +181,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     stick = Vector3.zero;
                 }
             }
+            // A path with several jumps: arm the next one once back on the ground.
+            if (!jumpArmed && jumpQueue.Count > 0 && motor.Grounded && time - lastJump > .25f) { jumpArmed = true; jumpAt = jumpQueue.Dequeue(); jumpArmedUntil = time + 30; }
             // The armed jump goes at its spot, or just past it when the run went by a little to one side.
             float toJump = Vector3.Distance(Flat(Feet), Flat(jumpAt));
             bool passedJump = toJump < 1f && Vector3.Dot(stick, Flat(jumpAt - Feet)) < 0;
@@ -399,7 +402,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if (step.action == "path") route.AddRange(step.points.Select(p => stage.ToWorld(p)));
                     else if (!Where(step.target, step.point, time, false, out var to)) { Log(time, "goTo: the target is not there"); route.Add(Feet); }
                     else route.Add(to);
-                    leg = 0; legStart = Feet; settling = false; shotOnMove = false;
+                    leg = 0; legStart = Feet; settling = false;
+                    jumpQueue.Clear();
+                    if (step.action == "path") foreach (var spot in step.jumps) jumpQueue.Enqueue(stage.ToWorld(spot));
                     // A gentle curve, a small overshoot, and the feet start a moment after the head turns.
                     bend = human * Range(n, 1, -.07f, .07f);
                     overshoot = human * Range(n, 2, .04f, .12f) * Mathf.Lerp(.6f, 1.4f, Pace(step.pace));
@@ -485,6 +490,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // The head goes first: toward the next waypoint (or a bit beyond it on the last one).
             Vector3 lookAhead = leg < route.Count - 1 ? route[leg + 1] : last;
             intent.gaze = Vector3.Lerp(route[leg], lookAhead, .35f) + Vector3.up * (Head.y - feet.y) * .6f;
+            // Running: the eyes are well ahead on where the run is going, not on the next few steps.
+            if (pace >= .7f)
+            {
+                Vector3 ahead0 = Flat((Flat(route[leg] - feet).magnitude < 2f ? lookAhead : route[leg]) - feet);
+                if (ahead0.sqrMagnitude > .01f) intent.gaze = Head + ahead0.normalized * 8 + Vector3.down * .9f;
+            }
             if (settling)
             {
                 // Stepping back onto the spot after the overshoot.
@@ -498,7 +509,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Vector3 segment = Flat(b - a);
             float length = Mathf.Max(.01f, segment.magnitude);
             // Next waypoint once close to this one.
-            if (leg < route.Count - 1 && Flat(route[leg] - feet).magnitude < .6f) { leg++; return; }
+            // (A fast run also moves on once it has gone past the waypoint: a jump rarely lands exactly on it.)
+            if (leg < route.Count - 1 && (Flat(route[leg] - feet).magnitude < .6f || pace >= .7f && leg > 0 && Vector3.Dot(Flat(route[leg] - feet), segment) < 0)) { leg++; return; }
             float along = Mathf.Clamp01(Vector3.Dot(Flat(feet - a), segment) / (length * length));
             float ahead = Mathf.Clamp01(along + (.6f + stick.magnitude * 1.2f) / length);
             Vector3 side = Vector3.Cross(Vector3.up, segment / length);
@@ -517,17 +529,41 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
         }
 
-        // Run and gun: near the jump the head finds the step's 'shoot' target, and one shot goes off in the air.
+        // Run and gun: near each jump the head finds the step's 'shoot' target, and one shot goes off in the air.
+        // "auto" picks whoever is in view ahead at that moment.
         void ShootOnMove(StudioDriveStep step, float time, ref Intent intent)
         {
-            if (string.IsNullOrEmpty(step.shoot) || !Where(step.shoot, Vector3.zero, time, true, out var head)) return;
+            if (string.IsNullOrEmpty(step.shoot)) return;
             bool air = !motor.Grounded && lastJump >= stepStart;
             bool near = jumpArmed && Vector3.Distance(Flat(Feet), Flat(jumpAt)) < 3.5f;
-            if (!shotOnMove && (air || near) || shotOnMove && time - shotAt < .45f) { intent.gaze = head; aimingNow = true; }
-            if (shotOnMove || !air || time - lastJump < step.shootAfter) return;
-            shotOnMove = true; shotAt = time;
-            Where(step.shoot, Vector3.zero, time, false, out var feet);
-            Log(time, "fire on the move " + Hit(new StudioDriveStep { action = "fire", target = step.shoot }, head, Flat(feet - Feet).magnitude));
+            if (!air && !near && time - shotAt > .45f) { shootTarget = ""; return; }
+            if (shootTarget.Length == 0) shootTarget = step.shoot == "auto" ? AutoTarget(time) : step.shoot;
+            if (shootTarget.Length == 0 || !Where(shootTarget, Vector3.zero, time, true, out var head)) return;
+            intent.gaze = head; aimingNow = true;
+            if (shotJump == lastJump || !air || time - lastJump < step.shootAfter) return;
+            shotJump = lastJump; shotAt = time;
+            Where(shootTarget, Vector3.zero, time, false, out var feet);
+            Log(time, "fire on the move " + Hit(new StudioDriveStep { action = "fire", target = shootTarget }, head, Flat(feet - Feet).magnitude));
+        }
+
+        // Someone in view ahead: 4 to 28 m away, within 40 degrees of the run, not far above or below, nothing in the way.
+        string AutoTarget(float time)
+        {
+            Vector3 forward = stick.sqrMagnitude > .01f ? stick.normalized : Forward;
+            string best = ""; float bestScore = float.MaxValue;
+            int mask = (1 << Layers.Block) | (1 << Layers.Surface);
+            foreach (var mark in stage.set.marks)
+            {
+                if (mark.id == drive.actor || mark.role == StudioRole.Hand) continue;
+                if (!Where("head:" + mark.id, Vector3.zero, time, true, out var other)) continue;
+                Vector3 to = other - Head; float distance = to.magnitude;
+                if (distance < 4 || distance > 28 || Mathf.Abs(to.y) > distance * .5f) continue;
+                float angle = Vector3.Angle(Flat(to), forward);
+                if (angle > 40 || Physics.Linecast(Head, other, mask, QueryTriggerInteraction.Ignore)) continue;
+                float score = angle + distance * .5f;
+                if (score < bestScore) { bestScore = score; best = mark.id; }
+            }
+            return best.Length > 0 ? "actor:" + best : "";
         }
 
         bool Arrived(float time)

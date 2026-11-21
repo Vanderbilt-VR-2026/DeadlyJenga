@@ -33,7 +33,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float amount = 1;          // crouch: 0..1 depth
         public float reach = 1.05f;       // punch: how close (metres, feet to feet) before swinging
         public string weapon = "";        // gear: an EquipmentKind name (BoxingGlove, Blaster...)
-        public string shoot = "";         // goTo/path: a target to fire at once, in the air, after a jump made during the step (run and gun)
+        public List<Vector3> jumps = new List<Vector3>();    // path: spots to jump at, in order (metres from the stage spot)
+        public string shoot = "";         // goTo/path: a target to fire at in the air after each jump made during the step ("auto" = whoever is in view ahead)
         public float shootAfter = .15f;   // seconds after that take-off
     }
 
