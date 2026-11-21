@@ -137,7 +137,7 @@ namespace DeadlyJenga.Presentation
             }
         }
 
-        void ClearLandmarks(){elevators.Clear();walkers.Clear();skyRing=null;}
+        void ClearLandmarks(){elevators.Clear();walkers.Clear();skyRing=null;ClearSkyCities();}
 
         sealed partial class ArtMesh
         {

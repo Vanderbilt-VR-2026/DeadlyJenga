@@ -268,7 +268,7 @@ namespace DeadlyJenga.Presentation
         {
             if(cityBuilt)return;cityBuilt=true;
             if(!solidCandy){BuildPlaza();BuildGondola();}if(cityStreets)BuildCityStreets();
-            if(solidCandy){BuildSkyRing();if(cityStreets)BuildStreetLife();}
+            if(solidCandy){BuildSkyRing();BuildSkyCities();if(cityStreets)BuildStreetLife();}
         }
 
         void BuildPlaza()
@@ -378,7 +378,9 @@ namespace DeadlyJenga.Presentation
                 var go=Model(ring==0?"Visual · city balloons":"Visual · city balloons outer",m,transform,new[]{cityCandyMaterial});
                 if(ring==0)balloonRing=go.transform;else balloonRingOuter=go.transform;
             }
-            // Distant floating islands with mini skylines.
+            // Distant floating islands with mini skylines (Candy Sky Ring City has its own sky cities and rainbow bridge).
+            if(!solidCandy)
+            {
             var islands=new ArtMesh(2);
             for(int i=0;i<7;i++)
             {
@@ -409,6 +411,7 @@ namespace DeadlyJenga.Presentation
                 }
             }
             Model("Visual · candy rainbow",rainbow,transform,new[]{cityGlowMaterial});
+            }
             // Cotton-candy waterfall pouring off the island rim.
             var fall=new ArtMesh(1);
             float edge=Mathf.PI*1.1f;var rim=new Vector3(Mathf.Cos(edge)*halfWidth*.98f,-8,Mathf.Sin(edge)*halfDepth*.98f);var outward=new Vector3(Mathf.Cos(edge),0,Mathf.Sin(edge));
@@ -429,7 +432,7 @@ namespace DeadlyJenga.Presentation
             if(balloonRing){balloonRing.localRotation=Quaternion.Euler(0,time*1.2f,0);balloonRing.localPosition=Vector3.up*Mathf.Sin(time*.3f)*2;}
             if(balloonRingOuter){balloonRingOuter.localRotation=Quaternion.Euler(0,-time*.7f,0);balloonRingOuter.localPosition=Vector3.up*Mathf.Sin(time*.25f+1)*3;}
             AnimateCars(time);
-            if(solidCandy){AnimateBalloons(time);AnimateLandmarks(time);}
+            if(solidCandy){AnimateBalloons(time);AnimateLandmarks(time);AnimateSkyCities(time);}
             float length=Mathf.Max(1,(cableB-cableA).magnitude);
             for(int i=0;i<cabins.Count;i++)
             {
