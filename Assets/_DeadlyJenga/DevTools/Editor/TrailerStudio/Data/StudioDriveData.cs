@@ -21,6 +21,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     [Serializable] public sealed class StudioDriveStep
     {
         // goTo, path, face, look, jump, punch, fire, gear, climb, crouch, stop, wait
+        // (jumping a gap while running is experimental: not yet seen landing in a take)
         public string action = "goTo";
         public float at = -1;             // tape seconds this step may start (-1 = as soon as the step before ends)
         public float duration;            // wait/stop/crouch/look: seconds; goTo/path/climb/punch: give up after this (0 = default)

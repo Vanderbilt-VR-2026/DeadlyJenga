@@ -21,6 +21,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     //   ...AliveActorsProof.RunRenderBC  load the bundle; proof B (driven run and glove punch, close and first person)
     //                                    and proof C (a look behind, the body turning after the head) at 1920x1080
     // Output: Logs/ClaudeAliveActors/<mode>/ (notes.md, checks, numbers, renders).
+    // The render modes read the bundle committed in Docs/Development/TrailerStudio/attempts/alive-actors/bundle
+    // (record job bfada629). Its run has no gap: the running gap jump is experimental and was never shown landing.
     [InitializeOnLoad]
     public static class AliveActorsProof
     {

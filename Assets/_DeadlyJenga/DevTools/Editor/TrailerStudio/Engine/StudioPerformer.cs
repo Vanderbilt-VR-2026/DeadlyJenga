@@ -167,6 +167,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (stick.sqrMagnitude > .0025f && !edgeOk && EdgeAhead(stick.normalized))
             {
                 float ground = Flat(motor.Capsule.velocity).magnitude;
+                // EXPERIMENTAL: the two gap jumps below have never been seen landing in a take (the alive-actors
+                // proof found no castle-top run with a jumpable gap). Check the take before trusting one.
                 // An armed jump near the edge goes now, if there is somewhere to land (a running jump carries about 4 m).
                 if (jumpArmed && Vector3.Distance(Flat(Feet), Flat(jumpAt)) < 1.4f && LandingBeyond(stick.normalized, Mathf.Max(1.5f, ground * .85f))) intent.jump = true;
                 // Running at a small gap with ground just beyond it: a person jumps it rather than stopping.
