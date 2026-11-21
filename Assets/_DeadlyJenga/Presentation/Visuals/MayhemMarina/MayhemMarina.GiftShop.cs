@@ -11,9 +11,8 @@ namespace DeadlyJenga.CandyArt.Marina
     // centrepiece with a big souvenir block tower, a turning hero suit vault, lit merchandise bays, display
     // tables with snow globes, a glass case and a checkout under a lit logo.
     //
-    // It is NOT in the lobby yet. To add it, call it once in Build(), after Planting():
-    //     GiftShop(new Vector3(18.3f, .38f, 4.5f), 90);
-    // floor = the ground under the middle of the shop (the east beach top is 0.38 m).
+    // GiftShopWing (Architecture) places it off the cinema's east side, level with the cinema floor.
+    // floor = the ground under the middle of the shop.
     // yaw   = which way the front doors face, in steps of 90 degrees (0 faces -z, 90 faces -x).
     // Footprint: 12 m wide, 9 m deep, plus a 1.8 m porch. Walls, posts, counters, tables and the
     // centrepiece are solid. The floor is only 3 cm high, so players walk straight in.
