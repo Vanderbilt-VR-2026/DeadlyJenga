@@ -246,11 +246,9 @@ Shader "DeadlyJenga/Christmas Carpet"
                 s.smoothness = _Smoothness;
                 s.occlusion = 1;
                 s.normalTS = half3(0, 0, 1);
-                // Only a small, dim ember deep at the very bottom of a swirl.
-                half core = saturate((pull - 0.78h) * 6.0h);
-                half3 glow = _Ember.rgb * (core * core * 0.35h) * (1.0h - loopTop * 0.7h) *
-                    (0.75h + 0.25h * sin(_Time.y * 2.3 + ring * 40.0));
-                s.emission = glow;
+                // Only a faint warm hint in the grooves near the bottom; the very centre stays black.
+                half core = saturate((pull - 0.6h) * 3.0h) * (1.0h - saturate((pull - 0.8h) * 5.0h));
+                s.emission = _Ember.rgb * (core * 0.06h) * (1.0h - loopTop);
                 half4 result = UniversalFragmentPBR(data, s);
 
                 // Fuzz: loop tops catch light at grazing angles.
