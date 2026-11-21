@@ -16,7 +16,6 @@ namespace DeadlyJenga.CandyArt.Marina
         public const float CinemaFloor = 1.86f;
         const float CinemaFront = -2.2f;
         const float CinemaBack = 11.9f;
-        static readonly Vector3 CinemaSign = new(0, 5.58f, CinemaFront - .25f);
         public static readonly Vector3 CinemaTable = new(0, CinemaFloor + DeadlyJenga.Presentation.LobbyLiveMap.PlinthHeight, 2.75f);
         static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, -90, 0);
         static readonly Quaternion FameTurn = Quaternion.Euler(0, 90, 0);
@@ -29,9 +28,11 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Vector3 StyleMirror = Wardrobe + StyleStageTurn * new Vector3(0, 1.85f, 1.88f);
         public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;
         // The compact recent-match board sits behind the winners' steps.
-        public static readonly Vector3 FameBoard = new(7.34f, CinemaFloor + 2.9f, 3.65f);
+        // The last-match board hangs where the cinema sign was, readable from the plaza and from inside.
+        public static readonly Vector3 FameBoard = new(0, 5.0f, CinemaFront - .25f);
         public static readonly Quaternion FameFacing = FameTurn;
-        internal static readonly Vector3 FamePodium = new(5.9f, CinemaFloor, 3.65f);
+        // The winners' podium stands inside the cinema, along its right side, facing the middle.
+        internal static readonly Vector3 FamePodium = new(5.4f, CinemaFloor, 8.2f);
         internal static readonly Vector3[] FameSteps = { new(0,.6f,0), new(-1.15f,.4f,0), new(1.15f,.26f,0) };
         internal const float FameStepCap = .16f;
         // Each winners' step carries a round piston head that swings 60 degrees (30 each way), slowly
@@ -460,7 +461,6 @@ namespace DeadlyJenga.CandyArt.Marina
             var cream = new Color(.95f, .88f, .69f);
             Sign("JET SKIS", new Vector3(-22.7f, 2.69f, -24.115f), .047f, cream, new Vector3(0, 180, 0));
             Sign("SOLO  /  E OR GRIP", new Vector3(-22.7f, 2.46f, -24.115f), .024f, cream, new Vector3(0, 180, 0));
-            Sign("BEACHSIDE CINEMA", CinemaSign + Vector3.back * .122f, .048f, cream);
             var styleBase = new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z);
             Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.13f, 1.939f), .055f, cream, StyleStageTurn.eulerAngles);
 

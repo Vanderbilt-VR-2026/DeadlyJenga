@@ -179,7 +179,44 @@ namespace DeadlyJenga.Presentation
             }
             title.resizeTextForBestFit=true;title.resizeTextMinSize=20;title.resizeTextMaxSize=30;
             DeadlyJenga.CastlePrototype.TerminalUiStyle.Apply(root.transform);
+            // The board hangs in the open, so it has a second screen on its back. Both sit just off the
+            // board's two faces; the back one is a copy that Mirror keeps in step.
+            root.transform.localPosition = MayhemMarina.FameBoard + Vector3.back * .08f;
+            root.transform.localRotation = Quaternion.identity;
+            var back = Instantiate(root, transform, false);
+            back.name = "Last match billboard (back)";
+            back.transform.localPosition = MayhemMarina.FameBoard + Vector3.forward * .08f;
+            back.transform.localRotation = Quaternion.Euler(0, 180, 0);
+            frontTexts = root.GetComponentsInChildren<Text>(true);
+            backTexts = back.GetComponentsInChildren<Text>(true);
+            frontImages = root.GetComponentsInChildren<RawImage>(true);
+            backImages = back.GetComponentsInChildren<RawImage>(true);
             Draw();
+        }
+
+        Text[] frontTexts, backTexts;
+        RawImage[] frontImages, backImages;
+
+        // Copies what the front screen shows onto the back screen.
+        void Mirror()
+        {
+            if (backTexts == null) return;
+            for (int i = 0; i < frontTexts.Length && i < backTexts.Length; i++)
+            {
+                Text a = frontTexts[i], b = backTexts[i];
+                b.text = a.text; b.color = a.color;
+                b.rectTransform.anchoredPosition = a.rectTransform.anchoredPosition;
+                b.rectTransform.sizeDelta = a.rectTransform.sizeDelta;
+                b.resizeTextForBestFit = a.resizeTextForBestFit; b.resizeTextMinSize = a.resizeTextMinSize; b.resizeTextMaxSize = a.resizeTextMaxSize;
+                b.gameObject.SetActive(a.gameObject.activeSelf);
+            }
+            for (int i = 0; i < frontImages.Length && i < backImages.Length; i++)
+            {
+                RawImage a = frontImages[i], b = backImages[i];
+                b.texture = a.texture; b.color = a.color; b.uvRect = a.uvRect;
+                b.rectTransform.anchoredPosition = a.rectTransform.anchoredPosition;
+                b.gameObject.SetActive(a.gameObject.activeSelf);
+            }
         }
 
         void OnDestroy()
@@ -223,6 +260,7 @@ namespace DeadlyJenga.Presentation
             SetColumn(infectionHeading, 225, 430);
             DrawRows();
             footer.text = latest==null?"Your last completed match appears here":$"PAGE {page + 1} / {Pages}"+(Pages>1?"  ·  Changes every 7 seconds":"");
+            Mirror();
         }
 
         void DrawRows()
@@ -235,6 +273,7 @@ namespace DeadlyJenga.Presentation
                 SetRow(left[i], latest?.standings, index, split ? -225 : 0, split ? 430 : 680);
                 SetRow(right[i], latest?.infections, index, 225, 430);
             }
+            Mirror();
         }
 
         static void SetRow(Row row, Standing[] standings, int index, float x, float width)

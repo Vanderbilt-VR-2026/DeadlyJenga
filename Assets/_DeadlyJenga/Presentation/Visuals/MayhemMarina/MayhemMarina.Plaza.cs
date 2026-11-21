@@ -181,14 +181,6 @@ namespace DeadlyJenga.CandyArt.Marina
         void HallOfFame()
         {
             var turn = FameTurn;
-            var baseAt = new Vector3(FameBoard.x, CinemaFloor, FameBoard.z);
-            Vector3 At(float x, float y, float z) => baseAt + turn * new Vector3(x, y, z);
-
-            // Compact backing keeps the recent-match board above the podium.
-            for (int side = -1; side <= 1; side += 2)
-                mesh.Box(At(side * 2.14f, 1.4f, .22f), new Vector3(.14f, 2.8f, .14f), F.DarkWood, .04f, true, turn);
-            mesh.Box(At(0, 2.9f, .12f), new Vector3(4.48f, 2.38f, .14f), F.CandyMint, .08f, false, turn);
-            mesh.Box(At(0, .12f, .2f), new Vector3(4.55f, .24f, .45f), F.Stone, .06f, true, turn);
 
             // Winners' steps in front of the board. Solid, so players can hop up for a victory pose.
             // On each one a round piston head pivots back and forth, carrying the winner's statue and
@@ -202,7 +194,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.ArcSlab(top, Vector2.one * .49f, Vector2.one * .53f, .015f, 0, 360, F.Glow, false, 40);
                 MarinaFamePiston.Build(visual, i, top, turn, finishes[i]);
             }
-            Accent("Recent match", At(0, 3.1f, -1.8f), new Color(1, .86f, .62f), 2.6f, 6.5f);
+            Accent("Recent match", FamePodium + turn * new Vector3(0, 3.1f, -1.8f), new Color(1, .86f, .62f), 2.6f, 6.5f);
         }
     }
 }

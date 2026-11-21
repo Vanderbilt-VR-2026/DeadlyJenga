@@ -192,9 +192,11 @@ namespace DeadlyJenga.CandyArt.Marina
             WardrobeConnector();
             mesh.Box(new Vector3(0,3.7f,11.65f),new Vector3(15.8f,4.0f,.5f),F.Teal,.2f,true);
             mesh.CurvedRoof(new Vector3(0,5.95f,center),17.1f,depth+2.0f,2.08f,F.CandyCoral,striped:true);
-            mesh.Box(CinemaSign,new Vector3(6.1f,.95f,.24f),F.Teal,.085f);
+            // The two-sided last-match board hangs from the roof where the cinema sign used to be
+            // (LobbyLastRoundBoard draws its screens on both faces).
+            mesh.Box(FameBoard,new Vector3(4.5f,2.4f,.14f),F.Teal,.08f);
             for(int side=-1;side<=1;side+=2)
-                mesh.Beam(CinemaSign+new Vector3(side*2,.4f,.06f),CinemaSign+new Vector3(side*2,2.19f,.06f),.055f,F.Brass);
+                mesh.Beam(FameBoard+new Vector3(side*1.8f,1.15f,0),FameBoard+new Vector3(side*1.8f,2.9f,0),.055f,F.Brass);
             for(int side=-1;side<=1;side+=2)
             {
                 float x=side*7.4f;
