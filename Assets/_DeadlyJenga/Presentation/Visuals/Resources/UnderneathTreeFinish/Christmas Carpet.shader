@@ -210,6 +210,8 @@ Shader "DeadlyJenga/Christmas Carpet"
 
                 // Swirl look, readable from far away: a raised lighter rim, spiral grooves
                 // that crawl inward, and a wide funnel that goes almost black at the bottom.
+                // The funnel darkens the final colour so no lighting term can lift it.
+                half funnel = 1.0h;
                 if (pull > 0.002h)
                 {
                     float2 d = xz - centre;
@@ -222,7 +224,7 @@ Shader "DeadlyJenga/Christmas Carpet"
                     half armMask = saturate(pull * 4.0h) * (1.0h - pit * 0.6h);
                     albedo *= 1.0h + 0.55h * rim;
                     albedo *= lerp(1.0h, lerp(0.35h, 1.2h, ridge), armMask);
-                    albedo *= lerp(1.0h, 0.04h, pit * pit * (3.0h - 2.0h * pit));
+                    funnel = lerp(1.0h, 0.03h, pit * pit * (3.0h - 2.0h * pit));
                 }
 
                 half3 n = normalize(input.normalWS);
@@ -257,6 +259,7 @@ Shader "DeadlyJenga/Christmas Carpet"
                 half scatter = saturate(dot(normal, key.direction) * 0.6h + 0.3h);
                 half3 lint = albedo * 1.8h + half3(0.04h, 0.0h, 0.01h);
                 result.rgb += lint * key.color * key.shadowAttenuation * (grazing * grazing * scatter * _Sheen * (0.5h + loopTop));
+                result.rgb *= funnel;
                 result.rgb = MixFog(result.rgb, input.fog);
                 return result;
             }
