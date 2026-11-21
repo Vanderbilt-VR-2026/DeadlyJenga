@@ -13,7 +13,6 @@ namespace DeadlyJenga.Presentation
         readonly List<(Transform body,float radius,float speed,float phase)> walkers=new();
         Transform skyRing;Vector3 skyRingHome;
         readonly bool[,] walkClear=new bool[2,RoadBins];
-        bool walkersLogged;
 
         void BuildStreetLife()
         {
@@ -41,7 +40,7 @@ namespace DeadlyJenga.Presentation
             Model("Visual · candy street life",m,transform,new[]{cityCandyMaterial,cityGlowMaterial});
 
             // Walkers on both sidewalks, in both directions.
-            if(roadRadius<=0)return;
+            if(roadRadius<=0){AnimateLandmarks(Time.time);return;}
             // Which stretches of each sidewalk are clear of buildings (walkers hide elsewhere).
             int clear=0;
             for(int i=0;i<RoadBins;i++)
@@ -57,7 +56,8 @@ namespace DeadlyJenga.Presentation
                 bool outer=i%2==0;float speed=(i%4<2?1:-1)*(1.1f+Hash(new Vector3(i,7,1))*.5f);
                 walkers.Add((go.transform,roadRadius+(outer?5.6f:-5.6f),speed,i*.73f+Hash(new Vector3(i,2,9))));
             }
-            Debug.Log($"[SkyRingArt] street life: road radius {roadRadius}, {clear}/{RoadBins*2} sidewalk stretches clear, pavilions {landmarkCount}");
+            // Place everything once now: pictures and the first frame must not show walkers at the map origin.
+            AnimateLandmarks(Time.time);
         }
 
         void Walker(ArtMesh m,int seed)
@@ -134,12 +134,6 @@ namespace DeadlyJenga.Presentation
                 float step=Mathf.Abs(Mathf.Sin(time*5.5f+phase*3));
                 body.localPosition=L(roadCenter+dir*radius+Vector3.up*(.05f+step*.06f));
                 body.localRotation=LR(Quaternion.LookRotation(Vector3.Cross(dir,Vector3.up)*Mathf.Sign(speed))*Quaternion.Euler(0,0,(step-.5f)*6));
-            }
-            if(!walkersLogged&&walkers.Count>0&&walkers[0].body&&time>4)
-            {
-                walkersLogged=true;int on=0;foreach(var w in walkers)if(w.body&&w.body.gameObject.activeInHierarchy)on++;
-                var r=walkers[0].body.GetComponent<MeshRenderer>();
-                Debug.Log($"[SkyRingArt] walkers {walkers.Count}, active {on}, first at {walkers[0].body.position} scale {walkers[0].body.lossyScale} bounds {r.bounds}");
             }
         }
 

@@ -371,7 +371,7 @@ namespace DeadlyJenga.Presentation
             c.Box(Vector3.up*2.62f,new Vector3(2.45f,.2f,2.25f),Quaternion.identity,0,Gold);
             foreach(int s in new[]{-1,1})foreach(int k in new[]{-1,1})c.Box(new Vector3(s*1.17f,1.3f,k*1.07f),new Vector3(.12f,2.6f,.12f),Quaternion.identity,0,Gold);
             var cabin=Model("Fantasy elevator cabin",c,visual,new[]{cityCandyMaterial,cityGlowMaterial},true).transform;
-            cabin.localRotation=vq;
+            cabin.localRotation=vq;cabin.localPosition=V(foot+Vector3.up*.3f);
             elevators.Add((cabin,V(foot+Vector3.up*.3f),V(foot+Vector3.up*(height-3)),Hash(foot)*10));
         }
 
