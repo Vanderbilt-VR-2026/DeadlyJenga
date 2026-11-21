@@ -25,15 +25,17 @@ namespace DeadlyJenga.DevTools.Editor
             EditorApplication.playModeStateChanged+=state=>{
                 if(!SessionState.GetBool(Key,false))return;
                 if(state==PlayModeStateChange.EnteredPlayMode){checks=errors=0;Application.logMessageReceived+=Log;EditorApplication.delayCall+=()=>new GameObject("Castle variant validation").AddComponent<CastleVariantDriver>().StartCoroutine(Guard());}
-                if(state==PlayModeStateChange.EnteredEditMode){Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);var saved=JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).scenes;if(saved.Any(s=>s.isLoaded&&s.isActive))EditorSceneManager.RestoreSceneManagerSetup(saved);else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);File.AppendAllText(Report,"PASS Original scenes and choices restored\n");if(Application.isBatchMode)EditorApplication.Exit(File.ReadAllText(Report).Contains("FAIL ")||errors>0?1:0);}
+                if(state==PlayModeStateChange.EnteredEditMode){Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);var saved=JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).scenes;if(saved.Any(s=>s.isLoaded&&s.isActive))EditorSceneManager.RestoreSceneManagerSetup(saved);else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);File.AppendAllText(Report,"PASS Original scenes and choices restored\n");if(Application.isBatchMode)EditorApplication.Exit(File.ReadLines(Report).Any(line=>line.StartsWith("FAIL ",StringComparison.Ordinal)||line.StartsWith("ERROR ",StringComparison.Ordinal))?1:0);}
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Castle Variants")]
-        public static void Run()
+        public static void Run() => Run(Environment.GetCommandLineArgs().Contains("-catwalkRoutes"));
+        public static void RunCatwalkRoutesBatch() => Run(true);
+        static void Run(bool routes)
         {
             var scenes=EditorSceneManager.GetSceneManagerSetup();if(scenes.Any(s=>s.isLoaded&&SceneManager.GetSceneByPath(s.path).isDirty))throw new Exception("Save edited scenes first.");
             SessionState.SetString(Key+"Scenes",JsonUtility.ToJson(new Scenes{scenes=scenes}));SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
-            bool routes=Environment.GetCommandLineArgs().Contains("-catwalkRoutes");
+            SessionState.SetBool(Key+"Routes",routes);
             MatchSetup.FromLobby=routes;MatchSetup.StartLocalSession=false;MatchSetup.ModeId="demo";
             MatchSetup.MapId=routes?"mode-castle-catwalks":"castle";
             if(routes){MatchSetup.BotTarget=1;MatchSetup.HandCount=0;}
@@ -78,8 +80,8 @@ namespace DeadlyJenga.DevTools.Editor
         static void Check(bool pass,string text){File.AppendAllText(Report,(pass?"PASS ":"FAIL ")+text+"\n");if(!pass)throw new Exception(text);checks++;}
         static IEnumerator Guard()
         {
-            var iterator=Environment.GetCommandLineArgs().Contains("-catwalkRoutes")?CatwalkRoutes():Checks();while(true){bool more=false;Exception error=null;try{more=iterator.MoveNext();}catch(Exception e){error=e;}if(error!=null){File.AppendAllText(Report,"FAIL "+error+"\n");break;}if(!more)break;yield return iterator.Current;}
-            (iterator as IDisposable)?.Dispose();File.AppendAllText(Report,"COMPLETE checks="+checks+" runtimeErrors="+errors+"\n");if(Application.isBatchMode){SessionState.SetBool(Key,false);SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);EditorApplication.Exit(File.ReadAllText(Report).Contains("FAIL ")||errors>0?1:0);}else EditorApplication.ExitPlaymode();
+            var iterator=SessionState.GetBool(Key+"Routes",false)?CatwalkRoutes():Checks();while(true){bool more=false;Exception error=null;try{more=iterator.MoveNext();}catch(Exception e){error=e;}if(error!=null){File.AppendAllText(Report,"FAIL "+error+"\n");break;}if(!more)break;yield return iterator.Current;}
+            (iterator as IDisposable)?.Dispose();File.AppendAllText(Report,"COMPLETE checks="+checks+" runtimeErrors="+errors+"\n");EditorApplication.ExitPlaymode();
         }
         sealed class RouteObjectives : IBotObjectives
         {

@@ -48,6 +48,12 @@ namespace DeadlyJenga.DevTools.Editor
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Bot Pipeline")]
         public static void Run()=>Begin(new Request());
+        public static void RunCrossMapBatch()
+        {
+            if (!Application.isBatchMode) throw new InvalidOperationException("Use the reserved batch editor.");
+            SessionState.SetBool(Key+"ExitBatch", true);
+            Begin(new Request { seconds = 55, populations = new[] { 1 } });
+        }
         static void Begin(Request input)
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode||SpectatorVideoCapture.Busy)throw new InvalidOperationException("A bot check requires an idle Editor.");
@@ -187,6 +193,12 @@ namespace DeadlyJenga.DevTools.Editor
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)return;
             SessionState.SetBool(Key+"Restore",false);
+            if (SessionState.GetBool(Key+"ExitBatch", false))
+            {
+                SessionState.SetBool(Key+"ExitBatch", false);
+                EditorApplication.Exit(File.ReadAllText(Report).Contains("FAIL") ? 2 : 0);
+                return;
+            }
             var saved=JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes",""));
             if(saved?.scenes!=null)EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
             var previous=SessionState.GetString(Key+"Choices","");
