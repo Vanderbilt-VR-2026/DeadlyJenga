@@ -60,6 +60,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
             ("room-sitting", new Vector3(-40f, 120f, -350f), new Vector3(-300f, 30f, -350f), 72f),
             ("room-stockings", new Vector3(-210f, 85f, -350f), new Vector3(-310f, 82f, -350f), 45f),
             ("room-kitchen", new Vector3(-200f, 80f, -110f), new Vector3(-540f, 60f, -110f), 55f),
+            ("room-kitchen-island", new Vector3(-365f, 100f, -40f), new Vector3(-470f, 50f, -130f), 68f),
+            ("room-kitchen-fridge", new Vector3(-420f, 75f, -60f), new Vector3(-400f, 55f, -175f), 60f),
             ("room-front-entry", new Vector3(-200f, 90f, -540f), new Vector3(-540f, 70f, -545f), 60f),
             ("room-piano-clock", new Vector3(-210f, 80f, -200f), new Vector3(-320f, 75f, 20f), 60f),
             ("room-photos", new Vector3(-200f, 140f, -340f), new Vector3(58f, 140f, -340f), 60f),
