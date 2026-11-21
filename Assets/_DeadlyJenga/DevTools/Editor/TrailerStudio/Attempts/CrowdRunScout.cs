@@ -242,20 +242,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             float total = length + Mathf.Min(walk, 4f);
             if (legs.Count > 0 && (bestRoute == null || total > bestRoute.length))
                 bestRoute = new Route { legs = new List<Leg>(legs), start = start, tail = p + d * Mathf.Min(walk, 4f), length = total, dir = startDir };
-            if (legs.Count >= 7 || length >= RouteTarget || budget <= 0) return;
-            float minRun = legs.Count == 0 ? 2.8f : 1.6f;
+            if (legs.Count >= 8 || length >= RouteTarget || budget <= 0) return;
+            float minRun = legs.Count == 0 ? 2.4f : 1.2f;
             int tried = 0;
-            for (float s = walk; s >= minRun - .001f && tried < 3; s -= .4f)
+            for (float s = walk; s >= minRun - .001f && tried < 4; s -= .4f)
             {
                 budget--;
                 Vector3 takeoff = p + d * s;
                 if (!SimJump(takeoff, d, out var land)) continue;
                 if (!Level(land, land.y) || !Level(land + d * .7f, land.y)) continue;
                 if (Mathf.Abs(land.y - takeoff.y) < .4f && !GapBetween(takeoff, land)) continue;
+                // Never back onto ground this route has already used (no hopping to and fro between two blocks).
+                if (legs.Any(l => Vector3.Distance(l.land, land) < 2.5f || Vector3.Distance(l.takeoff, land) < 2.5f || Vector3.Distance(l.from, land) < 2f)) continue;
                 tried++;
                 legs.Add(new Leg { from = p, takeoff = takeoff, land = land, dir = d });
                 float add = s + Flat0(land - takeoff).magnitude;
-                foreach (float turn in new[] { 0f, -25f, 25f, -50f, 50f })
+                foreach (float turn in new[] { 0f, 20f, -20f, 40f, -40f, 60f, -60f, 90f, -90f, 130f, -130f, 180f })
                 {
                     Extend(land, Quaternion.Euler(0, turn, 0) * d, legs, length + add, start, startDir);
                     if (bestRoute != null && bestRoute.length >= RouteTarget) break;
@@ -274,12 +276,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 for (int k = 0; k < 24; k++)
                 {
                     Vector3 d = Quaternion.Euler(0, k * 15, 0) * Vector3.forward;
-                    budget = 250; roots++;
+                    budget = 600; roots++;
                     Extend(q, d, new List<Leg>(), 0, q, d);
-                    used += 250 - budget;
-                    if (bestRoute != null && bestRoute.length >= RouteTarget || used > 120000) break;
+                    used += 600 - budget;
+                    if (bestRoute != null && bestRoute.length >= RouteTarget || used > 100000) break;
                 }
-                if (bestRoute != null && bestRoute.length >= RouteTarget || used > 120000) break;
+                if (bestRoute != null && bestRoute.length >= RouteTarget || used > 100000) break;
             }
             if (bestRoute == null) throw new InvalidOperationException($"No route with a jump was found on this map top ({roots} starts, {used} jumps tried).");
             var r = bestRoute;
