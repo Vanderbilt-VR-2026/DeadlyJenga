@@ -25,7 +25,7 @@ namespace DeadlyJenga.Presentation
 
         void BeginCityPass()
         {
-            roofPoints.Clear();groundY=float.MaxValue;elevators.Clear();fountainBuilt=false;
+            roofPoints.Clear();groundY=float.MaxValue;elevators.Clear();fountainBuilt=false;landmarkCount=0;
             foreach(var body in Services.World.Blocks)
                 if(body)foreach(var shape in body.GetComponentsInChildren<Collider>())groundY=Mathf.Min(groundY,shape.bounds.min.y);
             if(groundY==float.MaxValue)groundY=transform.position.y;

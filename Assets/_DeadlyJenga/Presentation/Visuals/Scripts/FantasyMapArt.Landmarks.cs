@@ -41,10 +41,11 @@ namespace DeadlyJenga.Presentation
             {
                 var (a,sa)=pieces[i];var (b,sb)=pieces[j];
                 if(sa.y>.95f||sb.y>.95f||Mathf.Abs(a.y+sa.y*.5f-top)>.05f||Mathf.Abs(b.y+sb.y*.5f-top)>.05f)continue;
-                if(Mathf.Abs(sa.z-7.3f)<.05f&&Mathf.Abs(sb.z-7.3f)<.05f&&Mathf.Abs(a.z-b.z)<.1f)
+                // The two strips beside the opening: same length (7.3 to 7.6 m), side by side.
+                if(sa.z>6.5f&&sa.z<8&&Mathf.Abs(sa.z-sb.z)<.05f&&Mathf.Abs(a.z-b.z)<.1f)
                 {
                     float gap=Mathf.Abs(a.x-b.x)-(sa.x+sb.x)*.5f;if(gap<2)continue;
-                    center=new Vector3((a.x+b.x)*.5f,top,a.z);size=new Vector2(gap,7.3f);return true;
+                    center=new Vector3((a.x+b.x)*.5f,top,a.z);size=new Vector2(gap,sa.z);return true;
                 }
             }
             return false;
@@ -69,11 +70,9 @@ namespace DeadlyJenga.Presentation
             Vector3 V(Vector3 local)=>visual.InverseTransformPoint(frame.TransformPoint(local));
             var vq=Quaternion.Inverse(visual.rotation)*frame.rotation;
             var b=PieceBounds(pieces);bool any=false;
-            bool roofOpen=RoofHole(pieces,out var hole,out var holeSize)&&!Covered(frame.TransformPoint(hole),body);
-            if(roofOpen){Pavilion(m,V,vq,hole,holeSize,site.StartsWith("Plaza")?Gold:DistrictColor(site));any=true;}
+            bool roofOpen=RoofHole(pieces,out var hole,out var holeSize)&&!SomethingAbove(frame,body,hole,holeSize);
+            if(roofOpen){Pavilion(m,V,vq,hole,holeSize,site.StartsWith("Plaza")?Gold:DistrictColor(site));any=true;landmarkCount++;}
             bool streetLevel=frame.TransformPoint(b.min).y<groundY+2;
-            int decks=0;foreach(var (c,s) in pieces)if(s.y>.6f&&s.y<.95f)decks++;
-            Debug.Log($"[SkyRingArt] '{site}' '{purpose}' pieces {pieces.Count} decks {decks} roof {roofOpen} street {streetLevel} b {b.center} {b.size}");
 
             if(purpose=="Broad catch frame")
             {
@@ -117,6 +116,7 @@ namespace DeadlyJenga.Presentation
                 if(ground)
                 {
                     foreach(int side in new[]{-1,1})DoorFrame(m,V,vq,new Vector3(mid.x,floorY,mid.z+side*(hz-.55f)),side);
+                    Debug.Log($"[SkyRingArt] harbor doors of '{purpose}' at {frame.TransformPoint(new Vector3(mid.x,floorY,mid.z+hz))} and {frame.TransformPoint(new Vector3(mid.x,floorY,mid.z-hz))}, visual {visual.name} active {visual.gameObject.activeInHierarchy}");
                     foreach(int side in new[]{-1,1})Cargo(m,V,frame,new Vector3(mid.x+side*(hx+2.6f),floorY,mid.z),body,side);
                 }
                 if(purpose.EndsWith(" floor 2"))
@@ -129,6 +129,18 @@ namespace DeadlyJenga.Presentation
                 return true;
             }
             return any;
+        }
+
+        int landmarkCount;
+
+        // True when another body (the next floor or tier up) stands over the stair opening.
+        static readonly Collider[] aboveHits=new Collider[16];
+        static bool SomethingAbove(Transform frame,Rigidbody body,Vector3 hole,Vector2 size)
+        {
+            var center=frame.TransformPoint(hole+Vector3.up*1.6f);
+            int n=Physics.OverlapBoxNonAlloc(center,new Vector3(size.x*.4f,1.4f,size.y*.4f),aboveHits,frame.rotation,1<<Layers.Block,QueryTriggerInteraction.Ignore);
+            for(int i=0;i<n;i++)if(aboveHits[i].attachedRigidbody!=body)return true;
+            return false;
         }
 
         // Roof corner for a rooftop landmark: away from the stair hole, the flag corner and arriving bridges.
@@ -171,6 +183,8 @@ namespace DeadlyJenga.Presentation
             int bands=Mathf.Max(2,Mathf.RoundToInt(s.y/.8f));float h=s.y/bands;
             for(int i=0;i<bands;i++)
                 m.Box(V(c+Vector3.up*(-s.y*.5f+(i+.5f)*h)),new Vector3(s.x+.06f,h*1.01f,s.z+.06f),vq,0,i%2==0?CaneRed:Sugar);
+            // Tall free-standing posts get a gold cap so they read as candy sticks, not chimneys.
+            if(s.y>10)m.Sphere(V(c+Vector3.up*(s.y*.5f+.4f)),new Vector3(s.x*.62f,.9f,s.z*.62f),0,Gold,6,10);
         }
 
         void ShopSign(ArtMesh m,System.Func<Vector3,Vector3> V,Quaternion vq,Vector3 at,int side,int seed)

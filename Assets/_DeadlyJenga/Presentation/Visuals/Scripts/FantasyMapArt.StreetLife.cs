@@ -12,6 +12,7 @@ namespace DeadlyJenga.Presentation
     {
         readonly List<(Transform body,float radius,float speed,float phase)> walkers=new();
         Transform skyRing;Vector3 skyRingHome;
+        readonly bool[,] walkClear=new bool[2,RoadBins];
 
         void BuildStreetLife()
         {
@@ -39,8 +40,15 @@ namespace DeadlyJenga.Presentation
             Model("Visual · candy street life",m,transform,new[]{cityCandyMaterial,cityGlowMaterial});
 
             // Walkers on both sidewalks, in both directions.
-            Debug.Log($"[SkyRingArt] street life: road radius {roadRadius}, center {roadCenter}");
             if(roadRadius<=0)return;
+            // Which stretches of each sidewalk are clear of buildings (walkers hide elsewhere).
+            int clear=0;
+            for(int i=0;i<RoadBins;i++)
+            {
+                float a=(i+.5f)*Mathf.PI*2/RoadBins;var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
+                walkClear[0,i]=Free(center+dir*(roadRadius-5.6f),.7f);walkClear[1,i]=Free(center+dir*(roadRadius+5.6f),.7f);
+                if(walkClear[0,i])clear++;if(walkClear[1,i])clear++;
+            }
             for(int i=0;i<30;i++)
             {
                 var w=new ArtMesh(1);Walker(w,i);
@@ -48,6 +56,7 @@ namespace DeadlyJenga.Presentation
                 bool outer=i%2==0;float speed=(i%4<2?1:-1)*(1.1f+Hash(new Vector3(i,7,1))*.5f);
                 walkers.Add((go.transform,roadRadius+(outer?5.6f:-5.6f),speed,i*.73f+Hash(new Vector3(i,2,9))));
             }
+            Debug.Log($"[SkyRingArt] street life: road radius {roadRadius}, {clear}/{RoadBins*2} sidewalk stretches clear, pavilions {landmarkCount}");
         }
 
         void Walker(ArtMesh m,int seed)
@@ -111,14 +120,15 @@ namespace DeadlyJenga.Presentation
             if(skyRing)
             {
                 skyRing.localPosition=skyRingHome+Vector3.up*Mathf.Sin(time*.35f)*1.2f;
-                skyRing.localRotation=Quaternion.Euler(10*Mathf.Sin(time*.21f),time*6,8*Mathf.Cos(time*.17f));
+                // Tilted enough that street-level players see the ring's face, not just its edge.
+                skyRing.localRotation=Quaternion.Euler(0,time*5,0)*Quaternion.Euler(22+4*Mathf.Sin(time*.21f),0,0);
             }
             for(int i=0;i<walkers.Count;i++)
             {
                 var (body,radius,speed,phase)=walkers[i];if(!body)continue;
                 float a=phase+time*speed/radius;
                 int bin=((int)(a/(Mathf.PI*2)*RoadBins)%RoadBins+RoadBins)%RoadBins;
-                bool show=roadOpen[bin];if(body.gameObject.activeSelf!=show)body.gameObject.SetActive(show);
+                bool show=walkClear[radius>roadRadius?1:0,bin];if(body.gameObject.activeSelf!=show)body.gameObject.SetActive(show);
                 var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
                 float step=Mathf.Abs(Mathf.Sin(time*5.5f+phase*3));
                 body.localPosition=L(roadCenter+dir*radius+Vector3.up*(.05f+step*.06f));
