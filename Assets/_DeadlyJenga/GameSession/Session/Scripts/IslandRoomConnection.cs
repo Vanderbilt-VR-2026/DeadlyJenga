@@ -19,7 +19,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         readonly long playerUniqueId=BitConverter.ToInt64(Guid.NewGuid().ToByteArray(),0)|1L;
         const int Channel=0x49534C44, Ready=1, Pose=2, State=3, Ack=4, Spawn=5;
-        sealed class Peer {public P.Actor actor;public bool ready;public int waiting,sentSelection,ackedSelection=-1;public float seen,sent;}
+        sealed class Peer {public P.Actor actor;public bool ready;public int waiting,sentSelection,ackedSelection=-1,arrivalAttempts;public float seen,sent;}
         readonly Dictionary<PlayerRef,Peer> peers=new Dictionary<PlayerRef,Peer>();
         public static IslandRoomConnection Instance {get;private set;}
         public NetworkRunner Runner {get;private set;}
@@ -227,7 +227,7 @@ namespace DeadlyJenga.CastlePrototype
         bool SendReservedMarinaSpawn(NetworkRunner owner,int operation,PlayerRef participant,P.Pose pose)
         {
             if(!CurrentOperation(operation,owner)||!IsHost||!owner.ActivePlayers.Contains(participant)||!GameExperienceMemberId(owner,participant,out _))return false;
-            try{Send(participant,Spawn,P.Encode(P.Player,w=>P.Write(w,pose)));marinaRecoverySpawns.Remove(participant);return true;}
+            try{Send(participant,Spawn,P.Encode(P.Player,w=>P.Write(w,pose)),++serial);marinaRecoverySpawns.Remove(participant);return true;}
             catch(Exception error)
             {if(CurrentOperation(operation,owner)){Status="Lobby spawn send failed: "+error.Message;owner.Disconnect(participant);}return false;}
         }
@@ -528,7 +528,7 @@ namespace DeadlyJenga.CastlePrototype
                         if(data.Length>0){using var identity=P.Reader(data.ToArray(),P.Player);preferred=JsonUtility.FromJson<LobbyParticipant>(P.Text(identity,512));if(identity.BaseStream.Position!=identity.BaseStream.Length)throw new System.IO.InvalidDataException("Trailing lobby identity");}
                         HandleMarinaReady(runner,source,peer,preferred);
                     }
-                    else if(kind==Ack&&peer.waiting==id){peer.waiting=0;peer.ackedSelection=peer.sentSelection;}
+                    else if(kind==Ack&&peer.waiting==id){peer.waiting=0;peer.seen=Time.unscaledTime;peer.ackedSelection=peer.sentSelection;}
                     else if(kind==Pose&&peer.ready)
                     {
                         using var reader=P.Reader(data.ToArray(),P.Player);var actor=P.ReadActor(reader);
@@ -587,10 +587,40 @@ namespace DeadlyJenga.CastlePrototype
             {
                 foreach(var pair in peers.ToArray())if(now-pair.Value.seen>20||pair.Value.waiting!=0&&now-pair.Value.sent>20){Runner.Disconnect(pair.Key);ReleaseMarinaSpawn(pair.Key);marinaRecoverySpawns.Remove(pair.Key);peers.Remove(pair.Key);IslandLobby.Current.RemovePeer(pair.Key.ToString());}
                 if(now<nextSend)return;nextSend=now+.1f;
-                var actors=new List<P.Actor>{IslandLobby.Current.Capture(Runner.LocalPlayer.ToString())};actors.AddRange(peers.Values.Where(p=>p.actor!=null).Select(p=>p.actor));
-                IslandLobby.Current.CaptureLobbyBots(actors);
-                byte[] bytes=P.Encode(P.World,w=>{w.Write(MapIndex);w.Write(ModeIndex);w.Write(actors.Count);foreach(var actor in actors)P.Write(w,actor);w.Write(SharedDemoControls);w.Write(LobbyStateJson());});
-                foreach(var pair in peers)if(pair.Value.ready&&pair.Value.waiting==0){pair.Value.waiting=++serial;pair.Value.sent=now;pair.Value.sentSelection=selectionVersion;Send(pair.Key,State,bytes,pair.Value.waiting);}
+                if(!peers.Values.Any(peer=>peer.ready))return;
+                var local=IslandLobby.Current.Capture(Runner.LocalPlayer.ToString());
+                string roster=LobbyStateJson();
+                byte[] arrival=null,update=null;
+                foreach(var pair in peers)
+                {
+                    var peer=pair.Value;
+                    if(!peer.ready)continue;
+                    bool first=peer.ackedSelection<0;
+                    if(peer.waiting!=0&&(!first||peer.arrivalAttempts>=5||now-peer.sent<1.5f))continue;
+                    byte[] packet;
+                    if(first)
+                    {
+                        arrival??=EncodeLobbyActors(new[]{local},roster);
+                        packet=arrival;
+                        peer.arrivalAttempts++;
+                        if(Debug.isDebugBuild)Debug.Log($"Marina initial state {peer.arrivalAttempts}: {packet.Length} bytes to {pair.Key}.");
+                    }
+                    else
+                    {
+                        if(update==null)
+                        {
+                            var actors=new List<P.Actor>{local};
+                            actors.AddRange(peers.Values.Where(other=>other.actor!=null).Select(other=>other.actor));
+                            IslandLobby.Current.CaptureLobbyBots(actors);
+                            update=EncodeLobbyActors(actors,roster);
+                        }
+                        packet=update;
+                    }
+                    peer.waiting=++serial;
+                    peer.sent=now;
+                    peer.sentSelection=selectionVersion;
+                    Send(pair.Key,State,packet,peer.waiting);
+                }
             }
             else if(now>=nextSend)
             {
@@ -600,6 +630,12 @@ namespace DeadlyJenga.CastlePrototype
                 if(now-lastServer>20){Status=welcomed?"Lobby connection lost.":"The host did not finish lobby setup.";Debug.LogWarning(Status);_=Leave();}
             }
         }
+        byte[] EncodeLobbyActors(IReadOnlyList<P.Actor> actors,string roster)=>P.Encode(P.World,w=>
+        {
+            w.Write(MapIndex);w.Write(ModeIndex);w.Write(actors.Count);
+            foreach(var actor in actors)P.Write(w,actor);
+            w.Write(SharedDemoControls);w.Write(roster);
+        });
         async Task<bool> PushMigration(NetworkRunner runner)
         {
             try
