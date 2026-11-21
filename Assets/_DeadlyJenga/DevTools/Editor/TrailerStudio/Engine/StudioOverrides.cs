@@ -44,7 +44,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             switch (layer.kind)
             {
                 case "lookAt":
-                    if (Target(set, tape, anchor, layer, time, out var see)) LookAt(frame, see, weight);
+                    if (Target(set, tape, anchor, layer, time, out var see))
+                    {
+                        // Which way round a look behind turns is decided once, where the layer starts, so it never flips.
+                        float side = 0;
+                        if (Target(set, tape, anchor, layer, layer.Start, out var first)) side = Mathf.DeltaAngle(frame.body.headRotation.eulerAngles.y, StudioHuman.Yaw(first - frame.body.head));
+                        LookAt(frame, see, layer, time, weight, side);
+                    }
                     break;
                 case "reach":
                     if (Target(set, tape, anchor, layer, time, out var reach))
@@ -116,21 +122,87 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         if (HazardTrack.CenterAt(hazards, f, out point)) { point.y = Mathf.Max(point.y, anchor.y); return true; }
                 return false;
             }
+            if (target.StartsWith("point:"))
+            {
+                if (!TryParsePoint(target.Substring(6), out var offset)) { Unknown(layer); return false; }
+                point = anchor + offset;
+                return true;
+            }
+            Unknown(layer);
             return false;
+        }
+
+        // "x,y,z" in metres from the stage spot (the same text StudioTargets.Point writes).
+        public static bool TryParsePoint(string text, out Vector3 point)
+        {
+            point = default;
+            var parts = (text ?? "").Split(',');
+            if (parts.Length != 3) return false;
+            var style = System.Globalization.NumberStyles.Float;
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+            if (!float.TryParse(parts[0], style, culture, out point.x) || !float.TryParse(parts[1], style, culture, out point.y) || !float.TryParse(parts[2], style, culture, out point.z)) return false;
+            return true;
+        }
+
+        // A target the Studio does not understand: say so once per override, loudly (it used to be silently ignored).
+        static readonly HashSet<string> reported = new HashSet<string>();
+        static void Unknown(StudioOverride layer)
+        {
+            if (reported.Add(layer.id + layer.target)) Debug.LogError($"Trailer Studio: override {layer.id} ({layer.kind} on {layer.actor}) has a target the Studio does not understand: \"{layer.target}\". Use \"\", actor:<mark id>, block:<index>, camera:<camera id>, hazard or point:x,y,z.");
+        }
+
+        // Every override whose target is written wrong or points at something that is not in the Set.
+        public static List<string> TargetProblems(StudioSet set)
+        {
+            var problems = new List<string>();
+            if (set?.overrides == null) return problems;
+            foreach (var layer in set.overrides)
+            {
+                string target = layer.target ?? "";
+                if (target.Length == 0 || target == "hazard") continue;
+                string where = $"Override {layer.id} ({layer.kind} on {set.Mark(layer.actor)?.actor ?? layer.actor})";
+                if (target.StartsWith("actor:")) { if (set.Mark(target.Substring(6)) == null) problems.Add($"{where} looks at an actor that is not in the Set: \"{target}\"."); }
+                else if (target.StartsWith("block:")) { if (!int.TryParse(target.Substring(6), out int index) || index < 0) problems.Add($"{where} has a block target that is not a block number: \"{target}\"."); }
+                else if (target.StartsWith("camera:")) { if (set.cameras.All(c => c.id != target.Substring(7))) problems.Add($"{where} looks at a camera that is not in the Set: \"{target}\"."); }
+                else if (target.StartsWith("point:")) { if (!TryParsePoint(target.Substring(6), out _)) problems.Add($"{where} has a point target that is not \"point:x,y,z\": \"{target}\"."); }
+                else problems.Add($"{where} has a target the Studio does not understand: \"{target}\" (use actor:, block:, camera:, hazard or point:x,y,z).");
+            }
+            return problems;
         }
 
         // ---- Look-at ----
 
-        // Turn the head toward a point. The neck only turns so far, so the body's facing limits it.
-        static void LookAt(ActorFrame frame, Vector3 point, float weight)
+        // Turn the head toward a point. Up to 85 degrees from where the body faces the neck does it (the
+        // avatar's torso already follows a head turned past about 35 degrees). Further round, as for a look
+        // behind, the whole body turns to follow: the head goes the full way, but more slowly, the way a
+        // person turns on the spot, so the avatar's torso and feet come round after it.
+        // 'side' is which way round to turn when the target is right behind (from where the layer starts).
+        const float NeckLimit = 85, BodyTurnSpeed = 220;   // degrees, degrees per second
+
+        static void LookAt(ActorFrame frame, Vector3 point, StudioOverride layer, float time, float weight, float side)
         {
             Vector3 toward = point - frame.body.head;
             if (toward.sqrMagnitude < .0001f) return;
             float facing = frame.body.headRotation.eulerAngles.y;
             var wanted = Quaternion.LookRotation(toward).eulerAngles;
-            float yaw = facing + Mathf.Clamp(Mathf.DeltaAngle(facing, wanted.y), -85, 85);
+            float delta = Mathf.DeltaAngle(facing, wanted.y);
             float pitch = Mathf.Clamp(Mathf.DeltaAngle(0, wanted.x), -55, 55);
-            frame.body.headRotation = Quaternion.Slerp(frame.body.headRotation, Quaternion.Euler(pitch, yaw, 0), weight);
+            if (Mathf.Abs(delta) <= NeckLimit)
+            {
+                frame.body.headRotation = Quaternion.Slerp(frame.body.headRotation, Quaternion.Euler(pitch, facing + delta, 0), weight);
+                return;
+            }
+            // Keep turning the same way round once the turn has started.
+            if (Mathf.Abs(delta) > 150 && side != 0 && Mathf.Sign(side) != Mathf.Sign(delta)) delta += delta > 0 ? -360 : 360;
+            // The turn takes longer the further round it goes; the blend-out is the layer's own.
+            float turnTime = Mathf.Max(.05f, layer.blendIn) + (Mathf.Abs(delta) - NeckLimit) / BodyTurnSpeed;
+            float rise = Mathf.Clamp01((time - layer.Start) / turnTime);
+            float fall = layer.blendOut <= 0 ? 1 : Mathf.Clamp01((layer.Stop - time) / layer.blendOut);
+            float u = Mathf.Min(rise, fall);
+            float progress = u * u * (3 - 2 * u) * Mathf.Clamp01(layer.strength);
+            if (weight <= 0) progress = 0;
+            var recorded = frame.body.headRotation.eulerAngles;
+            frame.body.headRotation = Quaternion.Euler(Mathf.LerpAngle(recorded.x, pitch, progress), facing + delta * progress, Mathf.LerpAngle(recorded.z, 0, progress));
         }
 
         // ---- Pose layer ----
@@ -271,6 +343,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static List<string> Resolve(StudioSet set, StudioTape tape, Vector3 anchor)
         {
             var notes = new List<string>();
+            var bad = TargetProblems(set);
+            if (bad.Count > 0) throw new InvalidOperationException(string.Join(" ", bad));
             var world = tape?.FindType(WorldTrack.Id)?.ActiveTake;
             var hazards = tape?.FindType(HazardTrack.Id)?.ActiveTake;
             foreach (var layer in set.overrides)

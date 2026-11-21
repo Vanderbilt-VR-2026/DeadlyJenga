@@ -19,8 +19,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float strength = 1;
 
         // What it points at: another actor, a block, a camera, or a fixed point.
-        public string target = "";        // "", "actor:<mark id>", "block:<index>", "camera:<camera id>", "hazard"
+        public string target = "";        // "", "actor:<mark id>", "block:<index>", "camera:<camera id>", "hazard", "point:x,y,z"
         public Vector3 point;             // metres from the stage spot (used when target is empty)
+                                          // Any other target text stops StudioOverrides.Resolve and renders with an error.
         public bool leftHand;             // reach: which hand
 
         // Pose layer amounts.

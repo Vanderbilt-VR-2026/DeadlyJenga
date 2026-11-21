@@ -19,6 +19,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     public static class StudioCast
     {
         static readonly List<CastleSurvivor> standIns = new List<CastleSurvivor>();
+        static readonly List<(CastleSurvivor motor, StudioPerformer performer)> driven = new List<(CastleSurvivor, StudioPerformer)>();
         static bool spawnedBots, spawnedHands;
 
         // The local player is not part of the scene unless someone is performing: hide both local rigs.
@@ -71,8 +72,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 // No brain and no input: the survivor's own movement code still runs, so it stands and obeys gravity.
                 var mind = body.GetComponent<CastleBotBrain>();
                 if (mind) mind.enabled = false;
-                motor.InputDriver = null;
-                standIns.Add(motor);
+                // A driven mark: its script works the controls where the bot brain would (StudioPerformer).
+                var drive = StudioPerformer.For(stage.set, mark.id);
+                if (drive != null) { var performer = StudioPerformer.Attach(stage, drive, motor); motor.InputDriver = performer; motor.InputSuspended = false; driven.Add((motor, performer)); }
+                else
+                {
+                    motor.InputDriver = null;
+                    standIns.Add(motor);
+                }
             }
             GiveEquipment(stage, body, mark);
             return body;
@@ -108,12 +115,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (!standIns[i]) { standIns.RemoveAt(i); continue; }
                 if (standIns[i].InputDriver != null) standIns[i].InputDriver = null;
             }
+            // Driven marks keep their script, for the same reason.
+            foreach (var (motor, performer) in driven)
+                if (motor && !ReferenceEquals(motor.InputDriver, performer)) motor.InputDriver = performer;
         }
 
         // Remove bots and stand-ins. The performer stays in their body until LeaveBody.
         public static void ClearLive(StudioStage stage)
         {
             standIns.Clear();
+            driven.Clear();
+            StudioPerformer.Clear();
             if (spawnedBots) stage.session.SurvivorBots.Clear();
             if (spawnedHands) stage.session.HandBots?.Clear();
             spawnedBots = spawnedHands = false;

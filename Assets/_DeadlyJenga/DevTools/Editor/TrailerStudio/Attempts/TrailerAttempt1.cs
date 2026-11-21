@@ -134,7 +134,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var set = new StudioSet
             {
                 id = SetId, title = "Deadly Jenga - trailer attempt", map = "castle", fps = Fps, length = 13.6f, seed = 2026,
-                handBot = true, notes = "Made by TrailerAttempt1. Safe to delete."
+                handBot = true, notes = "Made by TrailerAttempt1. Safe to delete.",
+                alive = new StudioAliveSettings { on = false }   // rendered before the alive layer existed; keep it as it was
             };
             StudioLibrary.Save(set);
             return set;
@@ -145,6 +146,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (!Directory.Exists(Bundle)) throw new DirectoryNotFoundException("No recorded bundle at " + Bundle);
             var set = JsonUtility.FromJson<StudioSet>(File.ReadAllText(Path.Combine(Bundle, "set.json")));
+            set.alive.on = false;   // bundles from before the alive layer play back as they were recorded
             string tape = StudioLibrary.TapePath(SetId);
             Directory.CreateDirectory(Path.GetDirectoryName(tape));
             File.Copy(Path.Combine(Bundle, "main.djtape"), tape, true);

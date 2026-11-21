@@ -151,7 +151,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var set = new StudioSet
             {
                 id = SetId, title = "Disaster PvP 1", map = "castle", fps = Fps, length = TapeF(LengthFrames) + .6f, seed = 2027,
-                handBot = false, notes = "Made by DisasterPvpMoment. Safe to delete."
+                handBot = false, notes = "Made by DisasterPvpMoment. Safe to delete.",
+                alive = new StudioAliveSettings { on = false }   // rendered before the alive layer existed; keep it as it was
             };
             StudioLibrary.Save(set);
             return set;
@@ -162,6 +163,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (!Directory.Exists(Bundle)) throw new DirectoryNotFoundException("No recorded bundle at " + Bundle);
             var set = JsonUtility.FromJson<StudioSet>(File.ReadAllText(Path.Combine(Bundle, "set.json")));
+            set.alive.on = false;   // bundles from before the alive layer play back as they were recorded
             string tape = StudioLibrary.TapePath(SetId);
             Directory.CreateDirectory(Path.GetDirectoryName(tape));
             File.Copy(Path.Combine(Bundle, "main.djtape"), tape, true);

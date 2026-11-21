@@ -44,6 +44,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var list = cameras.Where(c => c != null).ToList();
             if (list.Count == 0) throw new InvalidOperationException("Add a camera first.");
             var stage = StudioRun.Stage;
+            // An override aimed at something that does not exist must stop the render, not be quietly skipped.
+            var bad = StudioOverrides.TargetProblems(stage.set);
+            if (bad.Count > 0) throw new InvalidOperationException(string.Join(" ", bad));
             if (stage.performer.Length > 0) StudioRun.LeaveBody();   // the performer's own rig must not be in the shot
             LastFolder = folder ?? Path.Combine(RendersFolder(stage.set.id), DateTime.Now.ToString("yyyyMMdd-HHmmss"));
             Results.Clear();
@@ -159,6 +162,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // tidy the scene, for example to hide a game view that is left showing on a loaded take).
         public static event Action<Camera> BeforeFrame;
 
+        // The shot being rendered right now (null when no render runs). The alive layer reads its aliveOff switch.
+        public static StudioCameraTrack CurrentShot { get; private set; }
+
         // Which motion the URP blur uses (a test switch; camera and objects by default).
         public static MotionBlurMode BlurMode = MotionBlurMode.CameraAndObjects;
 
@@ -230,6 +236,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 foreach (var shot in shots)
                 {
                     if (cancel) break;
+                    CurrentShot = shot;
                     var watch = Stopwatch.StartNew();
                     string folder = Path.Combine(root, ShotFolder(shot));
                     Directory.CreateDirectory(folder);
@@ -358,6 +365,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             finally
             {
+                CurrentShot = null;
                 camera.targetTexture = null;
                 Object.Destroy(target); Object.Destroy(reader); if (writer) Object.Destroy(writer);
                 Restore();

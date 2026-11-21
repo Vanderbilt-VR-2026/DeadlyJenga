@@ -21,7 +21,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             string tape = StudioLibrary.TapePath(id);
             if (File.Exists(tape)) File.Delete(tape);
             var set = new StudioSet { id = id, title = "Acceptance: " + suite, map = Map, fps = 30, length = 6,
-                notes = "Made by the " + suite + " acceptance run. Safe to delete." };
+                notes = "Made by the " + suite + " acceptance run. Safe to delete.", alive = new StudioAliveSettings { on = false } };   // these tests measure exact poses
             set.AddMark(StudioRole.Survivor, new Vector3(1.2f, 0, 0)).actor = "Ada";
             set.AddMark(StudioRole.Survivor, new Vector3(-1.2f, 0, 0)).actor = "Ben";
             // The collapse comes late, so the performers have steady ground for the first four seconds.

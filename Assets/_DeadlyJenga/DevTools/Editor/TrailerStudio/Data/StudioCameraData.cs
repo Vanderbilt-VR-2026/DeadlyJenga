@@ -77,6 +77,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float fpFieldOfView = 62;     // vertical degrees; 0 = from the keys' focal length
         public bool fpOwnBody = true;        // show the actor's own arms, hands and weapon, hide its head, hair, hat and upper torso
 
+        public bool aliveOff;                // true = the alive layer (StudioAlive) is off while this shot renders
+
         public float End(StudioSet set) => end < 0 ? set.length : Mathf.Min(end, set.length);
     }
 

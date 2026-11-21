@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -154,7 +154,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var set = new StudioSet
             {
                 id = SetId, title = "Pilot: the hand reveal", map = "castle", fps = 30, length = ShotStart + ShotLength + .4f, seed = 2026,
-                handBot = false, notes = "Made by PilotHandReveal. Safe to delete."
+                handBot = false, notes = "Made by PilotHandReveal. Safe to delete.",
+                alive = new StudioAliveSettings { on = false }   // rendered before the alive layer existed; keep it as it was
             };
             StudioLibrary.Save(set);
             return set;

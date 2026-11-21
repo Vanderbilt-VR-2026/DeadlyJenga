@@ -171,7 +171,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var set = new StudioSet
             {
                 id = SetId, title = "Hand reveal 2", map = "castle", fps = Fps, length = Tape(LengthFrames) + .6f, seed = 2026,
-                handBot = false, notes = "Made by HandRevealMoment. Safe to delete."
+                handBot = false, notes = "Made by HandRevealMoment. Safe to delete.",
+                alive = new StudioAliveSettings { on = false }   // rendered before the alive layer existed; keep it as it was
             };
             StudioLibrary.Save(set);
             return set;

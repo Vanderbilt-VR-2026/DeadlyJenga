@@ -94,6 +94,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float bpm = 120, beatOffset; // beat markers for snapping cuts
         // Phase 4: overrides, reactions and extras layered on recorded takes.
         public List<StudioOverride> overrides = new List<StudioOverride>();
+        // Driven actors (StudioPerformer) and the always-on alive layer (StudioAlive).
+        public List<StudioDrive> drives = new List<StudioDrive>();
+        public StudioAliveSettings alive = new StudioAliveSettings();
 
         public int Frames => Mathf.Max(1, Mathf.RoundToInt(length * fps));
         public StudioMark Mark(string markId) => marks.FirstOrDefault(m => m.id == markId);
@@ -142,6 +145,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (length < .5f || length > 120) problems.Add("Length must be half a second to two minutes.");
             if (marks.Select(m => m.id).Distinct().Count() != marks.Count) problems.Add("Two marks share an id.");
             foreach (var cue in cues) if (cue.at < 0 || cue.at >= length) problems.Add($"Cue \"{cue.action}\" is outside the set's length.");
+            problems.AddRange(StudioOverrides.TargetProblems(this));
+            problems.AddRange(StudioPerformer.Problems(this));
             return problems;
         }
 
