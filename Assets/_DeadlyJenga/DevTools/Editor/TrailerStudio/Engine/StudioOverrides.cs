@@ -49,8 +49,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if (Target(set, tape, anchor, layer, time, out var see))
                     {
                         // Which way round a look behind turns is decided once, where the layer starts, so it never flips.
+                        // (The recorded head at the layer's start, not now: measured against the current head, a target that
+                        // drifted behind the actor flipped the turn 160 degrees in one frame; disaster-pvp-2 measured 4886 deg/s.)
                         float side = 0;
-                        if (Target(set, tape, anchor, layer, layer.Start, out var first)) side = Mathf.DeltaAngle(frame.body.headRotation.eulerAngles.y, StudioHuman.Yaw(first - frame.body.head));
+                        var then = StudioActorPoses.At(tape, layer.actor, layer.Start, set.fps);
+                        if (Target(set, tape, anchor, layer, layer.Start, out var first))
+                            side = then.found ? Mathf.DeltaAngle(then.headRotation.eulerAngles.y, StudioHuman.Yaw(first - then.head))
+                                              : Mathf.DeltaAngle(frame.body.headRotation.eulerAngles.y, StudioHuman.Yaw(first - frame.body.head));
                         LookAt(frame, see, layer, time, weight, side);
                     }
                     break;
@@ -199,7 +204,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // recorded head drifting across 85 degrees from the target snapped about 30 degrees in one frame (disaster-pvp-2
             // measured 887 deg/s on the hero's look up).
             // Keep turning the same way round once the turn has started.
-            if (Mathf.Abs(delta) > 150 && side != 0 && Mathf.Sign(side) != Mathf.Sign(delta)) delta += delta > 0 ? -360 : 360;
+            if (Mathf.Abs(delta) > 110 && side != 0 && Mathf.Sign(side) != Mathf.Sign(delta)) delta += delta > 0 ? -360 : 360;
             // The turn takes longer the further round it goes; the blend-out is the layer's own.
             float turnTime = Mathf.Max(.05f, layer.blendIn) + Mathf.Max(0, Mathf.Abs(delta) - NeckLimit) / BodyTurnSpeed;
             float rise = Mathf.Clamp01((time - layer.Start) / turnTime);

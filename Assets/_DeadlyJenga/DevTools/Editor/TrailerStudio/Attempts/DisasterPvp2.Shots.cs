@@ -93,10 +93,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 var s = Sh("S01");
                 // Round 2: beside the gorilla's end, off the side-on axis: the gorilla near, the hero in the middle, the dragon beyond.
-                Vector3 hero = FeetAt(stage, "hero", Tf(s, 24), plan), dragon = FeetAt(stage, "dragon", Tf(s, 24), plan);
-                Vector3 mid = Vector3.Lerp(hero, dragon, .35f) + up * .5f;
+                // Aim at the middle of all three and choose the lens that just holds them (record 4 framed the gorilla out).
+                var three = new[] { "hero", "rival", "dragon" }.Select(r => FeetAt(stage, r, Tf(s, 24), plan) + up * .45f).ToList();
+                Vector3 mid = (three[0] + three[1] + three[2]) / 3;
+                Vector3 look = (mid - plan.hookCam).normalized, side = Vector3.Cross(Vector3.up, look).normalized;
+                float half = three.Max(p => Mathf.Abs(Mathf.Atan2(Vector3.Dot(p - plan.hookCam, side), Vector3.Dot(p - plan.hookCam, look))));
+                float vHalf = Mathf.Atan(Mathf.Tan(half / .78f) / 1.778f);
                 float d = Vector3.Distance(plan.hookCam, mid);
-                var c = ShotCam(s, FocalFor(d, 2.6f));
+                var c = ShotCam(s, Mathf.Clamp(12 / Mathf.Tan(vHalf), 16, 40));
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(plan.hookCam), P(stage, mid));
                 StudioMoves.PushIn(c, c.start, c.end, stage.ToStage(mid), .14f);
                 c.noise = "subtle"; c.noiseStrength = .6f;
@@ -224,7 +228,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             void AddPunch(string victim, int contact)
             {
                 Vector3 aim = HeadAt(stage, victim, contact, plan) - Vector3.up * .12f;
-                list.Add(new StudioOverride { actor = "hero", kind = "punch", point = stage.ToStage(aim), from = T(contact) - StudioOverrides.PunchContact, to = T(contact) - StudioOverrides.PunchContact + .36f, blendIn = 0, blendOut = 0, strength = 1 });
+                list.Add(new StudioOverride { actor = "hero", kind = "punch", point = stage.ToStage(aim), from = T(contact) - StudioOverrides.PunchContact, to = T(contact) - StudioOverrides.PunchContact + .36f, blendIn = 0, blendOut = 0, strength = 1.7f });
             }
             // The left hand to the brow, palm out, following his head: short reach layers every 5 frames.
             void ShadeEyes(int from, int to, float blendIn, float blendOut)
@@ -281,9 +285,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // So the scream ends as the POV starts (S08 begins about 25 frames before the impact) and the POV only looks up.
             Add("hero", "lookAt", pk - 70, pk + 40, point: stage.ToStage(planetPoint), blendIn: .8f, blendOut: .5f);
             // Round 2: no scream (the glove covered his head). He flinches at the rumble and shades his eyes with his left hand.
-            Add("hero", "pose", pk - 46, pk - 20, blendIn: .25f, blendOut: .3f, flinch: .45f);
-            ShadeEyes(pk - 52, pk - 22, .4f, .25f);
-            ShadeEyes(pk - 22, pk + 6, .2f, .3f);   // still up in the payoff POV, at the top left of the frame
+            // (Record 4: a flinch pose raised the glove over his head too, and the shading arm filled the payoff POV, so the
+            // shading hand stays in the MS only and the payoff POV keeps his left hand low.)
+            ShadeEyes(pk - 52, pk - 24, .4f, .3f);
             GuardLow(stage, plan, e, shots);
             Add("panda", "lookAt", pk - 75, pk + 20, point: stage.ToStage(planetPoint), blendIn: .45f, blendOut: .4f);
             Add("astro", "lookAt", pk - 66, pk + 20, point: stage.ToStage(planetPoint), blendIn: .5f, blendOut: .4f);
@@ -320,9 +324,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     // Round 2 (owner): the left hand was the same flat palm in every POV. A guard by the chin before the first
                     // punch, an open hand reaching out at the charging dragon; the payoff has its own eye-shading hand.
                     bool first = tf < TapeFrame(150), payoff = tf > TapeFrame(270);
-                    if (!payoff)
                     {
                         Vector3 leftHand = first ? pose.body.head + fwd * .30f - right * .13f - Vector3.up * .16f
+                                         : payoff ? pose.body.head + fwd * .30f - right * .22f - Vector3.up * .38f
                                                  : pose.body.head + fwd * .40f - right * .17f - Vector3.up * .22f;
                         list.Add(new StudioOverride { actor = "hero", kind = "reach", leftHand = true, point = stage.ToStage(leftHand), from = tf / (float)Fps, to = (tf + 10) / (float)Fps, blendIn = .15f, blendOut = .15f });
                     }

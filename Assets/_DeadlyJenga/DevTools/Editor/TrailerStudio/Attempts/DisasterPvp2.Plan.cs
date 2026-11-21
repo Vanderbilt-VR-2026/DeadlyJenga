@@ -324,9 +324,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             r.steps.Add(S("gear", .3f, weapon: "BoxingGlove"));
             r.steps.Add(S("look", .5f, "actor:hero"));
             r.steps.Add(Go(stage, rival - A.a * .7f - A.s * .1f, .62f, "jog"));
-            r.steps.Add(Go(stage, rival + A.s * .2f, T(14)));
-            r.steps.Add(S("look", T(27), "actor:dragon", .45f));
-            r.steps.Add(Go(stage, rival - A.a * .35f, T(36)));
+            // Record 4 measured his starts 2 frames from the hero's: staggered by 5 frames or more now.
+            r.steps.Add(Go(stage, rival + A.s * .2f, T(18)));
+            r.steps.Add(S("look", T(24), "actor:dragon", .45f));
+            r.steps.Add(Go(stage, rival - A.a * .35f, T(43)));
             r.steps.Add(S("look", -1, "actor:hero"));
             r.steps.Add(S("face", -1, "actor:hero", 1.0f));
             set.drives.Add(r);
@@ -339,7 +340,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             d.steps.Add(S("look", .45f, "actor:penguin", 1.3f));
             d.steps.Add(Go(stage, dragon + A.s * .55f + A.a * .3f, .5f));
             d.steps.Add(Go(stage, dragon - A.s * .35f, T(20)));
-            d.steps.Add(S("look", T(30), "actor:hero", .8f));
+            d.steps.Add(S("look", T(29), "actor:hero", .8f));
             d.steps.Add(S("look", T(Punch1Frame - 4), "actor:rival", 1.3f));
             d.steps.Add(Go(stage, dragon - A.s * .2f, T(104)));
             d.steps.Add(S("look", T(118), Pt(stage, sky(dragon, A.s, 35)), .8f));
