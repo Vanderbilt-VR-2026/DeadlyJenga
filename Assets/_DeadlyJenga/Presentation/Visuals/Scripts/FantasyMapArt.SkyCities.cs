@@ -330,18 +330,20 @@ namespace DeadlyJenga.Presentation
                 rainbowUp[i]=Vector3.Cross(normal,tangent).normalized;
             }
             if(Vector3.Dot(rainbowUp[Steps/2],LR(Quaternion.identity)*Vector3.up)<0)for(int i=0;i<=Steps;i++)rainbowUp[i]=-rainbowUp[i];
+            // The glow material adds the color on top of lighting, so bands are drawn at half strength
+            // to stay saturated instead of bleaching to white (the old rainbow's problem).
             var m=new ArtMesh(3);float total=Band*(bands.Length+.6f);
             for(int i=0;i<Steps;i++)
             {
                 var p=rainbowPath[i];var q=rainbowPath[i+1];var up=rainbowUp[i];var up2=rainbowUp[i+1];
                 // Soft white edges outside the colors.
-                m.TwoSidedQuad(p,q,q+up2*Band*.3f,p+up*Band*.3f,2,new Color(1,.97f,1));
+                m.TwoSidedQuad(p,q,q+up2*Band*.3f,p+up*Band*.3f,2,new Color(.6f,.58f,.62f));
                 for(int k=0;k<bands.Length;k++)
                 {
                     float o0=Band*(.3f+k),o1=Band*(.3f+k+1);
-                    m.TwoSidedQuad(p+up*o0,q+up2*o0,q+up2*o1,p+up*o1,2,bands[bands.Length-1-k]);
+                    m.TwoSidedQuad(p+up*o0,q+up2*o0,q+up2*o1,p+up*o1,2,bands[bands.Length-1-k]*.5f);
                 }
-                m.TwoSidedQuad(p+up*(total-Band*.3f),q+up2*(total-Band*.3f),q+up2*total,p+up*total,2,new Color(1,.97f,1));
+                m.TwoSidedQuad(p+up*(total-Band*.3f),q+up2*(total-Band*.3f),q+up2*total,p+up*total,2,new Color(.6f,.58f,.62f));
                 if(i%3==0){m.Sphere(p+up*(total+.6f),Vector3.one*.9f,2,new Color(1,.92f,.6f),3,6);m.Sphere(p-up*.6f,Vector3.one*.9f,2,new Color(1,.7f,.9f),3,6);}
             }
             // Cloud puffs where the rainbow lands.
