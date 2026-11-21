@@ -280,15 +280,79 @@ wind-up), lands at 30 and follows her at 41. Jolt shuffles back at 5, is hit at 
 with Brick's 30, allowed), and her head comes back to find him at 48, 17 frames after the hit. No
 two starts within 4 frames except the contact. Neither is still over 6 frames.
 
-## Tool how-to (filled in when the tools land)
+## Tool how-to
 
-> **Placeholder.** Another agent is building, on the Trailer Studio branch: a scripted performer
-> driver (feeds an actor a player's inputs so the game's movement code moves it: go to, run, look,
-> jump, climb, punch); an always-on alive layer (head glances, weight shifts, hand fidget,
-> breathing; seeded; yields to explicit layers); body-follows-head past a comfortable neck angle;
-> and working `point:` targets for overlays. The exact syntax goes here when it lands.
->
-> Until then: drive travel with the existing cues and bots where they work (`record-and-layer.md`
-> §6, gap 1), fake aliveness with look-at and pose overlays at staggered times, aim fixed-point looks
-> with an empty `target` plus `point` (not `point:`), keep `needs: [{feature: performer_driver,
-> status: verify}]` (and `alive_layer`) on every shot that relies on them, with a fallback.
+The tools landed on branch `claude/trailer-hand-reveal-pilot` (commits 7dadeee6 to 0ae74bfb, not merged
+yet; check the branch you render from has `Engine/StudioPerformer.cs` and `Engine/StudioAlive.cs`).
+Everything is authored in the Set JSON: `set.drives` (driven actors) and `set.alive` (the alive layer).
+Proofs and numbers: `Docs/Development/TrailerStudio/attempts/alive-actors/`.
+
+### Driven actor: `set.drives[]` (StudioDrive)
+Feeds one Survivor mark a player's inputs during a recording pass, so the game's own movement code
+moves the body and the result is recorded onto the take as a layer.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `actor` | "" | mark id; must be a Survivor mark |
+| `muted` | false | true = plain stand-in again |
+| `seed` | 1 | seeds the human touches (glances, path bend, overshoot, timing) |
+| `human` | 1 | 0 = exact and robotic, 1 = normal person, 2 = sloppy |
+| `safeEdges` | true | never walks off an edge unless a step allows it |
+| `steps` | [] | list of steps, run in order |
+
+Step fields: `action` (goTo, path, face, look, jump, punch, fire, gear, climb, crouch, stop, wait);
+`at` (tape seconds it may start; -1 = when the previous step ends); `duration` (seconds; wait/stop/crouch/look
+= how long, the others = give up after); `point` (stage metres); `points` (waypoints for `path`);
+`target` (`actor:<id>`, `head:<id>`, `point:x,y,z`, `block:<index>`, `hazard`; punch and fire need one);
+`pace` (walk, jog, run, or 0..1); `edge` (true lets this step go over an edge); `amount` (crouch depth 0..1);
+`reach` (punch distance in metres, default 1.05); `weapon` (for gear: an EquipmentKind such as BoxingGlove, Blaster).
+
+- `punch` closes in at `pace`, squares up, then swings: the real glove punch with a drawn BoxingGlove.
+- `look` with an empty target clears the look.
+- Record with `StudioPerformer.Pass(stage, new[]{"hero","rival"}, livePhysics)` then `StudioRun.Record(pass)`.
+- **Gap jumps are experimental** (never seen landing in a take). Plan runs that need no gap.
+
+```json
+"drives": [{ "actor": "hero", "seed": 7, "human": 1, "safeEdges": true, "steps": [
+  { "action": "gear",  "at": 0.3, "weapon": "BoxingGlove" },
+  { "action": "look",  "at": 0.75, "target": "actor:rival" },
+  { "action": "wait",  "duration": 0.5 },
+  { "action": "punch", "target": "actor:rival", "pace": "jog", "reach": 1.0 },
+  { "action": "wait",  "duration": 1.4 },
+  { "action": "look",  "target": "" } ] }]
+```
+
+### Alive layer: `set.alive` (StudioAliveSettings)
+On by default for every recorded survivor. Explicit layers win (lookAt takes the head, reach the hands,
+pose what it moves, reaction everything). On a driven actor the alive head is off; hands, body and breath stay on.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `on` | true | false = off for the whole Set |
+| `seed` | 0 | added to every actor's seed |
+| `strength` | 1 | 0..2, scales everything |
+| `head` / `body` / `hands` / `breath` | 1 | glances / weight shifts and small steps / hand states and arm swing / breathing |
+| `glanceRange` | 14 | metres; nearer actors get looked at |
+| `actors[]` | [] | per actor: `actor`, `off` (false), `strength` (1), `seed` (0) |
+
+Per shot: `"aliveOff": true` on the camera track. Old Sets saved before this load with the layer ON.
+
+```json
+"alive": { "on": true, "strength": 1, "glanceRange": 14,
+           "actors": [ { "actor": "rival", "off": true }, { "actor": "bea", "strength": 1.5, "seed": 3 } ] }
+```
+
+### Also new
+- Overlay `target: "point:x,y,z"` (stage metres) works; an unknown target now stops the render.
+- A lookAt past 85 degrees turns the torso and feet to follow, so looking behind works.
+- First person is unchanged: `behavior: "firstPerson"`, `subject: <mark id>` (see `camera.md`).
+
+### Known weak spots (measured on the proofs; fix or shoot around them)
+- **The driven punch shows no arm throw in third person.** The glove stays at the face and the victim just
+  flies. Add a `reach` overlay on the punching hand across the contact frame, or shoot the hit in first person.
+- **The gloved guard hides the face** on a running actor. Lower it with a pose/reach layer on travel shots.
+- **Head turns are too fast**: glances peak near 410 deg/s and a look-behind snaps back near 450 deg/s.
+  Give lookAt layers a `blendOut` of 0.4 s or more and lower `head` strength in close-ups.
+- **Legs look stiff** on a jog; prefer medium-wide or first person for long runs.
+- The still/level-head numbers for L53 now come from the alive-actors metrics style of measurement:
+  idle actors measured 1.13 s longest still with the layer on, 2.53 s with it off.

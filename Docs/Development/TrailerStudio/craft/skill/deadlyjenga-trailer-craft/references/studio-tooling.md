@@ -145,7 +145,7 @@ metrics and the hand timeline in one job), and read `metrics.json` against the p
    first-person own-body view for the giant hand. **Being built** (revision 5, another agent): a
    scripted performer driver (go to, run, look, jump, climb, punch through the game's own controls),
    an always-on alive layer, body-follows-head past a comfortable neck angle, and `point:` overlay
-   targets. Their syntax goes in `performance.md`, "Tool how-to"; until then, `verify` with a fallback.
+   targets. Built: their syntax is in `performance.md`, "Tool how-to" (gap jumps still experimental).
 1. For mayhem: an unarmed **punch / shove cue** for a chosen attacker and victim; a tsunami cue that can push
    survivors; real eliminations on the stage (deaths on, as an option); a chosen
    side for every disaster, not only the tornado.
