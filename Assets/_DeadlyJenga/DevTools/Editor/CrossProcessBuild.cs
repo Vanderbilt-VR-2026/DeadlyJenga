@@ -76,6 +76,70 @@ namespace DeadlyJenga.CastlePrototype.Editor
             }
         }
 
+        // Runs a real host and guest on the same LAN adapter, with isolated logs per invocation.
+        public static void RunNearbyPairBatch()
+        {
+            if (!UnityEngine.Application.isBatchMode)
+                throw new InvalidOperationException("Use a dedicated batch editor for this check.");
+            string output = Path.GetFullPath(Path.Combine("Logs", "Validation", "NearbyPair-" + Guid.NewGuid().ToString("N")));
+            Directory.CreateDirectory(output);
+            string report = Path.Combine(output, "pair.txt");
+            string exe = Path.GetFullPath(Path.Combine("Builds", "IntegrationSweep", "DeadlyJenga.exe"));
+            var players = new System.Collections.Generic.List<System.Diagnostics.Process>();
+            int exitCode = 1;
+            try
+            {
+                string build = BuildSmokePlayer(exe, false);
+                File.WriteAllText(report, "Player build " + build + Environment.NewLine);
+                if (!build.StartsWith("Succeeded ", StringComparison.Ordinal) || !File.Exists(exe))
+                    throw new InvalidOperationException("Standalone development build failed: " + build);
+                foreach (string role in new[] { "host", "guest" })
+                {
+                    string log = Path.Combine(output, role + "-player.log");
+                    var info = new System.Diagnostics.ProcessStartInfo(exe,
+                        $"-batchmode -force-d3d11 -screen-width 640 -screen-height 360 -logFile \"{log}\" --dj-smoke={role} \"--dj-smoke-dir={output}\" --dj-nearby-lobby")
+                    {
+                        UseShellExecute = false, CreateNoWindow = true,
+                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
+                    };
+                    var player = System.Diagnostics.Process.Start(info);
+                    players.Add(player);
+                    File.AppendAllText(report, $"{role} pid={player.Id}\n");
+                }
+                var elapsed = System.Diagnostics.Stopwatch.StartNew();
+                while (players.Any(player => !player.HasExited))
+                {
+                    if (players.Any(player => player.HasExited && player.ExitCode != 0))
+                        throw new InvalidOperationException("A peer exited with a failure. See its role report.");
+                    if (elapsed.Elapsed.TotalMinutes > 15) throw new TimeoutException("Two-player check timed out.");
+                    System.Threading.Thread.Sleep(500);
+                }
+                foreach (string role in new[] { "host", "guest" })
+                {
+                    var lines = File.ReadAllLines(Path.Combine(output, role + ".txt"));
+                    if (!lines.Any(line => line.StartsWith("COMPLETE ", StringComparison.Ordinal)) ||
+                        lines.Any(line => line.StartsWith("FAILED ") || line.StartsWith("FAIL ")))
+                        throw new InvalidOperationException(role + " did not finish its gameplay checks.");
+                }
+                if (players.Any(player => player.ExitCode != 0)) throw new InvalidOperationException("Peer exit failure.");
+                File.AppendAllText(report, "PASS independent nearby host and guest completed\n");
+                exitCode = 0;
+            }
+            catch (Exception error)
+            {
+                File.AppendAllText(report, "FAIL " + error + Environment.NewLine);
+            }
+            finally
+            {
+                foreach (var player in players)
+                {
+                    if (!player.HasExited) player.Kill();
+                    player.Dispose();
+                }
+            }
+            EditorApplication.Exit(exitCode);
+        }
+
         public static void RunBatch()
         {
             bool poseProbe = Environment.GetCommandLineArgs().Contains("--dj-pose-probe");
