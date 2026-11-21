@@ -270,16 +270,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return hit.point.y <= water + .05f;
         }
 
-        // Solid ground at about the same height within 1.6 m ahead, past a gap: somewhere a jump lands.
+        // Solid ground at about the same height within 2.2 m ahead, past a gap: somewhere a jump lands.
         bool LandingBeyond(Vector3 direction)
         {
             int mask = (1 << Layers.Block) | (1 << Layers.Surface) | 1;
             Vector3 feet = Feet;
-            for (float reach = .45f; reach <= 1.6f; reach += .15f)
+            for (float reach = .45f; reach <= 2.2f; reach += .15f)
             {
                 Vector3 probe = feet + direction * (motor.Capsule.radius + reach);
                 if (!Physics.Raycast(probe + Vector3.up * .6f, Vector3.down, out var hit, 1.2f, mask, QueryTriggerInteraction.Ignore)) continue;
-                if (Mathf.Abs(hit.point.y - feet.y) < .45f && hit.point.y > (Services.World?.WaterHeight(hit.point) ?? float.NegativeInfinity) + .05f) return true;
+                if (Mathf.Abs(hit.point.y - feet.y) < .6f && hit.point.y > (Services.World?.WaterHeight(hit.point) ?? float.NegativeInfinity) + .05f) return true;
             }
             return false;
         }

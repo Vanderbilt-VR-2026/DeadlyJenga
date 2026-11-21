@@ -263,7 +263,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         Vector3 p = Vector3.Lerp(h, r, x / d);
                         ground.Add(Physics.Raycast(new Vector3(p.x, Mathf.Max(h.y, r.y) + 1.6f, p.z), Vector3.down, out var hit, 4f, Mask, QueryTriggerInteraction.Ignore) ? hit.point.y : float.NaN);
                     }
-                    bool Hole(float y) => float.IsNaN(y) || y < Mathf.Min(h.y, r.y) - .7f;
+                    bool Hole(float y) => float.IsNaN(y) || y < Mathf.Min(h.y, r.y) - 1.4f;
                     int change = ground.FindIndex(y => Hole(y) || Mathf.Abs(y - h.y) > .25f);
                     if (change < 0) { why[0]++; continue; }
                     float at = .3f + change * sample;
@@ -277,7 +277,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         else run = 0;
                     }
                     int gap = longest;
-                    if (longest * sample > 1f || holes > ground.Count * .3f || lastGap >= 0 && d - (.3f + lastGap * sample) < 3f) { why[2]++; continue; }
+                    if (longest * sample > 1.6f || holes > ground.Count * .35f || lastGap >= 0 && d - (.3f + lastGap * sample) < 2.8f) { why[2]++; continue; }
                     // Nothing in the way of a running body (a step up is fine: it is jumped).
                     float top = Mathf.Max(h.y, r.y) + .9f;
                     if (Physics.Linecast(new Vector3(h.x, top, h.z), new Vector3(r.x, top, r.z), (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)) { why[3]++; continue; }
@@ -428,8 +428,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Vector3 run = Flat(plan.rival - plan.hero).normalized, side = Vector3.Cross(Vector3.up, run);
             // Beside the end of the run, where the punch lands, so the hit is close.
             Vector3 mid = Vector3.Lerp(plan.hero, plan.rival, .72f);
-            Vector3 bSpot = Spot(mid, 3.1f, .6f, new[] { plan.hero, mid, plan.rival }, Vector3.Dot(side, toSun) >= 0 ? side : -side);
-            var b = Cam("B-close", .4f, 3.9f, 28);
+            Vector3 bSpot = Spot(mid, 2.6f, .55f, new[] { plan.hero, mid, plan.rival }, Vector3.Dot(side, toSun) >= 0 ? side : -side);
+            var b = Cam("B-close", .4f, 3.9f, 32);
             StudioMoves.LockedOff(b, .4f, stage.ToStage(bSpot), "actor:hero", new Vector3(0, .45f, 0));
             b.aims[0].blend = 0;
             b.measure.Add("actor:hero"); b.measure.Add("actor:rival");
