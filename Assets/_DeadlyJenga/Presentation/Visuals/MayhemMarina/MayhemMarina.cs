@@ -17,14 +17,17 @@ namespace DeadlyJenga.CandyArt.Marina
         const float CinemaFront = -2.2f;
         const float CinemaBack = 11.9f;
         public static readonly Vector3 CinemaTable = new(0, CinemaFloor + DeadlyJenga.Presentation.LobbyLiveMap.PlinthHeight, 2.75f);
-        static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, -90, 0);
+        // The style stage (wardrobe) stands on the cinema's right side, where the podium was; its vanity backs onto the right edge.
+        static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, 90, 0);
         static readonly Quaternion FameTurn = Quaternion.Euler(0, 90, 0);
-        public static readonly Vector3 Wardrobe = new(-5.12f, CinemaFloor + .22f, 3.25f);
+        public static readonly Vector3 Wardrobe = new(5.12f, CinemaFloor + .22f, 3.25f);
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
         public static readonly Quaternion CodeKeyboardFacing = Quaternion.Euler(61, 0, 0);
-        public static readonly Vector3 StyleScreen = Wardrobe + StyleStageTurn * new Vector3(-2.72f, 1.4f, .43f);
+        // The wardrobe controls are a tablet on a stand, just off the stage to the player's left, tilted up.
+        public static readonly Vector3 StyleScreen = new Vector3(Wardrobe.x, CinemaFloor, Wardrobe.z) + StyleStageTurn * new Vector3(-1.85f, 1.2f, .3f);
         public static readonly Quaternion StyleScreenFacing = StyleStageTurn;
+        public static readonly Quaternion StyleTabletFacing = StyleStageTurn * Quaternion.Euler(0, -81, 0) * Quaternion.Euler(28, 0, 0);
         public static readonly Vector3 StyleMirror = Wardrobe + StyleStageTurn * new Vector3(0, 1.85f, 1.88f);
         public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;
         // The compact recent-match board sits behind the winners' steps.

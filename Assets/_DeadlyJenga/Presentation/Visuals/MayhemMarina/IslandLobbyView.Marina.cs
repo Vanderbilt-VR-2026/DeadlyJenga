@@ -46,15 +46,15 @@ namespace DeadlyJenga.CastlePrototype
                 if (child.name.StartsWith("CRT ", System.StringComparison.Ordinal)) child.gameObject.SetActive(false);
             BuildMarinaRoomScreens();
             MountMarinaScreen(setupStation, detailCenter, Quaternion.identity, 6.4f, 2.95f);
-            MountMarinaScreen(wardrobePanel, MayhemMarina.StyleScreen, MayhemMarina.StyleScreenFacing, 2.55f, 2.75f);
+            MountMarinaScreen(wardrobePanel, MayhemMarina.StyleScreen, MayhemMarina.StyleTabletFacing, .62f, .48f);
             BuildKeyboardGrabBar();
             marinaScreen=gameObject.AddComponent<MarinaScreen>();marinaScreen.Build(lobby,OpenMarinaDetail);
             if(wardrobeCamera)wardrobeCamera.backgroundColor=new Color(.10f,.28f,.34f);
             var style = new GameObject("Marina wardrobe entry", typeof(RectTransform), typeof(Canvas));
             style.transform.SetParent(transform, false);
             marinaStylePrompt = style.GetComponent<RectTransform>();
-            marinaStylePrompt.SetLocalPositionAndRotation(MayhemMarina.StyleScreen, MayhemMarina.StyleScreenFacing);
-            marinaStylePrompt.localScale = Vector3.one * .0025f;
+            marinaStylePrompt.SetLocalPositionAndRotation(MayhemMarina.StyleScreen + MayhemMarina.StyleTabletFacing * Vector3.back * .004f, MayhemMarina.StyleTabletFacing);
+            marinaStylePrompt.localScale = Vector3.one * .00078f;
             marinaStylePrompt.sizeDelta = new Vector2(780, 140);
             style.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
             Add(marinaStylePrompt, "marina-open-style", () => "OPEN WARDROBE", 0, () => OpenMarinaDetail("style"), () => true, 0, 780, 140);

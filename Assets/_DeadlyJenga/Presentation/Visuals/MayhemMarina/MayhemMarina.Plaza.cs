@@ -166,15 +166,14 @@ namespace DeadlyJenga.CandyArt.Marina
                 Pot(At(2.05f, 0, 2.55f), .42f, .78f, 31);
             }
 
-            // Frame and feet behind the wardrobe screen, as in the original shop.
-            var frame = StyleScreen + StyleScreenFacing * Vector3.forward * .12f;
-            mesh.Box(frame, new Vector3(2.48f, 2.91f, .16f), F.Teal, .09f, true, StyleScreenFacing);
-            for (int side = -1; side <= 1; side += 2)
-            {
-                var foot = frame + StyleScreenFacing * Vector3.right * (side * .95f);
-                foot.y = CinemaFloor + .3f;
-                mesh.Box(foot, new Vector3(.16f, .6f, .2f), F.Brass, .035f, true, StyleScreenFacing);
-            }
+            // The wardrobe tablet on its stand: a weighted base, a brass pole and a tilted tablet in a dark case.
+            var standFoot = new Vector3(StyleScreen.x, CinemaFloor, StyleScreen.z);
+            mesh.Disk(standFoot, .24f, .04f, F.Metal, false, 24);
+            mesh.Beam(standFoot + Vector3.up * .04f, StyleScreen + Vector3.down * .2f, .028f, F.Brass, true);
+            mesh.Box(StyleScreen + Vector3.down * .2f, new Vector3(.12f, .06f, .12f), F.Metal, .02f);
+            var tablet = StyleScreen + StyleTabletFacing * Vector3.forward * .028f;
+            mesh.Box(tablet, new Vector3(.7f, .55f, .04f), F.DarkWood, .03f, false, StyleTabletFacing);
+            mesh.Box(tablet + StyleTabletFacing * new Vector3(0, -.24f, -.022f), new Vector3(.08f, .012f, .004f), F.Glow, .002f, false, StyleTabletFacing);
             Accent("Style stage", At(0, 3.2f, .4f), new Color(1, .79f, .61f), 3, 6);
         }
 
