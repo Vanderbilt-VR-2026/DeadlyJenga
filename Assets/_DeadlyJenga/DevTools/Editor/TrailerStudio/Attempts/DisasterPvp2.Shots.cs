@@ -160,7 +160,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 // Rehearsal 3: an 80 mm MCU of a faceless head read as the back of it; an MS shows the head tipping up and both hands.
                 var c = ShotCam(s, 50);
                 c.keys[0].aperture = 11f; c.keys[0].focus = 1.6f;
-                StudioMoves.LockedOff(c, c.start, stage.ToStage(spot), "head:hero", new Vector3(0, -.25f, 0));
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(spot), "head:hero", new Vector3(0, -.14f, 0));   // round 1: the head was cut at the top
                 StudioMoves.PushIn(c, c.start, c.end, stage.ToStage(head), .15f);
                 c.aims[0].blend = .35f;
                 c.noise = "subtle"; c.noiseStrength = .5f;
@@ -266,7 +266,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var list = stage.set.overrides; int added = 0;
             var windows = shots.Where(s => s.id == "S02" || s.id == "S05" || s.id == "S08")
-                .Select(s => (a: TapeFrame(s.cutIn) + s.shift - 14, b: TapeFrame(s.cutOut) + s.shift + Handle)).ToList();   // lowered before the cut-in (round 1: glove at the lens on every POV cut)
+                .Select(s => (a: TapeFrame(s.cutIn) + s.shift - (s.id == "S08" ? 6 : 14), b: TapeFrame(s.cutOut) + s.shift + Handle)).ToList();   // S08 follows the MS of the hero: a short pre-roll only   // lowered before the cut-in (round 1: glove at the lens on every POV cut)
             var punches = new List<int>(); if (e.punch1 >= 0) punches.Add(e.punch1); if (e.punch2 >= 0) punches.Add(e.punch2);
             foreach (var (a, b) in windows)
                 for (int tf = a; tf < b; tf += 5)

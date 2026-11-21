@@ -84,6 +84,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             readonly StudioTake take;
             readonly RecordedWave wave = new RecordedWave();
             readonly List<RecordedDisaster> shown = new List<RecordedDisaster>();
+            // The same object stands for the same disaster on every frame. The meteor visuals key each rock by
+            // (source, rock id): with a new source every frame, every rock was treated as gone each frame and burst where
+            // it was, leaving a chain of rock bursts along its path (disaster-pvp-1's "worms", disaster-pvp-2's critics'
+            // "caterpillars").
+            readonly Dictionary<string, RecordedDisaster> sources = new Dictionary<string, RecordedDisaster>();
 
             public Player(StudioTake take) { this.take = take; }
 
@@ -97,16 +102,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (sample == null) return;
                 wave.frame = sample.wave;
                 if (sample.wave.active && !Tracked.Waves.Contains(wave)) Tracked.Waves.Add(wave);
+                var seen = new Dictionary<string, int>();
                 foreach (var disaster in sample.disasters ?? Array.Empty<DisasterFrame>())
                 {
                     if (disaster == null) continue;
-                    // A meteor's landing contacts are kept for 0.75 s and a rock rolling along a block touches it every frame, so
-                    // playback drew a chain of identical rocks along its path (disaster-pvp-1's "worms", disaster-pvp-2's critics'
-                    // "caterpillars"). Show only the newest contact of each stream.
-                    if (disaster.residualOnly && disaster.points != null && disaster.points.Length > 1 && disaster.kind != null && disaster.kind.EndsWith("Contact"))
-                        disaster.points = new[] { disaster.points.OrderByDescending(p => p.id).First() };
                     disaster.sampledAt = Time.time;
-                    var source = new RecordedDisaster { frame = disaster };
+                    string kind = disaster.kind ?? "";
+                    seen.TryGetValue(kind, out int nth); seen[kind] = nth + 1;
+                    string key = kind + "#" + nth;
+                    if (!sources.TryGetValue(key, out var source)) sources[key] = source = new RecordedDisaster();
+                    source.frame = disaster;
                     shown.Add(source);
                     DisasterStates.Active.Add(source);
                 }

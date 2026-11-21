@@ -252,6 +252,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             bool stays = layer.name == "death" || layer.name == "fall";  // these do not blend back by themselves
             if (time > layer.Stop && !stays) return;
             float back = stays ? 1 : 1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(1 - Mathf.Clamp01(layer.blendOut / length), 1, u));
+            // Ease in too: reactions started at full strength on their first frame (disaster-pvp-2: the scream tipped the
+            // hero's head 28 degrees in one frame, 887 deg/s). A short blendIn (0.05 s) keeps a hit's reaction sharp.
+            if (layer.blendIn > 0) back *= Mathf.SmoothStep(0, 1, Mathf.Clamp01((time - start) / layer.blendIn));
             float amount = Mathf.Clamp(layer.strength, 0, 3);
             var body = frame.body;
             float size = Mathf.Max(.1f, body.scale);
