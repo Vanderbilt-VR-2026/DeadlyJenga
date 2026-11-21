@@ -540,6 +540,7 @@ namespace DeadlyJenga.CandyPlayers
                 MountFeedMesh(sheriffRevolverMeshes[i], sheriffRevolverSurfaces[i % 6], i < 6 ? root : cylinder);
             var optic=new GameObject("Revolver optic").transform;optic.SetParent(root,false);optic.localPosition=new Vector3(0,.23f,.17f);
             var lens=new GameObject("Optic lens").transform;lens.SetParent(optic,false);lens.localPosition=Vector3.forward*.008f;
+            SheriffRevolverArt.Create(root).SetActive(true);
         }
         static Mesh RevolverCylinderShell()
         {
