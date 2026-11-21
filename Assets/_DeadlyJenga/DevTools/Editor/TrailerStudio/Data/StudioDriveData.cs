@@ -42,11 +42,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool on = true;            // false = off for the whole Set
         public int seed;                  // added to every actor's own seed (change it for a different but repeatable result)
         public float strength = 1;        // 0..2 for everything below
-        public float head = 1;            // glances: fixations of 0.4-2 s, quick eased head moves
-        public float body = 1;            // weight shifts, small steps, sway, small turns
-        public float hands = 1;           // hand and arm rest, guard and fidget changes; arm swing while moving
+        public float head = 1;            // glances: fixations of 1.4-5 s, unhurried eased head moves
+        public float body = 1;            // weight shifts, a rare small step, sway, small turns
+        public float hands = 1;           // hand and arm rest, guard and fidget changes (every 3.5-9 s); arm swing while moving
         public float breath = 1;          // breathing
         public float glanceRange = 14;    // metres: other actors nearer than this are looked at
+        public float smooth = .1f;        // seconds: driven actors' recorded head and hands are averaged over about this long (0 = off). See StudioSmooth.
         public List<StudioAliveActor> actors = new List<StudioAliveActor>();
     }
 
@@ -56,5 +57,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool off;                  // true = no alive layer on this actor
         public float strength = 1;        // this actor's own amount (multiplies the Set's)
         public int seed;                  // added to the actor's seed
+        public float smooth = -1;         // seconds of smoothing for this actor (-1 = the Set's rule: driven actors only)
     }
 }

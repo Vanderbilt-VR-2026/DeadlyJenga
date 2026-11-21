@@ -102,7 +102,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         Vector3 stick;               // the move stick as the game gets it (world direction, length 0..1)
         float bodyYaw;
-        float headYaw, headPitch, headRoll;
+        float headYaw, headPitch, headRoll, neckYaw;
         bool ready;
         // The head moves like a person's: quick, eased moves between held looks.
         float fromYaw, fromPitch, toYaw, toPitch, moveStart, moveTime = .01f;
@@ -247,7 +247,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // A little roll into turns, and a little drift while holding a look.
             headRoll = Mathf.Clamp(Mathf.DeltaAngle(body, headYaw) * -.04f, -4, 4) * human;
             float drift = human * StudioHuman.Wobble(seed, 40, time, .4f) * 1.2f;
-            float localYaw = Mathf.Clamp(Mathf.DeltaAngle(body, headYaw) + drift, -120, 120);
+            // The neck stops at 120 degrees and stays on the side it is on: a target passing straight behind used to
+            // flip the head from one shoulder to the other in a single frame (disaster-pvp-2's fox, 108 degrees).
+            float around = Mathf.DeltaAngle(body, headYaw);
+            if (Mathf.Abs(neckYaw) > 80 && Mathf.Abs(around) > 80 && Mathf.Sign(around) != Mathf.Sign(neckYaw)) around = Mathf.Sign(neckYaw) * 120;
+            neckYaw = Mathf.Clamp(around, -120, 120);
+            float localYaw = Mathf.Clamp(neckYaw + drift, -120, 120);
             float pitch = headPitch + human * StudioHuman.Wobble(seed, 41, time, .5f) * .8f;
             motor.viewCamera.transform.localRotation = Quaternion.Euler(pitch, localYaw, headRoll);
         }
@@ -572,13 +577,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         void Glance(float time, ref Intent intent, bool busy)
         {
             if (human < .001f) return;
-            if (nextGlance < 0) nextGlance = time + Range(0, 50, .6f, 1.6f);
-            if (glancing && time > glanceUntil) { glancing = false; nextGlance = time + Range(glances, 51, busy ? .9f : .5f, busy ? 2.4f : 1.6f) / human; }
+            // Unhurried: a look every few seconds, held a second or two. (It was a new look every 0.5-1.6 s, held as
+            // little as 0.35 s: about 2.5 head moves a second measured on disaster-pvp-2, which read as twitching.)
+            if (nextGlance < 0) nextGlance = time + Range(0, 50, 1.2f, 3f);
+            if (glancing && time > glanceUntil) { glancing = false; nextGlance = time + Range(glances, 51, busy ? 2f : 1.5f, busy ? 4.5f : 3.5f) / human; }
             if (!glancing && time >= nextGlance)
             {
                 glances++;
                 glancing = true;
-                glanceUntil = time + Range(glances, 52, busy ? .35f : .5f, busy ? .9f : 1.8f);
+                glanceUntil = time + Range(glances, 52, busy ? .7f : 1f, busy ? 1.4f : 2.6f);
                 glancePoint = PickGlance(time);
             }
             if (glancing) intent.gaze = glancePoint;

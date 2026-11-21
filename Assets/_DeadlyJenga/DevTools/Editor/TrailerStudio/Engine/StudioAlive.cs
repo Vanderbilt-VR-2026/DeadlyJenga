@@ -86,9 +86,31 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         sealed class TakeInfo
         {
-            public float[] speed;   // feet speed along the ground, m/s, lightly smoothed
-            public float[] turn;    // recorded head turn speed, degrees per second
+            public float[] speed;   // feet speed along the ground, m/s, averaged over half a second
+            public float[] turn;    // recorded head turn speed, degrees per second, averaged over 0.4 s
             public float[] phase;   // walk phase as the avatar's legs use it (radians)
+            public float[] freeLeft, freeRight;   // 0..1: how sure it is that the recording left this hand without input
+        }
+
+        // The average of the values within 'reach' frames either side. Per-frame switches made hands pop: a yes/no test
+        // that flickers from frame to frame moved a hand between two poses twelve times a second (disaster-pvp-2).
+        static float[] Averaged(float[] raw, int reach)
+        {
+            int n = raw.Length; var result = new float[n];
+            for (int i = 0; i < n; i++)
+            {
+                float sum = 0; int count = 0;
+                for (int j = Mathf.Max(0, i - reach); j <= Mathf.Min(n - 1, i + reach); j++) { sum += raw[j]; count++; }
+                result[i] = sum / count;
+            }
+            return result;
+        }
+
+        // A hand the recording left in the game's default "no hand input" place (in front of the face).
+        static bool LifelessHand(CandyAvatarFrame body, CandyHandPose hand, float side)
+        {
+            float size = Mathf.Max(.1f, body.scale);
+            return Vector3.Distance(hand.position, body.head + body.headRotation * (new Vector3(side * .23f, -.20f, .40f) * size)) < .02f * size / .5f;
         }
 
         static readonly ConditionalWeakTable<StudioTake, TakeInfo> infos = new ConditionalWeakTable<StudioTake, TakeInfo>();
@@ -97,8 +119,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (infos.TryGetValue(take, out var info) && info.speed.Length == take.frames.Count) return info;
             int n = take.frames.Count;
-            info = new TakeInfo { speed = new float[n], turn = new float[n], phase = new float[n] };
-            var raw = new float[n];
+            info = new TakeInfo { phase = new float[n] };
+            var raw = new float[n]; var turn = new float[n]; var freeLeft = new float[n]; var freeRight = new float[n];
             var gait = default(CandyPlayerRig.GaitState);
             Vector3 lastFeet = default; float lastYaw = 0; bool had = false;
             for (int i = 0; i < n; i++)
@@ -109,18 +131,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (had)
                 {
                     raw[i] = Vector3.ProjectOnPlane(pose.body.feet - lastFeet, Vector3.up).magnitude * fps;
-                    info.turn[i] = Mathf.Abs(Mathf.DeltaAngle(lastYaw, yaw)) * fps;
+                    turn[i] = Mathf.Abs(Mathf.DeltaAngle(lastYaw, yaw)) * fps;
                 }
+                freeLeft[i] = LifelessHand(pose.body, pose.body.left, -1) ? 1 : 0;
+                freeRight[i] = LifelessHand(pose.body, pose.body.right, 1) ? 1 : 0;
                 gait = CandyPlayerRig.StepGait(gait, pose.body, 1f / fps);
                 info.phase[i] = gait.walkPhase;
                 lastFeet = pose.body.feet; lastYaw = yaw; had = true;
             }
-            for (int i = 0; i < n; i++)
-            {
-                float sum = 0; int count = 0;
-                for (int j = Mathf.Max(0, i - 3); j <= Mathf.Min(n - 1, i + 3); j++) { sum += raw[j]; count++; }
-                info.speed[i] = sum / count;
-            }
+            info.speed = Averaged(raw, 7);
+            info.turn = Averaged(turn, 6);
+            info.freeLeft = Averaged(freeLeft, 8);
+            info.freeRight = Averaged(freeRight, 8);
             infos.Remove(take); infos.Add(take, info);
             return info;
         }
@@ -209,7 +231,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var info = Info(track, take, fps);
             int index = Mathf.Clamp(Mathf.RoundToInt(time * fps) - take.start, 0, take.frames.Count - 1);
             float speed = info.speed[index];
-            float moving = Mathf.InverseLerp(.25f, .8f, speed);
+            float moving = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.3f, 1f, speed));
             var owned = Taken(set, track.id, time);
             bool driven = set.drives.Any(d => d.actor == track.id && !d.muted && d.steps.Count > 0);
 
@@ -219,9 +241,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             float facing = recorded.eulerAngles.y;
 
             // Hands the recording left in the game's default "no hand input" place (in front of the face) are free.
-            bool LifelessHand(CandyHandPose hand, float side) =>
-                Vector3.Distance(hand.position, body.head + recorded * (new Vector3(side * .23f, -.20f, .40f) * size)) < .02f * size / .5f;
-            bool leftFree = LifelessHand(body.left, -1), rightFree = LifelessHand(body.right, 1);
+            // Judged over half a second of the take, never frame by frame (see Averaged).
+            float leftFree = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.2f, .6f, info.freeLeft[index]));
+            float rightFree = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.2f, .6f, info.freeRight[index]));
             var equipment = Equipment(frame.equipment);
             bool armed = equipment != null && equipment.drawn && equipment.kind >= EquipmentKind.Blaster;
 
@@ -232,22 +254,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             float breathAmt = Mathf.Clamp(alive.breath, 0, 2) * amount * (1 - .7f * moving) * (1 - owned.body);
 
             // ---- Body: weight shifts, small steps, small turns, sway ----
-            var stances = Schedule(seed, Stance, length, k => StudioHuman.Range(seed, k, 201, .45f, .75f), k => StudioHuman.Range(seed, k, 202, 1.8f, 5f));
+            // Unhurried: a weight shift takes about a second and is then held for several (the first version shifted
+            // every 2-5 s in half a second, on top of everything else, and the body never settled).
+            var stances = Schedule(seed, Stance, length, k => StudioHuman.Range(seed, k, 201, .9f, 1.4f), k => StudioHuman.Range(seed, k, 202, 3.5f, 8f));
             int s = Find(stances, time);
             float su = StudioHuman.Ease((time - stances[s].start) / stances[s].move);
             Vector3 StanceShift(int k) => new Vector3(StudioHuman.Range(seed, k, 203, -1, 1) * .035f, 0, StudioHuman.Range(seed, k, 204, -1, 1) * .012f);
             Vector3 StanceStep(int k)
             {
-                // A small step about one stance change in three; otherwise the feet stay where the last step put them.
+                // A small step about one stance change in six; otherwise the feet stay where the last step put them.
                 for (int j = k; j > k - 12 && j >= 0; j--)
-                    if (StudioHuman.Rand(seed, j, 205) < .35f)
+                    if (StudioHuman.Rand(seed, j, 205) < .16f)
                     {
-                        float angle = StudioHuman.Rand(seed, j, 206) * 360, reach = StudioHuman.Range(seed, j, 207, .03f, .09f);
+                        float angle = StudioHuman.Rand(seed, j, 206) * 360, reach = StudioHuman.Range(seed, j, 207, .03f, .06f);
                         return Quaternion.Euler(0, angle, 0) * Vector3.forward * reach;
                     }
                 return Vector3.zero;
             }
-            float StanceTurn(int k) => StudioHuman.Range(seed, k, 208, -9, 9);
+            float StanceTurn(int k) => StudioHuman.Range(seed, k, 208, -6, 6);
             Vector3 shift = Vector3.Lerp(StanceShift(Mathf.Max(0, s - 1)), StanceShift(s), su);
             Vector3 step = Vector3.Lerp(StanceStep(Mathf.Max(0, s - 1)), StanceStep(s), su);
             float bodyTurn = Mathf.Lerp(StanceTurn(Mathf.Max(0, s - 1)), StanceTurn(s), su) * bodyAmt;
@@ -269,8 +293,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (headAmt > .001f)
             {
                 gaze = Gaze(set, tape, track, seed, time, length, body.head, facing, out roll);
-                gaze.x += StudioHuman.Wobble(seed, 230, time, .38f) * 1.8f;
-                gaze.y += StudioHuman.Wobble(seed, 231, time, .45f) * 1.1f;
+                gaze.x += StudioHuman.Wobble(seed, 230, time, .22f) * 1.0f;
+                gaze.y += StudioHuman.Wobble(seed, 231, time, .27f) * .6f;
                 gaze *= headAmt; roll *= headAmt;
             }
             float pitchBreath = -.6f * breath;
@@ -283,21 +307,28 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 float headYaw = body.headRotation.eulerAngles.y;
                 float torsoYaw = headYaw - Mathf.Clamp(Mathf.DeltaAngle(facing, headYaw), -35, 35);
                 Quaternion torso = Quaternion.Euler(0, torsoYaw, 0);
-                bool alert = Alert(set, tape, track.id, time, body.head);
-                var states = Schedule(seed, Hands, length, k => StudioHuman.Range(seed, k, 301, .35f, .6f), k => StudioHuman.Range(seed, k, 302, 1.4f, 4.2f));
+                // A hand change takes most of a second and is then held for several.
+                var states = Schedule(seed, Hands, length, k => StudioHuman.Range(seed, k, 301, .7f, 1.1f), k => StudioHuman.Range(seed, k, 302, 3.5f, 9f));
+                // Whether someone or something is close is judged once, when a hand change starts, and kept for that
+                // change (judged every frame, a rival stepping across the 2.5 m line swapped the pose in one frame).
+                bool AlertAt(int k)
+                {
+                    float when = Mathf.Clamp(states[k].start, 0, length);
+                    return Alert(set, tape, track.id, when, RawHead(track, when, fps, out var there) ? there : body.head);
+                }
                 bool weaponLeft = armed && equipment.leftHanded;
                 for (int side = -1; side <= 1; side += 2)
                 {
                     bool left = side < 0;
-                    bool free = left ? leftFree : rightFree;
+                    float free = left ? leftFree : rightFree;
                     bool weaponHand = armed && left == weaponLeft;
                     ref CandyHandPose hand = ref (left ? ref body.left : ref body.right);
                     // One hand leads the other a little when they change together.
                     float lag = StudioHuman.Rand(seed, 0, 303) < .5f == left ? .09f : 0;
                     int h = Find(states, time - lag);
                     float hu = StudioHuman.Ease((time - lag - states[h].start) / states[h].move);
-                    int was = HandState(seed, Mathf.Max(0, h - 1), alert, armed), now = HandState(seed, h, alert, armed);
-                    Vector3 micro = new Vector3(StudioHuman.Wobble(seed, 310 + side, time, .3f), StudioHuman.Wobble(seed, 312 + side, time, .26f), StudioHuman.Wobble(seed, 314 + side, time, .34f)) * .008f;
+                    int was = HandState(seed, Mathf.Max(0, h - 1), AlertAt(Mathf.Max(0, h - 1)), armed), now = HandState(seed, h, AlertAt(h), armed);
+                    Vector3 micro = new Vector3(StudioHuman.Wobble(seed, 310 + side, time, .2f), StudioHuman.Wobble(seed, 312 + side, time, .17f), StudioHuman.Wobble(seed, 314 + side, time, .23f)) * .005f;
                     Vector3 lift = Vector3.up * (.008f * breath);
                     if (weaponHand)
                     {
@@ -307,12 +338,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         hand.rotation = Quaternion.Slerp(hand.rotation, hand.rotation * Quaternion.Euler(20 * low, 0, 0), handAmt);
                         continue;
                     }
-                    if (!free)
-                    {
-                        // Hands a person performed: only a little life on top.
-                        hand.position += (micro * .6f + lift) * (size * handAmt);
-                        continue;
-                    }
+                    // Hands a person performed: only a little life on top.
+                    hand.position += (micro * .6f + lift) * (size * handAmt * (1 - free));
+                    if (free <= .001f) continue;
                     var (fromOffset, fromAngles, fromCurl) = HandPose(was, side);
                     var (toOffset, toAngles, toCurl) = HandPose(now, side);
                     Vector3 offset = Vector3.Lerp(fromOffset, toOffset, hu) + micro + lift;
@@ -334,9 +362,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         rotation = torso * Quaternion.Euler(angles),
                         skeleton = CandyHandSkeleton.Rest(left, curl), tracked = hand.tracked, skeletonTracked = true
                     };
-                    hand.position = Vector3.Lerp(hand.position, target.position, handAmt);
-                    hand.rotation = Quaternion.Slerp(hand.rotation, target.rotation, handAmt);
-                    if (handAmt > .5f) { hand.skeleton = target.skeleton; hand.skeletonTracked = true; }
+                    hand.position = Vector3.Lerp(hand.position, target.position, handAmt * free);
+                    hand.rotation = Quaternion.Slerp(hand.rotation, target.rotation, handAmt * free);
+                    if (handAmt * free > .5f) { hand.skeleton = target.skeleton; hand.skeletonTracked = true; }
                 }
             }
             frame.body = body;
@@ -347,18 +375,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // Yaw and pitch (degrees from where the body faces; pitch positive = down) the head turns to now, and its roll.
         static Vector2 Gaze(StudioSet set, StudioTape tape, StudioTrack track, int seed, float time, float length, Vector3 head, float facing, out float roll)
         {
+            // A look is held 1.4 to 5 s. (The first version held 0.4 to 2 s: about one head move a second on every actor,
+            // which read as twitching, not as a person looking around.)
             var looks = Schedule(seed, Glance, length,
-                k => StudioHuman.Range(seed, k, 101, .14f, .32f),
-                k => .4f + 1.6f * Mathf.Pow(StudioHuman.Rand(seed, k, 102), 1.6f));
+                k => StudioHuman.Range(seed, k, 101, .3f, .5f),
+                k => 1.4f + 3.6f * Mathf.Pow(StudioHuman.Rand(seed, k, 102), 1.4f));
             int k = Find(looks, time);
             var beat = looks[k];
             Vector2 to = Aim(set, tape, track, seed, k, beat.start, time, head, facing, out float rollTo, out bool big);
             Vector2 from = Vector2.zero; float rollFrom = 0;
             if (k > 0) from = Aim(set, tape, track, seed, k - 1, looks[k - 1].start, beat.start, head, facing, out rollFrom, out _);
-            // Bigger head moves take longer (about 300 degrees a second at most); a look over the shoulder longer still.
-            // The move always ends before the next look starts, so one look hands over to the next without a jump.
+            // Bigger head moves take longer (a 60 degree look about 0.65 s, peaking near 170 degrees a second); a look over
+            // the shoulder longer still. The move always ends before the next look starts, so looks hand over without a jump.
             float size = Mathf.Abs(to.x - from.x) + .5f * Mathf.Abs(to.y - from.y);
-            float move = Mathf.Clamp(.1f + size / 300 + (big ? .25f : 0), beat.move, beat.move + .8f * beat.hold);
+            float move = Mathf.Clamp(.3f + size / 170 + (big ? .3f : 0), beat.move, beat.move + .8f * beat.hold);
             float u = StudioHuman.Ease((time - beat.start) / move);
             Vector2 gaze = Vector2.Lerp(from, to, u);
             roll = Mathf.Lerp(rollFrom, rollTo, u);

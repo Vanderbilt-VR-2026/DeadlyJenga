@@ -60,7 +60,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
                     break;
                 case "reach":
-                    if (Target(set, tape, anchor, layer, time, out var reach))
+                    if (layer.target == "self")
+                    {
+                        // A hand held somewhere on the actor's own body: 'point' is metres from the head, in the frame
+                        // the head faces (x right, y up, z forward). It is worked out from this frame's own head, so the
+                        // hand follows the body smoothly. (disaster-pvp-2 faked this with a chain of short reaches to
+                        // fixed points every 5 frames; the hand stepped, 55 one-frame pops in 15 s.)
+                        Vector3 held = frame.body.head + Quaternion.Euler(0, frame.body.headRotation.eulerAngles.y, 0) * layer.point;
+                        held = ClampToArm(frame.body, held, layer.leftHand);
+                        if (layer.leftHand) { frame.body.left.position = Vector3.Lerp(frame.body.left.position, held, weight); frame.body.left.tracked = true; }
+                        else { frame.body.right.position = Vector3.Lerp(frame.body.right.position, held, weight); frame.body.right.tracked = true; }
+                    }
+                    else if (Target(set, tape, anchor, layer, time, out var reach))
                     {
                         // The game's avatar already solves the arm from the hand's position (IK), so moving the hand is enough.
                         // Never past the arm's own reach (the same limit the game's punch uses): an unclamped target far away
@@ -172,7 +183,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (var layer in set.overrides)
             {
                 string target = layer.target ?? "";
-                if (target.Length == 0 || target == "hazard") continue;
+                if (target.Length == 0 || target == "hazard" || target == "self" && layer.kind == "reach") continue;
                 string where = $"Override {layer.id} ({layer.kind} on {set.Mark(layer.actor)?.actor ?? layer.actor})";
                 if (target.StartsWith("actor:")) { if (set.Mark(target.Substring(6)) == null) problems.Add($"{where} looks at an actor that is not in the Set: \"{target}\"."); }
                 else if (target.StartsWith("block:")) { if (!int.TryParse(target.Substring(6), out int index) || index < 0) problems.Add($"{where} has a block target that is not a block number: \"{target}\"."); }
@@ -391,7 +402,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     body.headRotation = Quaternion.Slerp(body.headRotation, body.headRotation * Quaternion.Euler(-28, 0, 0), back);
                     body.left.position = Vector3.Lerp(body.left.position, body.head + facing * new Vector3(-.17f, .04f, .06f) * size, back);
                     body.right.position = Vector3.Lerp(body.right.position, body.head + facing * new Vector3(.17f, .04f, .06f) * size, back);
-                    body.head += facing * Vector3.forward * (.03f * Mathf.Sin(u * length * 40) * back);   // a tremble
+                    // A slow shudder of a few millimetres. (It was 3 cm at 6 Hz, which at 30 frames a second showed as the
+                    // head and both hands jumping every seventh frame.)
+                    body.head += facing * Vector3.forward * (.006f * Mathf.Sin(u * length * 13) * back);
                     break;
                 case "cower":
                     body.head.y -= standing * .5f * back;

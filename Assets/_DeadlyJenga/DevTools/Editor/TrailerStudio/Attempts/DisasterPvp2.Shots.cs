@@ -239,19 +239,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Vector3 aim = HeadAt(stage, victim, contact, plan) - Vector3.up * .12f;
                 list.Add(new StudioOverride { actor = "hero", kind = "punch", point = stage.ToStage(aim), from = T(contact) - StudioOverrides.PunchContact, to = T(contact) - StudioOverrides.PunchContact + .36f, blendIn = 0, blendOut = 0, strength = 1.7f });
             }
-            // The left hand to the brow, palm out, following his head: short reach layers every 5 frames.
-            void ShadeEyes(int from, int to, float blendIn, float blendOut)
-            {
-                for (int tf = from; tf < to; tf += 5)
-                {
-                    var pose = Shown(stage, "hero", tf);
-                    if (pose == null || !pose.visible) continue;
-                    Vector3 fwd = Flat(pose.body.headRotation * Vector3.forward), side = Vector3.Cross(Vector3.up, fwd).normalized;
-                    Vector3 brow = pose.body.head + fwd * .13f - side * .05f + Vector3.up * .06f;
-                    list.Add(new StudioOverride { actor = "hero", kind = "reach", leftHand = true, point = stage.ToStage(brow), from = T(tf), to = T(tf + 10),
-                        blendIn = tf == from ? blendIn : .15f, blendOut = tf + 5 >= to ? blendOut : .15f });
-                }
-            }
+            // The left hand to the brow, following his head: one layer that holds the hand on his own body.
+            // (It was a chain of short reaches to fixed points every 5 frames, which made the hand step.)
+            void ShadeEyes(int from, int to, float blendIn, float blendOut) =>
+                list.Add(new StudioOverride { actor = "hero", kind = "reach", leftHand = true, target = "self", point = new Vector3(-.05f, .06f, .13f), from = T(from), to = T(to + 5), blendIn = blendIn, blendOut = blendOut });
             // Nobody is seen coming back after a fall into the sea (deaths are off on the stage).
             foreach (var r in e.respawn) Add(r.Key, "hide", r.Value - 2, end, blendIn: 0, blendOut: 0);
             Vector3 planetPoint = plan.arena.C + Vector3.up * .85f + plan.planetFrom * 40;
@@ -308,93 +299,56 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Add("astro", "lookAt", pk - 66, pk + 20, point: stage.ToStage(planetPoint), blendIn: .5f, blendOut: .4f);
             Add("panda", "reaction", pk - 30, pk + 20, "cower", blendIn: .2f);
             Add("astro", "reaction", pk - 24, pk + 20, "scream", blendIn: .2f);
-            StudioOverrides.Resolve(stage.set, stage.tape, stage.anchor);
-            BreakLevelHeads(stage, plan, e, shots);
+            // No "level-head business": a pass that added a random look up or down wherever a head stayed level for 20
+            // frames, to satisfy a lint. It made every head nod about on a timer; a fighter's level eyes are natural.
             StudioOverrides.Resolve(stage.set, stage.tape, stage.anchor);
             Note($"Layers: {list.Count} ({string.Join(", ", list.GroupBy(l => l.actor).Select(g => g.Key + " " + g.Count()))}).");
         }
 
-        // Business that keeps heads off the dead level: wherever a visible actor's head stays level for more than 22 frames,
-        // a look down at the drop or up at the rocks (seeded, each a different length), never near the actor's own strikes
-        // and never in the hero's first-person shots (his eyes are the camera there).
         // The glove guard at the face fills a first-person lens (rehearsal 1: a third of the frame) and hides the face in the
         // close-up. In those shots the hero holds the glove lower, at his chest and to the right, as a player resting the arm
-        // would: short reach layers every 5 frames that follow his head, never near his punches.
+        // would. Each hold is ONE layer that keeps the hand on his own body (reach, target "self"), split only around his
+        // punches. (The first two cuts used a chain of short reaches to fixed points every 5 frames: the hands stepped,
+        // 55 one-frame pops in 15 s, which the owner saw as twitching arms.)
         static void GuardLow(StudioStage stage, Plan plan, Events e, List<Shot> shots)
         {
             var list = stage.set.overrides; int added = 0;
-            var windows = shots.Where(s => s.id == "S02" || s.id == "S05" || s.id == "S08")
-                .Select(s => (a: TapeFrame(s.cutIn) + s.shift - (s.id == "S08" ? 8 : 14), b: TapeFrame(s.cutOut) + s.shift + Handle)).ToList();   // S08 follows the MS of the hero: a short pre-roll only   // lowered before the cut-in (round 1: glove at the lens on every POV cut)
             var punches = new List<int>(); if (e.punch1 >= 0) punches.Add(e.punch1); if (e.punch2 >= 0) punches.Add(e.punch2);
-            foreach (var (a, b) in windows)
-                for (int tf = a; tf < b; tf += 5)
-                {
-                    if (punches.Any(p => tf > p - 14 && tf < p + 6)) continue;
-                    var pose = Shown(stage, "hero", tf);
-                    if (pose == null || !pose.visible) continue;
-                    Vector3 fwd = Flat(pose.body.headRotation * Vector3.forward), right = Vector3.Cross(Vector3.up, fwd).normalized;
-                    Vector3 hand = pose.body.head + fwd * .42f + right * .27f - Vector3.up * .46f;
-                    list.Add(new StudioOverride { actor = "hero", kind = "reach", point = stage.ToStage(hand), from = tf / (float)Fps, to = (tf + 10) / (float)Fps, blendIn = .15f, blendOut = .15f });
-                    added++;
-                    // Round 2 (owner): the left hand was the same flat palm in every POV. A guard by the chin before the first
-                    // punch, an open hand reaching out at the charging dragon; the payoff has its own eye-shading hand.
-                    bool first = tf < TapeFrame(150), payoff = tf > TapeFrame(270);
-                    {
-                        Vector3 leftHand = first ? pose.body.head + fwd * .30f - right * .13f - Vector3.up * .16f
-                                         : payoff ? pose.body.head + fwd * .30f - right * .22f - Vector3.up * .38f
-                                                 : pose.body.head + fwd * .40f - right * .17f - Vector3.up * .22f;
-                        list.Add(new StudioOverride { actor = "hero", kind = "reach", leftHand = true, point = stage.ToStage(leftHand), from = tf / (float)Fps, to = (tf + 10) / (float)Fps, blendIn = .15f, blendOut = .15f });
-                    }
-                }
-            // The MS (S07): the glove held low and close at his chest, so his head and the shading hand read (final 1 of the
-            // re-cut: the recorded guard rose with his head and covered it).
-            var ms = shots.First(s => s.id == "S07");
-            for (int tf = TapeFrame(ms.cutIn) + ms.shift - Handle; tf < TapeFrame(ms.cutOut) + ms.shift - 8; tf += 5)
+            // Stretches of [a, b) with the punches cut out (the punch layer owns the arm from 14 frames before to 6 after).
+            IEnumerable<(int a, int b)> Outside(int a, int b)
             {
-                var pose = Shown(stage, "hero", tf);
-                if (pose == null || !pose.visible) continue;
-                Vector3 fwd = Flat(pose.body.headRotation * Vector3.forward), right = Vector3.Cross(Vector3.up, fwd).normalized;
-                Vector3 hand = pose.body.head + fwd * .25f + right * .12f - Vector3.up * .32f;
-                list.Add(new StudioOverride { actor = "hero", kind = "reach", point = stage.ToStage(hand), from = tf / (float)Fps, to = (tf + 10) / (float)Fps, blendIn = .15f, blendOut = .15f });
+                int from = a;
+                foreach (int p in punches.OrderBy(p => p))
+                {
+                    if (p + 6 <= from || p - 14 >= b) continue;
+                    if (p - 14 > from) yield return (from, p - 14);
+                    from = Mathf.Max(from, p + 6);
+                }
+                if (b > from) yield return (from, b);
+            }
+            void Hold(bool left, Vector3 offset, int a, int b)
+            {
+                if (b - a < 6) return;
+                list.Add(new StudioOverride { actor = "hero", kind = "reach", leftHand = left, target = "self", point = offset, from = a / (float)Fps, to = b / (float)Fps, blendIn = .3f, blendOut = .3f });
                 added++;
             }
-            Note($"Lowered guard: {added} reach layers on the hero.");
-        }
-
-        static void BreakLevelHeads(StudioStage stage, Plan plan, Events e, List<Shot> shots)
-        {
-            var list = stage.set.overrides; int added = 0;
-            var pov = shots.Where(s => s.id == "S02" || s.id == "S05" || s.id == "S08").Select(s => (a: TapeFrame(s.cutIn) + s.shift - 6, b: TapeFrame(s.cutOut) + s.shift + 6)).ToList();
-            foreach (string role in Roles)
+            foreach (var s in shots.Where(s => s.id == "S02" || s.id == "S05" || s.id == "S08"))
             {
-                if (stage.set.Mark(role) == null) continue;
-                var busy = new List<(int a, int b)>();
-                if (role == "hero") { busy.AddRange(pov); if (e.punch1 >= 0) busy.Add((e.punch1 - 30, e.punch1 + 12)); if (e.punch2 >= 0) busy.Add((e.punch2 - 30, e.punch2 + 12)); }
-                if (role == "rival" && e.punch1 >= 0) busy.Add((e.punch1 - 4, 9999));
-                if (role == "dragon" && e.punch2 >= 0) busy.Add((e.punch2 - 40, 9999));
-                if ((role == "fox" || role == "penguin") && e.rock2 >= 0) busy.Add((e.rock2 - 3, 9999));
-                int run = 0, n = 0;
-                for (int tf = TapeFrame(0) - 10; tf < TapeFrame(LengthFrames); tf++)
+                // Lowered before the cut-in (round 1: glove at the lens on every POV cut). S08 follows the MS: a short pre-roll only.
+                int a = TapeFrame(s.cutIn) + s.shift - (s.id == "S08" ? 8 : 14), b = TapeFrame(s.cutOut) + s.shift + Handle;
+                // Round 2 (owner): the left hand was the same flat palm in every POV. A guard by the chin before the first
+                // punch, an open hand out at the charging dragon, low in the payoff.
+                Vector3 leftOffset = s.id == "S02" ? new Vector3(-.13f, -.16f, .30f) : s.id == "S08" ? new Vector3(-.22f, -.38f, .30f) : new Vector3(-.17f, -.22f, .40f);
+                foreach (var (x, y) in Outside(a, b))
                 {
-                    var p = Shown(stage, role, tf);
-                    if (p == null || !p.visible || busy.Any(x => tf >= x.a && tf <= x.b)) { run = 0; continue; }
-                    var (pitch, _, roll) = Angles(p.body.headRotation);
-                    run = Mathf.Abs(pitch) <= 4 && Mathf.Abs(roll) <= 1.5f ? run + 1 : 0;
-                    if (run < 20) continue;
-                    n++;
-                    float r = StudioHuman.Rand(StudioHuman.SeedOf(role), n, 7);
-                    int length = 18 + Mathf.RoundToInt(r * 20);
-                    // Within about 30 deg of where the head already points (preview 1: looks at the drop behind them swung heads at 700+ deg/s).
-                    Vector3 feet = p.body.feet, fwd = Flat(p.body.headRotation * Vector3.forward), side = Vector3.Cross(Vector3.up, fwd);
-                    Vector3 look = n % 2 == 1
-                        ? feet + (fwd + side * (r - .5f) * .8f).normalized * 3f - Vector3.up * (3 + r * 3)          // down at the block's edge and the drop
-                        : p.body.head + (fwd + side * (r - .5f) * .8f).normalized * 8 + Vector3.up * (3.5f + r * 3);   // up at the sky
-                    list.Add(new StudioOverride { actor = role, kind = "lookAt", point = stage.ToStage(look), from = (tf - 4) / (float)Fps, to = (tf - 4 + length) / (float)Fps, blendIn = .4f, blendOut = .45f });
-                    added++;
-                    tf += length + 4; run = 0;
+                    Hold(false, new Vector3(.27f, -.46f, .42f), x, y);
+                    Hold(true, leftOffset, x, y);
                 }
             }
-            Note($"Level-head business added: {added} looks.");
+            // The MS (S07): the glove held low and close at his chest, so his head and the shading hand read.
+            var ms = shots.First(s => s.id == "S07");
+            Hold(false, new Vector3(.12f, -.32f, .25f), TapeFrame(ms.cutIn) + ms.shift - Handle, TapeFrame(ms.cutOut) + ms.shift + 2);
+            Note($"Lowered guard: {added} hold layers on the hero.");
         }
 
         static IEnumerable<int> RenderShots(StudioStage stage, Plan plan, Events e, string mode)
@@ -402,6 +356,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var shots = MakeShots(e);
             var cameras = ShotCameras(stage, plan, e, shots);
             stage.set.cameras.Clear(); stage.set.cameras.AddRange(cameras);
+            stage.set.alive.smooth = .12f;   // the driven cast's recorded heads and hands, averaged over about 0.12 s (StudioSmooth)
             AddLayers(stage, plan, e, shots);
             StudioLibrary.Save(stage.set);
             StudioRun.Refresh();
