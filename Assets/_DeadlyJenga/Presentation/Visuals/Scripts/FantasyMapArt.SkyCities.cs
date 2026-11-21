@@ -61,6 +61,8 @@ namespace DeadlyJenga.Presentation
             // The cupcake hamlet (one end of the bridge) pours a rainbow waterfall toward the island.
             RainbowFall(transforms[1],new Vector3(0,-1,radii[1]+1),16,10,150,"hamlet");
             BuildIslandAbove(center);
+            // Place moving parts now: pictures and the first frame must not show them at the map origin.
+            AnimateSkyCities(Time.time);
         }
 
         // Frosted cake platform on a cotton-candy cloud, with rock-candy crystals hanging underneath.
