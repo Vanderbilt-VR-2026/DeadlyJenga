@@ -1,0 +1,91 @@
+0.300s drive hero: gear Blaster to hero
+0.367s drive drv09: gear BoxingGlove to drv09
+0.367s drive drv23: gear Blaster to drv23
+0.400s drive drv19: gear Blaster to drv19
+0.467s drive drv01: gear BoxingGlove to drv01
+0.467s drive drv05: gear BoxingGlove to drv05
+0.467s drive drv15: gear Blaster to drv15
+0.467s drive drv17: gear BoxingGlove to drv17
+0.500s drive drv13: gear BoxingGlove to drv13
+0.533s drive drv11: gear Blaster to drv11
+0.567s drive drv03: gear Blaster to drv03
+0.567s drive drv07: gear Blaster to drv07
+0.567s drive drv21: gear BoxingGlove to drv21
+1.200s drive hero: path to (1.16, 3.98, 11.34) at run
+1.200s drive drv13: begins to punch at actor:bot10
+1.333s drive drv21: begins to punch at actor:drv17
+1.400s drive drv17: begins to punch at actor:bot14
+1.833s drive drv11: begins to fire at actor:bot08
+1.867s drive drv13: jumps a gap
+1.867s drive drv13: jump
+1.867s drive drv17: punch real glove punch (drv17 fired BoxingGlove: True) at 0.97 m
+1.900s drive drv01: begins to punch at actor:drv03
+1.933s drive drv21: punch real glove punch (drv21 fired BoxingGlove: True) at 1.00 m
+1.967s drive drv11: fire drv11 fired Blaster: True at 3.05 m
+2.100s drive drv23: begins to fire at actor:bot20
+2.133s drive drv05: begins to punch at actor:drv03
+2.167s drive hero: jump
+2.200s drive drv23: fire drv23 fired Blaster: True at 3.77 m
+2.267s drive drv01: punch real glove punch (drv01 fired BoxingGlove: True) at 0.97 m
+2.267s drive drv03: begins to fire at actor:drv05
+2.300s drive hero: fire on the move hero fired Blaster: True at 0.49 m
+2.333s drive drv11: goTo to (8.34, 3.98, 9.41) at walk
+2.400s drive drv15: begins to fire at actor:drv11
+2.433s drive drv09: begins to punch at actor:bot06
+2.500s drive drv07: begins to fire at actor:bot04
+2.500s drive drv07: fire drv07 fired Blaster: True at 3.55 m
+2.500s drive drv15: fire drv15 fired Blaster: True at 1.80 m
+2.533s drive drv19: begins to fire at actor:bot22
+2.567s drive drv23: goTo to (5.19, 1.97, -1.84) at walk
+2.600s drive drv19: fire drv19 fired Blaster: True at 4.22 m
+2.833s drive drv05: jump
+2.867s drive drv07: goTo to (5.15, 1.97, 10.81) at walk
+2.867s drive drv15: goTo to (8.98, 3.98, 7.50) at walk
+2.933s drive drv03: fire drv03 fired Blaster: True at 13.68 m
+2.967s drive drv19: goTo to (9.81, 1.97, 5.79) at walk
+3.300s drive drv03: goTo to (-0.28, -0.02, 8.47) at walk
+3.467s drive drv15: stopped at an edge (no ground ahead)
+3.500s drive drv11: begins to fire at actor:bot08
+3.533s drive drv19: stopped at an edge (no ground ahead)
+3.600s drive drv11: fire drv11 fired Blaster: True at 2.01 m
+3.667s drive drv23: begins to fire at actor:bot20
+3.767s drive drv23: fire drv23 fired Blaster: True at 5.90 m
+3.933s drive drv09: jump
+3.967s drive drv21: begins to punch at actor:bot20
+4.200s drive drv07: begins to fire at actor:bot04
+4.267s drive drv15: begins to fire at actor:drv11
+4.333s drive drv07: fire drv07 fired Blaster: True at 5.75 m
+4.367s drive drv15: fire drv15 fired Blaster: True at 2.16 m
+4.400s drive drv03: begins to fire at actor:drv05
+4.400s drive drv03: fire drv03 fired Blaster: True at 39.66 m
+4.400s drive drv17: begins to punch at actor:drv21
+4.467s drive drv19: begins to fire at actor:bot22
+4.567s drive drv19: fire drv19 fired Blaster: True at 6.57 m
+4.733s drive drv01: begins to punch at actor:drv05
+4.733s drive drv13: begins to punch at actor:bot18
+4.833s drive drv13: jumps a gap
+4.833s drive drv13: jump
+5.367s drive drv09: punch real glove punch (drv09 fired BoxingGlove: True) at 0.93 m
+5.433s drive drv01: punch real glove punch (drv01 fired BoxingGlove: True) at 0.99 m
+5.633s drive drv11: begins to fire at actor:drv15
+5.667s drive drv05: begins to punch at actor:drv01
+5.733s drive drv09: begins to punch at actor:bot10
+5.833s drive drv03: begins to fire at actor:drv01
+5.833s drive drv03: fire unarmed punch request at 63.44 m: refused (punching is off in this mode, or cooling down)
+5.867s drive drv23: begins to fire at actor:bot18
+5.933s drive drv17: jumps a gap
+5.933s drive drv17: jump
+6.033s drive drv11: fire drv11 fired Blaster: True at 2.43 m
+6.167s drive drv09: jumps a gap
+6.167s drive drv09: jump
+6.300s drive drv19: begins to fire at actor:drv15
+6.400s drive drv15: begins to fire at actor:drv19
+6.433s drive drv07: begins to fire at actor:bot00
+6.433s drive drv23: fire drv23 fired Blaster: True at 7.27 m
+6.500s drive hero: begins to fire at actor:bot00
+6.600s drive hero: fire hero fired Blaster: True at 6.35 m
+6.700s drive drv19: fire drv19 fired Blaster: True at 1.68 m
+7.167s drive drv13: stopped at an edge (no ground ahead)
+7.167s drive drv15: fire unarmed punch request at 1.92 m: refused (punching is off in this mode, or cooling down)
+8.033s drive drv07: fire drv07 fired Blaster: True at 0.95 m
+8.533s drive drv09: jump
