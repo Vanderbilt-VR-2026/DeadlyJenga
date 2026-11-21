@@ -1,4 +1,4 @@
-"""Plan lints for a Deadly Jenga trailer plan (deadlyjenga-trailer-craft, revision 4).
+"""Plan lints for a Deadly Jenga trailer plan (deadlyjenga-trailer-craft, revision 5).
 
 Usage:
   python lint.py <plan.yaml>           one line per lint, then the count of hard failures
@@ -15,7 +15,11 @@ Started from hand-reveal-2's tools/lint.py (2026-11-20) and generalised: core ve
 the `moment` class, single-take moments, and the mayhem lints L40-L46. Revision 4 adds L47 (every key
 event close or in first person), L48 (each key beat's camera derived from the take: take_ref), L49 (a
 first-person floor), L50 (soft POV cap) and L51 (soft: the world first, then every cast member gets a
-layer), and lowers L06's 15 s longest-shot floor from 60 to 45 frames. Needs PyYAML.
+layer), and lowers L06's 15 s longest-shot floor from 60 to 45 frames. Revision 5 adds L52-L56 for
+actors who look alive (references/performance.md): every visible actor has a `doing` and a `how`
+(L52), no still or level-headed run over 30 frames (L53), no teleport between shots (L54), no two
+actors starting actions within 4 frames (L55, soft) and a human performer considered for hero
+close-ups and first-person shots (L56, soft). Needs PyYAML.
 """
 import re
 import statistics
@@ -511,6 +515,130 @@ else:
     ok49 = pov_share >= POV_SHARE - 1e-9 and len(pov_shots) >= 2 and bool(pov_on_key) and not no_owner
     d49 = f"montage: POV {pov_frames} of {body_end} body frames = {pov_share:.0%} (floor {POV_SHARE:.0%}), {len(pov_shots)} POV shots (need 2), on key events {pov_on_key or 'none'}"
 report("L49", ok49, d49 + (f"; POV shots without camera.pov_of a cast survivor: {no_owner}" if no_owner else ""), hard=r4_hard)
+
+# ---------- revision 5: every visible actor alive (references/performance.md) ----------
+# Hard for mayhem, disaster and pvp; soft (a warning) for the legacy hand and two_role types.
+r5_hard = r4_hard
+HOWS = {"driven", "layer", "alive", "performed", "bot", "physics"}
+OWN_POWER = HOWS - {"physics"}          # physics alone is a ragdoll: something must also act
+STILL_MAX = S(30)                       # estimate: longest still or level-head run, frames
+SYNC_F = S(4)                           # estimate: two action starts this close read as one
+ARRIVED = {"driven", "performed", "bot", "physics", "start", "cut"}
+SOURCES = {"plan", "take_report", "metrics"}
+
+
+def visible_actors(s):
+    if not gameplay(s):
+        return set()
+    ids = frame_of(s) & cast
+    p = (s.get("camera") or {}).get("pov_of")
+    if p in cast:
+        ids.add(p)                      # the POV owner's head is the camera; its hands are in frame
+    return ids
+
+
+def actor_entries(s):
+    return {a["id"]: a for a in s.get("actors", []) or [] if isinstance(a, dict) and a.get("id")}
+
+
+def hows(a):
+    h = a.get("how")
+    return set(h if isinstance(h, list) else [h]) if h else set()
+
+
+bad52 = []
+for s in shots:
+    ents = actor_entries(s)
+    for aid in sorted(visible_actors(s)):
+        a = ents.get(aid)
+        if a is None:
+            bad52.append(f"{s['id']}:{aid} no actors entry")
+        elif not str(a.get("doing") or "").strip():
+            bad52.append(f"{s['id']}:{aid} no doing")
+        elif not hows(a) or not hows(a) <= HOWS:
+            bad52.append(f"{s['id']}:{aid} how {a.get('how')!r} (use {sorted(HOWS)})")
+        elif not hows(a) & OWN_POWER:
+            bad52.append(f"{s['id']}:{aid} physics alone (add driven, layer, alive, performed or bot)")
+report("L52", not bad52, f"every visible actor has a doing and a how: {bad52 or 'yes'}", hard=r5_hard)
+
+bad53 = []
+for s in shots:
+    ents = actor_entries(s)
+    for aid in sorted(visible_actors(s) & set(ents)):
+        a = ents[aid]
+        src = a.get("motion_source") or s.get("motion_source") or plan.get("motion_source")
+        for f in ("still_f", "level_f"):
+            v = a.get(f)
+            if not isinstance(v, int):
+                bad53.append(f"{s['id']}:{aid} {f} missing")
+            elif v > STILL_MAX:
+                bad53.append(f"{s['id']}:{aid} {f} {v} > {STILL_MAX:.0f}")
+        if src not in SOURCES:
+            bad53.append(f"{s['id']}:{aid} motion_source {src!r} (plan, take_report or metrics)")
+        elif committed and src == "plan":
+            bad53.append(f"{s['id']}:{aid} take committed, so still_f/level_f must come from the take report or metrics")
+report("L53", not bad53, f"no visible actor still or level-headed over {STILL_MAX:.0f} frames (estimate): {bad53 or 'yes'}"
+       + ("" if committed else " (take not committed: runs may be planned)"), hard=r5_hard)
+
+bad54, last_spot = [], {}
+prev_vis = set()
+for s in shots:
+    ents = actor_entries(s)
+    vis = visible_actors(s)
+    for aid in sorted(vis & set(ents)):
+        a = ents[aid]
+        spot = a.get("spot")
+        if not spot:
+            bad54.append(f"{s['id']}:{aid} no spot")
+            continue
+        before = last_spot.get(aid)
+        if before and before[0] != spot:
+            how_got = a.get("arrived_by")
+            if how_got not in ARRIVED:
+                bad54.append(f"{s['id']}:{aid} {before[0]} ({before[1]}) -> {spot} with arrived_by {how_got!r}")
+            elif how_got == "cut" and aid in prev_vis:
+                bad54.append(f"{s['id']}:{aid} arrived_by cut, but it was in frame in the shot before")
+        last_spot[aid] = (spot, s["id"])
+    if gameplay(s):
+        prev_vis = vis
+report("L54", not bad54, f"every move between shots by the actor's own power, physics or a hiding cut: {bad54 or 'yes'}", hard=r5_hard)
+
+bad55 = []
+for s in shots:
+    ents = {k: v for k, v in actor_entries(s).items() if k in visible_actors(s)}
+    contact = []                         # (attacker, victim, shot frame of the hit)
+    for b in beats:
+        if b["shot"] is s and b.get("attacker") and b.get("victim"):
+            contact.append(({b["attacker"], b["victim"]}, b["key"] - s["cut_in"]))
+    acts = [(aid, f) for aid, a in ents.items() for f in a.get("acts_at", []) or [] if isinstance(f, (int, float))]
+    for i, (a1, f1) in enumerate(acts):
+        for a2, f2 in acts[i + 1:]:
+            if a1 == a2 or abs(f1 - f2) > SYNC_F:
+                continue
+            if any({a1, a2} == pair and abs(f1 - k) <= 2 and abs(f2 - k) <= 2 for pair, k in contact):
+                continue                 # attacker and victim share the contact frame by physics
+            bad55.append(f"{s['id']}: {a1}@{f1} {a2}@{f2}")
+    lines = Counter(str(a.get("doing", "")).strip().lower() for a in ents.values() if a.get("doing"))
+    bad55 += [f"{s['id']}: same doing '{t}'" for t, n in lines.items() if n > 1]
+    no_acts = [aid for aid, a in ents.items() if not a.get("acts_at")]
+    if len(ents) >= 2 and no_acts:
+        bad55.append(f"{s['id']}: no acts_at for {sorted(no_acts)}")
+report("L55", not bad55, f"no two actors starting actions within {SYNC_F:.0f} frames, no shared doing (estimate): {bad55 or 'none'}", hard=False)
+
+need56, bad56 = [], []
+for s in shots:
+    if not gameplay(s):
+        continue
+    cam = s.get("camera") or {}
+    pov = cam.get("move") == "pov"
+    hero_close = (s.get("subject") or {}).get("id") == hero and (s.get("size") in ("MCU", "CU", "ECU") or (face_ok(s) and s.get("reaction")))
+    if not (pov or hero_close):
+        continue
+    carrier = (cam.get("pov_of") or "(no pov_of)") if pov else hero
+    need56.append(s["id"])
+    if "performed" not in hows(actor_entries(s).get(carrier, {})):
+        bad56.append(f"{s['id']}:{carrier} ({'POV' if pov else 'hero close-up'}) not performed")
+report("L56", not bad56, f"hero close-ups and first-person shots {need56 or 'none'}; carried by a person in the headset, or waived in writing: {bad56 or 'all performed'}", hard=False)
 
 # ---------- soft lints ----------
 hazards = [t for t in threats if str(t).startswith("hazard:")]

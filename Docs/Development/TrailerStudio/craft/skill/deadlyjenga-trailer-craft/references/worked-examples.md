@@ -8,7 +8,10 @@ cut to the card), and **B** (15 s disaster single take). The legacy hand example
 D, E and B were run through `tools/lint.py` (0 hard failures, every soft lint passing or n/a); the
 check tables below each plan restate that run. Revision 4 rewrote their key moments so that every
 key event is seen close or in first person, added `key_events`, `take_ref` and `layers`, and made B
-a first-person take.
+a first-person take. Revision 5 added an `actors` list to every shot (each visible actor's `doing`,
+how it is achieved, `spot`, planned still and level-head runs, action starts) and made Coral in B a
+person in the headset; the three were re-run through `tools/lint.py` with L52-L56 (0 hard failures;
+L56 waived in writing in D and E).
 
 ## 0. Examples are not templates
 
@@ -35,7 +38,8 @@ copied frames could not show what their new shot needed. So:
 - **Do copy the coverage habit.** Every key event in D, E and B has a close shot (h ≥ 0.25) or a
   first-person view placed from the take (`take_ref`), and every cast member has a layer. That is
   the method; their particular POV choices (the bully's glove, the betrayer's eyes, the victim's
-  own take) are not.
+  own take) are not. The same goes for the `actors` lists (revision 5): every visible actor wants
+  something in every shot, and nobody's action starts on another's frame (`performance.md`).
 - **Do not copy the twists either.** D's "the disaster punishes the bully" and E's "a friend ends
   the winner" are spent. Find this brief's own turn (`structure-and-templates.md` section 1, step 5).
 
@@ -101,18 +105,21 @@ hook: "Friends shove each other off a tower while a disaster hits it"
 hero: jolt
 cast: [jolt, brick, pip, dune]
 must_show: [pvp_hit, hazard_hit, knock_off, into_sea, multiplayer, survivors_react]
-capture: {hand: none, survivors: "all four live in one world pass: brick and pip live bots for the real hits, jolt and dune stand-ins", take: "bundle/push-comes-take-01", take_status: planned}
+capture: {hand: none, survivors: "all four live in one world pass, each driven through the game's controls (go to, run, look, jump, punch); brick's glove strikes still by fire cues", take: "bundle/push-comes-take-01", take_status: planned}
+motion_source: plan                 # revision 5: still and level-head runs are the beat sheets' intent until the take is committed
+waive:
+  - {lint: L56, shot: "S03, S05, S08", reason: "no person booked for this 15 s social cut, and all four touch each other in one live pass; Jolt and Brick are driven with explicit layers and the alive layer. Re-shoot S08 with a person performing Jolt if one is free: it is the payoff and her head is the camera"}
 key_events:                         # trailer frames; take frames come from the take report after capture
   - {id: K1, frame: 70,  kind: pvp_hit,  attacker: brick, victim: jolt, what: "Brick's strike knocks Jolt back"}
   - {id: K2, frame: 202, kind: knock_off, attacker: brick, victim: pip, what: "Brick's glove launches Pip off the wall"}
   - {id: K3, frame: 264, kind: knock_off, attacker: "hazard:tsunami", victim: brick, what: "the crest takes Brick (payoff)"}
   - {id: K4, frame: 322, kind: into_sea, victim: brick, what: "Brick drops into the surf"}
 layers:                             # the pass order: the world first, then each actor against the tape
-  - {order: 1, kind: world, actor: world, how: "RecordWholeSet: the hazard tsunami cue, gear at 0.3 s, a fire cue per strike; all four live", gives: "blocks, wave, hits, every body"}
-  - {order: 2, kind: actor, actor: brick, how: "overlays: lookAt actor:jolt, then actor:pip; reach toward each target 6 frames either side of its fire cue", reacts_to: [K1, K2]}
-  - {order: 3, kind: actor, actor: pip, how: "overlays: knockback from K2's take frame, then scream through the flight", reacts_to: [K2]}
-  - {order: 4, kind: actor, actor: dune, how: "overlays: lookAt actor:pip at K2; cower from the crest's first frame", reacts_to: [K2, K3]}
-  - {order: 5, kind: actor, actor: jolt, how: "overlays: lookAt hazard from tape 372; scream 380-420; flinch at K3 (her first-person view follows these)", reacts_to: [K1, K3]}
+  - {order: 1, kind: world, actor: world, how: "RecordWholeSet: the hazard tsunami cue, gear at 0.3 s, a fire cue per strike; all four live and driven (Brick runs at Jolt then Pip, Jolt climbs to the higher block at 536, Dune shoves Pip at 320)", gives: "blocks, wave, hits, every body"}
+  - {order: 2, kind: actor, actor: brick, how: "overlays: lookAt actor:jolt, then actor:pip, each 12-30 frames before its wind-up; reach toward each target 6 frames either side of its fire cue; the alive layer between", reacts_to: [K1, K2]}
+  - {order: 3, kind: actor, actor: pip, how: "overlays: knockback from K2's take frame, then scream through the flight; head turned back at the wall", reacts_to: [K2]}
+  - {order: 4, kind: actor, actor: dune, how: "driven: edge-peek loop (walk to the edge, look down, step back); overlays: lookAt actor:pip at K2 + 11 frames (she was looking at the sea); cower from the crest's first frame", reacts_to: [K2, K3]}
+  - {order: 5, kind: actor, actor: jolt, how: "overlays: lookAt hazard from tape 372; scream 380-420; flinch at K3 + 6 frames (she watched it come); the alive layer between (her first-person view follows these)", reacts_to: [K1, K3]}
 camera_sensor_mm: 24
 music:
   file: Music/push_comes_100.wav
@@ -149,6 +156,11 @@ shots:
     readable_survivors: 4
     tower_level: base
     learns: "Four friends scrap on the castle wall"
+    actors:                         # revision 5: every visible actor, what they want, how it is achieved (performance.md)
+      - {id: jolt,  doing: "circles Brick with her guard up, eyes on his hands", how: [driven, alive], spot: wall_walk, still_f: 5, level_f: 12, acts_at: [3, 26]}
+      - {id: brick, doing: "steps in on Jolt, swinging, his back to the sea", how: [driven, alive], spot: wall_walk, still_f: 4, level_f: 9, acts_at: [8, 31]}
+      - {id: pip,   doing: "windmills for balance after Dune's shove", how: [driven, physics, layer], spot: wall_walk, still_f: 0, level_f: 6, acts_at: [21]}
+      - {id: dune,  doing: "shoves Pip, then checks over her shoulder at the sea", how: [driven, alive], spot: wall_walk, still_f: 6, level_f: 10, acts_at: [14, 36]}
     reveal: knows
     threat: "hazard:tsunami"
     size: WS
@@ -168,7 +180,7 @@ shots:
       - {at: 0,  kind: sfx, name: far_sea_roar_bed, source: designed, gain_db: -14, lead_in: true}
       - {at: 20, kind: sfx, name: scuffle_thump, source: take, gain_db: -6}
     hook_count: 1
-    needs: [{feature: tsunami_full_height_offshore, status: verify}]
+    needs: [{feature: tsunami_full_height_offshore, status: verify}, {feature: performer_driver, status: verify}, {feature: alive_layer, status: verify}]
     fallback: "Cut S01 to the group alone and let S03's look carry the reveal; anticipation then 50 frames"
 
   - id: S02
@@ -185,6 +197,9 @@ shots:
     victim: jolt
     tower_level: base
     learns: "Brick knocks Jolt back toward the edge"
+    actors:
+      - {id: jolt,  doing: "backs toward the edge, guard up, eyes on Brick's hands", how: [driven, physics, layer, alive], spot: wall_walk, still_f: 6, level_f: 14, acts_at: [5, 31, 48]}
+      - {id: brick, doing: "closes on Jolt and throws a hook, watching it land", how: [driven, alive], spot: wall_walk, still_f: 4, level_f: 9, acts_at: [10, 22, 30, 41]}
     reveal: none
     size: WS
     angle: low
@@ -218,6 +233,8 @@ shots:
     shows: [survivors_react]
     tower_level: base
     learns: "Jolt sees the wave over Brick's shoulder"
+    actors:
+      - {id: jolt,  doing: "glances back at Brick, then her head snaps up to the sea; hands rise", how: [driven, layer, alive], spot: wall_walk, still_f: 4, level_f: 8, acts_at: [2, 14, 25]}
     reveal: reaction
     threat: "hazard:tsunami"
     reaction: "scream layer from tape 380 to 420, head turned toward the sea"
@@ -251,6 +268,9 @@ shots:
     shows: [hazard_hit]
     tower_level: base
     learns: "The wave slams into the castle wall"
+    actors:                         # tiny here (0.017), still alive
+      - {id: jolt,  doing: "scrambles toward the higher block", how: [driven, alive], spot: wall_walk, still_f: 3, level_f: 10, acts_at: [6]}
+      - {id: brick, doing: "still swinging at her, his back to the wave", how: [driven, alive], spot: wall_walk, still_f: 5, level_f: 12, acts_at: [12]}
     reveal: whole
     threat: "hazard:tsunami"
     size: EWS
@@ -288,6 +308,10 @@ shots:
     victim: pip
     tower_level: base
     learns: "Brick's giant glove launches Pip off the wall"
+    actors:
+      - {id: brick, doing: "swings the glove from his guard at Pip, head on her", how: [driven, layer], spot: wall_walk, still_f: 0, level_f: 10, acts_at: [0, 10]}
+      - {id: pip,   doing: "turns toward the glove too late, then launches off", how: [driven, physics, layer], spot: wall_walk, still_f: 0, level_f: 4, acts_at: [5, 11]}
+      - {id: jolt,  doing: "climbs for the higher block, looking back at the fight", how: [driven, alive], spot: wall_walk, still_f: 4, level_f: 8, acts_at: [17]}
     reveal: none
     size: FS                        # POV: by Pip's own height fraction
     angle: eye
@@ -324,6 +348,8 @@ shots:
     shows: [fall]
     tower_level: air
     learns: "Pip sails out over the surf"
+    actors:
+      - {id: pip,   doing: "flails through the air, head turned back at the wall", how: [physics, layer], spot: air_over_surf, arrived_by: physics, still_f: 0, level_f: 0, acts_at: [3]}
     reveal: consequence
     cause_in: prev
     size: WS
@@ -356,6 +382,9 @@ shots:
     shows: []
     tower_level: base
     learns: "Jolt steps up as the crest towers over them"
+    actors:
+      - {id: jolt,  doing: "jumps onto the higher block, eyes up on the crest", how: [driven, alive], spot: wall_walk, still_f: 0, level_f: 0, acts_at: [0]}
+      - {id: brick, doing: "hunts for Pip's gap, head swinging, his back to the wave", how: [driven, alive], spot: wall_walk, still_f: 2, level_f: 6, acts_at: [5]}
     reveal: knows
     threat: "hazard:tsunami"
     size: FS
@@ -373,7 +402,8 @@ shots:
       - {at: 0, kind: sfx, name: block_step, source: take, gain_db: -8}
       - {at: 6, kind: sfx, name: single_creak, source: designed, gain_db: -6}
     hook_count: null
-    needs: []
+    needs: [{feature: performer_driver_jump, status: verify}]
+    fallback: "No driven jump: Jolt's mark starts on the higher block's edge and she steps up with a climb; never place her there between shots"
 
   - id: S08
     section: payoff
@@ -389,6 +419,9 @@ shots:
     victim: brick
     tower_level: base
     learns: "From Jolt's block, the crest takes Brick"
+    actors:
+      - {id: jolt,  doing: "crouches on her block as the crest passes, then looks down after Brick", how: [driven, layer, alive], spot: higher_block, arrived_by: driven, still_f: 5, level_f: 0, acts_at: [3, 18, 32]}
+      - {id: brick, doing: "looks up at the crest one beat too late, then slides off the walk", how: [driven, physics, layer], spot: wall_walk, still_f: 0, level_f: 7, acts_at: [8, 12, 40]}
     reveal: payoff
     threat: "hazard:tsunami"
     cause_in: self
@@ -430,6 +463,8 @@ shots:
     victim: brick
     tower_level: sea
     learns: "Brick drops into the surf"
+    actors:
+      - {id: brick, doing: "hits the water, arms thrashing, head fighting up to the air", how: [physics, layer], spot: surf_below_wall, arrived_by: physics, still_f: 0, level_f: 6, acts_at: [12, 22]}
     reveal: consequence
     cause_in: prev
     size: WS
@@ -463,6 +498,8 @@ shots:
     shows: []
     tower_level: base
     learns: "Jolt is the last one on the wall"
+    actors:
+      - {id: jolt,  doing: "breathes hard on her block, looks down at the foam, then out to sea", how: [driven, alive], spot: higher_block, still_f: 18, level_f: 20, acts_at: [10, 52, 80]}
     reveal: none
     size: WS
     angle: high
@@ -485,8 +522,8 @@ shots:
 
 ### D against every lint
 
-`tools/lint.py` run on 2026-11-20 (revision 4): 0 hard failures, every soft lint passing or n/a.
-Body = frames 0-345 (11.5 s). Body-shot lengths: 40, 60, 50, 42, 30, 18, 12, 58, 35.
+`tools/lint.py` run on 2026-11-20 (revision 5): 0 hard failures, every soft lint passing or n/a
+except L56, waived in writing. Body = frames 0-345 (11.5 s). Body-shot lengths: 40, 60, 50, 42, 30, 18, 12, 58, 35.
 
 | Lint | Check | Result |
 |------|-------|--------|
@@ -540,6 +577,11 @@ Body = frames 0-345 (11.5 s). Body-shot lengths: 40, 60, 50, 42, 30, 18, 12, 58,
 | L49 | POV 30 + 58 = 88 of 345 body frames = 26 % ≥ 25 %; two POV shots, both on key events (K2, K3); `pov_of` brick and jolt | pass |
 | L50 | POV 26 % ≤ 60 % | pass |
 | L51 | `layers` starts with the world pass; all four cast members have a layer | pass |
+| L52 | 19 visible-actor entries across S01-S10, each with a `doing` and a `how` (S06 and S09: physics plus a layer) | pass |
+| L53 | planned runs (`motion_source: plan`): longest still 18 and level-head 20, both Jolt under the title (S10) | pass (re-measure from the take report after capture) |
+| L54 | Jolt wall walk > higher block in S08 `arrived_by: driven` (her jump is on screen in S07); Pip into the air (S06) and Brick into the surf (S09) by `physics` | pass |
+| L55 | closest starts between two actors 5 frames (S01, S02, S05, S07); S02's 30/31 and S05's 10/11 are the contact frames of K1 and K2 | pass (the linter caught Brick at 10 and Pip at 6 in S05 in the first draft) |
+| L56 | S03 (hero MCU), S05 and S08 (POV) not performed | waived: no person booked; all four in one contact pass |
 
 What it still owes before capture: R01 on every shot (Pip at 0.09 in S06 must read as a figure);
 R02 on the wave (it reaches the wall walk from the planned side within 8 frames: run variations of
@@ -605,7 +647,10 @@ hook: "Disasters stack up while friends fight on the same tower"
 hero: vela
 cast: [vela, kestrel, okra, tansy, sprout]
 must_show: [hazard_hit, pvp_hit, knock_off, weapon, several_survivors, survivors_react]
-capture: {hand: none, survivors: "Vela performed by a person; the others live bots with weapons from their marks", take: null, take_status: planned}
+capture: {hand: none, survivors: "Vela performed by a person; the others live in the same pass, driven through the game's controls (bots alone wander off the crown), weapons from their marks", take: null, take_status: planned}
+motion_source: plan
+waive:
+  - {lint: L56, shot: S03, reason: "Tansy's shove touches Vela, whom the person performs in the same live pass; one person cannot perform both marks. Tansy is driven (climb, go to, punch) with a lookAt layer and the alive layer"}
 key_events:
   - {id: K1, frame: 120, kind: knock_off, attacker: vela, victim: okra, what: "Vela's glove launches Okra off the crown"}
   - {id: K2, frame: 480, kind: knock_off, attacker: "hazard:tornado", victim: kestrel, what: "the funnel rips Kestrel off (payoff)"}
@@ -613,9 +658,9 @@ key_events:
 layers:
   - {order: 1, kind: world, actor: world, how: "rehearsal world pass with Vela as a stand-in: the three hazard cues, gear and fire for the bots; read its take report for where each disaster lands", gives: "the timings Vela's performer rehearses against"}
   - {order: 2, kind: actor, actor: vela, how: "the take that counts: one live pass with a person performing Vela AND every bot live (a StudioPass with performer vela, liveWorld, every track in record); the Perform tab's Live physics records only her and the world, so Okra would be a playback copy her glove cannot move", reacts_to: [K1]}
-  - {order: 3, kind: actor, actor: okra, how: "overlays: knockback and scream from K1's take frame", reacts_to: [K1]}
+  - {order: 3, kind: actor, actor: okra, how: "driven in pass 2: a shove loop with Sprout at the stump; overlays: knockback and scream from K1's take frame", reacts_to: [K1]}
   - {order: 4, kind: actor, actor: kestrel, how: "overlays: lookAt hazard from the funnel's first frame; scream from K2", reacts_to: [K2]}
-  - {order: 5, kind: actor, actor: sprout, how: "overlays: lookAt actor:okra at K1; cower during the quake", reacts_to: [K1]}
+  - {order: 5, kind: actor, actor: sprout, how: "driven in pass 2: the shove loop with Okra; overlays: lookAt actor:okra at K1 + 8 frames; cower during the quake; the alive layer between", reacts_to: [K1]}
   - {order: 6, kind: actor, actor: tansy, how: "live in pass 2 with a fire cue (PvP dagger) aimed at vela at K3's frame; then an overlay lookAt actor:vela, which her first-person view follows", reacts_to: [K3]}
 camera_sensor_mm: 24
 music:
@@ -656,6 +701,12 @@ shots:
     readable_survivors: 5
     tower_level: top
     learns: "One climber survives everything the sky throws"
+    actors:                         # revision 5: action starts in shot frames, staggered by attention
+      - {id: vela,    doing: "dodges meteors across the crown, hunts Okra with the glove, then clings on", how: [performed], spot: crown, still_f: 8, level_f: 18, acts_at: [10, 48, 112, 120, 275, 333, 385, 490]}
+      - {id: okra,    doing: "fights Sprout for the stump until Vela's glove launches him", how: [driven, physics, layer], spot: crown, still_f: 6, level_f: 14, acts_at: [20, 60, 121]}
+      - {id: kestrel, doing: "takes cover, lines up a rocket on Vela, then looks up at the funnel", how: [driven, layer, alive], spot: crown, still_f: 12, level_f: 20, acts_at: [30, 300, 325, 392, 481]}
+      - {id: tansy,   doing: "climbs the north face, peeks over the edge, waits for her chance", how: [driven, alive], spot: crown_north_face, still_f: 10, level_f: 12, acts_at: [0, 140, 260, 410]}
+      - {id: sprout,  doing: "trades shoves with Okra, then cowers through the quake", how: [driven, layer, alive], spot: crown, still_f: 9, level_f: 16, acts_at: [15, 66, 128, 280]}
     size: WS
     angle: eye
     side: {face: 3q_back, yaw_deg: 140}
@@ -738,6 +789,8 @@ shots:
     shows: [survivors_react]
     tower_level: top
     learns: "Vela cheers at the empty sky"
+    actors:
+      - {id: vela,    doing: "cheers at the empty sky, arms up, head thrown back", how: [performed, layer], spot: crown_stump, arrived_by: performed, still_f: 6, level_f: 0, acts_at: [3, 20]}
     reveal: none
     reaction: "cheer layer from tape 19.3 s to 21.0 s; head up, both arms raised"
     size: MCU
@@ -768,6 +821,9 @@ shots:
     victim: vela
     tower_level: top
     learns: "Tansy shoves Vela off the stump"
+    actors:
+      - {id: tansy,   doing: "climbs onto the stump behind Vela, eyes on her back, lunges with the dagger", how: [driven, layer], spot: crown_stump, arrived_by: driven, still_f: 0, level_f: 8, acts_at: [0, 48, 60]}
+      - {id: vela,    doing: "catches her breath facing the sea, turns her head too late", how: [performed, physics], spot: crown_stump, still_f: 10, level_f: 12, acts_at: [10, 54, 61]}
     reveal: none
     size: FS                        # POV: by Vela's own height fraction
     angle: eye
@@ -815,7 +871,7 @@ Fields omitted for space (`tape_in`, `speed: 1.0`, `action_cue`) are written onc
 
 ### E against every lint
 
-`tools/lint.py` run on 2026-11-20 (revision 4): 0 hard failures. Body = frames 0-750 (25.0 s). Body shots: S01 570 (the take), S02 60, S03 120.
+`tools/lint.py` run on 2026-11-20 (revision 5): 0 hard failures; L56 waived in writing. Body = frames 0-750 (25.0 s). Body shots: S01 570 (the take), S02 60, S03 120.
 
 | Lint | Check | Result |
 |------|-------|--------|
@@ -864,6 +920,11 @@ Fields omitted for space (`tape_in`, `speed: 1.0`, `action_cue`) are written onc
 | L49 | single take: S03 is a 120-frame POV on key event K3, `pov_of: tansy` | pass |
 | L50 | POV 16 % ≤ 60 % | pass |
 | L51 | `layers` starts with the world; every cast member has a layer | pass |
+| L52 | five actors in the take, Vela in S02, Tansy and Vela in S03; Vela `performed` throughout | pass |
+| L53 | planned runs; longest still 12 (Kestrel in cover), level-head 20 | pass (planning-only: measured at capture) |
+| L54 | Vela crown > stump (S02) `performed`, Tansy north face > stump (S03) `driven` | pass |
+| L55 | closest starts 5 frames (Vela 10 / Sprout 15 / Okra 20; Vela 275 / Sprout 280); 120/121 is K1's contact | pass |
+| L56 | S02 Vela performed; S03 is Tansy's POV, not performed | waived: Tansy's shove touches the performed Vela in one pass |
 
 ### What planning-only mode leaves owed (from E)
 
@@ -923,15 +984,16 @@ hero: coral
 cast: [coral, finn, ivo]            # bots or performed survivors
 must_show: [hazard_hit, survivors_react, into_sea]
 pov_led: true                       # a first-person-led cut: L50's 60 % cap does not apply
-capture: {hand: none, survivors: "coral, finn and ivo stand-ins in one world pass", take: null, take_status: planned}
+capture: {hand: none, survivors: "one world pass: a person performs coral in the headset while finn and ivo are live and driven (a driver-built pass, untested); fallback: all three driven", take: null, take_status: planned}
+motion_source: plan
 key_events:
   - {id: K1, frame: 180, kind: into_sea, victim: finn, what: "Finn and Ivo are thrown into the sea"}
   - {id: K2, frame: 220, kind: into_sea, victim: coral, what: "the block tips; Coral goes in with it (payoff)"}
 layers:
   - {order: 1, kind: world, actor: world, how: "RecordWholeSet: the hazard tsunami cue (it pushes survivors; the tsunami cue does not); all three stand-ins live", gives: "the wave, the blocks, the throws"}
-  - {order: 2, kind: actor, actor: coral, how: "overlays: lookAt hazard from frame 0 (her first-person view follows it); scream at 50; lookAt actor:finn at K1; flinch at the rip (140)", reacts_to: [K1, K2]}
-  - {order: 3, kind: actor, actor: finn, how: "overlays: lookAt hazard at 50; scream from the wave's contact (cue trigger on the hazard cue)", reacts_to: [K1]}
-  - {order: 4, kind: actor, actor: ivo, how: "overlays: cower at 100; scream from the hazard cue trigger", reacts_to: [K1]}
+  - {order: 2, kind: actor, actor: coral, how: "performed in the world pass (she must be live for the wave to throw her): her own head, hands and feet; rehearse against the rehearsal playback first. Fallback if no person: driven, with lookAt hazard from frame 0, scream at 50, lookAt actor:finn at K1, flinch at 146 (she watched it come) and the alive layer", reacts_to: [K1, K2]}
+  - {order: 3, kind: actor, actor: finn, how: "driven in the world pass: a climb toward the top face; overlays: lookAt hazard at 44 (he was looking up), scream from the wave's contact (cue trigger on the hazard cue)", reacts_to: [K1]}
+  - {order: 4, kind: actor, actor: ivo, how: "driven in the world pass: the edge loop (walk to the edge, look down, back away); overlays: cower at 100; scream from the hazard cue trigger", reacts_to: [K1]}
 camera_sensor_mm: 24
 music:
   file: Music/already_here_90.wav
@@ -967,6 +1029,10 @@ shots:
     readable_survivors: 2           # Finn and Ivo ahead of her at 0.35-0.41
     tower_level: mid
     learns: "A wave takes the section they stand on"
+    actors:                         # revision 5: Coral is a person in the headset; her head is the camera for 9 s
+      - {id: coral, doing: "watches the wave come, glances at Finn and Ivo, looks down at her footing, braces, grabs as the block tips", how: [performed], spot: lower_section, still_f: 6, level_f: 10, acts_at: [6, 50, 92, 136, 193, 214]}
+      - {id: finn,  doing: "climbs for the top face, stops to stare at the wave, then is thrown", how: [driven, physics, layer], spot: lower_section, still_f: 8, level_f: 12, acts_at: [0, 44, 142, 180]}
+      - {id: ivo,   doing: "peeks over the edge at the surf, backs away from the crest, cowers", how: [driven, physics, layer], spot: lower_section, still_f: 10, level_f: 6, acts_at: [12, 58, 100, 186]}
     size: WS                        # POV: Finn and Ivo, the nearest survivors, at 0.41
     angle: eye
     side: null
@@ -1013,7 +1079,9 @@ shots:
       - {feature: tsunami_reaches_section, status: verify}     # height and timing in the scout dry run
       - {feature: survivors_thrown_by_wave, status: verify}    # TsunamiHazard pushes and lifts; check it in the take
       - {feature: first_person_camera_with_hands, status: verify}
-    fallback: "none: BLOCKED if the wave cannot reach a section with survivors on it. If only the first-person camera
+      - {feature: performer_with_live_actors, status: verify}   # a person performs coral with finn and ivo live (record-and-layer.md 4a)
+      - {feature: performer_driver, status: verify}
+    fallback: "none: BLOCKED if the wave cannot reach a section with survivors on it. No person or no mixed pass: Coral driven with layers. If only the first-person camera
                fails: ride 0.4 m behind and 0.2 m above Coral's head at 24 mm (over the shoulder); Finn and Ivo stay 0.35+"
 
   - id: S02
@@ -1029,6 +1097,8 @@ shots:
     tower_level: sea
     reaction: "performed or getUp layer: head breaks the surface, arms reach for a block"
     learns: "She surfaces among the floating candy blocks"
+    actors:
+      - {id: coral, doing: "breaks the surface gasping, looks for the tower, reaches for a block", how: [performed], spot: sea, arrived_by: physics, still_f: 0, level_f: 8, acts_at: [15, 30, 44]}
     reveal: consequence
     cause_in: prev
     size: MCU
@@ -1073,7 +1143,7 @@ shots:
 
 ### B against every lint
 
-`tools/lint.py` run on 2026-11-20 (revision 4): 0 hard failures. Body = frames 0-340 (11.33 s). Body shots: S01 280 (first person), S02 60.
+`tools/lint.py` run on 2026-11-20 (revision 5): 0 hard failures, no soft warning. Body = frames 0-340 (11.33 s). Body shots: S01 280 (first person), S02 60.
 
 | Lint | Check | Result |
 |------|-------|--------|
@@ -1122,11 +1192,17 @@ shots:
 | L49 | single take: S01 is a 280-frame POV on both key events, `pov_of: coral` | pass |
 | L50 | POV 82 % of the body, `pov_led: true` | pass |
 | L51 | `layers` starts with the world pass; all three cast members have a layer | pass |
+| L52 | Coral `performed`; Finn and Ivo driven, then physics plus layers | pass |
+| L53 | planned runs; longest still 10 (Ivo peeking), level-head 12 | pass (re-measure after capture) |
+| L54 | Coral lower section > sea (S02) by `physics` (the block tips, on screen) | pass |
+| L55 | closest starts 6 frames (Coral 6 / Finn 0 / Ivo 12; Coral 136 / Finn 142) | pass |
+| L56 | S01 (POV) and S02 (hero MCU) both carried by a person performing Coral | pass |
 
 What it still owes before capture: R01 (Finn and Ivo visible ahead of her at every key; the
 wave's crest in frame at 0 with the head pitch the lookAt layer gives), R02 (the wave reaches the
 section at tape frame 200 within 8 frames and throws Finn and Ivo), the first-person camera showing
-Coral's hands without her own head in the way (else the over-the-shoulder fallback), and S02's
-floating check. Studio note (revision 3): the `tsunami` cue sets `affectPlayers = false`, so it never
+Coral's hands without her own head in the way (else the over-the-shoulder fallback), S02's
+floating check, and a person performing Coral while Finn and Ivo are live in one pass (untested;
+fallback: all three driven, Coral with the revision-4 look-at layers and the alive layer). Studio note (revision 3): the `tsunami` cue sets `affectPlayers = false`, so it never
 throws the climbers; stage this wave with the `hazard` cue (random side: run variations) or fake the
 throws with reaction layers.

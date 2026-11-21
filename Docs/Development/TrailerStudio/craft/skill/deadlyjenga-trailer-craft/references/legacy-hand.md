@@ -8,7 +8,9 @@ the two hand worked examples (A, C) follow it with their hand numbers re-derived
 Revision 4 applies here too: record once and layer the actors (`record-and-layer.md`), and see
 every key event close or in first person (the hand player's own view counts). For the legacy
 `hand` and `two_role` types `tools/lint.py` prints L47-L51 as warnings, not failures; A and C
-predate them and warn. A new hand plan should still pass them.
+predate them and warn. A new hand plan should still pass them. Revision 5 (`performance.md`) is the
+same: every visible survivor alive in every shot; L52-L56 warn for these types, and A and C (with no
+`actors` lists) warn.
 
 ## 1. What the hand is now (code, read 2026-11-20)
 

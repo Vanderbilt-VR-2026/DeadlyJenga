@@ -513,3 +513,62 @@ No Unity was run. Every new number is an estimate.
 - Whether the fixed first-person camera will show hands and weapons for played-back actors (the other
   agent's work), which every POV in the examples depends on (each has a fallback).
 - Why every body played back yellow in disaster-pvp-1.
+
+## Revision 5 (2026-11-20)
+
+Trigger: the owner said the survivors in the clips move robotically: actors stand frozen between
+scripted reactions, heads stay dead level, nobody travels under their own power. His words: "I
+don't want them to be moving robotically. I want them to be using the controls like a human and
+constantly doing something humanlike." Nothing in revision 4 asked for life outside key events:
+L51 only required each cast member to have *a* layer. In parallel another agent is building the
+tools (a scripted performer driver, an always-on alive layer, body-follows-head, working `point:`
+overlay targets); their syntax is not known yet, so this revision is written tool-agnostically and
+leaves one marked placeholder. No Unity was run.
+
+### Changes
+
+| # | Change | Where | Verified / estimated / untested |
+|---|--------|-------|---------------------------------|
+| 1 | **New reference `performance.md`**: what "alive" means in checkable numbers (still, level-headed, in sync, teleported); an intention per actor per shot; head leads body (head 3-6 f before torso, 6-12 before feet; 90° in 10-15 f casual, 5-7 startled, never under 4; body follows past 45-60° of neck yaw); anticipation and follow-through per action; glances 0.4-2 s, never metronomic or in step; reactions staggered by attention (watching 0-3 f, nearby but looking away 9-15 f, far 15-25 f) with a worked meteor table; VR-player tells (hands up and moving, head bob 1-3 cm, looking at own hands, over the shoulder, down at the drop, restless feet); travel under the actor's own power (placement only at take start, 1 s pre-roll, contact travel in the world pass); background business loops; a never-do table; when a person in the headset is worth it; the planning order; a worked shot. Section "Tool how-to (filled in when the tools land)" is the only place tool syntax will go | `references/performance.md` | sourced: the owner; animation practice (anticipation, follow-through, overlapping action); **every frame count is an estimate** |
+| 2 | **Hard rule 19** "Every actor alive, every frame", a "Start here" step 5, a defaults row (≤ 30 frames still or level-headed), four mistakes rows, a self-review row, the frontmatter description | SKILL.md | - |
+| 3 | **Pipeline gate 6b, the performance pass**, between committing the world take (stage 6) and placing cameras (stage 7): beat sheets against the committed take, driven travel, then layers, then the alive layer, then a measured per-actor motion table; final cameras only after it, from the performed tape. Stage 3's gate now also asks for `actors` | SKILL.md pipeline; `performance.md` §12 | - |
+| 4 | **Schema**: per shot `actors` [{`id`, `doing`, `how` (`driven`, `layer`, `alive`, `performed`, `bot`, `physics`), `spot`, `arrived_by`, `still_f`, `level_f`, `acts_at`, `motion_source`}]; header `motion_source` (`plan` / `take_report` / `metrics`). `bot` and `physics` were added to the four `how` values in the brief because the game's bot brain and the world take also move actors; `physics` alone fails (a ragdoll is not a performance) | `plan-schema-and-lints.md`; SKILL.md compact schema | new, **untested on a real plan** |
+| 5 | **Lints L52-L56** in `tools/lint.py` (hard for mayhem, disaster, pvp; warnings for legacy hand and two_role, as with L47-L51): L52 every visible actor has a `doing` and a valid `how`; L53 `still_f` and `level_f` ≤ 30 frames with a named source, not `plan` once committed; L54 a changed `spot` needs `arrived_by`, and `cut` only when the actor was not in the shot before; L55 (soft) no two actors' `acts_at` within 4 frames except the attacker-victim contact, no shared `doing`; L56 (soft) POVs and hero close-ups carried by `performed`, else a waiver | `tools/lint.py`; `plan-schema-and-lints.md` | tested (below); 30 and 4 frames are **estimates** |
+| 6 | **Rubric C12 "Performance and aliveness"** (weight 1.0; weighted mean now / 12.0) with all five anchors; evidence item 12 (per-actor motion table and a strip of every non-key shot); critic step 5d; performance defects in the self-review sweep; **"frozen actor" and "synchronized actors" added to the planted defects** (plan level and render level, with an ffmpeg recipe); a human-pass question | `review-rubric.md` | weight **inferred**; `pack.py --plant` does not plant the new defects yet (made by hand) |
+| 7 | **Worked examples** D, E and B gained `actors` on every shot (31 entries), header `motion_source: plan`, driven travel in their layers and `needs` items for the driver and alive layer; B now has a person performing Coral (her head is the camera for 9 s) with Finn and Ivo live in a driver-built pass (untested, fallback driven); D and E waive L56 in writing (D: no person booked and all four in one contact pass; E: Tansy's shove touches the performed Vela) | `worked-examples.md` | linted; **not scouted** |
+| 8 | Pointers: `record-and-layer.md` (top, end of §4, gaps 1, 6, 7 marked "being built"), `studio-tooling.md` §6 and §7, `reveals-and-moments.md` checklist 18e-18f, `legacy-hand.md` | references | - |
+
+### Tests run (no Unity)
+
+- `python tools/lint.py` on D, E and B as revised: 0 hard failures; L56 WAIVED in D and E; every
+  other soft lint passing or n/a. B passes L56 (Coral performed).
+- The first draft of D failed L55 (Brick at 10 and Pip at 6 in S05, 4 frames apart): fixed by
+  moving Brick's wind-up to 0 and Pip's late turn to 5.
+- Nine planted variants of D, each caught by the intended lint only (plus L48 for the committed
+  take): a missing entry (L52), `how: physics` alone (L52), Jolt still for 75 frames under the title
+  (L53), `take_status: committed` with planned runs (L53, L48), Jolt's step-up with no `arrived_by`
+  (L54), `arrived_by: cut` while in the shot before (L54), Dune and Brick both starting at 31 (L55),
+  two actors with one `doing` (L55), no L56 waiver (L56).
+- Legacy A and C print L52 and L56 as soft warnings and keep 0 hard failures.
+
+### Chosen not to change, and why
+
+- **L51 stays** (a layer per cast member); L52 is per shot and per visible actor, which L51 is not.
+- **No new hard lint on glance timing, head-leads-body or anticipation**: they need per-frame head
+  and hand data the take report does not have yet; they live in the reference and in C12.
+- **`pack.py`** is unchanged; the motion table and the new planted defects are made by hand until
+  the take report has head and hand rows.
+- **No tool field names** outside the placeholder: the other agent's syntax is unknown.
+
+### Unsure
+
+- Whether 30 frames is the right still and level-head ceiling: nobody has measured how long this
+  game's real players hold still; a tense, held look (a survivor frozen watching the wave) may want
+  a waiver.
+- The still and level-head definitions (5 cm, 2°, 2 cm; ±3° pitch, ±1° roll) are guesses that need
+  checking against a performed take's head and hand data.
+- Whether 4 frames is the right sync window; crowd copies may need more (10 frames suggested).
+- Whether a person can perform an actor in the same live pass as driven actors (B and E rely on it;
+  `record-and-layer.md` §4a marks it untested).
+- How the alive layer and the driver will report their own stillness; the take report needs head
+  yaw, pitch, roll and hand positions per frame for L53 to be measured rather than planned.

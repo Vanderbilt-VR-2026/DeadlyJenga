@@ -1,6 +1,6 @@
 ---
 name: deadlyjenga-trailer-craft
-description: The required craft playbook for Deadly Jenga trailers (disaster and player-versus-player mayhem on a collapsing block tower). Required working method - record the world event once in Trailer Studio, commit that take, add every actor as a layer timed against it, place every camera from the take's positions, never re-record between shots - and every key hit seen close or in first person (a VR game: first person is required). Also a gated pipeline with a scout loop and a planning-only mode, hard rules by concept type (mayhem, disaster, PvP; the giant hand only as a legacy extra), a moment class for 5-10 s clips, numeric defaults, worked examples, a lintable shot-list schema with a shipped linter and assembly tools, and a critic protocol. Use it any time an agent plans, shoots, cuts, scores or reviews a Deadly Jenga trailer, teaser, social clip or cinematic moment, before touching Trailer Studio or any render.
+description: The required craft playbook for Deadly Jenga trailers (disaster and player-versus-player mayhem on a collapsing block tower). Required working method - record the world event once in Trailer Studio, commit that take, add every actor as a layer timed against it, place every camera from the take's positions, never re-record between shots - every key hit seen close or in first person (a VR game: first person is required), and every visible actor always alive and human-like (an intention in every shot, driven through the game's own controls or performed by a person in the headset, head leading, never frozen, level-headed, teleported or in sync with another actor), checked per shot. Also a gated pipeline with a scout loop and a planning-only mode, hard rules by concept type (mayhem, disaster, PvP; the giant hand only as a legacy extra), a moment class for 5-10 s clips, numeric defaults, worked examples, a lintable shot-list schema with a shipped linter and assembly tools, and a critic protocol. Use it any time an agent plans, shoots, cuts, scores or reviews a Deadly Jenga trailer, teaser, social clip or cinematic moment, before touching Trailer Studio or any render.
 ---
 
 # Deadly Jenga trailer craft
@@ -10,9 +10,11 @@ music laid under afterwards, no face) cannot happen again. The default trailer i
 survivors fighting each other on a collapsing tower**; the hand is a legacy extra (`legacy-hand.md`).
 **Revision 4 (2026-11-20)** makes the Studio's working method and close, first-person coverage
 required: the owner asked why trailers had no first person and were "overly-reliant on distant shots
-esp the super distant ones during important events". **Rules constrain craft, not the idea.**
+esp the super distant ones during important events". **Revision 5** makes every visible actor look
+like a person playing, in every frame (rule 19): the owner said the survivors moved "robotically".
+**Rules constrain craft, not the idea.**
 
-## Start here: record once, layer the actors, shoot close (rules 17, 18)
+## Start here: record once, layer the actors, make them alive, shoot close (rules 17-19)
 
 1. **One physics event, recorded once.** Record the world (blocks, disasters, every live body,
    projectiles, sound events) in one live pass; every actor who hits or is hit is live in it.
@@ -23,25 +25,32 @@ esp the super distant ones during important events". **Rules constrain craft, no
 4. **Layer the actors in order:** the world first, then whoever causes things, then whoever is hit,
    then the witnesses, each timed from the take: look at the rock that actually lands, flinch on the
    frame it hits. A cast member with no layer is a prop.
-5. **Place every camera from the take's positions at the event frame**, and see every key event
+5. **Make everyone alive between the events** (the performance pass, stage 6b): every visible
+   actor has a `doing` in every shot; travel is driven through the game's controls (or performed),
+   then explicit reactions, then the always-on alive layer fills every gap. Nobody still or
+   level-headed over 30 frames, nobody in step with anyone. A person in the headset is best for
+   hero close-ups and first person. Then place the final cameras.
+6. **Place every camera from the performed take's positions at the event frame**, and see every key event
    (each hit, knock-off, elimination, the payoff) **close (victim ≥ 0.25 of frame height) or in
    first person**. Wides are for geography and scale, never a key event's only coverage.
-6. **First person is required**: at least 25 % of a montage's body, at least one POV on a key event.
+7. **First person is required**: at least 25 % of a montage's body, at least one POV on a key event.
 
 How, with the real Studio methods, for a person and for an agent, and what an agent cannot do yet:
-`references/record-and-layer.md`. Lints L47-L51; the critic checks key events in motion (C11).
+`references/record-and-layer.md`; for step 5, `references/performance.md`. Lints L47-L56; the
+critic checks key events in motion (C11) and aliveness between them (C12).
 
 Tags on every hard rule: **[measured]** = counted in 22 official trailers (report 06),
 **[sourced]** = working editors, standards, platform specs, or the documented findings of attempt 1,
 skill test 1 and the field tests, **[inferred]** = derived; inferred numbers are defaults, never
 hard on their own; **estimate** marks a number nobody has measured. Decisions and their
-evidence: `../../RECONCILIATION.md` (Revisions 3 and 4 at the end).
+evidence: `../../RECONCILIATION.md` (Revisions 3, 4 and 5 at the end).
 
 ## Which reference to open when
 
 | Stage | Open |
 |-------|------|
 | How to record once, layer actors and place cameras from the take (read first, every time) | `references/record-and-layer.md` |
+| Making actors read as people playing: intentions, glances, travel, the alive layer, a person in the headset (stage 3 `actors`, stage 6b) | `references/performance.md` |
 | What the game has, what the Studio can direct | `references/game-content.md` and `references/studio-tooling.md` |
 | Brief, concept, beat sheet | `references/structure-and-templates.md` |
 | How different plans can look (and what not to copy) | `references/worked-examples.md` (D, E, B) |
@@ -80,7 +89,7 @@ evidence: `../../RECONCILIATION.md` (Revisions 3 and 4 at the end).
 | Riding a moved block | standing survivors ride it; on a lifted, **tilting** block a survivor is carried by the block's position only and **sinks into it unless he stands at its middle** (0.36 m off-centre, 0.27 m slide at the middle) |
 | Several real players in one take | cannot today: stand-ins and bots fill in; one person performs at a time against the playback of everyone recorded before (layers, `record-and-layer.md`) |
 | Studio cues for mayhem | disasters (`hazard`, `tsunami`), `aimedMeteor`, block pushes and collapses, `gear`, `fire`, `glovePunch`, reaction and look-at layers timed from the take |
-| Missing in the Studio | an unarmed punch cue; directed walking for stand-ins; a take report; mode objectives and HUD (Demo only); real eliminations (deaths off: the fallen respawn); a tsunami cue that pushes survivors; sound cues; repeatable physics; a live view; a smoothed first-person camera with own hands (in progress) |
+| Missing in the Studio | an unarmed punch cue; directed walking for stand-ins (a scripted performer driver and an alive layer are being built: `performance.md`); a take report; mode objectives and HUD (Demo only); real eliminations (deaths off: the fallen respawn); a tsunami cue that pushes survivors; sound cues; repeatable physics; a live view; a smoothed first-person camera with own hands (in progress) |
 | Giant hands | one per hand player; AI hand bots can add more; the flying hand is a 30 s pickup (legacy) |
 | Live action of a person in a headset | cannot (the Studio cannot capture it) |
 
@@ -96,10 +105,10 @@ plan only. Then:
   measured-onset clause; every R-lint; stages 5-11. Every engine-proof item becomes a `needs:
   verify` item on a **to verify at scout** list; take frames in `take_ref` are `planned`.
 - **Not deferred:** stages 0, 1 and 4 (critic or the labelled fallback), every other plan lint
-  (L38, L47-L51 included: key events close or in first person, layers planned). Name the map you
+  (L38, L47-L56 included: key events close or in first person, layers and `actors` planned). Name the map you
   assume (attempt 1's castle by default) and derive `fit` lines from it; say the references are dated.
 - **Output may be one file**, `plan.md`: Brief; Concept; Music targets; Plan table (every lint
-  field, `fit`, `take_ref`, `key_events`, `layers`); Lint table (`tools/lint.py`); Text animatic;
+  field, `fit`, `take_ref`, `key_events`, `layers`, `actors`); Lint table (`tools/lint.py`); Text animatic;
   Review; To verify at scout; Before any render.
 - **Before any render** (copy this list into the plan): (1) choose or cut a track and map it
   (`tools/music_map.py`); (2) move the picture to the measured hits, never the hits to the picture;
@@ -119,12 +128,13 @@ Stage 5 may make scout stills only.
 | 0 | Brief | `brief.yaml`: goal, audience, length class, aspect, platform (muted-first?), must-show ids each with a one-line proof, one sentence a viewer should repeat, map, mode rules assumed, who is performed or a bot, render and critic budget | Could a stranger write the logline and must-show list from it? |
 | 1 | Concept | `concept.md`: five or more one-line "image people will remember" ideas; the chosen concept (logline, concept type, hero, opening, shape, arc in three words, title text); two rejected concepts | Is the hook something only this game has, is the shape declared, and does each rejected concept differ from the chosen one in at least two of shape, opening, payoff, ending? |
 | 2 | Music map | `music.yaml` (`tools/music_map.py`): file, tempo, beats, onsets, named hits (`open`, `main`, `title`, accents), stop-downs, loudness curve | Is every hit taken from the onset list of the actual file? (planning-only: deferred; target hits written) |
-| 3 | Plan | `plan.yaml` (schema below) and `lint.txt` (`tools/lint.py`) | Do all hard plan lints pass, is every soft failure fixed or waived with a reason, and does every shot have a `fit` line? |
+| 3 | Plan | `plan.yaml` (schema below) and `lint.txt` (`tools/lint.py`) | Do all hard plan lints pass, is every soft failure fixed or waived with a reason, and does every shot have a `fit` line and an `actors` entry for every visible actor? |
 | 4 | Animatic and plan review | text animatic (one card per shot, timed to the music) and a critic's notes (or the labelled fallback) | Read only the cards: can the critic name the hook, the hero, who hits whom, the payoff and where the title lands, and does it score Hook, Clarity and Story at 3 or more? |
 | 5 | Scout | a rehearsal take and its take report; stills at first, key and last frame of every shot, cameras placed from the take; subject area and occlusion from the engine | Is every subject visible at its key frame (R01), did every cue do what the plan needs (R02), and does every key event have a close or first-person camera at the frame the take puts it (L47)? |
 | 5b | **Re-plan** | `v0N+1/plan.yaml`, `lint.txt`, a change list | **The scout loop:** did the scout change any camera, spot, cue, actor or hazard setting? Then write the changed plan as a new version, re-run every lint, and re-run the stage-4 review if any key moved more than 6 frames, any shot fell back or any `shows` label changed. Loop 5 → 5b until a scout changes nothing that matters. |
-| 6 | Capture | **the one committed take** (bundle), its take report, `key_events` with take frames, `layers` added on it | Did every action cue happen within 8 frames of plan, are the hazards and hits in the take, and does every later job load this bundle? |
-| 7 | Preview | 640x360 render of the whole cut with sound (`tools/assemble.py`); evidence pack (`tools/pack.py`) | Does every shot show its subject doing its action at preview size? |
+| 6 | Capture | **the one committed world take** (bundle), its take report, `key_events` with take frames | Did every action cue happen within 8 frames of plan, are the hazards and hits in the take, and does every later job load this bundle? |
+| 6b | **Performance pass** (`performance.md` §12) | a beat sheet per actor against the committed take; driven travel, then `layers`, then the alive layer, added on it; a per-actor motion table (still and level-head runs, action starts) from the take report | Does every visible actor have a `doing` in every shot, is none still or level-headed over 30 frames by the take report (not the plan), did everyone travel under their own power, are no two in step, and was a person in the headset used (or waived) for hero close-ups and POV? Only then are final cameras placed, from the performed tape. |
+| 7 | Preview | cameras placed from the performed tape; 640x360 render of the whole cut with sound (`tools/assemble.py`); evidence pack (`tools/pack.py`) | Does every shot show its subject doing its action at preview size, and does every actor move like a person between the events? |
 | 8 | Rough cut | full cut with temp titles; critic round | No rubric category at 2 or below, weighted mean ≥ 3.5, no hard lint failing |
 | 9 | Fine cut, lock | 1080p render; critic round; plan tagged `locked` | Weighted score ≥ 4.0, all categories ≥ 3, planted-defect check passed |
 | 10 | Finish | `trailer.mp4`, loudness report, profile check | Render lints R03-R05 pass |
@@ -266,6 +276,15 @@ run them with `tools/lint.py`).
     First person ≥ 25 % of a montage's body in 2+ POV shots, one on a key event; a take or moment has
     a 1 s POV on a key event (L49); over 60 % needs `pov_led` (L50). [sourced: the owner; measured: 6
     of 8 VR trailers mostly first person; disaster-pvp-1 victims 0.07-0.15; numbers estimates]
+19. **Every actor alive, every frame** (`performance.md`). Each visible actor in each shot has a
+    `doing` (an intention, not a pose) and says how it is achieved: `driven` (the game's own controls),
+    `layer`, `alive`, `performed` (a person in the headset), `bot`, with `physics` never alone (L52).
+    Nobody still or level-headed over 30 frames, measured from the take report once it exists (L53);
+    nobody arrives anywhere except by their own travel, physics, or a cut that hides it (L54); no two
+    actors start an action within 4 frames (L55, soft); hero close-ups and POVs performed by a person
+    or waived in writing (L56, soft). Head leads body, anticipation before every strike and jump,
+    glances 0.4-2 s and never metronomic, reactions staggered by attention. [sourced: the owner;
+    animation practice; every number an estimate]
 
 ## Defaults by length
 
@@ -284,6 +303,7 @@ Use these unless the brief says otherwise. Soft lints warn when they are broken;
 | Wide (EWS, WS, FS) share of body shots | ≥ 40 % | ≥ 40 % | ≥ 40 % | ≥ 40 % | measured; party/physics 60 % |
 | First person (share of body frames) | 1 POV ≥ 1 s on a key event | ≥ 25 %, ≥ 2 POV shots | same | same | measured VR 0.67; floor estimate |
 | Key events | each close (h ≥ 0.25) or POV | same | same | same | estimate |
+| Longest still or level-head run, any visible actor | ≤ 30 frames | same | same | same | estimate |
 | Close (CU, ECU, INSERT) share | ≤ 25 % | ≤ 25 % | ≤ 15 % | ≤ 15 % | measured |
 | Designed moves (montage) | any | 10-30 % of shots | same | same | measured median 11 %, party 14 % |
 | Disasters on screen | 1 | 1-2 | 2-3 | 3-5 | estimate |
@@ -331,6 +351,7 @@ shape: montage          # montage | single_take
 hero: <your id>         # never an example's id
 must_show: [...]        # from the brief, each with a proof in brief.yaml
 capture: {take: bundle/..., take_status: planned}   # committed after stage 6
+motion_source: plan     # plan | take_report | metrics: where still_f / level_f come from (L53)
 key_events: [{id: K1, frame: 70, kind: pvp_hit, attacker: <rival>, victim: <hero>, what: "..."}]
 layers: [{order: 1, kind: world, actor: world, how: "..."}, {order: 2, kind: actor, actor: <hero>, how: "...", reacts_to: [K1]}]
 music: {file: ..., bpm: ..., hits: [{name: main, role: main, frame: 264, measured_onset_frame: unmeasured}]}
@@ -346,6 +367,9 @@ shots:
      fit: "Hf = d x 24 / f at the subject; fractions; the knockback path stays in frame",
      key_frame: 30, sound: [{at: 30, kind: music_hit, name: punch, sync: punch}],
      take_ref: {event: K1, take_frame: 360, subject_h: 0.29, source: fit},   # tape or metrics once committed
+     actors: [{id: <hero>, doing: "backs off, eyes on <rival>'s hands", how: [driven, physics, layer, alive],
+               spot: wall_walk, still_f: 6, level_f: 14, acts_at: [5, 31, 48]},     # every visible actor (L52-L56)
+              {id: <rival>, doing: "...", how: [driven, alive], spot: wall_walk, still_f: 4, level_f: 9, acts_at: [10, 22, 30, 41]}],
      needs: [{feature: melee_hit_through_fire_cue, status: verify}], fallback: "..."}
 ```
 
@@ -359,6 +383,7 @@ You cannot watch motion or hear sound. Judge from evidence, in this split:
 | Is each key event close or in first person, and does it read in motion? | `metrics.csv` height at the event frame; the dense strip or clip around it | one still |
 | Is the subject readable (pose, who it is, what it does)? | full-size still at the key frame | numbers |
 | Who hit whom? | stills at key -2, key, key +2 with attacker and victim boxed | a contact sheet alone |
+| Does every actor move like a person between events? | the per-actor motion table from the take report (still and level-head runs, action starts) and a strip of every shot | a key still, or the plan's own `still_f` |
 | Is the hero's colour what the plan says? | a full-size still | `StudioMark.color` (a palette index: index 6 rendered yellow) |
 | What is the camera doing? | the camera track's own keys (m/s, deg/s) | stills |
 | Do cuts, hits and impacts line up? | the sync table, lane by lane | the full-mix column alone |
@@ -397,6 +422,10 @@ You cannot watch motion or hear sound. Judge from evidence, in this split:
 | No first person in a VR game's trailer | 25 % of a montage in POV, one POV on a key event (rule 18, L49) |
 | Cast behaving like props: stand-ins staring ahead while a rock lands beside them | Layers timed from the take: look at it, flinch on its frame, scream, cower (rule 17, L51) |
 | Two halves of one moment rendered from two takes (hand-reveal-2) | One committed take for the whole sequence (rule 17) |
+| Actors frozen between scripted reactions, heads dead level (the owner: "robotically") | An intention per shot; driven travel, layers, then the alive layer in every gap; ≤ 30 frames still (rule 19, L52, L53) |
+| Witnesses all turning on the same frame | Stagger by attention: watching 0-3 f, nearby but looking away 9-15 f, far 15-25 f (L55) |
+| An actor placed somewhere new between shots | Drive the travel through the game's controls, or let physics or a hiding cut carry it (L54) |
+| A scripted head as the first-person camera | A person performing that actor in the headset, or a written waiver (L56) |
 | Cameras placed from where a victim stood before the hit | Read the victim's position at the event frame from the tape |
 | Look-at layer aimed at `point:x,y,z`: silently ignored | Empty `target` plus `point`, or `hazard` (`record-and-layer.md` §5) |
 | Events in a row with no sections, no rises, no turn (attempt 1) | Beat sheet first; every escalate beat names what it raises (rule 2) |

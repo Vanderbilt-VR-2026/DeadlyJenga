@@ -142,7 +142,10 @@ metrics and the hand timeline in one job), and read `metrics.json` against the p
    `hit` trigger for overlays, a Studio take report, `point:` targets for overlays, a `hide` overlay,
    keeping chosen actors live while performing). First person is done (`490c0bbb`, see `camera.md`
    1c); still missing there: a look-at that turns the body when the neck limit is reached, and a
-   first-person own-body view for the giant hand.
+   first-person own-body view for the giant hand. **Being built** (revision 5, another agent): a
+   scripted performer driver (go to, run, look, jump, climb, punch through the game's own controls),
+   an always-on alive layer, body-follows-head past a comfortable neck angle, and `point:` overlay
+   targets. Their syntax goes in `performance.md`, "Tool how-to"; until then, `verify` with a fallback.
 1. For mayhem: an unarmed **punch / shove cue** for a chosen attacker and victim; a tsunami cue that can push
    survivors; real eliminations on the stage (deaths on, as an option); a chosen
    side for every disaster, not only the tornado.
@@ -173,7 +176,7 @@ their inputs come from somewhere you do not trust.
 
 | Tool | What it does | Use it at | Limits |
 |------|--------------|-----------|--------|
-| `lint.py <plan.yaml>` | computes every plan lint (L01-L51; L47-L51 added in revision 4) and prints PASS / FAIL / WAIVED / N/A with numbers; exit 1 on an unwaived hard failure | stage 3, after every plan change, after the scout loop | cannot judge truth (labels, proofs, `fit` lines), R-lints, or plans that are not in the schema |
+| `lint.py <plan.yaml>` | computes every plan lint (L01-L56; L47-L51 added in revision 4, L52-L56 in revision 5) and prints PASS / FAIL / WAIVED / N/A with numbers; exit 1 on an unwaived hard failure | stage 3, after every plan change, after the scout loop | cannot judge truth (labels, proofs, `fit` lines), R-lints, or plans that are not in the schema |
 | `music_map.py <cue> <start_s> <length_s> <out> [--fps --lag]` | tempo, beats, onsets with strength and rise, candidate hits, the biggest hit, stop-downs, loudness; writes `music.yaml` and the excerpt | stage 2 | onsets on the full mix, not phrases; hits are candidates; check the downbeat yourself |
 | `assemble.py <job> <out> <preview|final> <events.json> [--sound-root]` | cuts the picture by `shots.txt`, mixes music, take sound and every event at its frame (a clip's first attack placed on the frame), normalises to -15 LUFS / -1.5 dBTP, writes `cut.mp4`, `mix.wav`, filmstrip, contact sheet, stills and `metrics.txt` with a **two-column sync table (full mix, own lane)** and NEEDS EARS on voice lines | stages 7-10 | needs the driver's `shots.txt` format and per-shot mp4s with handles; no titles; does not judge lane balance |
 | `pack.py <job> <asm> <pack> [--plant ...]` | the evidence pack from the job and the assembly, and a planted-defect copy (a sync line moved 5 frames, an impact removed, a still swapped) with `planted.txt` beside the packs | every critic round from stage 7 | no subject overlay, motion strip or audio plot (items 3, 4, 7) |
@@ -186,5 +189,9 @@ needed; it fails the new L14 because it has no `reaction` field); `music_map.py`
 generated sounds, where a soft-attack "voice" read +9.4 frames in the full mix and -0.5 frames in its
 own lane. Revision 4 (2026-11-20, no Unity): `lint.py` with L47-L51 on D, E and B as revised (0 hard
 failures, no soft warnings) and on their revision-3 versions (each failed L47, L48 and L49, as it
-should); A and C (legacy) print L47-L51 as soft warnings. Not tested: a `final` (1080p) assembly, real Studio job output, real game sound files, and
+should); A and C (legacy) print L47-L51 as soft warnings. Revision 5 (2026-11-20, no Unity):
+`lint.py` with L52-L56 on D, E and B with their new `actors` lists (0 hard failures; L56 waived in D
+and E) and on nine planted variants of D (a missing entry, physics alone, a 75-frame still run, a
+committed take with planned runs, a teleport, a `cut` arrival while in frame, two actors on one
+frame, a shared `doing`, no L56 waiver), each caught by the intended lint. Not tested: a `final` (1080p) assembly, real Studio job output, real game sound files, and
 `pack.py` against a real metrics CSV.

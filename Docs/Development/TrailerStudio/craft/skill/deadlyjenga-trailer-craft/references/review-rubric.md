@@ -60,6 +60,16 @@ For the whole cut:
     person? Does the hit read across the strip (contact, then the victim moving), not only in one
     frame? Do the witnesses' heads turn to it? Is the first-person view steady, with hands or weapon
     in frame?
+12. **Actor motion** (revision 5, `performance.md`): a table per shot, one row per visible actor:
+    the longest still run and the longest level-head run (frames), the frames where each starts an
+    action, and the source (`take_report` or `metrics`), next to the plan's `doing`, `still_f`,
+    `level_f` and `acts_at`. Plus one strip per shot that is not a key event (every 3rd frame across
+    the shot, 320 px wide) so the stretches *between* events are seen. `tools/pack.py` does not build
+    it yet: count the runs from the take report's per-actor head and hand rows (add head yaw, pitch,
+    roll and hand positions to the report if it lacks them). Questions: is anyone still or
+    level-headed over 30 frames? Does every actor look before moving or striking? Do two actors
+    start on the same frame or mirror each other? Does anyone slide, pop, snap-turn or appear
+    somewhere new without travelling? Do the hands stay up and moving?
 
 Anything that depends on hearing (does the music fit, does the boom satisfy, is anything harsh) is
 marked **unverified** and goes to the human pass.
@@ -100,6 +110,10 @@ Inputs: brief, concept, plan, lint output, evidence pack [, previous notes, prev
    give the victim's height share and whether it was seen close or in first person; name any key
    event whose only coverage is a wide; give the first-person share of the body; name any cast
    member who never reacts to anything (a prop).
+5d. Performance (C12): from pack item 12 and the strips, name every actor who is still or
+   level-headed over 30 frames, every pair starting an action within 4 frames, every teleport,
+   slide or instant turn, and every punch thrown without looking. Say for each hero close-up and
+   POV whether a person performed it.
 6. For every category at 3 or below write: shot/frame, symptom, cause, stage to return to,
    optional fix.
 7. End with a numbered list of concrete errors found, then the top three problems, ranked by how
@@ -142,6 +156,10 @@ Use this when the session may not spawn agents (or none can be started). It is w
      placed from a mark instead of the take; no first person, or first person only on filler; a cast
      member with no layer who stands still while a rock lands beside them; two halves of one moment
      from two takes.
+   - performance (revision 5): an actor whose `doing` is a pose, not an intention; a still or
+     level-head run over 30 frames (check the longest shot and every title shot first, where
+     actors are left standing); two witnesses whose `acts_at` share a frame; an actor whose `spot`
+     changes with no `arrived_by`; a hero close-up or POV with no person and no waiver.
 4. List at least three real problems with fixes. If you find fewer, look again at the framing and
    the capability list before concluding.
 5. End with a **critic owed** block for whoever orchestrates the work: the files to give an
@@ -167,9 +185,10 @@ Use this when the session may not spawn agents (or none can be started). It is w
 | C9 | Technical | 0.75 | No pops, ghosts, clipping cameras, black frames, flashes, reused footage | R04, R05 |
 | C10 | Brief fit | 0.5 | Must-show list proven as the brief defines it (multiplayer on screen, not implied), the concept type the brief asked for, length, aspect, tone, nothing copied from an example | L18, L19, L36, L39 |
 | C11 | Immersion and closeness | 1.0 | Is every key event seen close (victim ≥ 0.25) or in first person, judged in motion (pack item 11)? Does first person feel like playing (steady, own hands or weapon, the threat coming at you)? Do the cast act and react to what really happened? Wides only for geography and scale | L47, L48, L49, R08 |
+| C12 | Performance and aliveness | 1.0 | Does every visible actor read as a person playing the game in every frame, not only at key events (pack item 12)? An intention in every shot, head leading the body, anticipation and follow-through, glances 0.4-2 s and never in step, reactions staggered by attention, hands up and moving, travel under their own power; nobody frozen, level-headed, mirrored, sliding or snap-turning | L52, L53, L54 |
 
-Weighted mean = sum(score x weight) / 11.0 (revision 4 added C11; earlier rounds divided by 10.0,
-so compare scores only within one revision).
+Weighted mean = sum(score x weight) / 12.0 (revision 5 added C12; revision 4 divided by 11.0 and
+earlier rounds by 10.0, so compare scores only within one revision).
 
 ### Anchors (shared meaning)
 
@@ -197,6 +216,16 @@ so compare scores only within one revision).
 | C10 Brief | must-show items missing | all items, one weakly | all items, exact length and aspect, tone right |
 | C11 Immersion | key hits only from far away (victims under 0.15), no first person, cast standing like props | every key event has one close shot, but first person is on filler or the cast barely react | every key event lands close or in first person with the victim filling the frame; first person feels like playing; every witness reacts on the frame it happens |
 
+C12 has all five anchors, because aliveness is easy to over-score from stills:
+
+| C12 score | What it looks like |
+|-----------|--------------------|
+| 1 | Mannequins: actors stand frozen between scripted reactions for 2 s or more, heads dead level, everyone turns on the same frame, someone appears somewhere new or slides |
+| 2 | One or more visible actors still or level-headed over 30 frames in an important shot, or a hard lint L52-L54 failing; reactions fire and then the body freezes |
+| 3 | Everyone moves, but it reads scripted: glances on a regular beat, two actors in step, a punch without a look first, hands dropping to the sides |
+| 4 | People playing: every actor has an intention, heads lead, reactions staggered by attention; only a trained eye finds a stiff second or a sync (cite the best and worst) |
+| 5 | Indistinguishable from people in headsets: the hero close-ups and POVs performed by a person, hands always busy, looks down at the drop and over the shoulder, background loops never repeating; matches a reference VR trailer's player footage |
+
 ## 5. Evidence rules
 
 - Every score cites at least one evidence item (shot and frame, or a number from the sync table,
@@ -213,11 +242,19 @@ so compare scores only within one revision).
    plan-level defects: payoff off its hit, title moved early, reaction after the reveal, a
    duplicated shot, a hidden hero, a hit whose attacker is out of frame; revision 4: a key event's
    close or POV shot replaced by the wide of the same moment, a POV removed so the share falls under
-   the floor, a witness's reaction layer deleted). `tools/pack.py --plant`
+   the floor, a witness's reaction layer deleted; revision 5: a **frozen actor**, one visible actor's
+   `doing` replaced by "stands" and `still_f` set to 60, and **synchronized actors**, two witnesses'
+   `acts_at` moved onto the same frame). `tools/pack.py --plant`
    builds the render-level copy. A script makes a copy of the evidence pack with three injected
    defects: one cut moved 5 frames off its hit in the sync table, one key still replaced by a frame where
    the subject is hidden, one impact sound removed from the audio plot and stem table, or one shot
-   duplicated (revision 4: or one key-event strip replaced by the same frames from a wide shot). The critic gets both packs in random order and does not know which is which. If it finds
+   duplicated (revision 4: or one key-event strip replaced by the same frames from a wide shot;
+   revision 5: a **frozen actor**, one actor's longest still run in pack item 12 set to 60 frames and
+   the strip tiles of that actor's crop replaced by its first tile, e.g. `ffmpeg -i S04.mp4 -i S04.mp4
+   -filter_complex "[1:v]trim=end_frame=1,loop=-1:1,crop=W:H:X:Y[f];[0:v][f]overlay=X:Y:shortest=1"
+   S04-frozen.mp4`, or **synchronized actors**, two actors' action starts in item 12 set to one frame).
+   `pack.py --plant` does not do the revision-5 defects yet; make them by hand and add them to
+   `planted.txt`. The critic gets both packs in random order and does not know which is which. If it finds
    fewer than 2 of 3, or scores the defective pack within 0.25 of the real one, discard its review and
    rerun once with a warning; if it fails again, send the round to the human.
 2. **Calibrate on attempt 1** the first time the skill is used on a machine: the critic scores attempt 1
@@ -272,5 +309,6 @@ smaller than the rounds above:
   the payoff? Can you tell who hit whom in every fight? Do you follow the hero, and does her body
   read? Is every voice line in sync (the meters cannot tell)? Is the title drop-out too abrupt? Is
   anything harsh, muddy or out of sync? Is any shot too fast to follow at full speed? Is every big
-  hit close enough to feel? Does first person feel like playing, or like a camera on a stick?
+  hit close enough to feel? Does first person feel like playing, or like a camera on a stick? Does
+  anyone ever look like a mannequin: frozen, level-headed, moving in step with someone else?
 - Save their notes in the version folder (R07).

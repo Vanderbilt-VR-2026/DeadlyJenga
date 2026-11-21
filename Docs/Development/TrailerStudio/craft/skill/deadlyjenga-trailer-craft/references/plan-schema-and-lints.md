@@ -43,6 +43,7 @@ line is true of the shot; you and the critic still check that. A plan written as
 | `key_events` | list | every key event (L47): {`id` (K1...), `frame` (trailer frame), `kind` (`pvp_hit`, `knock_off`, `elimination`, `into_sea`, `hazard_hit`, `payoff`), `attacker`, `victim`, `what`}; after capture also the take frame and place from the take report |
 | `layers` | list | the pass order (`record-and-layer.md` section 4): {`order`, `kind` (`world` first, then `actor`), `actor`, `how` (cues, performance or overlays), `reacts_to` (event ids)}; one entry per cast member (L51) |
 | `pov_led` | bool | true when first person is the cut's main view (more than 60 % of the body, L50) |
+| `motion_source` | enum | default for every `actors` entry's still and level-head runs (L53): `plan` (the beat sheets' intent; only before `take_status: committed`), `take_report` (counted from the take report's per-actor head and hand rows) or `metrics` (measured in a render). A shot or an entry may override it |
 | `camera_sensor_mm` | float | 24 (all distances in `camera.md` assume it; the Studio's default is 18.66, so set each track's `sensorHeight`) |
 | `music` | object | `file` (null in planning-only mode), `bpm`, `meter`, `downbeat_frame`, `sections` [{name, from_frame, to_frame}], `hits` [{name, role: `open` / `reveal` / `main` / `title` / `accent`, frame, bar_beat, measured_onset_frame (a frame, or `unmeasured`)}], `stopdowns` [{from, to}] |
 | `titles` | list | {text, `role`: `title` / `tagline` / `cta` / `caption`, frame_in, frame_out, style: `card` / `over_picture`, position, closing: bool}. Exactly one entry has `closing: true` (role `title`). A `caption` is in-body text over gameplay; `tagline` and `cta` belong to the end card. |
@@ -83,6 +84,7 @@ line is true of the shot; you and the critic still check that. A plan written as
 | `camera` | object | `move` (library below), `purpose` (string), `ease` (`in_out`, `in`, `out`, `damped`, `none`), `distance_m` to subject, `height_m` above the subject's standing surface (POV: eye height), `focal_mm`, `aperture`, `focus` (`subject` or metres), `params` (move-specific), `pov_smoothing` {pos_s, rot_s} for POV; `pov_of` (the cast survivor whose eyes it is; L49) |
 | `fit` | string | **the framing check** (L38): frame height at the subject `Hf = distance x 24 / focal_mm`, the subject's fraction of it, and why the action point (impact, block travel, face, both threats) fits. Derived for this shot, never copied. |
 | `key_frame` | shot frame | where the action peaks |
+| `actors` | list | **every visible actor** (revision 5, L52-L56; `performance.md`): each cast id that is the subject, in `also_in_frame`, or the `pov_of` owner. One entry each: `id`; `doing` (one line: where they are going, who they watch or what they fear, never a pose; no two alike in a shot); `how` (one value or a list from `driven` = the game's own controls fed by the scripted performer driver, `layer` = explicit overlays, `alive` = the always-on alive layer alone, `performed` = a person in the headset, `bot` = the game's bot brain, `physics` = knocked, falling or carried, never alone); `spot` (the block or stretch, about 6 m, the actor is on at the shot's first frame); `arrived_by` when `spot` differs from the actor's last appearance (`driven`, `performed`, `bot`, `physics`, `start` = an earlier tape time at the starting mark, `cut` = moved off screen and not in the shot before); `still_f` and `level_f` (longest still and level-head runs in the shot, frames); `acts_at` (shot frames where the actor starts a visible action: a turn, step, strike, glance, flinch); optional `motion_source`. A shot may also carry `motion_source` |
 | `take_ref` | object | **the camera derived from the tape** (L48), required on every key beat (and on any other shot that covers a key event): `event` (a `key_events` id), `take_frame` (tape frame from the take report; `planned` before a take is committed), `subject_h` (the affected survivor's or the impact's height share of the frame at that frame), `source` (`fit`, `tape` or `metrics`). A single take puts it on each key moment |
 | `moments` | list | single-take only: [{at, section, reveal, threat, raises, cause_in, shows, attacker, victim, what, sound_at, hook_count}] treated as beats by L03, L05, L08, L09, L12, L40-L46 (`what` follows the `learns` rules; the take's `also_in_frame` counts for every moment) |
 | `action_cue` | object | `cue_id`, `tape_frame`, `expect` (e.g. `block_travel_m: 2.0`) |
@@ -199,8 +201,29 @@ types. The numbers are estimates. Procedure: `record-and-layer.md`; framing: `ca
 | L50 | soft | POV cap | POV ≤ 60 % of body frames unless `pov_led: true` | keeps third person for scale and readable fights; **estimate** |
 | L51 | soft | Nobody is a prop | `layers` exists, starts with `kind: world`, and every `cast` id has an entry | disaster-pvp-1 and hand-reveal-2: stand-ins only, nobody reacted |
 
-(L36-L39 are from revision 2; L40-L46 from revision 3; L47-L51 from revision 4. Montage-only soft
-lints (L21-L24, L30, L33) and L25 do not apply to class `moment`.)
+### Living actors (revision 5)
+
+Grounding: the owner's direction (2026-11-20: "I don't want them to be moving robotically. I want
+them to be using the controls like a human and constantly doing something humanlike"); animation
+practice (anticipation, follow-through, overlapping action); disaster-pvp-1 and hand-reveal-2
+(stand-ins frozen between reactions, level heads, nobody travelling). Hard for `mayhem`, `disaster`
+and `pvp`; warnings for legacy `hand` and `two_role`. **Every threshold is an estimate.** Method:
+`performance.md`.
+
+| ID | Sev | Rule | How it is computed | Basis |
+|----|-----|------|--------------------|-------|
+| L52 | hard | Every visible actor has an intention | for every gameplay shot, every visible actor (cast ids among the subject, `also_in_frame` and `camera.pov_of`) has an `actors` entry with a non-empty `doing` and a `how` drawn from `driven`, `layer`, `alive`, `performed`, `bot`, `physics`, including at least one that is not `physics` | the owner's direction |
+| L53 | hard | Nobody frozen, nobody level-headed | every such entry has integer `still_f` and `level_f` ≤ 30 frames (at 30 fps); still = root under 5 cm, head under 2°, each hand under 2 cm over the run; level-headed = head pitch within ±3° of horizontal and roll within ±1°; `motion_source` (entry, shot or header) is `plan`, `take_report` or `metrics`, and not `plan` once the take is committed | estimates: 1 s of stillness reads as a prop; the definitions are this revision's |
+| L54 | hard | Travel under their own power | walking the shots in cut order, every visible actor's entry has a `spot`; where it differs from that actor's previous appearance, `arrived_by` is `driven`, `performed`, `bot`, `physics`, `start` or `cut`, and `cut` only when the actor was not visible in the gameplay shot just before | the owner's direction; record-once (rule 17) |
+| L55 | soft | Not in sync | in each shot, no two visible actors have `acts_at` frames within 4 frames of each other, except an attacker and victim both within 2 frames of their hit's key (the contact); no two entries share the same `doing`; with two or more visible actors, each has `acts_at` | estimate: a human eye reads starts under about 0.13 s apart as one |
+| L56 | soft | A person in the hero's body | every POV shot (carried by `pov_of`) and every hero close-up (subject `hero` at MCU or tighter, or the L14 reaction shot) has `performed` in the carrier's `how`; otherwise a `waive` says why no person and what carries it instead | a person's head and hands carry every VR tell (`performance.md` §7, §11) |
+
+Render twin: in every critic round the evidence pack's per-actor motion table (`review-rubric.md`
+item 12) replaces the planned `still_f` and `level_f` with measured ones (`motion_source:
+take_report` or `metrics`).
+
+(L36-L39 are from revision 2; L40-L46 from revision 3; L47-L51 from revision 4; L52-L56 from
+revision 5. Montage-only soft lints (L21-L24, L30, L33) and L25 do not apply to class `moment`.)
 
 ### Scout, take and render lints
 
@@ -230,4 +253,5 @@ planning-only) and the disaster example B are in `worked-examples.md`; the legac
 (15 s hand reveal, formerly here) and C (30 s two-role) are in `legacy-hand.md`, their hand numbers
 re-derived for the 2.3 m drawn hand. All five pass `tools/lint.py` with no hard failure; D, E and B
 were revised in revision 4 to cover every key event close or in first person (A and C, legacy, only
-warn on L47-L51).
+warn on L47-L51). Revision 5 added `actors` to D, E and B (L52-L56; L56 is waived in writing in
+D and E); A and C warn on L52-L56 too.

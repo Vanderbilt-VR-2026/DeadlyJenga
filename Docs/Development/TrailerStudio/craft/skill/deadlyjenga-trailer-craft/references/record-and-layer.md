@@ -2,6 +2,8 @@
 
 Open this before you write a driver, before stage 5 (scout) and before stage 6 (capture). It is the
 working method of Trailer Studio, and it is required: SKILL.md hard rules 17 and 18, lints L47-L51.
+How the actors move between and around the key events (intentions, glances, driven travel, the
+alive layer, human performance) is in `performance.md` (rule 19, lints L52-L56, stage 6b).
 
 Code read on 2026-11-20 from `claude/trailer-hand-reveal-pilot` (HEAD `9e099413`), folder
 `Assets/_DeadlyJenga/DevTools/Editor/TrailerStudio/`. File references below are relative to it.
@@ -173,6 +175,10 @@ is live in the same pass as the thing that hits them (section 2).
 Write the order in the plan as `layers` (lint L51): the world first, then one entry per cast member
 with what it does and which events it reacts to. A cast member with no entry is a prop.
 
+Layers handle the key events. Everything between them (travel under the actor's own power, glances,
+business, the alive layer filling every gap) is the performance pass, stage 6b: `performance.md`
+section 12. A reaction layer that ends with the body standing frozen fails L53.
+
 **Can a later scripted actor be timed against an earlier recorded one?** Yes, as an overlay: targets
 (`actor:`, `block:`, `hazard`) and triggers read the committed tape. A cue in a *later* live pass can
 also aim at a played-back actor (`FireCue` looks in `stage.playback`, `Engine/StudioDirector.cs:251`),
@@ -211,13 +217,13 @@ What a person can do that an agent cannot, and the smallest feature that would c
 
 | # | Gap | Smallest feature |
 |---|-----|------------------|
-| 1 | Walk, run, jump, climb or dodge on purpose: stand-ins only stand; bots wander | a `move` cue: actor, path points, speed, jump at points; drives the survivor's `InputDriver` for its length |
+| 1 | Walk, run, jump, climb or dodge on purpose: stand-ins only stand; bots wander | a `move` cue: actor, path points, speed, jump at points; drives the survivor's `InputDriver` for its length. **Being built** (revision 5): a scripted performer driver, `performance.md` tool how-to |
 | 2 | An unarmed punch or shove on cue (`glovePunch` needs the glove; otherwise a raw push) | a `punch` cue that sends the mode's own punch command for a live actor at a target |
 | 3 | A victim layer that starts on the frame the hit landed, found from the tape | a `trigger: "hit"` for overlays, resolved from the recorded health drop (`ActorFrame.health` is on the tape) |
 | 4 | Reactions to projectiles, meteors and other actors (`contact` sees blocks only) | extend `StudioOverrides.Resolve` to hazard points and actor positions |
 | 5 | Know what happened without writing a report | `StudioTakeReport.Write(stage, folder)`: `DisasterPvpMoment.Report` plus health drops, respawns and the cue log |
-| 6 | Aim an overlay at a fixed point by `point:` | accept `point:x,y,z` in `StudioOverrides.Target` (`StudioTargets.TryPoint` already parses it) |
-| 7 | Perform against playback in real time (timing by eye, natural head and hands) | a scripted input driver for the performer rig (keyed head, hands and movement), so an agent can "perform" a mark |
+| 6 | Aim an overlay at a fixed point by `point:` | accept `point:x,y,z` in `StudioOverrides.Target` (`StudioTargets.TryPoint` already parses it). **Being built** (revision 5) |
+| 7 | Perform against playback in real time (timing by eye, natural head and hands) | a scripted input driver for the performer rig (keyed head, hands and movement), so an agent can "perform" a mark. **Being built** (revision 5), with an always-on alive layer and body-follows-head: `performance.md` |
 | 8 | Keep a knocked-off survivor gone (deaths are off, so they respawn) | an overlay kind `hide` from a tape time, or a Set option "no respawn" |
 | 9 | Perform with Live physics while chosen others stay live (to hit them) | a Perform-tab option "keep these actors live", adding their tracks to `BuildPass` |
 | 10 | Hold the first-person camera steady and show your own hands and weapon | **first-person camera fix in progress, see commit note** (another agent, pilot branch) |

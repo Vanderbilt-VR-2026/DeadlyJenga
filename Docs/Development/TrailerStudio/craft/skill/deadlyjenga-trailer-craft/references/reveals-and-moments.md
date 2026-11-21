@@ -209,6 +209,8 @@ Answer each yes or no with the shot id. "Hard" items are lints; a "no" blocks re
 | 18b | Is every key event (each hit, knock-off, elimination, the payoff) seen close (victim ≥ 0.25) or in first person, with its camera placed from the take? | L47, L48 (hard) |
 | 18c | Is enough of the cut in first person (25 % of a montage; one POV on a key event in a take)? | L49 (hard) |
 | 18d | Does every cast member act or react on the frame things happen (no props)? | L51 (soft) |
+| 18e | Is every visible actor alive in every shot: an intention (`doing`), never still or level-headed over 1 s, never teleported, never in sync with another? | L52-L54 (hard), L55 (soft); `performance.md` |
+| 18f | Are hero close-ups and first-person shots performed by a person in the headset, or waived in writing? | L56 (soft) |
 | 19 | Is there one held "screenshot" frame (hero small, disaster huge, a hit at its peak)? | critic C1 |
 | 20 | Are cards a few plain words with no superlatives? | L32 (soft) |
 | 21 | Is the tone both candy-bright and genuinely perilous? | human pass |
