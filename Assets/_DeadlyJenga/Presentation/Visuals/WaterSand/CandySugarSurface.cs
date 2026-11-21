@@ -1,0 +1,126 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+namespace DeadlyJenga.Presentation
+{
+    // An independent surface pass leaves skin materials and their property blocks intact.
+    sealed class CandySugarSurface
+    {
+        readonly Renderer source, overlay;
+        readonly Material material;
+        readonly Dictionary<Mesh, Mesh> meshes = new();
+        readonly Dictionary<Mesh, int[]> sheddingVertices = new();
+        readonly float span;
+        readonly MaterialPropertyBlock properties = new();
+        Mesh currentMesh;
+        int materialCount = -1;
+        readonly List<Vector3> sampleVertices = new();
+        Mesh sampledMesh;
+
+        public CandySugarSurface(Renderer source, Material material, float bottom, float top)
+        {
+            this.source = source;
+            this.material = material;
+            span = Mathf.Max(.05f, top - bottom);
+            var go = new GameObject("Sticky sugar surface");
+            go.transform.SetParent(source.transform, false);
+            go.layer = source.gameObject.layer;
+            if (source is SkinnedMeshRenderer skin)
+            {
+                var copy = go.AddComponent<SkinnedMeshRenderer>();
+                copy.bones = skin.bones;
+                copy.rootBone = skin.rootBone;
+                copy.quality = skin.quality;
+                overlay = copy;
+            }
+            else
+            {
+                go.AddComponent<MeshFilter>();
+                overlay = go.AddComponent<MeshRenderer>();
+            }
+            overlay.shadowCastingMode = ShadowCastingMode.Off;
+            overlay.receiveShadows = true;
+            RenderPipelineManager.beginCameraRendering += BeforeCamera;
+            Sync();
+        }
+
+        void BeforeCamera(ScriptableRenderContext context, Camera camera) => Sync();
+
+        // Avatar owners select their camera-specific mesh before this subscriber runs.
+        void Sync()
+        {
+            if (!source || !overlay) return;
+            overlay.enabled = source.enabled && !source.forceRenderingOff &&
+                source.shadowCastingMode != ShadowCastingMode.ShadowsOnly;
+            overlay.gameObject.layer = source.gameObject.layer;
+            var skin = source as SkinnedMeshRenderer;
+            var mesh = skin ? skin.sharedMesh : source.GetComponent<MeshFilter>()?.sharedMesh;
+            if (!mesh) { overlay.enabled = false; return; }
+            if (!meshes.TryGetValue(mesh, out var surface))
+            {
+                surface = mesh.isReadable
+                    ? CandySugarMesh.Build(mesh, source.transform, material.GetFloat("_CoatBottom"), span,
+                        Mathf.RoundToInt(material.GetFloat("_Seed") * 10000))
+                    : Object.Instantiate(mesh);
+                meshes.Add(mesh, surface);
+                var rest = new List<Vector4>();
+                if (surface.isReadable) surface.GetUVs(3, rest);
+                var eligible = new List<int>();
+                for (int i = 0; i < mesh.vertexCount && i < rest.Count; i++)
+                    if (rest[i].w > -.03f && rest[i].w < 1.05f) eligible.Add(i);
+                sheddingVertices[mesh] = eligible.ToArray();
+            }
+            if (currentMesh != mesh)
+            {
+                properties.SetFloat("_HasRest", mesh.isReadable ? 1 : 0);
+                overlay.SetPropertyBlock(properties);
+                currentMesh = mesh;
+            }
+            if (overlay is SkinnedMeshRenderer target)
+            {
+                target.sharedMesh = surface;
+                target.localBounds = skin.localBounds;
+                for (int i = 0; i < mesh.blendShapeCount; i++)
+                    target.SetBlendShapeWeight(i, skin.GetBlendShapeWeight(i));
+            }
+            else overlay.GetComponent<MeshFilter>().sharedMesh = surface;
+            if (materialCount != mesh.subMeshCount)
+            {
+                var materials = new Material[mesh.subMeshCount];
+                for (int i = 0; i < materials.Length; i++) materials[i] = material;
+                overlay.sharedMaterials = materials;
+                materialCount = materials.Length;
+            }
+        }
+
+        public bool TrySample(out Vector3 position)
+        {
+            position = default;
+            if (!source || !source.enabled || !source.gameObject.activeInHierarchy) return false;
+            var original = source is SkinnedMeshRenderer renderer ? renderer.sharedMesh : source.GetComponent<MeshFilter>()?.sharedMesh;
+            if (!original || !sheddingVertices.TryGetValue(original, out var eligible) || eligible.Length == 0) return false;
+            Mesh mesh;
+            if (source is SkinnedMeshRenderer skin)
+            {
+                if (!sampledMesh) sampledMesh = new Mesh();
+                skin.BakeMesh(sampledMesh);
+                mesh = sampledMesh;
+            }
+            else mesh = source.GetComponent<MeshFilter>()?.sharedMesh;
+            if (!mesh || !mesh.isReadable) return false;
+            mesh.GetVertices(sampleVertices);
+            if (sampleVertices.Count == 0) return false;
+            position = source.transform.TransformPoint(sampleVertices[eligible[Random.Range(0, eligible.Length)]]);
+            return true;
+        }
+
+        public void Dispose()
+        {
+            RenderPipelineManager.beginCameraRendering -= BeforeCamera;
+            if (overlay) Object.Destroy(overlay.gameObject);
+            foreach (var mesh in meshes.Values) Object.Destroy(mesh);
+            if (sampledMesh) Object.Destroy(sampledMesh);
+        }
+    }
+}
