@@ -189,15 +189,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var wanted = Quaternion.LookRotation(toward).eulerAngles;
             float delta = Mathf.DeltaAngle(facing, wanted.y);
             float pitch = Mathf.Clamp(Mathf.DeltaAngle(0, wanted.x), -55, 55);
-            if (Mathf.Abs(delta) <= NeckLimit)
-            {
-                frame.body.headRotation = Quaternion.Slerp(frame.body.headRotation, Quaternion.Euler(pitch, facing + delta, 0), weight);
-                return;
-            }
+            // One formula for every angle. It used to switch from a weighted slerp to a timed turn at the neck limit, so a
+            // recorded head drifting across 85 degrees from the target snapped about 30 degrees in one frame (disaster-pvp-2
+            // measured 887 deg/s on the hero's look up).
             // Keep turning the same way round once the turn has started.
             if (Mathf.Abs(delta) > 150 && side != 0 && Mathf.Sign(side) != Mathf.Sign(delta)) delta += delta > 0 ? -360 : 360;
             // The turn takes longer the further round it goes; the blend-out is the layer's own.
-            float turnTime = Mathf.Max(.05f, layer.blendIn) + (Mathf.Abs(delta) - NeckLimit) / BodyTurnSpeed;
+            float turnTime = Mathf.Max(.05f, layer.blendIn) + Mathf.Max(0, Mathf.Abs(delta) - NeckLimit) / BodyTurnSpeed;
             float rise = Mathf.Clamp01((time - layer.Start) / turnTime);
             float fall = layer.blendOut <= 0 ? 1 : Mathf.Clamp01((layer.Stop - time) / layer.blendOut);
             float u = Mathf.Min(rise, fall);

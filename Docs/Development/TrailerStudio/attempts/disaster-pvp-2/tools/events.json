@@ -4,7 +4,7 @@
  "music_fade_out": 0.8,
  "music_gaps": [[297, 308]],
  "music_early": {"until_frame": 103, "db": -3},
- "duck": {"frame": 362, "db": -9},
+ "duck": {"frame": 360, "db": -13},
  "tape_at_zero": 1.0,
  "take_gain_db": 2,
  "take_until": 450,

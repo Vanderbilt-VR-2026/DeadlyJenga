@@ -32,8 +32,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 new Shot { id = "S03", what = "wide: the summit and block 2 at war, the first rock smashes into the tower", cutIn = 110, cutOut = 140, key = WideRockFrame - 110, shift = Shift(e.wideRock, WideRockFrame) },
                 new Shot { id = "S04", what = "close: a rock lands between the fox and the penguin mid shoot-out", cutIn = 140, cutOut = 180, key = Rock2Frame - 140, shift = Shift(e.rock2, Rock2Frame) },
                 new Shot { id = "S05", what = "POV: the hero turns to find the dragon charging", cutIn = 180, cutOut = 208, key = 14, shift = s3 },
-                new Shot { id = "S06", what = "close: the hero's counter-punch throws the dragon off", cutIn = 208, cutOut = 248, key = Punch2Frame - 208, shift = s3 },
-                new Shot { id = "S07", what = "MCU: the hero looks up and screams", cutIn = 248, cutOut = 284, key = 20, shift = s4 },
+                new Shot { id = "S06", what = "close: the hero's counter-punch throws the dragon off", cutIn = 208, cutOut = 236, key = Punch2Frame - 208, shift = s3 },
+                new Shot { id = "S07", what = "MS: the hero looks up and screams", cutIn = 236, cutOut = 284, key = 32, shift = s4 },
                 new Shot { id = "S08", what = "POV payoff: the planet killer fills the sky and lands on the summit", cutIn = 284, cutOut = 318, key = PlanetFrame - 284, shift = s4 },
                 new Shot { id = "S09", what = "aftermath: the tower top blown apart into the sea", cutIn = 318, cutOut = 359, key = 10, shift = s4 },
                 new Shot { id = "S10", what = "title: the wreck settles", cutIn = 359, cutOut = 450, key = 0, shift = s4 },
@@ -117,7 +117,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 int at = (e.rock2 >= 0 ? e.rock2 : Tf(s, Rock2Frame)) - 4;
                 Vector3 fox = FeetAt(stage, "fox", at, plan), pen = FeetAt(stage, "penguin", at, plan);
                 Vector3 mid = Vector3.Lerp(fox, pen, .5f);
-                Vector3 spot = Spot(mid, 3.5f, .7f, new[] { fox, pen }, Flat(plan.rockCam - mid));
+                // On the same side of their line as the wide before it (critic round 1: S03 to S04 crossed the line).
+                Vector3 across = Vector3.Cross(Vector3.up, Flat(fox - pen)).normalized;
+                if (Vector3.Dot(across, plan.wideCam - mid) < 0) across = -across;
+                Vector3 spot = Spot(mid, 3.5f, .7f, new[] { fox, pen }, across);
                 var c = ShotCam(s, FocalFor(Vector3.Distance(spot, mid + up * .5f), 3.3f));
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(spot), P(stage, mid + up * .7f));
                 if (e.rock2 >= 0) StudioMoves.Shake(c, (e.rock2 + 1) / (float)Fps, 2.2f, .8f);
@@ -213,7 +216,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Add("hero", "lookAt", e.punch1 - 26, e.punch1 - 1, point: stage.ToStage(chest), blendIn: .3f, blendOut: .15f);
                 Add("hero", "reach", e.punch1 - 5, e.punch1 + 5, target: "actor:rival", blendIn: .1f, blendOut: .18f);
                 // A person does not track a body leaving at 22 m/s: his eyes jump to where the gorilla is going, then follow him down.
-                Add("hero", "lookAt", e.punch1 + 1, e.punch1 + 34, point: stage.ToStage(HeadAt(stage, "rival", e.punch1 + 16, plan)), blendIn: .12f, blendOut: .35f);
+                // Critic round 1: the first-person view dropped to the floor after the hit. The eyes stay on the gorilla's fall.
+                Add("hero", "lookAt", e.punch1 + 1, e.punch1 + 22, point: stage.ToStage(HeadAt(stage, "rival", e.punch1 + 14, plan)), blendIn: .12f, blendOut: .2f);
+                Add("hero", "lookAt", e.punch1 + 18, e.punch1 + 48, point: stage.ToStage(HeadAt(stage, "rival", e.punch1 + 34, plan)), blendIn: .25f, blendOut: .4f);
                 Add("hero", "reaction", e.punch1 + 18, e.punch1 + 42, "cheer", blendIn: .15f, blendOut: .3f);
                 Add("rival", "reaction", e.punch1 + 1, e.punch1 + 70, "scream", blendIn: .05f);
             }
@@ -261,7 +266,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var list = stage.set.overrides; int added = 0;
             var windows = shots.Where(s => s.id == "S02" || s.id == "S05" || s.id == "S08")
-                .Select(s => (a: TapeFrame(s.cutIn) + s.shift - Handle, b: TapeFrame(s.cutOut) + s.shift + Handle)).ToList();
+                .Select(s => (a: TapeFrame(s.cutIn) + s.shift - 14, b: TapeFrame(s.cutOut) + s.shift + Handle)).ToList();   // lowered before the cut-in (round 1: glove at the lens on every POV cut)
             var punches = new List<int>(); if (e.punch1 >= 0) punches.Add(e.punch1); if (e.punch2 >= 0) punches.Add(e.punch2);
             foreach (var (a, b) in windows)
                 for (int tf = a; tf < b; tf += 5)

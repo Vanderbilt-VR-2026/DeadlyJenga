@@ -1,0 +1,59 @@
+L01 hard PASS: 0 -> 48 -> 110 -> 140 -> 180 -> 208 -> 248 -> 284 -> 318 -> 359 -> 450 (length 450)
+L02 hard PASS: missing subject, or learns/what over 12 words or with 'and': none
+L03 hard PASS: sections: hook teach teach escalate escalate escalate escalate payoff aftermath title
+L04 hard PASS: first shot gameplay; first gameplay at frame 0
+L05 hard PASS: core verb ['hazard_hit', 'pvp_hit']: first is pvp_hit at S02, key 2.53 s (deadline 5.0 s); scale or both parties in frame: True
+L06 hard PASS: montage: lengths [48, 62, 30, 40, 28, 40, 36, 34, 41], median 40, shortest 28, longest 62 (floor 45), most cuts in a 5 s window 5
+L07 hard PASS: closing title at 359 (window 330-360), title plus card 91 (window 90-120)
+L08 hard PASS: threats ['hazard:meteor_shower', 'hazard:planet_killer']: anticipation or declared cold open ok; every effect has its cause
+L09 hard PASS: S02: 62 frames, key 28/34 from the ends; scale or both parties in frame: True
+L10 hard PASS: keys too near a cut: none
+L11 hard PASS: payoff key 309 vs main 309; title clause True; sync sounds off their hit: none; every hit measured within 2 frames: True
+L12 hard PASS: keys without a sound in [key-1, key+3]: none
+L13 hard PASS: ramped shots with take sound: none
+L14 hard PASS: close shots ['S08']; hero head-on shots ['S07']; of those with a `reaction` (layer, emote or performed pose) ['S07']
+L15 hard PASS: bad camera declarations: none
+L16 hard PASS: jump cuts: none
+L17 hard PASS: unsmoothed POV: none
+L18 hard PASS: must-show coverage {'pvp_hit': ['S02', 'S06'], 'knock_off': ['S02', 'S06'], 'hazard_hit': ['S03', 'S04', 'S08'], 'several_survivors': ['S01', 'S03'], 'survivors_react': ['S07']} (whether each proof is true of its shot: CHECK)
+L19 hard PASS: missing or impossible: none; verify at scout: ['aimed_meteor_on_survivors']
+L20 soft PASS: text too short on screen: none
+L21 soft PASS: escalate median 38.0 vs hook+teach median 48
+L22 soft WAIVED: CV 0.24  [waiver: shot lengths are set by four physics events placed on measured onsets (76, 154, 218, 309); varying them further would move cuts off the hits]
+L23 soft PASS: longest even run 2
+L24 soft PASS: cuts within 1 frame of a beat: 1 of 9 [180]
+L25 soft PASS: hook counts [1, 2, 3]
+L26 soft PASS: direction flips across cause-effect cuts: none
+L27 soft PASS: eye-trace jumps: none
+L28 soft PASS: main hit 309 vs 0.6 x 359 = 215
+L29 soft PASS: wide share 78%, close share 11% (limit 25%)
+L30 soft PASS: designed moves 30% of shots
+L31 soft N/A: class 30 and 60 only
+L32 soft PASS: captions 0; text problems none (rule-of-play wording: CHECK)
+L33 soft PASS: short shots whose next cut has no sound or hit: none
+L34 soft PASS: shows counts, core verb excluded: {'several_survivors': 2, 'knock_off': 2, 'survivors_react': 1}
+L35 soft PASS: too short to read: none
+L36 hard N/A: two_role only
+L37 soft N/A: two_role only
+L38 hard PASS: gameplay shots without an Hf fit line: none (whether each fit is right: CHECK)
+L39 hard PASS: reserved example ids or text used: none
+L40 hard PASS: first hazard_hit at 122, first pvp_hit at 76; both needed by frame 215 (60 % of the body)
+L41 hard PASS: who did what to whom: every hit names its attacker and victim, both readable
+L42 hard PASS: hero hero in frame through the cut; missing from: none
+L43 soft PASS: hazards by first appearance: hazard:meteor_shower@0 (hook), hazard:planet_killer@248 (escalate)
+L44 soft PASS: establishing wides with structure and hero in the first third: ['S01', 'S03']; shots without tower_level: none
+L45 soft PASS: crowd shots with fewer than 3 survivors at h >= 0.08: none
+L46 soft PASS: knock-offs held 0.6 s or picked up by the next shot: all
+L47 hard PASS: every key event close (subject h >= 0.25) or in first person: ['K1: S02 (POV)', 'K2: S04 (h 0.33)', 'K3: S06 (h 0.41)', 'K4: S08 (POV)']
+L48 hard PASS: key events ['K1', 'K2', 'K3', 'K4']; camera derived from the take: every key beat names its event, tape frame and measured or derived subject size
+L49 hard PASS: montage: POV 124 of 359 body frames = 35% (floor 25%), 3 POV shots (need 2), on key events ['K1', 'K4']
+L50 soft PASS: POV share 35% of the body (cap 60% unless pov_led: true)
+L51 soft PASS: pass order starts with the world: True; cast with no action or reaction layer (props): none
+L52 hard PASS: every visible actor has a doing and a how: yes
+L53 hard PASS: no visible actor still or level-headed over 30 frames (estimate): yes
+L54 hard PASS: every move between shots by the actor's own power, physics or a hiding cut: yes
+L55 soft WAIVED: no two actors starting actions within 4 frames, no shared doing (estimate): ['S01: hero@9 rival@9', 'S01: hero@9 dragon@7', 'S01: rival@9 dragon@7', 'S01: rival@32 dragon@30', 'S02: hero@1 rival@1', 'S03: hero@1 dragon@3', 'S03: hero@1 fox@1', 'S03: hero@1 penguin@1', 'S03: hero@1 astro@1', 'S03: dragon@3 fox@1', 'S03: dragon@3 penguin@1', 'S03: dragon@3 astro@1', 'S03: fox@1 penguin@1', 'S03: fox@1 astro@1', 'S03: penguin@1 astro@1', 'S03: panda@25 astro@26', 'S04: penguin@1 fox@1', 'S04: penguin@1 hero@1', 'S04: penguin@1 dragon@2', 'S04: fox@1 hero@1', 'S04: fox@1 dragon@2', 'S04: hero@1 dragon@2', 'S05: hero@1 dragon@1', 'S06: hero@1 dragon@1']  [waiver: measured action starts in the take, left as recorded: S01's three fighters all react at shot frame 7-9 to the first streaking rock (the same sound and sight); the thrown penguin and the fox share the rock's contact frame in S04; changing them would mean re-recording the committed take]
+L56 soft WAIVED: hero close-ups and first-person shots ['S02', 'S05', 'S07', 'S08']; carried by a person in the headset, or waived in writing: ['S02:hero (POV) not performed', 'S05:hero (POV) not performed', 'S07:hero (hero close-up) not performed', 'S08:hero (POV) not performed']  [waiver: no person in the headset for this attempt; the hero is driven through the game's controls (head leads body, eased looks) with explicit look-at, reach and reaction layers and the alive layer on his hands and breath; re-shoot S08 with a person performing the hero if one is free]
+
+Hard failures: 0 []; hard lints waived (report to the human): none
+Not checked here: R01-R07 (scout and render), and whether labels, proofs and fit lines are true.

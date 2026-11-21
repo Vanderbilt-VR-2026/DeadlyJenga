@@ -200,10 +200,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         int count = visible.Count(v => v);
                         if (count == 0) continue;
                         int still = 0, level = 0, levelRun = 0, peakAt = -1; float peak = 0; var starts = new List<int>();
-                        int quiet = 99;
+                        int quiet = 0;   // a body already moving at the cut is not starting an action
                         for (int i = 0; i < frames.Count; i++)
                         {
-                            if (!visible[i]) { levelRun = 0; quiet = 99; continue; }
+                            if (!visible[i]) { levelRun = 0; quiet = 0; continue; }
                             var b = frames[i].body;
                             var (pitch, _, roll) = Angles(b.headRotation);
                             levelRun = Mathf.Abs(pitch) <= 3 && Mathf.Abs(roll) <= 1 ? levelRun + 1 : 0;

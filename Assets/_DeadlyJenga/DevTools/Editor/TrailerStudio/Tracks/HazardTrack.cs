@@ -100,6 +100,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 foreach (var disaster in sample.disasters ?? Array.Empty<DisasterFrame>())
                 {
                     if (disaster == null) continue;
+                    // A meteor's landing contacts are kept for 0.75 s and a rock rolling along a block touches it every frame, so
+                    // playback drew a chain of identical rocks along its path (disaster-pvp-1's "worms", disaster-pvp-2's critics'
+                    // "caterpillars"). Show only the newest contact of each stream.
+                    if (disaster.residualOnly && disaster.points != null && disaster.points.Length > 1 && disaster.kind != null && disaster.kind.EndsWith("Contact"))
+                        disaster.points = new[] { disaster.points.OrderByDescending(p => p.id).First() };
                     disaster.sampledAt = Time.time;
                     var source = new RecordedDisaster { frame = disaster };
                     shown.Add(source);
