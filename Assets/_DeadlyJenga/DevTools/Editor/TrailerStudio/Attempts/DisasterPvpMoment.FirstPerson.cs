@@ -167,6 +167,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var hazards = stage.tape.FindType(HazardTrack.Id)?.ActiveTake;
             if (hazards == null) return (null, default, 0, 0);
             var paths = new Dictionary<string, SortedDictionary<int, Vector3>>();
+            var contacts = new List<(int frame, Vector3 at)>();
+            var seenContacts = new HashSet<string>();
             for (int f = fromFrame - 60; f <= toFrame; f++)
             {
                 int tf = Mathf.RoundToInt(TapeF(f) * Fps);
@@ -176,7 +178,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var sample = JsonUtility.FromJson<HazardSample>(Encoding.UTF8.GetString(data));
                 foreach (var d in sample?.disasters ?? Array.Empty<DisasterFrame>())
                 {
-                    if (d == null || d.points == null || d.residualOnly) continue;
+                    if (d == null || d.points == null) continue;
+                    if (d.residualOnly)
+                    {
+                        foreach (var p in d.points) if (seenContacts.Add(d.kind + p.id)) contacts.Add((f, p.position));
+                        continue;
+                    }
                     foreach (var p in d.points)
                     {
                         string key = d.kind + p.id;
@@ -185,26 +192,34 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
                 }
             }
-            (string role, Vector3 lookAt, int contact, int seen) best = (null, default, 0, 0);
-            float bestDistance = 3.5f;
+            // The landing (contact) nearest one of the roles inside the window.
+            string bestRole = null; int contactFrame = 0; Vector3 contactAt = default; float bestDistance = 6f;
             foreach (string role in roles)
             {
                 string id = plan.Id(role);
                 if (id.Length == 0) continue;
-                foreach (var path in paths.Values)
-                    foreach (var point in path)
-                    {
-                        if (point.Key < fromFrame || point.Key > toFrame) continue;
-                        var pose = StudioActorPoses.At(stage.tape, id, TapeF(point.Key), Fps);
-                        if (!pose.found) continue;
-                        float distance = Vector3.Distance(pose.head, point.Value);
-                        if (distance >= bestDistance) continue;
-                        int earlier = path.Keys.Where(k => k <= point.Key - 12).DefaultIfEmpty(path.Keys.First()).Max();
-                        bestDistance = distance;
-                        best = (role, path[earlier], point.Key, path.Keys.First());
-                    }
+                foreach (var (frame, at) in contacts)
+                {
+                    if (frame < fromFrame || frame > toFrame) continue;
+                    var pose = StudioActorPoses.At(stage.tape, id, TapeF(frame), Fps);
+                    if (!pose.found) continue;
+                    float distance = Vector3.Distance(pose.feet, at);
+                    if (distance < bestDistance) { bestDistance = distance; bestRole = role; contactFrame = frame; contactAt = at; }
+                }
             }
-            return best;
+            if (bestRole == null) return (null, default, 0, 0);
+            // The rock that made it: a recorded flight path ending near the landing, else the aimed rock's own direction.
+            foreach (var path in paths.Values)
+            {
+                int last = path.Keys.Where(k => k <= contactFrame + 1).DefaultIfEmpty(-1).Max();
+                if (last < 0 || contactFrame - last > 3 || Vector3.Distance(path[last], contactAt) > 5) continue;
+                int earlier = path.Keys.Where(k => k <= last - 12).DefaultIfEmpty(path.Keys.First()).Max();
+                if (Vector3.Distance(path[earlier], contactAt) < 4) continue;
+                return (bestRole, path[earlier], contactFrame, path.Keys.First());
+            }
+            int nearest = Enumerable.Range(0, plan.meteors.Count).OrderBy(i => Vector3.Distance(plan.meteors[i].target, contactAt)).DefaultIfEmpty(-1).First();
+            Vector3 from = nearest >= 0 ? plan.meteorFrom[nearest] : Vector3.up;
+            return (bestRole, contactAt + from * 15, contactFrame, contactFrame - 40);
         }
     }
 }
