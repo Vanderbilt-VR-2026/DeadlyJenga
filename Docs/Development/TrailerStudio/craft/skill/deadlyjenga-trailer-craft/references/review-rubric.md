@@ -50,6 +50,16 @@ For the whole cut:
 9. **Stem table**: integrated loudness and peak per lane (music, take, designed SFX, voice). Attempt 1's
    music stem sat near -40 dB RMS against SFX near -10 dB peak (F3).
 10. **Delivery numbers** and the `profile.py check` output (`measured-reference.md`).
+11. **Key-event motion** (revision 4): for every entry in `key_events`, the motion around it, not a
+    still. Either the clip itself from 1 s before to 1 s after (for a critic that can watch video), or
+    a dense strip: every 2nd frame from 10 frames before the event to 20 after, 480 px wide, labelled
+    with trailer and tape frame. `tools/pack.py` does not build it yet; make it with ffmpeg from the
+    shot's mp4, e.g. `ffmpeg -ss <t-0.33> -t 1.0 -i S05.mp4 -vf "select=not(mod(n\,2)),scale=480:-1,tile=8x2" -frames:v 1 K2-strip.png`.
+    Add each subject's `height` and `facing` from `metrics.csv` at the event frame. Questions: is the
+    victim (or the impact) large, at least 0.25 of frame height, or is the event seen in first
+    person? Does the hit read across the strip (contact, then the victim moving), not only in one
+    frame? Do the witnesses' heads turn to it? Is the first-person view steady, with hands or weapon
+    in frame?
 
 Anything that depends on hearing (does the music fit, does the boom satisfy, is anything harsh) is
 marked **unverified** and goes to the human pass.
@@ -86,6 +96,10 @@ Inputs: brief, concept, plan, lint output, evidence pack [, previous notes, prev
 5b. Mayhem: for every hit, name the attacker and the victim and say whether both read; name the
    hero in each section; say whether each new disaster gets its own beat and whether you always
    know where on the tower you are.
+5c. Closeness and first person: for every key event, from its motion strip or clip (pack item 11),
+   give the victim's height share and whether it was seen close or in first person; name any key
+   event whose only coverage is a wide; give the first-person share of the body; name any cast
+   member who never reacts to anything (a prop).
 6. For every category at 3 or below write: shot/frame, symptom, cause, stage to return to,
    optional fix.
 7. End with a numbered list of concrete errors found, then the top three problems, ranked by how
@@ -124,6 +138,10 @@ Use this when the session may not spawn agents (or none can be started). It is w
    - mayhem: a hit whose attacker is off frame and not in the shot before; the hero missing from the
      build or the payoff; two disasters first shown in the same beat; a knock-off cut before the
      victim lands; a crowd wide with nobody at h ≥ 0.08; a reaction shot that relies on a face.
+   - closeness (revision 4): a key event whose only shot is a wide (victim under 0.25); a camera
+     placed from a mark instead of the take; no first person, or first person only on filler; a cast
+     member with no layer who stands still while a rock lands beside them; two halves of one moment
+     from two takes.
 4. List at least three real problems with fixes. If you find fewer, look again at the framing and
    the capability list before concluding.
 5. End with a **critic owed** block for whoever orchestrates the work: the files to give an
@@ -148,8 +166,10 @@ Use this when the session may not spawn agents (or none can be started). It is w
 | C8 | Titles | 0.5 | Readable, in the window, on a hit, saying something only this game could say | L07 |
 | C9 | Technical | 0.75 | No pops, ghosts, clipping cameras, black frames, flashes, reused footage | R04, R05 |
 | C10 | Brief fit | 0.5 | Must-show list proven as the brief defines it (multiplayer on screen, not implied), the concept type the brief asked for, length, aspect, tone, nothing copied from an example | L18, L19, L36, L39 |
+| C11 | Immersion and closeness | 1.0 | Is every key event seen close (victim ≥ 0.25) or in first person, judged in motion (pack item 11)? Does first person feel like playing (steady, own hands or weapon, the threat coming at you)? Do the cast act and react to what really happened? Wides only for geography and scale | L47, L48, L49, R08 |
 
-Weighted mean = sum(score x weight) / 10.0.
+Weighted mean = sum(score x weight) / 11.0 (revision 4 added C11; earlier rounds divided by 10.0,
+so compare scores only within one revision).
 
 ### Anchors (shared meaning)
 
@@ -175,6 +195,7 @@ Weighted mean = sum(score x weight) / 10.0.
 | C8 Titles | 2.3 s title louder than the body (attempt 1) | in the window but busy picture behind | clean, on its hit, held long enough, says what only this game is |
 | C9 Technical | ghost survivors, a camera inside a block, a flash frame | one minor pop | nothing to fix |
 | C10 Brief | must-show items missing | all items, one weakly | all items, exact length and aspect, tone right |
+| C11 Immersion | key hits only from far away (victims under 0.15), no first person, cast standing like props | every key event has one close shot, but first person is on filler or the cast barely react | every key event lands close or in first person with the victim filling the frame; first person feels like playing; every witness reacts on the frame it happens |
 
 ## 5. Evidence rules
 
@@ -190,11 +211,13 @@ Weighted mean = sum(score x weight) / 10.0.
 
 1. **Planted defects every round from stage 7; recommended at stage 4** (on a text plan, plant
    plan-level defects: payoff off its hit, title moved early, reaction after the reveal, a
-   duplicated shot, a hidden hero, a hit whose attacker is out of frame). `tools/pack.py --plant`
+   duplicated shot, a hidden hero, a hit whose attacker is out of frame; revision 4: a key event's
+   close or POV shot replaced by the wide of the same moment, a POV removed so the share falls under
+   the floor, a witness's reaction layer deleted). `tools/pack.py --plant`
    builds the render-level copy. A script makes a copy of the evidence pack with three injected
    defects: one cut moved 5 frames off its hit in the sync table, one key still replaced by a frame where
    the subject is hidden, one impact sound removed from the audio plot and stem table, or one shot
-   duplicated. The critic gets both packs in random order and does not know which is which. If it finds
+   duplicated (revision 4: or one key-event strip replaced by the same frames from a wide shot). The critic gets both packs in random order and does not know which is which. If it finds
    fewer than 2 of 3, or scores the defective pack within 0.25 of the real one, discard its review and
    rerun once with a warning; if it fails again, send the round to the human.
 2. **Calibrate on attempt 1** the first time the skill is used on a machine: the critic scores attempt 1
@@ -248,5 +271,6 @@ smaller than the rounds above:
 - The unverified list, as questions: Does the music fit the candy-peril tone? Does the main hit land on
   the payoff? Can you tell who hit whom in every fight? Do you follow the hero, and does her body
   read? Is every voice line in sync (the meters cannot tell)? Is the title drop-out too abrupt? Is
-  anything harsh, muddy or out of sync? Is any shot too fast to follow at full speed?
+  anything harsh, muddy or out of sync? Is any shot too fast to follow at full speed? Is every big
+  hit close enough to feel? Does first person feel like playing, or like a camera on a stick?
 - Save their notes in the version folder (R07).

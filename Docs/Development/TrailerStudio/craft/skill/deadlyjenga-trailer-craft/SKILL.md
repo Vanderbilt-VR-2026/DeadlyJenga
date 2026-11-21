@@ -1,39 +1,52 @@
 ---
 name: deadlyjenga-trailer-craft
-description: The required craft playbook for Deadly Jenga trailers, built around disaster and player-versus-player mayhem on a collapsing block tower - a gated pipeline with a scout loop (and a planning-only mode when there is no music file or engine), hard rules by concept type (mayhem, disaster, PvP; the giant hand only as a legacy extra), a moment class for 5-10 s clips, numeric defaults, differing worked examples, a lintable shot-list schema with a shipped linter and assembly tools, and a critic protocol. Use it any time an agent plans, shoots, cuts, scores or reviews a Deadly Jenga trailer, teaser, social clip or cinematic moment, before touching Trailer Studio or any render.
+description: The required craft playbook for Deadly Jenga trailers (disaster and player-versus-player mayhem on a collapsing block tower). Required working method - record the world event once in Trailer Studio, commit that take, add every actor as a layer timed against it, place every camera from the take's positions, never re-record between shots - and every key hit seen close or in first person (a VR game: first person is required). Also a gated pipeline with a scout loop and a planning-only mode, hard rules by concept type (mayhem, disaster, PvP; the giant hand only as a legacy extra), a moment class for 5-10 s clips, numeric defaults, worked examples, a lintable shot-list schema with a shipped linter and assembly tools, and a critic protocol. Use it any time an agent plans, shoots, cuts, scores or reviews a Deadly Jenga trailer, teaser, social clip or cinematic moment, before touching Trailer Studio or any render.
 ---
 
 # Deadly Jenga trailer craft
 
-Attempt 1 (15 s, 2026-11) was a flat list of six events: no sections, shots of 2-3.4 s that were
-neither a montage nor a take, music laid under afterwards with its biggest hit on the opening
-shot, no face, a 2.3 s title louder than the body. This skill exists so that cannot happen again.
-Structure, rhythm, reveal and camera work are hard rules with lints.
+Structure, rhythm, reveal and camera work are hard rules with lints, so attempt 1 (six even shots,
+music laid under afterwards, no face) cannot happen again. The default trailer is **disasters plus
+survivors fighting each other on a collapsing tower**; the hand is a legacy extra (`legacy-hand.md`).
+**Revision 4 (2026-11-20)** makes the Studio's working method and close, first-person coverage
+required: the owner asked why trailers had no first person and were "overly-reliant on distant shots
+esp the super distant ones during important events". **Rules constrain craft, not the idea.**
 
-Skill test 1 (`../../SKILL-TEST-1.md`) showed the skill wins (12 of 12 blind judgements) but that
-plans cloned the one example and bent shots to pass lints; revision 2 fixed that. **Revision 3
-(2026-11-20) re-centres the skill on what the game is now.** Evan: the flying hand "is like not an
-important part of our game at all anymore. i need you to have one focused on epic disaster pvp
-mayhem." The default trailer is **disasters plus survivors fighting each other on a collapsing
-tower**. The hand is a 30-second power-up in the game today; it appears only when a brief asks, and
-its material lives in `references/legacy-hand.md`. **Rules constrain craft, not the idea**: they say
-how a shot is made and checked, never which idea to pick.
+## Start here: record once, layer the actors, shoot close (rules 17, 18)
+
+1. **One physics event, recorded once.** Record the world (blocks, disasters, every live body,
+   projectiles, sound events) in one live pass; every actor who hits or is hit is live in it.
+2. **Inspect the take** with a take report: where and when each hit landed, who, which block.
+3. **Commit the take as a bundle.** Every later scout, preview and final loads that bundle and plays
+   it back with no physics. Never re-record between shots of one sequence; re-record only when a key
+   event failed, and then re-place everything that depended on it.
+4. **Layer the actors in order:** the world first, then whoever causes things, then whoever is hit,
+   then the witnesses, each timed from the take: look at the rock that actually lands, flinch on the
+   frame it hits. A cast member with no layer is a prop.
+5. **Place every camera from the take's positions at the event frame**, and see every key event
+   (each hit, knock-off, elimination, the payoff) **close (victim ≥ 0.25 of frame height) or in
+   first person**. Wides are for geography and scale, never a key event's only coverage.
+6. **First person is required**: at least 25 % of a montage's body, at least one POV on a key event.
+
+How, with the real Studio methods, for a person and for an agent, and what an agent cannot do yet:
+`references/record-and-layer.md`. Lints L47-L51; the critic checks key events in motion (C11).
 
 Tags on every hard rule: **[measured]** = counted in 22 official trailers (report 06),
 **[sourced]** = working editors, standards, platform specs, or the documented findings of attempt 1,
 skill test 1 and the field tests, **[inferred]** = derived; inferred numbers are defaults, never
-hard on their own; **estimate** marks a revision-3 number nobody has measured. Decisions and their
-evidence: `../../RECONCILIATION.md` (Revision 3 at the end).
+hard on their own; **estimate** marks a number nobody has measured. Decisions and their
+evidence: `../../RECONCILIATION.md` (Revisions 3 and 4 at the end).
 
 ## Which reference to open when
 
 | Stage | Open |
 |-------|------|
-| What the game has, what the Studio can direct (read first, every time) | `references/game-content.md` and `references/studio-tooling.md` |
+| How to record once, layer actors and place cameras from the take (read first, every time) | `references/record-and-layer.md` |
+| What the game has, what the Studio can direct | `references/game-content.md` and `references/studio-tooling.md` |
 | Brief, concept, beat sheet | `references/structure-and-templates.md` |
 | How different plans can look (and what not to copy) | `references/worked-examples.md` (D, E, B) |
 | Music map, target hits, sync plan, sound, mix | `references/rhythm-and-sound.md` |
-| Camera placement, moves, the framing check, filming a fight | `references/camera.md` |
+| Camera placement, moves, the framing check, closeness and first person, filming a fight | `references/camera.md` |
 | Reveal or cold open, stakes, the hero, readable chaos, comedy | `references/reveals-and-moments.md` |
 | Writing and linting the plan | `references/plan-schema-and-lints.md`, then `tools/lint.py` |
 | Critic rounds, or self-review when no critic can run | `references/review-rubric.md` |
@@ -53,8 +66,6 @@ evidence: `../../RECONCILIATION.md` (Revision 3 at the end).
   focal`. Studio tracks default to 18.66 mm: set `sensorHeight = 24` on every track.
 - **The hook, in one line:** friends knock each other off a collapsing candy tower while disasters
   tear it apart. Into the sea is out.
-- The giant hand (legacy): drawn size 2.4 x 2.3 x 1.8 m, only about 2.4 survivors tall. Framing it:
-  `legacy-hand.md`.
 
 ### What the game can and cannot do (details and file references: `game-content.md`)
 
@@ -67,9 +78,9 @@ evidence: `../../RECONCILIATION.md` (Revision 3 at the end).
 | Modes | Survival (disasters every 20 s), King of the Hill, Block Control, CTF, Infection, Team Tickets, Murder Mystery, Ninja (lantern), Demo |
 | Avatars' faces | **no drawn eyes or mouth**: a reaction reads through head direction, body and hand pose only |
 | Riding a moved block | standing survivors ride it; on a lifted, **tilting** block a survivor is carried by the block's position only and **sinks into it unless he stands at its middle** (0.36 m off-centre, 0.27 m slide at the middle) |
-| Several real players in one take | cannot today: bots stand in, one person performs at a time |
-| Studio cues for mayhem | disasters (`hazard`, `tsunami`), block pushes and collapses, `gear` (give a weapon), `fire` (fire it at a target), reaction layers (knockback, tumble, fall, death, scream, cower, cheer...) |
-| Missing in the Studio | a punch cue; mode objectives and HUD (the stage always runs Demo); real eliminations (deaths are off); aimed meteors; a tsunami cue that pushes survivors (`tsunami` sets `affectPlayers = false`); sound cues; repeatable physics; a live view |
+| Several real players in one take | cannot today: stand-ins and bots fill in; one person performs at a time against the playback of everyone recorded before (layers, `record-and-layer.md`) |
+| Studio cues for mayhem | disasters (`hazard`, `tsunami`), `aimedMeteor`, block pushes and collapses, `gear`, `fire`, `glovePunch`, reaction and look-at layers timed from the take |
+| Missing in the Studio | an unarmed punch cue; directed walking for stand-ins; a take report; mode objectives and HUD (Demo only); real eliminations (deaths off: the fallen respawn); a tsunami cue that pushes survivors; sound cues; repeatable physics; a live view; a smoothed first-person camera with own hands (in progress) |
 | Giant hands | one per hand player; AI hand bots can add more; the flying hand is a 30 s pickup (legacy) |
 | Live action of a person in a headset | cannot (the Studio cannot capture it) |
 
@@ -80,24 +91,20 @@ applies.
 
 **Planning-only**: use it when there is no music file, no engine access, or the request is for a
 plan only. Then:
-- **Music (stage 2) is deferred, not failed.** Write target hits (`frame`, with
-  `measured_onset_frame: unmeasured`) and a short music brief (tempo range, where the main hit,
-  stop-down and title hit fall) for choosing or cutting a track.
-- **Deferred gates:** stage 2's onset question; L11's measured-onset clause; every R-lint (R01-R07);
-  stages 5-11. Every engine-proof item (hazard reach, a hit landing, anything unconfirmed in
-  `game-content.md`) becomes a `needs: verify` item on a **to verify at scout** list.
-- **Not deferred:** stage 0, stage 1 (with its idea and alternatives steps), every plan lint except
-  L11's measured clause, the framing check (L38), and the stage-4 review (critic, or the fallback in
-  the self-review protocol). Name the map you assume (attempt 1's castle by default) and derive the
-  `fit` lines from it. `game-content.md` and `studio-tooling.md` are used as dated; say so.
-- **Output may be one file**, `plan.md`: Brief (with must-show proofs); Concept (image ideas, chosen
-  concept, two rejected); Music targets; Plan table (every lint field, plus `fit`); Lint table (run
-  `tools/lint.py` on the plan copied into YAML when Python runs); Text animatic; Review (critic or
-  labelled self-review); To verify at scout; Before any render.
+- **Deferred, not failed:** stage 2 (write target hits with `measured_onset_frame: unmeasured` and a
+  short music brief: tempo range, where the main hit, stop-down and title hit fall); L11's
+  measured-onset clause; every R-lint; stages 5-11. Every engine-proof item becomes a `needs:
+  verify` item on a **to verify at scout** list; take frames in `take_ref` are `planned`.
+- **Not deferred:** stages 0, 1 and 4 (critic or the labelled fallback), every other plan lint
+  (L38, L47-L51 included: key events close or in first person, layers planned). Name the map you
+  assume (attempt 1's castle by default) and derive `fit` lines from it; say the references are dated.
+- **Output may be one file**, `plan.md`: Brief; Concept; Music targets; Plan table (every lint
+  field, `fit`, `take_ref`, `key_events`, `layers`); Lint table (`tools/lint.py`); Text animatic;
+  Review; To verify at scout; Before any render.
 - **Before any render** (copy this list into the plan): (1) choose or cut a track and map it
   (`tools/music_map.py`); (2) move the picture to the measured hits, never the hits to the picture;
   (3) re-run the lints; (4) scout every `verify` item, then apply fallbacks or declare BLOCKED;
-  (5) run the scout loop below.
+  (5) run the scout loop below; (6) record once and re-derive every `take_ref` from the committed take.
 - Example E in `references/worked-examples.md` is a planning-only plan.
 
 ## The pipeline (gated, with a scout loop)
@@ -114,9 +121,9 @@ Stage 5 may make scout stills only.
 | 2 | Music map | `music.yaml` (`tools/music_map.py`): file, tempo, beats, onsets, named hits (`open`, `main`, `title`, accents), stop-downs, loudness curve | Is every hit taken from the onset list of the actual file? (planning-only: deferred; target hits written) |
 | 3 | Plan | `plan.yaml` (schema below) and `lint.txt` (`tools/lint.py`) | Do all hard plan lints pass, is every soft failure fixed or waived with a reason, and does every shot have a `fit` line? |
 | 4 | Animatic and plan review | text animatic (one card per shot, timed to the music) and a critic's notes (or the labelled fallback) | Read only the cards: can the critic name the hook, the hero, who hits whom, the payoff and where the title lands, and does it score Hook, Clarity and Story at 3 or more? |
-| 5 | Scout | stills at first, key and last frame of every shot from the planned camera; subject area and occlusion from the engine; a dry run of every hazard and hit cue | Is every subject visible at its key frame (R01) and does every cue do what the plan needs (R02)? |
+| 5 | Scout | a rehearsal take and its take report; stills at first, key and last frame of every shot, cameras placed from the take; subject area and occlusion from the engine | Is every subject visible at its key frame (R01), did every cue do what the plan needs (R02), and does every key event have a close or first-person camera at the frame the take puts it (L47)? |
 | 5b | **Re-plan** | `v0N+1/plan.yaml`, `lint.txt`, a change list | **The scout loop:** did the scout change any camera, spot, cue, actor or hazard setting? Then write the changed plan as a new version, re-run every lint, and re-run the stage-4 review if any key moved more than 6 frames, any shot fell back or any `shows` label changed. Loop 5 → 5b until a scout changes nothing that matters. |
-| 6 | Capture | committed take and `take-report.json` | Did every action cue happen within 8 frames of plan, and are the hazards and hits in the take? |
+| 6 | Capture | **the one committed take** (bundle), its take report, `key_events` with take frames, `layers` added on it | Did every action cue happen within 8 frames of plan, are the hazards and hits in the take, and does every later job load this bundle? |
 | 7 | Preview | 640x360 render of the whole cut with sound (`tools/assemble.py`); evidence pack (`tools/pack.py`) | Does every shot show its subject doing its action at preview size? |
 | 8 | Rough cut | full cut with temp titles; critic round | No rubric category at 2 or below, weighted mean ≥ 3.5, no hard lint failing |
 | 9 | Fine cut, lock | 1080p render; critic round; plan tagged `locked` | Weighted score ≥ 4.0, all categories ≥ 3, planted-defect check passed |
@@ -125,8 +132,8 @@ Stage 5 may make scout stills only.
 
 Rules for the pipeline:
 - Go back one gate, not to the start. Each critic note names the stage it belongs to.
-- The scout loop is normal, not a failure: in hand-reveal-2 the scout changed the hand design, the
-  hero's spot and every camera. Plan for two or three scout passes.
+- The scout loop is normal, not a failure: record, scout the take, re-plan. disaster-pvp-1 recorded
+  four times and cut the story to what the kept take did. Plan for two or three passes.
 - After lock (stage 9), only sound, titles and grade change, unless a hard lint fails.
 - If a stage needs a Studio feature that does not exist, check `references/studio-tooling.md` for
   the workaround. If there is none, the plan is BLOCKED: stop and report the feature.
@@ -171,10 +178,11 @@ run them with `tools/lint.py`).
    count, speed or novelty. Class `moment`: teach, escalate and title are optional. [sourced: Lieu,
    Cauller "teach, test, escalate"] (L03)
 3. **Declare a shape and meet it.** *Montage:* median body shot 1.0-2.2 s, shortest ≤ 1.0 s,
-   longest ≥ 2.0 s (15 s) / 3.0 s (30 s) / 3.3 s (60 s), and some 5 s window with 4 or more cuts.
+   longest ≥ 1.5 s (15 s) / 3.0 s (30 s) / 3.3 s (60 s), and some 5 s window with 4 or more cuts.
    *Single take:* one picture shot covers ≥ 70 % of the body, at most 2 cuts in the body. *Moment
    montage:* median 0.8-2.5 s, longest ≥ 1.5 s, no barrage (estimate). Never 5-6 even shots of
-   2-3 s. [measured: 16 of 18 mid and long montages; short refs are single takes] (L06)
+   2-3 s. [measured: 16 of 18 mid and long montages; short refs are single takes; the 15 s floor is
+   extrapolated, lowered from 2.0 s in revision 4] (L06)
 4. **Gameplay first, core verb early.** Gameplay on screen by 2.0 s; frame 0 is not black, a logo or
    a card. The concept's core verb is readable by 5 s (moment, 15 s), 8 s (30 s), 12 s (60 s).
    [measured: 13 of 21 by 2 s; party/physics trailers first gameplay 0.3 s, "what is this" 3.7 s]
@@ -246,6 +254,18 @@ run them with `tools/lint.py`).
     keep three or more survivors at h ≥ 0.08 (L45, soft); a knock-off is held 0.6 s or picked up by
     the next shot (L46, soft). [sourced: report 01 rules 20 and 40, Salters' "soupiness", Lieu on
     party trailers; every number an estimate] (L40-L46)
+17. **Record once, direct against the tape** ("Start here", `record-and-layer.md`). One committed
+    world take per sequence that every camera, layer and render loads; never re-record between its
+    shots or render its halves from two takes; hitters and victims live in that pass, everyone else a
+    layer timed from it (world, causes, victims, witnesses). [sourced: the owner's direction;
+    hand-reveal-2's two takes drifted 5 cm] (L48, L51, R02)
+18. **Close on every key event, and first person.** Each key event (every hit that lands,
+    knock-off, elimination, fall into the sea, disaster hit on a named survivor, the payoff) has a
+    shot on screen at its frame with the affected survivor or impact at h ≥ 0.25, or in first person,
+    placed from the take, its `take_ref` naming event, tape frame and subject size (L47, L48, R08).
+    First person ≥ 25 % of a montage's body in 2+ POV shots, one on a key event; a take or moment has
+    a 1 s POV on a key event (L49); over 60 % needs `pov_led` (L50). [sourced: the owner; measured: 6
+    of 8 VR trailers mostly first person; disaster-pvp-1 victims 0.07-0.15; numbers estimates]
 
 ## Defaults by length
 
@@ -262,6 +282,8 @@ Use these unless the brief says otherwise. Soft lints warn when they are broken;
 | Loudness ramp, last vs first quarter | ≥ 0 LU | +2 to +6 LU | same | same | measured |
 | Title vs body | no title | -4 to -10 LU | -6 to -12 LU | -6 to -12 LU | measured (weak for 15 s) |
 | Wide (EWS, WS, FS) share of body shots | ≥ 40 % | ≥ 40 % | ≥ 40 % | ≥ 40 % | measured; party/physics 60 % |
+| First person (share of body frames) | 1 POV ≥ 1 s on a key event | ≥ 25 %, ≥ 2 POV shots | same | same | measured VR 0.67; floor estimate |
+| Key events | each close (h ≥ 0.25) or POV | same | same | same | estimate |
 | Close (CU, ECU, INSERT) share | ≤ 25 % | ≤ 25 % | ≤ 15 % | ≤ 15 % | measured |
 | Designed moves (montage) | any | 10-30 % of shots | same | same | measured median 11 %, party 14 % |
 | Disasters on screen | 1 | 1-2 | 2-3 | 3-5 | estimate |
@@ -270,8 +292,8 @@ Use these unless the brief says otherwise. Soft lints warn when they are broken;
 | End-card text | - | tagline ≤ 8 words, call to action ≤ 6 | same | same | inferred |
 
 Also by default: straight cuts (no crossfades without a reason), master short-term max ≤ -10 LUFS,
-stereo 48 kHz AAC, picture at 30 or 60 fps, brighter than the headset look, no motion blur in the
-Studio's renders until it is fixed (`studio-tooling.md`).
+stereo 48 kHz AAC, picture at 30 or 60 fps, brighter than the headset look, motion blur only on a
+commit with the `NoSkinnedVectors` fix and never on shots with fast rocks near the lens (`studio-tooling.md`).
 
 ## Worked examples, different shapes
 
@@ -283,11 +305,11 @@ shape, opening, payoff and ending, and re-derives every camera number (rule 11).
 |---|---|---|---|
 | Where | `worked-examples.md` §1 | `worked-examples.md` §2 | `worked-examples.md` §3 |
 | Length, type, mode | 15 s, `mayhem`, production | 30 s, `mayhem`, planning-only | 15 s, `disaster`, production |
-| Shape | montage, 8 body shots | single take (76 % of body) plus two cuts | single take (82 %) plus a face |
-| Opening | staged: friends brawl while the wave rises behind them (audience knows) | cold open: meteors already raining at frame 0 | cold open: the wave already standing |
+| Shape | montage, 9 body shots, 26 % first person | single take (76 % of body) plus two cuts | first-person single take (82 %) plus a face |
+| Opening | staged: friends brawl while the wave rises behind them (audience knows) | cold open: meteors already raining at frame 0 | cold open: the wave already standing, seen through her eyes |
 | Core verb at | 2.3 s (a strike lands) | 1.5 s (a meteor smashes a block) | 4.7 s (the wave rips out blocks) |
-| Payoff | the crest sweeps the bully into the sea | the tornado takes the rocket shooter | the section tips into the sea |
-| Ending | pull-out from the last survivor, title over picture | her friend shoves the winner off; smash cut to the card | the hero surfacing, hard cut to a card |
+| Payoff | from Jolt's own eyes, the crest takes the bully | the funnel takes the rocket shooter, 3.2 m from the lens | her own block tips into the sea |
+| Ending | the splash from the waterline; pull-out from the last survivor, title over picture | her friend shoves the winner off, from the friend's eyes; smash cut | the hero surfacing, hard cut to a card |
 | Title, card | 11.5 s, 3.5 s | 25.0 s, 5.0 s | 11.33 s, 3.67 s |
 
 Legacy hand examples A (15 s hand reveal) and C (30 s two-role) are in `legacy-hand.md`.
@@ -308,6 +330,9 @@ class: 15               # moment | 15 | 30 | 60 (sets the numeric limits)
 shape: montage          # montage | single_take
 hero: <your id>         # never an example's id
 must_show: [...]        # from the brief, each with a proof in brief.yaml
+capture: {take: bundle/..., take_status: planned}   # committed after stage 6
+key_events: [{id: K1, frame: 70, kind: pvp_hit, attacker: <rival>, victim: <hero>, what: "..."}]
+layers: [{order: 1, kind: world, actor: world, how: "..."}, {order: 2, kind: actor, actor: <hero>, how: "...", reacts_to: [K1]}]
 music: {file: ..., bpm: ..., hits: [{name: main, role: main, frame: 264, measured_onset_frame: unmeasured}]}
 titles: [{text: "DEADLY JENGA", role: title, frame_in: 345, frame_out: 450, closing: true}]
 shots:
@@ -320,6 +345,7 @@ shots:
      camera: {move: handheld, purpose: "...", ease: none, distance_m: ..., height_m: ..., focal_mm: ...},
      fit: "Hf = d x 24 / f at the subject; fractions; the knockback path stays in frame",
      key_frame: 30, sound: [{at: 30, kind: music_hit, name: punch, sync: punch}],
+     take_ref: {event: K1, take_frame: 360, subject_h: 0.29, source: fit},   # tape or metrics once committed
      needs: [{feature: melee_hit_through_fire_cue, status: verify}], fallback: "..."}
 ```
 
@@ -330,6 +356,7 @@ You cannot watch motion or hear sound. Judge from evidence, in this split:
 | Question | Judge it from | Never from |
 |----------|---------------|------------|
 | Is the subject in frame, how big, how hidden? | engine projection, raycast or ID buffer | your look at a still |
+| Is each key event close or in first person, and does it read in motion? | `metrics.csv` height at the event frame; the dense strip or clip around it | one still |
 | Is the subject readable (pose, who it is, what it does)? | full-size still at the key frame | numbers |
 | Who hit whom? | stills at key -2, key, key +2 with attacker and victim boxed | a contact sheet alone |
 | Is the hero's colour what the plan says? | a full-size still | `StudioMark.color` (a palette index: index 6 rendered yellow) |
@@ -338,43 +365,40 @@ You cannot watch motion or hear sound. Judge from evidence, in this split:
 | Is the mix right? | EBU R128 numbers, per-lane levels, the loudness plot | anything else |
 | Does it hold together? | the critic, citing the above | any single number |
 
-1. **Build the evidence pack** after every preview or later render (`tools/pack.py`;
-   `references/review-rubric.md` lists the ten items). Never judge a cut from a video file alone. At
-   stage 4 the pack is the text animatic and the lint output.
+1. **Build the evidence pack** after every preview or later render (`tools/pack.py`; the eleven
+   items in `references/review-rubric.md`, item 11 being the motion around every key event). Never
+   judge a cut from a video file alone. At stage 4 the pack is the text animatic and the lint output.
 2. **Answer the pack's questions in writing yourself first**, citing shot and frame. No "looks good".
-3. **Run an independent strict critic.** A fresh agent (a different model if you can) gets only the
-   brief, concept, plan, lint output, evidence pack, and the previous round's notes (not scores). It
-   scores the rubric with evidence and ends with the top three problems, each naming a stage. A hard
-   lint that is computed and fails caps its category at 2; a field the plan's format lacks is
-   "cannot check", never a failure.
-4. **If you cannot start a critic**, or the critic budget is spent (pipeline rules), do the fallback
-   in `references/review-rubric.md` section 3a: a written self-critique against the rubric, a defect
-   sweep, at least three problems found, headed **SELF-REVIEW (weaker than an independent critic)**,
-   and a "critic owed" block for whoever orchestrates. The gate is then "passed on self-review"; in
-   production an independent critic must still review before stage 8.
-5. **Planted-defect check.** Required in every critic round from stage 7; recommended at stage 4.
-   Give the critic two packs in random order: the real one and a copy with three injected defects
-   (`tools/pack.py --plant`). If it finds fewer than 2 of 3, or scores the defective copy within 0.25
-   of the real one, discard the review and rerun once; if it fails again, the round goes to the
-   human. (hand-reveal-2: 3 of 3 found in both rounds.)
-6. **Read the critic's errors before its number.** Strict critics score clean work low (skill test
-   1: 2.8-3.0 against editor-style 4.5; hand-reveal-2: 2.68 for a clip rated about 6/10 against the
-   pilot). Fix the errors; compare scores only between rounds of the same critic set-up.
-7. **Fix the top three notes first**, from the end of the timeline backwards, and re-run the lints.
-8. **Stop** when any holds: *accept* (no hard lint failing, every category ≥ 3, weighted ≥ 4.0,
-   planted check passed); *plateau* (less than 0.2 gain over two rounds: ship the best, say what held
-   it back); *round cap* (3 rough-cut and 2 fine-cut rounds, or the critic budget); *blocked* (a fix
-   needs a Studio feature with no workaround: report it).
-9. **Hand it to a human** (always). Give them: the mp4; the beat list (time, section, `learns`); the
-   sync table with both columns; the loudness numbers; the critic's last top three; and questions
-   only ears and eyes can answer: Does the music fit the candy-peril tone? Does the main hit land on
-   the payoff? Can you tell who hit whom in every fight? Do you follow the hero? Is every voice line
-   in sync? Is anything harsh, muddy or too fast to follow? Record their notes; that is R07.
+3. **Run an independent strict critic**: a fresh agent (a different model if you can) with only the
+   brief, concept, plan, lint output, evidence pack and the previous round's notes (not scores). It
+   scores the rubric with evidence and ends with the top three problems, each naming a stage. A
+   computed failing hard lint caps its category at 2; a field the format lacks is "cannot check".
+4. **If no critic can run** or the budget is spent: the fallback in `review-rubric.md` section 3a,
+   headed **SELF-REVIEW (weaker than an independent critic)**, with a defect sweep, at least three
+   problems and a "critic owed" block. In production an independent critic must review before stage 8.
+5. **Planted-defect check**, required in every critic round from stage 7 (recommended at stage 4):
+   the real pack and a copy with three injected defects (`tools/pack.py --plant`) in random order.
+   Fewer than 2 of 3 found, or the copy scored within 0.25 of the real one: rerun once, then the human.
+6. **Read the critic's errors before its number** (strict critics scored clean work 2.7-3.0); compare
+   scores only between rounds of one critic set-up and one rubric revision.
+7. **Fix the top three notes first**, from the end of the timeline backwards; re-run the lints.
+8. **Stop** on *accept* (no hard lint failing, every category ≥ 3, weighted ≥ 4.0, planted check
+   passed), *plateau* (under 0.2 gain over two rounds), *round cap* (3 rough, 2 fine, or the budget)
+   or *blocked* (a needed Studio feature has no workaround: report it).
+9. **Hand it to a human** (always): the mp4, the beat list, the sync table, the loudness numbers, the
+   critic's top three, and the questions only ears and eyes can answer (`review-rubric.md` section 8),
+   including whether the big hits feel close and the first person feels like playing. That is R07.
 
 ## Common ways an AI gets this wrong, and the fix
 
 | Mistake | Fix |
 |---------|-----|
+| A key hit shot from far away (disaster-pvp-1 victims 0.07-0.15; B's revision-3 pull-out at 0.063) | A close shot (h ≥ 0.25) or a POV at the event frame, placed from the take (rule 18) |
+| No first person in a VR game's trailer | 25 % of a montage in POV, one POV on a key event (rule 18, L49) |
+| Cast behaving like props: stand-ins staring ahead while a rock lands beside them | Layers timed from the take: look at it, flinch on its frame, scream, cower (rule 17, L51) |
+| Two halves of one moment rendered from two takes (hand-reveal-2) | One committed take for the whole sequence (rule 17) |
+| Cameras placed from where a victim stood before the hit | Read the victim's position at the event frame from the tape |
+| Look-at layer aimed at `point:x,y,z`: silently ignored | Empty `target` plus `point`, or `hazard` (`record-and-layer.md` §5) |
 | Events in a row with no sections, no rises, no turn (attempt 1) | Beat sheet first; every escalate beat names what it raises (rule 2) |
 | Six shots of 2.0-3.4 s: too slow for a montage, too cut for a take (attempt 1) | Declare the shape; for a montage, a barrage and one short shot ≤ 1.0 s (rule 3) |
 | Music laid under the finished picture; the biggest hit fell on the establishing shot (attempt 1) | Map the music first; payoff on the main hit; the title on its own hit (rule 7) |
@@ -386,24 +410,16 @@ You cannot watch motion or hear sound. Judge from evidence, in this split:
 | A crowd wide where nobody reads | Survivors at h ≥ 0.08 (frame ≤ 11.75 m at them), three or more (L45) |
 | A knock-off cut away before the victim lands | Hold 0.6 s, or pick the victim up in the next shot (L46) |
 | A "face" shot of a faceless avatar (hand-reveal-2) | Head direction, body and hands carry it: a reaction layer, an emote or a performed pose (rule 9) |
-| Planned a punch on cue | The Studio has no punch cue: a person performs it, a live bot happens to, or `gear` + `fire`, or reaction layers fake it |
-| Planned the `tsunami` cue to sweep people off | It never pushes survivors (`affectPlayers = false`); use the `hazard` cue and run variations |
-| Promised an elimination burst from a Studio take | Deaths are off on the Studio stage: plan the splash or a `death` layer, and `verify` |
-| Planned mode HUD, flags or scores | The stage runs Demo: capture them in a real match or leave them out |
-| A survivor riding a tilting block sank into it (hand-reveal-2) | Stand him at the block's middle; check his feet in the scout |
-| The hero rendered white at 1080p (pilot, hand-reveal-2) | The Studio's URP motion blur does it: render without it and check a colour still |
+| Planned an unarmed punch on cue | No such cue: `glovePunch` with the glove, a person performs it, or reaction layers fake it |
+| Planned what the stage cannot do (a pushing `tsunami` cue, an elimination burst, mode HUD) | The can/cannot table above and `game-content.md` section 9; `verify` with a fallback |
 | The scout changed everything but the plan was not re-linted | Stage 5b: a new plan version, re-run the lints, re-review when keys move (pipeline) |
 | A voice line measured 17 frames late that was in sync | Check each sound lane alone; voices need ears (rule 15) |
-| Waivers for a 9 s clip's title rules (hand-reveal-2) | Use class `moment` |
-| Re-recording for each fix; takes differ every time | Commit one take; plan against its take report |
 | Judged from contact sheets and meters, by the maker alone | Evidence pack, independent critic, planted defects, human pass |
-| A grey see-through survivor in two shots | Technical check in the filmstrip; fix or cut the shot (critic C9) |
 | Four plans, one spine: same collapse, same hero, same tagline (skill test 1) | Five image ideas first; two rejected concepts that really differ; never reuse an example's text or ids |
 | Copied camera numbers that could not show the new action (skill test 1) | A `fit` line per shot, derived for what that shot must show (rule 11) |
-| The giant hand forced into a mayhem brief | Only if the brief asks; `legacy-hand.md` |
 | Multiplayer only implied (skill test 1) | Three or more survivors readable and acting in one frame |
 | No caption, so muted viewers missed the rule (skill test 1) | One plain rule caption by default in store and muted social cuts |
 | Labels changed, a beat cut short, a cause swapped "for the lint" | Waive in writing instead (rule 14) |
-| Over-correcting: every cut snapped to a beat | Only sync points and barrage cuts need hits; keep beat cuts under 80 % |
 | Over-correcting: forcing wide-medium-close on every cut | Same-size cuts are normal in gameplay; change the place or action instead |
+| Over-correcting: every cut snapped to a beat | Only sync points and barrage cuts need hits; keep beat cuts under 80 % |
 | Over-correcting: a slow move on every shot | Static is a move; designed moves on 10-30 % of shots |

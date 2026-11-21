@@ -415,3 +415,101 @@ Nothing new was measured in trailers; "estimate" marks every new number.
 - Whether three disasters run together in one Studio take.
 - Example D and E camera numbers assume the attempt-1 castle (the wall walk at 25 m); neither was
   scouted.
+
+---
+
+## Revision 4 (2026-11-20)
+
+Triggers: the owner's three questions the same day: (1) "why dont the trained agents etc include any
+first person stuff and why is overly-reliant on distant shots esp the super distant ones during
+important events when a much closer one with a good angtle would be so much more immersive?";
+(2) whether agents record one real physics event, then make every scene follow it, and perform each
+actor one at a time against those already recorded, with a first-person view that shows the player's
+hands and weapon; (3) "can you ensure everyone including anyone looking at the skill knows to be
+doing these iterative things etc can how to do them". Field reports read: `attempts/disaster-pvp-1/REPORT.md`
+and `attempts/hand-reveal-2/REPORT.md` (DeadlyJenga repo). Studio code read only, on
+`claude/trailer-hand-reveal-pilot` at `9e099413` (another agent is editing its first-person camera).
+No Unity was run. Every new number is an estimate.
+
+### What the code says (verified by reading, file references in `TrailerStudio/`)
+
+- Record once, play back with no physics: `StudioRun.RecordWholeSet` (`Engine/StudioRunPass.cs:41-48`)
+  records every unlocked track live on a fixed clock; playback and renders pose blocks kinematically
+  (`SetWorldKinematic`, line 254).
+- Cues run only in live-world passes (`StudioRunPass.cs:435`; `TrailerStudio.md`).
+- Who is live: marks in `pass.record` other than the performer; `Survivor` marks are brainless
+  stand-ins, `Bot` marks run the bot brain (`Engine/StudioCast.cs:43-79`). Played-back actors are
+  posed from the tape and do not react to hits; a played-back disaster does not push a live performer.
+- Performing (`Engine/StudioPerform.cs`): countdown, pre-roll, ½ and ¼ speed, loop, punch-in (and
+  back 3 s), floor paths of the others and your last take (`Engine/StudioPaths.cs`, only while a
+  person performs), ghosts. Live physics records the performer plus the world from a fresh map and
+  nobody else (`StudioPerform.cs:56-63`); older actor takes are badged stale (`StudioTakes.MarkStale`).
+  A driver can build a pass with a performer and other live actors (`StudioRun.Record` accepts any
+  `StudioPass`); **untested**.
+- Branches keep the tape before a frame and re-simulate after it (`StudioRunPass.cs:344-357`).
+- Overlays (`Engine/StudioOverrides.cs`): look-at, reach, pose, nine reactions, emote, outfit, colour
+  flash, weapon, hit pause; targets `actor:`, `block:`, `camera:`, `hazard` or an empty target with
+  `point`; triggers `contact` (blocks over 1.5 m/s within 1 m of the chest) and `cue:<id>` (cue time,
+  or a disaster's centre within `max(4, strength x 8)` m), resolved by `StudioOverrides.Resolve`.
+  Cameras, including first person, read actors with their overlays (`Engine/StudioCameras.cs:33-40`).
+- **Found while reading:** an overlay with `target: "point:..."` is silently ignored (`Target` has no
+  `point:` case); disaster-pvp-1's "everyone looks up at the planet killer" layers used it
+  (`Attempts/DisasterPvpMoment.Direction.cs:287-294`), so those look-ups never happened.
+- Motion edit (`Engine/StudioMotionEdit.cs`): trim, slide, retime, smooth, offset, bend, blend takes,
+  lock feet; `StudioTakes`: comp, clone, crowd. Every edit is a new take.
+- New cues from disaster-pvp-1: `glovePunch` (`Engine/StudioGlovePunchCue.cs`) and `aimedMeteor`
+  (`Engine/StudioAimedMeteorCue.cs`). The motion-blur ghosting fix `StudioRender.NoSkinnedVectors`
+  (`Engine/StudioRender.cs:201, 276`).
+- disaster-pvp-1's driver saved and loaded one bundle for every job (`DisasterPvpMoment.SaveBundle`,
+  `LoadBundle`), wrote a take report (`DisasterPvpMoment.Scout.cs:42-120`), and placed victim cameras
+  6-8 m out at 20-24 mm from the victims' *pre-hit* positions (`DisasterPvpMoment.Shots.cs`, `Victim`).
+- `firstPerson` today: camera at the recorded head with its rotation, no smoothing
+  (`StudioCameras.cs:186-188`).
+
+### Changes
+
+| # | Change | Where | Verified / estimated / untested |
+|---|--------|-------|---------------------------------|
+| 1 | **Record once, then direct against the tape** as hard rule 17 and a numbered procedure with the real method names (record, report, re-time, commit the bundle, place cameras from the take, load the bundle in every later job, a folder per job mode), when to re-record and what that invalidates, branches as the cheaper re-record. Placed in the frontmatter, a "Start here" section at the top of SKILL.md, and the new `references/record-and-layer.md`. | SKILL.md; `record-and-layer.md` §2-3; `studio-tooling.md`; pipeline stages 5 and 6 | verified in code (above); the loop is disaster-pvp-1's "record, scout the take, re-plan" |
+| 2 | **Layered actors**: the pass order (world, causes, victims, witnesses, crowd); what a person can do (Perform options) and what an agent can do alone (cues in one live pass, overlays timed from the take report, motion edit, triggers); the rule that everyone who touches anyone is live in one pass; a `layers` plan field and soft lint L51. | `record-and-layer.md` §4; schema; examples | verified in code; the driver-built performer-plus-live-actors pass is **untested** |
+| 3 | **Tooling gaps for agent-performed actors**, each with the smallest feature: `move` cue; unarmed `punch` cue; `hit` trigger from recorded health drops; contact triggers for hazard points and actors; a Studio take report; `point:` overlay targets; scripted performer input; a `hide` overlay or "no respawn"; keep chosen actors live while performing; first-person fix (in progress); playback colours. | `record-and-layer.md` §6; `studio-tooling.md` §6 | from the code; none built |
+| 4 | **Stage facts** from disaster-pvp-1: respawn after the sea (deaths off), every body playing back yellow, left-over impact visuals, the rocket's 8 m blast, block visuals on the Default layer, a fixed summit rule, rock paths 4 m from the hero, bots walking off, one job deleting another's output, plus the `point:` overlay bug found in this revision. | `record-and-layer.md` §5 | sourced: the report; `StudioRun.cs:223` (deaths off) and the code paths named; the colour cause is **not traced** |
+| 5 | **Closeness as a hard rule** (rule 18, L47): every key event (hit, knock-off, elimination, fall into the sea, disaster hit on a named survivor, the payoff) has a shot on screen at its frame with the affected survivor or impact at h ≥ 0.25, or a first-person view; wides are for geography and scale and never the only coverage. Render twin R08 from `metrics.csv`. Distances for 0.25 in `camera.md` §1d. | SKILL.md; `camera.md` §1d; lints; rubric | 0.25 is an **estimate** (the bottom of the fight two-shot band; disaster-pvp-1 victims at 0.07-0.15 were judged too small) |
+| 6 | **Camera derived from the tape** (L48): `key_events` in the header and a `take_ref` {event, take_frame, subject_h, source} on every key beat; once the take is committed, `source` must be `tape` or `metrics`. | schema; lints; examples | the owner's direction; the field shape is new and **untested on a real plan** |
+| 7 | **First person required** (L49): a montage has ≥ 25 % of body frames in POV in 2+ shots, one on a key event; a single take or moment has a POV of 1 s or more on a key event; L50 (soft) caps POV at 60 % unless `pov_led`. Revision 3's "under half" and "third person carries the scale" are replaced. | `camera.md` §6; SKILL.md defaults and rule 18; lints | measured: 6 of 8 VR trailers mostly first person (VR first-person share 0.67); 25 % and 60 % are **estimates** |
+| 8 | **First-person how-to left to the other agent**: a marked placeholder ("first-person camera fix in progress, see commit note") in `camera.md` §1c and the `pov` row of `studio-tooling.md` §4. Until it lands: `pov_of`, smoothing, a `verify` item and an over-the-shoulder fallback 0.3-0.5 m behind the head. | `camera.md`; `studio-tooling.md` | the raw head-locked view is verified in code; the fix is not mine |
+| 9 | **Rubric**: new category C11 "Immersion and closeness" (weight 1.0; weighted mean now / 11.0), evidence item 11 (the motion around every key event: the clip or a strip of every 2nd frame from -10 to +20, with an ffmpeg command), critic step 5c, closeness defects in the self-review sweep and planted-defect lists, two human-pass questions. | `review-rubric.md` | the weight is **inferred**; `pack.py` does not build item 11 yet |
+| 10 | **Mistakes rows**: key hit from far away; no first person; cast as props; two halves from two takes; cameras from pre-hit marks; the `point:` overlay. Some Studio-specific rows folded into one row pointing at the can/cannot table to keep SKILL.md near 400 lines. | SKILL.md; `camera.md` §7; `reveals-and-moments.md` checklist | - |
+| 11 | **`tools/lint.py`**: L47-L51 added (hard for mayhem, disaster, pvp; warnings for legacy hand and two_role), L06's 15 s longest-shot floor lowered from 60 to 45 frames. | `tools/lint.py`; schema | tested (below) |
+| 12 | **Worked examples rewritten** so they pass and really use close and first-person coverage: D (montage) now sees the glove launch from Brick's eyes, the payoff from Jolt's, and the splash from the waterline (26 % POV); E's follow closes to 3.2 m on Kestrel for the payoff and the betrayal is Tansy's view; B became a first-person single take (`pov_led`), with revision 3's 15 m pull-out kept as its third rejected concept. All three gained `key_events`, `take_ref`, `layers`. | `worked-examples.md` | linted; geometry derived on the assumed castle map; **not scouted** |
+| 13 | **L06 at 15 s: 45 frames, not 60.** The 60-frame floor was extrapolated, not measured (15 s references are single takes); L09 already forces one 45-frame hold of the first core verb; disaster-pvp-1 reported the 60 forced a restructure (it dropped S02 to stretch S01 to 64 frames). The 30 s and 60 s floors are unchanged. | SKILL.md rule 3; lints | decision; the 45 is the existing L09 number reused |
+
+### Tests run (no Unity)
+
+- `python tools/lint.py` on D, E and B as revised: 0 hard failures, no soft warning (n/a where a lint
+  does not apply). On their revision-3 versions: each failed L47, L48 and L49 (L48 and L47 for the
+  missing fields first).
+- Planted variants of D and B: D's payoff turned back into a far wide (h 0.11) fails L47 and L49; D with
+  `take_status: committed` and `fit` sources fails L48; D with no POV fails L49 only (its key events are
+  still close); D with a key event's only `take_ref` moved to a shot not on screen at the event fails
+  L47 and L48; D without Dune's layer warns L51; B as revision 3's pull-out (h 0.063, no POV) fails L47
+  and L49.
+- A and C (legacy) print L47-L51 as soft warnings and still have 0 hard failures.
+
+### Chosen not to change, and why
+
+- **The gated pipeline, planning-only mode, the waiver rule and the critic protocol** stay; the
+  record-once loop sits inside stages 5-6 rather than adding a stage.
+- **L29's wide share (≥ 40 %)** stays: a WS fight two-shot at h 0.25-0.45 counts as wide and as close
+  coverage, so the two rules do not fight (D passes both at 89 % wide).
+- **`pack.py`** is unchanged; the key-event strip is made with ffmpeg until it is added.
+- **The legacy examples A and C** are not rewritten (they warn); the hand is not the default.
+
+### Unsure
+
+- Whether 0.25 is the right closeness floor and 25 % the right first-person floor; both should be
+  checked against a measured VR or party trailer for key-event sizes.
+- Whether a driver-built pass with a performer and other live actors works as the code suggests.
+- Whether the fixed first-person camera will show hands and weapons for played-back actors (the other
+  agent's work), which every POV in the examples depends on (each has a fallback).
+- Why every body played back yellow in disaster-pvp-1.

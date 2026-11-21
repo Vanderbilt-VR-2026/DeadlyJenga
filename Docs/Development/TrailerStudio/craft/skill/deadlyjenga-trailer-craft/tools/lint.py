@@ -1,4 +1,4 @@
-"""Plan lints for a Deadly Jenga trailer plan (deadlyjenga-trailer-craft, revision 3).
+"""Plan lints for a Deadly Jenga trailer plan (deadlyjenga-trailer-craft, revision 4).
 
 Usage:
   python lint.py <plan.yaml>           one line per lint, then the count of hard failures
@@ -12,7 +12,10 @@ Exit code 1 when an unwaived hard lint fails.
 What it cannot check: whether a `shows` label, `learns` line, brief `proof` or `fit` line is TRUE of
 the shot (L18 and L38 only check that the field is there), and every scout/render lint (R01-R07).
 Started from hand-reveal-2's tools/lint.py (2026-11-20) and generalised: core verb by concept type,
-the `moment` class, single-take moments, and the mayhem lints L40-L46. Needs PyYAML.
+the `moment` class, single-take moments, and the mayhem lints L40-L46. Revision 4 adds L47 (every key
+event close or in first person), L48 (each key beat's camera derived from the take: take_ref), L49 (a
+first-person floor), L50 (soft POV cap) and L51 (soft: the world first, then every cast member gets a
+layer), and lowers L06's 15 s longest-shot floor from 60 to 45 frames. Needs PyYAML.
 """
 import re
 import statistics
@@ -188,7 +191,7 @@ elif moment:
     ok6 = S(24) <= med <= S(75) and max(lengths) >= S(45)
     report("L06", ok6, f"moment montage: lengths {lengths}, median {med}, longest {max(lengths)} (no barrage needed)")
 else:
-    floor = {"15": 60, "30": 90, "60": 99}[cls]
+    floor = {"15": 45, "30": 90, "60": 99}[cls]   # revision 4: 15 s floor 60 -> 45 (extrapolated, not measured)
     window = max([sum(1 for c in body_cuts if a <= c < a + S(150)) for a in range(0, max(1, body_end))] or [0])
     ok6 = S(30) <= med <= S(66) and min(lengths) <= S(30) and max(lengths) >= S(floor) and window >= 4
     report("L06", ok6, f"montage: lengths {lengths}, median {med}, shortest {min(lengths)}, longest {max(lengths)} (floor {floor}), most cuts in a 5 s window {window}")
@@ -410,6 +413,105 @@ if any(b.get("section") == "escalate" for b in beats):
 miss42 = [n for n, secs in need if not hero_in(secs)]
 report("L42", not miss42, f"hero {hero} in frame through the cut; missing from: {miss42 or 'none'}")
 
+# ---------- revision 4: close on key events, cameras from the tape, first person ----------
+# Hard for mayhem, disaster and pvp; soft (a warning) for the legacy hand and two_role types.
+r4_hard = ctype not in ("hand", "two_role")
+CLOSE_H = 0.25          # estimate: the affected survivor (or the impact) at >= 0.25 of frame height
+POV_SHARE = 0.25        # estimate: montage 15/30/60, share of body frames in first person
+POV_CAP = 0.60          # soft: more than this needs pov_led: true
+KEYSHOWS = {"pvp_hit", "knock_off", "elimination", "into_sea"}
+key_events = {e["id"]: e for e in plan.get("key_events", []) or [] if isinstance(e, dict) and e.get("id")}
+committed = ((plan.get("capture") or {}).get("take_status") == "committed")
+
+
+def is_key(b):
+    s = set(b["shows"])
+    return bool(KEYSHOWS & s) or ("hazard_hit" in s and b.get("victim")) or b.get("section") == "payoff"
+
+
+def is_pov(b):
+    return (b["shot"].get("camera") or {}).get("move") == "pov"
+
+
+def tref(b):
+    return b.get("take_ref") or {}      # a moment carries its own take_ref; a shot its own
+
+
+key_beats = [b for b in beats if is_key(b)]
+cover = {}
+for b in beats:
+    ev = tref(b).get("event")
+    if ev:
+        cover.setdefault(ev, []).append(b)
+
+bad48 = []
+for b in key_beats:
+    t = tref(b)
+    if not t.get("event"):
+        bad48.append(f"{tag(b)}: key beat without take_ref.event")
+    elif t["event"] not in key_events:
+        bad48.append(f"{tag(b)}: event {t['event']} not in key_events")
+for ev, bs in cover.items():
+    for b in bs:
+        t = tref(b)
+        if not isinstance(t.get("subject_h"), (int, float)):
+            bad48.append(f"{tag(b)}: take_ref.subject_h missing")
+        if t.get("source") not in ("fit", "tape", "metrics"):
+            bad48.append(f"{tag(b)}: take_ref.source must be fit, tape or metrics")
+        tf = t.get("take_frame")
+        if not (isinstance(tf, int) or (tf == "planned" and not committed)):
+            bad48.append(f"{tag(b)}: take_frame {tf!r} (an integer tape frame; 'planned' only before a take is committed)")
+        if committed and t.get("source") == "fit":
+            bad48.append(f"{tag(b)}: take committed, so subject_h must come from the tape or the metrics, not the plan's fit")
+for ev, e in key_events.items():
+    if ev not in cover:
+        bad48.append(f"{ev}: no shot carries a take_ref for it")
+    if not isinstance(e.get("frame"), int):
+        bad48.append(f"{ev}: key_events entry needs a trailer frame")
+report("L48", not bad48, f"key events {sorted(key_events)}; camera derived from the take: {bad48 or 'every key beat names its event, tape frame and measured or derived subject size'}"
+       + ("" if committed else " (take not committed: subject sizes may come from fit lines)"), hard=r4_hard)
+
+
+def covers_close(ev):
+    e = key_events.get(ev, {})
+    fr = e.get("frame")
+    ok_beats = []
+    for b in cover.get(ev, []):
+        s = b["shot"]
+        if isinstance(fr, int) and not (s["cut_in"] <= fr < s["cut_out"]):
+            continue                       # this shot is not on screen when the event happens
+        h = tref(b).get("subject_h")
+        if is_pov(b) or (isinstance(h, (int, float)) and h >= CLOSE_H):
+            ok_beats.append(tag(b) + (" (POV)" if is_pov(b) else f" (h {h})"))
+    return ok_beats
+
+
+bad47, good47 = [], []
+for ev in sorted(key_events):
+    got = covers_close(ev)
+    if got:
+        good47.append(f"{ev}: {got[0]}")
+    else:
+        sizes = [f"{tag(b)} h {tref(b).get('subject_h')}" for b in cover.get(ev, [])]
+        bad47.append(f"{ev}: only far coverage ({sizes or 'none'})")
+if not key_events and key_beats:
+    bad47.append("key beats exist but key_events is empty")
+report("L47", not bad47, f"every key event close (subject h >= {CLOSE_H}) or in first person: {bad47 or good47}", hard=r4_hard)
+
+pov_frames = sum(min(s["cut_out"], body_end) - s["cut_in"] for s in body if (s.get("camera") or {}).get("move") == "pov")
+pov_share = pov_frames / max(1, body_end)
+pov_shots = [s for s in body if (s.get("camera") or {}).get("move") == "pov"]
+no_owner = [s["id"] for s in pov_shots if (s.get("camera") or {}).get("pov_of") not in cast | {"hand"}]
+pov_on_key = sorted({tref(b).get("event") for b in beats if is_pov(b) and tref(b).get("event") in key_events})
+if shape == "single_take" or moment:
+    long_pov = [s["id"] for s in pov_shots if length(s) >= S(30)]
+    ok49 = bool(long_pov) and bool(pov_on_key) and not no_owner
+    d49 = f"single take or moment: POV shots of 30+ frames {long_pov or 'none'}; POV on key events {pov_on_key or 'none'}"
+else:
+    ok49 = pov_share >= POV_SHARE - 1e-9 and len(pov_shots) >= 2 and bool(pov_on_key) and not no_owner
+    d49 = f"montage: POV {pov_frames} of {body_end} body frames = {pov_share:.0%} (floor {POV_SHARE:.0%}), {len(pov_shots)} POV shots (need 2), on key events {pov_on_key or 'none'}"
+report("L49", ok49, d49 + (f"; POV shots without camera.pov_of a cast survivor: {no_owner}" if no_owner else ""), hard=r4_hard)
+
 # ---------- soft lints ----------
 hazards = [t for t in threats if str(t).startswith("hazard:")]
 if len(hazards) >= 2:
@@ -442,6 +544,16 @@ for i, b in enumerate(beats):
         if after < S(18) and not shown_next:
             bad46.append(f"{tag(b)}: {after} frames after the hit")
 report("L46", not bad46, f"knock-offs held 0.6 s or picked up by the next shot: {bad46 or 'all'}", hard=False)
+
+report("L50", pov_share <= POV_CAP + 1e-9 or plan.get("pov_led") is True,
+       f"POV share {pov_share:.0%} of the body (cap {POV_CAP:.0%} unless pov_led: true)", hard=False)
+
+layers = plan.get("layers", []) or []
+layered = {l.get("actor") for l in layers if isinstance(l, dict)}
+props = sorted(a for a in cast if a not in layered)
+world_first = bool(layers) and (layers[0].get("kind") == "world")
+report("L51", not props and world_first,
+       f"pass order starts with the world: {world_first}; cast with no action or reaction layer (props): {props or 'none'}", hard=False)
 
 montage = shape == "montage" and not moment
 bad20 = [t["text"] for t in plan.get("titles", []) or [] if t["frame_out"] - t["frame_in"] < fps * (0.3 * len(t["text"].split()) + 1.0)]

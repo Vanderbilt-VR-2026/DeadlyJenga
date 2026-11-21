@@ -206,6 +206,9 @@ Answer each yes or no with the shot id. "Hard" items are lints; a "no" blocks re
 | 16 | Does each disaster's sound start before its first image? | critic C7 |
 | 17 | Is there a held beat (drop-out) before the payoff? | L31 (soft) for 30-60 s |
 | 18 | Are POV shots smoothed? | L17 (hard) |
+| 18b | Is every key event (each hit, knock-off, elimination, the payoff) seen close (victim ≥ 0.25) or in first person, with its camera placed from the take? | L47, L48 (hard) |
+| 18c | Is enough of the cut in first person (25 % of a montage; one POV on a key event in a take)? | L49 (hard) |
+| 18d | Does every cast member act or react on the frame things happen (no props)? | L51 (soft) |
 | 19 | Is there one held "screenshot" frame (hero small, disaster huge, a hit at its peak)? | critic C1 |
 | 20 | Are cards a few plain words with no superlatives? | L32 (soft) |
 | 21 | Is the tone both candy-bright and genuinely perilous? | human pass |

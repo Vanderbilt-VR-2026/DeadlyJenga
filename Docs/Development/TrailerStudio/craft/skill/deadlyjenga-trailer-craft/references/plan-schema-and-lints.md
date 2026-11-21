@@ -15,7 +15,7 @@ Skill test 1's planners admitted relabelling `shows` to dodge L34, changing a ca
 and cutting a near miss to 0.7 s to pass L21; each made the plan worse.
 
 Checking by hand is error-prone (all four test planners said so). **Run `tools/lint.py plan.yaml`**
-(revision 3): it computes every L-lint below from the plan and prints PASS, FAIL, WAIVED or N/A
+(revision 4): it computes every L-lint below from the plan and prints PASS, FAIL, WAIVED or N/A
 with the numbers. It cannot tell whether a `shows` label, `learns` line, brief `proof` or `fit`
 line is true of the shot; you and the critic still check that. A plan written as a table in
 `plan.md` can be copied into YAML for the run.
@@ -39,7 +39,10 @@ line is true of the shot; you and the critic still check that. A plan written as
 | `hero` | actor id | the survivor the audience follows; never an example's id (L39) |
 | `cast` | list of actor ids | every performed or bot survivor named in shots |
 | `must_show` | list of ids | copied from the brief, one id per thing it asks for; each id has a one-line `proof` in `brief.yaml` saying what in frame proves it (L18) |
-| `capture` | object | `survivors`: who is performed, who is a live bot, who is a recorded stand-in; `hand`: `performed` / `directed` / `bot` / `none`; `take`: committed bundle path |
+| `capture` | object | `survivors`: who is performed, who is a live bot, who is a recorded stand-in; `hand`: `performed` / `directed` / `bot` / `none`; `take`: committed bundle path; `take_status`: `planned` or `committed` (once committed, every `take_ref` comes from the tape or the metrics, L48) |
+| `key_events` | list | every key event (L47): {`id` (K1...), `frame` (trailer frame), `kind` (`pvp_hit`, `knock_off`, `elimination`, `into_sea`, `hazard_hit`, `payoff`), `attacker`, `victim`, `what`}; after capture also the take frame and place from the take report |
+| `layers` | list | the pass order (`record-and-layer.md` section 4): {`order`, `kind` (`world` first, then `actor`), `actor`, `how` (cues, performance or overlays), `reacts_to` (event ids)}; one entry per cast member (L51) |
+| `pov_led` | bool | true when first person is the cut's main view (more than 60 % of the body, L50) |
 | `camera_sensor_mm` | float | 24 (all distances in `camera.md` assume it; the Studio's default is 18.66, so set each track's `sensorHeight`) |
 | `music` | object | `file` (null in planning-only mode), `bpm`, `meter`, `downbeat_frame`, `sections` [{name, from_frame, to_frame}], `hits` [{name, role: `open` / `reveal` / `main` / `title` / `accent`, frame, bar_beat, measured_onset_frame (a frame, or `unmeasured`)}], `stopdowns` [{from, to}] |
 | `titles` | list | {text, `role`: `title` / `tagline` / `cta` / `caption`, frame_in, frame_out, style: `card` / `over_picture`, position, closing: bool}. Exactly one entry has `closing: true` (role `title`). A `caption` is in-body text over gameplay; `tagline` and `cta` belong to the end card. |
@@ -77,9 +80,10 @@ line is true of the shot; you and the critic still check that. A plan written as
 | `size` | enum | `EWS` < `WS` < `FS` < `MS` < `MCU` < `CU` < `ECU`, plus `INSERT` (counts as close). **Third-person with a cast survivor in frame:** size follows the nearest survivor (table in `camera.md`: EWS h ≤ 0.08, WS 0.20-0.45, FS 0.70-0.90; MS / MCU / CU by frame height). A survivor at h 0.08-0.20 is WS. **Otherwise, and for every POV shot:** judge by the subject's height fraction `h`: EWS < 0.1, WS 0.1-0.45, FS 0.45-0.9 (whole subject in frame), MS / MCU / CU when cropped to 50-70 / 35-50 / under 35 % of it; `INSERT` when a part of an object (a block end, fingertips) fills ≥ 50 % of frame height. |
 | `angle` | enum | `eye`, `low`, `high`, `overhead`, `ground`, `dutch` (for a POV, the class of its pitch) |
 | `side` | {face, yaw_deg} | face: `front`, `3q_front`, `profile`, `3q_back`, `back`; yaw 0 = facing camera. POV shots: `null`, `null`. |
-| `camera` | object | `move` (library below), `purpose` (string), `ease` (`in_out`, `in`, `out`, `damped`, `none`), `distance_m` to subject, `height_m` above the subject's standing surface (POV: eye height), `focal_mm`, `aperture`, `focus` (`subject` or metres), `params` (move-specific), `pov_smoothing` {pos_s, rot_s} for POV |
+| `camera` | object | `move` (library below), `purpose` (string), `ease` (`in_out`, `in`, `out`, `damped`, `none`), `distance_m` to subject, `height_m` above the subject's standing surface (POV: eye height), `focal_mm`, `aperture`, `focus` (`subject` or metres), `params` (move-specific), `pov_smoothing` {pos_s, rot_s} for POV; `pov_of` (the cast survivor whose eyes it is; L49) |
 | `fit` | string | **the framing check** (L38): frame height at the subject `Hf = distance x 24 / focal_mm`, the subject's fraction of it, and why the action point (impact, block travel, face, both threats) fits. Derived for this shot, never copied. |
 | `key_frame` | shot frame | where the action peaks |
+| `take_ref` | object | **the camera derived from the tape** (L48), required on every key beat (and on any other shot that covers a key event): `event` (a `key_events` id), `take_frame` (tape frame from the take report; `planned` before a take is committed), `subject_h` (the affected survivor's or the impact's height share of the frame at that frame), `source` (`fit`, `tape` or `metrics`). A single take puts it on each key moment |
 | `moments` | list | single-take only: [{at, section, reveal, threat, raises, cause_in, shows, attacker, victim, what, sound_at, hook_count}] treated as beats by L03, L05, L08, L09, L12, L40-L46 (`what` follows the `learns` rules; the take's `also_in_frame` counts for every moment) |
 | `action_cue` | object | `cue_id`, `tape_frame`, `expect` (e.g. `block_travel_m: 2.0`) |
 | `frame_at_key` | object | `grid` (`TL` ... `BR`), `min_area_pct`, `max_occlusion_pct`, `breaks_frame` (bool) |
@@ -128,7 +132,7 @@ Derived terms used by the lints:
 | L03 | hard | Structure | the list of sections (shots, or `moments` in a single take) matches `hook+ teach+ (escalate|breath)+ payoff+ (aftermath|breath)* title+` with at least one `escalate` before the first `payoff`; class `moment`: `hook+ teach* (escalate|breath)* payoff+ (aftermath|breath)* title*`; every `escalate` has `raises` | [sourced] Lieu, Cauller; moment pattern from hand-reveal-2 |
 | L04 | hard | Gameplay first | first shot `kind: gameplay`; min `cut_in` of gameplay shots ≤ 60 frames (2.0 s) | [measured] 13 of 21 |
 | L05 | hard | Core verb early | the first shot or moment whose `shows` has the core verb, with its scale reference (`hazard_hit`: the structure or a cast actor in frame; `pvp_hit`: attacker and victim both in frame; `pull`: a block and a cast actor): `(cut_in + key_frame) / fps` (or the moment's `at`) ≤ 5.0 s (moment, 15), 8.0 s (30), 12.0 s (60) | [measured] mid median 4.3 s, party/physics 3.7 s; 15 and 30 extrapolated |
-| L06 | hard | Shape | `montage`: median body-shot length 30-66 frames (1.0-2.2 s); shortest ≤ 30 frames; longest ≥ 60 (15) / 90 (30) / 99 (60) frames; some window `[a, a+150)` inside the body holds ≥ 4 cuts. `single_take`: one body shot ≥ 70 % of the body; ≤ 2 cuts inside the body. Class `moment` montage: median 24-75 frames, longest ≥ 45, no barrage needed | [measured] 16 of 18; floors for 15 and 30 extrapolated; moment numbers estimated |
+| L06 | hard | Shape | `montage`: median body-shot length 30-66 frames (1.0-2.2 s); shortest ≤ 30 frames; longest ≥ 45 (15; was 60 until revision 4) / 90 (30) / 99 (60) frames; some window `[a, a+150)` inside the body holds ≥ 4 cuts. `single_take`: one body shot ≥ 70 % of the body; ≤ 2 cuts inside the body. Class `moment` montage: median 24-75 frames, longest ≥ 45, no barrage needed | [measured] 16 of 18; floors for 15 and 30 extrapolated; moment numbers estimated |
 | L07 | hard | Title timing | closing `frame_in` in [330, 360] (15), [720, 780] (30), [1590, 1650] (60); `length_frames - frame_in` in [90, 120] / [120, 180] / [150, 210]; no other title with the game name before it unless `style: over_picture` on a gameplay shot. Class `moment`: no closing title needed; if one is used it starts after the payoff's key | [measured] 18 of 22 at 80-95 %, 15 of 22 cards 4-8 s; the 15 s window trades card length for position, extrapolated |
 | L08 | hard | Staged reveal or cold open | for each threat T: let R = the first shot or moment with `reveal` in {`whole`, `payoff`} about T. **Staged** (R after frame 0): the summed length of earlier shots (or moment spans) with an anticipation reveal about T ≥ 21 frames (0.7 s). **Cold open** (R at frame 0, `opening: cold_open`, `cold_open_threat: T`): R is uncut for ≥ 30 frames, and the body has ≥ 2 `escalate` beats with `reveal: consequence` whose `raises` values differ. A second threat first shown after frame 0 always needs its own anticipation. Every `consequence` or `payoff` has `cause_in`; if `prev`, the previous beat shows a cause (derived terms) or has `reveal` `whole` or `payoff` | [sourced] Hitchcock, Jaws, Lieu cause-effect; skill test 1 (frame-0 wave scored best on hook); 0.7 s and 1.0 s inferred |
 | L09 | hard | Hold the first core verb | the first shot (or moment) whose `shows` has the core verb: length ≥ 45 frames; `key_frame` ≥ 12 and `length - key_frame` ≥ 12 (a moment: ≥ 12 frames from the take's ends and from any cut); a scale reference in frame (`hazard_hit`: the structure or an actor; `pvp_hit`: attacker and victim both in frame; `pull`: a block or an actor) | [sourced] Lieu (hold new mechanics); 1.5 s inferred; attempt 1 F17 |
@@ -179,8 +183,24 @@ these rows is an estimate until a mayhem cut is measured.
 | L45 | soft | Several readable at once | every shot with `multiplayer` or `several_survivors` has `readable_survivors` ≥ 3 (survivors at h ≥ 0.08, the EWS line) | [measured] EWS line from `camera.md`; 3 from the `multiplayer` proof |
 | L46 | soft | Knock-offs read | a beat with `knock_off` or `elimination` holds ≥ 18 frames (0.6 s) after its key, or the next beat (`cause_in: prev`) keeps the victim in frame | [inferred] estimate; attempt 1 F17 (an unreadable result) |
 
-(L36-L39 are from revision 2; L40-L46 from revision 3. Montage-only soft lints (L21-L24, L30, L33)
-and L25 do not apply to class `moment`.)
+### Closeness, first person and the tape (revision 4)
+
+Grounding: the owner's direction (2026-11-20: "a much closer one with a good angle would be so much
+more immersive"; first person "as if actually playing as them"); report 06 (6 of 8 VR trailers mostly
+first person); disaster-pvp-1 (victims at 0.07-0.15 at their hits, every take cut from one bundle).
+Hard for `mayhem`, `disaster` and `pvp`; printed as soft warnings for the legacy `hand` and `two_role`
+types. The numbers are estimates. Procedure: `record-and-layer.md`; framing: `camera.md` section 1d.
+
+| ID | Sev | Rule | How it is computed | Basis |
+|----|-----|------|--------------------|-------|
+| L47 | hard | Close on every key event | a **key beat** is any beat whose `shows` has `pvp_hit`, `knock_off`, `elimination` or `into_sea`, a `hazard_hit` with a `victim`, or `section: payoff`. For every `key_events` entry E: some shot on screen at E's `frame` (`cut_in` ≤ frame < `cut_out`) whose `take_ref.event` is E has `take_ref.subject_h` ≥ 0.25 or `camera.move: pov`. A wide may also cover E but never alone | the owner's direction; 0.25 = the bottom of the fight two-shot band, **estimate** |
+| L48 | hard | Camera from the tape | every key beat has `take_ref.event` naming a `key_events` id; every `take_ref` has a numeric `subject_h`, `take_frame` (an integer, or `planned` before the take is committed) and `source` in `fit` / `tape` / `metrics`; once `capture.take_status: committed`, no `fit`; every key event has a `take_ref` and a trailer `frame` | the owner's direction; disaster-pvp-1 placed cameras from pre-hit marks |
+| L49 | hard | First person | every POV names `camera.pov_of` (a cast survivor). Montage, class 15/30/60: POV ≥ 25 % of body frames, at least 2 POV shots, at least one on a key event. Single take or class `moment`: at least one POV of 30+ frames on a key event (or the take is POV) | [measured] 6 of 8 VR trailers mostly first person (VR first-person share 0.67); 25 % **estimate** |
+| L50 | soft | POV cap | POV ≤ 60 % of body frames unless `pov_led: true` | keeps third person for scale and readable fights; **estimate** |
+| L51 | soft | Nobody is a prop | `layers` exists, starts with `kind: world`, and every `cast` id has an entry | disaster-pvp-1 and hand-reveal-2: stand-ins only, nobody reacted |
+
+(L36-L39 are from revision 2; L40-L46 from revision 3; L47-L51 from revision 4. Montage-only soft
+lints (L21-L24, L30, L33) and L25 do not apply to class `moment`.)
 
 ### Scout, take and render lints
 
@@ -192,6 +212,7 @@ and L25 do not apply to class `moment`.)
 | R04 | hard | Delivery | integrated loudness -20 to -12 LUFS; true peak ≤ -1.0 dBTP; body last quarter short-term mean ≥ first quarter; closing-title section ≥ 3 LU below the body; ≤ 3 large luminance flashes in any 1 s; no black or silence longer than 0.25 s from frame 0; duration = `length_frames` | [measured] + [sourced] |
 | R05 | hard | No reused footage | no two shots show overlapping tape ranges from cameras closer than 20 % of their subject distance and 20° apart | [sourced] Lieu |
 | R06 | soft | Profile check | every OUT verdict from `profile.py check` is explained in the version notes | [measured] |
+| R08 | hard | Key events close in the render | for every key event, the covering shot's `metrics.csv` (`<subject>_height` at the event frame, the subject in `StudioCameraTrack.measure`) is ≥ 0.25, or the shot is a POV whose strip shows the event; the measured number replaces the plan's in `take_ref` (`source: metrics`) | revision 4; the render-side twin of L47 |
 | R07 | hard | Human pass | a person's notes are saved in the version folder before the trailer is called finished | [sourced] F18 |
 
 R02 for PvP: a hit cue (`fire`, a performed punch) lands within 8 frames of plan and moves its
@@ -207,4 +228,6 @@ In planning-only mode every R-lint is **deferred**: list them under "before any 
 The examples moved in revision 3. Disaster-PvP examples D (15 s montage) and E (30 s single take,
 planning-only) and the disaster example B are in `worked-examples.md`; the legacy hand examples A
 (15 s hand reveal, formerly here) and C (30 s two-role) are in `legacy-hand.md`, their hand numbers
-re-derived for the 2.3 m drawn hand. All five pass `tools/lint.py` with no hard failure.
+re-derived for the 2.3 m drawn hand. All five pass `tools/lint.py` with no hard failure; D, E and B
+were revised in revision 4 to cover every key event close or in first person (A and C, legacy, only
+warn on L47-L51).

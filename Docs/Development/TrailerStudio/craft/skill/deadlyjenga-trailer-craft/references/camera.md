@@ -95,6 +95,40 @@ POV pairs. Hold 1-2 s by default; inside a barrage a POV may be 0.5-1.0 s if the
 ≥ 1 s earlier. A survivor POV sits at eye height 0.85 m. A first-person hit (the glove filling the lower
 frame, the victim flying off) is a strong "you are there" beat; smooth it.
 
+> **First-person camera fix in progress, see commit note.** Today the Studio's `firstPerson` behavior
+> is a raw head-locked view (`StudioCameras.cs:186-188`: camera at the recorded head, head rotation,
+> no smoothing). Another agent is adding smoothing, the actor's own hands and weapon in view and the
+> own head hidden, and will write the how-to here and in `studio-tooling.md`. Until then plan every
+> POV with `camera.pov_of`, `pov_smoothing`, a `needs: first_person_camera_with_hands, verify` item and
+> a close over-the-shoulder fallback (0.3-0.5 m behind and 0.1-0.2 m above the head). When first
+> person is required is decided by section 1d and SKILL.md rule 18, not by this note.
+
+### 1d. Close on every key event (hard lints L47, L48)
+
+A **key event** is every hit that lands (`pvp_hit`), every knock-off, elimination and fall into the
+sea, every disaster hit with a named survivor victim, and the payoff. Each one needs at least one
+shot, on screen when it happens, where **the affected survivor is ≥ 0.25 of frame height** (or, for
+a payoff with no survivor, the impact point is), **or the event is seen in first person** (`pov`).
+0.25 is an estimate: it is the bottom of the fight two-shot band (0.25-0.35) in section 1; the
+critics of disaster-pvp-1 called its victims at 0.07-0.15 too small, and "a person doing
+something" reads from about 0.2 (section 2).
+
+Distance for h = 0.25 (frame height at the survivor 3.76 m): 24 mm ≤ 3.8 m; 35 mm ≤ 5.5 m; 50 mm ≤
+7.8 m; 85 mm ≤ 13.3 m. Aim for 0.3-0.5 on the hit itself. A long lens from far away meets the number
+but flattens the moment; for immersion prefer a lens within about 6 m, low, on the victim's side of
+the line, or the attacker's or victim's own eyes.
+
+**Wides are for geography and scale.** An EWS or WS of the tower, the wave or the crowd may show a key
+event too, but it may never be its only coverage. Pair it with a close shot or a POV of the same
+event (the same `take_ref.event`), across one cut or as a cutaway inside a single take.
+
+**Derive the camera from the tape, not the plan.** Each key beat carries
+`take_ref: {event, take_frame, subject_h, source}`: the event id from `key_events`, the tape frame
+where the take report puts it, the subject's height share at that frame, and where the number came
+from (`fit` before a take exists, `tape` when computed from the take's positions, `metrics` when
+measured in a render). Once `capture.take_status: committed`, `fit` is not accepted.
+`record-and-layer.md` section 3, step 6 gives the placement method.
+
 ## 2. Scale rules for this game
 
 1. **People set the size.** A survivor reads as a person at h ≥ 0.08 and as a person doing
@@ -244,7 +278,7 @@ action jumps a level, cut on a motion (a fall, a launch) that carries the eye do
 3. **Top-down vulnerability.** 0.5-1.0 m above and behind a survivor at the top, looking down past
    them to the water; 24-35 mm; deep focus.
 
-### A collapse (re-render the same seeded take from several cameras)
+### A collapse (render the same committed take from several cameras)
 - A: locked-off long lens, 40-80 m, 85-135 mm, the whole crown and the water. The truth shot and the
   main slow-motion source.
 - B: low wide (18-24 mm) on a lower ledge looking up as debris falls toward camera; impulse shake on
@@ -275,9 +309,15 @@ survivor falls toward the lens.
 
 - Never use a raw head-locked view. Smooth every POV (position 0.2-0.4 s, rotation 0.3-0.6 s),
   exaggerate head turns, keep hands high, slow hand actions. [sourced: Gartner, Lieu, Road to VR]
-- Measured: 6 of 8 VR trailers are mostly first person. For Deadly Jenga, third person carries the
-  scale and the readability of a fight, and smoothed POV carries "you are there": a survivor
-  looking up at the wave, a first-person glove hit. Default POV share: under half the shots.
+- Measured: 6 of 8 VR trailers are mostly first person (VR column first-person share 0.67,
+  `measured-reference.md`). Deadly Jenga is a VR game, so **first person is required, not an option**
+  (hard lint L49; rule 18): a montage (15, 30, 60 s) has at least 25 % of its body frames in first
+  person (estimate), in at least two POV shots, and at least one POV is on a key event. A single take
+  or a moment has at least one POV of 1 s or more on a key event (or is itself a POV take). Third
+  person still carries scale and the readability of a fight; POV carries "you are there": a survivor
+  looking up at the wave, a first-person glove hit, a friend's shove seen from the friend's eyes.
+  Above 60 % POV, declare `pov_led: true` (soft lint L50). Revision 3 said only "under half", with no
+  floor and "third person carries the scale", so agents left first person out; that is why.
 - Brighten for monitors and phones. Capture at 60 fps where the render budget allows.
 - Live action of a headset player (Gorilla Tag, Job Simulator) is a suggestion only; the Studio
   cannot capture it.
@@ -288,6 +328,9 @@ survivor falls toward the lens.
 |---------|-----|
 | Nothing seems to happen | pick a move with a purpose; the subject at the size for its shot type; one action across the frame |
 | Subject tiny or lost | set the size first, then `d = Hf / k` |
+| A key hit seen only from far away (disaster-pvp-1 victims 0.07-0.15; example B's revision-3 pull-out 0.063) | a close shot (h ≥ 0.25) or a POV on the event, placed from the victim's tape position at the event frame (section 1d) |
+| Camera placed from where the victim stood before the hit | read the position at the event frame from the take (`StudioActorPoses.At`) |
+| No first person in a VR game's trailer | L49's floor: 25 % of a montage's body, a POV on a key event |
 | Subject faces away | place the camera from the subject's forward vector; facing ≤ 60° for reactions |
 | Blocks in front of the subject | occlusion check in the scout; choose the clearest of 8 yaw angles |
 | Who hit whom is unclear | both fighters whole in a two-shot at the key; one side of their line |

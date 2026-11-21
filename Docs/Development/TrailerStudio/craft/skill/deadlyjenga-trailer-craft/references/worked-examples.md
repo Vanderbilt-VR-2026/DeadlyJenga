@@ -4,9 +4,11 @@ Open at stage 1 (to see how different concepts can be) and stage 3 (to see how a
 and linted). This file holds the two disaster-PvP examples, **D** (15 s mayhem montage, staged
 opening, title over picture) and **E** (30 s mayhem single take, cold open, planning-only, smash
 cut to the card), and **B** (15 s disaster single take). The legacy hand examples A and C are in
-`legacy-hand.md`. Every example passes every plan lint as revised on 2026-11-20 (revision 3):
+`legacy-hand.md`. Every example passes every plan lint as revised on 2026-11-20 (revision 4):
 D, E and B were run through `tools/lint.py` (0 hard failures, every soft lint passing or n/a); the
-check tables below each plan restate that run.
+check tables below each plan restate that run. Revision 4 rewrote their key moments so that every
+key event is seen close or in first person, added `key_events`, `take_ref` and `layers`, and made B
+a first-person take.
 
 ## 0. Examples are not templates
 
@@ -30,6 +32,10 @@ copied frames could not show what their new shot needed. So:
   more disasters stacking inside one follow, a weapon in each beat, the hero's win undone by a
   friend. B: a threat at frame 0, consequences inside one pull-out, a face after, a card. A fourth
   mayhem plan should differ from D and E in at least two of shape, opening, payoff and ending.
+- **Do copy the coverage habit.** Every key event in D, E and B has a close shot (h ≥ 0.25) or a
+  first-person view placed from the take (`take_ref`), and every cast member has a layer. That is
+  the method; their particular POV choices (the bully's glove, the betrayer's eyes, the victim's
+  own take) are not.
 - **Do not copy the twists either.** D's "the disaster punishes the bully" and E's "a friend ends
   the winner" are spent. Find this brief's own turn (`structure-and-templates.md` section 1, step 5).
 
@@ -71,6 +77,13 @@ strike with Brick and Pip as live bots, a `scream` reaction layer on Jolt. What 
 cue, a chosen side for the `hazard` tsunami, and a repeatable world; so S02, S04 and S08 are
 `verify` items with fallbacks, and the take is chosen from variation runs.
 
+Revision 4 (record once, close and first person): all four survivors are live in **one** world
+pass; every later layer is an overlay timed from that take's report (`layers` below). The two
+knock-offs are seen from inside: S05 is Brick's own view as his glove launches Pip, and the payoff
+S08 is Jolt's view from her higher block as the crest takes Brick. The revision-3 payoff was a
+locked-off wide with Brick at 0.11 of frame; it is now the aftermath, re-shot from the waterline so
+Brick's splash is close too.
+
 ```yaml
 id: push-comes-15
 version: 1
@@ -88,7 +101,18 @@ hook: "Friends shove each other off a tower while a disaster hits it"
 hero: jolt
 cast: [jolt, brick, pip, dune]
 must_show: [pvp_hit, hazard_hit, knock_off, into_sea, multiplayer, survivors_react]
-capture: {hand: none, survivors: "live bots for brick and pip (real hits), jolt performed or a bot", take: "bundle/push-comes-take-01"}
+capture: {hand: none, survivors: "all four live in one world pass: brick and pip live bots for the real hits, jolt and dune stand-ins", take: "bundle/push-comes-take-01", take_status: planned}
+key_events:                         # trailer frames; take frames come from the take report after capture
+  - {id: K1, frame: 70,  kind: pvp_hit,  attacker: brick, victim: jolt, what: "Brick's strike knocks Jolt back"}
+  - {id: K2, frame: 202, kind: knock_off, attacker: brick, victim: pip, what: "Brick's glove launches Pip off the wall"}
+  - {id: K3, frame: 264, kind: knock_off, attacker: "hazard:tsunami", victim: brick, what: "the crest takes Brick (payoff)"}
+  - {id: K4, frame: 322, kind: into_sea, victim: brick, what: "Brick drops into the surf"}
+layers:                             # the pass order: the world first, then each actor against the tape
+  - {order: 1, kind: world, actor: world, how: "RecordWholeSet: the hazard tsunami cue, gear at 0.3 s, a fire cue per strike; all four live", gives: "blocks, wave, hits, every body"}
+  - {order: 2, kind: actor, actor: brick, how: "overlays: lookAt actor:jolt, then actor:pip; reach toward each target 6 frames either side of its fire cue", reacts_to: [K1, K2]}
+  - {order: 3, kind: actor, actor: pip, how: "overlays: knockback from K2's take frame, then scream through the flight", reacts_to: [K2]}
+  - {order: 4, kind: actor, actor: dune, how: "overlays: lookAt actor:pip at K2; cower from the crest's first frame", reacts_to: [K2, K3]}
+  - {order: 5, kind: actor, actor: jolt, how: "overlays: lookAt hazard from tape 372; scream 380-420; flinch at K3 (her first-person view follows these)", reacts_to: [K1, K3]}
 camera_sensor_mm: 24
 music:
   file: Music/push_comes_100.wav
@@ -170,6 +194,7 @@ shots:
     fit: "Hf = 3.2 x 24/24 = 3.2 m: Jolt 0.29 (WS); frame 5.7 m wide. Jolt at x 0.65, Brick at x 0.82; a knockback of
           2-3 m to the left ends at x 0.13-0.30, inside frame. Both bodies whole at the strike."
     key_frame: 30                   # the strike lands
+    take_ref: {event: K1, take_frame: 360, subject_h: 0.29, source: fit}   # after capture: Jolt's tape position at 360, then the metrics
     action_cue: {cue_id: brick_strikes_jolt, tape_frame: 360, expect: {victim_moves_m: 1.5}}
     frame_at_key: {grid: MC, min_area_pct: 6, max_occlusion_pct: 10, breaks_frame: false}
     transition_in: cut
@@ -218,7 +243,7 @@ shots:
     raises: threat
     kind: gameplay
     cut_in: 150
-    cut_out: 200
+    cut_out: 192
     tape_in: 470
     speed: [{at: 0, speed: 1.0}]
     subject: {kind: hazard, id: "hazard:tsunami"}
@@ -252,36 +277,39 @@ shots:
     section: escalate
     raises: stakes
     kind: gameplay
-    cut_in: 200
+    cut_in: 192
     cut_out: 222
-    tape_in: 490
+    tape_in: 482
     speed: [{at: 0, speed: 1.0}]
     subject: {kind: actor, id: pip}
-    also_in_frame: [brick, jolt, "castle:wall_walk"]
+    also_in_frame: [brick, jolt, "castle:wall_walk"]   # brick: his glove arm in the lower right (first person)
     shows: [pvp_hit, knock_off, weapon]
     attacker: brick
     victim: pip
     tower_level: base
     learns: "Brick's giant glove launches Pip off the wall"
     reveal: none
-    size: WS
+    size: FS                        # POV: by Pip's own height fraction
     angle: eye
-    side: {face: 3q_front, yaw_deg: 50}
-    camera: {move: static, purpose: "the glove's hit, plainly", ease: none,
-             distance_m: 3.0, height_m: 0.8, focal_mm: 24, aperture: 5.6, focus: subject}
-    fit: "Hf = 3.0 x 24/24 = 3.0 m: Pip 0.31 (WS) at x 0.6, Brick at x 0.3; Jolt 2 m further back by a block, Hf 5.0 m,
-          0.19. The glove's launch (22 m/s horizontal) carries Pip out of frame right within 6 frames of the key."
+    side: null
+    camera: {move: pov, pov_of: brick, purpose: "be the bully: the glove is yours", ease: none,
+             distance_m: 1.5, height_m: 0.85, focal_mm: 21, aperture: 8, focus: subject, pov_smoothing: {pos_s: 0.3, rot_s: 0.45}}
+    fit: "First person at Brick's eyes, 21 mm (k = 24/21 = 1.14, vFOV 59.5 deg): Pip 1.5 m ahead, Hf 1.71 m, Pip 0.55
+          (FS by subject fraction); the glove fills the lower right as it swings; Jolt a block back at 4 m, Hf 4.6 m, 0.20.
+          The 22 m/s launch carries Pip out of frame right within 3 frames of the key; S06 picks her up (L46)."
     key_frame: 10                   # glove contact
-    action_cue: {cue_id: brick_glove_fire, tape_frame: 500}
-    frame_at_key: {grid: MR, min_area_pct: 6, max_occlusion_pct: 10, breaks_frame: true}
+    take_ref: {event: K2, take_frame: 492, subject_h: 0.55, source: fit}
+    action_cue: {cue_id: brick_glove_fire, tape_frame: 492}
+    frame_at_key: {grid: MR, min_area_pct: 20, max_occlusion_pct: 10, breaks_frame: true}
     transition_in: cut
     connects_from_prev: {type: new_beat, screen_direction: L>R, eye_enter: BC, eye_exit: MR}
     sound:
       - {at: 0,  kind: sfx, name: glove_whoosh, source: designed, gain_db: -6}
       - {at: 10, kind: sfx, name: glove_boom, source: take, gain_db: -1}
     hook_count: null
-    needs: [{feature: gear_cue_boxing_glove, status: available}, {feature: melee_hit_through_fire_cue, status: verify}]
-    fallback: "Brick fires the PvP dagger instead; or Pip recorded with a knockback plus tumble layer"
+    needs: [{feature: gear_cue_boxing_glove, status: available}, {feature: glove_punch_cue, status: verify},
+            {feature: first_person_camera_with_hands, status: verify}]
+    fallback: "Over Brick's shoulder: ride 0.4 m behind and 0.15 m above his head, 35 mm; Pip still 0.35. No glove: the PvP dagger"
 
   - id: S06
     section: escalate
@@ -351,30 +379,32 @@ shots:
     section: payoff
     kind: gameplay
     cut_in: 252
-    cut_out: 345
+    cut_out: 310
     tape_in: 536
     speed: [{at: 0, speed: 1.0}]
-    subject: {kind: hazard, id: "hazard:tsunami"}
-    also_in_frame: [jolt, brick, "castle:wall_walk", sea]
-    shows: [knock_off, into_sea]
+    subject: {kind: actor, id: brick}
+    also_in_frame: [jolt, "hazard:tsunami", "castle:wall_walk"]   # jolt: her hands and feet on the block edge (first person)
+    shows: [knock_off]
     attacker: "hazard:tsunami"
     victim: brick
     tower_level: base
-    learns: "The crest sweeps Brick into the sea"
+    learns: "From Jolt's block, the crest takes Brick"
     reveal: payoff
     threat: "hazard:tsunami"
     cause_in: self
-    size: WS
+    size: WS                        # POV: by Brick's own height fraction
     angle: high
-    side: {face: 3q_front, yaw_deg: 30}
-    camera: {move: static, purpose: "locked-off truth shot of the sweep", ease: none,
-             distance_m: 8.5, height_m: 6.0, focal_mm: 24, aperture: 8, focus: subject, params: {pitch_deg: -45}}
-    fit: "From the tower's first ledge 6 m above the walk and 6 m back, down 45 deg: 8.5 m to the pair, Hf 8.5 m,
-          survivors 0.11 (WS), frame 15 m wide. The crest enters top right at the key; Brick's slide of about 8 m to
-          the walk's far edge and his drop into the surf stay in the lower left; Jolt on her block 2 m higher stays centre."
-    key_frame: 12                   # the crest hits them: the main hit
+    side: null
+    camera: {move: pov, pov_of: jolt, purpose: "you are the one who stepped up in time", ease: none,
+             distance_m: 2.8, height_m: 0.85, focal_mm: 21, aperture: 8, focus: subject, pov_smoothing: {pos_s: 0.3, rot_s: 0.5}}
+    fit: "First person at Jolt's eyes on her block 2 m above the walk, looking down 35 deg: Brick 2.8 m away (slant),
+          Hf 2.8 x 24/21 = 3.2 m, Brick 0.29 (WS by subject fraction). The crest enters top right 8 frames before the key
+          and passes under her block; Brick's slide toward the walk's edge stays in the lower left for 30 frames; her
+          flinch layer at the key tips the view back."
+    key_frame: 12                   # the crest hits Brick: the main hit
+    take_ref: {event: K3, take_frame: 548, subject_h: 0.29, source: fit}
     action_cue: {cue_id: tsunami_hazard_cue, tape_frame: 548, expect: {carries_brick: true, jolt_holds: true}}
-    frame_at_key: {grid: MC, min_area_pct: 2, max_occlusion_pct: 15, breaks_frame: false}
+    frame_at_key: {grid: BL, min_area_pct: 6, max_occlusion_pct: 15, breaks_frame: false}
     transition_in: cut
     connects_from_prev: {type: cause_effect, screen_direction: R>L, eye_enter: MC, eye_exit: BL}
     sound:
@@ -383,10 +413,45 @@ shots:
       - {at: 12, kind: sfx, name: water_slam_sub, source: designed, gain_db: -2}
       - {at: 40, kind: vo, name: "voice: Brick's yell, fading", source: library, gain_db: -8}
     hook_count: 3
-    needs: [{feature: survivor_holds_against_wave, status: verify}, {feature: tsunami_carries_live_bot, status: verify}]
-    fallback: "Tune the wave's height so its top passes under Jolt's block (she stands 2 m above Brick)"
+    needs: [{feature: survivor_holds_against_wave, status: verify}, {feature: tsunami_carries_live_bot, status: verify},
+            {feature: first_person_camera_with_hands, status: verify}]
+    fallback: "Over Jolt's shoulder, 0.4 m behind her head, 28 mm: Brick still 0.27. Wave too high: tune it under her block"
 
   - id: S09
+    section: aftermath
+    kind: gameplay
+    cut_in: 310
+    cut_out: 345
+    tape_in: 594
+    speed: [{at: 0, speed: 1.0}]
+    subject: {kind: actor, id: brick}
+    also_in_frame: [sea, "castle:wall"]
+    shows: [into_sea]
+    victim: brick
+    tower_level: sea
+    learns: "Brick drops into the surf"
+    reveal: consequence
+    cause_in: prev
+    size: WS
+    angle: low
+    side: {face: profile, yaw_deg: 70}
+    camera: {move: static, purpose: "the splash from where it lands, not from the sky", ease: none,
+             distance_m: 3.5, height_m: 0.6, focal_mm: 24, aperture: 8, focus: subject, params: {pitch_deg: 25}}
+    fit: "Lens on the rocks 0.6 m above the surf, 3.5 m from where the take has Brick land, pitch up 25 deg:
+          Hf 3.5 x 24/24 = 3.5 m, Brick 0.27 at the splash (WS); the wall's 25 m face rises out of the top of frame,
+          so the height of the drop reads."
+    key_frame: 12                   # he hits the water
+    take_ref: {event: K4, take_frame: 606, subject_h: 0.27, source: fit}
+    frame_at_key: {grid: MC, min_area_pct: 5, max_occlusion_pct: 10, breaks_frame: false}
+    transition_in: cut
+    connects_from_prev: {type: cause_effect, screen_direction: down, eye_enter: ML, eye_exit: MC}
+    sound:
+      - {at: 12, kind: sfx, name: big_splash, source: take, gain_db: -3}
+    hook_count: null
+    needs: [{feature: tsunami_carries_live_bot, status: verify}]
+    fallback: "Hold S08 to 345; Brick's drop stays in its lower left"
+
+  - id: S10
     section: title
     kind: gameplay
     cut_in: 345
@@ -420,61 +485,69 @@ shots:
 
 ### D against every lint
 
-Body = frames 0-345 (11.5 s). Body-shot lengths: 40, 60, 50, 50, 22, 18, 12, 93.
+`tools/lint.py` run on 2026-11-20 (revision 4): 0 hard failures, every soft lint passing or n/a.
+Body = frames 0-345 (11.5 s). Body-shot lengths: 40, 60, 50, 42, 30, 18, 12, 58, 35.
 
 | Lint | Check | Result |
 |------|-------|--------|
-| L01 | 0-40-100-150-200-222-240-252-345-450 | pass |
+| L01 | 0-40-100-150-192-222-240-252-310-345-450 | pass |
 | L02 | one subject per shot; longest `learns` 9 words; no " and " | pass |
-| L03 | hook, teach x2, escalate x3 (threat, stakes, scale), breath, payoff, title | pass |
+| L03 | hook, teach x2, escalate x3 (threat, stakes, scale), breath, payoff, aftermath, title | pass |
 | L04 | S01 gameplay at 0 | pass |
 | L05 | mayhem: first core verb is S02's `pvp_hit`, key 70 = 2.33 s ≤ 5.0, Brick and Jolt both in frame | pass |
-| L06 | median 45 f (1.5 s); shortest 12; longest 93 ≥ 60; window [150, 300) holds 150, 200, 222, 240, 252 = 5 | pass |
+| L06 | median 40 f; shortest 12; longest 60 ≥ 45; window [150, 300) holds 150, 192, 222, 240, 252 = 5 | pass |
 | L07 | closing title 345 (11.5 s) in [330, 360]; title plus card 105 in [90, 120] | pass |
-| L08 | staged: first whole view of the wave S04 at 150; before it S01 `knows` 40 + S03 `reaction` 50 = 90 ≥ 21. Causes: S06 prev = S05 (`knock_off`), S08 self | pass |
+| L08 | staged: first whole view of the wave S04 at 150; before it S01 `knows` 40 + S03 `reaction` 50 = 90 ≥ 21. Causes: S06 prev = S05 (`knock_off`), S08 self, S09 prev = the payoff | pass |
 | L09 | first core verb S02: 60 f, key 30 (30 and 30 from the ends), attacker and victim in frame | pass |
-| L10 | keys from start/end: 20/20, 30/30, 25/25, 15/35, 10/12, 9/9, 6/6, 12/81, 30/75 | pass |
-| L11 | onsets 1, 71, 164, 263, 346 within 2; S08 key 252 + 12 = 264 = main; title 345 = title hit; syncs at 0, 70, 165, 264, 345 | pass |
+| L10 | keys from start/end: 20/20, 30/30, 25/25, 15/27, 10/20, 9/9, 6/6, 12/46, 12/23, 30/75 | pass |
+| L11 | onsets 1, 71, 164, 263, 346 within 2; S08 key 252 + 12 = 264 = main; title 345 = title hit | pass |
 | L12 | every key has a sound at the key frame | pass |
 | L13 | no ramps | pass |
 | L14 | S03 MCU; hero Jolt, 3q_front, yaw 25, `reaction` = the scream layer | pass |
-| L15 | statics and handheld `none`; S04 tilt_down and S09 pull_out `in_out` | pass |
-| L16 | S01 and S02 are both Jolt in WS: S01 eye, yaw 35; S02 low, yaw -25 (65° apart) | pass (the linter caught a jump cut in the first draft, S02 at eye and yaw 40) |
-| L17 | no POV | pass |
-| L18 | pvp_hit S02, S05; hazard_hit S04; knock_off S05, S08; into_sea S08; multiplayer S01; survivors_react S03 | pass |
-| L19 | seven `verify` items to the scout list; S04 BLOCKED if the wave cannot be put on the wall walk; nothing the game cannot do | pass |
+| L15 | statics, handheld and POV `none`; S04 tilt_down and S10 pull_out `in_out` | pass |
+| L16 | S01 and S02 are both Jolt in WS: S01 eye, yaw 35; S02 low, yaw -25 (65° apart); POV pairs skipped | pass (the linter caught a jump cut in the first draft, S02 at eye and yaw 40) |
+| L17 | S05 POV 0.3 / 0.45 s, S08 0.3 / 0.5 s | pass |
+| L18 | pvp_hit S02, S05; hazard_hit S04; knock_off S05, S08; into_sea S09; multiplayer S01; survivors_react S03 | pass |
+| L19 | nine `verify` items to the scout list; S04 BLOCKED if the wave cannot be put on the wall walk; nothing the game cannot do | pass |
 | L20 | caption 4 words needs 66, has 80; title 105 ≥ 48; tagline 6 words needs 84, has 90 | pass |
-| L21 | escalate (50, 22, 18) median 22 ≤ hook + teach (40, 60, 50) median 50 | pass |
-| L22 | mean 43.1, std 24.8, CV 0.58 | pass |
-| L23 | longest even run S03-S04 (2) | pass |
-| L24 | 100 BPM grid (18 f): only 252 on a beat = 1 of 8 | pass |
+| L21 | escalate (42, 30, 18) median 30 ≤ hook + teach (40, 60, 50) median 50 | pass |
+| L22 | CV 0.41 | pass |
+| L23 | no two neighbours within 2 frames | pass |
+| L24 | 100 BPM grid (18 f): only 252 on a beat = 1 of 9 | pass |
 | L25 | hook_count 1 (S01), 2 (S04), 3 (S08) | pass |
 | L26 | S05 > S06 both L>R; the wave R>L in S04 and S08 | pass |
-| L27 | MC>MC, ML>ML, TL>TC (new beat at S04), BC>BC, MR>MR, BR>MC, MC>MC, BL>MC: all within 1 | pass |
+| L27 | every exit and next entry within one cell (S08 BL > S09 ML) | pass |
 | L28 | main 264 ≥ 0.6 x 345 = 207 | pass |
-| L29 | wide 7 of 8 = 88 %; close 0 % | pass |
-| L30 | designed moves S04, S09 = 2 of 9 = 22 % | pass |
+| L29 | wide 8 of 9 = 89 % (POV shots sized by subject fraction: S05 FS, S08 WS); close 0 % | pass |
+| L30 | designed moves S04, S10 = 2 of 10 = 20 % | pass |
 | L31 | class 15: optional (one 20-frame stop-down) | pass |
 | L32 | one rule caption, 4 words; tagline 6 words; no superlatives | pass |
-| L33 | S05 (22 f) > S06 sound at 0; S06 (18 f) > S07 sound at 0; S07 (12 f) > S08 sound at 0 | pass |
+| L33 | S06 (18 f) > S07 sound at 0; S07 (12 f) > S08 sound at 0 | pass |
 | L34 | knock_off 2, every other id 1 (core verbs excluded) | pass |
-| L35 | WS ≥ 18, FS 12, MCU 50, EWS 50 | pass |
+| L35 | first POV S05 30 ≥ 30; WS ≥ 18, FS 12, MCU 50, EWS 42 | pass |
 | L36, L37 | two-role only | n/a |
 | L38 | every gameplay shot has a `fit` line | pass |
 | L39 | this is the example itself | n/a |
 | L40 | first hazard_hit 165, first pvp_hit 70, both ≤ 207 | pass |
-| L41 | S02 Brick > Jolt, S05 Brick > Pip, both in frame; S08 the wave > Brick, `cause_in: self` | pass |
-| L42 | Jolt in S01 (hook), S05 (escalate, behind), S08 (payoff) | pass |
+| L41 | S02 Brick > Jolt, S05 Brick > Pip (Brick's glove arm in frame), S08 the wave > Brick, `cause_in: self` | pass |
+| L42 | Jolt in S01 (hook), S05 (escalate, behind Pip), S08 (payoff, her own view) | pass |
 | L43 | one hazard | n/a |
 | L44 | S01 and S02 are wides with the wall walk and Jolt in the first third; every shot has `tower_level` | pass |
 | L45 | S01: four survivors at 0.16 | pass |
-| L46 | S05's launch holds 12 frames, then S06 (`cause_in: prev`) follows Pip; S08 holds 81 frames after the crest | pass |
+| L46 | S05 holds 20 frames after the launch, then S06 (`cause_in: prev`) follows Pip; S08 holds 46 | pass |
+| L47 | K1 S02 Jolt 0.29; K2 S05 first person (Pip 0.55); K3 S08 first person (Brick 0.29); K4 S09 Brick 0.27 at the splash | pass (revision 3's payoff had Brick at 0.11 and would fail) |
+| L48 | every key beat has `take_ref` (event, take frame, subject size, source `fit` until a take is committed) | pass |
+| L49 | POV 30 + 58 = 88 of 345 body frames = 26 % ≥ 25 %; two POV shots, both on key events (K2, K3); `pov_of` brick and jolt | pass |
+| L50 | POV 26 % ≤ 60 % | pass |
+| L51 | `layers` starts with the world pass; all four cast members have a layer | pass |
 
-What it still owes before capture: R01 on every shot (Pip at 0.09 in S06 must read as a figure;
-the 0.11 survivors in S08 must stay separable in the foam); R02 on the wave (it reaches the wall
-walk from the planned side within 8 frames: run variations of the `hazard` cue and keep the take
-that does), the glove launch (Pip leaves frame within 6 frames), Brick swept and Jolt kept (or the
-wave's height tuned below her block); the melee-through-`fire` check; Jolt's colour in a still.
+What it still owes before capture: R01 on every shot (Pip at 0.09 in S06 must read as a figure);
+R02 on the wave (it reaches the wall walk from the planned side within 8 frames: run variations of
+the `hazard` cue and keep the take that does), the glove launch (Pip leaves frame within 3 frames),
+Brick swept and Jolt kept (or the wave's height tuned below her block); the melee-through-`fire`
+check; the first-person camera showing Brick's glove arm and Jolt's hands (else the over-the-shoulder
+fallbacks); Jolt's colour in a still. After capture: every `take_ref` re-derived from the committed
+take (Brick's real landing point moves S09's lens), `take_status: committed`, and the lints re-run.
 
 ---
 
@@ -508,6 +581,12 @@ tornado (pilot branch), `gear` and `fire` for the glove and the rocket, a `follo
 make a performer's route repeatable; Vela must be performed by a person, and each beat is picked
 from the take, so every hazard beat is a `verify` item.
 
+Revision 4: the follow no longer pulls back to 9 m for the payoff (Kestrel would have been about
+0.1 of frame); it hands its aim to Kestrel and closes to 3.2 m, so the funnel takes her large in
+frame. The betrayal is now Tansy's own view: the viewer is the friend who shoves. Because a person
+performs Vela, the pass order matters: the world and the bots first, Vela performed against that
+playback with live physics, then overlays timed from the take.
+
 ```yaml
 id: everything-at-once-30
 version: 1
@@ -526,7 +605,18 @@ hook: "Disasters stack up while friends fight on the same tower"
 hero: vela
 cast: [vela, kestrel, okra, tansy, sprout]
 must_show: [hazard_hit, pvp_hit, knock_off, weapon, several_survivors, survivors_react]
-capture: {hand: none, survivors: "Vela performed by a person; the others live bots with weapons from their marks", take: null}
+capture: {hand: none, survivors: "Vela performed by a person; the others live bots with weapons from their marks", take: null, take_status: planned}
+key_events:
+  - {id: K1, frame: 120, kind: knock_off, attacker: vela, victim: okra, what: "Vela's glove launches Okra off the crown"}
+  - {id: K2, frame: 480, kind: knock_off, attacker: "hazard:tornado", victim: kestrel, what: "the funnel rips Kestrel off (payoff)"}
+  - {id: K3, frame: 690, kind: knock_off, attacker: tansy, victim: vela, what: "Tansy shoves Vela off the stump"}
+layers:
+  - {order: 1, kind: world, actor: world, how: "rehearsal world pass with Vela as a stand-in: the three hazard cues, gear and fire for the bots; read its take report for where each disaster lands", gives: "the timings Vela's performer rehearses against"}
+  - {order: 2, kind: actor, actor: vela, how: "the take that counts: one live pass with a person performing Vela AND every bot live (a StudioPass with performer vela, liveWorld, every track in record); the Perform tab's Live physics records only her and the world, so Okra would be a playback copy her glove cannot move", reacts_to: [K1]}
+  - {order: 3, kind: actor, actor: okra, how: "overlays: knockback and scream from K1's take frame", reacts_to: [K1]}
+  - {order: 4, kind: actor, actor: kestrel, how: "overlays: lookAt hazard from the funnel's first frame; scream from K2", reacts_to: [K2]}
+  - {order: 5, kind: actor, actor: sprout, how: "overlays: lookAt actor:okra at K1; cower during the quake", reacts_to: [K1]}
+  - {order: 6, kind: actor, actor: tansy, how: "live in pass 2 with a fire cue (PvP dagger) aimed at vela at K3's frame; then an overlay lookAt actor:vela, which her first-person view follows", reacts_to: [K3]}
 camera_sensor_mm: 24
 music:
   file: null
@@ -571,11 +661,13 @@ shots:
     side: {face: 3q_back, yaw_deg: 140}
     camera: {move: follow, purpose: "stay with Vela through the whole storm", ease: damped,
              distance_m: 3.0, height_m: 1.2, focal_mm: 24, aperture: 8, focus: subject,
-             params: {lag_pos_s: 0.7, lag_rot_s: 0.45, offset_grows_to_m: 9, grow_from_frame: 380, grow_to_frame: 470, aim_offset_y_m: 0.85}}
+             params: {lag_pos_s: 0.7, lag_rot_s: 0.45, aims: "vela to 380, then kestrel", swing_deg: 40, close_to_m: 3.2,
+                      swing_from_frame: 380, swing_to_frame: 470, aim_offset_y_m: 0.85}}
     fit: "Start: 3.0 m behind-left, Hf = 3.0 m, Vela 0.31 (WS); the 6 m crown block under her and the others within
-          8 m (Hf at 8 m = 8 m, survivors 0.12, all five at h >= 0.08). A 3 m meteor 8 m out is 0.38 of frame. From 380
-          the offset grows to 9 m: at the key (480) Hf 9 m, Vela 0.10 (WS), frame 16 m wide; the 16 m funnel 25 m out
-          fills the right half and Kestrel's lift toward it stays inside the top right."
+          8 m (Hf at 8 m = 8 m, survivors 0.12, all five at h >= 0.08). A 3 m meteor 8 m out is 0.38 of frame. At 120 Okra
+          is 3.5 m from the lens: Hf 3.5 m, 0.27. From 380 the camera swings 40 deg and hands its aim to Kestrel, closing to
+          3.2 m from her: at the key (480) Hf 3.2 m, Kestrel 0.29, Vela 1.5 m beyond her at 0.20; the 16 m funnel 25 m out
+          (frame 25 m tall there) fills the top right, and Kestrel's lift toward it leaves through the top edge."
     key_frame: 480
     moments:
       - {at: 0,   section: hook,     reveal: whole, threat: "hazard:meteor_shower", hook_count: 1, shows: [several_survivors],
@@ -583,7 +675,8 @@ shots:
       - {at: 45,  section: teach,    reveal: consequence, cause_in: self, shows: [hazard_hit],
          what: "A meteor smashes the block beside Vela", sound_at: 46}
       - {at: 120, section: teach,    reveal: none, shows: [pvp_hit, knock_off, weapon], attacker: vela, victim: okra,
-         what: "Vela's giant glove launches Okra off the crown", sound_at: 120}
+         what: "Vela's giant glove launches Okra off the crown", sound_at: 120,
+         take_ref: {event: K1, take_frame: planned, subject_h: 0.27, source: fit}}
       - {at: 190, section: escalate, raises: scale, reveal: consequence, cause_in: self, shows: [hazard_hit],
          what: "Meteor holes spread across the crown floor", sound_at: 191}
       - {at: 230, section: escalate, raises: threat, reveal: effect, threat: "hazard:earthquake",
@@ -597,7 +690,8 @@ shots:
       - {at: 420, section: escalate, raises: count, reveal: whole, threat: "hazard:tornado", shows: [hazard_hit],
          what: "A tornado drags loose blocks off the crown", sound_at: 420}
       - {at: 480, section: payoff, reveal: payoff, threat: "hazard:tornado", cause_in: self, hook_count: 3, shows: [knock_off],
-         attacker: "hazard:tornado", victim: kestrel, what: "The funnel rips Kestrel off the crown", sound_at: 480}
+         attacker: "hazard:tornado", victim: kestrel, what: "The funnel rips Kestrel off the crown", sound_at: 480,
+         take_ref: {event: K2, take_frame: planned, subject_h: 0.29, source: fit}}
       - {at: 530, section: aftermath, reveal: consequence, cause_in: prev,
          what: "Vela clings to what is left", sound_at: 531}
     frame_at_key: {grid: MC, min_area_pct: 1, max_occlusion_pct: 20, breaks_frame: false}
@@ -668,30 +762,32 @@ shots:
     cut_in: 630
     cut_out: 750
     subject: {kind: actor, id: vela}
-    also_in_frame: [tansy, "tower:stump", sea]
+    also_in_frame: [tansy, "tower:stump", sea]   # tansy: her dagger hand in the lower right (first person)
     shows: [pvp_hit, knock_off]
     attacker: tansy
     victim: vela
     tower_level: top
     learns: "Tansy shoves Vela off the stump"
     reveal: none
-    size: WS
+    size: FS                        # POV: by Vela's own height fraction
     angle: eye
-    side: {face: 3q_front, yaw_deg: 45}
-    camera: {move: static, purpose: "the joke plays wide and straight", ease: none,
-             distance_m: 4.0, height_m: 1.0, focal_mm: 24, aperture: 8, focus: subject}
-    fit: "Hf = 4.0 x 24/24 = 4.0 m: Vela 0.24 (WS) centre, Tansy climbing in at the left edge from 20; frame 7.1 m wide,
-          so the 2-3 m shove and Vela's drop past the stump's edge stay in frame; the sea in the lower third."
+    side: null
+    camera: {move: pov, pov_of: tansy, purpose: "you are the friend who ends it", ease: none,
+             distance_m: 1.4, height_m: 0.85, focal_mm: 21, aperture: 8, focus: subject, pov_smoothing: {pos_s: 0.3, rot_s: 0.45}}
+    fit: "First person at Tansy's eyes climbing onto the stump, 21 mm (k 1.14): Vela 1.4 m ahead facing the sea,
+          Hf 1.6 m, Vela 0.59 (FS by subject fraction); the dagger hand enters lower right at 40; after the poke at 60
+          she tips over the edge and drops out of the bottom of frame by about 80; the sea fills the lower third."
     key_frame: 60                   # the shove
-    frame_at_key: {grid: MC, min_area_pct: 4, max_occlusion_pct: 10, breaks_frame: false}
+    take_ref: {event: K3, take_frame: planned, subject_h: 0.59, source: fit}
+    frame_at_key: {grid: MC, min_area_pct: 20, max_occlusion_pct: 10, breaks_frame: false}
     transition_in: cut
-    connects_from_prev: {type: new_beat, screen_direction: L>R, eye_enter: MC, eye_exit: BR}
+    connects_from_prev: {type: new_beat, screen_direction: L>R, eye_enter: MC, eye_exit: BC}
     sound:
       - {at: 60, kind: music_hit, name: shove, source: library, sync: shove}
       - {at: 60, kind: sfx, name: dagger_poke, source: take, gain_db: -4}
       - {at: 100, kind: sfx, name: splash_far, source: designed, gain_db: -8}
-    needs: [{feature: melee_hit_through_fire_cue, status: verify}]
-    fallback: "Vela recorded with knockback then fall layers at frame 60; Tansy's swing through the fire cue with the PvP dagger"
+    needs: [{feature: melee_hit_through_fire_cue, status: verify}, {feature: first_person_camera_with_hands, status: verify}]
+    fallback: "Over Tansy's shoulder, 0.4 m behind her head, 28 mm: Vela 0.45. No melee through fire: knockback then fall layers on Vela at 60"
 
   - id: S04
     section: title
@@ -719,7 +815,7 @@ Fields omitted for space (`tape_in`, `speed: 1.0`, `action_cue`) are written onc
 
 ### E against every lint
 
-Body = frames 0-750 (25.0 s). Body shots: S01 570 (the take), S02 60, S03 120.
+`tools/lint.py` run on 2026-11-20 (revision 4): 0 hard failures. Body = frames 0-750 (25.0 s). Body shots: S01 570 (the take), S02 60, S03 120.
 
 | Lint | Check | Result |
 |------|-------|--------|
@@ -738,8 +834,8 @@ Body = frames 0-750 (25.0 s). Body shots: S01 570 (the take), S02 60, S03 120.
 | L13 | no ramps | pass |
 | L14 | S02 MCU; hero Vela, front, yaw 15, `reaction` = the cheer layer | pass |
 | L15 | S01 follow `damped`; statics `none` | pass |
-| L16 | S01 > S02 > S03 are all Vela but WS, MCU, WS: sizes change at every cut | pass |
-| L17 | no POV | pass |
+| L16 | S01 > S02 are Vela in WS then MCU; S03 is a POV (skipped) | pass |
+| L17 | S03 POV 0.3 / 0.45 s | pass |
 | L18 | hazard_hit 45, 190, 270, 420; pvp_hit 120, S03; knock_off 120, 480, S03; weapon 120, 330; several_survivors 0; survivors_react S02 | pass |
 | L19 | six `verify` items on the scout list; the take is BLOCKED if two of the three hazards cannot run in one take; nothing the game cannot do | pass |
 | L20 | caption 4 words needs 66, has 90; title 150 ≥ 48; tagline 7 words needs 93, has 120 | pass |
@@ -748,21 +844,26 @@ Body = frames 0-750 (25.0 s). Body shots: S01 570 (the take), S02 60, S03 120.
 | L26 | no cause-effect cut flips direction | pass |
 | L27 | S01 > S02 MC>MC; S03 is a new beat; the card is a smash cut | pass |
 | L28 | main 480 ≥ 0.6 x 750 = 450 | pass |
-| L29 | wide 2 of 3 = 67 %; close 0 % | pass |
+| L29 | wide 2 of 3 = 67 % (S03 POV is FS by Vela's fraction); close 0 % | pass |
 | L31 | stop-down 462-480 = 18 f ≥ 9 | pass |
 | L32 | one caption, 4 words; tagline 7 words; no superlatives | pass |
 | L34 | knock_off 3, weapon 2, others 1 (core verbs excluded) | pass |
-| L35 | WS 570 and 120, MCU 60 | pass |
+| L35 | WS 570, MCU 60, POV 120 ≥ 30 | pass |
 | L36, L37 | two-role only | n/a |
 | L38 | every gameplay shot has a `fit` line; S04 is a card | pass |
 | L39 | this is the example itself | n/a |
 | L40 | first hazard_hit 45, first pvp_hit 120, both ≤ 450 | pass |
-| L41 | 120 Vela > Okra and S03 Tansy > Vela, both in frame; 480 the tornado > Kestrel, `cause_in: self` | pass |
+| L41 | 120 Vela > Okra, both in frame; S03 Tansy > Vela (her dagger hand in frame); 480 the tornado > Kestrel, `cause_in: self` | pass |
 | L42 | Vela through the take (hook to payoff) and in S02, S03 (aftermath) | pass |
 | L43 | meteors at 0 (hook), earthquake at 230 (escalate), tornado at 380 (escalate): in order, each later one in an escalate beat | pass |
 | L44 | S01 is a wide with the crown and Vela from frame 0; every shot has `tower_level` | pass |
 | L45 | S01: five survivors within 8 m (0.12) | pass |
 | L46 | 120 holds 70 frames before the next beat; 480 holds 50; S03 holds 60 after the shove | pass |
+| L47 | K1 Okra 0.27 at 3.5 m; K2 Kestrel 0.29 at 3.2 m (revision 3 had about 0.1 at 9 m and would fail); K3 Tansy's first person, Vela 0.59 | pass |
+| L48 | every key beat has `take_ref`; take frames `planned` (planning-only, no take) | pass |
+| L49 | single take: S03 is a 120-frame POV on key event K3, `pov_of: tansy` | pass |
+| L50 | POV 16 % ≤ 60 % | pass |
+| L51 | `layers` starts with the world; every cast member has a layer | pass |
 
 ### What planning-only mode leaves owed (from E)
 
@@ -771,7 +872,9 @@ onward. **To verify at scout:** a person performing Vela's route; three hazards 
 scheduler's cap of two active does not apply to cues, but nobody has run three: verify); a meteor
 landing near Vela (pick the nearest impact in the take, shift the moment); the earthquake reading on
 the blocks; the tornado lifting a live bot (Kestrel); the glove and the dagger through the `fire`
-cue; the rocket's blast removing Vela's block; Vela's colour in a still. **Before any render:**
+cue; the rocket's blast removing Vela's block; Vela's colour in a still; a performed pass with
+every bot live beside the performer (a driver-built `StudioPass`, `record-and-layer.md` section 3);
+the first-person camera showing Tansy's dagger hand. **Before any render:**
 (1) choose or cut a track to the target hits and map it (`tools/music_map.py`); (2) move the
 picture to the measured hits, never the hits to the picture; (3) re-run `tools/lint.py`; (4) scout
 every `verify` item, applying fallbacks or declaring BLOCKED; (5) re-plan and re-lint after the
@@ -786,11 +889,16 @@ Brief (short): 15 s social, muted-first; the disaster is the star; must show the
 tower, survivors reacting, the consequence going into the sea, the title. No hand (the brief does not
 ask for one, so none is added).
 
-Concept: the wave is already standing when the trailer starts (cold open); one continuous camera
-pulls back as it arrives, so every escalation is a consequence we watch grow. Arc: *already, closer,
-gone*. Rejected: (1) a staged montage from a calm sea, effect, notice, then the wave: it spends 3 s
-before the only image this brief cares about; (2) tornado lifting blocks off the crown: the tornado's
-reach on this map is unknown and its funnel reads small at survivor scale.
+Concept (revision 4): the wave is already standing when the trailer starts (cold open), and we see
+it through Coral's eyes in one unbroken first-person take, so every escalation is a consequence that
+happens to *us*: the blocks ripped out ahead, Finn and Ivo thrown past, our own block tipping into the
+sea. Then a cut to her face as she surfaces. Arc: *already, closer, gone*. Rejected: (1) a staged
+montage from a calm sea, effect, notice, then the wave: it spends 3 s before the only image this
+brief cares about; (2) tornado lifting blocks off the crown: the tornado's reach on this map is
+unknown and its funnel reads small at survivor scale; (3) **revision 3's version of this plan**: the
+same take as a third-person pull-out to 15 m, which left the climbers at 0.063 of frame height for
+both key events (two thrown into the sea, the payoff). That is the "super distant shot during the
+important event" the owner named; it now fails L47.
 
 Memorable-image candidates considered: a wall of water standing over three tiny climbers at frame 0
 (chosen); a block surfing on the crest; the hero surfacing beside her own block; the tower's shadow
@@ -814,6 +922,16 @@ hook: "Disasters hit the tower while friends are still climbing it"
 hero: coral
 cast: [coral, finn, ivo]            # bots or performed survivors
 must_show: [hazard_hit, survivors_react, into_sea]
+pov_led: true                       # a first-person-led cut: L50's 60 % cap does not apply
+capture: {hand: none, survivors: "coral, finn and ivo stand-ins in one world pass", take: null, take_status: planned}
+key_events:
+  - {id: K1, frame: 180, kind: into_sea, victim: finn, what: "Finn and Ivo are thrown into the sea"}
+  - {id: K2, frame: 220, kind: into_sea, victim: coral, what: "the block tips; Coral goes in with it (payoff)"}
+layers:
+  - {order: 1, kind: world, actor: world, how: "RecordWholeSet: the hazard tsunami cue (it pushes survivors; the tsunami cue does not); all three stand-ins live", gives: "the wave, the blocks, the throws"}
+  - {order: 2, kind: actor, actor: coral, how: "overlays: lookAt hazard from frame 0 (her first-person view follows it); scream at 50; lookAt actor:finn at K1; flinch at the rip (140)", reacts_to: [K1, K2]}
+  - {order: 3, kind: actor, actor: finn, how: "overlays: lookAt hazard at 50; scream from the wave's contact (cue trigger on the hazard cue)", reacts_to: [K1]}
+  - {order: 4, kind: actor, actor: ivo, how: "overlays: cower at 100; scream from the hazard cue trigger", reacts_to: [K1]}
 camera_sensor_mm: 24
 music:
   file: Music/already_here_90.wav
@@ -844,22 +962,22 @@ shots:
     tape_in: 60
     speed: [{at: 0, speed: 1.0}]
     subject: {kind: hazard, id: "hazard:tsunami"}
-    also_in_frame: [coral, finn, ivo, "tower:lower_section"]
+    also_in_frame: [coral, finn, ivo, "tower:lower_section"]   # coral: her hands and feet (first person)
     shows: [hazard_hit, survivors_react, into_sea]
-    readable_survivors: 3           # at the start (0.31); 0.063 at the key, below the 0.08 crowd line
+    readable_survivors: 2           # Finn and Ivo ahead of her at 0.35-0.41
     tower_level: mid
     learns: "A wave takes the section they stand on"
-    size: EWS                       # at the key frame (survivors 0.063 of frame height)
+    size: WS                        # POV: Finn and Ivo, the nearest survivors, at 0.41
     angle: eye
-    side: {face: 3q_back, yaw_deg: 150}
-    camera: {move: pull_out, purpose: "start inside the danger, end on what it costs", ease: in_out,
-             distance_m: 3.0, height_m: 0.7, focal_mm: 24, aperture: 8, focus: subject,
-             params: {to_distance_m: 15, rise_m: 4, pitch_deg_from: 15, pitch_deg_to: -5, from_frame: 70, to_frame: 220}}
-    fit: "Start: lens on a lower section about 10 m above the sea. Hf at the climbers = 3.0 x 24/24 = 3.0 m,
-          climbers 0.31 (WS). Wave top 30 m above the lens at 75 m = 21.8 deg up; frame spans -11.5 to +41.5
-          deg at pitch +15, so the crest sits at y 0.63, over them. Frame 140: lens about 8 m out,
-          pitch about +5 deg, frame bottom about 1 m under their block, so the block beneath them is in
-          frame. Key 220: 15 m out, Hf 15 m, climbers 0.063 (EWS), their 12 m section 0.8 of frame height."
+    side: null
+    camera: {move: pov, pov_of: coral, purpose: "you are on the section when the wave comes", ease: none,
+             distance_m: 2.0, height_m: 0.85, focal_mm: 21, aperture: 8, focus: subject, pov_smoothing: {pos_s: 0.3, rot_s: 0.5}}
+    fit: "First person at Coral's eyes, 0.85 m above a lower section about 10 m above the sea, 21 mm (k 1.14, vFOV
+          59.5 deg). Finn and Ivo 2.0 m ahead: Hf 2.3 m, each 0.41. Frame 0: wave top 30 m above the lens at 75 m =
+          21.8 deg up; with her head pitched +12 deg the frame spans -18 to +42 deg, so the crest sits at y 0.67 over
+          them. 140: the water strikes the blocks 3 m ahead and below, the impact about half the frame height. 180:
+          Finn and Ivo thrown at 2-3 m, 0.35-0.41 as they go. 220: the block tips; her head pitches down 40 deg onto
+          the sea rushing up, her hands in the lower corners."
     key_frame: 220
     moments:
       - {at: 0,   section: hook,     reveal: whole,       threat: "hazard:tsunami", hook_count: 1,
@@ -871,9 +989,11 @@ shots:
       - {at: 140, section: escalate, raises: stakes,     reveal: consequence, cause_in: self, shows: [hazard_hit], hook_count: 3,
          what: "It rips out the blocks beneath them", sound_at: 140}
       - {at: 180, section: escalate, raises: count,      reveal: consequence, cause_in: self, shows: [into_sea],
-         what: "Two climbers are thrown into the sea", sound_at: 181}
+         what: "Two climbers are thrown into the sea", sound_at: 181,
+         take_ref: {event: K1, take_frame: 240, subject_h: 0.38, source: fit}}
       - {at: 220, section: payoff,   reveal: payoff,      threat: "hazard:tsunami", cause_in: self, shows: [into_sea],
-         what: "Their whole block tips into the sea", sound_at: 220}
+         what: "Their whole block tips into the sea", sound_at: 220,
+         take_ref: {event: K2, take_frame: 280, subject_h: 0.5, source: fit}}
     action_cue: {cue_id: tsunami_set, tape_frame: 60, expect: {reaches_section_at_tape_frame: 200}}
     frame_at_key: {grid: MC, min_area_pct: 25, max_occlusion_pct: 10, breaks_frame: false}
     transition_in: cut
@@ -892,7 +1012,9 @@ shots:
     needs:
       - {feature: tsunami_reaches_section, status: verify}     # height and timing in the scout dry run
       - {feature: survivors_thrown_by_wave, status: verify}    # TsunamiHazard pushes and lifts; check it in the take
-    fallback: "none: BLOCKED if the wave cannot reach a section with survivors on it"
+      - {feature: first_person_camera_with_hands, status: verify}
+    fallback: "none: BLOCKED if the wave cannot reach a section with survivors on it. If only the first-person camera
+               fails: ride 0.4 m behind and 0.2 m above Coral's head at 24 mm (over the shoulder); Finn and Ivo stay 0.35+"
 
   - id: S02
     section: aftermath
@@ -951,7 +1073,7 @@ shots:
 
 ### B against every lint
 
-Body = frames 0-340 (11.33 s). Body shots: S01 280, S02 60.
+`tools/lint.py` run on 2026-11-20 (revision 4): 0 hard failures. Body = frames 0-340 (11.33 s). Body shots: S01 280 (first person), S02 60.
 
 | Lint | Check | Result |
 |------|-------|--------|
@@ -969,9 +1091,9 @@ Body = frames 0-340 (11.33 s). Body shots: S01 280, S02 60.
 | L12 | moments 0/0, 50/51, 100/100, 140/140, 180/181, 220/220; S02 15/15; S03 0/0 | pass |
 | L13 | no ramps | pass |
 | L14 | S02 MCU; hero coral, front, yaw 10, reaction (head breaks the surface, arms reach) | pass |
-| L15 | pull_out in_out with purpose; statics `none` | pass |
-| L16 | subjects tsunami, coral, card | pass |
-| L17 | no POV | pass |
+| L15 | POV and static `none`, each with a purpose | pass |
+| L16 | subjects tsunami, coral, card; S01 is a POV | pass |
+| L17 | S01 POV 0.3 / 0.5 s | pass |
 | L18 | hazard_hit (140), survivors_react (50, S02), into_sea (180, 220) | pass |
 | L19 | `verify` items have scout checks; S01's failure is BLOCKED, S02 has a fallback; nothing the game cannot do | pass |
 | L20 | caption 4 words needs 66, has 70; title 110 ≥ 48; tagline 6 words needs 84, has 90 | pass |
@@ -980,24 +1102,31 @@ Body = frames 0-340 (11.33 s). Body shots: S01 280, S02 60.
 | L26 | one wave direction (R>L) inside one take | pass |
 | L27 | S01 exit MC > S02 MC; S02 MC > S03 MC | pass |
 | L28 | main 220 ≥ 0.6 x 340 = 204 | pass |
-| L29 | coarse W/EW 1 of 2 body shots = 50 %; close 0 % | pass |
+| L29 | coarse W/EW 1 of 2 body shots = 50 % (S01 WS by Finn and Ivo at 0.41); close 0 % | pass |
 | L31 | class 15: optional (one 15-frame stop-down) | pass |
 | L32 | caption 4 words, a rule; tagline 6 words; no superlatives | pass |
 | L34 | hazard_hit 1, survivors_react 2, into_sea 1 | pass |
-| L35 | EWS 280, MCU 60 | pass |
+| L35 | POV 280, MCU 60 | pass |
 | L36, L37 | two-role only | n/a |
 | L38 | every shot has a `fit` line deriving Hf for its subject | pass |
-| L39 | new tagline, caption, hero, cast; no camera tuple equal to A's or C's | pass |
+| L39 | this is the example itself | n/a |
 | L40 | mayhem only | n/a |
 | L41 | no PvP hit or knock-off tagged | pass |
 | L42 | Coral in the take (hook to payoff) and S02 (aftermath) | pass |
 | L43 | one hazard | n/a |
 | L44 | S01 holds the lower section and Coral from frame 0; every shot has `tower_level` | pass |
-| L45 | S01: three survivors at 0.31 at the start | pass |
+| L45 | no crowd claim (two climbers ahead at 0.41) | pass |
 | L46 | no knock-off tagged | pass |
+| L47 | K1 (180) and K2 (220, the payoff) both inside Coral's first-person take; Finn and Ivo 0.35-0.41 | pass (revision 3's pull-out had them at 0.063 and would fail) |
+| L48 | both key moments carry `take_ref` (tape 240, 280; source `fit`) | pass |
+| L49 | single take: S01 is a 280-frame POV on both key events, `pov_of: coral` | pass |
+| L50 | POV 82 % of the body, `pov_led: true` | pass |
+| L51 | `layers` starts with the world pass; all three cast members have a layer | pass |
 
-What it still owes before capture: R01 (climbers at 0.063 must be visible as figures, not
-specks, at preview size; if not, end the pull-out at 12 m), R02 (the wave reaches the section at
-tape frame 200 within 8 frames), and S02's floating check. Studio note (revision 3): the `tsunami`
-cue sets `affectPlayers = false`, so it never throws the climbers; stage this wave with the
-`hazard` cue (random side: run variations) or fake the throws with reaction layers.
+What it still owes before capture: R01 (Finn and Ivo visible ahead of her at every key; the
+wave's crest in frame at 0 with the head pitch the lookAt layer gives), R02 (the wave reaches the
+section at tape frame 200 within 8 frames and throws Finn and Ivo), the first-person camera showing
+Coral's hands without her own head in the way (else the over-the-shoulder fallback), and S02's
+floating check. Studio note (revision 3): the `tsunami` cue sets `affectPlayers = false`, so it never
+throws the climbers; stage this wave with the `hazard` cue (random side: run variations) or fake the
+throws with reaction layers.
