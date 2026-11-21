@@ -174,8 +174,20 @@ namespace DeadlyJenga.CandyArt.Marina
         void Pavilion()
         {
             // Wooden boardwalk ramps from the plaza up into the cinema.
-            Ramp(new Vector3(0,PlazaTop,CinemaFront-2),new Vector3(0,CinemaFloor,CinemaFront),9.6f,false,F.Wood);
-            Ramp(new Vector3(5.98f,PlazaTop,CinemaFront-1.9f),new Vector3(5.98f,CinemaFloor,CinemaFront),2.15f,false,F.Wood);
+            // The plaza sits well below the cinema. Two wooden boardwalk ramps climb up either side;
+            // the gap between them holds the winners' podium at plaza level (see HallOfFame).
+            const float rampLength=3.2f,rampInner=2.0f,rampOuter=5.6f;
+            foreach(float side in new[]{-1f,1f})
+            {
+                float x=side*(rampInner+rampOuter)*.5f;
+                Ramp(new Vector3(x,PlazaTop,CinemaFront-rampLength),new Vector3(x,CinemaFloor,CinemaFront),rampOuter-rampInner,false,F.Wood);
+            }
+            // Masonry face under the cinema front, down to the plaza.
+            mesh.Box(new Vector3(0,(PlazaTop-.05f+CinemaFloor-.58f)*.5f,CinemaFront+2.35f),new Vector3(15.8f,CinemaFloor-.58f-PlazaTop+.05f,4.7f),F.Ivory,.06f,true);
+            // From the arrival deck a short ramp leads down into the plaza.
+            var arrivalDir=new Vector3(PlazaCenter.x-Arrival.x,0,PlazaCenter.z-Arrival.z).normalized;
+            var arrivalEdge=new Vector3(Arrival.x,1.33f,Arrival.z)+arrivalDir*5.3f;
+            Ramp(arrivalEdge,new Vector3(arrivalEdge.x,PlazaTop,arrivalEdge.z)+arrivalDir*2.3f,3.2f,false);
             float depth=CinemaBack-CinemaFront;
             float center=(CinemaFront+CinemaBack)*.5f;
             mesh.Box(new Vector3(0,CinemaFloor-.3f,center),new Vector3(15.8f,.6f,depth),F.Stone,0,true);
