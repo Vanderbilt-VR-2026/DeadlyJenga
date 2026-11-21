@@ -90,6 +90,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public float[] turn;    // recorded head turn speed, degrees per second, averaged over 0.4 s
             public float[] phase;   // walk phase as the avatar's legs use it (radians)
             public float[] freeLeft, freeRight;   // 0..1: how sure it is that the recording left this hand without input
+            public float[] weaponLeft, weaponRight;   // 0..1: a drawn weapon is in this hand (eased over a third of a second)
         }
 
         // The average of the values within 'reach' frames either side. Per-frame switches made hands pop: a yes/no test
@@ -121,6 +122,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             int n = take.frames.Count;
             info = new TakeInfo { phase = new float[n] };
             var raw = new float[n]; var turn = new float[n]; var freeLeft = new float[n]; var freeRight = new float[n];
+            var weaponLeft = new float[n]; var weaponRight = new float[n];
             var gait = default(CandyPlayerRig.GaitState);
             Vector3 lastFeet = default; float lastYaw = 0; bool had = false;
             for (int i = 0; i < n; i++)
@@ -135,6 +137,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 freeLeft[i] = LifelessHand(pose.body, pose.body.left, -1) ? 1 : 0;
                 freeRight[i] = LifelessHand(pose.body, pose.body.right, 1) ? 1 : 0;
+                var held = Equipment(pose.equipment);
+                if (held != null && held.drawn && held.kind >= EquipmentKind.Blaster) { if (held.leftHanded) weaponLeft[i] = 1; else weaponRight[i] = 1; }
                 gait = CandyPlayerRig.StepGait(gait, pose.body, 1f / fps);
                 info.phase[i] = gait.walkPhase;
                 lastFeet = pose.body.feet; lastYaw = yaw; had = true;
@@ -143,6 +147,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             info.turn = Averaged(turn, 6);
             info.freeLeft = Averaged(freeLeft, 8);
             info.freeRight = Averaged(freeRight, 8);
+            info.weaponLeft = Averaged(weaponLeft, 5);
+            info.weaponRight = Averaged(weaponRight, 5);
             infos.Remove(take); infos.Add(take, info);
             return info;
         }
@@ -244,8 +250,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // Judged over half a second of the take, never frame by frame (see Averaged).
             float leftFree = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.2f, .6f, info.freeLeft[index]));
             float rightFree = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.2f, .6f, info.freeRight[index]));
-            var equipment = Equipment(frame.equipment);
-            bool armed = equipment != null && equipment.drawn && equipment.kind >= EquipmentKind.Blaster;
 
             float bodyAmt = Mathf.Clamp(alive.body, 0, 2) * amount * (1 - owned.body) * (1 - moving);
             float headAmt = Mathf.Clamp(alive.head, 0, 2) * amount * (1 - owned.head) * (driven ? 0 : 1) * (1 - .7f * moving)
@@ -316,30 +320,36 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     float when = Mathf.Clamp(states[k].start, 0, length);
                     return Alert(set, tape, track.id, when, RawHead(track, when, fps, out var there) ? there : body.head);
                 }
-                bool weaponLeft = armed && equipment.leftHanded;
+                // So is whether a weapon is out (a draw in the middle of a hand change used to swap the other hand's pose in one frame).
+                bool ArmedAt(int k)
+                {
+                    int f = Mathf.Clamp(Mathf.RoundToInt(states[k].start * fps) - take.start, 0, take.frames.Count - 1);
+                    return info.weaponLeft[f] + info.weaponRight[f] > .5f;
+                }
                 for (int side = -1; side <= 1; side += 2)
                 {
                     bool left = side < 0;
                     float free = left ? leftFree : rightFree;
-                    bool weaponHand = armed && left == weaponLeft;
+                    float weapon = Mathf.SmoothStep(0, 1, left ? info.weaponLeft[index] : info.weaponRight[index]);
+                    free *= 1 - weapon;
                     ref CandyHandPose hand = ref (left ? ref body.left : ref body.right);
                     // One hand leads the other a little when they change together.
                     float lag = StudioHuman.Rand(seed, 0, 303) < .5f == left ? .09f : 0;
                     int h = Find(states, time - lag);
                     float hu = StudioHuman.Ease((time - lag - states[h].start) / states[h].move);
-                    int was = HandState(seed, Mathf.Max(0, h - 1), AlertAt(Mathf.Max(0, h - 1)), armed), now = HandState(seed, h, AlertAt(h), armed);
+                    int before = Mathf.Max(0, h - 1);
+                    int was = HandState(seed, before, AlertAt(before), ArmedAt(before)), now = HandState(seed, h, AlertAt(h), ArmedAt(h));
                     Vector3 micro = new Vector3(StudioHuman.Wobble(seed, 310 + side, time, .2f), StudioHuman.Wobble(seed, 312 + side, time, .17f), StudioHuman.Wobble(seed, 314 + side, time, .23f)) * .005f;
                     Vector3 lift = Vector3.up * (.008f * breath);
-                    if (weaponHand)
+                    if (weapon > .001f)
                     {
                         // The weapon stays where the game put it; it is held ready or lowered a little.
                         float low = Mathf.Lerp(Lowered(was), Lowered(now), hu) * (1 - moving);
-                        hand.position += (torso * (new Vector3(0, -.07f, -.02f) * low) + micro + lift) * (size * handAmt);
-                        hand.rotation = Quaternion.Slerp(hand.rotation, hand.rotation * Quaternion.Euler(20 * low, 0, 0), handAmt);
-                        continue;
+                        hand.position += (torso * (new Vector3(0, -.07f, -.02f) * low) + micro + lift) * (size * handAmt * weapon);
+                        hand.rotation = Quaternion.Slerp(hand.rotation, hand.rotation * Quaternion.Euler(20 * low, 0, 0), handAmt * weapon);
                     }
                     // Hands a person performed: only a little life on top.
-                    hand.position += (micro * .6f + lift) * (size * handAmt * (1 - free));
+                    hand.position += (micro * .6f + lift) * (size * handAmt * (1 - free) * (1 - weapon));
                     if (free <= .001f) continue;
                     var (fromOffset, fromAngles, fromCurl) = HandPose(was, side);
                     var (toOffset, toAngles, toCurl) = HandPose(now, side);
