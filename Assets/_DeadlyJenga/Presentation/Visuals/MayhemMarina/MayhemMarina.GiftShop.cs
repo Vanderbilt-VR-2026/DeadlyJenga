@@ -144,7 +144,16 @@ namespace DeadlyJenga.CandyArt.Marina
                 B(center.x, .52f, center.z, new Vector3(size.x, 1.04f, size.z) + (Mathf.Abs(along.x) > .5f ? Vector3.forward : Vector3.right) * .01f, F.Wood, .005f);
                 B(center.x, 1.06f, center.z, new Vector3(size.x, .07f, size.z) + (Mathf.Abs(along.x) > .5f ? Vector3.forward : Vector3.right) * .04f, F.Ivory, .01f);
             }
-            Lining(new Vector3(0, 0, hd - .255f), Vector3.right * (ShopWidth - .5f));
+            // Back wall lining: wood panelling below, cream above, cut around the window.
+            {
+                float z = hd - .255f, w = ShopWidth - .5f;
+                B(0, .52f, z, new Vector3(w, 1.04f, .04f), F.Wood, .005f);
+                B(0, 1.06f, z, new Vector3(w, .07f, .07f), F.Ivory, .01f);
+                B(0, (1.05f + WinSill) * .5f, z, new Vector3(w, WinSill - 1.05f, .03f), F.CandyCream, .005f);
+                B(0, (WinHead + H) * .5f, z, new Vector3(w, H - WinHead, .03f), F.CandyCream, .005f);
+                foreach (float s in new[] { -1f, 1f })
+                    B(s * (WinHalf + w * .5f) * .5f, (WinSill + WinHead) * .5f, z, new Vector3(w * .5f - WinHalf, WinHead - WinSill, .03f), F.CandyCream, .005f);
+            }
             float leftStart = -hd + .25f, leftEnd = hd - .25f;
             Lining(new Vector3(-hw + .255f, 0, (leftStart + VaultZ - VaultOpening) * .5f), Vector3.forward * (VaultZ - VaultOpening - leftStart));
             Lining(new Vector3(-hw + .255f, 0, (VaultZ + VaultOpening + leftEnd) * .5f), Vector3.forward * (leftEnd - VaultZ - VaultOpening));
