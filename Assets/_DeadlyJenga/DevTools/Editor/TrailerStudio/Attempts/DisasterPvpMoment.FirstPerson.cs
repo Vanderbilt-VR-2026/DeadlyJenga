@@ -215,6 +215,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (last < 0 || contactFrame - last > 3 || Vector3.Distance(path[last], contactAt) > 5) continue;
                 int earlier = path.Keys.Where(k => k <= last - 12).DefaultIfEmpty(path.Keys.First()).Max();
                 if (Vector3.Distance(path[earlier], contactAt) < 4) continue;
+                // Meteor run 1 looked at the rock's path 0.4 s out and saw only the face of a block: take the nearest
+                // point of the path that the survivor's eye can really see while the rock comes in.
+                int watch = contactFrame - 20;
+                StudioRun.ShowExact(TapeF(watch) * Fps);
+                Physics.SyncTransforms();
+                var eye = StudioActorPoses.At(stage.tape, plan.Id(bestRole), TapeF(watch), Fps);
+                foreach (int k in path.Keys.Where(k => k <= last - 12).OrderByDescending(k => k))
+                {
+                    Vector3 toward = path[k] - eye.head;
+                    if (!eye.found || !Physics.Raycast(eye.head, toward.normalized, toward.magnitude - 2.5f, (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore))
+                    { earlier = k; Note($"Clear line of sight from {bestRole}'s eye at f{watch} to the rock's path point of f{k}."); break; }
+                }
                 return (bestRole, path[earlier], contactFrame, path.Keys.First());
             }
             int nearest = Enumerable.Range(0, plan.meteors.Count).OrderBy(i => Vector3.Distance(plan.meteors[i].target, contactAt)).DefaultIfEmpty(-1).First();
