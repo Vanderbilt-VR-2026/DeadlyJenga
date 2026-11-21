@@ -222,11 +222,22 @@ namespace DeadlyJenga.CastlePrototype
             }
             string LobbyState() => $"scene={UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}, room={room.Status}, " +
                 $"busy={room.Busy}, humans={room.HumanCount}, mirrors={IslandLobby.Current?.PeerCount}, home={(home ? home.Status : "closed")}";
+            string lastState = null;
+            bool BothInMarina()
+            {
+                string state = LobbyState();
+                if (state != lastState)
+                {
+                    File.AppendAllText(Report, "Marina join: " + state + "\n");
+                    lastState = state;
+                }
+                return IslandLobby.Current && room.Connected && !room.Busy && room.Code == address &&
+                    room.HumanCount == 2 && SeesOtherHuman();
+            }
             bool SeesOtherHuman() => IslandLobby.Current && room.Connected && room.Runner &&
                 room.Runner.ActivePlayers.Any(player => player != room.Runner.LocalPlayer &&
                     IslandLobby.Current.TryPeerPosition(player.ToString(), out _));
-            yield return Until(()=>IslandLobby.Current&&room.Connected&&!room.Busy&&room.Code==address&&
-                room.HumanCount==2&&SeesOtherHuman(),
+            yield return Until(BothInMarina,
                 "Both real Fusion clients share the same Marina room and see one another",75,LobbyState);
             File.WriteAllText(Mark(role+"-nearby-joined"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-joined")),
@@ -280,8 +291,7 @@ namespace DeadlyJenga.CastlePrototype
             yield return Until(() => game && game.Modes &&
                 game.Modes.Frame.phase is RoundPhase.Victory or RoundPhase.Results,
                 "The full Play round reaches results after nearby join", 480, () => room.Status);
-            yield return Until(()=>IslandLobby.Current&&room.Connected&&!room.Busy&&room.Code==address&&
-                room.HumanCount==2&&SeesOtherHuman(),
+            yield return Until(BothInMarina,
                 "Guest follows host back to Marina without disconnecting",90,()=>room.Status);
             File.WriteAllText(Mark(role+"-nearby-returned"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-returned")),

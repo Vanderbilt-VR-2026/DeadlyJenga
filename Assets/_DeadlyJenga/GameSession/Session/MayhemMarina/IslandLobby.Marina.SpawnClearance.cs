@@ -21,6 +21,22 @@ namespace DeadlyJenga.CastlePrototype
             new(-13,1.33f,-7),new(-13,1.33f,-9),new(-7,1.33f,-9),new(-10,1.33f,-5.2f)
         };
         readonly Collider[] marinaSpawnOverlaps=new Collider[64];
+        internal int PreferredMarinaHostSlot
+        {
+            get
+            {
+                if(!NetworkActors.Alive(Player))return 0;
+                int nearest=0;float distance=float.PositiveInfinity;
+                var feet=Player.transform.position;
+                for(int i=0;i<10;i++)
+                {
+                    var at=transform.TransformPoint(new Vector3(-2.4f+1.2f*(i%5),1.86f,6.2f+1.4f*(i/5)));
+                    float d=new Vector2(at.x-feet.x,at.z-feet.z).sqrMagnitude;
+                    if(d<distance){nearest=i;distance=d;}
+                }
+                return distance<=.15f*.15f?nearest:0;
+            }
+        }
         internal bool UsesMarinaSpawns=>Radius>=30&&PlayerPrefs.GetInt(LegacyLobbyPreference,0)!=1;
         internal int MarinaFloorRevision=>marinaFloorRevision;
         internal void InvalidateMarinaSpawnClearance(){marinaFloorRevision++;nextMarinaArrival=0;}
@@ -57,16 +73,6 @@ namespace DeadlyJenga.CastlePrototype
             if(gray)floor=flatFloor.GetComponent<Collider>();
             if(!floor||!floor.enabled){reason="Waiting for the lobby collision floor.";return MarinaSpawnResult.Wait;}
             if(!NetworkActors.Alive(Player)){reason="Waiting for the local lobby body.";return MarinaSpawnResult.Wait;}
-            if (slot == 0 && marinaArrivalPlaced && NetworkActors.Alive(Player) &&
-                MarinaFinite(Player.transform.position) && Player.transform.position.y > WaterHeight(Player.transform.position))
-            {
-                var feet = Player.transform.position;
-                if (floor.Raycast(new Ray(feet + Vector3.up * 1f, Vector3.down), out var floorHit, 2.5f) && floorHit.normal.y >= .7f)
-                {
-                    pose = new P.Pose(feet, Player.transform.rotation);
-                    return MarinaSpawnResult.Accepted;
-                }
-            }
             MarinaEnvelope(out float radius,out float height,out var center,out float bottom);
             if(!float.IsFinite(radius)||!float.IsFinite(height)||!MarinaFinite(center)||radius<=0||height<radius*2)
             {reason="The current lobby body envelope is invalid.";return MarinaSpawnResult.Rejected;}
@@ -83,7 +89,9 @@ namespace DeadlyJenga.CastlePrototype
             if(!floor.Raycast(ray,out var hit,1.2f)||Mathf.Abs(hit.point.y-expected)>.12f||hit.normal.y<.85f)
             {reason="Lobby slot "+slot+" has no safe platform floor.";return MarinaSpawnResult.Rejected;}
             pose=new P.Pose(hit.point+Vector3.up*(.06f-bottom),rotation);
-            return CheckMarinaCapsule(pose.position,pose.rotation,radius,height,center,ignoreActor,occupancy,out reason);
+            var clearance=CheckMarinaCapsule(pose.position,pose.rotation,radius,height,center,ignoreActor,occupancy,out reason);
+            if(Debug.isDebugBuild && clearance!=MarinaSpawnResult.Accepted)reason+=" Slot "+slot+".";
+            return clearance;
         }
         MarinaSpawnResult CheckMarinaCapsule(Vector3 position,Quaternion rotation,float radius,float height,Vector3 center,GameObject ignoreActor,bool occupancy,out string reason)
         {
@@ -101,6 +109,7 @@ namespace DeadlyJenga.CastlePrototype
                     other.GetComponentInParent<IFlyingState>()!=null||other.attachedRigidbody;
                 if(!occupancy&&moving)continue;
                 reason=moving?"A player or moving object occupies this lobby slot; waiting.":"Lobby spawn is obstructed by "+other.name+".";
+                if(Debug.isDebugBuild&&moving)reason+=" Collider: "+other.name+" on "+other.transform.root.name+".";
                 return moving?MarinaSpawnResult.Wait:MarinaSpawnResult.Rejected;
             }
             return MarinaSpawnResult.Accepted;
