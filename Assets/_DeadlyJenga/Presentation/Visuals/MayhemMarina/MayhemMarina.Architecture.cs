@@ -196,7 +196,7 @@ namespace DeadlyJenga.CandyArt.Marina
             // (LobbyLastRoundBoard draws its screens on both faces).
             mesh.Box(FameBoard,new Vector3(4.5f,2.4f,.14f),F.Teal,.08f);
             for(int side=-1;side<=1;side+=2)
-                mesh.Beam(FameBoard+new Vector3(side*1.8f,1.15f,0),FameBoard+new Vector3(side*1.8f,2.9f,0),.055f,F.Brass);
+                mesh.Beam(FameBoard+new Vector3(side*1.8f,1.15f,0),FameBoard+new Vector3(side*1.8f,2.15f,0),.055f,F.Brass);
             for(int side=-1;side<=1;side+=2)
             {
                 float x=side*7.4f;

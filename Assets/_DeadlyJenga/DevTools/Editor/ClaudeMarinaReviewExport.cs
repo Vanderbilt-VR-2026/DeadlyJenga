@@ -72,11 +72,11 @@ namespace DeadlyJenga.DevTools.Editor
             Shot(new Vector3(-18,5.9f,12.5f),new Vector3(-10,4.9f,18),65,"Marina-Terrace.png");yield return null;
             Shot(new Vector3(-2.7f,3.7f,0.1f),new Vector3(0,2.1f,2.75f),52,"Marina-Plinth.png");yield return null;
             Shot(new Vector3(3.1f,2.55f,0.9f),new Vector3(0,2.1f,2.75f),50,"Marina-PlinthSide.png");yield return null;
-            Shot(new Vector3(1.0f,3.3f,8.2f),new Vector3(5.4f,3.0f,8.2f),60,"Marina-FamePistons.png");yield return null;
-            Shot(new Vector3(1.6f,2.8f,4.6f),new Vector3(5.4f,2.9f,8.2f),62,"Marina-FamePistonsSide.png");yield return null;
-            Shot(new Vector3(0,2.7f,-10.5f),new Vector3(0,4.6f,-2.45f),56,"Marina-LastMatchFront.png");yield return null;
+            Shot(new Vector3(0,3.1f,-8.5f),new Vector3(0,3.9f,-1.45f),58,"Marina-FamePistons.png");yield return null;
+            Shot(new Vector3(4.2f,2.9f,-5.2f),new Vector3(0,3.4f,-1.45f),62,"Marina-FamePistonsSide.png");yield return null;
+            Shot(new Vector3(0,2.7f,-10.5f),new Vector3(0,4.9f,-2.45f),60,"Marina-LastMatchFront.png");yield return null;
             Shot(new Vector3(1.2f,2.9f,0.4f),new Vector3(5.6f,2.4f,3.9f),64,"Marina-StyleTablet.png");yield return null;
-            Shot(new Vector3(0,3.0f,4.2f),new Vector3(0,4.8f,-2.45f),62,"Marina-LastMatchBack.png");yield return null;
+            Shot(new Vector3(0,3.0f,4.2f),new Vector3(0,5.4f,-2.45f),62,"Marina-LastMatchBack.png");yield return null;
             Shot(new Vector3(-10.4f,4.3f,0.4f),new Vector3(-15f,2.1f,4.6f),56,"Marina-Crates.png");yield return null;
             Shot(new Vector3(-19.6f,2.9f,8.4f),new Vector3(-14.5f,2.0f,4.2f),56,"Marina-CratesBack.png");yield return null;
             Shot(new Vector3(5.5f,8.5f,-7.0f),new Vector3(18.3f,2.2f,4.5f),52,"Marina-GiftShop.png");yield return null;
