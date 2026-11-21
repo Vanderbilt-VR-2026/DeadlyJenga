@@ -91,16 +91,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // S01: low beside the summit (planned from the marks), the three summit fighters, slow push in.
             {
                 var s = Sh("S01");
-                Vector3 hero = FeetAt(stage, "hero", Tf(s, 20), plan), rival = FeetAt(stage, "rival", Tf(s, 20), plan);
-                Vector3 mid = Vector3.Lerp(hero, rival, .45f) + up * .55f;
+                Vector3 dragon = FeetAt(stage, "dragon", Tf(s, 20), plan), rival = FeetAt(stage, "rival", Tf(s, 20), plan);
+                Vector3 mid = Vector3.Lerp(dragon, rival, .5f) + up * .55f;
                 float d = Vector3.Distance(plan.hookCam, mid);
-                var c = ShotCam(s, FocalFor(d, 3.0f));
+                var c = ShotCam(s, FocalFor(d, 3.4f));
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(plan.hookCam), P(stage, mid));
                 StudioMoves.PushIn(c, c.start, c.end, stage.ToStage(mid), .14f);
                 c.noise = "subtle"; c.noiseStrength = .6f;
                 Add(c, plan.hookCam, mid, "the hero and the gorilla");
             }
-            Pov(Sh("S02"), .2f, .32f);
+            Pov(Sh("S02"), .2f, .32f).fpFieldOfView = 68;
             // S03: the geography wide (planned from the marks), the first rock lands in it.
             {
                 var s = Sh("S03");
@@ -123,7 +123,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (e.rock2 >= 0) StudioMoves.Shake(c, (e.rock2 + 1) / (float)Fps, 2.2f, .8f);
                 Add(c, spot, mid + up * .5f, "the fox and the penguin");
             }
-            Pov(Sh("S05"), .22f, .4f);
+            Pov(Sh("S05"), .22f, .4f).fpFieldOfView = 68;
             // S06: side-on two-shot of the counter-punch, from where both stand at the contact frame.
             {
                 var s = Sh("S06");
@@ -141,17 +141,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // S07: MCU of the hero from the side the planet killer comes from, below his eye line, slow push in.
             {
                 var s = Sh("S07");
+                // Rehearsal 1: 1.15 m dead ahead, the glove at his face filled the frame. Now 1.5 m out, 35 deg to his left
+                // (the glove is in his right hand), under his eye line, toward where the planet killer comes from.
                 int at = Tf(s, 266);
                 Vector3 head = HeadAt(stage, "hero", at, plan);
-                Vector3 toward = Flat(plan.planetFrom);
-                Vector3 spot = head + toward * 1.15f - up * .28f;
-                foreach (float turn in new[] { 0f, 20f, -20f, 40f, -40f })
+                Vector3 toward = Flat(plan.planetFrom), right = Vector3.Cross(Vector3.up, toward).normalized;
+                Vector3 spot = head + toward * 1.5f - up * .3f;
+                foreach (float turn in new[] { 35f, 25f, 45f, 15f, 55f })
                 {
-                    Vector3 p = head + Quaternion.Euler(0, turn, 0) * toward * 1.15f - up * .28f;
+                    Vector3 dir = (toward * Mathf.Cos(turn * Mathf.Deg2Rad) - right * Mathf.Sin(turn * Mathf.Deg2Rad)).normalized;
+                    Vector3 p = head + dir * 1.5f - up * .3f;
                     if (Clear(p, .25f) && Sees(p, head)) { spot = p; break; }
                 }
-                var c = ShotCam(s, 58);
-                c.keys[0].aperture = 4; c.keys[0].focus = 1.15f;
+                var c = ShotCam(s, 75);
+                c.keys[0].aperture = 5.6f; c.keys[0].focus = 1.5f;
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(spot), "head:hero", new Vector3(0, -.1f, 0));
                 StudioMoves.PushIn(c, c.start, c.end, stage.ToStage(head), .15f);
                 c.aims[0].blend = .35f;
@@ -159,7 +162,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 StudioMoves.Shake(c, Tf(s, 270) / (float)Fps, .6f, 1.2f);   // the ground trembles as the rock comes in
                 Add(c, spot, head, "the hero's head");
             }
-            Pov(Sh("S08"), .2f, .4f);
+            Pov(Sh("S08"), .2f, .4f).fpFieldOfView = 68;
             // S09: side-on wide from the sun side, the whole top of the tower and the sea.
             {
                 var s = Sh("S09");
@@ -207,12 +210,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Vector3 chest = FeetAt(stage, "rival", e.punch1 - 12, plan) + Vector3.up * .5f;
                 Add("hero", "lookAt", e.punch1 - 26, e.punch1 - 1, point: stage.ToStage(chest), blendIn: .3f, blendOut: .15f);
                 Add("hero", "reach", e.punch1 - 5, e.punch1 + 5, target: "actor:rival", blendIn: .1f, blendOut: .18f);
-                Add("hero", "reaction", e.punch1 + 14, e.punch1 + 40, "cheer", blendIn: .15f, blendOut: .3f);
+                // A person does not track a body leaving at 22 m/s: his eyes jump to where the gorilla is going, then follow him down.
+                Add("hero", "lookAt", e.punch1 + 1, e.punch1 + 34, point: stage.ToStage(HeadAt(stage, "rival", e.punch1 + 16, plan)), blendIn: .12f, blendOut: .35f);
+                Add("hero", "reaction", e.punch1 + 18, e.punch1 + 42, "cheer", blendIn: .15f, blendOut: .3f);
                 Add("rival", "reaction", e.punch1 + 1, e.punch1 + 70, "scream", blendIn: .05f);
             }
             if (e.punch2 >= 0)
             {
                 Add("hero", "reach", e.punch2 - 5, e.punch2 + 5, target: "actor:dragon", blendIn: .1f, blendOut: .18f);
+                Add("hero", "lookAt", e.punch2 + 1, e.punch2 + 26, point: stage.ToStage(HeadAt(stage, "dragon", e.punch2 + 14, plan)), blendIn: .12f, blendOut: .35f);
                 Add("dragon", "reaction", e.punch2 + 1, e.punch2 + 60, "scream", blendIn: .05f);
             }
             if (e.rock2 >= 0)
@@ -226,9 +232,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             // The planet killer: the hero looks up, screams, cowers; the two below look up, each at their own moment.
             int pk = e.planet >= 0 ? e.planet : TapeFrame(PlanetFrame);
+            // Rehearsal 1: scream and cower in the first-person payoff put his hands and glove over the lens, then his own legs.
+            // So the scream ends as the POV starts (S08 begins about 25 frames before the impact) and the POV only looks up.
             Add("hero", "lookAt", pk - 62, pk + 40, point: stage.ToStage(planetPoint), blendIn: .5f, blendOut: .5f);
-            Add("hero", "reaction", pk - 42, pk - 8, "scream", blendIn: .2f, blendOut: .25f);
-            Add("hero", "reaction", pk - 10, pk + 40, "cower", blendIn: .15f, blendOut: .3f);
+            Add("hero", "reaction", pk - 48, pk - 26, "scream", blendIn: .2f, blendOut: .15f);
+            GuardLow(stage, plan, e, shots);
             Add("panda", "lookAt", pk - 75, pk + 20, point: stage.ToStage(planetPoint), blendIn: .45f, blendOut: .4f);
             Add("astro", "lookAt", pk - 66, pk + 20, point: stage.ToStage(planetPoint), blendIn: .5f, blendOut: .4f);
             Add("panda", "reaction", pk - 30, pk + 20, "cower", blendIn: .2f);
@@ -242,6 +250,29 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // Business that keeps heads off the dead level: wherever a visible actor's head stays level for more than 22 frames,
         // a look down at the drop or up at the rocks (seeded, each a different length), never near the actor's own strikes
         // and never in the hero's first-person shots (his eyes are the camera there).
+        // The glove guard at the face fills a first-person lens (rehearsal 1: a third of the frame) and hides the face in the
+        // close-up. In those shots the hero holds the glove lower, at his chest and to the right, as a player resting the arm
+        // would: short reach layers every 5 frames that follow his head, never near his punches.
+        static void GuardLow(StudioStage stage, Plan plan, Events e, List<Shot> shots)
+        {
+            var list = stage.set.overrides; int added = 0;
+            var windows = shots.Where(s => s.id == "S02" || s.id == "S05" || s.id == "S07" || s.id == "S08")
+                .Select(s => (a: TapeFrame(s.cutIn) + s.shift - Handle - 4, b: TapeFrame(s.cutOut) + s.shift + Handle + 4)).ToList();
+            var punches = new List<int>(); if (e.punch1 >= 0) punches.Add(e.punch1); if (e.punch2 >= 0) punches.Add(e.punch2);
+            foreach (var (a, b) in windows)
+                for (int tf = a; tf < b; tf += 5)
+                {
+                    if (punches.Any(p => tf > p - 14 && tf < p + 9)) continue;
+                    var pose = Shown(stage, "hero", tf);
+                    if (pose == null || !pose.visible) continue;
+                    Vector3 fwd = Flat(pose.body.headRotation * Vector3.forward), right = Vector3.Cross(Vector3.up, fwd).normalized;
+                    Vector3 hand = pose.body.head + fwd * .42f + right * .27f - Vector3.up * .46f;
+                    list.Add(new StudioOverride { actor = "hero", kind = "reach", point = stage.ToStage(hand), from = tf / (float)Fps, to = (tf + 10) / (float)Fps, blendIn = .15f, blendOut = .15f });
+                    added++;
+                }
+            Note($"Lowered guard: {added} reach layers on the hero.");
+        }
+
         static void BreakLevelHeads(StudioStage stage, Plan plan, Events e, List<Shot> shots)
         {
             var list = stage.set.overrides; int added = 0;

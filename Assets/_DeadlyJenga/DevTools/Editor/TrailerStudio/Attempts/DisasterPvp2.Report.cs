@@ -68,13 +68,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 var track = stage.tape.Find(role); var take = track?.ActiveTake;
                 if (take == null) continue;
+                // The last place it was seen is kept across hidden frames: in rehearsal 1 the fox vanished in the sea and came
+                // back on the summit with hidden frames between, so a frame-to-frame check missed it.
                 Vector3? last = null;
                 for (int tf = take.start; tf < take.End; tf++)
                 {
                     var pose = ActorFrame.Read(track.type, take.frames[tf - take.start]);
-                    if (!pose.visible) { last = null; continue; }
+                    if (!pose.visible) continue;
                     if (!e.gone.ContainsKey(role) && pose.body.feet.y < plan.arena.top - 25) e.gone[role] = tf;
-                    if (last.HasValue && pose.body.feet.y - last.Value.y > 4 && !e.respawn.ContainsKey(role)) e.respawn[role] = tf;
+                    if (last.HasValue && pose.body.feet.y - last.Value.y > 3 && !e.respawn.ContainsKey(role)) e.respawn[role] = tf;
                     last = pose.body.feet;
                 }
             }

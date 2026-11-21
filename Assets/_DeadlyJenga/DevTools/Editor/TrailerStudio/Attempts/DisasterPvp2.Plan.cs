@@ -20,7 +20,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         const int PlanetFrame = 309;       // the planet killer lands on the summit (the drop, 308.6, after a stop-down)
 
         // Lead times (tape seconds between a punch step's start and its contact), measured in rehearsal and corrected here.
-        static float Lead1 = .55f, Lead2 = .45f;
+        static float Lead1 = .6f, Lead2 = .42f;   // rehearsal 1: the second punch landed 0.40 s after its step began
 
         const float RockSize = 4.0f, RockSpeed = 45, RockDistance = 60, PlanetSize = 45, PlanetSpeed = 40, PlanetDistance = 130, PlanetElevation = 27;
 
@@ -167,6 +167,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             Vector3 heroHead = plan.at["hero"] + up * .85f;
             float SegmentDistance(Vector3 p, Vector3 x0, Vector3 x1) { var d = x1 - x0; float t = Mathf.Clamp01(Vector3.Dot(p - x0, d) / d.sqrMagnitude); return Vector3.Distance(p, x0 + d * t); }
+            // Nothing solid on the rock's way in (it must land where it is aimed, not on a block above it).
+            bool PathClear(Vector3 target, Vector3 from) => !Physics.Linecast(target + from * RockDistance, target + from * 1.2f, (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore);
             bool SafeForHero(Vector3 target, Vector3 from) => SegmentDistance(heroHead, target + from * RockDistance, target) > 5f && Vector3.Distance(Flat0(target), Flat0(plan.at["hero"])) > 5.5f;
 
             // The opening: rocks streak across the sky behind the brawl (as the hook camera sees it) and fall in the sea.
@@ -182,23 +184,25 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // The wide: the first rock lands on the level below, in the wide camera's view, away from everyone.
             {
                 Vector3 wf = Flat(Vector3.Lerp(A.C, A.F, .5f) - plan.wideCam);
-                var cand = A.spots.Where(p => p.y < A.top - 1 && chosen.All(c => Vector3.Distance(c, p) > 3.6f) && Vector3.Distance(Flat0(p), Flat0(plan.at["hero"])) > 5.5f && Sees(plan.wideCam, p + up * .5f))
+                // Rehearsal 1: a rock aimed 6 m down came in through block 2 and threw the fox 30 frames early. Now: the level just
+                // below the top (open sky), from steeply above and outside, with a clear path that passes 3 m from everyone.
+                var cand = A.spots.Where(p => p.y < A.top - 1 && p.y > A.top - 3 && OpenSky(p) && chosen.All(c => Vector3.Distance(c, p) > 3.6f) && Vector3.Distance(Flat0(p), Flat0(plan.at["hero"])) > 5.5f && Sees(plan.wideCam, p + up * .5f))
                     .OrderBy(p => Vector3.Angle(Flat0(p - plan.wideCam), wf)).ToList();
-                Vector3 right = Vector3.Cross(Vector3.up, wf).normalized;
                 foreach (var p in cand)
                 {
-                    Vector3 from = (up * .7f + right * .55f - wf * .25f).normalized;
-                    if (!SafeForHero(p, from)) from = (up * .7f - right * .55f - wf * .25f).normalized;
-                    if (!SafeForHero(p, from)) continue;
+                    Vector3 from = (up * .88f + Flat(p - A.C) * .47f).normalized;
+                    if (!SafeForHero(p, from) || !PathClear(p, from) || chosen.Any(c => SegmentDistance(c + up * .5f, p + from * RockDistance, p) < 3)) continue;
                     plan.wideRock = p; plan.rocks.Add((p + up * .2f, from, WideRockFrame, "wide", RockDistance)); break;
                 }
+                if (plan.wideRock == Vector3.zero) Note("WARNING no clear spot for the wide's rock");
             }
             // K2: between the fox and the penguin, coming in from the top of the rock camera's frame.
             {
                 Vector3 mid = Vector3.Lerp(plan.at["fox"], plan.at["penguin"], .5f);
                 Vector3 rf = Flat(mid - plan.rockCam), right = Vector3.Cross(Vector3.up, rf).normalized;
-                Vector3 from = (up * .82f + right * .45f + rf * .2f).normalized;
-                if (!SafeForHero(mid, from)) from = (up * .82f - right * .45f + rf * .2f).normalized;
+                // Rehearsal 1: with a component toward the lens the rock filled the rock camera; now it falls across the frame.
+                Vector3 from = (up * .85f + right * .52f).normalized;
+                if (!SafeForHero(mid, from) || !PathClear(mid, from)) from = (up * .85f - right * .52f).normalized;
                 plan.rock2 = mid; plan.rocks.Add((mid + up * .2f, from, Rock2Frame, "K2 fox and penguin", RockDistance));
             }
             // Mayhem in the background: rocks into the levels below, far from the hero.
@@ -223,8 +227,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static Vector3 HookSpot(Plan plan)
         {
             var A = plan.arena;
-            Vector3 mid = Vector3.Lerp(plan.at["hero"], plan.at["rival"], .45f);
-            return Spot(mid, 3.6f, .45f, new[] { plan.at["hero"], plan.at["rival"], plan.at["dragon"] }, A.s);
+            Vector3 mid = Vector3.Lerp(plan.at["dragon"], plan.at["rival"], .5f);
+            return Spot(mid, 4.0f, .45f, new[] { plan.at["hero"], plan.at["rival"], plan.at["dragon"] }, A.s);
         }
 
         // The geography wide: high three-quarter from outside, the summit and block 2 in one frame.
@@ -255,15 +259,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 radius = radius > 0 ? radius : planet ? PlanetDistance : RockDistance, height = planet ? PlanetSize : RockSize, strength = planet ? PlanetSpeed : RockSpeed
             };
             cue.at = Mathf.Max(0, TapeF(arriveFrame) - AimedMeteorCue.ArrivalDelay(cue));
-            // The first rock starts the shower: a light one (1.5 rocks a second, 1.8 m, no warning, 14 s) so the brawl stays on its block.
-            cue.values = planet ? new[] { PlanetSize, 0f } : new[] { 1.8f, .6f, 1.5f, 22f, 0f, 14f };
+            // The first rock starts the shower: a light one (1.5 rocks a second, 1.8 m, no warning, 14 s) so the brawl stays on its block;
+            // force 40 (the most), because at 22 the rock that landed 0.8 m from the penguin in rehearsal 1 only hurt him.
+            cue.values = planet ? new[] { PlanetSize, 0f } : new[] { 1.8f, .6f, 1.5f, 40f, 0f, 14f };
             return cue;
         }
 
         static StudioDriveStep S(string action, float at = -1, string target = "", float duration = 0, string pace = "walk", float reach = 1.0f, string weapon = "") =>
             new StudioDriveStep { action = action, at = at, target = target, duration = duration, pace = pace, reach = reach, weapon = weapon };
         static StudioDriveStep Go(StudioStage stage, Vector3 world, float at = -1, string pace = "walk") =>
-            new StudioDriveStep { action = "goTo", at = at, point = stage.ToStage(world), pace = pace, duration = 2.5f };
+            new StudioDriveStep { action = "goTo", at = at, point = stage.ToStage(world), pace = pace, duration = 1.1f };
         static string Pt(StudioStage stage, Vector3 world) => P(stage, world);
 
         static void Direct(StudioStage stage, Plan plan)
@@ -294,7 +299,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             h.steps.Add(Go(stage, hero + A.s * .3f + A.a * .1f, .8f));
             h.steps.Add(S("look", T(8), Pt(stage, sky(hero, -hookFwd + A.s * .3f, 24)), .55f));
             h.steps.Add(S("look", T(26), "actor:rival"));
-            h.steps.Add(Go(stage, hero - A.s * .12f + A.a * .18f, T(44)));
             h.steps.Add(S("punch", T(Punch1Frame) - Lead1, "actor:rival", pace: "jog", reach: 1.0f));
             h.steps.Add(S("look", -1, Pt(stage, A.C + A.a * 7 - up * 9), 1.1f));
             h.steps.Add(S("look", T(112), Pt(stage, sky(A.C, A.F - A.C + A.s * .5f, 32)), 1.0f));
@@ -304,7 +308,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             h.steps.Add(S("punch", T(Punch2Frame) - Lead2, "actor:dragon", pace: "walk", reach: 1.0f));
             h.steps.Add(S("look", -1, Pt(stage, A.C - A.a * 8 - up * 8), .7f));
             h.steps.Add(S("look", T(256), Pt(stage, A.C + up * .85f + plan.planetFrom * 40)));
-            h.steps.Add(new StudioDriveStep { action = "crouch", at = T(288), amount = .55f, duration = 1.2f });
             set.drives.Add(h);
 
             // The gorilla: squares up, feints in, backs off, never sees the punch coming in time.
@@ -394,7 +397,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
 
             foreach (var rock in plan.rocks) set.cues.Add(Meteor(stage, rock.target, rock.from, rock.frame, false, rock.radius));
-            set.cues.Add(Meteor(stage, A.C, plan.planetFrom, PlanetFrame, true));
+            set.cues.Add(Meteor(stage, A.C, plan.planetFrom, PlanetFrame + 4, true));   // rehearsal 1: it touched 4 frames early
             set.cues.Sort((x, y) => x.at.CompareTo(y.at));
             set.EnsureCueIds();
             var problems = StudioPerformer.Problems(set);

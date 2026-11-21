@@ -417,6 +417,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 case "punch":
                 case "fire":
                     swung = false;
+                    Log(time, $"begins to {step.action} at {step.target}");
                     break;
             }
         }

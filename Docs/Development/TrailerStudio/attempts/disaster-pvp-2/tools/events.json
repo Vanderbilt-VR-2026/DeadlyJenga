@@ -1,0 +1,35 @@
+{
+ "music": "../music/music-edit.wav",
+ "music_gain_db": -2,
+ "music_fade_out": 0.8,
+ "music_gaps": [[297, 308]],
+ "music_early": {"until_frame": 103, "db": -3},
+ "duck": {"frame": 362, "db": -9},
+ "tape_at_zero": 1.0,
+ "take_gain_db": 2,
+ "take_until": 450,
+ "lufs": -15,
+ "events": [
+  {"file": "WeaponBoxing-02", "frame": 76, "gain_db": 4, "sync": "punch1"},
+  {"file": "PlayerPain-02", "frame": 78, "gain_db": -3},
+  {"file": "FallWind_01", "frame": 82, "gain_db": -9, "dur": 0.7, "fade_out": 0.3},
+  {"file": "BlockSmash_02", "frame": 122, "gain_db": -2},
+  {"file": "BlockSmash_01", "frame": 154, "gain_db": 1},
+  {"file": "PlayerPain-03", "frame": 156, "gain_db": -5},
+  {"file": "PlayerPain-04", "frame": 157, "gain_db": -6},
+  {"file": "WeaponBoxing-03", "frame": 218, "gain_db": 4, "sync": "punch2"},
+  {"file": "PlayerPain-01", "frame": 220, "gain_db": -3},
+  {"file": "WhatWasThat_02", "frame": 266, "gain_db": -1},
+  {"file": "BlockSmash_03", "frame": 309, "gain_db": 4},
+  {"file": "BlockSmash_04", "frame": 310, "gain_db": 2},
+  {"file": "BlockSplash_02", "frame": 340, "gain_db": -4}
+ ],
+ "titles": [
+  {"text": "DEADLY JENGA", "frame_in": 359, "frame_out": 450, "size": 150, "y": 330},
+  {"text": "WIN THE TOP. LOSE THE SKY.", "frame_in": 366, "frame_out": 450, "size": 60, "y": 500}
+ ],
+ "darken_from": 359,
+ "darken": 0.28,
+ "sync_points": {"feint": 25, "punch1": 76, "wide": 122, "rock": 154, "punch2": 218, "main": 309, "title": 359},
+ "stills": [12, 60, 76, 125, 156, 195, 219, 270, 305, 400]
+}
