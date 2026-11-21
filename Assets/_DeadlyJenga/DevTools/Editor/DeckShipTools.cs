@@ -1,0 +1,491 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.Core;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.Rendering.Universal;
+using Object = UnityEngine.Object;
+
+namespace DeadlyJenga.DevTools.Editor
+{
+    // Deck Ship tools.
+    // Play Mode menu: Tools > Deadly Jenga > Maps > Deck Ship > Roll / Pitch / Iceberg / Next Cargo / Auto Events.
+    // Batch check (no headset): -executeMethod DeadlyJenga.DevTools.Editor.DeckShipTools.RunChecks
+    //   1. every cargo layout is built in an empty scene and run through calm sway, a roll, a pitch and the iceberg
+    //      with scripted physics; how much moved, fell and went overboard is written to Logs/Validation/DeckShip.txt
+    //   2. the real map is loaded in Game.unity (Play Mode, no bots) and photographed calm, mid-roll, at the
+    //      iceberg and while new cargo drops in. Pictures: Logs/Captures/DeckShip/
+    [InitializeOnLoad]
+    public static class DeckShipTools
+    {
+        const string Menu = "Tools/Deadly Jenga/Maps/Deck Ship/";
+        static DeckShipMap Live => EditorApplication.isPlaying ? Services.World as DeckShipMap : null;
+
+        [MenuItem(Menu + "Roll")] static void Roll() => Live.StartEvent(DeckShipEvent.Roll);
+        [MenuItem(Menu + "Pitch")] static void Pitch() => Live.StartEvent(DeckShipEvent.Pitch);
+        [MenuItem(Menu + "Iceberg")] static void Iceberg() => Live.StartEvent(DeckShipEvent.Iceberg);
+        [MenuItem(Menu + "Right the Ship")] static void Right() => Live.StartEvent(DeckShipEvent.Righting);
+        [MenuItem(Menu + "Next Cargo (drop in)")] static void Next() => Live.NextCargo(true);
+        [MenuItem(Menu + "Auto Events On or Off")] static void Auto() { Live.autoEvents = !Live.autoEvents; Debug.Log("Deck Ship auto events: " + Live.autoEvents); }
+        [MenuItem(Menu + "Roll", true)][MenuItem(Menu + "Pitch", true)][MenuItem(Menu + "Iceberg", true)][MenuItem(Menu + "Right the Ship", true)]
+        [MenuItem(Menu + "Next Cargo (drop in)", true)][MenuItem(Menu + "Auto Events On or Off", true)]
+        static bool HasShip() => Live;
+
+        static string ValidationFolder => Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Validation");
+        // Which Deck Ship map the batch check is running: "deck-ship" or the large "deck-ship-xl".
+        static string MapId => SessionState.GetString("DeadlyJenga.DeckShipMapId", "deck-ship");
+        static string CaptureFolder => Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Captures", MapId == "deck-ship" ? "DeckShip" : "DeckShip-" + MapId);
+        static string ReportPath => Path.Combine(ValidationFolder, MapId == "deck-ship" ? "DeckShip.txt" : "DeckShip-" + MapId + ".txt");
+        static GameObject MapPrefab => Resources.Load<GameObject>("ModeMaps/Mode_" + MapId);
+
+        [MenuItem(Menu + "Run Checks and Pictures")]
+        public static void RunChecks() { SessionState.SetString("DeadlyJenga.DeckShipMapId", "deck-ship"); RunChecksForMap(); }
+
+        // -executeMethod DeadlyJenga.DevTools.Editor.DeckShipTools.RunChecksLarge (the 4x Deck Ship XL)
+        [MenuItem(Menu + "Run Checks and Pictures (XL ship)")]
+        public static void RunChecksLarge() { SessionState.SetString("DeadlyJenga.DeckShipMapId", "deck-ship-xl"); RunChecksForMap(); }
+
+        // -executeMethod DeadlyJenga.DevTools.Editor.DeckShipTools.RunChecksHuge (the 16-bay Deck Ship XXL)
+        [MenuItem(Menu + "Run Checks and Pictures (XXL ship)")]
+        public static void RunChecksHuge() { SessionState.SetString("DeadlyJenga.DeckShipMapId", "deck-ship-xxl"); RunChecksForMap(); }
+
+        // -executeMethod DeadlyJenga.DevTools.Editor.DeckShipTools.RunChecksGrand (the 8-bay Deck Ship XL+)
+        [MenuItem(Menu + "Run Checks and Pictures (XL+ ship)")]
+        public static void RunChecksGrand() { SessionState.SetString("DeadlyJenga.DeckShipMapId", "deck-ship-xlplus"); RunChecksForMap(); }
+
+        static void RunChecksForMap()
+        {
+            Directory.CreateDirectory(ValidationFolder);
+            var report = new StringBuilder("Deck Ship checks\n");
+            int problems = 0;
+            try { problems += StaticChecks(report); }
+            catch (Exception e) { report.AppendLine("ERROR " + e); problems++; Debug.LogException(e); }
+            report.AppendLine(problems == 0 ? "PHYSICS CHECKS PASSED (pictures follow)" : problems + " PROBLEMS");
+            File.WriteAllText(ReportPath, report.ToString());
+            Debug.Log(report.ToString());
+            BeginCapture(problems);
+        }
+
+        // ---------- 1. Scripted physics in an empty scene ----------
+
+        static int StaticChecks(StringBuilder report)
+        {
+            int problems = 0;
+            var prefab = MapPrefab;
+            report.AppendLine("Map: " + MapId);
+            if (!prefab) { report.AppendLine("FAIL missing ModeMaps/Mode_" + MapId + " prefab"); return 1; }
+            var catalog = Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog");
+            if (!catalog || !catalog.maps.Any(m => m.id == MapId && m.mapPrefab == prefab)) { report.AppendLine("FAIL lobby catalog has no " + MapId + " entry for the prefab"); problems++; }
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            problems += BuildCheck(prefab, null, report);
+            // A ship with several bays already carries every layout at once, so one run covers them all.
+            var mapComponent = prefab.GetComponent<DeckShipMap>();
+            int kinds = mapComponent.hullPrefab || mapComponent.boxShip == DeckShipMap.BoxShipSize.Standard ? DeckShipCargo.Count : 1;
+            for (int k = 0; k < kinds; k++) problems += RunCargo(prefab, (DeckShipCargoKind)k, report, k == 0);
+            return problems;
+        }
+
+        // ---------- Ship build check (for whoever edits the hull) ----------
+
+        // Builds the map far from anything else in the open scenes and runs DeckShipBuildCheck on it.
+        static int BuildCheck(GameObject mapPrefab, DeckShipHull hullOverride, StringBuilder report)
+        {
+            var go = Object.Instantiate(mapPrefab, new Vector3(10000, 0, 10000), Quaternion.identity);
+            var mode = Physics.simulationMode;
+            try
+            {
+                var map = go.GetComponent<DeckShipMap>();
+                if (hullOverride) map.hullPrefab = hullOverride;
+                map.autoEvents = false;
+                Physics.simulationMode = SimulationMode.Script;
+                map.Rebuild();
+                return DeckShipBuildCheck.Run(map, report);
+            }
+            catch (Exception e) { report.AppendLine("  FAIL " + e.Message); Debug.LogException(e); return 1; }
+            finally { Physics.simulationMode = mode; Object.DestroyImmediate(go); }
+        }
+
+        [MenuItem(Menu + "Check Ship Build")]
+        static void CheckShipBuild()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogError("Stop Play Mode first."); return; }
+            var prefab = Resources.Load<GameObject>("ModeMaps/Mode_deck-ship");
+            // A hull prefab selected in the Project window is checked instead of the one the map uses.
+            var selected = Selection.activeGameObject ? Selection.activeGameObject.GetComponent<DeckShipHull>() : null;
+            if (selected && !EditorUtility.IsPersistent(selected)) selected = null;
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            var previous = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
+            var report = new StringBuilder();
+            int failures;
+            try { failures = BuildCheck(prefab, selected, report); }
+            finally { UnityEngine.SceneManagement.SceneManager.SetActiveScene(previous); EditorSceneManager.CloseScene(scene, true); }
+            string text = (failures == 0 ? "Deck Ship build check PASSED\n" : $"Deck Ship build check: {failures} problem(s)\n") + report;
+            if (failures == 0) Debug.Log(text); else Debug.LogError(text);
+            EditorUtility.DisplayDialog("Deck Ship build check", failures == 0 ? "Passed. Details are in the Console." : failures + " problem(s). Details are in the Console.", "OK");
+        }
+
+        // Saves the built-in box ship as an editable prefab (with its colours as material assets) next to the
+        // map scripts, and points the Deck Ship map at it. Edit that prefab freely; run Check Ship Build after.
+        [MenuItem(Menu + "Make Editable Ship Prefab")]
+        static void MakeEditablePrefabMenu()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogError("Stop Play Mode first."); return; }
+            string path = HullPrefabPath();
+            if (File.Exists(path) && !EditorUtility.DisplayDialog("Deck Ship", "An editable ship already exists:\n" + path + "\n\nReplace it with a fresh copy of the box ship?", "Replace", "Cancel")) return;
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            var previous = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
+            try { MakeEditablePrefab(path); }
+            finally { UnityEngine.SceneManagement.SceneManager.SetActiveScene(previous); EditorSceneManager.CloseScene(scene, true); }
+            Selection.activeObject = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        }
+
+        static string HullPrefabPath()
+        {
+            string maps = Path.GetDirectoryName(ProjectPath.FolderOf("DeckShipMap.cs").TrimEnd('/')).Replace('\\', '/');
+            return maps + "/DeckShip/Deck Ship Hull.prefab";
+        }
+
+        static void MakeEditablePrefab(string path)
+        {
+            string folder = Path.GetDirectoryName(path).Replace('\\', '/');
+            if (!AssetDatabase.IsValidFolder(folder)) AssetDatabase.CreateFolder(Path.GetDirectoryName(folder).Replace('\\', '/'), Path.GetFileName(folder));
+            var mapPrefab = Resources.Load<GameObject>("ModeMaps/Mode_deck-ship");
+            var go = Object.Instantiate(mapPrefab);
+            try
+            {
+                var map = go.GetComponent<DeckShipMap>();
+                map.hullPrefab = null; map.autoEvents = false;
+                map.Rebuild();
+                var hull = map.Hull.gameObject;
+                // The map adds these itself when the game starts.
+                Object.DestroyImmediate(hull.GetComponent<DeckShipHullClimb>());
+                Object.DestroyImmediate(hull.GetComponent<Rigidbody>());
+                foreach (var col in hull.GetComponentsInChildren<Collider>(true)) col.sharedMaterial = null;
+                // Runtime colours become material assets the prefab can keep.
+                var saved = new Dictionary<Material, Material>();
+                foreach (var renderer in hull.GetComponentsInChildren<Renderer>(true))
+                {
+                    var source = renderer.sharedMaterial;
+                    if (!source) continue;
+                    if (!saved.TryGetValue(source, out var asset))
+                    {
+                        string matPath = folder + "/Deck Ship " + source.name + ".mat";
+                        asset = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+                        if (asset) asset.CopyPropertiesFromMaterial(source);
+                        else { asset = new Material(source) { name = "Deck Ship " + source.name }; AssetDatabase.CreateAsset(asset, matPath); }
+                        saved[source] = asset;
+                    }
+                    renderer.sharedMaterial = asset;
+                }
+                hull.name = "Deck Ship Hull";
+                var prefab = PrefabUtility.SaveAsPrefabAsset(hull, path, out bool ok);
+                if (!ok || !prefab) throw new Exception("Could not save " + path);
+                // Point the map at the new hull.
+                string mapPath = AssetDatabase.GetAssetPath(mapPrefab);
+                var root = PrefabUtility.LoadPrefabContents(mapPath);
+                try { root.GetComponent<DeckShipMap>().hullPrefab = prefab.GetComponent<DeckShipHull>(); PrefabUtility.SaveAsPrefabAsset(root, mapPath); }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
+                AssetDatabase.SaveAssets();
+                Debug.Log("Deck Ship: saved editable ship " + path + " (" + saved.Count + " materials) and set it as the map's hull.");
+            }
+            finally { Object.DestroyImmediate(go); }
+        }
+
+        // Batch: make the editable ship prefab, then run the full checks and pictures with it.
+        public static void MakeEditablePrefabThenCheck()
+        {
+            try { EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single); MakeEditablePrefab(HullPrefabPath()); }
+            catch (Exception e) { Debug.LogException(e); Directory.CreateDirectory(ValidationFolder); File.WriteAllText(ReportPath, "FAIL making the editable ship prefab: " + e + "\n"); Finish(2); return; }
+            // Keep a copy of the new files where the run's output is collected.
+            string export = Path.Combine(Directory.GetCurrentDirectory(), "Logs", "DeckShipExport");
+            Directory.CreateDirectory(export);
+            string folder = Path.GetDirectoryName(HullPrefabPath());
+            foreach (var file in Directory.GetFiles(folder)) File.Copy(file, Path.Combine(export, Path.GetFileName(file)), true);
+            string mapPath = AssetDatabase.GetAssetPath(Resources.Load<GameObject>("ModeMaps/Mode_deck-ship"));
+            File.Copy(mapPath, Path.Combine(export, Path.GetFileName(mapPath)), true);
+            if (File.Exists(folder + ".meta")) File.Copy(folder + ".meta", Path.Combine(export, Path.GetFileName(folder) + ".folder.meta"), true);
+            RunChecks();
+        }
+
+        static int RunCargo(GameObject prefab, DeckShipCargoKind kind, StringBuilder report, bool checkHull)
+        {
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var go = Object.Instantiate(prefab);
+            var mode = Physics.simulationMode;
+            int problems = 0;
+            const float dt = .02f;
+            try
+            {
+                var map = go.GetComponent<DeckShipMap>();
+                map.autoEvents = false; map.cargo = kind;
+                Physics.simulationMode = SimulationMode.Script;
+                map.Rebuild();
+                if (checkHull) problems += HullChecks(map, report);
+                var cargo = map.Blocks.Skip(1).ToList();
+                report.AppendLine($"{DeckShipCargo.Titles[(int)kind]}: {cargo.Count} loose blocks");
+                float time = 0;
+                void Run(float seconds) { for (float t = 0; t < seconds; t += dt) { map.Step(dt); Physics.Simulate(dt); time += dt; map.CleanUpCargo(time); } }
+                Vector3[] Local() => cargo.Select(b => map.Hull.InverseTransformPoint(b.position)).ToArray();
+
+                var start = Local();
+                Run(8);
+                var calm = Local();
+                var drift = calm.Select((p, i) => Vector3.Distance(p, start[i])).ToArray();
+                int calmMoved = drift.Count(d => d > .5f);
+                report.AppendLine($"  calm sway 8 s: max drift {drift.Max():0.00} m, {calmMoved} moved > .5 m, {cargo.Count(b => b.IsSleeping())} asleep, {map.Overboard} overboard");
+                if (calmMoved > cargo.Count / 10) { report.AppendLine("  FAIL more than a tenth of the cargo moves in calm sway"); problems++; }
+                foreach (var i in Enumerable.Range(0, cargo.Count).Where(i => drift[i] > .5f).Take(5)) report.AppendLine("    drifted: " + cargo[i].name + $" {drift[i]:0.00} m");
+
+                foreach (var (ev, seconds) in new[] { (DeckShipEvent.Roll, DeckShipMap.RollSeconds), (DeckShipEvent.Pitch, DeckShipMap.PitchSeconds), (DeckShipEvent.Iceberg, DeckShipMap.IcebergSeconds) })
+                {
+                    var before = Local(); int overboard = map.Overboard;
+                    float maxRoll = 0, maxPitch = 0;
+                    map.StartEvent(ev);
+                    for (float t = 0; t < seconds; t += dt)
+                    {
+                        map.Step(dt); Physics.Simulate(dt); time += dt; map.CleanUpCargo(time);
+                        maxRoll = Mathf.Max(maxRoll, Mathf.Abs(map.RollAngle)); maxPitch = Mathf.Max(maxPitch, Mathf.Abs(map.PitchAngle));
+                    }
+                    Run(3);
+                    var after = Local();
+                    int slid = 0, fell = 0;
+                    for (int i = 0; i < cargo.Count; i++)
+                    {
+                        if (!cargo[i].gameObject.activeSelf) continue;
+                        var move = after[i] - before[i];
+                        if (move.y < -1.2f) fell++;
+                        else if (new Vector2(move.x, move.z).magnitude > 1) slid++;
+                    }
+                    report.AppendLine($"  {ev}: max roll {maxRoll:0.0} deg, max pitch {maxPitch:0.0} deg; {slid} slid > 1 m, {fell} fell > 1.2 m, {map.Overboard - overboard} went overboard; {cargo.Count(b => b.gameObject.activeSelf)}/{cargo.Count} still aboard");
+                }
+                if (map.Overboard == cargo.Count) { report.AppendLine("  NOTE every block went overboard"); }
+            }
+            catch (Exception e) { report.AppendLine("  ERROR " + e.Message); problems++; Debug.LogException(e); }
+            finally { Physics.simulationMode = mode; Object.DestroyImmediate(go); }
+            return problems;
+        }
+
+        // The deck is under every spawn spot, ramps are walkable, and the climb boards are registered.
+        static int HullChecks(DeckShipMap map, StringBuilder report)
+        {
+            int problems = 0;
+            Physics.SyncTransforms();
+            for (int i = 0; i < 6; i++)
+            {
+                var p = map.SafeSpawnPoint();
+                bool ground = Physics.Raycast(p + Vector3.up * .5f, Vector3.down, out var hit, 1.5f, 1, QueryTriggerInteraction.Ignore) && hit.normal.y > .9f;
+                if (!ground) { report.AppendLine($"  FAIL spawn {p} has no flat deck under it"); problems++; }
+            }
+            var ramps = map.Hull.GetComponentsInChildren<BoxCollider>().Where(c => c.name.Contains("ramp")).ToList();
+            foreach (var ramp in ramps)
+            {
+                float angle = Vector3.Angle(ramp.transform.up, map.Hull.up);
+                if (angle > 30) { report.AppendLine($"  FAIL {ramp.name} is {angle:0} deg steep"); problems++; }
+            }
+            var climbFaces = map.Hull.GetComponentsInChildren<BoxCollider>().Where(c => c.gameObject.layer == Layers.Surface).ToList();
+            int registered = climbFaces.Count(c => Climbables.TryGet(c, out var climb) && climb.Body == map.Blocks[0]);
+            report.AppendLine($"  hull: {map.Hull.GetComponentsInChildren<Collider>().Length} colliders, {ramps.Count} ramps (max {ramps.Select(r => Vector3.Angle(r.transform.up, map.Hull.up)).DefaultIfEmpty().Max():0} deg), {registered}/{climbFaces.Count} climb boards registered, spawns on deck");
+            if (registered != climbFaces.Count || climbFaces.Count == 0) problems++;
+            return problems;
+        }
+
+        // ---------- 2. Pictures in the real game ----------
+
+        const string Key = "DeadlyJenga.DeckShipCapture";
+        [Serializable] sealed class Job { public int step, problems; public double stepAt; public bool prepared; public List<string> files = new List<string>(); }
+        static Job job;
+
+        static DeckShipTools() { EditorApplication.playModeStateChanged += OnState; }
+
+        static void BeginCapture(int problems)
+        {
+            Directory.CreateDirectory(CaptureFolder);
+            SessionState.SetString(Key, JsonUtility.ToJson(new Job { problems = problems }));
+            EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+            EditorApplication.EnterPlaymode();
+        }
+
+        static void OnState(PlayModeStateChange change)
+        {
+            string json = SessionState.GetString(Key, "");
+            if (string.IsNullOrEmpty(json)) return;
+            job = JsonUtility.FromJson<Job>(json);
+            if (change == PlayModeStateChange.EnteredPlayMode)
+            {
+                Application.runInBackground = true; AudioListener.volume = 0;
+                MatchSetup.FromLobby = false; MatchSetup.StartLocalSession = false;
+                MatchSetup.MapId = MapId; MatchSetup.ModeId = "demo"; MatchSetup.BotTarget = 0; MatchSetup.HandCount = 0;
+                job.stepAt = EditorApplication.timeSinceStartup; job.step = 0; job.prepared = false;
+                EditorApplication.update += Tick;
+            }
+            else if (change == PlayModeStateChange.EnteredEditMode)
+            {
+                EditorApplication.update -= Tick;
+                SessionState.EraseString(Key);
+                File.AppendAllText(ReportPath, $"pictures: {job.files.Count} written to {CaptureFolder}\n" + string.Join("\n", job.files.Select(f => "  " + Path.GetFileName(f))) + "\n");
+                Finish(job.problems == 0 && job.files.Count > 0 ? 0 : 2);
+            }
+        }
+
+        static void Finish(int code)
+        {
+            if (!Application.isBatchMode && SessionState.GetString("DJWarm.id", "") == "") return;
+            if (SessionState.GetString("DJWarm.id", "") != "")
+            {
+                Directory.CreateDirectory("Logs/Warm");
+                File.WriteAllText("Logs/Warm/exit.txt", code.ToString());
+                if (EditorApplication.isPlaying) EditorApplication.ExitPlaymode();
+                return;
+            }
+            EditorApplication.Exit(code);
+        }
+
+        // Each entry: seconds after the previous step, then what to do.
+        static readonly (float wait, string action)[] Script =
+        {
+            (6, "shoot calm"),
+            (0, "roll"), (6, "shoot roll-peak"), (13.5f, "shoot roll-after"),
+            (0, "iceberg"), (3.5f, "shoot iceberg-approach"), (2.1f, "shoot iceberg-impact"), (7, "shoot iceberg-after"),
+            (6, "right"), (8.5f, "cargo 1"), (.45f, "shoot drop-container-yard"), (6, "shoot container-yard"),
+            (0, "cargo 2"), (6.5f, "shoot domino-run"), (0, "pitch"), (5.3f, "shoot domino-pitch"),
+            (10, "cargo 3"), (6.5f, "shoot step-pyramid"),
+            (0, "done"),
+        };
+
+        static void Tick()
+        {
+            if (!EditorApplication.isPlaying) return;
+            double now = EditorApplication.timeSinceStartup;
+            var session = Services.Session;
+            if (!job.prepared)
+            {
+                if (session == null || Services.World == null) { if (now - job.stepAt > 60) { Debug.LogError("Deck Ship capture: game did not load"); EditorApplication.ExitPlaymode(); } return; }
+                if (!(Services.World is DeckShipMap)) { MatchSetup.MapId = MapId; MatchSetup.ApplyMap(); }
+                if (!(Services.World is DeckShipMap ship)) { if (now - job.stepAt > 60) { Debug.LogError("Deck Ship capture: map did not load"); EditorApplication.ExitPlaymode(); } return; }
+                ship.autoEvents = false;
+                Prepare(session);
+                job.prepared = true; job.stepAt = now; Save(); return;
+            }
+            Prepare(session);
+            var map = Services.World as DeckShipMap;
+            if (!map) { Debug.LogError("Deck Ship capture: map vanished"); EditorApplication.ExitPlaymode(); return; }
+            if (job.step >= Script.Length) return;
+            var (wait, action) = Script[job.step];
+            if (now - job.stepAt < wait) return;
+            job.stepAt = now; job.step++;
+            try
+            {
+                if (action == "done") { Save(); EditorApplication.ExitPlaymode(); return; }
+                if (action == "roll") map.StartEvent(DeckShipEvent.Roll);
+                else if (action == "pitch") map.StartEvent(DeckShipEvent.Pitch);
+                else if (action == "iceberg") map.StartEvent(DeckShipEvent.Iceberg);
+                else if (action == "right") map.StartEvent(DeckShipEvent.Righting);
+                else if (action.StartsWith("cargo ", StringComparison.Ordinal)) map.SwapCargo((DeckShipCargoKind)int.Parse(action.Substring(6)), true);
+                else if (action.StartsWith("shoot ", StringComparison.Ordinal)) Shoot(map, session, action.Substring(6));
+            }
+            catch (Exception e) { Debug.LogException(e); }
+            Save();
+        }
+
+        static void Save() => SessionState.SetString(Key, JsonUtility.ToJson(job));
+
+        static void Prepare(ISessionInfo session)
+        {
+            if (session.SurvivorBots != null) { session.SurvivorBots.AutoFill = false; session.SurvivorBots.Running = false; session.SurvivorBots.Clear(); }
+            if (session.HandBots != null) { session.HandBots.Running = false; session.HandBots.Clear(); }
+            foreach (var actor in new[] { session.Player, session.Hand })
+            {
+                if (!NetworkActors.Alive(actor)) continue;
+                actor.InputSuspended = true;
+                foreach (var r in actor.gameObject.GetComponentsInChildren<Renderer>(true)) r.forceRenderingOff = true;
+            }
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) canvas.enabled = false;
+            var tablet = GameObject.Find("Headset player tablet");
+            if (tablet) tablet.SetActive(false);
+        }
+
+        // Views: hero (aft starboard, high), stern (behind, shows rolling), side (starboard, shows pitch),
+        // deck (eye height on the stern deck, moving with the ship), top.
+        static void Shoot(DeckShipMap map, ISessionInfo session, string label)
+        {
+            string[] views = label.StartsWith("calm", StringComparison.Ordinal) ? new[] { "hero", "stern", "side", "deck", "top", "wake", "waterline" }
+                : label.StartsWith("roll", StringComparison.Ordinal) ? new[] { "stern", "hero", "deck" }
+                : label.StartsWith("iceberg", StringComparison.Ordinal) ? new[] { "hero", "deck" }
+                : label.Contains("pitch") ? new[] { "side", "deck" }
+                : new[] { "hero", "deck" };
+            var game = session.ActiveCamera;
+            var camera = new GameObject("Deck Ship picture camera", typeof(Camera)).GetComponent<Camera>();
+            bool fog = RenderSettings.fog;
+            try
+            {
+                camera.enabled = false;
+                if (game) camera.CopyFrom(game);
+                camera.cullingMask &= ~(1 << 5);
+                camera.farClipPlane = 4000; camera.nearClipPlane = .05f;
+                camera.targetTexture = null;
+                var data = camera.GetUniversalAdditionalCameraData();
+                data.allowXRRendering = false;
+                if (game) { var g = game.GetUniversalAdditionalCameraData(); data.renderPostProcessing = g.renderPostProcessing; data.volumeLayerMask = g.volumeLayerMask; }
+                RenderSettings.fog = false;
+                var root = map.transform; var ship = map.Hull;
+                float k = Mathf.Max(1, map.HullBounds.extents.z / 36);
+                foreach (var view in views)
+                {
+                    switch (view)
+                    {
+                        // Framed for the standard 72 m ship and pulled back for bigger ones.
+                        case "hero": Place(camera, root.TransformPoint(new Vector3(34, 30, -52) * k), root.TransformPoint(0, 5, 2), 42); break;
+                        case "stern": Place(camera, root.TransformPoint(new Vector3(0, 13, -78) * k), root.TransformPoint(0, 7, 0), 36); break;
+                        case "side": Place(camera, root.TransformPoint(new Vector3(72, 11, 0) * k), root.TransformPoint(0, 6, 0), 46); break;
+                        case "top": Place(camera, root.TransformPoint(new Vector3(0, 110, 0) * k), root.TransformPoint(0, 0, .01f), 42); break;
+                        case "wake": Place(camera, root.TransformPoint(new Vector3(16, 14, -95) * k), root.TransformPoint(new Vector3(0, 0, -40) * k), 50); break;
+                        case "waterline": Place(camera, root.TransformPoint(new Vector3(24 * k, 2.2f + (k - 1) * 2, 22 * k)), root.TransformPoint(new Vector3(0, 1.2f, 8 * k)), 55); break;
+                        default:
+                        {
+                            // Eye height at the first spawn, looking at the cargo deck; it moves with the ship.
+                            var eye = map.Ship.spawnPoints != null && map.Ship.spawnPoints.Length > 0 && map.Ship.spawnPoints[0] ? map.Ship.spawnPoints[0].position + ship.up * .8f : ship.TransformPoint(0, 7.8f, -25.5f);
+                            Place(camera, eye, map.CargoCenter + ship.up * 3.2f, 70, ship.up);
+                            break;
+                        }
+                    }
+                    string path = Path.Combine(CaptureFolder, label + "-" + view + ".png");
+                    RenderNow(camera, 1600, 900, path);
+                    job.files.Add(path);
+                }
+                Debug.Log($"Deck Ship picture {label}: event {map.CurrentEvent}, roll {map.RollAngle:0.0}, pitch {map.PitchAngle:0.0}, cargo {map.CargoBlocks}, overboard {map.Overboard}");
+            }
+            finally { RenderSettings.fog = fog; Object.Destroy(camera.gameObject); }
+        }
+
+        static void Place(Camera camera, Vector3 position, Vector3 target, float fov, Vector3 up = default)
+        {
+            camera.transform.SetPositionAndRotation(position, Quaternion.LookRotation(target - position, up == default ? Vector3.up : up));
+            camera.fieldOfView = fov;
+        }
+
+        static void RenderNow(Camera camera, int width, int height, string path)
+        {
+            var target = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default, 4);
+            var image = new Texture2D(width, height, TextureFormat.RGB24, false);
+            var previous = RenderTexture.active;
+            try
+            {
+                camera.targetTexture = target;
+                camera.Render();
+                RenderTexture.active = target;
+                image.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+                image.Apply();
+                File.WriteAllBytes(path, image.EncodeToPNG());
+                Debug.Log("CAPTURE FILE " + path);
+            }
+            finally { RenderTexture.active = previous; camera.targetTexture = null; RenderTexture.ReleaseTemporary(target); Object.Destroy(image); }
+        }
+    }
+}

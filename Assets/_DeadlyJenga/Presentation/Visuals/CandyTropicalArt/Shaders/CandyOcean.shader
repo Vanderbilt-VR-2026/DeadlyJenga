@@ -72,6 +72,8 @@ Shader "Candy Tropical/Ocean"
             CBUFFER_END
             #include "CandySurgeSurface.hlsl"
             float _CandyOutage;
+            // Global, zero unless a map sails (Deck Ship): moves wave and ripple patterns past a still ship.
+            float4 _CandyOceanScroll;
             TEXTURE2D(_TerrainHeight);SAMPLER(sampler_TerrainHeight);
             TEXTURE2D(_CoastSpectrum);SAMPLER(sampler_CoastSpectrum);
             TEXTURE2D(_CoastPanorama);SAMPLER(sampler_CoastPanorama);
@@ -111,7 +113,7 @@ Shader "Candy Tropical/Ocean"
             Varyings vert(Attributes i)
             {
                 Varyings o;UNITY_SETUP_INSTANCE_ID(i);UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
-                float3 world=TransformObjectToWorld(i.positionOS.xyz);float2 p=world.xz-_Island.xy;
+                float3 world=TransformObjectToWorld(i.positionOS.xyz);float2 p=world.xz-_Island.xy;float2 sail=p+_CandyOceanScroll.xy;
                 o.poolLocal=i.positionOS.xz*2;
                 if(_SoakingPool.x>.5)
                 {
@@ -122,9 +124,9 @@ Shader "Candy Tropical/Ocean"
                 float depth=max(0,_WaterHeight-TerrainHeight(world.xz));
                 float amplitude=_WaveHeight*fade*lerp(.14,1,smoothstep(.15,2.2,depth));
                 float3 offset=0,dx=float3(1,0,0),dz=float3(0,0,1);float time=_Time.y*_WaveSpeed;
-                Wave(float2(.94,.342),11,amplitude*.55,p,time,offset,dx,dz);
-                Wave(float2(-.6,.8),7.5,amplitude*.3,p,time*.87,offset,dx,dz);
-                Wave(float2(.24,-.971),17,amplitude*.15,p,time*.68,offset,dx,dz);
+                Wave(float2(.94,.342),11,amplitude*.55,sail,time,offset,dx,dz);
+                Wave(float2(-.6,.8),7.5,amplitude*.3,sail,time*.87,offset,dx,dz);
+                Wave(float2(.24,-.971),17,amplitude*.15,sail,time*.68,offset,dx,dz);
                 float3 wake=_SurgeHeight>.001?(CandySurgeWakeSample(world.xz)+CandySurgeOuterSample(world.xz)):0;
                 o.world=world+offset+float3(0,wake.x,0);o.normal=normalize(cross(dz,dx)+float3(wake.y,0,wake.z));
                 o.positionCS=TransformWorldToHClip(o.world);o.fog=ComputeFogFactor(o.positionCS.z);return o;
@@ -300,12 +302,12 @@ Shader "Candy Tropical/Ocean"
                 if(_CatwalksCoast>.5 && _CoastDayWater>.5 && !pool && _CandyOutage<.5)
                     return CatwalksWater(i,depth,reefClear,isletRadius,distanceToEye);
                 float deep=smoothstep(.15,3.2,depth);
-                float2 p=i.world.xz*_RippleScale;float t=_Time.y*_Speed;
+                float2 p=(i.world.xz+_CandyOceanScroll.xy)*_RippleScale;float t=_Time.y*_Speed;
                 float detailFade=(1-smoothstep(25,140,distanceToEye))*(1-smoothstep(.15,.8,max(length(ddx(p)),length(ddy(p)))));
                 float rippleA=sin(p.x*2.1+p.y*1.3+t),rippleB=sin(p.y*2.4-p.x*1.1-t*.85);
                 float crest=0;
                 float2 swell=0;
-                if(!pool)swell=SwellSlope(i.world.xz-_Island.xy,_Time.y*_WaveSpeed,distanceToEye,crest);
+                if(!pool)swell=SwellSlope(i.world.xz-_Island.xy+_CandyOceanScroll.xy,_Time.y*_WaveSpeed,distanceToEye,crest);
                 float windPhase=dot(p,float2(.54,-.74))+sin(p.x*.13+t)*.9-t;
                 float chopPhase=dot(p,float2(.97,.46))+sin(p.y*.19-t)*1.3+t*.73;
                 float2 windChop=float2(cos(windPhase)*(1-smoothstep(.45,2,fwidth(windPhase))),

@@ -408,6 +408,51 @@ MonoBehaviour:
     recommendedMode: demo
     walkableIsland: 1
     supportedModes: []
+  - id: deck-ship
+    title: "Deck Ship \xB7 WIP"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7310550183224610001, guid: d4c8889856894b108cac9e8516e48206, type: 3}
+    recommendedPlayers: 8
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes:
+    - demo
+  - id: deck-ship-xl
+    title: "Deck Ship XL \xB7 WIP"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7310550183224610001, guid: 7910a45d050141b0a9b4eb25488ca2fa, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes:
+    - demo
+  - id: deck-ship-xlplus
+    title: "Deck Ship XL+ \xB7 WIP"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7310550183224610001, guid: 64058fbd01ef426691f5faa946d18a6c, type: 3}
+    recommendedPlayers: 24
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes:
+    - demo
+  - id: liner
+    title: "Sinking Liner \xB7 WIP"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 5120330000000000001, guid: 55e3ee3d98e440ddb705c20d6e610752, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes:
+    - demo
+  - id: deck-ship-xxl
+    title: "Deck Ship XXL \xB7 WIP"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7310550183224610001, guid: ae7add7f0cb04cb8a0ce5e107ffd7312, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes:
+    - demo
   - id: megablock-tower
     title: Megablock Tower
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
