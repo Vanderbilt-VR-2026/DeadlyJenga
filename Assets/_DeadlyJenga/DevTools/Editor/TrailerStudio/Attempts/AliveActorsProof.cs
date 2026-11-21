@@ -267,15 +267,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     int change = ground.FindIndex(y => Hole(y) || Mathf.Abs(y - h.y) > .25f);
                     if (change < 0) { why[0]++; continue; }
                     float at = .3f + change * sample;
-                    if (at < .5f || at > 3f || d - at < 3.8f) { why[1]++; continue; }
-                    // After the change: at most 1.1 m of gap, then (almost) solid ground to the rival.
-                    int gap = 0, holes = 0; bool landed = false;
-                    for (int i = change; i < ground.Count; i++)
+                    if (at < .5f || at > 3f || d - at < 3.6f) { why[1]++; continue; }
+                    // Gaps on the way: each one short enough to jump (the drive jumps small gaps by itself), the last one
+                    // early enough to land before the rival.
+                    int run = 0, longest = 0, lastGap = -1, holes = 0;
+                    for (int i = 0; i < ground.Count; i++)
                     {
-                        if (Hole(ground[i])) { if (!landed) gap++; else holes++; }
-                        else landed = true;
+                        if (Hole(ground[i])) { run++; holes++; lastGap = i; longest = Mathf.Max(longest, run); }
+                        else run = 0;
                     }
-                    if (gap * sample > 1.1f || holes > (ground.Count - change) * .12f) { why[2]++; continue; }
+                    int gap = longest;
+                    if (longest * sample > 1f || holes > ground.Count * .3f || lastGap >= 0 && d - (.3f + lastGap * sample) < 3f) { why[2]++; continue; }
                     // Nothing in the way of a running body (a step up is fine: it is jumped).
                     float top = Mathf.Max(h.y, r.y) + .9f;
                     if (Physics.Linecast(new Vector3(h.x, top, h.z), new Vector3(r.x, top, r.z), (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore)) { why[3]++; continue; }
