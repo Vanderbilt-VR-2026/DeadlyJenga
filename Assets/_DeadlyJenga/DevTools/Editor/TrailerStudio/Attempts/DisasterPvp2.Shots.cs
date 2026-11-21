@@ -33,10 +33,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 new Shot { id = "S04", what = "close: a rock lands between the fox and the penguin mid shoot-out", cutIn = 140, cutOut = 180, key = Rock2Frame - 140, shift = Shift(e.rock2, Rock2Frame) },
                 new Shot { id = "S05", what = "POV: the hero turns to find the dragon charging", cutIn = 180, cutOut = 208, key = 14, shift = s3 },
                 new Shot { id = "S06", what = "close: the hero's counter-punch throws the dragon off", cutIn = 208, cutOut = 236, key = Punch2Frame - 208, shift = s3 },
-                new Shot { id = "S07", what = "MS: the hero looks up and screams", cutIn = 236, cutOut = 284, key = 32, shift = s4 },
+                new Shot { id = "S07", what = "MS: the hero looks up, shading his eyes", cutIn = 236, cutOut = 284, key = 32, shift = s4 },
                 new Shot { id = "S08", what = "POV payoff: the planet killer fills the sky and lands on the summit", cutIn = 284, cutOut = 318, key = PlanetFrame - 284, shift = s4 },
-                new Shot { id = "S09", what = "aftermath: the tower top blown apart into the sea", cutIn = 318, cutOut = 359, key = 10, shift = s4 },
-                new Shot { id = "S10", what = "title: the wreck settles", cutIn = 359, cutOut = 450, key = 0, shift = s4 },
+                new Shot { id = "S09", what = "aftermath: the hero thrown off the summit among the blocks", cutIn = 318, cutOut = 338, key = 6, shift = s4 },
+                new Shot { id = "S10", what = "aftermath: the tower top blown apart into the sea", cutIn = 338, cutOut = 359, key = 10, shift = s4 },
+                new Shot { id = "S11", what = "title: the wreck settles", cutIn = 359, cutOut = 450, key = 0, shift = s4 },
             };
             Note("Shot shifts (tape frames): " + string.Join(", ", list.Select(s => s.id + " " + s.shift)));
             return list;
@@ -91,10 +92,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // S01: low beside the summit (planned from the marks), the three summit fighters, slow push in.
             {
                 var s = Sh("S01");
-                Vector3 dragon = FeetAt(stage, "dragon", Tf(s, 20), plan), rival = FeetAt(stage, "rival", Tf(s, 20), plan);
-                Vector3 mid = Vector3.Lerp(dragon, rival, .5f) + up * .55f;
+                // Round 2: beside the gorilla's end, off the side-on axis: the gorilla near, the hero in the middle, the dragon beyond.
+                Vector3 hero = FeetAt(stage, "hero", Tf(s, 24), plan), dragon = FeetAt(stage, "dragon", Tf(s, 24), plan);
+                Vector3 mid = Vector3.Lerp(hero, dragon, .35f) + up * .5f;
                 float d = Vector3.Distance(plan.hookCam, mid);
-                var c = ShotCam(s, FocalFor(d, 3.4f));
+                var c = ShotCam(s, FocalFor(d, 2.6f));
                 StudioMoves.LockedOff(c, c.start, stage.ToStage(plan.hookCam), P(stage, mid));
                 StudioMoves.PushIn(c, c.start, c.end, stage.ToStage(mid), .14f);
                 c.noise = "subtle"; c.noiseStrength = .6f;
@@ -150,27 +152,40 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Vector3 head = HeadAt(stage, "hero", at, plan);
                 Vector3 toward = Flat(plan.planetFrom), right = Vector3.Cross(Vector3.up, toward).normalized;
                 // Rehearsal 2: 35 deg read as the back of a faceless head. 50 deg shows the head's shape tipping up.
-                Vector3 spot = head + toward * 1.6f - up * .45f;
-                foreach (float turn in new[] { 50f, 40f, 60f, 30f })
+                // Round 2 (owner): a faceless body from below with the glove over his head. Now three-quarter front (30 deg to
+                // his left), only a little under his eyes, no scream: his head tips up and his left hand shades his eyes.
+                Vector3 spot = head + toward * 1.5f - up * .18f;
+                foreach (float turn in new[] { 30f, 22f, 38f, 15f, 45f })
                 {
                     Vector3 dir = (toward * Mathf.Cos(turn * Mathf.Deg2Rad) - right * Mathf.Sin(turn * Mathf.Deg2Rad)).normalized;
-                    Vector3 p = head + dir * 1.6f - up * .45f;
+                    Vector3 p = head + dir * 1.5f - up * .18f;
                     if (Clear(p, .25f) && Sees(p, head)) { spot = p; break; }
                 }
                 // Rehearsal 3: an 80 mm MCU of a faceless head read as the back of it; an MS shows the head tipping up and both hands.
-                var c = ShotCam(s, 50);
-                c.keys[0].aperture = 11f; c.keys[0].focus = 1.6f;
-                StudioMoves.LockedOff(c, c.start, stage.ToStage(spot), "head:hero", new Vector3(0, -.14f, 0));   // round 1: the head was cut at the top
+                var c = ShotCam(s, 48);
+                c.keys[0].aperture = 11f; c.keys[0].focus = 1.5f;
+                StudioMoves.LockedOff(c, c.start, stage.ToStage(spot), "head:hero", new Vector3(0, -.2f, 0));
                 StudioMoves.PushIn(c, c.start, c.end, stage.ToStage(head), .15f);
                 c.aims[0].blend = .35f;
                 c.noise = "subtle"; c.noiseStrength = .5f;
                 StudioMoves.Shake(c, Tf(s, 270) / (float)Fps, .6f, 1.2f);   // the ground trembles as the rock comes in
                 Add(c, spot, head, "the hero's head");
             }
-            Pov(Sh("S08"), .2f, .4f).fpFieldOfView = 68;
-            // S09: side-on wide from the sun side, the whole top of the tower and the sea.
+            Pov(Sh("S08"), .2f, .4f).fpFieldOfView = 80;   // round 2: wider, so a rim of sky keeps the planet killer a rock
+            // S09: the hero's fate: the camera rides beside him as the blast throws him off the summit with the blocks.
             {
                 var s = Sh("S09");
+                Vector3 path = Flat(-plan.planetFrom), perp = Vector3.Cross(up, path).normalized;
+                if (Vector3.Dot(perp, A.s) < 0) perp = -perp;
+                var c = ShotCam(s, 24);
+                StudioMoves.Follow(c, "actor:hero", perp * 3.2f + up * .9f - path * 1.2f, .15f);
+                c.aims[0].offset = new Vector3(0, .4f, 0);
+                c.lag = .12f;
+                Add(c, FeetAt(stage, "hero", Tf(s, 318), plan) + perp * 3.2f, FeetAt(stage, "hero", Tf(s, 318), plan), "the hero (riding beside him)");
+            }
+            // S10: side-on wide from the sun side, the whole top of the tower and the sea.
+            {
+                var s = Sh("S10");
                 Vector3 path = Flat(-plan.planetFrom), perp = Vector3.Cross(up, path).normalized;
                 if (Vector3.Dot(perp, A.s) < 0) perp = -perp;
                 Vector3 at = A.C + perp * 52 + path * 6 - up * 5;
@@ -179,9 +194,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (e.planet >= 0) StudioMoves.Shake(c, (e.planet + 1) / (float)Fps, 1.4f, 1.2f);
                 Add(c, at, A.C, "the summit");
             }
-            // S10: high three-quarter from the other side, pulling out slowly over the wreck for the title.
+            // S11: high three-quarter from the other side, pulling out slowly over the wreck for the title.
             {
-                var s = Sh("S10");
+                var s = Sh("S11");
                 Vector3 path = Flat(-plan.planetFrom), perp = Vector3.Cross(up, path).normalized;
                 if (Vector3.Dot(perp, A.s) < 0) perp = -perp;
                 Vector3 dir = (-perp * .6f + path * .8f).normalized;
@@ -206,6 +221,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 list.Add(new StudioOverride { actor = role, kind = kind, name = name, target = target, point = point, from = T(from), to = T(to), blendIn = blendIn, blendOut = blendOut, flinch = flinch });
             }
             int end = TapeFrame(LengthFrames) + 30;
+            void AddPunch(string victim, int contact)
+            {
+                Vector3 aim = HeadAt(stage, victim, contact, plan) - Vector3.up * .12f;
+                list.Add(new StudioOverride { actor = "hero", kind = "punch", point = stage.ToStage(aim), from = T(contact) - StudioOverrides.PunchContact, to = T(contact) - StudioOverrides.PunchContact + .36f, blendIn = 0, blendOut = 0, strength = 1 });
+            }
+            // The left hand to the brow, palm out, following his head: short reach layers every 5 frames.
+            void ShadeEyes(int from, int to, float blendIn, float blendOut)
+            {
+                for (int tf = from; tf < to; tf += 5)
+                {
+                    var pose = Shown(stage, "hero", tf);
+                    if (pose == null || !pose.visible) continue;
+                    Vector3 fwd = Flat(pose.body.headRotation * Vector3.forward), side = Vector3.Cross(Vector3.up, fwd).normalized;
+                    Vector3 brow = pose.body.head + fwd * .13f - side * .05f + Vector3.up * .06f;
+                    list.Add(new StudioOverride { actor = "hero", kind = "reach", leftHand = true, point = stage.ToStage(brow), from = T(tf), to = T(tf + 10),
+                        blendIn = tf == from ? blendIn : .15f, blendOut = tf + 5 >= to ? blendOut : .15f });
+                }
+            }
             // Nobody is seen coming back after a fall into the sea (deaths are off on the stage).
             foreach (var r in e.respawn) Add(r.Key, "hide", r.Value - 2, end, blendIn: 0, blendOut: 0);
             Vector3 planetPoint = plan.arena.C + Vector3.up * .85f + plan.planetFrom * 40;
@@ -214,17 +247,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 // Eyes on the gorilla's chest as the hero closes in, the glove arm thrown through the contact frame, a fist pump.
                 Vector3 chest = FeetAt(stage, "rival", e.punch1 - 12, plan) + Vector3.up * .5f;
                 Add("hero", "lookAt", e.punch1 - 26, e.punch1 - 1, point: stage.ToStage(chest), blendIn: .3f, blendOut: .15f);
-                Add("hero", "reach", e.punch1 - 5, e.punch1 + 5, target: "actor:rival", blendIn: .1f, blendOut: .18f);
+                // Round 2 (owner): the reach layer stretched the arm into a ribbon. The game's glove is held, not sprung, so a
+                // punch layer throws the arm with the game's punch timing, clamped to its reach, and the body lunges in.
+                AddPunch("rival", e.punch1);
                 // A person does not track a body leaving at 22 m/s: his eyes jump to where the gorilla is going, then follow him down.
                 // Critic round 1: the first-person view dropped to the floor after the hit. The eyes stay on the gorilla's fall.
-                Add("hero", "lookAt", e.punch1 + 1, e.punch1 + 22, point: stage.ToStage(HeadAt(stage, "rival", e.punch1 + 14, plan)), blendIn: .12f, blendOut: .2f);
-                Add("hero", "lookAt", e.punch1 + 18, e.punch1 + 48, point: stage.ToStage(HeadAt(stage, "rival", e.punch1 + 34, plan)), blendIn: .25f, blendOut: .4f);
+                // Eased so the first-person head stays under about 350 deg/s (round 1 measured 430).
+                Add("hero", "lookAt", e.punch1 + 1, e.punch1 + 24, point: stage.ToStage(HeadAt(stage, "rival", e.punch1 + 14, plan)), blendIn: .32f, blendOut: .35f);
+                Add("hero", "lookAt", e.punch1 + 16, e.punch1 + 50, point: stage.ToStage(HeadAt(stage, "rival", e.punch1 + 34, plan)), blendIn: .6f, blendOut: .45f);
                 // No cheer: in his own eyes it raised the glove over the lens (final 2). The lowered guard stays on.
                 Add("rival", "reaction", e.punch1 + 1, e.punch1 + 70, "scream", blendIn: .05f);
             }
             if (e.punch2 >= 0)
             {
-                Add("hero", "reach", e.punch2 - 5, e.punch2 + 5, target: "actor:dragon", blendIn: .1f, blendOut: .18f);
+                AddPunch("dragon", e.punch2);
                 Add("hero", "lookAt", e.punch2 + 1, e.punch2 + 26, point: stage.ToStage(HeadAt(stage, "dragon", e.punch2 + 14, plan)), blendIn: .12f, blendOut: .35f);
                 Add("dragon", "reaction", e.punch2 + 1, e.punch2 + 60, "scream", blendIn: .05f);
             }
@@ -233,7 +269,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 // The rock runs into the penguin (thrown); the fox, 3 m away and watching him, flinches, then looks where he went.
                 Add("penguin", "reaction", e.rock2 + 1, e.rock2 + 50, "scream", blendIn: .05f);
                 Add("fox", "pose", e.rock2 + 2, e.rock2 + 22, blendIn: .08f, blendOut: .35f, flinch: .9f);
-                Add("fox", "lookAt", e.rock2 + 6, e.rock2 + 44, point: stage.ToStage(HeadAt(stage, "penguin", e.rock2 + 18, plan)), blendIn: .3f, blendOut: .45f);
+                Add("fox", "lookAt", e.rock2 + 6, e.rock2 + 48, point: stage.ToStage(HeadAt(stage, "penguin", e.rock2 + 18, plan)), blendIn: .75f, blendOut: .5f);   // round 1: 634 deg/s
                 // Witnesses, staggered by attention: the panda was looking elsewhere, close (startle 9-15 f late).
                 Add("panda", "pose", e.rock2 + 11, e.rock2 + 30, blendIn: .1f, blendOut: .35f, flinch: .8f);
                 Add("panda", "lookAt", e.rock2 + 13, e.rock2 + 48, target: "actor:fox", blendIn: .25f, blendOut: .45f);
@@ -244,7 +280,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // Rehearsal 1: scream and cower in the first-person payoff put his hands and glove over the lens, then his own legs.
             // So the scream ends as the POV starts (S08 begins about 25 frames before the impact) and the POV only looks up.
             Add("hero", "lookAt", pk - 70, pk + 40, point: stage.ToStage(planetPoint), blendIn: .8f, blendOut: .5f);
-            Add("hero", "reaction", pk - 48, pk - 26, "scream", blendIn: .3f, blendOut: .15f);
+            // Round 2: no scream (the glove covered his head). He flinches at the rumble and shades his eyes with his left hand.
+            Add("hero", "pose", pk - 46, pk - 20, blendIn: .25f, blendOut: .3f, flinch: .45f);
+            ShadeEyes(pk - 52, pk - 22, .4f, .25f);
+            ShadeEyes(pk - 22, pk + 6, .2f, .3f);   // still up in the payoff POV, at the top left of the frame
             GuardLow(stage, plan, e, shots);
             Add("panda", "lookAt", pk - 75, pk + 20, point: stage.ToStage(planetPoint), blendIn: .45f, blendOut: .4f);
             Add("astro", "lookAt", pk - 66, pk + 20, point: stage.ToStage(planetPoint), blendIn: .5f, blendOut: .4f);
@@ -278,6 +317,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     Vector3 hand = pose.body.head + fwd * .42f + right * .27f - Vector3.up * .46f;
                     list.Add(new StudioOverride { actor = "hero", kind = "reach", point = stage.ToStage(hand), from = tf / (float)Fps, to = (tf + 10) / (float)Fps, blendIn = .15f, blendOut = .15f });
                     added++;
+                    // Round 2 (owner): the left hand was the same flat palm in every POV. A guard by the chin before the first
+                    // punch, an open hand reaching out at the charging dragon; the payoff has its own eye-shading hand.
+                    bool first = tf < TapeFrame(150), payoff = tf > TapeFrame(270);
+                    if (!payoff)
+                    {
+                        Vector3 leftHand = first ? pose.body.head + fwd * .30f - right * .13f - Vector3.up * .16f
+                                                 : pose.body.head + fwd * .40f - right * .17f - Vector3.up * .22f;
+                        list.Add(new StudioOverride { actor = "hero", kind = "reach", leftHand = true, point = stage.ToStage(leftHand), from = tf / (float)Fps, to = (tf + 10) / (float)Fps, blendIn = .15f, blendOut = .15f });
+                    }
                 }
             Note($"Lowered guard: {added} reach layers on the hero.");
         }
@@ -331,7 +379,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             bool final = mode.StartsWith("final");
             if (mode == "finalA") cameras = cameras.Where(c => c.id == "S01" || c.id == "S02" || c.id == "S03").ToList();
             if (mode == "finalB") cameras = cameras.Where(c => c.id == "S04" || c.id == "S05" || c.id == "S06").ToList();
-            if (mode == "finalC") cameras = cameras.Where(c => c.id == "S07" || c.id == "S08" || c.id == "S09" || c.id == "S10").ToList();
+            if (mode == "finalC") cameras = cameras.Where(c => string.CompareOrdinal(c.id, "S07") >= 0).ToList();
             var settings = final
                 ? new StudioRenderSettings { width = 1920, height = 1080, fps = Fps, subFrames = 1, format = "png", cinema = true, filmstrip = 12 }
                 : mode == "preview"

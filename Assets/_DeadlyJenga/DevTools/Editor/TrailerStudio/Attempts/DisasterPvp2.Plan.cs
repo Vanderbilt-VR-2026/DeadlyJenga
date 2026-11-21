@@ -233,8 +233,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static Vector3 HookSpot(Plan plan)
         {
             var A = plan.arena;
-            Vector3 mid = Vector3.Lerp(plan.at["dragon"], plan.at["rival"], .5f);
-            return Spot(mid, 4.0f, .45f, new[] { plan.at["hero"], plan.at["rival"], plan.at["dragon"] }, A.s);
+            // Round 2: closer and off the flat side-on axis, beside the gorilla's end: gorilla near, hero middle, dragon far.
+            return Spot(A.C + A.a * .3f, 2.9f, .5f, new[] { plan.at["hero"], plan.at["rival"], plan.at["dragon"] }, (A.s * .87f + A.a * .5f).normalized);
         }
 
         // The geography wide: high three-quarter from outside, the summit and block 2 in one frame.
@@ -300,11 +300,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // The hero: circles the gorilla, glances at the falling sky, closes in and punches; watches him fall; looks up at the rocks;
             // turns to find the dragon charging, counter-punches him; looks up at the planet killer and braces.
             var h = new StudioDrive { actor = "hero", seed = 11, human = 1 };
+            // Round 2 (owner's notes): the opening was three identical guards moving in step. The hero now fights low (a
+            // crouched stance) and is already circling the gorilla when the cut opens.
             h.steps.Add(S("gear", .3f, weapon: "BoxingGlove"));
-            h.steps.Add(S("look", .45f, "actor:rival"));
-            h.steps.Add(Go(stage, hero + A.s * .3f + A.a * .1f, .8f));
-            h.steps.Add(S("look", T(8), Pt(stage, sky(hero, -hookFwd + A.s * .3f, 24)), .55f));
-            h.steps.Add(S("look", T(26), "actor:rival"));
+            h.steps.Add(new StudioDriveStep { action = "crouch", at = .32f, amount = .3f, duration = 2.4f });
+            h.steps.Add(S("look", .35f, "actor:rival"));
+            h.steps.Add(new StudioDriveStep { action = "path", at = .4f, pace = "walk", duration = 2.3f, points = new List<Vector3> {
+                stage.ToStage(A.C - A.a * .1f + A.s * .45f), stage.ToStage(A.C + A.a * .2f + A.s * .4f), stage.ToStage(A.C + A.a * .3f - A.s * .05f) } });
             h.steps.Add(S("punch", T(Punch1Frame) - Lead1, "actor:rival", pace: "jog", reach: 1.0f));
             h.steps.Add(S("look", -1, Pt(stage, A.C + A.a * 7 - up * 9), 1.1f));
             h.steps.Add(S("look", T(112), Pt(stage, sky(A.C, A.F - A.C + A.s * .5f, 32)), 1.0f));
@@ -318,27 +320,34 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             // The gorilla: squares up, feints in, backs off, never sees the punch coming in time.
             var r = new StudioDrive { actor = "rival", seed = 23, human = 1 };
+            // He stands tall, glove high, and feints: a jab-step in, back out, then a second step in.
             r.steps.Add(S("gear", .3f, weapon: "BoxingGlove"));
             r.steps.Add(S("look", .5f, "actor:hero"));
-            r.steps.Add(Go(stage, rival - A.a * .45f - A.s * .2f, .85f));
-            r.steps.Add(S("look", T(14), "actor:dragon", .5f));
-            r.steps.Add(Go(stage, rival + A.s * .25f, T(22)));
-            r.steps.Add(S("look", T(36), "actor:hero"));
+            r.steps.Add(Go(stage, rival - A.a * .7f - A.s * .1f, .62f, "jog"));
+            r.steps.Add(Go(stage, rival + A.s * .2f, T(14)));
+            r.steps.Add(S("look", T(27), "actor:dragon", .45f));
+            r.steps.Add(Go(stage, rival - A.a * .35f, T(36)));
+            r.steps.Add(S("look", -1, "actor:hero"));
             r.steps.Add(S("face", -1, "actor:hero", 1.0f));
             set.drives.Add(r);
 
             // The dragon: watches the shoot-out on block 2, sees the gorilla go, then charges the hero.
             var d = new StudioDrive { actor = "dragon", seed = 31, human = 1 };
+            // He is walking along his end when the cut opens, half crouched, watching the shoot-out, then the hero.
             d.steps.Add(S("gear", .3f, weapon: "BoxingGlove"));
-            d.steps.Add(S("look", .6f, "actor:penguin", 1.4f));
-            d.steps.Add(Go(stage, dragon + A.s * .3f + A.a * .2f, .9f));
+            d.steps.Add(new StudioDriveStep { action = "crouch", at = .3f, amount = .14f, duration = 3f });
+            d.steps.Add(S("look", .45f, "actor:penguin", 1.3f));
+            d.steps.Add(Go(stage, dragon + A.s * .55f + A.a * .3f, .5f));
+            d.steps.Add(Go(stage, dragon - A.s * .35f, T(20)));
             d.steps.Add(S("look", T(30), "actor:hero", .8f));
             d.steps.Add(S("look", T(Punch1Frame - 4), "actor:rival", 1.3f));
             d.steps.Add(Go(stage, dragon - A.s * .2f, T(104)));
             d.steps.Add(S("look", T(118), Pt(stage, sky(dragon, A.s, 35)), .8f));
             d.steps.Add(S("look", T(150), "actor:fox", .7f));
+            // Back to the very end for a runway, then a real charge (round 2: he walked in).
+            d.steps.Add(Go(stage, A.C - A.a * 2.7f, T(158)));
             d.steps.Add(S("look", T(170), "actor:hero"));
-            d.steps.Add(Go(stage, A.C - A.a * 1.25f, T(ChargeFrame), "jog"));
+            d.steps.Add(new StudioDriveStep { action = "goTo", at = T(ChargeFrame - 4), point = stage.ToStage(A.C - A.a * .9f), pace = "run", duration = 1.4f });
             d.steps.Add(S("face", -1, "actor:hero", 1.0f));
             set.drives.Add(d);
 

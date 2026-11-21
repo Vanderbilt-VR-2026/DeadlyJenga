@@ -15,8 +15,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public int Order => 10;
 
         // "hide": the actor is not drawn while the layer is on (for example after a fall into the sea, so the respawn is never seen).
-        public static readonly List<string> Kinds = new List<string> { "lookAt", "reach", "pose", "reaction", "emote", "outfit", "colorFlash", "equipment", "hitPause", "hide" };
-        public static readonly List<string> KindLabels = new List<string> { "Look at", "Reach", "Pose", "Reaction", "Emote", "Outfit change", "Color flash", "Weapon swap", "Hit pause", "Hide" };
+        public static readonly List<string> Kinds = new List<string> { "lookAt", "reach", "pose", "reaction", "emote", "outfit", "colorFlash", "equipment", "hitPause", "hide", "punch" };
+        public static readonly List<string> KindLabels = new List<string> { "Look at", "Reach", "Pose", "Reaction", "Emote", "Outfit change", "Color flash", "Weapon swap", "Hit pause", "Hide", "Punch" };
         public static readonly List<string> Reactions = new List<string> { "stagger", "knockback", "fall", "tumble", "death", "getUp", "cheer", "scream", "cower" };
         public static readonly List<string> ReactionLabels = new List<string> { "Hit stagger", "Knockback", "Fall", "Tumble", "Death", "Get up", "Cheer", "Scream", "Cower" };
 
@@ -58,9 +58,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if (Target(set, tape, anchor, layer, time, out var reach))
                     {
                         // The game's avatar already solves the arm from the hand's position (IK), so moving the hand is enough.
+                        // Never past the arm's own reach (the same limit the game's punch uses): an unclamped target far away
+                        // stretched the arm into a ribbon metres long (disaster-pvp-2's first cut).
+                        reach = ClampToArm(frame.body, reach, layer.leftHand);
                         if (layer.leftHand) { frame.body.left.position = Vector3.Lerp(frame.body.left.position, reach, weight); frame.body.left.tracked = true; }
                         else { frame.body.right.position = Vector3.Lerp(frame.body.right.position, reach, weight); frame.body.right.tracked = true; }
                     }
+                    break;
+                case "punch":
+                    if (Target(set, tape, anchor, layer, layer.Start + PunchContact, out var at)) Punch(frame, at, layer, time);
                     break;
                 case "pose": Pose(frame, layer.crouch, layer.lean, layer.flinch, layer.armRaise, weight); break;
                 case "reaction":
@@ -203,6 +209,57 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (weight <= 0) progress = 0;
             var recorded = frame.body.headRotation.eulerAngles;
             frame.body.headRotation = Quaternion.Euler(Mathf.LerpAngle(recorded.x, pitch, progress), facing + delta * progress, Mathf.LerpAngle(recorded.z, 0, progress));
+        }
+
+        // ---- Arms ----
+
+        // Where the shoulder is, the way the game's own punch finds it (CandyPlayerAvatar.Punch: head + (0.21, -0.345, 0) x scale).
+        static Vector3 Shoulder(CandyAvatarFrame body, bool left)
+        {
+            float scale = Mathf.Max(.1f, body.scale);
+            var yaw = Quaternion.Euler(0, body.headRotation.eulerAngles.y, 0);
+            return body.head + yaw * new Vector3(left ? -.21f : .21f, -.345f, 0) * scale;
+        }
+
+        // The game's punch never puts the hand more than 0.75 x scale from the shoulder; nor does a reach layer.
+        public static Vector3 ClampToArm(CandyAvatarFrame body, Vector3 point, bool left)
+        {
+            Vector3 shoulder = Shoulder(body, left);
+            return shoulder + Vector3.ClampMagnitude(point - shoulder, .75f * Mathf.Max(.1f, body.scale));
+        }
+
+        // A punch thrown with the game's own timing (CandyPlayerAvatar.ApplyPunch: wind-up 0.045 s, extend 0.08 s, hold 0.03 s,
+        // back 0.205 s) toward the target as it stands at the contact moment, the arm clamped to its reach, while the body
+        // lunges into the hit and comes back. The layer's start is the wind-up; contact is PunchContact seconds later.
+        // The boxing glove in the game is a held glove (a melee sphere cast), not a spring: the arm alone carries it.
+        public const float PunchContact = .125f;
+        static void Punch(ActorFrame frame, Vector3 target, StudioOverride layer, float time)
+        {
+            float age = time - layer.Start;
+            if (age < 0 || age >= .36f) return;
+            var body = frame.body;
+            float scale = Mathf.Max(.1f, body.scale);
+            bool left = layer.leftHand;
+            Vector3 flat = Vector3.ProjectOnPlane(target - body.feet, Vector3.up);
+            Vector3 toward = flat.sqrMagnitude > .0001f ? flat.normalized : Quaternion.Euler(0, body.headRotation.eulerAngles.y, 0) * Vector3.forward;
+            // The body: a small dip back on the wind-up, then a lunge of up to 0.3 x scale into the hit, easing back.
+            float lunge = age < .045f ? -.06f * Mathf.SmoothStep(0, 1, age / .045f)
+                        : age < .155f ? Mathf.Lerp(-.06f, 1, Mathf.SmoothStep(0, 1, (age - .045f) / .11f))
+                        : 1 - Mathf.SmoothStep(0, 1, (age - .155f) / .205f);
+            Vector3 move = toward * (.3f * scale * lunge * Mathf.Clamp(layer.strength, 0, 2));
+            body.feet += move * .35f; body.head += move; body.left.position += move; body.right.position += move;
+            body.headRotation = Quaternion.Slerp(body.headRotation, body.headRotation * Quaternion.Euler(8, 0, 0), Mathf.Max(0, lunge) * .6f);
+            var hand = left ? body.left : body.right;
+            Vector3 direction = (target - body.head).normalized;
+            Vector3 shoulder = Shoulder(body, left);
+            Vector3 strike = shoulder + Vector3.ClampMagnitude(target - direction * (.055f * scale) - shoulder, .75f * scale);
+            Vector3 windup = hand.position - direction * (.12f * scale) + Vector3.down * (.035f * scale);
+            float extension = age < .045f ? 0 : age < .125f ? Mathf.SmoothStep(0, 1, (age - .045f) / .08f) : age < .155f ? 1 : 1 - Mathf.SmoothStep(0, 1, (age - .155f) / .205f);
+            Vector3 start = age >= .155f ? hand.position : Vector3.Lerp(hand.position, windup, Mathf.SmoothStep(0, 1, Mathf.Min(age / .045f, 1)));
+            hand.position = Vector3.Lerp(start, strike, extension);
+            hand.tracked = true;
+            if (left) body.left = hand; else body.right = hand;
+            frame.body = body;
         }
 
         // ---- Pose layer ----
