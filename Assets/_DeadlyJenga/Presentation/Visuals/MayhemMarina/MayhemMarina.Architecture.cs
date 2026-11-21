@@ -48,7 +48,6 @@ namespace DeadlyJenga.CandyArt.Marina
             // the west deck step down onto it.
             mesh.ArcSlab(center, new Vector2(6, 6), new Vector2(27.6f, 24.6f), .36f, EastCut, 140, F.Sand, true, 56);
             Ramp(new Vector3(7.0f, PlazaTop, -4.4f), new Vector3(10.6f, .40f, -4.4f), 3f, false);
-            Ramp(new Vector3(7.9f, 1.285f, 6.5f), new Vector3(11.4f, .40f, 6.5f), 2.7f, false);
             mesh.ArcSlab(center, new Vector2(20, 17), new Vector2(27.2f, 24.0f), .34f, -105, -62, F.Sand, true, 28);
             Ramp(new Vector3(-23.0f,1.25f,8.78f),new Vector3(-24.1f,1.25f,8.93f),2.7f,false);
             Ramp(new Vector3(-24.1f,1.25f,8.93f),new Vector3(-25.8f,.36f,9.25f),2.7f,false);
@@ -187,12 +186,11 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Box(trim,new Vector3(.16f,.007f,depth-.36f),F.CandyMint,.001f);
                 mesh.Box(trim-Vector3.right*(side*.15f),new Vector3(.065f,.007f,depth-.36f),F.Ivory,.001f);
             }
-            foreach (float side in new[]{-1f,1f})
-                Rail(new Vector3(side*7.78f,CinemaFloor,CinemaFront+.5f),new Vector3(side*7.78f,CinemaFloor,2.0f));
+            Rail(new Vector3(-7.78f,CinemaFloor,CinemaFront+.5f),new Vector3(-7.78f,CinemaFloor,2.0f));
             WardrobeConnector();
             var roof=new Vector3(0,5.95f,center);
             mesh.CurvedRoof(roof,17.1f,depth+2.0f,2.08f,F.NetCloth);
-            GlassBackWall(roof,depth+2.0f);
+            GlassWalls(roof,depth+2.0f);
             // The two-sided last-match board hangs from the roof where the cinema sign used to be
             // (LobbyLastRoundBoard draws its screens on both faces).
             mesh.Box(FameBoard,new Vector3(4.5f,2.4f,.14f),F.Teal,.08f);
@@ -213,30 +211,55 @@ namespace DeadlyJenga.CandyArt.Marina
             Lantern(new Vector3(-3.8f,5.35f,8.3f),.22f);
             Lantern(new Vector3(3.8f,5.35f,8.3f),.22f);
         }
-        // Behind the terminals: tall glass panes in wooden frames, each cut to meet the curved roof.
-        void GlassBackWall(Vector3 roof,float roofDepth)
+        // The gift shop door sits on the cinema's east edge, clear of the wardrobe mirror and rack.
+        const float ShopDoorZ = 8.3f, EastGlassX = 7.85f, BackGlassZ = 11.65f, ShopDoorHalf = 1.5f;
+
+        // Glass walling around the cinema: tall panes in wooden frames, cut to meet the curved roof.
+        // Behind the terminals it runs the full width; on the east side it leaves a doorway into the shop.
+        void GlassWalls(Vector3 roof,float roofDepth)
         {
-            const float z=11.65f,half=7.9f,sill=.25f;const int panes=10;
-            float Top(float x)=>MarinaMesh.CurvedRoofHeight(roof,17.1f,roofDepth,2.08f,x,z)-.2f;
-            mesh.Box(new Vector3(0,CinemaFloor+sill*.5f,z),new Vector3(half*2,sill,.3f),F.DarkWood,.04f,true);
-            for(int i=0;i<panes;i++)
+            float Top(Vector3 p)=>MarinaMesh.CurvedRoofHeight(roof,17.1f,roofDepth,2.08f,p.x,p.z)-.2f;
+            float floor=CinemaFloor+.25f;
+            GlassRun(new Vector3(-7.9f,0,BackGlassZ),new Vector3(EastGlassX,0,BackGlassZ),floor,Top,true);
+            GlassRun(new Vector3(EastGlassX,0,CinemaFront+.05f),new Vector3(EastGlassX,0,ShopDoorZ-ShopDoorHalf),floor,Top,true);
+            GlassRun(new Vector3(EastGlassX,0,ShopDoorZ+ShopDoorHalf),new Vector3(EastGlassX,0,BackGlassZ),floor,Top,true);
+            GlassRun(new Vector3(EastGlassX,0,ShopDoorZ-ShopDoorHalf),new Vector3(EastGlassX,0,ShopDoorZ+ShopDoorHalf),CinemaFloor+3.1f,Top,false);
+            // The porch between the lobby and the shop front is closed at both ends with the same glass.
+            float shopFront=EastGlassX+.05f+ShopPorch;
+            foreach(float side in new[]{-1f,1f})
             {
-                float x0=Mathf.Lerp(-half,half,i/(float)panes),x1=Mathf.Lerp(-half,half,(i+1)/(float)panes);
-                const int steps=4;
-                for(int s=0;s<steps;s++)
-                {
-                    float a=Mathf.Lerp(x0,x1,s/(float)steps),b=Mathf.Lerp(x0,x1,(s+1)/(float)steps);
-                    mesh.Pane(new Vector3(a,CinemaFloor+sill,z),new Vector3(b,CinemaFloor+sill,z),new Vector3(a,Top(a),z),new Vector3(b,Top(b),z),F.Glass,true);
-                }
+                float z=ShopDoorZ+side*(ShopWidth*.5f+.3f);
+                GlassRun(new Vector3(EastGlassX,0,z),new Vector3(shopFront,0,z),floor,_=>CinemaFloor+ShopWall,true);
             }
-            for(int i=0;i<=panes;i++)
+        }
+        void GlassRun(Vector3 from,Vector3 to,float bottom,System.Func<Vector3,float> top,bool sill)
+        {
+            from.y=to.y=0;float length=Vector3.Distance(from,to);
+            int panes=Mathf.Max(1,Mathf.RoundToInt(length/1.6f));
+            Vector3 At(float t,float y){var p=Vector3.Lerp(from,to,t);p.y=y;return p;}
+            float Top(float t)=>top(Vector3.Lerp(from,to,t));
+            if(sill)mesh.Box(At(.5f,CinemaFloor+.125f),new Vector3(.3f,.25f,length),F.DarkWood,.04f,true,Quaternion.LookRotation(to-from));
+            else mesh.Box(At(.5f,bottom),new Vector3(.16f,.12f,length),F.Wood,.03f,false,Quaternion.LookRotation(to-from));
+            const int steps=4;
+            for(int i=0;i<panes*steps;i++)
             {
-                float x=Mathf.Lerp(-half,half,i/(float)panes);
-                mesh.Beam(new Vector3(x,CinemaFloor+sill,z),new Vector3(x,Top(x)+.1f,z),.055f,F.Wood);
+                float a=i/(float)(panes*steps),b=(i+1)/(float)(panes*steps);
+                mesh.Pane(At(a,bottom),At(b,bottom),At(a,Top(a)),At(b,Top(b)),F.Glass,true);
             }
+            for(int i=0;i<=panes;i++){float t=i/(float)panes;mesh.Beam(At(t,bottom),At(t,Top(t)+.1f),.055f,F.Wood);}
             var cap=new List<Vector3>();
-            for(int i=0;i<=40;i++){float x=Mathf.Lerp(-half,half,i/40f);cap.Add(new Vector3(x,Top(x),z));}
+            for(int i=0;i<=24;i++){float t=i/24f;cap.Add(At(t,Top(t)));}
             mesh.Tube(cap,.06f,F.Wood,8);
+        }
+
+        // Seaside Souvenirs opens straight off the cinema's east side, level with its floor, on a stone base
+        // down to the beach (the base also carries the hero suit vault's housing).
+        void GiftShopWing()
+        {
+            var floor=new Vector3(EastGlassX+.05f+ShopPorch+ShopDepth*.5f,CinemaFloor,ShopDoorZ);
+            float x0=EastGlassX,x1=floor.x+ShopDepth*.5f+.4f,z0=ShopDoorZ-ShopWidth*.5f-.5f,z1=ShopDoorZ+ShopWidth*.5f+5.8f;
+            mesh.Box(new Vector3((x0+x1)*.5f,(CinemaFloor+.3f)*.5f,(z0+z1)*.5f),new Vector3(x1-x0,CinemaFloor-.3f,z1-z0),F.Stone,.06f,true);
+            GiftShop(floor,90);
         }
         static readonly Vector3 ProjectorLens = new(-1.35f,5.49f,5.75f);
         static readonly Vector3 ProjectionSurface = new(0,3.85f,10.91f);
