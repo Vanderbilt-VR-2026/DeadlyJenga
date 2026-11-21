@@ -1,0 +1,1410 @@
+{
+  "building": "B_544413714",
+  "version": 1,
+  "lod": "LoD3",
+  "threshold_m": 0.15,
+  "size_axes": "facade rows: [along wall, out of wall, up]; roof rows: [along main wall, across, up]",
+  "note": "one row per merged feature type per facade (count = how many were merged); center = mean of the merged features, size = largest one, spread = extent of the centers",
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "window_frame",
+      "merged_into": "F01_wall",
+      "center": [
+        409.871,
+        -284.393,
+        25.457
+      ],
+      "size": [
+        1.2,
+        0.06,
+        1.8
+      ],
+      "count": 32,
+      "material": "window_frame",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.060 m < 0.15 m",
+      "facade": "F01",
+      "spread": [
+        22.372,
+        2.783,
+        11.154
+      ]
+    },
+    {
+      "id": "L0002",
+      "type": "sill",
+      "merged_into": "F01_wall",
+      "center": [
+        409.892,
+        -284.22,
+        24.507
+      ],
+      "size": [
+        1.36,
+        0.05,
+        0.1
+      ],
+      "count": 32,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.050 m < 0.15 m",
+      "facade": "F01",
+      "spread": [
+        22.371,
+        2.783,
+        11.154
+      ]
+    },
+    {
+      "id": "L0003",
+      "type": "lintel",
+      "merged_into": "F01_wall",
+      "center": [
+        409.891,
+        -284.235,
+        26.457
+      ],
+      "size": [
+        1.4,
+        0.02,
+        0.2
+      ],
+      "count": 32,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.020 m < 0.15 m",
+      "facade": "F01",
+      "spread": [
+        22.371,
+        2.783,
+        11.154
+      ]
+    },
+    {
+      "id": "L0004",
+      "type": "cornice",
+      "merged_into": "F01_wall",
+      "center": [
+        409.894,
+        -284.205,
+        33.152
+      ],
+      "size": [
+        27.564,
+        0.08,
+        0.4
+      ],
+      "count": 1,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F01",
+      "spread": null
+    },
+    {
+      "id": "L0005",
+      "type": "window_frame",
+      "merged_into": "F02_wall",
+      "center": [
+        421.763,
+        -300.87,
+        25.489
+      ],
+      "size": [
+        1.2,
+        0.06,
+        1.8
+      ],
+      "count": 36,
+      "material": "window_frame",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.060 m < 0.15 m",
+      "facade": "F02",
+      "spread": [
+        2.746,
+        24.976,
+        10.799
+      ]
+    },
+    {
+      "id": "L0006",
+      "type": "sill",
+      "merged_into": "F02_wall",
+      "center": [
+        421.937,
+        -300.891,
+        24.539
+      ],
+      "size": [
+        1.36,
+        0.05,
+        0.1
+      ],
+      "count": 36,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.050 m < 0.15 m",
+      "facade": "F02",
+      "spread": [
+        2.747,
+        24.976,
+        10.799
+      ]
+    },
+    {
+      "id": "L0007",
+      "type": "lintel",
+      "merged_into": "F02_wall",
+      "center": [
+        421.922,
+        -300.889,
+        26.489
+      ],
+      "size": [
+        1.4,
+        0.02,
+        0.2
+      ],
+      "count": 36,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.020 m < 0.15 m",
+      "facade": "F02",
+      "spread": [
+        2.747,
+        24.976,
+        10.799
+      ]
+    },
+    {
+      "id": "L0008",
+      "type": "cornice",
+      "merged_into": "F02_wall",
+      "center": [
+        421.951,
+        -300.893,
+        32.888
+      ],
+      "size": [
+        30.064,
+        0.08,
+        0.4
+      ],
+      "count": 1,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F02",
+      "spread": null
+    },
+    {
+      "id": "L0009",
+      "type": "window_frame",
+      "merged_into": "F03_wall",
+      "center": [
+        421.246,
+        -316.237,
+        25.51
+      ],
+      "size": [
+        1.199,
+        0.06,
+        1.801
+      ],
+      "count": 4,
+      "material": "window_frame",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.060 m < 0.15 m",
+      "facade": "F03",
+      "spread": [
+        0.0,
+        0.0,
+        10.841
+      ]
+    },
+    {
+      "id": "L0010",
+      "type": "sill",
+      "merged_into": "F03_wall",
+      "center": [
+        421.268,
+        -316.063,
+        24.56
+      ],
+      "size": [
+        1.359,
+        0.05,
+        0.1
+      ],
+      "count": 4,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.050 m < 0.15 m",
+      "facade": "F03",
+      "spread": [
+        0.0,
+        0.0,
+        10.84
+      ]
+    },
+    {
+      "id": "L0011",
+      "type": "lintel",
+      "merged_into": "F03_wall",
+      "center": [
+        421.266,
+        -316.078,
+        26.51
+      ],
+      "size": [
+        1.399,
+        0.02,
+        0.2
+      ],
+      "count": 4,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.020 m < 0.15 m",
+      "facade": "F03",
+      "spread": [
+        0.0,
+        0.0,
+        10.841
+      ]
+    },
+    {
+      "id": "L0012",
+      "type": "cornice",
+      "merged_into": "F03_wall",
+      "center": [
+        421.268,
+        -316.049,
+        32.944
+      ],
+      "size": [
+        2.845,
+        0.08,
+        0.4
+      ],
+      "count": 1,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F03",
+      "spread": null
+    },
+    {
+      "id": "L0013",
+      "type": "window_frame",
+      "merged_into": "F04_wall",
+      "center": [
+        422.089,
+        -319.784,
+        25.43
+      ],
+      "size": [
+        1.2,
+        0.06,
+        1.8
+      ],
+      "count": 4,
+      "material": "window_frame",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.060 m < 0.15 m",
+      "facade": "F04",
+      "spread": [
+        0.0,
+        0.0,
+        10.681
+      ]
+    },
+    {
+      "id": "L0014",
+      "type": "sill",
+      "merged_into": "F04_wall",
+      "center": [
+        422.262,
+        -319.805,
+        24.48
+      ],
+      "size": [
+        1.36,
+        0.05,
+        0.1
+      ],
+      "count": 4,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.050 m < 0.15 m",
+      "facade": "F04",
+      "spread": [
+        0.0,
+        0.0,
+        10.681
+      ]
+    },
+    {
+      "id": "L0015",
+      "type": "lintel",
+      "merged_into": "F04_wall",
+      "center": [
+        422.247,
+        -319.803,
+        26.43
+      ],
+      "size": [
+        1.4,
+        0.02,
+        0.2
+      ],
+      "count": 4,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.020 m < 0.15 m",
+      "facade": "F04",
+      "spread": [
+        0.0,
+        0.0,
+        10.681
+      ]
+    },
+    {
+      "id": "L0016",
+      "type": "cornice",
+      "merged_into": "F04_wall",
+      "center": [
+        422.277,
+        -319.807,
+        32.731
+      ],
+      "size": [
+        7.395,
+        0.08,
+        0.4
+      ],
+      "count": 1,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F04",
+      "spread": null
+    },
+    {
+      "id": "L0017",
+      "type": "window_frame",
+      "merged_into": "F05_wall",
+      "center": [
+        418.957,
+        -322.918,
+        27.825
+      ],
+      "size": [
+        1.2,
+        0.06,
+        1.8
+      ],
+      "count": 3,
+      "material": "window_frame",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.060 m < 0.15 m",
+      "facade": "F05",
+      "spread": [
+        0.0,
+        0.0,
+        6.75
+      ]
+    },
+    {
+      "id": "L0018",
+      "type": "sill",
+      "merged_into": "F05_wall",
+      "center": [
+        418.94,
+        -323.092,
+        26.875
+      ],
+      "size": [
+        1.36,
+        0.05,
+        0.1
+      ],
+      "count": 3,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.050 m < 0.15 m",
+      "facade": "F05",
+      "spread": [
+        0.0,
+        0.0,
+        6.75
+      ]
+    },
+    {
+      "id": "L0019",
+      "type": "lintel",
+      "merged_into": "F05_wall",
+      "center": [
+        418.941,
+        -323.077,
+        28.825
+      ],
+      "size": [
+        1.4,
+        0.02,
+        0.2
+      ],
+      "count": 3,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.020 m < 0.15 m",
+      "facade": "F05",
+      "spread": [
+        0.0,
+        0.0,
+        6.75
+      ]
+    },
+    {
+      "id": "L0020",
+      "type": "cornice",
+      "merged_into": "F05_wall",
+      "center": [
+        418.939,
+        -323.107,
+        32.975
+      ],
+      "size": [
+        5.732,
+        0.08,
+        0.4
+      ],
+      "count": 1,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F05",
+      "spread": null
+    },
+    {
+      "id": "L0021",
+      "type": "window_frame",
+      "merged_into": "F06_wall",
+      "center": [
+        414.801,
+        -331.351,
+        28.829
+      ],
+      "size": [
+        1.2,
+        0.06,
+        1.8
+      ],
+      "count": 10,
+      "material": "window_frame",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.060 m < 0.15 m",
+      "facade": "F06",
+      "spread": [
+        1.613,
+        12.088,
+        3.7
+      ]
+    },
+    {
+      "id": "L0022",
+      "type": "sill",
+      "merged_into": "F06_wall",
+      "center": [
+        414.974,
+        -331.374,
+        27.879
+      ],
+      "size": [
+        1.36,
+        0.05,
+        0.1
+      ],
+      "count": 10,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.050 m < 0.15 m",
+      "facade": "F06",
+      "spread": [
+        1.613,
+        12.089,
+        3.7
+      ]
+    },
+    {
+      "id": "L0023",
+      "type": "lintel",
+      "merged_into": "F06_wall",
+      "center": [
+        414.959,
+        -331.372,
+        29.829
+      ],
+      "size": [
+        1.4,
+        0.02,
+        0.2
+      ],
+      "count": 10,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.020 m < 0.15 m",
+      "facade": "F06",
+      "spread": [
+        1.613,
+        12.089,
+        3.7
+      ]
+    },
+    {
+      "id": "L0024",
+      "type": "cornice",
+      "merged_into": "F06_wall",
+      "center": [
+        414.989,
+        -331.376,
+        32.778
+      ],
+      "size": [
+        17.044,
+        0.08,
+        0.4
+      ],
+      "count": 1,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F06",
+      "spread": null
+    },
+    {
+      "id": "L0025",
+      "type": "window_frame",
+      "merged_into": "F07_wall",
+      "center": [
+        409.285,
+        -339.176,
+        27.707
+      ],
+      "size": [
+        1.201,
+        0.06,
+        1.8
+      ],
+      "count": 6,
+      "material": "window_frame",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.060 m < 0.15 m",
+      "facade": "F07",
+      "spread": [
+        3.658,
+        0.396,
+        6.635
+      ]
+    },
+    {
+      "id": "L0026",
+      "type": "sill",
+      "merged_into": "F07_wall",
+      "center": [
+        409.266,
+        -339.35,
+        26.757
+      ],
+      "size": [
+        1.361,
+        0.05,
+        0.1
+      ],
+      "count": 6,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.050 m < 0.15 m",
+      "facade": "F07",
+      "spread": [
+        3.658,
+        0.396,
+        6.635
+      ]
+    },
+    {
+      "id": "L0027",
+      "type": "lintel",
+      "merged_into": "F07_wall",
+      "center": [
+        409.268,
+        -339.335,
+        28.707
+      ],
+      "size": [
+        1.401,
+        0.02,
+        0.2
+      ],
+      "count": 6,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.020 m < 0.15 m",
+      "facade": "F07",
+      "spread": [
+        3.658,
+        0.395,
+        6.635
+      ]
+    },
+    {
+      "id": "L0028",
+      "type": "cornice",
+      "merged_into": "F07_wall",
+      "center": [
+        409.265,
+        -339.365,
+        32.742
+      ],
+      "size": [
+        9.158,
+        0.08,
+        0.4
+      ],
+      "count": 1,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F07",
+      "spread": null
+    },
+    {
+      "id": "L0029",
+      "type": "window_frame",
+      "merged_into": "F08_wall",
+      "center": [
+        403.826,
+        -344.682,
+        25.36
+      ],
+      "size": [
+        1.2,
+        0.06,
+        1.8
+      ],
+      "count": 12,
+      "material": "window_frame",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.060 m < 0.15 m",
+      "facade": "F08",
+      "spread": [
+        0.839,
+        6.634,
+        10.54
+      ]
+    },
+    {
+      "id": "L0030",
+      "type": "sill",
+      "merged_into": "F08_wall",
+      "center": [
+        403.999,
+        -344.704,
+        24.41
+      ],
+      "size": [
+        1.36,
+        0.05,
+        0.1
+      ],
+      "count": 12,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.050 m < 0.15 m",
+      "facade": "F08",
+      "spread": [
+        0.839,
+        6.634,
+        10.54
+      ]
+    },
+    {
+      "id": "L0031",
+      "type": "lintel",
+      "merged_into": "F08_wall",
+      "center": [
+        403.985,
+        -344.702,
+        26.36
+      ],
+      "size": [
+        1.4,
+        0.02,
+        0.2
+      ],
+      "count": 12,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.020 m < 0.15 m",
+      "facade": "F08",
+      "spread": [
+        0.839,
+        6.635,
+        10.54
+      ]
+    },
+    {
+      "id": "L0032",
+      "type": "cornice",
+      "merged_into": "F08_wall",
+      "center": [
+        404.014,
+        -344.706,
+        32.544
+      ],
+      "size": [
+        11.829,
+        0.08,
+        0.4
+      ],
+      "count": 1,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F08",
+      "spread": null
+    },
+    {
+      "id": "L0033",
+      "type": "window_frame",
+      "merged_into": "F09_wall",
+      "center": [
+        397.093,
+        -349.557,
+        26.015
+      ],
+      "size": [
+        1.2,
+        0.06,
+        1.801
+      ],
+      "count": 11,
+      "material": "window_frame",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.060 m < 0.15 m",
+      "facade": "F09",
+      "spread": [
+        6.625,
+        0.928,
+        10.295
+      ]
+    },
+    {
+      "id": "L0034",
+      "type": "sill",
+      "merged_into": "F09_wall",
+      "center": [
+        397.069,
+        -349.73,
+        25.065
+      ],
+      "size": [
+        1.36,
+        0.05,
+        0.1
+      ],
+      "count": 11,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.050 m < 0.15 m",
+      "facade": "F09",
+      "spread": [
+        6.624,
+        0.929,
+        10.295
+      ]
+    },
+    {
+      "id": "L0035",
+      "type": "lintel",
+      "merged_into": "F09_wall",
+      "center": [
+        397.071,
+        -349.715,
+        27.016
+      ],
+      "size": [
+        1.4,
+        0.02,
+        0.2
+      ],
+      "count": 11,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.020 m < 0.15 m",
+      "facade": "F09",
+      "spread": [
+        6.624,
+        0.929,
+        10.295
+      ]
+    },
+    {
+      "id": "L0036",
+      "type": "cornice",
+      "merged_into": "F09_wall",
+      "center": [
+        397.368,
+        -349.787,
+        32.527
+      ],
+      "size": [
+        11.833,
+        0.08,
+        0.4
+      ],
+      "count": 1,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F09",
+      "spread": null
+    },
+    {
+      "id": "L0037",
+      "type": "window_frame",
+      "merged_into": "F10_wall",
+      "center": [
+        390.742,
+        -340.324,
+        25.685
+      ],
+      "size": [
+        1.2,
+        0.06,
+        1.8
+      ],
+      "count": 20,
+      "material": "window_frame",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.060 m < 0.15 m",
+      "facade": "F10",
+      "spread": [
+        0.925,
+        12.426,
+        10.07
+      ]
+    },
+    {
+      "id": "L0038",
+      "type": "sill",
+      "merged_into": "F10_wall",
+      "center": [
+        390.567,
+        -340.337,
+        24.735
+      ],
+      "size": [
+        1.36,
+        0.05,
+        0.1
+      ],
+      "count": 20,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.050 m < 0.15 m",
+      "facade": "F10",
+      "spread": [
+        0.925,
+        12.426,
+        10.07
+      ]
+    },
+    {
+      "id": "L0039",
+      "type": "lintel",
+      "merged_into": "F10_wall",
+      "center": [
+        390.582,
+        -340.336,
+        26.685
+      ],
+      "size": [
+        1.4,
+        0.02,
+        0.2
+      ],
+      "count": 20,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.020 m < 0.15 m",
+      "facade": "F10",
+      "spread": [
+        0.925,
+        12.425,
+        10.07
+      ]
+    },
+    {
+      "id": "L0040",
+      "type": "cornice",
+      "merged_into": "F10_wall",
+      "center": [
+        390.352,
+        -340.353,
+        32.477
+      ],
+      "size": [
+        17.374,
+        0.08,
+        0.4
+      ],
+      "count": 1,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F10",
+      "spread": null
+    },
+    {
+      "id": "L0041",
+      "type": "door_frame",
+      "merged_into": "F11_wall",
+      "center": [
+        393.372,
+        -307.117,
+        22.838
+      ],
+      "size": [
+        2.0,
+        0.08,
+        2.7
+      ],
+      "count": 1,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F11",
+      "spread": null
+    },
+    {
+      "id": "L0042",
+      "type": "door_transom_bar",
+      "merged_into": "F11_wall",
+      "center": [
+        393.372,
+        -307.117,
+        23.988
+      ],
+      "size": [
+        2.0,
+        0.08,
+        0.1
+      ],
+      "count": 1,
+      "material": "window_frame",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F11",
+      "spread": null
+    },
+    {
+      "id": "L0043",
+      "type": "window_frame",
+      "merged_into": "F11_wall",
+      "center": [
+        393.505,
+        -306.39,
+        25.414
+      ],
+      "size": [
+        1.2,
+        0.06,
+        1.8
+      ],
+      "count": 56,
+      "material": "window_frame",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.060 m < 0.15 m",
+      "facade": "F11",
+      "spread": [
+        5.681,
+        44.132,
+        10.823
+      ]
+    },
+    {
+      "id": "L0044",
+      "type": "sill",
+      "merged_into": "F11_wall",
+      "center": [
+        393.331,
+        -306.368,
+        24.464
+      ],
+      "size": [
+        1.36,
+        0.05,
+        0.1
+      ],
+      "count": 56,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.050 m < 0.15 m",
+      "facade": "F11",
+      "spread": [
+        5.681,
+        44.133,
+        10.823
+      ]
+    },
+    {
+      "id": "L0045",
+      "type": "lintel",
+      "merged_into": "F11_wall",
+      "center": [
+        393.346,
+        -306.37,
+        26.414
+      ],
+      "size": [
+        1.4,
+        0.02,
+        0.2
+      ],
+      "count": 56,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.020 m < 0.15 m",
+      "facade": "F11",
+      "spread": [
+        5.681,
+        44.133,
+        10.823
+      ]
+    },
+    {
+      "id": "L0046",
+      "type": "cornice",
+      "merged_into": "F11_wall",
+      "center": [
+        393.174,
+        -307.093,
+        32.511
+      ],
+      "size": [
+        49.474,
+        0.08,
+        0.4
+      ],
+      "count": 1,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "relief 0.080 m < 0.15 m",
+      "facade": "F11",
+      "spread": null
+    },
+    {
+      "id": "L0047",
+      "type": "chimney_cap",
+      "merged_into": "chimney",
+      "center": [
+        404.022,
+        -325.716,
+        34.575
+      ],
+      "size": [
+        1.53,
+        0.06,
+        0.25
+      ],
+      "count": 5,
+      "material": "concrete",
+      "photos": [],
+      "restore_hint": "geometry",
+      "reason": "relief 0.060 m < 0.15 m",
+      "facade": null,
+      "spread": [
+        25.061,
+        10.55,
+        2.325
+      ]
+    },
+    {
+      "id": "L0048",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        400.406,
+        -316.0,
+        32.536
+      ],
+      "size": [
+        2.25,
+        2.04,
+        5.71
+      ],
+      "count": 20,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "reason": "Stage 1 LiDAR bump kept merged: too few points, too small, or its box does not fit on the roof (L0001; 5 points)",
+      "facade": null,
+      "spread": [
+        28.78,
+        64.09,
+        7.22
+      ]
+    },
+    {
+      "id": "L0049",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        404.31,
+        -317.36,
+        33.47
+      ],
+      "size": [
+        42.53,
+        1.32,
+        0.98
+      ],
+      "count": 4,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "reason": "Stage 1 LiDAR bump kept merged: too few points, too small, or its box does not fit on the roof (L0002; 119 points)",
+      "facade": null,
+      "spread": [
+        30.72,
+        32.61,
+        0.43
+      ]
+    },
+    {
+      "id": "L0050",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        407.355,
+        -306.512,
+        33.115
+      ],
+      "size": [
+        1.19,
+        1.03,
+        0.49
+      ],
+      "count": 21,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "Stage 1 LiDAR bump kept merged: too few points, too small, or its box does not fit on the roof (L0003; 9 points)",
+      "facade": null,
+      "spread": [
+        29.58,
+        53.97,
+        0.77
+      ]
+    },
+    {
+      "id": "L0051",
+      "type": "parapet",
+      "merged_into": "roof",
+      "center": [
+        419.63,
+        -285.64,
+        33.375
+      ],
+      "size": [
+        9.17,
+        0.62,
+        0.49
+      ],
+      "count": 2,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "Stage 1 LiDAR bump kept merged: too few points, too small, or its box does not fit on the roof (L0037; 8 points)",
+      "facade": null,
+      "spread": [
+        6.14,
+        0.74,
+        0.03
+      ]
+    },
+    {
+      "id": "L0052",
+      "type": "parapet",
+      "merged_into": "roof",
+      "center": [
+        405.25,
+        -283.78,
+        33.37
+      ],
+      "size": [
+        8.52,
+        0.75,
+        0.74
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "reason": "Stage 1 LiDAR bump kept merged: too few points, too small, or its box does not fit on the roof (L0039; 73 points)",
+      "facade": null,
+      "spread": null
+    },
+    {
+      "id": "L0053",
+      "type": "small_roof_step",
+      "merged_into": "roof",
+      "center": [
+        405.995,
+        -321.62,
+        32.66
+      ],
+      "size": [
+        4.0,
+        4.05,
+        0.13
+      ],
+      "count": 2,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "Stage 1 LiDAR bump kept merged: too few points, too small, or its box does not fit on the roof (L0040; 66 points)",
+      "facade": null,
+      "spread": [
+        28.55,
+        9.04,
+        0.42
+      ]
+    },
+    {
+      "id": "L0054",
+      "type": "footprint_jog",
+      "merged_into": "roof",
+      "center": [
+        396.753,
+        -322.061,
+        18.14
+      ],
+      "size": [
+        0.195,
+        0.195,
+        0.0
+      ],
+      "count": 5,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "reason": "Stage 1 LiDAR bump kept merged: too few points, too small, or its box does not fit on the roof (L0044; None points)",
+      "facade": null,
+      "spread": [
+        30.283,
+        59.636,
+        0.0
+      ]
+    },
+    {
+      "id": "L0055",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        392.988,
+        -323.29,
+        33.43
+      ],
+      "size": [
+        0.25,
+        0.25,
+        1.06
+      ],
+      "count": 4,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "reason": "Stage 1 LiDAR bump kept merged: too few points, too small, or its box does not fit on the roof (L0057; None points)",
+      "facade": null,
+      "spread": [
+        5.81,
+        57.21,
+        0.23
+      ]
+    },
+    {
+      "id": "L0056",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        392.9,
+        -315.85,
+        32.9
+      ],
+      "size": [
+        0.25,
+        0.5,
+        0.43
+      ],
+      "count": 2,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "reason": "Stage 1 LiDAR bump kept merged: too few points, too small, or its box does not fit on the roof (L0064; None points)",
+      "facade": null,
+      "spread": [
+        4.74,
+        51.56,
+        0.88
+      ]
+    }
+  ]
+}

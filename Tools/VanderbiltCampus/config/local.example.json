@@ -1,0 +1,8 @@
+{
+  "data_root": "D:\\VanderbiltCampusData",
+  "blender": "C:\\Program Files\\Blender Foundation\\Blender 5.3\\blender.exe",
+  "colmap": "D:\\VanderbiltCampusTools\\colmap\\bin\\colmap.exe",
+  "exiftool": "D:\\VanderbiltCampusTools\\exiftool\\exiftool-13.64_64\\exiftool.exe",
+  "pdal": "D:\\VanderbiltCampusTools\\micromamba\\micromamba.exe run -p D:\\VanderbiltCampusTools\\pdal-env pdal",
+  "python": "D:\\DeadlyJenga\\Tools\\VanderbiltCampus\\.venv\\Scripts\\python.exe"
+}

@@ -1,0 +1,71 @@
+{
+  "building": "B_856050858",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -208.53,
+        -121.82,
+        31.55
+      ],
+      "size": [
+        0.87,
+        0.3,
+        0.62
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 3,
+      "source": "v1"
+    },
+    {
+      "id": "L0002",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -202.78,
+        -118.12,
+        30.2
+      ],
+      "size": [
+        4.46,
+        3.53,
+        2.36
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    },
+    {
+      "id": "L0003",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -206.95,
+        -120.57,
+        31.88
+      ],
+      "size": [
+        5.1,
+        4.06,
+        0.43
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 0,
+      "source": "v1"
+    }
+  ]
+}

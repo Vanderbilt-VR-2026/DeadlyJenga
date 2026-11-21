@@ -54,6 +54,9 @@ namespace DeadlyJenga.CastlePrototype
             AddMap(list,"ninja-temple","Moonlit Shinobi Temple","ninja",8,scene,true);
             var ninja=list.Find(m=>m.id=="mode-ninja-temple");
             if(ninja!=null){ninja.recommendedMode="ninja";ninja.supportedModes=new[]{"ninja","hill","survival","infection","demo"};}
+            AddMap(list,"vanderbilt","Campus (LoD2)","demo",1,scene,true);
+            var campus=list.Find(m=>m.id=="mode-vanderbilt");
+            if(campus!=null){campus.title="Campus (LoD2)";campus.supportedModes=new[]{"demo","hill","ctf"};campus.walkableIsland=true;}
             maps=list.ToArray();
         }
         static void AddMap(System.Collections.Generic.List<Map> list,string family,string title,string mode,int population,string scene,bool walkableIsland=false)

@@ -1,0 +1,1161 @@
+{
+  "building": "B_544597171",
+  "version": 2,
+  "name": null,
+  "osm": "way/544597171",
+  "metro_ids": [
+    144247
+  ],
+  "tile": "T_06_-07",
+  "zone": "campus",
+  "style_kit": null,
+  "lod_reached": "LoD2",
+  "footprint": {
+    "source": "osm",
+    "decisions": [
+      "OSM and Metro differ (corner p95 1.21 m); OSM is as close or closer to the LiDAR edge (0.69 vs 0.71 m): OSM used",
+      "LiDAR roof edge lies a uniform 0.60 m outside the walls: logged as roof overhang, not corrected"
+    ],
+    "area_m2": 69.55,
+    "corners": 4,
+    "overhang_m": 0.6,
+    "corner_errors": {
+      "vs_osm": {
+        "median": 0.0,
+        "p95": 0.0,
+        "max": 0.0,
+        "n": 4
+      },
+      "vs_metro": {
+        "median": 0.987,
+        "p95": 1.208,
+        "max": 1.208,
+        "n": 4
+      },
+      "vs_lidar": {
+        "median": 0.331,
+        "p95": 0.919,
+        "max": 1.0,
+        "n": 4
+      },
+      "lidar_corners_used": 4,
+      "lidar_corners_total": 4
+    }
+  },
+  "ground_z": 32.27,
+  "base_z": 31.01,
+  "roof_type": "curved",
+  "metro_roof_type": "Gable",
+  "parts": [
+    {
+      "id": "P1",
+      "area_m2": 59.2,
+      "roof_type": "curved",
+      "region": 2,
+      "planar": false,
+      "ground_z": 32.27,
+      "base_z": 31.01,
+      "eave_z": 35.065,
+      "ridge_z": 37.725,
+      "eave_height_m": 2.795,
+      "ridge_height_m": 5.455,
+      "touches_outline": true,
+      "polygon": [
+        [
+          [
+            [
+              676.184,
+              -684.563
+            ],
+            [
+              676.212,
+              -684.314
+            ],
+            [
+              674.969,
+              -684.178
+            ],
+            [
+              674.942,
+              -684.426
+            ],
+            [
+              674.196,
+              -684.344
+            ],
+            [
+              674.224,
+              -684.095
+            ],
+            [
+              673.975,
+              -684.068
+            ],
+            [
+              674.002,
+              -683.82
+            ],
+            [
+              673.257,
+              -683.738
+            ],
+            [
+              673.23,
+              -683.986
+            ],
+            [
+              672.733,
+              -683.931
+            ],
+            [
+              672.76,
+              -683.683
+            ],
+            [
+              672.014,
+              -683.601
+            ],
+            [
+              672.042,
+              -683.352
+            ],
+            [
+              671.296,
+              -683.27
+            ],
+            [
+              671.269,
+              -683.519
+            ],
+            [
+              671.02,
+              -683.492
+            ],
+            [
+              670.993,
+              -683.74
+            ],
+            [
+              670.248,
+              -683.658
+            ],
+            [
+              670.275,
+              -683.409
+            ],
+            [
+              670.026,
+              -683.382
+            ],
+            [
+              669.999,
+              -683.631
+            ],
+            [
+              669.751,
+              -683.603
+            ],
+            [
+              669.778,
+              -683.355
+            ],
+            [
+              669.529,
+              -683.327
+            ],
+            [
+              669.502,
+              -683.576
+            ],
+            [
+              669.254,
+              -683.549
+            ],
+            [
+              669.199,
+              -684.046
+            ],
+            [
+              669.447,
+              -684.073
+            ],
+            [
+              669.42,
+              -684.321
+            ],
+            [
+              669.172,
+              -684.294
+            ],
+            [
+              669.14,
+              -684.583
+            ],
+            [
+              668.151,
+              -684.474
+            ],
+            [
+              669.094,
+              -675.959
+            ],
+            [
+              677.035,
+              -676.832
+            ],
+            [
+              676.922,
+              -677.853
+            ],
+            [
+              676.674,
+              -677.826
+            ],
+            [
+              676.619,
+              -678.323
+            ],
+            [
+              676.868,
+              -678.35
+            ],
+            [
+              676.786,
+              -679.096
+            ],
+            [
+              676.912,
+              -679.11
+            ],
+            [
+              676.313,
+              -684.577
+            ]
+          ],
+          [
+            [
+              676.398,
+              -678.047
+            ],
+            [
+              675.901,
+              -677.992
+            ],
+            [
+              675.874,
+              -678.241
+            ],
+            [
+              676.122,
+              -678.268
+            ],
+            [
+              676.095,
+              -678.517
+            ],
+            [
+              676.343,
+              -678.544
+            ]
+          ],
+          [
+            [
+              673.804,
+              -678.768
+            ],
+            [
+              672.313,
+              -678.604
+            ],
+            [
+              672.258,
+              -679.101
+            ],
+            [
+              673.004,
+              -679.183
+            ],
+            [
+              672.976,
+              -679.431
+            ],
+            [
+              673.225,
+              -679.458
+            ],
+            [
+              673.252,
+              -679.21
+            ],
+            [
+              673.749,
+              -679.265
+            ]
+          ],
+          [
+            [
+              672.449,
+              -677.361
+            ],
+            [
+              671.455,
+              -677.252
+            ],
+            [
+              671.538,
+              -676.506
+            ],
+            [
+              671.041,
+              -676.451
+            ],
+            [
+              671.013,
+              -676.7
+            ],
+            [
+              671.262,
+              -676.727
+            ],
+            [
+              671.234,
+              -676.976
+            ],
+            [
+              670.986,
+              -676.948
+            ],
+            [
+              670.931,
+              -677.445
+            ],
+            [
+              670.683,
+              -677.418
+            ],
+            [
+              670.655,
+              -677.667
+            ],
+            [
+              671.401,
+              -677.749
+            ],
+            [
+              671.428,
+              -677.5
+            ],
+            [
+              672.422,
+              -677.61
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "P2",
+      "area_m2": 7.4,
+      "roof_type": "pitched",
+      "region": 1,
+      "planar": false,
+      "ground_z": 32.27,
+      "base_z": 31.01,
+      "eave_z": 35.356,
+      "ridge_z": 35.969,
+      "eave_height_m": 3.086,
+      "ridge_height_m": 3.699,
+      "touches_outline": true,
+      "polygon": [
+        [
+          [
+            [
+              676.13,
+              -685.06
+            ],
+            [
+              676.102,
+              -685.308
+            ],
+            [
+              675.854,
+              -685.281
+            ],
+            [
+              675.849,
+              -685.32
+            ],
+            [
+              670.631,
+              -684.746
+            ],
+            [
+              670.635,
+              -684.707
+            ],
+            [
+              669.641,
+              -684.597
+            ],
+            [
+              669.696,
+              -684.1
+            ],
+            [
+              669.944,
+              -684.128
+            ],
+            [
+              669.972,
+              -683.879
+            ],
+            [
+              669.723,
+              -683.852
+            ],
+            [
+              669.751,
+              -683.603
+            ],
+            [
+              669.999,
+              -683.631
+            ],
+            [
+              670.026,
+              -683.382
+            ],
+            [
+              670.275,
+              -683.409
+            ],
+            [
+              670.248,
+              -683.658
+            ],
+            [
+              670.993,
+              -683.74
+            ],
+            [
+              671.02,
+              -683.492
+            ],
+            [
+              671.269,
+              -683.519
+            ],
+            [
+              671.296,
+              -683.27
+            ],
+            [
+              672.042,
+              -683.352
+            ],
+            [
+              672.014,
+              -683.601
+            ],
+            [
+              672.76,
+              -683.683
+            ],
+            [
+              672.733,
+              -683.931
+            ],
+            [
+              673.23,
+              -683.986
+            ],
+            [
+              673.257,
+              -683.738
+            ],
+            [
+              674.002,
+              -683.82
+            ],
+            [
+              673.975,
+              -684.068
+            ],
+            [
+              674.224,
+              -684.095
+            ],
+            [
+              674.196,
+              -684.344
+            ],
+            [
+              674.942,
+              -684.426
+            ],
+            [
+              674.969,
+              -684.178
+            ],
+            [
+              676.212,
+              -684.314
+            ],
+            [
+              676.184,
+              -684.563
+            ],
+            [
+              676.313,
+              -684.577
+            ],
+            [
+              676.258,
+              -685.074
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "P3",
+      "area_m2": 0.88,
+      "roof_type": "flat",
+      "region": 7,
+      "planar": true,
+      "ground_z": 32.27,
+      "base_z": 31.01,
+      "eave_z": 35.988,
+      "ridge_z": 36.027,
+      "eave_height_m": 3.718,
+      "ridge_height_m": 3.757,
+      "touches_outline": false,
+      "polygon": [
+        [
+          [
+            [
+              671.428,
+              -677.5
+            ],
+            [
+              671.401,
+              -677.749
+            ],
+            [
+              670.655,
+              -677.667
+            ],
+            [
+              670.683,
+              -677.418
+            ],
+            [
+              670.931,
+              -677.445
+            ],
+            [
+              670.986,
+              -676.948
+            ],
+            [
+              671.234,
+              -676.976
+            ],
+            [
+              671.262,
+              -676.727
+            ],
+            [
+              671.013,
+              -676.7
+            ],
+            [
+              671.041,
+              -676.451
+            ],
+            [
+              671.538,
+              -676.506
+            ],
+            [
+              671.455,
+              -677.252
+            ],
+            [
+              672.449,
+              -677.361
+            ],
+            [
+              672.422,
+              -677.61
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "P4",
+      "area_m2": 0.62,
+      "roof_type": "pitched",
+      "region": 8,
+      "planar": true,
+      "ground_z": 32.27,
+      "base_z": 31.01,
+      "eave_z": 36.127,
+      "ridge_z": 36.273,
+      "eave_height_m": 3.857,
+      "ridge_height_m": 4.003,
+      "touches_outline": true,
+      "polygon": [
+        [
+          [
+            [
+              669.172,
+              -684.294
+            ],
+            [
+              669.42,
+              -684.321
+            ],
+            [
+              669.447,
+              -684.073
+            ],
+            [
+              669.199,
+              -684.046
+            ],
+            [
+              669.254,
+              -683.549
+            ],
+            [
+              669.502,
+              -683.576
+            ],
+            [
+              669.529,
+              -683.327
+            ],
+            [
+              669.778,
+              -683.355
+            ],
+            [
+              669.723,
+              -683.852
+            ],
+            [
+              669.972,
+              -683.879
+            ],
+            [
+              669.944,
+              -684.128
+            ],
+            [
+              669.696,
+              -684.1
+            ],
+            [
+              669.641,
+              -684.597
+            ],
+            [
+              670.635,
+              -684.707
+            ],
+            [
+              670.631,
+              -684.746
+            ],
+            [
+              669.14,
+              -684.583
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "P5",
+      "area_m2": 0.44,
+      "roof_type": "flat",
+      "region": 5,
+      "planar": true,
+      "ground_z": 32.27,
+      "base_z": 31.01,
+      "eave_z": 35.408,
+      "ridge_z": 35.441,
+      "eave_height_m": 3.138,
+      "ridge_height_m": 3.171,
+      "touches_outline": true,
+      "polygon": [
+        [
+          [
+            [
+              673.252,
+              -679.21
+            ],
+            [
+              673.225,
+              -679.458
+            ],
+            [
+              672.976,
+              -679.431
+            ],
+            [
+              673.004,
+              -679.183
+            ],
+            [
+              672.258,
+              -679.101
+            ],
+            [
+              672.285,
+              -678.852
+            ],
+            [
+              673.776,
+              -679.016
+            ],
+            [
+              673.749,
+              -679.265
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "P6",
+      "area_m2": 0.41,
+      "roof_type": "pitched",
+      "region": 3,
+      "planar": false,
+      "ground_z": 32.27,
+      "base_z": 31.01,
+      "eave_z": 35.841,
+      "ridge_z": 36.401,
+      "eave_height_m": 3.571,
+      "ridge_height_m": 4.131,
+      "touches_outline": true,
+      "polygon": [
+        [
+          [
+            [
+              676.786,
+              -679.096
+            ],
+            [
+              676.868,
+              -678.35
+            ],
+            [
+              676.619,
+              -678.323
+            ],
+            [
+              676.674,
+              -677.826
+            ],
+            [
+              676.922,
+              -677.853
+            ],
+            [
+              677.035,
+              -676.832
+            ],
+            [
+              677.16,
+              -676.846
+            ],
+            [
+              676.912,
+              -679.11
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "P7",
+      "area_m2": 0.37,
+      "roof_type": "flat",
+      "region": 6,
+      "planar": true,
+      "ground_z": 32.27,
+      "base_z": 31.01,
+      "eave_z": 36.662,
+      "ridge_z": 36.686,
+      "eave_height_m": 4.392,
+      "ridge_height_m": 4.416,
+      "touches_outline": true,
+      "polygon": [
+        [
+          [
+            [
+              672.285,
+              -678.852
+            ],
+            [
+              672.313,
+              -678.604
+            ],
+            [
+              673.804,
+              -678.768
+            ],
+            [
+              673.776,
+              -679.016
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "P8",
+      "area_m2": 0.19,
+      "roof_type": "pitched",
+      "region": 4,
+      "planar": true,
+      "ground_z": 32.27,
+      "base_z": 31.01,
+      "eave_z": 35.9,
+      "ridge_z": 36.047,
+      "eave_height_m": 3.63,
+      "ridge_height_m": 3.777,
+      "touches_outline": false,
+      "polygon": [
+        [
+          [
+            [
+              676.095,
+              -678.517
+            ],
+            [
+              676.122,
+              -678.268
+            ],
+            [
+              675.874,
+              -678.241
+            ],
+            [
+              675.901,
+              -677.992
+            ],
+            [
+              676.398,
+              -678.047
+            ],
+            [
+              676.343,
+              -678.544
+            ]
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "P9",
+      "area_m2": 0.05,
+      "roof_type": "pitched",
+      "region": 0,
+      "planar": true,
+      "ground_z": 32.27,
+      "base_z": 31.01,
+      "eave_z": 35.103,
+      "ridge_z": 35.115,
+      "eave_height_m": 2.833,
+      "ridge_height_m": 2.845,
+      "touches_outline": true,
+      "polygon": [
+        [
+          [
+            [
+              675.854,
+              -685.281
+            ],
+            [
+              676.102,
+              -685.308
+            ],
+            [
+              676.13,
+              -685.06
+            ],
+            [
+              676.258,
+              -685.074
+            ],
+            [
+              676.227,
+              -685.361
+            ],
+            [
+              675.849,
+              -685.32
+            ]
+          ]
+        ]
+      ]
+    }
+  ],
+  "roof_fit": {
+    "points": 688,
+    "density_pts_m2": 9.89,
+    "coverage": 0.783,
+    "planes": 3,
+    "fallback": null,
+    "roof_color": {
+      "mean_rgb": [
+        92,
+        94,
+        91
+      ],
+      "saturation": 0.03,
+      "value": 0.369
+    },
+    "equipment_volumes": 0,
+    "heightfield": {
+      "cells": 1188,
+      "measured_share": 0.481,
+      "noise_cells": 5,
+      "theta_deg": 83.72,
+      "snapped_to_v1_share": 0.598,
+      "regions": 9,
+      "break_edges": 252,
+      "planar_regions": 6,
+      "pieces": 175,
+      "split_pieces": 161
+    },
+    "roof_material": "roof_slate"
+  },
+  "materials": [
+    "brick_red",
+    "concrete",
+    "roof_flat",
+    "roof_slate"
+  ],
+  "wall_material_guess": true,
+  "material_rule": "walls and vertical roof steps brick_red (guess); roof faces flatter than 6 deg roof_flat, steeper roof_slate unless the Metro 2026 ortho color is clearly green (roof_copper) or orange-red (roof_tile); base concrete",
+  "flags": [],
+  "uv_m_per_unit": {
+    "lod2": 27.6561,
+    "lod1": 20.8874
+  },
+  "ledger_entries": 8,
+  "mesh_checks": {
+    "lod2": [],
+    "lod1": []
+  },
+  "roof_method": "heightfield_v2",
+  "roof_method_reason": "v1 fails the accuracy gate",
+  "hero": false,
+  "uv_check": {
+    "charts": 337,
+    "inside_atlas": true,
+    "rectangle_overlaps": 0
+  },
+  "triangles": {
+    "lod2": 1084,
+    "lod1": 12,
+    "col_mesh": 1030
+  },
+  "collider": {
+    "kind": "one non-convex static triangle mesh (LoD2 shell without base cap)",
+    "triangles": 1030,
+    "shell_triangles": 1030,
+    "max_dev_m": 0.0,
+    "p95_dev_m": 0.0,
+    "simplified": false,
+    "tries": [],
+    "within_tolerance": true,
+    "over_triangle_budget": false,
+    "problems": []
+  },
+  "roof_surface_error": {
+    "planes_v1": {
+      "n": 557,
+      "median": 0.03,
+      "p90": 1.043,
+      "p95": 1.258,
+      "within_0.2": 0.702
+    },
+    "heightfield_v2": {
+      "n": 557,
+      "median": 0.03,
+      "p90": 0.279,
+      "p95": 0.571,
+      "within_0.2": 0.8707
+    }
+  },
+  "heightfield_error": null,
+  "files": {
+    "lod2": "lod2.npz",
+    "lod1": "lod1.npz",
+    "col_mesh": "col_mesh.npz",
+    "roof_planes": "roof_planes.json",
+    "ledger": "ledger.json"
+  },
+  "accuracy": {
+    "pass": true,
+    "pass_footprint": true,
+    "pass_eave": true,
+    "pass_ridge": true,
+    "reason": null,
+    "footprint_ref_p95_m": 0.0,
+    "eave_err_m": 0.056,
+    "ridge_err_m": -0.01,
+    "worst_eave_err_m": 0.056,
+    "worst_ridge_err_m": 0.01,
+    "roof_surface": {
+      "median": 0.031,
+      "p95": 0.737,
+      "max": 1.506,
+      "n": 567
+    },
+    "roof_points_per_m2": 8.15,
+    "whole_roof": {
+      "n": 567,
+      "median": 0.031,
+      "p90": 0.356,
+      "p95": 0.737,
+      "within_0.2": 0.8554,
+      "n_within_0.2": 485
+    },
+    "roof_method": "heightfield_v2",
+    "footprint": {
+      "vs_reference": {
+        "median": 0.0,
+        "p95": 0.0,
+        "max": 0.0,
+        "n": 4
+      },
+      "vs_lidar": {
+        "median": 0.021,
+        "p95": 0.021,
+        "max": 0.021,
+        "n": 2
+      },
+      "corners": 4,
+      "corners_moved_to_lidar": 0,
+      "corners_with_lidar_evidence": 2,
+      "corners_without_clean_evidence": 2,
+      "reference": "osm outline; LiDAR edge for moved corners"
+    },
+    "parts": [
+      {
+        "id": "P1",
+        "area_m2": 59.2,
+        "roof_type": "curved",
+        "eave_z": 35.065,
+        "ridge_z": 37.725,
+        "fit_share": 0.944,
+        "lidar_eave_band": [
+          34.96,
+          35.009
+        ],
+        "eave_err_m": 0.056,
+        "eave_diff_to_p7.5_m": 0.081,
+        "eave_points": 10,
+        "lidar_ridge_band": [
+          37.735,
+          37.744
+        ],
+        "ridge_err_m": -0.01,
+        "ridge_points": 128,
+        "checked": true
+      },
+      {
+        "id": "P2",
+        "area_m2": 7.4,
+        "roof_type": "pitched",
+        "eave_z": 35.356,
+        "ridge_z": 35.969,
+        "fit_share": 1.0,
+        "lidar_eave_band": [
+          35.374,
+          35.38
+        ],
+        "eave_err_m": -0.018,
+        "eave_diff_to_p7.5_m": -0.024,
+        "eave_points": 15,
+        "checked": false,
+        "why_not": "fewer than 10 LiDAR points near the eave or ridge"
+      },
+      {
+        "id": "P3",
+        "area_m2": 0.88,
+        "roof_type": "flat",
+        "eave_z": 35.988,
+        "ridge_z": 36.027,
+        "checked": false,
+        "why_not": "part under 4 m2"
+      },
+      {
+        "id": "P4",
+        "area_m2": 0.62,
+        "roof_type": "pitched",
+        "eave_z": 36.127,
+        "ridge_z": 36.273,
+        "checked": false,
+        "why_not": "part under 4 m2"
+      },
+      {
+        "id": "P5",
+        "area_m2": 0.44,
+        "roof_type": "flat",
+        "eave_z": 35.408,
+        "ridge_z": 35.441,
+        "checked": false,
+        "why_not": "part under 4 m2"
+      },
+      {
+        "id": "P6",
+        "area_m2": 0.41,
+        "roof_type": "pitched",
+        "eave_z": 35.841,
+        "ridge_z": 36.401,
+        "checked": false,
+        "why_not": "part under 4 m2"
+      },
+      {
+        "id": "P7",
+        "area_m2": 0.37,
+        "roof_type": "flat",
+        "eave_z": 36.662,
+        "ridge_z": 36.686,
+        "checked": false,
+        "why_not": "part under 4 m2"
+      },
+      {
+        "id": "P8",
+        "area_m2": 0.19,
+        "roof_type": "pitched",
+        "eave_z": 35.9,
+        "ridge_z": 36.047,
+        "checked": false,
+        "why_not": "part under 4 m2"
+      },
+      {
+        "id": "P9",
+        "area_m2": 0.05,
+        "roof_type": "pitched",
+        "eave_z": 35.103,
+        "ridge_z": 35.115,
+        "checked": false,
+        "why_not": "part under 4 m2"
+      }
+    ],
+    "checked": "2026-11-20T12:20:45"
+  },
+  "v1_accuracy_pass": false,
+  "seconds": 10.26,
+  "parts_refreshed": "2026-11-20T12:05:21"
+}

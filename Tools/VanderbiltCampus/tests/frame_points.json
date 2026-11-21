@@ -1,0 +1,148 @@
+{
+  "note": "Expected campus coordinates computed by tests/make_frame_points.py (PROJ string + longhand formula, not frame.py).",
+  "frame_version": 1,
+  "points": [
+    {
+      "name": "origin (Alumni Lawn centroid)",
+      "epsg": 4326,
+      "source": [
+        -86.803953057,
+        36.14745729,
+        168.66
+      ],
+      "expected": [
+        -3e-06,
+        5e-05,
+        26.42
+      ]
+    },
+    {
+      "name": "boundary+ring west-most vertex",
+      "epsg": 4326,
+      "source": [
+        -86.8161437,
+        36.1413157,
+        160.0
+      ],
+      "expected": [
+        -1102.772851,
+        -672.391259,
+        17.76
+      ]
+    },
+    {
+      "name": "boundary+ring east-most vertex",
+      "epsg": 4326,
+      "source": [
+        -86.7928485,
+        36.1430677,
+        160.0
+      ],
+      "expected": [
+        995.403114,
+        -495.223626,
+        17.76
+      ]
+    },
+    {
+      "name": "boundary+ring south-most vertex",
+      "epsg": 4326,
+      "source": [
+        -86.8034017,
+        36.1355243,
+        160.0
+      ],
+      "expected": [
+        38.749344,
+        -1324.494852,
+        17.76
+      ]
+    },
+    {
+      "name": "boundary+ring north-most vertex",
+      "epsg": 4326,
+      "source": [
+        -86.7993688,
+        36.1519927,
+        160.0
+      ],
+      "expected": [
+        416.66837,
+        499.872043,
+        17.76
+      ]
+    },
+    {
+      "name": "Kirkland Hall corner (way/544397715 node/5262561770)",
+      "epsg": 4326,
+      "source": [
+        -86.8029705,
+        36.1480448,
+        170.0
+      ],
+      "expected": [
+        88.959561,
+        64.464457,
+        27.76
+      ]
+    },
+    {
+      "name": "Cohen Memorial Hall corner (way/486160405 node/4788571525)",
+      "epsg": 4326,
+      "source": [
+        -86.7995579,
+        36.1416962,
+        170.0
+      ],
+      "expected": [
+        390.317188,
+        -642.493017,
+        27.76
+      ]
+    },
+    {
+      "name": "Furman Hall corner (way/261715434 node/2673130904)",
+      "epsg": 4326,
+      "source": [
+        -86.8015516,
+        36.1480569,
+        170.0
+      ],
+      "expected": [
+        216.662769,
+        64.760312,
+        27.76
+      ]
+    },
+    {
+      "name": "D22 EPT point (class 6)",
+      "epsg": 3857,
+      "z_unit": "m",
+      "source": [
+        -9662091.91,
+        4320285.85,
+        179.93
+      ],
+      "expected": [
+        707.156882,
+        -524.532884,
+        37.69
+      ]
+    },
+    {
+      "name": "D22 original tile 092150 point (class 2)",
+      "epsg": 6576,
+      "z_unit": "ftUS",
+      "source": [
+        1729998.2,
+        661380.75,
+        522.19
+      ],
+      "expected": [
+        -346.794971,
+        15.432957,
+        16.92383
+      ]
+    }
+  ]
+}

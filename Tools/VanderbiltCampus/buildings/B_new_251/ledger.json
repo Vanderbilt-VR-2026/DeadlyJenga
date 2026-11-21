@@ -1,0 +1,71 @@
+{
+  "building": "B_new_251",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "small_roof_step",
+      "merged_into": "roof",
+      "center": [
+        640.26,
+        -490.81,
+        29.41
+      ],
+      "size": [
+        1.49,
+        5.68,
+        0.17
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 27,
+      "source": "v1"
+    },
+    {
+      "id": "L0002",
+      "type": "small_roof_step",
+      "merged_into": "roof",
+      "center": [
+        643.36,
+        -490.74,
+        30.01
+      ],
+      "size": [
+        2.36,
+        6.63,
+        0.26
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 43,
+      "source": "v1"
+    },
+    {
+      "id": "L0003",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        637.13,
+        -487.03,
+        28.55
+      ],
+      "size": [
+        11.97,
+        2.69,
+        0.09
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 0,
+      "source": "v1"
+    }
+  ]
+}

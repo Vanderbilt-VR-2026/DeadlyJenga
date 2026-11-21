@@ -1,0 +1,591 @@
+{
+  "building": "B_1052134886",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -86.96,
+        -332.15,
+        37.6
+      ],
+      "size": [
+        0.84,
+        0.3,
+        1.27
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 3,
+      "source": "v1"
+    },
+    {
+      "id": "L0002",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        -93.51,
+        -327.61,
+        33.42
+      ],
+      "size": [
+        7.03,
+        3.24,
+        4.39
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 122,
+      "source": "v1"
+    },
+    {
+      "id": "L0003",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -75.97,
+        -325.73,
+        37.61
+      ],
+      "size": [
+        0.89,
+        0.3,
+        1.25
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 3,
+      "source": "v1"
+    },
+    {
+      "id": "L0004",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -69.85,
+        -322.08,
+        37.51
+      ],
+      "size": [
+        0.88,
+        0.31,
+        1.15
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 3,
+      "source": "v1"
+    },
+    {
+      "id": "L0005",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -64.58,
+        -318.97,
+        37.6
+      ],
+      "size": [
+        0.88,
+        0.3,
+        1.26
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 3,
+      "source": "v1"
+    },
+    {
+      "id": "L0006",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -61.25,
+        -316.89,
+        37.68
+      ],
+      "size": [
+        0.89,
+        0.48,
+        1.31
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 3,
+      "source": "v1"
+    },
+    {
+      "id": "L0007",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        -53.25,
+        -310.99,
+        38.11
+      ],
+      "size": [
+        4.89,
+        2.57,
+        3.23
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 62,
+      "source": "v1"
+    },
+    {
+      "id": "L0008",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -33.38,
+        -311.41,
+        37.61
+      ],
+      "size": [
+        0.73,
+        0.51,
+        1.22
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 3,
+      "source": "v1"
+    },
+    {
+      "id": "L0009",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -42.81,
+        -306.0,
+        37.61
+      ],
+      "size": [
+        0.86,
+        0.3,
+        1.32
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 3,
+      "source": "v1"
+    },
+    {
+      "id": "L0010",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        -97.93,
+        -336.07,
+        30.47
+      ],
+      "size": [
+        3.13,
+        3.75,
+        0.76
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    },
+    {
+      "id": "L0011",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        -59.54,
+        -313.68,
+        36.36
+      ],
+      "size": [
+        5.75,
+        3.5,
+        0.79
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    },
+    {
+      "id": "L0012",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -82.67,
+        -340.51,
+        36.42
+      ],
+      "size": [
+        0.25,
+        0.25,
+        3.12
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0013",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -53.66,
+        -311.47,
+        36.36
+      ],
+      "size": [
+        0.25,
+        0.25,
+        0.54
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0014",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        -55.34,
+        -324.36,
+        39.51
+      ],
+      "size": [
+        0.25,
+        0.25,
+        3.1
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0015",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -55.55,
+        -324.49,
+        36.41
+      ],
+      "size": [
+        0.25,
+        0.25,
+        3.06
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0016",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -89.89,
+        -330.26,
+        30.35
+      ],
+      "size": [
+        0.25,
+        0.25,
+        0.87
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0017",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -92.33,
+        -329.08,
+        30.46
+      ],
+      "size": [
+        0.25,
+        0.25,
+        2.89
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0018",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        -63.04,
+        -315.26,
+        36.2
+      ],
+      "size": [
+        0.25,
+        0.25,
+        2.87
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0019",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        -95.64,
+        -324.94,
+        35.53
+      ],
+      "size": [
+        0.25,
+        0.25,
+        5.08
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0020",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        -98.66,
+        -326.72,
+        35.54
+      ],
+      "size": [
+        0.25,
+        0.25,
+        5.09
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0021",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        -100.17,
+        -327.61,
+        35.55
+      ],
+      "size": [
+        0.25,
+        0.25,
+        5.11
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0022",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        -101.03,
+        -328.12,
+        35.55
+      ],
+      "size": [
+        0.25,
+        0.25,
+        5.11
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0023",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -95.52,
+        -325.16,
+        30.44
+      ],
+      "size": [
+        0.25,
+        0.25,
+        5.08
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0024",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -97.67,
+        -326.43,
+        30.45
+      ],
+      "size": [
+        0.25,
+        0.25,
+        5.07
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0025",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -98.53,
+        -326.94,
+        30.45
+      ],
+      "size": [
+        0.25,
+        0.25,
+        5.1
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0026",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -95.26,
+        -325.59,
+        30.44
+      ],
+      "size": [
+        0.25,
+        0.25,
+        4.9
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    },
+    {
+      "id": "L0027",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        -95.0,
+        -324.56,
+        35.52
+      ],
+      "size": [
+        0.25,
+        0.25,
+        5.08
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+# Decisions
+
+Each entry: choice, alternatives, why. Newest at the bottom. Owner: Vanderbilt-Main.
+
+## D001 Archive location (Stage 0)
+- Choice: `C:\Users\evanp\VanderbiltCampusData` (set in `config/local.json`).
+- Alternatives: `D:\VanderbiltCampusData` (no D: drive on this PC); inside the repo (forbidden).
+- Why: only C: exists, with 314 GB free. Moving to a drive with >= 500 GB free is on EVAN-TODO.
+
+## D002 One chat runs all stages
+- Choice: this chat (Main) runs Stages 0-5 in order without stopping between them; Evan reviews at the end.
+- Why: Evan's instruction. Stage "Done when" checks still gate each next stage.
+
+## D003 Palette encoding: vertex color index (Stage 0)
+- Choice: every exported vertex carries its material index in vertex color R (`index/255`, G/B/A = 1);
+  submeshes are also named `mat_<id>`. Index list in `Tools/VanderbiltCampus/config/material_ids.json`.
+- Alternatives: UV1 pointing at a palette swatch (STANDARDS §7 allows either).
+- Why: Unity uses UV1 (mesh `uv2`) for lightmaps, and Stage 4/5 bake lightmaps per tile. Vertex color keeps
+  UV0 for the bake and UV1 for lightmaps, with nothing repurposed. Submesh names still let Presentation pick
+  materials directly if it prefers.
+
+## D004 Starting palette (Stage 0)
+- Choice: two colors per ID in `material_ids.json`: `candy` (Deadly Jenga glossy candy/plastic, the default
+  look) and `plain` (true-to-life flat colors for the Stage 5 comparison look). Gray fallback `#9A9A9A` when
+  Presentation is removed. Presentation owns the final values.
+
+## D005 Player-facing map name (Stage 0)
+- Choice: "Campus" (lobby title "Campus (LoD2)" while massing only). Data and editor tools may use
+  "Vanderbilt" and OSM building names; nothing player-facing does until Evan records a trademark decision
+  (STANDARDS §12).
+
+## D006 Campus boundary (Stage 0)
+- Choice: OSM way/131042264 "Vanderbilt University" (the only amenity=university polygon; Peabody and the
+  Medical Center lie inside it), closed by 20 m, plus whole street blocks that are >= 75% campus.
+  Campus 1,603,003 m2; 150 m backdrop ring 964,158 m2.
+- Alternatives: cut out the Medical Center (not a separate polygon in OSM; keeping it loses nothing).
+- Why: keeps the most area; the shot list (Stage 2) marks hospital buildings as background priority.
+
+## D007 Working LiDAR copy while USGS throttles the original tiles (Stage 0)
+- Choice: Stage 1 works from the USGS public EPT copy of TN_DavidsonCounty_D22 cropped to campus + ring
+  (`raw/lidar/TN_DavidsonCounty_D22/EPT/`), de-duplicated (the crop has every point twice) and converted
+  to the campus frame under `derived/lidar/`. The 10 original LAZ tiles keep downloading in the background
+  (rockyweb answers HTTP 429; about one tile per 30-40 minutes) and are compared with the EPT copy when
+  complete.
+- Alternatives: wait hours for the tiles before starting Stage 1.
+- Why: same USGS data, same points; nothing is lost, and the originals still land in `raw/`.
+
+## D008 2011 LiDAR and orthophoto sources (Stage 0)
+- 2011 Nashville LiDAR: EPT crop only (6.18 M points, all class 0, 1.6 pts/m2); the 3 GB staging strips
+  were skipped because of the rate limit. Comparison only, so nothing depends on it.
+- Orthophoto: Metro Nashville 2026 imagery exported at 0.15 m/px (license not stated: reference only,
+  never shipped, never leaves this machine) and USGS NAIP 2021 at 0.6 m (public domain) as the
+  shareable fallback. Overlays in results files that might be shared use NAIP.
+- Metro footprints (with Height and RoofType) and 2021 canopy: Metro open data, no explicit license text
+  (Executive Order FO-018); used for cross-checks, credited in ATTRIBUTION.md.
+
+## D009 Stand-in capture sets (Stages 2-4, until Evan's capture exists)
+- Found: public photos cannot cover Kirkland Hall. Wikimedia Commons has 13 modern Kirkland photos from
+  different years and cameras (not alignable as a set); KartaView (CC BY-SA 4.0) has 353 street images along
+  21st Ave S / the east edge of campus (closest 313 m from Kirkland); Mapillary and Flickr need accounts.
+- Choice: (a) intake and alignment are proven on the KartaView 21st Ave S sequences, which lie on the campus
+  LiDAR, so registration to LiDAR is tested for real; (b) the Zenodo 16576623 building set (CC BY 4.0, 65
+  photos) is the well-overlapped control set for the alignment code; (c) Stage 4's measured LoD3 building is
+  one the KartaView images see; Kirkland Hall gets its LoD3+ model from LiDAR plus the Commons photos as
+  visual reference only, flagged "not photo-measured" with its needed shots at the top of EVAN-TODO.
+- Alternatives: stop Stage 4 until Evan captures Kirkland (the brief says not to stop).
+- Why: keeps every stage's code proven on real, licensed, on-campus data, and reports honestly what waits
+  on the capture.
+
+## D010 Campus frame v1 (Stage 0)
+- Origin: centroid of OSM way/259811259 "Alumni Lawn" (lat 36.147457290, lon -86.803953057; E0 1,731,135.91,
+  N0 661,330.12 ftUS in EPSG:6576). X = grid east, Y = grid north (no rotation; convergence -0.4707 deg
+  recorded), Z up, meters. Unity (x, y, z) = (X, Z, Y).
+- Scale: grid feet to ground meters with the combined factor k = 0.999941553295 (grid 0.999963314 x
+  elevation 0.999978238), so campus distances are true ground meters (5.8 cm per km differs from grid meters).
+- Vertical: Z = NAVD88 meters - 142.24, which puts the lowest ground in campus + ring at Z = 2.00 m, so all
+  walkable ground is above Unity y = 0 (bots die below y = -6). The STANDARDS note "map root at the world
+  origin" holds; no extra Unity offset is needed.
+- The EPT copy stores Z in meters (the original tiles use ftUS); `frame.py` handles both.
+- EPT positions are rounded to 1 cm (median 4.3 mm from the original tile 092150, same points, same
+  classes). Far inside Stage 1 tolerances; a `derived/lidar/v2` from the original tiles can replace it later
+  without changing the frame.
+
+## D011 Building IDs
+- OSM ways: `B_<way id>`; OSM multipolygon relations: `B_r<relation id>`; not in OSM: `B_new_<n>`.
+- Why: way and relation ids overlap in OSM, and STANDARDS §6 only says `B_<osm_id>`.
+
+## D012 Hero list against OSM (Stage 0)
+- Found under other OSM names: Central Library = "Jean & Alexander Heard Library"; Benson Hall = "Benson
+  Science Hall"; Engineering and Science Building = "Science and Engineering Building".
+- No OSM outline: Kirkland tower (inside Kirkland Hall, way/544397715), Rand Wall, Peabody Esplanade
+  (node only), Branscomb Quad (treated as its four houses + market). "Commons" = Commons Center
+  (way/370608816). Stage 2's shot list carries these as named areas; see `config/hero_spots.json`.
+
+## D013 Capture plan size and tiers (Stage 2)
+- Found: the campus has 375 buildings and 2,691 facades (1,912 reachable from public ground). Shooting every
+  facade to the full standard (3 passes x 2 heights, 75% overlap) is about 200,000 photos, 275 hours and 94
+  capture days; 5 TB as DNG.
+- Choice: keep the complete shot list (nothing dropped), and work in tiers: (1) Day 1 = Kirkland Hall + Alumni
+  Lawn at the full standard (needed by Stage 4); (2) hero spots at the full standard (RAW/DNG); (3) normal
+  buildings at the `min_photos` count (one pass, one height, about 40% of the full estimate; HEIC/JPEG is
+  acceptable); (4) background entries optional. A 360 walk of the paths covers everything quickly if Evan
+  gets a 360 camera. Evan can raise any building to the full standard later; intake and the coverage map
+  track status per facade either way.
+- Alternatives: cut the list to hero spots only (loses the record of what is still needed); require the full
+  standard everywhere (not realistic for one person).
+- Why: keeps the most data per hour and makes the remaining work visible.
+
+## D014 Buildings v2 and colliders (Stage 1)
+- Found: v1 (plane fitting) passes the accuracy gate for 28.3% of buildings (56.0% on the main part) and
+  got Kirkland Hall's roof wrong.
+- Choice: v2 keeps v1 where it passes and otherwise builds the roof from the LiDAR height field with real
+  breaks and a 0.08 m merge tolerance (exact shape first, clean planes second). Each building gets one
+  non-convex static mesh collider (`COLM_<id>`) instead of ~30 convex parts (248 of those were degenerate
+  for PhysX). v1 stays in the archive.
+- Why: Evan's goal is the exact shape; static mesh colliders are exact and far fewer.
+
+## D015 Tile export axes and LODs (Stage 1)
+- Unity mirrors raw z for our FBX header, measured on the first import (tiles came in turned 180 degrees);
+  the exporter was corrected and the builder now checks orientation against unity_map.json on every build.
+- One LODGroup per tile: detail to about 143 m, mid to about 250 m, then a one-draw-call HLOD mesh (far
+  terrain + LoD1 buildings + LoD1 trees + ring). In-progress FBX tiles are tested from a local-only commit
+  and pushed once final, to avoid filling Git LFS with intermediate versions.
+
+## D016 Game-weight building meshes (Stage 1)
+- Buildings v2 follow the LiDAR roof closely but weigh 2.65 M triangles (colliders 1.75 M), far over the
+  Quest budget. A separate step (`buildings_game.py`) merges coplanar pieces and simplifies within 0.05 m
+  (visual) and 0.15 m (collider) of the LoD2 mesh; the game uses those files, the archive keeps the exact ones.
+
+## D017 Play area and gameplay on a 1.2 km map (Stage 5)
+- Towers, spawns and objectives live in a play area (default 150 m around Alumni Lawn, a data value in
+  `Tools/VanderbiltCampus/config/gameplay.json`); the rest of the campus is walkable scenery.
+  `IWorldQuery` Center/Radius/TopHeight/PlayableBounds describe the play area so bots and disasters stay in
+  it; `IMapFootprint` stays the whole campus. Towers reuse the castle blocks. StepHeight stays 0.5 m.
+- Modes made startable: King of the Hill and Capture the Flag (plus demo). Bot smoke test uses 8 bots.
+- Streaming: tiles beyond 300 m from every player/bot drop to their far mesh and switch colliders off
+  (local only, never part of the synced layout). No baked lighting ships yet; one realtime sun.
+
+## D018 Kirkland Hall detail is an estimate until it is photographed (Stage 4)
+- No on-site photos exist. Kirkland's LoD3+ features are placed from LiDAR, one public reference photo and
+  its known composition, each marked `estimated`, and the model is flagged `measured: false`.

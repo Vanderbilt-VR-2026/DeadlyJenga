@@ -1,0 +1,6 @@
+# Machine-only settings and environments (never commit)
+config/local.json
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

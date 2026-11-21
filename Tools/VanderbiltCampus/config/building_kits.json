@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "rule": "Kit for a building, first match wins: (1) 'overrides' by building id; (2) 'by_osm_building' by the OSM building=* value; (3) 'by_wall_material' by the Stage 1 wall material (v2 model.json materials, first wall id); (4) 'default'. The OSM snapshot has no building:material, start_date or building:architecture tags on any campus building (checked 2026-11-20), so age cannot be used yet; add an override when a building's style is known from photos.",
+  "overrides": {
+    "B_544397715": {"kit": "victorian_gothic", "why": "Kirkland Hall: Victorian Gothic (1874, rebuilt 1905-06), brick with limestone trim"},
+    "B_544413714": {"kit": "brick_institutional", "why": "Tibbot Art Center: plain red brick seen in the KartaView photos along 21st Ave S"},
+    "B_261715434": {"kit": "collegiate_gothic", "why": "Furman Hall (1907): Collegiate Gothic"},
+    "B_486160405": {"kit": "georgian", "why": "Cohen Memorial Hall (Peabody): neoclassical, columned portico"}
+  },
+  "by_osm_building": {
+    "parking": "modern",
+    "garages": "modern",
+    "hospital": "modern",
+    "commercial": "brick_institutional",
+    "retail": "brick_institutional",
+    "office": "brick_institutional",
+    "house": "brick_institutional",
+    "residential": "brick_institutional",
+    "apartments": "brick_institutional",
+    "dormitory": "brick_institutional",
+    "church": "collegiate_gothic"
+  },
+  "by_wall_material": {
+    "stone_rough": "collegiate_gothic",
+    "limestone": "georgian",
+    "concrete": "modern",
+    "metal_panel": "modern",
+    "glass": "modern",
+    "brick_red": "brick_institutional",
+    "brick_buff": "brick_institutional"
+  },
+  "default": "brick_institutional"
+}

@@ -1,0 +1,113 @@
+{
+  "building": "B_new_175",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "parapet",
+      "merged_into": "roof",
+      "center": [
+        237.64,
+        -600.53,
+        33.43
+      ],
+      "size": [
+        5.89,
+        0.95,
+        0.54
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 52,
+      "source": "v1"
+    },
+    {
+      "id": "L0002",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        222.74,
+        -596.6,
+        47.43
+      ],
+      "size": [
+        4.92,
+        0.88,
+        14.9
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 70,
+      "source": "v1"
+    },
+    {
+      "id": "L0003",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        238.72,
+        -596.36,
+        32.95
+      ],
+      "size": [
+        4.76,
+        1.14,
+        0.5
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    },
+    {
+      "id": "L0004",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        228.89,
+        -599.37,
+        32.73
+      ],
+      "size": [
+        12.75,
+        2.18,
+        0.71
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    },
+    {
+      "id": "L0005",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        229.49,
+        -595.19,
+        32.74
+      ],
+      "size": [
+        14.1,
+        2.52,
+        0.69
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    }
+  ]
+}

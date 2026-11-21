@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 470" font-family="Arial, Helvetica, sans-serif" font-size="13">
+  <title>Facade walk: camera positions along a wall and around a corner (top view)</title>
+  <rect x="0" y="0" width="720" height="470" fill="#ffffff"/>
+  <text x="20" y="28" font-size="16" font-weight="bold" fill="#222">Facade walk, seen from above</text>
+
+  <!-- building -->
+  <rect x="60" y="60" width="440" height="120" fill="#d9c7b0" stroke="#5a4632" stroke-width="3"/>
+  <text x="280" y="125" text-anchor="middle" fill="#5a4632" font-size="15">BUILDING</text>
+  <text x="280" y="196" text-anchor="middle" fill="#5a4632">south wall</text>
+  <text x="516" y="125" fill="#5a4632">east wall</text>
+
+  <!-- pass lines -->
+  <line x1="60" y1="270" x2="470" y2="270" stroke="#1f6fb2" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="62" y="292" fill="#1f6fb2">Pass 1: straight on, 3 to 6 m from the wall</text>
+
+  <!-- straight-on cameras: circles with view lines pointing up -->
+  <g fill="#1f6fb2">
+    <circle cx="80" cy="270" r="7"/><circle cx="130" cy="270" r="7"/><circle cx="180" cy="270" r="7"/>
+    <circle cx="230" cy="270" r="7"/><circle cx="280" cy="270" r="7"/><circle cx="330" cy="270" r="7"/>
+    <circle cx="380" cy="270" r="7"/><circle cx="430" cy="270" r="7"/>
+  </g>
+  <g stroke="#1f6fb2" stroke-width="2">
+    <line x1="80" y1="263" x2="80" y2="232"/><line x1="130" y1="263" x2="130" y2="232"/>
+    <line x1="180" y1="263" x2="180" y2="232"/><line x1="230" y1="263" x2="230" y2="232"/>
+    <line x1="280" y1="263" x2="280" y2="232"/><line x1="330" y1="263" x2="330" y2="232"/>
+    <line x1="380" y1="263" x2="380" y2="232"/><line x1="430" y1="263" x2="430" y2="232"/>
+  </g>
+  <!-- one view cone to show overlap -->
+  <polygon points="230,263 175,180 285,180" fill="#1f6fb2" fill-opacity="0.12" stroke="none"/>
+  <polygon points="280,263 225,180 335,180" fill="#1f6fb2" fill-opacity="0.12" stroke="none"/>
+  <text x="300" y="232" fill="#1f6fb2">each shot overlaps the last by 70-80%</text>
+  <text x="140" y="252" fill="#1f6fb2">1-2 steps</text>
+
+  <!-- angled passes -->
+  <g fill="#c2571a">
+    <circle cx="100" cy="350" r="6"/><circle cx="170" cy="350" r="6"/><circle cx="240" cy="350" r="6"/>
+    <circle cx="310" cy="350" r="6"/><circle cx="380" cy="350" r="6"/>
+  </g>
+  <g stroke="#c2571a" stroke-width="2">
+    <line x1="104" y1="345" x2="124" y2="320"/><line x1="174" y1="345" x2="194" y2="320"/>
+    <line x1="244" y1="345" x2="264" y2="320"/><line x1="314" y1="345" x2="334" y2="320"/>
+    <line x1="384" y1="345" x2="404" y2="320"/>
+  </g>
+  <g fill="#7a3fa0">
+    <circle cx="120" cy="400" r="6"/><circle cx="190" cy="400" r="6"/><circle cx="260" cy="400" r="6"/>
+    <circle cx="330" cy="400" r="6"/><circle cx="400" cy="400" r="6"/>
+  </g>
+  <g stroke="#7a3fa0" stroke-width="2">
+    <line x1="116" y1="395" x2="96" y2="370"/><line x1="186" y1="395" x2="166" y2="370"/>
+    <line x1="256" y1="395" x2="236" y2="370"/><line x1="326" y1="395" x2="306" y2="370"/>
+    <line x1="396" y1="395" x2="376" y2="370"/>
+  </g>
+  <text x="62" y="378" fill="#c2571a">Pass 2: walk back, camera turned about 30-45 degrees one way</text>
+  <text x="62" y="428" fill="#7a3fa0">Pass 3: walk again, camera turned about 30-45 degrees the other way</text>
+
+  <!-- corner arc -->
+  <path d="M 470 270 A 110 110 0 0 0 580 160" fill="none" stroke="#1a8a4a" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <g fill="#1a8a4a">
+    <circle cx="470" cy="270" r="7"/><circle cx="500" cy="265" r="7"/><circle cx="527" cy="252" r="7"/>
+    <circle cx="551" cy="232" r="7"/><circle cx="568" cy="208" r="7"/><circle cx="578" cy="182" r="7"/>
+    <circle cx="580" cy="150" r="7"/>
+  </g>
+  <g stroke="#1a8a4a" stroke-width="2">
+    <line x1="470" y1="263" x2="485" y2="235"/><line x1="497" y1="258" x2="493" y2="228"/>
+    <line x1="522" y1="246" x2="507" y2="221"/><line x1="545" y1="227" x2="520" y2="212"/>
+    <line x1="561" y1="205" x2="532" y2="197"/><line x1="571" y1="180" x2="540" y2="178"/>
+    <line x1="573" y1="150" x2="543" y2="150"/>
+  </g>
+  <text x="560" y="300" fill="#1a8a4a">Corner: 5-8 shots,</text>
+  <text x="560" y="316" fill="#1a8a4a">small turns, always</text>
+  <text x="560" y="332" fill="#1a8a4a">seeing the corner</text>
+  <line x1="580" y1="140" x2="580" y2="70" stroke="#1a8a4a" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="590" y="95" fill="#1a8a4a">then pass 1 on</text>
+  <text x="590" y="111" fill="#1a8a4a">the east wall</text>
+
+  <text x="20" y="458" fill="#444">Do every pass twice: camera at chest height, then held overhead at arm's reach.</text>
+</svg>

@@ -1,0 +1,67 @@
+{
+  "building": "B_544413710",
+  "version": 1,
+  "facades": {
+    "east-1": {
+      "photos": [
+        "kartaview-2026-11-19/3632465/00065_3632465_8b320_60ba733830364.jpg",
+        "kartaview-2026-11-19/3632465/00066_3632465_b40fa_60ba73398cba5.jpg",
+        "kartaview-2026-11-19/3632465/00067_3632465_e1e6f_60ba733b31161.jpg"
+      ],
+      "frames_360": [],
+      "scans": [],
+      "sets": {
+        "kartaview-2026-11-19": {
+          "alignment": "derived/alignment/kartaview-2026-11-19/v1",
+          "photos": 3,
+          "coverage_pct": 15.3,
+          "mean_view_distance_m": 56.87
+        }
+      },
+      "shot_list_id": "B_544413710/east-1",
+      "coverage_pct": 15.3,
+      "mean_view_distance_m": 56.87
+    },
+    "north-2": {
+      "photos": [
+        "kartaview-2026-11-19/3632465/00065_3632465_8b320_60ba733830364.jpg",
+        "kartaview-2026-11-19/3632465/00066_3632465_b40fa_60ba73398cba5.jpg",
+        "kartaview-2026-11-19/3632465/00067_3632465_e1e6f_60ba733b31161.jpg"
+      ],
+      "frames_360": [],
+      "scans": [],
+      "sets": {
+        "kartaview-2026-11-19": {
+          "alignment": "derived/alignment/kartaview-2026-11-19/v1",
+          "photos": 3,
+          "coverage_pct": 78.5,
+          "mean_view_distance_m": 58.23
+        }
+      },
+      "shot_list_id": "B_544413710/north-2",
+      "coverage_pct": 78.5,
+      "mean_view_distance_m": 58.23
+    },
+    "east-2": {
+      "photos": [
+        "kartaview-2026-11-19/3632465/00065_3632465_8b320_60ba733830364.jpg"
+      ],
+      "frames_360": [],
+      "scans": [],
+      "sets": {
+        "kartaview-2026-11-19": {
+          "alignment": "derived/alignment/kartaview-2026-11-19/v1",
+          "photos": 1,
+          "coverage_pct": 0.0,
+          "mean_view_distance_m": 76.28
+        }
+      },
+      "shot_list_id": "B_544413710/east-2",
+      "coverage_pct": 0.0,
+      "mean_view_distance_m": 76.28
+    }
+  },
+  "updated": "2026-11-20T13:47:14",
+  "script": "Tools/VanderbiltCampus/pipeline/align_sources.py",
+  "rule": "photo listed when it sees >= 0.05 of the facade samples (in front, in frustum, <= 80 m, not behind another footprint); coverage_pct = share of samples seen by >= 2 photos at incidence <= 70 deg"
+}

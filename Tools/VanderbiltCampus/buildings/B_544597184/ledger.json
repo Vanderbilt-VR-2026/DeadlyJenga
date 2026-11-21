@@ -1,0 +1,218 @@
+{
+  "building": "B_544597184",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        507.03,
+        -955.98,
+        49.73
+      ],
+      "size": [
+        1.88,
+        1.15,
+        2.52
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 18,
+      "source": "v1"
+    },
+    {
+      "id": "L0002",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        516.03,
+        -945.1,
+        51.64
+      ],
+      "size": [
+        4.34,
+        3.32,
+        5.29
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 53,
+      "source": "v1"
+    },
+    {
+      "id": "L0003",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        516.24,
+        -934.05,
+        50.39
+      ],
+      "size": [
+        1.97,
+        1.16,
+        2.54
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 16,
+      "source": "v1"
+    },
+    {
+      "id": "L0004",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        518.79,
+        -933.81,
+        47.71
+      ],
+      "size": [
+        1.4,
+        0.64,
+        0.78
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 7,
+      "source": "v1"
+    },
+    {
+      "id": "L0005",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        515.92,
+        -923.15,
+        49.8
+      ],
+      "size": [
+        1.74,
+        1.15,
+        2.44
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 18,
+      "source": "v1"
+    },
+    {
+      "id": "L0006",
+      "type": "small_roof_step",
+      "merged_into": "roof",
+      "center": [
+        517.28,
+        -921.75,
+        47.79
+      ],
+      "size": [
+        5.17,
+        2.89,
+        0.06
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 48,
+      "source": "v1"
+    },
+    {
+      "id": "L0007",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        510.24,
+        -958.86,
+        48.56
+      ],
+      "size": [
+        1.37,
+        5.07,
+        5.06
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    },
+    {
+      "id": "L0008",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        518.0,
+        -948.72,
+        49.05
+      ],
+      "size": [
+        1.46,
+        4.86,
+        4.91
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    },
+    {
+      "id": "L0009",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        508.05,
+        -959.07,
+        46.83
+      ],
+      "size": [
+        4.0,
+        2.25,
+        0.93
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    },
+    {
+      "id": "L0010",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        516.24,
+        -947.38,
+        50.04
+      ],
+      "size": [
+        5.5,
+        1.94,
+        2.05
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    }
+  ]
+}

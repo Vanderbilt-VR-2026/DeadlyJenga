@@ -1,0 +1,456 @@
+{
+  "source": "raw/osm/2026-11-19/campus_overpass.json",
+  "standard": "STANDARDS.md section 3 (starting list; Stage 2 may add and confirms names)",
+  "frame": "campus meters, config/frame.json",
+  "spots": [
+    {
+      "spot": "Kirkland Hall",
+      "status": "ok",
+      "note": "",
+      "searched": [
+        "Kirkland Hall"
+      ],
+      "match": {
+        "name": "Kirkland Hall",
+        "osm": "way/544397715",
+        "building_id": "B_544397715",
+        "kind": "building",
+        "geometry": "Polygon",
+        "centroid": [
+          104.59,
+          83.08
+        ],
+        "tile": "T_01_00",
+        "area_m2": 1402.1
+      }
+    },
+    {
+      "spot": "Kirkland Hall tower",
+      "status": "unknown",
+      "note": "No separate tower feature (no building:part) in OSM; the tower is inside the Kirkland Hall footprint way/544397715. Stage 1 finds it in the LiDAR nDSM.",
+      "searched": [],
+      "match": null
+    },
+    {
+      "spot": "Alumni Lawn",
+      "status": "ok",
+      "note": "",
+      "searched": [
+        "Alumni Lawn"
+      ],
+      "match": {
+        "name": "Alumni Lawn",
+        "osm": "way/259811259",
+        "building_id": null,
+        "kind": "park",
+        "geometry": "Polygon",
+        "centroid": [
+          0.0,
+          0.0
+        ],
+        "tile": "T_00_00",
+        "area_m2": 6643.2
+      }
+    },
+    {
+      "spot": "Central Library",
+      "status": "alias",
+      "note": "Central Library is part of the Jean and Alexander Heard Library building in OSM.",
+      "searched": [
+        "Jean & Alexander Heard Library"
+      ],
+      "match": {
+        "name": "Jean & Alexander Heard Library",
+        "osm": "way/544413710",
+        "building_id": "B_544413710",
+        "kind": "building",
+        "geometry": "Polygon",
+        "centroid": [
+          331.69,
+          -195.99
+        ],
+        "tile": "T_03_-02",
+        "area_m2": 3101.8
+      }
+    },
+    {
+      "spot": "Library Lawn",
+      "status": "ok",
+      "note": "",
+      "searched": [
+        "Library Lawn"
+      ],
+      "match": {
+        "name": "Library Lawn",
+        "osm": "way/1050096525",
+        "building_id": null,
+        "kind": "park",
+        "geometry": "Polygon",
+        "centroid": [
+          236.47,
+          -185.88
+        ],
+        "tile": "T_02_-02",
+        "area_m2": 8654.5
+      }
+    },
+    {
+      "spot": "Peabody Esplanade",
+      "status": "point",
+      "note": "",
+      "searched": [
+        "Peabody Esplanade"
+      ],
+      "match": {
+        "name": "Peabody Esplanade",
+        "osm": "node/356898107",
+        "building_id": null,
+        "kind": "park",
+        "geometry": "Point",
+        "centroid": [
+          450.37,
+          -670.71
+        ],
+        "tile": "T_04_-07",
+        "area_m2": null
+      }
+    },
+    {
+      "spot": "Cohen Memorial Hall",
+      "status": "ok",
+      "note": "",
+      "searched": [
+        "Cohen Memorial Hall"
+      ],
+      "match": {
+        "name": "Cohen Memorial Hall",
+        "osm": "way/486160405",
+        "building_id": "B_486160405",
+        "kind": "building",
+        "geometry": "Polygon",
+        "centroid": [
+          404.4,
+          -659.37
+        ],
+        "tile": "T_04_-07",
+        "area_m2": 966.1
+      }
+    },
+    {
+      "spot": "Furman Hall",
+      "status": "ok",
+      "note": "",
+      "searched": [
+        "Furman Hall"
+      ],
+      "match": {
+        "name": "Furman Hall",
+        "osm": "way/261715434",
+        "building_id": "B_261715434",
+        "kind": "building",
+        "geometry": "Polygon",
+        "centroid": [
+          235.91,
+          53.73
+        ],
+        "tile": "T_02_00",
+        "area_m2": 1493.2
+      }
+    },
+    {
+      "spot": "Benson Hall",
+      "status": "alias",
+      "note": "OSM name is 'Benson Science Hall'.",
+      "searched": [
+        "Benson Science Hall"
+      ],
+      "match": {
+        "name": "Benson Science Hall",
+        "osm": "way/544413708",
+        "building_id": "B_544413708",
+        "kind": "building",
+        "geometry": "Polygon",
+        "centroid": [
+          170.38,
+          -40.51
+        ],
+        "tile": "T_01_-01",
+        "area_m2": 560.3
+      }
+    },
+    {
+      "spot": "Wyatt Center",
+      "status": "ok",
+      "note": "",
+      "searched": [
+        "Wyatt Center"
+      ],
+      "match": {
+        "name": "Wyatt Center",
+        "osm": "way/234871501",
+        "building_id": "B_234871501",
+        "kind": "building",
+        "geometry": "Polygon",
+        "centroid": [
+          438.37,
+          -832.61
+        ],
+        "tile": "T_04_-09",
+        "area_m2": 2430.0
+      }
+    },
+    {
+      "spot": "Commons",
+      "status": "ambiguous",
+      "note": "'Commons' may mean the Commons Center building or the whole Ingram Commons area (OSM point only). Commons Center is used; Stage 2 confirms.",
+      "searched": [
+        "Commons Center",
+        "The Martha Rivers Ingram Commons",
+        "Commons Center Lawn"
+      ],
+      "match": {
+        "name": "Commons Center",
+        "osm": "way/370608816",
+        "building_id": "B_370608816",
+        "kind": "building",
+        "geometry": "Polygon",
+        "centroid": [
+          610.01,
+          -633.8
+        ],
+        "tile": "T_06_-07",
+        "area_m2": 3664.0
+      },
+      "candidates": [
+        {
+          "name": "The Martha Rivers Ingram Commons",
+          "osm": "node/9823385283",
+          "building_id": null,
+          "kind": "park",
+          "geometry": "Point",
+          "centroid": [
+            595.67,
+            -746.65
+          ],
+          "tile": "T_05_-08",
+          "area_m2": null
+        },
+        {
+          "name": "Commons Center Lawn",
+          "osm": "node/9823385284",
+          "building_id": null,
+          "kind": "park",
+          "geometry": "Point",
+          "centroid": [
+            534.06,
+            -621.02
+          ],
+          "tile": "T_05_-07",
+          "area_m2": null
+        }
+      ]
+    },
+    {
+      "spot": "Rand Hall",
+      "status": "ok",
+      "note": "",
+      "searched": [
+        "Rand Hall"
+      ],
+      "match": {
+        "name": "Rand Hall",
+        "osm": "way/1465205768",
+        "building_id": "B_1465205768",
+        "kind": "building",
+        "geometry": "Polygon",
+        "centroid": [
+          80.61,
+          -114.7
+        ],
+        "tile": "T_00_-02",
+        "area_m2": 3006.5
+      }
+    },
+    {
+      "spot": "Rand Wall",
+      "status": "unknown",
+      "note": "No wall or seating wall named or tagged near Rand Hall in OSM (no barrier=wall within 80 m). Stage 2 locates it on site / from Vanderbilt's map.",
+      "searched": [],
+      "match": null
+    },
+    {
+      "spot": "Engineering and Science Building",
+      "status": "alias",
+      "note": "OSM name is 'Science and Engineering Building'.",
+      "searched": [
+        "Science and Engineering Building"
+      ],
+      "match": {
+        "name": "Science and Engineering Building",
+        "osm": "way/461630342",
+        "building_id": "B_461630342",
+        "kind": "building",
+        "geometry": "Polygon",
+        "centroid": [
+          -176.21,
+          -496.03
+        ],
+        "tile": "T_-02_-05",
+        "area_m2": 3335.6
+      }
+    },
+    {
+      "spot": "Featheringill/Jacobs Hall",
+      "status": "ok",
+      "note": "One OSM building outline covers both halls.",
+      "searched": [
+        "Featheringill / Jacobs Hall"
+      ],
+      "match": {
+        "name": "Featheringill / Jacobs Hall",
+        "osm": "way/178414029",
+        "building_id": "B_178414029",
+        "kind": "building",
+        "geometry": "Polygon",
+        "centroid": [
+          72.73,
+          -297.27
+        ],
+        "tile": "T_00_-03",
+        "area_m2": 4985.8
+      }
+    },
+    {
+      "spot": "Student Life Center",
+      "status": "ok",
+      "note": "",
+      "searched": [
+        "Student Life Center"
+      ],
+      "match": {
+        "name": "Student Life Center",
+        "osm": "way/544597207",
+        "building_id": "B_544597207",
+        "kind": "building",
+        "geometry": "Polygon",
+        "centroid": [
+          -176.66,
+          -339.12
+        ],
+        "tile": "T_-02_-04",
+        "area_m2": 2642.4
+      }
+    },
+    {
+      "spot": "Branscomb Quad",
+      "status": "group",
+      "note": "No Branscomb Quad outline in OSM; the quad is the four houses plus Branscomb Quad Market. Centroid = centroid of the members' footprints.",
+      "searched": [
+        "Vaughn House",
+        "Lupton House",
+        "Scales House",
+        "Stapleton House",
+        "Branscomb Quad Market"
+      ],
+      "members": [
+        {
+          "name": "Vaughn House",
+          "osm": "way/544597204",
+          "building_id": "B_544597204",
+          "kind": "building",
+          "geometry": "Polygon",
+          "centroid": [
+            -114.89,
+            -299.04
+          ],
+          "tile": "T_-02_-03",
+          "area_m2": 882.3
+        },
+        {
+          "name": "Lupton House",
+          "osm": "relation/14043732",
+          "building_id": "B_14043732",
+          "kind": "building",
+          "geometry": "Polygon",
+          "centroid": [
+            -118.29,
+            -245.24
+          ],
+          "tile": "T_-02_-03",
+          "area_m2": 1566.0
+        },
+        {
+          "name": "Scales House",
+          "osm": "way/544597202",
+          "building_id": "B_544597202",
+          "kind": "building",
+          "geometry": "Polygon",
+          "centroid": [
+            -65.64,
+            -268.75
+          ],
+          "tile": "T_-01_-03",
+          "area_m2": 923.8
+        },
+        {
+          "name": "Stapleton House",
+          "osm": "way/1052134886",
+          "building_id": "B_1052134886",
+          "kind": "building",
+          "geometry": "Polygon",
+          "centroid": [
+            -67.66,
+            -325.94
+          ],
+          "tile": "T_-01_-04",
+          "area_m2": 1170.2
+        },
+        {
+          "name": "Branscomb Quad Market",
+          "osm": "way/544597206",
+          "building_id": "B_544597206",
+          "kind": "building",
+          "geometry": "Polygon",
+          "centroid": [
+            -160.28,
+            -283.94
+          ],
+          "tile": "T_-02_-03",
+          "area_m2": 1677.2
+        }
+      ],
+      "match": {
+        "name": "Branscomb Quad",
+        "osm": null,
+        "building_id": null,
+        "kind": "group",
+        "centroid": [
+          -105.35,
+          -284.58
+        ],
+        "tile": "T_-02_-03"
+      }
+    },
+    {
+      "spot": "Memorial Gymnasium exterior",
+      "status": "ok",
+      "note": "",
+      "searched": [
+        "Memorial Gymnasium"
+      ],
+      "match": {
+        "name": "Memorial Gymnasium",
+        "osm": "way/544597209",
+        "building_id": "B_544597209",
+        "kind": "building",
+        "geometry": "Polygon",
+        "centroid": [
+          -304.5,
+          -325.43
+        ],
+        "tile": "T_-04_-04",
+        "area_m2": 11790.8
+      }
+    }
+  ]
+}

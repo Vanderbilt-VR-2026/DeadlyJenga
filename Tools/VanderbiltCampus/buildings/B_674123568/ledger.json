@@ -1,0 +1,135 @@
+{
+  "building": "B_674123568",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        486.29,
+        -1066.54,
+        45.9
+      ],
+      "size": [
+        2.72,
+        1.98,
+        1.62
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 36,
+      "source": "v1"
+    },
+    {
+      "id": "L0002",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        483.05,
+        -1066.05,
+        45.92
+      ],
+      "size": [
+        2.75,
+        2.06,
+        1.52
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 35,
+      "source": "v1"
+    },
+    {
+      "id": "L0003",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        490.43,
+        -1063.8,
+        47.5
+      ],
+      "size": [
+        1.52,
+        0.63,
+        0.85
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 7,
+      "source": "v1"
+    },
+    {
+      "id": "L0004",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        482.26,
+        -1056.96,
+        43.29
+      ],
+      "size": [
+        8.51,
+        1.72,
+        2.84
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    },
+    {
+      "id": "L0005",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        492.35,
+        -1063.58,
+        46.44
+      ],
+      "size": [
+        3.12,
+        11.46,
+        3.23
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    },
+    {
+      "id": "L0006",
+      "type": "roof_equipment",
+      "merged_into": "roof",
+      "center": [
+        478.98,
+        -1055.98,
+        42.87
+      ],
+      "size": [
+        0.25,
+        0.25,
+        0.34
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "area_m2": 0.062,
+      "rule": "narrow",
+      "source": "v2 height field merge rule"
+    }
+  ]
+}

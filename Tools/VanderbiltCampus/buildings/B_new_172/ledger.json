@@ -1,0 +1,29 @@
+{
+  "building": "B_new_172",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        223.82,
+        72.28,
+        24.01
+      ],
+      "size": [
+        13.21,
+        9.1,
+        0.59
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    }
+  ]
+}

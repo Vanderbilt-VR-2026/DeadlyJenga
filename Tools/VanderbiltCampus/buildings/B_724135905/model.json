@@ -1,0 +1,271 @@
+{
+  "building": "B_724135905",
+  "version": 2,
+  "name": null,
+  "osm": "way/724135905",
+  "metro_ids": [
+    41123
+  ],
+  "tile": "T_-06_-09",
+  "zone": "campus",
+  "style_kit": null,
+  "lod_reached": "LoD2",
+  "footprint": {
+    "source": "metro+lidar",
+    "decisions": [
+      "OSM and Metro differ (corner p95 1.43 m); Metro is closer to the LiDAR edge (0.38 vs 0.73 m): Metro used",
+      "LiDAR roof edge lies a uniform 0.48 m outside the walls: logged as roof overhang, not corrected",
+      "2 edge(s) more than 0.3 m off the LiDAR edge moved to it: 12.93 m edge outward 0.34 m; 8.01 m edge inward 1.00 m"
+    ],
+    "area_m2": 99.52,
+    "corners": 4,
+    "overhang_m": 0.488,
+    "corner_errors": {
+      "vs_osm": {
+        "median": 0.364,
+        "p95": 0.912,
+        "max": 0.992,
+        "n": 4
+      },
+      "vs_metro": {
+        "median": 0.167,
+        "p95": 0.335,
+        "max": 0.335,
+        "n": 4
+      },
+      "vs_lidar": {
+        "median": 0.152,
+        "p95": 0.247,
+        "max": 0.25,
+        "n": 4
+      },
+      "lidar_corners_used": 4,
+      "lidar_corners_total": 4
+    }
+  },
+  "ground_z": 26.21,
+  "base_z": 25.409,
+  "roof_type": "hip",
+  "metro_roof_type": "Hip",
+  "parts": [
+    {
+      "id": "P1",
+      "area_m2": 99.52,
+      "roof_type": "hip",
+      "planes": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "ground_z": 26.21,
+      "base_z": 25.409,
+      "eave_z": 29.777,
+      "ridge_z": 32.711,
+      "eave_height_m": 3.567,
+      "ridge_height_m": 6.501,
+      "polygon": [
+        [
+          [
+            [
+              -513.492,
+              -863.873
+            ],
+            [
+              -513.544,
+              -864.239
+            ],
+            [
+              -524.956,
+              -862.601
+            ],
+            [
+              -525.355,
+              -862.544
+            ],
+            [
+              -524.179,
+              -854.359
+            ],
+            [
+              -524.169,
+              -854.288
+            ],
+            [
+              -512.359,
+              -855.982
+            ],
+            [
+              -512.362,
+              -856.0
+            ]
+          ],
+          [
+            [
+              -520.506,
+              -859.109
+            ],
+            [
+              -520.506,
+              -859.109
+            ],
+            [
+              -520.506,
+              -859.109
+            ]
+          ]
+        ]
+      ]
+    }
+  ],
+  "roof_fit": {
+    "points": 2102,
+    "density_pts_m2": 21.12,
+    "coverage": 0.99,
+    "planes": 4,
+    "fallback": null,
+    "roof_color": {
+      "mean_rgb": [
+        112,
+        109,
+        100
+      ],
+      "saturation": 0.105,
+      "value": 0.437
+    },
+    "equipment_volumes": 0
+  },
+  "materials": [
+    "brick_red",
+    "concrete",
+    "roof_slate"
+  ],
+  "wall_material_guess": true,
+  "material_rule": "walls brick_red (guess); flat roofs roof_flat; pitched roof_slate unless the Metro 2026 ortho mean color is clearly green (roof_copper) or orange-red (roof_tile); base concrete",
+  "flags": [],
+  "uv_m_per_unit": {
+    "lod2": 28.7451,
+    "lod1": 26.3265
+  },
+  "ledger_entries": 0,
+  "mesh_checks": {
+    "lod2": [],
+    "lod1": []
+  },
+  "roof_method": "planes_v1",
+  "roof_method_reason": "v1 passes the accuracy gate",
+  "hero": false,
+  "uv_check": {
+    "charts": 21,
+    "note": "v1 UV (one chart per roof cell and wall segment)"
+  },
+  "triangles": {
+    "lod2": 62,
+    "lod1": 12,
+    "col_mesh": 46
+  },
+  "collider": {
+    "kind": "one non-convex static triangle mesh (LoD2 shell without base cap)",
+    "triangles": 46,
+    "shell_triangles": 46,
+    "max_dev_m": 0.0,
+    "p95_dev_m": 0.0,
+    "simplified": false,
+    "tries": [],
+    "within_tolerance": true,
+    "over_triangle_budget": false,
+    "problems": []
+  },
+  "roof_surface_error": {
+    "planes_v1": {
+      "n": 1771,
+      "median": 0.022,
+      "p90": 0.078,
+      "p95": 0.112,
+      "within_0.2": 1.0
+    },
+    "heightfield_v2": null
+  },
+  "heightfield_error": null,
+  "files": {
+    "lod2": "lod2.npz",
+    "lod1": "lod1.npz",
+    "col_mesh": "col_mesh.npz",
+    "roof_planes": "roof_planes.json",
+    "ledger": "ledger.json"
+  },
+  "accuracy": {
+    "pass": true,
+    "pass_footprint": true,
+    "pass_eave": true,
+    "pass_ridge": true,
+    "reason": null,
+    "footprint_ref_p95_m": 0.254,
+    "eave_err_m": -0.103,
+    "ridge_err_m": 0.021,
+    "worst_eave_err_m": 0.103,
+    "worst_ridge_err_m": 0.021,
+    "roof_surface": {
+      "median": 0.016,
+      "p95": 0.046,
+      "max": 0.114,
+      "n": 1771
+    },
+    "roof_points_per_m2": 17.8,
+    "whole_roof": {
+      "n": 1771,
+      "median": 0.022,
+      "p90": 0.078,
+      "p95": 0.112,
+      "within_0.2": 1.0,
+      "n_within_0.2": 1771
+    },
+    "roof_method": "planes_v1",
+    "footprint": {
+      "vs_reference": {
+        "median": 0.018,
+        "p95": 0.254,
+        "max": 0.292,
+        "n": 4
+      },
+      "vs_lidar": {
+        "median": 0.168,
+        "p95": 0.292,
+        "max": 0.292,
+        "n": 4
+      },
+      "corners": 4,
+      "corners_moved_to_lidar": 2,
+      "corners_with_lidar_evidence": 4,
+      "corners_without_clean_evidence": 0,
+      "reference": "metro outline; LiDAR edge for moved corners"
+    },
+    "parts": [
+      {
+        "id": "P1",
+        "area_m2": 99.52,
+        "roof_type": "hip",
+        "eave_z": 29.777,
+        "ridge_z": 32.711,
+        "fit_share": 1.0,
+        "lidar_eave_band": [
+          29.88,
+          29.94
+        ],
+        "eave_err_m": -0.103,
+        "eave_diff_to_p7.5_m": -0.143,
+        "eave_points": 407,
+        "lidar_ridge_band": [
+          32.685,
+          32.69
+        ],
+        "ridge_err_m": 0.021,
+        "ridge_points": 124,
+        "checked": true
+      }
+    ],
+    "checked": "2026-11-20T12:20:45"
+  },
+  "v1_accuracy_pass": true,
+  "seconds": 0.25
+}

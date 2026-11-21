@@ -1,0 +1,140 @@
+{
+  "building": "B_544397715",
+  "version": 1,
+  "stage": 4,
+  "lidar": {
+    "path": "derived/lidar/v1/tiles",
+    "use": "tower heights, roof bumps (chimneys), stairs and ground beside each facade"
+  },
+  "lod2": "buildings/B_544397715/v2/lod2.npz",
+  "facades": {
+    "F01": {
+      "layout": "facades/F01/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F02": {
+      "layout": "facades/F02/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F03": {
+      "layout": "facades/F03/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F04": {
+      "layout": "facades/F04/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F05": {
+      "layout": "facades/F05/layout_v2.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F08": {
+      "layout": "facades/F08/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F09": {
+      "layout": "facades/F09/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F10": {
+      "layout": "facades/F10/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F11": {
+      "layout": "facades/F11/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F12": {
+      "layout": "facades/F12/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F13": {
+      "layout": "facades/F13/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F14": {
+      "layout": "facades/F14/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F15": {
+      "layout": "facades/F15/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F16": {
+      "layout": "facades/F16/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F17": {
+      "layout": "facades/F17/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F18": {
+      "layout": "facades/F18/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F19": {
+      "layout": "facades/F19/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F20": {
+      "layout": "facades/F20/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    },
+    "F21": {
+      "layout": "facades/F21/layout_v1.json",
+      "photos": [],
+      "alignment_set": null,
+      "measured": false
+    }
+  },
+  "reference_images": [
+    {
+      "path": "raw/capture/commons-2026-11-19/wikimedia/Kirkland_Hall/2019_Sit-in.jpg",
+      "blurred": "derived/capture/commons-2026-11-19/blurred/wikimedia/Kirkland_Hall/2019_Sit-in.jpg",
+      "license": "Public domain (Wikimedia Commons, File:2019_Sit-in.jpg, author unknown)",
+      "use": "visual reference only: main stair, pointed portal, brick walls with stone trim, raised stone basement with arched windows, iron stair rails (not modeled). Not aligned (single photo)."
+    }
+  ],
+  "public_facts": [
+    "Kirkland Hall (1874, rebuilt 1905-06 after a fire): red brick Victorian Gothic with limestone trim",
+    "One central clock tower since the rebuild (the 1874 building had two towers)",
+    "Raised basement with a monumental stone stair up to a pointed-arch main portal (Commons photo 2019_Sit-in)",
+    "Tall windows with stone surrounds; pointed and round-arched heads; stone string courses"
+  ]
+}

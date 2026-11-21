@@ -1,0 +1,134 @@
+{
+  "building": "B_856050857",
+  "version": 2,
+  "lod": "LoD2",
+  "threshold_m": 0.5,
+  "entries": [
+    {
+      "id": "L0001",
+      "type": "chimney_or_vent",
+      "merged_into": "roof",
+      "center": [
+        -201.96,
+        -152.27,
+        25.28
+      ],
+      "size": [
+        0.73,
+        0.58,
+        1.04
+      ],
+      "count": 1,
+      "material": "brick_red",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 4,
+      "source": "v1"
+    },
+    {
+      "id": "L0002",
+      "type": "small_roof_step",
+      "merged_into": "roof",
+      "center": [
+        -227.08,
+        -135.7,
+        28.48
+      ],
+      "size": [
+        3.09,
+        3.32,
+        0.22
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 46,
+      "source": "v1"
+    },
+    {
+      "id": "L0003",
+      "type": "small_roof_step",
+      "merged_into": "roof",
+      "center": [
+        -201.49,
+        -153.35,
+        24.21
+      ],
+      "size": [
+        3.62,
+        6.01,
+        0.11
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 44,
+      "source": "v1"
+    },
+    {
+      "id": "L0004",
+      "type": "small_roof_step",
+      "merged_into": "roof",
+      "center": [
+        -226.13,
+        -139.64,
+        28.65
+      ],
+      "size": [
+        3.63,
+        3.88,
+        0.25
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 77,
+      "source": "v1"
+    },
+    {
+      "id": "L0005",
+      "type": "small_roof_step",
+      "merged_into": "roof",
+      "center": [
+        -224.7,
+        -135.06,
+        28.39
+      ],
+      "size": [
+        3.75,
+        4.49,
+        0.21
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "normal_map",
+      "points": 71,
+      "source": "v1"
+    },
+    {
+      "id": "L0006",
+      "type": "small_roof_recess",
+      "merged_into": "roof",
+      "center": [
+        -219.02,
+        -131.07,
+        29.64
+      ],
+      "size": [
+        8.12,
+        4.9,
+        5.92
+      ],
+      "count": 1,
+      "material": "roof_flat",
+      "photos": [],
+      "restore_hint": "geometry",
+      "points": 0,
+      "source": "v1"
+    }
+  ]
+}
