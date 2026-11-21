@@ -27,7 +27,7 @@ namespace DeadlyJenga.CandyArt
             var cream = Surface("Kitchen cream enamel", null, new Color(.93f, .89f, .80f), .7f, Vector2.one);
             var white = Surface("White icing", null, new Color(.98f, .97f, .95f), .5f, Vector2.one);
             var cookie = Surface("Baked cookie", null, new Color(.78f, .52f, .26f), .25f, Vector2.one);
-            var pine = Surface("Kitchen garland pine", "Pine Scan", new Color(.35f, .60f, .38f), .2f, new Vector2(1f, 1f), 0f, .8f);
+            var pine = Surface("Kitchen garland pine", "Pine Scan", new Color(.70f, 1.15f, .70f), .2f, new Vector2(1f, 1f), 0f, .8f);
             var gold = Surface("Kitchen gold foil", null, new Color(.90f, .66f, .25f), .8f, Vector2.one, .85f);
             var cabinet = Surface("Sage kitchen cabinets", "Paper", new Color(.55f, .65f, .52f), .4f, new Vector2(2, 2));
             var butcher = Surface("Butcher block counter", "Walnut Grain", new Color(.70f, .48f, .28f), .5f, new Vector2(3, 1), 0f, .3f);
@@ -96,7 +96,7 @@ namespace DeadlyJenga.CandyArt
                 Primitive("Bar stool post", PrimitiveType.Cylinder, new Vector3(ix + 30f, 18f, z), new Vector3(2.4f, 18f, 2.4f), brass);
                 Primitive("Bar stool foot", PrimitiveType.Cylinder, new Vector3(ix + 30f, .6f, z), new Vector3(11f, .6f, 11f), brass);
             }
-            StandMixer(new Vector3(ix - 8f, islandTop, midZ - 28f), red, steel);
+            StandMixer(new Vector3(ix - 8f, islandTop, midZ - 28f), red, Surface("Mixing bowl steel", null, new Color(.82f, .83f, .86f), .8f, Vector2.one, .3f));
             // Cutting board of gingerbread men, a rolling pin and a dusting of flour.
             var board = new Vector3(ix + 4f, islandTop, midZ + 2f);
             Primitive("Flour dusting", PrimitiveType.Cylinder, board + new Vector3(-6f, .05f, -4f), new Vector3(22f, .05f, 16f), white);
@@ -132,8 +132,8 @@ namespace DeadlyJenga.CandyArt
             var orange = Surface("Clementine", null, new Color(.95f, .45f, .06f), .45f, Vector2.one);
             for (int i = 0; i < 7; i++)
                 Primitive("Clementine", PrimitiveType.Sphere, bowl + new Vector3(Range(rand, -3.5f, 3.5f), 6f + (i > 4 ? 2.5f : 0f), Range(rand, -3.5f, 3.5f)), Vector3.one * 4.2f, orange);
-            SantaJar(new Vector3(ix + 12f, islandTop, midZ + 22f), red, white);
-            Poinsettia(new Vector3(ix - 12f, islandTop, midZ + 8f), gold);
+            SantaJar(new Vector3(ix - 13f, islandTop, midZ + 12f), red, white);
+            Poinsettia(new Vector3(ix + 12f, islandTop, midZ + 24f), gold);
 
             // Back counter: cider on the stove, a candy cane jar, a poinsettia and a candy-stripe towel.
             float counter = 55f, front = far + 31.5f;
@@ -229,11 +229,11 @@ namespace DeadlyJenga.CandyArt
         void SantaJar(Vector3 at, Material red, Material white)
         {
             var black = Surface("Santa belt", null, new Color(.04f, .03f, .03f), .7f, Vector2.one);
-            Primitive("Santa cookie jar", PrimitiveType.Sphere, at + Vector3.up * 6f, new Vector3(11f, 12f, 11f), red);
-            Primitive("Santa jar belt", PrimitiveType.Cylinder, at + Vector3.up * 5f, new Vector3(11.3f, .9f, 11.3f), black);
-            Primitive("Santa jar fur trim", PrimitiveType.Cylinder, at + Vector3.up * 11f, new Vector3(8.5f, 1f, 8.5f), white);
-            Primitive("Santa jar lid", PrimitiveType.Sphere, at + Vector3.up * 13f, new Vector3(7f, 5f, 7f), red);
-            Primitive("Santa jar pompom", PrimitiveType.Sphere, at + Vector3.up * 16f, Vector3.one * 2.4f, white);
+            Primitive("Santa cookie jar", PrimitiveType.Sphere, at + Vector3.up * 3.6f, new Vector3(6.6f, 7.2f, 6.6f), red);
+            Primitive("Santa jar belt", PrimitiveType.Cylinder, at + Vector3.up * 3f, new Vector3(6.8f, .55f, 6.8f), black);
+            Primitive("Santa jar fur trim", PrimitiveType.Cylinder, at + Vector3.up * 6.6f, new Vector3(5.1f, .6f, 5.1f), white);
+            Primitive("Santa jar lid", PrimitiveType.Sphere, at + Vector3.up * 7.8f, new Vector3(4.2f, 3f, 4.2f), red);
+            Primitive("Santa jar pompom", PrimitiveType.Sphere, at + Vector3.up * 9.6f, Vector3.one * 1.5f, white);
         }
 
         void Poinsettia(Vector3 at, Material foil)
