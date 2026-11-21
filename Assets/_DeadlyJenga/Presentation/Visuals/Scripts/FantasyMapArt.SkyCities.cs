@@ -17,8 +17,8 @@ namespace DeadlyJenga.Presentation
         Vector3[] rainbowPath,rainbowUp;
 
         static readonly Color Haze=new(.82f,.86f,1);
-        static Color H(Color c,float amount=.16f)=>Color.Lerp(c,Haze,amount);
-        static readonly Color[] Pastels={new(1,.62f,.78f),new(.62f,.86f,1),new(.78f,.68f,1),new(.7f,1,.78f),new(1,.86f,.6f),new(1,.72f,.6f)};
+        static Color H(Color c,float amount=.06f)=>Color.Lerp(c,Haze,amount);
+        static readonly Color[] Pastels={new(1,.45f,.68f),new(.42f,.78f,1),new(.68f,.52f,1),new(.5f,.95f,.62f),new(1,.8f,.4f),new(1,.6f,.45f)};
         static readonly Color[] Crystals={new(.85f,.7f,1),new(1,.7f,.86f),new(.6f,.92f,1),new(.75f,1,.9f)};
 
         // Mesh slots used by every sky city: 0 cloud, 1 candy, 2 glow.
@@ -62,7 +62,7 @@ namespace DeadlyJenga.Presentation
         // Frosted cake platform on a cotton-candy cloud, with rock-candy crystals hanging underneath.
         void CloudIsland(ArtMesh m,float r,Color frosting,int seed)
         {
-            var cream=H(Color.Lerp(frosting,Color.white,.55f));frosting=H(frosting);
+            var cream=H(Color.Lerp(frosting,Color.white,.4f));frosting=H(frosting);
             m.Cylinder(Vector3.down*7,Quaternion.identity,r,7,1,frosting,32);
             m.Cylinder(Vector3.down*.6f,Quaternion.identity,r*.97f,.8f,1,cream,32);
             for(int i=0;i<32;i++)
@@ -75,12 +75,12 @@ namespace DeadlyJenga.Presentation
             for(int i=0;i<18;i++)
             {
                 float a=i*Mathf.PI*2/18+seed;var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
-                m.Sphere(dir*r*1.02f+Vector3.down*(7.5f+i%3),new Vector3(r*.34f,r*.15f+2,r*.3f),0,H(i%4==0?new Color(1,.86f,.94f):Color.white,.08f),6,10);
+                m.Sphere(dir*r*1.02f+Vector3.down*(7.5f+i%3),new Vector3(r*.34f,r*.15f+2,r*.3f),0,H(i%4==0?new Color(1,.86f,.94f):Color.white,.03f),8,14);
             }
             for(int i=0;i<5;i++)
             {
                 float a=i*1.256f+seed;var off=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a))*r*.45f*(i==0?0:1);
-                m.Sphere(off+Vector3.down*(11+i%2*3),new Vector3(r*.62f,r*.22f+3,r*.62f),0,H(i%3==0?new Color(.94f,.9f,1):Color.white,.08f),6,12);
+                m.Sphere(off+Vector3.down*(11+i%2*3),new Vector3(r*.62f,r*.22f+3,r*.62f),0,H(i%3==0?new Color(.94f,.9f,1):Color.white,.03f),8,16);
             }
             // Rock-candy crystals pointing down.
             var down=Quaternion.Euler(180,0,0);
@@ -168,7 +168,7 @@ namespace DeadlyJenga.Presentation
                 float h=26+Hash(new Vector3(i,4,4))*22;float size=6+(i%3)*2.2f;
                 m.Cylinder(p,Quaternion.identity,.9f,h,1,H(Sugar),8);
                 var face=Quaternion.Euler(90,0,0);
-                for(int k=0;k<6;k++){float rad=size*(1-k*.15f);m.Cylinder(p+Vector3.up*h+Vector3.back*(.9f+k*.12f),face,rad,1.8f+k*.24f,1,H(Color.Lerp(swirl[(k+i)%6],Pastels[i%Pastels.Length],.3f)),24);}
+                for(int k=0;k<6;k++){float rad=size*(1-k*.15f);m.Cylinder(p+Vector3.up*h+Vector3.back*(.9f+k*.12f),face,rad,1.8f+k*.24f,1,H(Color.Lerp(swirl[(k+i)%6],Pastels[i%Pastels.Length],.15f)),24);}
             }
             for(int i=0;i<10;i++)
             {
@@ -320,7 +320,7 @@ namespace DeadlyJenga.Presentation
             for(int i=0;i<=Steps;i++)
             {
                 float t=i/(float)Steps;
-                rainbowPath[i]=L(Vector3.Lerp(a,b,t)+Vector3.up*rise*Mathf.Sin(Mathf.PI*t));
+                rainbowPath[i]=L(Vector3.Lerp(a,b,.5f-.5f*Mathf.Cos(Mathf.PI*t))+Vector3.up*rise*Mathf.Sin(Mathf.PI*t));
             }
             // "Up" across the bands: in the rainbow's plane, at right angles to the arc, pointing away from its inside.
             var normal=LR(Quaternion.identity)*Vector3.Cross(across,Vector3.up);
@@ -341,7 +341,7 @@ namespace DeadlyJenga.Presentation
                 for(int k=0;k<bands.Length;k++)
                 {
                     float o0=Band*(.3f+k),o1=Band*(.3f+k+1);
-                    m.TwoSidedQuad(p+up*o0,q+up2*o0,q+up2*o1,p+up*o1,2,bands[bands.Length-1-k]*.5f);
+                    m.TwoSidedQuad(p+up*o0,q+up2*o0,q+up2*o1,p+up*o1,2,bands[bands.Length-1-k]*.44f);
                 }
                 m.TwoSidedQuad(p+up*(total-Band*.3f),q+up2*(total-Band*.3f),q+up2*total,p+up*total,2,new Color(.6f,.58f,.62f));
                 if(i%3==0){m.Sphere(p+up*(total+.6f),Vector3.one*.9f,2,new Color(1,.92f,.6f),3,6);m.Sphere(p-up*.6f,Vector3.one*.9f,2,new Color(1,.7f,.9f),3,6);}
@@ -371,8 +371,8 @@ namespace DeadlyJenga.Presentation
                     c.Box(Vector3.up*4.3f,new Vector3(4.4f,.5f,8.4f),Quaternion.identity,1,H(Sugar,.1f));
                 }
                 foreach(int s in new[]{-1,1})foreach(int e in new[]{-1,1})c.Cylinder(new Vector3(s*2.1f,.8f,e*2.6f),Quaternion.Euler(0,0,90),.8f,.5f,1,H(new Color(.4f,.2f,.3f),.1f),10);
-                var car=Model("Visual · rainbow train car",c,transform,SkyMaterials);
-                trainCars.Add((car.transform,i*.024f));
+                var car=Model("Visual · rainbow train car",c,transform,SkyMaterials);car.transform.localScale=Vector3.one*2;
+                trainCars.Add((car.transform,i*.042f));
             }
         }
 
@@ -396,7 +396,7 @@ namespace DeadlyJenga.Presentation
                 {
                     if(!car)continue;
                     // One way across, then round again; the cars disappear into the landing clouds at each end.
-                    float t=Mathf.Repeat(time*.02f,1.2f)-offset;
+                    float t=Mathf.Repeat(time*.02f+.4f,1.25f)-offset;
                     bool show=t>.03f&&t<.97f;if(car.gameObject.activeSelf!=show)car.gameObject.SetActive(show);
                     t=Mathf.Clamp01(t);
                     float f=t*last;int i=Mathf.Min((int)f,last-1);float u=f-i;
