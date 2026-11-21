@@ -47,7 +47,6 @@ namespace DeadlyJenga.CandyArt.Marina
             // The whole east side and the back are open beach, low by the water. The plaza, main deck and
             // the west deck step down onto it.
             mesh.ArcSlab(center, new Vector2(6, 6), new Vector2(27.6f, 24.6f), .36f, EastCut, 140, F.Sand, true, 56);
-            Ramp(new Vector3(7.0f, PlazaTop, -4.4f), new Vector3(10.6f, .40f, -4.4f), 3f, false);
             mesh.ArcSlab(center, new Vector2(20, 17), new Vector2(27.2f, 24.0f), .34f, -105, -62, F.Sand, true, 28);
             Ramp(new Vector3(-23.0f,1.25f,8.78f),new Vector3(-24.1f,1.25f,8.93f),2.7f,false);
             Ramp(new Vector3(-24.1f,1.25f,8.93f),new Vector3(-25.8f,.36f,9.25f),2.7f,false);
@@ -211,8 +210,9 @@ namespace DeadlyJenga.CandyArt.Marina
             Lantern(new Vector3(-3.8f,5.35f,8.3f),.22f);
             Lantern(new Vector3(3.8f,5.35f,8.3f),.22f);
         }
-        // The gift shop door sits on the cinema's east edge, clear of the wardrobe mirror and rack.
-        const float ShopDoorZ = 8.3f, EastGlassX = 7.85f, BackGlassZ = 11.65f, ShopDoorHalf = 1.5f;
+        // The gift shop sits on the south end of the cinema's east side; its door opens between the
+        // front corner post and the wardrobe rack. The shop itself reaches south past the cinema front.
+        const float ShopDoorZ = -.3f, EastGlassX = 7.85f, BackGlassZ = 11.65f, ShopDoorHalf = 1.1f;
 
         // Glass walling around the cinema: tall panes in wooden frames, cut to meet the curved roof.
         // Behind the terminals it runs the full width; on the east side it leaves a doorway into the shop.
@@ -224,8 +224,12 @@ namespace DeadlyJenga.CandyArt.Marina
             GlassRun(new Vector3(EastGlassX,0,CinemaFront+.05f),new Vector3(EastGlassX,0,ShopDoorZ-ShopDoorHalf),floor,Top,true);
             GlassRun(new Vector3(EastGlassX,0,ShopDoorZ+ShopDoorHalf),new Vector3(EastGlassX,0,BackGlassZ),floor,Top,true);
             GlassRun(new Vector3(EastGlassX,0,ShopDoorZ-ShopDoorHalf),new Vector3(EastGlassX,0,ShopDoorZ+ShopDoorHalf),CinemaFloor+3.1f,Top,false);
-            // The porch between the lobby and the shop front is closed at both ends with the same glass.
+            // The porch between the lobby and the shop front is closed at both ends with the same glass,
+            // and along its open side south of the cinema.
             float shopFront=EastGlassX+.05f+ShopPorch;
+            float porchSouth=ShopDoorZ-(ShopWidth*.5f+.3f);
+            if(porchSouth<CinemaFront)
+                GlassRun(new Vector3(EastGlassX,0,porchSouth),new Vector3(EastGlassX,0,CinemaFront+.05f),floor,_=>CinemaFloor+ShopWall,true);
             foreach(float side in new[]{-1f,1f})
             {
                 float z=ShopDoorZ+side*(ShopWidth*.5f+.3f);
@@ -235,6 +239,7 @@ namespace DeadlyJenga.CandyArt.Marina
         void GlassRun(Vector3 from,Vector3 to,float bottom,System.Func<Vector3,float> top,bool sill)
         {
             from.y=to.y=0;float length=Vector3.Distance(from,to);
+            if(length<.2f)return;
             int panes=Mathf.Max(1,Mathf.RoundToInt(length/1.6f));
             Vector3 At(float t,float y){var p=Vector3.Lerp(from,to,t);p.y=y;return p;}
             float Top(float t)=>top(Vector3.Lerp(from,to,t));
@@ -257,8 +262,8 @@ namespace DeadlyJenga.CandyArt.Marina
         void GiftShopWing()
         {
             var floor=new Vector3(EastGlassX+.05f+ShopPorch+ShopDepth*.5f,CinemaFloor,ShopDoorZ);
-            float x0=EastGlassX,x1=floor.x+ShopDepth*.5f+.4f,z0=ShopDoorZ-ShopWidth*.5f-.5f,z1=ShopDoorZ+ShopWidth*.5f+5.8f;
-            mesh.Box(new Vector3((x0+x1)*.5f,(CinemaFloor+.3f)*.5f,(z0+z1)*.5f),new Vector3(x1-x0,CinemaFloor-.3f,z1-z0),F.Stone,.06f,true);
+            float x0=EastGlassX-.25f,x1=floor.x+ShopDepth*.5f+.4f,z0=ShopDoorZ-ShopWidth*.5f-.5f,z1=ShopDoorZ+ShopWidth*.5f+5.8f;
+            mesh.Box(new Vector3((x0+x1)*.5f,(CinemaFloor-.01f+.3f)*.5f,(z0+z1)*.5f),new Vector3(x1-x0,CinemaFloor-.01f-.3f,z1-z0),F.Stone,.06f,true);
             GiftShop(floor,90);
         }
         static readonly Vector3 ProjectorLens = new(-1.35f,5.49f,5.75f);
