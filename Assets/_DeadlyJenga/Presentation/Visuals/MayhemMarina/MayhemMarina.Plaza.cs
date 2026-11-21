@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DeadlyJenga.Core;
 using UnityEngine;
 using F=DeadlyJenga.CandyArt.Marina.MarinaFinish;
 
@@ -136,24 +137,27 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 var rack = turn * Quaternion.Euler(0, -38, 0);
                 Vector3 R(float x, float y, float z) => At(2.35f, 0, 1.15f) + rack * new Vector3(x, y, z);
-                mesh.Beam(R(-.75f, 0, 0), R(-.75f, 2.29f, 0), .045f, F.Brass, true);
-                mesh.Beam(R(.75f, 0, 0), R(.75f, 2.29f, 0), .045f, F.Brass, true);
-                mesh.Beam(R(-.78f, 1.98f, 0), R(.78f, 1.98f, 0), .03f, F.Brass);
+                // Same display style as the gift shop: bodies hang side-on from the rod on white
+                // lollipop sticks, and the hats sit on real player heads on short upright sticks.
+                const float rod = 2.4f, shelf = 2.78f;
+                mesh.Beam(R(-.75f, 0, 0), R(-.75f, shelf, 0), .045f, F.Brass, true);
+                mesh.Beam(R(.75f, 0, 0), R(.75f, shelf, 0), .045f, F.Brass, true);
+                mesh.Beam(R(-.78f, rod, 0), R(.78f, rod, 0), .03f, F.Brass);
                 mesh.Box(R(0, .08f, 0), new Vector3(1.7f, .16f, .55f), F.DarkWood, .05f, false, rack);
                 for (int j = 0; j < 4; j++)
                 {
-                    var color = (j + 1) % 2 == 0 ? F.MintFabric : F.CoralFabric;
-                    var p = R((j - 1.5f) * .36f, 1.38f, 0);
-                    mesh.Box(p, new Vector3(.3f, .85f, .12f), color, .06f, false, rack);
-                    mesh.Box(p + rack * new Vector3(-.18f, .24f, 0), new Vector3(.16f, .5f, .12f), color, .05f, false, rack * Quaternion.Euler(0, 0, -14));
-                    mesh.Box(p + rack * new Vector3(.18f, .24f, 0), new Vector3(.16f, .5f, .12f), color, .05f, false, rack * Quaternion.Euler(0, 0, 14));
+                    float x = (j - 1.5f) * .37f;
+                    mesh.Beam(R(x, rod - .41f, 0), R(x, rod, 0), .014f, F.Ivory);
+                    mesh.Ellipsoid(R(x, rod + .03f, 0), Vector3.one * .035f, F.Ivory, null, 7, 12);
+                    Mannequins.Create(visual, R(x, rod - 1.85f, 0), rack * Quaternion.Euler(0, 90, 0), rackLooks[j], rackColors[j], MannequinPose.Hanging);
                 }
-                mesh.Box(R(0, 2.25f, .05f), new Vector3(1.67f, .10f, .58f), F.Wood, .025f, false, rack);
+                mesh.Box(R(0, shelf, .05f), new Vector3(1.67f, .05f, .5f), F.Wood, .015f, false, rack);
                 for (int j = 0; j < 3; j++)
                 {
-                    var hat = R((j - 1) * .5f, 2.3f, .05f);
-                    mesh.Disk(hat, .22f, .05f, F.Metal, false, 20);
-                    mesh.Disk(hat + Vector3.up * .05f, .14f, .26f, (F)((int)F.Red + (j + 1) % 3), false, 20);
+                    var foot = R((j - 1) * .52f, shelf + .025f, .05f);
+                    mesh.Disk(foot, .09f, .03f, F.Brass, false, 24);
+                    mesh.Beam(foot + Vector3.up * .025f, foot + Vector3.up * .3f, .014f, F.Ivory);
+                    Mannequins.Create(visual, foot + Vector3.up * .055f, rack * Quaternion.Euler(0, 180, 0), hatLooks[j + 3], hatColors[j + 3], MannequinPose.Head);
                 }
                 Pot(At(2.05f, 0, 2.55f), .42f, .78f, 31);
             }
