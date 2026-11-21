@@ -15,12 +15,36 @@ namespace DeadlyJenga.CastlePrototype
 
         sealed partial class Builder
         {
-            readonly List<(MayhemModule floor, float w, float depth, int level)> jengaFloors = new();
+            // One wall band per floor: the module, its footprint, the floor's base height and height, and street doors.
+            readonly List<(MayhemModule floor, float w, float depth, float baseY, float height, bool doors)> jengaFloors = new();
 
-            void RememberFloor(MayhemModule floor, float w, float depth, int level) => jengaFloors.Add((floor, w, depth, level));
+            void RememberFloor(MayhemModule floor, float w, float depth, int level) => jengaFloors.Add((floor, w, depth, 0, 4, level == 0));
+
+            // Transplanted cassettes (the Downtown drop-stop tower, the lower Grape Heights keep) get the same walls,
+            // so they read as buildings instead of bare frames. The keep's winged tier stays open: its wings swing
+            // down from the spine's sides and players cross between them there.
+            void RememberCassettes()
+            {
+                foreach (var m in plan.modules)
+                {
+                    int floors; float height;
+                    switch (m.purpose)
+                    {
+                        case "Escape spine": floors = 3; height = 5; break; // built 1.25 times taller
+                        case "Two-floor dropping cassette": floors = 2; height = 4; break;
+                        case "Independent bookfall support spine": if (m.position.y > 20) continue; floors = 3; height = 4; break;
+                        default: continue;
+                    }
+                    // The first four shapes are the corner posts, 2.5 m square, set in 1.25 m from each edge.
+                    var post = m.shapes[0].center; float w = Mathf.Abs(post.x) * 2 + 2.5f, depth = Mathf.Abs(post.z) * 2 + 2.5f;
+                    bool street = m.position.y < 2;
+                    for (int f = 0; f < floors; f++) jengaFloors.Add((m, w, depth, f * height, height, street && f == 0));
+                }
+            }
 
             public void PlankWalls()
             {
+                RememberCassettes();
                 var keepClear = new List<(Vector3 c, Vector3 h, Quaternion q)>();
                 foreach (var m in plan.modules)
                 {
@@ -37,22 +61,23 @@ namespace DeadlyJenga.CastlePrototype
                         keepClear.Add((center + Vector3.up * 1.1f, size * .5f + new Vector3(.6f, 1.25f, .6f), q));
                     }
                 }
-                foreach (var (floor, w, depth, level) in jengaFloors) WallFloor(floor, w, depth, level, keepClear);
+                foreach (var f in jengaFloors) WallFloor(f.floor, f.w, f.depth, f.baseY, f.height, f.doors, keepClear);
             }
 
-            void WallFloor(MayhemModule floor, float w, float depth, int level, List<(Vector3 c, Vector3 h, Quaternion q)> keepClear)
+            void WallFloor(MayhemModule floor, float w, float depth, float baseY, float height, bool doors, List<(Vector3 c, Vector3 h, Quaternion q)> keepClear)
             {
+                int rows = Mathf.FloorToInt((height - .7f) / PlankRow); // up to the underside of the deck above
                 for (int wall = 0; wall < 4; wall++)
                 {
                     bool alongX = wall < 2; float sign = wall % 2 == 0 ? -1 : 1;
                     float length = (alongX ? w : depth) - 4.8f; // between the corner posts
                     float offset = ((alongX ? depth : w) * .5f) - .6f - PlankThickness * .5f;
-                    for (int row = 0; row < 6; row++)
+                    for (int row = 0; row < rows; row++)
                     {
-                        float y = .03f + PlankRow * (row + .5f);
+                        float y = baseY + .03f + PlankRow * (row + .5f);
                         bool planks = (row % 2 == 0) == alongX;
                         // Street doors on the ground floor, front and back.
-                        bool door = level == 0 && alongX && row < 4;
+                        bool door = doors && alongX && row < 4;
                         if (planks) Run(floor, alongX, sign, offset, y, -length * .5f, length * .5f, door, keepClear);
                         else foreach (float at in new[] { -length * .25f, 0, length * .25f })
                                 Run(floor, alongX, sign, offset, y, at - 1.2f, at + 1.2f, door, keepClear);

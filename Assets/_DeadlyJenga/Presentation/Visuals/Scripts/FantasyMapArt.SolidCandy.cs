@@ -70,6 +70,7 @@ namespace DeadlyJenga.Presentation
                 {fountainBuilt=true;Fountain(mesh,P(Vector3.up*size.y*.5f),1.7f);any=true;}
             }
             if(purpose.Contains(" floor ")){FloorDress(body,visual,site,purpose,mesh);any=true;}
+            if(Landmark(body,visual,site,purpose,mesh))any=true;
             if(any)Model("Fantasy decorations",mesh,visual,new[]{cityCandyMaterial,cityGlowMaterial},true);
         }
 
@@ -210,6 +211,9 @@ namespace DeadlyJenga.Presentation
                 for(int i=0;i<10;i++){float a=i*Mathf.PI/5;mesh.Box(at+new Vector3(Mathf.Cos(a)*r,y-.4f,Mathf.Sin(a)*r)*k,new Vector3(.22f,.9f,.22f)*k,up,0,choc);}
             }
             mesh.Sphere(at+Vector3.up*(y+.6f)*k,Vector3.one*.5f*k,0,new Color(.9f,.08f,.15f),6,10);
+            // A glowing water jet reaching up toward the sky ring, and spray falling back into the top bowl.
+            mesh.Cylinder(at+Vector3.up*(y+1)*k,up,.16f*k,4.5f*k,1,new Color(.7f,.92f,1),10);
+            for(int i=0;i<8;i++){float a=i*Mathf.PI/4;mesh.Sphere(at+new Vector3(Mathf.Cos(a)*.7f,y+4.8f-i%2*.5f,Mathf.Sin(a)*.7f)*k,Vector3.one*.22f*k,1,new Color(.8f,.95f,1),3,6);}
         }
 
         void Awning(ArtMesh mesh,Vector3 at,Quaternion q)
