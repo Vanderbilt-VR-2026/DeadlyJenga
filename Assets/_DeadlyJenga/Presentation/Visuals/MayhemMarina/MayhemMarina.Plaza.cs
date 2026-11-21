@@ -193,7 +193,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.ArcSlab(top, Vector2.one * .49f, Vector2.one * .53f, .015f, 0, 360, F.Glow, false, 40);
                 MarinaFamePiston.Build(visual, i, top, turn, finishes[i]);
             }
-            Accent("Recent match", FamePodium + turn * new Vector3(0, 3.1f, -1.8f), new Color(1, .86f, .62f), 2.6f, 6.5f);
+            Accent("Recent match", FamePodium + turn * new Vector3(0, 3.1f, 1.8f), new Color(1, .86f, .62f), 2.6f, 6.5f);
         }
     }
 }
