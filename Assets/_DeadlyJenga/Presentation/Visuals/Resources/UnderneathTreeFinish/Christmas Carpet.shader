@@ -204,10 +204,26 @@ Shader "DeadlyJenga/Christmas Carpet"
                 albedo = lerp(albedo, _Pine.rgb * shade, green * (1.0h - ivory));
                 albedo = lerp(albedo, _Ivory.rgb * shade, ivory);
 
-                // Gaps between loops are dark; the swirl centres sink into shadow.
+                // Gaps between loops are dark.
                 half gaps = lerp(1.0h, lerp(0.55h, 1.3h, loopTop), near);
-                // The swirl centre sinks into deep shadow; the rim stays red so the pit stands out.
-                albedo *= gaps * lerp(1.0h, 0.08h, pull * pull);
+                albedo *= gaps;
+
+                // Swirl look, readable from far away: a raised lighter rim, spiral grooves
+                // that crawl inward, and a wide funnel that goes almost black at the bottom.
+                if (pull > 0.002h)
+                {
+                    float2 d = xz - centre;
+                    float r = length(d);
+                    float a = atan2(d.y, d.x);
+                    half arms = (half)sin(a * 3.0 + sqrt(r) * 5.0 + _Time.y * 1.2);
+                    half ridge = smoothstep(-0.3h, 0.7h, arms);
+                    half pit = saturate(pull * 1.15h);
+                    half rim = saturate(pull * 9.0h) * (1.0h - saturate((pull - 0.14h) * 7.0h));
+                    half armMask = saturate(pull * 4.0h) * (1.0h - pit * 0.6h);
+                    albedo *= 1.0h + 0.55h * rim;
+                    albedo *= lerp(1.0h, lerp(0.35h, 1.2h, ridge), armMask);
+                    albedo *= lerp(1.0h, 0.04h, pit * pit * (3.0h - 2.0h * pit));
+                }
 
                 half3 n = normalize(input.normalWS);
                 half3 detail = half3(bump.x, bump.z, bump.y);
@@ -230,8 +246,9 @@ Shader "DeadlyJenga/Christmas Carpet"
                 s.smoothness = _Smoothness;
                 s.occlusion = 1;
                 s.normalTS = half3(0, 0, 1);
-                half core = saturate((pull - 0.55h) * 2.5h);
-                half3 glow = _Ember.rgb * (core * core) * (1.0h - loopTop * 0.7h) *
+                // Only a small, dim ember deep at the very bottom of a swirl.
+                half core = saturate((pull - 0.78h) * 6.0h);
+                half3 glow = _Ember.rgb * (core * core * 0.35h) * (1.0h - loopTop * 0.7h) *
                     (0.75h + 0.25h * sin(_Time.y * 2.3 + ring * 40.0));
                 s.emission = glow;
                 half4 result = UniversalFragmentPBR(data, s);

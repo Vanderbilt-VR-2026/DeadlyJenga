@@ -37,7 +37,7 @@ namespace DeadlyJenga.CandyArt
             material.SetTexture("_DetailMap", weave);
             material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Cranberry Rug Weave Normal"));
             var centre = art.TransformPoint(new Vector3(RugCentreX, 0f, RugCentreZ));
-            material.SetColor("_Ember", new Color(1.1f, .28f, .07f));
+            material.SetColor("_Ember", new Color(.9f, .2f, .05f));
             material.SetVector("_RugCircle", new Vector4(centre.x, centre.z, RugEdge, 0f));
             materials.Add(material);
             finishes.Add(label, material);
@@ -121,10 +121,10 @@ namespace DeadlyJenga.CandyArt
                 bool crowded = false;
                 foreach (var other in chosen)
                     crowded |= (other - spot).sqrMagnitude < 22f * 22f;
-                if (crowded || !Clear(spot, 6f) || !OnCarpet(spot, out var ground))
+                if (crowded || !Clear(spot, 7f) || !OnCarpet(spot, out var ground))
                     continue;
                 chosen.Add(spot);
-                float radius = 2.8f + (float)random.NextDouble() * 1.6f;
+                float radius = 4.5f + (float)random.NextDouble() * 2f;
                 restingSwirls.Add(new Vector4(ground.x, ground.z, radius, .9f));
                 // Named marker so the look-dev camera can find it.
                 var marker = new GameObject("Carpet swirl " + chosen.Count);
