@@ -197,7 +197,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // so he only jumps where he will land. This is the Studio's own planner; the game's bot navigation is not used.
         const float RunSpeed = 4.9f, JumpSpeed = 8.9f, Gravity = 20.7f, RouteTarget = 34f;
 
-        sealed class Leg { public Vector3 from, takeoff, land, dir; }
+        sealed class Leg { public Vector3 from, takeoff, land, dir; public bool vault; }
         sealed class Route { public List<Leg> legs = new List<Leg>(); public Vector3 start, tail, dir; public float length; }
 
         static Route bestRoute; static int budget;
@@ -267,6 +267,40 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 legs.RemoveAt(legs.Count - 1);
                 if (bestRoute != null && bestRoute.length >= RouteTarget) return;
             }
+            // A wall at the end of the run with a ledge he can grab: jump at it and pull up (the game's own vault).
+            if (TryVault(p, d, walk, out var jumpAt, out var top) &&
+                !legs.Any(l => Vector3.Distance(l.land, top) < 2.5f || Vector3.Distance(l.takeoff, top) < 2.5f || Vector3.Distance(l.from, top) < 2f))
+            {
+                budget--;
+                legs.Add(new Leg { from = p, takeoff = jumpAt, land = top, dir = d, vault = true });
+                float add = Flat0(top - p).magnitude + 1.5f;   // the pull-up costs time, so it counts for less than its metres
+                foreach (float turn in new[] { 0f, 20f, -20f, 40f, -40f, 60f, -60f, 90f, -90f })
+                {
+                    Extend(top, Quaternion.Euler(0, turn, 0) * d, legs, length + add, start, startDir);
+                    if (bestRoute != null && bestRoute.length >= RouteTarget) break;
+                }
+                legs.RemoveAt(legs.Count - 1);
+            }
+        }
+
+        // The game's vault: a second jump press in the air grabs a ledge up to 0.65 m ahead and 1.25 m above the feet,
+        // and his jump lifts his feet 1.9 m, so a wall 0.6 to 2.7 m high at the end of a run can be climbed in stride.
+        static bool TryVault(Vector3 p, Vector3 d, float walk, out Vector3 jumpAt, out Vector3 top)
+        {
+            jumpAt = top = p;
+            Vector3 up = Vector3.up, end = p + d * walk;
+            if (!Physics.Raycast(end + up * .3f, d, out var face, 1.4f, Solid, QueryTriggerInteraction.Ignore) || Mathf.Abs(face.normal.y) > .35f) return false;
+            float wall = walk + face.distance;                      // metres from p to the wall
+            Vector3 inside = p + d * (wall + .45f);
+            if (!Physics.Raycast(inside + up * 3.3f, Vector3.down, out var hit, 3.2f, Ground, QueryTriggerInteraction.Ignore)) return false;
+            float rise = hit.point.y - p.y;
+            if (rise < .6f || rise > 2.7f || !Level(hit.point, hit.point.y) || !Level(hit.point + d * .6f, hit.point.y)) return false;
+            float runUp = wall - .9f;                               // he leaves the ground 0.9 m before the wall
+            if (runUp < .5f) return false;
+            jumpAt = p + d * runUp; top = hit.point;
+            // Nothing over his head on the way up.
+            return !Physics.Linecast(jumpAt + up * 1.4f, jumpAt + up * (rise + 1.6f), Solid, QueryTriggerInteraction.Ignore)
+                && !Physics.Linecast(jumpAt + up * (rise + 1.5f), top + up * 1.5f, Solid, QueryTriggerInteraction.Ignore);
         }
 
         static Route FindRoute(List<Vector3> spots, float top)
@@ -287,9 +321,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             if (bestRoute == null) throw new InvalidOperationException($"No route with a jump was found on this map top ({roots} starts, {used} jumps tried).");
             var r = bestRoute;
-            Note($"Route found in {clock.Elapsed.TotalSeconds:0.0} s ({roots} starts, {used} jumps tried): {r.length:0.0} m with {r.legs.Count} jumps, from {V(r.start)} to {V(r.tail)}.");
+            Note($"Route found in {clock.Elapsed.TotalSeconds:0.0} s ({roots} starts, {used} jumps tried): {r.length:0.0} m with {r.legs.Count} jumps ({r.legs.Count(l => l.vault)} of them vaults), from {V(r.start)} to {V(r.tail)}.");
             foreach (var leg in r.legs)
-                Note($"- run {Flat0(leg.takeoff - leg.from).magnitude:0.0} m, jump {Flat0(leg.land - leg.takeoff).magnitude:0.0} m, {leg.land.y - leg.takeoff.y:+0.0;-0.0} m in height, lands {V(leg.land)}");
+                Note($"- run {Flat0(leg.takeoff - leg.from).magnitude:0.0} m, {(leg.vault ? "vault" : "jump")} {Flat0(leg.land - leg.takeoff).magnitude:0.0} m, {leg.land.y - leg.takeoff.y:+0.0;-0.0} m in height, lands {V(leg.land)}");
             return r;
         }
 
