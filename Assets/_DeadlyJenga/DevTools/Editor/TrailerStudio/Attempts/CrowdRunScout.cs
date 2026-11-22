@@ -409,15 +409,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var mark = set.AddMark(StudioRole.Survivor, stage.ToStage(target.Value));
                 mark.id = "target"; mark.actor = "target"; mark.color = 2;
                 startAt[mark.id] = target.Value;
-                set.cues.Add(new StudioCue { at = .7f, action = "tsunami", heading = 90, strength = 30 });
-                Note($"Live cast: driven hero and one stationary aiming mark at {V(target.Value)}. Production tsunami cue at 0.70 s.");
+                set.cues.Add(new StudioCue { at = 1.9f, action = "tsunami", heading = 90, strength = 12, height = 18 });
+                Note($"Live cast: driven hero and one stationary aiming mark at {V(target.Value)}. Production tsunami cue at 1.90 s, height 18 m, speed 12 m/s.");
             }
             else Note($"Crowd: {chosen.Count} of {Crowd} wanted, all game bots, from {free.Count} free spots within 10 m of the route.");
 
             var h = new StudioDrive { actor = "hero", seed = 11, human = .7f };
             h.steps.Add(new StudioDriveStep { action = "gear", at = .3f, weapon = "Blaster" });
             var path = new StudioDriveStep { action = "path", at = RunAt, pace = "run", edge = true, duration = set.length,
-                shoot = Rehearsal ? "target" : "auto", shootAfter = .12f };
+                shoot = Rehearsal ? "actor:target" : "auto", shootAfter = .12f };
             foreach (var p in line.Skip(1)) path.points.Add(stage.ToStage(p));
             foreach (var leg in route.legs) path.jumps.Add(stage.ToStage(leg.takeoff));
             h.steps.Add(path);
