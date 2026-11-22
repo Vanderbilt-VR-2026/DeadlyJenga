@@ -40,7 +40,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void Pier(string name, Vector3 point, float top, float width, float depth, float yaw = 0)
         {
-            int count = Mathf.Max(1, Mathf.CeilToInt((top-Bed)/4));
+            int count = Mathf.Max(1, Mathf.CeilToInt((top-Bed)/5));
             float h = (top-Bed)/count;
             for (int n = 0; n < count; n++)
             {
@@ -66,8 +66,12 @@ namespace DeadlyJenga.CastlePrototype
 
         // The top and underside share a slope. Each shoe has a horizontal sole
         // and a sloped crown bearing directly against the slab underside.
-        void Flight(string name,Vector3 from,Vector3 to,float width,int parts,bool stairs=false)
+        void Flight(string name,Vector3 from,Vector3 to,float width,int parts)
         {
+            // Square-cut ends meet both landings flush. The landing width
+            // accommodates the lateral setback between successive levels.
+            if(Mathf.Abs(to.x-from.x)<1.8f && Mathf.Abs(to.z-from.z)>3)
+                from.x=to.x=(from.x+to.x)/2;
             var d = to-from;
             var horizontal = new Vector3(d.x,0,d.z);
             var axis = horizontal.normalized;
@@ -82,7 +86,7 @@ namespace DeadlyJenga.CastlePrototype
                 var a=Vector3.Lerp(start,end,(float)i/parts);
                 var b=Vector3.Lerp(start,end,(i+1f)/parts);
                 var mid=(a+b)*.5f;
-                float pitch=stairs?0:rise;
+                float pitch=rise;
                 string label=name+" "+i;
                 Rock(label,mid-Vector3.up*(Deck/2),new Vector3(width,Deck,length-.025f),yaw,pitch,pitch,0,1);
                 // A pair of pulled bearings can tip a long slab. Short stair treads
@@ -139,7 +143,7 @@ namespace DeadlyJenga.CastlePrototype
                     // Outer ribs taper toward an offset tip, with a level rooted foot.
                     for(int j=0;j<2;j++)
                     {
-                        float x=p.x+edge*(3.6f+j*2.2f);
+                        float x=p.x+edge*(3.9f+j*3.0f);
                         float z=p.z+(j==0?.3f:2.3f);
                         float h=p.y-Bed+(row>=4?3.4f:1.3f)-j*1.7f;
                         Rock(region+" flank rib",new Vector3(x,Bed+h/2,z),
@@ -159,9 +163,9 @@ namespace DeadlyJenga.CastlePrototype
             Flight(region+" rim crown",backWest,backEast,3,2);
             for(int n=0;n<7;n++)
             {
-                float x=Mathf.Lerp(backWest.x-2,backEast.x+2,n/6f);
+                float x=Mathf.Lerp(backWest.x-4,backEast.x+4,n/6f);
                 float h=backWest.y-Bed+2.8f+(n*5%7)*.87f;
-                Rock(region+" summit fin",new Vector3(x,Bed+h/2,backWest.z+4.6f+(n%2)*1.4f),
+                Rock(region+" summit fin",new Vector3(x,Bed+h/2,backWest.z+4.6f+(n%2)*3.3f),
                     new Vector3(2.5f,h,3.1f),n%2==0?-12:9,0,1.3f,side<0?.68f:.16f,.52f);
             }
         }
@@ -170,11 +174,20 @@ namespace DeadlyJenga.CastlePrototype
         {
             // Join the inside-facing edge of each landing. Use long treads
             // at half-scale survivor step height.
-            Vector3 line=to-from;
-            Vector3 flat=new Vector3(line.x,0,line.z);
-            Vector3 axis=flat.normalized;
-            float fraction=1.65f/Mathf.Abs(line.z);
-            Vector3 a=from+flat*fraction, b=to-flat*fraction;
+            float direction=Mathf.Sign(to.x-from.x);
+            Vector3 axis=Vector3.right*direction;
+            float laneZ=(from.z+to.z)/2;
+            var lower=from+new Vector3(direction*3.65f,0,3.12f);
+            var upper=to+new Vector3(-direction*3.65f,0,-3.12f);
+            void Turn(Vector3 pt,string suffix)
+            {
+                Pier(name+suffix,pt,pt.y-Deck,1.6f,2.3f);
+                Rock(name+suffix,pt-Vector3.up*(Deck/2),new Vector3(2.15f,Deck,2.94f),0,0,0,0,1);
+            }
+            Turn(lower," lower turn");Turn(upper," upper turn");
+            var a=new Vector3(lower.x+direction*1.09f,from.y,laneZ);
+            var b=new Vector3(upper.x-direction*1.09f,to.y,laneZ);
+            var line=b-a;
             float length=Vector3.Dot(b-a,axis);
             float rise=line.y, yaw=Mathf.Atan2(axis.x,axis.z)*Mathf.Rad2Deg;
             int count=Mathf.CeilToInt(rise/.24f);
@@ -185,7 +198,7 @@ namespace DeadlyJenga.CastlePrototype
             Rock(name+" stringer",middle,new Vector3(2.2f,.65f,length),yaw,rise,rise,0,1);
             for(int j=0;j<2;j++)
             {
-                float t=j==0?-.35f:.35f;
+                float t=j==0?-.28f:.28f;
                 var p=middle+axis*(length*t);
                 float y=middle.y+t*rise-.325f;
                 Pier(name+" leg "+j,p,y-.78f,1.75f,1.25f,yaw);
