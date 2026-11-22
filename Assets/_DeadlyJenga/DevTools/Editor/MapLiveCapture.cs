@@ -108,6 +108,12 @@ namespace DeadlyJenga.DevTools.Editor
                 new[]{"reference","cloud-landing","cloud-underside"});
         }
 
+        public static void CaptureCloudCityRiver()
+        {
+            BatchMaps(new[]{"epic-candy-sky-ring-city"},Path.GetFullPath(Path.Combine("Logs","Captures","CloudCityRiver")),
+                new[]{"reference","river-route","river-basin","cloud-landing","pov|river-bend|-39|1|22|-44|1|17"});
+        }
+
         public static void CaptureCloudCityRainbows()
         {
             Begin(new Job { batch=true, rainbowMotion=true, views=Array.Empty<string>(),
@@ -416,6 +422,27 @@ namespace DeadlyJenga.DevTools.Editor
                         camera.fieldOfView = 36.94f;
                         camera.transform.SetPositionAndRotation(world.Center + new Vector3(240.93f,200.47f,-298.43f),
                             Quaternion.Euler(24.87f,-38.81f,0));
+                    }
+                    else if(view=="river-route" || view=="river-basin")
+                    {
+                        var river=GameObject.Find("Visual · city rainbow river").GetComponent<MeshRenderer>();
+                        var pool=GameObject.Find("Visual · lower cloud pool").transform;
+                        var splash=GameObject.Find("Visual · rainbow splash rim").transform;
+                        if(Vector3.Distance(pool.position,splash.position)>.02f)
+                            throw new InvalidOperationException("Rim splash missed the receiving pool");
+                        if(view=="river-route")
+                        {
+                            var at=river.bounds.center;
+                            camera.transform.position=at+new Vector3(-48,160,-58);
+                            camera.transform.LookAt(at);
+                            camera.fieldOfView=55;
+                        }
+                        else
+                        {
+                            var at=Vector3.Lerp(pool.position,GameObject.Find("Visual · rim spillway").transform.position,.32f);
+                            camera.transform.position=at+new Vector3(-82,48,110);
+                            camera.transform.LookAt(at);
+                        }
                     }
                     else if(view=="cloud-landing" || view=="cloud-underside")
                     {

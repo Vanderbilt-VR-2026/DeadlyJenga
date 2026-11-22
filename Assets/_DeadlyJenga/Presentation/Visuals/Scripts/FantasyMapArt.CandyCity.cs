@@ -418,6 +418,7 @@ namespace DeadlyJenga.Presentation
             Splash(transform,center+Vector3.left*middleRadius,60,"skyline west");
             }
             // Cotton-candy waterfall pouring off the island rim.
+            if(solidCandy)return; // Sky Ring builds both ends together with its river.
             float edge=Mathf.PI*1.1f;
             var rim=new Vector3(Mathf.Cos(edge)*halfWidth*.98f,-8,Mathf.Sin(edge)*halfDepth*.98f);
             var outward=new Vector3(Mathf.Cos(edge),0,Mathf.Sin(edge));

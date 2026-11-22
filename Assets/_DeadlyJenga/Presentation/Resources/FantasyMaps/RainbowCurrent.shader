@@ -48,6 +48,15 @@ Shader "DeadlyJenga/Rainbow Current"
                     pos.xz+=dir*f.w*(.48+t);
                     pos.y+=f.w*(.06+2.9*t*(1-t));
                 }
+                else if(f.z < -1.5)
+                {
+                    // Surface coordinates are local to the pool and centered on the impact.
+                    f.xy=pos.xz;
+                }
+                else if(f.z < -.5)
+                {
+                    pos.y+=.018*sin(f.x*6.28-_FlowTime*3.4+f.y*6);
+                }
                 else
                 {
                     pos+=n*.24*sin(f.x*6.28-_FlowTime*3.4+f.y*6);
@@ -65,7 +74,17 @@ Shader "DeadlyJenga/Rainbow Current"
                 n=faceforward(n,-view,n);
                 float3 dye=i.color.rgb;
                 float lip=0;
-                if(i.flow.z<.5)
+                if(i.flow.z < -1.5)
+                {
+                    float2 p=i.flow.xy;
+                    float radius=length(p);
+                    float2 dir=p/max(radius,.01);
+                    float wave=sin(radius*1.45-_FlowTime*2.7+.28*sin(dot(p,float2(.17,.21))));
+                    n=normalize(n+float3(dir.x,0,dir.y)*wave*(.18*exp(-radius*.034)));
+                    float pearl=.5+.5*sin(radius*.43-_FlowTime*.48+sin(p.y*.26));
+                    dye=lerp(float3(.68,.84,.93),float3(.97,.89,.99),pearl);
+                }
+                else if(i.flow.z<.5)
                 {
                     // Fluted sugar ribbons have long, interrupted reflections.
                     float down=i.flow.x*3.6-_FlowTime*2.15;

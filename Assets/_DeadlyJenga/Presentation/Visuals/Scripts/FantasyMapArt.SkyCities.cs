@@ -388,28 +388,48 @@ namespace DeadlyJenga.Presentation
         // just outside the play area so it never hides the streets.
         void BuildIslandAbove(Vector3 center)
         {
-            float R=Mathf.Max(halfWidth,halfDepth),a=150*Mathf.Deg2Rad;const float r=30,height=140,push=12;
-            var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
-            var world=center+dir*(R*1.08f+r+push)+Vector3.up*height;
+            const float r=30,height=140,push=12,width=13;
+            var downstream=Vector3.back;
+            var landing=new Vector3(center.x-47,streetY+.44f,center.z+halfDepth*.79f);
+            var world=landing-downstream*(r+1+push)+Vector3.up*(height+1);
             var m=new ArtMesh(3);
             CloudIsland(m,r,new Color(.7f,.6f,1),7);
             // Rainbow spring: a gold-pillared gazebo over a glowing pool, with little cottages around it.
             m.Cylinder(Vector3.zero,Quaternion.identity,9,1.4f,1,H(Sugar),24);
             m.Cylinder(Vector3.up*1.2f,Quaternion.identity,7.6f,.4f,2,new Color(.45f,.7f,.9f),24);
-            for(int i=0;i<8;i++){float b=i*Mathf.PI/4;m.Cylinder(new Vector3(Mathf.Cos(b),0,Mathf.Sin(b))*8.4f,Quaternion.identity,.5f,10,1,H(Gold),8);}
+            for(int i=0;i<8;i++){float b=(i+.5f)*Mathf.PI/4;m.Cylinder(new Vector3(Mathf.Cos(b),0,Mathf.Sin(b))*8.4f,Quaternion.identity,.5f,10,1,H(Gold),8);}
             m.Cylinder(Vector3.up*10,Quaternion.identity,9.4f,1,1,H(Gold),24);
             m.StripedCone(Vector3.up*11,10,7,16,1,H(new Color(.68f,.5f,1)),H(Sugar));
             m.Sphere(Vector3.up*18.4f,Vector3.one*1.4f,2,new Color(1,.85f,.55f),5,10);
             for(int i=0;i<7;i++){float b=i*Mathf.PI*2/7+.4f;var p=new Vector3(Mathf.Cos(b),0,Mathf.Sin(b))*r*.72f;if(p.z>r*.4f)continue;SkyTower(m,p,5,5+i%3*2,Pastels[i%Pastels.Length],i%2==0?0:1,i);}
             var go=Model("Visual · spring island above",m,transform,SkyMaterials);
-            go.transform.localPosition=L(world);go.transform.localRotation=LR(Quaternion.LookRotation(-dir));
-            // Lands on the cloud skirt around our island (about 11 m below the streets).
-            RainbowFall(go.transform,new Vector3(0,-1,r+1),22,push,height+3,"above");
+            go.transform.localPosition=L(world);go.transform.localRotation=LR(Quaternion.LookRotation(downstream));
+            // Carry the spring water from the gazebo pool to the high island's lip.
+            var spill=new ArtMesh();
+            for(int step=0;step<16;step++)
+            {
+                Vector3 Edge(int row,float u)
+                {
+                    float t=row/16f;
+                    float w=Mathf.Lerp(4,width,t);
+                    float y=Mathf.Lerp(1.64f,.48f,t)-1.48f*Mathf.SmoothStep(0,1,(t-.91f)/.09f);
+                    return new Vector3((u-.5f)*w,y,Mathf.Lerp(6.8f,r+1,t));
+                }
+                for(int k=0;k<Spectrum.Length;k++)
+                {
+                    float u=k/7f,v=(k+1)/7f;
+                    spill.WaterStrip(Edge(step,u),Edge(step,v),Edge(step+1,v),Edge(step+1,u),
+                        (step-16)*.18f,(step-15)*.18f,u,v,Spectrum[k],-1);
+                }
+            }
+            CurrentModel("Visual · gazebo spring outflow",spill,go.transform);
+            var inlet=RainbowFall(go.transform,new Vector3(0,-1,r+1),width,push,height,"above");
+            BuildCloudRiver(center,inlet,width*1.45f);
         }
 
         // A seven-band rainbow sheet pouring forward (+z of its parent) off a lip, curving down,
         // with bright streaks sliding down it and rainbow mist where it lands.
-        void RainbowFall(Transform parent,Vector3 lip,float width,float push,float drop,string label)
+        Vector3 RainbowFall(Transform parent,Vector3 lip,float width,float push,float drop,string label)
         {
             var water=new ArtMesh();
             Vector3 At(float t)=>lip+new Vector3(0,-drop*t*t,push*t);
@@ -426,6 +446,7 @@ namespace DeadlyJenga.Presentation
             }
             CurrentModel("Visual · rainbow waterfall "+label,water,parent);
             Splash(parent,At(1),width*1.45f,label);
+            return parent.TransformPoint(At(1));
         }
 
         void AnimateSkyCities(float time)
