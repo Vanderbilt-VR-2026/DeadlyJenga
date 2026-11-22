@@ -231,6 +231,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Stage = new StudioStage { session = session, world = world, set = set };
             Stage.RefreshBlocks();
             Stage.anchor = StudioStage.FindAnchor(world, set);
+            Status = "Stage is open.";
             ApplyStartState(Stage);
             StudioEnvironment.Apply(set);
             Stage.tape = LoadOrCreateTape(set, Stage);
@@ -238,7 +239,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             StudioCamera.Create(Stage);
             StudioDrivers.Ensure();
             Hold(0);
-            Status = "Stage is open.";
             Debug.Log($"[TrailerStudio] stage open: {set.map}, {Stage.blocks.Length} blocks, anchor {Stage.anchor}");
         }
 

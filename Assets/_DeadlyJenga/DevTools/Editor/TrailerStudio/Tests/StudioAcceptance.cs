@@ -243,6 +243,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Result("Stage opens the selected map", MatchSetup.SelectedMap?.id == set.map &&
                 ReferenceEquals(Services.World, stage.world) && stage.blocks.Length > 0,
                 $"{set.map}, {stage.blocks.Length} blocks.");
+            var source = new StudioTape();
+            source.header.map = set.map;
+            bool validSource = StudioRun.IsSameWorldMap(set, source);
+            source.header.map = set.map + "-other";
+            bool differentMapRejected = !StudioRun.IsSameWorldMap(set, source);
+            source.header.map = "";
+            Result("World start map safety", validSource && differentMapRejected && !StudioRun.IsSameWorldMap(set, source),
+                "World start accepts a matching map ID and rejects different or missing IDs.");
             var fixedSet = new StudioSet { useMapAnchor = true, mapAnchor = new Vector3(3, 4, 5), stageOffset = Vector3.up };
             Result("Stage placement", StudioStage.SurfaceBelow(stage.anchor, out var surface) &&
                 surface.y > stage.world.WaterHeight(surface) && Mathf.Abs(stage.anchor.y - surface.y) < 1f &&

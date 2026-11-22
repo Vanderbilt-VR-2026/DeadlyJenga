@@ -295,6 +295,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         }
 
         // "Start where a previous moment ended": pose the live blocks like a frame of another Set's tape.
+        internal static bool IsSameWorldMap(StudioSet set, StudioTape tape) =>
+            !string.IsNullOrEmpty(set.map) && string.Equals(set.map, tape.header.map, StringComparison.Ordinal);
+
         static void ApplyStartState(StudioStage stage)
         {
             var set = stage.set;
@@ -304,6 +307,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 string file = StudioLibrary.TapePath(set.startFromSet);
                 if (!StudioTape.IsTape(file)) throw new InvalidOperationException("that Set has no tape yet");
                 var other = StudioTape.Load(file, new[] { WorldTrack.Id });
+                if (!IsSameWorldMap(set, other))
+                    throw new InvalidOperationException("its recorded world belongs to another map or has no map ID");
                 var track = other.FindType(WorldTrack.Id);
                 var take = track?.ActiveTake;
                 if (take == null) throw new InvalidOperationException("that Set has no world take yet");

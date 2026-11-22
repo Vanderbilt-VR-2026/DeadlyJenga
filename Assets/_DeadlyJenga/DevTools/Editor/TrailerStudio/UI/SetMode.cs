@@ -201,14 +201,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
 
             // Starting world state
-            var others = StudioLibrary.SetIds().Where(id => id != set.id).ToList();
-            var startNames = new List<string> { "As the map loads" }.Concat(others.Select(id => "End of: " + (StudioLibrary.Load(id)?.title ?? id))).ToList();
-            var start = StudioFields.Choice(context, "World starts", startNames, others.IndexOf(set.startFromSet) + 1,
-                i => set.startFromSet = i <= 0 ? "" : others[i - 1]);
+            var others = StudioLibrary.SetIds().Where(id => id != set.id).Select(StudioLibrary.Load)
+                .Where(other => other != null && other.map == set.map).ToList();
+            var startIds = new List<string> { "" }.Concat(others.Select(other => other.id)).ToList();
+            var startNames = new List<string> { "As the map loads" }.Concat(others.Select(other => "From " + other.title)).ToList();
+            int startIndex = startIds.IndexOf(set.startFromSet ?? "");
+            if (startIndex < 0)
+            {
+                startIndex = startIds.Count;
+                startIds.Add(set.startFromSet);
+                startNames.Add("Saved start unavailable on this map");
+            }
+            var start = StudioFields.Choice(context, "World starts", startNames, startIndex,
+                i => set.startFromSet = startIds[i]);
             start.SetEnabled(closed);
+            start.tooltip = "World takes can only start from another Set on the same map.";
             var startFrame = StudioFields.Whole(context, "From frame", set.startFromFrame, v => set.startFromFrame = Mathf.Max(0, v));
             startFrame.tooltip = "Tape frame of the other Set to start from. Use a large number for its last frame.";
-            startFrame.SetEnabled(closed && !string.IsNullOrEmpty(set.startFromSet));
+            startFrame.SetEnabled(closed && others.Any(other => other.id == set.startFromSet));
 
             // Time of day and weather: the Studio moves the scene's own sun and fog while the stage is open.
             var ownTime = StudioFields.Switch(context, "Set time of day", set.timeOfDay >= 0, v => set.timeOfDay = v ? 12 : -1, true);
