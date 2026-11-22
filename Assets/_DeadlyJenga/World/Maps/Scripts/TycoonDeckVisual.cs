@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash, Peach, Mint, Basin, Tube, Gate, Railed, Awning, Parasol, Bucket, LoosePeach, Walk, Launch }
+    public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash, Peach, Mint, Basin, Tube, Gate, Railed, Awning, Parasol, Bucket, LoosePeach, Walk, Launch, Wheel }
 
     [System.Flags]
     public enum TycoonRailOpening { None=0, Front=1, Rear=2 }
@@ -83,6 +83,8 @@ namespace DeadlyJenga.CastlePrototype
             var palette = new[] {body, accent ? accent : shell, Cream, Coral};
             FinishMesh(palette);
             if (profile.Finish == TycoonDeckFinish.Bucket) BuildTippingBucket(size, palette);
+            if (profile.Finish == TycoonDeckFinish.Bucket) BuildSharkSign(size);
+            if (profile.Finish == TycoonDeckFinish.Wheel) BuildWheel(size);
         }
 
         void FinishMesh(Material[] palette)

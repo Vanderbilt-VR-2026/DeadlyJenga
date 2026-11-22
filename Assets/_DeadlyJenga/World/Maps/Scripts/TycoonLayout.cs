@@ -166,11 +166,10 @@ namespace DeadlyJenga.CastlePrototype
             plan.Add(new CastlePlacement(P(36.5f,18.6f,-28.65f),Quaternion.Euler(-90,0,0),
                 CastleSection.Wall,9,P(5,1.1f,1.2f),TycoonDeckProfile.Rectangle(TycoonDeckFinish.Splash)));
             Box(plan,CastleSection.Wall,P(39.4f,18.6f,-35.4f),P(1.2f,1.2f,1.2f));
-            Box(plan,CastleSection.Wall,P(31.5f,18.6f,-41.4f),P(9,1.2f,1.2f));
-            Box(plan,CastleSection.Gold,P(37.5f,18.45f,-39.8f),P(.9f,.9f,.9f));
-            Box(plan,CastleSection.Keep,P(36.3f,18.55f,-39.8f),P(1.1f,1.1f,1.1f));
-            Box(plan,CastleSection.Corner,P(26,18.65f,-39.8f),P(1.3f,1.3f,1.3f));
             Deck(plan,CastleSection.Wall,32,18,-39,14,6);
+            // The axle stand interlocks with the outer terrace plate, clear of the east stair.
+            plan.Add(new CastlePlacement(P(32,21.4f,-38),Quaternion.identity,CastleSection.Aqua,10,
+                P(1.4f,6.8f,1.4f),TycoonDeckProfile.Rectangle(TycoonDeckFinish.Wheel)));
             MoldedRoute(plan,CastleSection.Wall,3.5f,TycoonDeckFinish.OpenDeck,
                 P(23,17.4f,-32),P(23,17.4f,-37),P(27,17.4f,-43),P(32,17.4f,-44),
                 P(37,17.4f,-43),P(41,17.4f,-37),P(41,17.4f,-32));

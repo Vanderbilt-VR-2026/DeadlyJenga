@@ -140,6 +140,16 @@ namespace DeadlyJenga.DevTools.Editor
                     ?.GetType("DeadlyJenga.World.Hazards.Editor.HazardValidation")?.GetMethod("ValidateCatalog");
                 if(validation == null) throw new InvalidOperationException("Disaster catalog validation is unavailable.");
                 validation.Invoke(null,null);
+                var axle = world.GetComponentsInChildren<TycoonWheelMotion>().Single();
+                int stand = pieces.FindIndex(p => p.DeckProfile.Finish == TycoonDeckFinish.Wheel);
+                var sign = world.GetComponentsInChildren<MeshRenderer>().Single(r => r.name == "Shark marquee");
+                var bucket = world.GetComponentsInChildren<TycoonBucketMotion>().Single();
+                if (stand < 0 || axle.GetComponentInParent<Rigidbody>() != world.Bodies[stand] ||
+                    sign.GetComponentInParent<Rigidbody>() != bucket.GetComponentInParent<Rigidbody>() ||
+                    !sign.sharedMaterial || !sign.sharedMaterial.GetTexture("_BaseMap") ||
+                    (axle.transform.position - world.transform.TransformPoint(new Vector3(32,24.25f,-39.75f))).magnitude > .15f)
+                    throw new InvalidOperationException("Tycoon attraction mounting or shark artwork is incorrect.");
+                Report("Verified terrace wheel axle, summit billboard texture and common tipping-bucket mount.");
                 Capture(world,camera);
                 CheckTraversalSurfaces(world,pieces);
                 int loose = pieces.FindIndex(p => p.DeckProfile.Finish == TycoonDeckFinish.LoosePeach);
@@ -360,6 +370,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Shot("12-West-catch-basin",new Vector3(-50,14,-48),new Vector3(-37,8,-34));
                 Shot("13-East-runouts",new Vector3(52,35,-29),new Vector3(31,24,-12));
                 Shot("14-Boardwalk-kiosk",new Vector3(-18,10,-44),new Vector3(-27,9,-40));
+                Shot("15-Terrace-pail-wheel",new Vector3(38,24,-57),new Vector3(32,24,-39));
             }
             finally
             {
