@@ -938,7 +938,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var edge = roof.position + new Vector3(0,3,4.95f);
                 Check(MoveFrom(edge,Vector3.down*4).y > roof.position.y-.1f,"Survivor controller stands on the projecting eave");
                 var scene = map.gameObject.scene.GetPhysicsScene();
-                var island = map.transform.TransformPoint(Quaternion.Euler(0,45,0)*Vector3.forward*66);
+                var island = map.transform.Find("Lake islands/Bamboo clearing").position;
                 Check(scene.Raycast(island+Vector3.up*8,Vector3.down,out var shore,14,1,QueryTriggerInteraction.Ignore)
                     && shore.collider.name == "Stone islet" && shore.rigidbody && shore.rigidbody.isKinematic,
                     "Outlying bamboo islet has a solid kinematic landing");
@@ -1073,6 +1073,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Shader.SetGlobalVector("_NinjaFogParams",new Vector4(120,420,.07f,fog.w));
                 RenderSettings.fog=false;
                 Capture(new Vector3(16,57,-143),new Vector3(-1,2,0),28,"NinjaTemple-Overview.png");
+                Capture(new Vector3(-40,12,4),new Vector3(-73,4,27),52,"ShrineTown-BambooIsland.png");
                 Capture(new Vector3(-16,2.4f,-39),new Vector3(-11,.25f,-34),48,"ShrineTown-MudShore.png");
                 Capture(new Vector3(5,51,-159),new Vector3(0,11,2),32,"ShrineTown-TowerSkyline.png");
                 Capture(new Vector3(-6,2.5f,-35),new Vector3(-10,2.5f,-32),65,"ShrineTown-ShopDetail.png");

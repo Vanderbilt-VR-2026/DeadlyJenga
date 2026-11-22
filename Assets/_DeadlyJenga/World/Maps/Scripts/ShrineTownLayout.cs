@@ -98,21 +98,8 @@ namespace DeadlyJenga.CastlePrototype
                 for (int i = 0; i < 5; i++)
                     StoneLantern(fixtures,new Vector3(side*4,0,i == 4 ? -1 : -39+i*10),1);
             }
-            float[] nearRadii = {66,70,65,73};
-            for (int i = 0; i < nearRadii.Length; i++)
-            {
-                var at = Quaternion.Euler(0,45+i*90,0)*Vector3.forward*nearRadii[i];
-                IslandRock(fixtures,at+Vector3.up*waterY,new Vector3(9,3.2f,7.5f));
-            }
-            var moon = Quaternion.Euler(0,25,0)*Vector3.forward;
-            for (int i = 0; i < 14; i++)
-            {
-                float angle = i*2.39996f+.3f;
-                var direction = new Vector3(Mathf.Sin(angle),0,Mathf.Cos(angle));
-                if (Vector3.Dot(direction,moon) > .93f) continue;
-                var at = direction*(75+i*37%70)+Vector3.up*waterY;
-                IslandRock(fixtures,at,new Vector3(6+i%4*3,2.5f+i%3*1.8f,5+i%5*2.5f));
-            }
+            foreach (Transform island in parent.parent.Find("Lake islands"))
+                IslandRock(fixtures,island.localPosition + Vector3.up*waterY,island.localScale);
             ColliderBox(fixtures,"Torii crossbeam",new Vector3(0,7.4f,-43),new Vector3(8.65f,.61f,.77f),Quaternion.identity);
             ColliderBox(fixtures,"Torii lintel",new Vector3(0,9.32f,-43),new Vector3(12.5f,1.1f,1.05f),Quaternion.identity);
         }

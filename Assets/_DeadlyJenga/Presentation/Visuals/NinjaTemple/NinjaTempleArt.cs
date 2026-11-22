@@ -182,30 +182,35 @@ namespace DeadlyJenga.NinjaArt
                     Blocker(axis * new Vector3(s * 2.7f, 3.5f, 15.5f), new Vector3(.85f, 7, .85f));
                 }
             }
-            float[] islet = { 48, 52, 47, 55 };
-            for (int i = 0; i < 4; i++)
+            if (shrineTown)
+                NinjaTempleScenery.LakeGarden(p,f,glow,transform.Find("Lake islands"),wy);
+            else
             {
-                var dirc = Quaternion.Euler(0, 45 + i * 90, 0) * Vector3.forward; var at = dirc * (islet[i] + (shrineTown ? 18 : 6));
-                NinjaTempleScenery.Rock(p, at, new Vector3(9, 3.2f, 7.5f), 30 + i, wy);
-                NinjaTempleScenery.Bamboo(f, at, shrineTown ? 3.8f : 6.5f, shrineTown ? 12 : 26, 40 + i, wy + 1.2f);
-            }
-            for (int i = 0; i < 14; i++)
-            {
-                float a = i * 2.39996f + .3f, r = 75 + (i * 37 % 70); var at = new Vector3(Mathf.Sin(a) * r, 0, Mathf.Cos(a) * r);
-                if (Vector3.Dot(at.normalized, moonFlat) > .93f) continue;
-                var size = new Vector3(6 + i % 4 * 3, 2.5f + i % 3 * 1.8f, 5 + i % 5 * 2.5f); NinjaTempleScenery.Rock(p, at, size, 60 + i, wy);
-                if (i % 3 == 0) NinjaTempleScenery.Pine(f, at + Vector3.up * (wy + size.y * .55f), 1.6f + i % 2 * .5f, 70 + i);
-                else if (i % 3 == 1) NinjaTempleScenery.Bamboo(f, at, size.x * .55f, 12, 80 + i, wy + size.y * .45f);
-                else { NinjaTempleScenery.StoneLantern(p, at + Vector3.up * (wy + size.y * .5f), 1.6f, glow, 90 + i); NinjaTempleScenery.Maple(f, at + Vector3.up * (wy + size.y * .5f) + Vector3.right * 2, 1.4f, 95 + i); }
-            }
-            for (int i = 0; i < 46; i++)
-            {
-                float a = (float)rng.NextDouble() * Mathf.PI * 2, r = 40 + (float)rng.NextDouble() * 75; var at = new Vector3(Mathf.Sin(a) * r, wy + .12f, Mathf.Cos(a) * r);
-                var col = i % 3 == 0 ? new Color(.95f, .85f, .65f) : P.Vermilion;
-                p.Box(at, new Vector3(.55f, .08f, .55f), Quaternion.Euler(0, i * 37, 0), P.Wood, P.Wood);
-                p.Box(at + Vector3.up * .32f, new Vector3(.42f, .5f, .42f), Quaternion.Euler(0, i * 37, 0), P.Paper(Color.Lerp(col, new Color(1, .7f, .35f), .5f), .85f), P.Paper(col, .7f));
-                glow.Halo(at + Vector3.up * .35f, .8f, new Color(1, .5f, .2f, .55f), i * 1.3f + 2);
-                glow.Halo(at + Vector3.down * .1f, 2.2f, new Color(.8f, .32f, .12f, .25f), 0, 1);
+                float[] islet = { 48, 52, 47, 55 };
+                for (int i = 0; i < 4; i++)
+                {
+                    var dirc = Quaternion.Euler(0, 45 + i * 90, 0) * Vector3.forward; var at = dirc * (islet[i] + 6);
+                    NinjaTempleScenery.Rock(p, at, new Vector3(9, 3.2f, 7.5f), 30 + i, wy);
+                    NinjaTempleScenery.Bamboo(f, at, 6.5f, 26, 40 + i, wy + 1.2f);
+                }
+                for (int i = 0; i < 14; i++)
+                {
+                    float a = i * 2.39996f + .3f, r = 75 + (i * 37 % 70); var at = new Vector3(Mathf.Sin(a) * r, 0, Mathf.Cos(a) * r);
+                    if (Vector3.Dot(at.normalized, moonFlat) > .93f) continue;
+                    var size = new Vector3(6 + i % 4 * 3, 2.5f + i % 3 * 1.8f, 5 + i % 5 * 2.5f); NinjaTempleScenery.Rock(p, at, size, 60 + i, wy);
+                    if (i % 3 == 0) NinjaTempleScenery.Pine(f, at + Vector3.up * (wy + size.y * .55f), 1.6f + i % 2 * .5f, 70 + i);
+                    else if (i % 3 == 1) NinjaTempleScenery.Bamboo(f, at, size.x * .55f, 12, 80 + i, wy + size.y * .45f);
+                    else { NinjaTempleScenery.StoneLantern(p, at + Vector3.up * (wy + size.y * .5f), 1.6f, glow, 90 + i); NinjaTempleScenery.Maple(f, at + Vector3.up * (wy + size.y * .5f) + Vector3.right * 2, 1.4f, 95 + i); }
+                }
+                for (int i = 0; i < 46; i++)
+                {
+                    float a = (float)rng.NextDouble() * Mathf.PI * 2, r = 40 + (float)rng.NextDouble() * 75; var at = new Vector3(Mathf.Sin(a) * r, wy + .12f, Mathf.Cos(a) * r);
+                    var col = i % 3 == 0 ? new Color(.95f, .85f, .65f) : P.Vermilion;
+                    p.Box(at, new Vector3(.55f, .08f, .55f), Quaternion.Euler(0, i * 37, 0), P.Wood, P.Wood);
+                    p.Box(at + Vector3.up * .32f, new Vector3(.42f, .5f, .42f), Quaternion.Euler(0, i * 37, 0), P.Paper(Color.Lerp(col, new Color(1, .7f, .35f), .5f), .85f), P.Paper(col, .7f));
+                    glow.Halo(at + Vector3.up * .35f, .8f, new Color(1, .5f, .2f, .55f), i * 1.3f + 2);
+                    glow.Halo(at + Vector3.down * .1f, 2.2f, new Color(.8f, .32f, .12f, .25f), 0, 1);
+                }
             }
             Add("Visual - shrines, gates and stones", p.Build("Ninja props"), props, scenery, true);
             Add("Visual - bamboo, pines and maples", f.Build("Ninja foliage"), foliage, scenery, true);
