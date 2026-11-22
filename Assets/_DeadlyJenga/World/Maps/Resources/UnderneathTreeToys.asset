@@ -233,3 +233,8 @@ MonoBehaviour:
     spot: {x: 0, y: 0}
     turn: 26
     size: 0.42
+  - toy: {fileID: 7829361929983409884, guid: dbd81b6ff4d54373a2339cdc0614c003, type: 3}
+    onGift: Entrance / Cream Catch
+    spot: {x: 0, y: 0}
+    turn: 145
+    size: 0.84

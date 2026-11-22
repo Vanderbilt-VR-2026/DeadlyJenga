@@ -7,6 +7,36 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Toy Red
+    second: {fileID: 2100000, guid: 1f6c14966e935684f9ea9501da361dfe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Gold
+    second: {fileID: 2100000, guid: 6267ffbc6fca22c48a97144d92d7aa01, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Cellophane
+    second: {fileID: 2100000, guid: 3da754fcca6f40188a717b1b3409b90b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Silver
+    second: {fileID: 2100000, guid: 8d0c73d879ab0fb4fbb5dff6c03fa285, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Pink
+    second: {fileID: 2100000, guid: 09fb7773e97ca5641b25ba1ae97aa5b8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Yellow
+    second: {fileID: 2100000, guid: 715cc540f39a09f478822bb28a9dc44e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Toy Teal
     second: {fileID: 2100000, guid: d14253886eb809f41a53e51204511239, type: 2}
   - first:
@@ -17,28 +47,13 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Gold
-    second: {fileID: 2100000, guid: 6267ffbc6fca22c48a97144d92d7aa01, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Toy Glass
-    second: {fileID: 2100000, guid: d243618c2bb5ee647bf52872afea816f, type: 2}
+      name: Toy Cream
+    second: {fileID: 2100000, guid: 56d3b5dbd437853428bf35af9669d607, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Toy Navy
     second: {fileID: 2100000, guid: 39692ecaebb0e444d8fc61c568f00de9, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Toy Pink
-    second: {fileID: 2100000, guid: 09fb7773e97ca5641b25ba1ae97aa5b8, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Toy Cream
-    second: {fileID: 2100000, guid: 56d3b5dbd437853428bf35af9669d607, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

@@ -100,26 +100,29 @@ def face(x, y, z, gap, scale):
 
 
 def house():
-    box((0,0,3),(7.8,6.8,5.9),CREAM,.16)
-    profile([(5.77,3.91,3.37,0,0),(8.48,.05,3.37,0,0)],CREAM,4)
+    # Alternate the courses half a diameter so their projecting ends interlock.
+    for i in range(8):
+        z=.40+.67*i
+        for x in (-3.25,3.25):
+            rod((x,-3.67,z),(x,3.67,z),.43,WOOD if i%3==1 else BROWN)
+        for y in (-2.91,2.91):
+            runs=[(-4.08,4.08)] if y>0 or i>5 else [(-4.08,-.96),(.96,4.08)]
+            for a,b in runs:rod((a,y,z+.32),(b,y,z+.32),.43,BROWN if i%3==1 else WOOD)
+    for j in range(5):
+        w=3.19-j*.57
+        for y in (-2.92,2.92):rod((-w,y,5.79+j*.48),(w,y,5.79+j*.48),.31,WOOD)
     for s in (-1,1):
-        box((s*2.05,0,7.1),(5.3,7.8,.58),RED,.12,(0,s*36,0))
-        box((s*2.05,0,7.42),(5.26,7.94,.23),FROST,.10,(0,s*36,0))
-        for y in (-2,0,2):
-            box((s*3.95,y,3.2),(.13,1.24,1.9),TEAL)
-        for z in (1.25,3.55,5.6):
-            box((s*3.79,-3.46,z),(.46,.22,.35),WOOD)
-        box((s*2.48,-3.45,3.65),(1.82,.23,2.38),TEAL,.12)
-        box((s*2.48,-3.60,3.65),(1.4,.10,1.91),GOLD)
-        box((s*2.48,-3.70,3.65),(.12,.12,1.94),CREAM)
-        box((s*2.48,-3.70,3.65),(1.45,.12,.12),CREAM)
-        box((s*2.48,-3.65,2.44),(2.1,.55,.22),FROST)
-    box((0,-3.48,1.68),(1.93,.3,3.3),RED,.22)
-    oval((.59,-3.7,1.65),(.23,)*3,GOLD)
-    box((0,-3.64,4.60),(3.26,.26,.74),TEAL,.10)
-    letters((0,-3.80,4.61),"POST OFFICE",.46,CREAM)
-    box((2.44,1.3,8.42),(1.25,1.15,3.1),BROWN)
-    box((2.44,1.3,9.96),(1.51,1.42,.35),FROST)
+        for j in range(8):
+            box((s*1.93,-3.26+j*.94,7.21),(4.72,.92,.31),GREEN,.065,(0,s*33,0))
+        rod((s*3.90,-3.78,5.99),(0,-3.78,8.54),.18,RED)
+    rod((0,-3.83,8.52),(0,3.88,8.52),.19,RED)
+    box((0,-2.87,2.38),(1.74,.25,4.04),TEAL,.10)
+    oval((.60,-3.05,2.24),(.25,)*3,GOLD)
+    for s in (-1,1):
+        box((s*2.05,-3.34,3.49),(1.50,.18,1.60),CREAM)
+        box((s*2.05,-3.46,3.49),(1.20,.13,1.27),NAVY)
+        box((s*2.05,-3.57,3.49),(.12,.09,1.30),CREAM)
+        box((s*2.05,-3.57,3.49),(1.23,.09,.12),CREAM)
 
 
 def superhero():
@@ -144,21 +147,28 @@ def superhero():
 
 
 def bricks():
-    def block(x,y,z,n,m,color):
-        box((x,y,z+.54),(n*1.01-.045,m*1.01-.045,1.04),color,.11)
-        for i in range(n):
-            for j in range(m):
-                drum((x+(i-(n-1)/2)*1.01,y+(j-(m-1)/2)*1.01,z+1.11),(.64,.64,.24),color)
-    # Build a miniature drawbridge castle from studded bricks.
-    block(0,0,0,6,3,TEAL)
     for s in (-1,1):
-        block(s*1.99,0,1.10,2,3,RED)
-        block(s*1.99,0,2.20,2,3,CREAM)
-        block(s*1.99,0,3.30,2,3,BLUE)
-        block(s*2.47,0,4.40,1,2,GOLD)
-        box((s*1.99,-1.53,2.75),(.46,.10,.68),NAVY,.14)
-    block(0,.50,3.30,2,2,CREAM)
-    box((0,-1.24,1.25),(1.72,1.35,.16),WOOD,.06,(12,0,0))
+        rail=[(-3.22,.91),(-2.90,.50),(-1.86,.16),(0,.04),(1.86,.16),(2.90,.50),(3.22,.91),
+              (3.10,1.08),(2.70,.82),(1.75,.52),(0,.39),(-1.75,.52),(-2.70,.82),(-3.10,1.08)]
+        panel("Bentwood rocker",rail,.30,RED).location.x=s*.96
+        for y in (-1.16,1.16):
+            rod((s*.93,y*1.44,.55),(s*.66,y*.86,2.70),.19,WOOD)
+    for y in (-1.72,1.72):rod((-.96,y,.59),(.96,y,.59),.13,GOLD)
+    silhouette=[(-2.95,3.93),(-2.70,3.62),(-2.29,3.65),(-1.83,3.97),(-1.67,3.06),
+                (-1.33,2.40),(-.38,2.18),(1.24,2.34),(1.78,2.74),(1.85,3.26),
+                (1.41,3.63),(.37,3.61),(-.47,3.53),(-.94,4.36),(-1.48,4.91),
+                (-1.55,5.46),(-1.86,5.10),(-2.16,5.36),(-2.13,4.81),(-2.48,4.49)]
+    panel("Carved horse",silhouette,1.16,WOOD,.16)
+    oval((0,.36,3.52),(1.60,1.78,.45),TEAL)
+    for s in (-1,1):
+        oval((s*.60,-1.95,4.56),(.14,.24,.23),BLACK)
+        oval((s*.60,-2.65,4.03),(.11,.18,.12),BROWN)
+        for i in range(6):oval((s*.42,-1.29+i*.14,4.64-i*.19),(.46,.42,.57),CREAM)
+        box((s*.61,-2.29,4.16),(.12,.20,.76),RED,.055,(-35,0,0))
+        oval((s*.61,.40,3.19),(.25,.86,.92),TEAL)
+        oval((s*.74,.40,3.19),(.08,.48,.48),GOLD)
+    for j in range(3):oval(((j-1)*.22,1.91,2.69),(.32,.53,1.35),CREAM,(-25,0,0))
+    rod((-.97,-1.60,4.19),(.97,-1.60,4.19),.12,RED)
 
 
 def football():
@@ -206,53 +216,87 @@ def ball_panel(points,color):
 
 
 def pinecone():
-    oval((0,0,3.65),(2.65,2.65,6.50),BROWN)
+    oval((0,0,3.57),(2.66,2.66,6.86),BROWN)
     for row in range(8):
-        z=.77+row*.77
-        r=.55+1.14*math.sin(math.pi*(row+.65)/8.7)
+        r=.42+1.25*math.sin(math.pi*(row+.67)/8.8)
         for j in range(9):
-            a=math.tau*j/9+row*.33
-            loc=(r*math.cos(a),r*math.sin(a),z)
-            rot=(0,31,math.degrees(a))
-            oval(loc,(1.11,.89,1.44),WOOD if row%3==0 else BROWN,rot)
-            oval(((r+.24)*math.cos(a),(r+.24)*math.sin(a),z+.38),(.76,.75,.46),FROST,rot)
-    rod((0,0,6.5),(.25,.03,7.48),.18,WOOD)
-    for s in (-1,1):
-        oval((s*.48,0,6.84),(1.27,.44,.37),GREEN,(0,-s*28,0))
-    oval((0,-.29,6.84),(.52,)*3,RED)
+            a=j*math.tau/9+row*.33;z=.30+row*.79
+            # Each bract folds along a ridge into an outward-pointing tip.
+            oval((r*math.cos(a),r*math.sin(a),z+.22),(.93,.82,1.09),WOOD if row%2 else BROWN,(0,34,math.degrees(a)))
+            coords=[(r-.53,-.28,z+.18),(r-.53,.28,z+.18),(r+.25,.48,z+.29),
+                    (r+.62,0,z+.82),(r+.25,-.48,z+.29),(r+.32,0,z+.48)]
+            verts=[(x*math.cos(a)-y*math.sin(a),x*math.sin(a)+y*math.cos(a),h) for x,y,h in coords]
+            mesh=bpy.data.meshes.new("Carved scale");mesh.from_pydata(verts,[],[(0,1,2,5),(2,3,5),(3,4,5),(4,0,5),(0,4,3,2,1)]);mesh.update()
+            o=bpy.data.objects.new("Frosted scale",mesh);bpy.context.collection.objects.link(o);part(o,WOOD if row%2 else BROWN)
+            o.data.materials.append(bpy.data.materials[FROST])
+            if (row+j)%3:
+                tip=Vector(verts[3])
+                left=tip.lerp(Vector(verts[2]),.40)
+                right=tip.lerp(Vector(verts[4]),.40)
+                ridge=tip.lerp(Vector(verts[5]),.46)
+                snow=bpy.data.meshes.new("Snow tip");snow.from_pydata([v+Vector((0,0,.013)) for v in (tip,left,ridge,right)],[],[(0,1,2),(0,2,3)]);snow.update()
+                cap=bpy.data.objects.new("Snow tip",snow);bpy.context.collection.objects.link(cap);part(cap,FROST)
+    rod((0,0,6.25),(.24,0,7.28),.17,WOOD)
+    for s in (-1,1):oval((s*.41,0,6.65),(1.14,.36,.27),GREEN,(0,-s*27,0))
+    oval((0,-.28,6.67),(.43,)*3,RED)
 
 
 def stocking():
-    oval((0,.1,1.08),(2.53,7.95,2.12),RED)
-    oval((.90,3.12,1.05),(4.48,2.75,2.07),RED,(0,0,-14))
-    oval((2.06,3.45,1.08),(1.86,2.38,1.91),CREAM)
-    drum((0,-3.54,1.19),(2.84,2.32,1.41),FROST,(90,0,0))
-    for i in range(14):
-        a=math.tau*i/14
-        oval((1.27*math.cos(a),-3.62,1.20+.95*math.sin(a)),(.54,1.40,.53),CREAM)
-    for y in (-1.88,-.60,.68):
-        for s in (-1,1):
-            rod((s*.76,y-.24,1.86),(s*.35,y+.12,2.06),.075,WHITE)
-            rod((s*.35,y+.12,2.06),(0,y-.12,2.14),.075,WHITE)
-    oval((0,0,2.14),(.33,.33,.13),GOLD)
+    # Contoured twin fabric panels; the stuffed toe bends at the heel.
+    outline=[(-1.31,-3.71),(1.27,-3.71),(1.16,-2.96),(.96,-1.52),(.76,-.15),
+             (.85,.63),(1.41,1.14),(2.41,1.47),(2.89,1.92),(2.98,2.47),
+             (2.67,2.95),(2.04,3.25),(1.15,3.35),(.08,3.14),(-.87,2.76),
+             (-1.56,2.33),(-1.79,1.68),(-1.72,.87),(-1.50,-.43),(-1.42,-2.12)]
+    # Rings bulge toward the center and meet in a narrow welt around the edge.
+    rings=[(.03,.84),(.12,.97),(.25,1),(.40,.98),(.57,.88),(.69,.55)]
+    verts=[(x*s,y*s,z+.06*math.sin(2*x+y)) for z,s in rings for x,y in outline]
+    n=len(outline);faces=[tuple(reversed(range(n)))]
+    for k in range(len(rings)-1):
+        for i in range(n):
+            a=k*n+i;b=k*n+(i+1)%n;faces.append((a,b,b+n,a+n))
+    faces.append(tuple(range(len(verts)-n,len(verts))))
+    m=bpy.data.meshes.new("Sewn stocking");m.from_pydata(verts,[],faces);m.update()
+    o=bpy.data.objects.new("Velvet stocking",m);bpy.context.collection.objects.link(o);part(o,"Stocking velvet")
+    for f in m.polygons:f.use_smooth=True
+    for i in range(n):
+        x,y=outline[i];u,v=outline[(i+1)%n]
+        rod((x,y,.27),(u,v,.27),.036,RED)
+    box((0,-3.19,.49),(2.96,1.27,.88),"Stocking fleece",.32,(0,0,-3))
+    oval((0,-3.79,.52),(2.30,.17,.39),BROWN)
+    for i in range(14):oval((-1.31+i*.20,-3.34,.77),(.22,.80,.32),"Stocking fleece")
+    # Raised chevron knit and ribbed fleece read on the exported mesh under the tree lights.
+    for row in range(8):
+        y=-2.36+row*.37
+        for col in range(5):
+            x=-.85+col*.31
+            if abs(x+.25)<.65 and abs(y+.53)<.68:continue
+            z=.67+.045*math.sin(2*x+y)
+            for sign in (-1,1):rod((x+sign*.074,y-.075,z),(x,y+.064,z+.018),.026,"Stocking velvet")
+    for i in range(12):
+        oval((-1.29+i*.23,-3.17,.91),(.24,1.14,.19),"Stocking fleece")
+    for a in range(6):
+        ang=a*math.tau/6
+        rod((-.25,-.53,.72),(-.25+.59*math.cos(ang),-.53+.59*math.sin(ang),.70),.042,CREAM)
+    for j in range(14):
+        a=j*math.tau/14;b=(j+1)*math.tau/14
+        rod((-1.36+.35*math.cos(a),-3.55+.56*math.sin(a),.38),(-1.36+.35*math.cos(b),-3.55+.56*math.sin(b),.38),.082,RED)
 
 
 def puzzle():
-    colors=[RED,ORANGE,BLUE,GREEN,WHITE,"Toy Yellow"]
+    colors=[RED,ORANGE,BLUE,GREEN,"Toy Yellow",WHITE]
     for i in (-1,0,1):
         for j in (-1,0,1):
             for k in (-1,0,1):
-                box((i*1.67,j*1.67,2.53+k*1.67),(1.65,)*3,NAVY,.20)
-    for axis in range(3):
-        for sign in (-1,1):
-            others=[i for i in range(3) if i!=axis]
-            for i in range(3):
-                for j in range(3):
-                    p=[0,0,0];p[axis]=sign*2.51;p[others[0]]=(i-1)*1.67;p[others[1]]=(j-1)*1.67;p[2]+=2.53
-                    size=[1.42]*3;size[axis]=.14
-                    box(p,size,colors[(i*2+j+axis+(sign>0)*2+(i==j))%6],.058)
-    drum((0,0,5.15),(.76,.76,.12),NAVY)
-    letters((0,0,5.23),"X",.51,CREAM,True)
+                if (i,j,k)!=(0,0,0):
+                    box((i*1.68,j*1.68,2.52+k*1.68),(1.64,)*3,BLACK,.14)
+    # Round the tile in its own plane before turning it onto the cube face.
+    for axis,rot in enumerate([(0,90,0),(90,0,0),(0,0,0)]):
+        others=[i for i in range(3) if i!=axis]
+        for side in (-1,1):
+            for i in (-1,0,1):
+                for j in (-1,0,1):
+                    p=[0.,0.,0.];p[axis]=side*2.51;p[others[0]]=i*1.68;p[others[1]]=j*1.68;p[2]+=2.52
+                    box(p,(1.43,1.43,.10),colors[axis*2+(side>0)],.046,rot)
 
 
 def fashion():
@@ -311,58 +355,111 @@ def nutcracker():
 
 
 def blaster():
-    # An inert bubble-ray play prop with a saucer-shaped nose and a bubble dial.
-    oval((0,-.12,2.38),(1.95,5.16,2.24),TEAL)
-    box((0,1.33,1.12),(1.18,1.38,2.23),ORANGE,.31,(-19,0,0))
-    for y,r in [(-2.25,1.94),(-2.89,1.58),(-3.45,1.32)]:
-        drum((0,y,2.52),(r,r,.49),GOLD,(90,0,0))
-    oval((0,-3.96,2.54),(1.28,1.56,1.28),"Toy Glass")
+    # A 1950s tin space-toy silhouette with finned back and a candy-colored comet on each side.
+    panel("Swept grip",[(.55,2.43),(1.67,2.61),(1.94,2.19),(2.36,.57),(2.15,.22),
+                        (1.41,.20),(1.14,.51),(.83,1.49),(.36,1.94)],.89,RED,.16)
     for s in (-1,1):
-        drum((s*.92,-.16,2.49),(1.24,1.24,.18),NAVY,(0,90,0))
-        oval((s*1.04,-.16,2.49),(.17,.79,.79),PINK)
-        for j in range(3):oval((s*.85,.72+j*.35,2.67),(.22,.20,.50),CREAM)
-    profile([(2.74,.48,.63,0,2.09),(3.23,.36,.55,0,2.32),(3.71,.18,.33,0,2.65)],ORANGE)
-    for j in range(3):oval((0,-1.02+j*.46,3.41),(.48,.48,.45),PINK)
+        for j in range(4):
+            rod((s*.46,1.22+j*.10,1.45-j*.21),(s*.46,1.86+j*.09,1.52-j*.21),.042,GOLD)
+    oval((0,.13,2.93),(2.06,5.39,1.87),RED)
+    # A clear captive-marble chamber extends beyond the enamel body.
+    drum((0,-2.98,2.92),(1.36,1.36,1.70),"Cellophane",(90,0,0))
+    for i in range(4):
+        a=i*math.pi/2+math.pi/4
+        x=.69*math.cos(a);z=2.92+.69*math.sin(a)
+        rod((x,-2.16,z),(x,-3.85,z),.073,"Toy Silver")
+    for i,c in enumerate((PINK,"Toy Yellow",TEAL)):
+        oval((0,-2.47-i*.48,2.92),(.59,.50,.59),c)
+    for y,r in [(-2.19,1.68),(-3.85,1.57),(-4.06,1.30)]:
+        drum((0,y,2.91),(r,r,.17),TEAL,(90,0,0))
+    oval((0,-4.23,2.92),(1.01,.57,1.01),ORANGE)
+    for a,b in [((0,-1.27,2.28),(0,-.94,1.54)),((0,-.94,1.54),(0,-.24,1.14)),((0,-.24,1.14),(0,1.23,1.02))]:
+        rod(a,b,.13,GOLD)
+    # A dial occupies the broad flank of the toy; raised ticks catch the map lights.
+    for side in (-1,1):
+        drum((side*.94,.93,3.06),(.98,.98,.19),GOLD,(0,90,0))
+        drum((side*1.05,.93,3.06),(.79,.79,.09),CREAM,(0,90,0))
+        for tick in range(7):
+            angle=.22+tick*.46
+            yy=.93+.30*math.cos(angle);zz=3.06+.30*math.sin(angle)
+            oval((side*1.11,yy,zz),(.035,.072,.072),NAVY)
+        rod((side*1.12,.93,3.04),(side*1.12,1.10,3.29),.042,RED)
+    for s in (-1,1):
+        o=panel("Rocket fin",[(.93,3.04),(1.71,3.21),(2.75,3.91),(2.61,3.02),(1.94,2.73)],.16,TEAL)
+        o.location.x=s*.74
+        oval((s*1.01,-.09,2.96),(.17,1.79,.75),NAVY)
+        oval((s*1.12,-.49,2.96),(.075,.40,.40),GOLD)
+        for j in range(3):
+            rod((s*1.11,-.26,2.83+j*.11),(s*1.11,.46-j*.13,2.84+j*.11),.043,CREAM)
+    o=panel("Dorsal tail",[(.75,3.53),(1.40,3.83),(2.44,4.41),(2.36,3.42)],.23,RED)
+    for i in range(3):oval((0,-.70+i*.42,3.82),(.32,.36,.22),TEAL)
 
 
 def candy():
-    profile([(.05,1.74,1.48,0,0),(.45,2.38,1.84,0,0),(1.2,2.55,2.03,0,0),(3.73,2.32,1.83,0,0),(4.65,1.76,1.41,0,0),(5.34,.89,.72,0,0),(6.32,1.54,1.24,0,0)],TEAL,48,.085)
-    drum((0,0,5.29),(2.16,1.78,.32),GOLD)
-    for s in (-1,1):
-        oval((s*.57,-.79,5.38),(1.21,.47,.69),RED,(0,-s*24,0))
-    oval((0,-1.10,5.34),(.53,)*3,GOLD)
-    box((0,-2.06,2.68),(3.51,.46,1.77),CREAM,.20)
-    letters((0,-2.31,2.96),"NORTH POLE",.51,RED)
-    letters((0,-2.31,2.37),"BONBONS",.61,TEAL)
-    for x,z,c in [(-1.2,6.08,RED),(.11,6.48,PINK),(1.06,6.20,GOLD)]:
-        oval((x,0,z),(.94,.96,1.15),c)
-        for s in (-1,1):oval((x+s*.51,0,z+s*.21),(.47,.49,.50),CREAM)
+    film="Cellophane"
+    profile([(.12,1.91,1.55,0,0),(.45,2.24,1.81,0,0),(.77,2.28,1.87,0,0)],RED,32,.045)
+    profile([(.71,2.28,1.87,0,0),(1.32,2.48,1.99,0,0),(3.76,2.35,1.90,0,0),(4.78,1.66,1.34,0,0),(5.32,.68,.56,0,0)],film,32,.05)
+    profile([(5.21,.66,.53,0,0),(5.84,1.12,.89,0,0),(6.30,1.49,1.17,0,0)],film,32,.13)
+    for z,x,y,c in [(1.13,-1.22,-.48,PINK),(1.13,.55,-.75,TEAL),(1.32,.84,.65,ORANGE),
+                    (2.13,-.89,.62,GREEN),(2.18,-.06,-.94,RED),(2.55,1.16,-.39,PURPLE),
+                    (3.16,-1.11,-.59,ORANGE),(3.45,.50,-.43,GREEN),(3.93,-.38,.13,PINK)]:
+        oval((x,y,z),(1.22,1.00,1.01),c)
+        for s in (-1,1):
+            oval((x+s*.67,y,z+s*.08),(.46,.49,.47),CREAM,(0,s*30,0))
+        box((x,y-.49,z),(.22,.07,.74),CREAM,.03,(0,-26,0))
+    drum((0,0,5.29),(1.69,1.43,.31),GOLD)
+    for s in (-1,1):oval((s*.50,-.64,5.33),(1.08,.40,.61),RED,(0,-s*22,0))
+    box((1.04,-.97,4.66),(1.29,.16,.76),CREAM,.09,(0,-17,0))
+    letters((1.04,-1.08,4.66),"SWEETS",.28,RED)
 
 
 def rag_doll():
     for s in (-1,1):
-        oval((s*.53,-.14,.62),(.78,1.27,1.20),BROWN)
-        oval((s*.53,0,1.37),(.64,.66,1.40),CREAM)
-        for z in (1.16,1.51):drum((s*.52,0,z),(.66,.68,.16),RED)
-    profile([(1.62,1.64,1.41,0,0),(1.85,1.72,1.45,0,0),(3.66,.80,.72,0,0),(4.55,.65,.6,0,0)],TEAL,40,.08)
-    oval((0,-1.13,2.84),(1.79,.27,1.56),CREAM,(-19,0,0))
-    box((0,-1.44,2.53),(.79,.14,.54),PINK,.12)
+        for j in range(7):
+            drum((s*.55,-.12,.85+j*.22),(.60,.62,.24),RED if j%2==0 else WHITE)
+        oval((s*.55,-.30,.51),(.91,1.32,.83),BLACK)
+    profile([(2.05,1.65,1.32,0,0),(2.31,1.72,1.40,0,0),(3.58,.96,.76,0,0),(4.40,.73,.58,0,0)],BLUE,48,.07)
+    profile([(2.02,1.64,1.32,0,0),(2.15,1.69,1.37,0,0)],WHITE,48,.08)
     for s in (-1,1):
-        oval((s*1.03,0,4.03),(.98,.88,1.05),TEAL)
-        oval((s*1.32,-.09,3.58),(.60,.66,1.16),SKIN,(0,-s*21,0))
-    oval((0,-.10,5.6),(2.18,1.86,2.05),SKIN)
+        oval((s*.94,0,4.01),(.94,.98,.99),BLUE)
+        oval((s*1.21,-.11,3.52),(.62,.62,1.14),CREAM,(0,-s*19,0))
+        box((s*.45,-.48,4.09),(.20,.17,.83),WHITE,.07,(0,s*13,0))
+        for j in range(5):
+            h=2.32+j*.24
+            oval((s*(1.33-.14*j),-.66,h),(.13,.13,.13),WHITE)
+    # Front apron follows the flared skirt; its hem and bib sit proud of every fold.
+    rows=[(2.25,1.11,1.52),(2.52,1.08,1.44),(3.12,.92,1.25),(3.63,.67,.94),(4.10,.57,.77)]
+    verts=[]
+    for h,w,reach in rows:
+        for j in range(9):
+            u=(j-4)/4
+            verts.append((w*u,-reach*(1-.29*u*u),h))
+    quads=[(i*9+j,i*9+j+1,(i+1)*9+j+1,(i+1)*9+j) for i in range(4) for j in range(8)]
+    apron=bpy.data.meshes.new("Pinafore");apron.from_pydata(verts,[],quads);apron.update()
+    bib=bpy.data.objects.new("White pinafore",apron);bpy.context.collection.objects.link(bib);part(bib,WHITE)
+    thick=bib.modifiers.new("Cloth edge","SOLIDIFY");thick.thickness=.07
+    for j in range(11):
+        u=(j-5)/5
+        oval((1.07*u,-1.54*(1-.29*u*u),2.25),(.22,.12,.16),WHITE)
+    oval((0,-.11,5.52),(2.42,1.85,2.08),CREAM)
     for s in (-1,1):
-        drum((s*.40,-.97,5.73),(.34,.34,.10),BROWN,(90,0,0))
-        for j in (-1,1):oval((s*.40+j*.055,-1.034,5.73),(.066,)*3,CREAM)
-        oval((s*.69,-.84,5.32),(.35,.16,.22),PINK)
-        for j in range(3):oval((s*(.99+.16*j),.12,5.78-.43*j),(.69,.79,.74),ORANGE)
-        oval((s*1.23,-.04,5.16),(.79,.70,.33),RED)
-    for j in range(9):
-        a=math.pi*j/8
-        oval((.98*math.cos(a),-.20,5.96+.78*math.sin(a)),(.69,.93,.80),ORANGE)
-    for j in range(5):
-        x=(j-2)*.12
-        box((x,-.99,5.27+.11*abs(j-2)),(.12,.07,.05),BROWN)
+        drum((s*.44,-.98,5.68),(.32,.32,.15),BLACK,(90,0,0))
+        oval((s*.44+.04,-1.055,5.73),(.08,)*3,WHITE)
+        oval((s*.73,-.83,5.29),(.38,.12,.22),PINK)
+        for j in range(3):
+            rod((s*(.32+j*.13),-.99,5.84),(s*(.30+j*.17),-.99,5.96),.025,BROWN)
+    nose=panel("Triangle nose",[(-.20,0),(.20,0),(0,-.31)],.13,RED,.035)
+    nose.rotation_euler.z=math.pi/2;nose.location=(0,-1.053,5.54)
+    for i in range(8):
+        x=(i-4)*.107;u=x+.107
+        rod((x,-1.010,5.08+.88*x*x),(u,-1.010,5.08+.88*u*u),.030,BLACK)
+    # Short lengths of looped scarlet yarn around the cloth face.
+    for i in range(25):
+        a=math.radians(-28+i*9.8)
+        x=1.17*math.cos(a);z=5.54+1.00*math.sin(a)
+        oval((x,.08,z),(.49,1.13,.62),RED,(0,90-math.degrees(a),0))
+        for j in (-1,1):
+            rod((x+j*.063,-.53,z),((x*1.15)+j*.07,-.53,z+(z-5.50)*.19-.08),.052,RED)
 
 
 def board_game():
@@ -380,24 +477,26 @@ def board_game():
 
 
 def clay():
-    profile([(.06,1.72,1.72,0,0),(.25,1.82,1.82,0,0),(3.32,2.06,2.06,0,0),(3.51,1.99,1.99,0,0)],GOLD)
-    drum((0,0,3.62),(4.34,4.34,.54),TEAL)
-    for i in range(28):
-        a=math.tau*i/28
-        oval((2.13*math.cos(a),2.13*math.sin(a),3.63),(.16,.16,.39),TEAL)
-    oval((0,-1.91,1.85),(2.91,.31,1.82),CREAM)
-    letters((0,-2.09,2.08),"SQUISH",.64,TEAL)
-    letters((0,-2.10,1.51),"CLAY",.52,RED)
-    # A molded clay snail perched on the lid.
-    oval((0,-.04,4.03),(2.62,1.22,.67),GREEN)
-    oval((-.18,.04,4.62),(1.58,.94,1.53),PINK)
+    # Open tub, a finger-impressed clay swirl and its matching lid tipped beside it.
+    profile([(.04,1.73,1.73,0,0),(.30,1.80,1.80,0,0),(3.42,2.06,2.06,0,0),(3.59,2.03,2.03,0,0)],"Toy Yellow")
+    drum((0,0,3.64),(4.19,4.19,.23),"Toy Yellow")
+    drum((0,0,3.76),(3.79,3.79,.085),BROWN)
+    oval((0,0,3.76),(3.65,3.58,.79),PINK)
+    for j in range(36):
+        a=j*.34;r=1.32-j*.034
+        b=a+.34;t=r-.034
+        oval((r*math.cos(a),r*math.sin(a),3.97+j*.013),(.44,)*3,PINK)
+        rod((r*math.cos(a),r*math.sin(a),3.97+j*.013),(t*math.cos(b),t*math.sin(b),3.97+(j+1)*.013),.22,PINK)
+    box((0,-1.94,1.99),(3.27,.39,1.79),RED,.19)
+    letters((0,-2.16,2.34),"MODELING",.53,CREAM)
+    letters((0,-2.17,1.64),"CLAY",.95,WHITE)
+    # A fluted snap lid leans against the back edge, exposing its molded underside.
+    lid=drum((0,1.84,2.20),(4.18,4.18,.35),RED,(57,0,0))
+    rim=drum((0,1.69,2.29),(3.63,3.63,.13),PINK,(57,0,0))
     for j in range(24):
-        a=j*.39;r=.05+j*.020
-        oval((-.18+r*math.cos(a),-.43,4.66+r*math.sin(a)),(.21,.15,.21),PURPLE)
-    oval((1.02,-.08,4.34),(.78,.83,.83),GREEN)
-    for s in (-1,1):
-        rod((1.07,s*.22,4.55),(1.25,s*.31,4.91),.075,GREEN)
-        oval((1.25,s*.31,4.94),(.22,)*3,BLACK)
+        a=j*math.tau/24
+        p=lid.rotation_euler.to_matrix()@Vector((2.04*math.cos(a),2.04*math.sin(a),0))+lid.location
+        oval(p,(.18,.18,.22),RED)
 
 
 def pastry():
@@ -481,7 +580,70 @@ def soldier():
     drum((1.68,-1.14,5.89),(.48,.48,.04),BROWN,(0,90,0))
 
 
-DESIGNS = {"Drum":marching_drum, "Soldier":soldier, "House":house, "Superhero":superhero, "Brick Stack":bricks,
+def panel(name, outline, depth, color, bevel=.06):
+    """Extrude a toy's side silhouette across its width; outline points are (y,z)."""
+    count=len(outline)
+    verts=[(x,y,z) for x in (-depth/2,depth/2) for y,z in outline]
+    faces=[tuple(reversed(range(count))),tuple(range(count,count*2))]
+    faces += [(i,(i+1)%count,(i+1)%count+count,i+count) for i in range(count)]
+    mesh=bpy.data.meshes.new(name)
+    mesh.from_pydata(verts,[],faces);mesh.update()
+    obj=bpy.data.objects.new(name,mesh);bpy.context.collection.objects.link(obj)
+    import bmesh
+    bm=bmesh.new();bm.from_mesh(mesh);bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces));bm.to_mesh(mesh);bm.free()
+    if bevel:
+        mod=obj.modifiers.new("Soft edges","BEVEL");mod.width=bevel;mod.segments=3
+        obj.modifiers.new("Weighted normals","WEIGHTED_NORMAL")
+    return part(obj,color)
+
+
+def classic_nutcracker():
+    drum((0,0,.24),(3.62,2.93,.48),GREEN)
+    for s in (-1,1):
+        drum((s*.67,0,3.47),(.94,1.04,3.71),CREAM)
+        drum((s*.67,0,1.70),(1.10,1.22,2.46),BLACK)
+        oval((s*.67,-.31,.77),(1.24,1.78,.85),BLACK)
+        drum((s*.67,0,2.83),(1.14,1.25,.17),GOLD)
+    profile([(5.06,1.39,1.10,0,0),(5.40,1.48,1.22,0,0),(6.12,1.33,1.08,0,0),(8.70,1.52,1.16,0,0),(9.03,1.18,.97,0,0)],RED)
+    drum((0,0,5.95),(2.88,2.28,.42),BLACK)
+    box((0,-1.17,5.97),(.73,.12,.48),GOLD)
+    for s in (-1,1):
+        drum((s*1.68,0,7.27),(.80,.84,3.08),RED)
+        drum((s*1.68,0,8.73),(1.11,1.07,.39),GOLD)
+        drum((s*1.68,0,5.90),(.88,.93,.43),BLACK)
+        oval((s*1.68,-.02,5.55),(.75,.79,.74),SKIN)
+        for j in range(3):
+            z=6.59+j*.67
+            rod((s*.76,-1.02,z+.14),(0,-1.15,z-.09),.062,GOLD)
+            oval((s*.77,-1.05,z+.14),(.19,)*3,GOLD)
+    drum((0,0,10.15),(2.49,2.36,2.48),SKIN)
+    for s in (-1,1):
+        for j in range(3):oval((s*(1.11+j*.12),.02,10.28-j*.33),(.51,1.16,1.29),WHITE)
+        oval((s*.51,-1.10,10.53),(.49,.13,.34),WHITE)
+        oval((s*.51,-1.20,10.52),(.20,.10,.25),BLUE)
+        oval((s*.51,-1.26,10.50),(.094,.06,.16),BLACK)
+        box((s*.51,-1.12,10.89),(.67,.15,.14),BLACK,.05,(0,-s*14,0))
+        oval((s*.78,-.98,10.00),(.44,.13,.29),PINK)
+        oval((s*.43,-1.24,9.93),(.99,.34,.30),BLACK,(0,-s*13,0))
+        oval((s*.87,-1.20,9.97),(.46,.22,.18),BLACK,(0,-s*32,0))
+    oval((0,-1.19,10.29),(.38,.49,.62),SKIN)
+    box((0,-1.16,9.26),(1.31,.42,.84),BROWN,.12)
+    for j in range(6):box((-.49+j*.198,-1.40,9.45),(.181,.10,.27),WHITE,.023)
+    for j in range(7):oval(((j-3)*.16,-1.09,8.74-.27*(1-abs(j-3)/3)),(.32,.46,.97),WHITE)
+    box((0,1.17,8.74),(.65,.43,2.51),WOOD,.12,(-12,0,0))
+    # Tall turned shako with gold trim, cockade and a braided chin chain.
+    drum((0,0,12.30),(2.63,2.53,2.49),BLACK)
+    for z in (11.11,13.47):drum((0,0,z),(2.77,2.67,.20),GOLD)
+    oval((0,-.63,11.09),(2.55,1.86,.23),BLACK)
+    drum((0,-1.25,12.26),(.77,.77,.14),GOLD,(90,0,0))
+    box((0,-1.34,12.26),(.40,.10,.40),RED,.03,(0,45,0))
+    for j in range(13):
+        a=math.pi*j/12
+        oval((1.19*math.cos(a),-1.01-.15*math.sin(a),11.79-.43*math.sin(a)),(.19,)*3,GOLD)
+    oval((0,.02,13.94),(.65,.65,1.04),RED)
+
+
+DESIGNS = {"Classic Nutcracker":classic_nutcracker, "Drum":marching_drum, "Soldier":soldier, "House":house, "Superhero":superhero, "Brick Stack":bricks,
            "Football":football, "Frosted Pinecone":pinecone, "Stocking":stocking,
            "Puzzle Cube":puzzle, "Fashion Doll":fashion, "Nutcracker":nutcracker,
            "Blaster":blaster, "Candy Bag":candy, "Rag Doll":rag_doll,

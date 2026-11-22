@@ -11,6 +11,7 @@ os.makedirs(out, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 
 PAINT = {
+    "Stocking velvet": (.63,.026,.037), "Stocking fleece": (.93,.69,.42), "Cellophane": (.78,.91,.98),
     "Toy Red": (.75, .03, .04), "Toy Blue": (.04, .18, .75), "Toy Navy": (.03, .06, .30),
     "Toy Yellow": (1., .78, .08), "Toy Green": (.05, .55, .12), "Toy Teal": (.0, .55, .55),
     "Toy White": (.92, .92, .9), "Toy Black": (.02, .02, .025), "Toy Gold": (1., .68, .2),
@@ -26,6 +27,13 @@ def paint(name):
     m.use_nodes = True
     bsdf = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
     bsdf.inputs["Base Color"].default_value = (*PAINT[name], 1)
+    if name == "Cellophane":
+        bsdf.inputs["Alpha"].default_value = .12
+        bsdf.inputs["Roughness"].default_value = .2
+        m.diffuse_color = (*PAINT[name], .12)
+    elif name in ("Stocking velvet", "Stocking fleece"):
+        bsdf.inputs["Roughness"].default_value = .94
+        bsdf.inputs["Sheen Weight"].default_value = .4
     return m
 
 from pathlib import Path

@@ -12,13 +12,13 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Wood
-    second: {fileID: 2100000, guid: 9d5571f9eec1a4c43b1ab171c6cc38b2, type: 2}
+      name: Toy Frost
+    second: {fileID: 2100000, guid: 3688cc91695841c48ae62d8f3c20c9fe, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Frost
-    second: {fileID: 2100000, guid: 3688cc91695841c48ae62d8f3c20c9fe, type: 2}
+      name: Toy Wood
+    second: {fileID: 2100000, guid: 9d5571f9eec1a4c43b1ab171c6cc38b2, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
