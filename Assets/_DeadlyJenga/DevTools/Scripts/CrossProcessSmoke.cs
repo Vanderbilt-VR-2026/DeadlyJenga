@@ -411,7 +411,8 @@ namespace DeadlyJenga.CastlePrototype
                     yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player), "Host enters usable lobby", 90);
                     var opened = room.Host();
                     yield return Until(() => opened.IsCompleted && room.IsHost && !room.Busy, "Host opens a Fusion room", 90, () => room.Status);
-                    yield return ChooseDemoCastle(IslandLobby.Current, players + ScaleArg("--dj-match-bots", 8));
+                    int population = BotsAfterWorldReady ? 1 : players + ScaleArg("--dj-match-bots", 8);
+                    yield return ChooseDemoCastle(IslandLobby.Current, population);
                 }
                 else
                 {
@@ -473,6 +474,7 @@ namespace DeadlyJenga.CastlePrototype
 
         // Match run: host starts Demo on Castle with a fixed bot count, then both processes hold the round.
         static bool MatchTest => Environment.GetCommandLineArgs().Contains("--dj-match");
+        static bool BotsAfterWorldReady => Environment.GetCommandLineArgs().Contains("--dj-match-bots-after-ready");
 
         // Chosen while the host is alone: a joined guest standing in a lobby slot blocks terminal changes.
         IEnumerator ChooseDemoCastle(IslandLobby lobby, int population)
@@ -496,6 +498,28 @@ namespace DeadlyJenga.CastlePrototype
                 && session.Network && !session.Network.WaitingForWorld, "Room transitions to a Castle match", 150, () => $"room={room.Status}");
             var fusion = session.GetComponent<CastleFusionSession>();
             Require(fusion, "Castle has the Fusion session for the independent peer check");
+            bool GuestSeesBots(int expected) => fusion.Demo.survivors == expected &&
+                FindObjectsByType<SurvivorNetworkView>(FindObjectsSortMode.None)
+                    .Count(view => view.IsBot && !view.IsEnemy) == expected;
+            if (BotsAfterWorldReady)
+            {
+                Require(bots > 0 && players == 2, "Post-admission bot load requires two humans and a positive bot count");
+                File.AppendAllText(Report, $"MATCH post-admission bot load: 0 then {bots} bots\n");
+                if (host)
+                {
+                    session.SurvivorBots.AutoFill = false;
+                    Require(session.SurvivorBots.Count == 0, "Host reaches the world with zero survivor bots");
+                    yield return Until(() => room.Connected && room.HumanCount == players &&
+                        File.Exists(Mark("guest-match-world-ready")),
+                        "Guest admits the zero-bot world before the host adds bots", 100, () => room.Status);
+                }
+                else
+                {
+                    yield return Until(() => room.Connected && room.HumanCount == players && GuestSeesBots(0),
+                        "Guest admits the zero-bot world with both humans", 100, () => room.Status);
+                    File.WriteAllText(Mark("guest-match-world-ready"), "Guest usable world confirmed at zero bots");
+                }
+            }
             if (host)
             {
                 session.SurvivorBots.AutoFill = false;
@@ -505,10 +529,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             else
             {
-                yield return Until(() => fusion.Demo.survivors == bots &&
-                    FindObjectsByType<SurvivorNetworkView>(FindObjectsSortMode.None)
-                        .Count(view => view.IsBot && !view.IsEnemy) == bots,
-                    $"Guest sees {bots} replicated survivor bots", 60);
+                yield return Until(() => GuestSeesBots(bots), $"Guest sees {bots} replicated survivor bots", 60);
             }
             File.AppendAllText(Report, $"MATCH started role={role} bots={(host ? session.SurvivorBots.Count : fusion.Demo.survivors)} humans={room.HumanCount}\n");
 
