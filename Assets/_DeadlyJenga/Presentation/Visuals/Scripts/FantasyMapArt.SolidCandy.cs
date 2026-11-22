@@ -95,9 +95,6 @@ namespace DeadlyJenga.Presentation
             float ladderZ=mid.z+hz*.45f,face=mid.x+hx+.12f,floorY=b.min.y;
             for(int s=-1;s<=1;s+=2)mesh.Box(V(new Vector3(face,floorY+2,ladderZ+s*.42f)),new Vector3(.12f,4,.12f),vq,0,Gold);
             for(float y=.3f;y<4;y+=.42f)mesh.Box(V(new Vector3(face,floorY+y,ladderZ)),new Vector3(.1f,.08f,.84f),vq,0,Gold);
-            bool ground=purpose.EndsWith(" floor 1");
-            if(ground&&(site.StartsWith("Sugar")||site.StartsWith("Cloud Harbor")))
-                foreach(int s in new[]{-1,1})Awning(mesh,V(new Vector3(mid.x,floorY+2.6f,mid.z+s*(hz+.5f))),vq*Quaternion.Euler(0,s>0?0:180,0));
             if(deckTop==float.MinValue)return;
             var roofCenter=frame.TransformPoint(new Vector3(mid.x,deckTop,mid.z));
             if(Covered(roofCenter,body))return;

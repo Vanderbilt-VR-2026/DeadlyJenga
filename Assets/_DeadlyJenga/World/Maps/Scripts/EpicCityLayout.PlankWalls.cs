@@ -72,6 +72,15 @@ namespace DeadlyJenga.CastlePrototype
                     bool alongX = wall < 2; float sign = wall % 2 == 0 ? -1 : 1;
                     float length = (alongX ? w : depth) - 4.8f; // between the corner posts
                     float offset = ((alongX ? depth : w) * .5f) - .6f - PlankThickness * .5f;
+                    // The neighborhood's shops and plant galleries open onto the ring road.
+                    Vector3 inward = Quaternion.Inverse(floor.rotation) * -floor.position;
+                    bool facesStreet = Mathf.Abs(inward.z) >= Mathf.Abs(inward.x)
+                        ? alongX && sign == Mathf.Sign(inward.z)
+                        : !alongX && sign == Mathf.Sign(inward.x);
+                    var siteName = plan.sites[floor.district].name;
+                    if (facesStreet && (floor.purpose == "Escape spine" ||
+                        doors && (siteName.StartsWith("Cloud Harbor") || siteName == "Canyon south-east tower")))
+                        continue;
                     for (int row = 0; row < rows; row++)
                     {
                         float y = baseY + .03f + PlankRow * (row + .5f);
