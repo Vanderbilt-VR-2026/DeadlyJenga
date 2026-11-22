@@ -27,6 +27,18 @@ namespace DeadlyJenga.CastlePrototype
             float w=size.x, d=size.z;
             switch(profile.Finish)
             {
+                case TycoonDeckFinish.Peach:
+                case TycoonDeckFinish.LoosePeach:
+                case TycoonDeckFinish.Mint:
+                    // Flush end bands and paired fasteners follow each removable plank.
+                    foreach (int end in new[]{-1,1})
+                    {
+                        float z=end*(d*.5f-.32f);
+                        Slab(0,0,z,w-.22f,.018f,.10f,2);
+                        foreach (int side in new[]{-1,1})
+                            Slab(side*(w*.5f-.25f),0,z-end*.18f,.10f,.018f,.10f,3);
+                    }
+                    break;
                 case TycoonDeckFinish.Tube:
                     Tube(profile, true);
                     break;
@@ -36,15 +48,24 @@ namespace DeadlyJenga.CastlePrototype
                     foreach(float z in new[]{-d*.5f,d*.5f})
                     for(int i=0;i<16;i++)
                     {
-                        Vector3 Rim(int k,float r) => LocalPoint(Mathf.Cos(k*Mathf.PI/16)*r,Mathf.Sin(k*Mathf.PI/16)*r,z+Mathf.Sign(z)*.03f);
+                        Vector3 Rim(int k,float r) => LocalPoint(Mathf.Cos(k*Mathf.PI/16)*r,Mathf.Sin(k*Mathf.PI/16)*r,z);
                         var a=Rim(i,w*.50f); var b=Rim(i+1,w*.50f);
                         var c=Rim(i+1,w*.56f); var e=Rim(i,w*.56f);
                         Quad(a,b,c,e,2); Quad(e,c,b,a,2);
                     }
                     break;
                 case TycoonDeckFinish.Basin:
-                    Slab(0,0,0,w,.09f,d,1);
+                    Slab(0,0,0,w-.52f,.09f,d-.52f,1);
+                    // Inlaid pool tiles and drain slots at the ends of the runout.
+                    foreach (int end in new[]{-1,1})
+                    {
+                        float z=end*(d*.5f-.66f);
+                        Slab(0,.09f,z,w-.94f,.012f,.18f,2);
+                        for(int slot=-3;slot<=3;slot++)
+                            Slab(slot*.29f,.102f,z,.14f,.012f,.11f,0);
+                    }
                     // A rescue ring hangs on the outer face of each catch basin.
+                    Slab(0,-.25f,-d/2-.05f,.26f,.75f,.12f,2);
                     for(int i=0;i<24;i++)
                     {
                         Vector3 Ring(int k,float r) => LocalPoint(Mathf.Cos(k*Mathf.PI/12)*r,.12f+Mathf.Sin(k*Mathf.PI/12)*r,-d/2-.09f);
@@ -56,9 +77,10 @@ namespace DeadlyJenga.CastlePrototype
                     for(int i=0;i<10;i++)
                         foreach(int side in new[]{-1,1})
                             Slab((i-4.5f)*w/10,0,side*(d-.35f)/2,w/10,.35f,.35f, i%2==0?1:2);
+                    float sideLength=d-.70f;
                     for(int i=0;i<6;i++)
                         foreach(int side in new[]{-1,1})
-                            Slab(side*(w-.35f)/2,0,(i-2.5f)*d/6,.35f,.35f,d/6,i%2==0?2:1);
+                            Slab(side*(w-.35f)/2,0,(i-2.5f)*sideLength/6,.35f,.35f,sideLength/6,i%2==0?2:1);
                     break;
                 case TycoonDeckFinish.Walk:
                     WalkRails(profile,size);
@@ -99,10 +121,18 @@ namespace DeadlyJenga.CastlePrototype
                 case TycoonDeckFinish.Awning:
                     foreach(int side in new[]{-1,1})
                         foreach(int end in new[]{-1,1})
-                            Slab(side*w*.44f,0,end*d*.41f,.16f,3.1f,.16f,2);
+                            Slab(side*w*.44f,0,end*d*.41f,.16f,3.30f,.16f,2);
                     Slab(0,0,.55f,w*.64f,.16f,1.05f,3);
                     Slab(0,.16f,.55f,w*.56f,.92f,.74f,2);
                     Slab(0,1.08f,.55f,w*.67f,.16f,1.14f,3);
+                    // Three flavors in a small counter-top ice pop display.
+                    Slab(0,1.24f,.58f,1.65f,.18f,.42f,2);
+                    for(int flavor=0;flavor<3;flavor++)
+                    {
+                        float x=(flavor-1)*.49f;
+                        Slab(x,1.42f,.58f,.09f,.18f,.09f,2);
+                        Slab(x,1.60f,.58f,.34f,.43f,.19f,flavor+1);
+                    }
                     for(int i=0;i<9;i++)
                     {
                         float x=(i-4)*w/9;
@@ -130,7 +160,7 @@ namespace DeadlyJenga.CastlePrototype
                     }
                     break;
                 case TycoonDeckFinish.Parasol:
-                    Slab(0,0,0,.18f,3.6f,.18f,2);
+                    Slab(0,0,0,.18f,3.8f,.18f,2);
                     for(int i=0;i<16;i++)
                         Wedge(i,16,0,3.8f,2.25f,3.1f,i%2==0?3:2);
                     break;
@@ -211,6 +241,7 @@ namespace DeadlyJenga.CastlePrototype
                 Slab(side*11,0,1.3f,.32f,7.7f,.32f,2);
                 Slab(side*5,0,1.3f,.25f,4.75f,.25f,2);
                 Slab(side*10,0,-1.65f,.25f,4.7f,.25f,2);
+                Slab(side*7.2f,0,-1.65f,.25f,3.75f,.25f,2);
                 Vector3 Cloth(float u,float v)
                 {
                     float outer=11-v, inner=5+v*2.2f;
@@ -255,10 +286,10 @@ namespace DeadlyJenga.CastlePrototype
                     var q=Surface(mid,t);
                     var dx=Vector3.right*.085f/size.x; var dz=Vector3.forward*.085f/size.z;
                     var top=q+vertical*1.28f;
-                    Quad(q-dx-dz,q+dx-dz,top+dx-dz,top-dx-dz,2);
-                    Quad(q+dx+dz,q-dx+dz,top-dx+dz,top+dx+dz,2);
-                    Quad(q-dx+dz,q-dx-dz,top-dx-dz,top-dx+dz,2);
-                    Quad(q+dx-dz,q+dx+dz,top+dx+dz,top+dx-dz,2);
+                    Quad(q-dx-dz,top-dx-dz,top+dx-dz,q+dx-dz,2);
+                    Quad(q+dx+dz,top+dx+dz,top-dx+dz,q-dx+dz,2);
+                    Quad(q-dx+dz,top-dx+dz,top-dx-dz,q-dx-dz,2);
+                    Quad(q+dx-dz,top+dx-dz,top+dx+dz,q+dx+dz,2);
                 }
             }
         }
@@ -269,6 +300,8 @@ namespace DeadlyJenga.CastlePrototype
             for(int i=0;i<32;i++)
             {
                 Wedge(i,32,2.2f,0,3.6f,5.2f,(i/2)%2==0?3:2);
+                Wedge(i,32,0,0,2.2f,0,2);
+                Wedge(i,32,2.22f,.08f,2.34f,.46f,2);
                 Wedge(i,32,3.62f,5.22f,3.38f,5.22f,2);
                 Wedge(i,32,3.38f,5.22f,0,4.85f,1);
             }

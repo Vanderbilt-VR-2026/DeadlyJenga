@@ -355,6 +355,11 @@ namespace DeadlyJenga.DevTools.Editor
                 Shot("08-Launch-deck",new Vector3(-23,70,24),new Vector3(0,61,-4));
                 Shot("07-Summit-bucket",new Vector3(16,68,-32),new Vector3(0,64,1));
                 Shot("06-Plank-court",new Vector3(1,8.7f,-43),new Vector3(-4,15,-22));
+                Shot("10-Island-plan",new Vector3(0,147,-3),new Vector3(0,0,0));
+                Shot("11-Rear-climb",new Vector3(-42,42,49),new Vector3(-15,34,15));
+                Shot("12-West-catch-basin",new Vector3(-50,14,-48),new Vector3(-37,8,-34));
+                Shot("13-East-runouts",new Vector3(52,35,-29),new Vector3(31,24,-12));
+                Shot("14-Boardwalk-kiosk",new Vector3(-18,10,-44),new Vector3(-27,9,-40));
             }
             finally
             {
