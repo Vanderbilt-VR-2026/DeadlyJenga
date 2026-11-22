@@ -93,9 +93,16 @@ namespace DeadlyJenga.CastlePrototype
         IEnumerator LoadAfterDeparture(int scene,bool networked,string destination,int connectionGeneration,int sequence,Action failed,Func<bool> stillCurrent,bool immediate)
         {
             if(!immediate)yield return new WaitForSecondsRealtime(DepartureSeconds);
-            if(sequence!=departureSequence)yield break;
+            if(sequence!=departureSequence)
+            {
+                if(destination=="lobby")TraceRoomAdmission("Lobby departure superseded before scene request");
+                yield break;
+            }
             if(connectionGeneration!=generation||!Departing||networked&&!IsHost||stillCurrent!=null&&!stillCurrent())
-            {CancelDeparture();yield break;}
+            {
+                if(destination=="lobby")TraceRoomAdmission("Lobby departure canceled before scene request");
+                CancelDeparture();yield break;
+            }
             bool failureReported=false;
             void Fail()
             {

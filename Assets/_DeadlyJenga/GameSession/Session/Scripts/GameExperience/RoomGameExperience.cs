@@ -289,7 +289,13 @@ namespace DeadlyJenga.CastlePrototype
             while(elapsed>0)
             {
                 double step=Math.Min(5,elapsed);elapsed-=step;
-                if(flow.Tick(State.authorityTerm,step,ProfileAvailable(State.profileId,State.humanIds.Length),LobbyVisible))CommitFlow();
+                var before=State;
+                if(flow.Tick(before.authorityTerm,step,ProfileAvailable(before.profileId,before.humanIds.Length),LobbyVisible))
+                {
+                    if(before.pending==GameFlowEffect.ReturnLobby && State.phase==GameFlowPhase.Failed)
+                        TraceMarinaReturn(State,$"return timed out; operation dispatched={dispatched==OperationKey(State)}");
+                    CommitFlow();
+                }
             }
             ReconcileLobbyCompletion();DispatchOutbox();
         }
@@ -315,16 +321,20 @@ namespace DeadlyJenga.CastlePrototype
             var s=State;
             if(s.pending==GameFlowEffect.ReturnLobby&&LobbyVisible&&flow.SceneCompleted(s.authorityTerm,s.operationId,GameFlowEffect.ReturnLobby))
             {
+                TraceMarinaReturn(s,"usable Marina is active; completing return");
                 CommitFlow();
                 if(!State.automatic&&!PlayerPlaylist)SelectNext();
             }
         }
+        static string OperationKey(GameFlowState state)
+            => state.roomId+"/"+state.authorityTerm+"/"+state.operationId+"/"+state.attempts;
+
         void DispatchOutbox()
         {
             var s=State;
             if(s.demo||s.pending==GameFlowEffect.None||s.phase==GameFlowPhase.Failed||TransportRecovering)return;
             if(!TransportCheckpointReady(s))return;
-            string key=s.roomId+"/"+s.authorityTerm+"/"+s.operationId+"/"+s.attempts;
+            string key=OperationKey(s);
             if(dispatched==key)return;
             if(s.pending==GameFlowEffect.ChooseProfile){dispatched=key;SelectNext();return;}
             if(room.Busy||room.RoomSceneBusy)return;
@@ -339,6 +349,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             else if(s.pending==GameFlowEffect.ReturnLobby)
             {
+                TraceMarinaReturn(s,"checkpoint barrier passed; dispatching Lobby scene");
                 if(s.playerPlaylist&&match)RememberReturningBots();
                 if(!room.ExperienceReturnLobby(s.operationId,s.attempts,Failed))Failed();
             }

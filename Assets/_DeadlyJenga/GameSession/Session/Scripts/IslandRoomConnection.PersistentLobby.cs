@@ -35,9 +35,14 @@ namespace DeadlyJenga.CastlePrototype
             try
             {
                 transitioning=true;
+                if(destination=="lobby")TraceRoomAdmission($"requesting Lobby scene index={index}");
                 var op=runner.LoadScene(SceneRef.FromIndex(index),LoadSceneMode.Single);
                 if(!op.IsValid){Fail("scene request was rejected");return false;}
-                op.AddOnCompleted(completed=>{if(completed.Error!=null)Fail(completed.Error.Message);});
+                op.AddOnCompleted(completed=>
+                {
+                    if(destination=="lobby")TraceRoomAdmission($"Lobby scene operation completed error={completed.Error?.Message??"none"}");
+                    if(completed.Error!=null)Fail(completed.Error.Message);
+                });
                 return !op.IsDone||op.Error==null;
             }
             catch(System.Exception error){Fail(error.Message);return false;}

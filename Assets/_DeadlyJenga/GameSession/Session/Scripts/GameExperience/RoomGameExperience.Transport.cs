@@ -25,7 +25,12 @@ namespace DeadlyJenga.CastlePrototype
         sealed class CachedCheckpoint
         {public ExperienceCheckpoint wire;public GameFlowState state;public string digest;}
         sealed class PeerReceipt
-        {public int sequence;public double lastCommand=-100;public string digest="";}
+        {
+            public int sequence, checkpointRevision=-1;
+            public double lastCommand=-100;
+            public string digest="", returnDigest="";
+            public bool returnProbed, returnResent;
+        }
         readonly Dictionary<string,PeerReceipt> transportPeers=new Dictionary<string,PeerReceipt>(StringComparer.Ordinal);
         readonly Dictionary<string,CachedCheckpoint> transportSent=new Dictionary<string,CachedCheckpoint>(StringComparer.Ordinal);
         readonly Queue<GameExperienceCommand> transportCommands=new Queue<GameExperienceCommand>();
@@ -130,6 +135,7 @@ namespace DeadlyJenga.CastlePrototype
                 var active=new HashSet<string>(StringComparer.Ordinal);
                 foreach(var peer in RemotePlayers())if(room.GameExperienceMemberId(transportRunner,peer,out var id))active.Add(id);
                 foreach(var id in transportPeers.Keys.Where(id=>!active.Contains(id)).ToArray())transportPeers.Remove(id);
+                RepairReturnReceipts();
             }
             bool initialGuest=transportRecovering&&!room.IsHost&&!transportMigration&&transportCache==null;
             if(initialGuest&&!initialLobbyClockStarted&&IslandLobby.Current)
@@ -192,6 +198,49 @@ namespace DeadlyJenga.CastlePrototype
             var state=JsonUtility.FromJson<GameFlowState>(checkpoint.body);RoomGameFlow.Validate(state);
             return new CachedCheckpoint{wire=checkpoint,state=state,digest=Digest(checkpoint.body)};
         }
+        static bool ReturningToMarina(GameFlowState state) =>
+            state != null && state.phase == GameFlowPhase.LoadingLobby && state.pending == GameFlowEffect.ReturnLobby;
+
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        void TraceMarinaReturn(GameFlowState state, string detail)
+        {
+            if (Debug.isDebugBuild)
+                Debug.Log($"[MarinaReturn] utc={DateTime.UtcNow:O} phase={state.phase} round={state.round} revision={state.revision} attempt={state.attempts} {detail}", this);
+        }
+
+        void RepairReturnReceipts()
+        {
+            if (TransportRecovering || !ReturningToMarina(State) || transportCache == null ||
+                !ReturningToMarina(transportCache.state) || transportCache.state.operationId != State.operationId ||
+                transportCache.state.attempts != State.attempts) return;
+            double age = TransportNow - transportLastPublish;
+            if (age < 2) return;
+            foreach (var peer in RemotePlayers())
+            {
+                if (!room.GameExperienceMemberId(transportRunner, peer, out var id)) continue;
+                if (!transportPeers.TryGetValue(id, out var receipt))
+                    transportPeers[id] = receipt = new PeerReceipt();
+                if (receipt.digest == transportCache.digest) continue;
+                if (receipt.returnDigest != transportCache.digest)
+                {
+                    receipt.returnDigest = transportCache.digest;
+                    receipt.returnProbed = receipt.returnResent = false;
+                }
+                if (!receipt.returnProbed)
+                {
+                    receipt.returnProbed = true;
+                    Send(peer, new ExperiencePacket { kind = "return-receipt", epoch = transportEpoch, digest = transportCache.digest });
+                    TraceMarinaReturn(State, $"asked peer={peer} for cached return receipt");
+                }
+                else if (age >= 6 && !receipt.returnResent)
+                {
+                    receipt.returnResent = true;
+                    SendSnapshot(peer);
+                    TraceMarinaReturn(State, $"resent the signed return checkpoint once to peer={peer}");
+                }
+            }
+        }
+
         static string Semantic(GameFlowState state)
         {
             var copy=new RoomGameFlow(state).State;copy.remaining=0;copy.revision=0;
@@ -203,7 +252,8 @@ namespace DeadlyJenga.CastlePrototype
             if(!room.Connected)return;
             if(transportRunner==null||transportSigner==null)return;
             var state=CaptureSnapshot();var semantic=Semantic(state);
-            if(semantic==transportSemantic&&TransportNow-transportLastPublish<1)return;
+            // Keep one signed revision for a pending return. Countdown changes do not alter its operation.
+            if(semantic==transportSemantic&&(ReturningToMarina(state)||TransportNow-transportLastPublish<1))return;
             string stage="serialize";
             try
             {
@@ -214,6 +264,7 @@ namespace DeadlyJenga.CastlePrototype
                 TransportFailureStage=TransportFailureType="";
                 transportCache=cached;transportPinnedKey=CheckpointKey(checkpoint);transportSemantic=semantic;transportLastPublish=TransportNow;
                 if(transportSent.Count>=32)transportSent.Remove(transportSent.Keys.First());transportSent[cached.digest]=cached;
+                if(ReturningToMarina(state))TraceMarinaReturn(state,"published signed return checkpoint");
                 foreach(var peer in RemotePlayers())SendSnapshot(peer);
             }
             catch(Exception error){TransportFailureStage=stage;TransportFailureType=error.GetType().FullName;TransportFailure("Room checkpoint signing failed; Game is disabled.");}
@@ -279,7 +330,17 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(TransportRecovering)return;
             if(packet.kind=="cached")
-            {if(transportSent.ContainsKey(packet.digest))receipt.digest=packet.digest;return;}
+            {
+                if(transportSent.TryGetValue(packet.digest,out var confirmed))
+                {
+                    // A late receipt for an older checkpoint cannot erase a newer confirmed revision.
+                    if(confirmed.state.revision<receipt.checkpointRevision)return;
+                    receipt.checkpointRevision=confirmed.state.revision;
+                    receipt.digest=packet.digest;
+                    if(ReturningToMarina(confirmed.state))TraceMarinaReturn(confirmed.state,$"signed return receipt accepted peer={sender}");
+                }
+                return;
+            }
             if(packet.kind!="command"||packet.roomId!=CaptureSnapshot().roomId||!CommandValid(packet.command)||packet.sequence<1)return;
             if(packet.sequence==receipt.sequence){Send(sender,new ExperiencePacket{kind="processed",epoch=transportEpoch,sequence=receipt.sequence});return;}
             if(packet.sequence!=receipt.sequence+1||TransportNow-receipt.lastCommand<.1)return;
@@ -301,6 +362,13 @@ namespace DeadlyJenga.CastlePrototype
                 if(!TransportRecovering&&packet.epoch==transportEpoch&&transportCommands.Count>0&&packet.sequence==transportSequence+1)
                 {transportCommands.Dequeue();transportSequence=packet.sequence;transportLastSend=-100;}return;
             }
+            if(packet.kind=="return-receipt")
+            {
+                if(!TransportRecovering&&packet.epoch==transportEpoch&&transportCache!=null&&
+                    ReturningToMarina(transportCache.state)&&packet.digest==transportCache.digest)
+                    Send(default,new ExperiencePacket{kind="cached",epoch=transportEpoch,digest=transportCache.digest});
+                return;
+            }
             if(packet.kind!="state"||packet.epoch.Length!=32)return;
             if(transportEpoch.Length!=0&&packet.epoch!=transportEpoch)return;
             var accepted=Verify(packet.checkpoint,string.IsNullOrEmpty(transportPinnedKey)?null:transportPinnedKey);if(accepted==null)return;
@@ -317,6 +385,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!ValidateAndApplySnapshot(accepted.state))return;
             transportEpoch=packet.epoch;transportPinnedKey=CheckpointKey(accepted.wire);transportCache=accepted;
             transportRecovering=false;transportMigration=false;TransportStatus="";
+            if(ReturningToMarina(accepted.state))TraceMarinaReturn(accepted.state,"applied signed return checkpoint");
             Send(default,new ExperiencePacket{kind="cached",epoch=transportEpoch,digest=accepted.digest});
         }
     }
