@@ -101,6 +101,7 @@ namespace DeadlyJenga.DevTools.Editor
         }
         public static void RunNinjaOverview()
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(Report));
             File.WriteAllText(Report,"Ninja Temple in Game.unity\n");
             SessionState.SetBool(Key+"NinjaOverview",true);
             SessionState.SetBool(Key,true);
@@ -870,6 +871,11 @@ namespace DeadlyJenga.DevTools.Editor
         static IEnumerator RunNinjaOverviewScene()
         {
             yield return RunSoloScene();
+            MatchSetup.MapId="mode-ninja-temple-original";
+            MatchSetup.ModeId="demo";
+            MatchSetup.ApplyMap();
+            yield return Wait(1);
+            Check(Services.World != null && Services.World.Blocks.Count == 296, "Original temple still builds its 296 blocks");
             MatchSetup.MapId="mode-ninja-temple";
             MatchSetup.ModeId="demo";
             MatchSetup.ApplyMap();
@@ -878,6 +884,15 @@ namespace DeadlyJenga.DevTools.Editor
             Check(world!=null&&world.Blocks.Count>150&&world.Blocks.Count<=400,"Ninja map built within its authored block budget");
             var art=Object.FindFirstObjectByType<DeadlyJenga.NinjaArt.NinjaTempleArt>();
             Check(art,"Ninja Temple lighting and scenery are loaded");
+            var generator = Object.FindObjectsByType<CastleGenerator>(FindObjectsSortMode.None)
+                .First(item => item.settings.layoutPreset == "shrine-town" && item.Bodies.Count > 0);
+            var layout = CastleLayout.Build(generator.settings);
+            Check(layout.Count == generator.Bodies.Count, "All authored structural bodies spawned");
+            float maxDrift = 0;
+            for (int i = 0; i < layout.Count; i++)
+                maxDrift = Mathf.Max(maxDrift, Vector3.Distance(generator.Bodies[i].position,
+                    generator.transform.TransformPoint(layout[i].Position)));
+            Check(maxDrift < .55f, "Intact town settled within tolerance, max drift " + maxDrift);
             captureOrigin=world.Center;
             var fog=Shader.GetGlobalVector("_NinjaFogParams");
             bool sceneFog=RenderSettings.fog;
@@ -885,7 +900,8 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 Shader.SetGlobalVector("_NinjaFogParams",new Vector4(120,420,.07f,fog.w));
                 RenderSettings.fog=false;
-                Capture(new Vector3(-92,101,-118),new Vector3(0,9,0),34,"NinjaTemple-Overview.png");
+                Capture(new Vector3(-45,86,-126),new Vector3(0,6,0),46,"NinjaTemple-Overview.png");
+                Capture(new Vector3(0,2,-40),new Vector3(0,8,21),68,"ShrineTown-Market.png");
             }
             finally {Shader.SetGlobalVector("_NinjaFogParams",fog);RenderSettings.fog=sceneFog;}
             if(System.Environment.GetCommandLineArgs().Contains("-playRotationSurvival"))

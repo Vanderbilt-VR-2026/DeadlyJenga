@@ -10,6 +10,7 @@ namespace DeadlyJenga.NinjaArt
     [DefaultExecutionOrder(985)]
     public sealed class NinjaTempleArt : MonoBehaviour
     {
+        public bool shrineTown;
         public float waterLevel = .08f;
         static readonly int FogColor = Shader.PropertyToID("_NinjaFogColor"), FogFar = Shader.PropertyToID("_NinjaFogFar"), FogParams = Shader.PropertyToID("_NinjaFogParams"),
             SkyAmb = Shader.PropertyToID("_NinjaSkyAmb"), GroundAmb = Shader.PropertyToID("_NinjaGroundAmb"), Warm = Shader.PropertyToID("_NinjaWarm"), Wind = Shader.PropertyToID("_NinjaWind"), Blood = Shader.PropertyToID("_NinjaBlood");
@@ -72,7 +73,7 @@ namespace DeadlyJenga.NinjaArt
             float wy = transform.InverseTransformPoint(new Vector3(0, waterLevel, 0)).y;
             var glow = new NinjaGlowMesh(); var mist = new NinjaGlowMesh();
 
-            var groundMesh = new NinjaMesh(); NinjaTempleScenery.Ground(groundMesh, wy); Add("Visual - courtyard and walls", groundMesh.Build("Ninja courtyard"), ground, scenery);
+            var groundMesh = new NinjaMesh(); NinjaTempleScenery.Ground(groundMesh, wy, shrineTown ? 48 : 35); Add("Visual - courtyard and walls", groundMesh.Build("Ninja courtyard"), ground, scenery);
             var lake = new NinjaMesh(); lake.Quad(new Vector3(-900, wy, -900), new Vector3(-900, wy, 900), new Vector3(900, wy, 900), new Vector3(900, wy, -900), Color.white); Add("Visual - lake", lake.Build("Ninja lake"), water, scenery);
             var mountains = new NinjaMesh(); NinjaTempleScenery.Mountains(mountains, Horizon * 1.05f, new Color(.018f, .02f, .04f));
             NinjaTempleScenery.FarCastle(mountains, glow, -NinjaTempleScenery.MoonFlat * 240 + Vector3.right * 60 + Vector3.up * 18, 1.3f, new Color(.03f, .032f, .055f));
@@ -81,7 +82,17 @@ namespace DeadlyJenga.NinjaArt
             var p = new NinjaMesh(); var f = new NinjaMesh(); var rng = new System.Random(5);
             var moonFlat = NinjaTempleScenery.MoonFlat; var facing = Quaternion.LookRotation(moonFlat);
             NinjaTempleScenery.Torii(p, moonFlat * 82 + Vector3.up * wy, facing, 20, 15, true, glow);
-            for (int i = 0; i < 4; i++)
+            if (shrineTown)
+            {
+                NinjaTempleScenery.Torii(p, new Vector3(0, 0, -43), Quaternion.identity, 10, 7, true, glow);
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    for (int i = 0; i < 5; i++)
+                        NinjaTempleScenery.StoneLantern(p, new Vector3(side * 4, 0, -39 + i * 10), 1, glow, i + 17);
+                    NinjaTempleScenery.Maple(f, new Vector3(side * 19, 0, 32), 1.4f, side + 12);
+                }
+            }
+            else for (int i = 0; i < 4; i++)
             {
                 var axis = Quaternion.Euler(0, i * 90, 0);
                 NinjaTempleScenery.Torii(p, axis * new Vector3(0, 0, 15.5f), axis, 7.5f, 5.4f, true, glow);
@@ -238,7 +249,7 @@ namespace DeadlyJenga.NinjaArt
             foreach (var body in blocks)
             {
                 if (!body || body.transform.Find("Visual - ninja decor")) continue;
-                var size = body.transform.lossyScale; var kind = NinjaTempleDecor.Classify(size); if (kind == NinjaTempleDecor.Kind.None) continue;
+                var size = body.transform.lossyScale; var kind = shrineTown ? NinjaTempleDecor.TownPart(size) : NinjaTempleDecor.Classify(size); if (kind == NinjaTempleDecor.Kind.None) continue;
                 NinjaTempleDecor.Meshes(kind, size, out var mesh, out var glowMesh);
                 var root = new GameObject("Visual - ninja decor").transform; root.SetParent(body.transform, false);
                 var ls = body.transform.localScale; root.localScale = new Vector3(1 / ls.x, 1 / ls.y, 1 / ls.z);

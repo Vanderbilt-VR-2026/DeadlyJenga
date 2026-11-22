@@ -9,12 +9,12 @@ namespace DeadlyJenga.NinjaArt
         public const float Half = 35, Ring = 24;
         public static Vector3 MoonFlat => new Vector3(Mathf.Sin(25 * Mathf.Deg2Rad), 0, Mathf.Cos(25 * Mathf.Deg2Rad));
 
-        public static void Ground(NinjaMesh m, float waterY)
+        public static void Ground(NinjaMesh m, float waterY, int half = 35)
         {
             var rng = new System.Random(11);
-            for (int x = 0; x < 35; x++) for (int z = 0; z < 35; z++)
+            for (int x = 0; x < half; x++) for (int z = 0; z < half; z++)
             {
-                float x0 = -Half + x * 2, z0 = -Half + z * 2; var c = new Vector2(x0 + 1, z0 + 1);
+                float x0 = -half + x * 2, z0 = -half + z * 2; var c = new Vector2(x0 + 1, z0 + 1);
                 bool path = Mathf.Abs(c.x) < 2.2f || Mathf.Abs(c.y) < 2.2f || Mathf.Abs(Mathf.Abs(c.x) - Ring) < 2.2f && Mathf.Abs(c.y) < Ring + 2 || Mathf.Abs(Mathf.Abs(c.y) - Ring) < 2.2f && Mathf.Abs(c.x) < Ring + 2;
                 float r = c.magnitude; if (r > 6.5f && r < 15.5f && !path) continue;
                 float edge = Mathf.Max(Mathf.Abs(c.x), Mathf.Abs(c.y));
@@ -48,8 +48,8 @@ namespace DeadlyJenga.NinjaArt
                 var rot = Quaternion.Euler(0, side * 90, 0);
                 for (int row = 0; row < 4; row++)
                 {
-                    float y0 = -row * .55f, y1 = y0 - .55f; float o0 = Half + row * .3f, o1 = o0 + .3f;
-                    float end = Half + row * .3f;
+                    float y0 = -row * .55f, y1 = y0 - .55f; float o0 = half + row * .3f, o1 = o0 + .3f;
+                    float end = half + row * .3f;
                     for (float u = -end; u < end - .05f;)
                     {
                         float w = 1.1f + (float)rng.NextDouble() * 1.3f; float u1 = u + w > end - .3f ? end : u + w;
@@ -58,8 +58,8 @@ namespace DeadlyJenga.NinjaArt
                         u = u1;
                     }
                 }
-                m.Quad(rot * new Vector3(-Half, -2.2f, Half + 1.2f), rot * new Vector3(Half + 1.2f, -2.2f, Half + 1.2f), rot * new Vector3(Half + 1.2f, waterY - 3, Half + 1.6f), rot * new Vector3(-Half, waterY - 3, Half + 1.6f), P.StoneDark * .6f);
-                m.Box(rot * new Vector3(0, .06f, Half - .35f), new Vector3(Half * 2 + .2f, .14f, .7f), rot, P.Stone * 1.5f, P.Stone * 1.2f);
+                m.Quad(rot * new Vector3(-half, -2.2f, half + 1.2f), rot * new Vector3(half + 1.2f, -2.2f, half + 1.2f), rot * new Vector3(half + 1.2f, waterY - 3, half + 1.6f), rot * new Vector3(-half, waterY - 3, half + 1.6f), P.StoneDark * .6f);
+                m.Box(rot * new Vector3(0, .06f, half - .35f), new Vector3(half * 2 + .2f, .14f, .7f), rot, P.Stone * 1.5f, P.Stone * 1.2f);
             }
         }
         static bool Blocked(Vector3 p) => Mathf.Abs(p.x) < 2.2f || Mathf.Abs(p.z) < 2.2f;

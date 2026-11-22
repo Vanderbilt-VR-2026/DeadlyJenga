@@ -392,6 +392,8 @@ namespace DeadlyJenga.CastlePrototype
                     block.SyncSurface();
                 }
                 var size=p.BlockSize(settings);
+                if (settings.layoutPreset == ShrineTownLayout.Preset)
+                    ShrineTownLayout.AddRoofColliders(body, size);
                 float volumeRatio=size.x*size.y*size.z/(settings.blockSize.x*settings.blockSize.y*settings.blockSize.z);
                 body.mass = Mathf.Max(1, mass*volumeRatio);
                 // Ninety loose courses need more contact iterations than the standard castle.

@@ -7,11 +7,20 @@ namespace DeadlyJenga.NinjaArt
     // Pagoda roofs, spires and lantern strings ride on the physical blocks, so they fall and break with them.
     public static class NinjaTempleDecor
     {
-        public enum Kind { None, Deck, Beam, Finial }
+        public enum Kind { None, Deck, Beam, Finial, TownDeck, TownRoof, BellRoof, Screen }
         public const float Eave = 2.4f, Droop = 1.35f, Upturn = 1.3f, Thickness = .24f;
         static readonly Dictionary<string, Mesh> solid = new Dictionary<string, Mesh>(), glows = new Dictionary<string, Mesh>();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void Reset() { solid.Clear(); glows.Clear(); }
+
+        public static Kind TownPart(Vector3 size)
+        {
+            if (Mathf.Abs(size.y - 1.25f) < .01f) return Kind.TownRoof;
+            if (Mathf.Abs(size.y - 1.4f) < .01f) return Kind.BellRoof;
+            if (Mathf.Abs(size.y - 1) < .01f && size.z > 4) return Kind.TownDeck;
+            if (Mathf.Abs(size.z - .45f) < .01f) return Kind.Screen;
+            return Classify(size);
+        }
 
         public static Kind Classify(Vector3 size)
         {
@@ -28,12 +37,44 @@ namespace DeadlyJenga.NinjaArt
                 var m = new NinjaMesh(); var g = new NinjaGlowMesh();
                 if (kind == Kind.Deck) Roof(m, g, size.x * .5f, size.y * .5f);
                 else if (kind == Kind.Beam) Beam(m, g, size.x, size.y * .5f);
-                else Finial(m, g, size.y * .5f);
+                else if (kind == Kind.Finial) Finial(m, g, size.y * .5f);
+                else if (kind == Kind.Screen) Screen(m, size);
+                else TownRoof(m, g, size, kind);
                 body = m.Build("Ninja " + key); body.hideFlags = HideFlags.DontSave; solid[key] = body;
                 var halo = g.Build("Ninja glow " + key, 3); halo.hideFlags = HideFlags.DontSave; glows[key] = halo;
             }
             glow = glows[key];
         }
+        static void Screen(NinjaMesh m, Vector3 size)
+        {
+            float width = size.x, height = size.y;
+            var paper = P.Paper(new Color(.96f, .74f, .43f), .45f);
+            m.Box(Vector3.zero, new Vector3(width, height, size.z + .04f), Quaternion.identity, paper);
+            for (int i = 0; i <= 4; i++)
+                m.Box(new Vector3((i / 4f - .5f) * (width - .1f), 0, 0),
+                    new Vector3(.12f, height, size.z + .12f), Quaternion.identity, P.Wood);
+            m.Box(Vector3.zero, new Vector3(width, .14f, size.z + .13f), Quaternion.identity, P.Wood);
+        }
+
+        static void TownRoof(NinjaMesh m, NinjaGlowMesh glow, Vector3 size, Kind kind)
+        {
+            var scale = Matrix4x4.Scale(new Vector3(size.x / size.z, 1, 1));
+            m.Frame = scale;
+            Roof(m, glow, size.z / 2, size.y / 2);
+            m.Frame = Matrix4x4.identity;
+            if (kind == Kind.TownDeck) return;
+            float top = size.y / 2, half = size.z / 2, rise = half * .44f;
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var rotation = Quaternion.Euler(side * Mathf.Atan(.44f) * Mathf.Rad2Deg, 0, 0);
+                m.Box(new Vector3(0, top + rise / 2, side * half / 2),
+                    new Vector3(size.x, .22f, half * Mathf.Sqrt(1 + .44f * .44f)), rotation, P.Tile);
+            }
+            m.Box(Vector3.up * (top + rise), new Vector3(size.x + .25f, .35f, .42f), Quaternion.identity, P.Lacquer);
+            if (kind == Kind.BellRoof)
+                m.Cylinder(Vector3.down * 3.7f, Vector3.down * .7f, 1.25f, .65f, 12, P.Gold * .65f, P.Gold);
+        }
+
         static Vector3 RoofPoint(float half, float top, float u, float v)
         {
             float o = half + Eave * v;
