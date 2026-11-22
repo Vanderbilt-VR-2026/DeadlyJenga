@@ -63,17 +63,50 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void ConfigureSetup(LobbySetup value)
         {if(CanConfigure&&Catalog&&ValidSetup(value))Act(new LobbyAction{verb="setup",setup=value});}
-        static bool ValidSetup(LobbySetup value)
+        static bool ValidSetup(LobbySetup value) => SetupRejection(value) == null;
+        static string SetupRejection(LobbySetup value)
         {
-            if(value==null||!ModeFrameValidation.Rules(value.rules)||value.movement==null||value.population<1||value.population>100||value.hands<0||value.hands>100||value.survivorPreset<0||value.survivorPreset>100||value.handPreset<0||value.handPreset>100)return false;
-            if(value.disasters==null||value.disasters.Length>32)return false;
-            foreach(var hazard in value.disasters){var prefab=DemoDisasters.Prefabs.FirstOrDefault(p=>p.name==hazard.id);if(!prefab||hazard.values==null)return false;var parameters=DemoDisasters.Parameters(prefab);if(parameters.Count!=hazard.values.Length)return false;for(int i=0;i<parameters.Count;i++){float v=hazard.values[i];if(float.IsNaN(v)||float.IsInfinity(v)||v<parameters[i].min||v>parameters[i].max)return false;}}
-            var hand=value.movement.handPhysics;
-            if(hand!=null&&(float.IsNaN(hand.forceNewtons)||float.IsInfinity(hand.forceNewtons)||
-                float.IsNaN(hand.friction)||float.IsInfinity(hand.friction)||
-                hand.forceNewtons<0||hand.forceNewtons>10000||hand.friction<0||hand.friction>2))return false;
-            foreach(var f in typeof(MatchRules).GetFields())if(f.FieldType==typeof(float)){float v=(float)f.GetValue(value.movement);if(float.IsNaN(v)||float.IsInfinity(v)||v<0||v>10000)return false;}
-            return value.movement.drainCurve?.Length<=32&&value.movement.recoveryCurve?.Length<=32;
+            if (value == null) return "setup missing";
+            if (!ModeFrameValidation.Rules(value.rules))
+                return $"mode rules invalid (mode={value.rules?.mode}, teams={value.rules?.teamCount})";
+            if (value.movement == null) return "movement rules missing";
+            if (value.population < 1 || value.population > 100) return "population out of range";
+            if (value.hands < 0 || value.hands > 100) return "hand count out of range";
+            if (value.survivorPreset < 0 || value.survivorPreset > 100 ||
+                value.handPreset < 0 || value.handPreset > 100) return "actor preset out of range";
+            if (value.disasters == null || value.disasters.Length > 32) return "disaster list missing or oversized";
+
+            for (int index = 0; index < value.disasters.Length; index++)
+            {
+                var hazard = value.disasters[index];
+                if (hazard == null || hazard.values == null) return $"disaster entry {index} missing";
+                var prefab = DemoDisasters.Prefabs.FirstOrDefault(p => p.name == hazard.id);
+                if (!prefab) return $"disaster entry {index} unavailable in the local catalog";
+                var parameters = DemoDisasters.Parameters(prefab);
+                if (parameters.Count != hazard.values.Length) return $"{prefab.name} parameter count differs";
+                for (int i = 0; i < parameters.Count; i++)
+                {
+                    float parameter = hazard.values[i];
+                    if (!float.IsFinite(parameter) || parameter < parameters[i].min || parameter > parameters[i].max)
+                        return $"{prefab.name} parameter {i} out of range";
+                }
+            }
+
+            var hand = value.movement.handPhysics;
+            if (hand != null && (!float.IsFinite(hand.forceNewtons) || !float.IsFinite(hand.friction) ||
+                hand.forceNewtons < 0 || hand.forceNewtons > 10000 || hand.friction < 0 || hand.friction > 2))
+                return "hand physics out of range";
+            foreach (var field in typeof(MatchRules).GetFields())
+                if (field.FieldType == typeof(float))
+                {
+                    float setting = (float)field.GetValue(value.movement);
+                    if (!float.IsFinite(setting) || setting < 0 || setting > 10000)
+                        return $"movement field {field.Name} out of range";
+                }
+            if (value.movement.drainCurve == null || value.movement.drainCurve.Length > 32 ||
+                value.movement.recoveryCurve == null || value.movement.recoveryCurve.Length > 32)
+                return "movement curve missing or oversized";
+            return null;
         }
         void ApplySetup(LobbySetup value)
         {
@@ -234,7 +267,15 @@ namespace DeadlyJenga.CastlePrototype
         void ReadLobbyState(string json)
         {
             var state=JsonUtility.FromJson<LobbyState>(json);
-            if(state?.roster==null||state.roster.Length>10||state.requests==null||state.requests.Length>10||!ValidSetup(state.setup)||state.leader?.Length>128||state.notice?.Length>200)throw new System.IO.InvalidDataException("Invalid lobby metadata");
+            if (state?.roster == null || state.roster.Length > 10)
+                throw new System.IO.InvalidDataException("Invalid lobby metadata: roster missing or oversized");
+            if (state.requests == null || state.requests.Length > 10)
+                throw new System.IO.InvalidDataException("Invalid lobby metadata: host requests missing or oversized");
+            if (state.leader?.Length > 128 || state.notice?.Length > 200)
+                throw new System.IO.InvalidDataException("Invalid lobby metadata: leader or notice oversized");
+            var rejection = SetupRejection(state.setup);
+            if (rejection != null)
+                throw new System.IO.InvalidDataException("Invalid lobby metadata: " + rejection);
             var used=new HashSet<string>();var nouns=new HashSet<string>();
             foreach(var p in state.roster)if(p==null||string.IsNullOrEmpty(p.id)||p.id.Length>128||!used.Add(p.id)||!ValidNoun(p.noun)||!nouns.Add(p.noun)||p.displayName?.Length>64)throw new System.IO.InvalidDataException("Invalid lobby identity");
             identities.Clear();foreach(var p in state.roster)identities.Add(p.id,p);
