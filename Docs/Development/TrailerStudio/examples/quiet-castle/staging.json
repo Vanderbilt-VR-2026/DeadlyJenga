@@ -91,13 +91,13 @@
     ]
   },
   "choices": [
-    "Camera presets use stage-relative or actor-relative positions; confirm composition in the scout."
+    "Camera presets use stage-relative or actor-relative positions; confirm composition in the scout.",
+    "Mute the delivered shot audio and final edit while retaining the captured source WAV.",
+    "Use an empty cast and hide the local player's geometry for this environment take."
   ],
   "cue_attempts": [],
   "movement_requests": [],
   "pending_review": [
-    "Scout uses the native game mix. Review audio exclusions, added sound, dialogue and titles in finishing.",
-    "No automatic staging for this direction: No survivors.",
     "Review the original directing clauses for exact choreography, event order, performer actions and visual beats."
   ],
   "runtime_evidence": []

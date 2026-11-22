@@ -533,6 +533,8 @@ namespace DeadlyJenga.DevTools.Editor
             public Quaternion facing = Quaternion.identity;
             public float downAt = float.PositiveInfinity;
             public float punchAt = -100;
+            public float hitAt = float.NegativeInfinity;
+            public Vector3 hitDirection;
         }
         static Job job;
         static IEnumerator<int> take;
@@ -1351,19 +1353,54 @@ namespace DeadlyJenga.DevTools.Editor
             float punch = Mathf.Clamp01(1 - Mathf.Abs((time - actor.punchAt) - .08f) / .17f);
             pose.left.position = pose.head + actor.facing * new Vector3(-.27f, -.37f, .2f + stride) * scale;
             pose.right.position = pose.head + actor.facing * new Vector3(.27f, -.37f + .24f * punch, .2f - stride + .85f * punch) * scale;
+            float authoredWeight = 0;
             foreach (var key in actor.track.poses ?? Array.Empty<TheatrePlan.TheatrePose>())
             {
                 float u = (time - key.at) / key.duration;
                 if (u < 0 || u > 1) continue;
                 float weight = Mathf.SmoothStep(0, 1, Mathf.Clamp01(Mathf.Min(u, 1 - u) * 5));
+                authoredWeight = Mathf.Max(authoredWeight, weight);
                 pose.head -= Vector3.up * (key.crouch * scale * weight);
                 pose.headRotation *= Quaternion.Euler(key.lean * weight, 0, 0);
                 pose.left.position += actor.facing * key.leftReach * (scale * weight);
                 pose.right.position += actor.facing * key.rightReach * (scale * weight);
             }
             pose.left.rotation = pose.right.rotation = actor.facing;
+            ApplyContactReaction(actor, ref pose, time, scale, 1 - authoredWeight);
             actor.avatar.OverridePose(pose);
             actor.avatar.ApplyCosmeticFrame(pose);
+        }
+
+        static void ApplyContactReaction(Actor actor, ref CandyAvatarFrame pose, float time, float scale, float weight)
+        {
+            float elapsed = time - actor.hitAt;
+            if (elapsed < 0 || elapsed >= .72f || weight <= 0 || actor.hitDirection == Vector3.zero) return;
+
+            float flinch = Envelope(0, .11f, .41f) * weight;
+            float recover = Envelope(.12f, .32f, .72f) * weight;
+            Vector3 local = Quaternion.Inverse(actor.facing) * actor.hitDirection;
+            Vector3 upperBody = actor.hitDirection * (.21f * flinch) - Vector3.up * (.16f * flinch + .07f * recover);
+            pose.head += upperBody * scale;
+            pose.headRotation *= Quaternion.Euler(17 * local.z * flinch + 6 * recover,
+                25 * local.x * flinch, -22 * local.x * flinch);
+
+            float rightSide = Mathf.InverseLerp(-.30f, .18f, local.x);
+            pose.left.position += HandRecoil(1 - rightSide, -1) * scale;
+            pose.right.position += HandRecoil(rightSide, 1) * scale;
+
+            float Envelope(float start, float peak, float end) =>
+                Mathf.SmoothStep(0, 1, Mathf.InverseLerp(start, peak, elapsed)) *
+                Mathf.SmoothStep(1, 0, Mathf.InverseLerp(peak, end, elapsed));
+
+            Vector3 HandRecoil(float sideWeight, float side)
+            {
+                float delay = .09f * sideWeight;
+                float guard = Envelope(.12f + delay, .30f + delay, .63f + delay) * weight;
+                return upperBody * .55f + actor.hitDirection * ((.12f + .11f * sideWeight) * flinch) +
+                    actor.facing * new Vector3(side * (.13f - .18f * sideWeight) * flinch,
+                        (.09f + .12f * sideWeight) * flinch + (.08f + .20f * sideWeight) * guard,
+                        (.10f + .14f * sideWeight) * guard);
+            }
         }
         static void Cue(TheatrePlan.TheatreCue cue, CastlePlaySession session, Dictionary<string, Actor> actors,
             IWorldQuery world, Vector3 stage, float time)
@@ -1489,7 +1526,12 @@ namespace DeadlyJenga.DevTools.Editor
             float before = receiver.Health;
             bool accepted = false;
             var pushed = new List<GameObject>();
-            void RecordPush(GameObject who, Vector3 _) => pushed.Add(who);
+            Vector3 targetPush = Vector3.zero;
+            void RecordPush(GameObject who, Vector3 force)
+            {
+                pushed.Add(who);
+                if (who == receiver.gameObject) targetPush += force;
+            }
             if (safe)
             {
                 GameEvents.Pushed += RecordPush;
@@ -1507,10 +1549,13 @@ namespace DeadlyJenga.DevTools.Editor
                 $"phase={frame.phase} punchEnabled={rules.punchEnabled} healthEnabled={rules.healthEnabled} " +
                 $"origin={origin} direction={direction} predictedTargetId={predicted} gameplayDispatched={safe} gameplayAccepted={accepted} " +
                 $"targetPushed={intendedPushed} otherPushed={otherPushed} " +
+                $"targetPush={targetPush.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)} " +
                 FormattableString.Invariant($"healthBefore={before:F2} healthAfter={after:F2} healthDelta={before - after:F2}\n");
             File.AppendAllText(Path.Combine(job.folder, "cues.txt"), detail);
             if (!accepted || !intendedPushed || otherPushed || after >= before)
                 throw new InvalidOperationException($"Punch did not make verified gameplay contact: {cue.actor}->{cue.target}. See cues.txt.");
+            target.hitAt = time;
+            target.hitDirection = Vector3.ProjectOnPlane(targetPush, Vector3.up).normalized;
             actor.punchAt = time;
             Vector3 facing = Vector3.ProjectOnPlane(direction, Vector3.up);
             if (facing.sqrMagnitude > .0001f) actor.facing = Quaternion.LookRotation(facing);

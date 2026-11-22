@@ -333,11 +333,18 @@ def stage(brief):
         raise ValueError("The brief excludes Demo rules, which the Gameplay Theatre staged route requires.")
     if brief.get("mode_rules") and brief["mode_rules"] != "Demo":
         pending.append("Gameplay Theatre stages with Demo rules. The requested match mode needs a separate capture.")
-    if constraints.get("audio_and_titles"):
+    silent = any(entry["id"] == "audible_audio" and entry["intent"] == "exclude"
+                 for entry in constraints.get("audio_and_titles", []))
+    if silent:
+        choices.append("Mute the delivered shot audio and final edit while retaining the captured source WAV.")
+    if any(entry["id"] != "audible_audio" for entry in constraints.get("audio_and_titles", [])):
         pending.append("Scout uses the native game mix. Review audio exclusions, added sound, dialogue and titles in finishing.")
     if "montage" in camera_intents or "single_take" in excluded_cameras:
         pending.append("Confirm cut rhythm and shot count in editorial.")
     for note in brief.get("unclassified_notes", []):
+        if environment and re.fullmatch(r"\s*no (?:survivors|actors|characters|players|people)[.! ]*", note, re.I):
+            choices.append("Use an empty cast and hide the local player's geometry for this environment take.")
+            continue
         pending.append(f"No automatic staging for this direction: {note}")
     if brief.get("requested_beats"):
         pending.append("Review the original directing clauses for exact choreography, event order, performer actions and visual beats.")
@@ -351,8 +358,7 @@ def stage(brief):
     }
     if environment:
         recipe["environmentOnly"] = True
-    if any(entry["id"] == "audible_audio" and entry["intent"] == "exclude"
-           for entry in constraints.get("audio_and_titles", [])):
+    if silent:
         recipe["muteDelivery"] = True
     return recipe, report
 
