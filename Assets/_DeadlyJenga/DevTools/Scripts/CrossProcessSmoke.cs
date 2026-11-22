@@ -243,6 +243,8 @@ namespace DeadlyJenga.CastlePrototype
             var originalRunner = room.Runner;
             float elapsedBeforeTransfer = game.Modes.Frame.elapsed;
             float roundSeconds = game.Modes.Frame.rules.roundSeconds;
+            string roundEpoch = game.Modes.Frame.eliminationEpoch;
+            Require(!string.IsNullOrEmpty(roundEpoch), "Managed round has an identity to verify after takeover");
             string map = MatchSetup.MapId;
             MarkReached("playing");
             if (host)
@@ -264,7 +266,7 @@ namespace DeadlyJenga.CastlePrototype
                 (room.IsHost || fusion && fusion.LastWorldAppliedAt > worldAtRebind && fusion.LastHostPoseAt > poseAtRebind),
                 "Both survivors see each other and the follower receives fresh world and pose traffic", 100, State);
             Require(game.GamePhase == RoomGamePhase.Playing && game.Modes.Frame.phase == RoundPhase.Playing && MatchSetup.MapId == map &&
-                game.Modes.Frame.elapsed >= elapsedBeforeTransfer - 1 &&
+                game.Modes.Frame.eliminationEpoch == roundEpoch && game.Modes.Frame.elapsed >= elapsedBeforeTransfer - 1 &&
                 Mathf.Approximately(game.Modes.Frame.rules.roundSeconds, roundSeconds),
                 "The recovered room preserves the production map and advancing round");
             MarkReached("authority", room.IsHost ? "host" : "follower");
@@ -272,7 +274,7 @@ namespace DeadlyJenga.CastlePrototype
             Require(File.ReadAllText(Mark(otherGuest + "-managed-authority")) == (room.IsHost ? "follower" : "host"),
                 "Exactly one surviving peer is authoritative");
             yield return Until(() => game && game.Modes && game.Modes.Frame.phase == RoundPhase.Results &&
-                room.Connected && room.Code == code && room.HumanCount == 2,
+                game.Modes.Frame.eliminationEpoch == roundEpoch && room.Connected && room.Code == code && room.HumanCount == 2,
                 "Both survivors see Results from the original production round", roundSeconds + 100, State);
             MarkReached("results");
             yield return Until(() => InMarina(2) && GuestsReached("results"),
