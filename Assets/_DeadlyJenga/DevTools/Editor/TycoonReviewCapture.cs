@@ -130,8 +130,8 @@ namespace DeadlyJenga.DevTools.Editor
                     ?.GetType("DeadlyJenga.World.Hazards.Editor.HazardValidation")?.GetMethod("ValidateCatalog");
                 if(validation == null) throw new InvalidOperationException("Disaster catalog validation is unavailable.");
                 validation.Invoke(null,null);
-                CheckTraversalSurfaces(world,pieces);
                 Capture(world,camera);
+                CheckTraversalSurfaces(world,pieces);
                 int loose = pieces.FindIndex(p => p.DeckProfile.Finish == TycoonDeckFinish.LoosePeach);
                 int support = pieces.FindIndex(p => (p.Position - new Vector3(0,5.8f,-41.8f)).sqrMagnitude < .001f);
                 if (support < 0 || loose < 0 || !world.Bodies.All(b => b.isKinematic))
@@ -164,6 +164,14 @@ namespace DeadlyJenga.DevTools.Editor
                 var p=pieces[i].DeckProfile;
                 if(p.Finish is not (TycoonDeckFinish.Flume or TycoonDeckFinish.DryChute or TycoonDeckFinish.Tube or TycoonDeckFinish.OpenDeck or TycoonDeckFinish.Walk)) continue;
                 var body=world.Bodies[i].transform;
+                var ring=new[]{body.TransformPoint(p.StartLeft),body.TransformPoint(p.EndLeft),
+                    body.TransformPoint(p.EndRight),body.TransformPoint(p.StartRight)};
+                for(int corner=0;corner<4;corner++)
+                {
+                    var first=ring[(corner+1)%4]-ring[corner];
+                    var second=ring[(corner+2)%4]-ring[(corner+1)%4];
+                    if(Vector3.Cross(first,second).y<=0) throw new InvalidOperationException($"Folded {p.Finish} panel at piece {i}");
+                }
                 foreach(float along in new[]{.035f,.5f,.965f})
                 foreach(float across in new[]{.08f,.5f,.92f})
                 {

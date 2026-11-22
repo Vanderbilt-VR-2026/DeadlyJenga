@@ -34,16 +34,15 @@ namespace DeadlyJenga.CastlePrototype
                 Deck(plan, gateColors[lane], x, 60, -10.7f, 4.6f, 3, TycoonDeckFinish.Gate);
             }
             Flume(plan, CastleSection.Aqua, TycoonDeckFinish.Flume,
-                P(-8.4f,60,-12.2f), P(-8.4f,59.85f,-15.2f), P(-17,53,-17), P(-33,40,4), P(-39,34,8),
+                P(-8.4f,60,-12.2f), P(-8.4f,59.85f,-15.2f), P(-9,57,-21), P(-17,53,-23), P(-31,40,1), P(-36,36,5), P(-41,32,4),
                 P(-44,27,-5), P(-32,19,-18), P(-41,7,-32));
             Flume(plan, red, TycoonDeckFinish.Tube,
-                P(-2.8f,60,-12.2f), P(-2.8f,59.85f,-15.2f), P(-3,54,-19), P(-15,45,-12), P(-17,40,3),
+                P(-2.8f,60,-12.2f), P(-2.8f,59.85f,-15.2f), P(-3,54,-23), P(-9,50,-26), P(-16,45,-19), P(-17,40,3),
                 P(-11,35,16), P(11,30,16), P(19,26,6), P(25,24.6f,-6));
             Flume(plan, green, TycoonDeckFinish.Flume,
-                P(2.8f,60,-12.2f), P(2.8f,59.85f,-15.2f), P(5,52,-19), P(17,44,-12), P(22,37,0),
-                P(29,31,-3), P(29,24.6f,-6));
+                P(2.8f,60,-12.2f), P(2.8f,59.85f,-15.2f), P(3,55,-22), P(10,50,-25), P(17,44,-17), P(21,38,-9), P(24,34,-8), P(27,29,-7), P(30,24.6f,-7));
             Flume(plan, CastleSection.Gold, TycoonDeckFinish.DryChute,
-                P(8.4f,60,-12.2f), P(8.4f,59.85f,-15.2f), P(20,52,-15), P(39,32,-16), P(36,24.6f,-19));
+                P(8.4f,60,-12.2f), P(8.4f,59.85f,-15.2f), P(9,56,-22), P(16,51,-26), P(29,38,-28), P(35,30,-25), P(36,24.6f,-19));
 
             // A cross beam and separate planks carry each bay above the lethal sand.
             for (int bay = -2; bay <= 2; bay++)
@@ -104,13 +103,7 @@ namespace DeadlyJenga.CastlePrototype
         static void Flume(List<CastlePlacement> plan, CastleSection color, TycoonDeckFinish finish,
             params Vector3[] guide)
         {
-            MoldedRoute(plan,color,4.6f,finish,5,guide);
-            // Compression piers support the longer unsupported spans.
-            for (int i = 2; i < guide.Length - 1; i += 2)
-            {
-                var point = guide[i];
-                Pier(plan,color,point.x,point.y-.65f,point.z,2.4f);
-            }
+            MoldedRoute(plan,color,4.6f,finish,guide);
         }
 
         static void PlankBay(List<CastlePlacement> plan,float x,float top,float z,float width,float depth,
@@ -177,10 +170,10 @@ namespace DeadlyJenga.CastlePrototype
             Box(plan,CastleSection.Keep,P(36.3f,18.55f,-39.8f),P(1.1f,1.1f,1.1f));
             Box(plan,CastleSection.Corner,P(26,18.65f,-39.8f),P(1.3f,1.3f,1.3f));
             Deck(plan,CastleSection.Wall,32,18,-39,14,6);
-            MoldedRoute(plan,CastleSection.Wall,3.5f,TycoonDeckFinish.OpenDeck,2.1f,
+            MoldedRoute(plan,CastleSection.Wall,3.5f,TycoonDeckFinish.OpenDeck,
                 P(23,17.4f,-32),P(23,17.4f,-37),P(27,17.4f,-43),P(32,17.4f,-44),
                 P(37,17.4f,-43),P(41,17.4f,-37),P(41,17.4f,-32));
-            MoldedRoute(plan,CastleSection.Wall,3.3f,TycoonDeckFinish.OpenDeck,2.1f,
+            MoldedRoute(plan,CastleSection.Wall,3.3f,TycoonDeckFinish.OpenDeck,
                 P(21,16.8f,-32),P(21,16.8f,-37),P(25,16.8f,-43),P(32,16.8f,-45),
                 P(39,16.8f,-43),P(43,16.8f,-37),P(43,16.8f,-32));
 
@@ -269,34 +262,37 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         static void MoldedRoute(List<CastlePlacement> plan, CastleSection section, float width,
-            TycoonDeckFinish finish, float cornerRadius, params Vector3[] guide)
+            TycoonDeckFinish finish, params Vector3[] guide)
         {
-            var points=new List<Vector3>{guide[0]};
-            for(int i=1;i<guide.Length-1;i++)
+            // Corner cutting preserves both terminal tangents and gives neighboring spans
+            // a shared tangent through each bend without folding the inside bank back on itself.
+            var points=new List<Vector3>(guide);
+            for(int pass=0;pass<2;pass++)
             {
-                var pivot=guide[i];
-                var back=guide[i-1]-pivot;
-                var forward=guide[i+1]-pivot;
-                float trim=Mathf.Min(cornerRadius,Mathf.Min(back.magnitude,forward.magnitude)*.36f);
-                var a=pivot+back.normalized*trim;
-                var b=pivot+forward.normalized*trim;
-                if (finish==TycoonDeckFinish.DryChute)
+                var rounded=new List<Vector3>{points[0]};
+                for(int i=1;i<points.Count;i++)
                 {
-                    var top=(a+2*pivot+b)*.25f;
-                    var rotation=Quaternion.LookRotation(b-a,Vector3.up);
-                    var pad=top-rotation*Vector3.up*1.1f;
-                    Pier(plan,CastleSection.Keep,pad.x,pad.y-.36f,pad.z,2.6f);
-                    plan.Add(new CastlePlacement(pad,rotation,CastleSection.Keep,
-                        Mathf.FloorToInt(pad.y/2),P(2.6f,1,2.3f)));
+                    rounded.Add(Vector3.Lerp(points[i-1],points[i],.25f));
+                    rounded.Add(Vector3.Lerp(points[i-1],points[i],.75f));
                 }
-                points.Add(a);
-                for(int step=1;step<=3;step++)
+                rounded.Add(points[points.Count-1]);
+                points=rounded;
+            }
+            // Collinear subdivisions do not need separate breakaway bodies.
+            for(int i=points.Count-2;i>0;i--)
+                if(Vector3.Angle(points[i]-points[i-1],points[i+1]-points[i])<.75f) points.RemoveAt(i);
+            if(finish!=TycoonDeckFinish.OpenDeck)
+            {
+                float span=0;
+                for(int i=1;i<points.Count-1;i++)
                 {
-                    float t=step/3f;
-                    points.Add(Vector3.Lerp(Vector3.Lerp(a,pivot,t),Vector3.Lerp(pivot,b,t),t));
+                    var point=points[i];
+                    span+=Vector3.Distance(points[i-1],point);
+                    if(span<18 || (guide[guide.Length-1]-point).sqrMagnitude<16) continue;
+                    Pier(plan,section,point.x,point.y-.55f,point.z,2.4f);
+                    span=0;
                 }
             }
-            points.Add(guide[guide.Length-1]);
             var edges=new Vector3[points.Count];
             for(int i=0;i<points.Count;i++)
             {
