@@ -36,7 +36,7 @@ namespace DeadlyJenga.DevTools.Editor
         static int walkStage;
         static CastleBotBrain routeBot;
         static bool botArrived;
-        static readonly Vector3 BotGoal=new Vector3(-14,3.06f,-3.4f);
+        static readonly Vector3 BotGoal=new Vector3(-12.59f,3.06f,-3.68f);
         static void CheckClimb()
         {
             // Start a measured hand-span from an actual Stegosaurus leg face.

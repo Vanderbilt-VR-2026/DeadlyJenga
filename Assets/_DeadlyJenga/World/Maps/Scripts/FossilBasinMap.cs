@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class FossilBasinMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IRebuildable, IMapFootprint, ITraversalCollisionWorld
     {
         public Material stone;
-        const string Version="fossil-basin/7/";
+        const string Version="fossil-basin/8/";
         readonly List<Rigidbody> bodies=new();
         readonly List<FossilMember> decks=new();
         readonly List<Link> links=new();
@@ -33,7 +33,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var result=new Bounds(Center,Vector3.zero);
                 foreach(int x in new[]{-1,1}) foreach(int z in new[]{-1,1}) foreach(int y in new[]{-1,18})
-                    result.Encapsulate(transform.TransformPoint(new Vector3(21*x,y,15*z)));
+                    result.Encapsulate(transform.TransformPoint(new Vector3(22*x,y,15*z)));
                 return result;
             }
         }

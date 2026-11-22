@@ -102,9 +102,9 @@ namespace DeadlyJenga.CastlePrototype
             }
             return site;
         }
-        void Flight(Site low,Site high)
+        void Flight(Site low,Site high,Vector3? lowerShoe=null,Vector3? upperShoe=null)
         {
-            Vector3 a=low.Edge(high.top),b=high.Edge(low.top);
+            Vector3 a=lowerShoe??low.Edge(high.top),b=upperShoe??high.Edge(low.top);
             var dir=b-a;dir.y=0;
             int count=Mathf.Max(2,Mathf.CeilToInt(Mathf.Abs(b.y-a.y)/.22f));
             float tread=dir.magnitude/count;var facing=Quaternion.LookRotation(dir);
@@ -177,8 +177,8 @@ namespace DeadlyJenga.CastlePrototype
             // foundation and can lose its deck without taking the whole apron.
             var digFace=Landing("Stegosaur tail excavation",P(-13.5f,1,-8.35f),6,4.5f,.7f);
             var eastFooting=Landing("East ankle excavation",P(13.5f,1,-8.2f),6,4.5f,.65f);
-            var switchback=Landing("West switchback",P(-14,3,-3.4f),3.5f,2.7f);
-            var gallery=Landing("Plate gallery",P(-5.65f,5,-.3f),3.6f,2.8f);
+            var switchback=Landing("West switchback",P(-12.59f,3,-3.68f),3.5f,2.7f);
+            var gallery=Landing("Plate gallery",P(-5.65f,5,-1.33f),3.6f,2.8f);
             var saddle=Landing("Stegosaur forefoot",P(1,4.5f,-3),3.8f,3.4f);
             var lowEast=Landing("East switchback",P(7.8f,2.8f,-2.5f),3.3f,2.5f);
             var tail=Landing("Triceratops rear foot",P(14,4.9f,2),4,4);
@@ -187,19 +187,20 @@ namespace DeadlyJenga.CastlePrototype
             var bridge=Landing("Rex far ankle",P(-4,8.6f,6),4.6f,4);
             var summit=Landing("Rex rib balcony",P(-11,11.5f,11),5.2f,3);
             var overlook=Landing("Frill balcony",P(11,9.4f,8),4.8f,3);
-            var westReturn=Landing("Outer plate stair",P(-18,3.8f,-1.0f),3.5f,2.8f);
-            var eastReturn=Landing("Ankle escape landing",P(18.2f,2.6f,-4.4f),3.5f,2.6f);
+            var westReturn=Landing("Outer plate stair",P(-18,3.8f,-1.54f),3.5f,2.8f);
+            var eastReturn=Landing("Ankle escape landing",P(19.62f,2.6f,-4.11f),3.5f,2.6f);
             Flight(digFace,westReturn);Flight(westReturn,ankle);
             Flight(eastFooting,eastReturn);Flight(eastReturn,tail);
             Flight(west,switchback);Flight(switchback,gallery);Flight(gallery,ankle);
-            Flight(ankle,bridge);Flight(bridge,summit);Flight(west,saddle);
-            Flight(east,lowEast);Flight(lowEast,tail);Flight(tail,horn);Flight(horn,overlook);
+            Flight(ankle,bridge);Flight(bridge,summit);Flight(west,saddle,P(-5.4f,1,-6.52f),P(-.87f,4.5f,-3.82f));
+            Flight(east,lowEast);Flight(lowEast,tail);Flight(tail,horn);
+            Flight(horn,overlook,P(4.35f,7.3f,4.07f),P(8.62f,9.4f,8.8f));
             var turn=Landing("Central hairpin",P(.25f,5.9f,2.6f),2.1f,2.1f);
             Flight(saddle,turn);Flight(turn,horn);Flight(gallery,bridge);
-            var rexGallery=Landing("Rex rib gallery",P(-6.3f,10.75f,2.45f),4.6f,1.9f);
-            Landing("Triceratops rib gallery",P(10.16f,7.3f,-.05f),3.7f,2);
+            var rexGallery=Landing("Rex rib gallery",P(-4.97f,10.75f,2.45f),4.6f,1.9f);
+            Landing("Triceratops rib gallery",P(9.32f,7.3f,5.08f),3.7f,2);
             // The horn and rib decks meet along a level seam.
-            var upperTurn=Landing("Rex chest switchback",P(-12.15f,9.0f,-1.95f),2.35f,2);
+            var upperTurn=Landing("Rex chest switchback",P(-12.15f,9.0f,-1.32f),2.35f,2);
             Flight(ankle,upperTurn);Flight(upperTurn,rexGallery);
             Canopy(camp,P(1.94f,0,.48f));Canopy(summit,P(-.85f,0,.41f));Derrick(overlook);
             Skeleton(Dinosaur.Stegosaurus,P(-6,5.0f,-7.6f),P(.4f,7.6f,-3.9f),west,saddle);
