@@ -344,7 +344,14 @@ namespace DeadlyJenga.DevTools.Editor
                         continue;
                     }
                     string path = single ? job.output : string.IsNullOrEmpty(job.output) && view == "hero" ? lobby : Path.Combine(job.gallery, id + "-" + view + ".png");
-                    MapPictureRig.Place(camera, view, bounds, job.width / (float)job.height);
+                    if (view == "reference" && id == "epic-candy-sky-ring-city")
+                    {
+                        // Fitted to the nine roof centres in the original 1600 x 1100 map screenshot.
+                        camera.fieldOfView = 36.94f;
+                        camera.transform.SetPositionAndRotation(world.Center + new Vector3(240.93f,200.47f,-298.43f),
+                            Quaternion.Euler(24.87f,-38.81f,0));
+                    }
+                    else MapPictureRig.Place(camera, view, bounds, job.width / (float)job.height);
                     // "balloon": a close look at the first hot-air balloon, when the map has one (else the hero view).
                     var balloon = view == "balloon" ? GameObject.Find("Visual · hot-air balloon 1") : null;
                     if (balloon)
