@@ -12,10 +12,10 @@ namespace DeadlyJenga.CastlePrototype
         {
             var town = new ShrineTownLayout();
             // Street runs north from the gate to the five-bay worship hall.
-            town.Box(0, 0, 20, 37, 4, 22, CastleSection.Keep);
+            town.Box(0, 0, 20, 41, 4, 22, CastleSection.Keep);
             for (int i = 0; i < 8; i++)
                 town.Box(0, 0, 1.5f + i, 11, (i + 1) * .5f, 1, CastleSection.Keep);
-            town.Hall(0, 20, 32, 17, 4, 8, 2, 6);
+            town.Hall(0, 20, 36, 17, 4, 8, 2, 6);
             town.Hall(-32, 27, 10, 10, 0, 5, 3, 2, true);
             town.Hall(34, 16, 10, 10, 0, 3.1f, 4, 2);
             town.Hall(-30, -2, 19, 13, 0, 5.25f, 2, 3);
@@ -24,10 +24,10 @@ namespace DeadlyJenga.CastlePrototype
             town.Box(-18.5f, 6.85f, -2, 8, .5f, 1.6f, CastleSection.Keep);
             for (int side = -1; side <= 1; side += 2)
             {
-                town.Hall(side * 10, -29, 9, 8, 0, 3, 1, 2);
+                town.Hall(side * 10, -29, 9, 8, 0, 4.4f, 1, 2);
                 town.Hall(side * 11, -15, 10, 8, 0, 3, 2, 2, yaw: side * 20);
-                town.Hall(side * 32, -32, 12, 9, 0, 3, 1, 3, yaw: side * 42);
-                town.Hall(side * 32, -14, 9, 8, 0, 3, 1, 2, yaw: side * 65);
+                town.Hall(side * 30, -33, 12, 9, 0, 4.8f, 1, 3, yaw: side * 42);
+                town.Hall(side * 32, -17, 9, 8, 0, 4.6f, 1, 2, yaw: side * 65);
             }
             town.Hall(29, 0, 14, 10, 0, 4, 2, 3);
             town.Hall(10, -2, 8, 8, 0, 3, 1, 2);
@@ -67,6 +67,33 @@ namespace DeadlyJenga.CastlePrototype
             return new Mesh { name = "Octagonal shrine quay", vertices = vertices, triangles = triangles.ToArray() };
         }
 
+        public static void JoinTimberFrames(List<CastlePlacement> layout, List<Rigidbody> bodies)
+        {
+            // Each lintel follows the uprights in its row. Peg only the two outside posts.
+            // The frame still bears freely on its floor and the roof remains a loose body.
+            for (int i = 0; i < layout.Count; i++)
+            {
+                var beam = layout[i];
+                if (beam.Section != CastleSection.Wall || Mathf.Abs(beam.Size.y - .6f) > .01f) continue;
+                int last = i - 1, first = last;
+                while (first > 0 && layout[first-1].Section == CastleSection.Wall && layout[first-1].Size.x == 1) first--;
+                Join(bodies[i], bodies[first]);
+                if (last != first) Join(bodies[i], bodies[last]);
+            }
+        }
+
+        static void Join(Rigidbody beam, Rigidbody post)
+        {
+            var joint = beam.gameObject.AddComponent<FixedJoint>();
+            joint.anchor = beam.transform.InverseTransformPoint(post.transform.TransformPoint(Vector3.up * .5f));
+            joint.connectedBody = post;
+            joint.autoConfigureConnectedAnchor = false;
+            joint.connectedAnchor = Vector3.up * .5f;
+            joint.breakForce = (beam.mass + post.mass) * 9.81f * 8;
+            joint.breakTorque = joint.breakForce;
+            joint.enablePreprocessing = false;
+        }
+
         // Each pitched roof is one moving body. Both slopes travel with the deck beneath them.
         public static void AddRoofColliders(Rigidbody body, Vector3 size)
         {
@@ -83,7 +110,7 @@ namespace DeadlyJenga.CastlePrototype
                 slope.transform.localPosition = new Vector3(0, (size.y + rise) / 2, side * run / 2);
                 slope.transform.localRotation = Quaternion.Euler(side * Mathf.Atan(.44f) * Mathf.Rad2Deg, 0, 0);
                 slope.AddComponent<BoxCollider>().size = new Vector3(size.x, .22f, Mathf.Sqrt(run * run + rise * rise));
-                if (Mathf.Abs(size.y - 1.25f) < .01f)
+                if (Mathf.Abs(size.y - 1.25f) < .01f && size.x >= 15)
                 {
                     float span = size.x * .38f, peak = rise + span * .32f;
                     var gable = new GameObject("Front gable slope");
@@ -124,7 +151,7 @@ namespace DeadlyJenga.CastlePrototype
                     {
                         float center = x - span / 2 + (bay + .5f) * bayWidth;
                         bool sanctuary = main && bay == (columns - 2) / 2 && level == 0;
-                        Box(center, y, z + reach / 2, bayWidth - 1.05f, height,
+                        Box(center, y, sanctuary ? z - reach * .24f : z + reach / 2, bayWidth - 1.05f, height,
                             sanctuary ? .43f : .42f, CastleSection.Keep);
                         if (sanctuary) continue;
                         // A recessed shop front leaves a doorway beside the end post.

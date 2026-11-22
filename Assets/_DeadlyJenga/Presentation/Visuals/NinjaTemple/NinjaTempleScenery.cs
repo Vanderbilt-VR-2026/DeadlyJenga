@@ -88,17 +88,19 @@ namespace DeadlyJenga.NinjaArt
             // Clip each staggered course to the diagonal seawall.
             for (float z = -half; z < half; z += 1)
             {
-                float near = z + .035f, far = z + .965f;
+                float near = z + .009f, far = z + .991f;
                 float left = -Mathf.Min(half,half + cut - Mathf.Abs(near));
                 float farLeft = -Mathf.Min(half,half + cut - Mathf.Abs(far));
                 float offset = ((int)(z + half) % 2) * .9f;
                 for (float x = -half - offset; x < half; x += 1.8f)
                 {
-                    float a = Mathf.Clamp(x + .025f,left,-left), b = Mathf.Clamp(x + 1.775f,left,-left);
-                    float c = Mathf.Clamp(x + .025f,farLeft,-farLeft), d = Mathf.Clamp(x + 1.775f,farLeft,-farLeft);
+                    float a = Mathf.Clamp(x + .008f,left,-left), b = Mathf.Clamp(x + 1.792f,left,-left);
+                    float c = Mathf.Clamp(x + .008f,farLeft,-farLeft), d = Mathf.Clamp(x + 1.792f,farLeft,-farLeft);
                     if (a == b && c == d) continue;
                     float warm = Mathf.Clamp01(1 - Mathf.Abs(x) / 9) * .09f;
                     var tone = P.Vary(new Color(.53f + warm,.48f + warm * .4f,.48f),rng,.1f);
+                    float light = Mathf.Exp(-.13f*(Mathf.Pow(Mathf.Abs(x)-4.6f,2) + Mathf.Pow(Mathf.Repeat(z+38,12)-6,2)));
+                    tone = Color.Lerp(tone,new Color(.91f,.61f,.37f),.72f*light);
                     m.Quad(new Vector3(a,.025f,near),new Vector3(c,.025f,far),
                         new Vector3(d,.025f,far),new Vector3(b,.025f,near),tone);
                 }

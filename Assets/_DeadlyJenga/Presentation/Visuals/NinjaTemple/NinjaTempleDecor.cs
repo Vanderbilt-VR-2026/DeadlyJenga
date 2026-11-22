@@ -7,7 +7,7 @@ namespace DeadlyJenga.NinjaArt
     // Pagoda roofs, spires and lantern strings ride on the physical blocks, so they fall and break with them.
     public static class NinjaTempleDecor
     {
-        public enum Kind { None, Deck, Beam, Finial, TownDeck, TownRoof, BellRoof, Screen, Pillar, PagodaRoof, Terrace }
+        public enum Kind { None, Deck, Beam, Finial, TownDeck, TownRoof, BellRoof, Screen, Pillar, PagodaRoof, Terrace, Lintel }
         public const float Eave = 2.4f, Droop = 1.35f, Upturn = 1.3f, Thickness = .24f;
         static readonly Dictionary<string, Mesh> solid = new Dictionary<string, Mesh>(), glows = new Dictionary<string, Mesh>();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -15,6 +15,7 @@ namespace DeadlyJenga.NinjaArt
 
         public static Kind TownPart(Vector3 size)
         {
+            if (size.y > .59f && size.y < .61f && size.z == 1) return Kind.Lintel;
             if (size.x > 36 && Mathf.Abs(size.y - 4) < .01f) return Kind.Terrace;
             if (Mathf.Abs(size.y - 1.35f) < .01f) return Kind.PagodaRoof;
             if (Mathf.Abs(size.y - 1.25f) < .01f) return Kind.TownRoof;
@@ -47,6 +48,22 @@ namespace DeadlyJenga.NinjaArt
                     m.Box(Vector3.down * (size.y / 2 - .22f), new Vector3(1.18f,.44f,1.18f), Quaternion.identity, P.Stone);
                     m.Box(Vector3.up * (size.y / 2 - .20f), new Vector3(1.32f,.28f,1.25f), Quaternion.identity, P.Wood);
                     m.Box(Vector3.up * (size.y / 2 - .42f), new Vector3(1.04f,.10f,1.04f), Quaternion.identity, P.Gold);
+                }
+                else if (kind == Kind.Lintel)
+                {
+                    int bays = Mathf.Max(1,Mathf.RoundToInt(size.x / 6.5f));
+                    for (int i = 0; i <= bays; i++)
+                    {
+                        float x = (i/(float)bays - .5f) * (size.x-1);
+                        m.Box(new Vector3(x,.02f,0),new Vector3(1.4f,.22f,1.24f),Quaternion.identity,P.Wood);
+                        m.Box(new Vector3(x,.22f,0),new Vector3(1.85f,.18f,1.36f),Quaternion.identity,P.Vermilion);
+                        m.Box(new Vector3(x,0,-.66f),new Vector3(.32f,.36f,.1f),Quaternion.identity,P.Gold);
+                        if (i == bays || size.x < 13) continue;
+                        var lamp = new Vector3(x + (size.x-1)/(2*bays),-.91f,-.66f);
+                        m.Cylinder(lamp, lamp+Vector3.up*.72f,.035f,.035f,4,P.Wood,P.Wood);
+                        NinjaTempleScenery.Lantern(m,lamp,.59f,new Color(1,.64f,.27f));
+                        g.Halo(lamp,.85f,new Color(1,.45f,.17f,.65f),i);
+                    }
                 }
                 else if (kind == Kind.Terrace)
                 {
@@ -110,6 +127,11 @@ namespace DeadlyJenga.NinjaArt
                 float x = side * (size.x / 2 - .12f);
                 var a = new Vector3(x,top,-half); var b = new Vector3(x,top,half); var c = new Vector3(x,top+rise,0);
                 m.Tri(a,b,c,P.Wood,P.Wood,P.Wood); m.Tri(c,b,a,P.Wood,P.Wood,P.Wood);
+                for (int j = -3; j <= 3; j++)
+                {
+                    float h = rise * (1 - Mathf.Abs(j) / 4f);
+                    m.Box(new Vector3(x,top+h/2,half*j/4),new Vector3(.22f,h,.14f),Quaternion.identity,P.Vermilion);
+                }
                 m.Box(new Vector3(x,top+rise/2,0),new Vector3(.3f,rise,.22f),Quaternion.identity,P.Vermilion);
             }
             m.Box(Vector3.up * (top + rise), new Vector3(size.x + .25f, .35f, .42f), Quaternion.identity, P.Lacquer);
@@ -139,7 +161,7 @@ namespace DeadlyJenga.NinjaArt
                     m.Cylinder(Vector3.up * (baseY + .55f + i * .5f), Vector3.up * (baseY + .75f + i * .5f),
                         .73f - i * .045f,.55f - i * .045f,12,P.Gold,P.Gold);
             }
-            else
+            else if (size.x >= 15)
             {
                 float span = size.x * .38f, front = -half - .75f, peak = top + rise + span * .32f;
                 var left = new Vector3(-span,top,front); var right = new Vector3(span,top,front);
@@ -154,15 +176,26 @@ namespace DeadlyJenga.NinjaArt
                     m.Cylinder(corner,crest,.2f,.22f,6,P.Lacquer,P.Gold);
                 }
                 m.Cylinder(left,right,.18f,.18f,6,P.Gold,P.Gold);
+                for (int j = -4; j <= 4; j++)
+                {
+                    float x = span * j / 5f;
+                    float h = (peak - top) * (1 - Mathf.Abs(j)/5f);
+                    m.Box(new Vector3(x, top + h/2, front-.04f),new Vector3(.12f,h,.18f),Quaternion.identity,P.Wood);
+                }
+                for (int j = 1; j <= 3; j++)
+                    m.Box(new Vector3(0,top + (peak-top)*j/4,front-.1f),
+                        new Vector3(span*2*(1-j/4f),.15f,.21f),Quaternion.identity,P.Lacquer);
                 var medallion = new Vector3(0,top + (peak - top) * .4f,front);
                 m.Cylinder(medallion,medallion + Vector3.back * .24f,span * .1f,span * .1f,14,P.Gold,P.Gold);
             }
         }
 
-        static Vector3 RoofPoint(float half, float top, float u, float v)
+        static Vector3 RoofPoint(float half, float top, float u, float v, bool town = false)
         {
-            float o = half + Eave * v;
+            float eave = town ? Mathf.Clamp(half * .24f,.65f,1.7f) : Eave;
+            float o = half + eave * v;
             float y = top - Droop * Mathf.Sqrt(v) + Upturn * Mathf.Pow(Mathf.Abs(u), 6) * Mathf.Pow(v, 1.5f);
+            if (town) y = top - eave * .38f * v + eave * .24f * Mathf.Pow(Mathf.Abs(u),5) * v;
             return new Vector3(u * o, y, o);
         }
         static void Roof(NinjaMesh m, NinjaGlowMesh g, float half, float top, bool town = false)
@@ -174,7 +207,7 @@ namespace DeadlyJenga.NinjaArt
                 for (int iu = 0; iu < U; iu++) for (int iv = 0; iv < V; iv++)
                 {
                     float u0 = -1 + 2f * iu / U, u1 = -1 + 2f * (iu + 1) / U, v0 = iv / (float)V, v1 = (iv + 1f) / V;
-                    var a = rot * RoofPoint(half, top, u0, v0); var b = rot * RoofPoint(half, top, u0, v1); var c = rot * RoofPoint(half, top, u1, v1); var d = rot * RoofPoint(half, top, u1, v0);
+                    var a = rot * RoofPoint(half, top, u0, v0, town); var b = rot * RoofPoint(half, top, u0, v1, town); var c = rot * RoofPoint(half, top, u1, v1, town); var d = rot * RoofPoint(half, top, u1, v0, town);
                     var tone = town ? new Color(.27f,.29f,.36f) : iu % 2 == 0 ? P.Tile : P.TileDark; var lower = tone * (1 + .25f * v1); lower.a = 1;
                     m.Quad(a, b, c, d, tone, lower, lower, tone);
                     var drop = Vector3.down * Thickness * (iv == 0 ? .2f : 1);
@@ -184,7 +217,7 @@ namespace DeadlyJenga.NinjaArt
                 for (int iu = 0; iu < U; iu++)
                 {
                     float u0 = -1 + 2f * iu / U, u1 = -1 + 2f * (iu + 1) / U;
-                    var a = rot * RoofPoint(half, top, u0, 1); var b = rot * RoofPoint(half, top, u1, 1);
+                    var a = rot * RoofPoint(half, top, u0, 1, town); var b = rot * RoofPoint(half, top, u1, 1, town);
                     m.Quad(b + Vector3.down * Thickness, b + Vector3.up * .06f, a + Vector3.up * .06f, a + Vector3.down * Thickness, P.Vermilion);
                     m.Quad(a + Vector3.up * .06f, b + Vector3.up * .06f, b + Vector3.up * .06f + rot * Vector3.back * .12f, a + Vector3.up * .06f + rot * Vector3.back * .12f, P.Gold * .8f);
                 }
@@ -196,21 +229,22 @@ namespace DeadlyJenga.NinjaArt
                         float u = 2f * rib / ribs - 1;
                         for (int part = 0; part < 3; part++)
                         {
-                            var start = rot * RoofPoint(half,top,u,part / 3f) + Vector3.up * .05f;
-                            var end = rot * RoofPoint(half,top,u,(part + 1) / 3f) + Vector3.up * .05f;
+                            var start = rot * RoofPoint(half,top,u,part / 3f, town) + Vector3.up * .05f;
+                            var end = rot * RoofPoint(half,top,u,(part + 1) / 3f, town) + Vector3.up * .05f;
                             // One strip per tile seam, batched into the roof mesh.
                             var lip = rot * Vector3.right * .055f;
                             m.Quad(start-lip,end-lip,end+lip,start+lip,new Color(.37f,.39f,.46f));
                         }
                     }
                 }
-                var tip = rot * RoofPoint(half, top, 1, 1);
+                var tip = rot * RoofPoint(half, top, 1, 1, town);
                 for (int k = 0; k < 6; k++)
                 {
-                    var r0 = rot * RoofPoint(half, top, 1, k / 6f); var r1 = rot * RoofPoint(half, top, 1, (k + 1) / 6f);
+                    var r0 = rot * RoofPoint(half, top, 1, k / 6f, town); var r1 = rot * RoofPoint(half, top, 1, (k + 1) / 6f, town);
                     m.Cylinder(r0 + Vector3.up * .04f, r1 + Vector3.up * .04f, .13f, .13f, 5, P.Lacquer, P.Lacquer);
                 }
                 m.Blob(tip + Vector3.up * .12f, new Vector3(.22f, .3f, .22f), 2, 6, P.Gold, P.Gold * .6f, side, .2f);
+                if (town) continue;
                 var lantern = tip + Vector3.down * 1.35f;
                 m.Cylinder(tip, lantern + Vector3.up * .3f, .015f, .015f, 3, P.Lacquer, P.Lacquer);
                 NinjaTempleScenery.Lantern(m, lantern, .42f, P.Vermilion);
