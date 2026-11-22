@@ -79,9 +79,16 @@ namespace DeadlyJenga.CastlePrototype.Editor
             SessionState.SetBool("TreeFalconSummit", true);
         }
 
+        public static void CapturePremiereStudios()
+        {
+            Begin(false);
+            SessionState.SetBool("TreePremiereStudios", true);
+        }
+
         static void Begin(bool references)
         {
             SessionState.SetBool("TreeFalconSummit", false);
+            SessionState.SetBool("TreePremiereStudios", false);
             if (!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Run this check in a checked batch editor.");
             if (!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))
@@ -159,6 +166,24 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         renderReady = now + 1.7;
                     if (now < renderReady)
                         return;
+                    if (SessionState.GetBool("TreePremiereStudios", false))
+                    {
+                        var toy = map.GetComponentsInChildren<UnderneathTreeToy>().Single(t => t.name.StartsWith("Toy Doll Mansion "));
+                        var pieces = toy.Pieces();
+                        Require(pieces.Count == 4 && pieces.All(p => p.name.Contains("Premiere Studios") &&
+                            p.TryGetComponent<Rigidbody>(out var body) && body.isKinematic), "four intact Premiere Studios sections on Mansion Deck");
+                        var shapes = toy.GetComponentsInChildren<MeshCollider>();
+                        var floor = shapes.Single(c => c.name == "Hull Toy plinth").bounds.center;
+                        var stage = shapes.Single(c => c.name == "Hull Stage deck").bounds.center;
+                        var front = Vector3.ProjectOnPlane(floor - stage, Vector3.up).normalized;
+                        var right = Vector3.Cross(front, Vector3.up);
+                        var aim = floor + Vector3.up * 11f;
+                        Shot(player.ViewCamera, "premiere-mansion", aim + front * 45f + right * 5f + Vector3.up * 8f, aim, 43f, true);
+                        Shot(player.ViewCamera, "premiere-soundstage", floor + front * 6f + Vector3.up * 7.6f,
+                            stage + Vector3.up * 3.7f, 63f, true);
+                        Finish(true);
+                        return;
+                    }
                     if (SessionState.GetBool("TreeFalconSummit", false))
                     {
                         var toy = map.GetComponentsInChildren<UnderneathTreeToy>().Single(t => t.name.StartsWith("Toy Superhero Base "));

@@ -253,108 +253,11 @@ sets = {}
 
 # ======================= Doll mansion =======================
 CELL = 15
-def mansion_room(level, i, j, cx, cy, z):
-    kind = [["living", "kitchen", "dining"], ["hall", "music", "library"]][j][i] if level == 0 else \
-           [["bedroom", "bathroom", "nursery"], ["bedroom2", "dressing", "playroom"]][j][i] if level == 1 else \
-           [["attic", "studio", "attic2"], ["sunroom", "closet", "games"]][j][i]
-    back = cy + CELL / 2 - 3.2     # against the back wall of the room
-    if kind in ("living", "sunroom"):
-        sofa = part("mansion sofa", "box", (cx, back, z + .9), (7, 2.6, 1.8), "Toy Pink")
-        detail(sofa, "sofa back", "box", (cx, back + 1.1, z + 2.2), (7, .6, 1.4), "Toy Pink")
-        for s in (-1, 1):
-            detail(sofa, "sofa arm", "box", (cx + s * 3.3, back, z + 1.9), (.7, 2.6, .9), "Toy Pink")
-            detail(sofa, "cushion", "box", (cx + s * 1.6, back - .1, z + 2.0), (2.6, 1.6, .4), "Toy White")
-        rug(sofa, cx, cy - 1, z, 8, 6, "Toy Purple")
-        detail(sofa, "coffee table", "box", (cx, cy - 1, z + .6), (3.5, 2, .4), "Toy White")
-        detail(sofa, "tv", "box", (cx, cy - CELL / 2 + 2.5, z + 2.4), (4, .3, 2.4), "Toy Screen Glow")
-    elif kind == "kitchen":
-        counter = part("mansion counter", "box", (cx, back + .4, z + 1.2), (9, 2.2, 2.4), "Toy White")
-        detail(counter, "counter top", "box", (cx, back + .4, z + 2.45), (9.2, 2.4, .2), "Toy Pink")
-        detail(counter, "stove", "box", (cx - 2.5, back + .4, z + 2.6), (2, 1.6, .1), "Toy Black")
-        detail(counter, "fridge", "box", (cx + 5.6, back + .2, z + 2.0), (2.2, 2.4, 4.0), "Toy White")
-        detail(counter, "fridge handle", "box", (cx + 5.0, back - 1.05, z + 2.4), (.2, .1, 1.4), "Toy Silver")
-    elif kind == "dining":
-        table = part("mansion dining table", "box", (cx, cy, z + 1.0), (6, 3.5, 2.0), "Toy Wood")
-        for s in (-1, 1):
-            for k in (-1.8, 0, 1.8):
-                detail(table, "chair", "box", (cx + k, cy + s * 2.5, z + .8), (1.2, 1.2, 1.6), "Toy Pink")
-        detail(table, "cake", "cyl", (cx, cy, z + 2.4), (1.4, 1.4, .8), "Toy White")
-    elif kind in ("bedroom", "bedroom2"):
-        bed = part("mansion bed", "box", (cx, back - .6, z + .8), (5, 6, 1.6), "Toy White")
-        detail(bed, "headboard", "box", (cx, back + 2.5, z + 2.2), (5.4, .5, 2.8), "Toy Pink")
-        detail(bed, "blanket", "box", (cx, back - 1.4, z + 1.65), (5.1, 4.2, .2), "Toy Purple" if level == 1 else "Toy Pink")
-        detail(bed, "pillow", "box", (cx, back + 1.4, z + 1.8), (3.6, 1.2, .5), "Toy White")
-        detail(bed, "wardrobe", "box", (cx + 5.4, back + .8, z + 2.6), (2.4, 2, 5.0 - .2), "Toy White")
-    elif kind == "bathroom":
-        tub = part("mansion bathtub", "box", (cx, back, z + .9), (6, 3, 1.8), "Toy White")
-        detail(tub, "water", "box", (cx, back, z + 1.82), (5.4, 2.4, .05), "Toy Glass")
-        detail(tub, "mirror", "box", (cx + 4, back + 2.6, z + 3), (2.2, .2, 2.4), "Toy Silver")
-    elif kind in ("nursery", "playroom", "games"):
-        toybox = part("mansion toy box", "box", (cx, back, z + 1.0), (4, 2.6, 2.0), "Toy Yellow")
-        detail(toybox, "lid", "box", (cx, back, z + 2.1), (4.2, 2.8, .2), "Toy Red")
-        for k, c in enumerate(["Toy Red", "Toy Blue", "Toy Green", "Toy Yellow"]):
-            detail(toybox, "block", "box", (cx - 3 + k * 1.6, cy - 1, z + .6), (1.2, 1.2, 1.2), c, yaw=k * 17)
-        rug(toybox, cx, cy - 1, z, 7, 6, "Toy Teal")
-    elif kind in ("music",):
-        piano = part("mansion piano", "box", (cx, back, z + 1.6), (6, 2.6, 3.2), "Toy Black")
-        detail(piano, "keys", "box", (cx, back - 1.5, z + 2.1), (5.4, .6, .2), "Toy White")
-        detail(piano, "stool", "cyl", (cx, back - 3.2, z + .7), (1.4, 1.4, 1.4), "Toy Pink")
-    elif kind in ("library", "studio", "dressing", "closet"):
-        shelf = part("mansion shelf", "box", (cx, back + 1, z + 2.2), (8, 1.4, 4.4), "Toy Wood")
-        for r in range(3):
-            for k in range(8):
-                c = ["Toy Red", "Toy Blue", "Toy Green", "Toy Yellow", "Toy Purple"][(k + r) % 5]
-                detail(shelf, "book" if kind == "library" else "dress", "box",
-                       (cx - 3.4 + k * .95, back + .25, z + 1.0 + r * 1.4), (.6, .5, 1.0), c)
-    elif kind in ("attic", "attic2"):
-        chest = part("mansion chest", "box", (cx, back, z + .9), (4, 2.4, 1.8), "Toy Wood")
-        detail(chest, "chest band", "box", (cx, back - 1.25, z + .9), (4.1, .1, .3), "Toy Gold")
-        rug(chest, cx, cy, z, 6, 5, "Toy Cream")
-    elif kind == "hall":
-        pass
-
-top, (x0, y0, W, D) = grid_building("mansion", 0, 0, 3, 2, CELL, 3, "Toy Pink", "Toy Cream", "Toy White",
-    back_doors=(1,), side_doors=((0, 1),), stair_cell=(0, 1), furnish=mansion_room)
-ridge = top + (D / 2) * math.tan(math.radians(28))
-# The roof is one solid gable-shaped part sitting flat on the top floor, so it cannot slide off;
-# the pink slopes, tiles and ridge are decoration on it.
-mesh = bpy.data.meshes.new("mansion roof")
-bm = bmesh.new()
-hx, hy, rh = (W + 2) / 2, D / 2 + .5, (D / 2 + .5) * math.tan(math.radians(28))
-ends = []
-for x in (-hx, hx):
-    ends.append([bm.verts.new((x, -hy, 0)), bm.verts.new((x, hy, 0)), bm.verts.new((x, 0, rh))])
-bm.faces.new(ends[0][::-1]); bm.faces.new(ends[1])
-for i in range(3):
-    j = (i + 1) % 3
-    bm.faces.new((ends[0][i], ends[0][j], ends[1][j], ends[1][i]))
-bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-bm.to_mesh(mesh); bm.free()
-roof_block = bpy.data.objects.new("Piece %03d mansion roof" % (len(pieces) + 1), mesh)
-bpy.context.collection.objects.link(roof_block)
-roof_block.location = (0, 0, top)
-roof_block.data.materials.append(paint("Toy Pink"))
-pieces.append(roof_block)
-ridge = top + rh
-for s in (-1, 1):
-    for k in range(4):   # roof tile stripes
-        t = (k + .5) / 4
-        detail(roof_block, "roof stripe", "box", (0, s * hy * t, top + hy * (1 - t) * math.tan(math.radians(28)) + .08),
-               (W + 2.1, .4, .1), "Toy White", tilt=(s * -28, 0))
-detail(roof_block, "roof ridge", "box", (0, 0, ridge), (W + 2.4, 1.0, .6), "Toy White")
-for x in (-W / 3, W / 3):
-    ch = part("mansion chimney", "box", (x, D / 4, top + 4.2), (2.4, 2.4, 8.4), "Toy White")
-    detail(ch, "chimney cap", "box", (x, D / 4, top + 8.5), (2.9, 2.9, .4), "Toy Pink")
-# Front porch: columns under the open front of the first floor.
-for x in (-W / 2 + 1, W / 2 - 1):
-    col = part("mansion porch column", "cyl", (x, y0 + 1, SLAB + GAP + STOREY / 2), (1.2, 1.2, STOREY), "Toy White")
-    detail(col, "column cap", "box", (x, y0 + 1, SLAB + STOREY - .1), (1.6, 1.6, .3), "Toy Gold")
-sets["Toy Doll Mansion"] = export("Toy Doll Mansion")
-
-# ======================= Superhero base =======================
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from premiere_export import export_mansion
 from falcon_export import export_falcon
+sets["Toy Doll Mansion"] = export_mansion(out)
 sets["Toy Superhero Base"] = export_falcon(out)
 
 # ======================= Wizard tower =======================
