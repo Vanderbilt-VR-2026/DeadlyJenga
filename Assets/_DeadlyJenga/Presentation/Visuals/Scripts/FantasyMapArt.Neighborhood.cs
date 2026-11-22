@@ -5,7 +5,7 @@ namespace DeadlyJenga.Presentation
     public sealed partial class FantasyMapArt
     {
         // Each facade uses its own floor as its frame, including after a tower collapses.
-        void Neighborhood(ArtMesh mesh, Transform visual, Rigidbody body, Bounds bounds, string site, string purpose, bool top)
+        void Neighborhood(ArtMesh mesh, Transform visual, Rigidbody body, Bounds bounds, string site, string purpose)
         {
             var frame = body.transform;
             var front = FaceToward(frame, frame.TransformPoint(bounds.center), false);
@@ -58,12 +58,12 @@ namespace DeadlyJenga.Presentation
                 Box(0,3.04f,2.18f,9,.55f,.22f,stripe);
                 for(int side=-1;side<=1;side+=2)
                     Box(side*4.2f,1.55f,2,.18f,3.1f,.18f,cream);
-                Box(0,2,-4.8f,6,2.7f,.3f,wood);
+                Box(-5.5f,2,-5.3f,6,2.7f,.3f,wood);
                 for(int shelf=0;shelf<3;shelf++)
                 {
-                    Box(0,.7f+shelf*.82f,-4.4f,6.1f,.15f,.6f,cream);
+                    Box(-5.5f,.7f+shelf*.82f,-4.9f,6.1f,.15f,.6f,cream);
                     for(int jar=0;jar<7;jar++)
-                        Box((jar-3)*.78f,1+shelf*.82f,-4.4f,.43f,.48f,.43f,(jar+shelf)%2==0?lime:Gold);
+                        Box(-5.5f+(jar-3)*.78f,1+shelf*.82f,-4.9f,.43f,.48f,.43f,(jar+shelf)%2==0?lime:Gold);
                 }
                 if(grocery)
                 {
@@ -89,6 +89,21 @@ namespace DeadlyJenga.Presentation
                         float angle=hour*Mathf.PI/6;
                         Ball(2.87f*Mathf.Sin(angle),y+2.87f*Mathf.Cos(angle),1.18f,.15f,wood);
                     }
+                }
+                if(ground && (site=="Sugar Market hall" || site=="Sugar Market east annex"))
+                {
+                    // A projecting school portico with a readable roofline from both upper bridges and the street.
+                    foreach(int side in new[]{-1,1})
+                    {
+                        Box(side*3.65f,1.65f,2.3f,.46f,3.3f,.46f,cream);
+                        Box(side*3.65f,.23f,2.3f,.82f,.46f,.82f,wood);
+                        Box(side*3.65f,3.24f,2.3f,.8f,.4f,.8f,cream);
+                        mesh.Box(P(side*2,3.95f,1.2f),new Vector3(4.35f,.28f,3.6f),
+                            rotation*Quaternion.Euler(0,0,-side*14),0,new Color(.76f,.2f,.37f));
+                        Bar(P(0,4.45f,3),P(side*4.15f,3.42f,3),.25f,cream);
+                    }
+                    Box(0,3.45f,2.92f,8.6f,.36f,.36f,cream);
+                    Box(0,3.55f,1.05f,1.65f,.15f,.55f,Gold);
                 }
                 if(ground && site=="Sugar Market hall")
                 {
@@ -166,6 +181,20 @@ namespace DeadlyJenga.Presentation
                     {
                         float x=(2*(bay+.5f)/bays-1)*(halfSpan-1);
                         if(bay==bays/2 && bays>2) continue;
+                        if(purpose.Contains("support spine") && halfSpan>25 && bay%3==1)
+                        {
+                            // Inset the door behind the deck edge. Players can occupy the gallery.
+                            Trim(x,y,-2.5f,5.6f,3.2f,.24f,wood);
+                            Trim(x,y,-2.34f,4.95f,2.87f,.12f,new Color(.85f,.51f,.25f));
+                            Trim(x,y+.55f,-2.23f,3.9f,1.06f,.12f,glass);
+                            Trim(x,y,-2.13f,.16f,2.88f,.12f,cream);
+                            Trim(x,y-1.36f,.08f,5.9f,.15f,.2f,cream);
+                            Trim(x,y-.79f,.08f,6,.19f,.23f,cream);
+                            for(int post=-3;post<=3;post++)
+                                Trim(x+post*.94f,y-1.12f,.08f,.12f,.84f,.12f,cream);
+                            Trim(x+2.44f,y+.6f,-2.04f,.52f,.7f,.48f,Gold);
+                            continue;
+                        }
                         Trim(x,y,.06f,4.6f,2.85f,.22f,cream);
                         Trim(x,y,.21f,4.16f,2.48f,.14f,glass);
                         Trim(x,y,.31f,.15f,2.5f,.1f,cream);
@@ -193,6 +222,20 @@ namespace DeadlyJenga.Presentation
                     if(ramp.size.z<5 || ramp.size.y<2) continue;
                     int steps=Mathf.CeilToInt(ramp.size.y/.35f);
                     var q=Quaternion.Inverse(visual.rotation)*flight.transform.rotation;
+                    Vector3 Edge(float x,float t,float height)
+                    {
+                        var point=new Vector3(x,Mathf.Lerp(ramp.min.y,ramp.max.y,t)+height,
+                            Mathf.Lerp(ramp.min.z,ramp.max.z,t));
+                        return visual.InverseTransformPoint(flight.transform.TransformPoint(point));
+                    }
+                    for(int side=-1;side<=1;side+=2)
+                    {
+                        float x=ramp.center.x+side*ramp.extents.x;
+                        Bar(Edge(x,0,.03f),Edge(x,1,.03f),.46f,Gold);
+                        Bar(Edge(x,0,1.02f),Edge(x,1,1.02f),.17f,Gold);
+                        for(int post=0;post<=4;post++)
+                            Bar(Edge(x,post*.25f,0),Edge(x,post*.25f,1.03f),.13f,wood);
+                    }
                     for(int step=0;step<steps;step++)
                     {
                         float t=(step+.5f)/steps;
@@ -226,6 +269,11 @@ namespace DeadlyJenga.Presentation
                     mesh.Cylinder(P(at,0,.45f),rotation,.68f,roof,0,water,12);
                     mesh.Cylinder(P(at,0,.45f),rotation,.83f,.36f,0,enamel,12);
                     mesh.Cylinder(P(at,roof-.35f,.45f),rotation,.83f,.35f,0,enamel,12);
+                    // Repeat the gauge on the opposite face to serve both the basin and the exterior walk.
+                    mesh.Cylinder(P(at,0,-depth*2-.45f),rotation,.8f,roof,0,water,14);
+                    mesh.Cylinder(P(at,roof-.44f,-depth*2-.45f),rotation,.97f,.44f,0,enamel,14);
+                    for(int tick=1;tick<=3;tick++)
+                        Box(at+.38f,tick*.92f,-depth*2-1.18f,.53f,.11f,.12f,cream);
                 }
                 if(ground)
                 {
@@ -254,6 +302,8 @@ namespace DeadlyJenga.Presentation
                         Bar(a,d,.38f,enamel);
                     }
                     mesh.Cylinder(center,rotation,2.8f,.18f,0,water,20);
+                    mesh.Sphere(P(-.8f,roof+11.4f,centerZ+1.3f)+offset,new Vector3(4.5f,2.6f,3.35f),0,Sugar,10,16);
+                    mesh.Sphere(P(2.2f,roof+10,centerZ-1.85f)+offset,new Vector3(3.3f,2.35f,3.15f),0,Sugar,10,16);
                     for(int puff=-2;puff<=2;puff++)
                     {
                         float y=roof+9.5f+.9f*(2-Mathf.Abs(puff));

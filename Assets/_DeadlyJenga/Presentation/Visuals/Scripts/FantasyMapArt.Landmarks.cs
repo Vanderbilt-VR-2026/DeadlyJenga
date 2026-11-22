@@ -69,7 +69,7 @@ namespace DeadlyJenga.Presentation
             var frame=body.transform;
             var bounds=PieceBounds(pieces);
             bool roofOpen=RoofHole(pieces,out var hole,out var holeSize)&&!SomethingAbove(frame,body,hole,holeSize);
-            Neighborhood(m,visual,body,bounds,site,purpose,roofOpen);
+            Neighborhood(m,visual,body,bounds,site,purpose);
             return site.StartsWith("Grape") || site.StartsWith("Downtown") || roofOpen || purpose.Contains(" floor ") || purpose=="Escape spine" || purpose=="Independent bookfall support spine";
         }
 

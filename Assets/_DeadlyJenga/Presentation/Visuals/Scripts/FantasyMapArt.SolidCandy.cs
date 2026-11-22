@@ -44,8 +44,8 @@ namespace DeadlyJenga.Presentation
             if(solidMaterials.TryGetValue(key,out var material)&&material)return material;
             material=new Material(cityCandyMaterial){name="Candy planks "+key};
             material.SetFloat("_Pattern",5);material.SetColor("_BaseColor",color);
-            material.SetColor("_Accent",Color.Lerp(color,new Color(.25f,.1f,.2f),.62f));
-            material.SetFloat("_Smoothness",.55f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
+            material.SetColor("_Accent",Color.Lerp(color,new Color(.3f,.19f,.23f),.39f));
+            material.SetFloat("_Smoothness",.42f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
             solidMaterials[key]=material;return material;
         }
 
