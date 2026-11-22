@@ -86,8 +86,24 @@ namespace DeadlyJenga.Presentation
                         for(int i=-1;i<=1;i++) Ball(x+i*.8f,y-.76f,.42f,.35f,lime);
                     }
             }
-            else if(site.StartsWith("Downtown") && purpose=="Escape spine" && top)
+            else if(site.StartsWith("Downtown") && purpose=="Escape spine")
             {
+                // Dress the existing walkable inclined colliders with treads that follow their actual rise.
+                foreach(var flight in body.GetComponentsInChildren<MeshCollider>())
+                {
+                    if(!flight.sharedMesh) continue;
+                    var ramp=flight.sharedMesh.bounds;
+                    if(ramp.size.z<5 || ramp.size.y<2) continue;
+                    int steps=Mathf.CeilToInt(ramp.size.y/.35f);
+                    var q=Quaternion.Inverse(visual.rotation)*flight.transform.rotation;
+                    for(int step=0;step<steps;step++)
+                    {
+                        float t=(step+.5f)/steps;
+                        var at=new Vector3(ramp.center.x,Mathf.Lerp(ramp.min.y,ramp.max.y,t),Mathf.Lerp(ramp.min.z,ramp.max.z,t));
+                        mesh.Box(visual.InverseTransformPoint(flight.transform.TransformPoint(at)),new Vector3(ramp.size.x,.15f,ramp.size.z/steps),q,0,Gold);
+                    }
+                }
+                if(!top) return;
                 mesh.Cylinder(P(width*.68f,roof,-1.6f),rotation,.85f,.65f,0,cream,12);
                 mesh.Cylinder(P(width*.68f,roof+.65f,-1.6f),rotation,.14f,3.9f,0,wood,8);
                 Ball(width*.68f,roof+4.5f,-1.6f,.35f,Gold);
