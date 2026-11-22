@@ -32,7 +32,7 @@ namespace DeadlyJenga.CastlePrototype
                     {
                         case "Escape spine": floors = 3; height = 5; break; // built 1.25 times taller
                         case "Two-floor dropping cassette": floors = 2; height = 4; break;
-                        case "Independent bookfall support spine": if (m.position.y > 20) continue; floors = 3; height = 4; break;
+                        case "Independent bookfall support spine": floors = 3; height = 4; break;
                         default: continue;
                     }
                     // The first four shapes are the corner posts, 2.5 m square, set in 1.25 m from each edge.
@@ -84,6 +84,11 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 if (floor.purpose == "Independent bookfall support spine")
                 {
+                    Part(floor,new Vector3(-4.4f,baseY+.39f,21),new Vector3(3.10f,.78f,4.84f),3);
+                    Part(floor,new Vector3(0,baseY+.28f,7.1f),new Vector3(3.86f,.56f,1.42f),3);
+                    Part(floor,new Vector3(5.70f,baseY+1.26f,14),new Vector3(.15f,2.48f,3.66f),3);
+                    // A bedroom wall stops short of the stair and leaves a passage on either side.
+                    Part(floor,new Vector3(-4.4f,baseY+1.62f,23.55f),new Vector3(8.8f,3.24f,.34f),0);
                     // Short room dividers and window seats leave the central passage and stairwell clear.
                     foreach (int side in new[]{-1, 1})
                     foreach (int end in new[]{-1, 1})
@@ -97,6 +102,60 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 if (doors && districtName == "Canyon south-east tower")
                     Part(floor, new Vector3(2.1f,.3f,-2.5f), new Vector3(13.6f,.6f,9.6f),1);
+                bool classrooms=districtName.StartsWith("Sugar Market");
+                bool shops=districtName.StartsWith("Cloud Harbor");
+                if(classrooms || shops)
+                {
+                    // The cassette stair switches sides in the rear half. Keep a central,
+                    // furniture-free passage from the street entrance to that stair.
+                    foreach(int side in new[]{-1,1})
+                    {
+                        var x=side*w*.26f;
+                        if(classrooms)
+                        {
+                            foreach(float z in new[]{1.4f,depth*.27f})
+                            {
+                                Part(floor,new Vector3(x,.87f,z),new Vector3(2.8f,.18f,1.18f),3);
+                                foreach(int leg in new[]{-1,1})
+                                    Part(floor,new Vector3(x+leg*1.1f,.39f,z),new Vector3(.17f,.78f,.92f),3);
+                            }
+                        }
+                        else
+                        {
+                            // A low shop island gives cover without closing the view down the aisle.
+                            Part(floor,new Vector3(x,.61f,1.4f),new Vector3(3.4f,1.22f,1.54f),3);
+                        }
+                    }
+                    for(int wall=0;wall<4;wall++)
+                    {
+                        bool alongX=wall<2;
+                        float sign=wall%2==0?-1:1;
+                        float length=(alongX?w:depth)-4.8f;
+                        float offset=(alongX?depth:w)*.5f-.68f;
+                        // Two sash openings flank a full-height entrance. Width and head
+                        // height are cut out of the collider as well as the visible wall.
+                        for(int side=-1;side<=1;side+=2)
+                        {
+                            float start=2.35f, end=length*.5f;
+                            float middle=side*(start+end)*.5f;
+                            void Panel(float x,float y,float width,float h)
+                            {
+                                var pos=Local(alongX,sign,offset,baseY+y,x);
+                                var size=alongX?new Vector3(width,h,.46f):new Vector3(.46f,h,width);
+                                var world=floor.position+floor.rotation*pos;
+                                foreach(var route in keepClear)
+                                    if(Overlaps(world,size*.5f,floor.rotation,route.c,route.h,route.q)) return;
+                                Part(floor,pos,size,0);
+                            }
+                            Panel(middle,.46f,end-start,.92f);
+                            Panel(middle,3.07f,end-start,.42f);
+                            Panel(side*(end-.37f),1.89f,.74f,1.94f);
+                            Panel(side*(start+.29f),1.89f,.58f,1.94f);
+                        }
+                    }
+                    return;
+                }
+                if (floor.purpose=="Independent bookfall support spine" && floor.position.y>20) return;
                 int rows = Mathf.FloorToInt((height - .7f) / PlankRow); // up to the underside of the deck above
                 for (int wall = 0; wall < 4; wall++)
                 {
@@ -104,10 +163,6 @@ namespace DeadlyJenga.CastlePrototype
                     float length = (alongX ? w : depth) - 4.8f; // between the corner posts
                     float offset = ((alongX ? depth : w) * .5f) - .6f - PlankThickness * .5f;
                     // The neighborhood's shops and plant galleries open onto the ring road.
-                    Vector3 inward = Quaternion.Inverse(floor.rotation) * -floor.position;
-                    bool facesStreet = Mathf.Abs(inward.z) >= Mathf.Abs(inward.x)
-                        ? alongX && sign == Mathf.Sign(inward.z)
-                        : !alongX && sign == Mathf.Sign(inward.x);
                     var siteName = plan.sites[floor.district].name;
                     // Keep the two substations open around their existing posts and landings.
                     if (floor.purpose == "Escape spine" || floor.purpose == "Two-floor dropping cassette" ||
@@ -115,13 +170,6 @@ namespace DeadlyJenga.CastlePrototype
                         continue;
                     // Low sills define rooms while leaving the long apartment galleries and classrooms open.
                     bool apartment = floor.purpose == "Independent bookfall support spine";
-                    if (siteName.StartsWith("Cloud Harbor") &&
-                        (doors || floor.purpose.EndsWith(" floor 2")) && (facesStreet || !alongX))
-                        continue;
-                    if (siteName.StartsWith("Sugar Market") && (facesStreet || !alongX))
-                        continue;
-                    if (siteName.StartsWith("Cloud Harbor") && doors)
-                        continue;
                     for (int row = 0; row < rows; row++)
                     {
                         float y = baseY + .03f + PlankRow * (row + .5f);

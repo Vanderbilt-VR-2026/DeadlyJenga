@@ -61,10 +61,11 @@ namespace DeadlyJenga.Presentation
                         if(renderer.name=="Fantasy decorations")continue;
                         if(!originals.ContainsKey(renderer))originals[renderer]=renderer.sharedMaterials;
                         var replacement=new Material[renderer.sharedMaterials.Length];
-                        var cityGlass=City?(solidCandy?SolidMaterial(body):CityGlass(body)):null;
-                        for(int i=0;i<replacement.Length;i++)replacement[i]=cityGlass?cityGlass:blockMaterials[i%blockMaterials.Length];
+                        var cityGlass=City && !solidCandy ? CityGlass(body) : null;
+                        for(int i=0;i<replacement.Length;i++)replacement[i]=City && solidCandy ? SolidMaterial(body,i) : cityGlass?cityGlass:blockMaterials[i%blockMaterials.Length];
                         renderer.sharedMaterials=replacement;
-                        SoftenEdges(renderer,body);
+                        // Structural members already carry beveled edges and their authored finish slots.
+                        if(!City || !solidCandy) SoftenEdges(renderer,body);
                     }
                     if(City)DecorateCity(body,visual);
                     else if(theme!=FantasyMapTheme.CandyGlass)Decorate(body,visual,count++);
