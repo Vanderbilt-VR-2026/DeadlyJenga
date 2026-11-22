@@ -568,6 +568,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunDirectedExample() => RunDirectedExampleRecipe("castle-contact");
         public static void RunQuietExample() => RunDirectedExampleRecipe("quiet-castle");
+        public static void RunTsunamiCrossfire() => RunDirectedExampleRecipe("tsunami-crossfire");
 
         static void RunDirectedExampleRecipe(string example)
         {
@@ -1056,6 +1057,9 @@ namespace DeadlyJenga.DevTools.Editor
                     File.AppendAllText(Path.Combine(job.folder, "take.txt"), "Motion source: " + recording + "\n");
                 }
                 else audio = new TheatreAudioCapture(Path.Combine(job.folder, "take.wav"));
+                Dictionary<Rigidbody, float> waveStarts = null;
+                TsunamiHazard observedWave = null;
+                int peakWaveTargets = 0;
                 for (int frame = 0; frame < end; frame++)
                 {
                     if (existingMatch && !ReferenceEquals(Services.World, world))
@@ -1109,9 +1113,17 @@ namespace DeadlyJenga.DevTools.Editor
                                         body.isKinematic = false;
                                         body.AddTorque(new Vector3(2, 0, -3), ForceMode.VelocityChange);
                                     }
-                                Cue(cues[cueIndex++], session, actors, world, stage, time);
+                                var cue = cues[cueIndex++];
+                                Cue(cue, session, actors, world, stage, time);
+                                if (cue.action == "tsunami")
+                                {
+                                    observedWave = session.GetComponentsInChildren<TsunamiHazard>().LastOrDefault(w => w.Active);
+                                    waveStarts = world.Blocks.Where(b => b && b.gameObject.activeInHierarchy).Distinct()
+                                        .ToDictionary(b => b, b => b.position.y);
+                                }
                             }
                         }
+                        if (observedWave) peakWaveTargets = Mathf.Max(peakWaveTargets, observedWave.LastTargetCount);
                         tape.WriteFrame();
                     }
                     for (int i = 0; i < plan.shots.Length; i++)
@@ -1132,6 +1144,9 @@ namespace DeadlyJenga.DevTools.Editor
                 }
                 if (!replay && cueIndex != cues.Length) throw new InvalidDataException("A cue falls after the last sampled frame.");
                 audio?.Complete(end, plan.fps);
+                if (waveStarts != null)
+                    File.AppendAllText(Path.Combine(job.folder, "take.txt"),
+                        $"Peak tsunami targets={peakWaveTargets}; blocks at least 0.5m lower after wave onset={waveStarts.Count(p => p.Key && p.Value - p.Key.position.y >= .5f)}\n");
                 File.AppendAllText(Path.Combine(job.folder, "take.txt"),
                     $"Peak recorded particles={tape.PeakParticles}\nParticle budget reached={tape.ParticleBudgetReached}\nPeak equipped actors={tape.PeakEquipped}\n");
             }
