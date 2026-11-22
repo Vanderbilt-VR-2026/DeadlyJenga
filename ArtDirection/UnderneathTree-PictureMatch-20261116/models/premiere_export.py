@@ -27,7 +27,13 @@ SOLIDS = ("Toy plinth", "Gallery slab", "Runway bridge", "Apron landing", "Cross
 
 
 def export_mansion(out):
-    with bpy.data.libraries.load(str(Path(__file__).with_name("Premiere Studios.blend"))) as (src, loaded):
+    return export_playset(out, "Premiere Studios.blend", "Toy Doll Mansion", "Premiere Studios",
+                          ("salon", "soundstage", "star suite", "cinema"), [-.215, 5.86, 11.56, 17.26, 17.55],
+                          (0,16.5), -6, SOLIDS, "Studio floor", PAINT)
+
+
+def export_playset(out, source, asset, title, labels, levels, spine, y_offset, solids, backdrop, paints, floor_hulls=None):
+    with bpy.data.libraries.load(str(Path(__file__).with_name(source))) as (src, loaded):
         loaded.objects = list(src.objects)
     objects = [o for o in loaded.objects if o]
     for obj in objects:
@@ -37,33 +43,36 @@ def export_mansion(out):
                 mod.segments = 1
     bpy.context.view_layer.update()
     graph = bpy.context.evaluated_depsgraph_get()
-    levels = [-.215, 5.86, 11.56, 17.26, 17.55]
     parents = []
-    for i, label in enumerate(("salon", "soundstage", "star suite", "cinema")):
-        parent = slab(f"Piece {i+1:03} Premiere Studios {label}",
-                      [(-.2,16.5),(.2,16.5),(.2,16.8),(-.2,16.8)], levels[i], levels[i+1])
+    for i, label in enumerate(labels):
+        parent = slab(f"Piece {i+1:03} {title} {label}",
+                      [(spine[0]+x,spine[1]+y) for x,y in [(-.2,0),(.2,0),(.2,.3),(-.2,.3)]], levels[i], levels[i+1])
         parent.data.materials.append(bpy.data.materials.get("Toy Navy") or bpy.data.materials.new("Toy Navy"))
         parents.append(parent)
     batches = defaultdict(lambda: ([], []))
     for obj in objects:
-        if obj.type not in {"MESH","CURVE","FONT"} or obj.hide_render or obj.name.startswith("Studio floor"):
+        if obj.type not in {"MESH","CURVE","FONT"} or obj.hide_render or obj.name.startswith(backdrop):
             continue
         evaluated = obj.evaluated_get(graph)
         mesh = evaluated.to_mesh()
         if not mesh or not mesh.polygons:
             evaluated.to_mesh_clear()
             continue
-        coords = [(p.x,p.y-6,p.z) for v in mesh.vertices for p in [evaluated.matrix_world @ v.co]]
+        coords = [(p.x,p.y+y_offset,p.z) for v in mesh.vertices for p in [evaluated.matrix_world @ v.co]]
         z = (max(p[2] for p in coords) + min(p[2] for p in coords))/2
-        group = max(0,min(3,int((z+.15)/5.7)))
-        if obj.name.startswith(SOLIDS) and not obj.name.startswith("Revolve cue"):
+        group = (sum(z >= boundary for boundary in levels[1:-1]) if floor_hulls
+                 else max(0,min(3,int((z+.15)/5.7))))
+        if floor_hulls and obj.name.startswith("Walkable floor with stairwell"):
+            floor_hulls(obj,parents[group])
+        if obj.name.startswith(solids) and not obj.name.startswith("Revolve cue"):
             raw = obj.data
-            vs = [(p.x,p.y-6,p.z) for v in raw.vertices for p in [obj.matrix_world @ v.co]]
+            vs = [(p.x,p.y+y_offset,p.z) for v in raw.vertices for p in [obj.matrix_world @ v.co]]
             mesh_object("Hull "+obj.name,vs,[p.vertices[:] for p in raw.polygons],parents[group])
         mesh.calc_loop_triangles()
         remap = {}
         for face in mesh.loop_triangles:
-            paint = PAINT[mesh.materials[face.material_index].name.split(".")[0]]
+            name = mesh.materials[face.material_index].name.split(".")[0]
+            paint = paints[name] if paints else "Crag " + name
             verts, faces = batches[group,paint]
             indices = []
             for index in face.vertices:
@@ -83,7 +92,7 @@ def export_mansion(out):
     for parent in parents:
         for obj in (parent,*parent.children):
             obj.select_set(True)
-    bpy.ops.export_scene.fbx(filepath=str(Path(out)/"Toy Doll Mansion.fbx"),use_selection=True,
+    bpy.ops.export_scene.fbx(filepath=str(Path(out)/(asset+".fbx")),use_selection=True,
                              axis_forward="-Z",axis_up="Y",apply_scale_options="FBX_SCALE_ALL",
                              bake_space_transform=True,bake_anim=False)
     return parents

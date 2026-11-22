@@ -85,10 +85,17 @@ namespace DeadlyJenga.CastlePrototype.Editor
             SessionState.SetBool("TreePremiereStudios", true);
         }
 
+        public static void CaptureCrystalCrag()
+        {
+            Begin(false);
+            SessionState.SetBool("TreeCrystalCrag", true);
+        }
+
         static void Begin(bool references)
         {
             SessionState.SetBool("TreeFalconSummit", false);
             SessionState.SetBool("TreePremiereStudios", false);
+            SessionState.SetBool("TreeCrystalCrag", false);
             if (!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Run this check in a checked batch editor.");
             if (!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))
@@ -166,6 +173,21 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         renderReady = now + 1.7;
                     if (now < renderReady)
                         return;
+                    if (SessionState.GetBool("TreeCrystalCrag", false))
+                    {
+                        var toy = map.GetComponentsInChildren<UnderneathTreeToy>().Single(t => t.name.StartsWith("Toy Wizard Tower "));
+                        var pieces = toy.Pieces();
+                        Require(pieces.Count == 4 && pieces.All(p => p.name.Contains("Crystal Crag") &&
+                            p.TryGetComponent<Rigidbody>(out var body) && body.isKinematic), "four intact Crystal Crag sections");
+                        var hulls = toy.GetComponentsInChildren<MeshCollider>();
+                        Require(hulls.Count(c => c.name.StartsWith("Hull Spiral tread")) == 66, "66 spiral stair colliders");
+                        var entry = hulls.First(c => c.name.StartsWith("Hull Entry step")).bounds.center;
+                        var front = Vector3.ProjectOnPlane(entry - toy.transform.position, Vector3.up).normalized;
+                        var aim = toy.transform.position + Vector3.up * 8f;
+                        Shot(player.ViewCamera, "crystal-crag", aim + front * 31f + Vector3.up * 7.4f, aim, 37f, true);
+                        Finish(true);
+                        return;
+                    }
                     if (SessionState.GetBool("TreePremiereStudios", false))
                     {
                         var toy = map.GetComponentsInChildren<UnderneathTreeToy>().Single(t => t.name.StartsWith("Toy Doll Mansion "));
