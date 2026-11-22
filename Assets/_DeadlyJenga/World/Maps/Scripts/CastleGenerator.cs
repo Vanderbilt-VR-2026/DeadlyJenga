@@ -318,7 +318,7 @@ namespace DeadlyJenga.CastlePrototype
                     return roofHit.point + Vector3.up*.12f;
             }
             if (!best && settings.layoutPreset == ShrineTownLayout.Preset)
-                return transform.TransformPoint(new Vector3(6,.08f,-39));
+                return transform.TransformPoint(new Vector3(0,4.15f,12));
             return best ? new Vector3(best.bounds.center.x, best.bounds.max.y + .08f, best.bounds.center.z)
                 : (foundation ? foundation.position : transform.position) + Vector3.up * .6f;
         }

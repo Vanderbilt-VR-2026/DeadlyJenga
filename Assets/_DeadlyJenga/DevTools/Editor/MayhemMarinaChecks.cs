@@ -986,9 +986,10 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 Check(starts.TrySpawnPosition(world,start,out var point) &&
                     Physics.Raycast(point+Vector3.up*.1f,Vector3.down,out var contact,.4f,1|(1<<Layers.Surface)) &&
-                    contact.collider.name=="Cedar landing" && !Physics.CheckCapsule(point+Vector3.up*.4f,point+Vector3.up*1.45f,
+                    Climbables.TryGet(contact.collider,out var porch) && porch.Body && !porch.Body.isKinematic && !Physics.CheckCapsule(point+Vector3.up*.4f,point+Vector3.up*1.45f,
                     .32f,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore),"Clear dry spawn "+start);
             }
+            Check(!generator.GetComponentsInChildren<Collider>().Any(c=>c.name=="Cedar landing"),"Fixed walkways removed");
             var player = session.Player;
             bool drowned = false;
             void OnDeath(GameObject who,GameObject source) { if (who==player.gameObject) drowned=true; }
@@ -999,6 +1000,22 @@ namespace DeadlyJenga.DevTools.Editor
                 player.Place(spawnFeet,Quaternion.identity);
                 yield return Wait(.6f);
                 Check(!drowned && player.transform.position.y>generator.waterHeight+.5f,"Local survivor holds dry match spawn");
+                var mudFeet = generator.transform.TransformPoint(new Vector3(-10,.08f,-35.77f));
+                bool Sinking() => session.Modes.Frame.players.Any(p=>p.id==session.Modes.LocalActorId && p.sinking);
+                player.Place(mudFeet,Quaternion.identity);
+                for (float end=Time.time+2;Time.time<end && !Sinking(); ) yield return null;
+                Check(Sinking()&&!drowned,"Actual survivor starts sinking on the shop mud bank");
+                // Move through the survivor controller from the bank onto the adjacent low porch.
+                var controller = player.gameObject.GetComponent<CharacterController>();
+                controller.Move(Vector3.up*.53f);
+                controller.Move(Vector3.forward*1.75f);
+                for (float end=Time.time+session.Modes.Frame.rules.sinkGraceSeconds+.6f;Time.time<end;) yield return null;
+                Check(!drowned&&!Sinking()&&player.transform.position.y>mudFeet.y+.2f,"Reaching the destructible porch clears sinking and survives the full grace period");
+                player.Place(mudFeet,Quaternion.identity);
+                for (float end=Time.time+session.Modes.Frame.rules.sinkGraceSeconds+2;Time.time<end&&!drowned;) yield return null;
+                Check(drowned,"Remaining on exposed mud eliminates the local survivor");
+                yield return Wait(2);
+                drowned=false;
                 var channel = generator.transform.TransformPoint(new Vector3(0,.25f,-18));
                 player.Place(channel,Quaternion.identity);
                 yield return Wait(1.8f);

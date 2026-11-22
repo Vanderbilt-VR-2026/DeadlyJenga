@@ -13,37 +13,37 @@ MonoBehaviour:
   m_Name: Shrine Town Match Layout
   m_EditorClassIdentifier: DeadlyJenga.GameSession::DeadlyJenga.Modes.MapMatchLayout
   layoutSignature: '{"blockSize":{"x":6.0,"y":2.0,"z":2.0},"modulesPerSide":5,"wallCourses":12,"cornerCourses":18,"keepCourses":30,"moduleGap":0.07999999821186066,"singleTower":false,"structureVariant":0,"cathedral":false,"layoutPreset":"shrine-town"}'
-  groundSpawns: 1
+  sinkingGround: 1
   freeSpawns:
-  - {x: 6, y: 0.06, z: -39}
-  - {x: -6, y: 0.06, z: -39}
-  - {x: 6, y: 0.06, z: -20}
-  - {x: -6, y: 0.06, z: -20}
-  - {x: 20, y: 0.06, z: -23}
-  - {x: -20, y: 0.06, z: -23}
-  - {x: 16, y: 0.06, z: 5}
-  - {x: -16, y: 0.06, z: 5}
-  - {x: 23, y: 0.06, z: 5}
-  - {x: -23, y: 0.06, z: 5}
-  - {x: 32, y: 0.06, z: 21}
-  - {x: -32, y: 0.06, z: 20}
+  - {x: -11.5, y: 0.48, z: -33.95}
+  - {x: -8.5, y: 0.48, z: -33.95}
+  - {x: 8.5, y: 0.48, z: -33.95}
+  - {x: 11.5, y: 0.48, z: -33.95}
+  - {x: -31.5, y: 0.48, z: -9.45}
+  - {x: -28.5, y: 0.48, z: -9.45}
+  - {x: 27.5, y: 0.48, z: -5.95}
+  - {x: 30.5, y: 0.48, z: -5.95}
+  - {x: -33.5, y: 0.48, z: 21.05}
+  - {x: -30.5, y: 0.48, z: 21.05}
+  - {x: 32.5, y: 0.48, z: 10.05}
+  - {x: 35.5, y: 0.48, z: 10.05}
   teams:
   - name: South
-    flagHome: {x: 0, y: 0.06, z: -30}
+    flagHome: {x: -11.5, y: 0.48, z: -33.95}
     spawns:
-    - {x: 6, y: 0.06, z: -39}
-    - {x: -6, y: 0.06, z: -39}
-    - {x: 6, y: 0.06, z: -20}
-    - {x: -6, y: 0.06, z: -20}
-    - {x: 20, y: 0.06, z: -23}
-    - {x: -20, y: 0.06, z: -23}
+    - {x: -11.5, y: 0.48, z: -33.95}
+    - {x: -8.5, y: 0.48, z: -33.95}
+    - {x: 8.5, y: 0.48, z: -33.95}
+    - {x: 11.5, y: 0.48, z: -33.95}
+    - {x: -31.5, y: 0.48, z: -9.45}
+    - {x: -28.5, y: 0.48, z: -9.45}
   - name: North
-    flagHome: {x: 6, y: 0.06, z: 5}
+    flagHome: {x: 27.5, y: 0.48, z: -5.95}
     spawns:
-    - {x: 16, y: 0.06, z: 5}
-    - {x: -16, y: 0.06, z: 5}
-    - {x: 23, y: 0.06, z: 5}
-    - {x: -23, y: 0.06, z: 5}
-    - {x: 32, y: 0.06, z: 21}
-    - {x: -32, y: 0.06, z: 20}
+    - {x: 27.5, y: 0.48, z: -5.95}
+    - {x: 30.5, y: 0.48, z: -5.95}
+    - {x: -33.5, y: 0.48, z: 21.05}
+    - {x: -30.5, y: 0.48, z: 21.05}
+    - {x: 32.5, y: 0.48, z: 10.05}
+    - {x: 35.5, y: 0.48, z: 10.05}
   hill: {x: 0, y: 4.05, z: 12}

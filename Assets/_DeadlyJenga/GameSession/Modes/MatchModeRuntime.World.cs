@@ -50,7 +50,7 @@ namespace DeadlyJenga.Modes
 
             var preferred=PreferredSpawn(world,team,ordinal,role);
             if(SpawnClear(preferred,actorId))return preferred;
-            bool requireBlock=Rules.spawn==SpawnRule.Top&&Rules.island!=IslandRule.Walkable&&role!="infected";
+            bool requireBlock=AuthoredLayout() is { sinkingGround:true } || Rules.spawn==SpawnRule.Top&&Rules.island!=IslandRule.Walkable&&role!="infected";
             int supportMask=requireBlock?1<<Layers.Block:SpawnSupportMask;
             // Sample nearby supports closest to the intended height first. This preserves
             // room interiors and team territory when their original slot is occupied.
@@ -118,6 +118,7 @@ namespace DeadlyJenga.Modes
 
         Vector3 PreferredSpawn(IWorldQuery world,int team,int ordinal,string role)
         {
+            if(AuthoredLayout() is { sinkingGround:true })return world.SafeSpawnPoint();
             if(role=="infected")return RimPoint(team<0?ordinal:team,12);
             if (Rules.spawn == SpawnRule.Top)
             {
