@@ -34,9 +34,9 @@ Shader "DeadlyJenga/Fantasy Surface"
   CBUFFER_START(UnityPerMaterial)
   float4 _BaseColor,_Accent,_CloudRadius;float _Pattern,_Smoothness,_Scale,_Metallic,_Stripes,_Glow,_DetailStrength;
   CBUFFER_END
-  struct A {float4 p:POSITION;float3 n:NORMAL;float4 color:COLOR;UNITY_VERTEX_INPUT_INSTANCE_ID};
-  struct V {float4 p:SV_POSITION;float3 world:TEXCOORD0;float3 n:TEXCOORD1;float3 local:TEXCOORD2;float fog:TEXCOORD4;float3 localNormal:TEXCOORD3;float4 color:COLOR;UNITY_VERTEX_OUTPUT_STEREO};
-  V vert(A a){V o;UNITY_SETUP_INSTANCE_ID(a);UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);o.p=TransformObjectToHClip(a.p.xyz);o.fog=ComputeFogFactor(o.p.z);o.world=TransformObjectToWorld(a.p.xyz);o.n=TransformObjectToWorldNormal(a.n);o.local=a.p.xyz;o.localNormal=a.n;o.color=a.color;return o;}
+  struct A {float4 p:POSITION;float3 n:NORMAL;float4 color:COLOR;float2 uv:TEXCOORD0;UNITY_VERTEX_INPUT_INSTANCE_ID};
+  struct V {float4 p:SV_POSITION;float3 world:TEXCOORD0;float3 n:TEXCOORD1;float3 local:TEXCOORD2;float fog:TEXCOORD4;float3 localNormal:TEXCOORD3;float4 color:COLOR;float2 printUV:TEXCOORD5;UNITY_VERTEX_OUTPUT_STEREO};
+  V vert(A a){V o;UNITY_SETUP_INSTANCE_ID(a);UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);o.p=TransformObjectToHClip(a.p.xyz);o.fog=ComputeFogFactor(o.p.z);o.world=TransformObjectToWorld(a.p.xyz);o.n=TransformObjectToWorldNormal(a.n);o.local=a.p.xyz;o.localNormal=a.n;o.color=a.color;o.printUV=a.uv;return o;}
   float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
   float noise(float2 p){float2 a=floor(p),f=frac(p);f=f*f*(3-2*f);return lerp(lerp(hash(a),hash(a+float2(1,0)),f.x),lerp(hash(a+float2(0,1)),hash(a+1),f.x),f.y);}
   float cotton(float2 p){return noise(p)*.60+noise(p*2.13+7)*.27+noise(p*4.31+19)*.13;}
@@ -48,7 +48,8 @@ Shader "DeadlyJenga/Fantasy Surface"
    float2 uv=abs(i.localNormal.y)>.6?p.xz:abs(i.localNormal.x)>.6?p.zy:p.xy;
    float3 detail=SAMPLE_TEXTURE2D(_DetailTex,sampler_DetailTex,uv*float2(.12,.075)).rgb;
    float3 color=_BaseColor.rgb;float gloss=_Smoothness;float relief=0;
-   if(_Pattern<.5){
+   if(_Pattern>7.5){color=SAMPLE_TEXTURE2D(_DetailTex,sampler_DetailTex,i.printUV).rgb;gloss=.18;}
+   else if(_Pattern<.5){
     float d=hex(uv*.62);float aa=max(fwidth(d),.015);float seam=smoothstep(.76-aa,.83+aa,d);
     float grain=cotton(uv*1.7);float wax=sin(uv.x*.37+sin(uv.y*.21))*.5+.5;
     color=lerp(color,_Accent.rgb,seam*.12*(1-top));color*=.96+.04*grain;

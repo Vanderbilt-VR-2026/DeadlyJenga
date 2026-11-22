@@ -137,8 +137,8 @@ namespace DeadlyJenga.DevTools.Editor
             var views = maps.Length == 1 && maps[0].design == EpicCityLayout.SkyRingCityDesign
                 ? new[] { "target", "close", "pov|market|36|0.5|-36|53|3|-53",
                     "pov|rainworks|44|0.5|-30|27|14|-17", "pov|school|-37|1|41|-51|4|50",
-                    "pov|apartments|-36|0.5|-37|-60|12|-60", "pov|substation|36|0.5|36|58|21|58",
-                    "pov|switchback|42|16|48|50|25|57" }
+                    "pov|apartments|-36|0.5|-37|-60|12|-60", "pov|substation|85|0.5|24|68|21|45",
+                    "pov|switchback|61|16.4|51|70|24|43" }
                 : MapPictureRig.AllViews;
             MapLiveCapture.BatchMaps(maps.Select(m => m.id).ToList(), Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Captures", "CandyCityLayouts"), views);
         }

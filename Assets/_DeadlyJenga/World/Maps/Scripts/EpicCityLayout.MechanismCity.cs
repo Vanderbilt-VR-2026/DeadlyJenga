@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
                 var order = new List<int>();
                 // Downtown: Drop-Stop Tower (two tiers): pulling its shoes drops floors onto catch frames.
                 var p = OnRing(45, 80);
-                order.Add(Transplant("Downtown drop-stop tower", TowerExhibitionLayout.Build(false, 5), TowerExhibitionLayout.Centers[5], p, TangentX(45),
+                order.Add(Transplant("Downtown drop-stop tower", TowerExhibitionLayout.Build(false, 5), TowerExhibitionLayout.Centers[5], p, TangentX(45) + (skyRing ? 180 : 0),
                     m => m.position.y - TowerExhibitionLayout.Centers[5].y < 31));
                 if (skyRing)
                 {
@@ -46,16 +46,26 @@ namespace DeadlyJenga.CastlePrototype
                     bool wingPart = m.purpose.Contains("wing") || m.purpose.Contains("pedestal") || m.purpose.Contains("receiving foot");
                     return wingPart ? Mathf.Abs(local.z + 24) < 1 : local.y < 36;
                 }));
+                if (skyRing)
+                {
+                    var apartments=plan.sites[order[4]];
+                    var upper=apartments.members.FindLast(m=>m.purpose=="Independent bookfall support spine");
+                    foreach (int side in new[]{-1,1})
+                        Part(upper,new Vector3(side*5.1f,14.2f,7),new Vector3(11.5f,.58f,34),
+                            0,Quaternion.Euler(0,0,-side*22));
+                    Part(upper,new Vector3(0,14.15f,7),new Vector3(.8f,4.3f,34),3);
+                    geometryBounds.Remove(upper);
+                }
                 // Cloud Harbor: unchanged block with two annexes.
                 p = OnRing(285, ring); order.Add(JengaSite("Cloud Harbor west annex", p.x, p.z, 2, 24, 24, FacePlaza(285)));
-                p = OnRing(315, ring); order.Add(JengaSite("Cloud Harbor block", p.x, p.z, 3, 28, 22, FacePlaza(315)));
+                p = OnRing(315, ring); order.Add(JengaSite("Cloud Harbor block", p.x, p.z, skyRing ? 2 : 3, 28, 22, FacePlaza(315)));
                 p = OnRing(345, ring); order.Add(JengaSite("Cloud Harbor east annex", p.x, p.z, skyRing ? 5 : 3, 24, 24, FacePlaza(345)));
                 for (int i = 0; i < order.Count; i++)
                 {
                     int next = (i + 1) % order.Count;
                     // Points found offline with the same clearance test the planner uses.
                     if (skyRing && i == 3) DeckLink(order[3], order[4], new Vector3(-63.96f, 29.15f, 8.96f), new Vector3(-56.46f, 29.15f, -28.39f), false);
-                    else if (skyRing && i == 7) DeckLink(order[7], order[0], new Vector3(81.11f, 21.15f, -13.55f), new Vector3(67.18f, 20.35f, 45.96f), false);
+                    else if (skyRing && i == 7) DeckLink(order[7], order[0], new Vector3(81.11f, 21.15f, -13.55f), OnRing(45,80) + Quaternion.Euler(0,45,0)*new Vector3(19,26.15f,-10.7f), false);
                     else TryLink(order[i], order[next], true, 9.2f, 13.2f, 5.2f, 17.2f);
                 }
 
@@ -110,7 +120,35 @@ namespace DeadlyJenga.CastlePrototype
                     }, true);
                 }
                 // Last, once every bridge exists: Jenga plank walls that leave each crossing open.
-                if (skyRing) PlankWalls();
+                if (skyRing)
+                {
+                    BuildPumpHall(plan.sites[se]);
+                    BuildPumpHall(plan.sites[sw]);
+                    district = sw;
+                    var a = new Vector3(-18,9.15f,-23);
+                    var b = new Vector3(18,9.15f,-23);
+                    plan.routes.Add(new EpicCityRoute { name="Rainwater plant service bridge", from=sw, to=se, a=a, b=b });
+                    Bridge(a,b,3.4f,"Rainwater gallery crossing");
+                    PlankWalls();
+                }
+            }
+
+            void BuildPumpHall(EpicCitySite site)
+            {
+                int level = 0;
+                foreach (var floor in site.members)
+                {
+                    if (!floor.purpose.Contains(" floor ")) continue;
+                    level++;
+                    // At alternate heights the stair and its side landings occupy just the rear
+                    // half. From the street the lower pump room and upper gallery are double-height.
+                    if (level % 2 == 0 || level == 7 || (level == 3 && site.members.Count < 7)) continue;
+                    floor.shapes.RemoveRange(4,4);
+                    Part(floor,new Vector3(0,3.65f,-8.6f),new Vector3(20.8f,.7f,3.6f),1);
+                    foreach(int side in new[]{-1,1})
+                        Part(floor,new Vector3(side*8,3.65f,-2.3f),new Vector3(4.8f,.7f,9),1);
+                    geometryBounds.Remove(floor);
+                }
             }
 
             // Keep the four original load-bearing columns. The public stairs run along the long
@@ -118,19 +156,20 @@ namespace DeadlyJenga.CastlePrototype
             void SubstationStairs(MayhemModule tower, int tier)
             {
                 tower.shapes.RemoveRange(4, tower.shapes.Count - 4);
-                for (int floor = 0; floor < 3; floor++)
+                // One tall outward flight per bay, with the shorter return behind it.
+                foreach (float height in new[]{10f,15f})
                 {
-                    float y = floor * 5;
-                    const float landing = 3.75f;
-                    foreach (int side in new[]{-1, 1})
-                        Part(tower, new Vector3(0, y+4.6f, side*(12.5f-landing*.5f)),
-                            new Vector3(17, .8f, landing), 1);
-                    // The inner gallery stays continuous where the drop-stop bridge arrives.
-                    Part(tower, new Vector3(-3.75f, y+4.6f, 0), new Vector3(9.5f,.8f,17.5f), 1);
-                    int direction = (tier*3+floor)%2==0 ? 1 : -1;
-                    float lane = direction==1 ? 2.9f : 6.65f;
-                    Flight(tower,new Vector3(lane,y,-direction*8.75f),
-                        new Vector3(lane,y+5,direction*8.75f),3.7f);
+                    foreach (int side in new[]{-1,1})
+                        Part(tower,new Vector3(0,height-.4f,side*10.85f),new Vector3(17,.8f,3.3f),1);
+                    Part(tower,new Vector3(-4,height-.4f,0),new Vector3(9,.8f,18.4f),1);
+                }
+                Flight(tower,new Vector3(5.6f,0,9.2f),new Vector3(5.6f,10,-9.2f),4.9f);
+                Flight(tower,new Vector3(1.65f,10,-9.2f),new Vector3(1.65f,15,9.2f),2.9f);
+                // A rear wall and two service cabinets give the open stair bays a shadowed interior.
+                foreach(int end in new[]{-1,1})
+                {
+                    Part(tower,new Vector3(-8.15f,7.5f,end*8.15f),new Vector3(.68f,15,8.7f),0);
+                    Part(tower,new Vector3(-4.5f,11.1f,end*7),new Vector3(3.6f,2.2f,2.4f),3);
                 }
                 if (tier == 2)
                     Part(tower,new Vector3(-4,15.55f,0),new Vector3(4.8f,1.1f,4.8f),3);

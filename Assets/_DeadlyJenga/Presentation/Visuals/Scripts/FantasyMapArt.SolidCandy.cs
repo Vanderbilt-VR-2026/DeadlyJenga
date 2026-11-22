@@ -37,7 +37,8 @@ namespace DeadlyJenga.Presentation
         {
             var (site,purpose)=NameParts(body);
             Color color;string key;
-            if(purpose.Contains("crossing")){bool high=body.worldCenterOfMass.y-groundY>17;key=high?"bridge high":"bridge";color=high?new Color(.92f,.22f,.26f):new Color(.86f,.68f,.48f);}
+            if(purpose=="Rainwater gallery crossing"){key="pump brass";color=new Color(1,.72f,.055f);}
+            else if(purpose.Contains("crossing")){bool high=body.worldCenterOfMass.y-groundY>17;key=high?"bridge high":"bridge";color=high?new Color(.92f,.22f,.26f):new Color(.86f,.68f,.48f);}
             else if(purpose.Contains("trestle")){key="trestle";color=new Color(.74f,.56f,.4f);}
             else if(site.StartsWith("Harbor bascule")){key="bascule";color=new Color(.86f,.68f,.48f);}
             else{color=DistrictColor(site);key=color.ToString();}
@@ -49,12 +50,12 @@ namespace DeadlyJenga.Presentation
             solidMaterials[key]=material;return material;
         }
 
-        void ReleaseSolidMaterials(){foreach(var m in solidMaterials.Values)if(m)Release(m);solidMaterials.Clear();fountainBuilt=false;}
+        void ReleaseSolidMaterials(){if(neighborhoodPrint)Release(neighborhoodPrint);neighborhoodPrint=null;foreach(var m in solidMaterials.Values)if(m)Release(m);solidMaterials.Clear();fountainBuilt=false;}
 
         void SolidDress(Rigidbody body,Transform visual)
         {
             var (site,purpose)=NameParts(body);
-            var mesh=new ArtMesh(2);bool any=false;
+            var mesh=new ArtMesh(3);bool any=false;
             var boxes=body.GetComponentsInChildren<BoxCollider>();
             foreach(var shape in boxes)
             {
@@ -68,9 +69,9 @@ namespace DeadlyJenga.Presentation
                 if(site.StartsWith("Plaza")&&flat&&uncovered&&Mathf.Min(size.x,size.z)>=8&&!fountainBuilt&&top.y>groundY+8)
                 {fountainBuilt=true;Fountain(mesh,P(Vector3.up*size.y*.5f),1.7f);any=true;}
             }
-            if(purpose.Contains(" floor ")){FloorDress(body,visual,site,purpose,mesh);any=true;}
+            if(purpose.Contains(" floor ") && !site.StartsWith("Canyon") && !site.StartsWith("Sugar") && !site.StartsWith("Cloud Harbor")){FloorDress(body,visual,site,purpose,mesh);any=true;}
             if(Landmark(body,visual,site,purpose,mesh))any=true;
-            if(any)Model("Fantasy decorations",mesh,visual,new[]{cityCandyMaterial,cityGlowMaterial},true);
+            if(any)Model("Fantasy decorations",mesh,visual,new[]{cityCandyMaterial,cityGlowMaterial,NeighborhoodPrintMaterial()},true);
         }
 
         // Jenga tower floor: roof railing and flags on the top floor, a ladder on every floor, shop awnings on the ground floor.

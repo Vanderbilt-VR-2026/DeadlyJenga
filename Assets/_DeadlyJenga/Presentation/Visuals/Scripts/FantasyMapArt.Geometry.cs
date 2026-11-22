@@ -71,9 +71,22 @@ namespace DeadlyJenga.Presentation
                     triangles[mat].AddRange(new[]{start,start+1,start+2,start+2,start+1,start});
                 }
             }
+            List<Vector2> printUVs;
+            public void Print(Vector3 center,Quaternion q,float width,float height,int tile)
+            {
+                printUVs ??= new List<Vector2>();
+                while(printUVs.Count<vertices.Count) printUVs.Add(Vector2.zero);
+                float u=(tile%2)*.5f, v=tile<2?.5f:0, pad=.006f;
+                var right=q*Vector3.right*width*.5f;
+                var up=q*Vector3.up*height*.5f;
+                // Looking toward this outward-facing facade, positive local X appears on the left.
+                Quad(center-right-up,center+right-up,center+right+up,center-right+up,2,Color.white);
+                printUVs.AddRange(new[]{new Vector2(u+.5f-pad,v+pad),new Vector2(u+pad,v+pad),
+                    new Vector2(u+pad,v+.5f-pad),new Vector2(u+.5f-pad,v+.5f-pad)});
+            }
             public Mesh Finish(string name)
             {
-                var mesh=new Mesh{name=name,indexFormat=IndexFormat.UInt32};mesh.SetVertices(vertices);mesh.SetNormals(normals);mesh.SetColors(colors);mesh.subMeshCount=triangles.Length;
+                var mesh=new Mesh{name=name,indexFormat=IndexFormat.UInt32};mesh.SetVertices(vertices);mesh.SetNormals(normals);mesh.SetColors(colors);if(printUVs!=null){while(printUVs.Count<vertices.Count)printUVs.Add(Vector2.zero);mesh.SetUVs(0,printUVs);}mesh.subMeshCount=triangles.Length;
                 for(int i=0;i<triangles.Length;i++)mesh.SetTriangles(triangles[i],i);mesh.RecalculateBounds();return mesh;
             }
         }

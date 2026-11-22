@@ -115,13 +115,17 @@ namespace DeadlyJenga.CastlePrototype
                         continue;
                     // Low sills define rooms while leaving the long apartment galleries and classrooms open.
                     bool apartment = floor.purpose == "Independent bookfall support spine";
-                    bool classroom = siteName.StartsWith("Sugar Market") && facesStreet;
-                    if (facesStreet && doors && siteName.StartsWith("Cloud Harbor"))
+                    if (siteName.StartsWith("Cloud Harbor") &&
+                        (doors || floor.purpose.EndsWith(" floor 2")) && (facesStreet || !alongX))
+                        continue;
+                    if (siteName.StartsWith("Sugar Market") && (facesStreet || !alongX))
+                        continue;
+                    if (siteName.StartsWith("Cloud Harbor") && doors)
                         continue;
                     for (int row = 0; row < rows; row++)
                     {
                         float y = baseY + .03f + PlankRow * (row + .5f);
-                        if ((apartment || classroom) && row > 0 && row < rows - 1) continue;
+                        if (apartment && row > 0 && row < rows - 1) continue;
                         bool planks = (row % 2 == 0) == alongX;
                         // Street doors on the ground floor, front and back.
                         bool door = doors && alongX && row < 4;
