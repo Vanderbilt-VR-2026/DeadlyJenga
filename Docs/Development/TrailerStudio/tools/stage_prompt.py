@@ -69,16 +69,20 @@ def requested(entries):
 
 def make_shot(style, start, duration, pair):
     origin, end, look, fov = CAMERAS[style]
+    if pair and style == "wide":
+        origin, end, look, fov = (4.3, 2.6, -2.1), (3.9, 2.4, -1.8), (0, .8, 0), 49
+    elif pair and style == "close":
+        origin, end = (-2.6, 1.55, -.9), (-2.35, 1.45, -.8)
     shot = {
         "name": f"{style.replace('_', ' ').title()} scout",
         "start": start, "duration": duration, "fov": fov,
         "from": vector(*origin), "to": vector(*end), "look": vector(*look),
-        "avoidWalls": style in ("close", "third_person"),
+        "avoidWalls": style in ("close", "third_person") or pair and style == "wide",
         "firstPerson": style == "first_person",
     }
-    if style != "wide":
+    if style != "wide" or pair:
         shot["subject"] = "survivor"
-    if style == "close" and pair:
+    if style in ("wide", "close") and pair:
         shot["second"] = "rival"
     return shot
 
@@ -91,15 +95,29 @@ def move_at(actor, at, duration, end, lift=0):
 def block_performers(cast, features, cues, fps, duration, choices, pending):
     punch = next((cue for cue in cues if cue["action"] == "punch"), None)
     travel = bool({"run", "jump", "chase"} & features.keys())
-    lead = cast[0]
+    if not cast:
+        return
+    jump = features.get("jump", {})
+    lead_id = (punch or {}).get("actor") or jump.get("actor") or features.get("run", {}).get("actor") or "survivor"
+    lead = next(actor for actor in cast if actor["id"] == lead_id)
     if punch:
         approach = min(1.2, punch["at"] - 1 / fps)
         if approach >= 1 / fps:
             # The scripted performer faces the direction of its last movement.
-            rival = cast[1]
+            rival = next(actor for actor in cast if actor["id"] == punch["target"])
             lead["start"], rival["start"] = vector(-.15, 0, -2.7), vector(.15, 0, 1.25)
-            move_at(lead, 0, approach, (-.15, 0, -.5), .55 if "jump" in features else 0)
+            move_at(lead, 0, approach, (-.15, 0, -.5))
             move_at(rival, 0, approach, (.15, 0, .55))
+            if jump:
+                jumper = next(actor for actor in cast if actor["id"] == jump.get("actor", lead_id))
+                when = jump.get("at_seconds")
+                if when is None:
+                    jumper["moves"][0]["lift"] = .55
+                elif when >= approach and when + .25 <= duration:
+                    mark = jumper["moves"][0]["to"]
+                    move_at(jumper, when, min(.65, duration - when), (mark["x"], mark["y"], mark["z"]), .65)
+                else:
+                    pending.append("Explicit jump timing conflicts with the approach path. Rehearse a custom path.")
             choices.append("Survivors approach from opposing directions and stop about 1.1 metres apart before the punch cue.")
             pending.append("The contact distance and facing are scripted. Verify health change and visible response in Unity.")
         else:
@@ -114,11 +132,15 @@ def block_performers(cast, features, cues, fps, duration, choices, pending):
         choices.append("Uses production survivor rigs with fixed marks for the scout.")
         return
 
-    run_time = min(2.25, duration * .65)
-    move_at(lead, 0, run_time, (0, 0, 3.8), .75 if "jump" in features else 0)
+    start = jump.get("at_seconds", features.get("run", {}).get("at_seconds", 0))
+    run_time = min(2.25, duration * .65, duration - start)
+    if run_time <= 0:
+        raise ValueError("Actor movement starts after the scene ends.")
+    move_at(lead, start, run_time, (0, 0, 3.8), .75 if jump else 0)
     if "chase" in features:
-        cast.append({"id": "rival", "color": 2, "start": vector(.35, 0, -1.65)})
-        move_at(cast[-1], 0, run_time, (.35, 0, 2.25))
+        other = next(actor for actor in cast if actor != lead)
+        other["start"] = vector(.35, 0, -1.65)
+        move_at(other, start, run_time, (.35, 0, 2.25))
     choices.append("Authored a short stage-relative movement path with the requested jump or pursuit where applicable.")
     pending.append("Movement uses a relative path. Verify footing, route, camera tracking and any requested destination on the actual map.")
 
@@ -148,6 +170,8 @@ def stage(brief):
     pending = report["pending_review"]
     maps = lookup_maps()
     map_label = brief.get("map")
+    if any(entry["intent"] == "requested" for entry in constraints.get("unresolved_maps", [])):
+        raise ValueError("Resolve the unknown map name in the brief before staging.")
     if map_label:
         map_id = maps.get(key(map_label))
         if not map_id:
@@ -177,11 +201,13 @@ def stage(brief):
         choices.append(f"Rounded runtime from {exact:g} to {duration:.3f} seconds at {fps} fps.")
 
     aspect = brief.get("aspect")
-    if not aspect and constraints.get("aspect"):
+    formats = constraints.get("aspect", [])
+    if not aspect and any(entry["intent"] == "requested" for entry in formats):
         raise ValueError("Set aspect in the brief to resolve the requested formats.")
     if not aspect:
-        aspect = "16:9"
-        choices.append("No aspect selected. Scout defaults to 16:9.")
+        excluded = {entry["id"] for entry in formats if entry["intent"] == "exclude"}
+        aspect = next((fmt for fmt in RESOLUTIONS if fmt not in excluded), None)
+        choices.append(f"Using an available scout aspect of {aspect}.")
     if aspect not in RESOLUTIONS:
         raise ValueError(f"Unsupported delivery aspect {aspect!r}.")
     width, height = RESOLUTIONS[aspect]
@@ -197,8 +223,9 @@ def stage(brief):
     cameras = constraints.get("camera", [])
     camera_intents = requested(cameras)
     excluded_cameras = {entry["id"] for entry in cameras if entry["intent"] == "exclude"}
-    styles = sorted((style for style in camera_intents if style in CAMERAS),
-                    key=lambda style: order(camera_intents[style]))
+    angles = [entry for entry in cameras if entry["intent"] == "requested" and entry["id"] in CAMERAS
+              and entry["id"] not in excluded_cameras]
+    styles = [entry["id"] for entry in angles]
     if not styles:
         preferred = "third_person" if {"run", "jump", "chase"} & features.keys() else "wide"
         styles = [style for style in (preferred, *CAMERAS) if style not in excluded_cameras][:1]
@@ -210,19 +237,38 @@ def stage(brief):
         styles = styles[:1]
     choices.append("Camera presets use stage-relative or actor-relative positions; confirm composition in the scout.")
 
-    pair = "pvp_hit" in features
+    environment = bool(re.search(r"\b(?:no (?:survivors|actors|characters|players|people)|without (?:any )?(?:survivors|actors|characters|players|people)|empty (?:landscape|castle|map)|environment.only)\b", brief["goal"], re.I))
+    if environment and ({"run", "jump", "chase", "pvp_hit"} & features.keys() or "first_person" in styles):
+        raise ValueError("An empty cast conflicts with the requested actor action or POV. Edit the brief.")
+    if any(e.get("actor") == "hand" or e.get("target") == "hand" for e in features.values()):
+        raise ValueError("The flying hand needs a Trailer Studio performer track for this action.")
+    pair = bool({"pvp_hit", "chase"} & features.keys() or any(e.get("actor") == "rival" for e in features.values()))
     cast = [{"id": "survivor", "color": 0, "start": vector(0, 0, -.55 if pair else 0)}]
     if pair:
         cast.append({"id": "rival", "color": 2, "start": vector(0, 0, .55)})
+    if environment:
+        cast = []
 
     render_frames = round(duration * fps)
     shot_count = min(len(styles), render_frames // 4)
     if shot_count < len(styles):
         pending.append("The brief's runtime is too short to fit all requested camera presets.")
     boundaries = [index * render_frames // shot_count for index in range(shot_count + 1)]
+    for index, style in enumerate(styles[:shot_count]):
+        when = angles[index].get("at_seconds") if angles else None
+        if when is not None:
+            if index == 0 and when > 0:
+                raise ValueError("Specify the camera framing before the timed camera change.")
+            boundaries[index] = round(when * fps)
+    if any(b - a < 4 for a, b in zip(boundaries, boundaries[1:])):
+        raise ValueError("The requested camera timing leaves less than four frames in a shot.")
     shots = [make_shot(style, boundaries[index] / fps, (boundaries[index + 1] - boundaries[index]) / fps,
                        pair or "chase" in features)
              for index, style in enumerate(styles[:shot_count])]
+    if environment:
+        for shot in shots:
+            shot.pop("subject", None)
+            shot.pop("second", None)
 
     prefabs = lookup_hazards()
     cue_specs = []
@@ -230,7 +276,11 @@ def stage(brief):
         if event in ("run", "jump", "chase"):
             continue
         if event == "pvp_hit":
-            cue = {"action": "punch", "actor": "survivor", "target": "rival"}
+            actor = entry.get("actor", "rival" if entry.get("target") == "survivor" else "survivor")
+            cue = {"action": "punch", "actor": actor, "target": entry.get("target", "rival" if actor == "survivor" else "survivor"),
+                   "requireTargetContact": True}
+            if cue["actor"] == cue["target"]:
+                raise ValueError("Assign distinct performers to the staged contact.")
         elif event == "collapse":
             cause = re.search(r"\b(?:caus\w+|makes?|triggers?|because|from|knocks? down|destroys?)\b",
                               entry["source"], re.I)
@@ -257,8 +307,20 @@ def stage(brief):
         if phases.get(entry["source"]) == "payoff":
             fraction = .75 + .15 * index / len(cue_specs)
         frame = min(render_frames - 1, max(2, round(render_frames * fraction)))
+        if entry["source"].lower().startswith(("then ", "afterward", "after that")):
+            prior_sources = notes[:notes.index(entry["source"])] if entry["source"] in notes else []
+            earlier_times = [other["at_seconds"] for other in (*features.values(), *hazards.values())
+                             if other["source"] in prior_sources and "at_seconds" in other]
+            if earlier_times:
+                frame = max(frame, round((max(earlier_times) + .65) * fps))
+                if frame >= render_frames:
+                    raise ValueError("Insufficient time after the preceding action. Extend the scene or edit the timing.")
         if re.search(r"\b(?:while|simultaneously|at the same time)\b", entry["source"], re.I):
             frame = shared_frames.setdefault(entry["source"], frame)
+        if "at_seconds" in entry:
+            frame = round(entry["at_seconds"] * fps)
+            if not 0 <= frame < render_frames:
+                raise ValueError("Requested cue falls outside the scene duration.")
         cue["at"] = frame / fps
         cues.append(cue)
         report["cue_attempts"].append({"id": event, "source": entry["source"], "cue": cue})
@@ -287,6 +349,11 @@ def stage(brief):
         "seed": 148, "warmup": .75, "ffmpeg": "ffmpeg", "cast": cast, "shots": shots, "cues": cues,
         "edit": [{"shot": index, "from": 0, "duration": shot["duration"]} for index, shot in enumerate(shots)],
     }
+    if environment:
+        recipe["environmentOnly"] = True
+    if any(entry["id"] == "audible_audio" and entry["intent"] == "exclude"
+           for entry in constraints.get("audio_and_titles", [])):
+        recipe["muteDelivery"] = True
     return recipe, report
 
 

@@ -56,24 +56,26 @@
       "name": "Wide scout",
       "start": 0.0,
       "duration": 2.466666666666667,
-      "fov": 55,
+      "fov": 49,
       "from": {
-        "x": 11,
-        "y": 4,
-        "z": -14
+        "x": 4.3,
+        "y": 2.6,
+        "z": -2.1
       },
       "to": {
-        "x": 9,
-        "y": 3,
-        "z": -12
+        "x": 3.9,
+        "y": 2.4,
+        "z": -1.8
       },
       "look": {
         "x": 0,
-        "y": -0.6,
+        "y": 0.8,
         "z": 0
       },
-      "avoidWalls": false,
-      "firstPerson": false
+      "avoidWalls": true,
+      "firstPerson": false,
+      "subject": "survivor",
+      "second": "rival"
     },
     {
       "name": "Close scout",
@@ -81,14 +83,14 @@
       "duration": 2.533333333333333,
       "fov": 43,
       "from": {
-        "x": -1.6,
+        "x": -2.6,
         "y": 1.55,
-        "z": -2.4
+        "z": -0.9
       },
       "to": {
-        "x": -1.2,
+        "x": -2.35,
         "y": 1.45,
-        "z": -2
+        "z": -0.8
       },
       "look": {
         "x": 0,
@@ -106,6 +108,7 @@
       "action": "punch",
       "actor": "survivor",
       "target": "rival",
+      "requireTargetContact": true,
       "at": 1.8666666666666667
     }
   ],

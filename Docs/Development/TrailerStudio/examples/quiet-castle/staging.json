@@ -1,0 +1,104 @@
+{
+  "status": "recipe_staged_render_pending",
+  "brief": {
+    "status": "draft",
+    "goal": "A four-second vertical clip on the Castle map. No survivors. Start wide. Make it silent.",
+    "owner_notes": [
+      "A four-second vertical clip on the Castle map.",
+      "No survivors.",
+      "Start wide.",
+      "Make it silent."
+    ],
+    "audience": null,
+    "duration_seconds": 4,
+    "length_class": "moment",
+    "aspect": "9:16",
+    "platform": null,
+    "must_show": [],
+    "repeat_sentence": null,
+    "map": "Castle",
+    "mode_rules": null,
+    "performers": null,
+    "budget": null,
+    "not_featured": [
+      "No survivors.",
+      "Make it silent."
+    ],
+    "constraints": {
+      "duration": [
+        {
+          "seconds": 4,
+          "end_seconds": null,
+          "qualifier": null,
+          "source": "A four-second vertical clip on the Castle map."
+        }
+      ],
+      "aspect": [
+        {
+          "id": "9:16",
+          "intent": "requested",
+          "source": "A four-second vertical clip on the Castle map.",
+          "phrase": "vertical"
+        }
+      ],
+      "map": [
+        {
+          "id": "Castle",
+          "intent": "requested",
+          "source": "A four-second vertical clip on the Castle map.",
+          "phrase": "on the Castle"
+        }
+      ],
+      "unresolved_maps": [],
+      "mode": [],
+      "camera": [
+        {
+          "id": "wide",
+          "intent": "requested",
+          "source": "Start wide.",
+          "phrase": "Start wide"
+        }
+      ],
+      "audio_and_titles": [
+        {
+          "id": "audible_audio",
+          "intent": "exclude",
+          "source": "Make it silent.",
+          "phrase": "silent"
+        }
+      ],
+      "hazards": [],
+      "gameplay": []
+    },
+    "requested_beats": [
+      {
+        "role": "hook",
+        "direction": "Start wide."
+      }
+    ],
+    "unclassified_notes": [
+      "No survivors."
+    ],
+    "review_items": [
+      {
+        "field": "mode_rules",
+        "reason": "No supported positive choice was identified. Fill in if needed."
+      },
+      {
+        "field": "must_show",
+        "reason": "Add the requested events and observable proof before planning shots."
+      }
+    ]
+  },
+  "choices": [
+    "Camera presets use stage-relative or actor-relative positions; confirm composition in the scout."
+  ],
+  "cue_attempts": [],
+  "movement_requests": [],
+  "pending_review": [
+    "Scout uses the native game mix. Review audio exclusions, added sound, dialogue and titles in finishing.",
+    "No automatic staging for this direction: No survivors.",
+    "Review the original directing clauses for exact choreography, event order, performer actions and visual beats."
+  ],
+  "runtime_evidence": []
+}

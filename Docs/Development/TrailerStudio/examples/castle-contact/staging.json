@@ -67,7 +67,8 @@
           "id": "pvp_hit",
           "intent": "requested",
           "source": "Show one survivor punch another.",
-          "phrase": "punch"
+          "phrase": "punch",
+          "actor": "survivor"
         }
       ]
     },
@@ -106,6 +107,7 @@
         "action": "punch",
         "actor": "survivor",
         "target": "rival",
+        "requireTargetContact": true,
         "at": 1.8666666666666667
       }
     }

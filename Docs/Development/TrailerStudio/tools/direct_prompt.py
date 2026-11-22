@@ -38,13 +38,14 @@ FEATURES = {
     "jump": (r"jump(?:s|ed|ing)?|leap(?:s|ed|ing)?", "Show the takeoff, clearance, and landing."),
     "chase": (r"chas(?:e|es|ed|ing)|pursu(?:e|es|ed|ing|it)", "Show the runner and pursuer moving along a shared route."),
     "pvp_hit": (r"pvp|player[- ](?:vs\.?|versus)[- ]player|player versus player|punch\w*|shov\w*|boxing gloves?", "Keep the attacker, contact, and victim response readable together."),
-    "knock_off": (r"(?:knock\w*|push\w*|launch\w*|throw\w*|toss\w*)[^.!?;]{0,40}\boff\b", "Show the attacker causing the survivor to leave their support."),
+    "knock_off": (r"(?:knock\w*|push\w*|shov\w*|launch\w*|throw\w*|toss\w*)[^.!?;]{0,40}\boff\b", "Show the attacker causing the survivor to leave their support."),
     "collapse": (r"collaps\w*|crumbl\w*|fall(?:s|ing)? apart", "Keep the failing support and the resulting structural movement visible."),
-    "survivors_react": (r"survivor reactions?|(?:react|look up)(?:s|ing)?\b", "Show the threat and a readable change in the survivor's head, hands, or body."),
+    "survivors_react": (r"survivor reactions?|react(?:s|ed|ing)?|look(?:s|ed|ing)? up", "Show the threat and a readable change in the survivor's head, hands, or body."),
 }
 
+PORTRAIT_ASPECT = r"9\s*:\s*16|vertical|portrait(?!\s+(?:shot|framing|of)\b)"
 ASPECTS = {
-    "9:16": r"9\s*:\s*16|vertical|portrait|tiktok|reels|shorts",
+    "9:16": PORTRAIT_ASPECT + r"|tiktok|reels|shorts",
     "16:9": r"16\s*:\s*9|landscape|horizontal|widescreen",
     "1:1": r"1\s*:\s*1|square",
 }
@@ -61,6 +62,13 @@ WORD_SECONDS = {
     "eighteen": 18, "twenty": 20, "twenty-five": 25, "thirty": 30,
     "forty-five": 45, "sixty": 60,
 }
+WORD_SECONDS.update({word: value for value, word in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split())})
+for tens, prefix in ((20, "twenty"), (30, "thirty"), (40, "forty"), (50, "fifty")):
+    WORD_SECONDS[prefix] = tens
+    for units, suffix in enumerate("one two three four five six seven eight nine".split(), 1):
+        for joiner in ("-", " "):
+            WORD_SECONDS[prefix + joiner + suffix] = tens + units
 SECONDS = r"\d+(?:\.\d+)?|" + "|".join(sorted(WORD_SECONDS, key=len, reverse=True))
 DURATION = re.compile(
     rf"(?P<bound>at least |at most |up to |no more than |less than |under |over |about |around |roughly |approximately )?"
@@ -78,11 +86,18 @@ AUDIO = {
 CAMERAS = {
     "first_person": r"first[- ]person|pov|through (?:a |the |their )?survivor'?s? eyes",
     "third_person": r"third[- ]person|over[- ]the[- ]shoulder|ots",
-    "close": r"close[- ]?ups?|up close|tight fram(?:e|ing)|stay close|(?:start|open|go|end|cut) (?:close|tight)",
-    "wide": r"(?:wide|distant|long) shots?|establishing shots?|(?:start|open|go|end|cut) wide",
+    "close": r"close[- ]?ups?|portrait (?:shot|framing)|up close|tight fram(?:e|ing)|stay close|(?:start|open|go|end|finish|cut) (?:close|tight)",
+    "wide": r"(?:wide|distant|long) shots?|establishing shots?|(?:start|open|go|end|finish|cut) wide",
     "single_take": r"single[- ]take|one[- ]take|one continuous shot|unbroken shot|no cuts",
     "montage": r"montage|quick cuts|fast cuts",
 }
+EXPLICIT_TIME = re.compile(
+    rf"\b(?:at|from)\s+(?P<seconds>{SECONDS})\s*[- ]?\s*(?:seconds?|secs?|s)\b",
+    re.I,
+)
+ACTOR_NAMES = {"survivor": "survivor", "rival": "rival", "enemy": "rival",
+               "opponent": "rival", "hand": "hand"}
+ACTOR = r"(?:(?:giant|flying)\s+)*(survivor|rival|enemy|opponent|hand)"
 MODES = {
     "Survival": r"survival mode",
     "Natural Disaster": r"natural disasters? mode",
@@ -127,24 +142,64 @@ def excluded(clause, match):
                          clause[match.end():], re.I))
 
 
-def find_mentions(catalog, parts):
+def find_mentions(catalog, parts, add_direction=None, allow_overlapping=False):
     mentions = []
     for part in parts:
         claimed = []
         hits = []
         for key, pattern in catalog.items():
             for match in re.finditer(words(pattern), part, re.I):
-                if any(match.start() < end and start < match.end() for start, end in claimed):
+                if not allow_overlapping and any(match.start() < end and start < match.end() for start, end in claimed):
                     continue
                 claimed.append(match.span())
-                hits.append((match.start(), {
+                mention = {
                     "id": key,
                     "intent": "exclude" if excluded(part, match) else "requested",
                     "source": part,
                     "phrase": match.group(),
-                }))
+                }
+                if add_direction:
+                    add_direction(mention, match)
+                hits.append((match.start(), mention))
         mentions.extend(entry for _, entry in sorted(hits, key=lambda hit: hit[0]))
     return mentions
+
+
+def add_time(mention, match):
+    markers = list(EXPLICIT_TIME.finditer(match.string[:match.start()]))
+    if not markers:
+        trailing = re.match(r"\s+", match.string[match.end():])
+        if trailing:
+            marker = EXPLICIT_TIME.match(match.string, match.end() + trailing.end())
+            markers = [marker] if marker else []
+    if len(markers) == 1:
+        timestamp = seconds(markers[0]["seconds"])
+        if math.isfinite(timestamp):
+            mention["at_seconds"] = timestamp
+
+
+def add_gameplay_direction(mention, match):
+    add_time(mention, match)
+    if mention["id"] == "hand":
+        mention["actor"] = "hand"
+    elif mention["id"] in ("pvp_hit", "knock_off", "run", "jump", "chase", "survivors_react"):
+        actor = re.search(rf"\b{ACTOR}\s+(?:\w+ly\s+)?$", match.string[:match.start()], re.I)
+        if not actor and mention["id"] == "chase":
+            actor = re.search(
+                rf"\b{ACTOR}\s+(?:jump\w*|leap\w*|run\w*|sprint\w*)"
+                r"(?:(?!\b(?:and|but|then)\b)[^,.;!?])*\band\s+$",
+                match.string[:match.start()], re.I,
+            )
+        if actor:
+            mention["actor"] = ACTOR_NAMES[actor[1].lower()]
+    if mention["id"] in ("pvp_hit", "knock_off", "chase"):
+        start = match.end()
+        if mention["id"] == "knock_off":
+            verb = re.match(r"\w+", match.group())
+            start = match.start() + verb.end()
+        target = re.match(rf"\s+(?:(?:a|an|the)\s+)?{ACTOR}\b", match.string[start:], re.I)
+        if target:
+            mention["target"] = ACTOR_NAMES[target[1].lower()]
 
 
 def map_patterns():
@@ -210,10 +265,11 @@ def duration_request(parts, review):
     for part in parts:
         for match in DURATION.finditer(part):
             near = re.split(r"\b(?:with|when|while|then|and)\b|[,;]", part[:match.start()], flags=re.I)[-1]
-            if re.search(r"\b(?:at|by|after|before|wait)\s+$", near, re.I):
+            if re.search(r"\b(?:at|by|after|before|wait|from|until|between)\s+$", near, re.I):
                 continue
-            if re.search(r"\b(?:for|at|by|after|before|wait)\s+$", part[:match.start()], re.I):
-                if not re.search(r"\b(?:trailer|cut|clip|teaser|spot|video)\b", part[:match.start()], re.I):
+            if re.search(r"\bfor\s+$", near, re.I):
+                if not re.search(r"\b(?:trailer|clip|teaser|spot|video|cut)\s+"
+                                 r"(?:(?:should last|runs?|lasts?|is|will run)\s+)?for\s+$", near, re.I):
                     continue
             first = seconds(match["start"])
             last = seconds(match["end"]) if match["end"] else None
@@ -261,9 +317,10 @@ def compile_brief(prompt: str) -> dict:
         raise ValueError("Provide a trailer prompt.")
     parts = clauses(prompt)
     review = []
-    hazards = find_mentions(HAZARDS, parts)
-    features = find_mentions({key: value[0] for key, value in FEATURES.items()}, parts)
-    camera = find_mentions(CAMERAS, parts)
+    hazards = find_mentions(HAZARDS, parts, add_time)
+    features = find_mentions({key: value[0] for key, value in FEATURES.items()},
+                             parts, add_gameplay_direction, allow_overlapping=True)
+    camera = find_mentions(CAMERAS, parts, add_time)
     audio = find_mentions(AUDIO, parts)
     for entry in audio:
         if entry["id"] == "audible_audio":
@@ -273,7 +330,7 @@ def compile_brief(prompt: str) -> dict:
     # Explicit aspect instructions outrank formats inferred from a platform.
     aspect_mentions = find_mentions(ASPECTS, parts)
     preferred_aspect = find_mentions({
-        "9:16": r"9\s*:\s*16|vertical|portrait",
+        "9:16": PORTRAIT_ASPECT,
         "16:9": ASPECTS["16:9"],
         "1:1": ASPECTS["1:1"],
     }, parts)
