@@ -69,11 +69,11 @@ namespace DeadlyJenga.CastlePrototype
                     if (skyRing && i == 2)
                     {
                         var annex=OnRing(165,ring);
-                        DeckLink(order[2],order[3],annex+schoolFront*new Vector3(-17.5f,9.15f,5),
-                            annex+schoolFront*new Vector3(-10,9.15f,5),false);
+                        DeckLink(order[2],order[3],annex+schoolFront*new Vector3(-17.5f,9.15f,-3),
+                            annex+schoolFront*new Vector3(-10,9.15f,-3),false);
                     }
                     else if (skyRing && i == 3) DeckLink(order[3], order[4], new Vector3(-63.96f, 29.15f, 8.96f), new Vector3(-56.46f, 29.15f, -28.39f), false);
-                    else if (skyRing && i == 7) DeckLink(order[7], order[0], new Vector3(81.11f, 21.15f, -13.55f), OnRing(45,80) + Quaternion.Euler(0,45,0)*new Vector3(25.9f,21.15f,-3.1f), false);
+                    else if (skyRing && i == 7) DeckLink(order[7], order[0], new Vector3(81.11f, 21.15f, -13.55f), OnRing(45,80) + Quaternion.Euler(0,45,0)*new Vector3(26.8f,21.15f,-3.1f), false);
                     else TryLink(order[i], order[next], true, 9.2f, 13.2f, 5.2f, 17.2f);
                 }
 
@@ -99,7 +99,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (skyRing)
                 {
                     // Low spokes from the canyon's first floors to the ring (the planner never tries below 9 m).
-                    DeckLink(nw, order[2], new Vector3(-27, 5.15f, 25.85f), plan.sites[order[2]].position + schoolFront*new Vector3(6,4.8f,7), true);
+                    DeckLink(nw, order[2], new Vector3(-34.2f,5.15f,18), plan.sites[order[2]].position + schoolFront*new Vector3(0,4.8f,8), true);
                     DeckLink(ne, order[7], new Vector3(27, 5.15f, 11.65f), new Vector3(59.87f, 5.15f, -24.22f), true);
                 }
                 foreach (int inner in skyRing ? new[] { sw, se } : new[] { nw, ne, sw, se })
@@ -194,8 +194,9 @@ namespace DeadlyJenga.CastlePrototype
                     if(level==3 || level==5 || roofOfWing)
                         Part(floor,new Vector3(3.8f,3.65f,8.2f),new Vector3(13.2f,.7f,4.4f),1);
                     // This pair of recessed wall panels backs the pumps and frames the open room.
-                    Part(floor,new Vector3(-10.6f,2,0),new Vector3(.8f,4,16),0);
-                    Part(floor,new Vector3(0,2,10.6f),new Vector3(16,4,.8f),0);
+                    Part(floor,new Vector3(-10.6f,2,1.5f),new Vector3(.8f,4,8),0);
+                    foreach(int side in new[]{-1,1})
+                        Part(floor,new Vector3(side*6.9f,2,10.6f),new Vector3(3.4f,4,.8f),0);
                     geometryBounds.Remove(floor);
                 }
             }
@@ -218,14 +219,14 @@ namespace DeadlyJenga.CastlePrototype
                 Part(tower,new Vector3(1.47f,9.6f,zAtTen),new Vector3(.34f,.8f,3),1);
                 foreach(int end in new[]{-1,1})
                 {
-                    Part(tower,new Vector3(-8.15f,7.5f,end*7.5f),new Vector3(.68f,15,10),0);
+                    Part(tower,new Vector3(-8.15f,7.5f,end*10),new Vector3(.68f,15,4.8f),0);
                     Part(tower,new Vector3(-4.5f,11.1f,end*7),new Vector3(3.6f,2.2f,2.4f),3);
                 }
                 if(tier==1)
                 {
                     // The entrance from the purple annex meets the outside stair at exactly +5 m.
-                    Part(tower,new Vector3(9.5f,4.6f,-3.1f),new Vector3(3,.8f,4.8f),1);
-                    Part(tower,new Vector3(9.05f,2.25f,-3.1f),new Vector3(.75f,4.5f,3.4f),0);
+                    Part(tower,new Vector3(9.9f,4.6f,-3.1f),new Vector3(3.8f,.8f,4.8f),1);
+                    Part(tower,new Vector3(9.4f,2.25f,-3.1f),new Vector3(.75f,4.5f,3.4f),0);
                 }
                 if (tier == 2)
                     Part(tower,new Vector3(-4,15.55f,0),new Vector3(4.8f,1.1f,4.8f),3);
