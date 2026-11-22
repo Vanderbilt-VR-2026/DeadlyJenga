@@ -93,9 +93,9 @@ namespace DeadlyJenga.CastlePrototype
                 // The planner treats the arch stones under the deck like ramps and refuses every path off it,
                 // so the vault gets two explicit short bridges: to the south-west roof and the north-east third deck.
                 Bridge(new Vector3(-11, 13.01f, -10), new Vector3(-19.5f, 13.15f, -12), BridgeWidth, "Loose city street crossing");
-                plan.routes.Add(new EpicCityRoute { name = "Plaza keystone vault to Canyon south-west tower", from = vault, to = sw });
+                plan.routes.Add(new EpicCityRoute { name = "Plaza keystone vault to Canyon south-west tower", from = vault, to = sw, a = new Vector3(-11,13.01f,-10), b = new Vector3(-19.5f,13.15f,-12) });
                 Bridge(new Vector3(11, 13.01f, 8), new Vector3(20, 13.15f, 12), BridgeWidth, "Loose city street crossing");
-                plan.routes.Add(new EpicCityRoute { name = "Plaza keystone vault to Canyon north-east tower", from = vault, to = ne });
+                plan.routes.Add(new EpicCityRoute { name = "Plaza keystone vault to Canyon north-east tower", from = vault, to = ne, a = new Vector3(11,13.01f,8), b = new Vector3(20,13.15f,12) });
                 if (skyRing)
                 {
                     // Low spokes from the canyon's first floors to the ring (the planner never tries below 9 m).
@@ -106,7 +106,9 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     int best = order[0];
                     foreach (int s in order) if ((plan.sites[s].position - plan.sites[inner].position).sqrMagnitude < (plan.sites[best].position - plan.sites[inner].position).sqrMagnitude) best = s;
-                    if (skyRing && inner==se && best==order[6])
+                    if (skyRing && inner==sw && best==order[4])
+                        DeckLink(inner,best,new Vector3(-35,13.15f,-25.2f),new Vector3(-51.5658f,13.15f,-58.7429f),true);
+                    else if (skyRing && inner==se && best==order[6])
                         DeckLink(inner,best,new Vector3(31,9.15f,-25.2f),new Vector3(46,9.15f,-43),true);
                     else TryLink(inner, best, true, 9.2f, 13.2f, 5.2f);
                 }
