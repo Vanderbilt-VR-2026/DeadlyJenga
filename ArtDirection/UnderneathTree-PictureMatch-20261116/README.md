@@ -4,6 +4,8 @@
 pictures made from it (fireplace wall, left wall, player height, top-down plan). They are
 proposals for the sides the approved picture never shows and are not approved yet.
 
+For the approved in-game RGBY lighting, see the [bulb pool tuning guide](LIGHTING.md).
+
 ## Layout lab
 
 The gift layout is data, not hand-typed C#.

@@ -224,9 +224,9 @@ namespace DeadlyJenga.CandyArt
         {
             // Night, but not black: deep blue from the windows, plum at the sides and warm red off the rug,
             // so shapes in shadow still read while the coloured lights make the pools.
-            var sky = new Color(.11f, .11f, .24f);
-            var sides = new Color(.10f, .08f, .22f);
-            var rug = new Color(.18f, .06f, .07f);
+            var sky = new Color(.065f, .085f, .19f);
+            var sides = new Color(.045f, .065f, .145f);
+            var rug = new Color(.055f, .037f, .06f);
             if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Trilight &&
                 RenderSettings.ambientSkyColor == sky && Mathf.Approximately(RenderSettings.reflectionIntensity, .3f))
                 return;
@@ -413,9 +413,9 @@ namespace DeadlyJenga.CandyArt
 
         void BuildLighting()
         {
-            key = MakeLight("Amber lamplight and ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .70f, .42f), .16f, 0f);
-            // Shines from the fireplace side so the gift faces seen in the approved picture are lit.
+            key = MakeLight("Faint night fill", LightType.Directional,
+                Vector3.zero, new Color(.52f, .62f, 1f), .06f, 0f);
+            // Leave enough fill to read edges between the coloured bulb pools.
             key.transform.localRotation = Quaternion.Euler(46f, 18f, 0f);
             key.shadows = LightShadows.Soft;
             key.shadowStrength = .78f;
@@ -423,45 +423,32 @@ namespace DeadlyJenga.CandyArt
             key.shadowNormalBias = .2f;
 
             var bounce = MakeLight("Soft blue room bounce", LightType.Directional, Vector3.zero,
-                new Color(.18f, .38f, 1f), .12f, 0f);
-            // Blue light from the side window gives the gifts a cool edge.
+                new Color(.18f, .38f, 1f), .055f, 0f);
+            // Keep the unlit room cool between the local practicals.
             bounce.transform.localRotation = Quaternion.Euler(30f, 262f, 0f);
             practicalLights.Add(bounce);
 
             // Moonlight falls in through each window onto the floor just inside it.
             float windowX = (WindowWest + WindowEast) * .5f;
-            MakeSpot("Moonlight through the window", new Vector3(windowX, WindowHead, 54f),
-                new Vector3(windowX, 0f, -80f), new Color(.16f, .36f, 1f), 24000f, 300f, 70f);
-            MakeSpot("Moonlight across the room", new Vector3(windowX + 40f, WindowHead - 10f, 54f),
-                new Vector3(windowX + 70f, 0f, -50f), new Color(.12f, .30f, 1f), 14000f, 280f, 60f);
+            MakeSpot("Moonlight through the window", new Vector3(windowX, WindowSill + 42f, 54f),
+                new Vector3(windowX, 0f, 24f), new Color(.24f, .45f, 1f), 7000f, 108f, 62f);
+            MakeSpot("Moonlight at the window edge", new Vector3(windowX + 40f, WindowSill + 32f, 54f),
+                new Vector3(windowX + 52f, 0f, 30f), new Color(.18f, .38f, 1f), 4400f, 95f, 53f);
             // Keep the fireplace and windows as the main room accents.
             fireLight = MakeLight("Fireplace glow", LightType.Point, new Vector3(2f * FireplaceTurnX - (BreastFront - 18f), 34f, HearthZ),
-                new Color(1f, .45f, .14f), 14000f, 230f);
-            MakeSpot("Moonlight through the south window", new Vector3((SouthWindowWest + SouthWindowEast) * .5f, WindowHead, RoomSouth + 4f),
-                new Vector3((SouthWindowWest + SouthWindowEast) * .5f, 0f, RoomSouth + 150f), new Color(.16f, .36f, 1f), 26000f, 300f, 80f);
+                new Color(1f, .45f, .14f), 14000f, 138f);
+            float southWindowX = (SouthWindowWest + SouthWindowEast) * .5f;
+            MakeSpot("Moonlight through the south window", new Vector3(southWindowX, WindowSill + 50f, RoomSouth + 4f),
+                new Vector3(southWindowX, 0f, RoomSouth + 35f), new Color(.20f, .40f, 1f), 8500f, 115f, 72f);
             MakeLight("Kitchen light", LightType.Point, new Vector3(RoomWest - 60f, 110f, (ArchSouth + ArchNorth) * .5f),
                 new Color(.36f, .52f, 1f), 1400f, 140f);
             MakeLight("Bookcase lamp", LightType.Point, new Vector3(RoomEast - 60f, 120f, BookcaseZ),
                 new Color(1f, .68f, .38f), 900f, 100f);
-            MakeLight("Glow in the train tunnel", LightType.Point,
-                new Vector3(-150, 16, -128), new Color(1f, .68f, .28f), 700f, 38f);
             // The lamp lights what is near it: the wall, the table and the end of the sofa.
             MakeLight("Floor lamp", LightType.Point,
                 LampPlace + Vector3.up * 59f, new Color(1f, .70f, .39f), 750f, 80f);
 
-            // The bulbs supply local colour by the branches. Wide pools away from the
-            // tree wash out wrapping and cast bright patches over the rug and room.
-            var bulbGlow = new[] { new Color(1f, .31f, .26f), new Color(1f, .74f, .34f),
-                new Color(.35f, 1f, .42f), new Color(.30f, .49f, 1f) };
-            for (int i = 0; i < 12; i++)
-            {
-                float height = (12f + i * 15f) * FirHeight / FirScale;
-                float spread = Mathf.Lerp(78f, 18f, height / (200f * FirHeight / FirScale));
-                float angle = (i * 137.5f + 10f) * Mathf.Deg2Rad;
-                var place = new Vector3(-37f + Mathf.Cos(angle) * spread, height, -35.7f + Mathf.Sin(angle) * spread);
-                MakeLight("Tree bulb glow " + i, LightType.Point, place, bulbGlow[i % bulbGlow.Length],
-                    height < 60f ? 520f : 950f, height < 60f ? 40f : 46f);
-            }
+            BuildCourseBulbPools();
 
             var reflections = new GameObject("Christmas Room Reflections");
             reflections.transform.SetParent(art, false);
@@ -487,20 +474,57 @@ namespace DeadlyJenga.CandyArt
             tone.mode.Override(TonemappingMode.ACES);
             var bloom = grade.Add<Bloom>(true);
             bloom.threshold.Override(.9f);
-            bloom.intensity.Override(1.0f);
+            bloom.intensity.Override(.22f);
             bloom.scatter.Override(.72f);
             var color = grade.Add<ColorAdjustments>(true);
             color.postExposure.Override(.1f);
-            color.contrast.Override(30f);
-            color.saturation.Override(38f);
-            // Storybook grade: blue in the shadows, gold in the highlights.
-            var split = grade.Add<SplitToning>(true);
-            split.shadows.Override(new Color(.38f, .48f, 1f));
-            split.highlights.Override(new Color(1f, .80f, .50f));
-            split.balance.Override(-10f);
+            color.contrast.Override(12f);
+            color.saturation.Override(9f);
             var edges = grade.Add<Vignette>(true);
             edges.intensity.Override(.32f);
             edges.smoothness.Override(.5f);
+        }
+
+        void BuildCourseBulbPools()
+        {
+            var red = new Color(1f, .20f, .16f);
+            var blue = new Color(.085f, .26f, 1f);
+            var green = new Color(.20f, 1f, .35f);
+            var yellow = new Color(1f, .93f, .23f);
+
+            // Oblique throws cross seams and open carpet. Each offset controls the shape on the surface.
+            var pools = new (string label, Vector3 target, Vector3 offset, Color color, float power, float angle)[]
+            {
+                ("Left rail curve", new Vector3(-72f, 10f, -170f), new Vector3(15f, 24f, 5f), red, 4950f, 70f),
+                ("Near-left rail", new Vector3(-29f, 11f, -151f), new Vector3(-5f, 21f, 14f), blue, 4600f, 63f),
+                ("Near rail seam", new Vector3(-6f, 11f, -142f), new Vector3(18f, 23f, 2f), yellow, 4400f, 61f),
+                ("Right gift steps", new Vector3(19f, 10f, -112f), new Vector3(-10f, 28f, 9f), red, 4250f, 69f),
+                ("Right bend", new Vector3(-4f, 11f, -76f), new Vector3(14f, 27f, -9f), yellow, 4900f, 74f),
+                ("Top stack ribbon", new Vector3(-23f, 44f, -89f), new Vector3(12f, 20f, -3f), red, 3500f, 64f),
+                ("Bridge and inner rug", new Vector3(-47f, 18f, -89f), new Vector3(-8f, 24f, 14f), green, 4600f, 77f),
+                ("Bridge approach", new Vector3(-92f, 21f, -119f), new Vector3(13f, 26f, -7f), blue, 5600f, 64f),
+                ("Upper steps", new Vector3(-143f, 32f, -127f), new Vector3(-13f, 22f, -9f), yellow, 4400f, 65f),
+                ("Far rail edge", new Vector3(-140f, 10f, -151f), new Vector3(17f, 20f, -2f), yellow, 3400f, 55f),
+                ("Spawn wall", new Vector3(-181f, 18f, -101f), new Vector3(-6f, 26f, -10f), blue, 2200f, 53f),
+                ("Bridge bow lip", new Vector3(-41f, 28f, -115f), new Vector3(13f, 20f, 3f), yellow, 2700f, 54f),
+                ("Right stair ribbon", new Vector3(15f, 25f, -82f), new Vector3(7f, 18f, 8f), yellow, 2300f, 62f),
+                ("Toy tower", new Vector3(-165f, 50f, -119f), new Vector3(-9f, 23f, 13f), blue, 4400f, 68f),
+                ("Left stair corner", new Vector3(-81f, 20f, -177f), new Vector3(17f, 20f, -3f), yellow, 2150f, 52f),
+                ("Rear curve", new Vector3(-124f, 10f, -60f), new Vector3(-16f, 22f, 3f), green, 3600f, 65f),
+                ("Inside the near loop", new Vector3(-72f, 1f, -137f), new Vector3(17f, 16f, -8f), blue, 1600f, 54f),
+                ("Carpet between low parcels", new Vector3(-106f, 1f, -121f), new Vector3(-5f, 18f, 11f), red, 2000f, 72f),
+                ("Carpet beside the train", new Vector3(-31f, 1f, -59f), new Vector3(14f, 18f, -4f), yellow, 1750f, 57f),
+                ("Side aisle", new Vector3(-153f, 4f, -84f), new Vector3(-10f, 19f, -12f), green, 2150f, 63f),
+                ("Back of the tower", new Vector3(-153f, 7f, -45f), new Vector3(14f, 21f, 4f), blue, 2800f, 70f),
+                ("Rear rug under the boughs", new Vector3(-44f, 1f, -9f), new Vector3(-12f, 13f, -6f), red, 1650f, 66f),
+                ("Behind the trunk", new Vector3(-17f, 2f, -20f), new Vector3(-3f, 19f, -11f), blue, 1550f, 60f),
+                ("Far side of the skirt", new Vector3(-78f, 2f, 17f), new Vector3(16f, 20f, -4f), yellow, 2400f, 78f),
+                ("Tree-side gap", new Vector3(-102f, 2f, -6f), new Vector3(-11f, 15f, 3f), green, 1400f, 55f),
+                ("Window-side gifts", new Vector3(-5f, 6f, -39f), new Vector3(-9f, 22f, -12f), red, 2350f, 60f),
+                ("Far carpet fold", new Vector3(-121f, 1f, 4f), new Vector3(4f, 16f, -13f), blue, 1650f, 53f),
+            };
+            foreach (var (label, target, offset, color, power, angle) in pools)
+                MakeSpot(label, target + offset, target, color, power, offset.magnitude * 1.8f, angle, .28f);
         }
 
         Light MakeLight(string label, LightType type, Vector3 position, Color color, float power, float range)
@@ -518,12 +542,13 @@ namespace DeadlyJenga.CandyArt
             return light;
         }
 
-        void MakeSpot(string label, Vector3 position, Vector3 target, Color color, float power, float range, float angle)
+        void MakeSpot(string label, Vector3 position, Vector3 target, Color color, float power, float range,
+            float angle, float innerFraction = .67f)
         {
             var lamp = MakeLight(label, LightType.Spot, position, color, power, range);
             lamp.transform.localRotation = Quaternion.LookRotation(target - position);
             lamp.spotAngle = angle;
-            lamp.innerSpotAngle = angle * .67f;
+            lamp.innerSpotAngle = angle * innerFraction;
         }
     }
 }
