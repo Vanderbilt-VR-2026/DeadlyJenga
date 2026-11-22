@@ -206,7 +206,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 panel.Add(StudioUi.Hint("Record one actor, then choose another to perform against the first actor’s take."));
                 return;
             }
-            panel.Add(StudioUi.Hint($"{playing} of {others.Count} other recorded actors play back during this pass."));
+            panel.Add(StudioUi.Hint($"Playing alongside you: {playing} of {others.Count} recorded."));
             var fold = new Foldout { text = "Playback appearance and collision", value = showRecordedCast };
             fold.RegisterValueChangedCallback(e => showRecordedCast = e.newValue);
             var list = new ScrollView { viewDataKey = "perform-recorded-cast-scroll" };

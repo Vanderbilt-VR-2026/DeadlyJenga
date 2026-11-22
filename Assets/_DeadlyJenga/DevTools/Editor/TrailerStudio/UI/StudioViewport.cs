@@ -78,6 +78,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         readonly Image image;
         readonly Label help;
         readonly Dictionary<string, VisualElement> handles = new Dictionary<string, VisualElement>();
+        readonly List<Rect> nameplates = new List<Rect>();
         VisualElement empty;
         string dragging;                  // mark id being dragged
         IStudioViewportTool tool;
@@ -177,6 +178,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 markLayer.Add(handle);
                 handles[mark.id] = handle;
             }
+            if (context.Selection is StudioMark selected && handles.TryGetValue(selected.id, out var active))
+                active.BringToFront();
         }
 
         // Called about 30 times a second while the stage is open.
@@ -193,12 +196,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             lines.MarkDirtyRepaint();
             var stage = context.Stage;
             if (stage == null || context.Set == null) return;
+            nameplates.Clear();
+            var selected = context.Selection as StudioMark;
+            if (selected != null) PositionHandle(selected);
             foreach (var mark in context.Set.marks)
+                if (mark != selected) PositionHandle(mark);
+
+            void PositionHandle(StudioMark mark)
             {
-                if (!handles.TryGetValue(mark.id, out var handle)) continue;
+                if (!handles.TryGetValue(mark.id, out var handle)) return;
                 bool visible = ToPanel(stage.ToWorld(mark.position) + Vector3.up * (mark.role == StudioRole.Hand ? 0 : .9f), out var point);
                 handle.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
-                if (!visible) continue;
+                if (!visible) return;
                 handle.style.left = point.x; handle.style.top = point.y;
                 // Turn the little line so it points where the actor faces, as seen from this camera.
                 handle.Q("facing").style.rotate = new Rotate(mark.yaw - StudioCamera.Yaw);
@@ -207,6 +216,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var label = handle.Q<Label>("label");
                 label.text = warning.Length > 0 ? mark.actor + " · " + warning : mark.actor;
                 label.EnableInClassList("ts-mark-label--warn", warning.Length > 0);
+                float width = label.layout.width;
+                if (!(width > 0)) width = 20 + label.text.Length * 7;
+                var plate = new Rect(point.x - width / 2 - 2, point.y + 10, width + 4, 18);
+                bool crowded = false;
+                foreach (var other in nameplates)
+                    if (other.Overlaps(plate)) { crowded = true; break; }
+                label.style.visibility = crowded ? Visibility.Hidden : Visibility.Visible;
+                if (!crowded) nameplates.Add(plate);
             }
         }
 

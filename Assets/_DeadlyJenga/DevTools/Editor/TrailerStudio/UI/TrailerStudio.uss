@@ -52,7 +52,7 @@
 .ts-topbar {
     flex-direction: row;
     align-items: center;
-    height: 44px;
+    height: 44px; flex-shrink: 0;
     padding: 0 var(--ts-space-3);
     background-color: var(--ts-panel);
     border-bottom-width: 1px;
@@ -72,11 +72,12 @@
 }
 .ts-setpicker:hover { background-color: var(--ts-hover); }
 .ts-workflow {
+    flex-shrink: 0;
     padding: 4px var(--ts-space-2);
     background-color: var(--ts-panel);
     border-bottom-width: 1px; border-bottom-color: var(--ts-line);
 }
-.ts-tabs { flex-direction: row; flex-wrap: wrap; }
+.ts-tabs { min-height: 38px; flex-direction: row; flex-wrap: wrap; }
 .ts-tab Label { color: var(--ts-text); }
 .ts-tab .ts-tab-caption { font-size: var(--ts-font-small); color: var(--ts-dim); }
 .ts-tab--on Label, .ts-tab--on .ts-tab-caption { color: var(--ts-accent-text); }
@@ -225,7 +226,7 @@
 
 /* ---- Bottom: transport and timeline ---- */
 .ts-bottom {
-    height: 230px; flex-shrink: 0;
+    height: 28%; min-height: 142px; max-height: 230px; flex-shrink: 0;
     background-color: var(--ts-panel);
     border-top-width: 1px; border-top-color: var(--ts-line);
 }

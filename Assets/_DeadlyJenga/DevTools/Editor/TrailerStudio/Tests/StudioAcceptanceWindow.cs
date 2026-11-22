@@ -37,7 +37,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (host == null || grab == null) throw new InvalidOperationException("Editor window capture is unavailable.");
             var size = window.position.size * EditorGUIUtility.pixelsPerPoint;
             int width = Mathf.RoundToInt(size.x), height = Mathf.RoundToInt(size.y);
-            var target = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);
+            var target = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             var picture = new Texture2D(width, height, TextureFormat.RGB24, false);
             var previous = RenderTexture.active;
             try
@@ -47,6 +47,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 grab.Invoke(host, new object[] { target, bounds });
                 RenderTexture.active = target;
                 picture.ReadPixels(bounds, 0, 0);
+                if (SystemInfo.graphicsUVStartsAtTop)
+                {
+                    var pixels = picture.GetPixels32();
+                    var row = new Color32[width];
+                    for (int y = 0; y < height / 2; y++)
+                    {
+                        int low = y * width, high = (height - 1 - y) * width;
+                        Array.Copy(pixels, low, row, 0, width);
+                        Array.Copy(pixels, high, pixels, low, width);
+                        Array.Copy(row, 0, pixels, high, width);
+                    }
+                    picture.SetPixels32(pixels);
+                }
                 picture.Apply();
                 File.WriteAllBytes(Path.Combine(Folder, name + ".png"), picture.EncodeToPNG());
                 return picture.GetPixels32().Where((_, i) => i % 997 == 0)
