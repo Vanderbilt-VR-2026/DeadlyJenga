@@ -110,15 +110,15 @@ namespace DeadlyJenga.NinjaArt
                         var turn = Quaternion.Euler(0,90*edge,0);
                         float across = (edge%2==0 ? size.x : size.z)/2;
                         float depth = (edge%2==0 ? size.z : size.x)/2;
-                        float inner = depth*.81f, rise = (depth-inner)*.72f;
+                        float inner = depth*.81f, skirtRise = (depth-inner)*.72f;
                         int tiles = Mathf.Max(8,Mathf.RoundToInt(across*4));
                         for (int i=0; i<tiles; i++)
                         {
                             float u = 2*i/(float)tiles-1, v = 2*(i+1)/(float)tiles-1;
-                            var a = turn * new Vector3(u*across*.81f,.55f+rise,inner);
+                            var a = turn * new Vector3(u*across*.81f,.55f+skirtRise,inner);
                             var b = turn * new Vector3(u*across,.55f,depth);
                             var c = turn * new Vector3(v*across,.55f,depth);
-                            var d = turn * new Vector3(v*across*.81f,.55f+rise,inner);
+                            var d = turn * new Vector3(v*across*.81f,.55f+skirtRise,inner);
                             m.Quad(a,b,c,d,new Color(.25f,.27f,.35f));
                             m.Cylinder(a,b,.055f,.07f,5,new Color(.37f,.38f,.45f),P.Tile);
                         }
