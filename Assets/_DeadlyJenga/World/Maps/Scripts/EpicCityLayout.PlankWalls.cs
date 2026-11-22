@@ -82,6 +82,21 @@ namespace DeadlyJenga.CastlePrototype
                         Part(floor, facing * center, new Vector3(2.5f, 1.08f, 1.4f), 3, facing);
                     }
                 }
+                if (floor.purpose == "Independent bookfall support spine")
+                {
+                    // Short room dividers and window seats leave the central passage and stairwell clear.
+                    foreach (int side in new[]{-1, 1})
+                    foreach (int end in new[]{-1, 1})
+                    {
+                        float z = end * depth * .23f;
+                        Part(floor,new Vector3(side*(w*.5f-2.25f),baseY+1.45f,z),
+                            new Vector3(4.5f,2.9f,.48f),1);
+                        Part(floor,new Vector3(side*(w*.5f-1.4f),baseY+.52f,z+2.3f),
+                            new Vector3(2.1f,1.04f,3.6f),3);
+                    }
+                }
+                if (doors && districtName == "Canyon south-east tower")
+                    Part(floor, new Vector3(0,.3f,2), new Vector3(10,.6f,5),1);
                 int rows = Mathf.FloorToInt((height - .7f) / PlankRow); // up to the underside of the deck above
                 for (int wall = 0; wall < 4; wall++)
                 {

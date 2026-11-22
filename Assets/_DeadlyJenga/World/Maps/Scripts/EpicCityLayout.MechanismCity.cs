@@ -28,6 +28,12 @@ namespace DeadlyJenga.CastlePrototype
                 var p = OnRing(45, 80);
                 order.Add(Transplant("Downtown drop-stop tower", TowerExhibitionLayout.Build(false, 5), TowerExhibitionLayout.Centers[5], p, TangentX(45),
                     m => m.position.y - TowerExhibitionLayout.Centers[5].y < 31));
+                if (skyRing)
+                {
+                    int tier = 0;
+                    foreach (var member in plan.sites[order[0]].members)
+                        if (member.purpose == "Escape spine") SubstationStairs(member, tier++);
+                }
                 // Sugar Market: unchanged hall with two annexes.
                 p = OnRing(105, ring); order.Add(JengaSite("Sugar Market west annex", p.x, p.z, 3, 24, 24, FacePlaza(105)));
                 p = OnRing(135, ring); order.Add(JengaSite("Sugar Market hall", p.x, p.z, 2, 28, 22, FacePlaza(135)));
@@ -105,6 +111,30 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 // Last, once every bridge exists: Jenga plank walls that leave each crossing open.
                 if (skyRing) PlankWalls();
+            }
+
+            // Keep the four original load-bearing columns. The public stairs run along the long
+            // elevation. A full-width landing at either end joins successive flights and tiers.
+            void SubstationStairs(MayhemModule tower, int tier)
+            {
+                tower.shapes.RemoveRange(4, tower.shapes.Count - 4);
+                for (int floor = 0; floor < 3; floor++)
+                {
+                    float y = floor * 5;
+                    const float landing = 3.75f;
+                    foreach (int side in new[]{-1, 1})
+                        Part(tower, new Vector3(0, y+4.6f, side*(12.5f-landing*.5f)),
+                            new Vector3(17, .8f, landing), 1);
+                    // The inner gallery stays continuous where the drop-stop bridge arrives.
+                    Part(tower, new Vector3(-3.75f, y+4.6f, 0), new Vector3(9.5f,.8f,17.5f), 1);
+                    int direction = (tier*3+floor)%2==0 ? 1 : -1;
+                    float lane = direction==1 ? 2.9f : 6.65f;
+                    Flight(tower,new Vector3(lane,y,-direction*8.75f),
+                        new Vector3(lane,y+5,direction*8.75f),3.7f);
+                }
+                if (tier == 2)
+                    Part(tower,new Vector3(-4,15.55f,0),new Vector3(4.8f,1.1f,4.8f),3);
+                geometryBounds.Remove(tower);
             }
 
             // Recreates what ConceptMechanismMap adds itself: anchored "Fixed" pieces, hinges, the roof slider.

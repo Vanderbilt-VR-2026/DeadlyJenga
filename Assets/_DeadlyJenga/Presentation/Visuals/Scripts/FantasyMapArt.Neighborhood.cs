@@ -92,6 +92,28 @@ namespace DeadlyJenga.Presentation
                 }
                 if(ground && site=="Sugar Market hall")
                 {
+                    Box(0,2.1f,-depth*1.75f,7,2.45f,.32f,wood);
+                    Box(0,2.1f,-depth*1.75f+.21f,6.65f,2.12f,.12f,new Color(.075f,.27f,.23f));
+                    for(int line=0;line<3;line++)
+                        Box(-1.6f,2.64f-line*.39f,-depth*1.75f+.29f,1.9f-line*.27f,.065f,.06f,cream);
+                    for(int bike=0;bike<3;bike++)
+                    {
+                        float x=3+bike*2.1f;
+                        for(int wheel=0;wheel<2;wheel++)
+                        {
+                            float wx=x+wheel*.98f;
+                            for(int spoke=0;spoke<10;spoke++)
+                            {
+                                float a=spoke*Mathf.PI/5, b=(spoke+1)*Mathf.PI/5;
+                                Bar(P(wx+.39f*Mathf.Cos(a),.40f+.39f*Mathf.Sin(a),1.1f),
+                                    P(wx+.39f*Mathf.Cos(b),.40f+.39f*Mathf.Sin(b),1.1f),.075f,wood);
+                            }
+                            Bar(P(wx,.4f,1.1f),P(x+.53f,1,1.1f),.09f,bike==1?Gold:CaneRed);
+                        }
+                        Bar(P(x+.98f,.40f,1.1f),P(x+.82f,1.24f,1.1f),.075f,wood);
+                        Box(x+.82f,1.24f,1.1f,.36f,.1f,.1f,wood);
+                        Box(x+.44f,1,1.1f,.32f,.09f,.18f,wood);
+                    }
                     // Painted hopscotch on the school approach; the entry stays clear.
                     for(int row=0;row<6;row++)
                     {
@@ -116,6 +138,15 @@ namespace DeadlyJenga.Presentation
             else if(site.StartsWith("Grape") && (purpose.Contains("bookfall support") || purpose.Contains("book wing") ||
                 purpose.Contains("receiving foot") || purpose.Contains("landing pedestal")))
             {
+                foreach (var collider in body.GetComponentsInChildren<BoxCollider>())
+                {
+                    if (Mathf.Abs(collider.size.y-1.04f)>.005f || Mathf.Abs(collider.size.z-3.6f)>.005f) continue;
+                    var seat=visual.InverseTransformPoint(collider.transform.TransformPoint(collider.center));
+                    var facing=Quaternion.Inverse(visual.rotation)*collider.transform.rotation;
+                    mesh.Box(seat+facing*Vector3.up*.52f,new Vector3(2.12f,.22f,3.64f),facing,0,cream);
+                    for(int pillow=-1;pillow<=1;pillow+=2)
+                        mesh.Box(seat+facing*new Vector3(0,.7f,pillow*1.32f),new Vector3(1.65f,.38f,.64f),facing,0,Gold);
+                }
                 var glass=new Color(.28f,.48f,.54f);
                 var curtain=new Color(1,.58f,.22f);
                 // The long spine and both wing ends have their own elevations. Dress all four faces
@@ -165,24 +196,25 @@ namespace DeadlyJenga.Presentation
                     for(int step=0;step<steps;step++)
                     {
                         float t=(step+.5f)/steps;
-                        var at=new Vector3(ramp.center.x,Mathf.Lerp(ramp.min.y,ramp.max.y,t),Mathf.Lerp(ramp.min.z,ramp.max.z,t));
-                        mesh.Box(visual.InverseTransformPoint(flight.transform.TransformPoint(at)),new Vector3(ramp.size.x,.15f,ramp.size.z/steps),q,0,Gold);
+                        var at=new Vector3(ramp.center.x,.08f+Mathf.Lerp(ramp.min.y,ramp.max.y,t),Mathf.Lerp(ramp.min.z,ramp.max.z,t));
+                        mesh.Box(visual.InverseTransformPoint(flight.transform.TransformPoint(at)),new Vector3(ramp.size.x+.15f,.38f,ramp.size.z/steps+.03f),q,0,new Color(1,.72f,.045f));
                     }
                 }
                 // Each escape tier has three staggered flights. Only the highest tier gets the terminal.
                 if(body.worldCenterOfMass.y-groundY<30) return;
-                float mastX=width*.62f;
-                Box(mastX,roof+.55f,-3,4.8f,1.1f,4.8f,cream);
-                Box(mastX,roof+1.5f,-3,3,1,3,wood);
-                mesh.Cylinder(P(mastX,roof+2,-3),rotation,.39f,5,0,wood,12);
-                Ball(mastX,roof+7,-3,.85f,Gold);
-                var tip=P(mastX,roof+7.6f,-3);
-                var bend=P(mastX+1,roof+10,-3.3f);
-                var elbow=P(mastX-.5f,roof+12.2f,-2.9f);
-                Bar(tip,bend,.18f,Sugar,1);
+                Vector3 Mast(float x,float y,float z) =>
+                    visual.InverseTransformPoint(frame.TransformPoint(new Vector3(-4+x,15+y,z)));
+                var mastRotation=Quaternion.Inverse(visual.rotation)*frame.rotation;
+                mesh.Box(Mast(0,.55f,0),new Vector3(4.84f,1.12f,4.84f),mastRotation,0,cream);
+                mesh.Box(Mast(0,1.5f,0),new Vector3(3,1,3),mastRotation,0,wood);
+                mesh.Cylinder(Mast(0,2,0),mastRotation,.39f,5,0,wood,12);
+                mesh.Sphere(Mast(0,7,0),Vector3.one*.85f,0,Gold,8,12);
+                var bend=Mast(1,10,-.3f);
+                var elbow=Mast(-.5f,12.2f,.1f);
+                Bar(Mast(0,7.6f,0),bend,.18f,Sugar,1);
                 Bar(bend,elbow,.21f,Sugar,1);
-                Bar(elbow,P(mastX+2.1f,roof+17,-3.6f),.16f,Sugar,1);
-                Bar(elbow,P(mastX-2.7f,roof+14,-3.4f),.1f,Sugar,1);
+                Bar(elbow,Mast(2.1f,17,-.6f),.16f,Sugar,1);
+                Bar(elbow,Mast(-2.7f,14,-.4f),.1f,Sugar,1);
             }
             else if(site=="Canyon south-east tower" && purpose.Contains(" floor "))
             {
@@ -197,10 +229,12 @@ namespace DeadlyJenga.Presentation
                 }
                 if(ground)
                 {
-                    Box(0,.35f,-depth,12,.65f,8.6f,enamel);
-                    Box(0,.74f,-depth,11.3f,.18f,8,water);
+                    var basin=visual.InverseTransformPoint(frame.TransformPoint(new Vector3(0,.64f,2)));
+                    var q=Quaternion.Inverse(visual.rotation)*frame.rotation;
+                    mesh.Box(basin,new Vector3(10.05f,.16f,5.05f),q,0,enamel);
+                    mesh.Box(basin+q*Vector3.up*.11f,new Vector3(9.5f,.12f,4.55f),q,0,water);
                     for(int ring=0;ring<3;ring++)
-                        mesh.Cylinder(P(0,.84f+ring*.025f,-depth),rotation,2.8f-ring*.82f,.045f,0,ring%2==0?Sugar:water,30);
+                        mesh.Cylinder(basin+q*Vector3.up*(.18f+ring*.025f),q,2.1f-ring*.61f,.045f,0,ring%2==0?Sugar:water,30);
                 }
                 if(purpose.EndsWith(" floor 7"))
                 {
