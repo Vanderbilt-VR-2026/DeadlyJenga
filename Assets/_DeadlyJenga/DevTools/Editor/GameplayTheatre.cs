@@ -89,6 +89,15 @@ namespace DeadlyJenga.DevTools.Editor
             public bool optional, lethal;
         }
 
+        public void UseDraftSize()
+        {
+            float scale = Mathf.Min(1f, 640f / Mathf.Max(1, width, height));
+            scale = Mathf.Max(scale, 320f / Mathf.Max(1, width), 180f / Mathf.Max(1, height));
+            width = Mathf.RoundToInt(width * scale / 2f) * 2;
+            height = Mathf.RoundToInt(height * scale / 2f) * 2;
+            if (string.IsNullOrEmpty(replaySource)) fps = 15;
+        }
+
         public void Validate()
         {
             if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(map) || string.IsNullOrWhiteSpace(ffmpeg))
@@ -202,6 +211,9 @@ namespace DeadlyJenga.DevTools.Editor
         int mapIndex;
         Vector2 scroll;
         [SerializeField] string json = "";
+        [SerializeField] string direction = "", directingNotes = "";
+        [SerializeField] bool showDirection;
+        [Serializable] sealed class DirectingReport { public string[] pending_review, choices; }
         [SerializeField] bool showRecipe;
         int selectedShot, selectedCue, previewFrame = -1;
         string previewPath;
@@ -251,6 +263,14 @@ namespace DeadlyJenga.DevTools.Editor
         {
             EditorGUILayout.LabelField("Gameplay Theatre", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(GameplayTheatre.Status, MessageType.Info);
+            showDirection = EditorGUILayout.Foldout(showDirection, "Direct a scene from a prompt", true);
+            if (showDirection)
+            {
+                direction = EditorGUILayout.TextArea(direction, GUILayout.MinHeight(50));
+                using (new EditorGUI.DisabledScope(GameplayTheatre.Busy || string.IsNullOrWhiteSpace(direction)))
+                    if (GUILayout.Button("Stage editable recipe")) Try(StageDirection);
+                if (directingNotes.Length > 0) EditorGUILayout.HelpBox(directingNotes, MessageType.Info);
+            }
             using (new EditorGUILayout.HorizontalScope())
             {
                 if (GUILayout.Button("Showcase")) LoadPreset(0);
@@ -440,11 +460,46 @@ namespace DeadlyJenga.DevTools.Editor
             if (preview) GUI.DrawTexture(GUILayoutUtility.GetRect(180, 180, GUILayout.ExpandWidth(true)), preview, ScaleMode.ScaleToFit);
         }
 
+        void StageDirection()
+        {
+            var root = SpectatorRecordingPlan.ProjectRoot;
+            var script = Path.Combine(root, "Docs", "Development", "TrailerStudio", "tools", "direct_scene.py");
+            var folder = Path.Combine(root, "Logs", "GameplayTheatre", "Directions", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(Path.Combine(folder, "prompt.txt"), direction);
+            bool windows = Application.platform == RuntimePlatform.WindowsEditor;
+            var start = new ProcessStartInfo(windows ? "py" : "python3",
+                (windows ? "-3 " : "") + "-B \"" + script + "\" prompt.txt staged")
+            {
+                WorkingDirectory = folder, UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true
+            };
+            using (var process = Process.Start(start))
+            {
+                var error = process.StandardError.ReadToEndAsync();
+                if (!process.WaitForExit(15000))
+                {
+                    process.Kill();
+                    throw new TimeoutException("Prompt staging exceeded 15 seconds. Your direction is saved in " + folder);
+                }
+                if (process.ExitCode != 0) throw new InvalidDataException(error.GetAwaiter().GetResult().Trim());
+            }
+            var staged = Path.Combine(folder, "staged");
+            string next = File.ReadAllText(Path.Combine(staged, "recipe.json"));
+            var parsed = JsonUtility.FromJson<TheatrePlan>(next);
+            parsed.Validate();
+            var report = JsonUtility.FromJson<DirectingReport>(File.ReadAllText(Path.Combine(staged, "staging.json")));
+            Undo.RecordObject(this, "Stage trailer direction");
+            json = next;
+            mapIndex = Mathf.Max(0, Array.IndexOf(mapIds, parsed.map));
+            directingNotes = string.Join("\n", (report.choices ?? Array.Empty<string>())
+                .Concat(report.pending_review ?? Array.Empty<string>()));
+        }
+
         void Render(bool draft)
         {
             plan = JsonUtility.FromJson<TheatrePlan>(json);
             if (plan == null) throw new InvalidDataException("Recipe is empty.");
-            if (draft) { plan.width = 640; plan.height = 360; if (string.IsNullOrEmpty(plan.replaySource)) plan.fps = 15; }
+            if (draft) plan.UseDraftSize();
             GameplayTheatre.Start(plan, null, false);
         }
         void Try(Action action) { try { issue = ""; action(); } catch (Exception error) { issue = error.Message; } }
@@ -497,30 +552,52 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunBatch()
         {
+            RunRecipeBatch(Arg("-theatrePlan"), Arg("-theatreOutput"));
+        }
+
+        public static void RunDirectedExample()
+        {
+            string root = SpectatorRecordingPlan.ProjectRoot;
+            RunRecipeBatch(Path.Combine(root, "Docs", "Development", "TrailerStudio", "examples", "castle-contact", "recipe.json"),
+                Path.Combine(root, "Logs", "Validation", "DirectedPrompt"));
+        }
+
+        static void EndBatch(int code)
+        {
+            if (SessionState.GetString("DJWarm.id", "").Length == 0)
+            {
+                EditorApplication.Exit(code);
+                return;
+            }
+            Directory.CreateDirectory(Path.Combine("Logs", "Warm"));
+            File.WriteAllText(Path.Combine("Logs", "Warm", "exit.txt"), code.ToString());
+        }
+
+        static void RunRecipeBatch(string recipe, string output)
+        {
             try
             {
                 if (Array.IndexOf(Environment.GetCommandLineArgs(), "-theatreInstallMixer") >= 0)
                     TheatreAudioCapture.InstallMixer();
-                string recipe = Arg("-theatrePlan");
                 var plan = recipe.Length == 0 ? TheatrePlan.Showcase() : JsonUtility.FromJson<TheatrePlan>(File.ReadAllText(recipe));
                 if (Array.IndexOf(Environment.GetCommandLineArgs(), "-theatreStuntFixture") >= 0)
                     TheatreStuntImport.AttachFixture(plan);
                 if (Arg("-theatreFfmpeg") is string ffmpeg && ffmpeg.Length > 0) plan.ffmpeg = ffmpeg;
                 if (Array.IndexOf(Environment.GetCommandLineArgs(), "-theatreDraft") >= 0)
-                { plan.width = 640; plan.height = 360; plan.fps = 15; }
+                    plan.UseDraftSize();
                 VerifyRecipeValidation();
                 double deadline = EditorApplication.timeSinceStartup + 120;
                 void BeginWhenReady()
                 {
                     if ((EditorApplication.isCompiling || EditorApplication.isUpdating) && EditorApplication.timeSinceStartup < deadline) return;
                     EditorApplication.update -= BeginWhenReady;
-                    try { Start(plan, Arg("-theatreOutput"), true,
+                    try { Start(plan, output, true,
                         Array.IndexOf(Environment.GetCommandLineArgs(), "-theatrePreviewCheck") >= 0); }
-                    catch (Exception error) { Debug.LogException(error); EditorApplication.Exit(1); }
+                    catch (Exception error) { Debug.LogException(error); EndBatch(1); }
                 }
                 EditorApplication.update += BeginWhenReady;
             }
-            catch (Exception error) { Debug.LogException(error); EditorApplication.Exit(1); }
+            catch (Exception error) { Debug.LogException(error); EndBatch(1); }
         }
         static void VerifyRecipeValidation()
         {
@@ -701,7 +778,7 @@ namespace DeadlyJenga.DevTools.Editor
                 catch (Exception error) { passed = false; finished.failure = error.ToString(); }
                 Status = passed ? (finished.previewOnly ? "3D preview closed." : "Gallery ready: " + finished.folder) : finished.failure;
                 File.WriteAllText(Path.Combine(finished.folder, "result.txt"), (passed ? "PASS " : "FAIL ") + Status);
-                if (finished.batch) EditorApplication.Exit(passed ? 0 : 1);
+                if (finished.batch) EndBatch(passed ? 0 : 1);
             }
         }
         static void BeginCapture()
