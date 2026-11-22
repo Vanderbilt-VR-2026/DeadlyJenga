@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 town.Hall(side * 10, -29, 9, 8, 0, 4.4f, 1, 2);
                 town.Hall(side * 11, -15, 10, 8, 0, 3, 2, 2, yaw: side * 20);
-                town.Hall(side * 30, -33, 12, 9, 0, 4.8f, 1, 3, yaw: side * 42);
+                town.Hall(side * 29, -32, 12, 9, 0, 4.8f, 1, 3, yaw: side * 42);
                 town.Hall(side * 32, -17, 9, 8, 0, 4.6f, 1, 2, yaw: side * 65);
             }
             town.Hall(29, 0, 14, 10, 0, 4, 2, 3);
@@ -108,7 +108,7 @@ namespace DeadlyJenga.CastlePrototype
                     ColliderBox(fixtures,"Lantern pole",new Vector3(side*4.6f,2.7f,-32+row*12),new Vector3(.26f,5.4f,.26f),Quaternion.identity);
                 for (int i = 0; i < 5; i++)
                     StoneLantern(fixtures,new Vector3(side*4,0,i == 4 ? -1 : -39+i*10),1);
-                Vector3[] rim = {new(side*5,0,-46),new(side*23,0,-46),new(side*46,0,-23),new(side*46,0,18)};
+                Vector3[] rim = {new(side*5,0,-47),new(side*24,0,-47),new(side*47,0,-24),new(side*47,0,18)};
                 for (int edge = 0; edge < rim.Length-1; edge++)
                 {
                     var from = rim[edge]; var to = rim[edge+1];
@@ -128,7 +128,7 @@ namespace DeadlyJenga.CastlePrototype
                 var rng = new System.Random(side+10);
                 rng.NextDouble(); // Trunk color precedes the bend in the scenery builder.
                 var bend = new Vector3((float)rng.NextDouble()-.5f,0,(float)rng.NextDouble()-.5f).normalized;
-                var foot = new Vector3(side*23,0,-36);
+                var foot = new Vector3(side*21,0,-28);
                 for (int i = 0; i < 4; i++)
                 {
                     var next = foot+(Vector3.up*1.6f+bend*(.6f+i*.25f))*(1.35f*.7f);

@@ -904,6 +904,8 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(MoveFrom(gate,Vector3.forward*4).z > gate.z+3.8f,"Survivor controller passes through the torii opening");
                 var lamp = map.transform.TransformPoint(new Vector3(-4,.08f,-39));
                 Check(MoveFrom(lamp+Vector3.back*1.3f,Vector3.forward*2.6f).z < lamp.z-.12f,"Stone lantern stops the survivor controller");
+                var fence = map.transform.TransformPoint(new Vector3(47,.12f,8));
+                Check(MoveFrom(fence+Vector3.left*1.2f,Vector3.right*2.4f).x < fence.x-.1f,"Survivor controller stops at the quay rail");
                 var at = roof.position + new Vector3(0,4,1.35f);
                 Check(MoveFrom(at,Vector3.down*5).y > roof.position.y+1.3f,"Survivor controller stands on the pitched roof above its deck");
                 var edge = roof.position + new Vector3(0,3,4.95f);
@@ -971,7 +973,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Capture(new Vector3(0,2,-40),new Vector3(0,8,21),68,"ShrineTown-Market.png");
             }
             finally {Shader.SetGlobalVector("_NinjaFogParams",fog);RenderSettings.fog=sceneFog;}
-            Check(drift.distance < .55f, "Intact town settled within tolerance, max drift " + drift.distance);
+            Check(drift.distance < .12f, "Intact town settled within tolerance, max drift " + drift.distance);
             var shopRoof = generator.Bodies[layout.FindIndex(p =>
                 p.Position.x == 10 && p.Position.z == -29 && Mathf.Abs(p.Size.y - 1.25f) < .01f)];
             float roofY = shopRoof.position.y;
