@@ -192,22 +192,22 @@
       "subject": "shooter",
       "second": "lime",
       "from": {
-        "x": 5.6,
-        "y": 3.2,
-        "z": -3.3
+        "z": -9,
+        "x": 10,
+        "y": 7
       },
       "to": {
-        "x": 12,
-        "y": 6.4,
-        "z": -5.5
+        "z": -14,
+        "x": 16,
+        "y": 10
       },
       "look": {
-        "y": -3,
-        "x": -3.5,
-        "z": 2.5
+        "z": 3,
+        "x": -5,
+        "y": -4
       },
-      "fov": 64,
-      "avoidWalls": true
+      "fov": 57,
+      "avoidWalls": false
     }
   ],
   "cues": [
