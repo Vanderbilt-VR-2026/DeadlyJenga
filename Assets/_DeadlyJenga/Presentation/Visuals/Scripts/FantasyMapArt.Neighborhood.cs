@@ -347,32 +347,35 @@ namespace DeadlyJenga.Presentation
                 if(purpose.EndsWith(" floor 7"))
                 {
                     // Sit the collector on the solid half of the deck, clear of the stair opening.
-                    float centerZ=-depth;
-                    var offset=visual.InverseTransformVector(frame.TransformVector(Vector3.forward*4));
-                    var center=P(0,roof+.12f,centerZ)+offset;
+                    var qRoof=Quaternion.Inverse(visual.rotation)*frame.rotation;
+                    Vector3 Collector(float x,float y,float z)=>visual.InverseTransformPoint(
+                        frame.TransformPoint(new Vector3(x,4.12f+y,5.2f+z)));
+                    var center=Collector(0,.03f,0);
                     for(int i=0;i<4;i++)
                     {
-                        var q=rotation*Quaternion.Euler(0,90*i,0);
+                        var q=qRoof*Quaternion.Euler(0,90*i,0);
+                        float halfWidth=i%2==0?8.7f:4.85f;
+                        float reach=i%2==0?4.85f:8.7f;
                         Vector3 Rim(float x,float y,float z)=>center+q*new Vector3(x,y,z);
-                        var a=Rim(-2,0,2); var b=Rim(2,0,2);
-                        var c=Rim(7.1f,3.1f,6.8f); var d=Rim(-7.1f,3.1f,6.8f);
+                        var a=Rim(-1.65f,0,1.65f); var b=Rim(1.65f,0,1.65f);
+                        var c=Rim(halfWidth,2.85f,reach); var d=Rim(-halfWidth,2.85f,reach);
                         var normal=Vector3.Cross(d-a,b-a).normalized;
                         mesh.Panel(a,d,c,b,normal,normal,normal,normal,water);
-                        Bar(c,d,.76f,enamel);
-                        Bar(a,d,.38f,enamel);
+                        Bar(c,d,.64f,enamel);
+                        Bar(a,d,.4f,enamel);
                     }
                     mesh.Cylinder(center,rotation,2.8f,.18f,0,water,20);
-                    mesh.Sphere(P(-.8f,roof+11.4f,centerZ+1.3f)+offset,new Vector3(4.5f,2.6f,3.35f),0,Sugar,10,16);
-                    mesh.Sphere(P(2.2f,roof+10,centerZ-1.85f)+offset,new Vector3(3.3f,2.35f,3.15f),0,Sugar,10,16);
+                    mesh.Sphere(Collector(-.8f,11.4f,1.3f),new Vector3(4.5f,2.6f,3.35f),0,Sugar,10,16);
+                    mesh.Sphere(Collector(2.2f,10,-1.85f),new Vector3(3.3f,2.35f,3.15f),0,Sugar,10,16);
                     for(int puff=-2;puff<=2;puff++)
                     {
-                        float y=roof+9.5f+.9f*(2-Mathf.Abs(puff));
-                        mesh.Sphere(P(puff*2.2f,y,centerZ)+offset,new Vector3(3.1f,2.55f,3.1f),0,Sugar,10,16);
+                        float y=9.5f+.9f*(2-Mathf.Abs(puff));
+                        mesh.Sphere(Collector(puff*2.2f,y,0),new Vector3(3.1f,2.55f,3.1f),0,Sugar,10,16);
                     }
                     for(int drop=0;drop<15;drop++)
                     {
                         float angle=drop*2.4f, radius=1.3f+drop%3;
-                        var start=P(Mathf.Cos(angle)*radius,roof+3.4f+drop%3,centerZ+Mathf.Sin(angle)*radius)+offset;
+                        var start=Collector(Mathf.Cos(angle)*radius,3.4f+drop%3,Mathf.Sin(angle)*radius);
                         Bar(start,start+rotation*new Vector3(.26f,2.6f,0),.12f,water,1);
                     }
                 }

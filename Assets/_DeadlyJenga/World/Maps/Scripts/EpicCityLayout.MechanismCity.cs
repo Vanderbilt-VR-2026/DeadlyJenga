@@ -142,11 +142,31 @@ namespace DeadlyJenga.CastlePrototype
                     level++;
                     // At alternate heights the stair and its side landings occupy just the rear
                     // half. From the street the lower pump room and upper gallery are double-height.
-                    if (level % 2 == 0 || level == 7 || (level == 3 && site.members.Count < 7)) continue;
+                    if (level == 7)
+                    {
+                        // The collector is seated on the solid half of the roof, past the stair head.
+                        var center = new Vector3(0,4.12f,5.2f);
+                        for(int edge=0;edge<4;edge++)
+                        {
+                            var turn=Quaternion.Euler(0,90*edge,0);
+                            float halfWidth=edge%2==0?8.7f:4.85f;
+                            float reach=edge%2==0?4.85f:8.7f;
+                            var a=new Vector3(-1.65f,0,1.65f);
+                            var c=new Vector3(halfWidth,2.85f,reach);
+                            var top=new[]{a,new Vector3(-a.x,0,a.z),c,new Vector3(-c.x,c.y,c.z)};
+                            var v=new Vector3[8];
+                            for(int n=0;n<4;n++){v[n]=top[n]-Vector3.up*.22f;v[n+4]=top[n];}
+                            floor.shapes.Add(new MayhemShape(center,new Vector3(halfWidth*2,3.07f,reach-1.65f),
+                                2,turn,v));
+                        }
+                        continue;
+                    }
+                    if (level % 2 == 0 || (level == 3 && site.members.Count < 7)) continue;
                     floor.shapes.RemoveRange(4,4);
                     Part(floor,new Vector3(0,3.65f,-8.6f),new Vector3(20.8f,.7f,3.6f),1);
                     foreach(int side in new[]{-1,1})
-                        Part(floor,new Vector3(side*8,3.65f,-2.3f),new Vector3(4.8f,.7f,9),1);
+                        Part(floor,new Vector3(side*8,3.65f,1.7f),new Vector3(4.8f,.7f,17),1);
+                    Part(floor,new Vector3(0,3.65f,7.8f),new Vector3(11.2f,.7f,3.9f),1);
                     geometryBounds.Remove(floor);
                 }
             }
