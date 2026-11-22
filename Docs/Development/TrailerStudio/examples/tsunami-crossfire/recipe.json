@@ -202,9 +202,9 @@
         "z": -5.5
       },
       "look": {
-        "x": 0,
-        "y": -3.5,
-        "z": 1.5
+        "y": -3,
+        "x": -3.5,
+        "z": 2.5
       },
       "fov": 64,
       "avoidWalls": true
@@ -228,8 +228,8 @@
       "at": 2.65,
       "action": "tsunami",
       "heading": 30,
-      "height": 54,
-      "strength": 6.5
+      "height": 32,
+      "strength": 6
     },
     {
       "at": 3.17,
@@ -287,8 +287,8 @@
   ],
   "rooftopBattleSet": true,
   "stageOffset": {
-    "x": 0,
-    "y": 1.5,
-    "z": 0
+    "y": -20,
+    "x": 20,
+    "z": -11
   }
 }
