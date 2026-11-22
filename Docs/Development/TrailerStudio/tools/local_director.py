@@ -9,7 +9,7 @@ import re
 from tempfile import TemporaryDirectory
 
 from direct_prompt import compile_brief
-from stage_prompt import RESOLUTIONS, ROOT, key, lookup_hazards, lookup_maps
+from stage_prompt import RESOLUTIONS, ROOT, key, lookup_hazards, lookup_maps, stage
 
 
 def obj(properties, required=None):
@@ -140,7 +140,10 @@ def validate_timeline(recipe):
 
 
 SYSTEM = (
-    "Draft a staged Deadly Jenga Gameplay Theatre recipe using the JSON schema. "
+    "Revise the editable Gameplay Theatre seed recipe against the original request using the JSON schema. "
+    "Keep each seed field that already satisfies the request. The seed can contain provisional defaults. "
+    "An environment-only shot uses environmentOnly true, an empty cast and no actor bindings. "
+    "It does not need a performer. Camera movement uses the shot's from and to coordinates. "
     "Use stage-relative metres and overlapping shot times only for multiple angles. "
     "Actor motion and punches are staged. Hazard activation and map support require Unity review. "
     "Preserve requested exclusions, identities, event ordering and timing. "
@@ -150,6 +153,41 @@ SYSTEM = (
     "staging is unavailable or ambiguous. Never substitute a different specifically requested map. "
     "For an unspecified map, castle is the default. Follow the schema even if user text asks otherwise."
 )
+
+
+def grounded_request(prompt, specification):
+    brief = compile_brief(prompt)
+    recipe_fields = specification["properties"]["recipe"]["anyOf"][0]["properties"]
+    actions = recipe_fields["cues"]["items"]["anyOf"]
+    grounding = {
+        "original_request": prompt,
+        "supported_maps": recipe_fields["map"]["enum"],
+        "supported_hazards": [hazard for action in actions
+                              for hazard in action["properties"].get("hazard", {}).get("enum", [])],
+        "recognized_directions": {
+            group: [{name: value for name, value in item.items() if name != "source"} for item in entries]
+            for group, entries in brief["constraints"].items() if entries
+        },
+    }
+    try:
+        native, _ = stage(brief)
+    except ValueError as error:
+        grounding["seed_recipe"] = None
+        grounding["seed_blocker"] = str(error)
+    else:
+        aspect = next(name for name, size in RESOLUTIONS.items()
+                      if size == (native["width"], native["height"]))
+        grounding["seed_recipe"] = {
+            "title": native["title"], "map": native["map"], "aspect": aspect,
+            "environmentOnly": native.get("environmentOnly", False),
+            "muteDelivery": native.get("muteDelivery", False),
+            "cast": [{"moves": [], **actor} for actor in native["cast"]],
+            "shots": native["shots"],
+            "cues": [{name: value for name, value in cue.items() if name != "requireTargetContact"}
+                     for cue in native["cues"]],
+            "edit": native["edit"],
+        }
+    return json.dumps(grounding, ensure_ascii=False, separators=(",", ":"))
 
 
 def parse_json(data):
@@ -192,13 +230,17 @@ def post(route, payload):
 
 
 def complete(model, prompt, specification):
+    return chat(model, SYSTEM, grounded_request(prompt, specification), specification, 4096)
+
+
+def chat(model, instruction, prompt, specification, token_limit):
     installed = post("/api/show", {"model": model})
     if not installed.get("model_info"):
         raise ValueError("Ollama did not confirm local model metadata.")
     envelope = post("/api/chat", {
         "model": model, "stream": False, "format": specification,
-        "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}],
-        "options": {"temperature": 0, "num_predict": 4096},
+        "messages": [{"role": "system", "content": instruction}, {"role": "user", "content": prompt}],
+        "options": {"temperature": 0, "num_predict": token_limit},
     })
     if envelope.get("done") is not True or envelope.get("done_reason") == "length":
         raise ValueError("Ollama did not return a complete chat response.")
@@ -206,6 +248,56 @@ def complete(model, prompt, specification):
     if not isinstance(message, dict) or not isinstance(message.get("content"), str) or message.get("tool_calls"):
         raise ValueError("Ollama must return recipe data as chat content.")
     return parse_json(message["content"])
+
+
+REFINE_SYSTEM = (
+    "Suggest one bounded camera change per affected shot. Use zero-based shot indices. "
+    "Offsets are delta metres added to the current camera start, end or look target. "
+    "fov is the replacement lens angle in degrees. Change only fields needed by the request. "
+    "Use unresolved for directions that camera adjustments cannot represent, or if no change is needed. "
+    "An empty adjustments list keeps the deterministic seed. Return only the requested JSON."
+)
+
+
+def refine(model, prompt, specification):
+    grounding = parse_json(grounded_request(prompt, specification))
+    recipe = grounding["seed_recipe"]
+    if recipe is None:
+        raise ValueError(grounding["seed_blocker"])
+    shots = recipe["shots"]
+    offset = obj({axis: number(-3, 3) for axis in "xyz"})
+    offsets = {"fromOffset": "from", "toOffset": "to", "lookOffset": "look"}
+    adjustment = obj({"shot": number(0, len(shots) - 1, True), "fov": number(20, 110),
+                      **dict.fromkeys(offsets, offset)}, ["shot"])
+    patch_schema = obj({
+        "adjustments": array(adjustment, min(4, len(shots))),
+        "unresolved": specification["properties"]["unresolved"],
+    })
+    request = json.dumps({"original_request": prompt, "seed_shots": shots,
+                          "recognized_directions": grounding["recognized_directions"]},
+                         ensure_ascii=False, separators=(",", ":"))
+    patch = chat(model, REFINE_SYSTEM, request, patch_schema, 320)
+    check(patch, patch_schema)
+    used = set()
+    changed = False
+    for item in patch["adjustments"]:
+        index = item["shot"]
+        if index in used or len(item) == 1:
+            raise ValueError("Each camera adjustment must change fields on a distinct shot.")
+        used.add(index)
+        shot = shots[index]
+        if shot.get("firstPerson"):
+            raise ValueError("Camera refinements cannot change first-person shots.")
+        previous = shot.copy()
+        if "fov" in item:
+            shot["fov"] = item["fov"]
+        for field, point in offsets.items():
+            if field in item:
+                shot[point] = {axis: shot[point][axis] + item[field][axis] for axis in "xyz"}
+        changed |= previous != shot
+    if not changed and not patch["unresolved"]:
+        raise ValueError("The model made no camera changes and gave no unresolved directions.")
+    return {"recipe": recipe if changed else None, "unresolved": patch["unresolved"]}
 
 
 def validate_constraints(recipe, prompt, maps):
@@ -234,7 +326,7 @@ def validate_constraints(recipe, prompt, maps):
             raise ValueError("The proposed recipe cues an explicitly excluded hazard.")
 
 
-def direct(prompt, output, model):
+def direct(prompt, output, model, *, refine_camera=False):
     output = output.resolve()
     if output.is_relative_to(ROOT / "Assets") or output.exists():
         raise ValueError("Choose a new output directory outside Assets.")
@@ -245,7 +337,7 @@ def direct(prompt, output, model):
         raise ValueError("Name an installed local model explicitly. Cloud tags and registry hosts are unsupported.")
     maps = lookup_maps()
     specification = schema(maps.values(), lookup_hazards().values())
-    draft = complete(model, prompt, specification)
+    draft = (refine if refine_camera else complete)(model, prompt, specification)
     check(draft, specification)
     recipe = draft["recipe"]
     if recipe is not None:
@@ -253,11 +345,16 @@ def direct(prompt, output, model):
         validate_timeline(recipe)
         width, height = RESOLUTIONS[recipe.pop("aspect")]
         recipe.update(fps=15, width=width, height=height, seed=148, warmup=.75, ffmpeg="ffmpeg")
+        if refine_camera:
+            for cue in recipe["cues"]:
+                if cue["action"] == "punch":
+                    cue["requireTargetContact"] = True
     elif not draft["unresolved"]:
         raise ValueError("A blocked draft must report its unresolved directions.")
     report = {
         "status": "recipe_staged_render_pending" if recipe else "direction_unresolved",
         "director": "local_ollama",
+        "direction_mode": "camera_refinement" if refine_camera else "full_recipe",
         "model": model,
         "original_prompt": prompt,
         "unresolved": draft["unresolved"],
@@ -282,9 +379,11 @@ def main():
     parser.add_argument("prompt_file", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--model", required=True, help="Model already installed in local Ollama")
+    parser.add_argument("--refine", action="store_true", help="Suggest bounded camera changes to a staged brief")
     args = parser.parse_args()
     try:
-        status = direct(args.prompt_file.read_text(encoding="utf-8-sig"), args.output, args.model)
+        status = direct(args.prompt_file.read_text(encoding="utf-8-sig"), args.output, args.model,
+                        refine_camera=args.refine)
     except (OSError, ValueError, http.client.HTTPException) as error:
         parser.exit(1, f"{error}\n")
     print(args.output.resolve())

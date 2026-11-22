@@ -18,6 +18,8 @@ After rendering, run `py -3 -B Docs/Development/TrailerStudio/tools/review_scene
 
 For more open-ended language, [the optional semantic director](tools/local_director.py) accepts the same prompt text through an explicitly selected locally installed Ollama model. Run `py -3 -B Docs/Development/TrailerStudio/tools/local_director.py prompt.txt new-model-scout --model YOUR_LOCAL_MODEL`. The model proposes actors, moves, cameras, edits and unresolved clauses against a constrained schema. The program validates the response, then writes an ordinary recipe for **Open recipe**. Model quality and runtime depend on the selected weights and machine. [Ollama structured outputs](https://docs.ollama.com/capabilities/structured-outputs)
 
+Add `--refine` to request bounded lens and position changes to an existing deterministic scout. This limits the cost of an incorrect model answer. In a one-thread CPU trial through llama.cpp, Qwen2.5-0.5B copied absolute positions into offset fields and missed the requested lens. The validator rejected the patch. A full-recipe trial with the same weights repeated a shot until it exhausted the output budget. Keep live model quality as a separate benchmark from schema validation.
+
 For matched POV and witness captures, the [camera edit tool](attempts/disaster-pvp-2/tools/cut_take.py) produces a playable MP4, an editable OpenTimelineIO sequence and both source angles plus continuous production sound. Cuts use shot-relative frames. Audio uses the take-relative origin recorded at capture. Install the free Python package `opentimelineio` in an isolated environment. The exporter reopens the timeline, resolves its media and checks the encoded frame count.
 
 ## What the earlier attempts established
@@ -47,6 +49,8 @@ For matched POV and witness captures, the [camera edit tool](attempts/disaster-p
 Before rendering, write down the visible and audible facts that distinguish success for each brief. For the rooftop example these include who noticed the threat, who jumped, whether the shot hit, where the survivor landed and whether they kept moving. A viewer may answer “I couldn't tell.” Treat that as an observation about the cut.
 
 For a first formative test, use three independent viewers unfamiliar with the takes and a human maker familiar with the game. Use the existing [counterbalanced packet tool](attempts/disaster-pvp-2/tools/blind_review.py). Half the packets lead with each cut where group size permits. Ask for unaided recall first, timestamped issues second, preference last. Measure direction fidelity, action readability, physical believability, sound and pacing separately. Three people can expose failures. A broader human-quality claim needs more independent viewers and held-out briefs, confidence intervals, and advance agreement on the acceptable quality gap and creator time. Report raw counts as well as percentages.
+
+Use the same display, viewing distance, sound level and instructions for each pair and keep observer order in the results. ITU-R BT.500 describes controlled subjective picture assessment and stimulus comparison. Narrative recall and acting are additional game-specific questions in this protocol. [ITU-R BT.500](https://www.itu.int/rec/R-REC-BT.500-15-202305-I/en)
 
 ### Parallel ownership
 

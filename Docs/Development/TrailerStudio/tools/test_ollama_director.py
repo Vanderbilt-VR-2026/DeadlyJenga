@@ -122,6 +122,24 @@ class LocalDirectorTests(unittest.TestCase):
                         local_director.direct(prompt, self.output, "localmodel")
                 self.assertFalse(self.output.exists())
 
+    def test_refinement_changes_lens_and_camera_end_only(self):
+        prompt = "A four-second silent 16:9 Castle scout. No actors. Open wide. A tsunami at 2 seconds."
+        specification = local_director.schema(["castle"], ["Tsunami"])
+        seed = json.loads(local_director.grounded_request(prompt, specification))["seed_recipe"]
+        adjustment = {"shot": 0, "fov": 45, "toOffset": {"x": 0, "y": 1, "z": 0}}
+        with patch.object(local_director, "chat",
+                          return_value={"adjustments": [adjustment], "unresolved": []}):
+            self.assertEqual(local_director.direct(prompt, self.output, "localmodel", refine_camera=True),
+                             "recipe_staged_render_pending")
+        recipe = json.loads((self.output / "recipe.json").read_text(encoding="utf-8"))
+        self.assertEqual(recipe["cues"], seed["cues"])
+        self.assertEqual(recipe["edit"], seed["edit"])
+        self.assertEqual(recipe["cast"], [])
+        expected = copy.deepcopy(seed["shots"])
+        expected[0]["fov"] = 45
+        expected[0]["to"]["y"] += 1
+        self.assertEqual(recipe["shots"], expected)
+
 
 if __name__ == "__main__":
     unittest.main()
