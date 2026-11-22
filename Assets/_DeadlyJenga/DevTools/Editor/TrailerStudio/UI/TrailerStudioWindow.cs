@@ -585,10 +585,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var label = button.userData as string;
             if (string.IsNullOrWhiteSpace(label)) label = button.text;
             if (string.IsNullOrWhiteSpace(label)) label = button.Q<Label>()?.text;
-            if (string.IsNullOrWhiteSpace(label)) return;
-            if (label.Length <= 2 && !string.IsNullOrWhiteSpace(button.tooltip))
+            if ((string.IsNullOrWhiteSpace(label) || label.Length <= 2) && !string.IsNullOrWhiteSpace(button.tooltip))
                 label = button.tooltip.Split('\n')[0];
-            RecordPressed(label);
+            if (!string.IsNullOrWhiteSpace(label)) RecordPressed(label);
             flashEnd?.Pause();
             flashingButton?.RemoveFromClassList("ts-activated");
             flashingButton = button;

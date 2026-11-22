@@ -44,7 +44,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static Toggle Switch(StudioContext context, string label, bool value, Action<bool> apply, bool structural = false)
         {
             var field = Styled(new Toggle(label) { value = value });
-            field.RegisterValueChangedCallback(e => context.Edit("Change " + label.ToLowerInvariant(), () => apply(e.newValue), structural));
+            field.RegisterValueChangedCallback(e =>
+            {
+                context.window.RecordPressed(label + (e.newValue ? " on" : " off"));
+                context.Edit("Change " + label.ToLowerInvariant(), () => apply(e.newValue), structural);
+            });
             return field;
         }
 
@@ -53,7 +57,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (names.Count == 0) names = new List<string> { "(none)" };
             names = Distinct(names);
             var field = Styled(new PopupField<string>(label, names, Mathf.Clamp(index, 0, names.Count - 1)));
-            field.RegisterValueChangedCallback(e => context.Edit("Change " + label.ToLowerInvariant(), () => apply(names.IndexOf(e.newValue)), structural));
+            field.RegisterValueChangedCallback(e =>
+            {
+                context.window.RecordPressed(label + " · " + e.newValue);
+                context.Edit("Change " + label.ToLowerInvariant(), () => apply(names.IndexOf(e.newValue)), structural);
+            });
             return field;
         }
 
@@ -104,14 +112,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         }
 
         // The eight actor colors as round swatches.
+        static readonly string[] ColorNames = { "Coral", "Blue", "Green", "Gold", "Violet", "Pink", "Teal", "Orange" };
+
         public static VisualElement Swatches(StudioContext context, int current, Action<int> apply)
         {
             var row = StudioUi.Row();
             row.style.marginTop = 4; row.style.marginBottom = 4;
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < ColorNames.Length; i++)
             {
                 int index = i;
-                var swatch = new Button(() => context.Edit("Change color", () => apply(index))) { tooltip = "Actor color" };
+                var swatch = new Button(() => context.Edit("Change color", () => apply(index)))
+                {
+                    text = i == current ? "✓" : "",
+                    tooltip = ColorNames[i] + (i == current ? " (selected)" : ""),
+                    userData = "Color · " + ColorNames[i]
+                };
+                swatch.style.color = Color.black;
+                swatch.style.paddingLeft = swatch.style.paddingRight = 0;
+                swatch.style.paddingTop = swatch.style.paddingBottom = 0;
                 swatch.AddToClassList("ts-dot");
                 swatch.style.width = 18; swatch.style.height = 18;
                 swatch.style.borderTopLeftRadius = swatch.style.borderTopRightRadius = swatch.style.borderBottomLeftRadius = swatch.style.borderBottomRightRadius = 9;

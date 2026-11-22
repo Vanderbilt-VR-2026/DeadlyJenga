@@ -17,6 +17,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     public static partial class StudioAcceptance
     {
         public static void RunWindowTour() => Begin("Window");
+        public static void RunEditingControls() => Begin("EditingControls");
 
         static TrailerStudioWindow TourWindow()
         {
@@ -544,6 +545,193 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 "Buttons conditional on unvisited states may be absent.\n\n" +
                 "The tour does not open external folders or file dialogs, export files, start renders, purge takes, or confirm destructive prompts. " +
                 "Recording in this tour uses the disposable Set through the runtime entry point.\n");
+            StudioRun.SaveTape();
+        }
+
+        static void ClickStagePicture(StudioViewport viewport)
+        {
+            var target = viewport.Host;
+            Vector2 point = target.LocalToWorld(viewport.PictureRect().center);
+            using (var down = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, button = 0, mousePosition = point }))
+            {
+                down.target = target;
+                target.SendEvent(down);
+            }
+            using (var up = PointerUpEvent.GetPooled(new Event { type = EventType.MouseUp, button = 0, mousePosition = point }))
+            {
+                up.target = target;
+                target.SendEvent(up);
+            }
+        }
+
+        static IEnumerator<int> EditingControlsTour()
+        {
+            var stage = StudioRun.Stage;
+            var set = stage.set;
+            var tape = stage.tape;
+            var window = TourWindow();
+            foreach (int wait in Settle(window, 20)) yield return wait;
+            window.LoadSet(set.id);
+            window.ShowMode("Set");
+            foreach (int wait in Settle(window)) yield return wait;
+            var context = window.Context;
+            var inventory = new List<string> { "Fixture or check\tTab\tPosition in tree\tGroup\tName\tButton\tCoverage\tAvailability\tLayout\tTooltip" };
+            var pendingMenus = new List<string>();
+            Button ModeButton(string text) => ModeButtons(window).FirstOrDefault(button => button.text.Contains(text));
+            VisualElement Inspector() => window.rootVisualElement.Q("inspector");
+            Button InspectButton(string text) => Inspector().Query<Button>().ToList().FirstOrDefault(button => button.text == text);
+            bool Run(string check, Button button)
+            {
+                if (button == null || !button.enabledInHierarchy) return false;
+                InventoryButtons(window, check, inventory, button, "submitted");
+                SubmitButton(button);
+                return true;
+            }
+            void NoteMenu(string name, Button button)
+            {
+                bool available = button?.enabledInHierarchy == true;
+                if (button != null) InventoryButtons(window, name, inventory, button, "availability checked; native menu pending");
+                Result(name + " is available", available, "Native menu items require a separate interactive check.");
+                pendingMenus.Add(name);
+            }
+
+            // Set placement and deletion use the real button, viewport and inspector against this disposable Set.
+            int marks = set.marks.Count;
+            bool armed = Run("arm a new bot mark", ModeButton("Add bot")) && window.Viewport.Placing == StudioRole.Bot;
+            if (armed) ClickStagePicture(window.Viewport);
+            var placed = window.Selection as StudioMark;
+            bool placedBot = set.marks.Count == marks + 1 && placed?.role == StudioRole.Bot && !window.Viewport.Placing.HasValue;
+            bool markRemoved = placedBot && Run("delete the new bot mark", InspectButton("Delete mark")) &&
+                set.marks.Count == marks && set.Mark(placed.id) == null;
+            Result("Set places a bot on the stage and deletes its mark", armed && placedBot && markRemoved,
+                $"Placement armed: {armed}. Bot added and selected: {placedBot}. Mark removed: {markRemoved}.");
+            if (window.Viewport.Placing.HasValue) PressEscape(window);
+            NoteMenu("Set Add cue", ModeButton("Add cue"));
+
+            // Direct cue buttons are deterministic. The later Set checks delete the exact cue these controls create.
+            window.ShowMode("Direct");
+            NoteMenu("Direct Disaster", ModeButton("Disaster"));
+            int beforeCues = set.cues.Count;
+            Run("add a guide", ModeButton("+  Guide"));
+            var guide = window.Selection as StudioCue;
+            bool guideAdded = guide?.action == GuideCue.Id && set.cues.Count == beforeCues + 1;
+            string feedback = window.rootVisualElement.Q<Label>("last-pressed")?.text;
+            window.RebuildAll();
+            bool heldFeedback = feedback?.Contains("Guide") == true && window.rootVisualElement.Q<Label>("last-pressed")?.text == feedback;
+            Run("add slow time", ModeButton("Slow time"));
+            var slow = window.Selection as StudioCue;
+            bool slowAdded = slow?.action == SlowTimeCue.Id && set.cues.Count == beforeCues + 2;
+            DirectMode.Picked.Clear();
+            DirectMode.Picked.AddRange(Enumerable.Range(0, stage.blocks.Length).Where(index => stage.blocks[index]).Take(2));
+            window.RebuildAll();
+            bool cleared = Run("clear selected blocks", ModeButton("Clear the pick")) && DirectMode.Picked.Count == 0 &&
+                ModeButton("Push the picked blocks")?.enabledInHierarchy == false;
+            Result("Direct Guide and Slow time add the correct cues; Clear disables Push", guideAdded && slowAdded && cleared,
+                $"Guide added: {guideAdded}. Slow time added: {slowAdded}. Pick cleared and Push disabled: {cleared}.");
+            Result("Footer keeps the last activated button through rebuild", heldFeedback,
+                $"Footer after the Guide action and rebuild: {feedback ?? "(missing)"}.");
+            window.ShowMode("Set");
+            if (guideAdded) context.Select(guide);
+            bool cueRemoved = guideAdded && Run("delete the Guide cue from Set", InspectButton("Delete cue")) && !set.cues.Contains(guide);
+            if (slowAdded)
+            {
+                context.Select(slow);
+                cueRemoved &= Run("delete the Slow time cue from Set", InspectButton("Delete cue")) && !set.cues.Contains(slow);
+            }
+            Result("Set deletes the selected disposable cues", cueRemoved, $"Cue count returned to {set.cues.Count}; initial count {beforeCues}.");
+
+            // Record the disposable Set once to exercise real take controls and clones.
+            var previousPass = StudioRun.LastPass;
+            bool recordSubmitted = Run("record the disposable Set", window.rootVisualElement.Q<Button>("record"));
+            bool recordStarted = recordSubmitted && StudioRun.State == StudioState.Running &&
+                StudioRun.LastPass != previousPass && StudioRun.LastPass?.label == "Whole set";
+            Result("Set record button starts recording the disposable Set", recordStarted,
+                $"Record submitted: {recordSubmitted}. Entered recording: {recordStarted}.");
+            if (!recordStarted && StudioRun.State == StudioState.Held) StudioRun.RecordWholeSet();
+            double recordDeadline = EditorApplication.timeSinceStartup + 60;
+            while (StudioRun.State != StudioState.Held && EditorApplication.timeSinceStartup < recordDeadline) yield return 0;
+            if (StudioRun.State != StudioState.Held) throw new TimeoutException("The disposable recording did not finish.");
+            var actor = set.marks.FirstOrDefault(mark => mark.role != StudioRole.Hand && PerformMode.HasPerformance(tape.Find(mark.id)));
+            var track = actor == null ? null : tape.Find(actor.id);
+            var take = track?.ActiveTake;
+            context.Select(actor);
+            bool trashed = take != null && Run("trash a recorded actor take", InspectButton("Trash")) &&
+                take.trashed && track.ActiveTake != take && track.takes.Contains(take);
+            var trash = Inspector().Query<Foldout>().ToList().FirstOrDefault(fold => fold.text.StartsWith("Trash (", StringComparison.Ordinal));
+            if (trash != null) trash.value = true;
+            bool restored = trashed && Run("restore the recorded actor take", InspectButton("Restore")) &&
+                !take.trashed && track.Kept.Contains(take);
+            Result("Set moves a take to Trash and restores the same take", trashed && restored,
+                $"Trashed without erasing: {trashed}. Same take available again: {restored}.");
+            if (take != null && take.trashed) { take.trashed = false; track.active = track.takes.IndexOf(take); window.TapeChanged(); }
+
+            // Keep the fixture going after a missing take so other tabs still report their results.
+            window.ShowMode("Perform");
+            context.Select(actor);
+            var cloneFold = window.rootVisualElement.Q("mode-panel").Query<Foldout>().ToList()
+                .FirstOrDefault(fold => fold.text == "Clone this performance");
+            if (cloneFold != null) cloneFold.value = true;
+            var prior = new HashSet<string>(set.marks.Select(mark => mark.id));
+            bool invokedClone = Run("create a clone of the selected performance", ModeButton("Make clones"));
+            var copies = set.marks.Where(mark => !prior.Contains(mark.id)).ToList();
+            bool cloned = invokedClone && copies.Count > 0 && copies.All(mark => PerformMode.HasPerformance(tape.Find(mark.id))) &&
+                PerformMode.HasPerformance(track);
+            Result("Perform makes independent actors with copied performances", cloned, $"{copies.Count} new actor mark(s) with independent identifiers.");
+
+            window.ShowMode("Polish");
+            context.Select(actor);
+            NoteMenu("Polish Add layer", ModeButton("Add a layer"));
+            var layer = new StudioOverride { actor = actor?.id ?? set.marks[0].id, kind = "reaction", name = "Disposable layer", from = .5f, to = 1 };
+            var otherLayer = new StudioOverride { actor = layer.actor, kind = "reaction", name = "Preserved layer", from = 1, to = 2 };
+            context.Edit("Seed disposable layers", () => { set.overrides.Add(layer); set.overrides.Add(otherLayer); });
+            context.Select(layer);
+            bool layerDeleted = Run("delete the selected layer", InspectButton("Delete layer")) &&
+                !set.overrides.Contains(layer) && set.overrides.Contains(otherLayer) && window.Selection == set.Mark(layer.actor);
+            Result("Polish deletes just the selected layer and reselects its actor", layerDeleted,
+                $"Selected layer present: {set.overrides.Contains(layer)}. Neighbor present: {set.overrides.Contains(otherLayer)}.");
+
+            window.ShowMode("Shoot");
+            var camera = ShootMode.AddCamera(context);
+            window.Scrub(set.fps);
+            foreach (int wait in Settle(window)) yield return wait;
+            float at = window.Frame / (float)set.fps;
+            bool speedAdded = Run("add a speed mark at the playhead", InspectButton("Speed change at the playhead")) &&
+                camera.speeds.Any(mark => Mathf.Approximately(mark.time, at) && Mathf.Approximately(mark.speed, .25f));
+            int beforeSpeedDelete = camera.speeds.Count;
+            var speedDelete = Inspector().Query<Button>().ToList()
+                .LastOrDefault(button => button.text == "x" && button.tooltip != "Delete this key");
+            bool speedDeleted = speedAdded && Run("remove the playhead speed mark", speedDelete) &&
+                camera.speeds.Count == beforeSpeedDelete - 1 && camera.speeds.All(mark => !Mathf.Approximately(mark.time, at));
+            int beforeKeyDelete = camera.keys.Count;
+            var keyDelete = Inspector().Query<Button>().ToList().FirstOrDefault(button => button.tooltip == "Delete this key");
+            bool keyDeleted = Run("remove a camera key from the disposable camera", keyDelete) && camera.keys.Count == beforeKeyDelete - 1;
+            Result("Shoot adds and removes a speed mark and removes a camera key", speedAdded && speedDeleted && keyDeleted,
+                $"Speed mark added: {speedAdded}. Speed mark removed: {speedDeleted}. Camera key removed: {keyDeleted}.");
+            ShootMode.AddCamera(context);
+
+            window.ShowMode("Cut");
+            NoteMenu("Cut Add a shot", ModeButton("Add a shot"));
+            var inOrder = set.cameras.OrderBy(item => item.start).Select(item => item.id).ToArray();
+            bool populated = Run("populate the cut with every camera", ModeButton("Use every camera once")) &&
+                set.cuts.Select(cut => cut.camera).SequenceEqual(inOrder);
+            var remove = ModeButtons(window).FirstOrDefault(button => button.text == "x");
+            bool removed = populated && Run("remove the first cut piece", remove) &&
+                set.cuts.Select(cut => cut.camera).SequenceEqual(inOrder.Skip(1));
+            Result("Cut populates with every camera in order and removes one piece", populated && removed,
+                $"Cut created in order: {populated}. First piece removed: {removed}. Remaining pieces: {set.cuts.Count}.");
+
+            File.WriteAllLines(Path.Combine(Folder, "button-inventory.tsv"), inventory);
+            File.WriteAllLines(Path.Combine(Folder, "button-coverage.md"), new[] {
+                "# Editing controls acceptance scope", "",
+                "Submitted means the fixture sent a Unity UI Toolkit NavigationSubmitEvent to the real enabled Button. Assertions are in report.md.",
+                "",
+                "Pending native menu item selection. The controls were checked for availability and the menus were left closed.", ""
+            }.Concat(pendingMenus.Select(menu => "- " + menu)).Concat(new[] {
+                "", "Other excluded effects include external applications and file dialogs, rendering or export, and irreversible take purges.",
+                "The fixture deletes only the marks, cues, layers, camera keys and cut pieces belonging to its disposable Set."
+            }));
+            Result("No exceptions during the editing-controls tour", exceptions == 0,
+                exceptions == 0 ? "No exceptions." : string.Join(" / ", errorLines));
             StudioRun.SaveTape();
         }
     }
