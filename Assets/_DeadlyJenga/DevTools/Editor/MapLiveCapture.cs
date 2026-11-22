@@ -114,7 +114,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         static bool CaptureRainbowFrame(ISessionInfo session)
         {
-            var falls=GameObject.Find("Visual · rainbow waterfall above");
+            var falls=GameObject.Find("Visual Â· rainbow waterfall above");
             if(!falls)throw new InvalidOperationException("Spring waterfall missing");
             float time=falls.GetComponent<Renderer>().sharedMaterial.GetFloat("_FlowTime");
             if(rainbowFrame>0 && time-lastFlowTime<.085f)return false;
@@ -125,7 +125,7 @@ namespace DeadlyJenga.DevTools.Editor
                 camera.fieldOfView=44;
                 void Shot(string subject,string file,bool bridge=false)
                 {
-                    var go=GameObject.Find("Visual · "+subject);
+                    var go=GameObject.Find("Visual Â· "+subject);
                     if(!go)throw new InvalidOperationException(subject+" missing");
                     var r=go.GetComponent<Renderer>();
                     if(!r.sharedMaterial.shader.isSupported)throw new InvalidOperationException("Unsupported rainbow shader");
@@ -135,10 +135,11 @@ namespace DeadlyJenga.DevTools.Editor
                     if(bridge)offset=Vector3.Cross((go.transform.TransformPoint(go.GetComponent<MeshFilter>().sharedMesh.vertices[0])-look).normalized,Vector3.up).normalized*b.size.magnitude*1.15f;
                     else
                     {
-                        var splash=GameObject.Find("Visual · rainbow splash "+subject.Substring("rainbow waterfall ".Length));
+                        var splash=GameObject.Find("Visual Â· rainbow splash "+subject.Substring("rainbow waterfall ".Length));
                         if(!splash)throw new InvalidOperationException("Missing waterfall impact: "+subject);
-                        look=splash.transform.position+Vector3.up*(b.size.y*.18f);
-                        offset=go.transform.TransformDirection(new Vector3(.36f,.28f,1))*b.size.y*.85f;
+                        float width=splash.GetComponent<Renderer>().bounds.size.y*.5f;
+                        look=splash.transform.position+Vector3.up*width*.35f;
+                        offset=go.transform.TransformDirection(new Vector3(.65f,1.1f,.65f))*width*1.55f;
                     }
                     camera.transform.position=look+offset;camera.transform.LookAt(look);
                     fogFocus=look;fogRadius=b.extents.magnitude;

@@ -418,7 +418,7 @@ namespace DeadlyJenga.Presentation
             float edge=Mathf.PI*1.1f;
             var rim=new Vector3(Mathf.Cos(edge)*halfWidth*.98f,-8,Mathf.Sin(edge)*halfDepth*.98f);
             var outward=new Vector3(Mathf.Cos(edge),0,Mathf.Sin(edge));
-            var lip=new GameObject("Visual · rim spillway");lip.transform.SetParent(transform,false);
+            var lip=new GameObject("Visual Â· rim spillway");lip.transform.SetParent(transform,false);
             lip.transform.localPosition=rim;lip.transform.localRotation=Quaternion.LookRotation(outward);
             ownedObjects.Add(lip);
             RainbowFall(lip.transform,Vector3.zero,17,30,150,"rim");

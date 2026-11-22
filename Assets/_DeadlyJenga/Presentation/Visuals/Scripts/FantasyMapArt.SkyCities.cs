@@ -360,6 +360,7 @@ namespace DeadlyJenga.Presentation
                 for(int k=0;k<6;k++){float ang=k*1.05f;m.Sphere(foot+new Vector3(Mathf.Cos(ang)*9,-2+k%2*3,Mathf.Sin(ang)*9),new Vector3(12,8,12),0,Color.white,6,10);}
             }
             Model("Visual · rainbow bridge",m,transform,SkyMaterials);
+            CurrentModel("Visual · bridge current",water,transform);
             // Candy train riding along the top of the rainbow.
             for(int i=0;i<5;i++)
             {
@@ -423,7 +424,7 @@ namespace DeadlyJenga.Presentation
                     water.WaterStrip(Bank(t,u),Bank(t,v),Bank(next,v),Bank(next,u),t*8,next*8,u,v,Spectrum[k]);
                 }
             }
-            CurrentModel("Visual � rainbow waterfall "+label,water,parent);
+            CurrentModel("Visual · rainbow waterfall "+label,water,parent);
             Splash(parent,At(1),width*1.45f,label);
         }
 
