@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using DeadlyJenga.Core;
 using UnityEngine;
@@ -384,6 +385,76 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 $"Both cameras start at tape frame {contact - lead - Handle}; review marker at output frame {lead + Handle}.\n");
         }
 
+        [Serializable] sealed class RenderManifest
+        {
+            public int version = 1;
+            public string revision, takeSha256, setSha256, cueLogSha256, audioSha256;
+            public RenderedClip[] clips;
+        }
+
+        [Serializable] sealed class RenderedClip
+        {
+            public string id, sha256;
+            public int frames, fps, width, height;
+        }
+
+        static string FileHash(string path)
+        {
+            using var stream = File.OpenRead(path);
+            using var sha = SHA256.Create();
+            return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
+        }
+
+        static string SourceRevision()
+        {
+            using var git = Process.Start(new ProcessStartInfo("git", "rev-parse --verify HEAD")
+            {
+                WorkingDirectory = StudioLibrary.ProjectRoot,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+            if (git == null) throw new InvalidOperationException("Could not start Git for render provenance.");
+            if (!git.WaitForExit(5000))
+            {
+                git.Kill();
+                throw new TimeoutException("Git did not return the render revision.");
+            }
+            string revision = git.StandardOutput.ReadToEnd().Trim();
+            if (git.ExitCode != 0 || (revision.Length != 40 && revision.Length != 64) || !revision.All(Uri.IsHexDigit))
+                throw new InvalidOperationException("Could not identify the render's source revision.");
+            return revision;
+        }
+
+        static void WriteRenderManifest(StudioStage stage, List<StudioRender.Finished> results, string revision)
+        {
+            string setPath = Path.Combine(Folder, "set-rendered.json");
+            var set = stage.set.Clone();
+            set.id = SetId;
+            File.WriteAllText(setPath, JsonUtility.ToJson(set, true));
+            string cuesPath = Path.Combine(Folder, "cuelog.txt");
+            File.WriteAllLines(cuesPath, cueLog);
+            string audio = Path.Combine(Folder, "tape.wav");
+            string inputTape = Path.Combine(Recording ? Path.Combine(Folder, "bundle") : Bundle, "main.djtape");
+            var manifest = new RenderManifest
+            {
+                revision = revision,
+                takeSha256 = FileHash(inputTape),
+                setSha256 = FileHash(setPath),
+                cueLogSha256 = FileHash(cuesPath),
+                audioSha256 = File.Exists(audio) ? FileHash(audio) : "",
+                clips = results.Select(r => new RenderedClip
+                {
+                    id = r.cameraId,
+                    frames = r.frames, fps = r.fps, width = r.width, height = r.height,
+                    sha256 = FileHash(Path.Combine(Folder, "shots", r.cameraId + ".mp4"))
+                }).ToArray()
+            };
+            string path = Path.Combine(Folder, "render-manifest.json");
+            File.WriteAllText(path + ".tmp", JsonUtility.ToJson(manifest, true));
+            File.Move(path + ".tmp", path);
+        }
+
         static IEnumerable<int> RenderShots(StudioStage stage, Plan plan, Events e, string mode)
         {
             var shots = MakeShots(e);
@@ -401,6 +472,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 try { MotionDump(stage, shots); } catch (Exception error) { Note("Joint table failed: " + error); }
             }
             if (mode == "motion") yield break;
+            string revision = SourceRevision();
             bool final = mode.StartsWith("final");
             if (mode == "finalA") cameras = cameras.Where(c => c.id == "S01" || c.id == "S02" || c.id == "S03").ToList();
             if (mode == "finalB") cameras = cameras.Where(c => c.id == "S04" || c.id == "S05" || c.id == "S06").ToList();
@@ -440,7 +512,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             string audio = WorldTakeAudio(stage);
             if (File.Exists(audio)) File.Copy(audio, Path.Combine(Folder, "tape.wav"), true);
             File.WriteAllText(Path.Combine(Folder, "shots.txt"), string.Join("\n", shots.Select(s => $"{s.id} {s.cutIn} {s.cutOut} {s.key} {s.shift} {Handle}")) + "\n");
-            File.WriteAllText(Path.Combine(Folder, "set-rendered.json"), JsonUtility.ToJson(stage.set, true));
+            if (SourceRevision() != revision) throw new InvalidOperationException("The Git revision changed during rendering.");
+            WriteRenderManifest(stage, results, revision);
         }
 
         // Left-over weapon impact views from the live match draw as big discs in loaded takes: off before every frame.
