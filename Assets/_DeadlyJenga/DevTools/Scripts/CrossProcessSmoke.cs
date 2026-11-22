@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:NearbyFlow?1200:LobbyHandoff||TycoonTest||FullRound?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:(NearbyFlow||ProductionCodeFlow)?1200:LobbyHandoff||TycoonTest||FullRound?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -61,6 +61,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!done)Finish(!File.ReadAllText(Report).Contains("ERROR "),"Separate-process multiplayer run");
         }
         static bool NearbyFlow => Environment.GetCommandLineArgs().Contains("--dj-nearby-lobby");
+        static bool ProductionCodeFlow => Environment.GetCommandLineArgs().Contains("--dj-managed-code");
         static bool LobbyHandoff => Environment.GetCommandLineArgs().Contains("--dj-lobby-handoff");
         bool ProbePoses => Environment.GetCommandLineArgs().Contains("--dj-pose-probe");
         const System.Reflection.BindingFlags PrivateField =
@@ -180,6 +181,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             bool host=role=="host";
             bool invite=Environment.GetCommandLineArgs().Contains("--dj-nearby-invite");
+            Require(!ProductionCodeFlow || !NearbyFlow && !invite, "Choose either Nearby or production room-code entry");
+            File.AppendAllText(Report, ProductionCodeFlow ? "ENTRY normal room code, production GO\n" : "ENTRY UDP Nearby, production GO\n");
             HomeSession home=null;
             yield return Until(()=>(home=FindFirstObjectByType<HomeSession>())&&!string.IsNullOrEmpty(home.Region),
                 "Home is ready",95);
@@ -195,7 +198,10 @@ namespace DeadlyJenga.CastlePrototype
                 address=room.Code;
                 File.WriteAllText(Mark("pending-code"),address);
                 File.Move(Mark("pending-code"),Mark("code"));
-                yield return Until(()=>File.Exists(Mark("guest-scanning")),"Guest started nearby search",35);
+                if (ProductionCodeFlow)
+                    yield return Until(() => File.Exists(Mark("guest-code-joining")), "Guest starts normal Home room-code join", 35);
+                else
+                    yield return Until(() => File.Exists(Mark("guest-scanning")), "Guest started nearby search", 35);
                 if(invite)IslandLobby.Current.InviteNearby();
             }
             else
@@ -203,22 +209,31 @@ namespace DeadlyJenga.CastlePrototype
                 File.WriteAllText(Mark("guest-home-nearby"), "ready");
                 yield return Until(()=>File.Exists(Mark("code")),"Host test rendezvous is ready",110);
                 address=File.ReadAllText(Mark("code"));
-                home.DetectNearby();
-                File.WriteAllText(Mark("guest-scanning"),"ready");
-                int row=-1;
-                yield return Until(()=>
+                if (ProductionCodeFlow)
                 {
-                    for(int i=0;i<home.NearbyCount;i++)
+                    home.Code = address;
+                    File.WriteAllText(Mark("guest-code-joining"), "ready");
+                    home.JoinCode();
+                }
+                else
+                {
+                    home.DetectNearby();
+                    File.WriteAllText(Mark("guest-scanning"),"ready");
+                    int row=-1;
+                    yield return Until(()=>
                     {
-                        string title=home.NearbyTitle(i);
-                        if(title.EndsWith("  "+address,StringComparison.Ordinal)&&
-                            (!invite||title.StartsWith("Invite: ",StringComparison.Ordinal))){row=i;return true;}
-                    }
-                    return false;
-                },invite?"Home receives a nearby invite over UDP":"Home lists the real nearby room over UDP",
-                    25,()=>home.Status);
-                Require(string.IsNullOrEmpty(home.Code),"No code entered in the join form");
-                home.JoinNearby(row);
+                        for(int i=0;i<home.NearbyCount;i++)
+                        {
+                            string title=home.NearbyTitle(i);
+                            if(title.EndsWith("  "+address,StringComparison.Ordinal)&&
+                                (!invite||title.StartsWith("Invite: ",StringComparison.Ordinal))){row=i;return true;}
+                        }
+                        return false;
+                    },invite?"Home receives a nearby invite over UDP":"Home lists the real nearby room over UDP",
+                        25,()=>home.Status);
+                    Require(string.IsNullOrEmpty(home.Code),"No code entered in the join form");
+                    home.JoinNearby(row);
+                }
             }
             string LobbyState() => $"scene={UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}, room={room.Status}, " +
                 $"busy={room.Busy}, humans={room.HumanCount}, mirrors={IslandLobby.Current?.PeerCount}, home={(home ? home.Status : "closed")}";
@@ -303,6 +318,8 @@ namespace DeadlyJenga.CastlePrototype
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-playing")),
                 "Both clients confirmed the match before returning", matchEntryTimeout, MatchState);
             var rules = game.Modes.Frame.rules;
+            if (ProductionCodeFlow) Require(Mathf.Approximately(rules.roundSeconds, 600),
+                "Production room-code entry reaches the normal 600-second playlist rule");
             float resultsTimeout = Mathf.Max(480, rules.roundSeconds + rules.victorySeconds + 180);
             File.AppendAllText(Report, $"WAIT RESULTS matchSeconds={rules.roundSeconds:F1}, timeoutSeconds={resultsTimeout:F1}\n");
             nextTrace = Time.realtimeSinceStartupAsDouble + 30;
@@ -394,6 +411,23 @@ namespace DeadlyJenga.CastlePrototype
                 File.AppendAllText(Report, $"SCALE held minHumans={minHumans} disconnectedSeconds={drops}\n");
                 Require(drops == 0 && minHumans == players, $"Room held {players} humans for {holdSeconds:F0}s without drops");
             }
+            // Each player starts its hold after local readiness, so loading skews the end times.
+            var complete = Mark(role + "-scale-hold-complete");
+            File.WriteAllText(complete + ".pending", "ready");
+            File.Move(complete + ".pending", complete);
+            int completed = 0;
+            double nextCheck = 0;
+            yield return Until(() =>
+            {
+                double now = Time.realtimeSinceStartupAsDouble;
+                if (now >= nextCheck)
+                {
+                    completed = Directory.EnumerateFiles(folder, "*-scale-hold-complete").Count();
+                    nextCheck = now + .25;
+                }
+                return completed == players;
+            },
+                $"All {players} players finish their local holds before any deliberate leave", 90);
             var leave = room.Leave();
             yield return Until(() => leave.IsCompleted, "Process leaves the room", 30);
         }
@@ -439,13 +473,32 @@ namespace DeadlyJenga.CastlePrototype
             }
             File.AppendAllText(Report, $"MATCH started role={role} bots={(host ? session.SurvivorBots.Count : fusion.Demo.survivors)} humans={room.HumanCount}\n");
 
-            var start = new Dictionary<GameObject, Vector3>();
-            var visibleBots = host ? session.SurvivorBots.Members :
-                FindObjectsByType<SurvivorNetworkView>(FindObjectsSortMode.None)
-                    .Where(view => view.IsBot && !view.IsEnemy).Select(view => view.gameObject);
-            foreach (var bot in visibleBots) if (bot) start[bot] = bot.transform.position;
+            var start = new Dictionary<string, Vector3>(StringComparer.Ordinal);
+            var moved = new HashSet<string>(StringComparer.Ordinal);
+            void SampleBot(string id, Vector3 position)
+            {
+                if (string.IsNullOrEmpty(id)) return;
+                if (!start.TryGetValue(id, out var origin)) start[id] = position;
+                else if ((position - origin).sqrMagnitude > 1f) moved.Add(id);
+            }
+            void SampleBots()
+            {
+                if (!session) return;
+                if (host)
+                {
+                    foreach (var bot in session.SurvivorBots.Members)
+                        if (bot) SampleBot(bot.GetComponent<ISocialBot>()?.NetworkId ??
+                            bot.GetComponent<IModeActor>()?.ActorId, bot.transform.position);
+                }
+                else
+                {
+                    foreach (var view in FindObjectsByType<SurvivorNetworkView>(FindObjectsSortMode.None))
+                        if (view.IsBot && !view.IsEnemy) SampleBot(view.ActorId, view.transform.position);
+                }
+            }
+            SampleBots();
             var times = new List<double>(4000);
-            int disconnected = 0, hitchSeconds = 0, minHumans = int.MaxValue;
+            int disconnected = 0, hitchSeconds = 0, minHumans = room.HumanCount;
             double previous = Time.realtimeSinceStartupAsDouble, end = previous + seconds, nextSecond = previous + 1;
             double worstInSecond = 0;
             while (previous < end)
@@ -459,19 +512,18 @@ namespace DeadlyJenga.CastlePrototype
                     if (!room.Connected) disconnected++;
                     if (worstInSecond >= 100) hitchSeconds++;
                     minHumans = Mathf.Min(minHumans, room.HumanCount);
+                    SampleBots();
                     worstInSecond = 0;
                 }
             }
-            int moved = 0;
-            foreach (var pair in start)
-                if (pair.Key && Vector3.Distance(pair.Key.transform.position, pair.Value) > 1f) moved++;
+            SampleBots();
             var sorted = times.OrderBy(ms => ms).ToArray();
             double Percentile(float fraction) => sorted[Mathf.Clamp(Mathf.CeilToInt(sorted.Length * fraction) - 1, 0, sorted.Length - 1)];
             File.AppendAllText(Report, $"FRAMES match n={times.Count} p50={Percentile(.5f):F1}ms p95={Percentile(.95f):F1}ms p99={Percentile(.99f):F1}ms max={sorted.Last():F1}ms >=100ms={times.Count(ms => ms >= 100)}\n");
             File.WriteAllLines(Path.Combine(folder, role + "-match-frames-ms.txt"), times.Select(ms => ms.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)));
-            File.AppendAllText(Report, $"MATCH held seconds={seconds:F0} bots={(host ? session.SurvivorBots.Count : fusion.Demo.survivors)} botsMoved={moved}/{start.Count} minHumans={minHumans} disconnectedSeconds={disconnected} hitchSeconds={hitchSeconds}\n");
+            File.AppendAllText(Report, $"MATCH held seconds={seconds:F0} bots={(host ? session.SurvivorBots.Count : fusion.Demo.survivors)} botsMoved={moved.Count}/{start.Count} minHumans={minHumans} disconnectedSeconds={disconnected} hitchSeconds={hitchSeconds}\n");
             Require(disconnected == 0 && minHumans == players, $"Match held {players} humans for {seconds:F0}s without drops");
-            if (bots > 0) Require(moved > 0, $"Visible bots move on {role} during the match");
+            if (bots > 0) Require(moved.Count > 0, $"Visible bots move on {role} during the match");
         }
 
         static bool TycoonTest => Environment.GetCommandLineArgs().Contains("--dj-tycoon");
@@ -840,7 +892,7 @@ namespace DeadlyJenga.CastlePrototype
             if(FullRound){yield return CheckFullRound();yield break;}
             if(ScaleTest){yield return CheckScale();yield break;}
             if(TycoonTest){yield return CheckTycoon();yield break;}
-            if(NearbyFlow){yield return CheckNearbyLobby();yield break;}
+            if(NearbyFlow||ProductionCodeFlow){yield return CheckNearbyLobby();yield break;}
             if(LobbyHandoff)
             {
                 yield return CheckLobbyHandoff();
