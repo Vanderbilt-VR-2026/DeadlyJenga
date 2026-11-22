@@ -99,10 +99,42 @@ namespace DeadlyJenga.NinjaArt
             if (shrineTown)
             {
                 NinjaTempleScenery.Torii(p, new Vector3(0, 0, -43), Quaternion.identity, 10, 7, true, glow);
+                for (int row = 0; row < 3; row++)
+                {
+                    float z = -32 + row * 12;
+                    for (int side = -1; side <= 1; side += 2)
+                    {
+                        var foot = new Vector3(side * 4.6f,0,z);
+                        p.Box(foot + Vector3.up * .24f,new Vector3(.65f,.48f,.65f),Quaternion.identity,P.Stone);
+                        p.Cylinder(foot,foot + Vector3.up * 5.4f,.13f,.1f,8,P.Wood,P.Vermilion);
+                        Blocker(foot + Vector3.up * 2.7f,new Vector3(.26f,5.4f,.26f));
+                    }
+                    var previous = new Vector3(-4.6f,5.4f,z);
+                    for (int i = 1; i <= 12; i++)
+                    {
+                        float t = i / 12f;
+                        var point = new Vector3(Mathf.Lerp(-4.6f,4.6f,t),5.4f - 4 * t * (1-t),z);
+                        p.Cylinder(previous,point,.04f,.04f,4,P.Wood,P.Wood);
+                        if (i % 2 == 1)
+                        {
+                            var lantern = point + Vector3.down * .29f;
+                            NinjaTempleScenery.Lantern(p,lantern,.47f,new Color(1,.68f,.3f));
+                            glow.Halo(lantern,.72f,new Color(1,.4f,.11f,.55f),i);
+                        }
+                        previous = point;
+                    }
+                }
                 for (int side = -1; side <= 1; side += 2)
                 {
                     for (int i = 0; i < 5; i++)
                         NinjaTempleScenery.StoneLantern(p, new Vector3(side * 4, 0, -39 + i * 10), 1, glow, i + 17);
+                    for (int i = 0; i < 9; i++)
+                    {
+                        var at = new Vector3(side * (14 + (i % 3) * 2.2f),0,i < 5 ? 7 - i % 2 : -41 + i % 2);
+                        f.Blob(at + Vector3.up * .6f,new Vector3(1.55f,.83f,1.1f),3,8,new Color(.3f,.4f,.21f),P.Pine,i,.22f);
+                        if (i % 3 == 0) f.Blob(at + Vector3.up * 1.18f,new Vector3(1.2f,.52f,.8f),3,8,
+                            new Color(.88f,.31f,.36f),new Color(.52f,.13f,.19f),i,.3f);
+                    }
                     NinjaTempleScenery.Pine(f, new Vector3(side * 23, 0, -36), 1.35f, side + 10);
                     NinjaTempleScenery.Maple(f, new Vector3(side * 24, 0, 10), 1.2f, side + 25);
                     NinjaTempleScenery.Maple(f, new Vector3(side * 19, 0, 32), 1.4f, side + 12);

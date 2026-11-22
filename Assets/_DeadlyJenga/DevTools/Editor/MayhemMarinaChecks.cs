@@ -900,6 +900,12 @@ namespace DeadlyJenga.DevTools.Editor
                 maxDrift = Mathf.Max(maxDrift, Vector3.Distance(generator.Bodies[i].position,
                     generator.transform.TransformPoint(layout[i].Position)));
             Check(maxDrift < .55f, "Intact town settled within tolerance, max drift " + maxDrift);
+            var walls = generator.Bodies.Where(body => body.transform.localScale.z >= .405f && body.transform.localScale.z <= .445f).ToArray();
+            Check(walls.Length > 75 && walls.All(body => body.GetComponentsInChildren<MeshRenderer>()
+                .Any(r => r.sharedMaterial && r.sharedMaterial.shader.name == "DeadlyJenga/Ninja/ShrineFacade"
+                    && r.sharedMaterial.mainTexture)), "Physical walls carry painted shrine-town facades");
+            var quay = generator.foundation.GetComponent<MeshCollider>();
+            Check(quay && quay.sharedMesh && quay.sharedMesh.vertexCount == 16, "Eight-sided quay collider is present");
             captureOrigin=world.Center;
             var fog=Shader.GetGlobalVector("_NinjaFogParams");
             bool sceneFog=RenderSettings.fog;
@@ -907,7 +913,7 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 Shader.SetGlobalVector("_NinjaFogParams",new Vector4(120,420,.07f,fog.w));
                 RenderSettings.fog=false;
-                Capture(new Vector3(8,62,-129),new Vector3(0,6,0),36,"NinjaTemple-Overview.png");
+                Capture(new Vector3(16,57,-143),new Vector3(-1,2,0),28,"NinjaTemple-Overview.png");
                 Capture(new Vector3(0,2,-40),new Vector3(0,8,21),68,"ShrineTown-Market.png");
             }
             finally {Shader.SetGlobalVector("_NinjaFogParams",fog);RenderSettings.fog=sceneFog;}

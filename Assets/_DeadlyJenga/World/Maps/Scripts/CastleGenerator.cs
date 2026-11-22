@@ -354,6 +354,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var size = CastleLayout.FootprintSize(settings)+Vector2.one*4;
                 foundation.localScale = new Vector3(size.x, 1, size.y);
+                if (settings.layoutPreset == ShrineTownLayout.Preset) ShrineTownLayout.ShapeFoundation(foundation);
             }
             foreach (var p in layout)
             {

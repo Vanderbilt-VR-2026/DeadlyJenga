@@ -17,25 +17,54 @@ namespace DeadlyJenga.CastlePrototype
                 town.Box(0, 0, 1.5f + i, 11, (i + 1) * .5f, 1, CastleSection.Keep);
             town.Hall(0, 20, 32, 17, 4, 8, 2, 6);
             town.Hall(-32, 27, 10, 10, 0, 5, 3, 2, true);
-            town.Hall(30, 20, 10, 10, 0, 4, 4, 2);
-            town.Hall(-30, -2, 16, 12, 0, 4, 2, 3);
-            town.Hall(-10, -2, 9, 9, 0, 4, 2, 2);
+            town.Hall(34, 16, 10, 10, 0, 3.1f, 4, 2);
+            town.Hall(-30, -2, 19, 13, 0, 5.25f, 2, 3);
+            town.Hall(-10, -2, 9, 9, 0, 5.25f, 2, 2);
             // Bridge ends bear on both first-storey decks.
-            town.Box(-18.75f, 5.6f, -2, 9, .5f, 1.6f, CastleSection.Keep);
+            town.Box(-18.75f, 6.85f, -2, 9, .5f, 1.6f, CastleSection.Keep);
             for (int side = -1; side <= 1; side += 2)
             {
                 town.Hall(side * 10, -29, 9, 8, 0, 3, 1, 2);
-                town.Hall(side * 11, -15, 10, 8, 0, 3, 2, 2);
-                town.Hall(side * 32, -30, 12, 9, 0, 3, 1, 3);
-                town.Hall(side * 32, -16, 9, 8, 0, 3, 1, 2);
+                town.Hall(side * 11, -15, 10, 8, 0, 3, 2, 2, yaw: side * 20);
+                town.Hall(side * 32, -30, 12, 9, 0, 3, 1, 3, yaw: side * 42);
+                town.Hall(side * 32, -16, 9, 8, 0, 3, 1, 2, yaw: side * 65);
             }
             town.Hall(29, 0, 14, 10, 0, 4, 2, 3);
             town.Hall(10, -2, 8, 8, 0, 3, 1, 2);
             town.Hall(-30, 12, 8, 6, 0, 3.6f, 1, 2);
-            town.Hall(31, -42, 8, 6, 0, 3.8f, 1, 2);
+            town.Hall(21, -38, 8, 6, 0, 3.8f, 1, 2);
             town.Hall(-19, -38, 7, 6, 0, 3.4f, 1, 2);
             town.Hall(19, 4, 7, 7, 0, 3.6f, 1, 2);
             return town.pieces;
+        }
+
+        static Mesh foundationMesh;
+
+        public static void ShapeFoundation(Transform foundation)
+        {
+            if (foundation.TryGetComponent<MeshCollider>(out _)) return;
+            if (!foundationMesh) foundationMesh = BuildFoundationMesh();
+            foundation.gameObject.AddComponent<MeshCollider>().sharedMesh = foundationMesh;
+            foundation.GetComponent<BoxCollider>().enabled = false;
+        }
+
+        static Mesh BuildFoundationMesh()
+        {
+            // Matches the eight quay faces. Share the fixed foundation across rebuilds.
+            const float h = .5f, cut = .25f;
+            Vector2[] rim = {new(-cut,-h),new(-h,-cut),new(-h,cut),new(-cut,h),
+                new(cut,h),new(h,cut),new(h,-cut),new(cut,-h)};
+            var vertices = new Vector3[16];
+            var triangles = new List<int>(84);
+            for (int i = 0; i < 8; i++)
+            {
+                vertices[i] = new Vector3(rim[i].x, h, rim[i].y);
+                vertices[i + 8] = vertices[i] + Vector3.down;
+                int j = (i + 1) % 8;
+                triangles.AddRange(new[] {i, i + 8, j, j, i + 8, j + 8});
+                if (i > 0 && i < 7) triangles.AddRange(new[] {0, i, j, 8, j + 8, i + 8});
+            }
+            return new Mesh { name = "Octagonal shrine quay", vertices = vertices, triangles = triangles.ToArray() };
         }
 
         // Each pitched roof is one moving body. Both slopes travel with the deck beneath them.
@@ -54,6 +83,16 @@ namespace DeadlyJenga.CastlePrototype
                 slope.transform.localPosition = new Vector3(0, (size.y + rise) / 2, side * run / 2);
                 slope.transform.localRotation = Quaternion.Euler(side * Mathf.Atan(.44f) * Mathf.Rad2Deg, 0, 0);
                 slope.AddComponent<BoxCollider>().size = new Vector3(size.x, .22f, Mathf.Sqrt(run * run + rise * rise));
+                if (Mathf.Abs(size.y - 1.25f) < .01f)
+                {
+                    float span = size.x * .38f, peak = rise + span * .32f;
+                    var gable = new GameObject("Front gable slope");
+                    gable.layer = body.gameObject.layer;
+                    gable.transform.SetParent(frame, false);
+                    gable.transform.localPosition = new Vector3(side * span / 2,(size.y + peak) / 2,-(run + .75f) / 2);
+                    gable.transform.localRotation = Quaternion.Euler(0,0,-side * Mathf.Atan2(peak,span) * Mathf.Rad2Deg);
+                    gable.AddComponent<BoxCollider>().size = new Vector3(Mathf.Sqrt(span * span + peak * peak),.15f,run + .75f);
+                }
             }
         }
 
@@ -63,8 +102,9 @@ namespace DeadlyJenga.CastlePrototype
                 Quaternion.Euler(0, yaw, 0), section, Mathf.FloorToInt(bottom / 2), new Vector3(width, height, depth)));
         }
 
-        void Hall(float x, float z, float width, float depth, float y, float height, int levels, int columns, bool bell = false)
+        void Hall(float x, float z, float width, float depth, float y, float height, int levels, int columns, bool bell = false, float yaw = 0)
         {
+            int first = pieces.Count;
             for (int level = 0; level < levels; level++)
             {
                 float span = width - 2, reach = depth - 2;
@@ -101,6 +141,15 @@ namespace DeadlyJenga.CastlePrototype
                 y += cap;
                 width *= .80f;
                 depth *= .80f;
+            }
+            if (yaw == 0) return;
+            var turn = Quaternion.Euler(0,yaw,0);
+            var pivot = new Vector3(x,0,z);
+            for (int i = first; i < pieces.Count; i++)
+            {
+                var part = pieces[i];
+                pieces[i] = new CastlePlacement(pivot + turn * (part.Position - pivot),turn * part.Rotation,
+                    part.Section,part.Course,part.Size);
             }
         }
     }

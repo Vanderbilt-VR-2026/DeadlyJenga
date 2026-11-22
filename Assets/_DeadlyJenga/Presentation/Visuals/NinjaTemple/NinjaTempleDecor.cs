@@ -81,7 +81,7 @@ namespace DeadlyJenga.NinjaArt
         {
             var scale = Matrix4x4.Scale(new Vector3(size.x / size.z, 1, 1));
             m.Frame = scale;
-            Roof(m, glow, size.z / 2, size.y / 2);
+            Roof(m, glow, size.z / 2, size.y / 2, true);
             m.Frame = Matrix4x4.identity;
             if (kind == Kind.TownDeck)
             {
@@ -99,12 +99,12 @@ namespace DeadlyJenga.NinjaArt
             {
                 var rotation = Quaternion.Euler(side * Mathf.Atan(.44f) * Mathf.Rad2Deg, 0, 0);
                 m.Box(new Vector3(0, top + rise / 2, side * half / 2),
-                    new Vector3(size.x, .22f, half * Mathf.Sqrt(1 + .44f * .44f)), rotation, P.Tile);
+                    new Vector3(size.x, .22f, half * Mathf.Sqrt(1 + .44f * .44f)), rotation, new Color(.27f,.29f,.36f));
             }
             for (float x = -size.x / 2 + .18f; x < size.x / 2; x += .55f)
                 for (int side = -1; side <= 1; side += 2)
                     m.Cylinder(new Vector3(x, top + rise + .1f, 0), new Vector3(x, top + .1f, side * half),
-                        .09f, .1f, 5, new Color(.26f,.29f,.36f), P.Tile);
+                        .09f, .1f, 5, new Color(.39f,.41f,.48f), new Color(.29f,.31f,.39f));
             for (int side = -1; side <= 1; side += 2)
             {
                 float x = side * (size.x / 2 - .12f);
@@ -149,8 +149,8 @@ namespace DeadlyJenga.NinjaArt
                 foreach (var corner in new[] {left, right})
                 {
                     var ridge = new Vector3(0,peak,0);
-                    m.Quad(corner,crest,ridge,new Vector3(corner.x,top,0),P.Tile);
-                    m.Quad(new Vector3(corner.x,top,0),ridge,crest,corner,P.Tile);
+                    m.Quad(corner,crest,ridge,new Vector3(corner.x,top,0),new Color(.28f,.30f,.38f));
+                    m.Quad(new Vector3(corner.x,top,0),ridge,crest,corner,new Color(.28f,.30f,.38f));
                     m.Cylinder(corner,crest,.2f,.22f,6,P.Lacquer,P.Gold);
                 }
                 m.Cylinder(left,right,.18f,.18f,6,P.Gold,P.Gold);
@@ -165,7 +165,7 @@ namespace DeadlyJenga.NinjaArt
             float y = top - Droop * Mathf.Sqrt(v) + Upturn * Mathf.Pow(Mathf.Abs(u), 6) * Mathf.Pow(v, 1.5f);
             return new Vector3(u * o, y, o);
         }
-        static void Roof(NinjaMesh m, NinjaGlowMesh g, float half, float top)
+        static void Roof(NinjaMesh m, NinjaGlowMesh g, float half, float top, bool town = false)
         {
             const int U = 16, V = 4;
             for (int side = 0; side < 4; side++)
@@ -175,7 +175,7 @@ namespace DeadlyJenga.NinjaArt
                 {
                     float u0 = -1 + 2f * iu / U, u1 = -1 + 2f * (iu + 1) / U, v0 = iv / (float)V, v1 = (iv + 1f) / V;
                     var a = rot * RoofPoint(half, top, u0, v0); var b = rot * RoofPoint(half, top, u0, v1); var c = rot * RoofPoint(half, top, u1, v1); var d = rot * RoofPoint(half, top, u1, v0);
-                    var tone = iu % 2 == 0 ? P.Tile : P.TileDark; var lower = tone * (1 + .25f * v1); lower.a = 1;
+                    var tone = town ? new Color(.27f,.29f,.36f) : iu % 2 == 0 ? P.Tile : P.TileDark; var lower = tone * (1 + .25f * v1); lower.a = 1;
                     m.Quad(a, b, c, d, tone, lower, lower, tone);
                     var drop = Vector3.down * Thickness * (iv == 0 ? .2f : 1);
                     var soffit = Color.Lerp(P.Soffit, P.Vermilion * .6f, v0 * .5f); soffit.a = 1;
@@ -187,6 +187,22 @@ namespace DeadlyJenga.NinjaArt
                     var a = rot * RoofPoint(half, top, u0, 1); var b = rot * RoofPoint(half, top, u1, 1);
                     m.Quad(b + Vector3.down * Thickness, b + Vector3.up * .06f, a + Vector3.up * .06f, a + Vector3.down * Thickness, P.Vermilion);
                     m.Quad(a + Vector3.up * .06f, b + Vector3.up * .06f, b + Vector3.up * .06f + rot * Vector3.back * .12f, a + Vector3.up * .06f + rot * Vector3.back * .12f, P.Gold * .8f);
+                }
+                if (town)
+                {
+                    int ribs = Mathf.CeilToInt(half * 4);
+                    for (int rib = 0; rib <= ribs; rib++)
+                    {
+                        float u = 2f * rib / ribs - 1;
+                        for (int part = 0; part < 3; part++)
+                        {
+                            var start = rot * RoofPoint(half,top,u,part / 3f) + Vector3.up * .05f;
+                            var end = rot * RoofPoint(half,top,u,(part + 1) / 3f) + Vector3.up * .05f;
+                            // One strip per tile seam, batched into the roof mesh.
+                            var lip = rot * Vector3.right * .055f;
+                            m.Quad(start-lip,end-lip,end+lip,start+lip,new Color(.37f,.39f,.46f));
+                        }
+                    }
                 }
                 var tip = rot * RoofPoint(half, top, 1, 1);
                 for (int k = 0; k < 6; k++)
