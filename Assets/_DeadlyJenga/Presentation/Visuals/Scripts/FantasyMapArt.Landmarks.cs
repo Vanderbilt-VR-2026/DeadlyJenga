@@ -67,67 +67,10 @@ namespace DeadlyJenga.Presentation
         {
             var pieces=Pieces(body);if(pieces.Count==0)return false;
             var frame=body.transform;
-            Vector3 V(Vector3 local)=>visual.InverseTransformPoint(frame.TransformPoint(local));
-            var vq=Quaternion.Inverse(visual.rotation)*frame.rotation;
-            var b=PieceBounds(pieces);bool any=false;
+            var bounds=PieceBounds(pieces);
             bool roofOpen=RoofHole(pieces,out var hole,out var holeSize)&&!SomethingAbove(frame,body,hole,holeSize);
-            if(roofOpen){Pavilion(m,V,vq,hole,holeSize,site.StartsWith("Plaza")?Gold:DistrictColor(site));any=true;landmarkCount++;}
-            bool streetLevel=frame.TransformPoint(b.min).y<groundY+2;
-
-            if(purpose=="Broad catch frame")
-            {
-                foreach(var (c,s) in pieces)if(s.y>10&&Mathf.Max(s.x,s.z)<4)CandyCane(m,V,vq,c,s);
-                return true;
-            }
-            if(purpose=="Escape spine")
-            {
-                if(streetLevel){Elevator(body,visual,V,vq,b);any=true;}
-                if(roofOpen){Spire(m,V,vq,frame,b);any=true;}
-                return any;
-            }
-            if(purpose=="Climb-only candy crown"){CrownDome(m,V,vq,b);return true;}
-            if(purpose=="Independent bookfall support spine")
-            {
-                if(roofOpen){foreach(var (c,s) in pieces)if(s.y>3&&s.x<3&&s.z<3)Turret(m,V(new Vector3(c.x,b.max.y,c.z)));}
-                else if(!streetLevel)Banners(m,V,vq,b);
-                return true;
-            }
-            if(!purpose.Contains(" floor "))return any;
-
-            bool ground=purpose.EndsWith(" floor 1");
-            float hx=b.extents.x,hz=b.extents.z,floorY=b.min.y;var mid=b.center;
-            if(site.StartsWith("Sugar"))
-            {
-                if(ground)
-                {
-                    foreach(var (c,s) in pieces)if(s.y>3&&s.x<3&&s.z<3)CandyCane(m,V,vq,c,s);
-                    foreach(int side in new[]{-1,1})
-                    {
-                        ShopSign(m,V,vq,new Vector3(mid.x,floorY+3.45f,mid.z+side*(hz+.12f)),side,site.GetHashCode()+side);
-                        Cafe(m,V,frame,new Vector3(mid.x+5.5f,floorY,mid.z+side*(hz+3.2f)),body);
-                        Cafe(m,V,frame,new Vector3(mid.x-5.5f,floorY,mid.z+side*(hz+3.2f)),body);
-                    }
-                }
-                if(roofOpen&&RoofCorner(frame,body,b,hole,out var corner))Lollipop(m,V(corner));
-                return true;
-            }
-            if(site.StartsWith("Cloud Harbor"))
-            {
-                if(ground)
-                {
-                    foreach(int side in new[]{-1,1})DoorFrame(m,V,vq,new Vector3(mid.x,floorY,mid.z+side*(hz-.55f)),side);
-                    foreach(int side in new[]{-1,1})Cargo(m,V,frame,new Vector3(mid.x+side*(hx+2.6f),floorY,mid.z),body,side);
-                }
-                if(purpose.EndsWith(" floor 2"))
-                {
-                    var face=FaceToward(frame,frame.TransformPoint(mid),false);
-                    var at=mid+Vector3.Scale(face,b.extents)+face*.2f;at.y=floorY+2.1f;
-                    Anchor(m,V,vq,at,face);
-                }
-                if(roofOpen&&RoofCorner(frame,body,b,hole,out var corner))Crane(m,V,vq,corner,FaceToward(frame,frame.TransformPoint(mid),true));
-                return true;
-            }
-            return any;
+            Neighborhood(m,visual,body,bounds,site,purpose);
+            return site.StartsWith("Grape") || site.StartsWith("Downtown") || roofOpen || purpose.Contains(" floor ") || purpose=="Escape spine" || purpose=="Independent bookfall support spine";
         }
 
         int landmarkCount;

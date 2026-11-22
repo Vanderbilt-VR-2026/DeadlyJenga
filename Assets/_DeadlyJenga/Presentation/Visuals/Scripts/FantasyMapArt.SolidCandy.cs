@@ -37,24 +37,25 @@ namespace DeadlyJenga.Presentation
         {
             var (site,purpose)=NameParts(body);
             Color color;string key;
-            if(purpose.Contains("crossing")){bool high=body.worldCenterOfMass.y-groundY>17;key=high?"bridge high":"bridge";color=high?new Color(.92f,.22f,.26f):new Color(.86f,.68f,.48f);}
+            if(purpose=="Rainwater gallery crossing"){key="pump brass";color=new Color(1,.72f,.055f);}
+            else if(purpose.Contains("crossing")){bool high=body.worldCenterOfMass.y-groundY>17;key=high?"bridge high":"bridge";color=high?new Color(.92f,.22f,.26f):new Color(.86f,.68f,.48f);}
             else if(purpose.Contains("trestle")){key="trestle";color=new Color(.74f,.56f,.4f);}
             else if(site.StartsWith("Harbor bascule")){key="bascule";color=new Color(.86f,.68f,.48f);}
             else{color=DistrictColor(site);key=color.ToString();}
             if(solidMaterials.TryGetValue(key,out var material)&&material)return material;
             material=new Material(cityCandyMaterial){name="Candy planks "+key};
             material.SetFloat("_Pattern",5);material.SetColor("_BaseColor",color);
-            material.SetColor("_Accent",Color.Lerp(color,new Color(.25f,.1f,.2f),.62f));
-            material.SetFloat("_Smoothness",.55f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
+            material.SetColor("_Accent",Color.Lerp(color,new Color(.3f,.19f,.23f),.39f));
+            material.SetFloat("_Smoothness",.42f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
             solidMaterials[key]=material;return material;
         }
 
-        void ReleaseSolidMaterials(){foreach(var m in solidMaterials.Values)if(m)Release(m);solidMaterials.Clear();fountainBuilt=false;}
+        void ReleaseSolidMaterials(){if(neighborhoodPrint)Release(neighborhoodPrint);neighborhoodPrint=null;foreach(var m in solidMaterials.Values)if(m)Release(m);solidMaterials.Clear();fountainBuilt=false;}
 
         void SolidDress(Rigidbody body,Transform visual)
         {
             var (site,purpose)=NameParts(body);
-            var mesh=new ArtMesh(2);bool any=false;
+            var mesh=new ArtMesh(3);bool any=false;
             var boxes=body.GetComponentsInChildren<BoxCollider>();
             foreach(var shape in boxes)
             {
@@ -64,14 +65,13 @@ namespace DeadlyJenga.Presentation
                 var top=shape.transform.TransformPoint(shape.center+Vector3.up*size.y*.5f);
                 bool flat=size.y<1.2f,uncovered=!Covered(top,body);
                 if(purpose.Contains("crossing")&&flat&&Mathf.Max(size.x,size.z)>=2){RopeRails(mesh,size,P,q,body.worldCenterOfMass.y-groundY>17);any=true;continue;}
-                if(site.StartsWith("Grape")&&uncovered&&Mathf.Min(size.x,size.z)>=3&&top.y>groundY+6){Battlements(mesh,size,P,q);any=true;}
                 if(site.StartsWith("Downtown")&&size.y>5&&Mathf.Min(size.x,size.z)>=4){Chevrons(mesh,size,P,q,world);any=true;}
                 if(site.StartsWith("Plaza")&&flat&&uncovered&&Mathf.Min(size.x,size.z)>=8&&!fountainBuilt&&top.y>groundY+8)
                 {fountainBuilt=true;Fountain(mesh,P(Vector3.up*size.y*.5f),1.7f);any=true;}
             }
-            if(purpose.Contains(" floor ")){FloorDress(body,visual,site,purpose,mesh);any=true;}
+            if(purpose.Contains(" floor ") && !site.StartsWith("Canyon") && !site.StartsWith("Sugar") && !site.StartsWith("Cloud Harbor")){FloorDress(body,visual,site,purpose,mesh);any=true;}
             if(Landmark(body,visual,site,purpose,mesh))any=true;
-            if(any)Model("Fantasy decorations",mesh,visual,new[]{cityCandyMaterial,cityGlowMaterial},true);
+            if(any)Model("Fantasy decorations",mesh,visual,new[]{cityCandyMaterial,cityGlowMaterial,NeighborhoodPrintMaterial()},true);
         }
 
         // Jenga tower floor: roof railing and flags on the top floor, a ladder on every floor, shop awnings on the ground floor.
@@ -95,9 +95,6 @@ namespace DeadlyJenga.Presentation
             float ladderZ=mid.z+hz*.45f,face=mid.x+hx+.12f,floorY=b.min.y;
             for(int s=-1;s<=1;s+=2)mesh.Box(V(new Vector3(face,floorY+2,ladderZ+s*.42f)),new Vector3(.12f,4,.12f),vq,0,Gold);
             for(float y=.3f;y<4;y+=.42f)mesh.Box(V(new Vector3(face,floorY+y,ladderZ)),new Vector3(.1f,.08f,.84f),vq,0,Gold);
-            bool ground=purpose.EndsWith(" floor 1");
-            if(ground&&(site.StartsWith("Sugar")||site.StartsWith("Cloud Harbor")))
-                foreach(int s in new[]{-1,1})Awning(mesh,V(new Vector3(mid.x,floorY+2.6f,mid.z+s*(hz+.5f))),vq*Quaternion.Euler(0,s>0?0:180,0));
             if(deckTop==float.MinValue)return;
             var roofCenter=frame.TransformPoint(new Vector3(mid.x,deckTop,mid.z));
             if(Covered(roofCenter,body))return;

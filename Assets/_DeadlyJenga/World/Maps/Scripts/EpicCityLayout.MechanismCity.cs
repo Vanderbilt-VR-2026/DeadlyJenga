@@ -26,11 +26,19 @@ namespace DeadlyJenga.CastlePrototype
                 var order = new List<int>();
                 // Downtown: Drop-Stop Tower (two tiers): pulling its shoes drops floors onto catch frames.
                 var p = OnRing(45, 80);
-                order.Add(Transplant("Downtown drop-stop tower", TowerExhibitionLayout.Build(false, 5), TowerExhibitionLayout.Centers[5], p, TangentX(45),
+                order.Add(Transplant("Downtown drop-stop tower", TowerExhibitionLayout.Build(false, 5), TowerExhibitionLayout.Centers[5], p, TangentX(45) + (skyRing ? 180 : 0),
                     m => m.position.y - TowerExhibitionLayout.Centers[5].y < 31));
+                if (skyRing)
+                {
+                    int tier = 0;
+                    foreach (var member in plan.sites[order[0]].members)
+                        if (member.purpose == "Escape spine") SubstationStairs(member, tier++);
+                }
                 // Sugar Market: unchanged hall with two annexes.
                 p = OnRing(105, ring); order.Add(JengaSite("Sugar Market west annex", p.x, p.z, 3, 24, 24, FacePlaza(105)));
-                p = OnRing(135, ring); order.Add(JengaSite("Sugar Market hall", p.x, p.z, 2, 28, 22, FacePlaza(135)));
+                var schoolFront=Quaternion.Euler(0,FacePlaza(165)+180,0);
+                p = skyRing ? OnRing(165,ring)+schoolFront*new Vector3(-25.5f,0,0) : OnRing(135,ring);
+                order.Add(JengaSite("Sugar Market hall",p.x,p.z,skyRing?4:2,skyRing?20:28,22,FacePlaza(skyRing?165:135)));
                 p = OnRing(165, ring); order.Add(JengaSite("Sugar Market east annex", p.x, p.z, skyRing ? 7 : 2, 24, 24, FacePlaza(165)));
                 // Grape Heights: Bookfall Keep (three spine tiers, one pair of swing-down wings).
                 p = OnRing(225, 84);
@@ -40,16 +48,32 @@ namespace DeadlyJenga.CastlePrototype
                     bool wingPart = m.purpose.Contains("wing") || m.purpose.Contains("pedestal") || m.purpose.Contains("receiving foot");
                     return wingPart ? Mathf.Abs(local.z + 24) < 1 : local.y < 36;
                 }));
+                if (skyRing)
+                {
+                    var apartments=plan.sites[order[4]];
+                    var upper=apartments.members.FindLast(m=>m.purpose=="Independent bookfall support spine");
+                    foreach (int side in new[]{-1,1})
+                        Part(upper,new Vector3(side*5.1f,14.2f,7),new Vector3(11.5f,.58f,34),
+                            0,Quaternion.Euler(0,0,-side*22));
+                    Part(upper,new Vector3(0,14.15f,7),new Vector3(.8f,4.3f,34),3);
+                    geometryBounds.Remove(upper);
+                }
                 // Cloud Harbor: unchanged block with two annexes.
                 p = OnRing(285, ring); order.Add(JengaSite("Cloud Harbor west annex", p.x, p.z, 2, 24, 24, FacePlaza(285)));
-                p = OnRing(315, ring); order.Add(JengaSite("Cloud Harbor block", p.x, p.z, 3, 28, 22, FacePlaza(315)));
+                p = OnRing(315, ring); order.Add(JengaSite("Cloud Harbor block", p.x, p.z, skyRing ? 2 : 3, 28, 22, FacePlaza(315)));
                 p = OnRing(345, ring); order.Add(JengaSite("Cloud Harbor east annex", p.x, p.z, skyRing ? 5 : 3, 24, 24, FacePlaza(345)));
                 for (int i = 0; i < order.Count; i++)
                 {
                     int next = (i + 1) % order.Count;
                     // Points found offline with the same clearance test the planner uses.
-                    if (skyRing && i == 3) DeckLink(order[3], order[4], new Vector3(-63.96f, 29.15f, 8.96f), new Vector3(-56.46f, 29.15f, -28.39f), false);
-                    else if (skyRing && i == 7) DeckLink(order[7], order[0], new Vector3(81.11f, 21.15f, -13.55f), new Vector3(67.18f, 20.35f, 45.96f), false);
+                    if (skyRing && i == 2)
+                    {
+                        var annex=OnRing(165,ring);
+                        DeckLink(order[2],order[3],annex+schoolFront*new Vector3(-17.5f,9.15f,-3),
+                            annex+schoolFront*new Vector3(-10,9.15f,-3),false);
+                    }
+                    else if (skyRing && i == 3) DeckLink(order[3], order[4], new Vector3(-63.96f, 29.15f, 8.96f), new Vector3(-56.46f, 29.15f, -28.39f), false);
+                    else if (skyRing && i == 7) DeckLink(order[7], order[0], new Vector3(81.11f, 21.15f, -13.55f), OnRing(45,80) + Quaternion.Euler(0,45,0)*new Vector3(26.8f,21.15f,-3.1f), false);
                     else TryLink(order[i], order[next], true, 9.2f, 13.2f, 5.2f, 17.2f);
                 }
 
@@ -57,7 +81,7 @@ namespace DeadlyJenga.CastlePrototype
                 int nw = JengaSite("Canyon north-west tower", -27, 17, 6, 22, 22, 0, true);
                 int ne = JengaSite("Canyon north-east tower", 27, 17, 4, 22, 22, 0);
                 int sw = JengaSite("Canyon south-west tower", -27, -17, 3, 22, 22, 180);
-                int se = JengaSite("Canyon south-east tower", 27, -17, 7, 22, 22, 180, true);
+                int se = JengaSite("Canyon south-east tower", 27, -17, 7, 22, 22, 180, !skyRing);
                 DurableLink(nw, sw, 9.2f); Link(ne, se, 13.2f, BridgeWidth); Link(nw, se, 21.2f, BridgeWidth);
                 // Keystone vault: a raised plaza on two five-stone arches; pull a keystone and the deck fails.
                 var vaultOrigin = MayhemStructureLayout.Centers[7];
@@ -69,20 +93,24 @@ namespace DeadlyJenga.CastlePrototype
                 // The planner treats the arch stones under the deck like ramps and refuses every path off it,
                 // so the vault gets two explicit short bridges: to the south-west roof and the north-east third deck.
                 Bridge(new Vector3(-11, 13.01f, -10), new Vector3(-19.5f, 13.15f, -12), BridgeWidth, "Loose city street crossing");
-                plan.routes.Add(new EpicCityRoute { name = "Plaza keystone vault to Canyon south-west tower", from = vault, to = sw });
+                plan.routes.Add(new EpicCityRoute { name = "Plaza keystone vault to Canyon south-west tower", from = vault, to = sw, a = new Vector3(-11,13.01f,-10), b = new Vector3(-19.5f,13.15f,-12) });
                 Bridge(new Vector3(11, 13.01f, 8), new Vector3(20, 13.15f, 12), BridgeWidth, "Loose city street crossing");
-                plan.routes.Add(new EpicCityRoute { name = "Plaza keystone vault to Canyon north-east tower", from = vault, to = ne });
+                plan.routes.Add(new EpicCityRoute { name = "Plaza keystone vault to Canyon north-east tower", from = vault, to = ne, a = new Vector3(11,13.01f,8), b = new Vector3(20,13.15f,12) });
                 if (skyRing)
                 {
                     // Low spokes from the canyon's first floors to the ring (the planner never tries below 9 m).
-                    DeckLink(nw, order[2], new Vector3(-27, 5.15f, 25.85f), new Vector3(-46.03f, 5.15f, 46.03f), true);
+                    DeckLink(nw, order[2], new Vector3(-36.2f,5.15f,18), plan.sites[order[2]].position + schoolFront*new Vector3(0,4.8f,8), true);
                     DeckLink(ne, order[7], new Vector3(27, 5.15f, 11.65f), new Vector3(59.87f, 5.15f, -24.22f), true);
                 }
                 foreach (int inner in skyRing ? new[] { sw, se } : new[] { nw, ne, sw, se })
                 {
                     int best = order[0];
                     foreach (int s in order) if ((plan.sites[s].position - plan.sites[inner].position).sqrMagnitude < (plan.sites[best].position - plan.sites[inner].position).sqrMagnitude) best = s;
-                    TryLink(inner, best, true, 9.2f, 13.2f, 5.2f);
+                    if (skyRing && inner==sw && best==order[4])
+                        DeckLink(inner,best,new Vector3(-35,13.15f,-25.2f),new Vector3(-51.5658f,13.15f,-58.7429f),true);
+                    else if (skyRing && inner==se && best==order[6])
+                        DeckLink(inner,best,new Vector3(31,9.15f,-25.2f),new Vector3(46,9.15f,-43),true);
+                    else TryLink(inner, best, true, 9.2f, 13.2f, 5.2f);
                 }
 
                 // Small set pieces in the four pockets between the canyon and the ring.
@@ -104,7 +132,110 @@ namespace DeadlyJenga.CastlePrototype
                     }, true);
                 }
                 // Last, once every bridge exists: Jenga plank walls that leave each crossing open.
-                if (skyRing) PlankWalls();
+                if (skyRing)
+                {
+                    BuildPumpHall(plan.sites[se]);
+                    BuildPumpHall(plan.sites[sw]);
+                    district = sw;
+                    var a = new Vector3(-18,9.15f,-25.2f);
+                    var b = new Vector3(18,9.15f,-25.2f);
+                    plan.routes.Add(new EpicCityRoute { name="Rainwater plant service bridge", from=sw, to=se, a=a, b=b });
+                    Bridge(a,b,3.4f,"Rainwater gallery crossing");
+                    PlankWalls();
+                }
+            }
+
+            void BuildPumpHall(EpicCitySite site)
+            {
+                int level = 0;
+                foreach (var floor in site.members)
+                {
+                    if (!floor.purpose.Contains(" floor ")) continue;
+                    level++;
+                    // At alternate heights the stair and its side landings occupy just the rear
+                    // half. From the street the lower pump room and upper gallery are double-height.
+                    if (level == 7)
+                    {
+                        floor.shapes.RemoveRange(4,floor.shapes.Count-4);
+                        Flight(floor,new Vector3(-7.95f,0,-6),new Vector3(-7.95f,4,6),2.9f);
+                        foreach(int end in new[]{-1,1})
+                            Part(floor,new Vector3(-7.7f,3.65f,end*8.2f),new Vector3(5.4f,.7f,4.4f),1);
+                        Part(floor,new Vector3(2.7f,3.65f,0),new Vector3(15.4f,.7f,20.8f),1);
+                        // The collector is seated on the solid half of the roof, past the stair head.
+                        var center = new Vector3(2.7f,4.12f,0);
+                        for(int edge=0;edge<4;edge++)
+                        {
+                            var turn=Quaternion.Euler(0,90*edge,0);
+                            float halfWidth=edge%2==0?7.3f:9.6f;
+                            float reach=edge%2==0?9.6f:7.3f;
+                            var a=new Vector3(-1.65f,0,1.65f);
+                            var c=new Vector3(halfWidth,2.85f,reach);
+                            var top=new[]{a,new Vector3(-a.x,0,a.z),c,new Vector3(-c.x,c.y,c.z)};
+                            var v=new Vector3[8];
+                            for(int n=0;n<4;n++){v[n]=top[n]-Vector3.up*.22f;v[n+4]=top[n];}
+                            floor.shapes.Add(new MayhemShape(center,new Vector3(halfWidth*2,3.07f,reach-1.65f),
+                                2,turn,v));
+                        }
+                        continue;
+                    }
+                    floor.shapes.RemoveRange(4,floor.shapes.Count-4);
+                    // The stairwell is on the back wall. Only a low mezzanine and the roof
+                    // extend across the large public face overlooking the pool.
+                    bool upNorth = level%2==1;
+                    float lane = upNorth ? -7.95f : -4.7f;
+                    Flight(floor,new Vector3(lane,0,upNorth?-6:6),new Vector3(lane,4,upNorth?6:-6),2.9f);
+                    foreach(int end in new[]{-1,1})
+                        Part(floor,new Vector3(-6.6f,3.65f,end*8.2f),new Vector3(7.6f,.7f,4.4f),1);
+                    bool roofOfWing=level==3 && site.members.Count<7;
+                    if(level==2 || roofOfWing)
+                    {
+                        // Front edge of the gallery under both yellow bridge bearings.
+                        Part(floor,new Vector3(3.8f,3.65f,-8.2f),new Vector3(13.2f,.7f,4.4f),1);
+                        Part(floor,new Vector3(8.35f,3.65f,0),new Vector3(4.1f,.7f,12),1);
+                    }
+                    if(level==2 || level==3 || level==5 || roofOfWing)
+                        Part(floor,new Vector3(3.8f,3.65f,8.2f),new Vector3(13.2f,.7f,4.4f),1);
+                    // This pair of recessed wall panels backs the pumps and frames the open room.
+                    Part(floor,new Vector3(-10.6f,2,1.5f),new Vector3(.8f,4,8),0);
+                    foreach(int side in new[]{-1,1})
+                        if (level!=6 || side>0 || site.name!="Canyon south-east tower")
+                            Part(floor,new Vector3(side*6.9f,2,10.6f),new Vector3(3.4f,4,.8f),0);
+                    geometryBounds.Remove(floor);
+                }
+            }
+
+            // Keep the four original load-bearing columns. The public stairs run along the long
+            // elevation. A full-width landing at either end joins successive flights and tiers.
+            void SubstationStairs(MayhemModule tower, int tier)
+            {
+                tower.shapes.RemoveRange(4, tower.shapes.Count - 4);
+                const float run = 9.3f;
+                float start = tier%2==0 ? run : -run;
+                // Three tall storeys produce one continuous zigzag in the public elevation.
+                Flight(tower,new Vector3(4.85f,0,start),new Vector3(4.85f,15,-start),6.5f);
+                foreach(int end in new[]{-1,1})
+                    Part(tower,new Vector3(0,14.6f,end*10.9f),new Vector3(17,.8f,3.2f),1);
+                Part(tower,new Vector3(-3.6f,14.6f,0),new Vector3(9.8f,.8f,18.6f),1);
+                // Backstage service floor connects the drop cassette's loose crossing to the public flight.
+                float zAtTen=Mathf.Lerp(start,-start,2f/3f);
+                Part(tower,new Vector3(-3.6f,9.6f,0),new Vector3(9.8f,.8f,18.6f),1);
+                Part(tower,new Vector3(1.47f,9.6f,zAtTen),new Vector3(.34f,.8f,3),1);
+                foreach(int end in new[]{-1,1})
+                {
+                    Part(tower,new Vector3(-8.15f,7.5f,end*10),new Vector3(.68f,15,4.8f),0);
+                    Part(tower,new Vector3(-4.5f,11.1f,end*7),new Vector3(3.6f,2.2f,2.4f),3);
+                }
+                Part(tower,new Vector3(-6.9f,4.28f,0),new Vector3(.64f,8.56f,9.4f),0);
+                Part(tower,new Vector3(-6.9f,12.18f,0),new Vector3(.64f,4.32f,9.4f),0);
+                if(tier==1)
+                {
+                    // The entrance from the purple annex meets the outside stair at exactly +5 m.
+                    Part(tower,new Vector3(9.9f,4.6f,-3.1f),new Vector3(3.8f,.8f,4.8f),1);
+                    Part(tower,new Vector3(9.4f,2.25f,-3.1f),new Vector3(.75f,4.5f,3.4f),0);
+                }
+                if (tier == 2)
+                    Part(tower,new Vector3(-4,15.55f,0),new Vector3(4.8f,1.1f,4.8f),3);
+                geometryBounds.Remove(tower);
             }
 
             // Recreates what ConceptMechanismMap adds itself: anchored "Fixed" pieces, hinges, the roof slider.
