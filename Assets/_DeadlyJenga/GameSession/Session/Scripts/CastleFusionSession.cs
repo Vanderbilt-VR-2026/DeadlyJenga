@@ -331,18 +331,22 @@ namespace DeadlyJenga.CastlePrototype
             }
             catch{peer.world.Cancel();peer.waiting=0;throw;}
         }
+        static readonly Unity.Profiling.ProfilerMarker WorldDecodeMarker = new("DJ.Network.WorldDecode");
+        static readonly Unity.Profiling.ProfilerMarker WorldApplyMarker = new("DJ.Network.WorldApply");
+
         void ReceiveWorld(byte[] packet,int serial)
         {
             bool initial = castle.WaitingForWorld;
             if (initial) TraceAdmission($"initial World received serial={serial} bytes={packet.Length}");
-            var frame=worldReceiver.Decode(packet,serial);
+            WorldDeltaCodec.Frame frame;
+            using (WorldDecodeMarker.Auto()) frame = worldReceiver.Decode(packet, serial);
             LastWorldReceivedAt = Time.unscaledTime;
             if(frame.status==WorldDeltaCodec.Status.Stale)return;
             if(frame.status==WorldDeltaCodec.Status.MissingBase)
             {pendingWorldResync=frame.Token();pendingWorldResyncSerial=serial;sendWorldResync=true;return;}
             if(frame.status==WorldDeltaCodec.Status.Ready)
             {
-                castle.FusionApplyWorld(frame.raw);
+                using (WorldApplyMarker.Auto()) castle.FusionApplyWorld(frame.raw);
                 worldReceiver.Applied(frame);lastWorld=Time.unscaledTime;pendingWorldResync=null;pendingWorldResyncSerial=0;sendWorldResync=false;
                 if (initial) TraceAdmission($"initial World applied serial={serial}");
             }
