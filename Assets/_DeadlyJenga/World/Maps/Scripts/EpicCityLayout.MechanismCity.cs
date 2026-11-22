@@ -57,7 +57,7 @@ namespace DeadlyJenga.CastlePrototype
                 int nw = JengaSite("Canyon north-west tower", -27, 17, 6, 22, 22, 0, true);
                 int ne = JengaSite("Canyon north-east tower", 27, 17, 4, 22, 22, 0);
                 int sw = JengaSite("Canyon south-west tower", -27, -17, 3, 22, 22, 180);
-                int se = JengaSite("Canyon south-east tower", 27, -17, 7, 22, 22, 180, true);
+                int se = JengaSite("Canyon south-east tower", 27, -17, 7, 22, 22, 180, !skyRing);
                 DurableLink(nw, sw, 9.2f); Link(ne, se, 13.2f, BridgeWidth); Link(nw, se, 21.2f, BridgeWidth);
                 // Keystone vault: a raised plaza on two five-stone arches; pull a keystone and the deck fails.
                 var vaultOrigin = MayhemStructureLayout.Centers[7];

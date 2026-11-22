@@ -64,7 +64,6 @@ namespace DeadlyJenga.Presentation
                 var top=shape.transform.TransformPoint(shape.center+Vector3.up*size.y*.5f);
                 bool flat=size.y<1.2f,uncovered=!Covered(top,body);
                 if(purpose.Contains("crossing")&&flat&&Mathf.Max(size.x,size.z)>=2){RopeRails(mesh,size,P,q,body.worldCenterOfMass.y-groundY>17);any=true;continue;}
-                if(site.StartsWith("Grape")&&uncovered&&Mathf.Min(size.x,size.z)>=3&&top.y>groundY+6){Battlements(mesh,size,P,q);any=true;}
                 if(site.StartsWith("Downtown")&&size.y>5&&Mathf.Min(size.x,size.z)>=4){Chevrons(mesh,size,P,q,world);any=true;}
                 if(site.StartsWith("Plaza")&&flat&&uncovered&&Mathf.Min(size.x,size.z)>=8&&!fountainBuilt&&top.y>groundY+8)
                 {fountainBuilt=true;Fountain(mesh,P(Vector3.up*size.y*.5f),1.7f);any=true;}

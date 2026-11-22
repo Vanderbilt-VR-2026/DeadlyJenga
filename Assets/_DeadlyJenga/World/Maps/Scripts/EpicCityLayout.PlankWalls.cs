@@ -66,6 +66,22 @@ namespace DeadlyJenga.CastlePrototype
 
             void WallFloor(MayhemModule floor, float w, float depth, float baseY, float height, bool doors, List<(Vector3 c, Vector3 h, Quaternion q)> keepClear)
             {
+                string districtName = plan.sites[floor.district].name;
+                if (doors && (districtName.StartsWith("Cloud Harbor") || districtName.StartsWith("Sugar Market")))
+                {
+                    // These shop counters and classroom desks are solid cover on the same pullable floor.
+                    var inward = Quaternion.Inverse(floor.rotation) * -floor.position;
+                    var forward = Mathf.Abs(inward.x) > Mathf.Abs(inward.z)
+                        ? new Vector3(Mathf.Sign(inward.x), 0, 0) : new Vector3(0, 0, Mathf.Sign(inward.z));
+                    var facing = Quaternion.LookRotation(forward);
+                    float halfDepth = (forward.x == 0 ? depth : w) * .5f;
+                    bool shop = districtName.StartsWith("Cloud Harbor");
+                    foreach (int side in new[]{-1, 1})
+                    {
+                        var center = new Vector3(side * (shop ? 4 : 6), .54f, halfDepth - 2.8f);
+                        Part(floor, facing * center, new Vector3(2.5f, 1.08f, 1.4f), 3, facing);
+                    }
+                }
                 int rows = Mathf.FloorToInt((height - .7f) / PlankRow); // up to the underside of the deck above
                 for (int wall = 0; wall < 4; wall++)
                 {
@@ -78,12 +94,19 @@ namespace DeadlyJenga.CastlePrototype
                         ? alongX && sign == Mathf.Sign(inward.z)
                         : !alongX && sign == Mathf.Sign(inward.x);
                     var siteName = plan.sites[floor.district].name;
-                    if (facesStreet && (floor.purpose == "Escape spine" ||
-                        doors && (siteName.StartsWith("Cloud Harbor") || siteName == "Canyon south-east tower")))
+                    // Keep the two substations open around their existing posts and landings.
+                    if (floor.purpose == "Escape spine" || floor.purpose == "Two-floor dropping cassette" ||
+                        siteName == "Canyon south-east tower" || siteName == "Canyon south-west tower")
+                        continue;
+                    // Low sills define rooms while leaving the long apartment galleries and classrooms open.
+                    bool apartment = floor.purpose == "Independent bookfall support spine";
+                    bool classroom = siteName.StartsWith("Sugar Market") && facesStreet;
+                    if (facesStreet && doors && siteName.StartsWith("Cloud Harbor"))
                         continue;
                     for (int row = 0; row < rows; row++)
                     {
                         float y = baseY + .03f + PlankRow * (row + .5f);
+                        if ((apartment || classroom) && row > 0 && row < rows - 1) continue;
                         bool planks = (row % 2 == 0) == alongX;
                         // Street doors on the ground floor, front and back.
                         bool door = doors && alongX && row < 4;
