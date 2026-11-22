@@ -99,6 +99,12 @@ namespace DeadlyJenga.DevTools.Editor
             EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
             EditorApplication.EnterPlaymode();
         }
+        public static void RunShrinePandas()
+        {
+            SessionState.SetBool(Key+"ShrinePandas",true);
+            RunNinjaOverview();
+        }
+
         public static void RunNinjaOverview()
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Report));
@@ -151,7 +157,7 @@ namespace DeadlyJenga.DevTools.Editor
                     if(preference<0)PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);else PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,preference);
                     PlayerPrefs.Save();SessionState.SetBool(Key+"Layout",false);
                 }
-                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);SessionState.SetBool(Key+"NinjaOverview",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();
+                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);SessionState.SetBool(Key+"NinjaOverview",false);SessionState.SetBool(Key+"ShrinePandas",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();
                 int exitCode = errors == 0 && !failed ? 0 : 2;
                 if (SessionState.GetString("DJWarm.id", "") != "")
                 {
@@ -949,6 +955,52 @@ namespace DeadlyJenga.DevTools.Editor
             finally { Object.Destroy(probe); }
         }
 
+        static IEnumerator CheckShrinePandas()
+        {
+            var grove = Object.FindFirstObjectByType<DeadlyJenga.Wildlife.ShrinePandaGrove>();
+            Check(grove && grove.name=="Bamboo clearing","Panda habitat loaded on the large bamboo island");
+            var root = grove.transform.parent.parent.Find("Bamboo island pandas");
+            Check(root && root.childCount==5,"Five residents spawned");
+            var names = new[] {"Original","Willow","Boulder","Dumpling","Cub"};
+            var residents = names.Select(n=>root.Find(n)).ToArray();
+            Check(residents.All(p=>p),"All five builds present once");
+            var props = residents.Select(p=>p.GetComponentInChildren<SkinnedMeshRenderer>().bones.Single(b=>b.name=="Bamboo")).ToArray();
+            var jaws = residents.Select(p=>p.GetComponentInChildren<SkinnedMeshRenderer>().bones.Single(b=>b.name=="Jaw")).ToArray();
+            var food = new bool[5]; var chewed = new bool[5]; var resumed = new bool[5];
+            var last = residents.Select(p=>p.position).ToArray();
+            var lastJaw = jaws.Select(j=>j.localPosition).ToArray();
+            var physics = grove.gameObject.scene.GetPhysicsScene();
+            bool walkingCapture=false, feedingCapture=false;
+            captureOrigin=root.position;
+            for (float end=Time.time+29;Time.time<end;)
+            {
+                yield return Wait(.17f);
+                for (int i=0;i<5;i++)
+                {
+                    var point=residents[i].position;
+                    if (!physics.Raycast(point+Vector3.up*.3f,Vector3.down,out var hit,.45f,1,QueryTriggerInteraction.Ignore) ||
+                        hit.collider.name!="Stone islet" || Mathf.Abs(point.y-hit.point.y)>.05f)
+                        throw new InvalidOperationException("Panda left its island landing: "+names[i]);
+                    bool still=Vector3.Distance(last[i],point)<.001f;
+                    bool feeding=still && props[i].localScale.x>.90f;
+                    if(feeding && food[i] && Vector3.Distance(jaws[i].localPosition,lastJaw[i])>.00001f) chewed[i]=true;
+                    food[i]|=feeding;
+                    resumed[i]|=chewed[i] && !still && props[i].localScale.x<.02f;
+                    if(i==0 && (!walkingCapture && !still || !feedingCapture && chewed[i]))
+                    {
+                        var offset=point-root.position;
+                        bool meal=chewed[i];
+                        Capture(offset+residents[i].forward*2.8f+residents[i].right*1.8f+Vector3.up*1.35f,
+                            offset+Vector3.up*.8f,45,meal?"ShrinePanda-Feeding.png":"ShrinePanda-Walking.png");
+                        if(meal) feedingCapture=true; else walkingCapture=true;
+                    }
+                    last[i]=point;lastJaw[i]=jaws[i].localPosition;
+                }
+                if(resumed.All(v=>v)) break;
+            }
+            Check(resumed.All(v=>v),"Every resident walked, stopped with bamboo, moved its jaw and resumed walking");
+        }
+
         static IEnumerator RunNinjaOverviewScene()
         {
             Check(EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"),"Disaster setup validator runs");
@@ -964,6 +1016,11 @@ namespace DeadlyJenga.DevTools.Editor
             yield return Wait(2);
             var world=Services.World;
             Check(world!=null&&world.Blocks.Count>150&&world.Blocks.Count<=400,"Ninja map built within its authored block budget");
+            if (SessionState.GetBool(Key+"ShrinePandas",false))
+            {
+                yield return CheckShrinePandas();
+                yield break;
+            }
             var art=Object.FindFirstObjectByType<DeadlyJenga.NinjaArt.NinjaTempleArt>();
             Check(art,"Ninja Temple lighting and scenery are loaded");
             var lake=art.GetComponentsInChildren<MeshRenderer>().Single(r=>r.name=="Visual - moonlit castle ocean");
