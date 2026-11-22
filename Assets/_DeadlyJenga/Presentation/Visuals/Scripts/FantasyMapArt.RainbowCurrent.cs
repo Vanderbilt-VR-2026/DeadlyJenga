@@ -19,12 +19,24 @@ namespace DeadlyJenga.Presentation
                 var shader=Resources.Load<Shader>("FantasyMaps/RainbowCurrent");
                 rainbowCurrent=new Material(shader){name="Rainbow water"};
             }
-            return Model(name,mesh,parent,new[]{rainbowCurrent});
+            var model=Model(name,mesh,parent,new[]{rainbowCurrent});
+            mesh.ApplyWaterCoordinates(model.GetComponent<MeshFilter>().sharedMesh);
+            return model;
         }
 
         void Splash(Transform parent,Vector3 foot,float width,string label)
         {
             var mesh=new ArtMesh();
+            // The crest folds into a foamy tongue under the sheet. Droplets rise out of
+            // this moving contact patch and fall back through its surface.
+            for(int i=0;i<11;i++)
+            {
+                float a=i*2.399963f, r=Mathf.Sqrt(i/11f);
+                var p=new Vector3(Mathf.Cos(a)*width*r*.47f,-width*.05f,Mathf.Sin(a)*width*r*.22f);
+                mesh.Sphere(p,new Vector3(width*.19f,width*.115f,width*.14f),0,
+                    Color.Lerp(Color.white,Spectrum[i%7],.21f),6,10);
+                mesh.WaterData(new Vector4(i*.19f,a,3,width));
+            }
             for(int i=0;i<32;i++)
             {
                 float phase=Mathf.Repeat(i*.618034f,1),angle=i*2.399963f;
@@ -49,6 +61,7 @@ namespace DeadlyJenga.Presentation
         sealed partial class ArtMesh
         {
             List<Vector4> waterData;
+            public void ApplyWaterCoordinates(Mesh mesh)=>mesh.SetUVs(0,waterData);
             public void WaterData(Vector4 data)
             {
                 waterData??=new List<Vector4>();

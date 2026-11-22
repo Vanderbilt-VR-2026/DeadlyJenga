@@ -16,7 +16,7 @@ Shader "DeadlyJenga/Rainbow Current"
             CBUFFER_START(UnityPerMaterial)
                 float _FlowTime;
             CBUFFER_END
-            struct Input { float4 pos:POSITION; float4 color:COLOR; float4 flow:TEXCOORD0; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct Input { float4 pos:POSITION; float3 normal:NORMAL; float4 color:COLOR; float4 flow:TEXCOORD0; UNITY_VERTEX_INPUT_INSTANCE_ID };
             struct Output { float4 pos:SV_POSITION; float4 color:COLOR; float4 flow:TEXCOORD0; float fog:TEXCOORD1; UNITY_VERTEX_OUTPUT_STEREO };
             Output vert(Input v)
             {
@@ -25,7 +25,12 @@ Shader "DeadlyJenga/Rainbow Current"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
                 float3 pos=v.pos.xyz;
                 float4 f=v.flow;
-                if(f.z>1.5) // Foam ring vertices are authored around the impact origin.
+                if(f.z>2.5)
+                {
+                    pos.y+=f.w*.044*sin(_FlowTime*4.5+f.y);
+                    pos.z+=f.w*.035*cos(_FlowTime*3.1+f.y);
+                }
+                else if(f.z>1.5) // Foam ring vertices are authored around the impact origin.
                 {
                     float t=frac(_FlowTime*.74+f.x);
                     pos.xz*=.22+1.4*t;
@@ -38,6 +43,11 @@ Shader "DeadlyJenga/Rainbow Current"
                     float2 dir=float2(cos(f.y),sin(f.y));
                     pos.xz+=dir*f.w*t;
                     pos.y+=4*t*(1-t)*f.w*.72;
+                }
+                else
+                {
+                    float wave=sin(f.x*6.283185-_FlowTime*3.4+f.y*6);
+                    pos+=v.normal*wave*.26;
                 }
                 o.pos=TransformObjectToHClip(pos); o.flow=f; o.color=v.color;
                 o.fog=ComputeFogFactor(o.pos.z); return o;
