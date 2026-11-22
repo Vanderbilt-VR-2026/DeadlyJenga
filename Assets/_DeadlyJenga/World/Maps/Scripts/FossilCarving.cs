@@ -33,10 +33,18 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Collision(Vector3 center, Quaternion rotation, Vector3 size)
         {
-            var go = new GameObject("Bearing") { layer = Layers.Block };
-            go.transform.SetParent(member.transform, false);
-            go.transform.localPosition = center-pivot; go.transform.localRotation = rotation;
-            var col=go.AddComponent<BoxCollider>(); col.size=size;
+            var owner=member.gameObject;
+            // Session spawn and bot goal queries inspect colliders on the body itself.
+            if(Quaternion.Angle(rotation,Quaternion.identity)>.01f)
+            {
+                owner=new GameObject("Bearing"){layer=Layers.Block};
+                owner.transform.SetParent(member.transform,false);
+                owner.transform.localPosition=center-pivot;
+                owner.transform.localRotation=rotation;
+            }
+            var col=owner.AddComponent<BoxCollider>();
+            if(owner==member.gameObject)col.center=center-pivot;
+            col.size=size;
             col.includeLayers=1<<Layers.Survivor; col.layerOverridePriority=12;
             member.shapes.Add(col); Climbables.Register(col,member);
         }

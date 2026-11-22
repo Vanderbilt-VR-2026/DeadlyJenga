@@ -66,10 +66,13 @@ namespace DeadlyJenga.CastlePrototype
             float tread=dir.magnitude/count;var facing=Quaternion.LookRotation(dir);
             var mid=(a+b)*.5f;
             var flight=Piece("Teal stair "+low.slab.name+" to "+high.slab.name,mid,24,c=>{
+                // A continuous stringer carries the treads and matches their walking pitch.
+                var pitch=Quaternion.LookRotation((b-a).normalized);
+                c.Box(mid-pitch*Vector3.up*.14f,P(1.58f,.28f,(b-a).magnitude),Teal,pitch);
                 for(int i=0;i<count;i++)
                 {
                     var p=Vector3.Lerp(a,b,(i+.5f)/count)-Vector3.up*.14f;
-                    c.Box(p,P(1.58f,.28f,tread+.012f),Teal,facing);
+                    c.Box(p,P(1.58f,.28f,tread+.012f),Teal,facing,false);
                     c.Box(p+facing*P(0,.145f,-tread*.42f),P(1.58f,.034f,.055f),Brass,facing,false);
                 }
                 for(int sign=-1;sign<=1;sign+=2)
@@ -80,6 +83,42 @@ namespace DeadlyJenga.CastlePrototype
             });
             Socket(flight,low.slab,a-Vector3.up*.17f,3500);
             Socket(flight,high.slab,b-Vector3.up*.17f,3500);
+        }
+        void Canopy(Site site,Vector3 offset)
+        {
+            var origin=site.top+offset;
+            var stall=Piece("Canvas excavation shelter",origin+Vector3.up,5,c=>{
+                for(int x=-1;x<=1;x+=2)for(int z=-1;z<=1;z+=2)
+                {
+                    var basePoint=origin+P(x*.94f,0,z*.69f);
+                    c.Shaft(basePoint,basePoint+Vector3.up*1.63f,.045f,.045f,Timber);
+                }
+                for(int side=-1;side<=1;side+=2)
+                {
+                    var angle=Quaternion.Euler(0,0,-side*20);
+                    c.Box(origin+P(side*.54f,1.79f,0),P(1.2f,.07f,1.66f),new Color32(237,171,99,255),angle);
+                }
+                c.Box(origin+Vector3.up*.6f,P(1.5f,.12f,.65f),Timber,Flat);
+                for(int x=-1;x<=1;x+=2)
+                    c.Box(origin+P(x*.58f,.29f,0),P(.11f,.56f,.54f),Clay,Flat);
+                for(int k=0;k<3;k++)
+                    c.Shaft(origin+P(k*.31f-.43f,.74f,-.17f),origin+P(k*.31f-.35f,.79f,.1f),.08f,.1f,Ivory,false,false);
+            });
+            Socket(stall,site.slab,origin,750);
+        }
+        void Derrick(Site site)
+        {
+            var p=site.top+P(1.16f,0,.60f);
+            var crane=Piece("Hand winch and suspended sample",p+Vector3.up*1.35f,5,c=>{
+                for(int s=-1;s<=1;s+=2)
+                    c.Shaft(p+P(s*.42f,0,0),p+P(0,2.45f,0),.10f,.11f,Timber);
+                var head=p+P(-1.56f,3.27f,0);
+                c.Shaft(p+Vector3.up*2.38f,head,.14f,.14f,Clay);
+                c.Shaft(p+Vector3.up*1.52f,head,.065f,.065f,Brass,false,false);
+                c.Shaft(head,head-Vector3.up*1.35f,.024f,.024f,Timber,false,false);
+                c.Box(head-Vector3.up*1.54f,P(.46f,.38f,.42f),Clay,Flat);
+            });
+            Socket(crane,site.slab,p,900);
         }
         void BuildExcavation()
         {
@@ -94,12 +133,14 @@ namespace DeadlyJenga.CastlePrototype
             var horn=Landing("Triceratops forefoot",P(6,7.3f,2),4.6f,4.5f);
             var ankle=Landing("Rex near ankle",P(-12,7.2f,4),4,3.5f);
             var bridge=Landing("Rex far ankle",P(-4,8.6f,6),4.6f,4);
-            var summit=Landing("Rex rib balcony",P(-8,11.5f,10),5.2f,3);
+            var summit=Landing("Rex rib balcony",P(-11,11.5f,11),5.2f,3);
             var overlook=Landing("Frill balcony",P(11,9.4f,8),4.8f,3);
             Flight(west,switchback);Flight(switchback,gallery);Flight(gallery,ankle);
-            Flight(ankle,bridge);Flight(bridge,summit);Flight(camp,saddle);
-            Flight(east,lowEast);Flight(lowEast,tail);Flight(tail,horn);Flight(horn,overlook);
-            Flight(saddle,horn);Flight(gallery,bridge);
+            Flight(ankle,bridge);Flight(bridge,summit);Flight(west,saddle);
+            Flight(camp,lowEast);Flight(lowEast,tail);Flight(tail,horn);Flight(horn,overlook);
+            var turn=Landing("Central hairpin",P(.25f,5.9f,2.6f),2.1f,2.1f);
+            Flight(saddle,turn);Flight(turn,horn);Flight(gallery,bridge);
+            Canopy(camp,P(1.94f,0,.48f));Canopy(summit,P(-.85f,0,.41f));Derrick(overlook);
             Skeleton(Dinosaur.Stegosaurus,P(-6,5.0f,-7.6f),P(.4f,7.6f,-3.9f),west,saddle);
             Skeleton(Dinosaur.Rex,P(-8.2f,12.5f,5.2f),P(-2,13.6f,4.6f),ankle,bridge);
             Skeleton(Dinosaur.Triceratops,P(13.3f,8.1f,3),P(7.0f,10.1f,2.9f),tail,horn);
