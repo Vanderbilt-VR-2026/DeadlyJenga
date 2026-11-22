@@ -27,10 +27,11 @@ namespace DeadlyJenga.CastlePrototype
             }
 
             // Each run splits into its own set of bodies immediately outside the launch deck.
+            var gateColors = new[]{CastleSection.Aqua, red, green, CastleSection.Gold};
             for (int lane = 0; lane < 4; lane++)
             {
                 float x = -8.4f + lane * 5.6f;
-                Deck(plan, purple, x, 60, -10.7f, 5.55f, 3, TycoonDeckFinish.Gate);
+                Deck(plan, gateColors[lane], x, 60, -10.7f, 5.55f, 3, TycoonDeckFinish.Gate);
             }
             Flume(plan, CastleSection.Aqua, TycoonDeckFinish.Flume,
                 P(-8.4f,60,-12.2f), P(-17,53,-17), P(-33,40,4), P(-39,34,8),
@@ -60,7 +61,8 @@ namespace DeadlyJenga.CastlePrototype
                 Box(plan, red, P(x,17.5f,-24),P(7.5f,1,7));
                 Deck(plan, red, x,18.6f,-24,9,7,TycoonDeckFinish.Railed);
             }
-            Route(plan, red, 5, P(-22,7,-38), P(-28,12,-30), P(-22,18.6f,-24));
+            Walk(plan,5,P(-22,7,-38),P(-28,12,-30),P(-22,18.6f,-24));
+            Walk(plan,4,P(19,7,-32),P(11,12,-29),P(18,18.6f,-24));
             Route(plan, purple, 5, P(0,18.6f,-20.5f), P(0,18,-12), P(8,18,-6));
             Deck(plan,red,23,18.6f,-24,2,7);
             // Seat courses double as ledges; the side ramp bypasses the steeper climb.
@@ -68,11 +70,11 @@ namespace DeadlyJenga.CastlePrototype
             {
                 float z = -19 + row * 2.8f;
                 float height = 19 + row * 1.4f;
-                Deck(plan,purple,-21,height,z,16,2.8f);
+                Box(plan,purple,P(-21,height-.7f,z),P(16,1.4f,2.8f));
                 foreach (int side in new[] {-1,1})
                     Pier(plan,purple,-21+side*6,height-.6f,z,2.4f);
             }
-            Segment(plan,purple,3,P(-31,18.6f,-24),P(-31,26,-5));
+            Walk(plan,3,P(-31,18.6f,-24),P(-31,26,-5));
             Deck(plan,purple,-27,18.6f,-24,9,5);
             Deck(plan,purple,-26,26,-2,13,3);
             Segment(plan,purple,4,P(-21,26,0),P(-26,36,19.5f));
@@ -85,13 +87,25 @@ namespace DeadlyJenga.CastlePrototype
             Deck(plan,green,36,24.6f,-20,7,4,TycoonDeckFinish.Basin);
             Deck(plan,green,32,24.6f,-13,4,4,TycoonDeckFinish.Parasol);
             Terrace(plan);
-            Route(plan,green,5,P(33,18,-28),P(43,20,-27),P(39,24,-21));
+            Walk(plan,5,P(33,18,-28),P(43,20,-27),P(39,24,-21));
             Route(plan,red,5,P(24,18.6f,-24),P(28,18,-29));
             Route(plan,green,4,P(25,12,-22),P(24,9,-27),P(24,7,-30));
             Route(plan,purple,4,P(23,24,-8),P(16,24,-8),P(-8,24,-12),P(-9,24,-6));
             Deck(plan,red,11,7.6f,-39,6,4,TycoonDeckFinish.Awning);
             Deck(plan,purple,0,60.6f,4,13,7,TycoonDeckFinish.Bucket);
             return plan;
+        }
+
+        static void Walk(List<CastlePlacement> plan,float width,params Vector3[] points)
+        {
+            for(int i=1;i<points.Length;i++)
+            {
+                var delta=points[i]-points[i-1];
+                var rotation=Quaternion.LookRotation(delta,Vector3.up);
+                var center=(points[i]+points[i-1])*.5f-rotation*Vector3.up*.3f;
+                plan.Add(new CastlePlacement(center,rotation,CastleSection.Wall,Mathf.FloorToInt(center.y/2),
+                    P(width,.6f,delta.magnitude),TycoonDeckProfile.Rectangle(TycoonDeckFinish.Walk)));
+            }
         }
 
         static void Flume(List<CastlePlacement> plan, CastleSection color, TycoonDeckFinish finish,
@@ -117,10 +131,10 @@ namespace DeadlyJenga.CastlePrototype
                     float h = top - 1.8f - baseHeight;
                     Box(plan,color,P(x+end*width*.34f,baseHeight+h*.5f,beamZ),P(2.6f,h,2.6f));
                 }
-                Box(plan,CastleSection.Keep,P(x,top-1.2f,beamZ),P(width+.8f,1.2f,2));
+                Box(plan,CastleSection.Keep,P(x,top-1.2f,beamZ),P(width-.12f,1.2f,2));
             }
             for (int i=0;i<5;i++)
-                Deck(plan,color,x+width*((i+.5f)/5-.5f),top,z,width/5-.045f,depth,finish == TycoonDeckFinish.Peach && x == 0 && i < 2 ? TycoonDeckFinish.LoosePeach : finish);
+                Deck(plan,color,x+width*((i+.5f)/5-.5f),top,z,width/5-.045f,depth,finish == TycoonDeckFinish.Peach && x == 0 && (i == 1 || i == 2) ? TycoonDeckFinish.LoosePeach : finish);
         }
 
         static void Core(List<CastlePlacement> plan, CastleSettings settings)

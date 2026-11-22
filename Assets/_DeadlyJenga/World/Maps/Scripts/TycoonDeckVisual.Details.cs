@@ -38,8 +38,23 @@ namespace DeadlyJenga.CastlePrototype
                     for(int i=0;i<10;i++)
                         foreach(int side in new[]{-1,1})
                             Slab((i-4.5f)*w/10,0,side*(d-.35f)/2,w/10,.35f,.35f, i%2==0?1:2);
+                    for(int i=0;i<6;i++)
+                        foreach(int side in new[]{-1,1})
+                            Slab(side*(w-.35f)/2,0,(i-2.5f)*d/6,.35f,.35f,d/6,i%2==0?2:1);
+                    break;
+                case TycoonDeckFinish.Walk:
+                    for(int i=0;i<Mathf.CeilToInt(d/1.6f);i++)
+                        Slab(0,.005f,-d/2+i*1.6f+.08f,w,.025f,.11f,2);
+                    foreach(int side in new[]{-1,1})
+                    {
+                        float x=side*(w-.2f)/2;
+                        Slab(x,1.15f,0,.16f,.16f,d,2);
+                        Slab(x,.56f,0,.11f,.11f,d,2);
+                        for(int k=0;k<=4;k++) Slab(x,0,(k/4f-.5f)*(d-.3f),.18f,1.32f,.18f,2);
+                    }
                     break;
                 case TycoonDeckFinish.Railed:
+                    ArchSpandrels(w,d);
                     foreach(int side in new[]{-1,1})
                     {
                         float z=side*(d-.2f)/2;
@@ -52,6 +67,9 @@ namespace DeadlyJenga.CastlePrototype
                     foreach(int side in new[]{-1,1})
                         foreach(int end in new[]{-1,1})
                             Slab(side*w*.44f,0,end*d*.41f,.16f,3.1f,.16f,2);
+                    Slab(0,0,.55f,w*.64f,.16f,1.05f,3);
+                    Slab(0,.16f,.55f,w*.56f,.92f,.74f,2);
+                    Slab(0,1.08f,.55f,w*.67f,.16f,1.14f,3);
                     for(int i=0;i<9;i++)
                     {
                         float x=(i-4)*w/9;
@@ -92,6 +110,23 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
+        void ArchSpandrels(float w,float d)
+        {
+            // Each module carries two half arches above its pier.
+            for(int side=-1;side<=1;side+=2)
+            for(int j=0;j<7;j++)
+            {
+                float x0=side*w*.5f*j/7, x1=side*w*.5f*(j+1)/7;
+                float Drop(float x) => -1f-4f*(1-Mathf.Sqrt(Mathf.Clamp01(1-Mathf.Pow(1-2*Mathf.Abs(x)/w,2))));
+                var a=LocalPoint(x0,Drop(x0),-d*.505f);var b=LocalPoint(x1,Drop(x1),-d*.505f);
+                var c=LocalPoint(x1,-.5f,-d*.505f);var e=LocalPoint(x0,-.5f,-d*.505f);
+                Vector3 back=new Vector3(0,0,1.01f);
+                Quad(a,b,c,e,0);Quad(e,c,b,a,0);
+                Quad(e+back,c+back,b+back,a+back,0);Quad(a+back,b+back,c+back,e+back,0);
+                Quad(a,a+back,b+back,b,0);Quad(b,b+back,a+back,a,0);
+            }
+        }
+
         void Wedge(int i,int count,float low,float y0,float high,float y1,int material)
         {
             Vector3 At(int k,float r,float y)
@@ -119,7 +154,7 @@ namespace DeadlyJenga.CastlePrototype
                 var b=Arch(profile.StartLeft,profile.StartRight,i+1);
                 var c=Arch(profile.EndLeft,profile.EndRight,i+1);
                 var d=Arch(profile.EndLeft,profile.EndRight,i);
-                int material=enclosed?0:2;
+                int material=0;
                 Quad(a,b,c,d,material);Quad(d,c,b,a,material);
             }
         }

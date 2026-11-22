@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash, Peach, Mint, Basin, Tube, Gate, Railed, Awning, Parasol, Bucket, LoosePeach }
+    public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash, Peach, Mint, Basin, Tube, Gate, Railed, Awning, Parasol, Bucket, LoosePeach, Walk }
 
     public readonly struct TycoonDeckProfile
     {
@@ -42,12 +42,29 @@ namespace DeadlyJenga.CastlePrototype
             BeveledDeck(a,b,c,d,size,profile.Finish==TycoonDeckFinish.Flume);
             if (profile.Finish is TycoonDeckFinish.Flume or TycoonDeckFinish.DryChute)
             {
-                float inset = Mathf.Min(.15f,.36f/size.x);
-                var rise = Vector3.up*(.34f/size.y);
-                var lipFoot = Vector3.up*(.065f/size.y);
-                // Molded raised edges and a separate color for the wet center.
-                Prism(a+rise,Vector3.Lerp(a,b,inset)+rise,c+rise,Vector3.Lerp(c,d,inset)+rise,rise.y+lipFoot.y,0);
-                Prism(Vector3.Lerp(b,a,inset)+rise,b+rise,Vector3.Lerp(d,c,inset)+rise,d+rise,rise.y+lipFoot.y,0);
+                float inset = Mathf.Min(.22f,.74f/size.x);
+                // The trough rises gradually to the rounded rim on each bank.
+                foreach(bool right in new[]{false,true})
+                {
+                    var start=right?b:a; var end=right?d:c;
+                    var innerStart=Vector3.Lerp(start,right?a:b,inset);
+                    var innerEnd=Vector3.Lerp(end,right?c:d,inset);
+                    for(int k=0;k<5;k++)
+                    {
+                        Vector3 Bank(Vector3 inner,Vector3 outer,int step)
+                        {
+                            float t=step/5f;
+                            return Vector3.Lerp(inner,outer,Mathf.Sin(t*Mathf.PI*.5f))
+                                +Vector3.up*((.02f+.76f*(1-Mathf.Cos(t*Mathf.PI*.5f)))/size.y);
+                        }
+                        var n=Bank(innerStart,start,k); var f=Bank(innerEnd,end,k);
+                        var n2=Bank(innerStart,start,k+1); var f2=Bank(innerEnd,end,k+1);
+                        if(right) Quad(n,f,f2,n2,0); else Quad(n,n2,f2,f,0);
+                    }
+                    var rise=Vector3.up*(.78f/size.y);
+                    if(right) Quad(start,start+rise,end+rise,end,0);
+                    else Quad(start,end,end+rise,start+rise,0);
+                }
             }
             else if (profile.Finish == TycoonDeckFinish.Splash)
             {
@@ -64,7 +81,7 @@ namespace DeadlyJenga.CastlePrototype
             mesh.RecalculateBounds();
             gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
             gameObject.AddComponent<MeshRenderer>().sharedMaterials = new[] {
-                profile.Finish is TycoonDeckFinish.Peach or TycoonDeckFinish.LoosePeach ? Peach : profile.Finish == TycoonDeckFinish.Mint ? Mint : shell,
+                profile.Finish is TycoonDeckFinish.Peach or TycoonDeckFinish.LoosePeach or TycoonDeckFinish.Walk ? Peach : profile.Finish == TycoonDeckFinish.Mint ? Mint : shell,
                 accent ? accent : shell, Cream, Coral };
         }
 
