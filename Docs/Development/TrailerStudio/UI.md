@@ -113,3 +113,11 @@ Use **All tracks** at the left of the time ruler to show only actors, cameras, o
 In the sound row, green marks show recorded block hits, gold marks show match cues, and violet marks show recorded block breaks. Height indicates hit count. Hover a group for its timing, number of events and strongest recorded hit. The block-break record currently belongs to the tape archive only. **Find command** searches cues, camera names and key times. Choose a result to select its owner. A cue triggered by another event opens its settings with the playhead left in place.
 
 The interaction draws on [Audacity track focus and display](https://manual.audacityteam.org/man/audio_tracks.html), [Audacity range selection](https://manual.audacityteam.org/man/audacity_selection.html), and [Premiere timeline navigation](https://helpx.adobe.com/premiere/desktop/edit-projects/change-clip-sequence/navigation-controls-in-the-timeline.html).
+
+## Editor appearance and navigation
+
+The six production tabs pair a task name with a line icon and a short action caption. Teal identifies the current task and keyboard focus. The recorder uses coral and changes its round indicator to a stop square during recording. Track colors identify content in the timeline. The light palette follows the same conventions as the dark palette.
+
+Choose a cast row to access its labeled take, mute, solo, and lock actions. Other rows summarize active states. The settings panel names its subject, remembers expanded sections while scrubbing, and returns to the top when switching tasks. Compact layout begins below 1080 logical pixels.
+
+Theme review candidate `d011c100877094abf3cf9f0914b0d75096dfd235` on `origin/codex/cutscene-editor-tool` follows `4736e588d63aa532f9191e2d9aad74a2d7f4770f` and targets `origin/Evan_FINAL_Sprint`. The DevTools editor sources compiled, the window layout parsed, and the primary text, secondary text, selection and accent text pairs measured at least 7.1:1 in both palettes. The expanded Unity window tour checks the six mode labels and captions at 1280×760 and 900×560 and captures each palette at both sizes.
