@@ -105,13 +105,6 @@ namespace DeadlyJenga.Presentation
                 Box(0,3.65f,-.25f,13.2f,.35f,.75f,cream);
                 for(int side=-1;side<=1;side+=2)
                     Box(side*6.22f,1.6f,2.72f,.22f,3.2f,.22f,cream);
-                Box(-5.5f,2,-5.3f,6,2.7f,.3f,wood);
-                for(int shelf=0;shelf<3;shelf++)
-                {
-                    Box(-5.5f,.7f+shelf*.82f,-4.9f,6.1f,.15f,.6f,cream);
-                    for(int jar=0;jar<7;jar++)
-                        Box(-5.5f+(jar-3)*.78f,1+shelf*.82f,-4.9f,.43f,.48f,.43f,(jar+shelf)%2==0?lime:Gold);
-                }
                 for(int side=-1;side<=1;side+=2)
                 {
                     // A display window returns around each corner. The tills and open counter still face the street.

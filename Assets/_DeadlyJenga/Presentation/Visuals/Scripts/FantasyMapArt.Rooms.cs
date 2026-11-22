@@ -99,7 +99,13 @@ namespace DeadlyJenga.Presentation
                     if(grocery)
                     {
                         Produce(island.Place(0,1.35f,0),side);
-                        Produce(r.Place(side*4,1.10f,8.15f),-side);
+                        if(side>0)
+                        {
+                            var till=island.Place(1.15f,1.33f,-.42f);
+                            till.Box(0,.12f,0,.53f,.24f,.44f,Ink);
+                            till.Box(0,.31f,-.12f,.48f,.27f,.13f,Denim);
+                            for(int key=0;key<3;key++) till.Box(key*.11f-.11f,.25f,.09f,.073f,.03f,.07f,Linen);
+                        }
                     }
                     else if(cafe)
                     {
@@ -131,7 +137,17 @@ namespace DeadlyJenga.Presentation
                         wall.Box(0,1.44f,0,3.85f,.15f,1.48f,Linen);
                         wall.Tube(-1.23f,1.5f,-.3f,.26f,1.66f,Ink);
                     }
-                    if(cafe){Booth(wall);Pendant(wall.Place(0,0,1.7f),3.17f,Terracotta);}
+                    if(cafe)
+                    {
+                        Booth(wall);
+                        var table=wall.Place(0,0,1.75f);
+                        table.Tube(0,0,0,.43f,.10f,Ink);
+                        table.Tube(0,.1f,0,.14f,.70f,Brass);
+                        table.Tube(0,.8f,0,.88f,.13f,Oak);
+                        table.Tube(-.2f,.93f,0,.13f,.20f,Linen);
+                        table.Tube(.25f,.93f,.19f,.13f,.20f,Linen);
+                        Pendant(table,3.17f,Terracotta);
+                    }
                 }
             }
             else if(site.StartsWith("Grape") && purpose=="Independent bookfall support spine")
@@ -232,7 +248,10 @@ namespace DeadlyJenga.Presentation
             r.Box(0,.28f,0,3.9f,.56f,1.45f,Walnut);
             r.Box(0,.91f,-.56f,3.84f,1.24f,.33f,Jade);
             for(int cushion=-1;cushion<=1;cushion++)
-                r.Box(cushion*1.17f,.67f,.08f,1.12f,.29f,1.13f,new Color(.30f,.53f,.43f));
+            {
+                r.Box(cushion*1.17f,.64f,.08f,1.12f,.22f,1.13f,new Color(.30f,.53f,.43f));
+                r.Round(cushion*1.17f,.74f,.08f,.56f,.10f,.555f,new Color(.30f,.53f,.43f));
+            }
             foreach(int end in new[]{-1,1}) r.Box(end*1.88f,.71f,0,.22f,.55f,1.48f,Oak);
         }
         static void Books(Room r)

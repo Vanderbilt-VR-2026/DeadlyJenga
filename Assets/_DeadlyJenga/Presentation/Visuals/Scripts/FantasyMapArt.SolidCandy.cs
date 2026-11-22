@@ -45,7 +45,13 @@ namespace DeadlyJenga.Presentation
             else{color=DistrictColor(site);key=color.ToString();}
             int pattern=8;
             bool building=purpose.Contains(" floor ") || purpose.Contains("spine") || purpose.Contains("cassette") || purpose.Contains("book wing");
-            if(building && finish!=0)
+            if(purpose.Contains("raft") && (site.StartsWith("Cloud Harbor") || site.StartsWith("Grape") || site.StartsWith("Sugar") || site.StartsWith("Canyon")))
+            {
+                pattern=site.StartsWith("Cloud Harbor")?12:site.StartsWith("Grape")?10:9;
+                color=pattern==10?new Color(.73f,.56f,.37f):new Color(.85f,.80f,.68f);
+                key=site+" foundation";
+            }
+            else if(building && finish!=0)
             {
                 bool civic=site.StartsWith("Sugar") || site.StartsWith("Grape") || site.StartsWith("Cloud Harbor");
                 if(finish==1){pattern=civic?10:9;color=civic?new Color(.69f,.53f,.36f):new Color(.55f,.65f,.62f);}
@@ -57,7 +63,7 @@ namespace DeadlyJenga.Presentation
             if(solidMaterials.TryGetValue(key,out var material)&&material)return material;
             material=new Material(cityCandyMaterial){name="Candy planks "+key};
             material.SetFloat("_Pattern",pattern);material.SetColor("_BaseColor",color);
-            material.SetColor("_Accent",Color.Lerp(color,new Color(.3f,.19f,.23f),.39f));
+            material.SetColor("_Accent",pattern==12?new Color(.45f,.57f,.52f):Color.Lerp(color,new Color(.3f,.19f,.23f),.39f));
             material.SetFloat("_Metallic",pattern==11?.36f:0);material.SetFloat("_Smoothness",pattern==11?.5f:.28f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
             solidMaterials[key]=material;return material;
         }

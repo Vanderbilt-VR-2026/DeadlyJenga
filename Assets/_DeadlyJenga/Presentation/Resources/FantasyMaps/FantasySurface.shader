@@ -63,7 +63,15 @@ Shader "DeadlyJenga/Fantasy Surface"
      float grain=noise(float2(surface.x*.9,surface.y*28+noise(surface*.6)));
      color*=.86+.12*grain+.09*hash(floor(board));
      color*=.88+.12*smoothstep(.002,.014+fwidth(surface.y),min(edge.x,edge.y));
-    }else{color*=.95+.07*noise(float2(surface.x*.8,surface.y*45));}
+    }else if(_Pattern<11.5){color*=.95+.07*noise(float2(surface.x*.8,surface.y*45));}
+    else{ // glazed checker tile and pale grout
+     float2 tile=surface/1.15, grid=floor(tile), t=frac(tile);
+     float checker=frac((grid.x+grid.y)*.5)*2;
+     float footprint=max(fwidth(tile.x),fwidth(tile.y));
+     checker=lerp(checker,.5,saturate(footprint*2));
+     float grout=1-smoothstep(.005,.018+footprint*.65,min(min(t.x,1-t.x),min(t.y,1-t.y)));
+     color=lerp(lerp(color,_Accent.rgb,checker),float3(.64,.60,.52),grout);
+    }
    }
    else if(_Pattern<.5){
     float d=hex(uv*.62);float aa=max(fwidth(d),.015);float seam=smoothstep(.76-aa,.83+aa,d);
