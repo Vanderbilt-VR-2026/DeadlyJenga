@@ -20,7 +20,7 @@ using Object=UnityEngine.Object;
 
 namespace DeadlyJenga.DevTools.Editor
 {
-    [InitializeOnLoad] public static class MayhemMarinaChecks
+    [InitializeOnLoad] public static partial class MayhemMarinaChecks
     {
         const string Key="MayhemMarinaChecks";
         [MenuItem("Tools/Deadly Jenga/Lobby/Use Mayhem Marina (Default)")]
@@ -151,7 +151,7 @@ namespace DeadlyJenga.DevTools.Editor
                     if(preference<0)PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);else PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,preference);
                     PlayerPrefs.Save();SessionState.SetBool(Key+"Layout",false);
                 }
-                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);SessionState.SetBool(Key+"NinjaOverview",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();
+                SessionState.SetBool(KeepKey,false);SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);SessionState.SetBool(Key+"NinjaOverview",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();
                 int exitCode = errors == 0 && !failed ? 0 : 2;
                 if (SessionState.GetString("DJWarm.id", "") != "")
                 {
@@ -165,7 +165,7 @@ namespace DeadlyJenga.DevTools.Editor
         {if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(Report,"ERROR "+value+"\n"+stack+"\n");}}
         static IEnumerator Guard()
         {
-            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"NinjaOverview",false)?RunNinjaOverviewScene():SessionState.GetBool(Key+"PlayRotation",false)?RunPlayRotationScene():SessionState.GetBool(Key+"Recovery",false)?RunRecoveryScene():SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
+            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(KeepKey,false)?RunKeepScene():SessionState.GetBool(Key+"NinjaOverview",false)?RunNinjaOverviewScene():SessionState.GetBool(Key+"PlayRotation",false)?RunPlayRotationScene():SessionState.GetBool(Key+"Recovery",false)?RunRecoveryScene():SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
             while(stack.Count>0)
             {
                 bool next=false;object value=null;

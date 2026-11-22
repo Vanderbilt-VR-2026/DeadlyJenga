@@ -279,12 +279,13 @@ namespace DeadlyJenga.CastlePrototype
         public Vector3 SafeSpawnPoint()
         {
             Physics.SyncTransforms();
-            if (CuratedCtf)
+            if (CuratedCtf || settings.layoutPreset == NeedlefrostLayout.Preset)
             {
+                var landings = CuratedCtf ? CuratedSpawns : NeedlefrostLayout.Landings;
                 var physics = gameObject.scene.GetPhysicsScene();
-                for (int n = 0; n < CuratedSpawns.Length; n++)
+                for (int n = 0; n < landings.Length; n++)
                 {
-                    var start = transform.TransformPoint(CuratedSpawns[curatedSpawnCursor++ % CuratedSpawns.Length]);
+                    var start = transform.TransformPoint(landings[curatedSpawnCursor++ % landings.Length]);
                     if (!physics.Raycast(start + Vector3.up, Vector3.down, out var hit, 3,
                         (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore) || hit.normal.y < .8f) continue;
                     var feet = hit.point + Vector3.up * .08f;
@@ -292,7 +293,7 @@ namespace DeadlyJenga.CastlePrototype
                         curatedSpawnClearance, (1 << Layers.Block) | (1 << Layers.Surface) | (1 << Layers.Survivor) | 1,
                         QueryTriggerInteraction.Ignore) == 0) return feet;
                 }
-                throw new System.InvalidOperationException("No supported clear courtyard spawn remains.");
+                if (CuratedCtf) throw new System.InvalidOperationException("No supported clear courtyard spawn remains.");
             }
             Collider best = null; float highest = float.NegativeInfinity;
             foreach (var body in Bodies)
@@ -378,7 +379,8 @@ namespace DeadlyJenga.CastlePrototype
                         CastleSection.Aqua => aquaMaterial ? aquaMaterial : cornerMaterial,
                         _ => wallMaterial
                     };
-                    if(p.DeckProfile.Finish == TycoonDeckFinish.Plain || !block.visualRoot)
+                    if(settings.layoutPreset == NeedlefrostLayout.Preset) NeedlefrostStone.Dress(block,p);
+                    else if(p.DeckProfile.Finish == TycoonDeckFinish.Plain || !block.visualRoot)
                     {
                         block.RefreshAppearance();
                     }

@@ -1,0 +1,16 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_Name: Amber
+  m_Shader: {fileID: 4800000, guid: 8fc60c777d82438bb641beb2bc87e2a6, type: 3}
+  m_EnableInstancingVariants: 1
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _Glow: 1
+    m_Colors:
+    - _Tint: {r: 1, g: 0.51, b: 0.095, a: 1}
