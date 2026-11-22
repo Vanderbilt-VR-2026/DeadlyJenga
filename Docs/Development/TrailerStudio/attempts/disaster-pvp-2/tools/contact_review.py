@@ -62,7 +62,7 @@ def verify_manifest(path, videos, tape):
         raise ValueError(f"{path}: {error}") from error
 
 
-def build_review(run):
+def read_synchronized_take(run):
     metadata, pov, witness, tape = (
         run / name for name in ("contact.txt", "shots/POV.mp4", "shots/Witness.mp4", "tape.wav")
     )
@@ -102,7 +102,11 @@ def build_review(run):
     available = Fraction(audio["duration_ts"]) * Fraction(audio["time_base"]) * sample_rate
     if audio_end > available:
         raise ValueError(f"{tape.name} ends before the shot window finishes at {(start + counts[0]) / fps:.3f}s")
+    return pov, witness, tape, fps, start, counts[0], marker, audio_start, audio_end
 
+
+def build_review(run):
+    pov, witness, tape, fps, _, frames, marker, audio_start, audio_end = read_synchronized_take(run)
     panel = ("scale=640:360:force_original_aspect_ratio=decrease:force_divisible_by=2,"
              "pad=640:360:(ow-iw)/2:(oh-ih)/2,setsar=1,format=yuv420p")
     graph = (
@@ -124,7 +128,7 @@ def build_review(run):
         )
         # Publish the completed file without replacing another review.
         os.link(encoded, output)
-    print(f"{output} | {counts[0]} frames at {fps} fps | marker {marker} ({marker / fps:.3f}s)")
+    print(f"{output} | {frames} frames at {fps} fps | marker {marker} ({marker / fps:.3f}s)")
 
 
 if __name__ == "__main__":

@@ -13,6 +13,9 @@ everything already recorded plays back around them.
 
 ## Files
 
+For the current prompt-to-render workflow, two camera editing, and the human
+comparison plan, see [Directing Deadly Jenga from a prompt](HUMAN-DIRECTION.md).
+
 | File | What it covers |
 |------|----------------|
 | [README.md](README.md) | Vision, core ideas, glossary, rules for the builder |
