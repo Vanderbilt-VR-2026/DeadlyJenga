@@ -101,7 +101,22 @@ namespace DeadlyJenga.Presentation
                 m.Cylinder(L(p+Vector3.up*.05f),LR(Quaternion.identity),4.5f,.12f,0,Sugar,18);
                 Tree(m,p+new Vector3(-1.2f,0,.8f),parks);
                 if(Hash(p+Vector3.one)>.5f)Tree(m,p+new Vector3(1.6f,0,-1.1f),parks+1);
-                m.Box(L(p+new Vector3(0,.5f,-2.8f)),new Vector3(2.2f,.18f,.6f),LR(Quaternion.identity),0,new Color(.95f,.4f,.55f));
+                if(solidCandy)
+                {
+                    // Feet sit on the raised turf, with rails connecting both end frames.
+                    var bench=new Room(m,L(p+new Vector3(0,.21f,-2.8f)),LR(Quaternion.identity));
+                    for(int end=-1;end<=1;end+=2)
+                    {
+                        bench.Box(end*.88f,.23f,0,.14f,.48f,.53f,Jade);
+                        bench.Box(end*.88f,.60f,-.23f,.14f,.81f,.13f,Jade);
+                        bench.Box(end*.88f,.055f,0,.34f,.11f,.60f,Ink);
+                    }
+                    for(int slat=-1;slat<=1;slat++)
+                        bench.EdgedTop(0,.48f,slat*.19f,2.18f,.11f,.175f,Oak);
+                    bench.Box(0,.77f,-.26f,2.18f,.15f,.11f,Oak);
+                    bench.Box(0,.96f,-.26f,2.18f,.15f,.11f,Oak);
+                }
+                else m.Box(L(p+new Vector3(0,.5f,-2.8f)),new Vector3(2.2f,.18f,.6f),LR(Quaternion.identity),0,new Color(.95f,.4f,.55f));
                 parks++;
             }
             Model("Visual · candy city streets",m,transform,new[]{cityCandyMaterial,cityGlowMaterial});
@@ -117,6 +132,18 @@ namespace DeadlyJenga.Presentation
 
         void Lamp(ArtMesh m,Vector3 p)
         {
+            if(solidCandy)
+            {
+                var lamp=new Room(m,L(p),LR(Quaternion.identity));
+                lamp.Tube(0,.10f,0,.36f,.20f,Ink);
+                lamp.Tube(0,.26f,0,.24f,.54f,Jade);
+                lamp.Tube(0,.76f,0,.15f,3.05f,Jade);
+                lamp.Tube(0,3.71f,0,.29f,.18f,Brass);
+                m.Sphere(lamp.At(0,4.23f,0),new Vector3(.39f,.49f,.39f),1,new Color(1,.83f,.58f),8,14);
+                m.Cone(lamp.At(0,4.54f,0),lamp.q,.37f,.22f,0,Jade,14);
+                lamp.Tube(0,4.74f,0,.065f,.12f,Brass);
+                return;
+            }
             m.Cylinder(L(p),LR(Quaternion.identity),.12f,4.2f,0,Sugar,8);
             m.Box(L(p+Vector3.up*4.25f),new Vector3(.9f,.12f,.12f),LR(Quaternion.identity),0,Sugar);
             m.Sphere(L(p+Vector3.up*4.55f),Vector3.one*.55f,1,WindowTints[0],4,8);

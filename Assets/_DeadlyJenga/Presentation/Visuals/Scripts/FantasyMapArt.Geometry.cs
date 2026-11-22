@@ -29,14 +29,17 @@ namespace DeadlyJenga.Presentation
                     if(sign<0)Quad(p[3],p[2],p[1],p[0],mat,color);else Quad(p[0],p[1],p[2],p[3],mat,color);
                 }
             }
-            public void Sphere(Vector3 center,Vector3 scale,int mat=0,Color? tint=null,int rings=8,int sides=12)
+            public void Sphere(Vector3 center,Vector3 scale,int mat=0,Color? tint=null,int rings=8,int sides=12,Quaternion? rotation=null)
             {
                 int start=vertices.Count;var color=tint??Color.white;
                 for(int y=0;y<=rings;y++)for(int x=0;x<=sides;x++)
                 {
                     float a=x*Mathf.PI*2/sides,b=y*Mathf.PI/rings;
                     var n=new Vector3(Mathf.Sin(b)*Mathf.Cos(a),Mathf.Cos(b),Mathf.Sin(b)*Mathf.Sin(a));
-                    vertices.Add(center+Vector3.Scale(n,scale));normals.Add(new Vector3(n.x/scale.x,n.y/scale.y,n.z/scale.z).normalized);colors.Add(color);
+                    var offset=Vector3.Scale(n,scale);
+                    var normal=new Vector3(n.x/scale.x,n.y/scale.y,n.z/scale.z).normalized;
+                    if(rotation.HasValue){offset=rotation.Value*offset;normal=rotation.Value*normal;}
+                    vertices.Add(center+offset);normals.Add(normal);colors.Add(color);
                 }
                 for(int y=0;y<rings;y++)for(int x=0;x<sides;x++)
                 {int a=start+y*(sides+1)+x,b=a+sides+1;triangles[mat].AddRange(new[]{a,b+1,b,a,a+1,b+1});}

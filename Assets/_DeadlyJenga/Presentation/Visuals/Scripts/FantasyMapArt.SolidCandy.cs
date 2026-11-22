@@ -101,7 +101,7 @@ namespace DeadlyJenga.Presentation
             if(!furnishingMaterial)
             {
                 furnishingMaterial=new Material(cityCandyMaterial){name="Painted wood and upholstery"};
-                furnishingMaterial.SetFloat("_Pattern",8);
+                furnishingMaterial.SetFloat("_Pattern",16);
                 furnishingMaterial.SetFloat("_Smoothness",.24f);
             }
             Model("Fantasy decorations",mesh,visual,new[]{furnishingMaterial,cityGlowMaterial},true);
@@ -116,7 +116,7 @@ namespace DeadlyJenga.Presentation
             {
                 var c=frame.InverseTransformPoint(shape.transform.TransformPoint(shape.center));
                 var local=Quaternion.Inverse(frame.rotation)*shape.transform.rotation;
-                var s=local*shape.size;s=new Vector3(Mathf.Abs(s.x),Mathf.Abs(s.y),Mathf.Abs(s.z));
+                var s=RotatedBoxSize(local,shape.size);
                 var sb=new Bounds(c,s);if(!started){b=sb;started=true;}else b.Encapsulate(sb);
                 if(shape.size.y>.6f&&shape.size.y<.8f)deckTop=Mathf.Max(deckTop,c.y+s.y*.5f);
             }
@@ -175,6 +175,8 @@ namespace DeadlyJenga.Presentation
                 {
                     float x=-length*.5f+.2f+i*(length-.4f)/(posts-1);
                     var foot=along*x+side*s*(width*.5f-.08f)+Vector3.up*top;
+                    mesh.Box(P(foot+Vector3.up*.055f),new Vector3(.33f,.13f,.33f),q,0,Walnut);
+                    mesh.Cylinder(P(foot+Vector3.up*.08f),q,.133f,.16f,0,Brass,8);
                     mesh.Box(P(foot+Vector3.up*.6f),new Vector3(.14f,1.2f,.14f),q,0,Gold);
                     mesh.Sphere(P(foot+Vector3.up*1.24f),Vector3.one*.13f,0,Gold,3,6);
                     if(i>0)
@@ -182,8 +184,8 @@ namespace DeadlyJenga.Presentation
                         foreach(float h in new[]{1.05f,.55f})
                         {
                             var a=P(last+Vector3.up*h);var e=P(foot+Vector3.up*h);var m=(a+e)*.5f+Vector3.down*.12f;
-                            mesh.Box((a+m)*.5f,new Vector3(.08f,.08f,(m-a).magnitude),Quaternion.LookRotation(m-a),0,rope);
-                            mesh.Box((m+e)*.5f,new Vector3(.08f,.08f,(e-m).magnitude),Quaternion.LookRotation(e-m),0,rope);
+                            mesh.Cylinder(a,Quaternion.FromToRotation(Vector3.up,m-a),.046f,(m-a).magnitude,0,rope,6);
+                            mesh.Cylinder(m,Quaternion.FromToRotation(Vector3.up,e-m),.046f,(e-m).magnitude,0,rope,6);
                         }
                     }
                     last=foot;

@@ -8,6 +8,11 @@ namespace DeadlyJenga.Presentation
             Linen=new(.95f,.84f,.62f), Ink=new(.075f,.13f,.16f), Jade=new(.12f,.43f,.35f),
             Terracotta=new(.78f,.27f,.14f), Denim=new(.15f,.33f,.50f), Brass=new(.83f,.58f,.23f);
 
+        // The furnishing shader reads the otherwise unused vertex alpha as a finish tag.
+        // Upholstery and stained boards can share the floor's single furniture draw.
+        static Color Fabric(Color tint){tint.a=.50f;return tint;}
+        static Color Veneer(Color tint){tint.a=.75f;return tint;}
+
         // Local-coordinate furniture groups are baked into the moving floor's art mesh.
         readonly struct Room
         {
@@ -19,14 +24,44 @@ namespace DeadlyJenga.Presentation
             public Room Place(float x,float y,float z,float yaw=0)=>new(mesh,At(x,y,z),q*Quaternion.Euler(0,yaw,0));
             public void Box(float x,float y,float z,float w,float h,float d,Color color)=>
                 mesh.Box(At(x,y,z),new Vector3(w,h,d),q,0,color);
+            public void EdgedTop(float x,float y,float z,float w,float h,float d,Color color)
+            {
+                float bevel=Mathf.Min(.055f,h*.26f);
+                var c=At(x,y,z);
+                mesh.Tabletop(c,q,new Vector3(w,h,d),bevel,color);
+            }
             public void Tube(float x,float y,float z,float r,float h,Color color)=>
                 mesh.Cylinder(At(x,y,z),q,r,h,0,color,12);
             public void Round(float x,float y,float z,float w,float h,float d,Color color)=>
-                mesh.Sphere(At(x,y,z),new Vector3(w,h,d),0,color,5,10);
+                mesh.Sphere(At(x,y,z),new Vector3(w,h,d),0,color,5,10,q);
             public void Pipe(Vector3 a,Vector3 b,float radius,Color color)
             {
                 Vector3 delta=q*(b-a);
                 mesh.Cylinder(origin+q*a,Quaternion.FromToRotation(Vector3.up,delta),radius,delta.magnitude,0,color,12);
+            }
+        }
+
+        sealed partial class ArtMesh
+        {
+            // Inset top and bottom faces leave a narrow chamfer that catches window light.
+            public void Tabletop(Vector3 center,Quaternion q,Vector3 size,float bevel,Color color)
+            {
+                Vector3 Corner(int index,float height,float inset)
+                {
+                    float x=index==0||index==3?-1:1;
+                    float z=index<2?-1:1;
+                    return center+q*new Vector3(x*(size.x*.5f-inset),height,z*(size.z*.5f-inset));
+                }
+                float y=size.y*.5f;
+                Quad(Corner(3,y,bevel),Corner(2,y,bevel),Corner(1,y,bevel),Corner(0,y,bevel),0,color);
+                Quad(Corner(0,-y,bevel),Corner(1,-y,bevel),Corner(2,-y,bevel),Corner(3,-y,bevel),0,color);
+                for(int i=0;i<4;i++)
+                {
+                    int j=(i+1)%4;
+                    Quad(Corner(i,-y,bevel),Corner(i,-y+bevel,0),Corner(j,-y+bevel,0),Corner(j,-y,bevel),0,color);
+                    Quad(Corner(i,-y+bevel,0),Corner(i,y-bevel,0),Corner(j,y-bevel,0),Corner(j,-y+bevel,0),0,color);
+                    Quad(Corner(i,y-bevel,0),Corner(i,y,bevel),Corner(j,y,bevel),Corner(j,y-bevel,0),0,color);
+                }
             }
         }
 
@@ -70,10 +105,11 @@ namespace DeadlyJenga.Presentation
                     foreach(float z in new[]{1.4f,depth*.27f})
                     {
                         var desk=r.Place(side*w*.26f,0,z);
-                        desk.Box(0,.99f,0,2.9f,.12f,1.25f,Oak);
+                        desk.EdgedTop(0,.99f,0,2.9f,.12f,1.25f,Veneer(Oak));
                         desk.Box(-.51f,1.10f,.09f,.68f,.10f,.49f,Denim);
                         desk.Box(-.51f,1.16f,.09f,.63f,.035f,.45f,Linen);
-                        desk.Box(.35f,.59f,0,.97f,.21f,.82f,Walnut);
+                        desk.Box(.35f,.80f,0,.97f,.26f,.82f,Walnut);
+                        desk.Box(.35f,.80f,-.43f,.27f,.045f,.07f,Brass);
                         Chair(desk.Place(.24f,0,-1.13f),side<0?Jade:Terracotta);
                     }
                     var wall=r.Place(side*(w*.5f-1.65f),0,2.4f,-side*90);
@@ -86,7 +122,7 @@ namespace DeadlyJenga.Presentation
                         wall.Box(-.7f,1.03f,.27f,.32f,.08f,.09f,Linen);
                     }
                 }
-                Pendant(r.Place(0,0,4.1f),3.16f,Jade);
+                Pendant(r.Place(0,0,4.1f),3.30f,Jade);
             }
             else if(site.StartsWith("Cloud Harbor") && purpose.Contains(" floor "))
             {
@@ -96,7 +132,7 @@ namespace DeadlyJenga.Presentation
                 {
                     var island=r.Place(side*w*.26f,0,1.4f);
                     island.Box(0,.65f,0,3.46f,1.13f,1.61f,cafe?Jade:Walnut);
-                    island.Box(0,1.26f,0,3.62f,.14f,1.73f,cafe?Linen:Oak);
+                    island.EdgedTop(0,1.26f,0,3.62f,.14f,1.73f,cafe?Linen:Oak);
                     if(grocery)
                     {
                         Produce(island.Place(0,1.35f,0),side);
@@ -114,8 +150,7 @@ namespace DeadlyJenga.Presentation
                         island.Box(-.62f,1.9f,.34f,.85f,.21f,.18f,Brass);
                         for(int cup=0;cup<3;cup++)
                         {
-                            island.Tube(.2f+cup*.33f,1.34f,.16f,.125f,.21f,Linen);
-                            island.Tube(.2f+cup*.33f,1.54f,.16f,.095f,.015f,Walnut);
+                            CoffeeCup(island.Place(.19f+cup*.39f,1.33f,.16f));
                         }
                     }
                     else
@@ -145,9 +180,10 @@ namespace DeadlyJenga.Presentation
                         table.Tube(0,0,0,.43f,.10f,Ink);
                         table.Tube(0,.1f,0,.14f,.70f,Brass);
                         table.Tube(0,.8f,0,.88f,.13f,Oak);
-                        table.Tube(-.2f,.93f,0,.13f,.20f,Linen);
-                        table.Tube(.25f,.93f,.19f,.13f,.20f,Linen);
-                        Pendant(table,3.17f,Terracotta);
+                        CoffeeCup(table.Place(-.28f,.93f,0,-25));
+                        CoffeeCup(table.Place(.27f,.93f,.18f,120));
+                        table.Box(.19f,.949f,-.37f,.44f,.035f,.28f,Terracotta);
+                        Pendant(table,3.30f,Terracotta);
                     }
                 }
             }
@@ -158,7 +194,7 @@ namespace DeadlyJenga.Presentation
                     float y=level*4;
                     var sitting=r.Place(0,y,9);
                     sitting.Box(0,.035f,0,7.4f,.06f,6.1f,Denim);
-                    sitting.Box(0,.071f,0,6.98f,.025f,5.68f,new Color(.47f,.61f,.58f));
+                    sitting.Box(0,.071f,0,6.98f,.025f,5.68f,Fabric(new Color(.47f,.61f,.58f)));
                     Booth(sitting.Place(0,0,-1.9f));
                     var table=sitting.Place(0,0,1);
                     table.Tube(0,0,0,.28f,.67f,Walnut);
@@ -168,10 +204,10 @@ namespace DeadlyJenga.Presentation
                     Books(r.Place(5.4f,y,14,-90));
                     var bed=r.Place(-4.4f,y,21);
                     bed.Box(0,.39f,0,3.14f,.78f,4.88f,Walnut);
-                    bed.Box(0,.86f,0,3.10f,.23f,4.77f,Linen);
-                    bed.Box(0,1.04f,-.58f,3.14f,.18f,3.55f,level%2==0?Denim:Jade);
+                    bed.EdgedTop(0,.86f,0,3.10f,.23f,4.77f,Linen);
+                    bed.EdgedTop(0,1.04f,-.58f,3.14f,.18f,3.55f,Fabric(level%2==0?Denim:Jade));
                     bed.Box(0,.95f,2.4f,3.45f,1.9f,.22f,Oak);
-                    bed.Round(0,1.12f,1.52f,1.13f,.21f,.56f,Linen);
+                    bed.Round(0,1.12f,1.52f,1.13f,.21f,.56f,Fabric(Linen));
                     var kitchen=r.Place(-5.5f,y,-8,90);
                     Kitchen(kitchen);
                     var entry=Cabinet(r.Place(-4.6f,y,-18.2f),level==1?Denim:Jade);
@@ -185,7 +221,7 @@ namespace DeadlyJenga.Presentation
                         entry.Box(x,1.20f,-.42f,.09f,.12f,.23f,Brass);
                         if(hook!=1)entry.Box(x,.83f,-.34f,.36f,.63f,.18f,hook==0?Denim:Terracotta);
                     }
-                    Pendant(sitting,3.18f,Brass);
+                    Pendant(sitting,3.30f,Brass);
                 }
             }
             else if(site.StartsWith("Canyon north") && purpose.Contains(" floor ") && !purpose.EndsWith(" floor 1"))
@@ -210,7 +246,7 @@ namespace DeadlyJenga.Presentation
         // Dress their surfaces in floor-local space so everything folds or falls together.
         static Room Cabinet(Room r,Color enamel)
         {
-            r.Box(0,1.12f,0,3.82f,.12f,1.39f,Oak);
+            r.EdgedTop(0,1.12f,0,3.82f,.12f,1.39f,Veneer(Oak));
             for(int door=-1;door<=1;door++)
             {
                 r.Box(door*1.18f,.56f,.65f,1.13f,.91f,.08f,enamel);
@@ -229,7 +265,7 @@ namespace DeadlyJenga.Presentation
                     var top=Cabinet(r.Place(-4.8f,deck,4.5f),level==1?Denim:Jade);
                     if(level==0) ReadingLamp(top); else if(level==1) RecordPlayer(top); else SewingTable(top);
                     Booth(r.Place(4.8f,deck,4.5f));
-                    Pendant(r.Place(4.8f,deck,4.5f),3.2f,Brass);
+                    Pendant(r.Place(4.8f,deck,4.5f),level==0?3.1f:3.3f,Brass);
                 }
                 return;
             }
@@ -245,7 +281,9 @@ namespace DeadlyJenga.Presentation
             if(marker<0 || !int.TryParse(purpose.Substring(marker+7),out int floor)) return;
             if(site.StartsWith("Canyon"))
             {
-                var top=Cabinet(r.Place(-6.5f,0,5.4f,90),Jade);
+                bool gallery=site.StartsWith("Canyon south");
+                var station=gallery?r.Place(-6.65f,4,9.26f,180):r.Place(-6.5f,0,5.4f,90);
+                var top=Cabinet(station,Jade);
                 if((floor%2)==0) InstrumentBench(top,false); else SampleRack(top);
                 return;
             }
@@ -289,6 +327,28 @@ namespace DeadlyJenga.Presentation
             }
         }
 
+        static void CoffeeCup(Room r)
+        {
+            r.Tube(0,0,0,.195f,.035f,Linen);
+            r.Tube(0,.034f,0,.122f,.18f,Linen);
+            r.Tube(0,.211f,0,.10f,.008f,Walnut);
+            r.mesh.Ring(r.At(.128f,.13f,0),r.q*Quaternion.Euler(90,0,0),.067f,.020f,10,5,0,Linen);
+        }
+
+        static void WindowHerbs(Room r)
+        {
+            r.EdgedTop(0,.13f,0,2.14f,.26f,.54f,Terracotta);
+            r.Box(0,.264f,0,1.97f,.023f,.40f,Walnut);
+            for(int plant=-1;plant<=1;plant++)
+            {
+                float x=plant*.62f;
+                r.Pipe(new Vector3(x,.26f,0),new Vector3(x+.035f,.71f,0),.029f,Jade);
+                r.Round(x-.085f,.45f,-.025f,.135f,.079f,.098f,Jade);
+                r.Round(x+.12f,.58f,.025f,.14f,.09f,.088f,new Color(.40f,.61f,.29f));
+                r.Round(x+.034f,.72f,0,.07f,.09f,.06f,Jade);
+            }
+        }
+
         static void ReadingLamp(Room r)
         {
             r.Tube(0,0,0,.26f,.085f,Ink);
@@ -301,6 +361,7 @@ namespace DeadlyJenga.Presentation
             r.Box(-.48f,.12f,0,1.34f,.24f,.9f,Walnut);
             r.Tube(-.66f,.24f,0,.37f,.046f,Ink);
             r.Tube(-.66f,.287f,0,.12f,.02f,Terracotta);
+            r.Tube(.03f,.24f,-.30f,.075f,.10f,Brass);
             r.Pipe(new Vector3(.03f,.34f,-.30f),new Vector3(-.35f,.33f,.12f),.032f,Brass);
             r.Box(1.1f,.42f,-.06f,.60f,.84f,.54f,Walnut);
             r.mesh.Cylinder(r.At(1.1f,.39f,.22f),r.q*Quaternion.Euler(90,0,0),.21f,.05f,0,Ink,14);
@@ -336,7 +397,7 @@ namespace DeadlyJenga.Presentation
             r.Tube(.95f,0,0,.34f,.12f,Ink);
             r.Pipe(new Vector3(.95f,.10f,-.21f),new Vector3(.95f,.68f,-.21f),.09f,Brass);
             r.Pipe(new Vector3(.95f,.72f,-.27f),new Vector3(.95f,.49f,.16f),.11f,Ink);
-            r.Box(.95f,.29f,.09f,.48f,.05f,.4f,Ink);
+            r.Box(.95f,.29f,-.02f,.48f,.05f,.46f,Ink);
         }
 
         static void InstrumentBench(Room r,bool windings)
@@ -380,7 +441,7 @@ namespace DeadlyJenga.Presentation
         static void Kitchen(Room r)
         {
             r.Box(0,.54f,0,4.42f,1.08f,1.28f,Jade);
-            r.Box(0,1.13f,0,4.60f,.15f,1.40f,Linen);
+            r.EdgedTop(0,1.13f,0,4.60f,.15f,1.40f,Linen);
             r.Box(0,1.50f,-.61f,4.56f,.73f,.12f,Oak);
             for(int door=-1;door<=1;door++)
             {
@@ -395,7 +456,13 @@ namespace DeadlyJenga.Presentation
             r.Tube(1.18f,1.21f,.02f,.40f,.06f,Ink);
             r.Tube(1.18f,1.27f,.02f,.31f,.30f,Terracotta);
             r.Box(1.58f,1.45f,.02f,.35f,.065f,.10f,Walnut);
-            r.Box(0,2.03f,-.32f,4.47f,.14f,.63f,Oak);
+            for(int bracket=-1;bracket<=1;bracket+=2)
+            {
+                float x=bracket*1.52f;
+                r.Box(x,1.71f,-.58f,.12f,.52f,.14f,Brass);
+                r.Pipe(new Vector3(x,1.51f,-.58f),new Vector3(x,1.98f,-.12f),.043f,Brass);
+            }
+            r.EdgedTop(0,2.03f,-.32f,4.47f,.14f,.63f,Oak);
             for(int jar=0;jar<4;jar++)
             {
                 float x=-1.48f+jar*.72f;
@@ -406,19 +473,19 @@ namespace DeadlyJenga.Presentation
 
         static void Chair(Room r,Color fabric)
         {
-            r.Box(0,.50f,0,.94f,.17f,.91f,fabric);
-            r.Box(0,.90f,-.40f,.94f,.70f,.13f,fabric);
+            r.EdgedTop(0,.50f,0,.94f,.17f,.91f,Fabric(fabric));
+            r.EdgedTop(0,.90f,-.40f,.94f,.70f,.13f,Fabric(fabric));
             foreach(int x in new[]{-1,1})foreach(int z in new[]{-1,1})
                 r.Box(x*.34f,.22f,z*.31f,.09f,.44f,.09f,Walnut);
         }
         static void Booth(Room r)
         {
             r.Box(0,.28f,0,3.9f,.56f,1.45f,Walnut);
-            r.Box(0,.91f,-.56f,3.84f,1.24f,.33f,Jade);
+            r.Box(0,.91f,-.56f,3.84f,1.24f,.33f,Fabric(Jade));
             for(int cushion=-1;cushion<=1;cushion++)
             {
-                r.Box(cushion*1.17f,.64f,.08f,1.12f,.22f,1.13f,new Color(.30f,.53f,.43f));
-                r.Round(cushion*1.17f,.74f,.08f,.56f,.10f,.555f,new Color(.30f,.53f,.43f));
+                r.Box(cushion*1.17f,.64f,.08f,1.12f,.22f,1.13f,Fabric(new Color(.30f,.53f,.43f)));
+                r.Round(cushion*1.17f,.74f,.08f,.56f,.10f,.555f,Fabric(new Color(.30f,.53f,.43f)));
             }
             foreach(int end in new[]{-1,1}) r.Box(end*1.88f,.71f,0,.22f,.55f,1.48f,Oak);
         }
@@ -473,6 +540,7 @@ namespace DeadlyJenga.Presentation
         }
         static void Pendant(Room r,float ceiling,Color enamel)
         {
+            r.Tube(0,ceiling-.09f,0,.22f,.105f,Brass);
             r.Tube(0,ceiling-.65f,0,.04f,.65f,Ink);
             r.mesh.Cone(r.At(0,ceiling-.99f,0),r.q,.55f,.37f,0,enamel,14);
             r.Round(0,ceiling-1.02f,0,.27f,.15f,.27f,Linen);

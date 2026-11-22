@@ -99,6 +99,10 @@ namespace DeadlyJenga.CastlePrototype
                 // center aisle and alternating stairs outside their collision footprints.
                 if (districtName.StartsWith("Sugar Market") || districtName.StartsWith("Cloud Harbor"))
                     Part(floor,new Vector3(-w*.5f+2.1f,.55f,7.2f),new Vector3(1.26f,1.1f,3.65f),3);
+                else if (districtName.StartsWith("Canyon south"))
+                    // The south towers are open through alternate storeys. Fix the station to
+                    // this module's outer landing, clear of the flight and its stair head.
+                    Part(floor,new Vector3(-6.65f,4.55f,9.26f),new Vector3(3.65f,1.1f,1.26f),3);
                 else if (districtName.StartsWith("Canyon"))
                     Part(floor,new Vector3(-6.5f,.55f,5.4f),new Vector3(1.26f,1.1f,3.65f),3);
                 else if (floor.purpose=="Two-floor dropping cassette")
