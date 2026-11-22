@@ -215,13 +215,32 @@ namespace DeadlyJenga.NinjaArt
                 float rr = new[] { 225f, 350f, 545f }[ridge]; float a = i * Mathf.PI * 2 / 24 + ridge;
                 mist.Halo(new Vector3(Mathf.Sin(a) * rr, wy + 6 + ridge * 8, Mathf.Cos(a) * rr), 60 + ridge * 40, new Color(.32f, .34f, .5f, .22f), 0, 1);
             }
-            for (int i = 0; i < 4; i++) for (int s = -1; s <= 1; s += 2)
+            if (shrineTown)
             {
-                var axis = Quaternion.Euler(0, i * 90, 0);
-                Pool(glow, axis * new Vector3(s * 3.4f, .04f, 20.5f), 3.2f, .5f);
-                Pool(glow, axis * new Vector3(s * 2.7f, .04f, 15.5f), 2.6f, .35f);
+                for (int side=-1;side<=1;side+=2)
+                    for (int lamp=0;lamp<5;lamp++)
+                    {
+                        float z = lamp==4 ? -1 : -39+10*lamp;
+                        for (int ripple=0;ripple<7;ripple++)
+                        {
+                            var at = new Vector3(side*4+Mathf.Sin(ripple*2.1f)*.16f,wy+.018f,z-.5f-ripple*.32f);
+                            var along = Vector3.right*(.7f-ripple*.065f);
+                            var depth = Vector3.forward*.12f;
+                            glow.Card(at-along-depth,at-along+depth,at+along+depth,at+along-depth,
+                                new Color(1,.52f,.19f,.52f-ripple*.047f),1);
+                        }
+                    }
             }
-            for (int i = 0; i < 4; i++) Pool(glow, Quaternion.Euler(0, i * 90 + 45, 0) * new Vector3(0, .04f, 11), 6.5f, .28f);
+            else
+            {
+                for (int i = 0; i < 4; i++) for (int s = -1; s <= 1; s += 2)
+                {
+                    var axis = Quaternion.Euler(0, i * 90, 0);
+                    Pool(glow, axis * new Vector3(s * 3.4f, .04f, 20.5f), 3.2f, .5f);
+                    Pool(glow, axis * new Vector3(s * 2.7f, .04f, 15.5f), 2.6f, .35f);
+                }
+                for (int i = 0; i < 4; i++) Pool(glow, Quaternion.Euler(0, i * 90 + 45, 0) * new Vector3(0, .04f, 11), 6.5f, .28f);
+            }
             var beamBase = moonFlat * 160 + Vector3.up * 70;
             for (int i = 0; i < 5; i++)
             {

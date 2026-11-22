@@ -83,7 +83,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             var timber = GameObject.CreatePrimitive(PrimitiveType.Cube);
             timber.name = name;
-            timber.layer = DeadlyJenga.Core.Layers.Surface;
+            // Building blocks collide with Default. Surface is reserved for survivor-only proxies.
+            timber.layer = name == "Cedar landing" ? 0 : DeadlyJenga.Core.Layers.Surface;
             timber.transform.SetParent(marshSupports,false);
             timber.transform.SetLocalPositionAndRotation(at,turn);
             timber.transform.localScale = size;

@@ -19,7 +19,12 @@ namespace DeadlyJenga.NinjaArt
             var iris = new Color(.66f,.42f,.82f,.8f);
             for (int bed=0;bed<220;bed++)
             {
-                float x = Range(-87,87), z = Range(-80,76);
+                float x = Range(-70,70), z = Range(-61,59);
+                if (bed%4==0)
+                {
+                    x = (bed%8==0 ? -1 : 1)*Range(12,49);
+                    z = Range(-53,-36);
+                }
                 if (Mathf.Abs(x)<4.5f && z<12) continue;
                 int clumps = random.Next(5,9);
                 for (int j=0;j<clumps;j++)
@@ -29,10 +34,10 @@ namespace DeadlyJenga.NinjaArt
                     {
                         float a = Range(0,Mathf.PI*2);
                         var lean = new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
-                        var half = Vector3.Cross(Vector3.up,lean)*Range(.06f,.14f);
-                        float h = Range(.72f,2.4f);
+                        var half = Vector3.Cross(Vector3.up,lean)*Range(.14f,.24f);
+                        float h = Range(.85f,2.6f);
                         var joint = foot+Vector3.up*h*.68f+lean*.18f;
-                        var tip = foot+Vector3.up*h+lean*Range(.45f,1.05f);
+                        var tip = foot+Vector3.up*h+lean*Range(.65f,1.35f);
                         mesh.Quad(foot-half,foot+half,joint+half*.65f,joint-half*.65f,root,root,leaf,leaf);
                         mesh.Tri(joint-half*.65f,joint+half*.65f,tip,leaf,leaf,leaf);
                         if (k==0)

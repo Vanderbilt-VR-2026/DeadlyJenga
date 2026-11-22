@@ -951,6 +951,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         static IEnumerator RunNinjaOverviewScene()
         {
+            Check(EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"),"Disaster setup validator runs");
             yield return RunSoloScene();
             MatchSetup.MapId="mode-ninja-temple-original";
             MatchSetup.ModeId="demo";
@@ -984,7 +985,7 @@ namespace DeadlyJenga.DevTools.Editor
             foreach (var start in starts.freeSpawns.Concat(starts.teams.SelectMany(team => team.spawns)))
             {
                 Check(starts.TrySpawnPosition(world,start,out var point) &&
-                    Physics.Raycast(point+Vector3.up*.1f,Vector3.down,out var contact,.4f,1<<Layers.Surface) &&
+                    Physics.Raycast(point+Vector3.up*.1f,Vector3.down,out var contact,.4f,1|(1<<Layers.Surface)) &&
                     contact.collider.name=="Cedar landing" && !Physics.CheckCapsule(point+Vector3.up*.4f,point+Vector3.up*1.45f,
                     .32f,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore),"Clear dry spawn "+start);
             }
