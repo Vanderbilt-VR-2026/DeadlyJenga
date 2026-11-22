@@ -125,6 +125,10 @@ namespace DeadlyJenga.CandyArt
             }
             if (world.Revision != revision)
                 RefreshWorldArt();
+            foreach (var beacon in roofBeacons)
+                if (beacon.lamp && beacon.lamp.enabled)
+                    beacon.lamp.transform.localRotation = beacon.rest * Quaternion.Euler(0f,
+                        20f * Mathf.Sin(Time.time * .8f + beacon.phase), 0f);
             AnimateFire();
             AnimateCarpet();
             AnimateDog();
@@ -179,7 +183,7 @@ namespace DeadlyJenga.CandyArt
                 if (key)
                     key.enabled = !externalLighting;
                 foreach (var light in practicalLights)
-                    light.enabled = !externalLighting;
+                    if (light) light.enabled = !externalLighting;
                 if (volume)
                     volume.enabled = !externalLighting;
                 if (roomProbe)
@@ -284,14 +288,25 @@ namespace DeadlyJenga.CandyArt
             LightToyBuildings();
         }
 
-        // Big walk-in toy buildings get warm lights inside, like a dollhouse left on at night,
-        // so their rooms can be seen and played in. Found by name and size only.
+        readonly List<(Light lamp, Quaternion rest, float phase)> roofBeacons =
+            new List<(Light, Quaternion, float)>();
         readonly HashSet<int> litBuildings = new HashSet<int>();
 
         void LightToyBuildings()
         {
+            practicalLights.RemoveAll(lamp => !lamp);
+            roofBeacons.RemoveAll(beacon => !beacon.lamp);
+            mapDressings.RemoveAll(obj => !obj);
             foreach (Transform child in world.Root.GetComponentsInChildren<Transform>())
             {
+                if (child.name.StartsWith("Practical ", StringComparison.Ordinal))
+                {
+                    if (!child.Find("Toy fixture")) AddToyFixture(child);
+                    continue;
+                }
+                if (child.name.StartsWith("Toy Doll Mansion", StringComparison.Ordinal) ||
+                    child.name.StartsWith("Toy Wizard Tower", StringComparison.Ordinal))
+                    continue;
                 if (!child.name.StartsWith("Toy ", StringComparison.Ordinal) || litBuildings.Contains(child.GetInstanceID()))
                     continue;
                 var renderers = child.GetComponentsInChildren<MeshRenderer>();
@@ -318,6 +333,39 @@ namespace DeadlyJenga.CandyArt
                     practicalLights.Add(light);
                 }
             }
+        }
+
+        void AddToyFixture(Transform socket)
+        {
+            if (socket.name == "Practical Roof dance floor") return;
+            bool gem = socket.name.StartsWith("Practical Gem ", StringComparison.Ordinal);
+            bool cyan = socket.name == "Practical Cyan beacon";
+            bool beacon = cyan || socket.name == "Practical Violet beacon";
+            Transform target = beacon ? socket.parent.Find("Practical Roof dance floor") : null;
+            if (beacon && !target) return;
+            var color = gem ? new Color(.64f, .12f, 1f) :
+                cyan ? new Color(.06f, .90f, 1f) : beacon ? new Color(.50f, .08f, 1f) : new Color(1f, .15f, .48f);
+            var lamp = MakeLight("Toy fixture", beacon ? LightType.Spot : LightType.Point, Vector3.zero,
+                color, beacon ? 155f : gem ? 24f : 49f, beacon ? 13f : gem ? 6.4f : 9f);
+            lamp.transform.SetParent(socket, false);
+            lamp.transform.localPosition = Vector3.zero;
+            lamp.enabled = !neutralView;
+            mapDressings.Add(lamp.gameObject);
+            if (!beacon) return;
+
+            lamp.transform.rotation = Quaternion.LookRotation(target.position - socket.position, Vector3.up);
+            lamp.spotAngle = 46f;
+            lamp.innerSpotAngle = 20f;
+            roofBeacons.Add((lamp, lamp.transform.localRotation, cyan ? 0f : Mathf.PI));
+            var lens = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            lens.name = "Beacon lens";
+            var collider = lens.GetComponent<Collider>();
+            collider.enabled = false;
+            Destroy(collider);
+            lens.transform.localScale = new Vector3(.52f, .52f, .38f);
+            lens.transform.SetParent(lamp.transform, true);
+            lens.transform.SetPositionAndRotation(socket.position, lamp.transform.rotation);
+            lens.GetComponent<MeshRenderer>().sharedMaterial = Glow(socket.name, color, 2.2f);
         }
 
         // The block-out's fireplace, garland, pictures and window sat on the old small room's walls.

@@ -24,7 +24,13 @@ def floor_hulls(obj, parent):
 def export_crag(out):
     return export_playset(out, "Crystal Crag.blend", "Toy Wizard Tower", "Crystal Crag",
                           ("alchemy", "divination", "archive", "terrace"), [-.13,5.2,10.2,15.2,15.65],
-                          (0,6.3), 0, SOLIDS, "Studio backdrop", None, floor_hulls)
+                          (0,6.3), 0, SOLIDS, "Studio backdrop", None, floor_hulls,
+                          lamps=[(0,"Gem footing left",(-6.75,-4.22,2.53)),
+                                 (0,"Gem footing right",(6.75,-4.22,2.53)),
+                                 (1,"Gem pier left",(-7.45,-2.18,6.90)),
+                                 (1,"Gem pier right",(7.45,-2.18,6.90)),
+                                 (2,"Gem crown left",(-6.84,-2.85,11.78)),
+                                 (2,"Gem crown right",(6.84,-2.85,11.78))])
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ PAINT = {
     "Lilac satin": "Premiere Lilac", "Blush paneling": "Premiere Blush",
     "Warm porcelain": "Toy Cream", "Brushed brass": "Toy Gold Trim",
     "Aubergine": "Toy Black Enamel", "Mulberry velvet": "Premiere Mulberry",
-    "Honey frosted bulbs": "Toy Window Glow", "Twilight glazing": "Premiere Lilac",
+    "Honey frosted bulbs": "Premiere Pink Glow", "Twilight glazing": "Premiere Lilac",
     "Lagoon satin": "Toy Teal", "Projection ivory": "Toy White",
     "Pistachio porcelain": "Premiere Pistachio", "Midnight acoustic felt": "Toy Navy",
     "Guava velvet": "Toy Red", "Almond sponge": "Toy Wood", "Polished nickel": "Toy Silver",
@@ -29,10 +29,16 @@ SOLIDS = ("Toy plinth", "Gallery slab", "Runway bridge", "Apron landing", "Cross
 def export_mansion(out):
     return export_playset(out, "Premiere Studios.blend", "Toy Doll Mansion", "Premiere Studios",
                           ("salon", "soundstage", "star suite", "cinema"), [-.215, 5.86, 11.56, 17.26, 17.55],
-                          (0,16.5), -6, SOLIDS, "Studio floor", PAINT)
+                          (0,16.5), -6, SOLIDS, "Studio floor", PAINT,
+                          lamps=[
+                              (0,"Pink salon",(-19,-1.6,3.44)), (0,"Pink cafe",(19,-1.6,3.44)),
+                              (1,"Pink stage",(0,10,9.8)), (1,"Pink gallery",(0,-1,10.8)),
+                              (2,"Pink vanity",(-15,-2.25,15.2)), (2,"Pink wardrobe",(15,-2.25,15.2)),
+                              (3,"Cyan beacon",(10.5,5.62,22.55)), (3,"Violet beacon",(17.5,5.62,22.55)),
+                              (3,"Roof dance floor",(14,-3,17.6))])
 
 
-def export_playset(out, source, asset, title, labels, levels, spine, y_offset, solids, backdrop, paints, floor_hulls=None):
+def export_playset(out, source, asset, title, labels, levels, spine, y_offset, solids, backdrop, paints, floor_hulls=None, lamps=()):
     with bpy.data.libraries.load(str(Path(__file__).with_name(source))) as (src, loaded):
         loaded.objects = list(src.objects)
     objects = [o for o in loaded.objects if o]
@@ -88,6 +94,12 @@ def export_playset(out, source, asset, title, labels, levels, spine, y_offset, s
     for (group,paint),(verts,faces) in batches.items():
         obj = mesh_object("Finish "+paint,verts,faces,parents[group])
         obj.data.materials.append(bpy.data.materials.get(paint) or bpy.data.materials.new(paint))
+    # Model-space sockets follow their breakaway section after an impact.
+    for section, label, (x,y,z) in lamps:
+        socket = bpy.data.objects.new("Practical "+label, None)
+        bpy.context.collection.objects.link(socket)
+        socket.parent = parents[section]
+        socket.location = (x,y+y_offset,z)
     bpy.ops.object.select_all(action="DESELECT")
     for parent in parents:
         for obj in (parent,*parent.children):

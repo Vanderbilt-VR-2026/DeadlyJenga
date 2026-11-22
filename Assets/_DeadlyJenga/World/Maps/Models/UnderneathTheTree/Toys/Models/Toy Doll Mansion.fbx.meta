@@ -77,8 +77,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Window Glow
-    second: {fileID: 2100000, guid: b07c6ce159c2fc7439a1ae82bf27da0a, type: 2}
+      name: Premiere Pink Glow
+    second: {fileID: 2100000, guid: 660841acc5db43869a9d143026559bd6, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule

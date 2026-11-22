@@ -85,6 +85,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
             SessionState.SetBool("TreePremiereStudios", true);
         }
 
+        public static void CaptureToyLighting()
+        {
+            Begin(false);
+            SessionState.SetBool("TreeToyLighting", true);
+            SessionState.SetBool("TreeCrystalCrag", true);
+            SessionState.SetBool("TreePremiereStudios", true);
+        }
+
         public static void CaptureCrystalCrag()
         {
             Begin(false);
@@ -96,6 +104,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             SessionState.SetBool("TreeFalconSummit", false);
             SessionState.SetBool("TreePremiereStudios", false);
             SessionState.SetBool("TreeCrystalCrag", false);
+            SessionState.SetBool("TreeToyLighting", false);
             if (!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Run this check in a checked batch editor.");
             if (!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))
@@ -185,8 +194,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         var front = Vector3.ProjectOnPlane(entry - toy.transform.position, Vector3.up).normalized;
                         var aim = toy.transform.position + Vector3.up * 8f;
                         Shot(player.ViewCamera, "crystal-crag", aim + front * 31f + Vector3.up * 7.4f, aim, 37f, true);
-                        Finish(true);
-                        return;
+                        if (!SessionState.GetBool("TreeToyLighting", false))
+                        {
+                            Finish(true);
+                            return;
+                        }
+                        var gems = toy.GetComponentsInChildren<Light>();
+                        Require(gems.Length == 6 && gems.All(l => l.enabled && l.type == LightType.Point &&
+                            l.transform.parent.name.StartsWith("Practical Gem ")), "six active gem lights on wizard tower");
                     }
                     if (SessionState.GetBool("TreePremiereStudios", false))
                     {
@@ -195,6 +210,16 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         Require(pieces.Count == 4 && pieces.All(p => p.name.Contains("Premiere Studios") &&
                             p.TryGetComponent<Rigidbody>(out var body) && body.isKinematic), "four intact Premiere Studios sections on Mansion Deck");
                         var shapes = toy.GetComponentsInChildren<MeshCollider>();
+                        if (SessionState.GetBool("TreeToyLighting", false))
+                        {
+                            var lamps = toy.GetComponentsInChildren<Light>();
+                            Require(lamps.Count(l => l.enabled && l.type == LightType.Point && l.color.r > l.color.b &&
+                                l.color.b > l.color.g) == 6, "six pink mansion room lights");
+                            Require(lamps.Count(l => l.enabled && l.type == LightType.Spot &&
+                                l.transform.parent.name == "Practical Cyan beacon") == 1 &&
+                                lamps.Count(l => l.enabled && l.type == LightType.Spot &&
+                                l.transform.parent.name == "Practical Violet beacon") == 1, "cyan and violet rooftop party beacons");
+                        }
                         var floor = shapes.Single(c => c.name == "Hull Toy plinth").bounds.center;
                         var stage = shapes.Single(c => c.name == "Hull Stage deck").bounds.center;
                         var front = Vector3.ProjectOnPlane(floor - stage, Vector3.up).normalized;

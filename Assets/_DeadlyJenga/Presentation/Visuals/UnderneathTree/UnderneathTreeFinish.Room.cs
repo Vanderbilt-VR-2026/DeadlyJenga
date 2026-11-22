@@ -127,6 +127,17 @@ namespace DeadlyJenga.CandyArt
         Material ChooseFinish(string objectName, Material source)
         {
             string name = source.name;
+            if (name.EndsWith(" runtime glow", System.StringComparison.Ordinal)) return null;
+            if (name == "Premiere Pink Glow" || name.StartsWith("Crag Amethyst", System.StringComparison.Ordinal))
+            {
+                if (!finishes.TryGetValue(name, out var fixture))
+                {
+                    fixture = new Material(source) { name = name + " runtime glow" };
+                    finishes.Add(name, fixture);
+                    materials.Add(fixture);
+                }
+                return fixture;
+            }
             var color = (source.HasProperty("_BaseColor") || source.HasProperty("_Color")) ? source.color : Color.white;
             if (name.Contains("Skirt skull") || name.Contains("red stitching") || name.Contains("Crimson stitching"))
                 return null;

@@ -54,3 +54,9 @@ The aim point is where the cone axis passes through the scene. The lamp itself s
 - **Room and glow.** `BuildLighting` gives the room two weak directional fills (0.06 and 0.055 intensity) and places the fireplace and moonlight separately. `RestoreIndoorSettings` supplies the dark ambient sky, sides, and ground. The grade uses ACES, exposure +0.1, bloom threshold 0.9, intensity 0.22 and scatter 0.72. Bloom changes the glow around bright pixels across the image. The spot’s inner angle controls the softness of light falling on a surface. [Room lights and grade](../../Assets/_DeadlyJenga/Presentation/Visuals/UnderneathTree/UnderneathTreeFinish.cs)
 
 The approved evidence is desktop solo Play Mode with the normal lights on. For a larger increase in light count or coverage, check frame time on Quest in the densest overlapping view. Headset performance for this lighting pass is unmeasured.
+
+## Mansion and wizard tower
+
+Premiere Studios has six short-range pink room lights. Its bulbs use the dedicated Premiere Pink Glow material. Two spotlights mounted above the rooftop cinema sweep the terrace in cyan and violet. Crystal Crag has six violet points mounted on amethyst clusters. The gem facet materials control the visible emission. Candle and hearth surfaces use a non-emissive finish. Both toys still receive the map's ambient and tree lighting.
+
+Adjust the color, power, range and beacon sweep in `UnderneathTreeFinish.AddToyFixture` and `LateUpdate`. The named sockets in [the mansion exporter](models/premiere_export.py) and [the tower exporter](models/crag_export.py) set the positions in Blender units and attach each light to its breakaway floor. Re-export the corresponding FBX after moving a socket.
