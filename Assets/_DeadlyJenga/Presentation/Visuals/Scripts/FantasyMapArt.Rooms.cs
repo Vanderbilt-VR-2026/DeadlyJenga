@@ -59,6 +59,7 @@ namespace DeadlyJenga.Presentation
         {
             var t=body.transform;
             var r=new Room(mesh,visual.InverseTransformPoint(t.position),Quaternion.Inverse(visual.rotation)*t.rotation);
+            DressFixedStations(r,site,purpose);
             if(site.StartsWith("Sugar Market") && purpose.Contains(" floor "))
             {
                 float w=site=="Sugar Market hall"?20:24;
@@ -173,6 +174,17 @@ namespace DeadlyJenga.Presentation
                     bed.Round(0,1.12f,1.52f,1.13f,.21f,.56f,Linen);
                     var kitchen=r.Place(-5.5f,y,-8,90);
                     Kitchen(kitchen);
+                    var entry=Cabinet(r.Place(-4.6f,y,-18.2f),level==1?Denim:Jade);
+                    ReadingLamp(entry.Place(-1.03f,0,-.12f));
+                    entry.Round(.85f,.08f,.11f,.28f,.08f,.20f,Brass);
+                    entry.Box(.62f,.17f,.12f,.18f,.035f,.07f,Ink);
+                    for(int hook=0;hook<3;hook++)
+                    {
+                        float x=-.80f+hook*.74f;
+                        entry.Box(x,.71f,-.56f,.69f,1.42f,.08f,Oak);
+                        entry.Box(x,1.20f,-.42f,.09f,.12f,.23f,Brass);
+                        if(hook!=1)entry.Box(x,.83f,-.34f,.36f,.63f,.18f,hook==0?Denim:Terracotta);
+                    }
                     Pendant(sitting,3.18f,Brass);
                 }
             }
@@ -192,6 +204,162 @@ namespace DeadlyJenga.Presentation
                 pump.Pipe(new Vector3(1.55f,2.95f,0),new Vector3(3.7f,2.95f,0),.34f,Brass);
                 pump.Round(1.55f,2.95f,0,.37f,.37f,.37f,Brass);
             }
+        }
+
+        // The cabinet cores are box shapes in EpicCityLayout.PlankWalls.
+        // Dress their surfaces in floor-local space so everything folds or falls together.
+        static Room Cabinet(Room r,Color enamel)
+        {
+            r.Box(0,1.12f,0,3.82f,.12f,1.39f,Oak);
+            for(int door=-1;door<=1;door++)
+            {
+                r.Box(door*1.18f,.56f,.65f,1.13f,.91f,.08f,enamel);
+                r.Box(door*1.18f,.88f,.71f,.39f,.06f,.08f,Brass);
+            }
+            return r.Place(0,1.18f,0);
+        }
+
+        static void DressFixedStations(Room r,string site,string purpose)
+        {
+            if(purpose=="Hinged inhabited book wing")
+            {
+                for(int level=0;level<=2;level++)
+                {
+                    float deck=level==0?.20f:level*4;
+                    var top=Cabinet(r.Place(-4.8f,deck,4.5f),level==1?Denim:Jade);
+                    if(level==0) ReadingLamp(top); else if(level==1) RecordPlayer(top); else SewingTable(top);
+                    Booth(r.Place(4.8f,deck,4.5f));
+                    Pendant(r.Place(4.8f,deck,4.5f),3.2f,Brass);
+                }
+                return;
+            }
+            if(purpose=="Two-floor dropping cassette" || purpose=="Escape spine")
+            {
+                if(purpose=="Escape spine")
+                    InstrumentBench(Cabinet(r.Place(-4.5f,10,1.8f,90),Denim),false);
+                else for(int level=0;level<2;level++)
+                    InstrumentBench(Cabinet(r.Place(-4.8f,level*4,4.4f),Ink),level==0);
+                return;
+            }
+            int marker=purpose.LastIndexOf(" floor ",System.StringComparison.Ordinal);
+            if(marker<0 || !int.TryParse(purpose.Substring(marker+7),out int floor)) return;
+            if(site.StartsWith("Canyon"))
+            {
+                var top=Cabinet(r.Place(-6.5f,0,5.4f,90),Jade);
+                if((floor%2)==0) InstrumentBench(top,false); else SampleRack(top);
+                return;
+            }
+            bool school=site.StartsWith("Sugar Market");
+            if(!school && !site.StartsWith("Cloud Harbor")) return;
+            float w=site=="Sugar Market hall"?20:site=="Cloud Harbor block"?28:24;
+            var counter=Cabinet(r.Place(-w*.5f+2.1f,0,7.2f,90),school?Denim:Terracotta);
+            if(school)
+            {
+                if(site.Contains("west") || floor%3==0)
+                {
+                    for(int book=0;book<5;book++)
+                        counter.Box(-.8f+book*.045f,.055f+book*.11f,.10f,.85f,.10f,.58f,book%2==0?Denim:Linen);
+                    ReadingLamp(counter.Place(.98f,0,-.12f));
+                }
+                else if(floor%3==1) ArtBench(counter);
+                else SampleRack(counter);
+            }
+            else if(site=="Cloud Harbor block")
+            {
+                counter.Box(-.7f,.12f,0,1.05f,.24f,.78f,Jade);
+                counter.Tube(-.7f,.25f,0,.48f,.07f,Brass);
+                counter.Round(-.76f,.49f,0,.19f,.20f,.19f,Terracotta);
+                for(int pack=0;pack<3;pack++)
+                    counter.Box(.45f+pack*.34f,.32f,-.04f,.29f,.64f,.39f,Linen);
+            }
+            else if(site.Contains("east"))
+            {
+                counter.Box(-.48f,.04f,0,1.64f,.08f,.82f,Ink);
+                for(int i=0;i<4;i++)counter.Round(-1.04f+i*.37f,.18f,0,.17f,.13f,.23f,Oak);
+                counter.Pipe(new Vector3(.63f,.18f,-.12f),new Vector3(1.32f,.18f,.12f),.13f,Walnut);
+                counter.Tube(1.53f,0,-.23f,.17f,.48f,Linen);
+            }
+            else
+            {
+                for(int pile=0;pile<2;pile++)
+                    for(int plate=0;plate<4-pile;plate++)
+                        counter.Tube(-1.08f+pile*.94f,plate*.064f,0,.36f,.055f,Linen);
+                counter.Tube(1.1f,0,-.16f,.27f,.48f,Jade);
+                counter.Pipe(new Vector3(1.30f,.38f,-.16f),new Vector3(1.54f,.62f,-.16f),.09f,Brass);
+            }
+        }
+
+        static void ReadingLamp(Room r)
+        {
+            r.Tube(0,0,0,.26f,.085f,Ink);
+            r.Pipe(new Vector3(0,.08f,0),new Vector3(.16f,.82f,0),.045f,Brass);
+            r.mesh.Cone(r.At(.16f,.64f,0),r.q,.32f,.27f,0,Jade,14);
+        }
+
+        static void RecordPlayer(Room r)
+        {
+            r.Box(-.48f,.12f,0,1.34f,.24f,.9f,Walnut);
+            r.Tube(-.66f,.24f,0,.37f,.046f,Ink);
+            r.Tube(-.66f,.287f,0,.12f,.02f,Terracotta);
+            r.Pipe(new Vector3(.03f,.34f,-.30f),new Vector3(-.35f,.33f,.12f),.032f,Brass);
+            r.Box(1.1f,.42f,-.06f,.60f,.84f,.54f,Walnut);
+            r.mesh.Cylinder(r.At(1.1f,.39f,.22f),r.q*Quaternion.Euler(90,0,0),.21f,.05f,0,Ink,14);
+        }
+
+        static void SewingTable(Room r)
+        {
+            r.Box(-.4f,.07f,0,1.4f,.14f,.78f,Jade);
+            r.Box(-.91f,.38f,0,.35f,.64f,.43f,Jade);
+            r.Box(-.43f,.68f,0,1.19f,.23f,.40f,Jade);
+            r.Box(.08f,.46f,0,.036f,.25f,.036f,Brass);
+            r.Box(.38f,.032f,.15f,.75f,.06f,.61f,Denim);
+            for(int i=0;i<3;i++)r.Tube(.79f+i*.26f,0,-.26f,.10f,.24f,i%2==0?Terracotta:Linen);
+        }
+
+        static void ArtBench(Room r)
+        {
+            r.Box(-.55f,.035f,0,1.37f,.07f,.84f,Linen);
+            for(int i=0;i<4;i++)r.Tube(-1.02f+i*.28f,.08f,.12f,.09f,.025f,Spectrum[i+1]);
+            r.Tube(.85f,0,-.13f,.19f,.37f,Jade);
+            for(int i=0;i<4;i++)r.Pipe(new Vector3(.8f+i*.04f,.20f,-.13f),new Vector3(.65f+i*.14f,.77f,-.1f+i*.025f),.025f,Oak);
+        }
+
+        static void SampleRack(Room r)
+        {
+            r.Box(-.62f,.08f,-.03f,1.67f,.16f,.57f,Walnut);
+            for(int i=0;i<5;i++)
+            {
+                float x=-1.23f+i*.31f;
+                r.Tube(x,.16f,0,.105f,.38f,i%2==0?Denim:Jade);
+                r.Tube(x,.54f,0,.12f,.07f,Brass);
+            }
+            r.Tube(.95f,0,0,.34f,.12f,Ink);
+            r.Pipe(new Vector3(.95f,.10f,-.21f),new Vector3(.95f,.68f,-.21f),.09f,Brass);
+            r.Pipe(new Vector3(.95f,.72f,-.27f),new Vector3(.95f,.49f,.16f),.11f,Ink);
+            r.Box(.95f,.29f,.09f,.48f,.05f,.4f,Ink);
+        }
+
+        static void InstrumentBench(Room r,bool windings)
+        {
+            if(windings)
+            {
+                for(int coil=0;coil<2;coil++)
+                {
+                    float x=-.84f+coil*1.18f;
+                    r.Tube(x,0,0,.35f,.12f,Ink);
+                    for(int turn=0;turn<5;turn++)r.Tube(x,.12f+turn*.10f,0,.28f,.075f,Brass);
+                    r.Tube(x,.61f,0,.16f,.18f,Ink);
+                }
+            }
+            else
+            {
+                r.Box(-.55f,.32f,-.03f,1.55f,.64f,.65f,Denim);
+                r.Box(-.72f,.36f,.31f,.80f,.37f,.06f,Linen);
+                r.Pipe(new Vector3(-.75f,.22f,.35f),new Vector3(-.55f,.46f,.35f),.022f,Ink);
+                r.mesh.Cylinder(r.At(.04f,.30f,.31f),r.q*Quaternion.Euler(90,0,0),.11f,.08f,0,Brass,12);
+            }
+            r.Box(1.09f,.035f,.11f,.82f,.07f,.61f,Linen);
+            r.Box(1.26f,.096f,.11f,.065f,.05f,.48f,Walnut);
         }
 
         static void FilterBank(Room wall)

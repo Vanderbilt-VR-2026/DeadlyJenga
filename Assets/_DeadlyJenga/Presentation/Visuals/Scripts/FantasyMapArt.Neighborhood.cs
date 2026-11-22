@@ -9,7 +9,7 @@ namespace DeadlyJenga.Presentation
         {
             FurnishNeighborhood(mesh,visual,body,site,purpose);
             var frame = body.transform;
-            var front = FaceToward(frame, frame.TransformPoint(bounds.center), site=="Cloud Harbor east annex");
+            var front = FaceToward(frame, frame.TransformPoint(bounds.center), false);
             var yaw = Quaternion.LookRotation(front);
             var rotation = Quaternion.Inverse(visual.rotation) * frame.rotation * yaw;
             var extent = bounds.extents;

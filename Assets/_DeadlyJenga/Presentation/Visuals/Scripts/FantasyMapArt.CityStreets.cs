@@ -28,14 +28,16 @@ namespace DeadlyJenga.Presentation
             center.y=streetY;roadCenter=center;
             float R=Mathf.Min(halfWidth,halfDepth)*.9f;
             var m=new ArtMesh(2);
+            var pavement=solidCandy?new Color(.87f,.77f,.68f):Pavement;
+            var joint=solidCandy?new Color(.72f,.62f,.55f):PavementLine;
 
             // Paved city floor with a tile grid, so the island reads as streets instead of loose cloud.
-            m.Cylinder(L(center+Vector3.up*.03f),LR(Quaternion.identity),R,.05f,0,Pavement,64);
+            m.Cylinder(L(center+Vector3.up*.03f),LR(Quaternion.identity),R,.05f,0,pavement,64);
             for(float x=-R+6;x<R;x+=6)
             {
                 float chord=Mathf.Sqrt(Mathf.Max(0,R*R-x*x))*2-2;if(chord<2)continue;
-                m.Box(L(center+new Vector3(x,.09f,0)),new Vector3(.18f,.02f,chord),LR(Quaternion.identity),0,PavementLine);
-                m.Box(L(center+new Vector3(0,.09f,x)),new Vector3(chord,.02f,.18f),LR(Quaternion.identity),0,PavementLine);
+                m.Box(L(center+new Vector3(x,.09f,0)),new Vector3(.18f,.02f,chord),LR(Quaternion.identity),0,joint);
+                m.Box(L(center+new Vector3(0,.09f,x)),new Vector3(chord,.02f,.18f),LR(Quaternion.identity),0,joint);
             }
 
             // Ring boulevard at the freest radius between the inner and outer districts.
@@ -57,7 +59,7 @@ namespace DeadlyJenga.Presentation
                 if(i%2==0)m.Box(L(p+Vector3.up*.16f),new Vector3(.3f,.02f,len*.55f),LR(q),1,LaneLine);
                 if(i%4==0&&Free(p+dir*6.2f,.8f))Lamp(m,p+dir*6.2f);
                 if(i%4==2&&Free(p-dir*6.2f,.8f))Lamp(m,p-dir*6.2f);
-                if(i%7==3&&Free(p+dir*3,1.4f))Car(m,p+dir*2.6f,q,i);
+                if(!solidCandy && i%7==3&&Free(p+dir*3,1.4f))Car(m,p+dir*2.6f,q,i);
             }
 
             // Eight avenues from the plaza to the island edge, crossing the boulevard on zebra crossings.
@@ -105,7 +107,7 @@ namespace DeadlyJenga.Presentation
             Model("Visual · candy city streets",m,transform,new[]{cityCandyMaterial,cityGlowMaterial});
 
             // Traffic on the boulevard when most of it is open road.
-            if(open>RoadBins*.35f)for(int i=0;i<9;i++)
+            if(!solidCandy && open>RoadBins*.35f)for(int i=0;i<9;i++)
             {
                 var c=new ArtMesh(2);Car(c,Vector3.zero,Quaternion.identity,i+11,true);
                 var go=Model("Visual · candy car",c,transform,new[]{cityCandyMaterial,cityGlowMaterial});

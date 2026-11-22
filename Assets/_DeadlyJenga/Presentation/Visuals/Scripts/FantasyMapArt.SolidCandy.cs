@@ -58,13 +58,21 @@ namespace DeadlyJenga.Presentation
                 else if(finish==2){pattern=civic?10:11;color=civic?new Color(.48f,.32f,.22f):new Color(.63f,.51f,.32f);}
                 else {pattern=9;color=new Color(.74f,.68f,.55f);}
             }
+            else if(building && finish==0)
+            {
+                // Keep each silhouette recognizable, with distinct wall construction at eye level.
+                if(site.StartsWith("Sugar")) pattern=13;            // rose glazed brick
+                else if(site.StartsWith("Cloud Harbor")) pattern=14; // plum-painted lap siding
+                else if(site.StartsWith("Downtown")) pattern=15;     // folded copper panels
+                else if(site.StartsWith("Canyon")) pattern=13;       // jade ceramic tile
+            }
             else if(key=="bridge" || key=="bascule" || key=="trestle") pattern=10;
             key+=" "+pattern+" "+finish;
             if(solidMaterials.TryGetValue(key,out var material)&&material)return material;
             material=new Material(cityCandyMaterial){name="Candy planks "+key};
             material.SetFloat("_Pattern",pattern);material.SetColor("_BaseColor",color);
             material.SetColor("_Accent",pattern==12?new Color(.45f,.57f,.52f):Color.Lerp(color,new Color(.3f,.19f,.23f),.39f));
-            material.SetFloat("_Metallic",pattern==11?.36f:0);material.SetFloat("_Smoothness",pattern==11?.5f:.28f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
+            material.SetFloat("_Metallic",pattern==15?.40f:pattern==11?.36f:0);material.SetFloat("_Smoothness",pattern==11 || pattern==15?.50f:pattern==13?.41f:.28f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
             solidMaterials[key]=material;return material;
         }
 
