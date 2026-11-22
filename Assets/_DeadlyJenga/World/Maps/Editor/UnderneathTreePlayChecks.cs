@@ -193,7 +193,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     {
                         var toys = map.GetComponentsInChildren<UnderneathTreeToy>();
                         foreach (string label in new[] { "Race Car", "Retro Speaker", "Plush Bear", "Robot",
-                            "Retro Console", "Airmail Bear", "Alpine Rally", "Mint Pickup", "Club Roadster" })
+                            "Retro Console", "Airmail Bear", "Alpine Rally", "Mint Pickup", "Club Roadster",
+                            "House", "Superhero", "Brick Stack", "Football", "Frosted Pinecone", "Stocking",
+                            "Puzzle Cube", "Fashion Doll", "Nutcracker", "Blaster", "Candy Bag", "Rag Doll",
+                            "Board Game", "Clay Tub", "Pastry Box", "Wind-up Walker", "Drum", "Soldier" })
                         {
                             var matches = toys.Where(t => t.source && t.source.name == "Toy " + label).ToArray();
                             Require(matches.Length > 0 && matches.All(t =>

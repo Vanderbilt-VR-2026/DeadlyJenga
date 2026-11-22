@@ -228,3 +228,8 @@ MonoBehaviour:
     spot: {x: 0, y: 0}
     turn: 89
     size: 1
+  - toy: {fileID: 3551910430045102107, guid: 73e8f5fce969d9b45bd8c0c5161925e5, type: 3}
+    onGift: Back Row / Gift 6
+    spot: {x: 0, y: 0}
+    turn: 26
+    size: 0.42

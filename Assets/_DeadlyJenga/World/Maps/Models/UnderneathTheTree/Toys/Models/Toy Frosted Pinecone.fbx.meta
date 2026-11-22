@@ -3,7 +3,32 @@ guid: 72352cb17da010d408ce14465646d2cc
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Brown
+    second: {fileID: 2100000, guid: 3640051d9385bbf4d802a6b6391291c7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Wood
+    second: {fileID: 2100000, guid: 9d5571f9eec1a4c43b1ab171c6cc38b2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Frost
+    second: {fileID: 2100000, guid: 3688cc91695841c48ae62d8f3c20c9fe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Green
+    second: {fileID: 2100000, guid: 275b11b38d0da694d8e4eb3042e9ada9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Red
+    second: {fileID: 2100000, guid: 1f6c14966e935684f9ea9501da361dfe, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

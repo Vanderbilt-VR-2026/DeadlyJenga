@@ -57,15 +57,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 8e398858889e812429286a0eab6f5cbf, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.8
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8e398858889e812429286a0eab6f5cbf, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.9
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8e398858889e812429286a0eab6f5cbf, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -2.2875
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8e398858889e812429286a0eab6f5cbf, type: 3}
       propertyPath: m_LocalRotation.w
@@ -95,30 +95,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -7511558181221131132, guid: 8e398858889e812429286a0eab6f5cbf, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 6267ffbc6fca22c48a97144d92d7aa01, type: 2}
-    - target: {fileID: -7511558181221131132, guid: 8e398858889e812429286a0eab6f5cbf, type: 3}
-      propertyPath: 'm_Materials.Array.data[1]'
-      value: 
-      objectReference: {fileID: 2100000, guid: d14253886eb809f41a53e51204511239, type: 2}
-    - target: {fileID: -7511558181221131132, guid: 8e398858889e812429286a0eab6f5cbf, type: 3}
-      propertyPath: 'm_Materials.Array.data[2]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 8d0c73d879ab0fb4fbb5dff6c03fa285, type: 2}
-    - target: {fileID: -7511558181221131132, guid: 8e398858889e812429286a0eab6f5cbf, type: 3}
-      propertyPath: 'm_Materials.Array.data[3]'
-      value: 
-      objectReference: {fileID: 2100000, guid: f3e10833132e5294280ea6e192b8aa6b, type: 2}
-    - target: {fileID: -7511558181221131132, guid: 8e398858889e812429286a0eab6f5cbf, type: 3}
-      propertyPath: 'm_Materials.Array.data[4]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 3cfee247e3a674948abdf5d0dbc72367, type: 2}
-    - target: {fileID: -7511558181221131132, guid: 8e398858889e812429286a0eab6f5cbf, type: 3}
-      propertyPath: 'm_Materials.Array.data[5]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 7668b464280ac4647b266f0e6c625039, type: 2}
     - target: {fileID: 919132149155446097, guid: 8e398858889e812429286a0eab6f5cbf, type: 3}
       propertyPath: m_Name
       value: Visual

@@ -3,7 +3,47 @@ guid: ca501a74a0d14c049ac1c58a76cec268
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Navy
+    second: {fileID: 2100000, guid: 39692ecaebb0e444d8fc61c568f00de9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Orange
+    second: {fileID: 2100000, guid: f3e10833132e5294280ea6e192b8aa6b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Blue
+    second: {fileID: 2100000, guid: 845e01ae506a22642a112fce25ac8630, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy White
+    second: {fileID: 2100000, guid: 3cfee247e3a674948abdf5d0dbc72367, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Yellow
+    second: {fileID: 2100000, guid: 715cc540f39a09f478822bb28a9dc44e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Green
+    second: {fileID: 2100000, guid: 275b11b38d0da694d8e4eb3042e9ada9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Red
+    second: {fileID: 2100000, guid: 1f6c14966e935684f9ea9501da361dfe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Cream
+    second: {fileID: 2100000, guid: 56d3b5dbd437853428bf35af9669d607, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

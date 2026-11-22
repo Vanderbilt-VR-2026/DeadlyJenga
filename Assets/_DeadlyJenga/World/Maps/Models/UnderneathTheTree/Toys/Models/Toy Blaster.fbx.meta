@@ -3,7 +3,42 @@ guid: ea09007566c9f5f40bf80a9d4deae202
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Teal
+    second: {fileID: 2100000, guid: d14253886eb809f41a53e51204511239, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Orange
+    second: {fileID: 2100000, guid: f3e10833132e5294280ea6e192b8aa6b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Gold
+    second: {fileID: 2100000, guid: 6267ffbc6fca22c48a97144d92d7aa01, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Glass
+    second: {fileID: 2100000, guid: d243618c2bb5ee647bf52872afea816f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Navy
+    second: {fileID: 2100000, guid: 39692ecaebb0e444d8fc61c568f00de9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Pink
+    second: {fileID: 2100000, guid: 09fb7773e97ca5641b25ba1ae97aa5b8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Cream
+    second: {fileID: 2100000, guid: 56d3b5dbd437853428bf35af9669d607, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
