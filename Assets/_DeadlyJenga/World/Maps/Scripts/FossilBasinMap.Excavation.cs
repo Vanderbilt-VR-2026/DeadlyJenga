@@ -25,7 +25,7 @@ namespace DeadlyJenga.CastlePrototype
                 return top+d*(.5f/k);
             }
         }
-        Site Landing(string name,Vector3 top,float width,float depth)
+        Site Landing(string name,Vector3 top,float width,float depth,float frontLip=0)
         {
             const float thick=.69f, plankThickness=.34f;
             var heads=new FossilMember[2,2];
@@ -36,15 +36,15 @@ namespace DeadlyJenga.CastlePrototype
                 var pad=new GameObject(name+" buried footing");pad.transform.SetParent(structure,false);
                 pad.transform.localPosition=basePos-Vector3.up*.25f;
                 pad.AddComponent<BoxCollider>().size=P(1.4f,.5f,1.4f);
-                int count=Mathf.CeilToInt((top.y+1-thick)/3.4f);
+                int count=Mathf.CeilToInt((top.y+1-thick)/2.05f);
                 float height=(top.y+1-thick)/count;
                 FossilMember lower=null;
                 for(int k=0;k<count;k++)
                 {
                     var at=basePos+Vector3.up*((k+.5f)*height);
                     var pier=Piece(name+" pier "+ix+"/"+iz+"/"+k,at,32,c=>{
-                        c.Box(at,P(.96f,height,.96f),k%2==0?Teal:Clay,Flat);
-                        c.Box(at+Vector3.up*(height*.5f-.18f),P(1.05f,.36f,1.05f),Clay,Flat,false);
+                        c.Box(at,P(1.08f,height,1.08f),k%3==1?Clay:Teal,Flat);
+                        c.Box(at+Vector3.up*(height*.5f-.14f),P(1.14f,.28f,1.14f),Clay,Flat,false);
                     });
                     if(lower)Socket(pier,lower,at-Vector3.up*(height*.5f),4200);
                     lower=pier;
@@ -57,8 +57,15 @@ namespace DeadlyJenga.CastlePrototype
             for(int z=-1;z<=1;z+=2)
             {
                 var beam=top+P(0,-(thick+plankThickness)*.5f,z*(depth*.5f-.58f));
-                var girder=Piece(name+" girder "+z,beam,21,c=>
-                    c.Box(beam,P(width-.12f,thick-plankThickness,.64f),Timber,Flat));
+                var girder=Piece(name+" girder "+z,beam,21,c=>{
+                    c.Box(beam,P(width-.12f,thick-plankThickness,.64f),Timber,Flat);
+                    for(int side=-1;side<=1;side+=2)
+                    {
+                        var postFace=beam+P(side*(width*.5f-1.12f),-.72f,0);
+                        var underside=beam+P(side*(width*.5f-1.65f),-.16f,0);
+                        c.Shaft(postFace,underside,.14f,.16f,Timber);
+                    }
+                });
                 girders[(z+1)/2]=girder;
                 for(int x=0;x<2;x++)
                 {
@@ -73,14 +80,17 @@ namespace DeadlyJenga.CastlePrototype
                 float u=(i+.5f)/n;
                 var center=top+P((u-.5f)*width,-plankThickness*.5f,0);
                 float inset=(i==0||i==n-1)?.16f:0;
+                // Project the front edge beyond its girder in a shallow arc.
+                float lip=frontLip*Mathf.Sin(Mathf.PI*u);
+                var slabCenter=center+Vector3.back*(lip*.5f);
                 var slab=Piece(name+" deck "+i,center,16,c=>{
-                    c.Box(center,P(width/n-.008f,plankThickness,depth-inset*2),
+                    c.Box(slabCenter,P(width/n-.008f,plankThickness,depth-inset*2+lip),
                         Color.Lerp(Coral,Clay,(i%3)*.085f),Flat);
                     if(i!=0 && i!=n-1)return;
                     float x=(i==0?-1:1)*(width/n*.5f-.27f);
                     for(int z=-1;z<=1;z+=2)
                     {
-                        var corner=center+P(x,plankThickness*.5f,z*(depth*.5f-inset-.28f));
+                        var corner=slabCenter+P(x,plankThickness*.5f,z*((depth+lip)*.5f-inset-.28f));
                         c.Shaft(corner,corner+Vector3.up*.51f,.052f,.052f,Timber,false,false);
                         c.Box(corner+Vector3.up*.56f,P(.21f,.13f,.21f),Brass,Flat,false);
                         c.Box(corner+Vector3.up*.65f,P(.13f,.14f,.13f),new Color32(255,216,122,255),Flat,false);
@@ -117,8 +127,10 @@ namespace DeadlyJenga.CastlePrototype
                     c.Shaft(a+off,b+off,.13f,.13f,Timber,false,false);
                 }
             });
-            // The upper shoe rests on its deck. Only the lower stringer is bolted.
+            // The upper shoe is pinned to its removable deck as well. Without it the
+            // entire flight acts as a cantilever on the lower deck during settling.
             Socket(flight,low.Seat(a),a-Vector3.up*.17f,2200);
+            Socket(flight,high.Seat(b),b,1900);
         }
         void Canopy(Site site,Vector3 offset)
         {
@@ -158,27 +170,37 @@ namespace DeadlyJenga.CastlePrototype
         }
         void BuildExcavation()
         {
-            var west=Landing("West apron",P(-7,1,-9),7,4);
-            var camp=Landing("Dig camp",P(0,1,-9),7,4);
-            var east=Landing("East apron",P(7,1,-9),7,4);
-            var switchback=Landing("West switchback",P(-13,3,-4),4,3);
-            var gallery=Landing("Plate gallery",P(-7,5,0),4,3);
+            var west=Landing("West apron",P(-7,1,-9),7,5,.9f);
+            var camp=Landing("Dig camp",P(0,1,-9.65f),7,6,.95f);
+            var east=Landing("East apron",P(7,1,-9),7,4.5f,.8f);
+            // These adjoining bays wrap past the hind feet. Each has a separate
+            // foundation and can lose its deck without taking the whole apron.
+            var digFace=Landing("Stegosaur tail excavation",P(-13.5f,1,-8.35f),6,4.5f,.7f);
+            var eastFooting=Landing("East ankle excavation",P(13.5f,1,-8.2f),6,4.5f,.65f);
+            var switchback=Landing("West switchback",P(-14,3,-3.4f),3.5f,2.7f);
+            var gallery=Landing("Plate gallery",P(-5.65f,5,-.3f),3.6f,2.8f);
             var saddle=Landing("Stegosaur forefoot",P(1,4.5f,-3),3.8f,3.4f);
-            var lowEast=Landing("East switchback",P(9,3,-2),3.8f,3);
+            var lowEast=Landing("East switchback",P(7.8f,2.8f,-2.5f),3.3f,2.5f);
             var tail=Landing("Triceratops rear foot",P(14,4.9f,2),4,4);
             var horn=Landing("Triceratops forefoot",P(6,7.3f,2),4.6f,4.5f);
             var ankle=Landing("Rex near ankle",P(-12,7.2f,4),4,3.5f);
             var bridge=Landing("Rex far ankle",P(-4,8.6f,6),4.6f,4);
             var summit=Landing("Rex rib balcony",P(-11,11.5f,11),5.2f,3);
             var overlook=Landing("Frill balcony",P(11,9.4f,8),4.8f,3);
+            var westReturn=Landing("Outer plate stair",P(-18,3.8f,-1.0f),3.5f,2.8f);
+            var eastReturn=Landing("Ankle escape landing",P(18.2f,2.6f,-4.4f),3.5f,2.6f);
+            Flight(digFace,westReturn);Flight(westReturn,ankle);
+            Flight(eastFooting,eastReturn);Flight(eastReturn,tail);
             Flight(west,switchback);Flight(switchback,gallery);Flight(gallery,ankle);
             Flight(ankle,bridge);Flight(bridge,summit);Flight(west,saddle);
             Flight(east,lowEast);Flight(lowEast,tail);Flight(tail,horn);Flight(horn,overlook);
             var turn=Landing("Central hairpin",P(.25f,5.9f,2.6f),2.1f,2.1f);
             Flight(saddle,turn);Flight(turn,horn);Flight(gallery,bridge);
             var rexGallery=Landing("Rex rib gallery",P(-6.3f,10.75f,2.45f),4.6f,1.9f);
-            var trikeGallery=Landing("Triceratops rib gallery",P(10.2f,7.12f,-.05f),3.7f,2);
-            Flight(ankle,rexGallery);Flight(trikeGallery,horn);
+            Landing("Triceratops rib gallery",P(10.16f,7.3f,-.05f),3.7f,2);
+            // The horn and rib decks meet along a level seam.
+            var upperTurn=Landing("Rex chest switchback",P(-12.15f,9.0f,-1.95f),2.35f,2);
+            Flight(ankle,upperTurn);Flight(upperTurn,rexGallery);
             Canopy(camp,P(1.94f,0,.48f));Canopy(summit,P(-.85f,0,.41f));Derrick(overlook);
             Skeleton(Dinosaur.Stegosaurus,P(-6,5.0f,-7.6f),P(.4f,7.6f,-3.9f),west,saddle);
             Skeleton(Dinosaur.Rex,P(-8.2f,12.5f,5.2f),P(-2,13.6f,4.6f),ankle,bridge);

@@ -24,8 +24,8 @@ namespace DeadlyJenga.DevTools.Editor
         static FossilMember pulled;
         static Camera camera;
         static Vector3 grab,footBefore;
-        static Rigidbody eastRefuge;
-        static Vector3 eastBefore;
+        static Rigidbody westRefuge;
+        static Vector3 westBefore;
         static Rigidbody foot;
         static string report;
         static bool valid;
@@ -36,7 +36,7 @@ namespace DeadlyJenga.DevTools.Editor
         static int walkStage;
         static CastleBotBrain routeBot;
         static bool botArrived;
-        static readonly Vector3 BotGoal=new Vector3(-13,3.06f,-4);
+        static readonly Vector3 BotGoal=new Vector3(-14,3.06f,-3.4f);
         static void CheckClimb()
         {
             // Start a measured hand-span from an actual Stegosaurus leg face.
@@ -94,7 +94,7 @@ namespace DeadlyJenga.DevTools.Editor
             camera.transform.SetPositionAndRotation(eye,Quaternion.LookRotation(look-eye));camera.fieldOfView=fov;
             MapLiveCapture.RenderNow(camera,1440,960,Folder+"/"+name+".png");
         }
-        static void Wide(string name)=>Shot(name,new Vector3(-.5f,12.6f,-41),new Vector3(0,7.6f,0),32);
+        static void Wide(string name)=>Shot(name,new Vector3(-.5f,13.6f,-46),new Vector3(0,7.1f,0),34);
         static void Step()
         {
             try
@@ -128,7 +128,7 @@ namespace DeadlyJenga.DevTools.Editor
                     foreach(var item in map.Blocks.Select((b,i)=>(b,travel:Vector3.Distance(b.position,initial[i]))).OrderByDescending(x=>x.travel).Take(8))
                         report+=item.b.name+" travel "+item.travel+" at "+item.b.position+"\n";
                     Wide("02-settled");
-                    Shot("03-apron-eye",new Vector3(0,2.1f,-9),new Vector3(-4,7,0),70);
+                    Shot("03-apron-eye",new Vector3(1,2.1f,-12.2f),new Vector3(-4,7,0),70);
                     Shot("04-rib-eye",new Vector3(-11,12.5f,11),new Vector3(2,12,3),70);
                     var spawn=map.SafeSpawnPoint();
                     Check(Physics.Raycast(spawn+Vector3.up*.25f,Vector3.down,out var hit,.7f,1<<Layers.Block)&&hit.normal.y>.86f,"spawn has bearing");
@@ -153,7 +153,7 @@ namespace DeadlyJenga.DevTools.Editor
                     {
                         walker.externallyDriven=true;
                         walker.Place(new Vector3(7,1.12f,-9),Quaternion.identity);
-                        destination=new Vector3(9,3,-2);walkStage=0;
+                        destination=new Vector3(7.8f,2.8f,-2.5f);walkStage=0;
                         phase=20;lastWalk=clock=Time.fixedTime;return;
                     }
                     Check(false,"survivor motor available");clock=Time.fixedTime;phase++;return;
@@ -180,34 +180,35 @@ namespace DeadlyJenga.DevTools.Editor
                 if(phase==3&&dt>1.5f)
                 {
                     Check(dummy.Health==0,"tar eliminated falling damageable");
-                    foot=map.Blocks.First(b=>b.name.StartsWith("Rex tarsals"));
+                    foot=map.Blocks.Where(b=>b.name.StartsWith("Triceratops tarsals")).OrderByDescending(b=>b.position.x).First();
                     footBefore=foot.position;
-                    eastRefuge=map.Blocks.First(b=>b.name.StartsWith("East switchback deck"));
-                    eastBefore=eastRefuge.position;
+                    westRefuge=map.Blocks.First(b=>b.name.StartsWith("West switchback deck"));
+                    westBefore=westRefuge.position;
                     float loaded=map.Blocks.Select((body,i)=>Vector3.Distance(body.position,initial[i])).Max();
                     Check(loaded<.75f,"intact stability after player and bot loading; worst travel "+loaded);
-                    pulled=map.Blocks.First(b=>b.name=="Rex near ankle pier -1/-1/2").GetComponent<FossilMember>();
+                    pulled=map.Blocks.Where(b=>b.name.StartsWith("Triceratops rear foot pier 1/-1/"))
+                        .OrderByDescending(b=>b.position.y).First().GetComponent<FossilMember>();
                     grab=pulled.Body.worldCenterOfMass;
-                    Check(pulled.TryStartGrab(camera.gameObject,grab),"grab top near-ankle bearing");
+                    Check(pulled.TryStartGrab(camera.gameObject,grab),"grab outer Triceratops rear-foot bearing");
                     clock=Time.fixedTime;phase++;return;
                 }
                 if(phase==4)
                 {
-                    pulled.Hold(grab+Vector3.left*Mathf.Min(5,dt*6));
+                    pulled.Hold(grab+Vector3.right*Mathf.Min(5,dt*6));
                     if(dt<1)return;
                     pulled.Release();
                     Check(Vector3.Distance(grab,pulled.Body.worldCenterOfMass)>.8f,"single pier physically withdrawn");
                     Wide("05-pull");
-                    foreach(var b in map.Blocks.Where(b=>b.name.StartsWith("Rex near ankle pier")&&b!=pulled.Body))
-                        b.GetComponent<FossilMember>().Push(Vector3.left*10,camera.gameObject);
+                    foreach(var b in map.Blocks.Where(b=>b.name.StartsWith("Triceratops rear foot pier")&&b!=pulled.Body))
+                        b.GetComponent<FossilMember>().Push(Vector3.right*10,camera.gameObject);
                     clock=Time.fixedTime;phase++;return;
                 }
                 if(phase==5&&dt>2)
                 {
                     Wide("06-foot-loss");
                     Check(footBefore.y-foot.position.y>.3f,"foot drop after loss of bearings "+(footBefore.y-foot.position.y));
-                    Check(eastRefuge.gameObject.activeSelf && Vector3.Distance(eastRefuge.position,eastBefore)<.30f,
-                        "independent eastern route survives western pier loss");
+                    Check(westRefuge.gameObject.activeSelf && Vector3.Distance(westRefuge.position,westBefore)<.30f,
+                        "independent western route survives eastern pier loss");
                     File.WriteAllText(Folder+"/desktop.txt",report);
                     peer=FossilBasinPeer.Receive(map,(CastlePlaySession)Services.Session,Check);
                     deadline=EditorApplication.timeSinceStartup+130;phase=6;return;
