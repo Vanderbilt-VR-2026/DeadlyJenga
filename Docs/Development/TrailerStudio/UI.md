@@ -68,7 +68,7 @@ Each mode shows only what it needs. The timeline stays in every mode.
 - **Progressive disclosure.** Defaults that just work; "Advanced" folds for
   power settings; a command palette (Ctrl+K) to reach anything by name.
 - **Keyboard-first for repeat work.** Space play/pause, R record, J/K/L
-  shuttle, [ and ] set in/out, Ctrl+Z undo, Tab cycle modes, number keys
+  shuttle, [ and ] set in/out, Ctrl+Z undo, Tab/Shift+Tab focus controls, Ctrl+Tab cycles modes, number keys
   pick takes. A shortcut sheet is one key away (?).
 - **Never block.** Long work (variation runs, renders) runs in a queue with
   progress chips in the top bar. The window stays usable.

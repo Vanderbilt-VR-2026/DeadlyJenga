@@ -309,3 +309,17 @@
 .ts-root .unity-base-popup-field__text, .ts-root .unity-foldout__text { color: var(--ts-text); }
 .ts-root .unity-base-field__label { color: var(--ts-text); }
 .ts-root .unity-text-field__input:focus, .ts-root .unity-base-popup-field__input:focus { border-color: var(--ts-accent); }
+
+/* Feedback also covers buttons created later by modes and the command palette. */
+.ts-root Button:focus {
+    border-color: var(--ts-accent);
+}
+.ts-root Button:active, .ts-root Button.ts-activated {
+    scale: 0.97 0.97;
+    border-color: var(--ts-accent);
+}
+.ts-root Button:disabled {
+    opacity: 0.55;
+}
+.ts-root .ts-tab--on:focus { border-bottom-width: 2px; }
+.ts-root .ts-record--on:hover { background-color: var(--ts-record); }

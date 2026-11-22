@@ -80,13 +80,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var captured = mode;
                 yield return ("Go to " + mode.Title + " mode", () => window.ShowMode(captured.Title));
             }
-            yield return (StudioRun.State == StudioState.Closed ? "Open stage" : "Close stage", () =>
+            if (context.Set != null && StudioRun.State != StudioState.Opening)
+                yield return (StudioRun.State == StudioState.Closed ? "Open stage" : "Close stage", window.ToggleStage);
+            if (StudioRun.StageOpen)
             {
-                if (StudioRun.State == StudioState.Closed) StudioRun.OpenStage(context.Set); else StudioRun.CloseStage();
-            });
-            yield return ("Record", window.PressRecord);
-            yield return ("Play or pause", window.TogglePlay);
-            yield return ("Go to start", () => window.Scrub(0));
+                yield return (StudioRun.Recording ? "Stop recording" : StudioRun.State == StudioState.Running ? "Pause playback" : "Play", window.TogglePlay);
+                if (StudioRun.State == StudioState.Held) yield return ("Record", window.PressRecord);
+            }
+            if (context.Set != null && !StudioRun.Busy) yield return ("Go to range start", () => window.Scrub(window.InFrame));
             yield return ("Show shortcuts", ShowShortcuts);
             if (context.Set != null)
             {
@@ -242,7 +243,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             ("Space", "Play or pause"), ("R", "Record, or stop recording"), ("J  K  L", "Back 1 s, pause, forward 1 s"),
             ("Left  Right", "One frame back or forward"), ("Home  End", "Start or end of the range"),
-            ("[  ]  \\", "Set range start, range end, clear the range"), ("Tab", "Next mode (Shift+Tab: previous)"),
+            ("[  ]  \\", "Set range start, range end, clear the range"), ("Tab / Shift+Tab", "Focus the next or previous control"), ("Ctrl+Tab", "Next mode (add Shift for previous)"),
             ("1 to 9", "Pick a take of the selected actor or track"), ("Delete", "Delete the selected mark or cue"),
             ("Ctrl+Z  Ctrl+Y", "Undo, redo"), ("Ctrl+K", "Search commands, cues and camera keys"), ("?", "This sheet"),
             ("Drag (viewport)", "Orbit. Right-drag slides, wheel zooms"), ("Drag a mark", "Move it along the surface"),
@@ -279,7 +280,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (search == null) return true;   // the shortcut sheet swallows other keys
             if (e.keyCode == KeyCode.DownArrow) { MoveHighlight(1); e.StopPropagation(); return true; }
             if (e.keyCode == KeyCode.UpArrow) { MoveHighlight(-1); e.StopPropagation(); return true; }
-            if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)
+            if ((e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) && !(e.target is Button))
             {
                 if (shown.Count > 0) Run(shown[Mathf.Clamp(highlighted, 0, shown.Count - 1)].run);
                 e.StopPropagation();

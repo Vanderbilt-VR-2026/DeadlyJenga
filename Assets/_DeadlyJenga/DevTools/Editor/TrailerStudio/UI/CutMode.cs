@@ -17,7 +17,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool Available => true;
         public bool TryGetRecord(StudioContext context, out string label, out Action start) { label = null; start = null; return false; }
 
-        static bool snap = true;
+        const string SnapKey = "DeadlyJenga.TrailerStudio.SnapCutOutToBeat";
+        static bool SnapToBeat
+        {
+            get => EditorPrefs.GetBool(SnapKey, true);
+            set => EditorPrefs.SetBool(SnapKey, value);
+        }
         static readonly Dictionary<string, string> renderFolders = new Dictionary<string, string>();
 
         public void Build(VisualElement panel, StudioContext context)
@@ -78,7 +83,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 card.Add(StudioFields.Slide(context, "Out (s)", Mathf.Min(cut.to, length), .1f, length, v =>
                 {
                     float wanted = Mathf.Max(v, cut.from + .1f);
-                    if (snap && set.bpm > 0) wanted = Mathf.Clamp(StudioExport.SnapToBeat(set, start + wanted - cut.from) - start + cut.from, cut.from + .1f, length);
+                    if (SnapToBeat && set.bpm > 0) wanted = Mathf.Clamp(StudioExport.SnapToBeat(set, start + wanted - cut.from) - start + cut.from, cut.from + .1f, length);
                     cut.to = wanted;
                 }));
                 if (i > 0) card.Add(StudioFields.Slide(context, "Dissolve in (s)", cut.dissolve, 0, 2, v => cut.dissolve = v));
@@ -102,17 +107,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             // Music bed and beats
             panel.Add(StudioUi.Heading("MUSIC"));
+            var removeMusic = StudioUi.Small("Remove", () => context.Edit("Remove music bed", () => set.music = ""));
+            removeMusic.SetEnabled(!string.IsNullOrEmpty(set.music));
             panel.Add(StudioUi.Row(new Label(string.IsNullOrEmpty(set.music) ? "No music bed" : Path.GetFileName(set.music)) { style = { flexGrow = 1 } },
                 StudioUi.Small("Choose…", () =>
                 {
                     string file = EditorUtility.OpenFilePanel("Music bed", "", "wav,mp3,ogg,aiff");
                     if (file.Length > 0) context.Edit("Music bed", () => set.music = file);
                 }),
-                StudioUi.Small("None", () => context.Edit("Music bed", () => set.music = ""))));
+                removeMusic));
             panel.Add(StudioFields.Number(context, "Beats per minute", set.bpm, v => set.bpm = Mathf.Clamp(v, 0, 300)));
             panel.Add(StudioFields.Number(context, "First beat at (s)", set.beatOffset, v => set.beatOffset = Mathf.Max(0, v)));
-            var snapping = new Toggle("Snap cuts to the beat") { value = snap };
-            snapping.RegisterValueChangedCallback(e => snap = e.newValue);
+            var snapping = new Toggle("Snap out points to beats")
+            {
+                value = SnapToBeat,
+                tooltip = set.bpm > 0 ? "Moving an out point snaps the piece's end to the nearest beat." : "Set a tempo above zero to enable beat snapping."
+            };
+            snapping.SetEnabled(set.bpm > 0);
+            snapping.RegisterValueChangedCallback(e => SnapToBeat = e.newValue);
             panel.Add(snapping);
 
             // Export
@@ -132,6 +144,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             });
             panel.Add(batches);
             int resolved = 0;
+            bool missingMedia = false;
             if (set.cuts.Count > 0)
             {
                 try
@@ -140,13 +153,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     resolved = pieces.Count;
                     panel.Add(StudioUi.Hint($"{resolved} of {set.cuts.Count} cut pieces have render records in this batch."));
                     foreach (var warning in warnings.Distinct()) panel.Add(StudioUi.Warning(warning));
-                    if (pieces.Any(piece => !File.Exists(piece.media)))
-                        panel.Add(StudioUi.Warning("A render record points to a missing media file."));
+                    missingMedia = pieces.Any(piece => !File.Exists(piece.media) || piece.shot.frames <= 0 || piece.shot.fps <= 0);
+                    if (missingMedia)
+                        panel.Add(StudioUi.Warning("This batch has a missing media file or an incomplete shot. Choose another batch or render the affected cameras again."));
                 }
                 catch (Exception error) { panel.Add(StudioUi.Warning("Could not read this render batch. " + error.Message)); }
             }
             string audio = StudioRender.AudioFile(set.id);
-            if (!File.Exists(audio)) panel.Add(StudioUi.Hint("No game sound recorded yet. Record the whole set (that records its sound too), or use \"Record the tape's sound\" in the Shoot tab. The cut will export without it."));
+            if (!File.Exists(audio)) panel.Add(StudioUi.Hint("No game audio for this cut. Use Record game audio from tape in Shoot to include it."));
             else
             {
                 // Each world take keeps its own sound. Say so when the active one has none (an older single file is used instead).
@@ -157,19 +171,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             int performedSounds = StudioCutSound.PerformedSounds(set).Count;
             if (performedSounds > 0) panel.Add(StudioUi.Hint($"{performedSounds} performed take(s) add what their performer heard, each on its own sound lane. The export also writes {StudioCutSound.MixName}, everything mixed into one file."));
             string captured = folder;
-            var export = StudioUi.Big("Export for Resolve or Premiere", () =>
+            bool partial = resolved > 0 && resolved < set.cuts.Count;
+            var export = StudioUi.Big(partial ? "Export available pieces" : "Export FCPXML and EDL", () =>
             {
                 try
                 {
                     string xml = StudioExport.WriteFcpxml(set, captured, audio, out var problems);
-                    string edl = StudioExport.WriteEdl(set, captured, out _);
-                    context.Say(problems.Count > 0 ? "Exported with warnings. " + problems[0] : "Exported " + Path.GetFileName(xml) + " and " + Path.GetFileName(edl) + ".");
+                    string edl = StudioExport.WriteEdl(set, captured, out var edlProblems);
+                    string warning = problems.Concat(edlProblems).FirstOrDefault();
+                    context.Say(warning != null ? "Exported with warnings. " + warning : "Exported " + Path.GetFileName(xml) + " and " + Path.GetFileName(edl) + ".");
                     EditorUtility.RevealInFinder(xml);
                 }
                 catch (Exception error) { context.Say(error.Message); }
-            }, "Writes an FCPXML file and an EDL next to the rendered shots.");
+            }, partial ? "Writes an FCPXML and EDL using only the pieces rendered in this batch." : "Writes an FCPXML file and an EDL next to the rendered shots.");
             export.AddToClassList("ts-big--primary");
-            export.SetEnabled(resolved > 0);
+            export.SetEnabled(resolved > 0 && !missingMedia);
             panel.Add(export);
         }
     }

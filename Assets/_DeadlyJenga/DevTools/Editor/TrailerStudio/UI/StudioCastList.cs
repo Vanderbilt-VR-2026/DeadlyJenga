@@ -12,6 +12,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         readonly StudioContext context;
         readonly ScrollView host;
         string filter = "";
+        static bool RunActive => StudioRun.Busy || StudioHandheld.Recording;
 
         public StudioCastList(StudioContext context, ScrollView host) { this.context = context; this.host = host; }
 
@@ -100,14 +101,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var row = new VisualElement();
             row.AddToClassList("ts-item");
-            row.EnableInClassList("ts-item--selected", select != null && ReferenceEquals(select, context.Selection));
+            bool selected = select != null && ReferenceEquals(select, context.Selection);
+            row.EnableInClassList("ts-item--selected", selected);
             bool performing = select is StudioMark && context.window.Mode is PerformMode;
-            if (select != null)
-                row.RegisterCallback<ClickEvent>(_ =>
-                {
-                    if (performing && select is StudioMark actor) PerformMode.ChooseActor(context, actor);
-                    else context.Select(select);
-                });
             var title = StudioUi.Row(StudioUi.Dot(color));
             title.style.minHeight = 26;
             row.Add(title);
@@ -118,6 +114,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var label = new Label(name + status) { tooltip = name + status };
             label.AddToClassList("ts-item-name");
             title.Add(label);
+            if (select != null)
+                title.RegisterCallback<ClickEvent>(e =>
+                {
+                    if (e.button != 0 || selected) return;
+                    if (performing && select is StudioMark actor)
+                    {
+                        if (RunActive) { context.Say("Stop the current run before switching actors."); return; }
+                        PerformMode.ChooseActor(context, actor);
+                    }
+                    else context.Select(select);
+                });
+            else title.tooltip = "Imported Theatre shot. Convert it to an editable camera in Shoot.";
             if (track == null) return row;
 
             if (!string.IsNullOrEmpty(track.badge))
@@ -127,7 +135,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 title.Add(badge);
             }
 
-            if (!ReferenceEquals(context.Selection, select))
+            if (!selected)
             {
                 string state = string.Join(" · ", new[] {
                     track.mode == TrackMode.Muted ? "Muted" : null, track.solo ? "Solo" : null,
@@ -146,51 +154,77 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var actions = StudioUi.Row();
             actions.style.flexWrap = Wrap.Wrap;
             actions.style.marginBottom = 4;
+            if (RunActive)
+            {
+                var wait = StudioUi.Hint("Track controls are available when the run stops.");
+                row.Add(wait);
+            }
             row.Add(actions);
             var kept = track.Kept.ToList();
             if (kept.Count > 0)
             {
                 int position = track.ActiveTake == null ? 0 : kept.IndexOf(track.ActiveTake) + 1;
                 string takeText = position == 0 ? "Choose take" : $"Take {position}/{kept.Count}";
-                var takes = StateButton(takeText, false, $"Pick the active take for {name}. Number keys also work.");
-                takes.clicked += () =>
+                bool canPickTake = kept.Count > 1 || position == 0;
+                var takes = StateButton(takeText, false, canPickTake ? $"Pick the active take for {name}. Number keys also work."
+                    : $"{name} has one kept take.", canPickTake && !RunActive, () =>
                 {
+                    if (!CanEdit(track)) return;
                     var menu = new GenericMenu();
-                    foreach (var take in kept)
+                    for (int i = 0; i < kept.Count; i++)
                     {
-                        var captured = take;
-                        menu.AddItem(new GUIContent((take.starred ? "* " : "") + take.name), take == track.ActiveTake,
-                            () => context.window.SetActiveTake(track, track.takes.IndexOf(captured)));
+                        var captured = kept[i];
+                        string takeName = (captured.name ?? "").Replace('/', '∕');
+                        var entry = new GUIContent($"{i + 1}. {(captured.starred ? "* " : "")}{takeName}");
+                        if (captured == track.ActiveTake) menu.AddDisabledItem(entry, true);
+                        else menu.AddItem(entry, false, () =>
+                        {
+                            if (!CanEdit(track)) return;
+                            int index = track.takes.IndexOf(captured);
+                            if (index >= 0) context.window.SetActiveTake(track, index);
+                        });
                     }
                     menu.ShowAsContext();
-                };
+                });
                 actions.Add(takes);
             }
             bool muted = track.mode == TrackMode.Muted;
+            bool playable = PerformMode.HasPerformance(track);
             actions.Add(StateButton(muted ? "Unmute" : "Mute", muted,
-                muted ? $"Include {name} in playback, subject to solo." : $"Exclude {name} from playback.",
-                () => track.mode = muted ? TrackMode.Playback : TrackMode.Muted));
+                muted ? $"Include {name} in playback, subject to solo." : playable ? $"Exclude {name} from playback." : "Record a take before muting.",
+                !RunActive && (playable || muted), () => ChangeTrack(track, () => track.mode = muted ? TrackMode.Playback : TrackMode.Muted)));
             actions.Add(StateButton(track.solo ? "Unsolo" : "Solo", track.solo,
-                track.solo ? $"Remove {name} from the solo group." : "Play only tracks marked Solo.",
-                () => track.solo = !track.solo));
+                track.solo ? $"Remove {name} from the solo group." : playable ? "Play only tracks marked Solo." : "Record a take before soloing.",
+                !RunActive && (playable || track.solo), () => ChangeTrack(track, () => track.solo = !track.solo)));
             actions.Add(StateButton(track.locked ? "Unlock" : "Lock", track.locked,
                 track.locked ? $"Allow {name} to be recorded again." : $"Protect {name} from re-recording.",
-                () => track.locked = !track.locked));
+                !RunActive, () => ChangeTrack(track, () => track.locked = !track.locked)));
             return row;
         }
 
-        Button StateButton(string text, bool on, string tooltip, Action toggle = null)
+        bool CanEdit(StudioTrack track)
         {
-            var button = new Button { text = text, tooltip = tooltip };
-            if (toggle != null) button.clicked += () => { toggle(); context.window.TapeChanged(); };
+            if (RunActive) { context.Say("Stop the current run before changing tracks."); return false; }
+            return ReferenceEquals(context.Tape?.Find(track.id), track);
+        }
+
+        void ChangeTrack(StudioTrack track, Action change)
+        {
+            if (!CanEdit(track)) return;
+            change();
+            context.window.TapeChanged();
+        }
+
+        Button StateButton(string text, bool on, string tooltip, bool enabled, Action click)
+        {
+            var button = new Button(click) { text = text, tooltip = tooltip };
             button.AddToClassList("ts-mini");
             button.EnableInClassList("ts-mini--on", on);
             button.style.width = StyleKeyword.Auto;
             button.style.height = 22;
             button.style.paddingLeft = 5;
             button.style.paddingRight = 5;
-            // Do not also select the row.
-            button.RegisterCallback<ClickEvent>(e => e.StopPropagation());
+            button.SetEnabled(enabled);
             return button;
         }
     }

@@ -112,6 +112,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             palette = new StudioPalette(context, floating);
             BuildTransport();
 
+            root.RegisterCallback<ClickEvent>(e => FlashButton(e.target as VisualElement), TrickleDown.TrickleDown);
+            root.RegisterCallback<NavigationSubmitEvent>(e => FlashButton(e.target as VisualElement), TrickleDown.TrickleDown);
             root.focusable = true;
             root.RegisterCallback<KeyDownEvent>(OnKey, TrickleDown.TrickleDown);
             // Keep the picture and the playhead fresh while the stage is open.
@@ -372,7 +374,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             stageButton.text = StudioRun.State == StudioState.Closed ? "Open stage" : StudioRun.State == StudioState.Opening ? "Opening…" : "Close stage";
             stageButton.SetEnabled(Set != null && StudioRun.State != StudioState.Opening);
-            stageButton.tooltip = StudioRun.State == StudioState.Closed ? "Load this Set's map in Play Mode so you can place marks, record and play." : "Leave Play Mode. Your Set and takes are already saved.";
+            stageButton.tooltip = Set == null ? "Choose or create a Set first." : StudioRun.State == StudioState.Opening ? "The map is loading." : StudioRun.State == StudioState.Closed ? "Load this Set's map in Play Mode so you can place marks, record and play." : "Leave Play Mode. Your Set and takes are already saved.";
             RefreshLive();
         }
 
@@ -424,7 +426,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             catch (Exception error) { Say(error.Message); }
         }
 
-        void ToggleStage() => Try(() =>
+        internal void ToggleStage() => Try(() =>
         {
             if (StudioRun.State == StudioState.Closed) { if (Set != null) StudioRun.OpenStage(Set); }
             else StudioRun.CloseStage();
@@ -534,16 +536,35 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             timeLabel.text = StudioUi.Time(Frame, fps) + " / " + StudioUi.Time(frames, fps);
             playButton.text = StudioRun.Recording ? "Stop recording" : StudioRun.State == StudioState.Running ? "Pause" : "Play";
             playButton.SetEnabled(StudioRun.State == StudioState.Held || StudioRun.State == StudioState.Running);
-            playButton.tooltip = StudioRun.Recording ? "Stop recording (Space)" : "Play or pause (Space)";
+            playButton.tooltip = !playButton.enabledSelf ? "Open the stage to play this Set." : StudioRun.Recording ? "Stop recording (Space)" : "Play or pause (Space)";
             loopButton.EnableInClassList("ts-small--on", loop);
             loopButton.text = loop ? "Loop on" : "Loop off";
             speedButton.text = SpeedName(speed);
             bool ranged = Set != null && (InFrame > 0 || OutFrame < frames - 1);
             rangeButton.SetEnabled(Set != null && !StudioRun.Busy);
+            rangeButton.EnableInClassList("ts-small--on", timeline.RangeZoom);
             rangeButton.text = timeline.RangeZoom ? "Range (zoomed)" : "Range";
             rangeLabel.text = ranged
                 ? $"{StudioUi.Time(InFrame, fps)} – {StudioUi.Time(OutFrame, fps)}"
                 : !StudioRun.StageOpen ? "Open stage to play" : "";
+        }
+
+        Button flashingButton;
+        IVisualElementScheduledItem flashEnd;
+
+        void FlashButton(VisualElement target)
+        {
+            var button = target as Button ?? target?.GetFirstAncestorOfType<Button>();
+            if (button == null || !button.enabledInHierarchy) return;
+            flashEnd?.Pause();
+            flashingButton?.RemoveFromClassList("ts-activated");
+            flashingButton = button;
+            button.AddToClassList("ts-activated");
+            flashEnd = root.schedule.Execute(() =>
+            {
+                button.RemoveFromClassList("ts-activated");
+                flashingButton = null;
+            }).StartingIn(160);
         }
 
         // ---- Keyboard ----
@@ -554,9 +575,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // Do not steal keys while someone types in a field.
             if (Typing()) return;
 
+            var focused = root.panel?.focusController?.focusedElement as VisualElement;
+            for (var control = focused; control != null; control = control.parent)
+            {
+                if (control.ClassListContains("unity-base-field")) return;
+                if (control is Button && e.keyCode == KeyCode.Space) return;
+            }
+
             bool used = true;
             if (e.keyCode == KeyCode.K && (e.ctrlKey || e.commandKey)) palette.ShowCommands();
             else if (e.character == '?' || e.keyCode == KeyCode.Slash && e.shiftKey) palette.ShowShortcuts();
+            else if (e.keyCode == KeyCode.Tab && (e.ctrlKey || e.commandKey)) CycleMode(e.shiftKey ? -1 : 1);
             else if (e.ctrlKey || e.commandKey || e.altKey) used = false;
             else if (e.keyCode == KeyCode.Space || e.keyCode == KeyCode.K) TogglePlay();
             else if (e.keyCode == KeyCode.R) PressRecord();
@@ -569,7 +598,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             else if (e.keyCode == KeyCode.LeftBracket) SetReviewRange(Frame, Frame > OutFrame ? (Set?.Frames ?? 1) - 1 : OutFrame);
             else if (e.keyCode == KeyCode.RightBracket) SetReviewRange(Mathf.Min(Frame, InFrame), Frame);
             else if (e.keyCode == KeyCode.Backslash) SetReviewRange(0, (Set?.Frames ?? 1) - 1);
-            else if (e.keyCode == KeyCode.Tab) CycleMode(e.shiftKey ? -1 : 1);
             else if (e.keyCode == KeyCode.Delete || e.keyCode == KeyCode.Backspace) DeleteSelection();
             else if (e.keyCode >= KeyCode.Alpha1 && e.keyCode <= KeyCode.Alpha9) PickTake(e.keyCode - KeyCode.Alpha1);
             else used = false;
@@ -608,6 +636,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         public void SetActiveTake(StudioTrack track, int index)
         {
+            if (StudioRun.Busy || StudioHandheld.Recording || track == null || Tape?.Find(track.id) != track ||
+                index < 0 || index >= track.takes.Count || track.takes[index].trashed || track.active == index) return;
             track.active = index;
             if (Tape != null && Set != null)
             {

@@ -332,11 +332,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 bool active = take == track.ActiveTake;
                 var use = StudioUi.Small(active ? "Active" : "Use", () => context.window.SetActiveTake(track, track.takes.IndexOf(captured)));
                 use.EnableInClassList("ts-small--on", active);
+                use.SetEnabled(!active && !StudioRun.Busy && !StudioHandheld.Recording);
                 use.style.minWidth = 46;
                 var name = new TextField { value = take.name, isDelayed = true };
                 name.style.flexGrow = 1;
                 name.RegisterValueChangedCallback(e => { captured.name = string.IsNullOrWhiteSpace(e.newValue) ? captured.name : e.newValue; context.window.TapeChanged(); });
-                var star = StudioUi.Small("*", () => { captured.starred = !captured.starred; context.window.TapeChanged(); }, "Star the takes you like");
+                var star = StudioUi.Small(take.starred ? "Starred" : "Star", () => { captured.starred = !captured.starred; context.window.TapeChanged(); }, "Star the takes you like");
                 star.EnableInClassList("ts-small--on", take.starred);
                 var trash = StudioUi.Small("Trash", () =>
                 {

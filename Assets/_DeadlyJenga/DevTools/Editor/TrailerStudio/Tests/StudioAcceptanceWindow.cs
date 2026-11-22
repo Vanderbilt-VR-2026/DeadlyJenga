@@ -80,6 +80,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         static readonly string[] ProductionModes = { "Set", "Perform", "Polish", "Direct", "Shoot", "Cut" };
 
+        static void SubmitButton(Button button)
+        {
+            if (button == null) return;
+            using var submit = NavigationSubmitEvent.GetPooled();
+            submit.target = button;
+            button.SendEvent(submit);
+        }
+
         static bool ContainsLayout(Rect outer, Rect inner)
         {
             const float tolerance = 1;
@@ -119,9 +127,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         var clipped = new List<string>();
                         foreach (string mode in ProductionModes)
                         {
-                            window.ShowMode(mode);
+                            var tab = root.Q("tabs").Query<Button>(className: "ts-tab").ToList()
+                                .FirstOrDefault(button => button.Q<Label>()?.text == mode);
+                            SubmitButton(tab);
                             foreach (int wait in Settle(window, 4)) yield return wait;
-                            if (!SelectedTabFullyVisible(root, mode)) clipped.Add(mode);
+                            if (window.Mode.Title != mode || !SelectedTabFullyVisible(root, mode)) clipped.Add(mode);
                         }
                         var actual = root.layout.size;
                         bool sizeMatched = Mathf.Abs(actual.x - size.x) <= 2 && Mathf.Abs(actual.y - size.y) <= 2;
@@ -131,7 +141,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         Result($"Production tabs at {size.x:0}×{size.y:0} in {themeName} theme",
                             sizeMatched && themeMatched && clipped.Count == 0,
                             $"Studio layout {actual.x:0}×{actual.y:0}. Theme resolved: {themeMatched}. " +
-                            (clipped.Count == 0 ? "All six tabs fit when selected." : "Outside the visible area: " + string.Join(", ", clipped) + "."));
+                            (clipped.Count == 0 ? "All six buttons selected their tab and fit." : "Selection or layout failed: " + string.Join(", ", clipped) + "."));
                         take($"10-cut-{sizeName}-{themeName}");
                     }
                 }
@@ -218,10 +228,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Take("06-polish-layer");
 
             // Direct: blocks picked, a push cue with its arrow.
-            window.ShowMode("Direct");
             DirectMode.Picked.Clear();
+            window.ShowMode("Direct");
+            Button PushButton() => window.rootVisualElement.Q("mode-panel").Query<Button>().ToList()
+                .FirstOrDefault(button => button.text.EndsWith("Push the picked blocks", StringComparison.Ordinal));
+            bool unavailableBeforePicking = PushButton()?.enabledInHierarchy == false;
             DirectMode.Picked.AddRange(Enumerable.Range(0, stage.blocks.Length).Where(i => stage.blocks[i] && stage.blocks[i].gameObject.activeSelf)
                 .OrderBy(i => (stage.blocks[i].position - stage.anchor).sqrMagnitude).Take(6));
+            window.RebuildAll();
+            bool availableAfterPicking = PushButton()?.enabledInHierarchy == true;
+            Result("Push availability follows the viewport selection", unavailableBeforePicking && availableAfterPicking,
+                $"Disabled with an empty selection: {unavailableBeforePicking}. Enabled with {DirectMode.Picked.Count} picked blocks: {availableAfterPicking}.");
             var push = new StudioCue { at = 2, action = PushCue.Id, blocks = new List<int>(DirectMode.Picked), direction = new Vector3(1, .3f, .4f), strength = 9, ripple = .1f };
             context.Edit("Add push", () => set.cues.Add(push));
             context.Select(push);
@@ -259,7 +276,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             // Command palette and shortcut sheet.
             window.ShowMode("Set");
-            window.ShowPalette(true);
+            var findCommand = window.rootVisualElement.Q<Button>("commands");
+            bool activeBefore = findCommand?.ClassListContains("ts-activated") == true;
+            SubmitButton(findCommand);
+            bool flashed = findCommand?.ClassListContains("ts-activated") == true;
+            bool paletteOpened = window.rootVisualElement.Q(className: "ts-palette") != null;
+            double feedbackDeadline = EditorApplication.timeSinceStartup + 2;
+            while (findCommand?.ClassListContains("ts-activated") == true && EditorApplication.timeSinceStartup < feedbackDeadline)
+                yield return 0;
+            bool flashCleared = findCommand?.ClassListContains("ts-activated") == false;
+            Result("Find command opens through its button and gives temporary feedback",
+                !activeBefore && flashed && paletteOpened && flashCleared,
+                $"Feedback shown: {flashed}. Palette opened: {paletteOpened}. Feedback cleared: {flashCleared}.");
+            if (!paletteOpened) window.ShowPalette(true);
             foreach (int wait in Settle(window)) yield return wait;
             Take("11-command-palette");
             var palette = window.rootVisualElement.Q(className: "ts-palette");
