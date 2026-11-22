@@ -63,14 +63,44 @@ namespace DeadlyJenga.NinjaArt
             var go = new GameObject("Collision - shrine prop"); go.transform.SetParent(scenery, false); go.transform.localPosition = local;
             go.AddComponent<BoxCollider>().size = size;
         }
+        void BuildMoonlitLake(float localWaterY)
+        {
+            var panorama = Resources.Load<Texture2D>("NinjaScenery/MoonlitLake");
+            var shore = new Vector4(transform.position.x,transform.position.z,185,waterLevel);
+            sky.SetTexture("_Panorama",panorama);
+            sky.SetVector("_Lake",shore);
+
+            var castleWater = Resources.Load<Material>("InstancingKeep/CandyOcean Instanced");
+            water = new Material(castleWater) {name="Moonlit Lake · castle ocean"};
+            owned.Add(water);
+            water.SetVector("_MoonlitLake",shore);
+            water.SetVector("_Island",new Vector4(shore.x,shore.y,43,43));
+            water.SetFloat("_WaterHeight",waterLevel);
+            water.SetFloat("_SandTop",waterLevel-1);
+            water.SetFloat("_WaveHeight",.13f);
+            water.SetFloat("_WaveSpeed",.68f);
+            water.SetFloat("_WaveExtent",88);
+            water.SetColor("_Shallow",new Color(.12f,.22f,.24f));
+            water.SetColor("_Deep",new Color(.18f,.27f,.41f));
+            water.SetColor("_Foam",new Color(.53f,.64f,.72f));
+            water.SetTexture("_CoastPanorama",panorama);
+            water.SetTexture("_CoastSpectrum",Resources.Load<Texture2D>("CandyScenery/CatwalksWaterSpectrum"));
+            const float size=400;
+            var grid=CandyArt.CandyOceanSurface.Create(Application.isMobilePlatform ? 64 : 96,size,88);
+            var surface=Add("Visual - moonlit castle ocean",grid,water,scenery);
+            surface.transform.localPosition=Vector3.up*localWaterY;
+            surface.transform.localScale=new Vector3(size,1,size);
+        }
+
         void Build()
         {
-            sky = Make("NinjaSky", "Ninja moon sky"); sky.SetVector("_MoonDir", MoonDirection);
+            sky = Make(shrineTown ? "MoonlitLakeSky" : "NinjaSky", "Ninja moon sky");
+            if (!shrineTown) sky.SetVector("_MoonDir", MoonDirection);
             ground = Make("NinjaLacquer", "Ninja courtyard"); ground.SetFloat("_Gloss", .2f); ground.SetFloat("_Spec", .1f); ground.SetFloat("_Rim", .05f); ground.SetFloat("_Warm", 1.25f);
             props = Make("NinjaLacquer", "Ninja props"); props.SetFloat("_Gloss", .7f); props.SetFloat("_Spec", .35f); props.SetFloat("_Rim", .45f); props.SetFloat("_AlphaEmission", 4f);
             foliage = Make("NinjaLacquer", "Ninja foliage"); foliage.SetFloat("_Wind", 1); foliage.SetFloat("_Cull", 0); foliage.SetFloat("_Gloss", .35f); foliage.SetFloat("_Spec", .15f); foliage.SetFloat("_Rim", 1.1f); foliage.SetFloat("_Warm", .6f);
             far = Make("NinjaUnlit", "Ninja far silhouettes"); far.SetFloat("_UseFog", 0);
-            water = Make("NinjaWater", "Ninja lake"); water.SetVector("_MoonDir", MoonDirection);
+
             if (shrineTown)
             {
                 facadeCube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
@@ -97,16 +127,14 @@ namespace DeadlyJenga.NinjaArt
                 var courtyard = new NinjaMesh();
                 NinjaTempleScenery.Ground(courtyard,wy);
                 Add("Visual - courtyard and walls",courtyard.Build("Ninja courtyard"),ground,scenery);
+                water = Make("NinjaWater","Ninja lake");
+                water.SetVector("_MoonDir",MoonDirection);
+                var lake = new NinjaMesh(); lake.Quad(new Vector3(-900, wy, -900), new Vector3(-900, wy, 900), new Vector3(900, wy, 900), new Vector3(900, wy, -900), Color.white); Add("Visual - lake", lake.Build("Ninja lake"), water, scenery);
+                var mountains = new NinjaMesh(); NinjaTempleScenery.Mountains(mountains, Horizon * 1.05f, new Color(.018f, .02f, .04f));
+                NinjaTempleScenery.FarCastle(mountains, glow, -NinjaTempleScenery.MoonFlat * 240 + Vector3.right * 60 + Vector3.up * 18, 1.3f, new Color(.03f, .032f, .055f));
+                Add("Visual - layered ridges", mountains.Build("Ninja ridges"), far, scenery);
             }
-            else
-            {
-                water.SetColor("_Deep",new Color(.035f,.17f,.17f));
-                water.SetColor("_Sky",new Color(.22f,.34f,.39f));
-            }
-            var lake = new NinjaMesh(); lake.Quad(new Vector3(-900, wy, -900), new Vector3(-900, wy, 900), new Vector3(900, wy, 900), new Vector3(900, wy, -900), Color.white); Add("Visual - lake", lake.Build("Ninja lake"), water, scenery);
-            var mountains = new NinjaMesh(); NinjaTempleScenery.Mountains(mountains, Horizon * 1.05f, new Color(.018f, .02f, .04f));
-            NinjaTempleScenery.FarCastle(mountains, glow, -NinjaTempleScenery.MoonFlat * 240 + Vector3.right * 60 + Vector3.up * 18, 1.3f, new Color(.03f, .032f, .055f));
-            Add("Visual - layered ridges", mountains.Build("Ninja ridges"), far, scenery);
+            else BuildMoonlitLake(wy);
 
             var p = new NinjaMesh(); var f = new NinjaMesh(); var rng = new System.Random(5);
             var moonFlat = NinjaTempleScenery.MoonFlat; var facing = Quaternion.LookRotation(moonFlat);
@@ -242,7 +270,7 @@ namespace DeadlyJenga.NinjaArt
                 for (int i = 0; i < 4; i++) Pool(glow, Quaternion.Euler(0, i * 90 + 45, 0) * new Vector3(0, .04f, 11), 6.5f, .28f);
             }
             var beamBase = moonFlat * 160 + Vector3.up * 70;
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; !shrineTown && i < 5; i++)
             {
                 var side = Vector3.Cross(Vector3.up, moonFlat) * (i - 2) * 16; var top = beamBase + side; var bottom = moonFlat * 40 + side * 2.2f + Vector3.up * wy;
                 var across = Vector3.Cross(Vector3.up, moonFlat) * (3 + i % 2 * 2);

@@ -966,6 +966,11 @@ namespace DeadlyJenga.DevTools.Editor
             Check(world!=null&&world.Blocks.Count>150&&world.Blocks.Count<=400,"Ninja map built within its authored block budget");
             var art=Object.FindFirstObjectByType<DeadlyJenga.NinjaArt.NinjaTempleArt>();
             Check(art,"Ninja Temple lighting and scenery are loaded");
+            var lake=art.GetComponentsInChildren<MeshRenderer>().Single(r=>r.name=="Visual - moonlit castle ocean");
+            Check(lake.sharedMaterial.shader.name=="Candy Tropical/Ocean" && lake.sharedMaterial.GetTexture("_CoastSpectrum") &&
+                lake.sharedMaterial.shader.isSupported && lake.GetComponent<MeshFilter>().sharedMesh.vertexCount>4000 &&
+                RenderSettings.skybox.shader.isSupported && RenderSettings.skybox.GetTexture("_Panorama")==lake.sharedMaterial.GetTexture("_CoastPanorama"),
+                "Castle ocean grid and wind spectrum render against the matching moonlit sky");
             var generator = Object.FindObjectsByType<CastleGenerator>(FindObjectsSortMode.None)
                 .First(item => item.settings.layoutPreset == "shrine-town" && item.Bodies.Count > 0);
             var layout = CastleLayout.Build(generator.settings);
