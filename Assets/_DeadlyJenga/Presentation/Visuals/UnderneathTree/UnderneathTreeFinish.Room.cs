@@ -47,25 +47,24 @@ namespace DeadlyJenga.CandyArt
             else if (color.g > color.r * 2f && color.g > color.b) color = new Color(.01f, .30f, .08f);
             else if (color.r > color.g * 3f) color = new Color(.70f, .004f, .03f);
             else color = new Color(1f, .80f, .55f);
-            // Foil film, not paper: part mirror, glossy, slightly crinkled.
-            // Cream is already bright, so it is less mirror-like and keeps less of its own glow.
+            // Coated paper stays dielectric. The shader gives only the snowflake print a metal finish.
             bool cream = color.g > .5f;
-            var material = Lacquer(label, color, .74f, cream ? .3f : .55f, .35f, cream ? .05f : .07f);
+            var material = Lacquer(label, color, .58f, 0f, .30f, cream ? .03f : .045f);
             if (!material.HasProperty("_Coat")) return material;
-            material.SetFloat("_CoatSmoothness", .85f);
+            material.SetFloat("_CoatSmoothness", .74f);
             material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + "Gold Snowflake Foil"));
             material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + "Paper Normal"));
             // A few big snowflakes on each face, like the approved picture.
             material.SetTextureScale("_BaseMap", new Vector2(1.3f, 1.3f));
-            material.SetFloat("_BaseShade", .55f);
+            material.SetFloat("_BaseShade", .34f);
             material.SetFloat("_BumpScale", .12f);
             material.SetColor("_FoilColor", new Color(1f, .68f, .16f));
             // Gold that glows by itself looked fake next to the dark room; let the lights make it shine.
-            material.SetFloat("_FoilGlow", .25f);
+            material.SetFloat("_FoilGlow", .05f);
             material.SetFloat("_TopLight", .1f);
             material.SetFloat("_EdgeLight", .15f);
-            material.SetFloat("_Foil", cream ? .45f : .55f);
-            material.SetFloat("_Crinkle", .8f);
+            material.SetFloat("_Foil", cream ? .13f : .19f);
+            material.SetFloat("_Crinkle", .55f);
             material.SetFloat("_CrinkleSize", 1.8f);
             material.SetFloat("_EdgeCrinkle", 1.5f);
             material.SetFloat("_Tuck", .55f);
@@ -152,8 +151,8 @@ namespace DeadlyJenga.CandyArt
                     color = new Color(.95f, .66f, .22f);
                 else if (color.r > color.g * 3f)
                     color = new Color(.55f, .008f, .03f);
-                var satin = Lacquer("Satin " + name, color, .7f, .45f, .3f, .05f);
-                satin.SetFloat("_Foil", .35f);
+                var satin = Lacquer("Satin " + name, color, .58f, .20f, .22f, .025f);
+                satin.SetFloat("_Foil", .14f);
                 satin.SetFloat("_EdgeLight", .2f);
                 satin.SetFloat("_TopLight", .15f);
                 satin.SetFloat("_Crinkle", .4f);

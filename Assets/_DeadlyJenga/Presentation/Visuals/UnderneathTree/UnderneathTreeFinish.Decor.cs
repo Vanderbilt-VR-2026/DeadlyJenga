@@ -74,7 +74,7 @@ namespace DeadlyJenga.CandyArt
             }
             for (int i = 0; i < 3; i++)
                 Nutcracker(piano, new Vector3(-18f + i * 18f, 104f, -6f), i == 1 ? 1.2f : 1f);
-            MakeLight("Piano candle glow", LightType.Point, at + new Vector3(16f, 125f, 0f), new Color(1f, .65f, .3f), 800f, 50f);
+            MakeLight("Piano candle glow", LightType.Point, at + new Vector3(16f, 125f, 0f), new Color(1f, .65f, .3f), 150f, 28f);
             // Bench with a cushion.
             Under(RoundedDetail("Piano bench", new Vector3(0f, 18f, 38f), new Vector3(56f, 36f, 22f), .05f, lacquer), piano);
             Under(RoundedDetail("Bench cushion", new Vector3(0f, 37.5f, 38f), new Vector3(52f, 4f, 20f), .4f, plush), piano);
@@ -131,7 +131,7 @@ namespace DeadlyJenga.CandyArt
                 Box("Sconce arm", plate + new Vector3(5f, 0f, 0f), new Vector3(10f, 1.2f, 1.2f), brass);
                 Primitive("Sconce shade", PrimitiveType.Cylinder, plate + new Vector3(10f, 5f, 0f), new Vector3(7f, 4f, 7f), shade)
                     .GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
-                MakeLight("Sconce glow", LightType.Point, plate + new Vector3(16f, 6f, 0f), new Color(1f, .70f, .40f), 2500f, 90f);
+                MakeLight("Sconce glow", LightType.Point, plate + new Vector3(16f, 6f, 0f), new Color(1f, .70f, .40f), 200f, 42f);
             }
         }
 
