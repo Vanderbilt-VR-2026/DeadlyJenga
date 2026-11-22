@@ -13,15 +13,12 @@ Shader "DeadlyJenga/Christmas Foil Paper"
         _Coat("Lacquer Coat", Range(0,1)) = 0
         _CoatSmoothness("Lacquer Smoothness", Range(0,1)) = 0.9
         _FoilGlow("Foil Self Glow", Range(0,2)) = 0
-        // Warm room light the lacquer picks up when you look across a face.
-        [HDR] _GlossColor("Room Light On Lacquer", Color) = (0,0,0,1)
         _Sparkle("Glitter Strength", Range(0,4)) = 0
         _SparkleSize("Glitter Fleck Size", Range(0.02,1)) = 0.14
         _EdgeLight("Light Caught On Edges", Range(0,3)) = 0
         _TopLight("Extra Light On Top Faces", Range(0,1)) = 0
         _BaseShade("Shade Toward The Bottom Of Each Box", Range(0,1)) = 0
         // Foil film: how strongly the wrap mirrors the room's lamps, and how crinkled it is.
-        _Foil("Foil Shine", Range(0,3)) = 0
         _Crinkle("Foil Crinkle", Range(0,3)) = 0
         _CrinkleSize("Crinkle Size", Range(0.2,4)) = 1
         // Extra creases where the paper is folded over the box edges, and the paper tucked under at the base.
@@ -74,13 +71,11 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 half _CoatSmoothness;
                 half _FoilGlow;
                 half4 _EmissionColor;
-                half4 _GlossColor;
                 half _Sparkle;
                 half _SparkleSize;
                 half _EdgeLight;
                 half _TopLight;
                 half _BaseShade;
-                half _Foil;
                 half _Crinkle;
                 half _CrinkleSize;
                 half _EdgeCrinkle;
@@ -104,25 +99,6 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 float fold = dot(p, float2(0.55, 0.83)) * 0.33 + bend * 0.25;
                 tilt += float2(0.55, 0.83) * (smoothstep(0.42, 0.5, frac(fold)) - smoothstep(0.5, 0.58, frac(fold))) * 2.2;
                 return tilt * 0.05;
-            }
-
-            // The room as the foil sees it: glows in the colours of the tree's bulbs, changing as you
-            // look around the walls, and a soft warm glow from above. Cheaper and brighter than a real reflection.
-            half3 RoomShine(half3 bounce, half3 warm)
-            {
-                half turn = atan2(bounce.z, bounce.x);
-                half around = sin(turn * 3.0h + bounce.y * 2.0h);
-                half height = saturate(bounce.y * 1.4h + 0.3h) * (1.0h - smoothstep(0.7h, 1.0h, bounce.y));
-                // Red, yellow, green and blue in turn round the room, like the bulbs on the tree.
-                half spot = frac(turn / 6.2832h + 0.5h) * 4.0h;
-                half3 bulb = half3(1.0h, 0.08h, 0.05h) * saturate(1.0h - min(abs(spot), abs(spot - 4.0h))) +
-                    half3(1.0h, 0.70h, 0.12h) * saturate(1.0h - abs(spot - 1.0h)) +
-                    half3(0.08h, 1.0h, 0.20h) * saturate(1.0h - abs(spot - 2.0h)) +
-                    half3(0.08h, 0.32h, 1.0h) * saturate(1.0h - abs(spot - 3.0h));
-                // Each glow has a soft body and a thin bright heart, which is what makes foil streak.
-                half glow = smoothstep(0.3h, 1.0h, abs(around));
-                half3 walls = lerp(bulb, warm, 0.25h) * (glow * 0.7h + pow(glow, 6.0h) * 1.4h);
-                return walls * height + warm * (smoothstep(0.55h, 1.0h, bounce.y) * 0.25h);
             }
 
             struct FabricAttributes
@@ -243,7 +219,7 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 // Folded edges catch the light (the model's edges are slightly rounded).
                 half3 bend = fwidth(n);
                 half edge = saturate((bend.x + bend.y + bend.z) * 2.5h);
-                result.rgb += surface.albedo * key.color * (edge * _EdgeLight) + half3(1.0h, 0.82h, 0.55h) * (edge * _EdgeLight * 0.12h);
+                result.rgb += surface.albedo * key.color * (edge * _EdgeLight);
 
                 // Glitter: tiny flecks that flash on and off as you move your head.
                 float2 fleck = input.paper / _SparkleSize;
@@ -258,13 +234,6 @@ Shader "DeadlyJenga/Christmas Foil Paper"
                 result.rgb += lerp(half3(1.0h, 0.9h, 0.7h), _FoilColor.rgb, 0.4h) * (flash * _Sparkle) * step(0.0001h, _EmissionColor.g) *
                     (0.35h + key.shadowAttenuation * 0.65h);
 
-                // Foil shine: the film mirrors the room, tinted by its own colour so it stays rich
-                // rather than turning silver. Looking across a face, the mirror gets whiter.
-                half3 bounce = reflect(-inputData.viewDirectionWS, normal);
-                half across = grazing * grazing * grazing;
-                half3 tint = lerp(saturate(surface.albedo * 3.0h + 0.03h), half3(1, 1, 1), 0.06h + 0.4h * across);
-                result.rgb += RoomShine(bounce, _GlossColor.rgb) * tint * (_Foil * lerp(1.0h, 1.6h, foil)) *
-                    step(0.0001h, _EmissionColor.g);
                 result.rgb = MixFog(result.rgb, input.fog);
                 return result;
             }

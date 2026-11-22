@@ -158,6 +158,10 @@ namespace DeadlyJenga.CandyArt
                     var outward = new Vector3(offset.x, 0f, offset.z).normalized;
                     var point = (outward + Vector3.up * (.25f + .5f * Mathf.Abs(Mathf.Sin(count * 12.9898f))) +
                         Vector3.Cross(Vector3.up, outward) * Mathf.Sin(count * 78.233f) * .6f).normalized;
+                    // Sample the lower string more densely where its light reaches the course.
+                    if ((count <= 44 && count % 3 == 0) || (count > 44 && count % 11 == 0))
+                        MakeLight("Fir bulb spill " + count, LightType.Point, position + outward * 5f - Vector3.up * 1.5f,
+                            bulbColors[tint], 970f, 32f);
                     var turn = Quaternion.FromToRotation(Vector3.up, point);
                     const float length = 3.6f;
                     var socket = position - point * (length * .5f);
@@ -168,7 +172,7 @@ namespace DeadlyJenga.CandyArt
                     // A tiny hot filament inside the glass, and a wide soft glow so the string
                     // still reads as lit from across the room.
                     halos.Add(position, 1.5f, 1f, Color.Lerp(bulbColors[tint], Color.white, .45f) * 2.2f);
-                    halos.Add(position, 10f, 0f, bulbColors[tint] * 1.5f);
+                    halos.Add(position, 6f, 0f, bulbColors[tint] * 1.15f);
                 }
                 else
                     halos.Add(position, 1.4f, 1f, new Color(1f, .78f, .42f) * 2.2f);

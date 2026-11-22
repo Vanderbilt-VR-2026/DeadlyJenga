@@ -208,7 +208,7 @@ namespace DeadlyJenga.CandyArt
             for (int i = 0; i < bulbs.Length; i++)
                 Draw("Kitchen string lights", bulbs[i], BulbGlow(i), ShadowCastingMode.Off);
             // A little colored glow from the lights onto the counters.
-            MakeLight("Kitchen string light glow", LightType.Point, new Vector3(far + 40f, 92f, midZ), new Color(1f, .55f, .35f), 900f, 110f);
+            MakeLight("Kitchen string light glow", LightType.Point, new Vector3(far + 40f, 92f, midZ), new Color(1f, .55f, .35f), 200f, 60f);
         }
 
         Material BulbGlow(int i) => Glow("Kitchen bulb " + (i % BulbColors.Length), BulbColors[i % BulbColors.Length], 1.8f);
