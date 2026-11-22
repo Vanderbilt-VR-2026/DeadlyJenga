@@ -353,7 +353,8 @@ namespace DeadlyJenga.NinjaArt
                 if (!body || body.transform.Find("Visual - ninja decor")) continue;
                 var size = body.transform.lossyScale;
                 int thickness = Mathf.RoundToInt(size.z * 100);
-                if (shrineTown && ((thickness >= 41 && thickness <= 44) || (thickness >= 46 && thickness <= 48)))
+                bool lanternRoom = Mathf.Abs(size.y - 4.65f) < .01f && size.z > 2 && Mathf.Abs(size.x - size.z) < .01f;
+                if (shrineTown && (lanternRoom || (thickness >= 41 && thickness <= 44) || (thickness >= 46 && thickness <= 48) || thickness == 164))
                 {
                     if (!wallMeshes.TryGetValue(size, out var wall))
                     {

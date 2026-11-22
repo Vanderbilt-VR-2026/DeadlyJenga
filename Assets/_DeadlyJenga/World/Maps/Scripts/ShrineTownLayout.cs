@@ -36,10 +36,10 @@ namespace DeadlyJenga.CastlePrototype
             }
             town.Hall(29, 0, 14, 10, 0, 4, 2, 3);
             town.Hall(10, -2, 8, 8, 0, 3, 1, 2);
-            town.Hall(-30, 12, 8, 6, 0, 3.6f, 1, 2);
+            town.IslandTower(-45, 6, 12, 5, 4.65f, false);
             town.Hall(17, -40, 8, 6, 0, 3.8f, 1, 2);
             town.Hall(-19, -38, 7, 6, 0, 3.4f, 1, 2);
-            town.Hall(42, 1, 7, 7, 0, 3.6f, 1, 2);
+            town.IslandTower(46, 9, 14, 3, 7.2f, true);
             return town.pieces;
         }
 
@@ -362,6 +362,41 @@ namespace DeadlyJenga.CastlePrototype
             if (marshSupports) return;
             pieces.Add(new CastlePlacement(new Vector3(x, bottom + height / 2, z),
                 Quaternion.Euler(0, yaw, 0), section, Mathf.FloorToInt(bottom / 2), new Vector3(width, height, depth)));
+        }
+
+        void IslandTower(float x, float z, float width, int tiers, float storeyHeight, bool bell)
+        {
+            if (marshSupports)
+            {
+                Mud(x,z,width + 1,width + 1,0);
+                return;
+            }
+
+            const float pierDepth = 1.64f;
+            float bottom = .5f;
+            Box(x,0,z,width,bottom,width,CastleSection.Keep);
+            for (int tier = 0; tier < tiers; tier++)
+            {
+                bool crown = tier == tiers - 1;
+                if (crown && !bell)
+                {
+                    // A compact central lantern room carries the pagoda spire.
+                    Box(x,bottom,z,width * .55f,storeyHeight,width * .55f,CastleSection.Keep);
+                }
+                else
+                {
+                    // Parallel bearing walls leave the tower open toward the market.
+                    // Each balcony seats across both walls and carries the next pair.
+                    float offset = width * .34f;
+                    for (int side = -1; side <= 1; side += 2)
+                        Box(x,bottom,z + side * offset,width * .80f,storeyHeight,pierDepth,CastleSection.Keep);
+                }
+                bottom += storeyHeight;
+                float deck = crown ? (bell ? 1.4f : 1.35f) : 1;
+                Box(x,bottom,z,width,deck,width,CastleSection.Corner);
+                bottom += deck;
+                width *= .91f;
+            }
         }
 
         void Hall(float x, float z, float width, float depth, float y, float height, int levels, int columns, bool bell = false, float yaw = 0)

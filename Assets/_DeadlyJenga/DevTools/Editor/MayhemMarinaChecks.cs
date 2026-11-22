@@ -978,6 +978,13 @@ namespace DeadlyJenga.DevTools.Editor
             var drift = layout.Select((p,i) => new { index = i, p.Position, p.Size,
                 distance = Vector3.Distance(generator.Bodies[i].position, generator.transform.TransformPoint(p.Position)) })
                 .OrderByDescending(p => p.distance).First();
+            foreach (var tower in new[] {new Vector2(-45,6), new Vector2(46,9)})
+            {
+                var decks = layout.Where(p => p.Section == CastleSection.Corner &&
+                    p.Position.x == tower.x && p.Position.z == tower.y).ToArray();
+                Check(decks.Length == (tower.x < 0 ? 5 : 3) && decks.Max(p => p.Position.y) > 24,
+                    "Outer island tower has its full stack of climbable decks at " + tower);
+            }
             if (drift.distance >= .12f) ReportShrineContacts(generator,layout);
             File.AppendAllText(Report, $"Largest settle displacement {drift.distance:F4} m at block {drift.index}, position {drift.Position}, size {drift.Size}\n");
             var walls = generator.Bodies.Where(body => body.transform.localScale.z >= .405f && body.transform.localScale.z <= .485f).ToArray();
@@ -1048,6 +1055,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Shader.SetGlobalVector("_NinjaFogParams",new Vector4(120,420,.07f,fog.w));
                 RenderSettings.fog=false;
                 Capture(new Vector3(16,57,-143),new Vector3(-1,2,0),28,"NinjaTemple-Overview.png");
+                Capture(new Vector3(5,51,-159),new Vector3(0,11,2),32,"ShrineTown-TowerSkyline.png");
                 Capture(new Vector3(-6,2.5f,-35),new Vector3(-10,2.5f,-32),65,"ShrineTown-ShopDetail.png");
                 Capture(new Vector3(0,2,-40),new Vector3(0,8,21),68,"ShrineTown-Market.png");
             }
