@@ -32,7 +32,7 @@ namespace DeadlyJenga.CastlePrototype
             town.Hall(29, 0, 14, 10, 0, 4, 2, 3);
             town.Hall(10, -2, 8, 8, 0, 3, 1, 2);
             town.Hall(-30, 12, 8, 6, 0, 3.6f, 1, 2);
-            town.Hall(21, -38, 8, 6, 0, 3.8f, 1, 2);
+            town.Hall(17, -40, 8, 6, 0, 3.8f, 1, 2);
             town.Hall(-19, -38, 7, 6, 0, 3.4f, 1, 2);
             town.Hall(42, 1, 7, 7, 0, 3.6f, 1, 2);
             return town.pieces;

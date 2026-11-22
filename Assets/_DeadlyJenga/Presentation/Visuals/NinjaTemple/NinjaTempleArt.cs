@@ -155,9 +155,9 @@ namespace DeadlyJenga.NinjaArt
             float[] islet = { 48, 52, 47, 55 };
             for (int i = 0; i < 4; i++)
             {
-                var dirc = Quaternion.Euler(0, 45 + i * 90, 0) * Vector3.forward; var at = dirc * (islet[i] + 6);
+                var dirc = Quaternion.Euler(0, 45 + i * 90, 0) * Vector3.forward; var at = dirc * (islet[i] + (shrineTown ? 18 : 6));
                 NinjaTempleScenery.Rock(p, at, new Vector3(9, 3.2f, 7.5f), 30 + i, wy);
-                NinjaTempleScenery.Bamboo(f, at, 6.5f, 26, 40 + i, wy + 1.2f);
+                NinjaTempleScenery.Bamboo(f, at, shrineTown ? 3.8f : 6.5f, shrineTown ? 12 : 26, 40 + i, wy + 1.2f);
             }
             for (int i = 0; i < 14; i++)
             {
