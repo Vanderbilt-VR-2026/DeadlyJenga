@@ -317,6 +317,8 @@ namespace DeadlyJenga.CastlePrototype
                     ceiling-bounds.min.y+2,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore))
                     return roofHit.point + Vector3.up*.12f;
             }
+            if (!best && settings.layoutPreset == ShrineTownLayout.Preset)
+                return transform.TransformPoint(new Vector3(6,.08f,-39));
             return best ? new Vector3(best.bounds.center.x, best.bounds.max.y + .08f, best.bounds.center.z)
                 : (foundation ? foundation.position : transform.position) + Vector3.up * .6f;
         }
@@ -370,8 +372,8 @@ namespace DeadlyJenga.CastlePrototype
                 foundation.localScale = new Vector3(size.x, 1, size.y);
                 if (settings.layoutPreset == ShrineTownLayout.Preset)
                 {
-                    ShrineTownLayout.ShapeFoundation(foundation);
-                    ShrineTownLayout.BuildStreetColliders(generatedRoot,transform.InverseTransformPoint(Vector3.up*waterHeight).y);
+                    foundation.GetComponent<BoxCollider>().enabled = false;
+                    ShrineTownLayout.BuildStreetColliders(generatedRoot,transform.InverseTransformPoint(Vector3.up*waterHeight).y,keepMaterial);
                 }
             }
             foreach (var p in layout)

@@ -8,9 +8,14 @@ namespace DeadlyJenga.CastlePrototype
         public const string Preset = "shrine-town";
         readonly List<CastlePlacement> pieces = new List<CastlePlacement>(360);
 
-        public static List<CastlePlacement> Build()
+        readonly Transform marshSupports;
+        readonly Material cedar;
+
+        ShrineTownLayout(Transform supports, Material material) { marshSupports = supports; cedar = material; }
+
+        public static List<CastlePlacement> Build(Transform supports = null, Material material = null)
         {
-            var town = new ShrineTownLayout();
+            var town = new ShrineTownLayout(supports, material);
             // Street runs north from the gate to the five-bay worship hall.
             town.Box(0, 0, 20, 41, 4, 22, CastleSection.Keep);
             for (int i = 0; i < 8; i++)
@@ -38,33 +43,51 @@ namespace DeadlyJenga.CastlePrototype
             return town.pieces;
         }
 
-        static Mesh foundationMesh;
-
-        public static void ShapeFoundation(Transform foundation)
+        // Fixed substructure is rebuilt with the town. All heights are relative to its dry deck.
+        public static void BuildMarshSupports(Transform fixtures, Material wood)
         {
-            if (foundation.TryGetComponent<MeshCollider>(out _)) return;
-            if (!foundationMesh) foundationMesh = BuildFoundationMesh();
-            foundation.gameObject.AddComponent<MeshCollider>().sharedMesh = foundationMesh;
-            foundation.GetComponent<BoxCollider>().enabled = false;
+            Build(fixtures,wood);
+            var town = new ShrineTownLayout(fixtures,wood);
+            town.Platform(0,20,42,23,0);
+            town.Platform(0,5,12,8,0);
+            // Two long boardwalks keep the central channel open under the torii.
+            for (int side = -1; side <= 1; side += 2)
+            {
+                town.Platform(side*6,-20,2.8f,50,0);
+                town.Platform(side*19,-23,24,2.4f,0);
+                town.Platform(side*19,5,24,2.4f,0);
+                town.Platform(side*30,-9,2.4f,30,0);
+                town.Platform(side*32,14,2.4f,19,0);
+                town.Platform(side*14,-38,16,2.4f,0);
+                town.Platform(side*37,1,9,2.4f,0);
+            }
+            town.Platform(0,-30,12,2.4f,0);
         }
 
-        static Mesh BuildFoundationMesh()
+        void Platform(float x,float z,float width,float depth,float yaw)
         {
-            // Matches the eight quay faces. Share the fixed foundation across rebuilds.
-            const float h = .5f, cut = .25f;
-            Vector2[] rim = {new(-cut,-h),new(-h,-cut),new(-h,cut),new(-cut,h),
-                new(cut,h),new(h,cut),new(h,-cut),new(cut,-h)};
-            var vertices = new Vector3[16];
-            var triangles = new List<int>(84);
-            for (int i = 0; i < 8; i++)
-            {
-                vertices[i] = new Vector3(rim[i].x, h, rim[i].y);
-                vertices[i + 8] = vertices[i] + Vector3.down;
-                int j = (i + 1) % 8;
-                triangles.AddRange(new[] {i, i + 8, j, j, i + 8, j + 8});
-                if (i > 0 && i < 7) triangles.AddRange(new[] {0, i, j, 8, j + 8, i + 8});
-            }
-            return new Mesh { name = "Octagonal shrine quay", vertices = vertices, triangles = triangles.ToArray() };
+            var turn = Quaternion.Euler(0,yaw,0);
+            var center = new Vector3(x,0,z);
+            Timber("Cedar landing",center + Vector3.down*.18f,new Vector3(width,.36f,depth),turn);
+            int bays = Mathf.Max(1,Mathf.CeilToInt(depth/8));
+            int spans = Mathf.Max(1,Mathf.CeilToInt(width/10));
+            for (int row=0;row<=bays;row++)
+                for (int col=0;col<=spans;col++)
+                {
+                    var foot = new Vector3((width-.7f)*(col/(float)spans-.5f),-1.6f,(depth-.7f)*(row/(float)bays-.5f));
+                    Timber("Cedar pile",center+turn*foot,new Vector3(.46f,2.85f,.46f),turn);
+                }
+        }
+
+        void Timber(string name,Vector3 at,Vector3 size,Quaternion turn)
+        {
+            var timber = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            timber.name = name;
+            timber.layer = DeadlyJenga.Core.Layers.Surface;
+            timber.transform.SetParent(marshSupports,false);
+            timber.transform.SetLocalPositionAndRotation(at,turn);
+            timber.transform.localScale = size;
+            timber.GetComponent<MeshRenderer>().sharedMaterial = cedar;
         }
 
         public static void JoinTimberFrames(List<CastlePlacement> layout, List<Rigidbody> bodies)
@@ -94,13 +117,14 @@ namespace DeadlyJenga.CastlePrototype
             joint.enablePreprocessing = false;
         }
 
-        public static void BuildStreetColliders(Transform parent,float waterY)
+        public static void BuildStreetColliders(Transform parent,float waterY,Material wood)
         {
             // Bolted fixtures share a kinematic body. Openings between the gate posts stay clear.
             var fixtures = Shape(parent,"Fixed shrine fixtures",Vector3.zero,Quaternion.identity);
             var body = fixtures.gameObject.AddComponent<Rigidbody>();
             body.isKinematic = true;
             body.useGravity = false;
+            BuildMarshSupports(fixtures,wood);
             for (int side = -1; side <= 1; side += 2)
             {
                 ColliderBox(fixtures,"Torii post",new Vector3(side*3.5f,4.65f,-43),new Vector3(1.1f,9.3f,1.1f),Quaternion.identity);
@@ -108,34 +132,6 @@ namespace DeadlyJenga.CastlePrototype
                     ColliderBox(fixtures,"Lantern pole",new Vector3(side*4.6f,2.7f,-32+row*12),new Vector3(.26f,5.4f,.26f),Quaternion.identity);
                 for (int i = 0; i < 5; i++)
                     StoneLantern(fixtures,new Vector3(side*4,0,i == 4 ? -1 : -39+i*10),1);
-                Vector3[] rim = {new(side*5,0,-47),new(side*24,0,-47),new(side*47,0,-24),new(side*47,0,18)};
-                for (int edge = 0; edge < rim.Length-1; edge++)
-                {
-                    var from = rim[edge]; var to = rim[edge+1];
-                    int sections = Mathf.RoundToInt(Vector3.Distance(from,to)/7);
-                    for (int i = 0; i < sections; i++)
-                    {
-                        var a = Vector3.Lerp(from,to,i/(float)sections);
-                        var b = Vector3.Lerp(from,to,(i+1)/(float)sections);
-                        StoneLantern(fixtures,a,1.45f);
-                        if (edge == 0 && i == 0) continue;
-                        ColliderBox(fixtures,"Garden rail",(a+b)*.5f + Vector3.up*.52f,
-                            new Vector3(.17f,1.04f,(b-a).magnitude),Quaternion.LookRotation(b-a));
-                    }
-                }
-                ColliderBox(fixtures,"Maple trunk",new Vector3(side*24,1.08f,10),new Vector3(.31f,2.16f,.31f),Quaternion.identity);
-                ColliderBox(fixtures,"Maple trunk",new Vector3(side*19,1.26f,32),new Vector3(.36f,2.52f,.36f),Quaternion.identity);
-                var rng = new System.Random(side+10);
-                rng.NextDouble(); // Trunk color precedes the bend in the scenery builder.
-                var bend = new Vector3((float)rng.NextDouble()-.5f,0,(float)rng.NextDouble()-.5f).normalized;
-                var foot = new Vector3(side*24,0,36);
-                for (int i = 0; i < 4; i++)
-                {
-                    var next = foot+(Vector3.up*1.6f+bend*(.6f+i*.25f))*(1.35f*.7f);
-                    float diameter = 2*1.35f*(.25f-i*.05f);
-                    ColliderBox(fixtures,"Pine trunk",(foot+next)*.5f,new Vector3(diameter,diameter,(next-foot).magnitude),Quaternion.LookRotation(next-foot));
-                    foot = next;
-                }
             }
             float[] nearRadii = {66,70,65,73};
             for (int i = 0; i < nearRadii.Length; i++)
@@ -340,12 +336,18 @@ namespace DeadlyJenga.CastlePrototype
 
         void Box(float x, float bottom, float z, float width, float height, float depth, CastleSection section, float yaw = 0)
         {
+            if (marshSupports) return;
             pieces.Add(new CastlePlacement(new Vector3(x, bottom + height / 2, z),
                 Quaternion.Euler(0, yaw, 0), section, Mathf.FloorToInt(bottom / 2), new Vector3(width, height, depth)));
         }
 
         void Hall(float x, float z, float width, float depth, float y, float height, int levels, int columns, bool bell = false, float yaw = 0)
         {
+            if (marshSupports)
+            {
+                if (y == 0) Platform(x,z,width+2.4f,depth+2.4f,yaw);
+                return;
+            }
             int first = pieces.Count;
             for (int level = 0; level < levels; level++)
             {

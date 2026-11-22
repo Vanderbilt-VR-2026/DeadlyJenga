@@ -9,6 +9,49 @@ namespace DeadlyJenga.NinjaArt
         public const float Half = 35, Ring = 24;
         public static Vector3 MoonFlat => new Vector3(Mathf.Sin(25 * Mathf.Deg2Rad), 0, Mathf.Cos(25 * Mathf.Deg2Rad));
 
+        public static void Marsh(NinjaMesh mesh,float waterY)
+        {
+            var random = new System.Random(2901);
+            float Range(float low,float high) => Mathf.Lerp(low,high,(float)random.NextDouble());
+            var root = new Color(.19f,.31f,.17f,1);
+            var leaf = new Color(.48f,.60f,.27f,.72f);
+            var straw = new Color(.85f,.76f,.49f,.68f);
+            var iris = new Color(.66f,.42f,.82f,.8f);
+            for (int bed=0;bed<220;bed++)
+            {
+                float x = Range(-87,87), z = Range(-80,76);
+                if (Mathf.Abs(x)<4.5f && z<12) continue;
+                int clumps = random.Next(5,9);
+                for (int j=0;j<clumps;j++)
+                {
+                    var foot = new Vector3(x+Range(-3,3),waterY-.10f,z+Range(-1.7f,1.7f));
+                    for (int k=0;k<5;k++)
+                    {
+                        float a = Range(0,Mathf.PI*2);
+                        var lean = new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
+                        var half = Vector3.Cross(Vector3.up,lean)*Range(.06f,.14f);
+                        float h = Range(.72f,2.4f);
+                        var joint = foot+Vector3.up*h*.68f+lean*.18f;
+                        var tip = foot+Vector3.up*h+lean*Range(.45f,1.05f);
+                        mesh.Quad(foot-half,foot+half,joint+half*.65f,joint-half*.65f,root,root,leaf,leaf);
+                        mesh.Tri(joint-half*.65f,joint+half*.65f,tip,leaf,leaf,leaf);
+                        if (k==0)
+                        {
+                            var plume = tip+lean*.20f+Vector3.up*.38f;
+                            mesh.Quad(tip,tip+half,plume+half*.65f,plume-half*.2f,straw);
+                        }
+                    }
+                    if (bed%7 != 0) continue;
+                    var bloom = foot+Vector3.up*.83f;
+                    for (int petal=0;petal<5;petal++)
+                    {
+                        var turn = Quaternion.Euler(0,72*petal,0);
+                        mesh.Tri(bloom,bloom+turn*new Vector3(-.15f,.12f,.29f),bloom+turn*new Vector3(.14f,.08f,.32f),iris,iris,iris);
+                    }
+                }
+            }
+        }
+
         public static void Ground(NinjaMesh m, float waterY, int half = 35)
         {
             if (half > 35)

@@ -92,7 +92,17 @@ namespace DeadlyJenga.NinjaArt
             float wy = transform.InverseTransformPoint(new Vector3(0, waterLevel, 0)).y;
             var glow = new NinjaGlowMesh(); var mist = new NinjaGlowMesh();
 
-            var groundMesh = new NinjaMesh(); NinjaTempleScenery.Ground(groundMesh, wy, shrineTown ? 48 : 35); Add("Visual - courtyard and walls", groundMesh.Build("Ninja courtyard"), ground, scenery);
+            if (!shrineTown)
+            {
+                var courtyard = new NinjaMesh();
+                NinjaTempleScenery.Ground(courtyard,wy);
+                Add("Visual - courtyard and walls",courtyard.Build("Ninja courtyard"),ground,scenery);
+            }
+            else
+            {
+                water.SetColor("_Deep",new Color(.035f,.17f,.17f));
+                water.SetColor("_Sky",new Color(.22f,.34f,.39f));
+            }
             var lake = new NinjaMesh(); lake.Quad(new Vector3(-900, wy, -900), new Vector3(-900, wy, 900), new Vector3(900, wy, 900), new Vector3(900, wy, -900), Color.white); Add("Visual - lake", lake.Build("Ninja lake"), water, scenery);
             var mountains = new NinjaMesh(); NinjaTempleScenery.Mountains(mountains, Horizon * 1.05f, new Color(.018f, .02f, .04f));
             NinjaTempleScenery.FarCastle(mountains, glow, -NinjaTempleScenery.MoonFlat * 240 + Vector3.right * 60 + Vector3.up * 18, 1.3f, new Color(.03f, .032f, .055f));
@@ -103,31 +113,9 @@ namespace DeadlyJenga.NinjaArt
             if (!shrineTown) NinjaTempleScenery.Torii(p, moonFlat * 82 + Vector3.up * wy, facing, 20, 15, true, glow);
             if (shrineTown)
             {
-                for (int side = -1; side <= 1; side += 2)
-                {
-                    Vector3[] border = { new(side*5,0,-47),new(side*24,0,-47),new(side*47,0,-24),new(side*47,0,18) };
-                    for (int edge = 0; edge < border.Length-1; edge++)
-                    {
-                        var from = border[edge]; var to = border[edge+1];
-                        int sections = Mathf.RoundToInt(Vector3.Distance(from,to) / 7);
-                        for (int i=0; i<sections; i++)
-                        {
-                            var a = Vector3.Lerp(from,to,i/(float)sections);
-                            var b = Vector3.Lerp(from,to,(i+1)/(float)sections);
-                            NinjaTempleScenery.StoneLantern(p,a,1.45f,glow,i+edge*4);
-                            if (edge == 0 && i == 0) continue;
-                            var foliageAt = (a+b)*.5f + Vector3.up*.58f;
-                            for (int j=1; j<5; j++)
-                            {
-                                var pos = Vector3.Lerp(a,b,j/5f);
-                                p.Box(pos+Vector3.up*.57f,new Vector3(.13f,1.12f,.13f),Quaternion.identity,P.Wood);
-                            }
-                            p.Cylinder(a+Vector3.up*.9f,b+Vector3.up*.9f,.085f,.085f,6,P.Wood,P.Wood);
-                            f.Blob(foliageAt, new Vector3(1.7f,.7f,1.15f),3,9,new Color(.32f,.40f,.25f),P.Pine,edge*8+i,.28f);
-                            if ((i+edge)%2==0) f.Blob(foliageAt+Vector3.up*.53f,new Vector3(.95f,.56f,.79f),3,8,new Color(.86f,.31f,.39f),P.Maple,22+i,.32f);
-                        }
-                    }
-                }
+                var reeds = new NinjaMesh();
+                NinjaTempleScenery.Marsh(reeds,wy);
+                Add("Visual - silvergrass and marsh irises",reeds.Build("Shrine marsh"),foliage,scenery);
                 NinjaTempleScenery.Torii(p, new Vector3(0, 0, -43), Quaternion.identity, 10, 7, true, glow);
                 for (int row = 0; row < 3; row++)
                 {
@@ -157,16 +145,19 @@ namespace DeadlyJenga.NinjaArt
                 {
                     for (int i = 0; i < 5; i++)
                         NinjaTempleScenery.StoneLantern(p, new Vector3(side * 4, 0, i == 4 ? -1 : -39 + i * 10), 1, glow, i + 17);
-                    for (int i = 0; i < 9; i++)
+                    // Gate and lantern footings emerge from the water between the walks.
+                    for (int i=0;i<5;i++)
                     {
-                        var at = new Vector3(side * (14 + (i % 3) * 2.2f),0,i < 5 ? 7 - i % 2 : -41 + i % 2);
-                        f.Blob(at + Vector3.up * .6f,new Vector3(1.55f,.83f,1.1f),3,8,new Color(.3f,.4f,.21f),P.Pine,i,.22f);
-                        if (i % 3 == 0) f.Blob(at + Vector3.up * 1.18f,new Vector3(1.2f,.52f,.8f),3,8,
-                            new Color(.88f,.31f,.36f),new Color(.52f,.13f,.19f),i,.3f);
+                        var at = new Vector3(side*4,0,i == 4 ? -1 : -39+i*10);
+                        p.Cylinder(at+Vector3.up*(wy-.2f),at,.36f,.32f,8,P.StoneDark,P.Stone);
                     }
-                    NinjaTempleScenery.Pine(f, new Vector3(side * 24, 0, 36), 1.35f, side + 10);
-                    NinjaTempleScenery.Maple(f, new Vector3(side * 24, 0, 10), 1.2f, side + 25);
-                    NinjaTempleScenery.Maple(f, new Vector3(side * 19, 0, 32), 1.4f, side + 12);
+                    var gateFoot = new Vector3(side*3.5f,0,-43);
+                    p.Cylinder(gateFoot+Vector3.up*(wy-.2f),gateFoot,.72f,.61f,8,P.StoneDark,P.Stone);
+                    for (int i=0;i<3;i++)
+                    {
+                        var at = new Vector3(side*4.6f,0,-32+i*12);
+                        p.Cylinder(at+Vector3.up*(wy-.2f),at,.2f,.17f,6,P.Wood,P.Wood);
+                    }
                 }
             }
             else for (int i = 0; i < 4; i++)

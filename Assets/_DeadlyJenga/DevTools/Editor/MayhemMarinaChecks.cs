@@ -933,8 +933,6 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(MoveFrom(gate,Vector3.forward*4).z > gate.z+3.8f,"Survivor controller passes through the torii opening");
                 var lamp = map.transform.TransformPoint(new Vector3(-4,.08f,-39));
                 Check(MoveFrom(lamp+Vector3.back*1.3f,Vector3.forward*2.6f).z < lamp.z-.12f,"Stone lantern stops the survivor controller");
-                var fence = map.transform.TransformPoint(new Vector3(47,.12f,8));
-                Check(MoveFrom(fence+Vector3.left*1.2f,Vector3.right*2.4f).x < fence.x-.1f,"Survivor controller stops at the quay rail");
                 var at = roof.position + new Vector3(0,4,1.35f);
                 Check(MoveFrom(at,Vector3.down*5).y > roof.position.y+1.3f,"Survivor controller stands on the pitched roof above its deck");
                 var edge = roof.position + new Vector3(0,3,4.95f);
@@ -980,8 +978,32 @@ namespace DeadlyJenga.DevTools.Editor
             Check(walls.Length > 75 && walls.All(body => body.GetComponentsInChildren<MeshRenderer>()
                 .Any(r => r.sharedMaterial && r.sharedMaterial.shader.name == "DeadlyJenga/Ninja/ShrineFacade"
                     && r.sharedMaterial.mainTexture)), "Physical walls carry painted shrine-town facades");
-            var quay = generator.foundation.GetComponent<MeshCollider>();
-            Check(quay && quay.sharedMesh && quay.sharedMesh.vertexCount == 16, "Eight-sided quay collider is present");
+            Check(!generator.foundation.GetComponent<BoxCollider>().enabled,"Continuous courtyard collider removed");
+            var session = Object.FindFirstObjectByType<CastlePlaySession>();
+            var starts = Resources.LoadAll<DeadlyJenga.Modes.MapMatchLayout>("MapMatchLayouts").Single(m => m.Matches(world));
+            foreach (var start in starts.freeSpawns.Concat(starts.teams.SelectMany(team => team.spawns)))
+            {
+                Check(starts.TrySpawnPosition(world,start,out var point) &&
+                    Physics.Raycast(point+Vector3.up*.1f,Vector3.down,out var contact,.4f,1<<Layers.Surface) &&
+                    contact.collider.name=="Cedar landing" && !Physics.CheckCapsule(point+Vector3.up*.4f,point+Vector3.up*1.45f,
+                    .32f,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore),"Clear dry spawn "+start);
+            }
+            var player = session.Player;
+            bool drowned = false;
+            void OnDeath(GameObject who,GameObject source) { if (who==player.gameObject) drowned=true; }
+            GameEvents.Eliminated += OnDeath;
+            try
+            {
+                var spawnFeet = session.Modes.SpawnPoint(-1,0,"survivor",session.Modes.LocalActorId);
+                player.Place(spawnFeet,Quaternion.identity);
+                yield return Wait(.6f);
+                Check(!drowned && player.transform.position.y>generator.waterHeight+.5f,"Local survivor holds dry match spawn");
+                var channel = generator.transform.TransformPoint(new Vector3(0,.25f,-18));
+                player.Place(channel,Quaternion.identity);
+                yield return Wait(1.8f);
+                Check(drowned,"Local survivor falls into open marsh and raises elimination");
+            }
+            finally { GameEvents.Eliminated -= OnDeath; }
             Check(generator.Bodies.All(body => body && !body.isKinematic && body.useGravity),
                 "All structural pieces have dynamic gravity-driven rigidbodies");
             Check(!art.GetComponentsInChildren<ParticleSystem>(true).Any(x => x.name.ToLowerInvariant().Contains("rain")) &&
