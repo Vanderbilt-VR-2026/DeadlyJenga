@@ -106,6 +106,12 @@ namespace DeadlyJenga.Presentation
                     {
                         var desk=r.Place(side*w*.26f,0,z);
                         desk.EdgedTop(0,.99f,0,2.9f,.12f,1.25f,Veneer(Oak));
+                        foreach(int end in new[]{-1,1})
+                        {
+                            desk.Box(end*1.1f,.40f,0,.19f,.80f,.94f,Veneer(Oak));
+                            desk.Box(end*1.1f,.84f,0,.22f,.20f,1.02f,Jade);
+                        }
+                        desk.Box(0,.36f,.27f,2.15f,.13f,.14f,Jade);
                         desk.Box(-.51f,1.10f,.09f,.68f,.10f,.49f,Denim);
                         desk.Box(-.51f,1.16f,.09f,.63f,.035f,.45f,Linen);
                         desk.Box(.35f,.80f,0,.97f,.26f,.82f,Walnut);
@@ -131,7 +137,16 @@ namespace DeadlyJenga.Presentation
                 foreach(int side in new[]{-1,1})
                 {
                     var island=r.Place(side*w*.26f,0,1.4f);
+                    island.Box(0,.09f,0,3.32f,.18f,1.50f,Ink);
                     island.Box(0,.65f,0,3.46f,1.13f,1.61f,cafe?Jade:Walnut);
+                    // Panel both aisle faces. The recessed foot and rails meet the same cabinet.
+                    foreach(int face in new[]{-1,1})
+                    {
+                        var front=island.Place(0,0,face*.805f,face<0?180:0);
+                        for(int panel=-1;panel<=1;panel++)
+                            front.EdgedTop(panel*1.09f,.65f,.017f,1.02f,.80f,.055f,cafe?Jade:Veneer(Oak));
+                        front.Box(0,1.10f,.038f,3.4f,.065f,.08f,Brass);
+                    }
                     island.EdgedTop(0,1.26f,0,3.62f,.14f,1.73f,cafe?Linen:Oak);
                     if(grocery)
                     {
@@ -397,7 +412,7 @@ namespace DeadlyJenga.Presentation
             r.Tube(.95f,0,0,.34f,.12f,Ink);
             r.Pipe(new Vector3(.95f,.10f,-.21f),new Vector3(.95f,.68f,-.21f),.09f,Brass);
             r.Pipe(new Vector3(.95f,.72f,-.27f),new Vector3(.95f,.49f,.16f),.11f,Ink);
-            r.Box(.95f,.29f,-.02f,.48f,.05f,.46f,Ink);
+            r.Box(.95f,.29f,-.035f,.48f,.05f,.49f,Ink);
         }
 
         static void InstrumentBench(Room r,bool windings)
@@ -408,6 +423,7 @@ namespace DeadlyJenga.Presentation
                 {
                     float x=-.84f+coil*1.18f;
                     r.Tube(x,0,0,.35f,.12f,Ink);
+                    r.Tube(x,.12f,0,.16f,.50f,Ink);
                     for(int turn=0;turn<5;turn++)r.Tube(x,.12f+turn*.10f,0,.28f,.075f,Brass);
                     r.Tube(x,.61f,0,.16f,.18f,Ink);
                 }
@@ -487,6 +503,11 @@ namespace DeadlyJenga.Presentation
                 r.Box(cushion*1.17f,.64f,.08f,1.12f,.22f,1.13f,Fabric(new Color(.30f,.53f,.43f)));
                 r.Round(cushion*1.17f,.74f,.08f,.56f,.10f,.555f,Fabric(new Color(.30f,.53f,.43f)));
             }
+            // The public aisle sees the back of the booth first.
+            r.EdgedTop(0,.95f,-.73f,3.73f,1.09f,.10f,Veneer(Walnut));
+            for(int slat=-4;slat<=4;slat++)
+                r.Box(slat*.39f,.96f,-.79f,.15f,.86f,.075f,Veneer(Oak));
+            r.EdgedTop(0,1.49f,-.61f,3.91f,.12f,.48f,Veneer(Oak));
             foreach(int end in new[]{-1,1}) r.Box(end*1.88f,.71f,0,.22f,.55f,1.48f,Oak);
         }
         static void Books(Room r)
@@ -517,10 +538,27 @@ namespace DeadlyJenga.Presentation
                 r.Box(0,y,0,4.6f,.14f,.94f,Oak);
                 for(int jar=0;jar<7;jar++)
                 {
-                    var color=shelf==0?Terracotta:shelf==1?Brass:Jade;
-                    float x=-1.82f+jar*.60f;
-                    r.Tube(x,y+.08f,.10f,.20f,.44f,color);
-                    r.Tube(x,y+.48f,.10f,.205f,.065f,Linen);
+                    float x=-1.82f+jar*.60f, baseY=y+.07f;
+                    var item=r.Place(x,baseY,.08f);
+                    if(shelf==0)
+                    {
+                        item.Tube(0,0,0,.20f,.42f,Terracotta);
+                        item.Tube(0,.12f,0,.204f,.15f,Linen);
+                        item.Tube(0,.42f,0,.206f,.048f,Brass);
+                    }
+                    else if(shelf==1)
+                    {
+                        item.EdgedTop(0,.245f,0,.40f,.49f,.36f,jar%2==0?Denim:Jade);
+                        item.Box(0,.49f,0,.37f,.07f,.30f,Linen);
+                        item.Box(0,.24f,.182f,.28f,.12f,.015f,Linen);
+                    }
+                    else
+                    {
+                        item.Tube(0,0,0,.16f,.32f,Jade);
+                        item.Round(0,.32f,0,.16f,.10f,.16f,Jade);
+                        item.Tube(0,.36f,0,.08f,.15f,Jade);
+                        item.Tube(0,.51f,0,.088f,.05f,Brass);
+                    }
                 }
             }
         }

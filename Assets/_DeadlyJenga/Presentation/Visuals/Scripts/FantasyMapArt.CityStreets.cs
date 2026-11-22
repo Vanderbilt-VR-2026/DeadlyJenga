@@ -53,9 +53,26 @@ namespace DeadlyJenga.Presentation
                 float a=(i+.5f)*Mathf.PI*2/RoadBins;var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));var p=center+dir*roadRadius;
                 roadOpen[i]=Free(p,3.2f);if(!roadOpen[i])continue;open++;
                 var q=Quaternion.LookRotation(Vector3.Cross(Vector3.up,dir));float len=roadRadius*Mathf.PI*2/RoadBins+.4f;
-                m.Box(L(p+Vector3.up*.08f),new Vector3(13,.04f,len),LR(q),0,Sidewalk);
-                m.Box(L(p+Vector3.up*.12f),new Vector3(9,.06f,len),LR(q),0,Asphalt);
-                foreach(int side in new[]{-1,1})m.Box(L(p+dir*side*4.7f+Vector3.up*.2f),new Vector3(.5f,.22f,len),LR(q),0,Sugar);
+                if(solidCandy)
+                {
+                    var start=Radial(i);var end=Radial(i+1);
+                    m.RoadBand(L(center),start,end,roadRadius-6.5f,roadRadius+6.5f,.116f,Sidewalk);
+                    m.RoadBand(L(center),start,end,roadRadius-4.5f,roadRadius+4.5f,.15f,Asphalt);
+                    // Drop the curb at the eight avenue crossings.
+                    float junction=Mathf.Repeat(a,Mathf.PI/4)-Mathf.PI/8;
+                    if(Mathf.Abs(Mathf.Sin(junction))*roadRadius>3.8f)
+                        foreach(int side in new[]{-1,1})
+                        {
+                            float curb=roadRadius+side*4.7f;
+                            m.RoadBand(L(center),start,end,curb-.21f,curb+.21f,.21f,Sugar,.116f);
+                        }
+                }
+                else
+                {
+                    m.Box(L(p+Vector3.up*.08f),new Vector3(13,.04f,len),LR(q),0,Sidewalk);
+                    m.Box(L(p+Vector3.up*.12f),new Vector3(9,.06f,len),LR(q),0,Asphalt);
+                    foreach(int side in new[]{-1,1})m.Box(L(p+dir*side*4.7f+Vector3.up*.2f),new Vector3(.5f,.22f,len),LR(q),0,Sugar);
+                }
                 if(i%2==0)m.Box(L(p+Vector3.up*.16f),new Vector3(.3f,.02f,len*.55f),LR(q),1,LaneLine);
                 if(i%4==0&&Free(p+dir*6.2f,.8f))Lamp(m,p+dir*6.2f);
                 if(i%4==2&&Free(p-dir*6.2f,.8f))Lamp(m,p-dir*6.2f);
@@ -127,6 +144,30 @@ namespace DeadlyJenga.Presentation
                 var c=new ArtMesh(2);Car(c,Vector3.zero,Quaternion.identity,i+11,true);
                 var go=Model("Visual · candy car",c,transform,new[]{cityCandyMaterial,cityGlowMaterial});
                 cars.Add(go.transform);carPhase.Add(i/9f*Mathf.PI*2);
+            }
+        }
+
+        Vector3 Radial(int index)
+        {
+            float a=(index%RoadBins)*2*Mathf.PI/RoadBins;
+            return Quaternion.Inverse(transform.rotation)*new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
+        }
+
+        sealed partial class ArtMesh
+        {
+            // Adjacent sectors use identical endpoints, including the wrap at the first sector.
+            public void RoadBand(Vector3 center,Vector3 start,Vector3 end,float inner,float outer,float y,Color color,float baseY=-1)
+            {
+                var lift=Vector3.up*y;
+                var a=center+start*inner+lift;var b=center+end*inner+lift;
+                var c=center+end*outer+lift;var d=center+start*outer+lift;
+                Quad(a,b,c,d,0,color);
+                if(baseY<0)return;
+                var drop=Vector3.down*(y-baseY);
+                Quad(b,a,a+drop,b+drop,0,color);
+                Quad(d,c,c+drop,d+drop,0,color);
+                Quad(a,d,d+drop,a+drop,0,color);
+                Quad(c,b,b+drop,c+drop,0,color);
             }
         }
 

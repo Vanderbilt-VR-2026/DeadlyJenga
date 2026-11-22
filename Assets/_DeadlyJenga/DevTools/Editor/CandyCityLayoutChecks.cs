@@ -136,7 +136,7 @@ namespace DeadlyJenga.DevTools.Editor
             Debug.Log(report.ToString());
             // Captures run in Play Mode and exit Unity when done.
             var views = maps.Length == 1 && maps[0].design == EpicCityLayout.SkyRingCityDesign
-                ? new[] { "reference", "target", "close", "pov|market|36|0.5|-36|53|3|-53",
+                ? new[] { "reference", "top", "front", "target", "close", "pov|market|36|0.5|-36|53|3|-53",
                     "pov|rainworks|44|0.5|-30|27|14|-17", "pov|school|-52|1|12|-71|12|28",
                     "pov|apartments|-36|0.5|-37|-60|12|-60", "pov|substation|85|0.5|24|68|21|45",
                     "pov|switchback|61|16.4|51|70|24|43",
