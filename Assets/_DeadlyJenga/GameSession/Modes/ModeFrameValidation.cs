@@ -13,7 +13,9 @@ namespace DeadlyJenga.Modes
         static bool Text(string value,int max,bool optional=false)=>optional&&value==null||value!=null&&value.Length<=max&&(optional||value.Length>0);
         public static bool Rules(ModeRules rules)
         {
-            if(rules==null||!Enum.IsDefined(typeof(GameModeKind),rules.mode)||!Enum.IsDefined(typeof(IslandRule),rules.island)||!Enum.IsDefined(typeof(SpawnRule),rules.spawn)||!Enum.IsDefined(typeof(ScoreMetric),rules.metric)||rules.teamCount<2||rules.teamCount>8)return false;
+            if(rules==null||!Enum.IsDefined(typeof(GameModeKind),rules.mode)||!Enum.IsDefined(typeof(IslandRule),rules.island)||!Enum.IsDefined(typeof(SpawnRule),rules.spawn)||!Enum.IsDefined(typeof(ScoreMetric),rules.metric))return false;
+            int minimumTeams = rules.mode == GameModeKind.Demo ? 1 : 2;
+            if (rules.teamCount < minimumTeams || rules.teamCount > 8) return false;
             foreach(var field in typeof(ModeRules).GetFields())if(field.FieldType==typeof(float)&&!Number((float)field.GetValue(rules)))return false;
             return Text(rules.environmentSkin,40,true)&&MatchModeRuntime.ValidMysterySettings(rules.mystery);
         }
