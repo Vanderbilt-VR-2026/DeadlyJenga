@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Core;
+using DeadlyJenga.World.Hazards;
 using UnityEditor;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -20,28 +22,40 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     {
         const int Fps = 30, Crowd = 40;
         const float Length = 9f, RunAt = 1.2f;
+        const float RehearsalLength = 6f;
         const string Key = "DeadlyJenga.CrowdRunScout", SetId = "crowd-run-scout";
 
         static int Step { get => SessionState.GetInt(Key, 0); set => SessionState.SetInt(Key, value); }
         static double Deadline { get => SessionState.GetFloat(Key + ".Deadline", 0); set => SessionState.SetFloat(Key + ".Deadline", (float)value); }
         static string Failure { get => SessionState.GetString(Key + ".Failure", ""); set => SessionState.SetString(Key + ".Failure", value); }
+        static string RehearsalId { get => SessionState.GetString(Key + ".RehearsalId", ""); set => SessionState.SetString(Key + ".RehearsalId", value); }
+        static bool Rehearsal => RehearsalId.Length > 0;
 
         static IEnumerator<int> routine;
         static int lastTick = -1;
         static readonly StringBuilder notes = new StringBuilder();
 
-        public static string Folder => Path.Combine(StudioLibrary.ProjectRoot, "Logs", "ClaudeCrowdRunScout");
+        public static string Folder => Rehearsal
+            ? Path.Combine(StudioLibrary.ProjectRoot, "Logs", "Validation", "TrailerStudio-RooftopTsunami", RehearsalId)
+            : Path.Combine(StudioLibrary.ProjectRoot, "Logs", "ClaudeCrowdRunScout");
 
         static CrowdRunScout() { if (Step != 0) Hook(); }
         static void Hook() { EditorApplication.update -= Tick; EditorApplication.update += Tick; }
 
-        public static void Run()
+        public static void Run() => Begin(false);
+        public static void RunRooftopTsunami() => Begin(true);
+
+        static void Begin(bool rehearsal)
         {
-            if (Directory.Exists(Folder)) Directory.Delete(Folder, true);
+            if (Step != 0 || StudioRun.State != StudioState.Closed || EditorApplication.isPlayingOrWillChangePlaymode)
+                throw new InvalidOperationException("Close the active stage before starting this scout.");
+            RehearsalId = rehearsal ? DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N") : "";
+            if (!rehearsal && Directory.Exists(Folder)) Directory.Delete(Folder, true);
             Directory.CreateDirectory(Folder);
             notes.Clear();
+            lastTick = -1;
             string tapes = StudioLibrary.TapeFolder(SetId);
-            if (Directory.Exists(tapes)) Directory.Delete(tapes, true);
+            if (!rehearsal && Directory.Exists(tapes)) Directory.Delete(tapes, true);
             Failure = ""; Step = 1;
             Deadline = EditorApplication.timeSinceStartup + 240;
             Hook();
@@ -65,7 +79,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
                         StudioLibrary.SetsFolderOverride = Path.Combine(Folder, "sets");
                         StudioRun.OpenStage(NewSet());
-                        Step = 2; Deadline = EditorApplication.timeSinceStartup + 1300;   // 41 players render at about 1.2 s a frame
+                        Step = 2; Deadline = EditorApplication.timeSinceStartup + (Rehearsal ? 540 : 1300);
                         break;
                     case 2:
                         if (routine == null)
@@ -93,8 +107,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Debug.LogException(error);
                 Failure = error.Message;
                 Note("FAIL stopped at step " + Step + ": " + error);
+                routine?.Dispose();
                 routine = null;
-                if (StudioRun.State != StudioState.Closed && Step < 3) { Step = 3; StudioRun.CloseStage(); }
+                if (StudioRun.State != StudioState.Closed && Step == 2) { Step = 3; StudioRun.CloseStage(); }
                 else Finish();
             }
         }
@@ -121,7 +136,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var set = new StudioSet
             {
-                id = SetId, title = "Crowd run scout", map = "castle", fps = Fps, length = Length, seed = 2031,
+                id = Rehearsal ? SetId + "-" + RehearsalId : SetId, title = Rehearsal ? "Rooftop tsunami rehearsal" : "Crowd run scout",
+                map = "castle", fps = Fps, length = Rehearsal ? RehearsalLength : Length, seed = 2031,
                 handBot = false, notes = "Made by CrowdRunScout. Safe to delete."
             };
             StudioLibrary.Save(set);
@@ -370,7 +386,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var chosen = new List<Vector3>();
             foreach (var p in free)
             {
-                if (chosen.Count >= Crowd) break;
+                if (Rehearsal || chosen.Count >= Crowd) break;
                 if (chosen.All(c => Vector3.Distance(c, p) > 1.4f)) chosen.Add(p);
             }
             Vector3 mid = line[line.Count / 2];
@@ -382,11 +398,26 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 mark.equipment = i % 3 == 0 ? "BoxingGlove" : "Blaster";
                 crowdIds.Add(mark.id); startAt[mark.id] = chosen[i];
             }
-            Note($"Crowd: {chosen.Count} of {Crowd} wanted, all game bots, from {free.Count} free spots within 10 m of the route.");
+            if (Rehearsal)
+            {
+                var first = route.legs[0];
+                var apex = Vector3.Lerp(first.takeoff, first.land, .5f) + Vector3.up * 2.8f;
+                var target = free.Where(p => Vector3.Dot(Flat0(p - first.takeoff), first.dir) > 1f)
+                    .Where(p => Sees(apex, p + Vector3.up * .85f))
+                    .OrderBy(p => Vector3.Distance(p, first.land)).Select(p => (Vector3?)p).FirstOrDefault();
+                if (!target.HasValue) throw new InvalidOperationException("No clear side mark is visible from the planned first jump.");
+                var mark = set.AddMark(StudioRole.Survivor, stage.ToStage(target.Value));
+                mark.id = "target"; mark.actor = "target"; mark.color = 2;
+                startAt[mark.id] = target.Value;
+                set.cues.Add(new StudioCue { at = .7f, action = "tsunami", heading = 90, strength = 30 });
+                Note($"Live cast: driven hero and one stationary aiming mark at {V(target.Value)}. Production tsunami cue at 0.70 s.");
+            }
+            else Note($"Crowd: {chosen.Count} of {Crowd} wanted, all game bots, from {free.Count} free spots within 10 m of the route.");
 
             var h = new StudioDrive { actor = "hero", seed = 11, human = .7f };
             h.steps.Add(new StudioDriveStep { action = "gear", at = .3f, weapon = "Blaster" });
-            var path = new StudioDriveStep { action = "path", at = RunAt, pace = "run", edge = true, duration = Length, shoot = "auto", shootAfter = .12f };
+            var path = new StudioDriveStep { action = "path", at = RunAt, pace = "run", edge = true, duration = set.length,
+                shoot = Rehearsal ? "target" : "auto", shootAfter = .12f };
             foreach (var p in line.Skip(1)) path.points.Add(stage.ToStage(p));
             foreach (var leg in route.legs) path.jumps.Add(stage.ToStage(leg.takeoff));
             h.steps.Add(path);
@@ -414,23 +445,51 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             yield return 0;
 
             var clock = System.Diagnostics.Stopwatch.StartNew();
-            StudioRun.RecordWholeSet();
-            foreach (int wait in UntilHeld()) yield return wait;
+            var trace = new List<RehearsalSample>();
+            int lastShot = 0;
+            void Sample(int frame)
+            {
+                if (!Rehearsal || !StudioRun.Recording) return;
+                var body = stage.Live("hero");
+                var motor = body ? body.GetComponent<CastleSurvivor>() : null;
+                if (!motor) return;
+                var identity = body.GetComponent<IModeActor>();
+                int shot = stage.session.Modes.Frame.equipmentActions
+                    .Where(a => a.actor == identity?.ActorId && a.action == EquipmentAction.Shot && a.kind == EquipmentKind.Blaster)
+                    .Select(a => a.id).DefaultIfEmpty(lastShot).Max();
+                var wave = Tracked.Waves.OfType<TsunamiHazard>().FirstOrDefault();
+                trace.Add(new RehearsalSample
+                {
+                    frame = frame, feet = motor.FootPosition, grounded = motor.Grounded, shot = shot > lastShot,
+                    waveHeight = wave ? wave.Wave.height : 0, wetBlocks = wave ? wave.LastTargetCount : 0,
+                });
+                lastShot = Mathf.Max(lastShot, shot);
+            }
+            if (Rehearsal) StudioRun.FrameShown += Sample;
+            try
+            {
+                StudioRun.RecordWholeSet();
+                foreach (int wait in UntilHeld()) yield return wait;
+            }
+            finally { if (Rehearsal) StudioRun.FrameShown -= Sample; }
             StudioRun.SaveTape();
             var cueLog = StudioRun.CueLog.ToList();
-            Note($"Recorded {stage.set.marks.Count} players, {Length:0} s of tape, in {clock.Elapsed.TotalSeconds:0} s of real time. {StudioRun.Status}");
+            Note($"Recorded {stage.set.marks.Count} players, {stage.set.length:0} s of tape, in {clock.Elapsed.TotalSeconds:0} s of real time. {StudioRun.Status}");
             File.WriteAllLines(Path.Combine(Folder, "cuelog.txt"), cueLog);
             var heroLog = cueLog.Where(l => l.Contains("drive hero")).ToList();
             Note($"Hero's log ({heroLog.Count(l => l.EndsWith(": jump"))} jumps of {route.legs.Count} planned, {heroLog.Count(l => l.Contains("fire on the move"))} shots in the air):\n- " + string.Join("\n- ", heroLog));
 
-            try { Report(stage, route); } catch (Exception error) { Note("Report failed: " + error); }
+            bool rehearsalPassed = !Rehearsal || ReportRehearsal(stage, route, trace);
+            if (Rehearsal) Report(stage, route);
+            else try { Report(stage, route); } catch (Exception error) { Note("Report failed: " + error); }
 
             var cameras = Cameras(stage, route);
             stage.set.cameras.Clear(); stage.set.cameras.AddRange(cameras);
             StudioLibrary.Save(stage.set);
             StudioRun.Refresh();
             yield return 0;
-            var settings = new StudioRenderSettings { width = 640, height = 360, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 12 };
+            var settings = new StudioRenderSettings { width = 640, height = 360, fps = Fps, subFrames = 1,
+                format = Rehearsal ? "mp4" : "png", cinema = false, filmstrip = 12 };
             string renders = Path.Combine(Folder, "renders");
             clock.Restart();
             StudioRender.Start(cameras, settings, renders);
@@ -445,12 +504,75 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 string strip = Path.Combine(result.folder, "filmstrip.png");
                 if (File.Exists(strip)) File.Copy(strip, Path.Combine(dir, result.cameraId + "-filmstrip.png"), true);
             }
-            if (Directory.Exists(renders)) Directory.Delete(renders, true);
+            if (Rehearsal)
+            {
+                foreach (var camera in cameras)
+                {
+                    var render = StudioRender.Results.SingleOrDefault(r => r.cameraId == camera.id);
+                    int expected = StudioCameras.Timeline(camera, stage.set, Fps).Count;
+                    if (render == null || render.frames != expected || !string.IsNullOrEmpty(render.error) || !File.Exists(render.movie))
+                        throw new InvalidOperationException($"Incomplete rehearsal render for {camera.id}.");
+                }
+                var world = stage.tape.FindType(WorldTrack.Id)?.ActiveTake;
+                string audio = StudioRender.SoundOfWorldTake(stage.set.id, world?.id);
+                if (File.Exists(audio)) File.Copy(audio, Path.Combine(Folder, "tape.wav"));
+                if (!rehearsalPassed) throw new InvalidOperationException("The live run did not meet all rooftop rehearsal checks. See rehearsal.csv and notes.md.");
+            }
+            else if (Directory.Exists(renders)) Directory.Delete(renders, true);
+        }
+
+        struct RehearsalSample
+        {
+            public int frame, wetBlocks;
+            public Vector3 feet;
+            public float waveHeight;
+            public bool grounded, shot;
+        }
+
+        static bool ReportRehearsal(StudioStage stage, Route route, List<RehearsalSample> trace)
+        {
+            var table = new StringBuilder("frame,x,y,z,grounded,blaster_shot,wave_height,wave_target_count\n");
+            foreach (var s in trace)
+                table.Append(FormattableString.Invariant($"{s.frame},{s.feet.x:F3},{s.feet.y:F3},{s.feet.z:F3},{s.grounded},{s.shot},{s.waveHeight:F2},{s.wetBlocks}\n"));
+            File.WriteAllText(Path.Combine(Folder, "rehearsal.csv"), table.ToString());
+
+            int shot = trace.FindIndex(s => s.shot && !s.grounded);
+            int ground = shot > 0 ? trace.FindLastIndex(shot - 1, s => s.grounded) : -1;
+            int landing = shot >= 0 ? trace.FindIndex(shot + 1, s => s.grounded) : -1;
+            float Speed(int i) => Flat0(trace[i].feet - trace[i - 1].feet).magnitude * Fps /
+                Mathf.Max(1, trace[i].frame - trace[i - 1].frame);
+            float sprint = ground > 0 ? Enumerable.Range(1, ground)
+                .Where(i => trace[i - 1].grounded && trace[i].grounded).Select(Speed).Where(speed => speed < 12f).DefaultIfEmpty().Max() : 0;
+            float onward = landing >= 0 ? trace.Skip(landing + 1)
+                .TakeWhile(s => s.grounded && s.frame - trace[landing].frame <= 12)
+                .Select(s => Flat0(s.feet - trace[landing].feet).magnitude).DefaultIfEmpty().Max() : 0;
+            float landingOffset = landing >= 0
+                ? route.legs.Min(leg => Vector3.Distance(leg.land, trace[landing].feet)) : float.PositiveInfinity;
+            var hazard = stage.tape.FindType(HazardTrack.Id)?.ActiveTake;
+            int waveFrames = hazard?.frames.Count(frame => frame != null && frame.Length > 0) ?? 0;
+            int waveTargets = trace.Select(s => s.wetBlocks).DefaultIfEmpty().Max();
+            int firstWet = trace.FindIndex(s => s.wetBlocks > 0), lastWet = trace.FindLastIndex(s => s.wetBlocks > 0);
+            int displaced = 0;
+            var world = stage.tape.FindType(WorldTrack.Id)?.ActiveTake;
+            if (world != null && firstWet >= 0 &&
+                WorldTrack.Positions(world, trace[firstWet].frame, out var before, out var beforeActive) &&
+                WorldTrack.Positions(world, trace[lastWet].frame, out var after, out var afterActive))
+                for (int i = 0; i < before.Length; i++)
+                    if (beforeActive[i] && afterActive[i] && Vector3.Distance(before[i], after[i]) > .05f) displaced++;
+            bool waveDuringShot = shot >= 0 && trace[shot].waveHeight > 0 &&
+                HazardTrack.CenterAt(hazard, trace[shot].frame, out _);
+            int FrameAt(int index) => index >= 0 ? trace[index].frame : -1;
+            Note($"Measured: pre-jump ground speed {sprint:0.00} m/s; last grounded frame {FrameAt(ground)}, confirmed airborne Blaster shot {FrameAt(shot)}, " +
+                $"first return to ground {FrameAt(landing)} ({landingOffset:0.00} m from a planned rooftop landing), then {onward:0.00} m grounded within 0.4 s. " +
+                $"Production wave recorded in {waveFrames} frames, active at shot {waveDuringShot}, maximum affected block targets {waveTargets}, " +
+                $"{displaced} recorded blocks changed position by more than 5 cm between first and last wave contact.");
+            return sprint >= 3f && ground >= 0 && shot > ground && landing > shot &&
+                landingOffset <= 2.5f && onward >= .6f && waveDuringShot && waveFrames > Fps && waveTargets > 0 && displaced > 0;
         }
 
         static void Report(StudioStage stage, Route route)
         {
-            int frames = Mathf.RoundToInt(Length * Fps);
+            int frames = stage.set.Frames;
             StudioActorPoses.Pose At(string id, int f) => StudioActorPoses.At(stage.tape, id, f / (float)Fps, Fps);
             var line = Line(route);
 
@@ -476,7 +598,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (a.found && b.found && Flat0(b.feet - a.feet).magnitude * Fps < 2f) slowFrames++;
             }
             File.WriteAllText(Path.Combine(Folder, "hero.csv"), hero.ToString());
-            heroStops = Mathf.Clamp(lastFast / (float)Fps - .1f, RunAt + 1.5f, Length - .3f);
+            heroStops = Rehearsal ? stage.set.length - .1f : Mathf.Clamp(lastFast / (float)Fps - .1f, RunAt + 1.5f, Length - .3f);
             var end = At("hero", frames - 4);
             Note($"Hero: covered {covered:0.0} m of a {route.length:0.0} m route, top ground speed {maxSpeed:0.0} m/s, still running until {lastFast / (float)Fps:0.00} s, " +
                  $"{slowFrames} frames slower than 2 m/s in the middle of the run, farthest off the planned line {worstOff:0.0} m. " +
