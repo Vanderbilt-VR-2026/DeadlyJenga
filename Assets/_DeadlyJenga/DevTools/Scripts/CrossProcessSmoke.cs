@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:NearbyFlow?1200:LobbyHandoff||TycoonTest||FullRound?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:ManagedMigration?1500:NearbyFlow?1200:LobbyHandoff||TycoonTest||FullRound?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -174,6 +174,106 @@ namespace DeadlyJenga.CastlePrototype
                 var leave=room.Leave();
                 yield return Until(()=>leave.IsCompleted&&!room.Connected,"Promoted host disconnects cleanly",30);
             }
+        }
+
+        static bool ManagedMigration => Environment.GetCommandLineArgs().Contains("--dj-managed-migration");
+
+        // Start host, guest1 and guest2 as separate development players with bridged marker folders.
+        IEnumerator CheckManagedMigration()
+        {
+            bool host = role == "host";
+            Require(host || role == "guest1" || role == "guest2", "Managed migration requires host, guest1 or guest2");
+            string otherGuest = role == "guest1" ? "guest2" : "guest1";
+            bool Reached(string participant, string step) => File.Exists(Mark(participant + "-managed-" + step));
+            void MarkReached(string step, string value = "ready") => File.WriteAllText(Mark(role + "-managed-" + step), value);
+            bool GuestsReached(string step) => Reached("guest1", step) && Reached("guest2", step);
+            HomeSession home = null;
+            yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && home.Region.Length > 0,
+                "Home initializes for the managed playlist", 95);
+            var room = IslandRoomConnection.Instance;
+            string code;
+            if (host)
+            {
+                yield return Until(() => GuestsReached("home"), "Both guests are ready at Home", 180);
+                home.Host();
+                yield return Until(() => IslandLobby.Current && room.IsHost && !room.Busy && IslandLobby.Current.CanStart,
+                    "Normal Home Host opens the Play Marina", 95, () => room.Status);
+                code = room.Code;
+                File.WriteAllText(Mark("code-pending"), code);
+                File.Move(Mark("code-pending"), Mark("code"));
+            }
+            else
+            {
+                MarkReached("home");
+                yield return Until(() => File.Exists(Mark("code")), "Original host publishes the room code", 130);
+                code = File.ReadAllText(Mark("code"));
+                home.Code = code;
+                home.JoinCode();
+            }
+
+            bool InMarina(int humans) => IslandLobby.Current && room.Connected && !room.Busy && room.Code == code &&
+                room.HumanCount == humans && room.Runner.ActivePlayers.Count(peer => peer != room.Runner.LocalPlayer &&
+                    IslandLobby.Current.TryPeerPosition(peer.ToString(), out _)) == humans - 1;
+            yield return Until(() => InMarina(3), "All three peers see their remote avatars in the Play Marina", 95, () => room.Status);
+            MarkReached("joined");
+            if (host)
+                yield return Until(() => GuestsReached("joined"), "Both guests independently confirm Marina admission", 80);
+            else
+                yield return Until(() => Reached("host", "go"), "Host opened the managed ready check", 45);
+            yield return Until(() => IslandLobby.Current && IslandLobby.Current.CanStart, "Production GO is ready", 45);
+            IslandLobby.Current.StartOrCancel();
+            if (host) MarkReached("go");
+
+            CastlePlaySession game = null;
+            bool MatchHasHumans(int count) => game && game.Network && !game.Network.WaitingForWorld && game.Modes &&
+                NetworkActors.Alive(game.Player) && room.Connected && room.Code == code && room.HumanCount == count &&
+                Services.World?.Blocks.Count > 0 && room.Runner.ActivePlayers.Count(peer => peer != room.Runner.LocalPlayer &&
+                    game.Network.ParticipantTransform(peer.ToString())?.GetComponent<SurvivorNetworkView>()?.Alive == true) == count - 1;
+            string State() => $"room={room.Status}; humans={room.HumanCount}; migrating={room.Migrating}; " +
+                $"leader={room.LeaderId}; phase={(game ? game.GamePhase.ToString() : "no Game")}; " +
+                $"frame={(game && game.Modes ? game.Modes.Frame.phase.ToString() : "none")}; waiting={(game && game.Network && game.Network.WaitingForWorld)}";
+            yield return Until(() => (game = FindFirstObjectByType<CastlePlaySession>()) && MatchHasHumans(3) &&
+                game.Modes.Frame.phase == RoundPhase.Playing && game.Modes.Frame.elapsed >= 3,
+                "All peers enter the production round, synchronize and observe the two remote survivors", 155, State);
+            var originalRunner = room.Runner;
+            float elapsedBeforeTransfer = game.Modes.Frame.elapsed;
+            float roundSeconds = game.Modes.Frame.rules.roundSeconds;
+            string map = MatchSetup.MapId;
+            MarkReached("playing");
+            if (host)
+            {
+                yield return Until(() => GuestsReached("playing"), "Both guests confirm the live production round", 75, State);
+                var leave = room.Leave();
+                yield return Until(() => leave.IsCompleted && !room.Connected, "Original host leaves the playing room", 45, State);
+                yield return Until(() => GuestsReached("returned"), "Both survivors independently confirm managed Results and Marina return",
+                    roundSeconds + 220);
+                yield break;
+            }
+
+            yield return Until(() => room.Connected && !ReferenceEquals(originalRunner, room.Runner) && !room.Busy &&
+                game && game.GetComponent<CastleFusionSession>(),
+                "Surviving peer receives a replacement Fusion runner", 135, State);
+            var fusion = game.GetComponent<CastleFusionSession>();
+            float worldAtRebind = fusion.LastWorldAppliedAt, poseAtRebind = fusion.LastHostPoseAt;
+            yield return Until(() => MatchHasHumans(2) && !room.Migrating &&
+                (room.IsHost || fusion && fusion.LastWorldAppliedAt > worldAtRebind && fusion.LastHostPoseAt > poseAtRebind),
+                "Both survivors see each other and the follower receives fresh world and pose traffic", 100, State);
+            Require(game.Modes.Frame.phase == RoundPhase.Playing && MatchSetup.MapId == map &&
+                game.Modes.Frame.elapsed >= elapsedBeforeTransfer - 1 &&
+                Mathf.Approximately(game.Modes.Frame.rules.roundSeconds, roundSeconds),
+                "The recovered room preserves the production map and advancing round");
+            MarkReached("authority", room.IsHost ? "host" : "follower");
+            yield return Until(() => Reached(otherGuest, "authority"), "Other survivor confirms replacement runner authority", 50, State);
+            Require(File.ReadAllText(Mark(otherGuest + "-managed-authority")) == (room.IsHost ? "follower" : "host"),
+                "Exactly one surviving peer is authoritative");
+            yield return Until(() => game && game.Modes && game.Modes.Frame.phase == RoundPhase.Results &&
+                room.Connected && room.Code == code && room.HumanCount == 2,
+                "Both survivors see Results from the original production round", roundSeconds + 100, State);
+            MarkReached("results");
+            yield return Until(() => InMarina(2) && GuestsReached("results"),
+                "Both survivors return with reciprocal Marina avatars in the same room", 105, () => room.Status);
+            MarkReached("returned");
+            yield return Until(() => Reached(otherGuest, "returned"), "Other survivor independently confirms Marina return", 65);
         }
 
         IEnumerator CheckNearbyLobby()
@@ -837,6 +937,7 @@ namespace DeadlyJenga.CastlePrototype
         IEnumerator Check()
         {
             File.WriteAllText(Report,"Independent player "+role+"\n");
+            if(ManagedMigration){yield return CheckManagedMigration();yield break;}
             if(FullRound){yield return CheckFullRound();yield break;}
             if(ScaleTest){yield return CheckScale();yield break;}
             if(TycoonTest){yield return CheckTycoon();yield break;}
