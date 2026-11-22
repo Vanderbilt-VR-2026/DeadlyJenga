@@ -28,8 +28,12 @@ namespace DeadlyJenga.DevTools.Editor
             EditorApplication.playModeStateChanged += PlayStateChanged;
         }
 
-        public static void Run()
+        public static void Run() => StartReview(false);
+        public static void RunDestruction() => StartReview(true);
+
+        static void StartReview(bool destruction)
         {
+            SessionState.SetBool(Key+"Stress",destruction);
             Directory.CreateDirectory(Output);
             File.WriteAllText(Path.Combine(Output,"report.txt"), "Tycoon visual review in Game.unity\n");
             SessionState.SetInt(Key+"Errors",0);
@@ -126,6 +130,12 @@ namespace DeadlyJenga.DevTools.Editor
                     throw new InvalidOperationException("Tycoon authored layout and runtime blocks differ.");
                 if(!pieces.Any(p=>p.Section==CastleSection.Gold) || !pieces.Any(p=>p.Section==CastleSection.Aqua))
                     throw new InvalidOperationException("Tycoon chute palettes missing.");
+                if(SessionState.GetBool(Key+"Stress",false))
+                {
+                    destructionSteps=ExerciseStructure(world,pieces);
+                    EditorApplication.update+=AdvanceDestruction;
+                    return;
+                }
                 var validation = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a=>a.GetName().Name=="DeadlyJenga.World.Editor")
                     ?.GetType("DeadlyJenga.World.Hazards.Editor.HazardValidation")?.GetMethod("ValidateCatalog");
                 if(validation == null) throw new InvalidOperationException("Disaster catalog validation is unavailable.");
@@ -150,8 +160,77 @@ namespace DeadlyJenga.DevTools.Editor
             }
             finally
             {
-                if (!observingPull) EditorApplication.ExitPlaymode();
+                if (!observingPull && destructionSteps==null) EditorApplication.ExitPlaymode();
             }
+        }
+
+        static System.Collections.IEnumerator destructionSteps;
+
+        static void AdvanceDestruction()
+        {
+            try
+            {
+                if(destructionSteps.MoveNext()) return;
+                SessionState.SetInt(Key+"Exit",0);
+            }
+            catch(Exception error) { Report("FAIL "+error); }
+            EditorApplication.update-=AdvanceDestruction;
+            destructionSteps=null;
+            EditorApplication.ExitPlaymode();
+        }
+
+        static System.Collections.IEnumerator ExerciseStructure(CastleGenerator world,System.Collections.Generic.List<CastlePlacement> layout)
+        {
+            var blocks=world.Bodies.ToArray();
+            var rest=blocks.Select(b=>b.position).ToArray();
+            var rotations=blocks.Select(b=>b.rotation).ToArray();
+            var magnets=blocks.Select(b=>b.GetComponent<MagneticBlock>()).ToArray();
+            var until=EditorApplication.timeSinceStartup+600;
+            float start=Time.fixedTime;
+            Time.timeScale=1;
+            float drift=0,tilt=0;
+            while(Time.fixedTime-start<15)
+            {
+                if(EditorApplication.timeSinceStartup>until) throw new TimeoutException("Idle physics did not advance");
+                for(int i=0;i<blocks.Length;i++)
+                {
+                    drift=Mathf.Max(drift,Vector3.Distance(rest[i],blocks[i].position));
+                    tilt=Mathf.Max(tilt,Quaternion.Angle(rotations[i],blocks[i].rotation));
+                    if(!blocks[i].isKinematic || magnets[i].Broken) throw new InvalidOperationException($"Unprovoked release of {i} after {Time.fixedTime-start:F2}s");
+                }
+                yield return null;
+            }
+            Report($"Idle {Time.fixedTime-start:F2} simulated seconds: {blocks.Length} supported, peak translation={drift:F4}m peak angle={tilt:F3}deg");
+            if(drift>.01f || tilt>.1f) throw new InvalidOperationException("Excessive idle drift");
+
+            int beam=layout.FindIndex(p=>(p.Position-new Vector3(0,5.8f,-41.8f)).sqrMagnitude<.001f);
+            int board=layout.FindIndex(p=>p.DeckProfile.Finish==TycoonDeckFinish.LoosePeach);
+            blocks[beam].GetComponent<CastleBlock>().Push(-world.transform.forward*18,world.gameObject);
+            start=Time.fixedTime;
+            while(Time.fixedTime-start<3)
+            {
+                if(EditorApplication.timeSinceStartup>until) throw new TimeoutException("Support test timed out");
+                yield return null;
+            }
+            float drop=rest[board].y-blocks[board].position.y;
+            Report($"Local support: plank drop={drop:F2}m; beam travel={Vector3.Distance(rest[beam],blocks[beam].position):F2}m; dynamic={blocks.Count(b=>!b.isKinematic)}; adjacent pinned={blocks[board+2].isKinematic}");
+            if(drop<.25f || blocks[board].isKinematic || !blocks[board+2].isKinematic) throw new InvalidOperationException("Local collapse failed");
+
+            var foundations=magnets.Where(m=>m.foundationAnchor).ToArray();
+            foreach(var m in foundations) m.Damage(m.MaxHealth,world.gameObject);
+            start=Time.fixedTime;
+            int fallen=0;
+            while(Time.fixedTime-start<20)
+            {
+                if(EditorApplication.timeSinceStartup>until) throw new TimeoutException("Cascade test timed out");
+                fallen=0;
+                for(int i=0;i<blocks.Length;i++)
+                    if(!magnets[i].foundationAnchor && rest[i].y-world.transform.position.y>10 && rest[i].y-blocks[i].position.y>1) fallen++;
+                if(fallen>=20) break;
+                yield return null;
+            }
+            Report($"Foundation removal: {foundations.Length} anchors damaged, {magnets.Count(m=>m.Broken)} broken connections, {fallen} untouched elevated pieces fell >1m after {Time.fixedTime-start:F2}s.");
+            if(fallen<5 || magnets.Any(m=>!m.Broken)) throw new InvalidOperationException("Foundation failure did not propagate");
         }
 
         static void CheckTraversalSurfaces(CastleGenerator world,System.Collections.Generic.List<CastlePlacement> pieces)
