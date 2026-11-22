@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2385758432452391204
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3923798763299461727}
+  - component: {fileID: 6819666136448722521}
+  - component: {fileID: 6819666136448722522}
+  m_Layer: 0
+  m_Name: Mode_sphinx-junction
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3923798763299461727
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2385758432452391204}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6819666136448722521
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2385758432452391204}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e80b5a91bc24d688222e1147c762aa3, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.SphinxJunctionMap
+  finishShader: {fileID: 4800000, guid: 4b0ed4a73f5c4fcf8a97a24af18ca569, type: 3}
+--- !u!114 &6819666136448722522
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2385758432452391204}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0515e00dd3744ee8925f1e9f30dca65, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DeadlyJenga.Presentation::DeadlyJenga.CandyArt.JunctionDusk
+  panorama: {fileID: 2800000, guid: 0edcb479710b448ba47ad1aba553ab8b, type: 3}
+  skyShader: {fileID: 4800000, guid: 35d89fe8e3e645628e5c048d03e266a3, type: 3}
+  sandShader: {fileID: 4800000, guid: 5caaad502d904a22b062844f2a058f25, type: 3}
