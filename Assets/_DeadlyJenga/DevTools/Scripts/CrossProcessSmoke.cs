@@ -435,6 +435,53 @@ namespace DeadlyJenga.CastlePrototype
             File.AppendAllText(Report, $"SCALE joined humans={room.HumanCount} of {players}\n");
             if (MatchTest)
             {
+                if (EarlyMatchLaunch)
+                {
+                    Require(!ProductionBotFill && !BotsAfterWorldReady, "Early launch is only for the synthetic burst");
+                    File.AppendAllText(Report, "MATCH synthetic early launch after Fusion membership\n");
+                }
+                else
+                {
+                    int liveViews = 0;
+                    bool MarinaReady()
+                    {
+                        var lobby = IslandLobby.Current;
+                        if (!lobby || UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "Lobby" ||
+                            !NetworkActors.Alive(lobby.Player) || !room.Connected || room.Busy || !room.Runner ||
+                            room.HumanCount != players || host && !lobby.CanStart)
+                            return false;
+                        liveViews = 0;
+                        foreach (var player in room.Runner.ActivePlayers)
+                        {
+                            if (player == room.Runner.LocalPlayer) continue;
+                            var root = lobby.ParticipantRoot(player.ToString());
+                            if (root && root.TryGetComponent<SurvivorNetworkView>(out var view) && view.Alive && view.Visual)
+                                liveViews++;
+                        }
+                        return liveViews == players - 1;
+                    }
+                    string MarinaState() =>
+                        $"scene={UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}; humans={room.HumanCount}; mirrors={IslandLobby.Current?.PeerCount}; liveViews={liveViews}; status={room.Status}";
+                    yield return Until(MarinaReady, "Marina is active and all other human avatars are visible", 90, MarinaState);
+                    var ready = Mark(role + "-scale-marina-ready");
+                    File.WriteAllText(ready + ".pending", room.Code);
+                    File.Move(ready + ".pending", ready);
+                    if (host)
+                    {
+                        int readyPlayers = 0;
+                        double nextReadinessCheck = 0;
+                        yield return Until(() =>
+                        {
+                            double now = Time.realtimeSinceStartupAsDouble;
+                            if (now < nextReadinessCheck) return false;
+                            nextReadinessCheck = now + .25;
+                            readyPlayers = Directory.EnumerateFiles(folder, "*-scale-marina-ready")
+                                .Count(path => File.ReadAllText(path) == room.Code);
+                            return readyPlayers == players && MarinaReady();
+                        }, "All players confirm the same ready Marina before launch", 90,
+                            () => $"ready={readyPlayers}/{players}; {MarinaState()}");
+                    }
+                }
                 yield return CheckMatch(room, players, ScaleArg("--dj-match-bots", 8), holdSeconds);
             }
             else
@@ -476,6 +523,7 @@ namespace DeadlyJenga.CastlePrototype
         static bool MatchTest => Environment.GetCommandLineArgs().Contains("--dj-match");
         static bool BotsAfterWorldReady => Environment.GetCommandLineArgs().Contains("--dj-match-bots-after-ready");
         static bool ProductionBotFill => Environment.GetCommandLineArgs().Contains("--dj-match-production-bot-fill");
+        static bool EarlyMatchLaunch => Environment.GetCommandLineArgs().Contains("--dj-match-early-launch");
 
         // Chosen while the host is alone: a joined guest standing in a lobby slot blocks terminal changes.
         IEnumerator ChooseDemoCastle(IslandLobby lobby, int population)
