@@ -92,9 +92,33 @@ namespace DeadlyJenga.Presentation
         }
         void BuildCloud()
         {
-            var mesh=new ArtMesh();float rx=halfWidth,rz=halfDepth;
             var blue=theme==FantasyMapTheme.Carnival?new Color(.75f,.83f,1):new Color(.85f,.91f,1);
             var pink=theme==FantasyMapTheme.Carnival?new Color(1,.63f,.85f):Color.white;
+            if(solidCandy && candyCity)
+            {
+                var bank=Instantiate(Resources.Load<GameObject>("FantasyMaps/IslandCumulus"),transform,false);
+                bank.name="Visual · sculpted cloud skirt";
+                bank.transform.localScale=Vector3.Scale(bank.transform.localScale,
+                    new Vector3(halfWidth/111f,1,halfDepth/111f));
+                var surface=Resources.Load<Material>("FantasyMaps/CumulusSurface");
+                var renderer=bank.GetComponentInChildren<MeshRenderer>();
+                renderer.sharedMaterial=surface;
+                renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
+                ownedObjects.Add(bank);
+            }
+            else BuildPuffSkirt(blue,pink);
+            if(texturedEnvironmentSky||(theme==FantasyMapTheme.Carnival&&texturedCarnivalSky))return;
+            var distant=new ArtMesh();
+            for(int i=0;i<24;i++)
+            {
+                float a=i*2.399963f,r=550+(i%5)*80;var p=new Vector3(Mathf.Cos(a)*r,-30+(i%4)*40,Mathf.Sin(a)*r);
+                for(int n=0;n<4;n++)distant.Sphere(p+new Vector3(n*25,0,0),new Vector3(45,14+n%2*8,32),0,i%3==0?pink:Color.white);
+            }
+            Model("Visual · distant cloud banks",distant,transform,new[]{cloudMaterial});
+        }
+        void BuildPuffSkirt(Color blue,Color pink)
+        {
+            var mesh=new ArtMesh();float rx=halfWidth,rz=halfDepth;
             mesh.Sphere(new Vector3(0,-30,0),new Vector3(rx*.95f,26,rz*.95f),0,pink,14,24);
             for(int i=0;i<112;i++)
             {
@@ -108,14 +132,6 @@ namespace DeadlyJenga.Presentation
                 mesh.Sphere(p,new Vector3(20+i%4*3,10+i%4,19+i%5*2),0,i%3==0?pink:blue);
             }
             Model("Visual · sculpted cloud skirt",mesh,transform,new[]{cloudMaterial});
-            if(texturedEnvironmentSky||(theme==FantasyMapTheme.Carnival&&texturedCarnivalSky))return;
-            var distant=new ArtMesh();
-            for(int i=0;i<24;i++)
-            {
-                float a=i*2.399963f,r=550+(i%5)*80;var p=new Vector3(Mathf.Cos(a)*r,-30+(i%4)*40,Mathf.Sin(a)*r);
-                for(int n=0;n<4;n++)distant.Sphere(p+new Vector3(n*25,0,0),new Vector3(45,14+n%2*8,32),0,i%3==0?pink:Color.white);
-            }
-            Model("Visual · distant cloud banks",distant,transform,new[]{cloudMaterial});
         }
         void BuildHive()
         {

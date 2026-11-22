@@ -102,6 +102,12 @@ namespace DeadlyJenga.DevTools.Editor
             Begin(new Job { batch = true, output = output, views = views }, null, false, ids);
         }
 
+        public static void CaptureCloudCityBank()
+        {
+            BatchMaps(new[]{"epic-candy-sky-ring-city"},Path.GetFullPath(Path.Combine("Logs","Captures","CloudCityBank")),
+                new[]{"reference","cloud-landing","cloud-underside"});
+        }
+
         public static void CaptureCloudCityRainbows()
         {
             Begin(new Job { batch=true, rainbowMotion=true, views=Array.Empty<string>(),
@@ -410,6 +416,25 @@ namespace DeadlyJenga.DevTools.Editor
                         camera.fieldOfView = 36.94f;
                         camera.transform.SetPositionAndRotation(world.Center + new Vector3(240.93f,200.47f,-298.43f),
                             Quaternion.Euler(24.87f,-38.81f,0));
+                    }
+                    else if(view=="cloud-landing" || view=="cloud-underside")
+                    {
+                        var bank=GameObject.Find("Visual · sculpted cloud skirt").GetComponentInChildren<MeshRenderer>();
+                        if(bank.sharedMaterial.shader.name!="DeadlyJenga/Island Cumulus" || !bank.sharedMaterial.shader.isSupported)
+                            throw new InvalidOperationException("Cloud bank material unavailable");
+                        var b=bank.bounds;
+                        if(view=="cloud-landing")
+                        {
+                            var impact=GameObject.Find("Visual · rainbow splash above").transform.position;
+                            var outward=Vector3.ProjectOnPlane(impact-b.center,Vector3.up).normalized;
+                            camera.transform.position=impact+outward*84+Vector3.Cross(outward,Vector3.up)*58+Vector3.up*25;
+                            camera.transform.LookAt(impact+Vector3.down*5);
+                        }
+                        else
+                        {
+                            camera.transform.position=b.center+new Vector3(.62f,-.38f,-1.16f)*b.size.x;
+                            camera.transform.LookAt(b.center);
+                        }
                     }
                     else MapPictureRig.Place(camera, view, bounds, job.width / (float)job.height);
                     // "balloon": a close look at the first hot-air balloon, when the map has one (else the hero view).
