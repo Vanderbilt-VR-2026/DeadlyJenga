@@ -176,6 +176,9 @@ namespace DeadlyJenga.CastlePrototype
             Flight(east,lowEast);Flight(lowEast,tail);Flight(tail,horn);Flight(horn,overlook);
             var turn=Landing("Central hairpin",P(.25f,5.9f,2.6f),2.1f,2.1f);
             Flight(saddle,turn);Flight(turn,horn);Flight(gallery,bridge);
+            var rexGallery=Landing("Rex rib gallery",P(-6.3f,10.75f,2.45f),4.6f,1.9f);
+            var trikeGallery=Landing("Triceratops rib gallery",P(10.2f,7.12f,-.05f),3.7f,2);
+            Flight(ankle,rexGallery);Flight(trikeGallery,horn);
             Canopy(camp,P(1.94f,0,.48f));Canopy(summit,P(-.85f,0,.41f));Derrick(overlook);
             Skeleton(Dinosaur.Stegosaurus,P(-6,5.0f,-7.6f),P(.4f,7.6f,-3.9f),west,saddle);
             Skeleton(Dinosaur.Rex,P(-8.2f,12.5f,5.2f),P(-2,13.6f,4.6f),ankle,bridge);

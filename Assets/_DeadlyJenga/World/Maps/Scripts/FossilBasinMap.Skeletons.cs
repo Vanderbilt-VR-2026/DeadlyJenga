@@ -25,9 +25,7 @@ namespace DeadlyJenga.CastlePrototype
                         var upper=at+side*s*girth+Vector3.down*.32f;
                         var flank=at+side*s*(girth+.31f)+Vector3.down*1.18f-f*.08f;
                         var belly=at+side*s*.58f+Vector3.down*(1.32f+girth*.53f)-f*.30f;
-                        c.Shaft(root,upper,.24f,.24f,Ivory);
-                        c.Shaft(upper,flank,.22f,.23f,Ivory);
-                        c.Shaft(flank,belly,.18f,.19f,Ochre,true);
+                        c.Rib(root,upper,flank,belly,Ivory);
                     }
                     if(kind==Dinosaur.Stegosaurus)
                     {

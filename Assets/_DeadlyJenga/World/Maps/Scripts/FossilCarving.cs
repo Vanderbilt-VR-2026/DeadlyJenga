@@ -71,6 +71,57 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(solid) Collision(center,rotation,size);
         }
+        // One continuous costal shaft bends around the chest and tapers inward.
+        // Four authored knots determine both its visible curve and its collision.
+        public void Rib(Vector3 root,Vector3 shoulder,Vector3 flank,Vector3 tip,Color finish)
+        {
+            var knots=new[]{root,shoulder,flank,tip};
+            Vector3 Point(float t)
+            {
+                float u=Mathf.Clamp01(t)*3;
+                int k=Mathf.Min(2,Mathf.FloorToInt(u));u-=k;
+                Vector3 a=knots[k],b=knots[k+1];
+                var ta=(b-knots[Mathf.Max(k-1,0)])*.5f;
+                var tb=(knots[Mathf.Min(k+2,3)]-a)*.5f;
+                float u2=u*u,u3=u2*u;
+                return (2*u3-3*u2+1)*a+(u3-2*u2+u)*ta+(-2*u3+3*u2)*b+(u3-u2)*tb;
+            }
+            const int rings=12,sides=10;
+            var points=new Vector3[rings+1,sides];var directions=new Vector3[rings+1,sides];
+            for(int i=0;i<=rings;i++)
+            {
+                float t=(float)i/rings;var axis=(Point(t+.01f)-Point(t-.01f)).normalized;
+                var broad=Vector3.ProjectOnPlane(Vector3.right,axis).normalized;
+                if(broad.sqrMagnitude<.1f)broad=Vector3.ProjectOnPlane(Vector3.forward,axis).normalized;
+                var thin=Vector3.Cross(axis,broad);
+                float radius=Mathf.Lerp(.275f,.10f,t)*(1-.77f*Mathf.SmoothStep(0,1,Mathf.InverseLerp(.82f,1,t)));
+                for(int j=0;j<sides;j++)
+                {
+                    float angle=j*2*Mathf.PI/sides;
+                    directions[i,j]=(broad*Mathf.Cos(angle)+thin*(1.3f*Mathf.Sin(angle))).normalized;
+                    points[i,j]=Point(t)+radius*(broad*Mathf.Cos(angle)+thin*(.77f*Mathf.Sin(angle)));
+                }
+            }
+            for(int i=0;i<rings;i++)for(int j=0;j<sides;j++)
+            {
+                int n=(j+1)%sides,k=verts.Count;
+                Face(points[i,j],points[i,n],points[i+1,n],points[i+1,j],Color.Lerp(finish,finish*.85f,(float)i/rings));
+                normals[k]=directions[i,j];normals[k+1]=directions[i,n];
+                normals[k+2]=directions[i+1,n];normals[k+3]=directions[i+1,j];
+            }
+            for(int j=0;j<sides;j++)
+            {
+                int n=(j+1)%sides;
+                Face(root,points[0,n],points[0,j],root,finish);
+                Face(tip,points[rings,j],points[rings,n],tip,finish);
+            }
+            for(int k=0;k<4;k++)
+            {
+                var a=Point(k*.25f);var b=Point((k+1)*.25f);
+                float r=Mathf.Lerp(.39f,.17f,k/3f);
+                Collision((a+b)*.5f,Quaternion.LookRotation(b-a),new Vector3(r,r,(b-a).magnitude));
+            }
+        }
         public void SkullWindow(Vector3 at,Vector3 forward,Vector3 side,float length,float height,Color finish)
         {
             // A beveled rim around an actual open fenestra; both sides of the skull are modeled.

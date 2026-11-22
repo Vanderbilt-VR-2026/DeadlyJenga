@@ -17,14 +17,14 @@ Shader "DeadlyJenga/Fossil Basin"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             struct In { float4 pos:POSITION; float3 normal:NORMAL; half4 color:COLOR; UNITY_VERTEX_INPUT_INSTANCE_ID };
-            struct Out { float4 pos:SV_POSITION; float3 world:TEXCOORD0; half3 normal:TEXCOORD1; half3 color:COLOR; UNITY_VERTEX_OUTPUT_STEREO };
+            struct Out { float4 pos:SV_POSITION; float3 world:TEXCOORD0; half3 normal:TEXCOORD1; half3 color:COLOR; float3 local:TEXCOORD2; UNITY_VERTEX_OUTPUT_STEREO };
             CBUFFER_START(UnityPerMaterial)
             float _Surface;
             CBUFFER_END
             Out vert(In v)
             {
                 Out o; UNITY_SETUP_INSTANCE_ID(v); UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
-                o.world=TransformObjectToWorld(v.pos.xyz);
+                o.world=TransformObjectToWorld(v.pos.xyz);o.local=v.pos.xyz;
                 o.pos=TransformWorldToHClip(o.world);o.normal=TransformObjectToWorldNormal(v.normal);o.color=v.color.rgb;return o;
             }
             float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
@@ -63,8 +63,13 @@ Shader "DeadlyJenga/Fossil Basin"
                 float shadow=GetMainLight(TransformWorldToShadowCoord(i.world)).shadowAttenuation;
                 float diff=saturate(dot(n,light))*(.4+.6*shadow);
                 float warm=pow(saturate(dot(n,normalize(light-ray))),28);
-                float patina=noise(i.world.xz*9+i.world.y*.9);
-                float3 pigment=i.color;
+                float2 grain=i.local.xz+float2(.36,.63)*i.local.y;
+                float patina=noise(grain*7)+.25*noise(grain*29);
+                float mineral=abs(noise(grain*2.3+noise(grain*6)*.17)-.5);
+                float vein=(1-smoothstep(.005,.023,mineral))*smoothstep(.40,.7,noise(grain*4.3));
+                float bone=smoothstep(.52,.71,i.color.g)*smoothstep(.62,.81,i.color.r);
+                float pore=smoothstep(.76,.91,noise(grain*64));
+                float3 pigment=i.color*(1-bone*(vein*.17+pore*.095));
                 #if !defined(UNITY_COLORSPACE_GAMMA)
                 pigment=SRGBToLinear(pigment);
                 #endif
