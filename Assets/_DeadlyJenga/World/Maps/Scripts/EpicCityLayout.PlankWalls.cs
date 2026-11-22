@@ -84,6 +84,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 if (floor.purpose == "Independent bookfall support spine")
                 {
+                    Part(floor,new Vector3(-5.5f,baseY+.54f,-8),new Vector3(1.24f,1.08f,4.38f),3);
                     Part(floor,new Vector3(-4.4f,baseY+.39f,21),new Vector3(3.10f,.78f,4.84f),3);
                     Part(floor,new Vector3(0,baseY+.28f,7.1f),new Vector3(3.86f,.56f,1.42f),3);
                     Part(floor,new Vector3(5.70f,baseY+1.26f,14),new Vector3(.15f,2.48f,3.66f),3);
@@ -111,11 +112,27 @@ namespace DeadlyJenga.CastlePrototype
                     foreach(int side in new[]{-1,1})
                     {
                         var x=side*w*.26f;
+                        float wallX=side*(w*.5f-1.65f);
+                        if(classrooms)
+                        {
+                            bool bookshelf=side<0 || districtName=="Sugar Market west annex" || floor.purpose.EndsWith(" floor 2");
+                            if(bookshelf)
+                                Part(floor,new Vector3(wallX+side*.32f,1.26f,2.4f),new Vector3(.14f,2.48f,3.65f),3);
+                            else
+                                Part(floor,new Vector3(wallX,1.92f,2.4f),new Vector3(.16f,1.98f,4.26f),3);
+                        }
+                        else if(districtName=="Cloud Harbor block")
+                            Part(floor,new Vector3(side*(w*.5f-1.15f),1.35f,-.4f),new Vector3(.18f,2.65f,4.54f),3);
+                        else if(districtName=="Cloud Harbor west annex")
+                            Part(floor,new Vector3(side*(w*.5f-1.55f),.28f,-.4f),new Vector3(1.40f,.56f,3.86f),3);
+                        else
+                            Part(floor,new Vector3(side*(w*.5f-1.55f),.70f,-.4f),new Vector3(1.34f,1.38f,3.64f),3);
                         if(classrooms)
                         {
                             foreach(float z in new[]{1.4f,depth*.27f})
                             {
                                 Part(floor,new Vector3(x,.87f,z),new Vector3(2.8f,.18f,1.18f),3);
+                                Part(floor,new Vector3(x+.24f,.50f,z-1.13f),new Vector3(.90f,.16f,.87f),3);
                                 foreach(int leg in new[]{-1,1})
                                     Part(floor,new Vector3(x+leg*1.1f,.39f,z),new Vector3(.17f,.78f,.92f),3);
                             }
@@ -149,13 +166,29 @@ namespace DeadlyJenga.CastlePrototype
                             }
                             Panel(middle,.46f,end-start,.92f);
                             Panel(middle,3.07f,end-start,.42f);
-                            Panel(side*(end-.37f),1.89f,.74f,1.94f);
+                            // The existing full-height corner post closes the outside jamb.
                             Panel(side*(start+.29f),1.89f,.58f,1.94f);
                         }
                     }
                     return;
                 }
                 if (floor.purpose=="Independent bookfall support spine" && floor.position.y>20) return;
+                if (floor.purpose=="Independent bookfall support spine")
+                {
+                    // Window piers enclose the apartment suites along the spine's long
+                    // elevations. The bridge thresholds and the central stair doors stay open.
+                    for(int sign=-1;sign<=1;sign+=2)
+                    for(int bay=-3;bay<=3;bay++)
+                    {
+                        if(bay==0) continue;
+                        float z=bay*depth/8;
+                        float x=sign*(w*.5f-.86f);
+                        var pos=new Vector3(x,baseY+1.66f,z);
+                        var size=new Vector3(.46f,3.30f,2.65f);
+                        bool obstructs=keepClear.Exists(k=>Overlaps(floor.position+floor.rotation*pos,size*.5f,floor.rotation,k.c,k.h,k.q));
+                        if(!obstructs) Part(floor,pos,size,0);
+                    }
+                }
                 int rows = Mathf.FloorToInt((height - .7f) / PlankRow); // up to the underside of the deck above
                 for (int wall = 0; wall < 4; wall++)
                 {

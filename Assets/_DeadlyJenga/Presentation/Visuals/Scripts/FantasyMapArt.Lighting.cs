@@ -22,9 +22,10 @@ namespace DeadlyJenga.Presentation
             var go=new GameObject("Visual · fantasy color grade",typeof(Volume));go.transform.SetParent(transform,false);
             grade=go.GetComponent<Volume>();grade.isGlobal=true;grade.priority=5;
             gradeProfile=ScriptableObject.CreateInstance<VolumeProfile>();grade.sharedProfile=gradeProfile;
-            var bloom=gradeProfile.Add<Bloom>(true);bloom.intensity.Override(.18f);bloom.threshold.Override(1.1f);bloom.scatter.Override(.55f);
-            gradeProfile.Add<Tonemapping>(true).mode.Override(TonemappingMode.None);
-            var color=gradeProfile.Add<ColorAdjustments>(true);color.contrast.Override(solidCandy&&candyCity?14:5);color.saturation.Override(solidCandy&&candyCity?22:5);
+            bool neighborhood=solidCandy && candyCity;
+            var bloom=gradeProfile.Add<Bloom>(true);bloom.intensity.Override(neighborhood?.075f:.18f);bloom.threshold.Override(1.1f);bloom.scatter.Override(.55f);
+            gradeProfile.Add<Tonemapping>(true).mode.Override(neighborhood?TonemappingMode.Neutral:TonemappingMode.None);
+            var color=gradeProfile.Add<ColorAdjustments>(true);color.contrast.Override(neighborhood?3:5);color.saturation.Override(neighborhood?-3:5);
             color.postExposure.Override(0);
         }
 

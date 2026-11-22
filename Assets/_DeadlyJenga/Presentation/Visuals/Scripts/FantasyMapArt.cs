@@ -104,7 +104,7 @@ namespace DeadlyJenga.Presentation
                 environment.sun.intensity=theme==FantasyMapTheme.Honeycomb?1.65f:theme==FantasyMapTheme.Carnival?1.45f:1.7f;
                 environment.sun.transform.rotation=theme==FantasyMapTheme.Honeycomb?Quaternion.Euler(48,140,0):theme==FantasyMapTheme.Carnival?Quaternion.Euler(18,180,0):Quaternion.Euler(52,140,0);
                 // Candy Sky Ring City: warm late-afternoon sun from the south-west.
-                if(solidCandy&&candyCity){environment.sun.color=new Color(1,.88f,.72f);environment.sun.intensity=1.8f;environment.sun.transform.rotation=Quaternion.Euler(38,55,0);}
+                if(solidCandy&&candyCity){environment.sun.color=new Color(1,.88f,.72f);environment.sun.intensity=1.45f;environment.sun.transform.rotation=Quaternion.Euler(38,55,0);}
             }
         }
         void ClearBodyArt()

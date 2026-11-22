@@ -111,9 +111,26 @@ namespace DeadlyJenga.Presentation
                             island.Tube(.2f+cup*.33f,1.54f,.16f,.095f,.015f,Walnut);
                         }
                     }
-                    else island.Box(0,1.62f,0,2.2f,.58f,.8f,Brass);
+                    else
+                    {
+                        island.Box(0,1.38f,0,3.13f,.10f,1.24f,Oak);
+                        for(int loaf=-2;loaf<=2;loaf++)
+                        {
+                            island.Round(loaf*.56f,1.58f,.04f,.23f,.19f,.48f,new Color(.79f,.48f,.19f));
+                            for(int score=-1;score<=1;score++)
+                                island.Box(loaf*.56f,1.754f,.04f+score*.17f,.19f,.025f,.04f,Linen);
+                        }
+                    }
                     var wall=r.Place(side*(w*.5f-1.55f),0,-.4f,-side*90);
                     if(grocery) StoreShelf(wall);
+                    else if(!cafe)
+                    {
+                        wall.Box(0,.70f,0,3.7f,1.4f,1.40f,Terracotta);
+                        wall.Box(0,.72f,.72f,2.66f,.87f,.14f,Ink);
+                        wall.Box(0,.24f,.84f,3.04f,.12f,.54f,Brass);
+                        wall.Box(0,1.44f,0,3.85f,.15f,1.48f,Linen);
+                        wall.Tube(-1.23f,1.5f,-.3f,.26f,1.66f,Ink);
+                    }
                     if(cafe){Booth(wall);Pendant(wall.Place(0,0,1.7f),3.17f,Terracotta);}
                 }
             }
@@ -138,8 +155,14 @@ namespace DeadlyJenga.Presentation
                     bed.Box(0,1.04f,-.58f,3.14f,.18f,3.55f,level%2==0?Denim:Jade);
                     bed.Box(0,.95f,2.4f,3.45f,1.9f,.22f,Oak);
                     bed.Round(0,1.12f,1.52f,1.13f,.21f,.56f,Linen);
+                    var kitchen=r.Place(-5.5f,y,-8,90);
+                    Kitchen(kitchen);
                     Pendant(sitting,3.18f,Brass);
                 }
+            }
+            else if(site.StartsWith("Canyon north") && purpose.Contains(" floor ") && !purpose.EndsWith(" floor 1"))
+            {
+                FilterBank(r.Place(5.8f,0,3.2f,-90));
             }
             else if(site.StartsWith("Canyon") && purpose.EndsWith(" floor 1"))
             {
@@ -152,6 +175,48 @@ namespace DeadlyJenga.Presentation
                 pump.Pipe(new Vector3(1.55f,1.68f,0),new Vector3(1.55f,2.95f,0),.34f,Brass);
                 pump.Pipe(new Vector3(1.55f,2.95f,0),new Vector3(3.7f,2.95f,0),.34f,Brass);
                 pump.Round(1.55f,2.95f,0,.37f,.37f,.37f,Brass);
+            }
+        }
+
+        static void FilterBank(Room wall)
+        {
+            // Upright cartridge housings share a feed line, with removable bolted caps.
+            for(int tank=-1;tank<=1;tank++)
+            {
+                float x=tank*1.27f;
+                wall.Tube(x,.06f,0,.54f,.19f,Ink);
+                wall.Tube(x,.25f,0,.44f,1.80f,new Color(.32f,.62f,.62f));
+                wall.Tube(x,2.04f,0,.54f,.20f,Brass);
+                wall.Tube(x,2.23f,0,.17f,.37f,Ink);
+                wall.Tube(x,1.02f,0,.47f,.11f,Brass);
+            }
+            wall.Pipe(new Vector3(-1.48f,2.61f,0),new Vector3(1.48f,2.61f,0),.15f,Brass);
+        }
+
+        static void Kitchen(Room r)
+        {
+            r.Box(0,.54f,0,4.42f,1.08f,1.28f,Jade);
+            r.Box(0,1.13f,0,4.60f,.15f,1.40f,Linen);
+            r.Box(0,1.50f,-.61f,4.56f,.73f,.12f,Oak);
+            for(int door=-1;door<=1;door++)
+            {
+                float x=door*1.42f;
+                r.Box(x,.56f,.66f,1.34f,.89f,.08f,new Color(.25f,.46f,.37f));
+                r.Box(x,.85f,.74f,.40f,.055f,.09f,Brass);
+            }
+            r.Box(-.91f,1.22f,0,1.40f,.05f,.80f,Ink);
+            r.Box(-.91f,1.25f,0,1.18f,.04f,.63f,new Color(.35f,.49f,.49f));
+            r.Pipe(new Vector3(-.91f,1.22f,-.49f),new Vector3(-.91f,1.71f,-.49f),.052f,Brass);
+            r.Pipe(new Vector3(-.91f,1.71f,-.49f),new Vector3(-.91f,1.71f,-.14f),.052f,Brass);
+            r.Tube(1.18f,1.21f,.02f,.40f,.06f,Ink);
+            r.Tube(1.18f,1.27f,.02f,.31f,.30f,Terracotta);
+            r.Box(1.58f,1.45f,.02f,.35f,.065f,.10f,Walnut);
+            r.Box(0,2.03f,-.32f,4.47f,.14f,.63f,Oak);
+            for(int jar=0;jar<4;jar++)
+            {
+                float x=-1.48f+jar*.72f;
+                r.Tube(x,2.11f,-.28f,.19f,.34f,jar%2==0?Linen:Terracotta);
+                r.Tube(x,2.45f,-.28f,.20f,.065f,Walnut);
             }
         }
 
