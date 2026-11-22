@@ -196,7 +196,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                             "Retro Console", "Airmail Bear", "Alpine Rally", "Mint Pickup", "Club Roadster",
                             "House", "Superhero", "Brick Stack", "Football", "Frosted Pinecone", "Stocking",
                             "Puzzle Cube", "Fashion Doll", "Nutcracker", "Blaster", "Candy Bag", "Rag Doll",
-                            "Board Game", "Clay Tub", "Pastry Box", "Wind-up Walker", "Drum", "Soldier", "Classic Nutcracker" })
+                            "Board Game", "Clay Tub", "Pastry Box", "Wind-up Walker", "Drum", "Soldier", "Classic Nutcracker", "Berry Twists", "Chocolate Bar" })
                         {
                             var matches = toys.Where(t => t.source && t.source.name == "Toy " + label).ToArray();
                             Require(matches.Length > 0 && matches.All(t =>

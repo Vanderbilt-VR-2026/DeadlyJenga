@@ -11,6 +11,10 @@ os.makedirs(out, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 
 PAINT = {
+    "Cone heart": (.095,.041,.018), "Cone bark": (.22,.104,.048), "Cone rim": (.37,.212,.107),
+    "Cocoa": (.19,.066,.031), "Cocoa wrapper": (.14,.031,.043),
+    "Gummy cherry": (.73,.016,.026), "Gummy lime": (.11,.58,.035),
+    "Gummy amber": (.97,.36,.015), "Gummy berry": (.49,.042,.20),
     "Stocking velvet": (.63,.026,.037), "Stocking fleece": (.93,.69,.42), "Cellophane": (.78,.91,.98),
     "Toy Red": (.75, .03, .04), "Toy Blue": (.04, .18, .75), "Toy Navy": (.03, .06, .30),
     "Toy Yellow": (1., .78, .08), "Toy Green": (.05, .55, .12), "Toy Teal": (.0, .55, .55),
@@ -27,6 +31,9 @@ def paint(name):
     m.use_nodes = True
     bsdf = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
     bsdf.inputs["Base Color"].default_value = (*PAINT[name], 1)
+    if name.startswith("Gummy "):
+        bsdf.inputs["Roughness"].default_value = .19
+        bsdf.inputs["Coat Weight"].default_value = .4
     if name == "Cellophane":
         bsdf.inputs["Alpha"].default_value = .12
         bsdf.inputs["Roughness"].default_value = .2

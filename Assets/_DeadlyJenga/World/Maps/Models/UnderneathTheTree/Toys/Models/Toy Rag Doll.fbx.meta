@@ -17,8 +17,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Black
-    second: {fileID: 2100000, guid: 7668b464280ac4647b266f0e6c625039, type: 2}
+      name: Toy Brown
+    second: {fileID: 2100000, guid: 3640051d9385bbf4d802a6b6391291c7, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -32,13 +32,13 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Pink
-    second: {fileID: 2100000, guid: 09fb7773e97ca5641b25ba1ae97aa5b8, type: 2}
+      name: Stocking fleece
+    second: {fileID: 2100000, guid: 39775d241ec74c96a0c6317e92abce76, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Brown
-    second: {fileID: 2100000, guid: 3640051d9385bbf4d802a6b6391291c7, type: 2}
+      name: Toy Pink
+    second: {fileID: 2100000, guid: 09fb7773e97ca5641b25ba1ae97aa5b8, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

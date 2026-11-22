@@ -128,7 +128,7 @@ MonoBehaviour:
     spot: {x: 0, y: 0}
     turn: 8
     size: 1
-  - toy: {fileID: 1602188058459572555, guid: 42231d3e9ec24754985357d0c866b6cc, type: 3}
+  - toy: {fileID: 1602188058459572555, guid: 16af0c92da0d40f79478fbb4f7d4d766, type: 3}
     onGift: Mansion Deck
     spot: {x: -8.8, y: -10}
     turn: 353
@@ -238,3 +238,8 @@ MonoBehaviour:
     spot: {x: 0, y: 0}
     turn: 145
     size: 0.84
+  - toy: {fileID: 1602188058459572555, guid: fba559e721c04be6bb517d7e79b518c4, type: 3}
+    onGift: Back Row / Gift 3
+    spot: {x: 0, y: 0}
+    turn: -12
+    size: 0.72

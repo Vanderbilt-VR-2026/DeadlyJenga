@@ -7,8 +7,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Red
-    second: {fileID: 2100000, guid: 1f6c14966e935684f9ea9501da361dfe, type: 2}
+      name: Toy Gold
+    second: {fileID: 2100000, guid: 6267ffbc6fca22c48a97144d92d7aa01, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -17,8 +17,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Pink
-    second: {fileID: 2100000, guid: 09fb7773e97ca5641b25ba1ae97aa5b8, type: 2}
+      name: Toy Teal
+    second: {fileID: 2100000, guid: d14253886eb809f41a53e51204511239, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -27,28 +27,33 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Teal
-    second: {fileID: 2100000, guid: d14253886eb809f41a53e51204511239, type: 2}
+      name: Toy Yellow
+    second: {fileID: 2100000, guid: 715cc540f39a09f478822bb28a9dc44e, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Orange
-    second: {fileID: 2100000, guid: f3e10833132e5294280ea6e192b8aa6b, type: 2}
+      name: Toy Navy
+    second: {fileID: 2100000, guid: 39692ecaebb0e444d8fc61c568f00de9, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Green
-    second: {fileID: 2100000, guid: 275b11b38d0da694d8e4eb3042e9ada9, type: 2}
+      name: Gummy cherry
+    second: {fileID: 2100000, guid: ce0a01795221486389af95874a5b5088, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Purple
-    second: {fileID: 2100000, guid: 8e6188757bcdce140bdc6501cdd72158, type: 2}
+      name: Gummy lime
+    second: {fileID: 2100000, guid: 8815126c9c744a55b18c7d8e7de95dd7, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Gold
-    second: {fileID: 2100000, guid: 6267ffbc6fca22c48a97144d92d7aa01, type: 2}
+      name: Gummy amber
+    second: {fileID: 2100000, guid: 29121466bae743fd95b5847994f9f36e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Gummy berry
+    second: {fileID: 2100000, guid: 3e7c5d85a4894a1bae7d175cf32bb1da, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
