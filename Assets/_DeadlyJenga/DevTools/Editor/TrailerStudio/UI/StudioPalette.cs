@@ -211,7 +211,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             for (int i = 0; i < shown.Count; i++)
             {
                 var command = shown[i];
-                var item = new Button(() => Run(command.run)) { text = command.name, tooltip = command.name };
+                var item = new Button(() => Run(command)) { text = command.name, tooltip = command.name };
                 item.AddToClassList("ts-small"); item.AddToClassList("ts-palette-item");
                 item.EnableInClassList("ts-palette-item--on", i == highlighted);
                 results.Add(item);
@@ -231,10 +231,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             results.ScrollTo(next);
         }
 
-        void Run(Action action)
+        void Run((string name, Action run) command)
         {
+            context.window.RecordPressed(command.name);
             Close();
-            try { action(); } catch (Exception error) { context.Say(error.Message); }
+            try { command.run(); } catch (Exception error) { context.Say(error.Message); }
         }
 
         // ---- Shortcut sheet ----
@@ -282,7 +283,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (e.keyCode == KeyCode.UpArrow) { MoveHighlight(-1); e.StopPropagation(); return true; }
             if ((e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) && !(e.target is Button))
             {
-                if (shown.Count > 0) Run(shown[Mathf.Clamp(highlighted, 0, shown.Count - 1)].run);
+                if (shown.Count > 0) Run(shown[Mathf.Clamp(highlighted, 0, shown.Count - 1)]);
                 e.StopPropagation();
                 return true;
             }

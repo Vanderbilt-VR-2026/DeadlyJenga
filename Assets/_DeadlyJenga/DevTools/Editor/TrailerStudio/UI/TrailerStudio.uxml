@@ -37,8 +37,14 @@
             <ui:VisualElement name="timeline" class="ts-timeline" />
         </ui:VisualElement>
         <ui:VisualElement class="ts-footer">
-            <ui:Label name="status" class="ts-status" />
-            <ui:VisualElement name="chips" class="ts-chips" />
+            <ui:VisualElement class="ts-feedback">
+                <ui:Label name="selection-status" class="ts-feedback-label ts-selection-status" />
+                <ui:Label name="last-pressed" class="ts-feedback-label ts-last-pressed" />
+            </ui:VisualElement>
+            <ui:VisualElement class="ts-footer-main">
+                <ui:Label name="status" class="ts-status" />
+                <ui:VisualElement name="chips" class="ts-chips" />
+            </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="floating" class="ts-floating" picking-mode="Ignore" />
     </ui:VisualElement>

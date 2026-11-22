@@ -99,17 +99,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (Enumerable.Range(0, UnityEngine.SceneManagement.SceneManager.sceneCount)
                 .Any(i => UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty))
                 throw new InvalidOperationException("Save or close modified scenes first.");
+            var catalog = SetLists.Catalog;
+            var map = catalog ? catalog.maps.FirstOrDefault(m => m?.id == set.map) : null;
+            string scene = SetLists.SceneFor(map, ProjectPath.Find("Game.unity"));
+            if (string.IsNullOrEmpty(scene))
+                throw new InvalidDataException("The selected map's scene or prefab is unavailable: " + set.map);
             StudioLibrary.Save(set);
-
-            string scene;
-            var catalog = SpectatorRecordingPlan.Catalog();
-            try
-            {
-                var map = catalog.maps.FirstOrDefault(m => m.id == set.map);
-                if (map == null) throw new InvalidDataException("This map is not in the lobby catalog: " + set.map);
-                scene = string.IsNullOrEmpty(map.scenePath) || map.mapPrefab ? ProjectPath.Find("Game.unity") : map.scenePath;
-            }
-            finally { Object.DestroyImmediate(catalog); }
 
             var setup = EditorSceneManager.GetSceneManagerSetup().Where(s => !string.IsNullOrEmpty(s.path)).ToArray();
             job = new Job { setId = set.id,
@@ -213,12 +208,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             UnityEngine.Random.InitState(set.seed);
             MatchSetup.MapId = set.map;
             var selected = MatchSetup.SelectedMap;
-            if (selected == null) throw new InvalidOperationException("Map selection failed: " + set.map);
+            if (selected?.id != set.map) throw new InvalidOperationException("Map selection failed: " + set.map);
             var previousWorld = Services.World;
             MatchSetup.ApplyMap();
             session.SurvivorBots.AutoFill = false; session.SurvivorBots.Clear(); session.HandBots.Clear();
             session.SetMenu(false);
-            var rules = ModeSimulation.Defaults(GameModeKind.Demo);
+            var rules = MatchSetup.DefaultModeRules(GameModeKind.Demo, selected);
             rules.punchEnabled = rules.healthEnabled = true;
             rules.deathEnabled = false;
             session.Modes.Configure(rules);
@@ -272,6 +267,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             EndLiveSound(false);
             DisposeRecorders();
             DisposePlayers();
+            StudioCast.RestoreLocalAppearance(Stage);
             StudioCamera.Destroy();
             StudioDrivers.Destroy();
             StudioEnvironment.Restore();

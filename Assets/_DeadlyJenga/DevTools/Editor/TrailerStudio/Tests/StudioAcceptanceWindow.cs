@@ -88,6 +88,36 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             button.SendEvent(submit);
         }
 
+        static void PressEscape(TrailerStudioWindow window)
+        {
+            var root = window.rootVisualElement.Q("root");
+            using var escape = KeyDownEvent.GetPooled('\0', KeyCode.Escape, EventModifiers.None);
+            escape.target = root;
+            root.SendEvent(escape);
+        }
+
+        static List<Button> ModeButtons(TrailerStudioWindow window) =>
+            window.rootVisualElement.Q("mode-panel").Query<Button>().ToList();
+
+        static void InventoryButtons(TrailerStudioWindow window, string state, List<string> rows, Button target = null, string coverage = "observed")
+        {
+            string Clean(string text) => (text ?? "").Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ');
+            int ordinal = 0;
+            foreach (var button in window.rootVisualElement.Query<Button>().ToList())
+            {
+                ordinal++;
+                if (target != null && button != target) continue;
+                string label = button.text;
+                if (string.IsNullOrWhiteSpace(label)) label = button.Q<Label>()?.text ?? button.name;
+                if (string.IsNullOrWhiteSpace(label)) label = "(unlabeled)";
+                var group = button.parent;
+                while (group != null && string.IsNullOrEmpty(group.name)) group = group.parent;
+                bool laidOut = button.visible && button.worldBound.width > 0 && button.worldBound.height > 0;
+                rows.Add(string.Join("\t", state, window.Mode.Title, ordinal.ToString(), Clean(group?.name), Clean(button.name), Clean(label),
+                    coverage, button.enabledInHierarchy ? "enabled" : "disabled", laidOut ? "laid out" : "hidden or zero size", Clean(button.tooltip)));
+            }
+        }
+
         static bool ContainsLayout(Rect outer, Rect inner)
         {
             const float tolerance = 1;
@@ -110,7 +140,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return ContainsLayout(tab.worldBound, title.worldBound) && ContainsLayout(tab.worldBound, caption.worldBound);
         }
 
-        static IEnumerable<int> ReviewWindowLayouts(TrailerStudioWindow window, Action<string> take)
+        static IEnumerable<int> ReviewWindowLayouts(TrailerStudioWindow window, Action<string> take, Action<string, Button> activate)
         {
             var root = window.rootVisualElement.Q("root");
             Rect original = window.position;
@@ -129,7 +159,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         {
                             var tab = root.Q("tabs").Query<Button>(className: "ts-tab").ToList()
                                 .FirstOrDefault(button => button.Q<Label>()?.text == mode);
-                            SubmitButton(tab);
+                            activate($"select {mode} at {size.x:0}×{size.y:0} {(light ? "light" : "dark")}", tab);
                             foreach (int wait in Settle(window, 4)) yield return wait;
                             if (window.Mode.Title != mode || !SelectedTabFullyVisible(root, mode)) clipped.Add(mode);
                         }
@@ -166,7 +196,26 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             window.RebuildAll();
             var context = window.Context;
             var shots = new List<string>(); int good = 0;
-            void Take(string name) { shots.Add(name); if (Shoot(window, name)) good++; }
+            var inventory = new List<string> { "Fixture or check\tTab\tPosition in tree\tGroup\tName\tButton\tCoverage\tAvailability\tLayout\tTooltip" };
+            void Activate(string check, Button button)
+            {
+                if (button != null) InventoryButtons(window, check, inventory, button, "submitted");
+                SubmitButton(button);
+            }
+            void Guard(string check, Button button)
+            {
+                if (button != null) InventoryButtons(window, check, inventory, button, "availability checked");
+            }
+            Button Transport(string text) => window.rootVisualElement.Q("transport").Query<Button>().ToList()
+                .FirstOrDefault(button => button.text.StartsWith(text, StringComparison.Ordinal));
+            Button Inspector(string text) => window.rootVisualElement.Q("inspector").Query<Button>().ToList()
+                .FirstOrDefault(button => button.text.StartsWith(text, StringComparison.Ordinal));
+            void Take(string name)
+            {
+                shots.Add(name);
+                InventoryButtons(window, name, inventory);
+                if (Shoot(window, name)) good++;
+            }
 
             // Set: marks on the surface, a cue, a mark selected.
             foreach (var mark in set.marks)
@@ -176,9 +225,41 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             window.ShowMode("Set"); context.Select(null);
             foreach (int wait in Settle(window)) yield return wait;
             Take("01-set-stage-open");
+            int marksBeforePlacement = set.marks.Count;
+            var canceledRoles = new List<StudioRole>();
+            foreach (var role in new[] { StudioRole.Survivor, StudioRole.Hand, StudioRole.Bot })
+            {
+                var button = ModeButtons(window).FirstOrDefault(item => item.text.EndsWith("Add " + role.ToString().ToLowerInvariant(), StringComparison.Ordinal));
+                Activate($"arm {role}", button);
+                bool armed = window.Viewport.Placing == role;
+                PressEscape(window);
+                if (armed && !window.Viewport.Placing.HasValue && set.marks.Count == marksBeforePlacement)
+                    canceledRoles.Add(role);
+            }
+            Result("Set placement buttons arm the selected role and Escape cancels", canceledRoles.Count == 3,
+                $"Canceled with no added mark: {string.Join(", ", canceledRoles)}.");
             context.Select(set.marks[0]);
             foreach (int wait in Settle(window)) yield return wait;
             Take("02-set-mark-selected");
+            var colorMark = set.marks[0];
+            int originalColor = colorMark.color;
+            int newColor = (originalColor + 1) % 8;
+            Button ColorButton(int index) => window.rootVisualElement.Q("inspector").Query<Button>(className: "ts-dot").ToList().ElementAtOrDefault(index);
+            Activate("apply a different cast color", ColorButton(newColor));
+            bool colorApplied = colorMark.color == newColor && StudioLibrary.Load(set.id)?.Mark(colorMark.id)?.color == newColor;
+            Activate("restore cast color", ColorButton(originalColor));
+            Result("Set color swatches save a cosmetic change and restore it", colorApplied && colorMark.color == originalColor,
+                $"Applied and reloaded from disk: {colorApplied}. Original color restored: {colorMark.color == originalColor}.");
+
+            window.ShowMode("Perform");
+            var firstActor = set.marks[0];
+            var nextActor = ModeButtons(window).FirstOrDefault(button => button.text == "Next unrecorded actor");
+            Activate("advance to an unrecorded performer", nextActor);
+            var chosen = window.Selection as StudioMark;
+            bool advance = chosen != null && chosen != firstActor && StudioPerform.Actor == chosen.id &&
+                !PerformMode.HasPerformance(tape.Find(chosen.id));
+            Result("Perform advances to a different unrecorded actor", advance, $"Started at {firstActor.actor}. Selected {chosen?.actor ?? "(none)"}.");
+            window.ShowMode("Set");
 
             // Record the whole Set; a picture while it rolls, and one after.
             StudioRun.RecordWholeSet();
@@ -201,6 +282,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Take("04-recorded-timeline");
 
             window.SetReviewRange(fps * 2, fps / 2);
+            var rangeButton = Transport("Range");
+            Guard("review range control available while held", rangeButton);
+            bool rangeAvailable = rangeButton?.enabledInHierarchy == true;
+            Activate("go to range In", Transport("Start"));
+            foreach (int wait in Settle(window)) yield return wait;
+            bool wentToIn = window.Frame == window.InFrame;
+            Activate("go to range Out", Transport("End"));
+            foreach (int wait in Settle(window)) yield return wait;
+            bool wentToOut = window.Frame == window.OutFrame;
+            bool wasLooping = Transport("Loop")?.ClassListContains("ts-small--on") == true;
+            Activate("toggle loop", Transport("Loop"));
+            bool nowLooping = Transport("Loop")?.ClassListContains("ts-small--on") == true;
+            Activate("restore loop setting", Transport("Loop"));
+            bool loopRestored = (Transport("Loop")?.ClassListContains("ts-small--on") == true) == wasLooping;
+            Result("Transport uses the review bounds and toggles loop", rangeAvailable && wentToIn && wentToOut && wasLooping != nowLooping && loopRestored,
+                $"Range available: {rangeAvailable}. Start reached In: {wentToIn}. End reached Out: {wentToOut}. Loop toggled and restored: {wasLooping != nowLooping && loopRestored}.");
             window.Timeline.ShowLanes(StudioTimeline.Lanes.Sound);
             window.Timeline.SetRangeZoom(true);
             window.Scrub(fps);
@@ -214,6 +311,35 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             window.SetReviewRange(0, set.Frames - 1);
             window.Timeline.ShowLanes(StudioTimeline.Lanes.All);
 
+            var recordedActor = set.marks.FirstOrDefault(mark => PerformMode.HasPerformance(tape.Find(mark.id)));
+            var recordedTrack = recordedActor == null ? null : tape.Find(recordedActor.id);
+            var cast = window.rootVisualElement.Q("cast");
+            if (recordedActor != null)
+            {
+                context.Select(null);
+                var castPicker = cast.Query<Button>(className: "ts-row-picker").ToList()
+                    .FirstOrDefault(button => button.Q<Label>(className: "ts-item-name")?.text == recordedActor.actor ||
+                        button.Q<Label>(className: "ts-item-name")?.text == recordedActor.actor + "  (bot)");
+                Activate("select a recorded cast row", castPicker);
+            }
+            bool pickedCast = recordedActor != null && window.Selection == recordedActor;
+            Button CastFlag(string text) => cast.Q(className: "ts-item--selected")?.Query<Button>().ToList()
+                .FirstOrDefault(button => button.text == text);
+            bool CheckCastFlag(string on, string off, Func<bool> state)
+            {
+                if (!pickedCast) return false;
+                bool before = state();
+                Activate("toggle cast " + on.ToLowerInvariant(), CastFlag(before ? off : on));
+                bool toggled = before != state();
+                Activate("restore cast " + on.ToLowerInvariant(), CastFlag(before ? on : off));
+                return toggled && state() == before;
+            }
+            bool muteChanged = CheckCastFlag("Mute", "Unmute", () => recordedTrack.mode == TrackMode.Muted);
+            bool soloChanged = CheckCastFlag("Solo", "Unsolo", () => recordedTrack.solo);
+            bool lockChanged = CheckCastFlag("Lock", "Unlock", () => recordedTrack.locked);
+            Result("Cast row selects an actor and its track flags change and restore", pickedCast && muteChanged && soloChanged && lockChanged,
+                $"Selected: {pickedCast}. Mute: {muteChanged}. Solo: {soloChanged}. Lock: {lockChanged}.");
+
             // Perform: an actor chosen, the others listed.
             window.ShowMode("Perform"); context.Select(set.marks[1]);
             foreach (int wait in Settle(window)) yield return wait;
@@ -226,6 +352,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             context.Select(layer);
             foreach (int wait in Settle(window)) yield return wait;
             Take("06-polish-layer");
+            var layerOn = ModeButtons(window).FirstOrDefault(button => button.text == "On");
+            Activate("mute motion layer", layerOn);
+            bool muted = layer.muted && ModeButtons(window).Any(button => button.text == "Muted");
+            Activate("unmute motion layer", ModeButtons(window).FirstOrDefault(button => button.text == "Muted"));
+            Result("Polish mute button toggles a motion layer", muted && !layer.muted,
+                $"Muted after first activation: {muted}. Restored after second activation: {!layer.muted}.");
 
             // Direct: blocks picked, a push cue with its arrow.
             DirectMode.Picked.Clear();
@@ -233,23 +365,60 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Button PushButton() => window.rootVisualElement.Q("mode-panel").Query<Button>().ToList()
                 .FirstOrDefault(button => button.text.EndsWith("Push the picked blocks", StringComparison.Ordinal));
             bool unavailableBeforePicking = PushButton()?.enabledInHierarchy == false;
+            Guard("cannot push an empty pick", PushButton());
             DirectMode.Picked.AddRange(Enumerable.Range(0, stage.blocks.Length).Where(i => stage.blocks[i] && stage.blocks[i].gameObject.activeSelf)
                 .OrderBy(i => (stage.blocks[i].position - stage.anchor).sqrMagnitude).Take(6));
             window.RebuildAll();
             bool availableAfterPicking = PushButton()?.enabledInHierarchy == true;
             Result("Push availability follows the viewport selection", unavailableBeforePicking && availableAfterPicking,
                 $"Disabled with an empty selection: {unavailableBeforePicking}. Enabled with {DirectMode.Picked.Count} picked blocks: {availableAfterPicking}.");
-            var push = new StudioCue { at = 2, action = PushCue.Id, blocks = new List<int>(DirectMode.Picked), direction = new Vector3(1, .3f, .4f), strength = 9, ripple = .1f };
-            context.Edit("Add push", () => set.cues.Add(push));
+            int cueCount = set.cues.Count;
+            Activate("push picked blocks", PushButton());
+            var push = window.Selection as StudioCue;
+            bool pushAdded = set.cues.Count == cueCount + 1 && push?.action == PushCue.Id &&
+                push.blocks.SequenceEqual(DirectMode.Picked);
+            Result("Direct Push adds a cue for the picked blocks", pushAdded, $"Cues before {cueCount}, after {set.cues.Count}.");
+            if (!pushAdded)
+            {
+                push = new StudioCue { action = PushCue.Id, blocks = new List<int>(DirectMode.Picked) };
+                context.Edit("Prepare push fixture", () => set.cues.Add(push));
+            }
+            context.Edit("Frame push fixture", () => { push.at = 2; push.direction = new Vector3(1, .3f, .4f); push.strength = 9; push.ripple = .1f; });
             context.Select(push);
             foreach (int wait in Settle(window)) yield return wait;
             Take("07-direct-push");
 
             // Shoot: two cameras, one selected; then looking through it.
             window.ShowMode("Shoot");
-            var wide = ShootMode.AddCamera(context);
+            int cameraCount = set.cameras.Count;
+            var addCamera = ModeButtons(window).FirstOrDefault(button => button.text.EndsWith("Camera from this view", StringComparison.Ordinal));
+            Activate("create camera from viewport", addCamera);
+            var wide = window.Selection as StudioCameraTrack;
+            bool cameraAdded = set.cameras.Count == cameraCount + 1 && wide?.keys.Count == 1 && set.cameras.Contains(wide);
+            Result("Shoot creates and selects a keyed camera from the view", cameraAdded,
+                $"Cameras before {cameraCount}, after {set.cameras.Count}. Selected camera keys: {wide?.keys.Count ?? 0}.");
+            if (!cameraAdded) wide = ShootMode.AddCamera(context);
             StudioCamera.Orbit(60, -6); StudioCamera.Zoom(.6f);
-            context.Edit("Camera key", () => StudioCameras.AddKey(wide, StudioCameras.KeyFromView(stage, wide, set.length * .8f)));
+            int keyFrame = Mathf.Clamp(Mathf.RoundToInt(set.Frames * .8f), 0, set.Frames - 1);
+            if (wide.keys.Any(key => Mathf.RoundToInt(key.time * fps) == keyFrame)) keyFrame = 0;
+            window.Scrub(keyFrame);
+            foreach (int wait in Settle(window)) yield return wait;
+            int keysBefore = wide.keys.Count;
+            Activate("save a camera key at the playhead", Inspector("Key here"));
+            bool addedKey = wide.keys.Count == keysBefore + 1 && wide.keys.Any(key => Mathf.RoundToInt(key.time * fps) == keyFrame);
+            Result("Shoot adds an editable key at the playhead", addedKey, $"Expected frame {keyFrame}. Keys before {keysBefore}, after {wide.keys.Count}.");
+            if (!addedKey) context.Edit("Prepare camera key fixture", () => StudioCameras.AddKey(wide, StudioCameras.KeyFromView(stage, wide, keyFrame / (float)fps)));
+
+            int camerasBeforeDuplicate = set.cameras.Count;
+            Activate("duplicate the selected camera", Inspector("Duplicate"));
+            var duplicate = window.Selection as StudioCameraTrack;
+            bool duplicated = duplicate != null && duplicate.id != wide.id && set.cameras.Count == camerasBeforeDuplicate + 1 &&
+                duplicate.keys.Count == wide.keys.Count && !ReferenceEquals(wide.keys, duplicate.keys);
+            if (duplicated) Activate("remove the disposable duplicate", Inspector("Delete camera"));
+            bool duplicateRemoved = duplicated && !set.cameras.Contains(duplicate) && set.cameras.Contains(wide);
+            Result("Shoot duplicates the selected camera and can remove the copy", duplicated && duplicateRemoved,
+                $"Independent keyed copy: {duplicated}. Only the copy was removed: {duplicateRemoved}.");
+            context.Select(wide);
             StudioCamera.Orbit(-110, 10);
             var second = ShootMode.AddCamera(context);
             context.Edit("Camera setup", () => { second.behavior = "follow"; second.subject = set.marks[0].id; second.noise = "subtle"; });
@@ -272,13 +441,40 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             context.Select(null);
             foreach (int wait in Settle(window)) yield return wait;
             Take("10-cut");
-            foreach (int wait in ReviewWindowLayouts(window, Take)) yield return wait;
+            var up = ModeButtons(window).Where(button => button.text == "Up").ToList();
+            var down = ModeButtons(window).Where(button => button.text == "Down").ToList();
+            var originalCutOrder = set.cuts.ToArray();
+            bool reorderGuards = up.Count == 2 && down.Count == 2 && !up[0].enabledInHierarchy && up[1].enabledInHierarchy &&
+                down[0].enabledInHierarchy && !down[1].enabledInHierarchy;
+            if (up.Count == 2) Guard("first shot cannot move up", up[0]);
+            if (down.Count == 2) Guard("last shot cannot move down", down[1]);
+            if (reorderGuards) Activate("move first shot down", down[0]);
+            bool movedDown = set.cuts.SequenceEqual(originalCutOrder.Reverse());
+            if (movedDown) Activate("restore first shot to the top", ModeButtons(window).LastOrDefault(button => button.text == "Up"));
+            bool cutOrderRestored = set.cuts.SequenceEqual(originalCutOrder);
+            Result("Cut reorders a shot and guards the first and last positions", reorderGuards && movedDown && cutOrderRestored,
+                $"Boundary guards: {reorderGuards}. First shot moved down: {movedDown}. Original order restored: {cutOrderRestored}.");
+            if (!cutOrderRestored) context.Edit("Restore the cut fixture", () => { set.cuts.Clear(); set.cuts.AddRange(originalCutOrder); });
+            var cutIn = window.rootVisualElement.Q("mode-panel").Query<Slider>().ToList().FirstOrDefault(slider => slider.label == "In (s)");
+            bool trimmed = false;
+            if (cutIn != null)
+            {
+                float originalIn = originalCutOrder[0].from;
+                cutIn.value = originalIn + .25f;
+                using var finish = FocusOutEvent.GetPooled();
+                finish.target = cutIn;
+                cutIn.SendEvent(finish);
+                trimmed = Mathf.Approximately(set.cuts[0].from, originalIn + .25f);
+                context.Edit("Restore the trim fixture", () => set.cuts[0].from = originalIn);
+            }
+            Result("Cut's In trim updates the selected piece", trimmed, $"The rendered trim slider changed the first piece: {trimmed}.");
+            foreach (int wait in ReviewWindowLayouts(window, Take, Activate)) yield return wait;
 
             // Command palette and shortcut sheet.
             window.ShowMode("Set");
             var findCommand = window.rootVisualElement.Q<Button>("commands");
             bool activeBefore = findCommand?.ClassListContains("ts-activated") == true;
-            SubmitButton(findCommand);
+            Activate("open command palette and flash button", findCommand);
             bool flashed = findCommand?.ClassListContains("ts-activated") == true;
             bool paletteOpened = window.rootVisualElement.Q(className: "ts-palette") != null;
             double feedbackDeadline = EditorApplication.timeSinceStartup + 2;
@@ -308,6 +504,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 window.Frame == Mathf.Clamp(Mathf.RoundToInt(wide.keys[0].time * fps), 0, set.Frames - 1),
                 $"Selected {window.Mode.Title} at frame {window.Frame}.");
 
+            window.ShowPalette(true);
+            PressEscape(window);
+            bool escapeClosed = window.rootVisualElement.Q(className: "ts-palette") == null;
+            Result("Escape closes the command palette", escapeClosed, $"Palette closed: {escapeClosed}.");
+            if (!escapeClosed) window.ClosePalette();
             window.ShowPalette(false);
             foreach (int wait in Settle(window)) yield return wait;
             Take("12-shortcuts");
@@ -336,6 +537,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Result("Undo and redo for Set edits", added == marksBefore + 1 && undone == marksBefore && redone == marksBefore + 1,
                 $"Marks: {marksBefore}, after adding one {added}, after undo {undone}, after redo {redone} (Unity's own undo stack).");
             Result("Runtime errors during the tour", exceptions == 0, exceptions == 0 && errorLines.Count == 0 ? "None." : $"{exceptions} exceptions. First messages: {string.Join(" // ", errorLines)}");
+            File.WriteAllLines(Path.Combine(Folder, "button-inventory.tsv"), inventory);
+            File.WriteAllText(Path.Combine(Folder, "button-coverage.md"),
+                "# Button coverage\n\nThe TSV inventories each Button in the captured window states and identifies individual buttons submitted or checked for availability. " +
+                "Position in tree is one-based within the current window state. The acceptance report records the outcome assertions. " +
+                "Buttons conditional on unvisited states may be absent.\n\n" +
+                "The tour does not open external folders or file dialogs, export files, start renders, purge takes, or confirm destructive prompts. " +
+                "Recording in this tour uses the disposable Set through the runtime entry point.\n");
             StudioRun.SaveTape();
         }
     }

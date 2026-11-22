@@ -158,7 +158,25 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var row = new VisualElement();
             row.AddToClassList("ts-lane-row");
-            var title = new VisualElement();
+            VisualElement title = new VisualElement();
+            if (select != null)
+            {
+                var pick = new Button();
+                bool performing = context.window.Mode is PerformMode && select is StudioMark;
+                pick.SetEnabled(!performing || (!StudioRun.Busy && !StudioHandheld.Recording));
+                pick.AddToClassList("ts-row-picker");
+                pick.clicked += () =>
+                {
+                    if (performing && select is StudioMark actor)
+                    {
+                        if (StudioRun.Busy || StudioHandheld.Recording) return;
+                        PerformMode.ChooseActor(context, actor);
+                    }
+                    else context.Select(select);
+                    rows.Q(className: "ts-lane-row--selected")?.Q<Button>(className: "ts-row-picker")?.Focus();
+                };
+                title = pick;
+            }
             title.AddToClassList("ts-lane-name");
             title.Add(StudioUi.Dot(color));
             var nameLabel = new Label(name);
@@ -171,7 +189,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             title.style.borderLeftWidth = selected ? 2 : 0;
             if (selected) title.style.borderLeftColor = color;
             row.style.borderLeftWidth = 0;
-            if (select != null) title.RegisterCallback<ClickEvent>(_ => context.Select(select));
             var lane = new VisualElement();
             lane.AddToClassList("ts-lane");
             lane.style.overflow = Overflow.Hidden;

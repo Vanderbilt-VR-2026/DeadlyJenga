@@ -104,28 +104,42 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             bool selected = select != null && ReferenceEquals(select, context.Selection);
             row.EnableInClassList("ts-item--selected", selected);
             bool performing = select is StudioMark && context.window.Mode is PerformMode;
-            var title = StudioUi.Row(StudioUi.Dot(color));
+            VisualElement title;
+            if (select != null)
+            {
+                var pick = new Button();
+                pick.AddToClassList("ts-row-picker");
+                pick.AddToClassList("ts-row");
+                pick.tooltip = (performing ? "Record as " : "Select ") + name;
+                pick.SetEnabled(!performing || !RunActive || selected);
+                pick.clicked += () =>
+                {
+                    if (performing && select is StudioMark actor)
+                    {
+                        if (RunActive || (selected && StudioPerform.Actor == actor.id)) return;
+                        PerformMode.ChooseActor(context, actor);
+                    }
+                    else
+                    {
+                        if (selected) return;
+                        context.Select(select);
+                    }
+                    host.Q(className: "ts-item--selected")?.Q<Button>(className: "ts-row-picker")?.Focus();
+                };
+                title = pick;
+            }
+            else title = StudioUi.Row();
+            title.Add(StudioUi.Dot(color));
             title.style.minHeight = 26;
             row.Add(title);
             row.style.flexDirection = FlexDirection.Column;
             row.style.alignItems = Align.Stretch;
             row.style.height = StyleKeyword.Auto;
             string status = performing && !PerformMode.HasPerformance(track) ? " · No take" : "";
-            var label = new Label(name + status) { tooltip = name + status };
+            var label = new Label(name + status) { pickingMode = PickingMode.Ignore };
             label.AddToClassList("ts-item-name");
             title.Add(label);
-            if (select != null)
-                title.RegisterCallback<ClickEvent>(e =>
-                {
-                    if (e.button != 0 || selected) return;
-                    if (performing && select is StudioMark actor)
-                    {
-                        if (RunActive) { context.Say("Stop the current run before switching actors."); return; }
-                        PerformMode.ChooseActor(context, actor);
-                    }
-                    else context.Select(select);
-                });
-            else title.tooltip = "Imported Theatre shot. Convert it to an editable camera in Shoot.";
+            if (select == null) title.tooltip = "Imported Theatre shot. Convert it to an editable camera in Shoot.";
             if (track == null) return row;
 
             if (!string.IsNullOrEmpty(track.badge))

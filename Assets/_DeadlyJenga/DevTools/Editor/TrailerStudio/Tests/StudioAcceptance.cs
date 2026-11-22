@@ -58,6 +58,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static void RunPhase5() => Begin("Phase5");
         public static void RunCut() => Begin("Cut");
         public static void RunXr() => Begin("Xr");
+        public static void RunStageCatalog() => Begin("StageCatalog");
 
         static void Begin(string suite)
         {
@@ -99,6 +100,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         {
                             "Phase1" => MakeSet(),
                             "HeldOutTornado" => MakeHeldOutTornadoSet(),
+                            "StageCatalog" => MakeCatalogSet(),
                             _ => MakeSuiteSet(Suite),
                         });
                         Step = 2; Deadline = EditorApplication.timeSinceStartup + 600;
@@ -112,6 +114,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                                     "Phase1" => StageTests(),
                                     "Sound" => SoundTests(),
                                     "HeldOutTornado" => HeldOutTornadoTests(),
+                                    "StageCatalog" => CatalogStageTests(),
                                     _ => SuiteTests(Suite),
                                 };
                             else if (EditorApplication.timeSinceStartup > Deadline)
@@ -202,6 +205,81 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             set.cues.Add(new StudioCue { at = 2, action = "push", strength = 3.6f, direction = new Vector3(1, .12f, .2f), point = new Vector3(0, -.3f, 0) });
             StudioLibrary.Save(set);
             return set;
+        }
+
+        static StudioSet MakeCatalogSet()
+        {
+            var entries = SetLists.AvailableMaps();
+            string gameScene = ProjectPath.Find("Game.unity");
+            var map = entries.FirstOrDefault(entry => entry.id == Map && entry.mapPrefab)
+                ?? entries.FirstOrDefault(entry => entry.mapPrefab);
+            var sceneMap = entries.FirstOrDefault(entry => !entry.mapPrefab);
+            Result("Lobby map catalog", map != null && sceneMap != null &&
+                SetLists.SceneFor(map, gameScene) == gameScene && SetLists.SceneFor(sceneMap, gameScene) == sceneMap.scenePath &&
+                SetLists.SceneFor(null, gameScene) == null &&
+                entries.Select(entry => entry.id).Distinct().Count() == entries.Length,
+                $"{entries.Length} selectable maps. Prefab: {map?.id}. Scene: {sceneMap?.id}.");
+            if (map == null) throw new InvalidOperationException("No playable prefab maps in the lobby catalog.");
+
+            var set = new StudioSet { id = "acceptance-stage-catalog", title = "Stage catalog acceptance", map = map.id, length = 2 };
+            var actor = set.AddMark(StudioRole.Survivor, Vector3.zero);
+            actor.customLook = true;
+            actor.appearance = new AvatarAppearance { hair = AvatarHair.Bob, eyewear = AvatarEyewear.Round, clothing = AvatarClothing.SailorShirt };
+            actor.equipment = EquipmentKind.Blaster.ToString();
+            set.AddMark(StudioRole.Survivor, Vector3.zero);
+            StudioLibrary.Save(set);
+            return set;
+        }
+
+        static IEnumerator<int> CatalogStageTests()
+        {
+            var stage = StudioRun.Stage;
+            var set = stage.set;
+            var mark = set.marks[0];
+            var actor = stage.session.Player.gameObject.GetComponent<CandyPlayerAvatar>();
+            var startingLook = actor.Appearance;
+            string prefsBefore = PlayerPrefs.GetString("CandyAvatar.Style.v2", "");
+            int accessoriesBefore = PlayerPrefs.GetInt("CandyAvatar.Accessories.v1", 0);
+            Result("Stage opens the selected map", MatchSetup.SelectedMap?.id == set.map &&
+                ReferenceEquals(Services.World, stage.world) && stage.blocks.Length > 0,
+                $"{set.map}, {stage.blocks.Length} blocks.");
+            var fixedSet = new StudioSet { useMapAnchor = true, mapAnchor = new Vector3(3, 4, 5), stageOffset = Vector3.up };
+            Result("Stage placement", StudioStage.SurfaceBelow(stage.anchor, out var surface) &&
+                surface.y > stage.world.WaterHeight(surface) && Mathf.Abs(stage.anchor.y - surface.y) < 1f &&
+                StudioStage.FindAnchor(stage.world, fixedSet) == stage.world.Center + fixedSet.mapAnchor + fixedSet.stageOffset,
+                $"Automatic anchor {stage.anchor} and fixed map-relative placement.");
+            var savedLook = new AvatarAppearance { hair = AvatarHair.Bob, eyewear = AvatarEyewear.Round, clothing = AvatarClothing.SailorShirt };
+            var prefab = SetLists.Catalog?.survivorPrefab;
+            var preview = prefab ? prefab.GetComponentInChildren<IAvatarWardrobePreview>(true) : null;
+            var catalog = Resources.Load<TextAsset>("WardrobeCatalog");
+            Result("Saved wardrobe and gear", catalog && preview != null && preview.EvaluateAppearance(savedLook).effective.Equals(savedLook) &&
+                mark.customLook && mark.appearance.Equals(savedLook) && StudioCast.StartingEquipment(mark) == EquipmentKind.Blaster &&
+                StudioCast.StartingEquipment(new StudioMark { customLook = true, appearance = new AvatarAppearance { poweredArmor = true } })
+                    == EquipmentKind.PoweredArmor,
+                "The saved custom look, starter gear, and a legacy armor preference resolve after Play Mode entry.");
+            StudioCast.Perform(stage, mark);
+            StudioCast.PlaceOnMark(stage, mark);
+            yield return 0;
+            Result("Performer wardrobe is applied", actor.Appearance.Equals(savedLook), $"Applied appearance for {mark.actor}.");
+            var track = stage.tape.Find(mark.id);
+            using (var recorder = StudioTrackTypes.Get(track.type).CreateRecorder(stage, track))
+            {
+                var frame = ActorFrame.Read(track.type, recorder?.Capture(0, true));
+                var gear = string.IsNullOrEmpty(frame.equipment) ? null : JsonUtility.FromJson<EquipmentState>(frame.equipment);
+                Result("Take captures costume and starting gear", frame.visible && frame.look.Equals(savedLook) &&
+                    gear?.kind == EquipmentKind.Blaster, "The real actor recorder captures the wardrobe and loadout for playback.");
+            }
+            StudioCast.Perform(stage, set.marks[1]);
+            yield return 0;
+            var nextEquipment = actor.GetComponent<IEquipmentControls>()?.Equipment;
+            Result("Starting gear changes with the actor", nextEquipment == null || nextEquipment.kind == EquipmentKind.None,
+                "The second actor starts with empty gear.");
+            StudioCast.LeaveBody(stage);
+            Result("Player wardrobe is preserved", actor.Appearance.Equals(startingLook) &&
+                PlayerPrefs.GetString("CandyAvatar.Style.v2", "") == prefsBefore &&
+                PlayerPrefs.GetInt("CandyAvatar.Accessories.v1", 0) == accessoriesBefore,
+                "Switching cast and leaving the stage body restore the player's outfit without changing preferences.");
+            yield return 0;
         }
 
         // ---- Tests 1, 2, 3, 4 and 6, inside the open stage ----

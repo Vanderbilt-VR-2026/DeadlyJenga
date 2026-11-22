@@ -52,11 +52,12 @@ Each mode shows only what it needs. The timeline stays in every mode.
    roles, set length. Big friendly "Add survivor", "Add hand", "Add bots".
 2. **Perform**: choose who to play, which tracks play back as ghosts, then
    press record. Shows countdown, pre-roll, take list, punch-in point.
-3. **Direct**: world events. Disasters, aimed pushes, hand pulls, physics
+3. **Polish**: inspect actor motion, layer corrections and build a crowd from recorded performances.
+4. **Direct**: world events. Disasters, aimed pushes, hand pulls, physics
    branches, variation runs, slow-down zones. Click a block to aim it.
-4. **Shoot**: cameras over the finished tape. Lenses, moves, VR handheld
+5. **Shoot**: cameras over the finished tape. Lenses, moves, VR handheld
    camera, previews per camera.
-5. **Cut**: order shots, trim, time remap, render queue, export.
+6. **Cut**: order shots, trim, time remap, render queue, export.
 
 ## Design rules
 

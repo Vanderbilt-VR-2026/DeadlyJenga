@@ -88,6 +88,7 @@
 }
 .ts-tab {
     height: 42px; min-width: 96px; flex-direction: row; align-items: center; justify-content: flex-start; padding: 0 var(--ts-space-3); margin: 0 2px;
+    flex-grow: 1; flex-basis: 0;
     background-color: rgba(0, 0, 0, 0);
     color: var(--ts-dim);
     border-width: 0; border-radius: var(--ts-radius);
@@ -245,12 +246,18 @@
 .ts-lane-name { width: 150px; flex-shrink: 0; flex-direction: row; align-items: center; padding-left: var(--ts-space-3); overflow: hidden; }
 .ts-lane { flex-grow: 1; height: 24px; }
 .ts-playhead { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background-color: var(--ts-accent); }
-.ts-footer { min-height: 26px; flex-direction: row; flex-wrap: wrap; align-items: center; background-color: var(--ts-bg); }
+.ts-footer { flex-shrink: 0; background-color: var(--ts-bg); }
+.ts-feedback, .ts-footer-main { min-height: 24px; flex-direction: row; align-items: center; border-top-width: 1px; border-top-color: var(--ts-line); }
+.ts-feedback { padding: 0 var(--ts-space-3); background-color: var(--ts-panel); }
+.ts-footer-main .ts-chips { flex-shrink: 1; overflow: hidden; }
+.ts-footer-main .ts-chip { flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; }
+.ts-feedback-label { flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--ts-font-small); }
+.ts-selection-status { flex-basis: 0; flex-grow: 1; min-width: 100px; color: var(--ts-text); -unity-font-style: bold; }
+.ts-last-pressed { max-width: 48%; padding-left: var(--ts-space-2); color: var(--ts-dim); }
 .ts-status {
     min-width: 140px; flex-basis: 0; flex-grow: 1; overflow: hidden; text-overflow: ellipsis; height: 24px; flex-shrink: 1; padding: 0 var(--ts-space-3);
     -unity-text-align: middle-left; color: var(--ts-dim); font-size: var(--ts-font-small);
     background-color: var(--ts-bg);
-    border-top-width: 1px; border-top-color: var(--ts-line);
 }
 
 /* ---- Floating: command palette and shortcut sheet ---- */
@@ -321,5 +328,17 @@
 .ts-root Button:disabled {
     opacity: 0.55;
 }
+.ts-root Button.ts-row-picker {
+    flex-grow: 1; flex-shrink: 1; align-self: stretch; flex-direction: row; align-items: center; justify-content: flex-start;
+    margin: 0; padding-top: 0; padding-bottom: 0; overflow: hidden; background-color: rgba(0, 0, 0, 0);
+    color: var(--ts-text); border-width: 1px; border-color: rgba(0, 0, 0, 0); border-radius: 3px;
+    -unity-text-align: middle-left;
+}
+.ts-root Button.ts-row-picker.ts-lane-name { width: 150px; flex-grow: 0; flex-shrink: 0; }
+.ts-root Button.ts-row-picker:hover { background-color: var(--ts-hover); }
+.ts-root Button.ts-row-picker:focus, .ts-root Button.ts-row-picker:active, .ts-root Button.ts-row-picker.ts-activated {
+    border-color: var(--ts-accent);
+}
+.ts-root Button.ts-row-picker:active, .ts-root Button.ts-row-picker.ts-activated { scale: 1 1; background-color: var(--ts-selected); }
 .ts-root .ts-tab--on:focus { border-bottom-width: 2px; }
 .ts-root .ts-record--on:hover { background-color: var(--ts-record); }

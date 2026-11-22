@@ -135,6 +135,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         public void Rebuild()
         {
+            if (!(context.window.Mode is SetMode)) Placing = null;
             bool open = StudioRun.StageOpen;
             if (!open || !(context.window.Mode is SetMode)) Placing = null;
             if (empty != null) { empty.RemoveFromHierarchy(); empty = null; }
@@ -232,7 +233,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             const string navigation = "Drag empty space to orbit  ·  Right or middle drag to pan  ·  Scroll to zoom";
             string message = navigation;
             if (lookedThrough)
-                message = "Shot camera preview  ·  Click Looking in Shoot to return to the free camera";
+                message = "Shot camera preview  ·  Choose Free view in Shoot to return to the free camera";
             else if (moved && (orbiting || panning))
                 message = orbiting ? "Orbiting around the reticle" : "Panning the free camera";
             else if (Placing.HasValue && StudioRun.State == StudioState.Held)
@@ -243,6 +244,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             else if (StudioRun.State == StudioState.Held && context.window.Mode is SetMode && context.Selection is StudioMark mark)
                 message = "Drag mark to move  ·  Shift+drag to turn" + (mark.role == StudioRole.Hand ? "  ·  Alt+drag to change height" : "") +
                     "\n" + navigation;
+            else if (context.window.Mode is PerformMode && StudioRun.State == StudioState.Held)
+                message = "Click an actor to record as them  ·  " + navigation;
             else if (context.window.Mode is ShootMode && context.Stage != null)
                 message = "Free camera  ·  Frame your shot, then choose Camera from this view or Key here\n" + navigation;
             if (help.text != message) help.text = message;
@@ -402,6 +405,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var mark = StudioRun.State == StudioState.Held ? MarkAt(e.localPosition) : null;
             if (mark != null)
             {
+                if (!(context.window.Mode is SetMode))
+                {
+                    if (context.window.Mode is PerformMode)
+                    {
+                        if (!StudioHandheld.Recording) PerformMode.ChooseActor(context, mark);
+                    }
+                    else context.Select(mark);
+                    return;
+                }
                 dragging = mark.id;
                 if (!ReferenceEquals(context.Selection, mark)) context.Select(mark);
                 context.window.BeginEdit("Move " + mark.actor);

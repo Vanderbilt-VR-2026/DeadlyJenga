@@ -29,9 +29,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var camera = context.Selection as StudioCameraTrack;
             label = camera == null ? "Pick a camera to film by hand" : "Film \"" + camera.name + "\" by hand";
+            if (camera == null) { start = null; return true; }
             start = () =>
             {
-                if (camera == null) { context.Say("Add or select a camera first."); return; }
                 LookThrough = "";
                 context.window.BeginEdit("Handheld take");
                 StudioHandheld.Start(camera, context.window.InFrame, context.window.OutFrame, _ => { context.window.EndEdit(false); context.Say($"Handheld take recorded on \"{camera.name}\": {camera.keys.Count} keys you can now edit."); });

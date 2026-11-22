@@ -32,7 +32,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             label = null; start = null;
             var mark = context.Set == null ? null : Chosen(context);
-            if (mark == null) { label = "Choose an actor"; start = () => context.Say("Choose an actor under Record as or in the cast list."); return true; }
+            if (mark == null) { label = "Choose an actor to record"; return true; }
             bool punch = StudioPerform.PunchIn && !StudioPerform.LivePhysics && StudioPerform.CanPunch(context.Tape, mark, context.Frame);
             label = punch ? $"Punch in {mark.actor} at {StudioUi.Time(context.Frame, context.Set.fps)}"
                 : $"Record {mark.actor}, take {StudioPerform.NextTake(context.Tape, mark)}";

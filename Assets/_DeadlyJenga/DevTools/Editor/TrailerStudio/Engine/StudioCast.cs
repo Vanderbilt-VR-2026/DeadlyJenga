@@ -21,6 +21,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static readonly List<CastleSurvivor> standIns = new List<CastleSurvivor>();
         static readonly List<(CastleSurvivor motor, StudioPerformer performer)> driven = new List<(CastleSurvivor, StudioPerformer)>();
         static bool spawnedBots, spawnedHands;
+        static readonly MethodInfo grantEquipment = typeof(MatchModeRuntime).GetMethod("GiveEquipmentTo", BindingFlags.Instance | BindingFlags.NonPublic);
 
         // The local player is not part of the scene unless someone is performing: hide both local rigs.
         public static void Park(StudioStage stage)
@@ -96,15 +97,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return hand;
         }
 
-        static void GiveEquipment(StudioStage stage, GameObject body, StudioMark mark)
+        internal static EquipmentKind StartingEquipment(StudioMark mark)
         {
-            if (string.IsNullOrEmpty(mark.equipment) || !Enum.TryParse(mark.equipment, true, out EquipmentKind kind) || kind == EquipmentKind.None) return;
+            if (Enum.TryParse(mark.equipment, true, out EquipmentKind kind) && Enum.IsDefined(typeof(EquipmentKind), kind))
+                return kind;
+            return mark.customLook && mark.appearance.poweredArmor ? EquipmentKind.PoweredArmor : EquipmentKind.None;
+        }
+
+        static void GiveEquipment(StudioStage stage, GameObject body, StudioMark mark, bool clearEmpty = false)
+        {
+            var kind = StartingEquipment(mark);
+            if (kind == EquipmentKind.None && !clearEmpty) return;
             var identity = body.GetComponent<IModeActor>();
             // The match runtime has no public "give this actor a weapon" yet; Theatre uses the same private method.
-            var grant = typeof(MatchModeRuntime).GetMethod("GiveEquipmentTo", BindingFlags.Instance | BindingFlags.NonPublic);
-            bool given = identity != null && grant != null &&
-                (bool)grant.Invoke(stage.session.Modes, new object[] { identity.ActorId, kind, false, true });
-            if (!given) Debug.LogWarning($"Trailer Studio: could not give {mark.equipment} to {mark.actor}.");
+            bool given = identity != null && grantEquipment != null &&
+                (bool)grantEquipment.Invoke(stage.session.Modes, new object[] { identity.ActorId, kind, false, true });
+            if (!given) Debug.LogWarning($"Trailer Studio: could not set starting gear {kind} for {mark.actor}.");
         }
 
         // Keep stand-ins brainless even if the bot system hands their body a driver again.
@@ -163,13 +171,35 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (avatar)
                 {
                     avatar.SetColor(mark.color);
-                    if (mark.customLook) avatar.ApplyAppearance(mark.appearance);
+                    stage.localWardrobe ??= avatar.Appearance;
+                    ApplyLocalAppearance(avatar, mark.customLook ? mark.appearance : stage.localWardrobe.Value);
                 }
-                GiveEquipment(stage, rig.gameObject, mark);
+                GiveEquipment(stage, rig.gameObject, mark, clearEmpty: true);
             }
             stage.live[mark.id] = rig.gameObject;
             session.SetMenu(false);
             return rig.gameObject;
+        }
+
+        static void ApplyLocalAppearance(CandyPlayerAvatar avatar, AvatarAppearance look)
+        {
+            if (!avatar.TryGetComponent<CastleSurvivor>(out var motor)) return;
+            bool driven = motor.externallyDriven;
+            try
+            {
+                // The studio costume is take-local. Do not save it as the player's lobby outfit.
+                motor.externallyDriven = true;
+                avatar.ApplyAppearance(look);
+            }
+            finally { motor.externallyDriven = driven; }
+        }
+
+        internal static void RestoreLocalAppearance(StudioStage stage)
+        {
+            if (stage?.localWardrobe == null || !NetworkActors.Alive(stage.session.Player)) return;
+            var avatar = stage.session.Player.gameObject.GetComponent<CandyPlayerAvatar>();
+            if (avatar) ApplyLocalAppearance(avatar, stage.localWardrobe.Value);
+            stage.localWardrobe = null;
         }
 
         public static void PlaceOnMark(StudioStage stage, StudioMark mark) =>
@@ -181,6 +211,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (stage.performer.Length == 0) return;
             var mark = stage.set.Mark(stage.performer);
             if (mark != null) Rig(stage, mark).InputSuspended = false;
+            RestoreLocalAppearance(stage);
             stage.live.Remove(stage.performer);
             stage.performer = "";
             Park(stage);

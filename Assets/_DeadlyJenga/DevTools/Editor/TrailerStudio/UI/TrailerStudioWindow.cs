@@ -20,6 +20,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         [SerializeField] int offlineFrame, inFrame, outFrame = -1;
         [SerializeField] bool loop;
         [SerializeField] float speed = 1;
+        [SerializeField] string lastPressed = "";
 
         StudioSet loadedSet;
         StudioTape offlineTape;
@@ -31,7 +32,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         VisualElement root, tabs, chips, modePanel, inspector, transport, floating;
         Button setPicker, stageButton, recordButton;
-        Label status, recordLabel, timeLabel;
+        Label status, recordLabel, timeLabel, selectionStatus, pressedStatus;
         StudioViewport viewport;
         StudioTimeline timeline;
         StudioCastList cast;
@@ -97,6 +98,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             transport = root.Q("transport"); floating = root.Q("floating");
             setPicker = root.Q<Button>("set-picker"); stageButton = root.Q<Button>("stage"); recordButton = root.Q<Button>("record");
             status = root.Q<Label>("status"); recordLabel = root.Q<Label>("record-label");
+            selectionStatus = root.Q<Label>("selection-status");
+            pressedStatus = root.Q<Label>("last-pressed");
+            Say(message);
+            UpdatePressedStatus();
 
             setPicker.clicked += ShowSetMenu;
             stageButton.clicked += ToggleStage;
@@ -112,8 +117,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             palette = new StudioPalette(context, floating);
             BuildTransport();
 
-            root.RegisterCallback<ClickEvent>(e => FlashButton(e.target as VisualElement), TrickleDown.TrickleDown);
-            root.RegisterCallback<NavigationSubmitEvent>(e => FlashButton(e.target as VisualElement), TrickleDown.TrickleDown);
+            // Capture the press before the Button action can replace its panel.
+            root.RegisterCallback<PointerDownEvent>(e =>
+            {
+                if (e.button == 0) NoteButtonPress(e.target as VisualElement);
+            }, TrickleDown.TrickleDown);
+            root.RegisterCallback<NavigationSubmitEvent>(e => NoteButtonPress(e.target as VisualElement), TrickleDown.TrickleDown);
             root.focusable = true;
             root.RegisterCallback<KeyDownEvent>(OnKey, TrickleDown.TrickleDown);
             // Keep the picture and the playhead fresh while the stage is open.
@@ -262,9 +271,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 StudioCameraTrack camera => camera.name,
                 StudioTrack track => track.name,
                 StudioCue cue => StudioCues.Get(cue.action)?.Label ?? cue.action,
-                StudioOverride layer => layer.name,
+                StudioOverride layer => string.IsNullOrWhiteSpace(layer.name) ? layer.kind : layer.name,
                 _ => null
             };
+            selectionStatus.text = string.IsNullOrWhiteSpace(subject) ? "No selection" : "Selected · " + subject;
+            selectionStatus.tooltip = selectionStatus.text;
             inspectorHeading.text = string.IsNullOrWhiteSpace(subject) ? "Set settings" : subject + " settings";
             inspectorHeading.tooltip = inspectorHeading.text;
             inspectorHeading.style.display = inspector.childCount > 0 ? DisplayStyle.Flex : DisplayStyle.None;
@@ -349,15 +360,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var captured = mode;
                 string action = mode.Title switch
                 {
-                    "Set" => "Place actors",
+                    "Set" => "Choose map & cast",
                     "Perform" => "Record takes",
-                    "Polish" => "Shape motion",
-                    "Direct" => "Cue events",
-                    "Shoot" => "Set cameras",
-                    "Cut" => "Edit shots",
+                    "Polish" => "Refine takes",
+                    "Direct" => "Time events",
+                    "Shoot" => "Frame & render",
+                    "Cut" => "Trim & export",
                     _ => ""
                 };
-                var tab = new Button(() => ShowMode(captured.Title)) { tooltip = action };
+                var tab = new Button(() => ShowMode(captured.Title)) { tooltip = action, userData = mode.Title };
                 if (action.Length > 0) tab.Add(StudioUi.ModeGlyph(mode.Title));
                 var tabText = new VisualElement { pickingMode = PickingMode.Ignore };
                 tabText.Add(new Label(mode.Title) { pickingMode = PickingMode.Ignore });
@@ -379,16 +390,29 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         }
 
         // The parts that change every frame while running.
+        Action RecordAction(out string label)
+        {
+            var mode = Mode;
+            if (mode != null && mode.TryGetRecord(context, out label, out var start)) return start;
+            if (mode is PolishMode || mode is CutMode)
+            {
+                label = "Record in Perform or Direct";
+                return null;
+            }
+            label = "Record whole set";
+            if (Tape != null) label += ", take " + ((Tape.FindType(WorldTrack.Id)?.takes.Count ?? 0) + 1);
+            return StudioRun.RecordWholeSet;
+        }
+
         void RefreshLive()
         {
             bool held = StudioRun.State == StudioState.Held, recording = StudioRun.Recording;
-            string label = "Record whole set";
-            if (Tape != null) label += ", take " + ((Tape.FindType(WorldTrack.Id)?.takes.Count ?? 0) + 1);
-            if (Mode != null && Mode.TryGetRecord(context, out string modeLabel, out _)) label = modeLabel;
-            recordLabel.text = !recording && StudioRun.State == StudioState.Running ? "Stop playback" : recording ? "Stop  " + StudioUi.Time(StudioRun.Frame, Set?.fps ?? 30) : label;
+            bool running = StudioRun.State == StudioState.Running;
+            bool canRecord = RecordAction(out string label) != null;
+            recordLabel.text = !recording && running ? "Stop playback" : recording ? "Stop  " + StudioUi.Time(StudioRun.Frame, Set?.fps ?? 30) : label;
             recordButton.EnableInClassList("ts-record--on", recording);
-            recordButton.SetEnabled(held || StudioRun.State == StudioState.Running);
-            recordButton.tooltip = StudioRun.State == StudioState.Running ? "Stop (R)" : held ? label + " (R)" : "Open the stage to record.";
+            recordButton.SetEnabled(running || held && canRecord);
+            recordButton.tooltip = running ? "Stop (R)" : !canRecord ? label : held ? label + " (R)" : "Open the stage to record.";
 
             chips.Clear();
             void Chip(string text, string kind = "", string tip = "")
@@ -436,9 +460,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (StudioRun.State == StudioState.Running) { stopAsked = true; StudioRun.Stop(); return; }
             if (StudioRun.State != StudioState.Held) { Say("Open the stage to record."); return; }
+            var start = RecordAction(out string label);
+            if (start == null) { Say(label); return; }
             playing = false;
-            if (Mode != null && Mode.TryGetRecord(context, out _, out Action start) && start != null) start();
-            else StudioRun.RecordWholeSet();
+            start();
         });
 
         public void TogglePlay() => Try(() =>
@@ -552,10 +577,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         Button flashingButton;
         IVisualElementScheduledItem flashEnd;
 
-        void FlashButton(VisualElement target)
+        void NoteButtonPress(VisualElement target)
         {
             var button = target as Button ?? target?.GetFirstAncestorOfType<Button>();
             if (button == null || !button.enabledInHierarchy) return;
+            // Studio buttons have visible text or supply a label in a child.
+            var label = button.userData as string;
+            if (string.IsNullOrWhiteSpace(label)) label = button.text;
+            if (string.IsNullOrWhiteSpace(label)) label = button.Q<Label>()?.text;
+            if (string.IsNullOrWhiteSpace(label)) return;
+            if (label.Length <= 2 && !string.IsNullOrWhiteSpace(button.tooltip))
+                label = button.tooltip.Split('\n')[0];
+            RecordPressed(label);
             flashEnd?.Pause();
             flashingButton?.RemoveFromClassList("ts-activated");
             flashingButton = button;
@@ -565,6 +598,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 button.RemoveFromClassList("ts-activated");
                 flashingButton = null;
             }).StartingIn(160);
+        }
+
+        internal void RecordPressed(string label)
+        {
+            lastPressed = label.Trim();
+            UpdatePressedStatus();
+        }
+
+        void UpdatePressedStatus()
+        {
+            if (pressedStatus == null) return;
+            pressedStatus.text = string.IsNullOrEmpty(lastPressed) ? "" : "Last pressed · " + lastPressed;
+            pressedStatus.tooltip = pressedStatus.text;
+            pressedStatus.style.display = pressedStatus.text.Length == 0 ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
         // ---- Keyboard ----
