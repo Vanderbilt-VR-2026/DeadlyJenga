@@ -19,7 +19,8 @@ namespace DeadlyJenga.CastlePrototype
     {
         readonly long playerUniqueId=BitConverter.ToInt64(Guid.NewGuid().ToByteArray(),0)|1L;
         const int Channel=0x49534C44, Ready=1, Pose=2, State=3, Ack=4, Spawn=5;
-        sealed class Peer {public P.Actor actor;public bool ready;public int waiting,sentSelection,ackedSelection=-1,arrivalAttempts;public float seen,sent;}
+        const float LobbyIdleTimeout = 20, LobbyStateRetryAfter = 4, LobbyPoseRetryAfter = 2;
+        sealed class Peer {public P.Actor actor;public bool ready;public int waiting,sentSelection,ackedSelection=-1,arrivalAttempts,lastPose;public float seen,sent;}
         readonly Dictionary<PlayerRef,Peer> peers=new Dictionary<PlayerRef,Peer>();
         public static IslandRoomConnection Instance {get;private set;}
         public NetworkRunner Runner {get;private set;}
@@ -194,7 +195,7 @@ namespace DeadlyJenga.CastlePrototype
         const int SocialChannel=0x49534C56;
         public bool CanLaunch=>!transferringLobbyHost&&LocalIsLobbyHost&&!Busy&&!LaunchPending&&!Departing&&Catalog&&ModeIndex>=0&&ModeIndex<Catalog.modes.Length&&MapIndex>=0&&MapIndex<Catalog.maps.Length&&Catalog.modes[ModeIndex].available&&Catalog.maps[MapIndex].SupportsMode(Catalog.modes[ModeIndex].id);
         IslandLobby guestLobbyClock;
-        NetworkDelegates callbacks;float nextSend,nextHello,lastServer;int serial,waitingPose,generation;bool leaving,transitioning,welcomed;
+        NetworkDelegates callbacks;float nextSend,nextHello,lastServer,poseSentAt;int serial,waitingPose,lastLobbyState,generation;bool leaving,transitioning,welcomed;
         bool marinaLocalSpawnPending;
         bool marinaFreshReadyPending,marinaDeferredTrusted;
         NetworkRunner marinaDeferredRunner,marinaAppliedRunner;
@@ -434,7 +435,7 @@ namespace DeadlyJenga.CastlePrototype
                 old.RemoveCallbacks(callbacks);await old.Shutdown(shutdownReason:ShutdownReason.HostMigration);
                 if(!CurrentOperation(attempt,operationRunner)){if(old&&!ReferenceEquals(old,Runner))Destroy(old.gameObject);return;}
                 if(old)Destroy(old.gameObject);
-                peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=0;nextHello=0;welcomed=false;transitioning=false;
+                peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=lastLobbyState=0;nextHello=0;welcomed=false;transitioning=false;
                 var go=CreateRunner();operationRunner=Runner;marinaRecoveryRunner=operationRunner;AttachCallbacks();
                 var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=RoomProtocol(app.AppVersion);
                 NetworkSceneInfo scenes=default;
@@ -528,25 +529,36 @@ namespace DeadlyJenga.CastlePrototype
                         if(data.Length>0){using var identity=P.Reader(data.ToArray(),P.Player);preferred=JsonUtility.FromJson<LobbyParticipant>(P.Text(identity,512));if(identity.BaseStream.Position!=identity.BaseStream.Length)throw new System.IO.InvalidDataException("Trailing lobby identity");}
                         HandleMarinaReady(runner,source,peer,preferred);
                     }
-                    else if(kind==Ack&&peer.waiting==id){peer.waiting=0;peer.seen=Time.unscaledTime;peer.ackedSelection=peer.sentSelection;}
+                    else if(kind==Ack&&peer.waiting!=0&&peer.waiting==id&&data.IsEmpty){peer.waiting=0;peer.seen=Time.unscaledTime;peer.ackedSelection=peer.sentSelection;}
                     else if(kind==Pose&&peer.ready)
                     {
                         using var reader=P.Reader(data.ToArray(),P.Player);var actor=P.ReadActor(reader);
                         if(actor.kind!=NetworkKinds.Survivor||reader.BaseStream.Position!=reader.BaseStream.Length)throw new System.IO.InvalidDataException("Invalid lobby avatar");
-                        actor.id=source.ToString();peer.actor=actor;peer.seen=Time.unscaledTime;IslandLobby.Current.ReceivePeer(actor);Send(source,Ack,Array.Empty<byte>(),id);
+                        if(CastleFusionSession.LivePoseWindow.Newer(id,peer.lastPose,peer.lastPose!=0))
+                        {
+                            actor.id=source.ToString();peer.actor=actor;peer.lastPose=id;
+                            peer.seen=Time.unscaledTime;IslandLobby.Current.ReceivePeer(actor);
+                        }
+                        Send(source,Ack,Array.Empty<byte>(),id);
                     }
                 }
-                else if(kind==Ack&&waitingPose==id)waitingPose=0;
+                else if(kind==Ack&&waitingPose!=0&&waitingPose==id&&data.IsEmpty)waitingPose=0;
                 else if(kind==Spawn)
                 {if(!TrustedServerData(runner,source,generation))return;using var r=P.Reader(data.ToArray(),P.Player);var pose=P.ReadPose(r);if(r.BaseStream.Position!=r.BaseStream.Length)throw new System.IO.InvalidDataException("Trailing lobby spawn");HandleMarinaSpawn(runner,source,pose);}
                 else if(kind==State)
                 {
+                    if(!TrustedServerData(runner,source,generation))return;
+                    if(!CastleFusionSession.LivePoseWindow.Newer(id,lastLobbyState,lastLobbyState!=0))
+                    {
+                        if(id!=0&&id==lastLobbyState)Send(default,Ack,Array.Empty<byte>(),id);
+                        return;
+                    }
                     using var reader=P.Reader(data.ToArray(),P.World);int map=reader.ReadInt32(),mode=reader.ReadInt32();
                     if(map<0||map>=Catalog.maps.Length||mode<0||mode>=Catalog.modes.Length)throw new System.IO.InvalidDataException("Unsupported lobby selection");
                     MapIndex=map;ModeIndex=mode;int count=P.Count(reader,10);var actors=new List<P.Actor>();
                     for(int i=0;i<count;i++){var actor=P.ReadActor(reader);if(actor.kind!=NetworkKinds.Survivor)throw new System.IO.InvalidDataException("Unexpected lobby hand");actors.Add(actor);}
                     SharedDemoControls=reader.ReadBoolean();ReadLobbyState(P.Text(reader,16000));if(reader.BaseStream.Position!=reader.BaseStream.Length)throw new System.IO.InvalidDataException("Trailing lobby state");
-                    IslandLobby.Current.ReceivePeers(actors,Runner.LocalPlayer.ToString());welcomed=true;lastServer=Time.unscaledTime;Send(default,Ack,Array.Empty<byte>(),id);
+                    IslandLobby.Current.ReceivePeers(actors,Runner.LocalPlayer.ToString());lastLobbyState=id;welcomed=true;lastServer=Time.unscaledTime;Send(default,Ack,Array.Empty<byte>(),id);
                 }
             }
             catch(Exception e){Status="Rejected lobby message: "+e.Message;Debug.LogWarning(Status);if(IsHost)runner.Disconnect(source);else _=Leave();}
@@ -585,7 +597,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(IsHost)
             {
-                foreach(var pair in peers.ToArray())if(now-pair.Value.seen>20||pair.Value.waiting!=0&&now-pair.Value.sent>20){Runner.Disconnect(pair.Key);ReleaseMarinaSpawn(pair.Key);marinaRecoverySpawns.Remove(pair.Key);peers.Remove(pair.Key);IslandLobby.Current.RemovePeer(pair.Key.ToString());}
+                foreach(var pair in peers.ToArray())if(now-pair.Value.seen>LobbyIdleTimeout){Runner.Disconnect(pair.Key);ReleaseMarinaSpawn(pair.Key);marinaRecoverySpawns.Remove(pair.Key);peers.Remove(pair.Key);IslandLobby.Current.RemovePeer(pair.Key.ToString());}
                 if(now<nextSend)return;nextSend=now+.1f;
                 if(!peers.Values.Any(peer=>peer.ready))return;
                 var local=IslandLobby.Current.Capture(Runner.LocalPlayer.ToString());
@@ -596,7 +608,9 @@ namespace DeadlyJenga.CastlePrototype
                     var peer=pair.Value;
                     if(!peer.ready)continue;
                     bool first=peer.ackedSelection<0;
-                    if(peer.waiting!=0&&(!first||peer.arrivalAttempts>=5||now-peer.sent<1.5f))continue;
+                    // An expired receipt cannot hold the roster or countdown state indefinitely.
+                    if(peer.waiting!=0&&(first&&peer.arrivalAttempts>=5||
+                        now-peer.sent<(first?1.5f:LobbyStateRetryAfter)))continue;
                     byte[] packet;
                     if(first)
                     {
@@ -616,7 +630,7 @@ namespace DeadlyJenga.CastlePrototype
                         }
                         packet=update;
                     }
-                    peer.waiting=++serial;
+                    peer.waiting=CastleFusionSession.LivePoseWindow.NextSequence(ref serial);
                     peer.sent=now;
                     peer.sentSelection=selectionVersion;
                     Send(pair.Key,State,packet,peer.waiting);
@@ -626,8 +640,13 @@ namespace DeadlyJenga.CastlePrototype
             {
                 nextSend=now+.05f;
                 if(!welcomed&&now>=nextHello){nextHello=now+1f;Send(default,Ready,P.Encode(P.Player,w=>w.Write(JsonUtility.ToJson(LocalIdentity))),++serial);}
-                if(welcomed&&waitingPose==0){waitingPose=++serial;Send(default,Pose,P.Encode(P.Player,w=>P.Write(w,IslandLobby.Current.Capture(Runner.LocalPlayer.ToString()))),waitingPose);}
-                if(now-lastServer>20){Status=welcomed?"Lobby connection lost.":"The host did not finish lobby setup.";Debug.LogWarning(Status);_=Leave();}
+                if(welcomed&&(waitingPose==0||now-poseSentAt>=LobbyPoseRetryAfter))
+                {
+                    waitingPose=CastleFusionSession.LivePoseWindow.NextSequence(ref serial);
+                    poseSentAt=now;
+                    Send(default,Pose,P.Encode(P.Player,w=>P.Write(w,IslandLobby.Current.Capture(Runner.LocalPlayer.ToString()))),waitingPose);
+                }
+                if(now-lastServer>LobbyIdleTimeout){Status=welcomed?"Lobby connection lost.":"The host did not finish lobby setup.";Debug.LogWarning(Status);_=Leave();}
             }
         }
         byte[] EncodeLobbyActors(IReadOnlyList<P.Actor> actors,string roster)=>P.Encode(P.World,w=>
@@ -877,7 +896,7 @@ namespace DeadlyJenga.CastlePrototype
             string scene=SceneManager.GetActiveScene().name;bool inGame=!IslandLobby.Current&&scene!="Home";Status="Disconnected: "+reason;
             connecting?.Dispose();connecting=null;
             if(IslandLobby.Current&&IslandLobby.Current.Voice)IslandLobby.Current.Voice.ResetLobbyAudio();
-            if(Runner){Runner.RemoveCallbacks(callbacks);Destroy(Runner.gameObject);}Runner=null;peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=0;nextHello=0;welcomed=false;HostSelected=false;SharedDemoControls=false;LaunchPending=false;Busy=false;leaving=false;transitioning=false;
+            if(Runner){Runner.RemoveCallbacks(callbacks);Destroy(Runner.gameObject);}Runner=null;peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=lastLobbyState=0;nextHello=0;welcomed=false;HostSelected=false;SharedDemoControls=false;LaunchPending=false;Busy=false;leaving=false;transitioning=false;
             guestLobbyClock=null;Code="";pendingLobbyHost=null;PrepareSoloIdentity();if(inGame)SceneManager.LoadScene("Lobby");else IslandLobby.Current?.ClearPeers();
         }
         public bool Owns(NetworkRunner runner)=>ownedRunner==runner;

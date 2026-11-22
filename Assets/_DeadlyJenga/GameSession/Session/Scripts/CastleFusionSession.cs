@@ -19,7 +19,7 @@ namespace DeadlyJenga.CastlePrototype
         const int Ready = 1, Welcome = 2, World = 3, Ack = 5, WelcomeAck = 6, Rules=7, Command=8, Admin=9;
         const int LivePose = 20, LivePoses = 21, PoseReceiptGroup = 23, WorldResync=24, HotpathBundle=25;
         const int PoseWindow = 6, MaxPoseSize = 4096, MaxLiveBatchSize=64*1024;
-        const float PeerIdleTimeout = 20, WorldReceiptRetryAfter = 8, LivePoseGrace = 5, ActiveGuestWorldTimeout = 40;
+        const float InitialWorldTimeout = 60, PeerIdleTimeout = 20, WorldReceiptRetryAfter = 8, LivePoseGrace = 5, ActiveGuestWorldTimeout = 40;
         internal static class LivePoseCodec
         {
             internal const int HeaderBytes=17,ReceiptCapacity=PoseWindow;
@@ -176,7 +176,7 @@ namespace DeadlyJenga.CastlePrototype
             internal static int NextSequence(ref int sequence){sequence=unchecked(sequence+1);if(sequence==0)sequence=1;return sequence;}
         }
 
-        sealed class Peer { public readonly WorldDeltaCodec.Sender world=new WorldDeltaCodec.Sender();public int worldResyncs;public float nextWorldResync;public byte[] pendingWorldResync;public bool retriedWorldReceipt; public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence;public bool hasPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
+        sealed class Peer { public readonly WorldDeltaCodec.Sender world=new WorldDeltaCodec.Sender();public int worldResyncs;public float nextWorldResync;public byte[] pendingWorldResync;public bool retriedWorldReceipt,worldAcknowledged; public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence;public bool hasPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
         readonly Dictionary<PlayerRef, Peer> peers = new Dictionary<PlayerRef, Peer>();
         NetworkRunner runner;
         NetworkDelegates callbacks;
@@ -235,7 +235,7 @@ namespace DeadlyJenga.CastlePrototype
             worldRoom&&ReferenceEquals(worldRoom,IslandRoomConnection.Instance)&&worldRoom.Owns(runner)&&worldRoom.ConnectionGeneration==worldConnection:
             !IslandRoomConnection.Instance||!IslandRoomConnection.Instance.Owns(runner);
         void ResetWorldTransfers()
-        {worldReceiver.Reset();worldScope=null;nextWorldResync=0;pendingWorldResync=null;pendingWorldResyncSerial=0;foreach(var peer in peers.Values){peer.world.Reset();peer.waiting=0;peer.worldResyncs=0;peer.nextWorldResync=0;peer.pendingWorldResync=null;}}
+        {worldReceiver.Reset();worldScope=null;nextWorldResync=0;pendingWorldResync=null;pendingWorldResyncSerial=0;foreach(var peer in peers.Values){peer.world.Reset();peer.waiting=0;peer.worldAcknowledged=false;peer.retriedWorldReceipt=false;peer.worldResyncs=0;peer.nextWorldResync=0;peer.pendingWorldResync=null;}}
         void PumpWorldResync(float now)
         {
             if(runner.IsServer)
@@ -384,7 +384,7 @@ namespace DeadlyJenga.CastlePrototype
             CastleLanProtocol.Actor[] actors=null;
             foreach(var pair in peers)
             {
-                if(!pair.Value.ready||!pair.Value.posesInFlight.CanCapture())continue;
+                if(!pair.Value.ready||!pair.Value.worldAcknowledged||!pair.Value.posesInFlight.CanCapture())continue;
                 actors??=castle.FusionCaptureLiveActors();
                 var batch=CastleLanSession.FusionEncodeLivePosesFor(actors,pair.Key.ToString());
                 if(!SendPose(pair.Key,LivePoses,pair.Value.posesInFlight,pair.Value.receipts,batch,now)&&poseSendFailed)return;
@@ -512,8 +512,10 @@ namespace DeadlyJenga.CastlePrototype
                             var added=new Peer {lastPose=Time.unscaledTime,welcome=castle.FusionWelcome(player.ToString())};
                             added.posesInFlight.Traffic.PeerId=player.ToString();peers.Add(player,added);
                         }
-                        // A loading guest repeats Ready each second; it is alive, so keep its timeout fresh.
-                        if (!peers[player].ready) { peers[player].lastPose = Time.unscaledTime; Send(player, Welcome, peers[player].welcome); }
+                        // Ready stays active until the guest can apply its first world and send a pose.
+                        var loading = peers[player];
+                        if (!loading.worldAcknowledged) loading.lastPose = Time.unscaledTime;
+                        if (!loading.ready) Send(player, Welcome, loading.welcome, serial);
                     }
                     else if (peers.TryGetValue(player, out var peer))
                     {
@@ -545,7 +547,11 @@ namespace DeadlyJenga.CastlePrototype
                         }
                         else if (kind == PoseReceiptGroup&&payload.Length>=7&&payload.Length<=3+LivePoseReceipts.Capacity*4) ApplyPoseReceipts(peer.posesInFlight,payload.ToArray(),Time.unscaledTime);
                         else if (kind == Ack && peer.waiting!=0 && peer.waiting==serial && payload.Length==WorldDeltaCodec.TokenBytes && peer.world.Acknowledge(serial,payload.ToArray()))
-                        {peer.waiting=0;peer.worldResyncs=0;peer.pendingWorldResync=null;}
+                        {
+                            if (!peer.worldAcknowledged) peer.lastPose = Time.unscaledTime;
+                            peer.waiting=0;peer.worldAcknowledged=true;peer.retriedWorldReceipt=false;
+                            peer.worldResyncs=0;peer.pendingWorldResync=null;
+                        }
                         else if(kind==WorldResync&&peer.ready&&peer.waiting!=0&&peer.waiting==serial&&payload.Length==WorldDeltaCodec.TokenBytes)
                         {
                             var token=payload.ToArray();if(peer.world.MatchesPending(serial,token))peer.pendingWorldResync=token;
@@ -558,7 +564,7 @@ namespace DeadlyJenga.CastlePrototype
                     if (kind == Welcome)
                     {
                         if (!welcomed) { castle.FusionReceiveWelcome(payload.ToArray()); authoritativeRules=MatchSetup.CaptureRules(session.Player); welcomed = true; }
-                        Send(default, WelcomeAck, Array.Empty<byte>());
+                        Send(default, WelcomeAck, Array.Empty<byte>(), serial);
                     }
                     else if (kind == World && welcomed)
                     {
@@ -640,7 +646,8 @@ namespace DeadlyJenga.CastlePrototype
                 Demo.roomNotice=room&&room.Owns(runner)?room.MatchNotice:"";
                 castle.FusionRoomNotice(Demo.roomNotice);
                 string admin=JsonUtility.ToJson(Demo);
-                byte[] world = null;string worldContext=null;
+                byte[] world = null, arrivalWorld = null;
+                string worldContext = null, arrivalContext = null;
                 foreach (var pair in peers)
                 {
                     if (!pair.Value.ready || pair.Value.waiting != 0) continue;
@@ -648,20 +655,38 @@ namespace DeadlyJenga.CastlePrototype
                     if(disasterVisualPacket!=null&&!ReferenceEquals(pair.Value.disasters,disasterVisualPacket)){var packet=disasterVisualPacket;Send(pair.Key,DisasterVisuals,packet,0,()=>pair.Value.disasters=packet);}
                     if(pair.Value.admin!=admin){Send(pair.Key,Admin,System.Text.Encoding.UTF8.GetBytes(admin),0,()=>pair.Value.admin=admin);}
                     string rules=MatchSetup.CaptureRules(session.Player);if(pair.Value.rules!=rules){Send(pair.Key,Rules,System.Text.Encoding.UTF8.GetBytes(rules),0,()=>pair.Value.rules=rules);}
-                    if(world==null){world=castle.FusionCaptureWorld();worldContext=WorldContext(world);}
-                    try{SendWorld(pair.Key,pair.Value,world,worldContext,now);}
+                    try
+                    {
+                        if (pair.Value.worldAcknowledged)
+                        {
+                            if (world == null) { world = castle.FusionCaptureWorld(); worldContext = WorldContext(world); }
+                            SendWorld(pair.Key, pair.Value, world, worldContext, now);
+                        }
+                        else
+                        {
+                            // Admit the map and humans before sending the full bot roster.
+                            if (arrivalWorld == null)
+                            {
+                                arrivalWorld = castle.FusionCaptureWorld(includeBots: false);
+                                arrivalContext = WorldContext(arrivalWorld);
+                            }
+                            SendWorld(pair.Key, pair.Value, arrivalWorld, arrivalContext, now);
+                        }
+                    }
                     catch(Exception){Fail("World transfer encoding or send failed. Rejoin with the same game build.");return;}
                 }
             }
             else if (now >= nextSend)
             {
                 nextSend = now + 1;
-                if (!welcomed) Send(default, Ready, Array.Empty<byte>());
+                bool awaitingWorld = !welcomed || castle.WaitingForWorld;
+                if (awaitingWorld) Send(default, Ready, Array.Empty<byte>(), LivePoseWindow.NextSequence(ref sequence));
                 if(posesInFlight.Expired(now)){Fail("Live pose acknowledgements timed out. Rejoin the room.");return;}
                 bool hostPosesRecent = now - lastHostPose <= LivePoseGrace;
-                float worldTimeout = !welcomed ? 60 : hostPosesRecent ? ActiveGuestWorldTimeout : PeerIdleTimeout;
+                float worldTimeout = awaitingWorld ? InitialWorldTimeout : hostPosesRecent ? ActiveGuestWorldTimeout : PeerIdleTimeout;
                 if (now - lastWorld > worldTimeout)
-                    Fail(hostPosesRecent ? "The host is connected, but the game world stopped updating. Rejoin the room."
+                    Fail(awaitingWorld ? "The host did not finish game setup. Rejoin the room."
+                        : hostPosesRecent ? "The host is connected, but the game world stopped updating. Rejoin the room."
                         : "The host stopped responding. Check your connection and rejoin the room.");
             }
 
