@@ -55,7 +55,7 @@
     {
       "name": "Wide scout",
       "start": 0.0,
-      "duration": 2.466666666666667,
+      "duration": 1.6,
       "fov": 49,
       "from": {
         "x": 4.3,
@@ -79,16 +79,16 @@
     },
     {
       "name": "Close scout",
-      "start": 2.466666666666667,
-      "duration": 2.533333333333333,
+      "start": 1.6,
+      "duration": 3.4,
       "fov": 43,
       "from": {
-        "x": -2.6,
+        "x": 2.6,
         "y": 1.55,
         "z": -0.9
       },
       "to": {
-        "x": -2.35,
+        "x": 2.35,
         "y": 1.45,
         "z": -0.8
       },
@@ -116,12 +116,13 @@
     {
       "shot": 0,
       "from": 0,
-      "duration": 2.466666666666667
+      "duration": 1.6
     },
     {
       "shot": 1,
       "from": 0,
-      "duration": 2.533333333333333
+      "duration": 3.4
     }
-  ]
+  ],
+  "requireGroundedStage": true
 }

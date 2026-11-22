@@ -27,6 +27,7 @@ namespace DeadlyJenga.DevTools.Editor
         public float warmup = .75f;
         public Vector3 stageOffset;
         public bool useMapAnchor;
+        public bool requireGroundedStage;
         public Vector3 mapAnchor;
         public string ffmpeg = "ffmpeg", replaySource = "";
         public bool observedMatch;
@@ -907,9 +908,16 @@ namespace DeadlyJenga.DevTools.Editor
             var world = Services.World;
             if (world == null || world.Blocks.Count == 0)
                 throw new InvalidOperationException("The requested map did not provide the active block world.");
-            Vector3 stage = (plan.useMapAnchor ? world.Center + plan.mapAnchor : Stage(world)) + plan.stageOffset;
-            Rigidbody fightDeck = plan.fightSet && !existingMatch ? BuildFightDeck(world, stage) : null;
             bool replay = !string.IsNullOrEmpty(plan.replaySource);
+            Vector3 stage = (plan.useMapAnchor ? world.Center + plan.mapAnchor : Stage(world)) + plan.stageOffset;
+            string stageSupport = "";
+            if (plan.requireGroundedStage && !plan.useMapAnchor && !existingMatch && !replay &&
+                !plan.fightSet && !plan.rooftopBattleSet && plan.stageOffset == Vector3.zero)
+            {
+                stage = GroundedStage(world, plan, out stageSupport);
+                Debug.Log(stageSupport);
+            }
+            Rigidbody fightDeck = plan.fightSet && !existingMatch ? BuildFightDeck(world, stage) : null;
             var towerSet = plan.rooftopBattleSet && !existingMatch ? BuildBattleSet(world, stage) : null;
             var actors = existingMatch ? CurrentCast() : new Dictionary<string, Actor>(StringComparer.Ordinal);
             foreach (var track in plan.cast)
@@ -976,7 +984,7 @@ namespace DeadlyJenga.DevTools.Editor
             for (int i = 0; i < frames.Length; i++)
                 Directory.CreateDirectory(frames[i] = Path.Combine(job.folder, $"shot-{i + 1:D2}"));
             File.WriteAllText(Path.Combine(job.folder, "cues.txt"), "Simulation seconds and executed cues\n");
-            File.WriteAllText(Path.Combine(job.folder, "take.txt"), $"Map={plan.map}\nStage={stage}\nBlocks={world.Blocks.Count}\nCast={actors.Count}\nFPS={plan.fps}\n");
+            File.WriteAllText(Path.Combine(job.folder, "take.txt"), $"Map={plan.map}\nStage={stage}\nBlocks={world.Blocks.Count}\nCast={actors.Count}\nFPS={plan.fps}\n" + stageSupport);
             try
             {
                 if (plan.environmentOnly && session.Player is { } player && player.gameObject)
@@ -1193,6 +1201,87 @@ namespace DeadlyJenga.DevTools.Editor
                 .Select(c => c.bounds.max.y).DefaultIfEmpty(block.position.y + .5f).Max();
             return new Vector3(block.position.x, top + .025f, block.position.z);
         }
+
+        static Vector3 GroundedStage(IWorldQuery world, TheatrePlan plan, out string report)
+        {
+            const float sampleSpacing = .5f;
+            const float footprintRadius = .16f;
+            const float heightTolerance = .09f;
+            var samples = new List<Vector3>();
+            foreach (var actor in plan.cast)
+            {
+                Vector3 from = actor.start;
+                samples.Add(from);
+                foreach (var move in actor.moves ?? Array.Empty<TheatrePlan.TheatreMove>())
+                {
+                    float distance = Vector3.ProjectOnPlane(move.to - from, Vector3.up).magnitude;
+                    if (distance > 120f) throw new InvalidOperationException("Grounded approach exceeds the theatre sampling range.");
+                    int steps = Mathf.Max(1, Mathf.CeilToInt(distance / sampleSpacing));
+                    for (int i = 1; i <= steps; i++)
+                        samples.Add(Vector3.Lerp(from, move.to, i / (float)steps));
+                    from = move.to;
+                }
+            }
+
+            Physics.SyncTransforms();
+            var blocks = new HashSet<Rigidbody>(world.Blocks.Where(body => body && body.gameObject.activeInHierarchy));
+            float rayTop = Mathf.Max(world.TopHeight, blocks.SelectMany(body => body.GetComponentsInChildren<Collider>())
+                .Where(collider => collider.enabled && !collider.isTrigger)
+                .Select(collider => collider.bounds.max.y).DefaultIfEmpty(world.TopHeight).Max()) + 3f;
+            Vector3[] footprint = { Vector3.zero, Vector3.right * footprintRadius, Vector3.left * footprintRadius,
+                                    Vector3.forward * footprintRadius, Vector3.back * footprintRadius };
+            var center = world.Center;
+            var midpoint = new Vector2((samples.Min(p => p.x) + samples.Max(p => p.x)) * .5f,
+                                       (samples.Min(p => p.z) + samples.Max(p => p.z)) * .5f);
+            var origins = new HashSet<Vector2>();
+            foreach (var point in blocks.Select(body => body.position).Append(center))
+            {
+                // Center the route on each block, then allow small translations along its top.
+                for (int x = -2; x <= 2; x++)
+                for (int z = -2; z <= 2; z++)
+                    origins.Add(new Vector2(point.x + x * sampleSpacing, point.z + z * sampleSpacing) - midpoint);
+            }
+
+            var candidates = new List<Vector3>();
+            foreach (var origin in origins)
+            {
+                if (Support(origin.x + samples[0].x, origin.y + samples[0].z, out var hit))
+                    candidates.Add(new Vector3(origin.x, hit.point.y - samples[0].y, origin.y));
+            }
+            foreach (var candidate in candidates.OrderByDescending(p => Mathf.RoundToInt(p.y * 5f))
+                .ThenBy(p => Vector3.ProjectOnPlane(p - center, Vector3.up).sqrMagnitude))
+            {
+                float lowest = candidate.y, highest = candidate.y;
+                if (!samples.All(sample => footprint.All(offset => Measure(candidate + sample + offset)))) continue;
+                var stage = new Vector3(candidate.x, highest + .02f, candidate.z);
+                report = FormattableString.Invariant(
+                    $"GroundedProbes={samples.Count * footprint.Length} Spacing={sampleSpacing:F2}m Radius={footprintRadius:F2}m SupportHeightDelta={highest - lowest:F3}m StageFloor={highest:F3}m\n");
+                return stage;
+
+                bool Measure(Vector3 point)
+                {
+                    if (!Support(point.x, point.z, out var hit)) return false;
+                    float floor = hit.point.y - (point.y - candidate.y);
+                    lowest = Mathf.Min(lowest, floor);
+                    highest = Mathf.Max(highest, floor);
+                    return highest - lowest <= heightTolerance;
+                }
+            }
+            throw new InvalidOperationException($"No stable block roof supports the full cast approach on {plan.map} " +
+                $"({samples.Count} sample positions, {candidates.Count} candidate stages).");
+
+            bool Support(float x, float z, out RaycastHit hit)
+            {
+                if (!Physics.Raycast(new Vector3(x, rayTop, z), Vector3.down, out hit, Mathf.Infinity,
+                    1 << Layers.Block, QueryTriggerInteraction.Ignore) || hit.normal.y < .95f || !hit.rigidbody)
+                    return false;
+                bool worldBlock = blocks.Contains(hit.rigidbody) ||
+                    Climbables.TryGet(hit.collider, out var climbable) && blocks.Contains(climbable.Body);
+                return worldBlock && hit.rigidbody.GetPointVelocity(hit.point).sqrMagnitude <= .01f &&
+                    hit.rigidbody.angularVelocity.sqrMagnitude <= .01f;
+            }
+        }
+
         static Rigidbody BuildFightDeck(IWorldQuery world, Vector3 stage)
         {
             var deck = GameObject.CreatePrimitive(PrimitiveType.Cube);

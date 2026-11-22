@@ -72,7 +72,8 @@ def make_shot(style, start, duration, pair):
     if pair and style == "wide":
         origin, end, look, fov = (4.3, 2.6, -2.1), (3.9, 2.4, -1.8), (0, .8, 0), 49
     elif pair and style == "close":
-        origin, end = (-2.6, 1.55, -.9), (-2.35, 1.45, -.8)
+        # Keep both cameras on the same side of the line between the performers.
+        origin, end = (2.6, 1.55, -.9), (2.35, 1.45, -.8)
     shot = {
         "name": f"{style.replace('_', ' ').title()} scout",
         "start": start, "duration": duration, "fov": fov,
@@ -358,6 +359,18 @@ def stage(brief):
     }
     if environment:
         recipe["environmentOnly"] = True
+    if any(cue.get("requireTargetContact") for cue in cues):
+        recipe["requireGroundedStage"] = True
+        if styles == ["wide", "close"] and not any("at_seconds" in angle for angle in angles):
+            contact = next(cue["at"] for cue in cues if cue.get("requireTargetContact"))
+            change = round((contact - .3) * fps)
+            if 4 <= change <= render_frames - 4:
+                shots[0]["duration"] = change / fps
+                shots[1]["start"] = change / fps
+                shots[1]["duration"] = (render_frames - change) / fps
+                for item, shot in zip(recipe["edit"], shots):
+                    item["duration"] = shot["duration"]
+                choices.append("Cut to the closer view just before the punch and hold it through recovery.")
     if silent:
         recipe["muteDelivery"] = True
     return recipe, report

@@ -97,7 +97,8 @@
   "choices": [
     "No map selected. Scout defaults to Candy Castle.",
     "Camera presets use stage-relative or actor-relative positions; confirm composition in the scout.",
-    "Survivors approach from opposing directions and stop about 1.1 metres apart before the punch cue."
+    "Survivors approach from opposing directions and stop about 1.1 metres apart before the punch cue.",
+    "Cut to the closer view just before the punch and hold it through recovery."
   ],
   "cue_attempts": [
     {
