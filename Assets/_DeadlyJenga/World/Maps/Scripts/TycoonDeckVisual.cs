@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash, Peach, Mint, Basin, Tube, Gate, Railed, Awning, Parasol, Bucket, LoosePeach, Walk }
+    public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash, Peach, Mint, Basin, Tube, Gate, Railed, Awning, Parasol, Bucket, LoosePeach, Walk, Launch }
 
     public readonly struct TycoonDeckProfile
     {
@@ -33,8 +33,10 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<Vector2> uv = new List<Vector2>();
         readonly List<int>[] faces = {new List<int>(),new List<int>(),new List<int>(),new List<int>()};
 
+        Vector3 vertical;
         public void Build(TycoonDeckProfile profile, Material shell, Material accent, Vector3 size)
         {
+            vertical = transform.InverseTransformVector(Vector3.up);
             var a = profile.StartLeft;
             var b = profile.StartRight;
             var c = profile.EndLeft;
@@ -55,13 +57,13 @@ namespace DeadlyJenga.CastlePrototype
                         {
                             float t=step/5f;
                             return Vector3.Lerp(inner,outer,Mathf.Sin(t*Mathf.PI*.5f))
-                                +Vector3.up*((.02f+.76f*(1-Mathf.Cos(t*Mathf.PI*.5f)))/size.y);
+                                +vertical*(.02f+.76f*(1-Mathf.Cos(t*Mathf.PI*.5f)));
                         }
                         var n=Bank(innerStart,start,k); var f=Bank(innerEnd,end,k);
                         var n2=Bank(innerStart,start,k+1); var f2=Bank(innerEnd,end,k+1);
                         if(right) Quad(n,f,f2,n2,0); else Quad(n,n2,f2,f,0);
                     }
-                    var rise=Vector3.up*(.78f/size.y);
+                    var rise=vertical*.78f;
                     if(right) Quad(start,start+rise,end+rise,end,0);
                     else Quad(start,end,end+rise,start+rise,0);
                 }

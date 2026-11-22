@@ -61,15 +61,7 @@ namespace DeadlyJenga.CastlePrototype
                             Slab(side*(w-.35f)/2,0,(i-2.5f)*d/6,.35f,.35f,d/6,i%2==0?2:1);
                     break;
                 case TycoonDeckFinish.Walk:
-                    for(int i=0;i<Mathf.CeilToInt(d/1.6f);i++)
-                        Slab(0,.005f,-d/2+i*1.6f+.08f,w,.025f,.11f,2);
-                    foreach(int side in new[]{-1,1})
-                    {
-                        float x=side*(w-.2f)/2;
-                        Slab(x,1.15f,0,.16f,.16f,d,2);
-                        Slab(x,.56f,0,.11f,.11f,d,2);
-                        for(int k=0;k<=4;k++) Slab(x,0,(k/4f-.5f)*(d-.3f),.18f,1.32f,.18f,2);
-                    }
+                    WalkRails(profile,size);
                     break;
                 case TycoonDeckFinish.Railed:
                     ArchSpandrels(w,d);
@@ -77,6 +69,7 @@ namespace DeadlyJenga.CastlePrototype
                     for(int i=0;i<7;i++)
                     {
                         float x=(i-3)*w/7;
+                        if(Mathf.Abs(x)<2.7f) continue;
                         var a=LocalPoint(x-.44f,1.12f,-d/2-.07f);
                         var b=LocalPoint(x+.44f,1.12f,-d/2-.07f);
                         var tip=LocalPoint(x,.32f,-d/2-.12f);
@@ -85,8 +78,14 @@ namespace DeadlyJenga.CastlePrototype
                     foreach(int side in new[]{-1,1})
                     {
                         float z=side*(d-.2f)/2;
-                        Slab(0,1.15f,z,w,.16f,.15f,2);
-                        Slab(0,.55f,z,w,.12f,.12f,2);
+                        foreach(int end in new[]{-1,1})
+                        {
+                            float length=(w-5.4f)*.5f;
+                            float mid=end*(w-length)*.5f;
+                            Slab(mid,1.15f,z,length,.16f,.15f,2);
+                            Slab(mid,.55f,z,length,.12f,.12f,2);
+                            Slab(end*2.75f,0,z,.16f,1.32f,.16f,2);
+                        }
                         foreach(int end in new[]{-1,1}) Slab(end*(w-.24f)/2,0,z,.24f,1.4f,.24f,2);
                     }
                     break;
@@ -128,7 +127,25 @@ namespace DeadlyJenga.CastlePrototype
                     for(int i=0;i<16;i++)
                         Wedge(i,16,0,3.8f,2.25f,3.1f,i%2==0?3:2);
                     break;
+                case TycoonDeckFinish.Launch:
+                    // Color lanes share one queue apron. Arrows face the slide entrances.
+                    for(int lane=0;lane<4;lane++)
+                    {
+                        float x=-8.4f+lane*5.6f;
+                        for(int j=0;j<2;j++)
+                        {
+                            float z=-2+j*2.4f;
+                            var tip=LocalPoint(x,.03f,z-.65f);
+                            var left=LocalPoint(x-.85f,.03f,z+.24f);
+                            var notch=LocalPoint(x,.03f,z-.18f);
+                            var right=LocalPoint(x+.85f,.03f,z+.24f);
+                            Quad(tip,left,notch,right,2);
+                            Quad(right,notch,left,tip,2);
+                        }
+                    }
+                    break;
                 case TycoonDeckFinish.Bucket:
+                    SummitSails();
                     foreach (int side in new[]{-1,1})
                     {
                         Slab(side*4.3f,0,0,.65f,6.3f,.85f,0);
@@ -177,6 +194,66 @@ namespace DeadlyJenga.CastlePrototype
             }
             spill.FinishMesh(palette);
             frame.gameObject.AddComponent<TycoonBucketMotion>().Initialize(bowl.transform,spill.transform);
+        }
+
+        void SummitSails()
+        {
+            // Twin striped fabric wings leave the tipping bucket visible between them.
+            for(int side=-1;side<=1;side+=2)
+            {
+                Slab(side*11,0,1.3f,.32f,7.7f,.32f,2);
+                Slab(side*5,0,1.3f,.25f,4.75f,.25f,2);
+                Slab(side*10,0,-1.65f,.25f,4.7f,.25f,2);
+                Vector3 Cloth(float u,float v)
+                {
+                    float outer=11-v, inner=5+v*2.2f;
+                    float height=Mathf.Lerp(4.75f-v,7.7f-3*v,u)-.65f*Mathf.Sin(Mathf.PI*u);
+                    return LocalPoint(side*Mathf.Lerp(inner,outer,u),height,1.3f-2.95f*v);
+                }
+                for(int i=0;i<9;i++)
+                {
+                    float a=i/9f,b=(i+1)/9f;
+                    var n=Cloth(a,0);var f=Cloth(b,0);var e=Cloth(b,1);var t=Cloth(a,1);
+                    int mat=i%2==0?2:3;
+                    Quad(n,f,e,t,mat);Quad(t,e,f,n,mat);
+                }
+                Slab(side*11,7.7f,1.3f,.14f,1.65f,.14f,2);
+                var hi=LocalPoint(side*11,9.3f,1.3f);
+                var low=LocalPoint(side*11,8.2f,1.3f);
+                var flag=LocalPoint(side*13,8.85f,1.1f);
+                Quad(hi,low,flag,flag,1);Quad(low,hi,flag,flag,1);
+            }
+        }
+
+        void WalkRails(TycoonDeckProfile p, Vector3 size)
+        {
+            Vector3 Surface(float across,float along) => Vector3.Lerp(
+                Vector3.Lerp(p.StartLeft,p.StartRight,across), Vector3.Lerp(p.EndLeft,p.EndRight,across),along);
+            int count=Mathf.Max(1,Mathf.CeilToInt(size.z/1.6f));
+            for(int j=0;j<count;j++)
+            {
+                float t=(j+.45f)/count, half=Mathf.Min(.04f,.05f/size.z);
+                Prism(Surface(0,t-half)+vertical*.025f,Surface(1,t-half)+vertical*.025f,
+                    Surface(0,t+half)+vertical*.025f,Surface(1,t+half)+vertical*.025f,.022f/size.y,2);
+            }
+            foreach(int side in new[]{0,1})
+            {
+                float mid=side==0?.13f/size.x:1-.13f/size.x, half=.075f/size.x;
+                foreach(float h in new[]{.66f,1.28f})
+                    Prism(Surface(mid-half,0)+vertical*h,Surface(mid+half,0)+vertical*h,
+                        Surface(mid-half,1)+vertical*h,Surface(mid+half,1)+vertical*h,.13f/size.y,2);
+                for(int j=0;j<=4;j++)
+                {
+                    float t=.015f+.97f*j/4;
+                    var q=Surface(mid,t);
+                    var dx=Vector3.right*.085f/size.x; var dz=Vector3.forward*.085f/size.z;
+                    var top=q+vertical*1.28f;
+                    Quad(q-dx-dz,q+dx-dz,top+dx-dz,top-dx-dz,2);
+                    Quad(q+dx+dz,q-dx+dz,top-dx+dz,top+dx+dz,2);
+                    Quad(q-dx+dz,q-dx-dz,top-dx-dz,top-dx+dz,2);
+                    Quad(q+dx-dz,q+dx+dz,top+dx+dz,top+dx-dz,2);
+                }
+            }
         }
 
         void MakeBowl()
@@ -234,7 +311,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 float angle=i*Mathf.PI/12;
                 return Vector3.Lerp(left,right,(1-Mathf.Cos(angle))/2)
-                    +Vector3.up*(Mathf.Sin(angle)*dimensions.x*.50f/dimensions.y);
+                    +vertical*(Mathf.Sin(angle)*dimensions.x*.50f);
             }
             for(int i=0;i<12;i++)
             {

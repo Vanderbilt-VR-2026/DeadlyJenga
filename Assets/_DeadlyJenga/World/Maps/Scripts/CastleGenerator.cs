@@ -396,6 +396,9 @@ namespace DeadlyJenga.CastlePrototype
                         mesh.transform.SetParent(block.visualRoot,false);
                         mesh.AddComponent<TycoonDeckVisual>().Build(p.DeckProfile,block.sectionMaterial,aquaMaterial,p.BlockSize(settings));
                     }
+                    var profile = p.DeckProfile;
+                    if(profile.Finish is TycoonDeckFinish.Flume or TycoonDeckFinish.Tube or TycoonDeckFinish.DryChute or TycoonDeckFinish.OpenDeck or TycoonDeckFinish.Walk)
+                        block.FitTraversalPanel(profile.StartLeft,profile.StartRight,profile.EndLeft,profile.EndRight);
                     block.SyncSurface();
                 }
                 var size=p.BlockSize(settings);

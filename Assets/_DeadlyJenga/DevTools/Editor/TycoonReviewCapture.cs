@@ -130,6 +130,7 @@ namespace DeadlyJenga.DevTools.Editor
                     ?.GetType("DeadlyJenga.World.Hazards.Editor.HazardValidation")?.GetMethod("ValidateCatalog");
                 if(validation == null) throw new InvalidOperationException("Disaster catalog validation is unavailable.");
                 validation.Invoke(null,null);
+                CheckTraversalSurfaces(world,pieces);
                 Capture(world,camera);
                 int loose = pieces.FindIndex(p => p.DeckProfile.Finish == TycoonDeckFinish.LoosePeach);
                 int support = pieces.FindIndex(p => (p.Position - new Vector3(0,5.8f,-41.8f)).sqrMagnitude < .001f);
@@ -151,6 +152,65 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 if (!observingPull) EditorApplication.ExitPlaymode();
             }
+        }
+
+        static void CheckTraversalSurfaces(CastleGenerator world,System.Collections.Generic.List<CastlePlacement> pieces)
+        {
+            Physics.SyncTransforms();
+            int checkedPoints=0;
+            float worst=0;
+            for(int i=0;i<pieces.Count;i++)
+            {
+                var p=pieces[i].DeckProfile;
+                if(p.Finish is not (TycoonDeckFinish.Flume or TycoonDeckFinish.DryChute or TycoonDeckFinish.Tube or TycoonDeckFinish.OpenDeck or TycoonDeckFinish.Walk)) continue;
+                var body=world.Bodies[i].transform;
+                foreach(float along in new[]{.035f,.5f,.965f})
+                foreach(float across in new[]{.08f,.5f,.92f})
+                {
+                    var local=Vector3.Lerp(Vector3.Lerp(p.StartLeft,p.StartRight,across),
+                        Vector3.Lerp(p.EndLeft,p.EndRight,across),along);
+                    var pos=body.TransformPoint(local);
+                    var ray=new Ray(pos+Vector3.up*1.25f,Vector3.down);
+                    bool found=false;
+                    foreach(var hit in Physics.RaycastAll(ray,2.5f,1<<Layers.Surface,QueryTriggerInteraction.Ignore))
+                    {
+                        if(!Climbables.TryGet(hit.collider,out var climb) || climb.Body!=world.Bodies[i]) continue;
+                        if(hit.collider is not MeshCollider) continue;
+                        worst=Mathf.Max(worst,Mathf.Abs(hit.point.y-pos.y));
+                        found=true;break;
+                    }
+                    if(!found) throw new InvalidOperationException($"Missing {p.Finish} traversal surface at piece {i}, along={along}, across={across}");
+                    checkedPoints++;
+                }
+            }
+            Report($"Traversal panel samples={checkedPoints}; max vertical surface deviation={worst:F3} m");
+            // Probe both sides of transfers in map coordinates with the live survivor collision mask.
+            int transfers=0;
+            void Transfer(Vector3 edge,Vector3 direction,float tolerance)
+            {
+                foreach(float offset in new[]{-.18f,.18f})
+                {
+                    var pos=world.transform.TransformPoint(edge+direction*offset);
+                    bool supported=Physics.RaycastAll(pos+Vector3.up*.6f,Vector3.down,1.3f,1<<Layers.Surface)
+                        .Any(hit=>Mathf.Abs(hit.point.y-pos.y)<tolerance && hit.normal.y>.4f);
+                    if(!supported) throw new InvalidOperationException($"Uncovered route transfer at {edge} offset {offset}");
+                }
+                transfers++;
+            }
+            foreach(float x in new[]{-8.4f,-2.8f,2.8f,8.4f})
+            {
+                Transfer(new Vector3(x,60,-12.2f),Vector3.forward,.18f);
+                Transfer(new Vector3(x,60,-9.2f),Vector3.forward,.18f);
+            }
+            foreach(float x in new[]{-18f,18f})
+                Transfer(new Vector3(x,18.6f,-27.5f),Vector3.forward,.27f);
+            Transfer(new Vector3(-30.5f,26,-3.5f),Vector3.forward,.22f);
+            Transfer(new Vector3(-6.25f,60,3),Vector3.right,.2f);
+            var stair=world.transform.TransformPoint(new Vector3(-4.75f,59.4f,3));
+            if(Physics.Raycast(stair+Vector3.up*.22f,Vector3.up,2,1<<Layers.Surface))
+                throw new InvalidOperationException("Final flight headroom is obstructed");
+            Report($"Verified {transfers} two-sided transfers and summit stairwell clearance.");
+            if(checkedPoints==0 || worst>.42f) throw new InvalidOperationException("Traversal panel surface deviation exceeds tolerance.");
         }
 
         static void Capture(CastleGenerator world, Camera source)
@@ -188,6 +248,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Shot("03-Core-junction",new Vector3(1,19.7f,-16.5f),new Vector3(7,22,-3));
                 Shot("04-West-flume",new Vector3(-34,23,-29),new Vector3(-19,26,-4));
                 Shot("05-East-terrace",new Vector3(38,19.7f,-39),new Vector3(29,22,-13));
+                Shot("08-Launch-deck",new Vector3(-23,70,24),new Vector3(0,61,-4));
                 Shot("07-Summit-bucket",new Vector3(16,68,-32),new Vector3(0,64,1));
                 Shot("06-Plank-court",new Vector3(1,8.7f,-43),new Vector3(-4,15,-22));
             }
