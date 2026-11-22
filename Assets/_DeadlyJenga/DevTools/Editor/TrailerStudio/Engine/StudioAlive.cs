@@ -351,6 +351,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     // Hands a person performed: only a little life on top.
                     hand.position += (micro * .6f + lift) * (size * handAmt * (1 - free) * (1 - weapon));
                     if (free <= .001f) continue;
+                    float poseWeight = Mathf.Clamp01(handAmt * free);
                     var (fromOffset, fromAngles, fromCurl) = HandPose(was, side);
                     var (toOffset, toAngles, toCurl) = HandPose(now, side);
                     Vector3 offset = Vector3.Lerp(fromOffset, toOffset, hu) + micro + lift;
@@ -366,15 +367,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         angles = Vector3.Lerp(angles, new Vector3(60 - run * 25 - swing * 15, -side * 10, side * 30), moving);
                         curl = Mathf.Lerp(curl, .55f + .3f * run, moving);
                     }
-                    var target = new CandyHandPose
+                    hand.position = Vector3.Lerp(hand.position, body.head + torso * (offset * size), poseWeight);
+                    hand.rotation = Quaternion.Slerp(hand.rotation, torso * Quaternion.Euler(angles), poseWeight);
+
+                    // Blend the fingers with the wrist, including when a weapon takes over the hand.
+                    var fingers = CandyHandSkeleton.Rest(left, curl);
+                    if (poseWeight < 1)
                     {
-                        position = body.head + torso * (offset * size),
-                        rotation = torso * Quaternion.Euler(angles),
-                        skeleton = CandyHandSkeleton.Rest(left, curl), tracked = hand.tracked, skeletonTracked = true
-                    };
-                    hand.position = Vector3.Lerp(hand.position, target.position, handAmt * free);
-                    hand.rotation = Quaternion.Slerp(hand.rotation, target.rotation, handAmt * free);
-                    if (handAmt * free > .5f) { hand.skeleton = target.skeleton; hand.skeletonTracked = true; }
+                        var recordedFingers = hand.skeletonTracked ? hand.skeleton : CandyHandSkeleton.Rest(left, .12f);
+                        for (int joint = 0; joint < 20; joint++)
+                            fingers.SetJoint(joint, Vector3.Lerp(recordedFingers.Joint(joint), fingers.Joint(joint), poseWeight));
+                    }
+                    hand.skeleton = fingers;
+                    hand.skeletonTracked = true;
                 }
             }
             frame.body = body;

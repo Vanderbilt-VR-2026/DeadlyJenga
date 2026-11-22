@@ -351,43 +351,96 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Note($"Lowered guard: {added} hold layers on the hero.");
         }
 
+        static void ContactCameras(StudioStage stage, Plan plan, Events events, List<Shot> shots, List<StudioCameraTrack> cameras)
+        {
+            const int lead = 48, tail = 72;
+            int contact = events.punch2;
+            if (contact < 0) throw new InvalidOperationException("The take has no second punch event to review.");
+            var world = stage.tape.FindType(WorldTrack.Id)?.ActiveTake;
+            if (world == null || !world.Covers(contact - lead - Handle) || !world.Covers(contact + tail + Handle - 1))
+                throw new InvalidOperationException("The take does not cover the full contact review.");
+
+            int start = contact - TapeFrame(0) - lead;
+            var pov = new Shot { id = "POV", cutIn = start, cutOut = start + lead + tail, key = lead };
+            var witness = new Shot { id = "Witness", cutIn = pov.cutIn, cutOut = pov.cutOut, key = lead };
+            var eye = ShotCam(pov, 24);
+            eye.behavior = "firstPerson";
+            eye.subject = "hero";
+            eye.fpFieldOfView = 68;
+            eye.fpLevel = true;
+            eye.fpOwnBody = true;
+            Vector3 hero = FeetAt(stage, "hero", contact, plan), rival = FeetAt(stage, "dragon", contact, plan);
+            Vector3 mid = (hero + rival) * .5f;
+            Vector3 across = Vector3.Cross(Vector3.up, Flat(rival - hero));
+            Vector3 position = Spot(mid, 3.4f, .65f, new[] { hero, rival }, across);
+            var side = ShotCam(witness, 24);
+            StudioMoves.LockedOff(side, side.start, stage.ToStage(position), P(stage, mid + Vector3.up * .5f));
+            shots.Clear();
+            shots.AddRange(new[] { pov, witness });
+            cameras.Clear();
+            cameras.AddRange(new[] { eye, side });
+            File.WriteAllText(Path.Combine(Folder, "contact.txt"),
+                $"Recorded punch cue or inferred health drop at tape frame {contact} ({Fps} fps).\n" +
+                $"Both cameras start at tape frame {contact - lead - Handle}; review marker at output frame {lead + Handle}.\n");
+        }
+
         static IEnumerable<int> RenderShots(StudioStage stage, Plan plan, Events e, string mode)
         {
             var shots = MakeShots(e);
             var cameras = ShotCameras(stage, plan, e, shots);
-            stage.set.cameras.Clear(); stage.set.cameras.AddRange(cameras);
             stage.set.alive.smooth = .12f;   // the driven cast's recorded heads and hands, averaged over about 0.12 s (StudioSmooth)
             AddLayers(stage, plan, e, shots);
+            if (mode == "contactReview") ContactCameras(stage, plan, e, shots, cameras);
+            stage.set.cameras.Clear(); stage.set.cameras.AddRange(cameras);
             StudioLibrary.Save(stage.set);
             StudioRun.Refresh();
             yield return 0;
-            try { MotionTable(stage, shots, cameras); } catch (Exception error) { Note("Motion table failed: " + error); }
-            try { MotionDump(stage, shots); } catch (Exception error) { Note("Joint table failed: " + error); }
+            if (mode != "contactReview")
+            {
+                try { MotionTable(stage, shots, cameras); } catch (Exception error) { Note("Motion table failed: " + error); }
+                try { MotionDump(stage, shots); } catch (Exception error) { Note("Joint table failed: " + error); }
+            }
             if (mode == "motion") yield break;
             bool final = mode.StartsWith("final");
             if (mode == "finalA") cameras = cameras.Where(c => c.id == "S01" || c.id == "S02" || c.id == "S03").ToList();
             if (mode == "finalB") cameras = cameras.Where(c => c.id == "S04" || c.id == "S05" || c.id == "S06").ToList();
             if (mode == "finalC") cameras = cameras.Where(c => string.CompareOrdinal(c.id, "S07") >= 0).ToList();
             var settings = final
-                ? new StudioRenderSettings { width = 1920, height = 1080, fps = Fps, subFrames = 1, format = "png", cinema = true, filmstrip = 12 }
-                : mode == "preview"
-                    ? new StudioRenderSettings { width = 640, height = 360, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 10 }
-                    : new StudioRenderSettings { width = 480, height = 270, fps = Fps, subFrames = 1, format = "png", cinema = false, filmstrip = 8 };
+                ? new StudioRenderSettings { width = 1920, height = 1080, fps = Fps, subFrames = 1, format = "mp4", cinema = true, filmstrip = 12 }
+                : mode == "preview" || mode == "contactReview"
+                    ? new StudioRenderSettings { width = 640, height = 360, fps = Fps, subFrames = 1, format = "mp4", cinema = false, filmstrip = 10 }
+                    : new StudioRenderSettings { width = 480, height = 270, fps = Fps, subFrames = 1, format = "mp4", cinema = false, filmstrip = 8 };
             string renders = Path.Combine(Folder, "renders");
             var clock = Stopwatch.StartNew();
             var hidden = new HashSet<Renderer>();
             void Tidy(Camera _) => HideStrays(hidden);
             StudioRender.BeforeFrame += Tidy;
-            StudioRender.Start(cameras, settings, renders);
-            try { while (StudioRender.Running) yield return 0; }
+            try
+            {
+                StudioRender.Start(cameras, settings, renders);
+                while (StudioRender.Running) yield return 0;
+            }
             finally { StudioRender.BeforeFrame -= Tidy; }
             Note($"Render {settings.width}x{settings.height}: {StudioRender.Progress} in {clock.Elapsed.TotalSeconds:0} s.");
-            KeepShots(StudioRender.Results.ToList(), shots);
-            string audio = StudioRender.AudioFile(stage.set.id);
+            var results = StudioRender.Results.ToList();
+            if (results.Count != cameras.Count)
+                throw new InvalidOperationException($"Expected {cameras.Count} completed shots, received {results.Count}. {StudioRender.Progress}");
+            foreach (var camera in cameras)
+            {
+                var matches = results.Where(r => r.cameraId == camera.id).ToList();
+                int frames = StudioCameras.Timeline(camera, stage.set, settings.fps).Count;
+                if (matches.Count != 1) throw new InvalidOperationException($"Missing or duplicate render for {camera.id}.");
+                var result = matches[0];
+                if (result.frames != frames || result.fps != settings.fps || result.width != settings.width ||
+                    result.height != settings.height || !string.IsNullOrEmpty(result.error) ||
+                    !File.Exists(result.movie) || new FileInfo(result.movie).Length == 0)
+                    throw new InvalidOperationException($"Incomplete render for {camera.id}: {result.frames}/{frames} frames. {result.error}");
+            }
+            KeepShots(results, shots);
+            string audio = WorldTakeAudio(stage);
             if (File.Exists(audio)) File.Copy(audio, Path.Combine(Folder, "tape.wav"), true);
             File.WriteAllText(Path.Combine(Folder, "shots.txt"), string.Join("\n", shots.Select(s => $"{s.id} {s.cutIn} {s.cutOut} {s.key} {s.shift} {Handle}")) + "\n");
             File.WriteAllText(Path.Combine(Folder, "set-rendered.json"), JsonUtility.ToJson(stage.set, true));
-            if (Directory.Exists(renders)) Directory.Delete(renders, true);
         }
 
         // Left-over weapon impact views from the live match draw as big discs in loaded takes: off before every frame.
