@@ -203,7 +203,8 @@ namespace DeadlyJenga.CastlePrototype
             var rules = P.Text(reader, 4096); (session.Player as ISurvivorSettings)?.LoadStaminaRules(rules);
             ReceiveWelcome(data);
         }
-        public byte[] FusionCaptureWorld() => P.EncodeWorld(CaptureWorld());
+        public byte[] FusionCaptureWorld() => FusionCaptureWorld(includeBots: true);
+        internal byte[] FusionCaptureWorld(bool includeBots) => P.EncodeWorld(CaptureWorld(includeBots));
         public byte[] FusionCapturePlayer() => P.Encode(P.Player, w => P.Write(w, LocalActor()));
         public P.Actor[] FusionCaptureLiveActors()
         {
@@ -531,7 +532,7 @@ namespace DeadlyJenga.CastlePrototype
         // A joined player's character, as the host currently has it (a host-simulated hand sends its real bones).
         P.Actor Rebroadcast(string actorID, P.Actor stored) =>
             views.TryGetValue(actorID, out var view) && NetworkActors.Alive(view) ? P.Capture(actorID, view) : stored;
-        P.Snapshot CaptureWorld()
+        P.Snapshot CaptureWorld(bool includeBots = true)
         {
             var w = Synced; var blocks = World.Blocks;
             var s = new P.Snapshot { revision = w.Revision, settings = w.SaveLayout(), origin = new P.Pose(w.Root.position, w.Root.rotation), originScale = w.Root.localScale,
@@ -544,6 +545,11 @@ namespace DeadlyJenga.CastlePrototype
             var actors = new List<P.Actor> { LocalActor() };
             foreach (var c in connections) if (c.actor != null) actors.Add(Rebroadcast(c.id, c.actor));
             foreach (var pair in fusionActors) actors.Add(Rebroadcast(pair.Key, pair.Value));
+            if (!includeBots)
+            {
+                s.actors = actors.ToArray();
+                return s;
+            }
             // Bots and AI hands simulated here.
             var captured = new HashSet<INetworkActor>();
             foreach (var local in NetworkActors.Local)
