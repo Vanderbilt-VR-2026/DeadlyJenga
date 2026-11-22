@@ -143,7 +143,7 @@ namespace DeadlyJenga.DevTools.Editor
                     }
                     camera.transform.position=look+offset;camera.transform.LookAt(look);
                     fogFocus=look;fogRadius=b.extents.magnitude;
-                    Render(camera,800,500,Path.Combine(job.gallery,file+".png"));
+                    Render(camera,1600,1000,Path.Combine(job.gallery,file+".png"));
                 }
                 Shot("rainbow waterfall above","spring-"+rainbowFrame.ToString("D3"));
                 if(rainbowFrame==0 || rainbowFrame==17)

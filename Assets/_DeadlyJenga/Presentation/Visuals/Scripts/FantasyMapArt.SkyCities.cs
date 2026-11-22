@@ -404,7 +404,7 @@ namespace DeadlyJenga.Presentation
             var go=Model("Visual · spring island above",m,transform,SkyMaterials);
             go.transform.localPosition=L(world);go.transform.localRotation=LR(Quaternion.LookRotation(-dir));
             // Lands on the cloud skirt around our island (about 11 m below the streets).
-            RainbowFall(go.transform,new Vector3(0,-1,r+1),22,push,height+10,"above");
+            RainbowFall(go.transform,new Vector3(0,-1,r+1),22,push,height+3,"above");
         }
 
         // A seven-band rainbow sheet pouring forward (+z of its parent) off a lip, curving down,

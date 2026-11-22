@@ -27,30 +27,16 @@ namespace DeadlyJenga.Presentation
         void Splash(Transform parent,Vector3 foot,float width,string label)
         {
             var mesh=new ArtMesh();
-            // The crest folds into a foamy tongue under the sheet. Droplets rise out of
-            // this moving contact patch and fall back through its surface.
-            for(int i=0;i<11;i++)
+            mesh.SyrupCrown(width);
+            for(int i=0;i<46;i++)
             {
-                float a=i*2.399963f, r=Mathf.Sqrt(i/11f);
-                var p=new Vector3(Mathf.Cos(a)*width*r*.47f,-width*.05f,Mathf.Sin(a)*width*r*.22f);
-                mesh.Sphere(p,new Vector3(width*.19f,width*.115f,width*.14f),0,
-                    Color.Lerp(Color.white,Spectrum[i%7],.21f),6,10);
-                mesh.WaterData(new Vector4(i*.19f,a,3,width));
-            }
-            for(int i=0;i<32;i++)
-            {
-                float phase=Mathf.Repeat(i*.618034f,1),angle=i*2.399963f;
-                float reach=width*(.27f+.51f*Hash(new Vector3(i,2,9)));
-                var p=new Vector3(Mathf.Sin(i*7.13f)*width*.43f,-1,Mathf.Cos(i*3.71f)*width*.12f);
-                float size=width*(.022f+.035f*phase);
-                var tint=Color.Lerp(Color.white,Spectrum[i%7],.27f);
-                mesh.Sphere(p,new Vector3(size,size*1.55f,size),0,tint,4,6);
+                float phase=Mathf.Repeat(i*.618034f,1), angle=i*2.399963f;
+                float reach=width*Mathf.Lerp(.16f,.54f,Hash(new Vector3(i,2,9)));
+                float size=width*Mathf.Lerp(.009f,.031f,phase*phase);
+                var tint=ArtMesh.SyrupColor(angle);
+                // Author around zero so the shader can align each bead with its flight.
+                mesh.Sphere(Vector3.zero,new Vector3(size,size*(1.2f+phase),size),0,tint,7,10);
                 mesh.WaterData(new Vector4(phase,angle,1,reach));
-            }
-            for(int i=0;i<3;i++)
-            {
-                mesh.Ring(Vector3.zero,Quaternion.identity,width*.61f,width*.021f,32,5,0,new Color(.81f,.93f,.99f));
-                mesh.WaterData(new Vector4(i/3f,0,2,0));
             }
             var splash=CurrentModel("Visual · rainbow splash "+label,mesh,parent);
             splash.transform.localPosition=foot;
@@ -60,6 +46,45 @@ namespace DeadlyJenga.Presentation
 
         sealed partial class ArtMesh
         {
+            public static Color SyrupColor(float angle)
+            {
+                float band=(Mathf.Cos(angle)*.5f+.5f)*(Spectrum.Length-1);
+                int index=Mathf.FloorToInt(band);
+                return Color.Lerp(Spectrum[index],Spectrum[Mathf.Min(index+1,Spectrum.Length-1)],band-index);
+            }
+
+            // A continuous sheet sweeps out of the impact basin, turns upright and
+            // curls back on itself. Vary the rim height around its circumference.
+            public void SyrupCrown(float width)
+            {
+                const int sides=112, rows=14;
+                Vector3 Surface(float a,float t)
+                {
+                    float lobe=.5f+.5f*Mathf.Cos(9*a+.88f*Mathf.Sin(3*a)+.62f*Mathf.Sin(2*a));
+                    float tongue=lobe*lobe*lobe*(.74f+.26f*Mathf.Sin(5*a+.7f));
+                    float radius=.045f+.43f*Mathf.Sin(t*1.87f)+tongue*.21f*t*t;
+                    float height=.018f+.41f*Mathf.Pow(t,2.8f)*(.34f+1.42f*tongue);
+                    return new Vector3(Mathf.Cos(a)*radius*1.18f,height,Mathf.Sin(a)*radius*.83f)*width;
+                }
+                for(int row=0;row<=rows;row++)
+                {
+                    float t=row/(float)rows;
+                    for(int side=0;side<=sides;side++)
+                    {
+                        float a=side*2*Mathf.PI/sides;
+                        var da=Surface(a+.003f,t)-Surface(a-.003f,t);
+                        var dt=Surface(a,Mathf.Min(1,t+.003f))-Surface(a,Mathf.Max(0,t-.003f));
+                        vertices.Add(Surface(a,t));
+                        normals.Add(Vector3.Cross(da,dt).normalized);
+                        colors.Add(SyrupColor(a));
+                        WaterData(new Vector4(t,a,3,width));
+                        if(row==0 || side==0)continue;
+                        int d=vertices.Count-1,b=d-sides-1;
+                        triangles[0].AddRange(new[]{b-1,b,d,b-1,d,d-1});
+                    }
+                }
+            }
+
             List<Vector4> waterData;
             public void ApplyWaterCoordinates(Mesh mesh)=>mesh.SetUVs(0,waterData);
             public void WaterData(Vector4 data)
