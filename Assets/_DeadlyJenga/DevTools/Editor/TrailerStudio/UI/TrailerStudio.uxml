@@ -2,17 +2,21 @@
     <ui:VisualElement name="root" class="ts-root">
         <ui:VisualElement name="topbar" class="ts-topbar">
             <ui:Button name="set-picker" class="ts-setpicker" tooltip="Choose, create or import a Set" />
-            <ui:VisualElement name="tabs" class="ts-tabs" />
+
             <ui:VisualElement class="ts-spacer" />
-            <ui:VisualElement name="chips" class="ts-chips" />
+
             <ui:Button name="stage" class="ts-stage" />
             <ui:Button name="record" class="ts-record">
                 <ui:VisualElement name="record-dot" class="ts-record-dot" picking-mode="Ignore" />
                 <ui:Label name="record-label" class="ts-record-label" picking-mode="Ignore" />
             </ui:Button>
+            <ui:Button name="commands" text="Find command" class="ts-small" tooltip="Search Studio actions (Ctrl+K)" />
             <ui:Button name="undo" text="Undo" class="ts-small" tooltip="Undo (Ctrl+Z)" />
             <ui:Button name="redo" text="Redo" class="ts-small" tooltip="Redo (Ctrl+Y)" />
-            <ui:Button name="help" text="?" class="ts-small ts-round" tooltip="Shortcuts (?)  ·  Commands (Ctrl+K)" />
+            <ui:Button name="help" text="Shortcuts" class="ts-small" tooltip="Shortcuts (?)  ·  Commands (Ctrl+K)" />
+        </ui:VisualElement>
+        <ui:VisualElement class="ts-workflow">
+            <ui:VisualElement name="tabs" class="ts-tabs" />
         </ui:VisualElement>
         <ui:VisualElement name="middle" class="ts-middle">
             <ui:VisualElement name="left" class="ts-left">
@@ -32,7 +36,10 @@
             <ui:VisualElement name="transport" class="ts-transport" />
             <ui:VisualElement name="timeline" class="ts-timeline" />
         </ui:VisualElement>
-        <ui:Label name="status" class="ts-status" />
+        <ui:VisualElement class="ts-footer">
+            <ui:Label name="status" class="ts-status" />
+            <ui:VisualElement name="chips" class="ts-chips" />
+        </ui:VisualElement>
         <ui:VisualElement name="floating" class="ts-floating" picking-mode="Ignore" />
     </ui:VisualElement>
 </ui:UXML>

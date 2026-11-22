@@ -20,6 +20,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             this.context = context; this.host = host;
             ruler = new VisualElement();
             ruler.AddToClassList("ts-ruler");
+            ruler.tooltip = "Click or drag to move the playhead.";
             ruler.generateVisualContent += DrawRuler;
             Scrubbable(ruler);
             rows = new ScrollView();
@@ -101,6 +102,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             title.AddToClassList("ts-lane-name");
             title.Add(StudioUi.Dot(color));
             title.Add(new Label(name));
+            title.tooltip = select != null ? "Select " + name : name;
+            row.EnableInClassList("ts-lane-row--selected", select != null && ReferenceEquals(select, context.Selection));
             if (select != null) title.RegisterCallback<ClickEvent>(_ => context.Select(select));
             var lane = new VisualElement();
             lane.AddToClassList("ts-lane");

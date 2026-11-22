@@ -18,6 +18,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool TryGetRecord(StudioContext context, out string label, out Action start) { label = null; start = null; return false; }
 
         static bool snap = true;
+        static readonly Dictionary<string, string> renderFolders = new Dictionary<string, string>();
 
         public void Build(VisualElement panel, StudioContext context)
         {
@@ -26,6 +27,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (set == null) { panel.Add(StudioUi.Hint("Choose or make a Set first.")); return; }
             if (set.cameras.Count == 0) { panel.Add(StudioUi.Hint("Add cameras in the Shoot tab first. The cut is made of pieces of their shots.")); return; }
             int fps = set.render.fps;
+            var spans = new List<(StudioCameraTrack camera, float start, float end)>();
+            var summary = StudioUi.Card();
+            if (set.cuts.Count > 0) panel.Add(summary);
 
             panel.Add(StudioUi.Big("+  Add a shot to the cut", () =>
             {
@@ -79,11 +83,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }));
                 if (i > 0) card.Add(StudioFields.Slide(context, "Dissolve in (s)", cut.dissolve, 0, 2, v => cut.dissolve = v));
                 float piece = Mathf.Max(0, Mathf.Min(cut.to, length) - cut.from);
+                spans.Add((camera, at, at + piece));
                 card.Add(StudioUi.Hint($"Plays from {at:0.00} s to {at + piece:0.00} s of the cut."));
                 at += piece;
                 panel.Add(card);
             }
-            if (set.cuts.Count > 0) panel.Add(StudioUi.Hint($"The cut runs {at:0.00} s."));
+            if (spans.Count > 0)
+            {
+                var strip = new StudioDurationBar("Planned cut order. Segment width shows trimmed duration.");
+                foreach (var span in spans)
+                    strip.Span(span.start, span.end, at, StudioColors.For(span.camera.color),
+                        description: $"{span.camera.name} · {span.start:0.00}–{span.end:0.00} s", divider: true);
+                summary.Add(StudioUi.Hint($"Planned cut · {at:0.00} s"));
+                summary.Add(strip);
+            }
+            int missingCameras = set.cuts.Count - spans.Count;
+            if (missingCameras > 0) summary.Add(StudioUi.Warning($"{missingCameras} cut piece(s) reference deleted cameras."));
 
             // Music bed and beats
             panel.Add(StudioUi.Heading("MUSIC"));
@@ -102,15 +117,34 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             // Export
             panel.Add(StudioUi.Heading("EXPORT"));
-            string folder = StudioRender.LastFolder;
-            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+            if (StudioRender.Running) { panel.Add(StudioUi.Hint("Wait for the render to finish before exporting.")); return; }
+            string renders = StudioRender.RendersFolder(set.id);
+            var folders = Directory.Exists(renders) ? Directory.GetDirectories(renders).OrderByDescending(d => d).ToList() : new List<string>();
+            if (folders.Count == 0) { panel.Add(StudioUi.Hint("Render the cameras in the Shoot tab first. The export points at those files.")); return; }
+            int chosen = renderFolders.TryGetValue(set.id, out string saved) ? Mathf.Max(0, folders.IndexOf(saved)) : 0;
+            string folder = folders[chosen];
+            var batches = new DropdownField("Render batch", folders.Select(d => Path.GetFileName(d)).ToList(), chosen);
+            batches.RegisterValueChangedCallback(_ =>
             {
-                // After a restart, use the newest render of this Set.
-                string renders = StudioRender.RendersFolder(set.id);
-                folder = Directory.Exists(renders) ? Directory.GetDirectories(renders).OrderBy(d => d).LastOrDefault() ?? "" : "";
+                if (batches.index < 0) return;
+                renderFolders[set.id] = folders[batches.index];
+                context.Rebuild();
+            });
+            panel.Add(batches);
+            int resolved = 0;
+            if (set.cuts.Count > 0)
+            {
+                try
+                {
+                    var pieces = StudioExport.Resolve(set, folder, out var warnings);
+                    resolved = pieces.Count;
+                    panel.Add(StudioUi.Hint($"{resolved} of {set.cuts.Count} cut pieces have render records in this batch."));
+                    foreach (var warning in warnings.Distinct()) panel.Add(StudioUi.Warning(warning));
+                    if (pieces.Any(piece => !File.Exists(piece.media)))
+                        panel.Add(StudioUi.Warning("A render record points to a missing media file."));
+                }
+                catch (Exception error) { panel.Add(StudioUi.Warning("Could not read this render batch. " + error.Message)); }
             }
-            if (string.IsNullOrEmpty(folder)) { panel.Add(StudioUi.Hint("Render the cameras in the Shoot tab first. The export points at those files.")); return; }
-            panel.Add(StudioUi.Hint("Using the render in " + Path.GetFileName(folder) + "."));
             string audio = StudioRender.AudioFile(set.id);
             if (!File.Exists(audio)) panel.Add(StudioUi.Hint("No game sound recorded yet. Record the whole set (that records its sound too), or use \"Record the tape's sound\" in the Shoot tab. The cut will export without it."));
             else
@@ -129,13 +163,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 {
                     string xml = StudioExport.WriteFcpxml(set, captured, audio, out var problems);
                     string edl = StudioExport.WriteEdl(set, captured, out _);
-                    context.Say(problems.Count > 0 ? "Exported with gaps: " + problems[0] : "Exported " + Path.GetFileName(xml) + " and " + Path.GetFileName(edl) + ".");
+                    context.Say(problems.Count > 0 ? "Exported with warnings. " + problems[0] : "Exported " + Path.GetFileName(xml) + " and " + Path.GetFileName(edl) + ".");
                     EditorUtility.RevealInFinder(xml);
                 }
                 catch (Exception error) { context.Say(error.Message); }
             }, "Writes an FCPXML file and an EDL next to the rendered shots.");
             export.AddToClassList("ts-big--primary");
-            export.SetEnabled(set.cuts.Count > 0);
+            export.SetEnabled(resolved > 0);
             panel.Add(export);
         }
     }

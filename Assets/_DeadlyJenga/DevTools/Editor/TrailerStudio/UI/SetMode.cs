@@ -48,6 +48,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             panel.Add(StudioUi.Big("+  Add survivor", () => Place(StudioRole.Survivor), "An actor you perform yourself (Perform mode). Until then a stand-in holds the mark."));
             panel.Add(StudioUi.Big("+  Add hand", () => Place(StudioRole.Hand), "The giant hand."));
             panel.Add(StudioUi.Big("+  Add bot", () => Place(StudioRole.Bot), "Background life: a survivor run by the game's normal bot brain."));
+            bool crowdReady = set.marks.Any(mark => mark.role != StudioRole.Hand &&
+                !mark.actor.StartsWith("Crowd ") && context.Tape?.Find(mark.id)?.ActiveTake != null);
+            panel.Add(StudioUi.Card(
+                StudioUi.Hint(crowdReady ? "Build a crowd from your recorded performances in Polish."
+                    : "Keep a survivor take to build a crowd from that performance."),
+                StudioUi.Small(crowdReady ? "Open Polish · Make a crowd" : "Open Perform",
+                    () => context.window.ShowMode(crowdReady ? "Polish" : "Perform"))));
             panel.Add(StudioUi.Big("+  Add cue at " + StudioUi.Time(context.Frame, set.fps), () =>
             {
                 var menu = new GenericMenu();

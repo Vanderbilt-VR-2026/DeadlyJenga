@@ -97,6 +97,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             recordButton.clicked += PressRecord;
             root.Q<Button>("undo").clicked += Undo.PerformUndo;
             root.Q<Button>("redo").clicked += Undo.PerformRedo;
+            root.Q<Button>("commands").clicked += () => palette.ShowCommands();
             root.Q<Button>("help").clicked += () => palette.ShowShortcuts();
 
             cast = new StudioCastList(context, root.Q<ScrollView>("cast"));
@@ -211,7 +212,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // ---- Drawing ----
 
-        public void Say(string text) { message = text ?? ""; if (status != null) status.text = message; }
+        public void Say(string text) { message = text ?? ""; if (status != null) { status.text = message; status.tooltip = message; } }
 
         public void RebuildAll()
         {
@@ -302,7 +303,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (var mode in StudioExtensions.Modes.Where(m => m.Available))
             {
                 var captured = mode;
-                var tab = new Button(() => { modeTitle = captured.Title; RebuildAll(); }) { text = mode.Title };
+                string action = mode.Title switch
+                {
+                    "Set" => "Place actors",
+                    "Perform" => "Record takes",
+                    "Polish" => "Shape motion",
+                    "Direct" => "Cue events",
+                    "Shoot" => "Set cameras",
+                    "Cut" => "Edit shots",
+                    _ => ""
+                };
+                var tab = new Button(() => ShowMode(captured.Title)) { tooltip = action };
+                tab.Add(new Label(mode.Title) { pickingMode = PickingMode.Ignore });
+                if (action.Length > 0)
+                {
+                    var caption = new Label(action) { pickingMode = PickingMode.Ignore };
+                    caption.AddToClassList("ts-tab-caption");
+                    tab.Add(caption);
+                }
                 tab.AddToClassList("ts-tab");
                 tab.EnableInClassList("ts-tab--on", mode == current);
                 tabs.Add(tab);
@@ -320,10 +338,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             string label = "Record whole set";
             if (Tape != null) label += ", take " + ((Tape.FindType(WorldTrack.Id)?.takes.Count ?? 0) + 1);
             if (Mode != null && Mode.TryGetRecord(context, out string modeLabel, out _)) label = modeLabel;
-            recordLabel.text = recording ? "Stop  " + StudioUi.Time(StudioRun.Frame, Set?.fps ?? 30) : label;
+            recordLabel.text = !recording && StudioRun.State == StudioState.Running ? "Stop playback" : recording ? "Stop  " + StudioUi.Time(StudioRun.Frame, Set?.fps ?? 30) : label;
             recordButton.EnableInClassList("ts-record--on", recording);
             recordButton.SetEnabled(held || StudioRun.State == StudioState.Running);
-            recordButton.tooltip = held ? "Record (R)" : StudioRun.State == StudioState.Closed ? "Open the stage to record." : "Stop (R)";
+            recordButton.tooltip = StudioRun.State == StudioState.Running ? "Stop (R)" : held ? label + " (R)" : "Open the stage to record.";
 
             chips.Clear();
             void Chip(string text, string kind = "", string tip = "")
@@ -405,13 +423,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         void BuildTransport()
         {
             transport.Clear();
-            transport.Add(StudioUi.Small("|<", () => Scrub(InFrame), "Go to the start (Home)"));
+            transport.Add(StudioUi.Small("Start", () => Scrub(InFrame), "Go to the start (Home)"));
             transport.Add(StudioUi.Small("-1s", () => Scrub(Frame - (Set?.fps ?? 30)), "Back one second (J)"));
             playButton = StudioUi.Small("Play", TogglePlay, "Play or pause (Space)");
             playButton.style.minWidth = 54;
             transport.Add(playButton);
             transport.Add(StudioUi.Small("+1s", () => Scrub(Frame + (Set?.fps ?? 30)), "Forward one second (L)"));
-            transport.Add(StudioUi.Small(">|", () => Scrub(OutFrame), "Go to the end (End)"));
+            transport.Add(StudioUi.Small("End", () => Scrub(OutFrame), "Go to the end (End)"));
             timeLabel = new Label(); timeLabel.AddToClassList("ts-time");
             transport.Add(timeLabel);
             speedButton = StudioUi.Small("1×", () =>
@@ -439,8 +457,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (timeLabel == null) return;
             int fps = Set?.fps ?? 30, frames = Set?.Frames ?? 1;
             timeLabel.text = StudioUi.Time(Frame, fps) + " / " + StudioUi.Time(frames, fps);
-            playButton.text = StudioRun.State == StudioState.Running && !StudioRun.Recording ? "Pause" : "Play";
+            playButton.text = StudioRun.Recording ? "Stop recording" : StudioRun.State == StudioState.Running ? "Pause" : "Play";
+            playButton.SetEnabled(StudioRun.State == StudioState.Held || StudioRun.State == StudioState.Running);
+            playButton.tooltip = StudioRun.Recording ? "Stop recording (Space)" : "Play or pause (Space)";
             loopButton.EnableInClassList("ts-small--on", loop);
+            loopButton.text = loop ? "Loop on" : "Loop off";
             speedButton.text = SpeedName(speed);
             bool ranged = inFrame > 0 || outFrame >= 0;
             rangeLabel.text = !StudioRun.StageOpen ? "Open the stage to play." :

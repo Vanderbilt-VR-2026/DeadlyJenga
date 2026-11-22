@@ -12,6 +12,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     {
         readonly StudioContext context;
         readonly ScrollView host;
+        string filter = "";
 
         public StudioCastList(StudioContext context, ScrollView host) { this.context = context; this.host = host; }
 
@@ -26,34 +27,47 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 return;
             }
 
-            Group("World");
-            foreach (var track in tape.tracks.Where(t => t.type != SurvivorTrack.Id && t.type != HandTrack.Id))
+            var search = new UnityEditor.UIElements.ToolbarSearchField { tooltip = "Find a cast member, world track or camera by name." };
+            search.style.width = StyleKeyword.Auto;
+            search.SetValueWithoutNotify(filter);
+            host.Add(search);
+            var items = new VisualElement();
+            host.Add(items);
+            search.RegisterValueChangedCallback(e =>
             {
-                var type = StudioTrackTypes.Get(track.type);
-                host.Add(Row(track.name, type?.Color ?? Color.gray, track, track));
+                filter = e.newValue;
+                Render();
+            });
+            Render();
+
+            void Render()
+            {
+                items.Clear();
+                string query = filter.Trim();
+                bool Match(string name) => name?.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
+                void AddGroup(string title, VisualElement[] rows, string empty = null)
+                {
+                    if (rows.Length == 0 && (query.Length != 0 || empty == null)) return;
+                    var label = new Label(title.ToUpperInvariant());
+                    label.AddToClassList("ts-group");
+                    items.Add(label);
+                    foreach (var row in rows) items.Add(row);
+                    if (rows.Length == 0) items.Add(Quiet(empty));
+                }
+                VisualElement ActorRow(StudioMark mark) => Row(mark.actor + (mark.role == StudioRole.Bot ? "  (bot)" : ""),
+                    StudioColors.For(mark.color), tape.Find(mark.id), mark);
+
+                var worldTracks = tape.tracks.Where(t => t.type != SurvivorTrack.Id && t.type != HandTrack.Id && Match(t.name));
+                AddGroup("World", worldTracks.Select(track =>
+                    Row(track.name, StudioTrackTypes.Get(track.type)?.Color ?? Color.gray, track, track)).ToArray(), "No world tracks.");
+                var actors = set.marks.Where(m => Match(m.actor));
+                AddGroup("Hand", actors.Where(m => m.role == StudioRole.Hand).Select(ActorRow).ToArray(), "No hand yet.");
+                AddGroup("Survivors", actors.Where(m => m.role != StudioRole.Hand).Select(ActorRow).ToArray(), "Place a mark to add your first actor.");
+                var cameras = set.cameras.Where(c => Match(c.name)).Select(c => Row(c.name, StudioColors.For(c.color), null, c));
+                var shots = set.shots.Where(s => Match(s.name)).Select(s => Row(s.name, StudioColors.Camera, null, null));
+                AddGroup("Cameras", cameras.Concat(shots).ToArray(), "Cameras are added in Shoot.");
+                if (items.childCount == 0) items.Add(Quiet("No cast, tracks or cameras match."));
             }
-
-            Group("Hand");
-            foreach (var mark in set.marks.Where(m => m.role == StudioRole.Hand))
-                host.Add(Row(mark.actor, StudioColors.For(mark.color), tape.Find(mark.id), mark));
-            if (!set.marks.Any(m => m.role == StudioRole.Hand)) host.Add(Quiet("No hand yet."));
-
-            Group("Survivors");
-            foreach (var mark in set.marks.Where(m => m.role != StudioRole.Hand))
-                host.Add(Row(mark.actor + (mark.role == StudioRole.Bot ? "  (bot)" : ""), StudioColors.For(mark.color), tape.Find(mark.id), mark));
-            if (!set.marks.Any(m => m.role != StudioRole.Hand)) host.Add(Quiet("Place a mark to add your first actor."));
-
-            Group("Cameras");
-            foreach (var camera in set.cameras) host.Add(Row(camera.name, StudioColors.For(camera.color), null, camera));
-            foreach (var shot in set.shots) host.Add(Row(shot.name, StudioColors.Camera, null, null));
-            if (set.cameras.Count == 0) host.Add(Quiet(set.shots.Count == 0 ? "Cameras are added last, in the Shoot mode." : "Kept from Theatre for the Shoot mode."));
-        }
-
-        void Group(string title)
-        {
-            var label = new Label(title.ToUpperInvariant());
-            label.AddToClassList("ts-group");
-            host.Add(label);
         }
 
         Label Quiet(string text)
@@ -84,9 +98,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var row = new VisualElement();
             row.AddToClassList("ts-item");
             row.EnableInClassList("ts-item--selected", select != null && ReferenceEquals(select, context.Selection));
-            if (select != null) row.RegisterCallback<ClickEvent>(_ => context.Select(select));
+            bool performing = select is StudioMark && context.window.Mode is PerformMode;
+            if (select != null)
+                row.RegisterCallback<ClickEvent>(_ =>
+                {
+                    if (performing && select is StudioMark actor) PerformMode.ChooseActor(context, actor);
+                    else context.Select(select);
+                });
             row.Add(StudioUi.Dot(color));
-            var label = new Label(name); label.AddToClassList("ts-item-name");
+            string status = performing && !PerformMode.HasPerformance(track) ? " · No take" : "";
+            var label = new Label(name + status) { tooltip = name + status };
+            label.AddToClassList("ts-item-name");
             row.Add(label);
             if (track == null) return row;
 
@@ -103,6 +125,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var takes = new Button { text = position + "/" + kept.Count, tooltip = "Pick the active take (number keys work too)" };
                 takes.AddToClassList("ts-mini"); takes.AddToClassList("ts-take");
                 takes.style.width = StyleKeyword.Auto;
+                takes.RegisterCallback<ClickEvent>(e => e.StopPropagation());
                 takes.clicked += () =>
                 {
                     var menu = new GenericMenu();

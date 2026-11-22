@@ -16,9 +16,27 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool Line(Vector3 from, Vector3 to, Color color, float width = 2)
         {
             if (!viewport.ToPanel(from, out var a) || !viewport.ToPanel(to, out var b)) return false;
+            ScreenLine(a, b, color, width);
+            return true;
+        }
+
+        internal void ScreenLine(Vector2 a, Vector2 b, Color color, float width)
+        {
             painter.strokeColor = color; painter.lineWidth = width;
             painter.BeginPath(); painter.MoveTo(a); painter.LineTo(b); painter.Stroke();
-            return true;
+        }
+
+        public void Arrow(Vector3 from, Vector3 to, Color color, float width = 2)
+        {
+            if (!viewport.ToPanel(from, out var a) || !viewport.ToPanel(to, out var b)) return;
+            ScreenLine(a, b, color, width);
+            Vector2 back = a - b;
+            if (back.sqrMagnitude < 16) return;
+            float size = Mathf.Min(10, back.magnitude * .45f);
+            back = back.normalized * size;
+            Vector2 side = new Vector2(-back.y, back.x) * .55f;
+            ScreenLine(b, b + back + side, color, width);
+            ScreenLine(b, b + back - side, color, width);
         }
 
         public void Dot(Vector3 at, Color color, float radius = 4)
@@ -40,6 +58,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // The part of the viewport the picture covers, in viewport pixels.
         public Rect Picture => viewport.PictureRect();
+
+        internal bool TryScreenPoint(Vector3 world, out Vector2 point) =>
+            viewport.ToPanel(world, out point) && Picture.Contains(point);
 
         public void Path(IReadOnlyList<Vector3> points, Color color, float width = 2)
         {
@@ -63,6 +84,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         bool toolActive;
         bool orbiting, panning, moved;
         Vector2 last;
+        Vector2? hover;
+        Vector3? placementPoint;
+        bool placementOnSurface;
 
         // Set by the Set mode: the next click on the picture places a new mark of this role.
         public StudioRole? Placing;
@@ -79,11 +103,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             markLayer.AddToClassList("ts-view-lines");
             help = new Label { pickingMode = PickingMode.Ignore };
             help.AddToClassList("ts-view-help");
+            help.style.right = 8;
+            help.style.whiteSpace = WhiteSpace.Normal;
+            help.style.color = Color.white;
+            help.style.backgroundColor = new Color(.045f, .065f, .09f, .9f);
+            help.style.paddingLeft = help.style.paddingRight = 7;
+            help.style.paddingTop = help.style.paddingBottom = 4;
             host.Add(image); host.Add(lines); host.Add(markLayer); host.Add(help);
 
             host.RegisterCallback<PointerDownEvent>(Down);
             host.RegisterCallback<PointerMoveEvent>(Move);
             host.RegisterCallback<PointerUpEvent>(Up);
+            host.RegisterCallback<PointerLeaveEvent>(_ => { hover = null; Tick(); });
             host.RegisterCallback<WheelEvent>(Wheel);
             host.RegisterCallback<GeometryChangedEvent>(_ => Fit());
         }
@@ -104,8 +135,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public void Rebuild()
         {
             bool open = StudioRun.StageOpen;
+            if (!open || !(context.window.Mode is SetMode)) Placing = null;
             if (empty != null) { empty.RemoveFromHierarchy(); empty = null; }
             image.style.display = open ? DisplayStyle.Flex : DisplayStyle.None;
+            help.style.display = open ? DisplayStyle.Flex : DisplayStyle.None;
             if (!open)
             {
                 bool opening = StudioRun.State == StudioState.Opening;
@@ -121,8 +154,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             Fit();
             image.image = StudioCamera.Image;
-            help.text = Placing.HasValue ? "Click where the new mark should stand.  Esc cancels." :
-                "Drag: orbit  |  Right-drag: slide  |  Wheel: zoom  |  Drag a mark: move  |  Shift+drag a mark: turn";
             BuildHandles();
             Tick();
         }
@@ -153,6 +184,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (!StudioRun.StageOpen || !Camera) return;
             LookThroughCamera();
+            placementPoint = null;
+            if (Placing.HasValue && hover.HasValue && StudioRun.State == StudioState.Held && PictureRect().Contains(hover.Value))
+                placementPoint = PlacementAt(hover.Value, Placing.Value, out placementOnSurface);
+            UpdateHelp();
             if (image.image != StudioCamera.Image) image.image = StudioCamera.Image;
             image.MarkDirtyRepaint();
             lines.MarkDirtyRepaint();
@@ -173,6 +208,27 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 label.text = warning.Length > 0 ? mark.actor + " · " + warning : mark.actor;
                 label.EnableInClassList("ts-mark-label--warn", warning.Length > 0);
             }
+        }
+
+        void UpdateHelp()
+        {
+            const string navigation = "Drag empty space to orbit  ·  Right or middle drag to pan  ·  Scroll to zoom";
+            string message = navigation;
+            if (lookedThrough)
+                message = "Shot camera preview  ·  Click Looking in Shoot to return to the free camera";
+            else if (moved && (orbiting || panning))
+                message = orbiting ? "Orbiting around the reticle" : "Panning the free camera";
+            else if (Placing.HasValue && StudioRun.State == StudioState.Held)
+                message = Placing.Value + " placement  ·  " +
+                    (placementPoint.HasValue && !placementOnSurface ? "Click to place at the view target" : "Click to place at the reticle") + "  ·  Esc cancels";
+            else if (StudioRun.State == StudioState.Held && context.window.Mode is DirectMode direct)
+                message = direct.ViewportHint(context.Selection) + "\n" + navigation;
+            else if (StudioRun.State == StudioState.Held && context.window.Mode is SetMode && context.Selection is StudioMark mark)
+                message = "Drag mark to move  ·  Shift+drag to turn" + (mark.role == StudioRole.Hand ? "  ·  Alt+drag to change height" : "") +
+                    "\n" + navigation;
+            else if (context.window.Mode is ShootMode && context.Stage != null)
+                message = "Free camera  ·  Frame your shot, then choose Camera from this view or Key here\n" + navigation;
+            if (help.text != message) help.text = message;
         }
 
         // In the Shoot tab the viewport can show what a shot camera sees instead of the director's free view.
@@ -199,6 +255,42 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var painter = new StudioOverlayPainter(this, mesh.painter2D);
             foreach (var overlay in StudioExtensions.Overlays)
                 try { overlay.Draw(painter, context); } catch (Exception error) { Debug.LogException(error); }
+            if (!lookedThrough && moved && (orbiting || panning) && painter.TryScreenPoint(StudioCamera.Target, out var pivot))
+            {
+                var color = new Color(.72f, .88f, 1f, .95f);
+                painter.ScreenLine(pivot - Vector2.right * 10, pivot + Vector2.right * 10, color, 1.5f);
+                painter.ScreenLine(pivot - Vector2.up * 10, pivot + Vector2.up * 10, color, 1.5f);
+            }
+            var stage = context.Stage;
+            if (stage == null || !(context.window.Mode is SetMode) || StudioRun.State != StudioState.Held) return;
+            if (placementPoint.HasValue && Placing.HasValue)
+            {
+                Vector3 point = placementPoint.Value;
+                Color color = placementOnSurface ? new Color(.32f, 1f, .76f) : new Color(1f, .73f, .35f);
+                if (Placing.Value == StudioRole.Hand)
+                    painter.Line(point - Vector3.up * HandPlacementHeight, point, color, 1.5f);
+                DrawMarkReticle(painter, point, Quaternion.identity, color);
+            }
+            else if (context.Selection is StudioMark mark)
+                DrawMarkReticle(painter, stage.ToWorld(mark.position), Quaternion.Euler(0, mark.yaw, 0), StudioColors.For(mark.color));
+        }
+
+        void DrawMarkReticle(StudioOverlayPainter painter, Vector3 point, Quaternion facing, Color color)
+        {
+            if (!ToPanel(point, out var panel) || !painter.Picture.Contains(panel)) return;
+            var rect = new Rect(panel.x - 8, panel.y - 8, 16, 16);
+            painter.ScreenBox(rect, color);
+            painter.Dot(point, color, 2);
+            painter.Arrow(point, point + facing * Vector3.forward * 1.35f, color, 2);
+        }
+
+        const float HandPlacementHeight = 6;
+
+        Vector3 PlacementAt(Vector2 local, StudioRole role, out bool onSurface)
+        {
+            onSurface = Surface(local, out var hit);
+            var point = onSurface ? hit : StudioCamera.Target;
+            return role == StudioRole.Hand ? point + Vector3.up * HandPlacementHeight : point;
         }
 
         // ---- Picture <-> world ----
@@ -269,20 +361,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         void Down(PointerDownEvent e)
         {
-            if (!StudioRun.StageOpen || !Camera) return;
+            if (!StudioRun.StageOpen || !Camera || !PictureRect().Contains(e.localPosition)) return;
             host.CapturePointer(e.pointerId);
             last = e.localPosition; moved = false;
             if (e.button != 0) { panning = true; return; }
             // The current mode may have its own way of using the viewport (picking blocks, aiming arrows, placing cameras).
             tool = context.window.Mode as IStudioViewportTool;
-            // "Add survivor" was pressed in the Set tab, then another tab was opened: do not place it from there.
-            if (Placing.HasValue && !(context.window.Mode is SetMode)) Placing = null;
-            if (tool != null && StudioRun.State == StudioState.Held && tool.Down(e, this, context)) { toolActive = true; return; }
-            if (Placing.HasValue && StudioRun.State == StudioState.Held)
+            if (tool != null && StudioRun.State == StudioState.Held && tool.Down(e, this, context))
+            {
+                toolActive = true;
+                Tick();
+                return;
+            }
+            if (Placing.HasValue && StudioRun.State == StudioState.Held && context.window.Mode is SetMode && context.Stage != null)
             {
                 var role = Placing.Value; Placing = null;
-                Vector3 world = Surface(e.localPosition, out var hit) ? hit : StudioCamera.Target;
-                if (role == StudioRole.Hand) world += Vector3.up * 6;
+                Vector3 world = PlacementAt(e.localPosition, role, out _);
                 StudioMark made = null;
                 context.Edit("Add " + role.ToString().ToLowerInvariant(), () => made = context.Set.AddMark(role, context.Stage.ToStage(world)), true);
                 context.Select(made);
@@ -301,7 +395,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         void Move(PointerMoveEvent e)
         {
-            if (!host.HasPointerCapture(e.pointerId)) return;
+            hover = e.localPosition;
+            if (!host.HasPointerCapture(e.pointerId))
+            {
+                if (Placing.HasValue) Tick();
+                return;
+            }
             Vector2 delta = (Vector2)e.localPosition - last;
             last = e.localPosition;
             if (delta.sqrMagnitude > 0) moved = true;
@@ -333,8 +432,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         void Up(PointerUpEvent e)
         {
-            if (host.HasPointerCapture(e.pointerId)) host.ReleasePointer(e.pointerId);
-            if (toolActive) { toolActive = false; tool.Up(e, this, context); orbiting = panning = false; return; }
+            if (!host.HasPointerCapture(e.pointerId)) return;
+            host.ReleasePointer(e.pointerId);
+            hover = host.contentRect.Contains(e.localPosition) ? (Vector2?)e.localPosition : null;
+            if (toolActive)
+            {
+                toolActive = false;
+                tool.Up(e, this, context);
+                orbiting = panning = false;
+                Tick();
+                return;
+            }
             if (dragging != null)
             {
                 dragging = null;
@@ -342,11 +450,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             else if (orbiting && !moved && context.Selection != null) context.Select(null);   // a plain click on empty space clears the selection
             orbiting = panning = false;
+            Tick();
         }
 
         void Wheel(WheelEvent e)
         {
-            if (!StudioRun.StageOpen) return;
+            if (!StudioRun.StageOpen || !Camera || lookedThrough) return;
             StudioCamera.Zoom(e.delta.y > 0 ? 1.12f : .89f);
             Tick();
             e.StopPropagation();

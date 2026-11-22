@@ -8,6 +8,41 @@ using UnityEngine.UIElements;
 
 namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 {
+    internal sealed class StudioDurationBar : VisualElement
+    {
+        public StudioDurationBar(string description)
+        {
+            tooltip = description;
+            style.height = 16;
+            style.marginTop = 3;
+            style.marginBottom = 3;
+            style.backgroundColor = new Color(.11f, .12f, .15f);
+        }
+
+        public void Span(float from, float to, float total, Color color, int top = 0, string description = "", bool divider = false)
+        {
+            if (total <= 0 || to <= from) return;
+            float start = Mathf.Clamp01(from / total);
+            float end = Mathf.Clamp01(to / total);
+            if (end <= start) return;
+            Add(new VisualElement
+            {
+                tooltip = description,
+                style =
+                {
+                    position = Position.Absolute,
+                    left = Length.Percent(start * 100f),
+                    right = Length.Percent((1f - end) * 100f),
+                    top = top,
+                    bottom = 0,
+                    backgroundColor = color,
+                    borderRightWidth = divider ? 1 : 0,
+                    borderRightColor = new Color(.11f, .12f, .15f)
+                }
+            });
+        }
+    }
+
     // The Polish tab: fix and improve a recorded performance without performing it again.
     //   Motion edits make a new take from the active one (the old take stays).
     //   Layers (look-at, reach, pose, reaction...) sit on top of the take and can be muted.
@@ -93,7 +128,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             int fps = set.fps, from = context.window.InFrame, to = context.window.OutFrame + 1;
             bool ranged = context.window.InFrame > 0 || context.window.OutFrame < set.Frames - 1;
             panel.Add(StudioUi.Row(StudioUi.Dot(StudioColors.For(mark.color)), new Label(mark.actor + " · " + track.ActiveTake.name) { style = { unityFontStyleAndWeight = FontStyle.Bold } }));
-            panel.Add(StudioUi.Hint(ranged ? $"Edits apply to {StudioUi.Time(from, fps)} to {StudioUi.Time(to, fps)}." : "Edits apply to the whole take. Press [ and ] on the timeline to pick a range."));
+            var active = track.ActiveTake;
+            int overlapFrom = Mathf.Max(active.start, from);
+            int overlapTo = Mathf.Min(active.End, to);
+            var bar = new StudioDurationBar($"Active take: {StudioUi.Time(active.start, fps)} to {StudioUi.Time(active.End, fps)}");
+            bar.Span(active.start, active.End, set.Frames, StudioColors.For(mark.color));
+            if (ranged)
+                bar.Span(from, to, set.Frames, new Color(.92f, .95f, 1f, .65f), 11);
+            panel.Add(StudioUi.Card(
+                StudioUi.Hint($"Recorded {StudioUi.Time(active.start, fps)} to {StudioUi.Time(active.End, fps)}"),
+                bar,
+                StudioUi.Hint(ranged
+                    ? $"Selected range {StudioUi.Time(from, fps)} to {StudioUi.Time(to, fps)}. Slide moves the whole take."
+                    : "Range edits cover the whole take. Use [ and ] on the timeline to limit the range.")));
+            if (ranged && overlapTo <= overlapFrom)
+                panel.Add(StudioUi.Warning("The selected range does not overlap this take."));
 
             void Edit(string what, Func<StudioTake> edit)
             {
@@ -105,32 +154,33 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 catch (Exception error) { context.Say(error.Message); }
             }
-            VisualElement Line(string label, VisualElement field, string button, Action click, string tooltip)
+            VisualElement Line(VisualElement field, string button, Action click, string tooltip, bool enabled = true)
             {
                 field.style.flexGrow = 1; field.style.flexShrink = 1; field.style.minWidth = 0;
                 var run = StudioUi.Small(button, click, tooltip);
                 run.style.minWidth = 66;
+                run.SetEnabled(enabled);
                 return StudioUi.Row(field, run);
             }
             var speed = new Slider("Speed", .25f, 2) { value = retime, showInputField = true };
             speed.RegisterValueChangedCallback(e => retime = e.newValue);
-            panel.Add(Line("Speed", speed, "Retime", () => Edit("Retimed", () => StudioMotionEdit.Retime(track, from, to, retime, set.Frames)), "Play the range slower or faster. Everything after it moves along."));
+            panel.Add(Line(speed, "Retime", () => Edit("Retimed", () => StudioMotionEdit.Retime(track, from, to, retime, set.Frames)), "Play the range slower or faster. Everything after it moves along.", overlapTo - overlapFrom >= 2));
             var later = new Slider("Later (s)", -2, 2) { value = slide, showInputField = true };
             later.RegisterValueChangedCallback(e => slide = e.newValue);
-            panel.Add(Line("Later", later, "Slide", () => Edit("Slid in time", () => StudioMotionEdit.Slide(track, Mathf.RoundToInt(slide * fps), set.Frames)), "Move the whole take earlier or later."));
+            panel.Add(Line(later, "Slide", () => Edit("Slid in time", () => StudioMotionEdit.Slide(track, Mathf.RoundToInt(slide * fps), set.Frames)), "Move the whole take earlier or later."));
             var soft = new SliderInt("Smoothing", 1, 10) { value = smooth, showInputField = true };
             soft.RegisterValueChangedCallback(e => smooth = e.newValue);
-            panel.Add(Line("Smoothing", soft, "Smooth", () => Edit("Smoothed", () => StudioMotionEdit.Smooth(track, from, to, smooth)), "Remove jitter from the range."));
+            panel.Add(Line(soft, "Smooth", () => Edit("Smoothed", () => StudioMotionEdit.Smooth(track, from, to, smooth)), "Remove jitter from the range.", overlapTo > overlapFrom));
             var move = new Vector3Field("Move (m)") { value = nudge };
             move.labelElement.style.minWidth = 56;
             move.RegisterValueChangedCallback(e => nudge = e.newValue);
-            panel.Add(Line("Move", move, "Offset", () => Edit("Moved", () => StudioMotionEdit.Offset(track, from, to, nudge, Mathf.RoundToInt(fps * .4f))), "Shift the range in space, eased in and out."));
+            panel.Add(Line(move, "Offset", () => Edit("Moved", () => StudioMotionEdit.Offset(track, from, to, nudge, Mathf.RoundToInt(fps * .4f))), "Shift the range in space, eased in and out.", overlapTo > overlapFrom));
             var trim = StudioUi.Small("Trim to the range", () => Edit("Trimmed", () => StudioMotionEdit.Trim(track, from, to)));
-            trim.SetEnabled(ranged);
+            trim.SetEnabled(ranged && overlapTo - overlapFrom >= 2);
             var feet = StudioUi.Small("Lock feet to the ground", () => Edit("Feet locked", () => StudioMotionEdit.LockFeet(context.Stage, track, from, to)),
                 "After edits: put the feet back on the surface under them and hold planted feet still.");
-            feet.SetEnabled(StudioRun.State == StudioState.Held && track.type == SurvivorTrack.Id);
-            var others = track.Kept.Where(t => t != track.ActiveTake).ToList();
+            feet.SetEnabled(StudioRun.State == StudioState.Held && track.type == SurvivorTrack.Id && overlapTo > overlapFrom);
+            var others = track.Kept.Where(t => t != active && Mathf.Min(overlapTo, t.End) > Mathf.Max(overlapFrom, t.start)).ToList();
             var blend = StudioUi.Small("Blend into another take…", () =>
             {
                 var menu = new GenericMenu();
@@ -148,7 +198,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             // Layers
             panel.Add(StudioUi.Heading("LAYERS ON TOP"));
-            panel.Add(StudioUi.Big("+  Add a layer at " + StudioUi.Time(context.Frame, fps), () =>
+            panel.Add(StudioUi.Big("+  Add a layer at the playhead", () =>
             {
                 // The playhead at the moment of the click (scrubbing does not rebuild this panel).
                 float now = context.Frame / (float)fps;

@@ -53,7 +53,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             box.Add(search);
             results = new ScrollView();
             box.Add(results);
-            box.Add(StudioUi.Hint("Type to search.  Enter runs the first match.  Esc closes."));
+            box.Add(StudioUi.Hint("Type to search.  Use the arrows to choose. Enter runs the selection.  Esc closes."));
             highlighted = 0;
             Filter();
             search.schedule.Execute(() => search.Focus());
@@ -135,13 +135,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             OpenBox();
             box.Add(StudioUi.Heading("SHORTCUTS"));
+            var list = new ScrollView();
+            box.Add(list);
             foreach (var (keys, what) in Shortcuts)
             {
                 var row = new VisualElement();
                 row.AddToClassList("ts-sheet-row");
                 var key = new Label(keys); key.AddToClassList("ts-key");
                 row.Add(key); row.Add(new Label(what));
-                box.Add(row);
+                list.Add(row);
             }
             box.Add(StudioUi.Hint("Click outside or press Esc to close."));
         }

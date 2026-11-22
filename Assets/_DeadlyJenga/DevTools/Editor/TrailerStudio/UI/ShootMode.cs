@@ -66,7 +66,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var set = context.Set;
             if (set == null) { panel.Add(StudioUi.Hint("Choose or make a Set first.")); return; }
             panel.Add(StudioUi.Hint(set.cameras.Count == 0
-                ? "Cameras come last: the tape is finished, and you can film it as many times as you like. Look around in the viewport, then add a camera from that view."
+                ? "Frame the shot in the viewport, then add a camera from that view."
                 : "Select a camera to edit it. Its keys show on the timeline and as a path in the viewport."));
             var add = StudioUi.Big("+  Camera from this view", () => AddCamera(context), "A new camera with its first key where the viewport is looking now.");
             panel.Add(add);
@@ -89,6 +89,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 row.EnableInClassList("ts-item--selected", ReferenceEquals(camera, context.Selection));
                 row.RegisterCallback<ClickEvent>(_ => context.Select(captured));
                 panel.Add(row);
+            }
+
+            var selected = context.Selection as StudioCameraTrack;
+            if (selected != null && set.cameras.Contains(selected))
+            {
+                float end = selected.End(set);
+                var tapeSpan = new StudioDurationBar("Shot coverage on the set tape. White ticks are camera keys.");
+                tapeSpan.Span(selected.start, end, set.length, StudioColors.For(selected.color));
+                foreach (var key in selected.keys)
+                {
+                    float tick = Mathf.Min(set.length - .001f, key.time);
+                    tapeSpan.Span(tick, tick + set.length * .006f, set.length, Color.white,
+                        description: $"Key at {key.time:0.00} s");
+                }
+                panel.Add(StudioUi.Card(
+                    StudioUi.Hint($"{selected.name} · tape {selected.start:0.00}–{end:0.00} s"),
+                    tapeSpan,
+                    StudioUi.Hint($"{StudioCameras.OutputLength(selected, set, set.render.fps):0.00} s of output · white ticks mark camera keys")));
             }
 
             // Render
@@ -135,7 +153,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             else
             {
                 bool held = StudioRun.State == StudioState.Held;
-                var selected = context.Selection as StudioCameraTrack;
                 void Go(IEnumerable<StudioCameraTrack> cameras)
                 {
                     try { LookThrough = ""; StudioRender.Start(cameras, render); context.Rebuild(); }
@@ -154,10 +171,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }, "Plays the tape once and saves the game mix and its stems. The cut export uses it.");
                 sound.SetEnabled(held);
                 panel.Add(sound);
-                if (!string.IsNullOrEmpty(StudioRender.Progress)) panel.Add(StudioUi.Hint(StudioRender.Progress));
-                foreach (var done in StudioRender.Results)
-                    panel.Add(StudioUi.Hint($"• {done.camera}: {done.frames} frames in {done.seconds:0} s" + (done.movie.Length > 0 ? ", movie made" : "") + (done.error.Length > 0 ? ". " + done.error : "")));
-                if (Directory.Exists(StudioRender.LastFolder)) panel.Add(StudioUi.Small("Open the render folder", () => EditorUtility.RevealInFinder(StudioRender.LastFolder)));
+                if (!held)
+                    panel.Add(StudioUi.Hint("Open the set in Play Mode and pause on the tape to render or record sound."));
+                string folder = StudioRender.LastFolder;
+                if (Directory.Exists(folder) && string.Equals(Path.GetDirectoryName(Path.GetFullPath(folder)),
+                    Path.GetFullPath(StudioRender.RendersFolder(set.id)), StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrEmpty(StudioRender.Progress)) panel.Add(StudioUi.Hint(StudioRender.Progress));
+                    foreach (var done in StudioRender.Results)
+                        panel.Add(StudioUi.Hint($"{done.camera}: {done.frames} frames in {done.seconds:0} s" + (done.movie.Length > 0 ? ", movie made" : "") + (done.error.Length > 0 ? ". " + done.error : "")));
+                    panel.Add(StudioUi.Small("Open the render folder", () => EditorUtility.RevealInFinder(folder)));
+                }
             }
         }
 

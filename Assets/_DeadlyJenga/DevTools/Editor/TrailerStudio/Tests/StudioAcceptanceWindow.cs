@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -20,32 +21,43 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static TrailerStudioWindow TourWindow()
         {
             var window = EditorWindow.GetWindow<TrailerStudioWindow>("Trailer Studio");
-            window.position = new Rect(40, 60, 1520, 900);
+            window.position = new Rect(40, 60, 1280, 760);
             window.Show();
-            window.Focus();
+
             return window;
         }
 
-        // Copy the window's pixels from the screen. The window must be visible and not covered.
+        // Read Unity's own view buffer so other desktop windows never enter a review image.
         static bool Shoot(TrailerStudioWindow window, string name)
         {
+            const BindingFlags members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            var host = typeof(EditorWindow).GetField("m_Parent", members)?.GetValue(window);
+            var viewType = typeof(EditorWindow).Assembly.GetType("UnityEditor.GUIView");
+            var grab = viewType?.GetMethod("GrabPixels", members);
+            if (host == null || grab == null) throw new InvalidOperationException("Editor window capture is unavailable.");
+            var size = window.position.size * EditorGUIUtility.pixelsPerPoint;
+            int width = Mathf.RoundToInt(size.x), height = Mathf.RoundToInt(size.y);
+            var target = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);
+            var picture = new Texture2D(width, height, TextureFormat.RGB24, false);
+            var previous = RenderTexture.active;
             try
             {
-                window.Repaint();
-                float scale = EditorGUIUtility.pixelsPerPoint;
-                var area = window.position;
-                int width = Mathf.RoundToInt(area.width * scale), height = Mathf.RoundToInt(area.height * scale);
-                var pixels = UnityEditorInternal.InternalEditorUtility.ReadScreenPixel(new Vector2(area.x * scale, area.y * scale), width, height);
-                var picture = new Texture2D(width, height, TextureFormat.RGB24, false);
-                picture.SetPixels(pixels);
-                picture.Apply(false);
-                Directory.CreateDirectory(Folder);
+                var bounds = new Rect(0, 0, width, height);
+                viewType.GetMethod("RepaintImmediately", members)?.Invoke(host, null);
+                grab.Invoke(host, new object[] { target, bounds });
+                RenderTexture.active = target;
+                picture.ReadPixels(bounds, 0, 0);
+                picture.Apply();
                 File.WriteAllBytes(Path.Combine(Folder, name + ".png"), picture.EncodeToPNG());
-                UnityEngine.Object.DestroyImmediate(picture);
-                // A real picture has many different colours; a blank one means the window was not on screen.
-                return pixels.Where((_, i) => i % 997 == 0).Select(c => ((Color32)c).r / 8 * 1024 + ((Color32)c).g / 8 * 32 + ((Color32)c).b / 8).Distinct().Count() > 12;
+                return picture.GetPixels32().Where((_, i) => i % 997 == 0)
+                    .Select(c => c.r / 8 * 1024 + c.g / 8 * 32 + c.b / 8).Distinct().Count() > 12;
             }
-            catch (Exception error) { Debug.LogWarning("[TrailerStudio acceptance] screenshot failed: " + error.Message); return false; }
+            finally
+            {
+                RenderTexture.active = previous;
+                RenderTexture.ReleaseTemporary(target);
+                UnityEngine.Object.DestroyImmediate(picture);
+            }
         }
 
         static IEnumerable<int> Settle(TrailerStudioWindow window, int frames = 12)
@@ -61,6 +73,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             int fps = set.fps;
             var window = TourWindow();
             foreach (int wait in Settle(window, 30)) yield return wait;
+            window.LoadSet(set.id);
+            window.RebuildAll();
             var context = window.Context;
             var shots = new List<string>(); int good = 0;
             void Take(string name) { shots.Add(name); if (Shoot(window, name)) good++; }
@@ -169,10 +183,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (int wait in Settle(window, 6)) yield return wait;
             int redone = window.Set.marks.Count;
 
-            var tabs = window.rootVisualElement.Query<Button>(className: "ts-tab").ToList().Select(b => b.text).ToList();
-            Result("Window tour: every tab used in a real editor window", good == shots.Count && tabs.Count >= 6,
+            var tabs = window.rootVisualElement.Query<Button>(className: "ts-tab").ToList().Select(b => b.Q<Label>()?.text ?? b.text).ToList();
+            Result("Window tour: every tab used in a real editor window", good == shots.Count && new[] { "Set", "Perform", "Polish", "Direct", "Shoot", "Cut" }.All(tabs.Contains),
                 $"Tabs: {string.Join(", ", tabs)}. {good} of {shots.Count} screenshots show real content ({string.Join(", ", shots)}). " +
-                "The pictures are the window as drawn on screen, read back from the display.");
+                "The pictures were read from the Unity editor view buffer.");
             Result("Undo and redo for Set edits", added == marksBefore + 1 && undone == marksBefore && redone == marksBefore + 1,
                 $"Marks: {marksBefore}, after adding one {added}, after undo {undone}, after redo {redone} (Unity's own undo stack).");
             Result("Runtime errors during the tour", exceptions == 0, exceptions == 0 && errorLines.Count == 0 ? "None." : $"{exceptions} exceptions. First messages: {string.Join(" // ", errorLines)}");
