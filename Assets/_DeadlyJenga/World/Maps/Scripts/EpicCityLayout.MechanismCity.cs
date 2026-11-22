@@ -99,7 +99,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (skyRing)
                 {
                     // Low spokes from the canyon's first floors to the ring (the planner never tries below 9 m).
-                    DeckLink(nw, order[2], new Vector3(-34.2f,5.15f,18), plan.sites[order[2]].position + schoolFront*new Vector3(0,4.8f,8), true);
+                    DeckLink(nw, order[2], new Vector3(-36.2f,5.15f,18), plan.sites[order[2]].position + schoolFront*new Vector3(0,4.8f,8), true);
                     DeckLink(ne, order[7], new Vector3(27, 5.15f, 11.65f), new Vector3(59.87f, 5.15f, -24.22f), true);
                 }
                 foreach (int inner in skyRing ? new[] { sw, se } : new[] { nw, ne, sw, se })
@@ -137,8 +137,8 @@ namespace DeadlyJenga.CastlePrototype
                     BuildPumpHall(plan.sites[se]);
                     BuildPumpHall(plan.sites[sw]);
                     district = sw;
-                    var a = new Vector3(-18,9.15f,-23);
-                    var b = new Vector3(18,9.15f,-23);
+                    var a = new Vector3(-18,9.15f,-25.2f);
+                    var b = new Vector3(18,9.15f,-25.2f);
                     plan.routes.Add(new EpicCityRoute { name="Rainwater plant service bridge", from=sw, to=se, a=a, b=b });
                     Bridge(a,b,3.4f,"Rainwater gallery crossing");
                     PlankWalls();
@@ -198,7 +198,8 @@ namespace DeadlyJenga.CastlePrototype
                     // This pair of recessed wall panels backs the pumps and frames the open room.
                     Part(floor,new Vector3(-10.6f,2,1.5f),new Vector3(.8f,4,8),0);
                     foreach(int side in new[]{-1,1})
-                        Part(floor,new Vector3(side*6.9f,2,10.6f),new Vector3(3.4f,4,.8f),0);
+                        if (level!=6 || side>0 || site.name!="Canyon south-east tower")
+                            Part(floor,new Vector3(side*6.9f,2,10.6f),new Vector3(3.4f,4,.8f),0);
                     geometryBounds.Remove(floor);
                 }
             }
