@@ -475,6 +475,7 @@ namespace DeadlyJenga.CastlePrototype
         // Match run: host starts Demo on Castle with a fixed bot count, then both processes hold the round.
         static bool MatchTest => Environment.GetCommandLineArgs().Contains("--dj-match");
         static bool BotsAfterWorldReady => Environment.GetCommandLineArgs().Contains("--dj-match-bots-after-ready");
+        static bool ProductionBotFill => Environment.GetCommandLineArgs().Contains("--dj-match-production-bot-fill");
 
         // Chosen while the host is alone: a joined guest standing in a lobby slot blocks terminal changes.
         IEnumerator ChooseDemoCastle(IslandLobby lobby, int population)
@@ -501,6 +502,7 @@ namespace DeadlyJenga.CastlePrototype
             bool GuestSeesBots(int expected) => fusion.Demo.survivors == expected &&
                 FindObjectsByType<SurvivorNetworkView>(FindObjectsSortMode.None)
                     .Count(view => view.IsBot && !view.IsEnemy) == expected;
+            Require(!BotsAfterWorldReady || !ProductionBotFill, "Select one bot startup scenario");
             if (BotsAfterWorldReady)
             {
                 Require(bots > 0 && players == 2, "Post-admission bot load requires two humans and a positive bot count");
@@ -520,12 +522,36 @@ namespace DeadlyJenga.CastlePrototype
                     File.WriteAllText(Mark("guest-match-world-ready"), "Guest usable world confirmed at zero bots");
                 }
             }
-            if (host)
+            if (ProductionBotFill)
+                File.AppendAllText(Report, $"MATCH production bot fill: target={bots} bots with {players} humans\n");
+            if (host && ProductionBotFill)
             {
-                session.SurvivorBots.AutoFill = false;
-                session.SurvivorBots.Clear();
-                for (int i = 0; i < bots; i++) session.SurvivorBots.SpawnOne();
-                Require(session.SurvivorBots.Count == bots, $"Host spawns {bots} bots");
+                var population = session.SurvivorBots;
+                Require(bots > 0 && population.AutoFill && population.TargetPopulation == players + bots,
+                    "Production bot manager starts with the requested total population");
+                yield return Until(() => room.Connected && room.HumanCount == players && population.Count == bots,
+                    $"Production manager fills {bots} host bots", 100,
+                    () => $"bots={population.Count}; humans={room.HumanCount}; target={population.TargetPopulation}");
+            }
+            else if (host)
+            {
+                var population = session.SurvivorBots;
+                int prefill = population.Count;
+                double startSpawn = Time.realtimeSinceStartupAsDouble;
+                population.AutoFill = false;
+                population.Clear();
+                double clearMilliseconds = (Time.realtimeSinceStartupAsDouble - startSpawn) * 1000;
+                var spawnMilliseconds = new List<string>(bots);
+                for (int i = 0; i < bots; i++)
+                {
+                    double spawnAt = Time.realtimeSinceStartupAsDouble;
+                    bool spawned = population.SpawnOne();
+                    double milliseconds = (Time.realtimeSinceStartupAsDouble - spawnAt) * 1000;
+                    spawnMilliseconds.Add(FormattableString.Invariant($"{i + 1}:{milliseconds:F1}:{(spawned ? 1 : 0)}"));
+                }
+                File.AppendAllText(Report, FormattableString.Invariant(
+                    $"SPAWN BURST frame={Time.frameCount} prefill={prefill} target={bots} clearMs={clearMilliseconds:F1} totalMs={(Time.realtimeSinceStartupAsDouble - startSpawn) * 1000:F1} bySpawnIndexMsSuccess={string.Join(",", spawnMilliseconds)}\n"));
+                Require(population.Count == bots, $"Host spawns {bots} bots");
             }
             else
             {
