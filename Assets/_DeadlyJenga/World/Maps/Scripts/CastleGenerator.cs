@@ -303,6 +303,20 @@ namespace DeadlyJenga.CastlePrototype
                 if (!col || !col.enabled || col.isTrigger || !col.gameObject.activeInHierarchy) continue;
                 if (col.bounds.max.y > highest) { highest = col.bounds.max.y; best = col; }
             }
+            if (best && settings.layoutPreset == ShrineTownLayout.Preset)
+            {
+                // The block box ends at the deck. Find the exposed roof under the spawn,
+                // including its pitch, without placing the survivor on the narrow spire.
+                var bounds = best.bounds;
+                float ceiling = bounds.max.y;
+                foreach (var part in best.GetComponentsInChildren<Collider>())
+                    if (part.enabled && !part.isTrigger) ceiling = Mathf.Max(ceiling, part.bounds.max.y);
+                var start = new Vector3(bounds.center.x + bounds.extents.x*.25f, ceiling+1,
+                    bounds.center.z + bounds.extents.z*.25f);
+                if (gameObject.scene.GetPhysicsScene().Raycast(start,Vector3.down,out var roofHit,
+                    ceiling-bounds.min.y+2,1<<Layers.Block,QueryTriggerInteraction.Ignore))
+                    return roofHit.point + Vector3.up*.12f;
+            }
             return best ? new Vector3(best.bounds.center.x, best.bounds.max.y + .08f, best.bounds.center.z)
                 : (foundation ? foundation.position : transform.position) + Vector3.up * .6f;
         }
@@ -357,7 +371,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (settings.layoutPreset == ShrineTownLayout.Preset)
                 {
                     ShrineTownLayout.ShapeFoundation(foundation);
-                    ShrineTownLayout.BuildStreetColliders(generatedRoot);
+                    ShrineTownLayout.BuildStreetColliders(generatedRoot,transform.InverseTransformPoint(Vector3.up*waterHeight).y);
                 }
             }
             foreach (var p in layout)

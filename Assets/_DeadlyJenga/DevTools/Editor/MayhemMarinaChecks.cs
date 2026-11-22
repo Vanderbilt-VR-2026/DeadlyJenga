@@ -909,6 +909,10 @@ namespace DeadlyJenga.DevTools.Editor
                 var edge = roof.position + new Vector3(0,3,4.95f);
                 Check(MoveFrom(edge,Vector3.down*4).y > roof.position.y-.1f,"Survivor controller stands on the projecting eave");
                 var scene = map.gameObject.scene.GetPhysicsScene();
+                var island = map.transform.TransformPoint(Quaternion.Euler(0,45,0)*Vector3.forward*66);
+                Check(scene.Raycast(island+Vector3.up*8,Vector3.down,out var shore,14,1,QueryTriggerInteraction.Ignore)
+                    && shore.collider.name == "Stone islet" && shore.rigidbody && shore.rigidbody.isKinematic,
+                    "Outlying bamboo islet has a solid kinematic landing");
                 Check(scene.Raycast(at,Vector3.down,out var hit,5,1<<Layers.Surface,QueryTriggerInteraction.Ignore)
                     && Climbables.TryGet(hit.collider,out var climbable) && climbable.Body == roof,
                     "Pitched traversal collider resolves to its moving climbable rigidbody");
@@ -951,6 +955,10 @@ namespace DeadlyJenga.DevTools.Editor
             Check(!art.GetComponentsInChildren<ParticleSystem>(true).Any(x => x.name.ToLowerInvariant().Contains("rain")) &&
                 !art.GetComponentsInChildren<AudioSource>(true).Any(x => x.name.ToLowerInvariant().Contains("rain")),
                 "Redesigned shrine creates no rain particles or rain audio source");
+            var spawn = generator.SafeSpawnPoint();
+            Check(generator.gameObject.scene.GetPhysicsScene().Raycast(spawn+Vector3.up*12,Vector3.down,out var spawnHit,
+                14,1<<Layers.Block,QueryTriggerInteraction.Ignore) && Mathf.Abs(spawn.y-spawnHit.point.y-.12f)<.04f,
+                "Survivor spawn is above the exposed roof surface");
             CheckShrineTraversal(generator,layout);
             captureOrigin=world.Center;
             var fog=Shader.GetGlobalVector("_NinjaFogParams");

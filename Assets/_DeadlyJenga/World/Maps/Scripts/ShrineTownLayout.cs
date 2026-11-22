@@ -94,7 +94,7 @@ namespace DeadlyJenga.CastlePrototype
             joint.enablePreprocessing = false;
         }
 
-        public static void BuildStreetColliders(Transform parent)
+        public static void BuildStreetColliders(Transform parent,float waterY)
         {
             // Bolted fixtures share a kinematic body. Openings between the gate posts stay clear.
             var fixtures = Shape(parent,"Fixed shrine fixtures",Vector3.zero,Quaternion.identity);
@@ -137,8 +137,53 @@ namespace DeadlyJenga.CastlePrototype
                     foot = next;
                 }
             }
+            float[] nearRadii = {66,70,65,73};
+            for (int i = 0; i < nearRadii.Length; i++)
+            {
+                var at = Quaternion.Euler(0,45+i*90,0)*Vector3.forward*nearRadii[i];
+                IslandRock(fixtures,at+Vector3.up*waterY,new Vector3(9,3.2f,7.5f));
+            }
+            var moon = Quaternion.Euler(0,25,0)*Vector3.forward;
+            for (int i = 0; i < 14; i++)
+            {
+                float angle = i*2.39996f+.3f;
+                var direction = new Vector3(Mathf.Sin(angle),0,Mathf.Cos(angle));
+                if (Vector3.Dot(direction,moon) > .93f) continue;
+                var at = direction*(75+i*37%70)+Vector3.up*waterY;
+                IslandRock(fixtures,at,new Vector3(6+i%4*3,2.5f+i%3*1.8f,5+i%5*2.5f));
+            }
             ColliderBox(fixtures,"Torii crossbeam",new Vector3(0,7.4f,-43),new Vector3(8.65f,.61f,.77f),Quaternion.identity);
             ColliderBox(fixtures,"Torii lintel",new Vector3(0,9.32f,-43),new Vector3(12.5f,1.1f,1.05f),Quaternion.identity);
+        }
+
+        static Mesh isletHull;
+        static void IslandRock(Transform fixtures,Vector3 at,Vector3 radii)
+        {
+            if (!isletHull)
+            {
+                const int sides = 11;
+                var points = new List<Vector3>();
+                var triangles = new List<int>();
+                // A broad waterline and a narrower landing match the two stone tiers.
+                Vector2[] profile = {new(.65f,-.65f),new(1,-.13f),new(.81f,.35f),new(.58f,.53f)};
+                for (int ring = 0; ring < profile.Length; ring++)
+                    for (int i = 0; i < sides; i++)
+                    {
+                        float angle = 2*Mathf.PI*i/sides;
+                        points.Add(new Vector3(Mathf.Cos(angle)*profile[ring].x,profile[ring].y,Mathf.Sin(angle)*profile[ring].x));
+                        int a = ring*sides+i, b = ring*sides+(i+1)%sides;
+                        if (ring > 0) triangles.AddRange(new[] {a,b,b-sides,a,b-sides,a-sides});
+                        if (ring == profile.Length-1 && i>0 && i<sides-1) triangles.AddRange(new[] {ring*sides,b,a});
+                    }
+                isletHull = new Mesh {name = "Low-poly shrine islet"};
+                isletHull.SetVertices(points);
+                isletHull.SetTriangles(triangles,0);
+            }
+            var rock = Shape(fixtures,"Stone islet",at,Quaternion.identity);
+            rock.localScale = radii;
+            var collider = rock.gameObject.AddComponent<MeshCollider>();
+            collider.convex = true;
+            collider.sharedMesh = isletHull;
         }
 
         static void StoneLantern(Transform fixtures,Vector3 foot,float scale)
