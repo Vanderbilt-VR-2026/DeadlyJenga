@@ -192,10 +192,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         void Filter()
         {
-            string[] words = (search?.value ?? "").Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+            string query = (search?.value ?? "").Trim();
+            string[] words = query.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
             const int limit = 40;
-            shown = commands.Where(command => words.All(word => command.name.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0))
-                .Take(limit + 1).ToList();
+            var matches = commands.AsEnumerable();
+            if (query.Length > 0)
+            {
+                bool Phrase(string name) => name.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
+                matches = commands.Where(command => Phrase(command.name)).Concat(commands.Where(command =>
+                    !Phrase(command.name) && words.All(word => command.name.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0)));
+            }
+            shown = matches.Take(limit + 1).ToList();
             bool truncated = shown.Count > limit;
             if (truncated) shown.RemoveAt(limit);
             highlighted = Mathf.Clamp(highlighted, 0, Mathf.Max(0, shown.Count - 1));
