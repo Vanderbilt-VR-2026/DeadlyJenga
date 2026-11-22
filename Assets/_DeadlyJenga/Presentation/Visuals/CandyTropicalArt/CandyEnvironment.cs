@@ -14,7 +14,18 @@ namespace DeadlyJenga.CandyArt
         public bool applyLighting;
         MaterialPropertyBlock properties;
         DeadlyJenga.Core.IWorldQuery activeWorld;
-        bool openWater,coastReady;
+        bool openWater,coastReady,showingCaldera;
+        bool priorWaterHidden,priorSandHidden;
+        Material priorSky;
+        void RestoreCaldera()
+        {
+            if(!showingCaldera)return;
+            showingCaldera=false;
+            waterRenderer.forceRenderingOff=priorWaterHidden;
+            sandRenderer.forceRenderingOff=priorSandHidden;
+            RenderSettings.skybox=priorSky;
+            if(seaLife)seaLife.gameObject.SetActive(true);
+        }
         CandySeaLife seaLife;
         object seaLifeWorld;
         IWorldQuery arrivalReadyWorld;
@@ -41,6 +52,7 @@ namespace DeadlyJenga.CandyArt
         void Update() { if(Application.isPlaying){coastReady=true;if(!GetComponent<CandyHazardLighting>())gameObject.AddComponent<CandyHazardLighting>();if(!GetComponent<CandyWaveFeedback>())gameObject.AddComponent<CandyWaveFeedback>();}Refresh(); }
         void OnDisable()
         {
+            RestoreCaldera();
             coastReady=false;
             arrivalReadyWorld=null;
             arrivalReadyFrame=-1;
@@ -104,6 +116,26 @@ namespace DeadlyJenga.CandyArt
                 if(catwalksCoast!=null) ReleaseCoast();
                 return;
             }
+            if(Application.isPlaying && WorldOverride==null && world is Component current &&
+                current.TryGetComponent<TwinCalderaScenery>(out var caldera))
+            {
+                if(!showingCaldera)
+                {
+                    ReleaseCoast();
+                    priorWaterHidden=waterRenderer.forceRenderingOff;
+                    priorSandHidden=sandRenderer.forceRenderingOff;
+                    priorSky=RenderSettings.skybox;
+                    showingCaldera=true;
+                    if(seaLife)seaLife.gameObject.SetActive(false);
+                    arrivalReadyWorld=world;
+                    arrivalReadyFrame=Time.frameCount;
+                }
+                waterRenderer.forceRenderingOff=true;
+                sandRenderer.forceRenderingOff=true;
+                RenderSettings.skybox=caldera.sky;
+                return;
+            }
+            RestoreCaldera();
             if(Application.isPlaying && world!=null && (!ReferenceEquals(activeWorld,world) ||
                 (openWater && (!foundation || !foundation.gameObject.activeInHierarchy))))
             {

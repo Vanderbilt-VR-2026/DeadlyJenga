@@ -351,6 +351,7 @@ namespace DeadlyJenga.DevTools.Editor
                         camera.transform.SetPositionAndRotation(world.Center + new Vector3(240.93f,200.47f,-298.43f),
                             Quaternion.Euler(24.87f,-38.81f,0));
                     }
+                    else if(view=="reference" && id=="mode-twin-caldera") TwinCalderaChecks.Wide(camera,world.Center);
                     else MapPictureRig.Place(camera, view, bounds, job.width / (float)job.height);
                     // "balloon": a close look at the first hot-air balloon, when the map has one (else the hero view).
                     var balloon = view == "balloon" ? GameObject.Find("Visual · hot-air balloon 1") : null;
@@ -380,6 +381,8 @@ namespace DeadlyJenga.DevTools.Editor
                     if (CaptureOutput.EncodeClip(frames, job.fps, mp4)) gallery.Add(mp4, id + " · " + job.clip + " clip", "video", job.clipWidth, job.clipHeight);
                 }
                 gallery.SaveManifest();
+                if(id=="mode-twin-caldera" && job.views.Contains("reference"))
+                    TwinCalderaChecks.Verify(camera,world as CastleGenerator,job.gallery);
             }
             finally { Object.Destroy(camera.gameObject); }
         }
@@ -584,7 +587,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
         }
 
-        static void RenderNow(Camera camera, int width, int height, string path)
+        internal static void RenderNow(Camera camera, int width, int height, string path)
         {
             var target = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default, 4);
             var image = new Texture2D(width, height, TextureFormat.RGB24, false);

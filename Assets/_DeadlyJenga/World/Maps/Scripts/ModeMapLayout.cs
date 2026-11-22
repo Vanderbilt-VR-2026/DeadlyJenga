@@ -10,10 +10,11 @@ namespace DeadlyJenga.CastlePrototype
         public const int CuratedCtfRevision=2;
         public const float CuratedCtfGroundY=.4f,CuratedCtfTop=4.4f;
         public static readonly string[] Presets={"ctf","infection","survival","territory","koth","tickets"};
-        public static bool Known(string preset)=>Array.IndexOf(Presets,preset)>=0||preset==ShrineTownLayout.Preset||preset==NinjaTempleLayout.Preset||preset==TycoonLayout.Preset;
-        public static int Height(string preset)=>preset==ShrineTownLayout.Preset?14:preset==TycoonLayout.Preset?TycoonLayout.HeightCourses:preset==NinjaTempleLayout.Preset?NinjaTempleLayout.HeightCourses:preset=="infection"?48:preset=="koth"?32:preset=="survival"?20:preset=="territory"?16:preset=="ctf"?3:12;
+        public static bool Known(string preset)=>preset==TwinCalderaLayout.Preset||Array.IndexOf(Presets,preset)>=0||preset==ShrineTownLayout.Preset||preset==NinjaTempleLayout.Preset||preset==TycoonLayout.Preset;
+        public static int Height(string preset)=>preset==TwinCalderaLayout.Preset?16:preset==ShrineTownLayout.Preset?14:preset==TycoonLayout.Preset?TycoonLayout.HeightCourses:preset==NinjaTempleLayout.Preset?NinjaTempleLayout.HeightCourses:preset=="infection"?48:preset=="koth"?32:preset=="survival"?20:preset=="territory"?16:preset=="ctf"?3:12;
         public static Vector2 Size(CastleSettings s)
         {
+            if(s.layoutPreset==TwinCalderaLayout.Preset)return new Vector2(90,62);
             if(s.layoutPreset==TycoonLayout.Preset)return TycoonLayout.Size;
             if(s.layoutPreset==ShrineTownLayout.Preset)return new Vector2(92,92);
             if(s.layoutPreset==NinjaTempleLayout.Preset)return NinjaTempleLayout.Size;
@@ -26,6 +27,7 @@ namespace DeadlyJenga.CastlePrototype
         public static List<CastlePlacement> Build(CastleSettings s)
         {
             if(!Known(s.layoutPreset))throw new ArgumentException("Unknown mode layout.");
+            if(s.layoutPreset==TwinCalderaLayout.Preset)return TwinCalderaLayout.Build();
             if(s.layoutPreset==TycoonLayout.Preset)return TycoonLayout.Build(s);
             if(s.layoutPreset==ShrineTownLayout.Preset)return ShrineTownLayout.Build();
             if(s.layoutPreset==NinjaTempleLayout.Preset)return NinjaTempleLayout.Build(s);

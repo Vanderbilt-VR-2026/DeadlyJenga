@@ -1,0 +1,142 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3308325157542424419
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1030507885409388828}
+  - component: {fileID: 2439113978628553874}
+  m_Layer: 0
+  m_Name: Basalt bed below lethal lava
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1030507885409388828
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3308325157542424419}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -3.5, z: 0}
+  m_LocalScale: {x: 100, y: 1, z: 94}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 9157876249556370270}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2439113978628553874
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3308325157542424419}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &4478676743504610698
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9157876249556370270}
+  - component: {fileID: 3084828545915345649}
+  - component: {fileID: 774122145}
+  m_Layer: 0
+  m_Name: Twin Caldera
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9157876249556370270
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4478676743504610698}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1030507885409388828}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3084828545915345649
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4478676743504610698}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec8bff3166ea7cc4e81fb3879ba3c706, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.CastleGenerator
+  settings:
+    blockSize: {x: 9, y: 2, z: 2}
+    modulesPerSide: 5
+    wallCourses: 14
+    cornerCourses: 18
+    keepCourses: 42
+    moduleGap: 3
+    structureVariant: 0
+    singleTower: 0
+    cathedral: 0
+    layoutPreset: twin-caldera
+  blockPrefab: {fileID: 4765161766151906529, guid: c42ba8861cfd4951acf585d987ca67fc, type: 3}
+  cornerMaterial: {fileID: 2100000, guid: 1f4297b594299cc4fbdec5329506df5f, type: 2}
+  wallMaterial: {fileID: 2100000, guid: 28091ab6fc6c438296980e0001b6c4a2, type: 2}
+  keepMaterial: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+  goldMaterial: {fileID: 2100000, guid: 6d644d4ed46b4f3884dcba06f5fcdd5e, type: 2}
+  aquaMaterial: {fileID: 2100000, guid: f6619c3b05034628ae7f4667ba26b5a0, type: 2}
+  foundation: {fileID: 1030507885409388828}
+  generateOnStart: 0
+  environmentOnly: 0
+  magneticMap: {fileID: 0}
+  mass: 40
+  generatedRoot: {fileID: 0}
+  sinkDisplacedDebris: 0
+  waterHeight: 0
+  oceanKillHeight: 0
+  playableArea: {fileID: 0}
+--- !u!114 &774122145
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4478676743504610698}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7956b83cd2344ce0bad9c6cbb7ff54c6, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  lava: {fileID: 2100000, guid: 9b863a4f0a6341e2809936563dc3b3c1, type: 2}
+  sky: {fileID: 2100000, guid: a1fbf6038d3149e5a47e7c895579f407, type: 2}
