@@ -238,8 +238,8 @@ namespace DeadlyJenga.Presentation
 
         void WarmLighting()
         {
-            RenderSettings.fogColor=new Color(1,.84f,.86f);
-            RenderSettings.ambientSkyColor=new Color(.78f,.76f,1);RenderSettings.ambientEquatorColor=new Color(1,.78f,.78f);RenderSettings.ambientGroundColor=new Color(.5f,.36f,.42f);
+            RenderSettings.fogColor=new Color(.86f,.85f,.96f);
+            RenderSettings.ambientSkyColor=new Color(.77f,.85f,1);RenderSettings.ambientEquatorColor=new Color(.94f,.81f,.82f);RenderSettings.ambientGroundColor=new Color(.44f,.40f,.52f);
         }
     }
 }
