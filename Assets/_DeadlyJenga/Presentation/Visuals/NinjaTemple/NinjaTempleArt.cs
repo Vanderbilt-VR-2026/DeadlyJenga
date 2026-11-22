@@ -164,7 +164,7 @@ namespace DeadlyJenga.NinjaArt
                         if (i % 3 == 0) f.Blob(at + Vector3.up * 1.18f,new Vector3(1.2f,.52f,.8f),3,8,
                             new Color(.88f,.31f,.36f),new Color(.52f,.13f,.19f),i,.3f);
                     }
-                    NinjaTempleScenery.Pine(f, new Vector3(side * 21, 0, -28), 1.35f, side + 10);
+                    NinjaTempleScenery.Pine(f, new Vector3(side * 24, 0, 36), 1.35f, side + 10);
                     NinjaTempleScenery.Maple(f, new Vector3(side * 24, 0, 10), 1.2f, side + 25);
                     NinjaTempleScenery.Maple(f, new Vector3(side * 19, 0, 32), 1.4f, side + 12);
                 }

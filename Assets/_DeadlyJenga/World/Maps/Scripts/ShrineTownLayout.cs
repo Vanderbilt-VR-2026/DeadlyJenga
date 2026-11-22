@@ -128,7 +128,7 @@ namespace DeadlyJenga.CastlePrototype
                 var rng = new System.Random(side+10);
                 rng.NextDouble(); // Trunk color precedes the bend in the scenery builder.
                 var bend = new Vector3((float)rng.NextDouble()-.5f,0,(float)rng.NextDouble()-.5f).normalized;
-                var foot = new Vector3(side*21,0,-28);
+                var foot = new Vector3(side*24,0,36);
                 for (int i = 0; i < 4; i++)
                 {
                     var next = foot+(Vector3.up*1.6f+bend*(.6f+i*.25f))*(1.35f*.7f);
