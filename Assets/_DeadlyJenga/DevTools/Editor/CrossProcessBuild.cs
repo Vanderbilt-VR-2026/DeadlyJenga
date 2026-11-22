@@ -111,7 +111,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 {
                     if (players.Any(player => player.HasExited && player.ExitCode != 0))
                         throw new InvalidOperationException("A peer exited with a failure. See its role report.");
-                    if (elapsed.Elapsed.TotalMinutes > 15) throw new TimeoutException("Two-player check timed out.");
+                    if (elapsed.Elapsed.TotalMinutes > 21) throw new TimeoutException("Two-player check timed out.");
                     System.Threading.Thread.Sleep(500);
                 }
                 foreach (string role in new[] { "host", "guest" })

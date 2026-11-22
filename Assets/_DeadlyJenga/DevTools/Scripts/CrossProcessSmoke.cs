@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:NearbyFlow?850:LobbyHandoff||TycoonTest||FullRound?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:NearbyFlow?1200:LobbyHandoff||TycoonTest||FullRound?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -268,7 +268,8 @@ namespace DeadlyJenga.CastlePrototype
                 var fusion = game ? game.GetComponent<CastleFusionSession>() : null;
                 return $"{LobbyState()}, map={MatchSetup.MapId}, flow={flow?.GamePhase} ({flow?.GameStatus}), " +
                     $"sceneVersion={(room.Runner ? room.Runner.SceneInfo.Version.ToString() : "none")}, " +
-                    $"round={game?.Modes?.Frame?.phase}, worldPending={game?.Network?.WaitingForWorld}, " +
+                    $"round={game?.Modes?.Frame?.phase}, elapsed={game?.Modes?.Frame?.elapsed:F1}, " +
+                    $"remaining={game?.Modes?.Frame?.remaining:F1}, worldPending={game?.Network?.WaitingForWorld}, " +
                     $"gameHumans={game?.Network?.HumanCount}, otherAvatar={SeesMatchHuman()}, blocks={Services.World?.Blocks.Count}, " +
                     $"fullWorld={fusion?.WorldFullTransfersSubmitted}, deltaWorld={fusion?.WorldDeltaTransfersSubmitted}, " +
                     $"bundles={fusion?.HotpathBundlesSubmitted}, flushFailures={fusion?.HotpathFlushFailures}, " +
@@ -295,9 +296,22 @@ namespace DeadlyJenga.CastlePrototype
             File.WriteAllText(Mark(role+"-nearby-playing"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-playing")),
                 "Both clients confirmed the match before returning", matchEntryTimeout, MatchState);
-            yield return Until(() => game && game.Modes &&
-                game.Modes.Frame.phase is RoundPhase.Victory or RoundPhase.Results,
-                "The full Play round reaches results after nearby join", 480, () => room.Status);
+            var rules = game.Modes.Frame.rules;
+            float resultsTimeout = Mathf.Max(480, rules.roundSeconds + rules.victorySeconds + 90);
+            File.AppendAllText(Report, $"WAIT RESULTS matchSeconds={rules.roundSeconds:F1}, timeoutSeconds={resultsTimeout:F1}\n");
+            nextTrace = Time.realtimeSinceStartupAsDouble + 30;
+            yield return Until(() =>
+            {
+                double now = Time.realtimeSinceStartupAsDouble;
+                if (now >= nextTrace)
+                {
+                    nextTrace = now + 30;
+                    File.AppendAllText(Report, $"ROUND {DateTime.UtcNow:O} {MatchState()}\n");
+                }
+                return game && game.Modes && game.Modes.Frame.phase == RoundPhase.Results &&
+                    room.Connected && room.HumanCount == 2 && room.Code == address;
+            }, "This client reaches the full Play round results in the same room", resultsTimeout, MatchState);
+            File.AppendAllText(Report, "MATCH RESULTS " + MatchState() + "\n");
             yield return Until(BothInMarina,
                 "Guest follows host back to Marina without disconnecting",90,()=>room.Status);
             File.WriteAllText(Mark(role+"-nearby-returned"),"ready");
