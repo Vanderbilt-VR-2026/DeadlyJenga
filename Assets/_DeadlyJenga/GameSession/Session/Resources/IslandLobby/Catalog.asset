@@ -524,6 +524,15 @@ MonoBehaviour:
     walkableIsland: 1
     supportedModes:
     - demo
+  - id: fossil-basin
+    title: Fossil Basin
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 1682020381547342917, guid: 8d5895aed8d34fd3b4065c97cb562aad, type: 3}
+    recommendedPlayers: 6
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes:
+    - demo
   - id: workshop-under-the-tree
     title: Underneath the Tree
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
