@@ -379,12 +379,28 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 from = (contact - 30) / (float)Fps, to = contact / (float)Fps - StudioOverrides.PunchContact,
                 blendIn = .2f, blendOut = .08f
             });
-            Vector3 recoil = FeetAt(stage, "dragon", contact + 9, plan);
             Vector3 mid = (hero + rival) * .5f;
-            Vector3 aim = Vector3.Lerp(mid, recoil, .35f) + Vector3.up * .5f;
             Vector3 across = Vector3.Cross(Vector3.up, Flat(rival - hero));
-            Vector3 position = Spot(mid, 3.8f, .65f, new[] { hero, rival }, across);
-            var side = ShotCam(witness, 20);
+            Vector3 position = Spot(mid, 3.4f, .65f, new[] { hero, rival }, across);
+            var bounds = new Bounds(mid, Vector3.zero);
+            var endpoints = new List<Vector3>();
+            for (int frame = contact - 12; frame <= contact + 9; frame += 3)
+                foreach (string role in new[] { "hero", "dragon" })
+                {
+                    endpoints.Add(FeetAt(stage, role, frame, plan) - across * .18f);
+                    endpoints.Add(HeadAt(stage, role, frame, plan) + across * .18f + Vector3.up * .25f);
+                }
+            foreach (Vector3 point in endpoints) bounds.Encapsulate(point);
+            Vector3 aim = bounds.center;
+            Quaternion fromCamera = Quaternion.Inverse(Quaternion.LookRotation(aim - position, Vector3.up));
+            float opening = .5f;
+            foreach (Vector3 point in endpoints)
+            {
+                Vector3 at = fromCamera * (point - position);
+                if (at.z <= .1f) throw new InvalidOperationException("A witness subject passed behind the camera.");
+                opening = Mathf.Max(opening, Mathf.Max(Mathf.Abs(at.y), Mathf.Abs(at.x) * 9 / 16) / at.z);
+            }
+            var side = ShotCam(witness, Mathf.Clamp(12f * .85f / opening, 8f, 24f));
             StudioMoves.LockedOff(side, side.start, stage.ToStage(position), P(stage, aim));
             shots.Clear();
             shots.AddRange(new[] { pov, witness });
