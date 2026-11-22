@@ -39,6 +39,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Midnight enamel
     second: {fileID: 2100000, guid: dd7d2fe191794580a9b0dc701312431e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tangerine
+    second: {fileID: 2100000, guid: 4ad0191724d14f7f9261e4e4eea4e82f, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

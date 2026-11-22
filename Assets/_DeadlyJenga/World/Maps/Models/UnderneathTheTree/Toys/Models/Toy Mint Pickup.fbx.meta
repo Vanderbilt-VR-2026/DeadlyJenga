@@ -44,6 +44,16 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Satin brass
     second: {fileID: 2100000, guid: b670ded7460a49a782a533633a25dfa1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Vermilion lacquer
+    second: {fileID: 2100000, guid: bc34075030d8448b83bad16296a3c103, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tangerine
+    second: {fileID: 2100000, guid: 4ad0191724d14f7f9261e4e4eea4e82f, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

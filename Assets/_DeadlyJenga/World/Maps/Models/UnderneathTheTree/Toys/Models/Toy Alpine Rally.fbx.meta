@@ -34,6 +34,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Smoke glass
     second: {fileID: 2100000, guid: 29824e9e767240a9b11e16f84c88eca2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Deep lagoon
+    second: {fileID: 2100000, guid: a71758ad5a9f4703bc974938ea95fe74, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
