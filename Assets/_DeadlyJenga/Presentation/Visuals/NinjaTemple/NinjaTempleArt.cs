@@ -89,6 +89,8 @@ namespace DeadlyJenga.NinjaArt
                 {
                     for (int i = 0; i < 5; i++)
                         NinjaTempleScenery.StoneLantern(p, new Vector3(side * 4, 0, -39 + i * 10), 1, glow, i + 17);
+                    NinjaTempleScenery.Pine(f, new Vector3(side * 23, 0, -36), 1.35f, side + 10);
+                    NinjaTempleScenery.Maple(f, new Vector3(side * 24, 0, 10), 1.2f, side + 25);
                     NinjaTempleScenery.Maple(f, new Vector3(side * 19, 0, 32), 1.4f, side + 12);
                 }
             }

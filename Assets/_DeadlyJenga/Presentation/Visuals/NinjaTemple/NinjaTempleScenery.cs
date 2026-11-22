@@ -16,7 +16,8 @@ namespace DeadlyJenga.NinjaArt
             {
                 float x0 = -half + x * 2, z0 = -half + z * 2; var c = new Vector2(x0 + 1, z0 + 1);
                 bool path = Mathf.Abs(c.x) < 2.2f || Mathf.Abs(c.y) < 2.2f || Mathf.Abs(Mathf.Abs(c.x) - Ring) < 2.2f && Mathf.Abs(c.y) < Ring + 2 || Mathf.Abs(Mathf.Abs(c.y) - Ring) < 2.2f && Mathf.Abs(c.x) < Ring + 2;
-                float r = c.magnitude; if (r > 6.5f && r < 15.5f && !path) continue;
+                if (half > 35) path = Mathf.Abs(c.x) < 4 || Mathf.Abs(Mathf.Abs(c.x)-20) < 3 || Mathf.Abs(c.y-7) < 3 || Mathf.Abs(c.y+22) < 2 || Mathf.Abs(c.y-37) < 2;
+                float r = c.magnitude; if (half == 35 && r > 6.5f && r < 15.5f && !path) continue;
                 float edge = Mathf.Max(Mathf.Abs(c.x), Mathf.Abs(c.y));
                 var tone = path ? P.Vary(P.Stone * 1.35f, rng, .12f) : P.Vary(P.Gravel, rng, .07f);
                 if (!path && edge > 30) tone = Color.Lerp(tone, P.Moss, (edge - 30) / 6f * .7f);
@@ -31,7 +32,7 @@ namespace DeadlyJenga.NinjaArt
                 else m.Quad(new Vector3(x0, 0, z0), new Vector3(x0, 0, z0 + 2), new Vector3(x0 + 2, 0, z0 + 2), new Vector3(x0 + 2, 0, z0), tone, P.Vary(tone, rng, .05f), P.Vary(tone, rng, .05f), tone);
             }
             // Raked gravel rings around the great pagoda.
-            for (int ring = 0; ring < 18; ring++)
+            for (int ring = 0; ring < (half == 35 ? 18 : 0); ring++)
             {
                 float r0 = 6.5f + ring * .5f, r1 = r0 + .5f; var tone = ring % 2 == 0 ? P.Gravel * 1.25f : P.Gravel * .85f;
                 for (int s = 0; s < 64; s++)
