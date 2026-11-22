@@ -67,11 +67,12 @@ namespace DeadlyJenga.CastlePrototype
         {
             var knee=Vector3.Lerp(hip,foot,.43f)+f*(hind?1.0f:-.65f);
             var ankle=Vector3.Lerp(knee,foot,.75f)-f*.42f;
-            var thigh=Piece(kind+" upper leg "+sign, (hip+knee)*.5f,10,c=>c.Shaft(hip,knee,.42f,.45f,Ivory));
-            var shin=Piece(kind+" lower leg "+sign,(knee+ankle)*.5f,8,c=>c.Shaft(knee,ankle,.32f,.32f,Ivory));
+            var thigh=Piece(kind+" upper leg "+sign, (hip+knee)*.5f,10,c=>c.Shaft(hip,knee,.55f,.56f,Ivory));
+            var shin=Piece(kind+" lower leg "+sign,(knee+ankle)*.5f,8,c=>c.Shaft(knee,ankle,.40f,.41f,Ivory));
             var instep=foot+Vector3.up*.25f;
             var toes=Piece(kind+" tarsals and digits "+sign,instep,7,c=>{
-                c.Shaft(ankle,instep,.31f,.34f,Ivory);
+                c.Box(foot+Vector3.up*.075f,P(.75f,.15f,.66f),Brass,Flat);
+                c.Shaft(ankle,instep,.40f,.42f,Ivory);
                 var side=Vector3.Cross(f,Vector3.up);
                 for(int i=-1;i<=1;i++)
                 {
@@ -81,7 +82,8 @@ namespace DeadlyJenga.CastlePrototype
                 }
             });
             Socket(thigh,torso,hip);Socket(shin,thigh,knee);Socket(toes,shin,ankle);
-            // The feet bear on the decks. No tie from a foot to a deck or to the world.
+            // A bronze tarsal shoe bolts to the removable deck and follows it when the piers give way.
+            Socket(toes,site.slab,foot,11500);
         }
         void Tail(Dinosaur kind,FossilMember pelvis,Vector3 rump,Vector3 f,Vector3 side)
         {
@@ -119,38 +121,47 @@ namespace DeadlyJenga.CastlePrototype
                 for(int s=-1;s<=1;s+=2)
                 {
                     var cheek=neck+side*s*width;
-                    var brow=cheek+up*.72f+f*.36f;
-                    var eye=cheek+f*.96f+up*.37f;
+                    var brow=cheek+up*(kind==Dinosaur.Rex?1.23f:.83f)+f*.36f;
+                    var eye=cheek+f*1.06f+up*.46f;
                     var nose=snout+side*(s*width*.65f);
+                    float skullScale=kind==Dinosaur.Stegosaurus?.52f:1;
+                    c.SkullWindow(cheek+f*.55f+up*.43f,f,side*s,.72f*skullScale,.6f*skullScale,Ivory);
+                    c.SkullWindow(Vector3.Lerp(eye,nose,.49f)+up*.14f,f,side*s,.48f*skullScale,.30f*skullScale,Ivory);
                     c.Shaft(cheek,brow,.31f,.25f,Ivory);
                     c.Shaft(brow,eye,.28f,.28f,Ivory);
                     c.Shaft(eye,cheek+f*.51f-up*.19f,.19f,.2f,Ochre);
                     c.Shaft(cheek,cheek+f*.51f-up*.19f,.23f,.24f,Ivory);
-                    c.Shaft(eye,nose+up*.15f,.32f,.28f,Ivory);
+                    var crest=nose-f*(length*.26f)+up*(kind==Dinosaur.Rex?.61f:.31f);
+                    c.Shaft(brow,crest,.41f,.33f,Ivory);
+                    c.Shaft(crest,nose,.35f,.34f,Ivory);
+                    c.Shaft(eye,nose+up*.15f,.26f,.27f,Ivory);
                     c.Shaft(cheek+f*.51f-up*.19f,nose,.22f,.22f,Ivory);
                     for(int i=0;i<7;i++)
                     {
-                        var tooth=Vector3.Lerp(eye,nose,(i+1)/8f)-up*.15f;
-                        c.Shaft(tooth,tooth-up*(kind==Dinosaur.Rex?.32f:.13f),.09f,.09f,Ivory,true,false);
+                        var tooth=Vector3.Lerp(cheek+f*.51f-up*.19f,nose,(i+1)/8f)-up*.11f;
+                        c.Shaft(tooth,tooth-up*(kind==Dinosaur.Rex?.44f:.18f),.13f,.13f,Ivory,true,false);
                     }
                     if(kind==Dinosaur.Triceratops)
                     {
-                        var tip=s>0?P(2.3f,14.0f,4.15f):brow+f*1.95f+up*1.62f;
+                        var tip=s>0?P(2.35f,14.04f,4.03f):brow+f*1.95f+up*1.62f;
                         var bend=Vector3.Lerp(brow,tip,.55f)-up*.19f;
-                        c.Shaft(brow,bend,.28f,.29f,Ivory);
-                        c.Shaft(bend,tip,.20f,.2f,Ivory,true);
+                        c.Shaft(brow,bend,.38f,.39f,Ivory);
+                        c.Shaft(bend,tip,.29f,.29f,Ivory,true);
                     }
                 }
                 c.Shaft(snout-side*width*.7f,snout+side*width*.7f,.25f,.29f,Ivory);
                 if(kind!=Dinosaur.Triceratops)return;
                 c.Shaft(snout,snout+up*.76f+f*.29f,.2f,.20f,Ivory,true);
-                // Radial plates spread from the occiput across the back of the skull.
-                for(int k=-5;k<=5;k++)
+                // The parietal shield fans upward and aft, turned toward the apron.
+                var fan=side*.74f-f*.67f;
+                Vector3 Rim(float angle)=>neck-f*1.2f+fan*(2.2f*Mathf.Sin(angle))+
+                    up*(.49f+2.55f*Mathf.Cos(angle));
+                for(int k=-5;k<5;k++)
                 {
-                    float angle=k*Mathf.PI/12;
-                    var root=neck+side*(k*.11f)+up*.25f;
-                    var edge=neck-f*(1.12f+.48f*Mathf.Cos(angle))+side*(1.96f*Mathf.Sin(angle))+up*(.58f+2.2f*Mathf.Cos(angle));
-                    c.Shaft(root,edge,.42f,.44f,Ivory,false,true,true);
+                    Vector3 a=Rim(k*Mathf.PI/11),b=Rim((k+1)*Mathf.PI/11);
+                    var tip=(a+b)*.5f+up*.12f-f*.1f;
+                    c.ShieldSector(neck+up*.19f,a,tip,b,f*.12f+side*.14f,Ivory);
+                    c.Shaft(neck+up*.22f,tip,.12f,.15f,Ochre,true,false);
                 }
             });
             Socket(skull,cervical,neck);

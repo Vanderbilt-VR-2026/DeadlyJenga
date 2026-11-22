@@ -69,6 +69,34 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(solid) Collision(center,rotation,size);
         }
+        public void SkullWindow(Vector3 at,Vector3 forward,Vector3 side,float length,float height,Color finish)
+        {
+            // A beveled rim around an actual open fenestra; both sides of the skull are modeled.
+            Vector3 Ring(int k,float scale)
+            {
+                float t=k*Mathf.PI/5;
+                return at+forward*(length*Mathf.Cos(t)*scale)+Vector3.up*(height*Mathf.Sin(t)*scale);
+            }
+            for(int i=0;i<10;i++)
+            {
+                var outer=Ring(i,1);var next=Ring(i+1,1);
+                var lip=Ring(i,.60f);var lipNext=Ring(i+1,.60f);
+                Face(outer,outer+side*.12f,next+side*.12f,next,finish);
+                Face(outer+side*.12f,lip+side*.16f,lipNext+side*.16f,next+side*.12f,finish);
+                Face(lip+side*.16f,lip,lipNext,lipNext+side*.16f,finish*.64f);
+            }
+        }
+        public void ShieldSector(Vector3 root,Vector3 a,Vector3 tip,Vector3 b,Vector3 bevel,Color color)
+        {
+            Face(root+bevel,a+bevel,tip+bevel,b+bevel,color);
+            Face(root-bevel,b-bevel,tip-bevel,a-bevel,color);
+            Face(a-bevel,a+bevel,tip+bevel,tip-bevel,color*.92f);
+            Face(tip-bevel,tip+bevel,b+bevel,b-bevel,color*.92f);
+            var axis=(tip-root).normalized;
+            var across=Vector3.ProjectOnPlane(b-a,axis).normalized;
+            var rot=Quaternion.LookRotation(Vector3.Cross(across,axis),axis);
+            Collision(Vector3.Lerp(root,tip,.62f),rot,new Vector3((b-a).magnitude*.65f,(tip-root).magnitude*.76f,bevel.magnitude*2));
+        }
         // Elliptical cross sections with enlarged articular ends, tapered enamel or flattened plates.
         public void Shaft(Vector3 a,Vector3 b,float width,float depth,Color color,bool tapered=false,bool solid=true,bool plate=false)
         {
@@ -76,16 +104,16 @@ namespace DeadlyJenga.CastlePrototype
             var side=Vector3.Cross(Vector3.forward,axis);
             if(side.sqrMagnitude<.01f) side=Vector3.Cross(Vector3.up,axis);
             side.Normalize(); var back=Vector3.Cross(axis,side);
-            float[] radii=plate?new[]{.58f,1f,.87f,.44f,.025f}:tapered?new[]{.79f,1f,.74f,.38f,.025f}:new[]{.68f,1f,.72f,.86f,.64f};
+            float[] radii=plate?new[]{.58f,1f,.87f,.44f,.025f}:tapered?new[]{.79f,1f,.74f,.38f,.025f}:new[]{.64f,1.10f,.70f,.99f,.63f};
             float[] along={0,.13f,.48f,.84f,1};
             Vector3 P(int k,int j)
             {
-                float t=j*2*Mathf.PI/8;
+                float t=j*2*Mathf.PI/12;
                 return Vector3.Lerp(a,b,along[k])+radii[k]*(side*(width*Mathf.Cos(t))+back*(depth*Mathf.Sin(t)));
             }
-            for(int i=0;i<8;i++)
+            for(int i=0;i<12;i++)
             {
-                for(int k=0;k<4;k++) Face(P(k,i),P(k,i+1),P(k+1,i+1),P(k+1,i),color*(1-.028f*((i+k)%3)));
+                for(int k=0;k<4;k++) Face(P(k,i),P(k,i+1),P(k+1,i+1),P(k+1,i),color*((k==0?.87f:1f)-.015f*((i+k)%3)));
                 Face(a,P(0,i+1),P(0,i),a,color); Face(b,P(4,i),P(4,i+1),b,color);
             }
             if(solid)

@@ -68,7 +68,7 @@ namespace DeadlyJenga.DevTools.Editor
             camera.transform.SetPositionAndRotation(eye,Quaternion.LookRotation(look-eye));camera.fieldOfView=fov;
             MapLiveCapture.RenderNow(camera,1440,960,Folder+"/"+name+".png");
         }
-        static void Wide(string name)=>Shot(name,new Vector3(-.5f,16,-42),new Vector3(0,7,0),32);
+        static void Wide(string name)=>Shot(name,new Vector3(-.5f,12.6f,-41),new Vector3(0,7.6f,0),32);
         static void Step()
         {
             try
@@ -93,6 +93,8 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     float worst=map.Blocks.Select((b,i)=>Vector3.Distance(b.position,initial[i])).Max();
                     Check(worst<.7f,"unloaded maximum body travel "+worst);
+                    foreach(var item in map.Blocks.Select((b,i)=>(b,travel:Vector3.Distance(b.position,initial[i]))).OrderByDescending(x=>x.travel).Take(8))
+                        report+=item.b.name+" travel "+item.travel+" at "+item.b.position+"\n";
                     Wide("02-settled");
                     Shot("03-apron-eye",new Vector3(0,2.1f,-9),new Vector3(-4,7,0),70);
                     Shot("04-rib-eye",new Vector3(-11,12.5f,11),new Vector3(2,12,3),70);
@@ -110,8 +112,8 @@ namespace DeadlyJenga.DevTools.Editor
                     if(walker)
                     {
                         walker.externallyDriven=true;
-                        walker.Place(new Vector3(0,1.12f,-9),Quaternion.identity);
-                        destination=new Vector3(9,3,-4);walkStage=0;
+                        walker.Place(new Vector3(7,1.12f,-9),Quaternion.identity);
+                        destination=new Vector3(9,3,-2);walkStage=0;
                         phase=20;lastWalk=clock=Time.fixedTime;return;
                     }
                     Check(false,"survivor motor available");clock=Time.fixedTime;phase++;return;

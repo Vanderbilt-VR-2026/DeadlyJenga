@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class FossilBasinMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IRebuildable, IMapFootprint, ITraversalCollisionWorld
     {
         public Material stone;
-        const string Version="fossil-basin/2/";
+        const string Version="fossil-basin/3/";
         readonly List<Rigidbody> bodies=new();
         readonly List<FossilMember> decks=new();
         readonly List<Link> links=new();
@@ -68,14 +68,17 @@ namespace DeadlyJenga.CastlePrototype
             var m=go.AddComponent<FossilMember>();m.rigid=rb;
             var c=new FossilCarving(m,center);carve(c);c.Finish(stone);bodies.Add(rb);return m;
         }
-        void Socket(FossilMember a,FossilMember b,Vector3 at,float strength=5500)
+        void Socket(FossilMember a,FossilMember b,Vector3 at,float strength=18000)
         {
             links.Add(new Link{a=a.Body,b=b.Body,anchor=at-a.transform.localPosition,force=strength,torque=strength*.65f});
         }
         void Connect(Link l)
         {
             if(replica||l.broken)return;
-            var j=l.a.gameObject.AddComponent<FixedJoint>();j.connectedBody=l.b;j.anchor=l.anchor;
+            var j=l.a.gameObject.AddComponent<FixedJoint>();
+            j.autoConfigureConnectedAnchor=false;
+            j.connectedBody=l.b;j.anchor=l.anchor;
+            j.connectedAnchor=l.b.transform.InverseTransformPoint(l.a.transform.TransformPoint(l.anchor));
             j.breakForce=l.force;j.breakTorque=l.torque;j.enableCollision=false;l.joint=j;
         }
         void TrackBreaks()

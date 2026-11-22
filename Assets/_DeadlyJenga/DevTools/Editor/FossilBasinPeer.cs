@@ -66,10 +66,13 @@ namespace DeadlyJenga.DevTools.Editor
                                 var b=replica.Blocks[i];b.position=frame.blocks[i].position+offset;b.rotation=frame.blocks[i].rotation;
                                 b.gameObject.SetActive(frame.active[i]);
                             }
-                            record(replica.Blocks.Count==expected.blocks.Length && replica.Blocks.Select((b,i)=>
+                            Physics.SyncTransforms();
+                            var bad=replica.Blocks.Select((b,i)=>(b,i)).Where(entry=>{var (b,i)=entry;return !(
                                 b.isKinematic && b.gameObject.activeSelf==expected.active[i] &&
                                 Vector3.Distance(b.position-offset,expected.blocks[i].position)<.025f &&
-                                Quaternion.Angle(b.rotation,expected.blocks[i].rotation)<.5f).All(v=>v),"peer reconstructed body activity, poses and ordering");
+                                (!b.gameObject.activeSelf || Quaternion.Angle(b.rotation,expected.blocks[i].rotation)<.5f));}).ToArray();
+                            string details=string.Join(", ",bad.Take(3).Select(x=>x.b.name+" p="+x.b.position+" expected="+(expected.blocks[x.i].position+offset)+" active="+x.b.gameObject.activeSelf));
+                            record(replica.Blocks.Count==expected.blocks.Length && bad.Length==0,"peer reconstructed body activity, poses and ordering "+details);
                         }
                     }
                     catch(Exception e){record(false,e.Message);}

@@ -68,6 +68,8 @@ namespace DeadlyJenga.CastlePrototype
             var flight=Piece("Teal stair "+low.slab.name+" to "+high.slab.name,mid,24,c=>{
                 // A continuous stringer carries the treads and matches their walking pitch.
                 var pitch=Quaternion.LookRotation((b-a).normalized);
+                var nose=b+dir.normalized*.20f;
+                c.Box(nose+Vector3.up*.024f,P(1.56f,.048f,.45f),Teal,facing);
                 c.Box(mid-pitch*Vector3.up*.14f,P(1.58f,.28f,(b-a).magnitude),Teal,pitch);
                 for(int i=0;i<count;i++)
                 {
@@ -81,8 +83,8 @@ namespace DeadlyJenga.CastlePrototype
                     c.Shaft(a+off,b+off,.13f,.13f,Timber,false,false);
                 }
             });
-            Socket(flight,low.slab,a-Vector3.up*.17f,3500);
-            Socket(flight,high.slab,b-Vector3.up*.17f,3500);
+            // The upper shoe rests on its deck. Only the lower stringer is bolted.
+            Socket(flight,low.slab,a-Vector3.up*.17f,2200);
         }
         void Canopy(Site site,Vector3 offset)
         {
@@ -128,7 +130,7 @@ namespace DeadlyJenga.CastlePrototype
             var switchback=Landing("West switchback",P(-13,3,-4),4,3);
             var gallery=Landing("Plate gallery",P(-7,5,0),4,3);
             var saddle=Landing("Stegosaur forefoot",P(1,4.5f,-3),3.8f,3.4f);
-            var lowEast=Landing("East switchback",P(9,3,-4),3.8f,3);
+            var lowEast=Landing("East switchback",P(9,3,-2),3.8f,3);
             var tail=Landing("Triceratops rear foot",P(14,4.9f,2),4,4);
             var horn=Landing("Triceratops forefoot",P(6,7.3f,2),4.6f,4.5f);
             var ankle=Landing("Rex near ankle",P(-12,7.2f,4),4,3.5f);
@@ -137,7 +139,7 @@ namespace DeadlyJenga.CastlePrototype
             var overlook=Landing("Frill balcony",P(11,9.4f,8),4.8f,3);
             Flight(west,switchback);Flight(switchback,gallery);Flight(gallery,ankle);
             Flight(ankle,bridge);Flight(bridge,summit);Flight(west,saddle);
-            Flight(camp,lowEast);Flight(lowEast,tail);Flight(tail,horn);Flight(horn,overlook);
+            Flight(east,lowEast);Flight(lowEast,tail);Flight(tail,horn);Flight(horn,overlook);
             var turn=Landing("Central hairpin",P(.25f,5.9f,2.6f),2.1f,2.1f);
             Flight(saddle,turn);Flight(turn,horn);Flight(gallery,bridge);
             Canopy(camp,P(1.94f,0,.48f));Canopy(summit,P(-.85f,0,.41f));Derrick(overlook);
