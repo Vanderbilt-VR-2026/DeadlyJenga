@@ -41,6 +41,7 @@ namespace DeadlyJenga.CastlePrototype
             Guid generation=Guid.NewGuid();string context;
             byte[] anchor,anchorHash,pending,pendingHash;int anchorSerial,pendingSerial,pendingLength;bool invalidated;
             internal int PendingSerial=>pendingSerial;
+            internal byte[] PendingToken()=>pendingSerial==0?null:Token(generation,pendingSerial,pendingLength,pendingHash);
             internal int LastFullPacketBytes{get;private set;}
             internal int CachedBytes=>(anchor?.Length??0)+(pending?.Length??0);
             internal long FullFrames,DeltaFrames;
@@ -87,6 +88,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             Guid generation;int serial,length;bool seen;byte[] anchor,hash,lastPacketHash;
             internal int CachedBytes=>anchor?.Length??0;
+            internal bool MatchesApplied(int expectedSerial,byte[] token)=>
+                seen&&expectedSerial==serial&&Match(token,generation,serial,length,hash);
             internal void Reset(){generation=Guid.Empty;serial=length=0;seen=false;anchor=hash=lastPacketHash=null;}
             internal Frame Decode(byte[] packet,int expectedSerial)
             {
