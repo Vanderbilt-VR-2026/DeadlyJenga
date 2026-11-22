@@ -371,11 +371,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             eye.fpLevel = true;
             eye.fpOwnBody = true;
             Vector3 hero = FeetAt(stage, "hero", contact, plan), rival = FeetAt(stage, "dragon", contact, plan);
+            // Hold the guard through the approach and release it before the authored strike starts.
+            stage.set.overrides.Add(new StudioOverride
+            {
+                actor = "hero", kind = "reach", target = "self", leftHand = false,
+                point = new Vector3(.32f, -.46f, .40f),
+                from = (contact - 30) / (float)Fps, to = contact / (float)Fps - StudioOverrides.PunchContact,
+                blendIn = .2f, blendOut = .08f
+            });
+            Vector3 recoil = FeetAt(stage, "dragon", contact + 9, plan);
             Vector3 mid = (hero + rival) * .5f;
+            Vector3 aim = Vector3.Lerp(mid, recoil, .35f) + Vector3.up * .5f;
             Vector3 across = Vector3.Cross(Vector3.up, Flat(rival - hero));
-            Vector3 position = Spot(mid, 3.4f, .65f, new[] { hero, rival }, across);
-            var side = ShotCam(witness, 24);
-            StudioMoves.LockedOff(side, side.start, stage.ToStage(position), P(stage, mid + Vector3.up * .5f));
+            Vector3 position = Spot(mid, 3.8f, .65f, new[] { hero, rival }, across);
+            var side = ShotCam(witness, 20);
+            StudioMoves.LockedOff(side, side.start, stage.ToStage(position), P(stage, aim));
             shots.Clear();
             shots.AddRange(new[] { pov, witness });
             cameras.Clear();
