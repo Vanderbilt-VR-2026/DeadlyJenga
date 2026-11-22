@@ -140,11 +140,22 @@ namespace DeadlyJenga.DevTools.Editor
                 Debug.LogWarning("Map capture: the editor is on the Android build target; some map shaders look flat here. Switch to Windows (or run with -buildTarget Win64) for true-to-game pictures.");
         }
 
+        static void FinishBatch(int code)
+        {
+            if (string.IsNullOrEmpty(SessionState.GetString("DJWarm.id", "")))
+            {
+                EditorApplication.Exit(code);
+                return;
+            }
+            Directory.CreateDirectory(Path.Combine("Logs", "Warm"));
+            File.WriteAllText(Path.Combine("Logs", "Warm", "exit.txt"), code.ToString());
+        }
+
         static void Begin(Job j, string onlyMap, bool missingOnly, ICollection<string> onlyMaps = null)
         {
             WarnIfAndroid();
             if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogError("Stop Play Mode first."); return; }
-            if (j.clip.Length > 0 && !CameraPath.Modes.Contains(j.clip)) { Debug.LogError("Unknown clip " + j.clip); if (j.batch) EditorApplication.Exit(2); return; }
+            if (j.clip.Length > 0 && !CameraPath.Modes.Contains(j.clip)) { Debug.LogError("Unknown clip " + j.clip); if (j.batch) FinishBatch(2); return; }
             var catalog = Object.Instantiate(Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog"));
             catalog.EnsureModeMaps();
             foreach (var map in catalog.maps)
@@ -156,7 +167,7 @@ namespace DeadlyJenga.DevTools.Editor
                 j.modes.Add(string.IsNullOrEmpty(map.recommendedMode) ? "demo" : map.recommendedMode);
             }
             Object.DestroyImmediate(catalog);
-            if (j.maps.Count == 0) { Debug.LogError("No maps to capture."); if (j.batch) EditorApplication.Exit(2); return; }
+            if (j.maps.Count == 0) { Debug.LogError("No maps to capture."); if (j.batch) FinishBatch(2); return; }
             j.gallery = !string.IsNullOrEmpty(j.output) && !Path.HasExtension(j.output) ? Path.GetFullPath(j.output)
                 : Path.GetFullPath(Path.Combine("Logs", "Captures", DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-live-maps"));
             if (!j.batch && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
@@ -220,7 +231,7 @@ namespace DeadlyJenga.DevTools.Editor
                 gallery.Finish(job.open);
                 if (string.IsNullOrEmpty(job.output)) AssetDatabase.Refresh();
                 if (job.failed.Count > 0) Debug.LogWarning("Live map capture could not load: " + string.Join(", ", job.failed));
-                if (job.batch) EditorApplication.Exit(job.written ? 0 : 2);
+                if (job.batch) FinishBatch(job.written && job.failed.Count == 0 ? 0 : 2);
             }
         }
 
