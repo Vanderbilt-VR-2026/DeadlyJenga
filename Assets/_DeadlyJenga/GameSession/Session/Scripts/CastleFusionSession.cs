@@ -19,6 +19,7 @@ namespace DeadlyJenga.CastlePrototype
         const int Ready = 1, Welcome = 2, World = 3, Ack = 5, WelcomeAck = 6, Rules=7, Command=8, Admin=9;
         const int LivePose = 20, LivePoses = 21, PoseReceiptGroup = 23, WorldResync=24, HotpathBundle=25;
         const int PoseWindow = 6, MaxPoseSize = 4096, MaxLiveBatchSize=64*1024;
+        const float PeerIdleTimeout = 20, WorldReceiptRetryAfter = 8, LivePoseGrace = 5, ActiveGuestWorldTimeout = 40;
         internal static class LivePoseCodec
         {
             internal const int HeaderBytes=17,ReceiptCapacity=PoseWindow;
@@ -175,7 +176,7 @@ namespace DeadlyJenga.CastlePrototype
             internal static int NextSequence(ref int sequence){sequence=unchecked(sequence+1);if(sequence==0)sequence=1;return sequence;}
         }
 
-        sealed class Peer { public readonly WorldDeltaCodec.Sender world=new WorldDeltaCodec.Sender();public int worldResyncs;public float nextWorldResync;public byte[] pendingWorldResync; public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence;public bool hasPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
+        sealed class Peer { public readonly WorldDeltaCodec.Sender world=new WorldDeltaCodec.Sender();public int worldResyncs;public float nextWorldResync;public byte[] pendingWorldResync;public bool retriedWorldReceipt; public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence;public bool hasPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
         readonly Dictionary<PlayerRef, Peer> peers = new Dictionary<PlayerRef, Peer>();
         NetworkRunner runner;
         NetworkDelegates callbacks;
@@ -198,6 +199,36 @@ namespace DeadlyJenga.CastlePrototype
         public long WorldFullTransfersSubmitted{get;private set;}
         public long WorldRawBytesSubmitted{get;private set;}
         public long WorldFullAlternativeBytesSubmitted{get;private set;}
+        public int WorldReceiptRetries { get; private set; }
+        public float LastWorldReceivedAt { get; private set; }
+        public float LastWorldAppliedAt => lastWorld;
+        public float LastHostPoseAt => lastHostPose;
+        public float? OldestPendingWorldAckSeconds
+        {
+            get
+            {
+                float? age = null;
+                foreach (var peer in peers.Values)
+                    if (peer.waiting != 0)
+                        age = Mathf.Max(age ?? 0, Time.unscaledTime - peer.sentAt);
+                return age;
+            }
+        }
+
+        void RetryStalledWorld(PlayerRef player, Peer peer, float now)
+        {
+            if (!peer.ready || peer.retriedWorldReceipt || peer.waiting == 0 ||
+                now - peer.sentAt < WorldReceiptRetryAfter || now - peer.lastPose > LivePoseGrace ||
+                !runner.ActivePlayers.Contains(player)) return;
+
+            // A new generation and serial prevent an old receipt from acknowledging the replacement.
+            peer.world.Reset();
+            peer.waiting = 0;
+            peer.pendingWorldResync = null;
+            peer.retriedWorldReceipt = true;
+            WorldReceiptRetries++;
+        }
+
         void BindWorldConnection()
         {var room=IslandRoomConnection.Instance;worldRoom=room&&room.Owns(runner)?room:null;worldHadRoom=worldRoom;worldConnection=worldRoom?worldRoom.ConnectionGeneration:0;}
         bool WorldConnectionCurrent=>worldHadRoom?
@@ -260,6 +291,7 @@ namespace DeadlyJenga.CastlePrototype
         void ReceiveWorld(byte[] packet,int serial)
         {
             var frame=worldReceiver.Decode(packet,serial);
+            LastWorldReceivedAt = Time.unscaledTime;
             if(frame.status==WorldDeltaCodec.Status.Stale)return;
             if(frame.status==WorldDeltaCodec.Status.MissingBase)
             {pendingWorldResync=frame.Token();pendingWorldResyncSerial=serial;return;}
@@ -359,7 +391,7 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
         bool welcomed, closing, leavingIntentionally,poseSendFailed;
-        float nextSend, lastWorld;
+        float nextSend, lastWorld, lastHostPose;
 
         [Serializable] public sealed class DemoState
         {public DeadlyJenga.Core.WaveFrame wave;public bool shared,autoFill;public int survivors,hands,capacity,target,survivorPreset,handPreset,handLimit;public string survivorName,handName,leader,roomNotice;}
@@ -382,7 +414,7 @@ namespace DeadlyJenga.CastlePrototype
             ResetPoseWindows();peers.Clear();socialPeers.Clear();socialServer.Clear();welcomed=false;closing=false;nextSend=0;
             runner=next;posesInFlight.Traffic.PeerId=next.LocalPlayer.ToString();sceneTag=SceneTag(next);BindWorldConnection();if(next.IsServer&&session.SurvivorBots!=null){if(Demo.target>0)session.SurvivorBots.TargetPopulation=Mathf.Max(1,Demo.target);session.SurvivorBots.AutoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
             if(next.IsServer&&session.Modes){session.Modes.ResumeAuthorityFromFrame();session.Modes.ReconcileHumanRoster(next.ActivePlayers.Select(p=>p.ToString()));}
-            AttachCallbacks();lastWorld=Time.unscaledTime;UpdatePopulation();
+            AttachCallbacks();lastWorld=lastHostPose=Time.unscaledTime;UpdatePopulation();
         }
         void AttachCallbacks()
         {
@@ -402,7 +434,7 @@ namespace DeadlyJenga.CastlePrototype
             if (physics) physics.Update3DPhysicsScene = true;
             castle.InitializeFusion(owner, runner.LocalPlayer.ToString(), !runner.IsServer);
             AttachCallbacks();
-            lastWorld = Time.unscaledTime;
+            lastWorld = lastHostPose = Time.unscaledTime;
             UpdatePopulation();
         }
 
@@ -538,7 +570,8 @@ namespace DeadlyJenga.CastlePrototype
                         if (LivePoseWindow.Newer(serial,lastPoseBatch,hasPoseBatch) && !castle.WaitingForWorld)
                         {
                             castle.FusionApplyLivePoses(rawPoses, runner.ActivePlayers.Select(p => p.ToString()));
-                            lastPoseBatch = serial;hasPoseBatch=true;posesInFlight.Applied(payload.Length,Time.unscaledTime);
+                            lastPoseBatch = serial;hasPoseBatch=true;lastHostPose=Time.unscaledTime;
+                            posesInFlight.Applied(payload.Length,lastHostPose);
                         }
                         else posesInFlight.Skipped();
                         posesInFlight.Received(payload.Length,Time.unscaledTime);
@@ -589,8 +622,13 @@ namespace DeadlyJenga.CastlePrototype
                 foreach (var pair in peers)
                     if (now - pair.Value.lastPose > 1) castle.FusionSuspendPlayer(pair.Key.ToString());
                 foreach (var pair in peers.ToArray())
-                    if (now - pair.Value.lastPose > 20 || pair.Value.waiting != 0 && now - pair.Value.sentAt > 20 || pair.Value.posesInFlight.Expired(now))
+                {
+                    RetryStalledWorld(pair.Key, pair.Value, now);
+                    if (now - pair.Value.lastPose > PeerIdleTimeout ||
+                        pair.Value.waiting != 0 && now - pair.Value.sentAt > PeerIdleTimeout ||
+                        pair.Value.posesInFlight.Expired(now))
                     { runner.Disconnect(pair.Key); RemovePlayer(pair.Key); }
+                }
                 if (now < nextSend) return;
                 nextSend = now + .1f;ObserveWorldScope();
                 FlushDisasterImpacts();
@@ -620,7 +658,11 @@ namespace DeadlyJenga.CastlePrototype
                 nextSend = now + 1;
                 if (!welcomed) Send(default, Ready, Array.Empty<byte>());
                 if(posesInFlight.Expired(now)){Fail("Live pose acknowledgements timed out. Rejoin the room.");return;}
-                if (now - lastWorld > (welcomed ? 20 : 60)) Fail("The host stopped responding. Check your connection and rejoin the room.");
+                bool hostPosesRecent = now - lastHostPose <= LivePoseGrace;
+                float worldTimeout = !welcomed ? 60 : hostPosesRecent ? ActiveGuestWorldTimeout : PeerIdleTimeout;
+                if (now - lastWorld > worldTimeout)
+                    Fail(hostPosesRecent ? "The host is connected, but the game world stopped updating. Rejoin the room."
+                        : "The host stopped responding. Check your connection and rejoin the room.");
             }
 
             }

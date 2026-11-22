@@ -266,12 +266,18 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var flow = room.GetComponent<RoomGameExperience>();
                 var fusion = game ? game.GetComponent<CastleFusionSession>() : null;
+                var network = game && game.Network ? game.Network : null;
+                var frame = game && game.Modes ? game.Modes.Frame : null;
+                float now = Time.unscaledTime;
+                string delivery = fusion && fusion.IsHost
+                    ? $"worldRetries={fusion.WorldReceiptRetries}, pendingWorldAckAge={fusion.OldestPendingWorldAckSeconds:F1}"
+                    : $"lastWorldReceiveAge={now - fusion?.LastWorldReceivedAt:F1}, lastWorldApplyAge={now - fusion?.LastWorldAppliedAt:F1}, lastHostPoseAge={now - fusion?.LastHostPoseAt:F1}";
                 return $"{LobbyState()}, map={MatchSetup.MapId}, flow={flow?.GamePhase} ({flow?.GameStatus}), " +
                     $"sceneVersion={(room.Runner ? room.Runner.SceneInfo.Version.ToString() : "none")}, " +
-                    $"round={game?.Modes?.Frame?.phase}, elapsed={game?.Modes?.Frame?.elapsed:F1}, " +
-                    $"remaining={game?.Modes?.Frame?.remaining:F1}, worldPending={game?.Network?.WaitingForWorld}, " +
-                    $"gameHumans={game?.Network?.HumanCount}, otherAvatar={SeesMatchHuman()}, blocks={Services.World?.Blocks.Count}, " +
+                    $"round={frame?.phase}, elapsed={frame?.elapsed:F1}, remaining={frame?.remaining:F1}, worldPending={network?.WaitingForWorld}, " +
+                    $"gameHumans={network?.HumanCount}, otherAvatar={SeesMatchHuman()}, blocks={Services.World?.Blocks.Count}, " +
                     $"fullWorld={fusion?.WorldFullTransfersSubmitted}, deltaWorld={fusion?.WorldDeltaTransfersSubmitted}, " +
+                    delivery + ", " +
                     $"bundles={fusion?.HotpathBundlesSubmitted}, flushFailures={fusion?.HotpathFlushFailures}, " +
                     $"longestFrameMs={longestFrame * 1000:F0}";
             }
@@ -297,7 +303,7 @@ namespace DeadlyJenga.CastlePrototype
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-playing")),
                 "Both clients confirmed the match before returning", matchEntryTimeout, MatchState);
             var rules = game.Modes.Frame.rules;
-            float resultsTimeout = Mathf.Max(480, rules.roundSeconds + rules.victorySeconds + 90);
+            float resultsTimeout = Mathf.Max(480, rules.roundSeconds + rules.victorySeconds + 180);
             File.AppendAllText(Report, $"WAIT RESULTS matchSeconds={rules.roundSeconds:F1}, timeoutSeconds={resultsTimeout:F1}\n");
             nextTrace = Time.realtimeSinceStartupAsDouble + 30;
             yield return Until(() =>
@@ -308,6 +314,8 @@ namespace DeadlyJenga.CastlePrototype
                     nextTrace = now + 30;
                     File.AppendAllText(Report, $"ROUND {DateTime.UtcNow:O} {MatchState()}\n");
                 }
+                if (!room.Connected || room.HumanCount != 2 || room.Code != address)
+                    Require(false, "The pair lost its shared room before results | " + MatchState());
                 return game && game.Modes && game.Modes.Frame.phase == RoundPhase.Results &&
                     room.Connected && room.HumanCount == 2 && room.Code == address;
             }, "This client reaches the full Play round results in the same room", resultsTimeout, MatchState);
