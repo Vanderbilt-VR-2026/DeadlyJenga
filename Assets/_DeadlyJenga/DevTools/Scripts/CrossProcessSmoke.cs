@@ -359,9 +359,15 @@ namespace DeadlyJenga.CastlePrototype
                 localAdmission.scene == otherAdmission.scene && localAdmission.blocks == otherAdmission.blocks &&
                 Mathf.Approximately(localAdmission.roundSeconds, otherAdmission.roundSeconds),
                 $"Both peers match the live managed profile, map, mode, scene, blocks and round length | local={localJson} peer={otherJson}");
-            float resultsTimeout = Mathf.Max(480, rules.roundSeconds + rules.victorySeconds + 180);
-            File.AppendAllText(Report, $"WAIT RESULTS matchSeconds={rules.roundSeconds:F1}, timeoutSeconds={resultsTimeout:F1}\n");
-            nextTrace = Time.realtimeSinceStartupAsDouble + 30;
+            // Unity's catch-up cap can make a heavy but active simulation run slower than wall time.
+            const float stalledClockSeconds = 60f;
+            float resultsTimeout = Mathf.Clamp(3f * (rules.roundSeconds + rules.victorySeconds) + 180f, 480f, 2400f);
+            deadline = Mathf.Max(deadline, Time.realtimeSinceStartup + resultsTimeout + 185f);
+            File.AppendAllText(Report, $"WAIT RESULTS matchSeconds={rules.roundSeconds:F1}, timeoutSeconds={resultsTimeout:F1}, stalledClockSeconds={stalledClockSeconds:F1}\n");
+            double lastProgress = Time.realtimeSinceStartupAsDouble;
+            nextTrace = lastProgress + 30;
+            var observedPhase = RoundPhase.Playing;
+            float bestElapsed = -1f, bestVictoryRemaining = float.PositiveInfinity;
             yield return Until(() =>
             {
                 double now = Time.realtimeSinceStartupAsDouble;
@@ -372,8 +378,29 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 if (!room.Connected || room.HumanCount != 2 || room.Code != address)
                     Require(false, "The pair lost its shared room before results | " + MatchState());
-                return game && game.Modes && game.Modes.Frame.phase == RoundPhase.Results &&
-                    room.Connected && room.HumanCount == 2 && room.Code == address;
+                var current = game && game.Modes ? game.Modes.Frame : null;
+                if (current?.phase == RoundPhase.Results) return true;
+                if (current != null)
+                {
+                    if (current.phase > observedPhase)
+                    {
+                        observedPhase = current.phase;
+                        lastProgress = now;
+                    }
+                    if (current.phase == RoundPhase.Playing && current.elapsed > bestElapsed + .1f)
+                    {
+                        bestElapsed = current.elapsed;
+                        lastProgress = now;
+                    }
+                    if (current.phase == RoundPhase.Victory && current.remaining < bestVictoryRemaining - .1f)
+                    {
+                        bestVictoryRemaining = current.remaining;
+                        lastProgress = now;
+                    }
+                }
+                if (now - lastProgress >= stalledClockSeconds)
+                    Require(false, $"The round clock made no progress for {now - lastProgress:F1}s | " + MatchState());
+                return false;
             }, "This client reaches the full Play round results in the same room", resultsTimeout, MatchState);
             File.AppendAllText(Report, "MATCH RESULTS " + MatchState() + "\n");
             yield return Until(BothInMarina,
