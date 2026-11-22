@@ -44,8 +44,8 @@ namespace DeadlyJenga.CastlePrototype
         IEnumerator Until(Func<bool> condition,string message,float seconds=45,Func<string> failureDetail=null)
         {
             float until=Time.realtimeSinceStartup+seconds;
-            while(!condition()&&Time.realtimeSinceStartup<until)yield return null;
-            bool passed=condition();
+            bool passed;
+            while (!(passed = condition()) && Time.realtimeSinceStartup < until) yield return null;
             Require(passed,passed||failureDetail==null?message:message+" | "+failureDetail());
         }
         IEnumerator Guard(IEnumerator root)
