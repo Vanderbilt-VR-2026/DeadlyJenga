@@ -13,7 +13,6 @@ namespace DeadlyJenga.Presentation
         readonly List<(Transform city,Vector3 home,float phase)> floatingCities=new();
         readonly List<Transform> wheelCars=new();
         readonly List<(Transform car,float offset)> trainCars=new();
-        readonly List<(Transform streaks,Vector3 home,float period,float speed)> fallStreaks=new();
         Transform ferrisWheel,lighthouseBeam;Vector3 wheelHub;float wheelRadius;
         Vector3[] rainbowPath,rainbowUp;
 
@@ -27,7 +26,7 @@ namespace DeadlyJenga.Presentation
 
         void BuildSkyCities()
         {
-            floatingCities.Clear();fallStreaks.Clear();wheelCars.Clear();trainCars.Clear();ferrisWheel=lighthouseBeam=null;
+            floatingCities.Clear();wheelCars.Clear();trainCars.Clear();ferrisWheel=lighthouseBeam=null;
             var center=Services.World!=null?Services.World.Center:transform.position;center.y=groundY;
             // angle (degrees), distance from the map center, height above the street, island radius, kind
             var cities=new[]{(70f,400f,25f,55f,0),(22f,340f,40f,34f,5),(140f,370f,8f,42f,1),(205f,420f,32f,48f,2),(262f,385f,14f,45f,3),(318f,440f,-4f,44f,4)};
@@ -321,7 +320,7 @@ namespace DeadlyJenga.Presentation
             var a=cityA+across*radiusA*.75f;var b=cityB-across*radiusB*.75f;
             float span=Vector3.Distance(a,b),rise=span*.55f;
             const int Steps=72;const float Band=4.2f;
-            var bands=new[]{new Color(1,.25f,.35f),new Color(1,.55f,.2f),new Color(1,.9f,.3f),new Color(.4f,.95f,.45f),new Color(.3f,.7f,1),new Color(.45f,.4f,1),new Color(.8f,.45f,1)};
+            var bands=Spectrum;
             rainbowPath=new Vector3[Steps+1];rainbowUp=new Vector3[Steps+1];
             for(int i=0;i<=Steps;i++)
             {
@@ -338,7 +337,7 @@ namespace DeadlyJenga.Presentation
             if(Vector3.Dot(rainbowUp[Steps/2],LR(Quaternion.identity)*Vector3.up)<0)for(int i=0;i<=Steps;i++)rainbowUp[i]=-rainbowUp[i];
             // The glow material adds the color on top of lighting, so bands are drawn at half strength
             // to stay saturated instead of bleaching to white (the old rainbow's problem).
-            var m=new ArtMesh(3);float total=Band*(bands.Length+.6f);
+            var m=new ArtMesh(3);var water=new ArtMesh();float total=Band*(bands.Length+.6f);
             for(int i=0;i<Steps;i++)
             {
                 var p=rainbowPath[i];var q=rainbowPath[i+1];var up=rainbowUp[i];var up2=rainbowUp[i+1];
@@ -347,7 +346,8 @@ namespace DeadlyJenga.Presentation
                 for(int k=0;k<bands.Length;k++)
                 {
                     float o0=Band*(.3f+k),o1=Band*(.3f+k+1);
-                    m.TwoSidedQuad(p+up*o0,q+up2*o0,q+up2*o1,p+up*o1,2,bands[bands.Length-1-k]*.44f);
+                    water.WaterStrip(p+up*o0,p+up*o1,q+up2*o1,q+up2*o0,
+                        Mathf.Abs(i-Steps*.5f)*.31f,Mathf.Abs(i+1-Steps*.5f)*.31f,k/7f,(k+1)/7f,bands[bands.Length-1-k]);
                 }
                 m.TwoSidedQuad(p+up*(total-Band*.3f),q+up2*(total-Band*.3f),q+up2*total,p+up*total,2,new Color(.6f,.58f,.62f));
                 if(i%3==0){m.Sphere(p+up*(total+.6f),Vector3.one*.9f,2,new Color(1,.92f,.6f),3,6);m.Sphere(p-up*.6f,Vector3.one*.9f,2,new Color(1,.7f,.9f),3,6);}
@@ -356,6 +356,7 @@ namespace DeadlyJenga.Presentation
             foreach(var end in new[]{0,Steps})
             {
                 var foot=rainbowPath[end]+rainbowUp[end]*total*.5f;
+                Splash(transform,foot+Vector3.up*4,total,end==0?"citadel":"bridge hamlet");
                 for(int k=0;k<6;k++){float ang=k*1.05f;m.Sphere(foot+new Vector3(Mathf.Cos(ang)*9,-2+k%2*3,Mathf.Sin(ang)*9),new Vector3(12,8,12),0,Color.white,6,10);}
             }
             Model("Visual · rainbow bridge",m,transform,SkyMaterials);
@@ -409,47 +410,25 @@ namespace DeadlyJenga.Presentation
         // with bright streaks sliding down it and rainbow mist where it lands.
         void RainbowFall(Transform parent,Vector3 lip,float width,float push,float drop,string label)
         {
-            var bands=new[]{new Color(1,.25f,.35f),new Color(1,.55f,.2f),new Color(1,.9f,.3f),new Color(.4f,.95f,.45f),new Color(.3f,.7f,1),new Color(.45f,.4f,1),new Color(.8f,.45f,1)};
-            const int Steps=36;var m=new ArtMesh(3);
-            Vector3 At(float t)=>lip+new Vector3(0,-drop*t*t,push*Mathf.Sqrt(t));
-            float Spread(float t)=>width*(1+t*.45f);
-            for(int i=0;i<Steps;i++)
+            var water=new ArtMesh();
+            Vector3 At(float t)=>lip+new Vector3(0,-drop*t*t,push*t);
+            const int steps=40;
+            for(int i=0;i<steps;i++)
             {
-                float t0=i/(float)Steps,t1=(i+1)/(float)Steps;var p0=At(t0);var p1=At(t1);float w0=Spread(t0),w1=Spread(t1);
-                for(int k=0;k<bands.Length;k++)
+                float t=i/(float)steps,next=(i+1)/(float)steps;
+                Vector3 Bank(float time,float across)=>At(time)+Vector3.right*(across-.5f)*width*(1+time*.45f);
+                for(int k=0;k<Spectrum.Length;k++)
                 {
-                    float u0=k/7f-.5f,u1=(k+1)/7f-.5f;
-                    m.TwoSidedQuad(p0+Vector3.right*w0*u0,p0+Vector3.right*w0*u1,p1+Vector3.right*w1*u1,p1+Vector3.right*w1*u0,2,bands[k]*.44f);
+                    float u=k/7f,v=(k+1)/7f;
+                    water.WaterStrip(Bank(t,u),Bank(t,v),Bank(next,v),Bank(next,u),t*8,next*8,u,v,Spectrum[k]);
                 }
             }
-            // Foam at the lip and rainbow mist where it lands.
-            for(int k=0;k<5;k++)m.Sphere(lip+new Vector3((k-2)*width*.2f,.4f,.6f),new Vector3(width*.14f,1.4f,1.8f),0,Color.white,6,10);
-            var bottom=At(1);
-            for(int k=0;k<14;k++)
-            {
-                float b=k*2.399963f,rad=width*(.25f+(k%4)*.22f);
-                var tint=Color.Lerp(Color.white,bands[k%7],.22f);
-                m.Sphere(bottom+new Vector3(Mathf.Cos(b)*rad,2+(k%3)*3,Mathf.Sin(b)*rad),new Vector3(9,6+(k%2)*3,9)*(1+(k%3)*.25f),0,tint,8,14);
-            }
-            Model("Visual · rainbow waterfall "+label,m,parent,SkyMaterials);
-            // Streaks on the steep part, spaced evenly; sliding the whole set down by one spacing loops seamlessly.
-            const float Period=9;var streaks=new ArtMesh(3);
-            for(float y=drop*.12f;y<drop*.98f;y+=Period)
-            {
-                float t=Mathf.Sqrt(y/drop);var p=At(t);float w=Spread(t);
-                for(int k=0;k<14;k++)if(Hash(new Vector3(k,y,label.Length))<.35f)
-                {
-                    float x=w*((k+Hash(new Vector3(y,k,2)))/14f-.5f),len=5+Hash(new Vector3(k,y,7))*6;
-                    streaks.Box(p+Vector3.right*x+Vector3.down*len*.5f,new Vector3(.22f,len,.45f),Quaternion.identity,2,new Color(.5f,.5f,.52f));
-                }
-            }
-            var go=Model("Visual · rainbow waterfall streaks "+label,streaks,parent,SkyMaterials);
-            fallStreaks.Add((go.transform,go.transform.localPosition,Period,7f));
+            CurrentModel("Visual � rainbow waterfall "+label,water,parent);
+            Splash(parent,At(1),width*1.45f,label);
         }
 
         void AnimateSkyCities(float time)
         {
-            foreach(var (streaks,home,period,speed) in fallStreaks)if(streaks)streaks.localPosition=home+Vector3.down*Mathf.Repeat(time*speed,period);
             foreach(var (city,home,phase) in floatingCities)if(city)city.localPosition=home+Vector3.up*Mathf.Sin(time*.18f+phase)*2.2f;
             if(ferrisWheel)
             {
@@ -479,7 +458,7 @@ namespace DeadlyJenga.Presentation
             }
         }
 
-        void ClearSkyCities(){floatingCities.Clear();fallStreaks.Clear();wheelCars.Clear();trainCars.Clear();ferrisWheel=lighthouseBeam=null;rainbowPath=rainbowUp=null;}
+        void ClearSkyCities(){if(rainbowCurrent)Release(rainbowCurrent);rainbowCurrent=null;floatingCities.Clear();wheelCars.Clear();trainCars.Clear();ferrisWheel=lighthouseBeam=null;rainbowPath=rainbowUp=null;}
 
         sealed partial class ArtMesh
         {

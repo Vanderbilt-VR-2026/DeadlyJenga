@@ -42,7 +42,7 @@ namespace DeadlyJenga.DevTools.Editor
             public string output = "", gallery = "", clip = "";
             public float seconds = 6, settle = 6;
             public int fps = 30, clipWidth = 1280, clipHeight = 720, width = 1600, height = 1100;
-            public bool open, batch, written, lobby, diagnose;
+            public bool open, batch, written, lobby, diagnose, rainbowMotion;
             public int spots = 40;
             public List<string> failed = new();
         }
@@ -100,6 +100,60 @@ namespace DeadlyJenga.DevTools.Editor
         public static void BatchMaps(ICollection<string> ids, string output, string[] views)
         {
             Begin(new Job { batch = true, output = output, views = views }, null, false, ids);
+        }
+
+        public static void CaptureCloudCityRainbows()
+        {
+            Begin(new Job { batch=true, rainbowMotion=true, views=Array.Empty<string>(),
+                output=Path.GetFullPath(Path.Combine("Logs","Captures","CloudCityRainbows")) },
+                "epic-candy-sky-ring-city",false);
+        }
+
+        static int rainbowFrame;
+        static float lastFlowTime;
+
+        static bool CaptureRainbowFrame(ISessionInfo session)
+        {
+            var falls=GameObject.Find("Visual · rainbow waterfall above");
+            if(!falls)throw new InvalidOperationException("Spring waterfall missing");
+            float time=falls.GetComponent<Renderer>().sharedMaterial.GetFloat("_FlowTime");
+            if(rainbowFrame>0 && time-lastFlowTime<.085f)return false;
+            lastFlowTime=time;
+            var camera=MakeCamera(session);
+            try
+            {
+                camera.fieldOfView=44;
+                void Shot(string subject,string file,bool bridge=false)
+                {
+                    var go=GameObject.Find("Visual · "+subject);
+                    if(!go)throw new InvalidOperationException(subject+" missing");
+                    var r=go.GetComponent<Renderer>();
+                    if(!r.sharedMaterial.shader.isSupported)throw new InvalidOperationException("Unsupported rainbow shader");
+                    var b=r.bounds;
+                    var look=b.center;
+                    Vector3 offset;
+                    if(bridge)offset=Vector3.Cross((go.transform.TransformPoint(go.GetComponent<MeshFilter>().sharedMesh.vertices[0])-look).normalized,Vector3.up).normalized*b.size.magnitude*1.15f;
+                    else
+                    {
+                        var splash=GameObject.Find("Visual · rainbow splash "+subject.Substring("rainbow waterfall ".Length));
+                        if(!splash)throw new InvalidOperationException("Missing waterfall impact: "+subject);
+                        look=splash.transform.position+Vector3.up*(b.size.y*.18f);
+                        offset=go.transform.TransformDirection(new Vector3(.36f,.28f,1))*b.size.y*.85f;
+                    }
+                    camera.transform.position=look+offset;camera.transform.LookAt(look);
+                    fogFocus=look;fogRadius=b.extents.magnitude;
+                    Render(camera,800,500,Path.Combine(job.gallery,file+".png"));
+                }
+                Shot("rainbow waterfall above","spring-"+rainbowFrame.ToString("D3"));
+                if(rainbowFrame==0 || rainbowFrame==17)
+                {
+                    foreach(string end in new[]{"hamlet","rim"})Shot("rainbow waterfall "+end,end+"-"+rainbowFrame);
+                    Shot("bridge current","bridge-"+rainbowFrame,true);
+                }
+                File.AppendAllText(Path.Combine(job.gallery,"sample-times.txt"),time.ToString("R",System.Globalization.CultureInfo.InvariantCulture)+Environment.NewLine);
+            }
+            finally { Object.Destroy(camera.gameObject); }
+            return ++rainbowFrame==18;
         }
 
         // Far plane for player-eye shots; 0 keeps the usual long picture range.
@@ -213,7 +267,7 @@ namespace DeadlyJenga.DevTools.Editor
                 MatchSetup.HandCount = 0;
                 enteredAt = EditorApplication.timeSinceStartup;
                 readyAt = 0;
-                prepared = false;
+                prepared = false; rainbowFrame=0;
                 EditorApplication.update += Tick;
             }
             else if (change == PlayModeStateChange.EnteredEditMode)
@@ -261,6 +315,11 @@ namespace DeadlyJenga.DevTools.Editor
                 Prepare(session); prepared = true; readyAt = now + job.settle; return;
             }
             if (now < readyAt) { Prepare(session); return; }
+            if(job.rainbowMotion)
+            {
+                try { if(!CaptureRainbowFrame(session))return; }
+                catch(Exception e){Debug.LogException(e);Fail(id,e.Message);return;}
+            }
             EditorApplication.update -= Tick;
             try { if (job.lobby) Survey(world, session); else Shoot(id, world, session); job.written = true; }
             catch (Exception e) { Debug.LogException(e); job.failed.Add(id); }

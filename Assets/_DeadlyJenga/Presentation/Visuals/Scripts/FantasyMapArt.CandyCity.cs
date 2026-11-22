@@ -407,28 +407,27 @@ namespace DeadlyJenga.Presentation
                 {
                     float a=Mathf.PI*i/40,b=Mathf.PI*(i+1)/40;
                     var p=center+new Vector3(Mathf.Cos(a)*radius,Mathf.Sin(a)*radius,0);var e=center+new Vector3(Mathf.Cos(b)*radius,Mathf.Sin(b)*radius,0);
-                    rainbow.Box((p+e)*.5f,new Vector3(10,1,(e-p).magnitude+.5f),Quaternion.LookRotation(e-p,Vector3.back),0,bands[band]);
+                    var radial=new Vector3(Mathf.Cos(a),Mathf.Sin(a),0)*5;
+                    var nextRadial=new Vector3(Mathf.Cos(b),Mathf.Sin(b),0)*5;
+                    rainbow.WaterStrip(p-radial,p+radial,e+nextRadial,e-nextRadial,Mathf.Abs(i-20)*.65f,Mathf.Abs(i+1-20)*.65f,band/6f,(band+1)/6f,bands[band]);
                 }
             }
             Model("Visual · candy rainbow",rainbow,transform,new[]{cityGlowMaterial});
             }
             // Cotton-candy waterfall pouring off the island rim.
-            var fall=new ArtMesh(1);
-            float edge=Mathf.PI*1.1f;var rim=new Vector3(Mathf.Cos(edge)*halfWidth*.98f,-8,Mathf.Sin(edge)*halfDepth*.98f);var outward=new Vector3(Mathf.Cos(edge),0,Mathf.Sin(edge));
-            var sideways=Vector3.Cross(outward,Vector3.up);
-            for(int i=0;i<44;i++)
-            {
-                float t=i/43f;float spread=(Hash(new Vector3(i,3,9))-.5f)*(10+t*40);
-                var p=rim+outward*(3+t*t*30)+Vector3.down*(t*150)+sideways*spread;
-                float puff=7+t*16+Hash(new Vector3(i,5,1))*5;
-                fall.Sphere(p,new Vector3(puff,puff*.8f,puff),0,Color.Lerp(new Color(1,.6f,.84f),Color.white,t*.7f),6,10);
-            }
-            Model("Visual · cotton candy waterfall",fall,transform,new[]{cloudMaterial});
+            float edge=Mathf.PI*1.1f;
+            var rim=new Vector3(Mathf.Cos(edge)*halfWidth*.98f,-8,Mathf.Sin(edge)*halfDepth*.98f);
+            var outward=new Vector3(Mathf.Cos(edge),0,Mathf.Sin(edge));
+            var lip=new GameObject("Visual � rim spillway");lip.transform.SetParent(transform,false);
+            lip.transform.localPosition=rim;lip.transform.localRotation=Quaternion.LookRotation(outward);
+            ownedObjects.Add(lip);
+            RainbowFall(lip.transform,Vector3.zero,17,30,150,"rim");
         }
 
         void AnimateCity()
         {
             float time=Time.time;
+            if(rainbowCurrent)rainbowCurrent.SetFloat(FlowTime,time);
             if(balloonRing){balloonRing.localRotation=Quaternion.Euler(0,time*1.2f,0);balloonRing.localPosition=Vector3.up*Mathf.Sin(time*.3f)*2;}
             if(balloonRingOuter){balloonRingOuter.localRotation=Quaternion.Euler(0,-time*.7f,0);balloonRingOuter.localPosition=Vector3.up*Mathf.Sin(time*.25f+1)*3;}
             AnimateCars(time);

@@ -86,7 +86,7 @@ namespace DeadlyJenga.Presentation
             }
             public Mesh Finish(string name)
             {
-                var mesh=new Mesh{name=name,indexFormat=IndexFormat.UInt32};mesh.SetVertices(vertices);mesh.SetNormals(normals);mesh.SetColors(colors);if(printUVs!=null){while(printUVs.Count<vertices.Count)printUVs.Add(Vector2.zero);mesh.SetUVs(0,printUVs);}mesh.subMeshCount=triangles.Length;
+                var mesh=new Mesh{name=name,indexFormat=IndexFormat.UInt32};mesh.SetVertices(vertices);mesh.SetNormals(normals);mesh.SetColors(colors);if(printUVs!=null){while(printUVs.Count<vertices.Count)printUVs.Add(Vector2.zero);mesh.SetUVs(0,printUVs);}if(waterData!=null)mesh.SetUVs(0,waterData);mesh.subMeshCount=triangles.Length;
                 for(int i=0;i<triangles.Length;i++)mesh.SetTriangles(triangles[i],i);mesh.RecalculateBounds();return mesh;
             }
         }
