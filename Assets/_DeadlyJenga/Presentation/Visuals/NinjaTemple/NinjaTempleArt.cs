@@ -20,8 +20,7 @@ namespace DeadlyJenga.NinjaArt
         public float BloodMoon { get; private set; }
 
         Material sky, ground, props, foliage, far, water, previousSky;
-        readonly Material[] facadeMaterials = new Material[8];
-        Mesh facadeCube, gableFace;
+        readonly Dictionary<Vector3, Mesh> wallMeshes = new Dictionary<Vector3, Mesh>();
         Light moon; readonly List<Light> practicals = new List<Light>();
         readonly Dictionary<Light, bool> sunStates = new Dictionary<Light, bool>();
         readonly Dictionary<Renderer, bool> hiddenRenderers = new Dictionary<Renderer, bool>();
@@ -101,23 +100,6 @@ namespace DeadlyJenga.NinjaArt
             foliage = Make("NinjaLacquer", "Ninja foliage"); foliage.SetFloat("_Wind", 1); foliage.SetFloat("_Cull", 0); foliage.SetFloat("_Gloss", .35f); foliage.SetFloat("_Spec", .15f); foliage.SetFloat("_Rim", 1.1f); foliage.SetFloat("_Warm", .6f);
             far = Make("NinjaUnlit", "Ninja far silhouettes"); far.SetFloat("_UseFog", 0);
 
-            if (shrineTown)
-            {
-                facadeCube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
-                var atlas = Resources.Load<Texture2D>("NinjaScenery/ShrineFacades");
-                var carpentry = Resources.Load<Texture2D>("NinjaScenery/ShrineHallCarpentry");
-                gableFace = new Mesh { name = "Shrine pediment face",
-                    vertices = new[] {new Vector3(-.5f,-.5f,0),new Vector3(0,.5f,0),new Vector3(.5f,-.5f,0)},
-                    normals = new[] {Vector3.back,Vector3.back,Vector3.back}, triangles = new[] {0,1,2} };
-                owned.Add(gableFace);
-                for (int tile = 0; tile < facadeMaterials.Length; tile++)
-                {
-                    var material = Make("ShrineFacade", "Painted shrine carpentry " + tile);
-                    material.SetTexture("_MainTex", tile < 4 ? atlas : carpentry);
-                    material.SetVector("_Tile", new Vector4((tile % 2) * .5f, tile % 4 < 2 ? .5f : 0, 0, 0));
-                    facadeMaterials[tile] = material;
-                }
-            }
             scenery = new GameObject("Visual - moonlit scenery").transform; scenery.SetParent(transform, false);
             float wy = transform.InverseTransformPoint(new Vector3(0, waterLevel, 0)).y;
             var glow = new NinjaGlowMesh(); var mist = new NinjaGlowMesh();
@@ -371,14 +353,20 @@ namespace DeadlyJenga.NinjaArt
                 if (!body || body.transform.Find("Visual - ninja decor")) continue;
                 var size = body.transform.lossyScale;
                 int thickness = Mathf.RoundToInt(size.z * 100);
-                int tile = thickness >= 46 && thickness <= 48 ? thickness - 42 : thickness - 41;
                 if (shrineTown && ((thickness >= 41 && thickness <= 44) || (thickness >= 46 && thickness <= 48)))
                 {
-                    var panel = new GameObject("Visual - ninja decor");
-                    panel.transform.SetParent(body.transform, false);
-                    panel.transform.localScale = Vector3.one * 1.013f;
-                    panel.AddComponent<MeshFilter>().sharedMesh = facadeCube;
-                    panel.AddComponent<MeshRenderer>().sharedMaterial = facadeMaterials[tile];
+                    if (!wallMeshes.TryGetValue(size, out var wall))
+                    {
+                        wall = ShrineWallArt.Build(size, thickness);
+                        wallMeshes.Add(size, wall);
+                        owned.Add(wall);
+                    }
+                    var panel = new GameObject("Visual - ninja decor").transform;
+                    panel.SetParent(body.transform, false);
+                    var scale = body.transform.localScale;
+                    panel.localScale = new Vector3(1 / scale.x, 1 / scale.y, 1 / scale.z);
+                    panel.gameObject.AddComponent<MeshFilter>().sharedMesh = wall;
+                    panel.gameObject.AddComponent<MeshRenderer>().sharedMaterial = props;
                     continue;
                 }
                 var kind = shrineTown ? NinjaTempleDecor.TownPart(size) : NinjaTempleDecor.Classify(size); if (kind == NinjaTempleDecor.Kind.None) continue;
@@ -387,16 +375,6 @@ namespace DeadlyJenga.NinjaArt
                 var ls = body.transform.localScale; root.localScale = new Vector3(1 / ls.x, 1 / ls.y, 1 / ls.z);
                 var r = root.gameObject.AddComponent<MeshRenderer>(); root.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh; r.sharedMaterial = props;
                 r.shadowCastingMode = kind == NinjaTempleDecor.Kind.Deck ? ShadowCastingMode.On : ShadowCastingMode.Off; r.lightProbeUsage = LightProbeUsage.Off;
-                if (shrineTown && kind == NinjaTempleDecor.Kind.TownRoof && size.x >= 15)
-                {
-                    float span = size.x * .38f, height = size.z * .22f + span * .32f;
-                    var face = new GameObject("Carved gable and crest").transform;
-                    face.SetParent(root,false);
-                    face.localPosition = new Vector3(0,(size.y+height)/2,-size.z/2-.99f);
-                    face.localScale = new Vector3(span*2,height,1);
-                    face.gameObject.AddComponent<MeshFilter>().sharedMesh = gableFace;
-                    face.gameObject.AddComponent<MeshRenderer>().sharedMaterial = facadeMaterials[7];
-                }
                 var g = new GameObject("Visual - ninja decor glow"); g.transform.SetParent(root, false);
                 g.AddComponent<MeshFilter>().sharedMesh = glowMesh; var gr = g.AddComponent<MeshRenderer>(); gr.sharedMaterial = NinjaFx.Glow; gr.shadowCastingMode = ShadowCastingMode.Off; gr.lightProbeUsage = LightProbeUsage.Off;
             }
@@ -413,7 +391,7 @@ namespace DeadlyJenga.NinjaArt
             RenderSettings.ambientSkyColor = previousAmbientSky; RenderSettings.ambientEquatorColor = previousAmbientEquator; RenderSettings.ambientGroundColor = previousAmbientGround; RenderSettings.ambientProbe = previousProbe;
             Shader.SetGlobalFloat(Blood, 0);
             if (scenery) Destroy(scenery.gameObject); if (weather) Destroy(weather.gameObject); if (moon) Destroy(moon.gameObject);
-            foreach (var o in owned) if (o) Destroy(o); owned.Clear(); practicals.Clear();
+            foreach (var o in owned) if (o) Destroy(o); owned.Clear(); practicals.Clear(); wallMeshes.Clear();
         }
     }
 }

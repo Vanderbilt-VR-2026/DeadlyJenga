@@ -981,9 +981,12 @@ namespace DeadlyJenga.DevTools.Editor
             if (drift.distance >= .12f) ReportShrineContacts(generator,layout);
             File.AppendAllText(Report, $"Largest settle displacement {drift.distance:F4} m at block {drift.index}, position {drift.Position}, size {drift.Size}\n");
             var walls = generator.Bodies.Where(body => body.transform.localScale.z >= .405f && body.transform.localScale.z <= .485f).ToArray();
-            Check(walls.Length > 75 && walls.All(body => body.GetComponentsInChildren<MeshRenderer>()
-                .Any(r => r.sharedMaterial && r.sharedMaterial.shader.name == "DeadlyJenga/Ninja/ShrineFacade"
-                    && r.sharedMaterial.mainTexture)), "Physical walls carry painted shrine-town facades");
+            Check(walls.Length > 75 && walls.All(body =>
+            {
+                var detail = body.transform.Find("Visual - ninja decor");
+                return detail && detail.GetComponent<MeshFilter>().sharedMesh.name.StartsWith("Shrine joinery")
+                    && detail.GetComponent<MeshRenderer>().sharedMaterial.name == "Ninja props";
+            }), "Physical walls carry modeled shrine joinery");
             Check(!generator.foundation.GetComponent<BoxCollider>().enabled,"Continuous courtyard collider removed");
             var session = Object.FindFirstObjectByType<CastlePlaySession>();
             var starts = Resources.LoadAll<DeadlyJenga.Modes.MapMatchLayout>("MapMatchLayouts").Single(m => m.Matches(world));
@@ -1045,6 +1048,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Shader.SetGlobalVector("_NinjaFogParams",new Vector4(120,420,.07f,fog.w));
                 RenderSettings.fog=false;
                 Capture(new Vector3(16,57,-143),new Vector3(-1,2,0),28,"NinjaTemple-Overview.png");
+                Capture(new Vector3(-6,2.5f,-35),new Vector3(-10,2.5f,-32),65,"ShrineTown-ShopDetail.png");
                 Capture(new Vector3(0,2,-40),new Vector3(0,8,21),68,"ShrineTown-Market.png");
             }
             finally {Shader.SetGlobalVector("_NinjaFogParams",fog);RenderSettings.fog=sceneFog;}
