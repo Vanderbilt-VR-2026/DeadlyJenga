@@ -352,74 +352,10 @@ for x in (-W / 2 + 1, W / 2 - 1):
 sets["Toy Doll Mansion"] = export("Toy Doll Mansion")
 
 # ======================= Superhero base =======================
-def hero_room(level, i, j, cx, cy, z):
-    back = cy + CELL / 2 - 3.2
-    kind = [["garage", "garage2", "workshop"], ["gym", "stairs", "cells"]][j][i] if level == 0 else \
-           [["command", "briefing", "armory"], ["bunks", "stairs", "lab"]][j][i]
-    if kind in ("garage", "garage2"):
-        car = part("hero car", "box", (cx, cy + 1, z + 1.2), (5, 9, 2.4), "Toy Black" if kind == "garage" else "Toy Red")
-        detail(car, "car cabin", "box", (cx, cy + 2, z + 2.9), (4, 3.6, 1.2), "Toy Screen Glow")
-        detail(car, "car fin", "box", (cx, cy + 5, z + 3.2), (.4, 2, 1.6), "Toy Yellow")
-        for sx in (-1, 1):
-            for sy in (-1, 1):
-                detail(car, "wheel", "cyl", (cx + sx * 2.6, cy + 1 + sy * 3, z + .9), (1.8, 1.8, .8), "Toy Gray", tilt=(0, 90))
-        detail(car, "garage stripe", "box", (cx, cy - 5.5, z + .03), (6, .5, .06), "Toy Yellow")
-    elif kind == "workshop":
-        bench = part("hero workbench", "box", (cx, back, z + 1.3), (8, 2.4, 2.6), "Toy Gray")
-        for k in range(4):
-            detail(bench, "tool", "box", (cx - 3 + k * 2, back + .3, z + 2.9), (.3, .3, 1.2), "Toy Silver")
-        detail(bench, "spare mask", "ball", (cx + 3, back - .2, z + 3.2), (1.2, 1.0, 1.2), "Toy Blue")
-    elif kind == "gym":
-        weights = part("hero weights rack", "box", (cx, back, z + 1.0), (6, 2, 2.0), "Toy Gray")
-        for s in (-1, 1):
-            detail(weights, "weight plate", "cyl", (cx + s * 2.6, back - 1.2, z + 2.4), (1.6, 1.6, .4), "Toy Black", tilt=(90, 0))
-        detail(weights, "bar", "cyl", (cx, back - 1.2, z + 2.4), (.3, .3, 5.6), "Toy Silver", tilt=(0, 90))
-        rug(weights, cx, cy - 1, z, 7, 6, "Toy Blue")
-    elif kind == "cells":
-        cell = part("hero cell block", "box", (cx, back, z + .4), (7, 3, .8), "Toy Gray")
-        for k in range(8):
-            detail(cell, "bar", "cyl", (cx - 3.2 + k * .9, back - 1.4, z + 2.6), (.2, .2, 3.6), "Toy Silver")
-    elif kind == "command":
-        desk = part("hero console", "box", (cx, back, z + 1.1), (9, 2.6, 2.2), "Toy Navy")
-        for k in range(3):
-            detail(desk, "screen", "box", (cx - 3 + k * 3, back + 1.6, z + 3.4), (2.6, .2, 1.8), "Toy Screen Glow")
-        detail(desk, "buttons", "box", (cx, back - 1, z + 2.25), (7, .4, .1), "Toy Red")
-        detail(desk, "chair", "cyl", (cx, back - 3, z + .8), (1.6, 1.6, 1.6), "Toy Red")
-    elif kind == "briefing":
-        table = part("hero round table", "cyl", (cx, cy, z + 1.0), (6, 6, 2.0), "Toy Navy", seg=24)
-        detail(table, "hologram", "cyl", (cx, cy, z + 2.6), (2.4, 2.4, 1.2), "Toy Screen Glow")
-        detail(table, "emblem", "cyl", (cx, cy, z + 2.02), (4, 4, .05), "Toy Yellow", seg=6)
-    elif kind == "armory":
-        rack = part("hero armory rack", "box", (cx, back + .8, z + 2.0), (8, 1.4, 4.0), "Toy Gray")
-        for k in range(3):
-            detail(rack, "shield", "cyl", (cx - 2.6 + k * 2.6, back, z + 2.4), (2.0, 2.0, .2), ["Toy Red", "Toy Blue", "Toy Yellow"][k], tilt=(90, 0))
-    elif kind == "bunks":
-        bunk = part("hero bunk", "box", (cx, back, z + 1.0), (6, 3, 2.0), "Toy Gray")
-        detail(bunk, "top bunk", "box", (cx, back, z + 3.2), (6, 3, .4), "Toy Gray")
-        detail(bunk, "blanket", "box", (cx, back, z + 2.05), (5.6, 2.6, .15), "Toy Red")
-    elif kind == "lab":
-        lab = part("hero lab bench", "box", (cx, back, z + 1.2), (7, 2.4, 2.4), "Toy White")
-        for k in range(4):
-            detail(lab, "flask", "cyl", (cx - 2.4 + k * 1.6, back, z + 2.9), (.7, .7, 1.0), ["Toy Screen Glow", "Toy Magic Glow", "Toy Green", "Toy Orange"][k])
-
-top, (x0, y0, W, D) = grid_building("hero", 0, 0, 3, 2, CELL, 2, lambda level: "Toy Blue" if level == 0 else "Toy Navy",
-    "Toy Gray", "Toy Gray", back_doors=(0, 2), stair_cell=(1, 1), roof_access=True, furnish=hero_room)
-# Helipad on the roof tile in front of the tower.
-ttop, _ = grid_building("hero tower", x0 + 7.5 + 15, y0 + 7.5 + 15, 1, 1, 15, 3, "Toy Red", "Toy Red", "Toy Gray",
-    back_doors=(), side_doors=((0, 0),), stair_cell=(0, 0), z0=top, base=False, open_front=True)
-pad = part("hero helipad", "cyl", (x0 + 7.5, y0 + 7.5, top + .15), (11, 11, .3), "Toy Gray", seg=32)
-detail(pad, "helipad ring", "cyl", (x0 + 7.5, y0 + 7.5, top + .32), (10, 10, .05), "Toy Yellow", seg=32)
-detail(pad, "helipad centre", "cyl", (x0 + 7.5, y0 + 7.5, top + .35), (8, 8, .05), "Toy Gray", seg=32)
-for dx in (-1.2, 1.2):
-    detail(pad, "H bar", "box", (x0 + 7.5 + dx, y0 + 7.5, top + .38), (.6, 4, .05), "Toy Yellow")
-detail(pad, "H cross", "box", (x0 + 7.5, y0 + 7.5, top + .38), (2.4, .6, .05), "Toy Yellow")
-mast = part("hero radar mast", "box", (x0 + 22.5, y0 + 22.5, ttop + 1.5), (1.6, 1.6, 3.0), "Toy Silver")
-dish = detail(mast, "radar dish", "cyl", (x0 + 22.5, y0 + 22.5, ttop + 3.0 + GAP + .4), (7, 7, .6), "Toy Silver", tilt=(25, 0))
-detail(dish, "dish light", "ball", (x0 + 22.5, y0 + 22.5, ttop + 4.4), (.8, .8, .8), "Toy Red")
-sign = detail(bpy.data.objects[next(n for n in bpy.data.objects.keys() if n.endswith("hero tower L1 wall x0-1"))],
-    "emblem sign", "cyl", (x0 + 22.5, y0 + 22.5 + 7.8, top + STOREY * 2.2), (7, 7, .4), "Toy Yellow", tilt=(90, 0), seg=6)
-detail(sign, "emblem star", "cyl", (x0 + 22.5, y0 + 22.5 + 8.05, top + STOREY * 2.2), (3.6, 3.6, .1), "Toy Red", tilt=(90, 0), seg=5)
-sets["Toy Superhero Base"] = export("Toy Superhero Base")
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from falcon_export import export_falcon
+sets["Toy Superhero Base"] = export_falcon(out)
 
 # ======================= Wizard tower =======================
 R, PANELS, WEDGES = 12.0, 12, 8

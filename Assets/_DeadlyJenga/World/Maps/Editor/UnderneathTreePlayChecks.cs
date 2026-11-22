@@ -73,8 +73,15 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         public static void RunReferences() => Begin(true);
 
+        public static void CaptureFalconSummit()
+        {
+            Begin(false);
+            SessionState.SetBool("TreeFalconSummit", true);
+        }
+
         static void Begin(bool references)
         {
+            SessionState.SetBool("TreeFalconSummit", false);
             if (!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Run this check in a checked batch editor.");
             if (!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))
@@ -152,6 +159,22 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         renderReady = now + 1.7;
                     if (now < renderReady)
                         return;
+                    if (SessionState.GetBool("TreeFalconSummit", false))
+                    {
+                        var toy = map.GetComponentsInChildren<UnderneathTreeToy>().Single(t => t.name.StartsWith("Toy Superhero Base "));
+                        var pieces = toy.Pieces();
+                        Require(pieces.Count == 6 && pieces.All(p => p.name.Contains("Falcon Summit") &&
+                            p.TryGetComponent<Rigidbody>(out var body) && body.isKinematic), "six intact Falcon Summit storeys on Hero Deck");
+                        var shapes = toy.GetComponentsInChildren<MeshCollider>();
+                        var ramp = shapes.Single(c => c.name.Contains("launch ramp"));
+                        var pad = shapes.Single(c => c.name.Contains("Cantilever flight pad"));
+                        var forward = Vector3.ProjectOnPlane(ramp.bounds.center - toy.transform.position, Vector3.up).normalized;
+                        var right = Vector3.ProjectOnPlane(pad.bounds.center - toy.transform.position, Vector3.up).normalized;
+                        var aim = toy.transform.position + Vector3.up * 14f;
+                        Shot(player.ViewCamera, "falcon-summit", aim + forward * 57f + right * 11f + Vector3.up * 14f, aim, 49f, true);
+                        Finish(true);
+                        return;
+                    }
                     if (SessionState.GetBool(References, false))
                     {
                         if (Services.Session.Demo == null)

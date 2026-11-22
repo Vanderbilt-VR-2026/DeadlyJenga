@@ -54,6 +54,23 @@ namespace DeadlyJenga.CastlePrototype
                         continue;
                     piece.gameObject.layer = Layers.Block;
                     all.Add(shape);
+                    // A hollow storey uses convex child hulls so its stairwell and doors stay open.
+                    foreach (Transform child in piece)
+                    {
+                        if (!child.name.StartsWith("Hull ", System.StringComparison.Ordinal) ||
+                            !child.TryGetComponent<MeshFilter>(out var mesh) || !mesh.sharedMesh)
+                            continue;
+                        if (!child.TryGetComponent<MeshCollider>(out var hull))
+                        {
+                            hull = child.gameObject.AddComponent<MeshCollider>();
+                            hull.sharedMesh = mesh.sharedMesh;
+                            hull.convex = true;
+                        }
+                        if (child.TryGetComponent<Renderer>(out var proxy))
+                            proxy.enabled = false;
+                        child.gameObject.layer = Layers.Block;
+                        all.Add(hull);
+                    }
                 }
                 return all.Count > 0 ? LocalBounds(all.ToArray()) : new Bounds(Vector3.up * .5f, Vector3.one);
             }
