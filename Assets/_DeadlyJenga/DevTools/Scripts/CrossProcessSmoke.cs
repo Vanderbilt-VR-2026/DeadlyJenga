@@ -421,6 +421,8 @@ namespace DeadlyJenga.CastlePrototype
             CastlePlaySession session = null;
             yield return Until(() => (session = FindFirstObjectByType<CastlePlaySession>()) && NetworkActors.Alive(session.Player)
                 && session.Network && !session.Network.WaitingForWorld, "Room transitions to a Castle match", 150, () => $"room={room.Status}");
+            var fusion = session.GetComponent<CastleFusionSession>();
+            Require(fusion, "Castle has the Fusion session for the independent peer check");
             if (host)
             {
                 session.SurvivorBots.AutoFill = false;
@@ -430,12 +432,12 @@ namespace DeadlyJenga.CastlePrototype
             }
             else
             {
-                yield return Until(() => session.Network.Demo.survivors == bots &&
+                yield return Until(() => fusion.Demo.survivors == bots &&
                     FindObjectsByType<SurvivorNetworkView>(FindObjectsSortMode.None)
                         .Count(view => view.IsBot && !view.IsEnemy) == bots,
                     $"Guest sees {bots} replicated survivor bots", 60);
             }
-            File.AppendAllText(Report, $"MATCH started role={role} bots={(host ? session.SurvivorBots.Count : session.Network.Demo.survivors)} humans={room.HumanCount}\n");
+            File.AppendAllText(Report, $"MATCH started role={role} bots={(host ? session.SurvivorBots.Count : fusion.Demo.survivors)} humans={room.HumanCount}\n");
 
             var start = new Dictionary<GameObject, Vector3>();
             var visibleBots = host ? session.SurvivorBots.Members :
@@ -467,7 +469,7 @@ namespace DeadlyJenga.CastlePrototype
             double Percentile(float fraction) => sorted[Mathf.Clamp(Mathf.CeilToInt(sorted.Length * fraction) - 1, 0, sorted.Length - 1)];
             File.AppendAllText(Report, $"FRAMES match n={times.Count} p50={Percentile(.5f):F1}ms p95={Percentile(.95f):F1}ms p99={Percentile(.99f):F1}ms max={sorted.Last():F1}ms >=100ms={times.Count(ms => ms >= 100)}\n");
             File.WriteAllLines(Path.Combine(folder, role + "-match-frames-ms.txt"), times.Select(ms => ms.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)));
-            File.AppendAllText(Report, $"MATCH held seconds={seconds:F0} bots={(host ? session.SurvivorBots.Count : session.Network.Demo.survivors)} botsMoved={moved}/{start.Count} minHumans={minHumans} disconnectedSeconds={disconnected} hitchSeconds={hitchSeconds}\n");
+            File.AppendAllText(Report, $"MATCH held seconds={seconds:F0} bots={(host ? session.SurvivorBots.Count : fusion.Demo.survivors)} botsMoved={moved}/{start.Count} minHumans={minHumans} disconnectedSeconds={disconnected} hitchSeconds={hitchSeconds}\n");
             Require(disconnected == 0 && minHumans == players, $"Match held {players} humans for {seconds:F0}s without drops");
             if (bots > 0) Require(moved > 0, $"Visible bots move on {role} during the match");
         }
