@@ -185,7 +185,12 @@ namespace DeadlyJenga.CastlePrototype
             Require(host || role == "guest1" || role == "guest2", "Managed migration requires host, guest1 or guest2");
             string otherGuest = role == "guest1" ? "guest2" : "guest1";
             bool Reached(string participant, string step) => File.Exists(Mark(participant + "-managed-" + step));
-            void MarkReached(string step, string value = "ready") => File.WriteAllText(Mark(role + "-managed-" + step), value);
+            void MarkReached(string step, string value = "ready")
+            {
+                string marker = Mark(role + "-managed-" + step);
+                File.WriteAllText(marker + ".pending", value);
+                File.Move(marker + ".pending", marker);
+            }
             bool GuestsReached(string step) => Reached("guest1", step) && Reached("guest2", step);
             HomeSession home = null;
             yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && home.Region.Length > 0,
@@ -233,7 +238,7 @@ namespace DeadlyJenga.CastlePrototype
                 $"leader={room.LeaderId}; phase={(game ? game.GamePhase.ToString() : "no Game")}; " +
                 $"frame={(game && game.Modes ? game.Modes.Frame.phase.ToString() : "none")}; waiting={(game && game.Network && game.Network.WaitingForWorld)}";
             yield return Until(() => (game = FindFirstObjectByType<CastlePlaySession>()) && MatchHasHumans(3) &&
-                game.Modes.Frame.phase == RoundPhase.Playing && game.Modes.Frame.elapsed >= 3,
+                game.GamePhase == RoomGamePhase.Playing && game.Modes.Frame.phase == RoundPhase.Playing && game.Modes.Frame.elapsed >= 3,
                 "All peers enter the production round, synchronize and observe the two remote survivors", 155, State);
             var originalRunner = room.Runner;
             float elapsedBeforeTransfer = game.Modes.Frame.elapsed;
@@ -258,7 +263,7 @@ namespace DeadlyJenga.CastlePrototype
             yield return Until(() => MatchHasHumans(2) && !room.Migrating &&
                 (room.IsHost || fusion && fusion.LastWorldAppliedAt > worldAtRebind && fusion.LastHostPoseAt > poseAtRebind),
                 "Both survivors see each other and the follower receives fresh world and pose traffic", 100, State);
-            Require(game.Modes.Frame.phase == RoundPhase.Playing && MatchSetup.MapId == map &&
+            Require(game.GamePhase == RoomGamePhase.Playing && game.Modes.Frame.phase == RoundPhase.Playing && MatchSetup.MapId == map &&
                 game.Modes.Frame.elapsed >= elapsedBeforeTransfer - 1 &&
                 Mathf.Approximately(game.Modes.Frame.rules.roundSeconds, roundSeconds),
                 "The recovered room preserves the production map and advancing round");
