@@ -215,6 +215,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 shots.Add(name);
                 InventoryButtons(window, name, inventory);
+                File.WriteAllLines(Path.Combine(Folder, "button-inventory.tsv"), inventory);
                 if (Shoot(window, name)) good++;
             }
 
@@ -461,10 +462,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (cutIn != null)
             {
                 float originalIn = originalCutOrder[0].from;
+                cutIn.Focus();
                 cutIn.value = originalIn + .25f;
-                using var finish = FocusOutEvent.GetPooled();
-                finish.target = cutIn;
-                cutIn.SendEvent(finish);
+                window.rootVisualElement.Q<Button>("commands").Focus();
+                yield return 0;
                 trimmed = Mathf.Approximately(set.cuts[0].from, originalIn + .25f);
                 context.Edit("Restore the trim fixture", () => set.cuts[0].from = originalIn);
             }
