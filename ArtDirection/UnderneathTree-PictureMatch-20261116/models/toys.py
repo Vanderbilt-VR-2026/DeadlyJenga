@@ -114,44 +114,8 @@ for i in range(12):
     p.rotation_euler = d.to_track_quat("Z", "Y").to_euler()
 built.append(finish("Toy Football"))
 
-# --- Robot: boxy body, antenna, claw arms.
-for x in (-.9, .9):
-    add("box", (x, 0, 1.4), (1.2, 1.6, 2.8), "Toy Silver", bevel=.1)
-add("box", (0, 0, 4.6), (4, 2.6, 3.6), "Toy Silver", bevel=.2)
-add("box", (0, -1.32, 4.8), (2.4, .1, 1.6), "Toy Teal", bevel=.05)
-for x in (-.6, 0, .6):
-    add("cyl", (x, -1.4, 4.8), (.35, .35, .1), "Toy Red", rot=(90, 0, 0))
-for s in (-1, 1):
-    add("cyl", (s * 2.5, 0, 4.4), (.7, .7, 2.6), "Toy Gray")
-    add("box", (s * 2.5, -.2, 2.9), (.9, .5, .7), "Toy Red", bevel=.05)
-add("box", (0, 0, 7.6), (2.8, 2.2, 2.2), "Toy Silver", bevel=.2)
-for x in (-.6, .6):
-    add("ball", (x, -1.12, 7.8), (.6, .3, .6), "Toy Yellow")
-add("cyl", (0, 0, 9.2), (.15, .15, 1.2), "Toy Gray")
-add("ball", (0, 0, 9.9), (.5, .5, .5), "Toy Red")
-built.append(finish("Toy Robot"))
 
-# --- Round plush bear: soft squashed body, ears, belly, little face.
-add("ball", (0, 0, 3.6), (7.2, 6.6, 7.0), "Toy Plush", seg=32)
-for x in (-2.2, 2.2):
-    add("ball", (x, 0, 7.0), (1.8, 1.0, 1.8), "Toy Plush")
-    add("ball", (x * 1.15, -1.4, .9), (2.0, 2.2, 1.6), "Toy Plush")
-add("ball", (0, -2.9, 3.0), (4.0, 1.0, 3.6), "Toy Cream")
-add("ball", (0, -3.2, 4.7), (1.5, .6, 1.0), "Toy Cream")
-add("ball", (0, -3.5, 4.9), (.5, .3, .35), "Toy Black")
-for x in (-1.2, 1.2):
-    add("ball", (x, -3.1, 5.6), (.45, .3, .45), "Toy Black")
-    add("ball", (x * 1.6, -3.0, 4.6), (.8, .2, .5), "Toy Pink")
-built.append(finish("Toy Plush Bear"))
 
-# --- Retro speaker: wood cabinet, two cones, grille trim.
-add("box", (0, 0, 5), (6, 4.4, 10), "Toy Wood", bevel=.25)
-for z, r in ((3.1, 3.8), (7.3, 2.4)):
-    add("cyl", (0, -2.22, z), (r, r, .2), "Toy Black", rot=(90, 0, 0), seg=32)
-    add("cyl", (0, -2.3, z), (r * .45, r * .45, .3), "Toy Gray", rot=(90, 0, 0), seg=32)
-    add("torus", (0, -2.3, z), (r * 1.02, r * 1.02, 1), "Toy Silver", rot=(90, 0, 0), seg=32)
-add("box", (0, -2.25, 9.3), (4.6, .2, .5), "Toy Gold", bevel=.05)
-built.append(finish("Toy Retro Speaker"))
 
 # --- Frosted pinecone: stacked scale rings, white tips.
 for i in range(9):
@@ -191,16 +155,6 @@ for f, (axis, sign) in enumerate([(0, 1), (0, -1), (1, 1), (1, -1), (2, 1), (2, 
             add("box", tuple(p), tuple(s), faces[f], bevel=.05)
 built.append(finish("Toy Puzzle Cube"))
 
-# --- Toy race car: low body, cockpit, chunky wheels, flame stripe.
-add("box", (0, 0, 1.3), (3.6, 8, 1.4), "Toy Orange", bevel=.4)
-add("box", (0, .6, 2.3), (2.8, 3.2, 1.2), "Toy Glass", bevel=.35)
-add("box", (0, 3.6, 2.1), (3.8, .5, .3), "Toy Black", bevel=.05)
-for x in (-1.9, 1.9):
-    for y in (-2.6, 2.6):
-        add("cyl", (x, y, .9), (1.8, 1.8, .9), "Toy Black", rot=(0, 90, 0))
-        add("cyl", (x * 1.06, y, .9), (.9, .9, .9), "Toy Silver", rot=(0, 90, 0))
-add("box", (0, -2.5, 2.05), (1.0, 2.5, .05), "Toy Yellow")
-built.append(finish("Toy Race Car"))
 
 # --- Fashion doll: slim figure, long hair, dress, stand.
 add("cyl", (0, 0, .2), (2.4, 2.4, .4), "Toy Pink")
@@ -239,20 +193,6 @@ add("box", (0, 3.9, 3.0), (1.3, 1.6, .9), "Toy Yellow", bevel=.2)
 add("box", (0, .6, .55), (1.4, 5, 1.1), "Toy Orange", bevel=.2)
 built.append(finish("Toy Blaster"))
 
-# --- Retro games console: grey box, cartridge, two pads with cords.
-add("box", (0, 0, 1.2), (8, 6, 2.4), "Toy Gray", bevel=.2)
-add("box", (0, -1.2, 2.45), (6.8, 2.6, .1), "Toy Black")
-add("box", (0, 1.4, 3.0), (3.0, .6, 2.0), "Toy Red", bevel=.1)
-for x in (-2.8, -1.8):
-    add("box", (x, -2.9, 1.4), (.6, .2, .4), "Toy Red", bevel=.05)
-for x in (-3.0, 3.0):
-    add("box", (x, -6.0, .4), (2.8, 1.6, .8), "Toy Gray", bevel=.25)
-    add("box", (x - .7, -6.1, .85), (.7, .25, .1), "Toy Black")
-    add("box", (x - .7, -6.1, .85), (.25, .7, .1), "Toy Black")
-    for dx in (.5, 1.0):
-        add("cyl", (x + dx, -6.1, .85), (.4, .4, .12), "Toy Red")
-    add("cyl", (x * .7, -4.3, .2), (.2, .2, 2.6), "Toy Black", rot=(90, 0, 20 if x < 0 else -20))
-built.append(finish("Toy Retro Console"))
 
 # --- Candy bag: gathered bag with a ribbon and sweets peeking out.
 add("cyl", (0, 0, 2.8), (5.4, 4.6, 5.6), "Toy Glass", seg=24)
@@ -319,6 +259,11 @@ add("cyl", (0, 2.1, 2.9), (.3, .3, 1.2), "Toy Silver", rot=(90, 0, 0))
 for x in (-.8, .8):
     add("ball", (x, 2.75, 2.9), (1.3, .25, 1.0), "Toy Gold")
 built.append(finish("Toy Wind-up Walker"))
+
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from small_toys_export import export_small_toys
+built.extend(export_small_toys(out))
 
 print("EXPORTED", len(built))
 

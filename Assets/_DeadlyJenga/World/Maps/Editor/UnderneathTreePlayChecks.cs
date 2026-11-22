@@ -93,6 +93,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
             SessionState.SetBool("TreePremiereStudios", true);
         }
 
+        public static void CheckSmallToys()
+        {
+            Begin(false);
+            SessionState.SetBool("TreeSmallToys", true);
+        }
+
         public static void CaptureCrystalCrag()
         {
             Begin(false);
@@ -101,6 +107,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         static void Begin(bool references)
         {
+            SessionState.SetBool("TreeSmallToys", false);
             SessionState.SetBool("TreeFalconSummit", false);
             SessionState.SetBool("TreePremiereStudios", false);
             SessionState.SetBool("TreeCrystalCrag", false);
@@ -182,6 +189,26 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         renderReady = now + 1.7;
                     if (now < renderReady)
                         return;
+                    if (SessionState.GetBool("TreeSmallToys", false))
+                    {
+                        var toys = map.GetComponentsInChildren<UnderneathTreeToy>();
+                        foreach (string label in new[] { "Race Car", "Retro Speaker", "Plush Bear", "Robot",
+                            "Retro Console", "Airmail Bear", "Alpine Rally", "Mint Pickup", "Club Roadster" })
+                        {
+                            var matches = toys.Where(t => t.source && t.source.name == "Toy " + label).ToArray();
+                            Require(matches.Length > 0 && matches.All(t =>
+                                t.GetComponentsInChildren<Rigidbody>().Length == 1 &&
+                                t.GetComponentsInChildren<Collider>().Length == 1 && t.GetComponent<BoxCollider>() &&
+                                t.GetComponentsInChildren<MeshRenderer>().Length == 1),
+                                label + " loaded with one visual mesh, one box collider and one body");
+                        }
+                        var bear = toys.Single(t => t.source && t.source.name == "Toy Airmail Bear");
+                        var aim = bear.GetComponent<BoxCollider>().bounds.center;
+                        Shot(player.ViewCamera, "airmail-bear", aim + bear.transform.rotation *
+                            new Vector3(4f, 3f, -12f), aim, 40f);
+                        Finish(true);
+                        return;
+                    }
                     if (SessionState.GetBool("TreeCrystalCrag", false))
                     {
                         var toy = map.GetComponentsInChildren<UnderneathTreeToy>().Single(t => t.name.StartsWith("Toy Wizard Tower "));

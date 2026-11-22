@@ -208,3 +208,23 @@ MonoBehaviour:
     spot: {x: 1.5, y: 0}
     turn: 270
     size: 1
+  - toy: {fileID: 4728215414278081841, guid: a4020635486640c482579e6fc71278ee, type: 3}
+    onGift: Back Row / Top Cream
+    spot: {x: 0, y: 0}
+    turn: 164
+    size: 1
+  - toy: {fileID: 4728215414278081841, guid: 8c0de54307c8456aa988d822122f2e10, type: 3}
+    onGift: Right Foot / Cream Rear
+    spot: {x: 0, y: 0}
+    turn: 14
+    size: 1
+  - toy: {fileID: 4728215414278081841, guid: 6dbe59b29faa48629876fd40571c5d67, type: 3}
+    onGift: Back Row / Gift 5
+    spot: {x: 0, y: 0}
+    turn: -16
+    size: 1
+  - toy: {fileID: 4728215414278081841, guid: 8b5671a40fd843d08b10c7ed7cff3017, type: 3}
+    onGift: Entrance / Navy Step
+    spot: {x: 0, y: 0}
+    turn: 89
+    size: 1

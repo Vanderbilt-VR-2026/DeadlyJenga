@@ -3,7 +3,32 @@ guid: b394c2dc12de5a045b0c3380b78cf7bb
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Cream felt
+    second: {fileID: 2100000, guid: 39775d241ec74c96a0c6317e92abce76, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Honey mohair
+    second: {fileID: 2100000, guid: c554a3b8a0f044899c9d6d36d51bad3c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Saddle hide
+    second: {fileID: 2100000, guid: 634c1817f23d457a9ad58d4072d75aad, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Rose stitching
+    second: {fileID: 2100000, guid: 680b27c669514fb3822d4d726dcd80b4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Buttermilk
+    second: {fileID: 2100000, guid: ed985b8b505e45aba6fc33d6fc2ed52c, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
