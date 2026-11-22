@@ -275,9 +275,15 @@ namespace DeadlyJenga.CastlePrototype
         public void FusionRemovePlayer(string playerID) { fusionActors.Remove(playerID); livePoseAt.Remove(playerID); RemoveView(playerID); ParticipantLeft?.Invoke(playerID); }
         public void FusionReceiveSocial(string source,byte[] data) { if(data!=null&&data.Length>0&&data.Length<=16000&&(data[0]==5||data[0]==6))SocialReceived?.Invoke(source,data); }
         public void FusionSuspendPlayer(string playerID) { if (views.TryGetValue(playerID, out var view)) view.Suspend(); }
+        static readonly Unity.Profiling.ProfilerMarker ActorRenderMarker = new("DJ.Network.ActorRender");
+        static readonly Unity.Profiling.ProfilerMarker ReplicaBlocksMarker = new("DJ.Network.ReplicaBlocks");
+        static readonly Unity.Profiling.ProfilerMarker ActorStateMarker = new("DJ.Network.ActorState");
+
         public void FusionRender()
         {
-            if (IsClient && receivedWorld) InterpolateWorld();
+            if (IsClient && receivedWorld)
+                using (ReplicaBlocksMarker.Auto()) InterpolateWorld();
+            using var actorRender = ActorRenderMarker.Auto();
             foreach(var pair in views)if(NetworkActors.Alive(pair.Value)&&!SuspendManagedView(pair.Key,pair.Value))pair.Value.Render(Time.unscaledDeltaTime);
             if(IsClient&&receivedWorld&&session.PlayingHand&&localPreview is INetworkActorView preview&&!SuspendManagedView(id,preview))preview.Render(Time.unscaledDeltaTime);
         }
@@ -668,6 +674,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void ShowActor(P.Actor actor, bool authoritative)
         {
+            using var marker = ActorStateMarker.Auto();
             if (views.TryGetValue(actor.id, out var view) && (!NetworkActors.Alive(view) || view.NetworkKind != actor.kind)) { RemoveView(actor.id); view = null; }
             if (view == null)
             {
