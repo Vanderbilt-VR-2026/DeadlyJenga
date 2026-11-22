@@ -412,7 +412,10 @@ namespace DeadlyJenga.Presentation
                     rainbow.WaterStrip(p-radial,p+radial,e+nextRadial,e-nextRadial,Mathf.Abs(i-20)*.65f,Mathf.Abs(i+1-20)*.65f,band/6f,(band+1)/6f,bands[band]);
                 }
             }
-            Model("Visual · candy rainbow",rainbow,transform,new[]{cityGlowMaterial});
+            CurrentModel("Visual · candy rainbow",rainbow,transform);
+            float middleRadius=330-(bands.Length-1)*5;
+            Splash(transform,center+Vector3.right*middleRadius,60,"skyline east");
+            Splash(transform,center+Vector3.left*middleRadius,60,"skyline west");
             }
             // Cotton-candy waterfall pouring off the island rim.
             float edge=Mathf.PI*1.1f;
