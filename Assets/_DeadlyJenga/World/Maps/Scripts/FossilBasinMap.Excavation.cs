@@ -38,6 +38,7 @@ namespace DeadlyJenga.CastlePrototype
                 pad.AddComponent<BoxCollider>().size=P(1.4f,.5f,1.4f);
                 int count=Mathf.CeilToInt((top.y+1-thick)/3.4f);
                 float height=(top.y+1-thick)/count;
+                FossilMember lower=null;
                 for(int k=0;k<count;k++)
                 {
                     var at=basePos+Vector3.up*((k+.5f)*height);
@@ -45,6 +46,8 @@ namespace DeadlyJenga.CastlePrototype
                         c.Box(at,P(.96f,height,.96f),k%2==0?Teal:Clay,Flat);
                         c.Box(at+Vector3.up*(height*.5f-.18f),P(1.05f,.36f,1.05f),Clay,Flat,false);
                     });
+                    if(lower)Socket(pier,lower,at-Vector3.up*(height*.5f),4200);
+                    lower=pier;
                     if(k==count-1)heads[(ix+1)/2,(iz+1)/2]=pier;
                 }
             }

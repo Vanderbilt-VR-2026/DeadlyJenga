@@ -8,6 +8,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         internal Rigidbody rigid;
         internal readonly List<Collider> shapes = new();
+        internal int fossil;
         internal Mesh mesh;
         internal Transform art;
         Vector3 grabOffset, target;

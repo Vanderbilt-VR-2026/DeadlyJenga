@@ -9,15 +9,17 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class FossilBasinMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IRebuildable, IMapFootprint, ITraversalCollisionWorld
     {
         public Material stone;
-        const string Version="fossil-basin/4/";
+        const string Version="fossil-basin/5/";
         readonly List<Rigidbody> bodies=new();
         readonly List<FossilMember> decks=new();
         readonly List<Link> links=new();
+        readonly List<(Collider a,Collider b)> socketsInContact=new();
+        int contactCursor;
         Transform structure;
         bool replica;
         int cleanup, spawnIndex;
         float nextSweep;
-        sealed class Link { public Rigidbody a,b; public Vector3 anchor; public float force,torque; public FixedJoint joint; public bool broken; }
+        sealed class Link { public Rigidbody a,b; public Vector3 anchor,connectedAnchor; public float force,torque; public FixedJoint joint; public bool broken; }
         public int Revision { get; private set; }
         public IReadOnlyList<Rigidbody> Blocks => bodies;
         public Transform Root => transform;
@@ -48,7 +50,7 @@ namespace DeadlyJenga.CastlePrototype
         public void Rebuild()
         {
             if(structure){structure.gameObject.SetActive(false);Destroy(structure.gameObject);}
-            bodies.Clear(); links.Clear(); decks.Clear(); cleanup=spawnIndex=0;
+            bodies.Clear(); links.Clear(); decks.Clear(); socketsInContact.Clear();contactCursor=0; cleanup=spawnIndex=0;
             structure=new GameObject("Excavation").transform; structure.SetParent(transform,false);
             BuildExcavation();
             var tar=new GameObject("Lethal tar contact"); tar.transform.SetParent(structure,false);
@@ -58,19 +60,20 @@ namespace DeadlyJenga.CastlePrototype
             tar.AddComponent<FossilTar>().map=this;
             Physics.SyncTransforms();
             foreach(var l in links) Connect(l);
+            FilterInterlockingBones();
             Revision++;
         }
         FossilMember Piece(string label, Vector3 center,float mass,Action<FossilCarving> carve)
         {
             var go=new GameObject(label){layer=Layers.Block};go.transform.SetParent(structure,false);go.transform.localPosition=center;
             var rb=go.AddComponent<Rigidbody>();rb.isKinematic=replica;rb.mass=mass;rb.solverIterations=24;rb.solverVelocityIterations=8;
-            rb.maxDepenetrationVelocity=2; rb.sleepThreshold=.018f;
+            rb.maxDepenetrationVelocity=.8f; rb.sleepThreshold=.018f;
             var m=go.AddComponent<FossilMember>();m.rigid=rb;
             var c=new FossilCarving(m,center);carve(c);c.Finish(stone);bodies.Add(rb);return m;
         }
         void Socket(FossilMember a,FossilMember b,Vector3 at,float strength=18000)
         {
-            links.Add(new Link{a=a.Body,b=b.Body,anchor=at-a.transform.localPosition,force=strength,torque=strength*.65f});
+            links.Add(new Link{a=a.Body,b=b.Body,anchor=at-a.transform.localPosition,connectedAnchor=at-b.transform.localPosition,force=strength,torque=strength*.65f});
         }
         void Connect(Link l)
         {
@@ -78,8 +81,47 @@ namespace DeadlyJenga.CastlePrototype
             var j=l.a.gameObject.AddComponent<FixedJoint>();
             j.autoConfigureConnectedAnchor=false;
             j.connectedBody=l.b;j.anchor=l.anchor;
-            j.connectedAnchor=l.b.transform.InverseTransformPoint(l.a.transform.TransformPoint(l.anchor));
+            j.connectedAnchor=l.connectedAnchor;
+            j.enablePreprocessing=false;
             j.breakForce=l.force;j.breakTorque=l.torque;j.enableCollision=false;l.joint=j;
+        }
+        void FilterInterlockingBones()
+        {
+            // At a fossil joint the two carved ends interlock. PhysX should not push
+            // those initially interpenetrating collision approximations apart at rest.
+            var neighbors=new Collider[128];
+            foreach(var body in bodies)
+            {
+                var member=body.GetComponent<FossilMember>();
+                if(member.fossil==0)continue;
+                foreach(var shape in member.shapes)
+                {
+                    var bounds=shape.bounds;
+                    int n=Physics.OverlapBoxNonAlloc(bounds.center,bounds.extents,neighbors,Quaternion.identity,1<<Layers.Block,QueryTriggerInteraction.Ignore);
+                    for(int i=0;i<n;i++)
+                    {
+                        var other=neighbors[i];var rb=other.attachedRigidbody;
+                        if(!rb || rb==body || other.GetInstanceID()<=shape.GetInstanceID() ||
+                            rb.transform.parent!=structure || rb.GetComponent<FossilMember>().fossil!=member.fossil)continue;
+                        if(!Physics.ComputePenetration(shape,shape.transform.position,shape.transform.rotation,other,
+                            other.transform.position,other.transform.rotation,out _,out float depth)||depth<.008f)continue;
+                        Physics.IgnoreCollision(shape,other,true);socketsInContact.Add((shape,other));
+                    }
+                }
+            }
+        }
+        void RestoreSeparatedContacts()
+        {
+            int count=Mathf.Min(32,socketsInContact.Count);
+            for(int i=0;i<count && socketsInContact.Count>0;i++)
+            {
+                contactCursor%=socketsInContact.Count;
+                var (a,b)=socketsInContact[contactCursor];
+                var seat=a.bounds;seat.Expand(.08f);
+                if(seat.Intersects(b.bounds)){contactCursor++;continue;}
+                Physics.IgnoreCollision(a,b,false);
+                socketsInContact.RemoveAt(contactCursor);
+            }
         }
         void TrackBreaks()
         {
@@ -89,7 +131,7 @@ namespace DeadlyJenga.CastlePrototype
         void FixedUpdate()
         {
             if(!Authority || Time.time<nextSweep || bodies.Count==0)return;
-            nextSweep=Time.time+.16f; TrackBreaks();
+            nextSweep=Time.time+.16f; TrackBreaks();RestoreSeparatedContacts();
             for(int i=0;i<24;i++)
             {
                 var b=bodies[cleanup];cleanup=(cleanup+1)%bodies.Count;
@@ -101,14 +143,29 @@ namespace DeadlyJenga.CastlePrototype
         {
             for(int i=0;i<decks.Count;i++)
             {
-                var deck=decks[spawnIndex++%decks.Count];
-                if(!deck.gameObject.activeInHierarchy||deck.transform.up.y<.93f)continue;
+                var deck=decks[spawnIndex];
+                spawnIndex=(spawnIndex+1)%decks.Count;
+                if(!deck.gameObject.activeInHierarchy||deck.transform.up.y<.93f||deck.Body.linearVelocity.sqrMagnitude>1)continue;
                 var pos=deck.transform.position+Vector3.up*(.17f*transform.lossyScale.x+.05f);
-                if(pos.y<=WaterHeight(pos)+.4f || Physics.CheckCapsule(pos+Vector3.up*.25f,pos+Vector3.up*1.05f,.23f,1<<Layers.Block,QueryTriggerInteraction.Ignore))continue;
-                return pos;
+                if(ClearSpawn(pos))return pos;
+            }
+            // After the slate decks are lost, a settled flight or long fossil can still be refuge.
+            foreach(var body in bodies)
+            {
+                if(!body.gameObject.activeSelf||body.linearVelocity.sqrMagnitude>1||body.angularVelocity.sqrMagnitude>1)continue;
+                foreach(var shape in body.GetComponent<FossilMember>().shapes)
+                {
+                    var bounds=shape.bounds;
+                    if(Mathf.Min(bounds.size.x,bounds.size.z)<.64f||bounds.max.y<WaterHeight(bounds.center)+.4f)continue;
+                    var ray=new Ray(new Vector3(bounds.center.x,bounds.max.y+.1f,bounds.center.z),Vector3.down);
+                    if(shape.Raycast(ray,out var hit,bounds.size.y+.2f)&&hit.normal.y>.90f&&ClearSpawn(hit.point+Vector3.up*.05f))
+                        return hit.point+Vector3.up*.05f;
+                }
             }
             return transform.TransformPoint(new Vector3(0,1.25f,-8));
         }
+        bool ClearSpawn(Vector3 pos) => pos.y>WaterHeight(pos)+.4f &&
+            !Physics.CheckCapsule(pos+Vector3.up*.25f,pos+Vector3.up*1.05f,.23f,1<<Layers.Block,QueryTriggerInteraction.Ignore);
         public string SaveLayout()
         {
             TrackBreaks();var bytes=new byte[(links.Count+7)/8];
@@ -124,8 +181,16 @@ namespace DeadlyJenga.CastlePrototype
             if(!structure)Rebuild();
             if(expectedBlocks!=bodies.Count||bits.Length!=(links.Count+7)/8)return false;
             transform.SetPositionAndRotation(origin.position,origin.rotation);transform.localScale=scale;
-            Rebuild();
-            for(int i=0;i<links.Count;i++)if((bits[i/8]&(1<<(i%8)))!=0){links[i].broken=true;RemoveJoint(links[i]);}
+            // Snapshots apply poses and activity immediately after the layout. A broken
+            // bracket changes one bit without reallocating the entire excavation.
+            for(int i=0;i<links.Count;i++)
+            {
+                var link=links[i];
+                bool broken=(bits[i/8]&(1<<(i%8)))!=0;
+                if(link.broken==broken)continue;
+                link.broken=broken;
+                if(broken)RemoveJoint(link);else Connect(link);
+            }
             return true;
         }
         static void RemoveJoint(Link l){if(l.joint){l.joint.connectedBody=null;DestroyImmediate(l.joint);l.joint=null;}}

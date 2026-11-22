@@ -90,8 +90,15 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void ShieldSector(Vector3 root,Vector3 a,Vector3 tip,Vector3 b,Vector3 bevel,Color color)
         {
-            Face(root+bevel,a+bevel,tip+bevel,b+bevel,color);
-            Face(root-bevel,b-bevel,tip-bevel,a-bevel,color);
+            var ridge=Vector3.Lerp(root,tip,.60f);
+            foreach(int sign in new[]{-1,1})
+            {
+                var offset=bevel*sign;var crown=ridge+offset*1.65f;
+                Face(root+offset,a+offset,crown,root+offset,color*.92f);
+                Face(a+offset,tip+offset,crown,a+offset,color);
+                Face(tip+offset,b+offset,crown,tip+offset,color*.98f);
+                Face(b+offset,root+offset,crown,b+offset,color*.94f);
+            }
             Face(a-bevel,a+bevel,tip+bevel,tip-bevel,color*.92f);
             Face(tip-bevel,tip+bevel,b+bevel,b-bevel,color*.92f);
             var axis=(tip-root).normalized;

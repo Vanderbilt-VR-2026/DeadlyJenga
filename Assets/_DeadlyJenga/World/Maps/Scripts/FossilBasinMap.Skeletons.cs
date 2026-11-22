@@ -7,10 +7,11 @@ namespace DeadlyJenga.CastlePrototype
         enum Dinosaur { Stegosaurus, Rex, Triceratops }
         void Skeleton(Dinosaur kind,Vector3 rump,Vector3 shoulder,Site rear,Site front)
         {
+            int firstBody=bodies.Count;
             var f=Vector3.ProjectOnPlane(shoulder-rump,Vector3.up).normalized;
             var side=Vector3.Cross(f,Vector3.up);
             const int sections=8;
-            FossilMember first=null,last=null;
+            FossilMember first=null,last=null,midRib=null;
             for(int i=0;i<sections;i++)
             {
                 float t=(i+.5f)/sections;
@@ -36,9 +37,26 @@ namespace DeadlyJenga.CastlePrototype
                     else c.Shaft(at,at+Vector3.up*.72f-f*.16f,.18f,.13f,Ochre,true);
                 });
                 if(last)Socket(rib,last,Spine((float)i/sections));
+                if(i==sections/2)midRib=rib;
                 if(!first)first=rib;
                 last=rib;
             }
+            // A forked excavation mount transfers the cantilever moment at the ribs
+            // into the foot landing. Its socket and lower shoe both come away with a pull.
+            var keel=midRib.transform.localPosition+Vector3.down*1.55f;
+            var shoe=front.top+side*.47f;
+            var mount=Piece(kind+" excavation rib cradle",(shoe+keel)*.5f,8,c=>{
+                for(int k=-1;k<=1;k+=2)
+                {
+                    var a=shoe+side*k*.26f;
+                    var b=keel+side*k*.53f;
+                    c.Shaft(a,b,.12f,.12f,Timber);
+                    c.Shaft(b,midRib.transform.localPosition+side*k*.22f,.13f,.13f,Brass);
+                }
+                c.Box(shoe+Vector3.up*.075f,P(.88f,.15f,.83f),Clay,Flat);
+            });
+            Socket(mount,front.Seat(shoe),shoe,9000);
+            Socket(midRib,mount,midRib.transform.localPosition,11200);
             Tail(kind,first,rump,f,side);
             for(int s=-1;s<=1;s+=2)
             {
@@ -62,6 +80,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             Skull(kind,last,shoulder,f,side);
+            for(int i=firstBody;i<bodies.Count;i++)bodies[i].GetComponent<FossilMember>().fossil=1+(int)kind;
         }
         void Leg(Dinosaur kind,FossilMember torso,Vector3 hip,Vector3 foot,Vector3 f,Site site,int sign,bool hind)
         {

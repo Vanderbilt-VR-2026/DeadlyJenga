@@ -37,7 +37,7 @@ Shader "DeadlyJenga/Fossil Basin"
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
                 float3 ray=normalize(i.world-GetCameraPositionWS());
-                float3 sun=normalize(float3(-.37,.096,.92));
+                float3 sun=normalize(float3(-.31,.096,.94));
                 if(_Surface>1.5)
                 {
                     float h=max(0,ray.y);
