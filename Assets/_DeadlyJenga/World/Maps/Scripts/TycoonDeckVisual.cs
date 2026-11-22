@@ -5,24 +5,29 @@ namespace DeadlyJenga.CastlePrototype
 {
     public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash, Peach, Mint, Basin, Tube, Gate, Railed, Awning, Parasol, Bucket, LoosePeach, Walk, Launch }
 
+    [System.Flags]
+    public enum TycoonRailOpening { None=0, Front=1, Rear=2 }
+
     public readonly struct TycoonDeckProfile
     {
         public readonly TycoonDeckFinish Finish;
+        public readonly TycoonRailOpening Openings;
         public readonly Vector3 StartLeft, StartRight, EndLeft, EndRight;
 
         public TycoonDeckProfile(TycoonDeckFinish finish, Vector3 startLeft, Vector3 startRight,
-            Vector3 endLeft, Vector3 endRight)
+            Vector3 endLeft, Vector3 endRight, TycoonRailOpening openings=TycoonRailOpening.None)
         {
             Finish = finish;
+            Openings = openings;
             StartLeft = startLeft;
             StartRight = startRight;
             EndLeft = endLeft;
             EndRight = endRight;
         }
 
-        public static TycoonDeckProfile Rectangle(TycoonDeckFinish finish) => new TycoonDeckProfile(finish,
+        public static TycoonDeckProfile Rectangle(TycoonDeckFinish finish, TycoonRailOpening openings=TycoonRailOpening.None) => new TycoonDeckProfile(finish,
             new Vector3(-.5f,.5f,-.5f), new Vector3(.5f,.5f,-.5f),
-            new Vector3(-.5f,.5f,.5f), new Vector3(.5f,.5f,.5f));
+            new Vector3(-.5f,.5f,.5f), new Vector3(.5f,.5f,.5f),openings);
     }
 
     // One rendered module follows its existing box body through a collapse.
@@ -41,7 +46,7 @@ namespace DeadlyJenga.CastlePrototype
             var b = profile.StartRight;
             var c = profile.EndLeft;
             var d = profile.EndRight;
-            BeveledDeck(a,b,c,d,size,profile.Finish==TycoonDeckFinish.Flume);
+            BeveledDeck(a,b,c,d,size,profile.Finish);
             if (profile.Finish is TycoonDeckFinish.Flume or TycoonDeckFinish.DryChute)
             {
                 float inset = Mathf.Min(.22f,.74f/size.x);
@@ -93,7 +98,7 @@ namespace DeadlyJenga.CastlePrototype
             gameObject.AddComponent<MeshRenderer>().sharedMaterials = palette;
         }
 
-        void BeveledDeck(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Vector3 size,bool wetCenter)
+        void BeveledDeck(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Vector3 size,TycoonDeckFinish finish)
         {
             float ix = Mathf.Min(.15f,.07f/size.x);
             float iz = Mathf.Min(.15f,.07f/size.z);
@@ -103,7 +108,7 @@ namespace DeadlyJenga.CastlePrototype
             var rightFar = Vector3.Lerp(Vector3.Lerp(d,c,ix),Vector3.Lerp(b,a,ix),iz);
             var bevel = Vector3.down*(.055f/size.y);
             var down = Vector3.down;
-            if(wetCenter)
+            if(finish==TycoonDeckFinish.Flume)
             {
                 float inset=Mathf.Min(.15f,.36f/size.x);
                 var nL=Vector3.Lerp(a,b,inset); var nR=Vector3.Lerp(b,a,inset);
@@ -112,6 +117,12 @@ namespace DeadlyJenga.CastlePrototype
                 Quad(nL,fL,fR,nR,1);
                 Quad(nR,fR,d,b,0);
                 // The trough top is one continuous surface. The bevel remains on the underside and exposed walls.
+                leftNear=a; rightNear=b; leftFar=c; rightFar=d;
+            }
+            else if(finish==TycoonDeckFinish.DryChute || finish==TycoonDeckFinish.Tube)
+            {
+                // Adjacent molded panels share a flush transverse edge down the full run.
+                Quad(a,c,d,b,0);
                 leftNear=a; rightNear=b; leftFar=c; rightFar=d;
             }
             else Quad(leftNear,leftFar,rightFar,rightNear,0);

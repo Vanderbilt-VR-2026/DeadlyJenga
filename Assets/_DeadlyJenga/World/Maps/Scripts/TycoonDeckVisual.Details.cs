@@ -69,7 +69,7 @@ namespace DeadlyJenga.CastlePrototype
                     for(int i=0;i<7;i++)
                     {
                         float x=(i-3)*w/7;
-                        if(Mathf.Abs(x)<2.7f) continue;
+                        if((profile.Openings & TycoonRailOpening.Front)!=0 && Mathf.Abs(x)<2.7f) continue;
                         var a=LocalPoint(x-.44f,1.12f,-d/2-.07f);
                         var b=LocalPoint(x+.44f,1.12f,-d/2-.07f);
                         var tip=LocalPoint(x,.32f,-d/2-.12f);
@@ -78,7 +78,14 @@ namespace DeadlyJenga.CastlePrototype
                     foreach(int side in new[]{-1,1})
                     {
                         float z=side*(d-.2f)/2;
-                        foreach(int end in new[]{-1,1})
+                        var opening=side<0 ? TycoonRailOpening.Front : TycoonRailOpening.Rear;
+                        if((profile.Openings & opening)==0)
+                        {
+                            Slab(0,1.15f,z,w,.16f,.15f,2);
+                            Slab(0,.55f,z,w,.12f,.12f,2);
+                            Slab(0,0,z,.16f,1.32f,.16f,2);
+                        }
+                        else foreach(int end in new[]{-1,1})
                         {
                             float length=(w-5.4f)*.5f;
                             float mid=end*(w-length)*.5f;
@@ -282,7 +289,11 @@ namespace DeadlyJenga.CastlePrototype
             for(int j=0;j<7;j++)
             {
                 float x0=side*w*.5f*j/7, x1=side*w*.5f*(j+1)/7;
-                float Drop(float x) => -1f-4f*(1-Mathf.Sqrt(Mathf.Clamp01(1-Mathf.Pow(1-2*Mathf.Abs(x)/w,2))));
+                float Drop(float x)
+                {
+                    float u=Mathf.Clamp01((Mathf.Abs(x)-1.5f)/(w*.5f-1.5f));
+                    return -2.62f+1.86f*Mathf.Sqrt(u*(2-u));
+                }
                 var a=LocalPoint(x0,Drop(x0),-d*.505f);var b=LocalPoint(x1,Drop(x1),-d*.505f);
                 var c=LocalPoint(x1,-.5f,-d*.505f);var e=LocalPoint(x0,-.5f,-d*.505f);
                 Vector3 back=new Vector3(0,0,1.01f);

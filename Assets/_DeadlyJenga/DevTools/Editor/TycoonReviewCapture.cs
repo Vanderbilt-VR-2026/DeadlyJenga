@@ -214,6 +214,22 @@ namespace DeadlyJenga.DevTools.Editor
                 Transfer(new Vector3(x,18.6f,-27.5f),Vector3.forward,.27f);
             Transfer(new Vector3(-30.5f,26,-3.5f),Vector3.forward,.22f);
             Transfer(new Vector3(-6.25f,60,3),Vector3.right,.2f);
+            Transfer(new Vector3(40,18,-32),Vector3.right,.18f);
+            Transfer(new Vector3(41,24,-16),Vector3.right,.18f);
+            int clearSpaces=0;
+            void Clear(Vector3 floor)
+            {
+                var basePoint=world.transform.TransformPoint(floor);
+                if(Physics.CheckCapsule(basePoint+Vector3.up*.35f,basePoint+Vector3.up*1.8f,.25f,1<<Layers.Surface,
+                    QueryTriggerInteraction.Ignore)) throw new InvalidOperationException($"Player clearance obstructed at {floor}");
+                clearSpaces++;
+            }
+            for(int row=0;row<6;row++)
+            for(float x=-28;x<=-14;x+=2)
+                Clear(new Vector3(x,19+row*1.4f,-19+row*2.8f));
+            for(float x=-21;x<=21;x+=1.5f)
+                Clear(new Vector3(x,18.6f,-24));
+            Report($"Verified {clearSpaces} standing spaces across the bleachers and promenade.");
             var stair=world.transform.TransformPoint(new Vector3(-4.75f,59.4f,3));
             if(Physics.Raycast(stair+Vector3.up*.22f,Vector3.up,2,1<<Layers.Surface))
                 throw new InvalidOperationException("Final flight headroom is obstructed");
@@ -256,6 +272,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Shot("03-Core-junction",new Vector3(1,19.7f,-16.5f),new Vector3(7,22,-3));
                 Shot("04-West-flume",new Vector3(-34,23,-29),new Vector3(-19,26,-4));
                 Shot("05-East-terrace",new Vector3(38,19.7f,-39),new Vector3(29,22,-13));
+                Shot("09-Court-approaches",new Vector3(1,17,-59),new Vector3(0,12,-32));
                 Shot("08-Launch-deck",new Vector3(-23,70,24),new Vector3(0,61,-4));
                 Shot("07-Summit-bucket",new Vector3(16,68,-32),new Vector3(0,64,1));
                 Shot("06-Plank-court",new Vector3(1,8.7f,-43),new Vector3(-4,15,-22));

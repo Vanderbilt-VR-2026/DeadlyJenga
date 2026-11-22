@@ -56,9 +56,10 @@ namespace DeadlyJenga.CastlePrototype
             {
                 float x = i * 9;
                 Pier(plan, red, x, 16, -24, 3);
-                Box(plan, red, P(x,16.5f,-24),P(5,1,7));
-                Box(plan, red, P(x,17.5f,-24),P(7.5f,1,7));
-                Deck(plan, red, x,18.6f,-24,9,7,TycoonDeckFinish.Railed);
+                Box(plan, red, P(x,17,-24),P(2.85f,2,2.85f));
+                var openings = Mathf.Abs(i)==2 ? TycoonRailOpening.Front : TycoonRailOpening.None;
+                if(i==-2 || i==0) openings |= TycoonRailOpening.Rear;
+                Deck(plan,red,x,18.6f,-24,9,7,TycoonDeckFinish.Railed,openings);
             }
             Walk(plan,5,P(-8,7,-39),P(-18,12,-38),P(-18,18.6f,-27.5f));
             Walk(plan,4,P(8,7,-39),P(18,12,-38),P(18,18.6f,-27.5f));
@@ -86,11 +87,11 @@ namespace DeadlyJenga.CastlePrototype
             Deck(plan,green,36,24.6f,-20,7,4,TycoonDeckFinish.Basin);
             Deck(plan,green,32,24.6f,-13,4,4,TycoonDeckFinish.Parasol);
             Terrace(plan);
-            Walk(plan,5,P(33,18,-28),P(43,20,-27),P(39,24,-21));
+            Walk(plan,4,P(40,18,-32),P(48,20,-32),P(48,22,-16),P(41,24,-16));
             Route(plan,red,5,P(24,18.6f,-24),P(28,18,-29));
             Route(plan,green,4,P(25,12,-22),P(24,9,-27),P(24,7,-30));
             Route(plan,purple,4,P(23,24,-8),P(16,24,-8),P(-8,24,-12),P(-9,24,-6));
-            Deck(plan,red,11,7.6f,-39,6,4,TycoonDeckFinish.Awning);
+            Deck(plan,red,-27,7.6f,-40,6,4,TycoonDeckFinish.Awning);
             Deck(plan,purple,0,60,7.25f,24,4,TycoonDeckFinish.Bucket);
             return plan;
         }
@@ -164,7 +165,7 @@ namespace DeadlyJenga.CastlePrototype
             // Rear lip and colored blocks make the runout read as a splash platform.
             plan.Add(new CastlePlacement(P(36.5f,18.6f,-28.65f),Quaternion.Euler(-90,0,0),
                 CastleSection.Wall,9,P(5,1.1f,1.2f),TycoonDeckProfile.Rectangle(TycoonDeckFinish.Splash)));
-            Box(plan,CastleSection.Wall,P(39.4f,18.6f,-35),P(1.2f,1.2f,8));
+            Box(plan,CastleSection.Wall,P(39.4f,18.6f,-35.4f),P(1.2f,1.2f,1.2f));
             Box(plan,CastleSection.Wall,P(31.5f,18.6f,-41.4f),P(9,1.2f,1.2f));
             Box(plan,CastleSection.Gold,P(37.5f,18.45f,-39.8f),P(.9f,.9f,.9f));
             Box(plan,CastleSection.Keep,P(36.3f,18.55f,-39.8f),P(1.1f,1.1f,1.1f));
@@ -213,13 +214,13 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         static void Deck(List<CastlePlacement> plan, CastleSection section, float x, float top, float z, float width, float depth,
-            TycoonDeckFinish finish = TycoonDeckFinish.Plain)
+            TycoonDeckFinish finish = TycoonDeckFinish.Plain, TycoonRailOpening openings = TycoonRailOpening.None)
         {
             var position=P(x,top-.3f,z);
             var size=P(width,.6f,depth);
             if(finish==TycoonDeckFinish.Plain) Box(plan,section,position,size);
             else plan.Add(new CastlePlacement(position,Quaternion.identity,section,Mathf.FloorToInt(top/2),size,
-                TycoonDeckProfile.Rectangle(finish)));
+                TycoonDeckProfile.Rectangle(finish,openings)));
         }
 
         static void Box(List<CastlePlacement> plan, CastleSection section, Vector3 position, Vector3 size)
@@ -283,14 +284,48 @@ namespace DeadlyJenga.CastlePrototype
                 if(Vector3.Angle(points[i]-points[i-1],points[i+1]-points[i])<.75f) points.RemoveAt(i);
             if(finish!=TycoonDeckFinish.OpenDeck)
             {
-                float span=0;
-                for(int i=1;i<points.Count-1;i++)
+                // Pick the bearing on each run and the clear patch of sand for its foot separately.
+                // In particular, keep the bleacher rows, promenade and eastern stair clear.
+                void Bent(float bearingX,float bearingZ,float footX,float footZ)
                 {
-                    var point=points[i];
-                    span+=Vector3.Distance(points[i-1],point);
-                    if(span<18 || (guide[guide.Length-1]-point).sqrMagnitude<16) continue;
-                    Pier(plan,section,point.x,point.y-.55f,point.z,2.4f);
-                    span=0;
+                    var target=new Vector2(bearingX,bearingZ);
+                    int best=1;
+                    float nearest=float.PositiveInfinity;
+                    for(int j=1;j<points.Count;j++)
+                    {
+                        var mid=(points[j]+points[j-1])*.5f;
+                        float distance=(new Vector2(mid.x,mid.z)-target).sqrMagnitude;
+                        if(distance<nearest) { nearest=distance; best=j; }
+                    }
+                    var tangent=points[best]-points[best-1];
+                    var rot=Quaternion.LookRotation(tangent,Vector3.up);
+                    var normal=rot*Vector3.up;
+                    var center=(points[best]+points[best-1])*.5f;
+                    var bearing=center-normal*1.04f;
+                    plan.Add(new CastlePlacement(bearing,rot,section,Mathf.FloorToInt(bearing.y/2),
+                        P(2.35f,.9f,Mathf.Min(1.5f,tangent.magnitude*.9f))));
+                    var shoulder=P(footX,bearing.y-5,footZ);
+                    Pier(plan,section,footX,shoulder.y,footZ,2);
+                    var brace=bearing-normal*.45f-shoulder;
+                    plan.Add(new CastlePlacement(shoulder+brace*.5f,Quaternion.LookRotation(brace,Vector3.up),
+                        section,Mathf.FloorToInt(shoulder.y/2),P(1.1f,1.1f,brace.magnitude)));
+                }
+                switch(section)
+                {
+                    case CastleSection.Aqua:
+                        Bent(-19,-18,-11,-16); Bent(-29,-3,-29,2);
+                        Bent(-40,4,-40,4); Bent(-36,-13,-36,-13);
+                        break;
+                    case CastleSection.Wall:
+                        Bent(-8,-25,-7,-18); Bent(-16,-11,-16,-2); Bent(-15,8,-15,8);
+                        Bent(3,16,3,16); Bent(18,7,18,7);
+                        break;
+                    case CastleSection.Corner:
+                        Bent(9,-24,9,-18); Bent(20,-12,20,-13);
+                        break;
+                    case CastleSection.Gold:
+                        Bent(16,-25,12,-15); Bent(29,-27,21,-18);
+                        break;
                 }
             }
             var edges=new Vector3[points.Count];
