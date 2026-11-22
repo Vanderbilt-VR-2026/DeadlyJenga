@@ -35,7 +35,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static readonly List<string> errorLines = new List<string>();
 
         static string Suite { get => SessionState.GetString(Key + ".Suite", "Phase1"); set => SessionState.SetString(Key + ".Suite", value); }
-        public static string Folder => Path.Combine(StudioLibrary.ProjectRoot, "Logs", "Validation", "TrailerStudio-" + Suite);
+        static string HeldOutRunId { get => SessionState.GetString(Key + ".HeldOutRunId", ""); set => SessionState.SetString(Key + ".HeldOutRunId", value); }
+        public static string Folder => Path.Combine(StudioLibrary.ProjectRoot, "Logs", "Validation", "TrailerStudio-" + Suite,
+            Suite == "HeldOutTornado" ? HeldOutRunId : "");
 
         static StudioAcceptance()
         {
@@ -51,6 +53,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static void RunPhase1() => Begin("Phase1");
         public static void RunPhase2() => Begin("Phase2");
         public static void RunPhase3() => Begin("Phase3");
+        public static void RunHeldOutTornado() => Begin("HeldOutTornado");
         public static void RunPhase4() => Begin("Phase4");
         public static void RunPhase5() => Begin("Phase5");
         public static void RunCut() => Begin("Cut");
@@ -59,7 +62,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static void Begin(string suite)
         {
             Suite = suite;
-            if (Directory.Exists(Folder)) Directory.Delete(Folder, true);
+            if (suite == "HeldOutTornado") HeldOutRunId = Guid.NewGuid().ToString("N");
+            else if (Directory.Exists(Folder)) Directory.Delete(Folder, true);
             Directory.CreateDirectory(Folder);
             Lines = ""; Failures = 0; Step = 1;
             StudioExamples.Enabled = true;   // the example track and example mode are part of test 6
@@ -91,13 +95,25 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     case 1:
                         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
                         StudioLibrary.SetsFolderOverride = Path.Combine(Folder, "sets");   // test Sets never go into Assets
-                        StudioRun.OpenStage(Suite == "Phase1" ? MakeSet() : MakeSuiteSet(Suite));
+                        StudioRun.OpenStage(Suite switch
+                        {
+                            "Phase1" => MakeSet(),
+                            "HeldOutTornado" => MakeHeldOutTornadoSet(),
+                            _ => MakeSuiteSet(Suite),
+                        });
                         Step = 2; Deadline = EditorApplication.timeSinceStartup + 600;
                         break;
                     case 2:
                         if (routine == null)
                         {
-                            if (StudioRun.State == StudioState.Held) routine = Suite == "Phase1" ? StageTests() : Suite == "Sound" ? SoundTests() : SuiteTests(Suite);
+                            if (StudioRun.State == StudioState.Held)
+                                routine = Suite switch
+                                {
+                                    "Phase1" => StageTests(),
+                                    "Sound" => SoundTests(),
+                                    "HeldOutTornado" => HeldOutTornadoTests(),
+                                    _ => SuiteTests(Suite),
+                                };
                             else if (EditorApplication.timeSinceStartup > Deadline)
                                 throw new TimeoutException($"The stage never finished opening. State {StudioRun.State}, playing {EditorApplication.isPlaying}, status: {StudioRun.Status}");
                             return;
