@@ -52,6 +52,9 @@ namespace DeadlyJenga.CastlePrototype
             var tiki=list.Find(m=>m.id=="mode-tiki-resort");
             if(tiki!=null)tiki.supportedModes=new[]{"demo"};
             AddMap(list,"ninja-temple","Moonlit Shinobi Temple","ninja",8,scene,true);
+            AddMap(list,"ninja-temple-original","Moonlit Shinobi Temple (Original)","ninja",8,scene,true);
+            var original=list.Find(m=>m.id=="mode-ninja-temple-original");
+            if(original!=null) original.supportedModes=new[]{"ninja","hill","survival","infection","demo"};
             var ninja=list.Find(m=>m.id=="mode-ninja-temple");
             if(ninja!=null){ninja.recommendedMode="ninja";ninja.supportedModes=new[]{"ninja","hill","survival","infection","demo"};}
             AddMap(list,"vanderbilt","Campus (LoD2)","demo",1,scene,true);

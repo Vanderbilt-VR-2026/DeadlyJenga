@@ -354,6 +354,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var size = CastleLayout.FootprintSize(settings)+Vector2.one*4;
                 foundation.localScale = new Vector3(size.x, 1, size.y);
+                if (settings.layoutPreset == ShrineTownLayout.Preset) ShrineTownLayout.ShapeFoundation(foundation);
             }
             foreach (var p in layout)
             {
@@ -392,7 +393,11 @@ namespace DeadlyJenga.CastlePrototype
                     block.SyncSurface();
                 }
                 var size=p.BlockSize(settings);
+                if (settings.layoutPreset == ShrineTownLayout.Preset)
+                    ShrineTownLayout.AddRoofColliders(body, size);
                 float volumeRatio=size.x*size.y*size.z/(settings.blockSize.x*settings.blockSize.y*settings.blockSize.z);
+                // Temple decks represent timber framing with a hollow tiled roof.
+                if (settings.layoutPreset == ShrineTownLayout.Preset && p.Section == CastleSection.Corner) volumeRatio *= .24f;
                 body.mass = Mathf.Max(1, mass*volumeRatio);
                 // Ninety loose courses need more contact iterations than the standard castle.
                 bool tallKeep=settings.structureVariant==CastleStructure.FourKeeps&&p.Section==CastleSection.Keep;
@@ -401,6 +406,8 @@ namespace DeadlyJenga.CastlePrototype
                 body.sleepThreshold = .005f;
                 Bodies.Add(body);
             }
+            if (Application.isPlaying && settings.layoutPreset == ShrineTownLayout.Preset)
+                ShrineTownLayout.JoinTimberFrames(layout, Bodies);
             Physics.SyncTransforms();
             if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)
                 tycoonSupports = TycoonSupports.Build(generatedRoot, Bodies);

@@ -9,14 +9,20 @@ namespace DeadlyJenga.NinjaArt
         public const float Half = 35, Ring = 24;
         public static Vector3 MoonFlat => new Vector3(Mathf.Sin(25 * Mathf.Deg2Rad), 0, Mathf.Cos(25 * Mathf.Deg2Rad));
 
-        public static void Ground(NinjaMesh m, float waterY)
+        public static void Ground(NinjaMesh m, float waterY, int half = 35)
         {
-            var rng = new System.Random(11);
-            for (int x = 0; x < 35; x++) for (int z = 0; z < 35; z++)
+            if (half > 35)
             {
-                float x0 = -Half + x * 2, z0 = -Half + z * 2; var c = new Vector2(x0 + 1, z0 + 1);
+                TownQuay(m, half);
+                return;
+            }
+            var rng = new System.Random(11);
+            for (int x = 0; x < half; x++) for (int z = 0; z < half; z++)
+            {
+                float x0 = -half + x * 2, z0 = -half + z * 2; var c = new Vector2(x0 + 1, z0 + 1);
                 bool path = Mathf.Abs(c.x) < 2.2f || Mathf.Abs(c.y) < 2.2f || Mathf.Abs(Mathf.Abs(c.x) - Ring) < 2.2f && Mathf.Abs(c.y) < Ring + 2 || Mathf.Abs(Mathf.Abs(c.y) - Ring) < 2.2f && Mathf.Abs(c.x) < Ring + 2;
-                float r = c.magnitude; if (r > 6.5f && r < 15.5f && !path) continue;
+                if (half > 35) path = Mathf.Abs(c.x) < 4 || Mathf.Abs(Mathf.Abs(c.x)-20) < 3 || Mathf.Abs(c.y-7) < 3 || Mathf.Abs(c.y+22) < 2 || Mathf.Abs(c.y-37) < 2;
+                float r = c.magnitude; if (half == 35 && r > 6.5f && r < 15.5f && !path) continue;
                 float edge = Mathf.Max(Mathf.Abs(c.x), Mathf.Abs(c.y));
                 var tone = path ? P.Vary(P.Stone * 1.35f, rng, .12f) : P.Vary(P.Gravel, rng, .07f);
                 if (!path && edge > 30) tone = Color.Lerp(tone, P.Moss, (edge - 30) / 6f * .7f);
@@ -31,7 +37,7 @@ namespace DeadlyJenga.NinjaArt
                 else m.Quad(new Vector3(x0, 0, z0), new Vector3(x0, 0, z0 + 2), new Vector3(x0 + 2, 0, z0 + 2), new Vector3(x0 + 2, 0, z0), tone, P.Vary(tone, rng, .05f), P.Vary(tone, rng, .05f), tone);
             }
             // Raked gravel rings around the great pagoda.
-            for (int ring = 0; ring < 18; ring++)
+            for (int ring = 0; ring < (half == 35 ? 18 : 0); ring++)
             {
                 float r0 = 6.5f + ring * .5f, r1 = r0 + .5f; var tone = ring % 2 == 0 ? P.Gravel * 1.25f : P.Gravel * .85f;
                 for (int s = 0; s < 64; s++)
@@ -48,8 +54,8 @@ namespace DeadlyJenga.NinjaArt
                 var rot = Quaternion.Euler(0, side * 90, 0);
                 for (int row = 0; row < 4; row++)
                 {
-                    float y0 = -row * .55f, y1 = y0 - .55f; float o0 = Half + row * .3f, o1 = o0 + .3f;
-                    float end = Half + row * .3f;
+                    float y0 = -row * .55f, y1 = y0 - .55f; float o0 = half + row * .3f, o1 = o0 + .3f;
+                    float end = half + row * .3f;
                     for (float u = -end; u < end - .05f;)
                     {
                         float w = 1.1f + (float)rng.NextDouble() * 1.3f; float u1 = u + w > end - .3f ? end : u + w;
@@ -58,10 +64,49 @@ namespace DeadlyJenga.NinjaArt
                         u = u1;
                     }
                 }
-                m.Quad(rot * new Vector3(-Half, -2.2f, Half + 1.2f), rot * new Vector3(Half + 1.2f, -2.2f, Half + 1.2f), rot * new Vector3(Half + 1.2f, waterY - 3, Half + 1.6f), rot * new Vector3(-Half, waterY - 3, Half + 1.6f), P.StoneDark * .6f);
-                m.Box(rot * new Vector3(0, .06f, Half - .35f), new Vector3(Half * 2 + .2f, .14f, .7f), rot, P.Stone * 1.5f, P.Stone * 1.2f);
+                m.Quad(rot * new Vector3(-half, -2.2f, half + 1.2f), rot * new Vector3(half + 1.2f, -2.2f, half + 1.2f), rot * new Vector3(half + 1.2f, waterY - 3, half + 1.6f), rot * new Vector3(-half, waterY - 3, half + 1.6f), P.StoneDark * .6f);
+                m.Box(rot * new Vector3(0, .06f, half - .35f), new Vector3(half * 2 + .2f, .14f, .7f), rot, P.Stone * 1.5f, P.Stone * 1.2f);
             }
         }
+        static void TownQuay(NinjaMesh m, float half)
+        {
+            float cut = half / 2;
+            Vector3[] rim = {new(-cut,0,-half),new(-half,0,-cut),new(-half,0,cut),new(-cut,0,half),
+                new(cut,0,half),new(half,0,cut),new(half,0,-cut),new(cut,0,-half)};
+            var rng = new System.Random(11);
+            for (int i = 0; i < rim.Length; i++)
+            {
+                var a = rim[i]; var b = rim[(i + 1) % rim.Length];
+                m.Tri(Vector3.zero,a,b,P.StoneDark,P.StoneDark,P.StoneDark);
+                var rot = Quaternion.FromToRotation(Vector3.right,(b-a).normalized);
+                int stones = Mathf.CeilToInt((b-a).magnitude / 1.75f);
+                for (int j = 0; j < stones; j++)
+                    m.Box(Vector3.Lerp(a,b,(j + .5f)/stones) + Vector3.down * .94f,
+                        new Vector3((b-a).magnitude / stones - .025f,2,.6f),rot,
+                        P.Vary(new Color(.54f,.48f,.49f),rng,.08f));
+            }
+            // Clip each staggered course to the diagonal seawall.
+            for (float z = -half; z < half; z += 1)
+            {
+                float near = z + .009f, far = z + .991f;
+                float left = -Mathf.Min(half,half + cut - Mathf.Abs(near));
+                float farLeft = -Mathf.Min(half,half + cut - Mathf.Abs(far));
+                float offset = ((int)(z + half) % 2) * .9f;
+                for (float x = -half - offset; x < half; x += 1.8f)
+                {
+                    float a = Mathf.Clamp(x + .008f,left,-left), b = Mathf.Clamp(x + 1.792f,left,-left);
+                    float c = Mathf.Clamp(x + .008f,farLeft,-farLeft), d = Mathf.Clamp(x + 1.792f,farLeft,-farLeft);
+                    if (a == b && c == d) continue;
+                    float warm = Mathf.Clamp01(1 - Mathf.Abs(x) / 9) * .09f;
+                    var tone = P.Vary(new Color(.53f + warm,.48f + warm * .4f,.48f),rng,.1f);
+                    float light = Mathf.Exp(-.13f*(Mathf.Pow(Mathf.Abs(x)-4.6f,2) + Mathf.Pow(Mathf.Repeat(z+38,12)-6,2)));
+                    tone = Color.Lerp(tone,new Color(.91f,.61f,.37f),.72f*light);
+                    m.Quad(new Vector3(a,.025f,near),new Vector3(c,.025f,far),
+                        new Vector3(d,.025f,far),new Vector3(b,.025f,near),tone);
+                }
+            }
+        }
+
         static bool Blocked(Vector3 p) => Mathf.Abs(p.x) < 2.2f || Mathf.Abs(p.z) < 2.2f;
         static void Slab(NinjaMesh m, float x, float z, float w, float d, float y, Color c)
         {

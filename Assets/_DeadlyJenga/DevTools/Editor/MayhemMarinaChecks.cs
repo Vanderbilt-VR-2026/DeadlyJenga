@@ -101,6 +101,7 @@ namespace DeadlyJenga.DevTools.Editor
         }
         public static void RunNinjaOverview()
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(Report));
             File.WriteAllText(Report,"Ninja Temple in Game.unity\n");
             SessionState.SetBool(Key+"NinjaOverview",true);
             SessionState.SetBool(Key,true);
@@ -150,7 +151,14 @@ namespace DeadlyJenga.DevTools.Editor
                     if(preference<0)PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);else PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,preference);
                     PlayerPrefs.Save();SessionState.SetBool(Key+"Layout",false);
                 }
-                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);SessionState.SetBool(Key+"NinjaOverview",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
+                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);SessionState.SetBool(Key+"NinjaOverview",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();
+                int exitCode = errors == 0 && !failed ? 0 : 2;
+                if (SessionState.GetString("DJWarm.id", "") != "")
+                {
+                    Directory.CreateDirectory("Logs/Warm");
+                    File.WriteAllText("Logs/Warm/exit.txt", exitCode.ToString());
+                }
+                else EditorApplication.Exit(exitCode);
             }
         }
         static void Log(string value,string stack,LogType type)
@@ -870,6 +878,11 @@ namespace DeadlyJenga.DevTools.Editor
         static IEnumerator RunNinjaOverviewScene()
         {
             yield return RunSoloScene();
+            MatchSetup.MapId="mode-ninja-temple-original";
+            MatchSetup.ModeId="demo";
+            MatchSetup.ApplyMap();
+            yield return Wait(1);
+            Check(Services.World != null && Services.World.Blocks.Count == 296, "Original temple still builds its 296 blocks");
             MatchSetup.MapId="mode-ninja-temple";
             MatchSetup.ModeId="demo";
             MatchSetup.ApplyMap();
@@ -878,6 +891,20 @@ namespace DeadlyJenga.DevTools.Editor
             Check(world!=null&&world.Blocks.Count>150&&world.Blocks.Count<=400,"Ninja map built within its authored block budget");
             var art=Object.FindFirstObjectByType<DeadlyJenga.NinjaArt.NinjaTempleArt>();
             Check(art,"Ninja Temple lighting and scenery are loaded");
+            var generator = Object.FindObjectsByType<CastleGenerator>(FindObjectsSortMode.None)
+                .First(item => item.settings.layoutPreset == "shrine-town" && item.Bodies.Count > 0);
+            var layout = CastleLayout.Build(generator.settings);
+            Check(layout.Count == generator.Bodies.Count, "All authored structural bodies spawned");
+            var drift = layout.Select((p,i) => new { index = i, p.Position, p.Size,
+                distance = Vector3.Distance(generator.Bodies[i].position, generator.transform.TransformPoint(p.Position)) })
+                .OrderByDescending(p => p.distance).First();
+            File.AppendAllText(Report, $"Largest settle displacement {drift.distance:F4} m at block {drift.index}, position {drift.Position}, size {drift.Size}\n");
+            var walls = generator.Bodies.Where(body => body.transform.localScale.z >= .405f && body.transform.localScale.z <= .485f).ToArray();
+            Check(walls.Length > 75 && walls.All(body => body.GetComponentsInChildren<MeshRenderer>()
+                .Any(r => r.sharedMaterial && r.sharedMaterial.shader.name == "DeadlyJenga/Ninja/ShrineFacade"
+                    && r.sharedMaterial.mainTexture)), "Physical walls carry painted shrine-town facades");
+            var quay = generator.foundation.GetComponent<MeshCollider>();
+            Check(quay && quay.sharedMesh && quay.sharedMesh.vertexCount == 16, "Eight-sided quay collider is present");
             captureOrigin=world.Center;
             var fog=Shader.GetGlobalVector("_NinjaFogParams");
             bool sceneFog=RenderSettings.fog;
@@ -885,9 +912,23 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 Shader.SetGlobalVector("_NinjaFogParams",new Vector4(120,420,.07f,fog.w));
                 RenderSettings.fog=false;
-                Capture(new Vector3(-92,101,-118),new Vector3(0,9,0),34,"NinjaTemple-Overview.png");
+                Capture(new Vector3(16,57,-143),new Vector3(-1,2,0),28,"NinjaTemple-Overview.png");
+                Capture(new Vector3(0,2,-40),new Vector3(0,8,21),68,"ShrineTown-Market.png");
             }
             finally {Shader.SetGlobalVector("_NinjaFogParams",fog);RenderSettings.fog=sceneFog;}
+            Check(drift.distance < .55f, "Intact town settled within tolerance, max drift " + drift.distance);
+            var shopRoof = generator.Bodies[layout.FindIndex(p =>
+                p.Position.x == 10 && p.Position.z == -29 && Mathf.Abs(p.Size.y - 1.25f) < .01f)];
+            float roofY = shopRoof.position.y;
+            for (int i = 0; i < layout.Count; i++)
+            {
+                var p = layout[i].Position;
+                if (Mathf.Abs(p.x - 10) < 5 && Mathf.Abs(p.z + 29) < 5 && generator.Bodies[i] != shopRoof)
+                    generator.Bodies[i].gameObject.SetActive(false);
+            }
+            shopRoof.WakeUp();
+            yield return Wait(2);
+            Check(roofY - shopRoof.position.y > 2, "Shop roof falls after its supports are removed");
             if(System.Environment.GetCommandLineArgs().Contains("-playRotationSurvival"))
             {
                 yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("Home");

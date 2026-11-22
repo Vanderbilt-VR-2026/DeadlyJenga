@@ -10,6 +10,7 @@ namespace DeadlyJenga.NinjaArt
     [DefaultExecutionOrder(985)]
     public sealed class NinjaTempleArt : MonoBehaviour
     {
+        public bool shrineTown;
         public float waterLevel = .08f;
         static readonly int FogColor = Shader.PropertyToID("_NinjaFogColor"), FogFar = Shader.PropertyToID("_NinjaFogFar"), FogParams = Shader.PropertyToID("_NinjaFogParams"),
             SkyAmb = Shader.PropertyToID("_NinjaSkyAmb"), GroundAmb = Shader.PropertyToID("_NinjaGroundAmb"), Warm = Shader.PropertyToID("_NinjaWarm"), Wind = Shader.PropertyToID("_NinjaWind"), Blood = Shader.PropertyToID("_NinjaBlood");
@@ -19,6 +20,8 @@ namespace DeadlyJenga.NinjaArt
         public float BloodMoon { get; private set; }
 
         Material sky, ground, props, foliage, far, water, previousSky;
+        readonly Material[] facadeMaterials = new Material[8];
+        Mesh facadeCube, gableFace;
         Light moon; readonly List<Light> practicals = new List<Light>();
         readonly Dictionary<Light, bool> sunStates = new Dictionary<Light, bool>();
         readonly Dictionary<Renderer, bool> hiddenRenderers = new Dictionary<Renderer, bool>();
@@ -68,11 +71,28 @@ namespace DeadlyJenga.NinjaArt
             foliage = Make("NinjaLacquer", "Ninja foliage"); foliage.SetFloat("_Wind", 1); foliage.SetFloat("_Cull", 0); foliage.SetFloat("_Gloss", .35f); foliage.SetFloat("_Spec", .15f); foliage.SetFloat("_Rim", 1.1f); foliage.SetFloat("_Warm", .6f);
             far = Make("NinjaUnlit", "Ninja far silhouettes"); far.SetFloat("_UseFog", 0);
             water = Make("NinjaWater", "Ninja lake"); water.SetVector("_MoonDir", MoonDirection);
+            if (shrineTown)
+            {
+                facadeCube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+                var atlas = Resources.Load<Texture2D>("NinjaScenery/ShrineFacades");
+                var carpentry = Resources.Load<Texture2D>("NinjaScenery/ShrineHallCarpentry");
+                gableFace = new Mesh { name = "Shrine pediment face",
+                    vertices = new[] {new Vector3(-.5f,-.5f,0),new Vector3(0,.5f,0),new Vector3(.5f,-.5f,0)},
+                    normals = new[] {Vector3.back,Vector3.back,Vector3.back}, triangles = new[] {0,1,2} };
+                owned.Add(gableFace);
+                for (int tile = 0; tile < facadeMaterials.Length; tile++)
+                {
+                    var material = Make("ShrineFacade", "Painted shrine carpentry " + tile);
+                    material.SetTexture("_MainTex", tile < 4 ? atlas : carpentry);
+                    material.SetVector("_Tile", new Vector4((tile % 2) * .5f, tile % 4 < 2 ? .5f : 0, 0, 0));
+                    facadeMaterials[tile] = material;
+                }
+            }
             scenery = new GameObject("Visual - moonlit scenery").transform; scenery.SetParent(transform, false);
             float wy = transform.InverseTransformPoint(new Vector3(0, waterLevel, 0)).y;
             var glow = new NinjaGlowMesh(); var mist = new NinjaGlowMesh();
 
-            var groundMesh = new NinjaMesh(); NinjaTempleScenery.Ground(groundMesh, wy); Add("Visual - courtyard and walls", groundMesh.Build("Ninja courtyard"), ground, scenery);
+            var groundMesh = new NinjaMesh(); NinjaTempleScenery.Ground(groundMesh, wy, shrineTown ? 48 : 35); Add("Visual - courtyard and walls", groundMesh.Build("Ninja courtyard"), ground, scenery);
             var lake = new NinjaMesh(); lake.Quad(new Vector3(-900, wy, -900), new Vector3(-900, wy, 900), new Vector3(900, wy, 900), new Vector3(900, wy, -900), Color.white); Add("Visual - lake", lake.Build("Ninja lake"), water, scenery);
             var mountains = new NinjaMesh(); NinjaTempleScenery.Mountains(mountains, Horizon * 1.05f, new Color(.018f, .02f, .04f));
             NinjaTempleScenery.FarCastle(mountains, glow, -NinjaTempleScenery.MoonFlat * 240 + Vector3.right * 60 + Vector3.up * 18, 1.3f, new Color(.03f, .032f, .055f));
@@ -80,8 +100,77 @@ namespace DeadlyJenga.NinjaArt
 
             var p = new NinjaMesh(); var f = new NinjaMesh(); var rng = new System.Random(5);
             var moonFlat = NinjaTempleScenery.MoonFlat; var facing = Quaternion.LookRotation(moonFlat);
-            NinjaTempleScenery.Torii(p, moonFlat * 82 + Vector3.up * wy, facing, 20, 15, true, glow);
-            for (int i = 0; i < 4; i++)
+            if (!shrineTown) NinjaTempleScenery.Torii(p, moonFlat * 82 + Vector3.up * wy, facing, 20, 15, true, glow);
+            if (shrineTown)
+            {
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    Vector3[] border = { new(side*5,0,-46),new(side*23,0,-46),new(side*46,0,-23),new(side*46,0,18) };
+                    for (int edge = 0; edge < border.Length-1; edge++)
+                    {
+                        var from = border[edge]; var to = border[edge+1];
+                        int sections = Mathf.RoundToInt(Vector3.Distance(from,to) / 7);
+                        for (int i=0; i<sections; i++)
+                        {
+                            var a = Vector3.Lerp(from,to,i/(float)sections);
+                            var b = Vector3.Lerp(from,to,(i+1)/(float)sections);
+                            NinjaTempleScenery.StoneLantern(p,a,1.45f,glow,i+edge*4);
+                            if (edge == 0 && i == 0) continue;
+                            var foliageAt = (a+b)*.5f + Vector3.up*.58f;
+                            for (int j=1; j<5; j++)
+                            {
+                                var pos = Vector3.Lerp(a,b,j/5f);
+                                p.Box(pos+Vector3.up*.57f,new Vector3(.13f,1.12f,.13f),Quaternion.identity,P.Wood);
+                            }
+                            p.Cylinder(a+Vector3.up*.9f,b+Vector3.up*.9f,.085f,.085f,6,P.Wood,P.Wood);
+                            f.Blob(foliageAt, new Vector3(1.7f,.7f,1.15f),3,9,new Color(.32f,.40f,.25f),P.Pine,edge*8+i,.28f);
+                            if ((i+edge)%2==0) f.Blob(foliageAt+Vector3.up*.53f,new Vector3(.95f,.56f,.79f),3,8,new Color(.86f,.31f,.39f),P.Maple,22+i,.32f);
+                        }
+                    }
+                }
+                NinjaTempleScenery.Torii(p, new Vector3(0, 0, -43), Quaternion.identity, 10, 7, true, glow);
+                for (int row = 0; row < 3; row++)
+                {
+                    float z = -32 + row * 12;
+                    for (int side = -1; side <= 1; side += 2)
+                    {
+                        var foot = new Vector3(side * 4.6f,0,z);
+                        p.Box(foot + Vector3.up * .24f,new Vector3(.65f,.48f,.65f),Quaternion.identity,P.Stone);
+                        p.Cylinder(foot,foot + Vector3.up * 5.4f,.13f,.1f,8,P.Wood,P.Vermilion);
+                        Blocker(foot + Vector3.up * 2.7f,new Vector3(.26f,5.4f,.26f));
+                    }
+                    var previous = new Vector3(-4.6f,5.4f,z);
+                    for (int i = 1; i <= 12; i++)
+                    {
+                        float t = i / 12f;
+                        var point = new Vector3(Mathf.Lerp(-4.6f,4.6f,t),5.4f - 4 * t * (1-t),z);
+                        p.Cylinder(previous,point,.04f,.04f,4,P.Wood,P.Wood);
+                        if (i % 2 == 1)
+                        {
+                            var lantern = point + Vector3.down * .29f;
+                            NinjaTempleScenery.Lantern(p,lantern,.47f,new Color(1,.68f,.3f));
+                            glow.Halo(lantern,.72f,new Color(1,.4f,.11f,.55f),i);
+                        }
+                        previous = point;
+                    }
+                }
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    for (int i = 0; i < 5; i++)
+                        NinjaTempleScenery.StoneLantern(p, new Vector3(side * 4, 0, -39 + i * 10), 1, glow, i + 17);
+                    for (int i = 0; i < 9; i++)
+                    {
+                        var at = new Vector3(side * (14 + (i % 3) * 2.2f),0,i < 5 ? 7 - i % 2 : -41 + i % 2);
+                        f.Blob(at + Vector3.up * .6f,new Vector3(1.55f,.83f,1.1f),3,8,new Color(.3f,.4f,.21f),P.Pine,i,.22f);
+                        if (i % 3 == 0) f.Blob(at + Vector3.up * 1.18f,new Vector3(1.2f,.52f,.8f),3,8,
+                            new Color(.88f,.31f,.36f),new Color(.52f,.13f,.19f),i,.3f);
+                    }
+                    NinjaTempleScenery.Pine(f, new Vector3(side * 23, 0, -36), 1.35f, side + 10);
+                    NinjaTempleScenery.Maple(f, new Vector3(side * 24, 0, 10), 1.2f, side + 25);
+                    NinjaTempleScenery.Maple(f, new Vector3(side * 19, 0, 32), 1.4f, side + 12);
+                }
+            }
+            else for (int i = 0; i < 4; i++)
             {
                 var axis = Quaternion.Euler(0, i * 90, 0);
                 NinjaTempleScenery.Torii(p, axis * new Vector3(0, 0, 15.5f), axis, 7.5f, 5.4f, true, glow);
@@ -96,9 +185,9 @@ namespace DeadlyJenga.NinjaArt
             float[] islet = { 48, 52, 47, 55 };
             for (int i = 0; i < 4; i++)
             {
-                var dirc = Quaternion.Euler(0, 45 + i * 90, 0) * Vector3.forward; var at = dirc * (islet[i] + 6);
+                var dirc = Quaternion.Euler(0, 45 + i * 90, 0) * Vector3.forward; var at = dirc * (islet[i] + (shrineTown ? 18 : 6));
                 NinjaTempleScenery.Rock(p, at, new Vector3(9, 3.2f, 7.5f), 30 + i, wy);
-                NinjaTempleScenery.Bamboo(f, at, 6.5f, 26, 40 + i, wy + 1.2f);
+                NinjaTempleScenery.Bamboo(f, at, shrineTown ? 3.8f : 6.5f, shrineTown ? 12 : 26, 40 + i, wy + 1.2f);
             }
             for (int i = 0; i < 14; i++)
             {
@@ -193,8 +282,8 @@ namespace DeadlyJenga.NinjaArt
             var fog = Color.Lerp(Fog, new Color(.13f, .045f, .065f), b * .65f); var farFog = Color.Lerp(FarFog, new Color(.2f, .06f, .09f), b * .6f);
             Shader.SetGlobalColor(FogColor, fog); Shader.SetGlobalColor(FogFar, farFog);
             Shader.SetGlobalVector(FogParams, new Vector4(22, 260, .07f, waterLevel));
-            Shader.SetGlobalColor(SkyAmb, Color.Lerp(new Color(.11f, .13f, .22f), new Color(.2f, .07f, .09f), b));
-            Shader.SetGlobalColor(GroundAmb, new Color(.045f, .035f, .05f));
+            Shader.SetGlobalColor(SkyAmb, Color.Lerp(shrineTown ? new Color(.59f,.57f,.68f) : new Color(.11f, .13f, .22f), new Color(.2f, .07f, .09f), b));
+            Shader.SetGlobalColor(GroundAmb, shrineTown ? new Color(.46f,.33f,.28f) : new Color(.045f, .035f, .05f));
             Shader.SetGlobalVector(Warm, new Vector4(.42f, .16f, .05f, 6.5f));
             Shader.SetGlobalVector(Wind, new Vector4(.22f, 1.25f, .8f, .6f));
             Shader.SetGlobalFloat(Blood, b);
@@ -238,12 +327,34 @@ namespace DeadlyJenga.NinjaArt
             foreach (var body in blocks)
             {
                 if (!body || body.transform.Find("Visual - ninja decor")) continue;
-                var size = body.transform.lossyScale; var kind = NinjaTempleDecor.Classify(size); if (kind == NinjaTempleDecor.Kind.None) continue;
+                var size = body.transform.lossyScale;
+                int thickness = Mathf.RoundToInt(size.z * 100);
+                int tile = thickness >= 46 && thickness <= 48 ? thickness - 42 : thickness - 41;
+                if (shrineTown && ((thickness >= 41 && thickness <= 44) || (thickness >= 46 && thickness <= 48)))
+                {
+                    var panel = new GameObject("Visual - ninja decor");
+                    panel.transform.SetParent(body.transform, false);
+                    panel.transform.localScale = Vector3.one * 1.013f;
+                    panel.AddComponent<MeshFilter>().sharedMesh = facadeCube;
+                    panel.AddComponent<MeshRenderer>().sharedMaterial = facadeMaterials[tile];
+                    continue;
+                }
+                var kind = shrineTown ? NinjaTempleDecor.TownPart(size) : NinjaTempleDecor.Classify(size); if (kind == NinjaTempleDecor.Kind.None) continue;
                 NinjaTempleDecor.Meshes(kind, size, out var mesh, out var glowMesh);
                 var root = new GameObject("Visual - ninja decor").transform; root.SetParent(body.transform, false);
                 var ls = body.transform.localScale; root.localScale = new Vector3(1 / ls.x, 1 / ls.y, 1 / ls.z);
                 var r = root.gameObject.AddComponent<MeshRenderer>(); root.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh; r.sharedMaterial = props;
                 r.shadowCastingMode = kind == NinjaTempleDecor.Kind.Deck ? ShadowCastingMode.On : ShadowCastingMode.Off; r.lightProbeUsage = LightProbeUsage.Off;
+                if (shrineTown && kind == NinjaTempleDecor.Kind.TownRoof && size.x >= 15)
+                {
+                    float span = size.x * .38f, height = size.z * .22f + span * .32f;
+                    var face = new GameObject("Carved gable and crest").transform;
+                    face.SetParent(root,false);
+                    face.localPosition = new Vector3(0,(size.y+height)/2,-size.z/2-.99f);
+                    face.localScale = new Vector3(span*2,height,1);
+                    face.gameObject.AddComponent<MeshFilter>().sharedMesh = gableFace;
+                    face.gameObject.AddComponent<MeshRenderer>().sharedMaterial = facadeMaterials[7];
+                }
                 var g = new GameObject("Visual - ninja decor glow"); g.transform.SetParent(root, false);
                 g.AddComponent<MeshFilter>().sharedMesh = glowMesh; var gr = g.AddComponent<MeshRenderer>(); gr.sharedMaterial = NinjaFx.Glow; gr.shadowCastingMode = ShadowCastingMode.Off; gr.lightProbeUsage = LightProbeUsage.Off;
             }
