@@ -36,7 +36,8 @@ namespace DeadlyJenga.CastlePrototype
         string transportEpoch="",transportPinnedKey="",transportPriorKey="",transportChallenge="",transportSemantic="";
         CachedCheckpoint transportCache,recoveryBest;
         bool transportRecovering,transportMigration,transportFailed;
-        int transportSequence,transportGeneration;
+        int transportSequence,transportGeneration,transportMessageId;
+        bool initialLobbyClockStarted;
         double transportLastPublish=-100,transportLastSend=-100,transportBoundAt;
         internal bool TransportRecovering=>transportRecovering||room&&room.Migrating;
         internal string TransportStatus{get;private set;}="";
@@ -45,7 +46,7 @@ namespace DeadlyJenga.CastlePrototype
         internal void TransportBind(IslandRoomConnection owner)
         {transportRecovering=owner.Connected&&!owner.IsHost;if(owner.Connected)TransportAfterMigration(owner.Runner);}
         void TransportFailure(string reason)
-        {transportFailed=true;TransportStatus=reason;transportRecovering=room&&room.Connected;}
+        {transportFailed=true;TransportStatus=reason;transportRecovering=room&&room.Connected;Debug.LogWarning(reason);}
         internal string TransportFailureStage{get;private set;}="";
         internal string TransportFailureType{get;private set;}="";
         static bool CheckpointSignerReady(RSA signer)
@@ -95,7 +96,7 @@ namespace DeadlyJenga.CastlePrototype
             if(next==null||ReferenceEquals(next,transportRunner)||ReferenceEquals(next,transportFencedRunner))return;
             if(transportRunner!=null)TransportBeforeMigration(transportRunner);
             transportRunner=next;transportGeneration=room.ConnectionGeneration;transportEpoch="";transportBoundAt=TransportNow;transportLastSend=-100;
-            transportPinnedKey="";transportFailed=false;TransportStatus="";transportSequence=0;
+            transportPinnedKey="";transportFailed=false;TransportStatus="";transportSequence=0;initialLobbyClockStarted=false;
             transportCommands.Clear();transportPeers.Clear();transportSent.Clear();transportSemantic="";
             transportRecovering=!next.IsServer||transportMigration;
             if(next.IsServer)
@@ -130,7 +131,14 @@ namespace DeadlyJenga.CastlePrototype
                 foreach(var peer in RemotePlayers())if(room.GameExperienceMemberId(transportRunner,peer,out var id))active.Add(id);
                 foreach(var id in transportPeers.Keys.Where(id=>!active.Contains(id)).ToArray())transportPeers.Remove(id);
             }
-            if(transportRecovering&&TransportNow-transportBoundAt>8)
+            bool initialGuest=transportRecovering&&!room.IsHost&&!transportMigration&&transportCache==null;
+            if(initialGuest&&!initialLobbyClockStarted&&IslandLobby.Current)
+            {
+                initialLobbyClockStarted=true;
+                transportBoundAt=TransportNow;
+                transportLastSend=-100;
+            }
+            if(transportRecovering&&(!initialGuest||initialLobbyClockStarted)&&TransportNow-transportBoundAt>(initialGuest?20:8))
             {TransportFailure("Room checkpoint recovery timed out; leave and rejoin the room.");return;}
             if(room.IsHost&&transportMigration)
             {
@@ -159,7 +167,7 @@ namespace DeadlyJenga.CastlePrototype
             try
             {
                 var bytes=WireEncoding.GetBytes(JsonUtility.ToJson(packet));if(bytes.Length>PacketLimit){TransportFailure("Room checkpoint exceeds the packet limit.");return;}
-                var key=ReliableKey.FromInts(ExperienceChannel,1,0,0);
+                var key=ReliableKey.FromInts(ExperienceChannel,1,++transportMessageId,0);
                 if(transportRunner.IsServer)transportRunner.SendReliableDataToPlayer(target,key,bytes);
                 else transportRunner.SendReliableDataToServer(key,bytes);
             }

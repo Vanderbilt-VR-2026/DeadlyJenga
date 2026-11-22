@@ -5,11 +5,12 @@ using UnityEngine.Rendering.Universal;
 
 namespace DeadlyJenga.CandyArt
 {
-    // Enqueued only for the active view while it crosses or sits inside the wave.
+    // Enqueued only for an active view entering water.
     sealed class CandyWaveImmersionPass : ScriptableRenderPass
     {
         static readonly int WaterWash = Shader.PropertyToID("_WaterWash");
         static readonly int HasDepth = Shader.PropertyToID("_WaveHasDepth");
+        static readonly int SceneOcclusionId = Shader.PropertyToID("_WaterSceneOcclusion");
         static readonly int BlitSource = Shader.PropertyToID("_BlitTexture");
         static readonly int ScaleBias = Shader.PropertyToID("_BlitScaleBias");
         readonly Material material;
@@ -23,6 +24,7 @@ namespace DeadlyJenga.CandyArt
 
         readonly MaterialPropertyBlock properties = new MaterialPropertyBlock();
         public Vector4 State { get; set; }
+        public float SceneOcclusion { get; set; }
 
         public CandyWaveImmersionPass(Material material)
         {
@@ -39,15 +41,16 @@ namespace DeadlyJenga.CandyArt
 
             var source = resources.activeColorTexture;
             var desc = graph.GetTextureDesc(source);
-            desc.name = "Tsunami underwater camera color";
+            desc.name = "Underwater camera color";
             desc.clearBuffer = false;
             var destination = graph.CreateTexture(desc);
             // Reuse depth where the camera already provides it. Mobile doesn't need a depth copy.
             bool hasDepth = camera.requiresDepthTexture && resources.cameraDepthTexture.IsValid();
             properties.SetVector(WaterWash, State);
             properties.SetFloat(HasDepth, hasDepth ? 1 : 0);
+            properties.SetFloat(SceneOcclusionId, SceneOcclusion);
             properties.SetVector(ScaleBias, new Vector4(1, 1, 0, 0));
-            using (var builder = graph.AddRasterRenderPass<PassData>("DJ. Tsunami underwater", out var data))
+            using (var builder = graph.AddRasterRenderPass<PassData>("DJ. Underwater", out var data))
             {
                 data.source = source;
                 data.material = material;

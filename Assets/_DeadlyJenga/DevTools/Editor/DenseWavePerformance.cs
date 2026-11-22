@@ -24,6 +24,8 @@ namespace DeadlyJenga.DevTools.Editor
     {
         const string Key = "DenseWavePerformance";
         const string TycoonBatch = "tycoon-navigation";
+        const string TycoonStressBatch = "tycoon-stress";
+        static bool IsTycoon(string label) => label == TycoonBatch || label == TycoonStressBatch;
         [Serializable] sealed class Scenes { public SceneSetup[] scenes; }
         static string Report => ProjectPath.Report("DenseWave-" + SessionState.GetString(Key+"Label", "run") + ".txt");
         static int errors;
@@ -53,7 +55,7 @@ namespace DeadlyJenga.DevTools.Editor
                     Application.logMessageReceived -= Log; SessionState.SetBool(Key, false);
                     SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices", "")));
                     MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby", false); MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local", false);
-                    if (Application.isBatchMode && SessionState.GetString(Key+"Label", "") == TycoonBatch)
+                    if (Application.isBatchMode && IsTycoon(SessionState.GetString(Key+"Label", "")))
                     {
                         EditorApplication.Exit(errors == 0 ? 0 : 2);
                         return;
@@ -65,6 +67,7 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem("Tools/Deadly Jenga/Performance/Profile Dense Blocks Bots and Tsunami")]
         public static void RunMenu() => Run("manual");
         public static void RunTycoonNavigationBatch() => Run(TycoonBatch);
+        public static void RunTycoonStressBatch() => Run(TycoonStressBatch);
         static void Run(string label)
         {
             var scenes=EditorSceneManager.GetSceneManagerSetup();
@@ -76,8 +79,8 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Label",label); SessionState.SetBool(Key,true);
             MatchSetup.FromLobby=false; MatchSetup.StartLocalSession=false;
             string scene=label.Contains("dense") ? "MapDrafterEvan1.unity" : "Game.unity";
-            File.WriteAllText(Report, label == TycoonBatch
-                ? "Game.unity local Play Mode, Tycoon Demo, 24 bots, voices off, seeded tsunami. Editor wall-clock frame timings.\n"
+            File.WriteAllText(Report, IsTycoon(label)
+                ? $"Game.unity local Play Mode, Tycoon Demo, {(label == TycoonStressBatch ? 52 : 24)} bots, voices off. Editor wall-clock frame timings.\n"
                 : "Actual "+scene+"; castle; 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.\n");
             EditorSceneManager.OpenScene(ProjectPath.Find(scene)); EditorApplication.EnterPlaymode();
         }
@@ -103,8 +106,9 @@ namespace DeadlyJenga.DevTools.Editor
             var session=Services.Session as CastlePlaySession;
             if(!session)throw new Exception("Game session unavailable.");
             session.SurvivorBots?.Clear();session.HandBots?.Clear();if(session.Social!=null)session.Social.VoiceEnabled=false;
-            if (SessionState.GetString(Key+"Label", "") == TycoonBatch) {
-                yield return CheckTycoonNavigation(session);
+            string label = SessionState.GetString(Key+"Label", "");
+            if (IsTycoon(label)) {
+                yield return CheckTycoonNavigation(session, label == TycoonStressBatch);
                 yield break;
             }
             if(!SessionState.GetString(Key+"Label", "").Contains("dense")) { MatchSetup.ModeId="demo";MatchSetup.MapId="mode-castle-gaps";MatchSetup.FromLobby=false;MatchSetup.ApplyMap(); }
@@ -119,7 +123,7 @@ namespace DeadlyJenga.DevTools.Editor
                 }
                 bool physicsComparison=SessionState.GetString(Key+"Label", "").Contains("grouping");
                 if(physicsComparison) {
-                    var map=session.Generator();var label=SessionState.GetString(Key+"Label", "");
+                    var map=session.Generator();
                     map.groupRestingBlocks=!label.Contains("reference") && !label.Contains("native");
                     map.sinkDisplacedDebris=map.shatterHeavyImpacts=label.Contains("cleanup");
                     if(label.Contains("contracts"))map.physicsGroupThreshold=1;
@@ -150,7 +154,7 @@ namespace DeadlyJenga.DevTools.Editor
         static void Require(bool pass,string message)
         {if(!pass)throw new Exception(message);File.AppendAllText(Report,"PASS "+message+"\n");}
 
-        static IEnumerator CheckTycoonNavigation(CastlePlaySession session)
+        static IEnumerator CheckTycoonNavigation(CastlePlaySession session, bool stress)
         {
             MatchSetup.ModeId = "demo";
             MatchSetup.MapId = "mode-tycoon";
@@ -167,13 +171,14 @@ namespace DeadlyJenga.DevTools.Editor
             Application.targetFrameRate = -1;
             try
             {
+                int population = stress ? 52 : 24;
                 session.SurvivorBots.AutoFill = false;
-                for (int i = 0; i < 24; i++) session.SurvivorBots.SpawnOne();
-                Require(session.SurvivorBots.Count == 24, "24 actual survivor bots spawned");
+                for (int i = 0; i < population; i++) session.SurvivorBots.SpawnOne();
+                Require(session.SurvivorBots.Count == population, $"{population} actual survivor bots spawned");
                 yield return new WaitForSeconds(3);
                 var bots = session.Bots().Bots.ToArray();
                 var anchorPositions = world.Bodies.Select(body => body.position).ToArray();
-                yield return SampleTycoon("24-bots", 6);
+                yield return SampleTycoon($"{population}-bots", 6);
 
                 var prefab = DemoDisasters.Prefabs.First(hazard => hazard.name == "Tsunami");
                 var parameters = DemoDisasters.Parameters(prefab).Select(parameter => parameter.initial).ToArray();
@@ -182,10 +187,24 @@ namespace DeadlyJenga.DevTools.Editor
                 parameters[4] = 1;
                 UnityEngine.Random.InitState(71293);
                 Require(DemoDisasters.ExecuteForMode(session, "Tsunami", parameters), "Catalog tsunami started");
-                yield return SampleTycoon("24-bots-tsunami", 21);
+                yield return SampleTycoon($"{population}-bots-tsunami", 21);
                 int moved = world.Bodies.Where((body, i) => body && (body.position - anchorPositions[i]).sqrMagnitude > 1).Count();
                 Require(moved >= 12, $"{moved} Tycoon blocks moved more than one metre");
-                Require(bots.Count(bot => bot && bot.TravelDistance > 1) >= 12, "At least half the bots travelled more than one metre");
+                Require(bots.Count(bot => bot && bot.TravelDistance > 1) >= population / 2,
+                    "At least half the bots travelled more than one metre");
+                if (!stress) yield break;
+
+                foreach (string hazard in new[] { "Tornado", "PlanetKillerMeteor" })
+                {
+                    DemoDisasters.StopAll(session);
+                    yield return null;
+                    var before = world.Bodies.Select(body => body.position).ToArray();
+                    UnityEngine.Random.InitState(71293);
+                    Require(DemoDisasters.ExecuteForMode(session, hazard), $"Catalog {hazard} started");
+                    yield return SampleTycoon($"{population}-bots-{hazard}", 20);
+                    int changed = world.Bodies.Where((body, i) => body && (body.position - before[i]).sqrMagnitude > 1).Count();
+                    Require(changed > 0, $"{hazard} window displaced {changed} blocks more than one metre");
+                }
             }
             finally
             {

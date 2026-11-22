@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DeadlyJenga.CandyArt;
 using DeadlyJenga.Core;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -11,7 +12,7 @@ namespace DeadlyJenga.Presentation
     //  - a caving crater with sand ripples while a block sinks into the sand,
     //  - an underwater filter whenever the camera ends up below the water,
     //  - a cinnamon-sugar sand coating on characters who escape sinking sand.
-    // Every client runs it locally, so hosts and guests see the same effects.
+    // Each client observes the locally available block poses.
     public sealed class CandyWaterSandEffects : MonoBehaviour
     {
         const int BlocksPerFrame = 96;
@@ -30,33 +31,53 @@ namespace DeadlyJenga.Presentation
         }
 
         // ---------- shared particles ----------
-        ParticleSystem droplets, foam, bubbles, ripples, dust;
+        ParticleSystem droplets, splashMist, bubbles, ripples, dust, sugar;
+        CandyBlockWhitewater whitewater;
         readonly List<Object> owned = new();
 
         void Awake()
         {
             var soft = SoftDot(32);
             var ring = RingTexture(64);
-            droplets = Particles("Water splash droplets", soft, 600, .9f, false);
-            foam = Particles("Water splash foam", soft, 400, 0, true);
+            droplets = Particles("Water splash droplets", SprayTexture(), 1100, 1.9f, false);
+            var sprayRenderer = droplets.GetComponent<ParticleSystemRenderer>();
+            sprayRenderer.renderMode = ParticleSystemRenderMode.Stretch;
+            sprayRenderer.velocityScale = .045f;
+            sprayRenderer.lengthScale = 1.15f;
+            splashMist = Particles("Whitewater mist", MistTexture(), 280, .48f, false);
+            whitewater = new CandyBlockWhitewater(transform);
             bubbles = Particles("Underwater bubbles", soft, 300, -.25f, false);
             ripples = Particles("Sand ripples", ring, 120, 0, true);
             dust = Particles("Sand dust", soft, 300, .08f, false);
+            sugar = SugarParticles();
         }
 
         void OnDestroy()
         {
-            RestoreFog();
-            foreach (var probe in sandProbes) if (probe) Destroy(probe);
+            if (waterMaterial) Destroy(waterMaterial);
+            whitewater?.Dispose();
             foreach (var coat in coats.Values) coat.Remove();
-            foreach (var crater in craters.Values) if (crater.disc) Destroy(crater.disc);
+            ResetCraters();
             foreach (var o in owned) if (o) Destroy(o);
         }
 
         void Update()
         {
             var world = Services.World;
+            if (!ReferenceEquals(world, lastWorld))
+            {
+                ResetCraters();
+                seen.Clear();
+                bubbling.Clear();
+                lastWorld = world;
+                cursor = 0;
+                droplets.Clear();
+                splashMist.Clear();
+                whitewater.Clear();
+                bubbles.Clear();
+            }
             if (world != null) ScanBlocks(world);
+            whitewater.Tick();
             UpdateBubbles(world);
             UpdateCraters();
             UpdateUnderwater(world);
@@ -64,70 +85,118 @@ namespace DeadlyJenga.Presentation
         }
 
         // ---------- blocks: water entry and sand sinking ----------
-        struct Seen { public float bottom; public Vector3 center; public float time; }
+        struct Seen
+        {
+            public Vector3 center;
+            public float gap, time, downSpeed, splashAt;
+            public bool armed;
+        }
         readonly Dictionary<Rigidbody, Seen> seen = new();
         IWorldQuery lastWorld;
         int cursor;
+        float nextPrune;
+        readonly List<Rigidbody> staleBodies = new();
 
         void ScanBlocks(IWorldQuery world)
         {
-            if (!ReferenceEquals(world, lastWorld)) { seen.Clear(); lastWorld = world; BuildSandProbes(); }
+            if (Time.time >= nextPrune)
+            {
+                nextPrune = Time.time + 1f;
+                staleBodies.Clear();
+                foreach (var entry in seen)
+                    if (!entry.Key || !entry.Key.gameObject.activeInHierarchy) staleBodies.Add(entry.Key);
+                foreach (var body in staleBodies) seen.Remove(body);
+            }
+
             var blocks = world.Blocks;
             if (blocks == null || blocks.Count == 0) return;
-            int count = Mathf.Min(BlocksPerFrame, blocks.Count);
+            // At slower frame rates a fixed per-frame budget can miss the entire entry.
+            int scans = Mathf.Clamp(Mathf.CeilToInt(Time.unscaledDeltaTime * 35), 1, 8);
+            int count = Mathf.Min(BlocksPerFrame * scans, blocks.Count);
             for (int n = 0; n < count; n++)
             {
                 var body = blocks[cursor++ % blocks.Count];
-                if (!body || !body.gameObject.activeInHierarchy) continue;
+                if (!body || !body.gameObject.activeInHierarchy)
+                {
+                    if (!ReferenceEquals(body, null)) seen.Remove(body);
+                    continue;
+                }
                 var shape = body.GetComponent<Collider>();
                 if (!shape) continue;
                 var bounds = shape.bounds;
-                if (seen.TryGetValue(body, out var before))
+                float water = world.WaterHeight(bounds.center);
+                float gap = bounds.min.y - water;
+                bool observed = seen.TryGetValue(body, out var before);
+                float now = Time.time;
+                float downSpeed = body.isKinematic ? 0 : Mathf.Max(0, -body.linearVelocity.y);
+                float splashAt = observed ? before.splashAt : float.NegativeInfinity;
+                bool armed = before.armed || (gap > .08f && now - splashAt >= .45f);
+                if (observed)
                 {
-                    float dt = Mathf.Max(.001f, Time.time - before.time);
-                    var velocity = (bounds.center - before.center) / dt;
-                    float water = world.WaterHeight(bounds.center);
-                    if (before.bottom >= water && bounds.min.y < water && velocity.y < -SplashSpeed && OpenWater(bounds.center, water))
-                        Splash(new Vector3(bounds.center.x, water, bounds.center.z), bounds.size, -velocity.y, body);
-                    else if (velocity.y < -.04f && velocity.y > -1.5f)
-                        CheckSand(body, bounds, water);
+                    float dt = Mathf.Max(.001f, now - before.time);
+                    float descent = (before.center.y - bounds.center.y) / dt;
+                    float impact = Mathf.Max(before.downSpeed, descent);
+                    if (armed && before.gap >= 0 && gap < 0)
+                    {
+                        // Interpolate the last dry pose to the water plane at the crossing.
+                        float t = before.gap / (before.gap - gap);
+                        var point = Vector3.Lerp(before.center, bounds.center, t);
+                        point.y = world.WaterHeight(point);
+                        if (impact >= SplashSpeed && OpenWater(point, point.y))
+                        {
+                            var drift = new Vector2(bounds.center.x - before.center.x, bounds.center.z - before.center.z);
+                            Splash(point, bounds.size, impact, Vector2.ClampMagnitude(drift / (dt * 8), 1), body);
+                            splashAt = now;
+                        }
+                        armed = false;
+                    }
+                    else if (body.isKinematic && !shape.isTrigger && descent > .04f && descent < 1.5f)
+                        CheckSand(body, shape, bounds, water);
                 }
-                seen[body] = new Seen { bottom = bounds.min.y, center = bounds.center, time = Time.time };
+                seen[body] = new Seen { gap = gap, center = bounds.center, time = now, downSpeed = downSpeed, armed = armed, splashAt = splashAt };
             }
             if (cursor > 100000000) cursor = 0;
         }
 
-        void Splash(Vector3 at, Vector3 size, float speed, Rigidbody block)
+        void Splash(Vector3 at, Vector3 size, float speed, Vector2 drift, Rigidbody block)
         {
-            float footprint = Mathf.Max(.4f, new Vector2(size.x, size.z).magnitude * .5f);
-            float strength = Mathf.Clamp01(speed / 12f) * Mathf.Clamp(footprint / .7f, .6f, 2.2f);
+            float footprint = Mathf.Clamp(new Vector2(size.x, size.z).magnitude * .5f, .32f, 2.4f);
+            float energy = Mathf.Clamp(speed / 10f, .15f, 1.6f);
+            whitewater.Emit(at, footprint, energy, drift);
+
             var emit = new ParticleSystem.EmitParams();
-            int sprays = Mathf.RoundToInt(16 + 44 * strength);
+            int sprays = Mathf.RoundToInt(45 + 78 * energy * Mathf.Clamp(footprint / .78f, .65f, 1.35f));
+            float seed = Random.Range(0, 20f);
             for (int i = 0; i < sprays; i++)
             {
-                var out2 = Random.insideUnitCircle.normalized * Random.Range(.3f, 1.2f);
-                emit.position = at + new Vector3(out2.x, 0, out2.y) * footprint * .6f;
-                emit.velocity = new Vector3(out2.x * (1.2f + strength * 2), Random.Range(2.5f, 4.5f) + strength * 4.5f, out2.y * (1.2f + strength * 2));
-                emit.startSize = Random.Range(.06f, .16f) * (1 + strength);
-                emit.startLifetime = Random.Range(.7f, 1.2f);
-                emit.startColor = new Color(.92f, .98f, 1f, .9f);
+                float angle = Random.Range(0, 2f * Mathf.PI);
+                var direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                float side = Vector2.Dot(direction, drift);
+                float lobe = .74f + .26f * Mathf.Sin(angle * 5 + seed);
+                bool jet = i % 4 == 0;
+                float speedOut = Random.Range(3.8f, 7.2f) * lobe * (.68f + energy * .58f + .24f * side);
+                float speedUp = Random.Range(3f, 6.1f) * lobe * (.65f + energy * .71f);
+                if (jet) speedUp *= 1.52f;
+                emit.position = at + new Vector3(direction.x, .08f, direction.y) * footprint * Random.Range(.36f, .85f);
+                emit.velocity = new Vector3(direction.x * speedOut, speedUp, direction.y * speedOut);
+                emit.startSize = Random.Range(.025f, .11f) * Mathf.Lerp(.9f, 1.55f, energy / 1.6f);
+                emit.startLifetime = Random.Range(.36f, .92f);
+                emit.startColor = new Color(.92f, .99f, 1f, Random.Range(.65f, .98f));
                 droplets.Emit(emit, 1);
             }
-            // A crown of white foam rolling outward on the surface.
-            int rings = Mathf.RoundToInt(18 + 18 * strength);
-            for (int i = 0; i < rings; i++)
+            int mistCount = Mathf.RoundToInt(12 + 22 * energy);
+            for (int i = 0; i < mistCount; i++)
             {
-                float a = i * Mathf.PI * 2 / rings;
-                var dir = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a));
-                emit.position = at + dir * footprint + Vector3.up * .03f;
-                emit.velocity = dir * (.6f + strength * 1.4f);
-                emit.startSize = Random.Range(.35f, .6f) * footprint;
-                emit.startLifetime = Random.Range(1.2f, 1.9f);
-                emit.startColor = new Color(1, 1, 1, .75f);
-                emit.rotation3D = new Vector3(90, Random.Range(0, 360), 0);
-                foam.Emit(emit, 1);
+                var direction = Random.insideUnitCircle.normalized;
+                float spread = Random.Range(2.2f, 4.5f) * (.60f + energy * .48f);
+                emit.position = at + new Vector3(direction.x, .12f, direction.y) * footprint * .8f;
+                emit.velocity = new Vector3(direction.x * spread, Random.Range(1.6f, 4.5f) * (.6f + energy * .48f), direction.y * spread);
+                emit.startSize = Random.Range(.25f, .64f) * (.65f + energy * .52f);
+                emit.startLifetime = Random.Range(.35f, .77f);
+                emit.startColor = new Color(.90f, .97f, 1f, Random.Range(.20f, .48f));
+                splashMist.Emit(emit, 1);
             }
-            emit.ResetRotation();
+
             if (block) bubbling.Add(new Bubbler { block = block, until = Time.time + 3f, next = 0 });
         }
 
@@ -159,200 +228,199 @@ namespace DeadlyJenga.Presentation
         // ---------- sand cave-in ----------
         sealed class Crater
         {
-            public Rigidbody block; public Collider shape; public Vector3 point; public float footprint, started, ended = -1, nextRipple;
-            public float surface, depth, builtDepth = -1, builtRadius = -1;
-            public GameObject disc; public Material material; public Mesh mesh; public int seed;
+            public Collider shape;
+            public CandySandbar terrain;
+            public Vector3 point;
+            public float footprint, started, ended = -1, nextRipple, depth;
         }
+
+        const int MaxCraters = 24;
         readonly Dictionary<Rigidbody, Crater> craters = new();
         readonly List<Rigidbody> finished = new();
-        Shader caveShader;
+        readonly Dictionary<CandySandbar, List<Vector4>> terrainCraters = new();
+        CandySandbar[] sandbars;
+        float nextDeform;
 
         // Ground layers only: no blocks, survivors or their climb surfaces.
         static int GroundMask => ~((1 << Layers.Block) | (1 << Layers.Survivor) | (1 << Layers.Surface));
 
-        // Real open water has no ground just under the surface (maps can sit their floor a little below sea level).
         static bool OpenWater(Vector3 at, float water) =>
             !Physics.Raycast(new Vector3(at.x, water + .05f, at.z), Vector3.down, out var hit, .55f, GroundMask, QueryTriggerInteraction.Ignore) || hit.rigidbody;
 
-        void CheckSand(Rigidbody block, Bounds bounds, float water)
+        void CheckSand(Rigidbody block, Collider shape, Bounds bounds, float water)
         {
-            if (craters.ContainsKey(block)) return;
+            if (craters.Count >= MaxCraters || craters.ContainsKey(block)) return;
             var from = new Vector3(bounds.center.x, bounds.max.y + .6f, bounds.center.z);
-            if (!Physics.Raycast(from, Vector3.down, out var hit, bounds.size.y + 2.5f, GroundMask, QueryTriggerInteraction.Ignore)) return;
-            if (hit.rigidbody || hit.normal.y < .6f || hit.point.y < water - .3f) return;
-            // The visible sand can be an art mesh above the physics floor: measure it with the hidden probe.
-            float surface = hit.point.y;
-            if (Physics.Raycast(from, Vector3.down, out var art, bounds.size.y + 2.5f, 1 << SandProbeLayer, QueryTriggerInteraction.Collide))
-                surface = Mathf.Max(surface, art.point.y);
-            if (surface < bounds.min.y + .04f) return;
-            var crater = new Crater
-            {
-                // Some maps sit their floor just under sea level; draw on whichever surface is visible.
-                block = block, point = new Vector3(hit.point.x, Mathf.Max(surface, water), hit.point.z), started = Time.time,
-                footprint = Mathf.Clamp(new Vector2(bounds.size.x, bounds.size.z).magnitude * .5f, .35f, 1.4f)
-            };
-            if (!caveShader) caveShader = Resources.Load<Shader>("CandySandCaveIn");
-            if (!caveShader) return;
-            crater.shape = block.GetComponent<Collider>();
-            crater.surface = crater.point.y;
-            crater.seed = Random.Range(1, 100000);
-            crater.disc = new GameObject("Sand cave-in");
-            crater.disc.transform.SetParent(transform, true);
-            crater.disc.transform.SetPositionAndRotation(crater.point, Quaternion.identity);
-            crater.mesh = new Mesh { name = "Sand cave-in" };
-            crater.mesh.MarkDynamic();
-            crater.disc.AddComponent<MeshFilter>().sharedMesh = crater.mesh;
-            var renderer = crater.disc.AddComponent<MeshRenderer>();
-            crater.material = new Material(caveShader) { name = "Sand cave-in" };
-            renderer.sharedMaterial = crater.material;
-            renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
-            craters[block] = crater;
-        }
+            if (!Physics.Raycast(from, Vector3.down, out var hit, bounds.size.y + 2.5f,
+                    GroundMask, QueryTriggerInteraction.Ignore) ||
+                hit.rigidbody || hit.normal.y < .6f || hit.point.y < water - .3f) return;
 
-        // A spare layer that collides with nothing: only used to measure where sand art meshes are.
-        const int SandProbeLayer = 31;
-        readonly List<GameObject> sandProbes = new();
-
-        void BuildSandProbes()
-        {
-            foreach (var probe in sandProbes) if (probe) Destroy(probe);
-            sandProbes.Clear();
-            for (int i = 0; i < 32; i++) Physics.IgnoreLayerCollision(SandProbeLayer, i, true);
-            foreach (var r in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+            sandbars ??= FindObjectsByType<CandySandbar>(FindObjectsSortMode.None);
+            foreach (var sandbar in sandbars)
             {
-                if (!r.name.ToLowerInvariant().Contains("sand") || r.transform.IsChildOf(transform) || r.GetComponent<Collider>()) continue;
-                var mesh = r.GetComponent<MeshFilter>()?.sharedMesh;
-                if (!mesh || !mesh.isReadable) continue;
-                var probe = new GameObject("Sand height probe");
-                probe.layer = SandProbeLayer;
-                probe.transform.SetParent(r.transform, false);
-                probe.AddComponent<MeshCollider>().sharedMesh = mesh;
-                sandProbes.Add(probe);
+                if (!sandbar || !sandbar.TrySampleSurface(hit.point, out var surface) ||
+                    Mathf.Abs(surface.y - hit.point.y) > .45f || surface.y < bounds.min.y + .04f) continue;
+
+                craters.Add(block, new Crater
+                {
+                    shape = shape,
+                    terrain = sandbar,
+                    point = surface,
+                    started = Time.time,
+                    footprint = Mathf.Clamp(new Vector2(bounds.size.x, bounds.size.z).magnitude * .5f, .35f, 2f)
+                });
+                if (!terrainCraters.ContainsKey(sandbar)) terrainCraters.Add(sandbar, new List<Vector4>());
+                break;
             }
         }
 
         void UpdateCraters()
         {
+            if (craters.Count == 0 && terrainCraters.Count == 0) return;
+            float now = Time.time;
+            bool rebuild = now >= nextDeform;
+            if (rebuild)
+            {
+                nextDeform = now + .1f;
+                foreach (var areas in terrainCraters.Values) areas.Clear();
+            }
             finished.Clear();
             var emit = new ParticleSystem.EmitParams();
             foreach (var pair in craters)
             {
                 var c = pair.Value;
-                bool sinking = c.block && c.block.gameObject.activeInHierarchy && c.block.isKinematic;
-                if (!sinking && c.ended < 0) c.ended = Time.time;
-                float grow = Mathf.Clamp01((Time.time - c.started) / 2.5f);
-                float fade = c.ended < 0 ? 1 : 1 - Mathf.Clamp01((Time.time - c.ended) / 3.5f);
-                if (fade <= 0) { finished.Add(pair.Key); continue; }
-                // The pit deepens as the block sinks and the rim collapses inward; it settles back when the block is gone.
-                if (c.ended < 0 && c.shape) c.depth = Mathf.Max(c.depth, c.surface - c.shape.bounds.min.y);
-                float radius = c.footprint * Mathf.Lerp(.9f, 1.9f, grow);
-                float shown = c.depth * (c.ended < 0 ? 1 : fade);
-                if (Mathf.Abs(shown - c.builtDepth) > .006f || Mathf.Abs(radius - c.builtRadius) > .02f)
+                var body = pair.Key;
+                bool sinking = body && body.gameObject.activeInHierarchy && body.isKinematic;
+                if (!sinking && c.ended < 0) c.ended = now;
+                float fade = c.ended < 0 ? 1 : 1 - Mathf.Clamp01((now - c.ended) / 3.5f);
+                if (fade <= 0 || !c.terrain) { finished.Add(body); continue; }
+
+                if (sinking && c.shape) c.depth = Mathf.Max(c.depth, c.point.y - c.shape.bounds.min.y);
+                if (rebuild)
                 {
-                    BuildCaveIn(c.mesh, radius, shown, c.seed);
-                    c.builtDepth = shown; c.builtRadius = radius;
+                    float grow = Mathf.Clamp01((now - c.started) / 2.5f);
+                    float radius = c.footprint * Mathf.Lerp(1.65f, 2.8f, grow);
+                    float depth = Mathf.Min(c.footprint * .74f, c.depth * .85f) * fade;
+                    var local = c.terrain.transform.InverseTransformPoint(c.point);
+                    terrainCraters[c.terrain].Add(new Vector4(local.x, local.z, radius, depth));
                 }
-                c.material.SetFloat("_Fade", c.ended < 0 ? 1 : Mathf.Clamp01(fade * 1.5f));
-                if (c.ended < 0 && Time.time >= c.nextRipple)
+
+                if (!sinking || now < c.nextRipple) continue;
+                c.nextRipple = now + Random.Range(.45f, .7f);
+                emit.position = c.point + Vector3.up * .03f;
+                emit.velocity = Vector3.zero;
+                emit.rotation3D = new Vector3(90, Random.Range(0, 360f), 0);
+                emit.startSize = c.footprint * 3.9f;
+                emit.startLifetime = 1.6f;
+                emit.startColor = new Color(SandDark.r, SandDark.g, SandDark.b, .32f);
+                ripples.Emit(emit, 1);
+                emit.ResetRotation();
+                for (int i = 0; i < 4; i++)
                 {
-                    // Expanding rings in the sand plus a few grains puffing up at the rim.
-                    c.nextRipple = Time.time + Random.Range(.45f, .7f);
-                    emit.position = c.point + Vector3.up * .02f;
-                    emit.velocity = Vector3.zero;
-                    emit.rotation3D = new Vector3(90, Random.Range(0, 360f), 0);
-                    emit.startSize = c.footprint * 2.2f;
-                    emit.startLifetime = 1.6f;
-                    emit.startColor = new Color(SandDark.r, SandDark.g, SandDark.b, .55f);
-                    ripples.Emit(emit, 1);
-                    emit.ResetRotation();
-                    for (int i = 0; i < 4; i++)
-                    {
-                        var rim = Random.insideUnitCircle.normalized * c.footprint * Random.Range(.9f, 1.4f);
-                        emit.position = c.point + new Vector3(rim.x, .05f, rim.y);
-                        emit.velocity = new Vector3(rim.x * -.3f, Random.Range(.25f, .6f), rim.y * -.3f);
-                        emit.startSize = Random.Range(.08f, .18f);
-                        emit.startLifetime = Random.Range(.6f, 1f);
-                        emit.startColor = new Color(SandLight.r, SandLight.g, SandLight.b, .8f);
-                        dust.Emit(emit, 1);
-                    }
+                    var rim = Random.insideUnitCircle.normalized * c.footprint * Random.Range(.9f, 1.4f);
+                    emit.position = c.point + new Vector3(rim.x, .05f, rim.y);
+                    emit.velocity = new Vector3(rim.x * -.3f, Random.Range(.25f, .6f), rim.y * -.3f);
+                    emit.startSize = Random.Range(.08f, .18f);
+                    emit.startLifetime = Random.Range(.6f, 1f);
+                    emit.startColor = new Color(SandLight.r, SandLight.g, SandLight.b, .8f);
+                    dust.Emit(emit, 1);
                 }
             }
-            foreach (var key in finished)
-            {
-                var c = craters[key];
-                if (c.disc) Destroy(c.disc);
-                if (c.material) Destroy(c.material);
-                if (c.mesh) Destroy(c.mesh);
-                craters.Remove(key);
-            }
+            foreach (var body in finished) craters.Remove(body);
+            if (rebuild)
+                foreach (var pair in terrainCraters)
+                    if (pair.Key) pair.Key.ApplyCaveIns(pair.Value);
+        }
+
+        void ResetCraters()
+        {
+            foreach (var terrain in terrainCraters.Keys)
+                if (terrain) terrain.ApplyCaveIns(System.Array.Empty<Vector4>());
+            terrainCraters.Clear();
+            craters.Clear();
+            sandbars = null;
+            nextDeform = 0;
+            if (ripples) ripples.Clear();
         }
 
         // ---------- underwater filter ----------
-        Volume volume;
-        float underwater, dippedFor;
+        Camera waterEye;
+        IWorldQuery waterWorld;
+        Material waterMaterial;
+        CandyWaveImmersionPass waterPass;
+        float underwater, dippedFor, hiddenDepth;
         const float UnderwaterDelay = .2f;
-        bool fogOwned, savedFog;
-        Color savedFogColor; FogMode savedFogMode; float savedFogDensity;
 
         void UpdateUnderwater(IWorldQuery world)
         {
-            var eye = Services.Session?.ActiveCamera;
+            var session = Services.Session;
+            var eye = session?.ActiveCamera;
             if (!eye) eye = Camera.main;
-            bool dipped = eye && world != null && eye.transform.position.y < world.WaterHeight(eye.transform.position) - .02f;
-            // A hard landing on sand can bounce the camera below the surface for a few frames: wait for a real dip.
-            dippedFor = dipped ? dippedFor + Time.unscaledDeltaTime : 0;
-            bool under = dipped && dippedFor >= UnderwaterDelay;
-            underwater = Mathf.MoveTowards(underwater, under ? 1 : 0, Time.unscaledDeltaTime * 5);
-            if (underwater > 0 && !volume) volume = UnderwaterVolume();
-            if (volume) volume.weight = underwater;
-            // Thick teal fog hides the underside of the map, so nothing looks broken down there.
-            if (under)
+            if (eye != waterEye || !ReferenceEquals(world, waterWorld))
             {
-                if (!fogOwned)
-                {
-                    savedFog = RenderSettings.fog; savedFogColor = RenderSettings.fogColor;
-                    savedFogMode = RenderSettings.fogMode; savedFogDensity = RenderSettings.fogDensity;
-                    fogOwned = true;
-                }
-                ApplyUnderwaterFog();
+                waterEye = eye;
+                waterWorld = world;
+                underwater = dippedFor = hiddenDepth = 0;
             }
-            else if (fogOwned) RestoreFog();
+            if (!eye || world == null) return;
+
+            var point = eye.transform.position;
+            float water = world.WaterHeight(point);
+            float depth = water - point.y;
+            var player = session?.Player;
+            var sand = player != null && player.gameObject && eye == player.ViewCamera
+                ? player.gameObject.GetComponent<ISandState>() : null;
+            bool sandContact = sand != null && sand.InSand;
+            float terrainDepth = 0;
+            if (depth > .02f)
+            {
+                sandbars ??= FindObjectsByType<CandySandbar>(FindObjectsSortMode.None);
+                foreach (var terrain in sandbars)
+                    if (terrain && terrain.TrySampleSurface(point, out var surface))
+                        terrainDepth = Mathf.Max(terrainDepth, surface.y - point.y);
+
+                var above = new Vector3(point.x, water + 2, point.z);
+                if (Physics.Raycast(above, Vector3.down, out var hit, depth + 2, GroundMask, QueryTriggerInteraction.Ignore) && !hit.rigidbody)
+                    terrainDepth = Mathf.Max(terrainDepth, hit.point.y - point.y);
+            }
+
+            bool deep = depth >= 4 || terrainDepth >= 1.1f;
+            bool dipped = depth > .02f && !sandContact && terrainDepth < .05f && OpenWater(point, water);
+            float dt = Time.unscaledDeltaTime;
+            dippedFor = dipped ? dippedFor + dt : 0;
+            underwater = deep ? 1 : Mathf.MoveTowards(underwater, dippedFor >= UnderwaterDelay ? 1 : 0, dt * 5);
+            hiddenDepth = deep ? 1 : Mathf.MoveTowards(hiddenDepth, 0, dt * 6);
         }
 
-        // Applied again right before each frame renders, because map atmosphere scripts can
-        // rewrite the global fog later in the frame.
-        void ApplyUnderwaterFog()
-        {
-            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogColor = new Color(.05f, .36f, .42f); RenderSettings.fogDensity = .11f;
-        }
-        void OnEnable() => RenderPipelineManager.beginContextRendering += BeforeRender;
-        void OnDisable() => RenderPipelineManager.beginContextRendering -= BeforeRender;
-        void BeforeRender(ScriptableRenderContext context, List<Camera> cameras) { if (fogOwned) ApplyUnderwaterFog(); }
+        void OnEnable() => RenderPipelineManager.beginCameraRendering += BeforeRender;
 
-        void RestoreFog()
+        void OnDisable()
         {
-            if (!fogOwned) return;
-            RenderSettings.fog = savedFog; RenderSettings.fogColor = savedFogColor;
-            RenderSettings.fogMode = savedFogMode; RenderSettings.fogDensity = savedFogDensity;
-            fogOwned = false;
+            RenderPipelineManager.beginCameraRendering -= BeforeRender;
+            ResetCraters();
+            seen.Clear();
+            bubbling.Clear();
+            whitewater?.Clear();
+            waterEye = null;
+            underwater = dippedFor = hiddenDepth = 0;
         }
 
-        Volume UnderwaterVolume()
+        void BeforeRender(ScriptableRenderContext context, Camera camera)
         {
-            var go = new GameObject("Underwater filter");
-            go.transform.SetParent(transform, false);
-            var v = go.AddComponent<Volume>();
-            v.isGlobal = true; v.priority = 60; v.weight = 0;
-            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
-            owned.Add(profile);
-            v.profile = profile;
-            var color = profile.Add<ColorAdjustments>();
-            color.colorFilter.Override(new Color(.55f, .92f, .95f));
-            color.saturation.Override(-18); color.contrast.Override(-12); color.postExposure.Override(-.25f);
-            var vignette = profile.Add<Vignette>();
-            vignette.intensity.Override(.38f); vignette.smoothness.Override(.8f); vignette.color.Override(new Color(.02f, .16f, .2f));
-            return v;
+            if (camera != waterEye || underwater <= .005f ||
+                (Services.Session is Component session && session.gameObject != gameObject) ||
+                !(GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset)) return;
+
+            if (waterPass == null)
+            {
+                var shader = Resources.Load<Shader>("CandyScenery/CandyWaveImmersion");
+                if (!shader || !shader.isSupported) return;
+                waterMaterial = new Material(shader);
+                waterPass = new CandyWaveImmersionPass(waterMaterial);
+            }
+            waterPass.State = new Vector4(underwater, 0, Time.unscaledTime, camera.stereoEnabled ? .002f : .005f);
+            waterPass.SceneOcclusion = hiddenDepth;
+            camera.GetUniversalAdditionalCameraData().scriptableRenderer.EnqueuePass(waterPass);
         }
 
         // ---------- cinnamon-sugar sand coating ----------
@@ -360,19 +428,14 @@ namespace DeadlyJenga.Presentation
         {
             public Component owner; public ISandState sand;
             public float sandSeconds, coatedAt = -1, dustNext;
-            public Renderer[] renderers; public Material material;
+            public readonly List<CandySugarSurface> surfaces = new();
+            public Material material;
             public float footOffset, waistOffset;
 
             public void Remove()
             {
-                if (renderers != null)
-                    foreach (var r in renderers)
-                    {
-                        if (!r) continue;
-                        var list = new List<Material>(r.sharedMaterials);
-                        if (list.Remove(material)) r.sharedMaterials = list.ToArray();
-                    }
-                renderers = null;
+                foreach (var surface in surfaces) surface.Dispose();
+                surfaces.Clear();
                 if (material) Object.Destroy(material);
                 coatedAt = -1;
             }
@@ -409,15 +472,29 @@ namespace DeadlyJenga.Presentation
                 coat.material.SetFloat("_Coverage", coverage);
                 if (coverage < 1 && Time.time >= coat.dustNext)
                 {
-                    coat.dustNext = Time.time + .08f;
+                    coat.dustNext = Time.time + .06f;
+                    if (coat.surfaces.Count == 0) continue;
+                    int start = Random.Range(0, coat.surfaces.Count);
+                    Vector3 position = default;
+                    bool sampled = false;
+                    for (int i = 0; i < coat.surfaces.Count && !sampled; i++)
+                        sampled = coat.surfaces[(start + i) % coat.surfaces.Count].TrySample(out position);
+                    if (!sampled) continue;
                     var emit = new ParticleSystem.EmitParams
                     {
-                        position = coat.owner.transform.position + Vector3.up * Random.Range(coat.footOffset, coat.waistOffset) + Random.insideUnitSphere * .18f,
-                        velocity = new Vector3(Random.Range(-.2f, .2f), Random.Range(-.6f, -.1f), Random.Range(-.2f, .2f)),
-                        startSize = Random.Range(.04f, .09f), startLifetime = Random.Range(.5f, .9f),
-                        startColor = new Color(.82f, .62f, .40f, .85f)
+                        position = position,
+                        velocity = new Vector3(Random.Range(-.08f, .08f), Random.Range(-.18f, -.04f), Random.Range(-.08f, .08f)),
+                        startSize = Random.Range(.0005f, .0015f), startLifetime = Random.Range(.45f, .85f),
+                        rotation3D = Random.insideUnitSphere * 180,
+                        startColor = Color.Lerp(new Color(.78f, .69f, .53f), new Color(1f, .96f, .86f), Random.value)
                     };
-                    dust.Emit(emit, 2);
+                    sugar.Emit(emit, Random.Range(6, 11));
+                    emit.startSize = Random.Range(.018f, .04f);
+                    emit.startLifetime = Random.Range(.25f, .45f);
+                    emit.startColor = new Color(.93f, .88f, .76f, .10f);
+                    emit.velocity *= .35f;
+                    dust.Emit(emit, 1);
+
                 }
             }
             foreach (int id in goneCoats) coats.Remove(id);
@@ -435,23 +512,50 @@ namespace DeadlyJenga.Presentation
             float low = float.MaxValue, high = float.MinValue;
             foreach (var r in renderers)
             {
-                if (!(r is SkinnedMeshRenderer || r is MeshRenderer) || !r.enabled) continue;
+                if (!(r is SkinnedMeshRenderer || r is MeshRenderer) || r.name == "Sticky sugar surface") continue;
                 bodies.Add(r);
                 low = Mathf.Min(low, r.bounds.min.y); high = Mathf.Max(high, r.bounds.max.y);
             }
             if (bodies.Count == 0) return;
-            coat.material = new Material(coatShader) { name = "Cinnamon sugar coating" };
+            coat.material = new Material(coatShader) { name = "Sticky sugar coating" };
             coat.material.SetFloat("_Seed", Random.value * 100);
+            coat.material.SetTexture("_CrystalMap", Resources.Load<Texture2D>("CandyFineSugar"));
             float feet = coat.owner.transform.position.y;
             coat.footOffset = low - feet - .05f;
             coat.waistOffset = low - feet + (high - low) * Random.Range(.44f, .52f);
+            coat.material.SetFloat("_CoatBottom", feet + coat.footOffset);
+            coat.material.SetFloat("_CoatTop", feet + coat.waistOffset);
+            coat.material.SetFloat("_Coverage", 1);
             foreach (var r in bodies)
-            {
-                var list = new List<Material>(r.sharedMaterials) { coat.material };
-                r.sharedMaterials = list.ToArray();
-            }
-            coat.renderers = bodies.ToArray();
+                coat.surfaces.Add(new CandySugarSurface(r, coat.material, feet + coat.footOffset, feet + coat.waistOffset));
             coat.coatedAt = Time.time;
+        }
+
+        ParticleSystem SugarParticles()
+        {
+            var ps = Particles("Falling sugar crystals", null, 600, .65f, false);
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            var material = new Material(Shader.Find("Universal Render Pipeline/Particles/Lit"));
+            material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_Smoothness", .48f);
+            owned.Add(material);
+            renderer.sharedMaterial = material;
+            renderer.renderMode = ParticleSystemRenderMode.Mesh;
+            var points = new[] { Vector3.up * .6f, Vector3.down * .6f, Vector3.left * .4f,
+                Vector3.forward * .4f, Vector3.right * .4f, Vector3.back * .4f };
+            var faces = new[] { 0,3,2, 0,4,3, 0,5,4, 0,2,5, 1,2,3, 1,3,4, 1,4,5, 1,5,2 };
+            var vertices = new Vector3[faces.Length];
+            var indices = new int[faces.Length];
+            for (int i = 0; i < faces.Length; i++) { vertices[i] = points[faces[i]]; indices[i] = i; }
+            var mesh = new Mesh { name = "Sugar crystal facets", vertices = vertices, triangles = indices };
+            mesh.RecalculateNormals(); mesh.RecalculateBounds();
+            owned.Add(mesh); renderer.mesh = mesh;
+            var main = ps.main; main.startRotation3D = true;
+            var rotation = ps.rotationOverLifetime; rotation.enabled = true; rotation.separateAxes = true;
+            rotation.x = new ParticleSystem.MinMaxCurve(-4, 4);
+            rotation.y = new ParticleSystem.MinMaxCurve(-3, 3);
+            rotation.z = new ParticleSystem.MinMaxCurve(-5, 5);
+            return ps;
         }
 
         // ---------- helpers ----------
@@ -498,6 +602,57 @@ namespace DeadlyJenga.Presentation
             return m;
         }
 
+        Texture2D SprayTexture()
+        {
+            const int size = 32;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "Tapered water spray",
+                wrapMode = TextureWrapMode.Clamp
+            };
+            var colors = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float v = (y + .5f) / size;
+                float width = .23f + .65f * Mathf.Sin(v * Mathf.PI);
+                float u = Mathf.Abs((x + .5f) / size * 2 - 1) / width;
+                float alpha = (1 - Mathf.SmoothStep(.12f, .98f, Mathf.Clamp01(u))) *
+                    Mathf.SmoothStep(0, 1, Mathf.InverseLerp(0, .22f, v)) *
+                    (1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.72f, 1, v)));
+                colors[y * size + x] = (Color32)new Color(.95f, .99f, 1, alpha);
+            }
+            texture.SetPixels32(colors);
+            texture.Apply(false, true);
+            owned.Add(texture);
+            return texture;
+        }
+
+        Texture2D MistTexture()
+        {
+            const int size = 64;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, true, true)
+            {
+                name = "Whitewater mist and microdroplets",
+                wrapMode = TextureWrapMode.Clamp
+            };
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                var uv = new Vector2(x + .5f, y + .5f) * (2f / size) - Vector2.one;
+                float falloff = Mathf.Clamp01(1 - uv.sqrMagnitude);
+                float cloud = Mathf.PerlinNoise(x * .16f + 21, y * .18f + 7);
+                float flecks = Mathf.PerlinNoise(x * .67f + 4, y * .74f + 16);
+                float opacity = falloff * falloff * Mathf.Clamp01(cloud * .42f + flecks * flecks * .86f);
+                pixels[y * size + x] = (Color32)new Color(.96f, .99f, 1, opacity);
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(true, true);
+            owned.Add(texture);
+            return texture;
+        }
+
         Texture2D SoftDot(int size)
         {
             var t = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "Soft dot", wrapMode = TextureWrapMode.Clamp };
@@ -525,66 +680,5 @@ namespace DeadlyJenga.Presentation
             return t;
         }
 
-        const int CaveRings = 7, CaveSegments = 20;
-        static readonly List<Vector3> caveVerts = new();
-        static readonly List<Color> caveColors = new();
-        static readonly List<int> caveTris = new();
-        static readonly Vector3[] caveGrid = new Vector3[(CaveRings + 1) * CaveSegments];
-        static readonly Color[] caveGridColor = new Color[(CaveRings + 1) * CaveSegments];
-
-        // Low-poly cave-in: a displaced polar grid. The cavity floor sits at ground level and a sand lip
-        // piles up around it; both grow with the sink depth, so the pit reads deeper as the block goes under.
-        // Triangles do not share vertices, so every facet is flat shaded.
-        static void BuildCaveIn(Mesh mesh, float radius, float depth, int seed)
-        {
-            float depthN = Mathf.Clamp01(depth / .6f);
-            float lip = Mathf.Lerp(.02f, .13f, depthN);
-            Color cavity = new(.16f, .10f, .06f, 1), wall = new(.42f, .30f, .18f, 1), crest = new(.78f, .64f, .42f, 1);
-            for (int ring = 0; ring <= CaveRings; ring++)
-                for (int seg = 0; seg < CaveSegments; seg++)
-                {
-                    int i = ring * CaveSegments + seg;
-                    float h1 = Hash01(seed, i), h2 = Hash01(seed + 7, i);
-                    float u = ring / (float)CaveRings;
-                    if (ring > 0 && ring < CaveRings) u += (h1 - .5f) * .09f;
-                    float angle = (seg + (ring % 2) * .5f + (h2 - .5f) * .4f) / CaveSegments * Mathf.PI * 2;
-                    float y; Color col;
-                    if (u < .3f) { y = .008f; col = cavity; }
-                    else if (u < .62f) { float k = Mathf.SmoothStep(0, 1, (u - .3f) / .32f); y = Mathf.Lerp(.008f, lip, k); col = Color.Lerp(cavity, wall, k); }
-                    else { float k = Mathf.SmoothStep(0, 1, (u - .62f) / .38f); y = Mathf.Lerp(lip, .004f, k); col = Color.Lerp(crest, wall, k * .5f); col.a = 1 - k * k; }
-                    y *= .85f + h2 * .3f;
-                    caveGrid[i] = new Vector3(Mathf.Cos(angle) * u * radius, y, Mathf.Sin(angle) * u * radius);
-                    caveGridColor[i] = col;
-                }
-            caveVerts.Clear(); caveColors.Clear(); caveTris.Clear();
-            for (int ring = 0; ring < CaveRings; ring++)
-                for (int seg = 0; seg < CaveSegments; seg++)
-                {
-                    int next = (seg + 1) % CaveSegments;
-                    int a = ring * CaveSegments + seg, b = ring * CaveSegments + next, c = a + CaveSegments, d = b + CaveSegments;
-                    AddFacet(a, b, c, seed); AddFacet(b, d, c, seed);
-                }
-            mesh.Clear();
-            mesh.SetVertices(caveVerts); mesh.SetColors(caveColors); mesh.SetTriangles(caveTris, 0);
-            mesh.RecalculateNormals(); mesh.RecalculateBounds();
-        }
-
-        static void AddFacet(int a, int b, int c, int seed)
-        {
-            float shade = .9f + Hash01(seed + 3, a * 31 + c) * .2f;
-            foreach (int i in new[] { a, b, c })
-            {
-                var col = caveGridColor[i]; col.r *= shade; col.g *= shade; col.b *= shade;
-                caveTris.Add(caveVerts.Count);
-                caveVerts.Add(caveGrid[i]); caveColors.Add(col);
-            }
-        }
-
-        static float Hash01(int seed, int i)
-        {
-            uint h = (uint)(seed * 73856093 ^ i * 19349663);
-            h ^= h >> 13; h *= 1274126177u; h ^= h >> 16;
-            return (h & 0xFFFF) / 65535f;
-        }
     }
 }

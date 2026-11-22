@@ -299,7 +299,10 @@ namespace DeadlyJenga.CandyPlayers
                 Vector3 elbowPole=ElbowPole(wrist-shoulder,transform.TransformDirection(torsoRotation*(Vector3.right*sign)),transform.TransformDirection(torsoRotation*Vector3.down));
                 Vector3 elbow=SolveJoint(shoulder,wrist,.29f*scale,.27f*scale,elbowPole);
                 int upper=side==0?2:5;
-                Segment(upper,shoulder,elbow);Segment(upper+1,elbow,wrist,hand.rotation*Vector3.up);
+                Segment(upper,shoulder,elbow);
+                // Carry the arm frame through the bend. Hand roll must not wring the elbow shut.
+                var bendRotation=Quaternion.FromToRotation(elbow-shoulder,wrist-elbow);
+                Segment(upper+1,elbow,wrist,bendRotation*bones[upper].forward);
                 bones[upper+2].SetPositionAndRotation(hand.position,hand.rotation);bones[upper+2].localScale=Vector3.one;
                 PoseFingers(side, hand, scale);
             }

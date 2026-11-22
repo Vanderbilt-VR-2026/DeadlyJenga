@@ -1,0 +1,66 @@
+Game.unity in desktop Unity Play Mode; controlled role-camera poses and bot drops onto island support.
+Fine Crystals A uses explicit TwoBones quality to regress the source spine defect; desktop only, no headset assertion.
+PASS local Demo ready: 568 blocks; nominal water 0.08 m
+PASS survivor owns the real active camera: playingHand=False, active=View Camera, enabled=True
+PROBE survivor-0: expected=(100.16, 0.68, 0.00), eye=(100.16, 0.68, 0.00), depth=-0.600, active=True, sampledEye=True, wet=0, concealed=0, dippedFor=0, inSand=False, menu=False, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PROBE survivor-1: expected=(100.16, -0.27, 0.00), eye=(100.16, -0.27, 0.00), depth=0.350, active=True, sampledEye=True, wet=1, concealed=0, dippedFor=0.5696447, inSand=False, menu=False, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PROBE survivor-2: expected=(0.00, -4.42, 0.00), eye=(0.00, -4.42, 0.00), depth=4.500, active=True, sampledEye=True, wet=1, concealed=1, dippedFor=0, inSand=False, menu=False, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PROBE survivor-3: expected=(100.16, 0.68, 0.00), eye=(100.16, 0.68, 0.00), depth=-0.600, active=True, sampledEye=True, wet=0, concealed=0, dippedFor=0, inSand=False, menu=False, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PASS survivor dry reference renders the red marker RGBA(1.000, 0.000, 0.000, 1.000)
+PASS survivor dry and shallow-water samples RGBA(1.000, 0.000, 0.000, 1.000) / RGBA(0.278, 0.341, 0.353, 1.000)
+PASS survivor cannot see beneath the map RGBA(0.118, 0.325, 0.341, 1.000)
+PASS survivor clears the filter after resurfacing RGBA(1.000, 0.000, 0.000, 1.000)
+PASS flying hand owns the real active camera: playingHand=True, active=View Camera, enabled=True
+PROBE hand-0: expected=(100.16, 0.68, 0.00), eye=(100.16, 0.68, 0.00), depth=-0.600, active=True, sampledEye=True, wet=0, concealed=0, dippedFor=0, inSand=False, menu=False, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PROBE hand-1: expected=(100.16, -0.27, 0.00), eye=(100.16, -0.27, 0.00), depth=0.350, active=True, sampledEye=True, wet=1, concealed=0, dippedFor=0.5565621, inSand=False, menu=False, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PROBE hand-2: expected=(0.00, -4.42, 0.00), eye=(0.00, -4.42, 0.00), depth=4.500, active=True, sampledEye=True, wet=1, concealed=1, dippedFor=0, inSand=False, menu=False, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PROBE hand-3: expected=(100.16, 0.68, 0.00), eye=(100.16, 0.68, 0.00), depth=-0.600, active=True, sampledEye=True, wet=0, concealed=0, dippedFor=0, inSand=False, menu=False, cursor=None, markerViewport=(0.50, 0.50, 2.00), eyeEnabled=True, targetMatched=True, mask=10000000, rect=(x:0.00, y:0.00, width:1.00, height:1.00), clips=0.030/700.0
+PASS flying hand dry reference renders the red marker RGBA(1.000, 0.000, 0.000, 1.000)
+PASS flying hand dry and shallow-water samples RGBA(1.000, 0.000, 0.000, 1.000) / RGBA(0.278, 0.345, 0.361, 1.000)
+PASS flying hand cannot see beneath the map RGBA(0.129, 0.325, 0.341, 1.000)
+PASS flying hand clears the filter after resurfacing RGBA(1.000, 0.000, 0.000, 1.000)
+Coating capture before: bot=(4.44, 59.85, 4.44), observer=(10.16, 35.98, 12.16), camera=(5.58, 60.51, 6.50), FOV=30; cobalt blue default bot appearance
+PASS survivor drops 12 m onto actual sand; clearance 12.72 to 0.73 m, eye offset 0.80 m, feet (-12.36, 0.01, -12.36), intended support (-12.36, 0.00, -12.36)
+PASS bot reaches sand through real island contact at (-12.36, 0.00, -12.36)
+PASS bot maintains short sand contact: observed 0.370s, presenter sampled 0.370s, depth 0.021
+PASS bot settles clear of sand after short contact: grounded=True, inSand=False, feet=(4.44, 59.91, 4.44), safe=(4.44, 60.08, 4.44)
+PASS short contact leaves no coating
+PASS bot reaches sand through real island contact at (-12.36, 0.00, -12.36)
+PASS bot maintains sustained sand contact: observed 1.437s, presenter sampled 1.437s, depth 0.128
+PASS bot settles clear of sand after sustained contact: grounded=True, inSand=False, feet=(4.44, 59.88, 4.44), safe=(4.44, 60.08, 4.44)
+PASS bot exits sustained sand with a full lower-body coat: material=True, appliedAt=9.805
+PASS isolated raised facets produce visible pixels: 175
+RENDER COST desktop Editor 1280x720 paired camera.Render plus synchronous 1px readback; current staged avatar group; 20 warmed samples each. Bare median=10.397ms coated median=10.252ms delta=-0.145ms. Includes Editor/host contention, not headset frame time.
+FOUR AVATAR GRAPHICS SAMPLE: original plus three frozen renderer replicas; no AI, physics or network performance claim.
+RENDER COST desktop Editor 1280x720 paired camera.Render plus synchronous 1px readback; current staged avatar group; 20 warmed samples each. Bare median=9.620ms coated median=10.508ms delta=0.888ms. Includes Editor/host contention, not headset frame time.
+PASS fine crystal relief texture is loaded at authored resolution
+PASS coating includes attached raised crystal geometry
+Coating capture full: bot=(4.44, 59.88, 4.44), age=0.452, coverage=1.000
+PASS bot coating is dusting off at age 18.52s, coverage=0.592
+Coating capture dusting 0: bot=(4.44, 59.88, 4.44), age=18.521, coverage=0.592
+Coating capture dusting 1: bot=(4.44, 59.88, 4.44), age=18.854, coverage=0.458
+Coating capture dusting 2: bot=(4.44, 59.88, 4.44), age=19.187, coverage=0.325
+Coating capture dusting 3: bot=(4.44, 59.88, 4.44), age=19.521, coverage=0.192
+Coating capture dusting 4: bot=(4.44, 59.88, 4.44), age=19.854, coverage=0.058
+PASS bot coating is removed at age 20.51s
+PASS Default reaches actual sand
+PASS Default has full coating
+PASS Default exposure seed 67.75171 differs from NaN
+PASS Penguin reaches actual sand
+PASS Penguin has full coating
+PASS Penguin exposure seed 61.72404 differs from 67.75171
+PASS CyberSamurai reaches actual sand
+PASS CyberSamurai has full coating
+PASS CyberSamurai exposure seed 96.44869 differs from 61.72404
+PASS local survivor reaches real sand for first-person coating
+PASS local survivor has self-view coating
+PASS elbow pose 0 side 0: joint ring width=0.0536m, samples=75
+PASS elbow pose 0 side 1: joint ring width=0.0536m, samples=75
+PASS elbow pose 1 side 0: joint ring width=0.0428m, samples=75
+PASS elbow pose 1 side 1: joint ring width=0.0428m, samples=75
+PASS elbow pose 2 side 0: joint ring width=0.0428m, samples=75
+PASS elbow pose 2 side 1: joint ring width=0.0428m, samples=75
+PASS first-person dust still captured inside the dusting phase
+PASS actual sugar mesh particles emitted during dust-off: peak=122
+PASS normal match view hands off to an above-water camera during survival immersion
+COMPLETE failures=0

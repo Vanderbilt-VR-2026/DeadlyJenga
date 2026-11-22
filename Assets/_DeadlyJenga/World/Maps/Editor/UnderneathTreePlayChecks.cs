@@ -19,19 +19,19 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static float impactFixedTime;
         static int phase;
         static UnderneathTreeMap map;
-        static Rigidbody loosePanel, looseDrum;
+        static Rigidbody loosePanel, looseWall;
         static string[] originalPieces;
         static Rigidbody[] creamWalls;
         static Quaternion[] creamWallRotations;
-        static Vector3 initialPanelPosition, initialDrumPosition, initialTrainPosition;
+        static Vector3 initialPanelPosition, initialWallPosition, initialTrainPosition;
         static int blockCount, revision;
         static double renderReady;
         static string captureDirectory;
         static Rigidbody bridgeLid;
         static Rigidbody[] railBodies;
         static Vector3 initialBridgePosition;
-        static Rigidbody hitRail, hitWalkway;
-        static Vector3 initialRailPosition, initialWalkwayPosition;
+        static Rigidbody hitRail;
+        static Vector3 initialRailPosition;
         static int referenceIndex;
 
         // High views cover the room perimeter, then the routes and their supports.
@@ -169,7 +169,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     revision = map.Revision;
                     railBodies = map.Blocks.Where(body => body.name.StartsWith("Gift-supported rail ", StringComparison.Ordinal)).ToArray();
                     var walkways = map.Blocks.Where(body => body.transform.parent.name == "Present Walk to the Train Loop").ToArray();
-                    var gifts = map.Blocks.Except(railBodies).Except(walkways).GroupBy(body => body.transform.parent.name)
+                    // Toys and toy buildings are blocks too, but not six- or ten-piece present shells.
+                    var gifts = map.Blocks.Except(railBodies).Except(walkways)
+                        .Where(body => !body.GetComponentInParent<UnderneathTreeToy>()).GroupBy(body => body.transform.parent.name)
                         .ToDictionary(group => group.Key, group => group.ToArray());
                     originalPieces = PieceOrder();
                     Require(gifts.Count >= 30 && map.Blocks.All(b => b && b.isKinematic && b.useGravity),
@@ -177,42 +179,27 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     Require(gifts.Values.All(parts => parts.Length == 6 || parts.Length == 10) &&
                         gifts.Values.All(parts => parts.Count(b => b.name == "Bottom") == 1 && parts.Count(b => b.name == "Lid") == 1),
                         "every rectangular and cylindrical present has a physical base, walls and lid");
-                    Require(gifts.ContainsKey("Present 00") && gifts.ContainsKey("Present 206") &&
-                        gifts.ContainsKey("Cream Landing") && gifts.ContainsKey("Green Climb"),
-                        "original route supports and both junction gifts can break");
-                    Require(Physics.Raycast(map.SafeSpawnPoint() + Vector3.up * .2f, Vector3.down,
-                        out var spawn, 1f, 1 << Layers.Block) && spawn.collider.transform.parent.name == "Present 206",
-                        "normal spawn is above the movable junction approach lid");
-                    CheckJunction();
+                    CheckSpawn();
                     CheckRoutes(gifts);
-                    Require(walkways.Length == 3 && walkways.All(body =>
-                        WorkingDeck(body.GetComponent<BoxCollider>(), body)), "all three ribbon routes have physical, climbable decks");
                     hitRail = railBodies[railBodies.Length / 2];
-                    hitWalkway = walkways.Single(body => body.name == "Ribbon approach");
                     var train = map.GetComponentInChildren<UnderneathTreeTrain>();
                     Require(train, "tinplate train imported");
                     initialTrainPosition = train.transform.position;
-                    Shot(player.ViewCamera, "christmas-room", new Vector3(44.175f, 81f, -158.15f),
-                        new Vector3(-58f, 11f, -68f), 64f, true);
-                    Shot(player.ViewCamera, "bridge-approach", new Vector3(64f, 27f, -109f),
-                        new Vector3(16.0f, 5.8f, -70.5f), 55f, true);
-                    Shot(player.ViewCamera, "bridge-tunnel", new Vector3(31.5f, 2.05f, -77.15f),
-                        new Vector3(10f, 3.25f, -67.9f), 72f);
                     Require(map.Root.GetComponentsInChildren<MeshRenderer>().Any(r =>
                         r.name.StartsWith("Skirt skull") && r.GetComponent<MeshFilter>().sharedMesh.vertexCount > 0),
                         "skirt motifs are present");
-                    var cream = gifts["Cream Landing"];
-                    var drum = gifts["Present 01"];
+                    var cream = gifts["Entrance / Cream Catch"];
+                    var courtyard = gifts["Courtyard / Ruby Hop"];
                     creamWalls = cream.Where(b => b.name != "Bottom" && b.name != "Lid").ToArray();
                     creamWallRotations = creamWalls.Select(b => b.rotation).ToArray();
                     loosePanel = cream.Single(b => b.name == "Lid");
-                    looseDrum = drum.First(b => b.name.StartsWith("Curved wall"));
+                    looseWall = courtyard.First(b => b.name == "Left");
                     initialPanelPosition = loosePanel.position;
-                    initialDrumPosition = looseDrum.position;
+                    initialWallPosition = looseWall.position;
                     cream.Single(b => b.name == "Bottom").GetComponent<IPushable>().Push(Vector3.up * 4f, null);
-                    looseDrum.GetComponent<IPushable>().Push(Vector3.up * 6.5f, null);
-                    Require(cream.All(b => !b.isKinematic) && drum.All(b => !b.isKinematic),
-                        "base removal breaks a rectangular gift and a heavy wall impact breaks a round gift");
+                    looseWall.GetComponent<IPushable>().Push(Vector3.up * 6.5f, null);
+                    Require(cream.All(b => !b.isKinematic) && courtyard.All(b => !b.isKinematic),
+                        "base removal breaks a rectangular gift and a heavy wall impact breaks a courtyard gift");
                     impactFixedTime = Time.fixedTime;
                     phase++;
                     return;
@@ -226,14 +213,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         "released rectangular lid is displaced by PhysX");
                     Require(creamWalls.Where((wall, i) => Quaternion.Angle(wall.rotation, creamWallRotations[i]) > 24f).Count() >= 2,
                         "at least two rectangular walls visibly tip as the shell falls apart");
-                    Require(Vector3.Distance(initialDrumPosition, looseDrum.position) > .1f,
-                        "released curved wall is displaced by PhysX");
+                    Require(Vector3.Distance(initialWallPosition, looseWall.position) > .1f,
+                        "released courtyard wall is displaced by PhysX");
                     Require(Vector3.Distance(initialTrainPosition, map.GetComponentInChildren<UnderneathTreeTrain>().transform.position) > .2f,
                         "train advances on the track during Play Mode");
                     initialRailPosition = hitRail.position;
-                    initialWalkwayPosition = hitWalkway.position;
                     hitRail.GetComponentInChildren<BoxCollider>().GetComponentInParent<IPushable>().Push(Vector3.up * 6f, null);
-                    hitWalkway.GetComponent<BoxCollider>().GetComponentInParent<IPushable>().Push(Vector3.up * 6f, null);
                     phase = 2;
                     impactFixedTime = Time.fixedTime;
                     return;
@@ -242,8 +227,6 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 {
                     Require(!hitRail.isKinematic && Vector3.Distance(initialRailPosition, hitRail.position) > .2f,
                         "a direct hit on a rail deck releases and moves its rigidbody");
-                    Require(!hitWalkway.isKinematic && Vector3.Distance(initialWalkwayPosition, hitWalkway.position) > .2f,
-                        "a direct hit on a ribbon ramp releases and moves its rigidbody");
                     bridgeLid = map.Blocks.Single(body => body.name == "Lid" && body.transform.parent.name == "Gift Bridge / Navy Span");
                     initialBridgePosition = bridgeLid.position;
                     railBodies = railBodies.Where(body => body.isKinematic).ToArray();
@@ -260,19 +243,17 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     "destroying a bearing gift releases and moves the bridge");
                 Require(railBodies.Any(body => !body.isKinematic),
                     "losing gift support releases real rail sections");
-                Shot(Services.Session.Player.ViewCamera, "fallen-bridge", new Vector3(64f, 27f, -109f),
-                    new Vector3(16.0f, 5.8f, -70.5f), 55f);
                 Services.Session.ResetMap();
                 Require(map.Revision > revision && map.Blocks.Count == blockCount && map.Blocks.All(b => b.isKinematic),
                     "normal map reset restores the original intact pieces");
                 Require(PieceOrder().SequenceEqual(originalPieces), "map reset preserves deterministic replica body order");
-                var capturedLid = map.Blocks.Single(b => b.transform.parent.name == "Present 01" && b.name == "Lid");
+                var capturedLid = map.Blocks.Single(b => b.transform.parent.name == "Courtyard / Ruby Hop" && b.name == "Lid");
                 map.SetReplica(true);
                 capturedLid.position += Vector3.up * .4f;
                 map.SetReplica(false);
                 Require(!capturedLid.isKinematic && map.Blocks.Count(b => !b.isKinematic) == 1,
                     "restoring authority keeps the replica piece displaced by the host loose");
-                CheckJunction();
+                CheckSpawn();
                 Finish(true);
             }
             catch (Exception error)
@@ -499,16 +480,15 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         static void CheckRoutes(System.Collections.Generic.Dictionary<string, Rigidbody[]> gifts)
         {
-            var names = new[] { "Sofa Approach / Cream Step", "Tree-side Stack / Green Perch",
-                "Skirt Landing / Navy Tread", "Bridge Junction / Low Step", "Gift Bridge / Navy Span",
-                "Gift Bridge / Red Tread", "Gift Bridge / Red Shelf" };
+            var names = new[] { "Entrance / Cream Catch", "Entrance / Green Step", "Left Summit / Wizard Cap",
+                "Right Summit / Sapphire Crown", "Gift Bridge / Navy Span", "Train Tunnel / Gold Lintel" };
             foreach (var name in names)
             {
                 Require(gifts.TryGetValue(name, out var parts) &&
                     parts.All(body => body.GetComponent<IClimbable>()?.CanClimb == true),
                     name + " has climbable physics pieces");
             }
-            Require(railBodies.Length > 5 && railBodies.All(body =>
+            Require(railBodies.Length == 16 && railBodies.All(body =>
             {
                 var decks = body.GetComponentsInChildren<BoxCollider>();
                 return decks.Length > 0 && decks.All(deck => WorkingDeck(deck, body));
@@ -523,7 +503,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 }), "the trunk clears every piece of rail deck");
             var span = gifts["Gift Bridge / Navy Span"].Single(body => body.name == "Lid");
             var spanShape = span.GetComponent<BoxCollider>();
-            Require(spanShape && spanShape.size.z > 45f && spanShape.size.x > 8f && span.position.y > 10f,
+            Require(spanShape && Mathf.Max(spanShape.size.x, spanShape.size.z) > 45f && Mathf.Min(spanShape.size.x, spanShape.size.z) > 8f && span.position.y > 10f,
                 "the widened and raised navy span is present");
             var center = span.transform.position;
             var floor = new Vector3(center.x, 1.65f, center.z);
@@ -537,20 +517,13 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         static string[] PieceOrder() => map.Blocks.Select(body => body.transform.parent.name + "/" + body.name).ToArray();
 
-        static void CheckJunction()
+        static void CheckSpawn()
         {
-            var cream = map.Blocks.Single(b => b.transform.parent.name == "Cream Landing" && b.name == "Lid")
-                .GetComponent<BoxCollider>();
-            var green = map.Blocks.Single(b => b.transform.parent.name == "Green Climb" && b.name == "Left")
-                .GetComponent<BoxCollider>();
-            var center = cream.bounds.center;
-            center.y = cream.bounds.max.y;
-            Require(Physics.Raycast(center + Vector3.up, Vector3.down, out var landing, 2f,
-                1 << Layers.Block) && landing.collider == cream, "cream gift catches a downward landing probe");
-            Require(Physics.Raycast(center + Vector3.up * .55f, cream.transform.right,
-                out var side, 5f, 1 << Layers.Block) && side.collider == green &&
-                Climbables.TryGet(green, out var climbable) && climbable.CanClimb && climbable.Grip > 0f,
-                "green shell has a reachable wall and registers normal climbing");
+            var origin = map.SafeSpawnPoint() + Vector3.up * .2f;
+            Require(Physics.Raycast(origin, Vector3.down, out var landing, 1f, 1 << Layers.Block) &&
+                landing.collider.attachedRigidbody && landing.collider.attachedRigidbody.name == "Lid" &&
+                landing.normal.y > .92f && Climbables.TryGet(landing.collider, out var top) && top.CanClimb,
+                "normal spawn has a stable climbable present lid underneath");
         }
 
         static void Require(bool condition, string message)

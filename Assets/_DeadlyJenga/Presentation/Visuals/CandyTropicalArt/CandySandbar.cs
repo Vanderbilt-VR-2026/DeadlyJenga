@@ -19,13 +19,93 @@ namespace DeadlyJenga.CandyArt
         internal bool CatwalksBeach { get; set; }
         internal float BeachWaterOffset { get; set; }
         Vector2 coastHalf;
+        Vector3[] flatVertices, caveVertices;
+        float[] sandX, sandZ;
+        int terrainResolution;
+        bool deformed;
         public float SampleHeight(Vector2 p)=>SurfaceHeight(p);
         struct Foot {public Vector2 center,half;public Quaternion rotation;}
         readonly List<Foot> feet=new List<Foot>();
         void OnEnable(){Refresh();}
         void OnDisable(){Release();}
         void Dispose(Object item){if(!item)return;if(Application.isPlaying)Destroy(item);else DestroyImmediate(item);}
-        void Release(){Dispose(owned);Dispose(heights);owned=null;heights=null;}
+        void Release(){Dispose(owned);Dispose(heights);owned=null;heights=null;flatVertices=caveVertices=null;deformed=false;}
+
+        internal bool TrySampleSurface(Vector3 point, out Vector3 surface)
+        {
+            surface = default;
+            if (!owned || !isActiveAndEnabled || !TryGetComponent<MeshRenderer>(out var renderer) ||
+                !renderer.enabled) return false;
+            var local = transform.InverseTransformPoint(point);
+            if (Mathf.Abs(local.x) > HalfSize.x || Mathf.Abs(local.z) > HalfSize.y) return false;
+            local.y = SurfaceHeight(new Vector2(local.x, local.z));
+            surface = transform.TransformPoint(local);
+            return true;
+        }
+
+        // Centres and dimensions are in local space. Overlapping holes share a floor.
+        internal void ApplyCaveIns(IReadOnlyList<Vector4> craters)
+        {
+            if (!owned || (craters.Count == 0 && !deformed)) return;
+            if (flatVertices == null)
+            {
+                flatVertices = owned.vertices;
+                owned.MarkDynamic();
+            }
+            caveVertices ??= new Vector3[flatVertices.Length];
+            System.Array.Copy(flatVertices, caveVertices, flatVertices.Length);
+
+            int row = terrainResolution + 1;
+            foreach (var crater in craters)
+            {
+                float cell = Mathf.Max(sandX[row / 2 + 1] - sandX[row / 2], sandZ[row / 2 + 1] - sandZ[row / 2]);
+                float radius = Mathf.Max(crater.z, cell * 2.25f);
+                float reach = radius * 1.14f;
+                int minX = Mathf.Max(1, AtOrAbove(sandX, crater.x - reach));
+                int maxX = Mathf.Min(row - 2, AtOrAbove(sandX, crater.x + reach));
+                int minZ = Mathf.Max(1, AtOrAbove(sandZ, crater.y - reach));
+                int maxZ = Mathf.Min(row - 2, AtOrAbove(sandZ, crater.y + reach));
+                for (int z = minZ; z <= maxZ; z++)
+                for (int x = minX; x <= maxX; x++)
+                {
+                    int index = z * row + x;
+                    var original = flatVertices[index];
+                    var offset = new Vector2(original.x - crater.x, original.z - crater.y);
+                    float irregularity = Mathf.PerlinNoise(original.x * .85f + 17, original.z * .85f + 6);
+                    float distance = offset.magnitude / (radius * (.94f + .12f * irregularity));
+                    if (distance >= 1.07f) continue;
+                    float bowl = 1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.09f, .88f, distance));
+                    float lip = 1 - Mathf.SmoothStep(0, 1, Mathf.Abs(distance - .87f) / .20f);
+                    float y = original.y - crater.w * bowl + Mathf.Min(.11f, crater.w * .24f) * lip;
+                    if (y < original.y) caveVertices[index].y = Mathf.Min(caveVertices[index].y, y);
+                    else if (caveVertices[index].y >= original.y) caveVertices[index].y = Mathf.Max(caveVertices[index].y, y);
+                }
+            }
+            owned.SetVertices(caveVertices);
+            owned.RecalculateBounds();
+            owned.RecalculateNormals();
+            deformed = craters.Count != 0;
+        }
+
+        static int AtOrAbove(float[] axis, float value)
+        {
+            int index = System.Array.BinarySearch(axis, value);
+            return index < 0 ? ~index : index;
+        }
+
+        static float[] MeshAxis(int resolution, float span, float beach, bool catwalks)
+        {
+            var axis = new float[resolution + 1];
+            int fringe = catwalks ? 16 : 0;
+            beach = catwalks ? Mathf.Min(span, beach + 6) : span;
+            for (int i = 0; i <= resolution; i++)
+            {
+                if (i < fringe) axis[i] = Mathf.Lerp(-span, -beach, i / (float)fringe);
+                else if (i > resolution - fringe) axis[i] = Mathf.Lerp(beach, span, (i + fringe - resolution) / (float)fringe);
+                else axis[i] = Mathf.Lerp(-beach, beach, (i - fringe) / (float)(resolution - fringe * 2));
+            }
+            return axis;
+        }
         public void Refresh()
         {
             if(!profile)return;var shape=map?Map:null;
@@ -120,11 +200,26 @@ namespace DeadlyJenga.CandyArt
         void BuildMesh()
         {
             int resolution=CatwalksBeach?160:Mathf.Clamp(profile.terrainResolution,48,160),row=resolution+1;
+            terrainResolution=resolution;
+            sandX = MeshAxis(resolution, HalfSize.x, coastHalf.x, CatwalksBeach);
+            sandZ = MeshAxis(resolution, HalfSize.y, coastHalf.y, CatwalksBeach);
             var vertices=new List<Vector3>();var uv=new List<Vector2>();var triangles=new List<int>();var samples=new float[row*row];
             for(int z=0;z<=resolution;z++)for(int x=0;x<=resolution;x++)
             {
-                Vector2 p=new Vector2(Mathf.Lerp(-HalfSize.x,HalfSize.x,(float)x/resolution),Mathf.Lerp(-HalfSize.y,HalfSize.y,(float)z/resolution));float h=SurfaceHeight(p);
-                vertices.Add(new Vector3(p.x,h,p.y));uv.Add(new Vector2((float)x/resolution,(float)z/resolution));samples[z*row+x]=h;
+                Vector2 p = new Vector2(Mathf.Lerp(-HalfSize.x, HalfSize.x, (float)x / resolution), Mathf.Lerp(-HalfSize.y, HalfSize.y, (float)z / resolution));
+                samples[z * row + x] = SurfaceHeight(p);
+            }
+            for(int z=0;z<=resolution;z++)for(int x=0;x<=resolution;x++)
+            {
+                var p = new Vector2(sandX[x], sandZ[z]);
+                var unit = new Vector2(p.x / (2 * HalfSize.x) + .5f, p.y / (2 * HalfSize.y) + .5f);
+                var texel = unit * resolution;
+                int left = Mathf.Min(resolution - 1, Mathf.FloorToInt(texel.x));
+                int near = Mathf.Min(resolution - 1, Mathf.FloorToInt(texel.y));
+                float first = Mathf.Lerp(samples[near * row + left], samples[near * row + left + 1], texel.x - left);
+                float second = Mathf.Lerp(samples[(near + 1) * row + left], samples[(near + 1) * row + left + 1], texel.x - left);
+                vertices.Add(new Vector3(p.x, Mathf.Lerp(first, second, texel.y - near), p.y));
+                uv.Add(unit);
             }
             for(int z=0;z<resolution;z++)for(int x=0;x<resolution;x++)
             {int a=z*row+x,b=a+1,c=a+row,d=c+1;triangles.Add(a);triangles.Add(c);triangles.Add(b);triangles.Add(b);triangles.Add(c);triangles.Add(d);}

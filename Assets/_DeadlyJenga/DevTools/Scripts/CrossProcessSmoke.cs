@@ -7,6 +7,7 @@ using System.Linq;
 using UnityEngine;
 using Unity.Profiling;
 using Unity.Profiling.LowLevel.Unsafe;
+using DeadlyJenga.CharacterNetwork;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastleSocial;
 using DeadlyJenga.World.Hazards;
@@ -25,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(NearbyFlow?850:LobbyHandoff||TycoonTest||FullRound?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:NearbyFlow?1200:LobbyHandoff||TycoonTest||FullRound?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -186,6 +187,8 @@ namespace DeadlyJenga.CastlePrototype
             string address=null;
             if(host)
             {
+                yield return Until(() => File.Exists(Mark("guest-home-nearby")),
+                    "Guest Home is ready before opening the nearby room", 180);
                 home.Host();
                 yield return Until(()=>IslandLobby.Current&&room.IsHost&&!room.Busy&&IslandLobby.Current.CanStart,
                     "Home Host creates a playable Marina room",95,()=>room.Status);
@@ -197,6 +200,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             else
             {
+                File.WriteAllText(Mark("guest-home-nearby"), "ready");
                 yield return Until(()=>File.Exists(Mark("code")),"Host test rendezvous is ready",110);
                 address=File.ReadAllText(Mark("code"));
                 home.DetectNearby();
@@ -218,43 +222,262 @@ namespace DeadlyJenga.CastlePrototype
             }
             string LobbyState() => $"scene={UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}, room={room.Status}, " +
                 $"busy={room.Busy}, humans={room.HumanCount}, mirrors={IslandLobby.Current?.PeerCount}, home={(home ? home.Status : "closed")}";
+            string lastState = null;
+            bool BothInMarina()
+            {
+                string state = LobbyState();
+                if (state != lastState)
+                {
+                    File.AppendAllText(Report, "Marina join: " + state + "\n");
+                    lastState = state;
+                }
+                return IslandLobby.Current && room.Connected && !room.Busy && room.Code == address &&
+                    room.HumanCount == 2 && SeesOtherHuman();
+            }
             bool SeesOtherHuman() => IslandLobby.Current && room.Connected && room.Runner &&
                 room.Runner.ActivePlayers.Any(player => player != room.Runner.LocalPlayer &&
                     IslandLobby.Current.TryPeerPosition(player.ToString(), out _));
-            yield return Until(()=>IslandLobby.Current&&room.Connected&&!room.Busy&&room.Code==address&&
-                room.HumanCount==2&&SeesOtherHuman(),
+            yield return Until(BothInMarina,
                 "Both real Fusion clients share the same Marina room and see one another",75,LobbyState);
             File.WriteAllText(Mark(role+"-nearby-joined"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-joined")),
                 "Other client confirmed joining",85,LobbyState);
+            yield return Until(() => host
+                    ? IslandLobby.Current.SurvivorBots?.Count == 8
+                    : FindObjectsByType<SurvivorNetworkView>(FindObjectsSortMode.None).Count(view =>
+                        view.Alive && view.ActorId?.StartsWith("lobby-bot:", StringComparison.Ordinal) == true) == 8,
+                "The live 10-slot Marina cohort has two client processes and eight lobby bots", 35, LobbyState);
             if (!host)
                 yield return Until(() => File.Exists(Mark("host-pressed-go")),
                     "Host opens the ready check", 40, LobbyState);
             yield return Until(() => IslandLobby.Current.CanStart,
-                "Play's Marina GO button is available", 35, LobbyState);
+                "Play's Marina GO button is available", 35, () => LobbyState()+" | "+room.GetComponent<RoomGameExperience>()?.GameStatus);
             IslandLobby.Current.StartOrCancel();
             if (host) File.WriteAllText(Mark("host-pressed-go"), "ready");
+            const int matchEntryTimeout = 125;
             CastlePlaySession game=null;
-            yield return Until(()=>(game=FindFirstObjectByType<CastlePlaySession>())&&game.Network&&
-                !game.Network.WaitingForWorld&&game.Modes&&game.Modes.Frame.phase==RoundPhase.Playing&&
-                MatchSetup.MapId=="mode-castle-catwalks"&&room.Connected&&room.Code==address,
-                "Guest follows host from Marina to the real Play round in the same room",125,()=>room.Status);
+            double previous = Time.realtimeSinceStartupAsDouble;
+            double nextTrace = previous;
+            double longestFrame = 0;
+            bool SeesMatchHuman() => game && game.Network && room.Connected && room.Runner &&
+                room.Runner.ActivePlayers.Any(player => player != room.Runner.LocalPlayer &&
+                    game.Network.ParticipantTransform(player.ToString())?.GetComponent<SurvivorNetworkView>()?.Alive == true);
+            string MatchState()
+            {
+                var flow = room.GetComponent<RoomGameExperience>();
+                var fusion = game ? game.GetComponent<CastleFusionSession>() : null;
+                var network = game && game.Network ? game.Network : null;
+                var frame = game && game.Modes ? game.Modes.Frame : null;
+                float now = Time.unscaledTime;
+                string delivery = fusion && fusion.IsHost
+                    ? $"worldRetries={fusion.WorldReceiptRetries}, pendingWorldAckAge={fusion.OldestPendingWorldAckSeconds:F1}"
+                    : $"lastWorldReceiveAge={now - fusion?.LastWorldReceivedAt:F1}, lastWorldApplyAge={now - fusion?.LastWorldAppliedAt:F1}, lastHostPoseAge={now - fusion?.LastHostPoseAt:F1}";
+                return $"{LobbyState()}, map={MatchSetup.MapId}, flow={flow?.GamePhase} ({flow?.GameStatus}), " +
+                    $"sceneVersion={(room.Runner ? room.Runner.SceneInfo.Version.ToString() : "none")}, " +
+                    $"round={frame?.phase}, elapsed={frame?.elapsed:F1}, remaining={frame?.remaining:F1}, worldPending={network?.WaitingForWorld}, " +
+                    $"gameHumans={network?.HumanCount}, otherAvatar={SeesMatchHuman()}, blocks={Services.World?.Blocks.Count}, " +
+                    $"fullWorld={fusion?.WorldFullTransfersSubmitted}, deltaWorld={fusion?.WorldDeltaTransfersSubmitted}, " +
+                    delivery + ", " +
+                    $"bundles={fusion?.HotpathBundlesSubmitted}, flushFailures={fusion?.HotpathFlushFailures}, " +
+                    $"longestFrameMs={longestFrame * 1000:F0}";
+            }
+            yield return Until(() =>
+            {
+                double now = Time.realtimeSinceStartupAsDouble;
+                longestFrame = Math.Max(longestFrame, now - previous);
+                previous = now;
+                game = FindFirstObjectByType<CastlePlaySession>();
+                if (now >= nextTrace)
+                {
+                    nextTrace = now + 5;
+                    File.AppendAllText(Report, $"PLAY {DateTime.UtcNow:O} {MatchState()}\n");
+                }
+                return game && game.Network && !game.Network.WaitingForWorld && game.Modes &&
+                    Services.World?.Blocks.Count > 0 && NetworkActors.Alive(game.Player) &&
+                    game.Modes.Frame.phase == RoundPhase.Playing && MatchSetup.MapId == "mode-castle-catwalks" &&
+                    room.Connected && room.HumanCount == 2 && game.Network.HumanCount == 2 && room.Code == address &&
+                    SeesMatchHuman();
+            }, "This client enters the real Play round with the world and other avatar ready", matchEntryTimeout, MatchState);
+            File.AppendAllText(Report, "MATCH READY " + MatchState() + "\n");
             File.WriteAllText(Mark(role+"-nearby-playing"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-playing")),
-                "Both clients confirmed the match before returning",25);
-            yield return Until(() => game && game.Modes &&
-                game.Modes.Frame.phase is RoundPhase.Victory or RoundPhase.Results,
-                "The full Play round reaches results after nearby join", 480, () => room.Status);
-            yield return Until(()=>IslandLobby.Current&&room.Connected&&!room.Busy&&room.Code==address&&
-                room.HumanCount==2&&SeesOtherHuman(),
+                "Both clients confirmed the match before returning", matchEntryTimeout, MatchState);
+            var rules = game.Modes.Frame.rules;
+            float resultsTimeout = Mathf.Max(480, rules.roundSeconds + rules.victorySeconds + 180);
+            File.AppendAllText(Report, $"WAIT RESULTS matchSeconds={rules.roundSeconds:F1}, timeoutSeconds={resultsTimeout:F1}\n");
+            nextTrace = Time.realtimeSinceStartupAsDouble + 30;
+            yield return Until(() =>
+            {
+                double now = Time.realtimeSinceStartupAsDouble;
+                if (now >= nextTrace)
+                {
+                    nextTrace = now + 30;
+                    File.AppendAllText(Report, $"ROUND {DateTime.UtcNow:O} {MatchState()}\n");
+                }
+                if (!room.Connected || room.HumanCount != 2 || room.Code != address)
+                    Require(false, "The pair lost its shared room before results | " + MatchState());
+                return game && game.Modes && game.Modes.Frame.phase == RoundPhase.Results &&
+                    room.Connected && room.HumanCount == 2 && room.Code == address;
+            }, "This client reaches the full Play round results in the same room", resultsTimeout, MatchState);
+            File.AppendAllText(Report, "MATCH RESULTS " + MatchState() + "\n");
+            yield return Until(BothInMarina,
                 "Guest follows host back to Marina without disconnecting",90,()=>room.Status);
             File.WriteAllText(Mark(role+"-nearby-returned"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-returned")),
-                "Both clients confirm the return",25);
+                "Both clients confirm the return",90,LobbyState);
+        }
+
+        // N-player join: one host (--dj-smoke=host) and N-1 guests (--dj-smoke=guestK). Each process
+        // holds the room for --dj-scale-seconds once everyone is in, then leaves.
+        static bool ScaleTest => Environment.GetCommandLineArgs().Contains("--dj-scale");
+        static int ScaleArg(string name, int fallback)
+        {
+            foreach (var arg in Environment.GetCommandLineArgs())
+                if (arg.StartsWith(name + "=") && int.TryParse(arg.Substring(name.Length + 1), out int value)) return value;
+            return fallback;
+        }
+
+        IEnumerator CheckScale()
+        {
+            int players = ScaleArg("--dj-scale-players", 2);
+            float holdSeconds = ScaleArg("--dj-scale-seconds", 60);
+            bool host = role == "host";
+            HomeSession home = null;
+            yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && !string.IsNullOrEmpty(home.Region),
+                "Home initializes its room connection", 90);
+            var room = IslandRoomConnection.Instance;
+            if (host)
+            {
+                if (MatchTest)
+                {
+                    // Same entry as the Tycoon run: a local lobby first, then Host from its terminal.
+                    home.Demo();
+                    yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player), "Host enters usable lobby", 90);
+                    var opened = room.Host();
+                    yield return Until(() => opened.IsCompleted && room.IsHost && !room.Busy, "Host opens a Fusion room", 90, () => room.Status);
+                    yield return ChooseDemoCastle(IslandLobby.Current, players + ScaleArg("--dj-match-bots", 8));
+                }
+                else
+                {
+                    home.Host();
+                    yield return Until(() => IslandLobby.Current && room.IsHost && !room.Busy, "Host opens a Fusion room", 90, () => room.Status);
+                }
+                File.WriteAllText(Mark("scale-code-temp"), room.Code);
+                File.Move(Mark("scale-code-temp"), Mark("scale-code"));
+            }
+            else
+            {
+                yield return Until(() => File.Exists(Mark("scale-code")), "Host publishes the room code", 180);
+                home.Code = File.ReadAllText(Mark("scale-code"));
+                home.JoinCode();
+                yield return Until(() => IslandLobby.Current && room.Connected && !room.IsHost && !room.Busy,
+                    "Guest joins the room", 120, () => room.Status);
+            }
+            yield return Until(() => room.Connected && room.HumanCount == players,
+                $"Room reaches {players} humans", 240, () => $"humans={room.HumanCount}; status={room.Status}");
+            File.AppendAllText(Report, $"SCALE joined humans={room.HumanCount} of {players}\n");
+            if (MatchTest)
+            {
+                yield return CheckMatch(room, players, ScaleArg("--dj-match-bots", 8), holdSeconds);
+            }
+            else
+            {
+                float holdUntil = Time.realtimeSinceStartup + holdSeconds;
+                int minHumans = int.MaxValue, drops = 0;
+                while (Time.realtimeSinceStartup < holdUntil)
+                {
+                    yield return new WaitForSeconds(1f);
+                    int humans = room.HumanCount;
+                    minHumans = Mathf.Min(minHumans, humans);
+                    if (!room.Connected) drops++;
+                }
+                File.AppendAllText(Report, $"SCALE held minHumans={minHumans} disconnectedSeconds={drops}\n");
+                Require(drops == 0 && minHumans == players, $"Room held {players} humans for {holdSeconds:F0}s without drops");
+            }
+            var leave = room.Leave();
+            yield return Until(() => leave.IsCompleted, "Process leaves the room", 30);
+        }
+
+        // Match run: host starts Demo on Castle with a fixed bot count, then both processes hold the round.
+        static bool MatchTest => Environment.GetCommandLineArgs().Contains("--dj-match");
+
+        // Chosen while the host is alone: a joined guest standing in a lobby slot blocks terminal changes.
+        IEnumerator ChooseDemoCastle(IslandLobby lobby, int population)
+        {
+            MatchSetup.BotTarget = population;
+            yield return Until(() => lobby.CanConfigure, "Host terminal is configurable", 60,
+                () => $"canStart={lobby.CanStart} status={IslandRoomConnection.Instance.Status}");
+            lobby.SelectMode("demo");
+            yield return Until(() => lobby.SelectedModeId == "demo", "Terminal selects Demo mode", 30);
+            lobby.SelectMap("castle");
+            yield return Until(() => lobby.SelectedMapId == "castle", "Terminal selects Castle map", 30);
+        }
+
+        IEnumerator CheckMatch(IslandRoomConnection room, int players, int bots, float seconds)
+        {
+            bool host = role == "host";
+            var lobby = IslandLobby.Current;
+            if (host) lobby.StartOrCancel();
+            CastlePlaySession session = null;
+            yield return Until(() => (session = FindFirstObjectByType<CastlePlaySession>()) && NetworkActors.Alive(session.Player)
+                && session.Network && !session.Network.WaitingForWorld, "Room transitions to a Castle match", 150, () => $"room={room.Status}");
+            if (host)
+            {
+                session.SurvivorBots.AutoFill = false;
+                session.SurvivorBots.Clear();
+                for (int i = 0; i < bots; i++) session.SurvivorBots.SpawnOne();
+                Require(session.SurvivorBots.Count == bots, $"Host spawns {bots} bots");
+            }
+            yield return Until(() => session.SurvivorBots.Count == bots || !host, $"Bots replicate to {role} ({bots} expected)", 60,
+                () => $"count={session.SurvivorBots.Count}");
+            File.AppendAllText(Report, $"MATCH started role={role} bots={session.SurvivorBots.Count} humans={room.HumanCount}\n");
+
+            var start = new Dictionary<GameObject, Vector3>();
+            foreach (var bot in session.SurvivorBots.Members) if (bot) start[bot] = bot.transform.position;
+            var times = new List<double>(4000);
+            int disconnected = 0, hitchSeconds = 0, minHumans = int.MaxValue;
+            double previous = Time.realtimeSinceStartupAsDouble, end = previous + seconds, nextSecond = previous + 1;
+            double worstInSecond = 0;
+            while (previous < end)
+            {
+                yield return null;
+                double now = Time.realtimeSinceStartupAsDouble, ms = (now - previous) * 1000;
+                times.Add(ms); worstInSecond = System.Math.Max(worstInSecond, ms); previous = now;
+                if (now >= nextSecond)
+                {
+                    nextSecond += 1;
+                    if (!room.Connected) disconnected++;
+                    if (worstInSecond >= 100) hitchSeconds++;
+                    minHumans = Mathf.Min(minHumans, room.HumanCount);
+                    worstInSecond = 0;
+                }
+            }
+            int moved = 0;
+            foreach (var pair in start)
+                if (pair.Key && Vector3.Distance(pair.Key.transform.position, pair.Value) > 1f) moved++;
+            var sorted = times.OrderBy(ms => ms).ToArray();
+            double Percentile(float fraction) => sorted[Mathf.Clamp(Mathf.CeilToInt(sorted.Length * fraction) - 1, 0, sorted.Length - 1)];
+            File.AppendAllText(Report, $"FRAMES match n={times.Count} p50={Percentile(.5f):F1}ms p95={Percentile(.95f):F1}ms p99={Percentile(.99f):F1}ms max={sorted.Last():F1}ms >=100ms={times.Count(ms => ms >= 100)}\n");
+            File.WriteAllLines(Path.Combine(folder, role + "-match-frames-ms.txt"), times.Select(ms => ms.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)));
+            File.AppendAllText(Report, $"MATCH held seconds={seconds:F0} bots={session.SurvivorBots.Count} botsMoved={moved}/{start.Count} minHumans={minHumans} disconnectedSeconds={disconnected} hitchSeconds={hitchSeconds}\n");
+            Require(disconnected == 0 && minHumans == players, $"Match held {players} humans for {seconds:F0}s without drops");
+            Require(moved > 0 || !host, "Bots move during the match");
         }
 
         static bool TycoonTest => Environment.GetCommandLineArgs().Contains("--dj-tycoon");
         const string TycoonMap = "mode-tycoon";
+        [Serializable] sealed class DisplacedBlock
+        {
+            public int index;
+            public bool active;
+            public Vector3 position;
+            public Quaternion rotation;
+        }
+
+        [Serializable] sealed class DisplacedWorld
+        {
+            public DisplacedBlock[] blocks;
+        }
         static bool MigrationRound => Environment.GetCommandLineArgs().Contains("--dj-migrate-round");
         static bool FullRound => Environment.GetCommandLineArgs().Contains("--dj-full-round");
 
@@ -423,6 +646,11 @@ namespace DeadlyJenga.CastlePrototype
             var world = (CastleGenerator)Services.World;
             var blocks = world.Bodies.ToArray();
             var authored = blocks.Select(body => body.position).ToArray();
+            if (!solo)
+                yield return Until(() => session.Network.HumanPositions().Any(player =>
+                        player.Key != session.Network.LocalParticipantId &&
+                        session.Network.TryParticipantPosition(player.Key, out _)),
+                    "Remote human avatar and position are live in Game", 30);
             if (host)
                 yield return Until(() => File.Exists(Mark("tycoon-guest-match")),
                     "Guest confirms initial world snapshot before load is added", 60);
@@ -433,7 +661,7 @@ namespace DeadlyJenga.CastlePrototype
                 blocks.All(body => body && body.isKinematic && body.TryGetComponent<Collider>(out var collider) && collider.enabled),
                 $"All {expectedTycoonBlocks} resting Tycoon blocks have live colliders");
             QualitySettings.vSyncCount = 0;
-            Application.targetFrameRate = 90;
+            Application.targetFrameRate = -1;
             if (solo)
             {
                 var probe = blocks.OrderByDescending(body => body.position.y).First();
@@ -468,6 +696,9 @@ namespace DeadlyJenga.CastlePrototype
                 for (int i = 0; i < 24; i++) session.SurvivorBots.SpawnOne();
                 Require(session.SurvivorBots.Count == 24, "Host spawns 24 actual bots");
                 yield return SampleFrames("24-bots", 12);
+                if (host)
+                    yield return Until(() => File.Exists(Mark("tycoon-guest-bots-sampled")),
+                        "Guest sampled its replicated 24-bot workload before tsunami", 45);
                 var beforeWave = world.Bodies.Select(body => body.position).ToArray();
                 var wavePrefab = DemoDisasters.Prefabs.First(prefab => prefab.name == "Tsunami");
                 var parameters = DemoDisasters.Parameters(wavePrefab).Select(parameter => parameter.initial).ToArray();
@@ -481,16 +712,54 @@ namespace DeadlyJenga.CastlePrototype
                 yield return Until(() => Moved() >= 12, "Tsunami moves at least 12 blocks", 25, () => "Moved " + Moved());
                 File.AppendAllText(Report, $"Tsunami moved {Moved()} blocks over 1 m.\n");
                 Require(world.Bodies.All(body => body && float.IsFinite(body.position.sqrMagnitude)), "World remains finite after the wave");
-                if (host) yield return Until(() => File.Exists(Mark("tycoon-wave-seen")), "Guest receives wave and changed block poses");
+                if (host)
+                {
+                    var displaced = new DisplacedWorld
+                    {
+                        blocks = world.Bodies.Select((body, index) => new DisplacedBlock
+                        {
+                            index = index, active = body.gameObject.activeSelf,
+                            position = body.position, rotation = body.rotation
+                        }).Where(block => (block.position - beforeWave[block.index]).sqrMagnitude > 1f).ToArray()
+                    };
+                    File.WriteAllText(Mark("tycoon-world-pending"), JsonUtility.ToJson(displaced));
+                    File.Move(Mark("tycoon-world-pending"), Mark("tycoon-world"));
+                    yield return Until(() => File.Exists(Mark("tycoon-wave-seen")),
+                        "Guest measures the replicated wave and checks displaced blocks", 30);
+                }
                 DemoDisasters.StopAll(session);
                 Require(room.ReturnMatchToLobby(), "Host requests normal return to lobby");
             }
             else
             {
+                var sync = session.GetComponent<CastleFusionSession>();
+                yield return Until(() => sync && sync.Demo.survivors == 24 &&
+                        FindObjectsByType<SurvivorNetworkView>(FindObjectsSortMode.None)
+                            .Count(view => view.IsBot && !view.IsEnemy) == 24,
+                    "Guest sees 24 bot replicas and the authoritative count", 55);
+                yield return SampleFrames("24-bots", 12);
+                File.WriteAllText(Mark("tycoon-guest-bots-sampled"), "ready");
                 yield return Until(() => Tracked.Waves.Any(wave => wave.Wave.active), "Guest sees the replicated tsunami", 60);
-                yield return SampleFrames("guest-tsunami", 12);
+                yield return SampleFrames("24-bots-tsunami", 21);
                 yield return Until(() => blocks.Where((body, index) => body && (body.position - authored[index]).sqrMagnitude > 1f).Count() >= 12,
                     "Guest receives collapsed poses", 50);
+                yield return Until(() => File.Exists(Mark("tycoon-world")), "Host records the displaced blocks", 30);
+                var sample = JsonUtility.FromJson<DisplacedWorld>(File.ReadAllText(Mark("tycoon-world"))).blocks;
+                int Matches() => sample.Count(expected =>
+                {
+                    var body = blocks[expected.index];
+                    return body && body.gameObject.activeSelf == expected.active &&
+                        (!expected.active || (body.position - expected.position).sqrMagnitude <= 1 &&
+                        Quaternion.Angle(body.rotation, expected.rotation) <= 20);
+                });
+                int best = Matches();
+                double end = Time.realtimeSinceStartupAsDouble + 2;
+                while (Time.realtimeSinceStartupAsDouble < end && best < sample.Length)
+                {
+                    yield return null;
+                    best = Mathf.Max(best, Matches());
+                }
+                File.AppendAllText(Report, $"WORLD displaced samples matching host at one instant: {best}/{sample.Length}; 1 m and 20 degree tolerances; 2 s observation window\n");
                 File.WriteAllText(Mark("tycoon-wave-seen"), "yes");
             }
             yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player) &&
@@ -556,6 +825,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             File.WriteAllText(Report,"Independent player "+role+"\n");
             if(FullRound){yield return CheckFullRound();yield break;}
+            if(ScaleTest){yield return CheckScale();yield break;}
             if(TycoonTest){yield return CheckTycoon();yield break;}
             if(NearbyFlow){yield return CheckNearbyLobby();yield break;}
             if(LobbyHandoff)

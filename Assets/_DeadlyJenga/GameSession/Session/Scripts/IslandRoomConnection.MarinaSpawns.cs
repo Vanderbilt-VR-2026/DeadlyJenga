@@ -35,15 +35,16 @@ namespace DeadlyJenga.CastlePrototype
             if(marinaReservationGeneration!=generation){reason="Waiting for the current room spawn generation.";return MarinaSpawnResult.Wait;}
             if(!marinaSlots.ContainsKey(Runner.LocalPlayer))
             {
-                if(marinaSlots.Values.Contains(0)){reason="Host slot zero is already reserved.";return MarinaSpawnResult.Rejected;}
-                var host=lobby.TryMarinaSpawnPose(0,out var hostPose,out reason,lobby.Player?.gameObject);
+                int hostSlot=lobby.PreferredMarinaHostSlot;
+                if(marinaSlots.Values.Contains(hostSlot)){reason="The host arrival slot is already reserved.";return MarinaSpawnResult.Rejected;}
+                var host=lobby.TryMarinaSpawnPose(hostSlot,out var hostPose,out reason,lobby.Player?.gameObject);
                 if(host!=MarinaSpawnResult.Accepted)return host;
                 if(!lobby.ApplyReservedMarinaSpawn(hostPose)){reason="Waiting for the host lobby body.";return MarinaSpawnResult.Wait;}
-                marinaSlots.Add(Runner.LocalPlayer,0);marinaHostPlaced=true;marinaPlacedLobby=lobby;marinaPlacedFloor=lobby.MarinaFloorRevision;
+                marinaSlots.Add(Runner.LocalPlayer,hostSlot);marinaHostPlaced=true;marinaPlacedLobby=lobby;marinaPlacedFloor=lobby.MarinaFloorRevision;
             }
             if(!marinaHostPlaced||marinaPlacedLobby!=lobby||marinaPlacedFloor!=lobby.MarinaFloorRevision)
             {
-                var host=lobby.TryMarinaSpawnPose(0,out var hostPose,out reason,lobby.Player?.gameObject);
+                var host=lobby.TryMarinaSpawnPose(marinaSlots[Runner.LocalPlayer],out var hostPose,out reason,lobby.Player?.gameObject);
                 if(host!=MarinaSpawnResult.Accepted)return host;
                 if(!lobby.ApplyReservedMarinaSpawn(hostPose)){reason="Waiting for the host lobby body.";return MarinaSpawnResult.Wait;}
                 marinaHostPlaced=true;marinaPlacedLobby=lobby;marinaPlacedFloor=lobby.MarinaFloorRevision;
@@ -51,7 +52,7 @@ namespace DeadlyJenga.CastlePrototype
             if(marinaSlots.TryGetValue(participant,out int existing))
                 return lobby.TryMarinaSpawnPose(existing,out pose,out reason,participant==Runner.LocalPlayer?lobby.Player.gameObject:lobby.MarinaParticipantRoot(participant.ToString()));
             bool free=false;string waiting="";
-            for(int slot=1;slot<10;slot++)
+            for(int slot=0;slot<10;slot++)
             {
                 if(marinaSlots.Values.Contains(slot))continue;free=true;
                 var result=lobby.TryMarinaSpawnPose(slot,out pose,out reason,lobby.MarinaParticipantRoot(participant.ToString()));
@@ -92,14 +93,15 @@ namespace DeadlyJenga.CastlePrototype
             if(roster.Length==0||!roster.Contains(Runner.LocalPlayer)){reason="Waiting for the authenticated migrated roster.";return MarinaSpawnResult.Wait;}
             if(roster.Length>10){reason="Migrated roster exceeds lobby capacity.";return MarinaSpawnResult.Rejected;}
             var replacement=new Dictionary<PlayerRef,int>();
-            var host=lobby.TryMarinaSpawnPose(0,out var hostPose,out reason,lobby.Player?.gameObject);
+            int hostSlot=lobby.PreferredMarinaHostSlot;
+            var host=lobby.TryMarinaSpawnPose(hostSlot,out var hostPose,out reason,lobby.Player?.gameObject);
             if(host!=MarinaSpawnResult.Accepted)return host;
-            replacement.Add(Runner.LocalPlayer,0);
+            replacement.Add(Runner.LocalPlayer,hostSlot);
             foreach(var participant in roster.OrderBy(player=>player.RawEncoded))
             {
                 if(participant==Runner.LocalPlayer)continue;
                 bool assigned=false;string waiting="";
-                for(int slot=1;slot<10;slot++)
+                for(int slot=0;slot<10;slot++)
                 {
                     if(replacement.Values.Contains(slot))continue;
                     var result=lobby.TryMarinaSpawnPose(slot,out _,out reason,lobby.MarinaParticipantRoot(participant.ToString()));
