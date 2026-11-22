@@ -16,6 +16,7 @@ namespace DeadlyJenga.CastlePrototype
         CastleBlockAppearance currentAppearance;
         Material currentMaterial;
         BoxCollider surface;
+        Collider[] compoundSurfaces;
         CastleSurfaceGroup surfaceGroup;
         bool groupedSurface;
         BoxCollider sourceBox;
@@ -60,12 +61,12 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnEnable() { if (surface) surface.gameObject.SetActive(true); }
         void OnDisable() { physicsGroups?.Disturb(body,true); if (surface) surface.gameObject.SetActive(false); }
-        void OnDestroy() { if(sourceBox)Climbables.Unregister(sourceBox); if (surface) {Climbables.Unregister(surface);Destroy(surface.gameObject);} if(surfaceGroup)surfaceGroup.Release(); }
+        void OnDestroy() { if(sourceBox)Climbables.Unregister(sourceBox); if (surface) {UnregisterSurfaces();Destroy(surface.gameObject);} if(surfaceGroup)surfaceGroup.Release(); }
         // IClimbable
         bool traversalEnabled = true;
         public bool CanClimb =>( isActiveAndEnabled && traversalEnabled && !visualDebris)&&!(cityDebris&&cityDebris.IsVisual(Body));
         public void SetTraversalEnabled(bool enabled)
-        { traversalEnabled = enabled; if (surface) surface.enabled = enabled && !visualDebris && !groupedSurface; }
+        { traversalEnabled = enabled; RefreshTraversal(); }
         public float Grip => 1;
         public Transform Anchor => transform;
         public Rigidbody Body => body ? body : body = GetComponent<Rigidbody>();
@@ -77,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
         internal void SetGroupedSurface(bool grouped) { groupedSurface=grouped; if(surface)surface.enabled=traversalEnabled && !visualDebris && !grouped; }
         internal void RestingImpact(Collision collision) { if(debris)debris.Impact(Body,collision); }
         internal void SetVisualDebris(bool value)
-        {visualDebris=value;if(surface){surface.enabled=traversalEnabled && !value && !groupedSurface;}if(!value)SyncSurface();}
+        {visualDebris=value;if(surface){RefreshTraversal();}if(!value)SyncSurface();}
         public Vector3 HazardVelocity => cityDebris&&cityDebris.IsVisual(Body)?cityDebris.Velocity(Body):physicsGroups && physicsGroups.IsDormant(Body) ? physicsGroups.Velocity(Body) : debris?debris.Velocity(Body):Body.linearVelocity;
 
         // IPushable
@@ -100,9 +101,44 @@ namespace DeadlyJenga.CastlePrototype
             if(!sourceBox)sourceBox=GetComponent<BoxCollider>();
             sourceBox.excludeLayers&=~(1<<Layers.Survivor);
             Climbables.Register(sourceBox,this);
-            if(surface){surface.gameObject.SetActive(false);Climbables.Unregister(surface);Destroy(surface.gameObject);surface=null;}
+            if(surface){surface.gameObject.SetActive(false);UnregisterSurfaces();Destroy(surface.gameObject);surface=null;}
             if(surfaceGroup){surfaceGroup.Release();surfaceGroup=null;}
         }
+        // The proxy follows the block pose, including its nonuniform scale. The supplied
+        // subtree contains only collider shapes authored in the block's local space.
+        internal void CopyTraversalShapes(Transform shapes)
+        {
+            if (!surface || !shapes) return;
+            var copy = Instantiate(shapes, surface.transform, false);
+            compoundSurfaces = copy.GetComponentsInChildren<Collider>();
+            foreach (var shape in compoundSurfaces)
+            {
+                shape.gameObject.layer = SurfaceLayer;
+                shape.excludeLayers = surface.excludeLayers;
+                shape.layerOverridePriority = surface.layerOverridePriority;
+                Climbables.Register(shape, this);
+            }
+            RefreshTraversal();
+            CastleSurfaceGroup.Changed();
+        }
+
+        void RefreshTraversal()
+        {
+            if (!surface) return;
+            bool solid = traversalEnabled && !visualDebris && !groupedSurface;
+            surface.enabled = solid;
+            if (compoundSurfaces != null)
+                foreach (var shape in compoundSurfaces) shape.enabled = solid;
+        }
+
+        void UnregisterSurfaces()
+        {
+            Climbables.Unregister(surface);
+            if (compoundSurfaces == null) return;
+            foreach (var shape in compoundSurfaces) Climbables.Unregister(shape);
+            compoundSurfaces = null;
+        }
+
         public void SyncSurface()
         {
             if(visualDebris)return;

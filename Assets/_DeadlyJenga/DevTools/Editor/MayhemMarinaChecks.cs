@@ -875,6 +875,47 @@ namespace DeadlyJenga.DevTools.Editor
             });
             Check(lobby&&lobby.Player.gameObject.activeInHierarchy,"Original Marina remains usable after both peers leave");
         }
+        static void CheckShrineTraversal(CastleGenerator map,List<CastlePlacement> layout)
+        {
+            var roof = map.Bodies[layout.FindIndex(p => p.Position.x == 10 && p.Position.z == -29 && Mathf.Abs(p.Size.y-1.25f)<.01f)];
+            var probe = new GameObject("Shrine survivor traversal check");
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(probe,map.gameObject.scene);
+            probe.layer = Layers.Survivor;
+            var controller = probe.AddComponent<CharacterController>();
+            controller.radius = .22f;
+            controller.height = 1.64f;
+            controller.center = Vector3.up*.82f;
+            controller.stepOffset = .15f;
+            controller.skinWidth = .025f;
+            Vector3 MoveFrom(Vector3 worldStart,Vector3 motion)
+            {
+                controller.enabled = false;
+                probe.transform.position = worldStart;
+                controller.enabled = true;
+                Physics.SyncTransforms();
+                controller.Move(motion);
+                return probe.transform.position;
+            }
+            try
+            {
+                var post = map.transform.TransformPoint(new Vector3(3.5f,.12f,-43));
+                Check(MoveFrom(post+Vector3.back*1.4f,Vector3.forward*2.8f).z < post.z-.45f,"Survivor controller stops at the torii post");
+                var gate = map.transform.TransformPoint(new Vector3(0,.12f,-45));
+                Check(MoveFrom(gate,Vector3.forward*4).z > gate.z+3.8f,"Survivor controller passes through the torii opening");
+                var lamp = map.transform.TransformPoint(new Vector3(-4,.08f,-39));
+                Check(MoveFrom(lamp+Vector3.back*1.3f,Vector3.forward*2.6f).z < lamp.z-.12f,"Stone lantern stops the survivor controller");
+                var at = roof.position + new Vector3(0,4,1.35f);
+                Check(MoveFrom(at,Vector3.down*5).y > roof.position.y+1.3f,"Survivor controller stands on the pitched roof above its deck");
+                var edge = roof.position + new Vector3(0,3,4.95f);
+                Check(MoveFrom(edge,Vector3.down*4).y > roof.position.y-.1f,"Survivor controller stands on the projecting eave");
+                var scene = map.gameObject.scene.GetPhysicsScene();
+                Check(scene.Raycast(at,Vector3.down,out var hit,5,1<<Layers.Surface,QueryTriggerInteraction.Ignore)
+                    && Climbables.TryGet(hit.collider,out var climbable) && climbable.Body == roof,
+                    "Pitched traversal collider resolves to its moving climbable rigidbody");
+            }
+            finally { Object.Destroy(probe); }
+        }
+
         static IEnumerator RunNinjaOverviewScene()
         {
             yield return RunSoloScene();
@@ -905,6 +946,12 @@ namespace DeadlyJenga.DevTools.Editor
                     && r.sharedMaterial.mainTexture)), "Physical walls carry painted shrine-town facades");
             var quay = generator.foundation.GetComponent<MeshCollider>();
             Check(quay && quay.sharedMesh && quay.sharedMesh.vertexCount == 16, "Eight-sided quay collider is present");
+            Check(generator.Bodies.All(body => body && !body.isKinematic && body.useGravity),
+                "All structural pieces have dynamic gravity-driven rigidbodies");
+            Check(!art.GetComponentsInChildren<ParticleSystem>(true).Any(x => x.name.ToLowerInvariant().Contains("rain")) &&
+                !art.GetComponentsInChildren<AudioSource>(true).Any(x => x.name.ToLowerInvariant().Contains("rain")),
+                "Redesigned shrine creates no rain particles or rain audio source");
+            CheckShrineTraversal(generator,layout);
             captureOrigin=world.Center;
             var fog=Shader.GetGlobalVector("_NinjaFogParams");
             bool sceneFog=RenderSettings.fog;

@@ -354,7 +354,11 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var size = CastleLayout.FootprintSize(settings)+Vector2.one*4;
                 foundation.localScale = new Vector3(size.x, 1, size.y);
-                if (settings.layoutPreset == ShrineTownLayout.Preset) ShrineTownLayout.ShapeFoundation(foundation);
+                if (settings.layoutPreset == ShrineTownLayout.Preset)
+                {
+                    ShrineTownLayout.ShapeFoundation(foundation);
+                    ShrineTownLayout.BuildStreetColliders(generatedRoot);
+                }
             }
             foreach (var p in layout)
             {
@@ -394,7 +398,10 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 var size=p.BlockSize(settings);
                 if (settings.layoutPreset == ShrineTownLayout.Preset)
-                    ShrineTownLayout.AddRoofColliders(body, size);
+                {
+                    var shapes = ShrineTownLayout.AddRoofColliders(body, size);
+                    if (block && shapes) block.CopyTraversalShapes(shapes);
+                }
                 float volumeRatio=size.x*size.y*size.z/(settings.blockSize.x*settings.blockSize.y*settings.blockSize.z);
                 // Temple decks represent timber framing with a hollow tiled roof.
                 if (settings.layoutPreset == ShrineTownLayout.Preset && p.Section == CastleSection.Corner) volumeRatio *= .24f;

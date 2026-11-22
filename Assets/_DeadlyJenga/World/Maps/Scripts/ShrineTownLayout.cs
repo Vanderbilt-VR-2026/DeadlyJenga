@@ -94,14 +94,87 @@ namespace DeadlyJenga.CastlePrototype
             joint.enablePreprocessing = false;
         }
 
+        public static void BuildStreetColliders(Transform parent)
+        {
+            // Bolted fixtures share a kinematic body. Openings between the gate posts stay clear.
+            var fixtures = Shape(parent,"Fixed shrine fixtures",Vector3.zero,Quaternion.identity);
+            var body = fixtures.gameObject.AddComponent<Rigidbody>();
+            body.isKinematic = true;
+            body.useGravity = false;
+            for (int side = -1; side <= 1; side += 2)
+            {
+                ColliderBox(fixtures,"Torii post",new Vector3(side*3.5f,4.65f,-43),new Vector3(1.1f,9.3f,1.1f),Quaternion.identity);
+                for (int row = 0; row < 3; row++)
+                    ColliderBox(fixtures,"Lantern pole",new Vector3(side*4.6f,2.7f,-32+row*12),new Vector3(.26f,5.4f,.26f),Quaternion.identity);
+                for (int i = 0; i < 5; i++)
+                    StoneLantern(fixtures,new Vector3(side*4,0,-39+i*10),1);
+                Vector3[] rim = {new(side*5,0,-46),new(side*23,0,-46),new(side*46,0,-23),new(side*46,0,18)};
+                for (int edge = 0; edge < rim.Length-1; edge++)
+                {
+                    var from = rim[edge]; var to = rim[edge+1];
+                    int sections = Mathf.RoundToInt(Vector3.Distance(from,to)/7);
+                    for (int i = 0; i < sections; i++)
+                    {
+                        var a = Vector3.Lerp(from,to,i/(float)sections);
+                        var b = Vector3.Lerp(from,to,(i+1)/(float)sections);
+                        StoneLantern(fixtures,a,1.45f);
+                        if (edge == 0 && i == 0) continue;
+                        ColliderBox(fixtures,"Garden rail",(a+b)*.5f + Vector3.up*.52f,
+                            new Vector3(.17f,1.04f,(b-a).magnitude),Quaternion.LookRotation(b-a));
+                    }
+                }
+                ColliderBox(fixtures,"Maple trunk",new Vector3(side*24,1.08f,10),new Vector3(.31f,2.16f,.31f),Quaternion.identity);
+                ColliderBox(fixtures,"Maple trunk",new Vector3(side*19,1.26f,32),new Vector3(.36f,2.52f,.36f),Quaternion.identity);
+                var rng = new System.Random(side+10);
+                rng.NextDouble(); // Trunk color precedes the bend in the scenery builder.
+                var bend = new Vector3((float)rng.NextDouble()-.5f,0,(float)rng.NextDouble()-.5f).normalized;
+                var foot = new Vector3(side*23,0,-36);
+                for (int i = 0; i < 4; i++)
+                {
+                    var next = foot+(Vector3.up*1.6f+bend*(.6f+i*.25f))*(1.35f*.7f);
+                    float diameter = 2*1.35f*(.25f-i*.05f);
+                    ColliderBox(fixtures,"Pine trunk",(foot+next)*.5f,new Vector3(diameter,diameter,(next-foot).magnitude),Quaternion.LookRotation(next-foot));
+                    foot = next;
+                }
+            }
+            ColliderBox(fixtures,"Torii crossbeam",new Vector3(0,7.4f,-43),new Vector3(8.65f,.61f,.77f),Quaternion.identity);
+            ColliderBox(fixtures,"Torii lintel",new Vector3(0,9.32f,-43),new Vector3(12.5f,1.1f,1.05f),Quaternion.identity);
+        }
+
+        static void StoneLantern(Transform fixtures,Vector3 foot,float scale)
+        {
+            ColliderBox(fixtures,"Stone lantern base",foot+Vector3.up*.15f*scale,
+                new Vector3(.9f,.3f,.9f)*scale,Quaternion.Euler(0,45,0));
+            ColliderBox(fixtures,"Stone lantern stem",foot+Vector3.up*.78f*scale,
+                new Vector3(.34f,.96f,.34f)*scale,Quaternion.identity);
+            ColliderBox(fixtures,"Stone lantern crown",foot+Vector3.up*1.65f*scale,
+                new Vector3(.85f,1f,.85f)*scale,Quaternion.identity);
+        }
+
         // Each pitched roof is one moving body. Both slopes travel with the deck beneath them.
-        public static void AddRoofColliders(Rigidbody body, Vector3 size)
+        public static Transform AddRoofColliders(Rigidbody body, Vector3 size)
         {
             bool skirt = Mathf.Abs(size.y - 1) < .01f && size.x >= 30 && size.z > 4;
-            if (!skirt && Mathf.Abs(size.y - 1.25f) > .01f && Mathf.Abs(size.y - 1.35f) > .01f && Mathf.Abs(size.y - 1.4f) > .01f) return;
+            bool deck = Mathf.Abs(size.y - 1) < .01f && size.z > 4;
+            if (!deck && Mathf.Abs(size.y - 1.25f) > .01f && Mathf.Abs(size.y - 1.35f) > .01f && Mathf.Abs(size.y - 1.4f) > .01f) return null;
             var frame = new GameObject("Roof collision").transform;
             frame.SetParent(body.transform, false);
+            frame.gameObject.layer = body.gameObject.layer;
             frame.localScale = new Vector3(1 / size.x, 1 / size.y, 1 / size.z);
+            float half = size.z / 2;
+            float overhang = Mathf.Clamp(half * .24f,.65f,1.7f);
+            for (int edge = 0; edge < 4; edge++)
+            {
+                bool front = edge % 2 == 0;
+                var turn = Quaternion.Euler(0,90 * edge,0);
+                float depth = front ? half : size.x / 2;
+                float width = overhang * depth / half;
+                float across = (front ? size.x : size.z) * (1 + overhang / half);
+                float drop = overhang * .38f;
+                ColliderBox(frame, "Overhanging eave", turn * new Vector3(0,(size.y-drop)/2,depth+width/2),
+                    new Vector3(across,.16f,Mathf.Sqrt(width*width+drop*drop)),
+                    turn * Quaternion.Euler(Mathf.Atan2(drop,width)*Mathf.Rad2Deg,0,0));
+            }
             if (skirt)
             {
                 for (int edge=0; edge<4; edge++)
@@ -117,28 +190,58 @@ namespace DeadlyJenga.CastlePrototype
                     eave.transform.localRotation = turn * Quaternion.Euler(Mathf.Atan(.72f)*Mathf.Rad2Deg,0,0);
                     eave.AddComponent<BoxCollider>().size = new Vector3(across*.81f,.1f,width*Mathf.Sqrt(1+.72f*.72f));
                 }
-                return;
+                return frame;
             }
-            float run = size.z / 2, rise = run * .44f;
-            for (int side = -1; side <= 1; side += 2)
+            if (deck)
             {
-                var slope = new GameObject("Roof slope");
-                slope.layer = body.gameObject.layer;
-                slope.transform.SetParent(frame, false);
-                slope.transform.localPosition = new Vector3(0, (size.y + rise) / 2, side * run / 2);
-                slope.transform.localRotation = Quaternion.Euler(side * Mathf.Atan(.44f) * Mathf.Rad2Deg, 0, 0);
-                slope.AddComponent<BoxCollider>().size = new Vector3(size.x, .22f, Mathf.Sqrt(run * run + rise * rise));
-                if (Mathf.Abs(size.y - 1.25f) < .01f && size.x >= 15)
-                {
-                    float span = size.x * .38f, peak = rise + span * .32f;
-                    var gable = new GameObject("Front gable slope");
-                    gable.layer = body.gameObject.layer;
-                    gable.transform.SetParent(frame, false);
-                    gable.transform.localPosition = new Vector3(side * span / 2,(size.y + peak) / 2,-(run + .75f) / 2);
-                    gable.transform.localRotation = Quaternion.Euler(0,0,-side * Mathf.Atan2(peak,span) * Mathf.Rad2Deg);
-                    gable.AddComponent<BoxCollider>().size = new Vector3(Mathf.Sqrt(span * span + peak * peak),.15f,run + .75f);
-                }
+                for (int side = -1; side <= 1; side += 2)
+                    ColliderBox(frame,"Gallery rail",new Vector3(0,1.2f,side*(half-.18f)),new Vector3(size.x+.3f,.16f,.18f),Quaternion.identity);
+                return frame;
             }
+            float top = size.y / 2, rise = half * .44f;
+            RoofPrism(frame,"Tiled roof",Vector3.up * top,new Vector3(size.x,rise,size.z),Quaternion.identity);
+            if (Mathf.Abs(size.y - 1.25f) < .01f && size.x >= 15)
+            {
+                float span = size.x * .38f, length = half + .99f;
+                RoofPrism(frame,"Front gable",new Vector3(0,top,-length/2),
+                    new Vector3(length,rise+span*.32f,2*span),Quaternion.Euler(0,90,0));
+            }
+            if (Mathf.Abs(size.y - 1.4f) < .01f)
+                ColliderBox(frame,"Suspended bell",Vector3.down*3.2f,new Vector3(2.6f,3f,2.6f),Quaternion.identity);
+            if (Mathf.Abs(size.y - 1.35f) < .01f)
+                ColliderBox(frame,"Pagoda spire", Vector3.up*(top+rise+2.8f),new Vector3(.54f,5.6f,.54f),Quaternion.identity);
+            return frame;
+        }
+
+        static Mesh roofPrism;
+        static void RoofPrism(Transform parent,string name,Vector3 at,Vector3 size,Quaternion rotation)
+        {
+            if (!roofPrism)
+            {
+                roofPrism = new Mesh { name = "Timber roof prism",
+                    vertices = new Vector3[] {new(-.5f,0,-.5f),new(-.5f,0,.5f),new(-.5f,1,0),
+                        new(.5f,0,-.5f),new(.5f,0,.5f),new(.5f,1,0)},
+                    triangles = new[] {0,1,2,3,5,4,0,3,4,0,4,1,1,4,5,1,5,2,2,5,3,2,3,0} };
+            }
+            var shape = Shape(parent,name,at,rotation);
+            shape.localScale = size;
+            var collider = shape.gameObject.AddComponent<MeshCollider>();
+            collider.convex = true;
+            collider.sharedMesh = roofPrism;
+        }
+
+        static Transform Shape(Transform parent,string name,Vector3 at,Quaternion rotation)
+        {
+            var shape = new GameObject(name).transform;
+            shape.gameObject.layer = parent.gameObject.layer;
+            shape.SetParent(parent,false);
+            shape.SetLocalPositionAndRotation(at,rotation);
+            return shape;
+        }
+
+        static void ColliderBox(Transform parent,string name,Vector3 at,Vector3 size,Quaternion rotation)
+        {
+            Shape(parent,name,at,rotation).gameObject.AddComponent<BoxCollider>().size = size;
         }
 
         void Box(float x, float bottom, float z, float width, float height, float depth, CastleSection section, float yaw = 0)

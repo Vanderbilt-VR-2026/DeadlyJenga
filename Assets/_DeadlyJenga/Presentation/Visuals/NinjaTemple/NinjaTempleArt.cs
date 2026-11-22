@@ -137,7 +137,6 @@ namespace DeadlyJenga.NinjaArt
                         var foot = new Vector3(side * 4.6f,0,z);
                         p.Box(foot + Vector3.up * .24f,new Vector3(.65f,.48f,.65f),Quaternion.identity,P.Stone);
                         p.Cylinder(foot,foot + Vector3.up * 5.4f,.13f,.1f,8,P.Wood,P.Vermilion);
-                        Blocker(foot + Vector3.up * 2.7f,new Vector3(.26f,5.4f,.26f));
                     }
                     var previous = new Vector3(-4.6f,5.4f,z);
                     for (int i = 1; i <= 12; i++)
@@ -253,8 +252,13 @@ namespace DeadlyJenga.NinjaArt
             moon.color = new Color(.62f, .72f, 1); moon.intensity = .9f; moon.shadows = LightShadows.Hard; moon.shadowStrength = .8f;
 
             weather = new GameObject("Visual - weather").transform; weather.SetParent(transform, false);
-            rain = NinjaFx.Rain(weather); leaves = NinjaFx.Leaves(weather); fireflies = NinjaFx.Fireflies(weather);
-            rainAudio = NinjaSounds.Loop(weather, NinjaSounds.Rain, .16f, false); windAudio = NinjaSounds.Loop(weather, NinjaSounds.Wind, .2f, false);
+            if (!shrineTown)
+            {
+                rain = NinjaFx.Rain(weather);
+                rainAudio = NinjaSounds.Loop(weather, NinjaSounds.Rain, .16f, false);
+            }
+            leaves = NinjaFx.Leaves(weather); fireflies = NinjaFx.Fireflies(weather);
+            windAudio = NinjaSounds.Loop(weather, NinjaSounds.Wind, .2f, false);
             waterAudio = NinjaSounds.Loop(weather, NinjaSounds.Water, .1f, false); taikoAudio = NinjaSounds.Loop(weather, NinjaSounds.Taiko, 0, false);
         }
 
@@ -295,8 +299,8 @@ namespace DeadlyJenga.NinjaArt
             var view = Services.Session?.ActiveCamera;
             if (view && weather)
             {
-                var at = view.transform.position; rain.transform.position = at; leaves.transform.position = at; fireflies.transform.position = new Vector3(at.x, transform.position.y, at.z);
-                bool sheltered = world != null && world.IsSheltered(at);
+                var at = view.transform.position; if (rain) rain.transform.position = at; leaves.transform.position = at; fireflies.transform.position = new Vector3(at.x, transform.position.y, at.z);
+                bool sheltered = rainAudio && world != null && world.IsSheltered(at);
                 if (rainAudio) rainAudio.volume = Mathf.MoveTowards(rainAudio.volume, (sheltered ? .1f : .17f) * Master * NinjaSounds.Gain(NinjaSounds.Rain), Time.deltaTime * .3f);
             }
             if (Time.unscaledTime >= nextClack)
