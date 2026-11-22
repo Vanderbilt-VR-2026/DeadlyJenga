@@ -875,6 +875,35 @@ namespace DeadlyJenga.DevTools.Editor
             });
             Check(lobby&&lobby.Player.gameObject.activeInHierarchy,"Original Marina remains usable after both peers leave");
         }
+        static void ReportShrineContacts(CastleGenerator map,List<CastlePlacement> layout)
+        {
+            var shapes = new List<(Collider col,Vector3 pos,Quaternion rot,Vector3 center,float radius,int block)>();
+            for (int i = 0; i < layout.Count; i++)
+            {
+                var body = map.Bodies[i];
+                var delta = map.transform.rotation * layout[i].Rotation * Quaternion.Inverse(body.rotation);
+                var position = map.transform.TransformPoint(layout[i].Position);
+                foreach (var col in body.GetComponentsInChildren<Collider>())
+                {
+                    if (!col.enabled || col.isTrigger || col.attachedRigidbody != body) continue;
+                    shapes.Add((col,position+delta*(col.transform.position-body.position),delta*col.transform.rotation,
+                        position+delta*(col.bounds.center-body.position),col.bounds.extents.magnitude,i));
+                }
+            }
+            int moving = shapes.Count;
+            var fixtures = map.GetComponentsInChildren<Rigidbody>().First(r => r.name == "Fixed shrine fixtures");
+            foreach (var col in fixtures.GetComponentsInChildren<Collider>())
+                shapes.Add((col,col.transform.position,col.transform.rotation,col.bounds.center,col.bounds.extents.magnitude,-1));
+            for (int i = 0; i < moving; i++)
+                for (int j = i+1; j < shapes.Count; j++)
+                {
+                    var a = shapes[i]; var b = shapes[j];
+                    if (a.block == b.block || (a.center-b.center).sqrMagnitude > Mathf.Pow(a.radius+b.radius,2)) continue;
+                    if (Physics.ComputePenetration(a.col,a.pos,a.rot,b.col,b.pos,b.rot,out _,out float depth) && depth > .045f)
+                        File.AppendAllText(Report,$"Initial overlap {depth:F3} m: {a.block} {a.col.name} {a.center} and {b.block} {b.col.name} {b.center}\n");
+                }
+        }
+
         static void CheckShrineTraversal(CastleGenerator map,List<CastlePlacement> layout)
         {
             var roof = map.Bodies[layout.FindIndex(p => p.Position.x == 10 && p.Position.z == -29 && Mathf.Abs(p.Size.y-1.25f)<.01f)];
@@ -945,6 +974,7 @@ namespace DeadlyJenga.DevTools.Editor
             var drift = layout.Select((p,i) => new { index = i, p.Position, p.Size,
                 distance = Vector3.Distance(generator.Bodies[i].position, generator.transform.TransformPoint(p.Position)) })
                 .OrderByDescending(p => p.distance).First();
+            if (drift.distance >= .12f) ReportShrineContacts(generator,layout);
             File.AppendAllText(Report, $"Largest settle displacement {drift.distance:F4} m at block {drift.index}, position {drift.Position}, size {drift.Size}\n");
             var walls = generator.Bodies.Where(body => body.transform.localScale.z >= .405f && body.transform.localScale.z <= .485f).ToArray();
             Check(walls.Length > 75 && walls.All(body => body.GetComponentsInChildren<MeshRenderer>()
