@@ -65,7 +65,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     continue;
                 }
                 float length = StudioCameras.OutputLength(camera, set, fps);
-                var name = new Label($"{i + 1}. {camera.name}") { style = { unityFontStyleAndWeight = FontStyle.Bold } };
+                var name = StudioDurationBar.Title($"{i + 1}. {camera.name}");
                 name.AddToClassList("ts-item-name");
                 var up = StudioUi.Small("Up", () => context.Edit("Reorder cut", () => { set.cuts.RemoveAt(index); set.cuts.Insert(index - 1, cut); }));
                 up.SetEnabled(i > 0);
@@ -94,7 +94,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 foreach (var span in spans)
                     strip.Span(span.start, span.end, at, StudioColors.For(span.camera.color),
                         description: $"{span.camera.name} · {span.start:0.00}–{span.end:0.00} s", divider: true);
-                summary.Add(StudioUi.Hint($"Planned cut · {at:0.00} s"));
+                summary.Add(StudioDurationBar.Title($"Planned cut · {at:0.00} s"));
                 summary.Add(strip);
             }
             int missingCameras = set.cuts.Count - spans.Count;

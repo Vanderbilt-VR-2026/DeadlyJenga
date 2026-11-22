@@ -133,7 +133,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 rows.Add(Row(camera.name, color, camera, lane =>
                 {
                     Bar(lane, captured.start * set.fps, captured.End(set) * set.fps, color, ReferenceEquals(captured, context.Selection) ? .55f : .3f, 7, 7);
-                    foreach (var key in captured.keys) Bar(lane, key.time * set.fps - .2f, key.time * set.fps + .2f, Color.white, .9f, 4, 4);
+                    foreach (var key in captured.keys)
+                        Bar(lane, key.time * set.fps - .2f, key.time * set.fps + .2f, lane.visualElement.resolvedStyle.color, .9f, 4, 4);
                     foreach (var mark in captured.speeds) Bar(lane, mark.time * set.fps - .2f, mark.time * set.fps + .2f, StudioColors.Hazard, .9f, 9, 9);
                 }));
             }
@@ -160,7 +161,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var title = new VisualElement();
             title.AddToClassList("ts-lane-name");
             title.Add(StudioUi.Dot(color));
-            title.Add(new Label(name));
+            var nameLabel = new Label(name);
+            nameLabel.AddToClassList("ts-item-name");
+            title.Add(nameLabel);
             title.tooltip = select != null ? "Select " + name : name;
             bool selected = select != null && ReferenceEquals(select, context.Selection);
             row.EnableInClassList("ts-lane-row--selected", selected);
@@ -210,7 +213,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var window = context.window;
             if (!RangeZoom && (window.InFrame > 0 || window.OutFrame < Frames - 1))
-                Bar(mesh, window.InFrame, window.OutFrame + 1, Color.white, .06f, 0, 0);
+                Bar(mesh, window.InFrame, window.OutFrame + 1, mesh.visualElement.resolvedStyle.color, .09f, 0, 0);
         }
 
         void DrawRuler(MeshGenerationContext mesh)
@@ -228,22 +231,29 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // Keep ticks on whole seconds when the visible span is long and show frame times for close edits.
             int tick = Mathf.Max(1, Mathf.CeilToInt(ViewCount * 9f / width));
             if (tick > set.fps / 4) tick = Mathf.CeilToInt(tick / (float)set.fps) * set.fps;
-            int labelEvery = tick * Mathf.Max(1, Mathf.CeilToInt(ViewCount * 66f / (width * tick)));
+            const int labelSize = 11;
+            const float labelGap = 72;
+            int labelEvery = tick * Mathf.Max(1, Mathf.CeilToInt(ViewCount * labelGap / (width * tick)));
             int firstTick = Mathf.CeilToInt(ViewFirst / (float)tick) * tick;
-            painter.strokeColor = new Color(.6f, .6f, .7f, .7f); painter.lineWidth = 1;
+            var labelColor = ruler.resolvedStyle.color;
+            var majorTick = labelColor;
+            majorTick.a *= .73f;
+            var minorTick = labelColor;
+            minorTick.a *= .34f;
+            painter.lineWidth = 1;
             bool startLabel = firstTick != ViewFirst || ViewFirst % labelEvery != 0;
-            var labelColor = new Color(.62f, .63f, .7f);
-            if (startLabel && width > 56)
-                mesh.DrawText(StudioUi.Time(ViewFirst, set.fps), new Vector2(3, 3), 10, labelColor);
+            if (startLabel && width > labelGap - 10)
+                mesh.DrawText(StudioUi.Time(ViewFirst, set.fps), new Vector2(3, 2), labelSize, labelColor);
             for (int frame = firstTick; frame < ViewAfter; frame += tick)
             {
                 float x = X(frame, ruler);
-                bool label = frame % labelEvery == 0 && (!startLabel || x >= 66);
+                bool label = frame % labelEvery == 0 && (!startLabel || x >= labelGap);
+                painter.strokeColor = label ? majorTick : minorTick;
                 painter.BeginPath();
-                painter.MoveTo(new Vector2(x, label ? height - 9 : height - 4)); painter.LineTo(new Vector2(x, height));
+                painter.MoveTo(new Vector2(x, label ? height - 7 : height - 4)); painter.LineTo(new Vector2(x, height));
                 painter.Stroke();
-                if (label && x < width - 56)
-                    mesh.DrawText(StudioUi.Time(frame, set.fps), new Vector2(x + 3, 3), 10, labelColor);
+                if (label && x < width - (labelGap - 10))
+                    mesh.DrawText(StudioUi.Time(frame, set.fps), new Vector2(x + 3, 2), labelSize, labelColor);
             }
         }
 
@@ -330,18 +340,25 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 DrawRange(mesh);
                 var painter = mesh.painter2D;
                 float middle = lane.resolvedStyle.height / 2;
+                var labelColor = lane.resolvedStyle.color;
                 foreach (var cue in set.cues)
                 {
                     float frame = cue.at * set.fps;
                     if (!InView(frame)) continue;
                     float x = X(frame, lane);
                     bool selected = ReferenceEquals(cue, context.Selection);
-                    painter.fillColor = selected ? Color.white : StudioColors.Hazard;
+                    painter.fillColor = StudioColors.Hazard;
                     painter.BeginPath();
                     painter.MoveTo(new Vector2(x, middle - 7)); painter.LineTo(new Vector2(x + 6, middle));
                     painter.LineTo(new Vector2(x, middle + 7)); painter.LineTo(new Vector2(x - 6, middle));
                     painter.ClosePath(); painter.Fill();
-                    mesh.DrawText(StudioCues.Get(cue.action)?.Label ?? cue.action, new Vector2(x + 9, middle - 7), 10, new Color(.8f, .8f, .86f));
+                    if (selected)
+                    {
+                        painter.strokeColor = labelColor;
+                        painter.lineWidth = 1.5f;
+                        painter.Stroke();
+                    }
+                    mesh.DrawText(StudioCues.Get(cue.action)?.Label ?? cue.action, new Vector2(x + 9, middle - 7), 11, labelColor);
                 }
             };
             // Click a diamond to select it; drag it to change its time.

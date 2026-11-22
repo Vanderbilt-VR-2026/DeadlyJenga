@@ -20,14 +20,14 @@
         </ui:VisualElement>
         <ui:VisualElement name="middle" class="ts-middle">
             <ui:VisualElement name="left" class="ts-left">
-                <ui:Label text="Cast &amp; World" class="ts-heading" />
+                <ui:Label text="Cast &amp; World" class="ts-heading ts-section-title" />
                 <ui:ScrollView name="cast" class="ts-scroll" />
             </ui:VisualElement>
             <ui:VisualElement name="viewport" class="ts-viewport" />
             <ui:VisualElement name="right" class="ts-right">
                 <ui:ScrollView name="side" class="ts-scroll">
                     <ui:VisualElement name="mode-panel" class="ts-mode-panel" />
-                    <ui:Label text="Inspector" class="ts-heading" />
+                    <ui:Label name="inspector-heading" text="Set settings" class="ts-heading ts-section-title" />
                     <ui:VisualElement name="inspector" class="ts-inspector" />
                 </ui:ScrollView>
             </ui:VisualElement>

@@ -84,7 +84,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var look = StudioUi.Small(through ? "Looking" : "Look", () => { LookThrough = through ? "" : captured.id; if (!through) context.Select(captured); else { StudioCamera.Place(); context.Rebuild(); } },
                     "Show the viewport through this camera.");
                 look.EnableInClassList("ts-small--on", through);
-                var row = StudioUi.Row(StudioUi.Dot(StudioColors.For(camera.color)), name, new Label(camera.keys.Count == 1 ? "1 key  " : $"{camera.keys.Count} keys  ") { style = { color = new Color(.6f, .6f, .66f), fontSize = 11 } }, look);
+                var keyCount = new Label(camera.keys.Count == 1 ? "1 key" : $"{camera.keys.Count} keys");
+                keyCount.AddToClassList("ts-row-meta");
+                var row = StudioUi.Row(StudioUi.Dot(StudioColors.For(camera.color)), name, keyCount, look);
                 row.AddToClassList("ts-item");
                 row.EnableInClassList("ts-item--selected", ReferenceEquals(camera, context.Selection));
                 row.RegisterCallback<ClickEvent>(_ => context.Select(captured));
@@ -95,18 +97,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (selected != null && set.cameras.Contains(selected))
             {
                 float end = selected.End(set);
-                var tapeSpan = new StudioDurationBar("Shot coverage on the set tape. White ticks are camera keys.");
+                var tapeSpan = new StudioDurationBar("Shot coverage on the set tape. Ticks mark camera keys.");
                 tapeSpan.Span(selected.start, end, set.length, StudioColors.For(selected.color));
                 foreach (var key in selected.keys)
-                {
-                    float tick = Mathf.Min(set.length - .001f, key.time);
-                    tapeSpan.Span(tick, tick + set.length * .006f, set.length, Color.white,
-                        description: $"Key at {key.time:0.00} s");
-                }
+                    tapeSpan.Marker(key.time, set.length, $"Camera key at {key.time:0.00} s");
                 panel.Add(StudioUi.Card(
-                    StudioUi.Hint($"{selected.name} · tape {selected.start:0.00}–{end:0.00} s"),
+                    StudioDurationBar.Title($"{selected.name} · {StudioCameras.OutputLength(selected, set, set.render.fps):0.00} s output"),
                     tapeSpan,
-                    StudioUi.Hint($"{StudioCameras.OutputLength(selected, set, set.render.fps):0.00} s of output · white ticks mark camera keys")));
+                    StudioUi.Hint($"Tape {selected.start:0.00}–{end:0.00} s · ticks mark camera keys")));
             }
 
             // Render

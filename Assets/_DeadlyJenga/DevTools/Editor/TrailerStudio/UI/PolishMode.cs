@@ -13,19 +13,40 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public StudioDurationBar(string description)
         {
             tooltip = description;
-            style.height = 16;
-            style.marginTop = 3;
-            style.marginBottom = 3;
-            style.backgroundColor = new Color(.11f, .12f, .15f);
+            AddToClassList("ts-duration-bar");
         }
 
-        public void Span(float from, float to, float total, Color color, int top = 0, string description = "", bool divider = false)
+        public void Span(float from, float to, float total, Color color, string description = "", bool divider = false)
         {
-            if (total <= 0 || to <= from) return;
+            var segment = AddSegment(from, to, total, 0, description);
+            if (segment == null) return;
+            segment.style.backgroundColor = color;
+            if (divider) segment.AddToClassList("ts-duration-segment--divider");
+        }
+
+        public void Range(float from, float to, float total)
+        {
+            AddSegment(from, to, total, 11, "Selected edit range")?.AddToClassList("ts-duration-range");
+        }
+
+        public void Marker(float time, float total, string description)
+        {
+            float width = total * .006f;
+            float start = Mathf.Clamp(time - width / 2, 0, total - width);
+            var marker = AddSegment(start, start + width, total, 2, description);
+            if (marker == null) return;
+            marker.style.bottom = 2;
+            marker.style.minWidth = 2;
+            marker.AddToClassList("ts-duration-marker");
+        }
+
+        VisualElement AddSegment(float from, float to, float total, int top, string description)
+        {
+            if (total <= 0 || to <= from) return null;
             float start = Mathf.Clamp01(from / total);
             float end = Mathf.Clamp01(to / total);
-            if (end <= start) return;
-            Add(new VisualElement
+            if (end <= start) return null;
+            var segment = new VisualElement
             {
                 tooltip = description,
                 style =
@@ -34,12 +55,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     left = Length.Percent(start * 100f),
                     right = Length.Percent((1f - end) * 100f),
                     top = top,
-                    bottom = 0,
-                    backgroundColor = color,
-                    borderRightWidth = divider ? 1 : 0,
-                    borderRightColor = new Color(.11f, .12f, .15f)
+                    bottom = 0
                 }
-            });
+            };
+            Add(segment);
+            return segment;
+        }
+
+        public static Label Title(string text)
+        {
+            var label = new Label(text);
+            label.AddToClassList("ts-summary-title");
+            return label;
         }
     }
 
@@ -127,15 +154,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             int fps = set.fps, from = context.window.InFrame, to = context.window.OutFrame + 1;
             bool ranged = context.window.InFrame > 0 || context.window.OutFrame < set.Frames - 1;
-            panel.Add(StudioUi.Row(StudioUi.Dot(StudioColors.For(mark.color)), new Label(mark.actor + " · " + track.ActiveTake.name) { style = { unityFontStyleAndWeight = FontStyle.Bold } }));
             var active = track.ActiveTake;
             int overlapFrom = Mathf.Max(active.start, from);
             int overlapTo = Mathf.Min(active.End, to);
             var bar = new StudioDurationBar($"Active take: {StudioUi.Time(active.start, fps)} to {StudioUi.Time(active.End, fps)}");
             bar.Span(active.start, active.End, set.Frames, StudioColors.For(mark.color));
-            if (ranged)
-                bar.Span(from, to, set.Frames, new Color(.92f, .95f, 1f, .65f), 11);
+            if (ranged) bar.Range(from, to, set.Frames);
             panel.Add(StudioUi.Card(
+                StudioUi.Row(StudioUi.Dot(StudioColors.For(mark.color)), StudioDurationBar.Title(mark.actor + " · " + active.name)),
                 StudioUi.Hint($"Recorded {StudioUi.Time(active.start, fps)} to {StudioUi.Time(active.End, fps)}"),
                 bar,
                 StudioUi.Hint(ranged

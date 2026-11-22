@@ -6,8 +6,7 @@ using UnityEngine.UIElements;
 
 namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 {
-    // The left list: everything in the Set, grouped. Each row has a color dot, the take picker,
-    // and mute (M), solo (S) and lock (L).
+    // The left list shows the Set's tracks, actors and cameras.
     public sealed class StudioCastList
     {
         readonly StudioContext context;
@@ -27,7 +26,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 return;
             }
 
-            var search = new UnityEditor.UIElements.ToolbarSearchField { tooltip = "Find a cast member, world track or camera by name." };
+            var search = new UnityEditor.UIElements.ToolbarSearchField
+            {
+                placeholderText = "Search cast, tracks and cameras",
+                tooltip = "Filter by name"
+            };
             search.style.width = StyleKeyword.Auto;
             search.SetValueWithoutNotify(filter);
             host.Add(search);
@@ -105,27 +108,51 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if (performing && select is StudioMark actor) PerformMode.ChooseActor(context, actor);
                     else context.Select(select);
                 });
-            row.Add(StudioUi.Dot(color));
+            var title = StudioUi.Row(StudioUi.Dot(color));
+            title.style.minHeight = 26;
+            row.Add(title);
+            row.style.flexDirection = FlexDirection.Column;
+            row.style.alignItems = Align.Stretch;
+            row.style.height = StyleKeyword.Auto;
             string status = performing && !PerformMode.HasPerformance(track) ? " · No take" : "";
             var label = new Label(name + status) { tooltip = name + status };
             label.AddToClassList("ts-item-name");
-            row.Add(label);
+            title.Add(label);
             if (track == null) return row;
 
             if (!string.IsNullOrEmpty(track.badge))
             {
                 var badge = new Label("!") { tooltip = track.badge };
                 badge.AddToClassList("ts-badge");
-                row.Add(badge);
+                title.Add(badge);
             }
+
+            if (!ReferenceEquals(context.Selection, select))
+            {
+                string state = string.Join(" · ", new[] {
+                    track.mode == TrackMode.Muted ? "Muted" : null, track.solo ? "Solo" : null,
+                    track.locked ? "Locked" : null
+                }.Where(item => item != null));
+                if (state.Length > 0)
+                {
+                    var summary = new Label(state) { tooltip = state };
+                    summary.AddToClassList("ts-row-meta");
+                    title.Add(summary);
+                }
+                row.tooltip = "Select " + name + " to choose a take, mute, solo or lock.";
+                return row;
+            }
+
+            var actions = StudioUi.Row();
+            actions.style.flexWrap = Wrap.Wrap;
+            actions.style.marginBottom = 4;
+            row.Add(actions);
             var kept = track.Kept.ToList();
             if (kept.Count > 0)
             {
                 int position = track.ActiveTake == null ? 0 : kept.IndexOf(track.ActiveTake) + 1;
-                var takes = new Button { text = position + "/" + kept.Count, tooltip = "Pick the active take (number keys work too)" };
-                takes.AddToClassList("ts-mini"); takes.AddToClassList("ts-take");
-                takes.style.width = StyleKeyword.Auto;
-                takes.RegisterCallback<ClickEvent>(e => e.StopPropagation());
+                string takeText = position == 0 ? "Choose take" : $"Take {position}/{kept.Count}";
+                var takes = StateButton(takeText, false, $"Pick the active take for {name}. Number keys also work.");
                 takes.clicked += () =>
                 {
                     var menu = new GenericMenu();
@@ -137,19 +164,31 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     }
                     menu.ShowAsContext();
                 };
-                row.Add(takes);
+                actions.Add(takes);
             }
-            row.Add(Mini("M", track.mode == TrackMode.Muted, "Mute: leave this out of playback", () => track.mode = track.mode == TrackMode.Muted ? TrackMode.Playback : TrackMode.Muted));
-            row.Add(Mini("S", track.solo, "Solo: play only the soloed tracks", () => track.solo = !track.solo));
-            row.Add(Mini("L", track.locked, "Lock: this track cannot be re-recorded", () => track.locked = !track.locked));
+            bool muted = track.mode == TrackMode.Muted;
+            actions.Add(StateButton(muted ? "Unmute" : "Mute", muted,
+                muted ? $"Include {name} in playback, subject to solo." : $"Exclude {name} from playback.",
+                () => track.mode = muted ? TrackMode.Playback : TrackMode.Muted));
+            actions.Add(StateButton(track.solo ? "Unsolo" : "Solo", track.solo,
+                track.solo ? $"Remove {name} from the solo group." : "Play only tracks marked Solo.",
+                () => track.solo = !track.solo));
+            actions.Add(StateButton(track.locked ? "Unlock" : "Lock", track.locked,
+                track.locked ? $"Allow {name} to be recorded again." : $"Protect {name} from re-recording.",
+                () => track.locked = !track.locked));
             return row;
         }
 
-        Button Mini(string text, bool on, string tooltip, Action toggle)
+        Button StateButton(string text, bool on, string tooltip, Action toggle = null)
         {
-            var button = new Button(() => { toggle(); context.window.TapeChanged(); }) { text = text, tooltip = tooltip };
+            var button = new Button { text = text, tooltip = tooltip };
+            if (toggle != null) button.clicked += () => { toggle(); context.window.TapeChanged(); };
             button.AddToClassList("ts-mini");
             button.EnableInClassList("ts-mini--on", on);
+            button.style.width = StyleKeyword.Auto;
+            button.style.height = 22;
+            button.style.paddingLeft = 5;
+            button.style.paddingRight = 5;
             // Do not also select the row.
             button.RegisterCallback<ClickEvent>(e => e.StopPropagation());
             return button;

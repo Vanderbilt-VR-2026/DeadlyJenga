@@ -78,6 +78,72 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             for (int i = 0; i < frames; i++) { window.Repaint(); yield return 0; }
         }
 
+        static readonly string[] ProductionModes = { "Set", "Perform", "Polish", "Direct", "Shoot", "Cut" };
+
+        static bool ContainsLayout(Rect outer, Rect inner)
+        {
+            const float tolerance = 1;
+            return inner.width > 0 && inner.height > 0 &&
+                inner.xMin >= outer.xMin - tolerance && inner.xMax <= outer.xMax + tolerance &&
+                inner.yMin >= outer.yMin - tolerance && inner.yMax <= outer.yMax + tolerance;
+        }
+
+        static bool SelectedTabFullyVisible(VisualElement root, string mode)
+        {
+            var tabs = root.Q("tabs");
+            var selected = tabs.Query<Button>(className: "ts-tab--on").ToList();
+            if (selected.Count != 1) return false;
+            var tab = selected[0];
+            var title = tab.Q<Label>();
+            var caption = tab.Q<Label>(className: "ts-tab-caption");
+            if (!tab.visible || !tab.enabledInHierarchy || title?.text != mode || caption == null ||
+                !ContainsLayout(root.worldBound, tab.worldBound) || !ContainsLayout(tabs.worldBound, tab.worldBound))
+                return false;
+            return ContainsLayout(tab.worldBound, title.worldBound) && ContainsLayout(tab.worldBound, caption.worldBound);
+        }
+
+        static IEnumerable<int> ReviewWindowLayouts(TrailerStudioWindow window, Action<string> take)
+        {
+            var root = window.rootVisualElement.Q("root");
+            Rect original = window.position;
+            string originalMode = window.Mode.Title;
+            bool originalLight = root.ClassListContains("ts-light");
+            try
+            {
+                foreach (var size in new[] { new Vector2(1280, 760), new Vector2(900, 560) })
+                {
+                    window.position = new Rect(original.position, size);
+                    foreach (bool light in new[] { false, true })
+                    {
+                        root.EnableInClassList("ts-light", light);
+                        var clipped = new List<string>();
+                        foreach (string mode in ProductionModes)
+                        {
+                            window.ShowMode(mode);
+                            foreach (int wait in Settle(window, 4)) yield return wait;
+                            if (!SelectedTabFullyVisible(root, mode)) clipped.Add(mode);
+                        }
+                        var actual = root.layout.size;
+                        bool sizeMatched = Mathf.Abs(actual.x - size.x) <= 2 && Mathf.Abs(actual.y - size.y) <= 2;
+                        bool themeMatched = (root.resolvedStyle.backgroundColor.grayscale > .5f) == light;
+                        string sizeName = size.x == 900 ? "compact" : "broad";
+                        string themeName = light ? "light" : "dark";
+                        Result($"Production tabs at {size.x:0}×{size.y:0} in {themeName} theme",
+                            sizeMatched && themeMatched && clipped.Count == 0,
+                            $"Studio layout {actual.x:0}×{actual.y:0}. Theme resolved: {themeMatched}. " +
+                            (clipped.Count == 0 ? "All six tabs fit when selected." : "Outside the visible area: " + string.Join(", ", clipped) + "."));
+                        take($"10-cut-{sizeName}-{themeName}");
+                    }
+                }
+            }
+            finally
+            {
+                root.EnableInClassList("ts-light", originalLight);
+                window.position = original;
+                window.ShowMode(originalMode);
+            }
+        }
+
         static IEnumerator<int> WindowTour()
         {
             var stage = StudioRun.Stage;
@@ -189,6 +255,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             context.Select(null);
             foreach (int wait in Settle(window)) yield return wait;
             Take("10-cut");
+            foreach (int wait in ReviewWindowLayouts(window, Take)) yield return wait;
 
             // Command palette and shortcut sheet.
             window.ShowMode("Set");
@@ -234,7 +301,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             int redone = window.Set.marks.Count;
 
             var tabs = window.rootVisualElement.Query<Button>(className: "ts-tab").ToList().Select(b => b.Q<Label>()?.text ?? b.text).ToList();
-            Result("Window tour: every tab used in a real editor window", good == shots.Count && new[] { "Set", "Perform", "Polish", "Direct", "Shoot", "Cut" }.All(tabs.Contains),
+            Result("Window tour: every tab used in a real editor window", good == shots.Count && ProductionModes.All(tabs.Contains),
                 $"Tabs: {string.Join(", ", tabs)}. {good} of {shots.Count} screenshots show real content ({string.Join(", ", shots)}). " +
                 "The pictures were read from the Unity editor view buffer.");
             Result("Undo and redo for Set edits", added == marksBefore + 1 && undone == marksBefore && redone == marksBefore + 1,

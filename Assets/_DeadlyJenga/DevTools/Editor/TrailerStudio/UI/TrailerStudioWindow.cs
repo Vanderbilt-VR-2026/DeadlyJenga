@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -35,6 +36,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         StudioTimeline timeline;
         StudioCastList cast;
         StudioPalette palette;
+        readonly Dictionary<string, bool> foldStates = new Dictionary<string, bool>();
+        Label inspectorHeading;
         string message = "";
 
         public StudioSet Set => StudioRun.Stage != null && StudioRun.Stage.set.id == setId ? StudioRun.Stage.set : loadedSet;
@@ -86,6 +89,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             rootVisualElement.styleSheets.Add(style);
             root = rootVisualElement.Q("root");
             root.EnableInClassList("ts-light", !EditorGUIUtility.isProSkin);
+            root.RegisterCallback<GeometryChangedEvent>(e => root.EnableInClassList("ts-compact", e.newRect.width < 1080));
+            inspectorHeading = root.Q<Label>("inspector-heading");
 
             tabs = root.Q("tabs"); chips = root.Q("chips");
             modePanel = root.Q("mode-panel"); inspector = root.Q("inspector");
@@ -249,6 +254,33 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             inspector.Clear();
             try { StudioExtensions.Inspectors.FirstOrDefault(i => i.Handles(selection, context))?.Build(inspector, selection, context); }
             catch (Exception error) { Debug.LogException(error); inspector.Add(StudioUi.Warning("The inspector could not be drawn: " + error.Message)); }
+            string subject = selection switch
+            {
+                StudioMark actor => actor.actor,
+                StudioCameraTrack camera => camera.name,
+                StudioTrack track => track.name,
+                StudioCue cue => StudioCues.Get(cue.action)?.Label ?? cue.action,
+                StudioOverride layer => layer.name,
+                _ => null
+            };
+            inspectorHeading.text = string.IsNullOrWhiteSpace(subject) ? "Set settings" : subject + " settings";
+            inspectorHeading.tooltip = inspectorHeading.text;
+            inspectorHeading.style.display = inspector.childCount > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            RestoreFolds(modePanel, Mode?.Title ?? "");
+            RestoreFolds(inspector, "Inspector " + selectionKind);
+        }
+
+        void RestoreFolds(VisualElement panel, string section)
+        {
+            foreach (var fold in panel.Query<Foldout>().ToList())
+            {
+                string key = section + "/" + fold.text;
+                if (foldStates.TryGetValue(key, out bool expanded)) fold.SetValueWithoutNotify(expanded);
+                fold.RegisterValueChangedCallback(e =>
+                {
+                    if (ReferenceEquals(e.target, fold)) foldStates[key] = e.newValue;
+                });
+            }
         }
 
         // Buttons such as "Key here (00:03.00)" show the playhead's time. Scrubbing does not rebuild the
@@ -306,7 +338,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         void RefreshTopBar()
         {
-            setPicker.text = Set == null ? "Choose a Set" : Set.title;
+            setPicker.text = (Set == null ? "Choose a set" : Set.title) + "  ▾";
+            setPicker.tooltip = (Set == null ? "" : Set.title + "\n") + "Choose, create or import a set";
             tabs.Clear();
             var current = Mode;
             foreach (var mode in StudioExtensions.Modes.Where(m => m.Available))
@@ -323,12 +356,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     _ => ""
                 };
                 var tab = new Button(() => ShowMode(captured.Title)) { tooltip = action };
-                tab.Add(new Label(mode.Title) { pickingMode = PickingMode.Ignore });
+                if (action.Length > 0) tab.Add(StudioUi.ModeGlyph(mode.Title));
+                var tabText = new VisualElement { pickingMode = PickingMode.Ignore };
+                tabText.Add(new Label(mode.Title) { pickingMode = PickingMode.Ignore });
+                tab.Add(tabText);
                 if (action.Length > 0)
                 {
                     var caption = new Label(action) { pickingMode = PickingMode.Ignore };
                     caption.AddToClassList("ts-tab-caption");
-                    tab.Add(caption);
+                    tabText.Add(caption);
                 }
                 tab.AddToClassList("ts-tab");
                 tab.EnableInClassList("ts-tab--on", mode == current);
@@ -545,11 +581,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var modes = StudioExtensions.Modes.Where(m => m.Available).ToList();
             if (modes.Count == 0) return;
             int index = Mathf.Max(0, modes.IndexOf(Mode));
-            modeTitle = modes[(index + step + modes.Count) % modes.Count].Title;
-            RebuildAll();
+            ShowMode(modes[(index + step + modes.Count) % modes.Count].Title);
         }
 
-        public void ShowMode(string title) { modeTitle = title; RebuildAll(); }
+        public void ShowMode(string title)
+        {
+            bool changed = modeTitle != title;
+            modeTitle = title;
+            RebuildAll();
+            if (changed) root.Q<ScrollView>("side").scrollOffset = Vector2.zero;
+        }
 
         // Open the command palette (true) or the shortcut sheet (false), and close either.
         public void ShowPalette(bool commands) { if (commands) palette.ShowCommands(); else palette.ShowShortcuts(); }

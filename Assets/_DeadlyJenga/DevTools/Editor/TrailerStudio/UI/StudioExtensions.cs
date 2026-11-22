@@ -98,6 +98,53 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     // Small helpers so every panel looks the same.
     public static class StudioUi
     {
+        // Small line icons share the tab foreground in both editor skins.
+        public static VisualElement ModeGlyph(string mode)
+        {
+            var glyph = new VisualElement { pickingMode = PickingMode.Ignore };
+            glyph.AddToClassList("ts-mode-glyph");
+            glyph.generateVisualContent += mesh =>
+            {
+                var pen = mesh.painter2D;
+                pen.strokeColor = glyph.resolvedStyle.color;
+                pen.lineWidth = 1.5f;
+                pen.lineCap = LineCap.Round;
+                void Line(float x, float y, float endX, float endY)
+                {
+                    pen.BeginPath(); pen.MoveTo(new Vector2(x, y)); pen.LineTo(new Vector2(endX, endY)); pen.Stroke();
+                }
+                void Circle(float x, float y, float radius)
+                {
+                    pen.BeginPath(); pen.Arc(new Vector2(x, y), radius, 0, 360); pen.Stroke();
+                }
+                switch (mode)
+                {
+                    case "Set":
+                        Circle(9, 6, 4); Line(6, 9, 9, 15); Line(9, 15, 12, 9);
+                        break;
+                    case "Perform":
+                        Circle(9, 5, 3); pen.BeginPath(); pen.MoveTo(new Vector2(3, 15));
+                        pen.BezierCurveTo(new Vector2(3, 8), new Vector2(15, 8), new Vector2(15, 15)); pen.Stroke();
+                        break;
+                    case "Polish":
+                        Line(2, 5, 7, 5); Circle(9, 5, 2); Line(11, 5, 16, 5);
+                        Line(2, 13, 4, 13); Circle(6, 13, 2); Line(8, 13, 16, 13);
+                        break;
+                    case "Direct":
+                        Line(4, 16, 4, 2); Line(4, 2, 15, 4); Line(15, 4, 11, 9); Line(11, 9, 4, 8);
+                        break;
+                    case "Shoot":
+                        Line(2, 5, 11, 5); Line(11, 5, 11, 13); Line(11, 13, 2, 13); Line(2, 13, 2, 5);
+                        Line(11, 8, 16, 5); Line(16, 5, 16, 13); Line(16, 13, 11, 10);
+                        break;
+                    case "Cut":
+                        Circle(4, 5, 2); Circle(4, 13, 2); Line(6, 6, 15, 14); Line(6, 12, 15, 4);
+                        break;
+                }
+            };
+            return glyph;
+        }
+
         public static Label Heading(string text) { var label = new Label(text); label.AddToClassList("ts-heading"); return label; }
         public static Label Hint(string text) { var label = new Label(text); label.AddToClassList("ts-hint"); return label; }
         public static Label Warning(string text) { var label = new Label(text); label.AddToClassList("ts-warning"); return label; }
