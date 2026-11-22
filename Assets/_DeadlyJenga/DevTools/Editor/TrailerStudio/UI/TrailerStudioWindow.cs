@@ -43,6 +43,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public object Selection => selection;
         public StudioContext Context => context;
         public StudioViewport Viewport => viewport;
+        internal StudioTimeline Timeline => timeline;
 
         // Redraw only what follows a value while it is being dragged (no list rebuilds).
         public void LightRefresh()
@@ -122,7 +123,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public void LoadSet(string id)
         {
             // A selection belongs to its Set: another Set may have a mark with the same id.
-            if ((id ?? "") != setId) { selection = null; selectionKind = selectionId = ""; }
+            if ((id ?? "") != setId)
+            {
+                selection = null;
+                selectionKind = selectionId = "";
+                inFrame = 0;
+                outFrame = -1;
+                offlineFrame = 0;
+                timeline?.SetRangeZoom(false);
+            }
             setId = id ?? "";
             loadedSet = string.IsNullOrEmpty(setId) ? null : StudioLibrary.Load(setId);
             if (loadedSet == null && setId.Length > 0) Say($"The Set \"{setId}\" could not be read. The Console says why.");
@@ -420,6 +429,34 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         Button playButton, loopButton, speedButton;
         Label rangeLabel;
 
+        public void SetReviewRange(int first, int last)
+        {
+            if (Set == null || StudioRun.Busy) return;
+            inFrame = Mathf.Clamp(Mathf.Min(first, last), 0, Set.Frames - 1);
+            outFrame = Mathf.Clamp(Mathf.Max(first, last), inFrame, Set.Frames - 1);
+            if (outFrame == Set.Frames - 1) outFrame = -1;
+            if (InFrame == 0 && OutFrame == Set.Frames - 1) timeline.SetRangeZoom(false);
+            RebuildAll();
+        }
+
+        void ShowRangeMenu()
+        {
+            if (Set == null || StudioRun.Busy) return;
+            var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Start range here   ["), false, () =>
+                SetReviewRange(Frame, Frame > OutFrame ? Set.Frames - 1 : OutFrame));
+            menu.AddItem(new GUIContent("End range here   ]"), false, () => SetReviewRange(Mathf.Min(Frame, InFrame), Frame));
+            menu.AddSeparator("");
+            bool selected = InFrame > 0 || OutFrame < Set.Frames - 1;
+            var zoom = new GUIContent(timeline.RangeZoom ? "Show full timeline" : "Zoom to range");
+            if (selected || timeline.RangeZoom)
+                menu.AddItem(zoom, false, () => { timeline.SetRangeZoom(!timeline.RangeZoom); RefreshTransport(); });
+            else menu.AddDisabledItem(zoom);
+            menu.AddItem(new GUIContent("Clear range"), false, () => SetReviewRange(0, Set.Frames - 1));
+            menu.ShowAsContext();
+        }
+
+        Button rangeButton;
         void BuildTransport()
         {
             transport.Clear();
@@ -445,6 +482,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             transport.Add(speedButton);
             loopButton = StudioUi.Small("Loop", () => { loop = !loop; RefreshTransport(); }, "Play the range again and again");
             transport.Add(loopButton);
+            rangeButton = StudioUi.Small("Range", ShowRangeMenu, "Set the preview range or zoom in. Shift-drag the time ruler to select a range.");
+            transport.Add(rangeButton);
             rangeLabel = StudioUi.Hint("");
             rangeLabel.style.marginLeft = 12;
             transport.Add(rangeLabel);
@@ -463,9 +502,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             loopButton.EnableInClassList("ts-small--on", loop);
             loopButton.text = loop ? "Loop on" : "Loop off";
             speedButton.text = SpeedName(speed);
-            bool ranged = inFrame > 0 || outFrame >= 0;
-            rangeLabel.text = !StudioRun.StageOpen ? "Open the stage to play." :
-                ranged ? $"Range {StudioUi.Time(InFrame, fps)} to {StudioUi.Time(OutFrame, fps)}  ([ and ] set it, \\ clears it)" : "";
+            bool ranged = Set != null && (InFrame > 0 || OutFrame < frames - 1);
+            rangeButton.SetEnabled(Set != null && !StudioRun.Busy);
+            rangeButton.text = timeline.RangeZoom ? "Range (zoomed)" : "Range";
+            rangeLabel.text = ranged
+                ? $"{StudioUi.Time(InFrame, fps)} – {StudioUi.Time(OutFrame, fps)}"
+                : !StudioRun.StageOpen ? "Open stage to play" : "";
         }
 
         // ---- Keyboard ----
@@ -488,9 +530,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             else if (e.keyCode == KeyCode.RightArrow) Scrub(Frame + 1);
             else if (e.keyCode == KeyCode.Home) Scrub(InFrame);
             else if (e.keyCode == KeyCode.End) Scrub(OutFrame);
-            else if (e.keyCode == KeyCode.LeftBracket) { inFrame = Frame; if (outFrame >= 0 && outFrame < inFrame) outFrame = -1; RebuildAll(); }
-            else if (e.keyCode == KeyCode.RightBracket) { outFrame = Mathf.Max(Frame, inFrame); RebuildAll(); }
-            else if (e.keyCode == KeyCode.Backslash) { inFrame = 0; outFrame = -1; RebuildAll(); }
+            else if (e.keyCode == KeyCode.LeftBracket) SetReviewRange(Frame, Frame > OutFrame ? (Set?.Frames ?? 1) - 1 : OutFrame);
+            else if (e.keyCode == KeyCode.RightBracket) SetReviewRange(Mathf.Min(Frame, InFrame), Frame);
+            else if (e.keyCode == KeyCode.Backslash) SetReviewRange(0, (Set?.Frames ?? 1) - 1);
             else if (e.keyCode == KeyCode.Tab) CycleMode(e.shiftKey ? -1 : 1);
             else if (e.keyCode == KeyCode.Delete || e.keyCode == KeyCode.Backspace) DeleteSelection();
             else if (e.keyCode >= KeyCode.Alpha1 && e.keyCode <= KeyCode.Alpha9) PickTake(e.keyCode - KeyCode.Alpha1);

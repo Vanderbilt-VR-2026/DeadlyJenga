@@ -107,9 +107,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // Record the whole Set; a picture while it rolls, and one after.
             StudioRun.RecordWholeSet();
             int rolled = 0;
+            bool soundCueSent = false;
             while (StudioRun.State != StudioState.Held)
             {
                 rolled++;
+                if (!soundCueSent && StudioRun.Recording && StudioRun.Frame >= fps)
+                {
+                    DeadlyJenga.Core.GameEvents.RaiseBlockHit(stage.anchor, 6f);
+                    soundCueSent = true;
+                }
                 if (StudioRun.Recording && StudioRun.Frame == set.Frames / 2) { window.Repaint(); Take("03-recording"); }
                 if (rolled > 20000) throw new TimeoutException("The recording did not finish.");
                 yield return 0;
@@ -117,6 +123,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             window.Scrub(set.Frames / 2);
             foreach (int wait in Settle(window)) yield return wait;
             Take("04-recorded-timeline");
+
+            window.SetReviewRange(fps * 2, fps / 2);
+            window.Timeline.ShowLanes(StudioTimeline.Lanes.Sound);
+            window.Timeline.SetRangeZoom(true);
+            window.Scrub(fps);
+            foreach (int wait in Settle(window)) yield return wait;
+            var visibleRows = window.rootVisualElement.Q("timeline").Query<VisualElement>(className: "ts-lane-row").ToList();
+            bool hasEvents = visibleRows.Any(row => row.Q(className: "ts-lane")?.tooltip?.Contains("recorded events") == true);
+            Result("Review a sound in a focused range", hasEvents && soundCueSent && window.InFrame == fps / 2 &&
+                window.OutFrame == fps * 2 && window.Frame == fps && window.Timeline.RangeZoom && visibleRows.Count == 2,
+                $"Sound-event and cue rows visible: {visibleRows.Count}; inclusive range {window.InFrame}–{window.OutFrame}; playhead {window.Frame}.");
+            Take("04b-sound-range");
+            window.SetReviewRange(0, set.Frames - 1);
+            window.Timeline.ShowLanes(StudioTimeline.Lanes.All);
 
             // Perform: an actor chosen, the others listed.
             window.ShowMode("Perform"); context.Select(set.marks[1]);
@@ -175,6 +195,23 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             window.ShowPalette(true);
             foreach (int wait in Settle(window)) yield return wait;
             Take("11-command-palette");
+            var palette = window.rootVisualElement.Q(className: "ts-palette");
+            var search = palette.Q<TextField>();
+            search.value = wide.name;
+            bool foundKey = palette.Query<Button>().ToList().Any(button =>
+                button.text.IndexOf("key", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                button.text.IndexOf(wide.name, StringComparison.OrdinalIgnoreCase) >= 0);
+            Result("Search current camera keys", foundKey, $"Searched for {wide.name}.");
+            Take("11b-find-camera-key");
+            using (var enter = KeyDownEvent.GetPooled('\n', KeyCode.Return, EventModifiers.None))
+            {
+                enter.target = search;
+                search.SendEvent(enter);
+            }
+            Result("Jump from the command palette", window.Selection == wide && window.Mode.Title == "Shoot" &&
+                window.Frame == Mathf.Clamp(Mathf.RoundToInt(wide.keys[0].time * fps), 0, set.Frames - 1),
+                $"Selected {window.Mode.Title} at frame {window.Frame}.");
+
             window.ShowPalette(false);
             foreach (int wait in Settle(window)) yield return wait;
             Take("12-shortcuts");

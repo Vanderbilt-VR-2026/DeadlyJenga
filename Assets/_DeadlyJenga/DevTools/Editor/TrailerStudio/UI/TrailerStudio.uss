@@ -233,6 +233,7 @@
 .ts-transport { flex-direction: row; align-items: center; height: 34px; padding: 0 var(--ts-space-3); }
 .ts-time { font-size: var(--ts-font-large); -unity-font-style: bold; margin: 0 var(--ts-space-3); min-width: 150px; }
 .ts-timeline { flex-grow: 1; }
+.ts-lane-filter { position: absolute; top: 0; left: 6px; width: 136px; height: 21px; -unity-text-align: middle-left; }
 .ts-ruler { height: 22px; margin-left: 150px; border-bottom-width: 1px; border-bottom-color: var(--ts-line); }
 .ts-lane-row { flex-direction: row; height: 24px; align-items: center; }
 .ts-lane-row--selected { background-color: var(--ts-raised); border-left-width: 2px; border-left-color: var(--ts-accent); }

@@ -103,3 +103,13 @@ Open **Tools → Deadly Jenga → Trailer Studio**, choose a set and open its st
 Validation at this checkpoint covers a retained-reference build of the 330 DevTools editor sources and the UXML shell bindings. The editor tour entry point is `DeadlyJenga.DevTools.Editor.TrailerStudio.StudioAcceptance.RunWindowTour`. First-time creator review and a 30-person authoring session remain open.
 
 The desktop Unity 6000.3.23f1 window tour passed on `b878039e5206ea5f1d80f94e573c8294a912be4a`, covering all six production modes, 12 window captures, and undo/redo. Visual review found clipped navigation captions and colliding actor names. Published editor revision `c3a635881df7f2b8efd5ba38aa53c9e6d5b42be6` reserves header space and prioritizes the selected nameplate. Its retained-reference compile passed. The repeat desktop tour is pending editor capacity.
+
+## Finding the moment to edit
+
+Use **All tracks** at the left of the time ruler to show only actors, cameras, or sound. World cues remain visible in each view. Filtering changes the rows you see and preserves your mix and export.
+
+**Shift-drag the time ruler** in either direction to select a preview range. **Range → Zoom to range** expands that region for frame-level scrubbing. **Loop on** repeats the selected region during playback. Use **Range → Show full timeline** to see the whole set while keeping the range, or **Clear range** to reset both.
+
+In the sound row, green marks show recorded block hits, gold marks show match cues, and violet marks show recorded block breaks. Height indicates hit count. Hover a group for its timing, number of events and strongest recorded hit. The block-break record currently belongs to the tape archive only. **Find command** searches cues, camera names and key times. Choose a result to select its owner. A cue triggered by another event opens its settings with the playhead left in place.
+
+The interaction draws on [Audacity track focus and display](https://manual.audacityteam.org/man/audio_tracks.html), [Audacity range selection](https://manual.audacityteam.org/man/audacity_selection.html), and [Premiere timeline navigation](https://helpx.adobe.com/premiere/desktop/edit-projects/change-clip-sequence/navigation-controls-in-the-timeline.html).
