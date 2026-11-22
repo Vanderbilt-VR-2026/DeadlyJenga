@@ -97,10 +97,28 @@ namespace DeadlyJenga.CastlePrototype
         // Each pitched roof is one moving body. Both slopes travel with the deck beneath them.
         public static void AddRoofColliders(Rigidbody body, Vector3 size)
         {
-            if (Mathf.Abs(size.y - 1.25f) > .01f && Mathf.Abs(size.y - 1.35f) > .01f && Mathf.Abs(size.y - 1.4f) > .01f) return;
+            bool skirt = Mathf.Abs(size.y - 1) < .01f && size.x >= 30 && size.z > 4;
+            if (!skirt && Mathf.Abs(size.y - 1.25f) > .01f && Mathf.Abs(size.y - 1.35f) > .01f && Mathf.Abs(size.y - 1.4f) > .01f) return;
             var frame = new GameObject("Roof collision").transform;
             frame.SetParent(body.transform, false);
             frame.localScale = new Vector3(1 / size.x, 1 / size.y, 1 / size.z);
+            if (skirt)
+            {
+                for (int edge=0; edge<4; edge++)
+                {
+                    var turn = Quaternion.Euler(0,edge*90,0);
+                    float across = edge%2==0 ? size.x : size.z;
+                    float depth = (edge%2==0 ? size.z : size.x)/2;
+                    float width = depth * .19f;
+                    var eave = new GameObject("Gallery eave");
+                    eave.layer = body.gameObject.layer;
+                    eave.transform.SetParent(frame,false);
+                    eave.transform.localPosition = turn * new Vector3(0,.55f+width*.36f,depth-width/2);
+                    eave.transform.localRotation = turn * Quaternion.Euler(Mathf.Atan(.72f)*Mathf.Rad2Deg,0,0);
+                    eave.AddComponent<BoxCollider>().size = new Vector3(across*.81f,.1f,width*Mathf.Sqrt(1+.72f*.72f));
+                }
+                return;
+            }
             float run = size.z / 2, rise = run * .44f;
             for (int side = -1; side <= 1; side += 2)
             {
@@ -134,6 +152,7 @@ namespace DeadlyJenga.CastlePrototype
             int first = pieces.Count;
             for (int level = 0; level < levels; level++)
             {
+                if (x == 0 && level == 1) height *= .6f;
                 float span = width - 2, reach = depth - 2;
                 for (int side = -1; side <= 1; side += 2)
                 {
@@ -146,16 +165,16 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     float bayWidth = span / (columns - 1);
                     bool main = x == 0;
-                    float panel = main || bell || levels == 4 ? .44f : level == 0 ? .41f : .42f;
+                    float panel = main ? (level == 0 ? .46f : .47f) : bell || levels == 4 ? .44f : level == 0 ? .41f : .42f;
                     for (int bay = 0; bay < columns - 1; bay++)
                     {
                         float center = x - span / 2 + (bay + .5f) * bayWidth;
                         bool sanctuary = main && bay == (columns - 2) / 2 && level == 0;
                         Box(center, y, sanctuary ? z - reach * .24f : z + reach / 2, bayWidth - 1.05f, height,
-                            sanctuary ? .43f : .42f, CastleSection.Keep);
+                            sanctuary ? .48f : .42f, CastleSection.Keep);
                         if (sanctuary) continue;
                         // A recessed shop front leaves a doorway beside the end post.
-                        Box(center - (columns == 2 ? .55f : 0), y, z - reach / 2 + .75f,
+                        Box(center - (columns == 2 ? .55f : 0), y, z - reach / 2 + (main && level == 0 ? 2.1f : .75f),
                             bayWidth - (columns == 2 ? 2.2f : 1.05f), height, panel, CastleSection.Keep);
                     }
                     for (int side = -1; side <= 1; side += 2)

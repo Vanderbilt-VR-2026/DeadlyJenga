@@ -899,7 +899,7 @@ namespace DeadlyJenga.DevTools.Editor
                 distance = Vector3.Distance(generator.Bodies[i].position, generator.transform.TransformPoint(p.Position)) })
                 .OrderByDescending(p => p.distance).First();
             File.AppendAllText(Report, $"Largest settle displacement {drift.distance:F4} m at block {drift.index}, position {drift.Position}, size {drift.Size}\n");
-            var walls = generator.Bodies.Where(body => body.transform.localScale.z >= .405f && body.transform.localScale.z <= .445f).ToArray();
+            var walls = generator.Bodies.Where(body => body.transform.localScale.z >= .405f && body.transform.localScale.z <= .485f).ToArray();
             Check(walls.Length > 75 && walls.All(body => body.GetComponentsInChildren<MeshRenderer>()
                 .Any(r => r.sharedMaterial && r.sharedMaterial.shader.name == "DeadlyJenga/Ninja/ShrineFacade"
                     && r.sharedMaterial.mainTexture)), "Physical walls carry painted shrine-town facades");

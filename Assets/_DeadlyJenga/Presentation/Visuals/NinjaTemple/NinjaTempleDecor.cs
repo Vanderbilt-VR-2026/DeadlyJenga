@@ -102,6 +102,29 @@ namespace DeadlyJenga.NinjaArt
             m.Frame = Matrix4x4.identity;
             if (kind == Kind.TownDeck)
             {
+                if (size.x >= 30)
+                {
+                    // The upper gallery meets a continuous tiled skirt over the lower hall.
+                    for (int edge=0; edge<4; edge++)
+                    {
+                        var turn = Quaternion.Euler(0,90*edge,0);
+                        float across = (edge%2==0 ? size.x : size.z)/2;
+                        float depth = (edge%2==0 ? size.z : size.x)/2;
+                        float inner = depth*.81f, rise = (depth-inner)*.72f;
+                        int tiles = Mathf.Max(8,Mathf.RoundToInt(across*4));
+                        for (int i=0; i<tiles; i++)
+                        {
+                            float u = 2*i/(float)tiles-1, v = 2*(i+1)/(float)tiles-1;
+                            var a = turn * new Vector3(u*across*.81f,.55f+rise,inner);
+                            var b = turn * new Vector3(u*across,.55f,depth);
+                            var c = turn * new Vector3(v*across,.55f,depth);
+                            var d = turn * new Vector3(v*across*.81f,.55f+rise,inner);
+                            m.Quad(a,b,c,d,new Color(.25f,.27f,.35f));
+                            m.Cylinder(a,b,.055f,.07f,5,new Color(.37f,.38f,.45f),P.Tile);
+                        }
+                    }
+                    return;
+                }
                 for (int side = -1; side <= 1; side += 2)
                 {
                     float z = side * (size.z / 2 - .18f);
@@ -176,17 +199,10 @@ namespace DeadlyJenga.NinjaArt
                     m.Cylinder(corner,crest,.2f,.22f,6,P.Lacquer,P.Gold);
                 }
                 m.Cylinder(left,right,.18f,.18f,6,P.Gold,P.Gold);
-                for (int j = -4; j <= 4; j++)
-                {
-                    float x = span * j / 5f;
-                    float h = (peak - top) * (1 - Mathf.Abs(j)/5f);
-                    m.Box(new Vector3(x, top + h/2, front-.04f),new Vector3(.12f,h,.18f),Quaternion.identity,P.Wood);
-                }
-                for (int j = 1; j <= 3; j++)
-                    m.Box(new Vector3(0,top + (peak-top)*j/4,front-.1f),
-                        new Vector3(span*2*(1-j/4f),.15f,.21f),Quaternion.identity,P.Lacquer);
-                var medallion = new Vector3(0,top + (peak - top) * .4f,front);
-                m.Cylinder(medallion,medallion + Vector3.back * .24f,span * .1f,span * .1f,14,P.Gold,P.Gold);
+                var crown = crest + Vector3.up * .34f;
+                m.Blob(crown,new Vector3(.36f,.56f,.32f),3,9,P.Gold,P.Wood,9,.12f);
+                for (int side = -1; side <= 1; side += 2)
+                    m.Cylinder(crown,crown+new Vector3(side*.62f,.49f,0),.12f,.20f,6,P.Gold,P.Gold);
             }
         }
 

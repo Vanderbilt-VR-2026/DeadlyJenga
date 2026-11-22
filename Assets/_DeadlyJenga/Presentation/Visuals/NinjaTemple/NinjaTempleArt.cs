@@ -20,8 +20,8 @@ namespace DeadlyJenga.NinjaArt
         public float BloodMoon { get; private set; }
 
         Material sky, ground, props, foliage, far, water, previousSky;
-        readonly Material[] facadeMaterials = new Material[4];
-        Mesh facadeCube;
+        readonly Material[] facadeMaterials = new Material[8];
+        Mesh facadeCube, gableFace;
         Light moon; readonly List<Light> practicals = new List<Light>();
         readonly Dictionary<Light, bool> sunStates = new Dictionary<Light, bool>();
         readonly Dictionary<Renderer, bool> hiddenRenderers = new Dictionary<Renderer, bool>();
@@ -75,11 +75,16 @@ namespace DeadlyJenga.NinjaArt
             {
                 facadeCube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
                 var atlas = Resources.Load<Texture2D>("NinjaScenery/ShrineFacades");
+                var carpentry = Resources.Load<Texture2D>("NinjaScenery/ShrineHallCarpentry");
+                gableFace = new Mesh { name = "Shrine pediment face",
+                    vertices = new[] {new Vector3(-.5f,-.5f,0),new Vector3(0,.5f,0),new Vector3(.5f,-.5f,0)},
+                    normals = new[] {Vector3.back,Vector3.back,Vector3.back}, triangles = new[] {0,1,2} };
+                owned.Add(gableFace);
                 for (int tile = 0; tile < facadeMaterials.Length; tile++)
                 {
                     var material = Make("ShrineFacade", "Painted shrine carpentry " + tile);
-                    material.SetTexture("_MainTex", atlas);
-                    material.SetVector("_Tile", new Vector4((tile % 2) * .5f, tile < 2 ? .5f : 0, 0, 0));
+                    material.SetTexture("_MainTex", tile < 4 ? atlas : carpentry);
+                    material.SetVector("_Tile", new Vector4((tile % 2) * .5f, tile % 4 < 2 ? .5f : 0, 0, 0));
                     facadeMaterials[tile] = material;
                 }
             }
@@ -98,6 +103,31 @@ namespace DeadlyJenga.NinjaArt
             if (!shrineTown) NinjaTempleScenery.Torii(p, moonFlat * 82 + Vector3.up * wy, facing, 20, 15, true, glow);
             if (shrineTown)
             {
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    Vector3[] border = { new(side*5,0,-46),new(side*23,0,-46),new(side*46,0,-23),new(side*46,0,18) };
+                    for (int edge = 0; edge < border.Length-1; edge++)
+                    {
+                        var from = border[edge]; var to = border[edge+1];
+                        int sections = Mathf.RoundToInt(Vector3.Distance(from,to) / 7);
+                        for (int i=0; i<sections; i++)
+                        {
+                            var a = Vector3.Lerp(from,to,i/(float)sections);
+                            var b = Vector3.Lerp(from,to,(i+1)/(float)sections);
+                            NinjaTempleScenery.StoneLantern(p,a,1.45f,glow,i+edge*4);
+                            if (edge == 0 && i == 0) continue;
+                            var foliageAt = (a+b)*.5f + Vector3.up*.58f;
+                            for (int j=1; j<5; j++)
+                            {
+                                var pos = Vector3.Lerp(a,b,j/5f);
+                                p.Box(pos+Vector3.up*.57f,new Vector3(.13f,1.12f,.13f),Quaternion.identity,P.Wood);
+                            }
+                            p.Cylinder(a+Vector3.up*.9f,b+Vector3.up*.9f,.085f,.085f,6,P.Wood,P.Wood);
+                            f.Blob(foliageAt, new Vector3(1.7f,.7f,1.15f),3,9,new Color(.32f,.40f,.25f),P.Pine,edge*8+i,.28f);
+                            if ((i+edge)%2==0) f.Blob(foliageAt+Vector3.up*.53f,new Vector3(.95f,.56f,.79f),3,8,new Color(.86f,.31f,.39f),P.Maple,22+i,.32f);
+                        }
+                    }
+                }
                 NinjaTempleScenery.Torii(p, new Vector3(0, 0, -43), Quaternion.identity, 10, 7, true, glow);
                 for (int row = 0; row < 3; row++)
                 {
@@ -298,8 +328,9 @@ namespace DeadlyJenga.NinjaArt
             {
                 if (!body || body.transform.Find("Visual - ninja decor")) continue;
                 var size = body.transform.lossyScale;
-                int tile = Mathf.RoundToInt(size.z * 100) - 41;
-                if (shrineTown && tile >= 0 && tile < facadeMaterials.Length)
+                int thickness = Mathf.RoundToInt(size.z * 100);
+                int tile = thickness >= 46 && thickness <= 48 ? thickness - 42 : thickness - 41;
+                if (shrineTown && ((thickness >= 41 && thickness <= 44) || (thickness >= 46 && thickness <= 48)))
                 {
                     var panel = new GameObject("Visual - ninja decor");
                     panel.transform.SetParent(body.transform, false);
@@ -314,6 +345,16 @@ namespace DeadlyJenga.NinjaArt
                 var ls = body.transform.localScale; root.localScale = new Vector3(1 / ls.x, 1 / ls.y, 1 / ls.z);
                 var r = root.gameObject.AddComponent<MeshRenderer>(); root.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh; r.sharedMaterial = props;
                 r.shadowCastingMode = kind == NinjaTempleDecor.Kind.Deck ? ShadowCastingMode.On : ShadowCastingMode.Off; r.lightProbeUsage = LightProbeUsage.Off;
+                if (shrineTown && kind == NinjaTempleDecor.Kind.TownRoof && size.x >= 15)
+                {
+                    float span = size.x * .38f, height = size.z * .22f + span * .32f;
+                    var face = new GameObject("Carved gable and crest").transform;
+                    face.SetParent(root,false);
+                    face.localPosition = new Vector3(0,(size.y+height)/2,-size.z/2-.99f);
+                    face.localScale = new Vector3(span*2,height,1);
+                    face.gameObject.AddComponent<MeshFilter>().sharedMesh = gableFace;
+                    face.gameObject.AddComponent<MeshRenderer>().sharedMaterial = facadeMaterials[7];
+                }
                 var g = new GameObject("Visual - ninja decor glow"); g.transform.SetParent(root, false);
                 g.AddComponent<MeshFilter>().sharedMesh = glowMesh; var gr = g.AddComponent<MeshRenderer>(); gr.sharedMaterial = NinjaFx.Glow; gr.shadowCastingMode = ShadowCastingMode.Off; gr.lightProbeUsage = LightProbeUsage.Off;
             }
