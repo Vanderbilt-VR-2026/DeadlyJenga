@@ -483,7 +483,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (Rehearsal) Report(stage, route);
             else try { Report(stage, route); } catch (Exception error) { Note("Report failed: " + error); }
 
-            var cameras = Cameras(stage, route);
+            var cameras = Rehearsal ? RehearsalCameras(stage, route, trace) : Cameras(stage, route);
             stage.set.cameras.Clear(); stage.set.cameras.AddRange(cameras);
             StudioLibrary.Save(stage.set);
             StudioRun.Refresh();
@@ -636,6 +636,78 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             c.motionBlur = 0;
             c.measure.Add("actor:hero");
             return c;
+        }
+
+        static List<StudioCameraTrack> RehearsalCameras(StudioStage stage, Route route, List<RehearsalSample> trace)
+        {
+            float from = RunAt - .3f, to = heroStops;
+            int shot = trace.FindIndex(s => s.shot && !s.grounded);
+            int landing = shot >= 0 ? trace.FindIndex(shot + 1, s => s.grounded) : -1;
+            float landingTime = landing >= 0 ? trace[landing].frame / (float)Fps : 3.1f;
+
+            var pov = Cam("POV", from, to, 24);
+            pov.behavior = "firstPerson";
+            pov.subject = "hero";
+            pov.fpSmoothMove = .12f;
+            pov.fpSmoothTurn = .13f;
+            pov.fpFieldOfView = 74;
+            pov.fpOwnBody = true;
+            pov.measure.Add("actor:target");
+
+            // Start on the first roof crossing in profile. The checked landing is our cue to reveal the wave below.
+            var leg = route.legs[0];
+            var takeoff = leg.takeoff + Vector3.up;
+            var touchdown = leg.land + Vector3.up;
+            var apex = Vector3.Lerp(takeoff, touchdown, .5f) + Vector3.up * 1.9f;
+            var target = startAt["target"] + Vector3.up;
+            var roof = Vector3.Lerp(Vector3.Lerp(takeoff, touchdown, .5f), target, .2f);
+            var side = Vector3.Cross(Vector3.up, leg.dir);
+            var outward = Flat(roof - stage.world.Center);
+            var roofPoints = new[] { route.start + Vector3.up, takeoff, apex, touchdown, target };
+            Vector3 best = roof + outward * 11f + Vector3.up * 4f;
+            float bestScore = float.NegativeInfinity;
+            for (int i = 0; i < 24; i++)
+            {
+                var direction = Quaternion.Euler(0, i * 15f, 0) * Vector3.forward;
+                var at = roof + direction * 11f + Vector3.up * 4f;
+                if (!Clear(at, .6f)) continue;
+                float score = roofPoints.Count(p => Sees(at, p)) * 4f +
+                    Mathf.Abs(Vector3.Dot(direction, side)) + Mathf.Max(0, Vector3.Dot(direction, outward));
+                if (score <= bestScore) continue;
+                bestScore = score;
+                best = at;
+            }
+
+            var wide = Cam("WIDE", from, to, 25);
+            wide.measure.Add("actor:target");
+            wide.measure.Add(P(stage, touchdown));
+            StudioMoves.LockedOff(wide, from, stage.ToStage(best), P(stage, roof));
+            if (landing >= 0)
+            {
+                float reveal = landingTime + .15f;
+                var tower = stage.world.Center;
+                float water = stage.world.WaterHeight(tower);
+                var hazard = stage.tape.FindType(HazardTrack.Id)?.ActiveTake;
+                int revealFrame = Mathf.RoundToInt((reveal + .65f) * Fps);
+                var wave = HazardTrack.CenterAt(hazard, revealFrame, out var front) ? front : tower;
+                var impact = Vector3.Lerp(tower, wave, .28f);
+                impact.y = water + (roof.y - water) * .32f;
+                var retreat = Flat(best - tower);
+                wide.keys.Add(new StudioCameraKey
+                {
+                    time = reveal, position = stage.ToStage(best), focal = 25, aperture = 11, focus = 12, ease = 5
+                });
+                wide.keys.Add(new StudioCameraKey
+                {
+                    time = to, position = stage.ToStage(best + retreat * 30f + Vector3.up * 4f),
+                    focal = 19, aperture = 11, focus = 50, ease = 5
+                });
+                wide.spline = false;
+                StudioMoves.TiltTo(wide, reveal, P(stage, impact), Vector3.zero, to - reveal);
+                wide.measure.Add(P(stage, impact));
+            }
+            Note($"Rooftop coverage {from:0.00}-{to:0.00} s: gun POV and exterior roof profile at {V(best)}; measured landing {landingTime:0.00} s.");
+            return new List<StudioCameraTrack> { pov, wide };
         }
 
         static List<StudioCameraTrack> Cameras(StudioStage stage, Route route)
