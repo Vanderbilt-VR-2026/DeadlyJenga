@@ -370,13 +370,37 @@ namespace DeadlyJenga.CastlePrototype
                 !packetRunner.LocalPlayer.IsNone&&source==packetRunner.LocalPlayer;
         }
         bool CurrentOperation(int attempt,NetworkRunner runner)=>attempt==generation&&!leaving&&ReferenceEquals(Runner,runner)&&ReferenceEquals(ownedRunner,runner);
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        void TraceRoomAdmission(string detail)
+        {
+            if (Debug.isDebugBuild)
+                Debug.Log($"[RoomAdmission] utc={DateTime.UtcNow:O} generation={generation} transitioning={transitioning} {detail}", this);
+        }
+
         void AttachCallbacks()
         {
             var attached=Runner;int attempt=generation;
             callbacks=new NetworkDelegates();callbacks.OnReliableDataReceived=(runner,source,key,data)=>{if(CurrentOperation(attempt,attached)&&ReferenceEquals(runner,attached))Receive(runner,source,key,data);};
             callbacks.OnPlayerJoined=(runner,player)=>{if(CurrentOperation(attempt,attached)&&ReferenceEquals(runner,attached))nextMigrationSnapshot=0;};
-            callbacks.OnPlayerLeft=(runner,player)=>{if(!CurrentOperation(attempt,attached)||!ReferenceEquals(runner,attached))return;ReleaseMarinaSpawn(player);marinaRecoverySpawns.Remove(player);DepartIdentity(player.ToString());peers.Remove(player);socialPeers.Remove(player);IslandLobby.Current?.RemovePeer(player.ToString());ParticipantLeft?.Invoke(player.ToString());};
-            callbacks.OnShutdown=(ended,reason)=>{if(Runner==ended&&!Migrating&&reason!=ShutdownReason.HostMigration)Disconnected(reason.ToString());};Runner.AddCallbacks(callbacks);
+            callbacks.OnPlayerLeft=(runner,player)=>
+            {
+                if(!CurrentOperation(attempt,attached)||!ReferenceEquals(runner,attached))return;
+                TraceRoomAdmission($"Fusion player left peer={player} roster={runner.ActivePlayers.Count()}");
+                ReleaseMarinaSpawn(player);marinaRecoverySpawns.Remove(player);DepartIdentity(player.ToString());peers.Remove(player);socialPeers.Remove(player);IslandLobby.Current?.RemovePeer(player.ToString());ParticipantLeft?.Invoke(player.ToString());
+            };
+            callbacks.OnShutdown=(ended,reason)=>
+            {
+                if(Runner!=ended)return;
+                TraceRoomAdmission($"Fusion shutdown reason={reason}");
+                if(!Migrating&&reason!=ShutdownReason.HostMigration)Disconnected(reason.ToString());
+            };
+            if (Debug.isDebugBuild)
+                callbacks.OnDisconnectedFromServer=(source,reason)=>
+                {
+                    if(CurrentOperation(attempt,attached)&&ReferenceEquals(source,attached))
+                        TraceRoomAdmission($"Fusion disconnected from server reason={reason}");
+                };
+            Runner.AddCallbacks(callbacks);
             callbacks.OnSceneLoadStart=runner=>
             {
                 if(!CurrentOperation(attempt,attached)||!ReferenceEquals(runner,attached))return;
@@ -598,7 +622,13 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(IsHost)
             {
-                foreach(var pair in peers.ToArray())if(now-pair.Value.seen>LobbyIdleTimeout){Runner.Disconnect(pair.Key);ReleaseMarinaSpawn(pair.Key);marinaRecoverySpawns.Remove(pair.Key);peers.Remove(pair.Key);IslandLobby.Current.RemovePeer(pair.Key.ToString());}
+                foreach(var pair in peers.ToArray())
+                    if(now-pair.Value.seen>LobbyIdleTimeout)
+                    {
+                        TraceRoomAdmission($"lobby watchdog disconnect peer={pair.Key} idle={now-pair.Value.seen:F1}s");
+                        Runner.Disconnect(pair.Key);ReleaseMarinaSpawn(pair.Key);marinaRecoverySpawns.Remove(pair.Key);
+                        peers.Remove(pair.Key);IslandLobby.Current.RemovePeer(pair.Key.ToString());
+                    }
                 if(now<nextSend)return;nextSend=now+.1f;
                 if(!peers.Values.Any(peer=>peer.ready))return;
                 var local=IslandLobby.Current.Capture(Runner.LocalPlayer.ToString());
