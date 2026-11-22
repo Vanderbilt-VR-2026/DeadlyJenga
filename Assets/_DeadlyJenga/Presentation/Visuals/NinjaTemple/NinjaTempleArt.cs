@@ -20,6 +20,8 @@ namespace DeadlyJenga.NinjaArt
         public float BloodMoon { get; private set; }
 
         Material sky, ground, props, foliage, far, water, previousSky;
+        readonly Material[] facadeMaterials = new Material[4];
+        Mesh facadeCube;
         Light moon; readonly List<Light> practicals = new List<Light>();
         readonly Dictionary<Light, bool> sunStates = new Dictionary<Light, bool>();
         readonly Dictionary<Renderer, bool> hiddenRenderers = new Dictionary<Renderer, bool>();
@@ -69,6 +71,18 @@ namespace DeadlyJenga.NinjaArt
             foliage = Make("NinjaLacquer", "Ninja foliage"); foliage.SetFloat("_Wind", 1); foliage.SetFloat("_Cull", 0); foliage.SetFloat("_Gloss", .35f); foliage.SetFloat("_Spec", .15f); foliage.SetFloat("_Rim", 1.1f); foliage.SetFloat("_Warm", .6f);
             far = Make("NinjaUnlit", "Ninja far silhouettes"); far.SetFloat("_UseFog", 0);
             water = Make("NinjaWater", "Ninja lake"); water.SetVector("_MoonDir", MoonDirection);
+            if (shrineTown)
+            {
+                facadeCube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+                var atlas = Resources.Load<Texture2D>("NinjaScenery/ShrineFacades");
+                for (int tile = 0; tile < facadeMaterials.Length; tile++)
+                {
+                    var material = Make("ShrineFacade", "Painted shrine carpentry " + tile);
+                    material.SetTexture("_MainTex", atlas);
+                    material.SetVector("_Tile", new Vector4((tile % 2) * .5f, tile < 2 ? .5f : 0, 0, 0));
+                    facadeMaterials[tile] = material;
+                }
+            }
             scenery = new GameObject("Visual - moonlit scenery").transform; scenery.SetParent(transform, false);
             float wy = transform.InverseTransformPoint(new Vector3(0, waterLevel, 0)).y;
             var glow = new NinjaGlowMesh(); var mist = new NinjaGlowMesh();
@@ -81,7 +95,7 @@ namespace DeadlyJenga.NinjaArt
 
             var p = new NinjaMesh(); var f = new NinjaMesh(); var rng = new System.Random(5);
             var moonFlat = NinjaTempleScenery.MoonFlat; var facing = Quaternion.LookRotation(moonFlat);
-            NinjaTempleScenery.Torii(p, moonFlat * 82 + Vector3.up * wy, facing, 20, 15, true, glow);
+            if (!shrineTown) NinjaTempleScenery.Torii(p, moonFlat * 82 + Vector3.up * wy, facing, 20, 15, true, glow);
             if (shrineTown)
             {
                 NinjaTempleScenery.Torii(p, new Vector3(0, 0, -43), Quaternion.identity, 10, 7, true, glow);
@@ -206,8 +220,8 @@ namespace DeadlyJenga.NinjaArt
             var fog = Color.Lerp(Fog, new Color(.13f, .045f, .065f), b * .65f); var farFog = Color.Lerp(FarFog, new Color(.2f, .06f, .09f), b * .6f);
             Shader.SetGlobalColor(FogColor, fog); Shader.SetGlobalColor(FogFar, farFog);
             Shader.SetGlobalVector(FogParams, new Vector4(22, 260, .07f, waterLevel));
-            Shader.SetGlobalColor(SkyAmb, Color.Lerp(new Color(.11f, .13f, .22f), new Color(.2f, .07f, .09f), b));
-            Shader.SetGlobalColor(GroundAmb, new Color(.045f, .035f, .05f));
+            Shader.SetGlobalColor(SkyAmb, Color.Lerp(shrineTown ? new Color(.59f,.57f,.68f) : new Color(.11f, .13f, .22f), new Color(.2f, .07f, .09f), b));
+            Shader.SetGlobalColor(GroundAmb, shrineTown ? new Color(.46f,.33f,.28f) : new Color(.045f, .035f, .05f));
             Shader.SetGlobalVector(Warm, new Vector4(.42f, .16f, .05f, 6.5f));
             Shader.SetGlobalVector(Wind, new Vector4(.22f, 1.25f, .8f, .6f));
             Shader.SetGlobalFloat(Blood, b);
@@ -251,7 +265,18 @@ namespace DeadlyJenga.NinjaArt
             foreach (var body in blocks)
             {
                 if (!body || body.transform.Find("Visual - ninja decor")) continue;
-                var size = body.transform.lossyScale; var kind = shrineTown ? NinjaTempleDecor.TownPart(size) : NinjaTempleDecor.Classify(size); if (kind == NinjaTempleDecor.Kind.None) continue;
+                var size = body.transform.lossyScale;
+                int tile = Mathf.RoundToInt(size.z * 100) - 41;
+                if (shrineTown && tile >= 0 && tile < facadeMaterials.Length)
+                {
+                    var panel = new GameObject("Visual - ninja decor");
+                    panel.transform.SetParent(body.transform, false);
+                    panel.transform.localScale = Vector3.one * 1.013f;
+                    panel.AddComponent<MeshFilter>().sharedMesh = facadeCube;
+                    panel.AddComponent<MeshRenderer>().sharedMaterial = facadeMaterials[tile];
+                    continue;
+                }
+                var kind = shrineTown ? NinjaTempleDecor.TownPart(size) : NinjaTempleDecor.Classify(size); if (kind == NinjaTempleDecor.Kind.None) continue;
                 NinjaTempleDecor.Meshes(kind, size, out var mesh, out var glowMesh);
                 var root = new GameObject("Visual - ninja decor").transform; root.SetParent(body.transform, false);
                 var ls = body.transform.localScale; root.localScale = new Vector3(1 / ls.x, 1 / ls.y, 1 / ls.z);

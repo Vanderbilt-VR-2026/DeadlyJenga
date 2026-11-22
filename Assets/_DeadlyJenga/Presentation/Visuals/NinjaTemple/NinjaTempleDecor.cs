@@ -7,7 +7,7 @@ namespace DeadlyJenga.NinjaArt
     // Pagoda roofs, spires and lantern strings ride on the physical blocks, so they fall and break with them.
     public static class NinjaTempleDecor
     {
-        public enum Kind { None, Deck, Beam, Finial, TownDeck, TownRoof, BellRoof, Screen, Pillar }
+        public enum Kind { None, Deck, Beam, Finial, TownDeck, TownRoof, BellRoof, Screen, Pillar, PagodaRoof, Terrace }
         public const float Eave = 2.4f, Droop = 1.35f, Upturn = 1.3f, Thickness = .24f;
         static readonly Dictionary<string, Mesh> solid = new Dictionary<string, Mesh>(), glows = new Dictionary<string, Mesh>();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -15,6 +15,8 @@ namespace DeadlyJenga.NinjaArt
 
         public static Kind TownPart(Vector3 size)
         {
+            if (size.x > 36 && Mathf.Abs(size.y - 4) < .01f) return Kind.Terrace;
+            if (Mathf.Abs(size.y - 1.35f) < .01f) return Kind.PagodaRoof;
             if (Mathf.Abs(size.y - 1.25f) < .01f) return Kind.TownRoof;
             if (Mathf.Abs(size.y - 1.4f) < .01f) return Kind.BellRoof;
             if (Mathf.Abs(size.y - 1) < .01f && size.z > 4) return Kind.TownDeck;
@@ -45,6 +47,18 @@ namespace DeadlyJenga.NinjaArt
                     m.Box(Vector3.down * (size.y / 2 - .22f), new Vector3(1.18f,.44f,1.18f), Quaternion.identity, P.Stone);
                     m.Box(Vector3.up * (size.y / 2 - .20f), new Vector3(1.32f,.28f,1.25f), Quaternion.identity, P.Wood);
                     m.Box(Vector3.up * (size.y / 2 - .42f), new Vector3(1.04f,.10f,1.04f), Quaternion.identity, P.Gold);
+                }
+                else if (kind == Kind.Terrace)
+                {
+                    for (int side = -1; side <= 1; side += 2)
+                        for (int row = 0; row < 4; row++)
+                            for (float x = -size.x / 2; x < size.x / 2; )
+                            {
+                                float width = Mathf.Min(size.x / 2 - x, row % 2 == 1 && x == -size.x / 2 ? 1.5f : 3);
+                                m.Box(new Vector3(x + width / 2, row - 1.5f, side * size.z / 2),
+                                    new Vector3(width - .07f,.94f,.22f), Quaternion.identity, new Color(.51f,.46f,.46f));
+                                x += width;
+                            }
                 }
                 else TownRoof(m, g, size, kind);
                 body = m.Build("Ninja " + key); body.hideFlags = HideFlags.DontSave; solid[key] = body;
@@ -111,7 +125,38 @@ namespace DeadlyJenga.NinjaArt
                 }
             }
             if (kind == Kind.BellRoof)
-                m.Cylinder(Vector3.down * 3.7f, Vector3.down * .7f, 1.25f, .65f, 12, P.Gold * .65f, P.Gold);
+            {
+                var bronze = new Color(.72f,.48f,.19f);
+                m.Lathe(Vector3.down * 4.7f, new[] {new Vector2(0,0), new Vector2(1.65f,0),
+                    new Vector2(1.65f,.25f), new Vector2(1.3f,.48f), new Vector2(1.04f,2.65f),
+                    new Vector2(.68f,3.05f),new Vector2(.18f,3.2f),new Vector2(.18f,4.5f)}, 20, new[] {bronze});
+            }
+            else if (kind == Kind.PagodaRoof)
+            {
+                float baseY = top + rise;
+                m.Cylinder(Vector3.up * baseY, Vector3.up * (baseY + 5.6f), .27f,.09f,10,P.Gold,P.Gold);
+                for (int i = 0; i < 9; i++)
+                    m.Cylinder(Vector3.up * (baseY + .55f + i * .5f), Vector3.up * (baseY + .75f + i * .5f),
+                        .73f - i * .045f,.55f - i * .045f,12,P.Gold,P.Gold);
+            }
+            else
+            {
+                float span = size.x * .38f, front = -half - .75f, peak = top + rise + span * .32f;
+                var left = new Vector3(-span,top,front); var right = new Vector3(span,top,front);
+                var crest = new Vector3(0,peak,front);
+                m.Tri(left, crest, right, P.Vermilion, P.Wood, P.Vermilion);
+                m.Tri(right, crest, left, P.Vermilion, P.Wood, P.Vermilion);
+                foreach (var corner in new[] {left, right})
+                {
+                    var ridge = new Vector3(0,peak,0);
+                    m.Quad(corner,crest,ridge,new Vector3(corner.x,top,0),P.Tile);
+                    m.Quad(new Vector3(corner.x,top,0),ridge,crest,corner,P.Tile);
+                    m.Cylinder(corner,crest,.2f,.22f,6,P.Lacquer,P.Gold);
+                }
+                m.Cylinder(left,right,.18f,.18f,6,P.Gold,P.Gold);
+                var medallion = new Vector3(0,top + (peak - top) * .4f,front);
+                m.Cylinder(medallion,medallion + Vector3.back * .24f,span * .1f,span * .1f,14,P.Gold,P.Gold);
+            }
         }
 
         static Vector3 RoofPoint(float half, float top, float u, float v)

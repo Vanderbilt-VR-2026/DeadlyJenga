@@ -907,7 +907,7 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 Shader.SetGlobalVector("_NinjaFogParams",new Vector4(120,420,.07f,fog.w));
                 RenderSettings.fog=false;
-                Capture(new Vector3(-45,86,-126),new Vector3(0,6,0),46,"NinjaTemple-Overview.png");
+                Capture(new Vector3(8,62,-129),new Vector3(0,6,0),36,"NinjaTemple-Overview.png");
                 Capture(new Vector3(0,2,-40),new Vector3(0,8,21),68,"ShrineTown-Market.png");
             }
             finally {Shader.SetGlobalVector("_NinjaFogParams",fog);RenderSettings.fog=sceneFog;}

@@ -20,9 +20,10 @@ namespace DeadlyJenga.NinjaArt
                 float r = c.magnitude; if (half == 35 && r > 6.5f && r < 15.5f && !path) continue;
                 float edge = Mathf.Max(Mathf.Abs(c.x), Mathf.Abs(c.y));
                 var tone = path ? P.Vary(P.Stone * 1.35f, rng, .12f) : P.Vary(P.Gravel, rng, .07f);
-                if (!path && edge > 30) tone = Color.Lerp(tone, P.Moss, (edge - 30) / 6f * .7f);
-                float gap = path ? .09f : 0, y = path ? .025f : 0;
-                if (path)
+                if (half > 35) tone = P.Vary(path ? new Color(.58f,.51f,.49f) : new Color(.48f,.44f,.45f),rng,.12f);
+                if (half == 35 && !path && edge > 30) tone = Color.Lerp(tone, P.Moss, (edge - 30) / 6f * .7f);
+                float gap = path || half > 35 ? .09f : 0, y = path || half > 35 ? .025f : 0;
+                if (path || half > 35)
                 {
                     m.Quad(new Vector3(x0, 0, z0), new Vector3(x0, 0, z0 + 2), new Vector3(x0 + 2, 0, z0 + 2), new Vector3(x0 + 2, 0, z0), P.StoneDark * .8f);
                     int split = rng.Next(3);
