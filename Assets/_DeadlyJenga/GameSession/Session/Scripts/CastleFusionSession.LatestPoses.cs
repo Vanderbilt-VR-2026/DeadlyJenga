@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CastleFusionSession
     {
-        internal const string LatestPoseProtocol = "/latest-game-pose-1";
+        internal const string LatestPoseProtocol = "/latest-game-pose-2";
         readonly Dictionary<string, CastleLatestPosePage> latestPages = new Dictionary<string, CastleLatestPosePage>();
         readonly Dictionary<string, int> latestActorSequences = new Dictionary<string, int>();
         CastleLatestPoseProvider latestProvider;
@@ -93,7 +93,8 @@ namespace DeadlyJenga.CastlePrototype
                     if (payload == null) continue;
                     var raw = LivePoseCodec.Unpack(payload, MaxPoseSize, out _);
                     castle.FusionReceivePlayer(player.ToString(), raw);
-                    peer.lastPoseSequence = input.Sequence;
+                    peer.lastPoseSequence = peer.lastNativePoseSequence = input.Sequence;
+                    peer.lastNativePoseAt = now;
                     peer.hasPoseSequence = true;
                     peer.lastPose = now;
                     peer.posesInFlight.Traffic.RawReceivedBytes += raw.Length;
@@ -117,15 +118,18 @@ namespace DeadlyJenga.CastlePrototype
                 if (!instance) return false;
                 page = latestPages[actor.id] = instance.GetComponent<CastleLatestPosePage>();
             }
-            page.Publish(sceneTag, LivePoseWindow.NextSequence(ref poseSequence), packed);
+            int acceptedInput = 0;
             foreach (var pair in peers)
             {
+                if (pair.Value.posesInFlight.Traffic.PeerId == actor.id)
+                    acceptedInput = pair.Value.lastNativePoseSequence;
                 if (!pair.Value.ready || !pair.Value.worldAcknowledged ||
                     pair.Value.posesInFlight.Traffic.PeerId == actor.id && actor.kind == DeadlyJenga.Core.NetworkKinds.Survivor)
                     continue;
                 pair.Value.posesInFlight.Submitted(packed.Length);
                 pair.Value.posesInFlight.Traffic.RawSubmittedBytes += raw.Length;
             }
+            page.Publish(sceneTag, LivePoseWindow.NextSequence(ref poseSequence), acceptedInput, packed);
             return true;
         }
 
@@ -142,7 +146,7 @@ namespace DeadlyJenga.CastlePrototype
             return true;
         }
 
-        internal void ReadLatestPage(byte[] payload, int sequence)
+        internal void ReadLatestPage(byte[] payload, int sequence, int acceptedInput)
         {
             try
             {
@@ -152,6 +156,8 @@ namespace DeadlyJenga.CastlePrototype
                 foreach (var player in runner.ActivePlayers)
                 {
                     if (player.ToString() != actor.id || !AcceptLatestActor(actor.id, sequence)) continue;
+                    if (player == runner.LocalPlayer && acceptedInput != 0)
+                        posesInFlight.RetireThrough(acceptedInput, Time.unscaledTime);
                     if (!castle.FusionApplyLiveActor(actor)) return;
                     latestDownlinkSeen = true;
                     lastHostPose = Time.unscaledTime;
