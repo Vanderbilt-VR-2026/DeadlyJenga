@@ -57,3 +57,15 @@ Use the same display, viewing distance, sound level and instructions for each pa
 Use one Sol agent for each independent bottleneck, subject to available slots. Producers own interpretation and asset lookup, performers own motion and map rehearsal, cinematographers work from locked takes, and editorial owns cuts and sound. Independent reviewers receive the brief and anonymized movies. A single integrator owns the runnable revision and evidence record. Reassign a slot when its artifact is usable. Stop generating takes when symptoms point to a single fix that can be tested on an existing recording.
 
 All proposed production methods can use the installed game, local Python, FFmpeg and open-source editorial tools. An optional local model needs a measured hardware budget and a redistribution/license check before it becomes a dependency. Paid inference and generation are unnecessary for the implemented path.
+
+## Verified branch checkpoint
+
+The owned branch is `codex/cutscene-editor-tool`, based on `abd1fc9f8b8f1aeeced118194f93c862fee8e90e` from `origin/Evan_FINAL_Sprint`. The latest tested implementation is `186dad73d97ca585d54d0023f1341893b54536cd`. Scope is DevTools and its companion studio tooling. Integration into the shared target, broader held-out human comparisons and headset verification remain open.
+
+| Exact source | Reproducible check | Observed result |
+|---|---|---|
+| `186dad73` | Stage the Castle contact example, render with `GameplayTheatre.RunDirectedExample`, audit the take against the example. | 75 frames at 15 fps. The camera cut at 1.60 s. At 1.867 s the named rival alone received a push and its health went from 100 to 82. The approach passed 45 support probes with a 0.002 m spread in support height. The close view still shows a visible separation between bodies. Whether the fist reads as making convincing contact needs viewer review. |
+| `3eec56c4` | Render `GameplayTheatre.RunQuietExample` and audit the quiet Castle example. | Four seconds, 60 decoded frames at 360×640. The cast was empty and the decoded delivery audio was silent. |
+| `fff7ee69` | Run `TrailerStudio.CrowdRunScout.RunRooftopTsunami` and inspect both synchronized views. | 150 frames per angle at 30 fps. The recorded Blaster shot was airborne on tape frame 66 and the first landing was on frame 94. The new camera follows the roof crossing before revealing the tower base. The rival remains small and the hero later falls below the planned route. |
+
+Run `py -3 -B -m unittest discover -s Docs/Development/TrailerStudio/tools` plus `direct_prompt.py --self-test` for the offline checks. Compare scene revisions on the same prompts, using the same input footage when testing only camera or editorial changes. For the next milestone obtain a human-operated take with the same actor, route and framing and collect blind, timecoded viewer responses.
