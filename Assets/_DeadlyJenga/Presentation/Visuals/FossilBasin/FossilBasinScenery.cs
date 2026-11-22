@@ -8,6 +8,8 @@ namespace DeadlyJenga.Presentation
         public Material sky,tar;
         CandyEnvironment environment;
         bool waterOff,sandOff;
+        CandySeaLife seaLife;
+        bool wildlifeActive;
         void Start()
         {
             Surface("Tar",PrimitiveType.Plane,new Vector3(55,1,55),tar);
@@ -24,7 +26,15 @@ namespace DeadlyJenga.Presentation
         }
         void LateUpdate()
         {
-            if(environment)return;
+            if(environment)
+            {
+                if(!seaLife)
+                {
+                    seaLife=environment.GetComponentInChildren<CandySeaLife>(true);
+                    if(seaLife){wildlifeActive=seaLife.gameObject.activeSelf;seaLife.gameObject.SetActive(false);}
+                }
+                return;
+            }
             environment=CandyEnvironment.ForMap(this);
             if(!environment)return;
             waterOff=environment.waterRenderer.forceRenderingOff;sandOff=environment.sandRenderer.forceRenderingOff;
@@ -34,7 +44,8 @@ namespace DeadlyJenga.Presentation
         {
             if(!environment)return;
             environment.waterRenderer.forceRenderingOff=waterOff;environment.sandRenderer.forceRenderingOff=sandOff;
-            environment=null;
+            if(seaLife)seaLife.gameObject.SetActive(wildlifeActive);
+            seaLife=null;environment=null;
         }
     }
 }

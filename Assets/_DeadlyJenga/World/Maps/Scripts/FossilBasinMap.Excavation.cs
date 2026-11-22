@@ -10,7 +10,14 @@ namespace DeadlyJenga.CastlePrototype
         static readonly Quaternion Flat=Quaternion.identity;
         sealed class Site
         {
-            public Vector3 top;public Vector2 span;public FossilMember slab;
+            public Vector3 top;
+            public Vector2 span;
+            public FossilMember[] planks;
+            public FossilMember Seat(Vector3 p)
+            {
+                float u=(p.x-top.x)/span.x+.5f;
+                return planks[Mathf.Clamp(Mathf.FloorToInt(u*planks.Length),0,planks.Length-1)];
+            }
             public Vector3 Edge(Vector3 toward)
             {
                 var d=toward-top; d.y=0;
@@ -20,8 +27,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         Site Landing(string name,Vector3 top,float width,float depth)
         {
-            const float thick=.52f;
-            var center=top-Vector3.up*thick*.5f;
+            const float thick=.69f, plankThickness=.34f;
+            var heads=new FossilMember[2,2];
             // The isolated buried bearing pads receive only the piers directly over them.
             for(int ix=-1;ix<=1;ix+=2)for(int iz=-1;iz<=1;iz+=2)
             {
@@ -34,29 +41,53 @@ namespace DeadlyJenga.CastlePrototype
                 for(int k=0;k<count;k++)
                 {
                     var at=basePos+Vector3.up*((k+.5f)*height);
-                    Piece(name+" pier "+ix+"/"+iz+"/"+k,at,32,c=>{
-                        c.Box(at,P(.86f,height,.86f),Teal,Flat);
+                    var pier=Piece(name+" pier "+ix+"/"+iz+"/"+k,at,32,c=>{
+                        c.Box(at,P(.96f,height,.96f),k%2==0?Teal:Clay,Flat);
                         c.Box(at+Vector3.up*(height*.5f-.18f),P(1.05f,.36f,1.05f),Clay,Flat,false);
                     });
+                    if(k==count-1)heads[(ix+1)/2,(iz+1)/2]=pier;
                 }
             }
-            var slab=Piece(name+" deck",center,46,c=>{
-                c.Box(center,P(width,thick,depth),Clay,Flat);
-                int nx=Mathf.CeilToInt(width/1.2f),nz=Mathf.CeilToInt(depth/1.3f);
-                for(int x=0;x<nx;x++)for(int z=0;z<nz;z++)
+            // Two transverse girders sit on the pier heads. Every coral deck stone
+            // spans them independently, so losing one bearing can change the route.
+            var girders=new FossilMember[2];
+            for(int z=-1;z<=1;z+=2)
+            {
+                var beam=top+P(0,-(thick+plankThickness)*.5f,z*(depth*.5f-.58f));
+                var girder=Piece(name+" girder "+z,beam,21,c=>
+                    c.Box(beam,P(width-.12f,thick-plankThickness,.64f),Timber,Flat));
+                girders[(z+1)/2]=girder;
+                for(int x=0;x<2;x++)
                 {
-                    var p=top+P(((x+.5f)/nx-.5f)*width,-.055f,((z+.5f)/nz-.5f)*depth);
-                    c.Box(p,P(width/nx-.018f,.15f,depth/nz-.018f),Color.Lerp(Coral,Clay,((x+z*3)%5)*.07f),Flat,false);
+                    var head=heads[x,(z+1)/2];
+                    Socket(girder,head,P(head.transform.localPosition.x,top.y-thick,beam.z),2200);
                 }
-                for(int x=-1;x<=1;x+=2)for(int z=-1;z<=1;z+=2)
-                {
-                    var corner=top+P(x*(width*.5f-.4f),0,z*(depth*.5f-.4f));
-                    c.Shaft(corner,corner+Vector3.up*.53f,.075f,.075f,Timber,false,false);
-                    c.Box(corner+Vector3.up*.58f,P(.24f,.18f,.24f),Brass,Flat,false);
-                }
-            });
-            decks.Add(slab);
-            return new Site{top=top,span=new Vector2(width,depth),slab=slab};
+            }
+            int n=Mathf.Max(2,Mathf.CeilToInt(width/1.65f));
+            var site=new Site{top=top,span=new Vector2(width,depth),planks=new FossilMember[n]};
+            for(int i=0;i<n;i++)
+            {
+                float u=(i+.5f)/n;
+                var center=top+P((u-.5f)*width,-plankThickness*.5f,0);
+                float inset=(i==0||i==n-1)?.16f:0;
+                var slab=Piece(name+" deck "+i,center,16,c=>{
+                    c.Box(center,P(width/n-.008f,plankThickness,depth-inset*2),
+                        Color.Lerp(Coral,Clay,(i%3)*.085f),Flat);
+                    if(i!=0 && i!=n-1)return;
+                    float x=(i==0?-1:1)*(width/n*.5f-.27f);
+                    for(int z=-1;z<=1;z+=2)
+                    {
+                        var corner=center+P(x,plankThickness*.5f,z*(depth*.5f-inset-.28f));
+                        c.Shaft(corner,corner+Vector3.up*.51f,.052f,.052f,Timber,false,false);
+                        c.Box(corner+Vector3.up*.56f,P(.21f,.13f,.21f),Brass,Flat,false);
+                        c.Box(corner+Vector3.up*.65f,P(.13f,.14f,.13f),new Color32(255,216,122,255),Flat,false);
+                    }
+                });
+                decks.Add(slab);site.planks[i]=slab;
+                var girder=girders[i%2];
+                Socket(slab,girder,P(center.x,top.y-plankThickness,girder.transform.localPosition.z),1600);
+            }
+            return site;
         }
         void Flight(Site low,Site high)
         {
@@ -65,7 +96,7 @@ namespace DeadlyJenga.CastlePrototype
             int count=Mathf.Max(2,Mathf.CeilToInt(Mathf.Abs(b.y-a.y)/.22f));
             float tread=dir.magnitude/count;var facing=Quaternion.LookRotation(dir);
             var mid=(a+b)*.5f;
-            var flight=Piece("Teal stair "+low.slab.name+" to "+high.slab.name,mid,24,c=>{
+            var flight=Piece("Teal stair "+low.Seat(a).name+" to "+high.Seat(b).name,mid,24,c=>{
                 // A continuous stringer carries the treads and matches their walking pitch.
                 var pitch=Quaternion.LookRotation((b-a).normalized);
                 var nose=b+dir.normalized*.20f;
@@ -84,7 +115,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
             });
             // The upper shoe rests on its deck. Only the lower stringer is bolted.
-            Socket(flight,low.slab,a-Vector3.up*.17f,2200);
+            Socket(flight,low.Seat(a),a-Vector3.up*.17f,2200);
         }
         void Canopy(Site site,Vector3 offset)
         {
@@ -106,7 +137,7 @@ namespace DeadlyJenga.CastlePrototype
                 for(int k=0;k<3;k++)
                     c.Shaft(origin+P(k*.31f-.43f,.74f,-.17f),origin+P(k*.31f-.35f,.79f,.1f),.08f,.1f,Ivory,false,false);
             });
-            Socket(stall,site.slab,origin,750);
+            Socket(stall,site.Seat(origin),origin,750);
         }
         void Derrick(Site site)
         {
@@ -120,7 +151,7 @@ namespace DeadlyJenga.CastlePrototype
                 c.Shaft(head,head-Vector3.up*1.35f,.024f,.024f,Timber,false,false);
                 c.Box(head-Vector3.up*1.54f,P(.46f,.38f,.42f),Clay,Flat);
             });
-            Socket(crane,site.slab,p,900);
+            Socket(crane,site.Seat(p),p,900);
         }
         void BuildExcavation()
         {

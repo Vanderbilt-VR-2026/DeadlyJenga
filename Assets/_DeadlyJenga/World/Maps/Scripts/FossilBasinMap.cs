@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class FossilBasinMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IRebuildable, IMapFootprint, ITraversalCollisionWorld
     {
         public Material stone;
-        const string Version="fossil-basin/3/";
+        const string Version="fossil-basin/4/";
         readonly List<Rigidbody> bodies=new();
         readonly List<FossilMember> decks=new();
         readonly List<Link> links=new();
@@ -103,7 +103,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var deck=decks[spawnIndex++%decks.Count];
                 if(!deck.gameObject.activeInHierarchy||deck.transform.up.y<.93f)continue;
-                var pos=deck.transform.position+Vector3.up*(.35f*transform.lossyScale.x+.05f);
+                var pos=deck.transform.position+Vector3.up*(.17f*transform.lossyScale.x+.05f);
                 if(pos.y<=WaterHeight(pos)+.4f || Physics.CheckCapsule(pos+Vector3.up*.25f,pos+Vector3.up*1.05f,.23f,1<<Layers.Block,QueryTriggerInteraction.Ignore))continue;
                 return pos;
             }

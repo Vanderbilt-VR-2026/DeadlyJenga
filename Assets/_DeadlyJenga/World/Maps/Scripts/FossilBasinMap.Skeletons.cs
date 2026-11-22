@@ -83,7 +83,7 @@ namespace DeadlyJenga.CastlePrototype
             });
             Socket(thigh,torso,hip);Socket(shin,thigh,knee);Socket(toes,shin,ankle);
             // A bronze tarsal shoe bolts to the removable deck and follows it when the piers give way.
-            Socket(toes,site.slab,foot,11500);
+            Socket(toes,site.Seat(foot),foot,11500);
         }
         void Tail(Dinosaur kind,FossilMember pelvis,Vector3 rump,Vector3 f,Vector3 side)
         {

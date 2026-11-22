@@ -8,6 +8,7 @@ namespace DeadlyJenga.CastlePrototype
     internal sealed class FossilCarving
     {
         readonly List<Vector3> verts = new();
+        readonly List<Vector3> normals=new();
         readonly List<Color32> colors = new();
         readonly List<int> indices = new();
         readonly FossilMember member;
@@ -17,7 +18,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             var mesh = new Mesh { name = member.name };
             mesh.SetVertices(verts); mesh.SetColors(colors); mesh.SetTriangles(indices, 0);
-            mesh.RecalculateNormals(); mesh.RecalculateBounds(); member.mesh = mesh;
+            mesh.SetNormals(normals); mesh.RecalculateBounds(); member.mesh = mesh;
             member.art = new GameObject("Visual").transform;
             member.art.SetParent(member.transform, false);
             member.art.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
@@ -27,7 +28,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             int n = verts.Count;
             verts.Add(a-pivot); verts.Add(b-pivot); verts.Add(c-pivot); verts.Add(d-pivot);
-            for(int i=0;i<4;i++) colors.Add(color);
+            var normal=Vector3.Cross(b-a,c-a).normalized;
+            for(int i=0;i<4;i++){colors.Add(color);normals.Add(normal);}
             indices.Add(n); indices.Add(n+1); indices.Add(n+2);
             indices.Add(n); indices.Add(n+2); indices.Add(n+3);
         }
@@ -113,7 +115,18 @@ namespace DeadlyJenga.CastlePrototype
             }
             for(int i=0;i<12;i++)
             {
-                for(int k=0;k<4;k++) Face(P(k,i),P(k,i+1),P(k+1,i+1),P(k+1,i),color*((k==0?.87f:1f)-.015f*((i+k)%3)));
+                for(int k=0;k<4;k++)
+                {
+                    int start=verts.Count;
+                    Face(P(k,i),P(k,i+1),P(k+1,i+1),P(k+1,i),color*((k==0?.87f:1f)-.015f*((i+k)%3)));
+                    float slope=(radii[k+1]-radii[k])*Mathf.Min(width,depth)/((b-a).magnitude*(along[k+1]-along[k]));
+                    for(int v=0;v<4;v++)
+                    {
+                        float angle=(i+(v==1||v==2?1:0))*Mathf.PI/6;
+                        var radial=(side*(Mathf.Cos(angle)/width)+back*(Mathf.Sin(angle)/depth)).normalized;
+                        normals[start+v]=Vector3.Slerp(normals[start+v],(radial-axis*slope).normalized,.74f);
+                    }
+                }
                 Face(a,P(0,i+1),P(0,i),a,color); Face(b,P(4,i),P(4,i+1),b,color);
             }
             if(solid)
