@@ -72,6 +72,14 @@ namespace DeadlyJenga.CastlePrototype
             }
 
             AddParkDetails(profile,size);
+            Material body = profile.Finish is TycoonDeckFinish.Peach or TycoonDeckFinish.LoosePeach or TycoonDeckFinish.Walk ? Peach : profile.Finish == TycoonDeckFinish.Mint ? Mint : shell;
+            var palette = new[] {body, accent ? accent : shell, Cream, Coral};
+            FinishMesh(palette);
+            if (profile.Finish == TycoonDeckFinish.Bucket) BuildTippingBucket(size, palette);
+        }
+
+        void FinishMesh(Material[] palette)
+        {
             mesh = new Mesh {name = "Tycoon molded deck"};
             mesh.SetVertices(vertices);
             mesh.SetUVs(0,uv);
@@ -80,9 +88,7 @@ namespace DeadlyJenga.CastlePrototype
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
             gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
-            gameObject.AddComponent<MeshRenderer>().sharedMaterials = new[] {
-                profile.Finish is TycoonDeckFinish.Peach or TycoonDeckFinish.LoosePeach or TycoonDeckFinish.Walk ? Peach : profile.Finish == TycoonDeckFinish.Mint ? Mint : shell,
-                accent ? accent : shell, Cream, Coral };
+            gameObject.AddComponent<MeshRenderer>().sharedMaterials = palette;
         }
 
         void BeveledDeck(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Vector3 size,bool wetCenter)

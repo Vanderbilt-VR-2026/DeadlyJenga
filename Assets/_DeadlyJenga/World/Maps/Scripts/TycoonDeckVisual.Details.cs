@@ -32,9 +32,27 @@ namespace DeadlyJenga.CastlePrototype
                     break;
                 case TycoonDeckFinish.Gate:
                     Tube(profile, false);
+                    // Cream portal collars frame each entrance from the beach and from the queue.
+                    foreach(float z in new[]{-d*.5f,d*.5f})
+                    for(int i=0;i<16;i++)
+                    {
+                        Vector3 Rim(int k,float r) => LocalPoint(Mathf.Cos(k*Mathf.PI/16)*r,Mathf.Sin(k*Mathf.PI/16)*r,z+Mathf.Sign(z)*.03f);
+                        var a=Rim(i,w*.50f); var b=Rim(i+1,w*.50f);
+                        var c=Rim(i+1,w*.56f); var e=Rim(i,w*.56f);
+                        Quad(a,b,c,e,2); Quad(e,c,b,a,2);
+                    }
                     break;
                 case TycoonDeckFinish.Basin:
                     Slab(0,0,0,w,.09f,d,1);
+                    // A rescue ring hangs on the outer face of each catch basin.
+                    for(int i=0;i<24;i++)
+                    {
+                        Vector3 Ring(int k,float r) => LocalPoint(Mathf.Cos(k*Mathf.PI/12)*r,.12f+Mathf.Sin(k*Mathf.PI/12)*r,-d/2-.09f);
+                        var a=Ring(i,.42f); var b=Ring(i+1,.42f);
+                        var c=Ring(i+1,.74f); var e=Ring(i,.74f);
+                        Quad(a,b,c,e,(i/3)%2==0?3:2);
+                        Quad(e,c,b,a,(i/3)%2==0?3:2);
+                    }
                     for(int i=0;i<10;i++)
                         foreach(int side in new[]{-1,1})
                             Slab((i-4.5f)*w/10,0,side*(d-.35f)/2,w/10,.35f,.35f, i%2==0?1:2);
@@ -55,6 +73,15 @@ namespace DeadlyJenga.CastlePrototype
                     break;
                 case TycoonDeckFinish.Railed:
                     ArchSpandrels(w,d);
+                    // The seaward rail carries a short run of alternating park pennants.
+                    for(int i=0;i<7;i++)
+                    {
+                        float x=(i-3)*w/7;
+                        var a=LocalPoint(x-.44f,1.12f,-d/2-.07f);
+                        var b=LocalPoint(x+.44f,1.12f,-d/2-.07f);
+                        var tip=LocalPoint(x,.32f,-d/2-.12f);
+                        Quad(a,b,tip,tip,i%2==0?2:1); Quad(b,a,tip,tip,i%2==0?2:1);
+                    }
                     foreach(int side in new[]{-1,1})
                     {
                         float z=side*(d-.2f)/2;
@@ -74,6 +101,17 @@ namespace DeadlyJenga.CastlePrototype
                     {
                         float x=(i-4)*w/9;
                         float h=3.1f;
+                        // A scalloped valance gives the kiosk a recognizable silhouette at eye height.
+                        for(int j=0;j<5;j++)
+                        {
+                            float u=j/5f,v=(j+1)/5f;
+                            float z=-d*.56f-.02f;
+                            Vector3 Hem(float t,float drop) => LocalPoint(x+(t-.5f)*w/9,h-drop,z);
+                            var a=Hem(u,0); var b=Hem(v,0);
+                            var c=Hem(v,.22f+.24f*Mathf.Sin(Mathf.PI*v));
+                            var e=Hem(u,.22f+.24f*Mathf.Sin(Mathf.PI*u));
+                            Quad(a,b,c,e,i%2==0?3:2); Quad(e,c,b,a,i%2==0?3:2);
+                        }
                         foreach(int end in new[]{-1,1})
                         {
                             var a=LocalPoint(x-w/18,h,end*d*.56f);
@@ -91,22 +129,72 @@ namespace DeadlyJenga.CastlePrototype
                         Wedge(i,16,0,3.8f,2.25f,3.1f,i%2==0?3:2);
                     break;
                 case TycoonDeckFinish.Bucket:
-                    // Flared enamel bucket with alternating stripes and a curved bail.
-                    for(int i=0;i<32;i++)
+                    foreach (int side in new[]{-1,1})
                     {
-                        Wedge(i,32,2.2f,0,3.6f,5.2f,(i/2)%2==0?3:2);
-                        Wedge(i,32,3.62f,5.22f,3.38f,5.22f,2);
-                        Wedge(i,32,3.38f,5.22f,0,4.85f,1);
-                    }
-                    for(int i=0;i<20;i++)
-                    {
-                        float a=i*Mathf.PI/20,b=(i+1)*Mathf.PI/20;
-                        Vector3 Handle(float t,float r) => LocalPoint(Mathf.Cos(t)*r,4+Mathf.Sin(t)*r,0);
-                        var v=Handle(a,3.72f); var q=Handle(b,3.72f);
-                        var r=Handle(b,3.4f); var t=Handle(a,3.4f);
-                        Quad(v,q,r,t,2); Quad(t,r,q,v,2);
+                        Slab(side*4.3f,0,0,.65f,6.3f,.85f,0);
+                        Slab(side*3.95f,5.8f,0,1.2f,.65f,.8f,2);
+                        Slab(side*4.3f,0,0,1.4f,.45f,2.7f,2);
                     }
                     break;
+            }
+        }
+
+        TycoonDeckVisual Detail(Transform parent,string label)
+        {
+            var part = new GameObject(label);
+            part.layer = gameObject.layer;
+            part.transform.SetParent(parent,false);
+            var visual = part.AddComponent<TycoonDeckVisual>();
+            visual.dimensions = Vector3.one;
+            return visual;
+        }
+
+        void BuildTippingBucket(Vector3 size,Material[] palette)
+        {
+            var frame = new GameObject("Summit bucket axle").transform;
+            frame.SetParent(transform,false);
+            frame.localPosition = LocalPoint(0,6.1f,0);
+            frame.localScale = new Vector3(1/size.x,1/size.y,1/size.z);
+            var bowl = Detail(frame,"Striped tipping bucket");
+            bowl.MakeBowl();
+            // Place the trunnions near the upper half of the vessel.
+            for(int i=0;i<bowl.vertices.Count;i++) bowl.vertices[i] -= Vector3.up*3.8f;
+            bowl.FinishMesh(palette);
+            var spill = Detail(frame,"Pouring water");
+            // Continuous blue sheet, broken into tapering foam fingers at its lower edge.
+            for(int i=0;i<9;i++)
+            {
+                float x=(i-4)*.33f;
+                Vector3 At(float t,float u) => new Vector3(x+u*(1+.35f*t),-t*(6.1f+.5f*Mathf.Cos(i*2)),-2.4f*t);
+                for(int j=0;j<4;j++)
+                {
+                    float t=j/4f, end=(j+1)/4f;
+                    var a=At(t,-.17f); var b=At(t,.17f);
+                    var c=At(end,.17f); var d=At(end,-.17f);
+                    int color=j==3 && i%3==0 ? 2 : 1;
+                    spill.Quad(a,b,c,d,color); spill.Quad(d,c,b,a,color);
+                }
+            }
+            spill.FinishMesh(palette);
+            frame.gameObject.AddComponent<TycoonBucketMotion>().Initialize(bowl.transform,spill.transform);
+        }
+
+        void MakeBowl()
+        {
+            // Flared enamel bucket with alternating stripes and a curved bail.
+            for(int i=0;i<32;i++)
+            {
+                Wedge(i,32,2.2f,0,3.6f,5.2f,(i/2)%2==0?3:2);
+                Wedge(i,32,3.62f,5.22f,3.38f,5.22f,2);
+                Wedge(i,32,3.38f,5.22f,0,4.85f,1);
+            }
+            for(int i=0;i<20;i++)
+            {
+                float a=i*Mathf.PI/20,b=(i+1)*Mathf.PI/20;
+                Vector3 Handle(float t,float r) => LocalPoint(Mathf.Cos(t)*r,4+Mathf.Sin(t)*r,0);
+                var v=Handle(a,3.72f); var q=Handle(b,3.72f);
+                var r=Handle(b,3.4f); var t=Handle(a,3.4f);
+                Quad(v,q,r,t,2); Quad(t,r,q,v,2);
             }
         }
 

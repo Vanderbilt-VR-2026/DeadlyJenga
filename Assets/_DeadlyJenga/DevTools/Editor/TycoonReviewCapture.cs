@@ -188,6 +188,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Shot("03-Core-junction",new Vector3(1,19.7f,-16.5f),new Vector3(7,22,-3));
                 Shot("04-West-flume",new Vector3(-34,23,-29),new Vector3(-19,26,-4));
                 Shot("05-East-terrace",new Vector3(38,19.7f,-39),new Vector3(29,22,-13));
+                Shot("07-Summit-bucket",new Vector3(16,68,-32),new Vector3(0,64,1));
                 Shot("06-Plank-court",new Vector3(1,8.7f,-43),new Vector3(-4,15,-22));
             }
             finally
