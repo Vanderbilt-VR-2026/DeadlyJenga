@@ -428,8 +428,13 @@ namespace DeadlyJenga.CastlePrototype
                 for (int i = 0; i < bots; i++) session.SurvivorBots.SpawnOne();
                 Require(session.SurvivorBots.Count == bots, $"Host spawns {bots} bots");
             }
-            yield return Until(() => session.SurvivorBots.Count == bots || !host, $"Bots replicate to {role} ({bots} expected)", 60,
-                () => $"count={session.SurvivorBots.Count}");
+            if (!host)
+            {
+                yield return Until(() => session.Network.Demo.survivors == bots &&
+                    FindObjectsByType<SurvivorNetworkView>(FindObjectsSortMode.None)
+                        .Count(view => view.IsBot && !view.IsEnemy) == bots,
+                    $"Guest sees {bots} replicated survivor bots", 60);
+            }
             File.AppendAllText(Report, $"MATCH started role={role} bots={session.SurvivorBots.Count} humans={room.HumanCount}\n");
 
             var start = new Dictionary<GameObject, Vector3>();
@@ -483,6 +488,9 @@ namespace DeadlyJenga.CastlePrototype
 
         IEnumerator CheckFullRound()
         {
+            int roundSeconds = Mathf.Clamp(ScaleArg("--dj-round-seconds", 20), 20, 3600);
+            int bots = Mathf.Clamp(ScaleArg("--dj-match-bots", 0), 0, 100);
+            bool disasters = Environment.GetCommandLineArgs().Contains("--dj-round-disasters");
             HomeSession home = null;
             yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && home.Region.Length > 0,
                 "Home initializes", 60);
@@ -499,7 +507,7 @@ namespace DeadlyJenga.CastlePrototype
                 yield return Until(() => connect.IsCompleted && room.IsHost && lobby.CanConfigure,
                     "Host creates a Fusion room through the Marina", 75, () => room.Status);
                 Require(lobby.SelectMode("survival") && lobby.SelectMap("castle"), "Host selects Disaster Survival on Castle");
-                MatchSetup.BotTarget = 2;
+                MatchSetup.BotTarget = 2 + bots;
                 code = room.Code;
                 File.WriteAllText(Mark("code-pending"), code);
                 File.Move(Mark("code-pending"), Mark("code"));
@@ -529,13 +537,13 @@ namespace DeadlyJenga.CastlePrototype
                 yield return Until(() => File.Exists(Mark("guest-in-game")), "Guest confirms its world snapshot");
                 var rules = match.Modes.Rules.Copy();
                 rules.countdownSeconds = 1;
-                rules.roundSeconds = 20;
+                rules.roundSeconds = roundSeconds;
                 rules.victorySeconds = 2;
-                rules.automaticDisasters = false;
+                rules.automaticDisasters = disasters;
                 match.Modes.Configure(rules);
                 match.Modes.StartRound();
             }
-            yield return Until(() => match.Modes.Frame.phase == RoundPhase.Playing && match.Modes.Frame.rules.roundSeconds == 20 &&
+            yield return Until(() => match.Modes.Frame.phase == RoundPhase.Playing && match.Modes.Frame.rules.roundSeconds == roundSeconds &&
                 room.Connected && room.HumanCount == 2, "Authoritative timed round is playing on both peers", 40,
                 () => room.Status);
             if (MigrationRound)
@@ -545,11 +553,11 @@ namespace DeadlyJenga.CastlePrototype
                     yield return Until(() => File.Exists(Mark("guest-migration-ready")), "Guest observed in-progress round");
                     var leave = room.Leave();
                     yield return Until(() => leave.IsCompleted && !room.Connected, "Former host leaves during the actual round", 40);
-                    yield return Until(() => File.Exists(Mark("guest-migration-returned")), "Promoted guest independently confirms the full round", 160);
+                    yield return Until(() => File.Exists(Mark("guest-migration-returned")), "Promoted guest independently confirms the full round", roundSeconds + 140);
                     yield break;
                 }
 
-                yield return Until(() => match.Modes.Frame.remaining <= 17f &&
+                yield return Until(() => match.Modes.Frame.remaining <= roundSeconds - 3f &&
                     match.Modes.Frame.phase == RoundPhase.Playing, "Guest records round progress before transfer");
                 string lastLocalId = room.LocalLobbyId;
                 float remaining = match.Modes.Frame.remaining;
@@ -561,7 +569,7 @@ namespace DeadlyJenga.CastlePrototype
                 Require(match.Modes.Frame.phase == RoundPhase.Playing && match.Modes.Frame.remaining <= remaining + 1,
                     "Host transfer preserves the existing round and timer");
                 yield return Until(() => match.Modes.Frame.phase == RoundPhase.Results && room.IsHost && room.Code == code,
-                    "Promoted guest finishes the original round", 75, () => room.Status);
+                    "Promoted guest finishes the original round", roundSeconds + 55, () => room.Status);
                 match.Modes.ReturnToLobby();
                 yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player) &&
                     room.IsHost && room.Code == code, "Promoted guest returns to the same Marina room", 85, () => room.Status);
@@ -569,7 +577,7 @@ namespace DeadlyJenga.CastlePrototype
                 yield break;
             }
             yield return Until(() => match.Modes.Frame.phase == RoundPhase.Results && room.Connected && room.HumanCount == 2,
-                "Both peers reach final results in the same room", 75, () => room.Status);
+                "Both peers reach final results in the same room", roundSeconds + 55, () => room.Status);
             File.WriteAllText(Mark(role + "-results"), "ready");
             if (host)
             {
