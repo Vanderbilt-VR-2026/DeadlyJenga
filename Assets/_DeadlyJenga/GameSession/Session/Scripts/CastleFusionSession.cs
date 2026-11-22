@@ -303,7 +303,8 @@ namespace DeadlyJenga.CastlePrototype
             Send(default,Ack,frame.Token(),serial);
         }
 
-        float nextPoseSend;
+        const double PoseSendInterval = 1d / 30;
+        double nextPoseSend;
         readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,24*1024,MaxPoseSize+LivePoseCodec.HeaderBytes);
         bool hasPoseBatch;
         readonly LivePoseReceipts poseReceipts=new LivePoseReceipts();
@@ -375,7 +376,13 @@ namespace DeadlyJenga.CastlePrototype
         void PumpPoses(float now)
         {
             posesInFlight.Observe(now);foreach(var peer in peers.Values)peer.posesInFlight.Observe(now);
-            if(now<nextPoseSend)return;nextPoseSend=now+1f/30;
+            double frameTime = Time.unscaledTimeAsDouble;
+            if (frameTime < nextPoseSend) return;
+            // Keep the send clock on its phase, skipping missed slots after a slow frame.
+            double overdue = frameTime - nextPoseSend;
+            nextPoseSend = nextPoseSend == 0 || overdue >= PoseSendInterval
+                ? frameTime + PoseSendInterval
+                : nextPoseSend + PoseSendInterval;
             if(!runner.IsServer)
             {
                 if(welcomed&&!castle.WaitingForWorld&&posesInFlight.CanCapture())SendPose(default,LivePose,posesInFlight,poseReceipts,castle.FusionCapturePlayer(),now);

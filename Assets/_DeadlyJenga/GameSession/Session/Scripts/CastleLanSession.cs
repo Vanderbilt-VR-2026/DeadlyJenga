@@ -56,7 +56,7 @@ namespace DeadlyJenga.CastlePrototype
         float nextBeacon, nextState, nextPose, requestedAt, lastRequest, worldAt, lastWorldAt;
         P.Snapshot targetWorld;
         P.Pose[] previousBlocks;
-        bool worldInterpolationComplete;
+        readonly List<int> movingBlocks = new List<int>();
         INetworkPreview localPreview;
         string displayName;
         bool oldRunInBackground;
@@ -590,19 +590,28 @@ namespace DeadlyJenga.CastlePrototype
             }
             var blocks = World.Blocks;
             if (blocks.Count != s.blocks.Length) throw new InvalidDataException("Demo block count changed unexpectedly");
+            movingBlocks.Clear();
             for (int i = 0; i < blocks.Count; i++)
             {
                 var b = blocks[i];
+                var target = s.blocks[i];
                 if (rebuild)
                 {
-                    b.position = s.blocks[i].position;
-                    b.rotation = s.blocks[i].rotation;
+                    b.position = target.position;
+                    b.rotation = target.rotation;
                 }
-                previousBlocks[i] = rebuild ? s.blocks[i] : new P.Pose(b.position, b.rotation);
-                b.gameObject.SetActive(s.active[i]);
+                else
+                {
+                    var previous = new P.Pose(b.position, b.rotation);
+                    if (!previous.position.Equals(target.position) || !previous.rotation.Equals(target.rotation))
+                    {
+                        previousBlocks[i] = previous;
+                        movingBlocks.Add(i);
+                    }
+                }
+                if (b.gameObject.activeSelf != s.active[i]) b.gameObject.SetActive(s.active[i]);
             }
             targetWorld = s; worldAt = lastWorldAt = Time.unscaledTime;
-            worldInterpolationComplete = rebuild;
             var present = new HashSet<string>();
             foreach(var actor in s.actors)
             {
@@ -625,18 +634,18 @@ namespace DeadlyJenga.CastlePrototype
         }
         void InterpolateWorld()
         {
-            if (targetWorld == null || worldInterpolationComplete) return;
+            if (targetWorld == null || movingBlocks.Count == 0) return;
             float t = Mathf.Clamp01((Time.unscaledTime - worldAt) * 15);
-            for (int i = 0; i < targetWorld.blocks.Length; i++)
+            var blocks = World.Blocks;
+            foreach (int i in movingBlocks)
             {
                 var previous = previousBlocks[i];
                 var target = targetWorld.blocks[i];
-                if (previous.position.Equals(target.position) && previous.rotation.Equals(target.rotation)) continue;
-                var body = World.Blocks[i];
+                var body = blocks[i];
                 body.position = Vector3.Lerp(previous.position, target.position, t);
                 body.rotation = Quaternion.Slerp(previous.rotation, target.rotation, t);
             }
-            worldInterpolationComplete = t >= 1;
+            if (t >= 1) movingBlocks.Clear();
         }
         void ApplyOwnHandFeedback(P.Actor actor)
         {
