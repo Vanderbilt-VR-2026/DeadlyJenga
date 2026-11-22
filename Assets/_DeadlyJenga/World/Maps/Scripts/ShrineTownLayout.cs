@@ -21,20 +21,20 @@ namespace DeadlyJenga.CastlePrototype
             town.Hall(-30, -2, 19, 13, 0, 5.25f, 2, 3);
             town.Hall(-10, -2, 9, 9, 0, 5.25f, 2, 2);
             // Bridge ends bear on both first-storey decks.
-            town.Box(-18.75f, 6.85f, -2, 9, .5f, 1.6f, CastleSection.Keep);
+            town.Box(-18.5f, 6.85f, -2, 8, .5f, 1.6f, CastleSection.Keep);
             for (int side = -1; side <= 1; side += 2)
             {
                 town.Hall(side * 10, -29, 9, 8, 0, 3, 1, 2);
                 town.Hall(side * 11, -15, 10, 8, 0, 3, 2, 2, yaw: side * 20);
-                town.Hall(side * 32, -30, 12, 9, 0, 3, 1, 3, yaw: side * 42);
-                town.Hall(side * 32, -16, 9, 8, 0, 3, 1, 2, yaw: side * 65);
+                town.Hall(side * 32, -32, 12, 9, 0, 3, 1, 3, yaw: side * 42);
+                town.Hall(side * 32, -14, 9, 8, 0, 3, 1, 2, yaw: side * 65);
             }
             town.Hall(29, 0, 14, 10, 0, 4, 2, 3);
             town.Hall(10, -2, 8, 8, 0, 3, 1, 2);
             town.Hall(-30, 12, 8, 6, 0, 3.6f, 1, 2);
             town.Hall(21, -38, 8, 6, 0, 3.8f, 1, 2);
             town.Hall(-19, -38, 7, 6, 0, 3.4f, 1, 2);
-            town.Hall(19, 4, 7, 7, 0, 3.6f, 1, 2);
+            town.Hall(42, 1, 7, 7, 0, 3.6f, 1, 2);
             return town.pieces;
         }
 

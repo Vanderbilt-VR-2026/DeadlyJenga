@@ -895,11 +895,10 @@ namespace DeadlyJenga.DevTools.Editor
                 .First(item => item.settings.layoutPreset == "shrine-town" && item.Bodies.Count > 0);
             var layout = CastleLayout.Build(generator.settings);
             Check(layout.Count == generator.Bodies.Count, "All authored structural bodies spawned");
-            float maxDrift = 0;
-            for (int i = 0; i < layout.Count; i++)
-                maxDrift = Mathf.Max(maxDrift, Vector3.Distance(generator.Bodies[i].position,
-                    generator.transform.TransformPoint(layout[i].Position)));
-            Check(maxDrift < .55f, "Intact town settled within tolerance, max drift " + maxDrift);
+            var drift = layout.Select((p,i) => new { index = i, p.Position, p.Size,
+                distance = Vector3.Distance(generator.Bodies[i].position, generator.transform.TransformPoint(p.Position)) })
+                .OrderByDescending(p => p.distance).First();
+            File.AppendAllText(Report, $"Largest settle displacement {drift.distance:F4} m at block {drift.index}, position {drift.Position}, size {drift.Size}\n");
             var walls = generator.Bodies.Where(body => body.transform.localScale.z >= .405f && body.transform.localScale.z <= .445f).ToArray();
             Check(walls.Length > 75 && walls.All(body => body.GetComponentsInChildren<MeshRenderer>()
                 .Any(r => r.sharedMaterial && r.sharedMaterial.shader.name == "DeadlyJenga/Ninja/ShrineFacade"
@@ -917,6 +916,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Capture(new Vector3(0,2,-40),new Vector3(0,8,21),68,"ShrineTown-Market.png");
             }
             finally {Shader.SetGlobalVector("_NinjaFogParams",fog);RenderSettings.fog=sceneFog;}
+            Check(drift.distance < .55f, "Intact town settled within tolerance, max drift " + drift.distance);
             var shopRoof = generator.Bodies[layout.FindIndex(p =>
                 p.Position.x == 10 && p.Position.z == -29 && Mathf.Abs(p.Size.y - 1.25f) < .01f)];
             float roofY = shopRoof.position.y;
