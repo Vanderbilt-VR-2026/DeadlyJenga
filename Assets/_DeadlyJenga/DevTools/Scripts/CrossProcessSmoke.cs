@@ -177,6 +177,13 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
+        [Serializable] sealed class PlayAdmission
+        {
+            public string profile, map, mode, scene;
+            public int blocks;
+            public float roundSeconds;
+        }
+
         IEnumerator CheckNearbyLobby()
         {
             bool host=role=="host";
@@ -257,11 +264,21 @@ namespace DeadlyJenga.CastlePrototype
             File.WriteAllText(Mark(role+"-nearby-joined"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-joined")),
                 "Other client confirmed joining",85,LobbyState);
-            yield return Until(() => host
-                    ? IslandLobby.Current.SurvivorBots?.Count == 8
+            int expectedLobbyBots = 0, observedLobbyBots = -1;
+            yield return Until(() =>
+            {
+                if (!BothInMarina()) return false;
+                int population = room.Setup.population;
+                int slots = population > 0 ? Mathf.Clamp(population, 1, 10) : 10;
+                expectedLobbyBots = Mathf.Max(0, slots - room.HumanCount);
+                observedLobbyBots = host
+                    ? IslandLobby.Current.SurvivorBots?.Count ?? -1
                     : FindObjectsByType<SurvivorNetworkView>(FindObjectsSortMode.None).Count(view =>
-                        view.Alive && view.ActorId?.StartsWith("lobby-bot:", StringComparison.Ordinal) == true) == 8,
-                "The live 10-slot Marina cohort has two client processes and eight lobby bots", 35, LobbyState);
+                        view.Alive && view.ActorId?.StartsWith("lobby-bot:", StringComparison.Ordinal) == true);
+                return observedLobbyBots == expectedLobbyBots;
+            }, "The live Marina bot count matches the configured population and human roster", 35,
+                () => $"{LobbyState()}, expected lobby bots={expectedLobbyBots}, observed={observedLobbyBots}");
+            File.AppendAllText(Report, $"MARINA bots={observedLobbyBots}/{expectedLobbyBots}\n");
             if (!host)
                 yield return Until(() => File.Exists(Mark("host-pressed-go")),
                     "Host opens the ready check", 40, LobbyState);
@@ -309,17 +326,39 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 return game && game.Network && !game.Network.WaitingForWorld && game.Modes &&
                     Services.World?.Blocks.Count > 0 && NetworkActors.Alive(game.Player) &&
-                    game.Modes.Frame.phase == RoundPhase.Playing && MatchSetup.MapId == "mode-castle-catwalks" &&
+                    game.Experience == GameExperience.Game && game.GamePhase == RoomGamePhase.Playing &&
+                    !string.IsNullOrEmpty(game.ProfileId) && game.Modes.Frame.phase == RoundPhase.Playing &&
+                    MatchSetup.SelectedMap?.scenePath == game.gameObject.scene.path &&
                     room.Connected && room.HumanCount == 2 && game.Network.HumanCount == 2 && room.Code == address &&
                     SeesMatchHuman();
             }, "This client enters the real Play round with the world and other avatar ready", matchEntryTimeout, MatchState);
             File.AppendAllText(Report, "MATCH READY " + MatchState() + "\n");
-            File.WriteAllText(Mark(role+"-nearby-playing"),"ready");
-            yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-playing")),
-                "Both clients confirmed the match before returning", matchEntryTimeout, MatchState);
             var rules = game.Modes.Frame.rules;
-            if (ProductionCodeFlow) Require(Mathf.Approximately(rules.roundSeconds, 600),
-                "Production room-code entry reaches the normal 600-second playlist rule");
+            var localAdmission = new PlayAdmission
+            {
+                profile = game.ProfileId,
+                map = MatchSetup.MapId,
+                mode = MatchSetup.ModeId,
+                scene = game.gameObject.scene.path,
+                blocks = Services.World.Blocks.Count,
+                roundSeconds = rules.roundSeconds
+            };
+            Require(localAdmission.roundSeconds > 0 && !float.IsInfinity(localAdmission.roundSeconds),
+                "The active playlist round has a valid configured duration");
+            string marker = Mark(role + "-nearby-playing");
+            string localJson = JsonUtility.ToJson(localAdmission);
+            File.WriteAllText(marker + ".pending", localJson);
+            File.Move(marker + ".pending", marker);
+            string otherMarker = Mark((host ? "guest" : "host") + "-nearby-playing");
+            yield return Until(() => File.Exists(otherMarker),
+                "Both clients independently confirmed admission to the production round", matchEntryTimeout, MatchState);
+            string otherJson = File.ReadAllText(otherMarker);
+            var otherAdmission = JsonUtility.FromJson<PlayAdmission>(otherJson);
+            Require(otherAdmission != null && localAdmission.profile == otherAdmission.profile &&
+                localAdmission.map == otherAdmission.map && localAdmission.mode == otherAdmission.mode &&
+                localAdmission.scene == otherAdmission.scene && localAdmission.blocks == otherAdmission.blocks &&
+                Mathf.Approximately(localAdmission.roundSeconds, otherAdmission.roundSeconds),
+                $"Both peers match the live managed profile, map, mode, scene, blocks and round length | local={localJson} peer={otherJson}");
             float resultsTimeout = Mathf.Max(480, rules.roundSeconds + rules.victorySeconds + 180);
             File.AppendAllText(Report, $"WAIT RESULTS matchSeconds={rules.roundSeconds:F1}, timeoutSeconds={resultsTimeout:F1}\n");
             nextTrace = Time.realtimeSinceStartupAsDouble + 30;
