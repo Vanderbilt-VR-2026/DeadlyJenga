@@ -96,7 +96,7 @@ namespace DeadlyJenga.CastlePrototype
                     }
                 }
                 if (doors && districtName == "Canyon south-east tower")
-                    Part(floor, new Vector3(0,.3f,2), new Vector3(10,.6f,5),1);
+                    Part(floor, new Vector3(2.1f,.3f,-2.5f), new Vector3(13.6f,.6f,9.6f),1);
                 int rows = Mathf.FloorToInt((height - .7f) / PlankRow); // up to the underside of the deck above
                 for (int wall = 0; wall < 4; wall++)
                 {
