@@ -957,7 +957,7 @@ namespace DeadlyJenga.DevTools.Editor
                 "Redesigned shrine creates no rain particles or rain audio source");
             var spawn = generator.SafeSpawnPoint();
             Check(generator.gameObject.scene.GetPhysicsScene().Raycast(spawn+Vector3.up*12,Vector3.down,out var spawnHit,
-                14,1<<Layers.Block,QueryTriggerInteraction.Ignore) && Mathf.Abs(spawn.y-spawnHit.point.y-.12f)<.04f,
+                14,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore) && Mathf.Abs(spawn.y-spawnHit.point.y-.12f)<.04f,
                 "Survivor spawn is above the exposed roof surface");
             CheckShrineTraversal(generator,layout);
             captureOrigin=world.Center;

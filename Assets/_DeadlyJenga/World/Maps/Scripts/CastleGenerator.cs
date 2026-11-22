@@ -314,7 +314,7 @@ namespace DeadlyJenga.CastlePrototype
                 var start = new Vector3(bounds.center.x + bounds.extents.x*.25f, ceiling+1,
                     bounds.center.z + bounds.extents.z*.25f);
                 if (gameObject.scene.GetPhysicsScene().Raycast(start,Vector3.down,out var roofHit,
-                    ceiling-bounds.min.y+2,1<<Layers.Block,QueryTriggerInteraction.Ignore))
+                    ceiling-bounds.min.y+2,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore))
                     return roofHit.point + Vector3.up*.12f;
             }
             return best ? new Vector3(best.bounds.center.x, best.bounds.max.y + .08f, best.bounds.center.z)
@@ -413,8 +413,8 @@ namespace DeadlyJenga.CastlePrototype
                 var size=p.BlockSize(settings);
                 if (settings.layoutPreset == ShrineTownLayout.Preset)
                 {
-                    var shapes = ShrineTownLayout.AddRoofColliders(body, size);
-                    if (block && shapes) block.CopyTraversalShapes(shapes);
+                    ShrineTownLayout.AddRoofColliders(body,size);
+                    if (block) ShrineTownLayout.AddRoofTraversal(block,size);
                 }
                 float volumeRatio=size.x*size.y*size.z/(settings.blockSize.x*settings.blockSize.y*settings.blockSize.z);
                 // Temple decks represent timber framing with a hollow tiled roof.

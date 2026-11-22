@@ -156,7 +156,7 @@ namespace DeadlyJenga.NinjaArt
                 for (int side = -1; side <= 1; side += 2)
                 {
                     for (int i = 0; i < 5; i++)
-                        NinjaTempleScenery.StoneLantern(p, new Vector3(side * 4, 0, -39 + i * 10), 1, glow, i + 17);
+                        NinjaTempleScenery.StoneLantern(p, new Vector3(side * 4, 0, i == 4 ? -1 : -39 + i * 10), 1, glow, i + 17);
                     for (int i = 0; i < 9; i++)
                     {
                         var at = new Vector3(side * (14 + (i % 3) * 2.2f),0,i < 5 ? 7 - i % 2 : -41 + i % 2);

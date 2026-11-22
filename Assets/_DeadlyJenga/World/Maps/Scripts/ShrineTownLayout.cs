@@ -107,7 +107,7 @@ namespace DeadlyJenga.CastlePrototype
                 for (int row = 0; row < 3; row++)
                     ColliderBox(fixtures,"Lantern pole",new Vector3(side*4.6f,2.7f,-32+row*12),new Vector3(.26f,5.4f,.26f),Quaternion.identity);
                 for (int i = 0; i < 5; i++)
-                    StoneLantern(fixtures,new Vector3(side*4,0,-39+i*10),1);
+                    StoneLantern(fixtures,new Vector3(side*4,0,i == 4 ? -1 : -39+i*10),1);
                 Vector3[] rim = {new(side*5,0,-46),new(side*23,0,-46),new(side*46,0,-23),new(side*46,0,18)};
                 for (int edge = 0; edge < rim.Length-1; edge++)
                 {
@@ -197,15 +197,62 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         // Each pitched roof is one moving body. Both slopes travel with the deck beneath them.
-        public static Transform AddRoofColliders(Rigidbody body, Vector3 size)
+        public static void AddRoofColliders(Rigidbody body, Vector3 size)
         {
             bool skirt = Mathf.Abs(size.y - 1) < .01f && size.x >= 30 && size.z > 4;
-            bool deck = Mathf.Abs(size.y - 1) < .01f && size.z > 4;
-            if (!deck && Mathf.Abs(size.y - 1.25f) > .01f && Mathf.Abs(size.y - 1.35f) > .01f && Mathf.Abs(size.y - 1.4f) > .01f) return null;
+            if (!skirt && Mathf.Abs(size.y - 1.25f) > .01f && Mathf.Abs(size.y - 1.35f) > .01f && Mathf.Abs(size.y - 1.4f) > .01f) return;
             var frame = new GameObject("Roof collision").transform;
             frame.SetParent(body.transform, false);
             frame.gameObject.layer = body.gameObject.layer;
             frame.localScale = new Vector3(1 / size.x, 1 / size.y, 1 / size.z);
+            if (skirt)
+            {
+                for (int edge=0; edge<4; edge++)
+                {
+                    var turn = Quaternion.Euler(0,edge*90,0);
+                    float across = edge%2==0 ? size.x : size.z;
+                    float depth = (edge%2==0 ? size.z : size.x)/2;
+                    float width = depth * .19f;
+                    var eave = new GameObject("Gallery eave");
+                    eave.layer = frame.gameObject.layer;
+                    eave.transform.SetParent(frame,false);
+                    eave.transform.localPosition = turn * new Vector3(0,.55f+width*.36f,depth-width/2);
+                    eave.transform.localRotation = turn * Quaternion.Euler(Mathf.Atan(.72f)*Mathf.Rad2Deg,0,0);
+                    eave.AddComponent<BoxCollider>().size = new Vector3(across*.81f,.1f,width*Mathf.Sqrt(1+.72f*.72f));
+                }
+                return;
+            }
+            float run = size.z / 2, rise = run * .44f;
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var slope = new GameObject("Roof slope");
+                slope.layer = body.gameObject.layer;
+                slope.transform.SetParent(frame, false);
+                slope.transform.localPosition = new Vector3(0, (size.y + rise) / 2, side * run / 2);
+                slope.transform.localRotation = Quaternion.Euler(side * Mathf.Atan(.44f) * Mathf.Rad2Deg, 0, 0);
+                slope.AddComponent<BoxCollider>().size = new Vector3(size.x, .22f, Mathf.Sqrt(run * run + rise * rise));
+                if (Mathf.Abs(size.y - 1.25f) < .01f && size.x >= 15)
+                {
+                    float span = size.x * .38f, peak = rise + span * .32f;
+                    var gable = new GameObject("Front gable slope");
+                    gable.layer = body.gameObject.layer;
+                    gable.transform.SetParent(frame, false);
+                    gable.transform.localPosition = new Vector3(side * span / 2,(size.y + peak) / 2,-(run + .75f) / 2);
+                    gable.transform.localRotation = Quaternion.Euler(0,0,-side * Mathf.Atan2(peak,span) * Mathf.Rad2Deg);
+                    gable.AddComponent<BoxCollider>().size = new Vector3(Mathf.Sqrt(span * span + peak * peak),.15f,run + .75f);
+                }
+            }
+        }
+
+        // Ornamental edges can overlap in the dense streets. Keep the full silhouette on
+        // the survivor proxy and retain the load-bearing slopes on the loose roof body.
+        public static void AddRoofTraversal(CastleBlock block, Vector3 size)
+        {
+            bool skirt = Mathf.Abs(size.y - 1) < .01f && size.x >= 30 && size.z > 4;
+            bool deck = Mathf.Abs(size.y - 1) < .01f && size.z > 4;
+            if (!deck && Mathf.Abs(size.y - 1.25f) > .01f && Mathf.Abs(size.y - 1.35f) > .01f && Mathf.Abs(size.y - 1.4f) > .01f) return;
+            var frame = block.CreateTraversalFrame();
+            if (!frame) return;
             float half = size.z / 2;
             float overhang = Mathf.Clamp(half * .24f,.65f,1.7f);
             for (int edge = 0; edge < 4; edge++)
@@ -229,19 +276,21 @@ namespace DeadlyJenga.CastlePrototype
                     float depth = (edge%2==0 ? size.z : size.x)/2;
                     float width = depth * .19f;
                     var eave = new GameObject("Gallery eave");
-                    eave.layer = body.gameObject.layer;
+                    eave.layer = frame.gameObject.layer;
                     eave.transform.SetParent(frame,false);
                     eave.transform.localPosition = turn * new Vector3(0,.55f+width*.36f,depth-width/2);
                     eave.transform.localRotation = turn * Quaternion.Euler(Mathf.Atan(.72f)*Mathf.Rad2Deg,0,0);
                     eave.AddComponent<BoxCollider>().size = new Vector3(across*.81f,.1f,width*Mathf.Sqrt(1+.72f*.72f));
                 }
-                return frame;
+                block.RegisterTraversalShapes(frame);
+                return;
             }
             if (deck)
             {
                 for (int side = -1; side <= 1; side += 2)
                     ColliderBox(frame,"Gallery rail",new Vector3(0,1.2f,side*(half-.18f)),new Vector3(size.x+.3f,.16f,.18f),Quaternion.identity);
-                return frame;
+                block.RegisterTraversalShapes(frame);
+                return;
             }
             float top = size.y / 2, rise = half * .44f;
             RoofPrism(frame,"Tiled roof",Vector3.up * top,new Vector3(size.x,rise,size.z),Quaternion.identity);
@@ -255,7 +304,7 @@ namespace DeadlyJenga.CastlePrototype
                 ColliderBox(frame,"Suspended bell",Vector3.down*3.2f,new Vector3(2.6f,3f,2.6f),Quaternion.identity);
             if (Mathf.Abs(size.y - 1.35f) < .01f)
                 ColliderBox(frame,"Pagoda spire", Vector3.up*(top+rise+2.8f),new Vector3(.54f,5.6f,.54f),Quaternion.identity);
-            return frame;
+            block.RegisterTraversalShapes(frame);
         }
 
         static Mesh roofPrism;

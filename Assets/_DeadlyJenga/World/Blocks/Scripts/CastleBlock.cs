@@ -104,13 +104,20 @@ namespace DeadlyJenga.CastlePrototype
             if(surface){surface.gameObject.SetActive(false);UnregisterSurfaces();Destroy(surface.gameObject);surface=null;}
             if(surfaceGroup){surfaceGroup.Release();surfaceGroup=null;}
         }
-        // The proxy follows the block pose, including its nonuniform scale. The supplied
-        // subtree contains only collider shapes authored in the block's local space.
-        internal void CopyTraversalShapes(Transform shapes)
+        internal Transform CreateTraversalFrame()
         {
-            if (!surface || !shapes) return;
-            var copy = Instantiate(shapes, surface.transform, false);
-            compoundSurfaces = copy.GetComponentsInChildren<Collider>();
+            if (!surface) return null;
+            var frame = new GameObject("Compound survivor surface").transform;
+            frame.gameObject.layer = SurfaceLayer;
+            frame.SetParent(surface.transform,false);
+            var scale = transform.localScale;
+            frame.localScale = new Vector3(1/scale.x,1/scale.y,1/scale.z);
+            return frame;
+        }
+
+        internal void RegisterTraversalShapes(Transform frame)
+        {
+            compoundSurfaces = frame.GetComponentsInChildren<Collider>();
             foreach (var shape in compoundSurfaces)
             {
                 shape.gameObject.layer = SurfaceLayer;
