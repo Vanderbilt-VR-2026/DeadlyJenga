@@ -97,9 +97,9 @@ namespace DeadlyJenga.DevTools.Editor
 
         // Same, with chosen views. A view "pov|name|x|y|z|lookX|lookY|lookZ" is a player-eye shot: the camera stands
         // on the first surface below (x, y + 1.6, z) relative to the map center, 1 m up, looking at the look point.
-        public static void BatchMaps(ICollection<string> ids, string output, string[] views)
+        public static void BatchMaps(ICollection<string> ids, string output, string[] views, int width=1600, int height=1100)
         {
-            Begin(new Job { batch = true, output = output, views = views }, null, false, ids);
+            Begin(new Job { batch = true, output = output, views = views, width = width, height = height }, null, false, ids);
         }
 
         // Far plane for player-eye shots; 0 keeps the usual long picture range.
@@ -258,9 +258,12 @@ namespace DeadlyJenga.DevTools.Editor
                     MatchSetup.MapId = id;
                     MatchSetup.ApplyMap();
                 }
-                Prepare(session); prepared = true; readyAt = now + job.settle; return;
+                Prepare(session);
+                bool calderaCheck=id=="mode-twin-caldera" && job.views.Contains("reference");
+                if(calderaCheck)TwinCalderaChecks.BeginTraffic(session);
+                prepared = true; readyAt = now + job.settle; return;
             }
-            if (now < readyAt) { Prepare(session); return; }
+            if (now < readyAt) { if(id!="mode-twin-caldera" || !job.views.Contains("reference")) Prepare(session); return; }
             EditorApplication.update -= Tick;
             try { if (job.lobby) Survey(world, session); else Shoot(id, world, session); job.written = true; }
             catch (Exception e) { Debug.LogException(e); job.failed.Add(id); }

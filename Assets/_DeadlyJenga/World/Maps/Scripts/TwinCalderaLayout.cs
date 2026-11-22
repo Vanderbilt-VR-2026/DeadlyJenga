@@ -23,6 +23,7 @@ namespace DeadlyJenga.CastlePrototype
             var map = new TwinCalderaLayout();
             map.Cone(-1);
             map.Cone(1);
+            map.ShieldSpine();
             map.Crossing();
             map.Breakaway();
             return map;
@@ -161,12 +162,54 @@ namespace DeadlyJenga.CastlePrototype
             Flight(region+" rim west",west,backWest,2.9f,1);
             Flight(region+" rim east",east,backEast,2.9f,1);
             Flight(region+" rim crown",backWest,backEast,3,2);
-            for(int n=0;n<7;n++)
+            int fins=side<0?5:7;
+            for(int n=0;n<fins;n++)
             {
-                float x=Mathf.Lerp(backWest.x-4,backEast.x+4,n/6f);
-                float h=backWest.y-Bed+2.8f+(n*5%7)*.87f;
-                Rock(region+" summit fin",new Vector3(x,Bed+h/2,backWest.z+4.6f+(n%2)*3.3f),
-                    new Vector3(2.5f,h,3.1f),n%2==0?-12:9,0,1.3f,side<0?.68f:.16f,.52f);
+                float x=Mathf.Lerp(backWest.x-4,backEast.x+4,n/(fins-1f));
+                float z=backWest.z+4.8f+(n%2)*4.45f;
+                float shoulder=backWest.y-2.6f+(n%3)*.64f;
+                float width=side<0?3.55f:2.65f;
+                var p=new Vector3(x,0,z);
+                Pier(region+" crest pedestal "+n,p,shoulder,width*1.12f,3.5f);
+                float height=(side<0?5.9f:8.2f)+(n*5%7)*.65f;
+                Rock(region+" summit fin "+n,new Vector3(x,shoulder+height/2,z),
+                    new Vector3(width,height,3.3f),n%2==0?-9:8,0,1.65f,side<0?.85f:.17f,.42f);
+            }
+        }
+
+        void ShieldSpine()
+        {
+            // Radial slabs rise over the front terraces. Their sloping shoes sit
+            // on the traverses themselves, leaving a second passage underneath.
+            // The first section emerges from a footing below the lowest apron.
+            var stations=new List<Vector3>();
+            for(int i=-1;i<=4;i++)
+            {
+                float z=-21+i*7;
+                float y=i<0?1.25f:Node(-1,i,1).y+3.05f;
+                stations.Add(new Vector3(-29.8f+i*2.55f,y,z));
+            }
+            for(int i=0;i<stations.Count-1;i++)
+            {
+                var a=stations[i];var b=stations[i+1];
+                var line=b-a;var flat=new Vector3(line.x,0,line.z);
+                var axis=flat.normalized;
+                float length=flat.magnitude, slope=line.y/length;
+                float yaw=Mathf.Atan2(axis.x,axis.z)*Mathf.Rad2Deg;
+                const float slab=.98f;
+                Rock("Shield radial slab "+i,(a+b)*.5f-Vector3.up*(slab/2),
+                    new Vector3(3.75f,slab,length-.05f),yaw,line.y,line.y,0,1);
+                for(int j=0;j<2;j++)
+                {
+                    var edge=j==0?a:b;
+                    float offset=j==0?.74f:-.74f;
+                    var shoe=edge+axis*offset;
+                    float crown=edge.y+offset*slope-slab;
+                    float baseY=i==0 && j==0?Bed:edge.y-3.05f;
+                    float h=crown-baseY;
+                    Rock("Shield radial seat "+i+"-"+j,new Vector3(shoe.x,baseY+h/2,shoe.z),
+                        new Vector3(2.6f,h,1.03f),yaw,0,slope*1.03f,0,.98f);
+                }
             }
         }
 
