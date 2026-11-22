@@ -61,6 +61,7 @@ MonoBehaviour:
   cornerMaterial: {fileID: 2100000, guid: 13f75da57b43a214594262bcdcc9fa02, type: 2}
   wallMaterial: {fileID: 2100000, guid: 78ad9e472acaf3e4ab9385fdadea7b7d, type: 2}
   keepMaterial: {fileID: 2100000, guid: 13159a0715ce1ee42a1fc3ccc989ca73, type: 2}
+  shrineMudMaterial: {fileID: 2100000, guid: be8d6d3cf16e425b8f118d4a2b85bd6b, type: 2}
   foundation: {fileID: 8519442324992591468}
   generateOnStart: 0
   environmentOnly: 0
@@ -76,7 +77,7 @@ MonoBehaviour:
   visualDebrisSpeed: 20
   visualDebrisAcceleration: 180
   generatedRoot: {fileID: 0}
-  waterHeight: 0.08
+  waterHeight: 1.58
   oceanKillHeight: 0.08
   playableArea: {fileID: 0}
 --- !u!114 &4806486991549195104
@@ -92,7 +93,7 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: DeadlyJenga.Presentation::DeadlyJenga.NinjaArt.NinjaTempleArt
   shrineTown: 1
-  waterLevel: 0.08
+  waterLevel: 1.58
 --- !u!1 &7878401746416868558
 GameObject:
   m_ObjectHideFlags: 0

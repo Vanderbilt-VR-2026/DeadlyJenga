@@ -9,13 +9,13 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<CastlePlacement> pieces = new List<CastlePlacement>(360);
 
         readonly Transform marshSupports;
-        readonly Material cedar;
 
-        ShrineTownLayout(Transform supports, Material material) { marshSupports = supports; cedar = material; }
 
-        public static List<CastlePlacement> Build(Transform supports = null, Material material = null)
+        ShrineTownLayout(Transform supports) { marshSupports = supports; }
+
+        public static List<CastlePlacement> Build(Transform supports = null)
         {
-            var town = new ShrineTownLayout(supports, material);
+            var town = new ShrineTownLayout(supports);
             // Street runs north from the gate to the five-bay worship hall.
             town.Box(0, 0, 20, 41, 4, 22, CastleSection.Keep);
             for (int i = 0; i < 8; i++)
@@ -43,69 +43,10 @@ namespace DeadlyJenga.CastlePrototype
             return town.pieces;
         }
 
-        // Flat crowns carry the building loads. Taper only the banks, outside the posts.
-        static Mesh mudBank, grassyBank;
-        static Mesh MudBankMesh()
-        {
-            if (mudBank) return mudBank;
-            Vector2[] rim = {new(-.45f,-.5f),new(-.5f,-.41f),new(-.5f,.42f),new(-.43f,.5f),
-                new(.44f,.5f),new(.5f,.43f),new(.5f,-.42f),new(.43f,-.5f)};
-            var vertices = new List<Vector3>();
-            var colors = new List<Color>();
-            var triangles = new List<int>();
-            float[] widths = {1,1.09f,1.20f};
-            float[] heights = {0,-.44f,-1.9f};
-            Color[] tones = {new(.38f,.33f,.19f),new(.32f,.22f,.14f),new(.16f,.14f,.10f)};
-            for (int ring=0;ring<3;ring++)
-                for (int i=0;i<rim.Length;i++)
-                {
-                    vertices.Add(new Vector3(rim[i].x*widths[ring],heights[ring],rim[i].y*widths[ring]));
-                    colors.Add(Color.Lerp(tones[ring],new Color(.38f,.39f,.22f),ring==0 && i%3==0 ? .55f : 0).linear);
-                    int a=ring*8+i, next=ring*8+(i+1)%8;
-                    if (ring<2) triangles.AddRange(new[]{a,a+8,next,next,a+8,next+8});
-                    if (ring==0 && i>=1 && i<=6) triangles.AddRange(new[]{0,i,i+1});
-                }
-            mudBank = new Mesh {name="Shrine mud bank"};
-            mudBank.SetVertices(vertices); mudBank.SetColors(colors); mudBank.SetTriangles(triangles,0);
-            mudBank.RecalculateNormals(); mudBank.RecalculateBounds();
-            // Only the earthen crown and banks collide. Short reed tufts share the render mesh.
-            var rng = new System.Random(112);
-            for (int edge=0;edge<8;edge++)
-                for (int tuft=0;tuft<4;tuft++)
-                {
-                    var at = Vector2.Lerp(rim[edge],rim[(edge+1)%8],(tuft+.45f)/4)*1.035f;
-                    for (int blade=0;blade<5;blade++)
-                    {
-                        float angle=(float)rng.NextDouble()*Mathf.PI*2;
-                        var lean=new Vector3(Mathf.Cos(angle)*.025f,0,Mathf.Sin(angle)*.025f);
-                        var half=new Vector3(-lean.z,0,lean.x)*.20f;
-                        var basePoint=new Vector3(at.x,-.21f,at.y)+lean*.3f;
-                        int i=vertices.Count;
-                        vertices.Add(basePoint-half);vertices.Add(basePoint+half);
-                        vertices.Add(basePoint+lean+Vector3.up*(.34f+.44f*(float)rng.NextDouble()));
-                        colors.Add(new Color(.22f,.30f,.15f).linear);colors.Add(new Color(.3f,.35f,.16f).linear);
-                        colors.Add(new Color(.58f,.58f,.30f).linear);
-                        triangles.AddRange(new[]{i,i+1,i+2,i+2,i+1,i});
-                    }
-                }
-            grassyBank = new Mesh {name="Reed-fringed mud bank"};
-            grassyBank.SetVertices(vertices); grassyBank.SetColors(colors); grassyBank.SetTriangles(triangles,0);
-            grassyBank.RecalculateNormals(); grassyBank.RecalculateBounds();
-            return mudBank;
-        }
-
         void Mud(float x,float z,float width,float depth,float yaw)
         {
             var bank = Shape(marshSupports,"Marsh mud",new Vector3(x,0,z),Quaternion.Euler(0,yaw,0));
             bank.localScale = new Vector3(width,1,depth);
-            var mesh = MudBankMesh();
-            bank.gameObject.AddComponent<MeshCollider>().sharedMesh = mesh;
-            bank.gameObject.AddComponent<MeshFilter>().sharedMesh = grassyBank;
-            var renderer = bank.gameObject.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = cedar;
-            var tint = new MaterialPropertyBlock();
-            tint.SetColor("_BaseColor",Color.white);
-            renderer.SetPropertyBlock(tint);
         }
 
         public static void JoinTimberFrames(List<CastlePlacement> layout, List<Rigidbody> bodies)
@@ -144,10 +85,11 @@ namespace DeadlyJenga.CastlePrototype
             body.useGravity = false;
             // Mud has static collision so castle sand rules recognize an unsupported survivor.
             var banks = Shape(parent,"Shrine mud islands",Vector3.zero,Quaternion.identity);
-            Build(banks,wood);
-            var town = new ShrineTownLayout(banks,wood);
+            Build(banks);
+            var town = new ShrineTownLayout(banks);
             town.Mud(0,20,41.8f,22.6f,0);
             town.Mud(0,5,11.5f,8.2f,0);
+            ShrineMudBanks.Build(banks,wood);
             for (int side = -1; side <= 1; side += 2)
             {
                 ColliderBox(fixtures,"Torii post",new Vector3(side*3.5f,4.65f,-43),new Vector3(1.1f,9.3f,1.1f),Quaternion.identity);

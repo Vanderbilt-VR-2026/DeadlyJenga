@@ -9,6 +9,7 @@ namespace DeadlyJenga.CastlePrototype
         public CastleSettings settings = new CastleSettings();
         public GameObject blockPrefab;
         public Material cornerMaterial, wallMaterial, keepMaterial;
+        [SerializeField] Material shrineMudMaterial;
         [SerializeField] Material goldMaterial, aquaMaterial;
         public Transform foundation;
         public bool generateOnStart = true;
@@ -373,7 +374,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (settings.layoutPreset == ShrineTownLayout.Preset)
                 {
                     foundation.GetComponent<BoxCollider>().enabled = false;
-                    ShrineTownLayout.BuildStreetColliders(generatedRoot,transform.InverseTransformPoint(Vector3.up*waterHeight).y,keepMaterial);
+                    ShrineTownLayout.BuildStreetColliders(generatedRoot,transform.InverseTransformPoint(Vector3.up*waterHeight).y,shrineMudMaterial ? shrineMudMaterial : keepMaterial);
                 }
             }
             foreach (var p in layout)

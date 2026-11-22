@@ -978,6 +978,24 @@ namespace DeadlyJenga.DevTools.Editor
             var drift = layout.Select((p,i) => new { index = i, p.Position, p.Size,
                 distance = Vector3.Distance(generator.Bodies[i].position, generator.transform.TransformPoint(p.Position)) })
                 .OrderByDescending(p => p.distance).First();
+            var physicsScene = generator.gameObject.scene.GetPhysicsScene();
+            var footings = layout.Where(p => Mathf.Abs(p.Position.y - p.Size.y/2) < .001f).ToArray();
+            Check(footings.Length > 0 && footings.All(p =>
+            {
+                var foot = generator.transform.TransformPoint(p.Position - Vector3.up*(p.Size.y/2));
+                float dip = world.WaterHeight(foot) - foot.y;
+                if (dip <= .05f || dip >= .12f) return false;
+                foreach (int x in new[] {-1,1})
+                    foreach (int z in new[] {-1,1})
+                    {
+                        var corner = foot + generator.transform.TransformVector(p.Rotation *
+                            new Vector3(x*p.Size.x*.48f,0,z*p.Size.z*.48f));
+                        if (!physicsScene.Raycast(corner+Vector3.up*.15f,Vector3.down,out var ground,.22f,1,
+                                QueryTriggerInteraction.Ignore) || ground.collider.name != "Marsh mud" ||
+                            Mathf.Abs(ground.point.y-foot.y) >= .015f) return false;
+                    }
+                return true;
+            }), "Ground-floor blocks bear on mud just beneath the mean waterline");
             foreach (var tower in new[] {new Vector2(-45,6), new Vector2(46,9)})
             {
                 var decks = layout.Where(p => p.Section == CastleSection.Corner &&
@@ -1014,7 +1032,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var spawnFeet = session.Modes.SpawnPoint(-1,0,"survivor",session.Modes.LocalActorId);
                 player.Place(spawnFeet,Quaternion.identity);
                 yield return Wait(.6f);
-                Check(!drowned && player.transform.position.y>generator.waterHeight+.5f,"Local survivor holds dry match spawn");
+                Check(!drowned && player.transform.position.y>generator.waterHeight+.20f,"Local survivor holds dry match spawn");
                 var mudFeet = generator.transform.TransformPoint(new Vector3(-10,.08f,-35.77f));
                 bool Sinking() => session.Modes.Frame.players.Any(p=>p.id==session.Modes.LocalActorId && p.sinking);
                 player.Place(mudFeet,Quaternion.identity);
@@ -1055,6 +1073,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Shader.SetGlobalVector("_NinjaFogParams",new Vector4(120,420,.07f,fog.w));
                 RenderSettings.fog=false;
                 Capture(new Vector3(16,57,-143),new Vector3(-1,2,0),28,"NinjaTemple-Overview.png");
+                Capture(new Vector3(-16,2.4f,-39),new Vector3(-11,.25f,-34),48,"ShrineTown-MudShore.png");
                 Capture(new Vector3(5,51,-159),new Vector3(0,11,2),32,"ShrineTown-TowerSkyline.png");
                 Capture(new Vector3(-6,2.5f,-35),new Vector3(-10,2.5f,-32),65,"ShrineTown-ShopDetail.png");
                 Capture(new Vector3(0,2,-40),new Vector3(0,8,21),68,"ShrineTown-Market.png");
