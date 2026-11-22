@@ -42,6 +42,49 @@ namespace DeadlyJenga.Presentation
             bool ground = purpose.EndsWith(" floor 1");
             float roof = bounds.size.y;
 
+            // The counter opens onto the plaza. Display windows, the cornice and the hanging
+            // fruit sign also address the boardwalk on the opposite side of the shop.
+            if (site.StartsWith("Cloud Harbor") && site!="Cloud Harbor east annex" &&
+                (ground || purpose.EndsWith(" floor 2")))
+            {
+                bool grocer=site=="Cloud Harbor block";
+                var outside=rotation*Quaternion.Euler(0,180,0);
+                var facade=P(0,0,-2*depth);
+                Vector3 Shop(float x,float y,float z)=>facade+outside*new Vector3(x,y,z);
+                var trim=grocer?new Color(.46f,.15f,.63f):new Color(1,.65f,.06f);
+                if(ground)
+                {
+                    for(int side=-1;side<=1;side+=2)
+                    {
+                        var center=Shop(side*width*.45f,2.05f,.42f);
+                        float span=width*.77f;
+                        mesh.Box(center,new Vector3(span+.7f,3.62f,.48f),outside,0,cream);
+                        mesh.Print(center+outside*Vector3.forward*.26f,outside,span,3.06f,grocer?2:0);
+                        mesh.Box(center+outside*Vector3.forward*.32f,new Vector3(.13f,3.1f,.15f),outside,0,wood);
+                    }
+                    for(int stripe=-6;stripe<=6;stripe++)
+                    {
+                        float pitch=width*1.88f/13;
+                        var color=grocer && stripe%2==0?cream:trim;
+                        mesh.Box(Shop(stripe*pitch,3.65f,1.48f),new Vector3(pitch+.015f,.25f,3.05f),
+                            outside*Quaternion.Euler(13,0,0),0,color);
+                        mesh.Box(Shop(stripe*pitch,3.06f,2.94f),new Vector3(pitch+.015f,.54f,.18f),outside,0,color);
+                    }
+                }
+                else
+                {
+                    mesh.Box(Shop(0,roof-.12f,0),new Vector3(width*2+.32f,.54f,.73f),outside,0,trim);
+                    if(grocer)
+                    {
+                        for(int fruit=-1;fruit<=1;fruit+=2)
+                        {
+                            mesh.Sphere(Shop(fruit*1.8f,roof+1.22f,.44f),new Vector3(1.65f,1.72f,.86f),0,fruit<0?CaneRed:Gold,9,14);
+                            mesh.Sphere(Shop(fruit*1.8f+.42f,roof+2.88f,.44f),new Vector3(.73f,.32f,.45f),0,lime);
+                        }
+                    }
+                }
+            }
+
             if (site.StartsWith("Cloud Harbor") && ground)
             {
                 bool grocery = site == "Cloud Harbor block";
@@ -332,6 +375,21 @@ namespace DeadlyJenga.Presentation
                 // Cabinet fronts and recessed ceiling lighting are modelled on the service level.
                 var towerRotation=Quaternion.Inverse(visual.rotation)*frame.rotation;
                 Vector3 T(float x,float y,float z)=>visual.InverseTransformPoint(frame.TransformPoint(new Vector3(x,y,z)));
+                // Fascias wrap the three landings into one orange building. The wall behind
+                // the stairs carries the controls and leaves walk-through doors at both ends.
+                var burntOrange=new Color(.53f,.20f,.07f);
+                var copper=new Color(.88f,.40f,.12f);
+                mesh.Box(T(-6.9f,4.28f,0),new Vector3(.64f,8.56f,9.4f),towerRotation,0,burntOrange);
+                mesh.Box(T(-6.9f,12.18f,0),new Vector3(.64f,4.32f,9.4f),towerRotation,0,burntOrange);
+                var cabinet=towerRotation*Quaternion.Euler(0,90,0);
+                mesh.Print(T(-6.54f,3.1f,0),cabinet,7.4f,4.5f,3);
+                mesh.Print(T(-6.54f,11.9f,0),cabinet,7.4f,3.2f,3);
+                for(int end=-1;end<=1;end+=2)
+                {
+                    mesh.Box(T(0,14.73f,end*12.42f),new Vector3(17.5f,1.04f,.6f),towerRotation,0,copper);
+                    mesh.Box(T(0,14.14f,end*12.25f),new Vector3(15.8f,.17f,.45f),towerRotation,1,Gold);
+                }
+                mesh.Box(T(8.28f,14.85f,0),new Vector3(.7f,.80f,25.3f),towerRotation,0,copper);
                 foreach(int end in new[]{-1,1})
                 {
                     var outward=towerRotation*Quaternion.Euler(0,90,0);
@@ -396,10 +454,10 @@ namespace DeadlyJenga.Presentation
                         var c=Rim(halfWidth,2.85f,reach); var d=Rim(-halfWidth,2.85f,reach);
                         var normal=Vector3.Cross(d-a,b-a).normalized;
                         mesh.Panel(a,d,c,b,normal,normal,normal,normal,water);
-                        Bar(c,d,.64f,enamel);
-                        Bar(a,d,.4f,enamel);
+                        Bar(c+Vector3.up*.24f,d+Vector3.up*.24f,.91f,enamel);
+                        Bar(a+Vector3.up*.28f,d+Vector3.up*.28f,.82f,enamel);
                     }
-                    mesh.Cylinder(center,rotation,2.8f,.18f,0,water,20);
+                    mesh.Cylinder(center+Vector3.up*.24f,rotation,2.1f,.22f,0,new Color(.04f,.38f,.53f),20);
                     mesh.Sphere(Collector(-.8f,11.4f,1.3f),new Vector3(4.5f,2.6f,3.35f),0,Sugar,10,16);
                     mesh.Sphere(Collector(2.2f,10,-1.85f),new Vector3(3.3f,2.35f,3.15f),0,Sugar,10,16);
                     for(int puff=-2;puff<=2;puff++)

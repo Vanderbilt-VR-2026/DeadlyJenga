@@ -193,7 +193,7 @@ namespace DeadlyJenga.CastlePrototype
                         Part(floor,new Vector3(3.8f,3.65f,-8.2f),new Vector3(13.2f,.7f,4.4f),1);
                         Part(floor,new Vector3(8.35f,3.65f,0),new Vector3(4.1f,.7f,12),1);
                     }
-                    if(level==3 || level==5 || roofOfWing)
+                    if(level==2 || level==3 || level==5 || roofOfWing)
                         Part(floor,new Vector3(3.8f,3.65f,8.2f),new Vector3(13.2f,.7f,4.4f),1);
                     // This pair of recessed wall panels backs the pumps and frames the open room.
                     Part(floor,new Vector3(-10.6f,2,1.5f),new Vector3(.8f,4,8),0);
@@ -224,6 +224,8 @@ namespace DeadlyJenga.CastlePrototype
                     Part(tower,new Vector3(-8.15f,7.5f,end*10),new Vector3(.68f,15,4.8f),0);
                     Part(tower,new Vector3(-4.5f,11.1f,end*7),new Vector3(3.6f,2.2f,2.4f),3);
                 }
+                Part(tower,new Vector3(-6.9f,4.28f,0),new Vector3(.64f,8.56f,9.4f),0);
+                Part(tower,new Vector3(-6.9f,12.18f,0),new Vector3(.64f,4.32f,9.4f),0);
                 if(tier==1)
                 {
                     // The entrance from the purple annex meets the outside stair at exactly +5 m.
