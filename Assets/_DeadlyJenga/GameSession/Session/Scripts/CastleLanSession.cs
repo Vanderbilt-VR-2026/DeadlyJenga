@@ -235,7 +235,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         readonly Dictionary<string, float> livePoseAt = new Dictionary<string, float>();
 
-        public void FusionApplyLivePoses(byte[] data, IEnumerable<string> activePlayers)
+        public void FusionApplyLivePoses(byte[] data, IEnumerable<string> activePlayers, Func<string, bool> acceptActor = null)
         {
             if (!IsClient || WaitingForWorld) return;
             var active = new HashSet<string>(activePlayers);
@@ -244,14 +244,22 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < count; i++)
             {
                 var actor = P.ReadActor(reader);
-                if(!active.Contains(actor.id))continue;
-                if(actor.id==id)
-                {
-                    ApplyOwnHandFeedback(actor);livePoseAt[actor.id]=Time.unscaledTime;continue;
-                }
-                ShowActor(actor, false);
-                livePoseAt[actor.id] = Time.unscaledTime;
+                if (active.Contains(actor.id) && (acceptActor == null || acceptActor(actor.id)))
+                    FusionApplyLiveActor(actor);
             }
+        }
+
+        internal bool FusionApplyLiveActor(P.Actor actor)
+        {
+            if (!IsClient || WaitingForWorld) return false;
+            if (actor.id == id)
+            {
+                if (actor.kind != NetworkKinds.Hand) return false;
+                ApplyOwnHandFeedback(actor);
+            }
+            else ShowActor(actor, false);
+            livePoseAt[actor.id] = Time.unscaledTime;
+            return true;
         }
 
         bool HasFreshPose(string playerID) =>

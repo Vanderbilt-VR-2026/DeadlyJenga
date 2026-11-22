@@ -346,7 +346,7 @@ namespace DeadlyJenga.CastlePrototype
         public long WorldTransfersSubmitted{get;private set;}
         public long WorldPayloadBytesSubmitted{get;private set;}
         void ResetPoseWindows()
-        {CancelHotpathFrames();ResetWorldTransfers();posesInFlight.Clear();poseReceipts.Clear();posesInFlight.Traffic.PendingReceiptCount=0;nextReceiptFlush=0;foreach(var peer in peers.Values){peer.posesInFlight.Clear();peer.receipts.Clear();peer.posesInFlight.Traffic.PendingReceiptCount=0;}hasPoseBatch=false;lastPoseBatch=0;nextPoseSend=0;poseSendFailed=false;}
+        {UnbindLatestPoses(true);CancelHotpathFrames();ResetWorldTransfers();posesInFlight.Clear();poseReceipts.Clear();posesInFlight.Traffic.PendingReceiptCount=0;nextReceiptFlush=0;foreach(var peer in peers.Values){peer.posesInFlight.Clear();peer.receipts.Clear();peer.posesInFlight.Traffic.PendingReceiptCount=0;}hasPoseBatch=false;lastPoseBatch=0;nextPoseSend=0;poseSendFailed=false;}
         bool SendPose(PlayerRef target,int kind,LivePoseWindow window,LivePoseReceipts receipts,byte[] packet,float now)
         {
             if(outboundFailed||closing||poseSendFailed||runner==null||!runner.IsRunning||!IsCurrentScene)return false;
@@ -385,14 +385,21 @@ namespace DeadlyJenga.CastlePrototype
                 : nextPoseSend + PoseSendInterval;
             if(!runner.IsServer)
             {
-                if(welcomed&&!castle.WaitingForWorld&&posesInFlight.CanCapture())SendPose(default,LivePose,posesInFlight,poseReceipts,castle.FusionCapturePlayer(),now);
+                if (!welcomed || castle.WaitingForWorld) return;
+                if (!latestProvider && !posesInFlight.CanCapture()) return;
+                var raw = castle.FusionCapturePlayer();
+                if (!SendLatestInput(raw) && (!latestProvider || posesInFlight.CanCapture()))
+                    SendPose(default, LivePose, posesInFlight, poseReceipts, raw, now);
                 return;
             }
-            CastleLanProtocol.Actor[] actors=null;
+            if (!peers.Values.Any(peer => peer.ready && peer.worldAcknowledged)) return;
+            var actors = castle.FusionCaptureLiveActors();
+            if (latestProvider)
+                actors = actors.Where(actor => !PublishLatestPose(actor)).ToArray();
+            if (actors.Length == 0) return;
             foreach(var pair in peers)
             {
                 if(!pair.Value.ready||!pair.Value.worldAcknowledged||!pair.Value.posesInFlight.CanCapture())continue;
-                actors??=castle.FusionCaptureLiveActors();
                 var batch=CastleLanSession.FusionEncodeLivePosesFor(actors,pair.Key.ToString());
                 if(!SendPose(pair.Key,LivePoses,pair.Value.posesInFlight,pair.Value.receipts,batch,now)&&poseSendFailed)return;
             }
@@ -415,17 +422,18 @@ namespace DeadlyJenga.CastlePrototype
             else if(command.action==CastleDemoAction.Stamina){pendingStamina=command;if(authoritativeRules!=null)MatchSetup.ApplyRules(session.Player,authoritativeRules);}
             else Send(default,Command,System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(command)));
         }
-        public void PauseForMigration(){ResetPoseWindows();ResetDisasters();closing=true;pendingStamina=null;if(runner&&callbacks!=null)runner.RemoveCallbacks(callbacks);castle.FusionFreeze();}
+        public void PauseForMigration(){UnbindLatestPoses(false);ResetPoseWindows();ResetDisasters();closing=true;pendingStamina=null;if(runner&&callbacks!=null)runner.RemoveCallbacks(callbacks);castle.FusionFreeze();}
         public void ResumeAfterMigration(NetworkRunner next)
         {
             ResetPoseWindows();peers.Clear();socialPeers.Clear();socialServer.Clear();welcomed=false;closing=false;nextSend=0;
             runner=next;posesInFlight.Traffic.PeerId=next.LocalPlayer.ToString();sceneTag=SceneTag(next);BindWorldConnection();if(next.IsServer&&session.SurvivorBots!=null){if(Demo.target>0)session.SurvivorBots.TargetPopulation=Mathf.Max(1,Demo.target);session.SurvivorBots.AutoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
             if(next.IsServer&&session.Modes){session.Modes.ResumeAuthorityFromFrame();session.Modes.ReconcileHumanRoster(next.ActivePlayers.Select(p=>p.ToString()));}
-            AttachCallbacks();lastWorld=lastHostPose=Time.unscaledTime;UpdatePopulation();
+            BindLatestPoses();AttachCallbacks();lastWorld=lastHostPose=Time.unscaledTime;UpdatePopulation();
         }
         void AttachCallbacks()
         {
             callbacks=new NetworkDelegates();callbacks.OnReliableDataReceived=Receive;
+            if (latestProvider) callbacks.OnInput = CollectLatestInput;
             callbacks.OnPlayerLeft=(source,player)=>{if(source==runner&&IsCurrentScene)RemovePlayer(player);};callbacks.OnPlayerJoined=(source,player)=>{if(source==runner&&IsCurrentScene)UpdatePopulation();};
             callbacks.OnShutdown=(source,reason)=>{if(source==runner&&IsCurrentScene&&reason!=ShutdownReason.HostMigration&&!(IslandRoomConnection.Instance&&IslandRoomConnection.Instance.Migrating))ReturnToLobby();};
             runner.AddCallbacks(callbacks);
@@ -440,6 +448,7 @@ namespace DeadlyJenga.CastlePrototype
             var physics = runner.GetComponent<Fusion.Addons.Physics.RunnerSimulatePhysics>();
             if (physics) physics.Update3DPhysicsScene = true;
             castle.InitializeFusion(owner, runner.LocalPlayer.ToString(), !runner.IsServer);
+            BindLatestPoses();
             AttachCallbacks();
             lastWorld = lastHostPose = Time.unscaledTime;
             UpdatePopulation();
@@ -582,7 +591,8 @@ namespace DeadlyJenga.CastlePrototype
                         var rawPoses=LivePoseCodec.Unpack(payload.ToArray(),MaxLiveBatchSize,out var receipts);ApplyPiggybackReceipts(posesInFlight,receipts,Time.unscaledTime);posesInFlight.Traffic.RawReceivedBytes+=rawPoses.Length;
                         if (LivePoseWindow.Newer(serial,lastPoseBatch,hasPoseBatch) && !castle.WaitingForWorld)
                         {
-                            castle.FusionApplyLivePoses(rawPoses, runner.ActivePlayers.Select(p => p.ToString()));
+                            castle.FusionApplyLivePoses(rawPoses, runner.ActivePlayers.Select(p => p.ToString()),
+                                actorId => AcceptLatestActor(actorId, serial));
                             lastPoseBatch = serial;hasPoseBatch=true;lastHostPose=Time.unscaledTime;
                             posesInFlight.Applied(payload.Length,lastHostPose);
                         }
@@ -713,6 +723,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void RemovePlayer(PlayerRef player)
         {
+            RemoveLatestPose(player.ToString());
             CancelHotpathPeer(player);
             if(peers.TryGetValue(player,out var departing)){departing.world.Reset();departing.posesInFlight.Clear();departing.receipts.Clear();}
             InvalidateWorldSenders();modeRuntime?.UnregisterRemote(player.ToString());peers.Remove(player); socialPeers.Remove(player); castle.FusionRemovePlayer(player.ToString());

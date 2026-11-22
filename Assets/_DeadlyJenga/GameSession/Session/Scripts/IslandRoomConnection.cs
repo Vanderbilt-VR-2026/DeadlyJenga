@@ -153,7 +153,7 @@ namespace DeadlyJenga.CastlePrototype
             catch (Exception error) { DiscoveryStatus = "Wi-Fi receive permission: " + error.Message + ". Room codes still work."; }
         }
         string RoomProtocol(string appVersion)=>(appVersion??"")+"/"+Catalog.NetworkVersion+
-            "/pose-reliable-recovery-1/server-data-c2s-1";
+            "/pose-reliable-recovery-1/server-data-c2s-1"+CastleFusionSession.LatestPoseProtocol;
         public void StartDiscovery()
         {
             if(Discovery!=null||!Catalog)return;
@@ -353,11 +353,12 @@ namespace DeadlyJenga.CastlePrototype
             finally{if(attempt==generation){Busy=false;connecting?.Dispose();connecting=null;}}
         }
         GameObject CreateRunner()
-        {var go=new GameObject("Island Fusion Runner");DontDestroyOnLoad(go);Runner=go.AddComponent<NetworkRunner>();ownedRunner=Runner;Runner.ProvideInput=false;return go;}
+        {var go=new GameObject("Island Fusion Runner");DontDestroyOnLoad(go);Runner=go.AddComponent<NetworkRunner>();ownedRunner=Runner;go.AddComponent<CastleLatestPoseProvider>();Runner.ProvideInput=false;return go;}
         public static NetworkProjectConfig MigrationConfig()
         {
             var config=NetworkProjectConfig.Deserialize(NetworkProjectConfig.Serialize(NetworkProjectConfig.Global));
             config.Network.ReliableDataTransferModes=NetworkConfiguration.ReliableDataTransfers.ClientToServer;
+            config.Simulation.InputTransferMode=SimulationConfig.InputTransferModes.LatestState;
             config.HostMigration.EnableAutoUpdate=false;config.HostMigration.UpdateDelay=2;return config;
         }
         internal int ConnectionGeneration=>generation;
