@@ -12,12 +12,13 @@ namespace DeadlyJenga.CastlePrototype
         [Networked] int SceneEpoch { get; set; }
         [Networked] int Length { get; set; }
         [Networked] int Sequence { get; set; }
+        [Networked] int AcceptedInput { get; set; }
 
         CastleLatestPoseProvider provider;
         int appliedSequence;
         public override void Spawned() => provider = Runner.GetComponent<CastleLatestPoseProvider>();
 
-        internal void Publish(int scene, int sequence, byte[] payload)
+        internal void Publish(int scene, int sequence, int acceptedInput, byte[] payload)
         {
             var words = Words;
             for (int start = 0; start < payload.Length; start += 4)
@@ -29,6 +30,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             SceneEpoch = scene;
             Length = payload.Length;
+            AcceptedInput = acceptedInput;
             Sequence = sequence;
         }
 
@@ -53,7 +55,7 @@ namespace DeadlyJenga.CastlePrototype
                     bytes[start + i] = (byte)(value >> (8 * i));
             }
             appliedSequence = Sequence;
-            provider.Session.ReadLatestPage(bytes, appliedSequence);
+            provider.Session.ReadLatestPage(bytes, appliedSequence, AcceptedInput);
         }
     }
 

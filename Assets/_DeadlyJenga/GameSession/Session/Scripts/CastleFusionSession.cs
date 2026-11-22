@@ -126,7 +126,7 @@ namespace DeadlyJenga.CastlePrototype
             public int PendingCount{get;internal set;}public int PendingBytes{get;internal set;}public int PeakCount{get;internal set;}public int PeakBytes{get;internal set;}
             public long DueTicks{get;internal set;}public long SuppressedTicks{get;internal set;}public long ByteBlocked{get;internal set;}public long InvalidFrames{get;internal set;}
             public long SubmittedFrames{get;internal set;}public long SubmittedBytes{get;internal set;}public int MaxSubmittedBytes{get;internal set;}public long SendFailures{get;internal set;}
-            public long MatchedAcks{get;internal set;}public long UnknownAcks{get;internal set;}public float LastAckSeconds{get;internal set;}public float MaxAckSeconds{get;internal set;}public double AckSeconds{get;internal set;}
+            public long MatchedAcks{get;internal set;}public long UnknownAcks{get;internal set;}public long SupersededReliableFrames{get;internal set;}public float LastAckSeconds{get;internal set;}public float MaxAckSeconds{get;internal set;}public double AckSeconds{get;internal set;}
             public float OldestPendingSeconds{get;internal set;}public float MaxOldestPendingSeconds{get;internal set;}public long Resets{get;internal set;}
             public long ReceivedFrames{get;internal set;}public long ReceivedBytes{get;internal set;}public long SkippedFrames{get;internal set;}public long AppliedFrames{get;internal set;}public long AppliedBytes{get;internal set;}public long AppliedIntervals{get;internal set;}
             public float LastReceivedAt{get;internal set;}public float LastReceiveInterval{get;internal set;}public float MaxReceiveInterval{get;internal set;}public double ReceiveIntervalSeconds{get;internal set;}public long ReceiveIntervals{get;internal set;}
@@ -163,6 +163,18 @@ namespace DeadlyJenga.CastlePrototype
             }
             internal void Cancel(int serial)
             {if(pending.TryGetValue(serial,out var value)){pending.Remove(serial);Traffic.PendingBytes-=value.bytes;Traffic.PendingCount=pending.Count;Traffic.SendFailures++;}}
+            // These pending records contain only replaceable poses. Keep later records and their ACKs intact.
+            internal void RetireThrough(int sequence, float now)
+            {
+                if (sequence == 0 || pending.Count == 0) return;
+                foreach (int serial in pending.Keys.ToArray())
+                {
+                    if (serial != sequence && !Newer(sequence, serial, true)) continue;
+                    Cancel(serial);
+                    Traffic.SupersededReliableFrames++;
+                }
+                Observe(now);
+            }
             internal void Observe(float now)
             {float age=0;foreach(var value in pending.Values)age=Math.Max(age,now-value.at);Traffic.OldestPendingSeconds=age;Traffic.MaxOldestPendingSeconds=Math.Max(Traffic.MaxOldestPendingSeconds,age);}
             internal bool Expired(float now){Observe(now);return Traffic.OldestPendingSeconds>20;}
@@ -176,7 +188,7 @@ namespace DeadlyJenga.CastlePrototype
             internal static int NextSequence(ref int sequence){sequence=unchecked(sequence+1);if(sequence==0)sequence=1;return sequence;}
         }
 
-        sealed class Peer { public readonly WorldDeltaCodec.Sender world=new WorldDeltaCodec.Sender();public int worldResyncs;public float nextWorldResync;public byte[] pendingWorldResync;public bool retriedWorldReceipt,worldAcknowledged; public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence;public bool hasPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
+        sealed class Peer { public readonly WorldDeltaCodec.Sender world=new WorldDeltaCodec.Sender();public int worldResyncs;public float nextWorldResync;public byte[] pendingWorldResync;public bool retriedWorldReceipt,worldAcknowledged; public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence,lastNativePoseSequence;public float lastNativePoseAt;public bool hasPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
         readonly Dictionary<PlayerRef, Peer> peers = new Dictionary<PlayerRef, Peer>();
         NetworkRunner runner;
         NetworkDelegates callbacks;
@@ -395,8 +407,17 @@ namespace DeadlyJenga.CastlePrototype
             if (!peers.Values.Any(peer => peer.ready && peer.worldAcknowledged)) return;
             var actors = castle.FusionCaptureLiveActors();
             if (latestProvider)
+            {
+                int coveredReliableSequence = poseSequence;
                 actors = actors.Where(actor => !PublishLatestPose(actor)).ToArray();
-            if (actors.Length == 0) return;
+                if (actors.Length == 0)
+                {
+                    foreach (var peer in peers.Values)
+                        if (peer.lastNativePoseSequence != 0 && now - peer.lastNativePoseAt < 1f)
+                            peer.posesInFlight.RetireThrough(coveredReliableSequence, now);
+                    return;
+                }
+            }
             foreach(var pair in peers)
             {
                 if(!pair.Value.ready||!pair.Value.worldAcknowledged||!pair.Value.posesInFlight.CanCapture())continue;
