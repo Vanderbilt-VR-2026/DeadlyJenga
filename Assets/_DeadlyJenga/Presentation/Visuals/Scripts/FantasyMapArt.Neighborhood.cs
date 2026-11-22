@@ -4,20 +4,10 @@ namespace DeadlyJenga.Presentation
 {
     public sealed partial class FantasyMapArt
     {
-        Material neighborhoodPrint;
-        Material NeighborhoodPrintMaterial()
-        {
-            if(neighborhoodPrint) return neighborhoodPrint;
-            neighborhoodPrint=new Material(cityCandyMaterial){name="Cloud City interior artwork"};
-            neighborhoodPrint.SetFloat("_Pattern",8);
-            neighborhoodPrint.SetFloat("_Smoothness",.18f);
-            neighborhoodPrint.SetTexture("_DetailTex",Resources.Load<Texture2D>("FantasyMaps/CloudCityInteriors"));
-            return neighborhoodPrint;
-        }
-
         // Each facade uses its own floor as its frame, including after a tower collapses.
         void Neighborhood(ArtMesh mesh, Transform visual, Rigidbody body, Bounds bounds, string site, string purpose)
         {
+            FurnishNeighborhood(mesh,visual,body,site,purpose);
             var frame = body.transform;
             var front = FaceToward(frame, frame.TransformPoint(bounds.center), site=="Cloud Harbor east annex");
             var yaw = Quaternion.LookRotation(front);
@@ -58,8 +48,7 @@ namespace DeadlyJenga.Presentation
                     {
                         var center=Shop(side*width*.45f,2.05f,.42f);
                         float span=width*.77f;
-                        mesh.Box(center,new Vector3(span+.7f,3.62f,.48f),outside,0,cream);
-                        mesh.Print(center+outside*Vector3.forward*.26f,outside,span,3.06f,grocer?2:0);
+                        WindowOpening(mesh,center,outside,span,3.06f,cream);
                         mesh.Box(center+outside*Vector3.forward*.32f,new Vector3(.13f,3.1f,.15f),outside,0,wood);
                     }
                     for(int stripe=-6;stripe<=6;stripe++)
@@ -94,7 +83,6 @@ namespace DeadlyJenga.Presentation
                     for (int i=-1;i<=1;i+=2)
                     {
                         Box(i*5,1.28f,-2,3.5f,2.56f,2.5f,GrapeDark);
-                        mesh.Print(P(i*5,1.36f,-.71f),rotation,2.95f,2.04f,3);
                         for(int j=0;j<3;j++) mesh.Cylinder(P(i*5+j*.55f-.55f,2,-2),rotation,.2f,.65f,0,Gold,8);
                     }
                     return;
@@ -117,26 +105,17 @@ namespace DeadlyJenga.Presentation
                 Box(0,3.65f,-.25f,13.2f,.35f,.75f,cream);
                 for(int side=-1;side<=1;side+=2)
                     Box(side*6.22f,1.6f,2.72f,.22f,3.2f,.22f,cream);
-                Box(-5.5f,2,-5.3f,6,2.7f,.3f,wood);
-                for(int shelf=0;shelf<3;shelf++)
-                {
-                    Box(-5.5f,.7f+shelf*.82f,-4.9f,6.1f,.15f,.6f,cream);
-                    for(int jar=0;jar<7;jar++)
-                        Box(-5.5f+(jar-3)*.78f,1+shelf*.82f,-4.9f,.43f,.48f,.43f,(jar+shelf)%2==0?lime:Gold);
-                }
                 for(int side=-1;side<=1;side+=2)
                 {
                     // A display window returns around each corner. The tills and open counter still face the street.
                     var sideRotation=rotation*Quaternion.Euler(0,90*side,0);
                     var panel=P(side*width,2.1f,-depth*.72f);
-                    mesh.Box(panel,new Vector3(6.7f,3.25f,.48f),sideRotation,0,cream);
-                    mesh.Print(panel+sideRotation*Vector3.forward*.26f,sideRotation,6.12f,2.76f,grocery?2:0);
+                    WindowOpening(mesh,panel,sideRotation,6.12f,2.76f,cream);
                     mesh.Box(panel+sideRotation*new Vector3(0,1.77f,.76f),new Vector3(7.4f,.32f,2.15f),
                         sideRotation*Quaternion.Euler(13,0,0),0,stripe);
                 }
                 if(grocery)
                 {
-                    mesh.Print(P(-5.5f,1.89f,-4.37f),rotation,5.86f,2.66f,2);
                     Ball(-1,4.35f,1.4f,1.05f,CaneRed);
                     Ball(1,4.35f,1.4f,.98f,Gold);
                     foreach(int side in new[]{-1,1})
@@ -203,10 +182,9 @@ namespace DeadlyJenga.Presentation
                 }
                 if(site=="Sugar Market hall" && purpose.EndsWith(" floor 3"))
                 {
-                    Box(0,2.5f,.25f,width*1.88f,5.9f,.72f,cream);
-                    mesh.Print(P(0,2.5f,.64f),rotation,width*1.79f,5.36f,1);
+                    WindowOpening(mesh,P(0,1.93f,.25f),rotation,width*1.79f,2.8f,cream);
                     foreach(int mullion in new[]{-1,0,1})
-                        Box(mullion*width*.46f,2.5f,.75f,.25f,5.5f,.18f,wood);
+                        Box(mullion*width*.46f,1.93f,.75f,.25f,2.8f,.18f,wood);
                     Box(0,-.24f,.88f,width*1.92f,.28f,1.64f,cream);
                 }
                 if(ground && site=="Sugar Market hall")
@@ -255,16 +233,14 @@ namespace DeadlyJenga.Presentation
                     {
                         float span=tower?4.3f:7.6f;
                         float x=side*width*.55f;
-                        Box(x,2.02f,-.08f,span+.58f,3.28f,.55f,cream);
-                        mesh.Print(P(x,2.02f,.22f),rotation,span,2.84f,1);
+                        WindowOpening(mesh,P(x,2.02f,-.08f),rotation,span,2.84f,cream);
                         Box(x,2.02f,.32f,.12f,2.94f,.18f,wood);
                         Box(x,.5f,.4f,span+.8f,.24f,.75f,cream);
                     }
                     if(ground) Box(side*6,1.11f,-2.8f,2.6f,.16f,1.48f,wood);
                 }
             }
-            else if(site.StartsWith("Grape") && (purpose.Contains("bookfall support") || purpose.Contains("book wing") ||
-                purpose.Contains("receiving foot") || purpose.Contains("landing pedestal")))
+            else if(site.StartsWith("Grape") && (purpose.Contains("bookfall support") || purpose.Contains("book wing")))
             {
                 foreach (var collider in body.GetComponentsInChildren<BoxCollider>())
                 {
@@ -281,7 +257,6 @@ namespace DeadlyJenga.Presentation
                     Vector3 Entry(float x,float y,float z)=>visual.InverseTransformPoint(frame.TransformPoint(new Vector3(x,y,37+z)));
                     var doorRotation=Quaternion.Inverse(visual.rotation)*frame.rotation;
                     mesh.Box(Entry(0,1.64f,-.65f),new Vector3(3.8f,3.3f,.3f),doorRotation,0,wood);
-                    mesh.Print(Entry(0,1.79f,-.47f),doorRotation,3.15f,2.65f,0);
                     for(int stripe=-3;stripe<=3;stripe++)
                         mesh.Box(Entry(stripe*.72f,3.4f,.85f),new Vector3(.75f,.23f,2.2f),
                             doorRotation*Quaternion.Euler(15,0,0),0,stripe%2==0?CaneRed:cream);
@@ -292,7 +267,6 @@ namespace DeadlyJenga.Presentation
                     }
                 }
                 var glass=new Color(.28f,.48f,.54f);
-                var curtain=new Color(1,.58f,.22f);
                 // The long spine and both wing ends have their own elevations. Dress all four faces
                 // because the street curves around the building and wings can turn on their hinges.
                 for(int face=0;face<4;face++)
@@ -327,8 +301,7 @@ namespace DeadlyJenga.Presentation
                         }
                         float w=Mathf.Min(6.2f,(halfSpan-1)*1.7f/bays);
                         float h=Mathf.Min(4.9f,roof-1.1f);
-                        Trim(x,y,.07f,w+.6f,h+.62f,.38f,cream);
-                        mesh.Print(F(x,y,.28f),q,w,h,0);
+                        WindowOpening(mesh,F(x,y,.07f),q,w,h,cream);
                         Trim(x,y,.38f,.135f,h,.13f,wood);
                         Trim(x,y+h*.28f,.39f,w,.115f,.13f,cream);
                         Trim(x,y-h*.5f-.15f,.42f,w+.85f,.29f,.92f,cream);
@@ -382,8 +355,8 @@ namespace DeadlyJenga.Presentation
                 mesh.Box(T(-6.9f,4.28f,0),new Vector3(.64f,8.56f,9.4f),towerRotation,0,burntOrange);
                 mesh.Box(T(-6.9f,12.18f,0),new Vector3(.64f,4.32f,9.4f),towerRotation,0,burntOrange);
                 var cabinet=towerRotation*Quaternion.Euler(0,90,0);
-                mesh.Print(T(-6.54f,3.1f,0),cabinet,7.4f,4.5f,3);
-                mesh.Print(T(-6.54f,11.9f,0),cabinet,7.4f,3.2f,3);
+                Switchgear(mesh,T(-6.54f,3.1f,0),cabinet,2.1f);
+                Switchgear(mesh,T(-6.54f,11.9f,0),cabinet,1.55f);
                 for(int end=-1;end<=1;end+=2)
                 {
                     mesh.Box(T(0,14.73f,end*12.42f),new Vector3(17.5f,1.04f,.6f),towerRotation,0,copper);
@@ -393,7 +366,7 @@ namespace DeadlyJenga.Presentation
                 foreach(int end in new[]{-1,1})
                 {
                     var outward=towerRotation*Quaternion.Euler(0,90,0);
-                    mesh.Print(T(-2.66f,11.18f,end*7),outward,2.32f,2.04f,3);
+                    Switchgear(mesh,T(-2.66f,11.18f,end*7),outward,.85f);
                     mesh.Box(T(-4,14.49f,end*6),new Vector3(1.2f,.15f,3.8f),towerRotation,1,new Color(1,.69f,.28f));
                 }
                 // Each escape tier has three staggered flights. Only the highest tier gets the terminal.

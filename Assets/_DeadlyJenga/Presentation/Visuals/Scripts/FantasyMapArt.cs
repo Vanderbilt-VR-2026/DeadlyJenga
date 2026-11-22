@@ -61,10 +61,11 @@ namespace DeadlyJenga.Presentation
                         if(renderer.name=="Fantasy decorations")continue;
                         if(!originals.ContainsKey(renderer))originals[renderer]=renderer.sharedMaterials;
                         var replacement=new Material[renderer.sharedMaterials.Length];
-                        var cityGlass=City?(solidCandy?SolidMaterial(body):CityGlass(body)):null;
-                        for(int i=0;i<replacement.Length;i++)replacement[i]=cityGlass?cityGlass:blockMaterials[i%blockMaterials.Length];
+                        var cityGlass=City && !solidCandy ? CityGlass(body) : null;
+                        for(int i=0;i<replacement.Length;i++)replacement[i]=City && solidCandy ? SolidMaterial(body,i) : cityGlass?cityGlass:blockMaterials[i%blockMaterials.Length];
                         renderer.sharedMaterials=replacement;
-                        SoftenEdges(renderer,body);
+                        // Structural members already carry beveled edges and their authored finish slots.
+                        if(!City || !solidCandy) SoftenEdges(renderer,body);
                     }
                     if(City)DecorateCity(body,visual);
                     else if(theme!=FantasyMapTheme.CandyGlass)Decorate(body,visual,count++);
@@ -103,7 +104,7 @@ namespace DeadlyJenga.Presentation
                 environment.sun.intensity=theme==FantasyMapTheme.Honeycomb?1.65f:theme==FantasyMapTheme.Carnival?1.45f:1.7f;
                 environment.sun.transform.rotation=theme==FantasyMapTheme.Honeycomb?Quaternion.Euler(48,140,0):theme==FantasyMapTheme.Carnival?Quaternion.Euler(18,180,0):Quaternion.Euler(52,140,0);
                 // Candy Sky Ring City: warm late-afternoon sun from the south-west.
-                if(solidCandy&&candyCity){environment.sun.color=new Color(1,.88f,.72f);environment.sun.intensity=1.8f;environment.sun.transform.rotation=Quaternion.Euler(38,55,0);}
+                if(solidCandy&&candyCity){environment.sun.color=new Color(1,.88f,.72f);environment.sun.intensity=1.45f;environment.sun.transform.rotation=Quaternion.Euler(38,55,0);}
             }
         }
         void ClearBodyArt()

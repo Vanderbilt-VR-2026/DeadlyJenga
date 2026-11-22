@@ -138,7 +138,12 @@ namespace DeadlyJenga.DevTools.Editor
                 ? new[] { "reference", "target", "close", "pov|market|36|0.5|-36|53|3|-53",
                     "pov|rainworks|44|0.5|-30|27|14|-17", "pov|school|-52|1|12|-71|12|28",
                     "pov|apartments|-36|0.5|-37|-60|12|-60", "pov|substation|85|0.5|24|68|21|45",
-                    "pov|switchback|61|16.4|51|70|24|43" }
+                    "pov|switchback|61|16.4|51|70|24|43",
+                    "pov|living-room|-50.77|1.15|-72.27|-53.81|2.35|-64.13",
+                    "pov|classroom|-54.64|1.15|41.04|-61.49|2.55|47.95",
+                    "pov|produce|49.78|1.15|-48.37|55.79|2.6|-44.9",
+                    "pov|cafe|20.6|1.15|-63.74|26.01|2.45|-66.95",
+                    "pov|pump-room|33.5|1.15|-15|27|2.7|-10.9" }
                 : MapPictureRig.AllViews;
             MapLiveCapture.BatchMaps(maps.Select(m => m.id).ToList(), Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Captures", "CandyCityLayouts"), views);
         }
