@@ -257,7 +257,11 @@ namespace DeadlyJenga.CastlePrototype
                     var peer=pair.Value;var token=peer.pendingWorldResync;if(token==null||now<peer.nextWorldResync)continue;
                     peer.pendingWorldResync=null;
                     if(!peer.world.Resynchronize(peer.waiting,token))continue;
-                    if(++peer.worldResyncs>3){runner.Disconnect(pair.Key);RemovePlayer(pair.Key);continue;}
+                    if(++peer.worldResyncs>3)
+                    {
+                        TraceAdmission($"host resync limit disconnect peer={pair.Key} worldSerial={peer.waiting}");
+                        runner.Disconnect(pair.Key);RemovePlayer(pair.Key);continue;
+                    }
                     peer.waiting=0;peer.nextWorldResync=now+1;
                 }
             }
@@ -285,23 +289,39 @@ namespace DeadlyJenga.CastlePrototype
                     .Select(a=>new CastleLanProtocol.Actor{id=a.id,kind=a.kind,active=a.active,state=Array.Empty<byte>()}).ToArray()};
             using var hash=System.Security.Cryptography.SHA256.Create();return Convert.ToBase64String(hash.ComputeHash(CastleLanProtocol.EncodeWorld(identity)));
         }
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        void TraceAdmission(string detail)
+        {
+            if (Debug.isDebugBuild)
+                Debug.Log($"[CastleAdmission] utc={DateTime.UtcNow:O} scene={sceneTag} local={(runner ? runner.LocalPlayer.ToString() : "none")} {detail}", this);
+        }
+
         void SendWorld(PlayerRef player,Peer peer,byte[] raw,string context,float now)
         {
             int serial=LivePoseWindow.NextSequence(ref sequence);var packet=peer.world.Prepare(raw,context,serial);
             int fullAlternativeBytes=peer.world.LastFullPacketBytes;
             peer.waiting=serial; // Admission reserves the one world slot; timeout starts after SDK return.
+            if (!peer.worldAcknowledged) TraceAdmission($"initial World queued peer={player} serial={serial} bytes={packet.Length}");
             try
             {
                 Send(player,World,packet,serial,()=>
                 {
                     peer.sentAt=Time.unscaledTime;WorldRawBytesSubmitted+=raw.Length;WorldFullAlternativeBytesSubmitted+=fullAlternativeBytes;
+                    if (!peer.worldAcknowledged) TraceAdmission($"initial World submitted to Fusion peer={player} serial={serial} bytes={packet.Length}");
                     if(packet[5]==1)WorldDeltaTransfersSubmitted++;else WorldFullTransfersSubmitted++;
-                },()=>{peer.world.Cancel();if(peer.waiting==serial)peer.waiting=0;});
+                },()=>
+                {
+                    if (!peer.worldAcknowledged) TraceAdmission($"initial World cancelled peer={player} serial={serial}");
+                    peer.world.Cancel();
+                    if(peer.waiting==serial)peer.waiting=0;
+                });
             }
             catch{peer.world.Cancel();peer.waiting=0;throw;}
         }
         void ReceiveWorld(byte[] packet,int serial)
         {
+            bool initial = castle.WaitingForWorld;
+            if (initial) TraceAdmission($"initial World received serial={serial} bytes={packet.Length}");
             var frame=worldReceiver.Decode(packet,serial);
             LastWorldReceivedAt = Time.unscaledTime;
             if(frame.status==WorldDeltaCodec.Status.Stale)return;
@@ -311,6 +331,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 castle.FusionApplyWorld(frame.raw);
                 worldReceiver.Applied(frame);lastWorld=Time.unscaledTime;pendingWorldResync=null;pendingWorldResyncSerial=0;
+                if (initial) TraceAdmission($"initial World applied serial={serial}");
             }
             Send(default,Ack,frame.Token(),serial);
         }
@@ -455,8 +476,36 @@ namespace DeadlyJenga.CastlePrototype
         {
             callbacks=new NetworkDelegates();callbacks.OnReliableDataReceived=Receive;
             if (latestProvider) callbacks.OnInput = CollectLatestInput;
-            callbacks.OnPlayerLeft=(source,player)=>{if(source==runner&&IsCurrentScene)RemovePlayer(player);};callbacks.OnPlayerJoined=(source,player)=>{if(source==runner&&IsCurrentScene)UpdatePopulation();};
-            callbacks.OnShutdown=(source,reason)=>{if(source==runner&&IsCurrentScene&&reason!=ShutdownReason.HostMigration&&!(IslandRoomConnection.Instance&&IslandRoomConnection.Instance.Migrating))ReturnToLobby();};
+            callbacks.OnPlayerLeft=(source,player)=>
+            {
+                if(source!=runner)return;
+                TraceAdmission($"Fusion player left peer={player} roster={source.ActivePlayers.Count()} currentScene={IsCurrentScene}");
+                if(IsCurrentScene)RemovePlayer(player);
+            };
+            callbacks.OnPlayerJoined=(source,player)=>{if(source==runner&&IsCurrentScene)UpdatePopulation();};
+            callbacks.OnShutdown=(source,reason)=>
+            {
+                if(source!=runner)return;
+                TraceAdmission($"Fusion shutdown reason={reason}");
+                if(IsCurrentScene&&reason!=ShutdownReason.HostMigration&&!(IslandRoomConnection.Instance&&IslandRoomConnection.Instance.Migrating))ReturnToLobby();
+            };
+            if (Debug.isDebugBuild)
+            {
+                callbacks.OnDisconnectedFromServer = (source, reason) =>
+                {
+                    if (source == runner) TraceAdmission($"Fusion disconnected from server reason={reason}");
+                };
+                callbacks.OnReliableDataProgress = (source, player, key, progress) =>
+                {
+                    if (source != runner || !IsCurrentScene || progress < 1) return;
+                    key.GetInts(out int channel, out int kind, out int serial, out int tag);
+                    bool admitting = runner.IsServer
+                        ? !peers.TryGetValue(player, out var peer) || !peer.worldAcknowledged
+                        : !welcomed || castle.WaitingForWorld;
+                    if (admitting && channel == Channel)
+                        TraceAdmission($"Fusion transfer complete peer={player} kind={kind} serial={serial} tag={tag}");
+                };
+            }
             runner.AddCallbacks(callbacks);
         }
         public void Initialize(NetworkRunner networkRunner, CastlePlaySession owner, CastleLanSession state)
@@ -472,6 +521,7 @@ namespace DeadlyJenga.CastlePrototype
             BindLatestPoses();
             AttachCallbacks();
             lastWorld = lastHostPose = Time.unscaledTime;
+            TraceAdmission($"game transport attached host={runner.IsServer} roster={runner.ActivePlayers.Count()}");
             UpdatePopulation();
         }
 
@@ -481,6 +531,8 @@ namespace DeadlyJenga.CastlePrototype
             Action submitted=()=>
             {
                 if(kind==World){WorldTransfersSubmitted++;WorldPayloadBytesSubmitted+=bytes.Length;}
+                if(kind==Ready||kind==Welcome||kind==WelcomeAck)
+                    TraceAdmission($"bootstrap submitted to Fusion peer={player} kind={kind} serial={serial} bytes={bytes.Length}");
                 onSubmitted?.Invoke();
             };
             // Standalone so earlier clients can ignore the new cue without rejecting a bundle.
@@ -529,8 +581,18 @@ namespace DeadlyJenga.CastlePrototype
         void Receive(NetworkRunner source, PlayerRef player, ReliableKey key, ReadOnlySpan<byte> payload)
         {
             key.GetInts(out int channel, out int kind, out int serial, out int receivedTag);
-            if (outboundFailed || closing || source != runner || !IsCurrentScene || (receivedTag != 0 && receivedTag != sceneTag)) return;
-            if (runner.IsServer && !source.ActivePlayers.Contains(player)) return;
+            if (outboundFailed || closing || source != runner || !IsCurrentScene || (receivedTag != 0 && receivedTag != sceneTag))
+            {
+                if(channel==Channel&&(kind==Ready||kind==Welcome||kind==WelcomeAck||kind==World||kind==HotpathBundle))
+                    TraceAdmission($"bootstrap outside current scene peer={player} kind={kind} serial={serial} receivedTag={receivedTag}");
+                return;
+            }
+            if (runner.IsServer && !source.ActivePlayers.Contains(player))
+            {
+                if(channel==Channel&&(kind==Ready||kind==WelcomeAck||kind==HotpathBundle))
+                    TraceAdmission($"bootstrap from absent peer={player} kind={kind} serial={serial}");
+                return;
+            }
             if(channel==SocialChannel){if(DeadlyJenga.CastleSocial.SocialWorld.RuntimeEnabled)ReceiveSocial(player,kind,serial,payload);return;}
             if(channel!=Channel)return;
             if((kind==World||kind==Ack||kind==WorldResync)&&receivedTag!=sceneTag)return;
@@ -544,6 +606,7 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     if (kind == Ready)
                     {
+                        TraceAdmission($"Ready received peer={player} serial={serial}");
                         if (!peers.ContainsKey(player))
                         {
                             var added=new Peer {lastPose=Time.unscaledTime,welcome=castle.FusionWelcome(player.ToString())};
@@ -564,6 +627,7 @@ namespace DeadlyJenga.CastlePrototype
                             modeRuntime?.ReceiveCommand(player.ToString(),modeRequest);}
                         else if (kind == WelcomeAck)
                         {
+                            TraceAdmission($"Welcome receipt peer={player} serial={serial}");
                             peer.ready=true;peer.lastPose=Time.unscaledTime;
                             var room=IslandRoomConnection.Instance;
                             if(room&&room.Owns(runner))room.NoteMatchPeer(player.ToString());
@@ -585,7 +649,11 @@ namespace DeadlyJenga.CastlePrototype
                         else if (kind == PoseReceiptGroup&&payload.Length>=7&&payload.Length<=3+LivePoseReceipts.Capacity*4) ApplyPoseReceipts(peer.posesInFlight,payload.ToArray(),Time.unscaledTime);
                         else if (kind == Ack && peer.waiting!=0 && peer.waiting==serial && payload.Length==WorldDeltaCodec.TokenBytes && peer.world.Acknowledge(serial,payload.ToArray()))
                         {
-                            if (!peer.worldAcknowledged) peer.lastPose = Time.unscaledTime;
+                            if (!peer.worldAcknowledged)
+                            {
+                                TraceAdmission($"initial World receipt peer={player} serial={serial}");
+                                peer.lastPose = Time.unscaledTime;
+                            }
                             peer.waiting=0;peer.worldAcknowledged=true;peer.retriedWorldReceipt=false;
                             peer.worldResyncs=0;peer.pendingWorldResync=null;
                         }
@@ -600,6 +668,7 @@ namespace DeadlyJenga.CastlePrototype
                     // Fusion's server-to-client stream is the only source of world state.
                     if (kind == Welcome)
                     {
+                        TraceAdmission($"Welcome received serial={serial} bytes={payload.Length}");
                         if (!welcomed) { castle.FusionReceiveWelcome(payload.ToArray()); authoritativeRules=MatchSetup.CaptureRules(session.Player); welcomed = true; }
                         Send(default, WelcomeAck, Array.Empty<byte>(), serial);
                     }
@@ -637,6 +706,7 @@ namespace DeadlyJenga.CastlePrototype
             catch (Exception error)
             {
                 receiverBundleFailed=true;CancelHotpathPeer(player);
+                TraceAdmission($"message rejected peer={player} kind={kind} serial={serial} tag={receivedTag} bytes={payload.Length} error={error.GetType().Name}");
                 Debug.LogError("Castle synchronization rejected a message: " + error.Message, this);
                 if (runner.IsServer) runner.Disconnect(player);
                 else Fail("Game synchronization failed. Make sure everyone has the same build, then rejoin.");
@@ -671,7 +741,13 @@ namespace DeadlyJenga.CastlePrototype
                     if (now - pair.Value.lastPose > PeerIdleTimeout ||
                         pair.Value.waiting != 0 && now - pair.Value.sentAt > PeerIdleTimeout ||
                         pair.Value.posesInFlight.Expired(now))
-                    { runner.Disconnect(pair.Key); RemovePlayer(pair.Key); }
+                    {
+                        var peer=pair.Value;
+                        TraceAdmission($"host watchdog disconnect peer={pair.Key} ready={peer.ready} admitted={peer.worldAcknowledged} " +
+                            $"lastPeerAge={now-peer.lastPose:F1}s worldSerial={peer.waiting} worldAckAge={now-peer.sentAt:F1}s " +
+                            $"oldestPoseAckAge={peer.posesInFlight.Traffic.OldestPendingSeconds:F1}s");
+                        runner.Disconnect(pair.Key); RemovePlayer(pair.Key);
+                    }
                 }
                 if (now < nextSend) return;
                 nextSend = now + .1f;ObserveWorldScope();
