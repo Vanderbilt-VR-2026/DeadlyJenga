@@ -18,6 +18,9 @@ namespace DeadlyJenga.DevTools.Editor
 
         static double captureAt;
         static double deadline;
+        static Rigidbody beam, plank, adjacent;
+        static Vector3 plankStart;
+        static bool observingPull;
         static string Output => Path.GetFullPath("Logs/TycoonReview");
 
         static TycoonReviewCapture()
@@ -88,6 +91,18 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void CaptureWhenReady()
         {
+            if (observingPull)
+            {
+                bool moved = !plank.isKinematic && Vector3.Distance(plank.position, plankStart) > .25f;
+                if (!moved && EditorApplication.timeSinceStartup < deadline) return;
+                bool ok = moved && !beam.isKinematic && adjacent.isKinematic;
+                Report($"Support push: beamDynamic={!beam.isKinematic}; plankDisplacement={Vector3.Distance(plank.position, plankStart):F2}; adjacentPinned={adjacent.isKinematic}");
+                SessionState.SetInt(Key+"Exit",ok ? 0 : 1);
+                observingPull = false;
+                EditorApplication.update -= CaptureWhenReady;
+                EditorApplication.ExitPlaymode();
+                return;
+            }
             if(EditorApplication.timeSinceStartup < captureAt) return;
             var world = Services.World as CastleGenerator;
             if (Services.Session != null && world && world.settings.layoutPreset != TycoonLayout.Preset)
@@ -116,7 +131,17 @@ namespace DeadlyJenga.DevTools.Editor
                 if(validation == null) throw new InvalidOperationException("Disaster catalog validation is unavailable.");
                 validation.Invoke(null,null);
                 Capture(world,camera);
-                SessionState.SetInt(Key+"Exit",0);
+                int loose = pieces.FindIndex(p => p.DeckProfile.Finish == TycoonDeckFinish.LoosePeach);
+                int support = pieces.FindIndex(p => (p.Position - new Vector3(0,5.8f,-41.8f)).sqrMagnitude < .001f);
+                if (support < 0 || loose < 0 || !world.Bodies.All(b => b.isKinematic))
+                    throw new InvalidOperationException($"Unpinned at rest: {string.Join(", ",world.Bodies.Select((b,i)=>(b,i)).Where(t=>!t.b.isKinematic).Take(15).Select(t=>pieces[t.i].Position.ToString()))}");
+                plank = world.Bodies[loose]; beam = world.Bodies[support]; adjacent = world.Bodies[loose+2];
+                plankStart = plank.position;
+                beam.GetComponent<CastleBlock>().Push(world.transform.right*18, world.gameObject);
+                Time.timeScale = 1;
+                deadline = EditorApplication.timeSinceStartup + 25;
+                observingPull = true;
+                EditorApplication.update += CaptureWhenReady;
             }
             catch(Exception exception)
             {
@@ -124,7 +149,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
             finally
             {
-                EditorApplication.ExitPlaymode();
+                if (!observingPull) EditorApplication.ExitPlaymode();
             }
         }
 
@@ -161,8 +186,9 @@ namespace DeadlyJenga.DevTools.Editor
                 Shot("01-Tycoon-overview",new Vector3(5,102,-158),new Vector3(0,36,-7));
                 Shot("02-Tycoon-rear",new Vector3(-122,104,138),new Vector3(0,35,0));
                 Shot("03-Core-junction",new Vector3(1,19.7f,-16.5f),new Vector3(7,22,-3));
-                Shot("04-West-flume",new Vector3(-27.5f,37.7f,14),new Vector3(-42,22,-7));
-                Shot("05-East-terrace",new Vector3(39,19.7f,-39.5f),new Vector3(29,21,-25));
+                Shot("04-West-flume",new Vector3(-34,23,-29),new Vector3(-19,26,-4));
+                Shot("05-East-terrace",new Vector3(38,19.7f,-39),new Vector3(29,22,-13));
+                Shot("06-Plank-court",new Vector3(1,8.7f,-43),new Vector3(-4,15,-22));
             }
             finally
             {

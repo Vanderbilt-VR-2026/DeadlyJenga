@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash }
+    public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash, Peach, Mint, Basin, Tube, Gate, Railed, Awning, Parasol, Bucket, LoosePeach }
 
     public readonly struct TycoonDeckProfile
     {
@@ -26,12 +26,12 @@ namespace DeadlyJenga.CastlePrototype
     }
 
     // One rendered module follows its existing box body through a collapse.
-    public sealed class TycoonDeckVisual : MonoBehaviour
+    public sealed partial class TycoonDeckVisual : MonoBehaviour
     {
         Mesh mesh;
         readonly List<Vector3> vertices = new List<Vector3>();
         readonly List<Vector2> uv = new List<Vector2>();
-        readonly List<int>[] faces = {new List<int>(),new List<int>()};
+        readonly List<int>[] faces = {new List<int>(),new List<int>(),new List<int>(),new List<int>()};
 
         public void Build(TycoonDeckProfile profile, Material shell, Material accent, Vector3 size)
         {
@@ -54,15 +54,18 @@ namespace DeadlyJenga.CastlePrototype
                 Splash(size);
             }
 
+            AddParkDetails(profile,size);
             mesh = new Mesh {name = "Tycoon molded deck"};
             mesh.SetVertices(vertices);
             mesh.SetUVs(0,uv);
-            mesh.subMeshCount = 2;
+            mesh.subMeshCount = faces.Length;
             for(int i=0;i<faces.Length;i++) mesh.SetTriangles(faces[i],i);
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
             gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
-            gameObject.AddComponent<MeshRenderer>().sharedMaterials = new[] {shell,accent ? accent : shell};
+            gameObject.AddComponent<MeshRenderer>().sharedMaterials = new[] {
+                profile.Finish is TycoonDeckFinish.Peach or TycoonDeckFinish.LoosePeach ? Peach : profile.Finish == TycoonDeckFinish.Mint ? Mint : shell,
+                accent ? accent : shell, Cream, Coral };
         }
 
         void BeveledDeck(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Vector3 size,bool wetCenter)

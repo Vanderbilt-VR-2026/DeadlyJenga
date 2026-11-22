@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1030507885409388828}
   - component: {fileID: 2439113978628553874}
+  - component: {fileID: 197715001}
   m_Layer: 0
   m_Name: Fixed Foundation
   m_TagString: Untagged
@@ -124,3 +125,15 @@ MonoBehaviour:
   waterHeight: 0.08
   oceanKillHeight: -6
   playableArea: {fileID: 0}
+--- !u!114 &197715001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3308325157542424419}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 050497eeecae45ccac49020874bff85b, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:

@@ -294,6 +294,13 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 throw new System.InvalidOperationException("No supported clear courtyard spawn remains.");
             }
+            if (settings.layoutPreset == TycoonLayout.Preset && Bodies.Count > 0)
+            {
+                var scene = gameObject.scene.GetPhysicsScene();
+                var ray = transform.TransformPoint(new Vector3(6, 65, 0));
+                if (scene.Raycast(ray, Vector3.down, out var deck, 8f, 1 << Layers.Block, QueryTriggerInteraction.Ignore))
+                    return deck.point + Vector3.up * .08f;
+            }
             Collider best = null; float highest = float.NegativeInfinity;
             foreach (var body in Bodies)
             {
@@ -403,7 +410,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             Physics.SyncTransforms();
             if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)
-                tycoonSupports = TycoonSupports.Build(generatedRoot, Bodies);
+                tycoonSupports = TycoonSupports.Build(generatedRoot, Bodies, layout);
             if (Application.isPlaying && !tycoonSupports && groupRestingBlocks && Bodies.Count>=physicsGroupThreshold)
             {
                 PhysicsGroups=generatedRoot.gameObject.AddComponent<CastlePhysicsGroups>();

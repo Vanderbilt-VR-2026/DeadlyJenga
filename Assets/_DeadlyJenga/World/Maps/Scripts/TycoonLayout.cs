@@ -13,115 +13,114 @@ namespace DeadlyJenga.CastlePrototype
 
         public static List<CastlePlacement> Build(CastleSettings settings)
         {
-            var plan = new List<CastlePlacement>(320);
-            var purple = CastleSection.Keep;
+            var plan = new List<CastlePlacement>(650);
             var red = CastleSection.Wall;
             var green = CastleSection.Corner;
-            var yellow = CastleSection.Gold;
-            var aqua = CastleSection.Aqua;
+            var purple = CastleSection.Keep;
+            Core(plan, settings);
 
-            // Retain the rear Catwalks stacks at the original 12 m pitch.
+            // The original rear stacks leave open sight lines through the switchbacks.
             foreach (int side in new[] { -1, 1 })
             {
                 Tower(plan, settings, side * 24, 24, 18, green);
                 Tower(plan, settings, side * 12, 24, 14, red);
-                Tower(plan, settings, side * 24, 12, 10, red);
-                Tower(plan, settings, side * 24, -24, 8, side < 0 ? green : red);
             }
-            // Larger rear piers carry the promenade without another full stack of loose courses.
-            Pier(plan,red,-3,23.4f,19,3.5f);
-            Pier(plan,red,3,23.4f,19,3.5f);
 
-            Core(plan, settings);
-
-            // Banked crossing through the open front of the core.
-            MoldedRoute(plan, red, 7.5f, TycoonDeckFinish.OpenDeck, 3.5f,
-                P(-19.5f,18,-24), P(-15,19,-23), P(-9,18,-17), P(0,18,-15.75f),
-                P(9,18,-17), P(15,19,-23), P(19.5f,18,-24));
-            Route(plan, red, 6, P(28.5f,18,-24), P(31,18,-28));
-            Deck(plan, purple, 0,18,-10,15,4);
-            Deck(plan, green, -24,18,-24,9,8);
-            Deck(plan, red, 24,18,-24,9,8);
-            foreach (int offset in new[] { -1, 1 })
+            // Each run splits into its own set of bodies immediately outside the launch deck.
+            for (int lane = 0; lane < 4; lane++)
             {
-                Box(plan,green,P(-24+offset*3.5f,16.7f,-24),P(2,1.4f,8));
-                Box(plan,red,P(24+offset*3.5f,16.7f,-24),P(2,1.4f,8));
+                float x = -8.4f + lane * 5.6f;
+                Deck(plan, purple, x, 60, -10.7f, 5.55f, 3, TycoonDeckFinish.Gate);
             }
-            Pier(plan, red, -15,18.4f,-23);
-            Pier(plan, red, 15,18.4f,-23);
-            Pier(plan, red, 0,17.4f,-15.75f,4);
-            Route(plan,purple,4,P(6,18,-10),P(9.5f,18,-6));
-            // Wide red bearing towers frame the beach entrance and leave its middle bay open.
-            Tower(plan,settings,-11,-24,7,red);
-            Tower(plan,settings,11,-24,7,red);
-            Deck(plan,red,-11,14.6f,-24,9,8);
-            Deck(plan,red,11,14.6f,-24,9,8);
+            Flume(plan, CastleSection.Aqua, TycoonDeckFinish.Flume,
+                P(-8.4f,60,-12.2f), P(-17,53,-17), P(-33,40,4), P(-39,34,8),
+                P(-44,27,-5), P(-32,19,-18), P(-41,7,-32));
+            Flume(plan, red, TycoonDeckFinish.Tube,
+                P(-2.8f,60,-12.2f), P(-3,54,-19), P(-15,45,-12), P(-17,40,3),
+                P(-11,35,16), P(11,30,16), P(19,26,6), P(24,24,-5));
+            Flume(plan, green, TycoonDeckFinish.Flume,
+                P(2.8f,60,-12.2f), P(5,52,-19), P(17,44,-12), P(22,37,0),
+                P(29,31,-3), P(29,24,-5));
+            Flume(plan, CastleSection.Gold, TycoonDeckFinish.DryChute,
+                P(8.4f,60,-12.2f), P(20,52,-15), P(39,32,-16), P(36,24,-18));
 
-            // Two wraparound decks open back into the climbable core.
-            MoldedRoute(plan,purple,7,TycoonDeckFinish.OpenDeck,4,
-                P(-9.5f,24,6),P(-15,24,8),P(-15,24,16),P(0,24,19),P(15,24,16),P(15,24,9));
-            MoldedRoute(plan,purple,8,TycoonDeckFinish.OpenDeck,4,
-                P(-9.5f,36,6),P(-15,36,11),P(-19,36,14),P(-24,36,14));
-            Deck(plan,purple,-20,36,22,8,8);
-            Pier(plan,purple,-20,35.4f,20,3);
-            foreach (var support in new[] { P(-15,24,7),P(-15,24,16),P(0,24,19),P(15,24,16),
-                         P(15,24,9),P(-15,36,11),P(-19,36,14),P(-26,36,14) })
-                Pier(plan,purple,support.x,support.y-.6f,support.z);
+            // A cross beam and separate planks carry each bay above the lethal sand.
+            for (int bay = -2; bay <= 2; bay++)
+                PlankBay(plan, bay * 13, 7, -37, 13, 15, CastleSection.Wall, TycoonDeckFinish.Peach);
+            Deck(plan, green, -40, 7, -35, 12, 7, TycoonDeckFinish.Basin);
+            Pier(plan,green,-40,6.4f,-35,5);
+            Segment(plan, green, 5, P(-34,7,-35), P(-32.5f,7,-35));
 
-            // West flume, with flat transfer and shoreline runout.
-            MoldedRoute(plan,green,6,TycoonDeckFinish.Flume,5,
-                P(-29,36,14),P(-41,31,10),P(-42,25,-5),P(-29,19,-10),
-                P(-30,13,-22),P(-43,6,-24));
-            Deck(plan,green,-26.5f,36,14,5,8);
-            foreach(int side in new[] {-1,1})
+            // Three open arch bays carry the red promenade.
+            for (int i = -2; i <= 2; i++)
             {
-                Box(plan,green,P(-26.5f,38.25f,14+side*3.25f),P(1.6f,4.5f,1.6f));
+                float x = i * 9;
+                Pier(plan, red, x, 16, -24, 3);
+                Box(plan, red, P(x,16.5f,-24),P(5,1,7));
+                Box(plan, red, P(x,17.5f,-24),P(7.5f,1,7));
+                Deck(plan, red, x,18.6f,-24,9,7,TycoonDeckFinish.Railed);
             }
-            Deck(plan,green,-26.5f,41.1f,14,7.5f,8);
-            Route(plan,green,4,P(-29,19,-10),P(-24,18,-15),P(-24,18,-20));
-            Route(plan,green,4,P(-43,6,-31),P(-33,.9f,-20));
-            foreach (var support in new[] { P(-40,30.7f,10),P(-41,24.6f,-4),P(-29,18.5f,-10),P(-31,12.1f,-22),P(-43,6,-24),P(-43,6,-31) })
-                Pier(plan,green,support.x,support.y-.6f,support.z);
-            Deck(plan,green,-43,6,-27.5f,6,7);
+            Route(plan, red, 5, P(-22,7,-38), P(-28,12,-30), P(-22,18.6f,-24));
+            Route(plan, purple, 5, P(0,18.6f,-20.5f), P(0,18,-12), P(8,18,-6));
+            Deck(plan,red,23,18.6f,-24,2,7);
+            // Seat courses double as ledges; the side ramp bypasses the steeper climb.
+            for (int row = 0; row < 6; row++)
+            {
+                float z = -19 + row * 2.8f;
+                float height = 19 + row * 1.4f;
+                Deck(plan,purple,-21,height,z,16,2.8f);
+                foreach (int side in new[] {-1,1})
+                    Pier(plan,purple,-21+side*6,height-.6f,z,2.4f);
+            }
+            Segment(plan,purple,3,P(-31,18.6f,-24),P(-31,26,-5));
+            Deck(plan,purple,-27,18.6f,-24,9,5);
+            Deck(plan,purple,-26,26,-2,13,3);
+            Segment(plan,purple,4,P(-21,26,0),P(-26,36,19.5f));
+            Deck(plan,green,-24,36.6f,24,12,9,TycoonDeckFinish.Awning);
 
-            MoldedRoute(plan,yellow,5,TycoonDeckFinish.Flume,2.4f,
-                P(-9.5f,24,-6),P(-13,24,-9),P(-22,18,-21));
-            MoldedRoute(plan,yellow,5,TycoonDeckFinish.Flume,1.8f,
-                P(-25,18,-28),P(-37,6,-41));
-            Pier(plan,purple,-13,23.4f,-9);
-
-            Deck(plan,red,-37,6,-44,8,6);
-            Pier(plan,red,-37,5.4f,-44);
-            Route(plan,red,5,P(-33,6,-44),P(-17,.9f,-42));
-
-            // The yellow chute occupies the rear side of the east wing before turning to the terrace.
-            Route(plan,purple,4,P(-9.5f,60,6),P(-9.5f,60,15),P(10,60,20));
-            foreach (var support in new[] { P(-9.5f,60,15),P(0,60,15),P(10,60,20) })
-                Pier(plan,purple,support.x,support.y-.6f,support.z,3);
-            MoldedRoute(plan,yellow,6.5f,TycoonDeckFinish.DryChute,5,
-                P(10,60,20),P(21,52,15),P(37,37,0),P(43,28,-14),P(32,18,-28));
+            // Shaded lower route and a broad upper sundeck connect to the east terrace.
+            PlankBay(plan,32,12,-13,18,18,green,TycoonDeckFinish.Mint);
+            PlankBay(plan,32,24,-13,18,18,green,TycoonDeckFinish.Mint,12);
+            Deck(plan,green,27,24.6f,-7,9,4,TycoonDeckFinish.Basin);
+            Deck(plan,green,36,24.6f,-20,7,4,TycoonDeckFinish.Basin);
+            Deck(plan,green,32,24.6f,-13,4,4,TycoonDeckFinish.Parasol);
             Terrace(plan);
-            Route(plan,green,4.5f,P(40,18,-30),P(45,12,-16),P(46,6,-31),P(39,6,-37),P(33,.9f,-22));
-            foreach (var support in new[] { P(45,12,-16),P(46,6,-31),P(39,6,-37) })
-                Pier(plan,green,support.x,support.y-.6f,support.z);
-            Route(plan,aqua,4,P(24,18,-24),P(22,12,-36),P(39,6,-37));
-            Pier(plan,green,22,11.4f,-36);
-
-            // Ground-level route stays available when a bridge loses its support.
-            MoldedRoute(plan,purple,5.5f,TycoonDeckFinish.OpenDeck,4.5f,
-                P(-36,.9f,5),P(-40,.9f,-8),P(-35,.9f,-19),P(-38,.9f,-34),P(-32,.9f,-41),
-                P(-13,.9f,-43),P(0,.9f,-38),P(19,.9f,-41),P(31,.9f,-35),P(33,.9f,-22));
-            foreach (var foot in new[] { P(-36,0,5),P(-40,0,-8),P(-35,0,-19),P(-38,0,-34),P(-32,0,-41),P(-13,0,-43),P(31,0,-35) })
-                Pier(plan,purple,foot.x,.3f,foot.z,2.8f);
-            foreach (var foot in new[] { P(-33,0,-20),P(-38,0,-35),P(-28,0,-41),P(-12,0,-41),
-                         P(0,0,-38),P(20,0,-41),P(33,0,-22),P(26.5f,0,-31.5f),P(-35.5f,0,-27.5f) })
-                Pier(plan,purple,foot.x,.3f,foot.z,2.4f);
-            Route(plan,purple,5,P(0,.9f,-38),P(0,.9f,-23),P(0,0,-12),P(-6.25f,0,-3));
-            MoldedRoute(plan,purple,7,TycoonDeckFinish.OpenDeck,3.2f,
-                P(-9.5f,24,6),P(-18,24,6),P(-19,24,0),P(-18,24,-6),P(-9.5f,24,-6));
-            foreach (var foot in new[] { P(-18,0,6),P(-19,0,0),P(-18,0,-6) })
-                Pier(plan,purple,foot.x,23.4f,foot.z);
+            Route(plan,green,5,P(33,18,-28),P(43,20,-27),P(39,24,-21));
+            Route(plan,red,5,P(24,18.6f,-24),P(28,18,-29));
+            Route(plan,green,4,P(25,12,-22),P(24,9,-27),P(24,7,-30));
+            Route(plan,purple,4,P(23,24,-8),P(16,24,-8),P(-8,24,-12),P(-9,24,-6));
+            Deck(plan,red,11,7.6f,-39,6,4,TycoonDeckFinish.Awning);
+            Deck(plan,purple,0,60.6f,4,13,7,TycoonDeckFinish.Bucket);
             return plan;
+        }
+
+        static void Flume(List<CastlePlacement> plan, CastleSection color, TycoonDeckFinish finish,
+            params Vector3[] guide)
+        {
+            MoldedRoute(plan,color,4.6f,finish,5,guide);
+            // Compression piers support the longer unsupported spans.
+            for (int i = 2; i < guide.Length - 1; i += 2)
+            {
+                var point = guide[i];
+                Pier(plan,color,point.x,point.y-.65f,point.z,2.4f);
+            }
+        }
+
+        static void PlankBay(List<CastlePlacement> plan,float x,float top,float z,float width,float depth,
+            CastleSection color,TycoonDeckFinish finish,float baseHeight = 0)
+        {
+            foreach (int side in new[] {-1,1})
+            {
+                float beamZ = z + side * depth * .32f;
+                foreach (int end in new[] {-1,1})
+                {
+                    float h = top - 1.8f - baseHeight;
+                    Box(plan,color,P(x+end*width*.34f,baseHeight+h*.5f,beamZ),P(2.6f,h,2.6f));
+                }
+                Box(plan,CastleSection.Keep,P(x,top-1.2f,beamZ),P(width+.8f,1.2f,2));
+            }
+            for (int i=0;i<5;i++)
+                Deck(plan,color,x+width*((i+.5f)/5-.5f),top,z,width/5-.045f,depth,finish == TycoonDeckFinish.Peach && x == 0 && i < 2 ? TycoonDeckFinish.LoosePeach : finish);
         }
 
         static void Core(List<CastlePlacement> plan, CastleSettings settings)
@@ -151,15 +150,7 @@ namespace DeadlyJenga.CastlePrototype
                 Segment(plan,purple,4,P(-direction*6.25f,bottom,z),P(direction*6.25f,top,z));
             }
 
-            float radius = CastleVariants.KeepRadius(settings.blockSize);
             Deck(plan,purple,0,CoreFlights * 6,0,24,18.5f);
-            for (int course = CoreFlights * 3; course < HeightCourses; course++)
-            for (int side = 0; side < 4; side++)
-            {
-                var rotation = Quaternion.Euler(0, side*90+(course%2)*45, 0);
-                plan.Add(new CastlePlacement(P(0,(course+.5f)*2,0)+rotation*P(0,0,radius),
-                    rotation,purple,course,settings.blockSize));
-            }
         }
 
         static void Terrace(List<CastlePlacement> plan)
