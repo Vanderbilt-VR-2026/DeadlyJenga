@@ -12,7 +12,8 @@ re-themed in one place. Support Unity's light and dark editor skins.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  Set: "Viaduct Ambush" ▾     [ Set ] [ Perform ] [ Direct ] [ Shoot ] [ Cut ]   ● REC   ⟲ ⟳ │
+│  Set picker    Open stage   Record    Find command    Undo   Redo    Shortcuts  │
+│  Set        Perform        Polish        Direct        Shoot        Cut         │
 ├───────────────┬──────────────────────────────────────┬───────────────┤
 │  Cast & World │            Viewport                  │   Inspector   │
 │  (left list)  │  (live Scene/Game view with          │  (only the    │
@@ -32,8 +33,8 @@ re-themed in one place. Support Unity's light and dark editor skins.
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Top bar:** Set picker, mode tabs, one big record button, undo/redo.
-- **Left list:** everything in the Set, grouped. Each row has mute (M),
+- **Top bar:** Choose the set, open the stage, record, find commands, or undo. The row below names each mode and its task.
+- **Left list:** search the cast, world tracks and cameras by name. Entries are grouped. Each row has mute (M),
   solo (S), lock, color dot and a take dropdown.
 - **Viewport:** the scene itself with overlays. Click things in it to select
   them. Drag marks, block arrows and camera keys in place.
@@ -92,3 +93,11 @@ without squinting:
 
 This panel is DevTools UI (allowed to draw). It must not ship in player
 builds.
+
+## Actor workflow review candidate
+
+On `codex/cutscene-editor-tool`, editor candidate `b878039e5206ea5f1d80f94e573c8294a912be4a` follows `21eba0e3032fd7ff419ff7034c61feeffcbed178` and targets `origin/Evan_FINAL_Sprint`. The task branch carries the earlier Trailer Studio work it depends on.
+
+Open **Tools → Deadly Jenga → Trailer Studio**, choose a set and open its stage. In **Set**, add a survivor and preview their starting position on the map. In **Perform**, choose **Record as**. The cast search, unrecorded-actor shortcut and previous-performance controls help with longer cast lists. In **Polish**, **Make a crowd** uses recorded survivor motion. **Direct** shows push and selection gestures, **Shoot** shows camera coverage and key timing, and **Cut** shows shot order, duration and media readiness.
+
+Validation at this checkpoint covers a retained-reference build of the 330 DevTools editor sources and the UXML shell bindings. The editor tour entry point is `DeadlyJenga.DevTools.Editor.TrailerStudio.StudioAcceptance.RunWindowTour`. First-time creator review and a 30-person authoring session remain open.
