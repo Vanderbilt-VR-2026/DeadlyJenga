@@ -51,7 +51,7 @@ namespace DeadlyJenga.CastlePrototype
         CastleLanTransport.Link host;
         Nearby requested;
         string requestedToken;
-        bool connecting, welcomed, receivedWorld;
+        bool connecting, welcomed, receivedWorld, awaitingReboundWorld;
         int connectAttempt, selectedIndex, hostRevision = -1;
         float nextBeacon, nextState, nextPose, requestedAt, lastRequest, worldAt, lastWorldAt;
         P.Snapshot targetWorld;
@@ -95,7 +95,7 @@ namespace DeadlyJenga.CastlePrototype
             if(fusionMode)foreach(var a in fusionActors)yield return new KeyValuePair<string,Vector3>(a.Key,a.Value.position);
             foreach(var c in connections)if(c.id!=null&&c.actor!=null)yield return new KeyValuePair<string,Vector3>(c.id,c.actor.position);
         }
-        public bool WaitingForWorld => IsClient && !receivedWorld;
+        public bool WaitingForWorld => IsClient && (!receivedWorld || awaitingReboundWorld);
         public int HumanCount => this && fusionMode && fusionClient
             ? GetComponent<CastleFusionSession>()?.ConnectedHumanCount ?? 1
             : 1 + (fusionMode ? fusionActors.Count : connections.Count(c => c.id != null));
@@ -162,6 +162,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             var restoreWorld=targetWorld;
             if(!client&&restoreWorld==null)restoreWorld=CaptureWorld();
+            welcomed = false;
+            awaitingReboundWorld = client;
             id=newId;fusionClient=client;fusionActors.Clear();livePoseAt.Clear();foreach(var key in views.Keys.ToArray())RemoveView(key);
             if(!client)
             {
@@ -201,7 +203,9 @@ namespace DeadlyJenga.CastlePrototype
             using var reader = P.Reader(data, P.Welcome);
             reader.ReadBoolean(); P.ReadPose(reader);
             var rules = P.Text(reader, 4096); (session.Player as ISurvivorSettings)?.LoadStaminaRules(rules);
-            ReceiveWelcome(data);
+            // Rebinding keeps the applied replica and local placement until the new host responds.
+            if (awaitingReboundWorld && receivedWorld) welcomed = true;
+            else ReceiveWelcome(data);
         }
         public byte[] FusionCaptureWorld() => FusionCaptureWorld(includeBots: true);
         internal byte[] FusionCaptureWorld(bool includeBots) => P.EncodeWorld(CaptureWorld(includeBots));
@@ -227,12 +231,13 @@ namespace DeadlyJenga.CastlePrototype
                     var delta=snapshot.blocks[i].rotation*Quaternion.Inverse(targetWorld.blocks[i].rotation);delta.ToAngleAxis(out float angle,out Vector3 axis);if(angle>180)angle-=360;
                     if(axis.sqrMagnitude>0&&!float.IsNaN(axis.x))migrationAngular[i]=Vector3.ClampMagnitude(axis*(angle*Mathf.Deg2Rad/dt),30);}}
             ApplyWorld(snapshot);
+            awaitingReboundWorld = false;
         }
         readonly Dictionary<string, float> livePoseAt = new Dictionary<string, float>();
 
         public void FusionApplyLivePoses(byte[] data, IEnumerable<string> activePlayers)
         {
-            if (!IsClient || !receivedWorld) return;
+            if (!IsClient || WaitingForWorld) return;
             var active = new HashSet<string>(activePlayers);
             using var reader = P.Reader(data, P.Player);
             int count = P.Count(reader, 64);
@@ -686,7 +691,7 @@ namespace DeadlyJenga.CastlePrototype
             foreach (var key in views.Keys.ToArray()) RemoveView(key);
             if (receivedWorld)
                 Synced?.SetReplica(false);
-            welcomed=false;receivedWorld = false; hostRevision = -1; targetWorld = null;
+            welcomed=false;receivedWorld = awaitingReboundWorld = false; hostRevision = -1; targetWorld = null;
             if (localPreview != null) localPreview.NetworkPreview = false;
             ResumeBots();
             pending.Clear(); grants.Clear(); invitations.Clear(); Status = reason;
