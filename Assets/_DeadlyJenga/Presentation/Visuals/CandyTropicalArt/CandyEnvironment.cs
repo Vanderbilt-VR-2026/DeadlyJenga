@@ -149,6 +149,7 @@ namespace DeadlyJenga.CandyArt
             if(terrain&&!openWater)
             {
                 terrain.CatwalksBeach=UsesCastleCoast;
+                terrain.CompactCastleBeach=UsesCastleCoast && MatchChoices.MapId == "mode-walled-castle";
                 terrain.BeachWaterOffset=waterLevel-sandTop;
                 terrain.profile=profile;var baseline=GetComponent<CandyArtBaseline>();
                 if(baseline)terrain.map=baseline.map;
