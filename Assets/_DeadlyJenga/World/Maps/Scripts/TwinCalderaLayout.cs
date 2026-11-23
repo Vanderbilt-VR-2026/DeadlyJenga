@@ -9,6 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         internal const string Preset = "twin-caldera";
         const float Bed = -3, LandingWidth = 3.6f, Deck = .85f;
+        const float CrossingRise = 4f;
         internal readonly List<Piece> Pieces = new();
 
         internal struct Piece
@@ -26,6 +27,7 @@ namespace DeadlyJenga.CastlePrototype
             map.ShieldSpine();
             map.Crossing();
             map.Breakaway();
+            map.Aprons();
             return map;
         }
 
@@ -126,8 +128,17 @@ namespace DeadlyJenga.CastlePrototype
                         var b=Node(side,row+1,edge);
                         // The inner flank is a segmented direct climb. The opposite
                         // flank has longer stair runs diagonally across the terraces.
-                        Flight(region+(edge==-side?" direct":" outer")+" "+row,a,b,
-                            edge==-side?2.9f:2.65f,1);
+                        if (edge == -side && row == 3)
+                        {
+                            a.y += CrossingRise;
+                            // The upper shoulder has its own connection to the rim.
+                            Flight(region+" bridge approach",a,b,2.65f,1);
+                        }
+                        else
+                        {
+                            Flight(region+(edge==-side?" direct":" outer")+" "+row,a,b,
+                                edge==-side?2.9f:2.65f,1);
+                        }
                     }
                     // Stair flights run diagonally across the width, clear of the two side climbs.
                     if(row<4)
@@ -171,7 +182,9 @@ namespace DeadlyJenga.CastlePrototype
                 float width=side<0?3.55f:2.65f;
                 var p=new Vector3(x,0,z);
                 Pier(region+" crest pedestal "+n,p,shoulder,width*1.12f,3.5f);
-                float height=(side<0?5.9f:8.2f)+(n*5%7)*.65f;
+                float[] crestScale = {1.01f, 1.16f, .91f, 1.19f, 1.07f, 1.04f, .91f};
+                float height=((side<0?5.9f:8.2f)+(n*5%7)*.65f)*crestScale[n];
+                width *= side < 0 ? 1.20f : 1.04f;
                 Rock(region+" summit fin "+n,new Vector3(x,shoulder+height/2,z),
                     new Vector3(width,height,3.3f),n%2==0?-9:8,0,1.65f,side<0?.85f:.17f,.42f);
             }
@@ -196,9 +209,12 @@ namespace DeadlyJenga.CastlePrototype
                 var axis=flat.normalized;
                 float length=flat.magnitude, slope=line.y/length;
                 float yaw=Mathf.Atan2(axis.x,axis.z)*Mathf.Rad2Deg;
-                const float slab=.98f;
+                // Retain the thinner central slab at the switchback crossing.
+                float slab=i==2?.98f:1.45f;
+                float width=i==2?3.75f:4.3875f;
+                float run=(length-.05f)*.965f;
                 Rock("Shield radial slab "+i,(a+b)*.5f-Vector3.up*(slab/2),
-                    new Vector3(3.75f,slab,length-.05f),yaw,line.y,line.y,0,1);
+                    new Vector3(width,slab,run),yaw,slope*run,slope*run,0,1);
                 for(int j=0;j<2;j++)
                 {
                     var edge=j==0?a:b;
@@ -264,16 +280,46 @@ namespace DeadlyJenga.CastlePrototype
             Flight("Spire peeling slab",low,high,2.95f,1);
             // Only the middle of this independent ledge lies beneath the moving
             // slab. Its two shoes stand outside the falling slab's bearing stacks.
-            var mid=(low+high)*.5f + new Vector3(0,-3.1f,-1.5f);
+            var mid=(low+high)*.5f + new Vector3(0,-2.7f,-1.5f);
             Rock("Spire lower catch",mid,new Vector3(1.65f,.7f,5.4f));
             for(int j=-1;j<=1;j+=2)
                 Pier("Catch leg "+j,mid+Vector3.forward*(j*1.8f),mid.y-.35f,1.32f,1.4f);
+        }
+
+        void Aprons()
+        {
+            // The low silhouettes from the Blender terraces. Each leaning unit
+            // sits on a separate broad footing and leaves space at the arrival.
+            ApronBlock("Shield",0,-46.5f,-24.4f,3.6f,4f,4.1f,3.6f,18);
+            ApronBlock("Shield",1,-40.8f,-26.1f,4.2f,3.6f,4.2f,2.5f,-24);
+            ApronBlock("Shield",2,-35.4f,-30.7f,4.2f,3.5f,4.3f,1.9f,14);
+            ApronBlock("Shield",3,-22.6f,-26.2f,4.6f,4.2f,4.5f,2.4f,-14);
+            ApronBlock("Shield",4,-15.1f,-25.1f,3.7f,3.4f,4.15f,2.3f,20);
+            ApronBlock("Spire",0,45.9f,-18.2f,3.8f,3.6f,4.25f,3.7f,-21);
+            ApronBlock("Spire",1,39.3f,-25.7f,4.25f,3.8f,4.3f,3.3f,19);
+            ApronBlock("Spire",2,30.5f,-26.2f,4.45f,3.8f,4.4f,2.35f,-10);
+            ApronBlock("Spire",3,24.9f,-25.7f,4.1f,3.7f,4.2f,2.0f,29);
+            ApronBlock("Spire",4,14.8f,-25.9f,4.1f,3.65f,4.55f,2.6f,-12);
+        }
+
+        void ApronBlock(string region,int index,float x,float z,float width,float depth,
+            float footHeight,float ribHeight,float yaw)
+        {
+            string name=region+" apron "+index;
+            Rock(name+" foundation",new Vector3(x,Bed+footHeight/2,z),
+                new Vector3(width,footHeight,depth),yaw,0,0,0,.96f);
+            Rock(name+" buttress",new Vector3(x,Bed+footHeight+ribHeight/2,z),
+                new Vector3(width*.80f,ribHeight,depth*.82f),yaw,0,.34f,index%2==0?.16f:-.16f,.72f);
         }
 
         void Crossing()
         {
             var a=Node(-1,3,1);
             var b=Node(1,3,-1);
+            BridgeShoulder("Shield",a);
+            BridgeShoulder("Spire",b);
+            a.y += CrossingRise;
+            b.y += CrossingRise;
             float start=a.x+LandingWidth/2, end=b.x-LandingWidth/2;
             float span=(end-start)/3;
             for(int i=0;i<=3;i++)
@@ -284,12 +330,40 @@ namespace DeadlyJenga.CastlePrototype
                 if(i==0||i==3) x+=(i==0?.46f:-.46f);
                 var p=new Vector3(x,a.y,a.z);
                 float w=i==0||i==3?.82f:2.7f;
-                Pier("Bridge pier "+i,p,a.y-Deck-.7f,w*.88f,3.1f);
+                if (i == 1 || i == 2) BridgePier(i,p);
+                else Pier("Bridge pier "+i,p,a.y-Deck-.7f,w*.88f,3.1f);
                 Rock("Bridge cap "+i,p-Vector3.up*(Deck+.35f),new Vector3(w,.7f,3.5f));
             }
             for(int i=0;i<3;i++)
                 Rock("Bridge span "+i,new Vector3(start+(i+.5f)*span,a.y-Deck/2,a.z),
                     new Vector3(span-.04f,Deck,3.7f),0,0,0,0,1);
+        }
+
+        void BridgeShoulder(string region, Vector3 lower)
+        {
+            float bearingHeight = (CrossingRise - Deck) / 2;
+            for (int course = 0; course < 2; course++)
+            {
+                var center = lower + Vector3.up * ((course + .5f) * bearingHeight);
+                Rock(region+" bridge shoulder bearing "+course,center,
+                    new Vector3(2.62f - .22f*course,bearingHeight,2.7f - .16f*course));
+            }
+            Rock(region+" bridge shoulder",lower + Vector3.up * (CrossingRise - Deck/2),
+                new Vector3(LandingWidth,Deck,LandingWidth),0,0,0,0,1);
+        }
+
+        void BridgePier(int index, Vector3 top)
+        {
+            float height = top.y - Deck - .7f - Bed;
+            float[] widths = {4.7f, 4f, 3.39f, 2.9f, 3.9f};
+            float[] depths = {4.55f, 4f, 3.7f, 3.38f, 3.75f};
+            for (int course = 0; course < widths.Length; course++)
+            {
+                float step = height / widths.Length;
+                var center = new Vector3(top.x,Bed + (course + .5f)*step,top.z);
+                Rock("Bridge pier "+index+" bearing "+course,center,
+                    new Vector3(widths[course],step,depths[course]),0,0,0,0,.96f);
+            }
         }
     }
 }
