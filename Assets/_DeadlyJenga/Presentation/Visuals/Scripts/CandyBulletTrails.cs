@@ -21,6 +21,7 @@ namespace DeadlyJenga.Presentation
         static readonly Color SheriffAmber=new Color(1,.48f,.085f);
         static readonly Color SheriffCore=new Color(1,.83f,.49f);
         MaterialPropertyBlock tint;CandyWeaponImpacts impactView;
+        static readonly Color StockPistolPink=new Color(1f,.055f,.49f);
         static readonly int BaseColor=Shader.PropertyToID("_BaseColor"),ColorId=Shader.PropertyToID("_Color");
         static readonly AnimationCurve SheriffTaper=new AnimationCurve(new Keyframe(0,1),new Keyframe(.35f,.61f),new Keyframe(1,0));
         static readonly AnimationCurve DefaultTaper=new AnimationCurve(new Keyframe(0,.85f),new Keyframe(.36f,1),new Keyframe(1,.08f));
@@ -139,7 +140,7 @@ namespace DeadlyJenga.Presentation
                 if(bullet.contact)CandyWeaponImpacts.TryContact(bullet.end,delta,out bullet.surface);
                 bullet.head.gameObject.SetActive(true);bullet.trail.gameObject.SetActive(true);
                 bullet.head.position=start;bullet.head.rotation=Quaternion.LookRotation(delta);bullet.head.localScale=needle?new Vector3(.035f,.035f,.23f):new Vector3(shotgun?.075f:.09f,shotgun?.075f:.09f,shotgun?.17f:.27f);
-                Color color=(ownerColor??(duplex?DuplexCandy[(candy+i)%DuplexCandy.Length]:sheriff?SheriffAmber:needle?new Color(.72f,.80f,.87f):kind==EquipmentKind.ChainGun?new Color(1,.68f,.18f):shotgun?new Color(1,.43f,.09f,1):new Color(.24f,.88f,1,1)));
+                Color color=(ownerColor??(duplex?DuplexCandy[(candy+i)%DuplexCandy.Length]:sheriff?SheriffAmber:kind==EquipmentKind.StockPistol?StockPistolPink:needle?new Color(.72f,.80f,.87f):kind==EquipmentKind.ChainGun?new Color(1,.68f,.18f):shotgun?new Color(1,.43f,.09f,1):new Color(.24f,.88f,1,1)));
                 tint.Clear();tint.SetColor(BaseColor,color);tint.SetColor(ColorId,color);tint.SetColor("_EmissionColor",duplex?color*.44f:Color.Lerp(color,Color.white,.67f)*1.5f);
                 bullet.headRenderer.SetPropertyBlock(tint);if(duplex)tint.SetColor(BaseColor,Color.white);
                 bullet.trail.SetPropertyBlock(tint);
@@ -152,6 +153,7 @@ namespace DeadlyJenga.Presentation
                 {
                     if(sheriff)SheriffFlash(start,delta.normalized,shotgun);
                     else Burst(start,delta.normalized,color,shotgun?12:7,false,duplex);
+                    if (kind==EquipmentKind.StockPistol) PinkMuzzle(start,delta.normalized);
                 }
                 bullet.trail.widthCurve=sheriff?SheriffTaper:DefaultTaper;
                 bullet.trail.widthMultiplier=sheriff?(shotgun?.083f:.115f):needle?.058f:shotgun?.12f:.17f;
@@ -202,6 +204,44 @@ namespace DeadlyJenga.Presentation
                 },1);
             }
         }
+        void PinkMuzzle(Vector3 origin, Vector3 direction)
+        {
+            if (!sparks) return;
+            for (int i=0; i<4; i++)
+            {
+                sparks.Emit(new ParticleSystem.EmitParams
+                {
+                    position=origin+direction*(.018f*i),
+                    velocity=direction*(1.3f+i*.28f),
+                    startColor=Color.Lerp(StockPistolPink,Color.white,.18f),
+                    startSize=.12f-i*.019f,
+                    startLifetime=.046f+i*.005f
+                },1);
+            }
+        }
+
+        void PinkCandyChips(CandyWeaponImpacts.SurfaceContact surface, Vector3 incoming)
+        {
+            if (!sparks || !surface.anchor) return;
+            if (surface.layer!=Layers.Block)
+            {
+                var block=surface.anchor.GetComponentInParent<IClimbable>()?.Body;
+                if (!block || block.gameObject.layer!=Layers.Block) return;
+            }
+            for (int i=0; i<5; i++)
+            {
+                var scatter=Quaternion.Euler(i*63+18,i*139,i*59)*Vector3.right;
+                sparks.Emit(new ParticleSystem.EmitParams
+                {
+                    position=surface.Position,
+                    velocity=(scatter-incoming*.65f+Vector3.up*.32f).normalized*(.85f+i*.21f),
+                    startColor=Color.Lerp(StockPistolPink,Color.white,.22f),
+                    startSize=.017f+i*.003f,
+                    startLifetime=.21f+i*.015f
+                },1);
+            }
+        }
+
         static bool Finite(Vector3 p)=>!float.IsNaN(p.sqrMagnitude)&&!float.IsInfinity(p.sqrMagnitude);
         Bullet Create()
         {
@@ -229,6 +269,8 @@ namespace DeadlyJenga.Presentation
                         Burst(end,(end-bullet.start).normalized,bullet.color,bullet.shotgun?4:10,true,duplex);
                         if(bullet.kind==EquipmentKind.SheriffHammer)CandyChipBurst(bullet.surface,end);
                         if(!impactView)impactView=GetComponent<CandyWeaponImpacts>();
+                        if (bullet.kind==EquipmentKind.StockPistol)
+                            PinkCandyChips(bullet.surface,(end-bullet.start).normalized);
                         if(impactView)impactView.Surface(bullet.surface,bullet.kind,(duplex||bullet.kind==EquipmentKind.CompactSidearm)?bullet.color:(Color?)null);
                     }
                     ReleaseAt(i);continue;

@@ -133,6 +133,7 @@ namespace DeadlyJenga.Presentation
             if(kind==EquipmentKind.Blaster||kind==EquipmentKind.PoweredArmor)return new Color(.1f,.85f,1);
             if(kind==EquipmentKind.GrenadeLauncher)return new Color(.54f,.28f,1);
             if(kind==EquipmentKind.DualUzi)return new Color(.3f,1,.035f);
+            if(kind==EquipmentKind.StockPistol)return new Color(1,.055f,.49f);
             if(kind==EquipmentKind.WristLaser||kind==EquipmentKind.LaserAxe)return new Color(1,.24f,.025f);
             return new Color(1,.57f,.18f);
         }
@@ -159,7 +160,7 @@ namespace DeadlyJenga.Presentation
                     action.kind==EquipmentKind.LaserAxe||action.kind==EquipmentKind.Chainsaw)
                     Muzzle(action);
             }
-            else if(action.action==EquipmentAction.Impact)
+            else if(action.action==EquipmentAction.Impact&&action.kind!=EquipmentKind.StockPistol)
                 Surface(action.position,Vector3.zero,action.kind,SidearmOwnerColor(MatchRuntime.Current,action));
         }
 

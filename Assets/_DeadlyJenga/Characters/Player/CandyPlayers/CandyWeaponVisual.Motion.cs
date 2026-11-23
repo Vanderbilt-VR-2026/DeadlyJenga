@@ -290,7 +290,7 @@ namespace DeadlyJenga.CandyPlayers
                 EquipmentKind.ChainGun => new Vector3(.23f, -.31f, .12f),
                 EquipmentKind.RocketLauncher => new Vector3(0, -.038f, .14f),
                 EquipmentKind.CompactSidearm => new Vector3(0, -.215f, -.067f),
-                EquipmentKind.StockPistol => new Vector3(0, -.044f, .23f),
+                EquipmentKind.StockPistol => StockPistolMagazineGrip,
                 EquipmentKind.Chainsaw => new Vector3(0, .23f, .20f),
                 EquipmentKind.DualUzi => new Vector3(0, -.16f, 0),
                 EquipmentKind.WristLaser or EquipmentKind.LaserAxe => Vector3.zero,
@@ -491,6 +491,9 @@ namespace DeadlyJenga.CandyPlayers
             weapon.gameObject.SetActive(visible);
         }
 
+        static Vector3 StockPistolMagazineGrip => LoadCompactStockPistol()
+            ? new Vector3(0, -.05f, .146f) : new Vector3(0, -.044f, .23f);
+
         void PresentFeed(Transform assembly, EquipmentState state, bool left, bool secondary)
         {
             if (!assembly) return;
@@ -514,6 +517,7 @@ namespace DeadlyJenga.CandyPlayers
                 EquipmentKind.ChainGun => new Vector3(.28f, -.19f, 0),
                 EquipmentKind.NeedleDrill => new Vector3(0, -.09f, -.24f),
                 EquipmentKind.Chainsaw => Vector3.up * .23f,
+                EquipmentKind.StockPistol when LoadCompactStockPistol() => Vector3.down * .20f,
                 _ => Vector3.down * .24f
             };
             bool cylinder = kind == EquipmentKind.SheriffHammer || kind == EquipmentKind.GrenadeLauncher;
@@ -551,6 +555,13 @@ namespace DeadlyJenga.CandyPlayers
                 assembly.localRotation = oldFeed
                     ? Quaternion.Euler(-32 * eject, 0, side * 16 * eject)
                     : Quaternion.Euler(14 * (1 - insert), side * 17 * (1 - insert), 0);
+                var grip = kind switch
+                {
+                    EquipmentKind.CompactSidearm => new Vector3(0, -.215f, -.067f),
+                    EquipmentKind.StockPistol => StockPistolMagazineGrip,
+                    _ => Vector3.zero
+                };
+                assembly.localPosition += grip - assembly.localRotation * grip;
             }
 
             PresentRounds(assembly, state, secondary, cylinder, reloading, phase);
@@ -633,9 +644,13 @@ namespace DeadlyJenga.CandyPlayers
 
         void PresentRounds(Transform assembly, EquipmentState state, bool secondary, bool cylinder, bool reloading, float phase)
         {
+            bool shortMagazine = kind == EquipmentKind.CompactSidearm ||
+                kind == EquipmentKind.StockPistol && LoadCompactStockPistol();
             int count = kind switch
             {
                 EquipmentKind.SheriffHammer or EquipmentKind.GrenadeLauncher or EquipmentKind.ChainGun => 6,
+                EquipmentKind.CompactSidearm => 1,
+                EquipmentKind.StockPistol when shortMagazine => 1,
                 EquipmentKind.StockPistol or EquipmentKind.DualUzi or EquipmentKind.NeedleDrill => 5,
                 EquipmentKind.Chainsaw => 4,
                 _ => 0
@@ -700,13 +715,16 @@ namespace DeadlyJenga.CandyPlayers
                 item.localScale = spentCase ? new Vector3(1,1,.65f) : Vector3.one;
                 item.gameObject.SetActive(cylinder
                     ? (loading || spentCase || loaded && (!reloading || extract < 1))
-                    : (reloading && phase >= .48f || loaded));
+                    : shortMagazine ? reloading && phase >= .48f && phase < .9f
+                    : reloading && phase >= .48f || loaded);
                 float angle = Mathf.PI / 2 + i * Mathf.PI / 3;
                 var seat = kind switch
                 {
                     EquipmentKind.SheriffHammer => new Vector3(Mathf.Cos(angle)*.048f,.072f+Mathf.Sin(angle)*.048f,.035f),
                     EquipmentKind.GrenadeLauncher => new Vector3(Mathf.Cos(angle)*GrenadeChamberRadius,GrenadeDrumHeight+Mathf.Sin(angle)*GrenadeChamberRadius,.018f+GrenadeDrumOffset),
                     EquipmentKind.ChainGun => new Vector3(.165f+i*.023f,ChainGunBarrelHeight+.105f,.18f),
+                    EquipmentKind.CompactSidearm => new Vector3(0,-.139f,-.077f),
+                    EquipmentKind.StockPistol when shortMagazine => new Vector3(0,.05f,.127f),
                     EquipmentKind.StockPistol => new Vector3(.040f,-.017f+i*.017f,.209f),
                     EquipmentKind.DualUzi => new Vector3(.038f,-.204f+i*.020f,-.012f),
                     EquipmentKind.Chainsaw => new Vector3(.025f,.221f,.095f+i*.064f),
