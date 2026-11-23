@@ -43,6 +43,7 @@ namespace DeadlyJenga.CastlePrototype
             AddMap(list,"koth","Crown Summit","hill",12,scene);
             AddMap(list,"tickets","Last Stand Citadel","teamtickets",12,scene);
             AddMap(list,"buildup","Beacon Scaffold Ascent","demo",10,scene);
+            AddMap(list,"gingerbread-kingdom","Gingerbread Kingdom","demo",12,scene,true);
             AddMap(list,"christmas-town","Christmas Candy Town","ctf",16,scene,true);
             AddMap(list,"powerup-test","Powerup Test Island","demo",1,scene);
             AddMap(list,"cantina","Amber Cantina","demo",1,scene,true);
