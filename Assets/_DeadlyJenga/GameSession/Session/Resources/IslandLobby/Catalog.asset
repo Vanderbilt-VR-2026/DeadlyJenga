@@ -224,6 +224,14 @@ MonoBehaviour:
     recommendedMode: demo
     walkableIsland: 1
     supportedModes: []
+  - id: tidal-circuit
+    title: Tidal Circuit
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 100000, guid: d53e8982ad154d9b86dd18112628aa06, type: 3}
+    recommendedPlayers: 12
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
   - id: breakwater-village
     title: Breakwater Village
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity

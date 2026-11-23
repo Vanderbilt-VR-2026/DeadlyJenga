@@ -77,11 +77,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
         }
 
         // Runs a real host and guest on the same LAN adapter, with isolated logs per invocation.
-        public static void RunNearbyPairBatch()
+        public static void RunNearbyPairBatch() => RunPair("NearbyPair", "--dj-nearby-lobby");
+        public static void RunTidalCircuitPairBatch() => RunPair("TidalCircuitPair", "--dj-tidal-circuit");
+
+        static void RunPair(string label, string flag)
         {
             if (!UnityEngine.Application.isBatchMode)
                 throw new InvalidOperationException("Use a dedicated batch editor for this check.");
-            string output = Path.GetFullPath(Path.Combine("Logs", "Validation", "NearbyPair-" + Guid.NewGuid().ToString("N")));
+            string output = Path.GetFullPath(Path.Combine("Logs", "Validation", label + "-" + Guid.NewGuid().ToString("N")));
             Directory.CreateDirectory(output);
             string report = Path.Combine(output, "pair.txt");
             string exe = Path.GetFullPath(Path.Combine("Builds", "IntegrationSweep", "DeadlyJenga.exe"));
@@ -97,7 +100,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 {
                     string log = Path.Combine(output, role + "-player.log");
                     var info = new System.Diagnostics.ProcessStartInfo(exe,
-                        $"-batchmode -force-d3d11 -screen-width 640 -screen-height 360 -logFile \"{log}\" --dj-smoke={role} \"--dj-smoke-dir={output}\" --dj-nearby-lobby")
+                        $"-batchmode -force-d3d11 -screen-width 640 -screen-height 360 -logFile \"{log}\" --dj-smoke={role} \"--dj-smoke-dir={output}\" {flag}")
                     {
                         UseShellExecute = false, CreateNoWindow = true,
                         WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
