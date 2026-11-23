@@ -373,8 +373,10 @@ namespace DeadlyJenga.CandyPlayers
                 Color tint;
                 switch(part.sharedMaterial.name)
                 {
+                    case "Foundry "+nameof(Finish.SidearmGlossBase):
                     case "Foundry "+nameof(Finish.CosmeticBase): tint=ownerColor;break;
                     case "Foundry "+nameof(Finish.CosmeticDark): tint=dark;break;
+                    case "Foundry "+nameof(Finish.SidearmGlossLight):
                     case "Foundry "+nameof(Finish.CosmeticLight):
                     case "Foundry "+nameof(Finish.CosmeticCandy):
                     case "Foundry "+nameof(Finish.CosmeticCandyEdge): tint=light;break;

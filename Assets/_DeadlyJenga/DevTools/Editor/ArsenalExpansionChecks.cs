@@ -145,7 +145,7 @@ namespace DeadlyJenga.DevTools.Editor
             const EquipmentKind pistol=EquipmentKind.CompactSidearm;
             Check(runtime.GiveEquipment(pistol),"Compact sidearm equips under its own weapon identity");
             yield return new WaitForSeconds(.26f);
-            CheckPalette(player,pistol,"CosmeticLight");
+            CheckPalette(player,pistol,"SidearmGlossLight");
             var rig=player.GetComponent<CandyPlayerAvatar>().Rig;
             var previous=rig.BaseAppearanceColor;
             try
@@ -153,7 +153,7 @@ namespace DeadlyJenga.DevTools.Editor
                 rig.SetTint(new Color(.16f,.63f,.92f));
                 yield return null;
                 yield return null;
-                CheckPalette(player,pistol,"CosmeticLight");
+                CheckPalette(player,pistol,"SidearmGlossLight");
             }
             finally
             {
@@ -190,7 +190,7 @@ namespace DeadlyJenga.DevTools.Editor
                 part.GetPropertyBlock(block);
                 return block.GetColor("_BaseColor");
             }
-            Color light=Read(lightFinish),dark=Read("CosmeticDark"),normal=Read("CosmeticBase");
+            Color light=Read(lightFinish),dark=Read("CosmeticDark"),normal=Read(kind==EquipmentKind.CompactSidearm?"SidearmGlossBase":"CosmeticBase");
             var expected=player.GetComponent<CandyPlayerAvatar>().Rig.BaseAppearanceColor;
             var shadeType=typeof(CandyWeaponVisual).Assembly.GetType("DeadlyJenga.CandyPlayers.CandyCosmeticShade");
             var palette=shadeType.GetMethod("PlayerShade");
