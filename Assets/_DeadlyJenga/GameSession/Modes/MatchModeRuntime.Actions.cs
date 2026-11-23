@@ -39,7 +39,9 @@ namespace DeadlyJenga.Modes
             }
             p.nextPunch=Time.time+(bash?Mathf.Max(profile.cooldown,rules.punchCooldown):rules.punchCooldown);direction.Normalize();
             AnnounceMysteryStrike(id);
-            if(held.roleIssued&&held.drawn&&!bash)AnnounceEquipment(id,held,EquipmentAction.Shot,origin);
+            bool swordSwing=held.roleIssued&&held.drawn&&!bash&&held.kind==EquipmentKind.MurderSword;
+            if(held.roleIssued&&held.drawn&&!bash&&!swordSwing)
+                AnnounceEquipment(id,held,EquipmentAction.Shot,origin);
             var enemy=source.gameObject.GetComponent<IEnemyActor>();
             IModeActor target=null;float nearest=bash?profile.range:enemy?.IsEnemy==true&&enemy.ArchetypeId=="longhand"?3.4f:2.2f;
             foreach(var pair in actors)
@@ -57,6 +59,24 @@ namespace DeadlyJenga.Modes
             {
                 var endpoints=target==null?Array.Empty<Vector3>():new[]{target.transform.position+Vector3.up*.6f};
                 AnnounceEquipment(id,held,EquipmentAction.Bash,origin,endpoints);
+            }
+            if(swordSwing)
+            {
+                if(target!=null)
+                {
+                    var torso=target.transform.position+Vector3.up*.6f;
+                    var point=torso-(torso-origin).normalized*.20f;
+                    AnnounceEquipment(id,held,EquipmentAction.Shot,origin,new[]{point});
+                }
+                else
+                {
+                    // Resolve the swing's block effect without applying a melee hit.
+                    const float bladeReach=1.4f;
+                    int surfaces=(1<<Layers.Block)|(1<<Layers.Surface)|1;
+                    var point=Physics.SphereCast(origin,.16f,direction,out var contact,bladeReach,surfaces,QueryTriggerInteraction.Ignore)
+                        ? contact.point : origin+direction*bladeReach;
+                    AnnounceEquipment(id,held,EquipmentAction.Shot,origin,new[]{point});
+                }
             }
             if(target==null)return true;
             string targetId=actorIds[target.gameObject];

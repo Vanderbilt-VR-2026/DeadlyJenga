@@ -25,7 +25,12 @@ namespace DeadlyJenga.Presentation
         readonly Strike[] strikes = new Strike[16];
         readonly CandyEquipmentActionCursor cursor = new CandyEquipmentActionCursor();
         IMatchRuntime runtime;
-        Material ribbon;
+        Material ribbon, sparkMaterial, chipMaterial;
+        ParticleSystem swordSparks, candyChips;
+        Mesh chipMesh;
+        static readonly Color Garnet=new Color(.95f,.08f,.24f);
+        static readonly Color PlayerPulse=new Color(.50f,.79f,1);
+        static readonly Color BlockSpark=new Color(1,.58f,.19f);
         int next;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -41,6 +46,60 @@ namespace DeadlyJenga.Presentation
             if (!shader) { enabled = false; return; }
             ribbon = new Material(shader);
             if (ribbon.HasProperty("_Ribbon")) ribbon.SetFloat("_Ribbon", 1);
+            sparkMaterial=new Material(shader);
+            swordSparks=CreateSwordEmitter("Sword contact sparks",sparkMaterial,96,0);
+            var sparkRenderer=swordSparks.GetComponent<ParticleSystemRenderer>();
+            sparkRenderer.renderMode=ParticleSystemRenderMode.Stretch;
+            sparkRenderer.lengthScale=2.2f;
+            sparkRenderer.velocityScale=.085f;
+
+            var chipShader=Shader.Find("Universal Render Pipeline/Particles/Lit");
+            if(!chipShader)return;
+            chipMaterial=new Material(chipShader);
+            candyChips=CreateSwordEmitter("Sword candy chips",chipMaterial,80,.7f);
+            var chipRenderer=candyChips.GetComponent<ParticleSystemRenderer>();
+            chipRenderer.renderMode=ParticleSystemRenderMode.Mesh;
+            chipRenderer.mesh=chipMesh=CreateChipMesh();
+        }
+
+        ParticleSystem CreateSwordEmitter(string name,Material material,int capacity,float gravity)
+        {
+            var root=new GameObject(name);
+            root.transform.SetParent(transform,false);
+            var emitter=root.AddComponent<ParticleSystem>();
+            emitter.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main=emitter.main;
+            main.loop=false;
+            main.playOnAwake=false;
+            main.maxParticles=capacity;
+            main.gravityModifier=gravity;
+            main.simulationSpace=ParticleSystemSimulationSpace.World;
+            var emission=emitter.emission;
+            emission.enabled=false;
+            var shape=emitter.shape;
+            shape.enabled=false;
+            var shrink=emitter.sizeOverLifetime;
+            shrink.enabled=true;
+            shrink.size=new ParticleSystem.MinMaxCurve(1,AnimationCurve.Linear(0,1,1,0));
+            var renderer=root.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial=material;
+            renderer.shadowCastingMode=ShadowCastingMode.Off;
+            renderer.receiveShadows=false;
+            return emitter;
+        }
+
+        static Mesh CreateChipMesh()
+        {
+            var points=new[]{new Vector3(-.48f,-.25f,-.30f),new Vector3(.52f,-.20f,-.22f),
+                new Vector3(.13f,-.17f,.43f),new Vector3(-.10f,.62f,.04f)};
+            var corners=new[]{0,1,2,0,3,1,1,3,2,2,3,0};
+            var vertices=new Vector3[corners.Length];
+            var triangles=new int[corners.Length];
+            for(int i=0;i<corners.Length;i++){vertices[i]=points[corners[i]];triangles[i]=i;}
+            var mesh=new Mesh{name="Pink candy chip facets",vertices=vertices,triangles=triangles};
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         void Update()
@@ -67,6 +126,7 @@ namespace DeadlyJenga.Presentation
         {
             var spec = EquipmentSpecifications.Get(shot.kind);
             bool bash = shot.action == EquipmentAction.Bash;
+            bool sword = !bash && shot.kind == EquipmentKind.MurderSword;
             if (!bash && (shot.action != EquipmentAction.Shot || !spec.melee || shot.shotgun)) return;
             var camera = Services.Session?.ActiveCamera;
             if (!camera || (camera.transform.position - shot.position).sqrMagnitude > 45 * 45) return;
@@ -74,8 +134,23 @@ namespace DeadlyJenga.Presentation
             bool hasEndpoint = shot.endpoints != null && shot.endpoints.Length > 0;
             var travel = hasEndpoint ? shot.endpoints[0] - shot.position : Vector3.zero;
             bool hit = hasEndpoint && (bash || travel.magnitude < spec.range - .015f);
-            var forward = (runtime.FindActor(shot.actor)?.ViewPose.rotation ?? Quaternion.identity) * Vector3.forward;
+            var owner=runtime.FindActor(shot.actor);
+            var forward=(owner?.ViewPose.rotation??Quaternion.identity)*Vector3.forward;
+            if(sword)hit=hasEndpoint && travel.sqrMagnitude>.0001f && travel.magnitude<1.385f;
             var axis = travel.sqrMagnitude > .0001f ? travel.normalized : forward;
+            bool avatarContact=false;
+            CandyWeaponImpacts.SurfaceContact surface=default;
+            if(sword && hasEndpoint && travel.sqrMagnitude>.0001f)
+            {
+                var state=(runtime as IEquipmentRuntime)?.EquipmentFor(shot.actor);
+                bool embedded=state?.embedRemaining>0 && !string.IsNullOrEmpty(state.embeddedVictim)
+                    && (state.embeddedPoint-shot.endpoints[0]).sqrMagnitude<.12f*.12f;
+                avatarContact=embedded || hit && Physics.CheckSphere(shot.endpoints[0],.12f,
+                    1<<Layers.Survivor,QueryTriggerInteraction.Collide);
+                if(!avatarContact && hit)
+                    CandyWeaponImpacts.TryContact(shot.endpoints[0],axis,out surface,.16f);
+                hit=avatarContact || surface.anchor;
+            }
             var side = Vector3.Cross(Vector3.up, axis);
             if (side.sqrMagnitude < .01f) side = Vector3.Cross(Vector3.forward, axis);
             side.Normalize();
@@ -84,7 +159,7 @@ namespace DeadlyJenga.Presentation
             var profile = shot.kind switch
             {
                 EquipmentKind.Dagger => (Shape.Thrust, new Color(1f, .91f, .55f), .18f, .038f, .32f),
-                EquipmentKind.MurderSword => (Shape.Slash, new Color(1f, .19f, .32f), .24f, .074f, .59f),
+                EquipmentKind.MurderSword => (Shape.Slash, Garnet, .22f, .083f, .66f),
                 EquipmentKind.BoxingGlove => (Shape.Punch, new Color(1f, .76f, .24f), .24f, .11f, .51f),
                 EquipmentKind.BarbedBat => (Shape.Slash, new Color(1f, .48f, .13f), .26f, .11f, .64f),
                 EquipmentKind.SawStaff => (Shape.Teeth, new Color(1f, .84f, .35f), .34f, .045f, .44f),
@@ -95,7 +170,8 @@ namespace DeadlyJenga.Presentation
             };
             if (bash) profile = (Shape.Punch, new Color(1, .82f, .44f), .22f, .075f, .29f);
             var point = hit ? shot.endpoints[0] : shot.position + axis * (bash ? .65f : spec.range * .58f);
-            int lanes = profile.Item1 == Shape.Claws ? 3 : hit ? 2 : 1;
+            if(sword && hit)SwordContact(point,axis,side,up,avatarContact,surface);
+            int lanes = profile.Item1 == Shape.Claws ? 3 : hit && !sword ? 2 : 1;
             for (int lane = 0; lane < lanes; lane++)
             {
                 var line = strikes[next].line;
@@ -118,6 +194,41 @@ namespace DeadlyJenga.Presentation
                     axis = axis, side = side, up = up, point = point, lane = lane
                 };
                 next = (next + 1) % strikes.Length;
+            }
+        }
+
+        void SwordContact(Vector3 point,Vector3 axis,Vector3 side,Vector3 up,
+            bool avatar,CandyWeaponImpacts.SurfaceContact surface)
+        {
+            if(!swordSparks)return;
+            if(swordSparks.isStopped)swordSparks.Play();
+            var color=avatar?PlayerPulse:BlockSpark;
+            for(int i=0;i<9;i++)
+            {
+                float angle=i*2.39996f;
+                var direction=side*Mathf.Cos(angle)+up*Mathf.Sin(angle)-axis*.42f;
+                swordSparks.Emit(new ParticleSystem.EmitParams
+                {
+                    position=point-axis*.024f,velocity=direction*(1.7f+i*.29f),
+                    startColor=i%3==0?Color.Lerp(color,Color.white,.6f):color,
+                    startSize=i==0?.18f:.072f,startLifetime=.095f+i*.007f
+                },1);
+            }
+
+            if(avatar || !candyChips || !surface.anchor || surface.layer!=Layers.Block)return;
+            if(candyChips.isStopped)candyChips.Play();
+            var frame=surface.anchor.localToWorldMatrix*surface.localFrame;
+            var rotation=Quaternion.LookRotation((Vector3)frame.GetColumn(2));
+            for(int i=0;i<8;i++)
+            {
+                float angle=i*2.39996f;
+                var velocity=rotation*new Vector3(Mathf.Cos(angle),Mathf.Sin(angle),.74f)*(1.45f+i*.22f);
+                candyChips.Emit(new ParticleSystem.EmitParams
+                {
+                    position=surface.Position,velocity=velocity,rotation=i*53,
+                    startColor=i%3==0?new Color(.96f,.57f,.69f):new Color(.80f,.24f,.40f),
+                    startSize=.045f+i%3*.013f,startLifetime=.22f+i*.018f
+                },1);
             }
         }
 
@@ -156,6 +267,9 @@ namespace DeadlyJenga.Presentation
         void OnDestroy()
         {
             if (ribbon) Destroy(ribbon);
+            if (sparkMaterial) Destroy(sparkMaterial);
+            if (chipMaterial) Destroy(chipMaterial);
+            if (chipMesh) Destroy(chipMesh);
         }
     }
 }
