@@ -7,7 +7,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         public const string Preset = "needlefrost-keep";
         // Courses describe the cut of the member, independent of its position in the stack.
-        public enum Cut { Pier, Slab, Column, Lintel, Step, Vault, Roof, Blade, LeftBlade, RightBlade, Lantern, Window }
+        public enum Cut { Pier, Slab, Column, Lintel, Step, Vault, Roof, Blade, LeftBlade, RightBlade, Lantern, Window, Portal }
         readonly List<CastlePlacement> parts = new List<CastlePlacement>(512);
         public static readonly Vector3[] Landings = {
             new Vector3(-16, 3, -15), new Vector3(16, 3, -15), new Vector3(-8, 6, 1),
@@ -17,7 +17,7 @@ namespace DeadlyJenga.CastlePrototype
         void Stone(float x, float bottom, float z, float w, float h, float d, Cut cut, float yaw = 0)
         {
             var section = cut == Cut.Lantern || cut == Cut.Window ? CastleSection.Gold :
-                cut >= Cut.Roof ? CastleSection.Aqua : cut == Cut.Slab || cut == Cut.Step ? CastleSection.Keep : CastleSection.Wall;
+                cut >= Cut.Roof && cut != Cut.Portal ? CastleSection.Aqua : cut == Cut.Slab || cut == Cut.Step ? CastleSection.Keep : CastleSection.Wall;
             parts.Add(new CastlePlacement(new Vector3(x, bottom + h / 2, z), Quaternion.Euler(0,yaw,0),
                 section, (int)cut, new Vector3(w,h,d)));
         }
@@ -41,12 +41,14 @@ namespace DeadlyJenga.CastlePrototype
             // The hall spans the channel, with both ends of its floor bearing on the inner courts.
             keep.Crossing(0, 9, 15, 8.8f, 7);
             keep.Gallery(0,9.15f,15,9,7,7);
+            // Carved frontispiece rests on the channel vault and stops under the first balcony.
+            keep.Stone(0,9.15f,11.85f,6.25f,6,.65f,Cut.Portal);
             keep.Gallery(0,16.15f,15,9,7,5);
             keep.Stone(0,21.15f,15,5,4,6,Cut.Roof);
-            keep.Stone(0,25.15f,15,2.2f,11,2,Cut.Blade);
+            keep.Stone(0,25.15f,15,2.95f,11,2.7f,Cut.Blade);
             for (int side = -1; side <= 1; side += 2)
             {
-                keep.Stone(side*3.65f,21.15f,15,1.75f,11,2.4f,side < 0 ? Cut.LeftBlade : Cut.RightBlade);
+                keep.Stone(side*3.65f,21.15f,15,2.35f,10,2.5f,side < 0 ? Cut.LeftBlade : Cut.RightBlade);
                 float z = side < 0 ? 17 : 13;
                 keep.Tower(side*16,z,9,side < 0 ? 6 : 7);
                 keep.Stone(side*8.55f, (side < 0 ? 15 : 16)-1, z, 8.05f, 1, 2.6f,Cut.Lintel);
@@ -66,9 +68,9 @@ namespace DeadlyJenga.CastlePrototype
             // Faceted jambs, warm sconces and paired lancets frame the tall entry.
             for(int side=-1;side<=1;side+=2)
             {
-                keep.Lamp(side*3.1f,9.15f,12);
-                keep.Stone(side*2.7f,9.15f,12.4f,.65f,4.7f,.7f,Cut.Column);
-                keep.Stone(side*2.7f,13.85f,12.4f,.77f,1.25f,.85f,Cut.Blade);
+                keep.Lamp(side*2.8f,9.15f,13.25f);
+                keep.Stone(side*2.7f,9.15f,12.65f,.65f,4.7f,.7f,Cut.Column);
+                keep.Stone(side*2.7f,13.85f,12.65f,.77f,1.25f,.85f,Cut.Blade);
             }
             for(int i=-2;i<=2;i++)
                 keep.Stone(i*1.45f,16.15f,11.85f,.52f,2.25f,.45f,Cut.Window);
@@ -132,11 +134,12 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             float roof=bottom+story*2;
-            Stone(x,roof,z,7.4f,6,7.4f,Cut.Roof);
-            Stone(x,roof+6,z,1.5f,5.8f,1.5f,Cut.Blade);
+            // The four small pinnacles have separate bearing pads beyond the main roof.
+            Stone(x,roof,z,5.15f,7.4f,5.15f,Cut.Roof);
+            Stone(x,roof+7.4f,z,1.25f,3.7f,1.25f,Cut.Blade);
             for(int a=-1;a<=1;a+=2)
             for(int b=-1;b<=1;b+=2)
-                Stone(x+a*2.7f,roof,z+b*2.7f,.85f,3,.85f,Cut.Blade);
+                Stone(x+a*2.85f,roof,z+b*2.85f,.7f,3.4f,.7f,Cut.Blade);
         }
 
         void Lamp(float x,float y,float z)

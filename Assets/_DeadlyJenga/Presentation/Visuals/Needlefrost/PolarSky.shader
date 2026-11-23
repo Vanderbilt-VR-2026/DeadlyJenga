@@ -20,19 +20,19 @@ float noise(float2 p){float2 i=floor(p),f=frac(p); f=f*f*(3-2*f);
 
 half4 frag(Vary i):SV_Target {
  float3 d=normalize(i.local);float a=atan2(d.x,d.z), h=d.y;
- float3 sky=lerp(float3(.14,.30,.62),float3(.012,.033,.18),saturate(h*2+.10));
+ float3 sky=lerp(float3(.037,.105,.32),float3(.003,.009,.085),saturate(h*2+.10));
  float2 q=d.xz*4;
- float ribbon=.36+.12*sin(a*3+.4)+.07*sin(a*7.3);
+ float ribbon=.19+.075*sin(a*3+.4)+.07*sin(a*7.3);
  float aur=exp(-abs(h-ribbon)*17)*(.25+.75*noise(float2(a*47,h*1.7)));
  sky+=aur*float3(.006,.52,.39);
  float stars=step(.994,hash(floor(float2(a,h)*510)))*smoothstep(.12,.4,h);
  sky+=stars*.45;
- float moon=distance(d,normalize(float3(.49,.34,1)));
+ float moon=distance(d,normalize(float3(.42,.155,1)));
  sky+=float3(.75,.88,1)*(1-smoothstep(.018,.02,moon))*(.78+.22*noise(d.xy*360));
  for(int j=0;j<2;j++){
- float2 t=q*(2.5+j)+j*13;float ridge=.015+.13*noise(t)+.08*noise(t*3)+.027*noise(t*9)-j*.065;
- float snow=saturate((h-ridge+.073)*14+.55*(noise(t*24+float2(0,h*25))-.5));
- sky=lerp(sky,lerp(float3(.032,.089,.23),float3(.46,.66,.88),snow)*(1-j*.12),1-smoothstep(ridge-.002,ridge+.002,h)); }
+ float2 t=q*(2.5+j)+j*13;float ridge=.011+.080*noise(t)+.039*noise(t*3)+.023*noise(t*9)+.009*noise(t*21)-j*.041;
+ float snow=saturate((h-ridge+.025)*18+1.25*(noise(float2(a*97+h*15,h*81))-.28));
+ sky=lerp(sky,lerp(float3(.032,.089,.23),float3(.23,.37,.61),snow)*(1-j*.12),1-smoothstep(ridge-.002,ridge+.002,h)); }
  return half4(sky,1); }
 ENDHLSL
 } } }

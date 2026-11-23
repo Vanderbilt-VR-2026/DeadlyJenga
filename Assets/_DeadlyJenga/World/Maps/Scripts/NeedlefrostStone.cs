@@ -16,9 +16,9 @@ namespace DeadlyJenga.CastlePrototype
             foreach (Transform old in block.visualRoot) old.gameObject.SetActive(false);
             var visual = new GameObject(cut.ToString());
             visual.transform.SetParent(block.visualRoot,false);
-            if(cut==Cut.Vault)
+            if(cut==Cut.Vault || cut==Cut.Portal)
             {
-                Arch(block,visual.transform);
+                Arch(block,visual.transform,cut==Cut.Portal);
                 return;
             }
             if (!meshes.TryGetValue(cut,out var mesh) || !mesh) meshes[cut]=mesh=Carve(cut);
@@ -49,7 +49,9 @@ namespace DeadlyJenga.CastlePrototype
 
         static readonly Mesh[] voussoirs=new Mesh[10];
 
-        static void Arch(CastleBlock block, Transform parent)
+        static readonly Mesh[] gateStones=new Mesh[10];
+
+        static void Arch(CastleBlock block, Transform parent,bool gate)
         {
             var top=block.GetComponent<BoxCollider>();
             top.size=new Vector3(1,1f/12,1);
@@ -58,24 +60,30 @@ namespace DeadlyJenga.CastlePrototype
             // toward the centre. Convex stone segments leave the opening clear to physics.
             float[] xs={-.5f,-.455f,-.452f,-.34f,-.19f,0,.19f,.34f,.452f,.455f,.5f};
             float[] ys={.417f,.417f,-.5f,-.16f,.075f,.17f,.075f,-.16f,-.5f,.417f,.417f};
+            if(gate)
+            {
+                xs=new[]{-.5f,-.42f,-.35f,-.30f,-.15f,0,.15f,.30f,.35f,.42f,.5f};
+                ys=new[]{-.5f,-.5f,-.5f,.015f,.23f,.41f,.23f,.015f,-.5f,-.5f,-.5f};
+            }
+            var stones=gate?gateStones:voussoirs;
             for(int k=0;k<10;k++)
             {
-                if(!voussoirs[k])
+                if(!stones[k])
                 {
                     float a=xs[k],b=xs[k+1],c=ys[k],d=ys[k+1];
                     var m=new Mesh{name="Vault stone "+k};
                     m.vertices=new[]{new Vector3(a,c,-.5f),new Vector3(b,d,-.5f),new Vector3(b,.5f,-.5f),new Vector3(a,.5f,-.5f),
                         new Vector3(a,c,.5f),new Vector3(b,d,.5f),new Vector3(b,.5f,.5f),new Vector3(a,.5f,.5f)};
                     m.triangles=new[]{0,2,1,0,3,2,4,5,6,4,6,7,0,1,5,0,5,4,3,7,6,3,6,2,0,4,7,0,7,3,1,2,6,1,6,5};
-                    m.RecalculateNormals();voussoirs[k]=m;
+                    m.RecalculateNormals();stones[k]=m;
                 }
                 var stone=new GameObject("Arch segment");stone.transform.SetParent(parent,false);
                 stone.layer=Layers.Block;
-                stone.AddComponent<MeshFilter>().sharedMesh=voussoirs[k];
+                stone.AddComponent<MeshFilter>().sharedMesh=stones[k];
                 stone.AddComponent<MeshRenderer>().sharedMaterial=block.sectionMaterial;
-                if(k>0 && k<9)
+                if(gate || (k>0 && k<9))
                 {
-                    var collider=stone.AddComponent<MeshCollider>();collider.sharedMesh=voussoirs[k];collider.convex=true;
+                    var collider=stone.AddComponent<MeshCollider>();collider.sharedMesh=stones[k];collider.convex=true;
                 }
             }
         }

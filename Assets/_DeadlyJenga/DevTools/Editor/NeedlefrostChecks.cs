@@ -34,8 +34,8 @@ namespace DeadlyJenga.DevTools.Editor
             var session=Object.FindFirstObjectByType<CastlePlaySession>();
             var motor=session.Survivor();motor.Place(map.SafeSpawnPoint(),Quaternion.identity);
             yield return new WaitForSeconds(3);
-            var eye=new Vector3(2,19,-61);var target=new Vector3(0,14,3);
-            Capture(eye,target,32,"Needlefrost-Overview.png");
+            var eye=new Vector3(-6,22,-87);var target=new Vector3(0,14,4);
+            Capture(eye,target,29,"Needlefrost-Overview.png");
             Capture(new Vector3(-16,4.35f,-20),new Vector3(-10,8,3),67,"Needlefrost-Coast.png");
             Capture(new Vector3(12.8f,4.35f,-15),new Vector3(10,5,-9),70,"Needlefrost-Camp.png");
             Capture(new Vector3(.3f,7.55f,-3),new Vector3(0,12,16),67,"Needlefrost-Bridge.png");
@@ -51,7 +51,7 @@ namespace DeadlyJenga.DevTools.Editor
             for(int i=0;i<5;i++)
             {
                 yield return new WaitForSeconds(.15f);
-                Capture(eye,target,32,"Needlefrost-Fracture-"+i+".png");
+                Capture(eye,target,29,"Needlefrost-Fracture-"+i+".png");
             }
             float fall=deckY-deck.position.y;
             var bridge=map.Bodies[placements.FindIndex(p=>p.Position.x==0 && p.Position.z==-3)];
