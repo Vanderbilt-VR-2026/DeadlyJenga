@@ -72,24 +72,77 @@ namespace DeadlyJenga.Presentation
             r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
         }
         static Color Energy(EquipmentKind kind)=>kind==EquipmentKind.GrenadeLauncher?new Color(.54f,.28f,1):kind==EquipmentKind.DualUzi?new Color(.33f,1,.07f):kind==EquipmentKind.Chainsaw?new Color(.8f,.82f,1):new Color(1,.46f,.12f);
-        Transform TakeProjectile(EquipmentKind kind,Vector3 at)
+        Material rocketCandyMaterial, rocketPaperMaterial;
+        MaterialPropertyBlock rocketCandyTint;
+
+        void BuildRocketCandy(Transform root)
+        {
+            if(!rocketCandyMaterial)
+            {
+                var shader=Shader.Find("Universal Render Pipeline/Lit");
+                rocketCandyMaterial=new Material(shader){name="Rocket hard candy",enableInstancing=true};
+                rocketCandyMaterial.SetFloat("_Smoothness",.81f);
+                rocketPaperMaterial=new Material(shader){name="White lollipop paper",color=new Color(.92f,.90f,.87f)};
+            }
+            rocketCandyTint ??= new MaterialPropertyBlock();
+            const float scale=.66f;
+            var sphere=Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
+            ModelPiece(root,"Round candy projectile",sphere,rocketCandyMaterial,Vector3.forward*(.203f*scale),Vector3.one*(.352f*scale));
+            var cylinder=Resources.GetBuiltinResource<Mesh>("Cylinder.fbx");
+            var seam=ModelPiece(root,"Candy seam",cylinder,rocketCandyMaterial,Vector3.forward*(.203f*scale),new Vector3(.367f,.022f,.367f)*scale);
+            seam.localRotation=Quaternion.Euler(90,0,0);
+            var stick=ModelPiece(root,"Paper stick",cylinder,rocketPaperMaterial,Vector3.back*(.097f*scale),new Vector3(.105f,.160f,.105f)*scale);
+            stick.localRotation=Quaternion.Euler(90,0,0);
+            var exhaust=new GameObject("Lollipop stick-tip exhaust").transform;
+            exhaust.SetParent(root,false);
+            exhaust.localPosition=Vector3.back*(.257f*scale);
+            ModelPiece(exhaust,"Pulsing candy thrust",sphere,ordnanceHot,Vector3.back*.151f,new Vector3(.105f,.105f,.34f));
+        }
+
+        void TintRocketCandy(Transform root,int variant)
+        {
+            var color=RocketCandy.ColorFor(variant);
+            rocketCandyTint.SetColor("_BaseColor",color);
+            root.GetChild(0).GetComponent<MeshRenderer>().SetPropertyBlock(rocketCandyTint);
+            root.GetChild(1).GetComponent<MeshRenderer>().SetPropertyBlock(rocketCandyTint);
+            var exhaust=root.GetChild(3);
+            rocketCandyTint.SetColor("_BaseColor",Color.Lerp(color,Color.white,.24f));
+            rocketCandyTint.SetColor("_EmissionColor",color*3.3f);
+            exhaust.GetChild(0).GetComponent<MeshRenderer>().SetPropertyBlock(rocketCandyTint);
+            if(exhaust.TryGetComponent<TrailRenderer>(out var trail))
+            {
+                trail.startColor=color;
+                color.a=0;
+                trail.endColor=color;
+            }
+        }
+
+        Transform TakeProjectile(EquipmentKind kind,Vector3 at,int rocketCandyVariant=0)
         {
             if(modelPool.TryGetValue(kind,out var pool)&&pool.Count>0)
             {
-                pooled--;var item=pool.Pop();item.position=at;item.gameObject.SetActive(true);
-                var pooledTrail=item.GetComponent<TrailRenderer>();pooledTrail.emitting=true;pooledTrail.Clear();return item;
+                pooled--;var item=pool.Pop();item.position=at;
+                if(kind==EquipmentKind.RocketLauncher)TintRocketCandy(item,rocketCandyVariant);
+                item.gameObject.SetActive(true);var pooledTrail=item.GetComponentInChildren<TrailRenderer>(true);pooledTrail.emitting=true;pooledTrail.Clear();return item;
             }
             var root=new GameObject("Visual - "+kind+" projectile").transform;root.SetParent(transform,false);root.position=at;modelKind[root]=kind;
-            var casing=ModelPiece(root,"Projectile casing",ProjectileMesh(kind),ordnanceMetal,Vector3.zero,Vector3.one);
-            if(kind==EquipmentKind.Chainsaw&&EquipmentModelData.Parts.TryGetValue(kind,out var parts))
-                foreach(var part in parts)if(part.mesh.name.Contains("Serrated saw wheel"))
-                {casing.GetComponent<MeshFilter>().sharedMesh=part.mesh;casing.localRotation=Quaternion.Euler(0,0,90);break;}
+            if(kind==EquipmentKind.RocketLauncher)
+            {
+                BuildRocketCandy(root);
+            }
+            else
+            {
+                var casing=ModelPiece(root,"Projectile casing",ProjectileMesh(kind),ordnanceMetal,Vector3.zero,Vector3.one);
+                if(kind==EquipmentKind.Chainsaw&&EquipmentModelData.Parts.TryGetValue(kind,out var parts))
+                    foreach(var part in parts)if(part.mesh.name.Contains("Serrated saw wheel"))
+                    {casing.GetComponent<MeshFilter>().sharedMesh=part.mesh;casing.localRotation=Quaternion.Euler(0,0,90);break;}
+            }
             Color color=Energy(kind);var block=new MaterialPropertyBlock();block.SetColor("_BaseColor",color);block.SetColor("_EmissionColor",color*2.2f);
-            if(kind!=EquipmentKind.Chainsaw)
+            if(kind!=EquipmentKind.Chainsaw&&kind!=EquipmentKind.RocketLauncher)
             {
                 var orb=Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
-                var hot=ModelPiece(root,"Visible charge",orb,ordnanceHot,kind==EquipmentKind.RocketLauncher?Vector3.back*.38f:Vector3.zero,
-                    kind==EquipmentKind.RocketLauncher?new Vector3(.077f,.077f,.16f):kind==EquipmentKind.GrenadeLauncher?new Vector3(.066f,.066f,.066f):new Vector3(.047f,.047f,.25f));
+                var hot=ModelPiece(root,"Visible charge",orb,ordnanceHot,Vector3.zero,
+                    kind==EquipmentKind.GrenadeLauncher?new Vector3(.066f,.066f,.066f):new Vector3(.047f,.047f,.25f));
                 hot.GetComponent<MeshRenderer>().SetPropertyBlock(block);
                 if(kind==EquipmentKind.GrenadeLauncher)
                     for(int i=0;i<4;i++)
@@ -97,11 +150,19 @@ namespace DeadlyJenga.Presentation
                         var band=ModelPiece(root,"Charged grenade cell",orb,ordnanceHot,Quaternion.Euler(0,0,90*i)*Vector3.right*.106f,new Vector3(.029f,.029f,.071f));band.GetComponent<MeshRenderer>().SetPropertyBlock(block);
                     }
             }
-            var trail=root.gameObject.AddComponent<TrailRenderer>();trail.sharedMaterial=ordnanceRibbon;trail.time=kind==EquipmentKind.RocketLauncher?.41f:.24f;
+            var trailRoot=kind==EquipmentKind.RocketLauncher?root.GetChild(3):root;
+            var trail=trailRoot.gameObject.AddComponent<TrailRenderer>();trail.sharedMaterial=ordnanceRibbon;trail.time=kind==EquipmentKind.RocketLauncher?.41f:.24f;
             trail.widthMultiplier=kind==EquipmentKind.RocketLauncher?.34f:kind==EquipmentKind.GrenadeLauncher?.22f:.095f;
             trail.widthCurve=new AnimationCurve(new Keyframe(0,1),new Keyframe(.62f,.52f),new Keyframe(1,0));
             trail.minVertexDistance=.11f;trail.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;trail.receiveShadows=false;
-            trail.startColor=Color.white;trail.endColor=new Color(1,1,1,0);trail.SetPropertyBlock(block);trail.Clear();
+            if(kind==EquipmentKind.RocketLauncher)TintRocketCandy(root,rocketCandyVariant);
+            else
+            {
+                trail.startColor=Color.white;
+                trail.endColor=new Color(1,1,1,0);
+                trail.SetPropertyBlock(block);
+            }
+            trail.Clear();
             return root;
         }
         void ReturnProjectile(Transform model)
@@ -119,9 +180,7 @@ namespace DeadlyJenga.Presentation
         Mesh ProjectileMesh(EquipmentKind kind)
         {
             if(projectileMeshes.TryGetValue(kind,out var cached))return cached;
-            Vector2[] p=kind==EquipmentKind.RocketLauncher?
-                new[]{new Vector2(-.36f,0),new Vector2(-.36f,.103f),new Vector2(-.30f,.112f),new Vector2(-.26f,.082f),new Vector2(.18f,.082f),new Vector2(.24f,.072f),new Vector2(.42f,.018f),new Vector2(.44f,0)}:
-                kind==EquipmentKind.GrenadeLauncher?new[]{new Vector2(-.16f,0),new Vector2(-.16f,.082f),new Vector2(-.112f,.118f),new Vector2(-.075f,.12f),new Vector2(-.06f,.085f),new Vector2(.06f,.085f),new Vector2(.075f,.12f),new Vector2(.113f,.118f),new Vector2(.158f,.08f),new Vector2(.158f,0)}:
+            Vector2[] p=kind==EquipmentKind.GrenadeLauncher?new[]{new Vector2(-.16f,0),new Vector2(-.16f,.082f),new Vector2(-.112f,.118f),new Vector2(-.075f,.12f),new Vector2(-.06f,.085f),new Vector2(.06f,.085f),new Vector2(.075f,.12f),new Vector2(.113f,.118f),new Vector2(.158f,.08f),new Vector2(.158f,0)}:
                 kind==EquipmentKind.Chainsaw?new[]{new Vector2(-.025f,0),new Vector2(-.025f,.24f),new Vector2(.025f,.24f),new Vector2(.025f,0)}:
                 new[]{new Vector2(-.16f,0),new Vector2(-.13f,.024f),new Vector2(.055f,.042f),new Vector2(.20f,0)};
             var v=new List<Vector3>();var uv=new List<Vector2>();var idx=new List<int>();int sides=kind==EquipmentKind.DualUzi?6:20;
@@ -136,6 +195,10 @@ namespace DeadlyJenga.Presentation
         {
             foreach(var mesh in projectileMeshes.Values)if(mesh)Destroy(mesh);
             if(wheelFragmentMesh)Destroy(wheelFragmentMesh);
+            if(rocketCandyShardMaterial)Destroy(rocketCandyShardMaterial);
+            if(rocketCandyShardMesh)Destroy(rocketCandyShardMesh);
+            if(rocketCandyMaterial)Destroy(rocketCandyMaterial);
+            if(rocketPaperMaterial)Destroy(rocketPaperMaterial);
             if(ordnanceRibbon)Destroy(ordnanceRibbon);if(ordnanceMetal)Destroy(ordnanceMetal);if(ordnanceHot)Destroy(ordnanceHot);if(detailGlow)Destroy(detailGlow);if(ordnanceBurst)Destroy(ordnanceBurst);
         }
         sealed class Shell
@@ -173,7 +236,7 @@ namespace DeadlyJenga.Presentation
             var fire=new Color(1,.48f,.11f);
             return kind switch
             {
-                EquipmentKind.RocketLauncher => (fire,.58f,12),
+                EquipmentKind.RocketLauncher => (fire,1.12f,25),
                 EquipmentKind.GrenadeLauncher => (new Color(.69f,.38f,1),.32f,10),
                 EquipmentKind.ChainGun => (fire,.29f,5),
                 EquipmentKind.DualRifle => (fire,alternate?.45f:.30f,alternate?10:6),
@@ -229,10 +292,14 @@ namespace DeadlyJenga.Presentation
             }
             var orientation=Quaternion.LookRotation(direction);
             Color? ownerColor=CandyWeaponImpacts.SidearmOwnerColor(effectsRuntime,action);
-            EmitMuzzle(origin,orientation,ownerColor??profile.tint,profile.length*scale,profile.sparks,action.id);
-            if(mounted&&action.kind==EquipmentKind.RocketLauncher)
-                EmitMuzzle(model.TransformPoint(new Vector3(0,.205f,-.43f)),
-                    Quaternion.LookRotation(-model.forward),new Color(1,.32f,.07f),.70f*scale,8,action.id);
+            var tint=action.kind==EquipmentKind.RocketLauncher?RocketCandy.ColorFor(action.rocketCandyVariant):(ownerColor??profile.tint);
+            EmitMuzzle(origin,orientation,tint,profile.length*scale,profile.sparks,action.id);
+            if(action.kind==EquipmentKind.RocketLauncher)
+            {
+                var rear=mounted?model.TransformPoint(new Vector3(0,.205f,-.365f)):
+                    origin-direction*(1.43f*.66f);
+                EmitMuzzle(rear,Quaternion.LookRotation(-direction),tint,.89f*scale,21,action.id);
+            }
             if(mounted&&(action.kind==EquipmentKind.StockPistol||action.kind==EquipmentKind.CompactSidearm||action.kind==EquipmentKind.DualRifle||
                 action.kind==EquipmentKind.ChainGun))EjectShell(model,action,scale,ownerColor);
         }
@@ -394,20 +461,84 @@ namespace DeadlyJenga.Presentation
             }
         }
 
+        ParticleSystem rocketCandyShards;
+        Mesh rocketCandyShardMesh;
+        Material rocketCandyShardMaterial;
+
+        void EmitRocketCandyShards(Vector3 point,Color tint,int seed)
+        {
+            if(!rocketCandyShards)
+            {
+                var emitter=new GameObject("Bounded lollipop shrapnel");
+                emitter.transform.SetParent(transform,false);
+                rocketCandyShards=emitter.AddComponent<ParticleSystem>();
+                rocketCandyShards.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+                var main=rocketCandyShards.main;
+                main.loop=false;
+                main.playOnAwake=false;
+                main.simulationSpace=ParticleSystemSimulationSpace.World;
+                main.maxParticles=128;
+                main.gravityModifier=1.2f;
+                var emission=rocketCandyShards.emission;
+                emission.enabled=false;
+                var shape=rocketCandyShards.shape;
+                shape.enabled=false;
+                rocketCandyShardMesh=new Mesh
+                {
+                    name="Broken lollipop shard",
+                    vertices=new[]{new Vector3(-.48f,0,-.31f),new Vector3(.57f,0,-.21f),
+                        new Vector3(.15f,0,.49f),new Vector3(-.06f,.36f,.10f)},
+                    triangles=new[]{0,1,2,0,3,1,1,3,2,2,3,0}
+                };
+                rocketCandyShardMesh.RecalculateNormals();
+                rocketCandyShardMesh.RecalculateBounds();
+                rocketCandyShardMaterial=new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+                var renderer=emitter.GetComponent<ParticleSystemRenderer>();
+                renderer.renderMode=ParticleSystemRenderMode.Mesh;
+                renderer.mesh=rocketCandyShardMesh;
+                renderer.sharedMaterial=rocketCandyShardMaterial;
+                renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows=false;
+            }
+            if(rocketCandyShards.isStopped)rocketCandyShards.Play();
+            for(int i=0;i<17;i++)
+            {
+                float y=1-2*(i+.5f)/17,angle=i*2.39996f+seed*.22f,radius=Mathf.Sqrt(1-y*y);
+                var direction=new Vector3(Mathf.Cos(angle)*radius,y,Mathf.Sin(angle)*radius);
+                rocketCandyShards.Emit(new ParticleSystem.EmitParams
+                {
+                    position=point+direction*.09f,velocity=direction*(3.6f+(i%7)*.68f),
+                    rotation3D=new Vector3(i*23,i*59,i*39),angularVelocity3D=new Vector3(93,105,168),
+                    startColor=Color.Lerp(tint,Color.white,(i%4)*.095f),
+                    startSize=.084f+(i%4)*.024f,startLifetime=.32f+(i%5)*.079f
+                },1);
+            }
+        }
+
         void EmitBlast(EquipmentActionFrame action)
         {
             bool rocket=action.kind==EquipmentKind.RocketLauncher;
             bool saw=action.kind==EquipmentKind.Chainsaw;
             bool spike=action.kind==EquipmentKind.DualUzi;
             if(burstParticles.isStopped)burstParticles.Play();
-            int count=rocket?52:saw?12:spike?8:28;Color tint=Energy(action.kind);
+            int count=rocket?84:saw?12:spike?8:28;
+            Color tint=rocket?RocketCandy.ColorFor(action.rocketCandyVariant):Energy(action.kind);
+            if(rocket)
+            {
+                EmitRocketCandyShards(action.position,tint,action.id);
+                burstParticles.Emit(new ParticleSystem.EmitParams
+                {
+                    position=action.position,startColor=Color.Lerp(tint,Color.white,.51f),
+                    startSize=2.55f,startLifetime=.18f
+                },1);
+            }
             for(int i=0;i<count;i++)
             {
                 float y=1-2*(i+.5f)/count,a=i*2.399963f,r=Mathf.Sqrt(1-y*y);
                 var direction=new Vector3(Mathf.Cos(a)*r,y,Mathf.Sin(a)*r);
                 burstParticles.Emit(new ParticleSystem.EmitParams{position=action.position+direction*.14f,
-                    velocity=direction*(rocket?6+i%9*.83f:saw||spike?2+i%4*.3f:3+i%7*.69f),startColor=tint,
-                    startSize=(rocket?.35f:saw||spike?.065f:.21f)+(i%4)*(saw||spike?.012f:.085f),startLifetime=(rocket?.44f:saw||spike?.14f:.24f)+i%9*(saw||spike?.012f:.047f)},1);
+                    velocity=direction*(rocket?6+i%9*.83f:saw||spike?2+i%4*.3f:3+i%7*.69f),startColor=rocket&&i%5==0?Color.Lerp(tint,Color.white,.54f):tint,
+                    startSize=(rocket?.47f:saw||spike?.065f:.21f)+(i%4)*(saw||spike?.012f:.085f),startLifetime=(rocket?.44f:saw||spike?.14f:.24f)+i%9*(saw||spike?.012f:.047f)},1);
             }
         }
         void BlastDetail(EquipmentActionFrame action)
@@ -415,14 +546,15 @@ namespace DeadlyJenga.Presentation
             bool electric=action.kind==EquipmentKind.GrenadeLauncher;
             var shell=new GameObject("Visual - expanding blast shock fronts").transform;
             shell.SetParent(transform,false);shell.position=action.position;
-            Color color=Energy(action.kind);
-            int count=electric?7:3;var arcs=new LineRenderer[count];
+            bool rocket=action.kind==EquipmentKind.RocketLauncher;
+            Color color=rocket?RocketCandy.ColorFor(action.rocketCandyVariant):Energy(action.kind);
+            int count=electric?7:rocket?4:3;var arcs=new LineRenderer[count];
             for(int i=0;i<count;i++)
             {
                 var go=new GameObject(electric?"Ionized discharge fork":"Expanding exhaust shock ring");go.transform.SetParent(shell,false);
                 var line=go.AddComponent<LineRenderer>();arcs[i]=line;line.sharedMaterial=ordnanceRibbon;line.useWorldSpace=false;
                 line.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;line.receiveShadows=false;
-                line.positionCount=electric?8:36;line.loop=!electric;line.startWidth=electric?.055f:.06f;line.endWidth=electric?.004f:.06f;
+                line.positionCount=electric?8:36;line.loop=!electric;line.startWidth=electric?.055f:rocket?.115f:.06f;line.endWidth=electric?.004f:rocket?.115f:.06f;
                 line.startColor=line.endColor=color;var tilt=Quaternion.Euler(i*63,i*137,0);
                 for(int n=0;n<line.positionCount;n++)
                 {

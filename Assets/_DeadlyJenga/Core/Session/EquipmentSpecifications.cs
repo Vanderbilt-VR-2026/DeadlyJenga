@@ -10,6 +10,20 @@ namespace DeadlyJenga.Core
         public float reloadSeconds;
         public bool power,melee,automatic,twoHanded,backHolster,modeSwitch;
     }
+    public static class RocketCandy
+    {
+        public const int VariantCount = 6;
+        public static Color ColorFor(int variant) => variant switch
+        {
+            2 => new Color(1f,.46f,.055f),
+            3 => new Color(.64f,.86f,.065f),
+            4 => new Color(.04f,.72f,.98f),
+            5 => new Color(.61f,.25f,.94f),
+            6 => new Color(1f,.25f,.57f),
+            _ => new Color(.88f,.085f,.13f)
+        };
+    }
+
     // Shared authored data, never damage, input or physics execution.
     public static class EquipmentSpecifications
     {
@@ -21,7 +35,7 @@ namespace DeadlyJenga.Core
             new EquipmentSpecification{name="DUAL RIFLE / SHOTGUN",damage=55,cooldown=.65f,range=65,twoHanded=true,backHolster=true,modeSwitch=true},
             new EquipmentSpecification{name="GIANT BOXING GLOVE",melee=true,damage=80,cooldown=.9f,range=1.4f},
             new EquipmentSpecification{name="POWERED IRON SUIT",damage=35,cooldown=.45f,range=28},
-            new EquipmentSpecification{name="ROCKET LAUNCHER",damage=160,cooldown=1.8f,magazine=5,reloadSeconds=3.5f,range=80,radius=.12f,push=32,projectileSpeed=14,blastRadius=8,twoHanded=true,backHolster=true},
+            new EquipmentSpecification{name="ROCKET LAUNCHER",damage=160,cooldown=1.8f,magazine=1,reloadSeconds=3.5f,range=80,radius=.12f,push=32,projectileSpeed=14,blastRadius=8,twoHanded=true,backHolster=true},
             new EquipmentSpecification{name="DUAL ALIEN SPIKERS",projectileSpeed=45,magazine=60,reloadSeconds=2.2f,damage=9,cooldown=.065f,range=38,radius=.035f,push=1,spread=.025f,automatic=true},
             new EquipmentSpecification{name="CHAIN GUN",magazine=150,reloadSeconds=3.6f,damage=10,cooldown=.055f,range=55,radius=.035f,push=1,spread=.035f,charge=.65f,automatic=true,twoHanded=true,backHolster=true},
             new EquipmentSpecification{name="GRENADE LAUNCHER",magazine=6,reloadSeconds=2.8f,damage=65,cooldown=.8f,range=50,radius=.11f,push=10,projectileSpeed=22,gravity=13,blastRadius=3.5f,twoHanded=true,backHolster=true},

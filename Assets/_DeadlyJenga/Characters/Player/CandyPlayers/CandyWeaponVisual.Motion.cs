@@ -11,6 +11,11 @@ namespace DeadlyJenga.CandyPlayers
         Transform primaryRoundFeed, secondaryRoundFeed;
         Transform[] primaryRounds, secondaryRounds;
         float drawAmount, contactUntil, lastContactRemaining;
+        Transform rocketCandy;
+        MeshRenderer rocketCandyHead, rocketCandySeam;
+        MaterialPropertyBlock rocketCandyTint;
+        int shownCandyVariant;
+        static Material rocketSugarMaterial, rocketStickMaterial;
         string lastContactVictim;
         int lastWheelCount=-1;
         float wheelFeedAt=float.NegativeInfinity;
@@ -190,7 +195,8 @@ namespace DeadlyJenga.CandyPlayers
         void PoseDesktopReloadHand(ref CandyAvatarFrame frame, EquipmentState state)
         {
             if (!state.drawn || !feed || state.reloadRemaining <= 0 ||
-                kind == EquipmentKind.DualUzi || kind == EquipmentKind.WristLaser || kind == EquipmentKind.LaserAxe)
+                kind == EquipmentKind.DualUzi || kind == EquipmentKind.WristLaser || kind == EquipmentKind.LaserAxe ||
+                kind == EquipmentKind.RocketLauncher)
                 return;
             var spec = EquipmentSpecifications.Get(kind);
             if (spec.reloadSeconds <= 0 || spec.melee && !state.shotgun) return;
@@ -325,6 +331,11 @@ namespace DeadlyJenga.CandyPlayers
             bool reloading = state.drawn && state.reloadRemaining > 0 && spec.reloadSeconds > 0 &&
                 (!spec.melee || state.shotgun);
             float phase = reloading ? 1 - Mathf.Clamp01(state.reloadRemaining / spec.reloadSeconds) : 0;
+            if (kind == EquipmentKind.RocketLauncher)
+            {
+                PresentRocketCandy(assembly.parent, state, reloading, phase);
+                return;
+            }
             if (kind == EquipmentKind.DualUzi)
                 phase = Mathf.Clamp01((phase - (secondary ? .28f : 0)) / .72f);
 
@@ -335,7 +346,6 @@ namespace DeadlyJenga.CandyPlayers
                 EquipmentKind.GrenadeLauncher => new Vector3(side * .28f, -.065f, 0),
                 EquipmentKind.ChainGun => new Vector3(.28f, -.19f, 0),
                 EquipmentKind.NeedleDrill => new Vector3(0, -.09f, -.24f),
-                EquipmentKind.RocketLauncher => new Vector3(0, -.32f, -.08f),
                 EquipmentKind.Chainsaw => Vector3.up * .23f,
                 _ => Vector3.down * .24f
             };
@@ -377,6 +387,78 @@ namespace DeadlyJenga.CandyPlayers
             PresentRounds(assembly, state, secondary, cylinder, reloading, phase);
         }
 
+        void PresentRocketCandy(Transform weapon, EquipmentState state, bool reloading, float phase)
+        {
+            if (!rocketCandy || rocketCandy.parent != weapon)
+            {
+                rocketCandy = new GameObject("Front-loaded lollipop").transform;
+                rocketCandy.SetParent(weapon, false);
+                if(!rocketSugarMaterial)
+                {
+                    var shader=Shader.Find("Universal Render Pipeline/Lit");
+                    rocketSugarMaterial=new Material(shader){name="Glossy rocket candy",enableInstancing=true};
+                    rocketSugarMaterial.SetFloat("_Smoothness",.81f);
+                    rocketStickMaterial=new Material(shader){name="White rocket candy stick",color=new Color(.92f,.90f,.87f)};
+                    rocketStickMaterial.SetFloat("_Smoothness",.40f);
+                }
+                var head=Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
+                rocketCandyHead=MakeCandyPart(rocketCandy,"Round lollipop",head,rocketSugarMaterial,.203f,Vector3.one*.352f);
+                var cylinder=Resources.GetBuiltinResource<Mesh>("Cylinder.fbx");
+                rocketCandySeam=MakeCandyPart(rocketCandy,"Molded candy seam",cylinder,rocketSugarMaterial,.203f,new Vector3(.367f,.022f,.367f));
+                rocketCandySeam.transform.localRotation=Quaternion.Euler(90,0,0);
+                var stick=MakeCandyPart(rocketCandy,"White bore-fit stick",cylinder,rocketStickMaterial,-.097f,new Vector3(.105f,.160f,.105f));
+                stick.transform.localRotation=Quaternion.Euler(90,0,0);
+                rocketCandyTint ??= new MaterialPropertyBlock();
+                shownCandyVariant=-1;
+            }
+            bool visible = reloading ? phase >= .37f : !state.magazineInitialized || state.rounds > 0;
+            rocketCandy.gameObject.SetActive(visible);
+            if(!visible)return;
+            if(shownCandyVariant!=state.rocketCandyVariant)
+            {
+                shownCandyVariant=state.rocketCandyVariant;
+                rocketCandyTint.SetColor("_BaseColor",RocketCandy.ColorFor(shownCandyVariant));
+                rocketCandyHead.SetPropertyBlock(rocketCandyTint);
+                rocketCandySeam.SetPropertyBlock(rocketCandyTint);
+            }
+
+            rocketCandy.localPosition=RocketMuzzle+(reloading?RocketCandyOffset(phase):Vector3.zero);
+        }
+
+        internal static void PoseRocketLoadingHand(ref CandyHandPose hand, Pose weapon, EquipmentState state,
+            bool supportLeft, float scale)
+        {
+            var spec=EquipmentSpecifications.Get(EquipmentKind.RocketLauncher);
+            float phase=1-Mathf.Clamp01(state.reloadRemaining/spec.reloadSeconds);
+            float reach=Ease(.24f,.37f,phase)*(1-Ease(.88f,.99f,phase));
+            float side=supportLeft?-1:1;
+            var stickGrip=RocketMuzzle+RocketCandyOffset(phase)+new Vector3(side*.064f,-.027f,.058f);
+            var target=weapon.position+weapon.rotation*stickGrip*ModelScale(EquipmentKind.RocketLauncher,scale);
+            hand.position=Vector3.Lerp(hand.position,target,reach);
+            hand.rotation=Quaternion.Slerp(hand.rotation,weapon.rotation*Quaternion.Euler(4,side*24,side*78),reach);
+            hand.skeleton=BlendGrip(hand.skeleton,CandyHandSkeleton.ControllerGrip(supportLeft,.88f,.64f),reach);
+            hand.skeletonTracked=true;
+        }
+
+        static Vector3 RocketCandyOffset(float phase)
+        {
+            float align=Ease(.37f,.60f,phase);
+            float insert=Ease(.60f,.91f,phase);
+            return Vector3.forward*(.292f*(1-insert))+Vector3.down*(.13f*(1-align));
+        }
+
+        static MeshRenderer MakeCandyPart(Transform parent,string name,Mesh mesh,Material material,float z,Vector3 scale)
+        {
+            var part=new GameObject(name,typeof(MeshFilter),typeof(MeshRenderer));
+            part.transform.SetParent(parent,false);
+            part.transform.localPosition=Vector3.forward*z;
+            part.transform.localScale=scale;
+            part.GetComponent<MeshFilter>().sharedMesh=mesh;
+            var renderer=part.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial=material;
+            return renderer;
+        }
+
         static float Ease(float from, float to, float phase) =>
             Mathf.SmoothStep(0, 1, Mathf.InverseLerp(from, to, phase));
 
@@ -385,7 +467,6 @@ namespace DeadlyJenga.CandyPlayers
             int count = kind switch
             {
                 EquipmentKind.SheriffHammer or EquipmentKind.GrenadeLauncher or EquipmentKind.ChainGun => 6,
-                EquipmentKind.RocketLauncher => 5,
                 EquipmentKind.StockPistol or EquipmentKind.DualUzi or EquipmentKind.NeedleDrill => 5,
                 EquipmentKind.Chainsaw => 4,
                 _ => 0
@@ -398,10 +479,8 @@ namespace DeadlyJenga.CandyPlayers
                 rounds = new Transform[count];
                 var body = new CandyAccessoryMeshes.Builder();
                 var tip = new CandyAccessoryMeshes.Builder();
-                float radius = kind == EquipmentKind.GrenadeLauncher ? .034f :
-                    kind == EquipmentKind.RocketLauncher ? .022f : .011f;
-                float length = kind == EquipmentKind.GrenadeLauncher ? .21f :
-                    kind == EquipmentKind.RocketLauncher ? .075f : .038f;
+                float radius = kind == EquipmentKind.GrenadeLauncher ? .034f : .011f;
+                float length = kind == EquipmentKind.GrenadeLauncher ? .21f : .038f;
                 if (kind == EquipmentKind.Chainsaw)
                 {
                     body.Cone(Vector3.zero, Vector3.forward * .014f, .023f, .023f, 12);
@@ -426,7 +505,7 @@ namespace DeadlyJenga.CandyPlayers
                     CachedMesh(item, "Round tip " + kind, tip,
                         kind == EquipmentKind.DualUzi ? new Color(.35f,1,.10f) :
                         kind == EquipmentKind.GrenadeLauncher ? new Color(.30f,.33f,.24f) :
-                        kind == EquipmentKind.RocketLauncher ? new Color(.29f,.33f,.28f) : new Color(.85f,.72f,.50f));
+                        new Color(.85f,.72f,.50f));
                     rounds[i] = item;
                 }
                 if (secondary) { secondaryRoundFeed = assembly; secondaryRounds = rounds; }
@@ -457,7 +536,6 @@ namespace DeadlyJenga.CandyPlayers
                     EquipmentKind.SheriffHammer => new Vector3(Mathf.Cos(angle)*.048f,.072f+Mathf.Sin(angle)*.048f,.035f),
                     EquipmentKind.GrenadeLauncher => new Vector3(Mathf.Cos(angle)*GrenadeChamberRadius,GrenadeDrumHeight+Mathf.Sin(angle)*GrenadeChamberRadius,.018f+GrenadeDrumOffset),
                     EquipmentKind.ChainGun => new Vector3(.165f+i*.023f,ChainGunBarrelHeight+.105f,.18f),
-                    EquipmentKind.RocketLauncher => new Vector3(.106f,.044f,-.111f+i*.081f),
                     EquipmentKind.StockPistol => new Vector3(.040f,-.017f+i*.017f,.209f),
                     EquipmentKind.DualUzi => new Vector3(.038f,-.204f+i*.020f,-.012f),
                     EquipmentKind.Chainsaw => new Vector3(.025f,.221f,.095f+i*.064f),

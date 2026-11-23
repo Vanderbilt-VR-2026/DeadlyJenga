@@ -10,7 +10,7 @@ namespace DeadlyJenga.Modes
         const float WheelSpinUp=.60f, WheelLaunchInterval=.42f;
 
         sealed class HeldWeapon {public Pose pose;public float seen,start;public bool down;public int burst;}
-        sealed class ArsenalProjectile {public int id;public string owner;public EquipmentKind kind;public Vector3 position,velocity;public float life,bornAt;}
+        sealed class ArsenalProjectile {public int id,rocketCandyVariant;public string owner;public EquipmentKind kind;public Vector3 position,velocity;public float life,bornAt;}
         readonly Dictionary<string,HeldWeapon> heldWeapons=new Dictionary<string,HeldWeapon>();
         readonly List<ArsenalProjectile> arsenalProjectiles=new List<ArsenalProjectile>();
         readonly List<string> heldIds=new List<string>();int nextArsenalProjectile;
@@ -54,6 +54,7 @@ namespace DeadlyJenga.Modes
                 if(!heldWeapons.TryGetValue(id,out var held)){heldWeapons[id]=new HeldWeapon{start=Time.time,seen=Time.time,pose=new Pose(command.position,Quaternion.LookRotation(command.forward))};return false;}
                 if(Time.time-held.start<required)return false;
             }
+            PrepareRocketCandy(state);
             if(state.reloadRemaining>0||state.embedRemaining>0)return false;
             if(spec.magazine>0&&(!spec.melee||state.shotgun)){if(!state.magazineInitialized){state.rounds=spec.magazine;state.magazineInitialized=true;}if(state.rounds<=0){BeginMagazineReload(id,state);return false;}}
             if(weaponCooldown.TryGetValue(id,out float ready)&&Time.time<ready)return false;
@@ -83,12 +84,13 @@ namespace DeadlyJenga.Modes
                     direction=secondaryForward.normalized;
                 }
             }
+            int firedCandyVariant=state.rocketCandyVariant;
             SetShotCooldown(id,state,command,cooldown);
             if(spec.magazine>0&&(!spec.melee||state.shotgun)){state.rounds--;equipment[id]=state;if(state.rounds==0)BeginMagazineReload(id,state);}
             if(projectile)
             {
-                arsenalProjectiles.Add(new ArsenalProjectile{id=++nextArsenalProjectile,owner=id,kind=state.kind,bornAt=Time.time,position=command.position,velocity=direction*(state.kind==EquipmentKind.Chainsaw?22:spec.projectileSpeed),life=state.kind==EquipmentKind.DualUzi?.85f:state.kind==EquipmentKind.GrenadeLauncher?3.5f:5});
-                PublishArsenalState();AnnounceEquipment(id,state,EquipmentAction.Shot,command.position);return true;
+                arsenalProjectiles.Add(new ArsenalProjectile{id=++nextArsenalProjectile,owner=id,kind=state.kind,rocketCandyVariant=firedCandyVariant,bornAt=Time.time,position=command.position,velocity=direction*(state.kind==EquipmentKind.Chainsaw?22:spec.projectileSpeed),life=state.kind==EquipmentKind.DualUzi?.85f:state.kind==EquipmentKind.GrenadeLauncher?3.5f:5});
+                PublishArsenalState();AnnounceEquipment(id,state,EquipmentAction.Shot,command.position,rocketCandyVariant:firedCandyVariant);return true;
             }
             float range=state.kind==EquipmentKind.LaserAxe&&state.shotgun?35:spec.range;
             float radius=state.kind==EquipmentKind.LaserAxe&&state.shotgun?.5f:spec.radius;
@@ -141,9 +143,24 @@ namespace DeadlyJenga.Modes
             state.embedRemaining = duration;
             equipment[id] = state;
         }
+        static void PrepareRocketCandy(EquipmentState state)
+        {
+            if(state.kind!=EquipmentKind.RocketLauncher)return;
+            int capacity=EquipmentSpecifications.Get(state.kind).magazine;
+            state.rounds=state.magazineInitialized?Mathf.Clamp(state.rounds,0,capacity):capacity;
+            state.magazineInitialized=true;
+            if(state.rocketCandyVariant<1||state.rocketCandyVariant>RocketCandy.VariantCount)
+                state.rocketCandyVariant=UnityEngine.Random.Range(1,RocketCandy.VariantCount+1);
+        }
+
         void BeginMagazineReload(string id,EquipmentState state)
         {
             if(state.reloadRemaining>0)return;
+            if(state.kind==EquipmentKind.RocketLauncher)
+            {
+                int next=UnityEngine.Random.Range(1,RocketCandy.VariantCount);
+                state.rocketCandyVariant=next>=state.rocketCandyVariant?next+1:next;
+            }
             state.reloadRemaining=EquipmentSpecifications.Get(state.kind).reloadSeconds;equipment[id]=state;
             AnnounceEquipment(id,state,EquipmentAction.Reload,FindActor(id)?.ViewPose.position??Vector3.zero);
         }
@@ -152,8 +169,9 @@ namespace DeadlyJenga.Modes
             foreach(var pair in equipment)
             {
                 var state=pair.Value;var spec=EquipmentSpecifications.Get(state.kind);
+                PrepareRocketCandy(state);
                 if(spec.magazine>0&&!state.magazineInitialized){state.rounds=spec.magazine;state.magazineInitialized=true;}
-                if(state.reloadRemaining>0){state.reloadRemaining=Mathf.Max(0,state.reloadRemaining-dt);if(state.reloadRemaining==0){state.rounds=spec.magazine;if(heldWeapons.TryGetValue(pair.Key,out var held)){held.start=Time.time;held.burst=0;}}}
+                if(state.reloadRemaining>0){state.reloadRemaining=Mathf.Max(0,state.reloadRemaining-dt);if(state.reloadRemaining==0){state.rounds=spec.magazine;if(heldWeapons.TryGetValue(pair.Key,out var held)){held.start=Time.time;if(state.kind!=EquipmentKind.RocketLauncher)held.burst=0;}}}
                 if(state.embedRemaining>0){state.embedRemaining=Mathf.Max(0,state.embedRemaining-dt);if(state.embedRemaining==0)state.embeddedVictim=null;}
             }
         }
@@ -191,12 +209,12 @@ namespace DeadlyJenga.Modes
         }
         void RestoreArsenal(MatchFrame saved)
         {
-            foreach(var shot in saved.weaponProjectiles??Array.Empty<EquipmentProjectileFrame>()){arsenalProjectiles.Add(new ArsenalProjectile{id=shot.id,kind=shot.kind,owner=shot.owner,bornAt=Time.time,position=shot.position,velocity=shot.velocity,life=shot.remaining});nextArsenalProjectile=Mathf.Max(nextArsenalProjectile,shot.id);}
+            foreach(var shot in saved.weaponProjectiles??Array.Empty<EquipmentProjectileFrame>()){arsenalProjectiles.Add(new ArsenalProjectile{id=shot.id,kind=shot.kind,owner=shot.owner,rocketCandyVariant=shot.rocketCandyVariant,bornAt=Time.time,position=shot.position,velocity=shot.velocity,life=shot.remaining});nextArsenalProjectile=Mathf.Max(nextArsenalProjectile,shot.id);}
         }
         void PublishArsenalState()
         {
             frame.weaponProjectiles=new EquipmentProjectileFrame[arsenalProjectiles.Count];
-            for(int i=0;i<arsenalProjectiles.Count;i++){var s=arsenalProjectiles[i];frame.weaponProjectiles[i]=new EquipmentProjectileFrame{id=s.id,kind=s.kind,owner=s.owner,position=s.position,velocity=s.velocity,remaining=s.life};}
+            for(int i=0;i<arsenalProjectiles.Count;i++){var s=arsenalProjectiles[i];frame.weaponProjectiles[i]=new EquipmentProjectileFrame{id=s.id,kind=s.kind,owner=s.owner,rocketCandyVariant=s.rocketCandyVariant,position=s.position,velocity=s.velocity,remaining=s.life};}
         }
         void ImpactArsenal(ArsenalProjectile shot,IModeActor direct,Vector3 contact,bool solidContact)
         {
@@ -204,7 +222,7 @@ namespace DeadlyJenga.Modes
             // The launch-mode impact flag marks a world contact for cosmetic wheel lodging.
             bool lodge = shot.kind==EquipmentKind.Chainsaw && solidContact;
             AnnounceEquipment(shot.owner,new EquipmentState{kind=shot.kind,shotgun=lodge},
-                EquipmentAction.Impact,lodge?contact:shot.position);
+                EquipmentAction.Impact,lodge?contact:shot.position,rocketCandyVariant:shot.rocketCandyVariant);
             if(source==null)return;
             if(shot.kind==EquipmentKind.DualUzi){if(direct!=null)ArsenalDamage(source,direct,spec.damage,shot.velocity.normalized*spec.push,contact);return;}
             if(shot.kind==EquipmentKind.Chainsaw){if(direct!=null)ArsenalDamage(source,direct,55,shot.velocity.normalized*8,contact);return;}
