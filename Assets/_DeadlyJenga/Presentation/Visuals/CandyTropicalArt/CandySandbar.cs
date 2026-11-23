@@ -18,6 +18,7 @@ namespace DeadlyJenga.CandyArt
         public Vector2 HalfSize{get;private set;}
         internal bool CompactSandbar { get; set; }
         internal bool CatwalksBeach { get; set; }
+        internal bool CompactCastleBeach { get; set; }
         internal float BeachWaterOffset { get; set; }
         Vector2 coastHalf;
         Vector3[] flatVertices, caveVertices;
@@ -114,6 +115,7 @@ namespace DeadlyJenga.CandyArt
             void Hash(float value){hash=hash*31+value.GetHashCode();}
             Hash(profile.sandMargin);Hash(profile.sandRelief);Hash(profile.sandDepth);Hash(profile.sandShoreWidth);Hash(profile.islandRadius);
             if(shape!=null)Hash(shape.FootprintVersion);
+            Hash(CompactCastleBeach ? 1 : 0);
             if(CatwalksBeach) Hash(BeachWaterOffset);
             if(owned&&heights&&hash==signature)return;
             Release();feet.Clear();float half=shape!=null?shape.FootprintHalfSize:profile.islandRadius*.65f;
@@ -121,7 +123,8 @@ namespace DeadlyJenga.CandyArt
             coastHalf=new Vector2(half+profile.sandMargin+2.7f,half+profile.sandMargin+2.3f);
             if(shape!=null){ground.Clear();shape.GetGroundFootprints(ground);
                 foreach(var piece in ground)feet.Add(new Foot{center=piece.center,half=piece.halfSize,rotation=Quaternion.Inverse(piece.rotation)});}
-            if(CatwalksBeach) coastHalf=CastleCoastRadii(half);
+            if(CompactCastleBeach) coastHalf=new Vector2(31.9f,40.2f);
+            else if(CatwalksBeach) coastHalf=CastleCoastRadii(half);
             if(CompactSandbar) coastHalf=new Vector2(half+2.2f,half+1.9f);
             HalfSize=coastHalf+Vector2.one*(CatwalksBeach?56f:profile.sandShoreWidth);
             BuildMesh();signature=hash;
@@ -163,6 +166,11 @@ namespace DeadlyJenga.CandyArt
             float coast=(Mathf.Pow(q.x*q.x*q.x+q.y*q.y*q.y,1f/3)-1)*Mathf.Min(half.x,half.y);
             float a=Mathf.Atan2(p.y,p.x);
             float shoulder=.22f*Mathf.Sin(a*3+.7f)+.15f*Mathf.Sin(a*5-1.2f)+.09f*Mathf.Sin(a*7+.4f);
+            if(CompactCastleBeach)
+            {
+                float superellipse = Mathf.Pow(Mathf.Pow(q.x, 9.5f) + Mathf.Pow(q.y, 9.5f), 1f / 9.5f);
+                return (superellipse - 1) * Mathf.Min(half.x, half.y) - shoulder;
+            }
             if(CatwalksBeach)
             {
                 float headland=3.2f*Mathf.Sin(a-.95f)+2.45f*Mathf.Sin(a*3-1.4f);
@@ -181,6 +189,12 @@ namespace DeadlyJenga.CandyArt
             float n=Mathf.PerlinNoise(p.x*.32f+21.7f,p.y*.32f+9.1f)*.72f+Mathf.PerlinNoise(p.x*.67f+8,p.y*.67f+31)*.28f;
             // Rounded dips leave raised molded ridges at support level; terrain never intrudes into a player or block.
             float relief=-profile.sandRelief*(.12f+.88f*n)*reliefMask;
+            if (CompactCastleBeach)
+            {
+                float wet = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(0, 1.8f, edge));
+                float depth = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(1.8f, 22, edge));
+                return Mathf.Lerp(0, Mathf.Min(0, BeachWaterOffset - .3f), wet) - 8.5f * depth;
+            }
             if(CatwalksBeach)
             {
                 float a=Mathf.Atan2(p.y,p.x);

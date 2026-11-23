@@ -124,6 +124,7 @@ namespace DeadlyJenga.DevTools.Editor
                 (new Vector3(20.7f,0,-16.6f),new Vector3(20.7f,3,-25.6f)),
                 (new Vector3(0,0,-18.8f),new Vector3(0,.9f,-13)),
                 (new Vector3(8.5f,0,9.6f),new Vector3(8.5f,4.5f,23)),
+                (new Vector3(.95f,13.5f,15.84f),new Vector3(.95f,16.2f,21.88f)),
             };
             var bots = new List<CastleBotBrain>();
             for (int i=0;i<journeys.Length;i++)
@@ -198,6 +199,9 @@ namespace DeadlyJenga.DevTools.Editor
             var drift=bodies.Select((b,i)=>Vector3.Distance(b.position,World(layout[i].Position))).ToArray();
             Check(drift.Max()<.65f,"18s intact traffic max drift "+drift.Max()+" / bodies over .25m "+drift.Count(v=>v>.25f));
 
+            CheckCrownClearance(map, bodies);
+            yield return Shot("07-rear-crown",new(2.45f,14.35f,15.6f),new(.95f,15.9f,21.7f),65);
+
             // A bounded physical pull on one bearing. Every neighbouring course remains free.
             foreach (var test in new[] {
                 (new Vector3(16.5f,.75f,-30),new Vector3(16.5f,8.25f,-30),Vector3.back),
@@ -245,6 +249,25 @@ namespace DeadlyJenga.DevTools.Editor
             Check(map.LoadLayout(map.SaveLayout(),layout.Count,new Pose(map.transform.position,map.transform.rotation),map.transform.localScale),
                 "Local sync layout round trip");
             Check(EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"),"Disaster validator invoked");
+        }
+        static void CheckCrownClearance(CastleGenerator map, Rigidbody[] bodies)
+        {
+            var mapBodies = new HashSet<Rigidbody>(bodies);
+            var notes = new List<string>();
+            for (int step = -1; step <= 18; step++)
+            {
+                float z = step < 0 ? 15.84f : step == 18 ? 21.88f : 16.15f + step * .3f;
+                float deck = 13.5f + .15f * Mathf.Min(18, step + 1);
+                Vector3 local = new Vector3(.95f, deck + .465f, z);
+                var hits = Physics.OverlapBox(map.transform.TransformPoint(local),
+                    Vector3.Scale(new Vector3(.12f, .385f, .12f), map.transform.lossyScale),
+                    map.transform.rotation, Physics.AllLayers, QueryTriggerInteraction.Ignore);
+                foreach (var hit in hits)
+                    if (hit.attachedRigidbody && mapBodies.Contains(hit.attachedRigidbody))
+                        notes.Add(step + " " + hit.attachedRigidbody.name);
+            }
+            Check(notes.Count == 0, "Rear crown stair and landing clearance: " +
+                (notes.Count == 0 ? "20 clear survivor positions" : string.Join(", ", notes)));
         }
     }
 }
