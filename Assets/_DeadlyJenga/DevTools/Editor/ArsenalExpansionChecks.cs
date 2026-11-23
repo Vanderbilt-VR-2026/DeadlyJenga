@@ -20,10 +20,11 @@ namespace DeadlyJenga.DevTools.Editor
     {
         const string Key="ArsenalExpansion";
         static int checks,errors;static bool failed,completed;
+        static bool BoxingGloveOnly=>SessionState.GetBool(Key+"BoxingGloveOnly",false);
         static bool SawStaffOnly => SessionState.GetBool(Key+"SawStaffOnly",false);
         static bool StockPistolOnly=>SessionState.GetBool(Key+"StockPistolOnly",false);
         static bool PistolMotionOnly=>SessionState.GetBool(Key+"PistolMotionOnly",false);
-        static string Report=>ProjectPath.Report(PistolMotionOnly?"PistolMotion.txt":
+        static string Report=>ProjectPath.Report(BoxingGloveOnly?"BoxingGloveArt.txt":PistolMotionOnly?"PistolMotion.txt":
             StockPistolOnly?"StockPistolArt.txt":SawStaffOnly?"SawWheelStaffContacts.txt":"ArsenalExpansion.txt");
         sealed class PickupSource:IEquipmentPickupSource {public EquipmentKind Kind{get;set;}public Vector3 Position{get;set;}public float Duration{get;set;}=1;}
         [Serializable] sealed class Scenes{public SceneSetup[] values;}
@@ -51,7 +52,7 @@ namespace DeadlyJenga.DevTools.Editor
                     MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);
                     EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).values);
                     failed|=!completed;File.AppendAllText(Report,$"COMPLETE checks={checks} runtimeErrors={errors} failed={failed}. Desktop runtime; headset not tested.\n");
-                    if (SawStaffOnly || StockPistolOnly || PistolMotionOnly)
+                    if (BoxingGloveOnly || SawStaffOnly || StockPistolOnly || PistolMotionOnly)
                     {
                         int result = failed || errors > 0 ? 1 : 0;
                         if (!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
@@ -83,7 +84,9 @@ namespace DeadlyJenga.DevTools.Editor
         public static void RunStockPistolArt()=>Start(false, stockPistolOnly:true);
         public static void RunPistolMotion()=>Start(false, pistolMotionOnly:true);
 
-        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false)
+        public static void RunBoxingGloveArt()=>Start(false, boxingGloveOnly:true);
+
+        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false)
         {
             SessionState.SetBool(Key+"BarbedBatOnly",barbedBatOnly);
             SessionState.SetBool(Key+"CosmeticWeaponsOnly",cosmeticWeaponsOnly);
@@ -93,6 +96,7 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetBool(Key+"IronSuitOnly",ironSuitOnly);
             SessionState.SetBool(Key+"StockPistolOnly",stockPistolOnly);
             SessionState.SetBool(Key+"PistolMotionOnly",pistolMotionOnly);
+            SessionState.SetBool(Key+"BoxingGloveOnly",boxingGloveOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -694,6 +698,61 @@ namespace DeadlyJenga.DevTools.Editor
             }
         }
 
+        static IEnumerator BoxingGloveArt(CastlePlaySession session,MatchModeRuntime runtime,
+            CastleSurvivor player,CastleSurvivor target)
+        {
+            const EquipmentKind kind=EquipmentKind.BoxingGlove;
+            Check(runtime.GiveEquipment(kind),"Production Boxing Glove equips");
+            target.Place(player.transform.position+Vector3.right*8,Quaternion.identity);
+            var effects=session.GetComponent<DeadlyJenga.Presentation.CandyMeleeFeedback>();
+            Check(effects!=null,"Production session owns melee feedback");
+            bool Visible(string name)=>effects.GetComponentsInChildren<LineRenderer>()
+                .Any(line=>line.name==name&&line.enabled);
+            int Glints()=>effects.GetComponentsInChildren<ParticleSystem>()
+                .Where(system=>system.name=="Pooled Boxing Glove contact glints").Sum(system=>system.particleCount);
+            yield return new WaitForSeconds(.3f);
+            var origin=player.ViewPose.position+Vector3.forward*.22f;
+            var pose=new Pose(origin,Quaternion.identity);
+            Physics.SyncTransforms();
+            Check(runtime.RequestEquipmentAttack(pose),"Empty-air punch accepted");
+            yield return null;
+            yield return null;
+            Check(Visible("Boxing Glove gold ring")&&Visible("Boxing Glove air streak")&&Glints()==0,
+                "Air punch shows a gold ripple and wake without contact glints");
+
+            yield return new WaitForSeconds(1.04f);
+            var cube=GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cube.name="Boxing Glove block contact fixture";
+            cube.layer=Layers.Block;
+            cube.transform.position=origin+Vector3.forward*.91f;
+            cube.transform.localScale=Vector3.one*.46f;
+            try
+            {
+                Physics.SyncTransforms();
+                Check(runtime.RequestEquipmentAttack(pose),"Block punch accepted");
+                yield return null;
+                yield return null;
+                Check(Visible("Boxing Glove gold ring")&&Glints()>0&&!Visible("Boxing Glove air streak"),
+                    "Block surface gets contact rings and glints");
+            }
+            finally
+            {
+                cube.SetActive(false);
+                Object.Destroy(cube);
+            }
+            yield return new WaitForSeconds(1.04f);
+            target.Place(player.transform.position+Vector3.forward*.95f,Quaternion.identity);
+            yield return new WaitForSeconds(.2f);
+            Physics.SyncTransforms();
+            float health=target.Health;
+            pose.rotation=Quaternion.LookRotation(target.Capsule.bounds.center-origin);
+            Check(runtime.RequestEquipmentAttack(pose),"Survivor punch accepted");
+            yield return null;
+            yield return null;
+            Check(target.Health<health&&Glints()>0&&Visible("Boxing Glove gold ring"),
+                "Survivor punch damages the target and shows contact effects");
+        }
+
         static IEnumerator Test()
         {
             var session=Object.FindFirstObjectByType<CastlePlaySession>();float until=Time.realtimeSinceStartup+30;
@@ -742,6 +801,11 @@ namespace DeadlyJenga.DevTools.Editor
             if (SawStaffOnly)
             {
                 yield return SawStaffContacts(runtime,player,target);
+                yield break;
+            }
+            if (BoxingGloveOnly)
+            {
+                yield return BoxingGloveArt(session,runtime,player,target);
                 yield break;
             }
             Check(EquipmentSpecifications.All.Length==Enum.GetValues(typeof(EquipmentKind)).Length,"Every serialized equipment kind has one shared specification");
