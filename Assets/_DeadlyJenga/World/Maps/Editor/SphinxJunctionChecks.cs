@@ -83,6 +83,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     riderStart=rider.transform.position;
                     passengerCarried=false;
                     initial=map.Blocks.Select(b=>b.position).ToArray();
+                    var keystone=Body("Plaza paving 0,0");
+                    foreach(var other in Physics.OverlapBox(keystone.position,new Vector3(3,.65f,3)))
+                        if(!other.isTrigger && !other.transform.IsChildOf(map.transform))
+                            Log("External collider beside central keystone: "+other.name+" "+other.bounds);
                     began=Time.fixedTime;phase++;return;
                 }
                 float elapsed=Time.fixedTime-began;
@@ -90,11 +94,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     Vector3.Distance(Services.Session.Player.transform.position,riderStart)>.8f) passengerCarried=true;
                 if(phase==1 && elapsed>5)
                 {
-                    Shot("01-overview",new(0,25,-69),new(0,7,3),34);
+                    Services.Session.Player.Place(map.SafeSpawnPoint(),Quaternion.identity);
+                    Shot("01-overview",new(0,25,-69),new(0,5.7f,3),30);
                     Shot("02-saloon",new(-16,3.4f,-13),new(-23,6,-3),66);
                     Shot("03-sphinx",new(0,3.48f,-11),new(0,9.4f,0),75);
                     Shot("04-pyramid",new(10,3.48f,-4),new(20,10,9),68);
-                    Shot("05-train",new(-26,13.5f,1),new(-15,10.5f,10),56);
+                    Shot("05-train",new(-12,13.5f,-3),engine.transform.localPosition+Vector3.up*.85f,56);
                     var drifts=map.Blocks.Select((b,i)=>(b,d:Vector3.Distance(b.position,initial[i])))
                         .Where(v=>!v.b.isKinematic).OrderByDescending(v=>v.d).ToArray();
                     Log("Worst settle: "+string.Join(", ",drifts.Take(6).Select(v=>v.b.name+"="+v.d.ToString("F2"))));
@@ -105,7 +110,6 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     CheckCorridor("Saloon entrance",new(-23,2.78f,-7.2f),new(-23,2.78f,-3));
                     CheckCorridor("Under the sphinx",new(0,2.5f,-6.4f),new(0,2.5f,4));
                     CheckCorridor("Low causeway crossing",new(-2,1.86f,-22.7f),new(2,1.86f,-22.7f));
-                    Services.Session.Player.Place(map.SafeSpawnPoint(),Quaternion.identity);
                     bot=Services.Session.SurvivorBots?.SpawnOne();
                     Check(bot && bot.GetComponent<IModeActor>()?.Alive==true,"Live survivor bot spawned");
                     sandEliminated=false;
@@ -114,12 +118,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         testBot.Place(map.transform.TransformPoint(0,-1.42f,-25),Quaternion.identity);
                     rail=Body("Railway span 10");railStart=rail.position;
                     chest=Body("Sphinx chest lintel");chestStart=chest.position;
-                    StartPull("Timber trestle bent 10");phase++;began=Time.fixedTime;
+                    StartPull("Timber trestle bent 10");pull.Hold(grip+Vector3.forward*9);phase++;began=Time.fixedTime;
                 }
                 else if(phase==2)
                 {
-                    pull.Hold(grip+new Vector3(10,1,0));
-                    if(elapsed>.45f){Shot("06-trestle-pull",new(41,8,2),new(35,5,18),51);pull.Release();phase++;began=Time.fixedTime;}
+                    if(elapsed>.55f){Shot("06-trestle-pull",new(41,8,2),new(35,5,18),51);Log("East post displacement "+Vector3.Distance(grip,pull.Body.worldCenterOfMass));pull.Release();phase++;began=Time.fixedTime;}
                 }
                 else if(phase==3 && elapsed>2)
                 {
@@ -156,7 +159,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             catch(Exception e){failed=true;Log(e.ToString());Finish();}
         }
         static void Shot(string name,Vector3 eye,Vector3 target,float fov)
-            =>UnderneathTreeLookdev.Shoot(Path.Combine(Folder,name+".png"),map.transform.TransformPoint(eye),map.transform.TransformPoint(target),fov);
+            =>UnderneathTreeLookdev.Shoot(Path.Combine(Folder,name+".png"),map.transform.TransformPoint(eye),map.transform.TransformPoint(target),fov,name=="01-overview"?1774:1600,name=="01-overview"?887:900);
         static void CheckCorridor(string name,Vector3 start,Vector3 end)
         {
             int steps=Mathf.CeilToInt(Vector3.Distance(start,end)/.25f);

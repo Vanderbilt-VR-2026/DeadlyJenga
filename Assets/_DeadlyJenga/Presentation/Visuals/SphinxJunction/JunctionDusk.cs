@@ -93,7 +93,7 @@ namespace DeadlyJenga.CandyArt
                         oldSunColor=sun.color;
                         oldSunIntensity=sun.intensity;
                     }
-                    previousWater=environment.waterRenderer.forceRenderingOff;
+                    previousWater=environment.waterRenderer.enabled;
                     previousSand=environment.sandRenderer.forceRenderingOff;
                 }
             }
@@ -105,7 +105,7 @@ namespace DeadlyJenga.CandyArt
                     sun.color=new Color(1,.83f,.62f);
                     sun.intensity=1.35f;
                 }
-                environment.waterRenderer.forceRenderingOff=true;
+                environment.waterRenderer.enabled=false;
                 environment.sandRenderer.forceRenderingOff=true;
             }
         }
@@ -113,7 +113,7 @@ namespace DeadlyJenga.CandyArt
         {
             if(environment)
             {
-                environment.waterRenderer.forceRenderingOff=previousWater;
+                environment.waterRenderer.enabled=previousWater;
                 environment.sandRenderer.forceRenderingOff=previousSand;
             }
             if(sun)

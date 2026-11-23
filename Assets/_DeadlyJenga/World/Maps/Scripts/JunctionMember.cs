@@ -1,4 +1,5 @@
 using DeadlyJenga.Core;
+using System.Collections;
 using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
@@ -13,7 +14,9 @@ namespace DeadlyJenga.CastlePrototype
         public float Weight => Body.mass;
         public bool Replica { get; set; }
         bool held;
-        Vector3 localGrip;
+        Vector3 localGrip, targetGrip;
+        Coroutine pulling;
+        static readonly WaitForFixedUpdate PhysicsStep = new();
         bool Authority => !Replica && !(Services.Session is IWorldAuthority a && !a.HasWorldAuthority);
 
         internal void Setup(Rigidbody body, Transform visual)
@@ -35,18 +38,36 @@ namespace DeadlyJenga.CastlePrototype
             if (!CanGrab(hand)) return false;
             held = true;
             localGrip = transform.InverseTransformPoint(point);
+            targetGrip = point;
             Body.WakeUp();
+            pulling = StartCoroutine(DriveGrip());
             return true;
         }
         public void Hold(Vector3 point)
         {
             if (!held || !Authority) return;
-            var at = transform.TransformPoint(localGrip);
-            if (Vector3.Distance(point,at)>.45f && TryGetComponent<FixedJoint>(out var pile)) Destroy(pile);
-            var pull = (point - at) * 100 - Body.GetPointVelocity(at) * 12;
-            Body.AddForceAtPosition(Vector3.ClampMagnitude(pull, 120), at, ForceMode.Acceleration);
+            targetGrip = point;
         }
-        public void Release() => held = false;
+        IEnumerator DriveGrip()
+        {
+            while (held && Authority)
+            {
+                var at = transform.TransformPoint(localGrip);
+                if (Vector3.Distance(targetGrip,at)>.45f && TryGetComponent<FixedJoint>(out var pile)) Destroy(pile);
+                var pull = (targetGrip - at) * 100 - Body.GetPointVelocity(at) * 12;
+                Body.AddForceAtPosition(Vector3.ClampMagnitude(pull, 120), at, ForceMode.Acceleration);
+                yield return PhysicsStep;
+            }
+            held = false;
+            pulling = null;
+        }
+        public void Release()
+        {
+            held = false;
+            if(pulling != null) StopCoroutine(pulling);
+            pulling = null;
+        }
+        void OnDisable() => Release();
         public void Push(Vector3 force, GameObject source)
         {
             if (!Authority || Body.isKinematic) return;

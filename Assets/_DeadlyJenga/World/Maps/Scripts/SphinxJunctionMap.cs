@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class SphinxJunctionMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        public const string Signature = "sphinx-junction-4";
+        public const string Signature = "sphinx-junction-5";
         public Shader finishShader;
         Material finish;
         Transform built;
@@ -121,6 +121,13 @@ namespace DeadlyJenga.CastlePrototype
             }
             return rb;
         }
+        static void Fasten(Rigidbody member,Rigidbody bearing)
+        {
+            var pin=member.gameObject.AddComponent<FixedJoint>();
+            pin.connectedBody=bearing;
+            pin.breakForce=member.mass*190;
+            pin.breakTorque=member.mass*260;
+        }
         void Box(float x,float y,float z,float w,float h,float d,Color c,bool solid=true)
             => model.Shape(new(x,y,z),new(w,h,d),c,solid:solid);
         void Round(float x,float y,float z,float w,float h,float d,Color c,float top=1,int sides=12,bool solid=false)
@@ -152,7 +159,7 @@ namespace DeadlyJenga.CastlePrototype
                 Box(0,-.84f,0,2.9f,3.24f,2.9f,Shade);
                 Box(0,.67f,0,2.94f,.44f,2.94f,Teal,false);
                 model.Shape(new(0,1.14f,0),new(3.0f,.72f,3.0f),Sand,top:1.84f);
-                End(true);
+                var pier=End(true);
                 Begin("Plaza paving "+x+","+z,x*6,2,z*6);
                 Box(0,0,0,5.99f,1,5.99f,Shade);
                 for(int row=0;row<3;row++) for(int col=0;col<3;col++)
@@ -163,7 +170,11 @@ namespace DeadlyJenga.CastlePrototype
                     Round(0,.566f,0,2.62f,.028f,2.62f,Gold,1,24);
                     Round(0,.589f,0,1.23f,.025f,1.23f,Teal,1,16);
                 }
+                // The central keystone is dowelled to its flared capital below the chest opening.
+                if(x==0 && z==0)
+                    foreach(int side in new[]{-1,1}) Round(side*1.65f,.536f,0,.19f,.035f,.19f,Gold);
                 var deck=End();
+                if(x==0 && z==0) Fasten(deck,pier);
                 if (z==-2) plazas.Add(deck);
             }
             for(int i=-5;i<=5;i++)

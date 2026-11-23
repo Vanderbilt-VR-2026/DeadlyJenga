@@ -113,7 +113,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 for(int i=-3;i<=3;i++)
                 {
-                    Box(i*2,1.84f,-4.77f,.34f,3.12f,.34f,Red);
+                    Box(i==0?1.05f:i*2,1.84f,-4.77f,.34f,3.12f,.34f,Red);
                     if(level==1 && i<3) Box(i*2+1,1.12f,-4.77f,2,.16f,.18f,Teal);
                 }
                 End();

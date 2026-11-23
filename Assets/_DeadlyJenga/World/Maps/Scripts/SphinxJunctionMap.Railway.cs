@@ -36,7 +36,7 @@ namespace DeadlyJenga.CastlePrototype
                 float len=Vector3.Distance(a,b);
                 float yaw=Quaternion.LookRotation(b-a).eulerAngles.y;
                 chainage.Add(total); total+=len;
-                float bottom=i==10?1.52f:i==11?-2:2.5f;
+                float bottom=i==10?4.28f:i==11?-2:2.5f;
                 if(i==10)
                 {
                     // Each offshore timber shoe carries one post. Either shoe can be withdrawn.
@@ -46,20 +46,22 @@ namespace DeadlyJenga.CastlePrototype
                         Begin("Driven trestle pile "+side,foot.x,0,foot.z,yaw);
                         Box(0,-.62f,0,.94f,3.24f,1.42f,Wood);
                         End(true);
-                        Begin(side==-1?"Timber trestle bent 10":"Outer trestle shoe",foot.x,1.26f,foot.z,yaw);
-                        Box(0,0,0,.92f,.52f,1.4f,Red);
+                        Begin(side==-1?"Timber trestle bent 10":"Outer trestle shoe",foot.x,2.64f,foot.z,yaw);
+                        Box(0,0,0,.92f,3.28f,1.4f,Red);
+                        Box(0,-1.46f,0,1.10f,.31f,1.53f,Iron,false);
+                        Box(0,1.46f,0,1.10f,.31f,1.53f,Iron,false);
                         End();
                     }
-                    Begin("East trestle frame",mid.x,1.52f,mid.z,yaw);
+                    Begin("East trestle frame",mid.x,bottom,mid.z,yaw);
                 }
                 else Begin("Timber trestle bent "+i,mid.x,bottom,mid.z,yaw);
                 float h=RailY-bottom-.61f;
                 for(int s=-1;s<=1;s+=2)
                 {
-                    Box(s*1.22f,h*.5f,0,.58f,h,1.25f,Wood);
+                    Box(s*1.22f,h*.5f,0,.58f,h,i<2?2.22f:1.25f,Wood);
                     Beam(new(s*1.22f,.65f,0),new(-s*1.22f,h-.5f,0),.31f,.37f,Red);
                 }
-                Box(0,h+.15f,0,3.85f,.3f,1.6f,Dark);
+                Box(0,h+.15f,0,3.85f,.3f,i<2?2.6f:1.6f,Dark);
                 End(bottom<0);
                 Begin("Railway span "+i,mid.x,RailY-.155f,mid.z,yaw);
                 var forward=(b-a).normalized;
@@ -123,14 +125,17 @@ namespace DeadlyJenga.CastlePrototype
             Begin("Depot platform timber bent",-16.35f,2.5f,12.2f);
             foreach(int end in new[]{-1,1})
             {
-                Box(0,3.98f,end*2.75f,.84f,7.96f,.74f,Wood);
+                foreach(int side in new[]{-1,1})
+                    Box(side*.39f,3.82f,end*2.75f,.30f,7.64f,.74f,Wood);
+                Box(0,7.80f,end*2.75f,2.12f,.32f,.9f,Dark);
                 Beam(new(0,.75f,end*2.75f),new(0,7.3f,-end*2.75f),.27f,.27f,Dark);
             }
-            End();
+            var platformBent=End();
             Begin("Depot boarding platform",-16.35f,10.68f,12.2f);
             Box(0,0,0,3.2f,.44f,7.15f,Wood);
             for(int j=-4;j<=4;j++) Box(0,.231f,j*.81f,3.2f,.05f,.79f,Honey,false);
-            End();
+            foreach(int end in new[]{-1,1}) Round(0,.255f,end*2.75f,.14f,.035f,.14f,Iron);
+            Fasten(End(),platformBent);
             Stairs("Depot boarding stair",-8.74f,2.5f,14.38f,2.3f,8.4f,12,-90);
         }
         int Section(float d)

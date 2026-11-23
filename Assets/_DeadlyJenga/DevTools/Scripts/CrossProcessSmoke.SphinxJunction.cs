@@ -32,7 +32,7 @@ namespace DeadlyJenga.CastlePrototype
                 float end = Time.fixedTime + 1f;
                 while (Time.fixedTime < end)
                 {
-                    grab.Hold(grip + map.transform.right * 10);
+                    grab.Hold(grip + map.transform.forward * 9);
                     yield return new WaitForFixedUpdate();
                 }
                 grab.Release();
