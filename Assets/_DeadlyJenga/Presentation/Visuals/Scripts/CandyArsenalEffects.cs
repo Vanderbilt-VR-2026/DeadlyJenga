@@ -84,6 +84,11 @@ namespace DeadlyJenga.Presentation
                     effect.heat=Mathf.Min(1,effect.heat+.46f);
             }
             if(action.kind<=EquipmentKind.PoweredArmor)return;
+            if(action.action==EquipmentAction.Impact&&action.kind==EquipmentKind.LaserClaws)
+            {
+                ClawImpact(action);
+                return;
+            }
             if(action.action==EquipmentAction.Impact&&action.kind==EquipmentKind.DualUzi){EmitBlast(action);Spike(new EquipmentActionFrame{position=action.position,endpoints=new[]{action.position}});return;}
             if(action.action==EquipmentAction.Impact)
             {
