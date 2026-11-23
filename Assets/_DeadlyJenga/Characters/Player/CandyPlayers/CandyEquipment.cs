@@ -290,7 +290,8 @@ namespace DeadlyJenga.CandyPlayers
                         EquipmentKind.ChainGun=>new Vector3(0,CandyWeaponVisual.ChainGunBarrelHeight,CandyWeaponVisual.ChainGunMuzzleDepth),
                         EquipmentKind.Chainsaw when state.shotgun=>new Vector3(0,0,.78f),
                         EquipmentKind.NeedleDrill=>new Vector3(0,.12f,.72f),
-                        EquipmentKind.StockPistol or EquipmentKind.DualUzi=>new Vector3(0,.12f,.51f),
+                        EquipmentKind.StockPistol=>CandyWeaponVisual.StockPistolMuzzle,
+                        EquipmentKind.DualUzi=>new Vector3(0,.12f,.51f),
                         EquipmentKind.WristLaser=>new Vector3(0,.12f,.17f),
                         _=>new Vector3(0,EquipmentSpecifications.Get(state.kind).melee?0:.12f,.10f)
                     };

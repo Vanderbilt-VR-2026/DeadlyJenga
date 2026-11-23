@@ -20,7 +20,8 @@ namespace DeadlyJenga.DevTools.Editor
     {
         const string Key="ArsenalExpansion";
         static int checks,errors;static bool failed,completed;
-        static string Report=>ProjectPath.Report("ArsenalExpansion.txt");
+        static bool StockPistolOnly=>SessionState.GetBool(Key+"StockPistolOnly",false);
+        static string Report=>ProjectPath.Report(StockPistolOnly?"StockPistolArt.txt":"ArsenalExpansion.txt");
         sealed class PickupSource:IEquipmentPickupSource {public EquipmentKind Kind{get;set;}public Vector3 Position{get;set;}public float Duration{get;set;}=1;}
         [Serializable] sealed class Scenes{public SceneSetup[] values;}
         static ArsenalExpansionChecks()
@@ -47,12 +48,22 @@ namespace DeadlyJenga.DevTools.Editor
                     MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);
                     EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).values);
                     failed|=!completed;File.AppendAllText(Report,$"COMPLETE checks={checks} runtimeErrors={errors} failed={failed}. Desktop runtime; headset not tested.\n");
+                    if (StockPistolOnly && !string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
+                    {
+                        Directory.CreateDirectory("Logs/Warm");
+                        File.WriteAllText("Logs/Warm/exit.txt",failed||errors>0?"1":"0");
+                    }
                 }
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Arsenal Expansion")]
-        public static void Run()
+        public static void Run()=>Start(false);
+
+        public static void RunStockPistolArt()=>Start(true);
+
+        static void Start(bool needleOnly)
         {
+            SessionState.SetBool(Key+"StockPistolOnly",needleOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -60,7 +71,7 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
-            File.WriteAllText(Report,"Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
+            File.WriteAllText(Report,needleOnly?"Stock Pistol model and pink shot effects in Castle Demo.\n":"Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
         static void Log(string message,string trace,LogType kind)
@@ -82,6 +93,40 @@ namespace DeadlyJenga.DevTools.Editor
             }
             while(stack.Count>0)(stack.Pop() as IDisposable)?.Dispose();completed=!failed;EditorApplication.ExitPlaymode();
         }
+        static IEnumerator StockPistolArt(CastlePlaySession session,MatchModeRuntime runtime,
+            CastleSurvivor player,CastleSurvivor target)
+        {
+            const EquipmentKind kind=EquipmentKind.StockPistol;
+            Check(runtime.GiveEquipment(kind),"Production Stock Pistol equips");
+            target.Place(player.transform.position+Vector3.right*8,Quaternion.identity);
+            yield return new WaitForSeconds(.3f);
+            Check(Resources.Load<TextAsset>("StockPistolCompactArt")!=null,"Compact export imports as a Unity TextAsset");
+            Check(EquipmentModelData.Parts.TryGetValue(kind,out var parts)&&
+                parts.Any(p=>p.material&&p.material.name=="Lacquered black-cherry walnut")&&
+                parts.Any(p=>p.material&&p.material.name=="Fine antique gold inlay"),
+                "Production model uses the approved walnut and engraving");
+            var trails=session.GetComponent<DeadlyJenga.Presentation.CandyBulletTrails>();
+            Check(trails!=null,"Production feedback has a projectile trail pool");
+            var origin=player.ViewPose.position+Vector3.forward*.4f;
+            Physics.SyncTransforms();
+            Check(runtime.RequestEquipmentAttack(new Pose(origin,Quaternion.identity)),"Default Stock Pistol shot accepted");
+            var block=new MaterialPropertyBlock();
+            bool pink=false;
+            float deadline=Time.realtimeSinceStartup+2;
+            while (!pink && Time.realtimeSinceStartup<deadline)
+            {
+                yield return null;
+                foreach(var item in trails.GetComponentsInChildren<MeshRenderer>())
+                {
+                    if (item.name!="Visual bullet head") continue;
+                    item.GetPropertyBlock(block);
+                    var color=block.GetColor("_BaseColor");
+                    pink |= color.r>.9f && color.g<.1f && color.b>.35f;
+                }
+            }
+            Check(pink,"The production bullet renders hot pink");
+        }
+
         static IEnumerator Test()
         {
             var session=Object.FindFirstObjectByType<CastlePlaySession>();float until=Time.realtimeSinceStartup+30;
@@ -92,6 +137,11 @@ namespace DeadlyJenga.DevTools.Editor
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
             var created=session.SurvivorBots.SpawnOne();Check(created,"Target bot spawns");var target=created.GetComponent<CastleSurvivor>();target.GetComponent<CastleBotBrain>().enabled=false;target.InputSuspended=true;
             yield return new WaitForSeconds(.4f);
+            if (StockPistolOnly)
+            {
+                yield return StockPistolArt(session,runtime,player,target);
+                yield break;
+            }
             Check(EquipmentSpecifications.All.Length==Enum.GetValues(typeof(EquipmentKind)).Length,"Every serialized equipment kind has one shared specification");
             Check((int)EquipmentKind.PoweredArmor==8&&(int)EquipmentKind.Blaster==3,"Existing equipment wire identities stay unchanged");
             foreach(EquipmentKind kind in Enum.GetValues(typeof(EquipmentKind)))
