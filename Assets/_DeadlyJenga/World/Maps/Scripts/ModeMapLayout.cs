@@ -14,7 +14,7 @@ namespace DeadlyJenga.CastlePrototype
         public static int Height(string preset)=>preset==BlockSpiresLayout.Preset?BlockSpiresLayout.Summit:preset==ShrineTownLayout.Preset?14:preset==TycoonLayout.Preset?TycoonLayout.HeightCourses:preset==NinjaTempleLayout.Preset?NinjaTempleLayout.HeightCourses:preset=="infection"?48:preset=="koth"?32:preset=="survival"?20:preset=="territory"?16:preset=="ctf"?3:12;
         public static Vector2 Size(CastleSettings s)
         {
-            if(s.layoutPreset==BlockSpiresLayout.Preset)return new Vector2(17.5f,15.5f);
+            if(s.layoutPreset==BlockSpiresLayout.Preset)return new Vector2(19.8f,15.4f);
             if(s.layoutPreset==TycoonLayout.Preset)return TycoonLayout.Size;
             if(s.layoutPreset==ShrineTownLayout.Preset)return new Vector2(92,92);
             if(s.layoutPreset==NinjaTempleLayout.Preset)return NinjaTempleLayout.Size;

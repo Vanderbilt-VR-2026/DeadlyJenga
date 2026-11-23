@@ -17,6 +17,7 @@ namespace DeadlyJenga.CandyArt
         public Texture2D HeightMap=>heights;
         public Vector2 HalfSize{get;private set;}
         internal bool CompactSandbar { get; set; }
+        internal MeshCollider AuthoredBeach { get; set; }
         internal bool CatwalksBeach { get; set; }
         internal float BeachWaterOffset { get; set; }
         Vector2 coastHalf;
@@ -115,6 +116,7 @@ namespace DeadlyJenga.CandyArt
             Hash(profile.sandMargin);Hash(profile.sandRelief);Hash(profile.sandDepth);Hash(profile.sandShoreWidth);Hash(profile.islandRadius);
             if(shape!=null)Hash(shape.FootprintVersion);
             if(CatwalksBeach) Hash(BeachWaterOffset);
+            if(AuthoredBeach) Hash(AuthoredBeach.GetInstanceID());
             if(owned&&heights&&hash==signature)return;
             Release();feet.Clear();float half=shape!=null?shape.FootprintHalfSize:profile.islandRadius*.65f;
             // A softly oval natural island has room at its shoulders while covering the castle's corners.
@@ -122,7 +124,12 @@ namespace DeadlyJenga.CandyArt
             if(shape!=null){ground.Clear();shape.GetGroundFootprints(ground);
                 foreach(var piece in ground)feet.Add(new Foot{center=piece.center,half=piece.halfSize,rotation=Quaternion.Inverse(piece.rotation)});}
             if(CatwalksBeach) coastHalf=CastleCoastRadii(half);
-            if(CompactSandbar) coastHalf=new Vector2(half+2.2f,half+1.9f);
+            if (AuthoredBeach)
+            {
+                var bounds = AuthoredBeach.sharedMesh.bounds;
+                coastHalf = new Vector2(bounds.extents.x, bounds.extents.z) * .93f;
+            }
+            else if(CompactSandbar) coastHalf=new Vector2(half+2.2f,half+1.9f);
             HalfSize=coastHalf+Vector2.one*(CatwalksBeach?56f:profile.sandShoreWidth);
             BuildMesh();signature=hash;
         }
@@ -174,6 +181,14 @@ namespace DeadlyJenga.CandyArt
         }
         float SurfaceHeight(Vector2 p)
         {
+            if (AuthoredBeach)
+            {
+                float unit = Mathf.Abs(transform.lossyScale.y);
+                var start = transform.TransformPoint(new Vector3(p.x, 2, p.y));
+                if (AuthoredBeach.Raycast(new Ray(start, -transform.up), out var hit, 5 * unit))
+                    return transform.InverseTransformPoint(hit.point).y;
+                return BeachWaterOffset - .34f - Mathf.Clamp(ShapeDistance(p) * .22f, 0, 9f);
+            }
             float edge=ShapeDistance(p);
             float bank=-profile.sandDepth*Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.2f,profile.sandShoreWidth,edge));
             float support=SupportDistance(p);

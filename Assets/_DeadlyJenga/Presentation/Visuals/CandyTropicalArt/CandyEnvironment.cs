@@ -150,6 +150,7 @@ namespace DeadlyJenga.CandyArt
             {
                 terrain.CatwalksBeach=UsesCastleCoast;
                 terrain.CompactSandbar = UsesCastleCoast && MatchChoices.MapId == "block-spires";
+                terrain.AuthoredBeach = terrain.CompactSandbar && foundation ? foundation.GetComponent<MeshCollider>() : null;
                 terrain.BeachWaterOffset=waterLevel-sandTop;
                 terrain.profile=profile;var baseline=GetComponent<CandyArtBaseline>();
                 if(baseline)terrain.map=baseline.map;
