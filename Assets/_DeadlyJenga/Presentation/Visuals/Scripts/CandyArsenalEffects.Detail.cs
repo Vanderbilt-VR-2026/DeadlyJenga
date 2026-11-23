@@ -148,6 +148,7 @@ namespace DeadlyJenga.Presentation
         int shellWrite;
         Material shellMaterial;
         Mesh shellMesh;
+        MaterialPropertyBlock shellTint;
 
         static Vector3 ShotAnchor(EquipmentKind kind,bool alternate) => kind switch
         {
@@ -225,12 +226,13 @@ namespace DeadlyJenga.Presentation
                 }
             }
             var orientation=Quaternion.LookRotation(direction);
-            EmitMuzzle(origin,orientation,profile.tint,profile.length*scale,profile.sparks,action.id);
+            Color? ownerColor=CandyWeaponImpacts.SidearmOwnerColor(effectsRuntime,action);
+            EmitMuzzle(origin,orientation,ownerColor??profile.tint,profile.length*scale,profile.sparks,action.id);
             if(mounted&&action.kind==EquipmentKind.RocketLauncher)
                 EmitMuzzle(model.TransformPoint(new Vector3(0,.205f,-.43f)),
                     Quaternion.LookRotation(-model.forward),new Color(1,.32f,.07f),.70f*scale,8,action.id);
             if(mounted&&(action.kind==EquipmentKind.StockPistol||action.kind==EquipmentKind.CompactSidearm||action.kind==EquipmentKind.DualRifle||
-                action.kind==EquipmentKind.ChainGun))EjectShell(model,action,scale);
+                action.kind==EquipmentKind.ChainGun))EjectShell(model,action,scale,ownerColor);
         }
 
         void EmitMuzzle(Vector3 origin,Quaternion orientation,Color tint,float size,int sparks,int seed)
@@ -258,7 +260,7 @@ namespace DeadlyJenga.Presentation
             }
         }
 
-        void EjectShell(Transform weapon,EquipmentActionFrame action,float scale)
+        void EjectShell(Transform weapon,EquipmentActionFrame action,float scale,Color? ownerColor)
         {
             if(!shellMesh)
             {
@@ -276,6 +278,16 @@ namespace DeadlyJenga.Presentation
                 }
                 else{shell=shells[shellWrite];shellWrite=(shellWrite+1)%shells.Count;}
             }
+            var renderer=shell.model.GetComponent<MeshRenderer>();
+            if(ownerColor.HasValue)
+            {
+                shellTint??=new MaterialPropertyBlock();
+                shellTint.SetColor("_BaseColor",ownerColor.Value);
+                renderer.SetPropertyBlock(shellTint);
+            }
+            else
+                renderer.SetPropertyBlock(null);
+
             bool rotary=action.kind==EquipmentKind.ChainGun;
             bool rifle=action.kind==EquipmentKind.DualRifle;
             var port=rotary?new Vector3(.27f,-.19f,.23f):rifle?new Vector3(.086f,.10f,.14f):

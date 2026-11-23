@@ -55,6 +55,8 @@ namespace DeadlyJenga.Presentation
         public void Fire(Vector3 start,Vector3[] endpoints,bool shotgun)
             => Fire(start,endpoints,shotgun,EquipmentKind.None);
         public void Fire(Vector3 start,Vector3[] endpoints,bool shotgun,EquipmentKind kind)
+            => Fire(start,endpoints,shotgun,kind,null);
+        internal void Fire(Vector3 start,Vector3[] endpoints,bool shotgun,EquipmentKind kind,Color? ownerColor)
         {
             if(!enabled||!material||endpoints==null)return;
             bool needle=kind==EquipmentKind.NeedleDrill;
@@ -74,7 +76,7 @@ namespace DeadlyJenga.Presentation
                 if(bullet.contact)CandyWeaponImpacts.TryContact(bullet.end,delta,out bullet.surface);
                 bullet.head.gameObject.SetActive(true);bullet.trail.gameObject.SetActive(true);
                 bullet.head.position=start;bullet.head.rotation=Quaternion.LookRotation(delta);bullet.head.localScale=needle?new Vector3(.035f,.035f,.23f):new Vector3(shotgun?.075f:.09f,shotgun?.075f:.09f,shotgun?.17f:.27f);
-                Color color=needle?new Color(.72f,.80f,.87f):kind==EquipmentKind.ChainGun?new Color(1,.68f,.18f):shotgun?new Color(1,.43f,.09f,1):new Color(.24f,.88f,1,1);
+                Color color=ownerColor??(needle?new Color(.72f,.80f,.87f):kind==EquipmentKind.ChainGun?new Color(1,.68f,.18f):shotgun?new Color(1,.43f,.09f,1):new Color(.24f,.88f,1,1));
                 tint.Clear();tint.SetColor(BaseColor,color);tint.SetColor(ColorId,color);tint.SetColor("_EmissionColor",Color.Lerp(color,Color.white,.67f)*1.5f);
                 bullet.headRenderer.SetPropertyBlock(tint);bullet.trail.SetPropertyBlock(tint);
                 bullet.color=color;bullet.trail.startColor=Color.white;bullet.trail.endColor=new Color(1,1,1,.04f);
@@ -121,7 +123,7 @@ namespace DeadlyJenga.Presentation
                     {
                         Burst(end,(end-bullet.start).normalized,bullet.color,bullet.shotgun?4:10,true);
                         if(!impactView)impactView=GetComponent<CandyWeaponImpacts>();
-                        if(impactView)impactView.Surface(bullet.surface,bullet.kind);
+                        if(impactView)impactView.Surface(bullet.surface,bullet.kind,bullet.kind==EquipmentKind.CompactSidearm?bullet.color:(Color?)null);
                     }
                     ReleaseAt(i);continue;
                 }
