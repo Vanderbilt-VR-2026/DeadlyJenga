@@ -31,42 +31,44 @@ namespace DeadlyJenga.CastlePrototype
                     new Vector3(width * widthScale, courses * courseHeight, depth * widthScale)));
             }
 
-            void Tower(float x, float z, float radius, int platformCourse, CastleSection section, float merlons = 2f)
+            void Tower(float x, float z, float radius, int platformCourse, CastleSection section, float merlons = 2f, int purpleFrom = 0)
             {
                 float pier = radius * .65f;
                 float offset = radius - pier * .5f;
                 float clear = 2f * (radius - pier);
 
-                void Piers(int course, float courses)
+                void Piers(int course, float courses, CastleSection paint)
                 {
                     for (int sideX = -1; sideX <= 1; sideX += 2)
                     for (int sideZ = -1; sideZ <= 1; sideZ += 2)
-                        Block(x + sideX * offset, z + sideZ * offset, course, pier, pier, courses, section);
+                        Block(x + sideX * offset, z + sideZ * offset, course, pier, pier, courses, paint);
                 }
 
-                void Deck(int course)
+                void Deck(int course, CastleSection paint)
                 {
                     float stripWidth = 2f * radius / 3f;
                     for (int strip = -1; strip <= 1; strip++)
-                        Block(x + strip * stripWidth, z, course, stripWidth, 2f * radius, 1, section);
+                        Block(x + strip * stripWidth, z, course, stripWidth, 2f * radius, 1, paint);
                 }
 
                 for (int course = 0; course < platformCourse; course += 5)
                 {
-                    Deck(course);
-                    Piers(course + 1, 3);
+                    var piers = course < purpleFrom ? CastleSection.Corner : section;
+                    var band = course < purpleFrom ? CastleSection.Wall : section;
+                    Deck(course, band);
+                    Piers(course + 1, 3, piers);
 
                     // Each lintel spans two piers, and each deck strip above
                     // spans both lintels. Leaving the side bays open aids traversal.
                     for (int side = -1; side <= 1; side += 2)
-                        Block(x, z + side * offset, course + 4, 2f * radius, pier, 1, section);
+                        Block(x, z + side * offset, course + 4, 2f * radius, pier, 1, band);
                 }
 
                 if (merlons == 0)
                     return;
 
-                Deck(platformCourse);
-                Piers(platformCourse + 1, merlons);
+                Deck(platformCourse, section);
+                Piers(platformCourse + 1, merlons, section);
                 for (int side = -1; side <= 1; side += 2)
                 {
                     Block(x, z + side * offset, platformCourse + 1, clear, pier, .4f, section);
@@ -74,7 +76,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
 
-            void Gallery(bool alongX, float fixedAxis, float from, float to, int first, int last, bool redFeet = false)
+            void Gallery(bool alongX, float fixedAxis, float from, float to, int first, int last, bool redFeet = false, float deckThickness = 1, float yaw = 0, bool segmentedPosts = false)
             {
                 float start = Mathf.Min(from, to) + GalleryGap;
                 float end = Mathf.Max(from, to) - GalleryGap;
@@ -85,27 +87,42 @@ namespace DeadlyJenga.CastlePrototype
 
                 void Piece(float axis, float across, float course, float length, float width, float courses, CastleSection section)
                 {
-                    if (alongX) Block(axis, fixedAxis + across, course, length, width, courses, section);
+                    if (yaw != 0)
+                    {
+                        float radians = yaw * Mathf.Deg2Rad;
+                        float sine = Mathf.Sin(radians);
+                        float cosine = Mathf.Cos(radians);
+                        Block(axis * cosine + (fixedAxis + across) * sine,
+                            -axis * sine + (fixedAxis + across) * cosine, course, length, width, courses, section, yaw);
+                    }
+                    else if (alongX) Block(axis, fixedAxis + across, course, length, width, courses, section);
                     else Block(fixedAxis + across, axis, course, width, length, courses, section);
                 }
 
-                void Posts(int bottom, int courses)
+                void Posts(float bottom, float courses)
                 {
                     for (int endSide = -1; endSide <= 1; endSide += 2)
                     {
                         float axis = (start + end) * .5f + endSide * (span - bearing) * .5f;
+                        int segments = segmentedPosts ? Mathf.CeilToInt(courses / 1.5f) : 1;
+                        float segmentHeight = courses / segments;
                         for (int edge = -1; edge <= 1; edge += 2)
-                            Piece(axis, edge * .96f, bottom, bearing, 1.18f, courses, feet);
+                        for (int segment = 0; segment < segments; segment++)
+                            Piece(axis, edge * .96f, bottom + segment * segmentHeight,
+                                bearing, 1.18f, segmentHeight, feet);
                     }
                 }
 
-                Posts(0, first);
+                float middle = (start + end) * .5f;
+                float plinth = segmentedPosts ? .4f : 0;
+                if (plinth > 0)
+                    Piece(middle, 0, 0, span, deckWidth, plinth, CastleSection.Wall);
+                Posts(plinth, first + 1 - deckThickness - plinth);
                 for (int course = first; course <= last; course += 5)
                 {
-                    float middle = (start + end) * .5f;
-                    Piece(middle, 0, course, span, deckWidth, 1, CastleSection.Wall);
+                    Piece(middle, 0, course + 1 - deckThickness, span, deckWidth, deckThickness, CastleSection.Wall);
                     if (course < last)
-                        Posts(course + 1, 4);
+                        Posts(course + 1, 5 - deckThickness);
 
                     // Rails sit directly on the deck. The break before each
                     // bearing leaves a way between the deck and the window bays.
@@ -117,15 +134,15 @@ namespace DeadlyJenga.CastlePrototype
 
             void CentralKeep()
             {
-                const float centerZ = 6f;
-                const float shoulderWidth = 8.4f;
-                const float shaftRadius = 2.9f;
-                const float thickness = 1.05f;
-                const float shoulderCourse = 20f;
-                const float facetLength = 1.90f;
-                const float pierLength = .56f;
+                const float centerZ = 8.5f;
+                const float shoulderWidth = 13f;
+                const float shaftRadius = 5.1f;
+                const float thickness = 1.6f;
+                const float shoulderCourse = 25f;
+                const float facetLength = 3.46f;
+                const float pierLength = .94f;
                 const float pierOffset = (facetLength - pierLength) * .5f;
-                Tower(0, centerZ, CrownRadius, (int)shoulderCourse, CastleSection.Keep, 0);
+                Tower(0, centerZ, 5.7f, (int)shoulderCourse, CastleSection.Keep, 0);
                 for (int strip = -1; strip <= 1; strip++)
                     Block(strip * shoulderWidth / 3f, centerZ, shoulderCourse, shoulderWidth / 3f,
                         shoulderWidth, 1, CastleSection.Keep);
@@ -147,7 +164,7 @@ namespace DeadlyJenga.CastlePrototype
 
                     // Each faceted wall is built from short sills and lintels
                     // with a pair of posts under every lintel.
-                    for (int course = (int)shoulderCourse + 1; course < HeightCourses - 2; course += 4)
+                    for (int course = (int)shoulderCourse + 1; course < HeightCourses - 1; course += 4)
                     {
                         Facet(0, course, facetLength, 1);
                         Facet(-pierOffset, course + 1, pierLength, 2);
@@ -155,9 +172,21 @@ namespace DeadlyJenga.CastlePrototype
                         Facet(0, course + 3, facetLength, 1);
                     }
 
-                    Facet(0, HeightCourses - 2, facetLength, .7f);
-                    Facet(0, HeightCourses - 1.3f, .84f, 1.3f);
+                    Facet(0, HeightCourses - 1, 1.4f, 1);
                 }
+            }
+
+            void DiagonalGallery(float ax, float az, float ar, float bx, float bz, float br, int first, int last, bool segmentedPosts = false)
+            {
+                float yaw = Mathf.Atan2(az - bz, bx - ax) * Mathf.Rad2Deg;
+                float cosine = Mathf.Cos(yaw * Mathf.Deg2Rad);
+                float sine = Mathf.Sin(yaw * Mathf.Deg2Rad);
+                float axis = ax * cosine - az * sine;
+                float far = bx * cosine - bz * sine;
+                float perpendicular = ax * sine + az * cosine;
+                float projection = Mathf.Abs(cosine) + Mathf.Abs(sine);
+                Gallery(true, perpendicular, axis + ar * projection, far - br * projection,
+                    first, last, true, .75f, yaw, segmentedPosts);
             }
 
             CentralKeep();
@@ -172,28 +201,31 @@ namespace DeadlyJenga.CastlePrototype
                     .2f, slab % 2 == 0 ? CastleSection.Keep : CastleSection.Wall);
             foreach (int side in new[] { -1, 1 })
             {
-                Tower(side * 17, 21, CrownRadius, 35, CastleSection.Keep);
-                Tower(side * 26, -8, CrownRadius, 30, CastleSection.Keep);
+                Tower(side * 17, 21, CrownRadius, 40, CastleSection.Keep, 1.2f, 20);
+                Tower(side * 26, -8, CrownRadius, 35, CastleSection.Keep, 1.05f, 15);
                 Tower(side * 26, 8, GreenRadius, 30, CastleSection.Corner);
-                Tower(side * 26, 21, GreenRadius, 30, CastleSection.Corner);
-                Tower(side * 13, -8, GreenRadius, 30, CastleSection.Corner);
-                Tower(side * 13, 6, GreenRadius, 30, CastleSection.Corner);
-                Tower(side * 16.5f, FrontZ, GreenRadius, 25, CastleSection.Corner, 4);
-                Tower(side * 8.5f, FrontZ, FrontRadius, 15, CastleSection.Wall, .55f);
+                Tower(side * 26, 21, GreenRadius, 35, CastleSection.Corner, 3);
+                Tower(side * 10.8f, -8, GreenRadius, 30, CastleSection.Corner);
+                Tower(side * 10.8f, 6, GreenRadius, 35, CastleSection.Corner);
+                Tower(side * 17.5f, FrontZ, 1.95f, 25, CastleSection.Corner, 4);
+                Tower(side * 26.8f, -16, 2.2f, 25, CastleSection.Corner);
+                Tower(side * 8.5f, FrontZ, FrontRadius, 10, CastleSection.Wall, 1.4f);
 
                 Gallery(true, 21, side * (17 + CrownRadius), side * (26 - GreenRadius), 5, 30);
                 Gallery(false, side * 26, -8 + CrownRadius, 8 - GreenRadius, 5, 30);
                 Gallery(false, side * 26, 8 + GreenRadius, 21 - GreenRadius, 5, 30);
-                Gallery(true, -8, side * (13 + GreenRadius), side * (26 - CrownRadius), 5, 25);
-                Gallery(false, side * 13, -8 + GreenRadius, 6 - GreenRadius, 5, 30);
-                Gallery(true, 6, side * (13 - GreenRadius), side * 4.2f, 5, 30);
-                Gallery(true, FrontZ, side * (8.5f + FrontRadius), side * (16.5f - GreenRadius), 5, 15, true);
-                Gallery(false, side * 16.5f, FrontZ + GreenRadius, -8 - GreenRadius, 5, 20);
+                Gallery(true, -8, side * (10.8f + GreenRadius), side * (26 - CrownRadius), 5, 25);
+                Gallery(false, side * 10.8f, -8 + GreenRadius, 6 - GreenRadius, 5, 30);
+                Gallery(true, 6, side * (10.8f - GreenRadius), side * 6.5f, 5, 30);
+                Gallery(true, FrontZ, side * (8.5f + FrontRadius), side * (17.5f - 1.95f), 5, 10, true);
+                DiagonalGallery(side * 17.5f, FrontZ, 1.95f, side * 26.8f, -16, 2.2f, 3, 28, true);
+                DiagonalGallery(side * 26.8f, -16, 2.2f, side * 26, -8, CrownRadius, 3, 28, true);
+                DiagonalGallery(side * 17.5f, FrontZ, 1.95f, side * 10.8f, -8, GreenRadius, 5, 25);
 
                 // Longitudinal runs meet the ends of all three axial gates.
                 // The central opening stays clear down to the foundation.
-                Gallery(false, side * 3.25f, FrontZ + 1.55f, -11 - 1.55f, 3, 13, true);
-                Gallery(false, side * 3.25f, -11 + 1.55f, -1 - 1.55f, 3, 18, true);
+                Gallery(false, side * 3.25f, FrontZ + 1.55f, -11 - 1.55f, 3, 8);
+                Gallery(false, side * 3.25f, -11 + 1.55f, -1 - 1.55f, 3, 13, false, .60f);
 
                 // Four freestanding risers connect the pavers to the first cross deck.
                 for (int step = 0; step < 4; step++)
@@ -204,9 +236,9 @@ namespace DeadlyJenga.CastlePrototype
                 Block(side * 8.5f, -24.35f, 0, 2.1f, .4f, 1.5f, CastleSection.Wall);
             }
 
-            Gallery(true, FrontZ, -8.5f + FrontRadius, 8.5f - FrontRadius, 3, 13);
-            Gallery(true, -11, -5.4f, 5.4f, 3, 18, true);
-            Gallery(true, -1, -5.4f, 5.4f, 3, 23, true);
+            Gallery(true, FrontZ, -8.5f + FrontRadius, 8.5f - FrontRadius, 3, 8);
+            Gallery(true, -11, -5.4f, 5.4f, 3, 13, false, .55f);
+            Gallery(true, -1, -5.4f, 5.4f, 3, 18, false, .55f);
             return result;
         }
     }
