@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using DeadlyJenga.CandyArt;
 using UnityEngine;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.Polar
 {
@@ -10,7 +11,21 @@ namespace DeadlyJenga.Polar
         public Shader skyShader, waterShader;
         public Material icebergMaterial;
         public Texture2D horizon;
-        Material sky, sea, previousSky;
+        Material sky, sea, foam, previousSky;
+        Mesh foamMesh;
+        IWorldQuery world;
+        readonly List<Vector3> foamVertices=new List<Vector3>();
+        readonly List<Vector2> foamUv=new List<Vector2>();
+        readonly List<int> foamIndices=new List<int>();
+        readonly List<BoxCollider> iceContacts=new List<BoxCollider>();
+        int foamRevision=-1;
+        float nextFoam;
+        // Each practical follows the closest structural bearing through collapse and reset.
+        static readonly Vector3[] lampSites={new Vector3(-16,17.6f,18.8f),new Vector3(16,18.6f,14.8f),
+            new Vector3(0,11.8f,16.9f),new Vector3(16,3.9f,-6.6f)};
+        readonly Transform[] mounts=new Transform[4];
+        readonly Vector3[] offsets=new Vector3[4];
+        readonly Vector4[] lamps=new Vector4[4];
         Mesh seaMesh, bergMesh;
         GameObject scenery;
         CandyEnvironment environment;
@@ -25,11 +40,12 @@ namespace DeadlyJenga.Polar
             sky=new Material(skyShader); sea=new Material(waterShader);
             sky.SetTexture("_Horizon",horizon);
             scenery=new GameObject("Polar coast");scenery.transform.SetParent(transform,false);
-            seaMesh=new Mesh{name="Sapphire ocean"};
-            seaMesh.vertices=new[]{new Vector3(-580,.08f,-580),new Vector3(-580,.08f,580),
-                new Vector3(580,.08f,580),new Vector3(580,.08f,-580)};
-            seaMesh.triangles=new[]{0,1,2,0,2,3};seaMesh.RecalculateNormals();
+            seaMesh=OceanSurface();
             Render("Open sea",seaMesh,sea);
+            world=GetComponent<IWorldQuery>();
+            foam=new Material(waterShader);foam.SetFloat("_ContactFoam",1);
+            foamMesh=new Mesh{name="Foam around immersed ice"};foamMesh.MarkDynamic();
+            Render("Ice contact foam",foamMesh,foam);
             bergMesh=Icebergs();
             Render("Offshore ice field",bergMesh,icebergMaterial);
             Apply();
@@ -44,7 +60,9 @@ namespace DeadlyJenga.Polar
 
         void LateUpdate()
         {
-            if(!scenery || Time.unscaledTime<nextCheck)return;
+            if(!scenery)return;
+            if(Time.unscaledTime>=nextFoam){nextFoam=Time.unscaledTime+.18f;UpdateFoam();}
+            if(Time.unscaledTime<nextCheck)return;
             nextCheck=Time.unscaledTime+1;Apply();
         }
 
@@ -60,6 +78,97 @@ namespace DeadlyJenga.Polar
                 if(!hidden.ContainsKey(r))hidden.Add(r,r.enabled);
                 r.enabled=false;
             }
+        }
+
+        void UpdateFoam()
+        {
+            if(world==null)return;
+            int revision=(world as ISyncedWorld)?.Revision??0;
+            if(revision!=foamRevision)
+            {
+                foamRevision=revision;iceContacts.Clear();
+                BindPracticals();
+                foreach(var body in world.Blocks)
+                    if(body && body.TryGetComponent<BoxCollider>(out var box) && box.enabled)iceContacts.Add(box);
+            }
+            UpdatePracticals();
+            foamVertices.Clear();foamUv.Clear();foamIndices.Clear();
+            float seaY=transform.position.y+.08f;
+            foreach(var box in iceContacts)
+            {
+                if(!box || !box.gameObject.activeInHierarchy)continue;
+                Bounds b=box.bounds;
+                if(b.min.y>=seaY || b.max.y<=seaY)continue;
+                Vector3 local=transform.InverseTransformPoint(new Vector3(b.center.x,seaY+.035f,b.center.z));
+                int start=foamVertices.Count;
+                for(int k=0;k<=20;k++)
+                {
+                    float a=k*Mathf.PI*.1f,dx=Mathf.Cos(a),dz=Mathf.Sin(a);
+                    float shell=1/Mathf.Max(Mathf.Abs(dx)/Mathf.Max(.1f,b.extents.x),Mathf.Abs(dz)/Mathf.Max(.1f,b.extents.z));
+                    var dir=new Vector3(dx,0,dz);
+                    foamVertices.Add(local+dir*(shell-.09f));foamUv.Add(Vector2.zero);
+                    foamVertices.Add(local+dir*(shell+.82f));foamUv.Add(Vector2.right);
+                    if(k==20)continue;
+                    int v=start+k*2;
+                    foamIndices.Add(v);foamIndices.Add(v+2);foamIndices.Add(v+1);
+                    foamIndices.Add(v+1);foamIndices.Add(v+2);foamIndices.Add(v+3);
+                }
+            }
+            foamMesh.Clear();foamMesh.SetVertices(foamVertices);foamMesh.SetUVs(0,foamUv);
+            foamMesh.SetTriangles(foamIndices,0);
+        }
+
+        void BindPracticals()
+        {
+            for(int i=0;i<lampSites.Length;i++)
+            {
+                var at=transform.TransformPoint(lampSites[i]);float nearest=float.PositiveInfinity;
+                mounts[i]=null;
+                foreach(var body in world.Blocks)
+                {
+                    if(!body)continue;
+                    float d=(body.worldCenterOfMass-at).sqrMagnitude;
+                    if(d>=nearest)continue;
+                    nearest=d;mounts[i]=body.transform;
+                }
+                if(mounts[i])offsets[i]=mounts[i].InverseTransformPoint(at);
+            }
+        }
+
+        void UpdatePracticals()
+        {
+            for(int i=0;i<mounts.Length;i++)
+            {
+                if(!mounts[i] || !mounts[i].gameObject.activeInHierarchy){lamps[i]=Vector4.zero;continue;}
+                var at=mounts[i].TransformPoint(offsets[i]);
+                lamps[i]=new Vector4(at.x,at.y,at.z,1);
+            }
+            Shader.SetGlobalVectorArray("_NeedlefrostPracticals",lamps);
+        }
+
+        static Mesh OceanSurface()
+        {
+            // The fine central patch resolves chop near the player; the outside cells reach the horizon.
+            const int cells=80,stride=cells+1;
+            var verts=new Vector3[stride*stride];var tris=new int[cells*cells*6];
+            float Coordinate(int k)
+            {
+                if(k==0)return -580;
+                if(k==cells)return 580;
+                return (k-cells*.5f)*1.8f;
+            }
+            for(int z=0;z<stride;z++)
+            for(int x=0;x<stride;x++)
+            {
+                int v=z*stride+x;
+                verts[v]=new Vector3(Coordinate(x),.08f,Coordinate(z));
+                if(x==cells||z==cells)continue;
+                int t=(z*cells+x)*6;
+                tris[t]=v;tris[t+1]=v+stride;tris[t+2]=v+stride+1;
+                tris[t+3]=v;tris[t+4]=v+stride+1;tris[t+5]=v+1;
+            }
+            var mesh=new Mesh{name="Polar ocean chop"};mesh.vertices=verts;mesh.triangles=tris;
+            mesh.RecalculateBounds();return mesh;
         }
 
         static Mesh Icebergs()
@@ -103,7 +212,7 @@ namespace DeadlyJenga.Polar
             if(environment)environment.applyLighting=oldLighting;
             foreach(var pair in hidden)if(pair.Key)pair.Key.enabled=pair.Value;
             hidden.Clear();if(RenderSettings.skybox==sky)RenderSettings.skybox=previousSky;
-            Destroy(scenery);Destroy(seaMesh);Destroy(bergMesh);Destroy(sky);Destroy(sea);
+            Destroy(scenery);Destroy(seaMesh);Destroy(bergMesh);Destroy(foamMesh);Destroy(sky);Destroy(sea);Destroy(foam);
         }
     }
 }

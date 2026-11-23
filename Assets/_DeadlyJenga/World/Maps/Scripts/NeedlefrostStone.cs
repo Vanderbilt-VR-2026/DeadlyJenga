@@ -16,6 +16,8 @@ namespace DeadlyJenga.CastlePrototype
             foreach (Transform old in block.visualRoot) old.gameObject.SetActive(false);
             var visual = new GameObject(cut.ToString());
             visual.transform.SetParent(block.visualRoot,false);
+            if(cut==Cut.BridgeDeck || (cut==Cut.Vault && placement.Size.z<4))
+                Balustrades(block,visual.transform,placement.Size);
             if(cut==Cut.Flight)
             {
                 BuildFlight(block,visual,placement.Size.y);
@@ -50,6 +52,46 @@ namespace DeadlyJenga.CastlePrototype
                 socket.breakForce=180000;
                 socket.breakTorque=80000;
             }
+        }
+
+        static readonly Dictionary<Vector3,Mesh> railMeshes=new Dictionary<Vector3,Mesh>();
+
+        static void Balustrades(CastleBlock block,Transform parent,Vector3 size)
+        {
+            // An open rail on each side is carved with the span. The ends stay clear.
+            var pieces=new List<CombineInstance>();
+            if(!meshes.TryGetValue(Cut.Column,out var shaft) || !shaft)
+                meshes[Cut.Column]=shaft=Carve(Cut.Column);
+            if(!meshes.TryGetValue(Cut.Lintel,out var beam) || !beam)
+                meshes[Cut.Lintel]=beam=Carve(Cut.Lintel);
+            var contact=new GameObject("Balustrade survivor contacts");
+            contact.layer=Layers.Surface;contact.transform.SetParent(parent,false);
+            void Part(Vector3 at,Vector3 dimensions,Mesh mesh)
+            {
+                var local=new Vector3(at.x/size.x,.5f+at.y/size.y,at.z/size.z);
+                var scale=new Vector3(dimensions.x/size.x,dimensions.y/size.y,dimensions.z/size.z);
+                pieces.Add(new CombineInstance{mesh=mesh,transform=Matrix4x4.TRS(local,Quaternion.identity,scale)});
+                var physical=block.gameObject.AddComponent<BoxCollider>();physical.center=local;physical.size=scale;
+                var walk=contact.AddComponent<BoxCollider>();walk.center=local;walk.size=scale;
+            }
+            for(int side=-1;side<=1;side+=2)
+            {
+                float edge=side*(size.z*.5f-.13f),span=size.x-.28f;
+                for(int n=0;n<=8;n++)
+                {
+                    float x=span*(n/8f-.5f);
+                    Part(new Vector3(x,.26f,edge),new Vector3(.12f,.52f,.12f),shaft);
+                }
+                Part(new Vector3(0,.55f,edge),new Vector3(span+.14f,.075f,.14f),beam);
+            }
+            if(!railMeshes.TryGetValue(size,out var rails) || !rails)
+            {
+                rails=new Mesh{name="Carved bridge balustrades"};
+                rails.CombineMeshes(pieces.ToArray(),true,true);railMeshes[size]=rails;
+            }
+            var art=new GameObject("Open rail");art.transform.SetParent(parent,false);
+            art.AddComponent<MeshFilter>().sharedMesh=rails;
+            art.AddComponent<MeshRenderer>().sharedMaterial=block.sectionMaterial;
         }
 
         static readonly Dictionary<int,Mesh> flightMeshes=new Dictionary<int,Mesh>();

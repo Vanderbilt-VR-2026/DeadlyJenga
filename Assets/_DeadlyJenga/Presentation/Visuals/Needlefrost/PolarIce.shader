@@ -24,6 +24,7 @@ TEXTURE2D(_Grain); SAMPLER(sampler_Grain);
 CBUFFER_START(UnityPerMaterial)
 float4 _Tint; float _Glow;
 CBUFFER_END
+float4 _NeedlefrostPracticals[4];
 half4 frag(Vary i):SV_Target {
  UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
  float3 n=normalize(i.normal), v=normalize(GetWorldSpaceViewDir(i.world));
@@ -37,6 +38,13 @@ half4 frag(Vary i):SV_Target {
  ice+=rim*float3(.035,.13,.22);
  float channel=exp(-.34*abs(i.world.x))*exp(-.12*abs(i.world.y-5));
  ice+=channel*float3(0,.32,.58);
+ [unroll] for(int j=0;j<4;j++){
+   float3 delta=_NeedlefrostPracticals[j].xyz-i.world;
+   float dist2=max(dot(delta,delta),.04);
+   float lambert=.22+.78*saturate(dot(n,delta*rsqrt(dist2)));
+   float attenuation=_NeedlefrostPracticals[j].w*lambert/(1+dist2*.30);
+   ice+=attenuation*(j<2?float3(1.75,.56,.10):float3(.004,.94,1.55));
+ }
  return half4(lerp(ice,float3(2.2,.72,.105)*(1+.36*strata.g),_Glow),1);
 }
 ENDHLSL

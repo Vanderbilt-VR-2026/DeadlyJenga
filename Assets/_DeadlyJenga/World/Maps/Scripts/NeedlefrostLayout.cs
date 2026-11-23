@@ -7,7 +7,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         public const string Preset = "needlefrost-keep";
         // Courses describe the cut of the member, independent of its position in the stack.
-        public enum Cut { Pier, Slab, Column, Lintel, Step, Vault, Roof, Blade, LeftBlade, RightBlade, Lantern, Window, Portal, Flight, Tracery }
+        public enum Cut { Pier, Slab, Column, Lintel, Step, Vault, Roof, Blade, LeftBlade, RightBlade, Lantern, Window, Portal, Flight, Tracery, BridgeDeck }
         readonly List<CastlePlacement> parts = new List<CastlePlacement>(512);
         public static readonly Vector3[] Landings = {
             new Vector3(-16, 3, -15), new Vector3(16, 3, -15), new Vector3(-8, 6, 1),
@@ -29,15 +29,18 @@ namespace DeadlyJenga.CastlePrototype
             for (int row = 0; row < 6; row++)
             for (int bay = 1; bay <= 3; bay++)
             {
-                if (bay == 3 && (row == 0 || row == 5)) continue;
+                if (bay == 3 && (row == 0 || (row == 5 && side > 0))) continue;
                 float x = side * bay * 8, z = -19 + row * 8, top = 3 + 3 * (row / 2);
                 keep.Court(x,z,top);
                 // Recessed walk-in grotto between the back of the lower court and the next tier.
                 if(row==2 || row==4)keep.Grotto(x,z,top);
                 if(row==0 && (bay==1 || (side<0 && bay==2)))
                     keep.Headland(x,z-4,top,bay==1?4.6f:2.8f);
-                if ((row == 1 || row == 3) && (bay == 1 || bay == (side < 0 ? 2 : 3)))
-                    keep.Stair(x, top, z, 8, 3, 3.6f);
+                if(row==1 || row==3)
+                {
+                    if(bay==1 || (side<0 && bay==2))keep.Stair(x,top,z,8,3,3.6f);
+                    if(side>0 && bay==3)keep.Switchback(top,z,row==1);
+                }
                 if ((bay == 3 || row == 0) && row % 2 == 0)
                     keep.Lamp(x + side * 3, top, z - 2.8f);
             }
@@ -56,7 +59,7 @@ namespace DeadlyJenga.CastlePrototype
                 keep.Stone(side*3.65f,21.15f,15,2.35f,10,2.5f,side < 0 ? Cut.LeftBlade : Cut.RightBlade);
                 float z = side < 0 ? 17 : 13;
                 keep.Tower(side*16,z,9,side < 0 ? 6 : 7);
-                keep.Stone(side*8.55f, (side < 0 ? 15 : 16)-1, z, 8.05f, 1, 2.6f,Cut.Lintel);
+                keep.Stone(side*8.55f, (side < 0 ? 15 : 16)-1, z, 8.05f, 1, 2.6f,Cut.BridgeDeck);
                 // Bridge seats stand on the upper court; the central hall is reached by its side gallery.
                 for(int end=-1;end<=1;end+=2)
                     keep.Stone(side*8.55f + end*3.35f,9,z,1, (side < 0 ? 15 : 16)-10,2.5f,Cut.Column);
@@ -66,14 +69,14 @@ namespace DeadlyJenga.CastlePrototype
             for(int side=-1;side<=1;side+=2)
             {
                 keep.Stone(side*4.91f,6,-3,2.5f,.15f,1.0f,Cut.Flight,-side*90);
-                keep.Stone(side*4.91f,9,15,2.5f,.15f,1.0f,Cut.Flight,-side*90);
+                keep.Stone(side*4.91f,9,15,1.35f,.15f,1.0f,Cut.Flight,-side*90);
             }
             keep.Stone(-6.35f,15,17,2.45f,1.15f,3.7f,Cut.Flight,90);
             keep.Stone(6.35f,16,13,2.45f,.15f,3.7f,Cut.Flight,-90);
             // A lower camp under the right shelf, open to the ravine and sea.
             for(int tent=0;tent<2;tent++)
             {
-                float x=11+tent*5;
+                float x=11.8f+tent*4.4f;
                 for(int a=-1;a<=1;a+=2)
                 for(int b=-1;b<=1;b+=2)
                     keep.Stone(x+a*1.15f,3,-13+b*.8f,.28f,1.9f,.28f,Cut.Column);
@@ -126,6 +129,14 @@ namespace DeadlyJenga.CastlePrototype
             Stone(x,bottom,z,width,rise,length,Cut.Flight);
         }
 
+        void Switchback(float bottom,float z,bool eastbound)
+        {
+            // The outside route turns across the coastal shelf. Its landing meets the next court at the back.
+            float direction=eastbound?1:-1;
+            Stone(20,bottom,z+2.2f,3.55f,3,7,Cut.Flight,90*direction);
+            Stone(20+direction*4.55f,bottom,z+2.2f,2.1f,3,3.58f,Cut.Slab);
+        }
+
         void Crossing(float x,float top,float z,float width,float depth)
         {
             // One carved ice arch springs off the two banks. Its soffit is open in the middle.
@@ -156,9 +167,9 @@ namespace DeadlyJenga.CastlePrototype
                 float outboard=Mathf.Sign(x);
                 float flightX=x+outboard*(level==0 ? 4.4f : 6);
                 Stone(flightX,y,z,1.95f,story,6.6f,Cut.Flight,level==0?0:180);
-                Stone(flightX,y+story-.35f,z+(level==0?3.65f:-3.65f),3.15f,.35f,.7f,Cut.Lintel);
+                Stone(flightX,y+story-.35f,z+(level==0?3.76f:-3.76f),3.15f,.35f,.7f,Cut.Lintel);
                 // Both landing posts bear on the court, including the end of the upper return.
-                Stone(flightX,bottom,z+(level==0?3.65f:-3.65f),1.4f,y+story-.35f-bottom,.68f,Cut.Column);
+                Stone(flightX,bottom,z+(level==0?3.76f:-3.76f),1.4f,y+story-.35f-bottom,.68f,Cut.Column);
                 if(level==0)
                 {
                     // Rear wall of the outboard stair carries the upper return flight.

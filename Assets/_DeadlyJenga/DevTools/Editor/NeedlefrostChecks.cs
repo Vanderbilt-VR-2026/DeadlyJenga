@@ -80,7 +80,7 @@ namespace DeadlyJenga.DevTools.Editor
             var oldUpper=upper.position;upper.GetComponent<IPushable>().Push(Vector3.forward*16,null);
             yield return new WaitForSeconds(.8f);
             float upperTravel=Vector3.Distance(upper.position,oldUpper);
-            yield return WalkKeep(motor,new Vector3(24,3.1f,-16),new[]{new Vector3(24,6,-5)},result=>routes &= result,"east ascent after upper crossing loss");
+            yield return WalkKeep(motor,new Vector3(16,3.1f,-8.8f),new[]{new Vector3(24.3f,6,-8.8f),new Vector3(24.3f,6,-5)},result=>routes &= result,"east ascent after upper crossing loss");
             bool eliminated=false;
             void Observe(GameObject who,GameObject source){if(who==motor.gameObject)eliminated=true;}
             GameEvents.Eliminated+=Observe;
