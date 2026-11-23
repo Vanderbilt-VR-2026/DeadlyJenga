@@ -15,9 +15,15 @@ namespace DeadlyJenga.Presentation
         const int Capacity=224;
         readonly List<Bullet> active=new List<Bullet>();
         readonly Stack<Bullet> pool=new Stack<Bullet>();
-        Material material,ribbon,sparkMaterial;Mesh mesh;ParticleSystem sparks;
+        Material material,ribbon,sparkMaterial,chipMaterial;
+        Mesh mesh,chipMesh;
+        ParticleSystem sparks,chips;
+        static readonly Color SheriffAmber=new Color(1,.48f,.085f);
+        static readonly Color SheriffCore=new Color(1,.83f,.49f);
         MaterialPropertyBlock tint;CandyWeaponImpacts impactView;
         static readonly int BaseColor=Shader.PropertyToID("_BaseColor"),ColorId=Shader.PropertyToID("_Color");
+        static readonly AnimationCurve SheriffTaper=new AnimationCurve(new Keyframe(0,1),new Keyframe(.35f,.61f),new Keyframe(1,0));
+        static readonly AnimationCurve DefaultTaper=new AnimationCurve(new Keyframe(0,.85f),new Keyframe(.36f,1),new Keyframe(1,.08f));
         public int ActiveCount=>active.Count;
         public int AllocatedCount=>active.Count+pool.Count;
         void Awake()
@@ -38,6 +44,52 @@ namespace DeadlyJenga.Presentation
             var renderer=emitter.GetComponent<ParticleSystemRenderer>();renderer.sharedMaterial=sparkMaterial;renderer.renderMode=ParticleSystemRenderMode.Stretch;renderer.lengthScale=1.6f;renderer.velocityScale=.08f;
             renderer.shadowCastingMode=ShadowCastingMode.Off;emitter.SetActive(false);
             mesh=BuildHead();
+            var chipShader=Shader.Find("Universal Render Pipeline/Particles/Lit");
+            if(chipShader)CreateCandyChips(chipShader);
+        }
+        void CreateCandyChips(Shader shader)
+        {
+            chipMaterial=new Material(shader){name="Sheriff strawberry candy chips"};
+            chipMaterial.SetColor(BaseColor,Color.white);
+            chipMaterial.SetFloat("_Smoothness",.42f);
+
+            var emitter=new GameObject("Pooled Sheriff candy chips");
+            emitter.transform.SetParent(transform,false);
+            chips=emitter.AddComponent<ParticleSystem>();
+            chips.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main=chips.main;
+            main.loop=false;
+            main.playOnAwake=false;
+            main.simulationSpace=ParticleSystemSimulationSpace.World;
+            main.maxParticles=96;
+            main.gravityModifier=.85f;
+            var emission=chips.emission;
+            emission.enabled=false;
+            var shape=chips.shape;
+            shape.enabled=false;
+            var spin=chips.rotationOverLifetime;
+            spin.enabled=true;
+            spin.z=new ParticleSystem.MinMaxCurve(-8,8);
+            var shrink=chips.sizeOverLifetime;
+            shrink.enabled=true;
+            shrink.size=new ParticleSystem.MinMaxCurve(1,AnimationCurve.Linear(0,1,1,0));
+
+            var points=new[]{new Vector3(-.48f,-.25f,-.30f),new Vector3(.52f,-.20f,-.22f),
+                new Vector3(.13f,-.17f,.43f),new Vector3(-.10f,.62f,.04f)};
+            var corners=new[]{0,1,2,0,3,1,1,3,2,2,3,0};
+            var vertices=new Vector3[corners.Length];
+            for(int i=0;i<corners.Length;i++)vertices[i]=points[corners[i]];
+            chipMesh=new Mesh{name="Faceted candy shard",vertices=vertices,
+                triangles=new[]{0,1,2,3,4,5,6,7,8,9,10,11}};
+            chipMesh.RecalculateNormals();
+            chipMesh.RecalculateBounds();
+            var renderer=emitter.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode=ParticleSystemRenderMode.Mesh;
+            renderer.mesh=chipMesh;
+            renderer.sharedMaterial=chipMaterial;
+            renderer.shadowCastingMode=ShadowCastingMode.Off;
+            renderer.receiveShadows=false;
+            emitter.SetActive(false);
         }
         static Mesh BuildHead()
         {
@@ -58,6 +110,7 @@ namespace DeadlyJenga.Presentation
         {
             if(!enabled||!material||endpoints==null)return;
             bool needle=kind==EquipmentKind.NeedleDrill;
+            bool sheriff=kind==EquipmentKind.SheriffHammer;
             float range=kind==EquipmentKind.None?0:shotgun&&kind==EquipmentKind.DualRifle?14:shotgun&&kind==EquipmentKind.SheriffHammer?18:EquipmentSpecifications.Get(kind).range;
             int count=Mathf.Min(7,endpoints.Length);
             for(int i=0;i<count;i++)
@@ -74,12 +127,17 @@ namespace DeadlyJenga.Presentation
                 if(bullet.contact)CandyWeaponImpacts.TryContact(bullet.end,delta,out bullet.surface);
                 bullet.head.gameObject.SetActive(true);bullet.trail.gameObject.SetActive(true);
                 bullet.head.position=start;bullet.head.rotation=Quaternion.LookRotation(delta);bullet.head.localScale=needle?new Vector3(.035f,.035f,.23f):new Vector3(shotgun?.075f:.09f,shotgun?.075f:.09f,shotgun?.17f:.27f);
-                Color color=needle?new Color(.72f,.80f,.87f):kind==EquipmentKind.ChainGun?new Color(1,.68f,.18f):shotgun?new Color(1,.43f,.09f,1):new Color(.24f,.88f,1,1);
+                Color color=sheriff?SheriffAmber:needle?new Color(.72f,.80f,.87f):kind==EquipmentKind.ChainGun?new Color(1,.68f,.18f):shotgun?new Color(1,.43f,.09f,1):new Color(.24f,.88f,1,1);
                 tint.Clear();tint.SetColor(BaseColor,color);tint.SetColor(ColorId,color);tint.SetColor("_EmissionColor",Color.Lerp(color,Color.white,.67f)*1.5f);
                 bullet.headRenderer.SetPropertyBlock(tint);bullet.trail.SetPropertyBlock(tint);
                 bullet.color=color;bullet.trail.startColor=Color.white;bullet.trail.endColor=new Color(1,1,1,.04f);
-                if(i==0&&range>0)Burst(start,delta.normalized,color,shotgun?12:7,false);
-                bullet.trail.widthMultiplier=needle?.058f:shotgun?.12f:.17f;
+                bullet.trail.widthCurve=sheriff?SheriffTaper:DefaultTaper;
+                if(i==0&&range>0)
+                {
+                    if(sheriff)SheriffFlash(start,delta.normalized,shotgun);
+                    else Burst(start,delta.normalized,color,shotgun?12:7,false);
+                }
+                bullet.trail.widthMultiplier=sheriff?(shotgun?.083f:.115f):needle?.058f:shotgun?.12f:.17f;
                 bullet.trail.SetPosition(0,start);bullet.trail.SetPosition(1,start);active.Add(bullet);
             }
         }
@@ -97,6 +155,36 @@ namespace DeadlyJenga.Presentation
                     startSize=(impact?.12f:.085f)*(i==0?2:1),startLifetime=(impact?.21f:.10f)+i*.011f,startColor=color},1);
             }
         }
+        void SheriffFlash(Vector3 point,Vector3 forward,bool shotgun)
+        {
+            Burst(point,forward,SheriffAmber,shotgun?12:9,false);
+            if(!sparks)return;
+            sparks.Emit(new ParticleSystem.EmitParams
+            {
+                position=point+forward*.04f,velocity=forward*4.3f,startColor=SheriffCore,
+                startSize=shotgun?.19f:.145f,startLifetime=.055f
+            },1);
+        }
+        void CandyChipBurst(CandyWeaponImpacts.SurfaceContact contact,Vector3 point)
+        {
+            if(!chips||!contact.anchor||contact.layer!=Layers.Block)return;
+            if(!chips.gameObject.activeSelf)chips.gameObject.SetActive(true);
+            if(chips.isStopped)chips.Play();
+            var pose=contact.anchor.localToWorldMatrix*contact.localFrame;
+            var rotation=Quaternion.LookRotation((Vector3)pose.GetColumn(2));
+            for(int i=0;i<7;i++)
+            {
+                float angle=i*2.39996f;
+                var scatter=rotation*new Vector3(Mathf.Cos(angle),Mathf.Sin(angle),.73f);
+                chips.Emit(new ParticleSystem.EmitParams
+                {
+                    position=point,velocity=scatter*(1.35f+i*.33f),
+                    startSize=.041f+i%3*.014f,startLifetime=.20f+i*.026f,
+                    startColor=i%3==0?new Color(.99f,.57f,.66f):new Color(.79f,.24f,.39f),
+                    rotation=i*63
+                },1);
+            }
+        }
         static bool Finite(Vector3 p)=>!float.IsNaN(p.sqrMagnitude)&&!float.IsInfinity(p.sqrMagnitude);
         Bullet Create()
         {
@@ -105,12 +193,13 @@ namespace DeadlyJenga.Presentation
             var renderer=root.AddComponent<MeshRenderer>();renderer.sharedMaterial=material;renderer.shadowCastingMode=ShadowCastingMode.Off;renderer.receiveShadows=false;
             var line=new GameObject("Visual bullet trail");line.transform.SetParent(transform,false);
             var trail=line.AddComponent<LineRenderer>();trail.sharedMaterial=ribbon;trail.positionCount=2;trail.useWorldSpace=true;
-            trail.shadowCastingMode=ShadowCastingMode.Off;trail.receiveShadows=false;trail.numCapVertices=0;trail.widthCurve=new AnimationCurve(new Keyframe(0,.85f),new Keyframe(.36f,1),new Keyframe(1,.08f));
+            trail.shadowCastingMode=ShadowCastingMode.Off;trail.receiveShadows=false;trail.numCapVertices=0;
             return new Bullet{head=root.transform,headRenderer=renderer,trail=trail};
         }
         void Update()
         {
             if(sparks&&sparks.gameObject.activeSelf&&sparks.particleCount==0)sparks.gameObject.SetActive(false);
+            if(chips&&chips.gameObject.activeSelf&&chips.particleCount==0)chips.gameObject.SetActive(false);
             for(int i=active.Count-1;i>=0;i--)
             {
                 var bullet=active[i];bullet.age+=Time.deltaTime;
@@ -120,6 +209,7 @@ namespace DeadlyJenga.Presentation
                     if(bullet.contact)
                     {
                         Burst(end,(end-bullet.start).normalized,bullet.color,bullet.shotgun?4:10,true);
+                        if(bullet.kind==EquipmentKind.SheriffHammer)CandyChipBurst(bullet.surface,end);
                         if(!impactView)impactView=GetComponent<CandyWeaponImpacts>();
                         if(impactView)impactView.Surface(bullet.surface,bullet.kind);
                     }
@@ -135,7 +225,26 @@ namespace DeadlyJenga.Presentation
         {
             var bullet=active[i];bullet.head.gameObject.SetActive(false);bullet.trail.gameObject.SetActive(false);pool.Push(bullet);active.RemoveAt(i);
         }
-        void OnDisable(){while(active.Count>0)ReleaseAt(active.Count-1);if(sparks){sparks.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);sparks.gameObject.SetActive(false);}}
-        void OnDestroy(){if(material)Destroy(material);if(mesh)Destroy(mesh);if(ribbon)Destroy(ribbon);if(sparkMaterial)Destroy(sparkMaterial);}
+        void OnDisable()
+        {
+            while(active.Count>0)ReleaseAt(active.Count-1);
+            ClearEmitter(sparks);
+            ClearEmitter(chips);
+        }
+        static void ClearEmitter(ParticleSystem emitter)
+        {
+            if(!emitter)return;
+            emitter.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+            emitter.gameObject.SetActive(false);
+        }
+        void OnDestroy()
+        {
+            if(material)Destroy(material);
+            if(mesh)Destroy(mesh);
+            if(ribbon)Destroy(ribbon);
+            if(sparkMaterial)Destroy(sparkMaterial);
+            if(chipMaterial)Destroy(chipMaterial);
+            if(chipMesh)Destroy(chipMesh);
+        }
     }
 }
