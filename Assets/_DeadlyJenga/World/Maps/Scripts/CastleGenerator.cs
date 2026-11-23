@@ -427,6 +427,8 @@ namespace DeadlyJenga.CastlePrototype
             }
             if (Application.isPlaying && settings.layoutPreset == ShrineTownLayout.Preset)
                 ShrineTownLayout.JoinTimberFrames(layout, Bodies);
+            if (Application.isPlaying && settings.layoutPreset == NeedlefrostLayout.Preset)
+                NeedlefrostLayout.JoinSculptedSeats(layout, Bodies);
             Physics.SyncTransforms();
             if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)
                 tycoonSupports = TycoonSupports.Build(generatedRoot, Bodies);

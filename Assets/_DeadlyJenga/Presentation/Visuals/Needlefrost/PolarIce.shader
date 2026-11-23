@@ -3,6 +3,7 @@ Properties { _Tint("Ice colour", Color)=(.22,.55,.8,1)
 _Grain("Glacier grain",2D)="white" {}
 _Glow("Lamp",Float)=0
 _Crystal("Crystal facets",Range(0,1))=0
+_Metal("Bronze fitting",Float)=0
 [HideInInspector] _Cull("Cull",Float)=2 }
 SubShader { Tags { "RenderPipeline"="UniversalPipeline"  }
 Pass {
@@ -26,7 +27,7 @@ float noise(float2 p){float2 i=floor(p),f=frac(p); f=f*f*(3-2*f);
 
 TEXTURE2D(_Grain); SAMPLER(sampler_Grain);
 CBUFFER_START(UnityPerMaterial)
-float4 _Tint; float _Glow; float _Crystal;
+float4 _Tint; float _Glow; float _Crystal; float _Metal;
 CBUFFER_END
 float4 _NeedlefrostPracticals[4];
 half4 frag(Vary i):SV_Target {
@@ -46,6 +47,8 @@ half4 frag(Vary i):SV_Target {
  float glint=pow(saturate(dot(reflect(-v,n),normalize(float3(.3,.84,-.42)))),18);
  float3 crystal=lerp(float3(.018,.13,.38),float3(.48,.83,1.32),facet*.86+strata.b*.14);
  ice=lerp(ice,crystal+float3(.48,.85,1.2)*(rim+glint)+strata*.14,_Crystal*.91);
+ float snowLip=smoothstep(.31,.49,i.local.y+(strata.g-.48)*.13)*(1-top);
+ ice=lerp(ice,float3(.67,.83,1)*(.72+.33*strata.b),snowLip*.72*(1-_Crystal));
  float channel=exp(-.34*abs(i.world.x))*exp(-.12*abs(i.world.y-5));
  ice+=channel*float3(0,.32,.58);
  [unroll] for(int j=0;j<4;j++){
@@ -56,6 +59,7 @@ half4 frag(Vary i):SV_Target {
    ice+=attenuation*(j<2?float3(1.75,.56,.10):float3(.004,.94,1.55));
  }
  float3 amber=lerp(float3(1.35,.23,.025),float3(3.2,1.39,.25),saturate(.68*n.y+.56*strata.g+.1));
+ ice=lerp(ice,_Tint.rgb*(.33+.85*key)+float3(1,.64,.24)*(glint+rim*.38),_Metal);
  return half4(lerp(ice,amber,_Glow),1);
 }
 ENDHLSL

@@ -6,7 +6,7 @@ using DeadlyJenga.Core;
 namespace DeadlyJenga.Polar
 {
     [DefaultExecutionOrder(980)]
-    public sealed class NeedlefrostArt : MonoBehaviour
+    public sealed partial class NeedlefrostArt : MonoBehaviour
     {
         public Shader skyShader, waterShader;
         public Material icebergMaterial;
@@ -88,6 +88,7 @@ namespace DeadlyJenga.Polar
             {
                 foamRevision=revision;iceContacts.Clear();
                 BindPracticals();
+                BindChandeliers();
                 foreach(var body in world.Blocks)
                     if(body && body.TryGetComponent<BoxCollider>(out var box) && box.enabled)iceContacts.Add(box);
             }
@@ -213,6 +214,7 @@ namespace DeadlyJenga.Polar
         void OnDisable()
         {
             if(!scenery)return;
+            ReleaseChandeliers();
             if(environment)environment.applyLighting=oldLighting;
             foreach(var pair in hidden)if(pair.Key)pair.Key.enabled=pair.Value;
             hidden.Clear();if(RenderSettings.skybox==sky)RenderSettings.skybox=previousSky;

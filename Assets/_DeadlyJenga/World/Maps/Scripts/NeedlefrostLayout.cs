@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    internal sealed class NeedlefrostLayout
+    internal sealed partial class NeedlefrostLayout
     {
         public const string Preset = "needlefrost-keep";
         // Courses describe the cut of the member, independent of its position in the stack.
@@ -59,11 +59,9 @@ namespace DeadlyJenga.CastlePrototype
             keep.Stone(0,9.15f,18.0f,6.1f,6,.65f,Cut.Portal);
             keep.Gallery(0,16.15f,15,9,7,5);
             keep.Stone(0,16.15f,11.85f,6.8f,4,.65f,Cut.Portal);
-            keep.Stone(0,21.15f,15,5,4,6,Cut.Roof);
-            keep.Stone(0,25.15f,15,2.95f,11,2.7f,Cut.Blade);
+            keep.GrandKeep();
             for (int side = -1; side <= 1; side += 2)
             {
-                keep.Stone(side*3.65f,21.15f,15,2.35f,10,2.5f,side < 0 ? Cut.LeftBlade : Cut.RightBlade);
                 float z = side < 0 ? 17 : 13;
                 if(side<0)
                 {
@@ -111,6 +109,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             for(int i=-2;i<=2;i++)
                 keep.Stone(i*1.45f,16.15f,17.32f,.7f,3.25f,.48f,Cut.Window);
+            keep.OuterTerraces();
             return keep.parts;
         }
 
@@ -221,14 +220,7 @@ namespace DeadlyJenga.CastlePrototype
                     Stone(flightX+outboard*1.6f,y+story-.55f,z,1.2f,.55f,6.6f,Cut.Lintel);
                 }
             }
-            float roof=bottom+story*2;
-            // The four small pinnacles have separate bearing pads beyond the main roof.
-            float roofHeight=x<0?9.5f:7.4f;
-            Stone(x,roof,z,5.15f,roofHeight,5.15f,Cut.Roof);
-            Stone(x,roof+roofHeight,z,1.25f,3.7f,1.25f,Cut.Blade);
-            for(int a=-1;a<=1;a+=2)
-            for(int b=-1;b<=1;b+=2)
-                Stone(x+a*2.85f,roof,z+b*2.85f,.7f,3.4f,.7f,Cut.Blade);
+            UpperPavilion(x,z,bottom+story*2,x<0?6.25f:6.9f);
         }
 
         void Lamp(float x,float y,float z)

@@ -12,6 +12,12 @@ namespace DeadlyJenga.DevTools.Editor
     public static partial class MayhemMarinaChecks
     {
         const string KeepKey="NeedlefrostPhysics";
+        const string PeerKey="NeedlefrostPeers";
+        public static void RunNeedlefrostWithPeers()
+        {
+            SessionState.SetBool(PeerKey,true);
+            RunNeedlefrost();
+        }
         public static void RunNeedlefrost()
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Report));
@@ -23,6 +29,8 @@ namespace DeadlyJenga.DevTools.Editor
 
         static IEnumerator RunKeepScene()
         {
+            bool verifyPeers=SessionState.GetBool(PeerKey,false);
+            SessionState.EraseBool(PeerKey);
             yield return RunSoloScene();
             MatchSetup.MapId="mode-needlefrost-keep";MatchSetup.ModeId="demo";
             Check(MatchSetup.SelectedMap?.title=="Needlefrost Keep","Needlefrost registered in live catalog");
@@ -43,7 +51,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
             motor.Place(spawn,Quaternion.identity);
             yield return new WaitForSeconds(3);
-            var eye=new Vector3(0,20.5f,-98);var target=new Vector3(-9.28f,8.72f,2);
+            var eye=new Vector3(4.7f,29.7f,-122);var target=new Vector3(-5.7f,15.8f,2);
             const float overviewFov=30;
             var menu=Object.FindFirstObjectByType<CastleWorldMenu>();
             var tablet=menu?menu.GetComponentInParent<Canvas>():null;
@@ -56,6 +64,8 @@ namespace DeadlyJenga.DevTools.Editor
                 Capture(new Vector3(12.8f,4.35f,-15),new Vector3(10,5,-9),70,"Needlefrost-Camp.png");
                 Capture(new Vector3(.3f,7.55f,-3),new Vector3(0,12,16),67,"Needlefrost-Bridge.png");
                 Capture(new Vector3(15,17.4f,12),new Vector3(-2,15,16),75,"Needlefrost-Tower.png");
+                Capture(new Vector3(2.5f,26,-62),new Vector3(0,27,14),36,"Needlefrost-GrandCastle.png");
+                Capture(new Vector3(38.7f,3.9f,-20.5f),new Vector3(37,6.2f,-9),66,"Needlefrost-EastTerraces.png");
             }
             finally{if(tabletVisible)tablet.enabled=true;}
             var westFlight=map.Bodies[placements.FindIndex(p=>p.Position.x==-8 && p.Position.z==-11 && p.Size.y==3)];
@@ -67,6 +77,20 @@ namespace DeadlyJenga.DevTools.Editor
             foreach(var index in Enumerable.Range(0,placements.Count).OrderByDescending(i=>Vector3.Distance(map.Bodies[i].position,map.transform.TransformPoint(placements[i].Position))).Take(6))
                 File.AppendAllText(Report,$"Settle #{index} course {placements[index].Course} home {placements[index].Position} actual {map.Bodies[index].position}\n");
             File.AppendAllText(Report,"Initial maximum drift "+drift+" m; bodies "+placements.Count+"\n");
+            int sculptures = 0, seated = 0;
+            for (int i = 0; i < placements.Count; i++)
+            {
+                if (placements[i].Course < 100) continue;
+                var body = map.Bodies[i];
+                if (body.GetComponent<MeshCollider>()?.sharedMesh) sculptures++;
+                var seam = body.GetComponent<FixedJoint>();
+                if (seam && seam.connectedBody && !body.isKinematic) seated++;
+            }
+            File.AppendAllText(Report,$"Blender sculpted members {sculptures}; breakable seats {seated}\n");
+            bool outerRoute = false;
+            yield return WalkKeep(motor, new Vector3(38.48f,3.1f,-19.65f), new[]{
+                new Vector3(38.7f,4.89f,-14.55f), new Vector3(39.4f,4.89f,-12.95f)
+            },result=>outerRoute = result,"Blender east outer shelf ascent");
             bool routes=west && east && low && flightGrip;
             yield return WalkKeep(motor,new Vector3(-8,3.1f,-16),new[]{new Vector3(-8,6,-5),new Vector3(-6,6,-3),
                 new Vector3(0,6.15f,-3),new Vector3(7,6,-3)},result=>routes &= result,"intact coast stair and low bridge");
@@ -90,6 +114,18 @@ namespace DeadlyJenga.DevTools.Editor
                 Capture(eye,target,overviewFov,"Needlefrost-Fracture-"+i+".png");
             }
             float fall=deckY-deck.position.y;
+            int eastPierIndex=placements.FindIndex(p=>Mathf.Abs(p.Position.x-40.76f)<.02f &&
+                p.Position.z==-22 && p.Position.y<1);
+            int eastDeckIndex=placements.FindIndex(p=>Mathf.Abs(p.Position.x-40.76f)<.02f &&
+                p.Position.z==-22 && p.Position.y>1);
+            var eastPier=map.Bodies[eastPierIndex];
+            var eastDeck=map.Bodies[eastDeckIndex];
+            float eastBefore=eastDeck.position.y;
+            eastPier.GetComponent<IPushable>().Push(Vector3.back*48,null);
+            eastDeck.WakeUp();
+            yield return new WaitForSeconds(.85f);
+            float eastFall=eastBefore-eastDeck.position.y;
+            File.AppendAllText(Report,$"Outer east deck fell {eastFall:F2} m after its socket load\n");
             var bridge=map.Bodies[placements.FindIndex(p=>p.Position.x==0 && p.Position.z==-3)];
             bridge.GetComponent<IPushable>().Push(Vector3.forward*12,null);
             yield return new WaitForSeconds(1);
@@ -124,7 +160,11 @@ namespace DeadlyJenga.DevTools.Editor
             Check(placements.Count==map.Bodies.Count,"Reset restores physical body count");
             bool bot=session.SurvivorBots.SpawnOne();
             File.AppendAllText(Report,$"Coast fall {fall:F2} m; ascent remaining {walk:F2} m; bot spawn {bot}\n");
+            Check(sculptures == 7 && seated == 7, "Seven sculpted Blender members retain individual dynamic bodies and breakable bearing seats");
+            Check(outerRoute, "Survivor reaches the raised outer shelf from the new east terrace");
+            Check(eastFall > .4f, "New east shelf drops after its own support breaks");
             Check(drift<.6f && fall>.45f && walk<1.2f && bot && routes && eliminated && upperTravel>1 && carried>.5f && drop>.3f,"Intact settling, coast collapse, alternate ascent and bot smoke");
+            if(verifyPeers)yield return NeedlefrostPeers.Run(map,session,Check);
         }
 
         static IEnumerator WalkKeep(CastleSurvivor motor,Vector3 start, Vector3[] goals,System.Action<bool> result,string label)
