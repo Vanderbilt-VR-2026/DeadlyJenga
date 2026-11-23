@@ -11,7 +11,7 @@ namespace DeadlyJenga.CandyPlayers
         enum Finish
         {
             Steel, Charcoal, Ceramic, Brass, Walnut, Violet, Cyan, Amber, BladeSteel, BladeEdge,
-            AxeLeather, AxeBronze, LauncherOlive, LauncherGunmetal, LauncherRubber, LauncherSteel, LauncherGraphite, LauncherStencil, LauncherWarning
+            AxeLeather, AxeBronze, BatWood, BatWrap, BatPaint, BatWire, LauncherOlive, LauncherGunmetal, LauncherRubber, LauncherSteel, LauncherGraphite, LauncherStencil, LauncherWarning
         }
         static readonly Dictionary<EquipmentKind,FoundryModel> foundry=new Dictionary<EquipmentKind,FoundryModel>();
         static readonly Dictionary<Finish,Material> finishes=new Dictionary<Finish,Material>();
@@ -177,15 +177,18 @@ namespace DeadlyJenga.CandyPlayers
             if(finishes.TryGetValue(finish,out var mat)&&mat)return mat;
             if(finish>=Finish.LauncherOlive)return finishes[finish]=LauncherSurface(finish);
             bool blade=finish==Finish.BladeSteel||finish==Finish.BladeEdge;
-            bool leather=finish==Finish.AxeLeather, bronze=finish==Finish.AxeBronze;
-            Color color=leather?new Color(.27f,.127f,.069f):bronze?new Color(.55f,.33f,.13f):finish==Finish.BladeEdge?new Color(.78f,.81f,.84f):finish==Finish.BladeSteel?new Color(.49f,.53f,.57f):finish==Finish.Steel?new Color(.44f,.52f,.59f):finish==Finish.Charcoal?new Color(.06f,.075f,.09f):
+            bool batWood=finish==Finish.BatWood, batWrap=finish==Finish.BatWrap;
+            bool batWire=finish==Finish.BatWire;
+            bool leather=finish==Finish.AxeLeather || batWrap, bronze=finish==Finish.AxeBronze;
+            Color color=batWood?new Color(.24f,.056f,.037f):batWrap?new Color(.039f,.028f,.035f):
+                batWire?new Color(.19f,.21f,.24f):finish==Finish.BatPaint?new Color(.68f,.59f,.42f):leather?new Color(.27f,.127f,.069f):bronze?new Color(.55f,.33f,.13f):finish==Finish.BladeEdge?new Color(.78f,.81f,.84f):finish==Finish.BladeSteel?new Color(.49f,.53f,.57f):finish==Finish.Steel?new Color(.44f,.52f,.59f):finish==Finish.Charcoal?new Color(.06f,.075f,.09f):
                 finish==Finish.Ceramic?new Color(.85f,.24f,.06f):finish==Finish.Brass?new Color(.82f,.55f,.22f):
                 finish==Finish.Walnut?new Color(.53f,.25f,.105f):finish==Finish.Violet?new Color(.42f,.16f,.84f):
                 finish==Finish.Amber?new Color(1,.26f,.025f):new Color(.10f,.82f,1);
             mat=new Material(Shader.Find("Universal Render Pipeline/Lit")){name="Foundry "+finish,enableInstancing=true,color=color};
-            bool wood=finish==Finish.Walnut;bool luminous=finish==Finish.Cyan||finish==Finish.Violet||finish==Finish.Amber;
-            mat.SetFloat("_Metallic",blade?.87f:bronze||finish==Finish.Steel||finish==Finish.Brass?.78f:finish==Finish.Charcoal?.28f:.04f);
-            mat.SetFloat("_Smoothness",blade?(finish==Finish.BladeEdge?.92f:.69f):wood?.46f:leather?.29f:bronze?.52f:finish==Finish.Charcoal?.34f:.72f);
+            bool wood=finish==Finish.Walnut||batWood;bool luminous=finish==Finish.Cyan||finish==Finish.Violet||finish==Finish.Amber;
+            mat.SetFloat("_Metallic",batWire?.71f:blade?.87f:bronze||finish==Finish.Steel||finish==Finish.Brass?.78f:finish==Finish.Charcoal?.28f:.04f);
+            mat.SetFloat("_Smoothness",batWire?.55f:blade?(finish==Finish.BladeEdge?.92f:.69f):wood?.46f:leather?.29f:bronze?.52f:finish==Finish.Charcoal?.34f:.72f);
             int n=blade?512:256;var tex=new Texture2D(n,n,TextureFormat.RGBA32,true)
                 {name=mat.name+" surface",filterMode=FilterMode.Trilinear,anisoLevel=4,wrapMode=TextureWrapMode.Repeat};var pixels=new Color[n*n];
             for(int y=0;y<n;y++)for(int x=0;x<n;x++)
@@ -194,6 +197,14 @@ namespace DeadlyJenga.CandyPlayers
                 float noise=Mathf.PerlinNoise(u*16,v*23);
                 float grain=wood? .68f+.24f*Mathf.Sin((u*28+Mathf.PerlinNoise(u*3,v*2)*1.5f)*Mathf.PI*2)+noise*.13f:
                     .78f+noise*.19f+.055f*Mathf.Sin(y*2.6f+Mathf.Sin(x*.12f));
+                if(batWood)
+                {
+                    float warp=Mathf.PerlinNoise(u*5,v*4)*2.2f;
+                    float fiber=Mathf.Sin((u*21+warp+Mathf.Sin(v*13)*.17f)*Mathf.PI*2);
+                    float scuff=Mathf.PerlinNoise(u*71+v*9,v*16);
+                    float wear=Mathf.SmoothStep(.58f,.85f,scuff)*Mathf.Max(0,fiber)*.18f;
+                    grain=.69f+fiber*.12f+noise*.18f+wear;
+                }
                 if(leather)grain=.63f+noise*.21f+Mathf.PerlinNoise(u*122,v*187)*.18f;
                 if(bronze)grain=.72f+noise*.20f+Mathf.PerlinNoise(u*91,v*91)*.09f;
                 if(blade)grain=.81f+noise*.15f+.032f*Mathf.Sin(u*940f+Mathf.Sin(v*11f)*.8f);
@@ -458,30 +469,59 @@ namespace DeadlyJenga.CandyPlayers
         }
         static void ForgeBat(FoundryBuilder b)
         {
-            b.Profile(Finish.Walnut,Vector2.zero,new Vector2(-.17f,0),new Vector2(-.17f,.047f),new Vector2(-.147f,.050f),
-                new Vector2(-.12f,.027f),new Vector2(.16f,.028f),new Vector2(.31f,.045f),new Vector2(.53f,.069f),
-                new Vector2(.75f,.077f),new Vector2(.879f,.073f),new Vector2(.91f,.057f),new Vector2(.916f,0));
-            for(int i=0;i<9;i++)b.Tube(Finish.Charcoal,0,-.117f+i*.024f,-.10f+i*.024f,.031f);
-            b.Tube(Finish.Brass,0,.818f,.851f,.077f,.068f);
-            b.Shape(Finish.Steel,wire=>{
-                Vector3 Point(int i)
+            b.Profile(Finish.BatWood,Vector2.zero,
+                new Vector2(-.17f,0),new Vector2(-.17f,.043f),new Vector2(-.155f,.047f),
+                new Vector2(-.126f,.031f),new Vector2(.16f,.03f),new Vector2(.29f,.039f),
+                new Vector2(.42f,.056f),new Vector2(.53f,.069f),new Vector2(.75f,.077f),
+                new Vector2(.879f,.073f),new Vector2(.91f,.056f),new Vector2(.916f,0));
+            b.Tube(Finish.BladeSteel,0,-.167f,-.150f,.047f,.040f);
+            b.Tube(Finish.BatWrap,0,-.125f,.115f,.033f);
+            for(int i=0;i<11;i++)
+                b.Tube(Finish.BatWrap,0,-.119f+i*.021f,-.108f+i*.021f,.035f);
+            b.Tube(Finish.BatPaint,0,.236f,.257f,.039f,.033f);
+            b.Tube(Finish.BatPaint,0,.270f,.286f,.043f,.035f);
+            b.Tube(Finish.BladeSteel,0,.854f,.884f,.076f,.067f);
+
+            b.Shape(Finish.BatWire,wire=>
+            {
+                float Skin(float depth)
                 {
-                    float angle=i*.39f,z=.39f+i*.0048f;
-                    float woodRadius;
-                    if(z<.53f)woodRadius=Mathf.Lerp(.045f,.069f,(z-.31f)/.22f);
-                    else if(z<.75f)woodRadius=Mathf.Lerp(.069f,.077f,(z-.53f)/.22f);
-                    else woodRadius=Mathf.Lerp(.077f,.073f,(z-.75f)/.129f);
-                    float radius=woodRadius+.006f;
-                    return new Vector3(Mathf.Cos(angle)*radius,Mathf.Sin(angle)*radius,z);
+                    if(depth<.42f)return Mathf.Lerp(.039f,.056f,(depth-.29f)/.13f);
+                    if(depth<.53f)return Mathf.Lerp(.056f,.069f,(depth-.42f)/.11f);
+                    if(depth<.75f)return Mathf.Lerp(.069f,.077f,(depth-.53f)/.22f);
+                    return Mathf.Lerp(.077f,.073f,(depth-.75f)/.129f);
                 }
-                for(int i=0;i<98;i++)
+
+                void Coil(int steps,float start,float end,float turns,float phase)
                 {
-                    var p=Point(i);wire.Beam(p,Point(i+1),.008f);
-                    if(i%8!=0)continue;var outwards=new Vector3(p.x,p.y,0).normalized;
-                    wire.Cone(p,p+outwards*.048f+Vector3.forward*.018f,.008f,0,5);
-                    wire.Cone(p,p+outwards*.039f-Vector3.forward*.020f,.007f,0,5);
-                    if(i%16==0){var nail=p-outwards*.007f;wire.Cone(nail,nail+outwards*.077f,.010f,.001f,7);}
+                    Vector3 Point(int index)
+                    {
+                        float t=index/(float)steps;
+                        float angle=phase+t*turns*Mathf.PI*2+.39f*Mathf.Sin(t*18+phase)+.22f*Mathf.Sin(t*40);
+                        float depth=Mathf.Lerp(start,end,t)+.023f*Mathf.Sin(t*20+phase)+.009f*Mathf.Sin(t*43);
+                        float lift=.010f+.013f*Mathf.Max(0,Mathf.Sin(t*22+phase));
+                        float radius=Skin(depth)+lift;
+                        return new Vector3(Mathf.Cos(angle)*radius,Mathf.Sin(angle)*radius,depth);
+                    }
+
+                    for(int i=0;i<steps;i++)
+                    {
+                        var point=Point(i);
+                        wire.Beam(point,Point(i+1),.0097f);
+                        if((i+2)%9!=0)continue;
+                        var outward=new Vector3(point.x,point.y,0).normalized;
+                        var across=Vector3.Cross(Vector3.forward,outward);
+                        float flip=i%2==0?1:-1;
+                        var hook=point+outward*(.026f+i%4*.004f)+across*.011f*flip;
+                        wire.Beam(point,hook,.0075f);
+                        wire.Cone(hook,hook+outward*.014f+Vector3.forward*.019f*flip,.0075f,.0014f,6);
+                        wire.Cone(point,point+outward*.023f-across*.020f*flip-Vector3.forward*.021f*flip,
+                            .0073f,.0018f,6);
+                    }
                 }
+
+                Coil(107,.320f,.878f,5.8f,.31f);
+                Coil(82,.487f,.884f,-4.0f,2.11f);
             });
         }
         static void ForgeWrist(FoundryBuilder b,FoundryBuilder feed)
