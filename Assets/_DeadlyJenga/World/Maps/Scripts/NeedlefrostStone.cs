@@ -14,6 +14,17 @@ namespace DeadlyJenga.CastlePrototype
             Cut cut = (Cut)placement.Course;
             block.appearance = null;
             foreach (Transform old in block.visualRoot) old.gameObject.SetActive(false);
+            if (placement.Course >= NeedlefrostLayout.FirstBlenderRoof)
+            {
+                var sculpture = NeedlefrostLayout.Sculpture(placement.Course);
+                var sculptedVisual = new GameObject(sculpture.name);
+                sculptedVisual.transform.SetParent(block.visualRoot, false);
+                var skin = sculpture.CreateMesh();
+                sculptedVisual.AddComponent<MeshFilter>().sharedMesh = skin;
+                sculptedVisual.AddComponent<MeshRenderer>().sharedMaterial = block.sectionMaterial;
+                FitCrystalCollision(block, sculptedVisual, skin);
+                return;
+            }
             var visual = new GameObject(cut.ToString());
             visual.transform.SetParent(block.visualRoot,false);
             if(cut==Cut.BridgeDeck || (cut==Cut.Vault && placement.Size.z<4))
@@ -34,15 +45,7 @@ namespace DeadlyJenga.CastlePrototype
             bool tapered=cut==Cut.Blade || cut==Cut.LeftBlade || cut==Cut.RightBlade || cut==Cut.Roof || cut==Cut.Window;
             if(tapered)
             {
-                // Both the moving body and the survivor sweep use the actual cut crystal.
-                block.GetComponent<BoxCollider>().enabled=false;
-                if(Application.isPlaying)block.UseOriginalTraversal();
-                var solid=block.gameObject.AddComponent<MeshCollider>();
-                solid.sharedMesh=mesh; solid.convex=true;
-                var walk=visual.AddComponent<MeshCollider>(); walk.sharedMesh=mesh; walk.convex=true;
-                visual.layer=Layers.Surface;
-                Climbables.Register(walk,block);
-                visual.AddComponent<NeedlefrostGrip>().shape=walk;
+                FitCrystalCollision(block, visual, mesh);
             }
             if(cut==Cut.Pier && Application.isPlaying)
             {
@@ -52,6 +55,21 @@ namespace DeadlyJenga.CastlePrototype
                 socket.breakForce=180000;
                 socket.breakTorque=80000;
             }
+        }
+
+        static void FitCrystalCollision(CastleBlock block, GameObject visual, Mesh mesh)
+        {
+            block.GetComponent<BoxCollider>().enabled = false;
+            if (Application.isPlaying) block.UseOriginalTraversal();
+            var solid = block.gameObject.AddComponent<MeshCollider>();
+            solid.sharedMesh = mesh;
+            solid.convex = true;
+            visual.layer = Layers.Surface;
+            var walk = visual.AddComponent<MeshCollider>();
+            walk.sharedMesh = mesh;
+            walk.convex = true;
+            Climbables.Register(walk, block);
+            visual.AddComponent<NeedlefrostGrip>().shape = walk;
         }
 
         static readonly Dictionary<Vector3,Mesh> railMeshes=new Dictionary<Vector3,Mesh>();
@@ -147,6 +165,7 @@ namespace DeadlyJenga.CastlePrototype
         static readonly Mesh[] voussoirs=new Mesh[10];
 
         static readonly Mesh[] gateStones=new Mesh[10];
+        static readonly Mesh[] archRenders=new Mesh[2];
 
         static void Arch(CastleBlock block, Transform parent,bool gate)
         {
@@ -174,15 +193,23 @@ namespace DeadlyJenga.CastlePrototype
                     m.triangles=new[]{0,2,1,0,3,2,4,5,6,4,6,7,0,1,5,0,5,4,3,7,6,3,6,2,0,4,7,0,7,3,1,2,6,1,6,5};
                     m.RecalculateNormals();stones[k]=m;
                 }
-                var stone=new GameObject("Arch segment");stone.transform.SetParent(parent,false);
-                stone.layer=Layers.Block;
-                stone.AddComponent<MeshFilter>().sharedMesh=stones[k];
-                stone.AddComponent<MeshRenderer>().sharedMaterial=block.sectionMaterial;
                 if(gate || (k>0 && k<9))
                 {
+                    var stone=new GameObject("Arch contact");stone.transform.SetParent(parent,false);
+                    stone.layer=Layers.Block;
                     var collider=stone.AddComponent<MeshCollider>();collider.sharedMesh=stones[k];collider.convex=true;
                 }
             }
+            int shape=gate?1:0;
+            if(!archRenders[shape])
+            {
+                var pieces=new CombineInstance[stones.Length];
+                for(int i=0;i<stones.Length;i++)pieces[i]=new CombineInstance{mesh=stones[i]};
+                archRenders[shape]=new Mesh{name=gate?"Pointed ice arcade":"Ice bridge soffit"};
+                archRenders[shape].CombineMeshes(pieces,true,false);
+            }
+            parent.gameObject.AddComponent<MeshFilter>().sharedMesh=archRenders[shape];
+            parent.gameObject.AddComponent<MeshRenderer>().sharedMaterial=block.sectionMaterial;
         }
 
         static Mesh Carve(Cut cut)
@@ -204,7 +231,7 @@ namespace DeadlyJenga.CastlePrototype
                 int index=vertices.Count;vertices.Add(a);vertices.Add(b);vertices.Add(c);
                 triangles.Add(index);triangles.Add(index+1);triangles.Add(index+2);
             }
-            var bottom=Ring(-.5f,blade?.33f:.475f,blade?.54f:.16f,0);
+            var bottom=Ring(-.5f,blade?.33f:.475f,blade?.54f:roof?.46f:.16f,0);
             var edge=Ring(blade?.12f:roof?-.38f:-.43f,.5f,blade?.62f:.13f,lean*.45f);
             var shoulder=Ring(blade?.32f:roof?.1f:.43f,blade?.35f:roof?.27f:.5f,blade?.65f:.13f,lean*.72f);
             var top=Ring(.5f,blade?.012f:roof?.16f:.475f,blade?.65f:.16f,lean);
@@ -216,7 +243,7 @@ namespace DeadlyJenga.CastlePrototype
                     Ring(.16f,.5f,.60f,lean*1.42f),Ring(.29f,.38f,.55f,lean*1.31f),top};
             }
             if(roof)
-                rings=new[]{bottom,Ring(-.45f,.50f,.21f,0),Ring(-.40f,.45f,.25f,0),
+                rings=new[]{bottom,Ring(-.45f,.50f,.45f,0),Ring(-.40f,.45f,.42f,0),
                     Ring(-.16f,.32f,.27f,0),Ring(-.13f,.35f,.25f,0),
                     Ring(.19f,.21f,.30f,0),Ring(.22f,.23f,.27f,0),top};
             if(cut==Cut.Column)
