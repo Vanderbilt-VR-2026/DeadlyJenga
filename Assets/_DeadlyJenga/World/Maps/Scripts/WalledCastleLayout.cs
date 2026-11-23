@@ -17,10 +17,10 @@ namespace DeadlyJenga.CastlePrototype
             foreach (int side in new[] { -1, 1 })
             {
                 foreach (int end in new[] { -1, 1 })
-                    fort.Gallery(side * 24, end * 30, 10, 10, 5, Lime);
+                    fort.Gallery(side * 24, end * 30, 10, 10, 5, Lime, plinth: true);
                 fort.Curtain(side * 24, 0, 50, 10, true);
                 fort.Curtain(side * 14, -30, 10, 2, false);
-                fort.Gallery(side * 6, -30, 6, 8, 3, Yellow);
+                fort.Gallery(side * 6, -30, 6, 8, 3, Yellow, plinth: true);
                 for (int row = 0; row < 4; row++)
                     fort.Gallery(side * 16, -18 + row * 11, 5, 7, 1, Blue);
                 for (int row = 0; row < 3; row++)
@@ -46,8 +46,9 @@ namespace DeadlyJenga.CastlePrototype
                     fort.Steps(side * (11.65f - floor * 1.3f), -4, y, 1.3f, 7,
                         floor == 0 ? 3.9f : Storey, floor % 2 == 0 ? 1 : -1, Purple, 12);
                 }
-            fort.Gallery(0, 18, 15, 12, 3, Yellow, 1.8f);
-            fort.Box(.92f, 9, 25.2f, .70f, .24f, 7, Yellow);
+            fort.Gallery(0, 19, 15, 12, 3, Yellow, 1.8f, levelHeight: 4.5f);
+            // The second gallery meets the rear rampart at nine metres.
+            fort.Box(0, 9, 25.8f, 1.65f, .24f, 5.8f, Yellow);
             return fort.blocks;
         }
 
@@ -75,17 +76,28 @@ namespace DeadlyJenga.CastlePrototype
         // Each stair flight is carried by the floor below. Alternate sides so an opening
         // over the arriving flight can share a landing with the next flight.
         void Gallery(float x, float z, float width, float depth, int floors, CastleSection color,
-            float setback = 0, float baseY = 0)
+            float setback = 0, float baseY = 0, float levelHeight = Storey, bool plinth = false)
         {
             const float run = 4;
             float lane = Mathf.Min(1.6f, width * .20f);
+            if (plinth)
+            {
+                for (int course = 0; course < 2; course++)
+                {
+                    float extent = width - .5f * course, length = depth - .5f * course;
+                    foreach (int half in new[] { -1, 1 })
+                        Box(x + half * extent / 4, course * .35f, z, extent / 2, .35f, length, Lime);
+                }
+            }
             for (int floor = 0; floor < floors; floor++)
             {
                 float w = width - floor * setback, d = depth - floor * setback;
-                float y = baseY + floor * Storey, landing = (d - run) / 2;
+                float sill = plinth && floor == 0 ? .7f : 0;
+                float rise = levelHeight - sill;
+                float y = baseY + floor * levelHeight + sill, landing = (d - run) / 2;
                 int side = floor % 2 == 0 ? -1 : 1;
-                Steps(x + side * lane / 2, z, y, lane, run, Storey, -side, color, 10);
-                float deckY = y + Storey - Slab;
+                Steps(x + side * lane / 2, z, y, lane, run, rise, -side, color, Mathf.CeilToInt(rise / .3f));
+                float deckY = y + rise - Slab;
                 foreach (int end in new[] { -1, 1 })
                 {
                     float cz = z + end * (run + landing) / 2;
@@ -93,8 +105,18 @@ namespace DeadlyJenga.CastlePrototype
                     int columns = Mathf.Max(2, Mathf.CeilToInt(w / 4));
                     for (int j = 0; j < columns; j++)
                     {
-                        float cx = x + Mathf.Lerp(-w / 2 + .55f, w / 2 - .55f, (float)j / (columns - 1));
-                        Box(cx, y, cz, 1, Storey - Slab, Mathf.Min(landing, 1.3f), color);
+
+                        float postWidth = Mathf.Min(1.6f, w / columns * .38f);
+                        float cx = x + Mathf.Lerp((-w + postWidth) / 2, (w - postWidth) / 2, (float)j / (columns - 1));
+                        float postDepth = Mathf.Min(landing, 1.35f);
+                        if (landing > 3.4f)
+                        {
+                            // Support both the street facade and the back edge of a deep gallery.
+                            float offset = (landing - postDepth) / 2;
+                            Box(cx, y, cz - offset, postWidth, rise - Slab, postDepth, color);
+                            Box(cx, y, cz + offset, postWidth, rise - Slab, postDepth, color);
+                        }
+                        else Box(cx, y, cz, postWidth, rise - Slab, postDepth, color);
                     }
                 }
                 // Two side slabs border the rectangular stair opening.
@@ -106,7 +128,7 @@ namespace DeadlyJenga.CastlePrototype
                     Box(center, deckY, z, panel, Slab, run, color);
                     // Broad transverse pier supports the panel's centre while leaving both ends open.
                     float pier = w / 2 - lane;
-                    Box(x + edge * (w / 2 - pier / 2), y, z, pier, Storey - Slab, .9f, color);
+                    Box(x + edge * (w / 2 - pier / 2), y, z, pier, rise - Slab, .9f, color);
                 }
                 if (floor + 1 == floors) Battlements(x, z, deckY + Slab, w, d, color);
             }

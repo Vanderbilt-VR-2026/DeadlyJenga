@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:(NearbyFlow||ProductionCodeFlow)?1200:LobbyHandoff||TycoonTest||FullRound?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:(NearbyFlow||ProductionCodeFlow)?1200:LobbyHandoff||TycoonTest||WalledCastleTest||FullRound?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -60,6 +60,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(!done)Finish(!File.ReadAllText(Report).Contains("ERROR "),"Separate-process multiplayer run");
         }
+        static bool WalledCastleTest => Environment.GetCommandLineArgs().Contains("--dj-walled-castle");
         static bool NearbyFlow => Environment.GetCommandLineArgs().Contains("--dj-nearby-lobby");
         static bool ProductionCodeFlow => Environment.GetCommandLineArgs().Contains("--dj-managed-code");
         static bool LobbyHandoff => Environment.GetCommandLineArgs().Contains("--dj-lobby-handoff");
@@ -810,7 +811,36 @@ namespace DeadlyJenga.CastlePrototype
                 "Other peer independently confirms the return");
         }
 
-        IEnumerator CheckTycoon()
+        IEnumerator CheckCastleReplication(CastleGenerator world, CastlePlaySession session, bool host)
+        {
+            var placements = CastleLayout.Build(world.settings);
+            Require(world.Bodies.Count == placements.Count && placements.Count > 1000, "Complete Walled Castle block list");
+            Require(world.Bodies.All(b => b && b.isKinematic != host), "Host simulates, guest receives replica poses");
+            var local = new Vector3(16.5f, 8.25f, -30);
+            int index = placements.FindIndex(p => (p.Position - local).sqrMagnitude < .001f);
+            Require(index >= 0, "Front-right wall crown located on both peers");
+            Vector3 start = world.transform.TransformPoint(local);
+            string observed = Mark("breach-observed");
+            if (host)
+            {
+                int footing = placements.FindIndex(p => (p.Position - new Vector3(16.5f,.75f,-30)).sqrMagnitude < .001f);
+                Require(footing >= 0, "Front-right wall bearing located");
+                world.Bodies[footing].GetComponent<IPushable>().Push(world.transform.TransformDirection(Vector3.back)*16f, world.gameObject);
+            }
+            yield return Until(() => world.Bodies[index].position.y < start.y - .5f, "Wall crown falls on " + role, 40);
+            if (host)
+            {
+                yield return Until(() => File.Exists(observed), "Guest observed the breach");
+                session.ResetMap();
+            }
+            else File.WriteAllText(observed, "received");
+            yield return Until(() => world.Bodies.Count == placements.Count &&
+                Vector3.Distance(world.Bodies[index].position, start) < .2f, "Reset restores the live wall on " + role, 45);
+            File.WriteAllText(Mark(role+"-wall-restored"), "ready");
+            yield return Until(() => File.Exists(Mark((host?"guest":"host")+"-wall-restored")), "Both peers observed reset");
+        }
+
+        IEnumerator CheckBlockMap(string mapId, string preset)
         {
             HomeSession home = null;
             yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && home.Region.Length > 0, "Home initialized");
@@ -823,32 +853,32 @@ namespace DeadlyJenga.CastlePrototype
             string code = "";
             if (host)
             {
-                yield return Until(() => File.Exists(Mark("tycoon-guest-home")), "Guest ready in lobby");
+                yield return Until(() => File.Exists(Mark(preset+"-guest-home")), "Guest ready in lobby");
                 var task = room.Host();
                 yield return Until(() => task.IsCompleted && room.IsHost && lobby.CanConfigure, "Host terminal opens a real Fusion room", 60, () => room.Status);
             }
             if (host || solo)
             {
-                Require(lobby.SelectMode("demo") && lobby.SelectMap(TycoonMap), "Terminal selects Tycoon");
+                Require(lobby.SelectMode("demo") && lobby.SelectMap(mapId), "Terminal selects "+mapId);
                 MatchSetup.BotTarget = solo ? 1 : 2;
                 if (host)
                 {
                     code = room.Code;
-                    File.WriteAllText(Mark("tycoon-code-temp"), code);
-                    File.Move(Mark("tycoon-code-temp"), Mark("tycoon-code"));
-                    yield return Until(() => room.HumanCount == 2 && File.Exists(Mark("tycoon-guest-ready")), "Guest and host agree on the room and map", 75);
+                    File.WriteAllText(Mark(preset+"-code-temp"), code);
+                    File.Move(Mark(preset+"-code-temp"), Mark(preset+"-code"));
+                    yield return Until(() => room.HumanCount == 2 && File.Exists(Mark(preset+"-guest-ready")), "Guest and host agree on the room and map", 75);
                 }
                 lobby.StartOrCancel();
             }
             else
             {
-                File.WriteAllText(Mark("tycoon-guest-home"), "ready");
-                yield return Until(() => File.Exists(Mark("tycoon-code")), "Host publishes code", 90);
-                code = File.ReadAllText(Mark("tycoon-code"));
+                File.WriteAllText(Mark(preset+"-guest-home"), "ready");
+                yield return Until(() => File.Exists(Mark(preset+"-code")), "Host publishes code", 90);
+                code = File.ReadAllText(Mark(preset+"-code"));
                 var task = room.Join(code);
-                yield return Until(() => task.IsCompleted && room.Connected && !room.IsHost && lobby.SelectedMapId == TycoonMap,
-                    "Guest joins by code and receives Tycoon selection", 75, () => room.Status);
-                File.WriteAllText(Mark("tycoon-guest-ready"), "ready");
+                yield return Until(() => task.IsCompleted && room.Connected && !room.IsHost && lobby.SelectedMapId == mapId,
+                    "Guest joins by code and receives "+mapId, 75, () => room.Status);
+                File.WriteAllText(Mark(preset+"-guest-ready"), "ready");
             }
 
             CastlePlaySession session = null;
@@ -863,10 +893,10 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 return session &&
                 NetworkActors.Alive(session.Player) && Services.World is CastleGenerator map &&
-                map.settings.layoutPreset == TycoonLayout.Preset && map.Bodies.Count > 0 &&
+                map.settings.layoutPreset == preset && map.Bodies.Count > 0 &&
                 (solo || session.Network && room.HumanCount == 2 && !session.Network.WaitingForWorld);
             },
-                "Actual Game transition and Tycoon world snapshot complete", 85, () =>
+                "Actual Game transition and "+preset+" world snapshot complete", 85, () =>
                     $"room={room.Status}; session={session != null}; actor={NetworkActors.Alive(session?.Player)}; " +
                     $"world={Services.World?.Blocks.Count}; waiting={session?.Network?.WaitingForWorld}; humans={room.HumanCount}");
             var world = (CastleGenerator)Services.World;
@@ -878,10 +908,15 @@ namespace DeadlyJenga.CastlePrototype
                         session.Network.TryParticipantPosition(player.Key, out _)),
                     "Remote human avatar and position are live in Game", 30);
             if (host)
-                yield return Until(() => File.Exists(Mark("tycoon-guest-match")),
+                yield return Until(() => File.Exists(Mark(preset+"-guest-match")),
                     "Guest confirms initial world snapshot before load is added", 60);
             else if (!solo)
-                File.WriteAllText(Mark("tycoon-guest-match"), "ready");
+                File.WriteAllText(Mark(preset+"-guest-match"), "ready");
+            if (WalledCastleTest)
+            {
+                yield return CheckCastleReplication(world, session, host);
+                yield break;
+            }
             const int expectedTycoonBlocks = 775;
             Require(blocks.Length == expectedTycoonBlocks &&
                 blocks.All(body => body && body.isKinematic && body.TryGetComponent<Collider>(out var collider) && collider.enabled),
@@ -1052,7 +1087,8 @@ namespace DeadlyJenga.CastlePrototype
             File.WriteAllText(Report,"Independent player "+role+"\n");
             if(FullRound){yield return CheckFullRound();yield break;}
             if(ScaleTest){yield return CheckScale();yield break;}
-            if(TycoonTest){yield return CheckTycoon();yield break;}
+            if(TycoonTest){yield return CheckBlockMap(TycoonMap, TycoonLayout.Preset);yield break;}
+            if(WalledCastleTest){yield return CheckBlockMap("mode-walled-castle","walled-castle");yield break;}
             if(NearbyFlow||ProductionCodeFlow){yield return CheckNearbyLobby();yield break;}
             if(LobbyHandoff)
             {

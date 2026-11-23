@@ -121,9 +121,9 @@ namespace DeadlyJenga.DevTools.Editor
             var journeys = new[] {
                 (new Vector3(0,0,-37.7f),new Vector3(0,.9f,-28)),
                 (new Vector3(-16.6f,0,-20.8f),new Vector3(-16.6f,3,-15.2f)),
-                (new Vector3(23.2f,0,-33),new Vector3(23.2f,3,-27)),
+                (new Vector3(18,0,-27),new Vector3(23.2f,3,-27)),
                 (new Vector3(0,0,-18.8f),new Vector3(0,.9f,-13)),
-                (new Vector3(-.8f,0,15),new Vector3(-.8f,3,21)),
+                (new Vector3(-.8f,0,15),new Vector3(-.8f,4.5f,22)),
             };
             var bots = new List<CastleBotBrain>();
             for (int i=0;i<journeys.Length;i++)
@@ -135,13 +135,18 @@ namespace DeadlyJenga.DevTools.Editor
                     position=World(journeys[i].Item2), radius=.65f, priority=3 };
             }
             bool[] reached = new bool[bots.Count];
+            var frameTimes = new List<float>();
             float start = Time.fixedTime;
             while (Time.fixedTime < start + 18)
             {
+                frameTimes.Add(Time.unscaledDeltaTime * 1000);
                 for(int i=0;i<bots.Count;i++)
                     if (Vector3.Distance(bots[i].transform.position,World(journeys[i].Item2))<1 && bots[i].Motor.Grounded) reached[i]=true;
                 yield return null;
             }
+            frameTimes.Sort();
+            if (frameTimes.Count > 0)
+                File.AppendAllText(Report,$"Desktop traffic: {frameTimes.Count} frames, p50 {frameTimes[frameTimes.Count/2]:F2}ms, p95 {frameTimes[(frameTimes.Count-1)*95/100]:F2}ms, {bodies.Count(b=>!b.IsSleeping())} awake.\n");
             void Shot(string name,Vector3 eye,Vector3 target,float fov)
             {
                 var camera = session.Player.ViewCamera;
@@ -188,6 +193,19 @@ namespace DeadlyJenga.DevTools.Editor
                     Shot("06-alternate",new(13,1.3f,-23),new(13,1.3f,2),68);
                     var bypass=bodies[Index(new Vector3(-24,8.25f,2.5f))];
                     Check(Mathf.Abs(bypass.position.y-World(new Vector3(0,8.25f,0)).y)<.25f,"Opposite rampart remains at route height");
+                    var walker = bots[0];
+                    walker.Motor.Teleport(World(new Vector3(-24,9.08f,-12)),Quaternion.identity);
+                    Vector3 destination = World(new Vector3(-24,9,3));
+                    routes.tasks[walker.gameObject]=new BotObjective { id="west-wall-after-breach",kind=BotObjectiveKind.Travel,
+                        position=destination,radius=.75f,priority=3 };
+                    float until = Time.fixedTime + 18;
+                    bool crossed = false;
+                    while (Time.fixedTime < until && !crossed)
+                    {
+                        crossed = walker.Motor.Grounded && Vector3.Distance(walker.transform.position,destination)<1.1f;
+                        yield return null;
+                    }
+                    Check(crossed,"Independent west rampart traversed after east breach");
                 }
             }
             int revision=map.Revision;
