@@ -20,17 +20,17 @@ namespace DeadlyJenga.CastlePrototype
         public Transform Root=>transform;
         public int Revision {get;private set;}
         public Vector3 Center=>transform.position;
-        public float TopHeight=>transform.TransformPoint(V(4,17,20)).y;
+        public float TopHeight=>transform.TransformPoint(V(0,ClockCrown,-8)).y;
         public float Radius=>32*transform.lossyScale.x;
         public float StepHeight=>.18f;
-        public Bounds PlayableBounds=>new Bounds(Center+Vector3.up*7*transform.lossyScale.y,Vector3.Scale(V(55,24,64),transform.lossyScale));
+        public Bounds PlayableBounds=>new Bounds(Center+Vector3.up*10.5f*transform.lossyScale.y,Vector3.Scale(V(55,31,64),transform.lossyScale));
         public int FootprintVersion=>1;
         public float FootprintHalfSize=>32;
         public void GetGroundFootprints(List<Footprint> into)=>into.Add(new Footprint{center=Vector2.zero,halfSize=new Vector2(27,32),rotation=Quaternion.identity});
         public float WaterHeight(Vector3 position)=>transform.position.y-5*transform.lossyScale.y;
         public bool IsSheltered(Vector3 position)=>Physics.Raycast(position+Vector3.up*.15f,Vector3.up,25,1<<Layers.Block);
         public Vector3 SafeSpawnPoint()=>transform.TransformPoint(V(0,.12f,-23));
-        public string SaveLayout()=>"gingerbread-kingdom-v1";
+        public string SaveLayout()=>"gingerbread-kingdom-v2";
         public bool LoadLayout(string layout,int expectedBlocks,Pose origin,Vector3 scale)
         {
             if(layout!=SaveLayout() || !float.IsFinite(origin.position.sqrMagnitude) || !float.IsFinite(scale.sqrMagnitude) ||
@@ -90,12 +90,9 @@ namespace DeadlyJenga.CastlePrototype
             pieces.Clear();FreeMeshes();town=Group("Sugar valley",transform,Vector3.zero);plot=town;
             Landscape();
             House(-1,-16,8,3.8f,6.4f,2,4);
-            House(0,-8,-6,3.4f,6,2,1);
             House(-9,-11,-18,4,5.4f,3,7);
             House(-10,-4,-12,3.5f,5.4f,2,2);
             House(-12,3,-22,3.4f,4.8f,2,5);
-            House(-15,-17,15,4.2f,6,2,0);
-            House(-20,-10,35,3.8f,5.6f,2,3);
             House(-22,-2,60,4,5.6f,1,1);
             House(-22,7,85,4,5.6f,2,6);
             House(-18,13,-30,4,5,2,2);
@@ -104,11 +101,10 @@ namespace DeadlyJenga.CastlePrototype
             House(11,-5,12,3.5f,5.6f,2,6);
             House(12,2,8,3.4f,5.8f,2,0);
             House(20,-15.35f,-22,4.4f,6.2f,2,2);
-            House(22,-7,-16,4.2f,5.8f,2,5);
             House(23,2,-10,4,6,2,1);
             House(23,10,-25,3.8f,5.5f,2,4);
             House(21,17,-30,3.8f,5,2,0);
-            Palace();Market();Bridge(15,-11);Bridge(-16,2);Physics.SyncTransforms();Revision++;
+            Palace();Market();Bridge(15,-11);Bridge(-16,2);BuildSkyline();Physics.SyncTransforms();Revision++;
         }
     }
 }
