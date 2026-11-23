@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:(NearbyFlow||ProductionCodeFlow)?1200:LobbyHandoff||TycoonTest||FullRound?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:(NearbyFlow||ProductionCodeFlow)?1200:LobbyHandoff||TycoonTest||TidalTest||FullRound?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -688,6 +688,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         static bool TycoonTest => Environment.GetCommandLineArgs().Contains("--dj-tycoon");
+        static bool TidalTest => Environment.GetCommandLineArgs().Contains("--dj-tidal-circuit");
         const string TycoonMap = "mode-tycoon";
         [Serializable] sealed class DisplacedBlock
         {
@@ -810,8 +811,42 @@ namespace DeadlyJenga.CastlePrototype
                 "Other peer independently confirms the return");
         }
 
-        IEnumerator CheckTycoon()
+        IEnumerator CheckTidalPeers(CastlePlaySession session, bool host)
         {
+            var map=(TidalCircuitMap)Services.World;
+            Rigidbody Body(string name) => map.Blocks.Single(b=>b.name==name);
+            var post=Body("Right crossover pier post");
+            var path=Body("Midlevel right crossover");
+            var start=path.position;
+            if(host)
+            {
+                yield return Until(()=>File.Exists(Mark("tidal-replica")), "Guest verified initial snapshot");
+                post.GetComponent<IPushable>().Push(Vector3.forward*12,gameObject);
+                Body("Drum bearing -1").GetComponent<IPushable>().Push(Vector3.left*15,gameObject);
+                yield return Until(()=>path.position.y<start.y-.55f && !Body("Tread drum").GetComponent<HingeJoint>(),
+                    "Host simulates local collapse and stops drive",10);
+                yield return Until(()=>File.Exists(Mark("tidal-collapse")), "Guest received and observed collapse");
+                session.ResetMap();
+                yield return Until(()=>File.Exists(Mark("tidal-restored")), "Guest observed reset");
+            }
+            else
+            {
+                Require(map.Blocks.All(b=>b.isKinematic),"Guest uses replica bodies");
+                File.WriteAllText(Mark("tidal-replica"),"ready");
+                yield return Until(()=>path.position.y<start.y-.55f && Body("Drum bearing -1").position.x < -29.5f,
+                    "Guest receives crossover fall and withdrawn bearing",16);
+                Require(path.isKinematic,"Guest collapse follows host snapshots");
+                File.WriteAllText(Mark("tidal-collapse"),"seen");
+                yield return Until(()=>Body("Midlevel right crossover").isKinematic &&
+                    Vector3.Distance(Body("Midlevel right crossover").position,start)<.12f &&
+                    Body("Tread drum").GetComponent<HingeJoint>(), "Fresh snapshot restores intact map",25);
+                File.WriteAllText(Mark("tidal-restored"),"seen");
+            }
+        }
+
+        IEnumerator CheckMapTravel()
+        {
+            string selected = TidalTest ? "tidal-circuit" : TycoonMap;
             HomeSession home = null;
             yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && home.Region.Length > 0, "Home initialized");
             home.Demo();
@@ -829,7 +864,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             if (host || solo)
             {
-                Require(lobby.SelectMode("demo") && lobby.SelectMap(TycoonMap), "Terminal selects Tycoon");
+                Require(lobby.SelectMode("demo") && lobby.SelectMap(selected), "Terminal selects "+selected);
                 MatchSetup.BotTarget = solo ? 1 : 2;
                 if (host)
                 {
@@ -846,8 +881,8 @@ namespace DeadlyJenga.CastlePrototype
                 yield return Until(() => File.Exists(Mark("tycoon-code")), "Host publishes code", 90);
                 code = File.ReadAllText(Mark("tycoon-code"));
                 var task = room.Join(code);
-                yield return Until(() => task.IsCompleted && room.Connected && !room.IsHost && lobby.SelectedMapId == TycoonMap,
-                    "Guest joins by code and receives Tycoon selection", 75, () => room.Status);
+                yield return Until(() => task.IsCompleted && room.Connected && !room.IsHost && lobby.SelectedMapId == selected,
+                    "Guest joins by code and receives "+selected, 75, () => room.Status);
                 File.WriteAllText(Mark("tycoon-guest-ready"), "ready");
             }
 
@@ -862,13 +897,17 @@ namespace DeadlyJenga.CastlePrototype
                     File.AppendAllText(Report, $"JOIN scene={UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}; room={room.Status}; match={session != null}; actor={NetworkActors.Alive(session?.Player)}; waiting={session?.Network?.WaitingForWorld}; status={session?.Network?.Status}; world={Services.World?.Blocks.Count}; humans={room.HumanCount}\n");
                 }
                 return session &&
-                NetworkActors.Alive(session.Player) && Services.World is CastleGenerator map &&
-                map.settings.layoutPreset == TycoonLayout.Preset && map.Bodies.Count > 0 &&
+                NetworkActors.Alive(session.Player) && (TidalTest ? Services.World is TidalCircuitMap : Services.World is CastleGenerator map && map.settings.layoutPreset == TycoonLayout.Preset) && Services.World.Blocks.Count > 0 &&
                 (solo || session.Network && room.HumanCount == 2 && !session.Network.WaitingForWorld);
             },
-                "Actual Game transition and Tycoon world snapshot complete", 85, () =>
+                "Actual Game transition and "+selected+" snapshot complete", 85, () =>
                     $"room={room.Status}; session={session != null}; actor={NetworkActors.Alive(session?.Player)}; " +
                     $"world={Services.World?.Blocks.Count}; waiting={session?.Network?.WaitingForWorld}; humans={room.HumanCount}");
+            if (TidalTest)
+            {
+                yield return CheckTidalPeers(session, host);
+                yield break;
+            }
             var world = (CastleGenerator)Services.World;
             var blocks = world.Bodies.ToArray();
             var authored = blocks.Select(body => body.position).ToArray();
@@ -1052,7 +1091,7 @@ namespace DeadlyJenga.CastlePrototype
             File.WriteAllText(Report,"Independent player "+role+"\n");
             if(FullRound){yield return CheckFullRound();yield break;}
             if(ScaleTest){yield return CheckScale();yield break;}
-            if(TycoonTest){yield return CheckTycoon();yield break;}
+            if(TycoonTest||TidalTest){yield return CheckMapTravel();yield break;}
             if(NearbyFlow||ProductionCodeFlow){yield return CheckNearbyLobby();yield break;}
             if(LobbyHandoff)
             {
