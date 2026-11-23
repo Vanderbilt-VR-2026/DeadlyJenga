@@ -1,0 +1,128 @@
+{
+  "title": "Prompt scout",
+  "map": "castle",
+  "fps": 15,
+  "width": 640,
+  "height": 360,
+  "seed": 148,
+  "warmup": 0.75,
+  "ffmpeg": "ffmpeg",
+  "cast": [
+    {
+      "id": "survivor",
+      "color": 0,
+      "start": {
+        "x": -0.15,
+        "y": 0,
+        "z": -2.7
+      },
+      "moves": [
+        {
+          "at": 0,
+          "duration": 1.2,
+          "to": {
+            "x": -0.15,
+            "y": 0,
+            "z": -0.5
+          },
+          "lift": 0
+        }
+      ]
+    },
+    {
+      "id": "rival",
+      "color": 2,
+      "start": {
+        "x": 0.15,
+        "y": 0,
+        "z": 1.25
+      },
+      "moves": [
+        {
+          "at": 0,
+          "duration": 1.2,
+          "to": {
+            "x": 0.15,
+            "y": 0,
+            "z": 0.55
+          },
+          "lift": 0
+        }
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "name": "Wide scout",
+      "start": 0.0,
+      "duration": 1.6,
+      "fov": 49,
+      "from": {
+        "x": 4.3,
+        "y": 2.6,
+        "z": -2.1
+      },
+      "to": {
+        "x": 3.9,
+        "y": 2.4,
+        "z": -1.8
+      },
+      "look": {
+        "x": 0,
+        "y": 0.8,
+        "z": 0
+      },
+      "avoidWalls": true,
+      "firstPerson": false,
+      "subject": "survivor",
+      "second": "rival"
+    },
+    {
+      "name": "Close scout",
+      "start": 1.6,
+      "duration": 3.4,
+      "fov": 43,
+      "from": {
+        "x": 2.6,
+        "y": 1.55,
+        "z": -0.9
+      },
+      "to": {
+        "x": 2.35,
+        "y": 1.45,
+        "z": -0.8
+      },
+      "look": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "avoidWalls": true,
+      "firstPerson": false,
+      "subject": "survivor",
+      "second": "rival"
+    }
+  ],
+  "cues": [
+    {
+      "action": "punch",
+      "actor": "survivor",
+      "target": "rival",
+      "requireTargetContact": true,
+      "at": 1.8666666666666667
+    }
+  ],
+  "edit": [
+    {
+      "shot": 0,
+      "from": 0,
+      "duration": 1.6
+    },
+    {
+      "shot": 1,
+      "from": 0,
+      "duration": 3.4
+    }
+  ],
+  "requireGroundedStage": true
+}

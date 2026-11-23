@@ -13,6 +13,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     // The Set tab: build the scene. Pick the map, place marks, add cues.
     public sealed class SetMode : IStudioMode
     {
+        readonly StudioLayoutTemplate layoutTemplate = new StudioLayoutTemplate();
         public string Title => "Set";
         public int Order => 10;
         public bool Available => true;
@@ -41,6 +42,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     context.Select(made);
                     return;
                 }
+                if (context.window.Viewport.PickingOrigin) context.window.Viewport.CancelPlacing();
                 context.window.Viewport.Placing = role;
                 context.window.Viewport.Rebuild();
                 context.Say("Click in the viewport where the new mark should stand.");
@@ -48,6 +50,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             panel.Add(StudioUi.Big("+  Add survivor", () => Place(StudioRole.Survivor), "An actor you perform yourself (Perform mode). Until then a stand-in holds the mark."));
             panel.Add(StudioUi.Big("+  Add hand", () => Place(StudioRole.Hand), "The giant hand."));
             panel.Add(StudioUi.Big("+  Add bot", () => Place(StudioRole.Bot), "Background life: a survivor run by the game's normal bot brain."));
+            bool crowdReady = set.marks.Any(mark => mark.role != StudioRole.Hand &&
+                !mark.actor.StartsWith("Crowd ") && context.Tape?.Find(mark.id)?.ActiveTake != null);
+            panel.Add(StudioUi.Card(
+                StudioUi.Hint(crowdReady ? "Build a crowd from your recorded performances in Polish."
+                    : "Keep a survivor take to build a crowd from that performance."),
+                StudioUi.Small(crowdReady ? "Open Polish · Make a crowd" : "Open Perform",
+                    () => context.window.ShowMode(crowdReady ? "Polish" : "Perform"))));
             panel.Add(StudioUi.Big("+  Add cue at " + StudioUi.Time(context.Frame, set.fps), () =>
             {
                 var menu = new GenericMenu();
@@ -69,6 +78,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 menu.ShowAsContext();
             }, "Something the world does at this time: a collapse, a disaster."));
 
+            layoutTemplate.Add(panel, context);
             foreach (string problem in set.Problems()) panel.Add(StudioUi.Warning(problem));
         }
     }
@@ -76,26 +86,30 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     // Lists the inspectors offer. Loaded once per script reload.
     public static class SetLists
     {
-        static List<string> mapIds, mapNames, hazards;
+        static List<string> hazards;
+        internal static IslandLobbyCatalog Catalog =>
+            IslandLobbyCatalog.Runtime(Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog"));
 
-        static void LoadMaps()
+        internal static string SceneFor(IslandLobbyCatalog.Map map, string gameScene)
         {
-            if (mapIds != null) return;
-            mapIds = new List<string>(); mapNames = new List<string>();
-            // In Play Mode the game's own connection object can exist without a catalog, so read the asset directly.
-            var source = Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog");
-            if (!source) return;
-            var catalog = UnityEngine.Object.Instantiate(source);
-            try
-            {
-                catalog.EnsureModeMaps();
-                foreach (var map in catalog.maps.Where(SpectatorRecordingPlan.MapAvailable)) { mapIds.Add(map.id); mapNames.Add(map.title + "  (" + map.id + ")"); }
-            }
-            finally { UnityEngine.Object.DestroyImmediate(catalog); }
+            if (!SpectatorRecordingPlan.MapAvailable(map)) return null;
+            return map.mapPrefab ? gameScene : map.scenePath;
         }
 
-        public static List<string> MapIds { get { LoadMaps(); return mapIds; } }
-        public static List<string> MapNames { get { LoadMaps(); return mapNames; } }
+        internal static IslandLobbyCatalog.Map[] AvailableMaps()
+        {
+            var catalog = Catalog;
+            if (!catalog) return Array.Empty<IslandLobbyCatalog.Map>();
+            string gameScene = ProjectPath.Find("Game.unity");
+            return catalog.maps.Where(map => !string.IsNullOrWhiteSpace(map?.id) &&
+                    !string.IsNullOrEmpty(SceneFor(map, gameScene)))
+                .GroupBy(map => map.id).Select(group => group.First())
+                .OrderBy(map => map.title, StringComparer.OrdinalIgnoreCase).ToArray();
+        }
+
+        public static List<string> MapIds => AvailableMaps().Select(map => map.id).ToList();
+        public static List<string> MapNames => AvailableMaps().Select(MapName).ToList();
+        internal static string MapName(IslandLobbyCatalog.Map map) => $"{map.title} ({map.id})";
 
         public static List<string> Hazards
         {
@@ -123,16 +137,29 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var set = context.Set;
             bool closed = StudioRun.State == StudioState.Closed;
             panel.Add(StudioFields.Text(context, "Name", set.title, v => set.title = string.IsNullOrWhiteSpace(v) ? set.title : v));
-            var map = StudioFields.Choice(context, "Map", SetLists.MapNames, SetLists.MapIds.IndexOf(set.map), i => { if (i >= 0 && i < SetLists.MapIds.Count) set.map = SetLists.MapIds[i]; });
-            map.SetEnabled(closed);
-            map.tooltip = closed ? "" : "Close the stage to change the map.";
+            bool recorded = context.Tape != null && context.Tape.tracks.Any(t => t.takes.Count > 0);
+            var maps = SetLists.AvailableMaps();
+            var mapIds = maps.Select(entry => entry.id).ToList();
+            var mapNames = maps.Select(SetLists.MapName).ToList();
+            int mapIndex = mapIds.IndexOf(set.map);
+            if (mapIndex < 0)
+            {
+                mapIds.Insert(0, set.map);
+                mapNames.Insert(0, string.IsNullOrEmpty(set.map) ? "Choose a map" : $"Unavailable map ({set.map})");
+                panel.Add(StudioUi.Warning(maps.Length == 0 ? "No playable maps were found in the lobby catalog."
+                    : "This Set's saved map is unavailable in this project."));
+                mapIndex = 0;
+            }
+            var map = StudioFields.Choice(context, "Map", mapNames, mapIndex, i => set.map = mapIds[i]);
+            map.SetEnabled(closed && !recorded && maps.Length > 0);
+            map.tooltip = recorded ? "Create a new Set for a different map. The recorded world belongs to this map."
+                : closed ? "Choose from the game's lobby catalog." : "Close the stage to change the map.";
             panel.Add(map);
             var length = StudioFields.Number(context, "Length (s)", set.length, v => set.length = Mathf.Clamp(v, .5f, 120));
             var rates = new List<string> { "24", "25", "30", "50", "60" };
             // An imported Set can have another rate (Theatre allowed 12 to 60); show it rather than a wrong one.
             if (!rates.Contains(set.fps.ToString())) rates.Insert(0, set.fps.ToString());
             var rate = StudioFields.Choice(context, "Frame rate", rates, rates.IndexOf(set.fps.ToString()), i => { if (i >= 0) set.fps = int.Parse(rates[i]); });
-            bool recorded = context.Tape != null && context.Tape.tracks.Any(t => t.takes.Count > 0);
             rate.SetEnabled(closed && !recorded);
             rate.tooltip = recorded ? "The tape was recorded at this rate." : closed ? "" : "Close the stage to change the frame rate.";
             length.SetEnabled(closed);
@@ -177,14 +204,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
 
             // Starting world state
-            var others = StudioLibrary.SetIds().Where(id => id != set.id).ToList();
-            var startNames = new List<string> { "As the map loads" }.Concat(others.Select(id => "End of: " + (StudioLibrary.Load(id)?.title ?? id))).ToList();
-            var start = StudioFields.Choice(context, "World starts", startNames, others.IndexOf(set.startFromSet) + 1,
-                i => set.startFromSet = i <= 0 ? "" : others[i - 1]);
+            var others = StudioLibrary.SetIds().Where(id => id != set.id).Select(StudioLibrary.Load)
+                .Where(other => other != null && other.map == set.map).ToList();
+            var startIds = new List<string> { "" }.Concat(others.Select(other => other.id)).ToList();
+            var startNames = new List<string> { "As the map loads" }.Concat(others.Select(other => "From " + other.title)).ToList();
+            int startIndex = startIds.IndexOf(set.startFromSet ?? "");
+            if (startIndex < 0)
+            {
+                startIndex = startIds.Count;
+                startIds.Add(set.startFromSet);
+                startNames.Add("Saved start unavailable on this map");
+            }
+            var start = StudioFields.Choice(context, "World starts", startNames, startIndex,
+                i => set.startFromSet = startIds[i]);
             start.SetEnabled(closed);
+            start.tooltip = "World takes can only start from another Set on the same map.";
             var startFrame = StudioFields.Whole(context, "From frame", set.startFromFrame, v => set.startFromFrame = Mathf.Max(0, v));
             startFrame.tooltip = "Tape frame of the other Set to start from. Use a large number for its last frame.";
-            startFrame.SetEnabled(closed && !string.IsNullOrEmpty(set.startFromSet));
+            startFrame.SetEnabled(closed && others.Any(other => other.id == set.startFromSet));
 
             // Time of day and weather: the Studio moves the scene's own sun and fog while the stage is open.
             var ownTime = StudioFields.Switch(context, "Set time of day", set.timeOfDay >= 0, v => set.timeOfDay = v ? 12 : -1, true);
@@ -206,6 +243,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
     public sealed class MarkInspector : IStudioInspector
     {
+        [Serializable]
+        sealed class WardrobeCatalog
+        {
+            public AvatarAppearance[] skins, hair, headgear, eyewear, outfits, back, extras;
+        }
+
+        static WardrobeCatalog wardrobe;
+
         public bool Handles(object selection, StudioContext context) => selection is StudioMark;
 
         public void Build(VisualElement panel, object selection, StudioContext context)
@@ -220,23 +265,18 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             panel.Add(StudioFields.Slide(context, "Facing", mark.yaw, 0, 360, v => mark.yaw = v));
             if (mark.role != StudioRole.Hand)
             {
-                panel.Add(StudioFields.Choice(context, "Starts with", SetLists.Equipment, Mathf.Max(0, SetLists.Equipment.IndexOf(string.IsNullOrEmpty(mark.equipment) ? "None" : mark.equipment)),
-                    i => mark.equipment = i <= 0 ? "" : SetLists.Equipment[i]));
-                panel.Add(StudioFields.Switch(context, "Choose outfit", mark.customLook, v => mark.customLook = v));
-                if (mark.customLook)
+                var lookControls = new VisualElement();
+                if (StudioRun.Busy || StudioHandheld.Recording)
                 {
-                    var look = mark.appearance;
-                    void Wear(AvatarAppearance changed) => mark.appearance = changed;
-                    panel.Add(StudioUi.Card(
-                        StudioFields.Enum(context, "Skin", look.skin, v => { look.skin = v; Wear(look); }),
-                        StudioFields.Enum(context, "Hair", look.hair, v => { look.hair = v; Wear(look); }),
-                        StudioFields.Enum(context, "Hair shade", look.hairShade, v => { look.hairShade = v; Wear(look); }),
-                        StudioFields.Enum(context, "Eyewear", look.eyewear, v => { look.eyewear = v; Wear(look); }),
-                        StudioFields.Flags(context, "Clothing", look.clothing, v => { look.clothing = v; Wear(look); }),
-                        StudioFields.Flags(context, "Accessories", look.accessories, v => { look.accessories = v; Wear(look); }),
-                        StudioFields.Switch(context, "Powered armor", look.poweredArmor, v => { look.poweredArmor = v; Wear(look); })));
+                    panel.Add(StudioUi.Hint("Stop the run to change the actor's look or loadout."));
+                    lookControls.SetEnabled(false);
                 }
-                else panel.Add(StudioUi.Hint("Wears the game's usual random outfit."));
+                AddEquipment(lookControls, mark, context);
+                lookControls.Add(StudioFields.Switch(context, "Custom outfit", mark.customLook, v => mark.customLook = v));
+                if (mark.customLook) AddWardrobe(lookControls, mark, context);
+                else lookControls.Add(StudioUi.Hint(mark.role == StudioRole.Bot ? "Uses the game's random bot outfit."
+                    : "Uses the local player's outfit when performed."));
+                panel.Add(lookControls);
             }
             panel.Add(StudioUi.Advanced(StudioFields.Point(context, "Position", mark.position, v => mark.position = v),
                 StudioUi.Hint("Metres from the stage spot. Drag the mark in the viewport instead of typing here.")));
@@ -245,6 +285,108 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             else panel.Add(StudioUi.Hint(mark.role == StudioRole.Hand ? "The hand is recorded in the Perform mode." : "Not recorded yet."));
             // Same as the Delete key: also takes away the actor's layers and the cameras' references to it.
             panel.Add(StudioUi.Small("Delete mark", context.window.DeleteSelection, "The actor's takes stay on the tape."));
+        }
+
+        static void AddEquipment(VisualElement panel, StudioMark mark, StudioContext context)
+        {
+            var kinds = ((EquipmentKind[])Enum.GetValues(typeof(EquipmentKind)))
+                .Where(kind => kind != EquipmentKind.FlyingHand &&
+                    (int)kind < EquipmentSpecifications.All.Length).ToList();
+            var labels = kinds.Select(kind => kind == EquipmentKind.None ? "None" : EquipmentSpecifications.Get(kind).name).ToList();
+            EquipmentKind starting = StudioCast.StartingEquipment(mark);
+            int current = kinds.IndexOf(starting);
+            if (current < 0)
+            {
+                labels.Insert(0, $"Saved loadout ({mark.equipment})");
+                kinds.Insert(0, starting);
+                current = 0;
+            }
+            panel.Add(StudioFields.Choice(context, "Starting gear", labels, current, i =>
+            {
+                var kind = kinds[i];
+                mark.equipment = kind == EquipmentKind.None ? "" : kind.ToString();
+                var look = mark.appearance;
+                look.poweredArmor = false;
+                mark.appearance = look;
+            }));
+        }
+
+        static void AddWardrobe(VisualElement panel, StudioMark mark, StudioContext context)
+        {
+            if (wardrobe == null)
+            {
+                var asset = Resources.Load<TextAsset>("WardrobeCatalog");
+                wardrobe = (asset ? JsonUtility.FromJson<WardrobeCatalog>(asset.text) : null) ?? new WardrobeCatalog();
+            }
+            var look = mark.appearance;
+            var card = StudioUi.Card();
+            panel.Add(card);
+            void Wear(AvatarAppearance value) => mark.appearance = value;
+            void Pick<T>(string label, AvatarAppearance[] items, Func<AvatarAppearance, T> get, Func<T, AvatarAppearance> change, T current)
+                where T : struct
+            {
+                var values = new[] { default(T) }.Concat((items ?? Array.Empty<AvatarAppearance>()).Select(get)).Distinct().ToList();
+                var labels = values.Select(value => ObjectNames.NicifyVariableName(value.ToString())).ToList();
+                int index = values.IndexOf(current);
+                if (index < 0)
+                {
+                    index = values.Count;
+                    values.Add(current);
+                    labels.Add($"Saved {ObjectNames.NicifyVariableName(current.ToString())}");
+                }
+                card.Add(StudioFields.Choice(context, label, labels, index, i => Wear(change(values[i]))));
+            }
+            void Slot(string label, AvatarAppearance[] items, bool hair = false, bool eyewear = false)
+            {
+                items ??= Array.Empty<AvatarAppearance>();
+                var accessories = items.Aggregate(AvatarAccessory.None, (mask, item) => mask | item.accessories);
+                var clothing = items.Aggregate(AvatarClothing.None, (mask, item) => mask | item.clothing);
+                var options = new[] { default(AvatarAppearance) }.Concat(items).ToArray();
+                var names = options.Select(item => item.accessories != 0 ? ObjectNames.NicifyVariableName(item.accessories.ToString())
+                    : item.clothing != 0 ? ObjectNames.NicifyVariableName(item.clothing.ToString())
+                    : item.hair != AvatarHair.None ? ObjectNames.NicifyVariableName(item.hair.ToString())
+                    : item.eyewear != AvatarEyewear.None ? ObjectNames.NicifyVariableName(item.eyewear.ToString()) : "None").ToList();
+                var activeAccessories = look.accessories & accessories;
+                var activeClothing = look.clothing & clothing;
+                int index = Array.FindIndex(options, item => item.accessories == activeAccessories && item.clothing == activeClothing &&
+                    (!hair || item.hair == look.hair) && (!eyewear || item.eyewear == look.eyewear));
+                if (index < 0)
+                {
+                    index = names.Count;
+                    names.Add("Saved combination");
+                }
+                card.Add(StudioFields.Choice(context, label, names, index, i =>
+                {
+                    if (i >= options.Length) return;
+                    var changed = look;
+                    changed.accessories = (look.accessories & ~accessories) | options[i].accessories;
+                    changed.clothing = (look.clothing & ~clothing) | options[i].clothing;
+                    if (hair) changed.hair = options[i].hair;
+                    if (eyewear) changed.eyewear = options[i].eyewear;
+                    Wear(changed);
+                }));
+            }
+            Pick("Skin", wardrobe.skins, item => item.skin, value => { var changed = look; changed.skin = value; return changed; }, look.skin);
+            if (look.skin == AvatarSkin.Default && StudioCast.StartingEquipment(mark) != EquipmentKind.PoweredArmor)
+            {
+                Slot("Hair", wardrobe.hair, hair: true);
+                card.Add(StudioFields.Enum(context, "Hair shade", look.hairShade, value => { var changed = look; changed.hairShade = value; Wear(changed); }));
+                Slot("Eyewear", wardrobe.eyewear, eyewear: true);
+                Slot("Headwear", wardrobe.headgear);
+                Slot("Outfit", wardrobe.outfits);
+                Slot("Back", wardrobe.back);
+                Slot("Extras", wardrobe.extras);
+            }
+            else card.Add(StudioUi.Hint("The selected skin or armor covers the saved wardrobe items."));
+
+            var prefab = SetLists.Catalog?.survivorPrefab;
+            var preview = prefab ? prefab.GetComponentInChildren<IAvatarWardrobePreview>(true) : null;
+            if (preview != null && look.skin == AvatarSkin.Default && StudioCast.StartingEquipment(mark) != EquipmentKind.PoweredArmor)
+            {
+                var fit = preview.EvaluateAppearance(look);
+                if (!string.IsNullOrEmpty(fit.reason)) card.Add(StudioUi.Warning(fit.reason));
+            }
+            card.Add(StudioUi.Small("Reset outfit", () => context.Edit("Reset outfit", () => mark.appearance = default)));
         }
     }
 
@@ -325,11 +467,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 bool active = take == track.ActiveTake;
                 var use = StudioUi.Small(active ? "Active" : "Use", () => context.window.SetActiveTake(track, track.takes.IndexOf(captured)));
                 use.EnableInClassList("ts-small--on", active);
+                use.SetEnabled(!active && !StudioRun.Busy && !StudioHandheld.Recording);
                 use.style.minWidth = 46;
                 var name = new TextField { value = take.name, isDelayed = true };
                 name.style.flexGrow = 1;
                 name.RegisterValueChangedCallback(e => { captured.name = string.IsNullOrWhiteSpace(e.newValue) ? captured.name : e.newValue; context.window.TapeChanged(); });
-                var star = StudioUi.Small("*", () => { captured.starred = !captured.starred; context.window.TapeChanged(); }, "Star the takes you like");
+                var star = StudioUi.Small(take.starred ? "Starred" : "Star", () => { captured.starred = !captured.starred; context.window.TapeChanged(); }, "Star the takes you like");
                 star.EnableInClassList("ts-small--on", take.starred);
                 var trash = StudioUi.Small("Trash", () =>
                 {

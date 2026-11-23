@@ -31,7 +31,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     // Making takes out of other takes: punch-in joins, comps and clones. Nothing here deletes a take.
     public static class StudioTakes
     {
-        [Serializable] sealed class ActorTakeMeta { public string world = ""; }
+        [Serializable] sealed class ActorTakeMeta { public string world = "", previousCrowdTake = ""; }
 
         public static string WorldMeta(string worldTakeId) => JsonUtility.ToJson(new ActorTakeMeta { world = worldTakeId });
         public static string WorldOf(StudioTake take)
@@ -101,13 +101,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var from = tape.Find(source.id);
             var take = from?.ActiveTake;
-            if (take == null) throw new InvalidOperationException(source.actor + " has no take to clone yet.");
+            if (take == null || take.frames.Count == 0) throw new InvalidOperationException(source.actor + " has no take to clone yet.");
             var random = new System.Random(options.seed);
             float Spread() => (float)(random.NextDouble() * 2 - 1) * options.jitter;
             Vector3 offset = options.offset + new Vector3(Spread() * .5f, 0, Spread() * .5f);
             float delay = options.delay + Spread() * .33f;
 
             var mark = set.AddMark(source.role, source.position + offset);
+            if (tape.Find(mark.id) != null) mark.id = set.UniqueId("clone-" + Guid.NewGuid().ToString("N"));
             mark.actor = source.actor + " clone " + (set.marks.Count(m => m.actor.StartsWith(source.actor + " clone")) + 1);
             mark.yaw = source.yaw + options.turn;
             mark.color = (source.color + set.marks.Count) % 8;
@@ -115,9 +116,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (options.dress) { mark.customLook = true; mark.appearance = options.look; }
             if (options.color >= 0) mark.color = options.color % 8;
 
+            var copy = CopyPerformance(set, source, mark, from, take, options.turn, delay, options.mirror, offset);
+            var track = tape.GetOrAdd(mark.id, from.type, mark.actor);
+            track.takes.Add(copy);
+            track.active = track.takes.Count - 1;
+            return mark;
+        }
+
+        static StudioTake CopyPerformance(StudioSet set, StudioMark source, StudioMark mark, StudioTrack from,
+            StudioTake take, float heading, float delay, bool mirror, Vector3 offset)
+        {
             var first = ActorFrame.Read(from.type, take.frames.FirstOrDefault(f => ActorFrame.Read(from.type, f).visible) ?? take.frames[0]);
             Vector3 pivot = first.Position;
-            Quaternion turn = Quaternion.Euler(0, options.turn, 0);
+            Quaternion turn = Quaternion.Euler(0, heading, 0);
             // Mirror across the plane that runs through the actor from back to front.
             Vector3 normal = Quaternion.Euler(0, source.yaw, 0) * Vector3.right;
             int shift = Mathf.RoundToInt(delay * set.fps);
@@ -127,7 +138,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             for (int i = skip; i < take.frames.Count && copy.start + (i - skip) < set.Frames; i++)
             {
                 var frame = ActorFrame.Read(from.type, take.frames[i]);
-                frame.Transform(pivot, turn, offset, options.mirror, normal);
+                frame.Transform(pivot, turn, offset, mirror, normal);
                 if (!frame.isHand) { frame.color = (frame.color & ~0xFF) | (mark.color & 0xFF); if (mark.customLook) frame.look = mark.appearance; }
                 copy.frames.Add(frame.Write());
             }
@@ -143,10 +154,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 while (copy.start + copy.frames.Count < wantEnd) copy.frames.Add(copy.frames[copy.frames.Count - 1]);
             }
-            var track = tape.GetOrAdd(mark.id, from.type, mark.actor);
-            track.takes.Add(copy);
-            track.active = track.takes.Count - 1;
-            return mark;
+            return copy;
         }
 
         public sealed class CrowdOptions
@@ -157,6 +165,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public float timeSpread = .8f;    // people start up to this many seconds earlier or later
             public bool mirror = true, outfits = true;
             public int seed = 1;
+            public string group = "";
+            public bool directed;
+            public Vector3 start, destination;
+            public float cueTime;
             // With the stage open: the height of the ground at a spot (stage space), or null where there is nothing to stand on.
             // People are only placed where there is ground, and start standing on it.
             public Func<Vector3, float?> ground;
@@ -167,15 +179,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static List<StudioMark> Crowd(StudioSet set, StudioTape tape, List<StudioMark> sources, CrowdOptions options, out List<string> notes)
         {
             notes = new List<string>();
-            sources = sources.Where(s => tape.Find(s.id)?.ActiveTake != null).ToList();
+            sources = sources.Where(s => tape.Find(s.id)?.ActiveTake?.frames.Count > 0).ToList();
             if (sources.Count == 0) throw new InvalidOperationException("Pick at least one actor that has a take.");
+            if (options.directed && (options.ground == null ||
+                Vector3.ProjectOnPlane(options.destination - options.start, Vector3.up).sqrMagnitude < .04f))
+                throw new InvalidOperationException("Hold the stage and place a destination away from the starting area.");
+            var draftSet = new StudioSet { fps = set.fps, length = set.length, marks = new List<StudioMark>(set.marks) };
+            var draftTape = new StudioTape();
+            draftTape.tracks.AddRange(tape.tracks);
             var random = new System.Random(options.seed);
             float Next() => (float)random.NextDouble();
             var made = new List<StudioMark>();
             var taken = set.marks.Select(m => m.position).ToList();
             // People copied from the same take get evenly spread delays, so their steps never line up.
             int perSource = Mathf.CeilToInt(options.count / (float)sources.Count);
-            float step = Mathf.Max(.17f, options.timeSpread / Mathf.Max(1, (perSource + 1) / 2));
+            float step = options.timeSpread / Mathf.Max(1, (perSource + 1) / 2);
             var used = new int[sources.Count];
             int nudged = 0;
             for (int i = 0; i < options.count; i++)
@@ -187,22 +205,33 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 for (int attempt = 0; attempt < 200 && !found; attempt++)
                 {
                     float angle = Next() * Mathf.PI * 2, distance = Mathf.Sqrt(Next()) * reach;
-                    place = source.position + new Vector3(Mathf.Cos(angle) * distance, 0, Mathf.Sin(angle) * distance);
+                    var origin = options.directed ? options.start : source.position;
+                    place = origin + new Vector3(Mathf.Cos(angle) * distance, 0, Mathf.Sin(angle) * distance);
                     found = taken.All(p => Vector3.Distance(p, place) >= options.spacing);
                     if (found && options.ground != null)
                     {
                         float? height = options.ground(place);
                         // Not over a drop, and not up on something much higher or lower than the performer stood on.
-                        if (!height.HasValue || Mathf.Abs(height.Value - source.position.y) > 1.2f) found = false;
+                        if (!height.HasValue || Mathf.Abs(height.Value - origin.y) > 1.2f) found = false;
                         else place.y = height.Value;
                     }
-                    if (attempt % 40 == 39) { reach *= 1.3f; nudged++; }
+                    if (found) found = taken.All(p => Vector3.Distance(p, place) >= options.spacing);
+                    if (!options.directed && attempt % 40 == 39) { reach *= 1.3f; nudged++; }
                 }
-                if (!found) notes.Add($"Person {i + 1} could not find a free spot; they overlap someone.");
-                taken.Add(place);
+                if (!found)
+                {
+                    if (options.directed)
+                    {
+                        notes.Add($"Person {i + 1} had no valid starting position. No group was created.");
+                        return new List<StudioMark>();
+                    }
+                    notes.Add($"Person {i + 1} had no valid starting position and was skipped.");
+                    continue;
+                }
                 int slot = used[pick]++;
                 // Never zero: one step later, one step earlier, two steps later... so nobody matches the performer either.
-                float delay = (slot / 2 + 1) * step * (slot % 2 == 0 ? 1 : -1) + (Next() - .5f) * .04f;
+                float delay = (slot / 2 + 1) * step * (slot % 2 == 0 ? 1 : -1) + (Next() - .5f) * Mathf.Min(step * .2f, .04f);
+                delay = Mathf.Clamp(delay, -options.timeSpread, options.timeSpread);
                 var look = new DeadlyJenga.Core.AvatarAppearance();
                 if (options.outfits)
                 {
@@ -211,17 +240,139 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     look.eyewear = Any<DeadlyJenga.Core.AvatarEyewear>(); look.hairShade = Any<DeadlyJenga.Core.AvatarHairShade>();
                     look.clothing = Any<DeadlyJenga.Core.AvatarClothing>();
                 }
-                var clone = Clone(set, tape, source, new CloneOptions
+                float turn = (Next() - .5f) * 50;
+                bool mirror = options.mirror && i % 2 == 1;
+                var sourceTrack = tape.Find(source.id);
+                var sourceTake = sourceTrack.ActiveTake;
+                if (options.directed)
                 {
-                    offset = place - source.position, turn = (Next() - .5f) * 50, delay = delay, mirror = options.mirror && i % 2 == 1,
+                    Vector3 travel = ActorFrame.Read(sourceTrack.type, sourceTake.frames[sourceTake.frames.Count - 1]).Position -
+                        ActorFrame.Read(sourceTrack.type, sourceTake.frames[0]).Position;
+                    if (mirror) travel = Vector3.Reflect(travel, Quaternion.Euler(0, source.yaw, 0) * Vector3.right);
+                    Vector3 direction = options.destination - place;
+                    travel.y = direction.y = 0;
+                    if (travel.sqrMagnitude > .04f && direction.sqrMagnitude > .04f)
+                        turn = Vector3.SignedAngle(travel, direction, Vector3.up);
+                    else
+                    {
+                        notes.Add($"{source.actor} has insufficient travel to aim person {i + 1}. No group was created.");
+                        return new List<StudioMark>();
+                    }
+                    delay += options.cueTime - sourceTake.start / (float)set.fps;
+                }
+                int shift = Mathf.RoundToInt(delay * set.fps);
+                if (sourceTake.start + shift >= set.Frames || sourceTake.End + shift <= 0)
+                {
+                    if (options.directed)
+                    {
+                        notes.Add($"Person {i + 1}'s timing fell outside the set. No group was created.");
+                        return new List<StudioMark>();
+                    }
+                    notes.Add($"Person {i + 1}'s timing fell outside the set and was skipped.");
+                    continue;
+                }
+                taken.Add(place);
+                var clone = Clone(draftSet, draftTape, source, new CloneOptions
+                {
+                    offset = place - source.position, turn = turn, delay = delay, mirror = mirror,
                     jitter = 0, seed = options.seed * 131 + i, dress = options.outfits, look = look, color = random.Next(8)
                 });
-                clone.actor = "Crowd " + (made.Count + 1);
-                tape.Find(clone.id).name = clone.actor;
+                clone.crowdGroup = options.group?.Trim() ?? "";
+                clone.crowdSource = source.id;
+                clone.crowdTurn = turn;
+                clone.crowdDelay = delay;
+                clone.crowdMirror = mirror;
+                clone.actor = (clone.crowdGroup.Length > 0 ? clone.crowdGroup : "Crowd") + " " + (made.Count + 1);
+                draftTape.Find(clone.id).name = clone.actor;
                 made.Add(clone);
             }
             if (nudged > 0) notes.Add("The area was tight, so some people were placed a little farther out.");
+            set.marks.AddRange(made);
+            tape.tracks.AddRange(made.Select(m => draftTape.Find(m.id)));
             return made;
+        }
+
+        public static int RetakeCrowd(StudioSet set, StudioTape tape, string group, float timingSpread, int seed)
+        {
+            string world = tape.FindType(WorldTrack.Id)?.ActiveTake?.id;
+            if (string.IsNullOrEmpty(world)) throw new InvalidOperationException("Record and select a world take before replacing a group's performances.");
+            var random = new System.Random(seed);
+            var drafts = new List<(StudioTrack track, StudioTake take)>();
+            foreach (var mark in set.marks.Where(m => m.crowdGroup == group && !m.heroLocked))
+            {
+                var target = tape.Find(mark.id);
+                if (target == null || target.locked) continue;
+                var source = set.marks.Find(m => m.id == mark.crowdSource);
+                var from = tape.Find(mark.crowdSource);
+                var active = from?.ActiveTake;
+                if (source == null || active == null || active.frames.Count == 0 || WorldOf(active) != world)
+                    throw new InvalidOperationException($"{mark.actor}'s source needs a performance recorded against the active world take.");
+                float variation = ((float)random.NextDouble() * 2 - 1) * timingSpread;
+                var fresh = CopyPerformance(set, source, mark, from, active, mark.crowdTurn, mark.crowdDelay + variation,
+                    mark.crowdMirror, mark.position - source.position);
+                if (fresh.frames.Count == 0) throw new InvalidOperationException($"{mark.actor}'s timing puts the take outside the set.");
+                fresh.name = $"{group} retake · seed {seed}";
+                fresh.meta = JsonUtility.ToJson(new ActorTakeMeta { world = world, previousCrowdTake = target.ActiveTake?.id ?? "" });
+                drafts.Add((target, fresh));
+            }
+            foreach (var draft in drafts)
+            {
+                draft.track.takes.Add(draft.take);
+                draft.track.active = draft.track.takes.Count - 1;
+            }
+            CheckStale(tape, set.fps);
+            return drafts.Count;
+        }
+
+        public static int RestoreCrowdTakes(StudioSet set, StudioTape tape, string group)
+        {
+            var restored = new List<(StudioTrack track, int index)>();
+            foreach (var mark in set.marks.Where(m => m.crowdGroup == group && !m.heroLocked))
+            {
+                var track = tape.Find(mark.id);
+                if (track == null || track.locked || string.IsNullOrEmpty(track.ActiveTake?.meta)) continue;
+                ActorTakeMeta meta;
+                try { meta = JsonUtility.FromJson<ActorTakeMeta>(track.ActiveTake.meta); }
+                catch { continue; }
+                if (string.IsNullOrEmpty(meta?.previousCrowdTake)) continue;
+                int index = track.takes.FindIndex(t => t.id == meta.previousCrowdTake && !t.trashed);
+                if (index < 0) throw new InvalidOperationException($"Restore {mark.actor}'s previous take from the trash first.");
+                restored.Add((track, index));
+            }
+            foreach (var target in restored) target.track.active = target.index;
+            CheckStale(tape, set.fps);
+            return restored.Count;
+        }
+
+        public static (int frame, string message) RehearseCrowd(StudioStage stage, string group, float spacing)
+        {
+            var actors = stage.set.marks.Where(m => m.role != StudioRole.Hand)
+                .Select(m => (mark: m, track: stage.tape.Find(m.id)))
+                .Where(a => a.track?.ActiveTake != null && a.track.mode != TrackMode.Muted).ToArray();
+            var occupied = new List<(StudioMark mark, Vector3 position)>();
+            int stride = Mathf.Max(1, stage.Fps / 10);
+            for (int frame = 0; frame < stage.Frames; frame += stride)
+            {
+                occupied.Clear();
+                foreach (var actor in actors)
+                {
+                    var take = actor.track.ActiveTake;
+                    if (!take.Covers(frame) || !ActorTrack.TryReadPosition(actor.track.type, take.frames[frame - take.start], out var point)) continue;
+                    if (actor.mark.crowdGroup == group)
+                    {
+                        Vector3 feet = stage.ToStage(point);
+                        float? ground = stage.GroundAt(feet);
+                        if (!ground.HasValue || Mathf.Abs(ground.Value - feet.y) > 1.2f)
+                            return (frame, $"{actor.mark.actor} may have lost the floor");
+                    }
+                    foreach (var other in occupied)
+                        if ((actor.mark.crowdGroup == group || other.mark.crowdGroup == group) &&
+                            (other.position - point).sqrMagnitude < spacing * spacing)
+                            return (frame, $"{actor.mark.actor} passes close to {other.mark.actor}");
+                    occupied.Add((actor.mark, point));
+                }
+            }
+            return (-1, "No close passes or possible floor losses in the sampled routes.");
         }
 
         // After the world was recorded again: flag every actor take that was performed against an older world,
@@ -242,7 +393,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     frame = old == null ? 0 : WorldTrack.FirstDifference(old, newWorld, 10);
                     differences[against] = frame;
                 }
-                if (frame < 0) { take.meta = WorldMeta(newWorld.id); continue; }   // same world after all
+                if (frame < 0)
+                {
+                    var meta = JsonUtility.FromJson<ActorTakeMeta>(take.meta) ?? new ActorTakeMeta();
+                    meta.world = newWorld.id;
+                    take.meta = JsonUtility.ToJson(meta);
+                    continue;
+                }
                 StudioTrackNotes.Update(track, n => n.staleFrame = frame);
                 StudioBadges.Set(track, StudioBadges.Stale, $"the world was re-recorded and first differs at {frame / (float)fps:0.00} s (frame {frame}). Keep it, re-record it, or punch in from there.");
             }

@@ -1,0 +1,46 @@
+{
+  "title": "Prompt scout",
+  "map": "castle",
+  "fps": 15,
+  "width": 360,
+  "height": 640,
+  "seed": 148,
+  "warmup": 0.75,
+  "ffmpeg": "ffmpeg",
+  "cast": [],
+  "shots": [
+    {
+      "name": "Wide scout",
+      "start": 0.0,
+      "duration": 4.0,
+      "fov": 55,
+      "from": {
+        "x": 11,
+        "y": 4,
+        "z": -14
+      },
+      "to": {
+        "x": 9,
+        "y": 3,
+        "z": -12
+      },
+      "look": {
+        "x": 0,
+        "y": -0.6,
+        "z": 0
+      },
+      "avoidWalls": false,
+      "firstPerson": false
+    }
+  ],
+  "cues": [],
+  "edit": [
+    {
+      "shot": 0,
+      "from": 0,
+      "duration": 4.0
+    }
+  ],
+  "environmentOnly": true,
+  "muteDelivery": true
+}

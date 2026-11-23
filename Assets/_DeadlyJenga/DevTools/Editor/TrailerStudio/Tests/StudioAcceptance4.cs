@@ -12,6 +12,66 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     // Phase 4 acceptance tests: polishing performances.
     public static partial class StudioAcceptance
     {
+        public static void CheckCrowdAlgorithms()
+        {
+            var set = new StudioSet { length = 2 };
+            var tape = new StudioTape();
+            var source = set.AddMark(StudioRole.Survivor, Vector3.zero);
+            var world = tape.GetOrAdd("world", WorldTrack.Id, "World").AddTake(0, 1);
+            var sourceTake = tape.GetOrAdd(source.id, SurvivorTrack.Id, source.actor).AddTake(0, 1);
+            sourceTake.meta = StudioTakes.WorldMeta(world.id);
+            for (int frame = 0; frame < set.Frames; frame++)
+            {
+                var feet = Vector3.right * (frame * .06f);
+                sourceTake.frames.Add(new ActorFrame
+                {
+                    visible = true,
+                    body = new DeadlyJenga.CandyPlayers.CandyAvatarFrame
+                    {
+                        feet = feet, head = feet + Vector3.up * 1.6f, headRotation = Quaternion.identity, scale = 1,
+                        left = new DeadlyJenga.CandyPlayers.CandyHandPose { rotation = Quaternion.identity },
+                        right = new DeadlyJenga.CandyPlayers.CandyHandPose { rotation = Quaternion.identity }
+                    }
+                }.Write());
+            }
+            var options = new StudioTakes.CrowdOptions
+            {
+                directed = true, group = "East stairs", start = Vector3.forward * 10, destination = Vector3.forward * 15,
+                count = 2, radius = 2, timeSpread = .15f, seed = 18
+            };
+            var sources = new List<StudioMark> { source };
+            int groundQueries = 0;
+            options.ground = _ => ++groundQueries == 1 ? 0f : (float?)null;
+            var rejected = StudioTakes.Crowd(set, tape, sources, options, out var notes);
+            Require(rejected.Count == 0 && set.marks.Count == 1 && tape.tracks.Count == 2 && notes.Count > 0,
+                "A directed group with only one valid placement changed the cast or tape.");
+
+            options.ground = _ => 0;
+            var group = StudioTakes.Crowd(set, tape, sources, options, out _);
+            Require(group.Count == 2 && group.All(mark => mark.crowdGroup == options.group), "A valid directed group was not created.");
+            group[0].heroLocked = true;
+            var hero = tape.Find(group[0].id).ActiveTake;
+            var extraTrack = tape.Find(group[1].id);
+            var extra = extraTrack.ActiveTake;
+            sourceTake.meta = StudioTakes.WorldMeta("another-world");
+            bool refused = false;
+            try { StudioTakes.RetakeCrowd(set, tape, options.group, .1f, 24); }
+            catch (InvalidOperationException) { refused = true; }
+            Require(refused && extraTrack.ActiveTake == extra && extraTrack.takes.Count == 1,
+                "A retake from another world partially changed the group.");
+            sourceTake.meta = StudioTakes.WorldMeta(world.id);
+            Require(StudioTakes.RetakeCrowd(set, tape, options.group, .1f, 24) == 1 && extraTrack.ActiveTake != extra &&
+                tape.Find(group[0].id).ActiveTake == hero, "The approved hero changed or the background retake was skipped.");
+            Require(StudioTakes.RestoreCrowdTakes(set, tape, options.group) == 1 && extraTrack.ActiveTake == extra,
+                "Restoring the group's previous take failed.");
+            Debug.Log("Trailer Studio crowd algorithms passed: directed placement is atomic, exact-world retakes exclude the hero, and restore is reversible.");
+
+            void Require(bool passed, string message)
+            {
+                if (!passed) throw new InvalidOperationException(message);
+            }
+        }
+
         // How fast the lower foot of a played-back survivor moves along the ground, per frame (metres per second).
         sealed class FootWatch
         {
@@ -93,8 +153,57 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Result("Setup: three performed takes", performers.All(p => tape.Find(p.id)?.ActiveTake?.frames.Count == frames),
                 $"Ada, Ben and Cy each performed a {set.length:0} s take. Ada walked {Vector3.Distance(originalPath[0], originalPath[originalPath.Count - 1]):0.00} m.");
 
+            bool previousOptIn = StudioPerform.StarredGhostEnabled(set, ada);
+            bool previousHidden = StudioPerform.GhostsHidden;
+            bool previousStar = original.starred;
+            bool previousLive = StudioPerform.LivePhysics;
+            string previousActor = StudioPerform.Actor;
+            bool selectedReference = false, visibleReference = false, madePassThrough = false, disappeared = false;
+            try
+            {
+                original.starred = true;
+                StudioPerform.GhostsHidden = false;
+                StudioPerform.Actor = ada.id;
+                StudioPerform.LivePhysics = false;
+                StudioPerform.SetStarredGhost(set, ada, false);
+                bool offByChoice = string.IsNullOrEmpty(StudioPerform.BuildPass(stage, 0).starredGhost);
+                StudioPerform.SetStarredGhost(set, ada, true);
+                var actorType = (ActorTrack)StudioTrackTypes.Get(SurvivorTrack.Id);
+                var reference = StudioPerform.StarredGhostFor(tape, ada, false, 0, frames - 1, null, out _);
+                selectedReference = offByChoice && StudioPerform.BuildPass(stage, 0).starredGhost == original.id && reference == original &&
+                    StudioPerform.StarredGhostFor(tape, ben, false, 0, frames - 1, original.id, out _) == null &&
+                    StudioPerform.StarredGhostFor(tape, ada, true, 0, frames - 1, original.id, out _) == null;
+                if (reference != null)
+                {
+                    stage.playback.TryGetValue(ada.id, out var normal);
+                    using (var ghost = actorType.CreateStarredGhost(stage, adaTrack, reference, worldTake))
+                    {
+                        ghost.Show(fps, true);
+                        var root = stage.starredGhost;
+                        visibleReference = root && root.activeInHierarchy && root.GetComponentsInChildren<Renderer>().Length > 0;
+                        madePassThrough = root && root.GetComponentsInChildren<Collider>().All(c => !c.enabled) &&
+                            stage.playback.TryGetValue(ada.id, out var currentPlayback) == (normal != null) && currentPlayback == normal;
+                        StudioPerform.GhostsHidden = true;
+                        ghost.Show(fps, true);
+                        disappeared = root && !root.activeSelf;
+                    }
+                }
+            }
+            finally
+            {
+                original.starred = previousStar;
+                StudioPerform.SetStarredGhost(set, ada, previousOptIn);
+                StudioPerform.GhostsHidden = previousHidden;
+                StudioPerform.Actor = previousActor;
+                StudioPerform.LivePhysics = previousLive;
+            }
+            Result("Starred reference ghost uses this actor's same-world take and stays isolated",
+                selectedReference && visibleReference && madePassThrough && disappeared && !stage.starredGhost,
+                $"Eligible {selectedReference}, drew a reference {visibleReference}, isolated playback and collisions {madePassThrough}, hid on request {disappeared}.");
+
             // ---- Test 4 first (it needs the three untouched takes): a 20-person crowd from 3 takes ----
-            var crowd = StudioTakes.Crowd(set, tape, performers.ToList(), new StudioTakes.CrowdOptions { count = 20, radius = 5, spacing = .9f, timeSpread = .8f, seed = 11, ground = stage.GroundAt }, out var crowdNotes);
+            const string crowdName = "Courtyard evacuees";
+            var crowd = StudioTakes.Crowd(set, tape, performers.ToList(), new StudioTakes.CrowdOptions { group = crowdName, count = 20, radius = 5, spacing = .9f, timeSpread = .8f, seed = 11, ground = stage.GroundAt }, out var crowdNotes);
             int floating = crowd.Count(m => !stage.GroundAt(m.position + Vector3.up * .1f).HasValue);
             StudioLibrary.Save(set); StudioRun.SaveTape(); StudioRun.Refresh();
             float closest = float.MaxValue;
@@ -136,8 +245,48 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 $"{crowd.Count} people made from Ada's, Ben's and Cy's takes ({outfits} different outfits). Closest two start {closest:0.00} m apart (asked for 0.90). " +
                 $"Comparing every pair's speed frame by frame: {inStep} pairs move in step; the most alike pair still differs by {nearest:0.00} m/s on average. " +
                 $"{shownMost} actors on screen at once in playback. People placed with nothing under their feet: {floating}. Notes: {(crowdNotes.Count == 0 ? "none" : string.Join(" ", crowdNotes))} Pictures: crowd/.");
+            if (crowd.Count >= 2)
+            {
+                var protectedMember = crowd[0];
+                protectedMember.heroLocked = true;
+                var protectedTake = tape.Find(protectedMember.id).ActiveTake;
+                var previous = tape.Find(crowd[1].id).ActiveTake;
+                var roster = JsonUtility.FromJson<StudioSet>(JsonUtility.ToJson(set));
+                int retaken = StudioTakes.RetakeCrowd(set, tape, crowdName, .15f, 123);
+                var fresh = tape.Find(crowd[1].id).ActiveTake;
+                int restored = StudioTakes.RestoreCrowdTakes(set, tape, crowdName);
+                Result("Named group retakes keep the hero and world take, then restore prior performances",
+                    roster.marks.Count(m => m.crowdGroup == crowdName) == crowd.Count && retaken == crowd.Count - 1 &&
+                    restored == retaken && fresh != previous && StudioTakes.WorldOf(fresh) == worldTake.id &&
+                    tape.Find(protectedMember.id).ActiveTake == protectedTake && tape.Find(crowd[1].id).ActiveTake == previous,
+                    $"{retaken} retakes against {worldTake.id}, {restored} prior takes restored.");
+                var reactions = StudioReactionLibrary.Make(set, tape, crowd[1], new StudioReactionLibrary.Preset
+                {
+                    reaction = "stagger", duration = .8f, spread = .3f, strength = .5f, mirror = true, preserveGrip = true
+                }, fps, true, 33);
+                var layer = reactions.FirstOrDefault();
+                bool gripKept = false;
+                if (layer != null)
+                {
+                    var source = tape.Find(layer.actor);
+                    var active = source.ActiveTake;
+                    int frame = Mathf.RoundToInt((layer.from + .3f) * fps);
+                    var reactionPose = ActorFrame.Read(source.type, active.frames[frame - active.start]);
+                    reactionPose.equipment = JsonUtility.ToJson(new EquipmentState { kind = EquipmentKind.Blaster, drawn = true });
+                    var originalFeet = reactionPose.body.feet;
+                    var originalGrip = reactionPose.body.right.position - originalFeet;
+                    StudioOverrides.Apply(set, tape, stage.anchor, layer, frame / (float)fps, 1, reactionPose);
+                    gripKept = (reactionPose.body.feet - originalFeet).sqrMagnitude > .00001f &&
+                        (reactionPose.body.right.position - reactionPose.body.feet - originalGrip).sqrMagnitude < .00001f;
+                }
+                var wardrobe = StudioWardrobeSheet.Appearance(crowd[1], tape);
+                Result("Reaction preset staggers group timing and keeps the drawn grip, hero and wardrobe",
+                    reactions.Count == crowd.Count - 1 && reactions.All(r => r.actor != protectedMember.id && r.mirrorReaction && r.strength == .5f) &&
+                    reactions.Select(r => r.from).Distinct().Count() > 1 && gripKept && wardrobe.look.Equals(crowd[1].appearance),
+                    $"{reactions.Count} layers, {reactions.Select(r => r.from).Distinct().Count()} start frames and compatible costume resolution.");
+            }
             // Take the crowd away again so the next tests are easy to see.
-            set.marks.RemoveAll(m => m.actor.StartsWith("Crowd "));
+            set.marks.RemoveAll(m => m.crowdGroup == crowdName);
             foreach (var mark in crowd) { var t = tape.Find(mark.id); if (t != null) t.mode = TrackMode.Muted; }
             StudioLibrary.Save(set); StudioRun.Refresh();
 

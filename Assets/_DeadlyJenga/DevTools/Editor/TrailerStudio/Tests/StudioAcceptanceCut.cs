@@ -30,7 +30,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             BadgeTests();
             CueIdTests();
             OldRecipeTests();
+            MomentTests();
             ExportFormatTests();
+            RetimedSoundTests(Path.Combine(Folder, "retimed-cut"));
             yield return 0;
 
             // Two loose blocks near the stage spot, pushed in different directions.

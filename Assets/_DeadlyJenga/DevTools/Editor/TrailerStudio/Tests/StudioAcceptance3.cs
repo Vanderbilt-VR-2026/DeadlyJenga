@@ -19,43 +19,64 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return pass;
         }
 
-        // The first tape frame on which each block has moved more than 5 cm from where it started (-1 = never).
-        static int[] FirstMoves(StudioTake take, int frames)
+        // The first sampled frame with more than 5 cm of block movement from the reference frame (-1 = never).
+        static int[] FirstMoves(StudioTake take, int frames, int referenceFrame = -1)
         {
-            WorldTrack.Positions(take, take.start, out var start, out _);
+            int baseline = Mathf.Max(referenceFrame, take.start);
+            WorldTrack.Positions(take, baseline, out var start, out var active);
             var first = Enumerable.Repeat(-1, start.Length).ToArray();
-            for (int f = take.start + 1; f < take.End && f < frames; f += 2)
+            for (int f = baseline + 1; f < take.End && f < frames; f += 2)
             {
                 WorldTrack.Positions(take, f, out var now, out var on);
                 for (int i = 0; i < now.Length; i++)
-                    if (first[i] < 0 && on[i] && Vector3.Distance(now[i], start[i]) > .05f) first[i] = f;
+                    if (first[i] < 0 && on[i] && (referenceFrame < 0 || active[i]) && Vector3.Distance(now[i], start[i]) > .05f) first[i] = f;
             }
             return first;
         }
 
-        static IEnumerator<int> Phase3Tests()
+        static StudioStage PrepareTornadoStage()
         {
             var stage = StudioRun.Stage;
             var set = stage.set;
-            var tape = stage.tape;
-            int fps = set.fps;
             set.marks.Clear(); set.cues.Clear();
             set.length = 9;
             StudioLibrary.Save(set);
             StudioRun.Refresh();
-            int frames = set.Frames;
             StudioCamera.Resize(640, 360);
             StudioCamera.Target = stage.anchor; StudioCamera.Distance = 20; StudioCamera.Pitch = 24; StudioCamera.Place();
-            var worldTrack = tape.FindType(WorldTrack.Id);
+            return stage;
+        }
 
+        static IEnumerator<int> HeldOutTornadoTests()
+        {
+            var stage = PrepareTornadoStage();
+            foreach (int wait in TornadoTest(stage, 270, true)) yield return wait;
+            Result("Runtime exceptions during the held-out tornado test", exceptions == 0,
+                exceptions == 0 && errorLines.Count == 0 ? "None." : $"{exceptions} exceptions. First messages: {string.Join(" // ", errorLines)}");
+            StudioRun.SaveTape();
+        }
+
+        static StudioSet MakeHeldOutTornadoSet() => new StudioSet
+        {
+            id = "acceptance-heldout-tornado-" + HeldOutRunId, title = "Acceptance: Held-out tornado",
+            map = Map, fps = 30, length = 9, alive = new StudioAliveSettings { on = false },
+        };
+
+        static IEnumerable<int> TornadoTest(StudioStage stage, float heading, bool heldOut)
+        {
+            var set = stage.set;
+            var tape = stage.tape;
+            int fps = set.fps, frames = set.Frames;
+            var worldTrack = tape.FindType(WorldTrack.Id);
             // ---- Test 1: a tornado with a set heading; playback is identical every time ----
-            string tornado = SetLists.Hazards.FirstOrDefault(h => h.ToLowerInvariant().Contains("tornado")) ?? SetLists.Hazards.FirstOrDefault();
-            if (tornado == null) Result("1. Tornado cue with a set heading", false, "The disaster catalog is empty.");
+            string tornado = SetLists.Hazards.FirstOrDefault(h => h.IndexOf("tornado", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (!heldOut && tornado == null) tornado = SetLists.Hazards.FirstOrDefault();
+            if (tornado == null) Result("1. Tornado cue with a set heading", false, "No tornado was found in the disaster catalog.");
             else
             {
                 var prefab = DemoDisasters.Prefabs.First(p => p && p.name == tornado);
                 var parameters = DemoDisasters.Parameters(prefab);
-                var cue = new StudioCue { at = .2f, action = "hazard", hazard = tornado, values = DirectCueFields.Defaults(tornado), aimed = true, heading = 90 };
+                var cue = new StudioCue { at = .2f, action = "hazard", hazard = tornado, values = DirectCueFields.Defaults(tornado), aimed = true, heading = heading };
                 var settings = new List<string>();
                 for (int i = 0; i < parameters.Count; i++)
                 {
@@ -70,24 +91,35 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 StudioLibrary.Save(set);
                 void Shoot(int frame) { if (frame % 5 == 0) StudioCamera.SavePng(Path.Combine(Folder, "tornado-live", $"{frame / 5:D05}.png")); }
                 StudioRun.FrameShown += Shoot;
-                StudioRun.Record(WorldPass(stage, "Tornado"));
-                foreach (int wait in UntilHeld()) yield return wait;
-                StudioRun.FrameShown -= Shoot;
+                try
+                {
+                    StudioRun.Record(WorldPass(stage, "Tornado"));
+                    foreach (int wait in UntilHeld()) yield return wait;
+                }
+                finally { StudioRun.FrameShown -= Shoot; }
                 var take = worldTrack.ActiveTake;
                 var hazards = tape.FindType(HazardTrack.Id)?.ActiveTake;
                 int hazardFrames = hazards?.frames.Count(f => f != null && f.Length > 0) ?? 0;
-                var moves = FirstMoves(take, frames);
-                int torn = moves.Count(m => m >= 0);
                 // Where did the tornado come in? Read its first recorded position from the hazard track.
                 float entrySide = -1;
+                int entryFrame = -1;
                 var bounds = stage.world.PlayableBounds;
                 for (int f = 0; f < frames && hazards != null; f++)
                 {
                     if (!HazardTrack.CenterAt(hazards, f, out var funnel)) continue;
+                    entryFrame = f;
                     entrySide = Mathf.Repeat(Mathf.Atan2(funnel.z - bounds.center.z, funnel.x - bounds.center.x) * Mathf.Rad2Deg, 360);
                     break;
                 }
-                bool fromRightSide = entrySide >= 0 && Mathf.Abs(Mathf.DeltaAngle(entrySide, 90)) < 12;
+                bool fromRequestedSide = entrySide >= 0 && Mathf.Abs(Mathf.DeltaAngle(entrySide, heading)) < 12;
+                if (take == null || (heldOut && !take.Covers(entryFrame)))
+                {
+                    Result("Tornado world and hazard take coverage", false, $"World take covers the recorded hazard entry at frame {entryFrame}: false.");
+                    yield break;
+                }
+                var moves = FirstMoves(take, frames, heldOut ? entryFrame : -1);
+                int torn = moves.Count(m => m >= 0);
+                var cueLog = string.Join("; ", StudioRun.CueLog);
                 var drifts = new List<StudioDrift>();
                 var pictures = new List<long>[2];
                 for (int run = 0; run < 2; run++)
@@ -102,26 +134,41 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         pictures[captured].Add(new FileInfo(file).Length);
                     }
                     StudioRun.FrameShown += Look;
-                    StudioRun.Play(0, -1, false);
-                    foreach (int wait in UntilHeld()) yield return wait;
-                    StudioRun.FrameShown -= Look;
+                    try
+                    {
+                        StudioRun.Play(0, -1, false);
+                        foreach (int wait in UntilHeld()) yield return wait;
+                    }
+                    finally { StudioRun.FrameShown -= Look; }
                     drifts.Add(StudioRun.LastDrift);
                 }
-                Result("1. A tornado cue with a set heading tears through the tower; playback is identical every time",
-                    hazardFrames > fps && torn > 0 && fromRightSide && drifts.All(d => d != null && d.Passed && d.samples > 0),
-                    $"Disaster \"{tornado}\" with {(settings.Count > 0 ? string.Join(", ", settings) : "no settings of its own")}. Cue log: {string.Join("; ", StudioRun.CueLog)}. " +
+                Result(heldOut ? "Held-out tornado cue enters from the opposite side, moves blocks and replays within drift limits"
+                        : "1. A tornado cue with a set heading tears through the tower; playback is identical every time",
+                    hazardFrames > fps && torn > 0 && fromRequestedSide && drifts.All(d => d != null && d.Passed && d.samples > 0),
+                    $"Disaster \"{tornado}\" with {(settings.Count > 0 ? string.Join(", ", settings) : "no settings of its own")}. Cue log: {cueLog}. " +
                     $"The hazard track holds {hazardFrames} frames of disaster state; {torn} of {stage.blocks.Length} blocks were moved. " +
-                    $"Asked to come from heading 90 (the +Z side); its first recorded position was {entrySide:0} degrees around the map centre. " +
+                    $"Asked to come from heading {heading:0}; its first recorded position was {entrySide:0} degrees around the map centre at frame {entryFrame}. " +
+                    (heldOut ? "Movement is measured from hazard entry and counts active blocks displaced more than 5 cm. " : "") +
                     $"Two playbacks: {drifts[0]} / {drifts[1]} Blocks and disaster state come from the same tape both times; " +
-                    $"the saved pictures' sizes were {(pictures[0].SequenceEqual(pictures[1]) ? "the same" : "not byte-identical (the disaster's particles are drawn fresh each time)")}. Pictures: tornado-live/, tornado-playback-1/, tornado-playback-2/.");
+                    $"the saved pictures' sizes were {(pictures[0].SequenceEqual(pictures[1]) ? "the same" : "different (the disaster's particles are drawn fresh each time)")}. Pictures: tornado-live/, tornado-playback-1/, tornado-playback-2/.");
             }
+        }
+
+        static IEnumerator<int> Phase3Tests()
+        {
+            var stage = PrepareTornadoStage();
+            var set = stage.set;
+            var tape = stage.tape;
+            int fps = set.fps;
+            var worldTrack = tape.FindType(WorldTrack.Id);
+            foreach (int wait in TornadoTest(stage, 90, false)) yield return wait;
 
             // ---- Test 4: a ripple push across 30 blocks looks like a wave ----
             set.cues.Clear();
             set.length = 5;
             StudioLibrary.Save(set);
             StudioRun.Refresh();
-            frames = set.Frames;
+            int frames = set.Frames;
             // Thirty blocks in one neighbourhood: the ones nearest the stage spot, nearest first.
             var loose = Enumerable.Range(0, stage.blocks.Length).Where(i => stage.blocks[i] && stage.blocks[i].gameObject.activeSelf)
                 .OrderBy(i => (stage.blocks[i].position - stage.anchor).sqrMagnitude).Take(30).ToList();

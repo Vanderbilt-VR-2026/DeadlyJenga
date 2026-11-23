@@ -49,7 +49,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Debug.LogWarning($"Trailer Studio could not read the Set file {file}: {error.Message}");
                 return null;
             }
-            if (set != null) set.id = setId;
+            if (set != null)
+            {
+                set.id = setId;
+                set.moments ??= new List<StudioMoment>();
+                set.theatreBookmarks ??= new List<TheatreBookmark>();
+            }
             return set;
         }
 
@@ -76,6 +81,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var copy = source.Clone();
             copy.title = source.title + " copy";
             copy.id = NewId(copy.title);
+            copy.moments.Clear();
+            copy.theatreBookmarks.Clear();
             Save(copy);
             return copy;
         }

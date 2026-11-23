@@ -38,6 +38,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 case "Phase3": return Phase3Tests();
                 case "Phase4": return Phase4Tests();
                 case "Window": return WindowTour();
+                case "CreatorWorkflows": return CreatorWorkflowTests();
+                case "CreatorVisuals": return CreatorVisualTests();
+                case "EditingControls": return EditingControlsTour();
                 case "Phase5": return Phase5Tests();
                 case "Ui": return UiTests();
                 case "Cut": return CutTests();

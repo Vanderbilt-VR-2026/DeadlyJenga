@@ -62,6 +62,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var set = RecipeToSet(plan);
             // Read the whole motion tape before anything is written, so a damaged tape leaves no half-imported Set behind.
             var tape = File.Exists(motion) ? ConvertTape(motion, set) : null;
+            if (tape != null) set.theatreBookmarks = ReadBookmarks(folder, tape);
             StudioLibrary.Save(set);
             if (tape != null)
             {
@@ -69,6 +70,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 tape.Save(StudioLibrary.TapePath(set.id));
             }
             return set;
+        }
+
+        internal static List<TheatreBookmark> ReadBookmarks(string folder, StudioTape tape)
+        {
+            string file = Path.Combine(folder, GameplayTheatre.BookmarksFile);
+            if (!File.Exists(file)) return new List<TheatreBookmark>();
+            var bookmarks = JsonUtility.FromJson<TheatreBookmarks>(File.ReadAllText(file));
+            if (bookmarks?.marks == null || bookmarks.fps != tape.header.fps) return new List<TheatreBookmark>();
+            return bookmarks.marks.Where(mark => mark != null && mark.frame >= 0 && mark.frame < tape.header.frames)
+                .OrderBy(mark => mark.frame).ToList();
         }
 
         const int FormatV2 = 0x324A5444, FormatV3 = 0x334A5444, FormatV4 = 0x344A5444;

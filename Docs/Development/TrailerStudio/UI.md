@@ -12,7 +12,8 @@ re-themed in one place. Support Unity's light and dark editor skins.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  Set: "Viaduct Ambush" ▾     [ Set ] [ Perform ] [ Direct ] [ Shoot ] [ Cut ]   ● REC   ⟲ ⟳ │
+│  Set picker    Open stage   Record    Find command    Undo   Redo    Shortcuts  │
+│  Set        Perform        Polish        Direct        Shoot        Cut         │
 ├───────────────┬──────────────────────────────────────┬───────────────┤
 │  Cast & World │            Viewport                  │   Inspector   │
 │  (left list)  │  (live Scene/Game view with          │  (only the    │
@@ -32,8 +33,8 @@ re-themed in one place. Support Unity's light and dark editor skins.
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Top bar:** Set picker, mode tabs, one big record button, undo/redo.
-- **Left list:** everything in the Set, grouped. Each row has mute (M),
+- **Top bar:** Choose the set, open the stage, record, find commands, or undo. The row below names each mode and its task.
+- **Left list:** search the cast, world tracks and cameras by name. Entries are grouped. Each row has mute (M),
   solo (S), lock, color dot and a take dropdown.
 - **Viewport:** the scene itself with overlays. Click things in it to select
   them. Drag marks, block arrows and camera keys in place.
@@ -51,11 +52,12 @@ Each mode shows only what it needs. The timeline stays in every mode.
    roles, set length. Big friendly "Add survivor", "Add hand", "Add bots".
 2. **Perform**: choose who to play, which tracks play back as ghosts, then
    press record. Shows countdown, pre-roll, take list, punch-in point.
-3. **Direct**: world events. Disasters, aimed pushes, hand pulls, physics
+3. **Polish**: inspect actor motion, layer corrections and build a crowd from recorded performances.
+4. **Direct**: world events. Disasters, aimed pushes, hand pulls, physics
    branches, variation runs, slow-down zones. Click a block to aim it.
-4. **Shoot**: cameras over the finished tape. Lenses, moves, VR handheld
+5. **Shoot**: cameras over the finished tape. Lenses, moves, VR handheld
    camera, previews per camera.
-5. **Cut**: order shots, trim, time remap, render queue, export.
+6. **Cut**: order shots, trim, time remap, render queue, export.
 
 ## Design rules
 
@@ -67,7 +69,7 @@ Each mode shows only what it needs. The timeline stays in every mode.
 - **Progressive disclosure.** Defaults that just work; "Advanced" folds for
   power settings; a command palette (Ctrl+K) to reach anything by name.
 - **Keyboard-first for repeat work.** Space play/pause, R record, J/K/L
-  shuttle, [ and ] set in/out, Ctrl+Z undo, Tab cycle modes, number keys
+  shuttle, [ and ] set in/out, Ctrl+Z undo, Tab/Shift+Tab focus controls, Ctrl+Tab cycles modes, number keys
   pick takes. A shortcut sheet is one key away (?).
 - **Never block.** Long work (variation runs, renders) runs in a queue with
   progress chips in the top bar. The window stays usable.
@@ -92,3 +94,42 @@ without squinting:
 
 This panel is DevTools UI (allowed to draw). It must not ship in player
 builds.
+
+## Actor workflow review candidate
+
+On `codex/cutscene-editor-tool`, editor candidate `b878039e5206ea5f1d80f94e573c8294a912be4a` follows `21eba0e3032fd7ff419ff7034c61feeffcbed178` and targets `origin/Evan_FINAL_Sprint`. The task branch carries the earlier Trailer Studio work it depends on.
+
+Open **Tools → Deadly Jenga → Trailer Studio**, choose a set and open its stage. In **Set**, add a survivor and preview their starting position on the map. In **Perform**, choose **Record as**. The cast search, unrecorded-actor shortcut and previous-performance controls help with longer cast lists. In **Polish**, **Make a crowd** uses recorded survivor motion. **Direct** shows push and selection gestures, **Shoot** shows camera coverage and key timing, and **Cut** shows shot order, duration and media readiness.
+
+Validation at this checkpoint covers a retained-reference build of the 330 DevTools editor sources and the UXML shell bindings. The editor tour entry point is `DeadlyJenga.DevTools.Editor.TrailerStudio.StudioAcceptance.RunWindowTour`. First-time creator review and a 30-person authoring session remain open.
+
+The desktop Unity 6000.3.23f1 window tour passed on `b878039e5206ea5f1d80f94e573c8294a912be4a`, covering all six production modes, 12 window captures, and undo/redo. Visual review found clipped navigation captions and colliding actor names. Published editor revision `c3a635881df7f2b8efd5ba38aa53c9e6d5b42be6` reserves header space and prioritizes the selected nameplate. Its retained-reference compile passed. The repeat desktop tour is pending editor capacity.
+
+## Finding the moment to edit
+
+Use **All tracks** at the left of the time ruler to show only actors, cameras, or sound. World cues remain visible in each view. Filtering changes the rows you see and preserves your mix and export.
+
+**Shift-drag the time ruler** in either direction to select a preview range. **Range → Zoom to range** expands that region for frame-level scrubbing. **Loop on** repeats the selected region during playback. Use **Range → Show full timeline** to see the whole set while keeping the range, or **Clear range** to reset both.
+
+In the sound row, green marks show recorded block hits, gold marks show match cues, and violet marks show recorded block breaks. Height indicates hit count. Hover a group for its timing, number of events and strongest recorded hit. The block-break record currently belongs to the tape archive only. **Find command** searches cues, camera names and key times. Choose a result to select its owner. A cue triggered by another event opens its settings with the playhead left in place.
+
+The interaction draws on [Audacity track focus and display](https://manual.audacityteam.org/man/audio_tracks.html), [Audacity range selection](https://manual.audacityteam.org/man/audacity_selection.html), and [Premiere timeline navigation](https://helpx.adobe.com/premiere/desktop/edit-projects/change-clip-sequence/navigation-controls-in-the-timeline.html).
+
+## Make a second version of a scene
+
+1. In **Set**, open the destination map, expand **Reuse a scene layout**, and choose a saved layout. On the held stage, pick an origin, inspect the overhead camera cones and dry-floor warnings, and assign actors and outfits. Save the result as a new Set. Map-block bindings that cannot travel appear in the review. Record fresh world motion for the destination.
+2. In **Perform**, record the lead once. Open **Review last take** to watch with a lead-in, star the take, or try again. When recording the next actor, choose which previous actors should appear as characters or ghosts.
+3. In **Polish**, build background performers from recorded motion. Lock the hero, name the extras as a group, and rehearse their paths before accepting a retake. Floor checks use the held world state. Scrub the destruction separately to inspect late collisions.
+4. In **Direct**, add the three story beats if the scene needs them. Move the markers to the actual anticipation, action and aftermath.
+5. In **Shoot**, mark an event and compare POV and witness at the same source frame. Pin the reference and inspect the framing reasons. Render your selects.
+6. In **Cut**, save an alternate edit before trying a different rhythm. Use the incoming and outgoing trim views to match movement. Adjust sound lead or tail, audition the buses, then export the media package. For a cross-machine handoff, open the exported timeline in the receiving editor and inspect the first cut and each retime against the stems.
+
+For unexpected gameplay, arm motion look-back in Gameplay Theatre before playing. Keeping the recent motion lets you choose cameras later. The buffer retains up to ten seconds at a nominal 12 fps and excludes audio.
+
+## Theme and navigation
+
+The six production tabs pair a task name with a line icon and a short action caption. Teal identifies the current task and keyboard focus. The recorder uses coral and changes its round indicator to a stop square during recording. Track colors identify content in the timeline. The light palette follows the same conventions as the dark palette.
+
+Choose a cast row to access its labeled take, mute, solo, and lock actions. Other rows summarize active states. The settings panel names its subject, remembers expanded sections while scrubbing, and returns to the top when switching tasks. Compact layout begins below 1080 logical pixels.
+
+Theme review candidate `d011c100877094abf3cf9f0914b0d75096dfd235` on `origin/codex/cutscene-editor-tool` follows `4736e588d63aa532f9191e2d9aad74a2d7f4770f` and targets `origin/Evan_FINAL_Sprint`. The DevTools editor sources compiled, the window layout parsed, and the primary text, secondary text, selection and accent text pairs measured at least 7.1:1 in both palettes. The expanded Unity window tour checks the six mode labels and captions at 1280×760 and 900×560 and captures each palette at both sizes.

@@ -13,11 +13,15 @@ everything already recorded plays back around them.
 
 ## Files
 
+For the current prompt-to-render workflow, two camera editing, and the human
+comparison plan, see [Directing Deadly Jenga from a prompt](HUMAN-DIRECTION.md).
+
 | File | What it covers |
 |------|----------------|
 | [README.md](README.md) | Vision, core ideas, glossary, rules for the builder |
 | [UI.md](UI.md) | The interface: layout, modes, VR panel, design rules |
 | [RESEARCH.md](RESEARCH.md) | How other studios and games do this, and what we borrow |
+| [Creator workflows](CREATOR-WORKFLOWS.md) | Current capabilities, production references, and a prioritized plan for cast direction, camera coverage and editing |
 | [PHASE-1-Sets-and-Tapes.md](PHASE-1-Sets-and-Tapes.md) | Sets, marks, the universal tape, playback, the Studio window |
 | [PHASE-2-Performance-Passes.md](PHASE-2-Performance-Passes.md) | Layered recording as survivor or hand, desktop and VR, takes |
 | [PHASE-3-World-Direction.md](PHASE-3-World-Direction.md) | Disasters, aimed destruction, physics branches, variation runs |

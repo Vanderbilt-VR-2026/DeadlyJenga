@@ -330,13 +330,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // Ease in too: reactions started at full strength on their first frame (disaster-pvp-2: the scream tipped the
             // hero's head 28 degrees in one frame, 887 deg/s). A short blendIn (0.05 s) keeps a hit's reaction sharp.
             if (layer.blendIn > 0) back *= Mathf.SmoothStep(0, 1, Mathf.Clamp01((time - start) / layer.blendIn));
-            float amount = Mathf.Clamp(layer.strength, 0, 3);
+            float amount = layer.libraryReaction ? 1 : Mathf.Clamp(layer.strength, 0, 3);
             var body = frame.body;
+            var original = body;
             float size = Mathf.Max(.1f, body.scale);
             Quaternion facing = Quaternion.Euler(0, body.headRotation.eulerAngles.y, 0);
             // Which way the hit pushes: stored by the contact trigger, or straight back by default.
             Vector3 flat = Vector3.ProjectOnPlane(layer.point, Vector3.up);
             Vector3 push = flat.sqrMagnitude > .01f ? flat.normalized : facing * Vector3.back;
+            float sign = layer.mirrorReaction ? -1 : 1;
+            if (layer.mirrorReaction) push = Vector3.Reflect(push, facing * Vector3.right);
             float standing = Mathf.Max(.2f, body.head.y - body.feet.y);
             void Shift(Vector3 move) { body.feet += move; body.head += move; body.left.position += move; body.right.position += move; }
             void Down(float part)   // 0 standing, 1 lying on the ground
@@ -353,7 +356,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     float hit = Mathf.Sin(u * Mathf.PI) * back;
                     Shift(push * (.35f * amount * Mathf.SmoothStep(0, 1, Mathf.Min(1, u * 3)) * back));
                     body.head += push * (.18f * hit * amount) + Vector3.down * (.08f * hit);
-                    body.headRotation = body.headRotation * Quaternion.Euler(-16 * hit * amount, 0, 8 * hit);
+                    body.headRotation = body.headRotation * Quaternion.Euler(-16 * hit * amount, 0, 8 * hit * sign);
                     break;
                 }
                 case "knockback":
@@ -393,7 +396,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 {
                     float hop = Mathf.Abs(Mathf.Sin(u * length * Mathf.PI * 2.2f)) * back;
                     Shift(Vector3.up * (.12f * hop * amount));
-                    float wave = Mathf.Sin(u * length * Mathf.PI * 4.4f);
+                    float wave = Mathf.Sin(u * length * Mathf.PI * 4.4f) * sign;
                     body.left.position = Vector3.Lerp(body.left.position, body.head + facing * new Vector3(-.36f, .42f + .08f * wave, .05f) * size, back);
                     body.right.position = Vector3.Lerp(body.right.position, body.head + facing * new Vector3(.36f, .42f - .08f * wave, .05f) * size, back);
                     break;
@@ -412,6 +415,29 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     body.left.position = Vector3.Lerp(body.left.position, body.head + facing * new Vector3(-.14f, .16f, .02f) * size, back);
                     body.right.position = Vector3.Lerp(body.right.position, body.head + facing * new Vector3(.14f, .16f, .02f) * size, back);
                     break;
+            }
+            if (layer.libraryReaction)
+            {
+                float strength = Mathf.Clamp01(layer.strength);
+                body.feet = Vector3.Lerp(original.feet, body.feet, strength);
+                body.head = Vector3.Lerp(original.head, body.head, strength);
+                body.headRotation = Quaternion.Slerp(original.headRotation, body.headRotation, strength);
+                body.left.position = Vector3.Lerp(original.left.position, body.left.position, strength);
+                body.right.position = Vector3.Lerp(original.right.position, body.right.position, strength);
+                if (layer.preserveGrip && !string.IsNullOrEmpty(frame.equipment))
+                {
+                    EquipmentState gear = null;
+                    try { gear = JsonUtility.FromJson<EquipmentState>(frame.equipment); }
+                    catch (ArgumentException) { }
+                    if (gear != null && gear.drawn && gear.kind != EquipmentKind.None)
+                    {
+                        Vector3 move = body.feet - original.feet;
+                        body.left = original.left;
+                        body.right = original.right;
+                        body.left.position += move;
+                        body.right.position += move;
+                    }
+                }
             }
             frame.body = body;
         }

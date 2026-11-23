@@ -16,8 +16,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         static readonly StudioTakes.CloneOptions clone = new StudioTakes.CloneOptions();
         static int cloneCount = 1;
+        bool showRecordedCast;
 
         static bool IsActor(StudioTrack track) => track.type == SurvivorTrack.Id || track.type == HandTrack.Id;
+        internal static bool HasPerformance(StudioTrack track) => track?.ActiveTake?.frames.Count > 0;
 
         StudioMark Chosen(StudioContext context)
         {
@@ -30,7 +32,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             label = null; start = null;
             var mark = context.Set == null ? null : Chosen(context);
-            if (mark == null) { label = "Pick an actor to play"; start = () => context.Say("Click an actor in the list, then press record."); return true; }
+            if (mark == null) { label = "Choose an actor to record"; return true; }
             bool punch = StudioPerform.PunchIn && !StudioPerform.LivePhysics && StudioPerform.CanPunch(context.Tape, mark, context.Frame);
             label = punch ? $"Punch in {mark.actor} at {StudioUi.Time(context.Frame, context.Set.fps)}"
                 : $"Record {mark.actor}, take {StudioPerform.NextTake(context.Tape, mark)}";
@@ -45,17 +47,40 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (set == null) { panel.Add(StudioUi.Hint("Choose or make a Set first.")); return; }
             if (set.marks.Count == 0) { panel.Add(StudioUi.Hint("This Set has no actors yet. Add marks in the Set tab.")); return; }
             var mark = Chosen(context);
-            if (mark == null) panel.Add(StudioUi.Hint("Click an actor in the list to choose who you play."));
-            else
-            {
-                var who = StudioUi.Row(StudioUi.Dot(StudioColors.For(mark.color)), new Label("You play " + mark.actor) { style = { unityFontStyleAndWeight = FontStyle.Bold, fontSize = 14 } });
-                panel.Add(who);
-                panel.Add(StudioUi.Hint(mark.role == StudioRole.Hand ? "You fly the hand with the normal hand controls. Its pulls are real."
-                    : "You spawn on the mark and play with the normal game controls, on desktop or in the headset."));
-            }
-            if (!context.StageOpen) panel.Add(StudioUi.Hint("Open the stage, then press record. Click the Game view to take control."));
+            ActorPicker(panel, context, mark);
+            if (!context.StageOpen) panel.Add(StudioUi.Hint("Open the stage before recording."));
             if (context.Stage != null && context.Stage.performer.Length > 0 && StudioRun.State == StudioState.Held)
-                panel.Add(StudioUi.Small("Step out of the body", () => { StudioRun.LeaveBody(); context.Rebuild(); }, "Go back to the director's view."));
+            {
+                var occupied = set.Mark(context.Stage.performer);
+                if (occupied != null && mark != null && occupied != mark)
+                    panel.Add(StudioUi.Hint($"Still viewing {occupied.actor}. Record to switch to {mark.actor}."));
+                panel.Add(StudioUi.Small("Return to director view", () => { StudioRun.LeaveBody(); context.Rebuild(); }));
+            }
+
+            var track = mark == null ? null : tape?.Find(mark.id);
+            var latest = track?.Kept.Where(t => t.frames.Count > 0).OrderByDescending(t => t.created).FirstOrDefault();
+            if (latest != null)
+            {
+                var review = new Foldout { text = "Review last take · " + latest.name, value = false };
+                panel.Add(review);
+                review.Add(StudioUi.Hint(mark.actor + " · " + latest.frames.Count + " frames · " +
+                    (latest.starred ? "Starred" : "Unstarred")));
+                var actions = StudioUi.Row(
+                    StudioUi.Small("Play with lead-in", () =>
+                    {
+                        context.window.SetActiveTake(track, track.takes.IndexOf(latest));
+                        int start = Mathf.Max(0, latest.start - set.fps);
+                        context.window.SetReviewRange(start, latest.End - 1);
+                        context.window.Scrub(start);
+                        context.window.TogglePlay();
+                    }),
+                    StudioUi.Small(latest.starred ? "Unstar" : "Star take", () => { latest.starred = !latest.starred; context.window.TapeChanged(); }),
+                    StudioUi.Small("Record another", context.window.PressRecord));
+                actions.SetEnabled(StudioRun.State == StudioState.Held && !StudioHandheld.Recording);
+                review.Add(actions);
+            }
+            if (mark != null) StarredGhost(panel, context, mark, track);
+            Others(panel, context, mark);
 
             // ---- How to record ----
             void Flag(string label, bool value, Action<bool> apply, string tooltip, bool enabled = true)
@@ -109,8 +134,87 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (StudioPerform.LivePhysics) panel.Add(StudioUi.Hint("Live physics: other actors' takes may go stale if the world changes under them. The Studio will tell you where."));
 
             Stale(panel, context);
-            Others(panel, context, mark);
             if (mark != null) TakeTools(panel, context, mark);
+        }
+
+        static void StarredGhost(VisualElement panel, StudioContext context, StudioMark mark, StudioTrack track)
+        {
+            var set = context.Set;
+            var tape = context.Tape;
+            var pass = StudioRun.Pass;
+            bool recording = pass != null && pass.performer == mark.id;
+            bool live = recording ? pass.liveWorld : StudioPerform.LivePhysics;
+            int first = recording ? pass.from : !live && StudioPerform.PunchIn && StudioPerform.CanPunch(tape, mark, context.Frame) ? context.Frame : 0;
+            int last = recording && pass.to >= 0 ? pass.to : set.Frames - 1;
+            bool armed = StudioPerform.StarredGhostEnabled(set, mark);
+            StudioTake candidate = StudioPerform.StarredGhostFor(tape, mark, live, first, last,
+                recording ? pass.starredGhost : null, out string reason);
+            var toggle = new Toggle("Starred take reference ghost") { value = armed,
+                tooltip = "Replay this actor's newest compatible starred take as a pass-through ghost during recording." };
+            toggle.SetEnabled(!StudioRun.Busy && !StudioHandheld.Recording && (armed || candidate != null) && track?.locked != true);
+            toggle.RegisterValueChangedCallback(e => { StudioPerform.SetStarredGhost(set, mark, e.newValue); context.Rebuild(); });
+            panel.Add(toggle);
+            if (candidate == null)
+            {
+                panel.Add(StudioUi.Hint(recording && string.IsNullOrEmpty(pass.starredGhost) ? "Reference ghost is off for this recording." : reason));
+                return;
+            }
+            var world = tape.FindType(WorldTrack.Id).ActiveTake;
+            var ghost = context.Stage?.starredGhost;
+            string state = !armed ? "Off" : StudioPerform.GhostsHidden ? "Hidden by Ghosts off" : !recording ? "Ready" :
+                ghost != null && ghost.activeInHierarchy ? "Playing" : "Waiting for a visible frame";
+            panel.Add(StudioUi.Hint($"{state} · {mark.actor} · {candidate.name} · world {world.name} [{world.id}]"));
+        }
+
+        void ActorPicker(VisualElement panel, StudioContext context, StudioMark performer)
+        {
+            var set = context.Set;
+            var tape = context.Tape;
+            string ChoiceLabel(StudioMark actor)
+            {
+                if (actor == null) return "Choose an actor";
+                var track = tape.Find(actor.id);
+                var state = HasPerformance(track) ? "Recorded" : "No take";
+                if (track?.locked == true) state = "Locked";
+                if (actor.role == StudioRole.Hand && set.handBot) state = "Hand bot";
+                return $"{actor.actor} ({actor.role}) · {state}";
+            }
+            var choices = set.marks.ToList();
+            if (performer == null) choices.Insert(0, null);
+            var picker = new PopupField<StudioMark>("Record as", choices, choices.IndexOf(performer),
+                actor => actor?.actor ?? "Choose an actor", ChoiceLabel)
+            {
+                tooltip = performer == null ? "Choose who to control while recording."
+                    : $"{ChoiceLabel(performer)}. Click the Game view after starting to take control."
+            };
+            picker.AddToClassList("ts-field");
+            picker.RegisterValueChangedCallback(e =>
+            {
+                if (e.newValue != null) ChooseActor(context, e.newValue);
+            });
+            panel.Add(picker);
+            bool canSwitch = StudioRun.State != StudioState.Running && StudioRun.State != StudioState.Opening;
+            picker.SetEnabled(canSwitch);
+
+            var next = choices.FirstOrDefault(actor => actor != null && actor != performer
+                && (actor.role != StudioRole.Hand || !set.handBot)
+                && tape.Find(actor.id)?.locked != true && !HasPerformance(tape.Find(actor.id)));
+            if (next != null)
+            {
+                var shortcut = StudioUi.Small("Next unrecorded actor", () => ChooseActor(context, next), $"Choose {next.actor} to record next.");
+                shortcut.SetEnabled(canSwitch);
+                panel.Add(shortcut);
+            }
+            var current = performer == null ? null : tape.Find(performer.id);
+            if (current?.locked == true) panel.Add(StudioUi.Warning("Unlock this actor in the cast list to record."));
+            if (performer?.role == StudioRole.Hand && set.handBot)
+                panel.Add(StudioUi.Warning("Set the hand to Performed by you in Advanced to record it yourself."));
+        }
+
+        internal static void ChooseActor(StudioContext context, StudioMark actor)
+        {
+            StudioPerform.Actor = actor.id;
+            context.Select(actor);
         }
 
         // Honest status: takes performed against a world that has since been re-recorded.
@@ -140,28 +244,52 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         void Others(VisualElement panel, StudioContext context, StudioMark performer)
         {
             var tape = context.Tape; var set = context.Set;
-            var others = set.marks.Where(m => m != performer && tape.Find(m.id)?.ActiveTake != null).ToList();
-            if (others.Count == 0) return;
-            panel.Add(StudioUi.Heading("THE OTHERS, WHILE YOU PERFORM"));
-            string[] looks = { "Character", "Ghost", "Hidden" };
-            foreach (var other in others)
+            bool anySolo = tape.tracks.Any(t => t.solo);
+            var others = set.marks.Where(m => m != performer)
+                .Select(mark => (mark, track: tape.Find(mark.id)))
+                .Where(actor => HasPerformance(actor.track)).ToList();
+            int playing = others.Count(actor => actor.track.mode != TrackMode.Muted && (!anySolo || actor.track.solo));
+            panel.Add(StudioUi.Heading("RECORDED CAST"));
+            if (others.Count == 0)
             {
-                var track = tape.Find(other.id);
+                panel.Add(StudioUi.Hint("Record one actor, then choose another to perform against the first actor’s take."));
+                return;
+            }
+            panel.Add(StudioUi.Hint($"{playing} of {others.Count} recorded actors replay alongside you."));
+            var fold = new Foldout { text = "Replay controls", value = showRecordedCast };
+            fold.RegisterValueChangedCallback(e => showRecordedCast = e.newValue);
+            var list = new ScrollView { viewDataKey = "perform-recorded-cast-scroll" };
+            list.style.maxHeight = 246;
+            list.SetEnabled(StudioRun.State != StudioState.Running && StudioRun.State != StudioState.Opening);
+            fold.Add(list);
+            panel.Add(fold);
+            var looks = new List<string> { "Character", "Ghost", "Hidden" };
+            var collisions = new List<string> { "Solid", "Walk through" };
+            foreach (var (other, track) in others)
+            {
                 var notes = StudioTrackNotes.Of(track);
-                var name = new Label(other.actor); name.AddToClassList("ts-item-name");
-                var look = StudioUi.Small(looks[Mathf.Clamp(notes.ghost, 0, 2)], () =>
+                var state = track.mode == TrackMode.Muted ? "Muted" : anySolo && !track.solo ? "Excluded by solo" : track.ActiveTake.name;
+                var name = new Label(other.actor + " · " + state) { tooltip = other.actor + " · " + state };
+                name.AddToClassList("ts-item-name");
+                var look = new PopupField<string>("Visibility", looks, Mathf.Clamp(notes.ghost, 0, 2))
                 {
-                    StudioTrackNotes.Update(track, n => n.ghost = (n.ghost + 1) % 3);
-                    context.window.TapeChanged();
-                }, "How this actor is drawn for you: a normal character, a see-through ghost, or hidden.");
-                look.style.minWidth = 70;
-                var solid = StudioUi.Small(notes.passThrough ? "Walk through" : "Solid", () =>
+                    tooltip = "Show this replay as a character, a see-through ghost, or hide it during your performance."
+                };
+                look.RegisterValueChangedCallback(e =>
                 {
-                    StudioTrackNotes.Update(track, n => n.passThrough = !n.passThrough);
+                    StudioTrackNotes.Update(track, n => n.ghost = looks.IndexOf(e.newValue));
                     context.window.TapeChanged();
-                }, "Solid: you can bump into this actor. It never reacts to you.");
-                solid.style.minWidth = 84;
-                panel.Add(StudioUi.Row(StudioUi.Dot(StudioColors.For(other.color)), name, look, solid));
+                });
+                var solid = new PopupField<string>("Collision", collisions, notes.passThrough ? 1 : 0)
+                {
+                    tooltip = "Solid replays can block movement. The actor follows the recorded take."
+                };
+                solid.RegisterValueChangedCallback(e =>
+                {
+                    StudioTrackNotes.Update(track, n => n.passThrough = e.newValue == collisions[1]);
+                    context.window.TapeChanged();
+                });
+                list.Add(StudioUi.Card(StudioUi.Row(StudioUi.Dot(StudioColors.For(other.color)), name), look, solid));
             }
         }
 

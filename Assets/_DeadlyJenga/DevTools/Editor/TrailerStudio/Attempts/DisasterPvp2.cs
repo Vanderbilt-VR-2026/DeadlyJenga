@@ -16,7 +16,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     //   ...DisasterPvp2.RunPreview    load the committed bundle, report, motion table, 640x360 render of every shot
     //   ...DisasterPvp2.RunFinalA/B/C load the committed bundle, render a third of the shots at 1920x1080
     // The cut, sound, music and titles are assembled outside Unity (Docs/Development/TrailerStudio/attempts/disaster-pvp-2/tools).
-    // Output: Logs/ClaudeDisasterPvp2/<mode>/.
+    // Output: Logs/ClaudeDisasterPvp2/<mode>/<run id>/.
     [InitializeOnLoad]
     public static partial class DisasterPvp2
     {
@@ -29,6 +29,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         const string SetId = "disaster-pvp-2";
         static int Step { get => SessionState.GetInt(Key, 0); set => SessionState.SetInt(Key, value); }
         static string Mode { get => SessionState.GetString(Key + ".Mode", "rehearse"); set => SessionState.SetString(Key + ".Mode", value); }
+        static string RunId { get => SessionState.GetString(Key + ".RunId", ""); set => SessionState.SetString(Key + ".RunId", value); }
+        static string PriorSetsFolder { get => SessionState.GetString(Key + ".PriorSetsFolder", ""); set => SessionState.SetString(Key + ".PriorSetsFolder", value); }
         static double Deadline { get => SessionState.GetFloat(Key + ".Deadline", 0); set => SessionState.SetFloat(Key + ".Deadline", (float)value); }
         static string Failure { get => SessionState.GetString(Key + ".Failure", ""); set => SessionState.SetString(Key + ".Failure", value); }
 
@@ -36,14 +38,23 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         static int lastTick = -1;
         static readonly StringBuilder notes = new StringBuilder();
 
-        public static string Folder => Path.Combine(StudioLibrary.ProjectRoot, "Logs", "ClaudeDisasterPvp2", Mode);
+        public static string Folder => Path.Combine(StudioLibrary.ProjectRoot, "Logs", "ClaudeDisasterPvp2", Mode, RunId);
+        static string RunSetId => SetId + "-" + RunId;
         static string Bundle => Path.Combine(StudioLibrary.ProjectRoot, "Docs", "Development", "TrailerStudio", "attempts", "disaster-pvp-2", "bundle");
 
-        static DisasterPvp2() { if (Step != 0) Hook(); }
+        static DisasterPvp2()
+        {
+            if (Step == 0) return;
+            string log = Path.Combine(Folder, "notes.md");
+            try { if (File.Exists(log)) notes.Append(File.ReadAllText(log)); }
+            catch (IOException error) { Debug.LogWarning("[DisasterPvp2] Could not restore run notes: " + error.Message); }
+            Hook();
+        }
         static void Hook() { EditorApplication.update -= Tick; EditorApplication.update += Tick; }
 
         public static void RunRehearse() => Begin("rehearse");
         public static void RunPreview() => Begin("preview");
+        public static void RunContactReview() => Begin("contactReview");
         public static void RunFinalA() => Begin("finalA");
         public static void RunFinalB() => Begin("finalB");
         public static void RunFinalC() => Begin("finalC");
@@ -53,12 +64,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         static void Begin(string mode)
         {
+            if (Step != 0 || StudioRun.State != StudioState.Closed || EditorApplication.isPlayingOrWillChangePlaymode)
+                throw new InvalidOperationException("Close the active stage or Play Mode before starting another Disaster PvP 2 run.");
             Mode = mode;
-            if (Directory.Exists(Folder)) Directory.Delete(Folder, true);
+            RunId = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N");
             Directory.CreateDirectory(Folder);
             notes.Clear();
-            string tapes = StudioLibrary.TapeFolder(SetId);
-            if (Directory.Exists(tapes)) Directory.Delete(tapes, true);
+            lastTick = -1;
+            PriorSetsFolder = StudioLibrary.SetsFolderOverride;
+            Note("Starting " + mode + " in " + Folder);
             Failure = ""; Step = 1;
             Deadline = EditorApplication.timeSinceStartup + 240;
             Hook();
@@ -79,6 +93,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 switch (Step)
                 {
                     case 1:
+                        if (EditorApplication.timeSinceStartup > Deadline) throw new TimeoutException("Waiting for the editor to open the stage.");
                         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
                         StudioLibrary.SetsFolderOverride = Path.Combine(Folder, "sets");
                         StudioRun.OpenStage(Recording ? NewSet() : LoadBundle());
@@ -110,8 +125,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 Debug.LogException(error);
                 Failure = error.Message;
                 Note("FAIL stopped at step " + Step + ": " + error);
+                routine?.Dispose();
                 routine = null;
-                if (StudioRun.State != StudioState.Closed && Step < 3) { Step = 3; StudioRun.CloseStage(); }
+                if (StudioRun.State != StudioState.Closed && Step == 2) { Step = 3; StudioRun.CloseStage(); }
                 else Finish();
             }
         }
@@ -120,7 +136,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             bool failed = Failure.Length > 0;
             Step = 0;
-            StudioLibrary.SetsFolderOverride = "";
+            StudioLibrary.SetsFolderOverride = PriorSetsFolder;
             EditorApplication.update -= Tick;
             Note(failed ? $"FAIL disaster pvp 2 {Mode}: {Failure}" : "PASS disaster pvp 2 " + Mode + " finished, output in " + Folder);
             if (SessionState.GetString("DJWarm.id", "") != "")
@@ -138,7 +154,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var set = new StudioSet
             {
-                id = SetId, title = "Disaster PvP 2", map = "castle", fps = Fps, length = TapeF(LengthFrames) + .8f, seed = 2031,
+                id = RunSetId, title = "Disaster PvP 2", map = "castle", fps = Fps, length = TapeF(LengthFrames) + .8f, seed = 2031,
                 handBot = false, notes = "Made by DisasterPvp2. Safe to delete."
             };
             StudioLibrary.Save(set);
@@ -150,32 +166,57 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (!Directory.Exists(Bundle)) throw new DirectoryNotFoundException("No recorded bundle at " + Bundle);
             var set = JsonUtility.FromJson<StudioSet>(File.ReadAllText(Path.Combine(Bundle, "set.json")));
-            string tape = StudioLibrary.TapePath(SetId);
-            Directory.CreateDirectory(Path.GetDirectoryName(tape));
-            File.Copy(Path.Combine(Bundle, "main.djtape"), tape, true);
+            if (set == null) throw new InvalidDataException("The bundle's set.json is empty.");
+            set.id = RunSetId;
+            string source = Path.Combine(Bundle, "main.djtape");
+            var world = StudioTape.Load(source, new[] { WorldTrack.Id }).FindType(WorldTrack.Id)?.ActiveTake;
             string take = File.ReadAllText(Path.Combine(Bundle, "take.txt")).Trim();
-            string audio = StudioRender.TakeAudioFile(SetId, take);
-            Directory.CreateDirectory(Path.GetDirectoryName(audio));
-            if (File.Exists(Path.Combine(Bundle, "tape.wav"))) File.Copy(Path.Combine(Bundle, "tape.wav"), audio, true);
-            cueLog = File.Exists(Path.Combine(Bundle, "cuelog.txt")) ? File.ReadAllLines(Path.Combine(Bundle, "cuelog.txt")).ToList() : new List<string>();
-            StudioLibrary.Save(set);
+            if (world == null || string.IsNullOrEmpty(world.id) || world.id != take)
+                throw new InvalidDataException("The bundle's take.txt does not match the active world take in main.djtape.");
+            string tape = StudioLibrary.TapePath(set.id);
+            Directory.CreateDirectory(Path.GetDirectoryName(tape));
+            File.Copy(source, tape);
+            string bundledAudio = Path.Combine(Bundle, "tape.wav");
+            if (File.Exists(bundledAudio))
+            {
+                StudioWave.Clip clip;
+                try { clip = StudioWave.Read(bundledAudio); }
+                catch (InvalidDataException error)
+                {
+                    throw new InvalidDataException("Cannot read the bundled tape.wav. If it is a Git LFS pointer, hydrate the file before rendering.", error);
+                }
+                if (clip.Frames == 0 || clip.rate <= 0) throw new InvalidDataException("The bundled tape.wav has no playable samples.");
+                string audio = StudioRender.TakeAudioFile(set.id, world.id);
+                Directory.CreateDirectory(Path.GetDirectoryName(audio));
+                File.Copy(bundledAudio, audio);
+            }
             return set;
         }
 
         static List<string> cueLog = new List<string>();
 
+        static string WorldTakeAudio(StudioStage stage)
+        {
+            string take = stage.tape.FindType(WorldTrack.Id)?.ActiveTake?.id;
+            return StudioRender.SoundOfWorldTake(stage.set.id, take);
+        }
+
         static void SaveBundle(StudioSet set)
         {
+            var world = StudioRun.Stage.tape.FindType(WorldTrack.Id)?.ActiveTake;
+            if (world == null || string.IsNullOrEmpty(world.id)) throw new InvalidDataException("The recording did not produce an active world take.");
+            string audio = WorldTakeAudio(StudioRun.Stage);
+            string tape = StudioLibrary.TapePath(set.id);
             string bundle = Path.Combine(Folder, "bundle");
             Directory.CreateDirectory(bundle);
-            File.WriteAllText(Path.Combine(bundle, "set.json"), JsonUtility.ToJson(set, true));
-            File.Copy(StudioLibrary.TapePath(set.id), Path.Combine(bundle, "main.djtape"), true);
-            var world = StudioRun.Stage.tape.FindType(WorldTrack.Id)?.ActiveTake;
-            File.WriteAllText(Path.Combine(bundle, "take.txt"), world?.id ?? "");
+            var bundleSet = set.Clone();
+            bundleSet.id = SetId;
+            File.WriteAllText(Path.Combine(bundle, "set.json"), JsonUtility.ToJson(bundleSet, true));
+            File.Copy(tape, Path.Combine(bundle, "main.djtape"));
+            File.WriteAllText(Path.Combine(bundle, "take.txt"), world.id);
             File.WriteAllLines(Path.Combine(bundle, "cuelog.txt"), cueLog);
-            string audio = StudioRender.AudioFile(set.id);
-            if (File.Exists(audio)) File.Copy(audio, Path.Combine(bundle, "tape.wav"), true);
-            Note($"Bundle saved: tape {new FileInfo(StudioLibrary.TapePath(set.id)).Length / 1024} KB, sound {(File.Exists(audio) ? new FileInfo(audio).Length / 1024 : 0)} KB.");
+            if (File.Exists(audio)) File.Copy(audio, Path.Combine(bundle, "tape.wav"));
+            Note($"Bundle saved: tape {new FileInfo(tape).Length / 1024} KB, sound {(File.Exists(audio) ? new FileInfo(audio).Length / 1024 : 0)} KB.");
         }
 
         static IEnumerable<int> UntilHeld()
@@ -217,7 +258,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
 
             var events = FindEvents(stage, plan);
-            try { Report(stage, plan, events); } catch (Exception error) { Note("Take report failed: " + error); }
+            Report(stage, plan, events);
             foreach (int w in RenderShots(stage, plan, events, Mode)) yield return w;
         }
 

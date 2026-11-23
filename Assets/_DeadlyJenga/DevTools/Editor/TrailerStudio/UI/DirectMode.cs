@@ -37,6 +37,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         Vector2 downAt, boxTo;
         public static Rect? Box;          // the box being dragged, in viewport pixels (drawn by the overlay)
 
+        internal string ViewportHint(object selection)
+        {
+            if (drag == Drag.Arrow) return "Aiming push  ·  Drag farther to increase force";
+            if (drag == Drag.Box) return "Release to select blocks inside the box";
+            if (drag == Drag.Brush) return "Brush over blocks to add them";
+            if (selection is StudioCue cue && cue.action == PushCue.Id && cue.blocks.Count > 0)
+                return "Drag the tip of the push arrow to aim and set force";
+            string boxKey = Application.platform == RuntimePlatform.OSXEditor ? "Cmd" : "Ctrl";
+            return "Click to pick blocks  ·  Shift+click to toggle  ·  " + boxKey + "+drag to box  ·  Alt+drag to brush";
+        }
+
         static Vector3 Centre(StudioStage stage, StudioCue cue)
         {
             var blocks = StudioDirector.Blocks(stage, cue);
@@ -99,6 +110,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var stage = context.Stage;
             var was = drag; drag = Drag.None;
+            var selectionBox = Box;
+            Box = null;
             if (stage == null) return;
             if (was == Drag.Arrow) { context.window.EndEdit(false); return; }
             if (was == Drag.Click)
@@ -108,18 +121,51 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 if (!e.shiftKey) { Picked.Clear(); Picked.Add(block); }
                 else if (!Picked.Remove(block)) Picked.Add(block);
             }
-            if (was == Drag.Box && Box.HasValue)
+            if (was == Drag.Box && selectionBox.HasValue)
             {
                 if (!e.shiftKey) Picked.Clear();
                 for (int i = 0; i < stage.blocks.Length; i++)
-                    if (stage.blocks[i] && stage.blocks[i].gameObject.activeSelf && viewport.ToPanel(stage.blocks[i].worldCenterOfMass, out var p) && Box.Value.Contains(p) && !Picked.Contains(i))
+                    if (stage.blocks[i] && stage.blocks[i].gameObject.activeSelf && viewport.ToPanel(stage.blocks[i].worldCenterOfMass, out var p) && selectionBox.Value.Contains(p) && !Picked.Contains(i))
                         Picked.Add(i);
             }
-            Box = null;
             context.Rebuild();
         }
 
         // ---- Panel ----
+
+        internal static List<StudioStoryBeat> InitialBeats(float duration)
+        {
+            return new List<StudioStoryBeat>
+            {
+                new StudioStoryBeat { title = "Anticipation", seconds = 0 },
+                new StudioStoryBeat { title = "Action", seconds = duration * .45f },
+                new StudioStoryBeat { title = "Aftermath", seconds = duration * .75f }
+            };
+        }
+
+        static void BuildStoryBeats(VisualElement panel, StudioContext context)
+        {
+            var set = context.Set;
+            var fold = new Foldout { text = "Story beats", value = set.storyBeats?.Count > 0 };
+            panel.Add(fold);
+            if (set.storyBeats == null || set.storyBeats.Count == 0)
+            {
+                fold.Add(StudioUi.Hint("Mark what the viewer should anticipate, see happen and understand afterward."));
+                fold.Add(StudioUi.Small("Add three beats", () => context.Edit("Add story beats", () => set.storyBeats = InitialBeats(set.length))));
+                return;
+            }
+            foreach (var beat in set.storyBeats)
+            {
+                var name = new TextField { value = beat.title, isDelayed = true };
+                name.RegisterValueChangedCallback(e => context.Edit("Rename story beat", () =>
+                    beat.title = string.IsNullOrWhiteSpace(e.newValue) ? beat.title : e.newValue.Trim()));
+                fold.Add(name);
+                fold.Add(StudioUi.Row(StudioUi.Small("Go to " + StudioUi.Time(Mathf.RoundToInt(beat.seconds * set.fps), set.fps),
+                    () => context.window.Scrub(Mathf.RoundToInt(beat.seconds * set.fps))),
+                    StudioUi.Small("Set here", () => context.Edit("Move story beat", () => beat.seconds = context.Frame / (float)set.fps))));
+            }
+            fold.Add(StudioUi.Small("Clear beats", () => context.Edit("Clear story beats", () => set.storyBeats.Clear())));
+        }
 
         public void Build(VisualElement panel, StudioContext context)
         {
@@ -128,6 +174,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (set == null) { panel.Add(StudioUi.Hint("Choose or make a Set first.")); return; }
             bool held = StudioRun.State == StudioState.Held;
 
+            BuildStoryBeats(panel, context);
             void AddCue(string label, Action<StudioCue> setup)
             {
                 // The playhead at the moment of the click (scrubbing does not rebuild this panel).
@@ -448,8 +495,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     foreach (var block in blocks) { centre += block.worldCenterOfMass; if (selected) painter.Dot(block.worldCenterOfMass, color, 3); }
                     centre /= blocks.Count;
                     Vector3 tip = DirectMode.ArrowTip(stage, cue);
-                    painter.Line(centre, tip, color, selected ? 3 : 2);
-                    painter.Dot(tip, color, selected ? 7 : 4);
+                    painter.Arrow(centre, tip, color, selected ? 3 : 2);
+                    painter.Dot(tip, color, selected ? 5 : 3);
+                    if (selected && direct && painter.TryScreenPoint(tip, out var target))
+                        painter.ScreenBox(new Rect(target.x - 9, target.y - 9, 18, 18), color);
                 }
                 if (cue.action == "hazard" && cue.aimed || cue.action == "tsunami")
                 {
@@ -459,8 +508,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     from.y = stage.anchor.y;
                     Vector3 to = new Vector3(stage.world.Center.x, stage.anchor.y, stage.world.Center.z);
                     Vector3 head = Vector3.Lerp(from, to, .45f);
-                    painter.Line(from, head, color, selected ? 3 : 2);
-                    painter.Dot(head, color, selected ? 7 : 4);
+                    painter.Arrow(from, head, color, selected ? 3 : 2);
                 }
                 if (cue.action == GuideCue.Id)
                 {
@@ -479,7 +527,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 for (int i = 0; i <= 24; i++) ring.Add(spot + Quaternion.Euler(0, i * 15f, 0) * Vector3.forward * settings.zoneRadius);
                 painter.Path(ring, new Color(.4f, 1, .6f, .8f), 1.5f);
             }
-            if (DirectMode.Box.HasValue) painter.ScreenBox(DirectMode.Box.Value, new Color(1, .9f, .3f));
+            if (direct && DirectMode.Box.HasValue) painter.ScreenBox(DirectMode.Box.Value, new Color(1, .9f, .3f));
         }
     }
 }

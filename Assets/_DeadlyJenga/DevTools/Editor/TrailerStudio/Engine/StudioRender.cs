@@ -37,12 +37,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         public static string RendersFolder(string setId) => Path.Combine(StudioLibrary.TapeFolder(setId), "renders");
 
-        public static void Start(IEnumerable<StudioCameraTrack> cameras, StudioRenderSettings settings, string folder = null)
+        public static void Start(IEnumerable<StudioCameraTrack> cameras, StudioRenderSettings settings, string folder = null,
+            List<(float tape, float camera)> sharedSamples = null)
         {
             if (Running) throw new InvalidOperationException("A render is already running.");
             if (StudioRun.State != StudioState.Held) throw new InvalidOperationException("Open the stage, and wait for any run to finish.");
-            var list = cameras.Where(c => c != null).ToList();
+            var list = cameras.Where(c => c != null).Select(c => JsonUtility.FromJson<StudioCameraTrack>(JsonUtility.ToJson(c))).ToList();
             if (list.Count == 0) throw new InvalidOperationException("Add a camera first.");
+            if (sharedSamples != null && (sharedSamples.Count == 0 || settings.subFrames != 1))
+                throw new ArgumentException("A shared render timeline needs at least one frame and one sample per frame.", nameof(sharedSamples));
             var stage = StudioRun.Stage;
             // An override aimed at something that does not exist must stop the render, not be quietly skipped.
             var bad = StudioOverrides.TargetProblems(stage.set);
@@ -51,7 +54,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             LastFolder = folder ?? Path.Combine(RendersFolder(stage.set.id), DateTime.Now.ToString("yyyyMMdd-HHmmss"));
             Results.Clear();
             cancel = false; Running = true;
-            routine = Routine(stage, list, settings, LastFolder);
+            var captureSettings = JsonUtility.FromJson<StudioRenderSettings>(JsonUtility.ToJson(settings));
+            routine = Routine(stage, list, captureSettings, LastFolder, sharedSamples);
             if (!hooked) { EditorApplication.update += Tick; hooked = true; }
         }
 
@@ -216,7 +220,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         const int WarmUpFrames = 12;
 
-        static IEnumerator<int> Routine(StudioStage stage, List<StudioCameraTrack> shots, StudioRenderSettings settings, string root)
+        static IEnumerator<int> Routine(StudioStage stage, List<StudioCameraTrack> shots, StudioRenderSettings settings, string root,
+            List<(float tape, float camera)> sharedSamples)
         {
             var set = stage.set;
             int sub = Mathf.Clamp(settings.subFrames, 1, 32);
@@ -240,7 +245,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     var watch = Stopwatch.StartNew();
                     string folder = Path.Combine(root, ShotFolder(shot));
                     Directory.CreateDirectory(folder);
-                    var times = StudioCameras.Timeline(shot, set, settings.fps, sub);
+                    var times = sharedSamples ?? StudioCameras.Timeline(shot, set, settings.fps, sub);
+                    var source = StudioMomentSource.Read(stage.tape);
+                    string cameraSettings = JsonUtility.ToJson(shot);
+                    string stageSettingsKey = StudioMoments.SettingsKey(set);
+                    float tapeStart = sharedSamples == null ? shot.start : times[0].tape;
+                    float tapeEnd = sharedSamples == null ? shot.End(set) : Mathf.Min(set.length, times[times.Count - 1].tape + 1f / settings.fps);
                     int frames = times.Count / sub;
                     var done = new Finished { camera = shot.name, cameraId = shot.id, folder = folder, fps = settings.fps, width = width, height = height };
                     var framing = shot.measure != null && shot.measure.Count > 0 ? new StudioFraming(stage, shot.measure, settings.fps) : null;
@@ -338,8 +348,22 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                         if (!exr) StudioFraming.Filmstrip(folder, done.frames, settings.fps, shot.start, settings.filmstrip);
                     }
                     catch (Exception error) { Debug.LogWarning("[TrailerStudio] Metrics or filmstrip failed: " + error.Message); }
+                    bool retimed = shot.speeds.Count > 0 || (shot.freezeAt >= shot.start && shot.freezeFor > 0);
+                    float[] frameTapeTimes = null;
+                    if (retimed && done.frames > 0)
+                    {
+                        frameTapeTimes = new float[done.frames + 1];
+                        for (int n = 0; n < done.frames; n++) frameTapeTimes[n] = times[n * sub].tape;
+                        int next = done.frames * sub;
+                        frameTapeTimes[done.frames] = next < times.Count ? times[next].tape : tapeEnd;
+                    }
                     File.WriteAllText(Path.Combine(folder, "shot.json"), JsonUtility.ToJson(new ShotRecord
-                    { name = shot.name, id = shot.id, frames = done.frames, fps = settings.fps, width = width, height = height, tapeStart = shot.start, tapeEnd = shot.End(set), subFrames = sub, format = settings.format }, true));
+                    {
+                        name = shot.name, id = shot.id, frames = done.frames, fps = settings.fps, width = width, height = height,
+                        tapeStart = tapeStart, tapeEnd = tapeEnd, subFrames = sub, format = settings.format, frameTapeTimes = frameTapeTimes,
+                        source = source, cameraSettings = cameraSettings, stageSettingsKey = stageSettingsKey,
+                        sourceChanged = !source.Matches(stage.tape) || stageSettingsKey != StudioMoments.SettingsKey(set)
+                    }, true));
 
                     // A movie file for review or grading, when FFmpeg is on this machine. The image sequence is always kept.
                     if (!cancel && done.frames > 0 && (settings.format == "mp4" || settings.format == "prores" || settings.format == "png"))
@@ -379,6 +403,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public string name, id, format;
             public int frames, fps, width, height, subFrames;
             public float tapeStart, tapeEnd;
+            // Tape seconds at each output frame start plus the last frame's end.
+            public float[] frameTapeTimes;
+            public StudioMomentSource source;
+            public bool sourceChanged;
+            public string cameraSettings;
+            public string stageSettingsKey;
         }
 
         // Two cameras may share a name (or differ only in punctuation), so the folder carries the camera's id too.

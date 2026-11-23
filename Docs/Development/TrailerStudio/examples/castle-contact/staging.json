@@ -1,0 +1,123 @@
+{
+  "status": "recipe_staged_render_pending",
+  "brief": {
+    "status": "draft",
+    "goal": "On Candy Castle, make a five-second scene in widescreen. Start wide. Show one survivor punch another. End on a close-up.",
+    "owner_notes": [
+      "On Candy Castle, make a five-second scene in widescreen.",
+      "Start wide.",
+      "Show one survivor punch another.",
+      "End on a close-up."
+    ],
+    "audience": null,
+    "duration_seconds": 5,
+    "length_class": "moment",
+    "aspect": "16:9",
+    "platform": null,
+    "must_show": [
+      {
+        "id": "pvp_hit",
+        "proof": "Keep the attacker, contact, and victim response readable together."
+      }
+    ],
+    "repeat_sentence": null,
+    "map": null,
+    "mode_rules": null,
+    "performers": null,
+    "budget": null,
+    "not_featured": [],
+    "constraints": {
+      "duration": [
+        {
+          "seconds": 5,
+          "end_seconds": null,
+          "qualifier": null,
+          "source": "On Candy Castle, make a five-second scene in widescreen."
+        }
+      ],
+      "aspect": [
+        {
+          "id": "16:9",
+          "intent": "requested",
+          "source": "On Candy Castle, make a five-second scene in widescreen.",
+          "phrase": "widescreen"
+        }
+      ],
+      "map": [],
+      "unresolved_maps": [],
+      "mode": [],
+      "camera": [
+        {
+          "id": "wide",
+          "intent": "requested",
+          "source": "Start wide.",
+          "phrase": "Start wide"
+        },
+        {
+          "id": "close",
+          "intent": "requested",
+          "source": "End on a close-up.",
+          "phrase": "close-up"
+        }
+      ],
+      "audio_and_titles": [],
+      "hazards": [],
+      "gameplay": [
+        {
+          "id": "pvp_hit",
+          "intent": "requested",
+          "source": "Show one survivor punch another.",
+          "phrase": "punch",
+          "actor": "survivor"
+        }
+      ]
+    },
+    "requested_beats": [
+      {
+        "role": "hook",
+        "direction": "Start wide."
+      },
+      {
+        "role": "payoff",
+        "direction": "End on a close-up."
+      }
+    ],
+    "unclassified_notes": [],
+    "review_items": [
+      {
+        "field": "map",
+        "reason": "No supported positive choice was identified. Fill in if needed."
+      },
+      {
+        "field": "mode_rules",
+        "reason": "No supported positive choice was identified. Fill in if needed."
+      }
+    ]
+  },
+  "choices": [
+    "No map selected. Scout defaults to Candy Castle.",
+    "Camera presets use stage-relative or actor-relative positions; confirm composition in the scout.",
+    "Survivors approach from opposing directions and stop about 1.1 metres apart before the punch cue.",
+    "Cut to the closer view just before the punch and hold it through recovery."
+  ],
+  "cue_attempts": [
+    {
+      "id": "pvp_hit",
+      "source": "Show one survivor punch another.",
+      "cue": {
+        "action": "punch",
+        "actor": "survivor",
+        "target": "rival",
+        "requireTargetContact": true,
+        "at": 1.8666666666666667
+      }
+    }
+  ],
+  "movement_requests": [],
+  "pending_review": [
+    "Cue timing is suggested. Review the cue log and footage for accepted hits, map-filtered hazards, event timing and visible consequences.",
+    "Review the original directing clauses for exact choreography, event order, performer actions and visual beats.",
+    "The contact distance and facing are scripted. Verify health change and visible response in Unity."
+  ],
+  "runtime_evidence": []
+}

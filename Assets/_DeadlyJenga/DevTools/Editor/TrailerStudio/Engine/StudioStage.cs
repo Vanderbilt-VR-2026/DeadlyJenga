@@ -19,12 +19,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool physicalPlayback;             // true while something live shares the scene with playback
         public bool recording;
         public string performer = "";             // mark id the local player is playing right now (empty = nobody)
+        internal AvatarAppearance? localWardrobe;
 
         // Live characters by mark id (bots, or the local player while performing).
         public readonly Dictionary<string, GameObject> live = new Dictionary<string, GameObject>();
 
         // Played-back actors by mark id (the objects cameras and overlays can follow).
         public readonly Dictionary<string, GameObject> playback = new Dictionary<string, GameObject>();
+        internal GameObject starredGhost;
 
         public int Fps => set.fps;
         public int Frames => set.Frames;
@@ -40,13 +42,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static Vector3 FindAnchor(IWorldQuery world, StudioSet set)
         {
             if (set.useMapAnchor) return world.Center + set.mapAnchor + set.stageOffset;
-            var block = world.Blocks.Where(b => b && b.gameObject.activeInHierarchy)
+            var candidates = world.Blocks.Where(b => b && b.gameObject.activeInHierarchy)
                 .OrderByDescending(b => b.position.y).Take(32)
-                .OrderBy(b => Vector3.ProjectOnPlane(b.position - world.Center, Vector3.up).sqrMagnitude).FirstOrDefault();
-            if (!block) return world.SafeSpawnPoint() + set.stageOffset;
-            float top = block.GetComponentsInChildren<Collider>().Where(c => c.enabled && !c.isTrigger)
-                .Select(c => c.bounds.max.y).DefaultIfEmpty(block.position.y + .5f).Max();
-            return new Vector3(block.position.x, top + .025f, block.position.z) + set.stageOffset;
+                .OrderBy(b => Vector3.ProjectOnPlane(b.position - world.Center, Vector3.up).sqrMagnitude);
+            foreach (var block in candidates)
+            {
+                var colliders = block.GetComponentsInChildren<Collider>().Where(c => c.enabled && !c.isTrigger);
+                float top = colliders.Select(c => c.bounds.max.y).DefaultIfEmpty(block.position.y).Max();
+                var point = new Vector3(block.position.x, top, block.position.z);
+                if (SurfaceBelow(point, out var hit) && Mathf.Abs(hit.y - top) <= .75f &&
+                    hit.y > world.WaterHeight(hit) + .05f)
+                    return point + Vector3.up * .025f + set.stageOffset;
+            }
+            return world.SafeSpawnPoint() + set.stageOffset;
         }
 
         // The surface under a point, for snapping marks. False when there is nothing below (open water).

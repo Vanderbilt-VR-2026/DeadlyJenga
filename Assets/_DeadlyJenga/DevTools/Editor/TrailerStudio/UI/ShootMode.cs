@@ -18,15 +18,20 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // The camera the viewport is looking through (null = the director's free view).
         public static string LookThrough = "";
-        public static bool SafeAreas = true;
+        const string SafeAreasKey = "DeadlyJenga.TrailerStudio.SafeAreas";
+        public static bool SafeAreas
+        {
+            get => EditorPrefs.GetBool(SafeAreasKey, true);
+            set => EditorPrefs.SetBool(SafeAreasKey, value);
+        }
 
         public bool TryGetRecord(StudioContext context, out string label, out Action start)
         {
             var camera = context.Selection as StudioCameraTrack;
             label = camera == null ? "Pick a camera to film by hand" : "Film \"" + camera.name + "\" by hand";
+            if (camera == null) { start = null; return true; }
             start = () =>
             {
-                if (camera == null) { context.Say("Add or select a camera first."); return; }
                 LookThrough = "";
                 context.window.BeginEdit("Handheld take");
                 StudioHandheld.Start(camera, context.window.InFrame, context.window.OutFrame, _ => { context.window.EndEdit(false); context.Say($"Handheld take recorded on \"{camera.name}\": {camera.keys.Count} keys you can now edit."); });
@@ -65,8 +70,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             panel.Add(StudioUi.Heading("SHOOT"));
             var set = context.Set;
             if (set == null) { panel.Add(StudioUi.Hint("Choose or make a Set first.")); return; }
+            bool stageOpen = context.StageOpen && context.Stage?.set?.id == set.id;
+            StudioMomentPanel.Build(panel, context, stageOpen && StudioRun.State == StudioState.Held);
             panel.Add(StudioUi.Hint(set.cameras.Count == 0
-                ? "Cameras come last: the tape is finished, and you can film it as many times as you like. Look around in the viewport, then add a camera from that view."
+                ? "Frame the shot in the viewport, then add a camera from that view."
                 : "Select a camera to edit it. Its keys show on the timeline and as a path in the viewport."));
             var add = StudioUi.Big("+  Camera from this view", () => AddCamera(context), "A new camera with its first key where the viewport is looking now.");
             panel.Add(add);
@@ -81,14 +88,43 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var captured = camera;
                 var name = new Label(camera.name); name.AddToClassList("ts-item-name");
                 bool through = LookThrough == camera.id;
-                var look = StudioUi.Small(through ? "Looking" : "Look", () => { LookThrough = through ? "" : captured.id; if (!through) context.Select(captured); else { StudioCamera.Place(); context.Rebuild(); } },
-                    "Show the viewport through this camera.");
+                var look = StudioUi.Small(through ? "Free view" : "Preview", () =>
+                {
+                    LookThrough = through ? "" : captured.id;
+                    if (!through) context.Select(captured);
+                    else { StudioCamera.Place(); context.Rebuild(); }
+                }, through ? "Return to the free viewport camera." : stageOpen ? "Preview through this camera." : "Open this set's stage to preview cameras.");
+                look.SetEnabled(stageOpen);
+                look.RegisterCallback<ClickEvent>(e => e.StopPropagation());
                 look.EnableInClassList("ts-small--on", through);
-                var row = StudioUi.Row(StudioUi.Dot(StudioColors.For(camera.color)), name, new Label(camera.keys.Count == 1 ? "1 key  " : $"{camera.keys.Count} keys  ") { style = { color = new Color(.6f, .6f, .66f), fontSize = 11 } }, look);
+                var keyCount = new Label(camera.keys.Count == 1 ? "1 key" : $"{camera.keys.Count} keys");
+                keyCount.AddToClassList("ts-row-meta");
+                var row = StudioUi.Row(StudioUi.Dot(StudioColors.For(camera.color)), name, keyCount, look);
                 row.AddToClassList("ts-item");
                 row.EnableInClassList("ts-item--selected", ReferenceEquals(camera, context.Selection));
                 row.RegisterCallback<ClickEvent>(_ => context.Select(captured));
                 panel.Add(row);
+            }
+
+            if (stageOpen && set.cameras.Any(camera => camera.id == LookThrough))
+            {
+                var safeAreas = new Toggle("Show safe-area guides") { value = SafeAreas };
+                safeAreas.RegisterValueChangedCallback(e => { SafeAreas = e.newValue; context.Rebuild(); });
+                panel.Add(safeAreas);
+            }
+
+            var selected = context.Selection as StudioCameraTrack;
+            if (selected != null && set.cameras.Contains(selected))
+            {
+                float end = selected.End(set);
+                var tapeSpan = new StudioDurationBar("Shot coverage on the set tape. Ticks mark camera keys.");
+                tapeSpan.Span(selected.start, end, set.length, StudioColors.For(selected.color));
+                foreach (var key in selected.keys)
+                    tapeSpan.Marker(key.time, set.length, $"Camera key at {key.time:0.00} s");
+                panel.Add(StudioUi.Card(
+                    StudioDurationBar.Title($"{selected.name} · {StudioCameras.OutputLength(selected, set, set.render.fps):0.00} s output"),
+                    tapeSpan,
+                    StudioUi.Hint($"Tape {selected.start:0.00}–{end:0.00} s · ticks mark camera keys")));
             }
 
             // Render
@@ -134,8 +170,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             }
             else
             {
-                bool held = StudioRun.State == StudioState.Held;
-                var selected = context.Selection as StudioCameraTrack;
+                bool held = stageOpen && StudioRun.State == StudioState.Held;
                 void Go(IEnumerable<StudioCameraTrack> cameras)
                 {
                     try { LookThrough = ""; StudioRender.Start(cameras, render); context.Rebuild(); }
@@ -147,17 +182,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 all.AddToClassList("ts-big--primary");
                 all.SetEnabled(held && set.cameras.Count > 0);
                 panel.Add(one); panel.Add(all);
-                var sound = StudioUi.Small("Record the tape's sound", () =>
+                var sound = StudioUi.Small("Record game audio from tape", () =>
                 {
                     try { StudioRender.RecordAudio(file => context.Say("Sound recorded: " + file)); }
                     catch (Exception error) { context.Say(error.Message); }
-                }, "Plays the tape once and saves the game mix and its stems. The cut export uses it.");
+                }, "Plays the whole tape once and saves the game mix and stems for the cut export.");
                 sound.SetEnabled(held);
                 panel.Add(sound);
-                if (!string.IsNullOrEmpty(StudioRender.Progress)) panel.Add(StudioUi.Hint(StudioRender.Progress));
-                foreach (var done in StudioRender.Results)
-                    panel.Add(StudioUi.Hint($"• {done.camera}: {done.frames} frames in {done.seconds:0} s" + (done.movie.Length > 0 ? ", movie made" : "") + (done.error.Length > 0 ? ". " + done.error : "")));
-                if (Directory.Exists(StudioRender.LastFolder)) panel.Add(StudioUi.Small("Open the render folder", () => EditorUtility.RevealInFinder(StudioRender.LastFolder)));
+                if (!held)
+                    panel.Add(StudioUi.Hint("Open the set in Play Mode and pause on the tape to render or record sound."));
+                string folder = StudioRender.LastFolder;
+                if (Directory.Exists(folder) && string.Equals(Path.GetDirectoryName(Path.GetFullPath(folder)),
+                    Path.GetFullPath(StudioRender.RendersFolder(set.id)), StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrEmpty(StudioRender.Progress)) panel.Add(StudioUi.Hint(StudioRender.Progress));
+                    foreach (var done in StudioRender.Results)
+                        panel.Add(StudioUi.Hint($"{done.camera}: {done.frames} frames in {done.seconds:0} s" + (done.movie.Length > 0 ? ", movie made" : "") + (done.error.Length > 0 ? ". " + done.error : "")));
+                    panel.Add(StudioUi.Small("Open the render folder", () => EditorUtility.RevealInFinder(folder)));
+                }
             }
         }
 
@@ -206,7 +248,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             here.AddToClassList("ts-big--primary");
             here.SetEnabled(context.StageOpen && ShootMode.LookThrough != camera.id);
             panel.Add(here);
-            if (ShootMode.LookThrough == camera.id) panel.Add(StudioUi.Hint("You are looking through this camera. Press \"Looking\" in the list to look around freely again."));
+            if (ShootMode.LookThrough == camera.id) panel.Add(StudioUi.Hint("Camera preview is active. Choose Free view to move the viewport camera."));
             string[] eases = { "Straight", "Smooth", "Slow start", "Slow end", "Hold, then cut" };
             foreach (var key in camera.keys.ToList())
             {

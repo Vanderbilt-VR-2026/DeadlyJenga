@@ -69,6 +69,16 @@ namespace DeadlyJenga.DevTools.Editor
         public bool ParticleBudgetReached => particles?.Truncated ?? false;
         public int PeakEquipped { get; private set; }
 
+        internal TheatreMotionTape(Vector3 stage, Rigidbody[] blocks, string[] ids, CandyPlayerAvatar[] actors)
+        {
+            Stage = stage;
+            this.blocks = blocks;
+            this.ids = ids;
+            this.actors = actors;
+            includesEffects = true;
+            particles = new TheatreParticleTape();
+        }
+
         public TheatreMotionTape(string file, bool replay, string map, int fps, int length, Vector3 stage,
             Rigidbody[] blocks, string[] ids, CandyPlayerAvatar[] actors)
         {
@@ -111,17 +121,8 @@ namespace DeadlyJenga.DevTools.Editor
                 writer = new BinaryWriter(File.Open(file, FileMode.CreateNew));
                 try
                 {
-                    writer.Write(Format); writer.Write(map); writer.Write(fps);
-                    writer.Write(length); writer.Write(blocks.Length); writer.Write(ids.Length);
                     Stage = stage;
-                    NetWire.Write(writer, stage);
-                    foreach (string id in ids) writer.Write(id);
-                    foreach (var actor in actors)
-                    {
-                        writer.Write(actor.ColorIndex);
-                        writer.Write((uint)actor.Appearance.accessories);
-                        writer.Write(CandyPlayerAvatar.StyleBits(actor.Appearance));
-                    }
+                    WriteHeader(writer, map, fps, length);
                 }
                 catch { writer.Dispose(); throw; }
             }
@@ -130,6 +131,25 @@ namespace DeadlyJenga.DevTools.Editor
         public void WriteFrame()
         {
             if (frames++ >= expected) throw new InvalidDataException("Too many motion samples.");
+            WriteSample(writer);
+        }
+
+        internal void WriteHeader(BinaryWriter output, string map, int fps, int length)
+        {
+            output.Write(Format); output.Write(map); output.Write(fps);
+            output.Write(length); output.Write(blocks.Length); output.Write(ids.Length);
+            NetWire.Write(output, Stage);
+            foreach (string id in ids) output.Write(id);
+            foreach (var actor in actors)
+            {
+                output.Write(actor.ColorIndex);
+                output.Write((uint)actor.Appearance.accessories);
+                output.Write(CandyPlayerAvatar.StyleBits(actor.Appearance));
+            }
+        }
+
+        internal void WriteSample(BinaryWriter writer)
+        {
             writer.Write(JsonUtility.ToJson(Tracked.Waves.FirstOrDefault(w => w.Wave.active)?.Wave ?? default));
             foreach (var block in blocks)
             {

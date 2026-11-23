@@ -20,6 +20,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool customLook;           // false = the bot's usual random outfit
         public AvatarAppearance appearance;
         public string equipment = "";     // an EquipmentKind name, or empty
+        public string crowdGroup = "";
+        public string crowdSource = "";
+        public float crowdTurn, crowdDelay;
+        public bool crowdMirror, heroLocked;
     }
 
     // Something the world does at a time: a collapse, a disaster...
@@ -58,6 +62,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public Quaternion grabRotation = Quaternion.identity;
     }
 
+    [Serializable] public sealed class StudioStoryBeat
+    {
+        public string title = "";
+        public float seconds;
+    }
+
     // A camera shot. Phase 1 only keeps these (imported from Theatre); Phase 5 edits them.
     [Serializable] public sealed class StudioShot
     {
@@ -76,6 +86,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public float length = 10, warmup = .75f;
         public bool useMapAnchor;         // false = the stage sits on the highest block near the middle of the map
         public Vector3 mapAnchor, stageOffset;
+        public List<StudioStoryBeat> storyBeats = new List<StudioStoryBeat>();
         public float timeOfDay = -1;      // hours, -1 = whatever the map uses
         public string weather = "";       // empty = whatever the map uses
         public string startFromSet = "";  // empty = start as the map loads
@@ -89,6 +100,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         // Phase 5: cameras and the cut.
         public List<StudioCameraTrack> cameras = new List<StudioCameraTrack>();
         public List<StudioCut> cuts = new List<StudioCut>();
+        public List<StudioMoment> moments = new List<StudioMoment>();
+        public List<TheatreBookmark> theatreBookmarks = new List<TheatreBookmark>();
+        public List<StudioCutAlternative> cutAlternatives = new List<StudioCutAlternative>();
+        public float worldGainDb, performerGainDb, musicGainDb;
+        public float musicDuckDb, musicDuckThresholdDb = -30;
+        public bool worldMuted, performerMuted, musicMuted;
         public StudioRenderSettings render = new StudioRenderSettings();
         public string music = "";         // path of a music bed (wav or mp3), or empty
         public float bpm = 120, beatOffset; // beat markers for snapping cuts

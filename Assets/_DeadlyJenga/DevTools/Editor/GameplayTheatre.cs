@@ -20,6 +20,18 @@ using Object = UnityEngine.Object;
 
 namespace DeadlyJenga.DevTools.Editor
 {
+    [Serializable] public sealed class TheatreBookmark
+    {
+        public int frame;
+        public string name;
+    }
+
+    [Serializable] public sealed class TheatreBookmarks
+    {
+        public int fps;
+        public List<TheatreBookmark> marks = new List<TheatreBookmark>();
+    }
+
     [Serializable] public sealed class TheatrePlan
     {
         public string title = "Deadly Jenga showreel", map = "castle";
@@ -27,9 +39,11 @@ namespace DeadlyJenga.DevTools.Editor
         public float warmup = .75f;
         public Vector3 stageOffset;
         public bool useMapAnchor;
+        public bool requireGroundedStage;
         public Vector3 mapAnchor;
         public string ffmpeg = "ffmpeg", replaySource = "";
         public bool observedMatch;
+        public bool environmentOnly, muteDelivery;
         public bool fightSet, rooftopBattleSet;
         public TheatreActor[] cast;
         public TheatreShot[] shots;
@@ -86,7 +100,16 @@ namespace DeadlyJenga.DevTools.Editor
             public float at;
             public string action, actor, target, hazard, weapon;
             public float strength, heading, height;
-            public bool optional, lethal;
+            public bool optional, lethal, requireTargetContact;
+        }
+
+        public void UseDraftSize()
+        {
+            float scale = Mathf.Min(1f, 640f / Mathf.Max(1, width, height));
+            scale = Mathf.Max(scale, 320f / Mathf.Max(1, width), 180f / Mathf.Max(1, height));
+            width = Mathf.RoundToInt(width * scale / 2f) * 2;
+            height = Mathf.RoundToInt(height * scale / 2f) * 2;
+            if (string.IsNullOrEmpty(replaySource)) fps = 15;
         }
 
         public void Validate()
@@ -97,9 +120,9 @@ namespace DeadlyJenga.DevTools.Editor
                 width % 2 != 0 || height % 2 != 0 || !Finite(warmup) || !Finite(stageOffset) || !Finite(mapAnchor) || warmup < 0 || warmup > 10)
                 throw new InvalidDataException("Use even dimensions, 12–60 fps and a warmup of 0–10 seconds.");
             int maxCast = observedMatch && (Application.isPlaying || !string.IsNullOrWhiteSpace(replaySource)) ? 64 : 12;
-            if (cast == null || cast.Length < 1 || cast.Length > maxCast || cast.Any(a => a == null || string.IsNullOrWhiteSpace(a.id) || !Finite(a.start)) ||
+            if (cast == null || (environmentOnly ? cast.Length != 0 : cast.Length < 1) || cast.Length > maxCast || cast.Any(a => a == null || string.IsNullOrWhiteSpace(a.id) || !Finite(a.start)) ||
                 cast.Select(a => a.id).Distinct(StringComparer.Ordinal).Count() != cast.Length)
-                throw new InvalidDataException($"Provide 1–{maxCast} uniquely named actors with finite start positions.");
+                throw new InvalidDataException($"Provide an empty cast for an environment-only scene or 1–{maxCast} uniquely named actors.");
             var ids = new HashSet<string>(cast.Select(a => a.id), StringComparer.Ordinal);
             bool Known(string id) => !string.IsNullOrEmpty(id) && ids.Contains(id);
             foreach (var actor in cast)
@@ -202,6 +225,9 @@ namespace DeadlyJenga.DevTools.Editor
         int mapIndex;
         Vector2 scroll;
         [SerializeField] string json = "";
+        [SerializeField] string direction = "", directingNotes = "";
+        [SerializeField] bool showDirection;
+        [Serializable] sealed class DirectingReport { public string[] pending_review, choices; }
         [SerializeField] bool showRecipe;
         int selectedShot, selectedCue, previewFrame = -1;
         string previewPath;
@@ -251,6 +277,14 @@ namespace DeadlyJenga.DevTools.Editor
         {
             EditorGUILayout.LabelField("Gameplay Theatre", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(GameplayTheatre.Status, MessageType.Info);
+            showDirection = EditorGUILayout.Foldout(showDirection, "Direct a scene from a prompt", true);
+            if (showDirection)
+            {
+                direction = EditorGUILayout.TextArea(direction, GUILayout.MinHeight(50));
+                using (new EditorGUI.DisabledScope(GameplayTheatre.Busy || string.IsNullOrWhiteSpace(direction)))
+                    if (GUILayout.Button("Stage editable recipe")) Try(StageDirection);
+                if (directingNotes.Length > 0) EditorGUILayout.HelpBox(directingNotes, MessageType.Info);
+            }
             using (new EditorGUILayout.HorizontalScope())
             {
                 if (GUILayout.Button("Showcase")) LoadPreset(0);
@@ -274,6 +308,8 @@ namespace DeadlyJenga.DevTools.Editor
                 using (new EditorGUI.DisabledScope(!EditorApplication.isPlaying || GameplayTheatre.Busy))
                     if (GUILayout.Button("Record current match"))
                         Try(() => GameplayTheatre.RecordCurrentMatch(JsonUtility.FromJson<TheatrePlan>(json)));
+                if (GameplayTheatre.CanBookmark && GUILayout.Button("Bookmark current frame"))
+                    Try(GameplayTheatre.BookmarkCurrentFrame);
                 if (GUILayout.Button("Open last gallery")) Try(GameplayTheatre.OpenGallery);
                 if (GUILayout.Button("Load take for reframe"))
                     Try(() =>
@@ -286,6 +322,27 @@ namespace DeadlyJenga.DevTools.Editor
                         json = JsonUtility.ToJson(edit, true);
                     });
             }
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GameplayTheatre.LookbackArmed)
+                {
+                    using (new EditorGUI.DisabledScope(GameplayTheatre.LookbackCount == 0))
+                        if (GUILayout.Button($"Keep last {GameplayTheatre.LookbackCount / (float)TheatreLookback.Fps:0.0} s"))
+                            Try(GameplayTheatre.KeepLookback);
+                    if (GUILayout.Button("Disarm look-back")) GameplayTheatre.DisarmLookback();
+                }
+                else
+                {
+                    using (new EditorGUI.DisabledScope(!EditorApplication.isPlaying || GameplayTheatre.Busy))
+                        if (GUILayout.Button("Arm 10 s motion look-back"))
+                            Try(() => GameplayTheatre.ArmLookback(JsonUtility.FromJson<TheatrePlan>(json)));
+                }
+                string lastLookback = GameplayTheatre.LastLookbackFolder;
+                if (Directory.Exists(lastLookback) && GUILayout.Button("Open last kept take"))
+                    EditorUtility.RevealInFinder(Path.Combine(lastLookback, "recipe.json"));
+            }
+            if (GameplayTheatre.LookbackArmed)
+                EditorGUILayout.HelpBox("Samples a local desktop match at 12 fps, up to 10 seconds and 24 MiB. Import the kept motion take into Trailer Studio.", MessageType.Info);
             if (mapNames.Length > 0)
                 using (new EditorGUILayout.HorizontalScope())
                 {
@@ -307,7 +364,7 @@ namespace DeadlyJenga.DevTools.Editor
             if (showRecipe) json = EditorGUILayout.TextArea(json, GUILayout.MinHeight(210));
             else Director();
             EditorGUILayout.EndScrollView();
-            if (GameplayTheatre.Busy || livePreview && EditorApplication.isPlaying) Repaint();
+            if (GameplayTheatre.Busy || GameplayTheatre.LookbackArmed || livePreview && EditorApplication.isPlaying) Repaint();
         }
         void OnDisable()
         {
@@ -323,7 +380,7 @@ namespace DeadlyJenga.DevTools.Editor
             liveImage = null;
         }
 
-        void LiveViewport(TheatrePlan.TheatreShot shot, Vector3 stageOffset)
+        void LiveViewport(TheatrePlan.TheatreShot shot, TheatrePlan edit)
         {
             if (!EditorApplication.isPlaying)
             {
@@ -337,7 +394,8 @@ namespace DeadlyJenga.DevTools.Editor
                 return;
             }
             liveTime = EditorGUILayout.Slider("Camera time", liveTime, shot.start, shot.start + shot.duration);
-            var previewRect = GUILayoutUtility.GetAspectRect(16f / 9);
+            float aspect = Mathf.Clamp(edit.width / (float)Mathf.Max(1, edit.height), .1f, 20f);
+            var previewRect = GUILayoutUtility.GetAspectRect(aspect);
             if (Event.current.type != EventType.Repaint) return;
             if (EditorApplication.timeSinceStartup >= nextPreview && Services.World != null)
             {
@@ -349,9 +407,15 @@ namespace DeadlyJenga.DevTools.Editor
                     liveCamera.enabled = false;
                     liveCamera.farClipPlane = 1600;
                     liveCamera.GetUniversalAdditionalCameraData().allowXRRendering = false;
-                    liveImage = new RenderTexture(640, 360, 24) { hideFlags = HideFlags.HideAndDontSave };
                 }
-                Try(() => GameplayTheatre.PreviewCurrentShot(liveCamera, liveImage, shot, liveTime, stageOffset));
+                int w = Mathf.Max(1, Mathf.RoundToInt(640 * Mathf.Min(1, aspect)));
+                int h = Mathf.Max(1, Mathf.RoundToInt(w / aspect));
+                if (!liveImage || liveImage.width != w || liveImage.height != h)
+                {
+                    if (liveImage) DestroyImmediate(liveImage);
+                    liveImage = new RenderTexture(w, h, 24) { hideFlags = HideFlags.HideAndDontSave };
+                }
+                Try(() => GameplayTheatre.PreviewCurrentShot(liveCamera, liveImage, shot, liveTime, edit.stageOffset));
             }
             if (liveImage) GUI.DrawTexture(previewRect, liveImage, ScaleMode.ScaleToFit);
         }
@@ -390,7 +454,7 @@ namespace DeadlyJenga.DevTools.Editor
                     Mathf.Max(0, edit.shots.Max(s => s.start + s.duration) - .1f));
             }
             if (EditorGUI.EndChangeCheck()) json = JsonUtility.ToJson(edit, true);
-            LiveViewport(shot, edit.stageOffset);
+            LiveViewport(shot, edit);
             if (GUILayout.Button("Build cut from current shots"))
             {
                 edit.edit = edit.shots.Select((s, i) => new TheatrePlan.TheatreEdit { shot = i, duration = s.duration }).ToArray();
@@ -440,11 +504,46 @@ namespace DeadlyJenga.DevTools.Editor
             if (preview) GUI.DrawTexture(GUILayoutUtility.GetRect(180, 180, GUILayout.ExpandWidth(true)), preview, ScaleMode.ScaleToFit);
         }
 
+        void StageDirection()
+        {
+            var root = SpectatorRecordingPlan.ProjectRoot;
+            var script = Path.Combine(root, "Docs", "Development", "TrailerStudio", "tools", "direct_scene.py");
+            var folder = Path.Combine(root, "Logs", "GameplayTheatre", "Directions", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(Path.Combine(folder, "prompt.txt"), direction);
+            bool windows = Application.platform == RuntimePlatform.WindowsEditor;
+            var start = new ProcessStartInfo(windows ? "py" : "python3",
+                (windows ? "-3 " : "") + "-B \"" + script + "\" prompt.txt staged")
+            {
+                WorkingDirectory = folder, UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true
+            };
+            using (var process = Process.Start(start))
+            {
+                var error = process.StandardError.ReadToEndAsync();
+                if (!process.WaitForExit(15000))
+                {
+                    process.Kill();
+                    throw new TimeoutException("Prompt staging exceeded 15 seconds. Your direction is saved in " + folder);
+                }
+                if (process.ExitCode != 0) throw new InvalidDataException(error.GetAwaiter().GetResult().Trim());
+            }
+            var staged = Path.Combine(folder, "staged");
+            string next = File.ReadAllText(Path.Combine(staged, "recipe.json"));
+            var parsed = JsonUtility.FromJson<TheatrePlan>(next);
+            parsed.Validate();
+            var report = JsonUtility.FromJson<DirectingReport>(File.ReadAllText(Path.Combine(staged, "staging.json")));
+            Undo.RecordObject(this, "Stage trailer direction");
+            json = next;
+            mapIndex = Mathf.Max(0, Array.IndexOf(mapIds, parsed.map));
+            directingNotes = string.Join("\n", (report.choices ?? Array.Empty<string>())
+                .Concat(report.pending_review ?? Array.Empty<string>()));
+        }
+
         void Render(bool draft)
         {
             plan = JsonUtility.FromJson<TheatrePlan>(json);
             if (plan == null) throw new InvalidDataException("Recipe is empty.");
-            if (draft) { plan.width = 640; plan.height = 360; if (string.IsNullOrEmpty(plan.replaySource)) plan.fps = 15; }
+            if (draft) plan.UseDraftSize();
             GameplayTheatre.Start(plan, null, false);
         }
         void Try(Action action) { try { issue = ""; action(); } catch (Exception error) { issue = error.Message; } }
@@ -459,6 +558,8 @@ namespace DeadlyJenga.DevTools.Editor
             public TheatrePlan plan;
             public string folder, failure;
             public bool batch, played, completed, existingMatch, previewOnly;
+            public int recordedFrame = -1;
+            public TheatreBookmarks bookmarks;
             public RecordingScene[] scenes;
         }
         sealed class Actor
@@ -470,8 +571,13 @@ namespace DeadlyJenga.DevTools.Editor
             public Quaternion facing = Quaternion.identity;
             public float downAt = float.PositiveInfinity;
             public float punchAt = -100;
+            public float hitAt = float.NegativeInfinity;
+            public Vector3 hitDirection;
         }
         static Job job;
+        static TheatreLookback lookback;
+        static double nextLookbackCheck;
+        static int lastLookbackFrame = -1;
         static IEnumerator<int> take;
         static int lastFrame = -1, errors;
         static float oldScale;
@@ -481,6 +587,11 @@ namespace DeadlyJenga.DevTools.Editor
         static Process encoder;
         static readonly List<string> EncoderErrors = new List<string>();
         public static bool Busy => job != null;
+        internal static bool CanBookmark => job?.existingMatch == true && job.bookmarks != null && job.recordedFrame >= 0;
+        internal const string BookmarksFile = "bookmarks.json";
+        internal static bool LookbackArmed => lookback != null;
+        internal static int LookbackCount => lookback?.Count ?? 0;
+        internal static string LastLookbackFolder => SessionState.GetString(Key + ".Lookback", "");
         public static string LastGalleryFolder => SessionState.GetString(Key + ".Gallery", "");
         public static string Status { get; private set; } = "Ready to stage a local take.";
         internal static RenderTexture TimelineImage { get; private set; }
@@ -497,30 +608,56 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunBatch()
         {
+            RunRecipeBatch(Arg("-theatrePlan"), Arg("-theatreOutput"));
+        }
+
+        public static void RunDirectedExample() => RunDirectedExampleRecipe("castle-contact");
+        public static void RunQuietExample() => RunDirectedExampleRecipe("quiet-castle");
+        public static void RunTsunamiCrossfire() => RunDirectedExampleRecipe("tsunami-crossfire");
+
+        static void RunDirectedExampleRecipe(string example)
+        {
+            string root = SpectatorRecordingPlan.ProjectRoot;
+            RunRecipeBatch(Path.Combine(root, "Docs", "Development", "TrailerStudio", "examples", example, "recipe.json"),
+                Path.Combine(root, "Logs", "Validation", "DirectedPrompt"));
+        }
+
+        static void EndBatch(int code)
+        {
+            if (SessionState.GetString("DJWarm.id", "").Length == 0)
+            {
+                EditorApplication.Exit(code);
+                return;
+            }
+            Directory.CreateDirectory(Path.Combine("Logs", "Warm"));
+            File.WriteAllText(Path.Combine("Logs", "Warm", "exit.txt"), code.ToString());
+        }
+
+        static void RunRecipeBatch(string recipe, string output)
+        {
             try
             {
                 if (Array.IndexOf(Environment.GetCommandLineArgs(), "-theatreInstallMixer") >= 0)
                     TheatreAudioCapture.InstallMixer();
-                string recipe = Arg("-theatrePlan");
                 var plan = recipe.Length == 0 ? TheatrePlan.Showcase() : JsonUtility.FromJson<TheatrePlan>(File.ReadAllText(recipe));
                 if (Array.IndexOf(Environment.GetCommandLineArgs(), "-theatreStuntFixture") >= 0)
                     TheatreStuntImport.AttachFixture(plan);
                 if (Arg("-theatreFfmpeg") is string ffmpeg && ffmpeg.Length > 0) plan.ffmpeg = ffmpeg;
                 if (Array.IndexOf(Environment.GetCommandLineArgs(), "-theatreDraft") >= 0)
-                { plan.width = 640; plan.height = 360; plan.fps = 15; }
+                    plan.UseDraftSize();
                 VerifyRecipeValidation();
                 double deadline = EditorApplication.timeSinceStartup + 120;
                 void BeginWhenReady()
                 {
                     if ((EditorApplication.isCompiling || EditorApplication.isUpdating) && EditorApplication.timeSinceStartup < deadline) return;
                     EditorApplication.update -= BeginWhenReady;
-                    try { Start(plan, Arg("-theatreOutput"), true,
+                    try { Start(plan, output, true,
                         Array.IndexOf(Environment.GetCommandLineArgs(), "-theatrePreviewCheck") >= 0); }
-                    catch (Exception error) { Debug.LogException(error); EditorApplication.Exit(1); }
+                    catch (Exception error) { Debug.LogException(error); EndBatch(1); }
                 }
                 EditorApplication.update += BeginWhenReady;
             }
-            catch (Exception error) { Debug.LogException(error); EditorApplication.Exit(1); }
+            catch (Exception error) { Debug.LogException(error); EndBatch(1); }
         }
         static void VerifyRecipeValidation()
         {
@@ -636,7 +773,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         internal static void RecordCurrentMatch(TheatrePlan plan)
         {
-            if (Busy || SpectatorVideoCapture.Busy || !EditorApplication.isPlaying || EditorApplication.isPaused)
+            if (Busy || LookbackArmed || SpectatorVideoCapture.Busy || !EditorApplication.isPlaying || EditorApplication.isPaused)
                 throw new InvalidOperationException("Resume Play Mode and stop other captures first.");
             var session = Object.FindFirstObjectByType<CastlePlaySession>();
             if (!session || Services.World == null || !session.HasWorldAuthority || session.IsVR ||
@@ -647,9 +784,90 @@ namespace DeadlyJenga.DevTools.Editor
             var folder = SpectatorRecordingPlan.TimestampDirectory(Path.Combine(SpectatorRecordingPlan.ProjectRoot,
                 "Logs", "GameplayTheatre"));
             File.WriteAllText(Path.Combine(folder, "recipe.json"), JsonUtility.ToJson(plan, true));
-            job = new Job { plan = plan, folder = folder, played = true, existingMatch = true, scenes = Array.Empty<RecordingScene>() };
+            job = new Job
+            {
+                plan = plan, folder = folder, played = true, existingMatch = true, scenes = Array.Empty<RecordingScene>(),
+                bookmarks = new TheatreBookmarks { fps = plan.fps }
+            };
             SessionState.SetString(Key + ".Gallery", folder);
             BeginCapture();
+        }
+
+        internal static void ArmLookback(TheatrePlan plan)
+        {
+            var session = Object.FindFirstObjectByType<CastlePlaySession>();
+            if (!EditorApplication.isPlaying || EditorApplication.isPaused || Busy || LookbackArmed || SpectatorVideoCapture.Busy ||
+                !session || Services.World == null || !session.HasWorldAuthority || session.IsVR ||
+                session.Network && session.Network.HumanCount > 1)
+                throw new InvalidOperationException("Look-back needs an active local desktop match without other captures.");
+            if (plan == null) throw new InvalidDataException("Recipe is empty.");
+            plan.fps = TheatreLookback.Fps;
+            plan.shots = new[] { new TheatrePlan.TheatreShot() };
+            plan.edit = Array.Empty<TheatrePlan.TheatreEdit>();
+            BindCurrentMatch(plan);
+            var world = Services.World;
+            Vector3 stage = (plan.useMapAnchor ? world.Center + plan.mapAnchor : Stage(world)) + plan.stageOffset;
+            var cast = CurrentCast();
+            lookback = new TheatreLookback(plan, world, stage, plan.cast.Select(track => cast[track.id].avatar).ToArray());
+            nextLookbackCheck = 0;
+            lastLookbackFrame = -1;
+            Status = "Motion look-back armed.";
+        }
+
+        static CandyPlayerAvatar[] CurrentLookbackCast() => CurrentCast().OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => pair.Value.avatar).ToArray();
+
+        internal static void KeepLookback()
+        {
+            if (lookback == null || !lookback.Matches(Services.World, MatchSetup.MapId, CurrentLookbackCast()))
+                throw new InvalidOperationException("The map or cast changed before the look-back could be kept.");
+            string folder = SpectatorRecordingPlan.TimestampDirectory(Path.Combine(SpectatorRecordingPlan.ProjectRoot,
+                "Logs", "GameplayTheatre", "Lookback"));
+            lookback.Save(folder);
+            SessionState.SetString(Key + ".Lookback", folder);
+            Status = "Look-back motion take saved: " + folder;
+        }
+
+        internal static void DisarmLookback()
+        {
+            lookback?.Dispose();
+            lookback = null;
+            Status = "Motion look-back disarmed.";
+        }
+
+        static void SampleLookback()
+        {
+            if (lookback == null || !EditorApplication.isPlaying || EditorApplication.isPaused || lastLookbackFrame == Time.frameCount) return;
+            lastLookbackFrame = Time.frameCount;
+            try
+            {
+                if (Busy || SpectatorVideoCapture.Busy) throw new InvalidOperationException("Another capture started.");
+                double now = Time.unscaledTimeAsDouble;
+                if (now >= nextLookbackCheck)
+                {
+                    var session = Object.FindFirstObjectByType<CastlePlaySession>();
+                    if (!session || !session.HasWorldAuthority || session.IsVR || session.Network && session.Network.HumanCount > 1 ||
+                        !lookback.Matches(Services.World, MatchSetup.MapId, CurrentLookbackCast()))
+                        throw new InvalidOperationException("The local match, map or cast changed.");
+                    nextLookbackCheck = now + .5;
+                }
+                lookback.Sample(now);
+            }
+            catch (Exception error)
+            {
+                DisarmLookback();
+                Status = "Look-back stopped: " + error.Message;
+            }
+        }
+
+        internal static void BookmarkCurrentFrame()
+        {
+            if (!CanBookmark) return;
+            var marks = job.bookmarks.marks;
+            if (marks.Count > 0 && marks[marks.Count - 1].frame == job.recordedFrame) return;
+            marks.Add(new TheatreBookmark { frame = job.recordedFrame, name = $"Match bookmark {marks.Count + 1}" });
+            File.WriteAllText(Path.Combine(job.folder, BookmarksFile), JsonUtility.ToJson(job.bookmarks, true));
+            Status = $"Bookmarked tape frame {job.recordedFrame}.";
         }
 
         static void BindCurrentMatch(TheatrePlan plan)
@@ -676,6 +894,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void State(PlayModeStateChange state)
         {
+            if (lookback != null && state == PlayModeStateChange.ExitingPlayMode) DisarmLookback();
             if (job == null) return;
             if (state == PlayModeStateChange.EnteredPlayMode)
             {
@@ -701,7 +920,7 @@ namespace DeadlyJenga.DevTools.Editor
                 catch (Exception error) { passed = false; finished.failure = error.ToString(); }
                 Status = passed ? (finished.previewOnly ? "3D preview closed." : "Gallery ready: " + finished.folder) : finished.failure;
                 File.WriteAllText(Path.Combine(finished.folder, "result.txt"), (passed ? "PASS " : "FAIL ") + Status);
-                if (finished.batch) EditorApplication.Exit(passed ? 0 : 1);
+                if (finished.batch) EndBatch(passed ? 0 : 1);
             }
         }
         static void BeginCapture()
@@ -739,6 +958,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void Tick()
         {
+            SampleLookback();
             if (take == null || !EditorApplication.isPlaying || Time.frameCount == lastFrame) return;
             lastFrame = Time.frameCount;
             try { if (!take.MoveNext()) End(errors == 0 ? "" : "Unity logged runtime errors. See runtime-errors.txt."); }
@@ -801,6 +1021,13 @@ namespace DeadlyJenga.DevTools.Editor
                 rules.deathEnabled = false;
                 session.Modes.Configure(rules);
                 session.Modes.StartRound();
+                if (plan.cues?.Any(cue => cue.requireTargetContact && cue.action == "punch") == true &&
+                    session.Modes.Rules.mode == GameModeKind.Demo)
+                {
+                    // The standalone film set has no development-room owner to configure the Demo.
+                    session.Modes.Rules.punchEnabled = session.Modes.Rules.healthEnabled = true;
+                    session.Modes.Rules.deathEnabled = false;
+                }
                 if (session.Social != null) session.Social.VoiceEnabled = false;
                 for (int n = 0; n < Mathf.CeilToInt(plan.warmup * plan.fps) + 3; n++) yield return 0;
                 if (selected.mapPrefab && ReferenceEquals(Services.World, previousWorld) ||
@@ -810,9 +1037,16 @@ namespace DeadlyJenga.DevTools.Editor
             var world = Services.World;
             if (world == null || world.Blocks.Count == 0)
                 throw new InvalidOperationException("The requested map did not provide the active block world.");
-            Vector3 stage = (plan.useMapAnchor ? world.Center + plan.mapAnchor : Stage(world)) + plan.stageOffset;
-            Rigidbody fightDeck = plan.fightSet && !existingMatch ? BuildFightDeck(world, stage) : null;
             bool replay = !string.IsNullOrEmpty(plan.replaySource);
+            Vector3 stage = (plan.useMapAnchor ? world.Center + plan.mapAnchor : Stage(world)) + plan.stageOffset;
+            string stageSupport = "";
+            if (plan.requireGroundedStage && !plan.useMapAnchor && !existingMatch && !replay &&
+                !plan.fightSet && !plan.rooftopBattleSet && plan.stageOffset == Vector3.zero)
+            {
+                stage = GroundedStage(world, plan, out stageSupport);
+                Debug.Log(stageSupport);
+            }
+            Rigidbody fightDeck = plan.fightSet && !existingMatch ? BuildFightDeck(world, stage) : null;
             var towerSet = plan.rooftopBattleSet && !existingMatch ? BuildBattleSet(world, stage) : null;
             var actors = existingMatch ? CurrentCast() : new Dictionary<string, Actor>(StringComparer.Ordinal);
             foreach (var track in plan.cast)
@@ -873,14 +1107,21 @@ namespace DeadlyJenga.DevTools.Editor
             audioRig.transform.position = stage + new Vector3(0, 1.2f, -2);
             TheatreAudioCapture audio = null;
             TheatreMotionTape tape = null;
+            var hiddenPlayerRenderers = Array.Empty<Renderer>();
             int[] counts = new int[plan.shots.Length];
             var frames = new string[plan.shots.Length];
             for (int i = 0; i < frames.Length; i++)
                 Directory.CreateDirectory(frames[i] = Path.Combine(job.folder, $"shot-{i + 1:D2}"));
             File.WriteAllText(Path.Combine(job.folder, "cues.txt"), "Simulation seconds and executed cues\n");
-            File.WriteAllText(Path.Combine(job.folder, "take.txt"), $"Map={plan.map}\nStage={stage}\nBlocks={world.Blocks.Count}\nCast={actors.Count}\nFPS={plan.fps}\n");
+            File.WriteAllText(Path.Combine(job.folder, "take.txt"), $"Map={plan.map}\nStage={stage}\nBlocks={world.Blocks.Count}\nCast={actors.Count}\nFPS={plan.fps}\n" + stageSupport);
             try
             {
+                if (plan.environmentOnly && session.Player is { } player && player.gameObject)
+                {
+                    hiddenPlayerRenderers = player.gameObject.GetComponentsInChildren<Renderer>(true)
+                        .Where(renderer => !renderer.forceRenderingOff).ToArray();
+                    foreach (var renderer in hiddenPlayerRenderers) renderer.forceRenderingOff = true;
+                }
                 int end = plan.shots.Max(s => Mathf.RoundToInt(s.start * plan.fps) + Mathf.CeilToInt(s.duration * plan.fps));
                 string recording = replay ? plan.replaySource : job.folder;
                 var ids = plan.cast.Select(a => a.id).ToArray();
@@ -944,6 +1185,9 @@ namespace DeadlyJenga.DevTools.Editor
                     File.AppendAllText(Path.Combine(job.folder, "take.txt"), "Motion source: " + recording + "\n");
                 }
                 else audio = new TheatreAudioCapture(Path.Combine(job.folder, "take.wav"));
+                Dictionary<Rigidbody, float> waveStarts = null;
+                TsunamiHazard observedWave = null;
+                int peakWaveTargets = 0;
                 for (int frame = 0; frame < end; frame++)
                 {
                     if (existingMatch && !ReferenceEquals(Services.World, world))
@@ -997,10 +1241,19 @@ namespace DeadlyJenga.DevTools.Editor
                                         body.isKinematic = false;
                                         body.AddTorque(new Vector3(2, 0, -3), ForceMode.VelocityChange);
                                     }
-                                Cue(cues[cueIndex++], session, actors, world, stage, time);
+                                var cue = cues[cueIndex++];
+                                Cue(cue, session, actors, world, stage, time);
+                                if (cue.action == "tsunami")
+                                {
+                                    observedWave = session.GetComponentsInChildren<TsunamiHazard>().LastOrDefault(w => w.Active);
+                                    waveStarts = world.Blocks.Where(b => b && b.gameObject.activeInHierarchy).Distinct()
+                                        .ToDictionary(b => b, b => b.position.y);
+                                }
                             }
                         }
+                        if (observedWave) peakWaveTargets = Mathf.Max(peakWaveTargets, observedWave.LastTargetCount);
                         tape.WriteFrame();
+                        if (existingMatch) job.recordedFrame = frame;
                     }
                     for (int i = 0; i < plan.shots.Length; i++)
                     {
@@ -1018,8 +1271,12 @@ namespace DeadlyJenga.DevTools.Editor
                     Status = $"Staging frame {frame + 1}/{end}, {counts.Sum()} camera frames.";
                     yield return 0;
                 }
+                if (existingMatch) job.recordedFrame = -1;
                 if (!replay && cueIndex != cues.Length) throw new InvalidDataException("A cue falls after the last sampled frame.");
                 audio?.Complete(end, plan.fps);
+                if (waveStarts != null)
+                    File.AppendAllText(Path.Combine(job.folder, "take.txt"),
+                        $"Peak tsunami targets={peakWaveTargets}; blocks at least 0.5m lower after wave onset={waveStarts.Count(p => p.Key && p.Value - p.Key.position.y >= .5f)}\n");
                 File.AppendAllText(Path.Combine(job.folder, "take.txt"),
                     $"Peak recorded particles={tape.PeakParticles}\nParticle budget reached={tape.ParticleBudgetReached}\nPeak equipped actors={tape.PeakEquipped}\n");
             }
@@ -1027,6 +1284,8 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 tape?.Dispose();
                 audio?.Dispose();
+                foreach (var renderer in hiddenPlayerRenderers)
+                    if (renderer) renderer.forceRenderingOff = false;
                 audioRig.SetActive(false);
                 Object.Destroy(audioRig);
                 foreach (var listener in originalListeners)
@@ -1087,6 +1346,87 @@ namespace DeadlyJenga.DevTools.Editor
                 .Select(c => c.bounds.max.y).DefaultIfEmpty(block.position.y + .5f).Max();
             return new Vector3(block.position.x, top + .025f, block.position.z);
         }
+
+        static Vector3 GroundedStage(IWorldQuery world, TheatrePlan plan, out string report)
+        {
+            const float sampleSpacing = .5f;
+            const float footprintRadius = .16f;
+            const float heightTolerance = .09f;
+            var samples = new List<Vector3>();
+            foreach (var actor in plan.cast)
+            {
+                Vector3 from = actor.start;
+                samples.Add(from);
+                foreach (var move in actor.moves ?? Array.Empty<TheatrePlan.TheatreMove>())
+                {
+                    float distance = Vector3.ProjectOnPlane(move.to - from, Vector3.up).magnitude;
+                    if (distance > 120f) throw new InvalidOperationException("Grounded approach exceeds the theatre sampling range.");
+                    int steps = Mathf.Max(1, Mathf.CeilToInt(distance / sampleSpacing));
+                    for (int i = 1; i <= steps; i++)
+                        samples.Add(Vector3.Lerp(from, move.to, i / (float)steps));
+                    from = move.to;
+                }
+            }
+
+            Physics.SyncTransforms();
+            var blocks = new HashSet<Rigidbody>(world.Blocks.Where(body => body && body.gameObject.activeInHierarchy));
+            float rayTop = Mathf.Max(world.TopHeight, blocks.SelectMany(body => body.GetComponentsInChildren<Collider>())
+                .Where(collider => collider.enabled && !collider.isTrigger)
+                .Select(collider => collider.bounds.max.y).DefaultIfEmpty(world.TopHeight).Max()) + 3f;
+            Vector3[] footprint = { Vector3.zero, Vector3.right * footprintRadius, Vector3.left * footprintRadius,
+                                    Vector3.forward * footprintRadius, Vector3.back * footprintRadius };
+            var center = world.Center;
+            var midpoint = new Vector2((samples.Min(p => p.x) + samples.Max(p => p.x)) * .5f,
+                                       (samples.Min(p => p.z) + samples.Max(p => p.z)) * .5f);
+            var origins = new HashSet<Vector2>();
+            foreach (var point in blocks.Select(body => body.position).Append(center))
+            {
+                // Center the route on each block, then allow small translations along its top.
+                for (int x = -2; x <= 2; x++)
+                for (int z = -2; z <= 2; z++)
+                    origins.Add(new Vector2(point.x + x * sampleSpacing, point.z + z * sampleSpacing) - midpoint);
+            }
+
+            var candidates = new List<Vector3>();
+            foreach (var origin in origins)
+            {
+                if (Support(origin.x + samples[0].x, origin.y + samples[0].z, out var hit))
+                    candidates.Add(new Vector3(origin.x, hit.point.y - samples[0].y, origin.y));
+            }
+            foreach (var candidate in candidates.OrderByDescending(p => Mathf.RoundToInt(p.y * 5f))
+                .ThenBy(p => Vector3.ProjectOnPlane(p - center, Vector3.up).sqrMagnitude))
+            {
+                float lowest = candidate.y, highest = candidate.y;
+                if (!samples.All(sample => footprint.All(offset => Measure(candidate + sample + offset)))) continue;
+                var stage = new Vector3(candidate.x, highest + .02f, candidate.z);
+                report = FormattableString.Invariant(
+                    $"GroundedProbes={samples.Count * footprint.Length} Spacing={sampleSpacing:F2}m Radius={footprintRadius:F2}m SupportHeightDelta={highest - lowest:F3}m StageFloor={highest:F3}m\n");
+                return stage;
+
+                bool Measure(Vector3 point)
+                {
+                    if (!Support(point.x, point.z, out var hit)) return false;
+                    float floor = hit.point.y - (point.y - candidate.y);
+                    lowest = Mathf.Min(lowest, floor);
+                    highest = Mathf.Max(highest, floor);
+                    return highest - lowest <= heightTolerance;
+                }
+            }
+            throw new InvalidOperationException($"No stable block roof supports the full cast approach on {plan.map} " +
+                $"({samples.Count} sample positions, {candidates.Count} candidate stages).");
+
+            bool Support(float x, float z, out RaycastHit hit)
+            {
+                if (!Physics.Raycast(new Vector3(x, rayTop, z), Vector3.down, out hit, Mathf.Infinity,
+                    1 << Layers.Block, QueryTriggerInteraction.Ignore) || hit.normal.y < .95f || !hit.rigidbody)
+                    return false;
+                bool worldBlock = blocks.Contains(hit.rigidbody) ||
+                    Climbables.TryGet(hit.collider, out var climbable) && blocks.Contains(climbable.Body);
+                return worldBlock && hit.rigidbody.GetPointVelocity(hit.point).sqrMagnitude <= .01f &&
+                    hit.rigidbody.angularVelocity.sqrMagnitude <= .01f;
+            }
+        }
+
         static Rigidbody BuildFightDeck(IWorldQuery world, Vector3 stage)
         {
             var deck = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -1247,19 +1587,54 @@ namespace DeadlyJenga.DevTools.Editor
             float punch = Mathf.Clamp01(1 - Mathf.Abs((time - actor.punchAt) - .08f) / .17f);
             pose.left.position = pose.head + actor.facing * new Vector3(-.27f, -.37f, .2f + stride) * scale;
             pose.right.position = pose.head + actor.facing * new Vector3(.27f, -.37f + .24f * punch, .2f - stride + .85f * punch) * scale;
+            float authoredWeight = 0;
             foreach (var key in actor.track.poses ?? Array.Empty<TheatrePlan.TheatrePose>())
             {
                 float u = (time - key.at) / key.duration;
                 if (u < 0 || u > 1) continue;
                 float weight = Mathf.SmoothStep(0, 1, Mathf.Clamp01(Mathf.Min(u, 1 - u) * 5));
+                authoredWeight = Mathf.Max(authoredWeight, weight);
                 pose.head -= Vector3.up * (key.crouch * scale * weight);
                 pose.headRotation *= Quaternion.Euler(key.lean * weight, 0, 0);
                 pose.left.position += actor.facing * key.leftReach * (scale * weight);
                 pose.right.position += actor.facing * key.rightReach * (scale * weight);
             }
             pose.left.rotation = pose.right.rotation = actor.facing;
+            ApplyContactReaction(actor, ref pose, time, scale, 1 - authoredWeight);
             actor.avatar.OverridePose(pose);
             actor.avatar.ApplyCosmeticFrame(pose);
+        }
+
+        static void ApplyContactReaction(Actor actor, ref CandyAvatarFrame pose, float time, float scale, float weight)
+        {
+            float elapsed = time - actor.hitAt;
+            if (elapsed < 0 || elapsed >= .72f || weight <= 0 || actor.hitDirection == Vector3.zero) return;
+
+            float flinch = Envelope(0, .11f, .41f) * weight;
+            float recover = Envelope(.12f, .32f, .72f) * weight;
+            Vector3 local = Quaternion.Inverse(actor.facing) * actor.hitDirection;
+            Vector3 upperBody = actor.hitDirection * (.21f * flinch) - Vector3.up * (.16f * flinch + .07f * recover);
+            pose.head += upperBody * scale;
+            pose.headRotation *= Quaternion.Euler(17 * local.z * flinch + 6 * recover,
+                25 * local.x * flinch, -22 * local.x * flinch);
+
+            float rightSide = Mathf.InverseLerp(-.30f, .18f, local.x);
+            pose.left.position += HandRecoil(1 - rightSide, -1) * scale;
+            pose.right.position += HandRecoil(rightSide, 1) * scale;
+
+            float Envelope(float start, float peak, float end) =>
+                Mathf.SmoothStep(0, 1, Mathf.InverseLerp(start, peak, elapsed)) *
+                Mathf.SmoothStep(1, 0, Mathf.InverseLerp(peak, end, elapsed));
+
+            Vector3 HandRecoil(float sideWeight, float side)
+            {
+                float delay = .09f * sideWeight;
+                float guard = Envelope(.12f + delay, .30f + delay, .63f + delay) * weight;
+                return upperBody * .55f + actor.hitDirection * ((.12f + .11f * sideWeight) * flinch) +
+                    actor.facing * new Vector3(side * (.13f - .18f * sideWeight) * flinch,
+                        (.09f + .12f * sideWeight) * flinch + (.08f + .20f * sideWeight) * guard,
+                        (.10f + .14f * sideWeight) * guard);
+            }
         }
         static void Cue(TheatrePlan.TheatreCue cue, CastlePlaySession session, Dictionary<string, Actor> actors,
             IWorldQuery world, Vector3 stage, float time)
@@ -1330,6 +1705,11 @@ namespace DeadlyJenga.DevTools.Editor
                     detail += $" {cue.actor}->{cue.target} weapon={session.Modes.EquipmentFor(identity.ActorId).kind} accepted={fired}";
                     break;
                 case "punch":
+                    if (cue.requireTargetContact)
+                    {
+                        RequirePunchContact(cue, session.Modes, actors[cue.actor], actors[cue.target], time);
+                        return;
+                    }
                     var actor = actors[cue.actor]; var target = actors[cue.target];
                     actor.punchAt = time;
                     var direction = target.position - actor.position;
@@ -1351,6 +1731,68 @@ namespace DeadlyJenga.DevTools.Editor
                     detail += $" blocks={count}"; break;
             }
             File.AppendAllText(Path.Combine(job.folder, "cues.txt"), $"{time:F3} {detail}\n");
+        }
+
+        static void RequirePunchContact(TheatrePlan.TheatreCue cue, MatchModeRuntime runtime, Actor actor, Actor target, float time)
+        {
+            IModeActor source = actor.motor, receiver = target.motor;
+            Vector3 origin = source.transform.position + Vector3.up * .55f;
+            Vector3 direction = (receiver.transform.position + Vector3.up * .6f - origin).normalized;
+            const int obstructionMask = (1 << Layers.Block) | (1 << Layers.Surface);
+            float nearest = 2.2f;
+            string predicted = "";
+            var frame = runtime.Frame;
+            foreach (var row in frame.players)
+            {
+                if (row.id == source.ActorId || !row.alive || row.dying || row.role == "hand" || row.role == "spectator") continue;
+                var candidate = runtime.FindActor(row.id);
+                if (candidate == null) continue;
+                Vector3 delta = candidate.transform.position + Vector3.up * .6f - origin;
+                float distance = delta.magnitude;
+                if (distance >= nearest || distance < .01f || Vector3.Dot(delta / distance, direction) < .45f ||
+                    Physics.Raycast(origin, delta / distance, distance, obstructionMask, QueryTriggerInteraction.Ignore)) continue;
+                nearest = distance;
+                predicted = row.id;
+            }
+            var rules = runtime.RulesFor(source.gameObject);
+            bool safe = ReferenceEquals(runtime.FindActor(source.ActorId), source) &&
+                predicted == receiver.ActorId && !runtime.EquipmentFor(source.ActorId).drawn;
+            float before = receiver.Health;
+            bool accepted = false;
+            var pushed = new List<GameObject>();
+            Vector3 targetPush = Vector3.zero;
+            void RecordPush(GameObject who, Vector3 force)
+            {
+                pushed.Add(who);
+                if (who == receiver.gameObject) targetPush += force;
+            }
+            if (safe)
+            {
+                GameEvents.Pushed += RecordPush;
+                try
+                {
+                    accepted = runtime.RequestPunch(source.gameObject, origin, direction, 8);
+                }
+                finally { GameEvents.Pushed -= RecordPush; }
+            }
+            float after = receiver.Health;
+            bool intendedPushed = pushed.Contains(receiver.gameObject);
+            bool otherPushed = pushed.Any(who => who != receiver.gameObject);
+            string detail = FormattableString.Invariant($"{time:F3}") +
+                $" punch {cue.actor}->{cue.target} attackerId={source.ActorId} targetId={receiver.ActorId} " +
+                $"phase={frame.phase} punchEnabled={rules.punchEnabled} healthEnabled={rules.healthEnabled} " +
+                $"origin={origin} direction={direction} predictedTargetId={predicted} gameplayDispatched={safe} gameplayAccepted={accepted} " +
+                $"targetPushed={intendedPushed} otherPushed={otherPushed} " +
+                $"targetPush={targetPush.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)} " +
+                FormattableString.Invariant($"healthBefore={before:F2} healthAfter={after:F2} healthDelta={before - after:F2}\n");
+            File.AppendAllText(Path.Combine(job.folder, "cues.txt"), detail);
+            if (!accepted || !intendedPushed || otherPushed || after >= before)
+                throw new InvalidOperationException($"Punch did not make verified gameplay contact: {cue.actor}->{cue.target}. See cues.txt.");
+            target.hitAt = time;
+            target.hitDirection = Vector3.ProjectOnPlane(targetPush, Vector3.up).normalized;
+            actor.punchAt = time;
+            Vector3 facing = Vector3.ProjectOnPlane(direction, Vector3.up);
+            if (facing.sqrMagnitude > .0001f) actor.facing = Quaternion.LookRotation(facing);
         }
         static float PlaceCamera(Camera camera, TheatrePlan.TheatreShot shot, Dictionary<string, Actor> actors, Vector3 stage, float u)
         {
@@ -1404,6 +1846,7 @@ namespace DeadlyJenga.DevTools.Editor
             start.Arguments = "-hide_banner -loglevel error -nostdin -n -framerate " +
                 plan.fps.ToString(CultureInfo.InvariantCulture) +
                 $" -i %05d.png -i ../take.wav -map 0:v:0 -map 1:a:0 -af atrim=start={from},asetpts=PTS-STARTPTS,apad" +
+                (plan.muteDelivery ? ",volume=0" : "") +
                 $" -t {duration} -c:v libx264 -preset fast -crf 17 -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart clip.mp4";
             RunEncoder(start);
         }
@@ -1447,7 +1890,9 @@ namespace DeadlyJenga.DevTools.Editor
         {
             string Html(string value) => System.Net.WebUtility.HtmlEncode(value);
             var html = new StringBuilder("<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Gameplay Theatre</title><style>body{background:#13111d;color:#f4efff;font:16px system-ui;margin:5vw}a{color:#adf6df}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:22px}article{background:#211c32;padding:16px;border-radius:14px}video{width:100%;border-radius:9px}h1,h2{margin:.4em 0}</style>");
-            html.Append($"<h1>{Html(plan.title)}</h1><p>{Html(plan.map)} · {plan.width} × {plan.height} · {plan.fps} fps · Unity camera footage with game audio</p><p><a href='take.wav'>Game mix WAV</a> · <a href='recipe.json'>Recipe</a> · <a href='cues.txt'>Cue log</a> · <a href='take.txt'>Take info</a></p>");
+            string sound = plan.muteDelivery ? "silent video" : "video with game audio";
+            string mix = plan.muteDelivery ? "Source game mix WAV" : "Game mix WAV";
+            html.Append($"<h1>{Html(plan.title)}</h1><p>{Html(plan.map)} · {plan.width} × {plan.height} · {plan.fps} fps · Unity camera footage ({sound})</p><p><a href='take.wav'>{mix}</a> · <a href='recipe.json'>Recipe</a> · <a href='cues.txt'>Cue log</a> · <a href='take.txt'>Take info</a></p>");
             string stemFolder = Path.Combine(job.folder, "stems");
             if (Directory.Exists(stemFolder))
             {

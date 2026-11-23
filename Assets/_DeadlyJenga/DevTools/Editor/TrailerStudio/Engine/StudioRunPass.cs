@@ -295,6 +295,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         }
 
         // "Start where a previous moment ended": pose the live blocks like a frame of another Set's tape.
+        internal static bool IsSameWorldMap(StudioSet set, StudioTape tape) =>
+            !string.IsNullOrEmpty(set.map) && string.Equals(set.map, tape.header.map, StringComparison.Ordinal);
+
         static void ApplyStartState(StudioStage stage)
         {
             var set = stage.set;
@@ -304,6 +307,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 string file = StudioLibrary.TapePath(set.startFromSet);
                 if (!StudioTape.IsTape(file)) throw new InvalidOperationException("that Set has no tape yet");
                 var other = StudioTape.Load(file, new[] { WorldTrack.Id });
+                if (!IsSameWorldMap(set, other))
+                    throw new InvalidOperationException("its recorded world belongs to another map or has no map ID");
                 var track = other.FindType(WorldTrack.Id);
                 var take = track?.ActiveTake;
                 if (take == null) throw new InvalidOperationException("that Set has no world take yet");
@@ -383,6 +388,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 stage.recording = true;
                 stage.physicalPlayback = !pass.liveWorld && stage.live.Count > 0;
                 BuildPlayers(pass.record, !branch);
+                if (performer != null && !string.IsNullOrEmpty(pass.starredGhost))
+                {
+                    var reference = StudioPerform.StarredGhostFor(stage.tape, performer, pass.liveWorld, pass.from, to,
+                        pass.starredGhost, out _);
+                    var track = stage.tape.Find(performer.id);
+                    if (reference != null && StudioTrackTypes.Get(track.type) is ActorTrack actorType)
+                    {
+                        try { players.Add(actorType.CreateStarredGhost(stage, track, reference, oldWorld)); }
+                        catch (Exception error) { Debug.LogWarning("Trailer Studio: reference ghost could not start. " + error.Message); }
+                    }
+                }
                 StudioPaths.Show(stage, pass);
 
                 // Punch-in: follow the performer's old take up to the punch frame, then hand over control.

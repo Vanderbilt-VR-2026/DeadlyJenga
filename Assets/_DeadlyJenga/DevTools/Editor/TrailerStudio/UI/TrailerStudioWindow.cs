@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -19,6 +20,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         [SerializeField] int offlineFrame, inFrame, outFrame = -1;
         [SerializeField] bool loop;
         [SerializeField] float speed = 1;
+        [SerializeField] string lastPressed = "";
 
         StudioSet loadedSet;
         StudioTape offlineTape;
@@ -30,11 +32,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         VisualElement root, tabs, chips, modePanel, inspector, transport, floating;
         Button setPicker, stageButton, recordButton;
-        Label status, recordLabel, timeLabel;
+        Label status, recordLabel, timeLabel, selectionStatus, pressedStatus;
         StudioViewport viewport;
         StudioTimeline timeline;
         StudioCastList cast;
         StudioPalette palette;
+        readonly Dictionary<string, bool> foldStates = new Dictionary<string, bool>();
+        Label inspectorHeading;
         string message = "";
 
         public StudioSet Set => StudioRun.Stage != null && StudioRun.Stage.set.id == setId ? StudioRun.Stage.set : loadedSet;
@@ -43,6 +47,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public object Selection => selection;
         public StudioContext Context => context;
         public StudioViewport Viewport => viewport;
+        internal StudioTimeline Timeline => timeline;
 
         // Redraw only what follows a value while it is being dragged (no list rebuilds).
         public void LightRefresh()
@@ -85,18 +90,25 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             rootVisualElement.styleSheets.Add(style);
             root = rootVisualElement.Q("root");
             root.EnableInClassList("ts-light", !EditorGUIUtility.isProSkin);
+            root.RegisterCallback<GeometryChangedEvent>(e => root.EnableInClassList("ts-compact", e.newRect.width < 1080));
+            inspectorHeading = root.Q<Label>("inspector-heading");
 
             tabs = root.Q("tabs"); chips = root.Q("chips");
             modePanel = root.Q("mode-panel"); inspector = root.Q("inspector");
             transport = root.Q("transport"); floating = root.Q("floating");
             setPicker = root.Q<Button>("set-picker"); stageButton = root.Q<Button>("stage"); recordButton = root.Q<Button>("record");
             status = root.Q<Label>("status"); recordLabel = root.Q<Label>("record-label");
+            selectionStatus = root.Q<Label>("selection-status");
+            pressedStatus = root.Q<Label>("last-pressed");
+            Say(message);
+            UpdatePressedStatus();
 
             setPicker.clicked += ShowSetMenu;
             stageButton.clicked += ToggleStage;
             recordButton.clicked += PressRecord;
             root.Q<Button>("undo").clicked += Undo.PerformUndo;
             root.Q<Button>("redo").clicked += Undo.PerformRedo;
+            root.Q<Button>("commands").clicked += () => palette.ShowCommands();
             root.Q<Button>("help").clicked += () => palette.ShowShortcuts();
 
             cast = new StudioCastList(context, root.Q<ScrollView>("cast"));
@@ -105,6 +117,12 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             palette = new StudioPalette(context, floating);
             BuildTransport();
 
+            // Capture the press before the Button action can replace its panel.
+            root.RegisterCallback<PointerDownEvent>(e =>
+            {
+                if (e.button == 0) NoteButtonPress(e.target as VisualElement);
+            }, TrickleDown.TrickleDown);
+            root.RegisterCallback<NavigationSubmitEvent>(e => NoteButtonPress(e.target as VisualElement), TrickleDown.TrickleDown);
             root.focusable = true;
             root.RegisterCallback<KeyDownEvent>(OnKey, TrickleDown.TrickleDown);
             // Keep the picture and the playhead fresh while the stage is open.
@@ -121,7 +139,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public void LoadSet(string id)
         {
             // A selection belongs to its Set: another Set may have a mark with the same id.
-            if ((id ?? "") != setId) { selection = null; selectionKind = selectionId = ""; }
+            if ((id ?? "") != setId)
+            {
+                selection = null;
+                selectionKind = selectionId = "";
+                inFrame = 0;
+                outFrame = -1;
+                offlineFrame = 0;
+                timeline?.SetRangeZoom(false);
+            }
             setId = id ?? "";
             loadedSet = string.IsNullOrEmpty(setId) ? null : StudioLibrary.Load(setId);
             if (loadedSet == null && setId.Length > 0) Say($"The Set \"{setId}\" could not be read. The Console says why.");
@@ -211,7 +237,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // ---- Drawing ----
 
-        public void Say(string text) { message = text ?? ""; if (status != null) status.text = message; }
+        public void Say(string text) { message = text ?? ""; if (status != null) { status.text = message; status.tooltip = message; } }
 
         public void RebuildAll()
         {
@@ -239,6 +265,35 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             inspector.Clear();
             try { StudioExtensions.Inspectors.FirstOrDefault(i => i.Handles(selection, context))?.Build(inspector, selection, context); }
             catch (Exception error) { Debug.LogException(error); inspector.Add(StudioUi.Warning("The inspector could not be drawn: " + error.Message)); }
+            string subject = selection switch
+            {
+                StudioMark actor => actor.actor,
+                StudioCameraTrack camera => camera.name,
+                StudioTrack track => track.name,
+                StudioCue cue => StudioCues.Get(cue.action)?.Label ?? cue.action,
+                StudioOverride layer => string.IsNullOrWhiteSpace(layer.name) ? layer.kind : layer.name,
+                _ => null
+            };
+            selectionStatus.text = string.IsNullOrWhiteSpace(subject) ? "No selection" : "Selected · " + subject;
+            selectionStatus.tooltip = selectionStatus.text;
+            inspectorHeading.text = string.IsNullOrWhiteSpace(subject) ? "Set settings" : subject + " settings";
+            inspectorHeading.tooltip = inspectorHeading.text;
+            inspectorHeading.style.display = inspector.childCount > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            RestoreFolds(modePanel, Mode?.Title ?? "");
+            RestoreFolds(inspector, "Inspector " + selectionKind);
+        }
+
+        void RestoreFolds(VisualElement panel, string section)
+        {
+            foreach (var fold in panel.Query<Foldout>().ToList())
+            {
+                string key = section + "/" + fold.text;
+                if (foldStates.TryGetValue(key, out bool expanded)) fold.value = expanded;
+                fold.RegisterValueChangedCallback(e =>
+                {
+                    if (ReferenceEquals(e.target, fold)) foldStates[key] = e.newValue;
+                });
+            }
         }
 
         // Buttons such as "Key here (00:03.00)" show the playhead's time. Scrubbing does not rebuild the
@@ -296,34 +351,68 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         void RefreshTopBar()
         {
-            setPicker.text = Set == null ? "Choose a Set" : Set.title;
+            setPicker.text = (Set == null ? "Choose a set" : Set.title) + "  ▾";
+            setPicker.tooltip = (Set == null ? "" : Set.title + "\n") + "Choose, create or import a set";
             tabs.Clear();
             var current = Mode;
             foreach (var mode in StudioExtensions.Modes.Where(m => m.Available))
             {
                 var captured = mode;
-                var tab = new Button(() => { modeTitle = captured.Title; RebuildAll(); }) { text = mode.Title };
+                string action = mode.Title switch
+                {
+                    "Set" => "Choose map & cast",
+                    "Perform" => "Record takes",
+                    "Polish" => "Refine takes",
+                    "Direct" => "Time events",
+                    "Shoot" => "Frame & render",
+                    "Cut" => "Trim & export",
+                    _ => ""
+                };
+                var tab = new Button(() => ShowMode(captured.Title)) { tooltip = action, userData = mode.Title };
+                if (action.Length > 0) tab.Add(StudioUi.ModeGlyph(mode.Title));
+                var tabText = new VisualElement { pickingMode = PickingMode.Ignore };
+                tabText.Add(new Label(mode.Title) { pickingMode = PickingMode.Ignore });
+                tab.Add(tabText);
+                if (action.Length > 0)
+                {
+                    var caption = new Label(action) { pickingMode = PickingMode.Ignore };
+                    caption.AddToClassList("ts-tab-caption");
+                    tabText.Add(caption);
+                }
                 tab.AddToClassList("ts-tab");
                 tab.EnableInClassList("ts-tab--on", mode == current);
                 tabs.Add(tab);
             }
             stageButton.text = StudioRun.State == StudioState.Closed ? "Open stage" : StudioRun.State == StudioState.Opening ? "Opening…" : "Close stage";
             stageButton.SetEnabled(Set != null && StudioRun.State != StudioState.Opening);
-            stageButton.tooltip = StudioRun.State == StudioState.Closed ? "Load this Set's map in Play Mode so you can place marks, record and play." : "Leave Play Mode. Your Set and takes are already saved.";
+            stageButton.tooltip = Set == null ? "Choose or create a Set first." : StudioRun.State == StudioState.Opening ? "The map is loading." : StudioRun.State == StudioState.Closed ? "Load this Set's map in Play Mode so you can place marks, record and play." : "Leave Play Mode. Your Set and takes are already saved.";
             RefreshLive();
         }
 
         // The parts that change every frame while running.
+        Action RecordAction(out string label)
+        {
+            var mode = Mode;
+            if (mode != null && mode.TryGetRecord(context, out label, out var start)) return start;
+            if (mode is PolishMode || mode is CutMode)
+            {
+                label = "Record in Perform or Direct";
+                return null;
+            }
+            label = "Record whole set";
+            if (Tape != null) label += ", take " + ((Tape.FindType(WorldTrack.Id)?.takes.Count ?? 0) + 1);
+            return StudioRun.RecordWholeSet;
+        }
+
         void RefreshLive()
         {
             bool held = StudioRun.State == StudioState.Held, recording = StudioRun.Recording;
-            string label = "Record whole set";
-            if (Tape != null) label += ", take " + ((Tape.FindType(WorldTrack.Id)?.takes.Count ?? 0) + 1);
-            if (Mode != null && Mode.TryGetRecord(context, out string modeLabel, out _)) label = modeLabel;
-            recordLabel.text = recording ? "Stop  " + StudioUi.Time(StudioRun.Frame, Set?.fps ?? 30) : label;
+            bool running = StudioRun.State == StudioState.Running;
+            bool canRecord = RecordAction(out string label) != null;
+            recordLabel.text = !recording && running ? "Stop playback" : recording ? "Stop  " + StudioUi.Time(StudioRun.Frame, Set?.fps ?? 30) : label;
             recordButton.EnableInClassList("ts-record--on", recording);
-            recordButton.SetEnabled(held || StudioRun.State == StudioState.Running);
-            recordButton.tooltip = held ? "Record (R)" : StudioRun.State == StudioState.Closed ? "Open the stage to record." : "Stop (R)";
+            recordButton.SetEnabled(running || held && canRecord);
+            recordButton.tooltip = running ? "Stop (R)" : !canRecord ? label : held ? label + " (R)" : "Open the stage to record.";
 
             chips.Clear();
             void Chip(string text, string kind = "", string tip = "")
@@ -361,7 +450,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             catch (Exception error) { Say(error.Message); }
         }
 
-        void ToggleStage() => Try(() =>
+        internal void ToggleStage() => Try(() =>
         {
             if (StudioRun.State == StudioState.Closed) { if (Set != null) StudioRun.OpenStage(Set); }
             else StudioRun.CloseStage();
@@ -371,9 +460,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (StudioRun.State == StudioState.Running) { stopAsked = true; StudioRun.Stop(); return; }
             if (StudioRun.State != StudioState.Held) { Say("Open the stage to record."); return; }
+            var start = RecordAction(out string label);
+            if (start == null) { Say(label); return; }
             playing = false;
-            if (Mode != null && Mode.TryGetRecord(context, out _, out Action start) && start != null) start();
-            else StudioRun.RecordWholeSet();
+            start();
         });
 
         public void TogglePlay() => Try(() =>
@@ -402,16 +492,44 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         Button playButton, loopButton, speedButton;
         Label rangeLabel;
 
+        public void SetReviewRange(int first, int last)
+        {
+            if (Set == null || StudioRun.Busy) return;
+            inFrame = Mathf.Clamp(Mathf.Min(first, last), 0, Set.Frames - 1);
+            outFrame = Mathf.Clamp(Mathf.Max(first, last), inFrame, Set.Frames - 1);
+            if (outFrame == Set.Frames - 1) outFrame = -1;
+            if (InFrame == 0 && OutFrame == Set.Frames - 1) timeline.SetRangeZoom(false);
+            RebuildAll();
+        }
+
+        void ShowRangeMenu()
+        {
+            if (Set == null || StudioRun.Busy) return;
+            var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Start range here   ["), false, () =>
+                SetReviewRange(Frame, Frame > OutFrame ? Set.Frames - 1 : OutFrame));
+            menu.AddItem(new GUIContent("End range here   ]"), false, () => SetReviewRange(Mathf.Min(Frame, InFrame), Frame));
+            menu.AddSeparator("");
+            bool selected = InFrame > 0 || OutFrame < Set.Frames - 1;
+            var zoom = new GUIContent(timeline.RangeZoom ? "Show full timeline" : "Zoom to range");
+            if (selected || timeline.RangeZoom)
+                menu.AddItem(zoom, false, () => { timeline.SetRangeZoom(!timeline.RangeZoom); RefreshTransport(); });
+            else menu.AddDisabledItem(zoom);
+            menu.AddItem(new GUIContent("Clear range"), false, () => SetReviewRange(0, Set.Frames - 1));
+            menu.ShowAsContext();
+        }
+
+        Button rangeButton;
         void BuildTransport()
         {
             transport.Clear();
-            transport.Add(StudioUi.Small("|<", () => Scrub(InFrame), "Go to the start (Home)"));
+            transport.Add(StudioUi.Small("Start", () => Scrub(InFrame), "Go to the start (Home)"));
             transport.Add(StudioUi.Small("-1s", () => Scrub(Frame - (Set?.fps ?? 30)), "Back one second (J)"));
             playButton = StudioUi.Small("Play", TogglePlay, "Play or pause (Space)");
             playButton.style.minWidth = 54;
             transport.Add(playButton);
             transport.Add(StudioUi.Small("+1s", () => Scrub(Frame + (Set?.fps ?? 30)), "Forward one second (L)"));
-            transport.Add(StudioUi.Small(">|", () => Scrub(OutFrame), "Go to the end (End)"));
+            transport.Add(StudioUi.Small("End", () => Scrub(OutFrame), "Go to the end (End)"));
             timeLabel = new Label(); timeLabel.AddToClassList("ts-time");
             transport.Add(timeLabel);
             speedButton = StudioUi.Small("1×", () =>
@@ -427,6 +545,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             transport.Add(speedButton);
             loopButton = StudioUi.Small("Loop", () => { loop = !loop; RefreshTransport(); }, "Play the range again and again");
             transport.Add(loopButton);
+            rangeButton = StudioUi.Small("Range", ShowRangeMenu, "Set the preview range or zoom in. Shift-drag the time ruler to select a range.");
+            transport.Add(rangeButton);
             rangeLabel = StudioUi.Hint("");
             rangeLabel.style.marginLeft = 12;
             transport.Add(rangeLabel);
@@ -439,12 +559,58 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (timeLabel == null) return;
             int fps = Set?.fps ?? 30, frames = Set?.Frames ?? 1;
             timeLabel.text = StudioUi.Time(Frame, fps) + " / " + StudioUi.Time(frames, fps);
-            playButton.text = StudioRun.State == StudioState.Running && !StudioRun.Recording ? "Pause" : "Play";
+            playButton.text = StudioRun.Recording ? "Stop recording" : StudioRun.State == StudioState.Running ? "Pause" : "Play";
+            playButton.SetEnabled(StudioRun.State == StudioState.Held || StudioRun.State == StudioState.Running);
+            playButton.tooltip = !playButton.enabledSelf ? "Open the stage to play this Set." : StudioRun.Recording ? "Stop recording (Space)" : "Play or pause (Space)";
             loopButton.EnableInClassList("ts-small--on", loop);
+            loopButton.text = loop ? "Loop on" : "Loop off";
             speedButton.text = SpeedName(speed);
-            bool ranged = inFrame > 0 || outFrame >= 0;
-            rangeLabel.text = !StudioRun.StageOpen ? "Open the stage to play." :
-                ranged ? $"Range {StudioUi.Time(InFrame, fps)} to {StudioUi.Time(OutFrame, fps)}  ([ and ] set it, \\ clears it)" : "";
+            bool ranged = Set != null && (InFrame > 0 || OutFrame < frames - 1);
+            rangeButton.SetEnabled(Set != null && !StudioRun.Busy);
+            rangeButton.EnableInClassList("ts-small--on", timeline.RangeZoom);
+            rangeButton.text = timeline.RangeZoom ? "Range (zoomed)" : "Range";
+            rangeLabel.text = ranged
+                ? $"{StudioUi.Time(InFrame, fps)} – {StudioUi.Time(OutFrame, fps)}"
+                : !StudioRun.StageOpen ? "Open stage to play" : "";
+        }
+
+        Button flashingButton;
+        IVisualElementScheduledItem flashEnd;
+
+        void NoteButtonPress(VisualElement target)
+        {
+            var button = target as Button ?? target?.GetFirstAncestorOfType<Button>();
+            if (button == null || !button.enabledInHierarchy) return;
+            // Studio buttons have visible text or supply a label in a child.
+            var label = button.userData as string;
+            if (string.IsNullOrWhiteSpace(label)) label = button.text;
+            if (string.IsNullOrWhiteSpace(label)) label = button.Q<Label>()?.text;
+            if ((string.IsNullOrWhiteSpace(label) || label.Length <= 2) && !string.IsNullOrWhiteSpace(button.tooltip))
+                label = button.tooltip.Split('\n')[0];
+            if (!string.IsNullOrWhiteSpace(label)) RecordPressed(label);
+            flashEnd?.Pause();
+            flashingButton?.RemoveFromClassList("ts-activated");
+            flashingButton = button;
+            button.AddToClassList("ts-activated");
+            flashEnd = root.schedule.Execute(() =>
+            {
+                button.RemoveFromClassList("ts-activated");
+                flashingButton = null;
+            }).StartingIn(160);
+        }
+
+        internal void RecordPressed(string label)
+        {
+            lastPressed = label.Trim();
+            UpdatePressedStatus();
+        }
+
+        void UpdatePressedStatus()
+        {
+            if (pressedStatus == null) return;
+            pressedStatus.text = string.IsNullOrEmpty(lastPressed) ? "" : "Last pressed · " + lastPressed;
+            pressedStatus.tooltip = pressedStatus.text;
+            pressedStatus.style.display = pressedStatus.text.Length == 0 ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
         // ---- Keyboard ----
@@ -455,9 +621,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             // Do not steal keys while someone types in a field.
             if (Typing()) return;
 
+            var focused = root.panel?.focusController?.focusedElement as VisualElement;
+            for (var control = focused; control != null; control = control.parent)
+            {
+                if (control.ClassListContains("unity-base-field")) return;
+                if (control is Button && e.keyCode == KeyCode.Space) return;
+            }
+
             bool used = true;
             if (e.keyCode == KeyCode.K && (e.ctrlKey || e.commandKey)) palette.ShowCommands();
             else if (e.character == '?' || e.keyCode == KeyCode.Slash && e.shiftKey) palette.ShowShortcuts();
+            else if (e.keyCode == KeyCode.Tab && (e.ctrlKey || e.commandKey)) CycleMode(e.shiftKey ? -1 : 1);
             else if (e.ctrlKey || e.commandKey || e.altKey) used = false;
             else if (e.keyCode == KeyCode.Space || e.keyCode == KeyCode.K) TogglePlay();
             else if (e.keyCode == KeyCode.R) PressRecord();
@@ -467,10 +641,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             else if (e.keyCode == KeyCode.RightArrow) Scrub(Frame + 1);
             else if (e.keyCode == KeyCode.Home) Scrub(InFrame);
             else if (e.keyCode == KeyCode.End) Scrub(OutFrame);
-            else if (e.keyCode == KeyCode.LeftBracket) { inFrame = Frame; if (outFrame >= 0 && outFrame < inFrame) outFrame = -1; RebuildAll(); }
-            else if (e.keyCode == KeyCode.RightBracket) { outFrame = Mathf.Max(Frame, inFrame); RebuildAll(); }
-            else if (e.keyCode == KeyCode.Backslash) { inFrame = 0; outFrame = -1; RebuildAll(); }
-            else if (e.keyCode == KeyCode.Tab) CycleMode(e.shiftKey ? -1 : 1);
+            else if (e.keyCode == KeyCode.LeftBracket) SetReviewRange(Frame, Frame > OutFrame ? (Set?.Frames ?? 1) - 1 : OutFrame);
+            else if (e.keyCode == KeyCode.RightBracket) SetReviewRange(Mathf.Min(Frame, InFrame), Frame);
+            else if (e.keyCode == KeyCode.Backslash) SetReviewRange(0, (Set?.Frames ?? 1) - 1);
             else if (e.keyCode == KeyCode.Delete || e.keyCode == KeyCode.Backspace) DeleteSelection();
             else if (e.keyCode >= KeyCode.Alpha1 && e.keyCode <= KeyCode.Alpha9) PickTake(e.keyCode - KeyCode.Alpha1);
             else used = false;
@@ -482,11 +655,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var modes = StudioExtensions.Modes.Where(m => m.Available).ToList();
             if (modes.Count == 0) return;
             int index = Mathf.Max(0, modes.IndexOf(Mode));
-            modeTitle = modes[(index + step + modes.Count) % modes.Count].Title;
-            RebuildAll();
+            ShowMode(modes[(index + step + modes.Count) % modes.Count].Title);
         }
 
-        public void ShowMode(string title) { modeTitle = title; RebuildAll(); }
+        public void ShowMode(string title)
+        {
+            bool changed = modeTitle != title;
+            modeTitle = title;
+            RebuildAll();
+            if (changed) root.Q<ScrollView>("side").scrollOffset = Vector2.zero;
+        }
 
         // Open the command palette (true) or the shortcut sheet (false), and close either.
         public void ShowPalette(bool commands) { if (commands) palette.ShowCommands(); else palette.ShowShortcuts(); }
@@ -504,6 +682,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         public void SetActiveTake(StudioTrack track, int index)
         {
+            if (StudioRun.Busy || StudioHandheld.Recording || track == null || Tape?.Find(track.id) != track ||
+                index < 0 || index >= track.takes.Count || track.takes[index].trashed || track.active == index) return;
             track.active = index;
             if (Tape != null && Set != null)
             {
