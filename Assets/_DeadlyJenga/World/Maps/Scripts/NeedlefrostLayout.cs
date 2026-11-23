@@ -29,7 +29,7 @@ namespace DeadlyJenga.CastlePrototype
             for (int row = 0; row < 6; row++)
             for (int bay = 1; bay <= 3; bay++)
             {
-                if (bay == 3 && (row == 0 || (row == 5 && side > 0))) continue;
+                if (bay == 3 && side > 0 && (row == 0 || row == 5)) continue;
                 float x = side * bay * 8, z = -19 + row * 8, top = 3 + 3 * (row / 2);
                 keep.Court(x,z,top);
                 // Recessed walk-in grotto between the back of the lower court and the next tier.
@@ -45,8 +45,8 @@ namespace DeadlyJenga.CastlePrototype
                     keep.Lamp(x + side * 3, top, z - 2.8f);
             }
             // An exposed, loose cornice at the front-left fault gives the giant hand a reachable grip.
-            keep.Stone(-20.98f,-3,-19,1.27f,5.15f,.70f,Cut.Pier);
-            keep.Stone(-21.28f,2.15f,-19,2.54f,.85f,.72f,Cut.Slab);
+            keep.Stone(-28.98f,-3,-19,1.27f,5.15f,.70f,Cut.Pier);
+            keep.Stone(-29.28f,2.15f,-19,2.54f,.85f,.72f,Cut.Slab);
             keep.Crossing(0, 6, -3, 8.8f, 3);
             // The hall spans the channel, with both ends of its floor bearing on the inner courts.
             keep.Crossing(0, 9, 15, 8.8f, 7);
@@ -55,17 +55,22 @@ namespace DeadlyJenga.CastlePrototype
             keep.Stone(0,9.15f,11.85f,6.25f,6,.65f,Cut.Portal);
             keep.Stone(0,9.15f,18.0f,6.1f,6,.65f,Cut.Portal);
             keep.Gallery(0,16.15f,15,9,7,5);
+            keep.Stone(0,16.15f,11.85f,6.8f,4,.65f,Cut.Portal);
             keep.Stone(0,21.15f,15,5,4,6,Cut.Roof);
             keep.Stone(0,25.15f,15,2.95f,11,2.7f,Cut.Blade);
             for (int side = -1; side <= 1; side += 2)
             {
                 keep.Stone(side*3.65f,21.15f,15,2.35f,10,2.5f,side < 0 ? Cut.LeftBlade : Cut.RightBlade);
                 float z = side < 0 ? 17 : 13;
-                keep.Tower(side*16,z,9,side < 0 ? 6 : 7);
-                keep.Stone(side*8.55f, (side < 0 ? 15 : 16)-1, z, 8.05f, 1, 2.6f,Cut.BridgeDeck);
-                // Bridge seats stand on the upper court; the central hall is reached by its side gallery.
-                for(int end=-1;end<=1;end+=2)
-                    keep.Stone(side*8.55f + end*3.35f,9,z,1, (side < 0 ? 15 : 16)-10,2.5f,Cut.Column);
+                if(side<0)
+                {
+                    // The western tower stands a second arch away, behind the wide coast stair.
+                    keep.Court(-32,13,9);
+                    keep.Court(-32,21,9);
+                    keep.UpperCrossing(-16.60f,z,15);
+                }
+                keep.Tower(side<0?-24:16,z,9,side < 0 ? 6 : 7);
+                keep.UpperCrossing(side*8.55f,z,side<0?15:16);
             }
             // The carved bridge seats stand slightly proud of the surrounding courts.
             // Short bevelled approaches connect the different floor elevations without a jump.
@@ -146,6 +151,12 @@ namespace DeadlyJenga.CastlePrototype
             Stone(x,top-1.65f,z,width,1.8f,depth,Cut.Vault);
         }
 
+        void UpperCrossing(float x,float z,float deckY)
+        {
+            Stone(x,9,z,8.05f,deckY-10,2.48f,Cut.Portal);
+            Stone(x,deckY-1,z,8.05f,1,2.6f,Cut.BridgeDeck);
+        }
+
         void Gallery(float x,float baseY,float z,float w,float d,float height)
         {
             for(int a=-1;a<=1;a+=2)
@@ -182,8 +193,9 @@ namespace DeadlyJenga.CastlePrototype
             }
             float roof=bottom+story*2;
             // The four small pinnacles have separate bearing pads beyond the main roof.
-            Stone(x,roof,z,5.15f,7.4f,5.15f,Cut.Roof);
-            Stone(x,roof+7.4f,z,1.25f,3.7f,1.25f,Cut.Blade);
+            float roofHeight=x<0?9.5f:7.4f;
+            Stone(x,roof,z,5.15f,roofHeight,5.15f,Cut.Roof);
+            Stone(x,roof+roofHeight,z,1.25f,3.7f,1.25f,Cut.Blade);
             for(int a=-1;a<=1;a+=2)
             for(int b=-1;b<=1;b+=2)
                 Stone(x+a*2.85f,roof,z+b*2.85f,.7f,3.4f,.7f,Cut.Blade);

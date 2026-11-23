@@ -21,8 +21,8 @@ namespace DeadlyJenga.Polar
         int foamRevision=-1;
         float nextFoam;
         // Each practical follows the closest structural bearing through collapse and reset.
-        static readonly Vector3[] lampSites={new Vector3(-16,17.6f,18.8f),new Vector3(16,18.6f,14.8f),
-            new Vector3(0,11.8f,16.9f),new Vector3(16,3.9f,-6.6f)};
+        static readonly Vector3[] lampSites={new Vector3(-24,17.6f,18.8f),new Vector3(16,18.6f,14.8f),
+            new Vector3(0,17.9f,12.7f),new Vector3(16,3.9f,-6.6f)};
         readonly Transform[] mounts=new Transform[4];
         readonly Vector3[] offsets=new Vector3[4];
         readonly Vector4[] lamps=new Vector4[4];
