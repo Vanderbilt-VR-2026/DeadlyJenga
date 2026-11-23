@@ -270,12 +270,12 @@ namespace DeadlyJenga.CandyArt
             var views = Resources.Load<UnderneathTreeWindowViews>(ResourcePath + "Window Views");
             var northView = views ? views.north : null;
             var southView = views ? views.south : null;
-            BuildOutdoorView(WindowWest, WindowEast, 1931, !northView);
+            BuildOutdoorView(WindowWest, WindowEast, 1931, !northView, south: false);
             // The south window gets its own snowy scene: built the same way, then turned to face
             // south and pressed to a little over half its depth, so it stays within the cameras' reach.
             int firstOutside = art.childCount;
             float southMid = (SouthWindowWest + SouthWindowEast) * .5f;
-            BuildOutdoorView(SouthWindowWest, SouthWindowEast, 4417, !southView);
+            BuildOutdoorView(SouthWindowWest, SouthWindowEast, 4417, !southView, south: true);
             var south = new GameObject("Outside the south window").transform;
             south.SetParent(art, false);
             south.localPosition = new Vector3(southMid, 0f, RoomNorth);

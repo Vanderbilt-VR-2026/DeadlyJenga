@@ -74,7 +74,7 @@ namespace DeadlyJenga.CandyArt
             var rockerAt = new Vector3(RoomWest + 72f, 0f, HearthZ + 150f);
             RockingChair(rockerAt, Facing(rockerAt, new Vector3(-170f, 0f, -330f)));
             // A soft warm light over the coffee table, as if from the fire and the lamps.
-            MakeLight("Sitting area glow", LightType.Point, SittingCentre + Vector3.up * 110f, new Color(1f, .70f, .42f), 7000f, 190f);
+            MakeLight("Sitting area glow", LightType.Point, SittingCentre + Vector3.up * 110f, new Color(1f, .70f, .42f), 950f, 78f);
         }
 
         // A deep velvet armchair, built facing +z, about the same scale as the big sofa.
@@ -286,9 +286,9 @@ namespace DeadlyJenga.CandyArt
             Box("Window seat", new Vector3(mid, 15f, wall + 20f), new Vector3(width - 4f, 30f, 38f), cream);
             Box("Window seat kick", new Vector3(mid, 4f, wall + 39.5f), new Vector3(width - 4f, 8f, 1.2f), cream);
             RoundedDetail("Window seat cushion", new Vector3(mid, 33.5f, wall + 20f), new Vector3(width - 8f, 7f, 36f), .25f, plaid, .04f);
-            var pillows = new[] { (mid - width * .38f, pillowA, 10f), (mid - width * .28f, pillowB, -6f), (mid + width * .36f, pillowA, -12f) };
+            var pillows = new[] { (mid - width * .43f, pillowA, 10f), (mid - width * .36f, pillowB, -6f), (mid + width * .43f, pillowA, -12f) };
             foreach (var (x, material, tilt) in pillows)
-                RoundedDetail("Window seat pillow", new Vector3(x, 47f, wall + 9f), new Vector3(26f, 24f, 9f), .45f, material, .1f)
+                RoundedDetail("Window seat pillow", new Vector3(x, 42f, wall + 17f), new Vector3(25f, 17f, 9f), .45f, material, .1f)
                     .localRotation = Quaternion.Euler(-14f, 0f, tilt);
 
             // Lit garland around the frame.
@@ -307,7 +307,7 @@ namespace DeadlyJenga.CandyArt
             Primitive("Window candle", PrimitiveType.Cylinder, new Vector3(mid, WindowSill + 9f, wall + 5f), new Vector3(4f, 7f, 4f), wax);
             Primitive("Window candle bulb", PrimitiveType.Sphere, new Vector3(mid, WindowSill + 18f, wall + 5f), new Vector3(2f, 3.2f, 2f),
                 Glow("Candle flame", new Color(1f, .62f, .2f), 6f)).GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
-            MakeLight("Window candle glow", LightType.Point, new Vector3(mid, WindowSill + 22f, wall + 14f), new Color(1f, .66f, .32f), 1800f, 60f);
+            MakeLight("Window candle glow", LightType.Point, new Vector3(mid, WindowSill + 22f, wall + 14f), new Color(1f, .66f, .32f), 280f, 28f);
         }
 
         // ------------------------------------------------------------------ grandfather clock

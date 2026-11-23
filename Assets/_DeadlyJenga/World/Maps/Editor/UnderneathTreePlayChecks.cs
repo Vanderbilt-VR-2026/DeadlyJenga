@@ -73,6 +73,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         public static void RunReferences() => Begin(true);
 
+        public static void CaptureRoomScenery()
+        {
+            Begin(false);
+            SessionState.SetBool("TreeRoomScenery", true);
+        }
+
         public static void CheckBuildingModes()
         {
             Begin(false);
@@ -150,6 +156,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         static void Begin(bool references)
         {
+            SessionState.SetBool("TreeRoomScenery", false);
             SessionState.SetBool("TreeSmallToys", false);
             SessionState.SetBool("TreeFalconSummit", false);
             SessionState.SetBool("TreePremiereStudios", false);
@@ -234,6 +241,22 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         renderReady = now + 1.7;
                     if (now < renderReady)
                         return;
+                    if (SessionState.GetBool("TreeRoomScenery", false))
+                    {
+                        Vector3 offset = map.transform.position;
+                        var camera = player.ViewCamera;
+                        Require(camera.farClipPlane >= 1300f, "live map camera reaches beyond both streets");
+                        Shot(camera, "north-neighborhood-overlook", offset + new Vector3(-155f, 84f, -108f),
+                            offset + new Vector3(-200f, 88f, 58f), 65f);
+                        Shot(camera, "south-neighborhood-rug", offset + new Vector3(-104f, 11f, -185f),
+                            offset + new Vector3(-145f, 82f, -600f), 61f);
+                        Shot(camera, "fireplace-and-openings", offset + new Vector3(-93f, 23f, -164f),
+                            offset + new Vector3(-324f, 70f, -304f), 66f);
+                        Shot(camera, "room-across-the-rug", offset + new Vector3(-83f, 49f, -108f),
+                            offset + new Vector3(-120f, 42f, -347f), 78f);
+                        Finish(true);
+                        return;
+                    }
                     if (SessionState.GetBool("TreeSmallToys", false))
                     {
                         var toys = map.GetComponentsInChildren<UnderneathTreeToy>();
