@@ -18,6 +18,8 @@ namespace DeadlyJenga.CastlePrototype
             {
                 foreach (int end in new[] { -1, 1 })
                     fort.Gallery(side * 24, end * 30, 10, 10, 5, Lime, plinth: true);
+                // Street stairs meet the inner corner of the front bastion gallery.
+                fort.Steps(side * 20.7f, -21, 0, 1.9f, 8, Storey, -1, Lime, 20);
                 fort.Curtain(side * 24, 0, 50, 10, true);
                 fort.Curtain(side * 14, -30, 10, 2, false);
                 fort.Gallery(side * 6, -30, 6, 8, 3, Yellow, plinth: true);
@@ -46,6 +48,9 @@ namespace DeadlyJenga.CastlePrototype
                     fort.Steps(side * (11.65f - floor * 1.3f), -4, y, 1.3f, 7,
                         floor == 0 ? 3.9f : Storey, floor % 2 == 0 ? 1 : -1, Purple, 12);
                 }
+            // A full-depth exterior flight leads from the east street to the keep.
+            fort.Steps(8.5f, 16, 0, 2, 12, 4.5f, 1, Yellow, 30);
+            fort.Box(8.5f, 0, 23, 2, 4.5f, 2, Yellow);
             fort.Gallery(0, 19, 15, 12, 3, Yellow, 1.8f, levelHeight: 4.5f);
             // The second gallery meets the rear rampart at nine metres.
             fort.Box(0, 9, 25.8f, 1.65f, .24f, 5.8f, Yellow);

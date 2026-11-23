@@ -825,7 +825,15 @@ namespace DeadlyJenga.CastlePrototype
             {
                 int footing = placements.FindIndex(p => (p.Position - new Vector3(16.5f,.75f,-30)).sqrMagnitude < .001f);
                 Require(footing >= 0, "Front-right wall bearing located");
-                world.Bodies[footing].GetComponent<IPushable>().Push(world.transform.TransformDirection(Vector3.back)*16f, world.gameObject);
+                var bearing = world.Bodies[footing];
+                var push = bearing.GetComponent<IPushable>();
+                Vector3 direction = world.transform.TransformDirection(Vector3.back);
+                Vector3 origin = bearing.position;
+                for (int i = 0; i < 200 && Vector3.Distance(origin, bearing.position) < 5; i++)
+                {
+                    push.Push(direction * Mathf.Clamp(11 - Vector3.Dot(direction, bearing.linearVelocity), 0, 5), world.gameObject);
+                    yield return new WaitForFixedUpdate();
+                }
             }
             yield return Until(() => world.Bodies[index].position.y < start.y - .5f, "Wall crown falls on " + role, 40);
             if (host)

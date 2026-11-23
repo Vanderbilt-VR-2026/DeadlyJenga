@@ -121,9 +121,9 @@ namespace DeadlyJenga.DevTools.Editor
             var journeys = new[] {
                 (new Vector3(0,0,-37.7f),new Vector3(0,.9f,-28)),
                 (new Vector3(-16.6f,0,-20.8f),new Vector3(-16.6f,3,-15.2f)),
-                (new Vector3(18,0,-27),new Vector3(23.2f,3,-27)),
+                (new Vector3(20.7f,0,-16.6f),new Vector3(20.7f,3,-25.6f)),
                 (new Vector3(0,0,-18.8f),new Vector3(0,.9f,-13)),
-                (new Vector3(-.8f,0,15),new Vector3(-.8f,4.5f,22)),
+                (new Vector3(8.5f,0,9.6f),new Vector3(8.5f,4.5f,23)),
             };
             var bots = new List<CastleBotBrain>();
             for (int i=0;i<journeys.Length;i++)
@@ -147,24 +147,53 @@ namespace DeadlyJenga.DevTools.Editor
             frameTimes.Sort();
             if (frameTimes.Count > 0)
                 File.AppendAllText(Report,$"Desktop traffic: {frameTimes.Count} frames, p50 {frameTimes[frameTimes.Count/2]:F2}ms, p95 {frameTimes[(frameTimes.Count-1)*95/100]:F2}ms, {bodies.Count(b=>!b.IsSleeping())} awake.\n");
-            void Shot(string name,Vector3 eye,Vector3 target,float fov)
+            IEnumerator Shot(string name, Vector3 eye, Vector3 target, float fov)
             {
-                var camera = session.Player.ViewCamera;
-                var t = camera.transform;
-                var pose = new Pose(t.position,t.rotation);
-                float oldFov=camera.fieldOfView, aspect=camera.aspect;
+                var go = new GameObject("Walled Castle review camera");
+                var camera = go.AddComponent<Camera>();
+                camera.CopyFrom(session.Player.ViewCamera);
+                camera.transform.SetPositionAndRotation(World(eye), Quaternion.LookRotation(World(target)-World(eye)));
+                camera.stereoTargetEye = StereoTargetEyeMask.None;
+                camera.fieldOfView = fov;
+                camera.aspect = 16f/9;
+                camera.farClipPlane = Mathf.Max(camera.farClipPlane, 500);
+                var rt = new RenderTexture(1600, 900, 24);
+                camera.targetTexture = rt;
+                bool rendered = false;
+                void OnRendered(UnityEngine.Rendering.ScriptableRenderContext context, Camera renderedCamera)
+                {
+                    if (renderedCamera == camera) rendered = true;
+                }
+                UnityEngine.Rendering.RenderPipelineManager.endCameraRendering += OnRendered;
                 try
                 {
-                    t.SetPositionAndRotation(World(eye),Quaternion.LookRotation(World(target)-World(eye)));
-                    camera.aspect=16f/9; camera.fieldOfView=fov;
-                    VanderbiltCampusChecks.Capture(camera,1600,900,"WalledCastle-"+name+".png");
+                    float until = Time.realtimeSinceStartup + 15;
+                    while (!rendered && Time.realtimeSinceStartup < until) yield return null;
+                    if (!rendered) { Check(false, "Review camera did not render " + name); yield break; }
+                    var previous = RenderTexture.active;
+                    var png = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+                    try
+                    {
+                        RenderTexture.active = rt;
+                        png.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+                        png.Apply();
+                        File.WriteAllBytes(ProjectPath.Report("WalledCastle-"+name+".png"), png.EncodeToPNG());
+                    }
+                    finally { RenderTexture.active = previous; UnityEngine.Object.Destroy(png); }
                 }
-                finally { t.SetPositionAndRotation(pose.position,pose.rotation);camera.fieldOfView=oldFov;camera.aspect=aspect; }
+                finally
+                {
+                    UnityEngine.Rendering.RenderPipelineManager.endCameraRendering -= OnRendered;
+                    camera.enabled = false;
+                    camera.targetTexture = null;
+                    UnityEngine.Object.Destroy(go);
+                    UnityEngine.Object.Destroy(rt);
+                }
             }
-            Shot("01-wide",new(15,53,-89),new(0,5,0),44);
-            Shot("02-street",new(-12.8f,1.3f,-21),new(-12,4,4),68);
-            Shot("03-rampart",new(24,10.3f,-22),new(24,9.6f,21),72);
-            Shot("04-gate",new(0,1.5f,-37),new(0,5,5),72);
+            yield return Shot("01-wide",new(12,48,-85),new(0,5,0),42);
+            yield return Shot("02-street",new(-12.8f,1.3f,-21),new(-12,4,4),68);
+            yield return Shot("03-rampart",new(24,10.3f,-22),new(24,9.6f,21),72);
+            yield return Shot("04-gate",new(0,1.5f,-37),new(0,5,5),72);
             for(int i=0;i<bots.Count;i++) Check(reached[i],"Bot route "+i+" end "+bots[i].transform.position);
             var drift=bodies.Select((b,i)=>Vector3.Distance(b.position,World(layout[i].Position))).ToArray();
             Check(drift.Max()<.65f,"18s intact traffic max drift "+drift.Max()+" / bodies over .25m "+drift.Count(v=>v>.25f));
@@ -177,11 +206,12 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 var bearing=bodies[Index(test.Item1)]; var deck=bodies[Index(test.Item2)];
                 var origin=bearing.position; var above=deck.position;
-                for(int i=0;i<38;i++)
+                for(int i=0;i<200 && Vector3.Distance(bearing.position,origin)<5;i++)
                 {
                     var direction=map.transform.TransformDirection(test.Item3);
                     float speed=Vector3.Dot(direction,bearing.linearVelocity);
-                    bearing.AddForce(direction*Mathf.Clamp(11-speed,0,2.5f),ForceMode.VelocityChange);
+                    bearing.GetComponent<IPushable>().Push(direction*Mathf.Clamp(11-speed,0,5),map.gameObject);
+                    if (i==12 && test.Item1.x>10) yield return Shot("05-during-pull",new(16,12,-50),new(16,4,-30),48);
                     yield return new WaitForFixedUpdate();
                 }
                 yield return new WaitForSeconds(2);
@@ -189,8 +219,8 @@ namespace DeadlyJenga.DevTools.Editor
                     "Bearing "+bearing.name+" extracted "+Vector3.Distance(bearing.position,origin)+"m; deck fell "+(above.y-deck.position.y)+"m");
                 if (test.Item1.x>10)
                 {
-                    Shot("05-breach",new(16,12,-50),new(16,4,-30),48);
-                    Shot("06-alternate",new(13,1.3f,-23),new(13,1.3f,2),68);
+                    yield return Shot("05-breach",new(16,12,-50),new(16,4,-30),48);
+                    yield return Shot("06-alternate",new(13,1.3f,-23),new(13,1.3f,2),68);
                     var bypass=bodies[Index(new Vector3(-24,8.25f,2.5f))];
                     Check(Mathf.Abs(bypass.position.y-World(new Vector3(0,8.25f,0)).y)<.25f,"Opposite rampart remains at route height");
                     var walker = bots[0];
@@ -211,7 +241,7 @@ namespace DeadlyJenga.DevTools.Editor
             int revision=map.Revision;
             map.Rebuild();
             Check(map.Revision>revision && map.Bodies.Count==layout.Count &&
-                map.Bodies.Select((b,i)=>Vector3.Distance(b.position,World(layout[i].Position))).Max()<.01f,"Reset restores every block pose");
+                map.Bodies.Select((b,i)=>Vector3.Distance(b.position,World(layout[i].Position))<.01f && Quaternion.Angle(b.rotation,map.transform.rotation*layout[i].Rotation)<.1f).All(restored=>restored),"Reset restores every block pose");
             Check(map.LoadLayout(map.SaveLayout(),layout.Count,new Pose(map.transform.position,map.transform.rotation),map.transform.localScale),
                 "Local sync layout round trip");
             Check(EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"),"Disaster validator invoked");
