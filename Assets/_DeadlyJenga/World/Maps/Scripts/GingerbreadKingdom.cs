@@ -103,7 +103,7 @@ namespace DeadlyJenga.CastlePrototype
             House(9,-12,16,4.6f,6.2f,2,3);
             House(11,-5,12,3.5f,5.6f,2,6);
             House(12,2,8,3.4f,5.8f,2,0);
-            House(20,-15,-22,4.4f,6.2f,2,2);
+            House(20,-15.35f,-22,4.4f,6.2f,2,2);
             House(22,-7,-16,4.2f,5.8f,2,5);
             House(23,2,-10,4,6,2,1);
             House(23,10,-25,3.8f,5.5f,2,4);

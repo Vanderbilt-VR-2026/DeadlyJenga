@@ -38,11 +38,37 @@ namespace DeadlyJenga.DevTools.Editor
             }
         }
         static Driver driver;
-        static GingerbreadKingdomChecks()=>EditorApplication.update+=Tick;
+        [Serializable] sealed class SavedScenes { public SceneSetup[] scenes; }
+        static GingerbreadKingdomChecks()
+        {
+            EditorApplication.update+=Tick;
+            EditorApplication.playModeStateChanged+=Restore;
+        }
+        static void Restore(PlayModeStateChange change)
+        {
+            if(change!=PlayModeStateChange.EnteredEditMode || !SessionState.GetBool(Key+"restore",false))return;
+            SessionState.SetBool(Key+"restore",false);
+            var setup=JsonUtility.FromJson<SavedScenes>(SessionState.GetString(Key+"scenes",""));
+            if(setup.scenes.Length>0)EditorSceneManager.RestoreSceneManagerSetup(setup.scenes);
+            MatchSetup.MapId=SessionState.GetString(Key+"map","");
+            MatchSetup.ModeId=SessionState.GetString(Key+"mode","");
+            if(!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
+            {
+                Directory.CreateDirectory("Logs/Warm");
+                File.WriteAllText("Logs/Warm/exit.txt",SessionState.GetInt(Key+"exit",1).ToString());
+            }
+        }
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Editor already playing");
             if(!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))throw new Exception("Missing disaster validator");
+            var setup=EditorSceneManager.GetSceneManagerSetup();
+            if(!Application.isBatchMode && setup.Any(s=>UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))
+                throw new InvalidOperationException("The open scene has unsaved edits");
+            SessionState.SetString(Key+"scenes",JsonUtility.ToJson(new SavedScenes{scenes=setup.Where(s=>!string.IsNullOrEmpty(s.path)).ToArray()}));
+            SessionState.SetString(Key+"map",MatchSetup.MapId);
+            SessionState.SetString(Key+"mode",MatchSetup.ModeId);
+            phase=waypoint=0;failed=fallEliminated=false;boot=0;
             SessionState.SetBool(Key,true);
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
@@ -131,7 +157,17 @@ namespace DeadlyJenga.DevTools.Editor
             if(Time.time-started<7)return false;
             Check(false,$"Route {phase} waypoint {waypoint} blocked at {walker.transform.position}");return true;
         }
-        static void Finish(){SessionState.SetBool(Key,false);EditorApplication.Exit(failed?1:0);}
+        static void Finish()
+        {
+            SessionState.SetBool(Key,false);
+            int code=failed?1:0;
+            if(Application.isBatchMode && string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
+            {
+                EditorApplication.Exit(code);return;
+            }
+            SessionState.SetInt(Key+"exit",code);
+            SessionState.SetBool(Key+"restore",true);EditorApplication.ExitPlaymode();
+        }
         static void Shot(string label,Vector3 eye,Vector3 target,float fov=58)
         {
             var obj=new GameObject("Kingdom review camera");var cam=obj.AddComponent<Camera>();

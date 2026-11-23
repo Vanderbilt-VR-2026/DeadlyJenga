@@ -21,10 +21,10 @@ namespace DeadlyJenga.CastlePrototype
             for(int s=-1;s<=1;s+=2)
             {
                 Steps("Garden stair",V(s*7.25f,0,-9),18,2.25f,.16f,.30f);
-                Part("Gallery colonnade",V(s*5.1f,4.32f,0),V(.76f,2.88f,4.8f),Caramel);
+                Part("Gallery colonnade",V(s*5.55f,4.32f,0),V(.76f,2.88f,4.8f),Caramel);
                 Part("Gallery outer pier",V(s*7.35f,4.32f,0),V(.8f,2.88f,4.8f),Biscuit);
-                Part("Gallery balcony",V(s*6.2f,5.96f,0),V(3.4f,.4f,5.4f),Caramel,true,m=>Rail(m,3.25f,-2.65f,.2f));
-                Tower(s*6.25f,6.16f,1.0f,2.25f,3.15f,s<0?Violet:Pink);
+                Part("Gallery balcony",V(s*6.6f,5.96f,0),V(2.95f,.4f,5.4f),Caramel,true,m=>Rail(m,2.8f,-2.65f,.2f));
+                Tower(s*6.55f,6.16f,1.0f,2.25f,3.15f,s<0?Violet:Pink);
                 Tower(s*3.95f,2.88f,-1.25f,2,4.65f,s<0?Pink:Violet);
                 Tower(s*3.55f,2.88f,2.25f,2.35f,6.7f,s<0?Violet:Pink);
                 Part("Entrance pillar",V(s*1.52f,4.86f,-1.45f),V(.82f,3.96f,2.65f),Biscuit,true,
