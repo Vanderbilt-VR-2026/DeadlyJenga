@@ -53,7 +53,9 @@ namespace DeadlyJenga.DevTools.Editor
                     MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);
                     EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).values);
                     failed|=!completed;File.AppendAllText(Report,$"COMPLETE checks={checks} runtimeErrors={errors} failed={failed}. Desktop runtime; headset not tested.\n");
-                    if (NeedleOnly || BoxingGloveOnly || SawStaffOnly || StockPistolOnly || PistolMotionOnly)
+                    bool weaponMotion = SessionState.GetBool(Key+"MotionOnly",false);
+                    SessionState.SetBool(Key+"MotionOnly",false);
+                    if (weaponMotion || NeedleOnly || BoxingGloveOnly || SawStaffOnly || StockPistolOnly || PistolMotionOnly)
                     {
                         int result = failed || errors > 0 ? 1 : 0;
                         if (!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
@@ -123,7 +125,6 @@ namespace DeadlyJenga.DevTools.Editor
         {
             var stack=new System.Collections.Generic.Stack<IEnumerator>();
             bool motionOnly=SessionState.GetBool(Key+"MotionOnly",false);
-            SessionState.SetBool(Key+"MotionOnly",false);
             stack.Push(motionOnly ? TestWeaponMotion() : Test());
             while(stack.Count>0)
             {
