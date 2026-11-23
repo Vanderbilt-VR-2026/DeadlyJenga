@@ -121,6 +121,39 @@ namespace DeadlyJenga.DevTools.Editor
                 "epic-candy-sky-ring-city",false);
         }
 
+        public static void CaptureCloudCityResidents()
+        {
+            BatchMaps(new[]{"epic-candy-sky-ring-city"}, Path.GetFullPath(Path.Combine("Logs","Captures","CloudCityResidents")),
+                new[]{"reference","resident-party"});
+        }
+
+        static Vector3[] residentStarts;
+        static float residentSampleTime;
+
+        static bool CheckResidents()
+        {
+            var root = GameObject.Find("Cloud residents").transform;
+            var actors = root.GetComponentsInChildren<MeshRenderer>();
+            var sizes = root.Cast<Transform>().Select(group => group.childCount).OrderBy(count => count);
+            if (!sizes.SequenceEqual(new[]{1,1,1,1,1,1,1,1,1,1,2,2,2,4,5}) || actors.Length != 25 ||
+                actors.Select(a => a.GetComponent<MeshFilter>().sharedMesh).Distinct().Count() != 6 ||
+                actors.Select(a => a.sharedMaterial).Distinct().Count() != 4 ||
+                actors.Any(a => !a.sharedMaterial.shader.isSupported || a.bounds.size.magnitude < .6f || a.bounds.size.magnitude > 4f) ||
+                root.GetComponentsInChildren<Collider>().Length != 0 || root.GetComponentsInChildren<Rigidbody>().Length != 0)
+                throw new InvalidOperationException("Cloud resident count, asset, scale or physics check failed.");
+            if (residentStarts == null)
+            {
+                residentStarts = actors.Select(a => a.transform.position).ToArray();
+                residentSampleTime = Time.time;
+                return false;
+            }
+            if (Time.time - residentSampleTime < .65f) return false;
+            for (int i = 0; i < actors.Length; i++)
+                if (Vector3.Distance(actors[i].transform.position, residentStarts[i]) < .2f)
+                    throw new InvalidOperationException("Resident stopped: " + actors[i].name);
+            return true;
+        }
+
         static int rainbowFrame;
         static float lastFlowTime;
 
@@ -280,7 +313,7 @@ namespace DeadlyJenga.DevTools.Editor
                 MatchSetup.HandCount = 0;
                 enteredAt = EditorApplication.timeSinceStartup;
                 readyAt = 0;
-                prepared = false; rainbowFrame=0;
+                prepared = false; rainbowFrame=0; residentStarts=null;
                 EditorApplication.update += Tick;
             }
             else if (change == PlayModeStateChange.EnteredEditMode)
@@ -328,6 +361,11 @@ namespace DeadlyJenga.DevTools.Editor
                 Prepare(session); prepared = true; readyAt = now + job.settle; return;
             }
             if (now < readyAt) { Prepare(session); return; }
+            if(job.views.Contains("resident-party"))
+            {
+                try { if(!CheckResidents())return; }
+                catch(Exception e){ Debug.LogException(e); Fail(id,e.Message); return; }
+            }
             if(job.rainbowMotion)
             {
                 try { if(!CaptureRainbowFrame(session))return; }
@@ -422,6 +460,17 @@ namespace DeadlyJenga.DevTools.Editor
                         camera.fieldOfView = 36.94f;
                         camera.transform.SetPositionAndRotation(world.Center + new Vector3(240.93f,200.47f,-298.43f),
                             Quaternion.Euler(24.87f,-38.81f,0));
+                    }
+                    else if(view=="resident-party")
+                    {
+                        var party = GameObject.Find("Cloud residents").transform.GetChild(0);
+                        var lead = party.GetChild(0).GetComponent<Renderer>();
+                        var heading = Vector3.ProjectOnPlane(lead.transform.position - residentStarts[0],Vector3.up).normalized;
+                        var boundsParty = lead.bounds;
+                        foreach(var actor in party.GetComponentsInChildren<MeshRenderer>()) boundsParty.Encapsulate(actor.bounds);
+                        camera.fieldOfView = 48;
+                        camera.transform.position = boundsParty.center + heading * 6 + Vector3.Cross(Vector3.up,heading)*2 + Vector3.up*1.9f;
+                        camera.transform.LookAt(boundsParty.center);
                     }
                     else if(view=="river-route" || view=="river-basin")
                     {

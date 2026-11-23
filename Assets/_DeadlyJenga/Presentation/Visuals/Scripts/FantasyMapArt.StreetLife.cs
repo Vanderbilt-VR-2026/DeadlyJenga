@@ -29,6 +29,7 @@ namespace DeadlyJenga.Presentation
             }
             Model("Visual · candy street life",m,transform,new[]{cityCandyMaterial,cityGlowMaterial});
 
+            BuildCloudResidents();
             AnimateLandmarks(Time.time);
         }
 

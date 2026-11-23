@@ -134,7 +134,7 @@ namespace DeadlyJenga.Presentation
             RenderSettings.skybox=oldSky;RenderSettings.ambientMode=oldAmbientMode;
             RenderSettings.ambientSkyColor=oldAmbientSky;RenderSettings.ambientEquatorColor=oldAmbientEquator;
             RenderSettings.ambientGroundColor=oldAmbientGround;RenderSettings.ambientIntensity=oldAmbientIntensity;
-            ReleaseSolidMaterials();active=false;revision=-1;environment=null;sceneSkins=null;cityBuilt=false;cabins.Clear();cars.Clear();carPhase.Clear();fleet.Clear();ClearLandmarks();
+            ClearResidents();ReleaseSolidMaterials();active=false;revision=-1;environment=null;sceneSkins=null;cityBuilt=false;cabins.Clear();cars.Clear();carPhase.Clear();fleet.Clear();ClearLandmarks();
         }
         static void Release(Object item){if(!item)return;if(Application.isPlaying)Destroy(item);else DestroyImmediate(item);}
         GameObject Model(string name,ArtMesh builder,Transform parent,Material[] materials,bool body=false)

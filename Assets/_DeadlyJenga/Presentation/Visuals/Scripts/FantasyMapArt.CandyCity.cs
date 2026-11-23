@@ -434,6 +434,7 @@ namespace DeadlyJenga.Presentation
             if(rainbowCurrent)rainbowCurrent.SetFloat(FlowTime,time);
             if(balloonRing){balloonRing.localRotation=Quaternion.Euler(0,time*1.2f,0);balloonRing.localPosition=Vector3.up*Mathf.Sin(time*.3f)*2;}
             if(balloonRingOuter){balloonRingOuter.localRotation=Quaternion.Euler(0,-time*.7f,0);balloonRingOuter.localPosition=Vector3.up*Mathf.Sin(time*.25f+1)*3;}
+            AnimateResidents(time);
             AnimateCars(time);
             if(solidCandy){AnimateBalloons(time);AnimateLandmarks(time);AnimateSkyCities(time);}
             float length=Mathf.Max(1,(cableB-cableA).magnitude);
