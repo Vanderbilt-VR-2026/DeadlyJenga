@@ -16,6 +16,7 @@ namespace DeadlyJenga.CandyPlayers
         MaterialPropertyBlock properties;
         AvatarAppearance appearance;
         bool built;
+        float armorAssemblyStarted = float.NegativeInfinity;
         Mesh originalBody;
         static readonly Dictionary<Mesh,Mesh> snowBodies=new Dictionary<Mesh,Mesh>();
         Color lastTeam;
@@ -43,6 +44,7 @@ namespace DeadlyJenga.CandyPlayers
                 }
                 return;
             }
+            bool assembling = Application.isPlaying && value.poweredArmor && !appearance.poweredArmor;
             ClearApprovedSkin(rig);
             foreach(var p in pieces)if(p.renderer){p.renderer.gameObject.SetActive(false);Destroy(p.renderer.gameObject);}
             foreach(var t in new[]{LeftPalmEmitter,RightPalmEmitter,LeftSoleEmitter,RightSoleEmitter})if(t)Destroy(t.gameObject);
@@ -66,8 +68,41 @@ namespace DeadlyJenga.CandyPlayers
             foreach (var (accessory, design) in CandyHeadgearMeshes.Accessories)
                 if ((value.accessories & accessory) != 0) AddHeadgear(rig, design);
             BatchPieces(rig);
+            armorAssemblyStarted = assembling ? Time.time : float.NegativeInfinity;
+            if (assembling) AnimateArmorAssembly(0);
             lastTeam=new Color(-1,-1,-1);RefreshPalette(rig);
         }
+        void LateUpdate()
+        {
+            if (!float.IsFinite(armorAssemblyStarted)) return;
+            float progress = Mathf.Clamp01((Time.time - armorAssemblyStarted) / .52f);
+            AnimateArmorAssembly(progress);
+            if (progress >= 1) armorAssemblyStarted = float.NegativeInfinity;
+        }
+
+        void AnimateArmorAssembly(float progress)
+        {
+            foreach (var piece in pieces)
+            {
+                if (!piece.armor || !piece.renderer) continue;
+                float delay = piece.bone switch
+                {
+                    0 => 0,
+                    1 => .29f,
+                    4 or 7 or 10 or 13 => .43f,
+                    _ => .14f
+                };
+                if (piece.tone == Tone.Glow) delay = Mathf.Max(delay,.58f);
+                float seat = Mathf.SmoothStep(0,1,Mathf.InverseLerp(delay,delay+.39f,progress));
+                var shell = piece.renderer.transform;
+                float floating = 1-seat;
+                shell.localPosition = new Vector3(0,.035f,.09f) * floating;
+                shell.localRotation = Quaternion.Euler(10 * floating,0,0);
+                shell.localScale = Vector3.one * Mathf.Lerp(.88f,1,seat);
+                piece.renderer.enabled = progress > delay;
+            }
+        }
+
         static Mesh SnowBody(Mesh source)
         {
             if(snowBodies.TryGetValue(source,out var cached))return cached;

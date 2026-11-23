@@ -10,6 +10,10 @@ namespace DeadlyJenga.CandyPlayers
         Transform feed, pairedFeed, embeddedTarget;
         Transform primaryRoundFeed, secondaryRoundFeed;
         Transform[] primaryRounds, secondaryRounds;
+        float pickupStarted = float.NegativeInfinity;
+        Vector3 pickupPoint;
+        bool worldPickup;
+        Transform loadCell, loadCellOwner;
         float drawAmount, contactUntil, lastContactRemaining;
         Transform rocketCandy;
         MeshRenderer rocketCandyHead, rocketCandySeam;
@@ -44,6 +48,7 @@ namespace DeadlyJenga.CandyPlayers
 
         void ResetMotion()
         {
+            pickupStarted = float.NegativeInfinity;
             motionReady = false;
             hasCarriedFrame = false;
             lastRoleIssued = false;
@@ -124,24 +129,89 @@ namespace DeadlyJenga.CandyPlayers
                 Quaternion.Slerp(handPose.rotation, rotation, release));
         }
 
-        float CarryDuration(bool drawing)
+        float CarryDuration(bool drawing) => kind switch
         {
-            if (kind == EquipmentKind.LaserClaws || kind == EquipmentKind.WristLaser || kind == EquipmentKind.PoweredArmor)
-                return .17f;
-            bool back = EquipmentSpecifications.Get(kind).backHolster || kind == EquipmentKind.FlamingMarshmallow;
-            return back ? (drawing ? .46f : .42f) : (drawing ? .29f : .33f);
+            EquipmentKind.WristLaser => .26f,
+            EquipmentKind.LaserClaws => drawing ? .42f : .36f,
+            EquipmentKind.PoweredArmor => drawing ? .54f : .40f,
+            EquipmentKind.BoxingGlove => drawing ? .44f : .48f,
+            EquipmentKind.Dagger or EquipmentKind.StockPistol or EquipmentKind.SheriffHammer => drawing ? .29f : .36f,
+            EquipmentKind.DualUzi => drawing ? .40f : .44f,
+            EquipmentKind.ChainGun or EquipmentKind.RocketLauncher => drawing ? .67f : .58f,
+            EquipmentKind.GrenadeLauncher or EquipmentKind.DualRifle or EquipmentKind.Chainsaw => drawing ? .55f : .49f,
+            EquipmentKind.MurderSword or EquipmentKind.BarbedBat or EquipmentKind.LaserAxe or
+                EquipmentKind.SawStaff or EquipmentKind.FlamingMarshmallow => drawing ? .56f : .53f,
+            _ => drawing ? .36f : .40f
+        };
+
+        float PickupDuration => kind switch
+        {
+            EquipmentKind.ChainGun or EquipmentKind.RocketLauncher or EquipmentKind.GrenadeLauncher or
+                EquipmentKind.PoweredArmor => .69f,
+            EquipmentKind.BoxingGlove or EquipmentKind.LaserClaws => .56f,
+            EquipmentKind.DualRifle or EquipmentKind.MurderSword or EquipmentKind.BarbedBat or
+                EquipmentKind.Chainsaw or EquipmentKind.LaserAxe => .59f,
+            _ => .47f
+        };
+
+        void BeginPickup(EquipmentActionFrame action, CandyAvatarFrame frame)
+        {
+            pickupStarted = Time.time - Mathf.Clamp(.8f - action.remaining, 0, .20f);
+            pickupPoint = action.position;
+            // Grant events originate at eye height. Nearby world pickups can lift from their real position.
+            worldPickup = (pickupPoint - frame.head).sqrMagnitude >
+                .20f * .20f * frame.scale * frame.scale;
+            drawAmount = 1;
+        }
+
+        Pose PosePickup(CandyAvatarFrame frame, CandyHandPose hand, bool left, Pose ready, bool secondary = false)
+        {
+            float t = (Time.time - pickupStarted) / PickupDuration - (secondary ? .12f : 0);
+            if (t >= 1 || !float.IsFinite(pickupStarted)) return ready;
+            var flat = Quaternion.Euler(0, frame.headRotation.eulerAngles.y, 0);
+            float side = left ? -1 : 1;
+            var lift = flat * new Vector3(side * .15f, .13f, .05f) * frame.scale;
+            var gather = ready.position + flat * new Vector3(side * .12f, -.31f, .11f) * frame.scale;
+            if (worldPickup && !secondary)
+                gather = ready.position + Vector3.ClampMagnitude(pickupPoint - ready.position, .62f * frame.scale);
+            if (kind == EquipmentKind.WristLaser)
+                gather = hand.position + flat * new Vector3(side * .09f, -.095f, -.045f) * frame.scale;
+            bool trackedWrist = hand.tracked && Services.Session?.IsVR == true;
+            if (trackedWrist)
+            {
+                gather = ready.position;
+                lift *= .11f;
+            }
+            if (kind == EquipmentKind.BoxingGlove && !trackedWrist)
+            {
+                gather = Vector3.Lerp(gather, hand.position - hand.rotation * Vector3.forward * .16f, .68f);
+                lift = hand.rotation * new Vector3(side * .04f,.044f,.06f) * frame.scale;
+            }
+            var inspect = ready.position + lift;
+            var pitch = ready.rotation * Quaternion.Euler(-24, side * 22, side * 28);
+            var start = flat * Quaternion.Euler(kind == EquipmentKind.WristLaser ? 15 : 37, side * 24, side * 18);
+            if (trackedWrist)
+            {
+                start = ready.rotation;
+                pitch = ready.rotation * Quaternion.Euler(-7, side * 4, side * 6);
+            }
+            float gatherWeight = Ease(0, .59f, t);
+            float settle = Ease(.46f, 1, t);
+            return new Pose(Vector3.Lerp(Vector3.Lerp(gather, inspect, gatherWeight), ready.position, settle),
+                Quaternion.Slerp(Quaternion.Slerp(start, pitch, gatherWeight), ready.rotation, settle));
         }
 
         internal void PoseDesktopCarryHand(ref CandyAvatarFrame frame, EquipmentState state, float deltaTime)
         {
             if (!motionReady || !root || kind != state.kind || kind == EquipmentKind.LaserClaws ||
-                kind == EquipmentKind.WristLaser || kind == EquipmentKind.PoweredArmor) return;
+                kind == EquipmentKind.PoweredArmor) return;
 
             bool left = state.leftHanded;
             float progress = Mathf.MoveTowards(drawAmount, state.drawn ? 1 : 0,
                 deltaTime / CarryDuration(state.drawn));
             if (progress <= 0) return;
-            if (progress >= 1)
+            bool pickingUp = state.drawn && Time.time - pickupStarted < PickupDuration;
+            if (!pickingUp && (progress >= 1 || kind == EquipmentKind.WristLaser))
             {
                 PoseDesktopReloadHand(ref frame, state);
                 return;
@@ -149,7 +219,12 @@ namespace DeadlyJenga.CandyPlayers
 
             var hand = left ? frame.left : frame.right;
             var grip = CarryPose(frame, hand, left, progress, state.drawn);
-            float reach = Ease(.015f, .18f, progress);
+            float reach = pickingUp
+                ? Ease(0, .24f, (Time.time - pickupStarted) / PickupDuration) *
+                    (1 - Ease(.80f, 1, (Time.time - pickupStarted) / PickupDuration))
+                : Ease(.015f, .18f, progress);
+            if (pickingUp)
+                grip = PosePickup(frame, hand, left, grip);
             var contact = hand;
             if (!TryPrimaryContact(ref contact, grip, kind, left, false, frame.scale))
             {
@@ -194,35 +269,79 @@ namespace DeadlyJenga.CandyPlayers
 
         void PoseDesktopReloadHand(ref CandyAvatarFrame frame, EquipmentState state)
         {
-            if (!state.drawn || !feed || state.reloadRemaining <= 0 ||
-                kind == EquipmentKind.DualUzi || kind == EquipmentKind.WristLaser || kind == EquipmentKind.LaserAxe ||
-                kind == EquipmentKind.RocketLauncher)
-                return;
+            if (!state.drawn || state.reloadRemaining <= 0 || kind == EquipmentKind.RocketLauncher || kind == EquipmentKind.WristLaser) return;
             var spec = EquipmentSpecifications.Get(kind);
             if (spec.reloadSeconds <= 0 || spec.melee && !state.shotgun) return;
             float phase = 1 - Mathf.Clamp01(state.reloadRemaining / spec.reloadSeconds);
-            float reach = Ease(0, .15f, phase) * (1 - Ease(.82f, 1, phase));
-            bool looseRounds = kind == EquipmentKind.SheriffHammer || kind == EquipmentKind.GrenadeLauncher;
-            if (!looseRounds) reach *= 1 - Ease(.31f,.38f,phase) + Ease(.48f,.57f,phase);
-            bool supportLeft = !state.leftHanded;
+            bool secondary = kind == EquipmentKind.DualUzi && phase >= .49f;
+            var assembly = secondary ? pairedFeed : feed;
+            bool energy = kind == EquipmentKind.WristLaser || kind == EquipmentKind.LaserAxe;
+            if (energy) assembly = loadCell;
+            if (!assembly) return;
+            if (kind == EquipmentKind.DualUzi) phase = SpikeReloadPhase(phase, secondary);
+
+            bool supportLeft = secondary ? state.leftHanded : !state.leftHanded;
+            float side = supportLeft ? -1 : 1;
             var hand = supportLeft ? frame.left : frame.right;
             var offset = kind switch
             {
-                EquipmentKind.SheriffHammer => new Vector3(0, .042f, .04f),
-                EquipmentKind.GrenadeLauncher => new Vector3(0, .025f, .08f + GrenadeDrumOffset),
+                EquipmentKind.SheriffHammer => new Vector3(0, .092f, .012f),
+                EquipmentKind.GrenadeLauncher => new Vector3(0, GrenadeDrumHeight, GrenadeDrumOffset - .01f),
                 EquipmentKind.ChainGun => new Vector3(.23f, -.31f, .12f),
                 EquipmentKind.RocketLauncher => new Vector3(0, -.038f, .14f),
                 EquipmentKind.CompactSidearm => new Vector3(0, -.215f, -.067f),
                 EquipmentKind.StockPistol => new Vector3(0, -.044f, .23f),
                 EquipmentKind.Chainsaw => new Vector3(0, .23f, .20f),
+                EquipmentKind.DualUzi => new Vector3(0, -.16f, 0),
+                EquipmentKind.WristLaser or EquipmentKind.LaserAxe => Vector3.zero,
                 _ => new Vector3(0, -.055f, -.13f)
             };
-            float side = supportLeft ? -1 : 1;
-            hand.position = Vector3.Lerp(hand.position, feed.TransformPoint(offset + Vector3.right * (side * .05f)), reach);
-            hand.rotation = Quaternion.Slerp(hand.rotation, feed.rotation * Quaternion.Euler(12, side * 32, side * 80), reach);
-            hand.skeleton = CandyHandSkeleton.ControllerGrip(supportLeft, reach * .78f, reach * .5f);
+            float reach = Ease(0, .16f, phase) * (1 - Ease(.88f, 1, phase));
+            var contact = assembly.TransformPoint(offset + Vector3.right * (side * .050f));
+            if (kind is EquipmentKind.SheriffHammer or EquipmentKind.GrenadeLauncher)
+            {
+                float stroke = Mathf.Sin(Ease(.36f, .78f, phase) * Mathf.PI * 6);
+                contact -= assembly.forward * (.085f * Mathf.Max(0, stroke) * frame.scale);
+            }
+            hand.position = Vector3.Lerp(hand.position, contact, reach);
+            hand.rotation = Quaternion.Slerp(hand.rotation, assembly.rotation * Quaternion.Euler(15, side * 30, side * 80), reach);
+            var starting = hand.skeletonTracked ? hand.skeleton : CandyHandSkeleton.Rest(supportLeft);
+            hand.skeleton = BlendGrip(starting, CandyHandSkeleton.ControllerGrip(supportLeft, .82f, .62f), reach);
             hand.skeletonTracked = true;
             if (supportLeft) frame.left = hand; else frame.right = hand;
+        }
+
+        static float SpikeReloadPhase(float phase, bool secondary) =>
+            Mathf.Clamp01((phase - (secondary ? .48f : 0)) / .52f);
+
+        void PresentEnergyReload(EquipmentState state, Transform weapon)
+        {
+            if (kind != EquipmentKind.WristLaser && kind != EquipmentKind.LaserAxe) return;
+            bool axe = kind == EquipmentKind.LaserAxe;
+            if (loadCellOwner != weapon || !loadCell)
+            {
+                loadCellOwner = weapon;
+                loadCell = new GameObject("Removable energy cartridge").transform;
+                loadCell.SetParent(weapon, false);
+                var cap = new CandyAccessoryMeshes.Builder();
+                cap.Cone(Vector3.back * .036f, Vector3.back * .020f, .019f, .022f, 10);
+                cap.Cone(Vector3.forward * .020f, Vector3.forward * .036f, .022f, .018f, 10);
+                var charge = new CandyAccessoryMeshes.Builder();
+                charge.Cone(Vector3.back * .020f, Vector3.forward * .020f, .017f, .017f, 12);
+                CachedMesh(loadCell, "Energy refill casing", cap, new Color(.10f,.15f,.19f));
+                CachedMesh(loadCell, "Energy refill core", charge, new Color(.10f,.69f,.84f));
+            }
+
+            var spec = EquipmentSpecifications.Get(kind);
+            bool reload = state.drawn && state.reloadRemaining > 0 && (!axe || state.shotgun);
+            float phase = reload ? 1 - Mathf.Clamp01(state.reloadRemaining / spec.reloadSeconds) : 0;
+            float side = state.leftHanded ? 1 : -1;
+            var seat = axe ? new Vector3(side * .056f,.035f,.50f) : new Vector3(side * .058f,.051f,-.109f);
+            float travel = phase < .40f ? Ease(.08f,.40f,phase) : 1 - Ease(.51f,.88f,phase);
+            var reach = new Vector3(side * .12f,.055f,-.10f) * travel;
+            loadCell.localPosition = seat + reach;
+            loadCell.localRotation = Quaternion.Euler(-23 * travel,side * 45 * travel,side * 21 * travel);
+            loadCell.gameObject.SetActive((!axe || state.shotgun) && (!reload || phase < .40f || phase >= .51f));
         }
 
         Pose CarryPose(CandyAvatarFrame frame, CandyHandPose hand, bool left, float progress, bool drawing)
@@ -248,7 +367,13 @@ namespace DeadlyJenga.CandyPlayers
             }
 
             var drawn = DrawnPose(kind, hand, left, frame.scale);
-            if (kind == EquipmentKind.LaserClaws || kind == EquipmentKind.WristLaser || progress >= 1) return drawn;
+            if (kind == EquipmentKind.WristLaser)
+            {
+                float folded = 1 - Ease(0,1,progress);
+                return new Pose(drawn.position + hand.rotation * new Vector3(0,-.006f,-.042f) * (folded * frame.scale),
+                    drawn.rotation * Quaternion.Euler(-12 * folded,0,0));
+            }
+            if (kind == EquipmentKind.LaserClaws || progress >= 1) return drawn;
 
             var yaw = Quaternion.Euler(0, frame.headRotation.eulerAngles.y, 0);
             var holstered = Holster(kind, frame.feet, frame.head, yaw, frame.scale, left);
@@ -257,7 +382,10 @@ namespace DeadlyJenga.CandyPlayers
             float storedSide = back ? 1 : side;
             var clear = holstered.position + yaw * new Vector3(storedSide * (back ? .30f : .13f),
                 back ? .48f : .19f, back ? -.015f : .05f) * frame.scale;
-            var present = drawn.position + yaw * new Vector3(side * .09f, -.07f, .055f) * frame.scale;
+            float weight = kind is EquipmentKind.RocketLauncher or EquipmentKind.ChainGun or
+                EquipmentKind.GrenadeLauncher ? 1.45f : 1;
+            var present = drawn.position + yaw * new Vector3(side * .10f * weight, -.07f * weight, .071f) * frame.scale;
+            clear += yaw * new Vector3(storedSide * .065f, .055f, .04f) * ((weight - 1) * frame.scale);
             // Clear the holster, bring the weapon around the body, then settle the grip.
             if (!drawing)
             {
@@ -268,22 +396,48 @@ namespace DeadlyJenga.CandyPlayers
             float u = 1 - t;
             var position = u*u*u*holstered.position + 3*u*u*t*clear +
                 3*u*t*t*present + t*t*t*drawn.position;
-            var guide = yaw * Quaternion.Euler(back ? -37 : 43, storedSide * (back ? 65 : 27),
-                storedSide * (drawing ? 25 : 43));
+            var guide = kind == EquipmentKind.BoxingGlove
+                ? drawn.rotation * Quaternion.Euler(drawing ? -32 : 26,side * 10,side * 32)
+                : yaw * Quaternion.Euler(back ? -37 : 43, storedSide * (back ? 65 : 27),
+                    storedSide * (drawing ? 25 : 43));
             var rotation = Quaternion.Slerp(Quaternion.Slerp(holstered.rotation, guide, t),
                 Quaternion.Slerp(guide, drawn.rotation, t), t);
             return new Pose(position, rotation);
         }
 
-        static void PresentRepulsor(Transform weapon, float progress)
+        float WearableProgress(float draw, bool secondary)
         {
-            float open = Mathf.SmoothStep(0, 1, progress);
+            float progress = Mathf.Clamp01((draw - (secondary ? .09f : 0)) / .91f);
+            if (float.IsFinite(pickupStarted))
+            {
+                float pickup = (Time.time - pickupStarted) / PickupDuration;
+                progress *= Ease(secondary ? .23f : .12f, secondary ? .96f : .83f, pickup);
+            }
+            return progress;
+        }
+
+        void PresentBoxingGlove(Transform weapon, float progress)
+        {
+            if (!float.IsFinite(pickupStarted)) return;
+            float t = (Time.time - pickupStarted) / PickupDuration;
+            float squeeze = Ease(.48f,.62f,t) * (1 - Ease(.66f,.88f,t)) * progress;
+            weapon.localScale = Vector3.Scale(weapon.localScale,
+                new Vector3(1 - .045f * squeeze, 1 + .055f * squeeze, 1 - .055f * squeeze));
+        }
+
+        void PresentRepulsor(Transform weapon, float draw, bool secondary)
+        {
+            float progress = WearableProgress(draw, secondary);
+            float release = Ease(.08f,.43f,progress);
+            float open = Ease(.27f,.93f,progress);
+            float seat = Ease(.76f,.91f,progress) * (1-Ease(.91f,1,progress));
             for (int i = 0; i < 2; i++)
             {
                 float side = i == 0 ? -1 : 1;
                 var shutter = weapon.GetChild(i);
-                shutter.localPosition = new Vector3(side * Mathf.Lerp(.013f, .032f, open), 0, -.006f * open);
-                shutter.localRotation = Quaternion.Euler(0, side * 58 * open, 0);
+                shutter.localPosition = new Vector3(side * Mathf.Lerp(.013f, .032f, open),
+                    .004f * seat, .010f * release - .016f * open);
+                shutter.localRotation = Quaternion.Euler(-9 * (release - open), side * (58 * open + 4 * seat), 0);
             }
         }
 
@@ -314,14 +468,27 @@ namespace DeadlyJenga.CandyPlayers
             }
         }
 
-        void PresentClaws(Transform weapon, CandyHandPose hand, bool left, float progress)
+        void PresentClaws(Transform weapon, CandyHandPose hand, bool left, float draw, bool secondary)
         {
+            float progress = WearableProgress(draw, secondary);
             weapon.gameObject.SetActive(progress > 0);
             MatchClawColor(weapon);
             PositionClaws(weapon, hand, left);
-            float extension = Mathf.Lerp(.02f, 1, Mathf.SmoothStep(0, 1, progress));
+            bool visible = false;
             for (int i = 0; i < 3; i++)
-                weapon.GetChild(i).localScale = new Vector3(1, 1, extension);
+            {
+                var blade = weapon.GetChild(i);
+                float delay = (i == 1 ? 0 : i == 0 ? .13f : .24f);
+                float shoot = Ease(delay,.64f + delay,progress);
+                float align = Ease(.45f + delay,.76f + delay,progress);
+                float side = (left ? -1f : 1f) * (i - 1);
+                blade.localPosition -= Vector3.forward * (.051f * (1-shoot));
+                blade.localRotation *= Quaternion.Euler(-19 * (1 - align),side * 12 * (1 - align),0);
+                blade.localScale = new Vector3(.74f + .26f * shoot,.74f + .26f * shoot,.025f + .975f * shoot);
+                blade.gameObject.SetActive(shoot > .015f);
+                visible |= shoot > .015f;
+            }
+            weapon.gameObject.SetActive(visible);
         }
 
         void PresentFeed(Transform assembly, EquipmentState state, bool left, bool secondary)
@@ -337,7 +504,7 @@ namespace DeadlyJenga.CandyPlayers
                 return;
             }
             if (kind == EquipmentKind.DualUzi)
-                phase = Mathf.Clamp01((phase - (secondary ? .28f : 0)) / .72f);
+                phase = SpikeReloadPhase(phase, secondary);
 
             float side = left ? -1 : 1;
             Vector3 travel = kind switch
@@ -374,11 +541,13 @@ namespace DeadlyJenga.CandyPlayers
             }
             else
             {
-                float eject = Ease(.07f, .37f, phase);
-                float insert = Ease(.51f, .94f, phase);
+                float eject = Ease(.06f, .38f, phase);
+                float insert = Ease(.48f, .86f, phase);
+                float latch = Ease(.86f,.90f,phase) * (1 - Ease(.91f,.98f,phase));
                 assembly.localPosition = oldFeed
                     ? travel * eject + Vector3.down * (.16f * eject * eject)
-                    : travel * (1 - insert) + Vector3.right * (side * .105f * (1 - insert));
+                    : travel * (1 - insert) + Vector3.right * (side * .105f * (1 - insert)) -
+                        travel * (.055f * latch);
                 assembly.localRotation = oldFeed
                     ? Quaternion.Euler(-32 * eject, 0, side * 16 * eject)
                     : Quaternion.Euler(14 * (1 - insert), side * 17 * (1 - insert), 0);
@@ -479,8 +648,10 @@ namespace DeadlyJenga.CandyPlayers
                 rounds = new Transform[count];
                 var body = new CandyAccessoryMeshes.Builder();
                 var tip = new CandyAccessoryMeshes.Builder();
-                float radius = kind == EquipmentKind.GrenadeLauncher ? .034f : .011f;
-                float length = kind == EquipmentKind.GrenadeLauncher ? .21f : .038f;
+                float radius = kind == EquipmentKind.GrenadeLauncher ? .034f :
+                    kind == EquipmentKind.NeedleDrill ? .0075f : .011f;
+                float length = kind == EquipmentKind.GrenadeLauncher ? .21f :
+                    kind == EquipmentKind.NeedleDrill ? .059f : .038f;
                 if (kind == EquipmentKind.Chainsaw)
                 {
                     body.Cone(Vector3.zero, Vector3.forward * .014f, .023f, .023f, 12);
@@ -503,6 +674,7 @@ namespace DeadlyJenga.CandyPlayers
                     item.SetParent(assembly, false);
                     CachedMesh(item, "Round casing " + kind, body, new Color(.76f,.44f,.14f));
                     CachedMesh(item, "Round tip " + kind, tip,
+                        kind == EquipmentKind.NeedleDrill ? new Color(.15f,.71f,.68f) :
                         kind == EquipmentKind.DualUzi ? new Color(.35f,1,.10f) :
                         kind == EquipmentKind.GrenadeLauncher ? new Color(.30f,.33f,.24f) :
                         new Color(.85f,.72f,.50f));
@@ -524,8 +696,7 @@ namespace DeadlyJenga.CandyPlayers
                 float extract = Ease(.17f, .34f, phase);
                 var item = rounds[i];
                 bool loaded = kind == EquipmentKind.GrenadeLauncher ? i >= count - remaining : i < remaining;
-                bool spentCase = kind == EquipmentKind.SheriffHammer && !loaded &&
-                    reloading && phase >= .17f && extract < 1;
+                bool spentCase = cylinder && !loaded && reloading && phase < .34f && !loading;
                 item.localScale = spentCase ? new Vector3(1,1,.65f) : Vector3.one;
                 item.gameObject.SetActive(cylinder
                     ? (loading || spentCase || loaded && (!reloading || extract < 1))
@@ -547,7 +718,10 @@ namespace DeadlyJenga.CandyPlayers
                     ? Vector3.back * (loading ? (1-insert)*.18f : extract*.21f) +
                         Vector3.down * (loading ? (1-insert)*.045f : extract*extract*.16f)
                     : Vector3.zero);
-                item.localRotation = kind == EquipmentKind.Chainsaw ? Quaternion.Euler(90,0,0) : Quaternion.identity;
+                item.localRotation = kind == EquipmentKind.Chainsaw ? Quaternion.Euler(90,0,0) :
+                    cylinder && reloading && !loading
+                        ? Quaternion.Euler(-38 * extract, (i - 2) * 9 * extract, 40 * extract)
+                        : Quaternion.identity;
             }
         }
     }
