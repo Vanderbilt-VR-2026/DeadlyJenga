@@ -104,7 +104,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }
                 render.SetEnabled(covered && sameSource && held && !StudioRender.Running);
                 motion.SetEnabled(render.enabledSelf);
-                card.Add(StudioUi.Row(render, motion));
+                card.Add(render);
+                card.Add(motion);
                 if (!covered) card.Add(StudioUi.Warning("Both angles must cover the reference frame."));
                 if (sameSource && !StudioRender.Running)
                 {
