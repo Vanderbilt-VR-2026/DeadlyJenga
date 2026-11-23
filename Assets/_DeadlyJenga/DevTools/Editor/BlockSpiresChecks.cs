@@ -51,8 +51,14 @@ namespace DeadlyJenga.DevTools.Editor
             if (state == PlayModeStateChange.EnteredEditMode)
             {
                 SessionState.EraseBool(Key);
-                EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key + "Scenes")).values);
-                if (Application.isBatchMode) EditorApplication.Exit(SessionState.GetBool(Key + "Passed", false) ? 0 : 2);
+                EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key + "Scenes", "")).values);
+                int exitCode = SessionState.GetBool(Key + "Passed", false) ? 0 : 2;
+                if (SessionState.GetString("DJWarm.id", "") != "")
+                {
+                    Directory.CreateDirectory("Logs/Warm");
+                    File.WriteAllText("Logs/Warm/exit.txt", exitCode.ToString());
+                }
+                else if (Application.isBatchMode) EditorApplication.Exit(exitCode);
             }
         }
 
@@ -110,9 +116,9 @@ namespace DeadlyJenga.DevTools.Editor
             wide.enabled = false;
             wide.CopyFrom(session.ActiveCamera);
             wide.enabled = false;
-            wide.transform.position = new Vector3(10,32,-19);
-            wide.transform.LookAt(new Vector3(0,16,0));
-            wide.fieldOfView = 67;
+            wide.transform.position = new Vector3(4.7f,28,-8.03f);
+            wide.transform.LookAt(new Vector3(0,19,0));
+            wide.fieldOfView = 93;
             Capture(wide, "wide");
             UnityEngine.Object.Destroy(wide.gameObject);
 
