@@ -961,10 +961,10 @@ namespace DeadlyJenga.CastlePrototype
                         session.Network.TryParticipantPosition(player.Key, out _)),
                     "Remote human avatar and position are live in Game", 30);
             if (host)
-                yield return Until(() => File.Exists(Mark(preset+"-guest-match")),
+                yield return Until(() => File.Exists(Mark(markers+"-guest-match")),
                     "Guest confirms initial world snapshot before load is added", 60);
             else if (!solo)
-                File.WriteAllText(Mark(preset+"-guest-match"), "ready");
+                File.WriteAllText(Mark(markers+"-guest-match"), "ready");
             if (WalledCastleTest)
             {
                 yield return CheckCastleReplication(world, session, host);
