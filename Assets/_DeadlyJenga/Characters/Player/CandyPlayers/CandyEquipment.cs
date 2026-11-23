@@ -577,6 +577,8 @@ namespace DeadlyJenga.CandyPlayers
                 var freePosition=support.position;
                 if(!CandyWeaponVisual.TrySupportContact(ref support,weapon,state.kind,supportLeft,Scale))return;
                 if(motor.IsVR&&(support.position-freePosition).sqrMagnitude>.30f*.30f*Scale*Scale)return;
+                if(!motor.IsVR&&state.kind==EquipmentKind.RocketLauncher&&state.reloadRemaining>0)
+                    CandyWeaponVisual.PoseRocketLoadingHand(ref support,weapon,state,supportLeft,Scale);
                 if(supportLeft)frame.left=support;else frame.right=support;
             }
         }

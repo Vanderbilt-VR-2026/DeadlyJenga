@@ -51,8 +51,13 @@ namespace DeadlyJenga.DevTools.Editor
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Arsenal Expansion")]
-        public static void Run()
+        public static void Run() => Start(false);
+
+        public static void RunRocketCandy() => Start(true);
+
+        static void Start(bool candyOnly)
         {
+            SessionState.SetBool(Key+"RocketCandyOnly",candyOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -82,6 +87,85 @@ namespace DeadlyJenga.DevTools.Editor
             }
             while(stack.Count>0)(stack.Pop() as IDisposable)?.Dispose();completed=!failed;EditorApplication.ExitPlaymode();
         }
+        static IEnumerator CheckRocketCandy(MatchModeRuntime runtime,CastleSurvivor player)
+        {
+            const EquipmentKind kind=EquipmentKind.RocketLauncher;
+            string actor=runtime.LocalActorId;
+            Check(runtime.GiveEquipment(kind),"Single-load RPG equips");
+            var start=runtime.EquipmentFor(actor);
+            Check(start.rounds==1&&start.rocketCandyVariant>=1&&start.rocketCandyVariant<=RocketCandy.VariantCount,
+                "The RPG begins with one colored lollipop");
+            float deadline=Time.realtimeSinceStartup+2;
+            GameObject loaded=null;
+            while(!loaded&&Time.realtimeSinceStartup<deadline)
+            {
+                yield return null;
+                loaded=GameObject.Find("Front-loaded lollipop");
+            }
+            Check(loaded,"A lollipop is visible in the muzzle");
+            var tint=new MaterialPropertyBlock();
+            var candy=loaded.transform.Find("Round lollipop").GetComponent<MeshRenderer>();
+            candy.GetPropertyBlock(tint);
+            Check(tint.GetColor("_BaseColor")==RocketCandy.ColorFor(start.rocketCandyVariant),
+                "The equipped avatar shows the authoritative loaded color");
+            int first=runtime.Frame.equipmentSequence;
+            var muzzle=new Pose(player.ViewPose.position+Vector3.forward*.4f,
+                Quaternion.LookRotation(new Vector3(0,.12f,1)));
+            var target=GameObject.CreatePrimitive(PrimitiveType.Cube);
+            target.name="Rocket candy contact fixture";
+            target.layer=Layers.Block;
+            target.transform.position=muzzle.position+muzzle.rotation*Vector3.forward*7;
+            target.transform.localScale=new Vector3(1.4f,1.5f,.42f);
+            Physics.SyncTransforms();
+            Check(runtime.RequestEquipmentAttack(muzzle),"Loaded lollipop fires");
+            var incoming=runtime.EquipmentFor(actor);
+            var shot=runtime.Frame.weaponProjectiles.SingleOrDefault(p=>p.kind==kind&&p.owner==actor);
+            var cue=runtime.Frame.equipmentActions.SingleOrDefault(a=>a.id>first&&a.kind==kind&&a.action==EquipmentAction.Shot);
+            Check(shot!=null&&cue!=null&&shot.rocketCandyVariant==start.rocketCandyVariant&&
+                cue.rocketCandyVariant==start.rocketCandyVariant,"Projectile, muzzle flash and rear exhaust use the fired color");
+            float showUntil=Time.realtimeSinceStartup+.35f;
+            TrailRenderer exhaust=null;
+            while(!exhaust&&Time.realtimeSinceStartup<showUntil)
+            {
+                yield return null;
+                var tip=GameObject.Find("Lollipop stick-tip exhaust");
+                if(tip)exhaust=tip.GetComponent<TrailRenderer>();
+            }
+            Check(exhaust&&Mathf.Abs(exhaust.startColor.b-RocketCandy.ColorFor(start.rocketCandyVariant).b)<.005f&&
+                Mathf.Abs(exhaust.startColor.r-RocketCandy.ColorFor(start.rocketCandyVariant).r)<.005f,
+                "Visible propulsion starts at the lollipop stick in the fired color");
+            float impactUntil=Time.time+.9f;
+            EquipmentActionFrame impact=null;
+            while(impact==null&&Time.time<impactUntil)
+            {
+                yield return null;
+                impact=runtime.Frame.equipmentActions.FirstOrDefault(a=>a.id>first&&a.kind==kind&&a.action==EquipmentAction.Impact);
+            }
+            Check(impact!=null&&impact.rocketCandyVariant==start.rocketCandyVariant&&
+                Vector3.Distance(impact.position,target.transform.position)<.65f,"Block detonation uses the same fired color");
+            target.SetActive(false);
+            Object.Destroy(target);
+            Check(incoming.rounds==0&&incoming.reloadRemaining>0&&
+                incoming.rocketCandyVariant!=start.rocketCandyVariant,"Shot empties the chamber and selects a different reload color");
+            Check(!runtime.RequestEquipmentAttack(muzzle),"Second shot is blocked by the reload");
+            float remaining=runtime.EquipmentFor(actor).reloadRemaining;
+            yield return new WaitForSeconds(Mathf.Max(0,remaining-1.58f));
+            Check(!runtime.RequestEquipmentAttack(muzzle),"Cooldown ending does not skip the reload");
+            candy.GetPropertyBlock(tint);
+            Check(loaded.activeInHierarchy&&loaded.transform.localPosition.z>1.22f&&
+                tint.GetColor("_BaseColor")==RocketCandy.ColorFor(incoming.rocketCandyVariant),
+                "The replacement color is already visible as the avatar brings the round to the muzzle");
+            deadline=Time.realtimeSinceStartup+6;
+            while(runtime.EquipmentFor(actor).reloadRemaining>0&&Time.realtimeSinceStartup<deadline)
+                yield return null;
+            var reloaded=runtime.EquipmentFor(actor);
+            Check(reloaded.rounds==1&&reloaded.reloadRemaining==0&&
+                reloaded.rocketCandyVariant==incoming.rocketCandyVariant,"One new lollipop seats with the chosen color");
+            Check(ModeFrameValidation.Frame(JsonUtility.FromJson<MatchFrame>(runtime.CaptureFrameJson()),Services.World.Blocks.Count),
+                "Snapshot with a colored lollipop passes validation");
+            Check(runtime.RequestEquipmentAttack(muzzle),"The newly loaded lollipop can fire");
+        }
+
         static IEnumerator Test()
         {
             var session=Object.FindFirstObjectByType<CastlePlaySession>();float until=Time.realtimeSinceStartup+30;
@@ -92,6 +176,11 @@ namespace DeadlyJenga.DevTools.Editor
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
             var created=session.SurvivorBots.SpawnOne();Check(created,"Target bot spawns");var target=created.GetComponent<CastleSurvivor>();target.GetComponent<CastleBotBrain>().enabled=false;target.InputSuspended=true;
             yield return new WaitForSeconds(.4f);
+            if(SessionState.GetBool(Key+"RocketCandyOnly",false))
+            {
+                yield return CheckRocketCandy(runtime,player);
+                yield break;
+            }
             Check(EquipmentSpecifications.All.Length==Enum.GetValues(typeof(EquipmentKind)).Length,"Every serialized equipment kind has one shared specification");
             Check((int)EquipmentKind.PoweredArmor==8&&(int)EquipmentKind.Blaster==3,"Existing equipment wire identities stay unchanged");
             foreach(EquipmentKind kind in Enum.GetValues(typeof(EquipmentKind)))

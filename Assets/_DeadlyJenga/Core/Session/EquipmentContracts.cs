@@ -10,6 +10,7 @@ namespace DeadlyJenga.Core
         public string actor;
         public EquipmentKind kind;
         public EquipmentAction action;
+        public int rocketCandyVariant;
         public bool shotgun;
         public Vector3 position;
         public Vector3[] endpoints=Array.Empty<Vector3>();
@@ -27,6 +28,7 @@ namespace DeadlyJenga.Core
         public float charge;
         public int rounds;
         public bool magazineInitialized;
+        public int rocketCandyVariant;
         public float reloadRemaining;
         public string embeddedVictim;
         public Vector3 embeddedPoint;
@@ -38,6 +40,7 @@ namespace DeadlyJenga.Core
     {
         public int id;
         public int rounds=-1;
+        public int rocketCandyVariant;
         public EquipmentKind kind;
         public Vector3 position;
         public float remaining=20,availableIn;
@@ -73,6 +76,7 @@ namespace DeadlyJenga.Core
         public int id;
         public EquipmentKind kind;
         public string owner;
+        public int rocketCandyVariant;
         public Vector3 position,velocity;
         public float remaining;
     }

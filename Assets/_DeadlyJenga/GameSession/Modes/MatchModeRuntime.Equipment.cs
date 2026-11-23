@@ -148,6 +148,7 @@ namespace DeadlyJenga.Modes
                 if(dropped==null)return false;
                 dropped.availableIn=1;
                 dropped.rounds=previous.magazineInitialized?previous.rounds:-1;
+                dropped.rocketCandyVariant=previous.rocketCandyVariant;
                 AnnounceEquipment(id,previous,EquipmentAction.Drop,dropPoint);
             }
             StopArsenalTrigger(id);thrustSeen.Remove(id);
@@ -159,8 +160,9 @@ namespace DeadlyJenga.Modes
                 (mover==null||!mover.Climbing&&!mover.Vaulting);
             equipment[id]=new EquipmentState{
                 actor=id,kind=pickup.kind,remaining=pickup.remaining,rounds=Mathf.Max(0,pickup.rounds),
-                magazineInitialized=pickup.rounds>=0,leftHanded=previous.leftHanded,drawn=drawOnPickup
+                rocketCandyVariant=pickup.rocketCandyVariant,magazineInitialized=pickup.rounds>=0,leftHanded=previous.leftHanded,drawn=drawOnPickup
             };
+            PrepareRocketCandy(equipment[id]);
             if (pickup.kind >= EquipmentKind.Blaster) holsteredDaggers.Remove(id);
             if(drawOnPickup)
                 weaponCooldown[id]=Mathf.Max(Time.time+.48f,weaponCooldown.TryGetValue(id,out float ready)?ready:0);
@@ -198,6 +200,7 @@ namespace DeadlyJenga.Modes
                 {
                     drop.availableIn=1;
                     drop.rounds=state.magazineInitialized?state.rounds:-1;
+                    drop.rocketCandyVariant=state.rocketCandyVariant;
                     AnnounceEquipment(id,state,EquipmentAction.Drop,dropPoint);
                 }
             }
@@ -233,6 +236,7 @@ namespace DeadlyJenga.Modes
             var state=new EquipmentState{actor=id,kind=kind,remaining=20,leftHanded=actor.gameObject.GetComponent<IBlasterControls>()?.LeftHanded??previous.leftHanded,shotgun=previous.kind==kind&&previous.shotgun,
                 drawn=kind>=EquipmentKind.Blaster&&!simulation.CarriesFlag(id)&&(movement==null||!movement.Climbing&&!movement.Vaulting)};
             if (kind >= EquipmentKind.Blaster) holsteredDaggers.Remove(id);
+            PrepareRocketCandy(state);
             StopArsenalTrigger(id);equipment[id]=state;weaponCooldown.Remove(id);thrustSeen.Remove(id);sheriffDrops.Remove(id);
             AnnounceEquipment(id,state,previous.kind==EquipmentKind.None?EquipmentAction.Pickup:EquipmentAction.Swap,actor.ViewPose.position);
             if(publish)PublishEquipment();return true;
@@ -296,7 +300,7 @@ namespace DeadlyJenga.Modes
             }
             if(Authority&&Rules.defaultDagger)foreach(var p in simulation.Participants)if(!equipment.ContainsKey(p.frame.id)){var fallback=EquipmentFor(p.frame.id);if(fallback.builtIn)published.Add(fallback);}
             frame.equipment=published.ToArray();
-            frame.pickups=pickups.Select(x=>new EquipmentPickup{id=x.id,rounds=x.rounds,kind=x.kind,position=x.position,remaining=x.remaining,availableIn=x.availableIn,station=x.station,randomSpawn=x.randomSpawn,supportBlock=x.supportBlock,supportLocal=x.supportLocal,expiresIn=x.expiresIn}).ToArray();
+            frame.pickups=pickups.Select(x=>new EquipmentPickup{id=x.id,rounds=x.rounds,rocketCandyVariant=x.rocketCandyVariant,kind=x.kind,position=x.position,remaining=x.remaining,availableIn=x.availableIn,station=x.station,randomSpawn=x.randomSpawn,supportBlock=x.supportBlock,supportLocal=x.supportLocal,expiresIn=x.expiresIn}).ToArray();
             PublishEquipmentAnnouncements();WritePowerupFrame();ruleCache.Clear();
         }
         void ResetEquipment(){holsteredDaggers.Clear();ResetArsenal();loadoutAlive.Clear();ResetRandomPickups();ResetEquipmentAnnouncements();equipment.Clear();pickups.Clear();authoredPickups.Clear();weaponCooldown.Clear();handCooldowns.Clear();thrustSeen.Clear();sheriffDrops.Clear();stationsSeeded=false;PublishEquipment();}
@@ -312,6 +316,7 @@ namespace DeadlyJenga.Modes
             foreach(var state in saved.equipment??Array.Empty<EquipmentState>()){var copy=state.Copy();copy.thrust=false;copy.triggerHeld=false;copy.charge=0;equipmentHands[state.actor]=copy.leftHanded;
                 if (copy.builtIn && !copy.drawn) holsteredDaggers.Add(state.actor);
                 if(copy.builtIn&&copy.activePower!=EquipmentKind.None){copy.kind=copy.activePower;copy.activePower=EquipmentKind.None;copy.builtIn=false;copy.drawn=false;}
+                PrepareRocketCandy(copy);
                 if(!copy.builtIn)equipment[state.actor]=copy;}
             foreach(var pickup in saved.pickups??Array.Empty<EquipmentPickup>()){pickups.Add(pickup);nextPickup=Mathf.Max(nextPickup,pickup.id);}
             RestoreArsenal(saved);RestoreRandomPickups();stationsSeeded=pickups.Exists(x=>x.station);

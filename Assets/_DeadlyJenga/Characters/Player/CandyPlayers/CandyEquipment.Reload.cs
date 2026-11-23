@@ -15,6 +15,12 @@ namespace DeadlyJenga.CandyPlayers
             float tilt = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(0, .18f, phase)) *
                 (1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.78f, 1, phase)));
             float side = handLeft ? -1 : 1;
+            if(state.kind==EquipmentKind.RocketLauncher)
+            {
+                var lowered=pose.position+pose.rotation*new Vector3(-side*.04f,-.10f,.025f)*(tilt*Scale);
+                var turned=pose.rotation*Quaternion.Euler(7*tilt,-57*side*tilt,side*11*tilt);
+                return new Pose(lowered,turned);
+            }
             return new Pose(pose.position, pose.rotation * Quaternion.Euler(17 * tilt, 0, side * 23 * tilt));
         }
     }

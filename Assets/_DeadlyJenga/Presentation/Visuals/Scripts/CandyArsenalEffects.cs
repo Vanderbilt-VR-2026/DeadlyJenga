@@ -55,7 +55,7 @@ namespace DeadlyJenga.Presentation
             {
                 seen.Add(shot.id);if(!shots.TryGetValue(shot.id,out var model))
                 {
-                    model=TakeProjectile(shot.kind,shot.position);shots[shot.id]=model;
+                    model=TakeProjectile(shot.kind,shot.position,shot.rocketCandyVariant);shots[shot.id]=model;
                 }
                 Vector3 forward=shot.velocity.sqrMagnitude>.001f?shot.velocity:Vector3.forward;
                 // Bound cosmetic prediction to half a meter; no extra collision queries.
@@ -63,6 +63,12 @@ namespace DeadlyJenga.Presentation
                 model.SetPositionAndRotation(shot.position+prediction,Quaternion.LookRotation(forward));
                 if(shot.kind==EquipmentKind.Chainsaw)model.Rotate(90,0,Time.time*1500,Space.Self);
                 else if(shot.kind==EquipmentKind.GrenadeLauncher)model.Rotate(0,0,Time.time*370,Space.Self);
+                else if(shot.kind==EquipmentKind.RocketLauncher)
+                {
+                    model.Rotate(0,0,(Time.time*190+shot.id*39)%360,Space.Self);
+                    var plume=model.GetChild(3).GetChild(0);
+                    plume.localScale=new Vector3(.105f,.105f,.34f*(.91f+.10f*Mathf.Sin(Time.time*39+shot.id)));
+                }
             }
             stale.Clear();foreach(var item in shots)if(!seen.Contains(item.Key)){ReturnProjectile(item.Value);stale.Add(item.Key);}foreach(int id in stale)shots.Remove(id);
             cursor.Read(match.Frame,Action);
