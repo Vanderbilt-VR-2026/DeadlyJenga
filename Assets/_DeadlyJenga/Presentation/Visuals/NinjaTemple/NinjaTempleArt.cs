@@ -70,7 +70,7 @@ namespace DeadlyJenga.NinjaArt
             sky.SetVector("_Lake",shore);
 
             var castleWater = Resources.Load<Material>("InstancingKeep/CandyOcean Instanced");
-            water = new Material(castleWater) {name="Moonlit Lake · castle ocean"};
+            water = new Material(castleWater) {name="Moonlit Lake ï¿½ castle ocean"};
             owned.Add(water);
             water.SetVector("_MoonlitLake",shore);
             water.SetVector("_Island",new Vector4(shore.x,shore.y,43,43));
@@ -348,6 +348,8 @@ namespace DeadlyJenga.NinjaArt
         }
         static float Master { get { var engine = CandyAudio.CandyAudioEngine.Instance; return engine && engine.bank ? engine.bank.master : .8f; } }
 
+        ShrineReviewedHallArt reviewedHall;
+
         void Decorate()
         {
             if (world == null) return; var blocks = world.Blocks; int revision = synced?.Revision ?? 0;
@@ -356,6 +358,12 @@ namespace DeadlyJenga.NinjaArt
             foreach (var body in blocks)
             {
                 if (!body || body.transform.Find("Visual - ninja decor")) continue;
+                if (shrineTown && body.transform.Find("Reviewed shrine art origin"))
+                {
+                    reviewedHall ??= new ShrineReviewedHallArt(props);
+                    reviewedHall.Attach(body);
+                    continue;
+                }
                 var size = body.transform.lossyScale;
                 int thickness = Mathf.RoundToInt(size.z * 100);
                 bool lanternRoom = Mathf.Abs(size.y - 4.65f) < .01f && size.z > 2 && Mathf.Abs(size.x - size.z) < .01f;
@@ -397,6 +405,8 @@ namespace DeadlyJenga.NinjaArt
             RenderSettings.ambientSkyColor = previousAmbientSky; RenderSettings.ambientEquatorColor = previousAmbientEquator; RenderSettings.ambientGroundColor = previousAmbientGround; RenderSettings.ambientProbe = previousProbe;
             Shader.SetGlobalFloat(Blood, 0);
             if (scenery) Destroy(scenery.gameObject); if (weather) Destroy(weather.gameObject); if (moon) Destroy(moon.gameObject);
+            reviewedHall?.Dispose(); reviewedHall = null;
+            decoratedRevision = decoratedBlocks = -1;
             foreach (var o in owned) if (o) Destroy(o); owned.Clear(); practicals.Clear(); wallMeshes.Clear();
         }
     }
