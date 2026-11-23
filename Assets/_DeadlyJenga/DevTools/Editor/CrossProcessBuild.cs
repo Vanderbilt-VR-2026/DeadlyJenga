@@ -80,11 +80,13 @@ namespace DeadlyJenga.CastlePrototype.Editor
         public static void RunNearbyPairBatch() => RunPair("NearbyPair", "--dj-nearby-lobby");
         public static void RunTidalCircuitPairBatch() => RunPair("TidalCircuitPair", "--dj-tidal-circuit");
 
-        static void RunPair(string label, string flag)
+        public static void RunSphinxJunctionPairBatch() => RunPair("SphinxJunctionPair", "--dj-sphinx-junction");
+
+        static void RunPair(string scenario, string flag)
         {
             if (!UnityEngine.Application.isBatchMode)
                 throw new InvalidOperationException("Use a dedicated batch editor for this check.");
-            string output = Path.GetFullPath(Path.Combine("Logs", "Validation", label + "-" + Guid.NewGuid().ToString("N")));
+            string output = Path.GetFullPath(Path.Combine("Logs", "Validation", scenario + "-" + Guid.NewGuid().ToString("N")));
             Directory.CreateDirectory(output);
             string report = Path.Combine(output, "pair.txt");
             string exe = Path.GetFullPath(Path.Combine("Builds", "IntegrationSweep", "DeadlyJenga.exe"));
@@ -125,7 +127,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         throw new InvalidOperationException(role + " did not finish its gameplay checks.");
                 }
                 if (players.Any(player => player.ExitCode != 0)) throw new InvalidOperationException("Peer exit failure.");
-                File.AppendAllText(report, "PASS independent nearby host and guest completed\n");
+                File.AppendAllText(report, "PASS independent "+scenario+" host and guest completed\n");
                 exitCode = 0;
             }
             catch (Exception error)
