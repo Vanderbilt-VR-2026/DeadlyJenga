@@ -12,6 +12,8 @@ namespace DeadlyJenga.CastlePrototype
         const int Biscuit=0, Caramel=1, Cocoa=2, Ice=3, Snow=4, Pink=5, Violet=6, Red=7, Green=8, Glow=9, Gold=10, Stone=11;
         readonly List<Rigidbody> pieces=new();
         readonly List<Mesh> meshes=new();
+        readonly Collider[] fallen=new Collider[128];
+        float nextFallCheck;
         Transform town,plot;
         bool replica;
         public IReadOnlyList<Rigidbody> Blocks=>pieces;
@@ -43,6 +45,21 @@ namespace DeadlyJenga.CastlePrototype
             replica=value;
             foreach(var body in pieces)body.isKinematic=value;
         }
+        void FixedUpdate()
+        {
+            if(Time.time<nextFallCheck)return;
+            nextFallCheck=Time.time+.1f;
+            Vector3 center=transform.TransformPoint(V(0,-56,0));
+            int mask=~((1<<Layers.Block)|(1<<Layers.Surface));
+            int count=Physics.OverlapBoxNonAlloc(center,Vector3.Scale(V(125,50,125),transform.lossyScale),
+                fallen,transform.rotation,mask,QueryTriggerInteraction.Ignore);
+            for(int i=0;i<count;i++)
+            {
+                var actor=fallen[i].GetComponentInParent<IDamageable>();
+                if(actor!=null && actor.Health>0)actor.Eliminate(gameObject);
+                fallen[i]=null;
+            }
+        }
         void OnEnable()=>Services.World=this;
         void OnDisable(){if(ReferenceEquals(Services.World,this))Services.World=null;}
         void FreeMeshes(){foreach(var mesh in meshes)Destroy(mesh);meshes.Clear();}
@@ -54,17 +71,18 @@ namespace DeadlyJenga.CastlePrototype
             t.localPosition=at;t.localRotation=Quaternion.Euler(0,yaw,0);return t;
         }
         void Mount(Transform owner,GingerbreadMesh mesh)=>meshes.Add(mesh.Mount(owner,finishes));
-        void Part(string label,Vector3 at,Vector3 size,int finish,bool loose=true,Action<GingerbreadMesh> garnish=null,Quaternion tilt=default)
+        Transform Part(string label,Vector3 at,Vector3 size,int finish,bool loose=true,Action<GingerbreadMesh> garnish=null,Quaternion tilt=default)
         {
             var part=Group(label,plot,at);
             if(tilt!=default)part.localRotation=tilt;
             var box=part.gameObject.AddComponent<BoxCollider>();box.size=size;box.sharedMaterial=friction;
             var mesh=new GingerbreadMesh();mesh.Box(finish,Vector3.zero,size);garnish?.Invoke(mesh);Mount(part,mesh);
-            if(!loose)return;
+            if(!loose)return part;
             var body=part.gameObject.AddComponent<Rigidbody>();body.mass=Mathf.Clamp(size.x*size.y*size.z*2,4,55);
             body.solverIterations=16;body.solverVelocityIterations=6;body.isKinematic=replica;
             var block=part.gameObject.AddComponent<CastleBlock>();block.visualRoot=part.Find("Visual");pieces.Add(body);
             if(label=="Pullable bridge bearing")part.gameObject.AddComponent<GingerbreadBearing>();
+            return part;
         }
         public void Rebuild()
         {

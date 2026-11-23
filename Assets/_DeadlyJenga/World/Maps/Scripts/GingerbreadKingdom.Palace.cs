@@ -26,14 +26,30 @@ namespace DeadlyJenga.CastlePrototype
                 Part("Gallery balcony",V(s*6.2f,5.96f,0),V(3.4f,.4f,5.4f),Caramel,true,m=>Rail(m,3.25f,-2.65f,.2f));
                 Tower(s*6.25f,6.16f,1.0f,2.25f,3.15f,s<0?Violet:Pink);
                 Tower(s*3.95f,2.88f,-1.25f,2,4.65f,s<0?Pink:Violet);
-                Tower(s*2.75f,2.88f,2.15f,2.35f,6.7f,s<0?Violet:Pink);
+                Tower(s*3.55f,2.88f,2.25f,2.35f,6.7f,s<0?Violet:Pink);
                 Part("Entrance pillar",V(s*1.52f,4.86f,-1.45f),V(.82f,3.96f,2.65f),Biscuit,true,
                     m=>Window(m,V(0,-1.3f,-1.35f),.55f,2.4f));
             }
             Part("Audience hall rear",V(0,4.86f,1.45f),V(4,3.96f,1.3f),Cocoa,true,
                 m=>Window(m,V(0,-1.9f,-.68f),2.45f,3.65f));
             Part("Royal loggia",V(0,7.05f,0),V(4.5f,.42f,5.6f),Biscuit,true,m=>{
-                Rail(m,4.3f,-2.68f,.21f);Arch(m,V(0,-4.12f,-2.85f),1.38f,2.46f,Ice);
+                Rail(m,4.3f,-2.68f,.21f);
+                Heart(m,V(0,.67f,-2.83f),.32f);
+                for(int s=-1;s<=1;s+=2)
+                {
+                    Vector3 a=V(s*2.10f,.44f,-2.64f),b=V(0,2.16f,-2.64f);
+                    m.Face(Caramel,a,b,V(0,.44f,-2.64f));
+                    m.Face(Caramel,V(0,.44f,-2.64f),b,a);
+                    m.Line(Ice,a,b,.20f);
+                    for(int k=0;k<5;k++)
+                    {
+                        float t=(k+.3f)/5;
+                        Vector3 p=Vector3.Lerp(a,b,t);
+                        m.Ring(Ice,p-Vector3.up*.22f,.02f,.105f,.22f,7);
+                    }
+                }
+                Window(m,V(0,.69f,-2.72f),.86f,1.03f);
+                Arch(m,V(0,-4.12f,-2.85f),1.38f,2.46f,Ice);
                 Arch(m,V(0,-4.12f,-2.89f),1.54f,2.47f,Gold);
             });
             Tower(0,7.26f,.32f,3.1f,4.45f,Pink);

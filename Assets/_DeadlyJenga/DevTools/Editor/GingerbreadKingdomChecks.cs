@@ -22,7 +22,7 @@ namespace DeadlyJenga.DevTools.Editor
         static Vector3[] homes;
         static float started;
         static int phase, waypoint;
-        static bool failed;
+        static bool failed,fallEliminated;
         static double boot;
         static Vector3 P(float x,float z)=>new Vector3(x,0,z);
         static readonly Vector3[] Approach={P(-5,-19),P(-5,-10),P(-4,-3),P(-3,3),P(-3,6),P(0,8),P(3,9),P(3,15)};
@@ -92,8 +92,20 @@ namespace DeadlyJenga.DevTools.Editor
                     bearing.GetComponent<IGrabbable>().Release();Check(span.position.y<1.05f,"unsupported deck fell to y="+span.position.y);
                     Shot("05-bridge-after",new Vector3(19,3,-15),new Vector3(15,.8f,-11));Next();
                 }
-                else if(phase==5 && Walk(Detour)){map.Rebuild();Next();}
-                else if(phase==6 && Time.time-started>2)
+                else if(phase==5 && Walk(Detour))
+                {
+                    // A separate fall trial begins on snow beside the damaged crossing.
+                    walker.Place(new Vector3(17.6f,.08f,-11),Quaternion.identity);
+                    driver.destination=P(16.50f,-11);
+                    GameEvents.Eliminated+=OnFall;Next();
+                }
+                else if(phase==6 && (fallEliminated || Time.time-started>6))
+                {
+                    GameEvents.Eliminated-=OnFall;
+                    Check(fallEliminated,"fall from snow edge beside damaged span raised survivor elimination at "+walker.transform.position);
+                    walker.Place(map.SafeSpawnPoint(),Quaternion.identity);driver.destination=walker.transform.position;map.Rebuild();Next();
+                }
+                else if(phase==7 && Time.time-started>2)
                 {
                     Check(map.Blocks.Count==homes.Length&&map.Blocks.Select((b,i)=>Vector3.Distance(b.position,homes[i])).Max()<.3f,"reset restores settled map");
                     Finish();
@@ -101,12 +113,18 @@ namespace DeadlyJenga.DevTools.Editor
             }
             catch(Exception e){failed=true;Report(e.ToString());Finish();}
         }
+        static void OnFall(GameObject actor,GameObject source)
+        {
+            if(walker && actor==walker.gameObject)fallEliminated=true;
+        }
         static bool Walk(Vector3[] route)
         {
             driver.destination=route[waypoint];
             if(Vector3.Distance(Vector3.ProjectOnPlane(walker.transform.position,Vector3.up),route[waypoint])<.42f)
             {
                 Report($"Route {phase} waypoint {waypoint} at {walker.transform.position}");
+                if(phase==2 && waypoint==2)Shot("06-walk-fork",walker.viewCamera.transform.position,new Vector3(-9,2.5f,-10));
+                if(phase==2 && waypoint==6)Shot("07-walk-palace",walker.viewCamera.transform.position,new Vector3(3,6,18));
                 if(phase==3 && waypoint==1)Check(walker.transform.position.y>1.45f,"crossed the elevated deck");
                 waypoint++;started=Time.time;return waypoint==route.Length;
             }

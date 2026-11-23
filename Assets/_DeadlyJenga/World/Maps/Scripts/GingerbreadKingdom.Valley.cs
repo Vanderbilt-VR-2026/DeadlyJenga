@@ -12,7 +12,7 @@ namespace DeadlyJenga.CastlePrototype
                 Part("Packed snow",V((left+right)*.5f,-.52f,(south+north)*.5f),V(right-left,1.04f,north-south),Snow,false);
             }
             Ground(-85,85,-85,-13.04f);Ground(-85,85,-8.96f,85);
-            Ground(-85,13.95f,-13.04f,-8.96f);Ground(16.05f,85,-13.04f,-8.96f);
+            Ground(-85,12.90f,-13.04f,-8.96f);Ground(17.10f,85,-13.04f,-8.96f);
             Ground(14.31f,15.69f,-11.86f,-10.14f);
             var kill=Group("Below the snow cut",town,V(0,-8.5f,0));
             kill.gameObject.AddComponent<BoxCollider>().size=V(180,.6f,180);
