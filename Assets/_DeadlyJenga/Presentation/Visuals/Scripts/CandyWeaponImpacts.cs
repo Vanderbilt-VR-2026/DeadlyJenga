@@ -196,6 +196,7 @@ namespace DeadlyJenga.Presentation
             if(marks.Count==Capacity)marks.RemoveAt(0);
             float diameter=kind==EquipmentKind.RocketLauncher?.78f:
                 kind==EquipmentKind.GrenadeLauncher?.55f:
+                kind==EquipmentKind.DualRifle?.29f:
                 kind==EquipmentKind.Blaster||kind==EquipmentKind.PoweredArmor?.42f:
                 kind==EquipmentKind.WristLaser||kind==EquipmentKind.LaserAxe?.25f:.14f;
             var localPose=contact.localFrame*Matrix4x4.TRS(Vector3.zero,
@@ -204,7 +205,8 @@ namespace DeadlyJenga.Presentation
             {
                 anchor=contact.anchor,localPose=localPose,tint=ownerColor??Tint(kind),
                 born=Time.time,life=kind==EquipmentKind.DualUzi?1.6f:4,
-                style=kind==EquipmentKind.GrenadeLauncher?2:
+                style=kind==EquipmentKind.DualRifle?3:
+                    kind==EquipmentKind.GrenadeLauncher?2:
                     kind==EquipmentKind.WristLaser||kind==EquipmentKind.LaserAxe?1:0,
                 layer=contact.layer,renderingMask=contact.renderingMask
             });
