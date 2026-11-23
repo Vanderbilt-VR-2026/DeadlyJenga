@@ -16,6 +16,7 @@ namespace DeadlyJenga.CandyArt
         Mesh owned;Texture2D heights;int signature;
         public Texture2D HeightMap=>heights;
         public Vector2 HalfSize{get;private set;}
+        internal bool CompactSandbar { get; set; }
         internal bool CatwalksBeach { get; set; }
         internal float BeachWaterOffset { get; set; }
         Vector2 coastHalf;
@@ -109,7 +110,7 @@ namespace DeadlyJenga.CandyArt
         public void Refresh()
         {
             if(!profile)return;var shape=map?Map:null;
-            int hash=profile.terrainResolution*2+(CatwalksBeach?1:0);
+            int hash=profile.terrainResolution*4+(CatwalksBeach?1:0)+(CompactSandbar?2:0);
             void Hash(float value){hash=hash*31+value.GetHashCode();}
             Hash(profile.sandMargin);Hash(profile.sandRelief);Hash(profile.sandDepth);Hash(profile.sandShoreWidth);Hash(profile.islandRadius);
             if(shape!=null)Hash(shape.FootprintVersion);
@@ -121,6 +122,7 @@ namespace DeadlyJenga.CandyArt
             if(shape!=null){ground.Clear();shape.GetGroundFootprints(ground);
                 foreach(var piece in ground)feet.Add(new Foot{center=piece.center,half=piece.halfSize,rotation=Quaternion.Inverse(piece.rotation)});}
             if(CatwalksBeach) coastHalf=CastleCoastRadii(half);
+            if(CompactSandbar) coastHalf=new Vector2(half+2.2f,half+1.9f);
             HalfSize=coastHalf+Vector2.one*(CatwalksBeach?56f:profile.sandShoreWidth);
             BuildMesh();signature=hash;
         }

@@ -21,7 +21,7 @@ namespace DeadlyJenga.CastlePrototype
         [Tooltip("Experimental shared groups for naturally sleeping blocks. Disabled by default: current Editor measurements regress overall frame time.")]
         public bool groupRestingBlocks;
         [Min(1)] public int physicsGroupThreshold = 1500;
-        MagneticStructure tycoonSupports;
+        MagneticStructure breakawaySupports;
         public CastlePhysicsGroups PhysicsGroups { get; private set; }
         [Header("Debris cleanup")]
         public bool sinkDisplacedDebris = true, shatterHeavyImpacts = true;
@@ -245,7 +245,7 @@ namespace DeadlyJenga.CastlePrototype
                 body.interpolation = replica ? RigidbodyInterpolation.None : RigidbodyInterpolation.Interpolate;
             }
             if (Debris) Debris.SetReplica(replica);
-            if (tycoonSupports) tycoonSupports.SetReplica(replica);
+            if (breakawaySupports) breakawaySupports.SetReplica(replica);
         }
 
         // IMapFootprint: the bottom course of the castle, for the sand around it
@@ -403,7 +403,7 @@ namespace DeadlyJenga.CastlePrototype
                 generatedRoot.gameObject.SetActive(false);
                 if (Application.isPlaying) Destroy(generatedRoot.gameObject); else DestroyImmediate(generatedRoot.gameObject);
             }
-            PhysicsGroups=null;Debris=null;tycoonSupports=null;
+            PhysicsGroups=null;Debris=null;breakawaySupports=null;
             Bodies.Clear();debrisCursor=0;
             generatedRoot = new GameObject("Generated Castle Blocks").transform;
             generatedRoot.SetParent(transform, false);
@@ -487,8 +487,10 @@ namespace DeadlyJenga.CastlePrototype
                 ShrineTownLayout.JoinTimberFrames(layout, Bodies);
             Physics.SyncTransforms();
             if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)
-                tycoonSupports = TycoonSupports.Build(generatedRoot, Bodies, layout);
-            if (Application.isPlaying && !tycoonSupports && groupRestingBlocks && Bodies.Count>=physicsGroupThreshold)
+                breakawaySupports = TycoonSupports.Build(generatedRoot, Bodies, layout);
+            if (Application.isPlaying && settings.layoutPreset == BlockSpiresLayout.Preset)
+                breakawaySupports = BlockSpiresLayout.BuildSupports(generatedRoot, layout, Bodies);
+            if (Application.isPlaying && !breakawaySupports && groupRestingBlocks && Bodies.Count>=physicsGroupThreshold)
             {
                 PhysicsGroups=generatedRoot.gameObject.AddComponent<CastlePhysicsGroups>();
                 PhysicsGroups.Initialize(Bodies);

@@ -77,10 +77,10 @@ namespace DeadlyJenga.CandyArt
                 BuildReef(i,center,terrain,random,i<schools.Length);
             }
             for(int i=0;i<Islets.Length;i++) BuildIslet(i,random);
-            BuildPaintedHorizon();
+            if (MatchChoices.MapId != "block-spires") BuildPaintedHorizon();
             BuildHorizon(random);
             BuildRay();
-            boats=new CandyBenchyFleet(root.transform);
+            if (MatchChoices.MapId != "block-spires") boats=new CandyBenchyFleet(root.transform);
         }
 
         internal void SetWaterProperties(MaterialPropertyBlock properties)
