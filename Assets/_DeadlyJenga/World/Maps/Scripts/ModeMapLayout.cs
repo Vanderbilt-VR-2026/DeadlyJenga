@@ -17,7 +17,7 @@ namespace DeadlyJenga.CastlePrototype
             if(s.layoutPreset==NeedlefrostLayout.Preset)return new Vector2(56,48);
             if(s.layoutPreset==TwinCalderaLayout.Preset)return new Vector2(90,62);
             if(s.layoutPreset==WalledCastleLayout.Preset)return new Vector2(58,74);
-            if(s.layoutPreset==BlockSpiresLayout.Preset)return new Vector2(17.5f,15.5f);
+            if(s.layoutPreset==BlockSpiresLayout.Preset)return new Vector2(19.8f,15.4f);
             if (s.layoutPreset == PrismaticCitadelLayout.Preset)
                 return PrismaticCitadelLayout.Size(s) + new Vector2(6f, 4f);
             if(s.layoutPreset==TycoonLayout.Preset)return TycoonLayout.Size;

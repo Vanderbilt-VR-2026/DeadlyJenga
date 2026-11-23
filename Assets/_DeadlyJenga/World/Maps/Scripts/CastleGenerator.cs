@@ -417,7 +417,8 @@ namespace DeadlyJenga.CastlePrototype
             if (foundation)
             {
                 var size = CastleLayout.FootprintSize(settings)+Vector2.one*4;
-                foundation.localScale = new Vector3(size.x, 1, size.y);
+                if (settings.layoutPreset != BlockSpiresLayout.Preset || !foundation.TryGetComponent<MeshCollider>(out _))
+                    foundation.localScale = new Vector3(size.x, 1, size.y);
                 if (settings.layoutPreset == ShrineTownLayout.Preset)
                 {
                     foundation.GetComponent<BoxCollider>().enabled = false;

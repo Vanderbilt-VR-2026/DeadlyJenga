@@ -22,12 +22,13 @@ namespace DeadlyJenga.CastlePrototype
             {  0,  0,  1,  0 }
         };
         // Independent needles. The tallest are behind the crown in the wide view.
-        static readonly Vector3Int[] Satellites = {
-            new(-7,14,-2), new(-6,10,-5), new(-4,17,-6), new(-1,8,-7),
-            new(2,18,-6), new(5,11,-5), new(7,15,-3), new(8,8,0),
-            new(6,21,2), new(7,12,5), new(4,17,6), new(2,25,5),
-            new(-2,20,6), new(-4,26,4), new(-6,22,2), new(-8,16,1),
-            new(-5,7,-1), new(4,9,-2)
+        static readonly Vector3[] Satellites = {
+            new(-8.4f, 17, 1.9f), new(-8.2f, 12, -3.8f), new(-6.8f, 19, -6.3f),
+            new(-2.9f, 8, -7.2f), new(2.6f, 18, -7), new(6, 14, -5.8f),
+            new(8.5f, 18, -3.9f), new(8.3f, 10, 0.5f), new(7.5f, 23, 3.1f),
+            new(6.5f, 15, 5.6f), new(4.3f, 20, 6.6f), new(2.6f, 25, 6.4f),
+            new(-1.8f, 20, 6.7f), new(-4.7f, 26, 5.8f), new(-6.4f, 24, 3.9f),
+            new(-9.4f, 20, -0.8f), new(-5.7f, 9, -1.7f), new(5.3f, 11, -1.2f),
         };
 
         internal static MagneticStructure BuildSupports(Transform root, List<CastlePlacement> layout,
@@ -52,21 +53,23 @@ namespace DeadlyJenga.CastlePrototype
         {
             var blocks = new List<CastlePlacement>(760);
             int column = 0;
-            void Stack(float x, float z, int height)
+            void Stack(float x, float z, int height, bool core)
             {
                 uint state = 1031u + (uint)column++ * 7919u;
                 for (int y = 0; y < height; y++)
                 {
                     state = unchecked(state * 1664525u + 1013904223u);
                     var section = (CastleSection)((state >> 16) % 3);
-                    var center = new Vector3(x * Pitch, (y + .5f) * Edge, z * Pitch);
+                    if (core && y == height - 1 && height >= 25)
+                        section = height == 25 ? CastleSection.Corner : height == Summit ? CastleSection.Wall : CastleSection.Keep;
+                    var center = new Vector3(x, (y + .5f) * Edge, z);
                     blocks.Add(new CastlePlacement(center, Quaternion.identity, section, y, Vector3.one * Edge));
                 }
             }
             for (int z = 0; z < Core.GetLength(0); z++)
                 for (int x = 0; x < Core.GetLength(1); x++)
-                    if (Core[z,x] > 0) Stack(x - 1.5f, z - 1.5f, Core[z,x]);
-            foreach (var needle in Satellites) Stack(needle.x, needle.z, needle.y);
+                    if (Core[z,x] > 0) Stack((x - 1.5f) * Pitch, (z - 1.5f) * Pitch, Core[z,x], true);
+            foreach (var needle in Satellites) Stack(needle.x, needle.z, (int)needle.y, false);
             return blocks;
         }
     }
