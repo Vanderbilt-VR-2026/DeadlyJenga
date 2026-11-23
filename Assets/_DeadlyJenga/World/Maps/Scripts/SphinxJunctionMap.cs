@@ -8,11 +8,12 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class SphinxJunctionMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        public const string Signature = "sphinx-junction-6";
+        public const string Signature = "sphinx-junction-7";
         public Shader finishShader;
         Material finish;
         Transform built;
         JunctionModel model;
+        JunctionStructure structure;
         GameObject unit;
         readonly List<Rigidbody> bodies = new();
         readonly List<Rigidbody> plazas = new();
@@ -55,8 +56,16 @@ namespace DeadlyJenga.CastlePrototype
             built.SetParent(transform,false);
             if (!finish) finish = new Material(finishShader);
             bodies.Clear(); plazas.Clear();
-            Island(); Sphinx(); Saloon(); Pyramid(); Railway();
+            authoredSeams.Clear();
+            bakedMembers.Clear();
+            structure = JunctionStructure.Load();
+            Island();
+            if (structure == null) Sphinx(); else BuildBakedSphinx();
+            Saloon(); Pyramid();
+            if (structure != null) BuildBakedLandmarkAdditions();
+            Railway();
             Physics.SyncTransforms();
+            if (structure != null) ExcludeAuthoredOverlaps();
             SetReplica(replica);
             Revision++;
         }
@@ -89,6 +98,7 @@ namespace DeadlyJenga.CastlePrototype
             DriveTrain();
             if (Time.fixedTime < cleanup) return;
             cleanup = Time.fixedTime + .18f;
+            RestoreSeparatedContacts();
             var physics = gameObject.scene.GetPhysicsScene();
             var p = new Vector3(Center.x,WaterHeight(Center)-3.95f,Center.z);
             int hits = physics.OverlapBox(p,new Vector3(Radius+12,4,Radius+12),victims,Quaternion.identity,~((1<<Layers.Block)|(1<<Layers.Surface)),QueryTriggerInteraction.Ignore);
@@ -110,6 +120,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         Rigidbody End(bool pile=false)
         {
+            if (structure != null) structure.AddTo(unit.name, model);
             var rb = model.Finish(finish);
             bodies.Add(rb);
             if (pile)

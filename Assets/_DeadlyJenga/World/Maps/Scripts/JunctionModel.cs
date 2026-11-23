@@ -22,6 +22,35 @@ namespace DeadlyJenga.CastlePrototype
             return vertex;
         }
         internal JunctionModel(GameObject root) => this.root = root;
+        internal void BearingBox(Vector3 center, Vector3 size)
+        {
+            var box = root.AddComponent<BoxCollider>();
+            box.center = center;
+            box.size = size;
+            box.includeLayers = 1 << DeadlyJenga.Core.Layers.Survivor;
+            box.layerOverridePriority = 12;
+            volume += size.x * size.y * size.z;
+        }
+        internal void AddBakedPart(JunctionStructure.Part part)
+        {
+            int first = vertices.Count;
+            var points = new Vector3[part.Points.Length];
+            var fromMap = Quaternion.Inverse(root.transform.localRotation);
+            var origin = root.transform.localPosition;
+            for (int i = 0; i < points.Length; i++)
+                points[i] = fromMap * (part.Points[i] - origin);
+            for (int i = 0; i < part.Triangles.Length; i++)
+            {
+                var face = part.Triangles[i];
+                Tri(points[face.A], points[face.B], points[face.C], face.Color);
+            }
+            if (!part.Solid) return;
+            ConvexHull(first);
+            var bounds = new Bounds(points[0], Vector3.zero);
+            foreach (var point in points) bounds.Encapsulate(point);
+            var size = bounds.size;
+            volume += size.x * size.y * size.z * .45f;
+        }
         internal void Shape(Vector3 p, Vector3 size, Color tint, int sides = 4, float top = 1,
             Quaternion rotation = default, bool solid = true, float bevel = .07f)
         {
@@ -151,6 +180,7 @@ namespace DeadlyJenga.CastlePrototype
             var visual = new GameObject("Visual");
             visual.transform.SetParent(root.transform,false);
             var mesh = new Mesh { name = root.name };
+            if (vertices.Count > ushort.MaxValue) mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
             mesh.SetVertices(vertices); mesh.SetColors(colors); mesh.SetTriangles(triangles,0);
             mesh.RecalculateNormals(); mesh.RecalculateBounds();
             visual.AddComponent<MeshFilter>().sharedMesh = mesh;
