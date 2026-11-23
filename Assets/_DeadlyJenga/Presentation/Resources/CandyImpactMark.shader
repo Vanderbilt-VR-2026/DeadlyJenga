@@ -42,6 +42,17 @@ Shader "Candy/Temporary Weapon Impact"
                 half3 tint=UNITY_ACCESS_INSTANCED_PROP(Marks,_MarkTint).rgb;
                 float2 p=(input.uv-.5)*2;float radius=length(p);
                 float angle=atan2(p.y,p.x);
+                if(state.y>2.5)
+                {
+                    float outer=.47+.15*sin(angle*5)+.10*sin(angle*11)+.06*cos(angle*19);
+                    float splash=1-smoothstep(outer-.02,outer+.02,radius);
+                    float2 cell=floor(p*11);
+                    float seed=frac(sin(dot(cell,float2(31.282,57.79)))*43758.5453);
+                    float drops=(1-smoothstep(.13,.31,length(frac(p*11)-.5)))
+                        *step(.75,seed)*(1-smoothstep(.75,.98,radius))*.83;
+                    half3 syrup=lerp(tint*.67,saturate(tint*1.07+.10),saturate(.66+p.y*.79));
+                    return half4(MixFog(syrup,input.fog),max(splash,drops)*state.x);
+                }
                 float jagged=radius*(1+.12*sin(angle*13)+.045*sin(angle*27));
                 float rim=exp(-abs(jagged-.48)*22);
                 float center=1-smoothstep(.05,.68,jagged);

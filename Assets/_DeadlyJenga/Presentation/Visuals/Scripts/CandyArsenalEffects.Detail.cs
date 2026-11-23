@@ -172,7 +172,7 @@ namespace DeadlyJenga.Presentation
                 EquipmentKind.RocketLauncher => (fire,.58f,12),
                 EquipmentKind.GrenadeLauncher => (new Color(.69f,.38f,1),.32f,10),
                 EquipmentKind.ChainGun => (fire,.29f,5),
-                EquipmentKind.DualRifle => (fire,alternate?.45f:.30f,alternate?10:6),
+                EquipmentKind.DualRifle => (new Color(.30f,.90f,1f),alternate?.31f:.26f,alternate?10:7),
                 EquipmentKind.SheriffHammer => (fire,alternate?.40f:.30f,8),
                 EquipmentKind.StockPistol => (fire,.22f,6),
                 EquipmentKind.DualUzi => (new Color(.45f,1,.10f),.18f,4),
@@ -224,7 +224,8 @@ namespace DeadlyJenga.Presentation
                 }
             }
             var orientation=Quaternion.LookRotation(direction);
-            EmitMuzzle(origin,orientation,profile.tint,profile.length*scale,profile.sparks,action.id);
+            EmitMuzzle(origin,orientation,profile.tint,profile.length*scale,profile.sparks,action.id,
+                action.kind==EquipmentKind.DualRifle);
             if(mounted&&action.kind==EquipmentKind.RocketLauncher)
                 EmitMuzzle(model.TransformPoint(new Vector3(0,.205f,-.43f)),
                     Quaternion.LookRotation(-model.forward),new Color(1,.32f,.07f),.70f*scale,8,action.id);
@@ -232,7 +233,7 @@ namespace DeadlyJenga.Presentation
                 action.kind==EquipmentKind.ChainGun))EjectShell(model,action,scale);
         }
 
-        void EmitMuzzle(Vector3 origin,Quaternion orientation,Color tint,float size,int sparks,int seed)
+        void EmitMuzzle(Vector3 origin,Quaternion orientation,Color tint,float size,int sparks,int seed,bool candy=false)
         {
             if(burstParticles.isStopped)burstParticles.Play();
             var forward=orientation*Vector3.forward;
@@ -242,7 +243,7 @@ namespace DeadlyJenga.Presentation
             burstParticles.Emit(new ParticleSystem.EmitParams{
                 position=origin+forward*size*.22f,velocity=forward*size*8,startLifetime=.076f,
                 startSize=size*1.04f,startColor=tint},1);
-            if(size>.27f)
+            if(size>.27f&&!candy)
                 burstParticles.Emit(new ParticleSystem.EmitParams{
                     position=origin+forward*size*.24f,velocity=forward*size*2.6f+Vector3.up*.38f,
                     startLifetime=.27f,startSize=size*.62f,startColor=new Color(.63f,.59f,.57f,.34f)},1);
@@ -253,7 +254,8 @@ namespace DeadlyJenga.Presentation
                 var direction=forward*(2.6f+i%4*.72f)+radial*(.55f+i%3*.43f);
                 burstParticles.Emit(new ParticleSystem.EmitParams{
                     position=origin+forward*size*.22f,velocity=direction,startLifetime=.08f+i%4*.024f,
-                    startSize=size*(.12f+i%3*.044f),startColor=tint},1);
+                    startSize=size*(.12f+i%3*.044f),
+                    startColor=candy&&i%3!=0?(i%3==1?new Color(1,.18f,.46f):new Color(1,.65f,.19f)):tint},1);
             }
         }
 

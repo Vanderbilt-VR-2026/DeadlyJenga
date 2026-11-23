@@ -186,21 +186,23 @@ namespace DeadlyJenga.Presentation
             if(TryContact(point,incoming,out var contact,reach))Surface(contact,kind);
         }
 
-        internal void Surface(SurfaceContact contact,EquipmentKind kind)
+        internal void Surface(SurfaceContact contact,EquipmentKind kind,Color? projectileTint=null)
         {
             if(!surfaceMaterial||!contact.anchor||!contact.anchor.gameObject.activeInHierarchy)return;
             if(marks.Count==Capacity)marks.RemoveAt(0);
             float diameter=kind==EquipmentKind.RocketLauncher?.78f:
                 kind==EquipmentKind.GrenadeLauncher?.55f:
+                kind==EquipmentKind.DualRifle?.29f:
                 kind==EquipmentKind.Blaster||kind==EquipmentKind.PoweredArmor?.42f:
                 kind==EquipmentKind.WristLaser||kind==EquipmentKind.LaserAxe?.25f:.14f;
             var localPose=contact.localFrame*Matrix4x4.TRS(Vector3.zero,
                 Quaternion.Euler(0,0,(marks.Count*137)%360),Vector3.one*diameter);
             marks.Add(new Mark
             {
-                anchor=contact.anchor,localPose=localPose,tint=Tint(kind),
+                anchor=contact.anchor,localPose=localPose,tint=projectileTint??Tint(kind),
                 born=Time.time,life=kind==EquipmentKind.DualUzi?1.6f:4,
-                style=kind==EquipmentKind.GrenadeLauncher?2:
+                style=kind==EquipmentKind.DualRifle?3:
+                    kind==EquipmentKind.GrenadeLauncher?2:
                     kind==EquipmentKind.WristLaser||kind==EquipmentKind.LaserAxe?1:0,
                 layer=contact.layer,renderingMask=contact.renderingMask
             });

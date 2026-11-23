@@ -18,7 +18,8 @@ namespace DeadlyJenga.DevTools.Editor
     {
         const string Key="WeaponShowcase";
         static string Report=>ProjectPath.Report("WeaponShowcase.txt");
-        static string Output=>Path.Combine(Path.GetDirectoryName(Application.dataPath),"ArtDirection","WeaponShowcase-20261026");
+        static bool DuplexClaws=>SessionState.GetBool(Key+"DuplexClaws",false);
+        static string Output=>DuplexClaws?Path.Combine(Path.GetDirectoryName(ProjectPath.Report("DuplexClaws.txt")),"DuplexClaws"):Path.Combine(Path.GetDirectoryName(Application.dataPath),"ArtDirection","WeaponShowcase-20261026");
         [Serializable] sealed class Saved {public SceneSetup[] scenes;}
         [Serializable] public sealed class Shot {public string weapon,mode,view,file;}
         [Serializable] sealed class Manifest {public string captured;public string evidence="Actual Unity Game scene lighting; production CandyWeaponVisual and CandyPlayerRig, staged poses. No weapon art changes.";public List<Shot> shots=new();}
@@ -44,10 +45,13 @@ namespace DeadlyJenga.DevTools.Editor
                 }
             };
         }
-        public static void Run()
+        public static void Run()=>Start(false);
+        public static void RunDuplexAndClaws()=>Start(true);
+        static void Start(bool duplexClaws)
         {
             var scenes=EditorSceneManager.GetSceneManagerSetup();
             if(scenes.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty)){ValidationRunGate.Release(Key);throw new InvalidOperationException("Unsaved scenes left untouched.");}
+            SessionState.SetBool(Key+"DuplexClaws",duplexClaws);
             Directory.CreateDirectory(Output);File.WriteAllText(Report,"Actual production weapon capture starting.\n");
             SessionState.SetString(Key+"Scenes",JsonUtility.ToJson(new Saved{scenes=scenes}));SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
@@ -82,6 +86,7 @@ namespace DeadlyJenga.DevTools.Editor
                 rt=new RenderTexture(1600,1200,24);rt.Create();cam.targetTexture=rt;pixels=new Texture2D(1600,1200,TextureFormat.RGB24,false);
                 var manifest=new Manifest{captured=DateTime.Now.ToString("O")};
                 foreach(EquipmentKind kind in Enum.GetValues(typeof(EquipmentKind))){
+                    if(DuplexClaws&&kind!=EquipmentKind.DualRifle&&kind!=EquipmentKind.LaserClaws)continue;
                     if(kind<EquipmentKind.Blaster||kind==EquipmentKind.PoweredArmor||kind==EquipmentKind.FlyingHand)continue;
                     bool two=kind==EquipmentKind.DualRifle||kind==EquipmentKind.SheriffHammer||kind==EquipmentKind.StockPistol||kind==EquipmentKind.Chainsaw||kind==EquipmentKind.LaserAxe;
                     for(int mode=0;mode<(two?2:1);mode++){
@@ -92,22 +97,51 @@ namespace DeadlyJenga.DevTools.Editor
                         frame.left=new CandyHandPose{position=feet+new Vector3(-.28f,1.12f,.38f),rotation=Quaternion.identity,skeleton=CandyHandSkeleton.Rest(true,1),skeletonTracked=true};
                         if(EquipmentSpecifications.Get(kind).backHolster)frame.left.position=feet+new Vector3(-.035f,1.14f,.72f);
                         rig.ApplyFrame(frame);visual.Present(state,frame,true);yield return null;
+                        if(DuplexClaws&&kind==EquipmentKind.DualRifle)ValidateDuplex(weaponHost,mode==1);
                         string modeName=two?(mode==0?"Primary":"Alternate"):"Default";
                         var bounds=BoundsOf(weaponHost.gameObject);
                         rig.gameObject.SetActive(false);
                         var angles=new[]{new Vector3(1,.48f,1.15f),new Vector3(-1,.25f,.05f),new Vector3(.8f,.55f,-1)};
-                        for(int i=0;i<3;i++){Take(cam,rt,pixels,bounds,angles[i],kind,modeName,"Weapon "+(i+1),manifest);yield return null;}
+                        for(int i=0;i<(DuplexClaws?2:3);i++){Take(cam,rt,pixels,bounds,angles[i],kind,modeName,"Weapon "+(i+1),manifest);yield return null;}
                         rig.gameObject.SetActive(true);rig.ApplyFrame(frame);
                         bounds=BoundsOf(rig.gameObject);bounds.Encapsulate(BoundsOf(weaponHost.gameObject));
-                        for(int i=0;i<3;i++){Take(cam,rt,pixels,bounds,angles[i],kind,modeName,"Held "+(i+1),manifest);yield return null;}
-                        state.drawn=false;visual.Present(state,frame,true);yield return null;
-                        bounds=BoundsOf(rig.gameObject);bounds.Encapsulate(BoundsOf(weaponHost.gameObject));
-                        Take(cam,rt,pixels,bounds,new Vector3(1,.35f,-1.3f),kind,modeName,"Holstered",manifest);yield return null;
+                        for(int i=0;i<(DuplexClaws?1:3);i++){Take(cam,rt,pixels,bounds,angles[i],kind,modeName,"Held "+(i+1),manifest);yield return null;}
+                        if(!DuplexClaws)
+                        {
+                            state.drawn=false;visual.Present(state,frame,true);yield return null;
+                            bounds=BoundsOf(rig.gameObject);bounds.Encapsulate(BoundsOf(weaponHost.gameObject));
+                            Take(cam,rt,pixels,bounds,new Vector3(1,.35f,-1.3f),kind,modeName,"Holstered",manifest);yield return null;
+                        }
                         File.WriteAllText(Path.Combine(Output,"manifest.json"),JsonUtility.ToJson(manifest,true));File.AppendAllText(Report,kind+" "+modeName+" captured\n");
                     }
                 }
                 File.AppendAllText(Report,"COMPLETE images="+manifest.shots.Count+"\n");
             }finally{Application.runInBackground=background;AudioListener.volume=volume;if(fixture)Object.Destroy(fixture);if(rt){rt.Release();Object.Destroy(rt);}if(pixels)Object.Destroy(pixels);}
+        }
+        static void ValidateDuplex(Transform host,bool shotgun)
+        {
+            var model=host.Find("Visual - DualRifle");
+            if(!model)throw new InvalidOperationException("Missing Duplex model.");
+            var rotor=model.Find("Rotating 180 degree barrel carriage");
+            var rifle=model.Find("RIFLE display");
+            var alternate=model.Find("SHOTGUN display");
+            var receiver=model.Find("Duplex receiver");
+            if(!rotor||!rifle||!alternate||!receiver)
+                throw new InvalidOperationException("The approved meshes failed to load.");
+            if(rifle.gameObject.activeSelf==shotgun||alternate.gameObject.activeSelf!=shotgun)
+                throw new InvalidOperationException("The physical display disagrees with weapon mode.");
+            if(!rotor.Find("Rifle optic/Optic lens")||!rotor.Find("Shotgun optic/Optic lens"))
+                throw new InvalidOperationException("A physical sight anchor is missing.");
+            foreach(var part in new[]{receiver,rotor})
+            {
+                var surface=part.Find("Surface");
+                var glass=part.Find("Glass");
+                if(!surface||!glass||!surface.GetComponent<MeshFilter>().sharedMesh||
+                    !glass.GetComponent<MeshFilter>().sharedMesh||
+                    !glass.GetComponent<MeshRenderer>().sharedMaterial.IsKeywordEnabled("_DUPLEX_GLASS"))
+                    throw new InvalidOperationException("Duplex needs opaque and transparent parts.");
+            }
+            File.AppendAllText(Report,"PASS Approved geometry and mode display for "+(shotgun?"shotgun":"rifle")+"\n");
         }
         static Bounds BoundsOf(GameObject go)
         {

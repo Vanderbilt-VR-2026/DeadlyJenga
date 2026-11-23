@@ -18,6 +18,13 @@ namespace DeadlyJenga.Presentation
         Material material,ribbon,sparkMaterial;Mesh mesh;ParticleSystem sparks;
         MaterialPropertyBlock tint;CandyWeaponImpacts impactView;
         static readonly int BaseColor=Shader.PropertyToID("_BaseColor"),ColorId=Shader.PropertyToID("_Color");
+        int duplexShot;
+        static readonly Color[] DuplexCandy =
+        {
+            new Color(1f,.16f,.37f), new Color(1f,.53f,.12f), new Color(1f,.87f,.13f),
+            new Color(.40f,1f,.20f), new Color(.20f,.90f,1f), new Color(.70f,.28f,1f),
+            new Color(1f,.28f,.76f), new Color(.14f,1f,.72f), new Color(.95f,.18f,.45f),
+        };
         public int ActiveCount=>active.Count;
         public int AllocatedCount=>active.Count+pool.Count;
         void Awake()
@@ -58,6 +65,9 @@ namespace DeadlyJenga.Presentation
         {
             if(!enabled||!material||endpoints==null)return;
             bool needle=kind==EquipmentKind.NeedleDrill;
+            bool duplex=kind==EquipmentKind.DualRifle;
+            int candy=duplexShot;
+            if(duplex)duplexShot=(duplexShot+1)%DuplexCandy.Length;
             float range=kind==EquipmentKind.None?0:shotgun&&kind==EquipmentKind.DualRifle?14:shotgun&&kind==EquipmentKind.SheriffHammer?18:EquipmentSpecifications.Get(kind).range;
             int count=Mathf.Min(7,endpoints.Length);
             for(int i=0;i<count;i++)
@@ -74,17 +84,22 @@ namespace DeadlyJenga.Presentation
                 if(bullet.contact)CandyWeaponImpacts.TryContact(bullet.end,delta,out bullet.surface);
                 bullet.head.gameObject.SetActive(true);bullet.trail.gameObject.SetActive(true);
                 bullet.head.position=start;bullet.head.rotation=Quaternion.LookRotation(delta);bullet.head.localScale=needle?new Vector3(.035f,.035f,.23f):new Vector3(shotgun?.075f:.09f,shotgun?.075f:.09f,shotgun?.17f:.27f);
-                Color color=needle?new Color(.72f,.80f,.87f):kind==EquipmentKind.ChainGun?new Color(1,.68f,.18f):shotgun?new Color(1,.43f,.09f,1):new Color(.24f,.88f,1,1);
-                tint.Clear();tint.SetColor(BaseColor,color);tint.SetColor(ColorId,color);tint.SetColor("_EmissionColor",Color.Lerp(color,Color.white,.67f)*1.5f);
-                bullet.headRenderer.SetPropertyBlock(tint);bullet.trail.SetPropertyBlock(tint);
-                bullet.color=color;bullet.trail.startColor=Color.white;bullet.trail.endColor=new Color(1,1,1,.04f);
-                if(i==0&&range>0)Burst(start,delta.normalized,color,shotgun?12:7,false);
+                Color color=duplex?DuplexCandy[(candy+i)%DuplexCandy.Length]:needle?new Color(.72f,.80f,.87f):kind==EquipmentKind.ChainGun?new Color(1,.68f,.18f):shotgun?new Color(1,.43f,.09f,1):new Color(.24f,.88f,1,1);
+                tint.Clear();tint.SetColor(BaseColor,color);tint.SetColor(ColorId,color);tint.SetColor("_EmissionColor",duplex?color*.44f:Color.Lerp(color,Color.white,.67f)*1.5f);
+                bullet.headRenderer.SetPropertyBlock(tint);if(duplex)tint.SetColor(BaseColor,Color.white);
+                bullet.trail.SetPropertyBlock(tint);
+                bullet.color=color;
+                bullet.trail.startColor=duplex?color:Color.white;
+                var tail=duplex?DuplexCandy[(candy+i+3)%DuplexCandy.Length]:Color.white;
+                tail.a=.04f;
+                bullet.trail.endColor=tail;
+                if(i==0&&range>0)Burst(start,delta.normalized,color,shotgun?12:7,false,duplex);
                 bullet.trail.widthMultiplier=needle?.058f:shotgun?.12f:.17f;
                 bullet.trail.SetPosition(0,start);bullet.trail.SetPosition(1,start);active.Add(bullet);
             }
         }
         public void FireNeedles(Vector3 start,Vector3[] endpoints)=>Fire(start,endpoints,false,EquipmentKind.NeedleDrill);
-        void Burst(Vector3 point,Vector3 direction,Color color,int count,bool impact)
+        void Burst(Vector3 point,Vector3 direction,Color color,int count,bool impact,bool duplex)
         {
             if(!sparks)return;
             if(!sparks.gameObject.activeSelf)sparks.gameObject.SetActive(true);
@@ -94,7 +109,7 @@ namespace DeadlyJenga.Presentation
                 var scatter=Quaternion.Euler(i*73+count*9,i*137.5f,i*41)*Vector3.forward;
                 var velocity=(scatter*(impact?.95f:.3f)+direction*(impact?-.5f:1.2f)).normalized;
                 sparks.Emit(new ParticleSystem.EmitParams{position=point,velocity=velocity*(impact?2+i*.47f:1+i*.35f),
-                    startSize=(impact?.12f:.085f)*(i==0?2:1),startLifetime=(impact?.21f:.10f)+i*.011f,startColor=color},1);
+                    startSize=(impact?.12f:.085f)*(i==0?2:1),startLifetime=(impact?.21f:.10f)+i*.011f,startColor=duplex && i%3==1?DuplexCandy[(i+3)%DuplexCandy.Length]:color},1);
             }
         }
         static bool Finite(Vector3 p)=>!float.IsNaN(p.sqrMagnitude)&&!float.IsInfinity(p.sqrMagnitude);
@@ -119,9 +134,10 @@ namespace DeadlyJenga.Presentation
                 {
                     if(bullet.contact)
                     {
-                        Burst(end,(end-bullet.start).normalized,bullet.color,bullet.shotgun?4:10,true);
+                        bool duplex=bullet.kind==EquipmentKind.DualRifle;
+                        Burst(end,(end-bullet.start).normalized,bullet.color,bullet.shotgun?4:10,true,duplex);
                         if(!impactView)impactView=GetComponent<CandyWeaponImpacts>();
-                        if(impactView)impactView.Surface(bullet.surface,bullet.kind);
+                        if(impactView)impactView.Surface(bullet.surface,bullet.kind,duplex?bullet.color:(Color?)null);
                     }
                     ReleaseAt(i);continue;
                 }
