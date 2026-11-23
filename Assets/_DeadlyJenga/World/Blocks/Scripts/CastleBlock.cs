@@ -15,7 +15,29 @@ namespace DeadlyJenga.CastlePrototype
         GameObject currentVisual, currentPrefab;
         CastleBlockAppearance currentAppearance;
         Material currentMaterial;
-        BoxCollider surface;
+        Collider surface;
+        Mesh traversalMesh;
+
+        // The survivor proxy can follow the molded outline while debris retains its box body.
+        internal void FitTraversalPanel(Vector3 a,Vector3 b,Vector3 c,Vector3 d)
+        {
+            if (!(surface is BoxCollider box)) return;
+            var down = Vector3.down;
+            traversalMesh = new Mesh { name = "Molded traversal panel",
+                vertices = new[]{a,b,c,d,a+down,b+down,c+down,d+down},
+                triangles = new[]{0,2,3,0,3,1,4,5,7,4,7,6,0,1,5,0,5,4,2,6,7,2,7,3,0,4,6,0,6,2,1,3,7,1,7,5} };
+            var panel=box.gameObject.AddComponent<MeshCollider>();
+            panel.convex=true;
+            panel.sharedMesh=traversalMesh;
+            panel.excludeLayers=box.excludeLayers;
+            panel.layerOverridePriority=box.layerOverridePriority;
+            panel.enabled=box.enabled;
+            box.enabled=false;
+            Climbables.Unregister(box);
+            Climbables.Register(panel,this);
+            surface=panel;
+            Destroy(box);
+        }
         CastleSurfaceGroup surfaceGroup;
         bool groupedSurface;
         BoxCollider sourceBox;
@@ -60,7 +82,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnEnable() { if (surface) surface.gameObject.SetActive(true); }
         void OnDisable() { physicsGroups?.Disturb(body,true); if (surface) surface.gameObject.SetActive(false); }
-        void OnDestroy() { if(sourceBox)Climbables.Unregister(sourceBox); if (surface) {Climbables.Unregister(surface);Destroy(surface.gameObject);} if(surfaceGroup)surfaceGroup.Release(); }
+        void OnDestroy() { if(traversalMesh)Destroy(traversalMesh); if(sourceBox)Climbables.Unregister(sourceBox); if (surface) {Climbables.Unregister(surface);Destroy(surface.gameObject);} if(surfaceGroup)surfaceGroup.Release(); }
         // IClimbable
         bool traversalEnabled = true;
         public bool CanClimb =>( isActiveAndEnabled && traversalEnabled && !visualDebris)&&!(cityDebris&&cityDebris.IsVisual(Body));
@@ -117,8 +139,8 @@ namespace DeadlyJenga.CastlePrototype
             if (!surfaceSynced || !surfacePosition.Equals(position) || !surfaceRotation.Equals(rotation))
             { surface.transform.SetPositionAndRotation(position, rotation); }
             if (!surfaceSynced || !surfaceScale.Equals(scale)) surface.transform.localScale = scale;
-            if (!surfaceSynced || !surfaceCenter.Equals(center)) surface.center = center;
-            if (!surfaceSynced || !surfaceSize.Equals(size)) surface.size = size;
+            if (surface is BoxCollider box && (!surfaceSynced || !surfaceCenter.Equals(center))) box.center = center;
+            if (surface is BoxCollider sizedBox && (!surfaceSynced || !surfaceSize.Equals(size))) sizedBox.size = size;
             surfacePosition = position; surfaceRotation = rotation; surfaceScale = scale;
             surfaceCenter = center; surfaceSize = size; surfaceSynced = true;
             if(changed)CastleSurfaceGroup.Changed();

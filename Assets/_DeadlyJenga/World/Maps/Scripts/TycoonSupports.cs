@@ -6,7 +6,7 @@ namespace DeadlyJenga.CastlePrototype
     // Interlocking modules hold their resting pose until their supports break.
     static class TycoonSupports
     {
-        public static MagneticStructure Build(Transform root, IReadOnlyList<Rigidbody> bodies)
+        public static MagneticStructure Build(Transform root, IReadOnlyList<Rigidbody> bodies, IReadOnlyList<CastlePlacement> layout)
         {
             var structure = root.gameObject.AddComponent<MagneticStructure>();
             structure.UseBatchedBreakaway();
@@ -35,6 +35,18 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < bounds.Length; i++)
             for (int j = i + 1; j < bounds.Length; j++)
             {
+                // Two removable planks latch to their seaward beam. Nearby boards and
+                // the second bearing still collide with them after that latch releases.
+                bool looseA = layout[i].DeckProfile.Finish == TycoonDeckFinish.LoosePeach;
+                bool looseB = layout[j].DeckProfile.Finish == TycoonDeckFinish.LoosePeach;
+                if (looseA || looseB)
+                {
+                    var support = layout[looseA ? j : i];
+                    var plank = layout[looseA ? i : j];
+                    if (support.Section != CastleSection.Keep || support.Position.z >= plank.Position.z ||
+                        support.Position.y >= plank.Position.y || Mathf.Abs(support.Position.x-plank.Position.x)>6.5f)
+                        continue;
+                }
                 var delta = bounds[i].center - bounds[j].center;
                 var extent = bounds[i].extents + bounds[j].extents;
                 float x = extent.x - Mathf.Abs(delta.x);

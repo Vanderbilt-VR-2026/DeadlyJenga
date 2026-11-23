@@ -294,6 +294,13 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 throw new System.InvalidOperationException("No supported clear courtyard spawn remains.");
             }
+            if (settings.layoutPreset == TycoonLayout.Preset && Bodies.Count > 0)
+            {
+                var scene = gameObject.scene.GetPhysicsScene();
+                var ray = transform.TransformPoint(new Vector3(6, 65, 0));
+                if (scene.Raycast(ray, Vector3.down, out var deck, 8f, 1 << Layers.Block, QueryTriggerInteraction.Ignore))
+                    return deck.point + Vector3.up * .08f;
+            }
             Collider best = null; float highest = float.NegativeInfinity;
             foreach (var body in Bodies)
             {
@@ -390,6 +397,9 @@ namespace DeadlyJenga.CastlePrototype
                         mesh.transform.SetParent(block.visualRoot,false);
                         mesh.AddComponent<TycoonDeckVisual>().Build(p.DeckProfile,block.sectionMaterial,aquaMaterial,p.BlockSize(settings));
                     }
+                    var profile = p.DeckProfile;
+                    if(profile.Finish is TycoonDeckFinish.Flume or TycoonDeckFinish.Tube or TycoonDeckFinish.DryChute or TycoonDeckFinish.OpenDeck or TycoonDeckFinish.Walk)
+                        block.FitTraversalPanel(profile.StartLeft,profile.StartRight,profile.EndLeft,profile.EndRight);
                     block.SyncSurface();
                 }
                 var size=p.BlockSize(settings);
@@ -410,7 +420,7 @@ namespace DeadlyJenga.CastlePrototype
                 ShrineTownLayout.JoinTimberFrames(layout, Bodies);
             Physics.SyncTransforms();
             if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)
-                tycoonSupports = TycoonSupports.Build(generatedRoot, Bodies);
+                tycoonSupports = TycoonSupports.Build(generatedRoot, Bodies, layout);
             if (Application.isPlaying && !tycoonSupports && groupRestingBlocks && Bodies.Count>=physicsGroupThreshold)
             {
                 PhysicsGroups=generatedRoot.gameObject.AddComponent<CastlePhysicsGroups>();

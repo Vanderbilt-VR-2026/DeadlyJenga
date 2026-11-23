@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1030507885409388828}
   - component: {fileID: 2439113978628553874}
+  - component: {fileID: 197715001}
   m_Layer: 0
   m_Name: Fixed Foundation
   m_TagString: Untagged
@@ -110,8 +111,8 @@ MonoBehaviour:
     cathedral: 0
     layoutPreset: tycoon
   blockPrefab: {fileID: 4765161766151906529, guid: 62df23d7c5e34393bc92bc73d31b712d, type: 3}
-  cornerMaterial: {fileID: 2100000, guid: 1f4297b594299cc4fbdec5329506df5f, type: 2}
-  wallMaterial: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+  cornerMaterial: {fileID: 2100000, guid: 208ed636831d438e96b6a4549207b240, type: 2}
+  wallMaterial: {fileID: 2100000, guid: 082fd322947b425887547403eef4acde, type: 2}
   keepMaterial: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
   goldMaterial: {fileID: 2100000, guid: 6d644d4ed46b4f3884dcba06f5fcdd5e, type: 2}
   aquaMaterial: {fileID: 2100000, guid: f6619c3b05034628ae7f4667ba26b5a0, type: 2}
@@ -124,3 +125,15 @@ MonoBehaviour:
   waterHeight: 0.08
   oceanKillHeight: -6
   playableArea: {fileID: 0}
+--- !u!114 &197715001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3308325157542424419}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 050497eeecae45ccac49020874bff85b, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
