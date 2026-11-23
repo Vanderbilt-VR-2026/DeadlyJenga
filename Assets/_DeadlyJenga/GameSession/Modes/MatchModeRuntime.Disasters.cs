@@ -21,7 +21,7 @@ namespace DeadlyJenga.Modes
         bool InPlayPlaylist=>RoomGameExperience.ForManagedMatch(session)?.PlayerPlaylist==true;
         bool PlayDisasters=>InPlayPlaylist;
         static bool StructuralDisaster(string key)=>key.Contains("earthquake")||key.Contains("tornado")||key.Contains("tsunami")||key.Contains("catattack")||key.Contains("evilsanta");
-        static bool PausedRotationDisaster(string id)=>id=="Vampire"||id=="Icey";
+        static bool PausedRotationDisaster(string id)=>id=="Vampire"||id=="Icey"||id=="Flying Dragon"||id=="Dragon Attack";
 
         void ResetDisasterRotation()
         {

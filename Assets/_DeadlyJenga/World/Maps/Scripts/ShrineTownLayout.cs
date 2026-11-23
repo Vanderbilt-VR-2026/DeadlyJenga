@@ -8,9 +8,14 @@ namespace DeadlyJenga.CastlePrototype
         public const string Preset = "shrine-town";
         readonly List<CastlePlacement> pieces = new List<CastlePlacement>(360);
 
-        public static List<CastlePlacement> Build()
+        readonly Transform marshSupports;
+
+
+        ShrineTownLayout(Transform supports) { marshSupports = supports; }
+
+        public static List<CastlePlacement> Build(Transform supports = null)
         {
-            var town = new ShrineTownLayout();
+            var town = new ShrineTownLayout(supports);
             // Street runs north from the gate to the five-bay worship hall.
             town.Box(0, 0, 20, 41, 4, 22, CastleSection.Keep);
             for (int i = 0; i < 8; i++)
@@ -26,45 +31,22 @@ namespace DeadlyJenga.CastlePrototype
             {
                 town.Hall(side * 10, -29, 9, 8, 0, 4.4f, 1, 2);
                 town.Hall(side * 11, -15, 10, 8, 0, 3, 2, 2, yaw: side * 20);
-                town.Hall(side * 30, -33, 12, 9, 0, 4.8f, 1, 3, yaw: side * 42);
+                town.Hall(side * 29, -32, 12, 9, 0, 4.8f, 1, 3, yaw: side * 42);
                 town.Hall(side * 32, -17, 9, 8, 0, 4.6f, 1, 2, yaw: side * 65);
             }
             town.Hall(29, 0, 14, 10, 0, 4, 2, 3);
             town.Hall(10, -2, 8, 8, 0, 3, 1, 2);
-            town.Hall(-30, 12, 8, 6, 0, 3.6f, 1, 2);
+            town.IslandTower(-45, 6, 12, 5, 4.65f, false);
             town.Hall(17, -40, 8, 6, 0, 3.8f, 1, 2);
             town.Hall(-19, -38, 7, 6, 0, 3.4f, 1, 2);
-            town.Hall(42, 1, 7, 7, 0, 3.6f, 1, 2);
+            town.IslandTower(46, 9, 14, 3, 7.2f, true);
             return town.pieces;
         }
 
-        static Mesh foundationMesh;
-
-        public static void ShapeFoundation(Transform foundation)
+        void Mud(float x,float z,float width,float depth,float yaw)
         {
-            if (foundation.TryGetComponent<MeshCollider>(out _)) return;
-            if (!foundationMesh) foundationMesh = BuildFoundationMesh();
-            foundation.gameObject.AddComponent<MeshCollider>().sharedMesh = foundationMesh;
-            foundation.GetComponent<BoxCollider>().enabled = false;
-        }
-
-        static Mesh BuildFoundationMesh()
-        {
-            // Matches the eight quay faces. Share the fixed foundation across rebuilds.
-            const float h = .5f, cut = .25f;
-            Vector2[] rim = {new(-cut,-h),new(-h,-cut),new(-h,cut),new(-cut,h),
-                new(cut,h),new(h,cut),new(h,-cut),new(cut,-h)};
-            var vertices = new Vector3[16];
-            var triangles = new List<int>(84);
-            for (int i = 0; i < 8; i++)
-            {
-                vertices[i] = new Vector3(rim[i].x, h, rim[i].y);
-                vertices[i + 8] = vertices[i] + Vector3.down;
-                int j = (i + 1) % 8;
-                triangles.AddRange(new[] {i, i + 8, j, j, i + 8, j + 8});
-                if (i > 0 && i < 7) triangles.AddRange(new[] {0, i, j, 8, j + 8, i + 8});
-            }
-            return new Mesh { name = "Octagonal shrine quay", vertices = vertices, triangles = triangles.ToArray() };
+            var bank = Shape(marshSupports,"Marsh mud",new Vector3(x,0,z),Quaternion.Euler(0,yaw,0));
+            bank.localScale = new Vector3(width,1,depth);
         }
 
         public static void JoinTimberFrames(List<CastlePlacement> layout, List<Rigidbody> bodies)
@@ -94,6 +76,74 @@ namespace DeadlyJenga.CastlePrototype
             joint.enablePreprocessing = false;
         }
 
+        public static void BuildStreetColliders(Transform parent,float waterY,Material wood)
+        {
+            // Bolted fixtures share a kinematic body. Openings between the gate posts stay clear.
+            var fixtures = Shape(parent,"Fixed shrine fixtures",Vector3.zero,Quaternion.identity);
+            var body = fixtures.gameObject.AddComponent<Rigidbody>();
+            body.isKinematic = true;
+            body.useGravity = false;
+            // Mud has static collision so castle sand rules recognize an unsupported survivor.
+            var banks = Shape(parent,"Shrine mud islands",Vector3.zero,Quaternion.identity);
+            Build(banks);
+            var town = new ShrineTownLayout(banks);
+            town.Mud(0,20,41.8f,22.6f,0);
+            town.Mud(0,5,11.5f,8.2f,0);
+            ShrineMudBanks.Build(banks,wood);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                ColliderBox(fixtures,"Torii post",new Vector3(side*3.5f,4.65f,-43),new Vector3(1.1f,9.3f,1.1f),Quaternion.identity);
+                for (int row = 0; row < 3; row++)
+                    ColliderBox(fixtures,"Lantern pole",new Vector3(side*4.6f,2.7f,-32+row*12),new Vector3(.26f,5.4f,.26f),Quaternion.identity);
+                for (int i = 0; i < 5; i++)
+                    StoneLantern(fixtures,new Vector3(side*4,0,i == 4 ? -1 : -39+i*10),1);
+            }
+            foreach (Transform island in parent.parent.Find("Lake islands"))
+                IslandRock(fixtures,island.localPosition + Vector3.up*waterY,island.localScale);
+            ColliderBox(fixtures,"Torii crossbeam",new Vector3(0,7.4f,-43),new Vector3(8.65f,.61f,.77f),Quaternion.identity);
+            ColliderBox(fixtures,"Torii lintel",new Vector3(0,9.32f,-43),new Vector3(12.5f,1.1f,1.05f),Quaternion.identity);
+        }
+
+        static Mesh isletHull;
+        static void IslandRock(Transform fixtures,Vector3 at,Vector3 radii)
+        {
+            if (!isletHull)
+            {
+                const int sides = 11;
+                var points = new List<Vector3>();
+                var triangles = new List<int>();
+                // A broad waterline and a narrower landing match the two stone tiers.
+                Vector2[] profile = {new(.65f,-.65f),new(1,-.13f),new(.81f,.35f),new(.58f,.53f)};
+                for (int ring = 0; ring < profile.Length; ring++)
+                    for (int i = 0; i < sides; i++)
+                    {
+                        float angle = 2*Mathf.PI*i/sides;
+                        points.Add(new Vector3(Mathf.Cos(angle)*profile[ring].x,profile[ring].y,Mathf.Sin(angle)*profile[ring].x));
+                        int a = ring*sides+i, b = ring*sides+(i+1)%sides;
+                        if (ring > 0) triangles.AddRange(new[] {a,b,b-sides,a,b-sides,a-sides});
+                        if (ring == profile.Length-1 && i>0 && i<sides-1) triangles.AddRange(new[] {ring*sides,b,a});
+                    }
+                isletHull = new Mesh {name = "Low-poly shrine islet"};
+                isletHull.SetVertices(points);
+                isletHull.SetTriangles(triangles,0);
+            }
+            var rock = Shape(fixtures,"Stone islet",at,Quaternion.identity);
+            rock.localScale = radii;
+            var collider = rock.gameObject.AddComponent<MeshCollider>();
+            collider.convex = true;
+            collider.sharedMesh = isletHull;
+        }
+
+        static void StoneLantern(Transform fixtures,Vector3 foot,float scale)
+        {
+            ColliderBox(fixtures,"Stone lantern base",foot+Vector3.up*.15f*scale,
+                new Vector3(.9f,.3f,.9f)*scale,Quaternion.Euler(0,45,0));
+            ColliderBox(fixtures,"Stone lantern stem",foot+Vector3.up*.78f*scale,
+                new Vector3(.34f,.96f,.34f)*scale,Quaternion.identity);
+            ColliderBox(fixtures,"Stone lantern crown",foot+Vector3.up*1.65f*scale,
+                new Vector3(.85f,1f,.85f)*scale,Quaternion.identity);
+        }
+
         // Each pitched roof is one moving body. Both slopes travel with the deck beneath them.
         public static void AddRoofColliders(Rigidbody body, Vector3 size)
         {
@@ -101,6 +151,7 @@ namespace DeadlyJenga.CastlePrototype
             if (!skirt && Mathf.Abs(size.y - 1.25f) > .01f && Mathf.Abs(size.y - 1.35f) > .01f && Mathf.Abs(size.y - 1.4f) > .01f) return;
             var frame = new GameObject("Roof collision").transform;
             frame.SetParent(body.transform, false);
+            frame.gameObject.layer = body.gameObject.layer;
             frame.localScale = new Vector3(1 / size.x, 1 / size.y, 1 / size.z);
             if (skirt)
             {
@@ -111,7 +162,7 @@ namespace DeadlyJenga.CastlePrototype
                     float depth = (edge%2==0 ? size.z : size.x)/2;
                     float width = depth * .19f;
                     var eave = new GameObject("Gallery eave");
-                    eave.layer = body.gameObject.layer;
+                    eave.layer = frame.gameObject.layer;
                     eave.transform.SetParent(frame,false);
                     eave.transform.localPosition = turn * new Vector3(0,.55f+width*.36f,depth-width/2);
                     eave.transform.localRotation = turn * Quaternion.Euler(Mathf.Atan(.72f)*Mathf.Rad2Deg,0,0);
@@ -141,15 +192,156 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
+        // Ornamental edges can overlap in the dense streets. Keep the full silhouette on
+        // the survivor proxy and retain the load-bearing slopes on the loose roof body.
+        public static void AddRoofTraversal(CastleBlock block, Vector3 size)
+        {
+            bool skirt = Mathf.Abs(size.y - 1) < .01f && size.x >= 30 && size.z > 4;
+            bool deck = Mathf.Abs(size.y - 1) < .01f && size.z > 4;
+            if (!deck && Mathf.Abs(size.y - 1.25f) > .01f && Mathf.Abs(size.y - 1.35f) > .01f && Mathf.Abs(size.y - 1.4f) > .01f) return;
+            var frame = block.CreateTraversalFrame();
+            if (!frame) return;
+            float half = size.z / 2;
+            float overhang = Mathf.Clamp(half * .24f,.65f,1.7f);
+            for (int edge = 0; edge < 4; edge++)
+            {
+                bool front = edge % 2 == 0;
+                var turn = Quaternion.Euler(0,90 * edge,0);
+                float depth = front ? half : size.x / 2;
+                float width = overhang * depth / half;
+                float across = (front ? size.x : size.z) * (1 + overhang / half);
+                float drop = overhang * .38f;
+                ColliderBox(frame, "Overhanging eave", turn * new Vector3(0,(size.y-drop)/2,depth+width/2),
+                    new Vector3(across,.16f,Mathf.Sqrt(width*width+drop*drop)),
+                    turn * Quaternion.Euler(Mathf.Atan2(drop,width)*Mathf.Rad2Deg,0,0));
+            }
+            if (skirt)
+            {
+                for (int edge=0; edge<4; edge++)
+                {
+                    var turn = Quaternion.Euler(0,edge*90,0);
+                    float across = edge%2==0 ? size.x : size.z;
+                    float depth = (edge%2==0 ? size.z : size.x)/2;
+                    float width = depth * .19f;
+                    var eave = new GameObject("Gallery eave");
+                    eave.layer = frame.gameObject.layer;
+                    eave.transform.SetParent(frame,false);
+                    eave.transform.localPosition = turn * new Vector3(0,.55f+width*.36f,depth-width/2);
+                    eave.transform.localRotation = turn * Quaternion.Euler(Mathf.Atan(.72f)*Mathf.Rad2Deg,0,0);
+                    eave.AddComponent<BoxCollider>().size = new Vector3(across*.81f,.1f,width*Mathf.Sqrt(1+.72f*.72f));
+                }
+                block.RegisterTraversalShapes(frame);
+                return;
+            }
+            if (deck)
+            {
+                for (int side = -1; side <= 1; side += 2)
+                    ColliderBox(frame,"Gallery rail",new Vector3(0,1.2f,side*(half-.18f)),new Vector3(size.x+.3f,.16f,.18f),Quaternion.identity);
+                block.RegisterTraversalShapes(frame);
+                return;
+            }
+            float top = size.y / 2, rise = half * .44f;
+            RoofPrism(frame,"Tiled roof",Vector3.up * top,new Vector3(size.x,rise,size.z),Quaternion.identity);
+            if (Mathf.Abs(size.y - 1.25f) < .01f && size.x >= 15)
+            {
+                float span = size.x * .38f, length = half + .99f;
+                RoofPrism(frame,"Front gable",new Vector3(0,top,-length/2),
+                    new Vector3(length,rise+span*.32f,2*span),Quaternion.Euler(0,90,0));
+            }
+            if (Mathf.Abs(size.y - 1.4f) < .01f)
+                ColliderBox(frame,"Suspended bell",Vector3.down*3.2f,new Vector3(2.6f,3f,2.6f),Quaternion.identity);
+            if (Mathf.Abs(size.y - 1.35f) < .01f)
+                ColliderBox(frame,"Pagoda spire", Vector3.up*(top+rise+2.8f),new Vector3(.54f,5.6f,.54f),Quaternion.identity);
+            block.RegisterTraversalShapes(frame);
+        }
+
+        static Mesh roofPrism;
+        static void RoofPrism(Transform parent,string name,Vector3 at,Vector3 size,Quaternion rotation)
+        {
+            if (!roofPrism)
+            {
+                roofPrism = new Mesh { name = "Timber roof prism",
+                    vertices = new Vector3[] {new(-.5f,0,-.5f),new(-.5f,0,.5f),new(-.5f,1,0),
+                        new(.5f,0,-.5f),new(.5f,0,.5f),new(.5f,1,0)},
+                    triangles = new[] {0,1,2,3,5,4,0,3,4,0,4,1,1,4,5,1,5,2,2,5,3,2,3,0} };
+            }
+            var shape = Shape(parent,name,at,rotation);
+            shape.localScale = size;
+            var collider = shape.gameObject.AddComponent<MeshCollider>();
+            collider.convex = true;
+            collider.sharedMesh = roofPrism;
+        }
+
+        static Transform Shape(Transform parent,string name,Vector3 at,Quaternion rotation)
+        {
+            var shape = new GameObject(name).transform;
+            shape.gameObject.layer = parent.gameObject.layer;
+            shape.SetParent(parent,false);
+            shape.SetLocalPositionAndRotation(at,rotation);
+            return shape;
+        }
+
+        static void ColliderBox(Transform parent,string name,Vector3 at,Vector3 size,Quaternion rotation)
+        {
+            Shape(parent,name,at,rotation).gameObject.AddComponent<BoxCollider>().size = size;
+        }
+
         void Box(float x, float bottom, float z, float width, float height, float depth, CastleSection section, float yaw = 0)
         {
+            if (marshSupports) return;
             pieces.Add(new CastlePlacement(new Vector3(x, bottom + height / 2, z),
                 Quaternion.Euler(0, yaw, 0), section, Mathf.FloorToInt(bottom / 2), new Vector3(width, height, depth)));
         }
 
+        void IslandTower(float x, float z, float width, int tiers, float storeyHeight, bool bell)
+        {
+            if (marshSupports)
+            {
+                Mud(x,z,width + 1,width + 1,0);
+                return;
+            }
+
+            const float pierDepth = 1.64f;
+            float bottom = .5f;
+            Box(x,0,z,width,bottom,width,CastleSection.Keep);
+            for (int tier = 0; tier < tiers; tier++)
+            {
+                bool crown = tier == tiers - 1;
+                if (crown && !bell)
+                {
+                    // A compact central lantern room carries the pagoda spire.
+                    Box(x,bottom,z,width * .55f,storeyHeight,width * .55f,CastleSection.Keep);
+                }
+                else
+                {
+                    // Parallel bearing walls leave the tower open toward the market.
+                    // Each balcony seats across both walls and carries the next pair.
+                    float offset = width * .34f;
+                    for (int side = -1; side <= 1; side += 2)
+                        Box(x,bottom,z + side * offset,width * .80f,storeyHeight,pierDepth,CastleSection.Keep);
+                }
+                bottom += storeyHeight;
+                float deck = crown ? (bell ? 1.4f : 1.35f) : 1;
+                Box(x,bottom,z,width,deck,width,CastleSection.Corner);
+                bottom += deck;
+                width *= .91f;
+            }
+        }
+
         void Hall(float x, float z, float width, float depth, float y, float height, int levels, int columns, bool bell = false, float yaw = 0)
         {
+            bool porch = yaw==0 && y==0 && (z==-29 || x==-30 && z==-2 || x==29 || bell || levels==4);
+            if (marshSupports)
+            {
+                if (y==0)
+                {
+                    float extra = porch ? 2.8f : 0;
+                    Mud(x,z-extra/2,width+1,depth+1+extra,yaw);
+                }
+                return;
+            }
             int first = pieces.Count;
+            if (porch) Box(x,0,z-depth/2-.95f,6,.4f,2.1f,CastleSection.Keep);
             for (int level = 0; level < levels; level++)
             {
                 if (x == 0 && level == 1) height *= .6f;

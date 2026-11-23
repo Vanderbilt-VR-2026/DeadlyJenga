@@ -20,8 +20,7 @@ namespace DeadlyJenga.NinjaArt
         public float BloodMoon { get; private set; }
 
         Material sky, ground, props, foliage, far, water, previousSky;
-        readonly Material[] facadeMaterials = new Material[8];
-        Mesh facadeCube, gableFace;
+        readonly Dictionary<Vector3, Mesh> wallMeshes = new Dictionary<Vector3, Mesh>();
         Light moon; readonly List<Light> practicals = new List<Light>();
         readonly Dictionary<Light, bool> sunStates = new Dictionary<Light, bool>();
         readonly Dictionary<Renderer, bool> hiddenRenderers = new Dictionary<Renderer, bool>();
@@ -63,71 +62,70 @@ namespace DeadlyJenga.NinjaArt
             var go = new GameObject("Collision - shrine prop"); go.transform.SetParent(scenery, false); go.transform.localPosition = local;
             go.AddComponent<BoxCollider>().size = size;
         }
+        void BuildMoonlitLake(float localWaterY)
+        {
+            var panorama = Resources.Load<Texture2D>("NinjaScenery/MoonlitLake");
+            var shore = new Vector4(transform.position.x,transform.position.z,185,waterLevel);
+            sky.SetTexture("_Panorama",panorama);
+            sky.SetVector("_Lake",shore);
+
+            var castleWater = Resources.Load<Material>("InstancingKeep/CandyOcean Instanced");
+            water = new Material(castleWater) {name="Moonlit Lake · castle ocean"};
+            owned.Add(water);
+            water.SetVector("_MoonlitLake",shore);
+            water.SetVector("_Island",new Vector4(shore.x,shore.y,43,43));
+            water.SetFloat("_WaterHeight",waterLevel);
+            water.SetFloat("_SandTop",waterLevel-1);
+            water.SetFloat("_WaveHeight",.13f);
+            water.SetFloat("_WaveSpeed",.68f);
+            water.SetFloat("_WaveExtent",88);
+            water.SetColor("_Shallow",new Color(.12f,.22f,.24f));
+            water.SetColor("_Deep",new Color(.18f,.27f,.41f));
+            water.SetColor("_Foam",new Color(.53f,.64f,.72f));
+            water.SetTexture("_CoastPanorama",panorama);
+            water.SetTexture("_CoastSpectrum",Resources.Load<Texture2D>("CandyScenery/CatwalksWaterSpectrum"));
+            const float size=400;
+            var grid=CandyArt.CandyOceanSurface.Create(Application.isMobilePlatform ? 64 : 96,size,88);
+            var surface=Add("Visual - moonlit castle ocean",grid,water,scenery);
+            surface.transform.localPosition=Vector3.up*localWaterY;
+            surface.transform.localScale=new Vector3(size,1,size);
+        }
+
         void Build()
         {
-            sky = Make("NinjaSky", "Ninja moon sky"); sky.SetVector("_MoonDir", MoonDirection);
+            sky = Make(shrineTown ? "MoonlitLakeSky" : "NinjaSky", "Ninja moon sky");
+            if (!shrineTown) sky.SetVector("_MoonDir", MoonDirection);
             ground = Make("NinjaLacquer", "Ninja courtyard"); ground.SetFloat("_Gloss", .2f); ground.SetFloat("_Spec", .1f); ground.SetFloat("_Rim", .05f); ground.SetFloat("_Warm", 1.25f);
             props = Make("NinjaLacquer", "Ninja props"); props.SetFloat("_Gloss", .7f); props.SetFloat("_Spec", .35f); props.SetFloat("_Rim", .45f); props.SetFloat("_AlphaEmission", 4f);
             foliage = Make("NinjaLacquer", "Ninja foliage"); foliage.SetFloat("_Wind", 1); foliage.SetFloat("_Cull", 0); foliage.SetFloat("_Gloss", .35f); foliage.SetFloat("_Spec", .15f); foliage.SetFloat("_Rim", 1.1f); foliage.SetFloat("_Warm", .6f);
             far = Make("NinjaUnlit", "Ninja far silhouettes"); far.SetFloat("_UseFog", 0);
-            water = Make("NinjaWater", "Ninja lake"); water.SetVector("_MoonDir", MoonDirection);
-            if (shrineTown)
-            {
-                facadeCube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
-                var atlas = Resources.Load<Texture2D>("NinjaScenery/ShrineFacades");
-                var carpentry = Resources.Load<Texture2D>("NinjaScenery/ShrineHallCarpentry");
-                gableFace = new Mesh { name = "Shrine pediment face",
-                    vertices = new[] {new Vector3(-.5f,-.5f,0),new Vector3(0,.5f,0),new Vector3(.5f,-.5f,0)},
-                    normals = new[] {Vector3.back,Vector3.back,Vector3.back}, triangles = new[] {0,1,2} };
-                owned.Add(gableFace);
-                for (int tile = 0; tile < facadeMaterials.Length; tile++)
-                {
-                    var material = Make("ShrineFacade", "Painted shrine carpentry " + tile);
-                    material.SetTexture("_MainTex", tile < 4 ? atlas : carpentry);
-                    material.SetVector("_Tile", new Vector4((tile % 2) * .5f, tile % 4 < 2 ? .5f : 0, 0, 0));
-                    facadeMaterials[tile] = material;
-                }
-            }
+
             scenery = new GameObject("Visual - moonlit scenery").transform; scenery.SetParent(transform, false);
             float wy = transform.InverseTransformPoint(new Vector3(0, waterLevel, 0)).y;
             var glow = new NinjaGlowMesh(); var mist = new NinjaGlowMesh();
 
-            var groundMesh = new NinjaMesh(); NinjaTempleScenery.Ground(groundMesh, wy, shrineTown ? 48 : 35); Add("Visual - courtyard and walls", groundMesh.Build("Ninja courtyard"), ground, scenery);
-            var lake = new NinjaMesh(); lake.Quad(new Vector3(-900, wy, -900), new Vector3(-900, wy, 900), new Vector3(900, wy, 900), new Vector3(900, wy, -900), Color.white); Add("Visual - lake", lake.Build("Ninja lake"), water, scenery);
-            var mountains = new NinjaMesh(); NinjaTempleScenery.Mountains(mountains, Horizon * 1.05f, new Color(.018f, .02f, .04f));
-            NinjaTempleScenery.FarCastle(mountains, glow, -NinjaTempleScenery.MoonFlat * 240 + Vector3.right * 60 + Vector3.up * 18, 1.3f, new Color(.03f, .032f, .055f));
-            Add("Visual - layered ridges", mountains.Build("Ninja ridges"), far, scenery);
+            if (!shrineTown)
+            {
+                var courtyard = new NinjaMesh();
+                NinjaTempleScenery.Ground(courtyard,wy);
+                Add("Visual - courtyard and walls",courtyard.Build("Ninja courtyard"),ground,scenery);
+                water = Make("NinjaWater","Ninja lake");
+                water.SetVector("_MoonDir",MoonDirection);
+                var lake = new NinjaMesh(); lake.Quad(new Vector3(-900, wy, -900), new Vector3(-900, wy, 900), new Vector3(900, wy, 900), new Vector3(900, wy, -900), Color.white); Add("Visual - lake", lake.Build("Ninja lake"), water, scenery);
+                var mountains = new NinjaMesh(); NinjaTempleScenery.Mountains(mountains, Horizon * 1.05f, new Color(.018f, .02f, .04f));
+                NinjaTempleScenery.FarCastle(mountains, glow, -NinjaTempleScenery.MoonFlat * 240 + Vector3.right * 60 + Vector3.up * 18, 1.3f, new Color(.03f, .032f, .055f));
+                Add("Visual - layered ridges", mountains.Build("Ninja ridges"), far, scenery);
+            }
+            else BuildMoonlitLake(wy);
 
             var p = new NinjaMesh(); var f = new NinjaMesh(); var rng = new System.Random(5);
             var moonFlat = NinjaTempleScenery.MoonFlat; var facing = Quaternion.LookRotation(moonFlat);
             if (!shrineTown) NinjaTempleScenery.Torii(p, moonFlat * 82 + Vector3.up * wy, facing, 20, 15, true, glow);
             if (shrineTown)
             {
-                for (int side = -1; side <= 1; side += 2)
-                {
-                    Vector3[] border = { new(side*5,0,-46),new(side*23,0,-46),new(side*46,0,-23),new(side*46,0,18) };
-                    for (int edge = 0; edge < border.Length-1; edge++)
-                    {
-                        var from = border[edge]; var to = border[edge+1];
-                        int sections = Mathf.RoundToInt(Vector3.Distance(from,to) / 7);
-                        for (int i=0; i<sections; i++)
-                        {
-                            var a = Vector3.Lerp(from,to,i/(float)sections);
-                            var b = Vector3.Lerp(from,to,(i+1)/(float)sections);
-                            NinjaTempleScenery.StoneLantern(p,a,1.45f,glow,i+edge*4);
-                            if (edge == 0 && i == 0) continue;
-                            var foliageAt = (a+b)*.5f + Vector3.up*.58f;
-                            for (int j=1; j<5; j++)
-                            {
-                                var pos = Vector3.Lerp(a,b,j/5f);
-                                p.Box(pos+Vector3.up*.57f,new Vector3(.13f,1.12f,.13f),Quaternion.identity,P.Wood);
-                            }
-                            p.Cylinder(a+Vector3.up*.9f,b+Vector3.up*.9f,.085f,.085f,6,P.Wood,P.Wood);
-                            f.Blob(foliageAt, new Vector3(1.7f,.7f,1.15f),3,9,new Color(.32f,.40f,.25f),P.Pine,edge*8+i,.28f);
-                            if ((i+edge)%2==0) f.Blob(foliageAt+Vector3.up*.53f,new Vector3(.95f,.56f,.79f),3,8,new Color(.86f,.31f,.39f),P.Maple,22+i,.32f);
-                        }
-                    }
-                }
+                var reeds = new NinjaMesh();
+                NinjaTempleScenery.Marsh(reeds,wy);
+                Add("Visual - silvergrass and marsh irises",reeds.Build("Shrine marsh"),foliage,scenery);
                 NinjaTempleScenery.Torii(p, new Vector3(0, 0, -43), Quaternion.identity, 10, 7, true, glow);
                 for (int row = 0; row < 3; row++)
                 {
@@ -137,7 +135,6 @@ namespace DeadlyJenga.NinjaArt
                         var foot = new Vector3(side * 4.6f,0,z);
                         p.Box(foot + Vector3.up * .24f,new Vector3(.65f,.48f,.65f),Quaternion.identity,P.Stone);
                         p.Cylinder(foot,foot + Vector3.up * 5.4f,.13f,.1f,8,P.Wood,P.Vermilion);
-                        Blocker(foot + Vector3.up * 2.7f,new Vector3(.26f,5.4f,.26f));
                     }
                     var previous = new Vector3(-4.6f,5.4f,z);
                     for (int i = 1; i <= 12; i++)
@@ -157,17 +154,20 @@ namespace DeadlyJenga.NinjaArt
                 for (int side = -1; side <= 1; side += 2)
                 {
                     for (int i = 0; i < 5; i++)
-                        NinjaTempleScenery.StoneLantern(p, new Vector3(side * 4, 0, -39 + i * 10), 1, glow, i + 17);
-                    for (int i = 0; i < 9; i++)
+                        NinjaTempleScenery.StoneLantern(p, new Vector3(side * 4, 0, i == 4 ? -1 : -39 + i * 10), 1, glow, i + 17);
+                    // Gate and lantern footings emerge from the water between the walks.
+                    for (int i=0;i<5;i++)
                     {
-                        var at = new Vector3(side * (14 + (i % 3) * 2.2f),0,i < 5 ? 7 - i % 2 : -41 + i % 2);
-                        f.Blob(at + Vector3.up * .6f,new Vector3(1.55f,.83f,1.1f),3,8,new Color(.3f,.4f,.21f),P.Pine,i,.22f);
-                        if (i % 3 == 0) f.Blob(at + Vector3.up * 1.18f,new Vector3(1.2f,.52f,.8f),3,8,
-                            new Color(.88f,.31f,.36f),new Color(.52f,.13f,.19f),i,.3f);
+                        var at = new Vector3(side*4,0,i == 4 ? -1 : -39+i*10);
+                        p.Cylinder(at+Vector3.up*(wy-.2f),at,.36f,.32f,8,P.StoneDark,P.Stone);
                     }
-                    NinjaTempleScenery.Pine(f, new Vector3(side * 23, 0, -36), 1.35f, side + 10);
-                    NinjaTempleScenery.Maple(f, new Vector3(side * 24, 0, 10), 1.2f, side + 25);
-                    NinjaTempleScenery.Maple(f, new Vector3(side * 19, 0, 32), 1.4f, side + 12);
+                    var gateFoot = new Vector3(side*3.5f,0,-43);
+                    p.Cylinder(gateFoot+Vector3.up*(wy-.2f),gateFoot,.72f,.61f,8,P.StoneDark,P.Stone);
+                    for (int i=0;i<3;i++)
+                    {
+                        var at = new Vector3(side*4.6f,0,-32+i*12);
+                        p.Cylinder(at+Vector3.up*(wy-.2f),at,.2f,.17f,6,P.Wood,P.Wood);
+                    }
                 }
             }
             else for (int i = 0; i < 4; i++)
@@ -182,30 +182,35 @@ namespace DeadlyJenga.NinjaArt
                     Blocker(axis * new Vector3(s * 2.7f, 3.5f, 15.5f), new Vector3(.85f, 7, .85f));
                 }
             }
-            float[] islet = { 48, 52, 47, 55 };
-            for (int i = 0; i < 4; i++)
+            if (shrineTown)
+                NinjaTempleScenery.LakeGarden(p,f,glow,transform.Find("Lake islands"),wy);
+            else
             {
-                var dirc = Quaternion.Euler(0, 45 + i * 90, 0) * Vector3.forward; var at = dirc * (islet[i] + (shrineTown ? 18 : 6));
-                NinjaTempleScenery.Rock(p, at, new Vector3(9, 3.2f, 7.5f), 30 + i, wy);
-                NinjaTempleScenery.Bamboo(f, at, shrineTown ? 3.8f : 6.5f, shrineTown ? 12 : 26, 40 + i, wy + 1.2f);
-            }
-            for (int i = 0; i < 14; i++)
-            {
-                float a = i * 2.39996f + .3f, r = 75 + (i * 37 % 70); var at = new Vector3(Mathf.Sin(a) * r, 0, Mathf.Cos(a) * r);
-                if (Vector3.Dot(at.normalized, moonFlat) > .93f) continue;
-                var size = new Vector3(6 + i % 4 * 3, 2.5f + i % 3 * 1.8f, 5 + i % 5 * 2.5f); NinjaTempleScenery.Rock(p, at, size, 60 + i, wy);
-                if (i % 3 == 0) NinjaTempleScenery.Pine(f, at + Vector3.up * (wy + size.y * .55f), 1.6f + i % 2 * .5f, 70 + i);
-                else if (i % 3 == 1) NinjaTempleScenery.Bamboo(f, at, size.x * .55f, 12, 80 + i, wy + size.y * .45f);
-                else { NinjaTempleScenery.StoneLantern(p, at + Vector3.up * (wy + size.y * .5f), 1.6f, glow, 90 + i); NinjaTempleScenery.Maple(f, at + Vector3.up * (wy + size.y * .5f) + Vector3.right * 2, 1.4f, 95 + i); }
-            }
-            for (int i = 0; i < 46; i++)
-            {
-                float a = (float)rng.NextDouble() * Mathf.PI * 2, r = 40 + (float)rng.NextDouble() * 75; var at = new Vector3(Mathf.Sin(a) * r, wy + .12f, Mathf.Cos(a) * r);
-                var col = i % 3 == 0 ? new Color(.95f, .85f, .65f) : P.Vermilion;
-                p.Box(at, new Vector3(.55f, .08f, .55f), Quaternion.Euler(0, i * 37, 0), P.Wood, P.Wood);
-                p.Box(at + Vector3.up * .32f, new Vector3(.42f, .5f, .42f), Quaternion.Euler(0, i * 37, 0), P.Paper(Color.Lerp(col, new Color(1, .7f, .35f), .5f), .85f), P.Paper(col, .7f));
-                glow.Halo(at + Vector3.up * .35f, .8f, new Color(1, .5f, .2f, .55f), i * 1.3f + 2);
-                glow.Halo(at + Vector3.down * .1f, 2.2f, new Color(.8f, .32f, .12f, .25f), 0, 1);
+                float[] islet = { 48, 52, 47, 55 };
+                for (int i = 0; i < 4; i++)
+                {
+                    var dirc = Quaternion.Euler(0, 45 + i * 90, 0) * Vector3.forward; var at = dirc * (islet[i] + 6);
+                    NinjaTempleScenery.Rock(p, at, new Vector3(9, 3.2f, 7.5f), 30 + i, wy);
+                    NinjaTempleScenery.Bamboo(f, at, 6.5f, 26, 40 + i, wy + 1.2f);
+                }
+                for (int i = 0; i < 14; i++)
+                {
+                    float a = i * 2.39996f + .3f, r = 75 + (i * 37 % 70); var at = new Vector3(Mathf.Sin(a) * r, 0, Mathf.Cos(a) * r);
+                    if (Vector3.Dot(at.normalized, moonFlat) > .93f) continue;
+                    var size = new Vector3(6 + i % 4 * 3, 2.5f + i % 3 * 1.8f, 5 + i % 5 * 2.5f); NinjaTempleScenery.Rock(p, at, size, 60 + i, wy);
+                    if (i % 3 == 0) NinjaTempleScenery.Pine(f, at + Vector3.up * (wy + size.y * .55f), 1.6f + i % 2 * .5f, 70 + i);
+                    else if (i % 3 == 1) NinjaTempleScenery.Bamboo(f, at, size.x * .55f, 12, 80 + i, wy + size.y * .45f);
+                    else { NinjaTempleScenery.StoneLantern(p, at + Vector3.up * (wy + size.y * .5f), 1.6f, glow, 90 + i); NinjaTempleScenery.Maple(f, at + Vector3.up * (wy + size.y * .5f) + Vector3.right * 2, 1.4f, 95 + i); }
+                }
+                for (int i = 0; i < 46; i++)
+                {
+                    float a = (float)rng.NextDouble() * Mathf.PI * 2, r = 40 + (float)rng.NextDouble() * 75; var at = new Vector3(Mathf.Sin(a) * r, wy + .12f, Mathf.Cos(a) * r);
+                    var col = i % 3 == 0 ? new Color(.95f, .85f, .65f) : P.Vermilion;
+                    p.Box(at, new Vector3(.55f, .08f, .55f), Quaternion.Euler(0, i * 37, 0), P.Wood, P.Wood);
+                    p.Box(at + Vector3.up * .32f, new Vector3(.42f, .5f, .42f), Quaternion.Euler(0, i * 37, 0), P.Paper(Color.Lerp(col, new Color(1, .7f, .35f), .5f), .85f), P.Paper(col, .7f));
+                    glow.Halo(at + Vector3.up * .35f, .8f, new Color(1, .5f, .2f, .55f), i * 1.3f + 2);
+                    glow.Halo(at + Vector3.down * .1f, 2.2f, new Color(.8f, .32f, .12f, .25f), 0, 1);
+                }
             }
             Add("Visual - shrines, gates and stones", p.Build("Ninja props"), props, scenery, true);
             Add("Visual - bamboo, pines and maples", f.Build("Ninja foliage"), foliage, scenery, true);
@@ -225,15 +230,34 @@ namespace DeadlyJenga.NinjaArt
                 float rr = new[] { 225f, 350f, 545f }[ridge]; float a = i * Mathf.PI * 2 / 24 + ridge;
                 mist.Halo(new Vector3(Mathf.Sin(a) * rr, wy + 6 + ridge * 8, Mathf.Cos(a) * rr), 60 + ridge * 40, new Color(.32f, .34f, .5f, .22f), 0, 1);
             }
-            for (int i = 0; i < 4; i++) for (int s = -1; s <= 1; s += 2)
+            if (shrineTown)
             {
-                var axis = Quaternion.Euler(0, i * 90, 0);
-                Pool(glow, axis * new Vector3(s * 3.4f, .04f, 20.5f), 3.2f, .5f);
-                Pool(glow, axis * new Vector3(s * 2.7f, .04f, 15.5f), 2.6f, .35f);
+                for (int side=-1;side<=1;side+=2)
+                    for (int lamp=0;lamp<5;lamp++)
+                    {
+                        float z = lamp==4 ? -1 : -39+10*lamp;
+                        for (int ripple=0;ripple<7;ripple++)
+                        {
+                            var at = new Vector3(side*4+Mathf.Sin(ripple*2.1f)*.16f,wy+.018f,z-.5f-ripple*.32f);
+                            var along = Vector3.right*(.7f-ripple*.065f);
+                            var depth = Vector3.forward*.12f;
+                            glow.Card(at-along-depth,at-along+depth,at+along+depth,at+along-depth,
+                                new Color(1,.52f,.19f,.52f-ripple*.047f),1);
+                        }
+                    }
             }
-            for (int i = 0; i < 4; i++) Pool(glow, Quaternion.Euler(0, i * 90 + 45, 0) * new Vector3(0, .04f, 11), 6.5f, .28f);
+            else
+            {
+                for (int i = 0; i < 4; i++) for (int s = -1; s <= 1; s += 2)
+                {
+                    var axis = Quaternion.Euler(0, i * 90, 0);
+                    Pool(glow, axis * new Vector3(s * 3.4f, .04f, 20.5f), 3.2f, .5f);
+                    Pool(glow, axis * new Vector3(s * 2.7f, .04f, 15.5f), 2.6f, .35f);
+                }
+                for (int i = 0; i < 4; i++) Pool(glow, Quaternion.Euler(0, i * 90 + 45, 0) * new Vector3(0, .04f, 11), 6.5f, .28f);
+            }
             var beamBase = moonFlat * 160 + Vector3.up * 70;
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; !shrineTown && i < 5; i++)
             {
                 var side = Vector3.Cross(Vector3.up, moonFlat) * (i - 2) * 16; var top = beamBase + side; var bottom = moonFlat * 40 + side * 2.2f + Vector3.up * wy;
                 var across = Vector3.Cross(Vector3.up, moonFlat) * (3 + i % 2 * 2);
@@ -253,8 +277,13 @@ namespace DeadlyJenga.NinjaArt
             moon.color = new Color(.62f, .72f, 1); moon.intensity = .9f; moon.shadows = LightShadows.Hard; moon.shadowStrength = .8f;
 
             weather = new GameObject("Visual - weather").transform; weather.SetParent(transform, false);
-            rain = NinjaFx.Rain(weather); leaves = NinjaFx.Leaves(weather); fireflies = NinjaFx.Fireflies(weather);
-            rainAudio = NinjaSounds.Loop(weather, NinjaSounds.Rain, .16f, false); windAudio = NinjaSounds.Loop(weather, NinjaSounds.Wind, .2f, false);
+            if (!shrineTown)
+            {
+                rain = NinjaFx.Rain(weather);
+                rainAudio = NinjaSounds.Loop(weather, NinjaSounds.Rain, .16f, false);
+            }
+            leaves = NinjaFx.Leaves(weather); fireflies = NinjaFx.Fireflies(weather);
+            windAudio = NinjaSounds.Loop(weather, NinjaSounds.Wind, .2f, false);
             waterAudio = NinjaSounds.Loop(weather, NinjaSounds.Water, .1f, false); taikoAudio = NinjaSounds.Loop(weather, NinjaSounds.Taiko, 0, false);
         }
 
@@ -295,8 +324,8 @@ namespace DeadlyJenga.NinjaArt
             var view = Services.Session?.ActiveCamera;
             if (view && weather)
             {
-                var at = view.transform.position; rain.transform.position = at; leaves.transform.position = at; fireflies.transform.position = new Vector3(at.x, transform.position.y, at.z);
-                bool sheltered = world != null && world.IsSheltered(at);
+                var at = view.transform.position; if (rain) rain.transform.position = at; leaves.transform.position = at; fireflies.transform.position = new Vector3(at.x, transform.position.y, at.z);
+                bool sheltered = rainAudio && world != null && world.IsSheltered(at);
                 if (rainAudio) rainAudio.volume = Mathf.MoveTowards(rainAudio.volume, (sheltered ? .1f : .17f) * Master * NinjaSounds.Gain(NinjaSounds.Rain), Time.deltaTime * .3f);
             }
             if (Time.unscaledTime >= nextClack)
@@ -329,14 +358,21 @@ namespace DeadlyJenga.NinjaArt
                 if (!body || body.transform.Find("Visual - ninja decor")) continue;
                 var size = body.transform.lossyScale;
                 int thickness = Mathf.RoundToInt(size.z * 100);
-                int tile = thickness >= 46 && thickness <= 48 ? thickness - 42 : thickness - 41;
-                if (shrineTown && ((thickness >= 41 && thickness <= 44) || (thickness >= 46 && thickness <= 48)))
+                bool lanternRoom = Mathf.Abs(size.y - 4.65f) < .01f && size.z > 2 && Mathf.Abs(size.x - size.z) < .01f;
+                if (shrineTown && (lanternRoom || (thickness >= 41 && thickness <= 44) || (thickness >= 46 && thickness <= 48) || thickness == 164))
                 {
-                    var panel = new GameObject("Visual - ninja decor");
-                    panel.transform.SetParent(body.transform, false);
-                    panel.transform.localScale = Vector3.one * 1.013f;
-                    panel.AddComponent<MeshFilter>().sharedMesh = facadeCube;
-                    panel.AddComponent<MeshRenderer>().sharedMaterial = facadeMaterials[tile];
+                    if (!wallMeshes.TryGetValue(size, out var wall))
+                    {
+                        wall = ShrineWallArt.Build(size, thickness);
+                        wallMeshes.Add(size, wall);
+                        owned.Add(wall);
+                    }
+                    var panel = new GameObject("Visual - ninja decor").transform;
+                    panel.SetParent(body.transform, false);
+                    var scale = body.transform.localScale;
+                    panel.localScale = new Vector3(1 / scale.x, 1 / scale.y, 1 / scale.z);
+                    panel.gameObject.AddComponent<MeshFilter>().sharedMesh = wall;
+                    panel.gameObject.AddComponent<MeshRenderer>().sharedMaterial = props;
                     continue;
                 }
                 var kind = shrineTown ? NinjaTempleDecor.TownPart(size) : NinjaTempleDecor.Classify(size); if (kind == NinjaTempleDecor.Kind.None) continue;
@@ -345,16 +381,6 @@ namespace DeadlyJenga.NinjaArt
                 var ls = body.transform.localScale; root.localScale = new Vector3(1 / ls.x, 1 / ls.y, 1 / ls.z);
                 var r = root.gameObject.AddComponent<MeshRenderer>(); root.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh; r.sharedMaterial = props;
                 r.shadowCastingMode = kind == NinjaTempleDecor.Kind.Deck ? ShadowCastingMode.On : ShadowCastingMode.Off; r.lightProbeUsage = LightProbeUsage.Off;
-                if (shrineTown && kind == NinjaTempleDecor.Kind.TownRoof && size.x >= 15)
-                {
-                    float span = size.x * .38f, height = size.z * .22f + span * .32f;
-                    var face = new GameObject("Carved gable and crest").transform;
-                    face.SetParent(root,false);
-                    face.localPosition = new Vector3(0,(size.y+height)/2,-size.z/2-.99f);
-                    face.localScale = new Vector3(span*2,height,1);
-                    face.gameObject.AddComponent<MeshFilter>().sharedMesh = gableFace;
-                    face.gameObject.AddComponent<MeshRenderer>().sharedMaterial = facadeMaterials[7];
-                }
                 var g = new GameObject("Visual - ninja decor glow"); g.transform.SetParent(root, false);
                 g.AddComponent<MeshFilter>().sharedMesh = glowMesh; var gr = g.AddComponent<MeshRenderer>(); gr.sharedMaterial = NinjaFx.Glow; gr.shadowCastingMode = ShadowCastingMode.Off; gr.lightProbeUsage = LightProbeUsage.Off;
             }
@@ -371,7 +397,7 @@ namespace DeadlyJenga.NinjaArt
             RenderSettings.ambientSkyColor = previousAmbientSky; RenderSettings.ambientEquatorColor = previousAmbientEquator; RenderSettings.ambientGroundColor = previousAmbientGround; RenderSettings.ambientProbe = previousProbe;
             Shader.SetGlobalFloat(Blood, 0);
             if (scenery) Destroy(scenery.gameObject); if (weather) Destroy(weather.gameObject); if (moon) Destroy(moon.gameObject);
-            foreach (var o in owned) if (o) Destroy(o); owned.Clear(); practicals.Clear();
+            foreach (var o in owned) if (o) Destroy(o); owned.Clear(); practicals.Clear(); wallMeshes.Clear();
         }
     }
 }

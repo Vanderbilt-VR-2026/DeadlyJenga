@@ -359,6 +359,7 @@ namespace DeadlyJenga.Modes
             string id=actor&&actorIds.TryGetValue(actor,out var found)?found:null;
             if(id!=null&&ruleCache.TryGetValue(id,out var cached))return cached;
             var rules=Rules.Copy();
+            if(AuthoredLayout() is { sinkingGround:true })rules.island=IslandRule.Sink;
             var enemy=actor?actor.GetComponent<IEnemyActor>():null;
             if(enemy?.IsEnemy==true){rules.island=IslandRule.Walkable;rules.healthEnabled=true;rules.deathEnabled=true;rules.punchEnabled=true;rules.punchDamage=enemy.HitDamage;rules.punchDistance=2;
                 if(enemy.ArchetypeId=="longhand"){rules.moveScale*=.85f;rules.punchCooldown=1.6f;}

@@ -15,14 +15,24 @@ namespace DeadlyJenga.World.Hazards
         readonly Dictionary<IDamageable,float> lastFireDamage=new Dictionary<IDamageable,float>();
         int fireCursor;
         FireScars fireScars;
-        void SeedFire()
+        void SeedFire(bool randomSeeds = true)
         {
             burning.Clear();ignited.Clear();heat.Clear();lastContact.Clear();blockIds.Clear();fireStarted.Clear();fireCursor=0;
             fireScars=FireScars.For(world);
             var candidates=new List<int>();
             for(int i=0;i<world.Blocks.Count;i++)if(world.Blocks[i]&&world.Blocks[i].gameObject.activeInHierarchy){if(!fireScars||!fireScars.Burnt(i))candidates.Add(i);blockIds[world.Blocks[i]]=i;}
+            if(!randomSeeds)return;
             int count=Mathf.Min((int)V("seeds"),candidates.Count);
             for(int i=0;i<count;i++){int pick=Random.Range(i,candidates.Count);int id=candidates[pick];candidates[pick]=candidates[i];candidates[i]=id;Ignite(id);}
+        }
+        protected void InitializeContactFire()
+        {
+            SeedFire(false);
+            started=true;
+        }
+        internal void IgniteBlock(Rigidbody block)
+        {
+            if(Active && block && blockIds.TryGetValue(block,out int index))Ignite(index);
         }
         void Ignite(int id){if((!fireScars||!fireScars.Burnt(id))&&ignited.Add(id)){burning.Add(id);fireStarted[id]=age;}}
         void Scorch(int id){if(fireScars)fireScars.Scorch(id,V("smokeSeconds"));}

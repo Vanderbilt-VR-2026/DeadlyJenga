@@ -99,6 +99,18 @@ namespace DeadlyJenga.DevTools.Editor
             EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
             EditorApplication.EnterPlaymode();
         }
+        public static void RunShrineSwimming()
+        {
+            SessionState.SetBool(Key+"ShrineSwimming",true);
+            RunNinjaOverview();
+        }
+
+        public static void RunShrinePandas()
+        {
+            SessionState.SetBool(Key+"ShrinePandas",true);
+            RunNinjaOverview();
+        }
+
         public static void RunNinjaOverview()
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Report));
@@ -151,7 +163,7 @@ namespace DeadlyJenga.DevTools.Editor
                     if(preference<0)PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);else PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,preference);
                     PlayerPrefs.Save();SessionState.SetBool(Key+"Layout",false);
                 }
-                SessionState.SetBool(KeepKey,false);SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);SessionState.SetBool(Key+"NinjaOverview",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();
+                SessionState.SetBool(KeepKey,false);SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);SessionState.SetBool(Key+"NinjaOverview",false);SessionState.SetBool(Key+"ShrinePandas",false);SessionState.SetBool(Key+"ShrineSwimming",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();
                 int exitCode = errors == 0 && !failed ? 0 : 2;
                 if (SessionState.GetString("DJWarm.id", "") != "")
                 {
@@ -875,8 +887,174 @@ namespace DeadlyJenga.DevTools.Editor
             });
             Check(lobby&&lobby.Player.gameObject.activeInHierarchy,"Original Marina remains usable after both peers leave");
         }
+        static void ReportShrineContacts(CastleGenerator map,List<CastlePlacement> layout)
+        {
+            var shapes = new List<(Collider col,Vector3 pos,Quaternion rot,Vector3 center,float radius,int block)>();
+            for (int i = 0; i < layout.Count; i++)
+            {
+                var body = map.Bodies[i];
+                var delta = map.transform.rotation * layout[i].Rotation * Quaternion.Inverse(body.rotation);
+                var position = map.transform.TransformPoint(layout[i].Position);
+                foreach (var col in body.GetComponentsInChildren<Collider>())
+                {
+                    if (!col.enabled || col.isTrigger || col.attachedRigidbody != body) continue;
+                    shapes.Add((col,position+delta*(col.transform.position-body.position),delta*col.transform.rotation,
+                        position+delta*(col.bounds.center-body.position),col.bounds.extents.magnitude,i));
+                }
+            }
+            int moving = shapes.Count;
+            var fixtures = map.GetComponentsInChildren<Rigidbody>().First(r => r.name == "Fixed shrine fixtures");
+            foreach (var col in fixtures.GetComponentsInChildren<Collider>())
+                shapes.Add((col,col.transform.position,col.transform.rotation,col.bounds.center,col.bounds.extents.magnitude,-1));
+            for (int i = 0; i < moving; i++)
+                for (int j = i+1; j < shapes.Count; j++)
+                {
+                    var a = shapes[i]; var b = shapes[j];
+                    if (a.block == b.block || (a.center-b.center).sqrMagnitude > Mathf.Pow(a.radius+b.radius,2)) continue;
+                    if (Physics.ComputePenetration(a.col,a.pos,a.rot,b.col,b.pos,b.rot,out _,out float depth) && depth > .045f)
+                        File.AppendAllText(Report,$"Initial overlap {depth:F3} m: {a.block} {a.col.name} {a.center} and {b.block} {b.col.name} {b.center}\n");
+                }
+        }
+
+        static void CheckShrineTraversal(CastleGenerator map,List<CastlePlacement> layout)
+        {
+            var roof = map.Bodies[layout.FindIndex(p => p.Position.x == 10 && p.Position.z == -29 && Mathf.Abs(p.Size.y-1.25f)<.01f)];
+            var probe = new GameObject("Shrine survivor traversal check");
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(probe,map.gameObject.scene);
+            probe.layer = Layers.Survivor;
+            var controller = probe.AddComponent<CharacterController>();
+            controller.radius = .22f;
+            controller.height = 1.64f;
+            controller.center = Vector3.up*.82f;
+            controller.stepOffset = .15f;
+            controller.skinWidth = .025f;
+            Vector3 MoveFrom(Vector3 worldStart,Vector3 motion)
+            {
+                controller.enabled = false;
+                probe.transform.position = worldStart;
+                controller.enabled = true;
+                Physics.SyncTransforms();
+                controller.Move(motion);
+                return probe.transform.position;
+            }
+            try
+            {
+                var post = map.transform.TransformPoint(new Vector3(3.5f,.12f,-43));
+                Check(MoveFrom(post+Vector3.back*1.4f,Vector3.forward*2.8f).z < post.z-.45f,"Survivor controller stops at the torii post");
+                var gate = map.transform.TransformPoint(new Vector3(0,.12f,-45));
+                Check(MoveFrom(gate,Vector3.forward*4).z > gate.z+3.8f,"Survivor controller passes through the torii opening");
+                var lamp = map.transform.TransformPoint(new Vector3(-4,.08f,-39));
+                Check(MoveFrom(lamp+Vector3.back*1.3f,Vector3.forward*2.6f).z < lamp.z-.12f,"Stone lantern stops the survivor controller");
+                var at = roof.position + new Vector3(0,4,1.35f);
+                Check(MoveFrom(at,Vector3.down*5).y > roof.position.y+1.3f,"Survivor controller stands on the pitched roof above its deck");
+                var edge = roof.position + new Vector3(0,3,4.95f);
+                Check(MoveFrom(edge,Vector3.down*4).y > roof.position.y-.1f,"Survivor controller stands on the projecting eave");
+                var scene = map.gameObject.scene.GetPhysicsScene();
+                var island = map.transform.Find("Lake islands/Bamboo clearing").position;
+                Check(scene.Raycast(island+Vector3.up*8,Vector3.down,out var shore,14,1,QueryTriggerInteraction.Ignore)
+                    && shore.collider.name == "Stone islet" && shore.rigidbody && shore.rigidbody.isKinematic,
+                    "Outlying bamboo islet has a solid kinematic landing");
+                Check(scene.Raycast(at,Vector3.down,out var hit,5,1<<Layers.Surface,QueryTriggerInteraction.Ignore)
+                    && Climbables.TryGet(hit.collider,out var climbable) && climbable.Body == roof,
+                    "Pitched traversal collider resolves to its moving climbable rigidbody");
+            }
+            finally { Object.Destroy(probe); }
+        }
+
+        static IEnumerator CheckShrineSwimming()
+        {
+            var patrol = Object.FindFirstObjectByType<DeadlyJenga.Characters.ShrineSamuraiPatrol>();
+            Check(patrol, "Shrine guards loaded on Shrine Town");
+            var names = new[] { "Crescent Guard", "Reed Watcher", "Vermilion Captain" };
+            var actors = names.Select(n => patrol.transform.Find(n)).ToArray();
+            Check(actors.All(a => a), "All three guard models spawned");
+            var animations = actors.Select(a => a.GetComponentInChildren<Animation>()).ToArray();
+            var skins = actors.Select(a => a.GetComponentInChildren<SkinnedMeshRenderer>()).ToArray();
+            var hands = skins.Select(s => s.bones.Single(b => b.name=="HandR")).ToArray();
+            var heads = skins.Select(s => s.bones.Single(b => b.name=="Head")).ToArray();
+            var previous = actors.Select(a => a.position).ToArray();
+            var wrists = hands.Select((h,i) => actors[i].InverseTransformPoint(h.position)).ToArray();
+            var legs = new bool[3]; var strokes = new bool[3]; var treads = new bool[3]; var landed = new bool[3];
+            bool captured = false;
+            for (float end=Time.time+48; Time.time<end; )
+            {
+                yield return Wait(.19f);
+                for (int i=0; i<3; i++)
+                {
+                    var a=actors[i]; var anim=animations[i];
+                    float water=Services.World.WaterHeight(a.position);
+                    Vector3 wrist=a.InverseTransformPoint(hands[i].position);
+                    bool afloat=Mathf.Abs(a.position.y-water)<.08f;
+                    bool moved=(previous[i]-a.position).sqrMagnitude>.001f;
+                    bool poseChanged=(wrist-wrists[i]).sqrMagnitude>.00001f;
+                    if (skins[i].enabled && anim["Shore walk"].weight>.95f && a.position.y>water+.07f) {
+                        legs[i]=true; landed[i]|=strokes[i];
+                    }
+                    strokes[i]|=afloat && moved && poseChanged && anim["Surface swim"].weight>.95f && heads[i].position.y>water-.08f;
+                    treads[i]|=afloat && !moved && poseChanged && anim["Tread water"].weight>.95f;
+                    if (!captured && strokes[i])
+                    {
+                        captureOrigin=a.position;
+                        Capture(new Vector3(2.6f,1.5f,3.1f),Vector3.up*.1f,41,"ShrineSamurai-Swimming.png");
+                        captured=true;
+                    }
+                    previous[i]=a.position; wrists[i]=wrist;
+                }
+                if (landed.All(x=>x) && treads.All(x=>x)) break;
+            }
+            for (int i=0; i<3; i++)
+                Check(legs[i] && strokes[i] && treads[i] && landed[i], names[i]+" walked, swam at the waterline, treaded and regained dry ground");
+        }
+
+        static IEnumerator CheckShrinePandas()
+        {
+            var grove = Object.FindFirstObjectByType<DeadlyJenga.Wildlife.ShrinePandaGrove>();
+            Check(grove && grove.name=="Bamboo clearing","Panda habitat loaded on the large bamboo island");
+            var root = grove.transform.parent.parent.Find("Bamboo island pandas");
+            Check(root && root.childCount==5,"Five residents spawned");
+            var names = new[] {"Original","Willow","Boulder","Dumpling","Cub"};
+            var residents = names.Select(n=>root.Find(n)).ToArray();
+            Check(residents.All(p=>p),"All five builds present once");
+            var props = residents.Select(p=>p.GetComponentInChildren<SkinnedMeshRenderer>().bones.Single(b=>b.name=="Bamboo")).ToArray();
+            var jaws = residents.Select(p=>p.GetComponentInChildren<SkinnedMeshRenderer>().bones.Single(b=>b.name=="Jaw")).ToArray();
+            var food = new bool[5]; var chewed = new bool[5]; var resumed = new bool[5];
+            var last = residents.Select(p=>p.position).ToArray();
+            var lastJaw = jaws.Select(j=>j.localPosition).ToArray();
+            var physics = grove.gameObject.scene.GetPhysicsScene();
+            bool walkingCapture=false, feedingCapture=false;
+            captureOrigin=root.position;
+            for (float end=Time.time+29;Time.time<end;)
+            {
+                yield return Wait(.17f);
+                for (int i=0;i<5;i++)
+                {
+                    var point=residents[i].position;
+                    if (!physics.Raycast(point+Vector3.up*.3f,Vector3.down,out var hit,.45f,1,QueryTriggerInteraction.Ignore) ||
+                        hit.collider.name!="Stone islet" || Mathf.Abs(point.y-hit.point.y)>.05f)
+                        throw new InvalidOperationException("Panda left its island landing: "+names[i]);
+                    bool still=Vector3.Distance(last[i],point)<.001f;
+                    bool feeding=still && props[i].localScale.x>.90f;
+                    if(feeding && food[i] && Vector3.Distance(jaws[i].localPosition,lastJaw[i])>.00001f) chewed[i]=true;
+                    food[i]|=feeding;
+                    resumed[i]|=chewed[i] && !still && props[i].localScale.x<.02f;
+                    if(i==0 && (!walkingCapture && !still || !feedingCapture && chewed[i]))
+                    {
+                        var offset=point-root.position;
+                        bool meal=chewed[i];
+                        Capture(offset+residents[i].forward*2.8f+residents[i].right*1.8f+Vector3.up*1.35f,
+                            offset+Vector3.up*.8f,45,meal?"ShrinePanda-Feeding.png":"ShrinePanda-Walking.png");
+                        if(meal) feedingCapture=true; else walkingCapture=true;
+                    }
+                    last[i]=point;lastJaw[i]=jaws[i].localPosition;
+                }
+                if(resumed.All(v=>v)) break;
+            }
+            Check(resumed.All(v=>v),"Every resident walked, stopped with bamboo, moved its jaw and resumed walking");
+        }
+
         static IEnumerator RunNinjaOverviewScene()
         {
+            Check(EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"),"Disaster setup validator runs");
             yield return RunSoloScene();
             MatchSetup.MapId="mode-ninja-temple-original";
             MatchSetup.ModeId="demo";
@@ -889,8 +1067,23 @@ namespace DeadlyJenga.DevTools.Editor
             yield return Wait(2);
             var world=Services.World;
             Check(world!=null&&world.Blocks.Count>150&&world.Blocks.Count<=400,"Ninja map built within its authored block budget");
+            if (SessionState.GetBool(Key+"ShrineSwimming",false))
+            {
+                yield return CheckShrineSwimming();
+                yield break;
+            }
+            if (SessionState.GetBool(Key+"ShrinePandas",false))
+            {
+                yield return CheckShrinePandas();
+                yield break;
+            }
             var art=Object.FindFirstObjectByType<DeadlyJenga.NinjaArt.NinjaTempleArt>();
             Check(art,"Ninja Temple lighting and scenery are loaded");
+            var lake=art.GetComponentsInChildren<MeshRenderer>().Single(r=>r.name=="Visual - moonlit castle ocean");
+            Check(lake.sharedMaterial.shader.name=="Candy Tropical/Ocean" && lake.sharedMaterial.GetTexture("_CoastSpectrum") &&
+                lake.sharedMaterial.shader.isSupported && lake.GetComponent<MeshFilter>().sharedMesh.vertexCount>4000 &&
+                RenderSettings.skybox.shader.isSupported && RenderSettings.skybox.GetTexture("_Panorama")==lake.sharedMaterial.GetTexture("_CoastPanorama"),
+                "Castle ocean grid and wind spectrum render against the matching moonlit sky");
             var generator = Object.FindObjectsByType<CastleGenerator>(FindObjectsSortMode.None)
                 .First(item => item.settings.layoutPreset == "shrine-town" && item.Bodies.Count > 0);
             var layout = CastleLayout.Build(generator.settings);
@@ -898,13 +1091,93 @@ namespace DeadlyJenga.DevTools.Editor
             var drift = layout.Select((p,i) => new { index = i, p.Position, p.Size,
                 distance = Vector3.Distance(generator.Bodies[i].position, generator.transform.TransformPoint(p.Position)) })
                 .OrderByDescending(p => p.distance).First();
+            var physicsScene = generator.gameObject.scene.GetPhysicsScene();
+            var footings = layout.Where(p => Mathf.Abs(p.Position.y - p.Size.y/2) < .001f).ToArray();
+            Check(footings.Length > 0 && footings.All(p =>
+            {
+                var foot = generator.transform.TransformPoint(p.Position - Vector3.up*(p.Size.y/2));
+                float dip = world.WaterHeight(foot) - foot.y;
+                if (dip <= .05f || dip >= .12f) return false;
+                foreach (int x in new[] {-1,1})
+                    foreach (int z in new[] {-1,1})
+                    {
+                        var corner = foot + generator.transform.TransformVector(p.Rotation *
+                            new Vector3(x*p.Size.x*.48f,0,z*p.Size.z*.48f));
+                        if (!physicsScene.Raycast(corner+Vector3.up*.15f,Vector3.down,out var ground,.22f,1,
+                                QueryTriggerInteraction.Ignore) || ground.collider.name != "Marsh mud" ||
+                            Mathf.Abs(ground.point.y-foot.y) >= .015f) return false;
+                    }
+                return true;
+            }), "Ground-floor blocks bear on mud just beneath the mean waterline");
+            foreach (var tower in new[] {new Vector2(-45,6), new Vector2(46,9)})
+            {
+                var decks = layout.Where(p => p.Section == CastleSection.Corner &&
+                    p.Position.x == tower.x && p.Position.z == tower.y).ToArray();
+                Check(decks.Length == (tower.x < 0 ? 5 : 3) && decks.Max(p => p.Position.y) > 24,
+                    "Outer island tower has its full stack of climbable decks at " + tower);
+            }
+            if (drift.distance >= .12f) ReportShrineContacts(generator,layout);
             File.AppendAllText(Report, $"Largest settle displacement {drift.distance:F4} m at block {drift.index}, position {drift.Position}, size {drift.Size}\n");
             var walls = generator.Bodies.Where(body => body.transform.localScale.z >= .405f && body.transform.localScale.z <= .485f).ToArray();
-            Check(walls.Length > 75 && walls.All(body => body.GetComponentsInChildren<MeshRenderer>()
-                .Any(r => r.sharedMaterial && r.sharedMaterial.shader.name == "DeadlyJenga/Ninja/ShrineFacade"
-                    && r.sharedMaterial.mainTexture)), "Physical walls carry painted shrine-town facades");
-            var quay = generator.foundation.GetComponent<MeshCollider>();
-            Check(quay && quay.sharedMesh && quay.sharedMesh.vertexCount == 16, "Eight-sided quay collider is present");
+            Check(walls.Length > 75 && walls.All(body =>
+            {
+                var detail = body.transform.Find("Visual - ninja decor");
+                return detail && detail.GetComponent<MeshFilter>().sharedMesh.name.StartsWith("Shrine joinery")
+                    && detail.GetComponent<MeshRenderer>().sharedMaterial.name == "Ninja props";
+            }), "Physical walls carry modeled shrine joinery");
+            Check(!generator.foundation.GetComponent<BoxCollider>().enabled,"Continuous courtyard collider removed");
+            var session = Object.FindFirstObjectByType<CastlePlaySession>();
+            var starts = Resources.LoadAll<DeadlyJenga.Modes.MapMatchLayout>("MapMatchLayouts").Single(m => m.Matches(world));
+            foreach (var start in starts.freeSpawns.Concat(starts.teams.SelectMany(team => team.spawns)))
+            {
+                Check(starts.TrySpawnPosition(world,start,out var point) &&
+                    Physics.Raycast(point+Vector3.up*.1f,Vector3.down,out var contact,.4f,1|(1<<Layers.Surface)) &&
+                    Climbables.TryGet(contact.collider,out var porch) && porch.Body && !porch.Body.isKinematic && !Physics.CheckCapsule(point+Vector3.up*.4f,point+Vector3.up*1.45f,
+                    .32f,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore),"Clear dry spawn "+start);
+            }
+            Check(!generator.GetComponentsInChildren<Collider>().Any(c=>c.name=="Cedar landing"),"Fixed walkways removed");
+            var player = session.Player;
+            bool drowned = false;
+            void OnDeath(GameObject who,GameObject source) { if (who==player.gameObject) drowned=true; }
+            GameEvents.Eliminated += OnDeath;
+            try
+            {
+                var spawnFeet = session.Modes.SpawnPoint(-1,0,"survivor",session.Modes.LocalActorId);
+                player.Place(spawnFeet,Quaternion.identity);
+                yield return Wait(.6f);
+                Check(!drowned && player.transform.position.y>generator.waterHeight+.20f,"Local survivor holds dry match spawn");
+                var mudFeet = generator.transform.TransformPoint(new Vector3(-10,.08f,-35.77f));
+                bool Sinking() => session.Modes.Frame.players.Any(p=>p.id==session.Modes.LocalActorId && p.sinking);
+                player.Place(mudFeet,Quaternion.identity);
+                for (float end=Time.time+2;Time.time<end && !Sinking(); ) yield return null;
+                Check(Sinking()&&!drowned,"Actual survivor starts sinking on the shop mud bank");
+                // Move through the survivor controller from the bank onto the adjacent low porch.
+                var controller = player.gameObject.GetComponent<CharacterController>();
+                controller.Move(Vector3.up*.53f);
+                controller.Move(Vector3.forward*1.75f);
+                for (float end=Time.time+session.Modes.Frame.rules.sinkGraceSeconds+.6f;Time.time<end;) yield return null;
+                Check(!drowned&&!Sinking()&&player.transform.position.y>mudFeet.y+.2f,"Reaching the destructible porch clears sinking and survives the full grace period");
+                player.Place(mudFeet,Quaternion.identity);
+                for (float end=Time.time+session.Modes.Frame.rules.sinkGraceSeconds+2;Time.time<end&&!drowned;) yield return null;
+                Check(drowned,"Remaining on exposed mud eliminates the local survivor");
+                yield return Wait(2);
+                drowned=false;
+                var channel = generator.transform.TransformPoint(new Vector3(0,.25f,-18));
+                player.Place(channel,Quaternion.identity);
+                yield return Wait(1.8f);
+                Check(drowned,"Local survivor falls into open marsh and raises elimination");
+            }
+            finally { GameEvents.Eliminated -= OnDeath; }
+            Check(generator.Bodies.All(body => body && !body.isKinematic && body.useGravity),
+                "All structural pieces have dynamic gravity-driven rigidbodies");
+            Check(!art.GetComponentsInChildren<ParticleSystem>(true).Any(x => x.name.ToLowerInvariant().Contains("rain")) &&
+                !art.GetComponentsInChildren<AudioSource>(true).Any(x => x.name.ToLowerInvariant().Contains("rain")),
+                "Redesigned shrine creates no rain particles or rain audio source");
+            var spawn = generator.SafeSpawnPoint();
+            Check(generator.gameObject.scene.GetPhysicsScene().Raycast(spawn+Vector3.up*12,Vector3.down,out var spawnHit,
+                14,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore) && Mathf.Abs(spawn.y-spawnHit.point.y-.12f)<.04f,
+                "Survivor spawn is above the exposed roof surface");
+            CheckShrineTraversal(generator,layout);
             captureOrigin=world.Center;
             var fog=Shader.GetGlobalVector("_NinjaFogParams");
             bool sceneFog=RenderSettings.fog;
@@ -913,10 +1186,14 @@ namespace DeadlyJenga.DevTools.Editor
                 Shader.SetGlobalVector("_NinjaFogParams",new Vector4(120,420,.07f,fog.w));
                 RenderSettings.fog=false;
                 Capture(new Vector3(16,57,-143),new Vector3(-1,2,0),28,"NinjaTemple-Overview.png");
+                Capture(new Vector3(-40,12,4),new Vector3(-73,4,27),52,"ShrineTown-BambooIsland.png");
+                Capture(new Vector3(-16,2.4f,-39),new Vector3(-11,.25f,-34),48,"ShrineTown-MudShore.png");
+                Capture(new Vector3(5,51,-159),new Vector3(0,11,2),32,"ShrineTown-TowerSkyline.png");
+                Capture(new Vector3(-6,2.5f,-35),new Vector3(-10,2.5f,-32),65,"ShrineTown-ShopDetail.png");
                 Capture(new Vector3(0,2,-40),new Vector3(0,8,21),68,"ShrineTown-Market.png");
             }
             finally {Shader.SetGlobalVector("_NinjaFogParams",fog);RenderSettings.fog=sceneFog;}
-            Check(drift.distance < .55f, "Intact town settled within tolerance, max drift " + drift.distance);
+            Check(drift.distance < .12f, "Intact town settled within tolerance, max drift " + drift.distance);
             var shopRoof = generator.Bodies[layout.FindIndex(p =>
                 p.Position.x == 10 && p.Position.z == -29 && Mathf.Abs(p.Size.y - 1.25f) < .01f)];
             float roofY = shopRoof.position.y;

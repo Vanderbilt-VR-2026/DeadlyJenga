@@ -8,7 +8,9 @@ namespace DeadlyJenga.CastlePrototype
     [CreateAssetMenu(menuName="Deadly Jenga/Map Disaster Profile")]
     public sealed class MapDisasterProfile : ScriptableObject
     {
-        public string layoutSignature;
+        public string layoutSignature, layoutPreset;
+        public bool includeGeneral;
+        [Serializable] sealed class Layout { public string layoutPreset; }
         public GameObject[] allowed=Array.Empty<GameObject>();
         public GameObject[] mapOnly=Array.Empty<GameObject>();
         static MapDisasterProfile[] profiles;
@@ -21,10 +23,11 @@ namespace DeadlyJenga.CastlePrototype
             var current=(Services.World as ISyncedWorld)?.SaveLayout()??"";
             if(ReferenceEquals(source,catalog)&&signature==current&&filtered!=null)return filtered;
             profiles??=Resources.LoadAll<MapDisasterProfile>("MapDisasterProfiles");
-            var profile=Array.Find(profiles,p=>p&&p.layoutSignature==current);
+            string preset = current.StartsWith("{", StringComparison.Ordinal) ? JsonUtility.FromJson<Layout>(current)?.layoutPreset : null;
+            var profile=Array.Find(profiles,p=>p&&((!string.IsNullOrEmpty(p.layoutSignature)&&p.layoutSignature==current)||
+                (!string.IsNullOrEmpty(p.layoutPreset)&&p.layoutPreset==preset)));
             source=catalog;signature=current;
-            return filtered=catalog.Where(p=>p&&(profile?Array.IndexOf(profile.allowed,p)>=0:
-                !profiles.Any(other=>other&&Array.IndexOf(other.mapOnly,p)>=0))).ToArray();
+            return filtered=catalog.Where(p=>p&&((profile && (Array.IndexOf(profile.allowed,p)>=0 || Array.IndexOf(profile.mapOnly,p)>=0)) || ((!profile || profile.includeGeneral) && !profiles.Any(other=>other&&Array.IndexOf(other.mapOnly,p)>=0)))).ToArray();
         }
     }
 }

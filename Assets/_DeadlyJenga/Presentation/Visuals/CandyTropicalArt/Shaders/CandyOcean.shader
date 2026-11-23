@@ -7,6 +7,7 @@ Shader "Candy Tropical/Ocean"
         _Foam("Pearl foam",Color)=(.87,1,.97,1)
         _Reflection("Sky reflection tint",Color)=(.32,.68,.95,1)
         _Horizon("Horizon haze",Color)=(.48,.86,1,1)
+        [HideInInspector] _MoonlitLake("Shrine lake center XZ, shore radius, waterline",Vector)=(0,0,0,0)
         _RippleScale("Fine flowing ripple scale",Float)=1.25
         _Speed("Ripple flow",Float)=.42
         _Glints("Sun sparkle",Range(0,1))=.3
@@ -61,7 +62,7 @@ Shader "Candy Tropical/Ocean"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             CBUFFER_START(UnityPerMaterial)
             float4 _Shallow,_Deep,_Foam,_Reflection,_Horizon,_Island;
-            float4 _TerrainBounds,_SoakingPool,_ReefA,_ReefB,_ReefC,_ReefD,_CoastIslet,_CoastIsletB,_CoastIsletC;
+            float4 _MoonlitLake,_TerrainBounds,_SoakingPool,_ReefA,_ReefB,_ReefC,_ReefD,_CoastIslet,_CoastIsletB,_CoastIsletC;
             float _CatwalksCoast,_CoastDayWater,_CoastHasPanorama,_CoastReflectionReady;
             float4x4 _CoastReflectionVP;
             float3 _CoastSun;
@@ -80,6 +81,7 @@ Shader "Candy Tropical/Ocean"
             TEXTURE2D(_CoastReflection);SAMPLER(sampler_CoastReflection);
             #include "../../../Resources/CandyScenery/CandyCoastPanorama.hlsl"
             #include "../../../Resources/CandyScenery/CandyCoastCaustics.hlsl"
+            #include "../../../Resources/NinjaScenery/MoonlitLake.hlsl"
             struct Attributes{float4 positionOS:POSITION;UNITY_VERTEX_INPUT_INSTANCE_ID};
             struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float2 poolLocal:TEXCOORD2;float fog:TEXCOORD3;UNITY_VERTEX_OUTPUT_STEREO};
             float IslandDistance(float2 world)
@@ -180,6 +182,18 @@ Shader "Candy Tropical/Ocean"
                 float3 normal=normalize(float3(i.normal.x*.60,1,i.normal.z*.60)+float3(slope.x,0,slope.y)*lerp(.44,1,deep));
                 float3 view=normalize(_WorldSpaceCameraPos-i.world);
                 float3 sun=normalize(_CoastSun);
+                if (_MoonlitLake.z>0)
+                {
+                    float3 reflected = reflect(-view,normal);
+                    float3 landscape = LakeSky(i.world,reflected,_MoonlitLake,TEXTURE2D_ARGS(_CoastPanorama,sampler_CoastPanorama));
+                    float fresnel = pow(1-saturate(dot(normal,view)),3);
+                    float3 lakeTint = lerp(_Shallow.rgb,_Deep.rgb,smoothstep(32,142,length(position)));
+                    float3 color = lerp(lakeTint*(1+crest*.12),landscape,.12+.64*fresnel);
+                    float3 moon = normalize(float3(_MoonlitLake.x-_MoonlitLake.z*.65,_WaterHeight+18,_MoonlitLake.y+_MoonlitLake.z*.76)-i.world);
+                    float align = saturate(dot(normal,normalize(moon+view)));
+                    color += float3(.88,.62,.32)*pow(align,325)*(.24+.58*medium.a);
+                    return half4(lerp(color,_Foam.rgb,CandySurgeWhitecaps(i.world.xz)),1);
+                }
                 float eyeDepth=_WaterHeight-_WorldSpaceCameraPos.y;
                 if(eyeDepth>.10 && view.y<0)
                 {
@@ -291,6 +305,11 @@ Shader "Candy Tropical/Ocean"
                 float depth=pool?max(.01,_SoakingPool.y*poolEdge):max(.01,i.world.y-terrain);
                 float reefRadius=2;
                 float reefClear=0,isletRadius=3;
+                if (_MoonlitLake.z>0)
+                {
+                    clip(_MoonlitLake.z-length(i.world.xz-_MoonlitLake.xy));
+                    return CatwalksWater(i,depth,0,3,distanceToEye);
+                }
                 if(_CatwalksCoast>.5 && !pool)
                 {
                     reefRadius=min(min(ReefRadius(i.world.xz,_ReefA),ReefRadius(i.world.xz,_ReefB)),

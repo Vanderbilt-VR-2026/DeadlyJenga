@@ -18,6 +18,8 @@ namespace DeadlyJenga.Modes
         public bool playOpeningOnly;
         [Tooltip("Resolve authored room-floor starts onto nearby static ground; never onto loose blocks.")]
         public bool groundSpawns;
+        [Tooltip("Exposed ground sinks survivors. Authored starts require a surviving structural block.")]
+        public bool sinkingGround;
         public Vector3[] freeSpawns=Array.Empty<Vector3>();
         public TeamArea[] teams=Array.Empty<TeamArea>();
         public Vector3 hill;
@@ -28,6 +30,14 @@ namespace DeadlyJenga.Modes
         public bool TrySpawnPosition(IWorldQuery world, Vector3 local, out Vector3 point)
         {
             point=((ISyncedWorld)world).Root.TransformPoint(local);
+            if(sinkingGround)
+            {
+                if(!Physics.Raycast(point+Vector3.up*.2f,Vector3.down,out var floor,.45f,
+                    (1<<Layers.Surface)|(1<<Layers.Block)|1,QueryTriggerInteraction.Ignore) ||
+                    floor.normal.y<.8f || !Climbables.TryGet(floor.collider,out var support) || !support.Body) return false;
+                point=floor.point+Vector3.up*.08f;
+                return true;
+            }
             if(topSpawns)return TryBlockTop(world,ref point);
             if(!groundSpawns)return true;
             if(!Physics.Raycast(point+Vector3.up*.25f,Vector3.down,out var hit,2f,

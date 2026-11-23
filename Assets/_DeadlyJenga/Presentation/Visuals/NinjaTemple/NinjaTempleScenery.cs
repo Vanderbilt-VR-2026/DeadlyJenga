@@ -9,6 +9,149 @@ namespace DeadlyJenga.NinjaArt
         public const float Half = 35, Ring = 24;
         public static Vector3 MoonFlat => new Vector3(Mathf.Sin(25 * Mathf.Deg2Rad), 0, Mathf.Cos(25 * Mathf.Deg2Rad));
 
+        public static void LakeGarden(NinjaMesh props, NinjaMesh foliage, NinjaGlowMesh glow, Transform islands, float waterY)
+        {
+            int seed = 91;
+            foreach (Transform island in islands)
+            {
+                Vector3 center = island.localPosition, size = island.localScale;
+                var ground = center + Vector3.up*(waterY + size.y*.53f);
+                // Match the four terraces of the physical island, including a level moss crown.
+                Vector2[] profile = {new(.65f,-.65f),new(1,-.13f),new(.81f,.35f),new(.58f,.53f)};
+                Color[] tones = {P.StoneDark, new(.28f,.26f,.24f), new(.36f,.36f,.25f), new(.37f,.43f,.25f)};
+                Vector3 Rim(int i,int ring)
+                {
+                    float a = i*2*Mathf.PI/11;
+                    return center + Vector3.up*waterY + Vector3.Scale(size,new Vector3(Mathf.Cos(a)*profile[ring].x,profile[ring].y,Mathf.Sin(a)*profile[ring].x));
+                }
+                for (int i=0;i<11;i++)
+                {
+                    for (int j=0;j<3;j++)
+                        props.Quad(Rim(i,j),Rim(i,j+1),Rim(i+1,j+1),Rim(i+1,j),tones[j],tones[j+1],tones[j+1],tones[j]);
+                    props.Tri(ground,Rim(i+1,3),Rim(i,3),tones[3],tones[3],tones[3]);
+                }
+                if (island.name == "Bamboo clearing")
+                {
+                    // The grove frames a south-facing meadow on the island's flat crown.
+                    for (int edge=0;edge<24;edge++)
+                    {
+                        float angle=edge*Mathf.PI/12;
+                        var toe=ground+new Vector3(Mathf.Cos(angle)*9.6f,0,Mathf.Sin(angle)*6.9f);
+                        if (edge%4==0)
+                            props.Blob(toe,new Vector3(.78f,.29f,.50f),3,7,P.Moss,P.StoneDark,edge+seed,.24f);
+                        for (int blade=0;blade<6;blade++)
+                        {
+                            var direction=Quaternion.Euler(0,blade*60+edge*19,0)*Vector3.forward;
+                            var half=Vector3.Cross(direction,Vector3.up)*.09f;
+                            var knee=toe+direction*.23f+Vector3.up*.22f;
+                            foliage.Quad(toe,knee-half,toe+direction*.55f+Vector3.up*.31f,knee+half,
+                                P.Sway(P.Moss,0),P.Sway(P.BambooLeaf,.3f),P.Sway(new Color(.48f,.56f,.30f),.6f),P.Sway(P.BambooLeaf,.3f));
+                        }
+                    }
+                    Bamboo(foliage,center+new Vector3(-7,0,1),2.1f,11,seed,ground.y,true);
+                    Bamboo(foliage,center+new Vector3(2,0,4.7f),1.9f,9,seed+1,ground.y,true);
+                    Bamboo(foliage,center+new Vector3(7,0,1.8f),1.4f,5,seed+2,ground.y,true);
+                }
+                else if (island.name=="Bamboo") Bamboo(foliage,center,size.z*.31f,10,seed,ground.y,true);
+                else if (island.name=="Pine") Pine(foliage,ground,1.9f,seed,true);
+                else Maple(foliage,ground,1.6f,seed,true);
+                seed += 7;
+            }
+
+            // Loosely grouped paper boats along four open-water channels.
+            for (int i=0;i<100;i++)
+            {
+                int lane=i/25, k=i%25;
+                float t=(k/5 + (k%5)*.105f)/4.5f;
+                float bend=2.1f*Mathf.Sin(k*1.83f+lane)+2.8f*Mathf.Sin(t*7);
+                float along=Mathf.Lerp(-49,49,t);
+                var at = lane switch
+                {
+                    0 => new Vector3(along,0,-52+bend),
+                    1 => new Vector3(60+bend,0,along),
+                    2 => new Vector3(along,0,41+bend),
+                    _ => new Vector3(-57+bend,0,along)
+                };
+                bool ashore=false;
+                foreach (Transform island in islands)
+                {
+                    Vector3 delta=at-island.localPosition, radius=island.localScale;
+                    if (Mathf.Pow(delta.x/(radius.x+1),2)+Mathf.Pow(delta.z/(radius.z+1),2)<1) { ashore=true; break; }
+                }
+                if (ashore) continue;
+                at.y=waterY+.07f;
+                var turn=Quaternion.Euler(0,i*53,0);
+                var paper=P.Paper(i%5==0 ? new Color(1,.48f,.27f) : new Color(1,.81f,.51f),.63f);
+                props.Box(at,new Vector3(.59f,.085f,.53f),turn,P.Wood);
+                props.Box(at+Vector3.up*.27f,new Vector3(.41f,.46f,.36f),turn,paper);
+                props.Box(at+Vector3.up*.51f,new Vector3(.44f,.035f,.39f),turn,P.Wood);
+                for (int x=-1;x<=1;x+=2)
+                    for (int z=-1;z<=1;z+=2)
+                        props.Box(at+turn*new Vector3(x*.205f,.28f,z*.18f),new Vector3(.027f,.47f,.027f),turn,P.Wood);
+                glow.Halo(at+Vector3.up*.27f,.83f,new Color(1,.51f,.22f,.48f),i);
+                glow.Halo(at,1.25f,new Color(.92f,.41f,.16f,.22f),0,1);
+            }
+        }
+
+        public static void Marsh(NinjaMesh mesh,float waterY)
+        {
+            var random = new System.Random(2901);
+            float Range(float low,float high) => Mathf.Lerp(low,high,(float)random.NextDouble());
+            var root=P.Sway(new Color(.20f,.31f,.20f),0);
+            var leaf=P.Sway(new Color(.43f,.56f,.32f),.62f);
+            var straw=P.Sway(new Color(.82f,.76f,.56f),.92f);
+            var violet=P.Sway(new Color(.53f,.35f,.70f),.58f);
+            // Crescent-shaped beds in shallow water, clear of the town's foundations and gate axis.
+            Vector3[] beds={new(-32,0,-46),new(-15,0,-49),new(19,0,-48),new(41,0,-37),
+                new(52,0,-17),new(55,0,19),new(32,0,32),new(-18,0,36),
+                new(-46,0,24),new(-53,0,-12),new(-43,0,-35),new(16,0,35)};
+            foreach (var center in beds)
+            {
+                var tangent=new Vector3(-center.z,0,center.x).normalized;
+                var normal=center.normalized;
+                for (int j=0;j<38;j++)
+                {
+                    float u=Range(-1,1);
+                    var foot=center+tangent*u*6.4f+normal*(1.7f*u*u+Range(-1.3f,1.3f))+Vector3.up*(waterY-.11f);
+                    float h=Range(.65f,1.5f);
+                    for (int k=0;k<6;k++)
+                    {
+                        float a=Range(0,Mathf.PI*2);
+                        var lean=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
+                        var side=Vector3.Cross(lean,Vector3.up)*Range(.045f,.085f);
+                        var mid=foot+Vector3.up*h*.65f+lean*.17f;
+                        var ridge=mid+lean*.045f;
+                        var tip=foot+Vector3.up*h*Range(.8f,1.24f)+lean*Range(.38f,.78f);
+                        mesh.Tri(foot,mid-side,ridge,root,leaf,leaf);
+                        mesh.Tri(foot,ridge,mid+side,root,leaf,leaf);
+                        mesh.Tri(mid-side,tip,ridge,leaf,straw,leaf);
+                        mesh.Tri(ridge,tip,mid+side,leaf,straw,leaf);
+                    }
+                    if (j%3!=0) continue;
+                    var head=foot+Vector3.up*(h+.32f);
+                    mesh.Cylinder(foot,head,.017f,.011f,4,root,leaf);
+                    if (j%4==0)
+                    {
+                        for (int petal=0;petal<3;petal++)
+                        {
+                            var turn=Quaternion.Euler(0,petal*120+j*13,0);
+                            var edge=head+turn*new Vector3(0,.035f,.13f);
+                            mesh.Quad(head,edge+turn*Vector3.left*.075f,head+turn*new Vector3(0,-.09f,.24f),edge+turn*Vector3.right*.075f,
+                                straw,violet,violet,violet);
+                            mesh.Tri(head,head+turn*new Vector3(-.05f,.12f,.05f),head+turn*new Vector3(0,.22f,.025f),violet,violet,violet);
+                        }
+                    }
+                    else for (int plume=0;plume<6;plume++)
+                    {
+                        var spray=Quaternion.Euler(0,plume*58+j*19,0)*Vector3.forward;
+                        var end=head+spray*(.20f-plume*.019f)+Vector3.up*(.14f+plume*.043f);
+                        var fan=Vector3.Cross(spray,Vector3.up)*.035f;
+                        mesh.Quad(head,Vector3.Lerp(head,end,.6f)-fan,end,Vector3.Lerp(head,end,.6f)+fan,leaf,straw,straw,straw);
+                    }
+                }
+            }
+        }
+
         public static void Ground(NinjaMesh m, float waterY, int half = 35)
         {
             if (half > 35)
@@ -167,7 +310,7 @@ namespace DeadlyJenga.NinjaArt
             glow?.Halo(at + Vector3.up * 1.52f * scale, .8f * scale, new Color(1, .55f, .22f, .6f), seed * .37f + 1);
         }
 
-        public static void Bamboo(NinjaMesh m, Vector3 center, float radius, int count, int seed, float baseY)
+        public static void Bamboo(NinjaMesh m, Vector3 center, float radius, int count, int seed, float baseY, bool grove = false)
         {
             var rng = new System.Random(seed);
             for (int i = 0; i < count; i++)
@@ -175,6 +318,7 @@ namespace DeadlyJenga.NinjaArt
                 float a = (float)rng.NextDouble() * Mathf.PI * 2, r = Mathf.Sqrt((float)rng.NextDouble()) * radius;
                 var foot = center + new Vector3(Mathf.Cos(a) * r, baseY, Mathf.Sin(a) * r);
                 float height = 9 + (float)rng.NextDouble() * 8, thick = .09f + (float)rng.NextDouble() * .07f;
+                if (grove) { height *= .54f + .52f*(float)rng.NextDouble(); thick *= 1.28f; }
                 var lean = new Vector3((float)rng.NextDouble() - .5f, 0, (float)rng.NextDouble() - .5f) * .12f;
                 var tone = P.Vary(P.Bamboo, rng, .2f); int nodes = Mathf.RoundToInt(height / 1.1f);
                 for (int n = 0; n < nodes; n++)
@@ -190,17 +334,20 @@ namespace DeadlyJenga.NinjaArt
                 {
                     float t = .5f + (float)rng.NextDouble() * .5f; var stem = foot + (Vector3.up + lean * t) * height * t;
                     float dir = (float)rng.NextDouble() * Mathf.PI * 2; var out1 = new Vector3(Mathf.Cos(dir), 0, Mathf.Sin(dir));
+                    var twig = out1*(grove ? 1.75f : 0) + Vector3.up*(grove ? .46f : 0);
+                    if (grove) m.Cylinder(stem,stem+twig,.042f,.014f,4,P.Sway(tone,t),P.Sway(tone,t));
                     for (int leaf = 0; leaf < 4; leaf++)
                     {
                         var spread = Quaternion.AngleAxis((leaf - 1.5f) * 26, Vector3.up) * out1; float len = 1 + (float)rng.NextDouble() * .7f;
-                        var tip = stem + spread * len + Vector3.down * (.35f + (float)rng.NextDouble() * .4f); var side = Vector3.Cross(spread, Vector3.up) * .13f;
+                        var bud = stem + twig*((leaf+1)/4f);
+                        var tip = bud + spread * len + Vector3.down * (.35f + (float)rng.NextDouble() * .4f); var side = Vector3.Cross(spread, Vector3.up) * .13f;
                         var leafTone = P.Sway(P.Vary(P.BambooLeaf, rng, .25f), Mathf.Min(1, t + .2f)); var tipTone = P.Sway(leafTone * 1.25f, Mathf.Min(1, t + .35f));
-                        m.Tri(stem, stem + spread * len * .45f + side, tip, leafTone, leafTone, tipTone); m.Tri(stem, tip, stem + spread * len * .45f - side, leafTone, tipTone, leafTone);
+                        m.Tri(bud, bud + spread * len * .45f + side, tip, leafTone, leafTone, tipTone); m.Tri(bud, tip, bud + spread * len * .45f - side, leafTone, tipTone, leafTone);
                     }
                 }
             }
         }
-        public static void Pine(NinjaMesh m, Vector3 foot, float size, int seed)
+        public static void Pine(NinjaMesh m, Vector3 foot, float size, int seed, bool detailed = false)
         {
             var rng = new System.Random(seed); var trunk = P.Vary(P.Wood * .8f, rng, .1f);
             var p = foot; var bend = new Vector3((float)rng.NextDouble() - .5f, 0, (float)rng.NextDouble() - .5f).normalized;
@@ -213,12 +360,19 @@ namespace DeadlyJenga.NinjaArt
                     var pad = p + Quaternion.Euler(0, rng.Next(360), 0) * Vector3.forward * size * (.7f + (float)rng.NextDouble() * .8f) + Vector3.up * size * .15f;
                     m.Cylinder(p, pad, size * .08f, size * .06f, 5, P.Sway(trunk, .3f), P.Sway(trunk, .4f));
                     var green = P.Vary(P.Pine, rng, .2f);
+                    if (detailed)
+                        for (int j=0;j<5;j++)
+                        {
+                            var radial=Quaternion.Euler(0,j*72+seed,0)*Vector3.forward;
+                            var end=pad+radial*size*1.18f;
+                            m.Blob(end,new Vector3(.58f,.20f,.52f)*size,2,7,P.Sway(green*1.4f,.65f),P.Sway(green*.72f,.5f),seed+i+j,.32f);
+                        }
                     m.Blob(pad, new Vector3(1.6f, .42f, 1.3f) * size, 3, 9, P.Sway(green * 1.5f, .6f), P.Sway(green * .6f, .5f), seed + i, .35f);
                 }
             }
             m.Blob(p + Vector3.up * size * .3f, new Vector3(1.4f, .5f, 1.4f) * size, 3, 9, P.Sway(P.Pine * 1.6f, .7f), P.Sway(P.Pine * .6f, .6f), seed + 9, .35f);
         }
-        public static void Maple(NinjaMesh m, Vector3 foot, float size, int seed)
+        public static void Maple(NinjaMesh m, Vector3 foot, float size, int seed, bool detailed = false)
         {
             var rng = new System.Random(seed); var trunk = P.Wood * .7f; trunk.a = 0;
             m.Cylinder(foot, foot + Vector3.up * size * 1.8f, size * .14f, size * .1f, 6, P.Sway(trunk, 0), P.Sway(trunk, .2f));
@@ -227,6 +381,20 @@ namespace DeadlyJenga.NinjaArt
                 var c = foot + Vector3.up * size * (2 + (float)rng.NextDouble() * 1.1f) + Quaternion.Euler(0, i * 60 + rng.Next(30), 0) * Vector3.forward * size * (.5f + (float)rng.NextDouble() * .8f);
                 var tone = Color.Lerp(P.Maple, new Color(.85f, .2f, .06f), (float)rng.NextDouble() * .5f);
                 m.Cylinder(foot + Vector3.up * size * 1.6f, c, size * .07f, size * .04f, 5, P.Sway(trunk, .2f), P.Sway(trunk, .4f));
+                if (detailed)
+                    for (int j=0;j<12;j++)
+                    {
+                        var outward=Quaternion.Euler(0,j*137+i*17,0)*Vector3.forward;
+                        var stalk=c+outward*size*.94f+Vector3.up*(Mathf.Sin(j*1.7f)*.45f*size);
+                        var fan=Vector3.Cross(outward,Vector3.up);
+                        for (int lobe=-2;lobe<=2;lobe++)
+                        {
+                            var axis=Quaternion.AngleAxis(lobe*24,Vector3.up)*outward;
+                            var mid=stalk+axis*.19f;
+                            var tip=stalk+axis*(.40f-.045f*Mathf.Abs(lobe))+Vector3.down*.09f;
+                            m.Quad(stalk,mid-fan*.045f,tip,mid+fan*.045f,P.Sway(tone,.45f),P.Sway(tone,.65f),P.Sway(tone*1.35f,.8f),P.Sway(tone,.65f));
+                        }
+                    }
                 m.Blob(c, new Vector3(1.05f, .85f, 1.05f) * size * (.75f + (float)rng.NextDouble() * .45f), 5, 9, P.Sway(tone * 1.2f, .7f), P.Sway(tone * .4f, .5f), seed * 7 + i, .5f);
             }
         }

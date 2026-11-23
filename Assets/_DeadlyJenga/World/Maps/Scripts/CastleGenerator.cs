@@ -9,6 +9,7 @@ namespace DeadlyJenga.CastlePrototype
         public CastleSettings settings = new CastleSettings();
         public GameObject blockPrefab;
         public Material cornerMaterial, wallMaterial, keepMaterial;
+        [SerializeField] Material shrineMudMaterial;
         [SerializeField] Material goldMaterial, aquaMaterial;
         public Transform foundation;
         public bool generateOnStart = true;
@@ -328,6 +329,22 @@ namespace DeadlyJenga.CastlePrototype
                 if (!col || !col.enabled || col.isTrigger || !col.gameObject.activeInHierarchy) continue;
                 if (col.bounds.max.y > highest) { highest = col.bounds.max.y; best = col; }
             }
+            if (best && settings.layoutPreset == ShrineTownLayout.Preset)
+            {
+                // The block box ends at the deck. Find the exposed roof under the spawn,
+                // including its pitch, without placing the survivor on the narrow spire.
+                var bounds = best.bounds;
+                float ceiling = bounds.max.y;
+                foreach (var part in best.GetComponentsInChildren<Collider>())
+                    if (part.enabled && !part.isTrigger) ceiling = Mathf.Max(ceiling, part.bounds.max.y);
+                var start = new Vector3(bounds.center.x + bounds.extents.x*.25f, ceiling+1,
+                    bounds.center.z + bounds.extents.z*.25f);
+                if (gameObject.scene.GetPhysicsScene().Raycast(start,Vector3.down,out var roofHit,
+                    ceiling-bounds.min.y+2,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore))
+                    return roofHit.point + Vector3.up*.12f;
+            }
+            if (!best && settings.layoutPreset == ShrineTownLayout.Preset)
+                return transform.TransformPoint(new Vector3(0,4.15f,12));
             return best ? new Vector3(best.bounds.center.x, best.bounds.max.y + .08f, best.bounds.center.z)
                 : (foundation ? foundation.position : transform.position) + Vector3.up * .6f;
         }
@@ -379,7 +396,11 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var size = CastleLayout.FootprintSize(settings)+Vector2.one*4;
                 foundation.localScale = new Vector3(size.x, 1, size.y);
-                if (settings.layoutPreset == ShrineTownLayout.Preset) ShrineTownLayout.ShapeFoundation(foundation);
+                if (settings.layoutPreset == ShrineTownLayout.Preset)
+                {
+                    foundation.GetComponent<BoxCollider>().enabled = false;
+                    ShrineTownLayout.BuildStreetColliders(generatedRoot,transform.InverseTransformPoint(Vector3.up*waterHeight).y,shrineMudMaterial ? shrineMudMaterial : keepMaterial);
+                }
             }
             foreach (var p in layout)
             {
@@ -423,7 +444,10 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 var size=p.BlockSize(settings);
                 if (settings.layoutPreset == ShrineTownLayout.Preset)
-                    ShrineTownLayout.AddRoofColliders(body, size);
+                {
+                    ShrineTownLayout.AddRoofColliders(body,size);
+                    if (block) ShrineTownLayout.AddRoofTraversal(block,size);
+                }
                 float volumeRatio=size.x*size.y*size.z/(settings.blockSize.x*settings.blockSize.y*settings.blockSize.z);
                 // Temple decks represent timber framing with a hollow tiled roof.
                 if (settings.layoutPreset == ShrineTownLayout.Preset && p.Section == CastleSection.Corner) volumeRatio *= .24f;
