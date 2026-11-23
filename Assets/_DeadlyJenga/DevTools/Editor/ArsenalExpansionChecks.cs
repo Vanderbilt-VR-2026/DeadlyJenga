@@ -28,7 +28,8 @@ namespace DeadlyJenga.DevTools.Editor
         static string Report=>ProjectPath.Report(NeedleOnly?"NeedleDrillArt.txt":BoxingGloveOnly?"BoxingGloveArt.txt":PistolMotionOnly?"PistolMotion.txt":
             StockPistolOnly?"StockPistolArt.txt":SawStaffOnly?"SawWheelStaffContacts.txt":"ArsenalExpansion.txt");
         sealed class PickupSource:IEquipmentPickupSource {public EquipmentKind Kind{get;set;}public Vector3 Position{get;set;}public float Duration{get;set;}=1;}
-        [Serializable] sealed class Scenes{public SceneSetup[] values;}
+        [Serializable] sealed class SavedScene { public string path; public bool loaded, active; }
+        [Serializable] sealed class Scenes { public SavedScene[] values; }
         static ArsenalExpansionChecks()
         {
             EditorApplication.update+=()=>
@@ -51,7 +52,20 @@ namespace DeadlyJenga.DevTools.Editor
                     Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);
                     SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));
                     MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);
-                    EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).values);
+                    try
+                    {
+                        var saved = JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes",""))?.values;
+                        if (saved != null && saved.Length > 0)
+                            EditorSceneManager.RestoreSceneManagerSetup(saved.Select(scene => new SceneSetup
+                            {
+                                path = scene.path, isLoaded = scene.loaded, isActive = scene.active
+                            }).ToArray());
+                    }
+                    catch (Exception error)
+                    {
+                        errors++;
+                        File.AppendAllText(Report,"ERROR Restoring editor scene setup: "+error+"\n");
+                    }
                     failed|=!completed;File.AppendAllText(Report,$"COMPLETE checks={checks} runtimeErrors={errors} failed={failed}. Desktop runtime; headset not tested.\n");
                     bool weaponMotion = SessionState.GetBool(Key+"MotionOnly",false);
                     SessionState.SetBool(Key+"MotionOnly",false);
@@ -104,9 +118,12 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetBool(Key+"BoxingGloveOnly",boxingGloveOnly);
             SessionState.SetBool(Key+"NeedleOnly",needleOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
-            var setup=EditorSceneManager.GetSceneManagerSetup();
-            if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
-            SessionState.SetString(Key+"Scenes",JsonUtility.ToJson(new Scenes{values=setup}));
+            for (int index = 0; index < UnityEngine.SceneManagement.SceneManager.sceneCount; index++)
+                if (UnityEngine.SceneManagement.SceneManager.GetSceneAt(index).isDirty)
+                    throw new InvalidOperationException("Save edited scenes first.");
+            var setup = EditorSceneManager.GetSceneManagerSetup().Where(scene => !string.IsNullOrEmpty(scene.path))
+                .Select(scene => new SavedScene { path = scene.path, loaded = scene.isLoaded, active = scene.isActive }).ToArray();
+            SessionState.SetString(Key+"Scenes",JsonUtility.ToJson(new Scenes { values = setup.Any(scene => scene.loaded && scene.active) ? setup : Array.Empty<SavedScene>() }));
             SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
