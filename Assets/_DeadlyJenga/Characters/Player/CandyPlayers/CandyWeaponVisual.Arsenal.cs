@@ -1039,6 +1039,7 @@ namespace DeadlyJenga.CandyPlayers
         static Material[] spikeUziSurfaces;
         void BuildDetailedSpikeUzi(Transform root)
         {
+            if (TryBuildReviewedWeapon(root, EquipmentKind.DualUzi, "RoundedDualSpikers", RoundedSpikerParts)) return;
             if(spikeUziMeshes==null)
             {
                 var groups=new List<CombineInstance>[12];for(int i=0;i<groups.Length;i++)groups[i]=new List<CombineInstance>();var temporary=new List<Mesh>();

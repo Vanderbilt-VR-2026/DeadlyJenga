@@ -1087,6 +1087,12 @@ namespace DeadlyJenga.DevTools.Editor
                     // Separate initial gather and ready checkpoints while preserving the same wrist pose.
                     yield return new WaitForSeconds(.72f);
                     visual.Present(state,frame,true);
+                    if (kind is EquipmentKind.GrenadeLauncher or EquipmentKind.DualUzi)
+                    {
+                        string authoredMesh = kind == EquipmentKind.GrenadeLauncher ? "Sugar Corps launcher opaque" : "Rounded Spiker receiver opaque";
+                        var held = player.transform.Find("Visual - " + kind);
+                        Check(held && held.Find(authoredMesh), "The live player uses the reviewed model: " + kind);
+                    }
                     var ready=model.position;
                     var activeSeat=mounted?movingPart.localPosition:Vector3.zero;
                     bool pickup=mounted ? Vector3.Distance(activeSeat,initialSeat)>.01f ||
@@ -1126,14 +1132,16 @@ namespace DeadlyJenga.DevTools.Editor
                         state.reloadRemaining=spec.reloadSeconds*.30f;
                         visual.Present(state,frame,true);
                         Check(feed.gameObject.activeInHierarchy,"Fresh ammo is visible during insertion: "+kind);
-                        if(!energy)
-                            Check(feed.Cast<Transform>().Any(item=>item.name.StartsWith("Visible round ")&&item.gameObject.activeSelf),
+                        if(!energy&&kind!=EquipmentKind.DualUzi)
+                            Check(feed.Cast<Transform>().Any(item=>item.name.StartsWith(kind==EquipmentKind.GrenadeLauncher?"Charge cell ":"Visible round ")&&item.gameObject.activeSelf),
                                 "Reload displays ammunition meshes: "+kind);
                         if(kind==EquipmentKind.DualUzi)
                         {
                             var paired=holder.transform.Find("Visual - paired DualUzi");
                             var pairedFeed=paired?paired.Find("Animated ammunition assembly"):null;
                             Check(pairedFeed,"Offhand spiker has a separate magazine");
+                            Check(feed.Find("Prismatic power cell opaque")&&pairedFeed.Find("Prismatic power cell opaque"),
+                                "Both holders use the reviewed prismatic power cell");
                             state.reloadRemaining=spec.reloadSeconds*.76f;
                             visual.Present(state,frame,true);
                             Check(feed.localPosition.sqrMagnitude>.001f&&pairedFeed.localPosition.sqrMagnitude<.001f,
@@ -1147,6 +1155,13 @@ namespace DeadlyJenga.DevTools.Editor
                         state.reloadRemaining=0;
                         visual.Present(state,frame,true);
                         Check(Vector3.Distance(feed.localPosition,seated)<.002f,"Ammo seats after reload: "+kind);
+                        if (kind == EquipmentKind.DualUzi)
+                        {
+                            state.rounds = spec.magazine - 12;
+                            visual.Present(state,frame,true);
+                            Check(!model.Find("Crystal 5").gameObject.activeSelf && model.Find("Crystal 4").gameObject.activeSelf,
+                                "Six shots on one Spiker spend exactly one color crystal");
+                        }
                     }
                     state.drawn=false;
                     float until=Time.time+.71f;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using DeadlyJenga.Core;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -16,6 +17,16 @@ namespace DeadlyJenga.CandyPlayers
         static (Mesh mesh, byte part, bool glass)[] duplexVisual;
         static Material duplexCoating, duplexGlass;
         static bool duplexVisualChecked;
+        static readonly Dictionary<EquipmentKind, (Mesh mesh, byte part, bool glass)[]> reviewedWeaponMeshes = new();
+        static readonly string[] SugarCorpsLauncherParts =
+        {
+            "Sugar Corps launcher", "Sugar Corps drum", "Charge cell 1", "Charge cell 2", "Charge cell 3",
+            "Charge cell 4", "Charge cell 5", "Charge cell 6"
+        };
+        static readonly string[] RoundedSpikerParts =
+        {
+            "Rounded Spiker receiver", "Prismatic power cell", "Crystal 1", "Crystal 2", "Crystal 3", "Crystal 4", "Crystal 5"
+        };
 
         // The authored asset is shared by held, remote and pickup instances.
         // Positions are already in the existing receiver and carriage coordinate spaces.
@@ -30,18 +41,8 @@ namespace DeadlyJenga.CandyPlayers
                 {
                     try
                     {
-                        duplexVisual = ReadDuplexVisual(data.bytes);
-                        duplexCoating = new Material(shader) { name = "Duplex opaque finishes", enableInstancing = true };
-                        duplexGlass = new Material(duplexCoating)
-                        {
-                            name = "Duplex glass and candy residue",
-                            renderQueue = (int)RenderQueue.Transparent
-                        };
-                        duplexGlass.SetOverrideTag("RenderType", "Transparent");
-                        duplexGlass.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
-                        duplexGlass.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
-                        duplexGlass.SetInt("_ZWrite", 0);
-                        duplexGlass.EnableKeyword("_DUPLEX_GLASS");
+                        duplexVisual = ReadWeaponMeshes(data.bytes, 0x584C5044, DuplexParts, 6);
+                        EnsureReviewedWeaponMaterials();
                     }
                     catch (Exception error) when (error is IOException || error is InvalidDataException)
                     {
@@ -88,13 +89,67 @@ namespace DeadlyJenga.CandyPlayers
             lens.localPosition = Vector3.forward * .008f;
         }
 
-        static (Mesh, byte, bool)[] ReadDuplexVisual(byte[] data)
+        bool TryBuildReviewedWeapon(Transform parent, EquipmentKind weapon, string resource, string[] names)
+        {
+            if (!reviewedWeaponMeshes.TryGetValue(weapon, out var meshes))
+            {
+                meshes = null;
+                var asset = Resources.Load<TextAsset>(resource);
+                var shader = Resources.Load<Shader>("DuplexSurface");
+                if (asset && shader && shader.isSupported)
+                {
+                    try { meshes = ReadWeaponMeshes(asset.bytes, 0x54524157, names); }
+                    catch (Exception error) when (error is IOException || error is InvalidDataException)
+                    { Debug.LogWarning($"Could not read the {resource} model. {error.Message}"); }
+                }
+                reviewedWeaponMeshes[weapon] = meshes;
+                if (meshes == null)
+                    Debug.LogError($"The reviewed {resource} weapon model is unavailable.");
+            }
+
+            if (meshes == null) return false;
+            var parts = new Transform[names.Length];
+            parts[0] = parent;
+            parts[1] = MakeFeedAssembly(parent);
+            for (int i = 2; i < parts.Length; i++)
+            {
+                parts[i] = new GameObject(names[i]).transform;
+                parts[i].SetParent(weapon == EquipmentKind.GrenadeLauncher ? parts[1] : parent, false);
+            }
+
+            EnsureReviewedWeaponMaterials();
+            foreach (var mesh in meshes)
+                MountFeedMesh(mesh.mesh, mesh.glass ? duplexGlass : duplexCoating, parts[mesh.part]);
+            return true;
+        }
+
+        static void EnsureReviewedWeaponMaterials()
+        {
+            if (duplexCoating && duplexGlass) return;
+            var shader = Resources.Load<Shader>("DuplexSurface");
+            duplexCoating = new Material(shader) { name = "Duplex opaque finishes", enableInstancing = true };
+            duplexGlass = new Material(duplexCoating)
+            {
+                name = "Duplex glass and candy residue",
+                renderQueue = (int)RenderQueue.Transparent
+            };
+            duplexGlass.SetOverrideTag("RenderType", "Transparent");
+            duplexGlass.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
+            duplexGlass.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
+            duplexGlass.SetInt("_ZWrite", 0);
+            duplexGlass.EnableKeyword("_DUPLEX_GLASS");
+        }
+
+        static (Mesh, byte, bool)[] ReadWeaponMeshes(byte[] data, uint magic, string[] names, int requiredSections = 0)
         {
             using var reader = new BinaryReader(new MemoryStream(data, false));
-            if (reader.ReadUInt32() != 0x584C5044 || reader.ReadInt32() != 6)
-                throw new InvalidDataException("Unexpected Duplex mesh format.");
+            if (reader.ReadUInt32() != magic)
+                throw new InvalidDataException("Unexpected weapon mesh format.");
+            int sections = reader.ReadInt32();
+            if (sections < names.Length || sections > names.Length * 2 || requiredSections != 0 && sections != requiredSections)
+                throw new InvalidDataException("Unexpected weapon mesh section count.");
 
-            var result = new (Mesh, byte, bool)[6];
+            var result = new (Mesh, byte, bool)[sections];
             var used = new HashSet<int>();
             try
             {
@@ -104,7 +159,7 @@ namespace DeadlyJenga.CandyPlayers
                     byte layer = reader.ReadByte();
                     int vertexCount = reader.ReadInt32();
                     int indexCount = reader.ReadInt32();
-                    if (part >= DuplexParts.Length || layer > 1 || !used.Add(part * 2 + layer) ||
+                    if (part >= names.Length || layer > 1 || !used.Add(part * 2 + layer) ||
                         vertexCount <= 0 || vertexCount > 100_000 ||
                         indexCount <= 0 || indexCount > 600_000 || indexCount % 3 != 0 ||
                         reader.BaseStream.Length - reader.BaseStream.Position < (long)vertexCount * 56 + (long)indexCount * 4)
@@ -132,7 +187,7 @@ namespace DeadlyJenga.CandyPlayers
 
                     var mesh = new Mesh
                     {
-                        name = DuplexParts[part] + (layer == 1 ? " glass" : " opaque"),
+                        name = names[part] + (layer == 1 ? " glass" : " opaque"),
                         indexFormat = vertexCount > ushort.MaxValue ? IndexFormat.UInt32 : IndexFormat.UInt16,
                         vertices = positions, normals = normals, colors = colors
                     };
@@ -143,7 +198,10 @@ namespace DeadlyJenga.CandyPlayers
                 }
 
                 if (reader.BaseStream.Position != reader.BaseStream.Length)
-                    throw new InvalidDataException("Unexpected data after Duplex meshes.");
+                    throw new InvalidDataException("Unexpected data after weapon meshes.");
+                for (int part = 0; part < names.Length; part++)
+                    if (!used.Contains(part * 2) && !used.Contains(part * 2 + 1))
+                        throw new InvalidDataException("A weapon mesh part is missing.");
                 return result;
             }
             catch

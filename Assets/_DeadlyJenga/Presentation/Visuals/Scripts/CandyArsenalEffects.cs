@@ -68,6 +68,8 @@ namespace DeadlyJenga.Presentation
                 seen.Add(shot.id);if(!shots.TryGetValue(shot.id,out var model))
                 {
                     model=TakeProjectile(shot.kind,shot.position,shot.rocketCandyVariant);shots[shot.id]=model;
+                    if (shot.kind == EquipmentKind.DualUzi)
+                        TintSpikerProjectile(model, SpikerShotTint(shot.owner));
                 }
                 Vector3 forward=shot.velocity.sqrMagnitude>.001f?shot.velocity:Vector3.forward;
                 // Bound cosmetic prediction to half a meter; no extra collision queries.
@@ -111,7 +113,11 @@ namespace DeadlyJenga.Presentation
                 ClawImpact(action);
                 return;
             }
-            if(action.action==EquipmentAction.Impact&&action.kind==EquipmentKind.DualUzi){EmitBlast(action);Spike(new EquipmentActionFrame{position=action.position,endpoints=new[]{action.position}});return;}
+            if(action.action==EquipmentAction.Impact&&action.kind==EquipmentKind.DualUzi)
+            {
+                Spike(action.position, SpikerShotTint(action.actor));
+                return;
+            }
             if(action.action==EquipmentAction.Impact)
             {
                 EmitBlast(action);
@@ -122,7 +128,6 @@ namespace DeadlyJenga.Presentation
                 else BlastDetail(action);
                 return;
             }
-            if(action.action==EquipmentAction.Shot&&action.kind==EquipmentKind.DualUzi&&action.endpoints.Length>0)Spike(action);
             if(action.action!=EquipmentAction.Shot||action.endpoints==null||action.endpoints.Length==0)return;
             if(action.kind==EquipmentKind.LaserAxe&&action.shotgun)
             {

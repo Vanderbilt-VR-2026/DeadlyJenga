@@ -115,6 +115,8 @@ namespace DeadlyJenga.CandyPlayers
         }
         bool BuildFoundry(Transform root,EquipmentKind kind)
         {
+            if (kind == EquipmentKind.GrenadeLauncher &&
+                TryBuildReviewedWeapon(root, kind, "SugarCorpsLauncher", SugarCorpsLauncherParts)) return true;
             if(kind!=EquipmentKind.RocketLauncher&&kind!=EquipmentKind.GrenadeLauncher&&kind!=EquipmentKind.BarbedBat&&
                 kind!=EquipmentKind.WristLaser&&kind!=EquipmentKind.LaserAxe&&kind!=EquipmentKind.Dagger&&
                 kind!=EquipmentKind.ChainGun&&kind!=EquipmentKind.Chainsaw&&kind!=EquipmentKind.SawStaff&&kind!=EquipmentKind.CompactSidearm)return false;

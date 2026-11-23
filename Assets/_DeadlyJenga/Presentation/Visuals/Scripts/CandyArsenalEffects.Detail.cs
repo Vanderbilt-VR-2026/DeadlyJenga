@@ -14,7 +14,11 @@ namespace DeadlyJenga.Presentation
             for(int i=residues.Count-1;i>=0;i--)
             {
                 var r=residues[i];if(!r.root){residues.RemoveAt(i);continue;}float age=Time.time-r.born;
-                if(age>=r.life){Destroy(r.root.gameObject);residues.RemoveAt(i);continue;}
+                if(age>=r.life)
+                {
+                    if (r.spike) EmitSpikerFragments(r.root.position, r.tint);
+                    Destroy(r.root.gameObject);residues.RemoveAt(i);continue;
+                }
                 if(r.spike)
                 {
                     if(r.surface.anchor)
@@ -39,14 +43,68 @@ namespace DeadlyJenga.Presentation
             if(!detailGlow){detailGlow=new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));detailGlow.SetFloat("_Surface",1);detailGlow.SetFloat("_Blend",0);detailGlow.SetFloat("_SrcBlend",5);detailGlow.SetFloat("_DstBlend",10);detailGlow.SetFloat("_ZWrite",0);detailGlow.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");detailGlow.renderQueue=3000;}
             var go=new GameObject(name,typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(transform,false);go.transform.position=position;go.GetComponent<MeshFilter>().sharedMesh=mesh;go.GetComponent<MeshRenderer>().sharedMaterial=detailGlow;var block=new MaterialPropertyBlock();block.SetColor("_BaseColor",color);go.GetComponent<MeshRenderer>().SetPropertyBlock(block);return go.transform;
         }
-        void Spike(EquipmentActionFrame action)
+        static readonly Color[] SpikerColors =
         {
-            var end=action.endpoints[0];
-            if(!CandyWeaponImpacts.TryContact(end,end-action.position,out var contact,.10f))return;
-            var spike=Visual("Visual - steaming neon spike",Resources.GetBuiltinResource<Mesh>("Capsule.fbx"),action.position,new Color(.3f,1,.02f));spike.rotation=Quaternion.FromToRotation(Vector3.up,(end-action.position).sqrMagnitude>.001f?(end-action.position).normalized:Vector3.forward);
-            var steam=spike.gameObject.AddComponent<ParticleSystem>();steam.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);var main=steam.main;main.startLifetime=.3f;main.startSpeed=.2f;main.startSize=.05f;main.maxParticles=6;main.startColor=new Color(.45f,1,.15f,.35f);var emission=steam.emission;emission.rateOverTime=8;steam.GetComponent<ParticleSystemRenderer>().sharedMaterial=glow;steam.Play();
-            spike.position=contact.Position;
-            Keep(new Residue{root=spike,born=Time.time,life=1.6f,from=action.position,to=end,spike=true,surface=contact});
+            new(.53f,.13f,1), new(.04f,.68f,1), new(.31f,1,.04f), new(1,.58f,.04f), new(1,.16f,.23f)
+        };
+
+        Color SpikerShotTint(string actor)
+        {
+            var state = (effectsRuntime as IEquipmentRuntime)?.EquipmentFor(actor);
+            int fired = state != null && state.kind == EquipmentKind.DualUzi && state.magazineInitialized
+                ? Mathf.Clamp(59 - state.rounds, 0, 59) : 0;
+            return SpikerColors[fired / 12];
+        }
+
+        void Spike(Vector3 point, Color tint)
+        {
+            if (!CandyWeaponImpacts.VisibleToAnyCamera(point, 55)) return;
+            if (!CandyWeaponImpacts.TryContact(point, Vector3.zero, out var contact, .18f))
+            {
+                EmitSpikerFragments(point, tint);
+                return;
+            }
+            var spike = Visual("Visual - embedded Spiker crystal", Resources.GetBuiltinResource<Mesh>("Capsule.fbx"), contact.Position, tint);
+            spike.rotation = (contact.anchor.localToWorldMatrix * contact.localFrame).rotation * Quaternion.Euler(90,0,0);
+            var sparks = spike.gameObject.AddComponent<ParticleSystem>();
+            sparks.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = sparks.main;
+            main.startLifetime = .15f;
+            main.startSpeed = .48f;
+            main.startSize = .024f;
+            main.maxParticles = 6;
+            main.startColor = tint;
+            var emission = sparks.emission;
+            emission.rateOverTime = 14;
+            sparks.GetComponent<ParticleSystemRenderer>().sharedMaterial = glow;
+            sparks.Play();
+            Keep(new Residue { root=spike, born=Time.time, life=2.5f, from=point, to=contact.Position, spike=true, surface=contact, tint=tint });
+        }
+
+        void EmitSpikerFragments(Vector3 point, Color tint)
+        {
+            if (burstParticles.isStopped) burstParticles.Play();
+            for (int i = 0; i < 7; i++)
+            {
+                float angle = i * 2.39996f;
+                burstParticles.Emit(new ParticleSystem.EmitParams
+                {
+                    position = point, velocity = new Vector3(Mathf.Cos(angle), .4f + (i % 3) * .32f, Mathf.Sin(angle)) * 2.2f,
+                    startColor = Color.Lerp(tint, Color.white, i % 3 * .22f), startSize = .052f + i % 3 * .024f,
+                    startLifetime = .18f + i * .031f
+                }, 1);
+            }
+        }
+
+        MaterialPropertyBlock spikerTint;
+        void TintSpikerProjectile(Transform model, Color tint)
+        {
+            spikerTint ??= new MaterialPropertyBlock();
+            spikerTint.SetColor("_BaseColor", tint);
+            spikerTint.SetColor("_EmissionColor", tint * 2.4f);
+            model.GetChild(1).GetComponent<MeshRenderer>().SetPropertyBlock(spikerTint);
+            foreach (var trail in model.GetComponentsInChildren<TrailRenderer>(true))
+                trail.SetPropertyBlock(spikerTint);
         }
         readonly Dictionary<Transform,EquipmentKind> modelKind=new Dictionary<Transform,EquipmentKind>();
         readonly Dictionary<EquipmentKind,Stack<Transform>> modelPool=new Dictionary<EquipmentKind,Stack<Transform>>();
@@ -124,7 +182,10 @@ namespace DeadlyJenga.Presentation
             {
                 pooled--;var item=pool.Pop();item.position=at;
                 if(kind==EquipmentKind.RocketLauncher)TintRocketCandy(item,rocketCandyVariant);
-                item.gameObject.SetActive(true);var pooledTrail=item.GetComponentInChildren<TrailRenderer>(true);pooledTrail.emitting=true;pooledTrail.Clear();return item;
+                item.gameObject.SetActive(true);
+                foreach (var pooledTrail in item.GetComponentsInChildren<TrailRenderer>(true))
+                { pooledTrail.emitting = true; pooledTrail.Clear(); }
+                return item;
             }
             var root=new GameObject("Visual - "+kind+" projectile").transform;root.SetParent(transform,false);root.position=at;modelKind[root]=kind;
             if(kind==EquipmentKind.RocketLauncher)
@@ -164,6 +225,23 @@ namespace DeadlyJenga.Presentation
                 trail.SetPropertyBlock(block);
             }
             trail.Clear();
+            if (kind == EquipmentKind.DualUzi || kind == EquipmentKind.GrenadeLauncher)
+            {
+                bool smoke = kind == EquipmentKind.GrenadeLauncher;
+                var strand = new GameObject(smoke ? "Grenade smoke ribbon" : "Spiker secondary energy ribbon");
+                strand.transform.SetParent(root,false);
+                strand.transform.localPosition = smoke ? Vector3.back * .13f : new Vector3(.029f, .018f, -.01f);
+                var ribbon = strand.AddComponent<TrailRenderer>();
+                ribbon.sharedMaterial = ordnanceRibbon;
+                ribbon.time = smoke ? .53f : .20f;
+                ribbon.minVertexDistance = .08f;
+                ribbon.widthMultiplier = smoke ? .29f : .029f;
+                ribbon.widthCurve = new AnimationCurve(new Keyframe(0, .30f), new Keyframe(.39f, 1), new Keyframe(1, 0));
+                ribbon.startColor = smoke ? new Color(.55f, .49f, .40f, .44f) : Color.white;
+                ribbon.endColor = new Color(1, 1, 1, 0);
+                ribbon.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                ribbon.receiveShadows = false;
+            }
             return root;
         }
         void ReturnProjectile(Transform model)
@@ -238,7 +316,7 @@ namespace DeadlyJenga.Presentation
             return kind switch
             {
                 EquipmentKind.RocketLauncher => (fire,1.12f,25),
-                EquipmentKind.GrenadeLauncher => (new Color(.69f,.38f,1),.32f,10),
+                EquipmentKind.GrenadeLauncher => (new Color(1,.56f,.18f),.45f,12),
                 EquipmentKind.ChainGun => (fire,.29f,5),
                 EquipmentKind.DualRifle => (new Color(.30f,.90f,1f),alternate?.31f:.26f,alternate?10:7),
                 EquipmentKind.SheriffHammer => (fire,alternate?.40f:.30f,8),
@@ -293,7 +371,8 @@ namespace DeadlyJenga.Presentation
             }
             var orientation=Quaternion.LookRotation(direction);
             Color? ownerColor=CandyWeaponImpacts.SidearmOwnerColor(effectsRuntime,action);
-            var tint=action.kind==EquipmentKind.RocketLauncher?RocketCandy.ColorFor(action.rocketCandyVariant):(ownerColor??profile.tint);
+            var tint = action.kind == EquipmentKind.RocketLauncher ? RocketCandy.ColorFor(action.rocketCandyVariant) :
+                action.kind == EquipmentKind.DualUzi ? SpikerShotTint(action.actor) : ownerColor ?? profile.tint;
             EmitMuzzle(origin,orientation,tint,profile.length*scale,profile.sparks,action.id, action.kind==EquipmentKind.DualRifle);
             if(action.kind==EquipmentKind.RocketLauncher)
             {
@@ -520,18 +599,19 @@ namespace DeadlyJenga.Presentation
         void EmitBlast(EquipmentActionFrame action)
         {
             bool rocket=action.kind==EquipmentKind.RocketLauncher;
+            bool grenade=action.kind==EquipmentKind.GrenadeLauncher;
             bool saw=action.kind==EquipmentKind.Chainsaw;
             bool spike=action.kind==EquipmentKind.DualUzi;
             if(burstParticles.isStopped)burstParticles.Play();
             int count=rocket?84:saw?12:spike?8:28;
-            Color tint=rocket?RocketCandy.ColorFor(action.rocketCandyVariant):Energy(action.kind);
-            if(rocket)
+            Color tint=rocket?RocketCandy.ColorFor(action.rocketCandyVariant):grenade?new Color(1,.52f,.14f):Energy(action.kind);
+            if(rocket || grenade)
             {
                 EmitRocketCandyShards(action.position,tint,action.id);
                 burstParticles.Emit(new ParticleSystem.EmitParams
                 {
                     position=action.position,startColor=Color.Lerp(tint,Color.white,.51f),
-                    startSize=2.55f,startLifetime=.18f
+                    startSize=rocket?2.55f:1.38f,startLifetime=.18f
                 },1);
             }
             for(int i=0;i<count;i++)

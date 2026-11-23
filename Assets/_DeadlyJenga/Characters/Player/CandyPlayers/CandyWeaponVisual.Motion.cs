@@ -540,6 +540,7 @@ namespace DeadlyJenga.CandyPlayers
                     (state.magazineInitialized && !reloading ? 1 : 0));
                 // Spin about the cylinder axis instead of the weapon origin.
                 var axis = kind == EquipmentKind.SheriffHammer ? new Vector3(0,.072f,.12f) :
+                    assembly.Find(SugarCorpsLauncherParts[2]) ? new Vector3(0,.052f,.277f) :
                     new Vector3(0,GrenadeDrumHeight,.12f+GrenadeDrumOffset);
                 assembly.localPosition += axis - assembly.localRotation * axis;
             }
@@ -564,7 +565,39 @@ namespace DeadlyJenga.CandyPlayers
                 assembly.localPosition += grip - assembly.localRotation * grip;
             }
 
-            PresentRounds(assembly, state, secondary, cylinder, reloading, phase);
+            if (!PresentReviewedAmmunition(assembly, state, secondary, reloading, phase))
+                PresentRounds(assembly, state, secondary, cylinder, reloading, phase);
+        }
+
+        bool PresentReviewedAmmunition(Transform assembly, EquipmentState state, bool secondary, bool reloading, float phase)
+        {
+            var names = kind == EquipmentKind.GrenadeLauncher ? SugarCorpsLauncherParts : RoundedSpikerParts;
+            if (kind == EquipmentKind.GrenadeLauncher && assembly.childCount > 0 &&
+                assembly.Find(names[2]))
+            {
+                int remaining = state.magazineInitialized ? Mathf.Clamp(state.rounds, 0, 6) : 6;
+                for (int i = 0; i < 6; i++)
+                {
+                    var cell = assembly.Find(names[i + 2]);
+                    bool loading = reloading && phase >= .34f + i * .064f;
+                    bool loaded = i >= 6 - remaining;
+                    bool extracting = reloading && !loading;
+                    float travel = extracting ? Ease(.17f, .34f, phase) : 0;
+                    float insert = loading ? 1 - Ease(.34f + i * .064f, .48f + i * .064f, phase) : 0;
+                    cell.gameObject.SetActive(loading || loaded && travel < 1 || extracting && phase < .34f);
+                    cell.localPosition = Vector3.back * (.21f * travel + .18f * insert) +
+                        Vector3.down * (.16f * travel * travel + .045f * insert);
+                }
+                return true;
+            }
+
+            if (kind != EquipmentKind.DualUzi || !assembly.parent.Find(names[2])) return false;
+            int total = state.magazineInitialized ? Mathf.Clamp(state.rounds, 0, 60) : 60;
+            int rounds = secondary ? total / 2 : (total + 1) / 2;
+            int lit = reloading && phase >= .48f ? 5 : (rounds + 5) / 6;
+            for (int i = 0; i < 5; i++)
+                assembly.parent.Find(names[i + 2]).gameObject.SetActive(i < lit);
+            return true;
         }
 
         void PresentRocketCandy(Transform weapon, EquipmentState state, bool reloading, float phase)
