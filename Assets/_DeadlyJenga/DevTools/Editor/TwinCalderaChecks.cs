@@ -13,7 +13,7 @@ namespace DeadlyJenga.DevTools.Editor
         const string Id="mode-twin-caldera";
         public static void Run() => MapLiveCapture.BatchMaps(new[]{Id},
             "Logs/Captures/TwinCaldera",new[]{"reference","pov|shield| -20|8|-7|-31|13|8",
-            "pov|spire|25|11|0|15|14|10","pov|crossing|-11|11|0|16|11|0"},1600,900);
+            "pov|spire|25|11|0|15|14|10","pov|crossing|-11|16.4|0|16|16.4|0"},1600,900);
 
         static GameObject subject, observer;
         static Vector3 observerStart;
@@ -21,15 +21,19 @@ namespace DeadlyJenga.DevTools.Editor
         internal static void BeginTraffic(ISessionInfo session)
         {
             session.SetRole(false);
-            subject=session.Player.gameObject;
+            subject=null;
             lavaKilled=false;
             GameEvents.Eliminated-=OnEliminated;
             GameEvents.Eliminated+=OnEliminated;
-            session.Player.Place(Services.World.Center+Vector3.down*1.3f,Quaternion.identity);
             if(session.SurvivorBots==null)return;
             session.SurvivorBots.Running=true;
             observer=session.SurvivorBots.SpawnOne();
             if(observer)observerStart=observer.transform.position;
+            // Keep the local survivor participating for the movement checks.
+            subject=session.SurvivorBots.SpawnOne();
+            var position=Services.World.Center;
+            position.y=Services.World.WaterHeight(position)-1.3f;
+            if(subject)subject.GetComponent<ITeleportable>()?.Teleport(position,Quaternion.identity);
         }
 
         static void OnEliminated(GameObject who,GameObject source)
@@ -40,9 +44,9 @@ namespace DeadlyJenga.DevTools.Editor
 
         internal static void Wide(Camera camera,Vector3 center)
         {
-            camera.fieldOfView=35;
-            camera.transform.position=center+new Vector3(0,20,-80);
-            camera.transform.LookAt(center+new Vector3(0,10.8f,1));
+            camera.fieldOfView=33;
+            camera.transform.position=center+new Vector3(-.7f,31.5f,-91);
+            camera.transform.LookAt(center+new Vector3(0,5.8f,2));
         }
 
         internal static void Verify(Camera cam,CastleGenerator map,string folder)
@@ -58,7 +62,7 @@ namespace DeadlyJenga.DevTools.Editor
             try
             {
                 GameEvents.Eliminated-=OnEliminated;
-                Check(lavaKilled,"local survivor eliminated by the active map below the lava surface");
+                Check(lavaKilled,"survivor bot eliminated by the active map below the lava surface");
                 Check(observer && observerStart.y>0,"survival bot spawned above lava at "+observerStart);
                 if(observer)report.Add("Live bot position after settling "+observer.transform.position);
                 Physics.simulationMode=SimulationMode.Script;
@@ -109,7 +113,10 @@ namespace DeadlyJenga.DevTools.Editor
                         return hit.point+Vector3.up*.07f;
                     }
                     Walk("bridge motor",Top("Bridge span 0"),Top("Bridge span 2"));
-                    Walk("shield radial motor",Top("Shield radial slab 0"),Top("Shield radial slab 2"),Top("Shield radial slab 4"));
+                    Walk("shield bridge approach",Top("Shield bridge shoulder"),Top("Shield bridge approach 0"),Top("Shield east landing 4"));
+                    Walk("spire bridge approach",Top("Spire bridge shoulder"),Top("Spire bridge approach 0"),Top("Spire west landing 4"));
+                    Walk("shield radial motor",Top("Shield radial slab 0"),Top("Shield radial slab 1"),
+                        Top("Shield radial slab 2"),Top("Shield radial slab 3"),Top("Shield radial slab 4"));
                     Walk("spire switchback motor",Top("Spire stair 1 lower turn"),Top("Spire stair 1 tread 3"),
                         Top("Spire stair 1 tread 10"),Top("Spire stair 1 upper turn"));
                     player.Place(feet,Quaternion.identity);
@@ -118,6 +125,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var slab=Find("Spire peeling slab 0");var catchRock=Find("Spire lower catch");
                 var slabStart=slab.position;var bridge=Find("Bridge span 1");var bridgeStart=bridge.position;
                 var bearing=Find("Spire peeling slab 0 seat 0");
+                var bearingStart=bearing.position;
                 var contact=catchRock.gameObject.AddComponent<CalderaContactProbe>();contact.target=slab;
                 bearing.GetComponent<CastleBlock>().Push(Vector3.back*13,map.gameObject);
                 for(int n=0;n<180;n++)
@@ -126,6 +134,7 @@ namespace DeadlyJenga.DevTools.Editor
                     if(n==24) Shot("right-flank-in-motion");
                 }
                 Shot("right-flank-aftermath");
+                Check(Vector3.Distance(bearingStart,bearing.position)>1.5f,"right bearing freed from its seat");
                 Check(slab.position.y<slabStart.y-.6f,"right slab descent "+(slabStart.y-slab.position.y));
                 Check(contact.touched,"right slab contacted independent lower ledge");
                 Check(Vector3.Distance(bridgeStart,bridge.position)<.35f,"middle span survived local failure");

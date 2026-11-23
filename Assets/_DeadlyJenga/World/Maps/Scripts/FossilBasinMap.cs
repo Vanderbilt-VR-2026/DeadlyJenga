@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class FossilBasinMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IRebuildable, IMapFootprint, ITraversalCollisionWorld
     {
         public Material stone;
-        const string Version="fossil-basin/8/";
+        const string Version="fossil-basin/9/";
         readonly List<Rigidbody> bodies=new();
         readonly List<FossilMember> decks=new();
         readonly List<Link> links=new();
@@ -25,22 +25,22 @@ namespace DeadlyJenga.CastlePrototype
         public Transform Root => transform;
         public bool UsesOriginalColliders => true;
         public Vector3 Center => transform.position;
-        public float Radius => 24*transform.lossyScale.x;
+        public float Radius => 41*transform.lossyScale.x;
         public float StepHeight => .23f;
         public Bounds PlayableBounds
         {
             get
             {
                 var result=new Bounds(Center,Vector3.zero);
-                foreach(int x in new[]{-1,1}) foreach(int z in new[]{-1,1}) foreach(int y in new[]{-1,18})
-                    result.Encapsulate(transform.TransformPoint(new Vector3(22*x,y,15*z)));
+                foreach(int x in new[]{-1,1}) foreach(int z in new[]{-1,1}) foreach(int y in new[]{-1,31})
+                    result.Encapsulate(transform.TransformPoint(new Vector3(41*x,y,26*z)));
                 return result;
             }
         }
         public float TopHeight => PlayableBounds.max.y;
         public float WaterHeight(Vector3 p) => transform.position.y;
-        public int FootprintVersion => 1;
-        public float FootprintHalfSize => 22;
+        public int FootprintVersion => 2;
+        public float FootprintHalfSize => 41;
         public void GetGroundFootprints(List<Footprint> into) { } // Open water all the way between the piers.
         public bool IsSheltered(Vector3 p) => gameObject.scene.GetPhysicsScene().Raycast(p+Vector3.up*.1f,Vector3.up,out _,40,1<<Layers.Block);
         void OnEnable() => Services.World=this;
@@ -52,7 +52,7 @@ namespace DeadlyJenga.CastlePrototype
             if(structure){structure.gameObject.SetActive(false);Destroy(structure.gameObject);}
             bodies.Clear(); links.Clear(); decks.Clear(); socketsInContact.Clear();contactCursor=0; cleanup=spawnIndex=0;
             structure=new GameObject("Excavation").transform; structure.SetParent(transform,false);
-            BuildExcavation();
+            BuildFaceoff();
             var tar=new GameObject("Lethal tar contact"); tar.transform.SetParent(structure,false);
             var trigger=tar.AddComponent<BoxCollider>(); trigger.isTrigger=true;
             trigger.center=new Vector3(0,-6,0);trigger.size=new Vector3(200,12,200);
@@ -146,7 +146,7 @@ namespace DeadlyJenga.CastlePrototype
                 var deck=decks[spawnIndex];
                 spawnIndex=(spawnIndex+1)%decks.Count;
                 if(!deck.gameObject.activeInHierarchy||deck.transform.up.y<.93f||deck.Body.linearVelocity.sqrMagnitude>1)continue;
-                var pos=deck.transform.position+Vector3.up*(.17f*transform.lossyScale.x+.05f);
+                var pos=deck.transform.position+Vector3.up*(.32f*transform.lossyScale.x+.05f);
                 if(ClearSpawn(pos))return pos;
             }
             // After the slate decks are lost, a settled flight or long fossil can still be refuge.
@@ -162,7 +162,7 @@ namespace DeadlyJenga.CastlePrototype
                         return hit.point+Vector3.up*.05f;
                 }
             }
-            return transform.TransformPoint(new Vector3(0,1.25f,-8));
+            return transform.TransformPoint(new Vector3(0,1.70f,-17.9f));
         }
         bool ClearSpawn(Vector3 pos) => pos.y>WaterHeight(pos)+.4f &&
             !Physics.CheckCapsule(pos+Vector3.up*.25f,pos+Vector3.up*1.05f,.23f,1<<Layers.Block,QueryTriggerInteraction.Ignore);

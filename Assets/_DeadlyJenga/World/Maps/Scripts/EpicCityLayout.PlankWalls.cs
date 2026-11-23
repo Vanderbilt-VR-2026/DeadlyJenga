@@ -74,7 +74,9 @@ namespace DeadlyJenga.CastlePrototype
                         Part(wing,new Vector3(4.8f,y+.29f,4.5f),new Vector3(3.76f,.58f,1.34f),3);
                     }
                 }
-                foreach (var f in jengaFloors) WallFloor(f.floor, f.w, f.depth, f.baseY, f.height, f.doors, keepClear);
+                foreach (var f in jengaFloors)
+                    if (plan.sites[f.floor.district].name != "Canyon south-east tower")
+                        WallFloor(f.floor, f.w, f.depth, f.baseY, f.height, f.doors, keepClear);
             }
 
             void WallFloor(MayhemModule floor, float w, float depth, float baseY, float height, bool doors, List<(Vector3 c, Vector3 h, Quaternion q)> keepClear)

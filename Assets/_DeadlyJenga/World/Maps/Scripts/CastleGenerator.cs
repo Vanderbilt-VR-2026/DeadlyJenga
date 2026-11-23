@@ -417,7 +417,8 @@ namespace DeadlyJenga.CastlePrototype
             if (foundation)
             {
                 var size = CastleLayout.FootprintSize(settings)+Vector2.one*4;
-                foundation.localScale = new Vector3(size.x, 1, size.y);
+                if (settings.layoutPreset != BlockSpiresLayout.Preset || !foundation.TryGetComponent<MeshCollider>(out _))
+                    foundation.localScale = new Vector3(size.x, 1, size.y);
                 if (settings.layoutPreset == ShrineTownLayout.Preset)
                 {
                     foundation.GetComponent<BoxCollider>().enabled = false;
@@ -462,15 +463,20 @@ namespace DeadlyJenga.CastlePrototype
                         mesh.AddComponent<TycoonDeckVisual>().Build(p.DeckProfile,block.sectionMaterial,aquaMaterial,p.BlockSize(settings));
                     }
                     var profile = p.DeckProfile;
-                    if(profile.Finish is TycoonDeckFinish.Flume or TycoonDeckFinish.Tube or TycoonDeckFinish.DryChute or TycoonDeckFinish.OpenDeck or TycoonDeckFinish.Walk)
+                    if(profile.Finish is TycoonDeckFinish.Flume or TycoonDeckFinish.Tube or TycoonDeckFinish.DryChute or TycoonDeckFinish.OpenDeck or TycoonDeckFinish.Walk or TycoonDeckFinish.Bridge)
                         block.FitTraversalPanel(profile.StartLeft,profile.StartRight,profile.EndLeft,profile.EndRight);
                     block.SyncSurface();
                 }
                 var size=p.BlockSize(settings);
                 if (settings.layoutPreset == ShrineTownLayout.Preset)
                 {
-                    ShrineTownLayout.AddRoofColliders(body,size);
-                    if (block) ShrineTownLayout.AddRoofTraversal(block,size);
+                    if (Bodies.Count < ShrineReviewedStructure.BodyCount)
+                        ShrineReviewedStructure.Configure(Bodies.Count, body, block, p.Position);
+                    else
+                    {
+                        ShrineTownLayout.AddRoofColliders(body,size);
+                        if (block) ShrineTownLayout.AddRoofTraversal(block,size);
+                    }
                 }
                 float volumeRatio=size.x*size.y*size.z/(settings.blockSize.x*settings.blockSize.y*settings.blockSize.z);
                 // Temple decks represent timber framing with a hollow tiled roof.
@@ -484,7 +490,10 @@ namespace DeadlyJenga.CastlePrototype
                 Bodies.Add(body);
             }
             if (Application.isPlaying && settings.layoutPreset == ShrineTownLayout.Preset)
+            {
+                ShrineReviewedStructure.JoinFrames(Bodies);
                 ShrineTownLayout.JoinTimberFrames(layout, Bodies);
+            }
             Physics.SyncTransforms();
             if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)
                 breakawaySupports = TycoonSupports.Build(generatedRoot, Bodies, layout);

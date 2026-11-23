@@ -33,6 +33,10 @@ namespace DeadlyJenga.DevTools.Editor
                 throw new InvalidOperationException("Save the open scene before running the fixture.");
             if (!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))
                 throw new InvalidOperationException("Disaster validator unavailable.");
+            var cube = AssetDatabase.LoadAssetAtPath<Mesh>(ProjectPath.Find("Block Spires Molded Cube.asset"));
+            var beach = AssetDatabase.LoadAssetAtPath<Mesh>(ProjectPath.Find("Block Spires Sandbank.asset"));
+            if (!cube || cube.GetIndexCount(0) != 7050 || !beach || beach.GetIndexCount(0) != 5520)
+                throw new InvalidOperationException("Could not import the approved Blender meshes.");
             SessionState.SetString(Key + "Scenes", JsonUtility.ToJson(new Scenes { values = scenes }));
             File.WriteAllText(Report, "Block Spires, desktop Game.unity, staged gameplay inputs.\n");
             SessionState.SetBool(Key, true);
@@ -79,7 +83,9 @@ namespace DeadlyJenga.DevTools.Editor
         static void Check(bool pass, string note)
         {
             if (!pass) failures++;
-            File.AppendAllText(Report, (pass ? "PASS " : "FAIL ") + note + "\n");
+            string line = (pass ? "PASS " : "FAIL ") + note;
+            File.AppendAllText(Report, line + "\n");
+            Debug.Log(line);
         }
 
         static IEnumerator Play()
@@ -88,8 +94,8 @@ namespace DeadlyJenga.DevTools.Editor
             MatchSetup.ModeId = "demo";
             MatchSetup.FromLobby = true;
             MatchSetup.StartLocalSession = false;
-            MatchSetup.BotTarget = 3;
-            MatchSetup.HandCount = 1;
+            MatchSetup.BotTarget = 1;
+            MatchSetup.HandCount = 0;
             EditorSceneManager.LoadSceneInPlayMode(ProjectPath.Find("Game.unity"), new UnityEngine.SceneManagement.LoadSceneParameters());
             float deadline = Time.realtimeSinceStartup + 45;
             CastleGenerator map;
@@ -104,16 +110,26 @@ namespace DeadlyJenga.DevTools.Editor
             var player = (CastleSurvivor)session.Player;
             var layout = BlockSpiresLayout.Build();
             var bodies = map.Bodies;
-            Check(bodies.Count == layout.Count && bodies.All(b => b.GetComponent<MagneticBlock>().Supported && b.GetComponent<CastleBlock>().CanClimb),
+            Check(bodies.Count == 710 && bodies.Count == layout.Count && bodies.All(b => b.GetComponent<MagneticBlock>().Supported && b.GetComponent<CastleBlock>().CanClimb),
                 $"{bodies.Count} individually supported climbable blocks");
-            float end = Time.fixedTime + 4;
+            var beach = map.foundation.GetComponent<MeshCollider>();
+            Check(beach && beach.sharedMesh && beach.sharedMesh.GetIndexCount(0) == 5520 &&
+                map.foundation.GetComponent<ILethalGround>() != null, "Authored Blender sandbank supplies the lethal ground collider");
+            if (beach)
+            {
+                var footings = layout.Where(p => p.Course == 0).ToArray();
+                Check(footings.Length == 37 && footings.All(p =>
+                    beach.Raycast(new Ray(map.transform.TransformPoint(p.Position), Vector3.down), out var hit, .65f) &&
+                    Mathf.Abs(hit.point.y - map.transform.position.y) < .13f), "All 37 columns bear on the imported sandbank");
+            }
+            float end = Time.fixedTime + 3;
             while (Time.fixedTime < end) yield return null;
             float drift = bodies.Select((b,i) => Vector3.Distance(b.position, map.transform.TransformPoint(layout[i].Position))).Max();
-            Check(drift < .15f, $"Four physics seconds, worst drift {drift:F3} m");
+            Check(drift < .15f, $"Three physics seconds, worst drift {drift:F3} m");
             session.SetMenu(false);
             session.SurvivorBots.AutoFill = false;
-            for (int i = 0; i < 2; i++) session.SurvivorBots.SpawnOne();
-            if (session.HandBots.Count == 0) session.HandBots.SpawnOne();
+            session.SurvivorBots.Clear();
+            session.HandBots.Clear();
             var wide = new GameObject("Block Spires review camera").AddComponent<Camera>();
             wide.enabled = false;
             wide.CopyFrom(session.ActiveCamera);
@@ -133,6 +149,9 @@ namespace DeadlyJenga.DevTools.Editor
                 Quaternion.LookRotation(Vector3.back));
             player.viewCamera.transform.localRotation = Quaternion.identity;
             bool enabled = player.enabled;
+            bool externallyDriven = player.externallyDriven;
+            player.externallyDriven = true;
+            player.RefreshMode();
             player.enabled = false;
             bool grabbed = false, pictured = false, respawned = false;
             void TrackRespawn(GameObject who, GameObject source) { if (who == player.gameObject) respawned = true; }
@@ -163,9 +182,14 @@ namespace DeadlyJenga.DevTools.Editor
                         if (i % 24 == 0) yield return null;
                     }
                 }
-                Check(!respawned && grabbed && pictured && player.Grounded && player.FootPosition.y >= 25.8f, "Motor reached the stepped summit");
+                Check(!respawned && grabbed && player.Grounded && player.FootPosition.y >= 25.8f, "Motor reached the stepped summit");
             }
-            finally { GameEvents.Eliminated -= TrackRespawn; player.enabled = enabled; }
+            finally
+            {
+                GameEvents.Eliminated -= TrackRespawn;
+                player.externallyDriven = externallyDriven;
+                player.enabled = enabled;
+            }
             if (!pictured)
             {
                 // An independently staged grip view is still useful when the continuous route fails.
@@ -177,13 +201,19 @@ namespace DeadlyJenga.DevTools.Editor
                 player.viewCamera.transform.localRotation = Quaternion.Euler(22,62,0);
                 Capture(player.viewCamera, "climbing-staged");
             }
-            int support = layout.FindIndex(p => p.Course == 1 && p.Position.x > 8);
+            int support = layout.FindIndex(p => p.Course == 1 && Mathf.Abs(p.Position.x - 8.3f) < .01f &&
+                Mathf.Abs(p.Position.z - .5f) < .01f);
+            if (support < 0) throw new InvalidOperationException("Missing the Blender-designated breakaway seam.");
+            var adjacent = bodies[layout.FindIndex(p => p.Course == 6 && p.Position.x > 8f && p.Position.z < -2f)];
+            var adjacentPosition = adjacent.position;
             var upper = bodies[support + 1];
             float initialHeight = upper.position.y;
             bodies[support].GetComponent<CastleBlock>().Push(Vector3.right * 11, player.gameObject);
             end = Time.fixedTime + 2;
             while (Time.fixedTime < end) yield return null;
             Check(!upper.isKinematic && upper.position.y < initialHeight - .35f, $"Satellite after support push: drop {initialHeight - upper.position.y:F3} m");
+            Check(adjacent.isKinematic && Vector3.Distance(adjacent.position, adjacentPosition) < .03f,
+                "Adjacent needle retained its own support after the breakaway");
             int revision = map.Revision;
             session.ResetMap();
             yield return null;

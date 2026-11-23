@@ -83,6 +83,7 @@ namespace DeadlyJenga.CastlePrototype
                             Slab(side*(w-.35f)/2,0,(i-2.5f)*sideLength/6,.35f,.35f,sideLength/6,i%2==0?2:1);
                     break;
                 case TycoonDeckFinish.Walk:
+                case TycoonDeckFinish.Bridge:
                     WalkRails(profile,size);
                     break;
                 case TycoonDeckFinish.Railed:
@@ -165,6 +166,12 @@ namespace DeadlyJenga.CastlePrototype
                         Wedge(i,16,0,3.8f,2.25f,3.1f,i%2==0?3:2);
                     break;
                 case TycoonDeckFinish.Launch:
+                    foreach (int side in new[] { -1, 1 })
+                    {
+                        Slab(side*11.78f,.95f,0,.14f,.12f,d-.25f,2);
+                        for (int post = -2; post <= 2; post++)
+                            Slab(side*11.78f,0,post*(d-.35f)/4,.15f,1.08f,.15f,2);
+                    }
                     // Color lanes share one queue apron. Arrows face the slide entrances.
                     for(int lane=0;lane<4;lane++)
                     {
@@ -183,6 +190,11 @@ namespace DeadlyJenga.CastlePrototype
                     break;
                 case TycoonDeckFinish.Bucket:
                     SummitSails();
+                    // The catch part rides with the bucket deck and leaves the west stair exit clear.
+                    Slab(0,-1.28f,-4.08f,5.05f,.22f,2.5f,2);
+                    Slab(0,-1.06f,-4.08f,4.8f,.05f,2.2f,1);
+                    foreach (int side in new[] { -1, 1 })
+                        Slab(side*2.37f,-1.31f,-2.82f,.23f,.2f,3.65f,0);
                     foreach (int side in new[]{-1,1})
                     {
                         Slab(side*4.3f,0,0,.65f,6.3f,.85f,0);

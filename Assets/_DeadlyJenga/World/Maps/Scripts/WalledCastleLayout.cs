@@ -74,8 +74,12 @@ namespace DeadlyJenga.CastlePrototype
             const float upperDeck = 16.2f;
             foreach (int side in new[] { -1, 1 })
             {
-                foreach (float z in new[] { 15.88f, 18.8f, 21.98f })
+                foreach (float z in new[] { 15.88f, 21.98f })
                     Box(side * 3, roof, z, .96f, 2.4f, .86f, Yellow);
+
+                // Center each middle pier under its long deck panel.
+                float middleX = side < 0 ? -2.25f : 3.25f;
+                Box(middleX, roof, 18.8f, .96f, 2.4f, .86f, Yellow);
             }
 
             // The floor panels border an open stairwell. Both end landings rest on the outer piers.

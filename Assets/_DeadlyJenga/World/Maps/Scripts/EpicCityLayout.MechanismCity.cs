@@ -134,7 +134,7 @@ namespace DeadlyJenga.CastlePrototype
                 // Last, once every bridge exists: Jenga plank walls that leave each crossing open.
                 if (skyRing)
                 {
-                    BuildPumpHall(plan.sites[se]);
+                    BuildReviewedRainwaterWorks(plan.sites[se]);
                     BuildPumpHall(plan.sites[sw]);
                     district = sw;
                     var a = new Vector3(-18,9.15f,-25.2f);
@@ -142,6 +142,56 @@ namespace DeadlyJenga.CastlePrototype
                     plan.routes.Add(new EpicCityRoute { name="Rainwater plant service bridge", from=sw, to=se, a=a, b=b });
                     Bridge(a,b,3.4f,"Rainwater gallery crossing");
                     PlankWalls();
+                }
+            }
+
+            // Dimensions are from Cloud City Review 02. Keep seven original movable floor
+            // bodies and the separate bridge so the saved map and destruction model stay compatible.
+            void BuildReviewedRainwaterWorks(EpicCitySite site)
+            {
+                int level = 0;
+                foreach (var floor in site.members)
+                {
+                    if (!floor.purpose.Contains(" floor ")) continue;
+                    level++;
+                    floor.shapes.Clear();
+                    float pierHeight = level == 7 ? 2f : 4f;
+                    foreach (float x in new[]{-10.35f,10.35f})
+                        foreach (float z in new[]{-10.35f,0,10.35f})
+                            Part(floor, new Vector3(x,pierHeight*.5f,z),new Vector3(1.3f,pierHeight,1.3f));
+
+                    if (level == 7)
+                    {
+                        Part(floor,new Vector3(0,.795f,0),new Vector3(20.7f,1.59f,20.3f));
+                        foreach (float edge in new[]{-1f,1f})
+                        {
+                            Part(floor,new Vector3(edge*10,1.875f,0),new Vector3(1,.65f,20),3);
+                            Part(floor,new Vector3(0,1.875f,edge*9.65f),new Vector3(20.8f,.65f,1),3);
+                        }
+                        geometryBounds.Remove(floor);
+                        continue;
+                    }
+
+                    bool front = level % 2 == 1;
+                    float start = front ? 4f : -3.36f;
+                    float end = front ? -3.36f : 4f;
+                    float lane = front ? 6.05f : 8.6f;
+                    Flight(floor,new Vector3(lane,0,start),new Vector3(lane,4,end),2.30f);
+                    Part(floor,new Vector3(7.25f,3.64f,front?-4.68f:5.5f),new Vector3(5.5f,.72f,2.85f),1);
+                    if (level == 1)
+                    {
+                        // Entry landing on the raft, whose deck is flush with the lowest stair.
+                        Part(floor,new Vector3(7.25f,-.10f,5.5f),new Vector3(5.5f,.20f,2.85f),1);
+                    }
+                    if (level % 2 == 0)
+                        Part(floor,new Vector3(0,3.64f,-8.4f),new Vector3(22.5f,.72f,5.2f),1);
+                    // Rear galleries accept both retained high bridges at 13.15 and 21.15 m.
+                    if (level >= 2)
+                    {
+                        Part(floor,new Vector3(0,3.64f,8.75f),new Vector3(22.5f,.72f,4.5f),1);
+                        Part(floor,new Vector3(3.73f,3.64f,.35f),new Vector3(2.5f,.72f,12.36f),1);
+                    }
+                    geometryBounds.Remove(floor);
                 }
             }
 

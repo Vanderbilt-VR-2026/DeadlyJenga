@@ -8,6 +8,8 @@ namespace DeadlyJenga.CandyArt
     public sealed class CandyCrateVisual : MonoBehaviour
     {
         public CandyArtProfile profile;
+        [SerializeField] Mesh authoredNearMesh;
+        const float AuthoredMeshDistance = 8f;
         static readonly Dictionary<string, Mesh> Cache = new Dictionary<string, Mesh>();
         MeshFilter filter;
         MeshRenderer meshRenderer;
@@ -52,7 +54,15 @@ namespace DeadlyJenga.CandyArt
             Vector3 size = transform.lossyScale;
             size = new Vector3(Mathf.Max(.01f,Mathf.Abs(size.x)),Mathf.Max(.01f,Mathf.Abs(size.y)),Mathf.Max(.01f,Mathf.Abs(size.z)));
             int detail = Detail(size);
-            if(size==lastSize && detail==lastDetail && profile.bevel==lastBevel && profile.panelDepth==lastDepth && profile.cornerButtons==lastButtons && filter.sharedMesh)return;
+            if (authoredNearMesh && (!Application.isPlaying ||
+                view && (transform.position - view.transform.position).sqrMagnitude < AuthoredMeshDistance * AuthoredMeshDistance))
+            {
+                filter.sharedMesh = authoredNearMesh;
+                lastKey = null;
+                lastDetail = 0;
+                return;
+            }
+            if(size==lastSize && detail==lastDetail && profile.bevel==lastBevel && profile.panelDepth==lastDepth && profile.cornerButtons==lastButtons && filter.sharedMesh && filter.sharedMesh!=authoredNearMesh)return;
             string key = size.ToString("F3") + ":" + profile.bevel.ToString("F3") + ":" + profile.panelDepth.ToString("F3") + ":" + profile.cornerButtons + ":" + detail;
             if (key == lastKey && filter.sharedMesh) return;
             if (!Cache.TryGetValue(key,out var mesh) || !mesh)

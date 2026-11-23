@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash, Peach, Mint, Basin, Tube, Gate, Railed, Awning, Parasol, Bucket, LoosePeach, Walk, Launch, Wheel }
+    public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash, Peach, Mint, Basin, Tube, Gate, Railed, Awning, Parasol, Bucket, LoosePeach, Walk, Launch, Wheel, Bridge }
 
     [System.Flags]
     public enum TycoonRailOpening { None=0, Front=1, Rear=2 }

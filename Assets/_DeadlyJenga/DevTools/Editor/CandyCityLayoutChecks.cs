@@ -156,6 +156,7 @@ namespace DeadlyJenga.DevTools.Editor
             foreach (var floor in plan.modules)
             {
                 if (!floor.purpose.Contains(" floor ") || !plan.sites[floor.district].name.StartsWith("Canyon south")) continue;
+                if (plan.sites[floor.district].name == "Canyon south-east tower") continue;
                 var cabinets = floor.shapes.Where(s => (s.size - new Vector3(3.65f, 1.1f, 1.26f)).sqrMagnitude < .0001f).ToList();
                 if (cabinets.Count != 1) { failures++; continue; }
                 var cabinet = cabinets[0];

@@ -72,7 +72,9 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var foot = new Vector3(side * 3.6f, ground + .18f, .48f);
                 stand.Rod(foot, new Vector3(0, hub.y, .48f), .30f, 1);
-                stand.Rod(foot - Vector3.right * .6f, foot + Vector3.right * .6f, .26f, 2);
+                stand.Slab(foot.x,ground,foot.z,1.38f,.19f,1.06f,1);
+                foreach (float bolt in new[] { -.48f, .48f })
+                    stand.Slab(foot.x+bolt,ground+.19f,foot.z,.12f,.09f,.12f,2);
             }
             stand.Rod(hub + Vector3.forward * 2.55f, hub + Vector3.back * .95f, .46f, 0);
 

@@ -127,6 +127,49 @@ namespace DeadlyJenga.DevTools.Editor
                 new[]{"reference","resident-party"});
         }
 
+        public static void CaptureRainwaterWorks()
+        {
+            BatchMaps(new[]{"epic-candy-sky-ring-city"}, Path.GetFullPath(Path.Combine("Logs","Captures","RainwaterWorks")),
+                new[]{"reference","rainworks-bridge","rainworks-pumps"});
+        }
+
+        static void CheckRainwaterWorks(IWorldQuery world)
+        {
+            var tower = world.Blocks.Where(b => b && b.name.Contains("Canyon south-east tower") &&
+                b.name.Contains(" floor ")).OrderBy(b => b.name).ToArray();
+            var bridge = world.Blocks.Single(b => b && b.name.EndsWith("Rainwater gallery crossing"));
+            if (tower.Length != 7 || tower.Any(b => b.isKinematic || b.linearVelocity.magnitude > .6f) ||
+                bridge.isKinematic || bridge.linearVelocity.magnitude > .6f)
+                throw new InvalidOperationException("Rainwater Works sections or bridge did not settle independently.");
+            if (!tower[0].GetComponentsInChildren<MeshRenderer>().Any(r => r.name.StartsWith("Floor0_")) ||
+                !bridge.GetComponentsInChildren<MeshRenderer>().Any(r => r.name.StartsWith("Bridge_")))
+                throw new InvalidOperationException("Rainwater Works Blender fittings are missing.");
+            Vector3 Point(float x,float y,float z) => world.Center + new Vector3(x,y,z);
+            foreach (var p in new[]{Point(18,9.15f,-25.2f), Point(31,9.15f,-25.2f),
+                Point(27,13.15f,-10.1f),Point(33.9f,21.15f,-10.1f)})
+                if (!Physics.Raycast(p+Vector3.up*.7f,Vector3.down,out _,1.4f,1<<Layers.Block,QueryTriggerInteraction.Ignore))
+                    throw new InvalidOperationException("Rainwater Works transfer missed its support at "+p);
+            // Exercise the same push contract the game uses, after the intact captures.
+            Vector3 origin = bridge.position;
+            Vector3 towerOrigin = tower[1].position;
+            var decor = bridge.GetComponentsInChildren<MeshRenderer>().First(r => r.name.StartsWith("Bridge_"));
+            Vector3 decorOrigin = decor.transform.position;
+            var mode = Physics.simulationMode;
+            try
+            {
+                Physics.simulationMode = SimulationMode.Script;
+                bridge.interpolation = RigidbodyInterpolation.None;
+                bridge.GetComponent<IPushable>().Push(Vector3.up * 8, bridge.gameObject);
+                for (int step=0;step<12;step++) Physics.Simulate(.02f);
+                Vector3 movement = bridge.position - origin;
+                if (movement.y < .65f || Vector3.Distance(decor.transform.position,decorOrigin+movement)>.12f ||
+                    Vector3.Distance(tower[1].position,towerOrigin)>.20f)
+                    throw new InvalidOperationException("The Rainwater bridge and its fittings did not break away independently.");
+                Debug.Log("Rainwater Works: four transfers supported; original bridge lifted "+movement.y+" m with its Blender fittings.");
+            }
+            finally { Physics.simulationMode=mode; }
+        }
+
         public static void CaptureCloudCityFalls()
         {
             BatchMaps(new[]{"epic-candy-sky-ring-city"}, Path.GetFullPath(Path.Combine("Logs","Captures","CloudCityFalls")),
@@ -515,6 +558,14 @@ namespace DeadlyJenga.DevTools.Editor
                         camera.transform.SetPositionAndRotation(world.Center + new Vector3(240.93f,200.47f,-298.43f),
                             Quaternion.Euler(24.87f,-38.81f,0));
                     }
+                    else if(view=="rainworks-bridge" || view=="rainworks-pumps")
+                    {
+                        camera.fieldOfView=58;
+                        camera.transform.position=world.Center+(view=="rainworks-bridge"
+                            ?new Vector3(10,11.2f,-25.2f):new Vector3(17.7f,2.88f,-23.7f));
+                        camera.transform.LookAt(world.Center+(view=="rainworks-bridge"
+                            ?new Vector3(28,16.6f,-25.2f):new Vector3(28.4f,4.25f,-14.6f)));
+                    }
                     else if(view.StartsWith("cloud-fall-",StringComparison.Ordinal) || view=="cloud-resident-inside")
                         PlaceCloudFallCamera(camera,view,world);
                     else if(view=="resident-party")
@@ -600,6 +651,7 @@ namespace DeadlyJenga.DevTools.Editor
                 gallery.SaveManifest();
                 if(id=="mode-twin-caldera" && job.views.Contains("reference"))
                     TwinCalderaChecks.Verify(camera,world as CastleGenerator,job.gallery);
+                if (job.views.Contains("rainworks-bridge")) CheckRainwaterWorks(world);
             }
             finally { Object.Destroy(camera.gameObject); }
         }
