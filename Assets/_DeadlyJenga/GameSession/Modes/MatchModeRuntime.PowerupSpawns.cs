@@ -31,7 +31,7 @@ namespace DeadlyJenga.Modes
                 types=Enumerable.Range(1,EquipmentSpecifications.All.Length-1).Select(i=>new PowerupSpawnWeight
                 {
                     kind=(EquipmentKind)i,
-                    weight=mystery?(i<=2?50:0):i<=2?8:i==(int)EquipmentKind.FlyingHand?4:
+                    weight=i==(int)EquipmentKind.CompactSidearm?0:mystery?(i<=2?50:0):i<=2?8:i==(int)EquipmentKind.FlyingHand?4:
                         i==(int)EquipmentKind.PoweredArmor?5:10
                 }).ToArray()
             };
@@ -40,7 +40,7 @@ namespace DeadlyJenga.Modes
         public static bool ValidPowerupSpawns(PowerupSpawnSettings value)
         {
             if(value==null||!float.IsFinite(value.interval)||value.interval<1||value.interval>300||!float.IsFinite(value.jitter)||value.jitter<0||value.jitter>.9f||!float.IsFinite(value.lifetime)||value.lifetime<5||value.lifetime>600||value.maximum<0||value.maximum>32||value.types==null||value.types.Length>EquipmentSpecifications.All.Length-1)return false;
-            var kinds=new HashSet<EquipmentKind>();foreach(var w in value.types)if(w==null||w.kind<EquipmentKind.Speed||w.kind>EquipmentKind.FlyingHand||!kinds.Add(w.kind)||!float.IsFinite(w.weight)||w.weight<0||w.weight>1000)return false;return true;
+            var kinds=new HashSet<EquipmentKind>();foreach(var w in value.types)if(w==null||w.kind<EquipmentKind.Speed||w.kind>EquipmentKind.CompactSidearm||!kinds.Add(w.kind)||!float.IsFinite(w.weight)||w.weight<0||w.weight>1000)return false;return true;
         }
         PowerupSpawnSettings EnsureSpawnSettings()
         {

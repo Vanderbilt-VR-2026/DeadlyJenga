@@ -55,9 +55,12 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunBarbedBat()=>Start(true);
 
-        static void Start(bool barbedBatOnly)
+        public static void RunCosmeticWeapons()=>Start(false, true);
+
+        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false)
         {
             SessionState.SetBool(Key+"BarbedBatOnly",barbedBatOnly);
+            SessionState.SetBool(Key+"CosmeticWeaponsOnly",cosmeticWeaponsOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -65,7 +68,7 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
-            File.WriteAllText(Report,barbedBatOnly?"Barbed Bat focused Play Mode contact checks.\n":"Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
+            File.WriteAllText(Report,barbedBatOnly?"Barbed Bat focused Play Mode contact checks.\n":cosmeticWeaponsOnly?"Dagger and compact sidearm Play Mode checks.\n":"Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
         static void Log(string message,string trace,LogType kind)
@@ -141,6 +144,120 @@ namespace DeadlyJenga.DevTools.Editor
             Check(sparks.particleCount==0&&chips.particleCount==0,"Air swing leaves both impact emitters clear");
         }
 
+        static IEnumerator CosmeticWeapons(MatchModeRuntime runtime,CastleSurvivor player,CastleSurvivor target)
+        {
+            const EquipmentKind dagger=EquipmentKind.Dagger;
+            var spec=EquipmentSpecifications.Get(dagger);
+            target.Place(player.transform.position+Vector3.forward*1.07f,Quaternion.identity);
+            Check(runtime.GiveEquipment(dagger),"The color-matched dagger equips");
+            yield return new WaitForSeconds(.24f);
+            CheckPalette(player,dagger,"CosmeticCandy");
+
+            var origin=player.ViewPose.position+Vector3.forward*.32f;
+            var aim=Quaternion.LookRotation(target.transform.position+Vector3.up*.55f-origin);
+            float health=target.Health;
+            Check(runtime.RequestEquipmentAttack(new Pose(origin,aim)),"Player thrust accepted");
+            yield return null;
+            yield return null;
+            Check(target.Health<health,"Player contact deals dagger damage");
+            CheckStrike("Visual - dagger player sparks",player.Color,"Player contact emits the attacker-colored sparks");
+
+            target.Place(player.transform.position+Vector3.right*8,Quaternion.identity);
+            yield return new WaitForSeconds(spec.cooldown+.15f);
+            var testBlock=GameObject.CreatePrimitive(PrimitiveType.Cube);
+            testBlock.name="Dagger contact fixture block";
+            testBlock.layer=Layers.Block;
+            testBlock.transform.position=origin+Vector3.forward*(spec.range*.67f);
+            testBlock.transform.localScale=Vector3.one*.38f;
+            Physics.SyncTransforms();
+            try
+            {
+                Check(runtime.RequestEquipmentAttack(new Pose(origin,Quaternion.identity)),"Block thrust accepted");
+                yield return null;
+                yield return null;
+                CheckStrike("Visual - dagger block sparks",player.Color,"Block contact emits the attacker-colored block sparks");
+            }
+            finally
+            {
+                testBlock.SetActive(false);
+                Object.Destroy(testBlock);
+            }
+
+            yield return new WaitForSeconds(spec.cooldown+.15f);
+            int first=runtime.Frame.equipmentSequence;
+            Check(runtime.RequestEquipmentAttack(new Pose(origin,Quaternion.identity)),"Air thrust accepted");
+            yield return null;
+            yield return null;
+            CheckStrike("Visual - dagger trail",Color.Lerp(player.Color,Color.white,.18f),"Air thrust shows the colored trail");
+            Check(!runtime.Frame.equipmentActions.Any(e=>e.id>first&&e.kind==dagger&&e.action==EquipmentAction.Impact),
+                "Air thrust produces no contact event");
+
+            Check(runtime.GiveEquipment(EquipmentKind.StockPistol),"Legacy stock pistol remains a distinct weapon");
+            yield return null;
+            var legacy=player.transform.Find("Visual - "+EquipmentKind.StockPistol);
+            Check(legacy&&legacy.GetComponentsInChildren<MeshRenderer>(true).All(r=>!r.sharedMaterial||
+                  !r.sharedMaterial.name.StartsWith("Foundry Cosmetic",StringComparison.Ordinal)),
+                  "Legacy stock pistol retains its model and palette");
+            const EquipmentKind pistol=EquipmentKind.CompactSidearm;
+            Check(runtime.GiveEquipment(pistol),"Compact sidearm equips under its own weapon identity");
+            yield return new WaitForSeconds(.26f);
+            CheckPalette(player,pistol,"SidearmGlossLight");
+            var rig=player.GetComponent<CandyPlayerAvatar>().Rig;
+            var previous=rig.BaseAppearanceColor;
+            try
+            {
+                rig.SetTint(new Color(.16f,.63f,.92f));
+                yield return null;
+                yield return null;
+                CheckPalette(player,pistol,"SidearmGlossLight");
+            }
+            finally
+            {
+                rig.SetTint(previous);
+            }
+            target.Place(player.transform.position+Vector3.forward*5,Quaternion.identity);
+            Physics.SyncTransforms();
+            yield return new WaitForSeconds(.23f);
+            aim=Quaternion.LookRotation(target.transform.position+Vector3.up*.55f-origin);
+            health=target.Health;
+            Check(runtime.RequestEquipmentAttack(new Pose(origin,aim)),"Compact sidearm fires through the existing attack path");
+            Check(target.Health<health,"Compact sidearm damages the player target");
+            Check(runtime.EquipmentFor(runtime.LocalActorId).rounds==EquipmentSpecifications.Get(pistol).magazine-1,
+                "Sidearm consumes a round from the existing magazine");
+        }
+
+        static void CheckStrike(string name,Color expected,string label)
+        {
+            var line=Object.FindObjectsByType<LineRenderer>(FindObjectsSortMode.None)
+                .FirstOrDefault(item=>item.name==name&&item.enabled);
+            Check(line&&SameRgb(line.startColor,expected),label);
+        }
+
+        static void CheckPalette(CastleSurvivor player,EquipmentKind kind,string lightFinish)
+        {
+            var model=player.transform.Find("Visual - "+kind);
+            Check(model,kind+" visible model exists");
+            var parts=model.GetComponentsInChildren<MeshRenderer>(true);
+            var block=new MaterialPropertyBlock();
+            Color Read(string suffix)
+            {
+                var part=parts.FirstOrDefault(item=>item.sharedMaterial&&item.sharedMaterial.name=="Foundry "+suffix);
+                Check(part,kind+" has the "+suffix+" region");
+                part.GetPropertyBlock(block);
+                return block.GetColor("_BaseColor");
+            }
+            Color light=Read(lightFinish),dark=Read("CosmeticDark"),normal=Read(kind==EquipmentKind.CompactSidearm?"SidearmGlossBase":"CosmeticBase");
+            var expected=player.GetComponent<CandyPlayerAvatar>().Rig.BaseAppearanceColor;
+            var shadeType=typeof(CandyWeaponVisual).Assembly.GetType("DeadlyJenga.CandyPlayers.CandyCosmeticShade");
+            var palette=shadeType.GetMethod("PlayerShade");
+            var expectedLight=(Color)palette.Invoke(null,new object[]{expected,AvatarHairShade.Light});
+            var expectedDark=(Color)palette.Invoke(null,new object[]{expected,AvatarHairShade.Dark});
+            Check(SameRgb(normal,expected)&&SameRgb(light,expectedLight)&&SameRgb(dark,expectedDark),
+                  kind+" applies the exact wardrobe shades for "+expected);
+        }
+
+        static bool SameRgb(Color a,Color b)=>Mathf.Abs(a.r-b.r)+Mathf.Abs(a.g-b.g)+Mathf.Abs(a.b-b.b)<.02f;
+
         static IEnumerator Test()
         {
             var session=Object.FindFirstObjectByType<CastlePlaySession>();float until=Time.realtimeSinceStartup+30;
@@ -154,6 +271,11 @@ namespace DeadlyJenga.DevTools.Editor
             if(SessionState.GetBool(Key+"BarbedBatOnly",false))
             {
                 yield return BarbedBatContacts(runtime,player,target);
+                yield break;
+            }
+            if(SessionState.GetBool(Key+"CosmeticWeaponsOnly",false))
+            {
+                yield return CosmeticWeapons(runtime,player,target);
                 yield break;
             }
             Check(EquipmentSpecifications.All.Length==Enum.GetValues(typeof(EquipmentKind)).Length,"Every serialized equipment kind has one shared specification");

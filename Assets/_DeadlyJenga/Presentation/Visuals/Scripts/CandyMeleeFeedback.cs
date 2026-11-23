@@ -8,7 +8,7 @@ namespace DeadlyJenga.Presentation
     [DefaultExecutionOrder(351)]
     public sealed class CandyMeleeFeedback : MonoBehaviour
     {
-        enum Shape { Thrust, Slash, Cleave, Punch, Teeth, Claws, Ember }
+        enum Shape { Thrust, Slash, Cleave, Punch, Teeth, Claws, Ember, DaggerPlayer, DaggerBlock }
 
         struct Strike
         {
@@ -140,6 +140,11 @@ namespace DeadlyJenga.Presentation
 
         void Present(EquipmentActionFrame shot)
         {
+            if(shot.kind==EquipmentKind.Dagger&&shot.action is (EquipmentAction.Shot or EquipmentAction.Impact))
+            {
+                PresentDagger(shot);
+                return;
+            }
             var spec = EquipmentSpecifications.Get(shot.kind);
             bool bash = shot.action == EquipmentAction.Bash;
             bool sword = !bash && shot.kind == EquipmentKind.MurderSword;
@@ -174,7 +179,6 @@ namespace DeadlyJenga.Presentation
 
             var profile = shot.kind switch
             {
-                EquipmentKind.Dagger => (Shape.Thrust, new Color(1f, .91f, .55f), .18f, .038f, .32f),
                 EquipmentKind.MurderSword => (Shape.Slash, Garnet, .22f, .083f, .66f),
                 EquipmentKind.BoxingGlove => (Shape.Punch, new Color(1f, .76f, .24f), .24f, .11f, .51f),
                 EquipmentKind.BarbedBat => (Shape.Slash, new Color(1f, .48f, .13f), .26f, .11f, .64f),
@@ -188,29 +192,75 @@ namespace DeadlyJenga.Presentation
             var point = hit ? shot.endpoints[0] : shot.position + axis * (bash ? .65f : spec.range * .58f);
             if(sword && hit)SwordContact(point,axis,side,up,avatarContact,surface);
             int lanes = profile.Item1 == Shape.Claws ? 3 : hit && !sword ? 2 : 1;
-            for (int lane = 0; lane < lanes; lane++)
-            {
-                var line = strikes[next].line;
-                if (!line)
-                {
-                    var go = new GameObject("Visual - melee strike");
-                    go.transform.SetParent(transform, false);
-                    line = go.AddComponent<LineRenderer>();
-                    line.sharedMaterial = ribbon;
-                    line.positionCount = Segments;
-                    line.shadowCastingMode = ShadowCastingMode.Off;
-                    line.receiveShadows = false;
-                }
+            for(int lane=0;lane<lanes;lane++)
+                SpawnStrike(profile.Item1,profile.Item2,point,axis,side,up,hit,lane,
+                    profile.Item3,profile.Item4,profile.Item5,"Visual - melee strike");
+        }
 
-                line.enabled = true;
-                strikes[next] = new Strike
+        void PresentDagger(EquipmentActionFrame action)
+        {
+            if(action.remaining<.55f||!CandyWeaponImpacts.VisibleToAnyCamera(action.position,45))return;
+            var actor=runtime.FindActor(action.actor);
+            var tint=actor?.Color??Color.white;
+            var forward=(actor?.ViewPose.rotation??Quaternion.identity)*Vector3.forward;
+            bool impact=action.action==EquipmentAction.Impact;
+            var offset=action.endpoints!=null&&action.endpoints.Length>0?
+                action.endpoints[0]-action.position:Vector3.zero;
+            var axis=offset.sqrMagnitude>.0001f?offset.normalized:forward;
+            var point=action.position;
+            var shape=Shape.Thrust;
+            int lanes=1;
+            string name="Visual - dagger trail";
+            if(impact)
+            {
+                bool solid=CandyWeaponImpacts.TryContact(point,axis,out var surface,.23f);
+                if(solid)
                 {
-                    line = line, start = Time.time, duration = profile.Item3, color = profile.Item2,
-                    width = profile.Item4, size = profile.Item5, shape = profile.Item1, hit = hit,
-                    axis = axis, side = side, up = up, point = point, lane = lane
-                };
-                next = (next + 1) % strikes.Length;
+                    var frame=surface.anchor.localToWorldMatrix*surface.localFrame;
+                    point=surface.Position;
+                    axis=((Vector3)frame.GetColumn(2)).normalized;
+                }
+                else axis=-axis;
+                shape=solid?Shape.DaggerBlock:Shape.DaggerPlayer;
+                name=solid?"Visual - dagger block sparks":"Visual - dagger player sparks";
+                lanes=solid?6:4;
             }
+            else
+            {
+                point+=axis*Mathf.Min(offset.magnitude,.70f);
+                tint=Color.Lerp(tint,Color.white,.18f);
+            }
+            var side=Vector3.Cross(Vector3.up,axis);
+            if(side.sqrMagnitude<.01f)side=Vector3.Cross(Vector3.forward,axis);
+            side.Normalize();
+            var up=Vector3.Cross(axis,side);
+            for(int lane=0;lane<lanes;lane++)
+                SpawnStrike(shape,tint,point,axis,side,up,impact,lane,
+                    impact?.24f:.17f,impact?.022f:.030f,impact?.30f:.35f,name);
+        }
+
+        void SpawnStrike(Shape shape,Color color,Vector3 point,Vector3 axis,Vector3 side,Vector3 up,
+            bool hit,int lane,float duration,float width,float size,string name)
+        {
+            var line=strikes[next].line;
+            if(!line)
+            {
+                var go=new GameObject(name);
+                go.transform.SetParent(transform,false);
+                line=go.AddComponent<LineRenderer>();
+                line.sharedMaterial=ribbon;
+                line.positionCount=Segments;
+                line.shadowCastingMode=ShadowCastingMode.Off;
+                line.receiveShadows=false;
+            }
+            line.gameObject.name=name;
+            line.enabled=true;
+            strikes[next]=new Strike
+            {
+                line=line,start=Time.time,duration=duration,color=color,width=width,size=size,
+                shape=shape,hit=hit,axis=axis,side=side,up=up,point=point,lane=lane
+            };
+            next=(next+1)%strikes.Length;
         }
 
         void SwordContact(Vector3 point,Vector3 axis,Vector3 side,Vector3 up,
@@ -264,8 +314,12 @@ namespace DeadlyJenga.Presentation
                 float arc = Mathf.Lerp(-1.15f, 1.15f, u);
                 float orbit = u * 2 * Mathf.PI;
                 float radius = strike.size * Mathf.Lerp(.44f, 1, t);
+                float sparkAngle=strike.lane*2.39996f;
+                var spark=(strike.side*Mathf.Cos(sparkAngle)+strike.up*Mathf.Sin(sparkAngle));
                 Vector3 offset = strike.shape switch
                 {
+                    Shape.DaggerBlock => (spark+strike.axis*.32f)*radius*(t*.77f+u*.38f)+Vector3.down*(.060f*t*t),
+                    Shape.DaggerPlayer => (spark*.64f+strike.axis*.52f)*radius*(t*.59f+u*.41f),
                     Shape.Thrust => strike.axis * Mathf.Lerp(-radius * 1.5f, radius * .23f, u),
                     Shape.Punch => (strike.side * Mathf.Cos(orbit) + strike.up * Mathf.Sin(orbit)) * radius,
                     Shape.Cleave => strike.up * (Mathf.Sin(arc) * radius) + strike.axis * ((Mathf.Cos(arc) - 1) * radius),
@@ -275,7 +329,7 @@ namespace DeadlyJenga.Presentation
                     Shape.Ember => (strike.side * Mathf.Cos(orbit) + strike.up * Mathf.Sin(orbit)) * radius + strike.up * (u * radius + t * .28f),
                     _ => strike.side * (Mathf.Sin(arc) * radius) + strike.axis * ((Mathf.Cos(arc) - 1) * radius)
                 };
-                if (strike.lane == 1 && strike.shape != Shape.Claws)
+                if (strike.lane == 1 && strike.shape is not (Shape.Claws or Shape.DaggerBlock or Shape.DaggerPlayer))
                     offset = offset * .64f + strike.axis * (.12f * t) + strike.up * (.09f + .16f * t);
                 strike.line.SetPosition(i, strike.point + offset);
             }

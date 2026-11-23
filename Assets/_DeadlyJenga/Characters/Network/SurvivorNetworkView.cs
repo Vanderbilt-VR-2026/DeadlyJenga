@@ -181,6 +181,7 @@ namespace DeadlyJenga.CharacterNetwork
             }
             if(IsEnemy)rig.SetTint(new Color(.035f,.045f,.065f));
             weaponVisual??=new CandyWeaponVisual(transform,rig.style?rig.style.material:null,rig);
+            weaponVisual.SetCosmeticColor(rig.BaseAppearanceColor);
             weaponVisual.Present(equipment,rendered,active&&!suspended,emote!=null&&twoHanded);
         }
 

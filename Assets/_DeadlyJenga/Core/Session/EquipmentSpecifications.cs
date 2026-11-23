@@ -35,7 +35,9 @@ namespace DeadlyJenga.Core
             new EquipmentSpecification{name="FLAMING MARSHMALLOW",melee=true,damage=50,cooldown=.4f,range=1.5f,radius=.18f,push=3},
             new EquipmentSpecification{name="TITAN LASER AXE",magazine=8,reloadSeconds=2.5f,melee=true,damage=100,cooldown=2.4f,range=2.2f,radius=.3f,push=12,modeSwitch=true,twoHanded=true,backHolster=true},
             new EquipmentSpecification{name="PVP DAGGER",melee=true,damage=34,cooldown=.35f,range=1.4f,radius=.16f,push=4},
-            new EquipmentSpecification{name="FLYING HAND · 30 SECONDS",power=true}
+            new EquipmentSpecification{name="FLYING HAND · 30 SECONDS",power=true},
+            new EquipmentSpecification{name="COMPACT SIDEARM",magazine=24,reloadSeconds=1.6f,spread=.018f,
+                damage=13,cooldown=.1f,range=55,radius=.035f,push=1}
         };
         public static EquipmentSpecification Get(EquipmentKind kind)=>All[Mathf.Clamp((int)kind,0,All.Length-1)];
     }
