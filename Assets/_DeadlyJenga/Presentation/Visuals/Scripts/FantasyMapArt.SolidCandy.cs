@@ -15,6 +15,7 @@ namespace DeadlyJenga.Presentation
         static readonly Color Gold=new(1,.78f,.3f),Rope=new(.86f,.62f,.36f),RopeRed=new(.8f,.12f,.16f);
         readonly Dictionary<string,Material> solidMaterials=new();
         bool fountainBuilt;
+        Material furnishingMaterial;
 
         static (string site,string purpose) NameParts(Rigidbody body)
         {
@@ -24,16 +25,16 @@ namespace DeadlyJenga.Presentation
 
         static Color DistrictColor(string site)
         {
-            if(site.StartsWith("Sugar"))return new Color(1,.36f,.62f);
-            if(site.StartsWith("Grape"))return new Color(.5f,.84f,.16f);
-            if(site.StartsWith("Cloud Harbor")||site.StartsWith("Harbor"))return new Color(.62f,.36f,.96f);
-            if(site.StartsWith("Downtown"))return new Color(1,.54f,.08f);
-            if(site.StartsWith("Canyon"))return new Color(.08f,.72f,.66f);
+            if(site.StartsWith("Sugar"))return new Color(.82f,.40f,.48f);
+            if(site.StartsWith("Grape"))return new Color(.47f,.64f,.34f);
+            if(site.StartsWith("Cloud Harbor")||site.StartsWith("Harbor"))return new Color(.51f,.36f,.65f);
+            if(site.StartsWith("Downtown"))return new Color(.80f,.42f,.19f);
+            if(site.StartsWith("Canyon"))return new Color(.17f,.56f,.52f);
             if(site.StartsWith("Plaza"))return new Color(1,.82f,.3f);
             return new Color(.94f,.88f,.97f);
         }
 
-        Material SolidMaterial(Rigidbody body)
+        Material SolidMaterial(Rigidbody body,int finish)
         {
             var (site,purpose)=NameParts(body);
             Color color;string key;
@@ -42,20 +43,37 @@ namespace DeadlyJenga.Presentation
             else if(purpose.Contains("trestle")){key="trestle";color=new Color(.74f,.56f,.4f);}
             else if(site.StartsWith("Harbor bascule")){key="bascule";color=new Color(.86f,.68f,.48f);}
             else{color=DistrictColor(site);key=color.ToString();}
+            int pattern=8;
+            bool building=purpose.Contains(" floor ") || purpose.Contains("spine") || purpose.Contains("cassette") || purpose.Contains("book wing");
+            if(purpose.Contains("raft") && (site.StartsWith("Cloud Harbor") || site.StartsWith("Grape") || site.StartsWith("Sugar") || site.StartsWith("Canyon")))
+            {
+                pattern=site.StartsWith("Cloud Harbor")?12:site.StartsWith("Grape")?10:9;
+                color=pattern==10?new Color(.73f,.56f,.37f):new Color(.85f,.80f,.68f);
+                key=site+" foundation";
+            }
+            else if(building && finish!=0)
+            {
+                bool civic=site.StartsWith("Sugar") || site.StartsWith("Grape") || site.StartsWith("Cloud Harbor");
+                if(finish==1){pattern=civic?10:9;color=civic?new Color(.69f,.53f,.36f):new Color(.55f,.65f,.62f);}
+                else if(finish==2){pattern=civic?10:11;color=civic?new Color(.48f,.32f,.22f):new Color(.63f,.51f,.32f);}
+                else {pattern=9;color=new Color(.74f,.68f,.55f);}
+            }
+            else if(key=="bridge" || key=="bascule" || key=="trestle") pattern=10;
+            key+=" "+pattern+" "+finish;
             if(solidMaterials.TryGetValue(key,out var material)&&material)return material;
             material=new Material(cityCandyMaterial){name="Candy planks "+key};
-            material.SetFloat("_Pattern",5);material.SetColor("_BaseColor",color);
-            material.SetColor("_Accent",Color.Lerp(color,new Color(.3f,.19f,.23f),.39f));
-            material.SetFloat("_Smoothness",.42f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
+            material.SetFloat("_Pattern",pattern);material.SetColor("_BaseColor",color);
+            material.SetColor("_Accent",pattern==12?new Color(.45f,.57f,.52f):Color.Lerp(color,new Color(.3f,.19f,.23f),.39f));
+            material.SetFloat("_Metallic",pattern==11?.36f:0);material.SetFloat("_Smoothness",pattern==11?.5f:.28f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
             solidMaterials[key]=material;return material;
         }
 
-        void ReleaseSolidMaterials(){if(neighborhoodPrint)Release(neighborhoodPrint);neighborhoodPrint=null;foreach(var m in solidMaterials.Values)if(m)Release(m);solidMaterials.Clear();fountainBuilt=false;}
+        void ReleaseSolidMaterials(){if(furnishingMaterial)Release(furnishingMaterial);furnishingMaterial=null;foreach(var m in solidMaterials.Values)if(m)Release(m);solidMaterials.Clear();fountainBuilt=false;}
 
         void SolidDress(Rigidbody body,Transform visual)
         {
             var (site,purpose)=NameParts(body);
-            var mesh=new ArtMesh(3);bool any=false;
+            var mesh=new ArtMesh(2);bool any=false;
             var boxes=body.GetComponentsInChildren<BoxCollider>();
             foreach(var shape in boxes)
             {
@@ -71,7 +89,14 @@ namespace DeadlyJenga.Presentation
             }
             if(purpose.Contains(" floor ") && !site.StartsWith("Canyon") && !site.StartsWith("Sugar") && !site.StartsWith("Cloud Harbor")){FloorDress(body,visual,site,purpose,mesh);any=true;}
             if(Landmark(body,visual,site,purpose,mesh))any=true;
-            if(any)Model("Fantasy decorations",mesh,visual,new[]{cityCandyMaterial,cityGlowMaterial,NeighborhoodPrintMaterial()},true);
+            if(!any)return;
+            if(!furnishingMaterial)
+            {
+                furnishingMaterial=new Material(cityCandyMaterial){name="Painted wood and upholstery"};
+                furnishingMaterial.SetFloat("_Pattern",8);
+                furnishingMaterial.SetFloat("_Smoothness",.24f);
+            }
+            Model("Fantasy decorations",mesh,visual,new[]{furnishingMaterial,cityGlowMaterial},true);
         }
 
         // Jenga tower floor: roof railing and flags on the top floor, a ladder on every floor, shop awnings on the ground floor.
@@ -239,7 +264,7 @@ namespace DeadlyJenga.Presentation
         void WarmLighting()
         {
             RenderSettings.fogColor=new Color(1,.84f,.86f);
-            RenderSettings.ambientSkyColor=new Color(.78f,.76f,1);RenderSettings.ambientEquatorColor=new Color(1,.78f,.78f);RenderSettings.ambientGroundColor=new Color(.5f,.36f,.42f);
+            RenderSettings.ambientSkyColor=new Color(.80f,.83f,.92f);RenderSettings.ambientEquatorColor=new Color(.80f,.76f,.69f);RenderSettings.ambientGroundColor=new Color(.38f,.32f,.28f);
         }
     }
 }

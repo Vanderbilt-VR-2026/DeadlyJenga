@@ -34,9 +34,9 @@ Shader "DeadlyJenga/Fantasy Surface"
   CBUFFER_START(UnityPerMaterial)
   float4 _BaseColor,_Accent,_CloudRadius;float _Pattern,_Smoothness,_Scale,_Metallic,_Stripes,_Glow,_DetailStrength;
   CBUFFER_END
-  struct A {float4 p:POSITION;float3 n:NORMAL;float4 color:COLOR;float2 uv:TEXCOORD0;UNITY_VERTEX_INPUT_INSTANCE_ID};
-  struct V {float4 p:SV_POSITION;float3 world:TEXCOORD0;float3 n:TEXCOORD1;float3 local:TEXCOORD2;float fog:TEXCOORD4;float3 localNormal:TEXCOORD3;float4 color:COLOR;float2 printUV:TEXCOORD5;UNITY_VERTEX_OUTPUT_STEREO};
-  V vert(A a){V o;UNITY_SETUP_INSTANCE_ID(a);UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);o.p=TransformObjectToHClip(a.p.xyz);o.fog=ComputeFogFactor(o.p.z);o.world=TransformObjectToWorld(a.p.xyz);o.n=TransformObjectToWorldNormal(a.n);o.local=a.p.xyz;o.localNormal=a.n;o.color=a.color;o.printUV=a.uv;return o;}
+  struct A {float4 p:POSITION;float3 n:NORMAL;float4 color:COLOR;UNITY_VERTEX_INPUT_INSTANCE_ID};
+  struct V {float4 p:SV_POSITION;float3 world:TEXCOORD0;float3 n:TEXCOORD1;float3 local:TEXCOORD2;float fog:TEXCOORD4;float3 localNormal:TEXCOORD3;float4 color:COLOR;UNITY_VERTEX_OUTPUT_STEREO};
+  V vert(A a){V o;UNITY_SETUP_INSTANCE_ID(a);UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);o.p=TransformObjectToHClip(a.p.xyz);o.fog=ComputeFogFactor(o.p.z);o.world=TransformObjectToWorld(a.p.xyz);o.n=TransformObjectToWorldNormal(a.n);o.local=a.p.xyz;o.localNormal=a.n;o.color=a.color;return o;}
   float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
   float noise(float2 p){float2 a=floor(p),f=frac(p);f=f*f*(3-2*f);return lerp(lerp(hash(a),hash(a+float2(1,0)),f.x),lerp(hash(a+float2(0,1)),hash(a+1),f.x),f.y);}
   float cotton(float2 p){return noise(p)*.60+noise(p*2.13+7)*.27+noise(p*4.31+19)*.13;}
@@ -48,7 +48,31 @@ Shader "DeadlyJenga/Fantasy Surface"
    float2 uv=abs(i.localNormal.y)>.6?p.xz:abs(i.localNormal.x)>.6?p.zy:p.xy;
    float3 detail=SAMPLE_TEXTURE2D(_DetailTex,sampler_DetailTex,uv*float2(.12,.075)).rgb;
    float3 color=_BaseColor.rgb;float gloss=_Smoothness;float relief=0;
-   if(_Pattern>7.5){color=SAMPLE_TEXTURE2D(_DetailTex,sampler_DetailTex,i.printUV).rgb;gloss=.18;}
+   if(_Pattern>7.5){
+    // Architectural finishes are sampled in body space so grain follows a pulled floor.
+    float2 surface=abs(i.localNormal.y)>.6?i.local.xz:abs(i.localNormal.x)>.6?i.local.zy:i.local.xy;
+    if(_Pattern<8.5){ // painted joinery / mineral paint
+     float tooth=noise(surface*11.0);color*=.96+.045*tooth;
+    }else if(_Pattern<9.5){ // terrazzo with small aggregate and spaced expansion joints
+     float2 cell=surface*17;float chip=hash(floor(cell));float aa=saturate(1-max(fwidth(cell.x),fwidth(cell.y)));
+     color*=.98+aa*(chip-.5)*.23;
+     float2 joint=abs(frac(surface*.5+.5)-.5);color*=.91+.09*smoothstep(.0,.012+fwidth(surface.x)*.4,min(joint.x,joint.y));
+    }else if(_Pattern<10.5){ // staggered oak boards with soft longitudinal grain
+     float row=floor(surface.y/.48);float2 board=float2(surface.x/3.8+row*.37,surface.y/.48);
+     float2 edge=min(frac(board),1-frac(board))*float2(3.8,.48);
+     float grain=noise(float2(surface.x*.9,surface.y*28+noise(surface*.6)));
+     color*=.86+.12*grain+.09*hash(floor(board));
+     color*=.88+.12*smoothstep(.002,.014+fwidth(surface.y),min(edge.x,edge.y));
+    }else if(_Pattern<11.5){color*=.95+.07*noise(float2(surface.x*.8,surface.y*45));}
+    else{ // glazed checker tile and pale grout
+     float2 tile=surface/1.15, grid=floor(tile), t=frac(tile);
+     float checker=frac((grid.x+grid.y)*.5)*2;
+     float footprint=max(fwidth(tile.x),fwidth(tile.y));
+     checker=lerp(checker,.5,saturate(footprint*2));
+     float grout=1-smoothstep(.005,.018+footprint*.65,min(min(t.x,1-t.x),min(t.y,1-t.y)));
+     color=lerp(lerp(color,_Accent.rgb,checker),float3(.64,.60,.52),grout);
+    }
+   }
    else if(_Pattern<.5){
     float d=hex(uv*.62);float aa=max(fwidth(d),.015);float seam=smoothstep(.76-aa,.83+aa,d);
     float grain=cotton(uv*1.7);float wax=sin(uv.x*.37+sin(uv.y*.21))*.5+.5;
