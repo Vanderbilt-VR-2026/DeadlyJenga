@@ -144,7 +144,7 @@ namespace DeadlyJenga.CandyArt
             // A little nightlight glowing at the top of the stairs.
             Primitive("Nightlight", PrimitiveType.Sphere, new Vector3(top + 4f, height + 14f, north - 4f), Vector3.one * 2.4f,
                 Glow("Nightlight glow", new Color(1f, .75f, .40f), 3f));
-            MakeLight("Nightlight on the landing", LightType.Point, new Vector3(top + 10f, height + 18f, north - 12f), new Color(1f, .7f, .4f), 900f, 70f);
+            MakeLight("Nightlight on the landing", LightType.Point, new Vector3(top + 10f, height + 18f, north - 12f), new Color(1f, .7f, .4f), 490f, 52f);
 
             // Front door on the back wall with a wreath, a mat, boots and a sled.
             float doorZ = (south + stairSouth) * .5f;
@@ -167,7 +167,7 @@ namespace DeadlyJenga.CandyArt
             Boots(new Vector3(far + 40f, 1f, doorZ + 2f), new Color(.20f, .14f, .10f), 1.25f);
             Coats(new Vector3(RoomWest - 60f, 112f, south + 2f));
             Sled(new Vector3(RoomWest - 25f, 0f, south + 24f));
-            MakeLight("Front entry light", LightType.Point, new Vector3(RoomWest - 90f, height - 20f, doorZ), new Color(1f, .72f, .45f), 3000f, 150f);
+            MakeLight("Front entry light", LightType.Point, new Vector3(RoomWest - 90f, height - 20f, doorZ), new Color(1f, .72f, .45f), 1250f, 99f);
         }
 
         // A pair of snowy boots on the mat. size 1 = grown-up.

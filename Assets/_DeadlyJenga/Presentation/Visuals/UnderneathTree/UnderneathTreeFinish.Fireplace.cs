@@ -10,6 +10,7 @@ namespace DeadlyJenga.CandyArt
     public sealed partial class UnderneathTreeFinish
     {
         Texture2D stoneTexture;
+        const float FireplaceLightIntensity = 11600f;
         Light fireLight;
         readonly List<(Transform flame, Vector3 scale, float phase)> flames = new List<(Transform, Vector3, float)>();
 
@@ -460,7 +461,7 @@ namespace DeadlyJenga.CandyArt
                 if (swing)
                     swing.localRotation = Quaternion.Euler(0f, 0f, amplitude * Mathf.Sin(t * Mathf.PI));
             if (fireLight)
-                fireLight.intensity = 14000f * (.78f + Mathf.PerlinNoise(t * 4.3f, 1.7f) * .44f);
+                fireLight.intensity = FireplaceLightIntensity * (.78f + Mathf.PerlinNoise(t * 4.3f, 1.7f) * .44f);
         }
     }
 }

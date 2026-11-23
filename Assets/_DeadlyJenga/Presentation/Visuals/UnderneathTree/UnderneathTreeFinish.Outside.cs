@@ -5,8 +5,8 @@ using UnityEngine.Rendering;
 namespace DeadlyJenga.CandyArt
 {
     // The snowy night outside the tall window, built in 3-D so it shifts as you move:
-    // drifts, snow-capped pines near and far, a few houses with lit windows, hills, a moon,
-    // stars and falling snow. Everything out there glows faintly blue (moonlight) on its own,
+    // a snowy verge, street, houses, trees and a dark background.
+    // Everything out there glows faintly on its own,
     // so it needs no extra lamps. Pieces of a kind are combined to keep draw calls low.
     public sealed partial class UnderneathTreeFinish
     {
@@ -20,7 +20,7 @@ namespace DeadlyJenga.CandyArt
 
         // Built as if outside the north wall; the south window's view is the same kind of scene
         // turned round (see BuildRoom). west/east = the window's edges.
-        void BuildOutdoorView(float west, float east, int seed, bool useDefaultScenery)
+        void BuildOutdoorView(float west, float east, int seed, bool useDefaultScenery, bool south)
         {
             var rand = new System.Random(seed);
             var snow = Surface("Moonlit snow", "Paper", new Color(.80f, .86f, .96f), .35f, new Vector2(30, 30), 0f, .2f);
@@ -38,107 +38,129 @@ namespace DeadlyJenga.CandyArt
             if (!useDefaultScenery)
                 return;
 
-            var pine = Surface("Night pine", null, new Color(.03f, .09f, .06f), .1f, Vector2.one);
-            pine.SetColor("_EmissionColor", new Color(.008f, .025f, .03f));
-            pine.EnableKeyword("_EMISSION");
-            var bark = Surface("Night bark", null, new Color(.06f, .04f, .03f), .1f, Vector2.one);
-            var siding = Surface("Night house siding", null, new Color(.22f, .10f, .08f), .2f, Vector2.one);
-            siding.SetColor("_EmissionColor", new Color(.03f, .03f, .05f));
-            siding.EnableKeyword("_EMISSION");
-            var lit = Glow("Lit house window", new Color(1f, .68f, .32f), 2.6f);
+            float grade = south ? .145f : 0f;
+            float Grade(float z) => GroundOutside + grade * (z - RoomNorth);
+            const float roadZ = 495f, backgroundZ = 855f;
+            var asphalt = Glow("Blue asphalt at night", new Color(.022f, .045f, .086f), 1f);
             var sky = Glow("Night sky", new Color(.012f, .025f, .07f), 1f);
-            var horizon = Glow("Night horizon glow", new Color(.05f, .08f, .18f), 1f);
-
-            // Ground and soft drifts; low hills further off.
-            var sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
-            Box("Snow ground", new Vector3(-200f, GroundOutside - 1f, 360f), new Vector3(2000f, 2f, 620f), snow);
-            var drifts = new Batch();
-            for (int i = 0; i < 26; i++)
+            var horizon = Glow("Night horizon glow", new Color(.033f, .056f, .119f), 1f);
+            var pine = Glow("Distant blue spruce", new Color(.024f, .058f, .10f), 1f);
+            var lit = Glow("Warm curtains across the street", new Color(1f, .66f, .29f), 1.75f);
+            var dark = Glow("Dark exterior trim", new Color(.027f, .039f, .07f), 1f);
+            var cedar = new[]
             {
-                var at = new Vector3(Range(rand, -800f, 400f), GroundOutside, Range(rand, 80f, 520f));
-                float w = Range(rand, 50f, 140f);
-                // Keep every drift clear of the house wall so none pokes up through the room's floor.
-                at.z = Mathf.Max(at.z, RoomNorth + 8f + w * .5f);
-                drifts.Add(sphere, at, Quaternion.Euler(0f, Range(rand, 0f, 180f), 0f), new Vector3(w, Range(rand, 10f, 28f), w * Range(rand, .5f, 1f)));
-            }
-            for (int i = 0; i < 6; i++)
-            {
-                var at = new Vector3(-900f + i * 300f + Range(rand, -50f, 50f), GroundOutside - 30f, Range(rand, 570f, 610f));
-                float w = Range(rand, 380f, 560f);
-                drifts.Add(sphere, at, Quaternion.identity, new Vector3(w, Range(rand, 120f, 220f), 120f));
-            }
-            Draw("Snow drifts and hills", drifts, snow, ShadowCastingMode.Off);
+                Glow("Blue spruce siding", new Color(.058f, .104f, .151f), 1f),
+                Glow("Cranberry siding", new Color(.128f, .058f, .072f), 1f),
+                Glow("Weathered cream siding", new Color(.147f, .147f, .144f), 1f)
+            };
 
-            // Pines: three stacked cones on a trunk, each with a snow cap. Near ones are few and big.
-            var cone = ConeMesh();
-            meshes.Add(cone);
-            var cylinder = Resources.GetBuiltinResource<Mesh>("Cylinder.fbx");
-            var needles = new Batch(); var caps = new Batch(); var trunks = new Batch();
-            for (int i = 0; i < 70; i++)
-            {
-                float z = Mathf.Lerp(110f, 540f, Mathf.Pow((float)rand.NextDouble(), .7f));
-                float x = Range(rand, -850f, 500f);
-                // Keep a clear view of the houses straight out of the window.
-                if (Mathf.Abs(x - midX) < 150f && z > 300f && z < 500f) continue;
-                // Big near trees stand to the sides, framing the view instead of filling it.
-                if (Mathf.Abs(x - midX) < 120f && z < 300f) continue;
-                float height = Range(rand, 200f, 380f) * Mathf.Lerp(1.15f, .8f, (z - 110f) / 430f);
-                var foot = new Vector3(x, GroundOutside, z);
-                trunks.Add(cylinder, foot + Vector3.up * height * .08f, Quaternion.identity, new Vector3(height * .05f, height * .08f, height * .05f));
-                for (int t = 0; t < 3; t++)
-                {
-                    float r = height * (.30f - t * .07f), h = height * (.42f - t * .06f);
-                    var baseAt = foot + Vector3.up * height * (.12f + t * .26f);
-                    var turn = Quaternion.Euler(0f, Range(rand, 0f, 360f), 0f);
-                    needles.Add(cone, baseAt, turn, new Vector3(r, h, r));
-                    caps.Add(cone, baseAt + Vector3.up * h * .38f, turn, new Vector3(r * .66f, h * .62f, r * .66f));
-                }
-            }
-            Draw("Outdoor pines", needles, pine, ShadowCastingMode.Off);
-            Draw("Snow on the pines", caps, snow, ShadowCastingMode.Off);
-            Draw("Outdoor pine trunks", trunks, bark, ShadowCastingMode.Off);
-
-            // A few houses out across the snow, windows lit for Christmas Eve.
+            // The road and sidewalks sit on the same slope as the snow. A slight uphill grade
+            // on the south view exposes the fronts of the houses above the high interior sill.
+            var slope = Quaternion.Euler(-Mathf.Atan(grade) * Mathf.Rad2Deg, 0f, 0f);
             var cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
-            var walls = new Batch(); var roofs = new Batch(); var windows = new Batch();
-            var houses = new[] { new Vector3(midX - 50f, 0f, 380f), new Vector3(midX + 160f, 0f, 460f), new Vector3(midX - 260f, 0f, 490f) };
-            foreach (var spot in houses)
+            var sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
+            var ground = new Batch();
+            const float snowStart = RoomNorth + 12f;
+            float snowCenter = (snowStart + backgroundZ) * .5f;
+            ground.Add(cube, new Vector3(midX, Grade(snowCenter) - 2f, snowCenter), slope,
+                new Vector3(2100f, 4f, backgroundZ - snowStart));
+            foreach (float offset in new[] { -52f, 52f })
             {
-                float w = Range(rand, 85f, 115f), d = 70f, h = Range(rand, 55f, 72f);
-                var turn = Quaternion.Euler(0f, Range(rand, -15f, 15f), 0f);
-                var centre = new Vector3(spot.x, GroundOutside + h * .5f, spot.z);
-                walls.Add(cube, centre, turn, new Vector3(w, h, d));
-                // Pitched roof: two slabs meeting at the ridge, thick with snow.
+                float z = roadZ + offset;
+                ground.Add(cube, new Vector3(midX, Grade(z) + 1f, z), slope, new Vector3(1450f, 3f, 11f));
+                for (int i = -13; i <= 13; i++)
+                    ground.Add(sphere, new Vector3(midX + i * 51f, Grade(z) + 1.5f, z - Mathf.Sign(offset) * 8f),
+                        Quaternion.identity, new Vector3(54f, Range(rand, 4f, 10f), Range(rand, 10f, 16f)));
+            }
+            Draw("Snow-covered yards and sidewalks", ground, snow, ShadowCastingMode.Off);
+            var roads = new Batch();
+            roads.Add(cube, new Vector3(midX, Grade(roadZ) + .7f, roadZ), slope, new Vector3(1450f, 1f, 80f));
+            Draw("Plowed residential street", roads, asphalt, ShadowCastingMode.Off);
+
+            var walls = new[] { new Batch(), new Batch(), new Batch() };
+            var roofs = new Batch();
+            var frames = new Batch();
+            var windows = new Batch();
+            var bulbs = new[] { new Batch(), new Batch(), new Batch(), new Batch() };
+            var colors = new[] { new Color(1f, .10f, .07f), new Color(1f, .65f, .24f),
+                new Color(.15f, .58f, 1f), new Color(.23f, .85f, .37f) };
+            for (int index = -3; index <= 3; index++)
+            {
+                float x = midX + index * 156f + (south ? 37f : -18f) + Range(rand, -13f, 13f);
+                float z = roadZ + Range(rand, 148f, 205f);
+                float w = Range(rand, 85f, 118f), d = Range(rand, 55f, 68f);
+                float h = index % 3 == 0 ? 61f : Range(rand, 73f, 96f);
+                float rise = Range(rand, 20f, 33f);
+                var front = new Vector3(x, Grade(z) - 2f, z);
+                void Part(Batch target, Vector3 offset, Vector3 size, Quaternion rotation)
+                    => target.Add(cube, front + offset, rotation, size);
+
+                var siding = walls[(index + 3) % walls.Length];
+                Part(siding, new Vector3(0f, h * .5f, d * .5f), new Vector3(w, h, d), Quaternion.identity);
+                Part(siding, new Vector3(w * .26f, h + 13f, d * .74f), new Vector3(10f, 46f, 12f), Quaternion.identity);
+                Part(frames, new Vector3(0f, 12f, -.8f), new Vector3(14f, 24f, 2f), Quaternion.identity);
+                Part(roofs, new Vector3(0f, 1f, -12f), new Vector3(29f, 3f, 25f), Quaternion.identity);
+
+                float run = w * .5f + 4f;
+                float onRoof = Mathf.Sqrt(run * run + rise * rise);
+                float pitch = Mathf.Atan2(rise, run) * Mathf.Rad2Deg;
+                var roofMesh = new Mesh { name = "Neighborhood gable" };
+                roofMesh.vertices = new[] { new Vector3(-run, 0f, 0f), new Vector3(run, 0f, 0f), new Vector3(0f, rise, 0f),
+                    new Vector3(-run, 0f, d), new Vector3(run, 0f, d), new Vector3(0f, rise, d) };
+                roofMesh.triangles = new[] { 0, 2, 1, 3, 4, 5, 0, 3, 5, 0, 5, 2, 1, 2, 5, 1, 5, 4 };
+                roofMesh.RecalculateNormals();
+                meshes.Add(roofMesh);
+                siding.Add(roofMesh, front + Vector3.up * h, Quaternion.identity, Vector3.one);
                 foreach (int side in new[] { -1, 1 })
                 {
-                    var slab = turn * Quaternion.Euler(side * 38f, 0f, 0f);
-                    roofs.Add(cube, centre + turn * new Vector3(0f, h * .5f + 18f, side * d * .25f), slab, new Vector3(w + 12f, 6f, d * .68f));
+                    Part(roofs, new Vector3(side * run * .5f, h + rise * .5f + 2f, d * .5f),
+                        new Vector3(onRoof + 1f, 4f, d + 10f), Quaternion.Euler(0f, 0f, -side * pitch));
+                    for (int row = 0; row < (h > 68f ? 2 : 1); row++)
+                    {
+                        var at = new Vector3(side * w * .27f, 27f + row * 34f, -1.2f);
+                        Part(windows, at, new Vector3(17f, 21f, 1.4f), Quaternion.identity);
+                        Part(frames, at + new Vector3(0f, 0f, -1f), new Vector3(1.2f, 21f, .6f), Quaternion.identity);
+                        Part(frames, at + new Vector3(0f, 0f, -1f), new Vector3(17f, 1.1f, .6f), Quaternion.identity);
+                    }
                 }
-                walls.Add(cube, centre + turn * new Vector3(w * .3f, h * .5f + 40f, 10f), turn, new Vector3(12f, 40f, 12f));
-                for (int k = 0; k < 3; k++)
-                    windows.Add(cube, centre + turn * new Vector3((k - 1) * w * .3f, Range(rand, -6f, 8f), -d * .5f - .6f), turn, new Vector3(16f, 20f, 1f));
+                for (int bulb = 0; bulb < 17; bulb++)
+                {
+                    float edge = Mathf.Lerp(-run, run, bulb / 16f);
+                    bulbs[(bulb + index + 4) % colors.Length].Add(cube,
+                        front + new Vector3(edge, h + rise * (1f - Mathf.Abs(edge) / run) - .6f, -4.4f),
+                        Quaternion.identity, Vector3.one * 2.15f);
+                }
             }
-            Draw("Outdoor houses", walls, siding, ShadowCastingMode.Off);
-            Draw("Snowy roofs", roofs, snow, ShadowCastingMode.Off);
+            for (int i = 0; i < walls.Length; i++)
+                Draw("Houses across the street", walls[i], cedar[i], ShadowCastingMode.Off);
+            Draw("Snowy roofs and porch steps", roofs, snow, ShadowCastingMode.Off);
+            Draw("House doors and window sashes", frames, dark, ShadowCastingMode.Off);
             Draw("Lit house windows", windows, lit, ShadowCastingMode.Off);
+            for (int i = 0; i < bulbs.Length; i++)
+                Draw("Christmas lights on distant eaves", bulbs[i], Glow("Distant eave lights " + i, colors[i], 1.8f), ShadowCastingMode.Off);
 
-            // Sky: a dark dome-like backdrop, a paler band near the horizon, stars and the moon.
-            Box("Night sky backdrop", new Vector3(-200f, 450f, 640f), new Vector3(2400f, 1000f, 4f), sky);
-            foreach (float x in new[] { -1400f, 1000f })
-                Box("Night sky side", new Vector3(x, 450f, 340f), new Vector3(4f, 1000f, 600f), sky);
-            Box("Night sky top", new Vector3(-200f, 950f, 340f), new Vector3(2400f, 4f, 600f), sky);
-            Box("Horizon glow", new Vector3(-200f, 50f, 636f), new Vector3(2400f, 130f, 2f), horizon);
-            var stars = new Batch();
-            for (int i = 0; i < 260; i++)
+            var cone = ConeMesh();
+            meshes.Add(cone);
+            var trees = new Batch();
+            for (int i = -12; i <= 12; i++)
             {
-                var at = new Vector3(Range(rand, -1300f, 900f), Range(rand, 160f, 930f), 636f);
-                stars.Add(sphere, at, Quaternion.identity, Vector3.one * Range(rand, 1.2f, 3.2f));
+                float z = Range(rand, 755f, 825f);
+                var at = new Vector3(midX + i * 55f + Range(rand, -20f, 20f), Grade(z), z);
+                float height = Range(rand, 92f, 158f);
+                trees.Add(cone, at, Quaternion.identity, new Vector3(height * .24f, height, height * .24f));
             }
-            Draw("Stars", stars, Glow("Starlight", new Color(.85f, .9f, 1f), 3f), ShadowCastingMode.Off);
-            Primitive("Moon", PrimitiveType.Sphere, new Vector3(midX - 100f, 470f, 620f), Vector3.one * 46f,
-                Glow("Moon", new Color(1f, .97f, .86f), 2.4f)).GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+            Draw("Tree line behind the houses", trees, pine, ShadowCastingMode.Off);
+            Box("Night sky backdrop", new Vector3(midX, 445f, backgroundZ), new Vector3(2400f, 1060f, 4f), sky);
+            Box("Distant winter haze", new Vector3(midX, 105f, backgroundZ - 4f), new Vector3(2390f, 180f, 2f), horizon);
 
-            BuildSnowfall(new Vector3(midX, 320f, 250f), new Vector3(800f, 10f, 320f));
+            var stars = new Batch();
+            for (int i = 0; i < 90; i++)
+            {
+                var at = new Vector3(midX + Range(rand, -1100f, 1100f), Range(rand, 198f, 930f), backgroundZ - 5f);
+                stars.Add(cube, at, Quaternion.identity, Vector3.one * Range(rand, 1f, 2.35f));
+            }
+            Draw("Distant stars", stars, Glow("Soft starlight", new Color(.66f, .77f, 1f), 1.65f), ShadowCastingMode.Off);
+            BuildSnowfall(new Vector3(midX, 240f, 265f), new Vector3(720f, 10f, 295f));
         }
 
         // A plain cone, one unit high and one unit in radius, standing on its base.

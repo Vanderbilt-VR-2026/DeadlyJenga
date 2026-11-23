@@ -114,6 +114,32 @@ namespace DeadlyJenga.CandyArt
             BuildCarpet();
         }
 
+        const float RoomViewDistance = 1300f;
+        Camera roomCamera;
+        float previousRoomViewDistance;
+
+        void UpdateRoomCamera()
+        {
+            var active = Services.Session?.ActiveCamera;
+            if (active == roomCamera)
+                return;
+
+            RestoreRoomCamera();
+            if (!active || active.farClipPlane >= RoomViewDistance)
+                return;
+
+            roomCamera = active;
+            previousRoomViewDistance = active.farClipPlane;
+            active.farClipPlane = RoomViewDistance;
+        }
+
+        void RestoreRoomCamera()
+        {
+            if (roomCamera && Mathf.Approximately(roomCamera.farClipPlane, RoomViewDistance))
+                roomCamera.farClipPlane = previousRoomViewDistance;
+            roomCamera = null;
+        }
+
         void LateUpdate()
         {
             if (!captured)
@@ -123,6 +149,7 @@ namespace DeadlyJenga.CandyArt
                 enabled = false;
                 return;
             }
+            UpdateRoomCamera();
             if (world.Revision != revision)
                 RefreshWorldArt();
             foreach (var beacon in roofBeacons)
@@ -402,6 +429,7 @@ namespace DeadlyJenga.CandyArt
         {
             if (!captured)
                 return;
+            RestoreRoomCamera();
             captured = false;
             ClearCarpet();
             if (roomPipeline)
@@ -484,17 +512,17 @@ namespace DeadlyJenga.CandyArt
                 new Vector3(windowX + 52f, 0f, 30f), new Color(.18f, .38f, 1f), 4400f, 95f, 53f);
             // Keep the fireplace and windows as the main room accents.
             fireLight = MakeLight("Fireplace glow", LightType.Point, new Vector3(2f * FireplaceTurnX - (BreastFront - 18f), 34f, HearthZ),
-                new Color(1f, .45f, .14f), 14000f, 138f);
+                new Color(1f, .45f, .14f), FireplaceLightIntensity, 103f);
             float southWindowX = (SouthWindowWest + SouthWindowEast) * .5f;
             MakeSpot("Moonlight through the south window", new Vector3(southWindowX, WindowSill + 50f, RoomSouth + 4f),
                 new Vector3(southWindowX, 0f, RoomSouth + 35f), new Color(.20f, .40f, 1f), 8500f, 115f, 72f);
             MakeLight("Kitchen light", LightType.Point, new Vector3(RoomWest - 60f, 110f, (ArchSouth + ArchNorth) * .5f),
-                new Color(.36f, .52f, 1f), 1400f, 140f);
+                new Color(.36f, .52f, 1f), 900f, 86f);
             MakeLight("Bookcase lamp", LightType.Point, new Vector3(RoomEast - 60f, 120f, BookcaseZ),
-                new Color(1f, .68f, .38f), 900f, 100f);
+                new Color(1f, .68f, .38f), 610f, 72f);
             // The lamp lights what is near it: the wall, the table and the end of the sofa.
             MakeLight("Floor lamp", LightType.Point,
-                LampPlace + Vector3.up * 59f, new Color(1f, .70f, .39f), 750f, 80f);
+                LampPlace + Vector3.up * 59f, new Color(1f, .70f, .39f), 510f, 65f);
 
             BuildCourseBulbPools();
 
