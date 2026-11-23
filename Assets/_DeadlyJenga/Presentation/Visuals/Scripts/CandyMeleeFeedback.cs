@@ -8,7 +8,7 @@ namespace DeadlyJenga.Presentation
     [DefaultExecutionOrder(351)]
     public sealed class CandyMeleeFeedback : MonoBehaviour
     {
-        enum Shape { Thrust, Slash, Cleave, Punch, Teeth, Claws, Ember }
+        enum Shape { Thrust, Slash, Cleave, Punch, Teeth, Claws, Ember, GloveRing, GloveWake }
 
         struct Strike
         {
@@ -25,7 +25,8 @@ namespace DeadlyJenga.Presentation
         readonly Strike[] strikes = new Strike[16];
         readonly CandyEquipmentActionCursor cursor = new CandyEquipmentActionCursor();
         IMatchRuntime runtime;
-        Material ribbon;
+        Material ribbon, gloveSparkMaterial;
+        ParticleSystem gloveGlints;
         int next;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -51,6 +52,7 @@ namespace DeadlyJenga.Presentation
                 cursor.Baseline(runtime?.Frame);
                 foreach (var strike in strikes)
                     if (strike.line) strike.line.enabled = false;
+                if (gloveGlints) gloveGlints.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             }
 
             cursor.Read(runtime?.Frame, Present);
@@ -93,9 +95,15 @@ namespace DeadlyJenga.Presentation
                 EquipmentKind.LaserClaws => (Shape.Claws, new Color(.33f, .85f, 1f), .23f, .055f, .38f),
                 _ => (Shape.Ember, new Color(1f, .29f, .055f), .36f, .075f, .36f)
             };
+            bool glove = shot.kind == EquipmentKind.BoxingGlove && !bash;
             if (bash) profile = (Shape.Punch, new Color(1, .82f, .44f), .22f, .075f, .29f);
             var point = hit ? shot.endpoints[0] : shot.position + axis * (bash ? .65f : spec.range * .58f);
-            int lanes = profile.Item1 == Shape.Claws ? 3 : hit ? 2 : 1;
+            int lanes = glove && !hit ? 4 : profile.Item1 == Shape.Claws ? 3 : hit ? 2 : 1;
+            if (glove)
+            {
+                profile = (Shape.GloveRing, new Color(1f, .69f, .21f), hit ? .24f : .19f, hit ? .039f : .027f, .34f);
+                if (hit) EmitGloveGlints(point, axis, side, up);
+            }
             for (int lane = 0; lane < lanes; lane++)
             {
                 var line = strikes[next].line;
@@ -110,11 +118,15 @@ namespace DeadlyJenga.Presentation
                     line.receiveShadows = false;
                 }
 
+                line.name = glove
+                    ? (!hit && lane>0 ? "Boxing Glove air streak" : "Boxing Glove gold ring")
+                    : "Visual - melee strike";
                 line.enabled = true;
                 strikes[next] = new Strike
                 {
                     line = line, start = Time.time, duration = profile.Item3, color = profile.Item2,
-                    width = profile.Item4, size = profile.Item5, shape = profile.Item1, hit = hit,
+                    width = profile.Item4, size = profile.Item5,
+                    shape = glove && !hit && lane>0 ? Shape.GloveWake : profile.Item1, hit = hit,
                     axis = axis, side = side, up = up, point = point, lane = lane
                 };
                 next = (next + 1) % strikes.Length;
@@ -129,6 +141,12 @@ namespace DeadlyJenga.Presentation
             strike.line.startColor = color;
             strike.line.endColor = new Color(color.r, color.g, color.b, fade * .22f);
             strike.line.widthMultiplier = strike.width * (.95f - .70f * t);
+
+            if (strike.shape == Shape.GloveRing || strike.shape == Shape.GloveWake)
+            {
+                PaintGlove(strike, t);
+                return;
+            }
 
             for (int i = 0; i < Segments; i++)
             {
@@ -153,9 +171,81 @@ namespace DeadlyJenga.Presentation
             }
         }
 
+        static void PaintGlove(Strike strike, float t)
+        {
+            bool wake = strike.shape == Shape.GloveWake;
+            bool inner = strike.hit && strike.lane==1;
+            float ring = strike.size * Mathf.Lerp(.45f, 1f, t) * (inner ? .65f : 1f);
+            float alpha = (1-t) * (wake ? .31f : inner ? .59f : strike.hit ? 1f : .52f);
+            var color = new Color(strike.color.r, strike.color.g, strike.color.b, alpha);
+            strike.line.startColor = color;
+            strike.line.endColor = new Color(color.r,color.g,color.b,alpha*.24f);
+            strike.line.widthMultiplier = strike.width * Mathf.Lerp(wake ? .37f : .86f, .10f, t);
+            float angle = strike.lane * Mathf.PI * 2 / 3;
+            for (int i=0; i<Segments; i++)
+            {
+                float u = i / (Segments-1f);
+                var offset = wake
+                    ? (strike.side*Mathf.Cos(angle)+strike.up*Mathf.Sin(angle))*.18f + strike.axis*Mathf.Lerp(-.71f,-.40f,u)
+                    : (strike.side*Mathf.Cos(u*2*Mathf.PI)+strike.up*Mathf.Sin(u*2*Mathf.PI))*ring;
+                float drift = strike.hit ? -.023f : t*.13f;
+                strike.line.SetPosition(i,strike.point+offset+strike.axis*(inner ? drift-.047f : drift));
+            }
+        }
+
+        void EmitGloveGlints(Vector3 point, Vector3 direction, Vector3 side, Vector3 up)
+        {
+            if (!gloveGlints)
+            {
+                var emitter = new GameObject("Pooled Boxing Glove contact glints");
+                emitter.transform.SetParent(transform,false);
+                gloveGlints = emitter.AddComponent<ParticleSystem>();
+                gloveGlints.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+                var main = gloveGlints.main;
+                main.loop=false;
+                main.playOnAwake=false;
+                main.maxParticles=96;
+                main.simulationSpace=ParticleSystemSimulationSpace.World;
+                main.gravityModifier=.22f;
+                var emission=gloveGlints.emission; emission.enabled=false;
+                var shape=gloveGlints.shape; shape.enabled=false;
+                gloveSparkMaterial=new Material(ribbon);
+                if (gloveSparkMaterial.HasProperty("_Ribbon")) gloveSparkMaterial.SetFloat("_Ribbon",0);
+                var renderer=emitter.GetComponent<ParticleSystemRenderer>();
+                renderer.sharedMaterial=gloveSparkMaterial;
+                renderer.renderMode=ParticleSystemRenderMode.Stretch;
+                renderer.lengthScale=1.35f;
+                renderer.velocityScale=.12f;
+                renderer.shadowCastingMode=ShadowCastingMode.Off;
+                renderer.receiveShadows=false;
+            }
+            if (gloveGlints.isStopped) gloveGlints.Play();
+            for (int i=0; i<9; i++)
+            {
+                float angle=i*2.39996f;
+                var radial=side*Mathf.Cos(angle)+up*Mathf.Sin(angle);
+                gloveGlints.Emit(new ParticleSystem.EmitParams
+                {
+                    position=point-direction*.027f+radial*.03f,
+                    velocity=radial*(1.4f+i*.23f)-direction*(.42f+i*.047f),
+                    startColor=i%3==0 ? new Color(1,.86f,.53f) : new Color(1,.63f,.19f),
+                    startSize=.032f+i*.002f,
+                    startLifetime=.088f+i*.008f
+                },1);
+            }
+        }
+
+        void OnDisable()
+        {
+            foreach (var strike in strikes)
+                if (strike.line) strike.line.enabled=false;
+            if (gloveGlints) gloveGlints.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+
         void OnDestroy()
         {
             if (ribbon) Destroy(ribbon);
+            if (gloveSparkMaterial) Destroy(gloveSparkMaterial);
         }
     }
 }
