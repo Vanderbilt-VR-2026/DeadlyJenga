@@ -29,13 +29,15 @@ if mode in {"launcher", "staff", "chaingun", "alien", "sheriff", "sword", "rpg",
         if mode == "axe" and obj.type == "CURVE":
             obj.data.bevel_resolution = min(obj.data.bevel_resolution, 1)
             obj.data.resolution_u = min(obj.data.resolution_u, 4)
-        budget = 300 if mode == "axe" else 1200
+        belt = mode == "chaingun" and (
+            obj.name.startswith("Belt link") or (obj.parent and obj.parent.name.startswith("Belt round"))
+        )
+        budget = 60 if belt else 300 if mode == "axe" else 1200
         if obj.type != "MESH" or obj.hide_render or len(obj.data.polygons) < budget:
             continue
         modifier = obj.modifiers.new("Runtime polygon budget", "DECIMATE")
-        modifier.ratio = 0.40 if mode == "launcher" else 0.25
+        modifier.ratio = 0.32 if belt else 0.40 if mode == "launcher" else 0.25
     bpy.context.view_layer.update()
-graph = bpy.context.evaluated_depsgraph_get()
 parts = collections.defaultdict(lambda: ({}, []))
 
 def part_of(obj):
@@ -120,35 +122,49 @@ def surface(material):
 def xyz(v):
     return (v.x, v.z, v.y)
 
-for obj in sorted(root.children_recursive, key=lambda item: item.name):
-    if obj.type not in {"MESH", "FONT", "CURVE"} or obj.hide_render:
-        continue
-    if mode == "marshmallow" and any(word in obj.name.lower() for word in ("flame", "smoke", "fleck")):
-        continue
-    model = obj.evaluated_get(graph)
-    mesh = model.to_mesh()
-    mesh.calc_loop_triangles()
-    transform = matrix @ obj.matrix_world
-    normal_transform = transform.to_3x3().inverted_safe().transposed()
-    part = part_of(obj)
-    if mode == "staff" and part == 1:
-        transform.translation.y -= .88
-    if mode == "chaingun" and part == 2:
-        transform = bpy.data.objects["Foundry six-barrel rotor"].matrix_world.inverted() @ obj.matrix_world
-    if mode == "shooter" and part == 2:
-        transform = bpy.data.objects["Serrated saw wheel - forged carbide"].matrix_world.inverted() @ obj.matrix_world
-    for triangle in mesh.loop_triangles:
-        material = mesh.materials[triangle.material_index]
-        layer, color, finish = surface(material)
-        vertices, triangles = parts[(part, layer)]
-        for loop_index in reversed(triangle.loops):
-            point = transform @ mesh.vertices[mesh.loops[loop_index].vertex_index].co
-            normal = (normal_transform @ mesh.corner_normals[loop_index].vector).normalized()
-            key = tuple(round(x, 6) for x in (*xyz(point), *xyz(normal), *color, *finish))
-            triangles.append(vertices.setdefault(key, len(vertices)))
-    model.to_mesh_clear()
+def collect(only_part=None, target_part=None):
+    graph = bpy.context.evaluated_depsgraph_get()
+    for obj in sorted(root.children_recursive, key=lambda item: item.name):
+        if obj.type not in {"MESH", "FONT", "CURVE"} or obj.hide_render:
+            continue
+        if mode == "marshmallow" and any(word in obj.name.lower() for word in ("flame", "smoke", "fleck")):
+            continue
+        if only_part is not None and part_of(obj) != only_part:
+            continue
+        model = obj.evaluated_get(graph)
+        mesh = model.to_mesh()
+        mesh.calc_loop_triangles()
+        transform = matrix @ obj.matrix_world
+        normal_transform = transform.to_3x3().inverted_safe().transposed()
+        part = part_of(obj) if target_part is None else target_part
+        if mode == "staff" and part == 1:
+            transform.translation.y -= .88
+        if mode == "chaingun" and part == 2:
+            transform = bpy.data.objects["Foundry six-barrel rotor"].matrix_world.inverted() @ obj.matrix_world
+        if mode == "shooter" and part == 2:
+            transform = bpy.data.objects["Serrated saw wheel - forged carbide"].matrix_world.inverted() @ obj.matrix_world
+        for triangle in mesh.loop_triangles:
+            material = mesh.materials[triangle.material_index]
+            layer, color, finish = surface(material)
+            vertices, triangles = parts[(part, layer)]
+            for loop_index in reversed(triangle.loops):
+                point = transform @ mesh.vertices[mesh.loops[loop_index].vertex_index].co
+                normal = (normal_transform @ mesh.corner_normals[loop_index].vector).normalized()
+                key = tuple(round(x, 6) for x in (*xyz(point), *xyz(normal), *color, *finish))
+                triangles.append(vertices.setdefault(key, len(vertices)))
+        model.to_mesh_clear()
 
-assert {part for part, _ in parts} == set(range({"launcher": 8, "spikers": 7, "staff": 2, "chaingun": 13, "alien": 1, "sheriff": 2, "sword": 1, "rpg": 1, "axe": 1, "shooter": 3, "marshmallow": 1}[mode]))
+
+collect()
+if mode == "chaingun":
+    for part, frame in enumerate((3, 5, 7, 9, 11), 13):
+        scene.frame_set(frame)
+        collect(only_part=1, target_part=part)
+elif mode == "alien":
+    scene.frame_set(84)
+    collect(target_part=1)
+
+assert {part for part, _ in parts} == set(range({"launcher": 8, "spikers": 7, "staff": 2, "chaingun": 18, "alien": 2, "sheriff": 2, "sword": 1, "rpg": 1, "axe": 1, "shooter": 3, "marshmallow": 1}[mode]))
 with Path(destination).open("wb") as output:
     output.write(struct.pack("<4sI", b"WART", len(parts)))
     for (part, layer), (vertices, triangles) in sorted(parts.items()):

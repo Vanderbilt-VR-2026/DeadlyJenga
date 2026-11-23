@@ -25,6 +25,7 @@ namespace DeadlyJenga.Presentation
             public LineRenderer[] arcs;
             public LineRenderer heatLine;
             public Transform[] heatBars;
+            public Transform coolingPose, coolBody, coolGlass;
             public float searchAfter, heat, lastShot;
             public bool venting, reloading;
             public int seenFrame;
@@ -298,6 +299,12 @@ namespace DeadlyJenga.Presentation
                             {
                                 effect.model=child;
                                 effect.heatBars=null;
+                                if (item.kind == EquipmentKind.Blaster)
+                                {
+                                    effect.coolingPose = child.Find("Open cooling hatch pose");
+                                    effect.coolBody = child.Find("Crimson Alien Blaster body opaque");
+                                    effect.coolGlass = child.Find("Crimson Alien Blaster body glass");
+                                }
                                 if (item.kind == EquipmentKind.ChainGun && child.Find("Heat bar 1"))
                                 {
                                     effect.heatBars = new Transform[10];
@@ -337,6 +344,16 @@ namespace DeadlyJenga.Presentation
                 }
                 if(effect.heat<.45f&&!reload)effect.venting=false;
                 effect.reloading=reload&&(effect.reloading||active);
+                if (effect.coolingPose)
+                {
+                    bool open = active && effect.venting;
+                    if (effect.coolingPose.gameObject.activeSelf != open)
+                    {
+                        effect.coolingPose.gameObject.SetActive(open);
+                        if (effect.coolBody) effect.coolBody.gameObject.SetActive(!open);
+                        if (effect.coolGlass) effect.coolGlass.gameObject.SetActive(!open);
+                    }
+                }
                 if (effect.heatBars != null)
                 {
                     int lit = active ? Mathf.CeilToInt(effect.heat * effect.heatBars.Length) : 0;

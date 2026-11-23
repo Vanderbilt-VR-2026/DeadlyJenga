@@ -28,7 +28,7 @@ namespace DeadlyJenga.CandyPlayers
             "Rounded Spiker receiver", "Prismatic power cell", "Crystal 1", "Crystal 2", "Crystal 3", "Crystal 4", "Crystal 5"
         };
         static readonly string[] StaffArtParts = { "Weathered branch and mount", "Serrated saw wheel - worn shed steel" };
-        static readonly string[] AlienArtParts = { "Crimson Alien Blaster body" };
+        static readonly string[] AlienArtParts = { "Crimson Alien Blaster body", "Crimson Alien cooling pose" };
         static readonly string[] SheriffArtParts = { "Cobalt Sheriff and ivory grip", "Sheriff cylinder" };
         static readonly string[] SwordArtParts = { "Garnet Murderer Sword" };
         static readonly string[] RocketArtParts = { "Charcoal lollipop launcher" };
@@ -42,8 +42,14 @@ namespace DeadlyJenga.CandyPlayers
         {
             "Black and brass Chaingun", "Looped brass feed belt", "Foundry six-barrel rotor",
             "Heat bar 1", "Heat bar 2", "Heat bar 3", "Heat bar 4", "Heat bar 5",
-            "Heat bar 6", "Heat bar 7", "Heat bar 8", "Heat bar 9", "Heat bar 10"
+            "Heat bar 6", "Heat bar 7", "Heat bar 8", "Heat bar 9", "Heat bar 10",
+            "Belt phase 2", "Belt phase 3", "Belt phase 4", "Belt phase 5", "Belt phase 6"
         };
+
+        const int FirstAlternateBeltPart = 13;
+        static readonly Mesh[] chainBeltFrames = new Mesh[6];
+        MeshFilter chainBelt;
+        float chainBeltPhase;
 
         // The authored asset is shared by held, remote and pickup instances.
         // Positions are already in the existing receiver and carriage coordinate spaces.
@@ -129,9 +135,16 @@ namespace DeadlyJenga.CandyPlayers
             parts[0] = parent;
             if (weapon == EquipmentKind.RocketLauncher)
                 MakeFeedAssembly(parent);
+            else if (weapon == EquipmentKind.Blaster)
+            {
+                parts[1] = new GameObject("Open cooling hatch pose").transform;
+                parts[1].SetParent(parent, false);
+                parts[1].gameObject.SetActive(false);
+            }
             else if (parts.Length > 1 && weapon != EquipmentKind.SawStaff)
                 parts[1] = MakeFeedAssembly(parent);
-            for (int i = weapon == EquipmentKind.SawStaff ? 1 : 2; i < parts.Length; i++)
+            int mountedParts = weapon == EquipmentKind.ChainGun ? FirstAlternateBeltPart : parts.Length;
+            for (int i = weapon == EquipmentKind.SawStaff ? 1 : 2; i < mountedParts; i++)
             {
                 parts[i] = new GameObject(names[i]).transform;
                 parts[i].SetParent(weapon == EquipmentKind.GrenadeLauncher ? parts[1] : parent, false);
@@ -145,8 +158,33 @@ namespace DeadlyJenga.CandyPlayers
 
             EnsureReviewedWeaponMaterials();
             foreach (var mesh in meshes)
+            {
+                if (weapon == EquipmentKind.ChainGun && mesh.part >= FirstAlternateBeltPart)
+                {
+                    chainBeltFrames[mesh.part - FirstAlternateBeltPart + 1] = mesh.mesh;
+                    continue;
+                }
                 MountFeedMesh(mesh.mesh, mesh.glass ? duplexGlass : duplexCoating, parts[mesh.part]);
+                if (weapon == EquipmentKind.ChainGun && mesh.part == 1 && !mesh.glass)
+                {
+                    chainBeltFrames[0] = mesh.mesh;
+                    chainBelt = parts[1].Find(mesh.mesh.name).GetComponent<MeshFilter>();
+                    chainBeltPhase = 0;
+                }
+            }
             return true;
+        }
+
+        void PresentChainBelt(EquipmentState state)
+        {
+            if (!chainBelt || !state.drawn || !state.triggerHeld || state.reloadRemaining > 0 ||
+                state.magazineInitialized && state.rounds == 0)
+                return;
+
+            float interval = EquipmentSpecifications.Get(EquipmentKind.ChainGun).cooldown;
+            chainBeltPhase = Mathf.Repeat(chainBeltPhase + Time.deltaTime / interval, 1);
+            var frame = chainBeltFrames[(int)(chainBeltPhase * chainBeltFrames.Length)];
+            if (chainBelt.sharedMesh != frame) chainBelt.sharedMesh = frame;
         }
 
         static void EnsureReviewedWeaponMaterials()

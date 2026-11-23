@@ -426,6 +426,7 @@ namespace DeadlyJenga.CandyPlayers
                 if (paired) Object.Destroy(paired.gameObject);
                 if (root) Object.Destroy(root.gameObject);
                 paired = pairedFeed = rotor = null;
+                chainBelt = null;
                 kind = state.kind;
                 root = Create(kind);
                 if (kind == EquipmentKind.Chainsaw && rotor) wheelSeat = rotor.localPosition;
@@ -481,6 +482,7 @@ namespace DeadlyJenga.CandyPlayers
             if (kind == EquipmentKind.WristLaser)
                 root.localScale = new Vector3(1, 1, Mathf.Lerp(.78f, 1, drawAmount)) * ModelScale(kind, frame.scale);
             PresentEnergyReload(feedState, root);
+            if (kind == EquipmentKind.ChainGun) PresentChainBelt(feedState);
             if (kind == EquipmentKind.BoxingGlove) PresentBoxingGlove(root, drawAmount);
             if (kind == EquipmentKind.LaserClaws) PresentClaws(root, hand, state.leftHanded, drawAmount, false);
             if (kind == EquipmentKind.PoweredArmor) PresentRepulsor(root, drawAmount, false);

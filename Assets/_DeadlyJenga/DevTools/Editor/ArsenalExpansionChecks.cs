@@ -1147,7 +1147,23 @@ namespace DeadlyJenga.DevTools.Editor
                         visual.Present(state,frame,true);
                         Check(feed.gameObject.activeInHierarchy,"Fresh ammo is visible during insertion: "+kind);
                         if (kind == EquipmentKind.ChainGun)
-                            Check(feed.Find("Looped brass feed belt opaque"), "Chaingun reload animates the reviewed feed belt");
+                        {
+                            var belt = feed.Find("Looped brass feed belt opaque");
+                            Check(belt, "Chaingun reload animates the reviewed feed belt");
+                            var filter = belt.GetComponent<MeshFilter>();
+                            var initialBelt = filter.sharedMesh;
+                            state.rounds = spec.magazine;
+                            state.reloadRemaining = 0;
+                            state.triggerHeld = true;
+                            float deadline = Time.realtimeSinceStartup + 1;
+                            while (filter.sharedMesh == initialBelt && Time.realtimeSinceStartup < deadline)
+                            {
+                                yield return null;
+                                visual.Present(state,frame,true);
+                            }
+                            Check(filter.sharedMesh && filter.sharedMesh != initialBelt, "The reviewed Chaingun belt advances during sustained fire");
+                            state.triggerHeld = false;
+                        }
                         else if(!energy&&kind!=EquipmentKind.DualUzi)
                             Check(feed.Cast<Transform>().Any(item=>item.name.StartsWith(kind==EquipmentKind.GrenadeLauncher?"Charge cell ":"Visible round ")&&item.gameObject.activeSelf),
                                 "Reload displays ammunition meshes: "+kind);
@@ -1249,6 +1265,20 @@ namespace DeadlyJenga.DevTools.Editor
                         Check(!effects.transform.Find(impactName), "The Spiker crystal breaks after its brief contact hold");
                     }
                 }
+                Check(runtime.GiveEquipment(EquipmentKind.Blaster), "The reviewed Alien Blaster equips in live gameplay");
+                yield return new WaitForSeconds(.65f);
+                var blaster = player.transform.Find("Visual - Blaster");
+                var hatch = blaster ? blaster.Find("Open cooling hatch pose") : null;
+                Check(hatch && !hatch.gameObject.activeSelf, "The Alien Blaster hatch is closed at rest");
+                var shot = new Pose(player.ViewPose.position + Vector3.forward * .6f, Quaternion.identity);
+                for (int i = 0; i < 4; i++)
+                {
+                    Check(runtime.RequestEquipmentAttack(shot), "Authority accepts the Alien Blaster shot " + (i + 1));
+                    yield return new WaitForSeconds(.49f);
+                }
+                Check(hatch.gameObject.activeSelf, "Firing opens the reviewed cooling hatch");
+                yield return new WaitForSeconds(1.7f);
+                Check(!hatch.gameObject.activeSelf, "The reviewed cooling hatch closes again after cooling");
             }
             finally
             {
