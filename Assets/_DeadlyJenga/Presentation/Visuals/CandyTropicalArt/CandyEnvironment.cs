@@ -60,7 +60,7 @@ namespace DeadlyJenga.CandyArt
         }
 
         bool UsesCastleCoast => Application.isPlaying && WorldOverride==null &&
-            MatchChoices.MapId is "castle" or "mode-castle-gaps" or "mode-castle-catwalks" or "mode-tycoon" or "mode-castle-four-keeps";
+            MatchChoices.MapId is "castle" or "mode-castle-gaps" or "mode-castle-catwalks" or "mode-tycoon" or "mode-castle-four-keeps" or "block-spires";
 
         void RefreshCoast(IWorldQuery world,CandySandbar terrain,Vector3 origin,float waterLevel)
         {
@@ -148,7 +148,8 @@ namespace DeadlyJenga.CandyArt
             var terrain=sandRenderer.GetComponent<CandySandbar>();
             if(terrain&&!openWater)
             {
-                terrain.CatwalksBeach=UsesCastleCoast;
+                terrain.CatwalksBeach=UsesCastleCoast && MatchChoices.MapId != "block-spires";
+                terrain.CompactSandbar = UsesCastleCoast && MatchChoices.MapId == "block-spires";
                 terrain.BeachWaterOffset=waterLevel-sandTop;
                 terrain.profile=profile;var baseline=GetComponent<CandyArtBaseline>();
                 if(baseline)terrain.map=baseline.map;

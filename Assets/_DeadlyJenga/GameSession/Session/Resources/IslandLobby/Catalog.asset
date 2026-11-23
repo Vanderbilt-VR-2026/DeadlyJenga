@@ -550,6 +550,14 @@ MonoBehaviour:
     walkableIsland: 1
     supportedModes:
     - demo
+  - id: block-spires
+    title: Block Spires
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 4478676743504610698, guid: cfa211448e394c30a249803f6eb388d2, type: 3}
+    recommendedPlayers: 6
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
   modes:
   - id: demo
     title: Demo

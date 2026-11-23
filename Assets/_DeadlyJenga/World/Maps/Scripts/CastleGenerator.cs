@@ -403,6 +403,11 @@ namespace DeadlyJenga.CastlePrototype
                 bool tallKeep=settings.structureVariant==CastleStructure.FourKeeps&&p.Section==CastleSection.Keep;
                 body.solverIterations = settings.cathedral ? 80 : tallKeep ? 60 : 20;
                 body.solverVelocityIterations = settings.cathedral ? 20 : tallKeep ? 16 : 8;
+                if (settings.layoutPreset == BlockSpiresLayout.Preset)
+                {
+                    body.solverIterations = 72;
+                    body.solverVelocityIterations = 16;
+                }
                 body.sleepThreshold = .005f;
                 Bodies.Add(body);
             }
