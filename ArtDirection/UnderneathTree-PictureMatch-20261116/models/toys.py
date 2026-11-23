@@ -69,7 +69,10 @@ def paint(name):
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from small_toys_export import export_small_toys
-from shelf_toys import export_shelf
+from clockwork_toys import DESIGNS as clockwork_designs
+from shelf_toys import DESIGNS, export_shelf
+
+DESIGNS.update(clockwork_designs)
 
 for color in PAINT:
     paint(color)
