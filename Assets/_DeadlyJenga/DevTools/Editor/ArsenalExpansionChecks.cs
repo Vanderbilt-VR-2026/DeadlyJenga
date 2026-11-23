@@ -51,8 +51,13 @@ namespace DeadlyJenga.DevTools.Editor
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Arsenal Expansion")]
-        public static void Run()
+        public static void Run()=>Start(false);
+
+        public static void RunBarbedBat()=>Start(true);
+
+        static void Start(bool barbedBatOnly)
         {
+            SessionState.SetBool(Key+"BarbedBatOnly",barbedBatOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -60,7 +65,7 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
-            File.WriteAllText(Report,"Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
+            File.WriteAllText(Report,barbedBatOnly?"Barbed Bat focused Play Mode contact checks.\n":"Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
         static void Log(string message,string trace,LogType kind)
@@ -82,6 +87,60 @@ namespace DeadlyJenga.DevTools.Editor
             }
             while(stack.Count>0)(stack.Pop() as IDisposable)?.Dispose();completed=!failed;EditorApplication.ExitPlaymode();
         }
+        static IEnumerator BarbedBatContacts(MatchModeRuntime runtime,CastleSurvivor player,CastleSurvivor target)
+        {
+            var kind=EquipmentKind.BarbedBat;
+            var spec=EquipmentSpecifications.Get(kind);
+            Check(runtime.GiveEquipment(kind),"Barbed Bat equips through the production path");
+            target.Place(player.transform.position+Vector3.forward*1.05f,Quaternion.identity);
+            Physics.SyncTransforms();
+            yield return new WaitForSeconds(.25f);
+            var emitters=Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None);
+            var sparks=emitters.FirstOrDefault(p=>p.name=="Barbed Bat contact sparks");
+            var chips=emitters.FirstOrDefault(p=>p.name=="Barbed Bat candy chips");
+            Check(sparks && chips,"Both pooled Barbed Bat contact emitters attached");
+            var origin=player.ViewPose.position+Vector3.forward*.35f;
+            var aim=Quaternion.LookRotation(target.transform.position+Vector3.up*.55f-origin);
+            int before=runtime.Frame.equipmentSequence;
+            float health=target.Health;
+            Check(runtime.RequestEquipmentAttack(new Pose(origin,aim)),"Barbed Bat player swing accepted");
+            yield return null;
+            yield return null;
+            Check(target.Health<health,"Player contact applies existing bat damage");
+            Check(runtime.Frame.equipmentActions.Any(e=>e.id>before&&e.kind==kind&&e.action==EquipmentAction.Impact),
+                "Player contact publishes an impact");
+            Check(sparks.particleCount>0&&chips.particleCount==0,"Player contact emits sparks only");
+
+            target.Place(player.transform.position+Vector3.right*8,Quaternion.identity);
+            yield return new WaitForSeconds(spec.cooldown+.35f);
+            var block=GameObject.CreatePrimitive(PrimitiveType.Cube);
+            block.name="Barbed Bat contact fixture block";
+            block.layer=Layers.Block;
+            block.transform.position=origin+Vector3.forward*(spec.range*.58f);
+            block.transform.localScale=Vector3.one*.38f;
+            Physics.SyncTransforms();
+            before=runtime.Frame.equipmentSequence;
+            Check(runtime.RequestEquipmentAttack(new Pose(origin,Quaternion.identity)),"Barbed Bat block swing accepted");
+            yield return null;
+            yield return null;
+            Check(runtime.Frame.equipmentActions.Any(e=>e.id>before&&e.kind==kind&&e.action==EquipmentAction.Impact),
+                "Block contact publishes an impact");
+            Check(sparks.particleCount>0&&chips.particleCount>0,"Block contact emits sparks and chips");
+
+            Object.Destroy(block);
+            yield return new WaitForSeconds(spec.cooldown+.45f);
+            Physics.SyncTransforms();
+            before=runtime.Frame.equipmentSequence;
+            Check(runtime.RequestEquipmentAttack(new Pose(origin,Quaternion.identity)),"Barbed Bat air swing accepted");
+            yield return null;
+            yield return null;
+            Check(runtime.Frame.equipmentActions.Any(e=>e.id>before&&e.kind==kind&&e.action==EquipmentAction.Shot),
+                "Air swing still publishes the swing event");
+            Check(!runtime.Frame.equipmentActions.Any(e=>e.id>before&&e.kind==kind&&e.action==EquipmentAction.Impact),
+                "Air swing publishes no impact");
+            Check(sparks.particleCount==0&&chips.particleCount==0,"Air swing leaves both impact emitters clear");
+        }
+
         static IEnumerator Test()
         {
             var session=Object.FindFirstObjectByType<CastlePlaySession>();float until=Time.realtimeSinceStartup+30;
@@ -92,6 +151,11 @@ namespace DeadlyJenga.DevTools.Editor
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
             var created=session.SurvivorBots.SpawnOne();Check(created,"Target bot spawns");var target=created.GetComponent<CastleSurvivor>();target.GetComponent<CastleBotBrain>().enabled=false;target.InputSuspended=true;
             yield return new WaitForSeconds(.4f);
+            if(SessionState.GetBool(Key+"BarbedBatOnly",false))
+            {
+                yield return BarbedBatContacts(runtime,player,target);
+                yield break;
+            }
             Check(EquipmentSpecifications.All.Length==Enum.GetValues(typeof(EquipmentKind)).Length,"Every serialized equipment kind has one shared specification");
             Check((int)EquipmentKind.PoweredArmor==8&&(int)EquipmentKind.Blaster==3,"Existing equipment wire identities stay unchanged");
             foreach(EquipmentKind kind in Enum.GetValues(typeof(EquipmentKind)))
