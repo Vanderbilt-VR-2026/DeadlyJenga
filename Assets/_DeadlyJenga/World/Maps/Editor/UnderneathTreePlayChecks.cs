@@ -196,7 +196,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                             "Retro Console", "Airmail Bear", "Alpine Rally", "Mint Pickup", "Club Roadster",
                             "House", "Superhero", "Brick Stack", "Football", "Frosted Pinecone", "Stocking",
                             "Puzzle Cube", "Fashion Doll", "Nutcracker", "Blaster", "Candy Bag", "Rag Doll",
-                            "Board Game", "Clay Tub", "Pastry Box", "Wind-up Walker", "Drum", "Soldier", "Classic Nutcracker", "Berry Twists", "Chocolate Bar" })
+                            "Board Game", "Clay Tub", "Pastry Box", "Wind-up Walker", "Drum", "Soldier", "Classic Nutcracker", "Berry Twists", "Chocolate Bar",
+                            "Cymbal Monkey", "Hopping Frog", "Marching Drummer", "Tin Locomotive", "Pecking Hen" })
                         {
                             var matches = toys.Where(t => t.source && t.source.name == "Toy " + label).ToArray();
                             Require(matches.Length > 0 && matches.All(t =>
@@ -205,6 +206,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
                                 t.GetComponentsInChildren<MeshRenderer>().Length == 1),
                                 label + " loaded with one visual mesh, one box collider and one body");
                         }
+                        var football = toys.First(t => t.source && t.source.name == "Toy Football");
+                        var bounds = football.GetComponent<BoxCollider>().bounds;
+                        Shot(player.ViewCamera, "soccer-ball", bounds.center + new Vector3(0.7f, 0.8f, -2f) * bounds.size.y,
+                            bounds.center, 38f);
                         var bear = toys.Single(t => t.source && t.source.name == "Toy Airmail Bear");
                         var aim = bear.GetComponent<BoxCollider>().bounds.center;
                         Shot(player.ViewCamera, "airmail-bear", aim + bear.transform.rotation *

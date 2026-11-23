@@ -187,32 +187,55 @@ def football():
         e=n.orthogonal().normalized()
         t=n.cross(e)
         panel=sorted([(2*v.co+edge.other_vert(v).co).normalized() for edge in v.link_edges],key=lambda p:math.atan2(p.dot(t),p.dot(e)))
-        ball_panel(panel,NAVY)
+        ball_panel(panel,BLACK)
     bm.free()
-    oval((0,0,3),(5.58,)*3,BROWN)
+    oval((0,0,3.035),(5.98,)*3,BLACK)
 
 
 def ball_panel(points,color):
-    n=sum(points,Vector())/len(points)
-    verts=[(0,0,0)]
-    rings=3
-    for i in range(1,rings+1):
-        for p in points:
-            v=n.lerp(p,.973*i/rings).normalized()*3.035
-            verts.append((v.x,v.y,v.z+3.035))
-    peak=n.normalized()*3.05;verts[0]=(peak.x,peak.y,peak.z+3.035)
-    count=len(points)
-    faces=[(0,1+i,1+(i+1)%count) for i in range(count)]
-    for row in range(rings-1):
+    # Curved leather panels with a rolled edge. Narrow inset stripes frame each black patch.
+    center = sum(points, Vector()) / len(points)
+    outline = [a.lerp(b, i/5) for a, b in zip(points, points[1:]+points[:1]) for i in range(5)]
+    origin = Vector((0, 0, 3.035))
+    vertices = [center.normalized()*3.044 + origin]
+    faces, colors = [], []
+    layers = [(0.42, 3.043, color), (.69, 3.042, color), (.73, 3.042, GOLD),
+              (.79, 3.041, RED), (.91, 3.039, color), (.964, 3.026, color), (.985, 2.99, color)]
+    count = len(outline)
+    for row, (fraction, radius, band) in enumerate(layers):
+        start = len(vertices)
+        vertices.extend(center.lerp(v, fraction).normalized()*radius + origin for v in outline)
         for i in range(count):
-            a=1+row*count+i;b=1+row*count+(i+1)%count
-            faces.append((a,a+count,b+count,b))
-    mesh=bpy.data.meshes.new("Stitched panel");mesh.from_pydata(verts,[],faces);mesh.update()
-    o=bpy.data.objects.new("Leather panel",mesh);bpy.context.collection.objects.link(o)
-    for f in mesh.polygons:
-        if Vector(f.normal).dot(f.center-Vector((0,0,3.035)))<0:f.flip()
-        f.use_smooth=True
-    part(o,color)
+            j = (i+1) % count
+            faces.append((0,start+i,start+j) if row == 0 else
+                         (start-count+i,start+i,start+j,start-count+j))
+            colors.append(band if color == BLACK else color)
+
+    # Small dark thread marks follow the edge of the ivory panels.
+    if color == CREAM:
+        for a, b in zip(points, points[1:]+points[:1]):
+            for i in range(6):
+                mid = (i+.5)/6
+                start = len(vertices)
+                for along, inset in [(mid-.041,.920),(mid+.041,.920),(mid+.041,.930),(mid-.041,.930)]:
+                    direction = center.lerp(a.lerp(b,along),inset).normalized()
+                    vertices.append(origin + direction*3.046)
+                faces.append(tuple(range(start,start+4)))
+                colors.append(BROWN)
+    mesh = bpy.data.meshes.new("Match ball panel")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.update()
+    obj = bpy.data.objects.new("Padded panel",mesh)
+    bpy.context.collection.objects.link(obj)
+    part(obj,color)
+    palette = list(dict.fromkeys([color]+colors))
+    for name in palette[1:]:
+        mesh.materials.append(bpy.data.materials[name])
+    for face, name in zip(mesh.polygons,colors):
+        if face.normal.dot(face.center-origin) < 0:
+            face.flip()
+        face.use_smooth = True
+        face.material_index = palette.index(name)
 
 
 def pinecone():

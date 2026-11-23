@@ -243,3 +243,28 @@ MonoBehaviour:
     spot: {x: 0, y: 0}
     turn: -12
     size: 0.72
+  - toy: {fileID: 2960294657127619358, guid: db342f3905db5969bb680efba8214787, type: 3}
+    onGift: Bridge Terrace / Left Ruby
+    spot: {x: 0, y: 0}
+    turn: 22
+    size: 1
+  - toy: {fileID: 2960294657127619358, guid: e180d88c091856879e34430f900a8c10, type: 3}
+    onGift: Left Stair / Mid Cream
+    spot: {x: 0, y: 0}
+    turn: 155
+    size: 1
+  - toy: {fileID: 2960294657127619358, guid: efad6c9989c85cb7b7ea855048869d1b, type: 3}
+    onGift: Right Summit / Sapphire Crown
+    spot: {x: 0, y: 0}
+    turn: 188
+    size: 1
+  - toy: {fileID: 2960294657127619358, guid: 5796b83ef54e59b0ac4c0f7effdff9de, type: 3}
+    onGift: Bridge Terrace / Right Cream
+    spot: {x: 0, y: 0}
+    turn: 85
+    size: 1
+  - toy: {fileID: 2960294657127619358, guid: 5a17836c8f7c544e9b3f32ed4fa6d8c4, type: 3}
+    onGift: Left Foot / Ruby Rear
+    spot: {x: 0, y: 0}
+    turn: 125
+    size: 1
