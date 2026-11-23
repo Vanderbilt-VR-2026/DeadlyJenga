@@ -50,11 +50,16 @@ namespace DeadlyJenga.DevTools.Editor
             Capture(new Vector3(12.8f,4.35f,-15),new Vector3(10,5,-9),70,"Needlefrost-Camp.png");
             Capture(new Vector3(.3f,7.55f,-3),new Vector3(0,12,16),67,"Needlefrost-Bridge.png");
             Capture(new Vector3(15,17.4f,12),new Vector3(-2,15,16),75,"Needlefrost-Tower.png");
+            var westFlight=map.Bodies[placements.FindIndex(p=>p.Position.x==-8 && p.Position.z==-11 && p.Size.y==3)];
+            bool flightGrip=westFlight.GetComponentsInChildren<MeshCollider>().Any(shape=>
+                shape.enabled && shape.gameObject.layer==Layers.Surface && Climbables.TryGet(shape,out var grip) &&
+                grip.CanClimb && grip.Body==westFlight);
+            File.AppendAllText(Report,$"West stair has a grippable survivor surface on its moving body: {flightGrip}\n");
             float drift=placements.Select((p,i)=>Vector3.Distance(map.Bodies[i].position,map.transform.TransformPoint(p.Position))).Max();
             foreach(var index in Enumerable.Range(0,placements.Count).OrderByDescending(i=>Vector3.Distance(map.Bodies[i].position,map.transform.TransformPoint(placements[i].Position))).Take(6))
                 File.AppendAllText(Report,$"Settle #{index} course {placements[index].Course} home {placements[index].Position} actual {map.Bodies[index].position}\n");
             File.AppendAllText(Report,"Initial maximum drift "+drift+" m; bodies "+placements.Count+"\n");
-            bool routes=west && east && low;
+            bool routes=west && east && low && flightGrip;
             yield return WalkKeep(motor,new Vector3(-8,3.1f,-16),new[]{new Vector3(-8,6,-5),new Vector3(-6,6,-3),
                 new Vector3(0,6.15f,-3),new Vector3(7,6,-3)},result=>routes &= result,"intact coast stair and low bridge");
             yield return WalkKeep(motor,new Vector3(16,3.1f,-8),new[]{new Vector3(16,3,-6.45f)},result=>routes &= result,"camp to grotto interior");

@@ -36,7 +36,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 // Both the moving body and the survivor sweep use the actual cut crystal.
                 block.GetComponent<BoxCollider>().enabled=false;
-                block.SetTraversalEnabled(false);
+                if(Application.isPlaying)block.UseOriginalTraversal();
                 var solid=block.gameObject.AddComponent<MeshCollider>();
                 solid.sharedMesh=mesh; solid.convex=true;
                 var walk=visual.AddComponent<MeshCollider>(); walk.sharedMesh=mesh; walk.convex=true;
@@ -107,7 +107,7 @@ namespace DeadlyJenga.CastlePrototype
             visual.AddComponent<MeshFilter>().sharedMesh=carved;
             visual.AddComponent<MeshRenderer>().sharedMaterial=block.sectionMaterial;
             block.GetComponent<BoxCollider>().enabled=false;
-            block.SetTraversalEnabled(false);
+            if(Application.isPlaying)block.UseOriginalTraversal();
             var solid=block.gameObject.AddComponent<MeshCollider>();
             solid.sharedMesh=flightHull;solid.convex=true;
             visual.layer=Layers.Surface;
