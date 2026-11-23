@@ -75,13 +75,16 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunMarshmallow()=>Start(false, marshmallowOnly:true);
 
-        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false)
+        public static void RunIronSuitPalette()=>Start(false, ironSuitOnly:true);
+
+        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false)
         {
             SessionState.SetBool(Key+"BarbedBatOnly",barbedBatOnly);
             SessionState.SetBool(Key+"CosmeticWeaponsOnly",cosmeticWeaponsOnly);
             SessionState.SetBool(Key+"RocketCandyOnly",candyOnly);
             SessionState.SetBool(Key+"SawStaffOnly",sawStaffOnly);
             SessionState.SetBool(Key+"MarshmallowOnly",marshmallowOnly);
+            SessionState.SetBool(Key+"IronSuitOnly",ironSuitOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -164,6 +167,94 @@ namespace DeadlyJenga.DevTools.Editor
                 runtime.Frame.equipmentActions.Any(a=>a.id>sequence&&a.kind==kind&&a.action==EquipmentAction.Impact)&&
                 state.embedRemaining>0&&!string.IsNullOrEmpty(state.embeddedVictim),
                 "Player impact deals half maximum health and publishes contact feedback");
+        }
+
+        static IEnumerator IronSuitPalette(CastlePlaySession session,MatchModeRuntime runtime,
+            CastleSurvivor player,CastleSurvivor target)
+        {
+            var prefab=Resources.Load<CandyPlayerRig>("CandyPlayerVisual");
+            Check(prefab!=null,"Production player rig resource is present");
+            var rig=Object.Instantiate(prefab);
+            rig.transform.position=new Vector3(150,10.05f,151);
+            try
+            {
+                rig.SetAppearance(new AvatarAppearance { poweredArmor=true });
+                var props=new MaterialPropertyBlock();
+                var shadeType=typeof(CandyPlayerRig).Assembly.GetType("DeadlyJenga.CandyPlayers.CandyCosmeticShade");
+                var shadeMethod=shadeType?.GetMethod("PlayerShade");
+                Check(shadeMethod!=null,"The shared cosmetic shade resolver is available");
+                void CheckPart(string name,Color expected,string property="_BaseColor")
+                {
+                    var renderer=rig.GetComponentsInChildren<MeshRenderer>().FirstOrDefault(
+                        r=>r.name=="Fitted Powered Iron Suit "+name && r.gameObject.activeInHierarchy);
+                    Check(renderer!=null,"Powered suit part exists: "+name);
+                    renderer.GetPropertyBlock(props);
+                    var value=props.GetColor(property);
+                    Check(Mathf.Abs(value.r-expected.r)<.002f&&Mathf.Abs(value.g-expected.g)<.002f&&
+                        Mathf.Abs(value.b-expected.b)<.002f,"Palette matches "+name+" "+property);
+                }
+                foreach (var baseColor in new[] { new Color(.09f,.76f,.72f),new Color(.50f,.25f,.88f) })
+                {
+                    rig.SetTint(baseColor);
+                    yield return null;
+                    var dark=(Color)shadeMethod.Invoke(null,new object[]{baseColor,AvatarHairShade.Dark});
+                    var light=(Color)shadeMethod.Invoke(null,new object[]{baseColor,AvatarHairShade.Light});
+                    CheckPart("0 Armor",baseColor);
+                    CheckPart("0 Dark",dark);
+                    CheckPart("1 Silver",light);
+                    CheckPart("0 Glow",light);
+                    CheckPart("0 Glow",light*2f,"_EmissionColor");
+                }
+            }
+            finally { Object.Destroy(rig.gameObject); }
+
+            Check(runtime.GiveEquipment(EquipmentKind.PoweredArmor),"Production Powered Iron Suit equips");
+            Check(runtime.RequestEquipment(false,false,false)&&runtime.RequestEquipment(true,false,false),
+                "Production suit can holster and activate again");
+            var feedback=session.GetComponent<DeadlyJenga.Presentation.CandyPoweredSuitFeedback>();
+            Check(feedback!=null,"Powered suit presentation attached to the session");
+            target.Place(player.transform.position+Vector3.right*8,Quaternion.identity);
+            yield return null;
+            yield return null;
+            Check(feedback.GetComponentsInChildren<LineRenderer>().Any(line=>
+                line.name=="Powered suit expanding energy ring"&&line.enabled),"Draw emits its ignition ring");
+
+            Check(runtime.RequestThrust(true),"Production suit accepts held thrust");
+            yield return null;
+            yield return null;
+            Check(feedback.ActiveSuits==1,"Thrust activates the live jet rig");
+            Check(runtime.RequestThrust(false),"Production suit accepts thrust release");
+            yield return null;
+            yield return null;
+            Check(feedback.ActiveSuits==0,"Releasing thrust stops the jets");
+
+            var origin=player.ViewPose.position+Vector3.forward*.45f;
+            var cube=GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cube.name="Powered suit plasma impact fixture";
+            cube.layer=Layers.Block;
+            cube.transform.position=origin+Vector3.forward*4;
+            cube.transform.localScale=Vector3.one*.85f;
+            try
+            {
+                Physics.SyncTransforms();
+                int sequence=runtime.Frame.equipmentSequence;
+                Check(runtime.RequestEquipmentAttack(new Pose(origin,Quaternion.identity)),"Palm plasma attack accepted");
+                bool seenShot=false,seenImpact=false,seenGlints=false;
+                float deadline=Time.realtimeSinceStartup+5;
+                while (Time.realtimeSinceStartup<deadline && !seenGlints)
+                {
+                    yield return null;
+                    seenShot|=runtime.Frame.blaster?.shots.Length>0;
+                    seenImpact|=runtime.Frame.equipmentActions.Any(a=>a.id>sequence&&
+                        a.action==EquipmentAction.Impact&&a.kind==EquipmentKind.PoweredArmor);
+                    seenGlints=feedback.GetComponentsInChildren<ParticleSystem>().Any(system=>
+                        system.name=="Pooled Powered Iron Suit impact glints"&&system.particleCount>0);
+                }
+                Check(seenShot,"Palm shot travels through the production plasma path");
+                Check(seenImpact,"Authoritative impact retains its Powered Iron Suit identity");
+                Check(seenGlints,"Suit impact spawns the cyan glints");
+            }
+            finally { Object.Destroy(cube); }
         }
 
         static IEnumerator BarbedBatContacts(MatchModeRuntime runtime,CastleSurvivor player,CastleSurvivor target)
@@ -508,6 +599,11 @@ namespace DeadlyJenga.DevTools.Editor
             if(SessionState.GetBool(Key+"MarshmallowOnly",false))
             {
                 yield return CheckMarshmallow(runtime,player,target);
+                yield break;
+            }
+            if(SessionState.GetBool(Key+"IronSuitOnly",false))
+            {
+                yield return IronSuitPalette(session,runtime,player,target);
                 yield break;
             }
             if(SessionState.GetBool(Key+"BarbedBatOnly",false))
