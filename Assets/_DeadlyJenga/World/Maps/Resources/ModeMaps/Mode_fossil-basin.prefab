@@ -60,3 +60,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: DeadlyJenga.Presentation::DeadlyJenga.Presentation.FossilBasinScenery
   tar: {fileID: 2100000, guid: 37f5875d67ab4d6cabd0ad361ea5009b, type: 2}
   sky: {fileID: 2100000, guid: efab4604acae425881e7d180b0ad4e24, type: 2}
+  swimmerModel: {fileID: 4300000, guid: 27d69919f9d94f4d938b6aea321efc57, type: 2}
+  swimmerSkin: {fileID: 2100000, guid: f29f665eba2648adb6242f928bde765b, type: 2}

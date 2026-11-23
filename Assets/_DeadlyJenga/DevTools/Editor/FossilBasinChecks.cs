@@ -137,6 +137,26 @@ namespace DeadlyJenga.DevTools.Editor
                         Check(RenderSettings.skybox==decor.sky && decor.sky.GetTexture("_MainTex"),"Jurassic sunset panorama bound");
                         Wide("07-jurassic-wide");
                         Shot("08-jurassic-waterline",new Vector3(1,2.2f,-12.2f),new Vector3(-27,4,28),66);
+                        var swimmer=map.GetComponentInChildren<DeadlyJenga.Presentation.FossilBasinSwimmer>();
+                        Check(swimmer && swimmer.GetComponent<MeshFilter>().sharedMesh==decor.swimmerModel &&
+                            swimmer.GetComponent<MeshRenderer>().sharedMaterial==decor.swimmerSkin &&
+                            decor.swimmerSkin.shader.isSupported, "live Spinosaurus mesh and shader");
+                        if(swimmer)
+                        {
+                            Check(!swimmer.GetComponentInChildren<Collider>() && !swimmer.GetComponentInChildren<Rigidbody>(),
+                                "orbit has no gameplay collision or physics bodies");
+                            foreach(var sample in new[]{(4f,"09-sail"),(12f,"10-surfacing"),(28f,"11-breach")})
+                            {
+                                swimmer.SamplePose(sample.Item1);
+                                var at=swimmer.transform.position;
+                                float waterY=map.WaterHeight(at);
+                                float height=at.y-waterY;
+                                Check(sample.Item1==28f ? height>4f : height<0f, sample.Item2+" root height "+height);
+                                var waterline=new Vector3(at.x,waterY,at.z);
+                                var eye=Vector3.Lerp(map.Center,waterline,.38f)+Vector3.up*2.2f;
+                                Shot(sample.Item2,eye,waterline+Vector3.up*(sample.Item1==28f?5f:1f),67);
+                            }
+                        }
                         End();return;
                     }
                     float worst=map.Blocks.Select((b,i)=>Vector3.Distance(b.position,initial[i])).Max();
