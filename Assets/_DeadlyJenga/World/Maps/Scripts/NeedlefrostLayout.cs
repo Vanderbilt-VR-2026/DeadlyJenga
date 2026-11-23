@@ -44,6 +44,9 @@ namespace DeadlyJenga.CastlePrototype
                 if ((bay == 3 || row == 0) && row % 2 == 0)
                     keep.Lamp(x + side * 3, top, z - 2.8f);
             }
+            // An exposed, loose cornice at the front-left fault gives the giant hand a reachable grip.
+            keep.Stone(-20.98f,-3,-19,1.27f,5.15f,.70f,Cut.Pier);
+            keep.Stone(-21.28f,2.15f,-19,2.54f,.85f,.72f,Cut.Slab);
             keep.Crossing(0, 6, -3, 8.8f, 3);
             // The hall spans the channel, with both ends of its floor bearing on the inner courts.
             keep.Crossing(0, 9, 15, 8.8f, 7);

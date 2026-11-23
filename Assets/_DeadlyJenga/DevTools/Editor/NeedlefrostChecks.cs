@@ -51,6 +51,10 @@ namespace DeadlyJenga.DevTools.Editor
             yield return WalkKeep(motor,new Vector3(20.4f,9.1f,9.38f),new[]{new Vector3(20.4f,15.9f,16.26f),
                 new Vector3(19.1f,16,16.1f),new Vector3(16,16,14),new Vector3(13,16,13),
                 new Vector3(10,16,13),new Vector3(5,16.15f,13)},result=>routes &= result,"right tower to upper crossing");
+            var cornice=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x+21.28f)<.02f)];
+            float carried=0,drop=0;
+            yield return DeadlyJenga.HandValidation.FlyingHandFeelValidation.PullMapMember(cornice,(travel,fallDepth)=>{carried=travel;drop=fallDepth;});
+            File.AppendAllText(Report,$"Production hand cornice pull {carried:F2} m outward while closed, drop {drop:F2} m after opening\n");
             var pier=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x+18)<.01f && p.Position.z==-19 && p.Position.y<1)];
             var deck=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x+18)<.01f && p.Position.z==-19 && p.Position.y>1)];
             float deckY=deck.position.y;
@@ -97,7 +101,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(placements.Count==map.Bodies.Count,"Reset restores physical body count");
             bool bot=session.SurvivorBots.SpawnOne();
             File.AppendAllText(Report,$"Coast fall {fall:F2} m; ascent remaining {walk:F2} m; bot spawn {bot}\n");
-            Check(drift<.6f && fall>.45f && walk<1.2f && bot && routes && eliminated && upperTravel>1,"Intact settling, coast collapse, alternate ascent and bot smoke");
+            Check(drift<.6f && fall>.45f && walk<1.2f && bot && routes && eliminated && upperTravel>1 && carried>.5f && drop>.3f,"Intact settling, coast collapse, alternate ascent and bot smoke");
         }
 
         static IEnumerator WalkKeep(CastleSurvivor motor,Vector3 start, Vector3[] goals,System.Action<bool> result,string label)
