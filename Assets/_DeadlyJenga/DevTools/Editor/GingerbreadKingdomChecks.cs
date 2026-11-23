@@ -18,9 +18,9 @@ namespace DeadlyJenga.DevTools.Editor
         static string Folder=>Path.GetDirectoryName(ProjectPath.Report("GingerbreadKingdom.txt"));
         static CastleSurvivor walker;
         static GingerbreadKingdom map;
-        static Rigidbody span,bearing;
+        static Rigidbody span,bearing,roof;
         static Vector3[] homes;
-        static float started,lowestFeet;
+        static float started,lowestFeet,roofHeight;
         static int phase, waypoint;
         static bool failed,fallEliminated;
         static double boot;
@@ -104,8 +104,10 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     float drift=map.Blocks.Select((b,i)=>Vector3.Distance(b.position,homes[i])).Max();
                     Check(drift<.30f,$"{homes.Length} bodies, max settle drift {drift:F3} m");
-                    Shot("01-overview",new Vector3(8,17,-42),new Vector3(0,4.5f,1),51);
+                    CheckSkyline();
+                    Shot("01-overview",new Vector3(8,24,-47),new Vector3(0,8f,1),55);
                     Shot("02-fork",new Vector3(-4,.95f,-19),new Vector3(-8,2,-10));
+                    Shot("08-skyline",new Vector3(8,16,-29),new Vector3(0,12,-8),62);
                     Shot("03-palace",new Vector3(3,1.05f,8),new Vector3(3,6,18));
                     Shot("04-bridge-before",new Vector3(19,3,-15),new Vector3(15,.8f,-11));Next();
                 }
@@ -142,11 +144,66 @@ namespace DeadlyJenga.DevTools.Editor
                 else if(phase==7 && Time.time-started>2)
                 {
                     Check(map.Blocks.Count==homes.Length&&map.Blocks.Select((b,i)=>Vector3.Distance(b.position,homes[i])).Max()<.3f,"reset restores settled map");
+                    roof=map.Blocks.First(b=>b.name=="Peppermint Stack removable roof");
+                    roofHeight=roof.position.y;
+                    var grab=roof.GetComponent<IGrabbable>();
+                    Check(grab.TryStartGrab(walker.gameObject,roof.position),"independent gingerbread roof can be grabbed");
+                    grab.Hold(roof.position+Vector3.left*6);
+                    Next();
+                }
+                else if(phase==8 && Time.time-started>2.3f)
+                {
+                    roof.GetComponent<IGrabbable>().Release();
+                    Next();
+                }
+                else if(phase==9 && Time.time-started>1.7f)
+                {
+                    Check(roof.position.y<roofHeight-1.5f,"removed roof falls while the apartment shell stays in place");
+                    map.Rebuild();
+                    Check(map.Blocks.Any(b=>b.name=="Peppermint Stack removable roof"&&Mathf.Abs(b.position.y-roofHeight)<.12f),
+                        "reset reinstates the removed apartment roof");
                     Finish();
                 }
             }
             catch(Exception e){failed=true;Report(e.ToString());Finish();}
         }
+        static void CheckSkyline()
+        {
+            var clock=map.transform.Find("Sugar valley/Clock Court | Gingerbread Big Ben");
+            Check(clock && map.TopHeight>=24.8f,"Blender Big Ben crown is above 24.8 m");
+            if(!clock)return;
+
+            foreach(var axis in new[]{Vector3.right,Vector3.forward})
+            {
+                var start=clock.position+Vector3.up*.86f-axis*2.45f;
+                Check(!Physics.Raycast(start,axis,4.9f,~0,QueryTriggerInteraction.Ignore),
+                    "Clock Court is open through "+axis);
+            }
+
+            foreach(var row in new[]{("Peppermint Stack",5,0f),("Evergreen Court",5,.68f),("Lantern Lofts",6,0f)})
+            {
+                var tower=map.transform.Find("Sugar valley/"+row.Item1);
+                Check(tower && tower.GetComponents<BoxCollider>().Length>100,row.Item1+" has independent walls, floor landings, and stairs");
+                if(!tower)continue;
+                var depth=row.Item1=="Peppermint Stack"?6f:(row.Item1=="Evergreen Court"?5.6f:5.8f);
+                var width=row.Item1=="Evergreen Court"?3.8f:4.2f;
+                var originalWidth=row.Item1=="Evergreen Court"?4.15f:4.8f;
+                var front=-depth*.5f;
+                var start=tower.position+tower.rotation*new Vector3(row.Item3*width/originalWidth,.82f,front-.48f);
+                Check(!Physics.Raycast(start,tower.forward,.98f,~0,QueryTriggerInteraction.Ignore),row.Item1+" doorway is open");
+                float x=(-originalWidth*.5f+.6525f)*width/originalWidth;
+                for(int level=0;level<row.Item2-1;level++)
+                {
+                    float y=level*2.22f+2.22f/14;
+                    float z=(-2.85f+1.16f+(2.0f-(-2.85f+1.16f))/14)*depth/5.7f;
+                    var tread=tower.position+tower.rotation*new Vector3(x,y+.046f,z);
+                    Check(Physics.Raycast(tread,Vector3.down,out var hit,.092f,~0,QueryTriggerInteraction.Ignore)
+                        && hit.transform==tower,row.Item1+" stair flight "+(level+1)+" has a first tread");
+                }
+            }
+        }
+
+
         static void OnFall(GameObject actor,GameObject source)
         {
             if(walker && actor==walker.gameObject && (source==map.gameObject || lowestFeet<map.WaterHeight(walker.transform.position)+.5f))fallEliminated=true;
