@@ -217,39 +217,63 @@ def ball_panel(points,color):
 
 def pinecone():
     import random
-    rng=random.Random(27)
-    # A tapered woody core carries overlapping, cupped scales in two visible spirals.
-    profile([(.10,.47,.46,0,0),(.62,.77,.73,0,0),(1.75,.94,.85,0,0),
-             (3.70,.86,.80,0,0),(5.50,.53,.49,0,0),(6.43,.18,.18,0,0)],"Cone heart")
-    for i in range(96):
-        u=(i+.5)/96
-        z=.20+6.16*u
-        envelope=(math.sin(math.pi*(.038+.95*u))**.64)*(1.22-.43*u)
-        r=.18+1.84*envelope
-        a=i*2.399963+ .04*rng.uniform(-1,1)
-        width=(.30+.61*envelope)*rng.uniform(.91,1.12)
-        h=(.44+.71*envelope)*rng.uniform(.87,1.15)
-        # A narrow shank broadens to a pentagonal rim and a raised, worn umbo.
-        local=[(-1.22,-.19,-.62),(-1.22,.19,-.62),(-.03,.84,-.12),(.38,1,.40),
-               (.55,.55,.70),(.60,0,.85),(.54,-.62,.67),(.36,-1,.39),(-.03,-.85,-.12),
-               (.39,.02,-.04),(.64,.02,.40),(-.11,.02,-.14)]
-        vs=[]
-        for radial,tangent,lift in local:
-            rr=r+radial*(.55+.42*envelope);tt=tangent*width
-            vs.append((rr*math.cos(a)-tt*math.sin(a),.92*(rr*math.sin(a)+tt*math.cos(a)),z+lift*h))
-        faces=[(0,1,11),(1,2,9,11),(2,3,10,9),(3,4,10),(4,5,10),(5,6,10),(6,7,10),(7,8,9,10),(8,0,11,9),(0,8,7,6,5,4,3,2,1)]
-        mesh=bpy.data.meshes.new("Woody bract");mesh.from_pydata(vs,[],faces);mesh.update()
-        import bmesh
-        bm=bmesh.new();bm.from_mesh(mesh);bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces));bm.to_mesh(mesh);bm.free()
-        o=bpy.data.objects.new("Overlapping scale",mesh);bpy.context.collection.objects.link(o);part(o,"Cone bark")
-        for color in ("Cone rim","Cone heart"):mesh.materials.append(bpy.data.materials[color])
-        for f in mesh.polygons:
-            f.material_index=1 if f.index in (3,4,5,6) else 2 if f.index in (0,9) else 0
-        # Place the small raised prickle on the broad end of the woody plate.
-        start=Vector(vs[10]);tip=start+Vector((.15*math.cos(a),.15*math.sin(a),.11))
-        cord("Scale umbo",[start,tip],.093,"Cone rim",[1,.10])
-        edge=o.modifiers.new("Worn scale edges","BEVEL");edge.width=.038;edge.segments=2
-    cord("Stem",[(0,0,.41),(.04,0,.16),(.18,.07,.05)],.18,"Cone heart",[1,.82,.64])
+    rng=random.Random(36)
+    profile([(.03,.27,.26,0,0),(.6,.61,.58,0,0),(2.6,.69,.65,0,0),
+             (4.9,.48,.46,0,0),(6.33,.13,.12,0,0)],"Cone heart")
+    # Individual scales grow from the core. Their scooped interior and thick pale lip
+    # are both visible between the wider-spaced whorls of an open cone.
+    for row,count in enumerate((5,7,8,8,8,7,6,5,4,3)):
+        u=row/9
+        for j in range(count):
+            a=math.tau*(j+.397*row)/count+rng.uniform(-.065,.065)
+            z=.04+row*.58+rng.uniform(-.09,.09)
+            envelope=.42+.65*math.sin(math.pi*(.13+.86*u))**.8
+            reach=(2.18*envelope-.32*u)*rng.uniform(.94,1.06)
+            width=(.77*envelope+.07)*rng.uniform(.90,1.09)
+            base=.24+.27*(1-u)
+            ascent=.25+.90*u*u+rng.uniform(-.08,.14)
+            vs=[];faces=[];slots=[]
+            rows,cols=9,11
+            for layer in range(2):
+                for i in range(rows):
+                    v=i/(rows-1)
+                    for k in range(cols):
+                        w=2*k/(cols-1)-1
+                        # Flared, round-ended spoon with a curled-up edge.
+                        rad=base+reach*(v-.21*abs(w)**2*v**3+.035*(1-abs(w))*v**5)
+                        round_end=math.sqrt(max(.035,1-(max(0,v-.65)/.354)**2))
+                        span=width*w*(.16+.92*math.sin(v*math.pi*.61)**1.3)*round_end
+                        h=z+ascent*v+.15*v**5+.095*w*w*v-.08*math.sin(v*math.pi)+.036*math.sin(4.2*w+i*.21+j)*v**2
+                        h-=layer*(.054+.106*v**2)
+                        vs.append((rad*math.cos(a)-span*math.sin(a),rad*math.sin(a)+span*math.cos(a),h))
+            plane=rows*cols
+            for i in range(rows-1):
+                for k in range(cols-1):
+                    n=i*cols+k
+                    quad=(n,n+cols,n+cols+1,n+1)
+                    faces.extend([quad,tuple(q+plane for q in reversed(quad))]);slots.extend([0,1])
+            border=[k for k in range(cols)]+[i*cols+cols-1 for i in range(1,rows)]+[(rows-1)*cols+k for k in range(cols-2,-1,-1)]+[i*cols for i in range(rows-2,0,-1)]
+            for n,b in enumerate(border):
+                c=border[(n+1)%len(border)]
+                faces.append((b,c,c+plane,b+plane))
+                slots.append(2 if b//cols>=rows-3 else 1)
+            mesh=bpy.data.meshes.new("Open resin scale");mesh.from_pydata(vs,[],faces);mesh.update()
+            obj=bpy.data.objects.new("Cupped pine scale",mesh);bpy.context.collection.objects.link(obj);part(obj,"Chestnut resin")
+            for mat in ("Cone heart","Honey scale lip"):mesh.materials.append(bpy.data.materials[mat])
+            uv=mesh.uv_layers.new(name="UVMap")
+            for poly,slot in zip(mesh.polygons,slots):
+                poly.material_index=slot;poly.use_smooth=True
+                for loop,vertex in zip(poly.loop_indices,poly.vertices):
+                    number=vertex%plane
+                    uv.data[loop].uv=((number%cols)/(cols-1),(number//cols)/(rows-1))
+            if row>5 and (row+2*j)%5==0:
+                lip=[Vector(vs[(rows-1)*cols+k]) for k in (3,4,5,6)]
+                cord("Hoarfrost",lip,.044,FROST,[.10,.90,.55,.08])
+    cord("Mistletoe stem",[(.25,-.03,.18),(1.07,-.47,.38),(1.83,-.74,.57),(2.13,-.62,.69)],.057,WOOD)
+    for x,y,z,angle in [(1.63,-.85,.43,67),(1.94,-.47,.70,-23),(2.24,-.68,.63,48)]:
+        oval((x,y,z),(.42,.98,.14),GREEN,(-11,0,angle))
+    for x,y,z in [(1.74,-.91,.58),(1.94,-.93,.66),(1.87,-.78,.79)]:
+        oval((x,y,z),(.22,)*3,CREAM)
 
 
 def stocking():
@@ -370,55 +394,106 @@ def blaster():
     body=[(-1.06,1.28),(-.99,1.78),(.64,1.81),(1.08,1.62),(1.53,1.08),
           (2.40,.78),(3.56,.89),(3.90,.61),(3.97,.18),(3.75,.05),
           (2.61,.11),(1.55,.39),(.78,.86),(.39,1.08),(-.64,1.06)]
-    panel("Yellow molded stock",body,.67,"Toy Yellow",.12)
+    panel("Yellow molded stock",body,.67,"Lemon ABS",.12)
     for side in (-1,1):
-        rod((side*.22,-4.87,1.67),(side*.22,-.48,1.67),.22,ORANGE)
-        rod((side*.22,-4.92,1.67),(side*.22,-4.76,1.67),.237,ORANGE)
-    panel("Ribbed yellow fore-end",[(-3.06,1.46),(-2.90,1.01),(-2.67,.95),(-.99,.99),(-.79,1.40)],.81,"Toy Yellow",.13)
+        rod((side*.22,-4.87,1.67),(side*.22,-.48,1.67),.22,"Safety orange ABS")
+        rod((side*.22,-4.92,1.67),(side*.22,-4.76,1.67),.237,"Safety orange ABS")
+    panel("Ribbed yellow fore-end",[(-3.06,1.46),(-2.90,1.01),(-2.67,.95),(-.99,.99),(-.79,1.40)],.81,"Lemon ABS",.13)
     for s in (-1,1):
         for j in range(12):
-            rod((s*.40,-2.77+j*.144,1.12),(s*.40,-2.73+j*.144,1.35),.035,GOLD)
-        oval((s*.34,-.29,1.40),(.10,1.13,.52),"Toy Yellow")
-        oval((s*.407,-.64,1.43),(.058,.15,.15),GOLD)
+            rod((s*.40,-2.77+j*.144,1.12),(s*.40,-2.73+j*.144,1.35),.035,"Lemon ABS")
+        oval((s*.34,-.29,1.40),(.10,1.13,.52),"Lemon ABS")
+        oval((s*.407,-.64,1.43),(.058,.15,.15),"Lemon ABS")
         oval((s*.414,-.20,1.40),(.030,.71,.27),NAVY)
         letters((s*.438,-.20,1.40),"TWIN POP",.136,WHITE)
         parts[-1].rotation_euler.z=s*math.pi/2
-        cord("Stock grip detail",[(s*.34,2.33,.63),(s*.34,2.78,.65),(s*.34,3.51,.63)],.035,GREEN)
-    cap=panel("Lime butt plate",[(2.14,.72),(2.75,.94),(3.54,.96),(3.99,.65),(4.03,.13),(3.75,.03),(3.32,.06)],.74,GREEN,.12)
+        cord("Stock grip detail",[(s*.34,2.33,.63),(s*.34,2.78,.65),(s*.34,3.51,.63)],.035,"Lime ABS")
+    cap=panel("Lime butt plate",[(2.14,.72),(2.75,.94),(3.54,.96),(3.99,.65),(4.03,.13),(3.75,.03),(3.32,.06)],.74,"Lime ABS",.12)
     for j in range(3):
-        rod((.38,3.19+j*.14,.50),(.38,3.53+j*.12,.53),.032,GREEN)
-    cord("Molded grip loop",[(.03,-.35,1.11),(.03,-.23,.65),(.03,.13,.47),(.03,.71,.49),(.03,.98,.85)],.078,"Toy Yellow")
-    oval((0,.24,.93),(.20,.21,.39),ORANGE,(-23,0,0))
+        rod((.38,3.19+j*.14,.50),(.38,3.53+j*.12,.53),.032,"Lime ABS")
+    cord("Molded grip loop",[(.03,-.35,1.11),(.03,-.23,.65),(.03,.13,.47),(.03,.71,.49),(.03,.98,.85)],.078,"Lemon ABS")
+    oval((0,.24,.93),(.20,.21,.39),"Safety orange ABS",(-23,0,0))
+
+
+def packed_depths(contents, nx, nz, project):
+    """Measure the sweets under each patch of wrapper, including its four corners."""
+    depths={}
+    def extend(key,value):
+        low,high=depths.get(key,(value,value))
+        depths[key]=(min(low,value),max(high,value))
+    graph=bpy.context.evaluated_depsgraph_get()
+    for obj in contents:
+        evaluated=obj.evaluated_get(graph)
+        mesh=evaluated.to_mesh()
+        transform=evaluated.matrix_world
+        for vertex in mesh.vertices:
+            u,v,h=project(transform@vertex.co)
+            i=max(0,min(nx-1,int(u*nx)));j=max(0,min(nz-1,int(v*nz)))
+            for di,dj in ((0,0),(1,0),(0,1),(1,1)):extend((i+di,j+dj),h)
+        evaluated.to_mesh_clear()
+    return depths
 
 
 def candy():
-    pouch_section("Gold pouch foot",[(.08,2.06,.48),(.35,2.29,.82),(.90,2.33,.94)],GOLD)
-    pouch_section("Clear gummy window",[(.88,2.33,.94),(2.55,2.39,.99),(3.60,2.31,.88)],"Cellophane")
-    pouch_section("Printed pouch",[(3.56,2.31,.88),(4.22,2.29,.73),(5.72,2.17,.32),(6.05,2.26,.13)],TEAL)
-    box((0,0,6.07),(4.63,.28,.29),GOLD,.07)
-    box((0,-.36,5.67),(4.24,.08,.13),GOLD,.03)
-    letters((0,-.78,4.99),"BRUIN",.98,CREAM)
-    letters((0,-.87,4.18),"FRUIT BEARS",.47,"Toy Yellow")
-    letters((0,-.97,.53),"FOUR FRUITY FLAVORS",.24,NAVY)
+    import random
+    from mathutils import Matrix
+    rng=random.Random(213)
+    nx,nz=26,32
+    def ink(u,v):
+        return "Bear pouch print" if v<.15625 or v>.65625 or u<.039 or u>.961 else "Clear candy film"
+    # Stamp a low-poly gummy once; turn each copy independently in the pile.
+    first=len(parts);c="Gummy cherry"
+    oval((0,0,-.04),(.51,.37,.55),c);oval((0,-.01,.27),(.49,.36,.41),c)
+    oval((0,-.16,.23),(.26,.13,.15),c)
+    for side in (-1,1):
+        oval((side*.183,0,.45),(.19,.18,.18),c)
+        oval((side*.231,-.02,.035),(.185,.18,.26),c,(0,side*18,0))
+        oval((side*.15,-.05,-.26),(.255,.28,.19),c)
+    bpy.ops.object.select_all(action="DESELECT")
+    for piece in parts[first:]:piece.select_set(True)
+    template=parts[first];bpy.context.view_layer.objects.active=template
+    bpy.ops.object.join();bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
+    del parts[first:]
     colors=["Gummy cherry","Gummy lime","Gummy amber","Gummy berry"]
-    for row in range(3):
-        for col in range(5):
-            x=(col-2)*.79+.10*math.sin(row+col);z=1.04+row*.90+.08*math.sin(2*col)
-            y=-.31+.12*math.cos(row+col);c=colors[(row*3+col)%4]
-            first=len(parts)
-            oval((x,y,z),(.51,.42,.56),c)
-            oval((x,y-.01,z+.36),(.48,.39,.40),c)
-            oval((x,y-.18,z+.33),(.22,.14,.15),c)
-            for s in (-1,1):
-                oval((x+s*.18,y,z+.55),(.19,.19,.19),c)
-                oval((x+s*.24,y-.06,z+.09),(.18,.20,.27),c)
-                oval((x+s*.15,y-.13,z-.24),(.25,.29,.18),c)
-            from mathutils import Matrix
-            pivot=Vector((x,y,z));tilt=.49*math.sin(2.5*col+1.8*row)
-            rotation=Matrix.Rotation(tilt,3,"Y")
-            for sweet in parts[first:]:
-                sweet.location=pivot+rotation@(sweet.location-pivot)
-                sweet.rotation_euler.y+=tilt
+    simplify=template.modifiers.new("Gummy mold detail","DECIMATE")
+    simplify.ratio=.084
+    bpy.ops.object.modifier_apply(modifier=simplify.name)
+    contents_start=len(parts)
+    meshes={}
+    for color in colors:
+        m=template.data.copy();m.materials.clear();m.materials.append(bpy.data.materials[color]);meshes[color]=m
+    bpy.data.objects.remove(template,do_unlink=True)
+    for layer in range(2):
+        for row in range(7):
+            for col in range(5):
+                if row==6 and (col+layer)%3:continue
+                x=(col-2)*.737+(.14 if row%2 else -.10)+rng.uniform(-.11,.11)
+                z=.94+row*.523+rng.uniform(-.085,.085)+.080*math.cos(col*2.3+layer)
+                y=(-.32 if layer==0 else .23)+rng.uniform(-.08,.08)
+                o=bpy.data.objects.new("Packed fruit bear",meshes[rng.choice(colors)])
+                bpy.context.collection.objects.link(o);parts.append(o)
+                o.location=(x,y,z)
+                o.rotation_euler=(rng.uniform(-.35,.35),rng.uniform(-1.55,1.55),rng.uniform(-.40,.40))
+                s=rng.uniform(.97,1.12);o.scale=(s,s,s)
+
+
+    bounds=packed_depths(parts[contents_start:],nx,nz,lambda p:(p.x/4.65+.5,(p.z-.08)/5.86,p.y))
+    def fitted_skin(u,v,side):
+        i,j=round(u*nx),round(v*nz)
+        # A standing gusset supports the bottom row. Rounded shoulders pinch down
+        # only above the pile; the printed front stays under gentle tension.
+        w=4.85*(1-.035*math.cos(math.tau*v))
+        x=(u-.5)*w
+        edge=max(0,1-abs(2*u-1)**6)**.49
+        shoulder=min(1,max(0,(.96-v)/.24))
+        depth=.031+edge*shoulder*(.66+.115*math.sin(v*math.pi))
+        if .07<u<.93 and v<.81:
+            spans=[bounds[(k,l)] for k in range(i-1,i+2) for l in range(j-1,j+2) if (k,l) in bounds]
+            if spans:
+                contact=max(-low if side<0 else high for low,high in spans)
+                depth=max(depth,contact+.050)
+        return (x,side*depth,.08+5.86*v)
+    film_sheet("Heat-sealed gummy pouch",nx,nz,fitted_skin,ink)
 
 
 
@@ -476,24 +551,27 @@ def board_game():
 
 
 def clay():
-    profile([(.10,1.55,1.55,0,0),(.23,1.65,1.65,0,0),(.46,1.68,1.68,0,0),
-             (3.48,2.02,2.02,0,0),(3.65,2.08,2.08,0,0)],"Toy Yellow")
+    rings=[(.10,1.55,1.55,0,0),(.23,1.65,1.65,0,0),(.46,1.68,1.68,0,0),
+           (3.48,2.02,2.02,0,0),(3.65,2.08,2.08,0,0)]
+    count=64
+    body=profile(rings,"Printed dough tub",count)
+    # The package printing is part of the actual tapered body surface.
+    uv=body.data.uv_layers.new(name="Tub printing")
+    for polygon in body.data.polygons:
+        us=[]
+        for idx in polygon.vertices:
+            angle=(idx%count)*math.tau/count
+            us.append((angle/math.tau+.75)%1)
+        if max(us)-min(us)>.5:us=[u+1 if u<.5 else u for u in us]
+        for loop,u,idx in zip(polygon.loop_indices,us,polygon.vertices):
+            uv.data[loop].uv=(u,(body.data.vertices[idx].co.z-.1)/3.55)
     drum((0,0,3.66),(4.24,4.24,.28),RED)
     drum((0,0,3.82),(4.14,4.14,.17),RED)
     drum((0,0,3.91),(3.78,3.78,.08),RED)
     for r in (1.42,1.63):
-        bpy.ops.mesh.primitive_torus_add(major_radius=r,minor_radius=.044,major_segments=48,minor_segments=8,location=(0,0,3.97))
+        bpy.ops.mesh.primitive_torus_add(major_radius=r,minor_radius=.030,major_segments=48,minor_segments=8,location=(0,0,3.951))
         part(bpy.context.object,RED)
-    letters((0,0,3.97),"Knead-O!",.55,"Toy Red",True)
-    start=len(parts)
-    # Overlapping printed lobes make a scalloped, bakery-style badge.
-    for width,height,depth,material in [(1.0,1.0,-1.94,WHITE),(.94,.88,-1.99,RED)]:
-        for j in range(5):
-            x=(j-2)*.68*width
-            oval((x,depth,2.18+.10*math.cos((j-2)*1.4)),(1.48*width,.065,(1.58-.12*abs(j-2))*height),material)
-    letters((0,-2.055,2.17),"Knead-O!",.87,WHITE)
-    letters((0,-1.88,1.02),"MODELLING DOUGH",.27,NAVY)
-    wrap_label(start,1.88)
+    letters((0,0,3.946),"Knead-O!",.55,RED,True)
 
 
 def pastry():
@@ -522,13 +600,7 @@ def walker():
         oval((s*.51,-1.37,3.56),(.29,.14,.33),BLACK)
     oval((0,-1.48,3.20),(.91,.75,.43),ORANGE)
     for s in (-1,1):oval((s*.28,-1.38,2.91),(.65,.24,.41),RED,(0,-s*19,0))
-    # The flat butterfly lies in the same plane as its winding stem.
-    rod((0,1.12,2.69),(0,2.13,2.69),.14,GOLD)
-    drum((0,1.44,2.69),(.53,.53,.19),GOLD,(90,0,0))
-    for side in (-1,1):
-        path=[(0,1.90,2.69),(0,2.09,2.69+side*.30),(0,2.45,2.69+side*.68),
-              (0,2.84,2.69+side*.66),(0,2.95,2.69+side*.35),(0,2.71,2.69+side*.13),(0,2.17,2.69)]
-        cord("Flat brass butterfly",path,.11,GOLD,cyclic=True)
+    stamped_key()
 
 
 def marching_drum():
@@ -671,56 +743,44 @@ def cord(name, points, radius, color, widths=None, cyclic=False):
     return part(obj,color)
 
 
-def wrap_label(start,radius):
-    """Bend the label's vertices around the front of a round package."""
-    for i in range(start,len(parts)):
-        obj=parts[i]
-        bpy.ops.object.select_all(action="DESELECT");obj.select_set(True);bpy.context.view_layer.objects.active=obj
-        bpy.ops.object.convert(target="MESH")
-        obj=bpy.context.object;parts[i]=obj
-        bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
-        for v in obj.data.vertices:
-            x,y,z=v.co
-            angle=x/radius
-            v.co=(math.sin(angle)*(-y),math.cos(angle)*y,z)
-        obj.data.update()
-
-
-def pouch_section(name,rings,color):
-    # Flat faces, expanding gussets and narrow heat-sealed edges give the bag its shape.
-    vertices=[]
-    for z,w,d in rings:
-        vertices.extend([(-w,0,z),(-w*.91,-d*.80,z),(-w*.57,-d,z),(0,-d*1.04,z),
-                         (w*.57,-d,z),(w*.91,-d*.80,z),(w,0,z),(w*.88,d*.85,z),(0,d,z),(-w*.88,d*.85,z)])
-    n=10;faces=[tuple(reversed(range(n)))]
-    for k in range(len(rings)-1):
-        for i in range(n):
-            j=(i+1)%n;faces.append((k*n+i,k*n+j,(k+1)*n+j,(k+1)*n+i))
-    faces.append(tuple(range(len(vertices)-n,len(vertices))))
-    mesh=bpy.data.meshes.new(name);mesh.from_pydata(vertices,[],faces);mesh.update()
-    obj=bpy.data.objects.new(name,mesh);bpy.context.collection.objects.link(obj);return part(obj,color)
-
-
 def berry_twists():
-    # A horizontal windowed sleeve contains long helically molded strawberry ropes.
-    box((0,0,.63),(6.82,2.83,1.15),"Cellophane",.18)
-    for i in range(5):
-        y=(i-2)*.46
-        rod((-3.18,y,.60),(3.18,y,.60),.16,"Gummy cherry")
-        for k in range(3):
-            pts=[]
-            for j in range(33):
-                a=j*.52+k*math.tau/3
-                pts.append((-3.16+j*.1975,y+.14*math.cos(a),.60+.14*math.sin(a)))
-            cord("Twisted licorice",pts,.071,"Gummy cherry")
-    for s in (-1,1):
-        box((s*3.28,0,.65),(.39,2.96,1.22),RED,.10)
-        for j in range(7):box((s*3.43,-1.19+j*.39,1.22),(.12,.15,.08),PINK,.03)
-    box((-1.72,0,1.21),(2.29,2.82,.13),RED,.06)
-    letters((-1.73,.31,1.29),"LOOP",.64,CREAM,True)
-    letters((-1.73,-.31,1.29),"ROPES",.52,CREAM,True)
-    box((1.27,1.09,1.22),(2.74,.51,.12),PINK,.05)
-    letters((1.27,1.09,1.31),"STRAWBERRY",.29,NAVY,True)
+    import random
+    rng=random.Random(51)
+    # Two layers of bowed ropes share a close-fitting, crimped pillow sleeve.
+    first=len(parts)
+    for layer,count in enumerate((6,5)):
+        for i in range(count):
+            y0=(i-(count-1)/2)*.408
+            phase=rng.uniform(0,math.tau);left=-3.07+rng.uniform(-.10,.12);right=3.04+rng.uniform(-.11,.09)
+            def center(t):
+                y=y0+.065*math.sin(math.tau*t+phase)+.045*math.sin(3.8*t+i)
+                z=.249+layer*.328+.04*math.sin(5*t+phase)
+                return Vector((left+(right-left)*t,y,z))
+            cord("Licorice core",[center(k/12) for k in range(13)],.154,"Strawberry lacquer")
+            for strand in range(3):
+                points=[]
+                for k in range(39):
+                    t=k/38;a=t*18.0+phase+strand*math.tau/3
+                    points.append(center(t)+Vector((0,.137*math.cos(a),.137*math.sin(a))))
+                rib=cord("Spiral rib",points,.065,"Strawberry lacquer")
+                rib.data.resolution_u=2
+                rib.data.bevel_resolution=1
+    def skin(u,v,side):
+        x=(u-.5)*7.33;y=(v-.5)*2.86
+        taper=min(1,max(0,(1-abs(2*u-1)-.05)/.12))
+        edge=max(0,1-abs(2*v-1)**8)**.65
+        depth=.018+taper*edge*(.408+.030*math.sin(5*x+2*y)+.018*math.cos(7*y-x))
+        return (x,y,.426-side*depth)
+    def ink(u,v):
+        return "Rope sleeve print" if u<.35 or u>.906 or v>.875 else "Clear candy film"
+    bounds=packed_depths(parts[first:],32,16,lambda p:(p.x/7.33+.5,p.y/2.86+.5,p.z))
+    def fitted_skin(u,v,side):
+        x,y,z=skin(u,v,side)
+        span=bounds.get((round(u*32),round(v*16)))
+        if span and .025<u<.975 and .025<v<.975:
+            z=span[1]+.048 if side<0 else span[0]-.048
+        return x,y,z
+    film_sheet("Twist sleeve",32,16,fitted_skin,ink)
 
 
 def chocolate_bar():
@@ -738,6 +798,56 @@ def chocolate_bar():
     letters((-1.03,-.45,1.09),"MILK CHOCOLATE",.31,GOLD,True)
     for j in range(9):
         box((-3.72,-1.35+j*.33,.97),(.28,.085,.10),"Toy Silver",.025)
+
+
+def stamped_key():
+    # The plate's local Y follows the shaft. Opposite contour windings punch two
+    # true through-holes into the single blank before its edge is rounded.
+    curve=bpy.data.curves.new("Pressed brass key blank","CURVE")
+    curve.dimensions="2D";curve.resolution_u=8;curve.fill_mode="BOTH";curve.extrude=.048
+    curve.bevel_depth=.017;curve.bevel_resolution=2
+    outer=[(-.17,-.22),(.17,-.22),(.25,-.04),(.43,.08),(.62,.035),(.86,.11),(.98,.33),
+           (.94,.58),(.76,.72),(.53,.71),(.32,.60),(0,.49),(-.32,.60),(-.53,.71),
+           (-.76,.72),(-.94,.58),(-.98,.33),(-.86,.11),(-.62,.035),(-.43,.08),(-.25,-.04)]
+    rings=[outer]
+    for s in (-1,1):
+        rings.append([(s*.665+.172*math.cos(-i*math.tau/8),.389+.172*math.sin(-i*math.tau/8)) for i in range(8)])
+    for loop in rings:
+        spline=curve.splines.new("BEZIER");spline.bezier_points.add(len(loop)-1);spline.use_cyclic_u=True
+        for knot,(x,y) in zip(spline.bezier_points,loop):
+            knot.co=(x,y,0);knot.handle_left_type=knot.handle_right_type="AUTO"
+    obj=bpy.data.objects.new("Two-hole brass winding key",curve);bpy.context.collection.objects.link(obj)
+    obj.rotation_euler.y=-math.pi/2;obj.location=(0,2.19,2.69)
+    part(obj,"Stamped brass")
+    rod((0,1.16,2.69),(0,2.35,2.69),.135,"Stamped brass")
+    for y,r in [(1.45,.26),(1.69,.15),(1.76,.15)]:
+        drum((0,y,2.69),(2*r,2*r,.085),"Stamped brass",(90,0,0))
+
+
+def film_sheet(name, nx, nz, point, material, uv_map=None):
+    """Tessellated front and back skins meet at the seams. Printing follows the film."""
+    verts=[point(i/nx,j/nz,side) for side in (-1,1) for j in range(nz+1) for i in range(nx+1)]
+    plane=(nx+1)*(nz+1);faces=[];materials=[]
+    for side in range(2):
+        for j in range(nz):
+            for i in range(nx):
+                k=side*plane+j*(nx+1)+i
+                q=(k,k+1,k+nx+2,k+nx+1)
+                faces.append(q if side==0 else q[::-1]);materials.append(material((i+.5)/nx,(j+.5)/nz))
+    border=list(range(nx+1))+[j*(nx+1)+nx for j in range(1,nz+1)]+[nz*(nx+1)+i for i in range(nx-1,-1,-1)]+[j*(nx+1) for j in range(nz-1,0,-1)]
+    for a,b in zip(border,border[1:]+border[:1]):
+        faces.append((b,a,a+plane,b+plane));materials.append(material((a%(nx+1))/nx,(a//(nx+1))/nz))
+    mesh=bpy.data.meshes.new(name);mesh.from_pydata(verts,[],faces);mesh.update()
+    obj=bpy.data.objects.new(name,mesh);bpy.context.collection.objects.link(obj)
+    colors=list(dict.fromkeys(materials));part(obj,colors[0])
+    for color in colors[1:]:mesh.materials.append(bpy.data.materials[color])
+    uv=mesh.uv_layers.new(name="UVMap")
+    for poly,color in zip(mesh.polygons,materials):
+        poly.material_index=colors.index(color);poly.use_smooth=True
+        for loop,k in zip(poly.loop_indices,poly.vertices):
+            k%=plane;u=(k%(nx+1))/nx;v=(k//(nx+1))/nz
+            uv.data[loop].uv=uv_map(u,v) if uv_map else (u,v)
+    return obj
 
 
 DESIGNS = {"Berry Twists":berry_twists, "Chocolate Bar":chocolate_bar, "Classic Nutcracker":classic_nutcracker, "Drum":marching_drum, "Soldier":soldier, "House":house, "Superhero":superhero, "Brick Stack":bricks,
@@ -769,7 +879,8 @@ def export_shelf(output):
         obj.data.update()
         bpy.ops.export_scene.fbx(filepath=str(Path(output)/(obj.name+".fbx")),use_selection=True,
                                  axis_forward="-Z",axis_up="Y",apply_scale_options="FBX_SCALE_ALL",
-                                 bake_space_transform=True,bake_anim=False,mesh_smooth_type="FACE")
+                                 bake_space_transform=True,bake_anim=False,mesh_smooth_type="FACE",
+                                 path_mode="COPY",embed_textures=True)
         parts.clear()
         built.append(obj)
     return built

@@ -37,8 +37,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Gold
-    second: {fileID: 2100000, guid: 6267ffbc6fca22c48a97144d92d7aa01, type: 2}
+      name: Stamped brass
+    second: {fileID: 2100000, guid: 19a3510f3d244ac69186a782171f1042, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

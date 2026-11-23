@@ -11,6 +11,11 @@ os.makedirs(out, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 
 PAINT = {
+    "Chestnut resin": (1,1,1), "Honey scale lip": (.42,.165,.047),
+    "Lemon ABS": (.99,.76,.001), "Safety orange ABS": (1,.075,.001), "Lime ABS": (.085,.95,.008),
+    "Stamped brass": (.62,.36,.085), "Strawberry lacquer": (.45,.008,.022),
+    "Printed dough tub": (1,1,1), "Bear pouch print": (1,1,1), "Rope sleeve print": (1,1,1),
+    "Clear candy film": (.92,.96,1),
     "Cone heart": (.095,.041,.018), "Cone bark": (.22,.104,.048), "Cone rim": (.37,.212,.107),
     "Cocoa": (.19,.066,.031), "Cocoa wrapper": (.14,.031,.043),
     "Gummy cherry": (.73,.016,.026), "Gummy lime": (.11,.58,.035),
@@ -34,6 +39,24 @@ def paint(name):
     if name.startswith("Gummy "):
         bsdf.inputs["Roughness"].default_value = .19
         bsdf.inputs["Coat Weight"].default_value = .4
+    print_files={"Printed dough tub":"Knead-O print", "Bear pouch print":"Bruin pouch print",
+                 "Rope sleeve print":"Loop Ropes sleeve print", "Chestnut resin":"Pine scale grain"}
+    if name in print_files:
+        texture_dir = Path(__file__).resolve().parents[3] / "Assets/_DeadlyJenga/World/Maps/Models/UnderneathTheTree/Toys"
+        node=m.node_tree.nodes.new("ShaderNodeTexImage")
+        node.image=bpy.data.images.load(str(texture_dir/(print_files[name]+".png")),check_existing=True)
+        m.node_tree.links.new(node.outputs["Color"],bsdf.inputs["Base Color"])
+        bsdf.inputs["Roughness"].default_value=.37
+    if name.endswith(" ABS") or name in ("Chestnut resin","Honey scale lip","Strawberry lacquer"):
+        bsdf.inputs["Roughness"].default_value=.20 if name.endswith(" ABS") else .31
+        bsdf.inputs["Coat Weight"].default_value=.38
+    if name=="Stamped brass":
+        bsdf.inputs["Metallic"].default_value=.80
+        bsdf.inputs["Roughness"].default_value=.29
+    if name=="Clear candy film":
+        bsdf.inputs["Alpha"].default_value=.049
+        bsdf.inputs["Roughness"].default_value=.15
+        m.diffuse_color=(*PAINT[name],.049)
     if name == "Cellophane":
         bsdf.inputs["Alpha"].default_value = .12
         bsdf.inputs["Roughness"].default_value = .2

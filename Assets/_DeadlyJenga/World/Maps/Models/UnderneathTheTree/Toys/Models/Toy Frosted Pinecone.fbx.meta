@@ -12,13 +12,33 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Cone bark
-    second: {fileID: 2100000, guid: 095dbada256c4bff9bf46b5877074714, type: 2}
+      name: Chestnut resin
+    second: {fileID: 2100000, guid: 0a7a27a623bc4e1db924529d6fa4f75b, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Cone rim
-    second: {fileID: 2100000, guid: 352f05ceba704d0a92c6728b6b7908f6, type: 2}
+      name: Honey scale lip
+    second: {fileID: 2100000, guid: 518099ac7c6842b6841c8f2ac359d034, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Frost
+    second: {fileID: 2100000, guid: 3688cc91695841c48ae62d8f3c20c9fe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Wood
+    second: {fileID: 2100000, guid: 9d5571f9eec1a4c43b1ab171c6cc38b2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Green
+    second: {fileID: 2100000, guid: 275b11b38d0da694d8e4eb3042e9ada9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Cream
+    second: {fileID: 2100000, guid: 56d3b5dbd437853428bf35af9669d607, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

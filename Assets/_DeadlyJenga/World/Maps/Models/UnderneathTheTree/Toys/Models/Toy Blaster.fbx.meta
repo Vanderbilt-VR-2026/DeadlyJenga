@@ -7,18 +7,13 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Yellow
-    second: {fileID: 2100000, guid: 715cc540f39a09f478822bb28a9dc44e, type: 2}
+      name: Lemon ABS
+    second: {fileID: 2100000, guid: f09c5f058766431f8a5a486c6bc8aa94, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Orange
-    second: {fileID: 2100000, guid: f3e10833132e5294280ea6e192b8aa6b, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Toy Gold
-    second: {fileID: 2100000, guid: 6267ffbc6fca22c48a97144d92d7aa01, type: 2}
+      name: Safety orange ABS
+    second: {fileID: 2100000, guid: a9cab18bbe7544468fe532fa28427cbb, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -32,8 +27,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Green
-    second: {fileID: 2100000, guid: 275b11b38d0da694d8e4eb3042e9ada9, type: 2}
+      name: Lime ABS
+    second: {fileID: 2100000, guid: 225aae7371b44d08953acddfb41a91a6, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

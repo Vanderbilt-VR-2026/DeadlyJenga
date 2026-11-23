@@ -7,33 +7,13 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Toy Gold
-    second: {fileID: 2100000, guid: 6267ffbc6fca22c48a97144d92d7aa01, type: 2}
+      name: Gummy berry
+    second: {fileID: 2100000, guid: 3e7c5d85a4894a1bae7d175cf32bb1da, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Cellophane
-    second: {fileID: 2100000, guid: 3da754fcca6f40188a717b1b3409b90b, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Toy Teal
-    second: {fileID: 2100000, guid: d14253886eb809f41a53e51204511239, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Toy Cream
-    second: {fileID: 2100000, guid: 56d3b5dbd437853428bf35af9669d607, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Toy Yellow
-    second: {fileID: 2100000, guid: 715cc540f39a09f478822bb28a9dc44e, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Toy Navy
-    second: {fileID: 2100000, guid: 39692ecaebb0e444d8fc61c568f00de9, type: 2}
+      name: Gummy amber
+    second: {fileID: 2100000, guid: 29121466bae743fd95b5847994f9f36e, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -47,13 +27,13 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Gummy amber
-    second: {fileID: 2100000, guid: 29121466bae743fd95b5847994f9f36e, type: 2}
+      name: Bear pouch print
+    second: {fileID: 2100000, guid: e55517b5d44e423d84dc05591beeb3bc, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: Gummy berry
-    second: {fileID: 2100000, guid: 3e7c5d85a4894a1bae7d175cf32bb1da, type: 2}
+      name: Clear candy film
+    second: {fileID: 2100000, guid: c0848894834a424bbd418d4ba7e2e22b, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
