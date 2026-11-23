@@ -15,6 +15,7 @@ namespace DeadlyJenga.CandyArt
         MaterialPropertyBlock properties;
         DeadlyJenga.Core.IWorldQuery activeWorld;
         bool openWater,coastReady;
+        DeadlyJenga.Presentation.FossilBasinScenery fossilBasin;
         CandySeaLife seaLife;
         object seaLifeWorld;
         IWorldQuery arrivalReadyWorld;
@@ -108,6 +109,7 @@ namespace DeadlyJenga.CandyArt
                 (openWater && (!foundation || !foundation.gameObject.activeInHierarchy))))
             {
                 activeWorld=world;
+                fossilBasin=(world as Component)?.GetComponent<DeadlyJenga.Presentation.FossilBasinScenery>();
                 openWater=false;
                 if(world is MonoBehaviour map)
                 {
@@ -117,7 +119,7 @@ namespace DeadlyJenga.CandyArt
                         if(!col.isTrigger && !col.attachedRigidbody && (col.gameObject.layer==DeadlyJenga.Core.Layers.Surface||col.gameObject.layer==0))
                         {var bounds=col.bounds;float surfaceArea=bounds.size.x*bounds.size.z;if(bounds.max.y<=ceiling&&surfaceArea>area){area=surfaceArea;floor=col.transform;}}
                     var scenery=map.GetComponent<DeadlyJenga.Presentation.VillageFlatScenery>();
-                    openWater=scenery&&scenery.openWater;
+                    openWater=fossilBasin || (scenery&&scenery.openWater);
                     foundation=floor;
                     var baseline=GetComponent<CandyArtBaseline>();if(baseline)baseline.map=map;
                     transform.position=world.Center;
@@ -157,7 +159,8 @@ namespace DeadlyJenga.CandyArt
             }
             else sandRenderer.transform.localScale=new Vector3(radius*2*profile.islandAspect.x,1,radius*2*profile.islandAspect.y);
             RefreshCoast(world,terrain,origin,waterLevel);
-            if(waterRenderer.sharedMaterial!=profile.water)waterRenderer.sharedMaterial=profile.water;
+            var water=fossilBasin && fossilBasin.tar ? fossilBasin.tar : profile.water;
+            if(waterRenderer.sharedMaterial!=water)waterRenderer.sharedMaterial=water;
             if(sandRenderer.sharedMaterial!=profile.sand)sandRenderer.sharedMaterial=profile.sand;
             properties ??=new MaterialPropertyBlock();
             properties.SetVector("_Island",new Vector4(origin.x,origin.z,radius*profile.islandAspect.x,radius*profile.islandAspect.y));
@@ -184,6 +187,7 @@ namespace DeadlyJenga.CandyArt
             properties.SetFloat("_WaveSpeed",profile.waveSpeed);
             properties.SetFloat("_WaveChop",profile.waveChop);
             if(profile.sky&&profile.sky.HasProperty("_Horizon"))properties.SetColor("_Horizon",profile.sky.GetColor("_Horizon"));
+            if(fossilBasin && fossilBasin.tar)properties.SetColor("_Horizon",water.GetColor("_Horizon"));
             if(catwalksCoast!=null) catwalksCoast.SetWaterProperties(properties);
             else properties.SetFloat(CoastEnabled,0);
             sandRenderer.SetPropertyBlock(properties);
@@ -209,7 +213,7 @@ namespace DeadlyJenga.CandyArt
                 arrivalReadyFrame=-1;
             }
             if(!applyLighting) return;
-            Material sky=coastDay?catwalksCoast.DaySky(profile.sky):profile.sky;
+            Material sky=fossilBasin && fossilBasin.sky ? fossilBasin.sky : coastDay?catwalksCoast.DaySky(profile.sky):profile.sky;
             if(RenderSettings.skybox!=sky)RenderSettings.skybox=sky;
             RenderSettings.ambientMode=AmbientMode.Trilight;
             RenderSettings.ambientSkyColor=new Color(.55f,.72f,.9f);

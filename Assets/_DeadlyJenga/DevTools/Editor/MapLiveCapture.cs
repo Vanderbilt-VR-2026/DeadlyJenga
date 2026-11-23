@@ -798,7 +798,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
         }
 
-        static void RenderNow(Camera camera, int width, int height, string path)
+        internal static void RenderNow(Camera camera, int width, int height, string path)
         {
             var target = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default, 4);
             var image = new Texture2D(width, height, TextureFormat.RGB24, false);

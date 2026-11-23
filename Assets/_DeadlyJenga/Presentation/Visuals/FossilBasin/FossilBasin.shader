@@ -1,0 +1,82 @@
+Shader "DeadlyJenga/Fossil Basin"
+{
+    Properties { _Surface("Surface", Float)=0 }
+    SubShader
+    {
+        Tags { "RenderPipeline"="UniversalPipeline" "RenderType"="Opaque" }
+        Pass
+        {
+            Cull Off
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_instancing
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            struct In { float4 pos:POSITION; float3 normal:NORMAL; half4 color:COLOR; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct Out { float4 pos:SV_POSITION; float3 world:TEXCOORD0; half3 normal:TEXCOORD1; half3 color:COLOR; float3 local:TEXCOORD2; UNITY_VERTEX_OUTPUT_STEREO };
+            CBUFFER_START(UnityPerMaterial)
+            float _Surface;
+            CBUFFER_END
+            Out vert(In v)
+            {
+                Out o; UNITY_SETUP_INSTANCE_ID(v); UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+                o.world=TransformObjectToWorld(v.pos.xyz);o.local=v.pos.xyz;
+                o.pos=TransformWorldToHClip(o.world);o.normal=TransformObjectToWorldNormal(v.normal);o.color=v.color.rgb;return o;
+            }
+            float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
+            float noise(float2 p)
+            {
+                float2 i=floor(p),f=frac(p);f=f*f*(3-2*f);
+                return lerp(lerp(hash(i),hash(i+float2(1,0)),f.x),lerp(hash(i+float2(0,1)),hash(i+1),f.x),f.y);
+            }
+            half4 frag(Out i):SV_Target
+            {
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+                float3 ray=normalize(i.world-GetCameraPositionWS());
+                float3 sun=normalize(float3(-.31,.096,.94));
+                if(_Surface>1.5)
+                {
+                    float h=max(0,ray.y);
+                    float3 sky=lerp(float3(.96,.30,.19),float3(.135,.095,.37),smoothstep(-.03,.25,h));
+                    float2 uv=ray.xz/(h+.12);
+                    float cloud=noise(uv*float2(1.7,3.7))*.68+noise(uv*5.6)*.32;
+                    sky=lerp(sky,float3(.98,.31,.33),smoothstep(.49,.71,cloud)*smoothstep(.005,.12,h)*.74);
+                    float ridge=-.027+.022*noise(ray.xz*48)+.016*noise(ray.xz*100);
+                    sky=lerp(sky,float3(.23,.095,.17),1-smoothstep(ridge-.003,ridge,ray.y));
+                    float glow=saturate(dot(ray,sun));
+                    return half4(sky+float3(1,.52,.18)*pow(glow,120)+float3(1,.92,.65)*smoothstep(.99956,.99975,glow),1);
+                }
+                if(_Surface>.5)
+                {
+                    float2 p=i.world.xz;
+                    float wave=noise(p*float2(.86,3.3)+_Time.y*.10)*.65+noise(p*float2(1.7,8)-_Time.y*.17)*.35;
+                    float shine=smoothstep(.64,.83,wave);
+                    float reflected=pow(saturate(dot(normalize(ray.xz),normalize(sun.xz))),32);
+                    return half4(float3(.023,.017,.033)+wave*float3(.016,.012,.024)+shine*(float3(.09,.055,.085)+reflected*float3(.73,.28,.07)),1);
+                }
+                float3 n=normalize(i.normal);
+                float3 light=normalize(float3(-.49,.76,-.42));
+                float shadow=GetMainLight(TransformWorldToShadowCoord(i.world)).shadowAttenuation;
+                float diff=saturate(dot(n,light))*(.4+.6*shadow);
+                float warm=pow(saturate(dot(n,normalize(light-ray))),28);
+                float2 grain=i.local.xz+float2(.36,.63)*i.local.y;
+                float patina=noise(grain*7)+.25*noise(grain*29);
+                float mineral=abs(noise(grain*2.3+noise(grain*6)*.17)-.5);
+                float vein=(1-smoothstep(.005,.023,mineral))*smoothstep(.40,.7,noise(grain*4.3));
+                float bone=smoothstep(.52,.71,i.color.g)*smoothstep(.62,.81,i.color.r);
+                float pore=smoothstep(.76,.91,noise(grain*64));
+                float3 pigment=i.color*(1-bone*(vein*.17+pore*.095));
+                #if !defined(UNITY_COLORSPACE_GAMMA)
+                pigment=SRGBToLinear(pigment);
+                #endif
+                return half4(pigment*(float3(.29,.235,.28)+diff*float3(1.02,.86,.68))*(.94+.09*patina)+warm*.16,1);
+            }
+            ENDHLSL
+        }
+        UsePass "Universal Render Pipeline/Lit/ShadowCaster"
+    }
+}
