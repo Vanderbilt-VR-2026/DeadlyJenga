@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 5090303168019349741}
   - component: {fileID: 7020863368758810406}
   - component: {fileID: 4806486991549195104}
+  - component: {fileID: 761010}
   m_Layer: 0
   m_Name: Mode_ninja-temple
   m_TagString: Untagged
@@ -481,3 +482,26 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: DeadlyJenga.Characters::DeadlyJenga.Wildlife.ShrinePandaGrove
   coat: {fileID: 2100000, guid: be28729369504b0b8a6aaae705db794e, type: 2}
+--- !u!114 &761010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2301276706071031685}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e94050cf25944558b4b4e0da7fd62ab1, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  routes:
+  - island: {fileID: 760021}
+    model: {fileID: 100100000, guid: f881c8aa6cf74a048f3474c76e6d45a3, type: 3}
+    phase: 0
+  - island: {fileID: 760031}
+    model: {fileID: 100100000, guid: b52b015b7adc475ea219213d149282a1, type: 3}
+    phase: 5
+  - island: {fileID: 760041}
+    model: {fileID: 100100000, guid: 47eac4c1624741a9b19d60a2ae26bbe7, type: 3}
+    phase: 10
+  armor: {fileID: 2100000, guid: be28729369504b0b8a6aaae705db794e, type: 2}

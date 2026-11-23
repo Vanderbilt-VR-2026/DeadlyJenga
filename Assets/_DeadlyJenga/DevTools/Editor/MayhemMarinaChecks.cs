@@ -99,6 +99,12 @@ namespace DeadlyJenga.DevTools.Editor
             EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
             EditorApplication.EnterPlaymode();
         }
+        public static void RunShrineSwimming()
+        {
+            SessionState.SetBool(Key+"ShrineSwimming",true);
+            RunNinjaOverview();
+        }
+
         public static void RunShrinePandas()
         {
             SessionState.SetBool(Key+"ShrinePandas",true);
@@ -157,7 +163,7 @@ namespace DeadlyJenga.DevTools.Editor
                     if(preference<0)PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);else PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,preference);
                     PlayerPrefs.Save();SessionState.SetBool(Key+"Layout",false);
                 }
-                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);SessionState.SetBool(Key+"NinjaOverview",false);SessionState.SetBool(Key+"ShrinePandas",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();
+                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);SessionState.SetBool(Key+"NinjaOverview",false);SessionState.SetBool(Key+"ShrinePandas",false);SessionState.SetBool(Key+"ShrineSwimming",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();
                 int exitCode = errors == 0 && !failed ? 0 : 2;
                 if (SessionState.GetString("DJWarm.id", "") != "")
                 {
@@ -955,6 +961,51 @@ namespace DeadlyJenga.DevTools.Editor
             finally { Object.Destroy(probe); }
         }
 
+        static IEnumerator CheckShrineSwimming()
+        {
+            var patrol = Object.FindFirstObjectByType<DeadlyJenga.Characters.ShrineSamuraiPatrol>();
+            Check(patrol, "Shrine guards loaded on Shrine Town");
+            var names = new[] { "Crescent Guard", "Reed Watcher", "Vermilion Captain" };
+            var actors = names.Select(n => patrol.transform.Find(n)).ToArray();
+            Check(actors.All(a => a), "All three guard models spawned");
+            var animations = actors.Select(a => a.GetComponentInChildren<Animation>()).ToArray();
+            var skins = actors.Select(a => a.GetComponentInChildren<SkinnedMeshRenderer>()).ToArray();
+            var hands = skins.Select(s => s.bones.Single(b => b.name=="HandR")).ToArray();
+            var heads = skins.Select(s => s.bones.Single(b => b.name=="Head")).ToArray();
+            var previous = actors.Select(a => a.position).ToArray();
+            var wrists = hands.Select((h,i) => actors[i].InverseTransformPoint(h.position)).ToArray();
+            var legs = new bool[3]; var strokes = new bool[3]; var treads = new bool[3]; var landed = new bool[3];
+            bool captured = false;
+            for (float end=Time.time+48; Time.time<end; )
+            {
+                yield return Wait(.19f);
+                for (int i=0; i<3; i++)
+                {
+                    var a=actors[i]; var anim=animations[i];
+                    float water=Services.World.WaterHeight(a.position);
+                    Vector3 wrist=a.InverseTransformPoint(hands[i].position);
+                    bool afloat=Mathf.Abs(a.position.y-water)<.08f;
+                    bool moved=(previous[i]-a.position).sqrMagnitude>.001f;
+                    bool poseChanged=(wrist-wrists[i]).sqrMagnitude>.00001f;
+                    if (skins[i].enabled && anim["Shore walk"].weight>.95f && a.position.y>water+.07f) {
+                        legs[i]=true; landed[i]|=strokes[i];
+                    }
+                    strokes[i]|=afloat && moved && poseChanged && anim["Surface swim"].weight>.95f && heads[i].position.y>water-.08f;
+                    treads[i]|=afloat && !moved && poseChanged && anim["Tread water"].weight>.95f;
+                    if (!captured && strokes[i])
+                    {
+                        captureOrigin=a.position;
+                        Capture(new Vector3(2.6f,1.5f,3.1f),Vector3.up*.1f,41,"ShrineSamurai-Swimming.png");
+                        captured=true;
+                    }
+                    previous[i]=a.position; wrists[i]=wrist;
+                }
+                if (landed.All(x=>x) && treads.All(x=>x)) break;
+            }
+            for (int i=0; i<3; i++)
+                Check(legs[i] && strokes[i] && treads[i] && landed[i], names[i]+" walked, swam at the waterline, treaded and regained dry ground");
+        }
+
         static IEnumerator CheckShrinePandas()
         {
             var grove = Object.FindFirstObjectByType<DeadlyJenga.Wildlife.ShrinePandaGrove>();
@@ -1016,6 +1067,11 @@ namespace DeadlyJenga.DevTools.Editor
             yield return Wait(2);
             var world=Services.World;
             Check(world!=null&&world.Blocks.Count>150&&world.Blocks.Count<=400,"Ninja map built within its authored block budget");
+            if (SessionState.GetBool(Key+"ShrineSwimming",false))
+            {
+                yield return CheckShrineSwimming();
+                yield break;
+            }
             if (SessionState.GetBool(Key+"ShrinePandas",false))
             {
                 yield return CheckShrinePandas();
