@@ -140,3 +140,4 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   lava: {fileID: 2100000, guid: 9b863a4f0a6341e2809936563dc3b3c1, type: 2}
   sky: {fileID: 2100000, guid: a1fbf6038d3149e5a47e7c895579f407, type: 2}
+  skyline: {fileID: 2100000, guid: 8fa2bbce10db4a8e9e8907f5c2bb16ab, type: 2}
