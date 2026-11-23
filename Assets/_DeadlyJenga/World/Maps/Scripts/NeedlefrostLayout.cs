@@ -61,6 +61,15 @@ namespace DeadlyJenga.CastlePrototype
                 for(int end=-1;end<=1;end+=2)
                     keep.Stone(side*8.55f + end*3.35f,9,z,1, (side < 0 ? 15 : 16)-10,2.5f,Cut.Column);
             }
+            // The carved bridge seats stand slightly proud of the surrounding courts.
+            // Short bevelled approaches connect the different floor elevations without a jump.
+            for(int side=-1;side<=1;side+=2)
+            {
+                keep.Stone(side*4.91f,6,-3,2.5f,.15f,1.0f,Cut.Flight,-side*90);
+                keep.Stone(side*4.91f,9,15,2.5f,.15f,1.0f,Cut.Flight,-side*90);
+            }
+            keep.Stone(-6.35f,15,17,2.45f,1.15f,3.7f,Cut.Flight,90);
+            keep.Stone(6.35f,16,13,2.45f,.15f,3.7f,Cut.Flight,-90);
             // A lower camp under the right shelf, open to the ravine and sea.
             for(int tent=0;tent<2;tent++)
             {
@@ -148,7 +157,8 @@ namespace DeadlyJenga.CastlePrototype
                 float flightX=x+outboard*(level==0 ? 4.4f : 6);
                 Stone(flightX,y,z,1.95f,story,6.6f,Cut.Flight,level==0?0:180);
                 Stone(flightX,y+story-.35f,z+(level==0?3.65f:-3.65f),3.15f,.35f,.7f,Cut.Lintel);
-                Stone(flightX,y,z+(level==0?3.65f:-3.65f),1.4f,story-.35f,.68f,Cut.Column);
+                // Both landing posts bear on the court, including the end of the upper return.
+                Stone(flightX,bottom,z+(level==0?3.65f:-3.65f),1.4f,y+story-.35f-bottom,.68f,Cut.Column);
                 if(level==0)
                 {
                     // Rear wall of the outboard stair carries the upper return flight.

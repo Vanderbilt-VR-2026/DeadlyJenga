@@ -167,10 +167,17 @@ namespace DeadlyJenga.CastlePrototype
             var shoulder=Ring(blade?.32f:roof?.1f:.43f,blade?.35f:roof?.27f:.5f,blade?.65f:.13f,lean*.72f);
             var top=Ring(.5f,blade?.012f:roof?.16f:.475f,blade?.65f:.16f,lean);
             var rings=new[]{bottom,edge,shoulder,top};
+            if(cut==Cut.Column)
+            {
+                // Broad foot and capital around a narrower eight-sided carved shaft.
+                rings=new[]{bottom,Ring(-.47f,.5f,.21f,0),Ring(-.40f,.5f,.21f,0),
+                    Ring(-.36f,.38f,.38f,0),Ring(.31f,.36f,.38f,0),Ring(.37f,.46f,.31f,0),
+                    Ring(.41f,.48f,.20f,0),Ring(.46f,.50f,.20f,0),top};
+            }
             for(int i=0;i<8;i++)
             {
                 int j=(i+1)%8;
-                for(int band=0;band<3;band++)
+                for(int band=0;band<rings.Length-1;band++)
                 {
                     var lo=rings[band];var hi=rings[band+1];
                     Face(lo[i],hi[i],hi[j]);Face(lo[i],hi[j],lo[j]);
