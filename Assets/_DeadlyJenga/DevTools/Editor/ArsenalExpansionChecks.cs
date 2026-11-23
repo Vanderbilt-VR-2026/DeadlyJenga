@@ -73,12 +73,15 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunSawStaff()=>Start(false, sawStaffOnly:true);
 
-        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false)
+        public static void RunMarshmallow()=>Start(false, marshmallowOnly:true);
+
+        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false)
         {
             SessionState.SetBool(Key+"BarbedBatOnly",barbedBatOnly);
             SessionState.SetBool(Key+"CosmeticWeaponsOnly",cosmeticWeaponsOnly);
             SessionState.SetBool(Key+"RocketCandyOnly",candyOnly);
             SessionState.SetBool(Key+"SawStaffOnly",sawStaffOnly);
+            SessionState.SetBool(Key+"MarshmallowOnly",marshmallowOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -108,6 +111,61 @@ namespace DeadlyJenga.DevTools.Editor
             }
             while(stack.Count>0)(stack.Pop() as IDisposable)?.Dispose();completed=!failed;EditorApplication.ExitPlaymode();
         }
+        static IEnumerator CheckMarshmallow(MatchModeRuntime runtime,CastleSurvivor player,CastleSurvivor target)
+        {
+            const EquipmentKind kind=EquipmentKind.FlamingMarshmallow;
+            var origin=player.ViewPose.position+Vector3.forward*.4f;
+            float cooldown=EquipmentSpecifications.Get(kind).cooldown+.08f;
+            Check(runtime.GiveEquipment(kind)&&runtime.EquipmentFor(runtime.LocalActorId).drawn,
+                "Flaming Marshmallow equips in the actual game");
+
+            target.Place(new Vector3(150,10.02f,160),Quaternion.identity);
+            Physics.SyncTransforms();
+            int sequence=runtime.Frame.equipmentSequence;
+            float health=target.Health;
+            var air=new Pose(origin,Quaternion.LookRotation(Vector3.up,Vector3.forward));
+            Check(runtime.RequestEquipmentAttack(air),"Air swing is accepted");
+            var airActions=runtime.Frame.equipmentActions.Where(a=>a.id>sequence&&a.kind==kind).ToArray();
+            Check(airActions.Count(a=>a.action==EquipmentAction.Shot)==1&&
+                !airActions.Any(a=>a.action==EquipmentAction.Impact)&&target.Health==health,
+                "Air swing announces the swing without a hit or damage");
+            yield return new WaitForSeconds(cooldown);
+
+            target.Place(new Vector3(150,10.02f,151),Quaternion.identity);
+            Physics.SyncTransforms();
+            var aim=new Pose(origin,Quaternion.LookRotation(target.transform.position+Vector3.up*.55f-origin));
+            var block=GameObject.CreatePrimitive(PrimitiveType.Cube);
+            block.name="Marshmallow contact fixture block";
+            block.layer=Layers.Block;
+            block.transform.position=origin+aim.rotation*Vector3.forward*.38f;
+            block.transform.localScale=new Vector3(.36f,.38f,.17f);
+            Physics.SyncTransforms();
+            try
+            {
+                sequence=runtime.Frame.equipmentSequence;
+                Check(runtime.RequestEquipmentAttack(aim),"Block swing is accepted");
+                var impact=runtime.Frame.equipmentActions.SingleOrDefault(a=>a.id>sequence&&a.kind==kind&&a.action==EquipmentAction.Impact);
+                Check(impact!=null&&Vector3.Distance(impact.position,block.transform.position)<.30f&&target.Health==health,
+                    "Block produces an impact at the collider and shields the player behind it");
+            }
+            finally
+            {
+                block.SetActive(false);
+                Object.Destroy(block);
+            }
+            yield return new WaitForSeconds(cooldown);
+
+            target.Place(new Vector3(150,10.02f,151),Quaternion.identity);
+            Physics.SyncTransforms();
+            sequence=runtime.Frame.equipmentSequence;
+            Check(runtime.RequestEquipmentAttack(aim),"Player hit is accepted");
+            var state=runtime.EquipmentFor(runtime.LocalActorId);
+            Check(Mathf.Abs(health-target.Health-target.MaxHealth*.5f)<.05f&&
+                runtime.Frame.equipmentActions.Any(a=>a.id>sequence&&a.kind==kind&&a.action==EquipmentAction.Impact)&&
+                state.embedRemaining>0&&!string.IsNullOrEmpty(state.embeddedVictim),
+                "Player impact deals half maximum health and publishes contact feedback");
+        }
+
         static IEnumerator BarbedBatContacts(MatchModeRuntime runtime,CastleSurvivor player,CastleSurvivor target)
         {
             var kind=EquipmentKind.BarbedBat;
@@ -447,6 +505,11 @@ namespace DeadlyJenga.DevTools.Editor
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
             var created=session.SurvivorBots.SpawnOne();Check(created,"Target bot spawns");var target=created.GetComponent<CastleSurvivor>();target.GetComponent<CastleBotBrain>().enabled=false;target.InputSuspended=true;
             yield return new WaitForSeconds(.4f);
+            if(SessionState.GetBool(Key+"MarshmallowOnly",false))
+            {
+                yield return CheckMarshmallow(runtime,player,target);
+                yield break;
+            }
             if(SessionState.GetBool(Key+"BarbedBatOnly",false))
             {
                 yield return BarbedBatContacts(runtime,player,target);
