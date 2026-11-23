@@ -69,7 +69,9 @@ namespace DeadlyJenga.DevTools.Editor
                     failed|=!completed;File.AppendAllText(Report,$"COMPLETE checks={checks} runtimeErrors={errors} failed={failed}. Desktop runtime; headset not tested.\n");
                     bool weaponMotion = SessionState.GetBool(Key+"MotionOnly",false);
                     SessionState.SetBool(Key+"MotionOnly",false);
-                    if (weaponMotion || NeedleOnly || BoxingGloveOnly || SawStaffOnly || StockPistolOnly || PistolMotionOnly)
+                    if (weaponMotion || SessionState.GetBool(Key+"RocketCandyOnly",false) ||
+                        SessionState.GetBool(Key+"CosmeticWeaponsOnly",false) ||
+                        NeedleOnly || BoxingGloveOnly || SawStaffOnly || StockPistolOnly || PistolMotionOnly)
                     {
                         int result = failed || errors > 0 ? 1 : 0;
                         if (!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
@@ -427,6 +429,10 @@ namespace DeadlyJenga.DevTools.Editor
             health=target.Health;
             Check(runtime.RequestEquipmentAttack(new Pose(origin,aim)),"Compact sidearm fires through the existing attack path");
             Check(target.Health<health,"Compact sidearm damages the player target");
+            var snapshot = JsonUtility.FromJson<MatchFrame>(runtime.CaptureFrameJson());
+            Check(snapshot.equipmentActions.Any(action => action.kind == pistol && action.action == EquipmentAction.Impact) &&
+                ModeFrameValidation.Frame(snapshot, Services.World.Blocks.Count),
+                "Compact sidearm impact is accepted by the multiplayer snapshot validator");
             Check(runtime.EquipmentFor(runtime.LocalActorId).rounds==EquipmentSpecifications.Get(pistol).magazine-1,
                 "Sidearm consumes a round from the existing magazine");
         }
@@ -485,8 +491,9 @@ namespace DeadlyJenga.DevTools.Editor
             Check(tint.GetColor("_BaseColor")==RocketCandy.ColorFor(start.rocketCandyVariant),
                 "The equipped avatar shows the authoritative loaded color");
             int first=runtime.Frame.equipmentSequence;
-            var muzzle=new Pose(player.ViewPose.position+Vector3.forward*.4f,
+            Pose AimFromPlayer() => new Pose(player.ViewPose.position + Vector3.forward * .4f,
                 Quaternion.LookRotation(new Vector3(0,.12f,1)));
+            var muzzle = AimFromPlayer();
             var target=GameObject.CreatePrimitive(PrimitiveType.Cube);
             target.name="Rocket candy contact fixture";
             target.layer=Layers.Block;
@@ -523,10 +530,10 @@ namespace DeadlyJenga.DevTools.Editor
             Object.Destroy(target);
             Check(incoming.rounds==0&&incoming.reloadRemaining>0&&
                 incoming.rocketCandyVariant!=start.rocketCandyVariant,"Shot empties the chamber and selects a different reload color");
-            Check(!runtime.RequestEquipmentAttack(muzzle),"Second shot is blocked by the reload");
+            Check(!runtime.RequestEquipmentAttack(AimFromPlayer()),"Second shot is blocked by the reload");
             float remaining=runtime.EquipmentFor(actor).reloadRemaining;
             yield return new WaitForSeconds(Mathf.Max(0,remaining-1.58f));
-            Check(!runtime.RequestEquipmentAttack(muzzle),"Cooldown ending does not skip the reload");
+            Check(!runtime.RequestEquipmentAttack(AimFromPlayer()),"Cooldown ending does not skip the reload");
             candy.GetPropertyBlock(tint);
             Check(loaded.activeInHierarchy&&loaded.transform.localPosition.z>1.22f&&
                 tint.GetColor("_BaseColor")==RocketCandy.ColorFor(incoming.rocketCandyVariant),
@@ -539,7 +546,8 @@ namespace DeadlyJenga.DevTools.Editor
                 reloaded.rocketCandyVariant==incoming.rocketCandyVariant,"One new lollipop seats with the chosen color");
             Check(ModeFrameValidation.Frame(JsonUtility.FromJson<MatchFrame>(runtime.CaptureFrameJson()),Services.World.Blocks.Count),
                 "Snapshot with a colored lollipop passes validation");
-            Check(runtime.RequestEquipmentAttack(muzzle),"The newly loaded lollipop can fire");
+            // The first blast can move the player away from the original validated muzzle.
+            Check(runtime.RequestEquipmentAttack(AimFromPlayer()),"The newly loaded lollipop can fire");
         }
 
         static IEnumerator SawStaffContacts(MatchModeRuntime runtime, CastleSurvivor player, CastleSurvivor target)
