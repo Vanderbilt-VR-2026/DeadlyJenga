@@ -174,7 +174,7 @@ namespace DeadlyJenga.Presentation
         }
         void SheriffFlash(Vector3 point,Vector3 forward,bool shotgun)
         {
-            Burst(point,forward,SheriffAmber,shotgun?12:9,false);
+            Burst(point,forward,SheriffAmber,shotgun?12:9,false,false);
             if(!sparks)return;
             sparks.Emit(new ParticleSystem.EmitParams
             {
