@@ -267,12 +267,15 @@ namespace DeadlyJenga.CandyArt
             // Snowy window along the north wall, a little way from the tree.
             WindowFrame(WindowWest, WindowEast, RoomNorth, -1f, 4, casing);
             WindowFrame(SouthWindowWest, SouthWindowEast, RoomSouth, 1f, 6, casing);
-            BuildOutdoorView(WindowWest, WindowEast, 1931);
+            var views = Resources.Load<UnderneathTreeWindowViews>(ResourcePath + "Window Views");
+            var northView = views ? views.north : null;
+            var southView = views ? views.south : null;
+            BuildOutdoorView(WindowWest, WindowEast, 1931, !northView);
             // The south window gets its own snowy scene: built the same way, then turned to face
             // south and pressed to a little over half its depth, so it stays within the cameras' reach.
             int firstOutside = art.childCount;
             float southMid = (SouthWindowWest + SouthWindowEast) * .5f;
-            BuildOutdoorView(SouthWindowWest, SouthWindowEast, 4417);
+            BuildOutdoorView(SouthWindowWest, SouthWindowEast, 4417, !southView);
             var south = new GameObject("Outside the south window").transform;
             south.SetParent(art, false);
             south.localPosition = new Vector3(southMid, 0f, RoomNorth);
@@ -281,6 +284,13 @@ namespace DeadlyJenga.CandyArt
             south.localPosition = new Vector3(southMid, 0f, RoomSouth);
             south.localRotation = Quaternion.Euler(0f, 180f, 0f);
             south.localScale = new Vector3(1f, 1f, .55f);
+
+            // Custom artwork uses the same sill-centred coordinates on both walls.
+            // Only the original south scenery above needs the legacy depth compression.
+            if (northView)
+                PlaceWindowView(northView, (WindowWest + WindowEast) * .5f, RoomNorth, 0f);
+            if (southView)
+                PlaceWindowView(southView, southMid, RoomSouth, 180f);
 
             // Stone fireplace on the east wall (see UnderneathTreeFinish.Fireplace.cs).
             int firstFireplace = art.childCount;
