@@ -7,10 +7,10 @@ from shelf_toys import (BLACK, BLUE, BROWN, CREAM, GOLD, GREEN, NAVY, ORANGE,
 BRASS = "Stamped brass"
 
 
-def rear_key(socket_y, height, scale):
+def winding_key(socket, scale, yaw=0):
     first = len(parts)
     stamped_key()
-    transform = (Matrix.Translation(Vector((0, socket_y, height)))
+    transform = (Matrix.Translation(Vector(socket)) @ Matrix.Rotation(math.radians(yaw), 4, "Z")
                  @ Matrix.Scale(scale, 4) @ Matrix.Translation(Vector((0, -1.16, -2.69))))
     for obj in parts[first:]:
         obj.matrix_world = transform @ Matrix.LocRotScale(obj.location, obj.rotation_euler, obj.scale)
@@ -42,7 +42,7 @@ def monkey():
     eyes(.29,-.779,2.88,.21)
     drum((0,.01,3.46),(.97,.94,.36),RED)
     drum((0,.01,3.31),(1.03,.99,.10),GOLD)
-    rear_key(.47, 1.27, .66)
+    winding_key((0, .47, 1.27), .66)
 
 
 def frog():
@@ -60,7 +60,7 @@ def frog():
         for i in range(3):
             oval((s*(.42+.12*i),.38+i*.24,1.59-i*.13),(.23,.31,.095),TEAL)
     eyes(.62,-1.245,1.88,.27)
-    rear_key(1.08, 1.11, .65)
+    winding_key((0, .61, 1.54), .65)
 
 
 def drummer():
@@ -89,7 +89,7 @@ def drummer():
         oval((s*.99,-.68,2.15),(.36,)*3,SKIN)
         rod((s*1.05,-.55,2.14),(s*.34,-1.27,2.40+s*.13),.055,BROWN)
         oval((s*.34,-1.27,2.40+s*.13),(.19,)*3,WOOD_COLOR)
-    rear_key(.33, 1.92, .68)
+    winding_key((0, .33, 1.92), .68)
 
 
 WOOD_COLOR = "Toy Wood"
@@ -116,7 +116,7 @@ def locomotive():
         for y in (-1.09,0,1.09):
             oval((s*1.045,y,.46),(.085,.24,.24),GOLD)
     box((0,1.15,2.49),(1.90,1.40,.20),NAVY,.09)
-    rear_key(1.53, 1.36, .62)
+    winding_key((0, 1.53, 1.36), .62)
 
 
 def hen():
@@ -138,7 +138,7 @@ def hen():
     oval((0,-1.42,2.02),(.45,.66,.26),ORANGE)
     for s in (-1,1):
         oval((s*.419,-1.07,2.15),(.17,.19,.19),BLACK)
-    rear_key(1.00, 1.02, .70)
+    winding_key((.83, .27, 1.32), .42, yaw=-90)
 
 
 DESIGNS = {"Cymbal Monkey": monkey, "Hopping Frog": frog, "Marching Drummer": drummer,
