@@ -19,7 +19,7 @@ namespace DeadlyJenga.CastlePrototype
 
         internal static bool IsInDevelopment(LobbyOption map)
         {
-            return map?.id is "mode-vanderbilt" or "mode-cant-catch-me" or "mode-tycoon" or "mode-ninja-temple" or "mode-ninja-temple-original" or "workshop-under-the-tree";
+            return map?.id is "mode-vanderbilt" or "mode-cant-catch-me" or "mode-walled-castle" or "mode-tycoon" or "mode-ninja-temple" or "mode-ninja-temple-original" or "workshop-under-the-tree";
         }
 
         internal static bool IsArchive(LobbyOption map)
