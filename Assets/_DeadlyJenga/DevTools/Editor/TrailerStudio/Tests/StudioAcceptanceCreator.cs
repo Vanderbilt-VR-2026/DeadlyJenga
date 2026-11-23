@@ -10,6 +10,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     public static partial class StudioAcceptance
     {
         public static void RunCreatorWorkflows() => Begin("CreatorWorkflows");
+        public static void RunCreatorVisuals() => Begin("CreatorVisuals");
+
+        static IEnumerator<int> CreatorVisualTests()
+        {
+            using (var moments = MomentVisualTests())
+                while (moments.MoveNext()) yield return moments.Current;
+            using (var crowd = CrowdVisualTests())
+                while (crowd.MoveNext()) yield return crowd.Current;
+        }
 
         static IEnumerator<int> CreatorWorkflowTests()
         {

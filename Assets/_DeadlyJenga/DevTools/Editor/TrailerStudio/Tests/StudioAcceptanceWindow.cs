@@ -550,6 +550,153 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             StudioRun.SaveTape();
         }
 
+        static IEnumerator<int> MomentVisualTests()
+        {
+            var stage = StudioRun.Stage;
+            var set = stage.set;
+            if (set.marks.All(mark => mark.role == StudioRole.Hand))
+                set.AddMark(StudioRole.Survivor, Vector3.zero);
+            foreach (var mark in set.marks)
+                if (StudioStage.SurfaceBelow(stage.ToWorld(mark.position), out var surface))
+                    mark.position = stage.ToStage(surface);
+            StudioLibrary.Save(set);
+            StudioRun.Refresh();
+            StudioRun.RecordWholeSet();
+            foreach (int wait in UntilHeld()) yield return wait;
+            var window = TourWindow();
+            foreach (int wait in Settle(window, 30)) yield return wait;
+            window.LoadSet(set.id);
+            window.ShowMode("Shoot");
+            window.Scrub(set.Frames / 3);
+            window.RebuildAll();
+            foreach (int wait in Settle(window)) yield return wait;
+            foreach (int wait in ReviewMomentPair(window, name =>
+            {
+                bool saved = Shoot(window, name);
+                Result("Shoot editor screenshot captures the synchronized review panel", saved, name + ".png");
+            }, (_, button) => SubmitButton(button))) yield return wait;
+        }
+
+        static IEnumerable<int> ReviewMomentPair(TrailerStudioWindow window, Action<string> take, Action<string, Button> activate)
+        {
+            var context = window.Context;
+            var stage = context.Stage;
+            var set = context.Set;
+            var tape = stage.tape;
+            var actor = set.marks.FirstOrDefault(mark => mark.role != StudioRole.Hand &&
+                StudioActorPoses.At(tape, mark.id, context.Frame / (float)set.fps, set.fps).found);
+            if (actor == null)
+            {
+                Result("Shoot previews one synchronized moment from both angles", false, "No recorded survivor at the chosen frame.");
+                yield break;
+            }
+            int frame = context.Frame;
+            var witnessKey = StudioCameras.KeyFromView(stage, new StudioCameraTrack(), frame / (float)set.fps);
+            witnessKey.aperture = 16;
+            StudioMoment moment = null;
+            // A native popup owns POV selection. Seed the same saved record and exercise the review controls on the live panel.
+            context.Edit("Prepare the synchronized review fixture", () =>
+            {
+                moment = StudioMoments.Create(set, tape, frame, actor, witnessKey);
+                moment.name = "Synchronized review fixture";
+            });
+            var picker = window.rootVisualElement.Q<PopupField<StudioMoment>>();
+            if (picker != null) picker.value = moment;
+            var pov = set.cameras.Single(camera => camera.id == moment.pov);
+            var witness = set.cameras.Single(camera => camera.id == moment.witness);
+            var observed = new Dictionary<string, List<int>>();
+            void Rendered(Camera camera)
+            {
+                var shot = StudioRender.CurrentShot;
+                if (shot == null) return;
+                if (!observed.TryGetValue(shot.id, out var frames))
+                    observed[shot.id] = frames = new List<int>();
+                frames.Add(StudioRun.Frame);
+            }
+            var render = ModeButtons(window).FirstOrDefault(button => button.text == "Compare reference frame");
+            bool enabled = render?.enabledInHierarchy == true;
+            StudioRender.BeforeFrame += Rendered;
+            try
+            {
+                if (enabled) activate("render the selected synchronized reference", render);
+                foreach (int wait in WaitForMomentRender()) yield return wait;
+            }
+            finally { StudioRender.BeforeFrame -= Rendered; }
+            var reference = StudioMoments.ReadReview(set, moment, tape, pov, witness);
+            bool exact = enabled && reference?.referenceFrame == frame && reference.frames == 1 &&
+                observed.TryGetValue(pov.id, out var povFrames) && povFrames.SequenceEqual(new[] { frame }) &&
+                observed.TryGetValue(witness.id, out var witnessFrames) && witnessFrames.SequenceEqual(new[] { frame });
+            bool png = reference != null && ReviewImagesDiffer(set, moment, reference, 0);
+            Result("Shoot renders the selected reference from the same live tape frame", exact && png,
+                $"Reference {frame}. Render frame log: {string.Join(" · ", observed.Select(pair => pair.Key + "=" + string.Join(",", pair.Value)))}. Distinct rendered PNGs: {png}.");
+
+            observed.Clear();
+            var motion = ModeButtons(window).FirstOrDefault(button => button.text == "Compare in motion");
+            bool motionEnabled = motion?.enabledInHierarchy == true;
+            StudioRender.BeforeFrame += Rendered;
+            try
+            {
+                if (motionEnabled) activate("render the selected synchronized proxy", motion);
+                foreach (int wait in WaitForMomentRender()) yield return wait;
+            }
+            finally { StudioRender.BeforeFrame -= Rendered; }
+            var proxy = StudioMoments.ReadReview(set, moment, tape, pov, witness, true);
+            var scrub = window.rootVisualElement.Query<SliderInt>().ToList().FirstOrDefault(slider => slider.tooltip == "Scrub both angles together");
+            bool sameFrames = motionEnabled && proxy?.fps == 12 && proxy.frames > 1 &&
+                observed.TryGetValue(pov.id, out var motionPov) && observed.TryGetValue(witness.id, out var motionWitness) &&
+                motionPov.Count == proxy.frames && motionPov.SequenceEqual(motionWitness) && motionPov.First() < motionPov.Last();
+            bool scrubbedBoth = false;
+            if (scrub != null && proxy != null)
+            {
+                var images = scrub.parent.Query<Image>().ToList();
+                int last = proxy.frames - 1;
+                scrub.value = last;
+                foreach (int wait in Settle(window)) yield return wait;
+                var after = images.Skip(Math.Max(0, images.Count - 2)).Select(image => image.image as Texture2D).ToArray();
+                scrubbedBoth = scrub.value == last && after.Length == 2 && ReviewImagesDiffer(set, moment, proxy, last, after);
+                if (scrubbedBoth)
+                {
+                    window.rootVisualElement.Q("mode-panel")?.GetFirstAncestorOfType<ScrollView>()?.ScrollTo(scrub);
+                    foreach (int wait in Settle(window)) yield return wait;
+                    take("09b-shoot-synchronized-moment");
+                }
+            }
+            Result("Shoot proxy and editor scrub keep both live angles synchronized", sameFrames && scrubbedBoth,
+                $"Proxy frames {proxy?.frames ?? 0}. Matching renderer frame sequences: {sameFrames}. Both displayed images updated: {scrubbedBoth}. Files: {StudioMoments.Folder(set, moment)}.");
+        }
+
+        static IEnumerable<int> WaitForMomentRender()
+        {
+            double deadline = EditorApplication.timeSinceStartup + 60;
+            while (StudioRender.Running && EditorApplication.timeSinceStartup < deadline) yield return 0;
+            if (StudioRender.Running) throw new TimeoutException("The synchronized moment render did not finish.");
+            yield return 0;
+        }
+
+        static bool ReviewImagesDiffer(StudioSet set, StudioMoment moment, StudioMoments.Review review, int frame, Texture2D[] displayed = null)
+        {
+            var textures = new[] { new Texture2D(2, 2), new Texture2D(2, 2) };
+            try
+            {
+                string root = StudioMoments.Folder(set, moment);
+                var files = new[] { review.povImage, review.witnessImage };
+                for (int i = 0; i < files.Length; i++)
+                {
+                    string path = Path.Combine(root, Path.GetDirectoryName(files[i]), $"{frame:D05}.png");
+                    if (!File.Exists(path) || !textures[i].LoadImage(File.ReadAllBytes(path)) || textures[i].width < 64 || textures[i].height < 64)
+                        return false;
+                    if (displayed != null && (displayed[i] == null || !displayed[i].GetPixels32().SequenceEqual(textures[i].GetPixels32())))
+                        return false;
+                }
+                var a = textures[0].GetPixels32();
+                var b = textures[1].GetPixels32();
+                return a.Length == b.Length && a.Where((_, i) => i % 97 == 0).Distinct().Count() > 8 &&
+                    b.Where((_, i) => i % 97 == 0).Distinct().Count() > 8 &&
+                    a.Zip(b, (left, right) => !left.Equals(right)).Count(changed => changed) > a.Length / 20;
+            }
+            finally { foreach (var texture in textures) UnityEngine.Object.DestroyImmediate(texture); }
+        }
+
         static void ClickStagePicture(StudioViewport viewport)
         {
             var target = viewport.Host;

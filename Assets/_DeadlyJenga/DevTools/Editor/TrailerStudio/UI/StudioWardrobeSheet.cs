@@ -45,22 +45,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var panel = rootVisualElement;
             panel.Clear();
             if (context?.Set == null || context.Set.id != setId) { panel.Add(new Label("Open a contact sheet from the current set.")); return; }
-            var marks = context.Set.marks.Where(m => m.role != StudioRole.Hand && (string.IsNullOrEmpty(group) || m.crowdGroup == group))
-                .OrderByDescending(m => m.heroLocked).ThenBy(m => string.IsNullOrEmpty(m.crowdGroup) ? 0 : 1).ToArray();
-            if (marks.Length == 0) { panel.Add(new Label("Place a survivor before opening the wardrobe sheet.")); return; }
+            var pages = BuildPages(context.Set, group);
+            if (pages.Count == 0) { panel.Add(new Label("Place a survivor before opening the wardrobe sheet.")); return; }
             var rigPrefab = Resources.Load<CandyPlayerRig>("CandyPlayerVisual");
             if (!rigPrefab) { panel.Add(new Label("The project's survivor visual prefab could not be loaded.")); return; }
-            var hero = context.Set.marks.FirstOrDefault(m => m.heroLocked && m.role != StudioRole.Hand);
-            var others = marks.Where(m => m != hero).ToArray();
-            int capacity = hero == null ? PageSize : PageSize - 1;
-            int pages = Mathf.Max(1, Mathf.CeilToInt(others.Length / (float)capacity));
-            page = Mathf.Clamp(page, 0, pages - 1);
+            page = Mathf.Clamp(page, 0, pages.Count - 1);
             var header = StudioUi.Row();
             var prev = new Button(() => { page--; Draw(); }) { text = "Previous" };
             var next = new Button(() => { page++; Draw(); }) { text = "Next" };
             prev.SetEnabled(page > 0);
-            next.SetEnabled(page + 1 < pages);
-            header.Add(prev); header.Add(new Label($"Page {page + 1} of {pages}")); header.Add(next);
+            next.SetEnabled(page + 1 < pages.Count);
+            header.Add(prev); header.Add(new Label($"Page {page + 1} of {pages.Count}")); header.Add(next);
             panel.Add(header);
             var sun = context.Stage?.set.id == setId ? RenderSettings.sun : null;
             if (sun && !sun.isActiveAndEnabled) sun = null;
@@ -76,9 +71,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             grid.style.flexWrap = Wrap.Wrap;
             scroll.Add(grid);
             panel.Add(scroll);
-            var visible = others.Skip(page * capacity).Take(capacity);
-            if (hero != null) visible = new[] { hero }.Concat(visible);
-            foreach (var mark in visible)
+            foreach (var mark in pages[page])
             {
                 var card = new VisualElement();
                 card.style.width = 156;
@@ -89,7 +82,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var wardrobe = Appearance(mark, context.Tape);
                 try
                 {
-                    var texture = Render(rigPrefab, wardrobe.look, wardrobe.color, mapLight ? sun : null);
+                    var texture = RenderPortrait(rigPrefab, wardrobe.look, wardrobe.color, mapLight ? sun : null);
                     if (texture)
                     {
                         portraits.Add(texture);
@@ -111,6 +104,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 }) { text = "Edit wardrobe" });
                 grid.Add(card);
             }
+        }
+
+        internal static List<StudioMark[]> BuildPages(StudioSet set, string group)
+        {
+            var marks = set.marks.Where(m => m.role != StudioRole.Hand && (string.IsNullOrEmpty(group) || m.crowdGroup == group))
+                .OrderByDescending(m => m.heroLocked).ThenBy(m => string.IsNullOrEmpty(m.crowdGroup) ? 0 : 1).ToArray();
+            var pages = new List<StudioMark[]>();
+            if (marks.Length == 0) return pages;
+            var hero = set.marks.FirstOrDefault(m => m.heroLocked && m.role != StudioRole.Hand);
+            var others = marks.Where(m => m != hero).ToArray();
+            int capacity = hero == null ? PageSize : PageSize - 1;
+            for (int i = 0; i < Mathf.Max(1, others.Length); i += capacity)
+            {
+                var page = others.Skip(i).Take(capacity);
+                if (hero != null) page = new[] { hero }.Concat(page);
+                pages.Add(page.ToArray());
+            }
+            return pages;
         }
 
         internal static (AvatarAppearance look, int color, EquipmentKind gear) Appearance(StudioMark mark, StudioTape tape)
@@ -138,7 +149,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return (look, color, gear);
         }
 
-        static Texture2D Render(CandyPlayerRig prefab, AvatarAppearance look, int color, Light sun)
+        internal static Texture2D RenderPortrait(CandyPlayerRig prefab, AvatarAppearance look, int color, Light sun)
         {
             var preview = new PreviewRenderUtility();
             try
