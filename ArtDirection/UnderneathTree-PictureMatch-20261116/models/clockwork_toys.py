@@ -7,11 +7,11 @@ from shelf_toys import (BLACK, BLUE, BROWN, CREAM, GOLD, GREEN, NAVY, ORANGE,
 BRASS = "Stamped brass"
 
 
-def winding_key(socket, scale, yaw=0):
+def winding_key(socket, scale, yaw=0, pitch=0):
     first = len(parts)
     stamped_key()
     transform = (Matrix.Translation(Vector(socket)) @ Matrix.Rotation(math.radians(yaw), 4, "Z")
-                 @ Matrix.Scale(scale, 4) @ Matrix.Translation(Vector((0, -1.16, -2.69))))
+                 @ Matrix.Rotation(pitch, 4, "X") @ Matrix.Scale(scale, 4) @ Matrix.Translation(Vector((0, -1.16, -2.69))))
     for obj in parts[first:]:
         obj.matrix_world = transform @ Matrix.LocRotScale(obj.location, obj.rotation_euler, obj.scale)
 
@@ -46,7 +46,9 @@ def monkey():
 
 
 def frog():
-    oval((0,.05,.94),(2.34,2.52,1.47),GREEN)
+    body_center = Vector((0, .05, .94))
+    body_size = Vector((2.34, 2.52, 1.47))
+    oval(body_center, body_size, GREEN)
     oval((0,-.87,1.21),(2.13,1.20,1.17), "Lime ABS")
     oval((0,-1.2,1.01),(1.75,.64,.33),CREAM)
     for s in (-1,1):
@@ -60,7 +62,13 @@ def frog():
         for i in range(3):
             oval((s*(.42+.12*i),.38+i*.24,1.59-i*.13),(.23,.31,.095),TEAL)
     eyes(.62,-1.245,1.88,.27)
-    winding_key((0, .61, 1.54), .65)
+    # The collar sits on the upper rear ellipse; the shaft follows its surface normal.
+    ry, rz = body_size.y / 2, body_size.z / 2
+    dz = 1.54 - body_center.z
+    dy = ry * math.sqrt(1 - (dz / rz)**2)
+    surface = body_center + Vector((0, dy, dz))
+    normal = Vector((0, dy / ry**2, dz / rz**2)).normalized()
+    winding_key(surface - .19 * normal, .65, pitch=math.atan2(normal.z, normal.y))
 
 
 def drummer():
