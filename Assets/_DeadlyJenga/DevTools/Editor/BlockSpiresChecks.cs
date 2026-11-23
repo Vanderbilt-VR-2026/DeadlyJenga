@@ -51,7 +51,9 @@ namespace DeadlyJenga.DevTools.Editor
             if (state == PlayModeStateChange.EnteredEditMode)
             {
                 SessionState.EraseBool(Key);
-                EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key + "Scenes", "")).values);
+                var previous = JsonUtility.FromJson<Scenes>(SessionState.GetString(Key + "Scenes", "")).values;
+                if (previous.Any(scene => scene.isActive && !string.IsNullOrEmpty(scene.path)))
+                    EditorSceneManager.RestoreSceneManagerSetup(previous);
                 int exitCode = SessionState.GetBool(Key + "Passed", false) ? 0 : 2;
                 if (SessionState.GetString("DJWarm.id", "") != "")
                 {
@@ -102,8 +104,8 @@ namespace DeadlyJenga.DevTools.Editor
             var player = (CastleSurvivor)session.Player;
             var layout = BlockSpiresLayout.Build();
             var bodies = map.Bodies;
-            Check(bodies.Count == layout.Count && bodies.All(b => !b.isKinematic && b.GetComponent<CastleBlock>().CanClimb),
-                $"{bodies.Count} independent dynamic climbable blocks");
+            Check(bodies.Count == layout.Count && bodies.All(b => b.GetComponent<MagneticBlock>().Supported && b.GetComponent<CastleBlock>().CanClimb),
+                $"{bodies.Count} individually supported climbable blocks");
             float end = Time.fixedTime + 4;
             while (Time.fixedTime < end) yield return null;
             float drift = bodies.Select((b,i) => Vector3.Distance(b.position, map.transform.TransformPoint(layout[i].Position))).Max();
@@ -116,29 +118,32 @@ namespace DeadlyJenga.DevTools.Editor
             wide.enabled = false;
             wide.CopyFrom(session.ActiveCamera);
             wide.enabled = false;
-            wide.transform.position = new Vector3(4.7f,28,-8.03f);
-            wide.transform.LookAt(new Vector3(0,19,0));
-            wide.fieldOfView = 93;
+            wide.transform.position = new Vector3(6.5f,30,-12f);
+            wide.transform.LookAt(new Vector3(0,16.5f,0));
+            wide.fieldOfView = 77;
             Capture(wide, "wide");
             UnityEngine.Object.Destroy(wide.gameObject);
 
-            player.Place(map.SafeSpawnPoint(), Quaternion.Euler(0,160,0));
+            player.Place(new Vector3(-1.5f * BlockSpiresLayout.Pitch,25.08f,-.5f * BlockSpiresLayout.Pitch), Quaternion.Euler(0,60,0));
             yield return null;
             player.viewCamera.transform.localRotation = Quaternion.Euler(32,0,0);
             Capture(player.viewCamera, "summit");
-            // One placement at the foot of the lowest attached column. Every subsequent rise uses the motor.
-            player.Teleport(new Vector3(.5f * BlockSpiresLayout.Pitch, .15f, 3.5f * BlockSpiresLayout.Pitch + .5f + player.Capsule.radius + .04f),
+            // Start on the first cube above lethal sand and climb the remaining landings.
+            player.Teleport(new Vector3(.5f * BlockSpiresLayout.Pitch, 1.06f, 4.5f * BlockSpiresLayout.Pitch),
                 Quaternion.LookRotation(Vector3.back));
             player.viewCamera.transform.localRotation = Quaternion.identity;
             bool enabled = player.enabled;
             player.enabled = false;
-            bool grabbed = false, pictured = false;
+            bool grabbed = false, pictured = false, respawned = false;
+            void TrackRespawn(GameObject who, GameObject source) { if (who == player.gameObject) respawned = true; }
+            GameEvents.Eliminated += TrackRespawn;
             try
             {
                 foreach (float height in new[] {5f,12f,19f,26f})
                 {
-                    for (int i = 0; i < 800 && player.FootPosition.y < height - .12f; i++)
+                    for (int i = 0; i < 800 && !respawned && !(player.Grounded && player.FootPosition.y >= height - .12f); i++)
                     {
+                        player.InputSuspended = false;
                         player.Simulate(Vector2.up, false, .02f, true);
                         grabbed |= player.Climbing;
                         if (i % 12 == 0) yield return null;
@@ -150,21 +155,23 @@ namespace DeadlyJenga.DevTools.Editor
                             pictured = true;
                         }
                     }
-                    Check(player.FootPosition.y >= height - .12f, $"Climb to {height} m, feet {player.FootPosition}");
-                    if (player.FootPosition.y < height - .12f) break;
+                    Check(!respawned && player.Grounded && player.FootPosition.y >= height - .12f, $"Climb to {height} m, feet {player.FootPosition}");
+                    if (respawned || !player.Grounded || player.FootPosition.y < height - .12f) break;
                     for (int i = 0; i < 420; i++)
                     {
                         player.Simulate(Vector2.zero, false, .02f);
                         if (i % 24 == 0) yield return null;
                     }
                 }
-                Check(grabbed && pictured && player.Grounded && player.FootPosition.y >= 25.8f, "Motor reached the stepped summit");
+                Check(!respawned && grabbed && pictured && player.Grounded && player.FootPosition.y >= 25.8f, "Motor reached the stepped summit");
             }
-            finally { player.enabled = enabled; }
+            finally { GameEvents.Eliminated -= TrackRespawn; player.enabled = enabled; }
             if (!pictured)
             {
                 // An independently staged grip view is still useful when the continuous route fails.
-                player.Teleport(new Vector3(2.25f,17,-.52f), Quaternion.LookRotation(Vector3.left));
+                player.Teleport(new Vector3(2.04f + player.Capsule.radius + .04f,17,-.52f), Quaternion.LookRotation(Vector3.left));
+                player.viewCamera.transform.localRotation = Quaternion.identity;
+                player.InputSuspended = false;
                 for (int i = 0; i < 20 && !player.Climbing; i++) player.Simulate(Vector2.up,false,.02f,true);
                 Check(player.Climbing, "Staged upper-wall grip");
                 player.viewCamera.transform.localRotation = Quaternion.Euler(22,62,0);
@@ -176,7 +183,7 @@ namespace DeadlyJenga.DevTools.Editor
             bodies[support].GetComponent<CastleBlock>().Push(Vector3.right * 11, player.gameObject);
             end = Time.fixedTime + 2;
             while (Time.fixedTime < end) yield return null;
-            Check(upper.position.y < initialHeight - .35f, $"Satellite after support push: drop {initialHeight - upper.position.y:F3} m");
+            Check(!upper.isKinematic && upper.position.y < initialHeight - .35f, $"Satellite after support push: drop {initialHeight - upper.position.y:F3} m");
             int revision = map.Revision;
             session.ResetMap();
             yield return null;
@@ -202,6 +209,8 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void Capture(Camera camera, string name)
         {
+            var canvases = UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None).Where(c => c.enabled).ToArray();
+            foreach (var canvas in canvases) canvas.enabled = false;
             var old = camera.targetTexture;
             var active = RenderTexture.active;
             var target = RenderTexture.GetTemporary(1600,900,24);
@@ -217,6 +226,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
             finally
             {
+                foreach (var canvas in canvases) if (canvas) canvas.enabled = true;
                 camera.targetTexture = old;
                 RenderTexture.active = active;
                 RenderTexture.ReleaseTemporary(target);

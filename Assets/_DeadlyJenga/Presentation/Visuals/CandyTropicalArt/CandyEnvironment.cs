@@ -148,7 +148,7 @@ namespace DeadlyJenga.CandyArt
             var terrain=sandRenderer.GetComponent<CandySandbar>();
             if(terrain&&!openWater)
             {
-                terrain.CatwalksBeach=UsesCastleCoast && MatchChoices.MapId != "block-spires";
+                terrain.CatwalksBeach=UsesCastleCoast;
                 terrain.CompactSandbar = UsesCastleCoast && MatchChoices.MapId == "block-spires";
                 terrain.BeachWaterOffset=waterLevel-sandTop;
                 terrain.profile=profile;var baseline=GetComponent<CandyArtBaseline>();

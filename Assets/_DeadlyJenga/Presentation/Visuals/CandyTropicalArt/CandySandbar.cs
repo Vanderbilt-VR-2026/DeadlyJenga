@@ -122,7 +122,7 @@ namespace DeadlyJenga.CandyArt
             if(shape!=null){ground.Clear();shape.GetGroundFootprints(ground);
                 foreach(var piece in ground)feet.Add(new Foot{center=piece.center,half=piece.halfSize,rotation=Quaternion.Inverse(piece.rotation)});}
             if(CatwalksBeach) coastHalf=CastleCoastRadii(half);
-            if(CompactSandbar) coastHalf=new Vector2(half+1.4f,half+.4f);
+            if(CompactSandbar) coastHalf=new Vector2(half+2.2f,half+1.9f);
             HalfSize=coastHalf+Vector2.one*(CatwalksBeach?56f:profile.sandShoreWidth);
             BuildMesh();signature=hash;
         }

@@ -18,7 +18,8 @@ namespace DeadlyJenga.CastlePrototype
             { 24, 26, 26, 25 },
             { 22, 24, 19, 22 },
             {  0,  0, 12,  0 },
-            {  0,  0,  5,  0 }
+            {  0,  0,  5,  0 },
+            {  0,  0,  1,  0 }
         };
         // Independent needles. The tallest are behind the crown in the wide view.
         static readonly Vector3Int[] Satellites = {
@@ -28,6 +29,24 @@ namespace DeadlyJenga.CastlePrototype
             new(-2,20,6), new(-4,26,4), new(-6,22,2), new(-8,16,1),
             new(-5,7,-1), new(4,9,-2)
         };
+
+        internal static MagneticStructure BuildSupports(Transform root, List<CastlePlacement> layout,
+            IReadOnlyList<Rigidbody> bodies)
+        {
+            var structure = root.gameObject.AddComponent<MagneticStructure>();
+            structure.UseBatchedBreakaway();
+            for (int i = 0; i < bodies.Count; i++)
+            {
+                bool baseCube = layout[i].Course == 0;
+                var support = bodies[i].gameObject.AddComponent<MagneticBlock>();
+                support.foundationAnchor = baseCube;
+                support.breakawayResistance = baseCube ? 9 : 5;
+                structure.Add(support);
+                if (!baseCube) structure.Connect(i - 1, i);
+            }
+            structure.Recompute();
+            return structure;
+        }
 
         public static List<CastlePlacement> Build()
         {
