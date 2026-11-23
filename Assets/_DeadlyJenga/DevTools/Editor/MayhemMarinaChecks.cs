@@ -916,6 +916,36 @@ namespace DeadlyJenga.DevTools.Editor
                 }
         }
 
+        static void CheckReviewedShrine(CastleGenerator map)
+        {
+            var scene = map.gameObject.scene.GetPhysicsScene();
+            var origin = map.transform;
+            var hall = map.Bodies.Take(47).ToArray();
+            Check(hall.Length == 47 && hall.All(body => body && !body.isKinematic &&
+                body.transform.Find("Reviewed shrine art origin").TryGetComponent<MeshRenderer>(out var renderer) &&
+                renderer.enabled), "Reviewed Blender hall has 47 separate dynamic body-owned meshes");
+            for (int i = 0; i < 22; i++)
+            {
+                float z = 1.08f + i*.36f;
+                float y = (i+1)*4f/22;
+                Check(scene.Raycast(origin.TransformPoint(new Vector3(0,y+.33f,z)),Vector3.down,out var hit,.65f,
+                    1<<Layers.Surface,QueryTriggerInteraction.Ignore) && Climbables.TryGet(hit.collider,out var tread) &&
+                    tread.Body == hall[i+1], "Independent climbable stair tread " + (i+1));
+            }
+            foreach (float z in new[] { 8.93f, 9.35f, 11.9f, 12.48f, 15.5f, 20f, 22.24f, 22.6f, 22.96f, 25f })
+            {
+                var at = origin.TransformPoint(new Vector3(0,5.2f,z));
+                Check(scene.Raycast(at,Vector3.down,out var hit,1.4f,1<<Layers.Surface,QueryTriggerInteraction.Ignore) &&
+                    Climbables.TryGet(hit.collider,out var surface) && (surface.Body == hall[0] || surface.Body == hall[23]),
+                    "Supported center aisle at z=" + z);
+            }
+            Check(scene.Raycast(origin.TransformPoint(new Vector3(0,.75f,1.08f)),Vector3.down,out var slope,.6f,
+                1<<Layers.Surface,QueryTriggerInteraction.Ignore) && slope.normal.y > .84f && slope.normal.y < .95f,
+                "Main steps present a walkable slope to the half-scale survivor");
+            Check(!scene.Raycast(origin.TransformPoint(new Vector3(0,4.85f,9.5f)),origin.forward,17,
+                1<<Layers.Surface,QueryTriggerInteraction.Ignore), "Main portal remains open to the altar");
+        }
+
         static void CheckShrineTraversal(CastleGenerator map,List<CastlePlacement> layout)
         {
             var roof = map.Bodies[layout.FindIndex(p => p.Position.x == 10 && p.Position.z == -29 && Mathf.Abs(p.Size.y-1.25f)<.01f)];
@@ -1178,6 +1208,7 @@ namespace DeadlyJenga.DevTools.Editor
                 14,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore) && Mathf.Abs(spawn.y-spawnHit.point.y-.12f)<.04f,
                 "Survivor spawn is above the exposed roof surface");
             CheckShrineTraversal(generator,layout);
+            CheckReviewedShrine(generator);
             captureOrigin=world.Center;
             var fog=Shader.GetGlobalVector("_NinjaFogParams");
             bool sceneFog=RenderSettings.fog;
@@ -1191,6 +1222,10 @@ namespace DeadlyJenga.DevTools.Editor
                 Capture(new Vector3(5,51,-159),new Vector3(0,11,2),32,"ShrineTown-TowerSkyline.png");
                 Capture(new Vector3(-6,2.5f,-35),new Vector3(-10,2.5f,-32),65,"ShrineTown-ShopDetail.png");
                 Capture(new Vector3(0,2,-40),new Vector3(0,8,21),68,"ShrineTown-Market.png");
+                Capture(generator.transform.TransformPoint(new Vector3(2.08f,1.085f,-1.34f))-captureOrigin,
+                    generator.transform.TransformPoint(new Vector3(.10f,6.03f,10.8f))-captureOrigin,68,"ShrineTown-Reviewed-Ascent.png");
+                Capture(generator.transform.TransformPoint(new Vector3(-1.66f,4.93f,15.73f))-captureOrigin,
+                    generator.transform.TransformPoint(new Vector3(.2f,6.27f,25))-captureOrigin,57,"ShrineTown-Reviewed-Altar.png");
             }
             finally {Shader.SetGlobalVector("_NinjaFogParams",fog);RenderSettings.fog=sceneFog;}
             Check(drift.distance < .12f, "Intact town settled within tolerance, max drift " + drift.distance);
@@ -1206,6 +1241,14 @@ namespace DeadlyJenga.DevTools.Editor
             shopRoof.WakeUp();
             yield return Wait(2);
             Check(roofY - shopRoof.position.y > 2, "Shop roof falls after its supports are removed");
+            var shrineRoof = generator.Bodies[24];
+            var shrineStart = shrineRoof.position;
+            for (int i = 26; i < 47; i++) generator.Bodies[i].gameObject.SetActive(false);
+            shrineRoof.WakeUp();
+            yield return Wait(1.5f);
+            Check(shrineStart.y-shrineRoof.position.y > 2 &&
+                shrineRoof.transform.Find("Reviewed shrine art origin").GetComponent<MeshRenderer>().enabled,
+                "Reviewed shrine roof and attached art fall together when the timber frame loses support");
             if(System.Environment.GetCommandLineArgs().Contains("-playRotationSurvival"))
             {
                 yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("Home");

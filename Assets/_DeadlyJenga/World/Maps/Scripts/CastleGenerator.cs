@@ -416,8 +416,13 @@ namespace DeadlyJenga.CastlePrototype
                 var size=p.BlockSize(settings);
                 if (settings.layoutPreset == ShrineTownLayout.Preset)
                 {
-                    ShrineTownLayout.AddRoofColliders(body,size);
-                    if (block) ShrineTownLayout.AddRoofTraversal(block,size);
+                    if (Bodies.Count < ShrineReviewedStructure.BodyCount)
+                        ShrineReviewedStructure.Configure(Bodies.Count, body, block, p.Position);
+                    else
+                    {
+                        ShrineTownLayout.AddRoofColliders(body,size);
+                        if (block) ShrineTownLayout.AddRoofTraversal(block,size);
+                    }
                 }
                 float volumeRatio=size.x*size.y*size.z/(settings.blockSize.x*settings.blockSize.y*settings.blockSize.z);
                 // Temple decks represent timber framing with a hollow tiled roof.
@@ -431,7 +436,10 @@ namespace DeadlyJenga.CastlePrototype
                 Bodies.Add(body);
             }
             if (Application.isPlaying && settings.layoutPreset == ShrineTownLayout.Preset)
+            {
+                ShrineReviewedStructure.JoinFrames(Bodies);
                 ShrineTownLayout.JoinTimberFrames(layout, Bodies);
+            }
             Physics.SyncTransforms();
             if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)
                 tycoonSupports = TycoonSupports.Build(generatedRoot, Bodies);

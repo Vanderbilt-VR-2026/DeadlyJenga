@@ -16,11 +16,7 @@ namespace DeadlyJenga.CastlePrototype
         public static List<CastlePlacement> Build(Transform supports = null)
         {
             var town = new ShrineTownLayout(supports);
-            // Street runs north from the gate to the five-bay worship hall.
-            town.Box(0, 0, 20, 41, 4, 22, CastleSection.Keep);
-            for (int i = 0; i < 8; i++)
-                town.Box(0, 0, 1.5f + i, 11, (i + 1) * .5f, 1, CastleSection.Keep);
-            town.Hall(0, 20, 36, 17, 4, 8, 2, 6);
+            ShrineReviewedStructure.AddHall(town.Box);
             town.Hall(-32, 27, 10, 10, 0, 5, 3, 2, true);
             town.Hall(34, 16, 10, 10, 0, 3.1f, 4, 2);
             town.Hall(-30, -2, 19, 13, 0, 5.25f, 2, 3);
@@ -64,7 +60,7 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
-        static void Join(Rigidbody beam, Rigidbody post)
+        internal static void Join(Rigidbody beam, Rigidbody post)
         {
             var joint = beam.gameObject.AddComponent<FixedJoint>();
             joint.anchor = beam.transform.InverseTransformPoint(post.transform.TransformPoint(Vector3.up * .5f));
@@ -281,7 +277,7 @@ namespace DeadlyJenga.CastlePrototype
             return shape;
         }
 
-        static void ColliderBox(Transform parent,string name,Vector3 at,Vector3 size,Quaternion rotation)
+        internal static void ColliderBox(Transform parent,string name,Vector3 at,Vector3 size,Quaternion rotation)
         {
             Shape(parent,name,at,rotation).gameObject.AddComponent<BoxCollider>().size = size;
         }
