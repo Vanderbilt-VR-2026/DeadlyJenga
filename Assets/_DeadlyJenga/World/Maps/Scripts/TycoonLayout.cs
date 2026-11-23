@@ -47,7 +47,7 @@ namespace DeadlyJenga.CastlePrototype
             // A cross beam and separate planks carry each bay above the lethal sand.
             for (int bay = -2; bay <= 2; bay++)
                 PlankBay(plan, bay * 13, 7, -37, 13, 15, CastleSection.Wall, TycoonDeckFinish.Peach);
-            Deck(plan, green, -40, 7, -35, 12, 7, TycoonDeckFinish.Basin);
+            Deck(plan, green, -40, 7, -34.5f, 12, 8, TycoonDeckFinish.Basin);
             Pier(plan,green,-40,6.4f,-35,5);
             Segment(plan, green, 5, P(-34,7,-35), P(-32.5f,7,-35));
 
@@ -63,7 +63,9 @@ namespace DeadlyJenga.CastlePrototype
             }
             Walk(plan,5,P(-8,7,-39),P(-18,12,-38),P(-18,18.6f,-27.5f));
             Walk(plan,4,P(8,7,-39),P(18,12,-38),P(18,18.6f,-27.5f));
-            Route(plan, purple, 5, P(0,18.6f,-20.5f), P(0,18,-12), P(8,18,-6));
+            LandedRoute(plan, purple, 5, TycoonDeckFinish.OpenDeck,
+                new[] { P(0,18.6f,-20.5f), P(0,18,-12), P(8,18,-6) },
+                end: (P(6.38f,18,-5.92f), P(10.85f,18,-5.92f)));
             Deck(plan,red,23,18.6f,-24,2,7);
             // Seat courses double as ledges; the side ramp bypasses the steeper climb.
             for (int row = 0; row < 6; row++)
@@ -83,14 +85,19 @@ namespace DeadlyJenga.CastlePrototype
             // Shaded lower route and a broad upper sundeck connect to the east terrace.
             PlankBay(plan,32,12,-13,18,18,green,TycoonDeckFinish.Mint);
             PlankBay(plan,32,24,-13,18,18,green,TycoonDeckFinish.Mint,12);
-            Deck(plan,green,27,24.6f,-7,9,4,TycoonDeckFinish.Basin);
+            Deck(plan,green,27,24.6f,-6.8f,9,4.4f,TycoonDeckFinish.Basin);
             Deck(plan,green,36,24.6f,-20,7,4,TycoonDeckFinish.Basin);
             Deck(plan,green,32,24.6f,-13,4,4,TycoonDeckFinish.Parasol);
             Terrace(plan);
             Walk(plan,4,P(40,18,-32),P(48,20,-32),P(48,22,-16),P(41,24,-16));
-            Route(plan,red,5,P(24,18.6f,-24),P(28,18,-29));
+            LandedRoute(plan, red, 5, TycoonDeckFinish.OpenDeck,
+                new[] { P(24,18.6f,-24), P(28,18,-28) },
+                start: (P(23.92f,18.6f,-21.65f), P(23.92f,18.6f,-26.35f)),
+                end: (P(29.95f,18,-28.08f), P(26.05f,18,-28.08f)));
             Route(plan,green,4,P(25,12,-22),P(24,9,-27),P(24,7,-30));
-            Route(plan,purple,4,P(23,24,-8),P(16,24,-8),P(-8,24,-12),P(-9,24,-6));
+            LandedRoute(plan, purple, 4, TycoonDeckFinish.OpenDeck,
+                new[] { P(23,24,-8), P(16,24,-8), P(-8,24,-12), P(-9,24,-6) },
+                end: (P(-11,24,-5.92f), P(-6.38f,24,-5.92f)));
             Deck(plan,red,-27,7.6f,-40,6,4,TycoonDeckFinish.Awning);
             Deck(plan,purple,0,60,7.25f,24,4,TycoonDeckFinish.Bucket);
             return plan;
@@ -231,7 +238,8 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         static void LandedRoute(List<CastlePlacement> plan, CastleSection section, float width,
-            TycoonDeckFinish finish, Vector3[] points)
+            TycoonDeckFinish finish, Vector3[] points,
+            (Vector3 left, Vector3 right)? start = null, (Vector3 left, Vector3 right)? end = null)
         {
             var half = new float[points.Length];
             Vector3 Flat(Vector3 delta) => new Vector3(delta.x,0,delta.z);
@@ -257,7 +265,10 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 var a=Lip(i-1,direction,-1); var b=Lip(i-1,direction,1);
                 var c=Lip(i,-direction,-1); var e=Lip(i,-direction,1);
-                AddPanel(plan,section,width,finish,a,b,c,e);
+                if (i == 1 && start.HasValue) (a, b) = start.Value;
+                if (i == points.Length-1 && end.HasValue) (c, e) = end.Value;
+                var shapedBridge = (i == 1 && start.HasValue) || (i == points.Length-1 && end.HasValue);
+                AddPanel(plan,section,width,shapedBridge ? TycoonDeckFinish.Bridge : finish,a,b,c,e);
             }
         }
 
