@@ -129,6 +129,7 @@ namespace DeadlyJenga.Presentation
             if(!active)return;
             if(hidCityGround && ground) ground.forceRenderingOff=oldGroundOff;
             hidCityGround=false;
+            ClearCloudMist();
             EndLighting();ClearBodyArt();foreach(var pair in originals)if(pair.Key)pair.Key.sharedMaterials=pair.Value;originals.Clear();
             foreach(var go in ownedObjects)if(go)Release(go);ownedObjects.Clear();
             foreach(var mesh in ownedMeshes)if(mesh)Release(mesh);ownedMeshes.Clear();

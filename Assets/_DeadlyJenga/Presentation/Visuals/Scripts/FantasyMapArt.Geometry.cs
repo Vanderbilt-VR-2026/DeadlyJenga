@@ -95,6 +95,7 @@ namespace DeadlyJenga.Presentation
                 renderer.sharedMaterial=surface;
                 renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
                 ownedObjects.Add(bank);
+                BuildCloudMist(bank.GetComponentInChildren<MeshFilter>());
             }
             else BuildPuffSkirt(blue,pink);
             if(texturedEnvironmentSky||(theme==FantasyMapTheme.Carnival&&texturedCarnivalSky))return;

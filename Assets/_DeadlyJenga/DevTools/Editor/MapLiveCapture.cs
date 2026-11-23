@@ -127,6 +127,57 @@ namespace DeadlyJenga.DevTools.Editor
                 new[]{"reference","resident-party"});
         }
 
+        public static void CaptureCloudCityFalls()
+        {
+            BatchMaps(new[]{"epic-candy-sky-ring-city"}, Path.GetFullPath(Path.Combine("Logs","Captures","CloudCityFalls")),
+                new[]{"reference","cloud-fall-inside","cloud-fall-outside","cloud-resident-inside"});
+        }
+
+        static void PlaceCloudFallCamera(Camera camera,string view,IWorldQuery world)
+        {
+            var bank=GameObject.Find("Visual · sculpted cloud skirt").GetComponentInChildren<MeshRenderer>().bounds;
+            Vector3 interior=bank.center;
+            Vector3 exterior=interior+Vector3.right*(bank.extents.x+8);
+            float death=world.WaterHeight(interior);
+            if(death>=bank.min.y || bank.min.y-death>12 || Mathf.Abs(world.WaterHeight(exterior)-death)>.01f)
+                throw new InvalidOperationException("Fall line must be just below the bank, inside and outside.");
+            if(view=="cloud-fall-inside")
+            {
+                var probe=new GameObject("Cloud fall controller probe");
+                probe.layer=Layers.Survivor;
+                try
+                {
+                    var controller=probe.AddComponent<CharacterController>();
+                    controller.radius=.25f;
+                    controller.excludeLayers=TraversalCollision.CapsuleExclusions;
+                    var foundation=((EpicCityMap)world).foundation.GetComponent<MeshCollider>();
+                    // Find bare foundation with no bridge or building underneath the capsule.
+                    bool tested=false;
+                    for(int i=0;i<96 && !tested;i++)
+                    {
+                        float angle=i*Mathf.PI/48;
+                        var start=world.Center+new Vector3(Mathf.Cos(angle)*76,12,Mathf.Sin(angle)*76);
+                        if(!foundation.Raycast(new Ray(start,Vector3.down),out var ground,25) ||
+                            Physics.SphereCast(start,.40f,Vector3.down,out _,25,TraversalCollision.Mask,QueryTriggerInteraction.Ignore))continue;
+                        probe.transform.position=ground.point+Vector3.up*3;
+                        Physics.SyncTransforms();
+                        for(int step=0;step<26;step++)controller.Move(Vector3.down*.25f);
+                        tested=probe.transform.position.y<ground.point.y-2;
+                    }
+                    if(!tested)throw new InvalidOperationException("Player capsule could not fall through open cloud.");
+                    probe.transform.position=exterior+Vector3.up*6;
+                    Physics.SyncTransforms();
+                    for(int step=0;step<120;step++)controller.Move(Vector3.down*.5f);
+                    if(probe.transform.position.y>=death)throw new InvalidOperationException("Outside fall blocked.");
+                }
+                finally{Object.DestroyImmediate(probe);}
+            }
+            var at=view=="cloud-resident-inside"
+                ? GameObject.Find("Cloud residents").GetComponentInChildren<MeshRenderer>().bounds.center
+                : view=="cloud-fall-inside" ? interior : exterior;
+            camera.transform.SetPositionAndRotation(at,Quaternion.LookRotation(Vector3.left));
+        }
+
         static Vector3[] residentStarts;
         static float residentSampleTime;
 
@@ -461,6 +512,8 @@ namespace DeadlyJenga.DevTools.Editor
                         camera.transform.SetPositionAndRotation(world.Center + new Vector3(240.93f,200.47f,-298.43f),
                             Quaternion.Euler(24.87f,-38.81f,0));
                     }
+                    else if(view.StartsWith("cloud-fall-",StringComparison.Ordinal) || view=="cloud-resident-inside")
+                        PlaceCloudFallCamera(camera,view,world);
                     else if(view=="resident-party")
                     {
                         var party = GameObject.Find("Cloud residents").transform.GetChild(0);

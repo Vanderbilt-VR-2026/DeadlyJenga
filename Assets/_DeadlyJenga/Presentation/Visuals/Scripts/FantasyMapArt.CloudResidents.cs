@@ -27,6 +27,8 @@ namespace DeadlyJenga.Presentation
         sealed class Resident
         {
             public Transform body;
+            public CloudDepth shape;
+            public Color mistTint;
             public ResidentCircuit circuit;
             public Quaternion alignment;
             public float start, side, phase, frequency, clearance;
@@ -111,6 +113,8 @@ namespace DeadlyJenga.Presentation
                 Debug.LogError("Cloud residents require six body meshes and their three orientation markers.");
                 return;
             }
+            var shapes = new CloudDepth[meshes.Length];
+            for (int i = 0; i < meshes.Length; i++) shapes[i] = new CloudDepth(meshes[i].sharedMesh, 36);
             var up = top.position - origin.position;
             var align = Quaternion.Inverse(Quaternion.LookRotation(front.position - origin.position, up));
             var palette = new[] { Color.white, new Color(1,.48f,.67f), new Color(.43f,.72f,1), new Color(1,.83f,.4f) };
@@ -161,6 +165,7 @@ namespace DeadlyJenga.Presentation
                     float bottom = go.transform.position.y - renderer.bounds.min.y;
                     bool aloneInRow = seat % 2 == 0 && seat == parties[g] - 1;
                     residents.Add(new Resident { body = go.transform, circuit = path, alignment = rotation,
+                        shape = shapes[builds[i]], mistTint = Color.Lerp(Color.white, palette[colors[i]], .32f),
                         start = start - (seat / 2) * 1.85f, side = aloneInRow ? 0 : (seat % 2 == 0 ? -.84f : .84f),
                         phase = (float)random.NextDouble() * 6.28f, frequency = 2.6f + (float)random.NextDouble(),
                         clearance = .55f + bottom });

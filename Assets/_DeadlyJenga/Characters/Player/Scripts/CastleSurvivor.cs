@@ -100,7 +100,7 @@ namespace DeadlyJenga.CastlePrototype
             Capsule = GetComponent<CharacterController>();
             authoredJumpHeight = jumpHeight;
             gameObject.layer = Layers.Survivor;
-            Capsule.excludeLayers = TraversalCollision.Unified?0:1<<Layers.Block;
+            Capsule.excludeLayers = TraversalCollision.CapsuleExclusions;
             tracker = viewCamera.GetComponent<TrackedPoseDriver>();
             headActions=ConfigureHeadTracking(tracker);
             move = new InputAction("Walk", InputActionType.Value, "<XRController>{LeftHand}/primary2DAxis");
@@ -157,7 +157,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Update()
         {
-            Capsule.excludeLayers=TraversalCollision.Unified?0:1<<Layers.Block;
+            Capsule.excludeLayers=TraversalCollision.CapsuleExclusions;
             RefreshMode();
             if(developerGodMode&&!CanSetGodMode)SetGodMode(false);
             if(UpdateSpectatorParticipation())return;
@@ -275,7 +275,7 @@ namespace DeadlyJenga.CastlePrototype
         public void Simulate(Vector2 input, bool jumpPressed, float dt,bool climbHeld=false)
         {
             if (UpdateSpectatorParticipation() || dt <= 0 || !Capsule.enabled) return;
-            Capsule.excludeLayers=TraversalCollision.Unified?0:1<<Layers.Block;
+            Capsule.excludeLayers=TraversalCollision.CapsuleExclusions;
             RecoverUnifiedOverlap();
             peakFallSpeed=Mathf.Max(peakFallSpeed,-verticalSpeed);
             Physics.SyncTransforms();

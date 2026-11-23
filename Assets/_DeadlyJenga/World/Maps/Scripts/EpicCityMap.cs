@@ -58,7 +58,11 @@ namespace DeadlyJenga.CastlePrototype
         void OnEnable(){Services.World=this;if(generated)EnableCollisionPolicy();}
         void Start(){if(generateOnStart&&!generated)Rebuild();}
         void OnDisable(){if(collisionOwned){Physics.IgnoreLayerCollision(Layers.Survivor,Layers.Block,oldIgnored);collisionOwned=false;}if(ReferenceEquals(Services.World,this))Services.World=null;}
-        public float WaterHeight(Vector3 p)=>transform.position.y+.08f;
+        bool CloudCity => design == EpicCityLayout.SkyRingCityDesign;
+        // The main cloud sculpt bottoms out around -59 m in island space.
+        public float WaterHeight(Vector3 p) => CloudCity
+            ? transform.TransformPoint(Vector3.down * 65f).y
+            : transform.position.y + .08f;
         public bool IsSheltered(Vector3 p)=>gameObject.scene.GetPhysicsScene().Raycast(p+Vector3.up*.1f,Vector3.up,out _,200,1<<Layers.Block,QueryTriggerInteraction.Ignore);
         public void GetGroundFootprints(List<Footprint> into)
         {
@@ -116,6 +120,19 @@ namespace DeadlyJenga.CastlePrototype
                     var box=foundation.GetComponent<BoxCollider>();if(box)box.enabled=false;
                     var ground=revisedGround?runtimeGround:islandCollision?islandCollision:runtimeGround;
                     var mesh=foundation.GetComponent<MeshCollider>();if(!mesh)mesh=foundation.gameObject.AddComponent<MeshCollider>();mesh.sharedMesh=ground;mesh.enabled=true;
+                    // Blocks still bear on the island. Players and traversal casts pass through its invisible support.
+                    if(CloudCity)
+                    {
+                        foundation.gameObject.layer=LayerMask.NameToLayer("Ignore Raycast");
+                        mesh.excludeLayers=~(1 << Layers.Block);
+                        mesh.layerOverridePriority=100;
+                    }
+                    else if(foundation.gameObject.layer==LayerMask.NameToLayer("Ignore Raycast") && mesh.layerOverridePriority==100)
+                    {
+                        foundation.gameObject.layer=0;
+                        mesh.excludeLayers=0;
+                        mesh.layerOverridePriority=0;
+                    }
                     if(revisedGround)
                     {
                         var visual=foundation.GetComponentInChildren<MeshFilter>();
@@ -141,10 +158,11 @@ namespace DeadlyJenga.CastlePrototype
         public Vector3 SafeSpawnPoint()
         {
             Physics.SyncTransforms();var physics=gameObject.scene.GetPhysicsScene();
-            for(int attempt=0;attempt<80;attempt++)
+            for(int attempt=0;attempt<80+(CloudCity?Plan.sites.Count:0);attempt++)
             {
                 int index=spawnCursor++;var center=Plan.spawnPoints[index%Plan.spawnPoints.Count];
                 var offset=new Vector3(((index/Plan.spawnPoints.Count)%5-2)*2,0,0);
+                if(attempt>=80){center=Plan.sites[attempt-80].position;offset=Vector3.zero;}
                 var ray=transform.TransformPoint(center+offset+Vector3.up*120);
                 if(!physics.Raycast(ray,-transform.up,out var hit,150,(1<<Layers.Block)|1,QueryTriggerInteraction.Ignore)||Vector3.Dot(hit.normal,transform.up)<.75f)continue;
                 var p=hit.point+transform.up*.08f;
@@ -175,7 +193,7 @@ namespace DeadlyJenga.CastlePrototype
             nextCleanup=Time.time+.25f;
             foreach(var mover in Tracked.Movers)
             {
-                if(!(mover is Component actor)||!actor||actor.transform.position.y>=WaterHeight(actor.transform.position)-6)continue;
+                if(!(mover is Component actor)||!actor||actor.transform.position.y>=WaterHeight(actor.transform.position)-(CloudCity?0:6))continue;
                 var target=actor.GetComponent<IDamageable>();if(target!=null&&target.Health>0)target.Eliminate(gameObject);
             }
             for(int n=0;n<Mathf.Min(32,bodies.Count);n++)
