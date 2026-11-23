@@ -576,8 +576,7 @@ namespace DeadlyJenga.DevTools.Editor
                 damaged = target.Health;
             }
             Check(damaged < health, "Production survivor takes damage with Demo deaths disabled");
-            File.AppendAllText(Report, $"Survivor health {health:F1} -> {damaged:F1}
-");
+            File.AppendAllText(Report, $"Survivor health {health:F1} -> {damaged:F1}\n");
         }
 
         static EquipmentActionFrame[] SawStaffEvents(MatchModeRuntime runtime, int after)
