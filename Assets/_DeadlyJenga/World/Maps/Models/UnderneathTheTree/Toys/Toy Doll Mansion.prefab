@@ -47,6 +47,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.UnderneathTreeToy
   weight: 1
   source: {fileID: 0}
+  captureSection: Piece 002 Premiere Studios soundstage
+  captureHull: Hull Stage deck
 --- !u!1001 &300473281907977922
 PrefabInstance:
   m_ObjectHideFlags: 0

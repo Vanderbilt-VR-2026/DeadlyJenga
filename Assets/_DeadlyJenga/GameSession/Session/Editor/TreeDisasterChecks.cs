@@ -62,7 +62,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 if(!session||world==null||Time.frameCount<15||!session.ActiveCamera)return;
                 if(stage==0)
                 {
-                    Check((world as ISyncedWorld)?.SaveLayout()=="underneath-the-tree-v6-underpass","correct runtime map");
+                    Check((world as ISyncedWorld)?.SaveLayout()=="underneath-the-tree-v7-building-shells","correct runtime map");
                     Check(DemoDisasters.Prefabs.Select(p=>p.name).OrderBy(n=>n).SequenceEqual(AllCases.OrderBy(n=>n)),"Tree catalog contains exactly the six requested disasters");
                     Capture("00-before");stage=1;ended=Time.time;
                 }

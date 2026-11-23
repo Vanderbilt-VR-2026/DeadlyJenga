@@ -111,7 +111,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 if (stage == 0)
                 {
                     if (mode.Frame.phase != RoundPhase.Playing || mode.Frame.players.Length < 2) return;
-                    Check(world is ISyncedWorld synced && synced.SaveLayout() == "underneath-the-tree-v6-underpass", "approved map loaded");
+                    Check(world is ISyncedWorld synced && synced.SaveLayout() == "underneath-the-tree-v7-building-shells", "approved map loaded");
                     Check(mode.Rules.mode == MatchModeRuntime.ParseMode(Mode), "requested mode playing");
                     Check(mode.Rules.island == IslandRule.Sink, "the carpet is sinking ground");
                     var catalog = IslandLobbyCatalog.Runtime(Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog"));

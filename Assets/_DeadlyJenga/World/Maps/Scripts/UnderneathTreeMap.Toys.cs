@@ -144,6 +144,21 @@ namespace DeadlyJenga.CastlePrototype
                 if (part.floating)
                     Debug.LogWarning(part.piece.name + " in " + toy.name + " has nothing under it to rest on.", part.piece);
             }
+            if (!string.IsNullOrEmpty(toy.captureSection))
+            {
+                var compound = Child(toy.transform, "Intact building body", Vector3.zero, Quaternion.identity);
+                RegisterPanel(compound.gameObject, compound, new UnderneathTreeGiftShell(), GiftPieceRole.Base, 65f);
+                var panel = compound.GetComponent<UnderneathTreeGiftPanel>();
+                float mass = 0f;
+                foreach (var body in registered) mass += body.mass;
+                panel.Body.mass = mass;
+                panel.Body.solverIterations = UnderneathTreeToy.StackSolverIterations;
+                if (support) giftBearings.Add(new GiftBearing(panel, support, null));
+                compound.gameObject.SetActive(false);
+                var building = toy.gameObject.AddComponent<UnderneathTreeBuilding>();
+                building.Configure(this, panel, skirt, registered, toy.captureSection, toy.captureHull);
+                if (startBuildingsTogether) building.SetTogether(true);
+            }
             // Big mass gaps between touching parts make physics jittery: keep every part within 10x.
             float heaviest = 0f;
             foreach (var body in registered)

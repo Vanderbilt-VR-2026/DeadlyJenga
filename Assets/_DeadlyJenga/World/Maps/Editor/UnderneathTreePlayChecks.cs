@@ -73,6 +73,49 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         public static void RunReferences() => Begin(true);
 
+        public static void CheckBuildingModes()
+        {
+            Begin(false);
+            SessionState.SetBool("TreeBuildingModes",true);
+        }
+
+        static void CheckBuildings()
+        {
+            map=Services.World as UnderneathTreeMap;
+            if(!map || Time.frameCount<15)return;
+            var buildings=map.GetComponentsInChildren<UnderneathTreeBuilding>();
+            Require(buildings.Length==3,"three registered landmark buildings");
+            if(phase==0)
+            {
+                foreach(var building in buildings)
+                {
+                    var hull=building.GetComponent<UnderneathTreeToy>().captureHull;
+                    var floor=building.GetComponentsInChildren<MeshCollider>().Single(c=>c.name==hull);
+                    var start=building.CapturePoint;
+                    Require(building.SetTogether(true) && building.GetComponentsInChildren<Rigidbody>().Length==1,"one intact body on "+building.name);
+                    Require(floor.attachedRigidbody==building.GetComponentInChildren<Rigidbody>() &&
+                        Vector3.Distance(start,building.CapturePoint)<.03f,"unchanged floor pose on grouped collider");
+                    Require(building.SetTogether(false) && building.GetComponentsInChildren<Rigidbody>().Length>=4,"section bodies restored");
+                    Require(!building.Retired,"standing floor is valid");
+                }
+                buildings[0].SetTogether(true);
+                var panel=buildings[0].GetComponentInChildren<UnderneathTreeGiftPanel>();
+                panel.Push(Vector3.right*4,null);
+                Require(!panel.Body.isKinematic && buildings[0].SetTogether(false),"moving shell splits");
+                Require(buildings[0].GetComponentsInChildren<Rigidbody>().All(b=>!b.isKinematic),"split restores dynamic sections");
+                Require(buildings[1].Demolish(Vector3.up) && buildings[1].Retired,"scripted wipe retires zone immediately");
+                buildings[2].SetTogether(true);
+                var body=buildings[2].GetComponentInChildren<Rigidbody>();
+                body.rotation=Quaternion.AngleAxis(80,Vector3.forward)*body.rotation;
+                impactFixedTime=Time.fixedTime;phase=1;
+            }
+            else if(Time.fixedTime-impactFixedTime>2.2f)
+            {
+                Require(buildings[2].Retired,"sustained floor tilt retires zone");
+                Finish(true);
+            }
+        }
+
         public static void CaptureFalconSummit()
         {
             Begin(false);
@@ -119,6 +162,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             SessionState.SetBool("TreePriorAsync", ShaderUtil.allowAsyncCompilation);
             ShaderUtil.allowAsyncCompilation = false;
             SessionState.SetBool(References, references);
+            SessionState.SetBool("TreeBuildingModes",false);
             File.WriteAllText(Report, references
                 ? "Underneath the Tree, intact solo Demo reference angles\n"
                 : "Underneath the Tree, clean solo Game.unity load and runtime checks\n");
@@ -174,6 +218,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 double now = EditorApplication.timeSinceStartup;
                 if (now > deadline)
                     throw new InvalidOperationException("Runtime check timed out at step " + phase + ".");
+                if(SessionState.GetBool("TreeBuildingModes",false)){CheckBuildings();return;}
                 if (SessionState.GetBool("TreeApproved", false))
                 {
                     CheckApproved(now);
@@ -404,9 +449,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 if (double.IsPositiveInfinity(renderReady)) renderReady = now + 3;
                 if (now < renderReady) return;
                 File.AppendAllText(Report, "ASSEMBLY " + typeof(UnderneathTreeMap).Assembly.ManifestModule.ModuleVersionId + "\n");
-                Require(map.SaveLayout() == "underneath-the-tree-v6-underpass", "approved underpass layout loaded");
+                Require(map.SaveLayout() == "underneath-the-tree-v7-building-shells", "approved underpass layout loaded");
                 Require(map.Blocks.All(b => b && b.isKinematic && b.useGravity), "all gift pieces and rails intact with gravity configured");
-                Require(map.Blocks.All(b => b.GetComponent<IClimbable>()?.CanClimb == true), "all registered gift and track bodies climbable");
+                Require(map.Blocks.Where(b => b.gameObject.activeSelf).All(b => b.GetComponent<IClimbable>()?.CanClimb == true), "all registered gift and track bodies climbable");
                 blockCount = map.Blocks.Count;
                 revision = map.Revision;
                 originalPieces = PieceOrder();

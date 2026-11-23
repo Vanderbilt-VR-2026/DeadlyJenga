@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 575feb42979de5f4a86a766a3c098266, type: 3}
   m_Name: Underneath the Tree Match Layout
   m_EditorClassIdentifier: DeadlyJenga.GameSession::DeadlyJenga.Modes.MapMatchLayout
-  layoutSignature: underneath-the-tree-v6-underpass
+  layoutSignature: underneath-the-tree-v7-building-shells
   groundSpawns: 1
   topSpawns: 1
   topSearch: 50

@@ -47,6 +47,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.UnderneathTreeToy
   weight: 1
   source: {fileID: 0}
+  captureSection: Piece 005 Falcon Summit penthouse
+  captureHull: Hull penthouse floor
 --- !u!1001 &2210109439426548761
 PrefabInstance:
   m_ObjectHideFlags: 0

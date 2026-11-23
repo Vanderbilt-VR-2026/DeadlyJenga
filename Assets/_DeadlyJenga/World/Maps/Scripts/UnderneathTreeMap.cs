@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class UnderneathTreeMap : MonoBehaviour, IWorldQuery, ISyncedWorld,
         IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        const string Layout = "underneath-the-tree-v6-underpass";
+        const string Layout = "underneath-the-tree-v7-building-shells";
 
         [SerializeField] GameObject model = null, room = null, locomotive = null;
         [SerializeField] Material paper = null;
@@ -25,6 +25,9 @@ namespace DeadlyJenga.CastlePrototype
         bool collisionOwned, oldSurvivorBlock, oldSurfaceBlock;
         Bounds playArea;
         bool replica;
+        internal bool IsBuildingReplica => replica;
+        [Tooltip("Start landmark buildings as single movable shells. Otherwise their authored sections can break away.")]
+        [SerializeField] bool startBuildingsTogether = false;
 
         public IReadOnlyList<Rigidbody> Blocks => bodies;
         public Transform Root => transform;

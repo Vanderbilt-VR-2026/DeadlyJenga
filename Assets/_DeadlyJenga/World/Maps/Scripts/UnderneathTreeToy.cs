@@ -15,6 +15,11 @@ namespace DeadlyJenga.CastlePrototype
         [Tooltip("Heavier toys take a harder hit to knock over.")]
         [Range(.2f, 4f)] public float weight = 1f;
 
+        [Tooltip("For landmark buildings, the prefix of the Blender Piece carrying the control floor.")]
+        public string captureSection;
+        [Tooltip("Exact Blender name of a walkable Hull on that section.")]
+        public string captureHull;
+
         // Solver passes for the parts of a set (Unity's default of 6 lets tall stacks sag).
         public const int StackSolverIterations = 16;
 

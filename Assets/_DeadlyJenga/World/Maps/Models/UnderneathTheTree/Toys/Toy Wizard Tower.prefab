@@ -47,6 +47,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.UnderneathTreeToy
   weight: 1
   source: {fileID: 0}
+  captureSection: Piece 004 Crystal Crag terrace
+  captureHull: Hull gallery
 --- !u!1001 &2313417917216599735
 PrefabInstance:
   m_ObjectHideFlags: 0

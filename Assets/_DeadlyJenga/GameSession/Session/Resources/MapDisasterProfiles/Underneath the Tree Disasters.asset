@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7ab8b8bb66d4843b0da1f0741ea74ce, type: 3}
   m_Name: Underneath the Tree Disasters
   m_EditorClassIdentifier:
-  layoutSignature: underneath-the-tree-v6-underpass
+  layoutSignature: underneath-the-tree-v7-building-shells
   allowed:
   - {fileID: 100000, guid: d9bc0c7032d94f64a179deb189d5d87b, type: 3}
   - {fileID: 100000, guid: f8a9c14792c645ec950b2a05433cec4b, type: 3}
