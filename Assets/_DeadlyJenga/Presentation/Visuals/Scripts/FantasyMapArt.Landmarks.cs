@@ -24,10 +24,16 @@ namespace DeadlyJenga.Presentation
             foreach(var shape in body.GetComponentsInChildren<BoxCollider>())
             {
                 var c=frame.InverseTransformPoint(shape.transform.TransformPoint(shape.center));
-                var s=(Quaternion.Inverse(frame.rotation)*shape.transform.rotation)*shape.size;
-                list.Add((c,new Vector3(Mathf.Abs(s.x),Mathf.Abs(s.y),Mathf.Abs(s.z))));
+                var rotation=Quaternion.Inverse(frame.rotation)*shape.transform.rotation;
+                list.Add((c,RotatedBoxSize(rotation,shape.size)));
             }
             return list;
+        }
+
+        static Vector3 RotatedBoxSize(Quaternion rotation,Vector3 size)
+        {
+            Vector3 Abs(Vector3 v)=>new(Mathf.Abs(v.x),Mathf.Abs(v.y),Mathf.Abs(v.z));
+            return Abs(rotation*Vector3.right)*size.x+Abs(rotation*Vector3.up)*size.y+Abs(rotation*Vector3.forward)*size.z;
         }
 
         // The top deck of a cassette and the stair opening left in it, in the body's frame.
@@ -69,6 +75,8 @@ namespace DeadlyJenga.Presentation
             var frame=body.transform;
             var bounds=PieceBounds(pieces);
             bool roofOpen=RoofHole(pieces,out var hole,out var holeSize)&&!SomethingAbove(frame,body,hole,holeSize);
+            if(purpose.Contains(" floor ") && (site.StartsWith("Sugar Market") || site.StartsWith("Cloud Harbor")))
+                FitCasements(m,visual,frame,pieces);
             Neighborhood(m,visual,body,bounds,site,purpose);
             return site.StartsWith("Grape") || site.StartsWith("Downtown") || roofOpen || purpose.Contains(" floor ") || purpose=="Escape spine" || purpose=="Independent bookfall support spine";
         }

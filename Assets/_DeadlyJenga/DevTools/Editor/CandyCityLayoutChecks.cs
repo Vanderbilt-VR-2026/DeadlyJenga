@@ -125,6 +125,7 @@ namespace DeadlyJenga.DevTools.Editor
                     report.AppendLine($"{id}: {plan.modules.Count} bodies, {plan.modules.Sum(m => m.shapes.Count)} shapes, {plan.sites.Count} sites, " +
                                       $"{plan.routes.Count - groundOnly} bridges built, {groundOnly} links fell back to ground, island {plan.halfSize.x * 2:0}x{plan.halfSize.y * 2:0} m, top {b.max.y:0.0} m");
                     if (groundOnly > 0) report.AppendLine("  ground fallbacks: " + string.Join("; ", plan.routes.Where(r => r.name.StartsWith("Ground street", StringComparison.Ordinal)).Select(r => r.name)));
+                    if (design == EpicCityLayout.SkyRingCityDesign) failed += CheckPumpLandings(plan, report);
                     failed += SettleAndPull(design, id, report);
                     if (design >= EpicCityLayout.MechanismCityDesign) failed += Mechanisms(id, report);
                 }
@@ -135,7 +136,7 @@ namespace DeadlyJenga.DevTools.Editor
             Debug.Log(report.ToString());
             // Captures run in Play Mode and exit Unity when done.
             var views = maps.Length == 1 && maps[0].design == EpicCityLayout.SkyRingCityDesign
-                ? new[] { "reference", "target", "close", "pov|market|36|0.5|-36|53|3|-53",
+                ? new[] { "reference", "top", "front", "target", "close", "pov|market|36|0.5|-36|53|3|-53",
                     "pov|rainworks|44|0.5|-30|27|14|-17", "pov|school|-52|1|12|-71|12|28",
                     "pov|apartments|-36|0.5|-37|-60|12|-60", "pov|substation|85|0.5|24|68|21|45",
                     "pov|switchback|61|16.4|51|70|24|43",
@@ -143,9 +144,39 @@ namespace DeadlyJenga.DevTools.Editor
                     "pov|classroom|-54.64|1.15|41.04|-61.49|2.55|47.95",
                     "pov|produce|49.78|1.15|-48.37|55.79|2.6|-44.9",
                     "pov|cafe|20.6|1.15|-63.74|26.01|2.45|-66.95",
+                    "pov|pump-gallery|23.7|5.15|-9|20.35|6.55|-7.74",
                     "pov|pump-room|33.5|1.15|-15|27|2.7|-10.9" }
                 : MapPictureRig.AllViews;
             MapLiveCapture.BatchMaps(maps.Select(m => m.id).ToList(), Path.Combine(Directory.GetCurrentDirectory(), "Logs", "Captures", "CandyCityLayouts"), views);
+        }
+
+        static int CheckPumpLandings(EpicCityPlan plan, StringBuilder report)
+        {
+            int checkedCount = 0, failures = 0;
+            foreach (var floor in plan.modules)
+            {
+                if (!floor.purpose.Contains(" floor ") || !plan.sites[floor.district].name.StartsWith("Canyon south")) continue;
+                var cabinets = floor.shapes.Where(s => (s.size - new Vector3(3.65f, 1.1f, 1.26f)).sqrMagnitude < .0001f).ToList();
+                if (cabinets.Count != 1) { failures++; continue; }
+                var cabinet = cabinets[0];
+                foreach (int x in new[] { -1, 0, 1 })
+                foreach (int z in new[] { -1, 0, 1 })
+                {
+                    var foot = cabinet.center + cabinet.rotation * Vector3.Scale(cabinet.size, new Vector3(x, -1, z) * .5f);
+                    bool supported = floor.shapes.Any(s =>
+                    {
+                        if (s.vertices != null || Quaternion.Angle(s.rotation, Quaternion.identity) > .01f) return false;
+                        var delta = foot - s.center;
+                        return Mathf.Abs(delta.y - s.size.y * .5f) < .02f &&
+                            Mathf.Abs(delta.x) <= s.size.x * .5f + .01f && Mathf.Abs(delta.z) <= s.size.z * .5f + .01f;
+                    });
+                    if (!supported) failures++;
+                }
+                checkedCount++;
+            }
+            if (checkedCount == 0) failures++;
+            report.AppendLine($"  South rainworks cabinets: {checkedCount} checked, {failures} missing cabinets or unsupported contact points");
+            return failures;
         }
 
         static Export ExportPlan(int design, EpicCityPlan plan)

@@ -42,7 +42,7 @@ namespace DeadlyJenga.DevTools.Editor
             public string output = "", gallery = "", clip = "";
             public float seconds = 6, settle = 6;
             public int fps = 30, clipWidth = 1280, clipHeight = 720, width = 1600, height = 1100;
-            public bool open, batch, written, lobby, diagnose;
+            public bool open, batch, written, lobby, diagnose, rainbowMotion;
             public int spots = 40;
             public List<string> failed = new();
         }
@@ -100,6 +100,157 @@ namespace DeadlyJenga.DevTools.Editor
         public static void BatchMaps(ICollection<string> ids, string output, string[] views)
         {
             Begin(new Job { batch = true, output = output, views = views }, null, false, ids);
+        }
+
+        public static void CaptureCloudCityBank()
+        {
+            BatchMaps(new[]{"epic-candy-sky-ring-city"},Path.GetFullPath(Path.Combine("Logs","Captures","CloudCityBank")),
+                new[]{"reference","cloud-landing","cloud-underside"});
+        }
+
+        public static void CaptureCloudCityRiver()
+        {
+            BatchMaps(new[]{"epic-candy-sky-ring-city"},Path.GetFullPath(Path.Combine("Logs","Captures","CloudCityRiver")),
+                new[]{"reference","river-route","river-basin","cloud-landing","pov|river-bend|-39|1|22|-44|1|17"});
+        }
+
+        public static void CaptureCloudCityRainbows()
+        {
+            Begin(new Job { batch=true, rainbowMotion=true, views=Array.Empty<string>(),
+                output=Path.GetFullPath(Path.Combine("Logs","Captures","CloudCityRainbows")) },
+                "epic-candy-sky-ring-city",false);
+        }
+
+        public static void CaptureCloudCityResidents()
+        {
+            BatchMaps(new[]{"epic-candy-sky-ring-city"}, Path.GetFullPath(Path.Combine("Logs","Captures","CloudCityResidents")),
+                new[]{"reference","resident-party"});
+        }
+
+        public static void CaptureCloudCityFalls()
+        {
+            BatchMaps(new[]{"epic-candy-sky-ring-city"}, Path.GetFullPath(Path.Combine("Logs","Captures","CloudCityFalls")),
+                new[]{"reference","cloud-fall-inside","cloud-fall-outside","cloud-resident-inside"});
+        }
+
+        static void PlaceCloudFallCamera(Camera camera,string view,IWorldQuery world)
+        {
+            var bank=GameObject.Find("Visual · sculpted cloud skirt").GetComponentInChildren<MeshRenderer>().bounds;
+            Vector3 interior=bank.center;
+            Vector3 exterior=interior+Vector3.right*(bank.extents.x+8);
+            float death=world.WaterHeight(interior);
+            if(death>=bank.min.y || bank.min.y-death>12 || Mathf.Abs(world.WaterHeight(exterior)-death)>.01f)
+                throw new InvalidOperationException("Fall line must be just below the bank, inside and outside.");
+            if(view=="cloud-fall-inside")
+            {
+                var probe=new GameObject("Cloud fall controller probe");
+                probe.layer=Layers.Survivor;
+                try
+                {
+                    var controller=probe.AddComponent<CharacterController>();
+                    controller.radius=.25f;
+                    controller.excludeLayers=TraversalCollision.CapsuleExclusions;
+                    var foundation=((EpicCityMap)world).foundation.GetComponent<MeshCollider>();
+                    // Find bare foundation with no bridge or building underneath the capsule.
+                    bool tested=false;
+                    for(int i=0;i<96 && !tested;i++)
+                    {
+                        float angle=i*Mathf.PI/48;
+                        var start=world.Center+new Vector3(Mathf.Cos(angle)*76,12,Mathf.Sin(angle)*76);
+                        if(!foundation.Raycast(new Ray(start,Vector3.down),out var ground,25) ||
+                            Physics.SphereCast(start,.40f,Vector3.down,out _,25,TraversalCollision.Mask,QueryTriggerInteraction.Ignore))continue;
+                        probe.transform.position=ground.point+Vector3.up*3;
+                        Physics.SyncTransforms();
+                        for(int step=0;step<26;step++)controller.Move(Vector3.down*.25f);
+                        tested=probe.transform.position.y<ground.point.y-2;
+                    }
+                    if(!tested)throw new InvalidOperationException("Player capsule could not fall through open cloud.");
+                    probe.transform.position=exterior+Vector3.up*6;
+                    Physics.SyncTransforms();
+                    for(int step=0;step<120;step++)controller.Move(Vector3.down*.5f);
+                    if(probe.transform.position.y>=death)throw new InvalidOperationException("Outside fall blocked.");
+                }
+                finally{Object.DestroyImmediate(probe);}
+            }
+            var at=view=="cloud-resident-inside"
+                ? GameObject.Find("Cloud residents").GetComponentInChildren<MeshRenderer>().bounds.center
+                : view=="cloud-fall-inside" ? interior : exterior;
+            camera.transform.SetPositionAndRotation(at,Quaternion.LookRotation(Vector3.left));
+        }
+
+        static Vector3[] residentStarts;
+        static float residentSampleTime;
+
+        static bool CheckResidents()
+        {
+            var root = GameObject.Find("Cloud residents").transform;
+            var actors = root.GetComponentsInChildren<MeshRenderer>();
+            var sizes = root.Cast<Transform>().Select(group => group.childCount).OrderBy(count => count);
+            if (!sizes.SequenceEqual(new[]{1,1,1,1,1,1,1,1,1,1,2,2,2,4,5}) || actors.Length != 25 ||
+                actors.Select(a => a.GetComponent<MeshFilter>().sharedMesh).Distinct().Count() != 6 ||
+                actors.Select(a => a.sharedMaterial).Distinct().Count() != 4 ||
+                actors.Any(a => !a.sharedMaterial.shader.isSupported || a.bounds.size.magnitude < .6f || a.bounds.size.magnitude > 4f) ||
+                root.GetComponentsInChildren<Collider>().Length != 0 || root.GetComponentsInChildren<Rigidbody>().Length != 0)
+                throw new InvalidOperationException("Cloud resident count, asset, scale or physics check failed.");
+            if (residentStarts == null)
+            {
+                residentStarts = actors.Select(a => a.transform.position).ToArray();
+                residentSampleTime = Time.time;
+                return false;
+            }
+            if (Time.time - residentSampleTime < .65f) return false;
+            for (int i = 0; i < actors.Length; i++)
+                if (Vector3.Distance(actors[i].transform.position, residentStarts[i]) < .2f)
+                    throw new InvalidOperationException("Resident stopped: " + actors[i].name);
+            return true;
+        }
+
+        static int rainbowFrame;
+        static float lastFlowTime;
+
+        static bool CaptureRainbowFrame(ISessionInfo session)
+        {
+            var falls=GameObject.Find("Visual · rainbow waterfall above");
+            if(!falls)throw new InvalidOperationException("Spring waterfall missing");
+            float time=falls.GetComponent<Renderer>().sharedMaterial.GetFloat("_FlowTime");
+            if(rainbowFrame>0 && time-lastFlowTime<.085f)return false;
+            lastFlowTime=time;
+            var camera=MakeCamera(session);
+            try
+            {
+                camera.fieldOfView=44;
+                void Shot(string subject,string file,bool bridge=false)
+                {
+                    var go=GameObject.Find("Visual · "+subject);
+                    if(!go)throw new InvalidOperationException(subject+" missing");
+                    var r=go.GetComponent<Renderer>();
+                    if(!r.sharedMaterial.shader.isSupported)throw new InvalidOperationException("Unsupported rainbow shader");
+                    var b=r.bounds;
+                    var look=b.center;
+                    Vector3 offset;
+                    if(bridge)offset=Vector3.Cross((go.transform.TransformPoint(go.GetComponent<MeshFilter>().sharedMesh.vertices[0])-look).normalized,Vector3.up).normalized*b.size.magnitude*1.15f;
+                    else
+                    {
+                        var splash=GameObject.Find("Visual · rainbow splash "+subject.Substring("rainbow waterfall ".Length));
+                        if(!splash)throw new InvalidOperationException("Missing waterfall impact: "+subject);
+                        float width=splash.GetComponent<Renderer>().bounds.size.y*.5f;
+                        look=splash.transform.position+Vector3.up*width*.35f;
+                        offset=go.transform.TransformDirection(new Vector3(.65f,1.1f,.65f))*width*1.55f;
+                    }
+                    camera.transform.position=look+offset;camera.transform.LookAt(look);
+                    fogFocus=look;fogRadius=b.extents.magnitude;
+                    Render(camera,1600,1000,Path.Combine(job.gallery,file+".png"));
+                }
+                Shot("rainbow waterfall above","spring-"+rainbowFrame.ToString("D3"));
+                if(rainbowFrame==0 || rainbowFrame==17)
+                {
+                    foreach(string end in new[]{"hamlet","rim"})Shot("rainbow waterfall "+end,end+"-"+rainbowFrame);
+                    Shot("bridge current","bridge-"+rainbowFrame,true);
+                }
+                File.AppendAllText(Path.Combine(job.gallery,"sample-times.txt"),time.ToString("R",System.Globalization.CultureInfo.InvariantCulture)+Environment.NewLine);
+            }
+            finally { Object.Destroy(camera.gameObject); }
+            return ++rainbowFrame==18;
         }
 
         // Far plane for player-eye shots; 0 keeps the usual long picture range.
@@ -213,7 +364,7 @@ namespace DeadlyJenga.DevTools.Editor
                 MatchSetup.HandCount = 0;
                 enteredAt = EditorApplication.timeSinceStartup;
                 readyAt = 0;
-                prepared = false;
+                prepared = false; rainbowFrame=0; residentStarts=null;
                 EditorApplication.update += Tick;
             }
             else if (change == PlayModeStateChange.EnteredEditMode)
@@ -261,6 +412,16 @@ namespace DeadlyJenga.DevTools.Editor
                 Prepare(session); prepared = true; readyAt = now + job.settle; return;
             }
             if (now < readyAt) { Prepare(session); return; }
+            if(job.views.Contains("resident-party"))
+            {
+                try { if(!CheckResidents())return; }
+                catch(Exception e){ Debug.LogException(e); Fail(id,e.Message); return; }
+            }
+            if(job.rainbowMotion)
+            {
+                try { if(!CaptureRainbowFrame(session))return; }
+                catch(Exception e){Debug.LogException(e);Fail(id,e.Message);return;}
+            }
             EditorApplication.update -= Tick;
             try { if (job.lobby) Survey(world, session); else Shoot(id, world, session); job.written = true; }
             catch (Exception e) { Debug.LogException(e); job.failed.Add(id); }
@@ -350,6 +511,59 @@ namespace DeadlyJenga.DevTools.Editor
                         camera.fieldOfView = 36.94f;
                         camera.transform.SetPositionAndRotation(world.Center + new Vector3(240.93f,200.47f,-298.43f),
                             Quaternion.Euler(24.87f,-38.81f,0));
+                    }
+                    else if(view.StartsWith("cloud-fall-",StringComparison.Ordinal) || view=="cloud-resident-inside")
+                        PlaceCloudFallCamera(camera,view,world);
+                    else if(view=="resident-party")
+                    {
+                        var party = GameObject.Find("Cloud residents").transform.GetChild(0);
+                        var lead = party.GetChild(0).GetComponent<Renderer>();
+                        var heading = Vector3.ProjectOnPlane(lead.transform.position - residentStarts[0],Vector3.up).normalized;
+                        var boundsParty = lead.bounds;
+                        foreach(var actor in party.GetComponentsInChildren<MeshRenderer>()) boundsParty.Encapsulate(actor.bounds);
+                        camera.fieldOfView = 48;
+                        camera.transform.position = boundsParty.center + heading * 6 + Vector3.Cross(Vector3.up,heading)*2 + Vector3.up*1.9f;
+                        camera.transform.LookAt(boundsParty.center);
+                    }
+                    else if(view=="river-route" || view=="river-basin")
+                    {
+                        var river=GameObject.Find("Visual · city rainbow river").GetComponent<MeshRenderer>();
+                        var pool=GameObject.Find("Visual · lower cloud pool").transform;
+                        var splash=GameObject.Find("Visual · rainbow splash rim").transform;
+                        if(Vector3.Distance(pool.position,splash.position)>.02f)
+                            throw new InvalidOperationException("Rim splash missed the receiving pool");
+                        if(view=="river-route")
+                        {
+                            var at=river.bounds.center;
+                            camera.transform.position=at+new Vector3(-48,160,-58);
+                            camera.transform.LookAt(at);
+                            camera.fieldOfView=55;
+                        }
+                        else
+                        {
+                            var at=Vector3.Lerp(pool.position,GameObject.Find("Visual · rim spillway").transform.position,.32f);
+                            camera.transform.position=at+new Vector3(-82,48,110);
+                            camera.transform.LookAt(at);
+                        }
+                    }
+                    else if(view=="cloud-landing" || view=="cloud-underside")
+                    {
+                        var bank=GameObject.Find("Visual · sculpted cloud skirt").GetComponentInChildren<MeshRenderer>();
+                        if(bank.sharedMaterial.shader.name!="DeadlyJenga/Island Cumulus" || !bank.sharedMaterial.shader.isSupported)
+                            throw new InvalidOperationException("Cloud bank material unavailable");
+                        var b=bank.bounds;
+                        if(view=="cloud-landing")
+                        {
+                            var impact=GameObject.Find("Visual · rainbow splash above").transform.position;
+                            var outward=Vector3.ProjectOnPlane(impact-b.center,Vector3.up).normalized;
+                            camera.transform.position=impact+outward*84+Vector3.Cross(outward,Vector3.up)*58+Vector3.up*25;
+                            camera.transform.LookAt(impact+Vector3.down*5);
+                        }
+                        else
+                        {
+                            camera.transform.position=b.center+new Vector3(.62f,-.38f,-1.16f)*b.size.x;
+                            camera.transform.LookAt(b.center);
+                        }
                     }
                     else MapPictureRig.Place(camera, view, bounds, job.width / (float)job.height);
                     // "balloon": a close look at the first hot-air balloon, when the map has one (else the hero view).

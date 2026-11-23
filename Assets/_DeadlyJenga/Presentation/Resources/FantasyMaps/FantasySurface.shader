@@ -64,13 +64,48 @@ Shader "DeadlyJenga/Fantasy Surface"
      color*=.86+.12*grain+.09*hash(floor(board));
      color*=.88+.12*smoothstep(.002,.014+fwidth(surface.y),min(edge.x,edge.y));
     }else if(_Pattern<11.5){color*=.95+.07*noise(float2(surface.x*.8,surface.y*45));}
-    else{ // glazed checker tile and pale grout
+    else if(_Pattern<12.5){ // glazed checker tile and pale grout
      float2 tile=surface/1.15, grid=floor(tile), t=frac(tile);
      float checker=frac((grid.x+grid.y)*.5)*2;
      float footprint=max(fwidth(tile.x),fwidth(tile.y));
      checker=lerp(checker,.5,saturate(footprint*2));
      float grout=1-smoothstep(.005,.018+footprint*.65,min(min(t.x,1-t.x),min(t.y,1-t.y)));
      color=lerp(lerp(color,_Accent.rgb,checker),float3(.64,.60,.52),grout);
+    }else if(_Pattern<13.5){
+     float2 brick=surface/float2(1.26,.44);
+     brick.x+=.5*frac(floor(brick.y)*.5)*2;
+     float2 edge=min(frac(brick),1-frac(brick))*float2(1.26,.44);
+     float seam=min(edge.x,edge.y);
+     float fill=smoothstep(.015,.032+fwidth(seam),seam);
+     float fade=1-saturate(max(fwidth(surface.x),fwidth(surface.y))*2);
+     color*=1+fade*(hash(floor(brick))-.5)*.10;
+     color=lerp(color,lerp(color,float3(.70,.64,.55),.44),(1-fill)*fade);
+     gloss+=fill*.07*fade;
+    }else if(_Pattern<14.5){
+     float lip=frac(surface.y/.60);
+     float fade=1-saturate(fwidth(surface.y)*3);
+     color*=1-fade*(1-smoothstep(0,.16,lip))*.23;
+     color*=.97+.05*noise(surface*float2(.9,16));
+    }else if(_Pattern<15.5){
+     float2 panel=surface/float2(1.70,2.26);
+     float2 edge=min(frac(panel),1-frac(panel));
+     float seam=min(edge.x,edge.y);
+     float fade=1-saturate(max(fwidth(panel.x),fwidth(panel.y))*3);
+     color*=1-fade*.28*(1-smoothstep(.004,.016+fwidth(seam),seam));
+     gloss+=.045*(noise(surface*float2(3,37))-.5);
+    }else if(i.color.a<.62){
+     // Wider twill stripes survive at room scale; fine yarn fades before it aliases in VR.
+     float2 yarn=surface*float2(34,29);
+     float resolve=1-saturate(max(fwidth(yarn.x),fwidth(yarn.y))*2);
+     float thread=sin(6.283*yarn.x)*cos(6.283*yarn.y);
+     float twill=cos(6.283*(surface.x+surface.y)*2.8);
+     color*=.96+.035*twill*(1-saturate(fwidth(surface.x+surface.y)*6))+.06*resolve*thread;
+     gloss=.15;
+    }else if(i.color.a<.88){
+     color*=.91+.12*noise(float2(surface.x*1.3,surface.y*22+noise(surface*.8)));
+     gloss=.34;
+    }else{
+     color*=.97+.04*noise(surface*10);
     }
    }
    else if(_Pattern<.5){

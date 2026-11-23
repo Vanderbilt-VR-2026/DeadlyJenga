@@ -58,13 +58,21 @@ namespace DeadlyJenga.Presentation
                 else if(finish==2){pattern=civic?10:11;color=civic?new Color(.48f,.32f,.22f):new Color(.63f,.51f,.32f);}
                 else {pattern=9;color=new Color(.74f,.68f,.55f);}
             }
+            else if(building && finish==0)
+            {
+                // Keep each silhouette recognizable, with distinct wall construction at eye level.
+                if(site.StartsWith("Sugar")) pattern=13;            // rose glazed brick
+                else if(site.StartsWith("Cloud Harbor")) pattern=14; // plum-painted lap siding
+                else if(site.StartsWith("Downtown")) pattern=15;     // folded copper panels
+                else if(site.StartsWith("Canyon")) pattern=13;       // jade ceramic tile
+            }
             else if(key=="bridge" || key=="bascule" || key=="trestle") pattern=10;
             key+=" "+pattern+" "+finish;
             if(solidMaterials.TryGetValue(key,out var material)&&material)return material;
             material=new Material(cityCandyMaterial){name="Candy planks "+key};
             material.SetFloat("_Pattern",pattern);material.SetColor("_BaseColor",color);
             material.SetColor("_Accent",pattern==12?new Color(.45f,.57f,.52f):Color.Lerp(color,new Color(.3f,.19f,.23f),.39f));
-            material.SetFloat("_Metallic",pattern==11?.36f:0);material.SetFloat("_Smoothness",pattern==11?.5f:.28f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
+            material.SetFloat("_Metallic",pattern==15?.40f:pattern==11?.36f:0);material.SetFloat("_Smoothness",pattern==11 || pattern==15?.50f:pattern==13?.41f:.28f);material.SetFloat("_DetailStrength",0);material.SetFloat("_Glow",0);
             solidMaterials[key]=material;return material;
         }
 
@@ -93,7 +101,7 @@ namespace DeadlyJenga.Presentation
             if(!furnishingMaterial)
             {
                 furnishingMaterial=new Material(cityCandyMaterial){name="Painted wood and upholstery"};
-                furnishingMaterial.SetFloat("_Pattern",8);
+                furnishingMaterial.SetFloat("_Pattern",16);
                 furnishingMaterial.SetFloat("_Smoothness",.24f);
             }
             Model("Fantasy decorations",mesh,visual,new[]{furnishingMaterial,cityGlowMaterial},true);
@@ -108,7 +116,7 @@ namespace DeadlyJenga.Presentation
             {
                 var c=frame.InverseTransformPoint(shape.transform.TransformPoint(shape.center));
                 var local=Quaternion.Inverse(frame.rotation)*shape.transform.rotation;
-                var s=local*shape.size;s=new Vector3(Mathf.Abs(s.x),Mathf.Abs(s.y),Mathf.Abs(s.z));
+                var s=RotatedBoxSize(local,shape.size);
                 var sb=new Bounds(c,s);if(!started){b=sb;started=true;}else b.Encapsulate(sb);
                 if(shape.size.y>.6f&&shape.size.y<.8f)deckTop=Mathf.Max(deckTop,c.y+s.y*.5f);
             }
@@ -167,6 +175,8 @@ namespace DeadlyJenga.Presentation
                 {
                     float x=-length*.5f+.2f+i*(length-.4f)/(posts-1);
                     var foot=along*x+side*s*(width*.5f-.08f)+Vector3.up*top;
+                    mesh.Box(P(foot+Vector3.up*.055f),new Vector3(.33f,.13f,.33f),q,0,Walnut);
+                    mesh.Cylinder(P(foot+Vector3.up*.08f),q,.133f,.16f,0,Brass,8);
                     mesh.Box(P(foot+Vector3.up*.6f),new Vector3(.14f,1.2f,.14f),q,0,Gold);
                     mesh.Sphere(P(foot+Vector3.up*1.24f),Vector3.one*.13f,0,Gold,3,6);
                     if(i>0)
@@ -174,8 +184,8 @@ namespace DeadlyJenga.Presentation
                         foreach(float h in new[]{1.05f,.55f})
                         {
                             var a=P(last+Vector3.up*h);var e=P(foot+Vector3.up*h);var m=(a+e)*.5f+Vector3.down*.12f;
-                            mesh.Box((a+m)*.5f,new Vector3(.08f,.08f,(m-a).magnitude),Quaternion.LookRotation(m-a),0,rope);
-                            mesh.Box((m+e)*.5f,new Vector3(.08f,.08f,(e-m).magnitude),Quaternion.LookRotation(e-m),0,rope);
+                            mesh.Cylinder(a,Quaternion.FromToRotation(Vector3.up,m-a),.046f,(m-a).magnitude,0,rope,6);
+                            mesh.Cylinder(m,Quaternion.FromToRotation(Vector3.up,e-m),.046f,(e-m).magnitude,0,rope,6);
                         }
                     }
                     last=foot;
@@ -263,8 +273,8 @@ namespace DeadlyJenga.Presentation
 
         void WarmLighting()
         {
-            RenderSettings.fogColor=new Color(1,.84f,.86f);
-            RenderSettings.ambientSkyColor=new Color(.80f,.83f,.92f);RenderSettings.ambientEquatorColor=new Color(.80f,.76f,.69f);RenderSettings.ambientGroundColor=new Color(.38f,.32f,.28f);
+            RenderSettings.fogColor=new Color(.86f,.85f,.96f);
+            RenderSettings.ambientSkyColor=new Color(.77f,.85f,1);RenderSettings.ambientEquatorColor=new Color(.94f,.81f,.82f);RenderSettings.ambientGroundColor=new Color(.44f,.40f,.52f);
         }
     }
 }

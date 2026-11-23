@@ -61,6 +61,19 @@ namespace DeadlyJenga.CastlePrototype
                         keepClear.Add((center + Vector3.up * 1.1f, size * .5f + new Vector3(.6f, 1.25f, .6f), q));
                     }
                 }
+                foreach (var wing in plan.modules)
+                {
+                    if (wing.purpose!="Hinged inhabited book wing") continue;
+                    // An inset floor over the receiving foot carries the ground-level lounge.
+                    // Stop it on the lounge side of the stair and above the bearing face.
+                    Part(wing,new Vector3(0,.10f,4.6f),new Vector3(14,.20f,5.4f),1);
+                    for(int level=0;level<=2;level++)
+                    {
+                        float y=level==0?.20f:level*4;
+                        Part(wing,new Vector3(-4.8f,y+.55f,4.5f),new Vector3(3.65f,1.1f,1.26f),3);
+                        Part(wing,new Vector3(4.8f,y+.29f,4.5f),new Vector3(3.76f,.58f,1.34f),3);
+                    }
+                }
                 foreach (var f in jengaFloors) WallFloor(f.floor, f.w, f.depth, f.baseY, f.height, f.doors, keepClear);
             }
 
@@ -82,8 +95,23 @@ namespace DeadlyJenga.CastlePrototype
                         Part(floor, facing * center, new Vector3(2.5f, 1.08f, 1.4f), 3, facing);
                     }
                 }
+                // Fixed installations ride the existing module. Keep the shop entrances,
+                // center aisle and alternating stairs outside their collision footprints.
+                if (districtName.StartsWith("Sugar Market") || districtName.StartsWith("Cloud Harbor"))
+                    Part(floor,new Vector3(-w*.5f+2.1f,.55f,7.2f),new Vector3(1.26f,1.1f,3.65f),3);
+                else if (districtName.StartsWith("Canyon south"))
+                    // The south towers are open through alternate storeys. Fix the station to
+                    // this module's outer landing, clear of the flight and its stair head.
+                    Part(floor,new Vector3(-6.65f,4.55f,9.26f),new Vector3(3.65f,1.1f,1.26f),3);
+                else if (districtName.StartsWith("Canyon"))
+                    Part(floor,new Vector3(-6.5f,.55f,5.4f),new Vector3(1.26f,1.1f,3.65f),3);
+                else if (floor.purpose=="Two-floor dropping cassette")
+                    Part(floor,new Vector3(-4.8f,baseY+.55f,4.4f),new Vector3(3.65f,1.1f,1.26f),3);
+                else if (floor.purpose=="Escape spine" && baseY==10)
+                    Part(floor,new Vector3(-4.5f,10.55f,1.8f),new Vector3(1.26f,1.1f,3.65f),3);
                 if (floor.purpose == "Independent bookfall support spine")
                 {
+                    Part(floor,new Vector3(-4.6f,baseY+.55f,-18.2f),new Vector3(3.65f,1.1f,1.26f),3);
                     Part(floor,new Vector3(-5.5f,baseY+.54f,-8),new Vector3(1.24f,1.08f,4.38f),3);
                     Part(floor,new Vector3(-4.4f,baseY+.39f,21),new Vector3(3.10f,.78f,4.84f),3);
                     Part(floor,new Vector3(0,baseY+.28f,7.1f),new Vector3(3.86f,.56f,1.42f),3);

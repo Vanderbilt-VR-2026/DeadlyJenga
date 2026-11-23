@@ -1,32 +1,22 @@
-using System.Collections.Generic;
 using DeadlyJenga.Core;
 using UnityEngine;
 
 namespace DeadlyJenga.Presentation
 {
     // Candy Sky Ring City street life and its centerpiece. Art only, no colliders.
-    //   Walkers stroll both sidewalks of the ring boulevard; parked cars line the avenues;
     //   planters, candy hydrants and signposts dress the boulevard.
     //   A gold "sky ring" floats and slowly turns above the fountain plaza, visible from every street.
     public sealed partial class FantasyMapArt
     {
-        readonly List<(Transform body,float radius,float speed,float phase)> walkers=new();
         Transform skyRing;Vector3 skyRingHome;
-        readonly bool[,] walkClear=new bool[2,RoadBins];
 
         void BuildStreetLife()
         {
-            var center=roadCenter;var m=new ArtMesh(2);float R=Mathf.Min(halfWidth,halfDepth)*.9f;
-            // Parked cars along the avenues, and a signpost where each avenue meets the boulevard.
+            var center=roadCenter;var m=new ArtMesh(2);
+            // A signpost where each avenue meets the boulevard.
             for(int k=0;k<8;k++)
             {
                 float a=k*Mathf.PI/4+Mathf.PI/8;var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));var side=Vector3.Cross(Vector3.up,dir);var q=Quaternion.LookRotation(dir);
-                for(float r=22;r<R-6;r+=9)
-                {
-                    if(Mathf.Abs(r-roadRadius)<9)continue;
-                    var p=center+dir*r+side*(k%2==0?4:-4);
-                    if(Hash(p)<.5f&&Free(p,1.7f))Car(m,p,Hash(p+Vector3.one)<.5f?q:q*Quaternion.Euler(0,180,0),k*3+(int)r);
-                }
                 var post=center+dir*(roadRadius+7.4f)+side*3.6f;if(Free(post,.8f))Signpost(m,post,q,k);
             }
             // Planters and candy hydrants on the outer sidewalk.
@@ -39,38 +29,8 @@ namespace DeadlyJenga.Presentation
             }
             Model("Visual · candy street life",m,transform,new[]{cityCandyMaterial,cityGlowMaterial});
 
-            // Walkers on both sidewalks, in both directions.
-            if(roadRadius<=0){AnimateLandmarks(Time.time);return;}
-            // Which stretches of each sidewalk are clear of buildings (walkers hide elsewhere).
-            int clear=0;
-            for(int i=0;i<RoadBins;i++)
-            {
-                float a=(i+.5f)*Mathf.PI*2/RoadBins;var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
-                walkClear[0,i]=Free(center+dir*(roadRadius-5.6f),.7f);walkClear[1,i]=Free(center+dir*(roadRadius+5.6f),.7f);
-                if(walkClear[0,i])clear++;if(walkClear[1,i])clear++;
-            }
-            for(int i=0;i<30;i++)
-            {
-                var w=new ArtMesh(1);Walker(w,i);
-                var go=Model("Visual · candy walker",w,transform,new[]{cityCandyMaterial});
-                bool outer=i%2==0;float speed=(i%4<2?1:-1)*(1.1f+Hash(new Vector3(i,7,1))*.5f);
-                walkers.Add((go.transform,roadRadius+(outer?5.6f:-5.6f),speed,i*.73f+Hash(new Vector3(i,2,9))));
-            }
-            // Place everything once now: pictures and the first frame must not show walkers at the map origin.
+            BuildCloudResidents();
             AnimateLandmarks(Time.time);
-        }
-
-        void Walker(ArtMesh m,int seed)
-        {
-            var shirts=new[]{new Color(1,.36f,.62f),new Color(.4f,.75f,1),new Color(1,.82f,.3f),new Color(.5f,.84f,.16f),new Color(.62f,.36f,.96f),new Color(1,.54f,.08f)};
-            var skin=new[]{new Color(1,.86f,.74f),new Color(.86f,.64f,.48f),new Color(.6f,.42f,.3f)}[seed%3];
-            var shirt=shirts[seed%shirts.Length];var pants=Color.Lerp(shirts[(seed+3)%shirts.Length],Color.black,.35f);
-            foreach(int s in new[]{-1,1})m.Box(new Vector3(s*.12f,.42f,0),new Vector3(.17f,.84f,.2f),Quaternion.identity,0,pants);
-            m.Sphere(new Vector3(0,1.15f,0),new Vector3(.27f,.4f,.2f),0,shirt,6,10);
-            foreach(int s in new[]{-1,1})m.Box(new Vector3(s*.31f,1.1f,0),new Vector3(.1f,.55f,.12f),Quaternion.Euler(0,0,s*8),0,shirt);
-            m.Sphere(new Vector3(0,1.66f,0),Vector3.one*.16f,0,skin,6,10);
-            if(seed%3==0)m.Sphere(new Vector3(0,1.76f,0),new Vector3(.19f,.09f,.19f),0,shirts[(seed+2)%shirts.Length],4,8);
-            if(seed%5==1){m.Box(new Vector3(.38f,1.75f,0),new Vector3(.02f,.9f,.02f),Quaternion.identity,0,Sugar);m.Sphere(new Vector3(.38f,2.25f,0),new Vector3(.32f,.4f,.32f),0,shirts[(seed+1)%shirts.Length],6,10);}
         }
 
         void Signpost(ArtMesh m,Vector3 p,Quaternion q,int seed)
@@ -124,20 +84,9 @@ namespace DeadlyJenga.Presentation
                 // Tilted enough that street-level players see the ring's face, not just its edge.
                 skyRing.localRotation=Quaternion.Euler(0,time*5,0)*Quaternion.Euler(22+4*Mathf.Sin(time*.21f),0,0);
             }
-            for(int i=0;i<walkers.Count;i++)
-            {
-                var (body,radius,speed,phase)=walkers[i];if(!body)continue;
-                float a=phase+time*speed/radius;
-                int bin=((int)(a/(Mathf.PI*2)*RoadBins)%RoadBins+RoadBins)%RoadBins;
-                bool show=walkClear[radius>roadRadius?1:0,bin];if(body.gameObject.activeSelf!=show)body.gameObject.SetActive(show);
-                var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
-                float step=Mathf.Abs(Mathf.Sin(time*5.5f+phase*3));
-                body.localPosition=L(roadCenter+dir*radius+Vector3.up*(.05f+step*.06f));
-                body.localRotation=LR(Quaternion.LookRotation(Vector3.Cross(dir,Vector3.up)*Mathf.Sign(speed))*Quaternion.Euler(0,0,(step-.5f)*6));
-            }
         }
 
-        void ClearLandmarks(){elevators.Clear();walkers.Clear();skyRing=null;ClearSkyCities();}
+        void ClearLandmarks(){elevators.Clear();skyRing=null;ClearSkyCities();}
 
         sealed partial class ArtMesh
         {

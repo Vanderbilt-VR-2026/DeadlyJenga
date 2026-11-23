@@ -28,16 +28,6 @@ namespace DeadlyJenga.Presentation
             center.y=streetY;roadCenter=center;
             float R=Mathf.Min(halfWidth,halfDepth)*.9f;
             var m=new ArtMesh(2);
-
-            // Paved city floor with a tile grid, so the island reads as streets instead of loose cloud.
-            m.Cylinder(L(center+Vector3.up*.03f),LR(Quaternion.identity),R,.05f,0,Pavement,64);
-            for(float x=-R+6;x<R;x+=6)
-            {
-                float chord=Mathf.Sqrt(Mathf.Max(0,R*R-x*x))*2-2;if(chord<2)continue;
-                m.Box(L(center+new Vector3(x,.09f,0)),new Vector3(.18f,.02f,chord),LR(Quaternion.identity),0,PavementLine);
-                m.Box(L(center+new Vector3(0,.09f,x)),new Vector3(chord,.02f,.18f),LR(Quaternion.identity),0,PavementLine);
-            }
-
             // Ring boulevard at the freest radius between the inner and outer districts.
             float bestScore=-1;roadRadius=R*.6f;
             for(float r=R*.4f;r<=R*.9f;r+=1)
@@ -51,13 +41,30 @@ namespace DeadlyJenga.Presentation
                 float a=(i+.5f)*Mathf.PI*2/RoadBins;var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));var p=center+dir*roadRadius;
                 roadOpen[i]=Free(p,3.2f);if(!roadOpen[i])continue;open++;
                 var q=Quaternion.LookRotation(Vector3.Cross(Vector3.up,dir));float len=roadRadius*Mathf.PI*2/RoadBins+.4f;
-                m.Box(L(p+Vector3.up*.08f),new Vector3(13,.04f,len),LR(q),0,Sidewalk);
-                m.Box(L(p+Vector3.up*.12f),new Vector3(9,.06f,len),LR(q),0,Asphalt);
-                foreach(int side in new[]{-1,1})m.Box(L(p+dir*side*4.7f+Vector3.up*.2f),new Vector3(.5f,.22f,len),LR(q),0,Sugar);
+                if(solidCandy)
+                {
+                    var start=Radial(i);var end=Radial(i+1);
+                    m.RoadBand(L(center),start,end,roadRadius-6.5f,roadRadius+6.5f,.116f,Sidewalk);
+                    m.RoadBand(L(center),start,end,roadRadius-4.5f,roadRadius+4.5f,.15f,Asphalt);
+                    // Drop the curb at the eight avenue crossings.
+                    float junction=Mathf.Repeat(a,Mathf.PI/4)-Mathf.PI/8;
+                    if(Mathf.Abs(Mathf.Sin(junction))*roadRadius>3.8f)
+                        foreach(int side in new[]{-1,1})
+                        {
+                            float curb=roadRadius+side*4.7f;
+                            m.RoadBand(L(center),start,end,curb-.21f,curb+.21f,.21f,Sugar,.116f);
+                        }
+                }
+                else
+                {
+                    m.Box(L(p+Vector3.up*.08f),new Vector3(13,.04f,len),LR(q),0,Sidewalk);
+                    m.Box(L(p+Vector3.up*.12f),new Vector3(9,.06f,len),LR(q),0,Asphalt);
+                    foreach(int side in new[]{-1,1})m.Box(L(p+dir*side*4.7f+Vector3.up*.2f),new Vector3(.5f,.22f,len),LR(q),0,Sugar);
+                }
                 if(i%2==0)m.Box(L(p+Vector3.up*.16f),new Vector3(.3f,.02f,len*.55f),LR(q),1,LaneLine);
                 if(i%4==0&&Free(p+dir*6.2f,.8f))Lamp(m,p+dir*6.2f);
                 if(i%4==2&&Free(p-dir*6.2f,.8f))Lamp(m,p-dir*6.2f);
-                if(i%7==3&&Free(p+dir*3,1.4f))Car(m,p+dir*2.6f,q,i);
+                if(!solidCandy && i%7==3&&Free(p+dir*3,1.4f))Car(m,p+dir*2.6f,q,i);
             }
 
             // Eight avenues from the plaza to the island edge, crossing the boulevard on zebra crossings.
@@ -74,6 +81,29 @@ namespace DeadlyJenga.Presentation
                     var side=Vector3.Cross(Vector3.up,dir);
                     if(Mathf.RoundToInt(r)%12==0)foreach(int s in new[]{-1,1})if(Free(p+side*s*4.5f,1))Tree(m,p+side*s*4.5f,k+s);
                 }
+            }
+
+            if(!solidCandy) BuildOutdoorPaving(m,center,R);
+            Model("Visual · candy city streets",m,transform,new[]{cityCandyMaterial,cityGlowMaterial});
+
+            // Traffic on the boulevard when most of it is open road.
+            if(!solidCandy && open>RoadBins*.35f)for(int i=0;i<9;i++)
+            {
+                var c=new ArtMesh(2);Car(c,Vector3.zero,Quaternion.identity,i+11,true);
+                var go=Model("Visual · candy car",c,transform,new[]{cityCandyMaterial,cityGlowMaterial});
+                cars.Add(go.transform);carPhase.Add(i/9f*Mathf.PI*2);
+            }
+        }
+
+        void BuildOutdoorPaving(ArtMesh m,Vector3 center,float R)
+        {
+            // Paved city floor with a tile grid, so the island reads as streets instead of loose cloud.
+            m.Cylinder(L(center+Vector3.up*.03f),LR(Quaternion.identity),R,.05f,0,Pavement,64);
+            for(float x=-R+6;x<R;x+=6)
+            {
+                float chord=Mathf.Sqrt(Mathf.Max(0,R*R-x*x))*2-2;if(chord<2)continue;
+                m.Box(L(center+new Vector3(x,.09f,0)),new Vector3(.18f,.02f,chord),LR(Quaternion.identity),0,PavementLine);
+                m.Box(L(center+new Vector3(0,.09f,x)),new Vector3(chord,.02f,.18f),LR(Quaternion.identity),0,PavementLine);
             }
 
             // Patterned plaza ring around whatever stands in the middle.
@@ -102,19 +132,46 @@ namespace DeadlyJenga.Presentation
                 m.Box(L(p+new Vector3(0,.5f,-2.8f)),new Vector3(2.2f,.18f,.6f),LR(Quaternion.identity),0,new Color(.95f,.4f,.55f));
                 parks++;
             }
-            Model("Visual · candy city streets",m,transform,new[]{cityCandyMaterial,cityGlowMaterial});
+        }
 
-            // Traffic on the boulevard when most of it is open road.
-            if(open>RoadBins*.35f)for(int i=0;i<9;i++)
+        Vector3 Radial(int index)
+        {
+            float a=(index%RoadBins)*2*Mathf.PI/RoadBins;
+            return Quaternion.Inverse(transform.rotation)*new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));
+        }
+
+        sealed partial class ArtMesh
+        {
+            // Adjacent sectors use identical endpoints, including the wrap at the first sector.
+            public void RoadBand(Vector3 center,Vector3 start,Vector3 end,float inner,float outer,float y,Color color,float baseY=-1)
             {
-                var c=new ArtMesh(2);Car(c,Vector3.zero,Quaternion.identity,i+11,true);
-                var go=Model("Visual · candy car",c,transform,new[]{cityCandyMaterial,cityGlowMaterial});
-                cars.Add(go.transform);carPhase.Add(i/9f*Mathf.PI*2);
+                var lift=Vector3.up*y;
+                var a=center+start*inner+lift;var b=center+end*inner+lift;
+                var c=center+end*outer+lift;var d=center+start*outer+lift;
+                Quad(a,b,c,d,0,color);
+                if(baseY<0)return;
+                var drop=Vector3.down*(y-baseY);
+                Quad(b,a,a+drop,b+drop,0,color);
+                Quad(d,c,c+drop,d+drop,0,color);
+                Quad(a,d,d+drop,a+drop,0,color);
+                Quad(c,b,b+drop,c+drop,0,color);
             }
         }
 
         void Lamp(ArtMesh m,Vector3 p)
         {
+            if(solidCandy)
+            {
+                var lamp=new Room(m,L(p),LR(Quaternion.identity));
+                lamp.Tube(0,.10f,0,.36f,.20f,Ink);
+                lamp.Tube(0,.26f,0,.24f,.54f,Jade);
+                lamp.Tube(0,.76f,0,.15f,3.05f,Jade);
+                lamp.Tube(0,3.71f,0,.29f,.18f,Brass);
+                m.Sphere(lamp.At(0,4.23f,0),new Vector3(.39f,.49f,.39f),1,new Color(1,.83f,.58f),8,14);
+                m.Cone(lamp.At(0,4.54f,0),lamp.q,.37f,.22f,0,Jade,14);
+                lamp.Tube(0,4.74f,0,.065f,.12f,Brass);
+                return;
+            }
             m.Cylinder(L(p),LR(Quaternion.identity),.12f,4.2f,0,Sugar,8);
             m.Box(L(p+Vector3.up*4.25f),new Vector3(.9f,.12f,.12f),LR(Quaternion.identity),0,Sugar);
             m.Sphere(L(p+Vector3.up*4.55f),Vector3.one*.55f,1,WindowTints[0],4,8);

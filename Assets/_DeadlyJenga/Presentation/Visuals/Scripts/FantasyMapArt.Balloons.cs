@@ -5,7 +5,7 @@ using UnityEngine;
 namespace DeadlyJenga.Presentation
 {
     // Candy Sky Ring City hot-air balloons: each one is its own model (striped teardrop envelope, crown cap,
-    // skirt, ropes, wicker basket with passengers, sandbags, burner) and flies on its own.
+    // skirt, ropes, wicker basket with sandbags, sandbags, burner) and flies on its own.
     // Cruisers circle the island at different heights and speeds; voyagers cross the whole sky from one
     // distant island to another and come round again. All of them bob, sway, slowly turn and fire their
     // burners now and then (the flame flares and the balloon lifts a little). Art only, high above play.
@@ -91,7 +91,7 @@ namespace DeadlyJenga.Presentation
             m.Box(new Vector3(.5f,H+1.5f,0),new Vector3(1,.55f,.05f),Quaternion.identity,0,palette[2]);
             // Skirt under the mouth.
             m.Cylinder(new Vector3(0,-1.1f,0),Quaternion.identity,R*.2f,1.1f,0,Color.Lerp(palette[0],Color.black,.25f),14);
-            // Basket, rim, ropes, sandbags and two tiny passengers.
+            // Basket, rim, ropes and sandbags.
             float drop=4.6f;var basket=new Vector3(0,-drop,0);var wicker=new Color(.66f,.43f,.22f);
             m.Box(basket,new Vector3(1.9f,1.3f,1.9f),Quaternion.identity,0,wicker);
             m.Box(basket+Vector3.up*.7f,new Vector3(2.05f,.18f,2.05f),Quaternion.identity,0,new Color(.45f,.27f,.13f));
@@ -102,12 +102,6 @@ namespace DeadlyJenga.Presentation
                 var a=basket+corner;var e=new Vector3(corner.x*.82f,-1.1f,corner.z*.82f);var dirn=e-a;
                 m.Box((a+e)*.5f,new Vector3(.06f,.06f,dirn.magnitude),Quaternion.LookRotation(dirn),0,new Color(.35f,.24f,.16f));
                 m.Sphere(basket+new Vector3(corner.x*1.12f,-.1f,corner.z*1.12f),new Vector3(.22f,.3f,.22f),0,new Color(.85f,.74f,.55f),4,6);
-            }
-            for(int i=0;i<2;i++)
-            {
-                var head=basket+new Vector3(i==0?-.45f:.45f,1.15f,.1f);var shirt=BalloonPalettes[(seed+i+2)%BalloonPalettes.Length][0];
-                m.Sphere(head+Vector3.down*.35f,new Vector3(.32f,.32f,.32f),0,shirt,5,8);
-                m.Sphere(head,Vector3.one*.27f,0,new Color(1,.86f,.74f),5,8);
             }
             // Burner frame between basket and mouth.
             m.Box(new Vector3(0,-2.4f,0),new Vector3(.55f,.4f,.55f),Quaternion.identity,0,new Color(.6f,.62f,.68f));
