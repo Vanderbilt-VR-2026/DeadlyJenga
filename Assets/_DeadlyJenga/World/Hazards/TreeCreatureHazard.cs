@@ -63,9 +63,9 @@ namespace DeadlyJenga.World.Hazards
                 var c=contacts[i];var push=HitAbilities.Get<IPushable>(c);var health=HitAbilities.Get<IDamageable>(c);
                 var body=c.attachedRigidbody;object key=(object)push??(object)health??body;
                 if(key==null||!touched.Add(key))continue;
-                if(push!=null)push.Push(Vector3.ClampMagnitude(impulse*strength,30),gameObject);
-                else if(body&&!body.isKinematic)body.AddForce(impulse*strength,ForceMode.VelocityChange);
-                health?.Damage(V(1)*strength,gameObject);
+                if(impulse.sqrMagnitude>0 && strength>0 && push!=null)push.Push(Vector3.ClampMagnitude(impulse*strength,30),gameObject);
+                else if(impulse.sqrMagnitude>0 && strength>0 && body&&!body.isKinematic)body.AddForce(impulse*strength,ForceMode.VelocityChange);
+                if(V(1)*strength>0)health?.Damage(V(1)*strength,gameObject);
             }
         }
         public DisasterFrame Capture()=>Active?new DisasterFrame{kind=Kind,label=Type.name,center=area.center,size=area.size,

@@ -42,3 +42,7 @@ MonoBehaviour:
   type: {fileID: 11400000, guid: 990733eff0114aadb5971e0d0d088dec, type: 2}
   intensity: 1
   duration: 10
+  routine: 0
+  secondsPerStrike: 3.8
+  reach: 65
+  liftHeight: 18
