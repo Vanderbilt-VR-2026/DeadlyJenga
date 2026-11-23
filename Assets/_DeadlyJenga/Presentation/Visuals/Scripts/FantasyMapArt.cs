@@ -28,6 +28,7 @@ namespace DeadlyJenga.Presentation
         readonly Dictionary<MeshFilter,Mesh> originalShapes=new();
         CandyEnvironment environment;
         CandySceneSkins sceneSkins;
+        bool hidCityGround, oldGroundOff;
         bool oldLighting,oldWaterOff,oldSandOff,oldSkinsEnabled,active;
         Material oldSky;
         Color oldAmbientSky,oldAmbientEquator,oldAmbientGround,oldSunColor;
@@ -85,6 +86,12 @@ namespace DeadlyJenga.Presentation
             RenderSettings.ambientEquatorColor=theme==FantasyMapTheme.Honeycomb?new Color(.62f,.40f,.17f):theme==FantasyMapTheme.Carnival?new Color(.87f,.62f,.75f):new Color(.64f,.76f,.88f);
             RenderSettings.ambientGroundColor=theme==FantasyMapTheme.Honeycomb?new Color(.28f,.15f,.055f):new Color(.32f,.35f,.49f);RenderSettings.ambientIntensity=1;
             if(ground){originals[ground]=ground.sharedMaterials;ground.sharedMaterial=groundMaterial;}
+            if(ground && City && solidCandy && cityStreets)
+            {
+                oldGroundOff=ground.forceRenderingOff;
+                ground.forceRenderingOff=true;
+                hidCityGround=true;
+            }
             if(theme==FantasyMapTheme.Honeycomb){if(!texturedEnvironmentSky)BuildHive();}else BuildCloud();
             if(theme==FantasyMapTheme.Carnival&&!texturedCarnivalSky)BuildCarnival();
             if(City)BuildCityBackdrop();
@@ -120,6 +127,8 @@ namespace DeadlyJenga.Presentation
         {
             ResumeBatching();
             if(!active)return;
+            if(hidCityGround && ground) ground.forceRenderingOff=oldGroundOff;
+            hidCityGround=false;
             EndLighting();ClearBodyArt();foreach(var pair in originals)if(pair.Key)pair.Key.sharedMaterials=pair.Value;originals.Clear();
             foreach(var go in ownedObjects)if(go)Release(go);ownedObjects.Clear();
             foreach(var mesh in ownedMeshes)if(mesh)Release(mesh);ownedMeshes.Clear();

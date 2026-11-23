@@ -28,18 +28,6 @@ namespace DeadlyJenga.Presentation
             center.y=streetY;roadCenter=center;
             float R=Mathf.Min(halfWidth,halfDepth)*.9f;
             var m=new ArtMesh(2);
-            var pavement=solidCandy?new Color(.87f,.77f,.68f):Pavement;
-            var joint=solidCandy?new Color(.72f,.62f,.55f):PavementLine;
-
-            // Paved city floor with a tile grid, so the island reads as streets instead of loose cloud.
-            m.Cylinder(L(center+Vector3.up*.03f),LR(Quaternion.identity),R,.05f,0,pavement,64);
-            for(float x=-R+6;x<R;x+=6)
-            {
-                float chord=Mathf.Sqrt(Mathf.Max(0,R*R-x*x))*2-2;if(chord<2)continue;
-                m.Box(L(center+new Vector3(x,.09f,0)),new Vector3(.18f,.02f,chord),LR(Quaternion.identity),0,joint);
-                m.Box(L(center+new Vector3(0,.09f,x)),new Vector3(chord,.02f,.18f),LR(Quaternion.identity),0,joint);
-            }
-
             // Ring boulevard at the freest radius between the inner and outer districts.
             float bestScore=-1;roadRadius=R*.6f;
             for(float r=R*.4f;r<=R*.9f;r+=1)
@@ -95,6 +83,29 @@ namespace DeadlyJenga.Presentation
                 }
             }
 
+            if(!solidCandy) BuildOutdoorPaving(m,center,R);
+            Model("Visual · candy city streets",m,transform,new[]{cityCandyMaterial,cityGlowMaterial});
+
+            // Traffic on the boulevard when most of it is open road.
+            if(!solidCandy && open>RoadBins*.35f)for(int i=0;i<9;i++)
+            {
+                var c=new ArtMesh(2);Car(c,Vector3.zero,Quaternion.identity,i+11,true);
+                var go=Model("Visual · candy car",c,transform,new[]{cityCandyMaterial,cityGlowMaterial});
+                cars.Add(go.transform);carPhase.Add(i/9f*Mathf.PI*2);
+            }
+        }
+
+        void BuildOutdoorPaving(ArtMesh m,Vector3 center,float R)
+        {
+            // Paved city floor with a tile grid, so the island reads as streets instead of loose cloud.
+            m.Cylinder(L(center+Vector3.up*.03f),LR(Quaternion.identity),R,.05f,0,Pavement,64);
+            for(float x=-R+6;x<R;x+=6)
+            {
+                float chord=Mathf.Sqrt(Mathf.Max(0,R*R-x*x))*2-2;if(chord<2)continue;
+                m.Box(L(center+new Vector3(x,.09f,0)),new Vector3(.18f,.02f,chord),LR(Quaternion.identity),0,PavementLine);
+                m.Box(L(center+new Vector3(0,.09f,x)),new Vector3(chord,.02f,.18f),LR(Quaternion.identity),0,PavementLine);
+            }
+
             // Patterned plaza ring around whatever stands in the middle.
             for(int i=0;i<48;i++)
             {
@@ -118,32 +129,8 @@ namespace DeadlyJenga.Presentation
                 m.Cylinder(L(p+Vector3.up*.05f),LR(Quaternion.identity),4.5f,.12f,0,Sugar,18);
                 Tree(m,p+new Vector3(-1.2f,0,.8f),parks);
                 if(Hash(p+Vector3.one)>.5f)Tree(m,p+new Vector3(1.6f,0,-1.1f),parks+1);
-                if(solidCandy)
-                {
-                    // Feet sit on the raised turf, with rails connecting both end frames.
-                    var bench=new Room(m,L(p+new Vector3(0,.21f,-2.8f)),LR(Quaternion.identity));
-                    for(int end=-1;end<=1;end+=2)
-                    {
-                        bench.Box(end*.88f,.23f,0,.14f,.48f,.53f,Jade);
-                        bench.Box(end*.88f,.60f,-.23f,.14f,.81f,.13f,Jade);
-                        bench.Box(end*.88f,.055f,0,.34f,.11f,.60f,Ink);
-                    }
-                    for(int slat=-1;slat<=1;slat++)
-                        bench.EdgedTop(0,.48f,slat*.19f,2.18f,.11f,.175f,Oak);
-                    bench.Box(0,.77f,-.26f,2.18f,.15f,.11f,Oak);
-                    bench.Box(0,.96f,-.26f,2.18f,.15f,.11f,Oak);
-                }
-                else m.Box(L(p+new Vector3(0,.5f,-2.8f)),new Vector3(2.2f,.18f,.6f),LR(Quaternion.identity),0,new Color(.95f,.4f,.55f));
+                m.Box(L(p+new Vector3(0,.5f,-2.8f)),new Vector3(2.2f,.18f,.6f),LR(Quaternion.identity),0,new Color(.95f,.4f,.55f));
                 parks++;
-            }
-            Model("Visual · candy city streets",m,transform,new[]{cityCandyMaterial,cityGlowMaterial});
-
-            // Traffic on the boulevard when most of it is open road.
-            if(!solidCandy && open>RoadBins*.35f)for(int i=0;i<9;i++)
-            {
-                var c=new ArtMesh(2);Car(c,Vector3.zero,Quaternion.identity,i+11,true);
-                var go=Model("Visual · candy car",c,transform,new[]{cityCandyMaterial,cityGlowMaterial});
-                cars.Add(go.transform);carPhase.Add(i/9f*Mathf.PI*2);
             }
         }
 
