@@ -416,7 +416,7 @@ namespace DeadlyJenga.CandyPlayers
             }
             var hand = state.leftHanded ? frame.left : frame.right;
             var pose = CarryPose(frame, hand, state.leftHanded, drawAmount, target > 0);
-            if (target > 0)
+            if (target > 0 && !WearableUsesHandAnchor(kind))
                 pose = PosePickup(frame, hand, state.leftHanded, pose);
             if (slungForEmote)
             {
@@ -427,12 +427,13 @@ namespace DeadlyJenga.CandyPlayers
             {
                 pose = EmbedPose(state, pose, frame.scale);
             }
-            root.gameObject.SetActive(true);
+            if (kind != EquipmentKind.LaserClaws) root.gameObject.SetActive(true);
             root.localScale = new Vector3((kind == EquipmentKind.BoxingGlove || kind == EquipmentKind.RocketLauncher) && state.leftHanded ? -1 : 1, 1, 1) * ModelScale(kind, frame.scale);
             root.SetPositionAndRotation(pose.position, pose.rotation);
             PresentEnergyReload(feedState, root);
-            if (kind == EquipmentKind.LaserClaws) PresentClaws(root, hand, state.leftHanded, drawAmount);
-            if (kind == EquipmentKind.PoweredArmor) PresentRepulsor(root, drawAmount);
+            if (kind == EquipmentKind.BoxingGlove) PresentBoxingGlove(root, drawAmount);
+            if (kind == EquipmentKind.LaserClaws) PresentClaws(root, hand, state.leftHanded, drawAmount, false);
+            if (kind == EquipmentKind.PoweredArmor) PresentRepulsor(root, drawAmount, false);
             if(rotor){spin+=Time.deltaTime*(state.triggerHeld?700+state.charge*1800:state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?500:0);rotor.localRotation=Quaternion.Euler(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?spin:0,0,state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?0:spin);}
             if (kind == EquipmentKind.DualUzi || kind == EquipmentKind.LaserClaws || kind == EquipmentKind.PoweredArmor)
             {
@@ -454,13 +455,13 @@ namespace DeadlyJenga.CandyPlayers
                 bool otherLeft = !state.leftHanded;
                 var other = otherLeft ? frame.left : frame.right;
                 var otherPose = CarryPose(frame, other, otherLeft, drawAmount, target > 0);
-                if (target > 0)
+                if (target > 0 && !WearableUsesHandAnchor(kind))
                     otherPose = PosePickup(frame, other, otherLeft, otherPose, true);
                 paired.SetPositionAndRotation(otherPose.position, otherPose.rotation);
                 paired.localScale = Vector3.one * ModelScale(kind, frame.scale);
-                paired.gameObject.SetActive(true);
-                if (kind == EquipmentKind.LaserClaws) PresentClaws(paired, other, otherLeft, drawAmount);
-                if (kind == EquipmentKind.PoweredArmor) PresentRepulsor(paired, drawAmount);
+                if (kind != EquipmentKind.LaserClaws) paired.gameObject.SetActive(true);
+                if (kind == EquipmentKind.LaserClaws) PresentClaws(paired, other, otherLeft, drawAmount, true);
+                if (kind == EquipmentKind.PoweredArmor) PresentRepulsor(paired, drawAmount, true);
                 PresentFeed(pairedFeed, feedState, otherLeft, true);
             }
             PresentFeed(feed, feedState, state.leftHanded, false);
@@ -472,6 +473,9 @@ namespace DeadlyJenga.CandyPlayers
                 barrel.localRotation=Quaternion.Euler(0,0,barrelAngle);
             }
         }
+        static bool WearableUsesHandAnchor(EquipmentKind kind) =>
+            kind == EquipmentKind.LaserClaws || kind == EquipmentKind.PoweredArmor;
+
         EquipmentActionFrame FindNewPickup(EquipmentState state)
         {
             if (string.IsNullOrEmpty(state.actor)) return null;

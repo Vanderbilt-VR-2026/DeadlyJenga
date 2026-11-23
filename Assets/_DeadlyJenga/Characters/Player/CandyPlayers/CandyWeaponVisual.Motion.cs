@@ -99,7 +99,10 @@ namespace DeadlyJenga.CandyPlayers
 
         float CarryDuration(bool drawing) => kind switch
         {
-            EquipmentKind.WristLaser or EquipmentKind.LaserClaws or EquipmentKind.PoweredArmor => .26f,
+            EquipmentKind.WristLaser => .26f,
+            EquipmentKind.LaserClaws => drawing ? .42f : .36f,
+            EquipmentKind.PoweredArmor => drawing ? .54f : .40f,
+            EquipmentKind.BoxingGlove => drawing ? .44f : .48f,
             EquipmentKind.Dagger or EquipmentKind.StockPistol or EquipmentKind.SheriffHammer => drawing ? .29f : .36f,
             EquipmentKind.DualUzi => drawing ? .40f : .44f,
             EquipmentKind.ChainGun or EquipmentKind.RocketLauncher => drawing ? .67f : .58f,
@@ -111,7 +114,9 @@ namespace DeadlyJenga.CandyPlayers
 
         float PickupDuration => kind switch
         {
-            EquipmentKind.ChainGun or EquipmentKind.RocketLauncher or EquipmentKind.GrenadeLauncher => .69f,
+            EquipmentKind.ChainGun or EquipmentKind.RocketLauncher or EquipmentKind.GrenadeLauncher or
+                EquipmentKind.PoweredArmor => .69f,
+            EquipmentKind.BoxingGlove or EquipmentKind.LaserClaws => .56f,
             EquipmentKind.DualRifle or EquipmentKind.MurderSword or EquipmentKind.BarbedBat or
                 EquipmentKind.Chainsaw or EquipmentKind.LaserAxe => .59f,
             _ => .47f
@@ -144,6 +149,11 @@ namespace DeadlyJenga.CandyPlayers
             {
                 gather = ready.position;
                 lift *= .11f;
+            }
+            if (kind == EquipmentKind.BoxingGlove && !trackedWrist)
+            {
+                gather = Vector3.Lerp(gather, hand.position - hand.rotation * Vector3.forward * .16f, .68f);
+                lift = hand.rotation * new Vector3(side * .04f,.044f,.06f) * frame.scale;
             }
             var inspect = ready.position + lift;
             var pitch = ready.rotation * Quaternion.Euler(-24, side * 22, side * 28);
@@ -353,32 +363,70 @@ namespace DeadlyJenga.CandyPlayers
             float u = 1 - t;
             var position = u*u*u*holstered.position + 3*u*u*t*clear +
                 3*u*t*t*present + t*t*t*drawn.position;
-            var guide = yaw * Quaternion.Euler(back ? -37 : 43, storedSide * (back ? 65 : 27),
-                storedSide * (drawing ? 25 : 43));
+            var guide = kind == EquipmentKind.BoxingGlove
+                ? drawn.rotation * Quaternion.Euler(drawing ? -32 : 26,side * 10,side * 32)
+                : yaw * Quaternion.Euler(back ? -37 : 43, storedSide * (back ? 65 : 27),
+                    storedSide * (drawing ? 25 : 43));
             var rotation = Quaternion.Slerp(Quaternion.Slerp(holstered.rotation, guide, t),
                 Quaternion.Slerp(guide, drawn.rotation, t), t);
             return new Pose(position, rotation);
         }
 
-        static void PresentRepulsor(Transform weapon, float progress)
+        float WearableProgress(float draw, bool secondary)
         {
-            float open = Mathf.SmoothStep(0, 1, progress);
+            float progress = Mathf.Clamp01((draw - (secondary ? .09f : 0)) / .91f);
+            if (float.IsFinite(pickupStarted))
+            {
+                float pickup = (Time.time - pickupStarted) / PickupDuration;
+                progress *= Ease(secondary ? .23f : .12f, secondary ? .96f : .83f, pickup);
+            }
+            return progress;
+        }
+
+        void PresentBoxingGlove(Transform weapon, float progress)
+        {
+            if (!float.IsFinite(pickupStarted)) return;
+            float t = (Time.time - pickupStarted) / PickupDuration;
+            float squeeze = Ease(.48f,.62f,t) * (1 - Ease(.66f,.88f,t)) * progress;
+            weapon.localScale = Vector3.Scale(weapon.localScale,
+                new Vector3(1 - .045f * squeeze, 1 + .055f * squeeze, 1 - .055f * squeeze));
+        }
+
+        void PresentRepulsor(Transform weapon, float draw, bool secondary)
+        {
+            float progress = WearableProgress(draw, secondary);
+            float release = Ease(.08f,.43f,progress);
+            float open = Ease(.27f,.93f,progress);
+            float seat = Ease(.76f,.91f,progress) * (1-Ease(.91f,1,progress));
             for (int i = 0; i < 2; i++)
             {
                 float side = i == 0 ? -1 : 1;
                 var shutter = weapon.GetChild(i);
-                shutter.localPosition = new Vector3(side * Mathf.Lerp(.013f, .032f, open), 0, -.006f * open);
-                shutter.localRotation = Quaternion.Euler(0, side * 58 * open, 0);
+                shutter.localPosition = new Vector3(side * Mathf.Lerp(.013f, .032f, open),
+                    .004f * seat, .010f * release - .016f * open);
+                shutter.localRotation = Quaternion.Euler(-9 * (release - open), side * (58 * open + 4 * seat), 0);
             }
         }
 
-        void PresentClaws(Transform weapon, CandyHandPose hand, bool left, float progress)
+        void PresentClaws(Transform weapon, CandyHandPose hand, bool left, float draw, bool secondary)
         {
-            weapon.gameObject.SetActive(progress > 0);
+            float progress = WearableProgress(draw, secondary);
             PositionClaws(weapon, hand, left);
-            float extension = Mathf.Lerp(.02f, 1, Mathf.SmoothStep(0, 1, progress));
+            bool visible = false;
             for (int i = 0; i < 3; i++)
-                weapon.GetChild(i).localScale = new Vector3(1, 1, extension);
+            {
+                var blade = weapon.GetChild(i);
+                float delay = (i == 1 ? 0 : i == 0 ? .13f : .24f);
+                float shoot = Ease(delay,.64f + delay,progress);
+                float align = Ease(.45f + delay,.76f + delay,progress);
+                float side = (left ? -1f : 1f) * (i - 1);
+                blade.localPosition -= Vector3.forward * (.051f * (1-shoot));
+                blade.localRotation *= Quaternion.Euler(-19 * (1 - align),side * 12 * (1 - align),0);
+                blade.localScale = new Vector3(.74f + .26f * shoot,.74f + .26f * shoot,.025f + .975f * shoot);
+                blade.gameObject.SetActive(shoot > .015f);
+                visible |= shoot > .015f;
+            }
+            weapon.gameObject.SetActive(visible);
         }
 
         void PresentFeed(Transform assembly, EquipmentState state, bool left, bool secondary)

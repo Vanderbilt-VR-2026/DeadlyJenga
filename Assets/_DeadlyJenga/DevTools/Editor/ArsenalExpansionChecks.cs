@@ -212,15 +212,8 @@ namespace DeadlyJenga.DevTools.Editor
                     right=new CandyHandPose{position=origin,rotation=Quaternion.identity},
                     left=new CandyHandPose{position=origin+Vector3.left*.42f,rotation=Quaternion.identity}
                 };
-                var kinds=new[]
-                {
-                    EquipmentKind.Blaster, EquipmentKind.SheriffHammer, EquipmentKind.DualRifle,
-                    EquipmentKind.RocketLauncher, EquipmentKind.GrenadeLauncher, EquipmentKind.DualUzi,
-                    EquipmentKind.ChainGun, EquipmentKind.StockPistol, EquipmentKind.NeedleDrill,
-                    EquipmentKind.WristLaser, EquipmentKind.LaserAxe, EquipmentKind.Dagger,
-                    EquipmentKind.MurderSword, EquipmentKind.BarbedBat, EquipmentKind.SawStaff,
-                    EquipmentKind.Chainsaw, EquipmentKind.FlamingMarshmallow
-                };
+                var kinds=Enum.GetValues(typeof(EquipmentKind)).Cast<EquipmentKind>()
+                    .Where(kind=>kind>=EquipmentKind.Blaster&&!EquipmentSpecifications.Get(kind).power);
                 foreach(var kind in kinds)
                 {
                     var spec=EquipmentSpecifications.Get(kind);
@@ -232,11 +225,20 @@ namespace DeadlyJenga.DevTools.Editor
                     var model=holder.transform.Find("Visual - "+kind);
                     Check(model,"Pickup displays the held model: "+kind);
                     var gathering=model.position;
+                    bool mounted=kind==EquipmentKind.LaserClaws||kind==EquipmentKind.PoweredArmor;
+                    var movingPart=mounted?model.GetChild(0):null;
+                    var initialSeat=mounted?movingPart.localPosition:Vector3.zero;
+                    float initialExtension=mounted?movingPart.localScale.z:0;
                     // Separate initial gather and ready checkpoints while preserving the same wrist pose.
                     yield return new WaitForSeconds(.72f);
                     visual.Present(state,frame,true);
                     var ready=model.position;
-                    Check(Vector3.Distance(ready,gathering)>.035f,"Pickup settles into the ready grip: "+kind);
+                    var activeSeat=mounted?movingPart.localPosition:Vector3.zero;
+                    bool pickup=mounted ? Vector3.Distance(activeSeat,initialSeat)>.01f ||
+                        movingPart.localScale.z-initialExtension>.1f : Vector3.Distance(ready,gathering)>.035f;
+                    Check(pickup,"Pickup settles into the ready grip: "+kind);
+                    if(mounted)
+                        Check(Vector3.Distance(ready,gathering)<.025f,"Wearable remains anchored to the same hand: "+kind);
                     if(spec.magazine>0)
                     {
                         bool energy=kind==EquipmentKind.WristLaser||kind==EquipmentKind.LaserAxe;
@@ -276,11 +278,16 @@ namespace DeadlyJenga.DevTools.Editor
                     float until=Time.time+.71f;
                     while(Time.time<until){visual.Present(state,frame,true);yield return null;}
                     var holstered=model.position;
-                    Check(Vector3.Distance(ready,holstered)>.025f,"Holster has a distinct pose: "+kind);
+                    bool stowed=kind==EquipmentKind.LaserClaws? !model.gameObject.activeSelf:
+                        kind==EquipmentKind.PoweredArmor?Vector3.Distance(movingPart.localPosition,activeSeat)>.012f:
+                        Vector3.Distance(ready,holstered)>.025f;
+                    Check(stowed,"Holster has a distinct pose: "+kind);
                     state.drawn=true;
                     until=Time.time+.73f;
                     while(Time.time<until){visual.Present(state,frame,true);yield return null;}
-                    Check(Vector3.Distance(model.position,ready)<.01f,"Unholster returns to the ready grip: "+kind);
+                    Check(Vector3.Distance(model.position,ready)<.01f&&model.gameObject.activeSelf&&
+                        (!mounted||Vector3.Distance(movingPart.localPosition,activeSeat)<.002f),
+                        "Unholster returns to the ready grip: "+kind);
                 }
             }
             finally
