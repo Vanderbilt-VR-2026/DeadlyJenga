@@ -15,7 +15,7 @@ namespace DeadlyJenga.Core
         public Vector3[] endpoints=Array.Empty<Vector3>();
         public float remaining;
     }
-    public enum EquipmentKind { None, Speed, Jump, Blaster, MurderSword, SheriffHammer, DualRifle, BoxingGlove, PoweredArmor, RocketLauncher, DualUzi, ChainGun, GrenadeLauncher, WristLaser, NeedleDrill, StockPistol, SawStaff, BarbedBat, Chainsaw, LaserClaws, FlamingMarshmallow, LaserAxe, Dagger, FlyingHand }
+    public enum EquipmentKind { None, Speed, Jump, Blaster, MurderSword, SheriffHammer, DualRifle, BoxingGlove, PoweredArmor, RocketLauncher, DualUzi, ChainGun, GrenadeLauncher, WristLaser, NeedleDrill, StockPistol, SawStaff, BarbedBat, Chainsaw, LaserClaws, FlamingMarshmallow, LaserAxe, Dagger, FlyingHand, CompactSidearm = 24 }
     [Serializable] public sealed class EquipmentState
     {
         public string actor;

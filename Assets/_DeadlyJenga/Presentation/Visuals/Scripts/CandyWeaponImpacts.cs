@@ -123,6 +123,10 @@ namespace DeadlyJenga.Presentation
             return action.kind!=EquipmentKind.None&&!spec.power&&
                 (!spec.melee||action.shotgun&&(action.kind==EquipmentKind.Chainsaw||action.kind==EquipmentKind.LaserAxe));
         }
+        internal static Color? SidearmOwnerColor(IMatchRuntime runtime,EquipmentActionFrame action)
+            => action.kind==EquipmentKind.CompactSidearm&&!string.IsNullOrEmpty(action.actor)
+                ? runtime?.FindActor(action.actor)?.Color : null;
+
         static Color Tint(EquipmentKind kind)
         {
             if(kind==EquipmentKind.Blaster||kind==EquipmentKind.PoweredArmor)return new Color(.1f,.85f,1);
@@ -153,7 +157,7 @@ namespace DeadlyJenga.Presentation
                     Surface(action.endpoints[0],action.endpoints[0]-action.position,action.kind);
             }
             else if(action.action==EquipmentAction.Impact)
-                Surface(action.position,Vector3.zero,action.kind);
+                Surface(action.position,Vector3.zero,action.kind,SidearmOwnerColor(MatchRuntime.Current,action));
         }
 
         void Muzzle(EquipmentActionFrame action)
@@ -178,15 +182,15 @@ namespace DeadlyJenga.Presentation
             }
         }
 
-        internal void Surface(Vector3 point,Vector3 incoming,EquipmentKind kind)
+        internal void Surface(Vector3 point,Vector3 incoming,EquipmentKind kind,Color? ownerColor=null)
         {
             if(!VisibleToAnyCamera(point,90))return;
             float reach=kind==EquipmentKind.LaserAxe?.65f:
                 kind==EquipmentKind.DualUzi||kind==EquipmentKind.Chainsaw?Mathf.Max(.08f,EquipmentSpecifications.Get(kind).radius)+.02f:.45f;
-            if(TryContact(point,incoming,out var contact,reach))Surface(contact,kind);
+            if(TryContact(point,incoming,out var contact,reach))Surface(contact,kind,ownerColor);
         }
 
-        internal void Surface(SurfaceContact contact,EquipmentKind kind)
+        internal void Surface(SurfaceContact contact,EquipmentKind kind,Color? ownerColor=null)
         {
             if(!surfaceMaterial||!contact.anchor||!contact.anchor.gameObject.activeInHierarchy)return;
             if(marks.Count==Capacity)marks.RemoveAt(0);
@@ -198,7 +202,7 @@ namespace DeadlyJenga.Presentation
                 Quaternion.Euler(0,0,(marks.Count*137)%360),Vector3.one*diameter);
             marks.Add(new Mark
             {
-                anchor=contact.anchor,localPose=localPose,tint=Tint(kind),
+                anchor=contact.anchor,localPose=localPose,tint=ownerColor??Tint(kind),
                 born=Time.time,life=kind==EquipmentKind.DualUzi?1.6f:4,
                 style=kind==EquipmentKind.GrenadeLauncher?2:
                     kind==EquipmentKind.WristLaser||kind==EquipmentKind.LaserAxe?1:0,

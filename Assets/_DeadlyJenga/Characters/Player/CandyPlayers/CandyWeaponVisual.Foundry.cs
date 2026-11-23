@@ -11,7 +11,8 @@ namespace DeadlyJenga.CandyPlayers
         enum Finish
         {
             Steel, Charcoal, Ceramic, Brass, Walnut, Violet, Cyan, Amber, BladeSteel, BladeEdge,
-            AxeLeather, AxeBronze, LauncherOlive, LauncherGunmetal, LauncherRubber, LauncherSteel, LauncherGraphite, LauncherStencil, LauncherWarning
+            AxeLeather, AxeBronze, LauncherOlive, LauncherGunmetal, LauncherRubber, LauncherSteel, LauncherGraphite, LauncherStencil, LauncherWarning,
+            CosmeticLight, CosmeticDark, CosmeticBase, CosmeticCandy, CosmeticCandyEdge, SidearmGlossLight, SidearmGlossBase
         }
         static readonly Dictionary<EquipmentKind,FoundryModel> foundry=new Dictionary<EquipmentKind,FoundryModel>();
         static readonly Dictionary<Finish,Material> finishes=new Dictionary<Finish,Material>();
@@ -115,7 +116,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(kind!=EquipmentKind.RocketLauncher&&kind!=EquipmentKind.GrenadeLauncher&&kind!=EquipmentKind.BarbedBat&&
                 kind!=EquipmentKind.WristLaser&&kind!=EquipmentKind.LaserAxe&&kind!=EquipmentKind.Dagger&&
-                kind!=EquipmentKind.ChainGun&&kind!=EquipmentKind.Chainsaw&&kind!=EquipmentKind.SawStaff)return false;
+                kind!=EquipmentKind.ChainGun&&kind!=EquipmentKind.Chainsaw&&kind!=EquipmentKind.SawStaff&&kind!=EquipmentKind.CompactSidearm)return false;
             if(!foundry.TryGetValue(kind,out var model))
             {
                 var b=new FoundryBuilder();
@@ -126,6 +127,7 @@ namespace DeadlyJenga.CandyPlayers
                     case EquipmentKind.GrenadeLauncher: ForgeGrenade(b,feedBuilder);break;
                     case EquipmentKind.BarbedBat: ForgeBat(b);break;
                     case EquipmentKind.WristLaser: ForgeWrist(b,feedBuilder);break;
+                    case EquipmentKind.CompactSidearm: ForgeCompactPistol(b,feedBuilder);break;
                     case EquipmentKind.ChainGun: ForgeChainGun(b,feedBuilder);break;
                     case EquipmentKind.Chainsaw: ForgeChainsaw(b,feedBuilder);break;
                     case EquipmentKind.SawStaff: ForgeSawStaff(b);break;
@@ -175,6 +177,7 @@ namespace DeadlyJenga.CandyPlayers
         static Material FoundrySurface(Finish finish)
         {
             if(finishes.TryGetValue(finish,out var mat)&&mat)return mat;
+            if(finish>=Finish.CosmeticLight)return finishes[finish]=CosmeticSurface(finish);
             if(finish>=Finish.LauncherOlive)return finishes[finish]=LauncherSurface(finish);
             bool blade=finish==Finish.BladeSteel||finish==Finish.BladeEdge;
             bool leather=finish==Finish.AxeLeather, bronze=finish==Finish.AxeBronze;
@@ -570,8 +573,9 @@ namespace DeadlyJenga.CandyPlayers
         {
             var sections=new Vector3[]
             {
-                new(.095f,.038f,.010f),new(.122f,.048f,.011f),new(.23f,.044f,.009f),
-                new(.31f,.031f,.006f),new(.37f,.015f,.003f),new(.414f,.0003f,.0003f)
+                  new(.083f,.029f,.012f),new(.126f,.034f,.014f),new(.161f,.032f,.014f),
+                  new(.231f,.053f,.017f),new(.285f,.050f,.016f),new(.35f,.033f,.010f),
+                  new(.423f,.0003f,.0003f)
             };
             var vertices=new List<Vector3>();
             var uv=new List<Vector2>();
@@ -704,19 +708,111 @@ namespace DeadlyJenga.CandyPlayers
             return mesh;
         }
 
+        static Material CosmeticSurface(Finish finish)
+        {
+            bool dark=finish==Finish.CosmeticDark;
+            bool candy=finish is Finish.CosmeticCandy or Finish.CosmeticCandyEdge;
+            bool glossLight=finish==Finish.SidearmGlossLight;
+            bool glossBase=finish==Finish.SidearmGlossBase;
+            var neutral=new Color(.28f,.66f,.73f);
+            Color color=CandyCosmeticShade.PlayerShade(neutral,dark?AvatarHairShade.Dark:
+                candy||glossLight||finish==Finish.CosmeticLight?AvatarHairShade.Light:AvatarHairShade.Match);
+            var material=new Material(Shader.Find("Universal Render Pipeline/Lit"))
+                {name="Foundry "+finish,enableInstancing=true,color=color};
+            if(glossLight||glossBase)
+            {
+                material.SetFloat("_Metallic",0f);
+                material.SetFloat("_Smoothness",glossLight?.95f:.91f);
+                return material;
+            }
+            material.SetFloat("_Metallic",candy?.14f:dark?.04f:finish==Finish.CosmeticLight?.52f:.16f);
+            material.SetFloat("_Smoothness",finish==Finish.CosmeticCandyEdge?.91f:candy?.84f:dark?.35f:.62f);
+            return material;
+        }
+
+        static void ForgeCompactPistol(FoundryBuilder body,FoundryBuilder magazine)
+        {
+            void Side(Finish finish,string name,float width,float bevel,params Vector2[] outline)
+                =>body.Add(finish,FoundrySolid(name,width,bevel,outline),Matrix4x4.identity);
+
+            // Two slide sections frame the open ejection recess.
+            Side(Finish.SidearmGlossLight,"Rounded rear slide",.101f,.008f,new(.101f,-.095f),new(.101f,.175f),
+                new(.202f,.175f),new(.202f,-.073f),new(.174f,-.101f));
+            Side(Finish.SidearmGlossLight,"Beveled front slide",.100f,.008f,new(.102f,.257f),new(.102f,.489f),
+                new(.123f,.507f),new(.184f,.507f),new(.201f,.489f),new(.201f,.257f));
+            body.Plate(Finish.SidearmGlossLight,new(0,.111f,.216f),new(.099f,.027f,.085f),.004f);
+            body.Plate(Finish.Charcoal,new(0,.157f,.216f),new(.072f,.078f,.085f),.003f);
+            body.Tube(Finish.Charcoal,.145f,.485f,.514f,.029f,.018f);
+            body.Tube(Finish.Steel,.145f,.504f,.515f,.023f,.018f);
+            body.Tube(Finish.Charcoal,.145f,.485f,.488f,.018f);
+
+            Side(Finish.SidearmGlossBase,"Molded compact frame",.091f,.006f,new(.074f,-.098f),new(.051f,.032f),
+                new(.044f,.401f),new(.056f,.480f),new(.100f,.493f),new(.108f,-.096f));
+            Side(Finish.SidearmGlossBase,"Swept grip shell",.086f,.006f,new(-.209f,-.114f),new(-.208f,-.017f),
+                new(-.137f,.020f),new(.063f,.064f),new(.088f,-.045f));
+            body.Shape(Finish.SidearmGlossBase,b=>
+            {
+                b.Beam(new(0,.058f,.087f),new(0,-.027f,.118f),.012f);
+                b.Beam(new(0,-.027f,.118f),new(0,-.027f,.242f),.012f);
+                b.Beam(new(0,-.027f,.242f),new(0,-.011f,.266f),.012f);
+                b.Beam(new(0,-.011f,.266f),new(0,.056f,.297f),.012f);
+            });
+            body.Shape(Finish.CosmeticDark,b=>
+            {
+                b.Cone(new(0,.079f,.126f),new(0,.028f,.131f),.009f,.0085f,14);
+                b.Cone(new(0,.028f,.131f),new(0,.010f,.153f),.0085f,.0065f,14);
+            });
+
+            foreach(float side in new[]{-1f,1f})
+            {
+                var panel=FoundrySolid("Rubber grip cheek",.013f,.003f,new[]{
+                    new Vector2(-.194f,-.101f),new Vector2(-.195f,-.031f),new Vector2(-.097f,.004f),
+                    new Vector2(.028f,.029f),new Vector2(.043f,-.027f),new Vector2(-.067f,-.066f)});
+                body.Add(Finish.CosmeticDark,panel,Matrix4x4.Translate(Vector3.right*(side*.040f)));
+                body.Shape(Finish.CosmeticDark,b=>
+                {
+                    for(int i=0;i<7;i++)
+                    {
+                        float y=-.175f+i*.027f;
+                        float z=-.058f+i*.009f;
+                        b.Beam(new(side*.049f,y,z-.018f),new(side*.049f,y+.007f,z+.018f),.0024f);
+                    }
+                    foreach(float start in new[]{-.071f,.316f})
+                    for(int i=0;i<5;i++)
+                    {
+                        float z=start+i*.017f;
+                        b.Beam(new(side*.050f,.121f,z),new(side*.050f,.178f,z+.021f),.0024f);
+                    }
+                });
+                body.Plate(Finish.Charcoal,new(side*.048f,.077f,.039f),new(.011f,.019f,.022f),.002f);
+                body.Plate(Finish.CosmeticDark,new(side*.021f,.212f,-.065f),new(.017f,.026f,.027f),.002f);
+            }
+            body.Plate(Finish.CosmeticDark,new(0,.210f,.453f),new(.025f,.025f,.025f),.003f);
+            body.Plate(Finish.Steel,new(0,.219f,.441f),new(.006f,.006f,.005f),.0007f);
+            for(int i=0;i<3;i++)
+                body.Plate(Finish.SidearmGlossBase,new(0,.041f,.340f+i*.046f),new(.075f,.016f,.020f),.002f);
+
+            magazine.Plate(Finish.CosmeticDark,new(0,-.181f,-.059f),new(.060f,.072f,.067f),.005f);
+            magazine.Plate(Finish.SidearmGlossLight,new(0,-.224f,-.068f),new(.088f,.025f,.112f),.005f);
+        }
+
         static void ForgeBlade(FoundryBuilder b,FoundryBuilder feed,bool axe)
         {
             if(axe)ForgeStormbreaker(b,feed);
             else
             {
-                b.Profile(Finish.Charcoal,Vector2.zero,new(-.16f,.031f),new(-.135f,.034f),
+                b.Profile(Finish.CosmeticDark,Vector2.zero,new(-.16f,.031f),new(-.135f,.034f),
                     new(-.10f,.028f),new(-.03f,.030f),new(.03f,.027f),new(.074f,.032f));
-                b.Tube(Finish.Steel,0,-.172f,-.141f,.036f);
-                for(int i=0;i<8;i++)b.Tube(Finish.Charcoal,0,-.124f+i*.024f,-.116f+i*.024f,.033f);
-                b.Plate(Finish.Steel,new Vector3(0,0,.083f),new Vector3(.049f,.128f,.031f),.006f);
-                b.Tube(Finish.Brass,0,.065f,.085f,.036f);
-                b.Add(Finish.BladeSteel,DaggerSurface(false),Matrix4x4.identity);
-                b.Add(Finish.BladeEdge,DaggerSurface(true),Matrix4x4.identity);
+                b.Tube(Finish.CosmeticBase,0,-.172f,-.141f,.036f);
+                for(int i=0;i<8;i++)b.Tube(Finish.CosmeticDark,0,-.124f+i*.024f,-.116f+i*.024f,.033f);
+                b.Add(Finish.CosmeticBase,FoundrySolid("Swept candy guard",.045f,.004f,new[]{
+                    new Vector2(-.073f,.055f),new Vector2(-.067f,.075f),new Vector2(-.027f,.092f),
+                    new Vector2(.033f,.103f),new Vector2(.073f,.131f),new Vector2(.068f,.107f),
+                    new Vector2(.032f,.078f),new Vector2(-.030f,.064f)}),Matrix4x4.identity);
+                b.Tube(Finish.CosmeticBase,0,.065f,.090f,.035f);
+                b.Tube(Finish.Steel,0,.067f,.071f,.0355f,.031f);
+                b.Add(Finish.CosmeticCandy,DaggerSurface(false),Matrix4x4.identity);
+                b.Add(Finish.CosmeticCandyEdge,DaggerSurface(true),Matrix4x4.identity);
             }
         }
     }

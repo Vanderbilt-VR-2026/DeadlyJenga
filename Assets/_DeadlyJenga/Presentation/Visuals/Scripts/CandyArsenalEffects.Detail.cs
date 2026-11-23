@@ -148,12 +148,14 @@ namespace DeadlyJenga.Presentation
         int shellWrite;
         Material shellMaterial;
         Mesh shellMesh;
+        MaterialPropertyBlock shellTint;
 
         static Vector3 ShotAnchor(EquipmentKind kind,bool alternate) => kind switch
         {
             EquipmentKind.Blaster => new(0,.125f,.57f),
             EquipmentKind.SheriffHammer => new(0,.12f,.53f),
             EquipmentKind.DualRifle => new(0,.15f,alternate?.73f:1f),
+            EquipmentKind.CompactSidearm => new(0,.145f,.517f),
             EquipmentKind.StockPistol or EquipmentKind.DualUzi => new(0,.12f,.51f),
             EquipmentKind.ChainGun => new(0,-.235f,1f),
             EquipmentKind.RocketLauncher => new(0,.205f,1.065f),
@@ -174,7 +176,7 @@ namespace DeadlyJenga.Presentation
                 EquipmentKind.ChainGun => (fire,.29f,5),
                 EquipmentKind.DualRifle => (fire,alternate?.45f:.30f,alternate?10:6),
                 EquipmentKind.SheriffHammer => (fire,alternate?.40f:.30f,8),
-                EquipmentKind.StockPistol => (fire,.22f,6),
+                EquipmentKind.StockPistol or EquipmentKind.CompactSidearm => (fire,.22f,6),
                 EquipmentKind.DualUzi => (new Color(.45f,1,.10f),.18f,4),
                 EquipmentKind.Blaster or EquipmentKind.PoweredArmor => (new Color(.19f,.85f,1),.28f,7),
                 EquipmentKind.WristLaser => (new Color(1,.24f,.045f),.12f,3),
@@ -224,12 +226,13 @@ namespace DeadlyJenga.Presentation
                 }
             }
             var orientation=Quaternion.LookRotation(direction);
-            EmitMuzzle(origin,orientation,profile.tint,profile.length*scale,profile.sparks,action.id);
+            Color? ownerColor=CandyWeaponImpacts.SidearmOwnerColor(effectsRuntime,action);
+            EmitMuzzle(origin,orientation,ownerColor??profile.tint,profile.length*scale,profile.sparks,action.id);
             if(mounted&&action.kind==EquipmentKind.RocketLauncher)
                 EmitMuzzle(model.TransformPoint(new Vector3(0,.205f,-.43f)),
                     Quaternion.LookRotation(-model.forward),new Color(1,.32f,.07f),.70f*scale,8,action.id);
-            if(mounted&&(action.kind==EquipmentKind.StockPistol||action.kind==EquipmentKind.DualRifle||
-                action.kind==EquipmentKind.ChainGun))EjectShell(model,action,scale);
+            if(mounted&&(action.kind==EquipmentKind.StockPistol||action.kind==EquipmentKind.CompactSidearm||action.kind==EquipmentKind.DualRifle||
+                action.kind==EquipmentKind.ChainGun))EjectShell(model,action,scale,ownerColor);
         }
 
         void EmitMuzzle(Vector3 origin,Quaternion orientation,Color tint,float size,int sparks,int seed)
@@ -257,7 +260,7 @@ namespace DeadlyJenga.Presentation
             }
         }
 
-        void EjectShell(Transform weapon,EquipmentActionFrame action,float scale)
+        void EjectShell(Transform weapon,EquipmentActionFrame action,float scale,Color? ownerColor)
         {
             if(!shellMesh)
             {
@@ -275,10 +278,20 @@ namespace DeadlyJenga.Presentation
                 }
                 else{shell=shells[shellWrite];shellWrite=(shellWrite+1)%shells.Count;}
             }
+            var renderer=shell.model.GetComponent<MeshRenderer>();
+            if(ownerColor.HasValue)
+            {
+                shellTint??=new MaterialPropertyBlock();
+                shellTint.SetColor("_BaseColor",ownerColor.Value);
+                renderer.SetPropertyBlock(shellTint);
+            }
+            else
+                renderer.SetPropertyBlock(null);
+
             bool rotary=action.kind==EquipmentKind.ChainGun;
             bool rifle=action.kind==EquipmentKind.DualRifle;
             var port=rotary?new Vector3(.27f,-.19f,.23f):rifle?new Vector3(.086f,.10f,.14f):
-                new Vector3(.060f,.145f,.125f);
+                weapon.name=="Visual - CompactSidearm"?new Vector3(.044f,.167f,.211f):new Vector3(.060f,.145f,.125f);
             shell.origin=weapon.TransformPoint(port);
             shell.velocity=(weapon.right*(2.2f+action.id%5*.24f)+weapon.up*(1.3f+action.id%3*.24f)
                 -weapon.forward*.66f)*scale;

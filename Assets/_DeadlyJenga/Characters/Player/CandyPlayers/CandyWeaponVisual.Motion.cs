@@ -179,6 +179,7 @@ namespace DeadlyJenga.CandyPlayers
                 EquipmentKind.GrenadeLauncher => new Vector3(0, .025f, .08f + GrenadeDrumOffset),
                 EquipmentKind.ChainGun => new Vector3(.23f, -.31f, .12f),
                 EquipmentKind.RocketLauncher => new Vector3(0, -.038f, .14f),
+                EquipmentKind.CompactSidearm => new Vector3(0, -.215f, -.067f),
                 EquipmentKind.StockPistol => new Vector3(0, -.044f, .23f),
                 EquipmentKind.Chainsaw => new Vector3(0, .23f, .20f),
                 _ => new Vector3(0, -.055f, -.13f)
