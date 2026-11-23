@@ -48,7 +48,7 @@ namespace DeadlyJenga.CastlePrototype
                 post.Supported.Add(surface);
                 if (lower) lower.Supported.Add(post);
             }
-            if (!lower) Land(x,z,width/2+2,depth/2+2);
+            if (!lower) Land(x,z,width/2+.85f,depth/2+.85f);
             return surface;
         }
 
@@ -76,73 +76,170 @@ namespace DeadlyJenga.CastlePrototype
             }
             var seat=Unit(name,center,shapes.ToArray());
             first.Supported.Add(seat);
-            last.Supported.Add(seat);
+            if (last != first) last.Supported.Add(seat);
             return seat;
+        }
+
+        // Seat coordinates are taken from Concept Match in meters (Blender XY becomes Unity XZ).
+        readonly Dictionary<string, RouteSeat> routeSeats = new();
+
+        readonly struct RouteSeat
+        {
+            public readonly Vector3 Top;
+            public readonly Vector2 Size;
+            public readonly TidalCircuitPiece Deck;
+
+            public RouteSeat(Vector3 top, Vector2 size, TidalCircuitPiece deck)
+            {
+                Top = top;
+                Size = size;
+                Deck = deck;
+            }
+
+            public Vector3 Edge(Vector3 direction)
+            {
+                float x = Size.x * .5f / Mathf.Max(.001f, Mathf.Abs(direction.x));
+                float z = Size.y * .5f / Mathf.Max(.001f, Mathf.Abs(direction.z));
+                return Top + direction * Mathf.Min(x, z);
+            }
+        }
+
+        void Add(string name, float x, float z, float height, float width, float depth, string lower = null)
+        {
+            var seat = lower == null ? default : routeSeats[lower];
+            var deck = Pad(name, x, z, height, width, depth, seat.Deck, seat.Top.y);
+            routeSeats.Add(name, new RouteSeat(V(x, height, z), new Vector2(width, depth), deck));
+        }
+
+        void Path(params string[] seats)
+        {
+            for (int i = 1; i < seats.Length; i++)
+            {
+                var a = routeSeats[seats[i - 1]];
+                var b = routeSeats[seats[i]];
+                int color = i % 3 == 2 && Mathf.Abs(a.Top.y - b.Top.y) < .3f ? Red : Purple;
+                Join(seats[i - 1], seats[i], color: color);
+            }
+        }
+
+        void Join(string from, string to, float width = 2.1f, bool graded = true, int color = Purple)
+        {
+            var a = routeSeats[from];
+            var b = routeSeats[to];
+            Vector3 heading = Vector3.ProjectOnPlane(b.Top - a.Top, Vector3.up).normalized;
+            Vector3 start = a.Edge(heading);
+            Vector3 end = b.Edge(-heading);
+            if (Vector3.Dot(end - start, heading) < .12f)
+            {
+                // Adjacent decks at the same level already meet.
+                if (Mathf.Abs(start.y - end.y) < .14f) return;
+                var seam = (start + end) * .5f;
+                start = V(seam.x, start.y, seam.z) - heading * .65f;
+                end = V(seam.x, end.y, seam.z) + heading * .65f;
+            }
+            Span(from + " to " + to, start, end, width, a.Deck, b.Deck, color,
+                graded && Mathf.Abs(start.y - end.y) > .61f);
         }
 
         void BuildCircuit()
         {
-            var hub = Pad("Hub lower",0,0,1.6f,14,10);
-            var middle = Pad("Hub middle",0,0,5,11,8,hub,1.6f);
-            var crown = Pad("Hub crown",0,0,8.4f,8,6,middle,5);
-            var pads = new TidalCircuitPiece[3,5];
-            for(int row=0;row<3;row++)
-            for(int col=0;col<5;col++)
-            {
-                if(row==1 && col==2){pads[row,col]=hub;continue;}
-                float x=(col-2)*13,z=(row-1)*16;
-                pads[row,col]=Pad("Red landing "+row+" "+col,x,z,1.6f,5,4);
-            }
-            for(int row=0;row<3;row++)
-            for(int col=0;col<5;col++)
-            {
-                float x=(col-2)*13,z=(row-1)*16;
-                bool center=row==1 && col==2;
-                if(col<4) Span("Low east link "+row+" "+col,V(x+(center?7:2.5f),1.6f,z),
-                    V(x+13-(row==1 && col==1?7:2.5f),1.6f,z),2,pads[row,col],pads[row,col+1],col%2==0?Purple:Red);
-                if(row<2 && (col==0 || col==4))
-                {
-                    float outer=x+Mathf.Sign(x)*8;
-                    var a=Pad("Bypass near "+row+" "+col,outer,z+3,2.2f,3,3);
-                    var b=Pad("Bypass far "+row+" "+col,outer,z+13,2.2f,3,3);
-                    Span("Bypass entry",V(x+Mathf.Sign(x)*2.5f,1.6f,z),V(outer-Mathf.Sign(x)*1.45f,2.2f,z+2.4f),2,pads[row,col],a);
-                    Span("Outer boardwalk",V(outer,2.2f,z+4.5f),V(outer,2.2f,z+11.5f),2,a,b);
-                    Span("Bypass exit",V(outer-Mathf.Sign(x)*1.45f,2.2f,z+13.6f),V(x+Mathf.Sign(x)*2.5f,1.6f,z+16),2,b,pads[row+1,col]);
-                }
-                else if(row<2) Span("Low north link "+row+" "+col,V(x,1.6f,z+(center?5:2)),
-                    V(x,1.6f,z+16-(row==0 && col==2?5:2)),2,pads[row,col],pads[row+1,col]);
-            }
-            foreach(int side in new[]{-1,1})
-            {
-                var high=Pad("High gallery "+side,side*15,10,5.5f,5,4);
-                Span("Diagonal crown crossing "+side,V(side*3.6f,8.4f,2.8f),V(side*13,5.5f,9),2.2f,crown,high);
-                Span("Rear gallery ascent "+side,V(side*11,1.6f,14.3f),V(side*17,5.5f,11.9f),2, pads[2,2+side],high,stairs:true);
-                var turn=Pad("Front switchback "+side,side*12,-8,3.1f,4,4);
-                Span("Lower incline "+side,V(side*13,1.6f,-14),V(side*12,3.1f,-10),2,pads[0,2+side],turn,stairs:true);
-                Span("Middle incline "+side,V(side*10.1f,3.1f,-7),V(side*5,5,-3.8f),2,turn,middle);
-                Span("Gallery switchback "+side,V(side*24,1.6f,15),V(side*17,5.5f,11),2,pads[2,2+2*side],high);
-                if(side==1)
-                {
-                    Land(15,1.5f,2.1f,2.1f);
-                    var post=Unit("Right crossover pier post",V(15,1.8f,1.5f),Box(Vector3.zero,V(.8f,3.6f,.8f),Green));
-                    var pier=Unit("Right crossover pier",V(15,3.8f,1.5f),Box(Vector3.zero,V(2.8f,.4f,2.8f),Red));
-                    post.Supported.Add(pier);
-                    Span("Midlevel right crossover",V(5.4f,5,1.5f),V(13.65f,4,1.5f),2,middle,pier,Red);
-                    Span("Right crossover exit",V(16.35f,4,1.5f),V(23.55f,1.6f,1),2,pier,pads[1,4],Red);
-                }
-            }
-            Drum(-26,-8);
-            Bank("Teeter",-26,8,2,4.2f);
-            Bank("Tipping ramp",26,-8,3,3.1f);
-            Sweeper(26,8);
-            Span("Teeter gallery entrance",V(-17.45f,5.5f,10),V(-22.2f,3,12.1f),1.8f,
-                Named("High gallery -1"),Named("Teeter north landing"));
-            Span("Sweeper gallery entrance",V(17.45f,5.5f,10),V(21.2f,3.3f,8),1.8f,
-                Named("High gallery 1"),Named("Sweeper deck 0"));
-            Span("Drum upper entrance",V(-13.9f,3.1f,-8),V(-24.3f,2.85f,-5.25f),1.6f,
-                Named("Front switchback -1"),Named("Drum boarding 1"));
-            Span("Ramp upper entrance",V(13.9f,3.1f,-8),V(21.45f,3,-3.9f),1.8f,
-                Named("Front switchback 1"),Named("Tipping ramp north landing"));
+            routeSeats.Clear();
+            Add("Hub lower", 0, -2, 2.7f, 21, 12);
+            Add("Hub middle", 0, -0.6f, 6.25f, 17, 9, "Hub lower");
+            Add("Hub crown", -0.5f, 0.25f, 9.65f, 10.5f, 5.3f, "Hub middle");
+            Add("Near west elbow", -12, -9, 2.5f, 4.7f, 4);
+            Add("Near east elbow", 11, -10, 2.4f, 5.3f, 4.2f);
+            Add("Inner west", -18, -5.5f, 3.1f, 5.3f, 3.2f);
+            Add("Inner east", 16, -4, 4.4f, 4.5f, 3.3f);
+            Add("Hub rear entry", -4, 7.2f, 5.3f, 5.4f, 3.1f);
+            Add("Hub rear crown access", 4, 7.6f, 7.8f, 4.8f, 3.2f);
+            Add("Under hub landing", 6, -10.8f, 1.24f, 5, 3.2f);
+            Path("Near west elbow", "Inner west", "Hub lower", "Inner east");
+            Path("Hub rear entry", "Hub rear crown access", "Hub crown");
+            Path("Under hub landing", "Near east elbow", "Hub lower");
+
+            Add("West drum deck", -33, -21.6f, 1.35f, 6.6f, 3.6f);
+            Add("West water bend", -40, -15.2f, 1.2f, 4.6f, 3.25f);
+            Add("West lower tower", -41, -8.8f, 2.48f, 4, 3);
+            Add("West middle landing", -39, -3.3f, 3.45f, 5, 3.1f);
+            Add("West teeter foot", -37, 3.9f, 3.5f, 4.6f, 3.15f);
+            Add("West back tower", -38, 11.6f, 6.2f, 5.3f, 3.1f);
+            Add("Near west island", -23.7f, -22, 1.25f, 6.4f, 3.5f);
+            Add("Near west turn", -15.9f, -21, 1.3f, 7, 3);
+            Add("Near center west", -7.3f, -20, 1.65f, 6.7f, 3.3f);
+            Add("Near center", 0.5f, -18.4f, 1.46f, 4.8f, 3.4f);
+            Add("Near center east", 8, -19.5f, 1.3f, 6.2f, 3.7f);
+            Add("East foreground deck", 17.5f, -21.8f, 1.25f, 6.9f, 3.45f);
+            Add("East shoreline link", 26.2f, -21, 1.43f, 6.2f, 3.2f);
+            Add("East low corner", 34.1f, -18.4f, 1.35f, 5.2f, 3.1f);
+            Add("East low bend", 39.4f, -14, 2.18f, 4.5f, 3.4f);
+            Add("East rim", 40, -8.4f, 3.8f, 4.3f, 4.6f);
+            Add("East mid tower", 37.4f, -1.5f, 4.22f, 4.4f, 3.1f);
+            Add("East water tower", 39.3f, 6.3f, 4.4f, 4.8f, 3.3f);
+            Add("East high turn", 36.3f, 13, 6.48f, 4.5f, 3.2f);
+            Path("West back tower", "West teeter foot", "West middle landing", "West lower tower", "West water bend", "West drum deck", "Near west island", "Near west turn", "Near center west", "Near center", "Near center east", "East foreground deck", "East shoreline link", "East low corner", "East low bend", "East rim", "East mid tower", "East water tower", "East high turn");
+
+            Add("West gallery", -20, 12.5f, 7.7f, 5.3f, 4.5f);
+            Add("West stair tower", -14.4f, 16.4f, 6.4f, 4.1f, 3.2f);
+            Add("Back west low", -14, 22.5f, 6.15f, 4.5f, 3.1f);
+            Add("Back west crown", -15.3f, 25.9f, 9.5f, 4.75f, 3.2f);
+            Add("Back center low", -5.5f, 25.6f, 7.15f, 4.4f, 3.1f);
+            Add("Back center crown", -5, 30.8f, 10.1f, 5.6f, 3.2f);
+            Add("Back east link", 3.8f, 26, 7.8f, 4.2f, 3.2f);
+            Add("Back east crown", 10.6f, 26.7f, 10.1f, 5.05f, 3.6f);
+            Add("Back right crossover", 16.7f, 24.2f, 7.3f, 4.8f, 3.2f);
+            Add("Back right tower", 22.6f, 18.9f, 6.7f, 4.8f, 3.25f);
+            Add("East gallery", 20.8f, 9.9f, 7.45f, 4.9f, 3.7f);
+            Add("West inner landing", -22.1f, 1.9f, 4.7f, 4.3f, 3.4f);
+            Add("West low link", -29.6f, 1.6f, 2.05f, 5.3f, 3);
+            Add("West middle island", -24.2f, -7.5f, 2.5f, 4.8f, 3.5f);
+            Add("West return stair", -14.9f, -14.6f, 1.58f, 5.5f, 3.5f);
+            Add("East inner island", 18.2f, -11.2f, 2, 5.25f, 3.4f);
+            Add("East lower island", 14.5f, -16.1f, 1.59f, 4.8f, 3.3f);
+            Add("East route seat", 22.4f, -5.1f, 4.17f, 4.05f, 3.1f);
+            Add("East near stair", 22.9f, -11.4f, 2.47f, 4.5f, 3.1f);
+            Add("Near hub path", -4.5f, -13.4f, 1.45f, 4.1f, 3.5f);
+            Add("West upper elbow", -8.7f, 3, 6.25f, 4.2f, 3.1f);
+            Add("East upper elbow", 8.3f, 2.1f, 6.25f, 4.3f, 3.1f);
+            Path("West gallery", "West stair tower", "Back west low", "Back west crown", "Back center low", "Back center crown", "Back east link", "Back east crown", "Back right crossover", "Back right tower", "East gallery", "East high turn");
+            Path("Near west turn", "West return stair", "Near west elbow", "West middle island", "West low link", "West middle landing");
+            Path("West low link", "West inner landing", "West gallery");
+            Path("Near center west", "Near hub path", "Under hub landing", "East lower island", "East inner island", "East near stair", "East route seat", "East mid tower");
+            Join("West gallery", "West upper elbow", 3.35f, graded: false);
+            Join("East upper elbow", "East gallery", 3.35f, graded: false);
+            Join("West inner landing", "Hub rear entry");
+            Join("Hub rear crown access", "Back center low", 2.1f);
+            Join("East gallery", "East mid tower", 2.3f);
+
+            // The elbows share the middle deck edge. The spine reaches both upper tiers.
+            Path("Back west low", "Back center low", "Back east link", "Back right crossover");
+            Join("Hub rear entry", "Hub middle");
+            Join("Near west elbow", "Hub lower");
+            Join("Near west turn", "Near hub path");
+            Join("East foreground deck", "East lower island");
+
+            BuildMachines();
+            BuildRightCrossover();
+        }
+
+        void BuildRightCrossover()
+        {
+            var west = routeSeats["Inner east"];
+            var east = routeSeats["East route seat"];
+            var heading = Vector3.ProjectOnPlane(east.Top - west.Top, Vector3.up).normalized;
+            var start = west.Edge(heading) - heading * .02f;
+            var end = east.Edge(-heading) + heading * .02f;
+            var center = (start + end) * .5f;
+            float height = center.y - .32f;
+            var post = Unit("Right crossover pier post", V(center.x, height / 2, center.z),
+                Box(Vector3.zero, V(.72f, height, .72f), Green));
+            Land(center.x, center.z, .95f, .95f);
+            // Separate rigid bodies release together when this pier is removed.
+            var left = Vector3.Lerp(start, end, .32f);
+            var right = Vector3.Lerp(start, end, .68f);
+            Span("Right crossover west section", start, left, 2.8f, west.Deck, post, Red);
+            Span("Midlevel right crossover", left, right, 2.8f, post, post, Red);
+            Span("Right crossover east section", right, end, 2.8f, post, east.Deck, Red);
         }
 
         void Hinge(TidalCircuitPiece rotor,TidalCircuitPiece mount,Vector3 pivot,Vector3 axis,float limit,float speed)
@@ -171,81 +268,150 @@ namespace DeadlyJenga.CastlePrototype
             mount.Supported.Add(rotor);
         }
 
-        void Bank(string name,float x,float z,int count,float spacing)
-        {
-            float width=count*spacing;
-            var near=Pad(name+" south landing",x,z-4.1f,3,width,2.4f);
-            var far=Pad(name+" north landing",x,z+4.1f,3,width,2.4f);
-            int col=x<0?0:4, row=z<0?0:1;
-            Span(name+" approach",V(x-1.6f,1.6f,z-6.5f),V(x+1.6f,3,z-5.1f),2,padsFor(row,col),near);
-            Span(name+" exit",V(x+1.6f,3,z+5.1f),V(x-1.6f,1.6f,z+6.5f),2,far,padsFor(row+1,col));
-            for(int i=0;i<count;i++)
-            {
-                float px=x+(i-(count-1)*.5f)*spacing;
-                float w=spacing-.55f;
-                var mount=Unit(name+" cradle "+i,V(px,1.4f,z),
-                    Box(Vector3.zero,V(.75f,2.8f,.85f),Purple),
-                    Box(V(0,1.4f,0),V(w+.26f,.38f,.38f),Purple),
-                    Box(V(0,-.30f,-2.45f),V(.9f,2.2f,.55f),Yellow),
-                    Box(V(0,-.30f,2.45f),V(.9f,2.2f,.55f),Yellow));
-                Land(px,z,w*.68f,3.1f);
-                var rotor=Unit(name+" panel "+i,V(px,2.95f,z),
-                    Box(Vector3.zero,V(w,.28f,5.62f),Red),
-                    Box(V(0,.15f,-2.45f),V(w*.9f,.08f,.32f),Yellow));
-                Hinge(rotor,mount,V(px,2.8f,z),Vector3.right,15,0);
-            }
-        }
-        TidalCircuitPiece Named(string name) => pieces.Find(p=>p.name==name);
-        TidalCircuitPiece padsFor(int row,int col) => Named("Red landing "+row+" "+col);
 
-        void Drum(float x,float z)
+        void BuildMachines()
         {
-            var shapes=new List<MayhemShape>();
-            for(int i=0;i<8;i++)
+            Drum();
+            Bank("Teeter", -29.4f, 10, 10.3f, 2, 6.8f, 1.18f, 5.82f,
+                "West teeter foot", "West back tower", "West gallery");
+            Bank("Tipping ramp", 31.1f, -10.5f, 9.7f, 3, 5, 1.34f, 5.85f,
+                "East low corner", "East route seat", "East mid tower");
+            Sweeper();
+        }
+
+        static MayhemShape Brace(Vector3 foot, Vector3 head, float width, int color)
+        {
+            var delta = head - foot;
+            return Box((head + foot) / 2, V(width, width, delta.magnitude),
+                color, Quaternion.LookRotation(delta));
+        }
+
+        void Drum()
+        {
+            var center = V(-28.3f, 3.53f, -15.5f);
+            var yaw = Quaternion.Euler(0, 37.2f, 0);
+            var axis = yaw * Vector3.right;
+            var heading = yaw * Vector3.forward;
+            var shell = new List<MayhemShape>();
+            for (int i = 0; i < 4; i++)
             {
-                var rot=Quaternion.AngleAxis(45*i,Vector3.right);
-                shapes.Add(Box(rot*V(0,1.04f,0),V(3.8f,.78f,1.14f),Red,rot));
-                shapes.Add(Box(rot*V(0,1.46f,0),V(3.7f,.10f,.45f),Yellow,rot));
+                var roll = yaw * Quaternion.AngleAxis(45 * i, Vector3.right);
+                shell.Add(Box(Vector3.zero, V(6.12f, 4.95f, 2.05f), Red, roll));
             }
-            shapes.Add(Box(Vector3.zero,V(5.4f,.5f,.5f),Purple));
-            var rotor=Unit("Tread drum",V(x,1.8f,z),shapes.ToArray());
-            foreach(int side in new[]{-1,1})
+            for (int i = 0; i < 8; i++)
             {
-                var mount=Unit("Drum bearing "+side,V(x+side*2.5f,.9f,z),
-                    Box(Vector3.zero,V(.7f,1.8f,1.55f),Green),Box(V(0,.95f,0),V(.85f,.52f,.78f),Green));
-                Land(x+side*2.5f,z,1.8f,2.1f);
-                if(side<0)Hinge(rotor,mount,V(x,1.8f,z),Vector3.right,0,11);
+                var roll = yaw * Quaternion.AngleAxis(22.5f + 45 * i, Vector3.right);
+                shell.Add(Box(roll * V(0, 2.62f, 0), V(5.6f, .22f, .59f), Yellow, roll));
+            }
+            shell.Add(Box(Vector3.zero, V(9.66f, .52f, .52f), Purple, yaw));
+            var rotor = Unit("Tread drum", center, shell.ToArray());
+
+            foreach (int side in new[] {-1, 1})
+            {
+                var basePoint = center + axis * (4.27f * side);
+                basePoint.y = 0;
+                var fork = Unit("Drum bearing " + side, basePoint,
+                    Box(V(0, .18f, 0), V(1.4f, .36f, 3.45f), Green, yaw),
+                    Brace(heading * -1.65f + V(0, .3f, 0), V(0, 3.4f, 0), .9f, Green),
+                    Brace(heading * 1.65f + V(0, .3f, 0), V(0, 3.4f, 0), .9f, Green),
+                    Box(V(0, 3.53f, 0), V(1.05f, .84f, .81f), Yellow, yaw));
+                Land(basePoint.x, basePoint.z, 1.6f, 2.4f);
+                if (side < 0) Hinge(rotor, fork, center, axis, 0, 11);
                 else
                 {
-                    mount.Supported.Add(rotor);
-                    // The shaft runs through this bearing bore.
-                    var shaft=rotor.GetComponent<MayhemStructuralMember>().Shapes;
-                    foreach(var cheek in mount.GetComponent<MayhemStructuralMember>().Shapes)
-                        Physics.IgnoreCollision(shaft[shaft.Count-1],cheek);
+                    fork.Supported.Add(rotor);
+                    var contacts = rotor.GetComponent<MayhemStructuralMember>().Shapes;
+                    foreach (var cheek in fork.GetComponent<MayhemStructuralMember>().Shapes)
+                        Physics.IgnoreCollision(contacts[contacts.Count - 1], cheek);
                 }
-                var pad=Pad("Drum boarding "+side,x,z+side*2.98f,2.85f,3.6f,2.9f);
-                Span("Drum access "+side,V(x,2.85f,z+side*4.43f),V(x,1.6f,z+side*6),2,pad,padsFor(side<0?0:1,0));
+
+                var arrival = center + heading * (4.95f * side);
+                string name = "Drum boarding " + side;
+                Add(name, arrival.x, arrival.z, side < 0 ? 3.2f : 4.8f, 3.95f, 3.8f);
+                Join(name, side < 0 ? "West drum deck" : "West middle island");
+                var bypass = center - axis * 6.45f + heading * (3.15f * side);
+                string detour = "Drum bypass " + side;
+                Add(detour, bypass.x, bypass.z, 2.9f, 2.4f, 2.7f);
+                Join(name, detour, 1.85f);
+            }
+            Join("Drum bypass -1", "Drum bypass 1", 2);
+        }
+
+        void Bank(string name, float x, float z, float angle, int count, float spacing,
+            float depthScale, float top, string approach, string exit, string secondExit)
+        {
+            var yaw = Quaternion.Euler(0, angle, 0);
+            var axis = yaw * Vector3.right;
+            var heading = yaw * Vector3.forward;
+            var center = V(x, 0, z);
+            float length = 5.62f * depthScale;
+            float offset = length / 2 + 1.65f;
+            string south = name + " south landing", north = name + " north landing";
+            var near = center - heading * offset;
+            var far = center + heading * offset;
+            Add(south, near.x, near.z, top, count * spacing, 2.8f);
+            Add(north, far.x, far.z, top, count * spacing, 2.8f);
+            Join(approach, south);
+            Join(north, exit);
+            Join(north, secondExit);
+            for (int i = 0; i < count; i++)
+            {
+                var pos = center + axis * ((i - (count - 1) * .5f) * spacing);
+                float width = spacing - .65f;
+                float pivot = top - .28f;
+                int finish = count == 2 ? Purple : Green;
+                var hingePoint = pos + V(0, pivot, 0);
+                var shapes = new List<MayhemShape> {
+                    Box(V(0, pivot, 0), V(width+.38f, .38f, .38f), Purple, yaw),
+                    Box(heading * (-length * .43f) + V(0, 1.4f, 0), V(.9f, 2.8f, .6f), Yellow, yaw),
+                    Box(heading * (length * .43f) + V(0, 1.4f, 0), V(.9f, 2.8f, .6f), Yellow, yaw)
+                };
+                foreach (int side in new[] {-1, 1})
+                {
+                    var cheek = axis * ((width / 2 + .16f) * side);
+                    shapes.Add(Brace(cheek - heading + V(0, .16f, 0), cheek + V(0, pivot, 0), .48f, finish));
+                    shapes.Add(Brace(cheek + heading + V(0, .16f, 0), cheek + V(0, pivot, 0), .48f, finish));
+                }
+                var mount = Unit(name + " cradle " + i, pos, shapes.ToArray());
+                Land(pos.x, pos.z, spacing * .57f, 2.15f);
+                var panel = Unit(name + " panel " + i, hingePoint + Vector3.up * .08f,
+                    Box(Vector3.zero, V(width, .4f, length), Red, yaw),
+                    Box(heading * (-length * .42f) + V(0, .18f, 0), V(width * .87f, .12f, .35f), Yellow, yaw),
+                    Box(heading * (length * .42f) + V(0, .18f, 0), V(width * .87f, .12f, .35f), Yellow, yaw));
+                Hinge(panel, mount, hingePoint, axis, 15, 0);
             }
         }
 
-        void Sweeper(float x,float z)
+        void Sweeper()
         {
-            // Parallel chords form a round deck with a distinct seam between each course.
-            TidalCircuitPiece center=null;
-            for(int i=-3;i<=3;i++)
+            const float x = 28.1f, z = 13.5f, top = 6.14f, radius = 6.88f;
+            TidalCircuitPiece core = null;
+            for (int i = -4; i <= 4; i++)
             {
-                float width=2*Mathf.Sqrt(5*5-i*i*1.3f*1.3f);
-                var pad=Pad("Sweeper deck "+i,x,z+i*1.3f,3.3f,width,1.3f);
-                if(i==0)center=pad;
-                if(Mathf.Abs(i)==3)
-                    Span("Sweeper access "+i,V(x+1.6f,3.3f,z+Mathf.Sign(i)*4.45f),V(x-1.6f,1.6f,z+Mathf.Sign(i)*6.5f),2,pad,padsFor(i<0?1:2,4));
+                float depth = radius * 2 / 9;
+                float edgeZ = (Mathf.Abs(i) + .35f) * depth;
+                float width = 2 * Mathf.Sqrt(radius * radius - edgeZ * edgeZ);
+                string name = "Sweeper deck " + i;
+                Add(name, x, z + i * depth, top, width, depth);
+                if (i == 0) core = routeSeats[name].Deck;
             }
-            var mount=Unit("Sweeper axle",V(x,3.63f,z),Box(Vector3.zero,V(.85f,.66f,.85f),Purple));
-            center.Supported.Add(mount);
-            var rotor=Unit("Four-arm sweeper",V(x,4.08f,z),
-                Box(Vector3.zero,V(8.45f,.26f,.44f),Yellow),Box(Vector3.zero,V(.44f,.26f,8.45f),Yellow),
-                Box(Vector3.up*.2f,V(.75f,.42f,.75f),Purple));
-            Hinge(rotor,mount,V(x,3.96f,z),Vector3.up,0,10);
+            Add("Sweeper west landing", 19.1f, 13.4f, top, 4.1f, 2.9f);
+            Add("Sweeper low landing", 24.2f, 6.25f, 4.05f, 4.5f, 3.3f);
+            Join("East gallery", "Sweeper west landing");
+            Join("East mid tower", "Sweeper low landing");
+            Join("Sweeper west landing", "Sweeper deck 0", 2.5f);
+            Join("Sweeper low landing", "Sweeper deck -4");
+            var axle = Unit("Sweeper axle", V(x, top + .38f, z), Box(Vector3.zero, V(1.28f, .76f, 1.28f), Purple));
+            core.Supported.Add(axle);
+            var arms = new List<MayhemShape>();
+            for (int i = 0; i < 4; i++)
+            {
+                var angle = Quaternion.Euler(0, i * 90 + 13, 0);
+                arms.Add(Box(angle * V(0, 0, 3.51f), V(.82f, .4f, 5.55f), Yellow, angle));
+                arms.Add(Box(angle * V(0, 0, 6.35f), V(.88f, .48f, .36f), Purple, angle));
+            }
+            var rotor = Unit("Four-arm sweeper", V(x, top + 1.05f, z), arms.ToArray());
+            Hinge(rotor, axle, V(x, top + .76f, z), Vector3.up, 0, 10);
         }
     }
 }

@@ -22,13 +22,13 @@ namespace DeadlyJenga.CastlePrototype
         public Transform Root => transform;
         public IReadOnlyList<Rigidbody> Blocks => bodies;
         public Vector3 Center => transform.position;
-        public float Radius => 44;
-        public float TopHeight => Center.y+8.4f;
+        public float Radius => 54;
+        public float TopHeight => Center.y+10.1f;
         public float StepHeight => .4f;
-        public Bounds PlayableBounds => new Bounds(Center+Vector3.up*3,new Vector3(80,12,44));
+        public Bounds PlayableBounds => new Bounds(Center+Vector3.up*3.8f,new Vector3(92,14,66));
         public bool UsesOriginalColliders => true;
-        public float FootprintHalfSize => 40;
-        public int FootprintVersion => 14001;
+        public float FootprintHalfSize => 48;
+        public int FootprintVersion => 14002;
         public float WaterHeight(Vector3 point) => Center.y-.32f;
         public bool IsSheltered(Vector3 point) => gameObject.scene.GetPhysicsScene().Raycast(point+Vector3.up*.1f,Vector3.up,out _,16,1<<Layers.Block,QueryTriggerInteraction.Ignore);
         internal bool Authoritative => !replica && Services.Rewind?.Rewinding!=true && !(Services.Session is IWorldAuthority a && !a.HasWorldAuthority);
@@ -78,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void BuildBeach()
         {
-            const int nx=161,nz=93;
+            const int nx=185,nz=149;
             var vertices=new Vector3[nx*nz];
             var uv=new Vector2[vertices.Length];
             var triangles=new List<int>();
@@ -114,15 +114,23 @@ namespace DeadlyJenga.CastlePrototype
         {
             // The beach remains after every removable deck has fallen.
             var physics=gameObject.scene.GetPhysicsScene();
-            for(int n=0;n<15;n++)
+            for (int n = 0; n < SpawnSeats.Length; n++)
             {
-                int i=spawn++%15;
-                var p=transform.TransformPoint(V((i%5-2)*13,12,(i/5-1)*16));
-                if(physics.Raycast(p,Vector3.down,out var hit,14,1|(1<<Layers.Block),QueryTriggerInteraction.Ignore) && hit.normal.y>.8f && hit.point.y>WaterHeight(p))
-                    return hit.point+Vector3.up*.08f;
+                if (!routeSeats.TryGetValue(SpawnSeats[spawn++ % SpawnSeats.Length], out var seat))
+                    break;
+                var p = transform.TransformPoint(seat.Top + Vector3.up * .35f);
+                if (physics.Raycast(p, Vector3.down, out var hit, 14, 1|(1<<Layers.Block), QueryTriggerInteraction.Ignore)
+                    && hit.normal.y > .8f && hit.point.y > WaterHeight(p))
+                    return hit.point + Vector3.up * .08f;
             }
-            return transform.TransformPoint(V(0,.08f,-3));
+            return transform.TransformPoint(V(0, .08f, -2));
         }
+
+        static readonly string[] SpawnSeats = {
+            "Hub lower", "West drum deck", "Near west island", "Near west turn", "Near center",
+            "Near center east", "East shoreline link", "East low corner", "West low link"
+        };
+
         void FixedUpdate()
         {
             if(!Authoritative)return;
@@ -135,7 +143,7 @@ namespace DeadlyJenga.CastlePrototype
                     actor.StandingBody.AddForceAtPosition(Vector3.down*100,p,ForceMode.Force);
             }
         }
-        public string SaveLayout() => "tidal-circuit-v1";
+        public string SaveLayout() => "tidal-circuit-v2";
         public bool LoadLayout(string layout,int count,Pose origin,Vector3 scale)
         {
             if(layout!=SaveLayout() || scale!=Vector3.one || !float.IsFinite(origin.position.sqrMagnitude) ||

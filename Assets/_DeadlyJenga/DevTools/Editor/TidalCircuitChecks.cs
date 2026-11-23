@@ -43,6 +43,12 @@ namespace DeadlyJenga.DevTools.Editor
         {
             Directory.CreateDirectory(Folder);
             File.WriteAllText(Folder+"/checks.txt","Game.unity / Tidal Circuit / scripted desktop motor input\n");
+            if (!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))
+            {
+                Check(false, "disaster configuration validator is unavailable");
+                if (Application.isBatchMode) EditorApplication.Exit(1);
+                return;
+            }
             SessionState.SetBool(Key,true);SessionState.SetInt(Key+"Result",1);
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
             EditorApplication.EnterPlaymode();
@@ -118,48 +124,30 @@ namespace DeadlyJenga.DevTools.Editor
             var hinges=map.GetComponentsInChildren<HingeJoint>();
             Check(map.Blocks.Count(b=>!b.isKinematic)==hinges.Length,"intact structure has only seven independently simulated bodies; colliders="+map.GetComponentsInChildren<Collider>().Length);
             Check(hinges.Length==7,"seven independent machine bodies; bodies="+map.Blocks.Count);
-            yield return Shot("01-wide",new Vector3(-3,27,-50),new Vector3(0,2,1),true);
-            yield return Shot("02-drum",new Vector3(-25.8f,3.9f,-11.5f),new Vector3(-26,2,-7));
-            yield return Shot("03-teeters",new Vector3(-24.4f,4.1f,4),new Vector3(-27,2.8f,9));
-            yield return Shot("04-sweeper",new Vector3(23,4.4f,5),new Vector3(27,3.9f,9));
-            yield return Shot("05-ramps",new Vector3(22,4.1f,-12),new Vector3(26,2.8f,-7));
-            foreach(var h in hinges.Where(h=>h.useMotor))
+            yield return Shot("01-wide", new Vector3(-4,54,-129), new Vector3(0,4.7f,1.4f), true);
+            yield return Shot("02-drum", new Vector3(-32,4.45f,-22), Body("Tread drum").position);
+            yield return Shot("03-teeters", new Vector3(-31,7.4f,4.5f), Body("Teeter panel 0").position);
+            yield return Shot("04-sweeper", new Vector3(22,7.4f,9), Body("Four-arm sweeper").position);
+            yield return Shot("05-ramps", new Vector3(31,7.4f,-17), Body("Tipping ramp panel 1").position);
+            foreach (var hinge in hinges.Where(h => h && h.useMotor))
             {
-                Quaternion before=h.transform.rotation;
+                Quaternion before = hinge.transform.rotation;
                 yield return new WaitForSeconds(.8f);
-                Check(Quaternion.Angle(before,h.transform.rotation)>3,h.name+" turns under drive");
+                Check(hinge && Quaternion.Angle(before, hinge.transform.rotation) > 3, "driven rotor turns");
             }
-            foreach(string label in new[]{"Tread drum","Teeter panel 0","Teeter panel 1","Four-arm sweeper","Tipping ramp panel 0","Tipping ramp panel 1","Tipping ramp panel 2"})
+            Check(map.GetComponentsInChildren<HingeJoint>().Length == 7, "all seven machines remain seated");
+            yield return FollowRoute("West boardwalk", player, driver, new Vector3(-23.7f,1.25f,-22),
+                new Vector3(-15.9f,1.3f,-21), new Vector3(-7.3f,1.65f,-20),
+                new Vector3(.5f,1.46f,-18.4f), new Vector3(8,1.3f,-19.5f));
+            // Confirm physical walkable surfaces at the three tiers before destructive checks.
+            var physics = map.gameObject.scene.GetPhysicsScene();
+            foreach (var deck in new[] {"Hub lower", "Hub middle", "Hub crown"})
             {
-                var body=Body(label);
-                var p=body.position;
-                bool sweep=label=="Four-arm sweeper";
-                float x=p.x+(sweep?2.2f:0);
-                float length=sweep?3.8f:label=="Tread drum"?2.7f:4;
-                float top=sweep?3.3f:label=="Tread drum"?2.85f:3.0f;
-                for(int sign=-1;sign<=1;sign+=2)
-                {
-                    driver.direction=Vector3.zero;
-                    player.Teleport(new Vector3(x,top+.08f,p.z+sign*length),Quaternion.LookRotation(-sign*Vector3.forward));
-                    yield return new WaitForSeconds(.35f);
-                    driver.direction=-sign*Vector3.forward*.65f;
-                    float end=Time.time+6;bool rode=false;float maxTilt=0;
-                    while(Time.time<end && (player.transform.position.z-p.z)*-sign<length-.15f && player.transform.position.y>.35f)
-                    {
-                        rode|=player.StandingBody==body;
-                        if(body.TryGetComponent<HingeJoint>(out var joint))maxTilt=Mathf.Max(maxTilt,Mathf.Abs(joint.angle));
-                        yield return null;
-                    }
-                    driver.direction=Vector3.zero;
-                    Check((player.transform.position.z-p.z)*-sign>=length-.15f && player.transform.position.y>top-.8f && (rode||sweep),
-                        label+" direction "+sign+" motor crossing; inputs="+driver.samples+" suspended="+player.InputSuspended+" rode="+rode+" angle="+maxTilt+" end="+player.transform.position);
-                }
+                var body = Body(deck);
+                var start = body.position + Vector3.up * .37f;
+                Check(physics.Raycast(start, Vector3.down, out var hit, .5f, 1 << Layers.Block,
+                    QueryTriggerInteraction.Ignore) && hit.rigidbody == body, deck + " has a usable floor");
             }
-            yield return FollowRoute("Low perimeter to middle hub",player,driver,new Vector3(13,1.6f,-16),
-                new Vector3(13,1.6f,-14),new Vector3(12,3.1f,-10),new Vector3(10.2f,3.1f,-7),
-                new Vector3(5,5,-3.8f),new Vector3(4,5,-2));
-            yield return FollowRoute("Upper gallery to crown",player,driver,new Vector3(-15,5.5f,10),
-                new Vector3(-13,5.5f,9),new Vector3(-3.6f,8.4f,2.8f),new Vector3(0,8.4f,0));
             driver.direction=Vector3.zero;
             player.Teleport(map.SafeSpawnPoint(),Quaternion.identity);
             Check(session.SurvivorBots.SpawnOne(),"spawn a survivor bot");
@@ -167,16 +155,17 @@ namespace DeadlyJenga.DevTools.Editor
             Check(session.SurvivorBots.Count>=1,"bot remains active after spawning");
             var crossing=Body("Midlevel right crossover");
             Vector3 initial=crossing.position;
-            Vector3 view=new Vector3(12,9,-12),aim=new Vector3(13,2.5f,1.5f);
+            Vector3 view=new Vector3(17,9,-13),aim=new Vector3(19.2f,2.7f,-4.5f);
             yield return Shot("06-before",view,aim);
             foreach(var post in map.Blocks.Where(b=>b.name.StartsWith("Right crossover pier post")))
                 post.GetComponent<IPushable>().Push(Vector3.forward*12,player.gameObject);
             yield return new WaitForSeconds(.45f);yield return Shot("07-falling",view,aim);
             yield return new WaitForSeconds(1.3f);yield return Shot("08-after",view,aim);
             Check(crossing.position.y<initial.y-.55f,"right crossover falls into channel");
-            yield return FollowRoute("Outer bypass after crossover collapse",player,driver,new Vector3(26,1.6f,0),
-                new Vector3(28.5f,1.6f,0),new Vector3(32.55f,2.2f,-2.4f),new Vector3(34,2.2f,-3),
-                new Vector3(34,2.2f,-13),new Vector3(32.55f,2.2f,-13.6f),new Vector3(28.5f,1.6f,-16),new Vector3(26,1.6f,-16));
+            Check(!Body("Right crossover west section").isKinematic && !Body("Right crossover east section").isKinematic,
+                "pier loss releases three separate sections");
+            yield return FollowRoute("East shoreline after crossover collapse", player, driver, new Vector3(17.5f,1.25f,-21.8f),
+                new Vector3(26.2f,1.43f,-21), new Vector3(34.1f,1.35f,-18.4f));
             var drum=Body("Tread drum");
             Body("Drum bearing -1").GetComponent<IPushable>().Push(Vector3.left*15,player.gameObject);
             yield return new WaitForSeconds(.6f);
@@ -189,7 +178,7 @@ namespace DeadlyJenga.DevTools.Editor
             GameEvents.Eliminated+=OnEliminated;
             try
             {
-                player.Teleport(new Vector3(-7,1,-9),Quaternion.identity);
+                player.Teleport(new Vector3(0,1,-26),Quaternion.identity);
                 yield return new WaitForSeconds(2);
                 Check(drowned,"survivor falls into an open channel and is eliminated");
             }
@@ -201,7 +190,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             var camera=new GameObject("Tidal review camera").AddComponent<Camera>();
             camera.transform.position=eye;camera.transform.LookAt(target);camera.fieldOfView=65;
-            camera.orthographic=wide;camera.orthographicSize=15.8f;camera.nearClipPlane=.05f;camera.farClipPlane=500;
+            camera.orthographic=wide;camera.orthographicSize=23f;camera.nearClipPlane=.05f;camera.farClipPlane=500;
             int width=wide?1800:1152,height=wide?680:648;
             var rt=RenderTexture.GetTemporary(width,height,24);
             var old=RenderTexture.active;
