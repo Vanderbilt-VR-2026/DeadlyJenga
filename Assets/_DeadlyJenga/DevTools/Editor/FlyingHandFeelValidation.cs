@@ -714,6 +714,38 @@ namespace DeadlyJenga.HandValidation
             while (Time.time - start < seconds) { input.pose.position = Vector3.Lerp(from, to, (Time.time - start) / seconds); yield return null; }
             input.pose.position = to;
         }
+        // Uses the real driven hand and an existing loose map member. Only tracked poses receive commands.
+        internal static IEnumerator PullMapMember(Rigidbody piece, Action<float,float> measured)
+        {
+            Vector3 original=piece.position;
+            yield return Spawn(original+Vector3.up*22);
+            try
+            {
+                var palm=bridge.PhysicalHand.bodies[0];
+                input.pose.skeleton=Reach(L,false);
+                yield return Wait(.5f);
+                Vector3 desired=piece.position+new Vector3(-.50f,2.37f,-.62f);
+                actor.Place(motor.Body.position+desired-palm.position,Quaternion.identity);
+                yield return Wait(.7f);
+                Vector3 home=input.pose.position;
+                yield return Move(home+Vector3.down*.075f,1.5f);
+                var open=Reach(L,false);var closed=Grasp(L,false);float start=Time.time;
+                while(Time.time-start<.8f)
+                {input.pose.skeleton=Lerp(open,closed,(Time.time-start)/.8f);yield return null;}
+                input.pose.skeleton=closed;yield return Wait(.4f);
+                var atGrip=piece.position;
+                yield return Move(input.pose.position+new Vector3(-.19f,.045f,0),2);
+                float carried=Vector3.Dot(piece.position-atGrip,Vector3.left);
+                input.pose.skeleton=open;yield return Wait(1.2f);
+                measured(carried,original.y-piece.position.y);
+            }
+            finally
+            {
+                watching=false;watched=null;
+                if(actor)Object.Destroy(actor.gameObject);
+            }
+        }
+
         static IEnumerator Grip(Vector3 at, bool pinch)
         {
             yield return Spawn(at);
