@@ -38,7 +38,7 @@ namespace DeadlyJenga.Presentation
         {
             var (site,purpose)=NameParts(body);
             Color color;string key;
-            if(purpose=="Rainwater gallery crossing"){key="pump brass";color=new Color(1,.72f,.055f);}
+            if(purpose=="Rainwater gallery crossing"){key="bridge";color=new Color(.76f,.53f,.31f);}
             else if(purpose.Contains("crossing")){bool high=body.worldCenterOfMass.y-groundY>17;key=high?"bridge high":"bridge";color=high?new Color(.92f,.22f,.26f):new Color(.86f,.68f,.48f);}
             else if(purpose.Contains("trestle")){key="trestle";color=new Color(.74f,.56f,.4f);}
             else if(site.StartsWith("Harbor bascule")){key="bascule";color=new Color(.86f,.68f,.48f);}
@@ -76,11 +76,12 @@ namespace DeadlyJenga.Presentation
             solidMaterials[key]=material;return material;
         }
 
-        void ReleaseSolidMaterials(){if(furnishingMaterial)Release(furnishingMaterial);furnishingMaterial=null;foreach(var m in solidMaterials.Values)if(m)Release(m);solidMaterials.Clear();fountainBuilt=false;}
+        void ReleaseSolidMaterials(){Release(rainwaterPaint);rainwaterPaint=null;if(furnishingMaterial)Release(furnishingMaterial);furnishingMaterial=null;foreach(var m in solidMaterials.Values)if(m)Release(m);solidMaterials.Clear();fountainBuilt=false;}
 
         void SolidDress(Rigidbody body,Transform visual)
         {
             var (site,purpose)=NameParts(body);
+            if (DressReviewedRainwater(visual,site,purpose)) return;
             var mesh=new ArtMesh(2);bool any=false;
             var boxes=body.GetComponentsInChildren<BoxCollider>();
             foreach(var shape in boxes)
