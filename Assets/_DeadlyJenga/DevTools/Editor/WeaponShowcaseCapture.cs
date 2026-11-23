@@ -47,6 +47,38 @@ namespace DeadlyJenga.DevTools.Editor
         }
         public static void Run()=>Start(false);
         public static void RunDuplexAndClaws()=>Start(true);
+
+        public static void CheckDuplexShader()
+        {
+            var shader = Resources.Load<Shader>("DuplexSurface");
+            if (!shader || !shader.isSupported)
+                throw new InvalidOperationException("Duplex surface shader is unavailable.");
+
+            var material = new Material(shader);
+            try
+            {
+                ShaderUtil.CompilePass(material, 0, true);
+                material.EnableKeyword("_DUPLEX_GLASS");
+                ShaderUtil.CompilePass(material, 0, true);
+                var errors = ShaderUtil.GetShaderMessages(shader)
+                    .Where(message => message.severity == UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error)
+                    .Select(message => message.message).ToArray();
+                if (errors.Length > 0)
+                    throw new InvalidOperationException(string.Join("\n", errors));
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+
+            Debug.Log($"PASS Duplex opaque and glass shader compilation on {SystemInfo.graphicsDeviceType}");
+            if (!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id", "")))
+            {
+                Directory.CreateDirectory("Logs/Warm");
+                File.WriteAllText("Logs/Warm/exit.txt", "0");
+            }
+        }
+
         static void Start(bool duplexClaws)
         {
             var scenes=EditorSceneManager.GetSceneManagerSetup();

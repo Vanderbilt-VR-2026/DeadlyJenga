@@ -71,19 +71,19 @@ Shader "DeadlyJenga/DuplexSurface"
                 return output;
             }
 
-            half Twill(float2 point)
+            half Twill(float2 uv)
             {
-                float2 cell = floor(point);
-                float2 grain = frac(point);
+                float2 cell = floor(uv);
+                float2 grain = frac(uv);
                 half across = step(2, fmod(cell.x + cell.y + 4096, 4));
                 half cord = lerp(sin(grain.x * PI), sin(grain.y * PI), across);
-                half contrast = saturate(1 - max(fwidth(point.x), fwidth(point.y)));
+                half contrast = saturate(1 - max(fwidth(uv.x), fwidth(uv.y)));
                 return lerp(1, lerp(.79, 1.25, cord), contrast);
             }
 
-            float Hash(float2 point)
+            float Hash(float2 uv)
             {
-                float3 p = frac(float3(point.xyx) * .1031);
+                float3 p = frac(float3(uv.xyx) * .1031);
                 p += dot(p, p.yzx + 33.33);
                 return frac((p.x + p.y) * p.z);
             }
