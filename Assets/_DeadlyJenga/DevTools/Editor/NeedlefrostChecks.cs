@@ -41,6 +41,8 @@ namespace DeadlyJenga.DevTools.Editor
             Capture(new Vector3(.3f,7.55f,-3),new Vector3(0,12,16),67,"Needlefrost-Bridge.png");
             Capture(new Vector3(15,17.4f,12),new Vector3(-2,15,16),75,"Needlefrost-Tower.png");
             float drift=placements.Select((p,i)=>Vector3.Distance(map.Bodies[i].position,map.transform.TransformPoint(p.Position))).Max();
+            foreach(var index in Enumerable.Range(0,placements.Count).OrderByDescending(i=>Vector3.Distance(map.Bodies[i].position,map.transform.TransformPoint(placements[i].Position))).Take(6))
+                File.AppendAllText(Report,$"Settle #{index} course {placements[index].Course} home {placements[index].Position} actual {map.Bodies[index].position}\n");
             File.AppendAllText(Report,"Initial maximum drift "+drift+" m; bodies "+placements.Count+"\n");
             var pier=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x+18)<.01f && p.Position.z==-19 && p.Position.y<1)];
             var deck=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x+18)<.01f && p.Position.z==-19 && p.Position.y>1)];
@@ -57,6 +59,7 @@ namespace DeadlyJenga.DevTools.Editor
             var bridge=map.Bodies[placements.FindIndex(p=>p.Position.x==0 && p.Position.z==-3)];
             bridge.GetComponent<IPushable>().Push(Vector3.forward*12,null);
             yield return new WaitForSeconds(1);
+            File.AppendAllText(Report,$"Displaced low bridge now at {bridge.position}\n");
             var driver=new MarinaWalkDriver();
             motor.externallyDriven=true;motor.InputDriver=driver;motor.InputSuspended=false;
             motor.Place(new Vector3(-8,3.12f,-16)+captureOrigin,Quaternion.identity);
@@ -64,6 +67,7 @@ namespace DeadlyJenga.DevTools.Editor
             float end=Time.time+12;
             while(Time.time<end && (driver.target-motor.transform.position).sqrMagnitude>1)yield return null;
             float walk=Vector3.Distance(driver.target,motor.transform.position);
+            File.AppendAllText(Report,$"Motor ended at {motor.transform.position}, target {driver.target}, status {motor.ActionStatus}\n");
             motor.InputDriver=null;motor.externallyDriven=false;
             map.Rebuild();yield return new WaitForSeconds(1);
             Check(placements.Count==map.Bodies.Count,"Reset restores physical body count");

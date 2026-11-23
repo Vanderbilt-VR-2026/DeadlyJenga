@@ -16,9 +16,14 @@ namespace DeadlyJenga.CastlePrototype
             foreach (Transform old in block.visualRoot) old.gameObject.SetActive(false);
             var visual = new GameObject(cut.ToString());
             visual.transform.SetParent(block.visualRoot,false);
-            if(cut==Cut.Vault || cut==Cut.Portal)
+            if(cut==Cut.Flight)
             {
-                Arch(block,visual.transform,cut==Cut.Portal);
+                BuildFlight(block,visual,placement.Size.y);
+                return;
+            }
+            if(cut==Cut.Vault || cut==Cut.Portal || cut==Cut.Tracery)
+            {
+                Arch(block,visual.transform,cut!=Cut.Vault);
                 return;
             }
             if (!meshes.TryGetValue(cut,out var mesh) || !mesh) meshes[cut]=mesh=Carve(cut);
@@ -45,6 +50,56 @@ namespace DeadlyJenga.CastlePrototype
                 socket.breakForce=180000;
                 socket.breakTorque=80000;
             }
+        }
+
+        static readonly Dictionary<int,Mesh> flightMeshes=new Dictionary<int,Mesh>();
+        static Mesh flightHull;
+
+        // The treads and their sloped contact envelope ride the same breakable flight.
+        static void BuildFlight(CastleBlock block,GameObject visual,float rise)
+        {
+            int count=Mathf.CeilToInt(rise/.16f);
+            if(!flightMeshes.TryGetValue(count,out var carved) || !carved)
+                flightMeshes[count]=carved=FlightMesh(count);
+            if(!flightHull)flightHull=FlightMesh(0);
+            visual.AddComponent<MeshFilter>().sharedMesh=carved;
+            visual.AddComponent<MeshRenderer>().sharedMaterial=block.sectionMaterial;
+            block.GetComponent<BoxCollider>().enabled=false;
+            block.SetTraversalEnabled(false);
+            var solid=block.gameObject.AddComponent<MeshCollider>();
+            solid.sharedMesh=flightHull;solid.convex=true;
+            visual.layer=Layers.Surface;
+            var walk=visual.AddComponent<MeshCollider>();walk.sharedMesh=flightHull;walk.convex=true;
+            Climbables.Register(walk,block);
+            visual.AddComponent<NeedlefrostGrip>().shape=walk;
+        }
+
+        static Mesh FlightMesh(int treads)
+        {
+            var vertices=new List<Vector3>();
+            var indices=new List<int>();
+            void Quad(Vector3 a,Vector3 b,Vector3 c,Vector3 d)
+            {
+                int i=vertices.Count;vertices.Add(a);vertices.Add(b);vertices.Add(c);vertices.Add(d);
+                indices.Add(i);indices.Add(i+1);indices.Add(i+2);
+                indices.Add(i);indices.Add(i+2);indices.Add(i+3);
+            }
+            Vector3 L(float t,float y)=>new Vector3(-.5f,y-.5f,t-.5f);
+            Vector3 R(float t,float y)=>new Vector3(.5f,y-.5f,t-.5f);
+            int count=Mathf.Max(1,treads);
+            for(int j=0;j<count;j++)
+            {
+                float a=(float)j/count,b=(float)(j+1)/count;
+                float front=treads==0?a:b;
+                Quad(L(a,front),L(b,b),R(b,b),R(a,front));
+                if(treads>0)Quad(L(a,a),L(a,b),R(a,b),R(a,a));
+                Quad(L(a,0),L(b,0),L(b,b),L(a,front));
+                Quad(R(a,0),R(a,front),R(b,b),R(b,0));
+            }
+            Quad(L(0,0),R(0,0),R(1,0),L(1,0));
+            Quad(L(1,0),R(1,0),R(1,1),L(1,1));
+            var mesh=new Mesh{name=treads==0?"Ice flight collision":"Carved ice treads"};
+            mesh.SetVertices(vertices);mesh.SetTriangles(indices,0);mesh.RecalculateNormals();return mesh;
         }
 
         static readonly Mesh[] voussoirs=new Mesh[10];

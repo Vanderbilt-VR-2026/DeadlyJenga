@@ -9,6 +9,7 @@ namespace DeadlyJenga.Polar
     {
         public Shader skyShader, waterShader;
         public Material icebergMaterial;
+        public Texture2D horizon;
         Material sky, sea, previousSky;
         Mesh seaMesh, bergMesh;
         GameObject scenery;
@@ -22,6 +23,7 @@ namespace DeadlyJenga.Polar
             if(!Application.isPlaying) return;
             previousSky=RenderSettings.skybox;
             sky=new Material(skyShader); sea=new Material(waterShader);
+            sky.SetTexture("_Horizon",horizon);
             scenery=new GameObject("Polar coast");scenery.transform.SetParent(transform,false);
             seaMesh=new Mesh{name="Sapphire ocean"};
             seaMesh.vertices=new[]{new Vector3(-580,.08f,-580),new Vector3(-580,.08f,580),

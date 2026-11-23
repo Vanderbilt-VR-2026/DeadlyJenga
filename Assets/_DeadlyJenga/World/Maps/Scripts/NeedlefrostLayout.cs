@@ -7,7 +7,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         public const string Preset = "needlefrost-keep";
         // Courses describe the cut of the member, independent of its position in the stack.
-        public enum Cut { Pier, Slab, Column, Lintel, Step, Vault, Roof, Blade, LeftBlade, RightBlade, Lantern, Window, Portal }
+        public enum Cut { Pier, Slab, Column, Lintel, Step, Vault, Roof, Blade, LeftBlade, RightBlade, Lantern, Window, Portal, Flight, Tracery }
         readonly List<CastlePlacement> parts = new List<CastlePlacement>(512);
         public static readonly Vector3[] Landings = {
             new Vector3(-16, 3, -15), new Vector3(16, 3, -15), new Vector3(-8, 6, 1),
@@ -17,7 +17,7 @@ namespace DeadlyJenga.CastlePrototype
         void Stone(float x, float bottom, float z, float w, float h, float d, Cut cut, float yaw = 0)
         {
             var section = cut == Cut.Lantern || cut == Cut.Window ? CastleSection.Gold :
-                cut >= Cut.Roof && cut != Cut.Portal ? CastleSection.Aqua : cut == Cut.Slab || cut == Cut.Step ? CastleSection.Keep : CastleSection.Wall;
+                cut >= Cut.Roof && cut <= Cut.RightBlade ? CastleSection.Aqua : cut == Cut.Slab || cut == Cut.Step ? CastleSection.Keep : CastleSection.Wall;
             parts.Add(new CastlePlacement(new Vector3(x, bottom + h / 2, z), Quaternion.Euler(0,yaw,0),
                 section, (int)cut, new Vector3(w,h,d)));
         }
@@ -31,7 +31,11 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if (bay == 3 && (row == 0 || row == 5)) continue;
                 float x = side * bay * 8, z = -19 + row * 8, top = 3 + 3 * (row / 2);
-                keep.Court(x, z, top);
+                keep.Court(x,z,top);
+                // Recessed walk-in grotto between the back of the lower court and the next tier.
+                if(row==2 || row==4)keep.Grotto(x,z,top);
+                if(row==0 && (bay==1 || (side<0 && bay==2)))
+                    keep.Headland(x,z-4,top,bay==1?4.6f:2.8f);
                 if ((row == 1 || row == 3) && (bay == 1 || bay == (side < 0 ? 2 : 3)))
                     keep.Stair(x, top, z, 8, 3, 3.6f);
                 if ((bay == 3 || row == 0) && row % 2 == 0)
@@ -43,6 +47,7 @@ namespace DeadlyJenga.CastlePrototype
             keep.Gallery(0,9.15f,15,9,7,7);
             // Carved frontispiece rests on the channel vault and stops under the first balcony.
             keep.Stone(0,9.15f,11.85f,6.25f,6,.65f,Cut.Portal);
+            keep.Stone(0,9.15f,18.0f,6.1f,6,.65f,Cut.Portal);
             keep.Gallery(0,16.15f,15,9,7,5);
             keep.Stone(0,21.15f,15,5,4,6,Cut.Roof);
             keep.Stone(0,25.15f,15,2.95f,11,2.7f,Cut.Blade);
@@ -72,8 +77,9 @@ namespace DeadlyJenga.CastlePrototype
                 keep.Stone(side*2.7f,9.15f,12.65f,.65f,4.7f,.7f,Cut.Column);
                 keep.Stone(side*2.7f,13.85f,12.65f,.77f,1.25f,.85f,Cut.Blade);
             }
+            keep.Stone(0,16.15f,17.9f,6.2f,4,.58f,Cut.Column);
             for(int i=-2;i<=2;i++)
-                keep.Stone(i*1.45f,16.15f,11.85f,.52f,2.25f,.45f,Cut.Window);
+                keep.Stone(i*1.45f,16.15f,17.32f,.7f,3.25f,.48f,Cut.Window);
             return keep.parts;
         }
 
@@ -87,11 +93,28 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
+        void Headland(float x,float back,float top,float depth)
+        {
+            for(int i=-1;i<=1;i+=2)
+            {
+                float length=depth+(i<0?.8f:0),cx=x+i*1.45f,z=back-length/2;
+                Stone(cx,-3,z,1.9f,top+1.95f,length*.62f,Cut.Pier);
+                Stone(cx,top-1.05f,z,2.88f,1.05f,length-.02f,Cut.Slab);
+            }
+        }
+
+        void Grotto(float x,float z,float top)
+        {
+            float floor=top-3,center=z-3.15f;
+            Stone(x,-3,center,3.6f,floor+2.4f,1.3f,Cut.Pier);
+            Stone(x,floor-.6f,center,7.9f,.6f,1.65f,Cut.Slab);
+            // Open aisle below the upper slab. Slender jambs carry the pointed mouth.
+            Stone(x,floor,z-3.65f,6.4f,1.7f,.36f,Cut.Tracery);
+        }
+
         void Stair(float x,float bottom,float z,float length,float rise,float width)
         {
-            int steps=Mathf.CeilToInt(rise/.22f);
-            for(int i=0;i<steps;i++)
-                Stone(x,bottom,z-length/2+(i+.5f)*length/steps,width,rise*(i+1)/steps,length/steps-.008f,Cut.Step);
+            Stone(x,bottom,z,width,rise,length,Cut.Flight);
         }
 
         void Crossing(float x,float top,float z,float width,float depth)
@@ -114,16 +137,16 @@ namespace DeadlyJenga.CastlePrototype
             {
                 float y=bottom+story*level;
                 Gallery(x,y,z,6.8f,6.8f,story);
-                Lamp(x+1.9f,y,z-2.5f);
+                // Rear lancets and a pointed arcade give each open balcony a lit interior.
+                Stone(x,y,z-2.83f,4.1f,story-1,.44f,Cut.Tracery);
+                Stone(x,y,z+2.9f,4.25f,story-1,.55f,Cut.Column);
+                for(int light=-1;light<=1;light++)
+                    Stone(x+light*1.2f,y,z+2.35f,.55f,story*.66f,.42f,Cut.Window);
+                Lamp(x+1.65f,y,z-1.9f);
                 // External return flights leave the gallery edge and its entrances open.
                 float outboard=Mathf.Sign(x);
                 float flightX=x+outboard*(level==0 ? 4.4f : 6);
-                for(int i=0;i<26;i++)
-                {
-                    float treadZ=z-3.3f+(i+.5f)*6.6f/26;
-                    if(level%2==1)treadZ=2*z-treadZ;
-                    Stone(flightX,y,treadZ,1.95f,story*(i+1)/26,6.6f/26-.005f,Cut.Step);
-                }
+                Stone(flightX,y,z,1.95f,story,6.6f,Cut.Flight,level==0?0:180);
                 Stone(flightX,y+story-.35f,z+(level==0?3.65f:-3.65f),3.15f,.35f,.7f,Cut.Lintel);
                 Stone(flightX,y,z+(level==0?3.65f:-3.65f),1.4f,story-.35f,.68f,Cut.Column);
                 if(level==0)

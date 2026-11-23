@@ -1,5 +1,5 @@
 Shader "DeadlyJenga/Needlefrost/Sky" {
-Properties {  }
+Properties { _Horizon("Polar horizon",2D)="black" {} }
 SubShader { Tags { "RenderPipeline"="UniversalPipeline" "Queue"="Background" "RenderType"="Background" }
 Pass { Cull Off ZWrite Off
 HLSLPROGRAM
@@ -18,21 +18,16 @@ float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
 float noise(float2 p){float2 i=floor(p),f=frac(p); f=f*f*(3-2*f);
  return lerp(lerp(hash(i),hash(i+float2(1,0)),f.x),lerp(hash(i+float2(0,1)),hash(i+1),f.x),f.y);}
 
+TEXTURE2D(_Horizon); SAMPLER(sampler_Horizon);
 half4 frag(Vary i):SV_Target {
- float3 d=normalize(i.local);float a=atan2(d.x,d.z), h=d.y;
- float3 sky=lerp(float3(.037,.105,.32),float3(.003,.009,.085),saturate(h*2+.10));
- float2 q=d.xz*4;
- float ribbon=.19+.075*sin(a*3+.4)+.07*sin(a*7.3);
- float aur=exp(-abs(h-ribbon)*17)*(.25+.75*noise(float2(a*47,h*1.7)));
- sky+=aur*float3(.006,.52,.39);
- float stars=step(.994,hash(floor(float2(a,h)*510)))*smoothstep(.12,.4,h);
- sky+=stars*.45;
+ float3 d=normalize(i.local);
+ float a=atan2(d.x,d.z);
+ float2 uv=float2(a*(1.0/6.2831853)+.53,.459+asin(clamp(d.y,-1,1))*.56);
+ float3 sky=SAMPLE_TEXTURE2D(_Horizon,sampler_Horizon,uv).rgb;
  float moon=distance(d,normalize(float3(.42,.155,1)));
- sky+=float3(.75,.88,1)*(1-smoothstep(.018,.02,moon))*(.78+.22*noise(d.xy*360));
- for(int j=0;j<2;j++){
- float2 t=q*(2.5+j)+j*13;float ridge=.011+.080*noise(t)+.039*noise(t*3)+.023*noise(t*9)+.009*noise(t*21)-j*.041;
- float snow=saturate((h-ridge+.025)*18+1.25*(noise(float2(a*97+h*15,h*81))-.28));
- sky=lerp(sky,lerp(float3(.032,.089,.23),float3(.23,.37,.61),snow)*(1-j*.12),1-smoothstep(ridge-.002,ridge+.002,h)); }
- return half4(sky,1); }
+ float maria=noise(d.xy*350)*.25+noise(d.xy*100)*.15;
+ sky+=float3(.74,.85,1)*(1-smoothstep(.018,.0195,moon))*(1-maria);
+ return half4(sky,1);
+}
 ENDHLSL
 } } }
