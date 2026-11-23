@@ -62,8 +62,10 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 cut.Frames == StudioWave.SampleAt(11, rate, fps) && stem != null && stem.samples.SequenceEqual(cut.samples);
             string package = StudioExport.WritePortable(set, root, source, out _);
             doc.Load(Directory.GetFiles(package, "*.fcpxml").Single());
+            string otio = File.ReadAllText(Directory.GetFiles(package, "*.otio").Single());
             bool portable = File.Exists(Path.Combine(package, "handoff.json")) && doc.SelectNodes("//media-rep").Cast<XmlNode>()
-                .All(n => File.Exists(Path.Combine(package, Uri.UnescapeDataString(n.Attributes["src"].Value))));
+                .All(n => File.Exists(Path.Combine(package, Uri.UnescapeDataString(n.Attributes["src"].Value))) &&
+                    otio.Contains(n.Attributes["src"].Value));
             Shot(slow, 8, null);
             StudioExport.WriteFcpxml(set, root, source, out var legacy);
             var silent = StudioWave.Read(Path.Combine(root, StudioCutSound.MixName));

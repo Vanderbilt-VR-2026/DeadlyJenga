@@ -122,6 +122,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 attr.Value = "Media/" + System.Uri.EscapeDataString(packaged);
             }
             xml.Save(Path.Combine(root, Path.GetFileName(xmlPath)));
+            File.WriteAllText(Path.ChangeExtension(Path.Combine(root, Path.GetFileName(xmlPath)), ".otio"),
+                WriteOtio(xml, pieces[0].shot.fps, problems));
 
             string[] edl = File.ReadAllLines(edlPath);
             int line = 0;
@@ -141,7 +143,93 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 handoff.shots.Add(new HandoffShot { media = "Media/" + names[Path.GetFullPath(piece.media)],
                     sourceIn = piece.inFrame, length = piece.frames, cutIn = piece.recordStart, render = piece.shot });
             File.WriteAllText(Path.Combine(root, "handoff.json"), JsonUtility.ToJson(handoff, true));
+            File.WriteAllText(Path.Combine(root, "READ-ME.txt"),
+                "Keep the edit lists and Media folder together. The OTIO and FCPXML use package-relative media paths.\n" +
+                "The OTIO contains the picture trims, cross-dissolves and audio lanes. Speed changes, freezes and split sound edits are baked into referenced media.\n" +
+                "Non-ducked music gain is carried in FCPXML. Refer to handoff.json for take and camera provenance.\n");
+            problems = problems.Distinct().ToList();
             return root;
+        }
+
+        static string WriteOtio(XDocument xml, int fps, List<string> problems)
+        {
+            var sequence = xml.Descendants("sequence").Single();
+            var assets = xml.Descendants("asset").ToDictionary(a => Attr(a, "id"));
+            var spine = sequence.Element("spine");
+            var picture = new List<string>();
+            var audio = new Dictionary<string, (decimal end, string name, List<string> clips)>();
+            decimal Frame(string text)
+            {
+                if (string.IsNullOrEmpty(text)) return 0;
+                string[] fraction = text.TrimEnd('s').Split('/');
+                decimal number = decimal.Parse(fraction[0], CultureInfo.InvariantCulture);
+                return number * fps / (fraction.Length == 2 ? decimal.Parse(fraction[1], CultureInfo.InvariantCulture) : 1);
+            }
+            string Time(decimal value) => $"{{\"OTIO_SCHEMA\":\"RationalTime.1\",\"value\":{value.ToString(CultureInfo.InvariantCulture)},\"rate\":{fps}}}";
+            string Range(decimal start, decimal duration) =>
+                $"{{\"OTIO_SCHEMA\":\"TimeRange.1\",\"start_time\":{Time(start)},\"duration\":{Time(duration)}}}";
+            string Clip(XElement clip)
+            {
+                var asset = assets[Attr(clip, "ref")];
+                decimal start = Frame(Attr(clip, "start")), duration = Frame(Attr(clip, "duration"));
+                string known = Attr(asset, "duration");
+                string available = known.Length > 0 ? Range(Frame(Attr(asset, "start")), Frame(known)) : "null";
+                string media = JsonString(Attr(asset.Element("media-rep"), "src"));
+                return $"{{\"OTIO_SCHEMA\":\"Clip.1\",\"name\":{JsonString(Attr(clip, "name"))},\"source_range\":{Range(start, duration)}," +
+                    $"\"effects\":[],\"markers\":[],\"metadata\":{{}},\"media_reference\":{{\"OTIO_SCHEMA\":\"ExternalReference.1\"," +
+                    $"\"target_url\":{media},\"available_range\":{available},\"name\":\"\",\"metadata\":{{}}}}}}";
+            }
+            string Gap(decimal duration) => $"{{\"OTIO_SCHEMA\":\"Gap.1\",\"source_range\":{Range(0, duration)},\"name\":\"\",\"metadata\":{{}},\"effects\":[],\"markers\":[]}}";
+            string Track(string name, string kind, List<string> clips) =>
+                $"{{\"OTIO_SCHEMA\":\"Track.1\",\"name\":{JsonString(name)},\"kind\":\"{kind}\",\"source_range\":null,\"metadata\":{{}},\"effects\":[],\"markers\":[],\"children\":[{string.Join(",", clips)}]}}";
+
+            decimal edge = 0;
+            foreach (var item in spine.Elements())
+            {
+                if (item.Name == "transition")
+                {
+                    decimal before = edge - Frame(Attr(item, "offset"));
+                    decimal after = Frame(Attr(item, "duration")) - before;
+                    picture.Add($"{{\"OTIO_SCHEMA\":\"Transition.1\",\"name\":\"Cross Dissolve\",\"transition_type\":\"SMPTE_Dissolve\"," +
+                        $"\"in_offset\":{Time(before)},\"out_offset\":{Time(after)},\"metadata\":{{}}}}");
+                    continue;
+                }
+                picture.Add(Clip(item));
+                decimal offset = Frame(Attr(item, "offset"));
+                edge = offset + Frame(Attr(item, "duration"));
+                foreach (var child in item.Elements("asset-clip"))
+                {
+                    string lane = Attr(child, "lane");
+                    if (!audio.TryGetValue(lane, out var track))
+                        track = (0, Attr(child, "name"), new List<string>());
+                    decimal start = offset + Frame(Attr(child, "offset")) - Frame(Attr(item, "start"));
+                    if (start > track.end) track.clips.Add(Gap(start - track.end));
+                    track.clips.Add(Clip(child));
+                    track.end = start + Frame(Attr(child, "duration"));
+                    audio[lane] = track;
+                    if (child.Element("adjust-volume") != null)
+                        problems.Add("The OTIO handoff preserves music placement. Apply the music gain from FCPXML in your finishing editor.");
+                }
+            }
+            var tracks = new List<string> { Track("Picture", "Video", picture) };
+            tracks.AddRange(audio.Values.Select(a => Track(a.name, "Audio", a.clips)));
+            return $"{{\"OTIO_SCHEMA\":\"Timeline.1\",\"name\":{JsonString(Attr(xml.Descendants("project").Single(), "name"))},\"metadata\":{{}},\"global_start_time\":null," +
+                $"\"tracks\":{{\"OTIO_SCHEMA\":\"Stack.1\",\"name\":\"Tracks\",\"metadata\":{{}},\"source_range\":null,\"effects\":[],\"markers\":[]," +
+                $"\"children\":[{string.Join(",", tracks)}]}}}}";
+        }
+
+        static string Attr(XElement element, string name) => (string)element?.Attribute(name) ?? "";
+
+        static string JsonString(string value)
+        {
+            var json = new StringBuilder("\"");
+            foreach (char c in value)
+            {
+                if (c == '"' || c == '\\') json.Append('\\').Append(c);
+                else if (c < ' ') json.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
+                else json.Append(c);
+            }
+            return json.Append('"').ToString();
         }
 
         // FCPXML time: a rational number of seconds, "frames/fps" + "s" (whole seconds are written as "5s").

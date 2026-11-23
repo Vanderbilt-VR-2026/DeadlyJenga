@@ -381,7 +381,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     context.Say(problems.Count == 0 ? "Packaged the cut and its media." : "Packaged the cut. " + string.Join(" · ", problems));
                 }
                 catch (Exception error) { context.Say(error.GetBaseException().Message); }
-            }, "Copy all used movie and audio files into a separate handoff folder with edit lists and shot provenance");
+            }, "Copy used movie and audio files into a handoff with FCPXML, EDL, OpenTimelineIO and shot provenance");
             portable.SetEnabled(resolved > 0 && !partial && !missingMedia);
             panel.Add(portable);
         }
