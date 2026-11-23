@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4478676743504610698
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9157876249556370270}
+  - component: {fileID: 3084828545915345649}
+  - component: {fileID: 3084828545915345650}
+  m_Layer: 0
+  m_Name: Gingerbread Kingdom
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9157876249556370270
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4478676743504610698}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3084828545915345649
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4478676743504610698}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98a6e2be33bf467e8559bbee7a1bd151, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.GingerbreadKingdom
+  finishes:
+  - {fileID: 2100000, guid: 0e8c3bb139eb63240ba01d7d71618c0a, type: 2}
+  - {fileID: 2100000, guid: 57ebef7b626ffd24abf1f70d102ae7ca, type: 2}
+  - {fileID: 2100000, guid: a0df2f87569d30c4cb7705abd7e2873d, type: 2}
+  - {fileID: 2100000, guid: fcae6271e99f22e4ba1be513e23f991f, type: 2}
+  - {fileID: 2100000, guid: 46771fa65dc252149a9884e578f86b0e, type: 2}
+  - {fileID: 2100000, guid: 35b819dfcffcb4c46ada8ebe6cd7b86b, type: 2}
+  - {fileID: 2100000, guid: 16a99a68fed6dad49ab0cbe7cf9f855d, type: 2}
+  - {fileID: 2100000, guid: e0191249fef1dff49abdeaadf39a9601, type: 2}
+  - {fileID: 2100000, guid: e9098a79d8a8aeb409a15f840c04d793, type: 2}
+  - {fileID: 2100000, guid: c59ed7af29024625a4cba5e79cde806c, type: 2}
+  - {fileID: 2100000, guid: c59ed7af29024625a4cba5e79cde806c, type: 2}
+  - {fileID: 2100000, guid: 1f525fbc9fc8a6148844ea518f5ef592, type: 2}
+  friction: {fileID: 13400000, guid: 194d9f5483b630840955a7f1d488ab6f, type: 2}
+--- !u!114 &3084828545915345650
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4478676743504610698}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c39124643b7cffe4ab5a1c86132db403, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: DeadlyJenga.Presentation::DeadlyJenga.CandyArt.ChristmasTownAtmosphere
+  winterSky: {fileID: 2100000, guid: 5184c5c354e34970b1741ad549db33a4, type: 2}
+  localLights: []
