@@ -253,9 +253,37 @@ namespace DeadlyJenga.CandyPlayers
             }
         }
 
+        struct ClawTint
+        {
+            public Transform weapon;
+            public Color color;
+        }
+
+        ClawTint mainClawTint, pairedClawTint;
+        MaterialPropertyBlock clawProperties;
+        static readonly int ClawColorProperty = Shader.PropertyToID("_BaseColor");
+
+        void MatchClawColor(Transform weapon)
+        {
+            var color = owningRig ? owningRig.BaseAppearanceColor : new Color(.1f,.9f,1);
+            ref ClawTint tint = ref (weapon == root ? ref mainClawTint : ref pairedClawTint);
+            if (tint.weapon == weapon && tint.color == color) return;
+            tint.weapon = weapon;
+            tint.color = color;
+            clawProperties ??= new MaterialPropertyBlock();
+            for (int blade = 0; blade < 3; blade++)
+            {
+                var renderer = weapon.GetChild(blade).GetChild(0).GetComponent<MeshRenderer>();
+                renderer.GetPropertyBlock(clawProperties);
+                clawProperties.SetColor(ClawColorProperty,color);
+                renderer.SetPropertyBlock(clawProperties);
+            }
+        }
+
         void PresentClaws(Transform weapon, CandyHandPose hand, bool left, float progress)
         {
             weapon.gameObject.SetActive(progress > 0);
+            MatchClawColor(weapon);
             PositionClaws(weapon, hand, left);
             float extension = Mathf.Lerp(.02f, 1, Mathf.SmoothStep(0, 1, progress));
             for (int i = 0; i < 3; i++)

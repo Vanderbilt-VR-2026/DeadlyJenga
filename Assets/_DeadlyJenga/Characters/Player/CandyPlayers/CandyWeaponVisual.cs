@@ -11,7 +11,14 @@ namespace DeadlyJenga.CandyPlayers
         int pickupSequence = -1;
         readonly EquipmentState slungFeedState = new EquipmentState();
         readonly Transform parent;readonly Material material;Transform root,barrel;EquipmentKind kind;float barrelAngle,barrelTarget,barrelSpeed=600;bool barrelMode,barrelInitialized;
-        public CandyWeaponVisual(Transform parent,Material material){this.parent=parent;this.material=material;PreparePickupModels();}
+        readonly CandyPlayerRig owningRig;
+        public CandyWeaponVisual(Transform parent,Material material,CandyPlayerRig owningRig=null)
+        {
+            this.parent=parent;
+            this.material=material;
+            this.owningRig=owningRig;
+            PreparePickupModels();
+        }
         public void Hide(){if(root)root.gameObject.SetActive(false);if(paired)paired.gameObject.SetActive(false);ResetMotion();}
         public static Pose Holster(EquipmentKind kind,Vector3 feet,Vector3 head,Quaternion yaw,float scale,bool left)
         {

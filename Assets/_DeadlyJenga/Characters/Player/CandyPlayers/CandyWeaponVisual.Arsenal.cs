@@ -1205,7 +1205,43 @@ namespace DeadlyJenga.CandyPlayers
                 vertices[i]=new Vector3(n.x*thickness,n.y*width+.065f*t*t,t*length);normals[i]=new Vector3(n.x/Mathf.Max(.0001f,thickness),n.y/Mathf.Max(.0001f,width),0).normalized;uv[i]=new Vector2((float)side/sides,t);
                 if(ring<rings-1&&side<sides){int j=i+sides+1;indices.AddRange(new[]{i,i+1,j,i+1,j+1,j});}
             }
-            var mesh=new Mesh{name=key,vertices=vertices,normals=normals,uv=uv,triangles=indices.ToArray()};mesh.RecalculateBounds();arsenalMeshes[key]=mesh;return mesh;
+            // Sparks share the blade draw call. UV2 carries a repeatable phase and travel direction.
+            var points = new List<Vector3>(vertices);
+            var directions = new List<Vector3>(normals);
+            var surfaceUv = new List<Vector2>(uv);
+            var sparks = new List<Vector4>(new Vector4[vertices.Length]);
+            for (int spark = 0; spark < 9; spark++)
+            {
+                float seed = Mathf.Repeat(.13f + spark * .618034f + claw * .241f, 1);
+                float t = .28f + spark * .073f;
+                float angle = spark * 2.399963f + claw * .82f;
+                var outward = new Vector3(Mathf.Cos(angle),Mathf.Sin(angle),0);
+                var drift = outward * Mathf.Lerp(.048f,.10f,seed);
+                var start = new Vector3(0,.065f*t*t,t*length) + outward*.012f;
+                var smallSide = Vector3.Cross(outward,Vector3.forward)*.0017f;
+                int first = points.Count;
+                points.Add(start-smallSide);
+                points.Add(start+smallSide);
+                points.Add(start+outward*.010f+Vector3.forward*(.014f+seed*.027f));
+                for (int vertex = 0; vertex < 3; vertex++)
+                {
+                    directions.Add(outward);
+                    surfaceUv.Add(Vector2.zero);
+                    sparks.Add(new Vector4(seed,drift.x,drift.y,1.1f+seed));
+                }
+                indices.AddRange(new[]{first,first+1,first+2,first,first+2,first+1});
+            }
+            var mesh = new Mesh { name=key };
+            mesh.SetVertices(points);
+            mesh.SetNormals(directions);
+            mesh.SetUVs(0,surfaceUv);
+            mesh.SetUVs(1,sparks);
+            mesh.SetTriangles(indices,0);
+            Bounds bounds = mesh.bounds;
+            bounds.Expand(.24f);
+            mesh.bounds = bounds;
+            arsenalMeshes[key]=mesh;
+            return mesh;
         }
         void BuildRoastingFork(Transform root)
         {

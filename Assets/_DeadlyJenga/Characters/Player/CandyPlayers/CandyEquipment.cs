@@ -690,7 +690,7 @@ namespace DeadlyJenga.CandyPlayers
         }
         void LateUpdate()
         {
-            if(!avatar||!avatar.Rig)return;visual??=new CandyWeaponVisual(transform,avatar.Rig.style.material);
+            if(!avatar||!avatar.Rig)return;visual??=new CandyWeaponVisual(transform,avatar.Rig.style.material,avatar.Rig);
             avatar.Rig.SetAppearance(avatar.EquippedAppearance);
             var state = Equipment;
             visual.Present(state, avatar.RenderedFrame, motor && motor.Alive && motor.WeaponAvailableDuringTraversal(state,state.leftHanded),
