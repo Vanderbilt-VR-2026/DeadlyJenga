@@ -10,7 +10,7 @@ namespace DeadlyJenga.Presentation
     {
         sealed class Bullet
         {
-            public Transform head;public MeshRenderer headRenderer;public LineRenderer trail;public Vector3 start,end;public float age,duration;public bool shotgun,needle,contact;public Color color;public EquipmentKind kind;public CandyWeaponImpacts.SurfaceContact surface;
+            public Transform head;public MeshRenderer headRenderer;public LineRenderer trail, needleWake;public Vector3 start,end;public float age,duration;public bool shotgun,needle,contact;public Color color;public EquipmentKind kind;public CandyWeaponImpacts.SurfaceContact surface;
         }
         const int Capacity=224;
         readonly List<Bullet> active=new List<Bullet>();
@@ -73,18 +73,29 @@ namespace DeadlyJenga.Presentation
                 bullet.kind=kind;bullet.surface=default;
                 if(bullet.contact)CandyWeaponImpacts.TryContact(bullet.end,delta,out bullet.surface);
                 bullet.head.gameObject.SetActive(true);bullet.trail.gameObject.SetActive(true);
-                bullet.head.position=start;bullet.head.rotation=Quaternion.LookRotation(delta);bullet.head.localScale=needle?new Vector3(.035f,.035f,.23f):new Vector3(shotgun?.075f:.09f,shotgun?.075f:.09f,shotgun?.17f:.27f);
+                bullet.head.position=start;bullet.head.rotation=Quaternion.LookRotation(delta);bullet.head.localScale=needle?new Vector3(.023f,.023f,.24f):new Vector3(shotgun?.075f:.09f,shotgun?.075f:.09f,shotgun?.17f:.27f);
                 Color color=needle?new Color(.72f,.80f,.87f):kind==EquipmentKind.ChainGun?new Color(1,.68f,.18f):shotgun?new Color(1,.43f,.09f,1):new Color(.24f,.88f,1,1);
-                tint.Clear();tint.SetColor(BaseColor,color);tint.SetColor(ColorId,color);tint.SetColor("_EmissionColor",Color.Lerp(color,Color.white,.67f)*1.5f);
+                tint.Clear();tint.SetColor(BaseColor,color);tint.SetColor(ColorId,color);tint.SetColor("_EmissionColor",Color.Lerp(color,Color.white,.67f)*(needle?.24f:1.5f));
                 bullet.headRenderer.SetPropertyBlock(tint);bullet.trail.SetPropertyBlock(tint);
                 bullet.color=color;bullet.trail.startColor=Color.white;bullet.trail.endColor=new Color(1,1,1,.04f);
-                if(i==0&&range>0)Burst(start,delta.normalized,color,shotgun?12:7,false);
-                bullet.trail.widthMultiplier=needle?.058f:shotgun?.12f:.17f;
+                if (needle)
+                {
+                    if (!bullet.needleWake) bullet.needleWake = CreateTrail("Fine needle wake");
+                    bullet.needleWake.gameObject.SetActive(true);
+                    bullet.needleWake.SetPropertyBlock(tint);
+                    bullet.needleWake.widthMultiplier = .011f;
+                    bullet.needleWake.startColor = new Color(.73f,.87f,1,.52f);
+                    bullet.needleWake.endColor = new Color(.73f,.87f,1,0);
+                    bullet.needleWake.SetPosition(0,start);
+                    bullet.needleWake.SetPosition(1,start);
+                }
+                if(i==0&&range>0)Burst(start,delta.normalized,color,shotgun?12:7,false,needle);
+                bullet.trail.widthMultiplier=needle?.022f:shotgun?.12f:.17f;
                 bullet.trail.SetPosition(0,start);bullet.trail.SetPosition(1,start);active.Add(bullet);
             }
         }
         public void FireNeedles(Vector3 start,Vector3[] endpoints)=>Fire(start,endpoints,false,EquipmentKind.NeedleDrill);
-        void Burst(Vector3 point,Vector3 direction,Color color,int count,bool impact)
+        void Burst(Vector3 point,Vector3 direction,Color color,int count,bool impact,bool needle=false)
         {
             if(!sparks)return;
             if(!sparks.gameObject.activeSelf)sparks.gameObject.SetActive(true);
@@ -94,7 +105,9 @@ namespace DeadlyJenga.Presentation
                 var scatter=Quaternion.Euler(i*73+count*9,i*137.5f,i*41)*Vector3.forward;
                 var velocity=(scatter*(impact?.95f:.3f)+direction*(impact?-.5f:1.2f)).normalized;
                 sparks.Emit(new ParticleSystem.EmitParams{position=point,velocity=velocity*(impact?2+i*.47f:1+i*.35f),
-                    startSize=(impact?.12f:.085f)*(i==0?2:1),startLifetime=(impact?.21f:.10f)+i*.011f,startColor=color},1);
+                    startSize=(needle ? (impact ? .047f : .033f) : (impact ? .12f : .085f)) * (i==0?2:1),
+                    startLifetime=needle ? (impact?.16f:.065f)+i*.007f : (impact?.21f:.10f)+i*.011f,
+                    startColor=needle&&!impact&&i%3!=0 ? new Color(1,.58f,.26f) : color},1);
             }
         }
         static bool Finite(Vector3 p)=>!float.IsNaN(p.sqrMagnitude)&&!float.IsInfinity(p.sqrMagnitude);
@@ -103,10 +116,20 @@ namespace DeadlyJenga.Presentation
             var root=new GameObject("Visual bullet head");root.transform.SetParent(transform,false);
             root.AddComponent<MeshFilter>().sharedMesh=mesh;
             var renderer=root.AddComponent<MeshRenderer>();renderer.sharedMaterial=material;renderer.shadowCastingMode=ShadowCastingMode.Off;renderer.receiveShadows=false;
-            var line=new GameObject("Visual bullet trail");line.transform.SetParent(transform,false);
-            var trail=line.AddComponent<LineRenderer>();trail.sharedMaterial=ribbon;trail.positionCount=2;trail.useWorldSpace=true;
-            trail.shadowCastingMode=ShadowCastingMode.Off;trail.receiveShadows=false;trail.numCapVertices=0;trail.widthCurve=new AnimationCurve(new Keyframe(0,.85f),new Keyframe(.36f,1),new Keyframe(1,.08f));
-            return new Bullet{head=root.transform,headRenderer=renderer,trail=trail};
+            return new Bullet{head=root.transform,headRenderer=renderer,trail=CreateTrail("Visual bullet trail")};
+        }
+        LineRenderer CreateTrail(string name)
+        {
+            var line=new GameObject(name);
+            line.transform.SetParent(transform,false);
+            var trail=line.AddComponent<LineRenderer>();
+            trail.sharedMaterial=ribbon;
+            trail.positionCount=2;
+            trail.useWorldSpace=true;
+            trail.shadowCastingMode=ShadowCastingMode.Off;
+            trail.receiveShadows=false;
+            trail.widthCurve=new AnimationCurve(new Keyframe(0,.85f),new Keyframe(.36f,1),new Keyframe(1,.08f));
+            return trail;
         }
         void Update()
         {
@@ -119,9 +142,13 @@ namespace DeadlyJenga.Presentation
                 {
                     if(bullet.contact)
                     {
-                        Burst(end,(end-bullet.start).normalized,bullet.color,bullet.shotgun?4:10,true);
+                        Burst(end,(end-bullet.start).normalized,bullet.color,bullet.needle?13:bullet.shotgun?4:10,true,bullet.needle);
                         if(!impactView)impactView=GetComponent<CandyWeaponImpacts>();
-                        if(impactView)impactView.Surface(bullet.surface,bullet.kind);
+                        if (impactView)
+                        {
+                            if (bullet.needle) impactView.NeedleChips(bullet.surface, (end-bullet.start).normalized);
+                            impactView.Surface(bullet.surface,bullet.kind);
+                        }
                     }
                     ReleaseAt(i);continue;
                 }
@@ -129,11 +156,17 @@ namespace DeadlyJenga.Presentation
                 bullet.head.position=Vector3.Lerp(bullet.start,end,t);
                 bullet.trail.SetPosition(0,bullet.head.position);
                 bullet.trail.SetPosition(1,Vector3.Lerp(bullet.start,end,Mathf.Max(0,t-(bullet.needle?.23f:bullet.shotgun?.43f:.55f))));
+                if (bullet.needle && bullet.needleWake)
+                {
+                    var side = bullet.head.right * .027f;
+                    bullet.needleWake.SetPosition(0, bullet.head.position + side*.15f);
+                    bullet.needleWake.SetPosition(1, Vector3.Lerp(bullet.start,end,Mathf.Max(0,t-.30f))+side);
+                }
             }
         }
         void ReleaseAt(int i)
         {
-            var bullet=active[i];bullet.head.gameObject.SetActive(false);bullet.trail.gameObject.SetActive(false);pool.Push(bullet);active.RemoveAt(i);
+            var bullet=active[i];bullet.head.gameObject.SetActive(false);bullet.trail.gameObject.SetActive(false);if(bullet.needleWake)bullet.needleWake.gameObject.SetActive(false);pool.Push(bullet);active.RemoveAt(i);
         }
         void OnDisable(){while(active.Count>0)ReleaseAt(active.Count-1);if(sparks){sparks.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);sparks.gameObject.SetActive(false);}}
         void OnDestroy(){if(material)Destroy(material);if(mesh)Destroy(mesh);if(ribbon)Destroy(ribbon);if(sparkMaterial)Destroy(sparkMaterial);}

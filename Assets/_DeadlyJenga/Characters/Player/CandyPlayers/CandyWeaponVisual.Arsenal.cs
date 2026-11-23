@@ -269,10 +269,108 @@ namespace DeadlyJenga.CandyPlayers
             return stockPistolSurfaces;
         }
 
+        sealed class NeedleDrillArtSection
+        {
+            public int assembly;
+            public Mesh mesh;
+            public Material material;
+        }
+
+        static NeedleDrillArtSection[] approvedNeedleDrill;
+        static bool checkedNeedleDrillArt;
+
+        bool BuildApprovedNeedleDrill(Transform root)
+        {
+            if (!checkedNeedleDrillArt)
+            {
+                checkedNeedleDrillArt = true;
+                var asset = Resources.Load<TextAsset>("NeedleDrillArt");
+                if (asset != null)
+                    approvedNeedleDrill = ReadNeedleDrillArt(asset);
+            }
+            if (approvedNeedleDrill == null) return false;
+
+            rotor = new GameObject("Spinning machined chuck and helical needle bit").transform;
+            rotor.SetParent(root, false);
+            rotor.localPosition = new Vector3(0, .145f, .316f);
+            var owners = new[] { root, rotor, MakeFeedAssembly(root) };
+            foreach (var section in approvedNeedleDrill)
+                MountFeedMesh(section.mesh, section.material, owners[section.assembly]);
+            return true;
+        }
+
+        // ND01 is a Blender export grouped by material and by stationary, chuck, or feed assembly.
+        static NeedleDrillArtSection[] ReadNeedleDrillArt(TextAsset asset)
+        {
+            var sections = new List<NeedleDrillArtSection>();
+            using var stream = new System.IO.MemoryStream(asset.bytes, false);
+            using var reader = new System.IO.BinaryReader(stream);
+            try
+            {
+                if (reader.ReadUInt32() != 0x3130444e) throw new System.IO.InvalidDataException("Incorrect header");
+                int count = reader.ReadInt32();
+                if (count < 3 || count > 32) throw new System.IO.InvalidDataException("Incorrect section count");
+                var lit = StockPistolSurfaces()[0].shader;
+                for (int i = 0; i < count; i++)
+                {
+                    int assembly = reader.ReadByte();
+                    string name = reader.ReadString();
+                    var color = new Color(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                    float metallic = reader.ReadSingle(), smoothness = reader.ReadSingle(), emission = reader.ReadSingle();
+                    int vertices = reader.ReadInt32(), indices = reader.ReadInt32();
+                    if (assembly > 2 || vertices < 3 || vertices > 65535 ||
+                        indices < 3 || indices > 393216 || indices % 3 != 0 ||
+                        vertices * 24L + indices * 4L > stream.Length - stream.Position)
+                        throw new System.IO.InvalidDataException("Incorrect section records");
+                    var points = new Vector3[vertices];
+                    var normals = new Vector3[vertices];
+                    var triangles = new int[indices];
+                    for (int v = 0; v < vertices; v++)
+                    {
+                        points[v] = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                        normals[v] = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                    }
+                    for (int t = 0; t < indices; t++)
+                    {
+                        int value = reader.ReadInt32();
+                        if ((uint)value >= (uint)vertices) throw new System.IO.InvalidDataException("Index out of bounds");
+                        triangles[t] = value;
+                    }
+                    var mesh = new Mesh { name = "Needle Drill | " + name };
+                    mesh.vertices = points;
+                    mesh.normals = normals;
+                    mesh.triangles = triangles;
+                    var material = new Material(lit) { name = name };
+                    material.SetColor("_BaseColor", color);
+                    material.SetFloat("_Metallic", metallic);
+                    material.SetFloat("_Smoothness", smoothness);
+                    if (emission > 0)
+                    {
+                        material.EnableKeyword("_EMISSION");
+                        material.SetColor("_EmissionColor", color * emission);
+                    }
+                    sections.Add(new NeedleDrillArtSection { assembly = assembly, mesh = mesh, material = material });
+                }
+                if (stream.Position != stream.Length) throw new System.IO.InvalidDataException("Unexpected trailing data");
+                return sections.ToArray();
+            }
+            catch (System.Exception ex) when (ex is System.IO.IOException || ex is System.IO.InvalidDataException)
+            {
+                foreach (var section in sections)
+                {
+                    Object.Destroy(section.mesh);
+                    Object.Destroy(section.material);
+                }
+                Debug.LogWarning("Using the original Needle Drill model: " + ex.Message);
+                return null;
+            }
+        }
+
         static Mesh[] needleDrillMeshes;
         static Material[] needleDrillSurfaces;
         void BuildNeedleDrill(Transform root)
         {
+            if (BuildApprovedNeedleDrill(root)) return;
             if(needleDrillMeshes==null)
             {
                 var groups=new List<CombineInstance>[16];for(int i=0;i<groups.Length;i++)groups[i]=new List<CombineInstance>();
