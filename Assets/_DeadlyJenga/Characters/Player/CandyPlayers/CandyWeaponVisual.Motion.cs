@@ -10,11 +10,11 @@ namespace DeadlyJenga.CandyPlayers
         Transform feed, pairedFeed, embeddedTarget;
         Transform primaryRoundFeed, secondaryRoundFeed;
         Transform[] primaryRounds, secondaryRounds;
-        float drawAmount, contactUntil, lastContactRemaining;
         float pickupStarted = float.NegativeInfinity;
         Vector3 pickupPoint;
         bool worldPickup;
         Transform loadCell, loadCellOwner;
+        float drawAmount, contactUntil, lastContactRemaining;
         string lastContactVictim;
         CandyAvatarWardrobe suitWardrobe;
         bool motionReady, lastRoleIssued, lastLeft, hasCarriedFrame;
@@ -40,13 +40,13 @@ namespace DeadlyJenga.CandyPlayers
 
         void ResetMotion()
         {
+            pickupStarted = float.NegativeInfinity;
             motionReady = false;
             hasCarriedFrame = false;
             lastRoleIssued = false;
             wasEmbedded = false;
             contactUntil = lastContactRemaining = 0;
             lastContactVictim = null;
-            pickupStarted = float.NegativeInfinity;
         }
 
         void CaptureEmbed(Vector3 point, Vector3 direction, string victim)

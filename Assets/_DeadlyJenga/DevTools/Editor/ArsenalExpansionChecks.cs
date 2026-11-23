@@ -51,13 +51,8 @@ namespace DeadlyJenga.DevTools.Editor
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Arsenal Expansion")]
-        public static void Run() => Start(false);
-
-        public static void RunWeaponMotion() => Start(true);
-
-        static void Start(bool motionOnly)
+        public static void Run()
         {
-            SessionState.SetBool(Key+"MotionOnly",motionOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -77,7 +72,10 @@ namespace DeadlyJenga.DevTools.Editor
         {File.AppendAllText(Report,(pass?"PASS ":"FAIL ")+label+"\n");checks++;if(!pass)throw new InvalidOperationException(label);}
         static IEnumerator Guard()
         {
-            var stack=new System.Collections.Generic.Stack<IEnumerator>();stack.Push(Test());
+            var stack=new System.Collections.Generic.Stack<IEnumerator>();
+            bool motionOnly=SessionState.GetBool(Key+"MotionOnly",false);
+            SessionState.SetBool(Key+"MotionOnly",false);
+            stack.Push(motionOnly ? TestWeaponMotion() : Test());
             while(stack.Count>0)
             {
                 bool more=false;object value=null;Exception error=null;
@@ -92,12 +90,6 @@ namespace DeadlyJenga.DevTools.Editor
             var session=Object.FindFirstObjectByType<CastlePlaySession>();float until=Time.realtimeSinceStartup+30;
             while((session.Player==null||session.Modes==null)&&Time.realtimeSinceStartup<until)yield return null;
             Check(session.Player!=null&&session.Modes!=null,"Actual Game initializes");session.SetRole(false);session.SetMenu(false);session.SurvivorBots.AutoFill=false;session.SurvivorBots.Clear();session.HandBots.Clear();if(session.Social!=null)session.Social.VoiceEnabled=false;
-            if(SessionState.GetBool(Key+"MotionOnly",false))
-            {
-                yield return TestWeaponMotion(session);
-                Check(errors==0,"No unexpected runtime errors during weapon motion");
-                yield break;
-            }
             var runtime=session.Modes;var player=session.Survivor();var rules=ModeSimulation.Defaults(GameModeKind.Demo);rules.countdownSeconds=0;rules.healthEnabled=true;rules.deathEnabled=false;rules.fallDamage=false;rules.punchEnabled=true;rules.island=IslandRule.Walkable;runtime.Configure(rules);runtime.StartRound();
             var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.name="Arsenal native collision fixture";floor.layer=Layers.Surface;floor.transform.position=new Vector3(150,9,150);floor.transform.localScale=new Vector3(70,2,70);
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
@@ -178,12 +170,33 @@ namespace DeadlyJenga.DevTools.Editor
             session.SetMenu(false);yield return ExpandedBehaviourChecks.Run(session,Check);
             Check(errors==0,"No unexpected runtime errors");Object.Destroy(floor);
         }
-        static IEnumerator TestWeaponMotion(CastlePlaySession session)
+        public static void RunWeaponMotion()
         {
+            SessionState.SetBool(Key+"MotionOnly",true);
+            try { Run(); }
+            catch { SessionState.SetBool(Key+"MotionOnly",false); throw; }
+        }
+
+        static IEnumerator TestWeaponMotion()
+        {
+            File.AppendAllText(Report,"Weapon motions: live equipment grants with controlled hand and reload frames.\n");
+            var session=Object.FindFirstObjectByType<CastlePlaySession>();
+            float wait=Time.realtimeSinceStartup+30;
+            while((session.Player==null||session.Modes==null)&&Time.realtimeSinceStartup<wait)
+                yield return null;
+            Check(session.Player!=null&&session.Modes!=null,"Game initializes for weapon motion");
+            session.SetRole(false);
+            session.SetMenu(false);
+            session.SurvivorBots.AutoFill=false;
+            session.SurvivorBots.Clear();
+            session.HandBots.Clear();
             var player=session.Survivor();
+            player.InputSuspended=true;
             var runtime=session.Modes;
             var rules=ModeSimulation.Defaults(GameModeKind.Demo);
             rules.countdownSeconds=0;
+            rules.deathEnabled=false;
+            rules.fallDamage=false;
             runtime.Configure(rules);
             runtime.StartRound();
             var rig=player.GetComponent<CandyPlayerAvatar>().Rig;
