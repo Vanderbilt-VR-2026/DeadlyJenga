@@ -352,6 +352,40 @@ namespace DeadlyJenga.CandyPlayers
             return new Pose(hand.position+hand.rotation*palm*scale,hand.rotation*mount);
         }
 
+        MaterialPropertyBlock cosmeticPaint;
+        MeshRenderer[] cosmeticParts;
+        Color ownerColor = Color.white, lastCosmeticColor;
+        bool cosmeticPainted;
+
+        internal void SetCosmeticColor(Color color) => ownerColor = color;
+
+        void ApplyCosmeticPalette()
+        {
+            if(cosmeticParts==null||cosmeticPainted&&lastCosmeticColor==ownerColor)return;
+            cosmeticPainted=true;
+            lastCosmeticColor=ownerColor;
+            Color light=CandyCosmeticShade.PlayerShade(ownerColor,AvatarHairShade.Light);
+            Color dark=CandyCosmeticShade.PlayerShade(ownerColor,AvatarHairShade.Dark);
+            cosmeticPaint??=new MaterialPropertyBlock();
+            foreach(var part in cosmeticParts)
+            {
+                if(!part||!part.sharedMaterial)continue;
+                Color tint;
+                switch(part.sharedMaterial.name)
+                {
+                    case "Foundry "+nameof(Finish.CosmeticBase): tint=ownerColor;break;
+                    case "Foundry "+nameof(Finish.CosmeticDark): tint=dark;break;
+                    case "Foundry "+nameof(Finish.CosmeticLight):
+                    case "Foundry "+nameof(Finish.CosmeticCandy):
+                    case "Foundry "+nameof(Finish.CosmeticCandyEdge): tint=light;break;
+                    default: continue;
+                }
+                part.GetPropertyBlock(cosmeticPaint);
+                cosmeticPaint.SetColor("_BaseColor",tint);
+                part.SetPropertyBlock(cosmeticPaint);
+            }
+        }
+
         internal bool IsPairedShot(Vector3 origin)
         {
             if (!root || !paired) return false;
@@ -386,9 +420,13 @@ namespace DeadlyJenga.CandyPlayers
                 kind = state.kind;
                 root = Create(kind);
                 feed = root.Find(FeedAssembly);
+                cosmeticParts = kind is EquipmentKind.Dagger or EquipmentKind.StockPistol
+                    ? root.GetComponentsInChildren<MeshRenderer>(true) : null;
+                cosmeticPainted = false;
                 ResetMotion();
             }
 
+            ApplyCosmeticPalette();
             lastRoleIssued = state.roleIssued;
             lastLeft = state.leftHanded;
             if (!motionReady)
@@ -512,7 +550,7 @@ namespace DeadlyJenga.CandyPlayers
                 for(int f=0;f<5;f++)for(int j=0;j<3;j++)hand.Cone(skeleton.Joint(f*4+j)*2,skeleton.Joint(f*4+j+1)*2,.018f,.014f,8);MeshPart(root,"Flying hand power",hand.Mesh("Flying hand preview"),cyan);
             }
             else if(value==EquipmentKind.DualUzi)BuildDetailedSpikeUzi(root);
-            else if(value==EquipmentKind.StockPistol)BuildStockPistol(root);
+            else if(value==EquipmentKind.StockPistol)BuildFoundry(root,value);
             else if(value==EquipmentKind.NeedleDrill)BuildNeedleDrill(root);
             else if(value==EquipmentKind.LaserClaws||value==EquipmentKind.FlamingMarshmallow)BuildArsenalPieces(root,value);
             else if(value>EquipmentKind.PoweredArmor)BuildArsenal(root,value);

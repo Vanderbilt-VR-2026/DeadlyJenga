@@ -179,7 +179,7 @@ namespace DeadlyJenga.CandyPlayers
                 EquipmentKind.GrenadeLauncher => new Vector3(0, .025f, .08f + GrenadeDrumOffset),
                 EquipmentKind.ChainGun => new Vector3(.23f, -.31f, .12f),
                 EquipmentKind.RocketLauncher => new Vector3(0, -.038f, .14f),
-                EquipmentKind.StockPistol => new Vector3(0, -.044f, .23f),
+                EquipmentKind.StockPistol => new Vector3(0, -.215f, -.067f),
                 EquipmentKind.Chainsaw => new Vector3(0, .23f, .20f),
                 _ => new Vector3(0, -.055f, -.13f)
             };
@@ -330,7 +330,7 @@ namespace DeadlyJenga.CandyPlayers
             {
                 EquipmentKind.SheriffHammer or EquipmentKind.GrenadeLauncher or EquipmentKind.ChainGun => 6,
                 EquipmentKind.RocketLauncher => 5,
-                EquipmentKind.StockPistol or EquipmentKind.DualUzi or EquipmentKind.NeedleDrill => 5,
+                EquipmentKind.DualUzi or EquipmentKind.NeedleDrill => 5,
                 EquipmentKind.Chainsaw => 4,
                 _ => 0
             };
@@ -402,7 +402,6 @@ namespace DeadlyJenga.CandyPlayers
                     EquipmentKind.GrenadeLauncher => new Vector3(Mathf.Cos(angle)*GrenadeChamberRadius,GrenadeDrumHeight+Mathf.Sin(angle)*GrenadeChamberRadius,.018f+GrenadeDrumOffset),
                     EquipmentKind.ChainGun => new Vector3(.165f+i*.023f,ChainGunBarrelHeight+.105f,.18f),
                     EquipmentKind.RocketLauncher => new Vector3(.106f,.044f,-.111f+i*.081f),
-                    EquipmentKind.StockPistol => new Vector3(.040f,-.017f+i*.017f,.209f),
                     EquipmentKind.DualUzi => new Vector3(.038f,-.204f+i*.020f,-.012f),
                     EquipmentKind.Chainsaw => new Vector3(.025f,.221f,.095f+i*.064f),
                     _ => new Vector3(.058f,.038f,-.175f+i*.028f)

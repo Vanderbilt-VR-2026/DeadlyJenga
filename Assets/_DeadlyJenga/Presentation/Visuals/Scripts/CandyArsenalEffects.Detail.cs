@@ -154,7 +154,8 @@ namespace DeadlyJenga.Presentation
             EquipmentKind.Blaster => new(0,.125f,.57f),
             EquipmentKind.SheriffHammer => new(0,.12f,.53f),
             EquipmentKind.DualRifle => new(0,.15f,alternate?.73f:1f),
-            EquipmentKind.StockPistol or EquipmentKind.DualUzi => new(0,.12f,.51f),
+            EquipmentKind.StockPistol => new(0,.145f,.517f),
+            EquipmentKind.DualUzi => new(0,.12f,.51f),
             EquipmentKind.ChainGun => new(0,-.235f,1f),
             EquipmentKind.RocketLauncher => new(0,.205f,1.065f),
             EquipmentKind.GrenadeLauncher => new(0,.235f,.80f),
@@ -278,7 +279,7 @@ namespace DeadlyJenga.Presentation
             bool rotary=action.kind==EquipmentKind.ChainGun;
             bool rifle=action.kind==EquipmentKind.DualRifle;
             var port=rotary?new Vector3(.27f,-.19f,.23f):rifle?new Vector3(.086f,.10f,.14f):
-                new Vector3(.060f,.145f,.125f);
+                weapon.name=="Visual - StockPistol"?new Vector3(.044f,.167f,.211f):new Vector3(.060f,.145f,.125f);
             shell.origin=weapon.TransformPoint(port);
             shell.velocity=(weapon.right*(2.2f+action.id%5*.24f)+weapon.up*(1.3f+action.id%3*.24f)
                 -weapon.forward*.66f)*scale;
