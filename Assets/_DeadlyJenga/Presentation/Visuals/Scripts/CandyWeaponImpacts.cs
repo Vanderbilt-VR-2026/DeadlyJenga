@@ -41,6 +41,7 @@ namespace DeadlyJenga.Presentation
             public float born,life,style;
             public int layer;
             public uint renderingMask;
+            public EquipmentKind kind;
         }
         sealed class MarkBatch
         {
@@ -142,19 +143,21 @@ namespace DeadlyJenga.Presentation
         void Action(EquipmentActionFrame action)
         {
             if(action.kind==EquipmentKind.LaserAxe&&action.shotgun)return; // The thunderbolt owns ranged axe feedback.
+            if(action.kind==EquipmentKind.WristLaser)
+            {
+                if(action.action==EquipmentAction.Impact&&action.remaining>=.55f)
+                    Surface(action.position,Vector3.zero,action.kind);
+                return;
+            }
             if(!Ranged(action))return;
             if(action.action==EquipmentAction.Shot)
             {
                 // BulletTrails already owns hitscan muzzle pulses and arrival timing.
                 if(action.kind==EquipmentKind.Blaster||action.kind==EquipmentKind.PoweredArmor||
                     action.kind==EquipmentKind.RocketLauncher||action.kind==EquipmentKind.GrenadeLauncher||
-                    action.kind==EquipmentKind.DualUzi||action.kind==EquipmentKind.WristLaser||
+                    action.kind==EquipmentKind.DualUzi||
                     action.kind==EquipmentKind.LaserAxe||action.kind==EquipmentKind.Chainsaw)
                     Muzzle(action);
-                if((action.kind==EquipmentKind.WristLaser||action.kind==EquipmentKind.LaserAxe&&action.shotgun)&&
-                    action.endpoints!=null&&action.endpoints.Length>0&&
-                    (action.endpoints[0]-action.position).sqrMagnitude<34.88f*34.88f)
-                    Surface(action.endpoints[0],action.endpoints[0]-action.position,action.kind);
             }
             else if(action.action==EquipmentAction.Impact)
                 Surface(action.position,Vector3.zero,action.kind,SidearmOwnerColor(MatchRuntime.Current,action));
@@ -193,17 +196,30 @@ namespace DeadlyJenga.Presentation
         internal void Surface(SurfaceContact contact,EquipmentKind kind,Color? ownerColor=null)
         {
             if(!surfaceMaterial||!contact.anchor||!contact.anchor.gameObject.activeInHierarchy)return;
+            if(kind==EquipmentKind.WristLaser)
+            {
+                for(int i=marks.Count-1;i>=0;i--)
+                {
+                    var mark=marks[i];
+                    if(mark.kind!=kind||mark.anchor!=contact.anchor)continue;
+                    var prior=mark.anchor.TransformPoint(mark.localPose.GetColumn(3));
+                    if((prior-contact.Position).sqrMagnitude>=.0036f)continue;
+                    mark.born=Time.time;
+                    marks[i]=mark;
+                    return;
+                }
+            }
             if(marks.Count==Capacity)marks.RemoveAt(0);
             float diameter=kind==EquipmentKind.RocketLauncher?.78f:
                 kind==EquipmentKind.GrenadeLauncher?.55f:
                 kind==EquipmentKind.DualRifle?.29f:
                 kind==EquipmentKind.Blaster||kind==EquipmentKind.PoweredArmor?.42f:
-                kind==EquipmentKind.WristLaser||kind==EquipmentKind.LaserAxe?.25f:.14f;
+                kind==EquipmentKind.WristLaser?.095f:kind==EquipmentKind.LaserAxe?.25f:.14f;
             var localPose=contact.localFrame*Matrix4x4.TRS(Vector3.zero,
                 Quaternion.Euler(0,0,(marks.Count*137)%360),Vector3.one*diameter);
             marks.Add(new Mark
             {
-                anchor=contact.anchor,localPose=localPose,tint=ownerColor??Tint(kind),
+                anchor=contact.anchor,localPose=localPose,tint=ownerColor??Tint(kind),kind=kind,
                 born=Time.time,life=kind==EquipmentKind.DualUzi?1.6f:4,
                 style=kind==EquipmentKind.DualRifle?3:
                     kind==EquipmentKind.GrenadeLauncher?2:

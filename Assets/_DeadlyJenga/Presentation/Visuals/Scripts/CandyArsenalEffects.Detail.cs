@@ -10,6 +10,7 @@ namespace DeadlyJenga.Presentation
         readonly List<Residue> residues=new List<Residue>();
         void LateUpdate()
         {
+            UpdateWristBeams();
             for(int i=residues.Count-1;i>=0;i--)
             {
                 var r=residues[i];if(!r.root){residues.RemoveAt(i);continue;}float age=Time.time-r.born;
@@ -225,7 +226,7 @@ namespace DeadlyJenga.Presentation
             EquipmentKind.ChainGun => new(0,-.235f,1f),
             EquipmentKind.RocketLauncher => new(0,.205f,1.065f),
             EquipmentKind.GrenadeLauncher => new(0,.235f,.80f),
-            EquipmentKind.WristLaser => new(0,.12f,.17f),
+            EquipmentKind.WristLaser => new(0,.083f,-.006f),
             EquipmentKind.NeedleDrill => new(0,.145f,.72f),
             EquipmentKind.Chainsaw => new(0,0,.78f),
             _ => Vector3.zero
@@ -244,7 +245,6 @@ namespace DeadlyJenga.Presentation
                 EquipmentKind.StockPistol or EquipmentKind.CompactSidearm => (fire,.22f,6),
                 EquipmentKind.DualUzi => (new Color(.45f,1,.10f),.18f,4),
                 EquipmentKind.Blaster or EquipmentKind.PoweredArmor => (new Color(.19f,.85f,1),.28f,7),
-                EquipmentKind.WristLaser => (new Color(1,.24f,.045f),.12f,3),
                 EquipmentKind.NeedleDrill => (new Color(1,.77f,.23f),.16f,4),
                 EquipmentKind.Chainsaw when alternate => (new Color(1,.74f,.32f),.26f,9),
                 EquipmentKind.LaserAxe when alternate => (LightningBlue,.37f,9),
