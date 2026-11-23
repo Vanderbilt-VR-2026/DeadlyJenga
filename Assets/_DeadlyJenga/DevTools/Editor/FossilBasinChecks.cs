@@ -58,13 +58,15 @@ namespace DeadlyJenga.DevTools.Editor
             Check(latched&&best>feet.y+.12f,"survivor latched and climbed bone face; rise "+(best-feet.y));
         }
         static FossilBasinChecks(){EditorApplication.playModeStateChanged+=State;}
-        public static void Run()=>Begin(false);
+        public static void Run()=>RunFaceoff();
+        public static void RunFaceoff()=>Begin(false, true);
         public static void RunScenery()=>Begin(true);
-        static void Begin(bool sceneryOnly)
+        static void Begin(bool sceneryOnly, bool faceoff = false)
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Start in Edit Mode");
             Directory.CreateDirectory(Folder);
             SessionState.SetBool(Key+".scenery",sceneryOnly);
+            SessionState.SetBool(Key+".faceoff",faceoff);
             SessionState.SetBool(Key,true);
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
             EditorApplication.EnterPlaymode();
@@ -98,6 +100,67 @@ namespace DeadlyJenga.DevTools.Editor
             MapLiveCapture.RenderNow(camera,1440,960,Folder+"/"+name+".png");
         }
         static void Wide(string name)=>Shot(name,new Vector3(-.5f,13.6f,-46),new Vector3(0,7.1f,0),34);
+        static void StepFaceoff(float dt)
+        {
+            if(phase==1&&dt>3)
+            {
+                var bodies=map.Blocks;
+                Check(bodies.Count>500,"expanded Blender member count "+bodies.Count);
+                float worst=bodies.Select((body,i)=>Vector3.Distance(body.position,initial[i])).Max();
+                Check(worst<.7f,"unloaded maximum travel "+worst);
+                var spawn=map.SafeSpawnPoint();
+                Check(Physics.Raycast(spawn+Vector3.up*.25f,Vector3.down,out var bearing,.7f,1<<Layers.Block)&&bearing.normal.y>.86f,
+                    "survivor spawn has flat bearing at "+spawn);
+                var skull=bodies.First(body=>body.name=="Rex skull");
+                Check(skull.GetComponentInChildren<MeshFilter>().sharedMesh.vertexCount>500,"imported Rex skull mesh");
+                Check(Climbables.TryGet(skull.GetComponentInChildren<Collider>(),out var climbable)&&climbable.Body==skull,
+                    "imported fossil has moving climb collider");
+                foreach(string route in new[]{"West apron to tail cross-span","East apron to main switchback"})
+                    Check(bodies.Any(b=>b.name=="Teal flight "+route),"main route "+route);
+                var survivor=Services.Session.Player?.gameObject.GetComponent<CastleSurvivor>();
+                Check(survivor,"desktop survivor motor present");
+                if(survivor)
+                {
+                    survivor.Place(spawn,Quaternion.identity);
+                    survivor.externallyDriven=true;
+                    for(int i=0;i<20;i++)survivor.Simulate(Vector2.right,false,.02f);
+                    Check(survivor.transform.position.y>map.WaterHeight(survivor.transform.position),"survivor starts above tar and receives movement");
+                    survivor.externallyDriven=false;
+                }
+                var bots=Services.Session.SurvivorBots;
+                bots.Running=true;Check(bots.SpawnOne(),"survivor bot spawn");
+                Shot("21-faceoff-wide",new Vector3(-4,25,-84),new Vector3(-4,12,1),37);
+                Shot("22-faceoff-camp",new Vector3(1,2.38f,-20),new Vector3(-9,10,-6),64);
+                var probe=GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                probe.transform.position=new Vector3(35,.8f,-2);
+                probe.transform.localScale=Vector3.one*.3f;
+                probe.AddComponent<Rigidbody>();dummy=probe.AddComponent<TestDummy>();
+                pulled=bodies.Where(b=>b.name.StartsWith("B5")&&b.name.Contains(" pier ")).OrderByDescending(b=>b.position.x).ThenByDescending(b=>b.position.y).First().GetComponent<FossilMember>();
+                foot=bodies.Where(b=>b.name.StartsWith("Triceratops tarsals")).OrderByDescending(b=>b.position.x).First();
+                footBefore=foot.position;
+                westRefuge=bodies.First(b=>b.name.StartsWith("A1")&&b.name.Contains(" deck "));
+                westBefore=westRefuge.position;grab=pulled.Body.worldCenterOfMass;
+                Check(pulled.TryStartGrab(camera.gameObject,grab),"grab Triceratops outer bearing");
+                clock=Time.fixedTime;phase=2;return;
+            }
+            if(phase==2)
+            {
+                pulled.Hold(grab+Vector3.right*Mathf.Min(6,dt*5));
+                if(dt<1.5f)return;
+                pulled.Release();
+                Check(Vector3.Distance(grab,pulled.Body.worldCenterOfMass)>.6f,"pull moves outer bearing");
+                clock=Time.fixedTime;phase=3;return;
+            }
+            if(phase==3&&dt>2)
+            {
+                Check(dummy.Health==0,"lethal tar contact");
+                Check(footBefore.y-foot.position.y>.22f,"Triceratops foot drops after bearing pull: "+(footBefore.y-foot.position.y));
+                Check(westRefuge.gameObject.activeSelf&&Vector3.Distance(westRefuge.position,westBefore)<.3f,"west apron survives the east bearing pull");
+                Shot("23-faceoff-after-pull",new Vector3(-4,25,-84),new Vector3(-4,12,1),37);
+                End();
+            }
+        }
+
         static void Step()
         {
             try
@@ -116,6 +179,7 @@ namespace DeadlyJenga.DevTools.Editor
                     clock=Time.fixedTime;phase++;return;
                 }
                 float dt=Time.fixedTime-clock;
+                if(SessionState.GetBool(Key+".faceoff",false)){StepFaceoff(dt);return;}
                 if(routeBot && routeBot.Motor.Grounded && Vector3.Distance(routeBot.transform.position,BotGoal)<1.8f)botArrived=true;
                 if(phase==1&&dt>.05f)
                 {

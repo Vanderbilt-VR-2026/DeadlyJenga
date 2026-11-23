@@ -43,7 +43,7 @@ namespace DeadlyJenga.Presentation
 
             // The wider orbit and the shorter surfacing cycle put successive breaches on different shores.
             float angle = seconds * (2f * Mathf.PI / 53f) - 1.1f;
-            float size = world.Radius / 24f;
+            float size = map.lossyScale.x;
             if (mapMatrix != map.localToWorldMatrix)
             {
                 mapMatrix = map.localToWorldMatrix;
