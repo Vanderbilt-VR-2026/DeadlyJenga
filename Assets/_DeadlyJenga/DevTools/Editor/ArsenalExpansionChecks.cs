@@ -20,7 +20,8 @@ namespace DeadlyJenga.DevTools.Editor
     {
         const string Key="ArsenalExpansion";
         static int checks,errors;static bool failed,completed;
-        static string Report=>ProjectPath.Report("ArsenalExpansion.txt");
+        static bool SawStaffOnly => SessionState.GetBool(Key+"SawStaffOnly",false);
+        static string Report=>ProjectPath.Report(SawStaffOnly ? "SawWheelStaffContacts.txt" : "ArsenalExpansion.txt");
         sealed class PickupSource:IEquipmentPickupSource {public EquipmentKind Kind{get;set;}public Vector3 Position{get;set;}public float Duration{get;set;}=1;}
         [Serializable] sealed class Scenes{public SceneSetup[] values;}
         static ArsenalExpansionChecks()
@@ -47,12 +48,28 @@ namespace DeadlyJenga.DevTools.Editor
                     MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);
                     EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).values);
                     failed|=!completed;File.AppendAllText(Report,$"COMPLETE checks={checks} runtimeErrors={errors} failed={failed}. Desktop runtime; headset not tested.\n");
+                    if (SawStaffOnly)
+                    {
+                        int result = failed || errors > 0 ? 1 : 0;
+                        if (!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
+                        {
+                            Directory.CreateDirectory("Logs/Warm");
+                            File.WriteAllText("Logs/Warm/exit.txt",result.ToString());
+                        }
+                        else if (Application.isBatchMode)
+                            EditorApplication.Exit(result);
+                    }
                 }
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Arsenal Expansion")]
-        public static void Run()
+        public static void Run() => Start(false);
+
+        public static void RunSawStaff() => Start(true);
+
+        static void Start(bool sawStaffOnly)
         {
+            SessionState.SetBool(Key+"SawStaffOnly",sawStaffOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -60,7 +77,7 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
-            File.WriteAllText(Report,"Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
+            File.WriteAllText(Report,sawStaffOnly ? "Saw Wheel Staff contact checks in Castle Demo, command-driven desktop fixture.\n" : "Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
         static void Log(string message,string trace,LogType kind)
@@ -82,6 +99,88 @@ namespace DeadlyJenga.DevTools.Editor
             }
             while(stack.Count>0)(stack.Pop() as IDisposable)?.Dispose();completed=!failed;EditorApplication.ExitPlaymode();
         }
+        static IEnumerator SawStaffContacts(MatchModeRuntime runtime, CastleSurvivor player, CastleSurvivor target)
+        {
+            const EquipmentKind kind = EquipmentKind.SawStaff;
+            var spec = EquipmentSpecifications.Get(kind);
+            Check(runtime.GiveEquipment(kind) && runtime.EquipmentFor(runtime.LocalActorId).drawn,
+                "Saw Wheel Staff equips and draws");
+
+            target.Place(player.transform.position + Vector3.right * 8, Quaternion.identity);
+            yield return new WaitForSeconds(.25f);
+            var origin = player.ViewPose.position + Vector3.forward * .35f;
+            var forward = new Pose(origin, Quaternion.identity);
+            float health = target.Health;
+            int before = runtime.Frame.equipmentSequence;
+            Check(runtime.RequestEquipmentAttack(forward), "Empty-air swing accepted");
+            var events = SawStaffEvents(runtime, before);
+            Check(events.Length == 1 && events[0].action == EquipmentAction.Shot &&
+                events[0].endpoints.Length == 1 &&
+                Vector3.Distance(events[0].endpoints[0], origin + Vector3.forward * spec.range) < .01f,
+                "Air swing reaches full range and emits no impact");
+            Check(Mathf.Approximately(target.Health, health), "Air swing leaves the survivor unharmed");
+
+            yield return new WaitForSeconds(spec.cooldown + .12f);
+            var original = Services.World.Blocks.FirstOrDefault(body =>
+                body && body.TryGetComponent<CastleBlock>(out _) && body.GetComponent<BoxCollider>().enabled);
+            Check(original, "Game scene provides a native CastleBlock for the fixture");
+            var block = Object.Instantiate(original.gameObject, origin + Vector3.forward * (spec.range * .60f),
+                Quaternion.identity);
+            try
+            {
+                var body = block.GetComponent<Rigidbody>();
+                body.isKinematic = true;
+                var collider = block.GetComponent<BoxCollider>();
+                Physics.SyncTransforms();
+                block.transform.position += origin + Vector3.forward * (spec.range * .60f) - collider.bounds.center;
+                Physics.SyncTransforms();
+                Check(collider.enabled && block.layer == Layers.Block, "Native block collider is enabled on the Block layer");
+                before = runtime.Frame.equipmentSequence;
+                Check(runtime.RequestEquipmentAttack(forward), "Block swing accepted");
+                events = SawStaffEvents(runtime, before);
+                Check(events.Length == 2 && events[0].action == EquipmentAction.Shot &&
+                    events[1].action == EquipmentAction.Impact &&
+                    Vector3.Distance(collider.ClosestPoint(events[1].position), events[1].position) < .03f,
+                    "Block swing emits one impact on the native collider");
+                Check(Mathf.Approximately(target.Health, health), "Block swing leaves the off-axis survivor unharmed");
+            }
+            finally
+            {
+                block.SetActive(false);
+                Object.Destroy(block);
+            }
+
+            yield return new WaitForSeconds(spec.cooldown + .12f);
+            target.Place(player.transform.position + Vector3.forward * 1.05f, Quaternion.identity);
+            Physics.SyncTransforms();
+            yield return new WaitForSeconds(.25f);
+            origin = player.ViewPose.position + Vector3.forward * .35f;
+            var playerSwing = new Pose(origin,
+                Quaternion.LookRotation(target.transform.position + Vector3.up * .55f - origin));
+            health = target.Health;
+            before = runtime.Frame.equipmentSequence;
+            Check(runtime.RequestEquipmentAttack(playerSwing), "Survivor swing accepted");
+            events = SawStaffEvents(runtime, before);
+            Check(events.Length == 2 && events[0].action == EquipmentAction.Shot &&
+                events[1].action == EquipmentAction.Impact, "Survivor swing emits a single impact");
+            float damaged = target.Health;
+            float deadline = Time.realtimeSinceStartup + 1.5f;
+            while (damaged >= health && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+                damaged = target.Health;
+            }
+            Check(damaged < health, "Production survivor takes damage with Demo deaths disabled");
+            File.AppendAllText(Report, $"Survivor health {health:F1} -> {damaged:F1}
+");
+        }
+
+        static EquipmentActionFrame[] SawStaffEvents(MatchModeRuntime runtime, int after)
+        {
+            return runtime.Frame.equipmentActions.Where(action => action.id > after &&
+                action.actor == runtime.LocalActorId && action.kind == EquipmentKind.SawStaff).ToArray();
+        }
+
         static IEnumerator Test()
         {
             var session=Object.FindFirstObjectByType<CastlePlaySession>();float until=Time.realtimeSinceStartup+30;
@@ -92,6 +191,11 @@ namespace DeadlyJenga.DevTools.Editor
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
             var created=session.SurvivorBots.SpawnOne();Check(created,"Target bot spawns");var target=created.GetComponent<CastleSurvivor>();target.GetComponent<CastleBotBrain>().enabled=false;target.InputSuspended=true;
             yield return new WaitForSeconds(.4f);
+            if (SawStaffOnly)
+            {
+                yield return SawStaffContacts(runtime,player,target);
+                yield break;
+            }
             Check(EquipmentSpecifications.All.Length==Enum.GetValues(typeof(EquipmentKind)).Length,"Every serialized equipment kind has one shared specification");
             Check((int)EquipmentKind.PoweredArmor==8&&(int)EquipmentKind.Blaster==3,"Existing equipment wire identities stay unchanged");
             foreach(EquipmentKind kind in Enum.GetValues(typeof(EquipmentKind)))
