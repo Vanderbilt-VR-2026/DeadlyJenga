@@ -320,6 +320,27 @@ namespace DeadlyJenga.CastlePrototype
                 if (scene.Raycast(ray, Vector3.down, out var deck, 8f, 1 << Layers.Block, QueryTriggerInteraction.Ignore))
                     return deck.point + Vector3.up * .08f;
             }
+            if (settings.layoutPreset == TwinCalderaLayout.Preset)
+            {
+                var scene = gameObject.scene.GetPhysicsScene();
+                Vector3 bestFeet = default;
+                float bestScore = float.NegativeInfinity;
+                foreach (var block in Bodies)
+                {
+                    if (!block || !block.gameObject.activeInHierarchy) continue;
+                    var p = block.worldCenterOfMass;
+                    var shape = block.GetComponent<MeshCollider>();
+                    if (!shape || !shape.Raycast(new Ray(new Vector3(p.x,shape.bounds.max.y+1,p.z),Vector3.down),out var hit,40)
+                        || hit.normal.y < .88f || hit.point.y <= waterHeight+.35f) continue;
+                    var feet = hit.point + Vector3.up*.08f;
+                    float score = hit.point.y + (block.name.Contains("landing") && !block.name.Contains("bearing") ? 64 : 0);
+                    if (score <= bestScore || scene.OverlapCapsule(feet+Vector3.up*.2f,feet+Vector3.up*1.15f,.18f,
+                        curatedSpawnClearance,(1<<Layers.Block)|(1<<Layers.Survivor),QueryTriggerInteraction.Ignore)>0) continue;
+                    bestFeet=feet; bestScore=score;
+                }
+                if (!float.IsNegativeInfinity(bestScore)) return bestFeet;
+                return transform.position + Vector3.up*(waterHeight+.1f);
+            }
             Collider best = null; float highest = float.NegativeInfinity;
             foreach (var body in Bodies)
             {
@@ -371,7 +392,8 @@ namespace DeadlyJenga.CastlePrototype
             Revision++;
             curatedSpawnCursor = 0;
             CastleLayout.Validate(settings);
-            var layout = environmentOnly || magneticMap ? new List<CastlePlacement>() : CastleLayout.Build(settings);
+            var caldera = !environmentOnly && settings.layoutPreset == TwinCalderaLayout.Preset ? TwinCalderaLayout.Create() : null;
+            var layout = environmentOnly || magneticMap ? new List<CastlePlacement>() : caldera != null ? caldera.Pieces.ConvertAll(p => p.placement) : CastleLayout.Build(settings);
             if (!environmentOnly && !magneticMap && (!blockPrefab || !blockPrefab.GetComponent<Rigidbody>() || !blockPrefab.GetComponent<BoxCollider>()))
                 throw new System.InvalidOperationException("Assign a unit cube prefab with Rigidbody and BoxCollider.");
             float started = Time.realtimeSinceStartup;
@@ -424,7 +446,9 @@ namespace DeadlyJenga.CastlePrototype
                         CastleSection.Aqua => aquaMaterial ? aquaMaterial : cornerMaterial,
                         _ => wallMaterial
                     };
-                    if(settings.layoutPreset == NeedlefrostLayout.Preset) NeedlefrostStone.Dress(block,p);
+                    if (caldera != null)
+                        TwinCalderaRock.Fit(block,caldera.Pieces[Bodies.Count],Bodies.Count,wallMaterial);
+                    else if(settings.layoutPreset == NeedlefrostLayout.Preset) NeedlefrostStone.Dress(block,p);
                     else if(p.DeckProfile.Finish == TycoonDeckFinish.Plain || !block.visualRoot)
                     {
                         block.RefreshAppearance();

@@ -97,9 +97,9 @@ namespace DeadlyJenga.DevTools.Editor
 
         // Same, with chosen views. A view "pov|name|x|y|z|lookX|lookY|lookZ" is a player-eye shot: the camera stands
         // on the first surface below (x, y + 1.6, z) relative to the map center, 1 m up, looking at the look point.
-        public static void BatchMaps(ICollection<string> ids, string output, string[] views)
+        public static void BatchMaps(ICollection<string> ids, string output, string[] views, int width=1600, int height=1100)
         {
-            Begin(new Job { batch = true, output = output, views = views }, null, false, ids);
+            Begin(new Job { batch = true, output = output, views = views, width = width, height = height }, null, false, ids);
         }
 
         public static void CaptureCloudCityBank()
@@ -409,9 +409,12 @@ namespace DeadlyJenga.DevTools.Editor
                     MatchSetup.MapId = id;
                     MatchSetup.ApplyMap();
                 }
-                Prepare(session); prepared = true; readyAt = now + job.settle; return;
+                Prepare(session);
+                bool calderaCheck=id=="mode-twin-caldera" && job.views.Contains("reference");
+                if(calderaCheck)TwinCalderaChecks.BeginTraffic(session);
+                prepared = true; readyAt = now + job.settle; return;
             }
-            if (now < readyAt) { Prepare(session); return; }
+            if (now < readyAt) { if(id!="mode-twin-caldera" || !job.views.Contains("reference")) Prepare(session); return; }
             if(job.views.Contains("resident-party"))
             {
                 try { if(!CheckResidents())return; }
@@ -565,6 +568,7 @@ namespace DeadlyJenga.DevTools.Editor
                             camera.transform.LookAt(b.center);
                         }
                     }
+                    else if(view=="reference" && id=="mode-twin-caldera") TwinCalderaChecks.Wide(camera,world.Center);
                     else MapPictureRig.Place(camera, view, bounds, job.width / (float)job.height);
                     // "balloon": a close look at the first hot-air balloon, when the map has one (else the hero view).
                     var balloon = view == "balloon" ? GameObject.Find("Visual · hot-air balloon 1") : null;
@@ -594,6 +598,8 @@ namespace DeadlyJenga.DevTools.Editor
                     if (CaptureOutput.EncodeClip(frames, job.fps, mp4)) gallery.Add(mp4, id + " · " + job.clip + " clip", "video", job.clipWidth, job.clipHeight);
                 }
                 gallery.SaveManifest();
+                if(id=="mode-twin-caldera" && job.views.Contains("reference"))
+                    TwinCalderaChecks.Verify(camera,world as CastleGenerator,job.gallery);
             }
             finally { Object.Destroy(camera.gameObject); }
         }
