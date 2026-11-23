@@ -84,6 +84,7 @@ namespace DeadlyJenga.CastlePrototype
             scaffoldButton.gameObject.SetActive(false);HideDisasterSliders();
             var maps=Demo as IDemoMapControls;vrMapPicker.Update(maps?.Maps,maps?.CurrentMapId);var options=vrMapPicker.Rows;
             mapOffset=Mathf.Clamp(mapOffset,0,Mathf.Max(0,(options.Count-1)/12*12));
+            help.text="Changing maps restarts the map. Expand category headings to browse. Connected players follow the host.";
             heading.text="CHANGE MAP\n"+(maps?.MapStatus??"Maps are unavailable");
             for(int i=0;i<buttons.Length;i++)
             {
@@ -103,10 +104,11 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 bool enabled=!map||row.map==null||DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session)&&maps.CanSelectMap&&row.map.available&&row.map.id!=maps.CurrentMapId;
                 labels[i].text=i==0?"Back":i==13?"Previous maps":i==14?"More maps":vrMapPicker.Title(row);
-                targets[i].enabled=enabled;bool hover=Hit(targets[i],ray);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover?CandyHudVisuals.Ink:enabled?Color.white:CandyHudVisuals.Muted;
-                if(hover&&pressed){if(i==0)mapPage=false;else if(i==13)mapOffset-=12;else if(i==14)mapOffset+=12;else if(row.map==null){vrMapPicker.Toggle(row);mapOffset=vrMapPicker.HeaderIndex/12*12;}else maps.SelectMap(row.map.id);break;}
+                bool hover=Hit(targets[i],ray);
+                if (hover && row?.map != null) help.text=row.map.description;
+                targets[i].enabled=enabled;buttons[i].image.color=hover&&enabled?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover&&enabled?CandyHudVisuals.Ink:enabled?Color.white:CandyHudVisuals.Muted;
+                if(hover&&enabled&&pressed){if(i==0)mapPage=false;else if(i==13)mapOffset-=12;else if(i==14)mapOffset+=12;else if(row.map==null){vrMapPicker.Toggle(row);mapOffset=vrMapPicker.HeaderIndex/12*12;}else maps.SelectMap(row.map.id);break;}
             }
-            help.text="Changing maps restarts the map. Expand category headings to browse. Connected players follow the host.";
             return true;
         }
         void PointSpectatePage(Camera camera,bool pressed)

@@ -7,7 +7,7 @@ namespace DeadlyJenga.CastlePrototype
     // Shared presentation of the map options supplied by the active session.
     internal sealed class MapCategoryPicker
     {
-        internal static readonly string[] Categories={"Castles", "Game-mode arenas", "Social & seasonal islands", "Festival cities", "Structure experiments", "Workshops", "Test & custom maps", "Other maps", "Epic connected cities"};
+        internal static readonly string[] Categories={"Castles", "Game-mode arenas", "Social & seasonal islands", "Festival cities", "Structure experiments", "Workshops", "Test & custom maps", "Other maps", "Epic connected cities", "Current development maps"};
         internal enum MainTab { PlayApproved, InDevelopment, Archive }
 
         internal static bool IsPlayApproved(LobbyOption map)
@@ -19,7 +19,15 @@ namespace DeadlyJenga.CastlePrototype
 
         internal static bool IsInDevelopment(LobbyOption map)
         {
-            return map?.id is "mode-vanderbilt" or "mode-cant-catch-me" or "mode-sphinx-junction" or "mode-walled-castle" or "mode-tycoon" or "mode-ninja-temple" or "mode-ninja-temple-original" or "workshop-under-the-tree" or "mode-prismatic-citadel";
+            return IsCurrentMap(map) || map?.id is "mode-vanderbilt" or "mode-cant-catch-me" or "mode-ninja-temple-original";
+        }
+
+        internal static bool IsCurrentMap(LobbyOption map)
+        {
+            return map?.id is "mode-sphinx-junction" or "mode-walled-castle" or "mode-tycoon"
+                or "mode-ninja-temple" or "workshop-under-the-tree" or "mode-prismatic-citadel"
+                or "mode-twin-caldera" or "mode-needlefrost-keep" or "block-spires" or "fossil-basin"
+                or "tidal-circuit" or "mode-gingerbread-kingdom" or "epic-candy-mechanism-city";
         }
 
         internal static bool IsArchive(LobbyOption map)
@@ -116,7 +124,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         internal string Title(Row row)
         {
-            if(row.map!=null)return "        "+row.map.title+(row.map.id==selected?"  [current]":"")+(row.map.available?"":"  - coming soon");
+            if(row.map!=null)return "        "+row.map.title+(row.map.id==selected?"  [current]":"")+(row.map.available?"":!string.IsNullOrEmpty(row.map.description)?"  [unavailable]":"  - coming soon");
             int group=row.experimental?1:0;
             if(row.collection)return (expanded[group]?"v  ":">  ")+(row.experimental?"EXPERIMENTAL / UNFINISHED":"MAIN MAPS")+" ("+row.count+")"+(row.current?"  [current]":"");
             return "    "+(open[group]==row.category?"v  ":">  ")+Categories[row.category]+" ("+row.count+")"+(row.current?"  [current]":"");
@@ -139,8 +147,9 @@ namespace DeadlyJenga.CastlePrototype
                 if(total==0)continue;
                 rows.Add(new Row{category=-1,count=total,current=selectedHere,collection=true,experimental=experimental});
                 if(!expanded[group])continue;
-                for(int c=0;c<Categories.Length;c++)
+                for(int i=0;i<Categories.Length;i++)
                 {
+                    int c=(i+Categories.Length-1)%Categories.Length;
                     var maps=buckets[group,c];int count=maps?.Count??0;
                     if(count==0)continue;
                     bool current=maps.Exists(map=>map.id==selected);
@@ -151,6 +160,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         internal static int Category(LobbyOption map)
         {
+            if (IsCurrentMap(map)) return Categories.Length - 1;
             string id=(map.id??"").ToLowerInvariant();if(id.StartsWith("mode-",StringComparison.Ordinal))id=id.Substring(5);
             string title=(map.title??"").ToLowerInvariant();
             if(id.StartsWith("epic-",StringComparison.Ordinal))return 8;

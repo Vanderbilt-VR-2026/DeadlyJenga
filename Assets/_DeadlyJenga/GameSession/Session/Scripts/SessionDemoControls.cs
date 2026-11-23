@@ -31,8 +31,22 @@ namespace DeadlyJenga.CastlePrototype
             get
             {
                 var result = new List<LobbyOption>();
-                if (MapCatalog) foreach (var map in MapCatalog.maps)
-                    if (map != null) result.Add(new LobbyOption { id = map.id, title = map.title, available = UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(map.scenePath) >= 0 });
+                var catalog = MapCatalog;
+                if (!catalog) return result;
+                foreach (var map in catalog.maps)
+                {
+                    if (map == null) continue;
+                    bool hasScene = UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(map.scenePath) >= 0;
+                    string mode = MapMode(catalog, map);
+                    result.Add(new LobbyOption
+                    {
+                        id = map.id, title = map.title, available = hasScene && mode != null,
+                        description = !hasScene ? "Map scene unavailable."
+                            : mode == null ? "Choose a compatible mode in the lobby to play this map."
+                            : mode != MatchSetup.ModeId ? "Load this map in Demo mode."
+                            : "Load this map with the current mode."
+                    });
+                }
                 return result;
             }
         }
@@ -55,19 +69,30 @@ namespace DeadlyJenga.CastlePrototype
                     if(room.SwitchingMap||room.RoomSceneBusy)return "Changing map for everyone…";
                     if(room.Status.StartsWith("Map change cancelled",StringComparison.Ordinal)||room.Status.StartsWith("Could not load map",StringComparison.Ordinal))return room.Status;
                 }
-                return "Changing maps restarts the map with the current mode. Host only.";
+                return "Changing maps restarts the map. Maps that need Demo will switch to it. Host only.";
             }
         }
+        // Developer map changes retain the current mode wherever the destination supports it.
+        internal static string MapMode(IslandLobbyCatalog catalog, IslandLobbyCatalog.Map map)
+        {
+            if (map.SupportsMode(MatchSetup.ModeId)) return MatchSetup.ModeId;
+            return map.SupportsMode("demo") && Array.Exists(catalog.modes, mode => mode.available && mode.id == "demo") ? "demo" : null;
+        }
+
         public void SelectMap(string id)
         {
-            if (!CanSelectMap || id == CurrentMapId || !MapCatalog) return;
-            var map = Array.Find(MapCatalog.maps, value => value.id == id);
-            if (map == null || !map.SupportsMode(MatchSetup.ModeId) || UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(map.scenePath) < 0) return;
+            var catalog = MapCatalog;
+            if (!CanSelectMap || id == CurrentMapId || !catalog) return;
+            var map = Array.Find(catalog.maps, value => value != null && value.id == id);
+            if (map == null) return;
+            string mode = MapMode(catalog, map);
+            int scene = UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(map.scenePath);
+            if (mode == null || scene < 0) return;
             var room = IslandRoomConnection.Instance;
             if (room && room.Connected) { room.SwitchGameMap(id); return; }
             if (Net && Net.IsHost) return;
-            MatchSetup.MapId = id; MatchSetup.FromLobby = true;
-            UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(map.scenePath));
+            MatchSetup.MapId = id; MatchSetup.ModeId = mode; MatchSetup.FromLobby = true;
+            UnityEngine.SceneManagement.SceneManager.LoadScene(scene);
         }
         public string Status => string.IsNullOrEmpty(DemoPowerups.Status)?DemoDisasters.Status:DemoPowerups.Status;
         IBuildUpControls BuildUp => Services.World as IBuildUpControls;

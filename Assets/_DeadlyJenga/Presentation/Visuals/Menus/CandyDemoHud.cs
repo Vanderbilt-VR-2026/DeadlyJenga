@@ -370,7 +370,7 @@ namespace DeadlyJenga.CastlePrototype
                 else
                 {
                     var map=item.map;string id=map.id;
-                    ActionCard(y,CandyHudIcon.Home,demoMapPicker.Title(item),"Load this map with the current mode. The map starts fresh.",()=>maps.SelectMap(id),GameExperiencePanel.CanEditRawChoices(session)&&maps.CanSelectMap&&map.available&&id!=maps.CurrentMapId,preview:MapPreviewImages.Get(id));
+                    ActionCard(y,CandyHudIcon.Home,demoMapPicker.Title(item),map.description,()=>maps.SelectMap(id),GameExperiencePanel.CanEditRawChoices(session)&&maps.CanSelectMap&&map.available&&id!=maps.CurrentMapId,preview:MapPreviewImages.Get(id));
                 }
                 y+=104;
             }

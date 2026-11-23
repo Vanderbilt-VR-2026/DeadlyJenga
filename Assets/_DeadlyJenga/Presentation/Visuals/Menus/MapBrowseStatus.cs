@@ -27,6 +27,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             string id=(map.id??"").ToLowerInvariant();
             if(id.StartsWith("mode-",StringComparison.Ordinal))id=id.Substring(5);
+            if(MapCategoryPicker.IsCurrentMap(map))return false;
             if(!map.available)return true;
             if(Array.IndexOf(rules.mainMaps,id)>=0)return false;
             if(Array.IndexOf(rules.experimentalMaps,id)>=0)return true;

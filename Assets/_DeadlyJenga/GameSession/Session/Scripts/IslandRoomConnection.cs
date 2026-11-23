@@ -43,9 +43,10 @@ namespace DeadlyJenga.CastlePrototype
             if (!IsHost || Busy || SwitchingMap || RoomSceneBusy || !Catalog) return;
             int index = Array.FindIndex(Catalog.maps, map => map.id == id);
             if (index < 0 || SceneUtility.GetBuildIndexByScenePath(Catalog.maps[index].scenePath) < 0) return;
-            if(!Catalog.maps[index].SupportsMode(MatchSetup.ModeId))
+            string modeId = SessionDemoControls.MapMode(Catalog, Catalog.maps[index]);
+            if (modeId == null)
             {Status="Choose a compatible mode in the lobby before changing to this map.";return;}
-            int mode = Array.FindIndex(Catalog.modes, value => value.available && value.id == MatchSetup.ModeId);
+            int mode = Array.FindIndex(Catalog.modes, value => value.available && value.id == modeId);
             StartCoroutine(SwitchMap(index, mode >= 0 ? mode : ModeIndex));
         }
         System.Collections.IEnumerator SwitchMap(int index,int mode)
