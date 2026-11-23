@@ -82,6 +82,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         public static void RunSphinxJunctionPairBatch() => RunPair("SphinxJunctionPair", "--dj-sphinx-junction");
 
+        public static void RunWalledCastlePairBatch() => RunPair("WalledCastlePair", "--dj-walled-castle");
+
         static void RunPair(string scenario, string flag)
         {
             if (!UnityEngine.Application.isBatchMode)
