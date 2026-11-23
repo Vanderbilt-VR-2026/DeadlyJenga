@@ -241,7 +241,8 @@ namespace DeadlyJenga.CastlePrototype
             Box(0,3.78f,0,7.1f,.16f,5.9f,Teal,false);
             End();
             var entry=PyramidPoint(0,-12.09f);
-            Stairs("Pyramid broad forecourt flight",entry.x,2.5f,entry.z,4.8f,3.18f,7.1f,-40);
+            if (structure == null)
+                Stairs("Pyramid broad forecourt flight",entry.x,2.5f,entry.z,4.8f,3.18f,7.1f,-40);
             // Switchbacks rest along the exposed ledge at each gallery setback.
             for(int tier=1;tier<4;tier++)
             {

@@ -27,7 +27,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var p=control[i];
                 var q=i>=5 && i<=9 ? PyramidPoint(p.x-20,p.y-10) : new Vector3(p.x,0,p.y);
-                nodes.Add(new(q.x,RailY,q.z));
+                nodes.Add(new(q.x,RailY + RailRise(q.x, q.z),q.z));
             }
             for(int i=0;i<nodes.Count;i++)
             {
@@ -37,34 +37,40 @@ namespace DeadlyJenga.CastlePrototype
                 float yaw=Quaternion.LookRotation(b-a).eulerAngles.y;
                 chainage.Add(total); total+=len;
                 float bottom=i==10?4.28f:i==11?-2:2.5f;
-                if(i==10)
+                if (structure != null && (i is 3 or 4 or 16 or 17))
+                    AddBakedMember("Rail bridge " + i);
+                else
                 {
-                    // Each offshore timber shoe carries one post. Either shoe can be withdrawn.
-                    for(int side=-1;side<=1;side+=2)
+                    if(i==10)
                     {
-                        var foot=mid+Quaternion.Euler(0,yaw,0)*new Vector3(side*1.22f,0,0);
-                        Begin("Driven trestle pile "+side,foot.x,0,foot.z,yaw);
-                        Box(0,-.62f,0,.94f,3.24f,1.42f,Wood);
-                        End(true);
-                        Begin(side==-1?"Timber trestle bent 10":"Outer trestle shoe",foot.x,2.64f,foot.z,yaw);
-                        Box(0,0,0,.92f,3.28f,1.4f,Red);
-                        Box(0,-1.46f,0,1.10f,.31f,1.53f,Iron,false);
-                        Box(0,1.46f,0,1.10f,.31f,1.53f,Iron,false);
-                        End();
+                        // Each offshore timber shoe carries one post. Either shoe can be withdrawn.
+                        for(int side=-1;side<=1;side+=2)
+                        {
+                            var foot=mid+Quaternion.Euler(0,yaw,0)*new Vector3(side*1.22f,0,0);
+                            Begin("Driven trestle pile "+side,foot.x,0,foot.z,yaw);
+                            Box(0,-.62f,0,.94f,3.24f,1.42f,Wood);
+                            End(true);
+                            Begin(side==-1?"Timber trestle bent 10":"Outer trestle shoe",foot.x,2.64f,foot.z,yaw);
+                            Box(0,0,0,.92f,3.28f,1.4f,Red);
+                            Box(0,-1.46f,0,1.10f,.31f,1.53f,Iron,false);
+                            Box(0,1.46f,0,1.10f,.31f,1.53f,Iron,false);
+                            End();
+                        }
+                        Begin("East trestle frame",mid.x,bottom,mid.z,yaw);
                     }
-                    Begin("East trestle frame",mid.x,bottom,mid.z,yaw);
+                    else Begin("Timber trestle bent "+i,mid.x,bottom,mid.z,yaw);
+                    float h=mid.y-bottom-.61f;
+                    for(int s=-1;s<=1;s+=2)
+                    {
+                        Box(s*1.22f,h*.5f,0,.58f,h,i<2?2.22f:1.25f,Wood);
+                        Beam(new(s*1.22f,.65f,0),new(-s*1.22f,h-.5f,0),.31f,.37f,Red);
+                    }
+                    Box(0,h+.15f,0,3.85f,.3f,i<2?2.6f:1.6f,Dark);
+                    End(bottom<0);
                 }
-                else Begin("Timber trestle bent "+i,mid.x,bottom,mid.z,yaw);
-                float h=RailY-bottom-.61f;
-                for(int s=-1;s<=1;s+=2)
-                {
-                    Box(s*1.22f,h*.5f,0,.58f,h,i<2?2.22f:1.25f,Wood);
-                    Beam(new(s*1.22f,.65f,0),new(-s*1.22f,h-.5f,0),.31f,.37f,Red);
-                }
-                Box(0,h+.15f,0,3.85f,.3f,i<2?2.6f:1.6f,Dark);
-                End(bottom<0);
-                Begin("Railway span "+i,mid.x,RailY-.155f,mid.z,yaw);
+                Begin("Railway span "+i,mid.x,mid.y-.155f,mid.z,yaw);
                 var forward=(b-a).normalized;
+                unit.transform.localRotation = Quaternion.LookRotation(forward);
                 var right=Vector3.Cross(Vector3.up,forward);
                 var entry=forward+(a-nodes[(i+nodes.Count-1)%nodes.Count]).normalized;
                 var exit=forward+(nodes[(i+2)%nodes.Count]-b).normalized;
@@ -80,8 +86,9 @@ namespace DeadlyJenga.CastlePrototype
             stationDistance=chainage[21]; mileage=stationDistance; dwell=3;
             for(int i=0;i<3;i++)
             {
-                var p=Sample(mileage-i*CarSpacing,out var yaw);
-                Begin(i==0?"Copper Canyon locomotive":"Sunset passenger coach "+i,p.x,p.y+.42f,p.z,yaw);
+                var p=Sample(mileage-i*CarSpacing,out var rotation);
+                Begin(i==0?"Copper Canyon locomotive":"Sunset passenger coach "+i,p.x,p.y+.42f,p.z);
+                unit.transform.localRotation = rotation;
                 Box(0,.32f,0,1.73f,.29f,4.08f,Red);
                 for(int s=-1;s<=1;s+=2) for(int ax=-1;ax<=1;ax++)
                     model.Shape(new(s*.79f,.05f,ax*1.31f),new(.68f,.22f,.68f),Iron,12,1,Quaternion.Euler(0,0,90),false);
@@ -143,12 +150,12 @@ namespace DeadlyJenga.CastlePrototype
             int i=chainage.BinarySearch(Mathf.Repeat(d,total));
             return i>=0?i:Mathf.Clamp(~i-1,0,nodes.Count-1);
         }
-        Vector3 Sample(float d,out float yaw)
+        Vector3 Sample(float d,out Quaternion rotation)
         {
             d=Mathf.Repeat(d,total);
             int i=Section(d);
             var delta=nodes[(i+1)%nodes.Count]-nodes[i];
-            yaw=Quaternion.LookRotation(delta).eulerAngles.y;
+            rotation=Quaternion.LookRotation(delta);
             return nodes[i]+delta.normalized*(d-chainage[i]);
         }
         bool Intact(float d)
@@ -196,9 +203,9 @@ namespace DeadlyJenga.CastlePrototype
             mileage=Mathf.Repeat(mileage+travel,total);
             for(int i=0;i<3;i++)
             {
-                var p=Sample(mileage-i*CarSpacing,out var yaw);
+                var p=Sample(mileage-i*CarSpacing,out var rotation);
                 train[i].MovePosition(transform.TransformPoint(p+Vector3.up*.42f));
-                train[i].MoveRotation(transform.rotation*Quaternion.Euler(0,yaw,0));
+                train[i].MoveRotation(transform.rotation*rotation);
             }
         }
     }

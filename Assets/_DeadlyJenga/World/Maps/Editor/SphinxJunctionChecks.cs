@@ -110,6 +110,15 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     Check(passengerCarried,"Placed rider remained on a moving coach");
                     CheckCorridor("Saloon entrance",new(-23,2.78f,-7.2f),new(-23,2.78f,-3));
                     CheckCorridor("Under the sphinx",new(0,2.5f,-6.4f),new(0,2.5f,4));
+                    if (map.SaveLayout() == "sphinx-junction-7")
+                    {
+                        Check(map.Blocks.Count(b => b.name.StartsWith("Sphinx torso bay", StringComparison.Ordinal)) == 12,
+                            "Blender sphinx has twelve independent torso bays");
+                        Check(map.Blocks.Count(b => b.name.StartsWith("Rail bridge ", StringComparison.Ordinal)) == 4,
+                            "Four exterior bridge supports carry the revised route");
+                        CheckCorridor("New tack shop entrance",new(-31.15f,2.78f,-5.64f),new(-31.15f,2.78f,-3.0f));
+                        CheckCorridor("Full sphinx passage",new(0,2.5f,-5.3f),new(0,2.5f,21.3f));
+                    }
                     CheckCorridor("Low causeway crossing",new(-2,1.86f,-22.7f),new(2,1.86f,-22.7f));
                     bot=Services.Session.SurvivorBots?.SpawnOne();
                     Check(bot && bot.GetComponent<IModeActor>()?.Alive==true,"Live survivor bot spawned");
