@@ -102,6 +102,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     Check(Vector3.Distance(engine.position,engineStart)>1,"Train moved after depot dwell");
                     Log($"Body count {map.Blocks.Count}, awake {map.Blocks.Count(b=>!b.IsSleeping())}, colliders {map.GetComponentsInChildren<Collider>().Length}, spawn {map.SafeSpawnPoint()}");
                     Check(passengerCarried,"Placed rider remained on a moving coach");
+                    CheckCorridor("Saloon entrance",new(-23,2.78f,-7.2f),new(-23,2.78f,-3));
+                    CheckCorridor("Under the sphinx",new(0,2.5f,-6.4f),new(0,2.5f,4));
+                    CheckCorridor("Low causeway crossing",new(-2,1.86f,-22.7f),new(2,1.86f,-22.7f));
                     Services.Session.Player.Place(map.SafeSpawnPoint(),Quaternion.identity);
                     bot=Services.Session.SurvivorBots?.SpawnOne();
                     Check(bot && bot.GetComponent<IModeActor>()?.Alive==true,"Live survivor bot spawned");
@@ -126,7 +129,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 }
                 else if(phase==4)
                 {
-                    pull.Hold(grip+new Vector3(13,1,0));
+                    pull.Hold(grip+new Vector3(0,1,13));
                     if(elapsed>1){pull.Release();phase++;began=Time.fixedTime;}
                 }
                 else if(phase==5 && elapsed>2)
@@ -143,6 +146,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 else if(phase==7 && elapsed>1.5f)
                 {
                     Check(Vector3.Distance(engineStart,engine.position)<.18f,"Train halted at damaged track");
+                    Log($"After both pulls: awake {map.Blocks.Count(b=>b.gameObject.activeSelf && !b.isKinematic && !b.IsSleeping())}, submerged {map.Blocks.Count(b=>!b.gameObject.activeSelf)}");
                     int count=map.Blocks.Count,revision=map.Revision;
                     map.Rebuild();
                     Check(map.Blocks.Count==count && map.Revision>revision,"Reset restored all registered bodies");
@@ -153,6 +157,23 @@ namespace DeadlyJenga.CastlePrototype.Editor
         }
         static void Shot(string name,Vector3 eye,Vector3 target,float fov)
             =>UnderneathTreeLookdev.Shoot(Path.Combine(Folder,name+".png"),map.transform.TransformPoint(eye),map.transform.TransformPoint(target),fov);
+        static void CheckCorridor(string name,Vector3 start,Vector3 end)
+        {
+            int steps=Mathf.CeilToInt(Vector3.Distance(start,end)/.25f);
+            int mask=1<<Layers.Block;
+            for(int i=0;i<=steps;i++)
+            {
+                Vector3 feet=map.transform.TransformPoint(Vector3.Lerp(start,end,(float)i/steps));
+                if(!Physics.Raycast(feet+Vector3.up*.34f,Vector3.down,out var floor,.78f,mask,QueryTriggerInteraction.Ignore) ||
+                    floor.normal.y<.72f || Physics.CheckCapsule(floor.point+Vector3.up*.38f,
+                    floor.point+Vector3.up*1.46f,.29f,mask,QueryTriggerInteraction.Ignore))
+                {
+                    Check(false,name+" lacks footing or standing clearance at "+feet);
+                    return;
+                }
+            }
+            Check(true,name+" has continuous footing and standing clearance");
+        }
         static Rigidbody Body(string name)=>map.Blocks.First(b=>b.name==name);
         static void StartPull(string name)
         {

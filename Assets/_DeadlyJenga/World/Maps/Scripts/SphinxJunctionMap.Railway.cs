@@ -18,10 +18,10 @@ namespace DeadlyJenga.CastlePrototype
             nodes.Clear(); chainage.Clear(); track.Clear(); seats.Clear(); train.Clear();
             System.Array.Clear(derailed,0,3);
             // A long straight bore across the pyramid. The western turn faces the depot.
-            Vector2[] control = {new(-18,5),new(-15,3),new(-10,4),new(-6,8),new(1,7.2f),new(10,10),
+            Vector2[] control = {new(-18,5),new(-15,3),new(-11,7.8f),new(-7,9.1f),new(1,12.5f),new(10,10),
                 new(14,10),new(20,10),new(26,10),new(30,11),new(35.2f,15.8f),new(35.2f,20.2f),
-                new(34.5f,23),new(25,22),new(18,22),new(11,22),new(4,22),new(-3,22),
-                new(-10,21),new(-15,19),new(-18,16),new(-19,12),new(-19,8)};
+                new(34.5f,23),new(25,25),new(18,25),new(11,24),new(4,22),new(-3,22),
+                new(-10,21),new(-16,20),new(-19,16.5f),new(-19,12),new(-19,8)};
             total=0;
             for(int i=0;i<control.Length;i++)
             {
@@ -68,11 +68,11 @@ namespace DeadlyJenga.CastlePrototype
                 var exit=forward+(nodes[(i+2)%nodes.Count]-b).normalized;
                 model.SetTrackMiters(len,-Vector3.Dot(entry,right)/Vector3.Dot(entry,forward),
                     -Vector3.Dot(exit,right)/Vector3.Dot(exit,forward));
-                Box(0,0,0,3.65f,.31f,len-.06f,Wood);
+                Box(0,0,0,4.04f,.31f,len-.06f,Wood);
                 for(int j=0;j<8;j++) Box(0,.19f,(j-3.5f)*len/8,3.53f,.11f,len/8-.04f,Shade,false);
                 for(int s=-1;s<=1;s+=2) Box(s*.59f,.32f,0,.105f,.18f,len,Iron,false);
-                for(int j=-1;j<=1;j+=2) Box(1.72f,.55f,j*len*.38f,.13f,1.1f,.13f,Wood);
-                Box(1.72f,1.04f,0,.13f,.14f,len,Wood);
+                for(int j=-1;j<=1;j+=2) Box(1.94f,.55f,j*len*.38f,.13f,1.1f,.13f,Wood);
+                Box(1.94f,1.04f,0,.13f,.14f,len,Wood);
                 seats.Add(unit.transform.localPosition); track.Add(End());
             }
             stationDistance=chainage[21]; mileage=stationDistance; dwell=3;
@@ -120,18 +120,18 @@ namespace DeadlyJenga.CastlePrototype
                 Box(0,2.24f,cab,1.88f,.08f,length+.18f,Gold,false);
                 train.Add(End()); train[i].isKinematic=true;
             }
-            Begin("Depot platform timber bent",-16.25f,2.5f,12.2f);
+            Begin("Depot platform timber bent",-16.35f,2.5f,12.2f);
             foreach(int end in new[]{-1,1})
             {
-                Box(0,3.98f,end*3.25f,.84f,7.96f,.74f,Wood);
-                Beam(new(0,.75f,end*3.25f),new(0,7.3f,-end*3.25f),.27f,.27f,Dark);
+                Box(0,3.98f,end*2.75f,.84f,7.96f,.74f,Wood);
+                Beam(new(0,.75f,end*2.75f),new(0,7.3f,-end*2.75f),.27f,.27f,Dark);
             }
             End();
-            Begin("Depot boarding platform",-16.25f,10.68f,12.2f);
-            Box(0,0,0,1.95f,.44f,9.15f,Wood);
-            for(int j=-5;j<=5;j++) Box(0,.231f,j*.81f,1.95f,.05f,.79f,Honey,false);
+            Begin("Depot boarding platform",-16.35f,10.68f,12.2f);
+            Box(0,0,0,3.2f,.44f,7.15f,Wood);
+            for(int j=-4;j<=4;j++) Box(0,.231f,j*.81f,3.2f,.05f,.79f,Honey,false);
             End();
-            Stairs("Depot boarding stair",-9.26f,2.5f,12.2f,2.3f,8.4f,12,-90);
+            Stairs("Depot boarding stair",-8.74f,2.5f,14.38f,2.3f,8.4f,12,-90);
         }
         int Section(float d)
         {

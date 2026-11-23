@@ -125,8 +125,8 @@ namespace DeadlyJenga.CastlePrototype
             Round(0,2.29f,-2.85f,3.75f,1.24f,.53f,Teal,.77f);
             Box(0,1.15f,-3.12f,6.95f,.72f,.13f,Gold,false);
             End();
-            Stairs("Saloon balcony steps",x-5.6f,2.5f,-8.5f,1.65f,3.67f,6.8f);
-            Begin("Depot water tank timber frame",-23,2.5f,7.5f);
+            Stairs("Saloon balcony steps",x-5,2.5f,-10.43f,1.65f,3.67f,6.8f);
+            Begin("Depot water tank timber frame",-23.8f,2.5f,7.5f);
             foreach(int a in new[]{-1,1}) foreach(int b in new[]{-1,1}) Box(a*1.63f,3.87f,b*1.63f,.53f,7.74f,.53f,Wood);
             for(int s=-1;s<=1;s+=2)
             {
@@ -135,7 +135,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             Box(0,7.95f,0,4.5f,.42f,4.5f,Wood);
             End();
-            Begin("Banded depot cistern",-23,10.66f,7.5f);
+            Begin("Banded depot cistern",-23.8f,10.66f,7.5f);
             Round(0,1.95f,0,4.35f,3.9f,4.35f,Teal,1,18,true);
             for(int j=0;j<4;j++) Round(0,.32f+j*1.05f,0,4.48f,.19f,4.48f,Wood,1,18);
             Round(0,4.53f,0,4.9f,1.26f,4.9f,Red,.06f,18);
@@ -200,7 +200,7 @@ namespace DeadlyJenga.CastlePrototype
             Box(0,3.42f,0,7.5f,.6f,6.15f,Gold);
             Box(0,3.78f,0,7.1f,.16f,5.9f,Teal,false);
             End();
-            var entry=PyramidPoint(0,-11.8f);
+            var entry=PyramidPoint(0,-12.09f);
             Stairs("Pyramid broad forecourt flight",entry.x,2.5f,entry.z,4.8f,3.18f,7.1f,-40);
             // Switchbacks rest along the exposed ledge at each gallery setback.
             for(int tier=1;tier<4;tier++)

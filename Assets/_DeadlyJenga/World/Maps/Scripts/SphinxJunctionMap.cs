@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class SphinxJunctionMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        public const string Signature = "sphinx-junction-3";
+        public const string Signature = "sphinx-junction-4";
         public Shader finishShader;
         Material finish;
         Transform built;
@@ -149,9 +149,9 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if (Mathf.Abs(x)>=4 && z==-2) continue;
                 Begin("Driven sandstone pier "+x+","+z,x*6,0,z*6);
-                Box(0,-.48f,0,2.9f,3.96f,2.9f,Shade);
+                Box(0,-.84f,0,2.9f,3.24f,2.9f,Shade);
                 Box(0,.67f,0,2.94f,.44f,2.94f,Teal,false);
-                Box(0,1.26f,0,3.35f,.48f,3.35f,Sand,false);
+                model.Shape(new(0,1.14f,0),new(3.0f,.72f,3.0f),Sand,top:1.84f);
                 End(true);
                 Begin("Plaza paving "+x+","+z,x*6,2,z*6);
                 Box(0,0,0,5.99f,1,5.99f,Shade);
@@ -168,7 +168,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             for(int i=-5;i<=5;i++)
             {
-                float x=i*5.4f, z=-20.4f+.30f*i*i;
+                float x=i*5.4f, z=-22.7f+.30f*i*i;
                 Begin("Causeway pile "+i,x,0,z);
                 Box(0,-.8f,0,2.3f,4,2.4f,Shade);
                 Box(0,.38f,0,2.36f,.37f,2.46f,Teal,false);
@@ -187,10 +187,10 @@ namespace DeadlyJenga.CastlePrototype
             {
                 float edge=Mathf.Abs(x)==27?-9:-15;
                 float i=x/5.4f;
-                float foot=-20.4f+.30f*i*i+1.53f;
+                float foot=-22.7f+.30f*i*i+1.53f;
                 float run=edge-foot;
                 float mid=(edge+foot)*.5f;
-                Begin("Approach stair driven pier",x,0,mid);
+                Begin("Approach stair driven pier",x,0,edge-.78f);
                 Box(0,-.22f,0,1.85f,4.16f,Mathf.Min(run,1.45f),Shade);
                 End(true);
                 Stairs("Plaza approach",x,1.86f,mid,3,.64f,run);
