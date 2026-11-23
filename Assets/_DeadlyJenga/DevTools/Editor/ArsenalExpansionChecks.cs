@@ -53,11 +53,11 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem("Tools/Deadly Jenga/Validation/Check Arsenal Expansion")]
         public static void Run()=>Start(false);
 
-        public static void RunCosmeticDagger()=>Start(true);
+        public static void RunCosmeticWeapons()=>Start(true);
 
         static void Start(bool cosmeticWeaponsOnly)
         {
-            SessionState.SetBool(Key+"CosmeticDaggerOnly",cosmeticWeaponsOnly);
+            SessionState.SetBool(Key+"CosmeticWeaponsOnly",cosmeticWeaponsOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -65,7 +65,7 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
-            File.WriteAllText(Report,cosmeticWeaponsOnly?"Cosmetic dagger Play Mode checks.\n":
+            File.WriteAllText(Report,cosmeticWeaponsOnly?"Dagger and compact sidearm Play Mode checks.\n":
                 "Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
@@ -88,7 +88,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
             while(stack.Count>0)(stack.Pop() as IDisposable)?.Dispose();completed=!failed;EditorApplication.ExitPlaymode();
         }
-        static IEnumerator CosmeticDagger(MatchModeRuntime runtime,CastleSurvivor player,CastleSurvivor target)
+        static IEnumerator CosmeticWeapons(MatchModeRuntime runtime,CastleSurvivor player,CastleSurvivor target)
         {
             const EquipmentKind dagger=EquipmentKind.Dagger;
             var spec=EquipmentSpecifications.Get(dagger);
@@ -136,7 +136,38 @@ namespace DeadlyJenga.DevTools.Editor
             Check(!runtime.Frame.equipmentActions.Any(e=>e.id>first&&e.kind==dagger&&e.action==EquipmentAction.Impact),
                 "Air thrust produces no contact event");
 
-
+            Check(runtime.GiveEquipment(EquipmentKind.StockPistol),"Legacy stock pistol remains a distinct weapon");
+            yield return null;
+            var legacy=player.transform.Find("Visual - "+EquipmentKind.StockPistol);
+            Check(legacy&&legacy.GetComponentsInChildren<MeshRenderer>(true).All(r=>!r.sharedMaterial||
+                  !r.sharedMaterial.name.StartsWith("Foundry Cosmetic",StringComparison.Ordinal)),
+                  "Legacy stock pistol retains its model and palette");
+            const EquipmentKind pistol=EquipmentKind.CompactSidearm;
+            Check(runtime.GiveEquipment(pistol),"Compact sidearm equips under its own weapon identity");
+            yield return new WaitForSeconds(.26f);
+            CheckPalette(player,pistol,"CosmeticLight");
+            var rig=player.GetComponent<CandyPlayerAvatar>().Rig;
+            var previous=rig.BaseAppearanceColor;
+            try
+            {
+                rig.SetTint(new Color(.16f,.63f,.92f));
+                yield return null;
+                yield return null;
+                CheckPalette(player,pistol,"CosmeticLight");
+            }
+            finally
+            {
+                rig.SetTint(previous);
+            }
+            target.Place(player.transform.position+Vector3.forward*5,Quaternion.identity);
+            Physics.SyncTransforms();
+            yield return new WaitForSeconds(.23f);
+            aim=Quaternion.LookRotation(target.transform.position+Vector3.up*.55f-origin);
+            health=target.Health;
+            Check(runtime.RequestEquipmentAttack(new Pose(origin,aim)),"Compact sidearm fires through the existing attack path");
+            Check(target.Health<health,"Compact sidearm damages the player target");
+            Check(runtime.EquipmentFor(runtime.LocalActorId).rounds==EquipmentSpecifications.Get(pistol).magazine-1,
+                "Sidearm consumes a round from the existing magazine");
         }
 
         static void CheckStrike(string name,Color expected,string label)
@@ -161,7 +192,12 @@ namespace DeadlyJenga.DevTools.Editor
             }
             Color light=Read(lightFinish),dark=Read("CosmeticDark"),normal=Read("CosmeticBase");
             var expected=player.GetComponent<CandyPlayerAvatar>().Rig.BaseAppearanceColor;
-            Check(SameRgb(normal,expected)&&light.grayscale>dark.grayscale,kind+" applies the three wardrobe shades");
+            var shadeType=typeof(CandyWeaponVisual).Assembly.GetType("DeadlyJenga.CandyPlayers.CandyCosmeticShade");
+            var palette=shadeType.GetMethod("PlayerShade");
+            var expectedLight=(Color)palette.Invoke(null,new object[]{expected,AvatarHairShade.Light});
+            var expectedDark=(Color)palette.Invoke(null,new object[]{expected,AvatarHairShade.Dark});
+            Check(SameRgb(normal,expected)&&SameRgb(light,expectedLight)&&SameRgb(dark,expectedDark),
+                  kind+" applies the exact wardrobe shades for "+expected);
         }
 
         static bool SameRgb(Color a,Color b)=>Mathf.Abs(a.r-b.r)+Mathf.Abs(a.g-b.g)+Mathf.Abs(a.b-b.b)<.02f;
@@ -176,9 +212,9 @@ namespace DeadlyJenga.DevTools.Editor
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
             var created=session.SurvivorBots.SpawnOne();Check(created,"Target bot spawns");var target=created.GetComponent<CastleSurvivor>();target.GetComponent<CastleBotBrain>().enabled=false;target.InputSuspended=true;
             yield return new WaitForSeconds(.4f);
-            if(SessionState.GetBool(Key+"CosmeticDaggerOnly",false))
+            if(SessionState.GetBool(Key+"CosmeticWeaponsOnly",false))
             {
-                yield return CosmeticDagger(runtime,player,target);
+                yield return CosmeticWeapons(runtime,player,target);
                 yield break;
             }
             Check(EquipmentSpecifications.All.Length==Enum.GetValues(typeof(EquipmentKind)).Length,"Every serialized equipment kind has one shared specification");

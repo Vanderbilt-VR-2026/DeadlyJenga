@@ -134,7 +134,7 @@ namespace DeadlyJenga.CandyPlayers
                 new(-.082f, 0, .037f, .052f, 0, -.029f, .089f),
             EquipmentKind.DualUzi => new(-.082f, -.006f, .050f, .055f, 0, -.022f, .120f),
             EquipmentKind.NeedleDrill => new(-.087f, -.052f, .058f, .049f, .37f, .003f, .083f),
-            EquipmentKind.StockPistol => new(-.055f, -.022f, .055f, .048f, .30f, .023f, .124f),
+            EquipmentKind.StockPistol or EquipmentKind.CompactSidearm => new(-.055f, -.022f, .055f, .048f, .30f, .023f, .124f),
             EquipmentKind.Chainsaw => new(-.101f, -.014f, .047f, .056f, 0, -.072f, .068f),
             _ => default
         };
@@ -375,6 +375,7 @@ namespace DeadlyJenga.CandyPlayers
                 {
                     case "Foundry "+nameof(Finish.CosmeticBase): tint=ownerColor;break;
                     case "Foundry "+nameof(Finish.CosmeticDark): tint=dark;break;
+                    case "Foundry "+nameof(Finish.CosmeticLight):
                     case "Foundry "+nameof(Finish.CosmeticCandy):
                     case "Foundry "+nameof(Finish.CosmeticCandyEdge): tint=light;break;
                     default: continue;
@@ -419,7 +420,7 @@ namespace DeadlyJenga.CandyPlayers
                 kind = state.kind;
                 root = Create(kind);
                 feed = root.Find(FeedAssembly);
-                cosmeticParts = kind==EquipmentKind.Dagger
+                cosmeticParts = kind is EquipmentKind.Dagger or EquipmentKind.CompactSidearm
                     ? root.GetComponentsInChildren<MeshRenderer>(true) : null;
                 cosmeticPainted = false;
                 ResetMotion();
@@ -550,6 +551,7 @@ namespace DeadlyJenga.CandyPlayers
             }
             else if(value==EquipmentKind.DualUzi)BuildDetailedSpikeUzi(root);
             else if(value==EquipmentKind.StockPistol)BuildStockPistol(root);
+            else if(value==EquipmentKind.CompactSidearm)BuildFoundry(root,value);
             else if(value==EquipmentKind.NeedleDrill)BuildNeedleDrill(root);
             else if(value==EquipmentKind.LaserClaws||value==EquipmentKind.FlamingMarshmallow)BuildArsenalPieces(root,value);
             else if(value>EquipmentKind.PoweredArmor)BuildArsenal(root,value);
