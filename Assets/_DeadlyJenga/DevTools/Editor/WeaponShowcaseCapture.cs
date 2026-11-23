@@ -79,6 +79,31 @@ namespace DeadlyJenga.DevTools.Editor
             }
         }
 
+        public static void CheckJunctionPaintShader()
+        {
+            var shader = Shader.Find("DeadlyJenga/Sphinx Junction/Painted masonry");
+            if (!shader || !shader.isSupported)
+                throw new InvalidOperationException("Sphinx painted masonry shader is unavailable.");
+
+            var material = new Material(shader);
+            try
+            {
+                ShaderUtil.CompilePass(material, 0, true);
+                var errors = ShaderUtil.GetShaderMessages(shader)
+                    .Where(message => message.severity == UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error);
+                if (errors.Any())
+                    throw new InvalidOperationException(string.Join("\n", errors.Select(message => message.message)));
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
+
+            Debug.Log($"PASS Sphinx painted masonry shader compilation on {SystemInfo.graphicsDeviceType}");
+            if (!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id", "")))
+                File.WriteAllText("Logs/Warm/exit.txt", "0");
+        }
+
         static void Start(bool duplexClaws)
         {
             var scenes=EditorSceneManager.GetSceneManagerSetup();
