@@ -6,7 +6,18 @@ namespace DeadlyJenga.Presentation
 {
     public sealed partial class CandyArsenalEffects:MonoBehaviour
     {
-        sealed class Beam {public LineRenderer line;public float until;}
+        sealed class Beam
+        {
+            public LineRenderer outer, core;
+            public Transform model;
+            public Vector3 origin, endpoint;
+            public float lastShot, nextSpark;
+        }
+
+        static readonly Color WristCyan = new Color(.08f,.68f,1f);
+        static readonly Color WristCore = new Color(.61f,.95f,1f);
+        const float BeamGrace = .135f, BeamFade = .055f;
+        readonly List<string> expiredWristBeams = new List<string>();
         sealed class WeaponEffect
         {
             public EquipmentKind kind;
@@ -67,13 +78,13 @@ namespace DeadlyJenga.Presentation
             stale.Clear();foreach(var item in shots)if(!seen.Contains(item.Key)){ReturnProjectile(item.Value);stale.Add(item.Key);}foreach(int id in stale)shots.Remove(id);
             cursor.Read(match.Frame,Action);
             UpdateShells();
-            foreach(var beam in beams.Values)beam.line.enabled=Time.time<beam.until;
+
             UpdateWeaponEffects(match);
             UpdateThunderbolts();
         }
         void Action(EquipmentActionFrame action)
         {
-            if(action.action==EquipmentAction.Shot&&action.remaining>=.55f)
+            if(action.kind!=EquipmentKind.WristLaser&&action.action==EquipmentAction.Shot&&action.remaining>=.55f)
                 PresentShot(action);
             if(action.action==EquipmentAction.Shot&&UsesHeat(action.kind)&&!string.IsNullOrEmpty(action.actor))
             {
@@ -81,6 +92,11 @@ namespace DeadlyJenga.Presentation
                 effect.lastShot=Time.time;
                 if(UsesShotHeat(action.kind))
                     effect.heat=Mathf.Min(1,effect.heat+.46f);
+            }
+            if(action.kind==EquipmentKind.WristLaser)
+            {
+                PresentWristAction(action);
+                return;
             }
             if(action.kind<=EquipmentKind.PoweredArmor)return;
             if(action.action==EquipmentAction.Impact&&action.kind==EquipmentKind.DualUzi){EmitBlast(action);Spike(new EquipmentActionFrame{position=action.position,endpoints=new[]{action.position}});return;}
@@ -95,13 +111,131 @@ namespace DeadlyJenga.Presentation
                 FireThunderbolt(action);
                 return;
             }
-            if(action.kind!=EquipmentKind.WristLaser)return;
-            if(!beams.TryGetValue(action.actor,out var beam))
-            {
-                var go=new GameObject("Visual - continuous weapon beam");go.transform.SetParent(transform,false);var line=go.AddComponent<LineRenderer>();line.sharedMaterial=ordnanceRibbon;line.positionCount=2;line.useWorldSpace=true;line.numCapVertices=3;beam=new Beam{line=line};beams[action.actor]=beam;
-            }
-            beam.line.SetPosition(0,action.position);beam.line.SetPosition(1,action.endpoints[0]);beam.line.startWidth=.12f;beam.line.endWidth=beam.line.startWidth;beam.line.startColor=beam.line.endColor=new Color(1,.22f,.015f);beam.until=Time.time+.18f;
         }
+
+        void PresentWristAction(EquipmentActionFrame action)
+        {
+            if(string.IsNullOrEmpty(action.actor)||MatchRuntime.Current?.Frame.phase!=RoundPhase.Playing||
+                action.remaining<.55f)return;
+            if(action.action==EquipmentAction.Impact)
+            {
+                if(beams.TryGetValue(action.actor,out var contactBeam)&&Time.time>=contactBeam.nextSpark)
+                {
+                    contactBeam.nextSpark=Time.time+.13f;
+                    EmitWristContact(action.position,contactBeam.origin,action.id);
+                }
+                return;
+            }
+            if(action.action!=EquipmentAction.Shot||action.endpoints==null||action.endpoints.Length==0)return;
+            if((action.endpoints[0]-action.position).sqrMagnitude<.001f)return;
+            bool fresh=!beams.TryGetValue(action.actor,out var beam);
+            if(fresh)
+            {
+                beam=new Beam
+                {
+                    outer=MakeWristLine("Oxblood beam fringe",.027f),
+                    core=MakeWristLine("Oxblood beam core",.0105f)
+                };
+                beams.Add(action.actor,beam);
+            }
+            if(fresh||Time.time-beam.lastShot>BeamGrace)
+                EmitMuzzle(action.position,Quaternion.LookRotation(action.endpoints[0]-action.position),WristCyan,.038f,0,action.id);
+            beam.origin=action.position;
+            beam.endpoint=action.endpoints[0];
+            beam.lastShot=Time.time;
+            if(!beam.model)
+            {
+                var owner=effectsRuntime.FindParticipantRoot(action.actor);
+                if(owner)beam.model=owner.Find("Visual - WristLaser");
+            }
+        }
+
+        LineRenderer MakeWristLine(string name,float width)
+        {
+            var node=new GameObject(name);
+            node.transform.SetParent(transform,false);
+            var line=node.AddComponent<LineRenderer>();
+            line.sharedMaterial=ordnanceRibbon;
+            line.startWidth=line.endWidth=width;
+            line.positionCount=2;
+            line.useWorldSpace=true;
+            line.numCapVertices=3;
+            line.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
+            line.receiveShadows=false;
+            line.enabled=false;
+            return line;
+        }
+
+        void UpdateWristBeams()
+        {
+            if(effectsRuntime is not IEquipmentRuntime equipment)return;
+            expiredWristBeams.Clear();
+            foreach(var pair in beams)
+            {
+                var beam=pair.Value;
+                var state=equipment.EquipmentFor(pair.Key);
+                float age=Time.time-beam.lastShot;
+                bool canShow=state?.kind==EquipmentKind.WristLaser&&state.drawn&&effectsRuntime.Frame.phase==RoundPhase.Playing;
+                float grace=state!=null&&state.triggerHeld&&state.reloadRemaining<=0?BeamGrace:.045f;
+                float intensity=canShow?1-Mathf.Clamp01((age-grace)/BeamFade):0;
+                beam.outer.enabled=beam.core.enabled=intensity>0;
+                if(intensity<=0)
+                {
+                    if(age>1)expiredWristBeams.Add(pair.Key);
+                    continue;
+                }
+
+                Vector3 start=beam.origin;
+                if(beam.model&&beam.model.gameObject.activeInHierarchy)
+                {
+                    var socket=beam.model.TransformPoint(ShotAnchor(EquipmentKind.WristLaser,false));
+                    if((socket-start).sqrMagnitude<.09f)start=socket;
+                }
+                SetWristLine(beam.outer,start,beam.endpoint,WristCyan,intensity*.54f);
+                SetWristLine(beam.core,start,beam.endpoint,WristCore,intensity);
+            }
+            foreach(string id in expiredWristBeams)
+            {
+                Destroy(beams[id].outer.gameObject);
+                Destroy(beams[id].core.gameObject);
+                beams.Remove(id);
+            }
+        }
+
+        static void SetWristLine(LineRenderer line,Vector3 start,Vector3 end,Color color,float alpha)
+        {
+            color.a=alpha;
+            line.SetPosition(0,start);
+            line.SetPosition(1,end);
+            line.startColor=line.endColor=color;
+        }
+
+        void EmitWristContact(Vector3 point,Vector3 origin,int seed)
+        {
+            if(!CandyWeaponImpacts.VisibleToAnyCamera(point,90))return;
+            var incoming=point-origin;
+            if(incoming.sqrMagnitude<.0001f)return;
+            var normal=-incoming.normalized;
+            var orientation=Quaternion.LookRotation(normal);
+            if(burstParticles.isStopped)burstParticles.Play();
+            burstParticles.Emit(new ParticleSystem.EmitParams
+            {
+                position=point+normal*.012f,startColor=WristCore,startLifetime=.065f,startSize=.059f
+            },1);
+            for(int i=0;i<6;i++)
+            {
+                float angle=i*2.39996f+seed*.11f;
+                var sideways=orientation*new Vector3(Mathf.Cos(angle),Mathf.Sin(angle),0);
+                burstParticles.Emit(new ParticleSystem.EmitParams
+                {
+                    position=point+normal*.018f,
+                    velocity=normal*(.42f+i*.15f)+sideways*(.65f+i*.19f)+Vector3.up*.38f,
+                    startColor=i%3==0?new Color(.68f,.29f,.10f):new Color(1,.54f,.17f),
+                    startLifetime=.12f+i*.013f,startSize=i%3==0?.013f:.022f
+                },1);
+            }
+        }
+
         static bool UsesShotHeat(EquipmentKind kind) =>
             kind==EquipmentKind.Blaster||kind==EquipmentKind.PoweredArmor;
 
@@ -375,6 +509,12 @@ namespace DeadlyJenga.Presentation
         {
             foreach(var effect in weaponEffects.Values)ReleaseEffect(effect);
             weaponEffects.Clear();
+            foreach(var beam in beams.Values)
+            {
+                if(beam.outer)Destroy(beam.outer.gameObject);
+                if(beam.core)Destroy(beam.core.gameObject);
+            }
+            beams.Clear();
             foreach(var bolt in thunderbolts.Values)foreach(var line in bolt.lines)if(line)Destroy(line.gameObject);
             thunderbolts.Clear();
             if(steam)steam.Clear();
@@ -388,7 +528,7 @@ namespace DeadlyJenga.Presentation
             if(shellMaterial)Destroy(shellMaterial);
             if(shellMesh)Destroy(shellMesh);
             foreach(var s in shots.Values)if(s)Destroy(s.gameObject);
-            foreach(var b in beams.Values)if(b.line)Destroy(b.line.gameObject);
+
         }
     }
 }

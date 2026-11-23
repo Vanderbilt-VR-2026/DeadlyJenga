@@ -128,7 +128,21 @@ namespace DeadlyJenga.DevTools.Editor
             float chargeStart=Time.time;bool wheel=false;while(Time.time-chargeStart<1.25f){trigger.RequestEquipmentTrigger(true,muzzle);yield return new WaitForSeconds(.07f);wheel|=runtime.Frame.weaponProjectiles.Any(p=>p.kind==EquipmentKind.Chainsaw);}trigger.RequestEquipmentTrigger(false,muzzle);Check(wheel,"One-second charged chainsaw launches a travelling wheel");
             Check(runtime.GiveEquipment(EquipmentKind.LaserAxe)&&runtime.RequestEquipment(true,false,true),"Axe switches to full-width laser");yield return new WaitForSeconds(.45f);float health=target.Health;Check(runtime.RequestEquipmentAttack(muzzle),"Axe laser attack accepted");Check(target.Health<health,"Axe beam damages a physical target at range");
             target.Place(new Vector3(150,10.02f,156),Quaternion.identity);target.InputSuspended=true;yield return new WaitForSeconds(.25f);
-            Check(runtime.GiveEquipment(EquipmentKind.WristLaser),"Wrist laser equips");health=target.Health;for(int i=0;i<4;i++){trigger.RequestEquipmentTrigger(true,muzzle);yield return new WaitForSeconds(.08f);}trigger.RequestEquipmentTrigger(false,muzzle);float stopped=target.Health;yield return new WaitForSeconds(.3f);Check(stopped<health&&target.Health==stopped,"Continuous beam deals repeated damage and stops on release");
+            Check(runtime.GiveEquipment(EquipmentKind.WristLaser),"Oxblood wrist laser equips");
+            health=target.Health;
+            for(int i=0;i<4;i++)
+            {
+                trigger.RequestEquipmentTrigger(true,muzzle);
+                yield return new WaitForSeconds(.08f);
+            }
+            var beam=Object.FindObjectsByType<LineRenderer>(FindObjectsSortMode.None)
+                .FirstOrDefault(line=>line.name=="Oxblood beam core"&&line.enabled);
+            Check(beam&&beam.startColor.b>beam.startColor.r,"Held Oxblood laser displays a continuous cyan core");
+            trigger.RequestEquipmentTrigger(false,muzzle);
+            float stopped=target.Health;
+            yield return new WaitForSeconds(.19f);
+            Check(stopped<health&&target.Health==stopped,"Continuous beam deals repeated damage and stops on release");
+            Check(beam&&!beam.enabled,"Oxblood beam fades promptly on release");
             rules.defaultDagger=true;runtime.Configure(rules);runtime.StartRound();yield return new WaitForSeconds(.3f);
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;target.Place(new Vector3(150,10.02f,151),Quaternion.identity);target.InputSuspended=true;yield return new WaitForSeconds(.25f);
             Check(runtime.EquipmentFor(runtime.LocalActorId).kind==EquipmentKind.Dagger&&runtime.EquipmentFor(runtime.LocalActorId).builtIn,"Configured mode supplies an always-ready fallback dagger");

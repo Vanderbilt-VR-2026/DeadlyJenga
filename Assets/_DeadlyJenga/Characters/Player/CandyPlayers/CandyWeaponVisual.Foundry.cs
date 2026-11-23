@@ -11,7 +11,8 @@ namespace DeadlyJenga.CandyPlayers
         enum Finish
         {
             Steel, Charcoal, Ceramic, Brass, Walnut, Violet, Cyan, Amber, BladeSteel, BladeEdge,
-            AxeLeather, AxeBronze, LauncherOlive, LauncherGunmetal, LauncherRubber, LauncherSteel, LauncherGraphite, LauncherStencil, LauncherWarning
+            AxeLeather, AxeBronze, LauncherOlive, LauncherGunmetal, LauncherRubber, LauncherSteel, LauncherGraphite, LauncherStencil, LauncherWarning,
+            WristGunmetal, WristOxblood, WristRubber, WristLens
         }
         static readonly Dictionary<EquipmentKind,FoundryModel> foundry=new Dictionary<EquipmentKind,FoundryModel>();
         static readonly Dictionary<Finish,Material> finishes=new Dictionary<Finish,Material>();
@@ -125,7 +126,7 @@ namespace DeadlyJenga.CandyPlayers
                     case EquipmentKind.RocketLauncher: ForgeRocket(b,feedBuilder);break;
                     case EquipmentKind.GrenadeLauncher: ForgeGrenade(b,feedBuilder);break;
                     case EquipmentKind.BarbedBat: ForgeBat(b);break;
-                    case EquipmentKind.WristLaser: ForgeWrist(b,feedBuilder);break;
+                    case EquipmentKind.WristLaser: ForgeWrist(b);break;
                     case EquipmentKind.ChainGun: ForgeChainGun(b,feedBuilder);break;
                     case EquipmentKind.Chainsaw: ForgeChainsaw(b,feedBuilder);break;
                     case EquipmentKind.SawStaff: ForgeSawStaff(b);break;
@@ -175,6 +176,7 @@ namespace DeadlyJenga.CandyPlayers
         static Material FoundrySurface(Finish finish)
         {
             if(finishes.TryGetValue(finish,out var mat)&&mat)return mat;
+            if(finish>=Finish.WristGunmetal)return finishes[finish]=WristSurface(finish);
             if(finish>=Finish.LauncherOlive)return finishes[finish]=LauncherSurface(finish);
             bool blade=finish==Finish.BladeSteel||finish==Finish.BladeEdge;
             bool leather=finish==Finish.AxeLeather, bronze=finish==Finish.AxeBronze;
@@ -484,22 +486,58 @@ namespace DeadlyJenga.CandyPlayers
                 }
             });
         }
-        static void ForgeWrist(FoundryBuilder b,FoundryBuilder feed)
+        internal static readonly Vector3 WristLaserMuzzle = new Vector3(0,.083f,-.006f);
+
+        static Material WristSurface(Finish finish)
         {
-            b.Profile(Finish.Steel,Vector2.zero,
-                new Vector2(-.19f,.055f),new Vector2(-.19f,.069f),
-                new Vector2(-.17f,.071f),new Vector2(-.035f,.057f),
-                new Vector2(.025f,.053f),new Vector2(.035f,.050f),
-                new Vector2(.035f,.039f),new Vector2(-.035f,.040f),
-                new Vector2(-.19f,.055f));
-            b.Tube(Finish.Charcoal,0,-.18f,-.16f,.072f,.055f);
-            b.Tube(Finish.Charcoal,0,-.035f,-.015f,.058f,.040f);
-            feed.Plate(Finish.Charcoal,new Vector3(0,.067f,-.065f),new Vector3(.110f,.055f,.19f));
-            feed.Plate(Finish.Ceramic,new Vector3(0,.092f,-.075f),new Vector3(.073f,.009f,.115f),.002f);
-            b.Plate(Finish.Charcoal,new Vector3(0,.069f,.048f),new Vector3(.074f,.069f,.155f),.007f);
-            b.Tube(Finish.Steel,.12f,.075f,.163f,.035f,.026f);
-            b.Tube(Finish.Amber,.12f,.163f,.17f,.026f);
-            feed.Plate(Finish.Amber,new Vector3(0,.101f,-.075f),new Vector3(.047f,.010f,.075f),.0015f);
+            var (color,metal,smooth)=finish switch
+            {
+                Finish.WristOxblood => (new Color(.49f,.125f,.15f),.45f,.64f),
+                Finish.WristRubber => (new Color(.14f,.16f,.17f),.08f,.31f),
+                Finish.WristLens => (new Color(.12f,.72f,.84f),.27f,.78f),
+                _ => (new Color(.30f,.35f,.40f),.73f,.69f)
+            };
+            var surface=new Material(Shader.Find("Universal Render Pipeline/Lit"))
+                {name="Foundry "+finish,color=color,enableInstancing=true};
+            surface.SetFloat("_Metallic",metal);
+            surface.SetFloat("_Smoothness",smooth);
+            if(finish==Finish.WristLens)
+            {
+                surface.EnableKeyword("_EMISSION");
+                surface.SetColor("_EmissionColor",color*.8f);
+            }
+            return surface;
+        }
+
+        static void ForgeWrist(FoundryBuilder b)
+        {
+            b.Profile(Finish.WristGunmetal,Vector2.zero,new Vector2(-.168f,.052f),
+                new Vector2(-.168f,.064f),new Vector2(-.159f,.067f),new Vector2(-.091f,.056f),
+                new Vector2(-.024f,.044f),new Vector2(-.017f,.041f),new Vector2(-.017f,.031f),
+                new Vector2(-.031f,.033f),new Vector2(-.097f,.046f),new Vector2(-.168f,.052f));
+            b.Tube(Finish.WristRubber,0,-.176f,-.146f,.070f,.053f);
+            b.Tube(Finish.WristRubber,0,-.041f,-.012f,.047f,.031f);
+            b.Plate(Finish.Charcoal,new Vector3(0,.058f,-.094f),new Vector3(.107f,.037f,.143f),.008f);
+            b.Profile(Finish.WristGunmetal,new Vector2(0,.083f),new Vector2(-.151f,.010f),
+                new Vector2(-.151f,.023f),new Vector2(-.138f,.034f),new Vector2(-.109f,.040f),
+                new Vector2(-.066f,.037f),new Vector2(-.035f,.029f),new Vector2(-.020f,.023f),
+                new Vector2(-.020f,.017f),new Vector2(-.136f,.016f),new Vector2(-.151f,.010f));
+            b.Tube(Finish.WristGunmetal,.083f,-.029f,-.008f,.024f,.017f);
+            b.Tube(Finish.Charcoal,.083f,-.025f,-.011f,.017f,.011f);
+            b.Tube(Finish.WristLens,.083f,-.022f,-.015f,.013f);
+            foreach(float side in new[]{-1f,1f})
+            {
+                var center=new Vector3(side*.046f,.070f,-.102f);
+                var flank=FoundrySolid("Beveled oxblood side armor",.026f,.004f,new[]{
+                    new Vector2(-.017f,-.050f),new Vector2(-.018f,.044f),new Vector2(-.003f,.058f),
+                    new Vector2(.012f,.047f),new Vector2(.022f,-.028f),new Vector2(.006f,-.050f)});
+                b.Add(Finish.WristOxblood,flank,Matrix4x4.TRS(center,Quaternion.Euler(0,side*-11,0),Vector3.one));
+                for(int i=0;i<3;i++)
+                    b.Plate(Finish.Charcoal,new Vector3(side*.057f,.079f,-.128f+i*.018f),new Vector3(.009f,.013f,.004f),.001f);
+            }
+            b.Plate(Finish.Charcoal,new Vector3(0,.122f,-.107f),new Vector3(.026f,.007f,.040f),.002f);
+            for(int i=0;i<3;i++)
+                b.Plate(Finish.WristLens,new Vector3(0,.127f,-.117f+i*.010f),new Vector3(.011f,.0026f,.0035f),.0007f);
         }
         static void ForgeChainGun(FoundryBuilder b,FoundryBuilder feed)
         {
