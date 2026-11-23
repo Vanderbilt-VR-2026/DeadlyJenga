@@ -4,6 +4,8 @@ Reviewed November 22, 2026 against Studio source at `cb1c158145bf0a6fedcee2a844b
 
 ## What is already within reach
 
+The tables below describe the research baseline. For the subsequent implementation and the six-tab authoring sequence, see [Make a second version of a scene](UI.md#make-a-second-version-of-a-scene). Wardrobe portraits use preview lighting. Floor and opening sightline checks use the held map state. Neither check predicts later destruction.
+
 | Today | Why it matters | Owning source under the DevTools editor |
 |---|---|---|
 | Gameplay Theatre records a running local desktop match and imports it into Studio. World and actor takes can play back separately. | A lucky piece of physics or a good performance can be filmed again. Current-match recording must already be running to catch the event. | [Gameplay Theatre](../../../Assets/_DeadlyJenga/DevTools/Editor/GameplayTheatre.md), StudioRun, StudioPerform |

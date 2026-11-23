@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security;
 using System.Text;
+using System.Xml.Linq;
 using UnityEngine;
 
 namespace DeadlyJenga.DevTools.Editor.TrailerStudio
@@ -19,7 +20,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public StudioRender.ShotRecord shot;
             public string media = "";     // movie file, or the first image of the sequence
             public bool sequence;
+            public bool missingFrameMap;
             public int inFrame, frames, recordStart;
+
+            public float TapeTime(double shotFrame)
+            {
+                var times = shot.frameTapeTimes;
+                if (times == null || times.Length != shot.frames + 1)
+                    return shot.tapeStart + (float)(shotFrame / shot.fps);
+                if (shotFrame < 0) return times[0] + (float)(shotFrame / shot.fps);
+                if (shotFrame >= shot.frames) return times[shot.frames] + (float)((shotFrame - shot.frames) / shot.fps);
+                int first = (int)shotFrame;
+                return Mathf.LerpUnclamped(times[first], times[first + 1], (float)(shotFrame - first));
+            }
         }
 
         // Match each cut to its rendered shot inside a render folder.
@@ -36,18 +49,99 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 string record = Path.Combine(folder, "shot.json");
                 if (!File.Exists(record)) { problems.Add($"\"{camera.name}\" has not been rendered into this folder yet."); continue; }
                 var shot = JsonUtility.FromJson<StudioRender.ShotRecord>(File.ReadAllText(record));
+                if (shot == null || shot.frames <= 0 || shot.fps <= 0 || shot.id != camera.id)
+                { problems.Add($"\"{camera.name}\" has an incomplete or invalid render record."); continue; }
+                if (pieces.Count > 0 && shot.fps != pieces[0].shot.fps)
+                    throw new InvalidOperationException("Render all shots in the cut at the same frame rate.");
                 string movie = Directory.GetFiles(folder, "*.mov").Concat(Directory.GetFiles(folder, "*.mp4")).FirstOrDefault();
                 if (movie == null && !problems.Any(p => p.StartsWith("Pictures only")))
                     problems.Add("Pictures only: no movie file was rendered (that needs FFmpeg), so each shot points at its first picture. Most editors import that as one still. Import the shot folders as image sequences, or render as MP4 or ProRes.");
-                if ((camera.speeds.Count > 0 || (camera.freezeAt >= camera.start && camera.freezeFor > 0)) && !problems.Any(p => p.Contains(camera.name + "\" has a speed change")))
-                    problems.Add($"\"{camera.name}\" has a speed change or a freeze. The game sound under it is placed at real speed, so it will not stay in sync with the picture.");
+                bool missingMap = RequiresTimeMap(camera) && shot.frameTapeTimes?.Length != shot.frames + 1;
+                if (missingMap && !problems.Any(p => p.Contains(camera.name + "\" needs a fresh render")))
+                    problems.Add($"\"{camera.name}\" needs a fresh render for synchronized tape audio. Tape audio is silent for this piece.");
                 int first = Mathf.Clamp(Mathf.RoundToInt(cut.from * shot.fps), 0, Mathf.Max(0, shot.frames - 1));
                 int count = Mathf.Clamp(Mathf.RoundToInt((cut.to - cut.from) * shot.fps), 1, shot.frames - first);
                 pieces.Add(new Piece { cut = cut, shot = shot, media = movie ?? Path.Combine(folder, "00000." + (shot.format == "exr" ? "exr" : "png")),
-                    sequence = movie == null, inFrame = first, frames = count, recordStart = at });
+                    sequence = movie == null, missingFrameMap = missingMap, inFrame = first, frames = count, recordStart = at });
                 at += count;
             }
             return pieces;
+        }
+
+        public static bool RequiresTimeMap(StudioCameraTrack camera) =>
+            camera.speeds.Count > 0 || (camera.freezeAt >= camera.start && camera.freezeFor > 0);
+
+        internal static List<StudioCut> CopyCuts(List<StudioCut> cuts) => cuts.ConvertAll(c => new StudioCut
+            { camera = c.camera, from = c.from, to = c.to, dissolve = c.dissolve, audioLead = c.audioLead, audioTail = c.audioTail });
+
+        [Serializable] sealed class Handoff
+        {
+            public string setId, title, map;
+            public List<HandoffShot> shots = new List<HandoffShot>();
+        }
+
+        [Serializable] sealed class HandoffShot
+        {
+            public string media;
+            public int sourceIn, length, cutIn;
+            public StudioRender.ShotRecord render;
+        }
+
+        public static string WritePortable(StudioSet set, string renderFolder, string audioFile, out List<string> problems)
+        {
+            var pieces = Resolve(set, renderFolder, out problems);
+            if (pieces.Count == 0) throw new InvalidOperationException("Render the shots before creating a handoff.");
+            if (pieces.Any(p => p.sequence))
+                throw new InvalidOperationException("A portable cut requires rendered movies. Render this cut's shots as MP4 or ProRes first.");
+            if (pieces.Count != set.cuts.Count)
+                throw new InvalidOperationException("A portable cut requires every shot in the cut to be rendered.");
+
+            string root = Path.Combine(renderFolder, "Handoff-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) +
+                "-" + Guid.NewGuid().ToString("N").Substring(0, 6));
+            string mediaFolder = Path.Combine(root, "Media");
+            Directory.CreateDirectory(mediaFolder);
+            string xmlPath = WriteFcpxml(set, renderFolder, audioFile, out var xmlProblems);
+            string edlPath = WriteEdl(set, renderFolder, out var edlProblems);
+            problems = problems.Concat(xmlProblems).Concat(edlProblems).Distinct().ToList();
+            var xml = XDocument.Load(xmlPath);
+            var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var video = pieces.GroupBy(p => Path.GetFullPath(p.media), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(p => p.Key, p => p.First().shot.id, StringComparer.OrdinalIgnoreCase);
+            foreach (var rep in xml.Descendants("media-rep"))
+            {
+                var attr = rep.Attribute("src");
+                if (attr == null) continue;
+                string source = new Uri(attr.Value).LocalPath;
+                if (!names.TryGetValue(source, out string packaged))
+                {
+                    string prefix = video.TryGetValue(source, out string camera) ? "shot-" + StudioRender.Safe(camera) : "audio-" + (names.Count + 1);
+                    packaged = prefix + "-" + Path.GetFileName(source);
+                    File.Copy(source, Path.Combine(mediaFolder, packaged));
+                    names.Add(source, packaged);
+                }
+                attr.Value = "Media/" + System.Uri.EscapeDataString(packaged);
+            }
+            xml.Save(Path.Combine(root, Path.GetFileName(xmlPath)));
+
+            string[] edl = File.ReadAllLines(edlPath);
+            int line = 0;
+            for (int i = 0; i < pieces.Count; i++)
+            {
+                string next = names[Path.GetFullPath(pieces[i].media)];
+                while (line < edl.Length && !edl[line].StartsWith("* FROM CLIP NAME: ", StringComparison.Ordinal)) line++;
+                if (line == edl.Length) break;
+                bool dissolve = line + 1 < edl.Length && edl[line + 1].StartsWith("* TO CLIP NAME: ", StringComparison.Ordinal);
+                edl[line++] = "* FROM CLIP NAME: " + (dissolve && i > 0 ? names[Path.GetFullPath(pieces[i - 1].media)] : next);
+                if (dissolve) edl[line++] = "* TO CLIP NAME: " + next;
+            }
+            File.WriteAllLines(Path.Combine(root, Path.GetFileName(edlPath)), edl);
+
+            var handoff = new Handoff { setId = set.id, title = set.title, map = set.map };
+            foreach (var piece in pieces)
+                handoff.shots.Add(new HandoffShot { media = "Media/" + names[Path.GetFullPath(piece.media)],
+                    sourceIn = piece.inFrame, length = piece.frames, cutIn = piece.recordStart, render = piece.shot });
+            File.WriteAllText(Path.Combine(root, "handoff.json"), JsonUtility.ToJson(handoff, true));
+            return root;
         }
 
         // FCPXML time: a rational number of seconds, "frames/fps" + "s" (whole seconds are written as "5s").
@@ -154,20 +248,28 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 xml.Append($"    <asset id=\"{id}\" name=\"{X(piece.shot.name)}\" start=\"0s\" duration=\"{Rational(piece.shot.frames, fps)}\" hasVideo=\"1\" format=\"r1\">\n");
                 xml.Append($"      <media-rep kind=\"original-media\" src=\"{X(Uri(piece.media))}\"/>\n    </asset>\n");
             }
-            bool sound = !string.IsNullOrEmpty(audioFile) && File.Exists(audioFile);
-            bool music = !string.IsNullOrEmpty(set.music) && File.Exists(set.music);
+            var performed = StudioCutSound.PerformedSounds(set);
+            bool processed = StudioCutSound.NeedsProcessedAudio(set, pieces);
+            var finishing = processed ? StudioCutSound.WriteFinishingTracks(set, renderFolder, audioFile, performed, pieces, fps, problems) : null;
+            if (finishing != null)
+                for (int i = 0; i < finishing.Count; i++)
+                    xml.Append(AudioAsset($"f{i + 1}", finishing[i].name, finishing[i].file, problems));
+            bool sound = !processed && !string.IsNullOrEmpty(audioFile) && File.Exists(audioFile);
+            string duckedMusic = StudioCutSound.WriteDuckedMusic(set, renderFolder, performed, pieces, fps, problems);
+            string musicFile = !string.IsNullOrEmpty(duckedMusic) ? duckedMusic : set.music;
+            bool music = !set.musicMuted && !string.IsNullOrEmpty(musicFile) && File.Exists(musicFile);
+            float musicGain = !string.IsNullOrEmpty(duckedMusic) ? 0 : set.musicGainDb;
             if (sound) xml.Append(AudioAsset("s1", "Game sound", audioFile, problems));
             long soundFrames = sound && WavLength(audioFile, out long soundSamples, out int soundRate, out _) ? soundSamples * fps / soundRate : -1;
-            if (music) xml.Append(AudioAsset("m1", "Music", set.music, problems));
-            // The sound of takes a person performed, each on its own lane.
-            var performed = StudioCutSound.PerformedSounds(set); StudioCutSound.AppendAssets(xml, performed);
+            if (music) xml.Append(AudioAsset("m1", "Music", musicFile, problems));
+            if (!processed) StudioCutSound.AppendAssets(xml, performed);
             xml.Append("  </resources>\n  <library>\n    <event name=\"Trailer Studio\">\n");
             xml.Append($"      <project name=\"{X(set.title)}\">\n        <sequence format=\"r1\" duration=\"{Rational(total, fps)}\" tcStart=\"0s\" tcFormat=\"NDF\" audioLayout=\"stereo\" audioRate=\"48k\">\n          <spine>\n");
             for (int i = 0; i < pieces.Count; i++)
             {
                 var piece = pieces[i];
                 xml.Append($"            <asset-clip ref=\"{assets[piece.media]}\" name=\"{X(piece.shot.name)}\" offset=\"{Rational(piece.recordStart, fps)}\" start=\"{Rational(piece.inFrame, fps)}\" duration=\"{Rational(piece.frames, fps)}\" format=\"r1\">\n");
-                // The game sound for this piece, taken from the tape time the shot starts at (right for shots at real speed).
+                // An unprocessed piece keeps a link to the original take sound.
                 if (sound)
                 {
                     int tapeFrame = Mathf.RoundToInt(piece.shot.tapeStart * fps) + piece.inFrame;
@@ -180,10 +282,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 {
                     // The music runs under the whole cut, but never past the end of its own file.
                     int musicFrames = total;
-                    if (WavLength(set.music, out long samples, out int rate, out _)) musicFrames = (int)Math.Min(total, samples * fps / rate);
-                    xml.Append($"              <asset-clip ref=\"m1\" lane=\"-2\" name=\"Music\" offset=\"{Rational(piece.inFrame, fps)}\" start=\"0s\" duration=\"{Rational(Math.Max(1, musicFrames), fps)}\"/>\n");
+                    if (WavLength(musicFile, out long samples, out int rate, out _)) musicFrames = (int)Math.Min(total, samples * fps / rate);
+                    xml.Append($"              <asset-clip ref=\"m1\" lane=\"-2\" name=\"Music\" offset=\"{Rational(piece.inFrame, fps)}\" start=\"0s\" duration=\"{Rational(Math.Max(1, musicFrames), fps)}\"");
+                    if (musicGain == 0) xml.Append("/>\n");
+                    else xml.Append($">\n                <adjust-volume amount=\"{Mathf.Clamp(musicGain, -60, 12).ToString(CultureInfo.InvariantCulture)}dB\"/>\n              </asset-clip>\n");
                 }
-                StudioCutSound.AppendClips(xml, performed, piece, fps);
+                if (!processed) StudioCutSound.AppendClips(xml, performed, piece, fps);
+                else if (i == 0)
+                    for (int track = 0; track < finishing.Count; track++)
+                        xml.Append($"              <asset-clip ref=\"f{track + 1}\" lane=\"{-3 - track}\" name=\"{X(finishing[track].name)}\" offset=\"{Rational(piece.inFrame, fps)}\" start=\"0s\" duration=\"{Rational(total, fps)}\"/>\n");
                 xml.Append("            </asset-clip>\n");
                 // A transition sits between the two clips it overlaps; the clips keep their edit point.
                 int length = Dissolve(pieces, i + 1, fps, out int head);

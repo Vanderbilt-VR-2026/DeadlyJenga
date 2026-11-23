@@ -106,6 +106,13 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public string camera = "";
         public float from, to = 1;        // seconds inside the rendered shot
         public float dissolve;            // seconds of cross-dissolve into this piece (0 = straight cut)
+        public float audioLead, audioTail; // seconds of tape sound before/after the picture edit
+    }
+
+    [Serializable] public sealed class StudioCutAlternative
+    {
+        public string name = "Alternate cut";
+        public List<StudioCut> cuts = new List<StudioCut>();
     }
 
     [Serializable] public sealed class StudioRenderSettings

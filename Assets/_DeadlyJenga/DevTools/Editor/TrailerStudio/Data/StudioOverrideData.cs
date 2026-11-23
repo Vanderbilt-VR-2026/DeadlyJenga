@@ -17,6 +17,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool muted;
         public string name = "";          // which reaction, emote, pose preset or weapon
         public float strength = 1;
+        public bool libraryReaction, mirrorReaction, preserveGrip;
 
         // What it points at: another actor, a block, a camera, or a fixed point.
         public string target = "";        // "", "actor:<mark id>", "block:<index>", "camera:<camera id>", "hazard", "point:x,y,z"

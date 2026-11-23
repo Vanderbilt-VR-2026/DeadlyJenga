@@ -32,6 +32,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public bool punchIn;              // keep the performer's old take up to 'from' and record from there
         public bool loop;                 // record again and again, a new take each time, until stopped
         public bool paths = true;         // draw the other actors' paths on the floor for the performer
+        public string starredGhost = ""; // same-actor reference take, used only for this recording run
         public int branchFrom = -1;       // keep the world tape before this frame and simulate from it (-1 = start from a fresh map)
         public string note = "";          // saved with the world take (branch and variation labels)
         public int seed = -1;             // random seed for this run (-1 = the Set's seed)

@@ -71,6 +71,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var set = context.Set;
             if (set == null) { panel.Add(StudioUi.Hint("Choose or make a Set first.")); return; }
             bool stageOpen = context.StageOpen && context.Stage?.set?.id == set.id;
+            StudioMomentPanel.Build(panel, context, stageOpen && StudioRun.State == StudioState.Held);
             panel.Add(StudioUi.Hint(set.cameras.Count == 0
                 ? "Frame the shot in the viewport, then add a camera from that view."
                 : "Select a camera to edit it. Its keys show on the timeline and as a path in the viewport."));

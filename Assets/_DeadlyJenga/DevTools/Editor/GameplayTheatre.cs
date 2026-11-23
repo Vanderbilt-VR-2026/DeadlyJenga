@@ -20,6 +20,18 @@ using Object = UnityEngine.Object;
 
 namespace DeadlyJenga.DevTools.Editor
 {
+    [Serializable] public sealed class TheatreBookmark
+    {
+        public int frame;
+        public string name;
+    }
+
+    [Serializable] public sealed class TheatreBookmarks
+    {
+        public int fps;
+        public List<TheatreBookmark> marks = new List<TheatreBookmark>();
+    }
+
     [Serializable] public sealed class TheatrePlan
     {
         public string title = "Deadly Jenga showreel", map = "castle";
@@ -296,6 +308,8 @@ namespace DeadlyJenga.DevTools.Editor
                 using (new EditorGUI.DisabledScope(!EditorApplication.isPlaying || GameplayTheatre.Busy))
                     if (GUILayout.Button("Record current match"))
                         Try(() => GameplayTheatre.RecordCurrentMatch(JsonUtility.FromJson<TheatrePlan>(json)));
+                if (GameplayTheatre.CanBookmark && GUILayout.Button("Bookmark current frame"))
+                    Try(GameplayTheatre.BookmarkCurrentFrame);
                 if (GUILayout.Button("Open last gallery")) Try(GameplayTheatre.OpenGallery);
                 if (GUILayout.Button("Load take for reframe"))
                     Try(() =>
@@ -308,6 +322,27 @@ namespace DeadlyJenga.DevTools.Editor
                         json = JsonUtility.ToJson(edit, true);
                     });
             }
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GameplayTheatre.LookbackArmed)
+                {
+                    using (new EditorGUI.DisabledScope(GameplayTheatre.LookbackCount == 0))
+                        if (GUILayout.Button($"Keep last {GameplayTheatre.LookbackCount / (float)TheatreLookback.Fps:0.0} s"))
+                            Try(GameplayTheatre.KeepLookback);
+                    if (GUILayout.Button("Disarm look-back")) GameplayTheatre.DisarmLookback();
+                }
+                else
+                {
+                    using (new EditorGUI.DisabledScope(!EditorApplication.isPlaying || GameplayTheatre.Busy))
+                        if (GUILayout.Button("Arm 10 s motion look-back"))
+                            Try(() => GameplayTheatre.ArmLookback(JsonUtility.FromJson<TheatrePlan>(json)));
+                }
+                string lastLookback = GameplayTheatre.LastLookbackFolder;
+                if (Directory.Exists(lastLookback) && GUILayout.Button("Open last kept take"))
+                    EditorUtility.RevealInFinder(Path.Combine(lastLookback, "recipe.json"));
+            }
+            if (GameplayTheatre.LookbackArmed)
+                EditorGUILayout.HelpBox("Samples a local desktop match at 12 fps, up to 10 seconds and 24 MiB. Import the kept motion take into Trailer Studio.", MessageType.Info);
             if (mapNames.Length > 0)
                 using (new EditorGUILayout.HorizontalScope())
                 {
@@ -329,7 +364,7 @@ namespace DeadlyJenga.DevTools.Editor
             if (showRecipe) json = EditorGUILayout.TextArea(json, GUILayout.MinHeight(210));
             else Director();
             EditorGUILayout.EndScrollView();
-            if (GameplayTheatre.Busy || livePreview && EditorApplication.isPlaying) Repaint();
+            if (GameplayTheatre.Busy || GameplayTheatre.LookbackArmed || livePreview && EditorApplication.isPlaying) Repaint();
         }
         void OnDisable()
         {
@@ -523,6 +558,8 @@ namespace DeadlyJenga.DevTools.Editor
             public TheatrePlan plan;
             public string folder, failure;
             public bool batch, played, completed, existingMatch, previewOnly;
+            public int recordedFrame = -1;
+            public TheatreBookmarks bookmarks;
             public RecordingScene[] scenes;
         }
         sealed class Actor
@@ -538,6 +575,9 @@ namespace DeadlyJenga.DevTools.Editor
             public Vector3 hitDirection;
         }
         static Job job;
+        static TheatreLookback lookback;
+        static double nextLookbackCheck;
+        static int lastLookbackFrame = -1;
         static IEnumerator<int> take;
         static int lastFrame = -1, errors;
         static float oldScale;
@@ -547,6 +587,11 @@ namespace DeadlyJenga.DevTools.Editor
         static Process encoder;
         static readonly List<string> EncoderErrors = new List<string>();
         public static bool Busy => job != null;
+        internal static bool CanBookmark => job?.existingMatch == true && job.bookmarks != null && job.recordedFrame >= 0;
+        internal const string BookmarksFile = "bookmarks.json";
+        internal static bool LookbackArmed => lookback != null;
+        internal static int LookbackCount => lookback?.Count ?? 0;
+        internal static string LastLookbackFolder => SessionState.GetString(Key + ".Lookback", "");
         public static string LastGalleryFolder => SessionState.GetString(Key + ".Gallery", "");
         public static string Status { get; private set; } = "Ready to stage a local take.";
         internal static RenderTexture TimelineImage { get; private set; }
@@ -728,7 +773,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         internal static void RecordCurrentMatch(TheatrePlan plan)
         {
-            if (Busy || SpectatorVideoCapture.Busy || !EditorApplication.isPlaying || EditorApplication.isPaused)
+            if (Busy || LookbackArmed || SpectatorVideoCapture.Busy || !EditorApplication.isPlaying || EditorApplication.isPaused)
                 throw new InvalidOperationException("Resume Play Mode and stop other captures first.");
             var session = Object.FindFirstObjectByType<CastlePlaySession>();
             if (!session || Services.World == null || !session.HasWorldAuthority || session.IsVR ||
@@ -739,9 +784,90 @@ namespace DeadlyJenga.DevTools.Editor
             var folder = SpectatorRecordingPlan.TimestampDirectory(Path.Combine(SpectatorRecordingPlan.ProjectRoot,
                 "Logs", "GameplayTheatre"));
             File.WriteAllText(Path.Combine(folder, "recipe.json"), JsonUtility.ToJson(plan, true));
-            job = new Job { plan = plan, folder = folder, played = true, existingMatch = true, scenes = Array.Empty<RecordingScene>() };
+            job = new Job
+            {
+                plan = plan, folder = folder, played = true, existingMatch = true, scenes = Array.Empty<RecordingScene>(),
+                bookmarks = new TheatreBookmarks { fps = plan.fps }
+            };
             SessionState.SetString(Key + ".Gallery", folder);
             BeginCapture();
+        }
+
+        internal static void ArmLookback(TheatrePlan plan)
+        {
+            var session = Object.FindFirstObjectByType<CastlePlaySession>();
+            if (!EditorApplication.isPlaying || EditorApplication.isPaused || Busy || LookbackArmed || SpectatorVideoCapture.Busy ||
+                !session || Services.World == null || !session.HasWorldAuthority || session.IsVR ||
+                session.Network && session.Network.HumanCount > 1)
+                throw new InvalidOperationException("Look-back needs an active local desktop match without other captures.");
+            if (plan == null) throw new InvalidDataException("Recipe is empty.");
+            plan.fps = TheatreLookback.Fps;
+            plan.shots = new[] { new TheatrePlan.TheatreShot() };
+            plan.edit = Array.Empty<TheatrePlan.TheatreEdit>();
+            BindCurrentMatch(plan);
+            var world = Services.World;
+            Vector3 stage = (plan.useMapAnchor ? world.Center + plan.mapAnchor : Stage(world)) + plan.stageOffset;
+            var cast = CurrentCast();
+            lookback = new TheatreLookback(plan, world, stage, plan.cast.Select(track => cast[track.id].avatar).ToArray());
+            nextLookbackCheck = 0;
+            lastLookbackFrame = -1;
+            Status = "Motion look-back armed.";
+        }
+
+        static CandyPlayerAvatar[] CurrentLookbackCast() => CurrentCast().OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => pair.Value.avatar).ToArray();
+
+        internal static void KeepLookback()
+        {
+            if (lookback == null || !lookback.Matches(Services.World, MatchSetup.MapId, CurrentLookbackCast()))
+                throw new InvalidOperationException("The map or cast changed before the look-back could be kept.");
+            string folder = SpectatorRecordingPlan.TimestampDirectory(Path.Combine(SpectatorRecordingPlan.ProjectRoot,
+                "Logs", "GameplayTheatre", "Lookback"));
+            lookback.Save(folder);
+            SessionState.SetString(Key + ".Lookback", folder);
+            Status = "Look-back motion take saved: " + folder;
+        }
+
+        internal static void DisarmLookback()
+        {
+            lookback?.Dispose();
+            lookback = null;
+            Status = "Motion look-back disarmed.";
+        }
+
+        static void SampleLookback()
+        {
+            if (lookback == null || !EditorApplication.isPlaying || EditorApplication.isPaused || lastLookbackFrame == Time.frameCount) return;
+            lastLookbackFrame = Time.frameCount;
+            try
+            {
+                if (Busy || SpectatorVideoCapture.Busy) throw new InvalidOperationException("Another capture started.");
+                double now = Time.unscaledTimeAsDouble;
+                if (now >= nextLookbackCheck)
+                {
+                    var session = Object.FindFirstObjectByType<CastlePlaySession>();
+                    if (!session || !session.HasWorldAuthority || session.IsVR || session.Network && session.Network.HumanCount > 1 ||
+                        !lookback.Matches(Services.World, MatchSetup.MapId, CurrentLookbackCast()))
+                        throw new InvalidOperationException("The local match, map or cast changed.");
+                    nextLookbackCheck = now + .5;
+                }
+                lookback.Sample(now);
+            }
+            catch (Exception error)
+            {
+                DisarmLookback();
+                Status = "Look-back stopped: " + error.Message;
+            }
+        }
+
+        internal static void BookmarkCurrentFrame()
+        {
+            if (!CanBookmark) return;
+            var marks = job.bookmarks.marks;
+            if (marks.Count > 0 && marks[marks.Count - 1].frame == job.recordedFrame) return;
+            marks.Add(new TheatreBookmark { frame = job.recordedFrame, name = $"Match bookmark {marks.Count + 1}" });
+            File.WriteAllText(Path.Combine(job.folder, BookmarksFile), JsonUtility.ToJson(job.bookmarks, true));
+            Status = $"Bookmarked tape frame {job.recordedFrame}.";
         }
 
         static void BindCurrentMatch(TheatrePlan plan)
@@ -768,6 +894,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void State(PlayModeStateChange state)
         {
+            if (lookback != null && state == PlayModeStateChange.ExitingPlayMode) DisarmLookback();
             if (job == null) return;
             if (state == PlayModeStateChange.EnteredPlayMode)
             {
@@ -831,6 +958,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void Tick()
         {
+            SampleLookback();
             if (take == null || !EditorApplication.isPlaying || Time.frameCount == lastFrame) return;
             lastFrame = Time.frameCount;
             try { if (!take.MoveNext()) End(errors == 0 ? "" : "Unity logged runtime errors. See runtime-errors.txt."); }
@@ -1125,6 +1253,7 @@ namespace DeadlyJenga.DevTools.Editor
                         }
                         if (observedWave) peakWaveTargets = Mathf.Max(peakWaveTargets, observedWave.LastTargetCount);
                         tape.WriteFrame();
+                        if (existingMatch) job.recordedFrame = frame;
                     }
                     for (int i = 0; i < plan.shots.Length; i++)
                     {
@@ -1142,6 +1271,7 @@ namespace DeadlyJenga.DevTools.Editor
                     Status = $"Staging frame {frame + 1}/{end}, {counts.Sum()} camera frames.";
                     yield return 0;
                 }
+                if (existingMatch) job.recordedFrame = -1;
                 if (!replay && cueIndex != cues.Length) throw new InvalidDataException("A cue falls after the last sampled frame.");
                 audio?.Complete(end, plan.fps);
                 if (waveStarts != null)

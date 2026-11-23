@@ -18,6 +18,10 @@ Theatre runs a local desktop Game scene. Save or close edited scenes first. Set 
 
 Open Theatre during desktop Play Mode with a local match active. In the shot controls, select a live survivor or use the stage as the target. Enable **Live shot viewport** and scrub **Camera time** to preview the rail against the running game. Click **Record current match** to record for the duration set in the recipe. This keeps the existing map, round and actors and ignores staged cues. Recording uses a fixed capture clock. The match continues after export. Multiplayer clients and VR sessions are outside this capture path.
 
+While recording, **Bookmark current frame** saves the latest completed tape frame. Import the take into Trailer Studio to jump to those marks under **Shoot → Saved moments**.
+
+For an unplanned moment, click **Arm 10 s motion look-back** during a local desktop match. It retains up to 10 seconds of observed poses and world state at a nominal 12 fps with a 24 MiB memory limit. **Keep last … s** saves the current window as a standalone motion take you can import into Trailer Studio. The saved take has no audio. **Disarm look-back** clears the buffer. Look-back is off by default and stops when the match or cast changes.
+
 ## Audio and replay limits
 
 The stem links in the gallery are World, Character, Ambience, Music, UI, Voice and Other. Empty buses export silence. All stems start at take time zero and use the same sample count as the master. Load them together in an editor at the same timecode. The mixer asset ships with Theatre. **Tools → Deadly Jenga → Install Theatre Stem Mixer** can recreate it if needed.

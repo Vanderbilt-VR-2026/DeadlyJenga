@@ -13,6 +13,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     // The Set tab: build the scene. Pick the map, place marks, add cues.
     public sealed class SetMode : IStudioMode
     {
+        readonly StudioLayoutTemplate layoutTemplate = new StudioLayoutTemplate();
         public string Title => "Set";
         public int Order => 10;
         public bool Available => true;
@@ -41,6 +42,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     context.Select(made);
                     return;
                 }
+                if (context.window.Viewport.PickingOrigin) context.window.Viewport.CancelPlacing();
                 context.window.Viewport.Placing = role;
                 context.window.Viewport.Rebuild();
                 context.Say("Click in the viewport where the new mark should stand.");
@@ -76,6 +78,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 menu.ShowAsContext();
             }, "Something the world does at this time: a collapse, a disaster."));
 
+            layoutTemplate.Add(panel, context);
             foreach (string problem in set.Problems()) panel.Add(StudioUi.Warning(problem));
         }
     }

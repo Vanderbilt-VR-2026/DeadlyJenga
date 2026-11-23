@@ -466,7 +466,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 cutIn.value = originalIn + .25f;
                 window.rootVisualElement.Q<Button>("commands").Focus();
                 yield return 0;
-                trimmed = Mathf.Approximately(set.cuts[0].from, originalIn + .25f);
+                float expectedFrameTime = Mathf.Round((originalIn + .25f) * set.render.fps) / set.render.fps;
+                trimmed = Mathf.Approximately(set.cuts[0].from, expectedFrameTime);
                 context.Edit("Restore the trim fixture", () => set.cuts[0].from = originalIn);
             }
             Result("Cut's In trim updates the selected piece", trimmed, $"The rendered trim slider changed the first piece: {trimmed}.");

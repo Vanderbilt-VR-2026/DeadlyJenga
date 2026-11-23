@@ -115,7 +115,18 @@ In the sound row, green marks show recorded block hits, gold marks show match cu
 
 The interaction draws on [Audacity track focus and display](https://manual.audacityteam.org/man/audio_tracks.html), [Audacity range selection](https://manual.audacityteam.org/man/audacity_selection.html), and [Premiere timeline navigation](https://helpx.adobe.com/premiere/desktop/edit-projects/change-clip-sequence/navigation-controls-in-the-timeline.html).
 
-## Editor appearance and navigation
+## Make a second version of a scene
+
+1. In **Set**, open the destination map, expand **Reuse a scene layout**, and choose a saved layout. On the held stage, pick an origin, inspect the overhead camera cones and dry-floor warnings, and assign actors and outfits. Save the result as a new Set. Map-block bindings that cannot travel appear in the review. Record fresh world motion for the destination.
+2. In **Perform**, record the lead once. Open **Review last take** to watch with a lead-in, star the take, or try again. When recording the next actor, choose which previous actors should appear as characters or ghosts.
+3. In **Polish**, build background performers from recorded motion. Lock the hero, name the extras as a group, and rehearse their paths before accepting a retake. Floor checks use the held world state. Scrub the destruction separately to inspect late collisions.
+4. In **Direct**, add the three story beats if the scene needs them. Move the markers to the actual anticipation, action and aftermath.
+5. In **Shoot**, mark an event and compare POV and witness at the same source frame. Pin the reference and inspect the framing reasons. Render your selects.
+6. In **Cut**, save an alternate edit before trying a different rhythm. Use the incoming and outgoing trim views to match movement. Adjust sound lead or tail, audition the buses, then export the media package. For a cross-machine handoff, open the exported timeline in the receiving editor and inspect the first cut and each retime against the stems.
+
+For unexpected gameplay, arm motion look-back in Gameplay Theatre before playing. Keeping the recent motion lets you choose cameras later. The buffer retains up to ten seconds at a nominal 12 fps and excludes audio.
+
+## Theme and navigation
 
 The six production tabs pair a task name with a line icon and a short action caption. Teal identifies the current task and keyboard focus. The recorder uses coral and changes its round indicator to a stop square during recording. Track colors identify content in the timeline. The light palette follows the same conventions as the dark palette.
 

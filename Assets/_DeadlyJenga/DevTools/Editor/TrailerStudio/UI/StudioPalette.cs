@@ -273,7 +273,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             if (box == null)
             {
-                if (e.keyCode != KeyCode.Escape || !context.window.Viewport.Placing.HasValue) return false;
+                if (e.keyCode != KeyCode.Escape || (!context.window.Viewport.Placing.HasValue && !context.window.Viewport.PickingOrigin)) return false;
                 context.window.Viewport.CancelPlacing();
                 return true;
             }

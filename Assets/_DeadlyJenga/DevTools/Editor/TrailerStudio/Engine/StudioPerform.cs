@@ -23,6 +23,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public static bool Paths { get => GetBool("Paths", true); set => SetBool("Paths", value); }
         public static bool PunchIn { get => GetBool("PunchIn", false); set => SetBool("PunchIn", value); }
         public static bool GhostsHidden { get => GetBool("GhostsHidden", false); set => SetBool("GhostsHidden", value); }
+        public static bool StarredGhostEnabled(StudioSet set, StudioMark actor) => GetBool($"StarredGhost.{set.id}.{actor.id}", false);
+        public static void SetStarredGhost(StudioSet set, StudioMark actor, bool enabled) => SetBool($"StarredGhost.{set.id}.{actor.id}", enabled);
 
         static Action pending;            // something to do as soon as the current run has stopped
         static bool hooked;
@@ -36,6 +38,39 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         {
             var take = tape?.Find(mark.id)?.ActiveTake;
             return take != null && frame > take.start && take.Covers(frame - 1);
+        }
+
+        internal static StudioTake StarredGhostFor(StudioTape tape, StudioMark mark, bool liveWorld, int from, int to,
+            string takeId, out string reason)
+        {
+            reason = "";
+            if (liveWorld) { reason = "Available when recording against a played-back world."; return null; }
+            var worldTrack = tape?.FindType(WorldTrack.Id);
+            var world = worldTrack?.ActiveTake;
+            if (world == null || world.trashed || world.frames.Count == 0 || worldTrack.mode == TrackMode.Muted ||
+                (tape.tracks.Any(t => t.solo) && !worldTrack.solo))
+            { reason = "Play an active recorded world to use a reference ghost."; return null; }
+
+            var actor = tape.Find(mark.id);
+            var starred = actor?.Kept.Where(t => t.starred && t.frames.Count > 0 && (takeId == null || t.id == takeId)).ToArray();
+            if (starred == null || starred.Length == 0)
+            { reason = "Star a recorded take for this actor."; return null; }
+            var compatible = starred.Where(t => StudioTakes.WorldOf(t) == world.id).ToArray();
+            if (compatible.Length == 0)
+            { reason = "The starred takes belong to another world or have no recorded world identity."; return null; }
+
+            var take = compatible.Where(t => Mathf.Max(from, t.start, world.start) <= Mathf.Min(to, t.End - 1, world.End - 1))
+                .OrderByDescending(t => t.created).FirstOrDefault();
+            if (take == null) reason = "The starred take and world do not cover this recording range together.";
+            return take;
+        }
+
+        static void ChooseStarredGhost(StudioStage stage, StudioPass pass)
+        {
+            var actor = stage.set.Mark(pass.performer);
+            pass.starredGhost = actor != null && StarredGhostEnabled(stage.set, actor)
+                ? StarredGhostFor(stage.tape, actor, pass.liveWorld, pass.from, pass.to < 0 ? stage.Frames - 1 : pass.to, null, out _)?.id ?? ""
+                : "";
         }
 
         public static StudioPass BuildPass(StudioStage stage, int playhead)
@@ -61,6 +96,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if (!track.locked && track.type != SurvivorTrack.Id && track.type != HandTrack.Id && StudioTrackTypes.Get(track.type) != null)
                         pass.record.Add(track.id);
             }
+            ChooseStarredGhost(stage, pass);
             return pass;
         }
 
@@ -92,6 +128,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 pass.punchIn = true; pass.from = frame; pass.loop = false; pass.liveWorld = false;
                 pass.record.Clear(); pass.record.Add(mark.id);
                 pass.label = "Punch in " + mark.actor;
+                ChooseStarredGhost(stage, pass);
                 StudioRun.Record(pass);
             });
         }
@@ -101,6 +138,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var copy = new StudioPass { label = pass.label, fixedClock = pass.fixedClock, from = pass.from, to = pass.to, liveWorld = pass.liveWorld,
                 speed = Speed, performer = pass.performer, preRoll = pass.preRoll, countdown = pass.countdown, punchIn = pass.punchIn, loop = pass.loop, paths = pass.paths };
             copy.record.AddRange(pass.record);
+            ChooseStarredGhost(StudioRun.Stage, copy);
             return copy;
         }
 

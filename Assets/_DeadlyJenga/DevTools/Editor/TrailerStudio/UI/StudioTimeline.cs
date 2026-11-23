@@ -245,6 +245,21 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             else
                 DrawRange(mesh);
 
+            if (set.storyBeats != null)
+                foreach (var beat in set.storyBeats)
+                {
+                    float frame = beat.seconds * set.fps;
+                    if (frame < ViewFirst || frame >= ViewAfter) continue;
+                    float x = X(frame, ruler);
+                    painter.fillColor = StudioColors.Hazard;
+                    painter.BeginPath();
+                    painter.MoveTo(new Vector2(x - 4, height - 6));
+                    painter.LineTo(new Vector2(x + 4, height - 6));
+                    painter.LineTo(new Vector2(x, height));
+                    painter.ClosePath();
+                    painter.Fill();
+                }
+
             // Keep ticks on whole seconds when the visible span is long and show frame times for close edits.
             int tick = Mathf.Max(1, Mathf.CeilToInt(ViewCount * 9f / width));
             if (tick > set.fps / 4) tick = Mathf.CeilToInt(tick / (float)set.fps) * set.fps;

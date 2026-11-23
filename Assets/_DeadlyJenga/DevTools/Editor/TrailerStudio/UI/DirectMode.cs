@@ -133,6 +133,40 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // ---- Panel ----
 
+        internal static List<StudioStoryBeat> InitialBeats(float duration)
+        {
+            return new List<StudioStoryBeat>
+            {
+                new StudioStoryBeat { title = "Anticipation", seconds = 0 },
+                new StudioStoryBeat { title = "Action", seconds = duration * .45f },
+                new StudioStoryBeat { title = "Aftermath", seconds = duration * .75f }
+            };
+        }
+
+        static void BuildStoryBeats(VisualElement panel, StudioContext context)
+        {
+            var set = context.Set;
+            var fold = new Foldout { text = "Story beats", value = set.storyBeats?.Count > 0 };
+            panel.Add(fold);
+            if (set.storyBeats == null || set.storyBeats.Count == 0)
+            {
+                fold.Add(StudioUi.Hint("Mark what the viewer should anticipate, see happen and understand afterward."));
+                fold.Add(StudioUi.Small("Add three beats", () => context.Edit("Add story beats", () => set.storyBeats = InitialBeats(set.length))));
+                return;
+            }
+            foreach (var beat in set.storyBeats)
+            {
+                var name = new TextField { value = beat.title, isDelayed = true };
+                name.RegisterValueChangedCallback(e => context.Edit("Rename story beat", () =>
+                    beat.title = string.IsNullOrWhiteSpace(e.newValue) ? beat.title : e.newValue.Trim()));
+                fold.Add(name);
+                fold.Add(StudioUi.Row(StudioUi.Small("Go to " + StudioUi.Time(Mathf.RoundToInt(beat.seconds * set.fps), set.fps),
+                    () => context.window.Scrub(Mathf.RoundToInt(beat.seconds * set.fps))),
+                    StudioUi.Small("Set here", () => context.Edit("Move story beat", () => beat.seconds = context.Frame / (float)set.fps))));
+            }
+            fold.Add(StudioUi.Small("Clear beats", () => context.Edit("Clear story beats", () => set.storyBeats.Clear())));
+        }
+
         public void Build(VisualElement panel, StudioContext context)
         {
             panel.Add(StudioUi.Heading("DIRECT THE WORLD"));
@@ -140,6 +174,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (set == null) { panel.Add(StudioUi.Hint("Choose or make a Set first.")); return; }
             bool held = StudioRun.State == StudioState.Held;
 
+            BuildStoryBeats(panel, context);
             void AddCue(string label, Action<StudioCue> setup)
             {
                 // The playhead at the moment of the click (scrubbing does not rebuild this panel).

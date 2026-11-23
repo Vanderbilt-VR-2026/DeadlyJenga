@@ -144,6 +144,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             panel.Add(StudioUi.Heading("POLISH"));
             var set = context.Set; var tape = context.Tape;
             if (set == null) { panel.Add(StudioUi.Hint("Choose or make a Set first.")); return; }
+            if (set.marks.Any(m => m.role != StudioRole.Hand))
+                panel.Add(StudioUi.Small("Cast wardrobe contact sheet", () => StudioWardrobeSheet.Open(context)));
             var mark = Chosen(context);
             var track = mark == null ? null : tape?.Find(mark.id);
             if (mark == null || track?.ActiveTake == null)
@@ -167,6 +169,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 StudioUi.Hint(ranged
                     ? $"Selected range {StudioUi.Time(from, fps)} to {StudioUi.Time(to, fps)}. Slide moves the whole take."
                     : "Range edits cover the whole take. Use [ and ] on the timeline to limit the range.")));
+            StudioReactionLibrary.Add(panel, context, mark);
             if (ranged && overlapTo <= overlapFrom)
                 panel.Add(StudioUi.Warning("The selected range does not overlap this take."));
 
@@ -276,9 +279,31 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         void Crowd(VisualElement panel, StudioContext context)
         {
             var set = context.Set; var tape = context.Tape;
-            var performed = set.marks.Where(m => m.role != StudioRole.Hand && tape.Find(m.id)?.ActiveTake != null && !m.actor.StartsWith("Crowd ")).ToList();
-            if (performed.Count == 0) return;
+            var performed = set.marks.Where(m => m.role != StudioRole.Hand && tape.Find(m.id)?.ActiveTake != null &&
+                string.IsNullOrEmpty(m.crowdGroup) && !m.actor.StartsWith("Crowd ")).ToList();
             var fold = new Foldout { text = "Make a crowd", value = false };
+            var group = new TextField("Group name") { value = crowd.group };
+            var seed = new IntegerField("Variation seed") { value = crowd.seed };
+            var sources = new DropdownField("Source take", new[] { "All performed actors" }.Concat(performed.Select(m => m.actor)).ToList(), 0);
+            var route = new Toggle("Aim toward a destination") { value = crowd.directed };
+            var origin = new Vector3Field("Start in stage space") { value = crowd.start };
+            var destination = new Vector3Field("Aim toward in stage space") { value = crowd.destination };
+            var cue = new FloatField("Start cue (seconds)") { value = crowd.cueTime };
+            var routeFields = new VisualElement();
+            routeFields.Add(origin); routeFields.Add(destination); routeFields.Add(cue);
+            routeFields.style.display = route.value ? DisplayStyle.Flex : DisplayStyle.None;
+            group.RegisterValueChangedCallback(e => crowd.group = e.newValue);
+            seed.RegisterValueChangedCallback(e => crowd.seed = e.newValue);
+            origin.RegisterValueChangedCallback(e => crowd.start = e.newValue);
+            destination.RegisterValueChangedCallback(e => crowd.destination = e.newValue);
+            cue.RegisterValueChangedCallback(e => crowd.cueTime = e.newValue);
+            route.RegisterValueChangedCallback(e =>
+            {
+                crowd.directed = e.newValue;
+                routeFields.style.display = e.newValue ? DisplayStyle.Flex : DisplayStyle.None;
+            });
+            routeFields.Add(StudioUi.Hint("The source take supplies the movement and distance. The destination sets its heading."));
+            fold.Add(group); fold.Add(seed); fold.Add(sources); fold.Add(route); fold.Add(routeFields);
             fold.Add(StudioUi.Hint($"Turns your {performed.Count} performed take(s) into a group. Each person gets their own place, timing, mirroring and outfit."));
             var count = new SliderInt("People", 2, 40) { value = crowd.count, showInputField = true };
             count.RegisterValueChangedCallback(e => crowd.count = e.newValue);
@@ -297,22 +322,83 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 try
                 {
+                    if (StudioRun.Busy || StudioHandheld.Recording) return;
+                    if (performed.Count == 0) throw new InvalidOperationException("Record a source performance first.");
                     List<string> notes = null; int made = 0;
-                    crowd.seed = set.marks.Count * 17 + 3;
+                    crowd.group = group.value.Trim();
+                    if (crowd.group.Length == 0) throw new InvalidOperationException("Name this group before making it.");
+                    if (set.marks.Any(m => string.Equals(m.crowdGroup, crowd.group, StringComparison.OrdinalIgnoreCase)))
+                        throw new InvalidOperationException("A group already has that name. Pick a new name or retake the existing group below.");
+                    crowd.seed = seed.value;
+                    crowd.directed = route.value;
+                    crowd.start = origin.value;
+                    crowd.destination = destination.value;
+                    crowd.cueTime = Mathf.Clamp(cue.value, 0, (set.Frames - 1) / (float)set.fps);
                     // With the stage open, people are only put where there is ground to stand on.
                     var open = StudioRun.State == StudioState.Held ? context.Stage : null;
                     crowd.ground = open == null ? (Func<Vector3, float?>)null : open.GroundAt;
-                    context.Edit("Make crowd", () => made = StudioTakes.Crowd(set, tape, performed, crowd, out notes).Count, true);
+                    if (crowd.directed && open == null) throw new InvalidOperationException("Open the stage to check the directed group's starting area.");
+                    if (crowd.directed && Vector3.ProjectOnPlane(crowd.destination - crowd.start, Vector3.up).sqrMagnitude < .04f)
+                        throw new InvalidOperationException("Place the destination away from the start to set a travel direction.");
+                    var chosen = sources.index <= 0 ? performed : new List<StudioMark> { performed[sources.index - 1] };
+                    context.Edit("Make crowd", () => made = StudioTakes.Crowd(set, tape, chosen, crowd, out notes).Count, true);
                     context.window.TapeChanged();
                     context.Say($"Made a crowd of {made}. " + string.Join(" ", notes));
                 }
                 catch (Exception error) { context.Say(error.Message); }
             }));
-            var crowdMarks = set.marks.Where(m => m.actor.StartsWith("Crowd ")).ToList();
+            var crowdMarks = set.marks.Where(m => string.IsNullOrEmpty(m.crowdGroup) && m.actor.StartsWith("Crowd ")).ToList();
             if (crowdMarks.Count > 0)
-                fold.Add(StudioUi.Small($"Remove the crowd ({crowdMarks.Count})", () => context.Edit("Remove crowd", () => set.marks.RemoveAll(m => m.actor.StartsWith("Crowd ")), true),
+                fold.Add(StudioUi.Small($"Remove unnamed crowd ({crowdMarks.Count})", () => context.Edit("Remove crowd", () => set.marks.RemoveAll(m => crowdMarks.Contains(m) && !m.heroLocked), true),
                     "Removes the crowd's marks. Their takes stay on the tape."));
-            panel.Add(fold);
+            if (performed.Count > 0 || crowdMarks.Count > 0) panel.Add(fold);
+            foreach (var members in set.marks.Where(m => !string.IsNullOrEmpty(m.crowdGroup)).GroupBy(m => m.crowdGroup))
+            {
+                string name = members.Key;
+                var controls = new Foldout { text = $"{name} · {members.Count()} performers", value = false };
+                controls.Add(StudioUi.Small("Rehearse routes", () =>
+                {
+                    if (StudioRun.State != StudioState.Held || context.Stage == null)
+                    {
+                        context.Say("Hold the stage on the world state you want to check first.");
+                        return;
+                    }
+                    var check = StudioTakes.RehearseCrowd(context.Stage, name, .6f);
+                    var actor = members.FirstOrDefault(m => tape.Find(m.id)?.mode != TrackMode.Muted);
+                    if (actor != null) context.Select(actor);
+                    context.Say(check.frame < 0 ? check.message : $"Frame {check.frame}: {check.message}. Ground uses the held world state.");
+                    if (check.frame >= 0) context.window.Scrub(check.frame);
+                }, "Checks sampled paths for close passes and ground against the currently held world state."));
+                var retakeSeed = new IntegerField("Retake seed") { value = crowd.seed };
+                var retakeSpread = new Slider("Retake timing spread (s)", 0, 2) { value = .25f, showInputField = true };
+                controls.Add(retakeSeed);
+                controls.Add(retakeSpread);
+                controls.Add(StudioUi.Small("Retake unlocked performers", () =>
+                {
+                    if (StudioRun.Busy || StudioHandheld.Recording) return;
+                    try
+                    {
+                        int changed = StudioTakes.RetakeCrowd(set, tape, name, retakeSpread.value, retakeSeed.value);
+                        if (changed > 0) context.window.TapeChanged();
+                        context.Say($"Added {changed} background takes for {name}. Previous takes are available in the cast list.");
+                    }
+                    catch (Exception error) { context.Say(error.Message); }
+                }, "Makes new takes from the current sources recorded against the active world take."));
+                controls.Add(StudioUi.Small("Restore previous group takes", () =>
+                {
+                    if (StudioRun.Busy || StudioHandheld.Recording) return;
+                    try
+                    {
+                        int changed = StudioTakes.RestoreCrowdTakes(set, tape, name);
+                        if (changed > 0) context.window.TapeChanged();
+                        context.Say(changed > 0 ? $"Restored {changed} prior performances in {name}." : "There are no active group retakes to restore.");
+                    }
+                    catch (Exception error) { context.Say(error.Message); }
+                }));
+                controls.Add(StudioUi.Small("Group wardrobe contact sheet", () => StudioWardrobeSheet.Open(context, name),
+                    "Compare neutral portraits and choose a performer to edit."));
+                panel.Add(controls);
+            }
         }
     }
 
@@ -333,7 +419,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             {
                 panel.Add(StudioFields.Slide(context, "Ease in (s)", layer.blendIn, 0, 2, v => layer.blendIn = v));
                 panel.Add(StudioFields.Slide(context, "Ease out (s)", layer.blendOut, 0, 2, v => layer.blendOut = v));
-                panel.Add(StudioFields.Slide(context, "Amount", layer.strength, 0, layer.kind == "reaction" ? 3 : 1, v => layer.strength = v));
+                panel.Add(StudioFields.Slide(context, "Amount", layer.strength, 0, layer.kind == "reaction" && !layer.libraryReaction ? 3 : 1, v => layer.strength = v));
             }
 
             if (layer.kind == "lookAt" || layer.kind == "reach")
@@ -363,6 +449,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             if (layer.kind == "reaction")
             {
                 panel.Add(StudioFields.Choice(context, "Reaction", StudioOverrides.ReactionLabels, Mathf.Max(0, StudioOverrides.Reactions.IndexOf(layer.name)), i => layer.name = StudioOverrides.Reactions[Mathf.Max(0, i)]));
+                if (layer.libraryReaction)
+                {
+                    panel.Add(StudioFields.Switch(context, "Mirror left and right", layer.mirrorReaction, v => layer.mirrorReaction = v));
+                    panel.Add(StudioFields.Switch(context, "Keep drawn equipment grip", layer.preserveGrip, v => layer.preserveGrip = v));
+                }
                 var triggers = new List<string> { "", "contact" }.Concat(set.cues.Select(c => "cue:" + c.id)).ToList();
                 var triggerNames = new List<string> { "Its own time", "When a recorded block touches them" }.Concat(set.cues.Select(c => $"Cue \"{StudioCues.Get(c.action)?.Label ?? c.action}\" at {c.at:0.00}s")).ToList();
                 panel.Add(StudioFields.Choice(context, "Starts", triggerNames, Mathf.Max(0, triggers.IndexOf(layer.trigger)), i =>
@@ -398,6 +489,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
     // The selected actor's path with a tick every half second, and the point being dragged.
     public sealed class PolishOverlay : IStudioOverlay
     {
+        readonly Dictionary<StudioTake, List<Vector3>> routes = new Dictionary<StudioTake, List<Vector3>>();
+
         public void Draw(StudioOverlayPainter painter, StudioContext context)
         {
             if (!(context.window.Mode is PolishMode)) return;
@@ -406,6 +499,24 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var track = mark == null ? null : tape?.Find(mark.id);
             var take = track?.ActiveTake;
             if (take == null) return;
+            if (!string.IsNullOrEmpty(mark.crowdGroup))
+            {
+                if (routes.Count >= 128) routes.Clear();
+                foreach (var member in set.marks.Where(m => m.crowdGroup == mark.crowdGroup))
+                {
+                    var peer = tape.Find(member.id);
+                    if (peer?.ActiveTake == null || peer.mode == TrackMode.Muted) continue;
+                    if (!routes.TryGetValue(peer.ActiveTake, out var points))
+                    {
+                        points = new List<Vector3>();
+                        for (int i = 0; i < peer.ActiveTake.frames.Count; i += Mathf.Max(1, set.fps / 10))
+                            if (ActorTrack.TryReadPosition(peer.type, peer.ActiveTake.frames[i], out var position)) points.Add(position);
+                        routes[peer.ActiveTake] = points;
+                    }
+                    var peerColor = StudioColors.For(member.color);
+                    painter.Path(points, new Color(peerColor.r, peerColor.g, peerColor.b, .6f));
+                }
+            }
             var color = StudioColors.For(mark.color);
             int every = Mathf.Max(1, set.fps / 2);
             for (int f = take.start; f < take.End; f += every)

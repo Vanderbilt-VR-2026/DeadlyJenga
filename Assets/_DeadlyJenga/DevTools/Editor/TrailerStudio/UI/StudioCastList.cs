@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -12,6 +13,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         readonly StudioContext context;
         readonly ScrollView host;
         string filter = "";
+        readonly HashSet<string> expandedGroups = new HashSet<string>();
         static bool RunActive => StudioRun.Busy || StudioHandheld.Recording;
 
         public StudioCastList(StudioContext context, ScrollView host) { this.context = context; this.host = host; }
@@ -66,7 +68,42 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     Row(track.name, StudioTrackTypes.Get(track.type)?.Color ?? Color.gray, track, track)).ToArray(), "No world tracks.");
                 var actors = set.marks.Where(m => Match(m.actor));
                 AddGroup("Hand", actors.Where(m => m.role == StudioRole.Hand).Select(ActorRow).ToArray(), "No hand yet.");
-                AddGroup("Survivors", actors.Where(m => m.role != StudioRole.Hand).Select(ActorRow).ToArray(), "Place a mark to add your first actor.");
+                AddGroup("Survivors", actors.Where(m => m.role != StudioRole.Hand &&
+                    (string.IsNullOrEmpty(m.crowdGroup) || m.heroLocked)).Select(ActorRow).ToArray(),
+                    set.marks.Any(m => m.role != StudioRole.Hand) ? null : "Place a mark to add your first actor.");
+                foreach (var group in set.marks.Where(m => !string.IsNullOrEmpty(m.crowdGroup) && !m.heroLocked).GroupBy(m => m.crowdGroup))
+                {
+                    var visible = group.Where(m => Match(group.Key) || Match(m.actor)).ToArray();
+                    if (visible.Length == 0) continue;
+                    string key = set.id + ":" + group.Key;
+                    var tracks = group.Select(m => tape.Find(m.id)).Where(t => t != null).ToArray();
+                    int recorded = tracks.Count(PerformMode.HasPerformance);
+                    var fold = new Foldout { text = $"{group.Key} · {recorded}/{group.Count()} recorded",
+                        value = query.Length > 0 || expandedGroups.Contains(key) || visible.Contains(context.Selection as StudioMark) };
+                    fold.RegisterValueChangedCallback(e => { if (e.newValue) expandedGroups.Add(key); else expandedGroups.Remove(key); });
+                    if (tracks.Length > 0)
+                    {
+                        var controls = StudioUi.Row();
+                        controls.style.flexWrap = Wrap.Wrap;
+                        AddControl("Mute", "Unmute", t => t.mode == TrackMode.Muted, (t, on) => t.mode = on ? TrackMode.Muted : TrackMode.Playback);
+                        AddControl("Solo", "Unsolo", t => t.solo, (t, on) => t.solo = on);
+                        AddControl("Lock", "Unlock", t => t.locked, (t, on) => t.locked = on);
+                        fold.Add(controls);
+
+                        void AddControl(string onLabel, string offLabel, Func<StudioTrack, bool> state, Action<StudioTrack, bool> apply)
+                        {
+                            bool all = tracks.All(state);
+                            controls.Add(StateButton(all ? offLabel : onLabel, all, $"{(all ? offLabel : onLabel)} {group.Key}", !RunActive, () =>
+                            {
+                                if (RunActive || !ReferenceEquals(tape, context.Tape)) return;
+                                foreach (var track in tracks) apply(track, !all);
+                                context.window.TapeChanged();
+                            }));
+                        }
+                    }
+                    foreach (var mark in visible) fold.Add(ActorRow(mark));
+                    items.Add(fold);
+                }
                 var cameras = set.cameras.Where(c => Match(c.name)).Select(c => Row(c.name, StudioColors.For(c.color), null, c));
                 var shots = set.shots.Where(s => Match(s.name)).Select(s => Row(s.name, StudioColors.Camera, null, null));
                 AddGroup("Cameras", cameras.Concat(shots).ToArray(), "Cameras are added in Shoot.");
@@ -212,7 +249,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 !RunActive && (playable || track.solo), () => ChangeTrack(track, () => track.solo = !track.solo)));
             actions.Add(StateButton(track.locked ? "Unlock" : "Lock", track.locked,
                 track.locked ? $"Allow {name} to be recorded again." : $"Protect {name} from re-recording.",
-                !RunActive, () => ChangeTrack(track, () => track.locked = !track.locked)));
+                !RunActive && !(select is StudioMark hero && hero.heroLocked), () => ChangeTrack(track, () => track.locked = !track.locked)));
+            if (select is StudioMark mark && mark.role != StudioRole.Hand)
+                actions.Add(StateButton(mark.heroLocked ? "Release hero" : "Protect hero", mark.heroLocked,
+                    "Protect this performer from group edits and re-recording.", !RunActive, () =>
+                {
+                    if (!CanEdit(track)) return;
+                    context.Edit("Change hero protection", () => mark.heroLocked = !mark.heroLocked, true);
+                    track.locked = mark.heroLocked;
+                    context.window.TapeChanged();
+                }));
             return row;
         }
 

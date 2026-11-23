@@ -91,6 +91,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // Set by the Set mode: the next click on the picture places a new mark of this role.
         public StudioRole? Placing;
+        System.Action<Vector3> pickedOrigin;
+        public bool PickingOrigin => pickedOrigin != null;
+        public void PickOrigin(System.Action<Vector3> callback)
+        {
+            Placing = null;
+            pickedOrigin = callback;
+            Tick();
+        }
 
         public StudioViewport(StudioContext context, VisualElement host)
         {
@@ -135,6 +143,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         public void Rebuild()
         {
+            if (!(context.window.Mode is SetMode) || StudioRun.State != StudioState.Held) pickedOrigin = null;
             if (!(context.window.Mode is SetMode)) Placing = null;
             bool open = StudioRun.StageOpen;
             if (!open || !(context.window.Mode is SetMode)) Placing = null;
@@ -236,6 +245,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 message = "Shot camera preview  ·  Choose Free view in Shoot to return to the free camera";
             else if (moved && (orbiting || panning))
                 message = orbiting ? "Orbiting around the reticle" : "Panning the free camera";
+            else if (PickingOrigin) message = "Click dry ground to place the layout · Esc cancels";
             else if (Placing.HasValue && StudioRun.State == StudioState.Held)
                 message = Placing.Value + " placement  ·  " +
                     (placementPoint.HasValue && !placementOnSurface ? "Click to place at the view target" : "Click to place at the reticle") + "  ·  Esc cancels";
@@ -256,17 +266,19 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         void LookThroughCamera()
         {
             var set = context.Set; var stage = context.Stage;
-            // Looking through a shot camera belongs to the Shoot tab. Other tabs need the free view to orbit and drag marks.
+            // Shoot and Cut use their own camera previews. Other tabs need the free view to orbit and drag marks.
             if (ShootMode.LookThrough.Length > 0 && !(context.window.Mode is ShootMode)) ShootMode.LookThrough = "";
             var camera = set == null || ShootMode.LookThrough.Length == 0 ? null : set.cameras.Find(c => c.id == ShootMode.LookThrough);
+            float time = set == null ? 0 : context.Frame / (float)set.fps, cameraTime = time;
+            if (context.window.Mode is CutMode cut)
+                camera = cut.ViewedCamera(set, context.Frame, out time, out cameraTime);
             if (camera == null || stage == null || StudioHandheld.Recording || StudioRender.Running)
             {
                 if (lookedThrough && !StudioHandheld.Recording) { lookedThrough = false; StudioFirstPerson.Release(Camera); StudioCamera.Camera.fieldOfView = 60; StudioCamera.Place(); }
                 return;
             }
             lookedThrough = true;
-            float time = context.Frame / (float)set.fps;
-            StudioCameras.Apply(Camera, StudioCameras.Evaluate(camera, set, stage.tape, stage.anchor, time, time));
+            StudioCameras.Apply(Camera, StudioCameras.Evaluate(camera, set, stage.tape, stage.anchor, time, cameraTime));
         }
 
         void DrawOverlays(MeshGenerationContext mesh)
@@ -385,6 +397,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             host.CapturePointer(e.pointerId);
             last = e.localPosition; moved = false;
             if (e.button != 0) { panning = true; return; }
+            if (pickedOrigin != null && StudioRun.State == StudioState.Held && context.window.Mode is SetMode)
+            {
+                if (Surface(e.localPosition, out var floor) && floor.y > context.Stage.world.WaterHeight(floor))
+                {
+                    var callback = pickedOrigin;
+                    pickedOrigin = null;
+                    callback(floor);
+                }
+                else context.Say("Choose a visible surface above the water.");
+                return;
+            }
             // The current mode may have its own way of using the viewport (picking blocks, aiming arrows, placing cameras).
             tool = context.window.Mode as IStudioViewportTool;
             if (tool != null && StudioRun.State == StudioState.Held && tool.Down(e, this, context))
@@ -490,6 +513,6 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             e.StopPropagation();
         }
 
-        public void CancelPlacing() { Placing = null; if (StudioRun.StageOpen) Rebuild(); }
+        public void CancelPlacing() { pickedOrigin = null; Placing = null; if (StudioRun.StageOpen) Rebuild(); }
     }
 }

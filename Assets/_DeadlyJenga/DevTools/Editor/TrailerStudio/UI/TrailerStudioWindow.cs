@@ -288,7 +288,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (var fold in panel.Query<Foldout>().ToList())
             {
                 string key = section + "/" + fold.text;
-                if (foldStates.TryGetValue(key, out bool expanded)) fold.SetValueWithoutNotify(expanded);
+                if (foldStates.TryGetValue(key, out bool expanded)) fold.value = expanded;
                 fold.RegisterValueChangedCallback(e =>
                 {
                     if (ReferenceEquals(e.target, fold)) foldStates[key] = e.newValue;

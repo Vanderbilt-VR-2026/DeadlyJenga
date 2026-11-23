@@ -57,6 +57,28 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 panel.Add(StudioUi.Small("Return to director view", () => { StudioRun.LeaveBody(); context.Rebuild(); }));
             }
 
+            var track = mark == null ? null : tape?.Find(mark.id);
+            var latest = track?.Kept.Where(t => t.frames.Count > 0).OrderByDescending(t => t.created).FirstOrDefault();
+            if (latest != null)
+            {
+                var review = new Foldout { text = "Review last take · " + latest.name, value = false };
+                panel.Add(review);
+                review.Add(StudioUi.Hint(mark.actor + " · " + latest.frames.Count + " frames · " +
+                    (latest.starred ? "Starred" : "Unstarred")));
+                var actions = StudioUi.Row(
+                    StudioUi.Small("Play with lead-in", () =>
+                    {
+                        context.window.SetActiveTake(track, track.takes.IndexOf(latest));
+                        int start = Mathf.Max(0, latest.start - set.fps);
+                        context.window.SetReviewRange(start, latest.End - 1);
+                        context.window.Scrub(start);
+                        context.window.TogglePlay();
+                    }),
+                    StudioUi.Small(latest.starred ? "Unstar" : "Star take", () => { latest.starred = !latest.starred; context.window.TapeChanged(); }),
+                    StudioUi.Small("Record another", context.window.PressRecord));
+                actions.SetEnabled(StudioRun.State == StudioState.Held && !StudioHandheld.Recording);
+                review.Add(actions);
+            }
             Others(panel, context, mark);
 
             // ---- How to record ----
