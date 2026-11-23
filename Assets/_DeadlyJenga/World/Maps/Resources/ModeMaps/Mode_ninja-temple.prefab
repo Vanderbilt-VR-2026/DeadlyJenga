@@ -496,12 +496,12 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   routes:
   - island: {fileID: 760021}
-    model: {fileID: 100100000, guid: f881c8aa6cf74a048f3474c76e6d45a3, type: 3}
+    model: {fileID: 919132149155446097, guid: f881c8aa6cf74a048f3474c76e6d45a3, type: 3}
     phase: 0
   - island: {fileID: 760031}
-    model: {fileID: 100100000, guid: b52b015b7adc475ea219213d149282a1, type: 3}
+    model: {fileID: 919132149155446097, guid: b52b015b7adc475ea219213d149282a1, type: 3}
     phase: 5
   - island: {fileID: 760041}
-    model: {fileID: 100100000, guid: 47eac4c1624741a9b19d60a2ae26bbe7, type: 3}
+    model: {fileID: 919132149155446097, guid: 47eac4c1624741a9b19d60a2ae26bbe7, type: 3}
     phase: 10
   armor: {fileID: 2100000, guid: be28729369504b0b8a6aaae705db794e, type: 2}

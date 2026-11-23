@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.IO;
 using DeadlyJenga.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -9,16 +10,21 @@ namespace DeadlyJenga.CastlePrototype.Editor
 {
     public static class ShrineDragonChecks
     {
-        const string Pending="ShrineDragonChecks.Pending";
+        const string Pending="ShrineDragonChecks.Pending", WarmResult="ShrineDragonChecks.WarmResult";
         static double deadline;
         static int phase;
         static bool breathed, steamed, burned, rose;
         static float water;
         static IDisasterState source;
+        static CastlePlaySession previousSession;
+        static string wildlifeError;
 
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Start in edit mode.");
+            for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
+                if (UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty)
+                    throw new InvalidOperationException("Save edited scenes first.");
             SessionState.SetBool(Pending,true);
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
             EditorApplication.EnterPlaymode();
@@ -33,15 +39,33 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static void Register()
         {
             EditorApplication.playModeStateChanged+=s=>{
+                if (s == PlayModeStateChange.EnteredEditMode && SessionState.GetInt(WarmResult,-1) >= 0)
+                {
+                    int result = SessionState.GetInt(WarmResult,-1);
+                    SessionState.EraseInt(WarmResult);
+                    Directory.CreateDirectory("Logs/Warm");
+                    File.WriteAllText("Logs/Warm/exit.txt", result.ToString());
+                }
                 if(s!=PlayModeStateChange.EnteredPlayMode || !SessionState.GetBool(Pending,false))return;
-                phase=-2;deadline=EditorApplication.timeSinceStartup+300;EditorApplication.update+=Tick;
+                phase=-2; previousSession=null; wildlifeError=null;
+                deadline=EditorApplication.timeSinceStartup+300;
+                Application.logMessageReceived+=OnRuntimeLog;
+                EditorApplication.update+=Tick;
             };
+        }
+        static void OnRuntimeLog(string message, string stack, LogType type)
+        {
+            if (type is not (LogType.Error or LogType.Exception or LogType.Assert)) return;
+            if (stack.Contains("FossilBasinSwimmer") || stack.Contains("ShrineSamuraiPatrol") ||
+                stack.Contains("ShrineDragon"))
+                wildlifeError ??= message;
         }
         static void Require(bool ok,string message){if(!ok)throw new Exception(message);}
         static void Tick()
         {
             try{
                 Require(EditorApplication.timeSinceStartup<deadline,"Timed out in dragon phase "+phase);
+                Require(wildlifeError == null, "Wildlife or encounter runtime error: " + wildlifeError);
                 var session=Services.Session as CastlePlaySession;
                 if(!session || Services.World==null || Time.frameCount<25)return;
                 var demo = session.Demo;
@@ -55,21 +79,36 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         "mode-gingerbread-kingdom", "epic-candy-mechanism-city", "workshop-under-the-tree",
                         "block-spires", "fossil-basin", "tidal-circuit" })
                         Require(options.Count(m => m.id == id && m.available) == 1, id + " is missing, disabled or duplicated in Developer Maps");
+                    previousSession = session;
                     maps.SelectMap("fossil-basin");
                     phase++;
                     return;
                 }
                 if (phase == -1)
                 {
-                    if (maps.CurrentMapId != "fossil-basin" || !NetworkActors.Alive(session.Player) || Services.World.Blocks.Count == 0) return;
+                    if (session == previousSession || maps.CurrentMapId != "fossil-basin" ||
+                        !NetworkActors.Alive(session.Player) || Services.World.Blocks.Count == 0) return;
+                    var swimmer = GameObject.Find("Circling Spinosaurus");
+                    Require(swimmer && swimmer.GetComponent<MeshRenderer>(), "Fossil Basin swimmer did not initialize");
                     Require(MatchChoices.ModeId == "demo", "A Demo-only map must load in Demo after selecting it from Shadow Lantern");
                     Require(!Enumerable.Range(0, demo.DisasterCount).Any(i => demo.DisasterLabel(i) is "Flying Dragon" or "Dragon Attack"), "Shrine dragons leaked onto Fossil Basin");
                     Require(maps.CanSelectMap && maps.Maps.Any(m => m.id == "mode-ninja-temple" && m.available), "Shrine Town unavailable from Developer Maps");
+                    previousSession = session;
                     maps.SelectMap("mode-ninja-temple");
                     phase++;
                     return;
                 }
-                if (maps.CurrentMapId != "mode-ninja-temple" || !NetworkActors.Alive(session.Player) || Services.World.Blocks.Count == 0) return;
+                if (session == previousSession || maps.CurrentMapId != "mode-ninja-temple" ||
+                    !NetworkActors.Alive(session.Player) || Services.World.Blocks.Count == 0) return;
+                if (phase == 0)
+                {
+                    foreach (string guardName in new[] { "Crescent Guard", "Reed Watcher", "Vermilion Captain" })
+                    {
+                        var guard = GameObject.Find(guardName);
+                        Require(guard && guard.GetComponentInChildren<SkinnedMeshRenderer>(true),
+                            "Shrine patrol missing: " + guardName);
+                    }
+                }
                 if(phase==0 || phase==2){
                     bool bronze=phase==0;
                     string label=bronze?"Dragon Attack":"Flying Dragon";
@@ -105,7 +144,16 @@ namespace DeadlyJenga.CastlePrototype.Editor
             }catch(Exception e){Debug.LogException(e);Finish(1);}
         }
         static void Finish(int code){
-            SessionState.SetBool(Pending,false);EditorApplication.update-=Tick;EditorApplication.Exit(code);
+            SessionState.SetBool(Pending,false);
+            Application.logMessageReceived-=OnRuntimeLog;
+            EditorApplication.update-=Tick;
+            if (string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
+                EditorApplication.Exit(code);
+            else
+            {
+                SessionState.SetInt(WarmResult,code);
+                EditorApplication.ExitPlaymode();
+            }
         }
     }
 }

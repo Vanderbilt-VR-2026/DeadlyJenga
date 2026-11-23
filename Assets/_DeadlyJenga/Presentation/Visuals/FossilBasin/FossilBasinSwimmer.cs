@@ -7,7 +7,7 @@ namespace DeadlyJenga.Presentation
     {
         static readonly int Stroke = Shader.PropertyToID("_Stroke");
         MeshRenderer skin;
-        readonly MaterialPropertyBlock motion = new();
+        MaterialPropertyBlock motion;
         float elapsed;
         IWorldQuery world;
         Transform map;
@@ -16,6 +16,7 @@ namespace DeadlyJenga.Presentation
 
         internal void Initialize(Mesh model, Material material)
         {
+            motion = new MaterialPropertyBlock();
             gameObject.AddComponent<MeshFilter>().sharedMesh = model;
             skin = gameObject.AddComponent<MeshRenderer>();
             skin.sharedMaterial = material;
