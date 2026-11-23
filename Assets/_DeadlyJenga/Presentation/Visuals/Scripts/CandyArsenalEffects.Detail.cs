@@ -33,7 +33,7 @@ namespace DeadlyJenga.Presentation
                 {
                     float fraction=Mathf.Clamp01(age/r.life);
                     r.root.localScale=Vector3.one*Mathf.Lerp(.25f,r.radius,1-Mathf.Pow(1-fraction,2));
-                    if(r.arcs!=null)foreach(var line in r.arcs){var color=r.tint;color.a=Mathf.Pow(1-fraction,2);line.startColor=line.endColor=color;}
+                    if(r.arcs!=null)foreach(var line in r.arcs){var color=line.startColor;color.a=Mathf.Pow(1-fraction,2);line.startColor=line.endColor=color;}
                 }
             }
         }
@@ -46,6 +46,11 @@ namespace DeadlyJenga.Presentation
         static readonly Color[] SpikerColors =
         {
             new(.53f,.13f,1), new(.04f,.68f,1), new(.31f,1,.04f), new(1,.58f,.04f), new(1,.16f,.23f)
+        };
+        static readonly Color[] GrenadeCellColors =
+        {
+            new(1,.02f,.06f), new(1,.24f,.01f), new(1,.78f,.02f), new(.19f,1,.03f),
+            new(.02f,.81f,1), new(.09f,.18f,1), new(.64f,.05f,1), new(1,.08f,.55f)
         };
 
         Color SpikerShotTint(string actor)
@@ -242,6 +247,25 @@ namespace DeadlyJenga.Presentation
                 ribbon.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 ribbon.receiveShadows = false;
             }
+            if (kind == EquipmentKind.GrenadeLauncher)
+            {
+                for (int i = 0; i < GrenadeCellColors.Length; i++)
+                {
+                    float angle = i * Mathf.PI * .25f;
+                    var stream = new GameObject("Charged grenade stream " + (i + 1));
+                    stream.transform.SetParent(root, false);
+                    stream.transform.localPosition = new Vector3(Mathf.Cos(angle)*.075f, Mathf.Sin(angle)*.075f, -.085f);
+                    var line = stream.AddComponent<TrailRenderer>();
+                    line.sharedMaterial = ordnanceRibbon;
+                    line.time = .24f + i * .012f;
+                    line.widthMultiplier = .032f;
+                    line.minVertexDistance = .12f;
+                    line.startColor = GrenadeCellColors[i];
+                    line.endColor = new Color(line.startColor.r,line.startColor.g,line.startColor.b,0);
+                    line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    line.receiveShadows = false;
+                }
+            }
             return root;
         }
         void ReturnProjectile(Transform model)
@@ -353,6 +377,16 @@ namespace DeadlyJenga.Presentation
                 var socket=model.TransformPoint(anchor);
                 if((socket-origin).sqrMagnitude<.16f*scale*scale)origin=socket;
             }
+            if (mounted && action.kind == EquipmentKind.ChainGun && model.Find("Foundry six-barrel rotor") is Transform barrel)
+            {
+                origin = barrel.TransformPoint(new Vector3(.083f, 0, .61f));
+                for (int i = 1; i < 6; i++)
+                {
+                    float angle = i * Mathf.PI / 3;
+                    var candidate = barrel.TransformPoint(new Vector3(.083f*Mathf.Cos(angle), .083f*Mathf.Sin(angle), .61f));
+                    if (candidate.y > origin.y) origin = candidate;
+                }
+            }
             Vector3 direction=mounted?model.forward:owner?owner.forward:Vector3.forward;
             if(action.endpoints!=null&&action.endpoints.Length>0&&
                 (action.endpoints[0]-action.position).sqrMagnitude>.005f)
@@ -440,11 +474,12 @@ namespace DeadlyJenga.Presentation
 
             bool rotary=action.kind==EquipmentKind.ChainGun;
             bool rifle=action.kind==EquipmentKind.DualRifle;
-            var port=rotary?new Vector3(.27f,-.19f,.23f):rifle?new Vector3(.086f,.10f,.14f):
+            var port=rotary?new Vector3(-.20f,-.17f,.23f):rifle?new Vector3(.086f,.10f,.14f):
                 weapon.name=="Visual - CompactSidearm"?new Vector3(.044f,.167f,.211f):new Vector3(.060f,.145f,.125f);
             shell.origin=weapon.TransformPoint(port);
-            shell.velocity=(weapon.right*(2.2f+action.id%5*.24f)+weapon.up*(1.3f+action.id%3*.24f)
-                -weapon.forward*.66f)*scale;
+            shell.velocity = (rotary
+                ? -weapon.right*(1.85f+action.id%5*.18f) + weapon.up*(2.3f+action.id%3*.24f) + weapon.forward*.63f
+                : weapon.right*(2.2f+action.id%5*.24f)+weapon.up*(1.3f+action.id%3*.24f)-weapon.forward*.66f)*scale;
             shell.spin=new Vector3(620+action.id%7*84,580+action.id%5*114,130);
             shell.rotation=weapon.rotation*Quaternion.Euler(0,0,25);
             shell.born=Time.time;
@@ -619,7 +654,7 @@ namespace DeadlyJenga.Presentation
                 float y=1-2*(i+.5f)/count,a=i*2.399963f,r=Mathf.Sqrt(1-y*y);
                 var direction=new Vector3(Mathf.Cos(a)*r,y,Mathf.Sin(a)*r);
                 burstParticles.Emit(new ParticleSystem.EmitParams{position=action.position+direction*.14f,
-                    velocity=direction*(rocket?6+i%9*.83f:saw||spike?2+i%4*.3f:3+i%7*.69f),startColor=rocket&&i%5==0?Color.Lerp(tint,Color.white,.54f):tint,
+                    velocity=direction*(rocket?6+i%9*.83f:saw||spike?2+i%4*.3f:3+i%7*.69f),startColor=grenade?GrenadeCellColors[i%GrenadeCellColors.Length]:rocket&&i%5==0?Color.Lerp(tint,Color.white,.54f):tint,
                     startSize=(rocket?.47f:saw||spike?.065f:.21f)+(i%4)*(saw||spike?.012f:.085f),startLifetime=(rocket?.44f:saw||spike?.14f:.24f)+i%9*(saw||spike?.012f:.047f)},1);
             }
         }
@@ -637,7 +672,7 @@ namespace DeadlyJenga.Presentation
                 var line=go.AddComponent<LineRenderer>();arcs[i]=line;line.sharedMaterial=ordnanceRibbon;line.useWorldSpace=false;
                 line.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;line.receiveShadows=false;
                 line.positionCount=electric?8:36;line.loop=!electric;line.startWidth=electric?.055f:rocket?.115f:.06f;line.endWidth=electric?.004f:rocket?.115f:.06f;
-                line.startColor=line.endColor=color;var tilt=Quaternion.Euler(i*63,i*137,0);
+                line.startColor=line.endColor=electric?GrenadeCellColors[i]:color;var tilt=Quaternion.Euler(i*63,i*137,0);
                 for(int n=0;n<line.positionCount;n++)
                 {
                     float f=n/(float)line.positionCount,a=f*Mathf.PI*2;

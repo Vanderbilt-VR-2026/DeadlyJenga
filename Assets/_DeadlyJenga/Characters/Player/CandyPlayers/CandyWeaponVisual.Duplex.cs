@@ -27,6 +27,23 @@ namespace DeadlyJenga.CandyPlayers
         {
             "Rounded Spiker receiver", "Prismatic power cell", "Crystal 1", "Crystal 2", "Crystal 3", "Crystal 4", "Crystal 5"
         };
+        static readonly string[] StaffArtParts = { "Weathered branch and mount", "Serrated saw wheel - worn shed steel" };
+        static readonly string[] AlienArtParts = { "Crimson Alien Blaster body" };
+        static readonly string[] SheriffArtParts = { "Cobalt Sheriff and ivory grip", "Sheriff cylinder" };
+        static readonly string[] SwordArtParts = { "Garnet Murderer Sword" };
+        static readonly string[] RocketArtParts = { "Charcoal lollipop launcher" };
+        static readonly string[] AxeArtParts = { "Battle-worn Storm Axe" };
+        static readonly string[] MarshmallowArtParts = { "Roasted marshmallow and fork" };
+        static readonly string[] SawShooterArtParts =
+        {
+            "Garage Saw Wheel Shooter", "Garage wheel magazine", "Serrated saw wheel - garage steel"
+        };
+        static readonly string[] ChaingunArtParts =
+        {
+            "Black and brass Chaingun", "Looped brass feed belt", "Foundry six-barrel rotor",
+            "Heat bar 1", "Heat bar 2", "Heat bar 3", "Heat bar 4", "Heat bar 5",
+            "Heat bar 6", "Heat bar 7", "Heat bar 8", "Heat bar 9", "Heat bar 10"
+        };
 
         // The authored asset is shared by held, remote and pickup instances.
         // Positions are already in the existing receiver and carriage coordinate spaces.
@@ -110,11 +127,18 @@ namespace DeadlyJenga.CandyPlayers
             if (meshes == null) return false;
             var parts = new Transform[names.Length];
             parts[0] = parent;
-            parts[1] = MakeFeedAssembly(parent);
-            for (int i = 2; i < parts.Length; i++)
+            if (parts.Length > 1 && weapon != EquipmentKind.SawStaff)
+                parts[1] = MakeFeedAssembly(parent);
+            for (int i = weapon == EquipmentKind.SawStaff ? 1 : 2; i < parts.Length; i++)
             {
                 parts[i] = new GameObject(names[i]).transform;
                 parts[i].SetParent(weapon == EquipmentKind.GrenadeLauncher ? parts[1] : parent, false);
+            }
+            if (weapon is EquipmentKind.SawStaff or EquipmentKind.ChainGun or EquipmentKind.Chainsaw)
+            {
+                rotor = parts[weapon == EquipmentKind.SawStaff ? 1 : 2];
+                rotor.localPosition = weapon == EquipmentKind.ChainGun ? new Vector3(0, ChainGunBarrelHeight, ChainGunRotorStart) :
+                    Vector3.forward * (weapon == EquipmentKind.SawStaff ? .88f : .79f);
             }
 
             EnsureReviewedWeaponMaterials();

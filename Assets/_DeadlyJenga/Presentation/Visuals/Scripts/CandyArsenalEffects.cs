@@ -24,6 +24,7 @@ namespace DeadlyJenga.Presentation
             public Transform model;
             public LineRenderer[] arcs;
             public LineRenderer heatLine;
+            public Transform[] heatBars;
             public float searchAfter, heat, lastShot;
             public bool venting, reloading;
             public int seenFrame;
@@ -293,7 +294,18 @@ namespace DeadlyJenga.Presentation
                     {
                         string modelName="Visual - "+item.kind;
                         foreach(var child in owner.GetComponentsInChildren<Transform>(true))
-                            if(child.name==modelName){effect.model=child;break;}
+                            if(child.name==modelName)
+                            {
+                                effect.model=child;
+                                effect.heatBars=null;
+                                if (item.kind == EquipmentKind.ChainGun && child.Find("Heat bar 1"))
+                                {
+                                    effect.heatBars = new Transform[10];
+                                    for (int i = 0; i < effect.heatBars.Length; i++)
+                                        effect.heatBars[i] = child.Find("Heat bar " + (i + 1));
+                                }
+                                break;
+                            }
                     }
                 }
 
@@ -325,6 +337,13 @@ namespace DeadlyJenga.Presentation
                 }
                 if(effect.heat<.45f&&!reload)effect.venting=false;
                 effect.reloading=reload&&(effect.reloading||active);
+                if (effect.heatBars != null)
+                {
+                    int lit = active ? Mathf.CeilToInt(effect.heat * effect.heatBars.Length) : 0;
+                    for (int i = 0; i < effect.heatBars.Length; i++)
+                        if (effect.heatBars[i] && effect.heatBars[i].gameObject.activeSelf != (i < lit))
+                            effect.heatBars[i].gameObject.SetActive(i < lit);
+                }
                 UpdateHeatLine(effect,active);
             }
 

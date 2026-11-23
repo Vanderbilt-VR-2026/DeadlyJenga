@@ -592,7 +592,12 @@ namespace DeadlyJenga.CandyPlayers
             else if(value==EquipmentKind.StockPistol)BuildStockPistol(root);
             else if(value==EquipmentKind.CompactSidearm)BuildFoundry(root,value);
             else if(value==EquipmentKind.NeedleDrill)BuildNeedleDrill(root);
-            else if(value==EquipmentKind.LaserClaws||value==EquipmentKind.FlamingMarshmallow)BuildArsenalPieces(root,value);
+            else if(value==EquipmentKind.FlamingMarshmallow)
+            {
+                if (!TryBuildReviewedWeapon(root, value, "RoastedMarshmallow", MarshmallowArtParts))
+                    BuildArsenalPieces(root,value);
+            }
+            else if(value==EquipmentKind.LaserClaws)BuildArsenalPieces(root,value);
             else if(value>EquipmentKind.PoweredArmor)BuildArsenal(root,value);
             else if(value==EquipmentKind.DualRifle) BuildDetailedDualRifle(root);
             else if(value==EquipmentKind.SheriffHammer) BuildDetailedRevolver(root);

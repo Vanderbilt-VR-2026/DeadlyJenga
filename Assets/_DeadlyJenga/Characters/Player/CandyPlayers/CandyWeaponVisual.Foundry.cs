@@ -117,6 +117,16 @@ namespace DeadlyJenga.CandyPlayers
         {
             if (kind == EquipmentKind.GrenadeLauncher &&
                 TryBuildReviewedWeapon(root, kind, "SugarCorpsLauncher", SugarCorpsLauncherParts)) return true;
+            if (kind == EquipmentKind.SawStaff &&
+                TryBuildReviewedWeapon(root, kind, "ShedSawWheelStaff", StaffArtParts)) return true;
+            if (kind == EquipmentKind.ChainGun &&
+                TryBuildReviewedWeapon(root, kind, "BlackBrassChaingun", ChaingunArtParts)) return true;
+            if (kind == EquipmentKind.RocketLauncher &&
+                TryBuildReviewedWeapon(root, kind, "CharcoalLollipopLauncher", RocketArtParts)) return true;
+            if (kind == EquipmentKind.LaserAxe &&
+                TryBuildReviewedWeapon(root, kind, "BattlewornStormAxe", AxeArtParts)) return true;
+            if (kind == EquipmentKind.Chainsaw &&
+                TryBuildReviewedWeapon(root, kind, "GarageSawWheelShooter", SawShooterArtParts)) return true;
             if(kind!=EquipmentKind.RocketLauncher&&kind!=EquipmentKind.GrenadeLauncher&&kind!=EquipmentKind.BarbedBat&&
                 kind!=EquipmentKind.WristLaser&&kind!=EquipmentKind.LaserAxe&&kind!=EquipmentKind.Dagger&&
                 kind!=EquipmentKind.ChainGun&&kind!=EquipmentKind.Chainsaw&&kind!=EquipmentKind.SawStaff&&kind!=EquipmentKind.CompactSidearm)return false;

@@ -1087,11 +1087,25 @@ namespace DeadlyJenga.DevTools.Editor
                     // Separate initial gather and ready checkpoints while preserving the same wrist pose.
                     yield return new WaitForSeconds(.72f);
                     visual.Present(state,frame,true);
-                    if (kind is EquipmentKind.GrenadeLauncher or EquipmentKind.DualUzi)
+                    string reviewedMesh = kind switch
                     {
-                        string authoredMesh = kind == EquipmentKind.GrenadeLauncher ? "Sugar Corps launcher opaque" : "Rounded Spiker receiver opaque";
+                        EquipmentKind.GrenadeLauncher => "Sugar Corps launcher opaque",
+                        EquipmentKind.DualUzi => "Rounded Spiker receiver opaque",
+                        EquipmentKind.ChainGun => "Black and brass Chaingun opaque",
+                        EquipmentKind.SawStaff => "Weathered branch and mount opaque",
+                        EquipmentKind.Blaster => "Crimson Alien Blaster body opaque",
+                        EquipmentKind.SheriffHammer => "Cobalt Sheriff and ivory grip opaque",
+                        EquipmentKind.MurderSword => "Garnet Murderer Sword opaque",
+                        EquipmentKind.RocketLauncher => "Charcoal lollipop launcher opaque",
+                        EquipmentKind.LaserAxe => "Battle-worn Storm Axe opaque",
+                        EquipmentKind.FlamingMarshmallow => "Roasted marshmallow and fork opaque",
+                        EquipmentKind.Chainsaw => "Garage Saw Wheel Shooter opaque",
+                        _ => null
+                    };
+                    if (reviewedMesh != null)
+                    {
                         var held = player.transform.Find("Visual - " + kind);
-                        Check(held && held.Find(authoredMesh), "The live player uses the reviewed model: " + kind);
+                        Check(held && held.Find(reviewedMesh), "The live player uses the reviewed model: " + kind);
                     }
                     var ready=model.position;
                     var activeSeat=mounted?movingPart.localPosition:Vector3.zero;
@@ -1132,7 +1146,9 @@ namespace DeadlyJenga.DevTools.Editor
                         state.reloadRemaining=spec.reloadSeconds*.30f;
                         visual.Present(state,frame,true);
                         Check(feed.gameObject.activeInHierarchy,"Fresh ammo is visible during insertion: "+kind);
-                        if(!energy&&kind!=EquipmentKind.DualUzi)
+                        if (kind == EquipmentKind.ChainGun)
+                            Check(feed.Find("Looped brass feed belt opaque"), "Chaingun reload animates the reviewed feed belt");
+                        else if(!energy&&kind!=EquipmentKind.DualUzi)
                             Check(feed.Cast<Transform>().Any(item=>item.name.StartsWith(kind==EquipmentKind.GrenadeLauncher?"Charge cell ":"Visible round ")&&item.gameObject.activeSelf),
                                 "Reload displays ammunition meshes: "+kind);
                         if(kind==EquipmentKind.DualUzi)

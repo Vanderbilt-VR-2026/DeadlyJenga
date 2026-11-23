@@ -571,6 +571,7 @@ namespace DeadlyJenga.CandyPlayers
 
         bool PresentReviewedAmmunition(Transform assembly, EquipmentState state, bool secondary, bool reloading, float phase)
         {
+            if (kind == EquipmentKind.ChainGun && assembly.Find("Looped brass feed belt opaque")) return true;
             var names = kind == EquipmentKind.GrenadeLauncher ? SugarCorpsLauncherParts : RoundedSpikerParts;
             if (kind == EquipmentKind.GrenadeLauncher && assembly.childCount > 0 &&
                 assembly.Find(names[2]))

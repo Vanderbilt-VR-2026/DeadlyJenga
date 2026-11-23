@@ -1,5 +1,19 @@
-# Reviewed launcher and paired Spiker models
+# Reviewed weapon models
 
-The source scenes are preserved in the weapon review gallery. Export the Sugar Corps Open Hood inner-markings scene in launcher mode and the Dual Spikers needle-effects scene in spikers mode. Both imports use only the selected weapon hierarchy at the start of the Blender timeline.
+The editable sources stay in the weapon review gallery. These are the source scenes and export modes for the Unity assets.
 
-Run Blender in background mode with export_weapon_art.py and pass launcher or spikers followed by the corresponding destination bytes file. The export consolidates shared mesh finishes, preserves separate reload parts, and excludes preview cameras, lighting, targets, and airborne effects. The game presents effects from its accepted equipment actions.
+| Mode | Blender source |
+| --- | --- |
+| launcher | arc-06-action/inner-labels/Sugar Corps Open Hood - inner markings.blend |
+| spikers | dual-spikers-needle-v2/Dual Spikers needle effects.blend |
+| staff | saw-wheel-staff-4k/Saw Wheel Staff 4K.blend |
+| chaingun | chaingun-looped-belt/Chaingun looped ammo belt.blend |
+| alien | alien-dark-sight-saddle/Alien Blaster dark sight base.blend |
+| sheriff | sheriff-gloss-cobalt/Blue Sheriff gloss cobalt.blend |
+| sword | murderer-sword-garnet/Murderer Sword garnet.blend |
+| rpg | single-barrel-polish/olive-charcoal/RPG charcoal.blend |
+| axe | storm-battleworn/Battle-worn storm axe.blend |
+| shooter | saw-wheel-shooter-garage/Garage Saw Wheel Shooter.blend |
+| marshmallow | flaming-marshmallow-stock/roasted-detail/Flaming Marshmallow roasted.blend |
+
+Run Blender in background mode with export_weapon_art.py and pass the mode and destination bytes file. The export consolidates the authored geometry and material colors, separates moving groups, and excludes the studio cameras, lighting and effects from the game. Unity uses the material finishes supported by its weapon shader and presents effects from accepted equipment actions.

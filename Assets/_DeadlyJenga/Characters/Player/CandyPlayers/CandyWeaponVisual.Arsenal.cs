@@ -521,6 +521,11 @@ namespace DeadlyJenga.CandyPlayers
         static Material[] sheriffRevolverSurfaces;
         void BuildDetailedRevolver(Transform root)
         {
+            if (TryBuildReviewedWeapon(root, EquipmentKind.SheriffHammer, "CobaltSheriff", SheriffArtParts))
+            {
+                AddReviewedOptic(root, "Revolver optic", new Vector3(0,.23f,.17f));
+                return;
+            }
             if(sheriffRevolverMeshes==null)
             {
                 var groups=new List<CombineInstance>[12];for(int i=0;i<groups.Length;i++)groups[i]=new List<CombineInstance>();var temporary=new List<Mesh>();
@@ -893,6 +898,17 @@ namespace DeadlyJenga.CandyPlayers
         static Material[] alienBlasterSurfaces;
         void BuildDetailedAlienBlaster(Transform root)
         {
+            if (TryBuildReviewedWeapon(root, EquipmentKind.Blaster, "CrimsonAlienBlaster", AlienArtParts))
+            {
+                AddReviewedOptic(root, "Blaster optic", new Vector3(0,.24f,.12f));
+                for (int i = 0; i < 3; i++)
+                {
+                    var ring = new GameObject("Blaster induction ring " + i).transform;
+                    ring.SetParent(root,false);
+                    ring.localPosition = new Vector3(0,.125f,.32f+i*.07f);
+                }
+                return;
+            }
             if(alienBlasterMeshes==null)
             {
                 var groups=new List<CombineInstance>[7];for(int i=0;i<groups.Length;i++)groups[i]=new List<CombineInstance>();var temporary=new List<Mesh>();
@@ -1097,7 +1113,21 @@ namespace DeadlyJenga.CandyPlayers
 
         static Mesh[] murderSwordMeshes,boxingGloveMeshes;
         static Material[] murderSwordSurfaces,boxingGloveSurfaces;
-        void BuildDetailedMurderSword(Transform root)=>BuildDetailedMelee(root,false);
+        void BuildDetailedMurderSword(Transform root)
+        {
+            if (!TryBuildReviewedWeapon(root, EquipmentKind.MurderSword, "GarnetMurdererSword", SwordArtParts))
+                BuildDetailedMelee(root,false);
+        }
+
+        static void AddReviewedOptic(Transform root, string name, Vector3 position)
+        {
+            var optic = new GameObject(name).transform;
+            optic.SetParent(root,false);
+            optic.localPosition = position;
+            var lens = new GameObject("Optic lens").transform;
+            lens.SetParent(optic,false);
+            lens.localPosition = Vector3.forward * .008f;
+        }
         void BuildDetailedBoxingGlove(Transform root)=>BuildDetailedMelee(root,true);
         void BuildDetailedMelee(Transform root,bool glove)
         {
