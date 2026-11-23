@@ -19,8 +19,8 @@ namespace DeadlyJenga.CastlePrototype
             System.Array.Clear(derailed,0,3);
             // A long straight bore across the pyramid. The western turn faces the depot.
             Vector2[] control = {new(-18,5),new(-15,3),new(-10,4),new(-6,8),new(1,7.2f),new(10,10),
-                new(14,10),new(20,10),new(26,10),new(30,11),new(32,18),new(32,20),
-                new(30,21),new(25,22),new(18,22),new(11,22),new(4,22),new(-3,22),
+                new(14,10),new(20,10),new(26,10),new(30,11),new(35.2f,15.8f),new(35.2f,20.2f),
+                new(34.5f,23),new(25,22),new(18,22),new(11,22),new(4,22),new(-3,22),
                 new(-10,21),new(-15,19),new(-18,16),new(-19,12),new(-19,8)};
             total=0;
             for(int i=0;i<control.Length;i++)
@@ -36,15 +36,31 @@ namespace DeadlyJenga.CastlePrototype
                 float len=Vector3.Distance(a,b);
                 float yaw=Quaternion.LookRotation(b-a).eulerAngles.y;
                 chainage.Add(total); total+=len;
-                Begin("Timber trestle bent "+i,mid.x,2.5f,mid.z,yaw);
-                float h=RailY-2.5f-.61f;
+                float bottom=i==10?1.52f:i==11?-2:2.5f;
+                if(i==10)
+                {
+                    // Each offshore timber shoe carries one post. Either shoe can be withdrawn.
+                    for(int side=-1;side<=1;side+=2)
+                    {
+                        var foot=mid+Quaternion.Euler(0,yaw,0)*new Vector3(side*1.22f,0,0);
+                        Begin("Driven trestle pile "+side,foot.x,0,foot.z,yaw);
+                        Box(0,-.62f,0,.94f,3.24f,1.42f,Wood);
+                        End(true);
+                        Begin(side==-1?"Timber trestle bent 10":"Outer trestle shoe",foot.x,1.26f,foot.z,yaw);
+                        Box(0,0,0,.92f,.52f,1.4f,Red);
+                        End();
+                    }
+                    Begin("East trestle frame",mid.x,1.52f,mid.z,yaw);
+                }
+                else Begin("Timber trestle bent "+i,mid.x,bottom,mid.z,yaw);
+                float h=RailY-bottom-.61f;
                 for(int s=-1;s<=1;s+=2)
                 {
-                    Box(s*1.27f,h*.5f,0,.58f,h,1.25f,Wood);
-                    Beam(new(s*1.27f,.65f,0),new(-s*1.27f,h-.5f,0),.31f,.37f,Red);
+                    Box(s*1.22f,h*.5f,0,.58f,h,1.25f,Wood);
+                    Beam(new(s*1.22f,.65f,0),new(-s*1.22f,h-.5f,0),.31f,.37f,Red);
                 }
                 Box(0,h+.15f,0,3.85f,.3f,1.6f,Dark);
-                End();
+                End(bottom<0);
                 Begin("Railway span "+i,mid.x,RailY-.155f,mid.z,yaw);
                 var forward=(b-a).normalized;
                 var right=Vector3.Cross(Vector3.up,forward);
@@ -73,9 +89,28 @@ namespace DeadlyJenga.CastlePrototype
                     for(int j=0;j<3;j++) model.Shape(new(0,1,.05f+j*.65f),new(1.26f,.12f,1.26f),Gold,16,1,Quaternion.Euler(90,0,0),false);
                     Round(0,1.91f,1.08f,.35f,.85f,.35f,Dark,1.55f);
                     Round(0,2.33f,1.08f,.69f,.18f,.69f,Iron);
+                    Round(0,1.67f,-.06f,.52f,.36f,.52f,Gold,.86f);
                     Round(0,1.62f,1.76f,.53f,.46f,.37f,Amber);
+                    for(int bar=-3;bar<=3;bar++)
+                        Beam(new(bar*.23f,.54f,1.78f),new(bar*.22f,.04f,2.36f-Mathf.Abs(bar)*.08f),.08f,.09f,Gold);
+                    for(int side=-1;side<=1;side+=2)
+                    {
+                        Box(side*.93f,.05f,0,.09f,.10f,2.67f,Gold,false);
+                        for(int axle=-1;axle<=1;axle++)
+                            model.Shape(new(side*.917f,.05f,axle*1.31f),new(.29f,.08f,.29f),Gold,10,1,Quaternion.Euler(0,0,90),false);
+                    }
                 }
                 float cab=i==0?-1.27f:0, length=i==0?1.35f:3.61f;
+                if(i!=0)
+                {
+                    for(int end=-1;end<=1;end+=2)
+                    {
+                        Box(0,.64f,end*1.36f,1.35f,.30f,.43f,Wood);
+                        Box(0,.95f,end*1.56f,1.35f,.45f,.11f,Red);
+                    }
+                    Box(-.97f,.24f,0,.30f,.14f,1.28f,Wood);
+                    Box(.97f,.24f,0,.30f,.14f,1.28f,Wood);
+                }
                 foreach(int s in new[]{-1,1})
                 {
                     for(int j=-1;j<=1;j++) Box(s*.77f,1.27f,cab+j*length*.45f,.12f,1.6f,.13f,Red);

@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class SphinxJunctionMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        public const string Signature = "sphinx-junction-2";
+        public const string Signature = "sphinx-junction-3";
         public Shader finishShader;
         Material finish;
         Transform built;
@@ -30,7 +30,7 @@ namespace DeadlyJenga.CastlePrototype
         public int FootprintVersion => Revision;
         public float FootprintHalfSize => Radius;
         public bool UsesOriginalColliders => true;
-        public float WaterHeight(Vector3 p) => transform.position.y;
+        public float WaterHeight(Vector3 p) => transform.TransformPoint(0,-1,0).y;
         public bool IsSheltered(Vector3 p) => gameObject.scene.GetPhysicsScene().Raycast(p+Vector3.up*.15f,Vector3.up,out _,50,1<<Layers.Block,QueryTriggerInteraction.Ignore);
         public void GetGroundFootprints(List<Footprint> into) { }
         public Vector3 SafeSpawnPoint()
@@ -90,7 +90,7 @@ namespace DeadlyJenga.CastlePrototype
             if (Time.fixedTime < cleanup) return;
             cleanup = Time.fixedTime + .18f;
             var physics = gameObject.scene.GetPhysicsScene();
-            var p = Center - Vector3.up*3.95f;
+            var p = new Vector3(Center.x,WaterHeight(Center)-3.95f,Center.z);
             int hits = physics.OverlapBox(p,new Vector3(Radius+12,4,Radius+12),victims,Quaternion.identity,~((1<<Layers.Block)|(1<<Layers.Surface)),QueryTriggerInteraction.Ignore);
             for(int i=0;i<hits;i++) victims[i].GetComponentInParent<IDamageable>()?.Eliminate(gameObject);
             foreach (var rb in bodies)
@@ -147,7 +147,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             for(int z=-2;z<=4;z++) for(int x=-5;x<=5;x++)
             {
-                if (Mathf.Abs(x)==5 && (z==-2 || z==4)) continue;
+                if (Mathf.Abs(x)>=4 && z==-2) continue;
                 Begin("Driven sandstone pier "+x+","+z,x*6,0,z*6);
                 Box(0,-.48f,0,2.9f,3.96f,2.9f,Shade);
                 Box(0,.67f,0,2.94f,.44f,2.94f,Teal,false);
@@ -168,23 +168,57 @@ namespace DeadlyJenga.CastlePrototype
             }
             for(int i=-5;i<=5;i++)
             {
-                float x=i*5.4f, z=-18.5f+.045f*i*i;
+                float x=i*5.4f, z=-20.4f+.30f*i*i;
                 Begin("Causeway pile "+i,x,0,z);
                 Box(0,-.8f,0,2.3f,4,2.4f,Shade);
                 Box(0,.38f,0,2.36f,.37f,2.46f,Teal,false);
+                Box(0,.78f,0,2.92f,.34f,2.74f,Sand);
+                Box(0,1.07f,0,3.62f,.26f,3.25f,Honey);
                 End(true);
-                Begin("Causeway span "+i,x,1.53f,z,-Mathf.Atan(.09f*i/5.4f)*Mathf.Rad2Deg);
-                Box(0,0,0,5.5f,.66f,3.8f,Honey);
-                for(int k=-2;k<=2;k++) Box(k*1.05f,.52f,-1.73f,1.02f,.38f,.37f,Sand);
-                if(i%2==0) Lamp(0,.74f,-1.73f);
+                Begin("Causeway span "+i,x,1.53f,z+.075f,90-Mathf.Atan(.60f*i/5.4f)*Mathf.Rad2Deg);
+                float chord=Mathf.Sqrt(5.4f*5.4f+.36f*i*i);
+                model.SetTrackMiters(chord,-.05f,.05f);
+                Box(0,0,0,3.8f,.66f,chord-.04f,Honey);
+                for(int k=-2;k<=2;k++) Box(1.73f,.52f,k*chord/5,.37f,.38f,chord/5-.06f,Sand);
+                if(i%2==0) Lamp(1.73f,.74f,0);
                 End();
             }
-            for(int x=-18;x<=18;x+=18)
+            foreach(int x in new[]{-27,-18,0,18,27})
             {
-                Begin("Approach stair driven pier",x,0,-15.96f);
-                Box(0,-.22f,0,1.85f,4.16f,1.16f,Shade);
+                float edge=Mathf.Abs(x)==27?-9:-15;
+                float i=x/5.4f;
+                float foot=-20.4f+.30f*i*i+1.53f;
+                float run=edge-foot;
+                float mid=(edge+foot)*.5f;
+                Begin("Approach stair driven pier",x,0,mid);
+                Box(0,-.22f,0,1.85f,4.16f,Mathf.Min(run,1.45f),Shade);
                 End(true);
-                Stairs("Plaza approach",x,1.86f,-15.96f,3,.64f,1.91f);
+                Stairs("Plaza approach",x,1.86f,mid,3,.64f,run);
+            }
+            for(int side=-1;side<=1;side+=2)
+            {
+                float x=side*13.0f;
+                Begin("Sandstone market arcade "+side,x,2.5f,-6.4f);
+                foreach(int a in new[]{-1,1}) foreach(int b in new[]{-1,1})
+                {
+                    Round(a*2.1f,1.15f,b*1.28f,.62f,2.3f,.62f,Honey,.86f,9,true);
+                    Round(a*2.1f,1.94f,b*1.28f,.84f,.46f,.84f,Teal,1.12f,9);
+                }
+                End();
+                Begin("Market arcade roof "+side,x,5.03f,-6.4f);
+                Box(0,0,0,5.45f,.46f,3.45f,Honey);
+                Box(0,-.06f,-1.73f,5.3f,.17f,.14f,Teal,false);
+                foreach(int end in new[]{-1,1}) Lamp(end*2.17f,.30f,-1.26f);
+                End();
+                Begin("Potter's stall "+side,x,2.5f,-6.48f);
+                foreach(int leg in new[]{-1,1}) Box(leg*.84f,.38f,0,.21f,.76f,.6f,Wood);
+                Box(0,.84f,0,2.10f,.16f,.89f,Wood);
+                for(int jar=-1;jar<=1;jar++)
+                {
+                    Round(jar*.64f,1.11f,0,.45f,.38f,.45f,jar==0?Teal:Red,1.22f);
+                    Round(jar*.64f,1.42f,0,.54f,.26f,.54f,jar==0?Teal:Red,.52f);
+                }
+                End();
             }
         }
     }

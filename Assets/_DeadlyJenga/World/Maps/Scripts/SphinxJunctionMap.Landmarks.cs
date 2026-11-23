@@ -4,57 +4,77 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class SphinxJunctionMap
     {
+        static Vector3[] NemesSection(int side,float t)
+        {
+            float y=t*7.96f;
+            float inner=1.85f+.58f*Mathf.Sin(t*Mathf.PI);
+            float outer=3.92f+1.04f*Mathf.Sin(t*Mathf.PI)-.91f*t;
+            float front=-3.20f+2.52f*t;
+            float rear=1.04f+1.27f*t;
+            var row=new[]{new Vector3(outer*.95f,y,rear),new Vector3(outer,y,.68f*rear+.32f*front),
+                new Vector3(outer-.33f,y,front+.34f),new Vector3(inner+.20f,y,front),
+                new Vector3(inner,y,front+.51f),new Vector3(inner+.10f,y,rear-.22f)};
+            if(side<0)
+            {
+                for(int i=0;i<row.Length;i++)row[i].x=-row[i].x;
+                System.Array.Reverse(row);
+            }
+            return row;
+        }
         void Sphinx()
         {
             foreach(int side in new[]{-1,1})
             {
-                Begin("Sphinx shoulder bearing "+side,side*4,2.5f,1);
-                Box(0,2.5f,0,3.5f,5,8.3f,Shade);
-                for(int j=0;j<4;j++) Round(0,.62f+1.25f*j,0,4.6f-.15f*j,1.24f,9,Sand,1,10);
+                Begin("Sphinx shoulder bearing "+side,side*5.5f,2.5f,1);
+                Box(0,2.5f,0,4.6f,5,8.3f,Shade);
+                for(int j=0;j<4;j++) Round(0,.62f+1.25f*j,0,5.6f-.24f*j,1.24f,9,Sand,1,10);
                 End();
                 for(int j=0;j<3;j++)
                 {
-                    Begin("Sphinx foreleg "+side+"/"+j,side*4,2.5f,-4.55f-j*2.45f);
+                    Begin("Sphinx foreleg "+side+"/"+j,side*5.5f,2.5f,-4.55f-j*2.45f);
                     float h=3.75f-j*.85f;
-                    Round(0,h*.5f,0,3.48f,h,2.44f,Sand,.78f,10,true);
+                    Round(0,h*.5f,0,4.76f,h,2.44f,Sand,.78f,10,true);
                     for(int toe=-1;toe<=1;toe++)
                     {
-                        Round(toe*1.06f,h*.51f,-.08f,1.44f,h*.92f,2.75f,Honey,.64f,10);
-                        if(j==2) Round(toe*1.06f,.37f,-1.2f,.64f,.72f,.49f,Teal,.65f);
+                        Round(toe*1.53f,h*.51f,-.08f,1.95f,h*.92f,2.75f,Honey,.64f,10);
+                        if(j==2) Round(toe*1.53f,.37f,-1.2f,.64f,.72f,.49f,Teal,.65f);
                     }
                     End();
                 }
-                Stairs("Shoulder processional ascent",side*7.2f,2.5f,-1.2f,2.2f,5,8.5f);
+                Stairs("Shoulder processional ascent",side*9.05f,2.5f,-1.2f,2.2f,5,8.5f);
             }
             Begin("Sphinx chest lintel",0,8.16f,1);
-            Box(0,0,0,11.4f,1.32f,8.1f,Honey);
-            Box(0,-.27f,-4.06f,11.4f,.34f,.14f,Teal,false);
+            Box(0,0,0,15.6f,1.32f,8.1f,Honey);
+            Box(0,-.27f,-4.06f,15.6f,.34f,.14f,Teal,false);
             for(int i=-4;i<=4;i+=2) Lamp(i,-.2f,-4.24f);
             End();
             Begin("Sphinx striped nemes and carved face",0,8.82f,.25f,-12);
             Box(0,.9f,0,5.5f,1.8f,4.6f,Sand);
-            // A limestone neck, jaw, cheekbones and brow, sculpted as successive polygon rings.
-            Round(0,2.65f,-.2f,4.7f,1.7f,4.3f,Honey,1.06f,14,true);
-            Round(0,4.2f,-.5f,4.3f,1.4f,4.3f,Honey,1.28f,14,true);
-            Round(0,5.9f,-.35f,5.5f,2.05f,4.7f,Honey,1.04f,14,true);
-            Round(0,7.38f,-.12f,5.75f,.95f,4.85f,Sand,.87f,14,true);
+            unit.transform.localScale=new Vector3(1.32f,1.18f,1.18f);
+            model.Carving(Vector3.zero,Sand,new(2.3f,1.75f,1.77f,0),new(1.91f,1.62f,2.6f,0),
+                new(2.06f,1.72f,4.32f,-.28f));
+            model.Carving(Vector3.zero,Honey,new(1.12f,.98f,3.59f,-1.22f),new(1.75f,1.63f,3.98f,-.89f),
+                new(2.28f,1.99f,4.77f,-.54f),new(2.67f,2.33f,5.65f,-.33f),
+                new(2.72f,2.21f,6.29f,-.24f),new(2.85f,2.39f,6.67f,-.22f),
+                new(2.79f,2.36f,7.43f,-.1f),new(2.40f,2.15f,7.92f,-.03f));
             for(int s=-1;s<=1;s+=2)
             {
                 for(int j=0;j<9;j++)
                 {
-                    float t=j/8f;
-                    Round(s*(3.85f-.93f*t),.45f+j*.83f,.25f+t*.64f,
-                        2.65f+1.24f*Mathf.Sin(t*3.14f),.84f,4.5f-.5f*t,j%2==0?Gold:Teal,1,8,true);
+                    model.DrapedBand(NemesSection(s,j/9f),NemesSection(s,(j+1)/9f),j%2==0?Gold:Teal);
                 }
                 Beam(new(s*.4f,6.5f,-2.7f),new(s*2.12f,6.77f,-2.12f),.27f,.42f,Dark);
-                Round(s*1.25f,6.19f,-2.52f,1.43f,.39f,.48f,Teal,.82f);
+                Beam(new(s*.41f,6.14f,-2.53f),new(s*1.39f,6.42f,-2.47f),.16f,.19f,Dark);
+                Beam(new(s*1.39f,6.42f,-2.47f),new(s*2.09f,6.35f,-2.04f),.14f,.2f,Dark);
+                Round(s*1.19f,6.20f,-2.49f,1.41f,.32f,.47f,Teal,.62f);
                 Round(s*1.17f,6.2f,-2.74f,.26f,.27f,.14f,Iron);
                 Round(s*2.77f,5.6f,-.75f,.89f,1.25f,1.2f,Honey);
                 Round(s*2.9f,4.68f,-1.05f,.86f,1.12f,.48f,Gold,.36f);
             }
-            Round(0,5.56f,-2.62f,.93f,1.47f,1.24f,Sand,.58f,8);
-            Round(0,4.65f,-2.69f,1.85f,.32f,.64f,Shade);
-            Round(0,4.40f,-2.7f,1.62f,.28f,.57f,Honey);
+            model.Carving(Vector3.zero,Sand,new(.46f,.29f,5.08f,-2.62f),new(.55f,.59f,5.28f,-2.82f),
+                new(.34f,.47f,5.67f,-2.65f),new(.29f,.22f,6.52f,-2.48f));
+            Round(0,4.70f,-2.52f,1.65f,.22f,.69f,Shade,.72f);
+            Round(0,4.48f,-2.53f,1.54f,.25f,.66f,Honey,.89f);
             for(int j=0;j<7;j++) Round(0,1.77f+.32f*j,-2.83f+.045f*j,1.16f,.34f,.93f,j%2==0?Gold:Teal);
             Round(0,8.04f,-.03f,5.8f,.4f,5,Gold, .92f,14);
             foreach(int sign in new[]{-1,1})

@@ -54,17 +54,7 @@ namespace DeadlyJenga.CastlePrototype
             if (!solid) return;
             if (trackLength>0 || sides!=4 || !Mathf.Approximately(top,1))
             {
-                int count=vertices.Count-firstVertex;
-                var hull=new Mesh {name=root.name+" bearing hull"};
-                hull.SetVertices(vertices.GetRange(firstVertex,count));
-                var indices=new int[count];
-                for(int i=0;i<count;i++) indices[i]=i;
-                hull.SetTriangles(indices,0);
-                var convex=root.AddComponent<MeshCollider>();
-                convex.convex=true;
-                convex.sharedMesh=hull;
-                convex.includeLayers=1<<DeadlyJenga.Core.Layers.Survivor;
-                convex.layerOverridePriority=12;
+                ConvexHull(firstVertex);
                 volume+=size.x*size.y*size.z;
                 return;
             }
@@ -83,6 +73,63 @@ namespace DeadlyJenga.CastlePrototype
             box.includeLayers = 1 << DeadlyJenga.Core.Layers.Survivor;
             box.layerOverridePriority = 12;
             volume += size.x*size.y*size.z;
+        }
+        void ConvexHull(int firstVertex)
+        {
+            int count=vertices.Count-firstVertex;
+            var hull=new Mesh {name=root.name+" bearing hull"};
+            hull.SetVertices(vertices.GetRange(firstVertex,count));
+            var indices=new int[count];
+            for(int i=0;i<count;i++) indices[i]=i;
+            hull.SetTriangles(indices,0);
+            var convex=root.AddComponent<MeshCollider>();
+            convex.convex=true;
+            convex.sharedMesh=hull;
+            convex.includeLayers=1<<DeadlyJenga.Core.Layers.Survivor;
+            convex.layerOverridePriority=12;
+        }
+
+        // Sections run from chin to crown. Each row gives the two radii, elevation and fore/aft offset.
+        internal void Carving(Vector3 origin,Color color,params Vector4[] sections)
+        {
+            const int sides=16;
+            int first=vertices.Count;
+            var rings=new Vector3[sections.Length,sides];
+            for(int row=0;row<sections.Length;row++)
+            {
+                var section=sections[row];
+                for(int i=0;i<sides;i++)
+                {
+                    float a=(i+.5f)*Mathf.PI*2/sides;
+                    rings[row,i]=origin+new Vector3(section.x*Mathf.Sin(a),section.z,section.w+section.y*Mathf.Cos(a));
+                }
+            }
+            int last=sections.Length-1;
+            for(int i=0;i<sides;i++)
+            {
+                int next=(i+1)%sides;
+                for(int row=0;row<last;row++)
+                    Quad(rings[row,i],rings[row,next],rings[row+1,next],rings[row+1,i],color);
+                Tri(origin+new Vector3(0,sections[0].z,sections[0].w),rings[0,next],rings[0,i],color);
+                Tri(origin+new Vector3(0,sections[last].z,sections[last].w),rings[last,i],rings[last,next],color);
+            }
+            ConvexHull(first);
+            volume+=sections[last/2].x*sections[last/2].y*(sections[last].z-sections[0].z)*Mathf.PI;
+        }
+        internal void DrapedBand(Vector3[] lower,Vector3[] upper,Color color)
+        {
+            int first=vertices.Count;
+            for(int i=0;i<lower.Length;i++)
+            {
+                int next=(i+1)%lower.Length;
+                Quad(lower[i],lower[next],upper[next],upper[i],color);
+                if(i>0 && next!=0)
+                {
+                    Tri(lower[0],lower[next],lower[i],color);
+                    Tri(upper[0],upper[i],upper[next],color);
+                }
+            }
+            ConvexHull(first);
         }
         void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color color)
         {

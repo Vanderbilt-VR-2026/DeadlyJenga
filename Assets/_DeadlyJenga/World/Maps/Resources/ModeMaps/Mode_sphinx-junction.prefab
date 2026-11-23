@@ -61,3 +61,4 @@ MonoBehaviour:
   panorama: {fileID: 2800000, guid: 0edcb479710b448ba47ad1aba553ab8b, type: 3}
   skyShader: {fileID: 4800000, guid: 35d89fe8e3e645628e5c048d03e266a3, type: 3}
   sandShader: {fileID: 4800000, guid: 5caaad502d904a22b062844f2a058f25, type: 3}
+  steamShader: {fileID: 4800000, guid: aa0ce4b7059b4c47a93cc34e3852835c, type: 3}

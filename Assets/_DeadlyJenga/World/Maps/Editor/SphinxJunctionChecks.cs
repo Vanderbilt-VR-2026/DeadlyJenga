@@ -108,7 +108,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     sandEliminated=false;
                     GameEvents.Eliminated+=OnEliminated;
                     if(bot && bot.GetComponent<IPlayableCharacter>() is IPlayableCharacter testBot)
-                        testBot.Place(map.transform.TransformPoint(0,-.2f,-25),Quaternion.identity);
+                        testBot.Place(map.transform.TransformPoint(0,-1.42f,-25),Quaternion.identity);
                     rail=Body("Railway span 10");railStart=rail.position;
                     chest=Body("Sphinx chest lintel");chestStart=chest.position;
                     StartPull("Timber trestle bent 10");phase++;began=Time.fixedTime;
@@ -116,11 +116,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 else if(phase==2)
                 {
                     pull.Hold(grip+new Vector3(10,1,0));
-                    if(elapsed>.45f){Shot("06-trestle-pull",new(38,9,-1),new(31,6,15),51);pull.Release();phase++;began=Time.fixedTime;}
+                    if(elapsed>.45f){Shot("06-trestle-pull",new(41,8,2),new(35,5,18),51);pull.Release();phase++;began=Time.fixedTime;}
                 }
                 else if(phase==3 && elapsed>2)
                 {
-                    Shot("07-trestle-loss",new(38,9,-1),new(31,6,15),51);
+                    Shot("07-trestle-loss",new(41,8,2),new(35,5,18),51);
                     Check(Vector3.Distance(railStart,rail.position)>.6f,"Trestle deck lost bearing");
                     StartPull("Sphinx shoulder bearing 1");phase++;began=Time.fixedTime;
                 }
