@@ -7,6 +7,8 @@ namespace DeadlyJenga.Modes
 {
     public sealed partial class MatchModeRuntime:IHeldEquipmentRuntime
     {
+        const float WheelSpinUp=.60f, WheelLaunchInterval=.42f;
+
         sealed class HeldWeapon {public Pose pose;public float seen,start;public bool down;public int burst;}
         sealed class ArsenalProjectile {public int id;public string owner;public EquipmentKind kind;public Vector3 position,velocity;public float life,bornAt;}
         readonly Dictionary<string,HeldWeapon> heldWeapons=new Dictionary<string,HeldWeapon>();
@@ -31,7 +33,7 @@ namespace DeadlyJenga.Modes
             {
                 var held=heldWeapons[id];var state=EquipmentFor(id);var actor=FindActor(id);
                 if(actor==null||!actor.Alive||!state.drawn||Time.time-held.seen>.4f||simulation.Phase!=RoundPhase.Playing){StopArsenalTrigger(id);continue;}
-                var spec=EquipmentSpecifications.Get(state.kind);float charge=state.kind==EquipmentKind.Chainsaw&&state.shotgun?1:spec.charge;
+                var spec=EquipmentSpecifications.Get(state.kind);float charge=state.kind==EquipmentKind.Chainsaw&&state.shotgun?WheelSpinUp:spec.charge;
                 state.triggerHeld=true;state.charge=charge>0?Mathf.Clamp01((Time.time-held.start)/charge):1;equipment[id]=state;
                 // Bots submit each shot after a fresh aim and safety decision.
                 if(actor.IsBot)continue;
@@ -46,7 +48,7 @@ namespace DeadlyJenga.Modes
         bool AttackEquipment(string id,EquipmentCommand command)=>AttackEquipment(id,EquipmentFor(id),command);
         bool AttackArsenal(string id,EquipmentState state,EquipmentCommand command)
         {
-            var spec=EquipmentSpecifications.Get(state.kind);float required=state.kind==EquipmentKind.Chainsaw&&state.shotgun?1:spec.charge;
+            var spec=EquipmentSpecifications.Get(state.kind);float required=state.kind==EquipmentKind.Chainsaw&&state.shotgun?WheelSpinUp:spec.charge;
             if(required>0)
             {
                 if(!heldWeapons.TryGetValue(id,out var held)){heldWeapons[id]=new HeldWeapon{start=Time.time,seen=Time.time,pose=new Pose(command.position,Quaternion.LookRotation(command.forward))};return false;}
@@ -55,7 +57,7 @@ namespace DeadlyJenga.Modes
             if(state.reloadRemaining>0||state.embedRemaining>0)return false;
             if(spec.magazine>0&&(!spec.melee||state.shotgun)){if(!state.magazineInitialized){state.rounds=spec.magazine;state.magazineInitialized=true;}if(state.rounds<=0){BeginMagazineReload(id,state);return false;}}
             if(weaponCooldown.TryGetValue(id,out float ready)&&Time.time<ready)return false;
-            float cooldown=state.kind==EquipmentKind.StockPistol&&state.shotgun?.095f:state.kind==EquipmentKind.LaserAxe&&state.shotgun?1.2f:state.kind==EquipmentKind.Chainsaw&&state.shotgun?1:spec.cooldown;
+            float cooldown=state.kind==EquipmentKind.StockPistol&&state.shotgun?.095f:state.kind==EquipmentKind.LaserAxe&&state.shotgun?1.2f:state.kind==EquipmentKind.Chainsaw&&state.shotgun?WheelLaunchInterval:spec.cooldown;
             bool projectile=spec.projectileSpeed>0||state.kind==EquipmentKind.Chainsaw&&state.shotgun;
             if(projectile&&arsenalProjectiles.Count>=64)return false;
             var direction=command.forward.normalized;
@@ -86,7 +88,6 @@ namespace DeadlyJenga.Modes
             if(projectile)
             {
                 arsenalProjectiles.Add(new ArsenalProjectile{id=++nextArsenalProjectile,owner=id,kind=state.kind,bornAt=Time.time,position=command.position,velocity=direction*(state.kind==EquipmentKind.Chainsaw?22:spec.projectileSpeed),life=state.kind==EquipmentKind.DualUzi?.85f:state.kind==EquipmentKind.GrenadeLauncher?3.5f:5});
-                if(state.kind==EquipmentKind.Chainsaw&&heldWeapons.TryGetValue(id,out var h))h.start=Time.time;
                 PublishArsenalState();AnnounceEquipment(id,state,EquipmentAction.Shot,command.position);return true;
             }
             float range=state.kind==EquipmentKind.LaserAxe&&state.shotgun?35:spec.range;
@@ -171,7 +172,7 @@ namespace DeadlyJenga.Modes
             {
                 var shot=arsenalProjectiles[i];var spec=EquipmentSpecifications.Get(shot.kind);bool done=false;
                 int overlaps=Physics.OverlapSphereNonAlloc(shot.position,Mathf.Max(.08f,spec.radius),plasmaOverlaps,(1<<Layers.Block)|(1<<Layers.Surface)|(1<<Layers.Survivor)|1,QueryTriggerInteraction.Collide);
-                for(int h=0;h<overlaps;h++){var shape=plasmaOverlaps[h];var actor=shape.GetComponentInParent<IModeActor>();if(actor?.ActorId==shot.owner||shape.isTrigger&&actor==null)continue;ImpactArsenal(shot,actor,shape.ClosestPoint(shot.position));done=true;break;}
+                for(int h=0;h<overlaps;h++){var shape=plasmaOverlaps[h];var actor=shape.GetComponentInParent<IModeActor>();if(actor?.ActorId==shot.owner||shape.isTrigger&&actor==null)continue;ImpactArsenal(shot,actor,shape.ClosestPoint(shot.position),actor==null);done=true;break;}
                 if(done||overlaps==plasmaOverlaps.Length){arsenalProjectiles.RemoveAt(i);continue;}
                 float elapsed=Mathf.Min(dt,Mathf.Max(0,Time.time-shot.bornAt));if(elapsed<=0)continue;
                 int steps=Mathf.Clamp(Mathf.CeilToInt(elapsed/.025f),1,8);float step=elapsed/steps;
@@ -183,7 +184,7 @@ namespace DeadlyJenga.Modes
                     float nearest=delta.magnitude;bool hit=false;IModeActor direct=null;Vector3 point=default;
                     for(int h=0;h<count;h++){var contact=plasmaHits[h];var actor=contact.collider.GetComponentInParent<IModeActor>();if(actor?.ActorId==shot.owner||contact.collider.isTrigger&&actor==null||contact.distance>nearest)continue;nearest=contact.distance;hit=true;direct=actor;point=contact.distance>0?contact.point:contact.collider.ClosestPoint(shot.position);}
                     shot.position+=delta.normalized*nearest;
-                    if(hit||shot.life<=0){ImpactArsenal(shot,direct,point);done=true;break;}
+                    if(hit||shot.life<=0){ImpactArsenal(shot,direct,point,hit&&direct==null);done=true;break;}
                 }
                 if(done)arsenalProjectiles.RemoveAt(i);
             }
@@ -197,10 +198,13 @@ namespace DeadlyJenga.Modes
             frame.weaponProjectiles=new EquipmentProjectileFrame[arsenalProjectiles.Count];
             for(int i=0;i<arsenalProjectiles.Count;i++){var s=arsenalProjectiles[i];frame.weaponProjectiles[i]=new EquipmentProjectileFrame{id=s.id,kind=s.kind,owner=s.owner,position=s.position,velocity=s.velocity,remaining=s.life};}
         }
-        void ImpactArsenal(ArsenalProjectile shot,IModeActor direct,Vector3 contact)
+        void ImpactArsenal(ArsenalProjectile shot,IModeActor direct,Vector3 contact,bool solidContact)
         {
             var source=FindActor(shot.owner);var spec=EquipmentSpecifications.Get(shot.kind);
-            AnnounceEquipment(shot.owner,new EquipmentState{kind=shot.kind},EquipmentAction.Impact,shot.position);
+            // The launch-mode impact flag marks a world contact for cosmetic wheel lodging.
+            bool lodge = shot.kind==EquipmentKind.Chainsaw && solidContact;
+            AnnounceEquipment(shot.owner,new EquipmentState{kind=shot.kind,shotgun=lodge},
+                EquipmentAction.Impact,lodge?contact:shot.position);
             if(source==null)return;
             if(shot.kind==EquipmentKind.DualUzi){if(direct!=null)ArsenalDamage(source,direct,spec.damage,shot.velocity.normalized*spec.push,contact);return;}
             if(shot.kind==EquipmentKind.Chainsaw){if(direct!=null)ArsenalDamage(source,direct,55,shot.velocity.normalized*8,contact);return;}

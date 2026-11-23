@@ -385,6 +385,7 @@ namespace DeadlyJenga.CandyPlayers
                 paired = pairedFeed = rotor = null;
                 kind = state.kind;
                 root = Create(kind);
+                if (kind == EquipmentKind.Chainsaw && rotor) wheelSeat = rotor.localPosition;
                 feed = root.Find(FeedAssembly);
                 ResetMotion();
             }
@@ -428,7 +429,13 @@ namespace DeadlyJenga.CandyPlayers
                 root.localScale = new Vector3(1, 1, Mathf.Lerp(.78f, 1, drawAmount)) * ModelScale(kind, frame.scale);
             if (kind == EquipmentKind.LaserClaws) PresentClaws(root, hand, state.leftHanded, drawAmount);
             if (kind == EquipmentKind.PoweredArmor) PresentRepulsor(root, drawAmount);
-            if(rotor){spin+=Time.deltaTime*(state.triggerHeld?700+state.charge*1800:state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?500:0);rotor.localRotation=Quaternion.Euler(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?spin:0,0,state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?0:spin);}
+            if(rotor)
+            {
+                spin+=Time.deltaTime*(state.triggerHeld?700+state.charge*1800:state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?500:0);
+                rotor.localRotation=Quaternion.Euler(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?spin:0,0,
+                    state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?0:spin);
+                if(kind==EquipmentKind.Chainsaw)PresentWheelFeed(feedState);
+            }
             if (kind == EquipmentKind.DualUzi || kind == EquipmentKind.LaserClaws || kind == EquipmentKind.PoweredArmor)
             {
                 if (!paired)

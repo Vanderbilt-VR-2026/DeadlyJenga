@@ -123,9 +123,51 @@ namespace DeadlyJenga.DevTools.Editor
             for(int i=0;i<7;i++){trigger.RequestEquipmentTrigger(true,muzzle);yield return new WaitForSeconds(.08f);}
             Check(runtime.Frame.equipmentActions.Count(a=>a.id>first&&a.kind==EquipmentKind.StockPistol&&a.action==EquipmentAction.Shot)==3,"One held burst fires exactly three rounds");trigger.RequestEquipmentTrigger(false,muzzle);
             target.Place(new Vector3(150,10.02f,156),Quaternion.identity);target.InputSuspended=true;yield return new WaitForSeconds(.25f);
-            Check(runtime.GiveEquipment(EquipmentKind.Chainsaw)&&runtime.RequestEquipment(true,false,true),"Chainsaw switches to wheel launcher");yield return new WaitForSeconds(.45f);
+            Check(runtime.GiveEquipment(EquipmentKind.Chainsaw)&&runtime.RequestEquipment(true,false,true),"Chainsaw switches to wheel launcher");
+            yield return new WaitForSeconds(.45f);
             muzzle=new Pose(player.ViewPose.position+Vector3.forward*.4f,Quaternion.LookRotation(target.transform.position+Vector3.up*.55f-player.ViewPose.position-Vector3.forward*.4f));
-            float chargeStart=Time.time;bool wheel=false;while(Time.time-chargeStart<1.25f){trigger.RequestEquipmentTrigger(true,muzzle);yield return new WaitForSeconds(.07f);wheel|=runtime.Frame.weaponProjectiles.Any(p=>p.kind==EquipmentKind.Chainsaw);}trigger.RequestEquipmentTrigger(false,muzzle);Check(wheel,"One-second charged chainsaw launches a travelling wheel");
+            var wall=GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wall.name="Wheel lodge test surface";
+            wall.layer=Layers.Surface;
+            wall.transform.position=muzzle.position+muzzle.rotation*Vector3.forward*3;
+            wall.transform.localScale=new Vector3(2,2,.3f);
+            Physics.SyncTransforms();
+            first=runtime.Frame.equipmentSequence;
+            float chargeStart=Time.time;
+            bool sawFlying=false,sawLodged=false,earlyWheel=false;
+            while(Time.time-chargeStart<1.48f)
+            {
+                trigger.RequestEquipmentTrigger(true,muzzle);
+                yield return new WaitForSeconds(.05f);
+                sawFlying|=runtime.Frame.weaponProjectiles.Any(p=>p.kind==EquipmentKind.Chainsaw);
+                sawLodged|=runtime.Frame.equipmentActions.Any(a=>a.id>first&&a.kind==EquipmentKind.Chainsaw&&
+                    a.action==EquipmentAction.Impact&&a.shotgun);
+                if(Time.time-chargeStart<.53f)
+                    earlyWheel|=sawFlying;
+            }
+            trigger.RequestEquipmentTrigger(false,muzzle);
+            int wheels=runtime.Frame.equipmentActions.Count(a=>a.id>first&&a.kind==EquipmentKind.Chainsaw&&a.action==EquipmentAction.Shot);
+            Check(sawFlying&&wheels>=2,"Held trigger launches multiple wheels after one spin-up");
+            Check(sawLodged,"A world collision publishes a wheel lodging cue");
+            Check(!earlyWheel,"Wheel launcher waits for its initial spin-up");
+            var lodged=Object.FindObjectsByType<TrailRenderer>(FindObjectsSortMode.None)
+                .FirstOrDefault(t=>t.name=="Visual - Chainsaw projectile"&&!t.emitting);
+            Check(lodged!=null,"A wheel remains visible after impact");
+            var lodgedPosition=lodged?lodged.transform.position:Vector3.zero;
+            yield return new WaitForSeconds(1);
+            Check(lodged&&lodged.gameObject.activeInHierarchy&&
+                Vector3.Distance(lodged.transform.position,lodgedPosition)<.03f,"The wheel stays seated on the surface");
+            bool fractured=false;
+            float breakDeadline=Time.time+3.4f;
+            while(!fractured&&Time.time<breakDeadline)
+            {
+                var fragments=GameObject.Find("Pooled wheel fragments");
+                fractured=fragments&&fragments.GetComponent<ParticleSystem>().particleCount>0;
+                yield return null;
+            }
+            Check(fractured,"A dropped wheel emits fragments");
+            wall.SetActive(false);
+            Object.Destroy(wall);
             Check(runtime.GiveEquipment(EquipmentKind.LaserAxe)&&runtime.RequestEquipment(true,false,true),"Axe switches to full-width laser");yield return new WaitForSeconds(.45f);float health=target.Health;Check(runtime.RequestEquipmentAttack(muzzle),"Axe laser attack accepted");Check(target.Health<health,"Axe beam damages a physical target at range");
             target.Place(new Vector3(150,10.02f,156),Quaternion.identity);target.InputSuspended=true;yield return new WaitForSeconds(.25f);
             Check(runtime.GiveEquipment(EquipmentKind.WristLaser),"Wrist laser equips");health=target.Health;for(int i=0;i<4;i++){trigger.RequestEquipmentTrigger(true,muzzle);yield return new WaitForSeconds(.08f);}trigger.RequestEquipmentTrigger(false,muzzle);float stopped=target.Health;yield return new WaitForSeconds(.3f);Check(stopped<health&&target.Health==stopped,"Continuous beam deals repeated damage and stops on release");

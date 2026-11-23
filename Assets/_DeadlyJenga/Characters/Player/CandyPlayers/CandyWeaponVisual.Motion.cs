@@ -12,6 +12,9 @@ namespace DeadlyJenga.CandyPlayers
         Transform[] primaryRounds, secondaryRounds;
         float drawAmount, contactUntil, lastContactRemaining;
         string lastContactVictim;
+        int lastWheelCount=-1;
+        float wheelFeedAt=float.NegativeInfinity;
+        Vector3 wheelSeat;
         CandyAvatarWardrobe suitWardrobe;
         bool motionReady, lastRoleIssued, lastLeft, hasCarriedFrame;
         CandyAvatarFrame lastCarriedFrame;
@@ -42,6 +45,30 @@ namespace DeadlyJenga.CandyPlayers
             wasEmbedded = false;
             contactUntil = lastContactRemaining = 0;
             lastContactVictim = null;
+            lastWheelCount = -1;
+            wheelFeedAt = float.NegativeInfinity;
+        }
+
+        void PresentWheelFeed(EquipmentState state)
+        {
+            bool launcher = state.shotgun;
+            int count = state.magazineInitialized ? state.rounds : EquipmentSpecifications.Get(kind).magazine;
+            if (!launcher)
+            {
+                lastWheelCount = -1;
+                wheelFeedAt = float.NegativeInfinity;
+            }
+            else
+            {
+                if (lastWheelCount >= 0 && count != lastWheelCount) wheelFeedAt = Time.time;
+                lastWheelCount = count;
+            }
+
+            float age = Time.time - wheelFeedAt;
+            bool loaded = !launcher || (count > 0 && age >= .085f);
+            rotor.gameObject.SetActive(loaded);
+            float feed = launcher ? Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.085f, .23f, age)) : 1;
+            rotor.localPosition = wheelSeat - Vector3.forward * (.18f * (1-feed));
         }
 
         void CaptureEmbed(Vector3 point, Vector3 direction, string victim)

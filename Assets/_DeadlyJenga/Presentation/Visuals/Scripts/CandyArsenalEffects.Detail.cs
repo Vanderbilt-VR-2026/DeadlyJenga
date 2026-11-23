@@ -76,7 +76,8 @@ namespace DeadlyJenga.Presentation
         {
             if(modelPool.TryGetValue(kind,out var pool)&&pool.Count>0)
             {
-                pooled--;var item=pool.Pop();item.position=at;item.gameObject.SetActive(true);item.GetComponent<TrailRenderer>().Clear();return item;
+                pooled--;var item=pool.Pop();item.position=at;item.gameObject.SetActive(true);
+                var pooledTrail=item.GetComponent<TrailRenderer>();pooledTrail.emitting=true;pooledTrail.Clear();return item;
             }
             var root=new GameObject("Visual - "+kind+" projectile").transform;root.SetParent(transform,false);root.position=at;modelKind[root]=kind;
             var casing=ModelPiece(root,"Projectile casing",ProjectileMesh(kind),ordnanceMetal,Vector3.zero,Vector3.one);
@@ -134,6 +135,7 @@ namespace DeadlyJenga.Presentation
         void ReleaseOrdnance()
         {
             foreach(var mesh in projectileMeshes.Values)if(mesh)Destroy(mesh);
+            if(wheelFragmentMesh)Destroy(wheelFragmentMesh);
             if(ordnanceRibbon)Destroy(ordnanceRibbon);if(ordnanceMetal)Destroy(ordnanceMetal);if(ordnanceHot)Destroy(ordnanceHot);if(detailGlow)Destroy(detailGlow);if(ordnanceBurst)Destroy(ordnanceBurst);
         }
         sealed class Shell

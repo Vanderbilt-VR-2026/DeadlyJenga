@@ -47,6 +47,7 @@ namespace DeadlyJenga.Presentation
                 effectsRuntime=match;
             }
             if(match==null)return;
+            UpdateLodgedWheels(match.Frame.phase==RoundPhase.Playing);
             seen.Clear();
             var projectiles=match.Frame.weaponProjectiles;
             if(!ReferenceEquals(projectiles,lastProjectiles)){lastProjectiles=projectiles;receivedProjectiles=Time.time;}
@@ -86,7 +87,13 @@ namespace DeadlyJenga.Presentation
             if(action.action==EquipmentAction.Impact&&action.kind==EquipmentKind.DualUzi){EmitBlast(action);Spike(new EquipmentActionFrame{position=action.position,endpoints=new[]{action.position}});return;}
             if(action.action==EquipmentAction.Impact)
             {
-                EmitBlast(action);if(action.kind!=EquipmentKind.Chainsaw)BlastDetail(action);return;
+                EmitBlast(action);
+                if(action.kind==EquipmentKind.Chainsaw)
+                {
+                    if(action.shotgun)LodgeWheel(action);
+                }
+                else BlastDetail(action);
+                return;
             }
             if(action.action==EquipmentAction.Shot&&action.kind==EquipmentKind.DualUzi&&action.endpoints.Length>0)Spike(action);
             if(action.action!=EquipmentAction.Shot||action.endpoints==null||action.endpoints.Length==0)return;
@@ -375,6 +382,7 @@ namespace DeadlyJenga.Presentation
         {
             foreach(var effect in weaponEffects.Values)ReleaseEffect(effect);
             weaponEffects.Clear();
+            ClearLodgedWheels();
             foreach(var bolt in thunderbolts.Values)foreach(var line in bolt.lines)if(line)Destroy(line.gameObject);
             thunderbolts.Clear();
             if(steam)steam.Clear();
