@@ -33,20 +33,41 @@ namespace DeadlyJenga.CastlePrototype
             }
             var random=new System.Random(614);
             float Noise()=> (float)random.NextDouble();
-            for(int i=0;i<230;i++)
+            // A continuous surface gives the forest a rolling silhouette between trees.
+            float Terrain(float x,float z)
+            {
+                float distance=Mathf.Sqrt(x*x+z*z);
+                float edge=Mathf.SmoothStep(0,1,Mathf.InverseLerp(29,65,distance));
+                return -.18f+edge*(3+11*Mathf.PerlinNoise(x*.043f+12,z*.039f+29));
+            }
+            for(int x=-100;x<100;x+=4)for(int z=-100;z<100;z+=4)
+            {
+                if(x*x+z*z<26*26)continue;
+                Vector3 Hill(int a,int b)=>V(a,Terrain(a,b),b);
+                m.Face(Snow,Hill(x,z),Hill(x,z+4),Hill(x+4,z+4),Hill(x+4,z));
+            }
+            for(int i=0;i<300;i++)
             {
                 float a=Noise()*Mathf.PI*2, distance=32+Noise()*44;
                 float x=Mathf.Cos(a)*distance,z=Mathf.Sin(a)*distance;
                 if(z<-20 && Mathf.Abs(x)<25)continue;
-                float hill=Mathf.Max(0,(distance-31)*.22f)*(1+.35f*Mathf.Sin(a*7));
+                float hill=Terrain(x,z);
                 float h=2.5f+Noise()*5;
-                m.Ring(Snow,V(x,-.15f,z),5+Noise()*4,.85f,hill+.25f,12);
+
                 m.Ring(Cocoa,V(x,hill,z),.25f,.18f,h*.36f,7);
                 for(int tier=0;tier<4;tier++)
                 {
                     float rad=h*(.30f-tier*.048f),y=hill+h*(.13f+tier*.165f);
                     m.Ring(Green,V(x,y,z),rad,.03f,h*.42f,9);
-                    m.Ring(Snow,V(x,y+h*.065f,z),rad*.91f,.012f,h*.38f,9);
+                    m.Ring(Snow,V(x,y+h*.075f,z),rad*.86f,.012f,h*.38f,9);
+                    int arms=distance<50 && tier<3 ? 5 : 0;
+                    for(int arm=0;arm<arms;arm++)
+                    {
+                        float angle=arm*(Mathf.PI*2/arms)+tier*.41f;
+                        Vector3 tip=V(x+rad*.76f*Mathf.Cos(angle),y+h*.035f,z+rad*.76f*Mathf.Sin(angle));
+                        m.Ring(Green,tip,rad*.32f,.01f,h*.23f,6);
+                        m.Ring(Snow,tip+Vector3.up*h*.025f,rad*.29f,.01f,h*.22f,6);
+                    }
                 }
             }
             Mount(Group("Cobble streets and snowy pine horizon",town,Vector3.zero),m);

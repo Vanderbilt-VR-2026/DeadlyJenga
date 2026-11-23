@@ -20,7 +20,7 @@ namespace DeadlyJenga.DevTools.Editor
         static GingerbreadKingdom map;
         static Rigidbody span,bearing;
         static Vector3[] homes;
-        static float started;
+        static float started,lowestFeet;
         static int phase, waypoint;
         static bool failed,fallEliminated;
         static double boot;
@@ -87,8 +87,14 @@ namespace DeadlyJenga.DevTools.Editor
                     if(!session||!session.Survivor()){if(EditorApplication.timeSinceStartup-boot>60)throw new Exception("Game session failed to initialize");return;}
                     MatchSetup.MapId="mode-gingerbread-kingdom";MatchSetup.ModeId="demo";
                     if(MatchSetup.SelectedMap?.title!="Gingerbread Kingdom")throw new Exception("Map absent from lobby catalog");
-                    MatchSetup.ApplyMap();map=(GingerbreadKingdom)Services.World;walker=session.Survivor();
-                    session.SurvivorBots?.Clear();session.HandBots?.Clear();
+                    MatchSetup.ApplyMap();map=(GingerbreadKingdom)Services.World;
+                    session.SurvivorBots.Clear();session.HandBots.Clear();
+                    var rules=MatchSetup.DefaultModeRules(GameModeKind.Demo,MatchSetup.SelectedMap);
+                    session.Modes.Configure(rules);session.SetMenu(false);
+                    // An independent production motor avoids desktop menu focus suspending local input.
+                    var probe=session.Bots().SpawnBot();
+                    if(!probe)throw new Exception("Could not spawn route survivor");
+                    walker=probe.Motor;walker.ApplyModeRules(rules);
                     Directory.CreateDirectory(Folder);File.WriteAllText(Path.Combine(Folder,"GingerbreadKingdom.txt"),"Game.unity / demo / production lobby catalog and ApplyMap\n");
                     homes=map.Blocks.Select(b=>b.position).ToArray();walker.Place(map.SafeSpawnPoint(),Quaternion.identity);
                     driver=new Driver{destination=walker.transform.position};walker.externallyDriven=true;walker.InputDriver=driver;walker.InputSuspended=false;
@@ -98,9 +104,9 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     float drift=map.Blocks.Select((b,i)=>Vector3.Distance(b.position,homes[i])).Max();
                     Check(drift<.30f,$"{homes.Length} bodies, max settle drift {drift:F3} m");
-                    Shot("01-overview",new Vector3(-2,18,-49),new Vector3(0,4,0),49);
+                    Shot("01-overview",new Vector3(8,17,-42),new Vector3(0,4.5f,1),51);
                     Shot("02-fork",new Vector3(-4,.95f,-19),new Vector3(-8,2,-10));
-                    Shot("03-palace",new Vector3(2,.95f,5),new Vector3(3,6,18));
+                    Shot("03-palace",new Vector3(3,1.05f,8),new Vector3(3,6,18));
                     Shot("04-bridge-before",new Vector3(19,3,-15),new Vector3(15,.8f,-11));Next();
                 }
                 else if(phase==2 && Walk(Approach))
@@ -123,10 +129,12 @@ namespace DeadlyJenga.DevTools.Editor
                     // A separate fall trial begins on snow beside the damaged crossing.
                     walker.Place(new Vector3(17.6f,.08f,-11),Quaternion.identity);
                     driver.destination=P(16.50f,-11);
-                    GameEvents.Eliminated+=OnFall;Next();
+                    lowestFeet=walker.transform.position.y;GameEvents.Eliminated+=OnFall;Next();
                 }
-                else if(phase==6 && (fallEliminated || Time.time-started>6))
+                else if(phase==6)
                 {
+                    lowestFeet=Mathf.Min(lowestFeet,walker.transform.position.y);
+                    if(!fallEliminated && Time.time-started<6)return;
                     GameEvents.Eliminated-=OnFall;
                     Check(fallEliminated,"fall from snow edge beside damaged span raised survivor elimination at "+walker.transform.position);
                     walker.Place(map.SafeSpawnPoint(),Quaternion.identity);driver.destination=walker.transform.position;map.Rebuild();Next();
@@ -141,7 +149,7 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static void OnFall(GameObject actor,GameObject source)
         {
-            if(walker && actor==walker.gameObject)fallEliminated=true;
+            if(walker && actor==walker.gameObject && (source==map.gameObject || lowestFeet<map.WaterHeight(walker.transform.position)+.5f))fallEliminated=true;
         }
         static bool Walk(Vector3[] route)
         {

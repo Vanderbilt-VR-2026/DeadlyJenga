@@ -157,6 +157,13 @@ namespace DeadlyJenga.CastlePrototype
                 Vector3 slope=V(side*half,-rise,0);
                 RoofSlope(w,d,style,side,out var center,out var size,out var rotation);
                 m.Box(topping,center,size,rotation);
+                m.Box(Snow,V(side*half*.09f,eave+rise*.91f+.14f,0),V(slope.magnitude*.19f,.16f,d+.16f),rotation);
+                for(int j=0;j<12;j++)
+                {
+                    float along=(j-5.5f)*d/12,reach=.19f+.10f*Mathf.Sin(j*4+style);
+                    m.Box(Snow,V(side*half*.96f,eave+rise*.04f+.13f,along),V(reach+.18f,.16f,d/12+.07f),rotation);
+                    m.Ring(Ice,V(side*half,eave-reach,along),.025f,.085f,reach,7);
+                }
                 for(int row=0;row<=4;row++)
                 {
                     float t=row*.23f;Vector3 pos=V(side*half*t,eave+rise*(1-t)+.12f,0);
