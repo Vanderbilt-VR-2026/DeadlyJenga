@@ -375,7 +375,6 @@ namespace DeadlyJenga.CandyPlayers
                 {
                     case "Foundry "+nameof(Finish.CosmeticBase): tint=ownerColor;break;
                     case "Foundry "+nameof(Finish.CosmeticDark): tint=dark;break;
-                    case "Foundry "+nameof(Finish.CosmeticLight):
                     case "Foundry "+nameof(Finish.CosmeticCandy):
                     case "Foundry "+nameof(Finish.CosmeticCandyEdge): tint=light;break;
                     default: continue;
@@ -420,7 +419,7 @@ namespace DeadlyJenga.CandyPlayers
                 kind = state.kind;
                 root = Create(kind);
                 feed = root.Find(FeedAssembly);
-                cosmeticParts = kind is EquipmentKind.Dagger or EquipmentKind.StockPistol
+                cosmeticParts = kind==EquipmentKind.Dagger
                     ? root.GetComponentsInChildren<MeshRenderer>(true) : null;
                 cosmeticPainted = false;
                 ResetMotion();
@@ -550,7 +549,7 @@ namespace DeadlyJenga.CandyPlayers
                 for(int f=0;f<5;f++)for(int j=0;j<3;j++)hand.Cone(skeleton.Joint(f*4+j)*2,skeleton.Joint(f*4+j+1)*2,.018f,.014f,8);MeshPart(root,"Flying hand power",hand.Mesh("Flying hand preview"),cyan);
             }
             else if(value==EquipmentKind.DualUzi)BuildDetailedSpikeUzi(root);
-            else if(value==EquipmentKind.StockPistol)BuildFoundry(root,value);
+            else if(value==EquipmentKind.StockPistol)BuildStockPistol(root);
             else if(value==EquipmentKind.NeedleDrill)BuildNeedleDrill(root);
             else if(value==EquipmentKind.LaserClaws||value==EquipmentKind.FlamingMarshmallow)BuildArsenalPieces(root,value);
             else if(value>EquipmentKind.PoweredArmor)BuildArsenal(root,value);

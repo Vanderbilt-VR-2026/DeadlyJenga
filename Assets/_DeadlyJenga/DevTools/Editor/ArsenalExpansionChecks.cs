@@ -53,11 +53,11 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem("Tools/Deadly Jenga/Validation/Check Arsenal Expansion")]
         public static void Run()=>Start(false);
 
-        public static void RunCosmeticWeapons()=>Start(true);
+        public static void RunCosmeticDagger()=>Start(true);
 
         static void Start(bool cosmeticWeaponsOnly)
         {
-            SessionState.SetBool(Key+"CosmeticWeaponsOnly",cosmeticWeaponsOnly);
+            SessionState.SetBool(Key+"CosmeticDaggerOnly",cosmeticWeaponsOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -65,7 +65,7 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
-            File.WriteAllText(Report,cosmeticWeaponsOnly?"Dagger and compact sidearm Play Mode checks.\n":
+            File.WriteAllText(Report,cosmeticWeaponsOnly?"Cosmetic dagger Play Mode checks.\n":
                 "Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
@@ -88,7 +88,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
             while(stack.Count>0)(stack.Pop() as IDisposable)?.Dispose();completed=!failed;EditorApplication.ExitPlaymode();
         }
-        static IEnumerator CosmeticWeapons(MatchModeRuntime runtime,CastleSurvivor player,CastleSurvivor target)
+        static IEnumerator CosmeticDagger(MatchModeRuntime runtime,CastleSurvivor player,CastleSurvivor target)
         {
             const EquipmentKind dagger=EquipmentKind.Dagger;
             var spec=EquipmentSpecifications.Get(dagger);
@@ -136,19 +136,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(!runtime.Frame.equipmentActions.Any(e=>e.id>first&&e.kind==dagger&&e.action==EquipmentAction.Impact),
                 "Air thrust produces no contact event");
 
-            const EquipmentKind pistol=EquipmentKind.StockPistol;
-            Check(runtime.GiveEquipment(pistol),"Compact sidearm equips through the pistol slot");
-            yield return new WaitForSeconds(.26f);
-            CheckPalette(player,pistol,"CosmeticLight");
-            target.Place(player.transform.position+Vector3.forward*5,Quaternion.identity);
-            Physics.SyncTransforms();
-            yield return new WaitForSeconds(.23f);
-            aim=Quaternion.LookRotation(target.transform.position+Vector3.up*.55f-origin);
-            health=target.Health;
-            Check(runtime.RequestEquipmentAttack(new Pose(origin,aim)),"Compact sidearm fires through the existing attack path");
-            Check(target.Health<health,"Compact sidearm damages the player target");
-            Check(runtime.EquipmentFor(runtime.LocalActorId).rounds==EquipmentSpecifications.Get(pistol).magazine-1,
-                "Sidearm consumes a round from the existing magazine");
+
         }
 
         static void CheckStrike(string name,Color expected,string label)
@@ -188,9 +176,9 @@ namespace DeadlyJenga.DevTools.Editor
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
             var created=session.SurvivorBots.SpawnOne();Check(created,"Target bot spawns");var target=created.GetComponent<CastleSurvivor>();target.GetComponent<CastleBotBrain>().enabled=false;target.InputSuspended=true;
             yield return new WaitForSeconds(.4f);
-            if(SessionState.GetBool(Key+"CosmeticWeaponsOnly",false))
+            if(SessionState.GetBool(Key+"CosmeticDaggerOnly",false))
             {
-                yield return CosmeticWeapons(runtime,player,target);
+                yield return CosmeticDagger(runtime,player,target);
                 yield break;
             }
             Check(EquipmentSpecifications.All.Length==Enum.GetValues(typeof(EquipmentKind)).Length,"Every serialized equipment kind has one shared specification");
