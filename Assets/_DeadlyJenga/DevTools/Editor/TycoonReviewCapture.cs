@@ -251,7 +251,7 @@ namespace DeadlyJenga.DevTools.Editor
             for(int i=0;i<pieces.Count;i++)
             {
                 var p=pieces[i].DeckProfile;
-                if(p.Finish is not (TycoonDeckFinish.Flume or TycoonDeckFinish.DryChute or TycoonDeckFinish.Tube or TycoonDeckFinish.OpenDeck or TycoonDeckFinish.Walk)) continue;
+                if(p.Finish is not (TycoonDeckFinish.Flume or TycoonDeckFinish.DryChute or TycoonDeckFinish.Tube or TycoonDeckFinish.OpenDeck or TycoonDeckFinish.Walk or TycoonDeckFinish.Bridge)) continue;
                 var body=world.Bodies[i].transform;
                 var ring=new[]{body.TransformPoint(p.StartLeft),body.TransformPoint(p.EndLeft),
                     body.TransformPoint(p.EndRight),body.TransformPoint(p.StartRight)};
@@ -305,6 +305,9 @@ namespace DeadlyJenga.DevTools.Editor
             Transfer(new Vector3(-6.25f,60,3),Vector3.right,.2f);
             Transfer(new Vector3(40,18,-32),Vector3.right,.18f);
             Transfer(new Vector3(41,24,-16),Vector3.right,.18f);
+            Transfer(new Vector3(8.6f,18,-6),Vector3.forward,.23f);
+            Transfer(new Vector3(-8.65f,24,-6),Vector3.forward,.23f);
+            Transfer(new Vector3(28,18,-28),Vector3.forward,.24f);
             int clearSpaces=0;
             void Clear(Vector3 floor)
             {
