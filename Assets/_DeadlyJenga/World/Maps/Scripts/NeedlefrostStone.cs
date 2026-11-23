@@ -209,6 +209,16 @@ namespace DeadlyJenga.CastlePrototype
             var shoulder=Ring(blade?.32f:roof?.1f:.43f,blade?.35f:roof?.27f:.5f,blade?.65f:.13f,lean*.72f);
             var top=Ring(.5f,blade?.012f:roof?.16f:.475f,blade?.65f:.16f,lean);
             var rings=new[]{bottom,edge,shoulder,top};
+            if(cut==Cut.LeftBlade || cut==Cut.RightBlade)
+            {
+                bottom=Ring(-.5f,.45f,.47f,0);
+                rings=new[]{bottom,Ring(-.27f,.40f,.50f,lean*.30f),
+                    Ring(.16f,.5f,.60f,lean*1.42f),Ring(.29f,.38f,.55f,lean*1.31f),top};
+            }
+            if(roof)
+                rings=new[]{bottom,Ring(-.45f,.50f,.21f,0),Ring(-.40f,.45f,.25f,0),
+                    Ring(-.16f,.32f,.27f,0),Ring(-.13f,.35f,.25f,0),
+                    Ring(.19f,.21f,.30f,0),Ring(.22f,.23f,.27f,0),top};
             if(cut==Cut.Column)
             {
                 // Broad foot and capital around a narrower eight-sided carved shaft.

@@ -22,9 +22,9 @@ TEXTURE2D(_Horizon); SAMPLER(sampler_Horizon);
 half4 frag(Vary i):SV_Target {
  float3 d=normalize(i.local);
  float a=atan2(d.x,d.z);
- float2 uv=float2(a*(1.0/6.2831853)+.53,.459+asin(clamp(d.y,-1,1))*.56);
+ float2 uv=float2(a*(3.0/6.2831853)+.53,saturate(.459+asin(clamp(d.y,-1,1))*2.05));
  float3 sky=SAMPLE_TEXTURE2D(_Horizon,sampler_Horizon,uv).rgb;
- float moon=distance(d,normalize(float3(.42,.155,1)));
+ float moon=distance(d,normalize(float3(.27,.105,1)));
  float maria=noise(d.xy*350)*.25+noise(d.xy*100)*.15;
  sky+=float3(.74,.85,1)*(1-smoothstep(.018,.0195,moon))*(1-maria);
  return half4(sky,1);

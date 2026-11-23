@@ -189,17 +189,21 @@ namespace DeadlyJenga.Polar
                 {
                     float r=Rand(4,14),h=Rand(5,21);
                     var foot=center+new Vector3(Rand(-9,9),0,Rand(-6,6));
-                    var tip=foot+new Vector3(r*.46f,h,r*.18f);
-                    var low=new Vector3[9];var mid=new Vector3[9];
+                    float lean=Rand(-.72f,.72f);
+                    var tip=foot+new Vector3(r*lean,h,r*Rand(-.35f,.35f));
+                    var low=new Vector3[9];var mid=new Vector3[9];var crest=new Vector3[9];
                     for(int i=0;i<9;i++)
                     {
                         float a=i*Mathf.PI*2/9;
                         low[i]=foot+new Vector3(Mathf.Cos(a)*r*Rand(.86f,1.1f),0,Mathf.Sin(a)*r*.72f);
-                        mid[i]=Vector3.Lerp(low[i],tip,Rand(.24f,.56f))+new Vector3(.7f,Rand(-.5f,1),.14f);
+                        var rim=low[i]-foot;
+                        mid[i]=foot+rim*Rand(.79f,.98f)+new Vector3(.3f,h*Rand(.13f,.30f),.14f);
+                        crest[i]=tip+new Vector3(rim.x*.40f,-h*Rand(.08f,.49f),rim.z*.31f);
                     }
                     for(int i=0;i<9;i++)
                     {
-                        int j=(i+1)%9;Face(low[i],mid[i],mid[j]);Face(low[i],mid[j],low[j]);Face(mid[i],tip,mid[j]);
+                        int j=(i+1)%9;Face(low[i],mid[i],mid[j]);Face(low[i],mid[j],low[j]);
+                        Face(mid[i],crest[i],crest[j]);Face(mid[i],crest[j],mid[j]);Face(crest[i],tip,crest[j]);
                     }
                 }
             }

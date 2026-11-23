@@ -45,11 +45,19 @@ namespace DeadlyJenga.DevTools.Editor
             yield return new WaitForSeconds(3);
             var eye=new Vector3(0,20.5f,-98);var target=new Vector3(-9.28f,8.72f,2);
             const float overviewFov=30;
-            Capture(eye,target,overviewFov,"Needlefrost-Overview.png");
-            Capture(new Vector3(-16,4.35f,-20),new Vector3(-10,8,3),67,"Needlefrost-Coast.png");
-            Capture(new Vector3(12.8f,4.35f,-15),new Vector3(10,5,-9),70,"Needlefrost-Camp.png");
-            Capture(new Vector3(.3f,7.55f,-3),new Vector3(0,12,16),67,"Needlefrost-Bridge.png");
-            Capture(new Vector3(15,17.4f,12),new Vector3(-2,15,16),75,"Needlefrost-Tower.png");
+            var menu=Object.FindFirstObjectByType<CastleWorldMenu>();
+            var tablet=menu?menu.GetComponentInParent<Canvas>():null;
+            bool tabletVisible=tablet && tablet.enabled;
+            if(tabletVisible)tablet.enabled=false;
+            try
+            {
+                Capture(eye,target,overviewFov,"Needlefrost-Overview.png");
+                Capture(new Vector3(-16,4.35f,-20),new Vector3(-10,8,3),67,"Needlefrost-Coast.png");
+                Capture(new Vector3(12.8f,4.35f,-15),new Vector3(10,5,-9),70,"Needlefrost-Camp.png");
+                Capture(new Vector3(.3f,7.55f,-3),new Vector3(0,12,16),67,"Needlefrost-Bridge.png");
+                Capture(new Vector3(15,17.4f,12),new Vector3(-2,15,16),75,"Needlefrost-Tower.png");
+            }
+            finally{if(tabletVisible)tablet.enabled=true;}
             var westFlight=map.Bodies[placements.FindIndex(p=>p.Position.x==-8 && p.Position.z==-11 && p.Size.y==3)];
             bool flightGrip=westFlight.GetComponentsInChildren<MeshCollider>().Any(shape=>
                 shape.enabled && shape.gameObject.layer==Layers.Surface && Climbables.TryGet(shape,out var grip) &&
@@ -63,8 +71,8 @@ namespace DeadlyJenga.DevTools.Editor
             yield return WalkKeep(motor,new Vector3(-8,3.1f,-16),new[]{new Vector3(-8,6,-5),new Vector3(-6,6,-3),
                 new Vector3(0,6.15f,-3),new Vector3(7,6,-3)},result=>routes &= result,"intact coast stair and low bridge");
             yield return WalkKeep(motor,new Vector3(16,3.1f,-8),new[]{new Vector3(16,3,-6.45f)},result=>routes &= result,"camp to grotto interior");
-            yield return WalkKeep(motor,new Vector3(20.4f,9.1f,9.38f),new[]{new Vector3(20.4f,15.9f,16.26f),
-                new Vector3(19.1f,16,16.1f),new Vector3(16,16,14),new Vector3(13,16,13),
+            yield return WalkKeep(motor,new Vector3(20.4f,9.1f,5.80f),new[]{new Vector3(20.4f,16,16.77f),
+                new Vector3(17.55f,16,16.77f),new Vector3(17.55f,16,14.45f),new Vector3(16,16,13),new Vector3(13,16,13),
                 new Vector3(10,16,13),new Vector3(5,16.15f,13)},result=>routes &= result,"right tower to upper crossing");
             var cornice=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x+29.28f)<.02f)];
             float carried=0,drop=0;
@@ -128,7 +136,8 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 foreach(var local in goals)
                 {
-                    driver.target=captureOrigin+local;float deadline=Time.time+6;
+                    driver.target=captureOrigin+local;
+                    float deadline=Time.time+4+Vector3.Distance(motor.transform.position,driver.target)*1.6f;
                     while(Time.time<deadline && motor.Alive &&
                         Vector3.Distance(motor.transform.position,driver.target)>.49f)yield return null;
                     float remaining=Vector3.Distance(motor.transform.position,driver.target);

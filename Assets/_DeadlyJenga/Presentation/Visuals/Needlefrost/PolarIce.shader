@@ -2,6 +2,7 @@ Shader "DeadlyJenga/Needlefrost/Ice" {
 Properties { _Tint("Ice colour", Color)=(.22,.55,.8,1)
 _Grain("Glacier grain",2D)="white" {}
 _Glow("Lamp",Float)=0
+_Crystal("Crystal facets",Range(0,1))=0
 [HideInInspector] _Cull("Cull",Float)=2 }
 SubShader { Tags { "RenderPipeline"="UniversalPipeline"  }
 Pass {
@@ -25,7 +26,7 @@ float noise(float2 p){float2 i=floor(p),f=frac(p); f=f*f*(3-2*f);
 
 TEXTURE2D(_Grain); SAMPLER(sampler_Grain);
 CBUFFER_START(UnityPerMaterial)
-float4 _Tint; float _Glow;
+float4 _Tint; float _Glow; float _Crystal;
 CBUFFER_END
 float4 _NeedlefrostPracticals[4];
 half4 frag(Vary i):SV_Target {
@@ -41,16 +42,21 @@ half4 frag(Vary i):SV_Target {
  ice*=lerp(float3(.35,.49,.68),float3(1,1,1),shadow);
  float rim=pow(1-saturate(dot(v,n)),3);
  ice+=rim*float3(.035,.13,.22);
+ float facet=saturate(dot(n,normalize(float3(-.65,.38,-.66))));
+ float glint=pow(saturate(dot(reflect(-v,n),normalize(float3(.3,.84,-.42)))),18);
+ float3 crystal=lerp(float3(.018,.13,.38),float3(.48,.83,1.32),facet*.86+strata.b*.14);
+ ice=lerp(ice,crystal+float3(.48,.85,1.2)*(rim+glint)+strata*.14,_Crystal*.91);
  float channel=exp(-.34*abs(i.world.x))*exp(-.12*abs(i.world.y-5));
  ice+=channel*float3(0,.32,.58);
  [unroll] for(int j=0;j<4;j++){
    float3 delta=_NeedlefrostPracticals[j].xyz-i.world;
    float dist2=max(dot(delta,delta),.04);
    float lambert=.22+.78*saturate(dot(n,delta*rsqrt(dist2)));
-   float attenuation=_NeedlefrostPracticals[j].w*lambert/(1+dist2*.30);
+   float attenuation=_NeedlefrostPracticals[j].w*lambert/(1+dist2*.18);
    ice+=attenuation*(j<2?float3(1.75,.56,.10):float3(.004,.94,1.55));
  }
- return half4(lerp(ice,float3(2.2,.72,.105)*(1+.36*strata.g),_Glow),1);
+ float3 amber=lerp(float3(1.35,.23,.025),float3(3.2,1.39,.25),saturate(.68*n.y+.56*strata.g+.1));
+ return half4(lerp(ice,amber,_Glow),1);
 }
 ENDHLSL
 }
