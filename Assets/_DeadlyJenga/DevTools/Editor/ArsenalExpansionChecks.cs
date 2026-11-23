@@ -51,8 +51,13 @@ namespace DeadlyJenga.DevTools.Editor
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Arsenal Expansion")]
-        public static void Run()
+        public static void Run() => Start(false);
+
+        public static void RunWeaponMotion() => Start(true);
+
+        static void Start(bool motionOnly)
         {
+            SessionState.SetBool(Key+"MotionOnly",motionOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -87,6 +92,12 @@ namespace DeadlyJenga.DevTools.Editor
             var session=Object.FindFirstObjectByType<CastlePlaySession>();float until=Time.realtimeSinceStartup+30;
             while((session.Player==null||session.Modes==null)&&Time.realtimeSinceStartup<until)yield return null;
             Check(session.Player!=null&&session.Modes!=null,"Actual Game initializes");session.SetRole(false);session.SetMenu(false);session.SurvivorBots.AutoFill=false;session.SurvivorBots.Clear();session.HandBots.Clear();if(session.Social!=null)session.Social.VoiceEnabled=false;
+            if(SessionState.GetBool(Key+"MotionOnly",false))
+            {
+                yield return TestWeaponMotion(session);
+                Check(errors==0,"No unexpected runtime errors during weapon motion");
+                yield break;
+            }
             var runtime=session.Modes;var player=session.Survivor();var rules=ModeSimulation.Defaults(GameModeKind.Demo);rules.countdownSeconds=0;rules.healthEnabled=true;rules.deathEnabled=false;rules.fallDamage=false;rules.punchEnabled=true;rules.island=IslandRule.Walkable;runtime.Configure(rules);runtime.StartRound();
             var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.name="Arsenal native collision fixture";floor.layer=Layers.Surface;floor.transform.position=new Vector3(150,9,150);floor.transform.localScale=new Vector3(70,2,70);
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
@@ -167,6 +178,104 @@ namespace DeadlyJenga.DevTools.Editor
             session.SetMenu(false);yield return ExpandedBehaviourChecks.Run(session,Check);
             Check(errors==0,"No unexpected runtime errors");Object.Destroy(floor);
         }
+        static IEnumerator TestWeaponMotion(CastlePlaySession session)
+        {
+            var player=session.Survivor();
+            var runtime=session.Modes;
+            var rules=ModeSimulation.Defaults(GameModeKind.Demo);
+            rules.countdownSeconds=0;
+            runtime.Configure(rules);
+            runtime.StartRound();
+            var rig=player.GetComponent<CandyPlayerAvatar>().Rig;
+            var holder=new GameObject("Weapon motion fixture");
+            try
+            {
+                var visual=new CandyWeaponVisual(holder.transform,rig.style.material);
+                var head=player.ViewPose.position;
+                var origin=head+new Vector3(.25f,-.32f,.5f);
+                var frame=new CandyAvatarFrame
+                {
+                    scale=1,feet=head-Vector3.up*1.65f,head=head,headRotation=Quaternion.identity,
+                    right=new CandyHandPose{position=origin,rotation=Quaternion.identity},
+                    left=new CandyHandPose{position=origin+Vector3.left*.42f,rotation=Quaternion.identity}
+                };
+                var kinds=new[]
+                {
+                    EquipmentKind.Blaster, EquipmentKind.SheriffHammer, EquipmentKind.DualRifle,
+                    EquipmentKind.RocketLauncher, EquipmentKind.GrenadeLauncher, EquipmentKind.DualUzi,
+                    EquipmentKind.ChainGun, EquipmentKind.StockPistol, EquipmentKind.NeedleDrill,
+                    EquipmentKind.WristLaser, EquipmentKind.LaserAxe, EquipmentKind.Dagger,
+                    EquipmentKind.MurderSword, EquipmentKind.BarbedBat, EquipmentKind.SawStaff,
+                    EquipmentKind.Chainsaw, EquipmentKind.FlamingMarshmallow
+                };
+                foreach(var kind in kinds)
+                {
+                    var spec=EquipmentSpecifications.Get(kind);
+                    var state=new EquipmentState{actor=runtime.LocalActorId,kind=kind,drawn=true,
+                        shotgun=kind==EquipmentKind.LaserAxe||kind==EquipmentKind.Chainsaw,
+                        magazineInitialized=true,rounds=spec.magazine};
+                    Check(runtime.GiveEquipment(kind),"Model picked up via live Demo grant: "+kind);
+                    visual.Present(state,frame,true);
+                    var model=holder.transform.Find("Visual - "+kind);
+                    Check(model,"Pickup displays the held model: "+kind);
+                    var gathering=model.position;
+                    // Separate initial gather and ready checkpoints while preserving the same wrist pose.
+                    yield return new WaitForSeconds(.72f);
+                    visual.Present(state,frame,true);
+                    var ready=model.position;
+                    Check(Vector3.Distance(ready,gathering)>.035f,"Pickup settles into the ready grip: "+kind);
+                    if(spec.magazine>0)
+                    {
+                        bool energy=kind==EquipmentKind.WristLaser||kind==EquipmentKind.LaserAxe;
+                        var feed=model.Find(energy?"Removable energy cartridge":"Animated ammunition assembly");
+                        Check(feed,"Reload hardware exists: "+kind);
+                        var seated=feed.localPosition;
+                        state.rounds=0;
+                        state.reloadRemaining=spec.reloadSeconds*.70f;
+                        visual.Present(state,frame,true);
+                        Check(Vector3.Distance(feed.localPosition,seated)>.025f,"Reload extracts ammo from the weapon: "+kind);
+                        state.reloadRemaining=spec.reloadSeconds*.30f;
+                        visual.Present(state,frame,true);
+                        Check(feed.gameObject.activeInHierarchy,"Fresh ammo is visible during insertion: "+kind);
+                        if(!energy)
+                            Check(feed.Cast<Transform>().Any(item=>item.name.StartsWith("Visible round ")&&item.gameObject.activeSelf),
+                                "Reload displays ammunition meshes: "+kind);
+                        if(kind==EquipmentKind.DualUzi)
+                        {
+                            var paired=holder.transform.Find("Visual - paired DualUzi");
+                            var pairedFeed=paired?paired.Find("Animated ammunition assembly"):null;
+                            Check(pairedFeed,"Offhand spiker has a separate magazine");
+                            state.reloadRemaining=spec.reloadSeconds*.76f;
+                            visual.Present(state,frame,true);
+                            Check(feed.localPosition.sqrMagnitude>.001f&&pairedFeed.localPosition.sqrMagnitude<.001f,
+                                "Primary spiker starts reloading before the offhand");
+                            state.reloadRemaining=spec.reloadSeconds*.23f;
+                            visual.Present(state,frame,true);
+                            Check(feed.localPosition.sqrMagnitude<.001f&&pairedFeed.localPosition.sqrMagnitude>.001f,
+                                "Offhand spiker finishes the reload independently");
+                        }
+                        state.rounds=spec.magazine;
+                        state.reloadRemaining=0;
+                        visual.Present(state,frame,true);
+                        Check(Vector3.Distance(feed.localPosition,seated)<.002f,"Ammo seats after reload: "+kind);
+                    }
+                    state.drawn=false;
+                    float until=Time.time+.71f;
+                    while(Time.time<until){visual.Present(state,frame,true);yield return null;}
+                    var holstered=model.position;
+                    Check(Vector3.Distance(ready,holstered)>.025f,"Holster has a distinct pose: "+kind);
+                    state.drawn=true;
+                    until=Time.time+.73f;
+                    while(Time.time<until){visual.Present(state,frame,true);yield return null;}
+                    Check(Vector3.Distance(model.position,ready)<.01f,"Unholster returns to the ready grip: "+kind);
+                }
+            }
+            finally
+            {
+                Object.Destroy(holder);
+            }
+        }
+
         public static IEnumerator CaptureModels(CastlePlaySession session,Action<bool,string> verify)=>Gallery(session.Survivor().GetComponent<CandyPlayerAvatar>().Rig.style.material,verify);
         static IEnumerator Gallery(Material material,Action<bool,string> verify=null)
         {

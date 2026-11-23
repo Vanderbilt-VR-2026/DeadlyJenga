@@ -398,7 +398,11 @@ namespace DeadlyJenga.CandyPlayers
                 motionReady = true;
             }
 
-            if (state.drawn && !slungForEmote && HasNewPickupDraw(state)) drawAmount = 0;
+            var pickup = FindNewPickup(state);
+            if (state.drawn && !slungForEmote && pickup != null)
+                BeginPickup(pickup, frame);
+            if (!state.drawn || slungForEmote || state.triggerHeld || state.reloadRemaining > 0)
+                pickupStarted = float.NegativeInfinity;
             var feedState = slungForEmote ? slungFeedState : state;
             float target = state.drawn && !slungForEmote ? 1 : 0;
             float duration = CarryDuration(target > 0);
@@ -412,6 +416,8 @@ namespace DeadlyJenga.CandyPlayers
             }
             var hand = state.leftHanded ? frame.left : frame.right;
             var pose = CarryPose(frame, hand, state.leftHanded, drawAmount, target > 0);
+            if (target > 0)
+                pose = PosePickup(frame, hand, state.leftHanded, pose);
             if (slungForEmote)
             {
                 wasEmbedded = false;
@@ -424,8 +430,7 @@ namespace DeadlyJenga.CandyPlayers
             root.gameObject.SetActive(true);
             root.localScale = new Vector3((kind == EquipmentKind.BoxingGlove || kind == EquipmentKind.RocketLauncher) && state.leftHanded ? -1 : 1, 1, 1) * ModelScale(kind, frame.scale);
             root.SetPositionAndRotation(pose.position, pose.rotation);
-            if (kind == EquipmentKind.WristLaser)
-                root.localScale = new Vector3(1, 1, Mathf.Lerp(.78f, 1, drawAmount)) * ModelScale(kind, frame.scale);
+            PresentEnergyReload(feedState, root);
             if (kind == EquipmentKind.LaserClaws) PresentClaws(root, hand, state.leftHanded, drawAmount);
             if (kind == EquipmentKind.PoweredArmor) PresentRepulsor(root, drawAmount);
             if(rotor){spin+=Time.deltaTime*(state.triggerHeld?700+state.charge*1800:state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?500:0);rotor.localRotation=Quaternion.Euler(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?spin:0,0,state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?0:spin);}
@@ -449,6 +454,8 @@ namespace DeadlyJenga.CandyPlayers
                 bool otherLeft = !state.leftHanded;
                 var other = otherLeft ? frame.left : frame.right;
                 var otherPose = CarryPose(frame, other, otherLeft, drawAmount, target > 0);
+                if (target > 0)
+                    otherPose = PosePickup(frame, other, otherLeft, otherPose, true);
                 paired.SetPositionAndRotation(otherPose.position, otherPose.rotation);
                 paired.localScale = Vector3.one * ModelScale(kind, frame.scale);
                 paired.gameObject.SetActive(true);
@@ -465,27 +472,37 @@ namespace DeadlyJenga.CandyPlayers
                 barrel.localRotation=Quaternion.Euler(0,0,barrelAngle);
             }
         }
-        bool HasNewPickupDraw(EquipmentState state)
+        EquipmentActionFrame FindNewPickup(EquipmentState state)
         {
-            if (string.IsNullOrEmpty(state.actor)) return false;
+            if (string.IsNullOrEmpty(state.actor)) return null;
             var runtime = MatchRuntime.Current;
             var frame = runtime?.Frame;
-            if (frame == null) return false;
+            if (frame == null) return null;
             if (!ReferenceEquals(pickupRuntime, runtime) || pickupEpoch != frame.equipmentEpoch)
             {
                 pickupRuntime = runtime;
                 pickupEpoch = frame.equipmentEpoch;
                 pickupSequence = -1;
             }
-            if (pickupSequence >= frame.equipmentSequence) return false;
+            if (pickupSequence >= frame.equipmentSequence) return null;
             int after = pickupSequence;
             pickupSequence = frame.equipmentSequence;
-            foreach (var action in frame.equipmentActions)
-                if (action != null && action.id > after && action.remaining >= .40f &&
-                    action.actor == state.actor && action.kind == state.kind &&
-                    (action.action == EquipmentAction.Pickup || action.action == EquipmentAction.Swap))
-                    return true;
-            return false;
+            var actions = frame.equipmentActions;
+            if (actions == null) return null;
+            for (int i = actions.Length - 1; i >= 0; i--)
+            {
+                var action = actions[i];
+                if (action == null || action.id <= after || action.remaining < .40f ||
+                    action.actor != state.actor || action.kind != state.kind) continue;
+                if (action.action == EquipmentAction.Shot)
+                {
+                    pickupStarted = float.NegativeInfinity;
+                    return null;
+                }
+                if (action.action == EquipmentAction.Pickup || action.action == EquipmentAction.Swap)
+                    return action;
+            }
+            return null;
         }
 
         Transform Create(EquipmentKind value)
