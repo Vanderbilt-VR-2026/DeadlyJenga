@@ -53,12 +53,28 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         // Route endpoints are the edges of the two seats, at walking-surface height.
-        TidalCircuitPiece Span(string name,Vector3 a,Vector3 b,float width,TidalCircuitPiece first,TidalCircuitPiece last,int finish=Purple)
+        TidalCircuitPiece Span(string name,Vector3 a,Vector3 b,float width,TidalCircuitPiece first,TidalCircuitPiece last,int finish=Purple,bool stairs=false)
         {
             var delta=b-a;
             var rot=Quaternion.LookRotation(delta);
-            var seat=Unit(name,(a+b)/2-rot*Vector3.up*.16f,
-                Box(Vector3.zero,V(width,.32f,delta.magnitude+.12f),finish,rot));
+            var center=(a+b)/2-rot*Vector3.up*.16f;
+            var shapes=new List<MayhemShape>{Box(Vector3.zero,V(width,.32f,delta.magnitude+.12f),finish,rot)};
+            if(stairs)
+            {
+                // Treads flank a smooth central lane that also admits small survivor capsules.
+                var yaw=Quaternion.LookRotation(Vector3.ProjectOnPlane(delta,Vector3.up));
+                var side=yaw*Vector3.right*(width/2+.14f);
+                int count=Mathf.CeilToInt(Mathf.Abs(delta.y)/.21f);
+                float depth=Vector3.ProjectOnPlane(delta,Vector3.up).magnitude/count;
+                for(int i=0;i<count;i++)
+                {
+                    var pos=Vector3.Lerp(a,b,(i+.5f)/count)-center-Vector3.up*.15f;
+                    var tread=V(.32f,.3f,depth+.02f);
+                    shapes.Add(Box(pos+side,tread,finish,yaw));
+                    shapes.Add(Box(pos-side,tread,finish,yaw));
+                }
+            }
+            var seat=Unit(name,center,shapes.ToArray());
             first.Supported.Add(seat);
             last.Supported.Add(seat);
             return seat;
@@ -100,9 +116,9 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var high=Pad("High gallery "+side,side*15,10,5.5f,5,4);
                 Span("Diagonal crown crossing "+side,V(side*3.6f,8.4f,2.8f),V(side*13,5.5f,9),2.2f,crown,high);
-                Span("Rear gallery ascent "+side,V(side*11,1.6f,14.3f),V(side*17,5.5f,11.9f),2, pads[2,2+side],high);
+                Span("Rear gallery ascent "+side,V(side*11,1.6f,14.3f),V(side*17,5.5f,11.9f),2, pads[2,2+side],high,stairs:true);
                 var turn=Pad("Front switchback "+side,side*12,-8,3.1f,4,4);
-                Span("Lower incline "+side,V(side*13,1.6f,-14),V(side*12,3.1f,-10),2,pads[0,2+side],turn);
+                Span("Lower incline "+side,V(side*13,1.6f,-14),V(side*12,3.1f,-10),2,pads[0,2+side],turn,stairs:true);
                 Span("Middle incline "+side,V(side*10.1f,3.1f,-7),V(side*5,5,-3.8f),2,turn,middle);
                 Span("Gallery switchback "+side,V(side*24,1.6f,15),V(side*17,5.5f,11),2,pads[2,2+2*side],high);
                 if(side==1)

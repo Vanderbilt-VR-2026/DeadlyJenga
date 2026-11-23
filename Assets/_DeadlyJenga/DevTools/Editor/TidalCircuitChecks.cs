@@ -72,6 +72,31 @@ namespace DeadlyJenga.DevTools.Editor
             public Vector3 direction;
             public CastleBotCommand ReadCommand(CastleSurvivor motor,float dt)=>new CastleBotCommand{move=direction,look=direction};
         }
+        // Only the initial approach is staged. Every waypoint after it uses motor input.
+        static IEnumerator FollowRoute(string label,CastleSurvivor player,Driver driver,params Vector3[] points)
+        {
+            driver.direction=Vector3.zero;
+            player.Teleport(points[0]+Vector3.up*.08f,Quaternion.identity);
+            yield return new WaitForSeconds(.25f);
+            for(int i=1;i<points.Length;i++)
+            {
+                float end=Time.time+8;
+                Vector3 Horizontal() => Vector3.ProjectOnPlane(points[i]-player.transform.position,Vector3.up);
+                while(Horizontal().magnitude>.24f && Time.time<end && player.transform.position.y>-.32f)
+                {
+                    driver.direction=Horizontal().normalized*.62f;
+                    yield return null;
+                }
+                driver.direction=Vector3.zero;
+                if(Horizontal().magnitude>.3f || Mathf.Abs(player.transform.position.y-points[i].y)>.52f)
+                {
+                    Check(false,label+" stopped at waypoint "+i+" feet="+player.transform.position+" target="+points[i]);
+                    yield break;
+                }
+            }
+            Check(true,label+" completed "+(points.Length-1)+" waypoints");
+        }
+
         static IEnumerator Sequence(CastlePlaySession session)
         {
             float deadline=Time.realtimeSinceStartup+40;
@@ -88,6 +113,7 @@ namespace DeadlyJenga.DevTools.Editor
             var driver=new Driver();
             player.externallyDriven=true;player.InputDriver=driver;
             var hinges=map.GetComponentsInChildren<HingeJoint>();
+            Check(map.Blocks.Count(b=>!b.isKinematic)==hinges.Length,"intact structure has only seven independently simulated bodies; colliders="+map.GetComponentsInChildren<Collider>().Length);
             Check(hinges.Length==7,"seven independent machine bodies; bodies="+map.Blocks.Count);
             Shot("01-wide",new Vector3(-3,27,-50),new Vector3(0,2,1),true);
             Shot("02-drum",new Vector3(-25.8f,3.9f,-11.5f),new Vector3(-26,2,-7));
@@ -126,6 +152,11 @@ namespace DeadlyJenga.DevTools.Editor
                         label+" direction "+sign+" motor crossing; rode="+rode+" angle="+maxTilt+" end="+player.transform.position);
                 }
             }
+            yield return FollowRoute("Low perimeter to middle hub",player,driver,new Vector3(13,1.6f,-16),
+                new Vector3(13,1.6f,-14),new Vector3(12,3.1f,-10),new Vector3(10.2f,3.1f,-7),
+                new Vector3(5,5,-3.8f),new Vector3(4,5,-2));
+            yield return FollowRoute("Upper gallery to crown",player,driver,new Vector3(-15,5.5f,10),
+                new Vector3(-13,5.5f,9),new Vector3(-3.6f,8.4f,2.8f),new Vector3(0,8.4f,0));
             driver.direction=Vector3.zero;
             player.Teleport(map.SafeSpawnPoint(),Quaternion.identity);
             Check(session.SurvivorBots.SpawnOne(),"spawn a survivor bot");
@@ -140,6 +171,9 @@ namespace DeadlyJenga.DevTools.Editor
             yield return new WaitForSeconds(.45f);Shot("07-falling",view,aim);
             yield return new WaitForSeconds(1.3f);Shot("08-after",view,aim);
             Check(crossing.position.y<initial.y-.55f,"right crossover falls into channel");
+            yield return FollowRoute("Outer bypass after crossover collapse",player,driver,new Vector3(26,1.6f,0),
+                new Vector3(28.5f,1.6f,0),new Vector3(32.55f,2.2f,-2.4f),new Vector3(34,2.2f,-3),
+                new Vector3(34,2.2f,-13),new Vector3(32.55f,2.2f,-13.6f),new Vector3(28.5f,1.6f,-16),new Vector3(26,1.6f,-16));
             var drum=Body("Tread drum");
             Body("Drum bearing -1").GetComponent<IPushable>().Push(Vector3.left*15,player.gameObject);
             yield return new WaitForSeconds(.6f);
