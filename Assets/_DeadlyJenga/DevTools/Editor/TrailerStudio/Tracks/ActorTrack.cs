@@ -34,6 +34,9 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         public StudioPlayer CreatePlayer(StudioStage stage, StudioTrack track, StudioTake take) =>
             new Player(stage, track, take, Kind);
 
+        internal StudioPlayer CreateStarredGhost(StudioStage stage, StudioTrack track, StudioTake take, StudioTake world) =>
+            new Player(stage, track, take, Kind, world);
+
         // Where the actor stood on a recorded frame (for path lines). False if the frame holds no pose.
         public static bool TryReadPosition(string typeId, byte[] frame, out Vector3 position)
         {
@@ -99,21 +102,25 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             readonly GameObject root;
             readonly INetworkActorView view;
             readonly StudioGhostLook look = new StudioGhostLook();
+            static readonly StudioTrackNotes ghostNotes = new StudioTrackNotes { ghost = 1, passThrough = true };
+            static readonly System.Collections.Generic.List<IActorFrameFilter> ghostFilters = new System.Collections.Generic.List<IActorFrameFilter>();
+            readonly StudioTake ghostWorld;
             CandyWeaponVisual weapon;
             bool failed;
 
-            public Player(StudioStage stage, StudioTrack track, StudioTake take, string kind)
+            public Player(StudioStage stage, StudioTrack track, StudioTake take, string kind, StudioTake ghostWorld = null)
             {
-                this.stage = stage; this.track = track; this.take = take;
-                root = new GameObject("Studio playback: " + track.name);
+                this.stage = stage; this.track = track; this.take = take; this.ghostWorld = ghostWorld;
+                root = new GameObject(ghostWorld == null ? "Studio playback: " + track.name : $"Studio reference ghost: {track.name} · {take.name}");
                 var session = stage.session;
                 view = NetworkActors.CreateView(kind, root, new NetworkContext
                 {
-                    host = false, actorId = track.id,
+                    host = false, actorId = ghostWorld == null ? track.id : "studio-reference-" + track.id,
                     localSurvivor = NetworkActors.Alive(session.Player) ? session.Player.gameObject : null,
                     localHand = NetworkActors.Alive(session.Hand) ? session.Hand.gameObject : null
                 });
-                stage.playback[track.id] = root;
+                if (ghostWorld == null) stage.playback[track.id] = root;
+                else stage.starredGhost = root;
             }
 
             public override void Show(int frame, bool running) => ShowBetween(frame, 0, running);
@@ -175,7 +182,8 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             public override void ShowBetween(int frame, float part, bool running)
             {
                 if (view == null || failed) return;
-                if (!take.Covers(frame)) { root.SetActive(false); return; }
+                if (!take.Covers(frame) || (ghostWorld != null && (!ghostWorld.Covers(frame) || StudioPerform.GhostsHidden)))
+                { root.SetActive(false); return; }
                 try
                 {
                     int index = frame - take.start;
@@ -183,7 +191,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     float time = (frame + part) / stage.Fps;
                     // Only open the frame up when something needs to change it: an in-between pose, or an override.
                     bool between = part > .001f && take.Covers(frame + 1);
-                    var filters = ActorFrameFilters.For(stage, track);
+                    var filters = ghostWorld == null ? ActorFrameFilters.For(stage, track) : ghostFilters;
                     bool hand = track.type == HandTrack.Id;
                     ActorFrame pose = null;
                     if (between || filters.Count > 0 || hand)
@@ -224,12 +232,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if (!Pose(data, step, walker, gait, out string equipment)) { weapon?.Hide(); return; }
                     if (hand) StudioHandDirection.SyncVisual(root, pose);
                     ShowWeapon(equipment, pose, data);
-                    if (stage.recording) look.Apply(root, StudioTrackNotes.Of(track), StudioColors.For(stage.set.Mark(track.id)?.color ?? 0));
+                    if (ghostWorld != null) look.Apply(root, ghostNotes, new Color(.34f, .9f, 1));
+                    else if (stage.recording) look.Apply(root, StudioTrackNotes.Of(track), StudioColors.For(stage.set.Mark(track.id)?.color ?? 0));
                 }
                 catch (System.Exception error)
                 {
                     failed = true;
-                    StudioBadges.Set(track, StudioBadges.CouldNotPlay, error.Message);
+                    if (ghostWorld == null) StudioBadges.Set(track, StudioBadges.CouldNotPlay, error.Message);
+                    else root.SetActive(false);
                     Debug.LogWarning($"Trailer Studio: {track.name} could not be played back. {error.Message} (frame {frame} + {part:0.###})\n{error}");
                 }
             }
@@ -253,10 +263,11 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             public override void Dispose()
             {
-                stage.playback.Remove(track.id);
+                if (ghostWorld == null) stage.playback.Remove(track.id);
+                else if (stage.starredGhost == root) stage.starredGhost = null;
                 look.Dispose();
                 weapon?.Hide();
-                if (root) Object.Destroy(root);
+                if (root) { root.SetActive(false); Object.Destroy(root); }
             }
         }
     }

@@ -26,6 +26,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
         // Played-back actors by mark id (the objects cameras and overlays can follow).
         public readonly Dictionary<string, GameObject> playback = new Dictionary<string, GameObject>();
+        internal GameObject starredGhost;
 
         public int Fps => set.fps;
         public int Frames => set.Frames;

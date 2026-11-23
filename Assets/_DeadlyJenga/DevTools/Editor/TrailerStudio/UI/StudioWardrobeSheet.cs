@@ -16,6 +16,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
         StudioContext context;
         string group, setId;
         int page;
+        bool mapLight = true;
 
         internal static void Open(StudioContext context, string group = null)
         {
@@ -43,13 +44,16 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             ReleasePortraits();
             var panel = rootVisualElement;
             panel.Clear();
-            if (context?.Set?.id != setId) { panel.Add(new Label("Open a contact sheet from the current set.")); return; }
+            if (context?.Set == null || context.Set.id != setId) { panel.Add(new Label("Open a contact sheet from the current set.")); return; }
             var marks = context.Set.marks.Where(m => m.role != StudioRole.Hand && (string.IsNullOrEmpty(group) || m.crowdGroup == group))
                 .OrderByDescending(m => m.heroLocked).ThenBy(m => string.IsNullOrEmpty(m.crowdGroup) ? 0 : 1).ToArray();
             if (marks.Length == 0) { panel.Add(new Label("Place a survivor before opening the wardrobe sheet.")); return; }
             var rigPrefab = Resources.Load<CandyPlayerRig>("CandyPlayerVisual");
             if (!rigPrefab) { panel.Add(new Label("The project's survivor visual prefab could not be loaded.")); return; }
-            int pages = Mathf.CeilToInt(marks.Length / (float)PageSize);
+            var hero = context.Set.marks.FirstOrDefault(m => m.heroLocked && m.role != StudioRole.Hand);
+            var others = marks.Where(m => m != hero).ToArray();
+            int capacity = hero == null ? PageSize : PageSize - 1;
+            int pages = Mathf.Max(1, Mathf.CeilToInt(others.Length / (float)capacity));
             page = Mathf.Clamp(page, 0, pages - 1);
             var header = StudioUi.Row();
             var prev = new Button(() => { page--; Draw(); }) { text = "Previous" };
@@ -58,14 +62,23 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             next.SetEnabled(page + 1 < pages);
             header.Add(prev); header.Add(new Label($"Page {page + 1} of {pages}")); header.Add(next);
             panel.Add(header);
-            panel.Add(new Label("Neutral portraits show saved outfits or the first recorded look. Equipment is listed below each portrait."));
+            var sun = context.Stage?.set.id == setId ? RenderSettings.sun : null;
+            if (sun && !sun.isActiveAndEnabled) sun = null;
+            var lighting = new Toggle("Use the stage sun and ambient color") { value = sun && mapLight };
+            lighting.SetEnabled(sun);
+            lighting.tooltip = sun ? "Compare outfits under the current stage sun or neutral portrait lights." : "Open a stage with a directional sun to use its lighting.";
+            lighting.RegisterValueChangedCallback(e => { mapLight = e.newValue; Draw(); });
+            panel.Add(lighting);
+            panel.Add(new Label("Portraits use saved outfits or the first recorded look. Equipment is listed below each portrait."));
             var scroll = new ScrollView();
             var grid = new VisualElement();
             grid.style.flexDirection = FlexDirection.Row;
             grid.style.flexWrap = Wrap.Wrap;
             scroll.Add(grid);
             panel.Add(scroll);
-            foreach (var mark in marks.Skip(page * PageSize).Take(PageSize))
+            var visible = others.Skip(page * capacity).Take(capacity);
+            if (hero != null) visible = new[] { hero }.Concat(visible);
+            foreach (var mark in visible)
             {
                 var card = new VisualElement();
                 card.style.width = 156;
@@ -76,7 +89,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 var wardrobe = Appearance(mark, context.Tape);
                 try
                 {
-                    var texture = Render(rigPrefab, wardrobe.look, wardrobe.color);
+                    var texture = Render(rigPrefab, wardrobe.look, wardrobe.color, mapLight ? sun : null);
                     if (texture)
                     {
                         portraits.Add(texture);
@@ -125,7 +138,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             return (look, color, gear);
         }
 
-        static Texture2D Render(CandyPlayerRig prefab, AvatarAppearance look, int color)
+        static Texture2D Render(CandyPlayerRig prefab, AvatarAppearance look, int color, Light sun)
         {
             var preview = new PreviewRenderUtility();
             try
@@ -151,6 +164,14 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 preview.lights[0].transform.rotation = Quaternion.Euler(33, 145, 0);
                 preview.lights[1].intensity = .8f;
                 preview.lights[1].transform.rotation = Quaternion.Euler(22, -115, 0);
+                if (sun)
+                {
+                    preview.lights[0].color = sun.color;
+                    preview.lights[0].intensity = sun.intensity;
+                    preview.lights[0].transform.rotation = sun.transform.rotation;
+                    preview.lights[1].intensity = 0;
+                    preview.ambientColor = RenderSettings.ambientLight;
+                }
                 preview.BeginStaticPreview(new Rect(0, 0, 150, 160));
                 preview.Render(true, false);
                 return preview.EndStaticPreview();

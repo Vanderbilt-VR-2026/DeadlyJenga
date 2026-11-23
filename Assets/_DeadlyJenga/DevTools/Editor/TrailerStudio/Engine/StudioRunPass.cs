@@ -388,6 +388,17 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 stage.recording = true;
                 stage.physicalPlayback = !pass.liveWorld && stage.live.Count > 0;
                 BuildPlayers(pass.record, !branch);
+                if (performer != null && !string.IsNullOrEmpty(pass.starredGhost))
+                {
+                    var reference = StudioPerform.StarredGhostFor(stage.tape, performer, pass.liveWorld, pass.from, to,
+                        pass.starredGhost, out _);
+                    var track = stage.tape.Find(performer.id);
+                    if (reference != null && StudioTrackTypes.Get(track.type) is ActorTrack actorType)
+                    {
+                        try { players.Add(actorType.CreateStarredGhost(stage, track, reference, oldWorld)); }
+                        catch (Exception error) { Debug.LogWarning("Trailer Studio: reference ghost could not start. " + error.Message); }
+                    }
+                }
                 StudioPaths.Show(stage, pass);
 
                 // Punch-in: follow the performer's old take up to the punch frame, then hand over control.

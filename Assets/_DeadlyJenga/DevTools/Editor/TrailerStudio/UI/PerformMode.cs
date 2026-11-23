@@ -79,6 +79,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                 actions.SetEnabled(StudioRun.State == StudioState.Held && !StudioHandheld.Recording);
                 review.Add(actions);
             }
+            if (mark != null) StarredGhost(panel, context, mark, track);
             Others(panel, context, mark);
 
             // ---- How to record ----
@@ -134,6 +135,35 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
 
             Stale(panel, context);
             if (mark != null) TakeTools(panel, context, mark);
+        }
+
+        static void StarredGhost(VisualElement panel, StudioContext context, StudioMark mark, StudioTrack track)
+        {
+            var set = context.Set;
+            var tape = context.Tape;
+            var pass = StudioRun.Pass;
+            bool recording = pass != null && pass.performer == mark.id;
+            bool live = recording ? pass.liveWorld : StudioPerform.LivePhysics;
+            int first = recording ? pass.from : !live && StudioPerform.PunchIn && StudioPerform.CanPunch(tape, mark, context.Frame) ? context.Frame : 0;
+            int last = recording && pass.to >= 0 ? pass.to : set.Frames - 1;
+            bool armed = StudioPerform.StarredGhostEnabled(set, mark);
+            StudioTake candidate = StudioPerform.StarredGhostFor(tape, mark, live, first, last,
+                recording ? pass.starredGhost : null, out string reason);
+            var toggle = new Toggle("Starred take reference ghost") { value = armed,
+                tooltip = "Replay this actor's newest compatible starred take as a pass-through ghost during recording." };
+            toggle.SetEnabled(!StudioRun.Busy && !StudioHandheld.Recording && (armed || candidate != null) && track?.locked != true);
+            toggle.RegisterValueChangedCallback(e => { StudioPerform.SetStarredGhost(set, mark, e.newValue); context.Rebuild(); });
+            panel.Add(toggle);
+            if (candidate == null)
+            {
+                panel.Add(StudioUi.Hint(recording && string.IsNullOrEmpty(pass.starredGhost) ? "Reference ghost is off for this recording." : reason));
+                return;
+            }
+            var world = tape.FindType(WorldTrack.Id).ActiveTake;
+            var ghost = context.Stage?.starredGhost;
+            string state = !armed ? "Off" : StudioPerform.GhostsHidden ? "Hidden by Ghosts off" : !recording ? "Ready" :
+                ghost != null && ghost.activeInHierarchy ? "Playing" : "Waiting for a visible frame";
+            panel.Add(StudioUi.Hint($"{state} · {mark.actor} · {candidate.name} · world {world.name} [{world.id}]"));
         }
 
         void ActorPicker(VisualElement panel, StudioContext context, StudioMark performer)

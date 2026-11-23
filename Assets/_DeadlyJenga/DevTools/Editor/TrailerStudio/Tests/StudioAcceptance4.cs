@@ -153,6 +153,54 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             Result("Setup: three performed takes", performers.All(p => tape.Find(p.id)?.ActiveTake?.frames.Count == frames),
                 $"Ada, Ben and Cy each performed a {set.length:0} s take. Ada walked {Vector3.Distance(originalPath[0], originalPath[originalPath.Count - 1]):0.00} m.");
 
+            bool previousOptIn = StudioPerform.StarredGhostEnabled(set, ada);
+            bool previousHidden = StudioPerform.GhostsHidden;
+            bool previousStar = original.starred;
+            bool previousLive = StudioPerform.LivePhysics;
+            string previousActor = StudioPerform.Actor;
+            bool selectedReference = false, visibleReference = false, madePassThrough = false, disappeared = false;
+            try
+            {
+                original.starred = true;
+                StudioPerform.GhostsHidden = false;
+                StudioPerform.Actor = ada.id;
+                StudioPerform.LivePhysics = false;
+                StudioPerform.SetStarredGhost(set, ada, false);
+                bool offByChoice = string.IsNullOrEmpty(StudioPerform.BuildPass(stage, 0).starredGhost);
+                StudioPerform.SetStarredGhost(set, ada, true);
+                var actorType = (ActorTrack)StudioTrackTypes.Get(SurvivorTrack.Id);
+                var reference = StudioPerform.StarredGhostFor(tape, ada, false, 0, frames - 1, null, out _);
+                selectedReference = offByChoice && StudioPerform.BuildPass(stage, 0).starredGhost == original.id && reference == original &&
+                    StudioPerform.StarredGhostFor(tape, ben, false, 0, frames - 1, original.id, out _) == null &&
+                    StudioPerform.StarredGhostFor(tape, ada, true, 0, frames - 1, original.id, out _) == null;
+                if (reference != null)
+                {
+                    stage.playback.TryGetValue(ada.id, out var normal);
+                    using (var ghost = actorType.CreateStarredGhost(stage, adaTrack, reference, worldTake))
+                    {
+                        ghost.Show(fps, true);
+                        var root = stage.starredGhost;
+                        visibleReference = root && root.activeInHierarchy && root.GetComponentsInChildren<Renderer>().Length > 0;
+                        madePassThrough = root && root.GetComponentsInChildren<Collider>().All(c => !c.enabled) &&
+                            stage.playback.TryGetValue(ada.id, out var currentPlayback) == (normal != null) && currentPlayback == normal;
+                        StudioPerform.GhostsHidden = true;
+                        ghost.Show(fps, true);
+                        disappeared = root && !root.activeSelf;
+                    }
+                }
+            }
+            finally
+            {
+                original.starred = previousStar;
+                StudioPerform.SetStarredGhost(set, ada, previousOptIn);
+                StudioPerform.GhostsHidden = previousHidden;
+                StudioPerform.Actor = previousActor;
+                StudioPerform.LivePhysics = previousLive;
+            }
+            Result("Starred reference ghost uses this actor's same-world take and stays isolated",
+                selectedReference && visibleReference && madePassThrough && disappeared && !stage.starredGhost,
+                $"Eligible {selectedReference}, drew a reference {visibleReference}, isolated playback and collisions {madePassThrough}, hid on request {disappeared}.");
+
             // ---- Test 4 first (it needs the three untouched takes): a 20-person crowd from 3 takes ----
             const string crowdName = "Courtyard evacuees";
             var crowd = StudioTakes.Crowd(set, tape, performers.ToList(), new StudioTakes.CrowdOptions { group = crowdName, count = 20, radius = 5, spacing = .9f, timeSpread = .8f, seed = 11, ground = stage.GroundAt }, out var crowdNotes);

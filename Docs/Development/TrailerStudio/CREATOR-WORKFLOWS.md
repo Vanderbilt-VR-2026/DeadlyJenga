@@ -4,7 +4,7 @@ Reviewed November 22, 2026 against Studio source at `cb1c158145bf0a6fedcee2a844b
 
 ## What is already within reach
 
-The tables below describe the research baseline. For the subsequent implementation and the six-tab authoring sequence, see [Make a second version of a scene](UI.md#make-a-second-version-of-a-scene). Wardrobe portraits use preview lighting. Floor and opening sightline checks use the held map state. Neither check predicts later destruction.
+The tables below describe the research baseline. For the subsequent implementation and the six-tab authoring sequence, see [Make a second version of a scene](UI.md#make-a-second-version-of-a-scene). Wardrobe portraits can sample the stage sun and ambient color. Floor and opening sightline checks use the held map state. Scrub through the recorded destruction to inspect later contact.
 
 | Today | Why it matters | Owning source under the DevTools editor |
 |---|---|---|
