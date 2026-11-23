@@ -115,6 +115,7 @@ namespace DeadlyJenga.CandyPlayers
         static Material[] stockPistolSurfaces;
         void BuildStockPistol(Transform root)
         {
+            if (BuildCompactStockPistol(root)) return;
             if(stockPistolMeshes==null)
             {
                 var groups=new List<CombineInstance>[12];for(int i=0;i<groups.Length;i++)groups[i]=new List<CombineInstance>();

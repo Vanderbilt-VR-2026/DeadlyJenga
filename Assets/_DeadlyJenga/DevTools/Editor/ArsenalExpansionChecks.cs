@@ -20,7 +20,10 @@ namespace DeadlyJenga.DevTools.Editor
     {
         const string Key="ArsenalExpansion";
         static int checks,errors;static bool failed,completed;
-        static string Report=>ProjectPath.Report("ArsenalExpansion.txt");
+        static bool StockPistolOnly=>SessionState.GetBool(Key+"StockPistolOnly",false);
+        static bool PistolMotionOnly=>SessionState.GetBool(Key+"PistolMotionOnly",false);
+        static string Report=>ProjectPath.Report(PistolMotionOnly?"PistolMotion.txt":
+            StockPistolOnly?"StockPistolArt.txt":"ArsenalExpansion.txt");
         sealed class PickupSource:IEquipmentPickupSource {public EquipmentKind Kind{get;set;}public Vector3 Position{get;set;}public float Duration{get;set;}=1;}
         [Serializable] sealed class Scenes{public SceneSetup[] values;}
         static ArsenalExpansionChecks()
@@ -46,7 +49,13 @@ namespace DeadlyJenga.DevTools.Editor
                     SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));
                     MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);
                     EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).values);
-                    failed|=!completed;File.AppendAllText(Report,$"COMPLETE checks={checks} runtimeErrors={errors} failed={failed}. Desktop runtime; headset not tested.\n");
+                    failed|=!completed;
+                    if((StockPistolOnly||PistolMotionOnly)&&!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
+                    {
+                        Directory.CreateDirectory("Logs/Warm");
+                        File.WriteAllText("Logs/Warm/exit.txt",failed||errors>0?"1":"0");
+                    }
+                    File.AppendAllText(Report,$"COMPLETE checks={checks} runtimeErrors={errors} failed={failed}. Desktop runtime; headset not tested.\n");
                 }
             };
         }
@@ -55,9 +64,14 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunCosmeticWeapons()=>Start(true);
 
-        static void Start(bool cosmeticWeaponsOnly)
+        public static void RunStockPistolArt()=>Start(false,stockPistolOnly:true);
+        public static void RunPistolMotion()=>Start(false,pistolMotionOnly:true);
+
+        static void Start(bool cosmeticWeaponsOnly,bool stockPistolOnly=false,bool pistolMotionOnly=false)
         {
             SessionState.SetBool(Key+"CosmeticWeaponsOnly",cosmeticWeaponsOnly);
+            SessionState.SetBool(Key+"StockPistolOnly",stockPistolOnly);
+            SessionState.SetBool(Key+"PistolMotionOnly",pistolMotionOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -65,7 +79,7 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
-            File.WriteAllText(Report,cosmeticWeaponsOnly?"Dagger and compact sidearm Play Mode checks.\n":
+            File.WriteAllText(Report,pistolMotionOnly?"Two-pistol pickup, holster, draw and reload.\n":stockPistolOnly?"Stock Pistol model and pink shot effects.\n":cosmeticWeaponsOnly?"Dagger and compact sidearm Play Mode checks.\n":
                 "Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
@@ -202,6 +216,103 @@ namespace DeadlyJenga.DevTools.Editor
 
         static bool SameRgb(Color a,Color b)=>Mathf.Abs(a.r-b.r)+Mathf.Abs(a.g-b.g)+Mathf.Abs(a.b-b.b)<.02f;
 
+        static IEnumerator StockPistolArt(CastlePlaySession session,MatchModeRuntime runtime,
+            CastleSurvivor player,CastleSurvivor target)
+        {
+            const EquipmentKind kind=EquipmentKind.StockPistol;
+            Check(runtime.GiveEquipment(kind),"Production Stock Pistol equips");
+            target.Place(player.transform.position+Vector3.right*8,Quaternion.identity);
+            yield return new WaitForSeconds(.3f);
+            Check(Resources.Load<TextAsset>("StockPistolCompactArt")!=null,"Compact export imports as a Unity TextAsset");
+            Check(EquipmentModelData.Parts.TryGetValue(kind,out var parts)&&
+                parts.Any(p=>p.material&&p.material.name=="Lacquered black-cherry walnut")&&
+                parts.Any(p=>p.material&&p.material.name=="Fine antique gold inlay"),
+                "Production model uses the approved walnut and engraving");
+            var trails=session.GetComponent<DeadlyJenga.Presentation.CandyBulletTrails>();
+            Check(trails!=null,"Production feedback has a projectile trail pool");
+            var origin=player.ViewPose.position+Vector3.forward*.4f;
+            Physics.SyncTransforms();
+            Check(runtime.RequestEquipmentAttack(new Pose(origin,Quaternion.identity)),"Default Stock Pistol shot accepted");
+            var block=new MaterialPropertyBlock();
+            bool pink=false;
+            float deadline=Time.realtimeSinceStartup+2;
+            while (!pink && Time.realtimeSinceStartup<deadline)
+            {
+                yield return null;
+                foreach(var item in trails.GetComponentsInChildren<MeshRenderer>())
+                {
+                    if (item.name!="Visual bullet head") continue;
+                    item.GetPropertyBlock(block);
+                    var color=block.GetColor("_BaseColor");
+                    pink |= color.r>.9f && color.g<.1f && color.b>.35f;
+                }
+            }
+            Check(pink,"The production bullet renders hot pink");
+        }
+
+        static IEnumerator PistolMotion(MatchModeRuntime runtime,CastleSurvivor player,CastleSurvivor target)
+        {
+            target.Place(player.transform.position+Vector3.right*8,Quaternion.identity);
+            foreach(var kind in new[]{EquipmentKind.CompactSidearm,EquipmentKind.StockPistol})
+            {
+                int sequence=runtime.Frame.equipmentSequence;
+                Check(runtime.GiveEquipment(kind),"Demo pickup or swap equips "+kind);
+                Check(runtime.Frame.equipmentActions.Any(action=>action.id>sequence&&action.kind==kind&&
+                    (action.action==EquipmentAction.Pickup||action.action==EquipmentAction.Swap)),"Pickup event starts "+kind);
+                yield return null;
+                yield return new WaitForEndOfFrame();
+                var model=player.transform.Find("Visual - "+kind);
+                Check(model,"Live avatar displays "+kind);
+                var gathering=model.localPosition;
+                yield return new WaitForSeconds(.42f);
+                var drawn=model.localPosition;
+                Check(Vector3.Distance(drawn,gathering)>.025f,"Pickup settles into the hand: "+kind);
+                if(kind==EquipmentKind.StockPistol)
+                    Check(model.GetComponentsInChildren<MeshRenderer>(true).Any(r=>r.sharedMaterial&&
+                        r.sharedMaterial.name=="Lacquered black-cherry walnut"),"Fixture uses noir Stock Pistol art");
+
+                bool left=runtime.EquipmentFor(runtime.LocalActorId).leftHanded;
+                Check(runtime.RequestEquipment(false,left,false),"Holster input accepted: "+kind);
+                yield return new WaitForSeconds(.43f);
+                var stowed=model.localPosition;
+                Check(Vector3.Distance(drawn,stowed)>.06f,"Model moves into holster: "+kind);
+                Check(runtime.RequestEquipment(true,left,false),"Draw input accepted: "+kind);
+                yield return new WaitForSeconds(.42f);
+                Check(Vector3.Distance(model.localPosition,stowed)>.06f,"Model returns to the hand: "+kind);
+
+                var feed=model.Find("Animated ammunition assembly");
+                Check(feed,"Model has a movable magazine: "+kind);
+                var seat=feed.localPosition;
+                var spec=EquipmentSpecifications.Get(kind);
+                var shot=new Pose(player.ViewPose.position+Vector3.up*.4f,Quaternion.LookRotation(Vector3.up,Vector3.forward));
+                for(int i=0;i<spec.magazine;i++)
+                {
+                    float deadline=Time.time+spec.cooldown+.5f;
+                    bool fired=runtime.RequestEquipmentAttack(shot);
+                    while(!fired&&Time.time<deadline){yield return null;fired=runtime.RequestEquipmentAttack(shot);}
+                    if(!fired)throw new InvalidOperationException("Could not empty the magazine for "+kind);
+                }
+
+                bool extracted=false,replacement=false;
+                float until=Time.time+spec.reloadSeconds+.5f;
+                while(runtime.EquipmentFor(runtime.LocalActorId).reloadRemaining>0&&Time.time<until)
+                {
+                    yield return null;
+                    var state=runtime.EquipmentFor(runtime.LocalActorId);
+                    float phase=1-state.reloadRemaining/spec.reloadSeconds;
+                    bool displaced=Vector3.Distance(feed.localPosition,seat)>.035f;
+                    extracted|=phase<.38f&&displaced&&feed.gameObject.activeSelf;
+                    var round=feed.Find("Visible round 1");
+                    replacement|=phase>.48f&&displaced&&feed.gameObject.activeSelf&&round&&round.gameObject.activeSelf;
+                }
+                yield return null;
+                Check(extracted,"Empty magazine extracts: "+kind);
+                Check(replacement,"Fresh magazine and top round move into the receiver: "+kind);
+                Check(Vector3.Distance(feed.localPosition,seat)<.002f&&
+                    runtime.EquipmentFor(runtime.LocalActorId).rounds==spec.magazine,"Magazine reseats and refills: "+kind);
+            }
+        }
+
         static IEnumerator Test()
         {
             var session=Object.FindFirstObjectByType<CastlePlaySession>();float until=Time.realtimeSinceStartup+30;
@@ -212,6 +323,16 @@ namespace DeadlyJenga.DevTools.Editor
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
             var created=session.SurvivorBots.SpawnOne();Check(created,"Target bot spawns");var target=created.GetComponent<CastleSurvivor>();target.GetComponent<CastleBotBrain>().enabled=false;target.InputSuspended=true;
             yield return new WaitForSeconds(.4f);
+            if(PistolMotionOnly)
+            {
+                yield return PistolMotion(runtime,player,target);
+                yield break;
+            }
+            if(StockPistolOnly)
+            {
+                yield return StockPistolArt(session,runtime,player,target);
+                yield break;
+            }
             if(SessionState.GetBool(Key+"CosmeticWeaponsOnly",false))
             {
                 yield return CosmeticWeapons(runtime,player,target);
