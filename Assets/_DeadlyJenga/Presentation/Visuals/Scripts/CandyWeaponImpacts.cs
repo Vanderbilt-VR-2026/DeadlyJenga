@@ -20,8 +20,8 @@ namespace DeadlyJenga.Presentation
         readonly Dictionary<(int,uint),MarkBatch> batches=new Dictionary<(int,uint),MarkBatch>();
         readonly List<(int,uint)> emptyBatches=new List<(int,uint)>();
         Material surfaceMaterial,flashMaterial;
-        Mesh quad;
-        ParticleSystem flashes;
+        Mesh quad, needleChipMesh;
+        ParticleSystem flashes, needleChips;
         int flashFrame=-1,flashCount;
         public int ActiveMarks=>marks.Count;
 
@@ -31,6 +31,8 @@ namespace DeadlyJenga.Presentation
             public Matrix4x4 localFrame;
             public int layer;
             public uint renderingMask;
+            public bool block;
+            public Color blockColor;
             public Vector3 Position=>anchor?anchor.localToWorldMatrix.MultiplyPoint3x4(localFrame.GetColumn(3)):Vector3.zero;
         }
         struct Mark
@@ -160,7 +162,7 @@ namespace DeadlyJenga.Presentation
                     action.kind==EquipmentKind.LaserAxe||action.kind==EquipmentKind.Chainsaw)
                     Muzzle(action);
             }
-            else if(action.action==EquipmentAction.Impact&&action.kind!=EquipmentKind.StockPistol)
+            else if(action.action==EquipmentAction.Impact&&action.kind!=EquipmentKind.StockPistol&&action.kind!=EquipmentKind.NeedleDrill)
                 Surface(action.position,Vector3.zero,action.kind,SidearmOwnerColor(MatchRuntime.Current,action));
         }
 
@@ -215,12 +217,12 @@ namespace DeadlyJenga.Presentation
                 kind==EquipmentKind.GrenadeLauncher?.55f:
                 kind==EquipmentKind.DualRifle?.29f:
                 kind==EquipmentKind.Blaster||kind==EquipmentKind.PoweredArmor?.42f:
-                kind==EquipmentKind.WristLaser?.095f:kind==EquipmentKind.LaserAxe?.25f:.14f;
+                kind==EquipmentKind.WristLaser?.095f:kind==EquipmentKind.LaserAxe?.25f:kind==EquipmentKind.NeedleDrill?.075f:.14f;
             var localPose=contact.localFrame*Matrix4x4.TRS(Vector3.zero,
                 Quaternion.Euler(0,0,(marks.Count*137)%360),Vector3.one*diameter);
             marks.Add(new Mark
             {
-                anchor=contact.anchor,localPose=localPose,tint=ownerColor??Tint(kind),kind=kind,
+                anchor=contact.anchor,localPose=localPose,tint=ownerColor??(kind==EquipmentKind.NeedleDrill?new Color(.56f,.66f,.73f):Tint(kind)),kind=kind,
                 born=Time.time,life=kind==EquipmentKind.DualUzi?1.6f:4,
                 style=kind==EquipmentKind.DualRifle?3:
                     kind==EquipmentKind.GrenadeLauncher?2:
@@ -241,16 +243,76 @@ namespace DeadlyJenga.Presentation
             });
         }
 
+        internal void NeedleChips(SurfaceContact contact, Vector3 incoming)
+        {
+            if (!contact.block || !contact.anchor || !flashMaterial || !isActiveAndEnabled) return;
+            if (!needleChips) CreateNeedleChips();
+            if (needleChips.isStopped) needleChips.Play();
+            var outward=contact.anchor.localToWorldMatrix.MultiplyVector(contact.localFrame.GetColumn(2)).normalized;
+            for (int i=0; i<5; i++)
+            {
+                var side=Quaternion.Euler(i*137+23,i*67+29,i*31)*Vector3.right;
+                var direction=(outward*.75f-incoming*.22f+side*.62f+Vector3.up*.23f).normalized;
+                needleChips.Emit(new ParticleSystem.EmitParams
+                {
+                    position=contact.Position+outward*.009f,
+                    velocity=direction*(.85f+i*.25f),
+                    startSize=.016f+i*.0025f,
+                    startLifetime=.24f+i*.023f,
+                    rotation3D=new Vector3(i*41,i*93,i*67),
+                    startColor=Color.Lerp(contact.blockColor,Color.white,.14f+i*.067f)
+                },1);
+            }
+        }
+
+        void CreateNeedleChips()
+        {
+            needleChipMesh=new Mesh
+            {
+                name="Small angular candy fleck",
+                vertices=new[]{new Vector3(-.56f,-.4f,.12f),new Vector3(.54f,-.31f,.06f),
+                    new Vector3(.14f,.65f,-.11f),new Vector3(-.05f,.02f,.46f)},
+                uv=new[]{new Vector2(.45f,.68f),new Vector2(.5f,.64f),new Vector2(.61f,.36f),new Vector2(.51f,.53f)},
+                triangles=new[]{0,2,1,0,3,2,2,3,1,1,3,0}
+            };
+            needleChipMesh.RecalculateNormals();
+            var emitter=new GameObject("Pooled Needle Drill candy chips");
+            emitter.transform.SetParent(transform,false);
+            needleChips=emitter.AddComponent<ParticleSystem>();
+            needleChips.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main=needleChips.main;
+            main.playOnAwake=false;
+            main.loop=false;
+            main.maxParticles=128;
+            main.gravityModifier=.85f;
+            main.simulationSpace=ParticleSystemSimulationSpace.World;
+            var emission=needleChips.emission;emission.enabled=false;
+            var shape=needleChips.shape;shape.enabled=false;
+            var renderer=emitter.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode=ParticleSystemRenderMode.Mesh;
+            renderer.mesh=needleChipMesh;
+            renderer.sharedMaterial=flashMaterial;
+            renderer.shadowCastingMode=ShadowCastingMode.Off;
+            renderer.receiveShadows=false;
+        }
+
         internal static bool TryContact(Vector3 point,Vector3 incoming,out SurfaceContact contact,float reach=.45f)
         {
             contact=default;
             if(!TrySurface(point,incoming,reach,out var hit,out var anchor))return false;
             var pose=Matrix4x4.TRS(hit.point+hit.normal*.006f,Quaternion.LookRotation(hit.normal),Vector3.one);
             var renderer=anchor.GetComponentInChildren<Renderer>();
+            var climbable=HitAbilities.Get<IClimbable>(hit.collider);
+            var body=climbable?.Body;
+            bool block=hit.collider.gameObject.layer==Layers.Block || (body && body.gameObject.layer==Layers.Block);
+            var blockMaterial=block && renderer?renderer.sharedMaterial:null;
+            var blockColor=blockMaterial && blockMaterial.HasProperty("_BaseColor")
+                ?blockMaterial.GetColor("_BaseColor"):new Color(.74f,.23f,.33f);
             contact=new SurfaceContact
             {
                 anchor=anchor,localFrame=anchor.worldToLocalMatrix*pose,
-                layer=hit.collider.gameObject.layer,renderingMask=renderer?renderer.renderingLayerMask:1u
+                layer=hit.collider.gameObject.layer,renderingMask=renderer?renderer.renderingLayerMask:1u,
+                block=block,blockColor=blockColor
             };
             return true;
         }
@@ -344,12 +406,14 @@ namespace DeadlyJenga.Presentation
         {
             marks.Clear();batches.Clear();
             if(flashes)flashes.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+            if(needleChips)needleChips.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
         }
         void OnDestroy()
         {
             if(surfaceMaterial)Destroy(surfaceMaterial);
             if(flashMaterial)Destroy(flashMaterial);
             if(quad)Destroy(quad);
+            if(needleChipMesh)Destroy(needleChipMesh);
         }
     }
 }

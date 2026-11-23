@@ -20,11 +20,12 @@ namespace DeadlyJenga.DevTools.Editor
     {
         const string Key="ArsenalExpansion";
         static int checks,errors;static bool failed,completed;
+        static bool NeedleOnly=>SessionState.GetBool(Key+"NeedleOnly",false);
         static bool BoxingGloveOnly=>SessionState.GetBool(Key+"BoxingGloveOnly",false);
         static bool SawStaffOnly => SessionState.GetBool(Key+"SawStaffOnly",false);
         static bool StockPistolOnly=>SessionState.GetBool(Key+"StockPistolOnly",false);
         static bool PistolMotionOnly=>SessionState.GetBool(Key+"PistolMotionOnly",false);
-        static string Report=>ProjectPath.Report(BoxingGloveOnly?"BoxingGloveArt.txt":PistolMotionOnly?"PistolMotion.txt":
+        static string Report=>ProjectPath.Report(NeedleOnly?"NeedleDrillArt.txt":BoxingGloveOnly?"BoxingGloveArt.txt":PistolMotionOnly?"PistolMotion.txt":
             StockPistolOnly?"StockPistolArt.txt":SawStaffOnly?"SawWheelStaffContacts.txt":"ArsenalExpansion.txt");
         sealed class PickupSource:IEquipmentPickupSource {public EquipmentKind Kind{get;set;}public Vector3 Position{get;set;}public float Duration{get;set;}=1;}
         [Serializable] sealed class Scenes{public SceneSetup[] values;}
@@ -52,7 +53,7 @@ namespace DeadlyJenga.DevTools.Editor
                     MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);
                     EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).values);
                     failed|=!completed;File.AppendAllText(Report,$"COMPLETE checks={checks} runtimeErrors={errors} failed={failed}. Desktop runtime; headset not tested.\n");
-                    if (BoxingGloveOnly || SawStaffOnly || StockPistolOnly || PistolMotionOnly)
+                    if (NeedleOnly || BoxingGloveOnly || SawStaffOnly || StockPistolOnly || PistolMotionOnly)
                     {
                         int result = failed || errors > 0 ? 1 : 0;
                         if (!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
@@ -86,7 +87,9 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunBoxingGloveArt()=>Start(false, boxingGloveOnly:true);
 
-        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false)
+        public static void RunNeedleDrill()=>Start(false, needleOnly:true);
+
+        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false, bool needleOnly=false)
         {
             SessionState.SetBool(Key+"BarbedBatOnly",barbedBatOnly);
             SessionState.SetBool(Key+"CosmeticWeaponsOnly",cosmeticWeaponsOnly);
@@ -97,6 +100,7 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetBool(Key+"StockPistolOnly",stockPistolOnly);
             SessionState.SetBool(Key+"PistolMotionOnly",pistolMotionOnly);
             SessionState.SetBool(Key+"BoxingGloveOnly",boxingGloveOnly);
+            SessionState.SetBool(Key+"NeedleOnly",needleOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -753,6 +757,52 @@ namespace DeadlyJenga.DevTools.Editor
                 "Survivor punch damages the target and shows contact effects");
         }
 
+        static IEnumerator NeedleDrillArt(CastlePlaySession session,MatchModeRuntime runtime,
+            CastleSurvivor player,CastleSurvivor target)
+        {
+            const EquipmentKind kind=EquipmentKind.NeedleDrill;
+            Check(runtime.GiveEquipment(kind),"Production Needle Drill equips");
+            target.Place(player.transform.position+Vector3.right*8,Quaternion.identity);
+            yield return new WaitForSeconds(.3f);
+            Check(Resources.Load<TextAsset>("NeedleDrillArt")!=null,"Blender export imports as a Unity TextAsset");
+            Check(EquipmentModelData.Parts.TryGetValue(kind,out var parts)&&
+                parts.Any(p=>p.material&&p.material.name=="Tool-orange molded polymer")&&
+                parts.Any(p=>p.material&&p.material.name=="Polished tooth and bit edges"),
+                "Production pickup uses the approved tool shell and polished bit");
+            var trails=session.GetComponent<DeadlyJenga.Presentation.CandyBulletTrails>();
+            Check(trails!=null,"Production session owns the pooled needle travel effects");
+            var origin=player.ViewPose.position+Vector3.forward*.6f;
+            var pose=new Pose(origin,Quaternion.identity);
+            var block=GameObject.CreatePrimitive(PrimitiveType.Cube);
+            block.name="Needle Drill block contact fixture";
+            block.layer=Layers.Block;
+            block.transform.position=origin+Vector3.forward*7;
+            block.transform.localScale=Vector3.one*.75f;
+            Physics.SyncTransforms();
+            var held=(IHeldEquipmentRuntime)runtime;
+            bool sawTrail=false,sawChips=false;
+            float deadline=Time.realtimeSinceStartup+5;
+            try
+            {
+                while (Time.realtimeSinceStartup<deadline&&!sawChips)
+                {
+                    if (!sawTrail) held.RequestEquipmentTrigger(true,pose);
+                    yield return null;
+                    sawTrail|=trails.GetComponentsInChildren<LineRenderer>().Any(line=>line.name=="Fine needle wake");
+                    var chips=session.GetComponentsInChildren<ParticleSystem>().FirstOrDefault(
+                        system=>system.name=="Pooled Needle Drill candy chips");
+                    sawChips=chips&&chips.particleCount>0;
+                }
+                Check(sawTrail,"Production shot renders its narrow secondary wake");
+                Check(sawChips,"Production block impact emits the pooled candy chips");
+            }
+            finally
+            {
+                held.RequestEquipmentTrigger(false,pose);
+                Object.Destroy(block);
+            }
+        }
+
         static IEnumerator Test()
         {
             var session=Object.FindFirstObjectByType<CastlePlaySession>();float until=Time.realtimeSinceStartup+30;
@@ -806,6 +856,11 @@ namespace DeadlyJenga.DevTools.Editor
             if (BoxingGloveOnly)
             {
                 yield return BoxingGloveArt(session,runtime,player,target);
+                yield break;
+            }
+            if (NeedleOnly)
+            {
+                yield return NeedleDrillArt(session,runtime,player,target);
                 yield break;
             }
             Check(EquipmentSpecifications.All.Length==Enum.GetValues(typeof(EquipmentKind)).Length,"Every serialized equipment kind has one shared specification");
