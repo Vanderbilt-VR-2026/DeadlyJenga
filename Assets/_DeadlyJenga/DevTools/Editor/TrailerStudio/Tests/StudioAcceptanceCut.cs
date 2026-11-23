@@ -93,6 +93,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             var tries = StudioVariations.Results(tape, StudioVariations.LastGroup);
             var pick = tries.LastOrDefault();
             if (pick == null) { Result("Cut 3. A variation's recipe is applied by cue id", false, "The variation run kept no takes."); yield break; }
+            var variationCues = StudioRun.CueLog.ToArray();
             bool copyOk = RecipeOnCopy(set, pick, out string copyNote);
             int seedBefore = set.seed;
             string message = StudioVariations.ApplyRecipe(set, pick);
@@ -103,10 +104,15 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
             foreach (int wait in UntilHeld()) yield return wait;
             var again = worldTrack.ActiveTake;
             FinalDistance(pick, again, out float worst, out float mean, out int count);
-            Result("Cut 4. Recording the whole set after applying a fresh-map variation's recipe makes that try again",
-                again != pick && count > 0 && worst < .05f,
+            WorldTrack.Positions(pick, pick.End - 1, out _, out var variationBlocks);
+            WorldTrack.Positions(again, again.End - 1, out _, out var recordedBlocks);
+            bool sameCues = variationCues.Length == 2 && variationCues.SequenceEqual(StudioRun.CueLog);
+            // The fixed capture clock and the game's physics clock can land on different phases.
+            // Compare the cue results exactly and bound both whole-map drift and individual outliers.
+            Result("Cut 4. A fresh-map variation replays the same cues with comparable final block placement",
+                again != pick && sameCues && count > 0 && variationBlocks.SequenceEqual(recordedBlocks) && mean < .005f && worst < .075f,
                 $"\"{pick.name}\" (seed {StudioVariations.RecipeOf(pick)?.seed}; the Set's seed was {seedBefore}, now {set.seed}). Over {count} blocks, the re-recorded world's last frame is on average {mean * 1000:0.0} mm " +
-                $"and at most {worst * 1000:0.0} mm from the try's last frame. Only a try from a fresh map can match this way: one that branched from an older take started from that take's pose.");
+                $"and at most {worst * 1000:0.0} mm from the try's last frame. Exact cue results: {sameCues}. Limits: 5 mm mean, 75 mm maximum.");
 
             Result("Runtime errors during the Studio tests", exceptions == 0, exceptions == 0 && errorLines.Count == 0 ? "None." : $"{exceptions} exceptions. First messages: {string.Join(" // ", errorLines)}");
             StudioRun.SaveTape();
