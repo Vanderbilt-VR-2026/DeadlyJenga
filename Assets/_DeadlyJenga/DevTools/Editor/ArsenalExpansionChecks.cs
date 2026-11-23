@@ -107,8 +107,9 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunNeedleDrill()=>Start(false, needleOnly:true);
 
-        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false, bool needleOnly=false)
+        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false, bool needleOnly=false, bool motionOnly=false)
         {
+            SessionState.SetBool(Key+"MotionOnly",motionOnly);
             SessionState.SetBool(Key+"BarbedBatOnly",barbedBatOnly);
             SessionState.SetBool(Key+"CosmeticWeaponsOnly",cosmeticWeaponsOnly);
             SessionState.SetBool(Key+"RocketCandyOnly",candyOnly);
@@ -427,12 +428,21 @@ namespace DeadlyJenga.DevTools.Editor
             yield return new WaitForSeconds(.23f);
             aim=Quaternion.LookRotation(target.transform.position+Vector3.up*.55f-origin);
             health=target.Health;
+            string beforeShot = runtime.CaptureFrameJson();
             Check(runtime.RequestEquipmentAttack(new Pose(origin,aim)),"Compact sidearm fires through the existing attack path");
             Check(target.Health<health,"Compact sidearm damages the player target");
-            var snapshot = JsonUtility.FromJson<MatchFrame>(runtime.CaptureFrameJson());
-            Check(snapshot.equipmentActions.Any(action => action.kind == pistol && action.action == EquipmentAction.Impact) &&
-                ModeFrameValidation.Frame(snapshot, Services.World.Blocks.Count),
-                "Compact sidearm impact is accepted by the multiplayer snapshot validator");
+            string afterShot = runtime.CaptureFrameJson();
+            var snapshot = JsonUtility.FromJson<MatchFrame>(afterShot);
+            bool validFrame = ModeFrameValidation.Frame(snapshot, Services.World.Blocks.Count);
+            if (!validFrame)
+            {
+                File.WriteAllText(ProjectPath.Report("CompactSidearm-before-shot.json"), beforeShot);
+                File.WriteAllText(ProjectPath.Report("CompactSidearm-after-shot.json"), afterShot);
+            }
+            Check(snapshot.equipmentActions.Any(action => action.kind == pistol && action.action == EquipmentAction.Impact),
+                "Compact sidearm emits the impact cue");
+            Check(ModeFrameValidation.EquipmentActions(snapshot), "The multiplayer action validator accepts the compact-sidearm impact");
+            Check(validFrame, "The complete match snapshot validates after the compact-sidearm impact");
             Check(runtime.EquipmentFor(runtime.LocalActorId).rounds==EquipmentSpecifications.Get(pistol).magazine-1,
                 "Sidearm consumes a round from the existing magazine");
         }
@@ -1020,12 +1030,7 @@ namespace DeadlyJenga.DevTools.Editor
             session.SetMenu(false);yield return ExpandedBehaviourChecks.Run(session,Check);
             Check(errors==0,"No unexpected runtime errors");Object.Destroy(floor);
         }
-        public static void RunWeaponMotion()
-        {
-            SessionState.SetBool(Key+"MotionOnly",true);
-            try { Run(); }
-            catch { SessionState.SetBool(Key+"MotionOnly",false); throw; }
-        }
+        public static void RunWeaponMotion() => Start(false, motionOnly:true);
 
         static IEnumerator TestWeaponMotion()
         {
