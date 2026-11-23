@@ -279,21 +279,38 @@ namespace DeadlyJenga.CastlePrototype
         public Vector3 SafeSpawnPoint()
         {
             Physics.SyncTransforms();
-            if (CuratedCtf || settings.layoutPreset == NeedlefrostLayout.Preset)
+            bool frozen=settings.layoutPreset==NeedlefrostLayout.Preset;
+            if (CuratedCtf || frozen)
             {
                 var landings = CuratedCtf ? CuratedSpawns : NeedlefrostLayout.Landings;
                 var physics = gameObject.scene.GetPhysicsScene();
+                bool ClearLanding(Vector3 start,out Vector3 feet)
+                {
+                    feet=default;
+                    if (!physics.Raycast(start + Vector3.up, Vector3.down, out var hit, 3,
+                        (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore) || hit.normal.y < .8f) return false;
+                    if(frozen && (hit.point.y<=waterHeight+.15f || !Climbables.TryGet(hit.collider,out var floor)
+                        || !floor.Body || !floor.Body.transform.IsChildOf(generatedRoot)))return false;
+                    feet = hit.point + Vector3.up * .08f;
+                    return physics.OverlapCapsule(feet + Vector3.up * .2f, feet + Vector3.up * .95f, .18f,
+                        curatedSpawnClearance, (1 << Layers.Block) | (1 << Layers.Surface) | (1 << Layers.Survivor) | 1,
+                        QueryTriggerInteraction.Ignore) == 0;
+                }
                 for (int n = 0; n < landings.Length; n++)
                 {
                     var start = transform.TransformPoint(landings[curatedSpawnCursor++ % landings.Length]);
-                    if (!physics.Raycast(start + Vector3.up, Vector3.down, out var hit, 3,
-                        (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore) || hit.normal.y < .8f) continue;
-                    var feet = hit.point + Vector3.up * .08f;
-                    if (physics.OverlapCapsule(feet + Vector3.up * .2f, feet + Vector3.up * .95f, .18f,
-                        curatedSpawnClearance, (1 << Layers.Block) | (1 << Layers.Surface) | (1 << Layers.Survivor) | 1,
-                        QueryTriggerInteraction.Ignore) == 0) return feet;
+                    if(ClearLanding(start,out var feet))return feet;
                 }
                 if (CuratedCtf) throw new System.InvalidOperationException("No supported clear courtyard spawn remains.");
+                foreach(var body in Bodies)
+                {
+                    if(!body || !body.gameObject.activeInHierarchy || body.transform.up.y<.94f)continue;
+                    var box=body.GetComponent<BoxCollider>();
+                    if(!box || !box.enabled)continue;
+                    var bounds=box.bounds;
+                    if(bounds.size.x<2.5f || bounds.size.z<2.5f || bounds.max.y>transform.position.y+10)continue;
+                    if(ClearLanding(new Vector3(bounds.center.x,bounds.max.y,bounds.center.z),out var feet))return feet;
+                }
             }
             Collider best = null; float highest = float.NegativeInfinity;
             foreach (var body in Bodies)

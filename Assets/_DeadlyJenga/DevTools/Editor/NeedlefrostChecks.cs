@@ -32,7 +32,16 @@ namespace DeadlyJenga.DevTools.Editor
             captureOrigin=map.transform.position;
             var placements=CastleLayout.Build(map.settings);
             var session=Object.FindFirstObjectByType<CastlePlaySession>();
-            var motor=session.Survivor();motor.Place(map.SafeSpawnPoint(),Quaternion.identity);
+            var motor=session.Survivor();var spawn=map.SafeSpawnPoint();
+            bool west=false,east=false,low=true;
+            for(int n=0;n<6;n++)
+            {
+                var sample=map.transform.InverseTransformPoint(spawn);
+                west|=sample.x<0;east|=sample.x>0;low&=sample.y>=2.8f && sample.y<10;
+                File.AppendAllText(Report,$"Supported spawn {n} at {sample}\n");
+                spawn=map.SafeSpawnPoint();
+            }
+            motor.Place(spawn,Quaternion.identity);
             yield return new WaitForSeconds(3);
             var eye=new Vector3(-6,22,-87);var target=new Vector3(0,14,4);
             Capture(eye,target,29,"Needlefrost-Overview.png");
@@ -44,7 +53,7 @@ namespace DeadlyJenga.DevTools.Editor
             foreach(var index in Enumerable.Range(0,placements.Count).OrderByDescending(i=>Vector3.Distance(map.Bodies[i].position,map.transform.TransformPoint(placements[i].Position))).Take(6))
                 File.AppendAllText(Report,$"Settle #{index} course {placements[index].Course} home {placements[index].Position} actual {map.Bodies[index].position}\n");
             File.AppendAllText(Report,"Initial maximum drift "+drift+" m; bodies "+placements.Count+"\n");
-            bool routes=true;
+            bool routes=west && east && low;
             yield return WalkKeep(motor,new Vector3(-8,3.1f,-16),new[]{new Vector3(-8,6,-5),new Vector3(-6,6,-3),
                 new Vector3(0,6.15f,-3),new Vector3(7,6,-3)},result=>routes &= result,"intact coast stair and low bridge");
             yield return WalkKeep(motor,new Vector3(16,3.1f,-8),new[]{new Vector3(16,3,-6.45f)},result=>routes &= result,"camp to grotto interior");

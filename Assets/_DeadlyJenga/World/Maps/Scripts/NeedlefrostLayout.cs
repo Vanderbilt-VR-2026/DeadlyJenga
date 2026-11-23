@@ -10,8 +10,8 @@ namespace DeadlyJenga.CastlePrototype
         public enum Cut { Pier, Slab, Column, Lintel, Step, Vault, Roof, Blade, LeftBlade, RightBlade, Lantern, Window, Portal, Flight, Tracery, BridgeDeck }
         readonly List<CastlePlacement> parts = new List<CastlePlacement>(512);
         public static readonly Vector3[] Landings = {
-            new Vector3(-16, 3, -15), new Vector3(16, 3, -15), new Vector3(-8, 6, 1),
-            new Vector3(8, 6, 1), new Vector3(-16, 9, 17), new Vector3(16, 9, 17)
+            new Vector3(-14.6f,3,-18.2f),new Vector3(14.6f,3,-18.2f),new Vector3(-6.7f,6,-.7f),
+            new Vector3(6.7f,6,-.7f),new Vector3(-10.4f,9,12.5f),new Vector3(10.4f,9,19.5f)
         };
 
         void Stone(float x, float bottom, float z, float w, float h, float d, Cut cut, float yaw = 0)
