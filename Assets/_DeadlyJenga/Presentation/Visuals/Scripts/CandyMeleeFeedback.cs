@@ -22,6 +22,22 @@ namespace DeadlyJenga.Presentation
         }
 
         const int Segments = 12;
+        static readonly Color CyanClaws = new Color(.33f,.85f,1f);
+        static readonly int ClawColor = Shader.PropertyToID("_BaseColor");
+        static MaterialPropertyBlock clawTintProperties;
+
+        internal static Color ClawTint(IMatchRuntime runtime,string actor)
+        {
+            if (runtime == null || string.IsNullOrEmpty(actor)) return CyanClaws;
+            var participant = runtime.FindParticipantRoot(actor);
+            var model = participant ? participant.Find("Visual - LaserClaws") : null;
+            var blade = model ? model.GetComponentInChildren<MeshRenderer>() : null;
+            if (!blade) return CyanClaws;
+            clawTintProperties ??= new MaterialPropertyBlock();
+            blade.GetPropertyBlock(clawTintProperties);
+            return clawTintProperties.HasColor(ClawColor)
+                ? clawTintProperties.GetColor(ClawColor) : CyanClaws;
+        }
         readonly Strike[] strikes = new Strike[16];
         readonly CandyEquipmentActionCursor cursor = new CandyEquipmentActionCursor();
         IMatchRuntime runtime;
@@ -90,7 +106,7 @@ namespace DeadlyJenga.Presentation
                 EquipmentKind.SawStaff => (Shape.Teeth, new Color(1f, .84f, .35f), .34f, .045f, .44f),
                 EquipmentKind.Chainsaw => (Shape.Teeth, new Color(1f, .39f, .09f), .30f, .065f, .37f),
                 EquipmentKind.LaserAxe => (Shape.Cleave, new Color(.23f, .91f, 1f), .34f, .14f, .77f),
-                EquipmentKind.LaserClaws => (Shape.Claws, new Color(.33f, .85f, 1f), .23f, .055f, .38f),
+                EquipmentKind.LaserClaws => (Shape.Claws, ClawTint(runtime,shot.actor), .23f, .036f, .38f),
                 _ => (Shape.Ember, new Color(1f, .29f, .055f), .36f, .075f, .36f)
             };
             if (bash) profile = (Shape.Punch, new Color(1, .82f, .44f), .22f, .075f, .29f);
@@ -124,7 +140,8 @@ namespace DeadlyJenga.Presentation
         static void Paint(Strike strike, float t)
         {
             float fade = (1 - t) * (strike.hit ? 1 : .62f);
-            var color = strike.color;
+            var color = strike.shape == Shape.Claws
+                ? Color.Lerp(strike.color,Color.white,.19f) : strike.color;
             color.a = fade;
             strike.line.startColor = color;
             strike.line.endColor = new Color(color.r, color.g, color.b, fade * .22f);

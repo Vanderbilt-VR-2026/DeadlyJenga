@@ -336,6 +336,49 @@ namespace DeadlyJenga.Presentation
             mesh.RecalculateNormals();mesh.RecalculateBounds();
             return mesh;
         }
+        CandyWeaponImpacts clawImpacts;
+
+        void ClawImpact(EquipmentActionFrame action)
+        {
+            if(!CandyWeaponImpacts.VisibleToAnyCamera(action.position,45))return;
+            var tint=CandyMeleeFeedback.ClawTint(effectsRuntime,action.actor);
+            bool solid=CandyWeaponImpacts.TryContact(action.position,Vector3.zero,out var surface,.18f);
+            Vector3 normal=solid?(Vector3)(surface.anchor.localToWorldMatrix*surface.localFrame).GetColumn(2):
+                -((effectsRuntime?.FindActor(action.actor)?.ViewPose.rotation??Quaternion.identity)*Vector3.forward);
+            normal.Normalize();
+            Vector3 origin=solid?surface.Position:action.position;
+            if(solid)
+            {
+                if(!clawImpacts)clawImpacts=GetComponent<CandyWeaponImpacts>();
+                if(clawImpacts)clawImpacts.ClawMark(surface,tint);
+            }
+
+            if(burstParticles.isStopped)burstParticles.Play();
+            var bright=Color.Lerp(tint,Color.white,.44f);
+            burstParticles.Emit(new ParticleSystem.EmitParams
+            {
+                position=origin,velocity=normal*.40f,startColor=bright,
+                startLifetime=.070f,startSize=solid?.24f:.16f
+            },1);
+            int count=solid?15:7;
+            for(int i=0;i<count;i++)
+            {
+                float angle=i*2.399963f+action.id*.31f;
+                Vector3 outward=new Vector3(Mathf.Cos(angle),Mathf.Sin(angle),Mathf.Cos(angle*.63f));
+                if(Vector3.Dot(outward,normal)<0)outward=Vector3.Reflect(outward,normal);
+                Vector3 velocity=(outward+normal*.38f).normalized;
+                bool chip=solid&&i%3==0;
+                burstParticles.Emit(new ParticleSystem.EmitParams
+                {
+                    position=origin+normal*.018f,
+                    velocity=velocity*(solid?2.3f+i%5*.42f:1.3f+i%4*.34f),
+                    startLifetime=chip?.27f:.11f+i%4*.032f,
+                    startSize=chip?.045f:.031f+i%3*.012f,
+                    startColor=chip?new Color(.70f,.86f,.93f):i%2==0?bright:tint
+                },1);
+            }
+        }
+
         void EmitBlast(EquipmentActionFrame action)
         {
             bool rocket=action.kind==EquipmentKind.RocketLauncher;

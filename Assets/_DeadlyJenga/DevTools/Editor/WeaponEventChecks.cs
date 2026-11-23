@@ -5,6 +5,7 @@ using System.Linq;
 using DeadlyJenga.Core;
 using DeadlyJenga.Modes;
 using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.CastleBots;
 using DeadlyJenga.CandyAudio;
 using DeadlyJenga.CandyPlayers;
 using UnityEngine;
@@ -22,6 +23,66 @@ namespace DeadlyJenga.DevTools.Editor
         {File.AppendAllText(Report,(pass?"PASS ":"FAIL ")+message+"\n");if(!pass)throw new Exception(message);count++;}
         static EquipmentActionFrame Last(MatchModeRuntime runtime)=>runtime.Frame.equipmentActions.LastOrDefault();
         static int Grant(IEquipmentRuntime runtime,EquipmentKind kind,Vector3 point)=>runtime.RegisterPickup(new Pickup{Kind=kind,Position=point});
+        static IEnumerator ClawContacts(CastlePlaySession session,CastleSurvivor player,
+            CandyEquipment controls,IEquipmentRuntime inventory,Vector3 pickup)
+        {
+            var runtime=session.Modes;
+            Check(inventory.RequestPickup(Grant(inventory,EquipmentKind.LaserClaws,pickup),true),
+                "Authority equips the claws for contact checks");
+            controls.SetEquipped(true);
+            yield return new WaitForSeconds(.55f);
+
+            var muzzle=new Pose(player.ViewPose.position+Vector3.forward*.5f,Quaternion.identity);
+            var effects=session.GetComponent<DeadlyJenga.Presentation.CandyWeaponImpacts>();
+            Check(effects,"Session owns bounded surface feedback");
+            float cooldown=EquipmentSpecifications.Get(EquipmentKind.LaserClaws).cooldown+.10f;
+            int after=runtime.Frame.equipmentSequence;
+            Check(inventory.RequestEquipmentAttack(muzzle),"Claws swing through air");
+            Check(runtime.Frame.equipmentActions.Count(a=>a.id>after&&a.kind==EquipmentKind.LaserClaws
+                && a.action==EquipmentAction.Shot)==1 &&
+                !runtime.Frame.equipmentActions.Any(a=>a.id>after&&a.action==EquipmentAction.Impact),
+                "Air swing delivers one swipe and no impact receipt");
+            yield return new WaitForSeconds(cooldown);
+
+            var block=GameObject.CreatePrimitive(PrimitiveType.Cube);
+            block.layer=Layers.Block;
+            block.transform.position=muzzle.position+Vector3.forward*.65f;
+            block.transform.localScale=new Vector3(1,.9f,.20f);
+            try
+            {
+                Physics.SyncTransforms();
+                after=runtime.Frame.equipmentSequence;
+                int marks=effects.ActiveMarks;
+                Check(inventory.RequestEquipmentAttack(muzzle),"Claws contact a solid block");
+                Check(runtime.Frame.equipmentActions.Any(a=>a.id>after&&a.kind==EquipmentKind.LaserClaws
+                    &&a.action==EquipmentAction.Impact),"Solid claw contact has an authoritative impact receipt");
+                yield return new WaitForSeconds(.09f);
+                Check(effects.ActiveMarks>marks,"Solid claw contact places a temporary surface mark");
+            }
+            finally{Object.Destroy(block);}
+            yield return new WaitForSeconds(Mathf.Max(cooldown,.72f));
+
+            var bot=session.SurvivorBots.SpawnOne();
+            Check(bot,"Claw player-contact target spawns");
+            try
+            {
+                bot.GetComponent<CastleBotBrain>().enabled=false;
+                var target=bot.GetComponent<CastleSurvivor>();
+                target.InputDriver=null;
+                target.InputSuspended=true;
+                target.Place(player.transform.position+Vector3.forward*1.20f,Quaternion.identity);
+                Physics.SyncTransforms();
+                after=runtime.Frame.equipmentSequence;
+                int marks=effects.ActiveMarks;
+                Check(inventory.RequestEquipmentAttack(muzzle),"Claws swing at a player target");
+                Check(runtime.Frame.equipmentActions.Any(a=>a.id>after&&a.kind==EquipmentKind.LaserClaws
+                    &&a.action==EquipmentAction.Impact),"Accepted claw player contact emits an impact receipt");
+                yield return new WaitForSeconds(.09f);
+                Check(effects.ActiveMarks<=marks,"Player contact leaves no surface scratch");
+            }
+            finally{session.SurvivorBots.Clear();}
+            yield return new WaitForSeconds(cooldown);
+        }
         public static IEnumerator Run(CastlePlaySession session)
         {
             count=0;File.WriteAllText(Report,"Real Game authoritative equipment commands/casts; plain snapshot cursor and malformed-frame fixtures. No headset.\n");
@@ -64,6 +125,7 @@ namespace DeadlyJenga.DevTools.Editor
                 magazine=inventory.EquipmentFor(runtime.LocalActorId);
                 Check(magazine.reloadRemaining==0&&magazine.rounds==EquipmentSpecifications.Get(EquipmentKind.DualUzi).magazine,
                     "Reload restores one full spiker magazine");
+                yield return ClawContacts(session,player,controls,inventory,point);
                 int id=Grant(inventory,EquipmentKind.DualRifle,point);Check(id>0,"Registers actual rifle pickup");
                 bool occupied=inventory.EquipmentFor(runtime.LocalActorId).kind!=EquipmentKind.None;
                 Check(inventory.RequestPickup(id,occupied),"Authority accepts actual rifle collection");

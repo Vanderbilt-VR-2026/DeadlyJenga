@@ -206,6 +206,18 @@ namespace DeadlyJenga.Presentation
             });
         }
 
+        internal void ClawMark(SurfaceContact contact,Color tint)
+        {
+            if(!surfaceMaterial||!contact.anchor||!contact.anchor.gameObject.activeInHierarchy)return;
+            if(marks.Count==Capacity)marks.RemoveAt(0);
+            marks.Add(new Mark
+            {
+                anchor=contact.anchor,localPose=contact.localFrame*Matrix4x4.Scale(Vector3.one*.34f),
+                tint=tint,born=Time.time,life=.65f,style=-1,
+                layer=contact.layer,renderingMask=contact.renderingMask
+            });
+        }
+
         internal static bool TryContact(Vector3 point,Vector3 incoming,out SurfaceContact contact,float reach=.45f)
         {
             contact=default;
