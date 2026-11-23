@@ -10,14 +10,16 @@ namespace DeadlyJenga.CastlePrototype
         public const int CuratedCtfRevision=2;
         public const float CuratedCtfGroundY=.4f,CuratedCtfTop=4.4f;
         public static readonly string[] Presets={"ctf","infection","survival","territory","koth","tickets"};
-        public static bool Known(string preset)=>preset==BlockSpiresLayout.Preset||preset==WalledCastleLayout.Preset||preset==TwinCalderaLayout.Preset||Array.IndexOf(Presets,preset)>=0||preset==NeedlefrostLayout.Preset||preset==ShrineTownLayout.Preset||preset==NinjaTempleLayout.Preset||preset==TycoonLayout.Preset;
-        public static int Height(string preset)=>preset==BlockSpiresLayout.Preset?BlockSpiresLayout.Summit:preset==WalledCastleLayout.Preset?8:preset==TwinCalderaLayout.Preset?16:preset==NeedlefrostLayout.Preset?18:preset==ShrineTownLayout.Preset?19:preset==TycoonLayout.Preset?TycoonLayout.HeightCourses:preset==NinjaTempleLayout.Preset?NinjaTempleLayout.HeightCourses:preset=="infection"?48:preset=="koth"?32:preset=="survival"?20:preset=="territory"?16:preset=="ctf"?3:12;
+        public static bool Known(string preset)=>preset==PrismaticCitadelLayout.Preset||preset==BlockSpiresLayout.Preset||preset==WalledCastleLayout.Preset||preset==TwinCalderaLayout.Preset||Array.IndexOf(Presets,preset)>=0||preset==NeedlefrostLayout.Preset||preset==ShrineTownLayout.Preset||preset==NinjaTempleLayout.Preset||preset==TycoonLayout.Preset;
+        public static int Height(string preset)=>preset==PrismaticCitadelLayout.Preset?PrismaticCitadelLayout.HeightCourses:preset==BlockSpiresLayout.Preset?BlockSpiresLayout.Summit:preset==WalledCastleLayout.Preset?8:preset==TwinCalderaLayout.Preset?16:preset==NeedlefrostLayout.Preset?18:preset==ShrineTownLayout.Preset?19:preset==TycoonLayout.Preset?TycoonLayout.HeightCourses:preset==NinjaTempleLayout.Preset?NinjaTempleLayout.HeightCourses:preset=="infection"?48:preset=="koth"?32:preset=="survival"?20:preset=="territory"?16:preset=="ctf"?3:12;
         public static Vector2 Size(CastleSettings s)
         {
             if(s.layoutPreset==NeedlefrostLayout.Preset)return new Vector2(56,48);
             if(s.layoutPreset==TwinCalderaLayout.Preset)return new Vector2(90,62);
             if(s.layoutPreset==WalledCastleLayout.Preset)return new Vector2(58,74);
             if(s.layoutPreset==BlockSpiresLayout.Preset)return new Vector2(17.5f,15.5f);
+            if (s.layoutPreset == PrismaticCitadelLayout.Preset)
+                return PrismaticCitadelLayout.Size(s) + new Vector2(6f, 4f);
             if(s.layoutPreset==TycoonLayout.Preset)return TycoonLayout.Size;
             if(s.layoutPreset==ShrineTownLayout.Preset)return new Vector2(112,92);
             if(s.layoutPreset==NinjaTempleLayout.Preset)return NinjaTempleLayout.Size;
@@ -34,6 +36,7 @@ namespace DeadlyJenga.CastlePrototype
             if(s.layoutPreset==TwinCalderaLayout.Preset)return TwinCalderaLayout.Build();
             if(s.layoutPreset==WalledCastleLayout.Preset)return WalledCastleLayout.Build();
             if(s.layoutPreset==BlockSpiresLayout.Preset)return BlockSpiresLayout.Build();
+            if (s.layoutPreset == PrismaticCitadelLayout.Preset) return PrismaticCitadelLayout.Build(s);
             if(s.layoutPreset==TycoonLayout.Preset)return TycoonLayout.Build(s);
             if(s.layoutPreset==ShrineTownLayout.Preset)return ShrineTownLayout.Build();
             if(s.layoutPreset==NinjaTempleLayout.Preset)return NinjaTempleLayout.Build(s);

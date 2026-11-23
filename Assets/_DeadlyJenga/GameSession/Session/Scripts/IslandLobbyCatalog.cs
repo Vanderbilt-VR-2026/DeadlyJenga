@@ -38,6 +38,7 @@ namespace DeadlyJenga.CastlePrototype
             AddMap(list,"sphinx-junction","Sphinx Junction","demo",8,scene);
             AddMap(list,"walled-castle","Walled Castle","demo",10,scene,true);
             AddMap(list,"tycoon","Tycoon","demo",10,scene);
+            AddMap(list,"prismatic-citadel","Prismatic Citadel","demo",10,scene);
             AddMap(list,"castle-four-keeps","Candy Castle · Four Keeps","demo",10,scene);
             AddMap(list,"ctf","Lollipop Fortresses","ctf",12,scene);
             AddMap(list,"infection","Infection Spire","infection",12,scene);
