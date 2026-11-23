@@ -484,6 +484,10 @@ namespace DeadlyJenga.CandyPlayers
             lastTeam=primary;lastTeamed=teamed;lastPlayerColor=playerColor;
             bool useShade = appearance.skin == AvatarSkin.Default && appearance.hairShade != AvatarHairShade.Original;
             Color shade = useShade ? CandyCosmeticShade.PlayerShade(playerColor, appearance.hairShade) : default;
+            bool poweredArmor = appearance.poweredArmor;
+            Color armorNormal = teamed ? actor.Color : playerColor;
+            Color armorDark = poweredArmor ? CandyCosmeticShade.PlayerShade(armorNormal, AvatarHairShade.Dark) : default;
+            Color armorLight = poweredArmor ? CandyCosmeticShade.PlayerShade(armorNormal, AvatarHairShade.Light) : default;
             rig.ApplyBodyPalette(teamed&&appearance.skin==AvatarSkin.Penguin?primary*.10f:primary);
             foreach(var p in pieces)
             {
@@ -511,7 +515,18 @@ namespace DeadlyJenga.CandyPlayers
                 if (CandyHairMeshes.IsTieMaterial(material)) continue;
                 if(p.materialIndex<0)p.renderer.GetPropertyBlock(properties);
                 else p.renderer.GetPropertyBlock(properties,p.materialIndex);
-                var color=useShade&&p.cosmeticShade?shade:p.armor?ArmorColor(p.tone,primary,teamed):Color.clear;
+                Color color;
+                if (p.armor && poweredArmor)
+                {
+                    color = p.tone switch
+                    {
+                        Tone.Dark => armorDark,
+                        Tone.Silver or Tone.Glow => armorLight,
+                        _ => armorNormal,
+                    };
+                }
+                else
+                    color = useShade&&p.cosmeticShade ? shade : p.armor ? ArmorColor(p.tone,primary,teamed) : Color.clear;
                 if(color==Color.clear)color=ColorFor(p.tone,primary,teamed);
                 float smoothness=p.molded?(rig.style?rig.style.smoothness:.78f):
                     p.tone==Tone.Armor||p.tone==Tone.Silver?.88f:.52f;
