@@ -23,6 +23,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static Rigidbody coach;
         static GameObject bot;
         static Vector3 riderStart;
+        static bool passedPortal;
         static void OnEliminated(GameObject who,GameObject source)
         {
             if(who==bot && source==map.gameObject)sandEliminated=true;
@@ -51,7 +52,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 if(!SessionState.GetBool(Key,false))return;
                 if(state==PlayModeStateChange.EnteredPlayMode)
                 {
-                    phase=0;failed=false;deadline=EditorApplication.timeSinceStartup+300;
+                    phase=0;failed=false;deadline=EditorApplication.timeSinceStartup+420;
                     EditorApplication.update+=Tick;
                 }
                 if(state==PlayModeStateChange.EnteredEditMode)
@@ -118,7 +119,22 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         testBot.Place(map.transform.TransformPoint(0,-1.42f,-25),Quaternion.identity);
                     rail=Body("Railway span 10");railStart=rail.position;
                     chest=Body("Sphinx chest lintel");chestStart=chest.position;
-                    StartPull("Timber trestle bent 10");pull.Hold(grip+Vector3.forward*9);phase++;began=Time.fixedTime;
+                    passedPortal=false;phase=8;began=Time.fixedTime;
+                }
+                else if(phase==8)
+                {
+                    Vector3 p=engine.transform.localPosition;
+                    if(!passedPortal && engine.isKinematic && Vector2.Distance(new Vector2(p.x,p.z),new Vector2(20,10))<2)
+                    {
+                        passedPortal=true;
+                        Shot("05b-pyramid-crossing",new(9,12.4f,-1),p+Vector3.up*.9f,52);
+                    }
+                    bool returned=passedPortal && engine.isKinematic && Vector3.Distance(engine.position,engineStart)<1.2f;
+                    if(!returned && elapsed<78)return;
+                    Check(passedPortal,"Intact locomotive crossed the pyramid bore");
+                    Check(returned,"Intact train completed the loop back to the depot");
+                    StartPull("Timber trestle bent 10");
+                    pull.Hold(grip+Vector3.forward*9);phase=2;began=Time.fixedTime;
                 }
                 else if(phase==2)
                 {

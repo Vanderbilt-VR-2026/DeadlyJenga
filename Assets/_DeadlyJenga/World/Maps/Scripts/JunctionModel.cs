@@ -129,6 +129,10 @@ namespace DeadlyJenga.CastlePrototype
                     Tri(upper[0],upper[i],upper[next],color);
                 }
             }
+            float sixVolumes=0;
+            for(int i=first;i<vertices.Count;i+=3)
+                sixVolumes+=Vector3.Dot(vertices[i],Vector3.Cross(vertices[i+1],vertices[i+2]));
+            volume+=Mathf.Abs(sixVolumes)/6;
             ConvexHull(first);
         }
         void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color color)

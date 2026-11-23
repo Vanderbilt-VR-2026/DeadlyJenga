@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class SphinxJunctionMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        public const string Signature = "sphinx-junction-5";
+        public const string Signature = "sphinx-junction-6";
         public Shader finishShader;
         Material finish;
         Transform built;
@@ -191,7 +191,14 @@ namespace DeadlyJenga.CastlePrototype
                 model.SetTrackMiters(chord,-.05f,.05f);
                 Box(0,0,0,3.8f,.66f,chord-.04f,Honey);
                 for(int k=-2;k<=2;k++) Box(1.73f,.52f,k*chord/5,.37f,.38f,chord/5-.06f,Sand);
-                if(i%2==0) Lamp(1.73f,.74f,0);
+                if(i%2==0)
+                {
+                    Box(1.57f,.66f,0,.74f,.67f,.94f,Sand);
+                    Box(1.57f,1.035f,0,.90f,.12f,1.08f,Honey);
+                    Round(1.57f,1.23f,0,.48f,.28f,.48f,Dark,1.72f);
+                    Round(1.57f,1.39f,0,.73f,.08f,.73f,Gold);
+                    Round(1.57f,1.52f,0,.48f,.25f,.48f,Amber,.30f,9);
+                }
                 End();
             }
             foreach(int x in new[]{-27,-18,0,18,27})
@@ -208,19 +215,29 @@ namespace DeadlyJenga.CastlePrototype
             }
             for(int side=-1;side<=1;side+=2)
             {
-                float x=side*13.0f;
+                bool terrace=side==1;
+                float x=terrace?15:-13;
+                float halfBay=terrace?3.15f:2.1f;
                 Begin("Sandstone market arcade "+side,x,2.5f,-6.4f);
                 foreach(int a in new[]{-1,1}) foreach(int b in new[]{-1,1})
                 {
-                    Round(a*2.1f,1.15f,b*1.28f,.62f,2.3f,.62f,Honey,.86f,9,true);
-                    Round(a*2.1f,1.94f,b*1.28f,.84f,.46f,.84f,Teal,1.12f,9);
+                    Round(a*halfBay,1.15f,b*1.28f,.62f,2.3f,.62f,Honey,.86f,9,true);
+                    Round(a*halfBay,1.94f,b*1.28f,.84f,.46f,.84f,Teal,1.12f,9);
                 }
                 End();
                 Begin("Market arcade roof "+side,x,5.03f,-6.4f);
-                Box(0,0,0,5.45f,.46f,3.45f,Honey);
-                Box(0,-.06f,-1.73f,5.3f,.17f,.14f,Teal,false);
-                foreach(int end in new[]{-1,1}) Lamp(end*2.17f,.30f,-1.26f);
+                float width=terrace?8.4f:5.45f;
+                Box(0,0,0,width,.46f,3.45f,Honey);
+                Box(0,-.06f,-1.73f,width-.15f,.17f,.14f,Teal,false);
+                foreach(int end in new[]{-1,1}) Lamp(end*halfBay,.30f,-1.26f);
+                if(terrace)
+                {
+                    for(int post=-2;post<=2;post++) Box(post*1.83f,.61f,-1.51f,.49f,.76f,.38f,Sand);
+                    Box(0,.53f,-1.50f,7.6f,.21f,.22f,Teal);
+                    Box(0,.88f,-1.50f,7.6f,.16f,.29f,Honey);
+                }
                 End();
+                if(terrace) Stairs("East market terrace stairs",21.32f,2.5f,-6.4f,2.28f,2.76f,4.2f,-90);
                 Begin("Potter's stall "+side,x,2.5f,-6.48f);
                 foreach(int leg in new[]{-1,1}) Box(leg*.84f,.38f,0,.21f,.76f,.6f,Wood);
                 Box(0,.84f,0,2.10f,.16f,.89f,Wood);

@@ -33,11 +33,14 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     Begin("Sphinx foreleg "+side+"/"+j,side*5.5f,2.5f,-4.55f-j*2.45f);
                     float h=3.75f-j*.85f;
-                    Round(0,h*.5f,0,4.76f,h,2.44f,Sand,.78f,10,true);
                     for(int toe=-1;toe<=1;toe++)
                     {
-                        Round(toe*1.53f,h*.51f,-.08f,1.95f,h*.92f,2.75f,Honey,.64f,10);
-                        if(j==2) Round(toe*1.53f,.37f,-1.2f,.64f,.72f,.49f,Teal,.65f);
+                        float x=toe*1.62f, crown=h-.15f*Mathf.Abs(toe);
+                        var front=ToeSection(x,-1.21f,crown-(j==2?1.35f:.56f));
+                        var back=ToeSection(x,1.21f,crown+.30f);
+                        model.DrapedBand(front,back,toe==0?Honey:Sand);
+                        if(j==2)
+                            model.Shape(new(x,.28f,-1.225f),new(.83f,.54f,.10f),Teal,6,.55f,solid:false);
                     }
                     End();
                 }
@@ -84,6 +87,15 @@ namespace DeadlyJenga.CastlePrototype
             End();
         }
 
+        static Vector3[] ToeSection(float x,float z,float height)
+        {
+            return new[]{new Vector3(x-.79f,0,z),new Vector3(x+.79f,0,z),
+                new Vector3(x+.79f,height*.54f,z),new Vector3(x+.66f,height*.81f,z),
+                new Vector3(x+.36f,height*.96f,z),new Vector3(x,height,z),
+                new Vector3(x-.36f,height*.96f,z),new Vector3(x-.66f,height*.81f,z),
+                new Vector3(x-.79f,height*.54f,z)};
+        }
+
         void Saloon()
         {
             const float x=-23,z=-2;
@@ -95,12 +107,24 @@ namespace DeadlyJenga.CastlePrototype
                 foreach(int side in new[]{-1,1})
                 {
                     Box(side*4.83f,1.83f,0,.34f,3.14f,5.6f,Red);
-                    Box(side*3.25f,1.75f,-2.84f,3.4f,3.1f,.28f,Wood);
-                    Box(side*3.25f,1.93f,-3.01f,1.65f,1.53f,.10f,Teal,false);
+                    // Open sash above the sill; both shutters are folded back against the posts.
+                    Box(side*3.25f,.70f,-2.84f,3.4f,1.20f,.28f,Wood);
+                    Box(side*3.25f,2.99f,-2.84f,3.4f,.57f,.28f,Wood);
+                    for(int shutter=-1;shutter<=1;shutter+=2)
+                    {
+                        float post=side*3.25f+shutter*1.30f;
+                        Box(post,2.01f,-2.84f,.8f,1.42f,.28f,Red);
+                        for(int slat=0;slat<5;slat++)
+                            Box(post,1.48f+slat*.27f,-3.0f,.67f,.18f,.13f,Teal,false);
+                    }
                     Box(side*3.25f,1.93f,-3.11f,.12f,1.57f,.16f,Gold,false);
                     Box(side*3.25f,1.93f,-3.11f,1.67f,.12f,.16f,Gold,false);
                     Box(side*.96f,.95f,-2.9f,.89f,1.38f,.21f,Honey,false);
+                    for(int plank=0;plank<4;plank++)
+                        Box(side*(.64f+.21f*plank),1.13f,-3.03f,.17f,1.12f+.16f*plank,.08f,Wood,false);
                 }
+                Box(-3.5f,.87f,1.3f,2.64f,1.22f,.67f,Wood);
+                Box(-3.5f,1.54f,1.3f,2.81f,.12f,.79f,Honey);
                 Box(0,3.27f,-2.84f,10,.26f,.34f,Wood);
                 for(int i=-4;i<=4;i+=2) Lamp(i,2.56f,-3.04f);
                 End();
@@ -115,6 +139,12 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     Box(i==0?1.05f:i*2,1.84f,-4.77f,.34f,3.12f,.34f,Red);
                     if(level==1 && i<3) Box(i*2+1,1.12f,-4.77f,2,.16f,.18f,Teal);
+                    if(level==1 && i<3)
+                    {
+                        for(int spindle=1;spindle<4;spindle++)
+                            Box(i*2+spindle*.5f,.71f,-4.77f,.085f,.79f,.085f,Wood,false);
+                        Beam(new(i*2,2.60f,-4.77f),new(i*2+.68f,3.26f,-4.77f),.18f,.24f,Honey);
+                    }
                 }
                 End();
             }
@@ -169,6 +199,11 @@ namespace DeadlyJenga.CastlePrototype
                         float px=col*(w-2.3f)/4;
                         float pierWidth=col==0 ? 1.35f : 1.93f;
                         model.Shape(new(px,1.3f,0),new(pierWidth,2.6f,strip),Sand,top:.83f);
+                        if(Mathf.Abs(col)==2)
+                        {
+                            float heel=px+Mathf.Sign(col)*.25f;
+                            model.Shape(new(heel,1.3f,s*.18f),new(2.59f,2.6f,strip+.32f),Honey,top:.61f);
+                        }
                         for(int course=0;course<4;course++)
                         {
                             float width=pierWidth*(1-course*.045f);
@@ -179,6 +214,7 @@ namespace DeadlyJenga.CastlePrototype
                         Lamp(px,1.6f,-s*.78f);
                     }
                     Box(0,2.89f,0,w,.58f,strip,Honey);
+                    Box(0,2.73f,s*strip*.5f,w,.14f,.10f,Teal,false);
                     for(int k=0;k<8;k++) Box((k-3.5f)*w/8,2.9f,s*strip*.5f,w/8-.045f,.51f,.18f,k%3==0?Shade:Sand,false);
                     End();
                 }
@@ -187,9 +223,13 @@ namespace DeadlyJenga.CastlePrototype
             Box(0,.48f,0,10.4f,.96f,9.35f,Honey);
             foreach(int s in new[]{-1,1})
             {
-                Beam(new(-5.19f,-2.55f,s*2.62f),new(-5.19f,.27f,s*.91f),.44f,.55f,Teal);
+                Beam(new(-5.32f,-2.70f,s*2.73f),new(-5.32f,.32f,s*.92f),.79f,.82f,Gold);
+                Beam(new(-5.64f,-2.66f,s*2.68f),new(-5.64f,.27f,s*.91f),.45f,.54f,Teal);
                 Beam(new(5.19f,-2.55f,s*2.62f),new(5.19f,.27f,s*.91f),.44f,.55f,Teal);
+                Lamp(-5.15f,-2.75f,s*2.8f);
             }
+            Box(-5.43f,.36f,0,1.05f,.48f,2.45f,Gold,false);
+            Box(-5.98f,.36f,0,.10f,.23f,2.12f,Teal,false);
             End();
             Begin("Open summit pavilion",x,16.18f,z,-40);
             for(int i=-1;i<=1;i++) for(int k=-1;k<=1;k+=2)
