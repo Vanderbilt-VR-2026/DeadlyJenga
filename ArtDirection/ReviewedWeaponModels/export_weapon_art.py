@@ -26,7 +26,11 @@ else:
 matrix = root.matrix_world.inverted()
 if mode in {"launcher", "staff", "chaingun", "alien", "sheriff", "sword", "rpg", "axe"}:
     for obj in root.children_recursive:
-        if obj.type != "MESH" or obj.hide_render or len(obj.data.polygons) < 1200:
+        if mode == "axe" and obj.type == "CURVE":
+            obj.data.bevel_resolution = min(obj.data.bevel_resolution, 1)
+            obj.data.resolution_u = min(obj.data.resolution_u, 4)
+        budget = 300 if mode == "axe" else 1200
+        if obj.type != "MESH" or obj.hide_render or len(obj.data.polygons) < budget:
             continue
         modifier = obj.modifiers.new("Runtime polygon budget", "DECIMATE")
         modifier.ratio = 0.40 if mode == "launcher" else 0.25

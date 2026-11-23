@@ -127,7 +127,9 @@ namespace DeadlyJenga.CandyPlayers
             if (meshes == null) return false;
             var parts = new Transform[names.Length];
             parts[0] = parent;
-            if (parts.Length > 1 && weapon != EquipmentKind.SawStaff)
+            if (weapon == EquipmentKind.RocketLauncher)
+                MakeFeedAssembly(parent);
+            else if (parts.Length > 1 && weapon != EquipmentKind.SawStaff)
                 parts[1] = MakeFeedAssembly(parent);
             for (int i = weapon == EquipmentKind.SawStaff ? 1 : 2; i < parts.Length; i++)
             {

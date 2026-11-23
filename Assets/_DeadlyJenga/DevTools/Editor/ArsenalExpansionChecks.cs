@@ -1199,6 +1199,62 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 Object.Destroy(holder);
             }
+            yield return TestReviewedOrdnance(session, runtime, player);
+        }
+
+        static IEnumerator TestReviewedOrdnance(CastlePlaySession session, MatchModeRuntime runtime, CastleSurvivor player)
+        {
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.layer = Layers.Surface;
+            floor.transform.position = new Vector3(150,9,150);
+            floor.transform.localScale = new Vector3(30,2,76);
+            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wall.layer = Layers.Surface;
+            wall.transform.position = new Vector3(150,14,171);
+            wall.transform.localScale = new Vector3(13,8,.6f);
+            var effects = session.GetComponent<DeadlyJenga.Presentation.CandyArsenalEffects>();
+            try
+            {
+                Check(effects, "Production weapon effects are attached to the scene");
+                foreach (var weapon in new[] { EquipmentKind.GrenadeLauncher, EquipmentKind.DualUzi })
+                {
+                    player.Place(new Vector3(150,10.05f,149), Quaternion.identity);
+                    Physics.SyncTransforms();
+                    Check(runtime.GiveEquipment(weapon), "Live reviewed ordnance equips: " + weapon);
+                    yield return new WaitForSeconds(.6f);
+                    var origin = player.ViewPose.position + Vector3.forward * .6f;
+                    var direction = weapon == EquipmentKind.GrenadeLauncher ? new Vector3(0,.16f,1) : Vector3.forward;
+                    int sequence = runtime.Frame.equipmentSequence;
+                    Check(runtime.RequestEquipmentAttack(new Pose(origin, Quaternion.LookRotation(direction))),
+                        "Authority accepts the reviewed weapon's shot: " + weapon);
+
+                    string trailName = weapon == EquipmentKind.GrenadeLauncher ? "Charged grenade stream 1" : "Spiker secondary energy ribbon";
+                    bool flight = false;
+                    bool impact = false;
+                    float deadline = Time.realtimeSinceStartup + 7;
+                    while ((!flight || !impact) && Time.realtimeSinceStartup < deadline)
+                    {
+                        yield return null;
+                        flight |= effects.GetComponentsInChildren<TrailRenderer>().Any(trail => trail.name == trailName && trail.emitting);
+                        impact |= runtime.Frame.equipmentActions.Any(action => action.id > sequence && action.kind == weapon && action.action == EquipmentAction.Impact);
+                    }
+                    Check(flight, "The accepted shot renders its reviewed airborne effects: " + weapon);
+                    Check(impact, "The projectile reaches a real physics impact: " + weapon);
+                    yield return null;
+                    string impactName = weapon == EquipmentKind.GrenadeLauncher ? "Visual - expanding blast shock fronts" : "Visual - embedded Spiker crystal";
+                    Check(effects.transform.Find(impactName), "The impact posts its reviewed effect: " + weapon);
+                    if (weapon == EquipmentKind.DualUzi)
+                    {
+                        yield return new WaitForSeconds(2.65f);
+                        Check(!effects.transform.Find(impactName), "The Spiker crystal breaks after its brief contact hold");
+                    }
+                }
+            }
+            finally
+            {
+                Object.Destroy(wall);
+                Object.Destroy(floor);
+            }
         }
 
         public static IEnumerator CaptureModels(CastlePlaySession session,Action<bool,string> verify)=>Gallery(session.Survivor().GetComponent<CandyPlayerAvatar>().Rig.style.material,verify);
