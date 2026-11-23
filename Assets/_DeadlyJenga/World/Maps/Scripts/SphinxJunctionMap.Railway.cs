@@ -18,12 +18,17 @@ namespace DeadlyJenga.CastlePrototype
             nodes.Clear(); chainage.Clear(); track.Clear(); seats.Clear(); train.Clear();
             System.Array.Clear(derailed,0,3);
             // A long straight bore across the pyramid. The western turn faces the depot.
-            Vector2[] control = {new(-18,5),new(-15,3),new(-10,4),new(-6,8),new(1,10),new(8,10),
-                new(14,10),new(20,10),new(26,10),new(30,11),new(32,14),new(32,18),
+            Vector2[] control = {new(-18,5),new(-15,3),new(-10,4),new(-6,8),new(1,7.2f),new(10,10),
+                new(14,10),new(20,10),new(26,10),new(30,11),new(32,18),new(32,20),
                 new(30,21),new(25,22),new(18,22),new(11,22),new(4,22),new(-3,22),
                 new(-10,21),new(-15,19),new(-18,16),new(-19,12),new(-19,8)};
             total=0;
-            foreach(var p in control) nodes.Add(new(p.x,RailY,p.y));
+            for(int i=0;i<control.Length;i++)
+            {
+                var p=control[i];
+                var q=i>=5 && i<=9 ? PyramidPoint(p.x-20,p.y-10) : new Vector3(p.x,0,p.y);
+                nodes.Add(new(q.x,RailY,q.z));
+            }
             for(int i=0;i<nodes.Count;i++)
             {
                 var a=nodes[i]; var b=nodes[(i+1)%nodes.Count];
@@ -41,6 +46,12 @@ namespace DeadlyJenga.CastlePrototype
                 Box(0,h+.15f,0,3.85f,.3f,1.6f,Dark);
                 End();
                 Begin("Railway span "+i,mid.x,RailY-.155f,mid.z,yaw);
+                var forward=(b-a).normalized;
+                var right=Vector3.Cross(Vector3.up,forward);
+                var entry=forward+(a-nodes[(i+nodes.Count-1)%nodes.Count]).normalized;
+                var exit=forward+(nodes[(i+2)%nodes.Count]-b).normalized;
+                model.SetTrackMiters(len,-Vector3.Dot(entry,right)/Vector3.Dot(entry,forward),
+                    -Vector3.Dot(exit,right)/Vector3.Dot(exit,forward));
                 Box(0,0,0,3.65f,.31f,len-.06f,Wood);
                 for(int j=0;j<8;j++) Box(0,.19f,(j-3.5f)*len/8,3.53f,.11f,len/8-.04f,Shade,false);
                 for(int s=-1;s<=1;s+=2) Box(s*.59f,.32f,0,.105f,.18f,len,Iron,false);
@@ -74,7 +85,18 @@ namespace DeadlyJenga.CastlePrototype
                 Box(0,2.24f,cab,1.88f,.08f,length+.18f,Gold,false);
                 train.Add(End()); train[i].isKinematic=true;
             }
-            Stairs("Depot boarding stair",-13,2.5f,11,2.5f,7.6f,12, -90);
+            Begin("Depot platform timber bent",-16.25f,2.5f,12.2f);
+            foreach(int end in new[]{-1,1})
+            {
+                Box(0,3.98f,end*3.25f,.84f,7.96f,.74f,Wood);
+                Beam(new(0,.75f,end*3.25f),new(0,7.3f,-end*3.25f),.27f,.27f,Dark);
+            }
+            End();
+            Begin("Depot boarding platform",-16.25f,10.68f,12.2f);
+            Box(0,0,0,1.95f,.44f,9.15f,Wood);
+            for(int j=-5;j<=5;j++) Box(0,.231f,j*.81f,1.95f,.05f,.79f,Honey,false);
+            End();
+            Stairs("Depot boarding stair",-9.26f,2.5f,12.2f,2.3f,8.4f,12,-90);
         }
         int Section(float d)
         {

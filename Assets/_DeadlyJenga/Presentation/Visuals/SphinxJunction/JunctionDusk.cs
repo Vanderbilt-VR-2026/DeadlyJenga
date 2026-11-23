@@ -12,6 +12,21 @@ namespace DeadlyJenga.CandyArt
         GameObject sheet;
         CandyEnvironment environment;
         bool previousWater,previousSand;
+        int decoratedRevision=-1;
+        void AddLettering(ISyncedWorld world)
+        {
+            if(decoratedRevision==world.Revision)return;
+            var facade=world.Root.Find("Sphinx Junction/Saloon false front and cornice/Visual");
+            if(!facade)return;
+            var board=new GameObject("Painted saloon lettering");
+            board.transform.SetParent(facade,false);
+            board.transform.localPosition=new Vector3(0,1.14f,-3.21f);
+            var text=board.AddComponent<TextMesh>();
+            text.text="S A L O O N";text.anchor=TextAnchor.MiddleCenter;
+            text.alignment=TextAlignment.Center;text.fontSize=80;text.characterSize=.107f;
+            text.color=new Color(.21f,.10f,.07f);
+            decoratedRevision=world.Revision;
+        }
         void Start()
         {
             previousSky=RenderSettings.skybox;
@@ -30,6 +45,7 @@ namespace DeadlyJenga.CandyArt
         {
             if(!sky) return;
             RenderSettings.skybox=sky;
+            if(Services.World is ISyncedWorld world && world.Root==transform)AddLettering(world);
             if(!environment)
             {
                 environment=CandyEnvironment.ForMap(this);

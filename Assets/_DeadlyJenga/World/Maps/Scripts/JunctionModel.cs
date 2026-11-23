@@ -10,12 +10,23 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<Color> colors = new();
         readonly List<int> triangles = new();
         readonly GameObject root;
-        float volume;
+        float volume,trackLength,startMiter,endMiter;
+        internal void SetTrackMiters(float length,float start,float end)
+        {
+            trackLength=length; startMiter=start; endMiter=end;
+        }
+        Vector3 CutToTrackJoint(Vector3 vertex)
+        {
+            if(trackLength>0)
+                vertex.z+=vertex.x*Mathf.Lerp(startMiter,endMiter,.5f+vertex.z/trackLength);
+            return vertex;
+        }
         internal JunctionModel(GameObject root) => this.root = root;
         internal void Shape(Vector3 p, Vector3 size, Color tint, int sides = 4, float top = 1,
             Quaternion rotation = default, bool solid = true, float bevel = .07f)
         {
             if (rotation == default) rotation = Quaternion.identity;
+            int firstVertex=vertices.Count;
             var ring = new Vector3[4, sides];
             float inset = Mathf.Min(bevel, Mathf.Min(size.x, Mathf.Min(size.z,size.y)) * .18f);
             for (int j = 0; j < 4; j++)
@@ -29,7 +40,7 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     float a = (i + .5f) * 2 * Mathf.PI / sides;
                     float r = sides == 4 ? 1.41421356f : 1;
-                    ring[j,i] = p + rotation * new Vector3(r*sx*Mathf.Sin(a), y, r*sz*Mathf.Cos(a));
+                    ring[j,i] = CutToTrackJoint(p + rotation * new Vector3(r*sx*Mathf.Sin(a), y, r*sz*Mathf.Cos(a)));
                 }
             }
             for (int i = 0; i < sides; i++)
@@ -37,10 +48,26 @@ namespace DeadlyJenga.CastlePrototype
                 int k = (i + 1) % sides;
                 for (int j = 0; j < 3; j++)
                     Quad(ring[j,i],ring[j,k],ring[j+1,k],ring[j+1,i],tint);
-                Tri(p+rotation*(Vector3.up*size.y*.5f),ring[3,i],ring[3,k],tint);
-                Tri(p-rotation*(Vector3.up*size.y*.5f),ring[0,k],ring[0,i],tint);
+                Tri(CutToTrackJoint(p+rotation*(Vector3.up*size.y*.5f)),ring[3,i],ring[3,k],tint);
+                Tri(CutToTrackJoint(p-rotation*(Vector3.up*size.y*.5f)),ring[0,k],ring[0,i],tint);
             }
             if (!solid) return;
+            if (trackLength>0 || sides!=4 || !Mathf.Approximately(top,1))
+            {
+                int count=vertices.Count-firstVertex;
+                var hull=new Mesh {name=root.name+" bearing hull"};
+                hull.SetVertices(vertices.GetRange(firstVertex,count));
+                var indices=new int[count];
+                for(int i=0;i<count;i++) indices[i]=i;
+                hull.SetTriangles(indices,0);
+                var convex=root.AddComponent<MeshCollider>();
+                convex.convex=true;
+                convex.sharedMesh=hull;
+                convex.includeLayers=1<<DeadlyJenga.Core.Layers.Survivor;
+                convex.layerOverridePriority=12;
+                volume+=size.x*size.y*size.z;
+                return;
+            }
             var owner = root;
             if (rotation != Quaternion.identity)
             {

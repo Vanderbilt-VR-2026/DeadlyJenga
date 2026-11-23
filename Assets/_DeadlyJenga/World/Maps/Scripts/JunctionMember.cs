@@ -25,6 +25,8 @@ namespace DeadlyJenga.CastlePrototype
         void OnDestroy()
         {
             foreach (var c in GetComponentsInChildren<Collider>()) Climbables.Unregister(c);
+            foreach(var hull in GetComponents<MeshCollider>())
+                if(hull.sharedMesh) Destroy(hull.sharedMesh);
             if (Visual && Visual.TryGetComponent<MeshFilter>(out var f) && f.sharedMesh) Destroy(f.sharedMesh);
         }
         public bool CanGrab(GameObject hand) => Authority && !Body.isKinematic && !held;

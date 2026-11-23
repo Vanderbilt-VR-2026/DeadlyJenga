@@ -19,7 +19,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static float began;
         static double deadline;
         static int phase;
-        static bool failed;
+        static bool failed, passengerCarried, sandEliminated;
+        static Rigidbody coach;
+        static GameObject bot;
+        static Vector3 riderStart;
+        static void OnEliminated(GameObject who,GameObject source)
+        {
+            if(who==bot && source==map.gameObject)sandEliminated=true;
+        }
         static Vector3[] initial;
         public static void Run()
         {
@@ -70,10 +77,17 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     map=Services.World as SphinxJunctionMap;
                     if(!map || map.Blocks.Count==0 || !Services.Session?.Player?.ViewCamera) return;
                     engine=Body("Copper Canyon locomotive");engineStart=engine.position;
+                    coach=Body("Sunset passenger coach 1");
+                    var rider=Services.Session.Player;
+                    rider.Place(coach.transform.TransformPoint(0,.50f,0),coach.rotation);
+                    riderStart=rider.transform.position;
+                    passengerCarried=false;
                     initial=map.Blocks.Select(b=>b.position).ToArray();
                     began=Time.fixedTime;phase++;return;
                 }
                 float elapsed=Time.fixedTime-began;
+                if(phase==1 && Services.Session.Player is IModeActor actor && actor.StandingBody==coach &&
+                    Vector3.Distance(Services.Session.Player.transform.position,riderStart)>.8f) passengerCarried=true;
                 if(phase==1 && elapsed>5)
                 {
                     Shot("01-overview",new(0,25,-69),new(0,7,3),34);
@@ -87,7 +101,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     Check(drifts[0].d<.5f,"Initial unforced settle");
                     Check(Vector3.Distance(engine.position,engineStart)>1,"Train moved after depot dwell");
                     Log($"Body count {map.Blocks.Count}, awake {map.Blocks.Count(b=>!b.IsSleeping())}, colliders {map.GetComponentsInChildren<Collider>().Length}, spawn {map.SafeSpawnPoint()}");
-                    Services.Session.SurvivorBots?.SpawnOne();
+                    Check(passengerCarried,"Placed rider remained on a moving coach");
+                    Services.Session.Player.Place(map.SafeSpawnPoint(),Quaternion.identity);
+                    bot=Services.Session.SurvivorBots?.SpawnOne();
+                    Check(bot && bot.GetComponent<IModeActor>()?.Alive==true,"Live survivor bot spawned");
+                    sandEliminated=false;
+                    GameEvents.Eliminated+=OnEliminated;
+                    if(bot && bot.GetComponent<IPlayableCharacter>() is IPlayableCharacter testBot)
+                        testBot.Place(map.transform.TransformPoint(0,-.2f,-25),Quaternion.identity);
                     rail=Body("Railway span 10");railStart=rail.position;
                     chest=Body("Sphinx chest lintel");chestStart=chest.position;
                     StartPull("Timber trestle bent 10");phase++;began=Time.fixedTime;
@@ -110,8 +131,18 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 }
                 else if(phase==5 && elapsed>2)
                 {
+                    Check(sandEliminated,"Quicksand eliminated the exposed survivor bot");
                     Check(Vector3.Distance(chest.position,chestStart)>.35f,"Sphinx chest responded to bearing pull");
                     Shot("08-sphinx-loss",new(7,7,-15),new(0,8,0),58);
+                    began=Time.fixedTime;phase++;return;
+                }
+                else if(phase==6 && elapsed>58)
+                {
+                    engineStart=engine.position; began=Time.fixedTime;phase++;
+                }
+                else if(phase==7 && elapsed>1.5f)
+                {
+                    Check(Vector3.Distance(engineStart,engine.position)<.18f,"Train halted at damaged track");
                     int count=map.Blocks.Count,revision=map.Revision;
                     map.Rebuild();
                     Check(map.Blocks.Count==count && map.Revision>revision,"Reset restored all registered bodies");
@@ -132,6 +163,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static void Check(bool pass,string what){Log((pass?"PASS ":"FAIL ")+what);failed|=!pass;}
         static void Finish()
         {
+            GameEvents.Eliminated-=OnEliminated;
             EditorApplication.update-=Tick;
             SessionState.SetInt(Key+"Exit",failed?2:0);
             EditorApplication.ExitPlaymode();

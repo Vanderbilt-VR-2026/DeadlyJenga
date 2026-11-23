@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class SphinxJunctionMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        public const string Signature = "sphinx-junction-1";
+        public const string Signature = "sphinx-junction-2";
         public Shader finishShader;
         Material finish;
         Transform built;
@@ -157,6 +157,12 @@ namespace DeadlyJenga.CastlePrototype
                 Box(0,0,0,5.99f,1,5.99f,Shade);
                 for(int row=0;row<3;row++) for(int col=0;col<3;col++)
                     Box((col-1)*2,.48f,(row-1)*2,1.985f,.09f,1.985f,(row+col+x+z)%3==0?Honey:Sand,false);
+                if (x==0 && z==-1)
+                {
+                    Round(0,.54f,0,3.5f,.035f,3.5f,Teal,1,24);
+                    Round(0,.566f,0,2.62f,.028f,2.62f,Gold,1,24);
+                    Round(0,.589f,0,1.23f,.025f,1.23f,Teal,1,16);
+                }
                 var deck=End();
                 if (z==-2) plazas.Add(deck);
             }
@@ -173,7 +179,13 @@ namespace DeadlyJenga.CastlePrototype
                 if(i%2==0) Lamp(0,.74f,-1.73f);
                 End();
             }
-            for(int x=-18;x<=18;x+=18) Stairs("Plaza approach",x,1.86f,-15.87f,3,.64f,2);
+            for(int x=-18;x<=18;x+=18)
+            {
+                Begin("Approach stair driven pier",x,0,-15.96f);
+                Box(0,-.22f,0,1.85f,4.16f,1.16f,Shade);
+                End(true);
+                Stairs("Plaza approach",x,1.86f,-15.96f,3,.64f,1.91f);
+            }
         }
     }
 }
