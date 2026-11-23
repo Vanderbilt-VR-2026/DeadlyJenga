@@ -46,7 +46,10 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnCollisionEnter(Collision hit)
         {
-            if (!Loose && hit.rigidbody && !hit.rigidbody.isKinematic && hit.impulse.magnitude > Body.mass * 8)
+            if(Loose || !hit.rigidbody || hit.rigidbody.isKinematic)return;
+            // A turning axle reacts against its own seated bearings every physics tick.
+            if(hit.rigidbody.TryGetComponent<TidalCircuitPiece>(out var other) && other.Rotor && !other.Loose)return;
+            if (hit.impulse.magnitude > Body.mass * 8)
                 Unseat();
         }
     }

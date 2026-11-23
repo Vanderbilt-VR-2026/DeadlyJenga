@@ -223,8 +223,8 @@ namespace DeadlyJenga.CastlePrototype
                     foreach(var cheek in mount.GetComponent<MayhemStructuralMember>().Shapes)
                         Physics.IgnoreCollision(shaft[shaft.Count-1],cheek);
                 }
-                var pad=Pad("Drum boarding "+side,x,z+side*2.75f,2.85f,3.6f,2.9f);
-                Span("Drum access "+side,V(x,2.85f,z+side*4.2f),V(x,1.6f,z+side*6),2,pad,padsFor(side<0?0:1,0));
+                var pad=Pad("Drum boarding "+side,x,z+side*2.98f,2.85f,3.6f,2.9f);
+                Span("Drum access "+side,V(x,2.85f,z+side*4.43f),V(x,1.6f,z+side*6),2,pad,padsFor(side<0?0:1,0));
             }
         }
 

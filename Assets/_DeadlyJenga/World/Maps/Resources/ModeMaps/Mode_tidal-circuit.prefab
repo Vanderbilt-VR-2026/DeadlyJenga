@@ -40,7 +40,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f6b8c6101ed4383874bb6e42d3fc37f, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  sand: {fileID: 2100000, guid: f743e0d294ab3fb4b9beea37ce4147b1, type: 2}
+  sand: {fileID: 2100000, guid: 380d8085f7f2b4749b3966bbcc071891, type: 2}
   friction: {fileID: 13400000, guid: 194d9f5483b630840955a7f1d488ab6f, type: 2}
 --- !u!114 &11400001
 MonoBehaviour:
