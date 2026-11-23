@@ -350,7 +350,7 @@ namespace DeadlyJenga.Modes
             if(state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)
             {
                 if(plasma.Count>=64)return false;
-                plasma.Add(new Shot{id=++nextPlasmaId,owner=id,position=command.position,direction=command.forward.normalized,life=5});
+                plasma.Add(new Shot{id=++nextPlasmaId,owner=id,kind=state.kind,position=command.position,direction=command.forward.normalized,life=5});
                 AnnounceEquipment(id,state,EquipmentAction.Shot,command.position);return true;
             }
             bool revolver=state.kind==EquipmentKind.SheriffHammer;

@@ -7,7 +7,7 @@ namespace DeadlyJenga.Modes
 {
     public sealed partial class MatchModeRuntime : IBlasterRuntime
     {
-        sealed class Shot{public string owner;public int id;public Vector3 position,direction;public float life;}
+        sealed class Shot{public EquipmentKind kind;public string owner;public int id;public Vector3 position,direction;public float life;}
         readonly List<Shot> plasma=new List<Shot>();
         readonly List<PlasmaImpactFrame> plasmaImpacts=new List<PlasmaImpactFrame>();
         readonly Dictionary<string,float> shotCooldowns=new Dictionary<string,float>();
@@ -51,7 +51,7 @@ namespace DeadlyJenga.Modes
             if(shotCooldowns.TryGetValue(id,out var ready)&&Time.time<ready)return false;
             if(Physics.Linecast(actor.ViewPose.position,command.position,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))return false;
             shotCooldowns[id]=Time.time+.45f;
-            plasma.Add(new Shot{id=++nextPlasmaId,owner=id,position=command.position,direction=command.forward.normalized,life=5});
+            plasma.Add(new Shot{id=++nextPlasmaId,owner=id,kind=EquipmentKind.Blaster,position=command.position,direction=command.forward.normalized,life=5});
             AnnounceEquipment(id,EquipmentFor(id),EquipmentAction.Shot,command.position);return true;
         }
         static bool Finite(Vector3 p)=>!float.IsNaN(p.sqrMagnitude)&&!float.IsInfinity(p.sqrMagnitude);
@@ -92,7 +92,7 @@ namespace DeadlyJenga.Modes
         void ExplodePlasma(Shot shot,Vector3 point,IModeActor direct,Vector3 impact)
         {
             if(plasmaImpacts.Count>=64)plasmaImpacts.RemoveAt(0);plasmaImpacts.Add(new PlasmaImpactFrame{id=shot.id,position=point,remaining=.4f});
-            AnnounceEquipment(shot.owner,new EquipmentState{kind=EquipmentKind.Blaster},EquipmentAction.Impact,point);
+            AnnounceEquipment(shot.owner,new EquipmentState{kind=shot.kind},EquipmentAction.Impact,point);
             var source=FindActor(shot.owner);if(source==null)return;
             foreach(var pair in actors)
             {

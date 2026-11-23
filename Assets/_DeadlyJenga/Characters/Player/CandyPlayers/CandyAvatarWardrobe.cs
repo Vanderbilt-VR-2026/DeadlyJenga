@@ -55,7 +55,7 @@ namespace DeadlyJenga.CandyPlayers
                 return;
             }
             rig.bodyRenderer.sharedMesh=value.skin==AvatarSkin.Snowman&&!value.poweredArmor?SnowBody(originalBody):originalBody;
-            if(value.poweredArmor)BuildArmor(rig);
+            if(value.poweredArmor) { if (!BuildFittedSuit(rig)) BuildArmor(rig); }
             else {BuildSkin(rig);BuildExpandedSkin(rig);}
             BuildHair(rig);
             int eyewearStart = pieces.Count;
@@ -465,6 +465,11 @@ namespace DeadlyJenga.CandyPlayers
             ArmorRing(rig,id+" outer machined rim",bone,Tone.Dark,position,.033f,.005f,Quaternion.Euler(90,0,0),Vector3.one);
             ArmorRing(rig,id+" bright nozzle rim",bone,Tone.Silver,position+Vector3.down*.003f,.026f,.003f,Quaternion.Euler(90,0,0),Vector3.one);
             ArmorBall(rig,id+" luminous core",bone,Tone.Glow,position+Vector3.down*.005f,new Vector3(.022f,.004f,.022f));
+            MountArmorEmitter(rig,id,bone,position,index);
+        }
+
+        void MountArmorEmitter(CandyPlayerRig rig,string id,int bone,Vector3 position,int index)
+        {
             var anchor=new GameObject(id+" jet origin").transform;anchor.SetParent(rig.AppearanceBone(bone),false);anchor.localPosition=position;anchor.localRotation=Quaternion.LookRotation(Vector3.down,Vector3.forward);
             if(index==0)LeftPalmEmitter=anchor;else if(index==1)RightPalmEmitter=anchor;else if(index==2)LeftSoleEmitter=anchor;else RightSoleEmitter=anchor;
         }
