@@ -51,8 +51,13 @@ namespace DeadlyJenga.DevTools.Editor
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Arsenal Expansion")]
-        public static void Run()
+        public static void Run() => Start(false);
+
+        public static void RunMarshmallow() => Start(true);
+
+        static void Start(bool marshmallowOnly)
         {
+            SessionState.SetBool(Key+"MarshmallowOnly",marshmallowOnly);
             SessionState.SetBool(Key+"VisualOnly",false);
             var setup=EditorSceneManager.GetSceneManagerSetup();
             if(setup.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
@@ -60,7 +65,9 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key,true);
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
-            File.WriteAllText(Report,"Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
+            File.WriteAllText(Report,marshmallowOnly?
+                "Flaming Marshmallow: real Game combat commands, fixture player and block collider.\n":
+                "Arsenal expansion v9 (main editor): actual Game mechanics, categorized menus, expanded behaviors and captures.\n");
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
         static void Log(string message,string trace,LogType kind)
@@ -82,6 +89,61 @@ namespace DeadlyJenga.DevTools.Editor
             }
             while(stack.Count>0)(stack.Pop() as IDisposable)?.Dispose();completed=!failed;EditorApplication.ExitPlaymode();
         }
+        static IEnumerator CheckMarshmallow(MatchModeRuntime runtime,CastleSurvivor player,CastleSurvivor target)
+        {
+            const EquipmentKind kind=EquipmentKind.FlamingMarshmallow;
+            var origin=player.ViewPose.position+Vector3.forward*.4f;
+            float cooldown=EquipmentSpecifications.Get(kind).cooldown+.08f;
+            Check(runtime.GiveEquipment(kind)&&runtime.EquipmentFor(runtime.LocalActorId).drawn,
+                "Flaming Marshmallow equips in the actual game");
+
+            target.Place(new Vector3(150,10.02f,160),Quaternion.identity);
+            Physics.SyncTransforms();
+            int sequence=runtime.Frame.equipmentSequence;
+            float health=target.Health;
+            var air=new Pose(origin,Quaternion.LookRotation(Vector3.up,Vector3.forward));
+            Check(runtime.RequestEquipmentAttack(air),"Air swing is accepted");
+            var airActions=runtime.Frame.equipmentActions.Where(a=>a.id>sequence&&a.kind==kind).ToArray();
+            Check(airActions.Count(a=>a.action==EquipmentAction.Shot)==1&&
+                !airActions.Any(a=>a.action==EquipmentAction.Impact)&&target.Health==health,
+                "Air swing announces the swing without a hit or damage");
+            yield return new WaitForSeconds(cooldown);
+
+            target.Place(new Vector3(150,10.02f,151),Quaternion.identity);
+            Physics.SyncTransforms();
+            var aim=new Pose(origin,Quaternion.LookRotation(target.transform.position+Vector3.up*.55f-origin));
+            var block=GameObject.CreatePrimitive(PrimitiveType.Cube);
+            block.name="Marshmallow contact fixture block";
+            block.layer=Layers.Block;
+            block.transform.position=origin+aim.rotation*Vector3.forward*.38f;
+            block.transform.localScale=new Vector3(.36f,.38f,.17f);
+            Physics.SyncTransforms();
+            try
+            {
+                sequence=runtime.Frame.equipmentSequence;
+                Check(runtime.RequestEquipmentAttack(aim),"Block swing is accepted");
+                var impact=runtime.Frame.equipmentActions.SingleOrDefault(a=>a.id>sequence&&a.kind==kind&&a.action==EquipmentAction.Impact);
+                Check(impact!=null&&Vector3.Distance(impact.position,block.transform.position)<.30f&&target.Health==health,
+                    "Block produces an impact at the collider and shields the player behind it");
+            }
+            finally
+            {
+                block.SetActive(false);
+                Object.Destroy(block);
+            }
+            yield return new WaitForSeconds(cooldown);
+
+            target.Place(new Vector3(150,10.02f,151),Quaternion.identity);
+            Physics.SyncTransforms();
+            sequence=runtime.Frame.equipmentSequence;
+            Check(runtime.RequestEquipmentAttack(aim),"Player hit is accepted");
+            var state=runtime.EquipmentFor(runtime.LocalActorId);
+            Check(Mathf.Abs(health-target.Health-target.MaxHealth*.5f)<.05f&&
+                runtime.Frame.equipmentActions.Any(a=>a.id>sequence&&a.kind==kind&&a.action==EquipmentAction.Impact)&&
+                state.embedRemaining>0&&!string.IsNullOrEmpty(state.embeddedVictim),
+                "Player impact deals half maximum health and publishes contact feedback");
+        }
+
         static IEnumerator Test()
         {
             var session=Object.FindFirstObjectByType<CastlePlaySession>();float until=Time.realtimeSinceStartup+30;
@@ -92,6 +154,11 @@ namespace DeadlyJenga.DevTools.Editor
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
             var created=session.SurvivorBots.SpawnOne();Check(created,"Target bot spawns");var target=created.GetComponent<CastleSurvivor>();target.GetComponent<CastleBotBrain>().enabled=false;target.InputSuspended=true;
             yield return new WaitForSeconds(.4f);
+            if(SessionState.GetBool(Key+"MarshmallowOnly",false))
+            {
+                yield return CheckMarshmallow(runtime,player,target);
+                yield break;
+            }
             Check(EquipmentSpecifications.All.Length==Enum.GetValues(typeof(EquipmentKind)).Length,"Every serialized equipment kind has one shared specification");
             Check((int)EquipmentKind.PoweredArmor==8&&(int)EquipmentKind.Blaster==3,"Existing equipment wire identities stay unchanged");
             foreach(EquipmentKind kind in Enum.GetValues(typeof(EquipmentKind)))
