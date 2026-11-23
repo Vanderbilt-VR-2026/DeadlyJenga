@@ -1063,7 +1063,26 @@ namespace DeadlyJenga.DevTools.Editor
                     Check(pickup,"Pickup settles into the ready grip: "+kind);
                     if(mounted)
                         Check(Vector3.Distance(ready,gathering)<.025f,"Wearable remains anchored to the same hand: "+kind);
-                    if(spec.magazine>0)
+                    if(kind==EquipmentKind.RocketLauncher)
+                    {
+                        var candy=model.Find("Front-loaded lollipop");
+                        Check(candy&&candy.gameObject.activeInHierarchy,"One lollipop is visible in the muzzle");
+                        var seated=candy.localPosition;
+                        state.rounds=0;
+                        state.reloadRemaining=spec.reloadSeconds*.70f;
+                        visual.Present(state,frame,true);
+                        Check(!candy.gameObject.activeSelf,"RPG muzzle stays empty before the next lollipop arrives");
+                        state.reloadRemaining=spec.reloadSeconds*.45f;
+                        visual.Present(state,frame,true);
+                        Check(candy.gameObject.activeInHierarchy&&candy.localPosition.z>seated.z+.025f,
+                            "The next lollipop enters through the front of the muzzle");
+                        state.rounds=1;
+                        state.reloadRemaining=0;
+                        visual.Present(state,frame,true);
+                        Check(candy.gameObject.activeInHierarchy&&Vector3.Distance(candy.localPosition,seated)<.002f,
+                            "Lollipop seats after reload");
+                    }
+                    else if(spec.magazine>0)
                     {
                         bool energy=kind==EquipmentKind.WristLaser||kind==EquipmentKind.LaserAxe;
                         var feed=model.Find(energy?"Removable energy cartridge":"Animated ammunition assembly");
