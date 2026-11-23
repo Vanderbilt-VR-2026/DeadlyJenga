@@ -128,7 +128,7 @@ MonoBehaviour:
     spot: {x: 0, y: 0}
     turn: 8
     size: 1
-  - toy: {fileID: 1602188058459572555, guid: 42231d3e9ec24754985357d0c866b6cc, type: 3}
+  - toy: {fileID: 1602188058459572555, guid: 16af0c92da0d40f79478fbb4f7d4d766, type: 3}
     onGift: Mansion Deck
     spot: {x: -8.8, y: -10}
     turn: 353
@@ -207,4 +207,64 @@ MonoBehaviour:
     onGift: Mansion Deck
     spot: {x: 1.5, y: 0}
     turn: 270
+    size: 1
+  - toy: {fileID: 4728215414278081841, guid: a4020635486640c482579e6fc71278ee, type: 3}
+    onGift: Back Row / Top Cream
+    spot: {x: 0, y: 0}
+    turn: 164
+    size: 1
+  - toy: {fileID: 4728215414278081841, guid: 8c0de54307c8456aa988d822122f2e10, type: 3}
+    onGift: Right Foot / Cream Rear
+    spot: {x: 0, y: 0}
+    turn: 14
+    size: 1
+  - toy: {fileID: 4728215414278081841, guid: 6dbe59b29faa48629876fd40571c5d67, type: 3}
+    onGift: Back Row / Gift 5
+    spot: {x: 0, y: 0}
+    turn: -16
+    size: 1
+  - toy: {fileID: 4728215414278081841, guid: 8b5671a40fd843d08b10c7ed7cff3017, type: 3}
+    onGift: Entrance / Navy Step
+    spot: {x: 0, y: 0}
+    turn: 89
+    size: 1
+  - toy: {fileID: 3551910430045102107, guid: 73e8f5fce969d9b45bd8c0c5161925e5, type: 3}
+    onGift: Back Row / Gift 6
+    spot: {x: 0, y: 0}
+    turn: 26
+    size: 0.42
+  - toy: {fileID: 7829361929983409884, guid: dbd81b6ff4d54373a2339cdc0614c003, type: 3}
+    onGift: Entrance / Cream Catch
+    spot: {x: 0, y: 0}
+    turn: 145
+    size: 0.84
+  - toy: {fileID: 1602188058459572555, guid: fba559e721c04be6bb517d7e79b518c4, type: 3}
+    onGift: Back Row / Gift 3
+    spot: {x: 0, y: 0}
+    turn: -12
+    size: 0.72
+  - toy: {fileID: 2960294657127619358, guid: db342f3905db5969bb680efba8214787, type: 3}
+    onGift: Bridge Terrace / Left Ruby
+    spot: {x: 0, y: 0}
+    turn: 22
+    size: 1
+  - toy: {fileID: 2960294657127619358, guid: e180d88c091856879e34430f900a8c10, type: 3}
+    onGift: Left Stair / Mid Cream
+    spot: {x: 0, y: 0}
+    turn: 155
+    size: 1
+  - toy: {fileID: 2960294657127619358, guid: efad6c9989c85cb7b7ea855048869d1b, type: 3}
+    onGift: Right Summit / Sapphire Crown
+    spot: {x: 0, y: 0}
+    turn: 188
+    size: 1
+  - toy: {fileID: 2960294657127619358, guid: 5796b83ef54e59b0ac4c0f7effdff9de, type: 3}
+    onGift: Bridge Terrace / Right Cream
+    spot: {x: 0, y: 0}
+    turn: 85
+    size: 1
+  - toy: {fileID: 2960294657127619358, guid: 5a17836c8f7c544e9b3f32ed4fa6d8c4, type: 3}
+    onGift: Left Foot / Ruby Rear
+    spot: {x: 0, y: 0}
+    turn: 125
     size: 1

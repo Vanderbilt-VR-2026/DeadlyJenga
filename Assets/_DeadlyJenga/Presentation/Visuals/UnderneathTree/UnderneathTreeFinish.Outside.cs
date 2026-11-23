@@ -12,14 +12,32 @@ namespace DeadlyJenga.CandyArt
     {
         const float GroundOutside = -12f;
 
+        void PlaceWindowView(GameObject prefab, float middle, float wall, float yaw)
+        {
+            var anchor = Pivot(prefab.name + " (window view)", new Vector3(middle, WindowSill, wall), yaw);
+            Instantiate(prefab, anchor, false);
+        }
+
         // Built as if outside the north wall; the south window's view is the same kind of scene
         // turned round (see BuildRoom). west/east = the window's edges.
-        void BuildOutdoorView(float west, float east, int seed)
+        void BuildOutdoorView(float west, float east, int seed, bool useDefaultScenery)
         {
             var rand = new System.Random(seed);
             var snow = Surface("Moonlit snow", "Paper", new Color(.80f, .86f, .96f), .35f, new Vector2(30, 30), 0f, .2f);
             snow.SetColor("_EmissionColor", new Color(.16f, .21f, .34f));
             snow.EnableKeyword("_EMISSION");
+            float midX = (west + east) * .5f;
+            // Window reveal: the wall's thickness, so the opening reads as a real hole.
+            var casing = Surface("Cream window casing", "Paper", new Color(.79f, .68f, .54f), .48f, new Vector2(2, 2));
+            foreach (float x in new[] { west - 3f, east + 3f })
+                Box("Window reveal", new Vector3(x, (WindowSill + WindowHead) * .5f, RoomNorth + 7f), new Vector3(3f, WindowHead - WindowSill, 14f), casing);
+            Box("Window reveal top", new Vector3(midX, WindowHead + 1.5f, RoomNorth + 7f), new Vector3(east - west + 6f, 3f, 14f), casing);
+            Box("Window outer sill", new Vector3(midX, WindowSill - 2f, RoomNorth + 9f), new Vector3(east - west + 10f, 3f, 18f), casing);
+            Box("Snow on the sill", new Vector3(midX, WindowSill + 1f, RoomNorth + 13f), new Vector3(east - west, 3f, 9f), snow);
+
+            if (!useDefaultScenery)
+                return;
+
             var pine = Surface("Night pine", null, new Color(.03f, .09f, .06f), .1f, Vector2.one);
             pine.SetColor("_EmissionColor", new Color(.008f, .025f, .03f));
             pine.EnableKeyword("_EMISSION");
@@ -30,15 +48,6 @@ namespace DeadlyJenga.CandyArt
             var lit = Glow("Lit house window", new Color(1f, .68f, .32f), 2.6f);
             var sky = Glow("Night sky", new Color(.012f, .025f, .07f), 1f);
             var horizon = Glow("Night horizon glow", new Color(.05f, .08f, .18f), 1f);
-
-            float midX = (west + east) * .5f;
-            // Window reveal: the wall's thickness, so the opening reads as a real hole.
-            var casing = Surface("Cream window casing", "Paper", new Color(.79f, .68f, .54f), .48f, new Vector2(2, 2));
-            foreach (float x in new[] { west - 3f, east + 3f })
-                Box("Window reveal", new Vector3(x, (WindowSill + WindowHead) * .5f, RoomNorth + 7f), new Vector3(3f, WindowHead - WindowSill, 14f), casing);
-            Box("Window reveal top", new Vector3(midX, WindowHead + 1.5f, RoomNorth + 7f), new Vector3(east - west + 6f, 3f, 14f), casing);
-            Box("Window outer sill", new Vector3(midX, WindowSill - 2f, RoomNorth + 9f), new Vector3(east - west + 10f, 3f, 18f), casing);
-            Box("Snow on the sill", new Vector3(midX, WindowSill + 1f, RoomNorth + 13f), new Vector3(east - west, 3f, 9f), snow);
 
             // Ground and soft drifts; low hills further off.
             var sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");

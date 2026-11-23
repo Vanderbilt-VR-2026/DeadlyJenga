@@ -3,7 +3,137 @@ guid: f9c693c3fb7e9f14f96416c7a421e629
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Aged brass
+    second: {fileID: 2100000, guid: 347ed6cffeeb45b5be9c8fc92aee6628, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Amethyst
+    second: {fileID: 2100000, guid: 69c4579e5b5e4ce7ada6a3238643b840, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Amethyst facet 0
+    second: {fileID: 2100000, guid: 3405f50e9257422b873c96807ff03cf0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Amethyst facet 1
+    second: {fileID: 2100000, guid: 383a5eba3ef64df7aa81b3d91570b9cf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Amethyst facet 2
+    second: {fileID: 2100000, guid: 16c334de85904a4ebead86f677ef2abd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Amethyst facet 3
+    second: {fileID: 2100000, guid: f4fde8e0c12948519f3abcc0ce24f5b2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Antique gold
+    second: {fileID: 2100000, guid: 746e1d2851144e74a16e35a6a1f95cd3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Carved walnut
+    second: {fileID: 2100000, guid: 639382208b234a39ac8acdb716bfcded, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Cobalt
+    second: {fileID: 2100000, guid: 2a5fded1868f4f85b457b60b467d6dcd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Fractured basalt 1
+    second: {fileID: 2100000, guid: a93d0d9a646d4951b69352268e865d67, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Fractured basalt 2
+    second: {fileID: 2100000, guid: 6455ac5e2e7f47b99624159c7de3cf90, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Fractured basalt 3
+    second: {fileID: 2100000, guid: e52dc65777af4a2798f09dc0e037d345, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Fractured basalt 4
+    second: {fileID: 2100000, guid: 87441b4f29024b6eaf47e4ddca3f010d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Fractured basalt 5
+    second: {fileID: 2100000, guid: d2c09b91368747ee94f5db57f58b4e79, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Hewn slate 0
+    second: {fileID: 2100000, guid: db3e448bb2d64f18b14312a1786e7f90, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Hewn slate 1
+    second: {fileID: 2100000, guid: 92f0ed59f60c44acb12a90bda5665695, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Hewn slate 2
+    second: {fileID: 2100000, guid: a68e618d2a944c559cb297abeb07b266, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Hewn slate 3
+    second: {fileID: 2100000, guid: 33ef65e37cba423e8d23e00cf87de47c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Ink
+    second: {fileID: 2100000, guid: c2414b7a14864c58a8145bc2ed53aebe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Jade
+    second: {fileID: 2100000, guid: a5592707770a4f8e9249e0ce29f18fcd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Lantern honey
+    second: {fileID: 2100000, guid: cc092a8cd3784d4f95fc2e701ca3c831, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Oxblood
+    second: {fileID: 2100000, guid: 23e457573dc44c66aeed67ed40f2985c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Parchment
+    second: {fileID: 2100000, guid: c6b0abf4fef642fe92d43dc25ad40654, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Polished lavender
+    second: {fileID: 2100000, guid: a6c8aba276b245bcb3b99e1dfa11adc0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Crag Royal violet enamel
+    second: {fileID: 2100000, guid: 95a2f7acf9564525802cb5111781ea4d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Navy
+    second: {fileID: 2100000, guid: 39692ecaebb0e444d8fc61c568f00de9, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

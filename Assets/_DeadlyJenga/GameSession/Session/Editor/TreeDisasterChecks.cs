@@ -13,7 +13,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
     {
         const string Pending="TreeDisasters.Pending", Failed="TreeDisasters.Failed";
         static readonly string[] AllCases={"PowerOutage","EvilSanta","CatAttack","OrnamentShower","PlanetKillerOrnament","Earthquake"};
-        static string[] Cases=>SessionState.GetBool("TreeDisasters.Detail",false)?new[]{"EvilSanta","CatAttack","Earthquake"}:AllCases;
+        static string[] Cases=>SessionState.GetBool("TreeDisasters.Creatures",false)?new[]{"EvilSanta","CatAttack"}:SessionState.GetBool("TreeDisasters.Detail",false)?new[]{"EvilSanta","CatAttack","Earthquake"}:AllCases;
         static string Report=>ProjectPath.Report("TreeDisasters.txt");
         static string Folder=>Path.Combine(Path.GetDirectoryName(Report),"TreeDisasterEvidence");
         static double deadline;
@@ -22,10 +22,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static IHazard hazard;
         static IDisasterState state;
         static bool seen,hit,shot;
-        static Vector3 firstCat;
+        static bool firstPose, secondPose;
         static TestDummy dummy;
-        public static void Run(){SessionState.SetBool("TreeDisasters.Detail",false);Begin();}
-        public static void RunDetail(){SessionState.SetBool("TreeDisasters.Detail",true);Begin();}
+        public static void RunCreatures(){SessionState.SetBool("TreeDisasters.Creatures",true);Begin();}
+        public static void Run(){SessionState.SetBool("TreeDisasters.Creatures",false);SessionState.SetBool("TreeDisasters.Detail",false);Begin();}
+        public static void RunDetail(){SessionState.SetBool("TreeDisasters.Creatures",false);SessionState.SetBool("TreeDisasters.Detail",true);Begin();}
         static void Begin()
         {
             if(!Application.isBatchMode||EditorApplication.isPlayingOrWillChangePlaymode)throw new Exception("Use checked batch editor");
@@ -61,7 +62,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 if(!session||world==null||Time.frameCount<15||!session.ActiveCamera)return;
                 if(stage==0)
                 {
-                    Check((world as ISyncedWorld)?.SaveLayout()=="underneath-the-tree-v6-underpass","correct runtime map");
+                    Check((world as ISyncedWorld)?.SaveLayout()=="underneath-the-tree-v7-building-shells","correct runtime map");
                     Check(DemoDisasters.Prefabs.Select(p=>p.name).OrderBy(n=>n).SequenceEqual(AllCases.OrderBy(n=>n)),"Tree catalog contains exactly the six requested disasters");
                     Capture("00-before");stage=1;ended=Time.time;
                 }
@@ -78,12 +79,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     {if(schema[i].id=="warning")values[i]=1;if(schema[i].id=="duration")values[i]=Cases[index]=="CatAttack"?20:Cases[index]=="Earthquake"?14:8;}
                     Check(DemoDisasters.ExecuteForMode(session,prefab.name,values),Cases[index]+" starts through production session path");
                     hazard=session.GetComponentsInChildren<MonoBehaviour>().OfType<IHazard>().Single(h=>h.Active&&h.Type==prefab.GetComponent<IHazard>().Type);
-                    state=(IDisasterState)hazard;begin=Time.time;seen=hit=shot=false;
+                    state=(IDisasterState)hazard;begin=Time.time;firstPose=secondPose=seen=hit=shot=false;
                     if(Cases[index]=="CatAttack")
                     {
                         var go=GameObject.CreatePrimitive(PrimitiveType.Capsule);go.name="Staged cat contact receiver";go.layer=Layers.Survivor;
                         go.transform.position=new Vector3(world.PlayableBounds.center.x,2,world.PlayableBounds.center.z);dummy=go.AddComponent<TestDummy>();
-                        firstCat=state.Capture().points[0].position;
+
                     }
                     stage=2;
                 }
@@ -105,6 +106,21 @@ namespace DeadlyJenga.CastlePrototype.Editor
                             seen|=Cases[index]=="Earthquake"||f.points!=null&&f.points.Length>0;
                             hit|=world.Blocks.Count(b=>b&&!b.isKinematic)>0;
                         }
+                        if(SessionState.GetBool("TreeDisasters.Creatures",false))
+                        {
+                            bool cat=f.kind=="CatAttack";
+                            var point=f.points[0];
+                            bool poseA=cat?point.life<-.15f:f.points[1].life>.53f && f.points[1].life<.76f;
+                            bool poseB=cat?point.size>.7f:f.points[2].life<-.34f && f.points[2].life>-.52f;
+                            if((poseA&&!firstPose)||(poseB&&!secondPose))
+                            {
+                                var model=session.transform.Cast<Transform>().FirstOrDefault(t=>t.name=="Tree Disaster / "+f.kind);
+                                Check(model && model.GetComponentInChildren<SkinnedMeshRenderer>(),f.kind+" skinned visual present");
+                                var eye=point.position+point.velocity.normalized*(cat?88:132)-Vector3.Cross(Vector3.up,point.velocity.normalized)*(cat?72:91)+Vector3.up*(cat?44:78);
+                                Capture(f.kind+(poseA?(cat?"-crouch":"-lift"):(cat?"-pounce":"-windup")),eye,point.position+Vector3.up*(cat?21:50));
+                                firstPose|=poseA;secondPose|=poseB;
+                            }
+                        }
                         if(!shot&&elapsed>2&&(Cases[index]!="CatAttack"||Vector3.Distance(f.points[0].position,world.PlayableBounds.center)<55))
                         {
                             Capture((index+1).ToString("00")+"-"+Cases[index]);
@@ -121,6 +137,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     bool enough=elapsed>(Cases[index]=="Earthquake"?12:Cases[index]=="CatAttack"?30:Cases[index]=="PlanetKillerOrnament"?12:7);
                     if(naturallyEnded||enough)
                     {
+                        if(SessionState.GetBool("TreeDisasters.Creatures",false))Check(firstPose&&secondPose,Cases[index]+" reaches both staged poses");
                         Check(seen,Cases[index]+" publishes active visual state");
                         if(!hit)Capture("failed-"+Cases[index]);
                         Check(hit,Cases[index]+(Cases[index]=="PowerOutage"?" switches off room lights":" releases real map rigidbodies"));
@@ -150,7 +167,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             {
                 camera.targetTexture=rt;camera.Render();RenderTexture.active=rt;
                 var tex=new Texture2D(1280,720,TextureFormat.RGB24,false);tex.ReadPixels(new Rect(0,0,1280,720),0,0);tex.Apply();
-                File.WriteAllBytes(Path.Combine(Folder,name+".png"),tex.EncodeToPNG());UnityEngine.Object.Destroy(tex);
+                var path=Path.Combine(Folder,name+".png");File.WriteAllBytes(path,tex.EncodeToPNG());Debug.Log("CAPTURE FILE "+path);UnityEngine.Object.Destroy(tex);
             }
             finally{RenderTexture.active=prior;camera.targetTexture=null;rt.Release();UnityEngine.Object.Destroy(rt);UnityEngine.Object.Destroy(go);}
         }

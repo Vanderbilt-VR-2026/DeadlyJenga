@@ -73,8 +73,88 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         public static void RunReferences() => Begin(true);
 
+        public static void CheckBuildingModes()
+        {
+            Begin(false);
+            SessionState.SetBool("TreeBuildingModes",true);
+        }
+
+        static void CheckBuildings()
+        {
+            map=Services.World as UnderneathTreeMap;
+            if(!map || Time.frameCount<15)return;
+            var buildings=map.GetComponentsInChildren<UnderneathTreeBuilding>();
+            Require(buildings.Length==3,"three registered landmark buildings");
+            if(phase==0)
+            {
+                foreach(var building in buildings)
+                {
+                    var hull=building.GetComponent<UnderneathTreeToy>().captureHull;
+                    var floor=building.GetComponentsInChildren<MeshCollider>().Single(c=>c.name==hull);
+                    var start=building.CapturePoint;
+                    Require(building.SetTogether(true) && building.GetComponentsInChildren<Rigidbody>().Length==1,"one intact body on "+building.name);
+                    Require(floor.attachedRigidbody==building.GetComponentInChildren<Rigidbody>() &&
+                        Vector3.Distance(start,building.CapturePoint)<.03f,"unchanged floor pose on grouped collider");
+                    Require(building.SetTogether(false) && building.GetComponentsInChildren<Rigidbody>().Length>=4,"section bodies restored");
+                    Require(!building.Retired,"standing floor is valid");
+                }
+                buildings[0].SetTogether(true);
+                var panel=buildings[0].GetComponentInChildren<UnderneathTreeGiftPanel>();
+                panel.Push(Vector3.right*4,null);
+                Require(!panel.Body.isKinematic && buildings[0].SetTogether(false),"moving shell splits");
+                Require(buildings[0].GetComponentsInChildren<Rigidbody>().All(b=>!b.isKinematic),"split restores dynamic sections");
+                Require(buildings[1].Demolish(Vector3.up) && buildings[1].Retired,"scripted wipe retires zone immediately");
+                buildings[2].SetTogether(true);
+                var body=buildings[2].GetComponentInChildren<Rigidbody>();
+                body.rotation=Quaternion.AngleAxis(80,Vector3.forward)*body.rotation;
+                impactFixedTime=Time.fixedTime;phase=1;
+            }
+            else if(Time.fixedTime-impactFixedTime>2.2f)
+            {
+                Require(buildings[2].Retired,"sustained floor tilt retires zone");
+                Finish(true);
+            }
+        }
+
+        public static void CaptureFalconSummit()
+        {
+            Begin(false);
+            SessionState.SetBool("TreeFalconSummit", true);
+        }
+
+        public static void CapturePremiereStudios()
+        {
+            Begin(false);
+            SessionState.SetBool("TreePremiereStudios", true);
+        }
+
+        public static void CaptureToyLighting()
+        {
+            Begin(false);
+            SessionState.SetBool("TreeToyLighting", true);
+            SessionState.SetBool("TreeCrystalCrag", true);
+            SessionState.SetBool("TreePremiereStudios", true);
+        }
+
+        public static void CheckSmallToys()
+        {
+            Begin(false);
+            SessionState.SetBool("TreeSmallToys", true);
+        }
+
+        public static void CaptureCrystalCrag()
+        {
+            Begin(false);
+            SessionState.SetBool("TreeCrystalCrag", true);
+        }
+
         static void Begin(bool references)
         {
+            SessionState.SetBool("TreeSmallToys", false);
+            SessionState.SetBool("TreeFalconSummit", false);
+            SessionState.SetBool("TreePremiereStudios", false);
+            SessionState.SetBool("TreeCrystalCrag", false);
+            SessionState.SetBool("TreeToyLighting", false);
             if (!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Run this check in a checked batch editor.");
             if (!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))
@@ -82,6 +162,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             SessionState.SetBool("TreePriorAsync", ShaderUtil.allowAsyncCompilation);
             ShaderUtil.allowAsyncCompilation = false;
             SessionState.SetBool(References, references);
+            SessionState.SetBool("TreeBuildingModes",false);
             File.WriteAllText(Report, references
                 ? "Underneath the Tree, intact solo Demo reference angles\n"
                 : "Underneath the Tree, clean solo Game.unity load and runtime checks\n");
@@ -137,6 +218,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 double now = EditorApplication.timeSinceStartup;
                 if (now > deadline)
                     throw new InvalidOperationException("Runtime check timed out at step " + phase + ".");
+                if(SessionState.GetBool("TreeBuildingModes",false)){CheckBuildings();return;}
                 if (SessionState.GetBool("TreeApproved", false))
                 {
                     CheckApproved(now);
@@ -152,6 +234,99 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         renderReady = now + 1.7;
                     if (now < renderReady)
                         return;
+                    if (SessionState.GetBool("TreeSmallToys", false))
+                    {
+                        var toys = map.GetComponentsInChildren<UnderneathTreeToy>();
+                        foreach (string label in new[] { "Race Car", "Retro Speaker", "Plush Bear", "Robot",
+                            "Retro Console", "Airmail Bear", "Alpine Rally", "Mint Pickup", "Club Roadster",
+                            "House", "Superhero", "Brick Stack", "Football", "Frosted Pinecone", "Stocking",
+                            "Puzzle Cube", "Fashion Doll", "Nutcracker", "Blaster", "Candy Bag", "Rag Doll",
+                            "Board Game", "Clay Tub", "Pastry Box", "Wind-up Walker", "Drum", "Soldier", "Classic Nutcracker", "Berry Twists", "Chocolate Bar",
+                            "Cymbal Monkey", "Hopping Frog", "Marching Drummer", "Tin Locomotive", "Pecking Hen" })
+                        {
+                            var matches = toys.Where(t => t.source && t.source.name == "Toy " + label).ToArray();
+                            Require(matches.Length > 0 && matches.All(t =>
+                                t.GetComponentsInChildren<Rigidbody>().Length == 1 &&
+                                t.GetComponentsInChildren<Collider>().Length == 1 && t.GetComponent<BoxCollider>() &&
+                                t.GetComponentsInChildren<MeshRenderer>().Length == 1),
+                                label + " loaded with one visual mesh, one box collider and one body");
+                        }
+                        var football = toys.First(t => t.source && t.source.name == "Toy Football");
+                        var bounds = football.GetComponent<BoxCollider>().bounds;
+                        Shot(player.ViewCamera, "soccer-ball", bounds.center + new Vector3(0.7f, 0.8f, -2f) * bounds.size.y,
+                            bounds.center, 38f);
+                        var bear = toys.Single(t => t.source && t.source.name == "Toy Airmail Bear");
+                        var aim = bear.GetComponent<BoxCollider>().bounds.center;
+                        Shot(player.ViewCamera, "airmail-bear", aim + bear.transform.rotation *
+                            new Vector3(4f, 3f, -12f), aim, 40f);
+                        Finish(true);
+                        return;
+                    }
+                    if (SessionState.GetBool("TreeCrystalCrag", false))
+                    {
+                        var toy = map.GetComponentsInChildren<UnderneathTreeToy>().Single(t => t.name.StartsWith("Toy Wizard Tower "));
+                        var pieces = toy.Pieces();
+                        Require(pieces.Count == 4 && pieces.All(p => p.name.Contains("Crystal Crag") &&
+                            p.TryGetComponent<Rigidbody>(out var body) && body.isKinematic), "four intact Crystal Crag sections");
+                        var hulls = toy.GetComponentsInChildren<MeshCollider>();
+                        Require(hulls.Count(c => c.name.StartsWith("Hull Spiral tread")) == 66, "66 spiral stair colliders");
+                        var entry = hulls.First(c => c.name.StartsWith("Hull Entry step")).bounds.center;
+                        var front = Vector3.ProjectOnPlane(entry - toy.transform.position, Vector3.up).normalized;
+                        var aim = toy.transform.position + Vector3.up * 8f;
+                        Shot(player.ViewCamera, "crystal-crag", aim + front * 31f + Vector3.up * 7.4f, aim, 37f, true);
+                        if (!SessionState.GetBool("TreeToyLighting", false))
+                        {
+                            Finish(true);
+                            return;
+                        }
+                        var gems = toy.GetComponentsInChildren<Light>();
+                        Require(gems.Length == 6 && gems.All(l => l.enabled && l.type == LightType.Point &&
+                            l.transform.parent.name.StartsWith("Practical Gem ")), "six active gem lights on wizard tower");
+                    }
+                    if (SessionState.GetBool("TreePremiereStudios", false))
+                    {
+                        var toy = map.GetComponentsInChildren<UnderneathTreeToy>().Single(t => t.name.StartsWith("Toy Doll Mansion "));
+                        var pieces = toy.Pieces();
+                        Require(pieces.Count == 4 && pieces.All(p => p.name.Contains("Premiere Studios") &&
+                            p.TryGetComponent<Rigidbody>(out var body) && body.isKinematic), "four intact Premiere Studios sections on Mansion Deck");
+                        var shapes = toy.GetComponentsInChildren<MeshCollider>();
+                        if (SessionState.GetBool("TreeToyLighting", false))
+                        {
+                            var lamps = toy.GetComponentsInChildren<Light>();
+                            Require(lamps.Count(l => l.enabled && l.type == LightType.Point && l.color.r > l.color.b &&
+                                l.color.b > l.color.g) == 6, "six pink mansion room lights");
+                            Require(lamps.Count(l => l.enabled && l.type == LightType.Spot &&
+                                l.transform.parent.name == "Practical Cyan beacon") == 1 &&
+                                lamps.Count(l => l.enabled && l.type == LightType.Spot &&
+                                l.transform.parent.name == "Practical Violet beacon") == 1, "cyan and violet rooftop party beacons");
+                        }
+                        var floor = shapes.Single(c => c.name == "Hull Toy plinth").bounds.center;
+                        var stage = shapes.Single(c => c.name == "Hull Stage deck").bounds.center;
+                        var front = Vector3.ProjectOnPlane(floor - stage, Vector3.up).normalized;
+                        var right = Vector3.Cross(front, Vector3.up);
+                        var aim = floor + Vector3.up * 11f;
+                        Shot(player.ViewCamera, "premiere-mansion", aim + front * 45f + right * 5f + Vector3.up * 8f, aim, 43f, true);
+                        Shot(player.ViewCamera, "premiere-soundstage", floor + front * 6f + Vector3.up * 7.6f,
+                            stage + Vector3.up * 3.7f, 63f, true);
+                        Finish(true);
+                        return;
+                    }
+                    if (SessionState.GetBool("TreeFalconSummit", false))
+                    {
+                        var toy = map.GetComponentsInChildren<UnderneathTreeToy>().Single(t => t.name.StartsWith("Toy Superhero Base "));
+                        var pieces = toy.Pieces();
+                        Require(pieces.Count == 6 && pieces.All(p => p.name.Contains("Falcon Summit") &&
+                            p.TryGetComponent<Rigidbody>(out var body) && body.isKinematic), "six intact Falcon Summit storeys on Hero Deck");
+                        var shapes = toy.GetComponentsInChildren<MeshCollider>();
+                        var ramp = shapes.Single(c => c.name.Contains("launch ramp"));
+                        var pad = shapes.Single(c => c.name.Contains("Cantilever flight pad"));
+                        var forward = Vector3.ProjectOnPlane(ramp.bounds.center - toy.transform.position, Vector3.up).normalized;
+                        var right = Vector3.ProjectOnPlane(pad.bounds.center - toy.transform.position, Vector3.up).normalized;
+                        var aim = toy.transform.position + Vector3.up * 14f;
+                        Shot(player.ViewCamera, "falcon-summit", aim + forward * 57f + right * 11f + Vector3.up * 14f, aim, 49f, true);
+                        Finish(true);
+                        return;
+                    }
                     if (SessionState.GetBool(References, false))
                     {
                         if (Services.Session.Demo == null)
@@ -274,9 +449,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 if (double.IsPositiveInfinity(renderReady)) renderReady = now + 3;
                 if (now < renderReady) return;
                 File.AppendAllText(Report, "ASSEMBLY " + typeof(UnderneathTreeMap).Assembly.ManifestModule.ModuleVersionId + "\n");
-                Require(map.SaveLayout() == "underneath-the-tree-v6-underpass", "approved underpass layout loaded");
+                Require(map.SaveLayout() == "underneath-the-tree-v7-building-shells", "approved underpass layout loaded");
                 Require(map.Blocks.All(b => b && b.isKinematic && b.useGravity), "all gift pieces and rails intact with gravity configured");
-                Require(map.Blocks.All(b => b.GetComponent<IClimbable>()?.CanClimb == true), "all registered gift and track bodies climbable");
+                Require(map.Blocks.Where(b => b.gameObject.activeSelf).All(b => b.GetComponent<IClimbable>()?.CanClimb == true), "all registered gift and track bodies climbable");
                 blockCount = map.Blocks.Count;
                 revision = map.Revision;
                 originalPieces = PieceOrder();

@@ -3,7 +3,87 @@ guid: 2d0fde97cdfb8734cbaf3e6d5d52f599
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Premiere Blush
+    second: {fileID: 2100000, guid: bfc61fce240349d88e87d70288ec09fe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Premiere Lilac
+    second: {fileID: 2100000, guid: 628bfca4919c4f1187c14793df6b0bcf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Premiere Mulberry
+    second: {fileID: 2100000, guid: 5b500d833db547aeadadb05a248b1ccf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Premiere Pistachio
+    second: {fileID: 2100000, guid: 80a1a608702b40acb18051aff4377d3b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Premiere Raspberry
+    second: {fileID: 2100000, guid: da537fcc36944ad5b4c2bb713e27cf37, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Black Enamel
+    second: {fileID: 2100000, guid: fd4927590c319264d8ee416a0ffd55c5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Cream
+    second: {fileID: 2100000, guid: 56d3b5dbd437853428bf35af9669d607, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Gold Trim
+    second: {fileID: 2100000, guid: f15196ef2318abb40bb68ef5187f4734, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Navy
+    second: {fileID: 2100000, guid: 39692ecaebb0e444d8fc61c568f00de9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Pink
+    second: {fileID: 2100000, guid: 09fb7773e97ca5641b25ba1ae97aa5b8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Red
+    second: {fileID: 2100000, guid: 1f6c14966e935684f9ea9501da361dfe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Silver
+    second: {fileID: 2100000, guid: 8d0c73d879ab0fb4fbb5dff6c03fa285, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Teal
+    second: {fileID: 2100000, guid: d14253886eb809f41a53e51204511239, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy White
+    second: {fileID: 2100000, guid: 3cfee247e3a674948abdf5d0dbc72367, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Premiere Pink Glow
+    second: {fileID: 2100000, guid: 660841acc5db43869a9d143026559bd6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Wood
+    second: {fileID: 2100000, guid: 9d5571f9eec1a4c43b1ab171c6cc38b2, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

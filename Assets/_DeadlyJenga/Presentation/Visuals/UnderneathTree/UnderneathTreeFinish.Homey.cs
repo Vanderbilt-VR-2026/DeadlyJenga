@@ -48,17 +48,6 @@ namespace DeadlyJenga.CandyArt
         // ------------------------------------------------------------------ sitting area
         void BuildSittingArea()
         {
-            // Braided oval rug: rings of cranberry, cream and green.
-            var ringColors = new[] { new Color(.55f, .07f, .09f), new Color(.86f, .78f, .62f), new Color(.16f, .32f, .18f),
-                new Color(.55f, .07f, .09f), new Color(.86f, .78f, .62f), new Color(.45f, .05f, .07f) };
-            for (int i = 0; i < ringColors.Length; i++)
-            {
-                float shrink = 1f - i * .15f;
-                var ring = Fabric("Braided rug ring " + i, "Woven", ringColors[i] * 1.4f, new Vector2(10f, 10f), .1f, .9f);
-                Primitive("Braided rug", PrimitiveType.Cylinder, SittingCentre + Vector3.up * (.15f + i * .06f),
-                    new Vector3(190f * shrink, .05f, 250f * shrink), ring).GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
-            }
-
             // Low walnut coffee table.
             var walnut = Surface("Coffee table walnut", "Walnut Grain", new Color(.42f, .27f, .17f), .55f, new Vector2(1.2f, 2f), 0f, .3f);
             var table = Pivot("Coffee table", SittingCentre, 0f);
@@ -68,7 +57,7 @@ namespace DeadlyJenga.CandyArt
             foreach (int z in new[] { -1, 1 })
                 Under(RoundedDetail("Coffee table leg", new Vector3(x * 21f, 13f, z * 39f), new Vector3(4f, 26f, 4f), .2f, walnut), table);
 
-            // Two armchairs at the ends of the rug, angled toward the fire.
+            // Two armchairs at the ends of the sitting area, angled toward the fire.
             var fire = new Vector3(RoomWest + 40f, 0f, HearthZ);
             var green = Fabric("Forest velvet armchair", "Velour Scan", new Color(.35f, .75f, .45f), new Vector2(2f, 2f), .25f, .45f);
             var south = new Vector3(-190f, 0f, -488f);

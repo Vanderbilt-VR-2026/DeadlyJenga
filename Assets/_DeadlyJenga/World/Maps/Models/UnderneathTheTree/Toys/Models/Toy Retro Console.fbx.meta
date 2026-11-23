@@ -3,7 +3,42 @@ guid: bd6e78e3a4b1d254f916b05dbc92b365
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Deep lagoon
+    second: {fileID: 2100000, guid: a71758ad5a9f4703bc974938ea95fe74, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Buttermilk
+    second: {fileID: 2100000, guid: ed985b8b505e45aba6fc33d6fc2ed52c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Midnight enamel
+    second: {fileID: 2100000, guid: dd7d2fe191794580a9b0dc701312431e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Seafoam
+    second: {fileID: 2100000, guid: 8762de5548944449a2e722ea803f716e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tyre rubber
+    second: {fileID: 2100000, guid: 12716e4e53464b24aaf6c099389b2213, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tangerine
+    second: {fileID: 2100000, guid: 4ad0191724d14f7f9261e4e4eea4e82f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Vermilion lacquer
+    second: {fileID: 2100000, guid: bc34075030d8448b83bad16296a3c103, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

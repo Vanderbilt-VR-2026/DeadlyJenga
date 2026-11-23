@@ -3,7 +3,47 @@ guid: 3ef0b91be5596f94789a5d40c48f0152
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Vermilion lacquer
+    second: {fileID: 2100000, guid: bc34075030d8448b83bad16296a3c103, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Buttermilk
+    second: {fileID: 2100000, guid: ed985b8b505e45aba6fc33d6fc2ed52c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Smoke glass
+    second: {fileID: 2100000, guid: 29824e9e767240a9b11e16f84c88eca2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tyre rubber
+    second: {fileID: 2100000, guid: 12716e4e53464b24aaf6c099389b2213, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Machined alloy
+    second: {fileID: 2100000, guid: e2b87951629a43dd9a216ff19b4e970b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Satin brass
+    second: {fileID: 2100000, guid: b670ded7460a49a782a533633a25dfa1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Midnight enamel
+    second: {fileID: 2100000, guid: dd7d2fe191794580a9b0dc701312431e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tangerine
+    second: {fileID: 2100000, guid: 4ad0191724d14f7f9261e4e4eea4e82f, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

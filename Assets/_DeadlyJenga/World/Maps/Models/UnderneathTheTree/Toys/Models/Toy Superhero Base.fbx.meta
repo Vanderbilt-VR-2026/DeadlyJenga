@@ -3,7 +3,87 @@ guid: f2c925155e1aa364fa92318235a4f859
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Falcon Clear Glass
+    second: {fileID: 2100000, guid: 3da754fcca6f40188a717b1b3409b90b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Black
+    second: {fileID: 2100000, guid: 7668b464280ac4647b266f0e6c625039, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Black Enamel
+    second: {fileID: 2100000, guid: fd4927590c319264d8ee416a0ffd55c5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Brown
+    second: {fileID: 2100000, guid: 3640051d9385bbf4d802a6b6391291c7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Cream
+    second: {fileID: 2100000, guid: 56d3b5dbd437853428bf35af9669d607, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Glass
+    second: {fileID: 2100000, guid: d243618c2bb5ee647bf52872afea816f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Gold
+    second: {fileID: 2100000, guid: 6267ffbc6fca22c48a97144d92d7aa01, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Gray
+    second: {fileID: 2100000, guid: b7ccb737b5fb36a40850278e7d335898, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Orange
+    second: {fileID: 2100000, guid: f3e10833132e5294280ea6e192b8aa6b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Red Enamel
+    second: {fileID: 2100000, guid: d5f2397c2439a8d40b280d4017f54870, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Screen Glow
+    second: {fileID: 2100000, guid: 1a8d3db38029f8c4096a34e402da6084, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Silver
+    second: {fileID: 2100000, guid: 8d0c73d879ab0fb4fbb5dff6c03fa285, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Teal
+    second: {fileID: 2100000, guid: d14253886eb809f41a53e51204511239, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Window Glow
+    second: {fileID: 2100000, guid: b07c6ce159c2fc7439a1ae82bf27da0a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Wood
+    second: {fileID: 2100000, guid: 9d5571f9eec1a4c43b1ab171c6cc38b2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Falcon spine
+    second: {fileID: 2100000, guid: 39692ecaebb0e444d8fc61c568f00de9, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

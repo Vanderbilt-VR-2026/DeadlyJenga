@@ -3,7 +3,32 @@ guid: ea09007566c9f5f40bf80a9d4deae202
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Lemon ABS
+    second: {fileID: 2100000, guid: f09c5f058766431f8a5a486c6bc8aa94, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Safety orange ABS
+    second: {fileID: 2100000, guid: a9cab18bbe7544468fe532fa28427cbb, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy Navy
+    second: {fileID: 2100000, guid: 39692ecaebb0e444d8fc61c568f00de9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Toy White
+    second: {fileID: 2100000, guid: 3cfee247e3a674948abdf5d0dbc72367, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Lime ABS
+    second: {fileID: 2100000, guid: 225aae7371b44d08953acddfb41a91a6, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

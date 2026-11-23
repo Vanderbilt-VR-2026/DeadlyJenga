@@ -42,3 +42,8 @@ MonoBehaviour:
   type: {fileID: 11400000, guid: 2852cdf6d4aa49f498c7f1906b46b9c5, type: 2}
   intensity: 1
   duration: 10
+  passes: 1
+  heading: 139
+  crouchSeconds: 1
+  runSpeed: 44
+  pounceHeight: 12
