@@ -58,10 +58,13 @@ namespace DeadlyJenga.DevTools.Editor
             Check(latched&&best>feet.y+.12f,"survivor latched and climbed bone face; rise "+(best-feet.y));
         }
         static FossilBasinChecks(){EditorApplication.playModeStateChanged+=State;}
-        public static void Run()
+        public static void Run()=>Begin(false);
+        public static void RunScenery()=>Begin(true);
+        static void Begin(bool sceneryOnly)
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Start in Edit Mode");
             Directory.CreateDirectory(Folder);
+            SessionState.SetBool(Key+".scenery",sceneryOnly);
             SessionState.SetBool(Key,true);
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
             EditorApplication.EnterPlaymode();
@@ -123,6 +126,19 @@ namespace DeadlyJenga.DevTools.Editor
                 }
                 if(phase==2&&dt>3)
                 {
+                    if(SessionState.GetBool(Key+".scenery",false))
+                    {
+                        var decor=map.GetComponent<DeadlyJenga.Presentation.FossilBasinScenery>();
+                        var water=map.gameObject.scene.GetRootGameObjects()
+                            .SelectMany(root=>root.GetComponentsInChildren<DeadlyJenga.CandyArt.CandyOceanSurface>())
+                            .FirstOrDefault(o=>o.GetComponent<Renderer>().sharedMaterial==decor.tar);
+                        Check(water && water.GetComponent<MeshFilter>().sharedMesh && !water.GetComponent<Renderer>().forceRenderingOff,
+                            "castle wave mesh renders the Fossil Basin tar material");
+                        Check(RenderSettings.skybox==decor.sky && decor.sky.GetTexture("_MainTex"),"Jurassic sunset panorama bound");
+                        Wide("07-jurassic-wide");
+                        Shot("08-jurassic-waterline",new Vector3(1,2.2f,-12.2f),new Vector3(-27,4,28),66);
+                        End();return;
+                    }
                     float worst=map.Blocks.Select((b,i)=>Vector3.Distance(b.position,initial[i])).Max();
                     Check(worst<.7f,"unloaded maximum body travel "+worst);
                     foreach(var item in map.Blocks.Select((b,i)=>(b,travel:Vector3.Distance(b.position,initial[i]))).OrderByDescending(x=>x.travel).Take(8))
