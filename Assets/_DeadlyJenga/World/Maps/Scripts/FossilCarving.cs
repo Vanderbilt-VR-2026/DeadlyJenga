@@ -33,6 +33,8 @@ namespace DeadlyJenga.CastlePrototype
             indices.Add(n); indices.Add(n+1); indices.Add(n+2);
             indices.Add(n); indices.Add(n+2); indices.Add(n+3);
         }
+        internal void Proxy(Vector3 center, Quaternion rotation, Vector3 size) => Collision(center, rotation, size);
+
         void Collision(Vector3 center, Quaternion rotation, Vector3 size)
         {
             var owner=member.gameObject;
