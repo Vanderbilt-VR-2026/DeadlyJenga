@@ -71,6 +71,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         public static void RunApproved() { SessionState.SetBool("TreeApproved", true); Begin(false); }
 
+        public static void RunFir()
+        {
+            Begin(false);
+            SessionState.SetBool("TreeFullBoughs", true);
+        }
+
         public static void RunReferences() => Begin(true);
 
         public static void CaptureRoomScenery()
@@ -162,6 +168,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             SessionState.SetBool("TreePremiereStudios", false);
             SessionState.SetBool("TreeCrystalCrag", false);
             SessionState.SetBool("TreeToyLighting", false);
+            SessionState.SetBool("TreeFullBoughs", false);
             if (!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Run this check in a checked batch editor.");
             if (!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))
@@ -241,6 +248,24 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         renderReady = now + 1.7;
                     if (now < renderReady)
                         return;
+                    if (SessionState.GetBool("TreeFullBoughs", false))
+                    {
+                        int triangles = 0;
+                        var trunk = map.Root.Find("Underneath the Tree Layout/Fir trunk collision");
+                        Require(trunk && trunk.GetComponentsInChildren<Collider>().Length > 0, "existing fir trunk collision");
+                        foreach (string shade in new[] { "Shade", "Green", "Tips", "Twigs" })
+                        {
+                            var go = GameObject.Find("Fir Bough Depth " + shade);
+                            var filter = go ? go.GetComponent<MeshFilter>() : null;
+                            Require(filter && filter.sharedMesh && go.GetComponent<Renderer>().enabled,
+                                "live full-fir renderer for " + shade);
+                            triangles += (int)filter.sharedMesh.GetIndexCount(0) / 3;
+                            Require(!go.GetComponent<Collider>(), "new fir needles are presentation-only");
+                        }
+                        Require(triangles == 54168, "all 54,168 bough triangles imported and mounted");
+                        Finish(true);
+                        return;
+                    }
                     if (SessionState.GetBool("TreeRoomScenery", false))
                     {
                         Vector3 offset = map.transform.position;
