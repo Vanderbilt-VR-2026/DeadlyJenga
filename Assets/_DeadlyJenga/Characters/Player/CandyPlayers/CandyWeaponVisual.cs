@@ -75,6 +75,8 @@ namespace DeadlyJenga.CandyPlayers
         const float BarGripRadius = .027f;
         internal const float SawBailHeight = .315f, SawBailDepth = .275f;
         internal const float AxeSupportDepth = .43f;
+        internal const float DesktopAxeUpperGripDepth = AxeSupportDepth + .065f;
+        const float DesktopAxeLowerGripDepth = -.075f;
         static readonly Vector3 StormbreakerEmitter = new Vector3(0, .397f, .827f);
 
         internal static Pose StormbreakerCarry(Pose aim, bool left, bool lightning, float scale,
@@ -287,14 +289,15 @@ namespace DeadlyJenga.CandyPlayers
 
         internal static void TryAxeLowerContact(ref CandyHandPose hand, Pose weapon, bool left, float scale)
         {
-            ShaftContact(ref hand, weapon, left, ModelScale(EquipmentKind.LaserAxe, scale), Vector3.zero,
+            ShaftContact(ref hand, weapon, left, ModelScale(EquipmentKind.LaserAxe, scale),
+                Vector3.forward * DesktopAxeLowerGripDepth,
                 Quaternion.Euler(0, left ? -90 : 90, 0), AxeWrapRadius);
         }
 
         internal static Pose DesktopAxeFromHighGrip(CandyHandPose hand, bool left, float scale)
         {
             var pose = DrawnPose(EquipmentKind.LaserAxe, hand, left, scale);
-            pose.position -= pose.rotation * Vector3.forward * (AxeSupportDepth * ModelScale(EquipmentKind.LaserAxe, scale));
+            pose.position -= pose.rotation * Vector3.forward * (DesktopAxeUpperGripDepth * ModelScale(EquipmentKind.LaserAxe, scale));
             return pose;
         }
 

@@ -931,7 +931,7 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 var primary = eye.InverseTransformPoint(primarySpiker.position);
                 var secondary = eye.InverseTransformPoint(secondarySpiker.position);
-                var sights = session.GetComponent<CandyGunSights>();
+                var sights = session.GetComponent<DeadlyJenga.Presentation.CandyGunSights>();
                 Check(sights.Aiming && !sights.DrawsScopeOverlay && sights.Magnification > 1,
                     "Spikers zoom on the central camera without a one-gun optic");
                 Check(Mathf.Abs(primary.y - idlePrimary.y) < .035f &&

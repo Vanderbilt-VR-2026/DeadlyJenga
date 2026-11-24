@@ -388,11 +388,11 @@ namespace DeadlyJenga.CandyPlayers
             var eye = avatar.viewCamera ? avatar.viewCamera.transform : transform;
             float side = leftHanded ? -1 : 1;
             // The exported model starts at the lower leather wrap, with the upper wrap at +Z.
-            var shaft = eye.TransformDirection(new Vector3(side * .76f, .60f, .24f)).normalized;
+            var shaft = eye.TransformDirection(new Vector3(side * .67f, .72f, .20f)).normalized;
             var blade = Vector3.ProjectOnPlane(eye.forward, shaft);
             var rotation = Quaternion.LookRotation(shaft, blade);
             var upper = eye.position + eye.TransformDirection(new Vector3(side * .15f, -.45f, .36f)) * Scale;
-            return new Pose(upper - shaft * CandyWeaponVisual.AxeSupportDepth * CandyWeaponVisual.ModelScale(EquipmentKind.LaserAxe, Scale), rotation);
+            return new Pose(upper - shaft * CandyWeaponVisual.DesktopAxeUpperGripDepth * CandyWeaponVisual.ModelScale(EquipmentKind.LaserAxe, Scale), rotation);
         }
 
         Pose DesktopMeleeCarry(Pose pose, EquipmentState state)
@@ -549,7 +549,7 @@ namespace DeadlyJenga.CandyPlayers
                 if (!motor.IsVR && !motor.externallyDriven && !state.shotgun)
                 {
                     hand.position += carry.rotation * Vector3.forward *
-                        (CandyWeaponVisual.AxeSupportDepth * CandyWeaponVisual.ModelScale(state.kind, Scale));
+                        (CandyWeaponVisual.DesktopAxeUpperGripDepth * CandyWeaponVisual.ModelScale(state.kind, Scale));
                 }
                 hand.skeleton=CandyWeaponVisual.ShaftGrip(state.kind,state.leftHanded);
             }
