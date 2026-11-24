@@ -187,6 +187,45 @@ namespace DeadlyJenga.CandyPlayers
             if (chainBelt.sharedMesh != frame) chainBelt.sharedMesh = frame;
         }
 
+        static (Mesh mesh, byte part, bool glass)[] alternateSpiker;
+        static bool alternateSpikerLoaded;
+        bool spikerPaletteApplied, spikerWasLeft;
+
+        void PresentSpikerPalettes(bool primaryLeft)
+        {
+            if (spikerPaletteApplied && spikerWasLeft == primaryLeft) return;
+            if (!alternateSpikerLoaded)
+            {
+                alternateSpikerLoaded = true;
+                var asset = Resources.Load<TextAsset>("RoundedSpikerRight");
+                if (asset)
+                {
+                    try { alternateSpiker = ReadWeaponMeshes(asset.bytes, 0x54524157, RoundedSpikerParts); }
+                    catch (Exception error) when (error is IOException || error is InvalidDataException)
+                    { Debug.LogError($"Could not read the reviewed right Spiker. {error.Message}"); }
+                }
+            }
+            if (alternateSpiker == null ||
+                !reviewedWeaponMeshes.TryGetValue(EquipmentKind.DualUzi, out var original) || original == null)
+                return;
+
+            ApplySpikerPalette(root, primaryLeft ? original : alternateSpiker);
+            ApplySpikerPalette(paired, primaryLeft ? alternateSpiker : original);
+            spikerWasLeft = primaryLeft;
+            spikerPaletteApplied = true;
+        }
+
+        static void ApplySpikerPalette(Transform weapon, (Mesh mesh, byte part, bool glass)[] art)
+        {
+            foreach (var part in art)
+            {
+                if (part.part < 2) continue;
+                var socket = weapon.Find(RoundedSpikerParts[part.part]);
+                var model = socket ? socket.Find(part.mesh.name) : null;
+                if (model) model.GetComponent<MeshFilter>().sharedMesh = part.mesh;
+            }
+        }
+
         static void EnsureReviewedWeaponMaterials()
         {
             if (duplexCoating && duplexGlass) return;

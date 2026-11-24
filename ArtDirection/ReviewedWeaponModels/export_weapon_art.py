@@ -15,6 +15,8 @@ elif mode == "staff":
     root = bpy.data.objects["Saw Wheel Staff | Natural branch"]
 elif mode == "chaingun":
     root = bpy.data.objects["Stock Chaingun"]
+elif mode == "spikers-right":
+    root = bpy.data.objects["Dual Spikes.001"]
 elif mode in {"alien", "sheriff", "sword", "rpg", "axe", "shooter", "marshmallow"}:
     name = {"alien": "Alien Blaster", "sheriff": "Blue Sheriff",
             "sword": "Stock Murderer Sword", "rpg": "RPG", "axe": "Laser Axe",
@@ -77,7 +79,7 @@ def part_of(obj):
         name = ancestor.name
         if name.startswith(("Extended lime power cell", "Brass cell collar")):
             return 1
-        if name.startswith("Crystal "):
+        if name.startswith("Crystal ") and name.split()[1].split(".")[0].isdigit():
             return 1 + int(name.split()[1].split(".")[0])
         ancestor = ancestor.parent
     return 0
@@ -164,7 +166,7 @@ elif mode == "alien":
     scene.frame_set(84)
     collect(target_part=1)
 
-assert {part for part, _ in parts} == set(range({"launcher": 8, "spikers": 7, "staff": 2, "chaingun": 18, "alien": 2, "sheriff": 2, "sword": 1, "rpg": 1, "axe": 1, "shooter": 3, "marshmallow": 1}[mode]))
+assert {part for part, _ in parts} == set(range({"launcher": 8, "spikers": 7, "spikers-right": 7, "staff": 2, "chaingun": 18, "alien": 2, "sheriff": 2, "sword": 1, "rpg": 1, "axe": 1, "shooter": 3, "marshmallow": 1}[mode]))
 with Path(destination).open("wb") as output:
     output.write(struct.pack("<4sI", b"WART", len(parts)))
     for (part, layer), (vertices, triangles) in sorted(parts.items()):

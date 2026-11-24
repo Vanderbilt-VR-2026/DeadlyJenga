@@ -113,6 +113,37 @@ namespace DeadlyJenga.CandyPlayers
             }
             var mesh=new Mesh{name=name};mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(tri,0);mesh.RecalculateNormals();mesh.RecalculateTangents();return mesh;
         }
+        static GameObject bakedStormAxe;
+        static Material bakedStormAxeMaterial;
+        static bool bakedStormAxeChecked;
+
+        static bool TryBuildBakedStormAxe(Transform root)
+        {
+            if (!bakedStormAxeChecked)
+            {
+                bakedStormAxeChecked = true;
+                var model = Resources.Load<GameObject>("BattlewornAxe");
+                var color = Resources.Load<Texture2D>("BattlewornAxeColor");
+                var shader = Shader.Find("Universal Render Pipeline/Lit");
+                if (model && color && shader)
+                {
+                    bakedStormAxe = model;
+                    bakedStormAxeMaterial = new Material(shader) { name = "Storm Axe baked finish" };
+                    bakedStormAxeMaterial.SetTexture("_BaseMap", color);
+                    bakedStormAxeMaterial.SetFloat("_Smoothness", .38f);
+                    bakedStormAxeMaterial.SetFloat("_Metallic", .25f);
+                    bakedStormAxeMaterial.enableInstancing = true;
+                }
+            }
+
+            if (!bakedStormAxe) return false;
+            var art = Object.Instantiate(bakedStormAxe, root, false);
+            art.name = "Battle-worn Storm Axe opaque";
+            foreach (var renderer in art.GetComponentsInChildren<MeshRenderer>(true))
+                renderer.sharedMaterial = bakedStormAxeMaterial;
+            return true;
+        }
+
         bool BuildFoundry(Transform root,EquipmentKind kind)
         {
             if (kind == EquipmentKind.GrenadeLauncher &&
@@ -123,8 +154,8 @@ namespace DeadlyJenga.CandyPlayers
                 TryBuildReviewedWeapon(root, kind, "BlackBrassChaingun", ChaingunArtParts)) return true;
             if (kind == EquipmentKind.RocketLauncher &&
                 TryBuildReviewedWeapon(root, kind, "CharcoalLollipopLauncher", RocketArtParts)) return true;
-            if (kind == EquipmentKind.LaserAxe &&
-                TryBuildReviewedWeapon(root, kind, "BattlewornStormAxe", AxeArtParts)) return true;
+            if (kind == EquipmentKind.LaserAxe && (TryBuildBakedStormAxe(root) ||
+                TryBuildReviewedWeapon(root, kind, "BattlewornStormAxe", AxeArtParts))) return true;
             if (kind == EquipmentKind.Chainsaw &&
                 TryBuildReviewedWeapon(root, kind, "GarageSawWheelShooter", SawShooterArtParts)) return true;
             if(kind!=EquipmentKind.RocketLauncher&&kind!=EquipmentKind.GrenadeLauncher&&kind!=EquipmentKind.BarbedBat&&

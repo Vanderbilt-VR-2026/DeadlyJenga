@@ -427,6 +427,7 @@ namespace DeadlyJenga.CandyPlayers
                 if (root) Object.Destroy(root.gameObject);
                 paired = pairedFeed = rotor = null;
                 chainBelt = null;
+                spikerPaletteApplied = false;
                 kind = state.kind;
                 root = Create(kind);
                 if (kind == EquipmentKind.Chainsaw && rotor) wheelSeat = rotor.localPosition;
@@ -510,6 +511,7 @@ namespace DeadlyJenga.CandyPlayers
                     }
                 }
 
+                if (kind == EquipmentKind.DualUzi) PresentSpikerPalettes(state.leftHanded);
                 bool otherLeft = !state.leftHanded;
                 var other = otherLeft ? frame.left : frame.right;
                 var otherPose = CarryPose(frame, other, otherLeft, drawAmount, target > 0);

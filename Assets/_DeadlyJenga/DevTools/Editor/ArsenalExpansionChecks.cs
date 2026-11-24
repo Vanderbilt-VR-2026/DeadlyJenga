@@ -1106,6 +1106,10 @@ namespace DeadlyJenga.DevTools.Editor
                     {
                         var held = player.transform.Find("Visual - " + kind);
                         Check(held && held.Find(reviewedMesh), "The live player uses the reviewed model: " + kind);
+                        if (kind == EquipmentKind.LaserAxe)
+                            Check(held.Find(reviewedMesh).GetComponentsInChildren<MeshRenderer>().Any(renderer =>
+                                renderer.sharedMaterial.GetTexture("_BaseMap")?.name == "BattlewornAxeColor"),
+                                "The live Storm Axe uses the original Blender texture bake");
                     }
                     var ready=model.position;
                     var activeSeat=mounted?movingPart.localPosition:Vector3.zero;
@@ -1174,6 +1178,18 @@ namespace DeadlyJenga.DevTools.Editor
                             Check(pairedFeed,"Offhand spiker has a separate magazine");
                             Check(feed.Find("Prismatic power cell opaque")&&pairedFeed.Find("Prismatic power cell opaque"),
                                 "Both holders use the reviewed prismatic power cell");
+                            var mainCrystal = model.Find("Crystal 5").GetComponentInChildren<MeshFilter>();
+                            var otherCrystal = paired.Find("Crystal 5").GetComponentInChildren<MeshFilter>();
+                            Check(mainCrystal && otherCrystal && mainCrystal.sharedMesh != otherCrystal.sharedMesh,
+                                "The paired Spikers mount distinct reviewed crystal palettes");
+                            var primaryCrystal = mainCrystal.sharedMesh;
+                            var secondaryCrystal = otherCrystal.sharedMesh;
+                            state.leftHanded = !state.leftHanded;
+                            visual.Present(state,frame,true);
+                            Check(mainCrystal.sharedMesh == secondaryCrystal && otherCrystal.sharedMesh == primaryCrystal,
+                                "Changing dominant hand keeps the crystal art on its correct hand");
+                            state.leftHanded = !state.leftHanded;
+                            visual.Present(state,frame,true);
                             state.reloadRemaining=spec.reloadSeconds*.76f;
                             visual.Present(state,frame,true);
                             Check(feed.localPosition.sqrMagnitude>.001f&&pairedFeed.localPosition.sqrMagnitude<.001f,
@@ -1265,12 +1281,17 @@ namespace DeadlyJenga.DevTools.Editor
                         Check(!effects.transform.Find(impactName), "The Spiker crystal breaks after its brief contact hold");
                     }
                 }
+                player.Place(new Vector3(150,10.05f,149), Quaternion.identity);
+                wall.transform.position = new Vector3(150,14,157);
+                Physics.SyncTransforms();
                 Check(runtime.GiveEquipment(EquipmentKind.Blaster), "The reviewed Alien Blaster equips in live gameplay");
                 yield return new WaitForSeconds(.65f);
                 var blaster = player.transform.Find("Visual - Blaster");
                 var hatch = blaster ? blaster.Find("Open cooling hatch pose") : null;
                 Check(hatch && !hatch.gameObject.activeSelf, "The Alien Blaster hatch is closed at rest");
                 var shot = new Pose(player.ViewPose.position + Vector3.forward * .6f, Quaternion.identity);
+                var plasmaView = session.GetComponent<DeadlyJenga.Presentation.CandyPlasmaView>();
+                bool physicsImpact = false, impactVisual = false;
                 for (int i = 0; i < 4; i++)
                 {
                     Check(runtime.RequestEquipmentAttack(shot), "Authority accepts the Alien Blaster shot " + (i + 1));
@@ -1288,15 +1309,17 @@ namespace DeadlyJenga.DevTools.Editor
                         }
                         Check(emitter && bolt, "The accepted shot renders the emitter collars and braided traveling bolt");
                     }
-                    yield return new WaitForSeconds(.49f);
+                    float nextShot = Time.time + .49f;
+                    while (Time.time < nextShot)
+                    {
+                        yield return null;
+                        physicsImpact |= runtime.Frame.blaster.impacts.Length > 0;
+                        impactVisual |= RenderedPlasma(plasmaView, "Visual - plasma impact radius");
+                    }
                 }
                 Check(hatch.gameObject.activeSelf, "Firing opens the reviewed cooling hatch");
-                var plasmaView = session.GetComponent<DeadlyJenga.Presentation.CandyPlasmaView>();
-                float impactDeadline = Time.realtimeSinceStartup + 3;
-                while (!RenderedPlasma(plasmaView, "Visual - plasma impact radius") && Time.realtimeSinceStartup < impactDeadline)
-                    yield return null;
-                Check(RenderedPlasma(plasmaView, "Visual - plasma impact radius"),
-                    "Physics contact renders the segmented plasma shock fronts");
+                Check(physicsImpact, "The reviewed plasma shot hits the fixture wall");
+                Check(impactVisual, "Physics contact renders the segmented plasma shock fronts");
                 yield return new WaitForSeconds(1.7f);
                 Check(!hatch.gameObject.activeSelf, "The reviewed cooling hatch closes again after cooling");
                 wall.transform.position = new Vector3(150,14,150.95f);
