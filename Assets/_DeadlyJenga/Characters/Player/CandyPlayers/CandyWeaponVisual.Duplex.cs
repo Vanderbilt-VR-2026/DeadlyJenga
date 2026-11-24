@@ -21,7 +21,8 @@ namespace DeadlyJenga.CandyPlayers
         static readonly string[] SugarCorpsLauncherParts =
         {
             "Sugar Corps launcher", "Sugar Corps drum", "Charge cell 1", "Charge cell 2", "Charge cell 3",
-            "Charge cell 4", "Charge cell 5", "Charge cell 6"
+            "Charge cell 4", "Charge cell 5", "Charge cell 6",
+            "Cells light 1", "Cells light 2", "Cells light 3", "Cells light 4", "Cells light 5", "Cells light 6"
         };
         static readonly string[] RoundedSpikerParts =
         {
@@ -181,7 +182,7 @@ namespace DeadlyJenga.CandyPlayers
             for (int i = weapon == EquipmentKind.SawStaff ? 1 : 2; i < mountedParts; i++)
             {
                 parts[i] = new GameObject(names[i]).transform;
-                parts[i].SetParent(weapon == EquipmentKind.GrenadeLauncher ? parts[1] : parent, false);
+                parts[i].SetParent(weapon == EquipmentKind.GrenadeLauncher && i < 8 ? parts[1] : parent, false);
             }
             if (weapon is EquipmentKind.SawStaff or EquipmentKind.ChainGun or EquipmentKind.Chainsaw)
             {

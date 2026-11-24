@@ -14,6 +14,8 @@ namespace DeadlyJenga.CastlePrototype
         IMovementState owner;
         CandyHealthFeedback health;
         Vector4 state;
+        Vector2 powerupTint;
+        EffectType jumpBoost, speedBoost;
         Camera sprintView;
         float desktopSprint;
         public float Opacity => canvas && canvas.enabled ? state.x : 0;
@@ -74,11 +76,32 @@ namespace DeadlyJenga.CastlePrototype
             state.y = health.Damage;
             state.z = Mathf.MoveTowards(state.z, target.z, Mathf.Max(0, dt) * 5);
             state.w = Mathf.MoveTowards(state.w, target.w, Mathf.Max(0, dt) * 3);
-            if (state.sqrMagnitude < .00001f && health.Healing <= 0 && health.Impact <= 0)
+            if (!jumpBoost) jumpBoost = Resources.Load<EffectType>("Powerups/Jump3x");
+            if (!speedBoost) speedBoost = Resources.Load<EffectType>("Powerups/Speed2x");
+            var effects = motor as IAffectable;
+            var activePowerups = new Vector2(effects?.Has(jumpBoost) == true ? 1 : 0,
+                effects?.Has(speedBoost) == true ? 1 : 0);
+            powerupTint = Vector2.MoveTowards(powerupTint, activePowerups, Mathf.Max(0, dt) * 3);
+            if (state.sqrMagnitude < .00001f && powerupTint.sqrMagnitude < .00001f &&
+                health.Healing <= 0 && health.Impact <= 0)
             { if (canvas) canvas.enabled = false; return; }
             if (!canvas) Build(); if (!canvas) return;
-            CandyScreenPlane.Configure(canvas, view.ViewCamera, view.IsVR);
+            var camera = view.ViewCamera;
+            var parent = view.IsVR ? camera.transform : transform;
+            if (canvas.transform.parent != parent) canvas.transform.SetParent(parent, false);
+            // Follow the camera's final tracked pose, including XR updates just before rendering.
+            if (view.IsVR)
+            {
+                var layer = (camera.cullingMask & (1 << gameObject.layer)) != 0 ? gameObject.layer : camera.gameObject.layer;
+                if ((camera.cullingMask & (1 << layer)) == 0)
+                    for (int i = 0; i < 32; i++)
+                        if ((camera.cullingMask & (1 << i)) != 0) { layer = i; break; }
+                canvas.gameObject.layer = layer;
+                canvas.transform.GetChild(0).gameObject.layer = layer;
+            }
+            CandyScreenPlane.Configure(canvas, camera, view.IsVR);
             material.SetVector("_State", state);
+            material.SetVector("_Powerups", new Vector4(powerupTint.x, powerupTint.y, 0, 0));
             material.SetColor("_Ink", player?.color ?? (body.GetComponent<IModeActor>()?.Color ?? Color.cyan));
             material.SetFloat("_Recovery", health.Healing); material.SetFloat("_Impact", health.Impact);
             material.SetVector("_Bearing", health.Bearing);
@@ -119,6 +142,7 @@ namespace DeadlyJenga.CastlePrototype
             ClearDesktopSprint();
             if (canvas) canvas.enabled = false;
             state = Vector4.zero;
+            powerupTint = Vector2.zero;
             if (health) health.ResetDisplay();
         }
         void OnDisable() => Hide();

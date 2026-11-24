@@ -772,7 +772,8 @@ namespace DeadlyJenga.CastlePrototype
             EquipmentKind.FlamingMarshmallow => "Flaming",
             EquipmentKind.NeedleDrill => "Drill",
             EquipmentKind.SheriffHammer => "Sheriff",
-            EquipmentKind.StockPistol => "Pistol",
+            EquipmentKind.StockPistol => "Stock Pistol",
+            EquipmentKind.CompactSidearm => "Compact Sidearm",
             EquipmentKind.DualUzi => "Spiker Uzis",
             EquipmentKind.DualRifle => "Rifle",
             EquipmentKind.RocketLauncher => "Rocket",
@@ -808,17 +809,17 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < rangedItems.Length; i++)
             {
                 var kind = rangedItems[i];
-                Vector2 pos = new Vector2(-402 + (i % 2) * 184, 154 - (i / 2) * 74);
+                Vector2 pos = new Vector2(-402 + (i % 2) * 184, 154 - (i / 2) * 60);
                 string name = CleanWeaponSlotName(kind);
                 int cur = slotIdx++;
                 var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => name,
-                    pos, new Vector2(176, 66), () => SelectWeaponKind(kind),
+                    pos, new Vector2(176, 54), () => SelectWeaponKind(kind),
                     selected: () => tabletWeaponSelected == kind, font: 16);
                 slot.Label.resizeTextForBestFit = true;
                 slot.Label.resizeTextMinSize = 15;
                 slot.Label.resizeTextMaxSize = 16;
                 slot.Label.rectTransform.anchoredPosition = new Vector2(28, 0);
-                slot.Label.rectTransform.sizeDelta = new Vector2(112, 56);
+                slot.Label.rectTransform.sizeDelta = new Vector2(112, 49);
                 var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(-57, 0), new Vector2(52, 46));
                 tabletWheelSlotButtons[cur] = slot;
                 tabletWheelSlotPictures[cur] = pic;

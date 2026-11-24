@@ -265,7 +265,8 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(travelInputHeld&&travelReleaseAt>=0&&Time.unscaledTime>=travelReleaseAt)ReleaseArrivalInput();
             if (IsVR != wasVR) { wasVR = IsVR; SetMenu(MenuOpen); }
-            if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);
+            if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen &&
+                Player?.ThirdPerson?.Inspecting != true) SetMenu(true);
             if (!PlayingHand && NetworkActors.Alive(Player) && Player.transform.position.y < -6)
             {
                 if(Modes)Player.gameObject.GetComponent<IDamageable>()?.Eliminate(gameObject);

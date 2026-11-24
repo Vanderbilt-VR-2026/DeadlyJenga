@@ -71,6 +71,9 @@ def part_of(obj):
             ancestor = ancestor.parent
         return 0
     if mode == "launcher":
+        if name.startswith("Charge meter segment"):
+            suffix = name.removeprefix("Charge meter segment").lstrip(".")
+            return 8 + int(suffix or 0) % 6
         if name.startswith("Charge cell "):
             return 1 + int(name.split()[2].split(".")[0])
         return int(name.startswith("Drum end shield"))
@@ -122,7 +125,8 @@ def surface(material):
     if not node:
         return 0, (*material.diffuse_color[:3], 1), (0, .65, 0, 0)
     values = node.inputs
-    color = tuple(values["Base Color"].default_value)
+    base = values["Base Color"]
+    color = tuple(material.diffuse_color if mode == "sword" and base.is_linked else base.default_value)
     alpha = values["Alpha"].default_value
     metal = values["Metallic"].default_value
     smoothness = 1 - values["Roughness"].default_value
@@ -168,6 +172,8 @@ def collect(only_part=None, target_part=None):
         for material_index, loops in triangles_to_export:
             material = mesh.materials[material_index]
             layer, color, finish = surface(material)
+            if mode == "launcher" and part >= 8:
+                layer, color, finish = 0, (.12, .78, .35, 1), (.1, .66, 1.35, 0)
             vertices, triangles = parts[(part, layer)]
             for loop_index in reversed(loops):
                 point = transform.translation if mode == "alien" and obj.hide_render else transform @ mesh.vertices[mesh.loops[loop_index].vertex_index].co
@@ -194,7 +200,7 @@ elif mode == "alien":
     scene.frame_set(84)
     collect(target_part=1)
 
-assert {part for part, _ in parts} == set(range({"launcher": 8, "spikers": 7, "spikers-right": 7, "staff": 2, "chaingun": 18, "alien": 2, "sheriff": 2, "sword": 1, "rpg": 1, "axe": 1, "shooter": 3, "marshmallow": 1}[mode]))
+assert {part for part, _ in parts} == set(range({"launcher": 14, "spikers": 7, "spikers-right": 7, "staff": 2, "chaingun": 18, "alien": 2, "sheriff": 2, "sword": 1, "rpg": 1, "axe": 1, "shooter": 3, "marshmallow": 1}[mode]))
 with Path(destination).open("wb") as output:
     output.write(struct.pack("<4sI", b"WART", len(parts)))
     for (part, layer), (vertices, triangles) in sorted(parts.items()):

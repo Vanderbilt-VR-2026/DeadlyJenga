@@ -10,6 +10,7 @@ namespace DeadlyJenga.Presentation
 
         public static Sprite Get(EquipmentKind kind, bool alternate = false)
         {
+            if (kind == EquipmentKind.CompactSidearm) kind = EquipmentKind.StockPistol;
             if (kind < EquipmentKind.Blaster || kind > EquipmentKind.Dagger)
                 return null;
 

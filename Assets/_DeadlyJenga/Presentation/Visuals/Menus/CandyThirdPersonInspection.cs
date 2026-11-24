@@ -20,7 +20,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly RectTransform[] controls = new RectTransform[7];
         readonly RaycastHit[] obstacles = new RaycastHit[32];
         bool originalEnabled, vr, built;
-        InputAction mirrorSelect;
+        InputAction mirrorSelect, mirrorOrbit;
         bool selectArmed;
         readonly CandyOrbitView orbitView = new CandyOrbitView();
         float yaw { get => orbitView.Yaw; set => orbitView.Yaw = value; }
@@ -41,9 +41,19 @@ namespace DeadlyJenga.CastlePrototype
             if (!built && !Build(session)) { state.End(); return; }
             if (!ReferenceEquals(player, session.Player) || original != player.ViewCamera || session.IsVR != vr)
             { state.End(); return; }
-            if (vr) { if (!MirrorSelectHeld) selectArmed = true; return; }
-            if (Keyboard.current?.vKey.wasPressedThisFrame == true) { state.End(); return; }
-            orbitView.ReadDesktop();
+            if (vr)
+            {
+                if (!MirrorSelectHeld) selectArmed = true;
+                orbitView.ApplyStick(mirrorOrbit.ReadValue<Vector2>());
+                return;
+            }
+            if (Keyboard.current?.vKey.wasPressedThisFrame == true)
+            {
+                state.End();
+                session.SetMenu(false);
+                return;
+            }
+            orbitView.ReadDesktop(freeLook: true);
         }
 
         bool Build(ISessionInfo session)
@@ -66,7 +76,9 @@ namespace DeadlyJenga.CastlePrototype
             if (vr)
             {
                 mirrorSelect=new InputAction("Inspection mirror select",InputActionType.Button,"<XRController>{RightHand}/trigger");
-                mirrorSelect.Enable();selectArmed=false;BuildMirror();
+                mirrorOrbit = new InputAction("Inspection orbit", InputActionType.Value,
+                    "<XRController>{RightHand}/primary2DAxis", processors: "stickDeadzone");
+                mirrorSelect.Enable(); mirrorOrbit.Enable(); selectArmed=false;BuildMirror();
             }
             else original.enabled = false;
             built = true;
@@ -83,6 +95,7 @@ namespace DeadlyJenga.CastlePrototype
             if (panel) Destroy(panel);
             if (texture) { texture.Release(); Destroy(texture); }
             mirrorSelect?.Dispose();mirrorSelect=null;
+            mirrorOrbit?.Dispose();mirrorOrbit=null;
             orbit = null; texture = null; panel = null; player = null; original = null;
         }
 
@@ -160,7 +173,7 @@ namespace DeadlyJenga.CastlePrototype
             if (!built || vr || !texture) return;
             int old = GUI.depth; GUI.depth = -90;
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), texture, ScaleMode.ScaleToFit);
-            GUI.Box(new Rect(18, 18, Mathf.Min(Screen.width - 36, 760), 54), "THIRD PERSON  ·  Drag mouse / arrows: orbit  ·  Scroll / +/-: zoom  ·  V: return  ·  Esc: menu");
+            GUI.Box(new Rect(18, 18, Mathf.Min(Screen.width - 36, 760), 54), "THIRD PERSON  ·  Mouse / right stick / arrows: orbit  ·  Scroll / +/-: zoom  ·  V: return  ·  Esc: menu");
             GUI.depth = old;
         }
         void OnDisable() { if (built) Teardown(); if (Current == this) Current = null; }

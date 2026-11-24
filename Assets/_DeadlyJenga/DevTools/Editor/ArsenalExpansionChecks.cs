@@ -25,7 +25,7 @@ namespace DeadlyJenga.DevTools.Editor
         static bool SawStaffOnly => SessionState.GetBool(Key+"SawStaffOnly",false);
         static bool StockPistolOnly=>SessionState.GetBool(Key+"StockPistolOnly",false);
         static bool PistolMotionOnly=>SessionState.GetBool(Key+"PistolMotionOnly",false);
-        static string Report=>ProjectPath.Report(SessionState.GetBool(Key+"WeaponRefinementOnly",false)?"WeaponRefinement.txt":NeedleOnly?"NeedleDrillArt.txt":BoxingGloveOnly?"BoxingGloveArt.txt":PistolMotionOnly?"PistolMotion.txt":
+        static string Report=>ProjectPath.Report(SessionState.GetBool(Key+"FinalPolishOnly",false)?"FinalPolish.txt":SessionState.GetBool(Key+"WeaponRefinementOnly",false)?"WeaponRefinement.txt":NeedleOnly?"NeedleDrillArt.txt":BoxingGloveOnly?"BoxingGloveArt.txt":PistolMotionOnly?"PistolMotion.txt":
             StockPistolOnly?"StockPistolArt.txt":SawStaffOnly?"SawWheelStaffContacts.txt":"ArsenalExpansion.txt");
         sealed class PickupSource:IEquipmentPickupSource {public EquipmentKind Kind{get;set;}public Vector3 Position{get;set;}public float Duration{get;set;}=1;}
         [Serializable] sealed class SavedScene { public string path; public bool loaded, active; }
@@ -85,6 +85,8 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunArsenalGame() => Start(false, arsenalGameOnly:true);
 
+        public static void RunFinalPolish() => Start(false, finalPolishOnly:true);
+
         public static void RunWeaponRefinement() => Start(false, weaponRefinementOnly:true);
 
         public static void RunBarbedBat()=>Start(true);
@@ -106,9 +108,10 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunNeedleDrill()=>Start(false, needleOnly:true);
 
-        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false, bool needleOnly=false, bool motionOnly=false, bool ordnanceOnly=false, bool arsenalGameOnly=false, bool weaponRefinementOnly=false)
+        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false, bool needleOnly=false, bool motionOnly=false, bool ordnanceOnly=false, bool arsenalGameOnly=false, bool weaponRefinementOnly=false, bool finalPolishOnly=false)
         {
             SessionState.SetBool(Key+"WeaponRefinementOnly", weaponRefinementOnly);
+            SessionState.SetBool(Key+"FinalPolishOnly", finalPolishOnly);
             SessionState.SetBool(Key+"MotionOnly",motionOnly);
             SessionState.SetBool(Key+"OrdnanceOnly",ordnanceOnly);
             SessionState.SetBool(Key+"ArsenalGameOnly",arsenalGameOnly);
@@ -845,6 +848,154 @@ namespace DeadlyJenga.DevTools.Editor
             }
         }
 
+        static IEnumerator CheckFinalPolish(CastlePlaySession session, MatchModeRuntime runtime,
+            CastleSurvivor player, CastleSurvivor target)
+        {
+            const System.Reflection.BindingFlags instanceFlags = System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance;
+            const System.Reflection.BindingFlags staticFlags = System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Static;
+            var ranged = (EquipmentKind[][])typeof(CastleWorldMenu).GetField("WheelGroups", staticFlags).GetValue(null);
+            var desktop = (EquipmentKind[][])typeof(CandyDemoHud).GetField("DesktopWheelItems", staticFlags).GetValue(null);
+            Check(ranged[0].Contains(EquipmentKind.CompactSidearm) && desktop[0].Contains(EquipmentKind.CompactSidearm),
+                "Both Developer ranged catalogues include the Compact Sidearm");
+            Check(runtime.GiveEquipment(EquipmentKind.CompactSidearm) &&
+                runtime.EquipmentFor(runtime.LocalActorId).kind == EquipmentKind.CompactSidearm,
+                "The real Developer give route equips the Compact Sidearm");
+
+            for (int i = 0; i < 3; i++) Check(session.SurvivorBots.SpawnOne(), "Spawn live Demo bot " + (i + 2));
+            yield return new WaitForSeconds(.35f);
+            var demoBots = runtime.Frame.players.Where(row => row.bot).ToArray();
+            Check(demoBots.Length >= 4 && demoBots.Select(row => (Color32)row.color).Distinct().Count() >= 4,
+                "Demo's existing palette assignment gives four actual bots different displayed colors");
+            foreach (var bot in demoBots)
+                Check((Color32)runtime.FindActor(bot.id).Color == (Color32)bot.color,
+                    "Live bot rendering identity agrees with the Demo color snapshot");
+
+            Check(runtime.GiveEquipment(EquipmentKind.MurderSword), "Game equips the Murderer Sword");
+            yield return new WaitForSeconds(.65f);
+            var sword = player.transform.Find("Visual - MurderSword/Garnet Murderer Sword opaque");
+            Check(sword && !ShaderUtil.ShaderHasError(sword.GetComponent<MeshRenderer>().sharedMaterial.shader),
+                "The actual Murderer Sword uses its Garnet mesh and compiled shader");
+            var swordData = Resources.Load<TextAsset>("GarnetMurdererSword");
+            bool garnet = false;
+            using (var reader = new BinaryReader(new MemoryStream(swordData.bytes)))
+            {
+                reader.ReadUInt32();
+                int sections = reader.ReadInt32();
+                for (int s = 0; s < sections; s++)
+                {
+                    reader.ReadUInt16();
+                    int vertices = reader.ReadInt32();
+                    int indices = reader.ReadInt32();
+                    for (int v = 0; v < vertices; v++)
+                    {
+                        reader.BaseStream.Position += 24;
+                        float r = reader.ReadSingle(), g = reader.ReadSingle(), b = reader.ReadSingle();
+                        garnet |= r > .25f && r < .5f && g < .06f && b < .12f;
+                        reader.BaseStream.Position += 20;
+                    }
+                    reader.BaseStream.Position += indices * 4L;
+                }
+            }
+            Check(garnet, "Visible vertex colors include the authored deep red garnet lacquer");
+
+            Check(runtime.GiveEquipment(EquipmentKind.GrenadeLauncher), "Game equips the Sugar Corps launcher");
+            yield return new WaitForSeconds(.65f);
+            var launcher = player.transform.Find("Visual - GrenadeLauncher");
+            var meter = Enumerable.Range(1, 6).Select(i => launcher.Find("Cells light " + i))
+                .Select(go => go ? go.GetComponentInChildren<MeshRenderer>() : null).ToArray();
+            Check(meter.All(renderer => renderer), "All six original CELLS segments mount on the live launcher");
+            var block = new MaterialPropertyBlock();
+            int LitCells()
+            {
+                return meter.Count(renderer =>
+                {
+                    renderer.GetPropertyBlock(block);
+                    return block.GetFloat("_IndicatorLevel") > .5f;
+                });
+            }
+            Check(LitCells() == 6, "CELLS meter starts full");
+            var muzzle = new Pose(player.ViewPose.position + Vector3.forward * .6f,
+                Quaternion.LookRotation(new Vector3(0,.4f,1)));
+            for (int i = 0; i < 6; i++)
+            {
+                Check(runtime.RequestEquipmentAttack(muzzle), "Launcher fires live round " + (i + 1));
+                yield return new WaitForSeconds(.08f);
+                Check(LitCells() == 5 - i, "CELLS meter reflects " + (5 - i) + " remaining rounds");
+                if (i < 5) yield return new WaitForSeconds(.78f);
+            }
+            yield return new WaitForSeconds(2.9f);
+            Check(LitCells() == 6, "CELLS meter returns to six after reload");
+
+            var hud = player.GetComponent<CandyStaminaHud>();
+            var head = player.viewCamera;
+            var own = runtime.Frame.players.Single(row => row.id == runtime.LocalActorId);
+            var grip = typeof(CastleSurvivor).GetProperty("GripRemaining", instanceFlags);
+            var vr = typeof(CastleSurvivor).GetProperty("IsVR", instanceFlags);
+            var jump = Resources.Load<EffectType>("Powerups/Jump3x");
+            var speed = Resources.Load<EffectType>("Powerups/Speed2x");
+            var receiver = (IAffectable)player;
+            bool wasPaused = player.InputSuspended;
+            var priorGrip = grip.GetValue(player);
+            var priorHealth = own.health;
+            try
+            {
+                vr.SetValue(player, true);
+                player.InputSuspended = false;
+                grip.SetValue(player, .20f);
+                own.health = .45f;
+                receiver.Apply(new Effect { type = jump, strength = 1, duration = 5 });
+                receiver.Apply(new Effect { type = speed, strength = 1, duration = 5 });
+                hud.Present(player, 2);
+                var canvas = (Canvas)typeof(CandyStaminaHud).GetField("canvas", instanceFlags).GetValue(hud);
+                var material = (Material)typeof(CandyStaminaHud).GetField("material", instanceFlags).GetValue(hud);
+                Check(canvas && canvas.enabled && canvas.renderMode == RenderMode.WorldSpace &&
+                    canvas.transform.parent == head.transform && (head.cullingMask & (1 << canvas.gameObject.layer)) != 0,
+                    "VR body feedback uses a camera-relative, visible, world-space plane");
+                var state = material.GetVector("_State");
+                Check(state.x > .5f && state.y > .2f && !ShaderUtil.ShaderHasError(material.shader),
+                    "VR routed plane displays stamina and health using the compiled shader");
+                var tint = material.GetVector("_Powerups");
+                Check(tint.x > .9f && tint.y > .9f, "Both live jump and speed timers drive their independent VR vignette channels");
+                receiver.Remove(jump);
+                hud.Present(player, 2);
+                tint = material.GetVector("_Powerups");
+                Check(tint.x == 0 && tint.y > .9f, "Ending the jump effect clears purple without clearing lime");
+            }
+            finally
+            {
+                receiver.Remove(jump); receiver.Remove(speed); vr.SetValue(player, false);
+                player.InputSuspended = wasPaused; grip.SetValue(player, priorGrip); own.health = priorHealth;
+                hud.Present(player, 2);
+            }
+
+            var inspection = ((IPlayableCharacter)player).ThirdPerson;
+            inspection.Begin();
+            yield return null;
+            var orbit = CandyThirdPersonInspection.Current;
+            Check(inspection.Inspecting && orbit && orbit.InspectionCamera,
+                "The live Developer inspection opens its third-person camera");
+            var before = orbit.InspectionCamera.transform.rotation;
+            var pad = UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Gamepad>();
+            try
+            {
+                for (int i = 0; i < 24; i++)
+                {
+                    UnityEngine.InputSystem.LowLevel.InputState.Change(pad.rightStick, new Vector2(.9f, .15f));
+                    pad.MakeCurrent();
+                    yield return null;
+                }
+                Check(Quaternion.Angle(before, orbit.InspectionCamera.transform.rotation) > 8,
+                    "Right-stick input actually rotates the live third-person camera");
+            }
+            finally
+            {
+                UnityEngine.InputSystem.InputSystem.RemoveDevice(pad);
+                inspection.End();
+            }
+        }
+
         static IEnumerator CheckWeaponRefinement(CastlePlaySession session, MatchModeRuntime runtime,
             CastleSurvivor player, CastleSurvivor target)
         {
@@ -962,6 +1113,11 @@ namespace DeadlyJenga.DevTools.Editor
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
             var created=session.SurvivorBots.SpawnOne();Check(created,"Target bot spawns");var target=created.GetComponent<CastleSurvivor>();target.GetComponent<CastleBotBrain>().enabled=false;target.InputSuspended=true;
             yield return new WaitForSeconds(.4f);
+            if (SessionState.GetBool(Key+"FinalPolishOnly", false))
+            {
+                yield return CheckFinalPolish(session, runtime, player, target);
+                yield break;
+            }
             if (SessionState.GetBool(Key+"WeaponRefinementOnly", false))
             {
                 yield return CheckWeaponRefinement(session, runtime, player, target);

@@ -5,6 +5,7 @@ Shader "DeadlyJenga/DuplexSurface"
         [HideInInspector] _SrcBlend("Source Blend", Float) = 1
         [HideInInspector] _DstBlend("Destination Blend", Float) = 0
         [HideInInspector] _ZWrite("Depth Write", Float) = 1
+        [HideInInspector] _IndicatorLevel("Indicator level", Float) = 1
     }
     SubShader
     {
@@ -29,6 +30,10 @@ Shader "DeadlyJenga/DuplexSurface"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/SurfaceData.hlsl"
+
+            CBUFFER_START(UnityPerMaterial)
+            half _IndicatorLevel;
+            CBUFFER_END
 
             struct Attributes
             {
@@ -113,9 +118,9 @@ Shader "DeadlyJenga/DuplexSurface"
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
                 half3 normal = normalize(input.normalWS);
                 half3 view = GetWorldSpaceNormalizeViewDir(input.positionWS);
-                half3 albedo = input.color.rgb;
+                half3 albedo = lerp(half3(.025,.045,.034), input.color.rgb, _IndicatorLevel);
                 half opacity = input.color.a;
-                half3 emission = albedo * input.finish.z;
+                half3 emission = albedo * input.finish.z * _IndicatorLevel;
 
                 #if defined(_DUPLEX_GLASS)
                     half fresnel = pow(1 - saturate(abs(dot(normal, view))), 3);

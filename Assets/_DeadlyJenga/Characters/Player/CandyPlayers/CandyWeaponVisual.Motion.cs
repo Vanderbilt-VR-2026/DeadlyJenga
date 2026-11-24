@@ -8,6 +8,10 @@ namespace DeadlyJenga.CandyPlayers
     {
         const string FeedAssembly = "Animated ammunition assembly";
         Transform feed, pairedFeed, embeddedTarget;
+        Transform grenadeMeterOwner;
+        readonly MeshRenderer[] grenadeMeter = new MeshRenderer[6];
+        MaterialPropertyBlock grenadeMeterProperties;
+        int grenadeMeterCount = -1;
         Transform primaryRoundFeed, secondaryRoundFeed;
         Transform[] primaryRounds, secondaryRounds;
         float pickupStarted = float.NegativeInfinity;
@@ -589,6 +593,8 @@ namespace DeadlyJenga.CandyPlayers
                 assembly.Find(names[2]))
             {
                 int remaining = state.magazineInitialized ? Mathf.Clamp(state.rounds, 0, 6) : 6;
+                int seated = reloading ? Mathf.Clamp(1 + Mathf.FloorToInt((phase - .48f) / .064f), 0, 6) : remaining;
+                PresentGrenadeMeter(assembly.parent, seated);
                 for (int i = 0; i < 6; i++)
                 {
                     var cell = assembly.Find(names[i + 2]);
@@ -620,6 +626,29 @@ namespace DeadlyJenga.CandyPlayers
                     : Vector3.zero;
             }
             return true;
+        }
+
+        void PresentGrenadeMeter(Transform weapon, int count)
+        {
+            if (grenadeMeterOwner != weapon)
+            {
+                grenadeMeterOwner = weapon;
+                grenadeMeterCount = -1;
+                for (int i = 0; i < grenadeMeter.Length; i++)
+                {
+                    var light = weapon.Find(SugarCorpsLauncherParts[i + 8]);
+                    grenadeMeter[i] = light ? light.GetComponentInChildren<MeshRenderer>() : null;
+                }
+            }
+            if (grenadeMeterCount == count) return;
+            grenadeMeterCount = count;
+            grenadeMeterProperties ??= new MaterialPropertyBlock();
+            for (int i = 0; i < grenadeMeter.Length; i++)
+            {
+                if (!grenadeMeter[i]) continue;
+                grenadeMeterProperties.SetFloat("_IndicatorLevel", i < count ? 1 : 0);
+                grenadeMeter[i].SetPropertyBlock(grenadeMeterProperties);
+            }
         }
 
         void PresentRocketCandy(Transform weapon, EquipmentState state, bool reloading, float phase)

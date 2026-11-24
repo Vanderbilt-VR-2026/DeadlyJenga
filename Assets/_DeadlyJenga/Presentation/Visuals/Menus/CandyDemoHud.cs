@@ -242,7 +242,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 Note(1790,Demo.Status);
                 var inspection=session.Player?.ThirdPerson;
-                ActionCard(1895,CandyHudIcon.Survivor,"Inspect your character in third person","Leave your character still. Drag to orbit, scroll to zoom; V returns to first person.",()=>inspection?.Begin(),inspection!=null&&inspection.CanInspect);
+                ActionCard(1895,CandyHudIcon.Survivor,"Inspect your character in third person","Leave your character still. Move the mouse to orbit, scroll to zoom; V returns to first person.",()=>inspection?.Begin(),inspection!=null&&inspection.CanInspect);
             }
             if(match is IPowerupSpawnControls)
                 ActionCard(DemoMode?2010:535,CandyHudIcon.Settings,"Random block powerup settings","Spawn interval, active limit, lifetime, and weighted types / percentages.",()=>DeadlyJenga.Presentation.CandyPowerupSpawnPanel.Open());
@@ -547,7 +547,7 @@ namespace DeadlyJenga.CastlePrototype
         void ControlsPage()
         {
             var inspection=session.Player?.ThirdPerson;
-            ActionCard(117,CandyHudIcon.Survivor,"Third person / inspect your avatar",session.IsVR?"Stationary mirror: look at its orbit / zoom buttons, then hold RIGHT trigger or pinch.":"Character stays still. Drag mouse to orbit, scroll to zoom; V returns.",()=>inspection?.Begin(),inspection?.CanInspect==true);
+            ActionCard(117,CandyHudIcon.Survivor,"Third person / inspect your avatar",session.IsVR?"Stationary mirror: use the right stick to orbit, or look at a button and hold RIGHT trigger or pinch.":"Character stays still. Move the mouse to orbit, scroll to zoom; V returns.",()=>inspection?.Begin(),inspection?.CanInspect==true);
             Note(550,session.IsVR?"PICKUP: Look at the weapon, reach and squeeze grip or pinch. Swapping drops the item in your slot.":
                 "PICKUP: Aim at the weapon and press E. Swapping drops the item in your slot. Delete drops it directly.");
             var hints=Hints();for(int i=0;i<hints.Length;i++){Panel(new Rect(8,221+i*107,824,94),CandyHudVisuals.Card);Icon(new Rect(25,244+i*107,44,44),hints[i].icon,CandyHudVisuals.Mint);GUI.Label(new Rect(88,233+i*107,720,32),hints[i].key,heading);GUI.Label(new Rect(88,272+i*107,720,38),hints[i].text,body);}

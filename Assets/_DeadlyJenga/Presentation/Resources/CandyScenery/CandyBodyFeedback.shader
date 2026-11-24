@@ -6,6 +6,7 @@ Shader "Candy Tropical/Body Feedback"
         _SandTex ("Shared island sand", 2D) = "white" {}
         _Masks ("Ink and sweat masks", 2D) = "black" {}
         _State ("Fatigue / lost health / sprint / sand", Vector) = (0,0,0,0)
+        _Powerups ("Jump / speed", Vector) = (0,0,0,0)
         _Ink ("Player ink", Color) = (0,1,1,1)
         _Recovery ("Healing", Float) = 0
         _Impact ("Impact", Float) = 0
@@ -30,7 +31,7 @@ Shader "Candy Tropical/Body Feedback"
             TEXTURE2D(_Masks); SAMPLER(sampler_Masks);
             TEXTURE2D(_SandTex); SAMPLER(sampler_SandTex);
             CBUFFER_START(UnityPerMaterial)
-            half4 _State, _Ink, _Bearing;
+            half4 _State, _Ink, _Bearing, _Powerups;
             half _Recovery, _Impact, _DeathKind, _Wipe;
             float _Age, _FeedbackTime;
             CBUFFER_END
@@ -94,6 +95,9 @@ Shader "Candy Tropical/Body Feedback"
                 half edge=length(p*float2(1,.92));
                 if (_DeathKind<.5)
                 {
+                    half peripheral = smoothstep(.77, 1.32, edge);
+                    Layer(result, half3(.61,.27,1), peripheral * _Powerups.x * .19);
+                    Layer(result, half3(.66,1,.12), peripheral * _Powerups.y * .17);
                     half fatigue=_State.x;
                     if (fatigue>.001)
                     {
