@@ -71,6 +71,7 @@ namespace DeadlyJenga.DevTools.Editor
             File.WriteAllText(Report,"Real Game scene combat fixtures with six controlled bots. Mechanics cases supply an initial goal; production contact cases use real mode facts/director after normal perception settles. Ordinary motors, cooldowns, geometry and authoritative outcomes. Full natural matches are separate checks.\n");
             File.WriteAllText(Csv,"case,time,state,reason,x,y,z,victimHealth,attempts,accepted,withheld\n");
             SessionState.SetBool(Key,true);SessionState.SetBool(Key+"Restore",true);
+            SessionState.SetInt(Key+"Exit",2);
             MatchSetup.FromLobby=true;MatchSetup.BotTarget=1;MatchSetup.StartLocalSession=false;
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
@@ -85,11 +86,16 @@ namespace DeadlyJenga.DevTools.Editor
             MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);
             MysteryChoices.RequestedRole=(MysteryRole)SessionState.GetInt(Key+"Role",0);
             File.AppendAllText(Report,"PASS Original scene setup and match choices restored.\n");
-            if(SessionState.GetBool(Key+"Screenshot",false))
+            bool screenshot = SessionState.GetBool(Key+"Screenshot",false);
+            SessionState.SetBool(Key+"Screenshot",false);
+            int result = SessionState.GetInt(Key+"Exit",2);
+            if (!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
             {
-                SessionState.SetBool(Key+"Screenshot",false);
-                EditorApplication.Exit(SessionState.GetInt(Key+"ScreenshotExit",2));
+                Directory.CreateDirectory("Logs/Warm");
+                File.WriteAllText("Logs/Warm/exit.txt",result.ToString());
             }
+            else if (screenshot || Application.isBatchMode)
+                EditorApplication.Exit(result);
         }
         static void Poll()
         {
@@ -366,8 +372,9 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetBool(Key,false);Application.logMessageReceived-=Log;GameEvents.Damaged-=Damage;GameEvents.Pushed-=Push;
             if(attacker)attacker.Motor.PunchRequested-=Punch;
             BotObjectives.Current=session?session.Modes:null;
-            if(SessionState.GetBool(Key+"Screenshot",false))
-                SessionState.SetInt(Key+"ScreenshotExit",failures+errors==0&&SessionState.GetBool(Key+"ScreenshotWritten",false)?0:2);
+            bool captureReady = !SessionState.GetBool(Key+"Screenshot",false) ||
+                SessionState.GetBool(Key+"ScreenshotWritten",false);
+            SessionState.SetInt(Key+"Exit",failures+errors==0&&captureReady?0:2);
             Time.timeScale=SessionState.GetFloat(Key+"Scale",1);Time.captureFramerate=SessionState.GetInt(Key+"Capture",0);Application.targetFrameRate=SessionState.GetInt(Key+"Target",-1);
             try{File.AppendAllText(Report,"COMPLETE failures="+failures+" runtimeErrors="+errors+". Desktop fixtures only; no headset or second peer.\n");}
             finally{EditorApplication.ExitPlaymode();}
