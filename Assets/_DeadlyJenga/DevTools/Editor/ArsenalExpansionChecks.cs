@@ -25,7 +25,7 @@ namespace DeadlyJenga.DevTools.Editor
         static bool SawStaffOnly => SessionState.GetBool(Key+"SawStaffOnly",false);
         static bool StockPistolOnly=>SessionState.GetBool(Key+"StockPistolOnly",false);
         static bool PistolMotionOnly=>SessionState.GetBool(Key+"PistolMotionOnly",false);
-        static string Report=>ProjectPath.Report(NeedleOnly?"NeedleDrillArt.txt":BoxingGloveOnly?"BoxingGloveArt.txt":PistolMotionOnly?"PistolMotion.txt":
+        static string Report=>ProjectPath.Report(SessionState.GetBool(Key+"WeaponRefinementOnly",false)?"WeaponRefinement.txt":NeedleOnly?"NeedleDrillArt.txt":BoxingGloveOnly?"BoxingGloveArt.txt":PistolMotionOnly?"PistolMotion.txt":
             StockPistolOnly?"StockPistolArt.txt":SawStaffOnly?"SawWheelStaffContacts.txt":"ArsenalExpansion.txt");
         sealed class PickupSource:IEquipmentPickupSource {public EquipmentKind Kind{get;set;}public Vector3 Position{get;set;}public float Duration{get;set;}=1;}
         [Serializable] sealed class SavedScene { public string path; public bool loaded, active; }
@@ -900,8 +900,8 @@ namespace DeadlyJenga.DevTools.Editor
             yield return new WaitForSeconds(.75f);
             var axe = player.transform.Find("Visual - LaserAxe");
             var playerAvatar = player.GetComponent<CandyPlayerAvatar>();
-            var leftHand = playerAvatar.RenderedFrame.left.position;
-            var rightHand = playerAvatar.RenderedFrame.right.position;
+            var leftHand = playerAvatar.LastFrame.left.position;
+            var rightHand = playerAvatar.LastFrame.right.position;
             bool leftDominant = runtime.EquipmentFor(id).leftHanded;
             var upper = leftDominant ? leftHand : rightHand;
             var lower = leftDominant ? rightHand : leftHand;
