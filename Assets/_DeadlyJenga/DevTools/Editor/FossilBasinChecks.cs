@@ -108,6 +108,11 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(bodies.Count>500,"expanded Blender member count "+bodies.Count);
                 float worst=bodies.Select((body,i)=>Vector3.Distance(body.position,initial[i])).Max();
                 Check(worst<.7f,"unloaded maximum travel "+worst);
+                foreach(var item in bodies.Select((b,i)=>(b,travel:Vector3.Distance(b.position,initial[i]))).OrderByDescending(x=>x.travel).Take(8))
+                    report+=item.b.name+" travel "+item.travel+" at "+item.b.position+"\n";
+                report+="Joints remaining "+map.GetComponentsInChildren<Joint>().Length+"\n";
+                // Renders, bot spawn and the pull get their own time budget after the settle.
+                deadline=EditorApplication.timeSinceStartup+120;
                 var spawn=map.SafeSpawnPoint();
                 Check(Physics.Raycast(spawn+Vector3.up*.25f,Vector3.down,out var bearing,.7f,1<<Layers.Block)&&bearing.normal.y>.86f,
                     "survivor spawn has flat bearing at "+spawn);

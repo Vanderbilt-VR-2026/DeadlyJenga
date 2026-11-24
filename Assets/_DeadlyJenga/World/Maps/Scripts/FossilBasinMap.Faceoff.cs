@@ -84,6 +84,9 @@ namespace DeadlyJenga.CastlePrototype
                 pad.transform.SetParent(structure, false);
                 pad.transform.localPosition = new Vector3(baseBlock.p.x, padTop - .20f, baseBlock.p.z);
                 pad.AddComponent<BoxCollider>().size = new Vector3(baseBlock.size.x * 1.35f, .4f, baseBlock.size.z * 1.35f);
+                // A kinematic body lets the lowest pier unit be bolted to its bearing.
+                var padBody = pad.AddComponent<Rigidbody>();
+                padBody.isKinematic = true;
 
                 FossilMember lower = null;
                 for (int start = 0; start < post.blocks.Length; start += 3)
@@ -109,6 +112,7 @@ namespace DeadlyJenga.CastlePrototype
                         }
                     });
                     if (lower) Socket(body, lower, new Vector3(core.x, bottom, core.z), 7200);
+                    else Socket(body.Body, padBody, new Vector3(core.x, bottom, core.z), 7200);
                     lower = body;
                 }
                 heads.Add(lower);
