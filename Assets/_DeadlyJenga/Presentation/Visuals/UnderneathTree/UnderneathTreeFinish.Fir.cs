@@ -32,6 +32,11 @@ namespace DeadlyJenga.CandyArt
             AddModel("Fir shadowed heart", "Fir Core", treeCenter, ShadowCastingMode.On,
                 Surface("Fir shadowed heart", null, new Color(.03f, .10f, .045f), .05f, Vector2.one));
 
+            AddBoughDepth("Shade", treeCenter, new Color(.033f, .122f, .049f));
+            AddBoughDepth("Green", treeCenter, new Color(.053f, .179f, .060f));
+            AddBoughDepth("Tips", treeCenter, new Color(.097f, .235f, .087f));
+            AddBoughDepth("Twigs", treeCenter, new Color(.091f, .058f, .025f));
+
             // One glass material for every bauble: the model's UVs pick a colour from this strip.
             firPalette = new Texture2D(4, 1, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
             firPalette.SetPixels(new[] { new Color(.95f, .60f, .16f), new Color(.80f, .03f, .06f),
@@ -50,6 +55,13 @@ namespace DeadlyJenga.CandyArt
                 Surface("Green vintage light cable", null, new Color(.02f, .05f, .025f), .3f, Vector2.one));
             LightFir(treeCenter);
             TopStar(treeCenter);
+        }
+
+        void AddBoughDepth(string shade, Vector3 center, Color color)
+        {
+            string name = "Fir Bough Depth " + shade;
+            AddModel(name, name, center, ShadowCastingMode.Off,
+                Surface(name, null, color, .18f, Vector2.one));
         }
 
         // A glowing gold star on the very top, facing into the room (the photos all have one).
@@ -158,6 +170,7 @@ namespace DeadlyJenga.CandyArt
                     var outward = new Vector3(offset.x, 0f, offset.z).normalized;
                     var point = (outward + Vector3.up * (.25f + .5f * Mathf.Abs(Mathf.Sin(count * 12.9898f))) +
                         Vector3.Cross(Vector3.up, outward) * Mathf.Sin(count * 78.233f) * .6f).normalized;
+                    position += outward * 1.5f - Vector3.up * .6f;
                     // Sample the lower string more densely where its light reaches the course.
                     if ((count <= 44 && count % 3 == 0) || (count > 44 && count % 11 == 0))
                         MakeLight("Fir bulb spill " + count, LightType.Point, position + outward * 5f - Vector3.up * 1.5f,
@@ -166,7 +179,7 @@ namespace DeadlyJenga.CandyArt
                     const float length = 3.6f;
                     var socket = position - point * (length * .5f);
                     bulbs[tint].Add(new CombineInstance { mesh = glassBulb,
-                        transform = Matrix4x4.TRS(socket, turn, Vector3.one * length) });
+                        transform = Matrix4x4.TRS(socket, turn, new Vector3(1.1f, 1f, 1.1f) * length) });
                     sockets.Add(new CombineInstance { mesh = cylinder,
                         transform = Matrix4x4.TRS(socket - point * .3f, turn, new Vector3(.8f, .42f, .8f)) });
                     // A tiny hot filament inside the glass, and a wide soft glow so the string
