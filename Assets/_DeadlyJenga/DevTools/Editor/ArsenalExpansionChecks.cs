@@ -1464,8 +1464,16 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(hatch.gameObject.activeSelf, "Reaching overheat opens the reviewed cooling hatch");
                 Check(physicsImpact, "The reviewed plasma shot hits the fixture wall");
                 Check(impactVisual, "Physics contact renders the segmented plasma shock fronts");
-                yield return new WaitForSeconds(1.7f);
-                Check(!hatch.gameObject.activeSelf, "The reviewed cooling hatch closes again after cooling");
+                float ventDeadline = Time.realtimeSinceStartup + 4;
+                while (runtime.EquipmentFor(runtime.LocalActorId).reloadRemaining > 0 &&
+                    Time.realtimeSinceStartup < ventDeadline)
+                    yield return null;
+                Check(runtime.EquipmentFor(runtime.LocalActorId).reloadRemaining <= 0,
+                    "The authoritative overheat lock expires");
+                float hatchDeadline = Time.realtimeSinceStartup + 1.5f;
+                while (hatch.gameObject.activeSelf && Time.realtimeSinceStartup < hatchDeadline)
+                    yield return null;
+                Check(!hatch.gameObject.activeSelf, "The reviewed hatch eases shut after cooling");
                 runtime.StartRound();
                 yield return null;
                 player.Place(new Vector3(150,10.05f,149), Quaternion.identity);
