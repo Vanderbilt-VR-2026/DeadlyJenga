@@ -818,6 +818,9 @@ namespace DeadlyJenga.DevTools.Editor
             block.transform.localScale=Vector3.one*.75f;
             Physics.SyncTransforms();
             var held=(IHeldEquipmentRuntime)runtime;
+            var importedBit = Resources.Load<GameObject>("EjectedDrillBit")?.GetComponentInChildren<MeshFilter>()?.sharedMesh;
+            Check(importedBit && importedBit.bounds.size.z > .23f && importedBit.bounds.size.z < .29f,
+                "Unity imports the Blender drill bit at the correct size and axis");
             bool sawTrail=false,sawChips=false;
             float deadline=Time.realtimeSinceStartup+5;
             try
@@ -827,8 +830,7 @@ namespace DeadlyJenga.DevTools.Editor
                     if (!sawTrail) held.RequestEquipmentTrigger(true,pose);
                     yield return null;
                     sawTrail|=trails.GetComponentsInChildren<Transform>().Any(part=>part.name=="Ejected helical drill bit" &&
-                        part.TryGetComponent<MeshFilter>(out var filter) && filter.sharedMesh &&
-                        filter.sharedMesh.name.Contains("EjectedDrillBit"));
+                        part.TryGetComponent<MeshFilter>(out var filter) && filter.sharedMesh == importedBit);
                     var chips=session.GetComponentsInChildren<ParticleSystem>().FirstOrDefault(
                         system=>system.name=="Pooled Needle Drill candy chips");
                     sawChips=chips&&chips.particleCount>0;
@@ -943,8 +945,9 @@ namespace DeadlyJenga.DevTools.Editor
 
             Check(runtime.GiveEquipment(EquipmentKind.BoxingGlove), "Real round equips the boxing glove");
             yield return new WaitForSeconds(.55f);
-            Check(EquipmentModelData.Parts.TryGetValue(EquipmentKind.BoxingGlove, out var glove) &&
-                glove.Any(part => part.mesh && part.mesh.name.Contains("BoxingGloveLining")),
+            var lining = Resources.Load<GameObject>("BoxingGloveLining")?.GetComponentInChildren<MeshFilter>()?.sharedMesh;
+            Check(lining && EquipmentModelData.Parts.TryGetValue(EquipmentKind.BoxingGlove, out var glove) &&
+                glove.Any(part => part.mesh == lining),
                 "World pickup uses the imported padded glove cavity");
             yield return NeedleDrillArt(session, runtime, player, target);
         }
