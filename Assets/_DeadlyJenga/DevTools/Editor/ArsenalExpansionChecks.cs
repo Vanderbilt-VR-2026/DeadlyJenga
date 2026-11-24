@@ -1299,6 +1299,11 @@ namespace DeadlyJenga.DevTools.Editor
                             Check(filter.sharedMesh && filter.sharedMesh != initialBelt, "The reviewed Chaingun belt advances during sustained fire");
                             state.triggerHeld = false;
                         }
+                        else if (kind == EquipmentKind.NeedleDrill)
+                            Check(feed.GetComponentsInChildren<MeshRenderer>().Any(renderer =>
+                                    renderer.sharedMaterial && renderer.sharedMaterial.name == "Tool-orange molded polymer") &&
+                                !feed.Cast<Transform>().Any(item => item.name.StartsWith("Visible round ")),
+                                "Drill reload inserts its Blender battery without ammunition props");
                         else if(!energy&&kind!=EquipmentKind.DualUzi)
                             Check(feed.Cast<Transform>().Any(item=>item.name.StartsWith(kind==EquipmentKind.GrenadeLauncher?"Charge cell ":"Visible round ")&&item.gameObject.activeSelf),
                                 "Reload displays ammunition meshes: "+kind);
