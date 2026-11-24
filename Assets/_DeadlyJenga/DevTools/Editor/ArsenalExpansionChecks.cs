@@ -1108,6 +1108,7 @@ namespace DeadlyJenga.DevTools.Editor
                         Check(held && held.Find(reviewedMesh), "The live player uses the reviewed model: " + kind);
                         if (kind == EquipmentKind.LaserAxe)
                             Check(held.Find(reviewedMesh).GetComponentsInChildren<MeshRenderer>().Any(renderer =>
+                                renderer.sharedMaterial && renderer.sharedMaterial.HasProperty("_BaseMap") &&
                                 renderer.sharedMaterial.GetTexture("_BaseMap")?.name == "BattlewornAxeColor"),
                                 "The live Storm Axe uses the original Blender texture bake");
                     }
