@@ -864,11 +864,15 @@ namespace DeadlyJenga.DevTools.Editor
             yield return new WaitForSeconds(.90f);
             Check(runtime.EquipmentFor(id).charge < firstHeat && runtime.EquipmentFor(id).reloadRemaining == 0,
                 "Partial charge refills during a pause without a forced vent");
-            for (int i = 0; i < 5; i++)
+            int sustainedShots = 0;
+            while (sustainedShots < 5 && runtime.EquipmentFor(id).reloadRemaining <= 0)
             {
-                Check(runtime.RequestEquipmentAttack(muzzle), "Sustained blaster shot " + (i + 1));
-                if (i < 4) yield return new WaitForSeconds(.48f);
+                Check(runtime.RequestEquipmentAttack(muzzle), "Sustained blaster shot " + (++sustainedShots));
+                if (runtime.EquipmentFor(id).reloadRemaining <= 0)
+                    yield return new WaitForSeconds(.48f);
             }
+            Check(sustainedShots >= 4 && runtime.EquipmentFor(id).charge > .95f,
+                "Sustained fire overheats while preserving partially recovered heat");
             yield return new WaitForSeconds(.55f);
             Check(runtime.EquipmentFor(id).reloadRemaining > 0 &&
                 !runtime.RequestEquipmentAttack(muzzle), "Vent still locks fire after the shot cooldown expires");
@@ -886,6 +890,31 @@ namespace DeadlyJenga.DevTools.Editor
             yield return new WaitForSeconds(1.45f);
             Check(!hatch.gameObject.activeSelf && runtime.RequestEquipmentAttack(muzzle),
                 "Hatch closes and the weapon fires again after cooling");
+
+            Check(runtime.GiveEquipment(EquipmentKind.BarbedBat), "Real round equips the bat");
+            yield return new WaitForSeconds(.75f);
+            var bat = player.transform.Find("Visual - BarbedBat");
+            Check(bat && Vector3.Dot(bat.forward, Vector3.up) > .5f, "Desktop bat rests upright");
+
+            Check(runtime.GiveEquipment(EquipmentKind.LaserAxe), "Real round equips the Titan Axe");
+            yield return new WaitForSeconds(.75f);
+            var axe = player.transform.Find("Visual - LaserAxe");
+            var playerAvatar = player.GetComponent<CandyPlayerAvatar>();
+            var leftHand = playerAvatar.RenderedFrame.left.position;
+            var rightHand = playerAvatar.RenderedFrame.right.position;
+            bool leftDominant = runtime.EquipmentFor(id).leftHanded;
+            var upper = leftDominant ? leftHand : rightHand;
+            var lower = leftDominant ? rightHand : leftHand;
+            Check(axe && upper.y - lower.y > .11f &&
+                Vector3.Dot(axe.forward, (upper - lower).normalized) > .82f &&
+                Vector3.Dot(axe.up, player.ViewPose.rotation * Vector3.forward) > .65f,
+                "Titan Axe lies across the two hands with head forward and the dominant grip higher");
+
+            Check(runtime.GiveEquipment(EquipmentKind.RocketLauncher), "Real round equips the lollipop launcher");
+            yield return new WaitForSeconds(.75f);
+            var stick = player.transform.Find("Visual - RocketLauncher/Front-loaded lollipop/White bore-fit stick");
+            Check(stick && stick.localScale.y >= .28f && stick.localScale.x < .05f,
+                "The deployed lollipop has a long slim loading shaft");
 
             Check(runtime.GiveEquipment(EquipmentKind.BoxingGlove), "Real round equips the boxing glove");
             yield return new WaitForSeconds(.55f);
@@ -1021,6 +1050,8 @@ namespace DeadlyJenga.DevTools.Editor
             var lodged=Object.FindObjectsByType<TrailRenderer>(FindObjectsSortMode.None)
                 .FirstOrDefault(t=>t.name=="Visual - Chainsaw projectile"&&!t.emitting);
             Check(lodged!=null,"A wheel remains visible after impact");
+            Check(Mathf.Abs(Vector3.Dot(lodged.transform.up, wall.transform.forward)) < .25f,
+                "The lodged saw axle is tangent to the wall and the teeth enter edge-first");
             var lodgedPosition=lodged?lodged.transform.position:Vector3.zero;
             yield return new WaitForSeconds(1);
             Check(lodged&&lodged.gameObject.activeInHierarchy&&
@@ -1372,7 +1403,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var shot = new Pose(player.ViewPose.position + Vector3.forward * .6f, Quaternion.identity);
                 var plasmaView = session.GetComponent<DeadlyJenga.Presentation.CandyPlasmaView>();
                 bool physicsImpact = false, impactVisual = false;
-                for (int i = 0; i < 4; i++)
+                for (int i = 0; i < 5; i++)
                 {
                     Check(runtime.RequestEquipmentAttack(shot), "Authority accepts the Alien Blaster shot " + (i + 1));
                     if (i == 0)
@@ -1397,7 +1428,7 @@ namespace DeadlyJenga.DevTools.Editor
                         impactVisual |= RenderedPlasma(plasmaView, "Visual - plasma impact radius");
                     }
                 }
-                Check(hatch.gameObject.activeSelf, "Firing opens the reviewed cooling hatch");
+                Check(hatch.gameObject.activeSelf, "Reaching overheat opens the reviewed cooling hatch");
                 Check(physicsImpact, "The reviewed plasma shot hits the fixture wall");
                 Check(impactVisual, "Physics contact renders the segmented plasma shock fronts");
                 yield return new WaitForSeconds(1.7f);

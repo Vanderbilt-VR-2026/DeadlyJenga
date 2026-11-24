@@ -403,9 +403,13 @@ namespace DeadlyJenga.Presentation
             effect.hatchOpen = Mathf.MoveTowards(effect.hatchOpen, venting ? 1 : 0, Time.deltaTime * (venting ? 6 : 4));
             if (effect.coolingPose)
             {
-                effect.coolingPose.gameObject.SetActive(active && effect.hatchOpen > .001f);
-                if (effect.coolBody) effect.coolBody.gameObject.SetActive(!effect.coolingPose.gameObject.activeSelf);
-                if (effect.coolGlass) effect.coolGlass.gameObject.SetActive(!effect.coolingPose.gameObject.activeSelf);
+                bool open = active && effect.hatchOpen > .001f;
+                if (effect.coolingPose.gameObject.activeSelf != open)
+                {
+                    effect.coolingPose.gameObject.SetActive(open);
+                    if (effect.coolBody) effect.coolBody.gameObject.SetActive(!open);
+                    if (effect.coolGlass) effect.coolGlass.gameObject.SetActive(!open);
+                }
                 if (effect.ventParts != null)
                     foreach (var renderer in effect.ventParts)
                         renderer.SetBlendShapeWeight(0, Mathf.SmoothStep(0, 100, effect.hatchOpen));

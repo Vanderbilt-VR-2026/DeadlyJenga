@@ -293,6 +293,7 @@ namespace DeadlyJenga.CandyPlayers
                 EquipmentKind.StockPistol => StockPistolMagazineGrip,
                 EquipmentKind.Chainsaw => new Vector3(0, .23f, .20f),
                 EquipmentKind.DualUzi => new Vector3(0, -.16f, 0),
+                EquipmentKind.NeedleDrill => new Vector3(0, -.232f, -.095f),
                 EquipmentKind.WristLaser or EquipmentKind.LaserAxe => Vector3.zero,
                 _ => new Vector3(0, -.055f, -.13f)
             };
