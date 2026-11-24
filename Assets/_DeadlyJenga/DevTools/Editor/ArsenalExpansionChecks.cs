@@ -67,21 +67,16 @@ namespace DeadlyJenga.DevTools.Editor
                         File.AppendAllText(Report,"ERROR Restoring editor scene setup: "+error+"\n");
                     }
                     failed|=!completed;File.AppendAllText(Report,$"COMPLETE checks={checks} runtimeErrors={errors} failed={failed}. Desktop runtime; headset not tested.\n");
-                    bool weaponMotion = SessionState.GetBool(Key+"MotionOnly",false);
                     SessionState.SetBool(Key+"MotionOnly",false);
-                    if (weaponMotion || SessionState.GetBool(Key+"RocketCandyOnly",false) ||
-                        SessionState.GetBool(Key+"CosmeticWeaponsOnly",false) ||
-                        NeedleOnly || BoxingGloveOnly || SawStaffOnly || StockPistolOnly || PistolMotionOnly)
+                    SessionState.SetBool(Key+"OrdnanceOnly",false);
+                    int result = failed || errors > 0 ? 1 : 0;
+                    if (!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
                     {
-                        int result = failed || errors > 0 ? 1 : 0;
-                        if (!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id","")))
-                        {
-                            Directory.CreateDirectory("Logs/Warm");
-                            File.WriteAllText("Logs/Warm/exit.txt",result.ToString());
-                        }
-                        else if (Application.isBatchMode)
-                            EditorApplication.Exit(result);
+                        Directory.CreateDirectory("Logs/Warm");
+                        File.WriteAllText("Logs/Warm/exit.txt",result.ToString());
                     }
+                    else if (Application.isBatchMode)
+                        EditorApplication.Exit(result);
                 }
             };
         }
@@ -107,9 +102,10 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunNeedleDrill()=>Start(false, needleOnly:true);
 
-        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false, bool needleOnly=false, bool motionOnly=false)
+        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false, bool needleOnly=false, bool motionOnly=false, bool ordnanceOnly=false)
         {
             SessionState.SetBool(Key+"MotionOnly",motionOnly);
+            SessionState.SetBool(Key+"OrdnanceOnly",ordnanceOnly);
             SessionState.SetBool(Key+"BarbedBatOnly",barbedBatOnly);
             SessionState.SetBool(Key+"CosmeticWeaponsOnly",cosmeticWeaponsOnly);
             SessionState.SetBool(Key+"RocketCandyOnly",candyOnly);
@@ -1032,6 +1028,8 @@ namespace DeadlyJenga.DevTools.Editor
         }
         public static void RunWeaponMotion() => Start(false, motionOnly:true);
 
+        public static void RunReviewedOrdnance() => Start(false, motionOnly:true, ordnanceOnly:true);
+
         static IEnumerator TestWeaponMotion()
         {
             File.AppendAllText(Report,"Weapon motions: live equipment grants with controlled hand and reload frames.\n");
@@ -1054,6 +1052,11 @@ namespace DeadlyJenga.DevTools.Editor
             rules.fallDamage=false;
             runtime.Configure(rules);
             runtime.StartRound();
+            if (SessionState.GetBool(Key+"OrdnanceOnly",false))
+            {
+                yield return TestReviewedOrdnance(session, runtime, player);
+                yield break;
+            }
             var rig=player.GetComponent<CandyPlayerAvatar>().Rig;
             var holder=new GameObject("Weapon motion fixture");
             try
@@ -1275,9 +1278,14 @@ namespace DeadlyJenga.DevTools.Editor
                     Check(impact, "The projectile reaches a real physics impact: " + weapon);
                     yield return null;
                     string impactName = weapon == EquipmentKind.GrenadeLauncher ? "Visual - expanding blast shock fronts" : "Visual - embedded Spiker crystal";
-                    Check(effects.transform.Find(impactName), "The impact posts its reviewed effect: " + weapon);
+                    var impactMesh = effects.transform.Find(impactName);
+                    Check(impactMesh, "The impact posts its reviewed effect: " + weapon);
                     if (weapon == EquipmentKind.DualUzi)
                     {
+                        var mountedCrystal = impactMesh.GetComponent<MeshFilter>().sharedMesh;
+                        Check(mountedCrystal && mountedCrystal.name == "Sculpted DualUzi projectile" &&
+                            mountedCrystal.bounds.size.z > .10f && mountedCrystal.bounds.size.z < .11f,
+                            "The live impact embeds the reviewed faceted needle profile");
                         yield return new WaitForSeconds(2.65f);
                         Check(!effects.transform.Find(impactName), "The Spiker crystal breaks after its brief contact hold");
                     }
