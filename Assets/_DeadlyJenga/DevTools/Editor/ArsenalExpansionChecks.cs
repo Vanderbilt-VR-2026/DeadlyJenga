@@ -936,6 +936,8 @@ namespace DeadlyJenga.DevTools.Editor
             var jump = Resources.Load<EffectType>("Powerups/Jump3x");
             var speed = Resources.Load<EffectType>("Powerups/Speed2x");
             var receiver = (IAffectable)player;
+            session.SetMenu(false);
+            head.enabled = true;
             bool wasPaused = player.InputSuspended;
             var priorGrip = grip.GetValue(player);
             var priorHealth = own.health;
@@ -943,13 +945,16 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 vr.SetValue(player, true);
                 player.InputSuspended = false;
-                grip.SetValue(player, .20f);
                 own.health = .45f;
                 receiver.Apply(new Effect { type = jump, strength = 1, duration = 5 });
                 receiver.Apply(new Effect { type = speed, strength = 1, duration = 5 });
+                grip.SetValue(player, .20f);
+                var view = (IPlayerView)player;
+                File.AppendAllText(Report, $"VR setup menu={session.MenuOpen} active={session.ActiveCamera == head} controlled={view.ControlledHere} camera={head.isActiveAndEnabled} input={player.InputSuspended} role={own.role} phase={runtime.Frame.phase} health={player.Health} grip={((IMovementState)player).Stamina} jump={receiver.Has(jump)} speed={receiver.Has(speed)}\n");
                 hud.Present(player, 2);
                 var canvas = (Canvas)typeof(CandyStaminaHud).GetField("canvas", instanceFlags).GetValue(hud);
                 var material = (Material)typeof(CandyStaminaHud).GetField("material", instanceFlags).GetValue(hud);
+                if (canvas) File.AppendAllText(Report, $"VR canvas enabled={canvas.enabled} mode={canvas.renderMode} parent={canvas.transform.parent == head.transform} layer={canvas.gameObject.layer} mask={head.cullingMask}\n");
                 Check(canvas && canvas.enabled && canvas.renderMode == RenderMode.WorldSpace &&
                     canvas.transform.parent == head.transform && (head.cullingMask & (1 << canvas.gameObject.layer)) != 0,
                     "VR body feedback uses a camera-relative, visible, world-space plane");
