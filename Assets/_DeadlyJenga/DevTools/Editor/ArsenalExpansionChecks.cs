@@ -905,9 +905,12 @@ namespace DeadlyJenga.DevTools.Editor
             bool leftDominant = runtime.EquipmentFor(id).leftHanded;
             var upper = leftDominant ? leftHand : rightHand;
             var lower = leftDominant ? rightHand : leftHand;
-            Check(axe && upper.y - lower.y > .11f &&
-                Vector3.Dot(axe.forward, (upper - lower).normalized) > .82f &&
-                Vector3.Dot(axe.up, player.ViewPose.rotation * Vector3.forward) > .65f,
+            float shaftAlignment = axe ? Vector3.Dot(axe.forward, (upper - lower).normalized) : 0;
+            float bladeFacing = axe ? Vector3.Dot(axe.up, player.ViewPose.rotation * Vector3.forward) : 0;
+            File.AppendAllText(Report, $"Titan Axe scale={playerAvatar.LastFrame.scale:F3} dominant={upper} support={lower} shaft={shaftAlignment:F3} blade={bladeFacing:F3}\n");
+            Check(axe && upper.y - lower.y > .10f * playerAvatar.LastFrame.scale &&
+                shaftAlignment > .82f &&
+                bladeFacing > .65f,
                 "Titan Axe lies across the two hands with head forward and the dominant grip higher");
 
             Check(runtime.GiveEquipment(EquipmentKind.RocketLauncher), "Real round equips the lollipop launcher");

@@ -71,8 +71,7 @@ open_review("single-barrel-polish/round-lollipop/random-reloads/RPG candy color 
 stick = bpy.data.objects["Bore-fit white paper stick"]
 dimensions = stick.dimensions.copy()
 axis = max(range(3), key=lambda i: dimensions[i])
-for index in range(3):
-    stick.dimensions[index] = .584 if index == axis else .045
+stick.dimensions = Vector(tuple(.584 if index == axis else .045 for index in range(3)))
 # The candy is forward along Y. The tip stays in the head during the whole reload.
 stick.location.y -= .168
 save("RPG - long bore-fit lollipop")
