@@ -24,10 +24,11 @@ namespace DeadlyJenga.Presentation
                     if(r.surface.anchor)
                     {
                         var pose=r.surface.anchor.localToWorldMatrix*r.surface.localFrame;
-                        r.root.SetPositionAndRotation(pose.GetColumn(3),pose.rotation*Quaternion.Euler(90,0,0));
+                        PlaceEmbeddedNeedle(r.root, pose.GetColumn(3), pose.rotation);
                     }
                     else r.root.position=Vector3.Lerp(r.from,r.to,Mathf.Clamp01(age/.065f));
-                    float fade=Mathf.Clamp01((r.life-age)/.45f);r.root.localScale=new Vector3(.035f,.22f,.035f)*fade;
+                    float fade=Mathf.Clamp01((r.life-age)/.45f);
+                    r.root.localScale=new Vector3(1.12f,1.12f,1.175f)*fade;
                 }
                 else
                 {
@@ -61,6 +62,13 @@ namespace DeadlyJenga.Presentation
             return SpikerColors[fired / 12];
         }
 
+        static void PlaceEmbeddedNeedle(Transform needle, Vector3 point, Quaternion outward)
+        {
+            // The needle lands tip-first with its flared tail outside the surface.
+            needle.SetPositionAndRotation(point + outward * Vector3.forward * .051f,
+                outward * Quaternion.Euler(0, 180, 0));
+        }
+
         void Spike(Vector3 point, Color tint)
         {
             if (!CandyWeaponImpacts.VisibleToAnyCamera(point, 55)) return;
@@ -69,8 +77,8 @@ namespace DeadlyJenga.Presentation
                 EmitSpikerFragments(point, tint);
                 return;
             }
-            var spike = Visual("Visual - embedded Spiker crystal", Resources.GetBuiltinResource<Mesh>("Capsule.fbx"), contact.Position, tint);
-            spike.rotation = (contact.anchor.localToWorldMatrix * contact.localFrame).rotation * Quaternion.Euler(90,0,0);
+            var spike = Visual("Visual - embedded Spiker crystal", ProjectileMesh(EquipmentKind.DualUzi), contact.Position, tint);
+            PlaceEmbeddedNeedle(spike, contact.Position, (contact.anchor.localToWorldMatrix * contact.localFrame).rotation);
             var sparks = spike.gameObject.AddComponent<ParticleSystem>();
             sparks.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = sparks.main;
@@ -208,8 +216,10 @@ namespace DeadlyJenga.Presentation
             if(kind!=EquipmentKind.Chainsaw&&kind!=EquipmentKind.RocketLauncher)
             {
                 var orb=Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
-                var hot=ModelPiece(root,"Visible charge",orb,ordnanceHot,Vector3.zero,
-                    kind==EquipmentKind.GrenadeLauncher?new Vector3(.066f,.066f,.066f):new Vector3(.047f,.047f,.25f));
+                var hot = kind == EquipmentKind.DualUzi
+                    ? ModelPiece(root, "Faceted energy needle", ProjectileMesh(kind), ordnanceHot, Vector3.zero, Vector3.one)
+                    : ModelPiece(root, "Visible charge", orb, ordnanceHot, Vector3.zero, Vector3.one * .066f);
+                if (kind == EquipmentKind.DualUzi) root.GetChild(0).gameObject.SetActive(false);
                 hot.GetComponent<MeshRenderer>().SetPropertyBlock(block);
                 if(kind==EquipmentKind.GrenadeLauncher)
                     for(int i=0;i<4;i++)
@@ -219,7 +229,7 @@ namespace DeadlyJenga.Presentation
             }
             var trailRoot=kind==EquipmentKind.RocketLauncher?root.GetChild(3):root;
             var trail=trailRoot.gameObject.AddComponent<TrailRenderer>();trail.sharedMaterial=ordnanceRibbon;trail.time=kind==EquipmentKind.RocketLauncher?.41f:.24f;
-            trail.widthMultiplier=kind==EquipmentKind.RocketLauncher?.34f:kind==EquipmentKind.GrenadeLauncher?.22f:.095f;
+            trail.widthMultiplier=kind==EquipmentKind.RocketLauncher?.34f:kind==EquipmentKind.GrenadeLauncher?.22f:.035f;
             trail.widthCurve=new AnimationCurve(new Keyframe(0,1),new Keyframe(.62f,.52f),new Keyframe(1,0));
             trail.minVertexDistance=.11f;trail.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;trail.receiveShadows=false;
             if(kind==EquipmentKind.RocketLauncher)TintRocketCandy(root,rocketCandyVariant);
@@ -285,7 +295,7 @@ namespace DeadlyJenga.Presentation
             if(projectileMeshes.TryGetValue(kind,out var cached))return cached;
             Vector2[] p=kind==EquipmentKind.GrenadeLauncher?new[]{new Vector2(-.16f,0),new Vector2(-.16f,.082f),new Vector2(-.112f,.118f),new Vector2(-.075f,.12f),new Vector2(-.06f,.085f),new Vector2(.06f,.085f),new Vector2(.075f,.12f),new Vector2(.113f,.118f),new Vector2(.158f,.08f),new Vector2(.158f,0)}:
                 kind==EquipmentKind.Chainsaw?new[]{new Vector2(-.025f,0),new Vector2(-.025f,.24f),new Vector2(.025f,.24f),new Vector2(.025f,0)}:
-                new[]{new Vector2(-.16f,0),new Vector2(-.13f,.024f),new Vector2(.055f,.042f),new Vector2(.20f,0)};
+                new[]{new Vector2(-.032f,0),new Vector2(-.032f,.0085f),new Vector2(.071f,.0001f),new Vector2(.071f,0)};
             var v=new List<Vector3>();var uv=new List<Vector2>();var idx=new List<int>();int sides=kind==EquipmentKind.DualUzi?6:20;
             for(int j=0;j<p.Length;j++)for(int i=0;i<=sides;i++)
             {
