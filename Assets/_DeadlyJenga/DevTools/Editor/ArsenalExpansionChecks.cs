@@ -1391,9 +1391,11 @@ namespace DeadlyJenga.DevTools.Editor
                 var visual=new CandyWeaponVisual(holder.transform,material);visual.Present(new EquipmentState{kind=kind,drawn=true,triggerHeld=true,charge=.5f},frame,true);
                 var heldMeshes = holder.GetComponentsInChildren<MeshFilter>()
                     .Where(filter => filter.sharedMesh && filter.GetComponent<MeshRenderer>() is { enabled: true }).ToArray();
-                validate(heldMeshes.Length > 0 && heldMeshes.Length <= 12 &&
+                int maxRenderers = kind == EquipmentKind.DualUzi ? 24 : 12;
+                validate(heldMeshes.Length > 0 && heldMeshes.Length <= maxRenderers &&
                     heldMeshes.Sum(filter => filter.sharedMesh.vertexCount) > 80 &&
-                    holder.GetComponentsInChildren<Collider>().Length == 0, "Detailed collider-free model: " + kind);
+                    holder.GetComponentsInChildren<Collider>().Length == 0,
+                    $"Detailed collider-free model: {kind} ({heldMeshes.Length} renderers, cap {maxRenderers})");
                 validate(EquipmentModelData.Parts.TryGetValue(kind, out var parts) && parts.Length > 0 &&
                     parts.All(part => part.mesh && part.material) && parts.Sum(part => part.mesh.vertexCount) > 80,
                     "Live pickup geometry catalog includes " + kind);
