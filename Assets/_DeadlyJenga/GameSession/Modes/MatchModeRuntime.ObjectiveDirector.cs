@@ -102,12 +102,13 @@ namespace DeadlyJenga.Modes
             readonly Dictionary<string, List<BotObjective>> hazards = new Dictionary<string, List<BotObjective>>();
             readonly Dictionary<string, List<BotObjective>> mysteries = new Dictionary<string, List<BotObjective>>();
             readonly Dictionary<string, List<BotObjective>> hostileCache = new Dictionary<string, List<BotObjective>>();
+            readonly Dictionary<string, bool> enemyCache = new Dictionary<string, bool>();
             static readonly HashSet<string> queries = new HashSet<string>(StringComparer.Ordinal)
             { "pickups", "hazard-refuge", "hill", "unowned-blocks", "high-ground", "midfield", "outer-crossings", "infection-search", "hostiles", "home", "enemy-bases", "enemy-flags", "own-dropped-flag", "return-enemy-flag", "return-own-flag", "friendly-carriers", "hostile-carriers", "stolen-flag-search", "mystery-travel", "mystery-guard", "mystery-attack", "mystery-evade", "mystery-revive", "mystery-bodies", "mystery-badge", "lantern", "lantern-carrier", "lantern-escape" };
             static readonly HashSet<string> conditions = new HashSet<string>(StringComparer.Ordinal)
             { "pickup-collected", "carrying", "infected", "own-flag-missing", "has-hostile", "carrying-enemy", "carrying-own", "scored", "own-flag-home", "block-owned", "target-dead", "carrying-lantern" };
             public MatchBotFacts(MatchModeRuntime owner) { this.owner = owner; }
-            public void BeginSample() { hazards.Clear(); mysteries.Clear(); hostileCache.Clear(); PruneTacticalMemory(); publicMystery=owner!=null&&owner.MysteryActive?owner.mystery.Public():null; }
+            public void BeginSample() { hazards.Clear(); mysteries.Clear(); hostileCache.Clear(); enemyCache.Clear(); PruneTacticalMemory(); publicMystery=owner!=null&&owner.MysteryActive?owner.mystery.Public():null; }
             public bool SupportsQuery(string name) => name != null && (queries.Contains(name)||Array.IndexOf(tacticQueries,name)>=0);
             public bool SupportsCondition(string name) => name != null && (conditions.Contains(name)||Array.IndexOf(tacticConditions,name)>=0);
             public bool SupportsInteraction(string name) => name=="collect-pickup";
@@ -221,11 +222,21 @@ namespace DeadlyJenga.Modes
                         return;
                 }
             }
+            bool IsEnemy(string id)
+            {
+                if (enemyCache.TryGetValue(id, out bool enemy)) return enemy;
+                var source = owner.FindActor(id)?.gameObject;
+                enemy = source && source.TryGetComponent<IEnemyActor>(out var actor) && actor.IsEnemy;
+                enemyCache.Add(id, enemy);
+                return enemy;
+            }
+
             void Hostiles(BotDirectorActor actor, List<BotObjective> results)
             {
                 if(hostileCache.TryGetValue(actor.id,out var cached)){results.AddRange(cached);return;}
                 var self = Sim.Find(actor.id); if (self == null) return;
                 int survivors = 0; foreach (var p in Sim.Participants) if (p.frame.alive && p.frame.role != "infected") survivors++;
+                bool infection = owner.Rules.mode == GameModeKind.Infection || IsEnemy(actor.id);
                 foreach (var p in Sim.CombatParticipants)
                 {
                     if (p == self || !p.present || !p.frame.alive || p.frame.dying || p.frame.role == "hand" || p.frame.role == "spectator" || p.frame.role == "downed") continue;
@@ -233,9 +244,8 @@ namespace DeadlyJenga.Modes
                     {
                         bool close = (p.frame.position - actor.position).sqrMagnitude <= 18 * 18;
                         if ((!owner.Rules.punchEnabled || !close) &&
-                            owner.FindActor(p.frame.id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy != true) continue;
+                            !IsEnemy(p.frame.id)) continue;
                     }
-                    bool infection = owner.Rules.mode == GameModeKind.Infection||owner.FindActor(actor.id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy==true;
                     if (infection ? (p.frame.role == "infected") == (self.frame.role == "infected") : ModeSimulation.TeamMode(owner.Rules)&&p.frame.team == actor.team) continue;
                     bool publicBlip = infection && (self.frame.role != "infected" || survivors <= 2);
                     Vector3 point = p.frame.position;
