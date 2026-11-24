@@ -10,13 +10,13 @@ namespace DeadlyJenga.Presentation
     {
         sealed class Bullet
         {
-            public Transform head;public MeshRenderer headRenderer;public LineRenderer trail, needleWake;public Vector3 start,end;public float age,duration;public bool shotgun,needle,contact;public Color color;public EquipmentKind kind;public CandyWeaponImpacts.SurfaceContact surface;
+            public Transform head;public MeshRenderer headRenderer;public MeshFilter headFilter;public LineRenderer trail, needleWake;public Vector3 start,end;public float age,duration;public bool shotgun,needle,contact;public Color color;public EquipmentKind kind;public CandyWeaponImpacts.SurfaceContact surface;
         }
         const int Capacity=224;
         readonly List<Bullet> active=new List<Bullet>();
         readonly Stack<Bullet> pool=new Stack<Bullet>();
         Material material,ribbon,sparkMaterial,chipMaterial;
-        Mesh mesh,chipMesh;
+        Mesh mesh,chipMesh,drillBit;
         ParticleSystem sparks,chips;
         static readonly Color SheriffAmber=new Color(1,.48f,.085f);
         static readonly Color SheriffCore=new Color(1,.83f,.49f);
@@ -52,6 +52,8 @@ namespace DeadlyJenga.Presentation
             var renderer=emitter.GetComponent<ParticleSystemRenderer>();renderer.sharedMaterial=sparkMaterial;renderer.renderMode=ParticleSystemRenderMode.Stretch;renderer.lengthScale=1.6f;renderer.velocityScale=.08f;
             renderer.shadowCastingMode=ShadowCastingMode.Off;emitter.SetActive(false);
             mesh=BuildHead();
+            var drillModel = Resources.Load<GameObject>("EjectedDrillBit");
+            if (drillModel) drillBit = drillModel.GetComponentInChildren<MeshFilter>()?.sharedMesh;
             var chipShader=Shader.Find("Universal Render Pipeline/Particles/Lit");
             if(chipShader)CreateCandyChips(chipShader);
         }
@@ -139,7 +141,20 @@ namespace DeadlyJenga.Presentation
                 bullet.kind=kind;bullet.surface=default;
                 if(bullet.contact)CandyWeaponImpacts.TryContact(bullet.end,delta,out bullet.surface);
                 bullet.head.gameObject.SetActive(true);bullet.trail.gameObject.SetActive(true);
-                bullet.head.position=start;bullet.head.rotation=Quaternion.LookRotation(delta);bullet.head.localScale=needle?new Vector3(.023f,.023f,.24f):new Vector3(shotgun?.075f:.09f,shotgun?.075f:.09f,shotgun?.17f:.27f);
+                bullet.head.name = needle ? "Ejected helical drill bit" : "Visual bullet head";
+                bullet.headFilter.sharedMesh = needle && drillBit ? drillBit : mesh;
+                bullet.head.position=start;bullet.head.rotation=Quaternion.LookRotation(delta);
+                bullet.head.localScale = needle && drillBit ? Vector3.one * .66f :
+                    needle ? new Vector3(.023f,.023f,.24f) :
+                    new Vector3(shotgun?.075f:.09f,shotgun?.075f:.09f,shotgun?.17f:.27f);
+                if (needle)
+                {
+                    bullet.needleWake ??= CreateTrail("Fine needle wake");
+                    bullet.needleWake.gameObject.SetActive(true);
+                    bullet.needleWake.widthMultiplier = .009f;
+                    bullet.needleWake.SetPosition(0, start);
+                    bullet.needleWake.SetPosition(1, start);
+                }
                 Color color=(ownerColor??(duplex?DuplexCandy[(candy+i)%DuplexCandy.Length]:sheriff?SheriffAmber:kind==EquipmentKind.StockPistol?StockPistolPink:needle?new Color(.72f,.80f,.87f):kind==EquipmentKind.ChainGun?new Color(1,.68f,.18f):shotgun?new Color(1,.43f,.09f,1):new Color(.24f,.88f,1,1)));
                 tint.Clear();tint.SetColor(BaseColor,color);tint.SetColor(ColorId,color);tint.SetColor("_EmissionColor",duplex?color*.44f:Color.Lerp(color,Color.white,.67f)*(needle?.24f:1.5f));
                 bullet.headRenderer.SetPropertyBlock(tint);if(duplex)tint.SetColor(BaseColor,Color.white);
@@ -248,9 +263,10 @@ namespace DeadlyJenga.Presentation
         Bullet Create()
         {
             var root=new GameObject("Visual bullet head");root.transform.SetParent(transform,false);
-            root.AddComponent<MeshFilter>().sharedMesh=mesh;
+            var filter = root.AddComponent<MeshFilter>();
+            filter.sharedMesh = mesh;
             var renderer=root.AddComponent<MeshRenderer>();renderer.sharedMaterial=material;renderer.shadowCastingMode=ShadowCastingMode.Off;renderer.receiveShadows=false;
-            return new Bullet{head=root.transform,headRenderer=renderer,trail=CreateTrail("Visual bullet trail")};
+            return new Bullet{head=root.transform,headRenderer=renderer,headFilter=filter,trail=CreateTrail("Visual bullet trail")};
         }
         LineRenderer CreateTrail(string name)
         {
@@ -290,6 +306,7 @@ namespace DeadlyJenga.Presentation
                 }
                 float t=bullet.age/bullet.duration;
                 bullet.head.position=Vector3.Lerp(bullet.start,end,t);
+                if (bullet.needle) bullet.head.Rotate(0, 0, Time.deltaTime * 3900, Space.Self);
                 bullet.trail.SetPosition(0,bullet.head.position);
                 bullet.trail.SetPosition(1,Vector3.Lerp(bullet.start,end,Mathf.Max(0,t-(bullet.needle?.23f:bullet.shotgun?.43f:.55f))));
                 if (bullet.needle && bullet.needleWake)

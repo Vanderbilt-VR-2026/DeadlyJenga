@@ -85,7 +85,7 @@ namespace DeadlyJenga.Modes
                 if (command.drawn && !CanUseEquipmentDuringTraversal(actor, state.kind, command.left)) return false;
                 bool dual=EquipmentSpecifications.Get(state.kind).modeSwitch;
                 bool drawChanged=state.drawn!=command.drawn,modeChanged=dual&&state.shotgun!=command.shotgun;
-                StopArsenalTrigger(id);state.triggerHeld=false;state.charge=0;
+                StopArsenalTrigger(id);state.triggerHeld=false;if(state.kind!=EquipmentKind.Blaster)state.charge=0;
                 state.drawn=command.drawn;if(!state.drawn)state.thrust=false;state.leftHanded=command.left;state.shotgun=dual&&command.shotgun;
                 if (state.builtIn)
                 {
@@ -313,7 +313,7 @@ namespace DeadlyJenga.Modes
             equipmentAnnouncements.Clear();equipmentEpoch=string.IsNullOrEmpty(saved.equipmentEpoch)?Guid.NewGuid().ToString("N"):saved.equipmentEpoch;
             equipmentSequence=Mathf.Max(0,saved.equipmentSequence);
             equipment.Clear();pickups.Clear();authoredPickups.Clear();weaponCooldown.Clear();handCooldowns.Clear();thrustSeen.Clear();nextPickup=0;
-            foreach(var state in saved.equipment??Array.Empty<EquipmentState>()){var copy=state.Copy();copy.thrust=false;copy.triggerHeld=false;copy.charge=0;equipmentHands[state.actor]=copy.leftHanded;
+            foreach(var state in saved.equipment??Array.Empty<EquipmentState>()){var copy=state.Copy();copy.thrust=false;copy.triggerHeld=false;if(copy.kind!=EquipmentKind.Blaster)copy.charge=0;equipmentHands[state.actor]=copy.leftHanded;
                 if (copy.builtIn && !copy.drawn) holsteredDaggers.Add(state.actor);
                 if(copy.builtIn&&copy.activePower!=EquipmentKind.None){copy.kind=copy.activePower;copy.activePower=EquipmentKind.None;copy.builtIn=false;copy.drawn=false;}
                 PrepareRocketCandy(copy);
@@ -349,12 +349,20 @@ namespace DeadlyJenga.Modes
             if(weaponCooldown.TryGetValue(id,out float ready)&&Time.time<ready)return false;
             if(state.roleIssued&&state.kind!=EquipmentKind.SheriffHammer)return Punch(id,command.position,command.forward,4);
             if(MysteryActive&&mystery.Personal(id).attackReadyIn>0)return false;
-            float cooldown=state.kind==EquipmentKind.DualRifle?(state.shotgun?.20f:.65f):state.kind==EquipmentKind.SheriffHammer?(state.shotgun?.28f:.75f):(state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)?.45f:.9f;
+            float cooldown=state.kind==EquipmentKind.DualRifle?(state.shotgun?.20f:.34f):state.kind==EquipmentKind.SheriffHammer?(state.shotgun?.28f:.75f):(state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)?.45f:.9f;
+            if (state.kind is EquipmentKind.Blaster or EquipmentKind.PoweredArmor)
+            {
+                if (plasma.Count >= 64 || state.kind == EquipmentKind.Blaster && state.reloadRemaining > 0) return false;
+                if (state.kind == EquipmentKind.Blaster)
+                {
+                    AddBlasterHeat(state);
+                    equipment[id] = state;
+                }
+            }
             SetShotCooldown(id,state,command,cooldown);
             if(specification.magazine>0){state.rounds--;equipment[id]=state;if(state.rounds==0)BeginMagazineReload(id,state);}
             if(state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)
             {
-                if(plasma.Count>=64)return false;
                 plasma.Add(new Shot{id=++nextPlasmaId,owner=id,kind=state.kind,position=command.position,direction=command.forward.normalized,life=5});
                 AnnounceEquipment(id,state,EquipmentAction.Shot,command.position);return true;
             }

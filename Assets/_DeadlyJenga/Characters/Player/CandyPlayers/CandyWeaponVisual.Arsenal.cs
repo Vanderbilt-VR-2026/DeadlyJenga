@@ -295,8 +295,19 @@ namespace DeadlyJenga.CandyPlayers
             rotor.SetParent(root, false);
             rotor.localPosition = new Vector3(0, .145f, .316f);
             var owners = new[] { root, rotor, MakeFeedAssembly(root) };
+            var model = Resources.Load<GameObject>("EjectedDrillBit");
+            var bit = model ? model.GetComponentInChildren<MeshFilter>() : null;
             foreach (var section in approvedNeedleDrill)
+            {
                 MountFeedMesh(section.mesh, section.material, owners[section.assembly]);
+                if (bit && section.assembly == 1 && section.material.name == "Polished tooth and bit edges")
+                {
+                    var loaded = new GameObject("Indexed helical drill bit").transform;
+                    loaded.SetParent(rotor, false);
+                    loaded.localPosition = Vector3.forward * .377f;
+                    MountFeedMesh(bit.sharedMesh, section.material, loaded);
+                }
+            }
             return true;
         }
 
@@ -340,7 +351,19 @@ namespace DeadlyJenga.CandyPlayers
                     var mesh = new Mesh { name = "Needle Drill | " + name };
                     mesh.vertices = points;
                     mesh.normals = normals;
-                    mesh.triangles = triangles;
+                    if (assembly == 1 && name == "Polished tooth and bit edges" &&
+                        Resources.Load<GameObject>("EjectedDrillBit"))
+                    {
+                        var chuckFaces = new List<int>(triangles.Length);
+                        for (int t = 0; t < triangles.Length; t += 3)
+                        {
+                            int a = triangles[t], b = triangles[t + 1], c = triangles[t + 2];
+                            if (Mathf.Min(points[a].z, Mathf.Min(points[b].z, points[c].z)) >= .110f) continue;
+                            chuckFaces.Add(a); chuckFaces.Add(b); chuckFaces.Add(c);
+                        }
+                        mesh.SetTriangles(chuckFaces, 0);
+                    }
+                    else mesh.triangles = triangles;
                     var material = new Material(lit) { name = name };
                     material.SetColor("_BaseColor", color);
                     material.SetFloat("_Metallic", metallic);
@@ -901,6 +924,14 @@ namespace DeadlyJenga.CandyPlayers
             if (TryBuildReviewedWeapon(root, EquipmentKind.Blaster, "CrimsonAlienBlaster", AlienArtParts))
             {
                 AddReviewedOptic(root, "Blaster optic", new Vector3(0,.24f,.12f));
+                for (int segment = 0; segment < 5; segment++)
+                {
+                    string name = "Blaster charge segment " + segment;
+                    Part(root, name, PrimitiveType.Cube,
+                        new Vector3(0, .222f, .280f + segment * .025f),
+                        new Vector3(.045f, .008f, .015f), new Color(.025f, .44f, 1), Quaternion.identity);
+                    root.Find(name).GetComponent<MeshRenderer>().sharedMaterial = DrillSurfaces()[5];
+                }
                 for (int i = 0; i < 3; i++)
                 {
                     var ring = new GameObject("Blaster induction ring " + i).transform;
@@ -1233,6 +1264,18 @@ namespace DeadlyJenga.CandyPlayers
                 if(glove)boxingGloveMeshes=meshes;else murderSwordMeshes=meshes;
             }
             var surfaces=DetailedMeleeSurfaces(glove);
+            if (glove)
+            {
+                var liner = Resources.Load<GameObject>("BoxingGloveLining");
+                var mesh = liner ? liner.GetComponentInChildren<MeshFilter>() : null;
+                if (mesh) MountFeedMesh(mesh.sharedMesh, surfaces[4], root);
+                else
+                {
+                    var end = DrillTurned("Closed cuff backing", new[] { -.081f, -.065f, -.050f },
+                        new[] { .0001f, .118f, .0001f }, .84f);
+                    MountFeedMesh(end, surfaces[4], root);
+                }
+            }
             for(int i=0;i<meshes.Length;i++)
             {
                 var go=new GameObject(meshes[i].name,typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(root,false);go.GetComponent<MeshFilter>().sharedMesh=meshes[i];var renderer=go.GetComponent<MeshRenderer>();renderer.sharedMaterial=surfaces[i];

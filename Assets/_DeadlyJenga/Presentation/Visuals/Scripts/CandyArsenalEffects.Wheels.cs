@@ -60,7 +60,8 @@ namespace DeadlyJenga.Presentation
             }
             var forward = -wheel.normal;
             var up = Mathf.Abs(Vector3.Dot(forward, Vector3.up)) > .94f ? Vector3.forward : Vector3.up;
-            wheel.rotation = Quaternion.LookRotation(forward, up) * Quaternion.Euler(90, 0, 0);
+            // The projectile's axle is local Y. Keep it tangent to the surface.
+            wheel.rotation = Quaternion.LookRotation(forward, up);
             wheel.model.SetPositionAndRotation(wheel.point + wheel.normal * .18f, wheel.rotation);
         }
 

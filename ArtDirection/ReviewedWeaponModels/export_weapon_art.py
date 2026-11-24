@@ -26,6 +26,19 @@ else:
     root = next(obj.parent for obj in scene.objects
                 if obj.name.startswith("Continuous rounded receiver") and not obj.hide_render)
 matrix = root.matrix_world.inverted()
+alien_visible = set()
+alien_body = None
+if mode == "alien":
+    for frame in (scene.frame_start, 84):
+        scene.frame_set(frame)
+        alien_visible.update(obj.name for obj in root.children_recursive if not obj.hide_render)
+    shell = bpy.data.objects["Detailed alien blaster surface 0"]
+    alien_body = bpy.data.meshes.new_from_object(shell.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    hatch = bpy.data.objects["Pop-up cooling tab"]
+    for modifier in list(hatch.modifiers):
+        if modifier.type == "BEVEL":
+            hatch.modifiers.remove(modifier)
+    scene.frame_set(scene.frame_start)
 if mode in {"launcher", "staff", "chaingun", "alien", "sheriff", "sword", "rpg", "axe"}:
     for obj in root.children_recursive:
         if mode == "axe" and obj.type == "CURVE":
@@ -34,6 +47,8 @@ if mode in {"launcher", "staff", "chaingun", "alien", "sheriff", "sword", "rpg",
         belt = mode == "chaingun" and (
             obj.name.startswith("Belt link") or (obj.parent and obj.parent.name.startswith("Belt round"))
         )
+        if mode == "alien" and obj.name == "Pop-up cooling tab":
+            continue
         budget = 60 if belt else 300 if mode == "axe" else 1200
         if obj.type != "MESH" or obj.hide_render or len(obj.data.polygons) < budget:
             continue
@@ -127,14 +142,15 @@ def xyz(v):
 def collect(only_part=None, target_part=None):
     graph = bpy.context.evaluated_depsgraph_get()
     for obj in sorted(root.children_recursive, key=lambda item: item.name):
-        if obj.type not in {"MESH", "FONT", "CURVE"} or obj.hide_render:
+        if obj.type not in {"MESH", "FONT", "CURVE"} or (obj.hide_render if mode != "alien" else obj.name not in alien_visible or obj.name.startswith(("Cooling vapor", "Blue charge segment"))):
             continue
         if mode == "marshmallow" and any(word in obj.name.lower() for word in ("flame", "smoke", "fleck")):
             continue
         if only_part is not None and part_of(obj) != only_part:
             continue
         model = obj.evaluated_get(graph)
-        mesh = model.to_mesh()
+        frozen_body = mode == "alien" and obj.name == "Detailed alien blaster surface 0"
+        mesh = alien_body if frozen_body else model.to_mesh()
         mesh.calc_loop_triangles()
         transform = matrix @ obj.matrix_world
         normal_transform = transform.to_3x3().inverted_safe().transposed()
@@ -145,16 +161,28 @@ def collect(only_part=None, target_part=None):
             transform = bpy.data.objects["Foundry six-barrel rotor"].matrix_world.inverted() @ obj.matrix_world
         if mode == "shooter" and part == 2:
             transform = bpy.data.objects["Serrated saw wheel - forged carbide"].matrix_world.inverted() @ obj.matrix_world
-        for triangle in mesh.loop_triangles:
-            material = mesh.materials[triangle.material_index]
+        morph = mode == "alien" and obj.name == "Pop-up cooling tab"
+        triangles_to_export = ((poly.material_index, (poly.loop_start, poly.loop_start + i, poly.loop_start + i + 1))
+                               for poly in mesh.polygons for i in range(1, poly.loop_total - 1)) if morph else (
+                                   (triangle.material_index, triangle.loops) for triangle in mesh.loop_triangles)
+        for material_index, loops in triangles_to_export:
+            material = mesh.materials[material_index]
             layer, color, finish = surface(material)
             vertices, triangles = parts[(part, layer)]
-            for loop_index in reversed(triangle.loops):
-                point = transform @ mesh.vertices[mesh.loops[loop_index].vertex_index].co
+            for loop_index in reversed(loops):
+                point = transform.translation if mode == "alien" and obj.hide_render else transform @ mesh.vertices[mesh.loops[loop_index].vertex_index].co
                 normal = (normal_transform @ mesh.corner_normals[loop_index].vector).normalized()
                 key = tuple(round(x, 6) for x in (*xyz(point), *xyz(normal), *color, *finish))
-                triangles.append(vertices.setdefault(key, len(vertices)))
-        model.to_mesh_clear()
+                if mode == "alien":
+                    # Keep a stable vertex order across both authored hatch poses.
+                    identity = (obj.name, mesh.loops[loop_index].vertex_index, *color, *finish) if morph else (obj.name, mesh.loops[loop_index].vertex_index,
+                                *tuple(round(x, 5) for x in mesh.corner_normals[loop_index].vector), *color, *finish)
+                    value = vertices.setdefault(identity, (len(vertices), key))
+                    triangles.append(value[0])
+                else:
+                    triangles.append(vertices.setdefault(key, len(vertices)))
+        if not frozen_body:
+            model.to_mesh_clear()
 
 
 collect()
@@ -172,6 +200,6 @@ with Path(destination).open("wb") as output:
     for (part, layer), (vertices, triangles) in sorted(parts.items()):
         print(mode, part, layer, len(vertices), len(triangles) // 3, flush=True)
         output.write(struct.pack("<BBII", part, layer, len(vertices), len(triangles)))
-        for vertex in vertices:
+        for vertex in (item[1] for item in vertices.values()) if mode == "alien" else vertices:
             output.write(struct.pack("<14f", *vertex))
         output.write(struct.pack(f"<{len(triangles)}I", *triangles))

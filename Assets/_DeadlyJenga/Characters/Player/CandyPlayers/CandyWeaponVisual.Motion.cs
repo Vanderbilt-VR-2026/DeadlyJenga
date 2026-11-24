@@ -367,6 +367,15 @@ namespace DeadlyJenga.CandyPlayers
             }
 
             var drawn = DrawnPose(kind, hand, left, frame.scale);
+            if (kind == EquipmentKind.LaserAxe)
+            {
+                var opposite = left ? frame.right : frame.left;
+                var highGripPose = DesktopAxeFromHighGrip(hand, left, frame.scale);
+                var lowerGrip = opposite;
+                TryAxeLowerContact(ref lowerGrip, highGripPose, !left, frame.scale);
+                if ((lowerGrip.position - opposite.position).sqrMagnitude < .0036f * frame.scale * frame.scale)
+                    drawn = highGripPose;
+            }
             if (kind == EquipmentKind.WristLaser)
             {
                 float folded = 1 - Ease(0,1,progress);
@@ -515,7 +524,8 @@ namespace DeadlyJenga.CandyPlayers
                 EquipmentKind.SheriffHammer => new Vector3(side * .14f, -.045f, 0),
                 EquipmentKind.GrenadeLauncher => new Vector3(side * .28f, -.065f, 0),
                 EquipmentKind.ChainGun => new Vector3(.28f, -.19f, 0),
-                EquipmentKind.NeedleDrill => new Vector3(0, -.09f, -.24f),
+                EquipmentKind.NeedleDrill => new Vector3(0, -.045f, -.30f),
+                EquipmentKind.DualUzi => new Vector3(side * .18f, -.27f, -.07f),
                 EquipmentKind.Chainsaw => Vector3.up * .23f,
                 EquipmentKind.StockPistol when LoadCompactStockPistol() => Vector3.down * .20f,
                 _ => Vector3.down * .24f
@@ -595,9 +605,18 @@ namespace DeadlyJenga.CandyPlayers
             if (kind != EquipmentKind.DualUzi || !assembly.parent.Find(names[2])) return false;
             int total = state.magazineInitialized ? Mathf.Clamp(state.rounds, 0, 60) : 60;
             int rounds = secondary ? total / 2 : (total + 1) / 2;
-            int lit = reloading && phase >= .48f ? 5 : (rounds + 5) / 6;
+            int lit = (rounds + 5) / 6;
             for (int i = 0; i < 5; i++)
-                assembly.parent.Find(names[i + 2]).gameObject.SetActive(i < lit);
+            {
+                var crystal = assembly.parent.Find(names[i + 2]);
+                float arrival = Ease(.38f + i * .065f, .54f + i * .065f, phase);
+                bool visible = reloading ? arrival > .001f : i < lit;
+                crystal.gameObject.SetActive(visible);
+                crystal.localScale = Vector3.one;
+                crystal.localPosition = reloading && visible
+                    ? new Vector3((secondary ? -1 : 1) * (.035f + .012f * i), .18f, -.075f) * (1 - arrival)
+                    : Vector3.zero;
+            }
             return true;
         }
 
@@ -620,7 +639,7 @@ namespace DeadlyJenga.CandyPlayers
                 var cylinder=Resources.GetBuiltinResource<Mesh>("Cylinder.fbx");
                 rocketCandySeam=MakeCandyPart(rocketCandy,"Molded candy seam",cylinder,rocketSugarMaterial,.203f,new Vector3(.367f,.022f,.367f));
                 rocketCandySeam.transform.localRotation=Quaternion.Euler(90,0,0);
-                var stick=MakeCandyPart(rocketCandy,"White bore-fit stick",cylinder,rocketStickMaterial,-.097f,new Vector3(.105f,.160f,.105f));
+                var stick=MakeCandyPart(rocketCandy,"White bore-fit stick",cylinder,rocketStickMaterial,-.265f,new Vector3(.045f,.292f,.045f));
                 stick.transform.localRotation=Quaternion.Euler(90,0,0);
                 rocketCandyTint ??= new MaterialPropertyBlock();
                 shownCandyVariant=-1;

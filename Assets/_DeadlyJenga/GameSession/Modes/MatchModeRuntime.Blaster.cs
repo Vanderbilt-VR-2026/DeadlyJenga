@@ -16,6 +16,28 @@ namespace DeadlyJenga.Modes
         readonly HashSet<Rigidbody> plasmaBlocks=new HashSet<Rigidbody>();
         bool blasterTesting;int nextPlasmaId;
         const float PlasmaSpeed=14,PlasmaRadius=.12f,BlastRadius=2.5f;
+        const float BlasterHeatPerShot = .235f;
+        const float BlasterVentSeconds = 1.45f;
+
+        static void AddBlasterHeat(EquipmentState state)
+        {
+            state.charge = Mathf.Clamp01(state.charge + BlasterHeatPerShot);
+            if (state.charge >= 1) state.reloadRemaining = BlasterVentSeconds;
+        }
+
+        void CoolBlaster(string id, EquipmentState state, float dt)
+        {
+            if (state.reloadRemaining > 0)
+            {
+                state.reloadRemaining = Mathf.Max(0, state.reloadRemaining - dt);
+                state.charge = Mathf.MoveTowards(state.charge, 0, dt * .44f);
+                return;
+            }
+            float lastReady = weaponCooldown.TryGetValue(id, out var gameplayReady) ? gameplayReady : 0;
+            if (shotCooldowns.TryGetValue(id, out var testReady)) lastReady = Mathf.Max(lastReady, testReady);
+            if (Time.time >= lastReady + .24f)
+                state.charge = Mathf.MoveTowards(state.charge, 0, dt * .32f);
+        }
         [Serializable] public sealed class BlasterCommand{public Vector3 position,forward;}
         public bool BlasterTestingEnabled=>Authority?blasterTesting:frame.blaster?.testingEnabled==true;
         public void SetBlasterTesting(bool enabled)
@@ -45,12 +67,14 @@ namespace DeadlyJenga.Modes
         }
         bool FireBlaster(string id,BlasterCommand command)
         {
-            var actor=FindActor(id);var p=simulation.Find(id);
-            if(EquipmentFor(id).kind!=EquipmentKind.Blaster||!EquipmentFor(id).drawn||!blasterTesting||simulation.Phase!=RoundPhase.Playing||actor==null||p==null||!p.frame.alive||p.frame.dying||p.frame.role=="hand"||p.frame.role=="spectator"||simulation.CarriesFlag(id)||plasma.Count>=64||command==null)return false;
+            var actor=FindActor(id);var p=simulation.Find(id);var state=EquipmentFor(id);
+            if(state.kind!=EquipmentKind.Blaster||!state.drawn||state.reloadRemaining>0||!blasterTesting||simulation.Phase!=RoundPhase.Playing||actor==null||p==null||!p.frame.alive||p.frame.dying||p.frame.role=="hand"||p.frame.role=="spectator"||simulation.CarriesFlag(id)||plasma.Count>=64||command==null)return false;
             if(!Finite(command.position)||!Finite(command.forward)||command.forward.sqrMagnitude<.5f||command.forward.sqrMagnitude>2||Vector3.Distance(command.position,actor.ViewPose.position)>2)return false;
             if(shotCooldowns.TryGetValue(id,out var ready)&&Time.time<ready)return false;
             if(Physics.Linecast(actor.ViewPose.position,command.position,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))return false;
             shotCooldowns[id]=Time.time+.45f;
+            AddBlasterHeat(state);
+            equipment[id]=state;
             plasma.Add(new Shot{id=++nextPlasmaId,owner=id,kind=EquipmentKind.Blaster,position=command.position,direction=command.forward.normalized,life=5});
             AnnounceEquipment(id,EquipmentFor(id),EquipmentAction.Shot,command.position);return true;
         }

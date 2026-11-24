@@ -85,6 +85,8 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunArsenalGame() => Start(false, arsenalGameOnly:true);
 
+        public static void RunWeaponRefinement() => Start(false, weaponRefinementOnly:true);
+
         public static void RunBarbedBat()=>Start(true);
 
         public static void RunCosmeticWeapons()=>Start(false, true);
@@ -104,8 +106,9 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunNeedleDrill()=>Start(false, needleOnly:true);
 
-        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false, bool needleOnly=false, bool motionOnly=false, bool ordnanceOnly=false, bool arsenalGameOnly=false)
+        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false, bool needleOnly=false, bool motionOnly=false, bool ordnanceOnly=false, bool arsenalGameOnly=false, bool weaponRefinementOnly=false)
         {
+            SessionState.SetBool(Key+"WeaponRefinementOnly", weaponRefinementOnly);
             SessionState.SetBool(Key+"MotionOnly",motionOnly);
             SessionState.SetBool(Key+"OrdnanceOnly",ordnanceOnly);
             SessionState.SetBool(Key+"ArsenalGameOnly",arsenalGameOnly);
@@ -823,12 +826,14 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     if (!sawTrail) held.RequestEquipmentTrigger(true,pose);
                     yield return null;
-                    sawTrail|=trails.GetComponentsInChildren<LineRenderer>().Any(line=>line.name=="Fine needle wake");
+                    sawTrail|=trails.GetComponentsInChildren<Transform>().Any(part=>part.name=="Ejected helical drill bit" &&
+                        part.TryGetComponent<MeshFilter>(out var filter) && filter.sharedMesh &&
+                        filter.sharedMesh.name.Contains("EjectedDrillBit"));
                     var chips=session.GetComponentsInChildren<ParticleSystem>().FirstOrDefault(
                         system=>system.name=="Pooled Needle Drill candy chips");
                     sawChips=chips&&chips.particleCount>0;
                 }
-                Check(sawTrail,"Production shot renders its narrow secondary wake");
+                Check(sawTrail,"Production shot renders the exported helical bit in flight");
                 Check(sawChips,"Production block impact emits the pooled candy chips");
             }
             finally
@@ -836,6 +841,58 @@ namespace DeadlyJenga.DevTools.Editor
                 held.RequestEquipmentTrigger(false,pose);
                 Object.Destroy(block);
             }
+        }
+
+        static IEnumerator CheckWeaponRefinement(CastlePlaySession session, MatchModeRuntime runtime,
+            CastleSurvivor player, CastleSurvivor target)
+        {
+            var id = runtime.LocalActorId;
+            var muzzle = new Pose(player.ViewPose.position + Vector3.forward * .6f, Quaternion.identity);
+            target.Place(player.transform.position + Vector3.right * 8, Quaternion.identity);
+            Check(runtime.GiveEquipment(EquipmentKind.DualRifle), "Real round equips rifle/shotgun");
+            yield return new WaitForSeconds(.55f);
+            Check(runtime.RequestEquipmentAttack(muzzle), "Rifle fires");
+            Check(!runtime.RequestEquipmentAttack(muzzle), "Rifle still enforces cooldown");
+            yield return new WaitForSeconds(.40f);
+            Check(runtime.RequestEquipmentAttack(muzzle), "Rifle fires again at 400 ms, below the former 650 ms interval");
+
+            Check(runtime.GiveEquipment(EquipmentKind.Blaster), "Real round equips Alien Blaster");
+            yield return new WaitForSeconds(.55f);
+            Check(runtime.RequestEquipmentAttack(muzzle), "Alien Blaster fires at full charge");
+            float firstHeat = runtime.EquipmentFor(id).charge;
+            Check(firstHeat > 0 && firstHeat < .5f, "First accepted shot depletes only part of the charge");
+            yield return new WaitForSeconds(.90f);
+            Check(runtime.EquipmentFor(id).charge < firstHeat && runtime.EquipmentFor(id).reloadRemaining == 0,
+                "Partial charge refills during a pause without a forced vent");
+            for (int i = 0; i < 5; i++)
+            {
+                Check(runtime.RequestEquipmentAttack(muzzle), "Sustained blaster shot " + (i + 1));
+                if (i < 4) yield return new WaitForSeconds(.48f);
+            }
+            yield return new WaitForSeconds(.55f);
+            Check(runtime.EquipmentFor(id).reloadRemaining > 0 &&
+                !runtime.RequestEquipmentAttack(muzzle), "Vent still locks fire after the shot cooldown expires");
+            var root = runtime.FindParticipantRoot(id);
+            var blaster = root ? root.Find("Visual - Blaster") : null;
+            var hatch = blaster ? blaster.Find("Open cooling hatch pose") : null;
+            Check(hatch && hatch.gameObject.activeSelf &&
+                hatch.GetComponentsInChildren<SkinnedMeshRenderer>().Length == 2,
+                "Venting displays the two authored hatch blend shapes");
+            var light = blaster.Find("Blaster charge segment 0").GetComponent<Renderer>();
+            var paint = new MaterialPropertyBlock();
+            light.GetPropertyBlock(paint);
+            Check(paint.GetColor("_BaseColor").r > .8f && paint.GetColor("_BaseColor").b < .2f,
+                "Charge segments are red during actual overheat");
+            yield return new WaitForSeconds(1.45f);
+            Check(!hatch.gameObject.activeSelf && runtime.RequestEquipmentAttack(muzzle),
+                "Hatch closes and the weapon fires again after cooling");
+
+            Check(runtime.GiveEquipment(EquipmentKind.BoxingGlove), "Real round equips the boxing glove");
+            yield return new WaitForSeconds(.55f);
+            Check(EquipmentModelData.Parts.TryGetValue(EquipmentKind.BoxingGlove, out var glove) &&
+                glove.Any(part => part.mesh && part.mesh.name.Contains("BoxingGloveLining")),
+                "World pickup uses the imported padded glove cavity");
+            yield return NeedleDrillArt(session, runtime, player, target);
         }
 
         static IEnumerator Test()
@@ -848,6 +905,11 @@ namespace DeadlyJenga.DevTools.Editor
             player.Place(new Vector3(150,10.02f,150),Quaternion.identity);player.InputSuspended=true;
             var created=session.SurvivorBots.SpawnOne();Check(created,"Target bot spawns");var target=created.GetComponent<CastleSurvivor>();target.GetComponent<CastleBotBrain>().enabled=false;target.InputSuspended=true;
             yield return new WaitForSeconds(.4f);
+            if (SessionState.GetBool(Key+"WeaponRefinementOnly", false))
+            {
+                yield return CheckWeaponRefinement(session, runtime, player, target);
+                yield break;
+            }
             if(SessionState.GetBool(Key+"MarshmallowOnly",false))
             {
                 yield return CheckMarshmallow(runtime,player,target);

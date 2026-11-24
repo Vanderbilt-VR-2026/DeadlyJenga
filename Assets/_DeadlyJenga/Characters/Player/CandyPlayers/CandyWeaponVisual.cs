@@ -6,6 +6,9 @@ namespace DeadlyJenga.CandyPlayers
     public sealed partial class CandyWeaponVisual
     {
         bool wasEmbedded;
+        Transform indexedBit;
+        int lastDrillRounds = -1;
+        float drillIndexedAt = float.NegativeInfinity;
         IMatchRuntime pickupRuntime;
         string pickupEpoch;
         int pickupSequence = -1;
@@ -282,6 +285,19 @@ namespace DeadlyJenga.CandyPlayers
             return false;
         }
 
+        internal static void TryAxeLowerContact(ref CandyHandPose hand, Pose weapon, bool left, float scale)
+        {
+            ShaftContact(ref hand, weapon, left, ModelScale(EquipmentKind.LaserAxe, scale), Vector3.zero,
+                Quaternion.Euler(0, left ? -90 : 90, 0), AxeWrapRadius);
+        }
+
+        internal static Pose DesktopAxeFromHighGrip(CandyHandPose hand, bool left, float scale)
+        {
+            var pose = DrawnPose(EquipmentKind.LaserAxe, hand, left, scale);
+            pose.position -= pose.rotation * Vector3.forward * (AxeSupportDepth * ModelScale(EquipmentKind.LaserAxe, scale));
+            return pose;
+        }
+
         internal static bool TrySupportContact(ref CandyHandPose hand, Pose weapon, EquipmentKind kind,
             bool left, float scale)
         {
@@ -431,6 +447,8 @@ namespace DeadlyJenga.CandyPlayers
                 kind = state.kind;
                 root = Create(kind);
                 if (kind == EquipmentKind.Chainsaw && rotor) wheelSeat = rotor.localPosition;
+                indexedBit = kind == EquipmentKind.NeedleDrill && rotor ? rotor.Find("Indexed helical drill bit") : null;
+                lastDrillRounds = -1;
                 feed = root.Find(FeedAssembly);
                 cosmeticParts = kind is EquipmentKind.Dagger or EquipmentKind.CompactSidearm
                     ? root.GetComponentsInChildren<MeshRenderer>(true) : null;
@@ -493,6 +511,16 @@ namespace DeadlyJenga.CandyPlayers
                 rotor.localRotation=Quaternion.Euler(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?spin:0,0,
                     state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?0:spin);
                 if(kind==EquipmentKind.Chainsaw)PresentWheelFeed(feedState);
+                if (indexedBit)
+                {
+                    int rounds = state.magazineInitialized ? state.rounds : EquipmentSpecifications.Get(kind).magazine;
+                    if (rounds < lastDrillRounds) drillIndexedAt = Time.time;
+                    lastDrillRounds = rounds;
+                    float age = Time.time - drillIndexedAt;
+                    float index = Ease(.015f, .064f, age);
+                    indexedBit.gameObject.SetActive(rounds > 0 && age >= .015f);
+                    indexedBit.localPosition = Vector3.forward * (.377f - (1 - index) * .21f);
+                }
             }
             if (kind == EquipmentKind.DualUzi || kind == EquipmentKind.LaserClaws || kind == EquipmentKind.PoweredArmor)
             {

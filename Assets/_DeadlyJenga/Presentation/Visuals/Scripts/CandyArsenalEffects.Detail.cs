@@ -94,10 +94,10 @@ namespace DeadlyJenga.Presentation
             Keep(new Residue { root=spike, born=Time.time, life=2.5f, from=point, to=contact.Position, spike=true, surface=contact, tint=tint });
         }
 
-        void EmitSpikerFragments(Vector3 point, Color tint)
+        void EmitSpikerFragments(Vector3 point, Color tint, int count = 7)
         {
             if (burstParticles.isStopped) burstParticles.Play();
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < count; i++)
             {
                 float angle = i * 2.39996f;
                 burstParticles.Emit(new ParticleSystem.EmitParams
@@ -163,11 +163,11 @@ namespace DeadlyJenga.Presentation
             var cylinder=Resources.GetBuiltinResource<Mesh>("Cylinder.fbx");
             var seam=ModelPiece(root,"Candy seam",cylinder,rocketCandyMaterial,Vector3.forward*(.203f*scale),new Vector3(.367f,.022f,.367f)*scale);
             seam.localRotation=Quaternion.Euler(90,0,0);
-            var stick=ModelPiece(root,"Paper stick",cylinder,rocketPaperMaterial,Vector3.back*(.097f*scale),new Vector3(.105f,.160f,.105f)*scale);
+            var stick=ModelPiece(root,"Paper stick",cylinder,rocketPaperMaterial,Vector3.back*(.265f*scale),new Vector3(.045f,.292f,.045f)*scale);
             stick.localRotation=Quaternion.Euler(90,0,0);
             var exhaust=new GameObject("Lollipop stick-tip exhaust").transform;
             exhaust.SetParent(root,false);
-            exhaust.localPosition=Vector3.back*(.257f*scale);
+            exhaust.localPosition=Vector3.back*(.557f*scale);
             ModelPiece(exhaust,"Pulsing candy thrust",sphere,ordnanceHot,Vector3.back*.151f,new Vector3(.105f,.105f,.34f));
         }
 
@@ -339,7 +339,7 @@ namespace DeadlyJenga.Presentation
             EquipmentKind.RocketLauncher => new(0,.205f,1.065f),
             EquipmentKind.GrenadeLauncher => new(0,.235f,.80f),
             EquipmentKind.WristLaser => new(0,.083f,-.006f),
-            EquipmentKind.NeedleDrill => new(0,.145f,.72f),
+            EquipmentKind.NeedleDrill => new(0,.145f,.693f),
             EquipmentKind.Chainsaw => new(0,0,.78f),
             _ => Vector3.zero
         };

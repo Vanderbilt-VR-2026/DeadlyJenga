@@ -112,6 +112,40 @@ namespace DeadlyJenga.CandyPlayers
             lens.localPosition = Vector3.forward * .008f;
         }
 
+        static readonly Mesh[] alienVentBlendMeshes = new Mesh[2];
+
+        static bool MountAlienVentBlend(Transform owner, Mesh closed, Mesh opened, Material material, int layer)
+        {
+            if (closed.vertexCount != opened.vertexCount) return false;
+            var blend = alienVentBlendMeshes[layer];
+            if (!blend)
+            {
+                var rest = closed.vertices;
+                var vent = opened.vertices;
+                var restNormal = closed.normals;
+                var ventNormal = opened.normals;
+                for (int i = 0; i < vent.Length; i++)
+                {
+                    vent[i] -= rest[i];
+                    ventNormal[i] -= restNormal[i];
+                }
+                blend = UnityEngine.Object.Instantiate(closed);
+                blend.AddBlendShapeFrame("Lift linked cooling hatch", 100, vent, ventNormal, null);
+                var bounds = closed.bounds;
+                bounds.Encapsulate(opened.bounds);
+                blend.bounds = bounds;
+                alienVentBlendMeshes[layer] = blend;
+            }
+            var go = new GameObject(opened.name, typeof(SkinnedMeshRenderer));
+            go.transform.SetParent(owner, false);
+            var renderer = go.GetComponent<SkinnedMeshRenderer>();
+            renderer.sharedMesh = blend;
+            renderer.localBounds = blend.bounds;
+            renderer.sharedMaterial = material;
+
+            return true;
+        }
+
         bool TryBuildReviewedWeapon(Transform parent, EquipmentKind weapon, string resource, string[] names)
         {
             if (!reviewedWeaponMeshes.TryGetValue(weapon, out var meshes))
@@ -121,7 +155,7 @@ namespace DeadlyJenga.CandyPlayers
                 var shader = Resources.Load<Shader>("DuplexSurface");
                 if (asset && shader && shader.isSupported)
                 {
-                    try { meshes = ReadWeaponMeshes(asset.bytes, 0x54524157, names); }
+                    try { meshes = ReadWeaponMeshes(asset.bytes, 0x54524157, names, readable: weapon == EquipmentKind.Blaster); }
                     catch (Exception error) when (error is IOException || error is InvalidDataException)
                     { Debug.LogWarning($"Could not read the {resource} model. {error.Message}"); }
                 }
@@ -164,7 +198,14 @@ namespace DeadlyJenga.CandyPlayers
                     chainBeltFrames[mesh.part - FirstAlternateBeltPart + 1] = mesh.mesh;
                     continue;
                 }
-                MountFeedMesh(mesh.mesh, mesh.glass ? duplexGlass : duplexCoating, parts[mesh.part]);
+                var coating = mesh.glass ? duplexGlass : duplexCoating;
+                if (weapon == EquipmentKind.Blaster && mesh.part == 1)
+                {
+                    var closed = System.Array.Find(meshes, part => part.part == 0 && part.glass == mesh.glass);
+                    if (closed.mesh && MountAlienVentBlend(parts[1], closed.mesh, mesh.mesh, coating, mesh.glass ? 1 : 0))
+                        continue;
+                }
+                MountFeedMesh(mesh.mesh, coating, parts[mesh.part]);
                 if (weapon == EquipmentKind.ChainGun && mesh.part == 1 && !mesh.glass)
                 {
                     chainBeltFrames[0] = mesh.mesh;
@@ -243,7 +284,7 @@ namespace DeadlyJenga.CandyPlayers
             duplexGlass.EnableKeyword("_DUPLEX_GLASS");
         }
 
-        static (Mesh, byte, bool)[] ReadWeaponMeshes(byte[] data, uint magic, string[] names, int requiredSections = 0)
+        static (Mesh, byte, bool)[] ReadWeaponMeshes(byte[] data, uint magic, string[] names, int requiredSections = 0, bool readable = false)
         {
             using var reader = new BinaryReader(new MemoryStream(data, false));
             if (reader.ReadUInt32() != magic)
@@ -297,7 +338,7 @@ namespace DeadlyJenga.CandyPlayers
                     result[piece] = (mesh, part, layer == 1);
                     mesh.SetUVs(0, finish);
                     mesh.SetTriangles(indices, 0);
-                    mesh.UploadMeshData(true);
+                    mesh.UploadMeshData(!readable);
                 }
 
                 if (reader.BaseStream.Position != reader.BaseStream.Length)

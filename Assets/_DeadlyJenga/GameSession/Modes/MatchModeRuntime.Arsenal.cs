@@ -16,7 +16,7 @@ namespace DeadlyJenga.Modes
         readonly List<string> heldIds=new List<string>();int nextArsenalProjectile;
         readonly HashSet<IModeActor> arsenalVictims=new HashSet<IModeActor>();
         public bool RequestEquipmentTrigger(bool held,Pose muzzle)=>SendEquipment(new EquipmentCommand{action="trigger",held=held,position=muzzle.position,forward=muzzle.rotation*Vector3.forward});
-        void StopArsenalTrigger(string id){heldWeapons.Remove(id);if(equipment.TryGetValue(id,out var s)){s.triggerHeld=false;s.charge=0;}}
+        void StopArsenalTrigger(string id){heldWeapons.Remove(id);if(equipment.TryGetValue(id,out var s)){s.triggerHeld=false;if(s.kind!=EquipmentKind.Blaster)s.charge=0;}}
         void ResetArsenal(){heldWeapons.Clear();arsenalProjectiles.Clear();frame.weaponProjectiles=Array.Empty<EquipmentProjectileFrame>();}
         bool HoldArsenalTrigger(string id,EquipmentState state,EquipmentCommand command)
         {
@@ -169,6 +169,11 @@ namespace DeadlyJenga.Modes
             foreach(var pair in equipment)
             {
                 var state=pair.Value;var spec=EquipmentSpecifications.Get(state.kind);
+                if (state.kind == EquipmentKind.Blaster)
+                {
+                    CoolBlaster(pair.Key, state, dt);
+                    continue;
+                }
                 PrepareRocketCandy(state);
                 if(spec.magazine>0&&!state.magazineInitialized){state.rounds=spec.magazine;state.magazineInitialized=true;}
                 if(state.reloadRemaining>0){state.reloadRemaining=Mathf.Max(0,state.reloadRemaining-dt);if(state.reloadRemaining==0){state.rounds=spec.magazine;if(heldWeapons.TryGetValue(pair.Key,out var held)){held.start=Time.time;if(state.kind!=EquipmentKind.RocketLauncher)held.burst=0;}}}

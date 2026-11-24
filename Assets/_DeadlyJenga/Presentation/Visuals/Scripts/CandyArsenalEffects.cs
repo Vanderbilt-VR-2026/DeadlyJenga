@@ -26,14 +26,19 @@ namespace DeadlyJenga.Presentation
             public LineRenderer heatLine;
             public Transform[] heatBars;
             public Transform coolingPose, coolBody, coolGlass;
-            public float searchAfter, heat, lastShot;
+            public SkinnedMeshRenderer[] ventParts;
+            public Renderer[] blasterChargeBars;
+            public float searchAfter, heat, lastShot, hatchOpen, nextSteam;
             public bool venting, reloading;
+            public int spikerRounds = -1;
+            public Transform pairedSpiker;
             public int seenFrame;
         }
         readonly Dictionary<string,WeaponEffect> weaponEffects=new Dictionary<string,WeaponEffect>();
         readonly List<string> staleEffects=new List<string>();
         IMatchRuntime effectsRuntime;
         ParticleSystem steam;
+        MaterialPropertyBlock chargePaint;
         readonly Dictionary<int,Transform> shots=new Dictionary<int,Transform>();
         readonly Dictionary<string,Beam> beams=new Dictionary<string,Beam>();
         readonly HashSet<int> seen=new HashSet<int>();readonly List<int> stale=new List<int>();
@@ -68,7 +73,7 @@ namespace DeadlyJenga.Presentation
                 // Bound cosmetic prediction to half a meter; no extra collision queries.
                 var prediction=Vector3.ClampMagnitude(shot.velocity*elapsed,.5f);
                 model.SetPositionAndRotation(shot.position+prediction,Quaternion.LookRotation(forward));
-                if(shot.kind==EquipmentKind.Chainsaw)model.Rotate(90,0,Time.time*1500,Space.Self);
+                if(shot.kind==EquipmentKind.Chainsaw)model.Rotate(0,Time.time*1500,0,Space.Self);
                 else if(shot.kind==EquipmentKind.GrenadeLauncher)model.Rotate(0,0,Time.time*370,Space.Self);
                 else if(shot.kind==EquipmentKind.RocketLauncher)
                 {
@@ -256,7 +261,7 @@ namespace DeadlyJenga.Presentation
 
         static bool UsesHeat(EquipmentKind kind) => UsesShotHeat(kind)||
             kind==EquipmentKind.WristLaser||kind==EquipmentKind.ChainGun||kind==EquipmentKind.LaserAxe||
-            kind==EquipmentKind.NeedleDrill||kind==EquipmentKind.Chainsaw;
+            kind==EquipmentKind.NeedleDrill||kind==EquipmentKind.Chainsaw||kind==EquipmentKind.DualUzi;
 
         WeaponEffect EffectFor(string actor, EquipmentKind kind)
         {
@@ -294,6 +299,11 @@ namespace DeadlyJenga.Presentation
                                     effect.coolingPose = child.Find("Open cooling hatch pose");
                                     effect.coolBody = child.Find("Crimson Alien Blaster body opaque");
                                     effect.coolGlass = child.Find("Crimson Alien Blaster body glass");
+                                    effect.ventParts = effect.coolingPose
+                                        ? effect.coolingPose.GetComponentsInChildren<SkinnedMeshRenderer>(true) : null;
+                                    effect.blasterChargeBars = new Renderer[5];
+                                    for (int i = 0; i < effect.blasterChargeBars.Length; i++)
+                                        effect.blasterChargeBars[i] = child.Find("Blaster charge segment " + i)?.GetComponent<Renderer>();
                                 }
                                 if (item.kind == EquipmentKind.ChainGun && child.Find("Heat bar 1"))
                                 {
@@ -306,6 +316,16 @@ namespace DeadlyJenga.Presentation
                     }
                 }
 
+                if (item.kind == EquipmentKind.DualUzi)
+                {
+                    PresentSpikerCrystalBreak(effect, item);
+                    continue;
+                }
+                if (item.kind == EquipmentKind.Blaster)
+                {
+                    UpdateBlasterVenting(effect, item);
+                    continue;
+                }
                 if (item.kind == EquipmentKind.LaserAxe) UpdateStormCharge(effect, item);
                 bool reload=item.drawn&&item.reloadRemaining>0;
                 bool shotHeat=UsesShotHeat(item.kind);
@@ -334,16 +354,6 @@ namespace DeadlyJenga.Presentation
                 }
                 if(effect.heat<.45f&&!reload)effect.venting=false;
                 effect.reloading=reload&&(effect.reloading||active);
-                if (effect.coolingPose)
-                {
-                    bool open = active && effect.venting;
-                    if (effect.coolingPose.gameObject.activeSelf != open)
-                    {
-                        effect.coolingPose.gameObject.SetActive(open);
-                        if (effect.coolBody) effect.coolBody.gameObject.SetActive(!open);
-                        if (effect.coolGlass) effect.coolGlass.gameObject.SetActive(!open);
-                    }
-                }
                 if (effect.heatBars != null)
                 {
                     int lit = active ? Mathf.CeilToInt(effect.heat * effect.heatBars.Length) : 0;
@@ -364,6 +374,65 @@ namespace DeadlyJenga.Presentation
             foreach(var actor in staleEffects)weaponEffects.Remove(actor);
         }
 
+        void PresentSpikerCrystalBreak(WeaponEffect effect, EquipmentState state)
+        {
+            int rounds = state.magazineInitialized ? state.rounds : 60;
+            int previous = effect.spikerRounds;
+            effect.spikerRounds = rounds;
+            if (previous <= rounds || previous <= 0 || !state.drawn || !effect.model) return;
+            if (!effect.pairedSpiker && effect.model.parent)
+                effect.pairedSpiker = effect.model.parent.Find("Visual - paired DualUzi");
+            int spentBefore = (60 - previous) / 12;
+            int spentNow = (60 - rounds) / 12;
+            for (int crystal = spentBefore; crystal < Mathf.Min(5, spentNow); crystal++)
+            {
+                var tint = SpikerColors[crystal];
+                var socket = new Vector3(0, .20f, .15f + crystal * .055f);
+                if (effect.model.gameObject.activeInHierarchy)
+                    EmitSpikerFragments(effect.model.TransformPoint(socket), tint, 16);
+                if (effect.pairedSpiker && effect.pairedSpiker.gameObject.activeInHierarchy)
+                    EmitSpikerFragments(effect.pairedSpiker.TransformPoint(socket), tint, 16);
+            }
+        }
+
+        void UpdateBlasterVenting(WeaponEffect effect, EquipmentState state)
+        {
+            bool active = effect.model && effect.model.gameObject.activeInHierarchy && state.drawn;
+            bool venting = active && state.reloadRemaining > 0;
+            effect.heat = Mathf.MoveTowards(effect.heat, state.charge, Time.deltaTime * 3.2f);
+            effect.hatchOpen = Mathf.MoveTowards(effect.hatchOpen, venting ? 1 : 0, Time.deltaTime * (venting ? 6 : 4));
+            if (effect.coolingPose)
+            {
+                effect.coolingPose.gameObject.SetActive(active && effect.hatchOpen > .001f);
+                if (effect.coolBody) effect.coolBody.gameObject.SetActive(!effect.coolingPose.gameObject.activeSelf);
+                if (effect.coolGlass) effect.coolGlass.gameObject.SetActive(!effect.coolingPose.gameObject.activeSelf);
+                if (effect.ventParts != null)
+                    foreach (var renderer in effect.ventParts)
+                        renderer.SetBlendShapeWeight(0, Mathf.SmoothStep(0, 100, effect.hatchOpen));
+            }
+            if (effect.blasterChargeBars != null)
+            {
+                chargePaint ??= new MaterialPropertyBlock();
+                for (int i = 0; i < effect.blasterChargeBars.Length; i++)
+                {
+                    var bar = effect.blasterChargeBars[i];
+                    if (!bar) continue;
+                    float charge = Mathf.Clamp01((1 - effect.heat) * effect.blasterChargeBars.Length - i);
+                    var color = venting ? new Color(1, .028f, .008f) :
+                        Color.Lerp(new Color(.018f, .036f, .057f), new Color(.025f, .44f, 1), charge);
+                    bar.GetPropertyBlock(chargePaint);
+                    chargePaint.SetColor("_BaseColor", color);
+                    chargePaint.SetColor("_EmissionColor", color * (venting ? 2.4f : charge * 2.1f));
+                    bar.SetPropertyBlock(chargePaint);
+                }
+            }
+            if (venting && effect.hatchOpen > .43f && Time.time >= effect.nextSteam)
+            {
+                EmitSteam(effect);
+                effect.nextSteam = Time.time + .24f;
+            }
+        }
+
         static Vector3 VentPoint(WeaponEffect effect)
         {
             return effect.kind switch
@@ -372,6 +441,7 @@ namespace DeadlyJenga.Presentation
                 EquipmentKind.WristLaser=>new Vector3(0,.12f,.12f),
                 EquipmentKind.PoweredArmor=>new Vector3(0,0,.035f),
                 EquipmentKind.NeedleDrill=>new Vector3(0,.19f,.20f),
+                EquipmentKind.Blaster=>new Vector3(0,.237f,.24f),
                 EquipmentKind.Chainsaw=>new Vector3(0,.15f,.28f),
                 EquipmentKind.LaserAxe=>new Vector3(0,.25f,.94f),
                 _=>new Vector3(0,.18f,.48f)
