@@ -1180,6 +1180,7 @@ namespace DeadlyJenga.DevTools.Editor
             rules.countdownSeconds=0;
             rules.deathEnabled=false;
             rules.fallDamage=false;
+            rules.island=IslandRule.Walkable;
             runtime.Configure(rules);
             runtime.StartRound();
             if (SessionState.GetBool(Key+"OrdnanceOnly",false))
@@ -1473,7 +1474,10 @@ namespace DeadlyJenga.DevTools.Editor
                 float hatchDeadline = Time.realtimeSinceStartup + 1.5f;
                 while (hatch.gameObject.activeSelf && Time.realtimeSinceStartup < hatchDeadline)
                     yield return null;
-                Check(!hatch.gameObject.activeSelf, "The reviewed hatch eases shut after cooling");
+                var cooled = runtime.EquipmentFor(runtime.LocalActorId);
+                File.AppendAllText(Report, $"Cooled Alien owner state kind={cooled.kind} drawn={cooled.drawn} heat={cooled.charge:F3} remaining={cooled.reloadRemaining:F3} phase={runtime.Frame.phase} alive={player.Alive} active={blaster.gameObject.activeInHierarchy}\n");
+                Check(cooled.kind == EquipmentKind.Blaster && cooled.drawn && !hatch.gameObject.activeSelf,
+                    "The reviewed hatch eases shut after cooling while the weapon stays equipped");
                 runtime.StartRound();
                 yield return null;
                 player.Place(new Vector3(150,10.05f,149), Quaternion.identity);

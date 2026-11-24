@@ -401,19 +401,7 @@ namespace DeadlyJenga.Presentation
             bool venting = active && state.reloadRemaining > 0;
             effect.heat = Mathf.MoveTowards(effect.heat, state.charge, Time.deltaTime * 3.2f);
             effect.hatchOpen = Mathf.MoveTowards(effect.hatchOpen, venting ? 1 : 0, Time.deltaTime * (venting ? 6 : 4));
-            if (effect.coolingPose)
-            {
-                bool open = active && effect.hatchOpen > .001f;
-                if (effect.coolingPose.gameObject.activeSelf != open)
-                {
-                    effect.coolingPose.gameObject.SetActive(open);
-                    if (effect.coolBody) effect.coolBody.gameObject.SetActive(!open);
-                    if (effect.coolGlass) effect.coolGlass.gameObject.SetActive(!open);
-                }
-                if (effect.ventParts != null)
-                    foreach (var renderer in effect.ventParts)
-                        renderer.SetBlendShapeWeight(0, Mathf.SmoothStep(0, 100, effect.hatchOpen));
-            }
+            PresentBlasterHatch(effect, active ? effect.hatchOpen : 0);
             if (effect.blasterChargeBars != null)
             {
                 chargePaint ??= new MaterialPropertyBlock();
@@ -435,6 +423,21 @@ namespace DeadlyJenga.Presentation
                 EmitSteam(effect);
                 effect.nextSteam = Time.time + .24f;
             }
+        }
+
+        static void PresentBlasterHatch(WeaponEffect effect, float opening)
+        {
+            if (!effect.coolingPose) return;
+            bool open = opening > .001f;
+            if (effect.coolingPose.gameObject.activeSelf != open)
+            {
+                effect.coolingPose.gameObject.SetActive(open);
+                if (effect.coolBody) effect.coolBody.gameObject.SetActive(!open);
+                if (effect.coolGlass) effect.coolGlass.gameObject.SetActive(!open);
+            }
+            if (effect.ventParts != null)
+                foreach (var renderer in effect.ventParts)
+                    if (renderer) renderer.SetBlendShapeWeight(0, Mathf.SmoothStep(0, 100, opening));
         }
 
         static Vector3 VentPoint(WeaponEffect effect)
@@ -522,6 +525,7 @@ namespace DeadlyJenga.Presentation
 
         void ReleaseEffect(WeaponEffect effect)
         {
+            if (effect.kind == EquipmentKind.Blaster) PresentBlasterHatch(effect, 0);
             if(effect.heatLine)Destroy(effect.heatLine.gameObject);
             if (effect.stormCharge?.filter) Destroy(effect.stormCharge.filter.gameObject);
         }
