@@ -1276,7 +1276,7 @@ namespace DeadlyJenga.DevTools.Editor
                     Check(runtime.RequestEquipmentAttack(shot), "Authority accepts the Alien Blaster shot " + (i + 1));
                     if (i == 0)
                     {
-                        var plasma = session.GetComponent<CandyPlasmaView>();
+                        var plasma = session.GetComponent<DeadlyJenga.Presentation.CandyPlasmaView>();
                         Check(plasma, "Production plasma renderer is attached");
                         bool emitter = false, bolt = false;
                         float end = Time.realtimeSinceStartup + 5;
@@ -1291,7 +1291,7 @@ namespace DeadlyJenga.DevTools.Editor
                     yield return new WaitForSeconds(.49f);
                 }
                 Check(hatch.gameObject.activeSelf, "Firing opens the reviewed cooling hatch");
-                var plasmaView = session.GetComponent<CandyPlasmaView>();
+                var plasmaView = session.GetComponent<DeadlyJenga.Presentation.CandyPlasmaView>();
                 float impactDeadline = Time.realtimeSinceStartup + 3;
                 while (!RenderedPlasma(plasmaView, "Visual - plasma impact radius") && Time.realtimeSinceStartup < impactDeadline)
                     yield return null;
@@ -1303,7 +1303,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Physics.SyncTransforms();
                 Check(runtime.GiveEquipment(EquipmentKind.LaserAxe), "The reviewed Storm Axe equips in live gameplay");
                 yield return new WaitForSeconds(.7f);
-                Check(WeaponEffectMesh(effects, "Storm Axe blade current"), "The mounted Storm Axe renders the exported blade and haft current");
+                Check(WeaponEffectMesh(player, "Storm Axe blade current"), "The mounted Storm Axe renders the exported blade and haft current");
                 var axeMuzzle = new Pose(player.ViewPose.position + Vector3.forward * .50f, Quaternion.identity);
                 Check(runtime.RequestEquipmentAttack(axeMuzzle), "Authority accepts the Storm Axe swing");
                 bool release = false, airborne = false, contact = false;
@@ -1331,7 +1331,7 @@ namespace DeadlyJenga.DevTools.Editor
                 filter.GetComponent<MeshRenderer>().enabled);
         }
 
-        static bool RenderedPlasma(CandyPlasmaView effect, string name)
+        static bool RenderedPlasma(DeadlyJenga.Presentation.CandyPlasmaView effect, string name)
         {
             if (!effect) return false;
             var node = effect.transform.Cast<Transform>().FirstOrDefault(child =>
