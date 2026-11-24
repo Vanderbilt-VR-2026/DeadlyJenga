@@ -83,6 +83,8 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem("Tools/Deadly Jenga/Validation/Check Arsenal Expansion")]
         public static void Run()=>Start(false);
 
+        public static void RunArsenalGame() => Start(false, arsenalGameOnly:true);
+
         public static void RunBarbedBat()=>Start(true);
 
         public static void RunCosmeticWeapons()=>Start(false, true);
@@ -102,10 +104,11 @@ namespace DeadlyJenga.DevTools.Editor
 
         public static void RunNeedleDrill()=>Start(false, needleOnly:true);
 
-        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false, bool needleOnly=false, bool motionOnly=false, bool ordnanceOnly=false)
+        static void Start(bool barbedBatOnly, bool cosmeticWeaponsOnly=false, bool candyOnly=false, bool sawStaffOnly=false, bool marshmallowOnly=false, bool ironSuitOnly=false, bool stockPistolOnly=false, bool pistolMotionOnly=false, bool boxingGloveOnly=false, bool needleOnly=false, bool motionOnly=false, bool ordnanceOnly=false, bool arsenalGameOnly=false)
         {
             SessionState.SetBool(Key+"MotionOnly",motionOnly);
             SessionState.SetBool(Key+"OrdnanceOnly",ordnanceOnly);
+            SessionState.SetBool(Key+"ArsenalGameOnly",arsenalGameOnly);
             SessionState.SetBool(Key+"BarbedBatOnly",barbedBatOnly);
             SessionState.SetBool(Key+"CosmeticWeaponsOnly",cosmeticWeaponsOnly);
             SessionState.SetBool(Key+"RocketCandyOnly",candyOnly);
@@ -1018,6 +1021,12 @@ namespace DeadlyJenga.DevTools.Editor
             Check(runtime.GiveEquipment(EquipmentKind.PoweredArmor)&&runtime.RequestThrust(true),"Transport fixture equips active suit beside airborne rocket");var active=JsonUtility.FromJson<MatchFrame>(runtime.CaptureFrameJson());runtime.RequestThrust(false);var inactive=JsonUtility.FromJson<MatchFrame>(runtime.CaptureFrameJson());
             yield return PoweredSuitNetworkChecks.Run(runtime,active,inactive,Check);
             yield return Gallery(player.GetComponent<CandyPlayerAvatar>().Rig.style.material);
+            if (SessionState.GetBool(Key+"ArsenalGameOnly",false))
+            {
+                Check(errors==0,"No unexpected runtime errors in the arsenal game fixture");
+                Object.Destroy(floor);
+                yield break;
+            }
             var hud=session.GetComponent<CandyDemoHud>();var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
             Check(DemoMenuSections.Tabs.Length==4&&DemoMenuSections.Sections.SelectMany(x=>x).Contains("Disasters")&&DemoMenuSections.Sections.SelectMany(x=>x).Contains("Powerup spawning"),"Four main tabs retain disasters and niche powerup controls");
             for(int i=0;i<4;i++){typeof(CandyDemoHud).GetField("page",flags).SetValue(hud,i);typeof(CandyDemoHud).GetField("subsection",flags).SetValue(hud,0);session.SetMenu(true);yield return new WaitForSeconds(.15f);yield return new WaitForEndOfFrame();var shot=ScreenCapture.CaptureScreenshotAsTexture();File.WriteAllBytes(ProjectPath.Report("Arsenal-Menu-"+i+".png"),shot.EncodeToPNG());Object.Destroy(shot);}
