@@ -1274,9 +1274,29 @@ namespace DeadlyJenga.DevTools.Editor
                 for (int i = 0; i < 4; i++)
                 {
                     Check(runtime.RequestEquipmentAttack(shot), "Authority accepts the Alien Blaster shot " + (i + 1));
+                    if (i == 0)
+                    {
+                        var plasma = session.GetComponent<CandyPlasmaView>();
+                        Check(plasma, "Production plasma renderer is attached");
+                        bool emitter = false, bolt = false;
+                        float end = Time.realtimeSinceStartup + 5;
+                        while ((!emitter || !bolt) && Time.realtimeSinceStartup < end)
+                        {
+                            yield return null;
+                            emitter |= RenderedPlasma(plasma, "Visual - plasma emitter flash");
+                            bolt |= RenderedPlasma(plasma, "Visual - traveling plasma");
+                        }
+                        Check(emitter && bolt, "The accepted shot renders the emitter collars and braided traveling bolt");
+                    }
                     yield return new WaitForSeconds(.49f);
                 }
                 Check(hatch.gameObject.activeSelf, "Firing opens the reviewed cooling hatch");
+                var plasmaView = session.GetComponent<CandyPlasmaView>();
+                float impactDeadline = Time.realtimeSinceStartup + 3;
+                while (!RenderedPlasma(plasmaView, "Visual - plasma impact radius") && Time.realtimeSinceStartup < impactDeadline)
+                    yield return null;
+                Check(RenderedPlasma(plasmaView, "Visual - plasma impact radius"),
+                    "Physics contact renders the segmented plasma shock fronts");
                 yield return new WaitForSeconds(1.7f);
                 Check(!hatch.gameObject.activeSelf, "The reviewed cooling hatch closes again after cooling");
             }
@@ -1285,6 +1305,15 @@ namespace DeadlyJenga.DevTools.Editor
                 Object.Destroy(wall);
                 Object.Destroy(floor);
             }
+        }
+
+        static bool RenderedPlasma(CandyPlasmaView effect, string name)
+        {
+            if (!effect) return false;
+            var node = effect.transform.Cast<Transform>().FirstOrDefault(child =>
+                child.name == name && child.gameObject.activeInHierarchy);
+            var mesh = node ? node.GetComponent<MeshFilter>()?.sharedMesh : null;
+            return mesh && mesh.vertexCount > 24 && node.GetComponent<MeshRenderer>().enabled;
         }
 
         public static IEnumerator CaptureModels(CastlePlaySession session,Action<bool,string> verify)=>Gallery(session.Survivor().GetComponent<CandyPlayerAvatar>().Rig.style.material,verify);

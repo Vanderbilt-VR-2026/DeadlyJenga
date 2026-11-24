@@ -145,6 +145,7 @@ namespace DeadlyJenga.Presentation
         }
         void Action(EquipmentActionFrame action)
         {
+            if (action.kind == EquipmentKind.Blaster) return; // The braided plasma view owns muzzle and impact.
             if(action.kind==EquipmentKind.LaserAxe&&action.shotgun)return; // The thunderbolt owns ranged axe feedback.
             if(action.kind==EquipmentKind.WristLaser)
             {
@@ -156,7 +157,7 @@ namespace DeadlyJenga.Presentation
             if(action.action==EquipmentAction.Shot)
             {
                 // BulletTrails already owns hitscan muzzle pulses and arrival timing.
-                if(action.kind==EquipmentKind.Blaster||action.kind==EquipmentKind.PoweredArmor||
+                if(action.kind==EquipmentKind.PoweredArmor||
                     action.kind==EquipmentKind.RocketLauncher||action.kind==EquipmentKind.GrenadeLauncher||
                     action.kind==EquipmentKind.DualUzi||
                     action.kind==EquipmentKind.LaserAxe||action.kind==EquipmentKind.Chainsaw)

@@ -276,7 +276,7 @@ namespace DeadlyJenga.DevTools.Editor
                     if (item.kind == EquipmentKind.NeedleDrill) trails.FireNeedles(item.position, item.endpoints);
                     else if (item.kind == EquipmentKind.DualRifle || item.kind == EquipmentKind.SheriffHammer ||
                         item.kind > EquipmentKind.PoweredArmor && !EquipmentSpecifications.Get(item.kind).melee &&
-                        item.kind != EquipmentKind.WristLaser) trails.Fire(item.position, item.endpoints, item.shotgun);
+                        item.kind != EquipmentKind.WristLaser) trails.Fire(item.position, item.endpoints, item.shotgun, item.kind);
                 });
                 int equipped = 0;
                 for (int i = 0; i < actors.Length; i++)

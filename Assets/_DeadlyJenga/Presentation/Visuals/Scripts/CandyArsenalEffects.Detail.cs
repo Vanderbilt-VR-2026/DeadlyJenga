@@ -404,6 +404,11 @@ namespace DeadlyJenga.Presentation
                 }
             }
             var orientation=Quaternion.LookRotation(direction);
+            if (action.kind == EquipmentKind.Blaster && TryGetComponent<CandyPlasmaView>(out var plasma))
+            {
+                plasma.PresentMuzzle(origin, orientation, scale);
+                return;
+            }
             Color? ownerColor=CandyWeaponImpacts.SidearmOwnerColor(effectsRuntime,action);
             var tint = action.kind == EquipmentKind.RocketLauncher ? RocketCandy.ColorFor(action.rocketCandyVariant) :
                 action.kind == EquipmentKind.DualUzi ? SpikerShotTint(action.actor) : ownerColor ?? profile.tint;

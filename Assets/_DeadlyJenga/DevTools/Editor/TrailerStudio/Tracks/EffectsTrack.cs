@@ -166,7 +166,7 @@ namespace DeadlyJenga.DevTools.Editor.TrailerStudio
                     if (item.kind == EquipmentKind.NeedleDrill) trails.FireNeedles(item.position, item.endpoints);
                     else if (item.kind == EquipmentKind.DualRifle || item.kind == EquipmentKind.SheriffHammer ||
                         item.kind > EquipmentKind.PoweredArmor && !EquipmentSpecifications.Get(item.kind).melee &&
-                        item.kind != EquipmentKind.WristLaser) trails.Fire(item.position, item.endpoints, item.shotgun);
+                        item.kind != EquipmentKind.WristLaser) trails.Fire(item.position, item.endpoints, item.shotgun, item.kind);
                 });
             }
 
