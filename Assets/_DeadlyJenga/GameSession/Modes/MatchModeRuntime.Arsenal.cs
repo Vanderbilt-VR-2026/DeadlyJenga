@@ -10,7 +10,7 @@ namespace DeadlyJenga.Modes
         const float WheelSpinUp=.60f, WheelLaunchInterval=.42f;
 
         sealed class HeldWeapon {public Pose pose;public float seen,start;public bool down;public int burst;}
-        sealed class ArsenalProjectile {public int id,rocketCandyVariant;public string owner;public EquipmentKind kind;public Vector3 position,velocity;public float life,bornAt;}
+        sealed class ArsenalProjectile {public int id,rocketCandyVariant,spikerCrystal;public string owner;public EquipmentKind kind;public Vector3 position,velocity;public float life,bornAt;}
         readonly Dictionary<string,HeldWeapon> heldWeapons=new Dictionary<string,HeldWeapon>();
         readonly List<ArsenalProjectile> arsenalProjectiles=new List<ArsenalProjectile>();
         readonly List<string> heldIds=new List<string>();int nextArsenalProjectile;
@@ -62,8 +62,21 @@ namespace DeadlyJenga.Modes
             bool projectile=spec.projectileSpeed>0||state.kind==EquipmentKind.Chainsaw&&state.shotgun;
             if(projectile&&arsenalProjectiles.Count>=64)return false;
             var direction=command.forward.normalized;
-            // Magazine progress is independent of feedback events in equipmentSequence.
-            if(state.kind==EquipmentKind.DualUzi&&!command.handSpecific&&((spec.magazine-state.rounds)&1)!=0)
+            bool spiker = state.kind == EquipmentKind.DualUzi;
+            bool spikerLeft = command.handSpecific ? command.left : state.leftHanded;
+            if (spiker)
+            {
+                // Older snapshots and dropped magazines carry only the combined round count.
+                int combinedSpent = spec.magazine - state.rounds;
+                if (state.spikerLeftSpent + state.spikerRightSpent != combinedSpent)
+                {
+                    state.spikerLeftSpent = (combinedSpent + (state.leftHanded ? 1 : 0)) / 2;
+                    state.spikerRightSpent = combinedSpent - state.spikerLeftSpent;
+                }
+                if (!command.handSpecific && (spikerLeft ? state.spikerRightSpent < state.spikerLeftSpent :
+                    state.spikerLeftSpent < state.spikerRightSpent)) spikerLeft = !spikerLeft;
+            }
+            if(spiker&&!command.handSpecific&&spikerLeft!=state.leftHanded)
             {
                 var actor=FindActor(id);
                 if(actor?.gameObject.GetComponent<IEnemyActor>()?.ArchetypeId!="mushroom")
@@ -84,13 +97,23 @@ namespace DeadlyJenga.Modes
                     direction=secondaryForward.normalized;
                 }
             }
+            int spikerCrystal = 0;
+            if (spiker)
+            {
+                int spent = spikerLeft ? state.spikerLeftSpent : state.spikerRightSpent;
+                if (spent >= spec.magazine / 2) return false;
+                // 1–5 are the left set. 6–10 are the right set. Six shots spend each crystal.
+                spikerCrystal = (spikerLeft ? 1 : 6) + spent / 6;
+                if (spikerLeft) state.spikerLeftSpent++;
+                else state.spikerRightSpent++;
+            }
             int firedCandyVariant=state.rocketCandyVariant;
             SetShotCooldown(id,state,command,cooldown);
             if(spec.magazine>0&&(!spec.melee||state.shotgun)){state.rounds--;equipment[id]=state;if(state.rounds==0)BeginMagazineReload(id,state);}
             if(projectile)
             {
-                arsenalProjectiles.Add(new ArsenalProjectile{id=++nextArsenalProjectile,owner=id,kind=state.kind,rocketCandyVariant=firedCandyVariant,bornAt=Time.time,position=command.position,velocity=direction*(state.kind==EquipmentKind.Chainsaw?22:spec.projectileSpeed),life=state.kind==EquipmentKind.DualUzi?.85f:state.kind==EquipmentKind.GrenadeLauncher?3.5f:5});
-                PublishArsenalState();AnnounceEquipment(id,state,EquipmentAction.Shot,command.position,rocketCandyVariant:firedCandyVariant);return true;
+                arsenalProjectiles.Add(new ArsenalProjectile{id=++nextArsenalProjectile,owner=id,kind=state.kind,rocketCandyVariant=firedCandyVariant,spikerCrystal=spikerCrystal,bornAt=Time.time,position=command.position,velocity=direction*(state.kind==EquipmentKind.Chainsaw?22:spec.projectileSpeed),life=state.kind==EquipmentKind.DualUzi?.85f:state.kind==EquipmentKind.GrenadeLauncher?3.5f:5});
+                PublishArsenalState();AnnounceEquipment(id,state,EquipmentAction.Shot,command.position,rocketCandyVariant:firedCandyVariant,spikerCrystal:spikerCrystal);return true;
             }
             float range=state.kind==EquipmentKind.LaserAxe&&state.shotgun?35:spec.range;
             float radius=state.kind==EquipmentKind.LaserAxe&&state.shotgun?.5f:spec.radius;
@@ -176,7 +199,7 @@ namespace DeadlyJenga.Modes
                 }
                 PrepareRocketCandy(state);
                 if(spec.magazine>0&&!state.magazineInitialized){state.rounds=spec.magazine;state.magazineInitialized=true;}
-                if(state.reloadRemaining>0){state.reloadRemaining=Mathf.Max(0,state.reloadRemaining-dt);if(state.reloadRemaining==0){state.rounds=spec.magazine;if(heldWeapons.TryGetValue(pair.Key,out var held)){held.start=Time.time;if(state.kind!=EquipmentKind.RocketLauncher)held.burst=0;}}}
+                if(state.reloadRemaining>0){state.reloadRemaining=Mathf.Max(0,state.reloadRemaining-dt);if(state.reloadRemaining==0){state.rounds=spec.magazine;state.spikerLeftSpent=state.spikerRightSpent=0;if(heldWeapons.TryGetValue(pair.Key,out var held)){held.start=Time.time;if(state.kind!=EquipmentKind.RocketLauncher)held.burst=0;}}}
                 if(state.embedRemaining>0){state.embedRemaining=Mathf.Max(0,state.embedRemaining-dt);if(state.embedRemaining==0)state.embeddedVictim=null;}
             }
         }
@@ -214,12 +237,12 @@ namespace DeadlyJenga.Modes
         }
         void RestoreArsenal(MatchFrame saved)
         {
-            foreach(var shot in saved.weaponProjectiles??Array.Empty<EquipmentProjectileFrame>()){arsenalProjectiles.Add(new ArsenalProjectile{id=shot.id,kind=shot.kind,owner=shot.owner,rocketCandyVariant=shot.rocketCandyVariant,bornAt=Time.time,position=shot.position,velocity=shot.velocity,life=shot.remaining});nextArsenalProjectile=Mathf.Max(nextArsenalProjectile,shot.id);}
+            foreach(var shot in saved.weaponProjectiles??Array.Empty<EquipmentProjectileFrame>()){arsenalProjectiles.Add(new ArsenalProjectile{id=shot.id,kind=shot.kind,owner=shot.owner,rocketCandyVariant=shot.rocketCandyVariant,spikerCrystal=shot.spikerCrystal,bornAt=Time.time,position=shot.position,velocity=shot.velocity,life=shot.remaining});nextArsenalProjectile=Mathf.Max(nextArsenalProjectile,shot.id);}
         }
         void PublishArsenalState()
         {
             frame.weaponProjectiles=new EquipmentProjectileFrame[arsenalProjectiles.Count];
-            for(int i=0;i<arsenalProjectiles.Count;i++){var s=arsenalProjectiles[i];frame.weaponProjectiles[i]=new EquipmentProjectileFrame{id=s.id,kind=s.kind,owner=s.owner,rocketCandyVariant=s.rocketCandyVariant,position=s.position,velocity=s.velocity,remaining=s.life};}
+            for(int i=0;i<arsenalProjectiles.Count;i++){var s=arsenalProjectiles[i];frame.weaponProjectiles[i]=new EquipmentProjectileFrame{id=s.id,kind=s.kind,owner=s.owner,rocketCandyVariant=s.rocketCandyVariant,spikerCrystal=s.spikerCrystal,position=s.position,velocity=s.velocity,remaining=s.life};}
         }
         void ImpactArsenal(ArsenalProjectile shot,IModeActor direct,Vector3 contact,bool solidContact)
         {
@@ -227,7 +250,7 @@ namespace DeadlyJenga.Modes
             // The launch-mode impact flag marks a world contact for cosmetic wheel lodging.
             bool lodge = shot.kind==EquipmentKind.Chainsaw && solidContact;
             AnnounceEquipment(shot.owner,new EquipmentState{kind=shot.kind,shotgun=lodge},
-                EquipmentAction.Impact,lodge?contact:shot.position,rocketCandyVariant:shot.rocketCandyVariant);
+                EquipmentAction.Impact,lodge?contact:shot.position,rocketCandyVariant:shot.rocketCandyVariant,spikerCrystal:shot.spikerCrystal);
             if(source==null)return;
             if(shot.kind==EquipmentKind.DualUzi){if(direct!=null)ArsenalDamage(source,direct,spec.damage,shot.velocity.normalized*spec.push,contact);return;}
             if(shot.kind==EquipmentKind.Chainsaw){if(direct!=null)ArsenalDamage(source,direct,55,shot.velocity.normalized*8,contact);return;}

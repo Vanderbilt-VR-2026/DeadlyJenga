@@ -54,8 +54,14 @@ namespace DeadlyJenga.Presentation
             new(.02f,.81f,1), new(.09f,.18f,1), new(.64f,.05f,1), new(1,.08f,.55f)
         };
 
-        Color SpikerShotTint(string actor)
+        Color SpikerShotTint(string actor, int crystal)
         {
+            if (crystal >= 1 && crystal <= 5) return SpikerColors[crystal - 1];
+            if (crystal >= 6 && crystal <= 10)
+            {
+                // Right-hand order from the authored Blender magazine.
+                return SpikerColors[crystal switch { 6 => 2, 7 => 4, 8 => 3, 9 => 0, _ => 1 }];
+            }
             var state = (effectsRuntime as IEquipmentRuntime)?.EquipmentFor(actor);
             int fired = state != null && state.kind == EquipmentKind.DualUzi && state.magazineInitialized
                 ? Mathf.Clamp(59 - state.rounds, 0, 59) : 0;
@@ -431,7 +437,7 @@ namespace DeadlyJenga.Presentation
             }
             Color? ownerColor=CandyWeaponImpacts.SidearmOwnerColor(effectsRuntime,action);
             var tint = action.kind == EquipmentKind.RocketLauncher ? RocketCandy.ColorFor(action.rocketCandyVariant) :
-                action.kind == EquipmentKind.DualUzi ? SpikerShotTint(action.actor) : ownerColor ?? profile.tint;
+                action.kind == EquipmentKind.DualUzi ? SpikerShotTint(action.actor, action.spikerCrystal) : ownerColor ?? profile.tint;
             EmitMuzzle(origin,orientation,tint,profile.length*scale,profile.sparks,action.id,
                 action.kind==EquipmentKind.DualRifle, action.kind==EquipmentKind.GrenadeLauncher ? GrenadeCellColors : null);
             if(action.kind==EquipmentKind.RocketLauncher)

@@ -115,7 +115,7 @@ namespace DeadlyJenga.Modes
         }
         void ExplodePlasma(Shot shot,Vector3 point,IModeActor direct,Vector3 impact)
         {
-            if(plasmaImpacts.Count>=64)plasmaImpacts.RemoveAt(0);plasmaImpacts.Add(new PlasmaImpactFrame{id=shot.id,position=point,remaining=.4f});
+            if(plasmaImpacts.Count>=64)plasmaImpacts.RemoveAt(0);plasmaImpacts.Add(new PlasmaImpactFrame{id=shot.id,position=point,remaining=.4f,kind=shot.kind});
             AnnounceEquipment(shot.owner,new EquipmentState{kind=shot.kind},EquipmentAction.Impact,point);
             var source=FindActor(shot.owner);if(source==null)return;
             foreach(var pair in actors)
@@ -135,8 +135,8 @@ namespace DeadlyJenga.Modes
         BlasterFrame CaptureBlaster()
         {
             var state=new BlasterFrame{enabled=blasterTesting||plasma.Count>0||plasmaImpacts.Count>0,testingEnabled=blasterTesting,shots=new PlasmaShotFrame[plasma.Count],impacts=new PlasmaImpactFrame[plasmaImpacts.Count]};
-            for(int i=0;i<plasmaImpacts.Count;i++){var hit=plasmaImpacts[i];state.impacts[i]=new PlasmaImpactFrame{id=hit.id,position=hit.position,remaining=hit.remaining};}
-            for(int i=0;i<plasma.Count;i++)state.shots[i]=new PlasmaShotFrame{id=plasma[i].id,position=plasma[i].position,velocity=plasma[i].direction*PlasmaSpeed};return state;
+            for(int i=0;i<plasmaImpacts.Count;i++){var hit=plasmaImpacts[i];state.impacts[i]=new PlasmaImpactFrame{id=hit.id,position=hit.position,remaining=hit.remaining,kind=hit.kind};}
+            for(int i=0;i<plasma.Count;i++)state.shots[i]=new PlasmaShotFrame{id=plasma[i].id,position=plasma[i].position,velocity=plasma[i].direction*PlasmaSpeed,kind=plasma[i].kind};return state;
         }
     }
 }

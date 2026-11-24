@@ -11,6 +11,7 @@ namespace DeadlyJenga.Core
         public EquipmentKind kind;
         public EquipmentAction action;
         public int rocketCandyVariant;
+        public int spikerCrystal;
         public bool shotgun;
         public Vector3 position;
         public Vector3[] endpoints=Array.Empty<Vector3>();
@@ -27,6 +28,7 @@ namespace DeadlyJenga.Core
         public EquipmentKind activePower;
         public float charge;
         public int rounds;
+        public int spikerLeftSpent, spikerRightSpent;
         public bool magazineInitialized;
         public int rocketCandyVariant;
         public float reloadRemaining;
@@ -77,6 +79,7 @@ namespace DeadlyJenga.Core
         public EquipmentKind kind;
         public string owner;
         public int rocketCandyVariant;
+        public int spikerCrystal;
         public Vector3 position,velocity;
         public float remaining;
     }

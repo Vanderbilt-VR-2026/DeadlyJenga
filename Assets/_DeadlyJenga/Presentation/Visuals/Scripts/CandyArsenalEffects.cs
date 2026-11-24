@@ -67,7 +67,7 @@ namespace DeadlyJenga.Presentation
                 {
                     model=TakeProjectile(shot.kind,shot.position,shot.rocketCandyVariant);shots[shot.id]=model;
                     if (shot.kind == EquipmentKind.DualUzi)
-                        TintSpikerProjectile(model, SpikerShotTint(shot.owner));
+                        TintSpikerProjectile(model, SpikerShotTint(shot.owner, shot.spikerCrystal));
                 }
                 Vector3 forward=shot.velocity.sqrMagnitude>.001f?shot.velocity:Vector3.forward;
                 // Bound cosmetic prediction to half a meter; no extra collision queries.
@@ -118,7 +118,7 @@ namespace DeadlyJenga.Presentation
             }
             if(action.action==EquipmentAction.Impact&&action.kind==EquipmentKind.DualUzi)
             {
-                Spike(action.position, SpikerShotTint(action.actor));
+                Spike(action.position, SpikerShotTint(action.actor, action.spikerCrystal));
                 return;
             }
             if(action.action==EquipmentAction.Impact)

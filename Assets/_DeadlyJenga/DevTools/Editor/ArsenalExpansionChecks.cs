@@ -285,18 +285,21 @@ namespace DeadlyJenga.DevTools.Editor
                 Physics.SyncTransforms();
                 int sequence=runtime.Frame.equipmentSequence;
                 Check(runtime.RequestEquipmentAttack(new Pose(origin,Quaternion.identity)),"Palm plasma attack accepted");
-                bool seenShot=false,seenImpact=false,seenGlints=false;
+                bool seenShot=false,seenImpact=false,seenGlints=false,seenRepulsor=false;
+                var plasma = session.GetComponent<DeadlyJenga.Presentation.CandyPlasmaView>();
                 float deadline=Time.realtimeSinceStartup+5;
                 while (Time.realtimeSinceStartup<deadline && !seenGlints)
                 {
                     yield return null;
-                    seenShot|=runtime.Frame.blaster?.shots.Length>0;
+                    seenShot|=runtime.Frame.blaster?.shots.Any(value=>value.kind==EquipmentKind.PoweredArmor)==true;
+                    seenRepulsor|=RenderedPlasma(plasma, "Visual - Iron Suit repulsor bolt");
                     seenImpact|=runtime.Frame.equipmentActions.Any(a=>a.id>sequence&&
                         a.action==EquipmentAction.Impact&&a.kind==EquipmentKind.PoweredArmor);
                     seenGlints=feedback.GetComponentsInChildren<ParticleSystem>().Any(system=>
                         system.name=="Pooled Powered Iron Suit impact glints"&&system.particleCount>0);
                 }
-                Check(seenShot,"Palm shot travels through the production plasma path");
+                Check(seenShot,"Palm shot publishes its distinct Iron Suit identity");
+                Check(seenRepulsor,"The live Iron Suit shot uses its distinct reviewed repulsor wake");
                 Check(seenImpact,"Authoritative impact retains its Powered Iron Suit identity");
                 Check(seenGlints,"Suit impact spawns the cyan glints");
             }
@@ -1587,6 +1590,7 @@ namespace DeadlyJenga.DevTools.Editor
                         Check(!effects.transform.Find(impactName), "The Spiker crystal breaks after its brief contact hold");
                     }
                 }
+                yield return CheckSpikerHands(runtime, player, wall);
                 player.Place(new Vector3(150,10.05f,149), Quaternion.identity);
                 wall.transform.position = new Vector3(150,14,157);
                 Physics.SyncTransforms();
@@ -1667,6 +1671,42 @@ namespace DeadlyJenga.DevTools.Editor
                 Object.Destroy(wall);
                 Object.Destroy(floor);
             }
+        }
+
+        static IEnumerator CheckSpikerHands(MatchModeRuntime runtime, CastleSurvivor player, GameObject wall)
+        {
+            runtime.StartRound();
+            yield return null;
+            player.Place(new Vector3(150, 10.05f, 149), Quaternion.identity);
+            wall.transform.position = new Vector3(150, 14, 154);
+            Physics.SyncTransforms();
+            Check(runtime.GiveEquipment(EquipmentKind.DualUzi), "Paired Spikers equip for independent hand accounting");
+            yield return new WaitForSeconds(.25f);
+            var paired = (IPairedEquipmentRuntime)runtime;
+            for (int round = 0; round < 7; round++)
+            {
+                int sequence = runtime.Frame.equipmentSequence;
+                var front = player.ViewPose.position + Vector3.forward * .6f;
+                Check(paired.RequestHandAttack(new Pose(front + Vector3.left * .2f, Quaternion.identity), true) &&
+                    paired.RequestHandAttack(new Pose(front + Vector3.right * .2f, Quaternion.identity), false),
+                    $"Both hands can spend round {round + 1} independently");
+                int first = round < 6 ? 1 : 2;
+                int second = round < 6 ? 6 : 7;
+                bool HasBoth(EquipmentAction phase) =>
+                    runtime.Frame.equipmentActions.Any(value => value.id > sequence && value.action == phase &&
+                        value.kind == EquipmentKind.DualUzi && value.spikerCrystal == first) &&
+                    runtime.Frame.equipmentActions.Any(value => value.id > sequence && value.action == phase &&
+                        value.kind == EquipmentKind.DualUzi && value.spikerCrystal == second);
+                Check(HasBoth(EquipmentAction.Shot), "Both launch cues retain their distinct authored crystal");
+                float wait = Time.realtimeSinceStartup + 2;
+                while (!HasBoth(EquipmentAction.Impact) && Time.realtimeSinceStartup < wait)
+                    yield return null;
+                Check(HasBoth(EquipmentAction.Impact), "Both impact cues retain the exact launch crystal");
+                yield return new WaitForSeconds(EquipmentSpecifications.Get(EquipmentKind.DualUzi).cooldown);
+            }
+            var state = runtime.EquipmentFor(runtime.LocalActorId);
+            Check(state.spikerLeftSpent == 7 && state.spikerRightSpent == 7 && state.rounds == 46,
+                "Each Spiker spends seven shots and the combined count remains correct");
         }
 
         static bool WeaponEffectMesh(Component owner, string name)

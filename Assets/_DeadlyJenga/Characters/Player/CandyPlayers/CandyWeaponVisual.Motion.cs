@@ -613,6 +613,11 @@ namespace DeadlyJenga.CandyPlayers
             if (kind != EquipmentKind.DualUzi || !assembly.parent.Find(names[2])) return false;
             int total = state.magazineInitialized ? Mathf.Clamp(state.rounds, 0, 60) : 60;
             int rounds = secondary ? total / 2 : (total + 1) / 2;
+            if (state.spikerLeftSpent + state.spikerRightSpent == 60 - total)
+            {
+                bool left = state.leftHanded != secondary;
+                rounds = 30 - (left ? state.spikerLeftSpent : state.spikerRightSpent);
+            }
             int lit = (rounds + 5) / 6;
             for (int i = 0; i < 5; i++)
             {

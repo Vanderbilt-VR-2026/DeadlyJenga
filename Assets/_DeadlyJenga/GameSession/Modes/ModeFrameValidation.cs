@@ -7,6 +7,17 @@ namespace DeadlyJenga.Modes
 {
     public static class ModeFrameValidation
     {
+        static bool ValidSpikerCrystal(EquipmentKind kind, int crystal) =>
+            crystal == 0 || kind == EquipmentKind.DualUzi && crystal >= 1 && crystal <= 10;
+
+        static bool ValidSpikerMagazine(EquipmentState state)
+        {
+            if (state.spikerLeftSpent == 0 && state.spikerRightSpent == 0) return true;
+            return state.kind == EquipmentKind.DualUzi && state.magazineInitialized &&
+                state.spikerLeftSpent is >= 0 and <= 30 && state.spikerRightSpent is >= 0 and <= 30 &&
+                state.spikerLeftSpent + state.spikerRightSpent == 60 - state.rounds;
+        }
+
         static bool ValidRocketCandy(EquipmentKind kind,int variant) => variant>=0&&
             variant<=(kind==EquipmentKind.RocketLauncher?RocketCandy.VariantCount:0);
 
@@ -31,6 +42,8 @@ namespace DeadlyJenga.Modes
             foreach(var item in frame.equipmentActions)
             {
                 if(item==null||item.id<=last||item.id>frame.equipmentSequence||!Text(item.actor,128)||item.kind<EquipmentKind.Speed||item.kind>EquipmentKind.CompactSidearm||!Enum.IsDefined(typeof(EquipmentAction),item.action)||!ValidRocketCandy(item.kind,item.rocketCandyVariant)||
+                    !ValidSpikerCrystal(item.kind,item.spikerCrystal)||
+                    item.spikerCrystal!=0&&item.action!=EquipmentAction.Shot&&item.action!=EquipmentAction.Impact||
                     item.rocketCandyVariant!=0&&item.action!=EquipmentAction.Shot&&item.action!=EquipmentAction.Impact||!Position(item.position)||!Number(item.remaining)||item.remaining<=0||item.remaining>.801f||item.endpoints==null||item.endpoints.Length>7)return false;
                 if(item.shotgun&&!EquipmentSpecifications.Get(item.kind).modeSwitch)return false;
                 if(item.action==EquipmentAction.Shot)
@@ -89,16 +102,18 @@ namespace DeadlyJenga.Modes
             int randomCount=0;foreach(var pickup in frame.pickups)if(pickup!=null&&pickup.randomSpawn)randomCount++;
             if(randomCount!=frame.randomPickupCount)return false;
             var equipmentIds=new HashSet<string>();
-            foreach(var item in frame.equipment)if(item==null||!Text(item.actor,128)||!equipmentIds.Add(item.actor)||item.kind<EquipmentKind.Speed||item.kind>EquipmentKind.CompactSidearm||!Number(item.charge)||item.charge<0||item.charge>1||!ValidRocketCandy(item.kind,item.rocketCandyVariant)||item.rounds<0||item.rounds>150||!Number(item.reloadRemaining)||item.reloadRemaining<0||item.reloadRemaining>10||!Number(item.embedRemaining)||item.embedRemaining<0||item.embedRemaining>5||!Text(item.embeddedVictim,128,true)||!Position(item.embeddedPoint)||item.activePower!=EquipmentKind.None&&(!item.builtIn||item.activePower!=EquipmentKind.Speed&&item.activePower!=EquipmentKind.Jump)||item.builtIn&&item.kind!=EquipmentKind.Dagger||!Number(item.remaining)||item.remaining<0||item.remaining>20||item.drawn&&item.kind<EquipmentKind.Blaster||item.roleIssued&&!item.drawn||item.shotgun&&!EquipmentSpecifications.Get(item.kind).modeSwitch||item.thrust&&(item.kind!=EquipmentKind.PoweredArmor||!item.drawn))return false;
+            foreach(var item in frame.equipment)if(item==null||!Text(item.actor,128)||!equipmentIds.Add(item.actor)||item.kind<EquipmentKind.Speed||item.kind>EquipmentKind.CompactSidearm||!Number(item.charge)||item.charge<0||item.charge>1||!ValidRocketCandy(item.kind,item.rocketCandyVariant)||!ValidSpikerMagazine(item)||item.rounds<0||item.rounds>150||!Number(item.reloadRemaining)||item.reloadRemaining<0||item.reloadRemaining>10||!Number(item.embedRemaining)||item.embedRemaining<0||item.embedRemaining>5||!Text(item.embeddedVictim,128,true)||!Position(item.embeddedPoint)||item.activePower!=EquipmentKind.None&&(!item.builtIn||item.activePower!=EquipmentKind.Speed&&item.activePower!=EquipmentKind.Jump)||item.builtIn&&item.kind!=EquipmentKind.Dagger||!Number(item.remaining)||item.remaining<0||item.remaining>20||item.drawn&&item.kind<EquipmentKind.Blaster||item.roleIssued&&!item.drawn||item.shotgun&&!EquipmentSpecifications.Get(item.kind).modeSwitch||item.thrust&&(item.kind!=EquipmentKind.PoweredArmor||!item.drawn))return false;
             var pickupIds=new HashSet<int>();
             foreach(var pickup in frame.pickups)if(pickup==null||pickup.id<1||!pickupIds.Add(pickup.id)||pickup.kind<EquipmentKind.Speed||pickup.kind>EquipmentKind.CompactSidearm||!Position(pickup.position)||!ValidRocketCandy(pickup.kind,pickup.rocketCandyVariant)||pickup.rounds<-1||pickup.rounds>(pickup.kind==EquipmentKind.RocketLauncher?5:EquipmentSpecifications.Get(pickup.kind).magazine)||!Number(pickup.remaining)||pickup.remaining<=0||pickup.remaining>20||!Number(pickup.availableIn)||pickup.availableIn<0||pickup.availableIn>15||pickup.randomSpawn&&(pickup.station||pickup.supportBlock< -1||pickup.supportBlock>=blockCount||!Position(pickup.supportLocal)||!Number(pickup.expiresIn)||pickup.expiresIn<=0||pickup.expiresIn>600))return false;
             if(frame.weaponProjectiles==null||frame.weaponProjectiles.Length>64)return false;
-            var projectileIds=new HashSet<int>();foreach(var shot in frame.weaponProjectiles)if(shot==null||shot.id<1||!projectileIds.Add(shot.id)||!Text(shot.owner,128)||!ValidRocketCandy(shot.kind,shot.rocketCandyVariant)||shot.kind!=EquipmentKind.RocketLauncher&&shot.kind!=EquipmentKind.GrenadeLauncher&&shot.kind!=EquipmentKind.Chainsaw&&shot.kind!=EquipmentKind.DualUzi||!Position(shot.position)||!Position(shot.velocity)||shot.velocity.sqrMagnitude>10000||!Number(shot.remaining)||shot.remaining<=0||shot.remaining>5)return false;
+            var projectileIds=new HashSet<int>();foreach(var shot in frame.weaponProjectiles)if(shot==null||shot.id<1||!projectileIds.Add(shot.id)||!Text(shot.owner,128)||!ValidRocketCandy(shot.kind,shot.rocketCandyVariant)||!ValidSpikerCrystal(shot.kind,shot.spikerCrystal)||shot.kind!=EquipmentKind.RocketLauncher&&shot.kind!=EquipmentKind.GrenadeLauncher&&shot.kind!=EquipmentKind.Chainsaw&&shot.kind!=EquipmentKind.DualUzi||!Position(shot.position)||!Position(shot.velocity)||shot.velocity.sqrMagnitude>10000||!Number(shot.remaining)||shot.remaining<=0||shot.remaining>5)return false;
             if(frame.blaster!=null)
             {
                 if(frame.blaster.shots==null||frame.blaster.impacts==null||frame.blaster.shots.Length>64||frame.blaster.impacts.Length>64)return false;
-                var projectiles=new HashSet<int>();foreach(var shot in frame.blaster.shots)if(shot==null||shot.id<1||!projectiles.Add(shot.id)||!Position(shot.position)||!Position(shot.velocity)||shot.velocity.sqrMagnitude>1600)return false;
-                projectiles.Clear();foreach(var impact in frame.blaster.impacts)if(impact==null||impact.id<1||!projectiles.Add(impact.id)||!Position(impact.position)||!Number(impact.remaining)||impact.remaining<0||impact.remaining>.5f)return false;
+                static bool PlasmaKind(EquipmentKind kind) =>
+                    kind is EquipmentKind.None or EquipmentKind.Blaster or EquipmentKind.PoweredArmor;
+                var projectiles=new HashSet<int>();foreach(var shot in frame.blaster.shots)if(shot==null||shot.id<1||!projectiles.Add(shot.id)||!PlasmaKind(shot.kind)||!Position(shot.position)||!Position(shot.velocity)||shot.velocity.sqrMagnitude>1600)return false;
+                projectiles.Clear();foreach(var impact in frame.blaster.impacts)if(impact==null||impact.id<1||!projectiles.Add(impact.id)||!PlasmaKind(impact.kind)||!Position(impact.position)||!Number(impact.remaining)||impact.remaining<0||impact.remaining>.5f)return false;
             }
             if(frame.players==null||frame.players.Length>256||frame.topTen==null||frame.topTen.Length>10||frame.secondaryLeaders==null||frame.secondaryLeaders.Length>5||frame.teams==null||frame.teams.Length>8||frame.flags==null||frame.flags.Length>8||frame.claims==null||frame.claims.Length>Mathf.Max(0,blockCount))return false;
             var ids=new HashSet<string>();

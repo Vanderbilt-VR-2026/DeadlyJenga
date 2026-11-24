@@ -45,7 +45,8 @@ namespace DeadlyJenga.Presentation
                 foreach (var hit in state.impacts)
                 {
                     if (visible.Count >= VisibleLimit) break;
-                    if (hit.remaining <= elapsed || !CandyWeaponImpacts.VisibleToAnyCamera(hit.position, 55)) continue;
+                    // The Iron Suit renders its own contact rings and glints from the authoritative impact cue.
+                    if (hit.kind == EquipmentKind.PoweredArmor || hit.remaining <= elapsed || !CandyWeaponImpacts.VisibleToAnyCamera(hit.position, 55)) continue;
                     visible.Add(hit.id);
                     if (!impacts.TryGetValue(hit.id, out var effect))
                     {
@@ -69,13 +70,16 @@ namespace DeadlyJenga.Presentation
                     visible.Add(shot.id);
                     if (!shots.TryGetValue(shot.id, out var effect))
                     {
-                        effect = Take("Visual - traveling plasma");
+                        effect = Take(shot.kind == EquipmentKind.PoweredArmor
+                            ? "Visual - Iron Suit repulsor bolt" : "Visual - traveling plasma");
                         shots.Add(shot.id, effect);
                     }
                     Vector3 forward = shot.velocity.sqrMagnitude > .001f ? shot.velocity : Vector3.forward;
                     effect.Root.SetPositionAndRotation(shot.position + Vector3.ClampMagnitude(shot.velocity * elapsed, .5f),
                         Quaternion.LookRotation(forward));
-                    DrawBolt(effect, Time.time + shot.id * .17f);
+                    if (shot.kind == EquipmentKind.PoweredArmor)
+                        DrawRepulsorBolt(effect, Time.time + shot.id * .17f);
+                    else DrawBolt(effect, Time.time + shot.id * .17f);
                 }
             Release(shots);
             for (int i = muzzle.Count - 1; i >= 0; i--)
@@ -152,6 +156,42 @@ namespace DeadlyJenga.Presentation
                         mesh.Line(Point(phase + step * .176f), Point(phase + (step + 1) * .176f),
                             arc == 2 ? .025f : .016f, arc == 2 ? Ice : Strands[(ring + arc) % 3]);
                 }
+            mesh.Apply();
+        }
+
+        // Powered Iron Suit action study, Midair: tight white nose, cyan envelope and air ripples.
+        static void DrawRepulsorBolt(StrokeMesh mesh, float time)
+        {
+            mesh.Clear();
+            var cyan = new Color(.11f, .70f, 1f);
+            mesh.Line(Vector3.back * .085f, Vector3.forward * .075f, .112f, Fade(cyan, .85f));
+            mesh.Line(Vector3.back * .020f, Vector3.forward * .096f, .066f, Ice);
+            for (int filament = 0; filament < 8; filament++)
+            {
+                float angle = filament * .785398f + time * 13;
+                var radial = new Vector3(Mathf.Sin(angle), Mathf.Cos(angle), 0);
+                Vector3 previous = radial * .018f + Vector3.back * .047f;
+                for (int step = 1; step <= 7; step++)
+                {
+                    float t = step / 7f;
+                    float width = (1 - t) * (.027f + .008f * Mathf.Sin(time * 19 + t * 7 + filament));
+                    Vector3 next = radial * width + Vector3.back * (.047f + .67f * t);
+                    mesh.Line(previous, next, .008f * (1 - t) + .001f, Fade(cyan, 1 - t));
+                    previous = next;
+                }
+            }
+
+            for (int ring = 0; ring < 2; ring++)
+            {
+                float radius = ring == 0 ? .067f : .047f;
+                var offset = Vector3.back * (ring == 0 ? .102f : .161f);
+                for (int segment = 0; segment < 16; segment++)
+                {
+                    float a = segment * .392699f;
+                    mesh.Line(Ring(a, radius, 0) + offset,
+                        Ring(a + .392699f, radius, 0) + offset, .0054f, Fade(cyan, .48f));
+                }
+            }
             mesh.Apply();
         }
 

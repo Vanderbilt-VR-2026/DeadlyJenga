@@ -22,12 +22,14 @@ namespace DeadlyJenga.Core
     {
         public int id;
         public Vector3 position,velocity;
+        public EquipmentKind kind;
     }
     [Serializable] public sealed class PlasmaImpactFrame
     {
         public int id;
         public Vector3 position;
         public float remaining;
+        public EquipmentKind kind;
     }
     [Serializable] public sealed class BlasterFrame
     {
