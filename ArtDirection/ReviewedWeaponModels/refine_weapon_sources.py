@@ -3,6 +3,7 @@ import math
 import sys
 from pathlib import Path
 
+import bmesh
 import bpy
 from mathutils import Vector
 
@@ -99,10 +100,22 @@ for triangle in chuck_mesh.loop_triangles:
     faces.append(face)
 assert len(faces) > 40 and max(v[1] for v in vertices) > -.024
 write_obj("EjectedDrillBit", vertices, faces)
+chuck_edit = bmesh.new()
+chuck_edit.from_mesh(chuck_mesh)
+launched_faces = [face for face in chuck_edit.faces if all(v.co.y >= .110 for v in face.verts)]
+bmesh.ops.delete(chuck_edit, geom=launched_faces, context="FACES")
+chuck_edit.to_mesh(chuck_mesh)
+chuck_edit.free()
 # A short native preview stages the bit travel, rapid replacement and a battery swap.
 bit = mesh_object("Ejected bit - authored helical steel", vertices, faces)
 bit.data.materials.append(chuck_mesh.materials[0])
 bit.parent = bpy.data.objects["Needle Drill | Overhauled cordless tool"]
+replacement = bit.copy()
+replacement.name = "Indexed spare drill bit"
+bpy.context.collection.objects.link(replacement)
+for frame, y in ((1, .46), (5, .46), (10, .693), (100, .693)):
+    replacement.location = (0, y, .145)
+    replacement.keyframe_insert(data_path="location", frame=frame)
 battery = bpy.data.objects["Removable battery pack"]
 bpy.context.scene.frame_end = 100
 for frame, y in ((1, .693), (4, .693), (9, 1.59), (10, -3), (100, -3)):
@@ -122,6 +135,7 @@ for side, suffix in enumerate(("", ".001")):
     for i in range(1, 6):
         crystal = bpy.data.objects[f"Crystal {i}{suffix}"]
         home = crystal.location.copy()
+        base_scale = crystal.scale.copy()
         departure = 32 + i * 4 + side * 6
         arrival = 70 + i * 4 + side * 8
         for frame, offset, visibility in (
@@ -133,7 +147,7 @@ for side, suffix in enumerate(("", ".001")):
             (arrival + 8, Vector((0, 0, 0)), 1),
         ):
             crystal.location = home + offset
-            crystal.scale = (visibility,) * 3
+            crystal.scale = base_scale * visibility
             crystal.keyframe_insert(data_path="location", frame=frame)
             crystal.keyframe_insert(data_path="scale", frame=frame)
 scene.frame_end = 112

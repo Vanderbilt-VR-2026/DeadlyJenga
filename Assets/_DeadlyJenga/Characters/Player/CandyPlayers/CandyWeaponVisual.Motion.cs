@@ -576,7 +576,8 @@ namespace DeadlyJenga.CandyPlayers
                 assembly.localPosition += grip - assembly.localRotation * grip;
             }
 
-            if (!PresentReviewedAmmunition(assembly, state, secondary, reloading, phase))
+            if (kind != EquipmentKind.NeedleDrill &&
+                !PresentReviewedAmmunition(assembly, state, secondary, reloading, phase))
                 PresentRounds(assembly, state, secondary, cylinder, reloading, phase);
         }
 
