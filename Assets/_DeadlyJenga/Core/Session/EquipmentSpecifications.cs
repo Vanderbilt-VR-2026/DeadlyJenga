@@ -32,7 +32,7 @@ namespace DeadlyJenga.Core
             new EquipmentSpecification{name="ALIEN BLASTER",damage=35,cooldown=.45f,range=28},
             new EquipmentSpecification{name="MURDERER SWORD",melee=true,damage=60,cooldown=.9f,range=1.4f},
             new EquipmentSpecification{name="SHERIFF REVOLVER",magazine=6,reloadSeconds=2,damage=85,cooldown=.75f,range=90,modeSwitch=true},
-            new EquipmentSpecification{name="DUAL RIFLE / SHOTGUN",damage=55,cooldown=.65f,range=65,twoHanded=true,backHolster=true,modeSwitch=true},
+            new EquipmentSpecification{name="DUAL RIFLE / SHOTGUN",damage=55,cooldown=.34f,range=65,twoHanded=true,backHolster=true,modeSwitch=true},
             new EquipmentSpecification{name="GIANT BOXING GLOVE",melee=true,damage=80,cooldown=.9f,range=1.4f},
             new EquipmentSpecification{name="POWERED IRON SUIT",damage=35,cooldown=.45f,range=28},
             new EquipmentSpecification{name="ROCKET LAUNCHER",damage=160,cooldown=1.8f,magazine=1,reloadSeconds=3.5f,range=80,radius=.12f,push=32,projectileSpeed=14,blastRadius=8,twoHanded=true,backHolster=true},

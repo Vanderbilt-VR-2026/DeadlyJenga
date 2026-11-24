@@ -349,7 +349,7 @@ namespace DeadlyJenga.Modes
             if(weaponCooldown.TryGetValue(id,out float ready)&&Time.time<ready)return false;
             if(state.roleIssued&&state.kind!=EquipmentKind.SheriffHammer)return Punch(id,command.position,command.forward,4);
             if(MysteryActive&&mystery.Personal(id).attackReadyIn>0)return false;
-            float cooldown=state.kind==EquipmentKind.DualRifle?(state.shotgun?.20f:.34f):state.kind==EquipmentKind.SheriffHammer?(state.shotgun?.28f:.75f):(state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)?.45f:.9f;
+            float cooldown=state.kind==EquipmentKind.DualRifle?(state.shotgun?.20f:specification.cooldown):state.kind==EquipmentKind.SheriffHammer?(state.shotgun?.28f:.75f):(state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)?.45f:.9f;
             if (state.kind is EquipmentKind.Blaster or EquipmentKind.PoweredArmor)
             {
                 if (plasma.Count >= 64 || state.kind == EquipmentKind.Blaster && state.reloadRemaining > 0) return false;

@@ -366,7 +366,7 @@ namespace DeadlyJenga.CandyPlayers
             else if (Runtime?.RequestEquipmentAttack(muzzle) != true) return false;
             if(!EquipmentSpecifications.Get(state.kind).twoHanded)
                 GetComponent<SurvivorMoments>()?.Cancel();
-            lastAttackKind=state.kind;lastAttackTime=Time.time;if(!handSpecific)nextFire=Time.time+(state.kind>EquipmentKind.PoweredArmor?EquipmentSpecifications.Get(state.kind).cooldown:((state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)?.45f:state.kind==EquipmentKind.DualRifle?(state.shotgun?.20f:.34f):state.kind==EquipmentKind.SheriffHammer?(state.shotgun?.28f:.75f):.9f));return true;
+            lastAttackKind=state.kind;lastAttackTime=Time.time;if(!handSpecific)nextFire=Time.time+(state.kind>EquipmentKind.PoweredArmor?EquipmentSpecifications.Get(state.kind).cooldown:((state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)?.45f:state.kind==EquipmentKind.DualRifle?(state.shotgun?.20f:EquipmentSpecifications.Get(state.kind).cooldown):state.kind==EquipmentKind.SheriffHammer?(state.shotgun?.28f:.75f):.9f));return true;
         }
         Pose AxeCarry(Pose gripPose, EquipmentState state, Quaternion aimRotation, out bool holdingSupport)
         {
