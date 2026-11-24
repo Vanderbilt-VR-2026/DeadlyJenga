@@ -1323,9 +1323,14 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(impactVisual, "Physics contact renders the segmented plasma shock fronts");
                 yield return new WaitForSeconds(1.7f);
                 Check(!hatch.gameObject.activeSelf, "The reviewed cooling hatch closes again after cooling");
-                wall.transform.position = new Vector3(150,14,150.95f);
+                runtime.StartRound();
+                yield return null;
+                player.Place(new Vector3(150,10.05f,149), Quaternion.identity);
+                wall.transform.position = new Vector3(150,14,150.62f);
                 Physics.SyncTransforms();
-                Check(runtime.GiveEquipment(EquipmentKind.LaserAxe), "The reviewed Storm Axe equips in live gameplay");
+                bool axeEquipped = runtime.GiveEquipment(EquipmentKind.LaserAxe);
+                Check(axeEquipped, axeEquipped ? "The reviewed Storm Axe equips in live gameplay" :
+                    $"Storm Axe equip failed in {runtime.Frame.phase} with {player.Health:0.0} health at {player.transform.position}");
                 yield return new WaitForSeconds(.7f);
                 Check(WeaponEffectMesh(player, "Storm Axe blade current"), "The mounted Storm Axe renders the exported blade and haft current");
                 var axeMuzzle = new Pose(player.ViewPose.position + Vector3.forward * .50f, Quaternion.identity);
