@@ -102,6 +102,61 @@ def part_of(obj):
         ancestor = ancestor.parent
     return 0
 
+image_means = {}
+
+def image_mean(image):
+    # Average texel, in linear color like the rest of the export.
+    if image.name not in image_means:
+        pixels = list(image.pixels)
+        count = max(1, len(pixels) // 4)
+        mean = [sum(pixels[c::4]) / count for c in range(3)]
+        if not image.is_float and image.colorspace_settings.name == "sRGB":
+            mean = [c / 12.92 if c <= .04045 else ((c + .055) / 1.055) ** 2.4 for c in mean]
+        image_means[image.name] = mean
+    return image_means[image.name]
+
+def socket_color(socket, depth=0):
+    # Blender colors often come from ramps, textures or mixes. Use their average color
+    # instead of the unused default value, which is usually white or gray.
+    if not socket.is_linked:
+        value = socket.default_value
+        return list(value[:3]) if hasattr(value, "__len__") else [value] * 3
+    link = socket.links[0]
+    node = link.from_node
+    if depth > 8:
+        return None
+    if node.type == "VALTORGB":
+        samples = [node.color_ramp.evaluate(.35 + .3 * i / 15) for i in range(16)]
+        return [sum(s[c] for s in samples) / 16 for c in range(3)]
+    if node.type == "RGB":
+        return list(node.outputs[0].default_value[:3])
+    if node.type == "TEX_IMAGE" and node.image:
+        return image_mean(node.image)
+    if node.type == "MIX_RGB" or (node.type == "MIX" and node.data_type == "RGBA"):
+        if node.type == "MIX_RGB":
+            fac, a, b = node.inputs[0], node.inputs[1], node.inputs[2]
+        else:
+            fac, a, b = node.inputs[0], node.inputs[6], node.inputs[7]
+        f = fac.default_value if not fac.is_linked else .5
+        f = f if not hasattr(f, "__len__") else f[0]
+        x, y = socket_color(a, depth + 1), socket_color(b, depth + 1)
+        if x is None or y is None:
+            return None
+        if node.blend_type == "MULTIPLY":
+            return [p * (1 - f + f * q) for p, q in zip(x, y)]
+        return [p * (1 - f) + q * f for p, q in zip(x, y)]
+    return None
+
+def base_color(material, base):
+    if mode == "sword" and base.is_linked:
+        return tuple(material.diffuse_color)
+    if not base.is_linked:
+        return tuple(base.default_value)
+    color = socket_color(base)
+    if color is None:
+        color = material.diffuse_color[:3]
+    return (*color, 1)
+
 def surface(material):
     if not material:
         return 0, (.16, .17, .18, 1), (.3, .6, 0, 0)
@@ -126,7 +181,7 @@ def surface(material):
         return 0, (*material.diffuse_color[:3], 1), (0, .65, 0, 0)
     values = node.inputs
     base = values["Base Color"]
-    color = tuple(material.diffuse_color if mode == "sword" and base.is_linked else base.default_value)
+    color = base_color(material, base)
     alpha = values["Alpha"].default_value
     metal = values["Metallic"].default_value
     smoothness = 1 - values["Roughness"].default_value
@@ -139,6 +194,44 @@ def surface(material):
     if layer and alpha >= .96:
         alpha = .22
     return layer, (*color[:3], alpha), (metal, smoothness, min(2, strength), 0)
+
+baked_meshes = {}
+
+def bake_vertex_colors():
+    # The marshmallow's toasting is a procedural pattern. Bake Blender's own base color
+    # into a per-corner color so Unity gets the same caramel, char and soft center.
+    graph = bpy.context.evaluated_depsgraph_get()
+    try:
+        scene.render.engine = "CYCLES"
+    except TypeError:
+        return
+    scene.cycles.samples = 1
+    scene.cycles.device = "CPU"
+    for obj in root.children_recursive:
+        if obj.type != "MESH" or obj.hide_render:
+            continue
+        if any(word in obj.name.lower() for word in ("flame", "smoke", "fleck")):
+            continue
+        mesh = bpy.data.meshes.new_from_object(obj.evaluated_get(graph))
+        copy = bpy.data.objects.new(obj.name + " baked", mesh)
+        copy.matrix_world = obj.matrix_world
+        # Keep the original texture space so generated coordinates match Blender.
+        mesh.use_auto_texspace = False
+        mesh.texspace_location = obj.data.texspace_location
+        mesh.texspace_size = obj.data.texspace_size
+        scene.collection.objects.link(copy)
+        attribute = mesh.color_attributes.new("Baked base color", "FLOAT_COLOR", "CORNER")
+        mesh.color_attributes.active_color = attribute
+        for other in scene.objects:
+            other.select_set(False)
+        copy.select_set(True)
+        bpy.context.view_layer.objects.active = copy
+        bpy.ops.object.bake(type="DIFFUSE", pass_filter={"COLOR"}, target="VERTEX_COLORS")
+        baked_meshes[obj.name] = mesh
+        scene.collection.objects.unlink(copy)
+
+if mode == "marshmallow":
+    bake_vertex_colors()
 
 def xyz(v):
     return (v.x, v.z, v.y)
@@ -153,8 +246,9 @@ def collect(only_part=None, target_part=None):
         if only_part is not None and part_of(obj) != only_part:
             continue
         model = obj.evaluated_get(graph)
-        frozen_body = mode == "alien" and obj.name == "Detailed alien blaster surface 0"
-        mesh = alien_body if frozen_body else model.to_mesh()
+        frozen_body = mode == "alien" and obj.name == "Detailed alien blaster surface 0" or obj.name in baked_meshes
+        mesh = baked_meshes[obj.name] if obj.name in baked_meshes else alien_body if frozen_body else model.to_mesh()
+        baked = mesh.color_attributes.get("Baked base color") if obj.name in baked_meshes else None
         mesh.calc_loop_triangles()
         transform = matrix @ obj.matrix_world
         normal_transform = transform.to_3x3().inverted_safe().transposed()
@@ -176,6 +270,8 @@ def collect(only_part=None, target_part=None):
                 layer, color, finish = 0, (.12, .78, .35, 1), (.1, .66, 1.35, 0)
             vertices, triangles = parts[(part, layer)]
             for loop_index in reversed(loops):
+                if baked:
+                    color = (*baked.data[loop_index].color[:3], color[3])
                 point = transform.translation if mode == "alien" and obj.hide_render else transform @ mesh.vertices[mesh.loops[loop_index].vertex_index].co
                 normal = (normal_transform @ mesh.corner_normals[loop_index].vector).normalized()
                 key = tuple(round(x, 6) for x in (*xyz(point), *xyz(normal), *color, *finish))

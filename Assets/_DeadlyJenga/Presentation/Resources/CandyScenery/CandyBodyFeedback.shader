@@ -95,9 +95,11 @@ Shader "Candy Tropical/Body Feedback"
                 half edge=length(p*float2(1,.92));
                 if (_DeathKind<.5)
                 {
-                    half peripheral = smoothstep(.77, 1.32, edge);
-                    Layer(result, half3(.61,.27,1), peripheral * _Powerups.x * .19);
-                    Layer(result, half3(.66,1,.12), peripheral * _Powerups.y * .17);
+                    // Jump (grape) and speed (lime) tint the edges; wide enough to notice while moving.
+                    half peripheral = smoothstep(.42, 1.18, edge);
+                    half rim = smoothstep(.85, 1.3, edge);
+                    Layer(result, half3(.61,.27,1), (peripheral * .30 + rim * .22) * _Powerups.x);
+                    Layer(result, half3(.66,1,.12), (peripheral * .28 + rim * .20) * _Powerups.y);
                     half fatigue=_State.x;
                     if (fatigue>.001)
                     {
