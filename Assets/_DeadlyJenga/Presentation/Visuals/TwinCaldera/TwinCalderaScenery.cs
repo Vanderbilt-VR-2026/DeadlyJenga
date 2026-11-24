@@ -12,12 +12,11 @@ namespace DeadlyJenga.CandyArt
 
         void Awake()
         {
-            const float size = 1600;
-            surface = new Mesh { name = "Lava surface" };
-            surface.vertices = new[] { new Vector3(-size,0,-size), new Vector3(-size,0,size),
-                new Vector3(size,0,size), new Vector3(size,0,-size) };
-            surface.triangles = new[] { 0,1,2,0,2,3 };
-            Show("Lava ocean", surface, lava);
+            // Same static grid as the candy ocean: dense near the map for the swells, a cheap ring to the horizon.
+            const float size = 3200;
+            surface = CandyOceanSurface.Create(Application.isMobilePlatform ? 64 : 96, size, 110);
+            surface.name = "Lava surface";
+            Show("Lava ocean", surface, lava).transform.localScale = new Vector3(size,1,size);
 
             var vertices = new List<Vector3>();
             var uv = new List<Vector2>();
@@ -80,7 +79,7 @@ namespace DeadlyJenga.CandyArt
             Show("Volcanic skyline", mountains, skyline);
         }
 
-        void Show(string label, Mesh mesh, Material material)
+        GameObject Show(string label, Mesh mesh, Material material)
         {
             var part = new GameObject(label);
             part.transform.SetParent(transform,false);
@@ -89,6 +88,7 @@ namespace DeadlyJenga.CandyArt
             renderer.sharedMaterial=material;
             renderer.shadowCastingMode=ShadowCastingMode.Off;
             renderer.receiveShadows=false;
+            return part;
         }
 
         void OnDestroy()
