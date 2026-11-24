@@ -60,7 +60,6 @@ namespace DeadlyJenga.CastlePrototype
         {
             player = session.Player; original = player.ViewCamera;
             if (!original) return false;
-            session.SetMenu(false);
             vr = session.IsVR; originalEnabled = original.enabled;
             orbitView.Reset(original.transform.eulerAngles.y + 180);
             var go = new GameObject("Visual - third person inspection camera");

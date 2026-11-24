@@ -869,7 +869,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(demoBots.Length >= 4 && demoBots.Select(row => (Color32)row.color).Distinct().Count() >= 4,
                 "Demo's existing palette assignment gives four actual bots different displayed colors");
             foreach (var bot in demoBots)
-                Check((Color32)runtime.FindActor(bot.id).Color == (Color32)bot.color,
+                Check(((Color32)runtime.FindActor(bot.id).Color).Equals((Color32)bot.color),
                     "Live bot rendering identity agrees with the Demo color snapshot");
 
             Check(runtime.GiveEquipment(EquipmentKind.MurderSword), "Game equips the Murderer Sword");
