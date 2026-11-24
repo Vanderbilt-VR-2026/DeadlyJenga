@@ -390,6 +390,17 @@ namespace DeadlyJenga.Presentation
             if(action.endpoints!=null&&action.endpoints.Length>0&&
                 (action.endpoints[0]-action.position).sqrMagnitude>.005f)
                 direction=(action.endpoints[0]-action.position).normalized;
+            else if (action.kind == EquipmentKind.Blaster && effectsRuntime.Frame.blaster?.shots != null)
+            {
+                float closest = .36f;
+                foreach (var shot in effectsRuntime.Frame.blaster.shots)
+                {
+                    float distance = (shot.position - action.position).sqrMagnitude;
+                    if (distance >= closest || shot.velocity.sqrMagnitude < .001f) continue;
+                    closest = distance;
+                    direction = shot.velocity.normalized;
+                }
+            }
             else if(EquipmentSpecifications.Get(action.kind).projectileSpeed>0||action.kind==EquipmentKind.Chainsaw)
             {
                 // Travelling shots have no endpoint until impact.
@@ -411,7 +422,8 @@ namespace DeadlyJenga.Presentation
             Color? ownerColor=CandyWeaponImpacts.SidearmOwnerColor(effectsRuntime,action);
             var tint = action.kind == EquipmentKind.RocketLauncher ? RocketCandy.ColorFor(action.rocketCandyVariant) :
                 action.kind == EquipmentKind.DualUzi ? SpikerShotTint(action.actor) : ownerColor ?? profile.tint;
-            EmitMuzzle(origin,orientation,tint,profile.length*scale,profile.sparks,action.id, action.kind==EquipmentKind.DualRifle);
+            EmitMuzzle(origin,orientation,tint,profile.length*scale,profile.sparks,action.id,
+                action.kind==EquipmentKind.DualRifle, action.kind==EquipmentKind.GrenadeLauncher ? GrenadeCellColors : null);
             if(action.kind==EquipmentKind.RocketLauncher)
             {
                 var rear=mounted?model.TransformPoint(new Vector3(0,.205f,-.365f)):
@@ -422,7 +434,8 @@ namespace DeadlyJenga.Presentation
                 action.kind==EquipmentKind.ChainGun))EjectShell(model,action,scale,ownerColor);
         }
 
-        void EmitMuzzle(Vector3 origin,Quaternion orientation,Color tint,float size,int sparks,int seed,bool candy=false)
+        void EmitMuzzle(Vector3 origin,Quaternion orientation,Color tint,float size,int sparks,int seed,
+            bool candy=false, Color[] sparkPalette=null)
         {
             if(burstParticles.isStopped)burstParticles.Play();
             var forward=orientation*Vector3.forward;
@@ -444,7 +457,8 @@ namespace DeadlyJenga.Presentation
                 burstParticles.Emit(new ParticleSystem.EmitParams{
                     position=origin+forward*size*.22f,velocity=direction,startLifetime=.08f+i%4*.024f,
                     startSize=size*(.12f+i%3*.044f),
-                    startColor=candy&&i%3!=0?(i%3==1?new Color(1,.18f,.46f):new Color(1,.65f,.19f)):tint},1);
+                    startColor=sparkPalette!=null?sparkPalette[i%sparkPalette.Length]:
+                        candy&&i%3!=0?(i%3==1?new Color(1,.18f,.46f):new Color(1,.65f,.19f)):tint},1);
             }
         }
 
