@@ -146,7 +146,7 @@ namespace DeadlyJenga.Presentation
         void Action(EquipmentActionFrame action)
         {
             if (action.kind == EquipmentKind.Blaster) return; // The braided plasma view owns muzzle and impact.
-            if(action.kind==EquipmentKind.LaserAxe&&action.shotgun)return; // The thunderbolt owns ranged axe feedback.
+            if (action.kind == EquipmentKind.LaserAxe) return; // The authored effect owns axe contact.
             if(action.kind==EquipmentKind.WristLaser)
             {
                 if(action.action==EquipmentAction.Impact&&action.remaining>=.55f)

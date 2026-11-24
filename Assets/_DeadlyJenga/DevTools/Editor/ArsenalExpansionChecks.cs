@@ -1299,12 +1299,36 @@ namespace DeadlyJenga.DevTools.Editor
                     "Physics contact renders the segmented plasma shock fronts");
                 yield return new WaitForSeconds(1.7f);
                 Check(!hatch.gameObject.activeSelf, "The reviewed cooling hatch closes again after cooling");
+                wall.transform.position = new Vector3(150,14,150.95f);
+                Physics.SyncTransforms();
+                Check(runtime.GiveEquipment(EquipmentKind.LaserAxe), "The reviewed Storm Axe equips in live gameplay");
+                yield return new WaitForSeconds(.7f);
+                Check(WeaponEffectMesh(effects, "Storm Axe blade current"), "The mounted Storm Axe renders the exported blade and haft current");
+                var axeMuzzle = new Pose(player.ViewPose.position + Vector3.forward * .50f, Quaternion.identity);
+                Check(runtime.RequestEquipmentAttack(axeMuzzle), "Authority accepts the Storm Axe swing");
+                bool release = false, airborne = false, contact = false;
+                float axeDeadline = Time.realtimeSinceStartup + 2;
+                while ((!release || !airborne || !contact) && Time.realtimeSinceStartup < axeDeadline)
+                {
+                    yield return null;
+                    release |= WeaponEffectMesh(effects, "Storm Axe release");
+                    airborne |= WeaponEffectMesh(effects, "Storm Axe airborne tearing slash");
+                    contact |= WeaponEffectMesh(effects, "Storm Axe electrical contact");
+                }
+                Check(release && airborne && contact, "The live swing renders the exported release, airborne slash and contact stages");
             }
             finally
             {
                 Object.Destroy(wall);
                 Object.Destroy(floor);
             }
+        }
+
+        static bool WeaponEffectMesh(Component owner, string name)
+        {
+            return owner && owner.GetComponentsInChildren<MeshFilter>().Any(filter =>
+                filter.sharedMesh && filter.sharedMesh.name == name &&
+                filter.GetComponent<MeshRenderer>().enabled);
         }
 
         static bool RenderedPlasma(CandyPlasmaView effect, string name)

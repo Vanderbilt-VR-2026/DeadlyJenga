@@ -350,7 +350,6 @@ namespace DeadlyJenga.Presentation
                 EquipmentKind.Blaster or EquipmentKind.PoweredArmor => (new Color(.19f,.85f,1),.28f,7),
                 EquipmentKind.NeedleDrill => (new Color(1,.77f,.23f),.16f,4),
                 EquipmentKind.Chainsaw when alternate => (new Color(1,.74f,.32f),.26f,9),
-                EquipmentKind.LaserAxe when alternate => (LightningBlue,.37f,9),
                 _ => (Color.clear,0,0)
             };
         }

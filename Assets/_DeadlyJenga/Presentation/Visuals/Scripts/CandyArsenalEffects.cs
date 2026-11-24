@@ -22,7 +22,7 @@ namespace DeadlyJenga.Presentation
         {
             public EquipmentKind kind;
             public Transform model;
-            public LineRenderer[] arcs;
+            public StormStroke stormCharge;
             public LineRenderer heatLine;
             public Transform[] heatBars;
             public Transform coolingPose, coolBody, coolGlass;
@@ -30,16 +30,7 @@ namespace DeadlyJenga.Presentation
             public bool venting, reloading;
             public int seenFrame;
         }
-        sealed class Thunderbolt
-        {
-            public LineRenderer[] lines;
-            public Vector3 start, end;
-            public float born;
-            public int seed;
-        }
-        static readonly Color LightningBlue = new Color(.25f,.70f,1);
         readonly Dictionary<string,WeaponEffect> weaponEffects=new Dictionary<string,WeaponEffect>();
-        readonly Dictionary<string,Thunderbolt> thunderbolts=new Dictionary<string,Thunderbolt>();
         readonly List<string> staleEffects=new List<string>();
         IMatchRuntime effectsRuntime;
         ParticleSystem steam;
@@ -91,10 +82,15 @@ namespace DeadlyJenga.Presentation
             UpdateShells();
 
             UpdateWeaponEffects(match);
-            UpdateThunderbolts();
+            UpdateStormStrokes();
         }
         void Action(EquipmentActionFrame action)
         {
+            if (action.kind == EquipmentKind.LaserAxe)
+            {
+                if (action.action == EquipmentAction.Shot) PresentStormShot(action);
+                return;
+            }
             if(action.kind!=EquipmentKind.WristLaser&&action.action==EquipmentAction.Shot&&action.remaining>=.55f)
                 PresentShot(action);
             if(action.action==EquipmentAction.Shot&&UsesHeat(action.kind)&&!string.IsNullOrEmpty(action.actor))
@@ -128,12 +124,6 @@ namespace DeadlyJenga.Presentation
                     if(action.shotgun)LodgeWheel(action);
                 }
                 else BlastDetail(action);
-                return;
-            }
-            if(action.action!=EquipmentAction.Shot||action.endpoints==null||action.endpoints.Length==0)return;
-            if(action.kind==EquipmentKind.LaserAxe&&action.shotgun)
-            {
-                FireThunderbolt(action);
                 return;
             }
         }
@@ -316,7 +306,7 @@ namespace DeadlyJenga.Presentation
                     }
                 }
 
-                if(item.kind==EquipmentKind.LaserAxe)UpdateAxeArcs(effect);
+                if (item.kind == EquipmentKind.LaserAxe) UpdateStormCharge(effect, item);
                 bool reload=item.drawn&&item.reloadRemaining>0;
                 bool shotHeat=UsesShotHeat(item.kind);
                 if(!shotHeat)
@@ -456,112 +446,10 @@ namespace DeadlyJenga.Presentation
             return line;
         }
 
-        void UpdateAxeArcs(WeaponEffect effect)
-        {
-            bool active=effect.model&&effect.model.gameObject.activeInHierarchy;
-            if(!active&&effect.arcs==null)return;
-            if(effect.arcs==null)
-            {
-                effect.arcs=new LineRenderer[4];
-                for(int i=0;i<effect.arcs.Length;i++)effect.arcs[i]=MakeLine("Stormbreaker surface arc",7);
-            }
-            var model=effect.model;
-            int tick=Mathf.FloorToInt(Time.time*19);
-            for(int i=0;i<effect.arcs.Length;i++)
-            {
-                var line=effect.arcs[i];
-                line.enabled=active;
-                if(!active)continue;
-                float side=i%2==0?1:-1;
-                var from=i<2?new Vector3(side*.072f,-.22f,.82f):new Vector3(side*.044f,0,.08f);
-                var to=i<2?new Vector3(side*.062f,.39f,.96f):new Vector3(side*.065f,.06f,.76f);
-                line.startWidth=.027f*Mathf.Abs(model.lossyScale.z);line.endWidth=line.startWidth*.33f;
-                line.startColor=LightningBlue;line.endColor=new Color(.53f,.87f,1,.55f);
-                for(int j=0;j<line.positionCount;j++)
-                {
-                    float t=j/(line.positionCount-1f);
-                    float kick=j==0||j==line.positionCount-1?0:.047f*Mathf.Sin(t*Mathf.PI);
-                    var point=Vector3.Lerp(from,to,t)+new Vector3(
-                        Mathf.Sin(j*16.7f+i*3+tick*4),Mathf.Cos(j*8.1f+tick),Mathf.Sin(j*9.6f-i+tick*2))*kick;
-                    line.SetPosition(j,model.TransformPoint(point));
-                }
-            }
-        }
-
-        void FireThunderbolt(EquipmentActionFrame action)
-        {
-            if(string.IsNullOrEmpty(action.actor))return;
-            if(!thunderbolts.TryGetValue(action.actor,out var bolt))
-            {
-                bolt=new Thunderbolt{lines=new LineRenderer[5]};
-                for(int i=0;i<bolt.lines.Length;i++)bolt.lines[i]=MakeLine(i<2?"Stormbreaker bolt":"Stormbreaker fork",i<2?17:7);
-                thunderbolts[action.actor]=bolt;
-            }
-            bolt.start=action.position;bolt.end=action.endpoints[0];bolt.born=Time.time;bolt.seed=action.id;
-        }
-
-        void UpdateThunderbolts()
-        {
-            staleEffects.Clear();
-            foreach(var pair in thunderbolts)
-            {
-                var bolt=pair.Value;
-                float age=Time.time-bolt.born;
-                if(age>=.27f)
-                {
-                    foreach(var line in bolt.lines)Destroy(line.gameObject);
-                    staleEffects.Add(pair.Key);
-                    continue;
-                }
-                var travel=bolt.end-bolt.start;
-                var side=Vector3.Cross(travel.normalized,Vector3.up);
-                if(side.sqrMagnitude<.01f)side=Vector3.right;
-                side.Normalize();
-                var up=travel.sqrMagnitude<.001f?Vector3.up:Vector3.Cross(side,travel.normalized);
-                float alpha=1-age/.27f;
-                float size=Mathf.Clamp(travel.magnitude*.11f,.09f,1.1f);
-                float seed=bolt.seed%7919+Mathf.Floor(age*22)*7;
-                for(int i=0;i<bolt.lines.Length;i++)
-                {
-                    var line=bolt.lines[i];
-                    var color=i==1?new Color(.8f,.94f,1):LightningBlue;
-                    color.a=alpha*(i>=2?.68f:1);
-                    line.startColor=line.endColor=color;
-                    line.startWidth=i==0?.23f:i==1?.065f:.07f;
-                    line.endWidth=i<2?line.startWidth:.005f;
-                    if(i<2)
-                    {
-                        for(int j=0;j<line.positionCount;j++)
-                            line.SetPosition(j,BoltPoint(bolt,side,up,size,seed,j));
-                        continue;
-                    }
-                    int joint=i==4?15:4+(i-2)*5;
-                    var start=BoltPoint(bolt,side,up,size,seed,joint);
-                    var end=start+travel*(i==4?.055f:.16f)+
-                        side*(i%2==0?1:-1)*size*(i==4?2.4f:1.55f)+up*size*.6f;
-                    for(int j=0;j<line.positionCount;j++)
-                    {
-                        float t=j/(line.positionCount-1f);
-                        line.SetPosition(j,Vector3.Lerp(start,end,t)+up*(Mathf.Sin(t*Mathf.PI)*Mathf.Sin(j*11+seed)*size*.37f));
-                    }
-                }
-            }
-            foreach(var actor in staleEffects)thunderbolts.Remove(actor);
-        }
-
-        static Vector3 BoltPoint(Thunderbolt bolt,Vector3 side,Vector3 up,float size,float seed,int joint)
-        {
-            float t=joint/16f;
-            var center=Vector3.Lerp(bolt.start,bolt.end,t);
-            if(joint==0||joint==16)return center;
-            float envelope=Mathf.Sin(t*Mathf.PI);
-            return center+(side*Mathf.Sin(joint*14.7f+seed)+up*Mathf.Cos(joint*8.4f-seed))*size*envelope;
-        }
-
         void ReleaseEffect(WeaponEffect effect)
         {
             if(effect.heatLine)Destroy(effect.heatLine.gameObject);
-            if(effect.arcs!=null)foreach(var line in effect.arcs)if(line)Destroy(line.gameObject);
+            if (effect.stormCharge?.filter) Destroy(effect.stormCharge.filter.gameObject);
         }
 
         void ClearWeaponEffects()
@@ -575,8 +463,7 @@ namespace DeadlyJenga.Presentation
                 if(beam.core)Destroy(beam.core.gameObject);
             }
             beams.Clear();
-            foreach(var bolt in thunderbolts.Values)foreach(var line in bolt.lines)if(line)Destroy(line.gameObject);
-            thunderbolts.Clear();
+            while (stormStrokes.Count > 0) RetireStormStroke(stormStrokes.Count - 1);
             if(steam)steam.Clear();
             foreach(var shell in shells)if(shell.model)shell.model.gameObject.SetActive(false);
         }
@@ -585,6 +472,7 @@ namespace DeadlyJenga.Presentation
         {
             ClearWeaponEffects();
             ReleaseOrdnance();
+            if (stormMeshes != null) foreach (var mesh in stormMeshes) Destroy(mesh);
             if(shellMaterial)Destroy(shellMaterial);
             if(shellMesh)Destroy(shellMesh);
             foreach(var s in shots.Values)if(s)Destroy(s.gameObject);

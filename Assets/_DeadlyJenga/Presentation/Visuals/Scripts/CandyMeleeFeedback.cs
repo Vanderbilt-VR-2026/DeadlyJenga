@@ -147,6 +147,7 @@ namespace DeadlyJenga.Presentation
                 PresentDagger(shot);
                 return;
             }
+            if (shot.kind == EquipmentKind.LaserAxe) return; // Authored lightning is owned by CandyArsenalEffects.
             var spec = EquipmentSpecifications.Get(shot.kind);
             bool bash = shot.action == EquipmentAction.Bash;
             bool sword = !bash && shot.kind == EquipmentKind.MurderSword;
@@ -186,7 +187,6 @@ namespace DeadlyJenga.Presentation
                 EquipmentKind.BarbedBat => (Shape.Slash, new Color(1f, .48f, .13f), .26f, .11f, .64f),
                 EquipmentKind.SawStaff => (Shape.Teeth, new Color(1f, .84f, .35f), .34f, .045f, .44f),
                 EquipmentKind.Chainsaw => (Shape.Teeth, new Color(1f, .39f, .09f), .30f, .065f, .37f),
-                EquipmentKind.LaserAxe => (Shape.Cleave, new Color(.23f, .91f, 1f), .34f, .14f, .77f),
                 EquipmentKind.LaserClaws => (Shape.Claws, ClawTint(runtime,shot.actor), .23f, .036f, .38f),
                 _ => (Shape.Ember, new Color(1f, .29f, .055f), .36f, .075f, .36f)
             };
