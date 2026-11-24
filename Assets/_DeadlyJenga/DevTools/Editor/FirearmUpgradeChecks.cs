@@ -147,7 +147,8 @@ namespace DeadlyJenga.DevTools.Editor
             Check(runtime.EquipmentFor(innocent.id).kind==EquipmentKind.SheriffHammer,"A living sheriff can retrieve his own swapped revolver");
             Object.Destroy(floor);
         }
-        static IEnumerator Aim(CastlePlaySession session,CastleSurvivor player,float expectedMagnification)
+        internal static IEnumerator Aim(CastlePlaySession session,CastleSurvivor player,float expectedMagnification,
+            Action duringAim = null)
         {
             var originalSettings=InputSystem.settings;
             var originalFlags=originalSettings.hideFlags;
@@ -168,6 +169,7 @@ namespace DeadlyJenga.DevTools.Editor
                 File.AppendAllText(Report,$"ZOOM aiming={session.GetComponent<CandyGunSights>().Aiming} fov={player.viewCamera.fieldOfView} original={fov} driverFrames={aimDriver.AppliedFrames} menu={session.MenuOpen} inputPaused={player.InputSuspended} mouse={Mouse.current?.rightButton.isPressed} deviceEnabled={mouse.enabled} activeCameraIsPlayer={session.ActiveCamera==player.viewCamera}\n");
                 Expect(aimDriver.AppliedFrames>=18,"Runtime input fixture executes during LateUpdate");
                 Expect(session.GetComponent<CandyGunSights>().Aiming&&Mathf.Abs(player.viewCamera.fieldOfView/fov-1/expectedMagnification)<.03f,$"Holding aim produces {expectedMagnification}x desktop zoom");
+                duringAim?.Invoke();
                 aimDriver.enabled=false;session.SetMenu(true);yield return null;Expect(Mathf.Abs(player.viewCamera.fieldOfView-fov)<.1f,"Opening the menu restores the original camera FOV");session.SetMenu(false);
             }
             finally

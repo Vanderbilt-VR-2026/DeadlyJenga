@@ -919,6 +919,28 @@ namespace DeadlyJenga.DevTools.Editor
             Check(stick && stick.localScale.y >= .28f && stick.localScale.x < .05f,
                 "The deployed lollipop has a long slim loading shaft");
 
+            Check(runtime.GiveEquipment(EquipmentKind.DualUzi), "Real round equips both Spikers");
+            yield return new WaitForSeconds(.75f);
+            var primarySpiker = player.transform.Find("Visual - DualUzi");
+            var secondarySpiker = player.transform.Find("Visual - paired DualUzi");
+            Check(primarySpiker && secondarySpiker, "Both Spikers mount on the actual player");
+            var eye = player.viewCamera.transform;
+            var idlePrimary = eye.InverseTransformPoint(primarySpiker.position);
+            var idleSecondary = eye.InverseTransformPoint(secondarySpiker.position);
+            yield return FirearmUpgradeChecks.Aim(session, player, 1.25f, () =>
+            {
+                var primary = eye.InverseTransformPoint(primarySpiker.position);
+                var secondary = eye.InverseTransformPoint(secondarySpiker.position);
+                var sights = session.GetComponent<CandyGunSights>();
+                Check(sights.Aiming && !sights.DrawsScopeOverlay && sights.Magnification > 1,
+                    "Spikers zoom on the central camera without a one-gun optic");
+                Check(Mathf.Abs(primary.y - idlePrimary.y) < .035f &&
+                    Mathf.Abs(secondary.y - idleSecondary.y) < .035f &&
+                    primary.z < idlePrimary.z - .030f * playerAvatar.LastFrame.scale &&
+                    secondary.z < idleSecondary.z - .030f * playerAvatar.LastFrame.scale,
+                    "Aiming brings both Spikers closer at the same height");
+            });
+
             Check(runtime.GiveEquipment(EquipmentKind.BoxingGlove), "Real round equips the boxing glove");
             yield return new WaitForSeconds(.55f);
             Check(EquipmentModelData.Parts.TryGetValue(EquipmentKind.BoxingGlove, out var glove) &&
