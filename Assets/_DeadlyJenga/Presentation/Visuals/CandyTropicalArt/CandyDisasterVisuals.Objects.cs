@@ -355,7 +355,8 @@ namespace DeadlyJenga.CandyArt
             float visibility = 1f - tornadoDissolve;
             flash *= visibility;
             storm.SetVector("_StormInfo",new Vector4(size,height,speed,flash));
-            stormMist.SetColor("_BaseColor",Color.Lerp(new Color(.18f,.22f,.31f,.64f*visibility),new Color(.40f,.49f,.86f,.70f*visibility),flash));
+            // Matches the v2 wall cloud (pale storm grey) so the puffs blend in instead of reading as dark blots.
+            stormMist.SetColor("_BaseColor",Color.Lerp(new Color(.46f,.49f,.55f,.42f*visibility),new Color(.55f,.62f,.9f,.6f*visibility),flash));
             float ribbonOpacity = !supportsTornadoVolume ? .88f : compactStorm ? .12f : .19f;
             stormRibbon.SetColor("_BaseColor", Color.Lerp(new Color(.27f, .34f, .46f, ribbonOpacity * visibility),
                 new Color(.59f, .71f, 1.1f, .28f * visibility), flash));

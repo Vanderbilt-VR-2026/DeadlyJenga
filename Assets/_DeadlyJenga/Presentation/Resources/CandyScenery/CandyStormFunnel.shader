@@ -90,8 +90,8 @@ Shader "Candy Tropical/Storm Funnel"
       float3 v=float3(rotation.x*.025,p.y*.049+time*.045,rotation.y*.025);
       float large=Noise(v,0);
       float fine=_MarchBudget>20?Noise(v*2.78+4,.15):large;
-      float lobes=large*.85+fine*.15;
-      cloud=saturate((1.12-dist+(lobes-.5)*1.40)*3.8)*(1-smoothstep(1.10,1.30,dist));
+      float lobes=large;   // broad lobes only: the 48^3 volume shows as worms at finer scales
+      cloud=saturate((1.12-dist+(lobes-.5)*.9)*2.6)*(1-smoothstep(1.05,1.30,dist));
       grain=lerp(grain,lobes,cloud);
       edge=lerp(edge,saturate(rim/3.4),cloud);
      }

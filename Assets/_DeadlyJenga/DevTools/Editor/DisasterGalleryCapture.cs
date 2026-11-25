@@ -142,13 +142,11 @@ namespace DeadlyJenga.DevTools.Editor
                         var meteorParameters = DemoDisasters.Parameters(meteorPrefab);
                         for (int i = 0; i < meteorParameters.Count; i++) if (meteorParameters[i].id == "warning") DemoDisasters.SetValue(session, meteorPrefab, i, 0);
                         File.AppendAllText(Report, "Ice-" + meteorName + ": " + DemoDisasters.Request(session, meteorPrefab) + "\n");
-                        yield return new WaitForSecondsRealtime(3f);
-                        Shot(session, "Ice-" + meteorName + "-a-wide", false);
-                        yield return new WaitForSecondsRealtime(2.5f);
-                        Shot(session, "Ice-" + meteorName + "-b-wide", false);
-                        Shot(session, "Ice-" + meteorName + "-c-close", true);
-                        yield return new WaitForSecondsRealtime(2.5f);
-                        Shot(session, "Ice-" + meteorName + "-d-close", true);
+                        for (int moment = 0; moment < 4; moment++)
+                        {
+                            yield return new WaitForSecondsRealtime(moment == 0 ? 2.5f : 1.2f);
+                            MeteorShot(session, "Ice-" + meteorName + "-m" + moment);
+                        }
                     }
                 }
                 finally { CandyDisasterVisuals.MeteorSkinOverride = null; }
@@ -278,6 +276,23 @@ namespace DeadlyJenga.DevTools.Editor
                 }
             }
             finally { CandyDisasterVisuals.RainSkinOverride = null; }
+        }
+
+        // Frame the biggest meteor in flight from beside and slightly behind it, so the trail reads.
+        static void MeteorShot(CastlePlaySession session, string file)
+        {
+            DisasterPoint best = default; bool found = false;
+            foreach (var state in DisasterStates.Active)
+            {
+                var frame = state?.Capture();
+                if (frame?.points == null) continue;
+                foreach (var p in frame.points) if (!found || p.size > best.size) { best = p; found = true; }
+            }
+            if (!found) { File.AppendAllText(Report, "  no meteor in flight for " + file + "\n"); return; }
+            Vector3 dir = best.velocity.sqrMagnitude > .01f ? best.velocity.normalized : Vector3.down;
+            Vector3 side = Vector3.Cross(Vector3.up, dir); if (side.sqrMagnitude < .01f) side = Vector3.right; side.Normalize();
+            float back = Mathf.Max(6, best.size * 5);
+            View(session, file, best.position - dir * back * .6f + side * back + Vector3.up * best.size * 1.5f, best.position + dir * best.size, 50);
         }
 
         static IEnumerator TornadoShots(CastlePlaySession session, string name)
