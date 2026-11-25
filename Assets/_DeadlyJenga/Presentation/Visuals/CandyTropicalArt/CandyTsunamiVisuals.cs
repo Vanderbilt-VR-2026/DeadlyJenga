@@ -6,7 +6,7 @@ using DeadlyJenga.Core;
 namespace DeadlyJenga.CandyArt
 {
     [DisallowMultipleComponent]
-    public sealed class CandyTsunamiVisuals : MonoBehaviour
+    public sealed partial class CandyTsunamiVisuals : MonoBehaviour
     {
         CandyEnvironment environment;
         GameObject visual;
@@ -206,6 +206,7 @@ namespace DeadlyJenga.CandyArt
             if (!visual) return;
             bool shown = wave.active && wave.height > .02f;
             water.enabled = shown;
+            UpdateRipple(shown);
             if (!shown) { spray.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear); return; }
             material.CopyPropertiesFromMaterial(environment.waterRenderer.sharedMaterial);
             material.SetTexture("_FoamDetail",foamDetail);
@@ -266,6 +267,7 @@ namespace DeadlyJenga.CandyArt
         void OnDisable()
         {
             if (water) water.enabled = false;
+            Shader.SetGlobalFloat(RippleReadyId, 0);
             if (spray) spray.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             if (environment && environment.waterRenderer && properties != null)
             { environment.waterRenderer.GetPropertyBlock(properties); SetWave(properties, default); environment.waterRenderer.SetPropertyBlock(properties); }
@@ -274,6 +276,7 @@ namespace DeadlyJenga.CandyArt
         {
             Release(visual); Release(mesh); Release(material); Release(sprayMaterial); if(ownsFoamDetail)Release(foamDetail);
             if (profileTexture) { Shader.SetGlobalFloat(ReadyId, 0); Release(profileTexture); Release(envelopeTexture); }
+            ReleaseRipple();
         }
         static void Release(Object value)
         { if (value) { if (Application.isPlaying) Destroy(value); else DestroyImmediate(value); } }

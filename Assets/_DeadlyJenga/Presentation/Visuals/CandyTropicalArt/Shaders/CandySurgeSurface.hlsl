@@ -6,6 +6,23 @@
 TEXTURE2D(_SurgeProfile); SAMPLER(sampler_SurgeProfile);
 TEXTURE2D(_SurgeEnvelope); SAMPLER(sampler_SurgeEnvelope);
 float _SurgeProfileReady;
+// Obstacle reactivity (CandyTsunamiVisuals.Obstacles): _SurgeObstacles r = obstacle weight, g = obstacle top
+// (fraction of wave height); _SurgeRipple r = ripple height (fraction of wave height). Both in wave space:
+// x = across (-0.5..0.5 of width) + 0.5, y = along (-0.5..0.5 of depth) + 0.5.
+TEXTURE2D(_SurgeObstacles); SAMPLER(sampler_SurgeObstacles);
+TEXTURE2D(_SurgeRipple); SAMPLER(sampler_SurgeRipple);
+float _SurgeRippleReady;
+float2 CandySurgeGridUV(float across,float along){return float2(across/max(.01,_SurgeWidth)+.5,along/max(.01,_SurgeDepth)+.5);}
+float CandySurgeRipple(float across,float along)
+{
+    if(_SurgeRippleReady<.5)return 0;
+    return SAMPLE_TEXTURE2D_LOD(_SurgeRipple,sampler_SurgeRipple,CandySurgeGridUV(across,along),0).r;
+}
+float2 CandySurgeObstacle(float across,float along)
+{
+    if(_SurgeRippleReady<.5)return 0;
+    return SAMPLE_TEXTURE2D_LOD(_SurgeObstacles,sampler_SurgeObstacles,CandySurgeGridUV(across,along),0).rg;
+}
 float2 CandySurgeProfile(float phase,float lateral)
 {
     return SAMPLE_TEXTURE2D_LOD(_SurgeProfile,sampler_SurgeProfile,float2(saturate(phase),saturate(lateral+.5)),0).rg;

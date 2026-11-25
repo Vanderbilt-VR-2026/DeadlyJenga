@@ -58,7 +58,7 @@ Shader "Candy Tropical/Tsunami"
             TEXTURE2D(_TerrainHeight);SAMPLER(sampler_TerrainHeight);
             TEXTURE2D(_FoamDetail);SAMPLER(sampler_FoamDetail);
             struct Attributes{float4 positionOS:POSITION;UNITY_VERTEX_INPUT_INSTANCE_ID};
-            struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float wave:TEXCOORD2;float fog:TEXCOORD3;float2 uv:TEXCOORD4;float whitewater:TEXCOORD5;float bulk:TEXCOORD6;float cap:TEXCOORD7;UNITY_VERTEX_OUTPUT_STEREO};
+            struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float wave:TEXCOORD2;float fog:TEXCOORD3;float2 uv:TEXCOORD4;float whitewater:TEXCOORD5;float bulk:TEXCOORD6;float cap:TEXCOORD7;float ripple:TEXCOORD8;UNITY_VERTEX_OUTPUT_STEREO};
             float IslandDistance(float2 world)
             {
                 float2 q=(world-_Island.xy)/max(_Island.zw,float2(1,1));float a=atan2(q.y,q.x);
@@ -116,6 +116,9 @@ Shader "Candy Tropical/Tsunami"
                 float bulk=cap>.5?i.positionOS.z:step(1.5,i.positionOS.y);
                 float3 local=SurfacePoint(uv,bulk);
                 if(whitewater>.5)local=float3(uv.x*_SurgeWidth,.18,(uv.y*.85+.58)*_SurgeDepth);
+                // Obstacle ripple: pile-up on upstream faces, dips in the lee, refilled by the water around.
+                float ripple=CandySurgeRipple(local.x,local.z);
+                local.y+=ripple*_SurgeHeight*.32*smoothstep(.02,.2,local.y/max(.01,_SurgeHeight));
                 float y=local.y;
                 // Extended ocean apron must stay flat outside the original wave span.
                 if(uv.y<-.5||uv.y>.5)local.z=uv.y*_SurgeDepth;
@@ -134,7 +137,7 @@ Shader "Candy Tropical/Tsunami"
                 Wave(float2(-.6,.8),7.5,amplitude*.3,p,time*.87,offset,dx,dz);
                 Wave(float2(.24,-.971),17,amplitude*.15,p,time*.68,offset,dx,dz);
                 float3 wake=CandySurgeWakeSample(world.xz);
-                o.world=world+offset+float3(0,wake.x+.012,0);o.normal=normalize(n+((normalize(cross(dz,dx))-float3(0,1,0))+float3(wake.y,0,wake.z))*lerp(1,.1,smoothstep(.2,2,y)));o.wave=y;o.uv=uv;o.whitewater=whitewater;o.bulk=cap>.5?.65:bulk;o.cap=cap;
+                o.world=world+offset+float3(0,wake.x+.012,0);o.normal=normalize(n+((normalize(cross(dz,dx))-float3(0,1,0))+float3(wake.y,0,wake.z))*lerp(1,.1,smoothstep(.2,2,y)));o.wave=y;o.uv=uv;o.whitewater=whitewater;o.bulk=cap>.5?.65:bulk;o.cap=cap;o.ripple=ripple;
                 o.positionCS=TransformWorldToHClip(o.world);o.fog=ComputeFogFactor(o.positionCS.z);return o;
             }
             float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
@@ -147,6 +150,10 @@ Shader "Candy Tropical/Tsunami"
                 // The exported profile already contains the back slope and tapers to nothing at the ends,
                 // so the separate swell-back surface and side caps are not drawn with it.
                 if(_SurgeProfileReady>.5&&i.whitewater<.5&&(i.bulk>.5||i.cap>.5))clip(-1);
+                // No water inside an obstacle that stands in the wave (tower walls, big blocks).
+                float2 surgeLocal=CandySurgeCoordinates(i.world.xz);
+                float2 obstacle=CandySurgeObstacle(surgeLocal.x,surgeLocal.y);
+                if(obstacle.r>.55&&(i.world.y-_WaterHeight)<obstacle.g*_SurgeHeight-.2)clip(-1);
                 float distanceToEye=distance(i.world,_WorldSpaceCameraPos),r=IslandDistance(i.world.xz);
                 float depth=max(.01,i.world.y-TerrainHeight(i.world.xz)),deep=smoothstep(.15,3.2,depth);
                 float2 p=(i.world.xz+float2(i.wave*.18,i.wave*.64))*_RippleScale;float t=_Time.y*_Speed;
@@ -197,6 +204,7 @@ Shader "Candy Tropical/Tsunami"
                     clip(cover-.035);
                     return half4(MixFog(lerp(_Shallow.rgb,_Foam.rgb,.6+lace*.4),i.fog),cover*.95);
                 }
+                foam=max(foam,saturate(abs(i.ripple)*3.5)*.9);   // splash-back and churn around obstacles
                 foam*=lerp(1,.42,i.bulk);
                 color=lerp(color,_Foam.rgb,foam);
                 color=MixFog(color,i.fog);color=lerp(color,_Horizon.rgb,smoothstep(240,700,distanceToEye));
