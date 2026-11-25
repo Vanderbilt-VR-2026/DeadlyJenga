@@ -58,6 +58,7 @@ namespace DeadlyJenga.CandyAudio
                 }
             }
             bool global=item.action==EquipmentAction.Shot&&(item.kind==EquipmentKind.MurderSword||item.kind==EquipmentKind.SheriffHammer)&&MatchRuntime.Current?.Frame.rules.mode==GameModeKind.MurderMystery;
+            if(!global&&CandyWeaponSuite.Play(item))return;
             if(item.kind>EquipmentKind.PoweredArmor||global||item.action==EquipmentAction.Reload){CandySignatureSounds.PlayWeapon(item,global);return;}
             var engine=CandyAudioEngine.Instance;if(!engine)return;
             CandySound sound;
