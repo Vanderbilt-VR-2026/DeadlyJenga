@@ -170,7 +170,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             try
             {
-                if(EditorApplication.timeSinceStartup>deadline)throw new TimeoutException("phase "+phase);
+                if(EditorApplication.timeSinceStartup>deadline)throw new TimeoutException("phase "+phase+" after "+(Time.fixedTime-clock)+" s of physics");
                 if(Services.Session?.SurvivorBots==null)return;
                 if(phase==0)
                 {
@@ -181,6 +181,8 @@ namespace DeadlyJenga.DevTools.Editor
                     report+="Rigid members "+initial.Length+", bearing shapes "+map.GetComponentsInChildren<BoxCollider>().Length+", joints "+map.GetComponentsInChildren<Joint>().Length+"\n";
                     camera=new GameObject("Fossil Basin review camera").AddComponent<Camera>();
                     camera.enabled=false;camera.farClipPlane=400;camera.nearClipPlane=.05f;
+                    // Building the map can take minutes on a busy test PC; time the settle from here.
+                    deadline=EditorApplication.timeSinceStartup+240;
                     clock=Time.fixedTime;phase++;return;
                 }
                 float dt=Time.fixedTime-clock;
