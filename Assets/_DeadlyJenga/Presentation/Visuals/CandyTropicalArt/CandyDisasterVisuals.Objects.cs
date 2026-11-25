@@ -434,9 +434,12 @@ namespace DeadlyJenga.CandyArt
             {
                 float t=y/(float)rows,u=x/(float)columns,bodyT=Mathf.Min(1,t/.82f),capT=Mathf.Clamp01((t-.82f)/.18f);
                 float a=bodyT*19+capT*6+band*Mathf.PI*2/bands+Time.time*speed*1.8f+(u-.5f)*(supportsTornadoVolume?.85f:3.8f);
-                float radius=Mathf.Lerp(size*.14f,size*.8f,Mathf.Pow(bodyT,1.2f))*(1+.06f*Mathf.Sin(bodyT*31+band));
-                if(capT>0)radius=Mathf.Lerp(size*.8f,size*3.9f,capT);
-                var lean=new Vector3(Mathf.Sin(bodyT*3+Time.time*.7f),0,Mathf.Cos(bodyT*4-Time.time*.6f))*size*.13f*bodyT;
+                // Same rope-to-flare profile and S-bend as CandyStormFunnel.shader.
+                float neck=.55f+.45f*Mathf.Sin(Mathf.Min(bodyT/.2f,1)*Mathf.PI*.5f);
+                float radius=size*(.21f*neck+1.15f*Mathf.Pow(bodyT,2.8f))*(1+.06f*Mathf.Sin(bodyT*31+band));
+                if(capT>0)radius=Mathf.Lerp(size*1.36f,size*3.9f,capT);
+                var lean=new Vector3(Mathf.Sin(bodyT*2.6f)*.28f,0,bodyT*bodyT*.44f)*size
+                    +new Vector3(Mathf.Sin(bodyT*3+Time.time*.7f),0,Mathf.Cos(bodyT*4-Time.time*.6f))*size*.06f*bodyT;
                 streamVertices[(band*(rows+1)+y)*(columns+1)+x]=lean+new Vector3(Mathf.Cos(a)*radius,bodyT*height+Mathf.Sin(capT*Mathf.PI)*size*.65f,Mathf.Sin(a)*radius);
             }
             stormRibbons.vertices=streamVertices;stormRibbons.RecalculateBounds();

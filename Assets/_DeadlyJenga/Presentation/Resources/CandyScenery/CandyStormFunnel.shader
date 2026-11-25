@@ -43,34 +43,40 @@ Shader "Candy Tropical/Storm Funnel"
    float Noise(float3 p,float mip){return SAMPLE_TEXTURE3D_LOD(_DensityTex,sampler_DensityTex,p,mip).r;}
    float2 Turn(float2 p,float angle){float s,c;sincos(angle,s,c);return float2(p.x*c-p.y*s,p.x*s+p.y*c);}
 
-   float Density(float3 p,float time,out float grain,out float cloud,out float edge)
+   float Density(float3 p,float time,out float grain,out float cloud,out float edge,out float debris)
    {
     float size=_StormInfo.x,height=_StormInfo.y,t=saturate(p.y/height);
-    float2 lean=float2(sin(t*3+time*.7),cos(t*4-time*.6))*size*.13*t;
+    // S-bend like the Blender v2 funnel, plus a slow wobble.
+    float2 lean=float2(sin(t*2.6)*.28,t*t*.44)*size+float2(sin(t*3+time*.7),cos(t*4-time*.6))*size*.06*t;
     float2 q=p.xz-lean;
-    float r=length(q),radius=lerp(size*.155,size*.82,t*(.79+.21*t));
+    // Tight rope at the ground flaring into the cloud base (Blender v2 profile).
+    float neck=.55+.45*sin(min(t/.2,1)*1.5708);
+    float r=length(q),radius=size*(.21*neck+1.15*pow(t,2.8));
     float twist=t*9-time*_StormInfo.z*2.2;
     float2 flow=Turn(q,twist);
     float rel=r/max(.1,radius);
     float capY=(p.y-height)/size;
-    float body=0;cloud=0;grain=.5;edge=saturate(rel);
-    float skirtHeight=max(.7,size*.17);
-    bool inSkirt=p.y<skirtHeight&&r<size*.88;
+    float body=0;cloud=0;grain=.5;edge=saturate(rel);debris=0;
+    float skirtHeight=max(.7,size*.55);
+    bool inSkirt=p.y<skirtHeight&&r<size*1.7;
     if((rel<1.6||inSkirt)&&p.y>=-1&&capY<.24)
     {
      float3 v=float3(flow.x*.046,p.y*.067-time*.65,flow.y*.046);
      float large=Noise(v,.3);
      float fine=Noise(v*2.63+2.8,_MarchBudget>20?.2:.65);
      float striation=sin(p.y*.44+flow.x*.27+large*5)*.5+.5;
-     grain=large*.63+fine*.26+striation*.11;
+     grain=large*.52+fine*.22+striation*.26;
      body=saturate((1.29-rel+(grain-.5)*1.26)*3.1);
      body*=smoothstep(-1,1.2,p.y)*(1-smoothstep(.02,.24,capY))*(.66+grain*2.05);
      // Reuse the same advected noise for the low, ragged wall of debris.
      if(inSkirt)
      {
-      float spread=saturate((.84-r/size+(grain-.5)*.24)*5);
-      float lift=smoothstep(-1,.12,p.y)*(1-smoothstep(skirtHeight*.18,skirtHeight,p.y));
-      body+=spread*lift*smoothstep(.24,.64,grain)*.78;
+      // Bell-shaped debris + spray cloud, narrowing as it rises.
+      float h=saturate(p.y/skirtHeight);
+      float spread=saturate((1.6*(1-h*.55)-r/size+(grain-.5)*.5)*3);
+      float lift=smoothstep(-1,.12,p.y)*(1-smoothstep(.25,1,h));
+      debris=spread*lift*smoothstep(.2,.6,grain)*.85;
+      body+=debris;
      }
     }
     if(capY>-.92)
@@ -121,7 +127,7 @@ Shader "Candy Tropical/Storm Funnel"
       farDepth=LinearEyeDepth(depth,_ZBufferParams)/max(.001,-viewRay.z);
      }
     }
-    float radius=size*1.38,cloudRadius=size*4.4;
+    float radius=size*2.1,cloudRadius=size*4.4;
     float2 body=RayBox(ro,inv,float3(-radius,-1,-radius),float3(radius,height+size*.24,radius),farDepth);
     float2 cap=RayBox(ro,inv,float3(-cloudRadius,height-size*.92,-cloudRadius),float3(cloudRadius,height+size*1.8,cloudRadius),farDepth);
     bool bodyFirst=body.x<cap.x;
@@ -161,7 +167,8 @@ Shader "Candy Tropical/Storm Funnel"
      float rayDistance=inFirst?a.x+(k+jitter)*stepSize:b.x+(k-firstSteps+jitter)*stepSize;
      float3 p=ro+rd*rayDistance;
      float grain,cloud,edge;
-     float density=Density(p,_Time.y,grain,cloud,edge);
+     float debris;
+     float density=Density(p,_Time.y,grain,cloud,edge,debris);
      if(density<.005)continue;
      // The crown keeps its exterior silhouette but leaves nearby geometry readable from inside.
      density*=lerp(1,.11,insideCrown*saturate(cloud*1.4));
@@ -171,9 +178,11 @@ Shader "Candy Tropical/Storm Funnel"
      float lightSide=saturate(.52+dot(p.xz,float2(-.39,-.26))/max(size,length(p.xz)));
      float heightLight=saturate((p.y-height*.43)/max(1,height*.57));
      float light=saturate(.045+lightSide*.35+grain*.74+edge*.19+heightLight*.13-density*.25);
-     // Charcoal folds with cold lit edges; keep low grit slightly warm.
-     float3 color=lerp(float3(.009,.013,.025),float3(.42,.48,.60),light*light);
-     color+=float3(.027,.019,.009)*(1-heightLight)*(1-cloud);
+     // Pale condensation funnel, darker wall cloud, warm sand/spray debris at the foot.
+     float3 funnelColor=lerp(float3(.07,.075,.085),float3(.74,.76,.80),light);
+     float3 cloudColor=lerp(float3(.02,.025,.035),float3(.36,.40,.48),light*light);
+     float3 color=lerp(funnelColor,cloudColor,saturate(cloud*1.3));
+     color=lerp(color,lerp(float3(.16,.12,.08),float3(.62,.52,.40),light),saturate(debris/max(.01,density)*1.4));
      if(_StormInfo.w>.01)
       color+=_StormInfo.w*float3(.20,.32,.78)*exp(-length((p-float3(size,height+size*.15,size*.4))/size))*cloud;
      sum+=trans*alpha*color;trans*=1-alpha;
