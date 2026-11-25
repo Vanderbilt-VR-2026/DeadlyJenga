@@ -23,7 +23,7 @@ namespace DeadlyJenga.CandyArt
         void BuildMeteorSkins()
         {
             if (iceStone) return;
-            iceStone = ObjectMaterial("CandyMeteorStone", new Color(.42f, .62f, .82f, 1));
+            iceStone = ObjectMaterial("CandyMeteorStone", new Color(.62f, .8f, .95f, 1));   // pale glacier blue so frost blends, not spots
             iceStone.SetColor("_GlowColor", new Color(.25f, 1.3f, 2.4f, 1)); iceStone.SetFloat("_Frost", 1);
             iceChip = ObjectMaterial("CandyMeteorStone", new Color(.6f, .78f, .95f, 1));
             iceChip.SetColor("_GlowColor", new Color(.3f, 1.2f, 2f, 1)); iceChip.SetFloat("_Frost", 1); iceChip.SetFloat("_Heat", .4f);

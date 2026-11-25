@@ -14,7 +14,7 @@ Shader "Candy Tropical/Meteor Stone"
  V vert(A i){V o;UNITY_SETUP_INSTANCE_ID(i);UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);o.positionCS=TransformObjectToHClip(i.positionOS.xyz);o.p=i.positionOS.xyz;o.normal=TransformObjectToWorldNormal(i.normalOS);return o;}
  half4 frag(V i):SV_Target{UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);float n=noise(i.p*18)+noise(i.p*47)*.25;float fissure=1-smoothstep(.025,.075,abs(n-.58));float light=.2+.8*saturate(dot(normalize(i.normal),normalize(float3(-.3,.8,-.5))));float3 stone=_BaseColor.rgb*light*(.65+n*.75);
  // Icy skin: frosted white patches and a cold sparkle over the glassy ice.
- float frost=_Frost*smoothstep(.45,.8,n+noise(i.p*90)*.2);stone=lerp(stone,float3(.88,.94,1)*(.55+light*.6),frost);
+ float frost=_Frost*smoothstep(.25,.95,n+noise(i.p*90)*.25)*.85;stone=lerp(stone,float3(.88,.94,1)*(.55+light*.6),frost);
  stone+=_Frost*pow(noise(i.p*140),12)*float3(1.2,1.4,1.6)*light;
  return half4(stone+fissure*_Heat*_GlowColor.rgb,1);}
  ENDHLSL }

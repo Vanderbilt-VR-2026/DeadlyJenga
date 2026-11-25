@@ -270,9 +270,12 @@ namespace DeadlyJenga.DevTools.Editor
                     Vector3 castle = world.Center + Vector3.up * world.TopHeight * .4f;
                     float r = Mathf.Max(world.Radius, 8);
                     View(session, name + "-wide", castle + new Vector3(.7f, .35f, -1).normalized * r * 3.2f, castle, 60);
-                    View(session, name + "-ground", world.Center + new Vector3(.6f, 0, -1).normalized * r * 1.35f + Vector3.up * 1.7f, world.Center + Vector3.up * world.TopHeight * .15f, 70);
-                    yield return new WaitForSecondsRealtime(1.5f);
-                    View(session, name + "-ground-later", world.Center + new Vector3(-.8f, 0, -1).normalized * r * 1.35f + Vector3.up * 1.7f, world.Center + Vector3.up * world.TopHeight * .15f, 70);
+                    // Outside the castle at mid height (streaks against the walls), and above the top looking down
+                    // across the block tops where most landings splash.
+                    View(session, name + "-side", world.Center + new Vector3(.6f, 0, -1).normalized * r * 2.3f + Vector3.up * world.TopHeight * .35f, world.Center + Vector3.up * world.TopHeight * .45f, 60);
+                    View(session, name + "-tops", world.Center + new Vector3(.5f, 0, -1).normalized * r * 1.1f + Vector3.up * (world.TopHeight + 4), world.Center + Vector3.up * world.TopHeight * .75f, 70);
+                    yield return new WaitForSecondsRealtime(1.2f);
+                    View(session, name + "-tops-later", world.Center + new Vector3(-.6f, 0, -1).normalized * r * 1.1f + Vector3.up * (world.TopHeight + 4), world.Center + Vector3.up * world.TopHeight * .75f, 70);
                 }
             }
             finally { CandyDisasterVisuals.RainSkinOverride = null; }
