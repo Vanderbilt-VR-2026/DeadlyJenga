@@ -148,7 +148,27 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             EnableCollisionPolicy();
-            Physics.SyncTransforms();Revision++;
+            Physics.SyncTransforms();
+            if(CloudCity)ForgiveAuthoredOverlaps();
+            Revision++;
+        }
+        // Cloud City has a few parts that were built inside a neighbour (a stair foot inside a bridge deck,
+        // a bascule landing standing in a raft). Left alone they shove each other apart when the map loads
+        // and lift whole floors. Only those deeply overlapping part pairs stop colliding; resting contacts stay.
+        void ForgiveAuthoredOverlaps()
+        {
+            var physics=gameObject.scene.GetPhysicsScene();var hits=new Collider[64];
+            foreach(var body in bodies)foreach(var a in body.GetComponentsInChildren<Collider>())
+            {
+                var box=a.bounds;int count=physics.OverlapBox(box.center,box.extents,hits,Quaternion.identity,1<<Layers.Block,QueryTriggerInteraction.Ignore);
+                for(int i=0;i<count;i++)
+                {
+                    var c=hits[i];var other=c.attachedRigidbody;
+                    if(!other||other==body||other.transform.parent!=generated)continue;
+                    if(Physics.ComputePenetration(a,a.transform.position,a.transform.rotation,c,c.transform.position,c.transform.rotation,out _,out float depth)&&depth>.15f)
+                        Physics.IgnoreCollision(a,c);
+                }
+            }
         }
         void EnableCollisionPolicy()
         {

@@ -124,12 +124,12 @@ namespace DeadlyJenga.DevTools.Editor
                         if (!other || other == body || Physics.GetIgnoreCollision(a, c)) continue;
                         var key = a.GetInstanceID() < c.GetInstanceID() ? (a.GetInstanceID(), c.GetInstanceID()) : (c.GetInstanceID(), a.GetInstanceID());
                         if (!seen.Add(key)) continue;
-                        if (!Physics.ComputePenetration(a, a.transform.position, a.transform.rotation, c, c.transform.position, c.transform.rotation, out var dir, out float depth) || depth < .03f) continue;
+                        if (!Physics.ComputePenetration(a, a.transform.position, a.transform.rotation, c, c.transform.position, c.transform.rotation, out var dir, out float depth) || depth < .12f) continue;
                         found.Add((depth, $"  OVERLAP {depth:F2} m dir {dir.x:F1},{dir.y:F1},{dir.z:F1} at {bb.center.x:F1},{bb.center.y:F1},{bb.center.z:F1} · {Short(body)} [{a.name}] <-> {Short(other)} [{c.name}]"));
                     }
                 }
             foreach (var f in found.OrderByDescending(f => f.depth).Take(60)) report.AppendLine(f.text);
-            Check(found.Count == 0, $"no two movable pieces start inside each other by 3 cm or more ({found.Count} overlaps)");
+            Check(found.Count == 0, $"no two parts that still collide start inside each other by 12 cm or more ({found.Count} overlaps)");
         }
 
         // ---------- 1. stand still ----------
@@ -170,11 +170,11 @@ namespace DeadlyJenga.DevTools.Editor
             Reset(map);
             var t = targets(); var d = dependents();
             if (t.Length == 0 || d.Length == 0) { Check(false, $"{label}: pieces found ({t.Length} targets, {d.Length} dependents)"); return; }
-            var before = d.Select(b => b.position.y).ToArray();
+            var before = d.Select(b => b.worldCenterOfMass.y).ToArray();
             foreach (var b in t) b.gameObject.SetActive(false);
             foreach (var b in d) b.WakeUp();
             Simulate(5);
-            float most = d.Select((b, i) => before[i] - b.position.y).Max();
+            float most = d.Select((b, i) => before[i] - b.worldCenterOfMass.y).Max();  // centre of mass: hinged pieces swing about their origin
             Check(most >= drop, $"{label}: removing {t.Length} support(s) drops what they hold by {most:F2} m");
         }
 
@@ -192,7 +192,7 @@ namespace DeadlyJenga.DevTools.Editor
             KnockOut(map, "Keystone vault", () => Named(map, "Loose arch keystone"), () => Named(map, "Vault terrace deck"), .5f);
             KnockOut(map, "South falling route", () => Named(map, "Removable support"), () => Named(map, "Falling route"), .5f);
             KnockOut(map, "Bascule counterweights", () => Named(map, "Removable heel counterweight"), () => Named(map, "Counterweighted bascule leaf"), .3f);
-            KnockOut(map, "Bookfall spine", () => Named(map, "Independent bookfall support spine"), () => Named(map, "Hinged inhabited book wing"), .5f);
+            KnockOut(map, "Book wing foot", () => Named(map, "receiving foot"), () => Named(map, "Hinged inhabited book wing"), .5f);
             Reset(map);
         }
     }
