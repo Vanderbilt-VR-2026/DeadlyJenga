@@ -303,12 +303,16 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 1; i < 8; i++) Join(Get("vertebra and ribs " + i), Get("vertebra and ribs " + (i-1)));
             var first = Get("vertebra and ribs 0");
             var last = Get("vertebra and ribs 7");
-            var tail = first;
-            for (int i = 0; parts.TryGetValue(kind + " tail centrum " + i, out var next); i++)
+            // The tail hangs far out with nothing under it. Joints near the hip carry the
+            // weight of every centrum beyond them, and each centrum is also braced to the
+            // one two back so the chain does not sag like a rope.
+            var centra = new List<FossilMember> { first };
+            while (parts.TryGetValue(kind + " tail centrum " + (centra.Count - 1), out var next)) centra.Add(next);
+            for (int i = 1; i < centra.Count; i++)
             {
-                // The tail hangs far out, so its joints carry a big bending load.
-                Join(next, tail, 9600);
-                tail = next;
+                float outboard = centra.Count - i;
+                Join(centra[i], centra[i - 1], 9600 + 2800 * outboard);
+                if (i >= 2) Join(centra[i], centra[i - 2], 6000 + 1400 * outboard);
             }
             var neck = Get("cervical vertebrae");
             var skull = Get(kind == "Rex" ? "skull" : "perforated skull");

@@ -143,11 +143,11 @@ namespace DeadlyJenga.DevTools.Editor
                 probe.transform.position=new Vector3(35,.8f,-2);
                 probe.transform.localScale=Vector3.one*.3f;
                 probe.AddComponent<Rigidbody>();dummy=probe.AddComponent<TestDummy>();
-                // The bay has four posts, so knock out both outer ones (top unit of each).
+                // Knock out the top unit of all four posts under the Triceratops rear foot.
                 outerPosts=bodies.Where(b=>b.name.StartsWith("B5")&&b.name.Contains(" pier "))
                     .GroupBy(b=>b.name.Substring(0,b.name.LastIndexOf('/')))
                     .Select(g=>g.OrderByDescending(b=>b.position.y).First())
-                    .OrderByDescending(b=>b.position.x).Take(2).Select(b=>b.GetComponent<FossilMember>()).ToArray();
+                    .OrderByDescending(b=>b.position.x).Take(4).Select(b=>b.GetComponent<FossilMember>()).ToArray();
                 pullIndex=0;pulled=outerPosts[0];
                 foot=bodies.Where(b=>b.name.StartsWith("Triceratops tarsals")).OrderByDescending(b=>b.position.x).First();
                 footBefore=foot.position;
@@ -165,7 +165,7 @@ namespace DeadlyJenga.DevTools.Editor
                 if(++pullIndex<outerPosts.Length)
                 {
                     pulled=outerPosts[pullIndex];grab=pulled.Body.worldCenterOfMass;
-                    Check(pulled.TryStartGrab(camera.gameObject,grab),"grab second outer bearing");
+                    Check(pulled.TryStartGrab(camera.gameObject,grab),"grab next bearing "+pulled.name);
                     clock=Time.fixedTime;return;
                 }
                 clock=Time.fixedTime;phase=3;return;
