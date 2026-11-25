@@ -31,8 +31,15 @@ namespace DeadlyJenga.DevTools.Editor
         static DisasterGalleryCapture() { EditorApplication.update += Tick; EditorApplication.playModeStateChanged += State; }
 
         [MenuItem("Tools/Deadly Jenga/Captures/Disaster Gallery (Play Mode)")]
-        public static void RunBatch()
+        public static void RunBatch() => Start("");
+
+        // Only the tsunami, with extra framed shots (side profile, low front, three-quarter). Fits a short job.
+        [MenuItem("Tools/Deadly Jenga/Captures/Tsunami Shape (Play Mode)")]
+        public static void RunTsunamiBatch() => Start("Tsunami");
+
+        static void Start(string only)
         {
+            SessionState.SetString(Key + "Only", only);
             SessionState.SetBool(Key, true);
             File.WriteAllText(Report, "Disaster gallery: Game.unity, castle map, demo mode. " + DateTime.Now.ToString("O") + "\n");
             MatchSetup.MapId = "castle"; MatchSetup.ModeId = "demo"; MatchSetup.BotTarget = 1; MatchSetup.HandCount = 0;
@@ -87,11 +94,13 @@ namespace DeadlyJenga.DevTools.Editor
             session.SurvivorBots.AutoFill = false; session.SurvivorBots.Clear(); session.HandBots?.Clear();
             if (session.Social != null) session.Social.VoiceEnabled = false;
             session.SetRole(true); session.SetMenu(false); session.Player.InputSuspended = true; session.Hand.InputSuspended = true;
-            output = new CaptureOutput("Disaster Gallery");
+            string only = SessionState.GetString(Key + "Only", "");
+            output = new CaptureOutput(only == "" ? "Disaster Gallery" : only + " Shape");
             int index = 0;
             foreach (var prefab in DemoDisasters.Prefabs)
             {
                 index++;
+                if (only != "" && prefab.name != only) continue;
                 string name = index.ToString("00") + "-" + prefab.name.Replace(" ", "");
                 DemoDisasters.StopAll(session); session.ResetMap();
                 yield return new WaitForSecondsRealtime(1.5f);
@@ -109,8 +118,32 @@ namespace DeadlyJenga.DevTools.Editor
                 }
                 Shot(session, name + "-b-wide-8s", false);
                 Shot(session, name + "-c-close-8s", true);
+                if (prefab.name == "Tsunami") yield return TsunamiShots(session, name);
             }
             DemoDisasters.StopAll(session);
+        }
+
+        static IEnumerator TsunamiShots(CastlePlaySession session, string name)
+        {
+            var source = Tracked.Waves.FirstOrDefault(w => w.Wave.active);
+            if (source == null) { File.AppendAllText(Report, "  no active wave for tsunami shots\n"); yield break; }
+            for (int round = 0; round < 2; round++)
+            {
+                var w = source.Wave;
+                Vector3 across = Vector3.Cross(Vector3.up, w.direction).normalized, up = Vector3.up, mid = w.center + up * w.height * .5f;
+                float span = Mathf.Max(w.height * 2.2f, w.depth * 1.6f);
+                View(session, name + "-t" + round + "-side-profile", mid + across * span, mid, 50);
+                View(session, name + "-t" + round + "-front-low", w.center + w.direction * (w.depth * .5f + w.height * 1.4f) + up * 2 + across * w.height * .4f, w.center + up * w.height * .65f, 70);
+                View(session, name + "-t" + round + "-three-quarter", w.center + (w.direction * .9f + across * .7f).normalized * span * 1.4f + up * w.height * .6f, mid, 55);
+                yield return new WaitForSecondsRealtime(3f);
+            }
+        }
+
+        static void View(CastlePlaySession session, string file, Vector3 position, Vector3 target, float fov)
+        {
+            var camera = session.ActiveCamera;
+            camera.transform.position = position; camera.transform.LookAt(target); camera.fieldOfView = fov; camera.farClipPlane = 2500;
+            Render(session, file, position, target);
         }
 
         // The disaster's own center (tornado, kraken, wave) when it publishes one, else the map center.
@@ -140,6 +173,12 @@ namespace DeadlyJenga.DevTools.Editor
             var camera = session.ActiveCamera;
             camera.transform.position = position; camera.transform.LookAt(close ? (found ? focus : center) : target);
             camera.fieldOfView = 60; camera.farClipPlane = 2500;
+            Render(session, file, position, focus);
+        }
+
+        static void Render(CastlePlaySession session, string file, Vector3 position, Vector3 focus)
+        {
+            var camera = session.ActiveCamera;
             foreach (var art in Object.FindObjectsByType<CandyDisasterVisuals>(FindObjectsSortMode.None))
                 typeof(CandyDisasterVisuals).GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(art, null);
             foreach (var art in Object.FindObjectsByType<CandyTsunamiVisuals>(FindObjectsSortMode.None))
@@ -153,7 +192,7 @@ namespace DeadlyJenga.DevTools.Editor
                 string path = output.PathFor(file + ".png");
                 File.WriteAllBytes(path, texture.EncodeToPNG());
                 output.Add(path, file, "image", 1280, 720);
-                File.AppendAllText(Report, "  shot " + file + " focus=" + (found ? focus.ToString() : "map") + "\n");
+                File.AppendAllText(Report, "  shot " + file + " camera=" + position + " focus=" + focus + "\n");
             }
             finally { camera.targetTexture = null; RenderTexture.active = old; RenderTexture.ReleaseTemporary(rt); Object.Destroy(texture); }
         }

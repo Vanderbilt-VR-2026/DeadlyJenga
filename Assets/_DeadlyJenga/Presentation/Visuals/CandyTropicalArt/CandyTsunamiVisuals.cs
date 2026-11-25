@@ -21,7 +21,49 @@ namespace DeadlyJenga.CandyArt
         float sprayCredit,foamCredit;
         int emissionSeed;
 
-        void Awake() { environment = GetComponent<CandyEnvironment>(); properties = new MaterialPropertyBlock(); }
+        // Breaking-wave shape exported from Blender (World owns Resources/TsunamiProfile.json; gameplay reads
+        // the same file). Uploaded as two small shader globals so the wave, ocean and contact shaders agree.
+        [System.Serializable] sealed class ProfileData { public int lateralSamples, pathSamples, alongSamples; public float crestAlong; public float[] path, envelope; }
+        ProfileData profile;
+        Texture2D profileTexture, envelopeTexture;
+        static readonly int ProfileId = Shader.PropertyToID("_SurgeProfile"), EnvelopeId = Shader.PropertyToID("_SurgeEnvelope"), ReadyId = Shader.PropertyToID("_SurgeProfileReady");
+
+        void Awake() { environment = GetComponent<CandyEnvironment>(); properties = new MaterialPropertyBlock(); LoadProfile(); }
+
+        void LoadProfile()
+        {
+            var asset = Resources.Load<TextAsset>("TsunamiProfile");
+            var data = asset ? JsonUtility.FromJson<ProfileData>(asset.text) : null;
+            bool valid = data != null && data.lateralSamples >= 2 && data.pathSamples >= 2 && data.alongSamples >= 2 &&
+                data.path != null && data.path.Length == data.lateralSamples * data.pathSamples * 2 &&
+                data.envelope != null && data.envelope.Length == data.lateralSamples * data.alongSamples;
+            if (!valid) { Shader.SetGlobalFloat(ReadyId, 0); return; }
+            profile = data;
+            profileTexture = new Texture2D(data.pathSamples, data.lateralSamples, TextureFormat.RGHalf, false, true)
+                { name = "Tsunami breaking profile", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            var pixels = new Color[data.pathSamples * data.lateralSamples];
+            for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color(data.path[i * 2], data.path[i * 2 + 1], 0, 0);
+            profileTexture.SetPixels(pixels); profileTexture.Apply(false, true);
+            envelopeTexture = new Texture2D(data.alongSamples, data.lateralSamples, TextureFormat.RHalf, false, true)
+                { name = "Tsunami gameplay envelope", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            pixels = new Color[data.alongSamples * data.lateralSamples];
+            for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color(data.envelope[i], 0, 0, 0);
+            envelopeTexture.SetPixels(pixels); envelopeTexture.Apply(false, true);
+            Shader.SetGlobalTexture(ProfileId, profileTexture); Shader.SetGlobalTexture(EnvelopeId, envelopeTexture);
+            Shader.SetGlobalFloat(ReadyId, 1);
+        }
+
+        // A point on the exported cross-section: lateral = metres across, phase 0..1 along the path.
+        Vector3 ProfilePoint(float across, float phase)
+        {
+            float l = Mathf.Clamp01(across / Mathf.Max(.01f, wave.width) + .5f) * (profile.lateralSamples - 1);
+            float p = Mathf.Clamp01(phase) * (profile.pathSamples - 1);
+            int l0 = Mathf.Min((int)l, profile.lateralSamples - 2), p0 = Mathf.Min((int)p, profile.pathSamples - 2);
+            float fl = l - l0, fp = p - p0;
+            Vector2 Get(int lat, int pos) { int i = (lat * profile.pathSamples + pos) * 2; return new Vector2(profile.path[i], profile.path[i + 1]); }
+            var q = Vector2.Lerp(Vector2.Lerp(Get(l0, p0), Get(l0, p0 + 1), fp), Vector2.Lerp(Get(l0 + 1, p0), Get(l0 + 1, p0 + 1), fp), fl);
+            return new Vector3(across, q.y * wave.height, q.x * wave.depth);
+        }
         void Build()
         {
             initialized = true;
@@ -193,6 +235,7 @@ namespace DeadlyJenga.CandyArt
             float scale=1+.18f*Mathf.Sin(across*.063f)+.055f*Mathf.Sin(across*.17f+1);
             return new Vector3(across,y*wave.height*scale,(z-.5f)*wave.depth);
         }
+        Vector3 Lip(float across,float t)=>profile!=null?ProfilePoint(across,t):CurlPoint(across,t);
         void EmitCrest(float dt)
         {
             if(!wave.active||!spray||!spindrift)return;
@@ -203,8 +246,8 @@ namespace DeadlyJenga.CandyArt
         void EmitLip(ParticleSystem system,bool foam)
         {
             int seed=emissionSeed++;float across=(FoamJitter(seed,1,9)-.5f)*wave.width*1.16f;
-            float t=.86f+FoamJitter(seed,2,7)*.14f;
-            Vector3 local=CurlPoint(across,t),tangent=(CurlPoint(across,Mathf.Min(1,t+.005f))-CurlPoint(across,t-.005f)).normalized;
+            float t=profile!=null?.46f+FoamJitter(seed,2,7)*.16f:.86f+FoamJitter(seed,2,7)*.14f;   // crest to lip
+            Vector3 local=Lip(across,t),tangent=(Lip(across,Mathf.Min(1,t+.005f))-Lip(across,t-.005f)).normalized;
             var particle=new ParticleSystem.EmitParams();
             particle.position=visual.transform.TransformPoint(local);
             particle.velocity=visual.transform.TransformDirection(tangent*(foam?7:10)+Vector3.up*(1+FoamJitter(seed,3,6)*3)+new Vector3((FoamJitter(seed,4,8)-.5f)*3,0,3));
@@ -230,6 +273,7 @@ namespace DeadlyJenga.CandyArt
         void OnDestroy()
         {
             Release(visual); Release(mesh); Release(material); Release(sprayMaterial); if(ownsFoamDetail)Release(foamDetail);
+            if (profileTexture) { Shader.SetGlobalFloat(ReadyId, 0); Release(profileTexture); Release(envelopeTexture); }
         }
         static void Release(Object value)
         { if (value) { if (Application.isPlaying) Destroy(value); else DestroyImmediate(value); } }

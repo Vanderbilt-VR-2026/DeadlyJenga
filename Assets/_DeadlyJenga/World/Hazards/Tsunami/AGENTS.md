@@ -21,10 +21,18 @@ times are seconds, push/lift are m/s², and carried-speed limit is m/s.
   default. Existing ocean elimination handles falling below the map's kill height.
 
 ## Shape and performance
-The smooth crest is at normalized longitudinal position .72. The rear rises gradually, the
-front drops steeply, and the outer 15% of each side tapers. SurfaceHeight must agree with
-CandyTsunami.shader and the masking section in CandyOcean.shader. Small shader-only ocean ripples
-are decorative; do not introduce gameplay dependence on the presentation mesh.
+The wave shape is data: Resources/TsunamiProfile.json, exported from the Blender source
+(Workboard Blender-Disaster-Art-Pass/Tsunami/scripts: tsunami_profile.py -> export_tsunami_profile.py).
+It is a breaking "surfer" wave: gentle back, concave rippled face, a lip thrown forward into a barrel
+that peels along the width, bowed in and out along its length, tapering to nothing at the ends.
+- `path` is the full cross-section (with overhang) per lateral sample; Presentation draws it.
+- `envelope` is the highest water at each along/lateral point (no overhang); SurfaceHeight uses it.
+- All values are normalised to the WaveFrame's depth, width and height (envelope max is exactly 1).
+To change the shape, edit tsunami_profile.py and re-export; gameplay and every tsunami shader
+follow automatically (CandySurgeSurface.hlsl reads the same data through _SurgeProfile/_SurgeEnvelope).
+If the file is missing, SurfaceHeight and the shaders fall back to the original analytic hump
+(crest at .72, steep front, outer 15% tapered). Small shader-only ocean ripples are decorative;
+do not introduce gameplay dependence on the presentation mesh.
 
 One nonallocating overlap-box query gathers candidates per physics step; a height-profile test
 determines actual submersion. Abilities are cached per collider and receivers are deduplicated.

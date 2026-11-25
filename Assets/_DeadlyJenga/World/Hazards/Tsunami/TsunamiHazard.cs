@@ -154,7 +154,7 @@ namespace DeadlyJenga.World.Hazards
                 System.Array.Resize(ref hits, hits.Length * 2);
             } while (true);
             wetTargets.Clear();
-            float crest = depth * .22f;
+            float crest = depth * TsunamiProfile.CrestAlong;
             float flatWidth = width * .425f;
             float maximumSurface = water + Wave.height;
             for (int i = 0; i < count; i++)
@@ -226,6 +226,8 @@ namespace DeadlyJenga.World.Hazards
             float halfWidth = wave.width * .5f, x = Mathf.Abs(lateral);
             float t = along / wave.depth + .5f;
             if (t <= 0 || t >= 1 || x >= halfWidth) return float.NegativeInfinity;
+            if (TsunamiProfile.Available)
+                return wave.waterHeight + wave.height * TsunamiProfile.Envelope(along / wave.depth, lateral / wave.width);
             float shape = t < .72f ? Mathf.SmoothStep(0, 1, t / .72f) : 1 - Mathf.SmoothStep(0, 1, (t - .72f) / .28f);
             float edge = x <= halfWidth * .85f ? 1 : 1 - Mathf.SmoothStep(0, 1, (x / halfWidth - .85f) / .15f);
             return wave.waterHeight + wave.height * shape * edge;

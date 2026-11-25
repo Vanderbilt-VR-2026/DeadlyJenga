@@ -1,5 +1,19 @@
 #ifndef CANDY_SURGE_SURFACE_INCLUDED
 #define CANDY_SURGE_SURFACE_INCLUDED
+// Breaking-wave shape exported from Blender (TsunamiProfile.json), uploaded by CandyTsunamiVisuals.
+// _SurgeProfile: x = path position (back base -> crest -> lip -> under the lip -> trough), y = lateral;
+//   rg = (along / depth, height / wave height). _SurgeEnvelope: x = along, y = lateral; r = highest water.
+TEXTURE2D(_SurgeProfile); SAMPLER(sampler_SurgeProfile);
+TEXTURE2D(_SurgeEnvelope); SAMPLER(sampler_SurgeEnvelope);
+float _SurgeProfileReady;
+float2 CandySurgeProfile(float phase,float lateral)
+{
+    return SAMPLE_TEXTURE2D_LOD(_SurgeProfile,sampler_SurgeProfile,float2(saturate(phase),saturate(lateral+.5)),0).rg;
+}
+float CandySurgeEnvelope(float along,float lateral)
+{
+    return SAMPLE_TEXTURE2D_LOD(_SurgeEnvelope,sampler_SurgeEnvelope,float2(saturate(along+.5),saturate(lateral+.5)),0).r;
+}
 float2 CandySurgeCoordinates(float2 world)
 {
     float2 delta=world-_SurgeOrigin.xz;
@@ -27,6 +41,8 @@ float CandySurgeElevation(float2 world)
     float2 p=CandySurgeCoordinates(world);
     float t=p.y/max(.01,_SurgeDepth)+.5;
     float across=abs(p.x)/max(.01,_SurgeWidth*.5);
+    if(_SurgeProfileReady>.5)
+        return (t<=0||t>=1||across>=1)?0:_SurgeHeight*CandySurgeEnvelope(t-.5,p.x/max(.01,_SurgeWidth));
     float shape=t<.72?smoothstep(0,.72,t):1-smoothstep(.72,1,t);
     return _SurgeHeight*shape*(1-smoothstep(.85,1,across));
 }

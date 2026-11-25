@@ -85,6 +85,11 @@ Shader "Candy Tropical/Tsunami"
             }
             float3 SurgePoint(float2 uv)
             {
+                if(_SurgeProfileReady>.5)
+                {
+                    float2 q=CandySurgeProfile(uv.y+.5,uv.x);
+                    return float3(uv.x*_SurgeWidth,q.y*_SurgeHeight,q.x*_SurgeDepth);
+                }
                 float phase=uv.y+.5;
                 phase+=.09*sin(uv.x*_SurgeWidth*.075-_Time.y*.5)*sin(3.14159265*phase)*smoothstep(.35,1,phase);
                 float2 curve=CandySurgeCurve(phase);
@@ -115,8 +120,9 @@ Shader "Candy Tropical/Tsunami"
                 // Extended ocean apron must stay flat outside the original wave span.
                 if(uv.y<-.5||uv.y>.5)local.z=uv.y*_SurgeDepth;
                 float3 world=TransformObjectToWorld(local);
-                float3 tx=SurfacePoint(uv+float2(.001,0),bulk)-SurfacePoint(uv-float2(.001,0),bulk);
-                float3 tz=SurfacePoint(uv+float2(0,.001),bulk)-SurfacePoint(uv-float2(0,.001),bulk);
+                float fd=_SurgeProfileReady>.5?.006:.001;   // half a profile texel keeps normals smooth
+                float3 tx=SurfacePoint(uv+float2(fd,0),bulk)-SurfacePoint(uv-float2(fd,0),bulk);
+                float3 tz=SurfacePoint(uv+float2(0,fd),bulk)-SurfacePoint(uv-float2(0,fd),bulk);
                 float3 surfaceNormal=normalize(cross(tz,tx)+float3(0,.000001,0));
                 float3 n=TransformObjectToWorldNormal(cap>.5?normalize(float3(side,0,0)*.7+surfaceNormal*.3):surfaceNormal);
                 float3 offset=0,dx=float3(1,0,0),dz=float3(0,0,1);
@@ -138,6 +144,9 @@ Shader "Candy Tropical/Tsunami"
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
                 // The ordinary ocean already renders the flat apron; drawing it twice z-fights.
                 if(i.whitewater<.5)clip(i.wave-.035);
+                // The exported profile already contains the back slope and tapers to nothing at the ends,
+                // so the separate swell-back surface and side caps are not drawn with it.
+                if(_SurgeProfileReady>.5&&i.whitewater<.5&&(i.bulk>.5||i.cap>.5))clip(-1);
                 float distanceToEye=distance(i.world,_WorldSpaceCameraPos),r=IslandDistance(i.world.xz);
                 float depth=max(.01,i.world.y-TerrainHeight(i.world.xz)),deep=smoothstep(.15,3.2,depth);
                 float2 p=(i.world.xz+float2(i.wave*.18,i.wave*.64))*_RippleScale;float t=_Time.y*_Speed;
