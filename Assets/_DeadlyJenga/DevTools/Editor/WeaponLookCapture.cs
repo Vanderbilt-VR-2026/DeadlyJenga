@@ -231,7 +231,8 @@ namespace DeadlyJenga.DevTools.Editor
                     Cursor.lockState = CursorLockMode.Locked;
                     session.SetMenu(false);
                     player.InputSuspended = false;
-                    yield return new WaitForEndOfFrame();
+                    // WaitForEndOfFrame never fires in an unfocused test editor; one more frame is enough.
+                    yield return null;
                     var tint = Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)
                         .FirstOrDefault(c => c.name == "Body feedback - no bars");
                     File.AppendAllText(Report, $"  {file}: menu open {session.MenuOpen}, tint canvas " +
