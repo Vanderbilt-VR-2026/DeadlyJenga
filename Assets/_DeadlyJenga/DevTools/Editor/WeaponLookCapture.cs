@@ -45,6 +45,8 @@ namespace DeadlyJenga.DevTools.Editor
                     MatchSetup.StartLocalSession = SessionState.GetBool(Key + "Local", false);
                     failed |= !completed;
                     File.AppendAllText(Report, $"COMPLETE checks={checks} runtimeErrors={errors} failed={failed}. Desktop editor; headset not tested.\n");
+                    // Keep a copy beside the pictures so it travels with the test output.
+                    try { File.Copy(Report, Path.Combine(Output, "WeaponLook.txt"), true); } catch (IOException) { }
                     int result = failed ? 1 : 0;
                     if (!string.IsNullOrEmpty(SessionState.GetString("DJWarm.id", "")))
                     {
@@ -168,11 +170,19 @@ namespace DeadlyJenga.DevTools.Editor
                         Check(false, "Developer grant equips " + kind);
                         continue;
                     }
+                    // The developer grant can reopen the menu; it would cover the first-person shot.
+                    session.SetMenu(false);
                     yield return new WaitForSeconds(1.1f);
+                    session.SetMenu(false);
+                    yield return null;
                     var model = player.transform.Find("Visual - " + kind);
                     Check(model, "Held model exists: " + kind);
                     if (!model) continue;
                     CheckSurfaces(kind, model);
+                    var eye = view ? view.transform : player.transform;
+                    File.AppendAllText(Report, $"  {kind} pose: model forward {model.forward:F2} up {model.up:F2}, " +
+                        $"view forward {eye.forward:F2}, model offset from view (view space) {eye.InverseTransformPoint(model.position):F2}, " +
+                        $"menu open {session.MenuOpen}, VR {session.IsVR}\n");
                     Shoot(view, rt, pixels, kind + "-1-first-person.jpg");
 
                     var bounds = BoundsOf(model.gameObject);
@@ -191,6 +201,14 @@ namespace DeadlyJenga.DevTools.Editor
                     close.transform.LookAt(body.center);
                     close.cullingMask = ~0;
                     Shoot(close, rt, pixels, kind + "-3-third-person.jpg");
+                    if (kind == EquipmentKind.LaserAxe)
+                    {
+                        // A second sample shows whether the draw was still finishing or the carry itself is wrong.
+                        yield return new WaitForSeconds(3);
+                        File.AppendAllText(Report, $"  {kind} pose after 3 s: model forward {model.forward:F2} up {model.up:F2}, " +
+                            $"model offset from view (view space) {eye.InverseTransformPoint(model.position):F2}\n");
+                        Shoot(close, rt, pixels, kind + "-4-third-person-after-3s.jpg");
+                    }
                     yield return null;
                 }
 
