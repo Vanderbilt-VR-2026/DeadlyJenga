@@ -264,39 +264,18 @@ namespace DeadlyJenga.DevTools.Editor
             Check(broken.Count == 0, "Every held surface renders with a working shader: " + kind);
         }
 
-        // The editor reopens the pause menu when it loses focus (always, in a test editor), so
-        // first-person pictures copy the player camera without the UI layer instead.
-        static void ShootFirstPerson(Camera view, Camera copy, RenderTexture rt, Texture2D pixels, string file)
+        // The editor reopens the pause menu when it loses focus (always, in a test editor). The
+        // player camera is still used (only it hides the player's own head), with the nearby
+        // world-space pause tablet switched off for that frame.
+        static void ShootFirstPerson(Camera view, Camera unused, RenderTexture rt, Texture2D pixels, string file)
         {
-            var oldMask = copy.cullingMask;
-            var oldFov = copy.fieldOfView;
-            var oldNear = copy.nearClipPlane;
-            var oldClear = copy.clearFlags;
-            // The pause tablet is a world-space canvas in front of the eye; hide it for this frame.
             var hidden = Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)
                 .Where(c => c.isRootCanvas && c.renderMode == RenderMode.WorldSpace && c.gameObject.activeSelf &&
                     (c.transform.position - view.transform.position).sqrMagnitude < 4)
                 .Select(c => c.gameObject).ToList();
             foreach (var item in hidden) item.SetActive(false);
-            try
-            {
-                copy.transform.SetPositionAndRotation(view.transform.position, view.transform.rotation);
-                copy.fieldOfView = view.fieldOfView;
-                copy.nearClipPlane = view.nearClipPlane;
-                copy.clearFlags = view.clearFlags;
-                copy.backgroundColor = view.backgroundColor;
-                copy.cullingMask = view.cullingMask;
-                Shoot(copy, rt, pixels, file);
-            }
-            finally
-            {
-                foreach (var item in hidden) if (item) item.SetActive(true);
-                copy.cullingMask = oldMask;
-                copy.fieldOfView = oldFov;
-                copy.nearClipPlane = oldNear;
-                copy.clearFlags = oldClear;
-                copy.backgroundColor = new Color(.10f, .11f, .13f);
-            }
+            try { Shoot(view, rt, pixels, file); }
+            finally { foreach (var item in hidden) if (item) item.SetActive(true); }
         }
 
         static void Shoot(Camera camera, RenderTexture rt, Texture2D pixels, string file)
