@@ -197,6 +197,7 @@ namespace DeadlyJenga.CandyArt
             wave = default;
             foreach (var source in Tracked.Waves) if (source.Wave.active) { wave = source.Wave; break; }
             if (wave.active && !initialized) Build();
+            if (initialized) ApplySkin();
             var ocean=environment.waterRenderer.GetComponent<CandyOceanSurface>();
             if(ocean)ocean.Refresh();
             environment.waterRenderer.GetPropertyBlock(properties);

@@ -13,6 +13,8 @@ Shader "Candy Tropical/Tsunami"
         _Glints("Sun sparkle",Range(0,1))=.3
         _Shine("Candy gloss",Range(0,1))=.85
         _FoamStrength("Gentle crest foam",Range(0,1))=.2
+        _Opaque("Solid skin (sand, snow, lava)",Range(0,1))=0
+        _Lava("Glowing lava cracks",Range(0,1))=0
         _WaveHeight("Wave height (metres)",Range(0,.5))=.32
         _WaveSpeed("Rolling wave speed",Range(0,2))=.9
         _WaveChop("Wave roundness",Range(0,1))=.4
@@ -49,7 +51,7 @@ Shader "Candy Tropical/Tsunami"
             CBUFFER_START(UnityPerMaterial)
             float4 _Shallow,_Deep,_Foam,_Reflection,_Horizon,_Island;
             float4 _TerrainBounds;
-            float _RippleScale,_Speed,_Glints,_Shine,_FoamStrength;
+            float _RippleScale,_Speed,_Glints,_Shine,_FoamStrength,_Opaque,_Lava;
             float4 _SurgeOrigin, _SurgeDirection;
             float _SurgeWidth, _SurgeDepth, _SurgeHeight;
             float _WaveHeight,_WaveSpeed,_WaveChop,_WaveExtent,_Submersion,_SandTop,_SandDepth,_Plateau,_WaterHeight,_HasTerrain;
@@ -207,8 +209,18 @@ Shader "Candy Tropical/Tsunami"
                 foam=max(foam,saturate(abs(i.ripple)*3.5)*.9);   // splash-back and churn around obstacles
                 foam*=lerp(1,.42,i.bulk);
                 color=lerp(color,_Foam.rgb,foam);
+                if(_Lava>.01)
+                {
+                    // Lava skin: thin glowing cracks in the dark crust, flowing up the face and pulsing.
+                    float2 lp=float2(i.uv.x*_SurgeWidth*.11,(i.uv.y+.5)*_SurgeHeight*.2-t*.35);
+                    float veinNoise=noise(lp)*.7+noise(lp*2.3+3.1)*.3;
+                    float crack=1-smoothstep(.0,.055,abs(veinNoise-.5));
+                    float pulse=.65+.35*sin(t*2.2+veinNoise*9);
+                    color=lerp(color,_Foam.rgb*pulse,saturate(crack*_Lava*.9));
+                }
                 color=MixFog(color,i.fog);color=lerp(color,_Horizon.rgb,smoothstep(240,700,distanceToEye));
                 float alpha=lerp(.19,.99,deep);alpha=max(alpha,smoothstep(.15,2,i.wave)*.98);alpha=max(alpha,saturate(fresnel*.82+foam));
+                alpha=lerp(alpha,1,_Opaque);
                 float border=i.cap>.5?1:(1-smoothstep(.65,.66,abs(i.uv.x)))*(1-smoothstep(.88,1.25,abs(i.uv.y)));
                 clip(border-.002);
                 return half4(color,alpha*border*(1-smoothstep(.965,1,i.uv.y+.5)));

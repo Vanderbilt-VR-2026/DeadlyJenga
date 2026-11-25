@@ -41,6 +41,10 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem("Tools/Deadly Jenga/Captures/Tornado Look (Play Mode)")]
         public static void RunTornadoBatch() => Start("Tornado");
 
+        // The tsunami once per look-only skin (sand, snow, lava) on the castle map.
+        [MenuItem("Tools/Deadly Jenga/Captures/Tsunami Skins (Play Mode)")]
+        public static void RunTsunamiSkinsBatch() => Start("TsunamiSkins");
+
         static void Start(string only)
         {
             SessionState.SetString(Key + "Only", only);
@@ -100,6 +104,7 @@ namespace DeadlyJenga.DevTools.Editor
             session.SetRole(true); session.SetMenu(false); session.Player.InputSuspended = true; session.Hand.InputSuspended = true;
             string only = SessionState.GetString(Key + "Only", "");
             output = new CaptureOutput(only == "" ? "Disaster Gallery" : only + " Shape");
+            if (only == "TsunamiSkins") { yield return SkinShots(session); DemoDisasters.StopAll(session); yield break; }
             int index = 0;
             foreach (var prefab in DemoDisasters.Prefabs)
             {
@@ -143,6 +148,45 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return new WaitForSecondsRealtime(3f);
             }
             yield return ImpactShots(session, name, source);
+        }
+
+        static IEnumerator SkinShots(CastlePlaySession session)
+        {
+            var prefab = DemoDisasters.Prefabs.FirstOrDefault(p => p.name == "Tsunami");
+            if (!prefab) throw new InvalidOperationException("Tsunami prefab missing from the demo catalog.");
+            try
+            {
+                foreach (var skin in new[] { CandyTsunamiVisuals.WaveSkin.Sand, CandyTsunamiVisuals.WaveSkin.Snow, CandyTsunamiVisuals.WaveSkin.Lava })
+                {
+                    CandyTsunamiVisuals.SkinOverride = skin;
+                    string name = "Tsunami-" + skin;
+                    DemoDisasters.StopAll(session); session.ResetMap();
+                    yield return new WaitForSecondsRealtime(1.5f);
+                    var parameters = DemoDisasters.Parameters(prefab);
+                    for (int i = 0; i < parameters.Count; i++) if (parameters[i].id == "warning") DemoDisasters.SetValue(session, prefab, i, 0);
+                    File.AppendAllText(Report, name + ": " + DemoDisasters.Request(session, prefab) + "\n");
+                    float until = Time.realtimeSinceStartup + 25;
+                    while (Time.realtimeSinceStartup < until && !Tracked.Waves.Any(w => w.Wave.active && w.Wave.height > 18)) yield return null;
+                    var source = Tracked.Waves.FirstOrDefault(w => w.Wave.active);
+                    if (source == null) { File.AppendAllText(Report, "  no active wave\n"); continue; }
+                    var wv = source.Wave;
+                    Vector3 across = Vector3.Cross(Vector3.up, wv.direction).normalized, mid = wv.center + Vector3.up * wv.height * .5f;
+                    float span = Mathf.Max(wv.height * 2.2f, wv.depth * 1.6f);
+                    View(session, name + "-side", mid + across * span, mid, 50);
+                    View(session, name + "-three-quarter", wv.center + (wv.direction * .9f + across * .7f).normalized * span * 1.4f + Vector3.up * wv.height * .6f, mid, 55);
+                    var world = Services.World;
+                    until = Time.realtimeSinceStartup + 30;
+                    while (Time.realtimeSinceStartup < until && source.Wave.active &&
+                           Vector3.Dot(world.Center - source.Wave.center, source.Wave.direction.normalized) > source.Wave.depth * .1f) yield return null;
+                    if (!source.Wave.active) continue;
+                    wv = source.Wave;
+                    Vector3 dir = Vector3.ProjectOnPlane(wv.direction, Vector3.up).normalized, side = Vector3.Cross(Vector3.up, dir);
+                    Vector3 castle = world.Center + Vector3.up * world.TopHeight * .45f;
+                    float r = Mathf.Max(world.Radius, 8);
+                    View(session, name + "-hit", castle + side * (r * 2.6f + 18) - dir * r * .6f + Vector3.up * world.TopHeight * .35f, castle, 60);
+                }
+            }
+            finally { CandyTsunamiVisuals.SkinOverride = null; }
         }
 
         static IEnumerator TornadoShots(CastlePlaySession session, string name)
