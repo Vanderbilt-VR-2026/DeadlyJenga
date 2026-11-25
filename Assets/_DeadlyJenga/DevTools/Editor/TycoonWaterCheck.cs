@@ -103,6 +103,16 @@ namespace DeadlyJenga.DevTools.Editor
             }
             catch (Exception error) { Report("FAIL " + error); }
             EditorApplication.update -= Advance;
+            int exit = SessionState.GetInt(Key + "Exit", 1), errors = SessionState.GetInt(Key + "Errors", 0);
+            Report(exit == 0 && errors == 0 ? "PASS Tycoon water network: stands still and every cut behaves" : $"FAIL Tycoon water network: exit={exit} errors={errors}");
+            if (Application.isBatchMode)
+            {
+                // Leaving Play Mode can stall the batch editor; the report is written, so quit now.
+                SessionState.SetBool(Key, false);
+                Report($"COMPLETE exit={exit}; errors={errors}");
+                EditorApplication.Exit(errors == 0 ? exit : 1);
+                return;
+            }
             EditorApplication.ExitPlaymode();
         }
 
@@ -321,6 +331,10 @@ namespace DeadlyJenga.DevTools.Editor
             }
         }
 
-        static void Report(string line) => File.AppendAllText(Path.Combine(Output, "report.txt"), line + "\n");
+        static void Report(string line)
+        {
+            File.AppendAllText(Path.Combine(Output, "report.txt"), line + "\n");
+            Debug.Log("[TycoonWater] " + line);
+        }
     }
 }
