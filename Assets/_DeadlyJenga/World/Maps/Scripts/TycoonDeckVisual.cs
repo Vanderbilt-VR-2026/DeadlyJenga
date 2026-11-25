@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash, Peach, Mint, Basin, Tube, Gate, Railed, Awning, Parasol, Bucket, LoosePeach, Walk, Launch, Wheel, Bridge }
+    public enum TycoonDeckFinish { Plain, OpenDeck, Flume, DryChute, Splash, Peach, Mint, Basin, Tube, Gate, Railed, Awning, Parasol, Bucket, LoosePeach, Walk, Launch, Wheel, Bridge, River, RiverPump }
 
     [System.Flags]
     public enum TycoonRailOpening { None=0, Front=1, Rear=2 }
@@ -79,9 +79,12 @@ namespace DeadlyJenga.CastlePrototype
             }
 
             AddParkDetails(profile,size);
-            Material body = profile.Finish is TycoonDeckFinish.Peach or TycoonDeckFinish.LoosePeach or TycoonDeckFinish.Walk ? Peach : profile.Finish == TycoonDeckFinish.Mint ? Mint : shell;
+            bool river = profile.Finish is TycoonDeckFinish.River or TycoonDeckFinish.RiverPump;
+            Material body = profile.Finish is TycoonDeckFinish.Peach or TycoonDeckFinish.LoosePeach or TycoonDeckFinish.Walk ? Peach
+                : profile.Finish == TycoonDeckFinish.Mint ? Mint : river ? Cream : shell;
             var palette = new[] {body, accent ? accent : shell, Cream, Coral};
             FinishMesh(palette);
+            if (river) BuildRiverWater(profile, palette);
             if (profile.Finish == TycoonDeckFinish.Bucket) BuildTippingBucket(size, palette);
             if (profile.Finish == TycoonDeckFinish.Bucket) BuildSharkSign(size);
             if (profile.Finish == TycoonDeckFinish.Wheel) BuildWheel(size);

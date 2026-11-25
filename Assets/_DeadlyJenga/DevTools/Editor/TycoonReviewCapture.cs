@@ -224,6 +224,8 @@ namespace DeadlyJenga.DevTools.Editor
             }
             float drop=rest[board].y-blocks[board].position.y;
             Report($"Local support: plank drop={drop:F2}m; beam travel={Vector3.Distance(rest[beam],blocks[beam].position):F2}m; dynamic={blocks.Count(b=>!b.isKinematic)}; adjacent pinned={blocks[board+2].isKinematic}");
+            Report($"  plank kinematic={blocks[board].isKinematic} broken={magnets[board].Broken} supported={magnets[board].Supported} pos={blocks[board].position}; beam pos={blocks[beam].position}");
+            foreach (var i in Enumerable.Range(0,blocks.Length).Where(i=>!blocks[i].isKinematic)) Report($"  dynamic {i} {blocks[i].name} at {blocks[i].position} moved={Vector3.Distance(rest[i],blocks[i].position):F2}");
             if(drop<.25f || blocks[board].isKinematic || !blocks[board+2].isKinematic) throw new InvalidOperationException("Local collapse failed");
 
             var foundations=magnets.Where(m=>m.foundationAnchor).ToArray();

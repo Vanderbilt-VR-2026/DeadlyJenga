@@ -88,7 +88,6 @@ namespace DeadlyJenga.CastlePrototype
                 stand.Rod(pipe[i-1], pipe[i], .34f, 2);
             stand.Rod(pipe[0], pipe[0] + Vector3.up * .26f, .58f, 2);
             stand.Rod(pipe[0] + Vector3.up * 6, pipe[0] + Vector3.up * 6.23f, .45f, 2);
-            stand.Rod(pipe[pipe.Length-1], new Vector3(.48f, 4.03f, hub.z), .17f, 1);
             for (int i = 0; i < 13; i++)
             {
                 float x = -4.95f + i * .29f;
@@ -96,6 +95,10 @@ namespace DeadlyJenga.CastlePrototype
                     new Vector3(x, ground + .07f, hub.z + .82f), .055f, 1);
             }
             stand.FinishMesh(palette);
+            // The inlet stream is its own part so it can stop when the wheel loses its supply.
+            var inlet = Detail(stand.transform, "Wheel inlet water");
+            inlet.Rod(pipe[pipe.Length-1], new Vector3(.48f, 4.03f, hub.z), .17f, 1);
+            inlet.FinishMesh(palette);
 
             var rotor = Detail(stand.transform, "Six-pail wheel");
             rotor.transform.localPosition = hub;
@@ -126,7 +129,7 @@ namespace DeadlyJenga.CastlePrototype
             var pour = Detail(stand.transform, "Water from tipping pail");
             pour.Band(Vector3.zero, Vector3.down, Vector3.down, .32f, .22f, 1);
             pour.FinishMesh(palette);
-            rotor.gameObject.AddComponent<TycoonWheelMotion>().Initialize(pour.transform, ground);
+            rotor.gameObject.AddComponent<TycoonWheelMotion>().Initialize(pour.transform, ground, inlet.transform);
         }
     }
 }
