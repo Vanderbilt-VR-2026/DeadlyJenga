@@ -20,6 +20,7 @@ namespace DeadlyJenga.DevTools.Editor
     {
         const string Key = "TycoonWaterCheck";
         static readonly Stack<IEnumerator> steps = new Stack<IEnumerator>();
+        static int failures;
         static double startAt;
         static string Output => Path.GetFullPath("Logs/TycoonWater");
 
@@ -67,6 +68,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Select();
                 startAt = EditorApplication.timeSinceStartup + 1.5;
                 steps.Clear();
+                failures = 0;
                 steps.Push(Steps());
                 EditorApplication.update += Advance;
             }
@@ -95,7 +97,7 @@ namespace DeadlyJenga.DevTools.Editor
                     if (top.Current is IEnumerator inner) { steps.Push(inner); continue; }
                     return;
                 }
-                SessionState.SetInt(Key + "Exit", 0);
+                SessionState.SetInt(Key + "Exit", failures == 0 ? 0 : 1);
             }
             catch (Exception error) { Report("FAIL " + error); }
             EditorApplication.update -= Advance;
@@ -165,13 +167,13 @@ namespace DeadlyJenga.DevTools.Editor
 
             // 1. Knock a front river panel out. Both cut ends keep flowing from the pump and spill.
             Knock(world, bodies[front], -world.transform.forward * 9 + Vector3.up * 3);
-            yield return WaitFor(() => !water.IsIntact(front), 6, "front river panel never left its place");
+            yield return WaitFor(bodies[front], () => !water.IsIntact(front), 6, "front river panel never left its place");
             water.Solve();
             int k = river.ToList().IndexOf(front);
             int left = river[(k - 1 + river.Count) % river.Count], right = river[(k + 1) % river.Count];
             Report($"River cut: neighbours fed={water.IsFed(left)},{water.IsFed(right)} intact={water.IsIntact(left)},{water.IsIntact(right)}; spills={water.ActiveSpills}");
             if (!water.IsFed(left) || !water.IsFed(right) || water.ActiveSpills < 2)
-                throw new InvalidOperationException("River cut did not spill from both ends");
+                Fail("River cut did not spill from both ends");
             yield return Wait(1.5f);
             Capture(world, "04-River-cut-spilling", new Vector3(16, 12, -72), new Vector3(0, 3, -49));
 
@@ -179,47 +181,47 @@ namespace DeadlyJenga.DevTools.Editor
             var green = water.Lanes[2];
             int cut = green[green.Count / 2];
             Knock(world, bodies[cut], Vector3.up * 4 + world.transform.right * 6);
-            yield return WaitFor(() => !water.IsIntact(cut), 6, "slide panel never left its place");
+            yield return WaitFor(bodies[cut], () => !water.IsIntact(cut), 6, "slide panel never left its place");
             yield return Wait(2.5f);
             water.Solve();
             var after = green.Skip(green.Count / 2 + 1).Where(water.IsIntact).ToList();
             int before = green[green.Count / 2 - 1];
             Report($"Slide cut: upstream fed={water.IsFed(before)}; downstream intact={after.Count} fed={after.Count(water.IsFed)} wet={after.Count(water.IsWet)}; spills={water.ActiveSpills}");
             if (!water.IsFed(before) || after.Any(water.IsFed) || after.Any(water.IsWet))
-                throw new InvalidOperationException("Slide cut did not dry the downstream run");
+                Fail("Slide cut did not dry the downstream run");
             Capture(world, "05-Slide-cut", new Vector3(36, 40, -48), new Vector3(16, 34, -18));
 
             // 3. Break the river pump: the whole loop loses its supply and drains.
             int pump = water.RiverPumpBody;
             Knock(world, bodies[pump], world.transform.forward * 9 + Vector3.up * 3);
-            yield return WaitFor(() => !water.IsIntact(pump), 6, "pump panel never left its place");
+            yield return WaitFor(bodies[pump], () => !water.IsIntact(pump), 6, "pump panel never left its place");
             water.Solve();
             var standing = river.Where(water.IsIntact).ToList();
-            if (standing.Any(water.IsFed)) throw new InvalidOperationException("River still fed after the pump broke");
+            if (standing.Any(water.IsFed)) Fail("River still fed after the pump broke");
             yield return Wait(11);
             water.Solve();
-            float wettest = standing.Max(water.Level);
+            float wettest = standing.Count > 0 ? standing.Max(water.Level) : 0;
             Report($"Pump lost: {standing.Count} standing panels unfed; highest level after 11 s={wettest:F2}; spills={water.ActiveSpills}");
-            if (wettest > .1f) throw new InvalidOperationException("River did not drain after the pump broke");
+            if (wettest > .1f) Fail("River did not drain after the pump broke");
             Capture(world, "06-River-drained", new Vector3(14, 16, -78), new Vector3(0, 4, -48));
 
             // 4. Knock the pail wheel off its stand: inlet stops, wheel spins down.
             var wheel = world.GetComponentInChildren<TycoonWheelMotion>();
             int stand_ = Array.IndexOf(bodies, wheel.GetComponentInParent<Rigidbody>());
             Knock(world, bodies[stand_], world.transform.right * 7 + Vector3.up * 2);
-            yield return WaitFor(() => !water.IsIntact(stand_), 6, "wheel never left its stand");
+            yield return WaitFor(bodies[stand_], () => !water.IsIntact(stand_), 6, "wheel never left its stand");
             yield return Wait(4);
             Report($"Wheel cut: speed={wheel.Speed:F2}; inlet running={wheel.InletRunning}");
-            if (wheel.Speed > .5f || wheel.InletRunning) throw new InvalidOperationException("Wheel kept running without supply");
+            if (wheel.Speed > .5f || wheel.InletRunning) Fail("Wheel kept running without supply");
 
             // 5. Knock the summit bucket deck: it finishes any dump in progress, then hangs empty.
             var bucket = world.GetComponentInChildren<TycoonBucketMotion>();
             int summit = Array.IndexOf(bodies, bucket.GetComponentInParent<Rigidbody>());
             Knock(world, bodies[summit], world.transform.forward * 6 + Vector3.up * 2);
-            yield return WaitFor(() => !water.IsIntact(summit), 6, "bucket deck never left its place");
+            yield return WaitFor(bodies[summit], () => !water.IsIntact(summit), 6, "bucket deck never left its place");
             yield return Wait(8);
             Report($"Bucket cut: empty={bucket.Empty}");
-            if (!bucket.Empty) throw new InvalidOperationException("Bucket kept cycling without supply");
+            if (!bucket.Empty) Fail("Bucket kept cycling without supply");
             Capture(world, "07-After-cuts-overview", new Vector3(5, 86, -130), new Vector3(0, 32, -9));
         }
 
@@ -230,15 +232,53 @@ namespace DeadlyJenga.DevTools.Editor
             body.GetComponent<CastleBlock>().Push(velocity, world.gameObject);
         }
 
-        static IEnumerator WaitFor(Func<bool> condition, float seconds, string failure)
+        static IEnumerator WaitFor(Rigidbody body, Func<bool> condition, float seconds, string failure)
         {
+            var start = body.position;
             float until = Time.time + seconds;
             double guard = EditorApplication.timeSinceStartup + seconds * 20 + 60;
             while (!condition())
             {
-                if (Time.time > until || EditorApplication.timeSinceStartup > guard) throw new InvalidOperationException(failure);
+                if (Time.time > until || EditorApplication.timeSinceStartup > guard)
+                {
+                    Fail(failure);
+                    Probe(body, start);
+                    yield break;
+                }
                 yield return null;
             }
+        }
+
+        static void Fail(string message)
+        {
+            failures++;
+            Report("FAIL " + message);
+        }
+
+        // Why did a knocked piece not move? Log its state and what its colliders overlap.
+        static void Probe(Rigidbody body, Vector3 start)
+        {
+            var magnet = body.GetComponent<MagneticBlock>();
+            Report($"  probe {body.name}: kinematic={body.isKinematic} sleeping={body.IsSleeping()} broken={magnet?.Broken} supported={magnet?.Supported} " +
+                   $"moved={Vector3.Distance(start, body.position):F3} m velocity={body.linearVelocity.magnitude:F2} constraints={body.constraints} mass={body.mass:F1}");
+            var touching = new HashSet<string>();
+            foreach (var collider in body.GetComponentsInChildren<Collider>())
+            {
+                if (!collider.enabled || collider.isTrigger || collider.attachedRigidbody != body) continue;
+                var box = collider as BoxCollider;
+                Collider[] hits = box
+                    ? Physics.OverlapBox(box.transform.TransformPoint(box.center), Vector3.Scale(box.size * .5f, box.transform.lossyScale), box.transform.rotation, ~0, QueryTriggerInteraction.Ignore)
+                    : Physics.OverlapBox(collider.bounds.center, collider.bounds.extents, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
+                foreach (var hit in hits)
+                {
+                    if (hit.attachedRigidbody == body) continue;
+                    if (Physics.GetIgnoreLayerCollision(collider.gameObject.layer, hit.gameObject.layer)) continue;
+                    if (!Physics.ComputePenetration(collider, collider.transform.position, collider.transform.rotation, hit, hit.transform.position, hit.transform.rotation, out _, out float depth)) continue;
+                    touching.Add($"{collider.name}[{LayerMask.LayerToName(collider.gameObject.layer)}] x {hit.name}[{LayerMask.LayerToName(hit.gameObject.layer)}] kin={hit.attachedRigidbody?.isKinematic} depth={depth:F2}");
+                }
+            }
+            foreach (var line in touching.Take(20)) Report("    " + line);
+            if (touching.Count == 0) Report("    no overlapping colliders");
         }
 
         static void Capture(CastleGenerator world, string name, Vector3 from, Vector3 at)
