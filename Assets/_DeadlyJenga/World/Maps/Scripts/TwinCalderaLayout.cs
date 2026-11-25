@@ -333,7 +333,7 @@ namespace DeadlyJenga.CastlePrototype
             // sits on a separate broad footing and leaves space at the arrival.
             ApronBlock("Shield",0,-46.5f,-24.4f,3.6f,4f,4.1f,3.6f,18);
             ApronBlock("Shield",1,-40.8f,-26.1f,4.2f,3.6f,4.2f,2.5f,-24);
-            ApronBlock("Shield",2,-35.4f,-30.7f,4.2f,3.5f,4.3f,1.9f,14);
+            // Shield apron 2 is left out: the Hellspine bridge's piers stand there.
             ApronBlock("Shield",3,-22.6f,-26.2f,4.6f,4.2f,4.5f,2.4f,-14);
             ApronBlock("Shield",4,-15.1f,-25.1f,3.7f,3.4f,4.15f,2.3f,20);
             ApronBlock("Spire",0,45.9f,-18.2f,3.8f,3.6f,4.25f,3.7f,-21);

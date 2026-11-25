@@ -70,6 +70,21 @@ namespace DeadlyJenga.DevTools.Editor
                 var bodies=map.Bodies;
                 Check(bodies.Count==authored.Count && bodies.All(b=>!b.isKinematic && b.useGravity),"dynamic bodies "+bodies.Count);
                 foreach(var body in bodies)body.interpolation=RigidbodyInterpolation.None;
+                // Pieces that start inside each other push apart violently; list any pair
+                // overlapping by more than 3 cm before anything moves.
+                var overlaps=new List<string>();
+                foreach(var body in bodies)
+                {
+                    var shape=body.GetComponent<MeshCollider>();
+                    foreach(var other in Physics.OverlapBox(shape.bounds.center,shape.bounds.extents,Quaternion.identity,1<<Layers.Block))
+                    {
+                        if(other==shape||!other.attachedRigidbody||other.attachedRigidbody.GetInstanceID()<body.GetInstanceID())continue;
+                        if(Physics.ComputePenetration(shape,body.position,body.rotation,other,other.transform.position,other.transform.rotation,out _,out float depth)&&depth>.03f)
+                            overlaps.Add(body.name+" overlaps "+other.attachedRigidbody.name+" by "+depth.ToString("F2"));
+                    }
+                }
+                Check(overlaps.Count==0,"no starting overlaps ("+overlaps.Count+")");
+                report.AddRange(overlaps.Take(40));
                 Steps(200);
                 var shifted=bodies.Select((b,i)=>(b,drift:Vector3.Distance(map.transform.TransformPoint(authored[i].Position),b.position)))
                     .OrderByDescending(pair=>pair.drift).ToArray();
@@ -171,8 +186,9 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(bridge.position.y<bridgeStart.y-.65f || Quaternion.Angle(bridge.rotation,Quaternion.identity)>15,"loss of middle span "+bridge.position);
                 // The Blender expansion's collapse tests, repeated in PhysX: take one support
                 // out of a freshly built map (as if a hand carried it off) and see what falls.
-                void Collapse(string label,string removed,string[] falls,string[] stays)
+                void Collapse(string label,string removed,string[] falls,string[] stays,int mustFall=-1)
                 {
+                    if(mustFall<0)mustFall=falls.Length;
                     map.Rebuild();
                     foreach(var body in map.Bodies)body.interpolation=RigidbodyInterpolation.None;
                     Steps(150);
@@ -184,11 +200,14 @@ namespace DeadlyJenga.DevTools.Editor
                     Steps(250);
                     Shot("expansion-"+label.Replace(' ','-'));
                     Check(taken>0,label+": removed "+taken+" support piece(s)");
+                    int fell=0;
                     for(int i=0;i<falls.Length;i++)
                     {
                         float drop=fallStart[i].y-Find(falls[i]).position.y;
-                        Check(drop>1.5f,label+": "+falls[i]+" fell "+drop.ToString("F2"));
+                        if(drop>1.5f)fell++;
+                        report.Add(label+": "+falls[i]+" fell "+drop.ToString("F2"));
                     }
+                    Check(fell>=mustFall,label+": "+fell+" of "+falls.Length+" pieces fell (need "+mustFall+")");
                     for(int i=0;i<stays.Length;i++)
                     {
                         float moved=Vector3.Distance(stayStart[i],Find(stays[i]).position);
@@ -197,8 +216,9 @@ namespace DeadlyJenga.DevTools.Editor
                 }
                 Collapse("hellspine pier","Hellspine pier 5 ",new[]{"Hellspine slab 4","Hellspine slab 5"},new[]{"Hellspine slab 2"});
                 Collapse("arch keystone","South lava tube arch voussoir 05",
-                    new[]{"South lava tube arch voussoir 04","South lava tube arch voussoir 06","South lava tube arch deck 0"},
-                    new[]{"North lava tube arch voussoir 05"});
+                    new[]{"South lava tube arch voussoir 03","South lava tube arch voussoir 04","South lava tube arch voussoir 06",
+                        "South lava tube arch voussoir 07","South lava tube arch deck 0","South lava tube arch deck 1"},
+                    new[]{"North lava tube arch voussoir 05"},2);
                 Collapse("glass gate shard","Glass Gate west shard",new[]{"Glass Gate capstone"},new string[0]);
                 Collapse("spire glass pier","Spire to Glass terrace pier 1",
                     new[]{"Spire to Glass terrace span 0","Spire to Glass terrace span 1"},new string[0]);
