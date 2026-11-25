@@ -237,7 +237,9 @@ namespace DeadlyJenga.DevTools.Editor
                         .FirstOrDefault(c => c.name == "Body feedback - no bars");
                     File.AppendAllText(Report, $"  {file}: menu open {session.MenuOpen}, tint canvas " +
                         $"{(tint ? (tint.enabled ? "shown" : "hidden") : "not built")}, mode {(tint ? tint.renderMode.ToString() : "-")}\n");
-                    ShootFirstPerson(view, close, rt, pixels, file);
+                    // The tint canvas is a screen overlay, which camera renders skip; draw its material over the picture.
+                    var overlay = tint ? tint.GetComponentInChildren<UnityEngine.UI.Image>()?.materialForRendering : null;
+                    ShootFirstPerson(view, close, rt, pixels, file, overlay);
                     player.InputSuspended = true;
                 }
                 receiver.Apply(new Effect { type = jump, strength = 1, duration = 8 });
@@ -290,18 +292,19 @@ namespace DeadlyJenga.DevTools.Editor
         // The editor reopens the pause menu when it loses focus (always, in a test editor). The
         // player camera is still used (only it hides the player's own head), with the nearby
         // world-space pause tablet switched off for that frame.
-        static void ShootFirstPerson(Camera view, Camera unused, RenderTexture rt, Texture2D pixels, string file)
+        static void ShootFirstPerson(Camera view, Camera unused, RenderTexture rt, Texture2D pixels, string file,
+            Material overlay = null)
         {
             var hidden = Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)
                 .Where(c => c.isRootCanvas && c.renderMode == RenderMode.WorldSpace && c.gameObject.activeSelf &&
                     (c.transform.position - view.transform.position).sqrMagnitude < 4)
                 .Select(c => c.gameObject).ToList();
             foreach (var item in hidden) item.SetActive(false);
-            try { Shoot(view, rt, pixels, file); }
+            try { Shoot(view, rt, pixels, file, overlay); }
             finally { foreach (var item in hidden) if (item) item.SetActive(true); }
         }
 
-        static void Shoot(Camera camera, RenderTexture rt, Texture2D pixels, string file)
+        static void Shoot(Camera camera, RenderTexture rt, Texture2D pixels, string file, Material overlay = null)
         {
             var oldTarget = camera.targetTexture;
             var oldActive = RenderTexture.active;
@@ -309,6 +312,8 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 camera.targetTexture = rt;
                 camera.Render();
+                // A full-screen UI image draws white texture tinted by its material, blended over the picture.
+                if (overlay) Graphics.Blit(Texture2D.whiteTexture, rt, overlay);
                 RenderTexture.active = rt;
                 pixels.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
                 pixels.Apply();
