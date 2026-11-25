@@ -212,7 +212,8 @@ namespace DeadlyJenga.CastlePrototype
                 // Retain the thinner central slab at the switchback crossing.
                 float slab=i==2?.98f:1.45f;
                 float width=i==2?3.75f:4.3875f;
-                float run=(length-.05f)*.965f;
+                // Consecutive slabs meet with a 5 cm joint so feet cannot drop through.
+                float run=length-.05f;
                 Rock("Shield radial slab "+i,(a+b)*.5f-Vector3.up*(slab/2),
                     new Vector3(width,slab,run),yaw,slope*run,slope*run,0,1);
                 for(int j=0;j<2;j++)
@@ -267,8 +268,10 @@ namespace DeadlyJenga.CastlePrototype
             for(int i=0;i<count;i++)
             {
                 var p=Vector3.Lerp(a,b,(i+.5f)/count);
+                // Survivors only step up a few centimetres without jumping, so each
+                // tread's walking face continues the incline instead of a flat riser.
                 Rock(name+" tread "+i,p-Vector3.up*.1025f,new Vector3(2.1f,.205f,run-.006f),
-                    yaw,step,0,0,1);
+                    yaw,step,step,0,1);
             }
         }
 

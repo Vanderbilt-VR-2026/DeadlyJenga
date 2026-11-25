@@ -117,6 +117,10 @@ namespace DeadlyJenga.DevTools.Editor
                     Walk("spire bridge approach",Top("Spire bridge shoulder"),Top("Spire bridge approach 0"),Top("Spire west landing 4"));
                     Walk("shield radial motor",Top("Shield radial slab 0"),Top("Shield radial slab 1"),
                         Top("Shield radial slab 2"),Top("Shield radial slab 3"),Top("Shield radial slab 4"));
+                    // Diagnostic: where each piece of the first Spire stair actually is.
+                    foreach(var b in bodies)
+                        if(b&&b.name.StartsWith("Spire stair 1"))
+                        {var c=b.GetComponent<Collider>();report.Add("Stair piece "+b.name+" bounds "+c.bounds.min.ToString("F2")+" to "+c.bounds.max.ToString("F2"));}
                     Walk("spire switchback motor",Top("Spire stair 1 lower turn"),Top("Spire stair 1 tread 3"),
                         Top("Spire stair 1 tread 10"),Top("Spire stair 1 upper turn"));
                     player.Place(feet,Quaternion.identity);
@@ -127,9 +131,12 @@ namespace DeadlyJenga.DevTools.Editor
                 var bearing=Find("Spire peeling slab 0 seat 0");
                 var bearingStart=bearing.position;
                 var contact=catchRock.gameObject.AddComponent<CalderaContactProbe>();contact.target=slab;
-                bearing.GetComponent<CastleBlock>().Push(Vector3.back*13,map.gameObject);
+                // A hand pulls steadily rather than striking once: keep pushing the
+                // loaded seat for the first 1.6 s so friction under the slab cannot pin it.
+                var seatBlock=bearing.GetComponent<CastleBlock>();
                 for(int n=0;n<180;n++)
                 {
+                    if(n<80) seatBlock.Push(Vector3.back*1.2f,map.gameObject);
                     Steps(1);
                     if(n==24) Shot("right-flank-in-motion");
                 }
@@ -144,8 +151,10 @@ namespace DeadlyJenga.DevTools.Editor
                 bridge=Find("Bridge span 1");
                 bridgeStart=bridge.position;
                 var support=Find("Bridge pier 1 bearing 1");
-                support.GetComponent<CastleBlock>().Push(Vector3.forward*16,map.gameObject);
-                Steps(200);Shot("bridge-bearing-aftermath");
+                var supportBlock=support.GetComponent<CastleBlock>();var supportStart=support.position;
+                for(int n=0;n<200;n++){if(n<80)supportBlock.Push(Vector3.forward*1.2f,map.gameObject);Steps(1);}
+                report.Add("Bridge bearing moved "+Vector3.Distance(supportStart,support.position).ToString("F2"));
+                Shot("bridge-bearing-aftermath");
                 Check(bridge.position.y<bridgeStart.y-.65f || Quaternion.Angle(bridge.rotation,Quaternion.identity)>15,"loss of middle span "+bridge.position);
                 int count=bodies.Count, before=map.Revision;string layout=map.SaveLayout();
                 Check(map.LoadLayout(layout,count,new Pose(map.transform.position,map.transform.rotation),map.transform.localScale)
