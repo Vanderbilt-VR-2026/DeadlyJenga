@@ -40,7 +40,9 @@ namespace DeadlyJenga.World.Hazards.Editor
                 tower.transform.SetParent(compound.transform, false);
                 tower.transform.localPosition = Vector3.up * 3;
                 tower.AddComponent<BoxCollider>().size = new Vector3(1, 5, 1);
-                var lowerOnly = CreateBlock(root.transform, "Identical lower piece", new Vector3(-4, 1, 0), Vector3.one);
+                // Same spot as the compound block: the authored wave is bowed across its width, so mirrored
+                // positions get slightly different water heights. The probes have no bodies, so they never collide.
+                var lowerOnly = CreateBlock(root.transform, "Identical lower piece", new Vector3(4, 1, 0), Vector3.one);
                 var catalog = Resources.Load<HazardCatalog>("DisasterCatalog");
                 var prefab = Array.Find(catalog.prefabs, item => item.GetComponent<TsunamiHazard>());
                 instance = UnityEngine.Object.Instantiate(prefab);

@@ -43,11 +43,12 @@ namespace DeadlyJenga.World.Hazards
         [Min(.5f)] public float shelterRefill = 7;
 
         readonly Dictionary<object, (Target target, float submerged)> wetTargets = new();
-        // Shelter grid in wave space (across x along); water flows toward +along. Per wet receiver:
-        // x = along cell, y = across cell, z = bottom height, w = cells its own footprint reaches upstream.
-        const int ShelterX = 64, ShelterY = 48;
+        // Shelter grid in wave space (across x along); water flows toward +along. Per wet receiver, the union of
+        // all its wet colliders: along span, across span (metres) and its lowest point.
+        const int ShelterX = 128, ShelterY = 48;
         readonly float[] shelterWeight = new float[ShelterX * ShelterY], shelterTop = new float[ShelterX * ShelterY];
-        readonly Dictionary<object, Vector4> wetPlaces = new();
+        struct WetPlace { public float alongMin, alongMax, acrossMin, acrossMax, bottom; }
+        readonly Dictionary<object, WetPlace> wetPlaces = new();
         sealed class Target
         {
             public IPushable push;
@@ -210,9 +211,15 @@ namespace DeadlyJenga.World.Hazards
                     wetTargets[receiver] = (target, submerged);
                 if (shelterOn)
                 {
-                    float halfAlongCells = Vector3.Dot(bounds.extents, alongExtents) / depth * ShelterY;
-                    int cellAlong = Mathf.FloorToInt((along / depth + .5f) * ShelterY), cellAcross = Mathf.FloorToInt((lateral / width + .5f) * ShelterX);
-                    wetPlaces[receiver] = new Vector4(cellAlong, cellAcross, bounds.min.y, Mathf.Ceil(halfAlongCells));
+                    float hA = Vector3.Dot(bounds.extents, alongExtents), hX = Vector3.Dot(bounds.extents, acrossExtents);
+                    var place = new WetPlace { alongMin = along - hA, alongMax = along + hA, acrossMin = lateral - hX, acrossMax = lateral + hX, bottom = bounds.min.y };
+                    if (wetPlaces.TryGetValue(receiver, out var known))
+                    {
+                        place.alongMin = Mathf.Min(place.alongMin, known.alongMin); place.alongMax = Mathf.Max(place.alongMax, known.alongMax);
+                        place.acrossMin = Mathf.Min(place.acrossMin, known.acrossMin); place.acrossMax = Mathf.Max(place.acrossMax, known.acrossMax);
+                        place.bottom = Mathf.Min(place.bottom, known.bottom);
+                    }
+                    wetPlaces[receiver] = place;
                     // Anchored blocks shelter what is behind them; blocks already riding the wave do not.
                     var body = target.body;
                     if (body && collider.gameObject.layer == Layers.Block)
@@ -258,17 +265,23 @@ namespace DeadlyJenga.World.Hazards
         float Shelter(object receiver)
         {
             if (receiver == null || !wetPlaces.TryGetValue(receiver, out var place)) return 0;
-            int cellAlong = (int)place.x, cellAcross = (int)place.y, reach = Mathf.CeilToInt(shelterRefill / depth * ShelterY);
+            // Only cells strictly upstream of the receiver's own front face, and only across its own width.
+            int front = Mathf.FloorToInt((place.alongMin / depth + .5f) * ShelterY) - 1;
+            int reach = Mathf.CeilToInt(shelterRefill / depth * ShelterY);
+            float inset = width / ShelterX * .5f;   // ignore cells it merely grazes at its sides
+            int x0 = Mathf.Max(0, Mathf.FloorToInt(((place.acrossMin + inset) / width + .5f) * ShelterX));
+            int x1 = Mathf.Min(ShelterX - 1, Mathf.FloorToInt(((place.acrossMax - inset) / width + .5f) * ShelterX));
+            if (x1 < x0) x0 = x1 = Mathf.Clamp(Mathf.FloorToInt(((place.acrossMin + place.acrossMax) * .5f / width + .5f) * ShelterX), 0, ShelterX - 1);
             float best = 0;
-            for (int k = (int)place.w + 1; k <= (int)place.w + reach; k++)
+            for (int k = 0; k < reach; k++)
             {
-                int y = cellAlong - k;
+                int y = front - k;
                 if (y < 0) break;
-                float fade = 1 - (k - place.w) / (float)(reach + 1);
-                for (int x = Mathf.Max(0, cellAcross - 1); x <= Mathf.Min(ShelterX - 1, cellAcross + 1); x++)
+                float fade = 1 - k / (float)(reach + 1);
+                for (int x = x0; x <= x1; x++)
                 {
                     int i = y * ShelterX + x;
-                    if (shelterWeight[i] > 0 && shelterTop[i] > place.z + .3f) best = Mathf.Max(best, shelterWeight[i] * fade);
+                    if (shelterWeight[i] > 0 && shelterTop[i] > place.bottom + .3f) best = Mathf.Max(best, shelterWeight[i] * fade);
                 }
             }
             return best;
