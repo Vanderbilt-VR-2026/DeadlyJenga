@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public static class TycoonLayout
+    public static partial class TycoonLayout
     {
         public const string Preset = "tycoon";
         // The core climbs CoreFlights flights of 6 m; the crown rings start on the summit deck.
@@ -100,6 +100,8 @@ namespace DeadlyJenga.CastlePrototype
                 end: (P(-11,24,-5.92f), P(-6.38f,24,-5.92f)));
             Deck(plan,red,-27,7.6f,-40,6,4,TycoonDeckFinish.Awning);
             Deck(plan,purple,0,60,7.25f,24,4,TycoonDeckFinish.Bucket);
+            // Appended last so the indices of earlier pieces stay stable for tests and saved layouts.
+            WaterPark(plan);
             return plan;
         }
 
@@ -273,7 +275,10 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         static void MoldedRoute(List<CastlePlacement> plan, CastleSection section, float width,
-            TycoonDeckFinish finish, params Vector3[] guide)
+            TycoonDeckFinish finish, params Vector3[] guide) => MoldedRoute(plan,section,width,finish,true,guide);
+
+        static void MoldedRoute(List<CastlePlacement> plan, CastleSection section, float width,
+            TycoonDeckFinish finish, bool braces, params Vector3[] guide)
         {
             // Corner cutting preserves both terminal tangents and gives neighboring spans
             // a shared tangent through each bend without folding the inside bank back on itself.
@@ -292,7 +297,7 @@ namespace DeadlyJenga.CastlePrototype
             // Collinear subdivisions do not need separate breakaway bodies.
             for(int i=points.Count-2;i>0;i--)
                 if(Vector3.Angle(points[i]-points[i-1],points[i+1]-points[i])<.75f) points.RemoveAt(i);
-            if(finish!=TycoonDeckFinish.OpenDeck)
+            if(finish!=TycoonDeckFinish.OpenDeck && braces)
             {
                 // Pick the bearing on each run and the clear patch of sand for its foot separately.
                 // In particular, keep the bleacher rows, promenade and eastern stair clear.
@@ -357,7 +362,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         static void AddPanel(List<CastlePlacement> plan,CastleSection section,float width,TycoonDeckFinish finish,
-            Vector3 nearLeft,Vector3 nearRight,Vector3 farLeft,Vector3 farRight)
+            Vector3 nearLeft,Vector3 nearRight,Vector3 farLeft,Vector3 farRight,TycoonRailOpening openings=TycoonRailOpening.None)
         {
             var a=(nearLeft+nearRight)*.5f;
             var b=(farLeft+farRight)*.5f;
@@ -369,7 +374,7 @@ namespace DeadlyJenga.CastlePrototype
                 var point=Quaternion.Inverse(rotation)*(world-center);
                 return P(point.x/size.x,point.y/size.y,point.z/size.z);
             }
-            var profile=new TycoonDeckProfile(finish,Local(nearLeft),Local(nearRight),Local(farLeft),Local(farRight));
+            var profile=new TycoonDeckProfile(finish,Local(nearLeft),Local(nearRight),Local(farLeft),Local(farRight),openings);
             plan.Add(new CastlePlacement(center,rotation,section,Mathf.FloorToInt(center.y/2),size,profile));
         }
 

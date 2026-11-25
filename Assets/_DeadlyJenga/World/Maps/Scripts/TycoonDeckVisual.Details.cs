@@ -86,6 +86,10 @@ namespace DeadlyJenga.CastlePrototype
                 case TycoonDeckFinish.Bridge:
                     WalkRails(profile,size);
                     break;
+                case TycoonDeckFinish.River:
+                case TycoonDeckFinish.RiverPump:
+                    RiverTrough(profile,size);
+                    break;
                 case TycoonDeckFinish.Railed:
                     ArchSpandrels(w,d);
                     // The seaward rail carries a short run of alternating park pennants.

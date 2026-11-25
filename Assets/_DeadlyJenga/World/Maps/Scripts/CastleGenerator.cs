@@ -463,8 +463,11 @@ namespace DeadlyJenga.CastlePrototype
                         mesh.AddComponent<TycoonDeckVisual>().Build(p.DeckProfile,block.sectionMaterial,aquaMaterial,p.BlockSize(settings));
                     }
                     var profile = p.DeckProfile;
-                    if(profile.Finish is TycoonDeckFinish.Flume or TycoonDeckFinish.Tube or TycoonDeckFinish.DryChute or TycoonDeckFinish.OpenDeck or TycoonDeckFinish.Walk or TycoonDeckFinish.Bridge)
+                    if(profile.Finish is TycoonDeckFinish.Flume or TycoonDeckFinish.Tube or TycoonDeckFinish.DryChute or TycoonDeckFinish.OpenDeck or TycoonDeckFinish.Walk or TycoonDeckFinish.Bridge
+                        or TycoonDeckFinish.River or TycoonDeckFinish.RiverPump)
                         block.FitTraversalPanel(profile.StartLeft,profile.StartRight,profile.EndLeft,profile.EndRight);
+                    if(Application.isPlaying && profile.Finish is TycoonDeckFinish.River or TycoonDeckFinish.RiverPump)
+                        TycoonDeckVisual.AddRiverWalls(block,profile,p.BlockSize(settings));
                     block.SyncSurface();
                 }
                 var size=p.BlockSize(settings);
@@ -498,7 +501,10 @@ namespace DeadlyJenga.CastlePrototype
                 NeedlefrostLayout.JoinSculptedSeats(layout, Bodies);
             Physics.SyncTransforms();
             if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)
+            {
                 breakawaySupports = TycoonSupports.Build(generatedRoot, Bodies, layout);
+                TycoonWater.Build(generatedRoot, Bodies, layout);
+            }
             if (Application.isPlaying && settings.layoutPreset == BlockSpiresLayout.Preset)
                 breakawaySupports = BlockSpiresLayout.BuildSupports(generatedRoot, layout, Bodies);
             if (Application.isPlaying && !breakawaySupports && groupRestingBlocks && Bodies.Count>=physicsGroupThreshold)
