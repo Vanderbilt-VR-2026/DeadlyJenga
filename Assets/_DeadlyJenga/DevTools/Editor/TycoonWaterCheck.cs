@@ -105,12 +105,25 @@ namespace DeadlyJenga.DevTools.Editor
             EditorApplication.update -= Advance;
             int exit = SessionState.GetInt(Key + "Exit", 1), errors = SessionState.GetInt(Key + "Errors", 0);
             Report(exit == 0 && errors == 0 ? "PASS Tycoon water network: stands still and every cut behaves" : $"FAIL Tycoon water network: exit={exit} errors={errors}");
+            int code = errors == 0 ? exit : 1;
+            if (SessionState.GetString("DJWarm.id", "") != "")
+            {
+                // An always-open test editor waits for this file instead of Unity closing.
+                SessionState.SetBool(Key, false);
+                EditorApplication.UnlockReloadAssemblies();
+                Application.logMessageReceived -= OnLog;
+                Report($"COMPLETE exit={exit}; errors={errors}");
+                EditorApplication.ExitPlaymode();
+                Directory.CreateDirectory("Logs/Warm");
+                File.WriteAllText("Logs/Warm/exit.txt", code.ToString());
+                return;
+            }
             if (Application.isBatchMode)
             {
                 // Leaving Play Mode can stall the batch editor; the report is written, so quit now.
                 SessionState.SetBool(Key, false);
                 Report($"COMPLETE exit={exit}; errors={errors}");
-                EditorApplication.Exit(errors == 0 ? exit : 1);
+                EditorApplication.Exit(code);
                 return;
             }
             EditorApplication.ExitPlaymode();
