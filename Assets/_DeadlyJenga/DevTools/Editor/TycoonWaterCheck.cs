@@ -54,6 +54,8 @@ namespace DeadlyJenga.DevTools.Editor
         static void OnLog(string message, string trace, LogType type)
         {
             if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert) return;
+            // The Unity AI Assistant relay fails offline on test machines; it is not part of the game.
+            if (trace != null && trace.Contains("Unity.AI.")) return;
             SessionState.SetInt(Key + "Errors", SessionState.GetInt(Key + "Errors", 0) + 1);
             Report($"ERROR {message}\n{trace}");
         }
