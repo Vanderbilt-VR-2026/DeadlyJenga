@@ -460,8 +460,7 @@ namespace DeadlyJenga.CandyArt
         {
             if(f.values==null||f.values.Length<2)return;
             var skin=CurrentRainSkin();
-            if(skin!=RainSkin.Acid)BuildRainSkins();
-            rainMaterial=skin==RainSkin.Lava?lavaRain:skin==RainSkin.DryIce?iceRain:acid;
+            rainMaterial=RainDropMaterial(skin);
             int limit=Application.isMobilePlatform?MobileAcidStreakLimit:AcidStreakLimit;
             int count=Mathf.Min(limit-acidStreaks.Count,Mathf.RoundToInt(f.values[1]*3.5f));
             for(int i=0;i<count;i++)

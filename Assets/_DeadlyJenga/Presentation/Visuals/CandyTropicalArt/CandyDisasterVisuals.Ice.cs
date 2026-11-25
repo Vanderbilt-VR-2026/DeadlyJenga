@@ -94,7 +94,7 @@ namespace DeadlyJenga.CandyArt
                     var material = materials.Length > 0 ? materials[0] : null;
                     Color color = material && material.HasProperty("_BaseColor") ? material.GetColor("_BaseColor") : material && material.HasProperty("_Color") ? material.GetColor("_Color") : Color.white;
                     renderer.GetPropertyBlock(frostBlock);
-                    var tint = Color.Lerp(color, new Color(.72f, .9f, 1f, color.a), .4f);
+                    var tint = Color.Lerp(color, new Color(.72f, .9f, 1f, color.a), .25f);
                     frostBlock.SetColor("_BaseColor", tint); frostBlock.SetColor("_Color", tint);
                     frostBlock.SetFloat("_Smoothness", .95f); frostBlock.SetFloat("_Glossiness", .95f); frostBlock.SetFloat("_FrostAmount", 0);
                     renderer.SetPropertyBlock(frostBlock);

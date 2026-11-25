@@ -42,11 +42,13 @@ Shader "Candy Tropical/Frost Overlay"
                 float3 n=normalize(i.normal),view=normalize(_WorldSpaceCameraPos-i.world);
                 float3 f=Triplanar(i.world*_FrostScale,n);
                 float3 f2=Triplanar(i.world*_FrostScale*2.7+.37,n);
-                float crystal=saturate(f.r*.75+f2.r*.4);
+                // Veins and dense patches only (the tile averages ~.6 coverage, which would frost every side).
+                float crystal=saturate((f.r-.5)*1.9)*.85+saturate((f2.r-.55)*1.9)*.45;
                 float top=saturate(n.y*1.4-.2);
                 // Frost grows in: tops first, then the crystal pattern climbs over the sides.
                 float grow=crystal*.85+top*.6+f.b*.15;
-                float threshold=1.25-_FrostAmount*1.3;
+                // At full freeze only tops and the crystal-rich half of the pattern frost over; candy shows between.
+                float threshold=lerp(1.35,.62,_FrostAmount);
                 float cover=smoothstep(threshold,threshold+.12,grow);
                 Light light=GetMainLight();
                 float diffuse=.55+.45*saturate(dot(n,light.direction));
@@ -56,7 +58,7 @@ Shader "Candy Tropical/Frost Overlay"
                 float glint=pow(saturate(f2.g*1.1),8)*step(.6,frac(dot(i.world,float3(3.1,1.7,2.3))+dot(view,float3(4.3,2.9,3.7))));
                 float3 glaze=lerp(_GlazeColor.rgb*diffuse,float3(1,1,1),fresnel*.7);
                 float3 color=lerp(glaze,frost,cover)+glint*float3(1.4,1.6,1.8)*_FrostAmount;
-                float alpha=max(cover*.93,_FrostAmount*(.22+fresnel*.45));
+                float alpha=max(cover*.86,_FrostAmount*(.12+fresnel*.35));
                 return half4(color*light.color,saturate(alpha+glint));
             }
             ENDHLSL

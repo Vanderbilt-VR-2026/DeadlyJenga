@@ -256,7 +256,7 @@ namespace DeadlyJenga.DevTools.Editor
             if (!prefab) throw new InvalidOperationException("AcidRain prefab missing from the demo catalog.");
             try
             {
-                foreach (var skin in new[] { CandyDisasterVisuals.RainSkin.Lava, CandyDisasterVisuals.RainSkin.DryIce })
+                foreach (var skin in new[] { CandyDisasterVisuals.RainSkin.Acid, CandyDisasterVisuals.RainSkin.Lava, CandyDisasterVisuals.RainSkin.DryIce })
                 {
                     CandyDisasterVisuals.RainSkinOverride = skin;
                     string name = "Rain-" + skin;
