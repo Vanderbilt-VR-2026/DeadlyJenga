@@ -217,16 +217,38 @@ namespace DeadlyJenga.DevTools.Editor
                 var jump = Resources.Load<EffectType>("Powerups/Jump3x");
                 var speed = Resources.Load<EffectType>("Powerups/Speed2x");
                 runtime.GiveEquipment(EquipmentKind.CompactSidearm);
-                receiver.Apply(new Effect { type = jump, strength = 1, duration = 6 });
+                // The tint is hidden while the pause menu is open or input is paused, so play
+                // unpaused for these pictures (the test editor has no focus, which reopens the menu).
+                IEnumerator Unpaused(string file)
+                {
+                    for (int frame = 0; frame < 30; frame++)
+                    {
+                        Cursor.lockState = CursorLockMode.Locked;
+                        session.SetMenu(false);
+                        player.InputSuspended = false;
+                        yield return null;
+                    }
+                    Cursor.lockState = CursorLockMode.Locked;
+                    session.SetMenu(false);
+                    player.InputSuspended = false;
+                    yield return new WaitForEndOfFrame();
+                    var tint = Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)
+                        .FirstOrDefault(c => c.name == "Body feedback - no bars");
+                    File.AppendAllText(Report, $"  {file}: menu open {session.MenuOpen}, tint canvas " +
+                        $"{(tint ? (tint.enabled ? "shown" : "hidden") : "not built")}, mode {(tint ? tint.renderMode.ToString() : "-")}\n");
+                    ShootFirstPerson(view, close, rt, pixels, file);
+                    player.InputSuspended = true;
+                }
+                receiver.Apply(new Effect { type = jump, strength = 1, duration = 8 });
                 yield return new WaitForSeconds(1.2f);
-                ShootFirstPerson(view, close, rt, pixels, "Powerup-jump.jpg");
+                yield return Unpaused("Powerup-jump.jpg");
                 receiver.Remove(jump);
-                receiver.Apply(new Effect { type = speed, strength = 1, duration = 6 });
+                receiver.Apply(new Effect { type = speed, strength = 1, duration = 8 });
                 yield return new WaitForSeconds(1.2f);
-                ShootFirstPerson(view, close, rt, pixels, "Powerup-speed.jpg");
-                receiver.Apply(new Effect { type = jump, strength = 1, duration = 6 });
+                yield return Unpaused("Powerup-speed.jpg");
+                receiver.Apply(new Effect { type = jump, strength = 1, duration = 8 });
                 yield return new WaitForSeconds(1.2f);
-                ShootFirstPerson(view, close, rt, pixels, "Powerup-jump-and-speed.jpg");
+                yield return Unpaused("Powerup-jump-and-speed.jpg");
                 Check(receiver.Has(jump) && receiver.Has(speed), "Jump and speed powerups are active for the tint pictures");
             }
             finally
