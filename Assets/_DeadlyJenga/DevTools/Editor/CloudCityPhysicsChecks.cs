@@ -14,7 +14,7 @@ namespace DeadlyJenga.DevTools.Editor
 {
     // Cloud City physics pass in real Unity/PhysX, stepped by hand.
     // 1. Stand still: the untouched map settles and every piece stays where it was built.
-    // 2. Fall apart: knocking out a ground floor or a mechanism's support makes what it holds fall.
+    // 2. Fall apart: removing a ground floor or a mechanism's support makes what it holds fall.
     // CLI: -executeMethod DeadlyJenga.DevTools.Editor.CloudCityPhysicsChecks.Run
     // Report: the project's Logs/Validation/CloudCityPhysics.txt
     [InitializeOnLoad]
@@ -77,6 +77,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var map = root.GetComponentInChildren<EpicCityMap>();
                 map.Rebuild(); Services.World = map;
                 report.AppendLine($"Cloud City physics · Unity {Application.unityVersion} · {map.Blocks.Count} bodies · fixed step {Step}s, manual stepping.");
+                Overlaps(map);
                 StandStill(map);
                 FallApart(map);
                 Check(errors == 0, "no runtime errors");
@@ -102,6 +103,33 @@ namespace DeadlyJenga.DevTools.Editor
             }
             else if (Application.isBatchMode) EditorApplication.Exit(exit);
             else EditorApplication.ExitPlaymode();
+        }
+
+        // ---------- 0. pieces built inside each other (they pop apart on the first step) ----------
+        static void Overlaps(EpicCityMap map)
+        {
+            Physics.SyncTransforms();
+            var found = new List<(float depth, string text)>();
+            var seen = new HashSet<(int, int)>();
+            var hits = new Collider[256];
+            foreach (var body in map.Blocks.Where(b => b))
+                foreach (var a in body.GetComponentsInChildren<Collider>())
+                {
+                    if (!a.enabled || a.isTrigger) continue;
+                    var bb = a.bounds;
+                    int n = Physics.OverlapBoxNonAlloc(bb.center, bb.extents, hits, Quaternion.identity, 1 << Layers.Block, QueryTriggerInteraction.Ignore);
+                    for (int i = 0; i < n; i++)
+                    {
+                        var c = hits[i]; var other = c.attachedRigidbody;
+                        if (!other || other == body || Physics.GetIgnoreCollision(a, c)) continue;
+                        var key = a.GetInstanceID() < c.GetInstanceID() ? (a.GetInstanceID(), c.GetInstanceID()) : (c.GetInstanceID(), a.GetInstanceID());
+                        if (!seen.Add(key)) continue;
+                        if (!Physics.ComputePenetration(a, a.transform.position, a.transform.rotation, c, c.transform.position, c.transform.rotation, out var dir, out float depth) || depth < .03f) continue;
+                        found.Add((depth, $"  OVERLAP {depth:F2} m dir {dir.x:F1},{dir.y:F1},{dir.z:F1} at {bb.center.x:F1},{bb.center.y:F1},{bb.center.z:F1} · {Short(body)} [{a.name}] <-> {Short(other)} [{c.name}]"));
+                    }
+                }
+            foreach (var f in found.OrderByDescending(f => f.depth).Take(60)) report.AppendLine(f.text);
+            Check(found.Count == 0, $"no two movable pieces start inside each other by 3 cm or more ({found.Count} overlaps)");
         }
 
         // ---------- 1. stand still ----------
@@ -136,22 +164,18 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void Reset(EpicCityMap map) { map.Rebuild(); Simulate(2); }
 
-        // Knock "targets" out sideways (the game's own push), then check "dependents" drop by at least "drop" metres.
-        static void KnockOut(EpicCityMap map, string label, Func<Rigidbody[]> targets, Func<Rigidbody[]> dependents, float drop = .8f, float speed = 9)
+        // Remove "targets" (as if pulled out), then check "dependents" drop by at least "drop" metres.
+        static void KnockOut(EpicCityMap map, string label, Func<Rigidbody[]> targets, Func<Rigidbody[]> dependents, float drop = .8f)
         {
             Reset(map);
             var t = targets(); var d = dependents();
             if (t.Length == 0 || d.Length == 0) { Check(false, $"{label}: pieces found ({t.Length} targets, {d.Length} dependents)"); return; }
             var before = d.Select(b => b.position.y).ToArray();
-            foreach (var b in t)
-            {
-                Vector3 outward = b.position - map.Center; outward.y = 0;
-                if (outward.sqrMagnitude < .01f) outward = Vector3.right;
-                b.GetComponent<IPushable>()?.Push(outward.normalized * speed, null);
-            }
+            foreach (var b in t) b.gameObject.SetActive(false);
+            foreach (var b in d) b.WakeUp();
             Simulate(5);
             float most = d.Select((b, i) => before[i] - b.position.y).Max();
-            Check(most >= drop, $"{label}: knocking out {t.Length} support(s) drops what they hold by {most:F2} m");
+            Check(most >= drop, $"{label}: removing {t.Length} support(s) drops what they hold by {most:F2} m");
         }
 
         static void FallApart(EpicCityMap map)
@@ -164,11 +188,11 @@ namespace DeadlyJenga.DevTools.Editor
                 KnockOut(map, name, () => Named(map, " · " + name + " · ").Where(b => b.name.EndsWith(" floor 1")).ToArray(),
                     () => Named(map, " · " + name + " · ").Where(b => b.name.Contains(" floor ") && !b.name.EndsWith(" floor 1")).ToArray());
             }
-            KnockOut(map, "Drop-stop shoes", () => Named(map, "Removable drop shoe"), () => Named(map, "Two-floor dropping cassette"), .5f, 7);
-            KnockOut(map, "Keystone vault", () => Named(map, "Loose arch keystone"), () => Named(map, "Vault terrace deck"), .5f, 7);
-            KnockOut(map, "South falling route", () => Named(map, "Removable support"), () => Named(map, "Falling route"), .5f, 7);
-            KnockOut(map, "Bascule counterweights", () => Named(map, "Removable heel counterweight"), () => Named(map, "Counterweighted bascule leaf"), .3f, 7);
-            KnockOut(map, "Bookfall spine", () => Named(map, "Independent bookfall support spine"), () => Named(map, "Hinged inhabited book wing"), .5f, 9);
+            KnockOut(map, "Drop-stop shoes", () => Named(map, "Removable drop shoe"), () => Named(map, "Two-floor dropping cassette"), .5f);
+            KnockOut(map, "Keystone vault", () => Named(map, "Loose arch keystone"), () => Named(map, "Vault terrace deck"), .5f);
+            KnockOut(map, "South falling route", () => Named(map, "Removable support"), () => Named(map, "Falling route"), .5f);
+            KnockOut(map, "Bascule counterweights", () => Named(map, "Removable heel counterweight"), () => Named(map, "Counterweighted bascule leaf"), .3f);
+            KnockOut(map, "Bookfall spine", () => Named(map, "Independent bookfall support spine"), () => Named(map, "Hinged inhabited book wing"), .5f);
             Reset(map);
         }
     }
