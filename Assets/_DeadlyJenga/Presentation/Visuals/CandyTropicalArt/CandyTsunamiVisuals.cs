@@ -240,18 +240,24 @@ namespace DeadlyJenga.CandyArt
         void EmitCrest(float dt)
         {
             if(!wave.active||!spray||!spindrift)return;
-            dt=Mathf.Min(.1f,dt);sprayCredit+=dt*300;foamCredit+=dt*180;
+            dt=Mathf.Min(.1f,dt);sprayCredit+=dt*300;foamCredit+=dt*(profile!=null?70:180);
             while(sprayCredit>=1){EmitLip(spray,false);sprayCredit--;}
             while(foamCredit>=1){EmitLip(spindrift,true);foamCredit--;}
         }
         void EmitLip(ParticleSystem system,bool foam)
         {
             int seed=emissionSeed++;float across=(FoamJitter(seed,1,9)-.5f)*wave.width*1.16f;
-            float t=profile!=null?.46f+FoamJitter(seed,2,7)*.16f:.86f+FoamJitter(seed,2,7)*.14f;   // crest to lip
+            // Profile path: 0 = back foot, ~.38 = top of the crest, .44-.58 = the falling lip, then the barrel face.
+            // Spindrift (foam) streams up and BACK off the crest top; spray falls off the lip tip. Emitting further
+            // round the path put the puffs inside the barrel, where they showed through the face as dots.
+            float t=profile!=null?(foam?.33f+FoamJitter(seed,2,7)*.07f:.47f+FoamJitter(seed,2,7)*.1f):.86f+FoamJitter(seed,2,7)*.14f;
             Vector3 local=Lip(across,t),tangent=(Lip(across,Mathf.Min(1,t+.005f))-Lip(across,t-.005f)).normalized;
             var particle=new ParticleSystem.EmitParams();
             particle.position=visual.transform.TransformPoint(local);
-            particle.velocity=visual.transform.TransformDirection(tangent*(foam?7:10)+Vector3.up*(1+FoamJitter(seed,3,6)*3)+new Vector3((FoamJitter(seed,4,8)-.5f)*3,0,3));
+            Vector3 drift=profile!=null&&foam
+                ?new Vector3((FoamJitter(seed,4,8)-.5f)*3,4+FoamJitter(seed,3,6)*5,-(5+FoamJitter(seed,8,5)*8))
+                :tangent*(foam?7:10)+Vector3.up*(1+FoamJitter(seed,3,6)*3)+new Vector3((FoamJitter(seed,4,8)-.5f)*3,0,3);
+            particle.velocity=visual.transform.TransformDirection(drift);
             particle.startLifetime=1.2f+FoamJitter(seed,5,2)*1.2f;
             particle.startSize=foam?1f+FoamJitter(seed,6,3)*2f:.1f+FoamJitter(seed,6,3)*.5f;
             particle.rotation=FoamJitter(seed,7,8)*360;

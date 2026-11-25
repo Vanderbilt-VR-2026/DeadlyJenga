@@ -137,6 +137,33 @@ namespace DeadlyJenga.DevTools.Editor
                 View(session, name + "-t" + round + "-three-quarter", w.center + (w.direction * .9f + across * .7f).normalized * span * 1.4f + up * w.height * .6f, mid, 55);
                 yield return new WaitForSecondsRealtime(3f);
             }
+            yield return ImpactShots(session, name, source);
+        }
+
+        // The wave meeting the castle: splash-back on the upstream face, the gap refilling behind it,
+        // blocks carried along. Waits for the front to reach the castle, then shoots three moments.
+        static IEnumerator ImpactShots(CastlePlaySession session, string name, IWaveState source)
+        {
+            var world = Services.World;
+            float until = Time.realtimeSinceStartup + 30;
+            while (Time.realtimeSinceStartup < until && source.Wave.active)
+            {
+                var w = source.Wave;
+                if (Vector3.Dot(world.Center - w.center, w.direction.normalized) < w.depth * .25f) break;
+                yield return null;
+            }
+            if (!source.Wave.active) { File.AppendAllText(Report, "  wave ended before reaching the castle\n"); yield break; }
+            for (int moment = 0; moment < 3; moment++)
+            {
+                var w = source.Wave;
+                Vector3 dir = Vector3.ProjectOnPlane(w.direction, Vector3.up).normalized, across = Vector3.Cross(Vector3.up, dir);
+                Vector3 castle = world.Center + Vector3.up * world.TopHeight * .45f;
+                float r = Mathf.Max(world.Radius, 8);
+                View(session, name + "-hit" + moment + "-side", castle + across * (r * 2.6f + 18) - dir * r * .6f + Vector3.up * world.TopHeight * .35f, castle, 60);
+                View(session, name + "-hit" + moment + "-lee", castle + dir * (r * 2.8f + 12) + across * r * .8f + Vector3.up * world.TopHeight * 1.1f, castle - dir * r, 62);
+                View(session, name + "-hit" + moment + "-close", castle + across * r * 1.5f - dir * r * 1.1f + Vector3.up * world.TopHeight * .2f, castle - dir * r * .3f, 70);
+                yield return new WaitForSecondsRealtime(1.5f);
+            }
         }
 
         static void View(CastlePlaySession session, string file, Vector3 position, Vector3 target, float fov)
