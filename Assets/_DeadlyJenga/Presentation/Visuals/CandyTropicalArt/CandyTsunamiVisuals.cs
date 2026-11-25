@@ -74,7 +74,8 @@ namespace DeadlyJenga.CandyArt
             var filter = visual.AddComponent<MeshFilter>(); water = visual.AddComponent<MeshRenderer>();
             material = new Material(template); foamDetail=Resources.Load<Texture2D>("CandyScenery/BreakingFoam");
             if(!foamDetail){foamDetail=BuildFoamDetail();ownsFoamDetail=true;}
-            material.SetTexture("_FoamDetail",foamDetail); water.sharedMaterial = material;
+            material.SetTexture("_FoamDetail",foamDetail);
+            water.sharedMaterial = material;
             water.shadowCastingMode = ShadowCastingMode.Off; water.receiveShadows = false;
             var vertices=new List<Vector3>();var triangles=new List<int>();
             AddSurface(vertices,triangles,128,128,0);
@@ -197,7 +198,6 @@ namespace DeadlyJenga.CandyArt
             wave = default;
             foreach (var source in Tracked.Waves) if (source.Wave.active) { wave = source.Wave; break; }
             if (wave.active && !initialized) Build();
-            if (initialized) ApplySkin();
             var ocean=environment.waterRenderer.GetComponent<CandyOceanSurface>();
             if(ocean)ocean.Refresh();
             environment.waterRenderer.GetPropertyBlock(properties);
@@ -211,6 +211,7 @@ namespace DeadlyJenga.CandyArt
             if (!shown) { spray.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear); return; }
             material.CopyPropertiesFromMaterial(environment.waterRenderer.sharedMaterial);
             material.SetTexture("_FoamDetail",foamDetail);
+            ApplySkin();
             material.renderQueue = environment.waterRenderer.sharedMaterial.renderQueue + 1;
             sprayMaterial.renderQueue=material.renderQueue+1;
             visual.transform.SetPositionAndRotation(wave.center, Quaternion.LookRotation(wave.direction));

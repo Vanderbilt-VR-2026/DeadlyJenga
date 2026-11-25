@@ -53,6 +53,14 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem("Tools/Deadly Jenga/Captures/Icy Meteors (Play Mode)")]
         public static void RunIceMeteorsBatch() => Start("IceMeteors");
 
+        // Only Icey, with close views of frosted blocks and icicles.
+        [MenuItem("Tools/Deadly Jenga/Captures/Icey Frost (Play Mode)")]
+        public static void RunIceyBatch() => Start("Icey");
+
+        // Only Fire, with close and wide views of the burning tower (Blender flipbook flames).
+        [MenuItem("Tools/Deadly Jenga/Captures/Fire Look (Play Mode)")]
+        public static void RunFireBatch() => Start("Fire");
+
         static void Start(string only)
         {
             SessionState.SetString(Key + "Only", only);
@@ -98,6 +106,12 @@ namespace DeadlyJenga.DevTools.Editor
             steps.Clear(); run = null;
             output?.Finish(false);
             EditorApplication.ExitPlaymode();
+            // Batch jobs quit straight away; waiting for the play-mode exit callback left Unity hanging after captures.
+            if (Application.isBatchMode)
+            {
+                bool failedRun = failed;
+                EditorApplication.delayCall += () => EditorApplication.Exit(failedRun ? 2 : 0);
+            }
         }
 
         static IEnumerator Capture()
@@ -164,6 +178,20 @@ namespace DeadlyJenga.DevTools.Editor
                 Shot(session, name + "-c-close-8s", true);
                 if (prefab.name == "Tsunami") yield return TsunamiShots(session, name);
                 if (prefab.name == "Tornado") yield return TornadoShots(session, name);
+                if (prefab.name == "Fire" && only == "Fire")
+                {
+                    var world = Services.World; float r = Mathf.Max(world.Radius, 8);
+                    yield return new WaitForSecondsRealtime(4f);
+                    View(session, name + "-flames-close", world.Center + new Vector3(.6f, 0, -1).normalized * r * 1.2f + Vector3.up * world.TopHeight * .6f, world.Center + Vector3.up * world.TopHeight * .55f, 55);
+                    View(session, name + "-flames-wide", world.Center + new Vector3(-.7f, .3f, -1).normalized * r * 2.6f + Vector3.up * world.TopHeight * .5f, world.Center + Vector3.up * world.TopHeight * .5f, 55);
+                }
+                if (prefab.name == "Icey" && only == "Icey")
+                {
+                    var world = Services.World; float r = Mathf.Max(world.Radius, 8);
+                    View(session, name + "-frost-close", world.Center + new Vector3(.6f, 0, -1).normalized * r * 1.25f + Vector3.up * world.TopHeight * .55f, world.Center + Vector3.up * world.TopHeight * .5f, 55);
+                    View(session, name + "-icicles-low", world.Center + new Vector3(-.7f, 0, -1).normalized * r * 1.15f + Vector3.up * 1.6f, world.Center + Vector3.up * world.TopHeight * .45f, 75);
+                    View(session, name + "-top", world.Center + new Vector3(.3f, 1.2f, -1).normalized * r * 1.6f + Vector3.up * world.TopHeight, world.Center + Vector3.up * world.TopHeight * .8f, 55);
+                }
             }
             DemoDisasters.StopAll(session);
         }

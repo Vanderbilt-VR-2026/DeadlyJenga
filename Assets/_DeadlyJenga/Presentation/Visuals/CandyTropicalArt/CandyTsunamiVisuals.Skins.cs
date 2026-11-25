@@ -64,29 +64,23 @@ namespace DeadlyJenga.CandyArt
 
         WaveSkin appliedSkin = (WaveSkin)(-1);
 
-        // Water keeps the template material's own colours; other skins override them.
+        // Called every frame AFTER the material copies the ocean's properties (which would wipe the skin).
+        // Water keeps the ocean's own colours; other skins override them. Particles change only on a skin switch.
         void ApplySkin()
         {
+            if (!material) return;
             var skin = SkinOverride ?? SkinForMap(MatchChoices.MapId);
-            if (skin == appliedSkin || !material) return;
-            appliedSkin = skin;
             var look = Look(skin);
-            if (skin == WaveSkin.Water) { var template = Resources.Load<Material>("Tsunami/Water"); if (template) { var detail = material.GetTexture("_FoamDetail"); material.CopyPropertiesFromMaterial(template); material.SetTexture("_FoamDetail", detail); } }
-            else
+            if (skin != WaveSkin.Water)
             {
                 material.SetColor("_Shallow", look.shallow); material.SetColor("_Deep", look.deep); material.SetColor("_Foam", look.foam);
                 material.SetColor("_Reflection", look.reflection); material.SetColor("_Horizon", look.horizon);
                 material.SetFloat("_Shine", look.shine); material.SetFloat("_Glints", look.glints); material.SetFloat("_FoamStrength", look.foamStrength);
             }
             material.SetFloat("_Opaque", look.opaque); material.SetFloat("_Lava", look.lava);
-            if (spray)
-            {
-                var main = spray.main; main.startColor = look.spray; main.gravityModifier = look.sprayGravity;
-            }
-            if (spindrift)
-            {
-                var main = spindrift.main; main.startColor = look.mist; main.gravityModifier = look.mistGravity; main.startLifetime = look.mistLife;
-            }
-        }
-    }
+            if (skin == appliedSkin) return;
+            appliedSkin = skin;
+            if (spray) { var main = spray.main; main.startColor = look.spray; main.gravityModifier = look.sprayGravity; }
+            if (spindrift) { var main = spindrift.main; main.startColor = look.mist; main.gravityModifier = look.mistGravity; main.startLifetime = look.mistLife; }
+        }    }
 }

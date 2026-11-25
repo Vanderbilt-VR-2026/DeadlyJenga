@@ -15,7 +15,6 @@ namespace DeadlyJenga.CandyArt
         Material coral,lemon,lavender,aqua,lime;
         readonly Matrix4x4[] matrices=new Matrix4x4[1023];
         readonly List<Matrix4x4> orange=new List<Matrix4x4>(),yellow=new List<Matrix4x4>(),purple=new List<Matrix4x4>(),blue=new List<Matrix4x4>(),green=new List<Matrix4x4>();
-        readonly Dictionary<Renderer,MaterialPropertyBlock> iceOriginals=new Dictionary<Renderer,MaterialPropertyBlock>();
         MaterialPropertyBlock block;
         CandyEnvironment environment;
         void Awake()
@@ -67,31 +66,6 @@ namespace DeadlyJenga.CandyArt
         void Ball(List<Matrix4x4> list,Vector3 p,Vector3 scale)=>list.Add(Matrix4x4.TRS(p,Quaternion.identity,scale));
         void Bubbles(DisasterFrame f)
         {for(int i=0;i<90;i++){var p=f.center+new Vector3((Hash(i)-.5f)*f.size.x,(Mathf.Repeat(Time.time*.12f+Hash(i+90),1)-.5f)*f.size.y,(Hash(i+180)-.5f)*f.size.z);Ball(purple,p,Vector3.one*(.15f+Hash(i+42)*.3f));}}
-        void Ice()
-        {
-            if(Time.time<nextIceScan)return;nextIceScan=Time.time+1;
-            block ??= new MaterialPropertyBlock();
-            var world=Services.World;if(world==null)return;
-            foreach(var body in world.Blocks)
-            {
-                if(!body)continue;
-                var climb=body.GetComponent<IClimbable>();var visual=climb?.Visual;if(!visual)continue;
-                foreach(var renderer in visual.GetComponentsInChildren<Renderer>())
-                {
-                    if(iceOriginals.ContainsKey(renderer))continue;
-                    var original=new MaterialPropertyBlock();renderer.GetPropertyBlock(original);iceOriginals.Add(renderer,original);
-                    renderer.GetPropertyBlock(block);block.SetFloat("_Smoothness",.98f);block.SetFloat("_Glossiness",.98f);
-                    var material=renderer.sharedMaterial;
-                    Color color=material&&material.HasProperty("_BaseColor")?material.GetColor("_BaseColor"):material&&material.HasProperty("_Color")?material.GetColor("_Color"):Color.white;
-                    // Frosted look: wash the candy color toward pale glacier blue.
-                    var frost=Color.Lerp(color,new Color(.72f,.9f,1f,color.a),.62f);
-                    block.SetColor("_BaseColor",frost);block.SetColor("_Color",frost);
-                    if(material&&material.HasProperty("_EmissionColor"))block.SetColor("_EmissionColor",new Color(.05f,.12f,.18f));
-                    renderer.SetPropertyBlock(block);
-                }
-            }
-        }
-        void RestoreIce(){foreach(var pair in iceOriginals)if(pair.Key)pair.Key.SetPropertyBlock(pair.Value);iceOriginals.Clear();nextIceScan=0;}
         void Draw(List<Matrix4x4> list,Material material)
         {
             for(int start=0;start<list.Count;start+=1023){int count=Mathf.Min(1023,list.Count-start);list.CopyTo(start,matrices,0,count);Graphics.DrawMeshInstanced(sphere,0,material,matrices,count,null,ShadowCastingMode.Off,false);}
@@ -104,6 +78,6 @@ namespace DeadlyJenga.CandyArt
         }
         void OnEnable()=>GameEvents.BlockHit+=MeteorContact;
         void OnDisable(){RestoreIce();ClearCharred();GameEvents.BlockHit-=MeteorContact;ClearObjects();ClearEarthquake();}
-        void OnDestroy(){RestoreIce();DestroyObjects();DestroyFire();DestroyEarthquake();foreach(var m in new[]{coral,lemon,lavender,aqua,lime,shardMaterial})if(m)Destroy(m);if(sphere)Destroy(sphere);if(funnel)Destroy(funnel);if(shard)Destroy(shard);}
+        void OnDestroy(){RestoreIce();DestroyIce();DestroyObjects();DestroyFire();DestroyEarthquake();foreach(var m in new[]{coral,lemon,lavender,aqua,lime,shardMaterial})if(m)Destroy(m);if(sphere)Destroy(sphere);if(funnel)Destroy(funnel);if(shard)Destroy(shard);}
     }
 }

@@ -49,6 +49,9 @@ namespace DeadlyJenga.CandyArt
             wetOverlayShader=Resources.Load<Shader>("CandyScenery/CandyWetSurface");
             fireShell=ObjectMaterial("CandyBlockFire",Color.white);
             fireTongue=new Material(fireShell){name="Candy flame tongues",enableInstancing=true};fireTongue.SetFloat("_Tongue",1);fireTongue.SetFloat("_Cull",0);
+            // Fire v2: the tongues play a flipbook rendered from a Blender fire simulation when it is present.
+            var flipbook=Resources.Load<Texture2D>("CandyScenery/FireFlipbook");
+            if(flipbook){fireTongue.SetTexture("_FlameAtlas",flipbook);fireTongue.SetFloat("_UseAtlas",1);}
             charredMaterial=ObjectMaterial("CandyCharredBlock",Color.white);
             smoulderMaterial=ObjectMaterial("CandyDisasterSmoke",new Color(.12f,.11f,.10f,.34f));
             // Heavy, dark smoke that rolls off burning blocks. Only fire draws this material.
