@@ -70,8 +70,6 @@ namespace DeadlyJenga.CastlePrototype
             FaceoffRoute("East apron to main switchback", P(7.3f,2.15f,-15.9f), P(8.5f,5.25f,-12.125f));
             FaceoffRoute("Triceratops forefoot to high connector", P(7.25f,12.26f,6.5f), P(3.24f,16.24f,9.7f));
             AddFaceoffBones(layout.bones);
-            // The brontosaurus west of the arena: its head meets the T. rex outer switchback.
-            BuildExhibit("FossilBasinBrontosaurus", "FossilBasinBrontosaurusMeshes", 4);
         }
 
         void BuildFaceoffBay(FaceoffBay bay)
