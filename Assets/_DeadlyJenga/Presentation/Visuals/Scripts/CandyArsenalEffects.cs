@@ -80,6 +80,7 @@ namespace DeadlyJenga.Presentation
                     model.Rotate(0,0,(Time.time*190+shot.id*39)%360,Space.Self);
                     var plume=model.GetChild(3).GetChild(0);
                     plume.localScale=new Vector3(.105f,.105f,.34f*(.91f+.10f*Mathf.Sin(Time.time*39+shot.id)));
+                    DeadlyJenga.CandyAudio.CandyWeaponSuite.Loop("rpg","flight",model,.85f);
                 }
             }
             stale.Clear();foreach(var item in shots)if(!seen.Contains(item.Key)){ReturnProjectile(item.Value);stale.Add(item.Key);}foreach(int id in stale)shots.Remove(id);
@@ -384,6 +385,9 @@ namespace DeadlyJenga.Presentation
                 effect.pairedSpiker = effect.model.parent.Find("Visual - paired DualUzi");
             int spentBefore = (60 - previous) / 12;
             int spentNow = (60 - rounds) / 12;
+            if (spentBefore < Mathf.Min(5, spentNow) && effect.model.gameObject.activeInHierarchy)
+                DeadlyJenga.CandyAudio.CandyWeaponSuite.PlayExtra("spikers", "shatter",
+                    effect.model.TransformPoint(new Vector3(0, .20f, .15f + spentBefore * .055f)), effect.model.GetInstanceID());
             for (int crystal = spentBefore; crystal < Mathf.Min(5, spentNow); crystal++)
             {
                 var tint = SpikerColors[crystal];

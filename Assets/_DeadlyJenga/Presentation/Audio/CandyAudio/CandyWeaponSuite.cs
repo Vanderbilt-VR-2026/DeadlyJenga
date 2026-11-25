@@ -39,7 +39,8 @@ namespace DeadlyJenga.CandyAudio
 
                 string gun = RangedId(action);
                 if (gun == null) return false;
-                bool fired = Emit(engine, gun, "fire", action.position, owner);
+                // The wrist laser fires every 0.1 s: its ignition and hum come from Held instead.
+                bool fired = action.kind == EquipmentKind.WristLaser || Emit(engine, gun, "fire", action.position, owner);
                 // Hitscan guns announce no separate impact, so their hits sound at the shot's endpoints.
                 if (Hitscan(action.kind) && action.endpoints != null)
                 {
@@ -102,15 +103,52 @@ namespace DeadlyJenga.CandyAudio
         };
 
         static bool Hitscan(EquipmentKind kind) => kind is EquipmentKind.DualRifle or EquipmentKind.SheriffHammer or
-            EquipmentKind.StockPistol or EquipmentKind.ChainGun or EquipmentKind.NeedleDrill;
+            EquipmentKind.StockPistol or EquipmentKind.ChainGun or EquipmentKind.NeedleDrill or EquipmentKind.WristLaser;
+
+        // Trigger-held sounds, called every frame per player: chaingun spin up/down and the
+        // wrist laser's ignition, hum and cut-off. Returns true when it voiced this weapon.
+        public static bool Held(Transform player, EquipmentKind kind, bool held, bool wasHeld, bool local)
+        {
+            var engine = CandyAudioEngine.Instance;
+            if (!engine || !player) return false;
+            int owner = player.GetInstanceID();
+            if (kind == EquipmentKind.ChainGun)
+            {
+                if (held && !wasHeld) Emit(engine, "chaingun", "spinup", player.position, owner, local);
+                else if (!held && wasHeld) Emit(engine, "chaingun", "spindown", player.position, owner, local);
+                return true;
+            }
+            if (kind == EquipmentKind.WristLaser)
+            {
+                if (held && !wasHeld) Emit(engine, "wrist-laser", "fire", player.position, owner, local);
+                if (held) engine.LoopCue(Cue("wrist-laser", "loop"), player, .8f, local);
+                else if (wasHeld) Emit(engine, "wrist-laser", "stop", player.position, owner, local);
+                return true;
+            }
+            return false;
+        }
+
+        // A one-off sound from this weapon's approved set (for example "spikers", "shatter").
+        public static bool PlayExtra(string weapon, string cue, Vector3 position, int owner = 0)
+        {
+            var engine = CandyAudioEngine.Instance;
+            return engine && Emit(engine, weapon, cue, position, owner);
+        }
+
+        // Keeps a looping sound from the approved set on a moving object (for example "rpg", "flight").
+        public static void Loop(string weapon, string cue, Transform owner, float intensity)
+        {
+            var engine = CandyAudioEngine.Instance;
+            if (engine) engine.LoopCue(Cue(weapon, cue), owner, intensity);
+        }
 
         static bool HitsPlayer(Vector3 point) =>
             Physics.CheckSphere(point, .14f, 1 << Layers.Survivor, QueryTriggerInteraction.Collide);
 
-        static bool Emit(CandyAudioEngine engine, string weapon, string cue, Vector3 position, int owner)
+        static bool Emit(CandyAudioEngine engine, string weapon, string cue, Vector3 position, int owner, bool local = false)
         {
             var sound = Cue(weapon, cue);
-            return sound != null && engine.PlayCue(sound, position, 1, owner);
+            return sound != null && engine.PlayCue(sound, position, 1, owner, 1, local);
         }
 
         static CandyAudioCue Cue(string weapon, string cue)
@@ -137,7 +175,7 @@ namespace DeadlyJenga.CandyAudio
                 bus = CandyBus.Character,
                 volume = fire ? .85f : swing ? .6f : explosion ? .95f : .75f,
                 pitch = new Vector2(.98f, 1.02f),
-                cooldown = weapon == "chaingun" ? .045f : .03f,
+                cooldown = weapon == "chaingun" ? .045f : weapon == "wrist-laser" && cue == "impact" ? .3f : .03f,
                 maxVoices = weapon == "chaingun" ? 3 : 6,
                 priority = explosion ? 30 : fire ? 45 : 70,
                 minDistance = explosion ? 6 : fire ? 3 : swing ? 1.3f : 2,

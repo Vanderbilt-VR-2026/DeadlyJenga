@@ -107,6 +107,7 @@ namespace DeadlyJenga.Presentation
 
         void BreakWheel(Vector3 point)
         {
+            DeadlyJenga.CandyAudio.CandyWeaponSuite.PlayExtra("saw-shooter", "break", point);
             if (!wheelFragments)
             {
                 var root = new GameObject("Pooled wheel fragments");

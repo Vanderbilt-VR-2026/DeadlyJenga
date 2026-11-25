@@ -11,6 +11,7 @@ namespace DeadlyJenga.CandyAudio
         Vector3 previous;bool grounded,climbing,underwater;int vaults;
         float stepTravel,nextStep,fallSpeed,airtime,nextGrunt,previousGrip,nextGripWarning;
         bool staminaObserved,staminaEmpty;
+        bool triggerWasHeld;EquipmentKind triggerKind;
         IPlayerView playerView;
         readonly Vector3[] gripLast=new Vector3[2];readonly bool[] gripMoving=new bool[2];readonly float[] gripCooldown=new float[2];
         float voicePitch;
@@ -31,8 +32,13 @@ namespace DeadlyJenga.CandyAudio
             if(d.magnitude>4){stepTravel=0;fallSpeed=0;airtime=0;grounded=motor.Grounded;Sound(CandySound.Respawn,p,.45f);return;}
             bool nearby=CandyAudioWorld.Near(p,70);
             var actor=GetComponent<IModeActor>();var weapon=actor!=null?(MatchRuntime.Current as IEquipmentRuntime)?.EquipmentFor(actor.ActorId):null;
-            if(nearby&&actor?.Alive==true&&weapon?.triggerHeld==true&&weapon.drawn&&(weapon.kind==EquipmentKind.WristLaser||weapon.kind==EquipmentKind.NeedleDrill||weapon.kind==EquipmentKind.ChainGun||weapon.kind==EquipmentKind.Chainsaw))
-                engine.Loop(weapon.kind==EquipmentKind.WristLaser?CandySound.SuitThruster:CandySound.WeaponTransform,transform,.35f,motor.IsLocal,Mathf.Lerp(.65f,1.4f,weapon.charge));
+            bool held=nearby&&actor?.Alive==true&&weapon?.triggerHeld==true&&weapon.drawn;
+            var heldKind=weapon?.kind??EquipmentKind.None;
+            bool suite=CandyWeaponSuite.Held(transform,heldKind,held,triggerWasHeld&&heldKind==triggerKind,motor.IsLocal);
+            if(triggerWasHeld&&heldKind!=triggerKind)CandyWeaponSuite.Held(transform,triggerKind,false,true,motor.IsLocal);
+            triggerWasHeld=held;triggerKind=heldKind;
+            if(held&&!suite&&(heldKind==EquipmentKind.NeedleDrill||heldKind==EquipmentKind.Chainsaw))
+                engine.Loop(CandySound.WeaponTransform,transform,.35f,motor.IsLocal,Mathf.Lerp(.65f,1.4f,weapon.charge));
             // Local breathing uses the reserved voice pool and the Character/master mixer.
             // Stop requesting on menu, role change, disable or full stamina: the pool fades out.
             if(motor.IsLocal&&!motor.InputPaused&&motorBehaviour.isActiveAndEnabled&&CandyAudioEngine.WaveImmersion<.3f)
