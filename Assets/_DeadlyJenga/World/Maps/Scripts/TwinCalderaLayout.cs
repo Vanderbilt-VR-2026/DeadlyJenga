@@ -69,7 +69,7 @@ namespace DeadlyJenga.CastlePrototype
 
         // The top and underside share a slope. Each shoe has a horizontal sole
         // and a sloped crown bearing directly against the slab underside.
-        void Flight(string name,Vector3 from,Vector3 to,float width,int parts)
+        void Flight(string name,Vector3 from,Vector3 to,float width,int parts,float shoeDrop=0)
         {
             // Square-cut ends meet both landings flush. The landing width
             // accommodates the lateral setback between successive levels.
@@ -100,7 +100,7 @@ namespace DeadlyJenga.CastlePrototype
                     float t=shoes==1?0:(j==0?-.31f:.31f);
                     var at=mid+axis*(t*length);
                     float depth=length*(shoes==1?.74f:.26f);
-                    float sole=mid.y+t*pitch-Deck-.55f-Mathf.Abs(pitch)*depth/(2*length);
+                    float sole=mid.y+t*pitch-Deck-.55f-Mathf.Abs(pitch)*depth/(2*length)-shoeDrop;
                     Pier(label+" shoe "+j,at,sole,width*.68f,depth*.90f,yaw);
                     float h=mid.y+t*pitch-Deck-sole;
                     Rock(label+" seat "+j,new Vector3(at.x,sole+h/2,at.z),
@@ -280,7 +280,9 @@ namespace DeadlyJenga.CastlePrototype
             var high=Node(1,2,-1);
             var low=high+new Vector3(-10.8f,-3,0);
             Landing("Spire overlook",low);
-            Flight("Spire peeling slab",low,high,2.95f,1);
+            // Tall seats on low shoes: once both seats are pulled, the slab drops
+            // past the shoes onto the lower catch instead of resting on them.
+            Flight("Spire peeling slab",low,high,2.95f,1,1.8f);
             // Only the middle of this independent ledge lies beneath the moving
             // slab. Its two shoes stand outside the falling slab's bearing stacks.
             var mid=(low+high)*.5f + new Vector3(0,-2.7f,-1.5f);
