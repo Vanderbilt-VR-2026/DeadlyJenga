@@ -12,6 +12,8 @@ namespace DeadlyJenga.CandyArt
 
         void Awake()
         {
+            if (Application.isPlaying && !GetComponent<DeadlyJenga.CandyAudio.CalderaSoundscape>())
+                gameObject.AddComponent<DeadlyJenga.CandyAudio.CalderaSoundscape>();
             // Same static grid as the candy ocean: dense near the map for the swells, a cheap ring to the horizon.
             const float size = 3200;
             surface = CandyOceanSurface.Create(Application.isMobilePlatform ? 64 : 96, size, 110);
