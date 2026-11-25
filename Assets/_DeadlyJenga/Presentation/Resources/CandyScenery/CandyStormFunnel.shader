@@ -90,7 +90,7 @@ Shader "Candy Tropical/Storm Funnel"
       float3 v=float3(rotation.x*.025,p.y*.049+time*.045,rotation.y*.025);
       float large=Noise(v,0);
       float fine=_MarchBudget>20?Noise(v*2.78+4,.15):large;
-      float lobes=large*.72+fine*.28;
+      float lobes=large*.85+fine*.15;
       cloud=saturate((1.12-dist+(lobes-.5)*1.40)*3.8)*(1-smoothstep(1.10,1.30,dist));
       grain=lerp(grain,lobes,cloud);
       edge=lerp(edge,saturate(rim/3.4),cloud);
@@ -180,7 +180,9 @@ Shader "Candy Tropical/Storm Funnel"
      float light=saturate(.045+lightSide*.35+grain*.74+edge*.19+heightLight*.13-density*.25);
      // Pale condensation funnel, darker wall cloud, warm sand/spray debris at the foot.
      float3 funnelColor=lerp(float3(.07,.075,.085),float3(.74,.76,.80),light);
-     float3 cloudColor=lerp(float3(.02,.025,.035),float3(.36,.40,.48),light*light);
+     // Wall cloud: dark, smooth storm grey; only broad shading so the small noise volume does not show as specks.
+     float cloudLight=saturate(.18+lightSide*.28+heightLight*.22+(grain-.5)*.3-density*.06);
+     float3 cloudColor=lerp(float3(.05,.055,.07),float3(.30,.33,.38),cloudLight);
      float3 color=lerp(funnelColor,cloudColor,saturate(cloud*1.3));
      color=lerp(color,lerp(float3(.16,.12,.08),float3(.62,.52,.40),light),saturate(debris/max(.01,density)*1.4));
      if(_StormInfo.w>.01)

@@ -84,6 +84,8 @@ namespace DeadlyJenga.World.Hazards.Editor
                 Require(float.IsNegativeInfinity(TsunamiHazard.SurfaceHeight(sample, sample.center + Vector3.right * 50)), "Outside-width target was submerged.");
                 Require(float.IsNegativeInfinity(TsunamiHazard.SurfaceHeight(sample, sample.center + Vector3.forward * 11)), "Outside-depth target was submerged.");
                 Debug.Log("Disaster map contract checks passed: map bounds, lifecycle, translated wave profile and collider override.");
+                // Batch runs (-executeMethod) must quit on success; a thrown check already exits with code 1.
+                if (Application.isBatchMode) EditorApplication.delayCall += () => EditorApplication.Exit(0);
             }
             finally
             {

@@ -45,6 +45,14 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem("Tools/Deadly Jenga/Captures/Tsunami Skins (Play Mode)")]
         public static void RunTsunamiSkinsBatch() => Start("TsunamiSkins");
 
+        // Acid rain once per look-only skin (lava, dry ice) on the castle map.
+        [MenuItem("Tools/Deadly Jenga/Captures/Rain Skins (Play Mode)")]
+        public static void RunRainSkinsBatch() => Start("RainSkins");
+
+        // Meteor shower and Planet Killer with the icy skin.
+        [MenuItem("Tools/Deadly Jenga/Captures/Icy Meteors (Play Mode)")]
+        public static void RunIceMeteorsBatch() => Start("IceMeteors");
+
         static void Start(string only)
         {
             SessionState.SetString(Key + "Only", only);
@@ -105,6 +113,33 @@ namespace DeadlyJenga.DevTools.Editor
             string only = SessionState.GetString(Key + "Only", "");
             output = new CaptureOutput(only == "" ? "Disaster Gallery" : only + " Shape");
             if (only == "TsunamiSkins") { yield return SkinShots(session); DemoDisasters.StopAll(session); yield break; }
+            if (only == "RainSkins") { yield return RainSkinShots(session); DemoDisasters.StopAll(session); yield break; }
+            if (only == "IceMeteors")
+            {
+                CandyDisasterVisuals.MeteorSkinOverride = CandyDisasterVisuals.MeteorSkin.Ice;
+                try
+                {
+                    foreach (var meteorName in new[] { "MeteorShower", "PlanetKillerMeteor" })
+                    {
+                        var meteorPrefab = DemoDisasters.Prefabs.FirstOrDefault(p => p.name == meteorName);
+                        if (!meteorPrefab) continue;
+                        DemoDisasters.StopAll(session); session.ResetMap();
+                        yield return new WaitForSecondsRealtime(1.5f);
+                        var meteorParameters = DemoDisasters.Parameters(meteorPrefab);
+                        for (int i = 0; i < meteorParameters.Count; i++) if (meteorParameters[i].id == "warning") DemoDisasters.SetValue(session, meteorPrefab, i, 0);
+                        File.AppendAllText(Report, "Ice-" + meteorName + ": " + DemoDisasters.Request(session, meteorPrefab) + "\n");
+                        yield return new WaitForSecondsRealtime(3f);
+                        Shot(session, "Ice-" + meteorName + "-a-wide", false);
+                        yield return new WaitForSecondsRealtime(2.5f);
+                        Shot(session, "Ice-" + meteorName + "-b-wide", false);
+                        Shot(session, "Ice-" + meteorName + "-c-close", true);
+                        yield return new WaitForSecondsRealtime(2.5f);
+                        Shot(session, "Ice-" + meteorName + "-d-close", true);
+                    }
+                }
+                finally { CandyDisasterVisuals.MeteorSkinOverride = null; }
+                DemoDisasters.StopAll(session); yield break;
+            }
             int index = 0;
             foreach (var prefab in DemoDisasters.Prefabs)
             {
@@ -189,6 +224,34 @@ namespace DeadlyJenga.DevTools.Editor
             finally { CandyTsunamiVisuals.SkinOverride = null; }
         }
 
+        static IEnumerator RainSkinShots(CastlePlaySession session)
+        {
+            var prefab = DemoDisasters.Prefabs.FirstOrDefault(p => p.name == "AcidRain");
+            if (!prefab) throw new InvalidOperationException("AcidRain prefab missing from the demo catalog.");
+            try
+            {
+                foreach (var skin in new[] { CandyDisasterVisuals.RainSkin.Lava, CandyDisasterVisuals.RainSkin.DryIce })
+                {
+                    CandyDisasterVisuals.RainSkinOverride = skin;
+                    string name = "Rain-" + skin;
+                    DemoDisasters.StopAll(session); session.ResetMap();
+                    yield return new WaitForSecondsRealtime(1.5f);
+                    var parameters = DemoDisasters.Parameters(prefab);
+                    for (int i = 0; i < parameters.Count; i++) if (parameters[i].id == "warning") DemoDisasters.SetValue(session, prefab, i, 0);
+                    File.AppendAllText(Report, name + ": " + DemoDisasters.Request(session, prefab) + "\n");
+                    yield return new WaitForSecondsRealtime(7f);
+                    var world = Services.World;
+                    Vector3 castle = world.Center + Vector3.up * world.TopHeight * .4f;
+                    float r = Mathf.Max(world.Radius, 8);
+                    View(session, name + "-wide", castle + new Vector3(.7f, .35f, -1).normalized * r * 3.2f, castle, 60);
+                    View(session, name + "-ground", world.Center + new Vector3(.6f, 0, -1).normalized * r * 1.35f + Vector3.up * 1.7f, world.Center + Vector3.up * world.TopHeight * .15f, 70);
+                    yield return new WaitForSecondsRealtime(1.5f);
+                    View(session, name + "-ground-later", world.Center + new Vector3(-.8f, 0, -1).normalized * r * 1.35f + Vector3.up * 1.7f, world.Center + Vector3.up * world.TopHeight * .15f, 70);
+                }
+            }
+            finally { CandyDisasterVisuals.RainSkinOverride = null; }
+        }
+
         static IEnumerator TornadoShots(CastlePlaySession session, string name)
         {
             for (int round = 0; round < 2; round++)
@@ -198,8 +261,9 @@ namespace DeadlyJenga.DevTools.Editor
                 float height = frame.values[0], size = frame.values[1];
                 Vector3 foot = frame.center, toCastle = Vector3.ProjectOnPlane(Services.World.Center - foot, Vector3.up);
                 Vector3 side = toCastle.sqrMagnitude > 1 ? toCastle.normalized : Vector3.forward, across = Vector3.Cross(Vector3.up, side);
-                View(session, name + "-r" + round + "-hero-low", foot + side * size * 4.5f + across * size * 1.5f + Vector3.up * 2.5f, foot + Vector3.up * height * .42f, 70);
-                View(session, name + "-r" + round + "-base", foot + side * size * 2.2f - across * size * 1.2f + Vector3.up * size * .35f, foot + Vector3.up * size * .5f, 65);
+                // Cameras stand on the far side from the castle so the castle sits behind the tornado, not in front.
+                View(session, name + "-r" + round + "-hero-low", foot - side * size * 4.5f + across * size * 1.5f + Vector3.up * 2.5f, foot + Vector3.up * height * .42f, 70);
+                View(session, name + "-r" + round + "-base", foot - side * size * 3.4f - across * size * 1.6f + Vector3.up * size * 1.1f, foot + Vector3.up * size * .6f, 62);
                 View(session, name + "-r" + round + "-wide", foot + (side + across * .6f).normalized * height * 2.4f + Vector3.up * height * .35f, foot + Vector3.up * height * .5f, 50);
                 yield return new WaitForSecondsRealtime(2.5f);
             }

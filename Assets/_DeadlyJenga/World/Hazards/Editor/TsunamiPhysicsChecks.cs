@@ -94,6 +94,8 @@ namespace DeadlyJenga.World.Hazards.Editor
                 for (int tick = 0; tick < 1000 && hazard.Active; tick++) step.Invoke(hazard, null);
                 Require(longBlock.calls == calls && hazard.LastTargetCount == 0, "Zero-force waves must skip target processing.");
                 Debug.Log("Tsunami force checks passed: offshore start, long block edge, compound submersion, duplicate colliders, resistance, speed cap, target filter and stop/retrigger.");
+                // Batch runs (-executeMethod) must quit on success; a thrown check already exits with code 1.
+                if (Application.isBatchMode) EditorApplication.delayCall += () => EditorApplication.Exit(0);
             }
             finally
             {

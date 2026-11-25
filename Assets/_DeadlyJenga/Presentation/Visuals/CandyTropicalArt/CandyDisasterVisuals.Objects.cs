@@ -174,9 +174,10 @@ namespace DeadlyJenga.CandyArt
                 (fragment.candy?candyChips:chips).Add(Matrix4x4.TRS(p,Quaternion.Euler(fragment.seed+age*140,age*100,fragment.seed),Vector3.one*fragment.size*fade));
                 if(!fragment.candy && i%3==0)Puff(dustPuffs,fragment.position+fragment.velocity*(age*.25f)+Vector3.up*age,fragment.size*(3+age*2)*fade,fragment.size*(3+age*2)*fade,fragment.seed);
             }
-            DrawObjects(stones,rock,stone);DrawObjects(chips,rock,chipMaterial);
+            MeteorMaterials(out var rockLook,out var chipLook,out var trailLook,out var trailSmokeLook);
+            DrawObjects(stones,rock,rockLook);DrawObjects(chips,rock,chipLook);
             DrawObjects(candyChips,shard,shardMaterial);
-            DrawObjects(acidStreaks,quad,acid);DrawObjects(smokePuffs,quad,smoke);DrawObjects(dustPuffs,quad,dust);DrawObjects(flames,quad,flame);
+            DrawObjects(acidStreaks,quad,rainMaterial?rainMaterial:acid);RenderRainLandings();DrawObjects(smokePuffs,quad,trailSmokeLook);DrawObjects(dustPuffs,quad,dust);DrawObjects(flames,quad,trailLook);
             DrawObjects(windPuffs,quad,stormMist);DrawObjects(stormBolts,quad,stormFlash);
             DrawObjects(seaFoam,quad,tornadoFoam);
             DrawObjects(seaSpray,quad,tornadoSpray);
@@ -457,17 +458,21 @@ namespace DeadlyJenga.CandyArt
         void Rain(DisasterFrame f)
         {
             if(f.values==null||f.values.Length<2)return;
+            var skin=CurrentRainSkin();
+            if(skin!=RainSkin.Acid)BuildRainSkins();
+            rainMaterial=skin==RainSkin.Lava?lavaRain:skin==RainSkin.DryIce?iceRain:acid;
             int limit=Application.isMobilePlatform?MobileAcidStreakLimit:AcidStreakLimit;
             int count=Mathf.Min(limit-acidStreaks.Count,Mathf.RoundToInt(f.values[1]*3.5f));
             for(int i=0;i<count;i++)
             {
                 float h=Mathf.Repeat(Hash(i+300)-Time.time*.45f,1);
                 var position=f.center+new Vector3((Hash(i)-.5f)*f.size.x,(h-.4f)*(f.size.y+30),(Hash(i+800)-.5f)*f.size.z);
-                float size=Hash(i+33);
-                Puff(acidStreaks,position,.14f+size*.075f,1.55f+size*1.15f,-7);
+                RainDropShape(skin,Hash(i+33),out float width,out float length);
+                Puff(acidStreaks,position,width,length,-7);
             }
+            RainLandings(f,skin);
         }
-        void ClearObjects(){meteorLooks.Clear();fragments.Clear();lastTornado=null;ReleaseTornadoDepth();}
-        void DestroyObjects(){foreach(var m in new[]{stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble,tornadoSpray,tornadoFoam,tornadoRemnants})if(m)Destroy(m);if(rock)Destroy(rock);if(quad)Destroy(quad);if(stormNoise)Destroy(stormNoise);if(stormRibbons)Destroy(stormRibbons);}
+        void ClearObjects(){meteorLooks.Clear();fragments.Clear();landings.Clear();lastTornado=null;ReleaseTornadoDepth();}
+        void DestroyObjects(){DestroyRainSkins();DestroyMeteorSkins();foreach(var m in new[]{stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble,tornadoSpray,tornadoFoam,tornadoRemnants})if(m)Destroy(m);if(rock)Destroy(rock);if(quad)Destroy(quad);if(stormNoise)Destroy(stormNoise);if(stormRibbons)Destroy(stormRibbons);}
     }
 }
