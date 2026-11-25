@@ -17,6 +17,12 @@ namespace DeadlyJenga.CastlePrototype
             internal string name;
             internal CastlePlacement placement;
             internal float bottomRise, topRise, lean, taper;
+            // Expansion pieces carry their own Blender shape instead of a prism:
+            // vertices in unit-box space, triangles, rock kind and solid fraction.
+            internal Vector3[] hull;
+            internal int[] triangles;
+            internal int kind;
+            internal float fill;
         }
 
         internal static TwinCalderaLayout Create()
@@ -28,6 +34,7 @@ namespace DeadlyJenga.CastlePrototype
             map.Crossing();
             map.Breakaway();
             map.Aprons();
+            map.Expansion();
             return map;
         }
 
@@ -290,6 +297,35 @@ namespace DeadlyJenga.CastlePrototype
             for(int j=-1;j<=1;j+=2)
                 Pier("Catch leg "+j,mid+Vector3.forward*(j*1.8f),mid.y-.35f,1.32f,1.4f);
         }
+
+        // The Blender expansion districts (organ pipes, obsidian ridge, amphitheater,
+        // arches, summits, boulders and the bridges between them). Each line of the
+        // text asset is one piece: name|kind|center|size|fill|vertices|triangles.
+        void Expansion()
+        {
+            var data=Resources.Load<TextAsset>("TwinCaldera/TwinCalderaExpansion");
+            if(!data) return;
+            foreach(var raw in data.text.Split('\n'))
+            {
+                var line=raw.Trim();
+                if(line.Length==0) continue;
+                var f=line.Split('|');
+                var center=ReadVector(f[2]);
+                var size=ReadVector(f[3]);
+                var points=f[5].Split(';');
+                var hull=new Vector3[points.Length];
+                for(int i=0;i<points.Length;i++) hull[i]=ReadVector(points[i]);
+                var corners=f[6].Split(';',',');
+                var triangles=new int[corners.Length];
+                for(int i=0;i<corners.Length;i++) triangles[i]=int.Parse(corners[i]);
+                Pieces.Add(new Piece{name=f[0],placement=new CastlePlacement(center,Quaternion.identity,
+                    CastleSection.Wall,Mathf.Max(0,Mathf.FloorToInt(center.y)),size),
+                    taper=1,hull=hull,triangles=triangles,kind=int.Parse(f[1]),fill=Read(f[4])});
+            }
+        }
+
+        static float Read(string s)=>float.Parse(s,System.Globalization.CultureInfo.InvariantCulture);
+        static Vector3 ReadVector(string s){var c=s.Split(',');return new Vector3(Read(c[0]),Read(c[1]),Read(c[2]));}
 
         void Aprons()
         {

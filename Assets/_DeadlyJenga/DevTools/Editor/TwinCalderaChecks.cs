@@ -76,6 +76,17 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(shifted[0].drift<.65f,"untouched worst displacement "+shifted[0].drift);
                 report.AddRange(shifted.Take(24).Select(x=>x.b.name+" moved "+x.drift.ToString("F3")));
                 report.Add("Awake "+bodies.Count(b=>!b.IsSleeping())+"/"+bodies.Count);
+                // Wide views of the expansion districts around the two cones.
+                void View(string name,Vector3 from,Vector3 at,float fov)
+                {
+                    cam.fieldOfView=fov;
+                    cam.transform.position=map.transform.TransformPoint(from);
+                    cam.transform.LookAt(map.transform.TransformPoint(at));
+                    MapLiveCapture.RenderNow(cam,1440,810,Path.Combine(folder,name+".png"));
+                }
+                View("expansion-overview",new Vector3(-30,115,-185),new Vector3(-35,0,-5),52);
+                View("expansion-hellspine",new Vector3(-5,22,-62),new Vector3(-42,6,-42),55);
+                View("expansion-north",new Vector3(-20,40,95),new Vector3(-20,8,20),55);
                 var feet=map.SafeSpawnPoint();
                 Check(feet.y>map.waterHeight+.5f && Physics.Raycast(feet+Vector3.up*.2f,Vector3.down,.45f,1<<Layers.Block),"spawn "+feet);
                 var player=Services.Session.Player;
@@ -158,6 +169,42 @@ namespace DeadlyJenga.DevTools.Editor
                 report.Add("Bridge bearing moved "+Vector3.Distance(supportStart,support.position).ToString("F2"));
                 Shot("bridge-bearing-aftermath");
                 Check(bridge.position.y<bridgeStart.y-.65f || Quaternion.Angle(bridge.rotation,Quaternion.identity)>15,"loss of middle span "+bridge.position);
+                // The Blender expansion's collapse tests, repeated in PhysX: take one support
+                // out of a freshly built map (as if a hand carried it off) and see what falls.
+                void Collapse(string label,string removed,string[] falls,string[] stays)
+                {
+                    map.Rebuild();
+                    foreach(var body in map.Bodies)body.interpolation=RigidbodyInterpolation.None;
+                    Steps(150);
+                    var fallStart=falls.Select(n=>Find(n).position).ToArray();
+                    var stayStart=stays.Select(n=>Find(n).position).ToArray();
+                    int taken=0;
+                    foreach(var body in map.Bodies)
+                        if(body.name.StartsWith(removed)){body.gameObject.SetActive(false);taken++;}
+                    Steps(250);
+                    Shot("expansion-"+label.Replace(' ','-'));
+                    Check(taken>0,label+": removed "+taken+" support piece(s)");
+                    for(int i=0;i<falls.Length;i++)
+                    {
+                        float drop=fallStart[i].y-Find(falls[i]).position.y;
+                        Check(drop>1.5f,label+": "+falls[i]+" fell "+drop.ToString("F2"));
+                    }
+                    for(int i=0;i<stays.Length;i++)
+                    {
+                        float moved=Vector3.Distance(stayStart[i],Find(stays[i]).position);
+                        Check(moved<.4f,label+": "+stays[i]+" stayed (moved "+moved.ToString("F2")+")");
+                    }
+                }
+                Collapse("hellspine pier","Hellspine pier 5 ",new[]{"Hellspine slab 4","Hellspine slab 5"},new[]{"Hellspine slab 2"});
+                Collapse("arch keystone","South lava tube arch voussoir 05",
+                    new[]{"South lava tube arch voussoir 04","South lava tube arch voussoir 06","South lava tube arch deck 0"},
+                    new[]{"North lava tube arch voussoir 05"});
+                Collapse("glass gate shard","Glass Gate west shard",new[]{"Glass Gate capstone"},new string[0]);
+                Collapse("spire glass pier","Spire to Glass terrace pier 1",
+                    new[]{"Spire to Glass terrace span 0","Spire to Glass terrace span 1"},new string[0]);
+                Collapse("tuff seat","Tuff tier 3 base 05",new[]{"Tuff tier 3 seat 05"},new[]{"Tuff tier 3 seat 04"});
+                map.Rebuild();
+                foreach(var body in map.Bodies)body.interpolation=RigidbodyInterpolation.None;
                 int count=bodies.Count, before=map.Revision;string layout=map.SaveLayout();
                 Check(map.LoadLayout(layout,count,new Pose(map.transform.position,map.transform.rotation),map.transform.localScale)
                     && map.Revision>before && map.Bodies.Count==count,"rebuild from synced layout and body order");

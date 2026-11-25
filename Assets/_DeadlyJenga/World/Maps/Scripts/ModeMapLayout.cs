@@ -15,7 +15,7 @@ namespace DeadlyJenga.CastlePrototype
         public static Vector2 Size(CastleSettings s)
         {
             if(s.layoutPreset==NeedlefrostLayout.Preset)return new Vector2(98,64);
-            if(s.layoutPreset==TwinCalderaLayout.Preset)return new Vector2(90,62);
+            if(s.layoutPreset==TwinCalderaLayout.Preset)return new Vector2(252,206);
             if(s.layoutPreset==WalledCastleLayout.Preset)return new Vector2(58,74);
             if(s.layoutPreset==BlockSpiresLayout.Preset)return new Vector2(19.8f,15.4f);
             if (s.layoutPreset == PrismaticCitadelLayout.Preset)
