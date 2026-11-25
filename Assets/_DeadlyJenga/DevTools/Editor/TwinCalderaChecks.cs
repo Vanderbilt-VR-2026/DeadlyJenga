@@ -131,12 +131,14 @@ namespace DeadlyJenga.DevTools.Editor
                 var bearing=Find("Spire peeling slab 0 seat 0");
                 var bearingStart=bearing.position;
                 var contact=catchRock.gameObject.AddComponent<CalderaContactProbe>();contact.target=slab;
-                // A hand pulls steadily rather than striking once: keep pushing the
-                // loaded seat for the first 1.6 s so friction under the slab cannot pin it.
+                // A hand pulls steadily rather than striking once. The long slab stands
+                // on two seats and safely rests on either alone, so pull both out.
                 var seatBlock=bearing.GetComponent<CastleBlock>();
+                var otherSeat=Find("Spire peeling slab 0 seat 1").GetComponent<CastleBlock>();
                 for(int n=0;n<180;n++)
                 {
                     if(n<80) seatBlock.Push(Vector3.back*1.2f,map.gameObject);
+                    if(n>=20&&n<100) otherSeat.Push(Vector3.back*1.2f,map.gameObject);
                     Steps(1);
                     if(n==24) Shot("right-flank-in-motion");
                 }
