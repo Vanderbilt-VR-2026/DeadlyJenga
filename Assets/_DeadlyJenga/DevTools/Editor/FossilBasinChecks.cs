@@ -136,6 +136,10 @@ namespace DeadlyJenga.DevTools.Editor
                 bots.Running=true;Check(bots.SpawnOne(),"survivor bot spawn");
                 Shot("21-faceoff-wide",new Vector3(-4,25,-84),new Vector3(-4,12,1),37);
                 Shot("22-faceoff-camp",new Vector3(1,2.38f,-20),new Vector3(-9,10,-6),64);
+                Check(bodies.Count(b=>b.name.StartsWith("Brontosaurus"))>20&&bodies.Any(b=>b.name=="Brontosaurus skull"),"brontosaurus members built");
+                Check(bodies.Any(b=>b.name=="Link bridge T rex switchback to brontosaurus skull"),"bridge from T. rex switchback to brontosaurus");
+                Shot("24-brontosaurus",new Vector3(-14,30,-50),new Vector3(-40,13,5),40);
+                Shot("25-brontosaurus-neck",new Vector3(-29.2f,20.25f,7.25f),new Vector3(-52,13.5f,7),70);
                 var probe=GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 probe.transform.position=new Vector3(35,.8f,-2);
                 probe.transform.localScale=Vector3.one*.3f;
