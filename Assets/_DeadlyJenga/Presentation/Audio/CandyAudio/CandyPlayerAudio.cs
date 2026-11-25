@@ -12,6 +12,9 @@ namespace DeadlyJenga.CandyAudio
         float stepTravel,nextStep,fallSpeed,airtime,nextGrunt,previousGrip,nextGripWarning;
         bool staminaObserved,staminaEmpty;
         bool triggerWasHeld;EquipmentKind triggerKind;
+        // Approved powerup sounds (25 Nov 2026). The effect assets are the same ones the vision tint reads.
+        IAffectable effects;EffectType speedBoost,jumpBoost;
+        bool Boosted(EffectType type)=>type&&effects!=null&&effects.Has(type);
         IPlayerView playerView;
         readonly Vector3[] gripLast=new Vector3[2];readonly bool[] gripMoving=new bool[2];readonly float[] gripCooldown=new float[2];
         float voicePitch;
@@ -20,6 +23,8 @@ namespace DeadlyJenga.CandyAudio
         {
             motor=GetComponent<IMovementState>();motorBehaviour=motor as Behaviour;previous=transform.position;grounded=motor.Grounded;climbing=motor.Climbing;vaults=motor.VaultCount;
             playerView=GetComponent<IPlayerView>();
+            effects=GetComponent<IAffectable>();
+            speedBoost=Resources.Load<EffectType>("Powerups/Speed2x");jumpBoost=Resources.Load<EffectType>("Powerups/Jump3x");
             voicePitch=Mathf.Lerp(.86f,1.16f,Mathf.Abs(GetInstanceID()%101)/100f);
             var engine=CandyAudioEngine.Instance;if(engine&&!CandyJaguarAudio.IsJaguar(this))engine.Play(CandySound.Spawn,previous,.4f,GetInstanceID(),voicePitch);
         }
@@ -48,8 +53,19 @@ namespace DeadlyJenga.CandyAudio
             }
             ObserveStamina();
             if(!grounded&&motor.Grounded&&airtime>.1f&&nearby)
-            {Sound(fallSpeed>5?CandySound.LandHard:CandySound.LandSoft,p,Mathf.Clamp(.2f+fallSpeed/12,.2f,1));stepTravel=0;}
-            if(grounded&&!motor.Grounded&&motor.VerticalSpeed>2&&!motor.Vaulting&&nearby)Sound(CandySound.Jump,p,.45f);
+            {
+                Sound(fallSpeed>5?CandySound.LandHard:CandySound.LandSoft,p,Mathf.Clamp(.2f+fallSpeed/12,.2f,1));stepTravel=0;
+                if(Boosted(jumpBoost)&&airtime>.35f)CandyWeaponSuite.PlayExtra("jump-powerup","land",p,GetInstanceID());
+            }
+            if(grounded&&!motor.Grounded&&motor.VerticalSpeed>2&&!motor.Vaulting&&nearby)
+            {
+                Sound(CandySound.Jump,p,.45f);
+                if(Boosted(jumpBoost))CandyWeaponSuite.PlayExtra("jump-powerup","jump",p,GetInstanceID());
+            }
+            // Speed boost: rushing wind under movement, louder and higher as the player runs faster.
+            float ground=Vector3.ProjectOnPlane(d,Vector3.up).magnitude/dt;
+            if(nearby&&Boosted(speedBoost)&&ground>.8f&&!motor.Climbing)
+                CandyWeaponSuite.Loop("speed-powerup","run-loop",transform,Mathf.Clamp01(ground/9),motor.IsLocal,Mathf.Lerp(.85f,1.2f,Mathf.Clamp01(ground/12)));
             if(!motor.Grounded&&!motor.Vaulting&&!motor.Climbing){fallSpeed=Mathf.Max(fallSpeed,-motor.VerticalSpeed);airtime+=dt;}
             else{fallSpeed=0;airtime=0;}
             if(motor.VerticalSpeed<-3&&!motor.Vaulting&&!motor.Climbing&&nearby)
@@ -65,6 +81,7 @@ namespace DeadlyJenga.CandyAudio
                     {if(hit.collider.TryGetComponent<CandyAudioSurface>(out var surface)&&surface.surface==CandySurface.Sand)cue=CandySound.FootstepSand;}
                     else cue=CandySound.FootstepSand;
                     Sound(cue,p,Mathf.Clamp(Vector3.ProjectOnPlane(d,Vector3.up).magnitude/dt/7,.15f,.65f),Mathf.Clamp(1/motor.Scale*.5f,.85f,1.2f));
+                    if(Boosted(speedBoost))CandyWeaponSuite.PlayExtra("speed-powerup","footstep",p,GetInstanceID());
                 }
             }
             if(motor.VaultCount!=vaults)
@@ -113,8 +130,20 @@ namespace DeadlyJenga.CandyAudio
             staminaEmpty=empty;
             staminaObserved=true;
         }
-        void OnEnable()=>GameEvents.Emoted+=OnEmoted;
-        void OnDisable()=>GameEvents.Emoted-=OnEmoted;
+        void OnEnable(){GameEvents.Emoted+=OnEmoted;GameEvents.EffectStarted+=OnEffectStarted;GameEvents.EffectEnded+=OnEffectEnded;}
+        void OnDisable(){GameEvents.Emoted-=OnEmoted;GameEvents.EffectStarted-=OnEffectStarted;GameEvents.EffectEnded-=OnEffectEnded;}
+        void OnEffectStarted(GameObject who,EffectType type)
+        {
+            if(who!=gameObject||!type||!CandyAudioWorld.Near(transform.position,70))return;
+            if(type==speedBoost)CandyWeaponSuite.PlayExtra("speed-powerup","collect",transform.position,GetInstanceID());
+            else if(type==jumpBoost)CandyWeaponSuite.PlayExtra("jump-powerup","collect",transform.position,GetInstanceID());
+        }
+        void OnEffectEnded(GameObject who,EffectType type)
+        {
+            // Collecting the same orb again refreshes it; only a real run-out gets the power-down.
+            if(who!=gameObject||!type||(type!=speedBoost&&type!=jumpBoost)||Boosted(type)||!CandyAudioWorld.Near(transform.position,70))return;
+            CandyWeaponSuite.PlayExtra("powerup","expire",transform.position,GetInstanceID());
+        }
         void OnEmoted(GameObject who,string emote)
         {
             if(who!=gameObject||motor==null||CandyJaguarAudio.IsJaguar(this)||!CandyAudioEngine.Instance||!CandyAudioWorld.Near(transform.position,70))return;

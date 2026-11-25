@@ -67,6 +67,21 @@ namespace DeadlyJenga.CandyAudio
 
             if (action.action == EquipmentAction.Reload && action.kind == EquipmentKind.Blaster)
                 return Emit(engine, "alien-blaster", "vent", action.position, owner);
+            // Approved 25 Nov 2026: bubble pop + clack on pickup, pop-and-clatter when a player dies holding a weapon.
+            if (action.action == EquipmentAction.Pickup)
+                return Emit(engine, "weapon-pickup", "grab", action.position, owner);
+            if (action.action == EquipmentAction.Drop && DiedHolding(action.actor))
+                return Emit(engine, "weapon-drop", "death-drop", action.position, owner);
+            return false;
+        }
+
+        // The weapon falls while the player is still "dying", so check the match frame's flags.
+        static bool DiedHolding(string actor)
+        {
+            var frame = MatchRuntime.Current?.Frame;
+            if (frame?.players == null || string.IsNullOrEmpty(actor)) return false;
+            foreach (var player in frame.players)
+                if (player != null && player.id == actor) return !player.alive || player.dying;
             return false;
         }
 
@@ -136,10 +151,10 @@ namespace DeadlyJenga.CandyAudio
         }
 
         // Keeps a looping sound from the approved set on a moving object (for example "rpg", "flight").
-        public static void Loop(string weapon, string cue, Transform owner, float intensity)
+        public static void Loop(string weapon, string cue, Transform owner, float intensity, bool local = false, float pitch = 1)
         {
             var engine = CandyAudioEngine.Instance;
-            if (engine) engine.LoopCue(Cue(weapon, cue), owner, intensity);
+            if (engine) engine.LoopCue(Cue(weapon, cue), owner, intensity, local, pitch);
         }
 
         static bool HitsPlayer(Vector3 point) =>
