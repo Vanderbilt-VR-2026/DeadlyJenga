@@ -42,12 +42,12 @@ Shader "DeadlyJenga/Caldera/VolcanicSkyline"
                 float2 p=i.world.xz*.035+i.world.y*.05;
                 float grain=strata(p*3.1), crags=strata(float2(i.world.x+i.world.z,i.world.y*2.2)*.02);
                 float sun=saturate(dot(n,normalize(float3(-.48,.62,-.62))));
-                float shade=sun*.75+.12+.13*saturate(n.y);
+                float shade=sun*sun*.9+.06+.1*saturate(n.y);
                 // Black crags with plum-brown faces, pale ash on the gentle upper slopes.
-                float3 rock=lerp(float3(.012,.010,.012),float3(.17,.115,.11),shade*(.45+crags*.8));
-                rock*=.6+grain*.75;
-                float3 ash=float3(.30,.27,.25)*(.45+.65*shade)*(.75+grain*.4);
-                rock=lerp(rock,ash,saturate(i.paint.g*1.15));
+                float3 rock=lerp(float3(.006,.005,.006),float3(.15,.095,.085),shade*(.35+crags*.9));
+                rock*=.45+grain*.9;
+                float3 ash=float3(.24,.21,.19)*(.35+.75*shade)*(.7+grain*.45);
+                rock=lerp(rock,ash,saturate(i.paint.g*.9));
                 // Lava rivers: dim red edges, orange body, yellow core, with a slow pulse.
                 float flow=strata(float2(i.world.x*.03,i.world.y*.09-_Time.y*.18));
                 float lava=saturate(i.paint.r*(.75+.5*flow));
@@ -55,9 +55,10 @@ Shader "DeadlyJenga/Caldera/VolcanicSkyline"
                 rock=lerp(rock,heat,smoothstep(.06,.3,lava));
                 // Underlit by the lava sea, then hazed by distance into the ash sky.
                 rock+=float3(.10,.018,.004)*saturate(-n.y*.6+.4)*exp(-max(0,i.world.y)*.012);
-                float haze=1-exp(-i.dist*.0016);
-                rock=lerp(rock,float3(.42,.12,.10),haze*.62);
-                return half4(MixFog(rock,i.fog),1);
+                // Light haze only: the scene fog would bleach the silhouettes, so use half of it.
+                float haze=1-exp(-i.dist*.0011);
+                rock=lerp(rock,float3(.30,.08,.07),haze*.38);
+                return half4(lerp(rock,MixFog(rock,i.fog),.45),1);
             }
             ENDHLSL
         }

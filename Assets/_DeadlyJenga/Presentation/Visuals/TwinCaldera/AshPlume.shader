@@ -46,13 +46,13 @@ Shader "DeadlyJenga/Caldera/AshPlume"
                 // Ragged edges: the column's width is eaten by the billows.
                 float edge=1-smoothstep(.35+.45*billow,1.05,abs(x));
                 float body=edge*smoothstep(0,.06,t)*(1-smoothstep(.72,1,t));
-                float density=saturate(body*(.55+billow*.9)*(.8+fine*.35)-.12);
+                float density=saturate(body*(.75+billow*1.1)*(.8+fine*.35)-.06);
                 float lit=saturate(.35+billow*.7+t*.25-(x+1)*.12);
-                float3 smoke=lerp(float3(.035,.03,.03),float3(.33,.27,.25),lit);
+                float3 smoke=lerp(float3(.02,.018,.018),float3(.22,.18,.17),lit);
                 // Crater fire lights the base of the column from below.
                 smoke+=i.shape.y*float3(1.6,.34,.05)*exp(-t*7)*(.6+.6*billow);
-                smoke=lerp(smoke,float3(.42,.13,.11),.25);
-                return half4(MixFog(smoke,i.fog),density*.92);
+                smoke=lerp(smoke,float3(.30,.09,.08),.15);
+                return half4(lerp(smoke,MixFog(smoke,i.fog),.4),density);
             }
             ENDHLSL
         }
