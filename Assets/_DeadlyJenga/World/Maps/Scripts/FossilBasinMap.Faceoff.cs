@@ -313,6 +313,8 @@ namespace DeadlyJenga.CastlePrototype
                 float outboard = centra.Count - i;
                 Join(centra[i], centra[i - 1], 9600 + 2800 * outboard);
                 if (i >= 2) Join(centra[i], centra[i - 2], 6000 + 1400 * outboard);
+                if (i >= 3) Join(centra[i], centra[i - 3], 6000 + 1400 * outboard);
+                centra[i].Body.solverIterations = 64;
             }
             var neck = Get("cervical vertebrae");
             var skull = Get(kind == "Rex" ? "skull" : "perforated skull");
