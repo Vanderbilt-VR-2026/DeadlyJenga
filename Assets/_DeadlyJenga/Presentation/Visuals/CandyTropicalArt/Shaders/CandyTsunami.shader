@@ -118,7 +118,7 @@ Shader "Candy Tropical/Tsunami"
                 if(whitewater>.5)local=float3(uv.x*_SurgeWidth,.18,(uv.y*.85+.58)*_SurgeDepth);
                 // Obstacle ripple: pile-up on upstream faces, dips in the lee, refilled by the water around.
                 float ripple=CandySurgeRipple(local.x,local.z);
-                local.y+=ripple*_SurgeHeight*.32*smoothstep(.02,.2,local.y/max(.01,_SurgeHeight));
+                local.y+=ripple*_SurgeHeight*.45*smoothstep(.02,.2,local.y/max(.01,_SurgeHeight));
                 float y=local.y;
                 // Extended ocean apron must stay flat outside the original wave span.
                 if(uv.y<-.5||uv.y>.5)local.z=uv.y*_SurgeDepth;

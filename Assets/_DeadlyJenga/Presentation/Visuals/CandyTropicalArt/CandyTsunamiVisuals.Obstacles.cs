@@ -15,7 +15,7 @@ namespace DeadlyJenga.CandyArt
     //   replicated block positions, so it costs no network traffic.
     public sealed partial class CandyTsunamiVisuals
     {
-        const int GridX = 128, GridY = 64, MaxContacts = 6;
+        const int GridX = 128, GridY = 64, MaxContacts = 8;
         Texture2D obstacleTexture;
         Color32[] obstaclePixels;
         RenderTexture rippleA, rippleB;
@@ -59,7 +59,7 @@ namespace DeadlyJenga.CandyArt
             rippleMaterial.SetTexture(RippleObstaclesId, obstacleTexture);
             rippleMaterial.SetFloat("_Damping", .982f);
             rippleMaterial.SetFloat("_Speed", .2f);
-            rippleMaterial.SetFloat("_Force", .045f * Mathf.Clamp01(wave.height / 8f));
+            rippleMaterial.SetFloat("_Force", .11f * Mathf.Clamp01(wave.height / 8f));
             rippleClock = Mathf.Min(rippleClock + Time.deltaTime, 3 / 60f);
             while (rippleClock >= 1 / 60f)
             {
@@ -137,8 +137,8 @@ namespace DeadlyJenga.CandyArt
                             if (top > pixel.g) pixel.g = top;
                         }
                     // Keep the strongest contacts for spray: heavy obstacles deep in fast water.
-                    float strength = weight * Mathf.Clamp01((water - bounds.min.y) / 3f) * Mathf.Clamp01(1 - Mathf.Abs(along - .3f) * 1.6f);
-                    if (strength > .2f)
+                    float strength = weight * Mathf.Clamp01((water - bounds.min.y) / 2f) * Mathf.Clamp01(1.2f - Mathf.Abs(along - .3f) * 1.4f);
+                    if (strength > .12f)
                     {
                         var face = body.position - forward * halfAlong;   // upstream face, at the water line
                         face.y = Mathf.Min(water, bounds.max.y);
@@ -164,25 +164,44 @@ namespace DeadlyJenga.CandyArt
         }
 
         // Splash-back: spray thrown up and back off the strongest obstacle faces.
+        // A tall white column per contact: big mist sheets (spindrift system) shooting up the face and falling
+        // back, plus a burst of droplets. Strength scales the height; the wave's own height scales everything.
         void EmitContacts()
         {
             if (!spray || contactCount == 0) return;
             if (!spray.isPlaying) spray.Play();
-            Vector3 forward = Vector3.ProjectOnPlane(wave.direction, Vector3.up).normalized;
+            if (spindrift && !spindrift.isPlaying) spindrift.Play();
+            Vector3 forward = Vector3.ProjectOnPlane(wave.direction, Vector3.up).normalized, across = Vector3.Cross(Vector3.up, forward);
+            float scale = Mathf.Clamp(wave.height / 12f, .5f, 2f);
             for (int c = 0; c < contactCount; c++)
-                for (int k = 0; k < 4; k++)
+            {
+                float s = contactStrength[c];
+                for (int k = 0; k < 9; k++)
                 {
                     int seed = emissionSeed++;
-                    var particle = new ParticleSystem.EmitParams
+                    spray.Emit(new ParticleSystem.EmitParams
                     {
-                        position = contactPoint[c] + new Vector3(FoamJitter(seed, 1, 3) - .5f, FoamJitter(seed, 2, 3) * .5f, FoamJitter(seed, 3, 3) - .5f) * 1.5f,
-                        velocity = Vector3.up * (6 + 10 * contactStrength[c] * FoamJitter(seed, 4, 5)) - forward * (2 + 4 * FoamJitter(seed, 5, 5)),
-                        startLifetime = 1.1f + FoamJitter(seed, 6, 2) * .9f,
-                        startSize = .25f + FoamJitter(seed, 7, 3) * .8f,
+                        position = contactPoint[c] + across * (FoamJitter(seed, 1, 3) - .5f) * 3 + Vector3.up * FoamJitter(seed, 2, 3),
+                        velocity = (Vector3.up * (9 + 15 * s * FoamJitter(seed, 4, 5)) - forward * (3 + 7 * FoamJitter(seed, 5, 5)) + across * (FoamJitter(seed, 3, 3) - .5f) * 6) * scale,
+                        startLifetime = 1.4f + FoamJitter(seed, 6, 2) * 1.1f,
+                        startSize = (.3f + FoamJitter(seed, 7, 3) * .9f) * scale,
                         rotation = FoamJitter(seed, 8, 8) * 360
-                    };
-                    spray.Emit(particle, 1);
+                    }, 1);
                 }
+                if (!spindrift) continue;
+                for (int k = 0; k < 3; k++)
+                {
+                    int seed = emissionSeed++;
+                    spindrift.Emit(new ParticleSystem.EmitParams
+                    {
+                        position = contactPoint[c] + across * (FoamJitter(seed, 1, 3) - .5f) * 4 + Vector3.up * FoamJitter(seed, 2, 3) * 2,
+                        velocity = (Vector3.up * (8 + 12 * s * FoamJitter(seed, 4, 5)) - forward * (2 + 4 * FoamJitter(seed, 5, 5))) * scale,
+                        startLifetime = 1.6f + FoamJitter(seed, 6, 2) * 1.2f,
+                        startSize = (2.5f + FoamJitter(seed, 7, 3) * 3.5f) * scale,
+                        rotation = FoamJitter(seed, 8, 8) * 360
+                    }, 1);
+                }
+            }
         }
 
         void ReleaseRipple()

@@ -85,7 +85,7 @@ namespace DeadlyJenga.CandyArt
             filter.sharedMesh = mesh;
             var sprayObject = new GameObject("Crest spray (pooled)"); sprayObject.transform.SetParent(visual.transform, false);
             spray = sprayObject.AddComponent<ParticleSystem>(); spray.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main = spray.main; main.loop = true; main.playOnAwake = false; main.maxParticles = 384;
+            var main = spray.main; main.loop = true; main.playOnAwake = false; main.maxParticles = 1024;
             main.startLifetime = 1.5f; main.startSpeed = 8f; main.startSize = new ParticleSystem.MinMaxCurve(.12f, .65f);
             main.startColor = new Color(.87f, 1, .97f, .55f); main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.gravityModifier = .55f; main.cullingMode=ParticleSystemCullingMode.AlwaysSimulate;
@@ -102,7 +102,7 @@ namespace DeadlyJenga.CandyArt
             renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
             var mistObject=new GameObject("Breaking lip spindrift");mistObject.transform.SetParent(spray.transform,false);
             spindrift=mistObject.AddComponent<ParticleSystem>();spindrift.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
-            var mistMain=spindrift.main;mistMain.playOnAwake=false;mistMain.loop=true;mistMain.maxParticles=384;
+            var mistMain=spindrift.main;mistMain.playOnAwake=false;mistMain.loop=true;mistMain.maxParticles=768;
             mistMain.cullingMode=ParticleSystemCullingMode.AlwaysSimulate;mistMain.startLifetime=2f;mistMain.startSpeed=9f;mistMain.startSize=new ParticleSystem.MinMaxCurve(1.5f,4f);
             mistMain.startColor=new Color(.95f,1,1,.7f);mistMain.gravityModifier=.9f;mistMain.simulationSpace=ParticleSystemSimulationSpace.World;
             var mistEmission=spindrift.emission;mistEmission.enabled=false;

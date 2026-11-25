@@ -155,6 +155,8 @@ namespace DeadlyJenga.DevTools.Editor
             if (!source.Wave.active) { File.AppendAllText(Report, "  wave ended before reaching the castle\n"); yield break; }
             for (int moment = 0; moment < 3; moment++)
             {
+                File.AppendAllText(Report, "  impact moment " + moment + " active=" + source.Wave.active + " t=" + Time.realtimeSinceStartup.ToString("0.0") + "\n");
+                if (!source.Wave.active) break;
                 var w = source.Wave;
                 Vector3 dir = Vector3.ProjectOnPlane(w.direction, Vector3.up).normalized, across = Vector3.Cross(Vector3.up, dir);
                 Vector3 castle = world.Center + Vector3.up * world.TopHeight * .45f;
@@ -162,7 +164,7 @@ namespace DeadlyJenga.DevTools.Editor
                 View(session, name + "-hit" + moment + "-side", castle + across * (r * 2.6f + 18) - dir * r * .6f + Vector3.up * world.TopHeight * .35f, castle, 60);
                 View(session, name + "-hit" + moment + "-lee", castle + dir * (r * 2.8f + 12) + across * r * .8f + Vector3.up * world.TopHeight * 1.1f, castle - dir * r, 62);
                 View(session, name + "-hit" + moment + "-close", castle + across * r * 1.5f - dir * r * 1.1f + Vector3.up * world.TopHeight * .2f, castle - dir * r * .3f, 70);
-                yield return new WaitForSecondsRealtime(1.5f);
+                yield return new WaitForSecondsRealtime(.8f);
             }
         }
 
