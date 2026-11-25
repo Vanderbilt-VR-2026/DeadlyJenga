@@ -32,6 +32,9 @@ namespace DeadlyJenga.CastlePrototype
                 structure.Add(connection);
             }
 
+            Physics.SyncTransforms();
+            var boxes = new BoxCollider[bodies.Count];
+            for (int i = 0; i < bodies.Count; i++) boxes[i] = bodies[i].GetComponent<BoxCollider>();
             for (int i = 0; i < bounds.Length; i++)
             for (int j = i + 1; j < bounds.Length; j++)
             {
@@ -54,12 +57,25 @@ namespace DeadlyJenga.CastlePrototype
                 float z = extent.z - Mathf.Abs(delta.z);
                 const float seamTolerance = .48f;
                 if (x < -seamTolerance || y < -seamTolerance || z < -seamTolerance) continue;
+                IgnoreBuiltOverlap(boxes[i], boxes[j]);
                 int bearingAxes = (x > .08f ? 1 : 0) + (y > .08f ? 1 : 0) + (z > .08f ? 1 : 0);
                 if (bearingAxes >= 2) structure.Connect(i, j);
             }
 
             structure.Recompute();
             return structure;
+        }
+
+        // Mitered river and slide panels are built a little inside their neighbours.
+        // A knocked panel would wedge against that overlap and stop, so pieces that
+        // start overlapping ignore each other. Pinned pieces never collide anyway.
+        static void IgnoreBuiltOverlap(BoxCollider a, BoxCollider b)
+        {
+            const float builtOverlap = .03f;
+            if (!a || !b) return;
+            if (Physics.ComputePenetration(a, a.transform.position, a.transform.rotation,
+                    b, b.transform.position, b.transform.rotation, out _, out float depth) && depth > builtOverlap)
+                Physics.IgnoreCollision(a, b, true);
         }
     }
 }
