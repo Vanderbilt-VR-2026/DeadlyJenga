@@ -22,6 +22,8 @@ namespace DeadlyJenga.DevTools.Editor
         static Vector3[] initial;
         static TestDummy dummy;
         static FossilMember pulled;
+        static FossilMember[] outerPosts;
+        static int pullIndex;
         static Camera camera;
         static Vector3 grab,footBefore;
         static Rigidbody westRefuge;
@@ -114,7 +116,8 @@ namespace DeadlyJenga.DevTools.Editor
                 // Renders, bot spawn and the pull get their own time budget after the settle.
                 deadline=EditorApplication.timeSinceStartup+120;
                 var spawn=map.SafeSpawnPoint();
-                Check(Physics.Raycast(spawn+Vector3.up*.25f,Vector3.down,out var bearing,.7f,1<<Layers.Block)&&bearing.normal.y>.86f,
+                // A foot-sized probe: deck centres can sit on the thin seam between two stones.
+                Check(Physics.SphereCast(spawn+Vector3.up*.4f,.15f,Vector3.down,out var bearing,.7f,1<<Layers.Block)&&bearing.normal.y>.86f,
                     "survivor spawn has flat bearing at "+spawn);
                 var skull=bodies.First(body=>body.name=="Rex skull");
                 Check(skull.GetComponentInChildren<MeshFilter>().sharedMesh.vertexCount>500,"imported Rex skull mesh");
@@ -140,7 +143,12 @@ namespace DeadlyJenga.DevTools.Editor
                 probe.transform.position=new Vector3(35,.8f,-2);
                 probe.transform.localScale=Vector3.one*.3f;
                 probe.AddComponent<Rigidbody>();dummy=probe.AddComponent<TestDummy>();
-                pulled=bodies.Where(b=>b.name.StartsWith("B5")&&b.name.Contains(" pier ")).OrderByDescending(b=>b.position.x).ThenByDescending(b=>b.position.y).First().GetComponent<FossilMember>();
+                // The bay has four posts, so knock out both outer ones (top unit of each).
+                outerPosts=bodies.Where(b=>b.name.StartsWith("B5")&&b.name.Contains(" pier "))
+                    .GroupBy(b=>b.name.Substring(0,b.name.LastIndexOf('/')))
+                    .Select(g=>g.OrderByDescending(b=>b.position.y).First())
+                    .OrderByDescending(b=>b.position.x).Take(2).Select(b=>b.GetComponent<FossilMember>()).ToArray();
+                pullIndex=0;pulled=outerPosts[0];
                 foot=bodies.Where(b=>b.name.StartsWith("Triceratops tarsals")).OrderByDescending(b=>b.position.x).First();
                 footBefore=foot.position;
                 westRefuge=bodies.First(b=>b.name.StartsWith("A1")&&b.name.Contains(" deck "));
@@ -153,7 +161,13 @@ namespace DeadlyJenga.DevTools.Editor
                 pulled.Hold(grab+Vector3.right*Mathf.Min(6,dt*5));
                 if(dt<1.5f)return;
                 pulled.Release();
-                Check(Vector3.Distance(grab,pulled.Body.worldCenterOfMass)>.6f,"pull moves outer bearing");
+                Check(Vector3.Distance(grab,pulled.Body.worldCenterOfMass)>.6f,"pull moves outer bearing "+pulled.name);
+                if(++pullIndex<outerPosts.Length)
+                {
+                    pulled=outerPosts[pullIndex];grab=pulled.Body.worldCenterOfMass;
+                    Check(pulled.TryStartGrab(camera.gameObject,grab),"grab second outer bearing");
+                    clock=Time.fixedTime;return;
+                }
                 clock=Time.fixedTime;phase=3;return;
             }
             if(phase==3&&dt>2)

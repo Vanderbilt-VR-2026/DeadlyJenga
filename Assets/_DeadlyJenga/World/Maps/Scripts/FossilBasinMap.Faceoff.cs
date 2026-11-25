@@ -306,7 +306,8 @@ namespace DeadlyJenga.CastlePrototype
             var tail = first;
             for (int i = 0; parts.TryGetValue(kind + " tail centrum " + i, out var next); i++)
             {
-                Join(next, tail, 4300);
+                // The tail hangs far out, so its joints carry a big bending load.
+                Join(next, tail, 9600);
                 tail = next;
             }
             var neck = Get("cervical vertebrae");
