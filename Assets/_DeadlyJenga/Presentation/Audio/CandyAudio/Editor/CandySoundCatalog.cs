@@ -199,7 +199,7 @@ namespace DeadlyJenga.CandyAudio.Editor
                 CandySound.WaveImpact => "Tsunami impact/contact report; gain follows reported strength.",
                 CandySound.WaveSpray => "Spray and water contact accent from tsunami feedback.",
                 CandySound.PuddleDrain => "Tsunami residual water drains away.",
-                CandySound.MeteorWhistle => "Legacy approaching meteor cue. Check source references for active callers.",
+                CandySound.MeteorWhistle => "Incoming meteor scream: a shower meteor will pass within reach of the listener in about two seconds.",
                 CandySound.FingerFlex => "Giant hand finger bend or grip motion crosses its audio threshold.",
                 CandySound.HandSwirl => "Giant hand motion accent reported by the hand observer.",
                 CandySound.PushImpact => "Push/contact feedback from the giant hand.",
