@@ -81,18 +81,19 @@ namespace DeadlyJenga.CandyArt
                 int seed = landingSeed++;
                 var top = f.center + new Vector3((Hash(seed) - .5f) * f.size.x, f.size.y * .5f + 20, (Hash(seed + 977) - .5f) * f.size.z);
                 if (!Physics.Raycast(top, Vector3.down, out var hit, f.size.y + 60, mask, QueryTriggerInteraction.Ignore)) continue;
+                if (Services.World != null && hit.point.y <= Services.World.WaterHeight(hit.point) + .15f) continue;   // drops into the sea: no splat
                 switch (skin)
                 {
                     case RainSkin.Lava:
-                        landings.Add(new Landing { position = hit.point, born = Time.time, seed = seed, life = .55f + Hash(seed + 5) * .3f, size = .9f + Hash(seed + 7) * .8f });
+                        landings.Add(new Landing { position = hit.point, born = Time.time, seed = seed, life = .6f + Hash(seed + 5) * .3f, size = 1.4f + Hash(seed + 7) * 1.0f });
                         break;
                     case RainSkin.DryIce:
                         landings.Add(new Landing { position = hit.point, born = Time.time, seed = seed, life = 3f + Hash(seed + 5) * 1.5f, size = 2.2f + Hash(seed + 7) * 1.6f });
                         break;
                     default:
-                        landings.Add(new Landing { position = hit.point, born = Time.time, seed = seed, life = .45f + Hash(seed + 5) * .25f, size = .7f + Hash(seed + 7) * .6f });
+                        landings.Add(new Landing { position = hit.point, born = Time.time, seed = seed, life = .5f + Hash(seed + 5) * .3f, size = 1.3f + Hash(seed + 7) * .9f });
                         if (Hash(seed + 11) < .6f)   // most hits leave a fume curling up off the burn spot
-                            landings.Add(new Landing { position = hit.point, born = Time.time + .15f, seed = seed + 1, life = 1.8f + Hash(seed + 13) * 1.2f, size = .9f + Hash(seed + 17) * .7f, fume = true });
+                            landings.Add(new Landing { position = hit.point, born = Time.time + .15f, seed = seed + 1, life = 1.8f + Hash(seed + 13) * 1.2f, size = 1.5f + Hash(seed + 17) * 1.1f, fume = true });
                         break;
                 }
             }
