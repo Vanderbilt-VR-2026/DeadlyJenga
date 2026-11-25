@@ -481,6 +481,8 @@ namespace DeadlyJenga.CastlePrototype
                 float volumeRatio=size.x*size.y*size.z/(settings.blockSize.x*settings.blockSize.y*settings.blockSize.z);
                 // Temple decks represent timber framing with a hollow tiled roof.
                 if (settings.layoutPreset == ShrineTownLayout.Preset && p.Section == CastleSection.Corner) volumeRatio *= .24f;
+                // Twin Caldera's Blender pieces (hex columns, wedges) fill only part of their box.
+                if (caldera != null && caldera.Pieces[Bodies.Count].hull != null) volumeRatio *= caldera.Pieces[Bodies.Count].fill;
                 body.mass = Mathf.Max(1, mass*volumeRatio);
                 // Ninety loose courses need more contact iterations than the standard castle.
                 bool tallKeep=settings.structureVariant==CastleStructure.FourKeeps&&p.Section==CastleSection.Keep;

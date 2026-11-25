@@ -70,12 +70,38 @@ namespace DeadlyJenga.DevTools.Editor
                 var bodies=map.Bodies;
                 Check(bodies.Count==authored.Count && bodies.All(b=>!b.isKinematic && b.useGravity),"dynamic bodies "+bodies.Count);
                 foreach(var body in bodies)body.interpolation=RigidbodyInterpolation.None;
+                // Pieces that start inside each other push apart violently; list any pair
+                // overlapping by more than 3 cm before anything moves.
+                var overlaps=new List<string>();
+                foreach(var body in bodies)
+                {
+                    var shape=body.GetComponent<MeshCollider>();
+                    foreach(var other in Physics.OverlapBox(shape.bounds.center,shape.bounds.extents,Quaternion.identity,1<<Layers.Block))
+                    {
+                        if(other==shape||!other.attachedRigidbody||other.attachedRigidbody.GetInstanceID()<body.GetInstanceID())continue;
+                        if(Physics.ComputePenetration(shape,body.position,body.rotation,other,other.transform.position,other.transform.rotation,out _,out float depth)&&depth>.03f)
+                            overlaps.Add(body.name+" overlaps "+other.attachedRigidbody.name+" by "+depth.ToString("F2"));
+                    }
+                }
+                Check(overlaps.Count==0,"no starting overlaps ("+overlaps.Count+")");
+                report.AddRange(overlaps.Take(40));
                 Steps(200);
                 var shifted=bodies.Select((b,i)=>(b,drift:Vector3.Distance(map.transform.TransformPoint(authored[i].Position),b.position)))
                     .OrderByDescending(pair=>pair.drift).ToArray();
                 Check(shifted[0].drift<.65f,"untouched worst displacement "+shifted[0].drift);
                 report.AddRange(shifted.Take(24).Select(x=>x.b.name+" moved "+x.drift.ToString("F3")));
                 report.Add("Awake "+bodies.Count(b=>!b.IsSleeping())+"/"+bodies.Count);
+                // Wide views of the expansion districts around the two cones.
+                void View(string name,Vector3 from,Vector3 at,float fov)
+                {
+                    cam.fieldOfView=fov;
+                    cam.transform.position=map.transform.TransformPoint(from);
+                    cam.transform.LookAt(map.transform.TransformPoint(at));
+                    MapLiveCapture.RenderNow(cam,1440,810,Path.Combine(folder,name+".png"));
+                }
+                View("expansion-overview",new Vector3(-30,115,-185),new Vector3(-35,0,-5),52);
+                View("expansion-hellspine",new Vector3(-5,22,-62),new Vector3(-42,6,-42),55);
+                View("expansion-north",new Vector3(-20,40,95),new Vector3(-20,8,20),55);
                 var feet=map.SafeSpawnPoint();
                 Check(feet.y>map.waterHeight+.5f && Physics.Raycast(feet+Vector3.up*.2f,Vector3.down,.45f,1<<Layers.Block),"spawn "+feet);
                 var player=Services.Session.Player;
@@ -117,6 +143,10 @@ namespace DeadlyJenga.DevTools.Editor
                     Walk("spire bridge approach",Top("Spire bridge shoulder"),Top("Spire bridge approach 0"),Top("Spire west landing 4"));
                     Walk("shield radial motor",Top("Shield radial slab 0"),Top("Shield radial slab 1"),
                         Top("Shield radial slab 2"),Top("Shield radial slab 3"),Top("Shield radial slab 4"));
+                    // Diagnostic: where each piece of the first Spire stair actually is.
+                    foreach(var b in bodies)
+                        if(b&&b.name.StartsWith("Spire stair 1"))
+                        {var c=b.GetComponent<Collider>();report.Add("Stair piece "+b.name+" bounds "+c.bounds.min.ToString("F2")+" to "+c.bounds.max.ToString("F2"));}
                     Walk("spire switchback motor",Top("Spire stair 1 lower turn"),Top("Spire stair 1 tread 3"),
                         Top("Spire stair 1 tread 10"),Top("Spire stair 1 upper turn"));
                     player.Place(feet,Quaternion.identity);
@@ -127,9 +157,14 @@ namespace DeadlyJenga.DevTools.Editor
                 var bearing=Find("Spire peeling slab 0 seat 0");
                 var bearingStart=bearing.position;
                 var contact=catchRock.gameObject.AddComponent<CalderaContactProbe>();contact.target=slab;
-                bearing.GetComponent<CastleBlock>().Push(Vector3.back*13,map.gameObject);
+                // A hand pulls steadily rather than striking once. The long slab stands
+                // on two seats and safely rests on either alone, so pull both out.
+                var seatBlock=bearing.GetComponent<CastleBlock>();
+                var otherSeat=Find("Spire peeling slab 0 seat 1").GetComponent<CastleBlock>();
                 for(int n=0;n<180;n++)
                 {
+                    if(n<80) seatBlock.Push(Vector3.back*1.2f,map.gameObject);
+                    if(n>=20&&n<100) otherSeat.Push(Vector3.back*1.2f,map.gameObject);
                     Steps(1);
                     if(n==24) Shot("right-flank-in-motion");
                 }
@@ -144,9 +179,52 @@ namespace DeadlyJenga.DevTools.Editor
                 bridge=Find("Bridge span 1");
                 bridgeStart=bridge.position;
                 var support=Find("Bridge pier 1 bearing 1");
-                support.GetComponent<CastleBlock>().Push(Vector3.forward*16,map.gameObject);
-                Steps(200);Shot("bridge-bearing-aftermath");
+                var supportBlock=support.GetComponent<CastleBlock>();var supportStart=support.position;
+                for(int n=0;n<200;n++){if(n<80)supportBlock.Push(Vector3.forward*1.2f,map.gameObject);Steps(1);}
+                report.Add("Bridge bearing moved "+Vector3.Distance(supportStart,support.position).ToString("F2"));
+                Shot("bridge-bearing-aftermath");
                 Check(bridge.position.y<bridgeStart.y-.65f || Quaternion.Angle(bridge.rotation,Quaternion.identity)>15,"loss of middle span "+bridge.position);
+                // The Blender expansion's collapse tests, repeated in PhysX: take one support
+                // out of a freshly built map (as if a hand carried it off) and see what falls.
+                void Collapse(string label,string removed,string[] falls,string[] stays,int mustFall=-1)
+                {
+                    if(mustFall<0)mustFall=falls.Length;
+                    map.Rebuild();
+                    foreach(var body in map.Bodies)body.interpolation=RigidbodyInterpolation.None;
+                    Steps(150);
+                    var fallStart=falls.Select(n=>Find(n).position).ToArray();
+                    var stayStart=stays.Select(n=>Find(n).position).ToArray();
+                    int taken=0;
+                    foreach(var body in map.Bodies)
+                        if(body.name.StartsWith(removed)){body.gameObject.SetActive(false);taken++;}
+                    Steps(250);
+                    Shot("expansion-"+label.Replace(' ','-'));
+                    Check(taken>0,label+": removed "+taken+" support piece(s)");
+                    int fell=0;
+                    for(int i=0;i<falls.Length;i++)
+                    {
+                        float drop=fallStart[i].y-Find(falls[i]).position.y;
+                        if(drop>1.5f)fell++;
+                        report.Add(label+": "+falls[i]+" fell "+drop.ToString("F2"));
+                    }
+                    Check(fell>=mustFall,label+": "+fell+" of "+falls.Length+" pieces fell (need "+mustFall+")");
+                    for(int i=0;i<stays.Length;i++)
+                    {
+                        float moved=Vector3.Distance(stayStart[i],Find(stays[i]).position);
+                        Check(moved<.4f,label+": "+stays[i]+" stayed (moved "+moved.ToString("F2")+")");
+                    }
+                }
+                Collapse("hellspine pier","Hellspine pier 5 ",new[]{"Hellspine slab 4","Hellspine slab 5"},new[]{"Hellspine slab 2"});
+                Collapse("arch keystone","South lava tube arch voussoir 05",
+                    new[]{"South lava tube arch voussoir 03","South lava tube arch voussoir 04","South lava tube arch voussoir 06",
+                        "South lava tube arch voussoir 07","South lava tube arch deck 0","South lava tube arch deck 1"},
+                    new[]{"North lava tube arch voussoir 05"},2);
+                Collapse("glass gate shard","Glass Gate west shard",new[]{"Glass Gate capstone"},new string[0]);
+                Collapse("spire glass pier","Spire to Glass terrace pier 1",
+                    new[]{"Spire to Glass terrace span 0","Spire to Glass terrace span 1"},new string[0]);
+                Collapse("tuff seat","Tuff tier 3 base 05",new[]{"Tuff tier 3 seat 05"},new[]{"Tuff tier 3 seat 04"});
+                map.Rebuild();
+                foreach(var body in map.Bodies)body.interpolation=RigidbodyInterpolation.None;
                 int count=bodies.Count, before=map.Revision;string layout=map.SaveLayout();
                 Check(map.LoadLayout(layout,count,new Pose(map.transform.position,map.transform.rotation),map.transform.localScale)
                     && map.Revision>before && map.Bodies.Count==count,"rebuild from synced layout and body order");

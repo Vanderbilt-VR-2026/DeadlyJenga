@@ -7,80 +7,109 @@ namespace DeadlyJenga.CandyArt
     public sealed class TwinCalderaScenery : MonoBehaviour
     {
         public Material lava, sky, skyline;
-        Mesh surface, mountains;
-        const int Sides = 64;
+        Mesh surface, mountains, plumes;
 
         void Awake()
         {
-            const float size = 1600;
-            surface = new Mesh { name = "Lava surface" };
-            surface.vertices = new[] { new Vector3(-size,0,-size), new Vector3(-size,0,size),
-                new Vector3(size,0,size), new Vector3(size,0,-size) };
-            surface.triangles = new[] { 0,1,2,0,2,3 };
-            Show("Lava ocean", surface, lava);
+            if (Application.isPlaying && !GetComponent<DeadlyJenga.CandyAudio.CalderaSoundscape>())
+                gameObject.AddComponent<DeadlyJenga.CandyAudio.CalderaSoundscape>();
+            // Same static grid as the candy ocean: dense near the map for the swells, a cheap ring to the horizon.
+            const float size = 3200;
+            surface = CandyOceanSurface.Create(Application.isMobilePlatform ? 64 : 96, size, 110);
+            surface.name = "Lava surface";
+            Show("Lava ocean", surface, lava).transform.localScale = new Vector3(size,1,size);
 
+            // The twelve eroded volcanoes and their ash plumes, exported from Blender.
+            var data = Resources.Load<TextAsset>("TwinCaldera/CalderaVolcanoes");
+            if (!data) return;
+            int stride = Application.isMobilePlatform ? 2 : 1;
             var vertices = new List<Vector3>();
-            var uv = new List<Vector2>();
+            var colors = new List<Color>();
             var triangles = new List<int>();
-            void Ring(Vector3 center, float radius, float height, float angle, float band, float seed, bool connect)
+            var plumeVertices = new List<Vector3>();
+            var plumeUv = new List<Vector2>();
+            var plumeShape = new List<Vector2>();
+            var plumeTriangles = new List<int>();
+            foreach (var raw in data.text.Split('\n'))
             {
-                int start = vertices.Count;
-                for (int i = 0; i <= Sides; i++)
-                {
-                    float a = i * (2 * Mathf.PI / Sides);
-                    float r = radius * (1 + .12f*Mathf.Sin(3*a+seed) + .055f*Mathf.Cos(7*a-seed)
-                        + .045f*Mathf.Sin(11*a+band));
-                    float x = Mathf.Cos(a)*r, z = Mathf.Sin(a)*r*.82f;
-                    vertices.Add(center + new Vector3(x*Mathf.Cos(angle)-z*Mathf.Sin(angle),
-                        height + radius*.048f*Mathf.Cos(5*a+seed), x*Mathf.Sin(angle)+z*Mathf.Cos(angle)));
-                    uv.Add(new Vector2((float)i/Sides, band));
-                    if (!connect || i == 0) continue;
-                    int k = start+i, prev = k-Sides-1;
-                    triangles.Add(prev-1); triangles.Add(k-1); triangles.Add(k);
-                    triangles.Add(prev-1); triangles.Add(k); triangles.Add(prev);
-                }
+                var line = raw.Trim();
+                if (line.Length == 0) continue;
+                var f = line.Split('|');
+                if (f[0] == "V") AddVolcano(f, stride, vertices, colors, triangles);
+                else if (f[0] == "P") AddPlume(f, plumeVertices, plumeUv, plumeShape, plumeTriangles);
             }
-            void Peak(float bearing, float range, float width, float height, float yaw, float seed, bool smoking)
-            {
-                float angle = yaw*Mathf.Deg2Rad;
-                Vector3 center = Quaternion.Euler(0,bearing,0)*Vector3.forward*range;
-                Vector3 lean = new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*width*.13f;
-                for (int l=0; l<=8; l++)
-                {
-                    float t=l/8f;
-                    Ring(center+lean*t, width*(.077f+.923f*Mathf.Pow(1-t,1.64f)), height*t-3, angle,t,seed,l>0);
-                }
-                Ring(center+lean,0,height-5,angle,1.02f,seed,true);
-                if (!smoking) return;
-                for (int n=0; n<7; n++)
-                {
-                    float t=n/6f, r=height*(.068f+.13f*t);
-                    Vector3 puff=center+lean+new Vector3(height*(.23f*t*t+.04f*Mathf.Sin(n*1.9f)),
-                        height*(1.02f+.46f*t)-3, height*.045f*Mathf.Cos(n));
-                    for (int l=0;l<=6;l++)
-                    {
-                        float lat=l*Mathf.PI/6;
-                        Ring(puff,r*Mathf.Sin(lat),-r*.87f*Mathf.Cos(lat),angle,
-                            2+t+.019f*l,seed+n,l>0);
-                    }
-                }
-            }
-            Peak(6,268,77,47,19,1,true);
-            Peak(-37,202,49,29,113,3,true);
-            Peak(46,356,103,37,-32,6,false);
-            Peak(88,222,56,39,62,5,true);
-            Peak(148,323,81,32,127,8,false);
-            Peak(-148,239,64,44,-58,11,true);
-            Peak(-90,381,110,39,8,9,false);
-            mountains = new Mesh { name = "Caldera distant volcanoes" };
+            mountains = new Mesh { name = "Caldera distant volcanoes", indexFormat = IndexFormat.UInt32 };
             mountains.SetVertices(vertices);
-            mountains.SetUVs(0,uv);
+            mountains.SetColors(colors);
             mountains.SetTriangles(triangles,0);
             mountains.RecalculateNormals();
             Show("Volcanic skyline", mountains, skyline);
+            var plumeMaterial = Resources.Load<Material>("TwinCaldera/AshPlume");
+            if (!plumeMaterial || plumeVertices.Count == 0) return;
+            plumes = new Mesh { name = "Caldera ash plumes" };
+            plumes.SetVertices(plumeVertices);
+            plumes.SetUVs(0,plumeUv);
+            plumes.SetUVs(1,plumeShape);
+            plumes.SetTriangles(plumeTriangles,0);
+            // The strips turn to face the camera in the shader, so widen the culling box.
+            var bounds = plumes.bounds; bounds.Expand(300); plumes.bounds = bounds;
+            Show("Ash plumes", plumes, plumeMaterial);
         }
 
-        void Show(string label, Mesh mesh, Material material)
+        static float Read(string s) => float.Parse(s, System.Globalization.CultureInfo.InvariantCulture);
+
+        // One volcano: a closed grid of rings (summit to foot) by spokes (around).
+        static void AddVolcano(string[] f, int stride, List<Vector3> vertices, List<Color> colors, List<int> triangles)
+        {
+            int rings = int.Parse(f[2]), spokes = int.Parse(f[3]);
+            var points = f[4].Split(';');
+            var keptRings = new List<int>();
+            for (int i = 0; i < rings; i += stride) keptRings.Add(i);
+            if (keptRings[keptRings.Count-1] != rings-1) keptRings.Add(rings-1);
+            int around = spokes / stride, start = vertices.Count;
+            foreach (int i in keptRings)
+                for (int j = 0; j < around; j++)
+                {
+                    var c = points[i*spokes + j*stride].Split(',');
+                    vertices.Add(new Vector3(Read(c[0]), Read(c[1]), Read(c[2])));
+                    colors.Add(new Color(Read(c[3]), Read(c[4]), 0, 1));
+                }
+            for (int i = 0; i < keptRings.Count-1; i++)
+                for (int j = 0; j < around; j++)
+                {
+                    int a = start + i*around + j, b = start + i*around + (j+1) % around;
+                    int c = b + around, d = a + around;
+                    triangles.Add(a); triangles.Add(b); triangles.Add(c);
+                    triangles.Add(a); triangles.Add(c); triangles.Add(d);
+                }
+        }
+
+        // One ash column: a bent vertical strip that drifts downwind as it rises.
+        static void AddPlume(string[] f, List<Vector3> vertices, List<Vector2> uv, List<Vector2> shape, List<int> triangles)
+        {
+            var b = f[2].Split(',');
+            var crater = new Vector3(Read(b[0]), Read(b[1]), Read(b[2]));
+            float height = Read(f[3]), r0 = Read(f[4]), r1 = Read(f[5]), glow = Read(f[8]);
+            var wind = new Vector3(Read(f[6]), 0, Read(f[7]));
+            const int Segments = 12;
+            int start = vertices.Count;
+            for (int s = 0; s <= Segments; s++)
+            {
+                float t = (float)s / Segments;
+                var axis = crater + Vector3.up * (height * t) + wind * (t * t);
+                float width = Mathf.Lerp(r0, r1, Mathf.Pow(t, .7f)) * 1.25f;
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    vertices.Add(axis); uv.Add(new Vector2(side, t)); shape.Add(new Vector2(width, glow));
+                }
+                if (s == 0) continue;
+                int k = start + s*2;
+                triangles.Add(k-2); triangles.Add(k); triangles.Add(k+1);
+                triangles.Add(k-2); triangles.Add(k+1); triangles.Add(k-1);
+            }
+        }
+
+        GameObject Show(string label, Mesh mesh, Material material)
         {
             var part = new GameObject(label);
             part.transform.SetParent(transform,false);
@@ -89,12 +118,14 @@ namespace DeadlyJenga.CandyArt
             renderer.sharedMaterial=material;
             renderer.shadowCastingMode=ShadowCastingMode.Off;
             renderer.receiveShadows=false;
+            return part;
         }
 
         void OnDestroy()
         {
             if (surface) Destroy(surface);
             if (mountains) Destroy(mountains);
+            if (plumes) Destroy(plumes);
         }
     }
 }

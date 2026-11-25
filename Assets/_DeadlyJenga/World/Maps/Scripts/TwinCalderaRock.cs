@@ -17,7 +17,7 @@ namespace DeadlyJenga.CastlePrototype
             var box=go.GetComponent<BoxCollider>();
             block.UseOriginalTraversal();
             box.enabled=false;
-            var mesh=Shape(piece,index);
+            var mesh=piece.hull!=null?Hull(piece):Shape(piece,index);
             var hull=go.GetComponent<MeshCollider>();
             hull.sharedMaterial=box.sharedMaterial;
             hull.convex=true;
@@ -41,6 +41,19 @@ namespace DeadlyJenga.CastlePrototype
             var cleanup=stone.AddComponent<TwinCalderaMeshLifetime>();
             cleanup.mesh=mesh;
 
+        }
+
+        // A Blender piece: one vertex per triangle corner keeps every face flat-shaded.
+        // uv.x tells the basalt shader which rock this is (0 = the original basalt).
+        static Mesh Hull(TwinCalderaLayout.Piece p)
+        {
+            int n=p.triangles.Length;
+            var v=new Vector3[n];var uv=new Vector2[n];var tri=new int[n];
+            for(int i=0;i<n;i++){v[i]=p.hull[p.triangles[i]];uv[i]=new Vector2(p.kind,0);tri[i]=i;}
+            var mesh=new Mesh{name=p.name};
+            mesh.vertices=v;mesh.uv=uv;mesh.triangles=tri;
+            mesh.RecalculateNormals();mesh.RecalculateBounds();
+            return mesh;
         }
 
         static Mesh Shape(TwinCalderaLayout.Piece p,int seed)

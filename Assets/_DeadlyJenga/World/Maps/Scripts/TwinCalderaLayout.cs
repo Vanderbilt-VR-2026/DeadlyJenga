@@ -17,6 +17,12 @@ namespace DeadlyJenga.CastlePrototype
             internal string name;
             internal CastlePlacement placement;
             internal float bottomRise, topRise, lean, taper;
+            // Expansion pieces carry their own Blender shape instead of a prism:
+            // vertices in unit-box space, triangles, rock kind and solid fraction.
+            internal Vector3[] hull;
+            internal int[] triangles;
+            internal int kind;
+            internal float fill;
         }
 
         internal static TwinCalderaLayout Create()
@@ -28,6 +34,7 @@ namespace DeadlyJenga.CastlePrototype
             map.Crossing();
             map.Breakaway();
             map.Aprons();
+            map.Expansion();
             return map;
         }
 
@@ -69,7 +76,7 @@ namespace DeadlyJenga.CastlePrototype
 
         // The top and underside share a slope. Each shoe has a horizontal sole
         // and a sloped crown bearing directly against the slab underside.
-        void Flight(string name,Vector3 from,Vector3 to,float width,int parts)
+        void Flight(string name,Vector3 from,Vector3 to,float width,int parts,float shoeDrop=0)
         {
             // Square-cut ends meet both landings flush. The landing width
             // accommodates the lateral setback between successive levels.
@@ -100,7 +107,7 @@ namespace DeadlyJenga.CastlePrototype
                     float t=shoes==1?0:(j==0?-.31f:.31f);
                     var at=mid+axis*(t*length);
                     float depth=length*(shoes==1?.74f:.26f);
-                    float sole=mid.y+t*pitch-Deck-.55f-Mathf.Abs(pitch)*depth/(2*length);
+                    float sole=mid.y+t*pitch-Deck-.55f-Mathf.Abs(pitch)*depth/(2*length)-shoeDrop;
                     Pier(label+" shoe "+j,at,sole,width*.68f,depth*.90f,yaw);
                     float h=mid.y+t*pitch-Deck-sole;
                     Rock(label+" seat "+j,new Vector3(at.x,sole+h/2,at.z),
@@ -212,7 +219,8 @@ namespace DeadlyJenga.CastlePrototype
                 // Retain the thinner central slab at the switchback crossing.
                 float slab=i==2?.98f:1.45f;
                 float width=i==2?3.75f:4.3875f;
-                float run=(length-.05f)*.965f;
+                // Consecutive slabs meet with a 5 cm joint so feet cannot drop through.
+                float run=length-.05f;
                 Rock("Shield radial slab "+i,(a+b)*.5f-Vector3.up*(slab/2),
                     new Vector3(width,slab,run),yaw,slope*run,slope*run,0,1);
                 for(int j=0;j<2;j++)
@@ -267,8 +275,10 @@ namespace DeadlyJenga.CastlePrototype
             for(int i=0;i<count;i++)
             {
                 var p=Vector3.Lerp(a,b,(i+.5f)/count);
+                // Survivors only step up a few centimetres without jumping, so each
+                // tread's walking face continues the incline instead of a flat riser.
                 Rock(name+" tread "+i,p-Vector3.up*.1025f,new Vector3(2.1f,.205f,run-.006f),
-                    yaw,step,0,0,1);
+                    yaw,step,step,0,1);
             }
         }
 
@@ -277,7 +287,9 @@ namespace DeadlyJenga.CastlePrototype
             var high=Node(1,2,-1);
             var low=high+new Vector3(-10.8f,-3,0);
             Landing("Spire overlook",low);
-            Flight("Spire peeling slab",low,high,2.95f,1);
+            // Tall seats on low shoes: once both seats are pulled, the slab drops
+            // past the shoes onto the lower catch instead of resting on them.
+            Flight("Spire peeling slab",low,high,2.95f,1,1.8f);
             // Only the middle of this independent ledge lies beneath the moving
             // slab. Its two shoes stand outside the falling slab's bearing stacks.
             var mid=(low+high)*.5f + new Vector3(0,-2.7f,-1.5f);
@@ -286,13 +298,42 @@ namespace DeadlyJenga.CastlePrototype
                 Pier("Catch leg "+j,mid+Vector3.forward*(j*1.8f),mid.y-.35f,1.32f,1.4f);
         }
 
+        // The Blender expansion districts (organ pipes, obsidian ridge, amphitheater,
+        // arches, summits, boulders and the bridges between them). Each line of the
+        // text asset is one piece: name|kind|center|size|fill|vertices|triangles.
+        void Expansion()
+        {
+            var data=Resources.Load<TextAsset>("TwinCaldera/TwinCalderaExpansion");
+            if(!data) return;
+            foreach(var raw in data.text.Split('\n'))
+            {
+                var line=raw.Trim();
+                if(line.Length==0) continue;
+                var f=line.Split('|');
+                var center=ReadVector(f[2]);
+                var size=ReadVector(f[3]);
+                var points=f[5].Split(';');
+                var hull=new Vector3[points.Length];
+                for(int i=0;i<points.Length;i++) hull[i]=ReadVector(points[i]);
+                var corners=f[6].Split(';',',');
+                var triangles=new int[corners.Length];
+                for(int i=0;i<corners.Length;i++) triangles[i]=int.Parse(corners[i]);
+                Pieces.Add(new Piece{name=f[0],placement=new CastlePlacement(center,Quaternion.identity,
+                    CastleSection.Wall,Mathf.Max(0,Mathf.FloorToInt(center.y)),size),
+                    taper=1,hull=hull,triangles=triangles,kind=int.Parse(f[1]),fill=Read(f[4])});
+            }
+        }
+
+        static float Read(string s)=>float.Parse(s,System.Globalization.CultureInfo.InvariantCulture);
+        static Vector3 ReadVector(string s){var c=s.Split(',');return new Vector3(Read(c[0]),Read(c[1]),Read(c[2]));}
+
         void Aprons()
         {
             // The low silhouettes from the Blender terraces. Each leaning unit
             // sits on a separate broad footing and leaves space at the arrival.
             ApronBlock("Shield",0,-46.5f,-24.4f,3.6f,4f,4.1f,3.6f,18);
             ApronBlock("Shield",1,-40.8f,-26.1f,4.2f,3.6f,4.2f,2.5f,-24);
-            ApronBlock("Shield",2,-35.4f,-30.7f,4.2f,3.5f,4.3f,1.9f,14);
+            // Shield apron 2 is left out: the Hellspine bridge's piers stand there.
             ApronBlock("Shield",3,-22.6f,-26.2f,4.6f,4.2f,4.5f,2.4f,-14);
             ApronBlock("Shield",4,-15.1f,-25.1f,3.7f,3.4f,4.15f,2.3f,20);
             ApronBlock("Spire",0,45.9f,-18.2f,3.8f,3.6f,4.25f,3.7f,-21);
