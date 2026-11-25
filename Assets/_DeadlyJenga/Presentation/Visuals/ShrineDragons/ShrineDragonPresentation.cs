@@ -241,11 +241,12 @@ namespace DeadlyJenga.Presentation
                 for (int i = 0; i < n; i++) rest[i] = bones[i].position;
                 for (int i = 1; i < n; i++) along[i] = along[i - 1] + Vector3.Distance(rest[i], rest[i - 1]);
                 length = Mathf.Max(.001f, along[n - 1]);
-                Vector3 up = Vector3.up;
+                // The rig's bone roll is consistent along the chain, so the head's local "up" marks the back of every segment.
+                Vector3 back = Quaternion.Inverse(bones[0].rotation) * Vector3.up;
                 for (int i = 0; i < n; i++)
                 {
                     Vector3 f = (rest[Mathf.Max(0, i - 1)] - rest[Mathf.Min(n - 1, i + 1)]).normalized;
-                    up = Vector3.ProjectOnPlane(up, f);
+                    Vector3 up = Vector3.ProjectOnPlane(bones[i].rotation * back, f);
                     if (up.sqrMagnitude < 1e-6f) up = Vector3.ProjectOnPlane(Vector3.forward, f);
                     up.Normalize();
                     var inv = Quaternion.Inverse(bones[i].rotation);
