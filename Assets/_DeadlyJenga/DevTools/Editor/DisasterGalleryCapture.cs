@@ -37,6 +37,10 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem("Tools/Deadly Jenga/Captures/Tsunami Shape (Play Mode)")]
         public static void RunTsunamiBatch() => Start("Tsunami");
 
+        // Only the tornado, with a low hero view from the island, a base close-up and a wide view.
+        [MenuItem("Tools/Deadly Jenga/Captures/Tornado Look (Play Mode)")]
+        public static void RunTornadoBatch() => Start("Tornado");
+
         static void Start(string only)
         {
             SessionState.SetString(Key + "Only", only);
@@ -119,6 +123,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Shot(session, name + "-b-wide-8s", false);
                 Shot(session, name + "-c-close-8s", true);
                 if (prefab.name == "Tsunami") yield return TsunamiShots(session, name);
+                if (prefab.name == "Tornado") yield return TornadoShots(session, name);
             }
             DemoDisasters.StopAll(session);
         }
@@ -138,6 +143,22 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return new WaitForSecondsRealtime(3f);
             }
             yield return ImpactShots(session, name, source);
+        }
+
+        static IEnumerator TornadoShots(CastlePlaySession session, string name)
+        {
+            for (int round = 0; round < 2; round++)
+            {
+                var frame = DisasterStates.Active.Select(s => s?.Capture()).FirstOrDefault(f => f != null && f.kind == "Tornado");
+                if (frame == null || frame.values == null || frame.values.Length < 2) { File.AppendAllText(Report, "  no active tornado frame\n"); yield break; }
+                float height = frame.values[0], size = frame.values[1];
+                Vector3 foot = frame.center, toCastle = Vector3.ProjectOnPlane(Services.World.Center - foot, Vector3.up);
+                Vector3 side = toCastle.sqrMagnitude > 1 ? toCastle.normalized : Vector3.forward, across = Vector3.Cross(Vector3.up, side);
+                View(session, name + "-r" + round + "-hero-low", foot + side * size * 4.5f + across * size * 1.5f + Vector3.up * 2.5f, foot + Vector3.up * height * .42f, 70);
+                View(session, name + "-r" + round + "-base", foot + side * size * 2.2f - across * size * 1.2f + Vector3.up * size * .35f, foot + Vector3.up * size * .5f, 65);
+                View(session, name + "-r" + round + "-wide", foot + (side + across * .6f).normalized * height * 2.4f + Vector3.up * height * .35f, foot + Vector3.up * height * .5f, 50);
+                yield return new WaitForSecondsRealtime(2.5f);
+            }
         }
 
         // The wave meeting the castle: splash-back on the upstream face, the gap refilling behind it,
