@@ -137,7 +137,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
             Check(map.GetComponentsInChildren<HingeJoint>().Length == 7, "all seven machines remain seated");
             yield return FollowRoute("West boardwalk", player, driver, new Vector3(-23.7f,1.25f,-22),
-                new Vector3(-15.9f,1.3f,-21), new Vector3(-7.3f,1.65f,-20),
+                new Vector3(-15.9f,1.4f,-22), new Vector3(-7.3f,1.65f,-20),
                 new Vector3(.5f,1.46f,-18.4f), new Vector3(8,1.3f,-19.5f));
             // Confirm physical walkable surfaces at the three tiers before destructive checks.
             var physics = map.gameObject.scene.GetPhysicsScene();
@@ -165,7 +165,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(!Body("Right crossover west section").isKinematic && !Body("Right crossover east section").isKinematic,
                 "pier loss releases three separate sections");
             yield return FollowRoute("East shoreline after crossover collapse", player, driver, new Vector3(17.5f,1.25f,-21.8f),
-                new Vector3(26.2f,1.43f,-21), new Vector3(34.1f,1.35f,-18.4f));
+                new Vector3(26.2f,1.43f,-21), new Vector3(40.8f,1.35f,-23.8f));
             var drum=Body("Tread drum");
             Body("Drum bearing -1").GetComponent<IPushable>().Push(Vector3.left*15,player.gameObject);
             yield return new WaitForSeconds(.6f);

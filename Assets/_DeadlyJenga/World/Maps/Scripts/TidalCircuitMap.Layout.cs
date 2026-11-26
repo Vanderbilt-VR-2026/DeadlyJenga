@@ -325,7 +325,7 @@ namespace DeadlyJenga.CastlePrototype
                         Physics.IgnoreCollision(contacts[contacts.Count - 1], cheek);
                 }
 
-                var arrival = center + heading * (4.95f * side);
+                var arrival = center + heading * (5.65f * side);
                 string name = "Drum boarding " + side;
                 Add(name, arrival.x, arrival.z, 4.99f, 3.95f, 3.8f);
                 Join(name, side < 0 ? "West water bend" : "West return stair");
