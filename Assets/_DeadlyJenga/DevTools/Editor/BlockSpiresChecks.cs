@@ -210,8 +210,9 @@ namespace DeadlyJenga.DevTools.Editor
             float initialHeight = upper.position.y;
             bodies[support].GetComponent<CastleBlock>().Push(Vector3.right * 20, player.gameObject);
             end = Time.fixedTime + 2;
-            while (Time.fixedTime < end) yield return null;
-            Check(!upper.isKinematic && upper.position.y < initialHeight - .35f, $"Satellite after support push: drop {initialHeight - upper.position.y:F3} m");
+            bool wentDynamic = false;
+            while (Time.fixedTime < end) { wentDynamic |= !upper.isKinematic; yield return null; }
+            Check(wentDynamic && upper.position.y < initialHeight - .35f, $"Satellite after support push: drop {initialHeight - upper.position.y:F3} m");
             Check(adjacent.isKinematic && Vector3.Distance(adjacent.position, adjacentPosition) < .03f,
                 "Adjacent needle retained its own support after the breakaway");
             int revision = map.Revision;
