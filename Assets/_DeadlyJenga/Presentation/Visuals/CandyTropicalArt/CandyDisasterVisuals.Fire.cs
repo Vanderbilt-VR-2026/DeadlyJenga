@@ -279,6 +279,7 @@ namespace DeadlyJenga.CandyArt
         void RenderFire()
         {
             BuildBudgetedFlames();
+            BuildFireMasses();
             UpdateFireGlow();
             var lighting=GetComponent<CandyHazardLighting>();
             oldCharred.Clear();
@@ -344,6 +345,6 @@ namespace DeadlyJenga.CandyArt
         }
         void ClearCharred(){if(fireGlow)fireGlow.enabled=false;fireShells.Clear();smoulders.Clear();fireSmokePuffs.Clear();nearFlameSubjects.Clear();nearFireBodies.Clear();detailedFireCounts.Clear();oldNearFireBodies.Clear();flameSubjects.Clear();fireTips.Clear();fireLowTips.Clear();FireTongueTriangleCount=0;foreach(var look in charred.Values)RestoreCharred(look);charred.Clear();burnRenderers.Clear();seenCharred.Clear();}
         public void ReleaseFireSurfaces()=>ClearCharred();
-        void DestroyFire(){ClearCharred();if(fireGlow)Destroy(fireGlow.gameObject);if(fireTongueMesh)Destroy(fireTongueMesh);if(fireLowTongueMesh)Destroy(fireLowTongueMesh);foreach(var material in new[]{fireShell,fireTongue,charredMaterial,smoulderMaterial,fireSmoke})if(material)Destroy(material);}
+        void DestroyFire(){ClearCharred();DestroyFireMasses();if(fireGlow)Destroy(fireGlow.gameObject);if(fireTongueMesh)Destroy(fireTongueMesh);if(fireLowTongueMesh)Destroy(fireLowTongueMesh);foreach(var material in new[]{fireShell,fireTongue,charredMaterial,smoulderMaterial,fireSmoke})if(material)Destroy(material);}
     }
 }

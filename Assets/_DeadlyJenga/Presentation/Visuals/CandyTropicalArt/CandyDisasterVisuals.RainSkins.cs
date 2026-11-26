@@ -82,6 +82,7 @@ namespace DeadlyJenga.CandyArt
                 var top = f.center + new Vector3((Hash(seed) - .5f) * f.size.x, f.size.y * .5f + 20, (Hash(seed + 977) - .5f) * f.size.z);
                 if (!Physics.Raycast(top, Vector3.down, out var hit, f.size.y + 60, mask, QueryTriggerInteraction.Ignore)) continue;
                 if (Services.World != null && hit.point.y <= Services.World.WaterHeight(hit.point) + .15f) continue;   // drops into the sea: no splat
+                RainSplatSound(hit.point);
                 switch (skin)
                 {
                     case RainSkin.Lava:

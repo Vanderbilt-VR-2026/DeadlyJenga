@@ -3,8 +3,9 @@ using UnityEngine;
 
 namespace DeadlyJenga.CandyArt
 {
-    // Meteor impacts: jagged Blender shards (MeteorShardKit) scatter instead of round chips, and every burst gets a
-    // white-hot flash (ImpactFlash) and a billowing dust plume (ImpactDust). Cosmetic only, bounded pools.
+    // Meteor impacts: jagged Blender shards (MeteorShardKit) scatter instead of round chips, every burst plays a
+    // Blender explosion flipbook once (ImpactExplosion: blast -> rolling fireball -> smoke) and leaves a billowing dust
+    // plume (ImpactDust). Cosmetic only, bounded pools.
     public sealed partial class CandyDisasterVisuals
     {
         struct Impact { public Vector3 position; public float born, size; public bool planet; public int seed; }
@@ -13,7 +14,7 @@ namespace DeadlyJenga.CandyArt
         readonly List<Matrix4x4> impactFlashes = new List<Matrix4x4>(MaxImpacts), impactDust = new List<Matrix4x4>(MaxImpacts * 3);
         List<Matrix4x4>[] shardDraws;
         Mesh[] shardKit;
-        Material flashMaterial, dustMaterial;
+        Material flashMaterial, dustMaterial, blastMaterial;
         bool impactKitLoaded;
 
         [System.Serializable] class ShardMesh { public string name; public float[] vertices, normals; public int[] triangles; }
@@ -37,6 +38,9 @@ namespace DeadlyJenga.CandyArt
                     shardDraws[k] = new List<Matrix4x4>(128);
                 }
             }
+            var blastAtlas = Resources.Load<Texture2D>("CandyScenery/ImpactExplosion");
+            var blastShader = Resources.Load<Shader>("CandyScenery/CandyImpactBillboard");
+            if (blastAtlas && blastShader && blastShader.isSupported) { blastMaterial = new Material(blastShader) { name = "Meteor impact blast", enableInstancing = true }; blastMaterial.SetTexture("_BlastAtlas", blastAtlas); }
             if (!stormMist) return;
             flashMaterial = new Material(stormMist) { name = "Meteor impact flash" };
             dustMaterial = new Material(stormMist) { name = "Meteor impact dust" };
@@ -67,7 +71,17 @@ namespace DeadlyJenga.CandyArt
                 float scale = impact.planet ? Mathf.Clamp(impact.size * .9f, 12, 140) : Mathf.Clamp(impact.size * 3.5f, 2, 30);
                 float dustLife = impact.planet ? 6 : 2.6f;
                 if (age > dustLife) { impacts.RemoveAt(i); continue; }
-                if (age < .4f)
+                float blastLife = impact.planet ? 3.2f : 1.7f;
+                if (blastMaterial && age < blastLife)
+                {
+                    // Real blast flipbook, played once; the age rides in the Z scale (see CandyImpactBillboard).
+                    float blastSize = scale * 1.5f;
+                    var cam = DeadlyJenga.Core.Services.Session?.ActiveCamera;
+                    Vector3 facing = cam ? Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up) : Vector3.forward;
+                    if (facing.sqrMagnitude < .001f) facing = Vector3.forward;
+                    impactFlashes.Add(Matrix4x4.TRS(impact.position + Vector3.up * blastSize * .42f, Quaternion.LookRotation(facing.normalized), new Vector3(blastSize, blastSize, Mathf.Max(.001f, age / blastLife))));
+                }
+                else if (!blastMaterial && age < .4f)
                 {
                     float t = age / .4f, s = scale * (.4f + t * .9f) * (1 - t * t);
                     Puff(impactFlashes, impact.position + Vector3.up * s * .25f, s, s, impact.seed * 13);
@@ -82,7 +96,7 @@ namespace DeadlyJenga.CandyArt
                 }
             }
             if (impactDust.Count > 0 && dustMaterial) DrawObjects(impactDust, quad, dustMaterial);
-            if (impactFlashes.Count > 0 && flashMaterial) DrawObjects(impactFlashes, quad, flashMaterial);
+            if (impactFlashes.Count > 0) { var look = blastMaterial ? blastMaterial : flashMaterial; if (look) DrawObjects(impactFlashes, quad, look); }
             if (shardKit != null)
                 for (int k = 0; k < shardKit.Length; k++) { if (shardDraws[k].Count > 0) DrawObjects(shardDraws[k], shardKit[k], chipLook); shardDraws[k].Clear(); }
         }
@@ -90,6 +104,7 @@ namespace DeadlyJenga.CandyArt
         void DestroyImpacts()
         {
             if (flashMaterial) Destroy(flashMaterial);
+            if (blastMaterial) Destroy(blastMaterial);
             if (dustMaterial) Destroy(dustMaterial);
             if (shardKit != null) foreach (var m in shardKit) if (m) Destroy(m);
         }

@@ -104,11 +104,14 @@ namespace DeadlyJenga.CandyArt
                 float spin=Time.time*18+point.id*73;
                 stones.Add(Matrix4x4.TRS(position,Quaternion.Euler(spin*.7f,spin,spin*.3f),Vector3.one*point.size));
                 var back=-point.velocity.normalized;
+                bool plume=HasMeteorTail();
+                if(plume)AddMeteorTail(position,point.velocity,point.size,f.kind=="PlanetKillerMeteor");
                 for(int j=0;j<6;j++)
                 {
                     float fraction=j/5f;Vector3 p=position+back*point.size*(.3f+fraction*2.5f);
-                    Puff(flames,p,point.size*(1-fraction*.78f),point.size*(1.3f-fraction*.8f),point.id*43+j*53);
-                    if(j>2)Puff(smokePuffs,p+back*point.size*.6f,point.size*(.8f+fraction),point.size*(.8f+fraction),j*45);
+                    if(!plume)Puff(flames,p,point.size*(1-fraction*.78f),point.size*(1.3f-fraction*.8f),point.id*43+j*53);
+                    // Smoke trails behind the plume (further back when the long v2 plume is drawn).
+                    if(j>2)Puff(smokePuffs,p+back*point.size*(plume?5.5f:.6f),point.size*(.8f+fraction)*(plume?1.6f:1),point.size*(.8f+fraction)*(plume?1.6f:1),j*45);
                 }
             }
         }
@@ -177,7 +180,7 @@ namespace DeadlyJenga.CandyArt
                 if(!fragment.candy && i%3==0)Puff(dustPuffs,fragment.position+fragment.velocity*(age*.25f)+Vector3.up*age,fragment.size*(3+age*2)*fade,fragment.size*(3+age*2)*fade,fragment.seed);
             }
             MeteorMaterials(out var rockLook,out var chipLook,out var trailLook,out var trailSmokeLook);
-            DrawObjects(stones,rock,rockLook);DrawObjects(chips,rock,chipLook);RenderImpacts(chipLook);
+            DrawObjects(stones,rock,rockLook);DrawObjects(chips,rock,chipLook);RenderImpacts(chipLook);RenderMeteorTails();
             DrawObjects(candyChips,shard,shardMaterial);
             DrawObjects(acidStreaks,quad,rainMaterial?rainMaterial:acid);RenderRainLandings();DrawObjects(smokePuffs,quad,trailSmokeLook);DrawObjects(dustPuffs,quad,dust);DrawObjects(flames,quad,trailLook);
             DrawObjects(windPuffs,quad,stormMist);DrawObjects(stormBolts,quad,stormFlash);
@@ -354,6 +357,7 @@ namespace DeadlyJenga.CandyArt
             float cycle=Mathf.Repeat(Time.time,7);
             float flash=Mathf.Pow(Mathf.Clamp01(1-Mathf.Abs(cycle-1.8f)/.1f),2)+.55f*Mathf.Pow(Mathf.Clamp01(1-Mathf.Abs(cycle-2f)/.075f),2);
             if(previewStormFlash>=0)flash=previewStormFlash;
+            stormFlashLevel=flash;
             float visibility = 1f - tornadoDissolve;
             flash *= visibility;
             storm.SetVector("_StormInfo",new Vector4(size,height,speed,flash));
@@ -475,6 +479,6 @@ namespace DeadlyJenga.CandyArt
             RainLandings(f,skin);
         }
         void ClearObjects(){meteorLooks.Clear();fragments.Clear();landings.Clear();impacts.Clear();lastTornado=null;ReleaseTornadoDepth();}
-        void DestroyObjects(){DestroyRainSkins();DestroyMeteorSkins();DestroyImpacts();foreach(var m in new[]{stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble,tornadoSpray,tornadoFoam,tornadoRemnants})if(m)Destroy(m);if(rock)Destroy(rock);if(quad)Destroy(quad);if(stormNoise)Destroy(stormNoise);if(stormRibbons)Destroy(stormRibbons);}
+        void DestroyObjects(){DestroyRainSkins();DestroyMeteorSkins();DestroyImpacts();DestroyMeteorTails();foreach(var m in new[]{stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble,tornadoSpray,tornadoFoam,tornadoRemnants})if(m)Destroy(m);if(rock)Destroy(rock);if(quad)Destroy(quad);if(stormNoise)Destroy(stormNoise);if(stormRibbons)Destroy(stormRibbons);}
     }
 }

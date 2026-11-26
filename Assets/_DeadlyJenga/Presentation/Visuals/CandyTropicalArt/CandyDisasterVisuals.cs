@@ -60,7 +60,7 @@ namespace DeadlyJenga.CandyArt
             }
             RenderDepartedTornado();
             if(!icy)RestoreIce();
-            Draw(orange,coral);Draw(yellow,lemon);Draw(purple,gravityBubble);Draw(blue,aqua);Draw(green,lime);RenderFire();RenderObjects();RenderEarthquake();
+            Draw(orange,coral);Draw(yellow,lemon);Draw(purple,gravityBubble);Draw(blue,aqua);Draw(green,lime);RenderFire();RenderObjects();RenderEarthquake();DisasterSounds();
         }
         static float Hash(int i)=>Mathf.Repeat(Mathf.Sin(i*127.1f+311.7f)*43758.54f,1);
         void Ball(List<Matrix4x4> list,Vector3 p,Vector3 scale)=>list.Add(Matrix4x4.TRS(p,Quaternion.identity,scale));
