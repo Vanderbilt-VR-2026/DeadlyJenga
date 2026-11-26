@@ -91,7 +91,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(!string.IsNullOrEmpty(runtime.Frame.equipmentEpoch)&&runtime.Frame.equipmentEpoch==previous&&runtime.Frame.equipmentSequence==sequence&&runtime.Frame.equipmentActions.Length==0,"Map rebuild clears transients while retaining the session epoch and highest sequence");
                 Check(!string.IsNullOrEmpty(runtime.Frame.enemyActionEpoch)&&DeadlyJenga.Modes.ModeFrameValidation.Frame(runtime.Frame,Services.World.Blocks.Count),"Map rebuild snapshot retains validated weapon and enemy event headers");
                 pickup=inventory.RegisterPickup(new LifecyclePickup(player.transform.position+Vector3.up*.35f));
-                Check(inventory.RequestPickup(pickup,true)&&inventory.RequestEquipment(true,false,false),"First pickup / draw after map reset is accepted");
+                Check(inventory.RequestPickup(pickup,false)&&inventory.RequestEquipment(true,false,false),"First pickup / draw after map reset is accepted");
                 int consumed=0;cursor.Read(runtime.Frame,_=>consumed++);cursor.Read(runtime.Frame,_=>consumed++);
                 Check(consumed==2,"Existing observer receives the first new-round actions once, even if no empty reset packet arrives");
                 session.developmentReviewTools=true;previous=runtime.Frame.equipmentEpoch;string enemyEpoch=runtime.Frame.enemyActionEpoch;sequence=runtime.Frame.equipmentSequence;
