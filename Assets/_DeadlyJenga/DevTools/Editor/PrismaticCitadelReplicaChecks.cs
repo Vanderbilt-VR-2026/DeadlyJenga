@@ -71,6 +71,7 @@ namespace DeadlyJenga.DevTools.Editor
                     body.rotation = received.blocks[index].rotation;
                     body.gameObject.SetActive(received.active[index]);
                 }
+                Physics.SyncTransforms();
                 int snapshotMismatches = 0;
                 for (int index = 0; index < replica.Bodies.Count; index++)
                 {

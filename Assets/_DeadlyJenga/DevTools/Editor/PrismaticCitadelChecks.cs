@@ -267,7 +267,7 @@ namespace DeadlyJenga.DevTools.Editor
                     throw new InvalidOperationException("The selected bearing is not a production pushable block.");
                 Report($"Pushing {bearing.name} at {bearingStarts[i]} through IPushable.");
                 float strength = (bearing.GetComponent<IDamageable>()?.MaxHealth ?? 11f) + 1f;
-                pushable.Push(Vector3.forward * (i == 0 ? -strength : strength), walker.gameObject);
+                pushable.Push((i == 0 ? Vector3.left : Vector3.right) * (strength * 2.5f), walker.gameObject);
             }
             Next();
         }
