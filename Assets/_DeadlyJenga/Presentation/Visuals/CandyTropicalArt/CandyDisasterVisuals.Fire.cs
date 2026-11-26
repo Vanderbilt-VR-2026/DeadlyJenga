@@ -44,13 +44,14 @@ namespace DeadlyJenga.CandyArt
         void InitializeFire()
         {
             fireCube=Resources.GetBuiltinResource<Mesh>("Cube.fbx");
-            fireTongueMesh=CreateBlockFlameMesh();
+            // Fire v2: with the Blender flipbook the sheets are wide and barely tapered; the flipbook draws the flame shape.
+            var flipbook=Resources.Load<Texture2D>("CandyScenery/FireFlipbook");
+            fireTongueMesh=CreateBlockFlameMesh(flipbook);
             fireLowTongueMesh=CreateCheapBlockFlameMesh();
             wetOverlayShader=Resources.Load<Shader>("CandyScenery/CandyWetSurface");
             fireShell=ObjectMaterial("CandyBlockFire",Color.white);
             fireTongue=new Material(fireShell){name="Candy flame tongues",enableInstancing=true};fireTongue.SetFloat("_Tongue",1);fireTongue.SetFloat("_Cull",0);
             // Fire v2: the tongues play a flipbook rendered from a Blender fire simulation when it is present.
-            var flipbook=Resources.Load<Texture2D>("CandyScenery/FireFlipbook");
             if(flipbook){fireTongue.SetTexture("_FlameAtlas",flipbook);fireTongue.SetFloat("_UseAtlas",1);}
             charredMaterial=ObjectMaterial("CandyCharredBlock",Color.white);
             smoulderMaterial=ObjectMaterial("CandyDisasterSmoke",new Color(.12f,.11f,.10f,.34f));
@@ -58,7 +59,7 @@ namespace DeadlyJenga.CandyArt
             fireSmoke=ObjectMaterial("CandyDisasterSmoke",new Color(.055f,.05f,.048f,.62f));
             burnProps=new MaterialPropertyBlock();
         }
-        static Mesh CreateBlockFlameMesh()
+        static Mesh CreateBlockFlameMesh(bool flipbook=false)
         {
             const int sheets=3,segments=10;
             var vertices=new List<Vector3>(sheets*(segments+1)*2);
@@ -74,8 +75,8 @@ namespace DeadlyJenga.CandyArt
                 {
                     float height=row/(float)segments;
                     float taper=Mathf.Pow(1-height,.64f);
-                    float width=(.29f+Mathf.Sin(height*Mathf.PI)*.19f)*taper+.008f;
-                    float curl=(Mathf.Sin(height*5.3f+sheet*.5f)-Mathf.Sin(sheet*.5f))*.47f*height;
+                    float width=flipbook?.5f-height*.12f:(.29f+Mathf.Sin(height*Mathf.PI)*.19f)*taper+.008f;
+                    float curl=(Mathf.Sin(height*5.3f+sheet*.5f)-Mathf.Sin(sheet*.5f))*(flipbook?.18f:.47f)*height;
                     Vector3 center=Vector3.up*(height-.5f)+right*curl+forward*(height*height*.19f);
                     vertices.Add(center-right*width);
                     vertices.Add(center+right*width);
