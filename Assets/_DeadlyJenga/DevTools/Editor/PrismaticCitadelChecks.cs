@@ -32,9 +32,9 @@ namespace DeadlyJenga.DevTools.Editor
         static float phaseStart;
         static double deadline;
         static bool attemptedApply;
-        static readonly float[] Approach = { -25.5f, -21, -17, -11, -6, -1, 2.5f };
-        static readonly float[] UpperRoute = { -17.5f, -11, -7, -1 };
-        static readonly float[] UpperRails = { -12.29f, -9.71f, -2.29f };
+        static readonly float[] Approach = { -51.5f, -47f, -43.9f, -40.8f, -37.7f, -34.6f, -31.5f };
+        static readonly float[] UpperRoute = { -48f, -45f, -42f, -39f };
+        static readonly float[] UpperRails = { 999f, 999f, 999f };
 
         sealed class Driver : ICastleSurvivorDriver
         {
@@ -219,7 +219,7 @@ namespace DeadlyJenga.DevTools.Editor
             Shot("04-bearing-before", new Vector3(-12, 9, -38), new Vector3(-2, 4, -21), 57);
 
             Check(!MatchSetup.SelectedMap.walkableIsland && !walker.HasWalkableIsland, "Original lethal sand rules remained active.");
-            var start = Point(0, .42f, Approach[0]);
+            var start = Point(0, 1.65f, Approach[0]);
             walker.Place(start, Quaternion.identity);
             driver = new Driver { Destination = start };
             walker.externallyDriven = true;
@@ -241,7 +241,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
             if (flatOffset.magnitude > .45f) return;
             var standing = walker.StandingBody;
-            if (walker.Sinking || !standing || !map.Bodies.Contains(standing) || standing.position.y > Point(0, .3f, 0).y)
+            if (walker.Sinking || !standing || !map.Bodies.Contains(standing) || standing.position.y > Point(0, 2.0f, 0).y)
                 return;
             Report($"Ground route waypoint {waypoint} reached on {standing.name} at {walker.transform.position}");
             waypoint++;
@@ -254,9 +254,9 @@ namespace DeadlyJenga.DevTools.Editor
         static void StartCollapse()
         {
             driver.Destination = walker.transform.position;
-            var coordinates = new[] { Point(-4.535f, 2.25f, -21.96f), Point(-4.535f, 2.25f, -20.04f) };
+            var coordinates = new[] { Point(-8.0f, 9.025f, -43.5f), Point(8.0f, 9.025f, -43.5f) };
             bearings = coordinates.Select(FindBlock).ToArray();
-            span = FindBlock(Point(0, 5.25f, -21));
+            span = FindBlock(Point(0, 18.75f, -43.5f));
             bearingStarts = bearings.Select(body => body.position).ToArray();
             spanStart = span.position;
             Report($"Observing span {span.name} at {spanStart} after pushing its two left bearings.");
@@ -291,7 +291,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
             float spanMove = span ? spanStart.y - span.position.y : float.PositiveInfinity;
             Check(spanMove > .50f, $"Independent gallery span dropped {spanMove:F2} m after bearing failure.");
-            var start = Point(3.25f, 6.12f, -18.6f);
+            var start = Point(-15.0f, 19.65f, -48.0f);
             walker.Place(start, Quaternion.identity);
             driver.Destination = start;
             waypoint = 0;
@@ -300,11 +300,11 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void WalkUpperRoute()
         {
-            var goal = Point(3.25f, 6, UpperRoute[waypoint]);
+            var goal = Point(-15.0f, 19.5f, UpperRoute[waypoint]);
             driver.Destination = goal;
             var position = walker.transform.position;
             var local = map.transform.InverseTransformPoint(position);
-            if (!walker.Alive || local.y < 4.8f || Time.time - phaseStart > 7f)
+            if (!walker.Alive || local.y < 18.0f || Time.time - phaseStart > 7f)
             {
                 Check(false, $"Post-collapse upper route waypoint {waypoint} blocked at {position}; alive={walker.Alive}, suspended={walker.InputSuspended}");
                 Rebuild();
