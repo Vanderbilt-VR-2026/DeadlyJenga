@@ -13,6 +13,8 @@ namespace DeadlyJenga.CastlePrototype
 
         public static List<CastlePlacement> Build()
         {
+            var asset = Resources.Load<TextAsset>("WalledCastleBlender");
+            if (asset) return LoadBlender(asset.text);
             var fort = new WalledCastleLayout();
             foreach (int side in new[] { -1, 1 })
             {
@@ -57,6 +59,26 @@ namespace DeadlyJenga.CastlePrototype
             // The second gallery meets the rear rampart at nine metres.
             fort.Box(0, 9, 25.8f, 1.65f, .24f, 5.8f, Yellow);
             return fort.blocks;
+        }
+
+        static List<CastlePlacement> LoadBlender(string text)
+        {
+            var list = new List<CastlePlacement>(3400);
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            foreach (var raw in text.Split('\n'))
+            {
+                var line = raw.Trim();
+                if (line.Length == 0) continue;
+                var p = line.Split(',');
+                if (p.Length < 12) continue;
+                var center = new Vector3(float.Parse(p[0], inv), float.Parse(p[1], inv), float.Parse(p[2], inv));
+                var size = new Vector3(float.Parse(p[3], inv), float.Parse(p[4], inv), float.Parse(p[5], inv));
+                var rot = new Quaternion(float.Parse(p[6], inv), float.Parse(p[7], inv), float.Parse(p[8], inv), float.Parse(p[9], inv));
+                var sec = (CastleSection)int.Parse(p[10], inv);
+                int course = int.Parse(p[11], inv);
+                list.Add(new CastlePlacement(center, rot, sec, course, size));
+            }
+            return list;
         }
 
         // The reviewed Blender scene uses the same metre scale. Blender Y is Unity Z.
