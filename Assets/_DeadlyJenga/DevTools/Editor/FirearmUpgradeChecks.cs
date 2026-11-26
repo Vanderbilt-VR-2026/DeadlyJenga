@@ -105,7 +105,7 @@ namespace DeadlyJenga.DevTools.Editor
             var player=session.Survivor();var controls=player.GetComponent<CandyEquipment>();
             var bot=session.SurvivorBots.SpawnOne();Check(bot,"Physical target spawns");bot.GetComponent<CastleBotBrain>().enabled=false;var target=bot.GetComponent<CastleSurvivor>();target.InputDriver=null;
             player.Place(new Vector3(150,10.05f,120),Quaternion.identity);player.InputSuspended=true;target.Place(new Vector3(150,10.05f,150),Quaternion.identity);target.InputSuspended=true;yield return new WaitForSeconds(.2f);
-            int id=runtime.RegisterPickup(new Pickup{Kind=EquipmentKind.SheriffHammer,Position=player.transform.position+Vector3.forward*.6f+Vector3.up*.2f});Check(runtime.RequestPickup(id,true),"Revolver occupies the existing single inventory slot");controls.SetEquipped(true);yield return null;
+            int id=runtime.RegisterPickup(new Pickup{Kind=EquipmentKind.SheriffHammer,Position=player.transform.position+Vector3.forward*.6f+Vector3.up*.2f});Check(runtime.RequestPickup(id,true),"Revolver occupies the existing single inventory slot");controls.SetEquipped(true);yield return new WaitForSeconds(.55f);
             player.viewCamera.transform.rotation=Quaternion.LookRotation(target.Capsule.bounds.center-player.viewCamera.transform.position);Physics.SyncTransforms();float health=target.Health;
             session.SetMenu(false);player.InputSuspended=false;
             File.AppendAllText(Report,$"DIAGNOSTIC equipment={JsonUtility.ToJson(controls.Equipment)} menu={session.MenuOpen} alive={player.Alive} focused={player.HasInputFocus} climb={player.Climbing} vault={player.Vaulting} phase={runtime.Frame.phase} muzzle={controls.MuzzlePose.position} eye={player.ViewPose.position}\n");
