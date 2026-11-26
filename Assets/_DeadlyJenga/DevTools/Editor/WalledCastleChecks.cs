@@ -120,7 +120,7 @@ namespace DeadlyJenga.DevTools.Editor
             BotObjectives.Current = routes;
             var journeys = new[] {
                 (new Vector3(0,0,-37.7f),new Vector3(0,.9f,-34.55f)),
-                (new Vector3(-20.7f,0,-16.6f),new Vector3(-20.7f,3,-25.6f)),
+                (new Vector3(-20.7f,0,-16.6f),new Vector3(-20.3f,3,-24.8f)),
                 (new Vector3(20.7f,0,-16.6f),new Vector3(20.7f,3,-25.6f)),
                 (new Vector3(0,0,-18.8f),new Vector3(0,.9f,-13)),
                 (new Vector3(24f,12.08f,-12f),new Vector3(24f,12.0f,3f)),
