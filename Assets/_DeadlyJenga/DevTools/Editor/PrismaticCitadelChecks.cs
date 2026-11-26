@@ -33,7 +33,7 @@ namespace DeadlyJenga.DevTools.Editor
         static double deadline;
         static bool attemptedApply;
         static readonly float[] Approach = { -51.5f, -47f, -43.9f, -40.8f, -37.7f, -34.6f, -31.5f };
-        static readonly float[] UpperRoute = { -48f, -45f, -42f, -39f };
+        static readonly float[] UpperRoute = { 2f, 5f, 8f, 11f };
         static readonly float[] UpperRails = { 999f, 999f, 999f };
 
         sealed class Driver : ICastleSurvivorDriver
@@ -291,7 +291,7 @@ namespace DeadlyJenga.DevTools.Editor
             }
             float spanMove = span ? spanStart.y - span.position.y : float.PositiveInfinity;
             Check(spanMove > .50f, $"Independent gallery span dropped {spanMove:F2} m after bearing failure.");
-            var start = Point(-15.0f, 19.65f, -48.0f);
+            var start = Point(-52.0f, 19.65f, 1.0f);
             walker.Place(start, Quaternion.identity);
             driver.Destination = start;
             waypoint = 0;
@@ -300,7 +300,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void WalkUpperRoute()
         {
-            var goal = Point(-15.0f, 19.5f, UpperRoute[waypoint]);
+            var goal = Point(-52.0f, 19.5f, UpperRoute[waypoint]);
             driver.Destination = goal;
             var position = walker.transform.position;
             var local = map.transform.InverseTransformPoint(position);

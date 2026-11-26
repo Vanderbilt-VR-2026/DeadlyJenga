@@ -74,14 +74,22 @@ namespace DeadlyJenga.DevTools.Editor
                 }
                 Physics.SyncTransforms();
                 int snapshotMismatches = 0;
+                string firstMismatch = "";
                 for (int index = 0; index < replica.Bodies.Count; index++)
                 {
                     var body = replica.Bodies[index];
-                    if (!body.isKinematic || body.gameObject.activeSelf != snapshot.active[index]
-                        || !SamePose(body, snapshot.blocks[index])) snapshotMismatches++;
+                    bool kinOk = body.isKinematic;
+                    bool actOk = body.gameObject.activeSelf == snapshot.active[index];
+                    bool posOk = SamePose(body, snapshot.blocks[index]);
+                    if (!kinOk || !actOk || !posOk)
+                    {
+                        if (snapshotMismatches == 0)
+                            firstMismatch = $" [idx={index} kin={kinOk} act={actOk} posDelta={(body.position - snapshot.blocks[index].position).magnitude:F4} rotDelta={Quaternion.Angle(body.rotation, snapshot.blocks[index].rotation):F3} txDelta={(body.transform.position - snapshot.blocks[index].position).magnitude:F4}]";
+                        snapshotMismatches++;
+                    }
                 }
                 check(snapshotMismatches == 0,
-                    $"Replica applied all authoritative poses and active bits, including displaced index {displaced} and deleted index {deleted}");
+                    $"Replica applied all authoritative poses and active bits, including displaced index {displaced} and deleted index {deleted} (mismatches={snapshotMismatches}{firstMismatch})");
             }
             finally
             {
