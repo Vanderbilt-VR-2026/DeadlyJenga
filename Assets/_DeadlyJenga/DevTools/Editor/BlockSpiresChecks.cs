@@ -208,7 +208,7 @@ namespace DeadlyJenga.DevTools.Editor
             var adjacentPosition = adjacent.position;
             var upper = bodies[support + 1];
             float initialHeight = upper.position.y;
-            bodies[support].GetComponent<CastleBlock>().Push(Vector3.right * 11, player.gameObject);
+            bodies[support].GetComponent<CastleBlock>().Push(Vector3.right * 20, player.gameObject);
             end = Time.fixedTime + 2;
             while (Time.fixedTime < end) yield return null;
             Check(!upper.isKinematic && upper.position.y < initialHeight - .35f, $"Satellite after support push: drop {initialHeight - upper.position.y:F3} m");
