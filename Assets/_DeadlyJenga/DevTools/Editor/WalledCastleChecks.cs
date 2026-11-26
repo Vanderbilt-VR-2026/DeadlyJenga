@@ -119,12 +119,12 @@ namespace DeadlyJenga.DevTools.Editor
             var routes = new Travel();
             BotObjectives.Current = routes;
             var journeys = new[] {
-                (new Vector3(0,0,-37.7f),new Vector3(0,.9f,-28)),
-                (new Vector3(-16.6f,0,-20.8f),new Vector3(-16.6f,3,-15.2f)),
+                (new Vector3(0,0,-21.5f),new Vector3(0,.9f,-25.45f)),
+                (new Vector3(-20.7f,0,-16.6f),new Vector3(-20.7f,3,-25.6f)),
                 (new Vector3(20.7f,0,-16.6f),new Vector3(20.7f,3,-25.6f)),
                 (new Vector3(0,0,-18.8f),new Vector3(0,.9f,-13)),
-                (new Vector3(8.5f,0,9.6f),new Vector3(8.5f,4.5f,23)),
-                (new Vector3(.95f,13.5f,15.84f),new Vector3(.95f,16.2f,21.88f)),
+                (new Vector3(-5.9f,0,13.0f),new Vector3(-5.9f,4.8f,20.1f)),
+                (new Vector3(3.9f,12.0f,17.5f),new Vector3(5.0f,14.1f,14.1f)),
             };
             var bots = new List<CastleBotBrain>();
             for (int i=0;i<journeys.Length;i++)
@@ -228,8 +228,8 @@ namespace DeadlyJenga.DevTools.Editor
                     var bypass=bodies[Index(new Vector3(-24,8.25f,2.5f))];
                     Check(Mathf.Abs(bypass.position.y-World(new Vector3(0,8.25f,0)).y)<.25f,"Opposite rampart remains at route height");
                     var walker = bots[0];
-                    walker.Motor.Teleport(World(new Vector3(-24,9.08f,-12)),Quaternion.identity);
-                    Vector3 destination = World(new Vector3(-24,9,3));
+                    walker.Motor.Teleport(World(new Vector3(-24,12.08f,-12)),Quaternion.identity);
+                    Vector3 destination = World(new Vector3(-24,12.0f,3));
                     routes.tasks[walker.gameObject]=new BotObjective { id="west-wall-after-breach",kind=BotObjectiveKind.Travel,
                         position=destination,radius=.75f,priority=3 };
                     float until = Time.fixedTime + 18;
