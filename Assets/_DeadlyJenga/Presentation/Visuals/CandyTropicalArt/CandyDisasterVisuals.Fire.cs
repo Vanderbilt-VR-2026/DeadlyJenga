@@ -47,7 +47,7 @@ namespace DeadlyJenga.CandyArt
             // Fire v2: with the Blender flipbook the sheets are wide and barely tapered; the flipbook draws the flame shape.
             var flipbook=Resources.Load<Texture2D>("CandyScenery/FireFlipbook");
             fireTongueMesh=CreateBlockFlameMesh(flipbook);
-            fireLowTongueMesh=CreateCheapBlockFlameMesh();
+            fireLowTongueMesh=CreateCheapBlockFlameMesh(flipbook);
             wetOverlayShader=Resources.Load<Shader>("CandyScenery/CandyWetSurface");
             fireShell=ObjectMaterial("CandyBlockFire",Color.white);
             fireTongue=new Material(fireShell){name="Candy flame tongues",enableInstancing=true};fireTongue.SetFloat("_Tongue",1);fireTongue.SetFloat("_Cull",0);
@@ -93,11 +93,13 @@ namespace DeadlyJenga.CandyArt
             var bounds=mesh.bounds;bounds.Expand(.7f);mesh.bounds=bounds;
             return mesh;
         }
-        static Mesh CreateCheapBlockFlameMesh()
+        static Mesh CreateCheapBlockFlameMesh(bool flipbook=false)
         {
+            // Two crossed ribbons (4 triangles). With the Blender flipbook they are wide quads so the flipbook draws the flame.
+            float top0=flipbook?-.42f:.03f,top1=flipbook?.42f:.19f,bottom=flipbook?.5f:.33f;
             var vertices=new[]{
-                new Vector3(-.33f,-.5f,0),new Vector3(.33f,-.5f,0),new Vector3(.03f,.5f,0),new Vector3(.19f,.5f,0),
-                new Vector3(0,-.5f,-.33f),new Vector3(0,-.5f,.33f),new Vector3(0,.5f,.03f),new Vector3(0,.5f,.19f)
+                new Vector3(-bottom,-.5f,0),new Vector3(bottom,-.5f,0),new Vector3(top0,.5f,0),new Vector3(top1,.5f,0),
+                new Vector3(0,-.5f,-bottom),new Vector3(0,-.5f,bottom),new Vector3(0,.5f,top0),new Vector3(0,.5f,top1)
             };
             var corners=new[]{Vector2.zero,Vector2.right,Vector2.up,Vector2.one};
             var mesh=new Mesh{
